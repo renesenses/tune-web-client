@@ -56,8 +56,8 @@
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
-  import { entreesPochette } from '../../lib/actionsPochette';
-  import { enfilerAlbum } from '../../lib/enfilerAlbum';
+  import { objetAlbum, objetArtiste, objetLabel, objetPlaylist, type ObjetMenu } from '../../lib/gestesObjet';
+  import MenuObjetV2 from './MenuObjetV2.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { estDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import QualiteAlbum from './QualiteAlbum.svelte';
@@ -421,22 +421,15 @@
   }
 
   /**
-   * Le menu de la vignette d'ALBUM — `lib/actionsPochette` en décide le contenu.
-   *
-   * Cet écran n'en avait AUCUN : son bouton était présent et grisé, libellé
-   * « Autres actions — bientôt ». Il montre pourtant le même album que
-   * `FavoritesV2`, où « Ajouter à la file » existait déjà. Deux chemins vers la
-   * même chose, deux offres différentes.
-   *
-   * Un album de SERVICE n'a pas d'`album_id` : la route de la file ne
-   * s'applique pas, il n'a donc aucune entrée, donc plus de bouton du tout.
+   * Les menus « … » de cet écran — albums, artistes, labels, playlists — viennent
+   * de `lib/actionsPochette` et `lib/gestesObjet` (menus d'objets, 26/09/2026) :
+   * le même album y a le même menu que dans la Bibliothèque ou les Favoris,
+   * local comme de service. Cet écran ne donne que l'OBJET.
    */
-  function menuAlbum(a: any) {
-    return entreesPochette(
-      { type: 'album', idBibliotheque: estLocal(a) ? a?.id ?? null : null },
-      { enfiler: () => void enfilerAlbum(a?.id, a?.title) },
-      (k) => $t(k as any),
-    );
+  function objetPlaylistTrouvee(pl: PlaylistTrouvee): ObjetMenu {
+    return pl.idLocal != null
+      ? { type: 'playlist', id: pl.idLocal, nom: pl.nom }
+      : objetPlaylist({ source: pl.serviceSource, source_id: pl.idService, name: pl.nom });
   }
 
   /**
@@ -1108,7 +1101,7 @@
                     onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                     onLire={a.id != null ? () => lireAlbum(a.id!) : null}
                     onOuvrir={() => ouvrirFiche(a)}
-                    menu={menuAlbum(a)}
+                    objet={objetAlbum(a)}
                     nom={a.title}
                   >
                     <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
@@ -1228,6 +1221,7 @@
                         etiquettes={estLocal(ar) ? { itemType: 'artist', itemId: ar.id! } : null}
                         onEditer={estLocal(ar) ? () => (artisteEnEdition = ar) : null}
                         onOuvrir={() => ouvrirArtiste(ar)}
+                        objet={objetArtiste(ar)}
                         nom={ar.name}
                       >
                         <!-- Même raison que le meilleur résultat : sans la
@@ -1291,10 +1285,13 @@
           <h2>{$t('v2.rech.labels' as any)}</h2>
           <div class="labels">
             {#each labels as l (l.name)}
+              <span class="labhote">
               <button class="lab" onclick={() => ouvrirLabel(l.name)} title={l.name}>
                 <span class="ln">{l.name}</span>
                 <span class="lc">{$t('v2.rech.labelAlbums' as any).replace('{n}', String(l.album_count))}</span>
               </button>
+              <MenuObjetV2 objet={objetLabel(l.name)} gestes={{ ouvrir: () => ouvrirLabel(l.name) }} nom={l.name} />
+              </span>
             {/each}
           </div>
         </section>
@@ -1342,7 +1339,7 @@
                     onEditer={local_ ? () => (albumEnEdition = a) : null}
                     onLire={local_ || (a.source && a.source_id) ? () => ouvrirOuLire(a) : null}
                     onOuvrir={local_ || (a.source && a.source_id) ? () => ouvrirFiche(a) : null}
-                    menu={menuAlbum(a)}
+                    objet={objetAlbum(a)}
                     nom={a.title}
                   >
                     <AlbumArt coverPath={a.cover_path} albumId={local_ ? a.id : null} size={0} alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} />
@@ -1437,6 +1434,8 @@
           <h2>{$t('v2.rech.playlists' as any)}</h2>
           <div class="list">
             {#each lesPlaylists as pl, i (pl.source + ':' + (pl.idLocal ?? pl.idService ?? i))}
+              <div class="plhote">
+              <span class="plmenu"><MenuObjetV2 objet={objetPlaylistTrouvee(pl)} nom={pl.nom ?? ''} /></span>
               <button class="trk pl-row" onclick={() => lirePlaylist(pl)}>
                 <span class="plg" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h11M4 12h11M4 17h7M18 15V8l3 .6"/></svg>
@@ -1444,6 +1443,7 @@
                 <span class="ti">{pl.nom}<em>{pl.source}</em></span>
                 <span class="dur">{String(pl.pistes)}</span>
               </button>
+              </div>
             {/each}
           </div>
         </section>
@@ -1627,6 +1627,12 @@
   .labels{display:flex; flex-wrap:wrap; gap:8px}
   .lab{display:flex; flex-direction:column; align-items:flex-start; gap:2px; max-width:260px; padding:8px 12px; border-radius:10px; border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt); cursor:pointer; text-align:left}
   .lab:hover{border-color:var(--v2-acc1)}
+  /* Menus d'objets : le « … » d'un label à côté de sa pastille, celui d'une
+     playlist au bout de sa ligne — jamais DANS le bouton. */
+  .labhote{display:inline-flex; align-items:center; gap:2px}
+  .plhote{position:relative}
+  .plhote > .pl-row{padding-right:48px}
+  .plmenu{position:absolute; right:8px; top:50%; transform:translateY(-50%); z-index:1}
   .ln{font-weight:600; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lc{font-size:12px; color:var(--v2-txt3)}
   .pl{font:600 10px var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}

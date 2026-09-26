@@ -65,8 +65,10 @@ describe('🔴 la bifurcation n’est écrite qu’une fois', () => {
 
   it('la fiche et la liste passent par le MÊME appel', () => {
     const appels = (sansCommentaires.match(/editerCollection\(/g) ?? []).length;
-    // La déclaration, plus exactement deux appelants : la liste et la fiche.
-    expect(appels).toBe(3);
+    // La déclaration, plus exactement trois appelants : la liste, la fiche, et
+    // l'entrée « Renommer » du menu « … » d'une collection manuelle (menus
+    // d'objets, 26/09/2026) — qui ouvre la MÊME modale, jamais une copie.
+    expect(appels).toBe(4);
   });
 });
 

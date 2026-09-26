@@ -45,8 +45,10 @@
    *
    * ## Le contenu du menu ne vit PAS ici
    *
-   * Il vient de `lib/actionsPochette`, un module que les treize écrans
-   * appellent. La raison est celle de `lib/menuPiste` : une garde écrite contre
+   * Il vient de `lib/actionsPochette` (quelles entrées) et de
+   * `lib/gestesObjet` (comment chacune se fait), par `MenuObjetV2` — le MÊME
+   * composant que les lignes de liste (menus d'objets, 26/09/2026). L'écran ne
+   * passe plus un tableau : il passe l'OBJET (`objet`). La raison est celle de `lib/menuPiste` : une garde écrite contre
    * ce composant ne peut que lire son TEXTE, et un texte présent ne prouve pas
    * qu'il s'exécute. La liste sortie dans un module, la garde l'appelle et
    * regarde ce qui en sort. Et treize écrans qui construisent chacun son
@@ -54,7 +56,7 @@
    * sur le menu de piste (deux chemins vers la même chose, pas les mêmes
    * gestes).
    *
-   * ## Le menu est PORTÉ à la racine du document
+   * ## Le menu est PORTÉ à la racine du document (`MenuObjetV2`)
    *
    * Comme `MenuPisteV2`, et pour la même raison : `.pa` porte `overflow:
    * hidden` (c'est lui qui arrondit la pochette), la carte de la Bibliothèque
@@ -88,11 +90,11 @@
     favoriteSmartPlaylistIds,
   } from '../../lib/stores/profile';
   import { basculerFavoriLocal, estFavoriLocal, type RefLocale } from '../../lib/favorisLocaux';
-  import { portail } from '../../lib/portail';
-  import { styleMenuAncre, LARGEUR_MENU } from '../../lib/ancrageMenu';
   import type { Snippet } from 'svelte';
   import type { CibleEtiquette } from '../../lib/cibleEtiquette';
-  import type { EntreePochette } from '../../lib/actionsPochette';
+  import type { GestesPochette } from '../../lib/actionsPochette';
+  import { objetAUnMenu, type ObjetMenu } from '../../lib/gestesObjet';
+  import MenuObjetV2 from './MenuObjetV2.svelte';
 
   interface Props {
     /** La pochette : `AlbumArt`, `MosaiquePochettes`, ce que l'appelant veut. */
@@ -131,15 +133,21 @@
      */
     onOuvrir?: (() => void) | null;
     /**
-     * Entrées du menu d'actions (coin bas-gauche) — `entreesPochette()` les
-     * rend, l'appelant ne les compose pas à la main.
+     * L'OBJET du menu d'actions (coin bas-gauche) — `lib/gestesObjet`
+     * (`objetAlbum`, `objetPlaylist`…). Le menu en découle ; l'appelant ne
+     * compose plus ses entrées.
      *
-     * VIDE, le bouton est ABSENT. Pas grisé : voir la règle plus haut.
-     *
-     * `danger` teinte l'entrée : partager pose un jeton PUBLIC, ce n'est pas
-     * un geste anodin qu'on veut au milieu des autres sans le dire.
+     * Absent, ou sans aucune entrée, le bouton est ABSENT. Pas grisé : voir la
+     * règle plus haut.
      */
-    menu?: EntreePochette[];
+    objet?: ObjetMenu | null;
+    /** Gestes propres à l'écran (retirer de la collection ouverte), ou le
+     *  chemin d'« Ouvrir » dans son calque. Ils ne changent pas la liste. */
+    gestesMenu?: GestesPochette;
+    /** Relire l'écran après un geste qui change sa liste. */
+    rafraichir?: () => void;
+    /** L'objet est montré dans une collection MANUELLE ouverte. */
+    dansCollectionManuelle?: boolean;
     /** Nom de l'objet, pour les libellés d'accessibilité. */
     nom?: string;
   }
@@ -151,7 +159,10 @@
     onEditer = null,
     onLire = null,
     onOuvrir = null,
-    menu = [],
+    objet = null,
+    gestesMenu = {},
+    rafraichir,
+    dansCollectionManuelle = false,
     nom = '',
   }: Props = $props();
 
@@ -197,39 +208,24 @@
   /** Panneau d'étiquettes, ouvert au clic sur le bouton du bas-droit. */
   let panneauOuvert = $state(false);
   /**
-   * Menu d'actions : la boîte ÉCRAN du bouton qui l'a ouvert, ou `null` quand
-   * il est fermé.
-   *
-   * Ce n'est pas un booléen : le menu vit à la racine du document, il ne sait
-   * donc plus où était son bouton. `lib/ancrageMenu` a besoin de ces
-   * coordonnées.
+   * Le menu d'actions — `MenuObjetV2`, sans bouton propre : c'est le coin
+   * bas-gauche qui l'ouvre, aux coordonnées ÉCRAN de ce coin.
    */
-  let ancre = $state<DOMRect | null>(null);
-  const style = $derived(ancre ? styleMenuAncre(ancre, menu.length, window) : '');
-
+  let menuObjet = $state<ReturnType<typeof MenuObjetV2> | null>(null);
+  let menuOuvert = $state(false);
+  /**
+   * « Ouvrir » du menu = le clic sur la pochette : le même chemin (le calque de
+   * l'écran), sauf si l'écran en donne un autre.
+   */
+  const gestesDuMenu = $derived<GestesPochette>(onOuvrir ? { ouvrir: onOuvrir, ...gestesMenu } : gestesMenu);
+  /** Le bouton n'existe que si le menu a au moins une entrée — absent sinon. */
+  const menuPresent = $derived(!!objet && objetAUnMenu(objet, gestesDuMenu));
   function ouvrirMenu(ev: MouseEvent) {
     ev.stopPropagation();
     ev.preventDefault();
-    const b = (ev.currentTarget as HTMLElement).getBoundingClientRect();
-    ancre = ancre ? null : b;
-  }
-  /** Le menu se referme : choix, clic ailleurs, Échap, et tout mouvement de la
-   *  page — ancré à des coordonnées figées, il suivrait le bouton de loin. */
-  function fermerMenu() {
-    ancre = null;
-  }
-  function fermerEchap(e: KeyboardEvent) {
-    if (e.key === 'Escape') fermerMenu();
-  }
-  function choisir(ev: MouseEvent, e: EntreePochette) {
-    ev.stopPropagation();
-    ev.preventDefault();
-    fermerMenu();
-    e.faire();
+    menuObjet?.basculer((ev.currentTarget as HTMLElement).getBoundingClientRect());
   }
 </script>
-
-<svelte:window onkeydown={fermerEchap} onresize={fermerMenu} />
 
 <div class="pa">
   {@render children()}
@@ -271,12 +267,12 @@
 
   <!-- Menu d'actions. AUCUNE entrée, AUCUN bouton : « ce qui ne s'applique pas
        est absent, pas grisé ». Il était grisé sur huit écrans sur treize. -->
-  {#if menu.length}
+  {#if menuPresent}
     <button
       class="coin bl"
-      class:ouvert={!!ancre}
+      class:ouvert={menuOuvert}
       aria-haspopup="menu"
-      aria-expanded={!!ancre}
+      aria-expanded={menuOuvert}
       aria-label={$t('v2.cover.more' as any)}
       title={$t('v2.cover.more' as any)}
       onclick={ouvrirMenu}
@@ -310,20 +306,10 @@
   {/if}
 </div>
 
-<!-- Le menu, PORTÉ à la racine du document. Le fond ferme au clic ET consomme
-     l'événement : la vignette qu'il recouvre ouvre le détail au clic, refermer
-     le menu ne doit pas l'ouvrir. -->
-{#if ancre && menu.length}
-  <div class="fond tune-v2" role="presentation" use:portail
-    onclick={(e) => { e.stopPropagation(); e.preventDefault(); fermerMenu(); }}
-    onwheel={fermerMenu}>
-    <div class="menu" role="menu" style={style}>
-      {#each menu as e, i (i)}
-        <button role="menuitem" class:danger={e.danger} title={e.libelle}
-          onclick={(ev) => choisir(ev, e)}>{e.libelle}</button>
-      {/each}
-    </div>
-  </div>
+<!-- Le menu : `MenuObjetV2`, porté à la racine du document par lui-même. -->
+{#if objet}
+  <MenuObjetV2 bind:this={menuObjet} {objet} gestes={gestesDuMenu} {rafraichir}
+    {dansCollectionManuelle} bouton={false} {nom} surOuverture={(o) => (menuOuvert = o)} />
 {/if}
 
 {#if panneauOuvert && etiquettes}
@@ -491,56 +477,6 @@
     outline-offset: 2px;
     opacity: 1;
   }
-
-  /*
-    Le menu est PORTÉ à la racine du document (`use:portail`), comme celui de
-    `MenuPisteV2`. Ancré dans la pochette, il se faisait rogner : `.pa` porte
-    `overflow: hidden` (c'est lui qui arrondit la pochette) et la carte de la
-    Bibliothèque porte `content-visibility: auto`, donc `contain: layout style
-    paint`, qui capture même un `position: fixed`.
-
-    🔴 `position: fixed` est INDISPENSABLE ici : `styleMenuAncre` ne rend que
-    `left`, `top`/`bottom` et `max-height`. En `absolute`, ces coordonnées se
-    liraient contre le bloc conteneur et le panneau atterrirait n'importe où.
-  */
-  .fond { position: fixed; inset: 0; z-index: 900; }
-  .menu {
-    position: fixed;
-    /* = LARGEUR_MENU de lib/ancrageMenu : ce module calcule `left` en retirant
-       cette largeur du bord droit du bouton. Une autre valeur ici décalerait le
-       panneau de la différence. */
-    width: 208px;
-    z-index: 901;
-    /* `styleMenuAncre` pose un `max-height` égal à la place du côté choisi :
-       sans défilement interne, une quinzaine de collections serait tronquée
-       (`renesenses/tune-web-client#1575`, Lulu, fil 1928). */
-    overflow-y: auto;
-    padding: 5px;
-    border-radius: 10px;
-    background: var(--v2-surface);
-    border: 1px solid var(--v2-line2);
-    box-shadow: var(--v2-sh-menu);
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-  }
-  .menu button {
-    border: 0;
-    background: transparent;
-    color: var(--v2-txt);
-    cursor: pointer;
-    font: 500 12.5px var(--v2-sans);
-    padding: 7px 10px;
-    border-radius: 7px;
-    text-align: left;
-    /* Le panneau a une largeur FIXE : un nom de collection long doit se couper,
-       pas déborder. */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .menu button:hover { background: var(--v2-hover); }
-  .menu button.danger { color: var(--v2-danger); }
 
   /*
     Sans survol possible — tactile —, on ne peut rien garder en réserve : tout

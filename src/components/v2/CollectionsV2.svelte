@@ -41,8 +41,7 @@
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
-  import { entreesPochette } from '../../lib/actionsPochette';
-  import { enfilerAlbum } from '../../lib/enfilerAlbum';
+  import { objetAlbum, objetCollection } from '../../lib/gestesObjet';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
@@ -614,44 +613,25 @@
   }
 
   /**
-   * Le menu de la vignette d'ALBUM — `lib/actionsPochette` en décide le contenu.
+   * Les menus « … » de cet écran — `lib/actionsPochette` décide des entrées,
+   * `lib/gestesObjet` les fait (menus d'objets, 26/09/2026). Cet écran ne donne
+   * que l'OBJET, et les deux gestes qu'il est seul à savoir faire :
    *
-   * Cet écran composait son tableau lui-même, et n'y mettait que « Retirer de
-   * cette collection ». Le catalogue y ajoute « Ajouter à la file », que la même
-   * vignette d'album offrait déjà dans `FavoritesV2` et nulle part ailleurs.
-   *
-   * `dansCollectionManuelle` est la CAPACITÉ qui porte le retrait : il n'a de
-   * sens que dans une collection ouverte, et jamais dans une INTELLIGENTE —
-   * son contenu est une règle, on n'en retire pas un album à la main.
+   *  - « Retirer de cette collection » sur un album de la grille ouverte. La
+   *    CAPACITÉ (`dansCollectionManuelle`) n'existe que dans une collection
+   *    MANUELLE : jamais `ouverte.sorte !== 'smart'` faux — le contenu d'une
+   *    intelligente est une règle, on n'en retire pas un album à la main ;
+   *  - « Supprimer » et « Renommer » d'une collection passent par ses fonctions
+   *    (`supprimerCollection`, `editerCollection`), qui referment aussi la
+   *    fiche ouverte et l'éditeur — la même confirmation, la même route.
    */
-  function menuAlbum(a: any) {
-    return entreesPochette(
-      {
-        type: 'album',
-        idBibliotheque: a?.id ?? null,
-        dansCollectionManuelle: !!ouverte && ouverte.sorte !== 'smart',
-      },
-      {
-        enfiler: () => void enfilerAlbum(a?.id, a?.title),
-        retirerDeCollection: () => void retirerDeLaCollection(a),
-      },
-      (k) => $t(k as any),
-    );
+  function gestesAlbum(a: any) {
+    return { retirerDeCollection: () => void retirerDeLaCollection(a) };
   }
-
-  /**
-   * Le menu de la vignette de COLLECTION — les deux sortes.
-   *
-   * `common.delete` était déjà là ; ce qui change est qu'il vient du catalogue,
-   * avec sa clé et sa teinte, comme dans les deux écrans de playlists
-   * intelligentes. `supprimerCollection` sait déjà distinguer les deux routes.
-   */
-  function menuCollection(e: Entree) {
-    return entreesPochette(
-      { type: e.sorte === 'smart' ? 'collectionIntelligente' : 'collection', idBibliotheque: e.id },
-      { supprimer: () => void supprimerCollection(e) },
-      (k) => $t(k as any),
-    );
+  function gestesCollection(e: Entree) {
+    const g: { supprimer: () => void; renommer?: () => void } = { supprimer: () => void supprimerCollection(e) };
+    if (e.sorte !== 'smart') g.renommer = () => editerCollection(e);
+    return g;
   }
 
   function initiale(texte: string | null | undefined): string {
@@ -1034,7 +1014,9 @@
                 onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                 onLire={() => lireAlbum(a)}
                 onOuvrir={() => { ouvrirCalqueAlbum(a); fiche = a; }}
-                menu={menuAlbum(a)}
+                objet={objetAlbum(a)}
+                dansCollectionManuelle={!!ouverte && ouverte.sorte !== 'smart'}
+                gestesMenu={gestesAlbum(a)}
                 nom={a.title}
               >
                 <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} fallbackInitials={a.title?.slice(0, 1)} />
@@ -1157,7 +1139,9 @@
                 onEditer={() => editerCollection(e)}
                 onLire={() => lireCollection(e)}
                 onOuvrir={() => ouvrir(e)}
-                menu={menuCollection(e)}
+                objet={objetCollection({ id: e.id, name: e.nom }, e.sorte === 'smart')}
+                gestesMenu={gestesCollection(e)}
+                rafraichir={charger}
                 nom={libelleTradu(e)}
               >
                 <!-- Mosaïque ou pochette UNIQUE, au choix (Réglages →

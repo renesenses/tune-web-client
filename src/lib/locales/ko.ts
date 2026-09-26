@@ -4020,6 +4020,14 @@ export default {
   "v2.sources.etat.autorisation_refusee": "권한 거부됨",
   "v2.sources.etat.non_pris_en_charge": "지원되지 않음",
   "v2.sources.etat.indisponible": "사용할 수 없음",
+  // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
+  "menuObjet.duplicate": "복제",
+  "menuObjet.duplicated": "“{name}” 생성됨",
+  "menuObjet.copyName": "{name} (사본)",
+  "menuObjet.transfer": "서비스로 전송",
+  "menuObjet.editRules": "규칙 편집",
+  "menuObjet.deletePlaylistAsk": "재생 목록 “{name}”을(를) 삭제할까요? 트랙은 라이브러리에 남습니다.",
+  "menuObjet.noFolder": "이 앨범의 디스크 폴더가 없습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

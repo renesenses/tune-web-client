@@ -41,8 +41,16 @@ describe('fiche album v2', () => {
     expect(bloc).toContain('<ReportButton entity="cover"');
   });
   it('la ré-identification rend chaque verdict, y compris décevant', () => {
-    const c = corps(ALBUM, 'reidentifier');
-    for (const v of ["'no_tracks'", "'not_found'", "'unchanged'"]) expect(c, v).toContain(v);
+    // Depuis les menus d'objets (26/09/2026), la fiche et le menu « … » d'un
+    // album appellent la MÊME fonction, `lib/gestesObjet.reidentifierAlbum` :
+    // les verdicts se lisent là, dans le CODE (commentaires retirés — une garde
+    // de texte satisfaite par un commentaire ne garde rien).
+    expect(ALBUM).toContain('if (await reidentifierAlbum(id)) album = await api.getAlbum(id);');
+    const lib = readFileSync('src/lib/gestesObjet.ts', 'utf8').replace(/\/\/.*$/gm, '');
+    const i = lib.indexOf('export async function reidentifierAlbum(');
+    expect(i).toBeGreaterThan(-1);
+    const c = lib.slice(i, lib.indexOf('\n}', i));
+    for (const v of ["r.verdict === 'no_tracks'", "r.verdict === 'not_found'", "r.verdict === 'unchanged'"]) expect(c, v).toContain(v);
   });
   it('🔴 la proposition de meilleure qualité part APRÈS la lecture', () => {
     const i = ALBUM.indexOf('playAndSync(zid, { album_id: album.id, start_index: startIndex })');

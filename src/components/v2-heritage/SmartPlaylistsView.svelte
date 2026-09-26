@@ -11,7 +11,7 @@
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
   import PochetteActions from '../v2/PochetteActions.svelte';
   import { cibleSmartPlaylist } from '../../lib/cibleEtiquette';
-  import { entreesPochette } from '../../lib/actionsPochette';
+  import { objetPlaylistIntelligente } from '../../lib/gestesObjet';
   import { quatreDistinctes } from '../../lib/mosaique';
   import { dialogs } from '../../lib/stores/dialogs';
   import { preferences } from '../../lib/stores/preferences';
@@ -350,29 +350,14 @@
   }
 
   /**
-   * Le menu de la vignette — `lib/actionsPochette` en décide le contenu.
-   *
-   * 🔴 C'EST ICI QUE LA DIVERGENCE SE VOYAIT. Cet écran n'offrait que
-   * « Supprimer » ; `PlaylistsV2` offrait « Lire en aléatoire » PUIS
-   * « Supprimer », sur la MÊME playlist intelligente. Deux chemins d'accès à la
-   * même chose, pas les mêmes gestes — le reproche de Dominique Comet sur le
-   * menu de piste, rejoué sur les pochettes.
-   *
-   * Le geste existait pourtant déjà ici, deux fois : `playShuffle` sur la fiche
-   * ouverte, et `lireListeAleatoire` importé depuis `lectureEnMasse`. Il
-   * manquait la VIGNETTE. `lireSmartPlaylist(sp, true)` est le même
-   * enchaînement que `lireSmart(sp, true)` de `PlaylistsV2`.
+   * Le menu « … » de la vignette — `lib/actionsPochette` en décide les
+   * entrées, `lib/gestesObjet` les fait, pour CET écran comme pour
+   * `PlaylistsV2` (menus d'objets, 26/09/2026). Il y avait ici une divergence
+   * (« Supprimer » seul, quand `PlaylistsV2` offrait aussi « Lire en
+   * aléatoire ») : un seul catalogue, un seul jeu de gestes, et elle ne peut
+   * plus revenir. Seule la suppression passe par `handleDelete`, qui referme
+   * aussi la fiche ouverte de la playlist supprimée.
    */
-  function menuSmart(sp: SmartPlaylist) {
-    return entreesPochette(
-      { type: 'playlistIntelligente', idBibliotheque: sp?.id ?? null },
-      {
-        lireAleatoire: () => void lireSmartPlaylist(sp, true),
-        supprimer: () => void handleDelete(sp),
-      },
-      (k) => $tr(k as any),
-    );
-  }
 
   // A shortcut created on a specific smart playlist must reopen THAT one, not
   // land on the list. Publish the open item generically and reopen it on the
@@ -874,7 +859,9 @@
                 onEditer={() => startEdit(sp)}
                 onLire={() => lireSmartPlaylist(sp)}
                 onOuvrir={() => selectSp(sp)}
-                menu={menuSmart(sp)}
+                objet={objetPlaylistIntelligente(sp)}
+                gestesMenu={{ supprimer: () => void handleDelete(sp) }}
+                rafraichir={loadSmartPlaylists}
                 nom={sp.name}
               >
                 <!-- Mosaïque ou pochette UNIQUE, au choix (Réglages →

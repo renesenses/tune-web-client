@@ -66,8 +66,8 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum, cleLigneEtiquetee, corpsLectureAlbumEtiquete } from '../../lib/cibleEtiquette';
-  import { entreesPochette } from '../../lib/actionsPochette';
-  import { enfilerAlbum } from '../../lib/enfilerAlbum';
+  import { objetAlbum, objetArtiste, objetCollection, objetPlaylist, objetPlaylistIntelligente } from '../../lib/gestesObjet';
+  import MenuObjetV2 from './MenuObjetV2.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
@@ -277,27 +277,11 @@
     playAndSync(zid, corps as any).catch(signalerEchecLecture);
   }
 
-  /**
-   * Le menu de la vignette d'ALBUM — `lib/actionsPochette` en décide le contenu.
-   *
-   * Cet écran n'en avait aucun : bouton présent et grisé. Il montre pourtant le
-   * même album que `FavoritesV2`, où « Ajouter à la file » existait déjà.
-   *
-   * 🔴 Un album ÉTIQUETÉ peut venir d'un service : les étiquettes se posent
-   * aussi par `source` + `source_id` (#1238). Celui-là n'a pas d'`album_id`, la
-   * route de la file ne s'applique pas, et son bouton disparaît. C'est pourquoi
-   * la capacité se lit sur `a.id` et pas sur la simple présence de l'album.
-   *
-   * La vignette d'ARTISTE de cet écran, elle, n'a aucun geste disponible — elle
-   * n'a même ni lecture ni ouverture — et n'appelle donc rien ici.
+  /*
+   * Le menu « … » des vignettes de cet écran vient de `lib/actionsPochette` et
+   * `lib/gestesObjet` (menus d'objets, 26/09/2026) : cet écran ne donne que
+   * l'OBJET, et le même album y a le même menu qu'ailleurs.
    */
-  function menuAlbum(a: Album) {
-    return entreesPochette(
-      { type: 'album', idBibliotheque: a?.id ?? null },
-      { enfiler: () => void enfilerAlbum(a?.id, a?.title) },
-      (k) => $t(k as any),
-    );
-  }
 
   onMount(() => {
     void charger();
@@ -346,7 +330,7 @@
                     etiquettes={cibleEtiquetteAlbum(a)}
                     onLire={() => lireAlbum(a)}
                     onOuvrir={() => { ouvrirCalqueAlbum(a); albumOuvert = a; }}
-                    menu={menuAlbum(a)}
+                    objet={objetAlbum(a)}
                     nom={a.title}
                   >
                     <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title}
@@ -373,6 +357,7 @@
                   <PochetteActions
                     favori={ar.id != null ? { artistId: ar.id } : null}
                     etiquettes={ar.id != null ? { itemType: 'artist', itemId: ar.id } : null}
+                    objet={objetArtiste(ar)}
                     nom={ar.name}
                   >
                     <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name}
@@ -405,6 +390,8 @@
                  clés égales feraient disparaître l'onglet entier. -->
             {#each listes as pl (pl.smart ? `s-${pl.id}` : `p-${pl.id ?? pl.name}`)}
               {@const locale = pl.id != null}
+              <div class="shote">
+              <span class="smenu"><MenuObjetV2 objet={pl.smart ? objetPlaylistIntelligente(pl) : objetPlaylist(pl)} nom={pl.name ?? ''} /></span>
               <!-- Une playlist LOCALE ou INTELLIGENTE s'ouvre dans son écran ;
                    une playlist de service (id nul) n'a pas encore d'écran qui
                    l'accueille : on l'affiche sans la rendre cliquable. -->
@@ -430,6 +417,7 @@
                 <span class="sn" title={pl.name}>{pl.name}</span>
                 {#if pl.track_count != null}<span class="sc">{pl.track_count}</span>{/if}
               </svelte:element>
+              </div>
             {/each}
           </div>
         {/if}
@@ -446,6 +434,8 @@
               {@const nom = c.smart ? collectionNomAffiche(c, (k) => $t(k as any)) : (c.name ?? '')}
               <!-- Chaque ligne s'ouvre dans l'écran Collections, sous SA clé
                    de raccourci : la sorte vient de la route, jamais du numéro. -->
+              <div class="shote">
+              <span class="smenu"><MenuObjetV2 objet={objetCollection({ id: c.id, name: c.name }, !!c.smart)} nom={nom} /></span>
               <button class="simple" onclick={() => ouvrirCollection({ id: c.id, name: nom, smart: !!c.smart })}>
                 <span class="si" aria-hidden="true"
                       title={c.smart ? $t('v2.col.smart' as any) : $t('v2.col.manual' as any)}>
@@ -466,6 +456,7 @@
                 <span class="sn" title={nom}>{nom}</span>
                 {#if c.album_count != null}<span class="sc">{c.album_count}</span>{/if}
               </button>
+              </div>
             {/each}
           </div>
         {/if}
@@ -542,6 +533,10 @@
   .pistes{display:flex; flex-direction:column; gap:1px; padding:12px 30px 40px}
 
   .simples{display:flex; flex-direction:column; gap:2px; padding:12px 24px 40px}
+  /* Menus d'objets : la ligne et son « … », le menu posé au bout de la ligne. */
+  .shote{position:relative}
+  .shote > .simple{padding-right:48px}
+  .smenu{position:absolute; right:8px; top:50%; transform:translateY(-50%); z-index:1}
   /* Un `button` pour les playlists qui s'ouvrent (#4798), un `div` pour les
      autres : même habillage, la réinitialisation du bouton en plus. */
   .simple{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; width:100%;

@@ -4020,6 +4020,14 @@ export default {
   "v2.sources.etat.autorisation_refusee": "許可が拒否されました",
   "v2.sources.etat.non_pris_en_charge": "非対応",
   "v2.sources.etat.indisponible": "利用不可",
+  // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
+  "menuObjet.duplicate": "複製",
+  "menuObjet.duplicated": "「{name}」を作成しました",
+  "menuObjet.copyName": "{name}（コピー）",
+  "menuObjet.transfer": "サービスへ転送",
+  "menuObjet.editRules": "ルールを編集",
+  "menuObjet.deletePlaylistAsk": "プレイリスト「{name}」を削除しますか？曲はライブラリに残ります。",
+  "menuObjet.noFolder": "このアルバムのフォルダーはディスク上にありません。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

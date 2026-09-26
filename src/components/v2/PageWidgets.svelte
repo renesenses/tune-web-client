@@ -79,8 +79,14 @@
   import PochetteActions from './PochetteActions.svelte';
   import MosaiqueDifferee from './MosaiqueDifferee.svelte';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
-  import { entreesPochette } from '../../lib/actionsPochette';
-  import { enfilerAlbum } from '../../lib/enfilerAlbum';
+  import {
+    objetAlbum,
+    objetArtiste,
+    objetCollection,
+    objetPlaylist,
+    objetPlaylistIntelligente,
+    type ObjetMenu,
+  } from '../../lib/gestesObjet';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { dateDeParution } from '../../lib/albumAParaitre';
@@ -790,28 +796,36 @@
    * sans cela on ouvrirait l'ecran sur une AUTRE zone que celle cliquee.
    */
   /**
-   * Le menu de la vignette d'un élément de widget — `lib/actionsPochette` le dit.
+   * L'OBJET du menu « … » d'un élément de widget — `lib/gestesObjet` en tire
+   * les entrées et les gestes, les mêmes que dans la Bibliothèque, les
+   * Playlists, les Collections et les Favoris (menus d'objets, 26/09/2026).
    *
-   * Cet écran n'en avait aucun : bouton présent et grisé sur chaque bande de
-   * l'Accueil. Les bandes montrent pourtant, entre autres, des albums de la
-   * BIBLIOTHÈQUE — les mêmes que `LibraryV2` et `FavoritesV2`.
+   * Les widgets de favoris par type (web#1610) portent leur SORTE (`cible`) :
+   * une playlist, une playlist intelligente, une collection, une collection
+   * intelligente ont chacune leur menu. Un artiste, le sien. Un album, local ou
+   * de service, le sien.
    *
-   * 🔴 La capacité se lit sur `idLocal`, exactement comme le crayon juste
-   * au-dessus (`onEditer`), qui ouvre `AlbumEditModal` : dans cet écran, un
-   * élément qui porte un identifiant local EST un album de la bibliothèque. Le
-   * reste — playlist, collection, artiste, zone, album de service — n'a aucun
-   * geste disponible ici et n'a donc plus de bouton.
-   *
-   * La garde sur `ouvrir !== 'playlist'` est une ceinture : une playlist ne doit
-   * jamais partir en `{ album_id }`, et l'erreur serait SILENCIEUSE côté serveur.
+   * 🔴 Une playlist ne part JAMAIS comme album : la garde `ouvrir === 'playlist'`
+   * passe AVANT le cas général, sans quoi son identifiant partirait en
+   * `{ album_id }` — une erreur SILENCIEUSE côté serveur. Une zone et une piste
+   * n'ont pas de menu d'objet.
    */
-  function menuElement(e: Element, idLocal: number | null) {
-    const album = e?.ouvrir !== 'playlist' ? idLocal : null;
-    return entreesPochette(
-      { type: 'album', idBibliotheque: album },
-      { enfiler: () => void enfilerAlbum(album, e?.titre) },
-      (k) => $t(k as any),
-    );
+  function objetElement(e: Element): ObjetMenu | null {
+    if (!e || e.ouvrir === 'zone' || e.ouvrir === 'lire') return null;
+    if (e.ouvrir === 'cible' && e.cible) {
+      const c = e.cible;
+      if (c.sorte === 'playlist') return { type: 'playlist', id: c.id, nom: c.nom };
+      if (c.sorte === 'smart_playlist') return objetPlaylistIntelligente({ id: c.id, name: c.nom });
+      return objetCollection({ id: c.id, name: c.nom }, c.sorte === 'smart_collection');
+    }
+    if (e.ouvrir === 'artiste') {
+      return e.artisteObjet ? objetArtiste(e.artisteObjet) : e.artiste ? { type: 'artiste', nom: e.artiste } : null;
+    }
+    if (e.ouvrir === 'playlist') return e.playlist ? objetPlaylist(e.playlist, e.source ?? null) : null;
+    if (e.favoriDistant?.itemType === 'artist') {
+      return objetArtiste({ source: e.source, source_id: e.favoriDistant.serviceId, name: e.titre });
+    }
+    return e.fiche ? objetAlbum(e.fiche, e.source ?? null) : null;
   }
 
   function ouvrirElement(e: Element) {
@@ -1420,7 +1434,7 @@
                         onEditer={idLocal != null ? () => (enEdition = el.fiche) : null}
                         onLire={el.jouer ? () => jouer(el) : null}
                         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
-                        menu={menuElement(el, idLocal)}
+                        objet={objetElement(el)}
                         nom={el.titre}
                       >
                         {#if el.pochettes || el.mosaique}

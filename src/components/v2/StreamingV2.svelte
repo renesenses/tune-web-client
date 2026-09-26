@@ -41,6 +41,7 @@
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult, FeaturedSection } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { objetAlbum, objetArtiste, objetPlaylist, type ObjetMenu } from '../../lib/gestesObjet';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist, cibleDeService } from '../../lib/cibleEtiquette';
   import { estAParaitre, dateDeParution } from '../../lib/albumAParaitre';
   import {
@@ -992,6 +993,24 @@
     const cible = artisteDeVignetteService(p, type, active);
     if (cible) void ouvrirArtisteDeServiceParNom(cible, 'streaming');
   }
+
+  /**
+   * L'OBJET du menu « … » d'une vignette de service (menus d'objets,
+   * 26/09/2026) — un album, une playlist ou un artiste du service ouvert.
+   * Une PISTE n'a pas de menu d'objet (elle a le sien, `lib/menuPiste`).
+   *
+   * « Ouvrir » du menu est la FICHE (`ouvre`), jamais la lecture que la
+   * pochette lance faute de fiche : `gestesMenu` le dit à `PochetteActions`.
+   */
+  function objetTuile(p: any, type: 'track' | 'album' | 'artist' | 'playlist' | null): ObjetMenu | null {
+    if (!p) return null;
+    if (type === 'album') return objetAlbum({ ...p, title: pTitle(p), cover_path: pCover(p) }, active);
+    if (type === 'playlist') return objetPlaylist({ ...p, name: pTitle(p) }, p?.source ?? active);
+    if (type === 'artist') {
+      return objetArtiste({ ...p, name: pTitle(p), source: p?.source ?? active, source_id: p?.source_id ?? p?.id });
+    }
+    return null;
+  }
 </script>
 
 <section class="v2-str tune-v2">
@@ -1456,6 +1475,7 @@
       <PochetteActions
         nom={ar.name}
         onOuvrir={cible ? () => ouvrirArtisteDepuis(cible, 'streaming') : null}
+        objet={objetArtiste({ ...ar, source: ar?.source ?? active, source_id: ar?.source_id ?? ar?.id })}
         favoriExterne={favoriExterneService($favoriteStreamingKeys, {
           itemType: 'artist',
           service: ar?.source ?? active ?? '',
@@ -1526,6 +1546,8 @@
       <PochetteActions
         onLire={onPlay}
         onOuvrir={ouvre ?? onPlay}
+        objet={objetTuile(p, type)}
+        gestesMenu={{ ouvrir: ouvre ?? undefined }}
         nom={pTitle(p)}
         etiquettes={type === 'album'
           ? cibleEtiquetteAlbum({ ...p, title: pTitle(p), cover_path: pCover(p) }, active)

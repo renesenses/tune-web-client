@@ -71,6 +71,7 @@
   import type { Artist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { objetArtiste } from '../../lib/gestesObjet';
   import RenommerModale from './RenommerModale.svelte';
 
   interface Props {
@@ -250,6 +251,7 @@
               onEditer={a.id != null ? () => (enEdition = a) : null}
               onLire={() => lireArtiste(a)}
               onOuvrir={() => ouvrirArtiste(a)}
+              objet={objetArtiste(a)}
               nom={a.name}
             >
               <AlbumArt coverPath={a.image_path} size={0} alt={a.name}

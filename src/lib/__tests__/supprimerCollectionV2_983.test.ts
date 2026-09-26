@@ -124,12 +124,16 @@ describe('#983 — supprimer une collection dans la nouvelle interface', () => {
      * Ce qui reste à tenir ici : la place du geste (dans le menu, pas sur la
      * vignette) et le fait que cet écran fournisse bien `supprimer`.
      */
+    // Menus d'objets (26/09/2026) : la vignette passe l'OBJET, et le geste
+    // propre à cet écran (`supprimerCollection`, qui referme aussi la fiche et
+    // l'éditeur) par `gestesMenu`.
     const src = ecran();
-    const i = src.indexOf('function menuCollection(');
+    const i = src.indexOf('function gestesCollection(');
     expect(i, 'la carte n’offre plus aucun menu').toBeGreaterThan(-1);
     const bloc = src.slice(i, i + 500);
     expect(bloc).toContain('supprimer: () => void supprimerCollection(e)');
-    expect(src).toContain('menu={menuCollection(e)}');
+    expect(src).toContain('gestesMenu={gestesCollection(e)}');
+    expect(src).toContain("objet={objetCollection({ id: e.id, name: e.nom }, e.sorte === 'smart')}");
   });
 
   it('aucune corbeille posée sur la vignette elle-même', () => {
