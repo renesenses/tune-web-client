@@ -26,6 +26,8 @@
     CF_PRESETS,
     reglagesCrossfeed, presetActif, bornesCrossfeed, niveauEnPourcent,
     indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
+    bornesOmbre, reglagesOmbre, positionDeCoupure, coupureDePosition, libelleCoupure,
+    CF_COUPURE_DEFAUT, CF_PENTE_DEFAUT, CF_COUPURE_POSITIONS,
   } from '../../lib/crossfeed';
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
   import '../../styles/tune-v2.css';
@@ -40,6 +42,14 @@
   /** Le bout des curseurs : celui du SERVEUR quand il le publie
    *  (`crossfeed_limits`, tune-server-rust#4683), sinon nos constantes. */
   let bornes = $state(bornesCrossfeed(null));
+  /** tune-server-rust#5081 — l'ombre de la tête. `bornesOm` vaut `null` sur
+   *  un serveur qui ne la connaît pas : les contrôles sont alors CACHÉS. */
+  let bornesOm = $state<ReturnType<typeof bornesOmbre>>(null);
+  let ombreActive = $state(false);
+  let coupure = $state(CF_COUPURE_DEFAUT);
+  let pente = $state(CF_PENTE_DEFAUT);
+  /** La position du curseur logarithmique, dérivée de la coupure. */
+  const positionCoupure = $derived(positionDeCoupure(coupure, bornesOm ?? undefined));
 
   const zoneName = $derived($currentZone?.name ?? null);
   const active = $derived(presetActif(amount, delay));
@@ -60,7 +70,11 @@
         const cf = d?.crossfeed;
         status = d?.crossfeed_status ?? null;
         bornes = bornesCrossfeed(d?.crossfeed_limits);
+        bornesOm = bornesOmbre(d?.crossfeed_limits);
         if (cf) { enabled = !!cf.enabled; amount = cf.amount ?? 0.3; delay = cf.delay_ms ?? 0.5; }
+        ombreActive = !!cf?.head_shadow_enabled;
+        coupure = cf?.cutoff_hz ?? CF_COUPURE_DEFAUT;
+        pente = cf?.slope_db_per_octave ?? CF_PENTE_DEFAUT;
         error = null;
       })
       .catch(() => { error = $t('v2.cf.errUnavailable' as any); })
@@ -92,8 +106,13 @@
     if (zid == null) return;
     // Borné AVANT l'envoi : l'écran doit montrer la valeur qui sera
     // réellement appliquée, pas celle qu'on a demandée.
-    const crossfeed = reglagesCrossfeed(enabled, amount, delay, bornes);
+    const crossfeed: api.CrossfeedSettings = reglagesCrossfeed(enabled, amount, delay, bornes);
     amount = crossfeed.amount; delay = crossfeed.delay_ms;
+    // #5081 — seulement vers un serveur qui connaît le filtre.
+    if (bornesOm) {
+      Object.assign(crossfeed, reglagesOmbre(ombreActive, coupure, pente, bornesOm));
+      coupure = crossfeed.cutoff_hz ?? coupure; pente = crossfeed.slope_db_per_octave ?? pente;
+    }
     try {
       const res: any = await api.setDsp(zid, { crossfeed });
       status = res?.crossfeed_status ?? status;
@@ -108,6 +127,11 @@
     }
   }
   function toggle() { enabled = !enabled; save(); }
+  function basculerOmbre() { ombreActive = !ombreActive; save(); }
+  function deplacerCoupure(e: Event) {
+    coupure = coupureDePosition(Number((e.currentTarget as HTMLInputElement).value), bornesOm ?? undefined);
+    queueSave();
+  }
   function applyPreset(p: { amount: number; delay: number }) {
     amount = p.amount; delay = p.delay;
     if (!enabled) enabled = true;
@@ -132,9 +156,11 @@
     const nom = saisi?.trim();
     if (!nom) return;
     const { amount: a, delay_ms } = reglagesCrossfeed(enabled, amount, delay, bornes);
+    // #5081 — le filtre fait aussi le son : il entre dans le préréglage.
+    const ombre = bornesOm ? reglagesOmbre(ombreActive, coupure, pente, bornesOm) : {};
     try {
       // Même nom = le serveur met à jour le préréglage existant (même id).
-      const p = await api.saveCrossfeedPreset({ name: nom, amount: a, delay_ms });
+      const p = await api.saveCrossfeedPreset({ name: nom, amount: a, delay_ms, ...ombre });
       mesPresets = [...mesPresets.filter((x) => x.id !== p.id), p];
       notifications.success($t('eq.presetSaved' as any).replace('{name}', p.name));
     } catch (e: any) {
@@ -143,6 +169,12 @@
   }
 
   function appliquerMonPreset(p: api.CrossfeedPresetServeur) {
+    // #5081 — un préréglage d'avant (sans les champs) se relit filtre éteint.
+    if (bornesOm) {
+      ombreActive = !!p.head_shadow_enabled;
+      coupure = p.cutoff_hz ?? CF_COUPURE_DEFAUT;
+      pente = p.slope_db_per_octave ?? CF_PENTE_DEFAUT;
+    }
     applyPreset({ amount: p.amount, delay: p.delay_ms });
   }
 
@@ -159,7 +191,9 @@
   }
   /** Le préréglage personnel qui correspond aux curseurs, s'il y en a un. */
   const monActif = $derived(
-    mesPresets.find((p) => Math.abs(p.amount - amount) < 0.005 && Math.abs(p.delay_ms - delay) < 0.005)?.id ?? null
+    mesPresets.find((p) => Math.abs(p.amount - amount) < 0.005 && Math.abs(p.delay_ms - delay) < 0.005
+      && (!bornesOm || (!!p.head_shadow_enabled === ombreActive
+        && (!ombreActive || (p.cutoff_hz === coupure && p.slope_db_per_octave === pente)))))?.id ?? null
   );
 </script>
 
@@ -248,6 +282,50 @@
             <span class="val">{delay.toFixed(1)} ms</span>
           </div>
         </div>
+
+        <!-- tune-server-rust#5081 — l'ombre de la tête : caché sur un
+             serveur qui ne la connaît pas (pas de bornes publiées). -->
+        {#if bornesOm}
+          <div class="row" class:off={!enabled}>
+            <div class="lbl">
+              <span>{$t('v2.cf.headShadow' as any)}</span>
+              <span class="hint">{$t('v2.cf.headShadowHint' as any)}</span>
+            </div>
+            <label class="sw">
+              <input type="checkbox" checked={ombreActive} onchange={basculerOmbre}
+                disabled={!enabled || indispo.indisponible} aria-label={$t('v2.cf.headShadow' as any)} />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          {#if ombreActive}
+            <div class="row" class:off={!enabled}>
+              <div class="lbl">
+                <span>{$t('v2.cf.cutoff' as any)}</span>
+                <span class="hint">{$t('v2.cf.cutoffHint' as any)}</span>
+              </div>
+              <div class="sl">
+                <input type="range" min="0" max={CF_COUPURE_POSITIONS} step="1" value={positionCoupure}
+                  disabled={!enabled || indispo.indisponible} oninput={deplacerCoupure}
+                  aria-label={$t('v2.cf.cutoffAria' as any)} aria-valuetext={libelleCoupure(coupure)} />
+                <span class="val">{libelleCoupure(coupure)}</span>
+              </div>
+            </div>
+
+            <div class="row" class:off={!enabled}>
+              <div class="lbl">
+                <span>{$t('v2.cf.slope' as any)}</span>
+                <span class="hint">{$t('v2.cf.slopeHint' as any)}</span>
+              </div>
+              <div class="sl">
+                <input type="range" min={bornesOm.penteMin} max={bornesOm.penteMax} step="0.5" bind:value={pente}
+                  disabled={!enabled || indispo.indisponible} oninput={queueSave}
+                  aria-label={$t('v2.cf.slopeAria' as any)} />
+                <span class="val">{pente.toFixed(1)} dB</span>
+              </div>
+            </div>
+          {/if}
+        {/if}
       </div>
 
       <CompensationNiveauV2 revision={revisionDsp} />

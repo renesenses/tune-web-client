@@ -78,6 +78,96 @@ export function reglagesCrossfeed(
   };
 }
 
+/*
+ * tune-server-rust#5081 — l'OMBRE DE LA TÊTE : un filtre sur le terme croisé
+ * seul, plat jusqu'à la fréquence de coupure puis en pente de 3 à 6 dB par
+ * octave. Éteint par défaut (« zéro coloration »). Il se règle entre ampleur
+ * de l'espace (coupure haute, pente douce) et précision de la scène.
+ *
+ * Un serveur qui le connaît publie ses bornes dans `crossfeed_limits`
+ * (`cutoff_hz_min`…). Un serveur antérieur (0.9.165 et avant) ne les publie
+ * pas : `bornesOmbre` rend alors `null`, et l'écran CACHE les contrôles —
+ * les montrer ferait régler un filtre qui n'existe pas.
+ */
+export const CF_COUPURE_MIN = 200;
+export const CF_COUPURE_MAX = 20000;
+export const CF_COUPURE_DEFAUT = 700;
+export const CF_PENTE_MIN = 3;
+export const CF_PENTE_MAX = 6;
+export const CF_PENTE_DEFAUT = 6;
+/** Course du curseur logarithmique de la coupure : 0 … POSITIONS. */
+export const CF_COUPURE_POSITIONS = 1000;
+
+export interface BornesOmbre {
+  coupureMin: number;
+  coupureMax: number;
+  penteMin: number;
+  penteMax: number;
+}
+
+/** Les bornes de l'ombre de la tête publiées par le serveur, ou `null` si ce
+ *  serveur ne connaît pas le filtre (les contrôles sont alors cachés). */
+export function bornesOmbre(limits: CrossfeedLimits | null | undefined): BornesOmbre | null {
+  const ok = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0;
+  const l = limits ?? ({} as Partial<CrossfeedLimits>);
+  if (!ok(l.cutoff_hz_min) || !ok(l.cutoff_hz_max) || !ok(l.slope_db_per_octave_min) || !ok(l.slope_db_per_octave_max)) {
+    return null;
+  }
+  if (!(l.cutoff_hz_max > l.cutoff_hz_min) || !(l.slope_db_per_octave_max >= l.slope_db_per_octave_min)) return null;
+  return {
+    coupureMin: l.cutoff_hz_min,
+    coupureMax: l.cutoff_hz_max,
+    penteMin: l.slope_db_per_octave_min,
+    penteMax: l.slope_db_per_octave_max,
+  };
+}
+
+const BORNES_OMBRE_PAR_DEFAUT: BornesOmbre = {
+  coupureMin: CF_COUPURE_MIN,
+  coupureMax: CF_COUPURE_MAX,
+  penteMin: CF_PENTE_MIN,
+  penteMax: CF_PENTE_MAX,
+};
+
+/** Coupure → position du curseur, sur une échelle LOGARITHMIQUE : chaque
+ *  octave occupe la même course, de 200 Hz à 20 kHz. */
+export function positionDeCoupure(hz: number, b: BornesOmbre = BORNES_OMBRE_PAR_DEFAUT): number {
+  const v = Number.isFinite(hz) ? borner(hz, b.coupureMin, b.coupureMax) : CF_COUPURE_DEFAUT;
+  const r = Math.log(v / b.coupureMin) / Math.log(b.coupureMax / b.coupureMin);
+  return Math.round(borner(r, 0, 1) * CF_COUPURE_POSITIONS);
+}
+
+/** Position du curseur → coupure, arrondie à un pas lisible (10 Hz sous
+ *  1 kHz, 50 Hz sous 10 kHz, 100 Hz au-delà) et bornée. */
+export function coupureDePosition(position: number, b: BornesOmbre = BORNES_OMBRE_PAR_DEFAUT): number {
+  const r = borner(Number.isFinite(position) ? position / CF_COUPURE_POSITIONS : 0, 0, 1);
+  const hz = b.coupureMin * Math.pow(b.coupureMax / b.coupureMin, r);
+  const pas = hz < 1000 ? 10 : hz < 10000 ? 50 : 100;
+  return borner(Math.round(hz / pas) * pas, b.coupureMin, b.coupureMax);
+}
+
+/** « 700 Hz », « 1.2 kHz », « 20 kHz ». */
+export function libelleCoupure(hz: number): string {
+  if (hz < 1000) return `${Math.round(hz)} Hz`;
+  const k = hz / 1000;
+  return `${Number.isInteger(k) ? k : k.toFixed(k < 10 ? 2 : 1).replace(/\.?0+$/, '')} kHz`;
+}
+
+/** Les trois champs de l'ombre de la tête, bornés, prêts pour `setDsp` et
+ *  pour un préréglage. */
+export function reglagesOmbre(
+  active: boolean,
+  coupure: number,
+  pente: number,
+  b: BornesOmbre = BORNES_OMBRE_PAR_DEFAUT,
+): Required<Pick<CrossfeedSettings, 'head_shadow_enabled' | 'cutoff_hz' | 'slope_db_per_octave'>> {
+  return {
+    head_shadow_enabled: active,
+    cutoff_hz: borner(Number.isFinite(coupure) ? coupure : CF_COUPURE_DEFAUT, b.coupureMin, b.coupureMax),
+    slope_db_per_octave: borner(Number.isFinite(pente) ? pente : CF_PENTE_DEFAUT, b.penteMin, b.penteMax),
+  };
+}
+
 /** Quel réglage tout fait correspond aux valeurs courantes, s'il y en a un.
  *
  *  Comparaison à une tolérance près : les curseurs travaillent au centième et
