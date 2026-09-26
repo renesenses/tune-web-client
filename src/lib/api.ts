@@ -3077,22 +3077,66 @@ export function getSimilarTracks(trackId: number, limit = 50) {
 /* ------------------------------------------------------------------------ *
  * Titres bannis — `renesenses/tune-server-rust#4806` (serveur : PR #4818).
  *
- * Bibliothèque LOCALE seulement : les trois routes prennent un `i64` de
- * `tracks`. Le drapeau `banned` des listes de pistes, lui, arrive avec chaque
- * ligne (`Track.banned`) — voir `lib/titreBanni.ts`.
+ * Deux espaces d'identifiants. Un titre de la BIBLIOTHÈQUE se désigne par
+ * son `i64` de `tracks` (`/library/tracks/{id}/ban`). Un titre de SERVICE
+ * (Qobuz, Tidal, Bandcamp… — FabienM, fil 1946, réponse 6820) par la paire
+ * `source` + `source_id`, qui voyage dans le CORPS : un `source_id` peut
+ * contenir une barre oblique (`/library/tracks/streaming/ban|unban`). Le
+ * drapeau `banned` des listes de pistes arrive avec chaque ligne
+ * (`Track.banned`) — voir `lib/titreBanni.ts`.
  * ------------------------------------------------------------------------ */
 
-/** Une ligne de `GET /library/tracks/banned` (`hidden_repo.rs::BannedTrack`). */
+/**
+ * Une ligne de `GET /library/tracks/banned` (`hidden_repo.rs::BannedTrack`).
+ * Un titre LOCAL porte `track_id` et `source: null` ; un titre de SERVICE
+ * porte `track_id: null` et la paire. Jamais un entier seul.
+ */
 export interface BannedTrack {
-  track_id: number;
+  track_id: number | null;
+  /** Le service d'un titre de service (`qobuz`, `tidal`…), `null` en local. */
+  source?: string | null;
+  source_id?: string | null;
+  /** L'album chez le service, pour un titre de service. */
+  album_source_id?: string | null;
   /** Titre vivant si la piste existe encore, sinon l'instantané figé au bannissement. */
   title: string;
   artist: string | null;
   album_id: number | null;
   album_title: string | null;
+  /** Local : `albums.cover_path` ; service : l'URL de pochette figée au bannissement. */
+  cover_path?: string | null;
   banned_at: string | null;
   /** `false` = marqueur orphelin : l'id ne désigne plus de piste vivante. */
   resolved: boolean;
+}
+
+/** Corps de `POST /library/tracks/streaming/ban` — la paire et l'instantané d'affichage. */
+export interface StreamingBanBody {
+  source: string;
+  source_id: string;
+  title?: string | null;
+  artist?: string | null;
+  album?: string | null;
+  album_source_id?: string | null;
+  cover_url?: string | null;
+}
+
+/** `POST /library/tracks/streaming/ban` — 400 si la paire est incomplète. */
+export function banStreamingTrack(body: StreamingBanBody) {
+  return apiPost('/library/tracks/streaming/ban', body) as Promise<{
+    source: string;
+    source_id: string;
+    banned: boolean;
+  }>;
+}
+
+/** `POST /library/tracks/streaming/unban` — idempotent. */
+export function unbanStreamingTrack(source: string, sourceId: string) {
+  return apiPost('/library/tracks/streaming/unban', { source, source_id: sourceId }) as Promise<{
+    source: string;
+    source_id: string;
+    banned: boolean;
+  }>;
 }
 
 /** `POST /library/tracks/{id}/ban` — 404 si l'id ne désigne aucune piste. */

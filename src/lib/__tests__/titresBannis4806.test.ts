@@ -5,8 +5,8 @@
 // Bertrand, 23/09/2026 : un titre banni reste VISIBLE mais grisé (et barré)
 // dans son album, jamais caché ; il n'est plus jamais joué automatiquement
 // (c'est le serveur qui l'exclut) ; un clic délibéré le joue après
-// confirmation ; bibliothèque locale seulement — pas d'entrée sur une piste
-// de service.
+// confirmation. Les titres de SERVICE (fil 1946, réponse 6820) ont leur
+// propre fichier : `titresDeServiceBannis4806.test.ts`.
 //
 // Contrat serveur assumé (PR #4818, diff lu le 23/09/2026) :
 //   POST   /library/tracks/{id}/ban    DELETE /library/tracks/{id}/ban
@@ -119,10 +119,17 @@ describe('#4806 — le MODULE du menu : « Bannir » / « Débannir », biblioth
     expect(k).toContain('ban.unban');
     expect(k).not.toContain('ban.ban');
   });
-  it('une piste de SERVICE n’a aucune des deux entrées (tranche locale seule)', () => {
+  it('une piste de SERVICE non désignable (radio…) n’a aucune des deux entrées', () => {
     const k = cles({ jouable: true, idBibliotheque: null, artistId: null, albumId: null, playlistDeService: 'qobuz' });
     expect(k).not.toContain('ban.ban');
     expect(k).not.toContain('ban.unban');
+  });
+  it('un titre de SERVICE bannissable (fil 1946, 6820) propose « Bannir », puis « Débannir »', () => {
+    const base = { jouable: true, idBibliotheque: null, artistId: null, albumId: null, bannissableDeService: true };
+    expect(cles(base)).toContain('ban.ban');
+    expect(cles(base)).not.toContain('ban.unban');
+    expect(cles({ ...base, bannie: true })).toContain('ban.unban');
+    expect(cles({ ...base, bannie: true })).not.toContain('ban.ban');
   });
   it('sans geste fourni, l’entrée est absente — comme toutes les autres', () => {
     const k = entreesMenuPiste({ jouable: true, idBibliotheque: 12, artistId: null, albumId: null }, {}).map((e) => e.cle);
@@ -137,13 +144,21 @@ describe('#4806 — estBannie : le drapeau serveur, puis la décision locale', (
     expect(estBannie({ id: 5, source: 'local' } as Track, new Map())).toBe(false);
   });
   it('la surcharge locale PRIME sur le drapeau, dans les deux sens', () => {
-    expect(estBannie(LOCALE, new Map([[12, true]]))).toBe(true);
-    expect(estBannie(BANNIE, new Map([[12, false]]))).toBe(false);
+    expect(estBannie(LOCALE, new Map([['l:12', true]]))).toBe(true);
+    expect(estBannie(BANNIE, new Map([['l:12', false]]))).toBe(false);
   });
-  it('une piste de service n’est jamais bannie, quel que soit son `source_id`', () => {
-    expect(estBannie({ ...QOBUZ, banned: true } as Track, new Map())).toBe(false);
-    expect(bannissable(QOBUZ)).toBe(false);
+  it('un titre de service se juge sur SA paire — jamais sur l’id local de même valeur', () => {
+    // Le drapeau de la file (`get_queue` le pose sur une ligne de service).
+    expect(estBannie({ ...QOBUZ, banned: true } as Track, new Map())).toBe(true);
+    expect(estBannie(QOBUZ, new Map([['s:qobuz:4791523', true]]))).toBe(true);
+    // La piste locale 4791523 bannie ne bannit pas le titre Qobuz « 4791523 »…
+    expect(estBannie(QOBUZ, new Map([['l:4791523', true]]))).toBe(false);
+    // … et le titre Qobuz « 12 » banni ne bannit pas la piste locale 12.
+    expect(estBannie(LOCALE, new Map([['s:qobuz:12', true]]))).toBe(false);
+    expect(bannissable(QOBUZ)).toBe(true);
     expect(bannissable(LOCALE)).toBe(true);
+    // Une radio n'a pas de titre à bannir.
+    expect(bannissable({ id: null, source: 'radio', source_id: 'fip' } as unknown as Track)).toBe(false);
   });
 });
 
@@ -158,7 +173,7 @@ describe('#4806 — le menu « … » MONTÉ : la requête réellement émise', 
     await souffler(20);
     const post = requetes.find((r) => r.method === 'POST');
     expect(post?.url).toMatch(/\/api\/v1\/library\/tracks\/12\/ban$/);
-    expect(get(surchargesBannissement).get(12)).toBe(true);
+    expect(get(surchargesBannissement).get('l:12')).toBe(true);
     // Rouvrir : la piste est désormais bannie aux yeux du menu, sans rechargement.
     hote!.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click();
     await souffler();
@@ -174,12 +189,12 @@ describe('#4806 — le menu « … » MONTÉ : la requête réellement émise', 
     await souffler(20);
     const del = requetes.find((r) => r.method === 'DELETE');
     expect(del?.url).toMatch(/\/api\/v1\/library\/tracks\/12\/ban$/);
-    expect(get(surchargesBannissement).get(12)).toBe(false);
+    expect(get(surchargesBannissement).get('l:12')).toBe(false);
   });
-  it('une piste Qobuz n’a ni « Bannir » ni « Débannir »', async () => {
+  it('une piste Qobuz a « Bannir » (fil 1946, 6820) — voir `titresDeServiceBannis4806`', async () => {
     await ouvrirMenu(QOBUZ);
     expect(items().length, 'le menu est vide').toBeGreaterThan(0);
-    expect(entree(fr['ban.ban'])).toBeUndefined();
+    expect(entree(fr['ban.ban'])).toBeTruthy();
     expect(entree(fr['ban.unban'])).toBeUndefined();
   });
 });
@@ -235,7 +250,7 @@ describe('#4806 — la LIGNE : grisée, barrée, visible ; le clic délibéré d
     monte = mount(LignePisteV2, { target: hote!, props: { piste: LOCALE, onLire: () => {} } });
     await souffler();
     expect(hote!.querySelector('.trk')?.classList.contains('bannie')).toBe(false);
-    surchargesBannissement.set(new Map([[12, true]]));
+    surchargesBannissement.set(new Map([['l:12', true]]));
     await souffler();
     expect(hote!.querySelector('.trk')?.classList.contains('bannie')).toBe(true);
   });
@@ -277,7 +292,7 @@ describe('#4806 — l’écran « Titres bannis »', () => {
     expect(del?.url).toMatch(/\/api\/v1\/library\/tracks\/7\/ban$/);
     const restantes = [...hote!.querySelectorAll('.ligne .tt')].map((e) => e.textContent);
     expect(restantes).toEqual(['Song B']);
-    expect(get(surchargesBannissement).get(7)).toBe(false);
+    expect(get(surchargesBannissement).get('l:7')).toBe(false);
   });
   it('état vide : « Aucun titre banni. »', async () => {
     reponses = [['/library/tracks/banned', { total: 0, items: [] }]];

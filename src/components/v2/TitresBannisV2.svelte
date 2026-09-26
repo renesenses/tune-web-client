@@ -15,6 +15,13 @@
    * débannissable, avec l'instantané de titre figé au bannissement. On le
    * dit, plutôt que de montrer une ligne qui n'ouvre sur rien.
    *
+   * ## Les titres de SERVICE aussi (fil 1946, réponse 6820)
+   *
+   * Un titre Qobuz, Tidal ou Bandcamp banni figure dans la même liste :
+   * `track_id: null`, la paire `source` + `source_id`, et l'instantané figé au
+   * bannissement (titre, interprète, album, pochette). Son album s'ouvre chez
+   * son service quand l'identifiant d'album a été retenu.
+   *
    * ## Pas d'albums masqués à côté
    *
    * L'issue place l'écran « à côté des albums masqués ». Le client web n'a pas
@@ -24,14 +31,26 @@
    */
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import { activeView, pendingLibraryAlbum } from '../../lib/stores/navigation';
-  import { debannir, surchargesBannissement } from '../../lib/titreBanni';
+  import { activeView, pendingLibraryAlbum, vueDeRetour } from '../../lib/stores/navigation';
+  import { ficheAlbumService } from '../../lib/stores/streaming';
+  import { cleDeBannissement, debannir, surchargesBannissement } from '../../lib/titreBanni';
   import AlbumArt from '../partages/AlbumArt.svelte';
 
   let items = $state<api.BannedTrack[]>([]);
   let chargement = $state(true);
   let erreur = $state(false);
-  let occupe = $state<number | null>(null);
+  let occupe = $state<string | null>(null);
+
+  /** La ligne comme une piste : son `id` local, ou sa paire de service. */
+  const commePiste = (b: api.BannedTrack) => ({
+    id: b.track_id,
+    source: (b.track_id != null ? 'local' : b.source) as any,
+    source_id: b.source_id ?? null,
+    title: b.title,
+  });
+  /** La clé de la ligne — celle des surcharges (`l:<id>` ou `s:<service>:<id>`). */
+  const cleDe = (b: api.BannedTrack) =>
+    cleDeBannissement(commePiste(b)) ?? `?:${b.source ?? ''}:${b.source_id ?? b.track_id ?? ''}`;
 
   async function charger() {
     chargement = true;
@@ -54,9 +73,10 @@
    */
   async function retirer(b: api.BannedTrack) {
     if (occupe != null) return;
-    occupe = b.track_id;
-    const ok = await debannir({ id: b.track_id, source: 'local', title: b.title });
-    if (ok) items = items.filter((x) => x.track_id !== b.track_id);
+    const cle = cleDe(b);
+    occupe = cle;
+    const ok = await debannir(commePiste(b));
+    if (ok) items = items.filter((x) => cleDe(x) !== cle);
     occupe = null;
   }
   /**
@@ -65,15 +85,35 @@
    */
   $effect(() => {
     const s = $surchargesBannissement;
-    if (!items.some((b) => s.get(b.track_id) === false)) return;
-    items = items.filter((b) => s.get(b.track_id) !== false);
+    if (!items.some((b) => s.get(cleDe(b)) === false)) return;
+    items = items.filter((b) => s.get(cleDe(b)) !== false);
   });
 
+  /** L'album s'ouvre-t-il ? Local : son id ; service : son id chez le service. */
+  const albumOuvrable = (b: api.BannedTrack) =>
+    b.track_id != null ? b.album_id != null : !!(b.source && b.album_source_id);
+
   function ouvrirAlbum(b: api.BannedTrack) {
+    if (b.track_id == null) {
+      if (!b.source || !b.album_source_id) return;
+      vueDeRetour.set('bannedtracks');
+      ficheAlbumService.set({
+        service: b.source as any,
+        id: b.album_source_id,
+        titre: b.album_title ?? '',
+        pochette: b.cover_path ?? null,
+        artiste: b.artist ?? null,
+      });
+      activeView.set('streamingalbum');
+      return;
+    }
     if (b.album_id == null) return;
     pendingLibraryAlbum.set(b.album_id);
     activeView.set('library');
   }
+  /** Le nom du service tel qu'il s'affiche : « qobuz » → « Qobuz ». */
+  const nomDuService = (s: string | null | undefined) =>
+    s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
   const quand = (iso: string | null) => {
     if (!iso) return '';
     const d = new Date(iso);
@@ -106,11 +146,16 @@
       <div class="state vide">{$t('ban.empty' as any)}</div>
     {:else}
       <ul class="list">
-        {#each items as b (b.track_id)}
-          <li class="ligne" class:orphelin={!b.resolved}>
+        {#each items as b (cleDe(b))}
+          <li class="ligne" class:orphelin={!b.resolved} data-service={b.track_id == null ? b.source : undefined}>
             <span class="cv">
-              <AlbumArt albumId={b.album_id} size={0} alt={b.title}
-                fallbackInitials={b.title?.slice(0, 1)} />
+              {#if b.track_id == null}
+                <AlbumArt coverPath={b.cover_path ?? null} source={b.source ?? null} size={0} alt={b.title}
+                  fallbackInitials={b.title?.slice(0, 1)} />
+              {:else}
+                <AlbumArt albumId={b.album_id} size={0} alt={b.title}
+                  fallbackInitials={b.title?.slice(0, 1)} />
+              {/if}
             </span>
             <span class="ti">
               <span class="tt" title={b.title}>{b.title}</span>
@@ -118,16 +163,19 @@
                 {b.artist ?? ''}
                 {#if b.album_title}
                   {#if b.artist} · {/if}
-                  {#if b.album_id != null}
+                  {#if albumOuvrable(b)}
                     <button class="lien" onclick={() => ouvrirAlbum(b)}>{b.album_title}</button>
                   {:else}{b.album_title}{/if}
+                {/if}
+                {#if b.track_id == null && b.source}
+                  <span class="svc">{nomDuService(b.source)}</span>
                 {/if}
               </em>
               {#if !b.resolved}<span class="orph">{$t('ban.orphan' as any)}</span>{/if}
             </span>
             <span class="quand">{quand(b.banned_at)}</span>
             <button class="v2-btn" data-debannir onclick={() => void retirer(b)}
-              disabled={occupe === b.track_id}>{$t('ban.unban' as any)}</button>
+              disabled={occupe === cleDe(b)}>{$t('ban.unban' as any)}</button>
           </li>
         {/each}
       </ul>
@@ -158,6 +206,7 @@
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lien{background:none; border:0; padding:0; font:inherit; color:inherit; cursor:pointer}
   .lien:hover{text-decoration:underline; color:var(--v2-txt)}
+  .svc{font:600 10px var(--v2-sans); color:var(--v2-txt3, inherit); margin-left:6px; text-transform:none}
   .orph{font:600 10px var(--v2-sans); color:var(--v2-acc2); border:1px solid var(--v2-line2);
     border-radius:var(--v2-r-pill); padding:1px 6px; width:max-content}
   .quand{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
