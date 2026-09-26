@@ -28,6 +28,7 @@
   import { currentVersion } from '../../lib/stores/updates';
   import { copyText } from '../../lib/utils';
   import { modeleSysteme, mermaidSysteme, planSysteme } from '../../lib/schemaSysteme';
+  import { sonder, valeurDe, libelleEchec, espaceLibre, type IssueSonde } from '../../lib/sondesDiagnostic';
   import '../../styles/tune-v2.css';
 
   /**
@@ -62,24 +63,36 @@
   let analyse = $state<boolean | null>(null);
   let sante = $state<any | null>(null);
   let versionServeur = $state<string | null>(null);
+  // #5086 — l'issue de chaque sonde, pour dire CE QUI a échoué : « injoignable »
+  // ne vaut que sans réponse HTTP. Un délai dépassé ou un 500 disent autre chose.
+  let issueSante = $state<IssueSonde<unknown> | null>(null);
+  let issueBase = $state<IssueSonde<unknown> | null>(null);
+
+  function libelleSonde(issue: IssueSonde<unknown> | null): string {
+    const l = libelleEchec(issue);
+    return l ? tr1(l.cle, l.vars) : '';
+  }
 
   async function diagnostiquer() {
     diagEnCours = true;
     const T = 8_000;
     // Quatre sondes INDÉPENDANTES : celle qui échoue ne prive pas des autres.
     // Une seule `await` en chaîne aurait fait d'un serveur sans tableau de bord
-    // administrateur un écran vide.
+    // administrateur un écran vide. `sonder` ne rejette jamais.
     const [db, scan, admin, health] = await Promise.all([
-      api.withTimeout(api.getDatabaseStatus(), T, 'db-status').catch(() => null),
-      api.withTimeout(api.getScanStatus(), T, 'scan-status').catch(() => null),
-      api.withTimeout(api.getAdminHealth(), T, 'admin-health').catch(() => null),
-      api.withTimeout(api.getHealth(), T, 'health').catch(() => null),
+      sonder(api.getDatabaseStatus(), T),
+      sonder(api.getScanStatus(), T),
+      sonder(api.getAdminHealth(), T),
+      sonder(api.getHealth(), T),
     ]);
-    baseEtat = db;
-    baseMuette = db === null;
-    analyse = scan ? !!(scan as any).scanning : null;
-    sante = admin;
-    versionServeur = (health as any)?.version ?? null;
+    issueBase = db;
+    issueSante = health;
+    baseEtat = valeurDe(db);
+    baseMuette = baseEtat === null;
+    const s = valeurDe(scan);
+    analyse = s ? !!(s as any).scanning : null;
+    sante = valeurDe(admin);
+    versionServeur = (valeurDe(health) as any)?.version ?? null;
     diagEnCours = false;
   }
   $effect(() => { if (volet === 'diagnostic') void diagnostiquer(); });
@@ -496,10 +509,10 @@
         <div class="dl">
           <div class="dr"><span class="dk">{$t('v2.sup.diagServer' as any)}</span>
             <span class="dv" class:ok={!!versionServeur} class:ko={!diagEnCours && !versionServeur}>
-              {diagEnCours ? '…' : versionServeur ? `v${versionServeur}` : $t('v2.sup.diagUnreachable' as any)}</span></div>
+              {diagEnCours ? '…' : versionServeur ? `v${versionServeur}` : libelleSonde(issueSante)}</span></div>
           <div class="dr"><span class="dk">{$t('v2.sup.diagDb' as any)}</span>
             <span class="dv" class:ok={!!baseEtat} class:ko={baseMuette}>
-              {diagEnCours ? '…' : baseMuette ? $t('v2.sup.diagUnreachable' as any) : $t('v2.sup.diagOk' as any)}</span></div>
+              {diagEnCours ? '…' : baseMuette ? libelleSonde(issueBase) : $t('v2.sup.diagOk' as any)}</span></div>
           <div class="dr"><span class="dk">{$t('v2.sup.diagScan' as any)}</span>
             <span class="dv">
               {diagEnCours ? '…' : analyse === null ? '—' : analyse ? $t('v2.sup.diagScanning' as any) : $t('v2.sup.diagIdle' as any)}</span></div>
@@ -510,7 +523,7 @@
                  absent sur un serveur qui ne l'expose pas, et une ligne vide y
                  vaudrait mieux qu'un zéro qui ressemble à un disque plein. -->
             <div class="dr"><span class="dk">{$t('v2.sup.diagDisk' as any)}</span>
-              <span class="dv">{(sante as any)?.disk?.free_human ?? (sante as any)?.disk_free ?? '—'}</span></div>
+              <span class="dv">{espaceLibre(sante, $locale) ?? '—'}</span></div>
           {/if}
         </div>
         <button class="lnk" onclick={diagnostiquer} disabled={diagEnCours}>

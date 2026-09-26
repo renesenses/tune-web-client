@@ -3368,6 +3368,8 @@ export default {
   "v2.sup.diagDisk": "Szabad lemezterület",
   "v2.sup.diagOk": "válaszol",
   "v2.sup.diagUnreachable": "nem érhető el",
+  "v2.sup.diagTimeout": "nem válaszolt időben",
+  "v2.sup.diagHttpError": "hiba ({status})",
   "v2.sup.diagScanning": "folyamatban",
   "v2.sup.diagIdle": "tétlen",
   "v2.sup.diagChecking": "Ellenőrzés…",
