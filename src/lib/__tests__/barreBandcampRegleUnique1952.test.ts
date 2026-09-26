@@ -27,6 +27,12 @@ import { activeView } from '../stores/navigation';
 import { activeStreamingService, streamingServices } from '../stores/streaming';
 import StreamingV2 from '../../components/v2/StreamingV2.svelte';
 import Sidebar from '../../components/v2/Sidebar.svelte';
+import {
+  BANDCAMP_EXT,
+  BANDCAMP_SVC,
+  ongletDeRestitution,
+  ongletsStreaming,
+} from '../ongletsStreaming';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -201,5 +207,48 @@ describe('fil 1952 — la barre latérale suit la règle unique : activé ET con
     const rendues = entrees();
     expect(rendues.some((l) => /^qobuz$/i.test(l)), `[${rendues.join(' | ')}]`).toBe(true);
     expect(rendues.some((l) => /deezer/i.test(l)), `[${rendues.join(' | ')}]`).toBe(false);
+  });
+});
+
+// web#1621 — la MÊME règle sur l'ÉCRAN Streaming. web#1632 l'avait posée sur
+// la barre, mais `ongletsStreaming` ajoutait encore l'onglet de l'extension
+// dès que `/ext/bandcamp/tags` répondait, case décochée ou compte non lié :
+// l'écran montrait Bandcamp, la barre non — l'écart même du fil 1952.
+describe('web#1621 — l’écran Streaming suit la règle unique : activé ET connecté', () => {
+  const estBandcamp = (o: string) => o === BANDCAMP_SVC || o === BANDCAMP_EXT;
+
+  it('🔴 module — Bandcamp décoché + extension vivante : pas d’onglet Bandcamp', () => {
+    expect(ongletsStreaming(SERVICES_DIDIER_165, true).filter(estBandcamp)).toEqual([]);
+  });
+
+  it('🔴 module — activé sans compte lié + extension vivante : pas d’onglet Bandcamp', () => {
+    const sansCompte = { ...SERVICES_DIDIER, bandcamp: { enabled: true, authenticated: false } };
+    expect(ongletsStreaming(sansCompte, true).filter(estBandcamp)).toEqual([]);
+  });
+
+  it('module — activé et connecté : UN onglet, celui de l’extension quand elle répond', () => {
+    expect(ongletsStreaming(SERVICES_DIDIER, true)).toEqual(['qobuz', BANDCAMP_EXT]);
+    expect(ongletsStreaming(SERVICES_DIDIER, false)).toEqual(['qobuz', BANDCAMP_SVC]);
+  });
+
+  it('🔴 module — un raccourci « bandcamp » sur un Bandcamp décoché retombe sur la rangée réelle', () => {
+    expect(ongletDeRestitution(SERVICES_DIDIER_165, true, BANDCAMP_SVC)).toBe('qobuz');
+  });
+
+  it('🔴 écran — Bandcamp décoché (serveur 0.9.165), extension vivante : aucun onglet Bandcamp', async () => {
+    services = SERVICES_DIDIER_165;
+    await monterEcran();
+    const rendus = ongletsRendus();
+    expect(rendus.some((l) => /qobuz/i.test(l)), `rangée : [${rendus.join(' | ')}]`).toBe(true);
+    expect(
+      rendus.some((l) => /bandcamp/i.test(l)),
+      `un service décoché ne doit pas avoir d'onglet : [${rendus.join(' | ')}]`,
+    ).toBe(false);
+  });
+
+  it('écran — Bandcamp activé et connecté : un onglet Bandcamp, un seul', async () => {
+    await monterEcran();
+    const rendus = ongletsRendus();
+    expect(rendus.filter((l) => /bandcamp/i.test(l)), `rangée : [${rendus.join(' | ')}]`).toHaveLength(1);
   });
 });

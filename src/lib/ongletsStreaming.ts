@@ -99,10 +99,20 @@ export function servicesConnectes(
 /**
  * Les onglets de l'écran, dédoublonnés.
  *
- * 🔴 L'ordre compte : le dédoublonnage garde la PLACE du service générique
- * quand il en avait une. Sans cela, lier son compte Bandcamp ferait sauter
- * l'onglet de la première à la dernière position sous le curseur de
- * l'utilisateur, pour une raison qu'aucun écran n'explique.
+ * 🔴 L'ordre compte : le dédoublonnage garde la PLACE du service générique.
+ * Sans cela, lier son compte Bandcamp ferait sauter l'onglet de la première à
+ * la dernière position sous le curseur de l'utilisateur, pour une raison
+ * qu'aucun écran n'explique.
+ *
+ * 🔴 Règle unique, décidée par Bertrand le 26/09 (fil 1952, web#1621) : un
+ * service n'apparaît que s'il est ACTIVÉ ET CONNECTÉ, Bandcamp compris. La
+ * sonde de l'extension (`bandcampLive`) ne fait que CHOISIR lequel des deux
+ * onglets Bandcamp on montre ; elle ne fait plus ENTRER Bandcamp dans la
+ * rangée. Avant, une extension qui répondait ajoutait `__bandcamp__` en fin de
+ * rangée même case décochée ou compte non lié — l'écran montrait Bandcamp là
+ * où la barre latérale (web#1632) ne le montrait pas. Face à un serveur
+ * 0.9.165, où la case naît décochée, l'onglet disparaît donc, comme l'entrée
+ * de la barre : il suffit de cocher la case du service.
  */
 export function ongletsStreaming(
   services: Record<string, EtatService> | null | undefined,
@@ -110,14 +120,9 @@ export function ongletsStreaming(
 ): string[] {
   const connectes = servicesConnectes(services);
   if (!bandcampLive) return connectes;
-  // L'extension répond : elle ABSORBE le service générique, à sa place.
-  const i = connectes.indexOf(BANDCAMP_SVC);
-  if (i >= 0) {
-    const onglets = [...connectes];
-    onglets[i] = BANDCAMP_EXT;
-    return onglets;
-  }
-  return [...connectes, BANDCAMP_EXT];
+  // L'extension répond : elle ABSORBE le service générique, à sa place — et
+  // seulement s'il est là.
+  return connectes.map((k) => (k === BANDCAMP_SVC ? BANDCAMP_EXT : k));
 }
 
 /**
