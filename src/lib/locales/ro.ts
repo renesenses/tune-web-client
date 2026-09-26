@@ -3410,6 +3410,8 @@ export default {
   "v2.sup.diagDisk": "Spațiu liber pe disc",
   "v2.sup.diagOk": "răspunde",
   "v2.sup.diagUnreachable": "inaccesibil",
+  "v2.sup.diagTimeout": "niciun răspuns la timp",
+  "v2.sup.diagHttpError": "eroare {status}",
   "v2.sup.diagScanning": "în curs",
   "v2.sup.diagIdle": "în repaus",
   "v2.sup.diagChecking": "Se verifică…",

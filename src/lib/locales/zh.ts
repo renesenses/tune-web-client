@@ -3410,6 +3410,8 @@ export default {
   "v2.sup.diagDisk": "磁盘可用空间",
   "v2.sup.diagOk": "响应正常",
   "v2.sup.diagUnreachable": "无法连接",
+  "v2.sup.diagTimeout": "未在时限内响应",
+  "v2.sup.diagHttpError": "错误 {status}",
   "v2.sup.diagScanning": "进行中",
   "v2.sup.diagIdle": "空闲",
   "v2.sup.diagChecking": "检查中…",

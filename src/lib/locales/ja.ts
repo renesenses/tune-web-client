@@ -3410,6 +3410,8 @@ export default {
   "v2.sup.diagDisk": "ディスクの空き容量",
   "v2.sup.diagOk": "応答あり",
   "v2.sup.diagUnreachable": "到達できません",
+  "v2.sup.diagTimeout": "時間内に応答がありません",
+  "v2.sup.diagHttpError": "エラー {status}",
   "v2.sup.diagScanning": "実行中",
   "v2.sup.diagIdle": "待機中",
   "v2.sup.diagChecking": "確認中…",

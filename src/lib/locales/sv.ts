@@ -3409,6 +3409,8 @@ export default {
   "v2.sup.diagDisk": "Ledigt diskutrymme",
   "v2.sup.diagOk": "svarar",
   "v2.sup.diagUnreachable": "kan inte nås",
+  "v2.sup.diagTimeout": "inget svar i tid",
+  "v2.sup.diagHttpError": "fel {status}",
   "v2.sup.diagScanning": "pågår",
   "v2.sup.diagIdle": "vilande",
   "v2.sup.diagChecking": "Kontrollerar…",

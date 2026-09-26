@@ -3410,6 +3410,8 @@ export default {
   "v2.sup.diagDisk": "남은 디스크 공간",
   "v2.sup.diagOk": "응답함",
   "v2.sup.diagUnreachable": "연결할 수 없음",
+  "v2.sup.diagTimeout": "제한 시간 내 응답 없음",
+  "v2.sup.diagHttpError": "오류 {status}",
   "v2.sup.diagScanning": "진행 중",
   "v2.sup.diagIdle": "대기 중",
   "v2.sup.diagChecking": "확인 중…",
