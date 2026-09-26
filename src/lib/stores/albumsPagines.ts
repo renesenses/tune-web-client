@@ -70,6 +70,12 @@ export interface EtatPagine {
   pages: ReadonlyMap<number, readonly Album[]>;
   enVol: ReadonlySet<number>;
   erreur: string | null;
+  /**
+   * Les pages qui ont ÉCHOUÉ dans cette liste et cette génération : combien de
+   * fois, et jusqu'à quand une demande AUTOMATIQUE (une case qui entre dans le
+   * cadre) doit s'abstenir. Voir `demanderPage`.
+   */
+  echecs: ReadonlyMap<number, { tentatives: number; jusqua: number }>;
   /** Avance à chaque invalidation : ce qui a été demandé AVANT ne s'écrit plus. */
   generation: number;
 }
@@ -79,7 +85,7 @@ export function clefDeListe(c: ClefDeListe): string {
 }
 
 const etatInitial = (): EtatPagine => ({
-  clef: '', total: null, pages: new Map(), enVol: new Set(), erreur: null, generation: 0,
+  clef: '', total: null, pages: new Map(), enVol: new Set(), erreur: null, echecs: new Map(), generation: 0,
 });
 
 export const albumsPagines = writable<EtatPagine>(etatInitial());
@@ -95,14 +101,29 @@ export const generationBibliotheque: Readable<number> = { subscribe: generation.
 
 /** Les pages tombent, mais pas le total : la grille garde sa hauteur. */
 function reinitialiser(clef: string, total: number | null): void {
-  albumsPagines.update((e) => ({ ...e, clef, total, pages: new Map(), enVol: new Set(), erreur: null }));
+  albumsPagines.update((e) => ({ ...e, clef, total, pages: new Map(), enVol: new Set(), erreur: null, echecs: new Map() }));
 }
+
+/** Le premier délai après un échec, et le plafond : 1 s, 2 s, 4 s… 30 s. */
+export const DELAI_APRES_ECHEC_MS = 1_000;
+export const DELAI_APRES_ECHEC_MAX_MS = 30_000;
 
 /**
  * Demande la page `index` de la liste `c`. Sans effet si elle est déjà là ou
  * en vol ; changer de liste (autre tri, autre graine) vide les pages d'avant.
+ *
+ * 🔴 Fil forum 1926 — UNE PAGE EN ÉCHEC NE SE REDEMANDE PAS EN BOUCLE. Un
+ * serveur qui répond 500 sur `/library/albums` faisait écrire `erreur`, et
+ * l'effet de la Bibliothèque, qui lisait le magasin ENTIER, se rejouait et
+ * redemandait la page — sans fin, jusqu'à figer l'onglet. Après un échec, une
+ * demande AUTOMATIQUE de la même page s'abstient pendant un délai qui double
+ * à chaque échec (1 s, 2 s, 4 s… plafonné à 30 s). `forcer` passe outre : il
+ * est réservé aux demandes qui viennent d'un GESTE ou d'un événement (écran
+ * ouvert, tri changé, fin de scan), jamais d'une écriture dans ce magasin.
  */
-export async function demanderPage(c: ClefDeListe, index: number): Promise<void> {
+export async function demanderPage(
+  c: ClefDeListe, index: number, options: { forcer?: boolean } = {},
+): Promise<void> {
   const clef = clefDeListe(c);
   let etat = get(albumsPagines);
   if (etat.clef !== clef) {
@@ -110,6 +131,8 @@ export async function demanderPage(c: ClefDeListe, index: number): Promise<void>
     etat = get(albumsPagines);
   }
   if (index < 0 || etat.pages.has(index) || etat.enVol.has(index)) return;
+  const echec = etat.echecs.get(index);
+  if (echec && !options.forcer && Date.now() < echec.jusqua) return;
   const gen = etat.generation;
   albumsPagines.update((e) => ({ ...e, enVol: new Set(e.enVol).add(index) }));
   try {
@@ -124,13 +147,18 @@ export async function demanderPage(c: ClefDeListe, index: number): Promise<void>
       pages.set(index, page.items);
       // Un serveur sans `total` : on en déduit un du dernier lot, comme avant.
       const total = page.total ?? (page.items.length < TAILLE_PAGE ? index * TAILLE_PAGE + page.items.length : e.total);
-      return { ...e, pages, enVol, total, erreur: null };
+      const echecs = new Map(e.echecs); echecs.delete(index);
+      return { ...e, pages, enVol, total, erreur: null, echecs };
     });
   } catch (err: any) {
     albumsPagines.update((e) => {
       const enVol = new Set(e.enVol); enVol.delete(index);
       if (e.clef !== clef || e.generation !== gen) return { ...e, enVol };
-      return { ...e, enVol, erreur: String(err?.message ?? err) };
+      const echecs = new Map(e.echecs);
+      const tentatives = (echecs.get(index)?.tentatives ?? 0) + 1;
+      const delai = Math.min(DELAI_APRES_ECHEC_MS * 2 ** (tentatives - 1), DELAI_APRES_ECHEC_MAX_MS);
+      echecs.set(index, { tentatives, jusqua: Date.now() + delai });
+      return { ...e, enVol, erreur: String(err?.message ?? err), echecs };
     });
   }
 }
@@ -255,7 +283,7 @@ export function invaliderBibliotheque(): void {
   chargementEntier = null;
   lettresConnues.clear();
   albumsPagines.update((e) => ({
-    ...e, pages: new Map(), enVol: new Set(), erreur: null, generation: e.generation + 1,
+    ...e, pages: new Map(), enVol: new Set(), erreur: null, echecs: new Map(), generation: e.generation + 1,
   }));
   if (get(albums).length) albums.set([]);
   libraryLoading.set(false);

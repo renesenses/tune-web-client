@@ -21,6 +21,7 @@ import {
   _remiseAZeroPourTests, albumsPagines, albumsCharges, casesDeLaListe, clefDeListe,
   demanderBibliothequeEntiere, demanderPage, generationBibliotheque, invaliderBibliotheque,
   mettreAJourAlbum, offsetDeLettre, rangLettre, TAILLE_PAGE, type ClefDeListe,
+  DELAI_APRES_ECHEC_MS, DELAI_APRES_ECHEC_MAX_MS,
 } from './albumsPagines';
 
 /** 250 albums rangés par titre : dix par lettre, de A à Y. */
@@ -103,9 +104,51 @@ describe('les pages', () => {
     await demanderPage(TITRE, 0);
     expect(get(albumsPagines).erreur).toBe('HTTP 503');
     expect(get(albumsPagines).enVol.size).toBe(0);
-    await demanderPage(TITRE, 0);
+    // Un geste (écran rouvert, tri changé) redemande tout de suite.
+    await demanderPage(TITRE, 0, { forcer: true });
     expect(get(albumsPagines).erreur).toBeNull();
     expect(get(albumsPagines).pages.has(0)).toBe(true);
+    expect(get(albumsPagines).echecs.size, "le succès efface l'échec").toBe(0);
+  });
+  it("fil 1926 — une page en échec ne se redemande pas AUTOMATIQUEMENT avant un délai qui double, plafonné", async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(0);
+      vi.mocked(api.getAlbumsPagines).mockRejectedValue(new Error('HTTP 500'));
+      await demanderPage(TITRE, 1);
+      expect(api.getAlbumsPagines).toHaveBeenCalledTimes(1);
+      // Relances automatiques pendant le délai : rien ne part.
+      for (let i = 0; i < 50; i++) await demanderPage(TITRE, 1);
+      expect(api.getAlbumsPagines).toHaveBeenCalledTimes(1);
+      expect(get(albumsPagines).echecs.get(1)).toEqual({ tentatives: 1, jusqua: DELAI_APRES_ECHEC_MS });
+      // Le délai passé, une demande part ; le suivant double.
+      vi.setSystemTime(DELAI_APRES_ECHEC_MS);
+      await demanderPage(TITRE, 1);
+      expect(api.getAlbumsPagines).toHaveBeenCalledTimes(2);
+      expect(get(albumsPagines).echecs.get(1)).toEqual({ tentatives: 2, jusqua: 3 * DELAI_APRES_ECHEC_MS });
+      // Plafonné.
+      for (let n = 0; n < 10; n++) {
+        vi.setSystemTime(get(albumsPagines).echecs.get(1)!.jusqua);
+        await demanderPage(TITRE, 1);
+      }
+      const e = get(albumsPagines).echecs.get(1)!;
+      expect(e.jusqua - Date.now()).toBe(DELAI_APRES_ECHEC_MAX_MS);
+      // Une invalidation (fin de scan) efface les échecs.
+      invaliderBibliotheque();
+      expect(get(albumsPagines).echecs.size).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it("une page EN VOL n'est pas redemandée (déduplication), même forcée", async () => {
+    let repondre: (p: any) => void = () => {};
+    vi.mocked(api.getAlbumsPagines).mockImplementationOnce(() => new Promise((r) => { repondre = r; }));
+    const a = demanderPage(TITRE, 0);
+    const b = demanderPage(TITRE, 0);
+    const c = demanderPage(TITRE, 0, { forcer: true });
+    repondre({ items: ALBUMS.slice(0, 100), total: TOTAL });
+    await Promise.all([a, b, c]);
+    expect(api.getAlbumsPagines).toHaveBeenCalledTimes(1);
   });
 });
 
