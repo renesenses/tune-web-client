@@ -21,6 +21,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { ciblesPourAlbum, contient, libelleCible } from '../collectionsCibles';
+import { entreesPochette } from '../actionsPochette';
 
 const DU_18 = [
   { id: 1, name: 'favorites', album_ids: [1173, 1879, 2931] },
@@ -80,8 +81,15 @@ describe('#1222 — l\'ajout, depuis la Bibliothèque', () => {
   // avec la fiche album : voir `ajouterAlbumACollectionFiche.test.ts`.
   const geste = readFileSync('src/lib/albumVersCollection.ts', 'utf8');
 
+  /**
+   * ⚠️ 26/09/2026 — la vignette ne passe plus `entreesCollection` directement :
+   * elle la FOURNIT au catalogue `lib/actionsPochette` (geste
+   * `ciblesCollection`), qui décide de la condition et de la place. Le geste
+   * lui-même, sa route et son libellé n'ont pas bougé d'une ligne.
+   */
   it('la vignette porte le menu, et il appelle la route', () => {
-    expect(vue).toContain('menu={depot ? [] : entreesCollection(a)}');
+    expect(vue).toContain('menu={menuAlbum(a)}');
+    expect(vue).toContain('ciblesCollection: () => entreesCollection(a)');
     expect(vue).toContain("from '../../lib/albumVersCollection'");
     expect(geste).toContain('api.addAlbumToCollection(cible.id, albumId)');
     expect(geste).toContain('v2.col.addTo');
@@ -89,9 +97,15 @@ describe('#1222 — l\'ajout, depuis la Bibliothèque', () => {
 
   it('🔴 un album de DÉPÔT n\'a pas d\'entrée', () => {
     // `depot` est une source distante : il n'a pas d'identifiant de
-    // bibliothèque à mettre dans une collection.
-    const i = vue.indexOf('menu={depot ? [] : entreesCollection(a)}');
-    expect(i).toBeGreaterThan(0);
+    // bibliothèque à mettre dans une collection. C'est désormais une CAPACITÉ —
+    // `idBibliotheque: null` — et le catalogue en tire l'absence de toutes les
+    // entrées, donc l'absence du bouton.
+    const i = vue.indexOf('idBibliotheque: depot ? null : a.id');
+    expect(i, 'un album de dépôt distant retrouverait un menu').toBeGreaterThan(0);
+    // Et la garde fonctionnelle : le catalogue ne rend RIEN sans identifiant.
+    expect(
+      entreesPochette({ type: 'album', idBibliotheque: null }, { ciblesCollection: () => [{ libelle: 'X', faire: () => {} }] }, (k) => k),
+    ).toEqual([]);
   });
 
   it('la liste est RELUE après l\'ajout', () => {
@@ -107,23 +121,36 @@ describe('#1222 — l\'ajout, depuis la Bibliothèque', () => {
 describe('#1222 — le retrait, depuis la collection ouverte', () => {
   const vue = readFileSync('src/components/v2/CollectionsV2.svelte', 'utf8');
 
+  /**
+   * ⚠️ 26/09/2026 — `entreesAlbum` est devenue `menuAlbum` et ne compose plus
+   * son tableau : elle déclare la CAPACITÉ (`dansCollectionManuelle`) et fournit
+   * le GESTE au catalogue `lib/actionsPochette`, qui décide de la clé
+   * `v2.col.removeAlbum` et de sa teinte. Les deux sont prouvées en APPELANT le
+   * catalogue (`catalogueActionsPochette.svelte.test.ts`) ; ce qui reste tenu
+   * ici, c'est que cet écran branche bien le geste et sa condition.
+   */
   it('la carte d\'album porte l\'entrée, en danger', () => {
-    expect(vue).toContain('menu={entreesAlbum(a)}');
-    expect(vue).toContain('v2.col.removeAlbum');
+    expect(vue).toContain('menu={menuAlbum(a)}');
     expect(vue).toContain('api.removeAlbumFromCollection(e.id, a.id)');
-    const i = vue.indexOf('function entreesAlbum(');
+    const i = vue.indexOf('function menuAlbum(');
+    expect(i, 'la carte d’album n’appelle plus le catalogue').toBeGreaterThan(-1);
     const bloc = vue.slice(i, vue.indexOf('\n  }', i));
-    expect(bloc).toContain('danger: true');
+    expect(bloc).toContain('retirerDeCollection: () => void retirerDeLaCollection(a)');
   });
 
   it('🔴 JAMAIS sur une collection INTELLIGENTE', () => {
     // Son contenu vient de ses règles : proposer le retrait promettrait un
-    // effet que le prochain recalcul annulerait.
-    for (const fn of ['function entreesAlbum(', 'async function retirerDeLaCollection(']) {
+    // effet que le prochain recalcul annulerait. La capacité le dit
+    // (`dansCollectionManuelle`), le geste le revérifie.
+    // La CAPACITÉ l'exclut, et le GESTE le revérifie : deux barrières, parce
+    // que la première vit dans un écran et la seconde dans la route.
+    const bloc = (fn: string) => {
       const i = vue.indexOf(fn);
-      const bloc = vue.slice(i, vue.indexOf('\n  }', i));
-      expect(bloc, fn).toContain("sorte === 'smart'");
-    }
+      expect(i, `${fn} a disparu`).toBeGreaterThan(-1);
+      return vue.slice(i, vue.indexOf('\n  }', i));
+    };
+    expect(bloc('function menuAlbum(')).toContain("ouverte.sorte !== 'smart'");
+    expect(bloc('async function retirerDeLaCollection(')).toContain("e.sorte === 'smart'");
   });
 
   it('la grille est mise à jour SUR PLACE, pas relue', () => {

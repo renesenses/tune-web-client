@@ -1612,7 +1612,6 @@ export default {
   "v2.cover.edit": "Edit",
   "v2.cover.tags": "Tags",
   "v2.cover.more": "More actions",
-  "v2.cover.moreSoon": "More actions — coming soon",
   "v2.tags.onThis": "Applied",
   "v2.tags.none": "No tags yet.",
   "v2.tags.add": "Add",

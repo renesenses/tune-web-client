@@ -31,7 +31,7 @@
   import { t } from '../../lib/i18n';
   import { shortcuts, loadShortcuts, navigateToShortcut } from '../../lib/stores/shortcuts';
   import { activeStreamingService, streamingServices } from '../../lib/stores/streaming';
-  import { servicesConnectes } from '../../lib/ongletsStreaming';
+  import { servicesDeLaBarre } from '../../lib/ongletsStreaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
   import * as api from '../../lib/api';
   import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
@@ -397,10 +397,18 @@
   };
   const nomService = (s: string) => NOMS_SERVICE[s] ?? s.charAt(0).toUpperCase() + s.slice(1);
 
-  // 🔴 `servicesConnectes` : la MÊME règle et le MÊME ordre de préférence que
-  // la rangée d'onglets de l'écran (#998). Une seconde liste ici finirait par
-  // proposer une entrée que l'écran n'ouvre pas.
-  const servicesBarre = $derived(servicesConnectes($streamingServices));
+  // 🔴 La MÊME règle et le MÊME ordre de préférence que la rangée d'onglets de
+  // l'écran (#998) — `ongletsStreaming`, sonde de l'extension Bandcamp
+  // comprise. Fil 1952 (Didier) : la barre ne lisait que `servicesConnectes`,
+  // et un compte Bandcamp lié mais jamais « activé » avait son onglet sur
+  // l'écran et aucune entrée ici.
+  let bandcampLive = $state(false);
+  $effect(() => {
+    // Même sonde FONCTIONNELLE que `StreamingV2` : seule une réponse réelle de
+    // l'extension prouve qu'elle est chargée. Un échec laisse `false`.
+    api.bandcampTags().then(() => { bandcampLive = true; }, () => {});
+  });
+  const servicesBarre = $derived(servicesDeLaBarre($streamingServices, bandcampLive));
 
   // Le magasin n'est rempli par AUCUN écran de cette coquille : sans ce
   // chargement la section resterait vide pour toujours (même constat que

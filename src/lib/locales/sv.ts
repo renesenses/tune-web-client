@@ -2622,7 +2622,6 @@ export default {
   "v2.cover.edit": "Redigera",
   "v2.cover.tags": "Etiketter",
   "v2.cover.more": "Fler åtgärder",
-  "v2.cover.moreSoon": "Fler åtgärder — snart",
   "v2.tags.onThis": "Satta",
   "v2.tags.none": "Inga etiketter ännu.",
   "v2.tags.add": "Lägg till",

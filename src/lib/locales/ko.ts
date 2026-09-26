@@ -2623,7 +2623,6 @@ export default {
   "v2.cover.edit": "편집",
   "v2.cover.tags": "태그",
   "v2.cover.more": "다른 작업",
-  "v2.cover.moreSoon": "다른 작업 — 곧 제공",
   "v2.tags.onThis": "적용됨",
   "v2.tags.none": "아직 태그가 없습니다.",
   "v2.tags.add": "추가",

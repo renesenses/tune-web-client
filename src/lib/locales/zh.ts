@@ -2623,7 +2623,6 @@ export default {
   "v2.cover.edit": "编辑",
   "v2.cover.tags": "标签",
   "v2.cover.more": "更多操作",
-  "v2.cover.moreSoon": "更多操作 — 即将推出",
   "v2.tags.onThis": "已添加",
   "v2.tags.none": "暂无标签。",
   "v2.tags.add": "添加",

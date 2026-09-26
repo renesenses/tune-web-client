@@ -1615,7 +1615,6 @@ export default {
   "v2.cover.edit": "Modifier",
   "v2.cover.tags": "Étiquettes",
   "v2.cover.more": "Autres actions",
-  "v2.cover.moreSoon": "Autres actions — bientôt",
   "v2.tags.onThis": "Posées",
   "v2.tags.none": "Aucune étiquette pour l’instant.",
   "v2.tags.add": "Ajouter",

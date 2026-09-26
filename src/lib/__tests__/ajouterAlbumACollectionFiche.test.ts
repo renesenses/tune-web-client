@@ -136,10 +136,15 @@ describe('le branchement — une seule implémentation, deux écrans', () => {
   });
 
   it('🔴 la grille PAR DÉFAUT passe le menu, comme les deux autres rendus', () => {
+    // ⚠️ 26/09/2026 — le tableau vient du catalogue `lib/actionsPochette`, que
+    // `menuAlbum` appelle en lui fournissant `ciblesCollection`. Ce que ce cas
+    // tient n'a pas changé : les TROIS rendus de cet écran (facette, grille par
+    // défaut, carrousel) offrent le même menu, aucun n'est oublié.
     const rendus = grille.match(/<PochetteActions\b/g)?.length ?? 0;
-    const menus = grille.match(/menu=\{depot \? \[\] : entreesCollection\(a\)\}/g)?.length ?? 0;
+    const menus = grille.match(/menu=\{menuAlbum\(a\)\}/g)?.length ?? 0;
     expect(rendus).toBeGreaterThanOrEqual(3);
     expect(menus, 'un rendu de PochetteActions sans menu de collections').toBe(rendus);
+    expect(grille).toContain('ciblesCollection: () => entreesCollection(a)');
     expect(grille).toContain("from '../../lib/albumVersCollection'");
   });
 
