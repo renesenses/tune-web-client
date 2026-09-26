@@ -1321,10 +1321,22 @@
   // La première page, dès qu'on est en pages — et à chaque changement de
   // liste (tri, graine) ou de génération (fin de scan). Les pages suivantes
   // viennent des cases qui entrent dans le cadre (`observerCase`).
+  //
+  // 🔴 Fil forum 1926 — BOUCLE DE RELANCE. L'effet lisait `$albumsPagines`
+  // ENTIER (`void $albumsPagines.generation`) : il se rejouait à CHAQUE
+  // écriture du magasin, pas seulement quand la génération avançait. Tant que
+  // la page arrivait, le rejeu ne coûtait rien (« déjà là ») ; sur un serveur
+  // en erreur, `demanderPage` écrivait `erreur`, l'effet repartait, la page
+  // était redemandée, échouait encore… sans fin, onglet figé. L'effet ne
+  // dépend plus que de `nu`, `clef` et de la génération, extraite en valeur
+  // PRIMITIVE (un `$derived` ne notifie que si elle change) ; l'appel est
+  // sous `untrack` pour que rien de ce qu'il lit ou écrit ne l'inscrive.
+  const generationDesPages = $derived($albumsPagines.generation);
   $effect(() => {
     if (!nu || !clef) return;
-    void $albumsPagines.generation;
-    void demanderPage(clef, 0);
+    void generationDesPages;
+    const c = clef;
+    untrack(() => { void demanderPage(c, 0, { forcer: true }); });
   });
 
   /** Les cases de la grille en pages : une par album du total, vide ou pleine. */
