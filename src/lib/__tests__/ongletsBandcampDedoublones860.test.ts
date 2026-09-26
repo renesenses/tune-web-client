@@ -79,10 +79,12 @@ describe('#860 — le module : Bandcamp n’entre qu’une fois dans la rangée'
     expect(onglets).not.toContain(BANDCAMP_EXT);
   });
 
-  it('TÉMOIN — compte NON lié + extension vivante : l’onglet extension seul', () => {
+  it('TÉMOIN — compte NON lié + extension vivante : AUCUN onglet Bandcamp (règle unique, web#1621)', () => {
+    // Règle du 26/09 (fil 1952) : activé ET connecté, Bandcamp compris. La
+    // sonde de l'extension ne fait plus entrer Bandcamp dans la rangée.
     const sansCompte = { ...SERVICES_DU_18, bandcamp: { enabled: true, authenticated: false } };
     const onglets = ongletsStreaming(sansCompte, true);
-    expect(onglets).toContain(BANDCAMP_EXT);
+    expect(onglets).not.toContain(BANDCAMP_EXT);
     expect(onglets).not.toContain(BANDCAMP_SVC);
   });
 
