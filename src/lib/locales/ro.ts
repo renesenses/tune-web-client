@@ -376,7 +376,6 @@ export default {
   'playlist.recover': 'Verifică disponibilitatea',
   'playlist.recovering': 'Se verifică...',
   'playlist.available': 'Disponibil',
-  "playlist.edit": "Deschide și editează",
   'playlist.unavailable': 'Indisponibil',
   'playlist.recovered': 'Alternativă găsită',
   'playlist.applyRecovery': 'Înlocuiește',
