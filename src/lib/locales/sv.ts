@@ -341,7 +341,6 @@ export default {
   'playlist.recover': 'Kontrollera tillgänglighet',
   'playlist.recovering': 'Kontrollerar...',
   'playlist.available': 'Tillgänglig',
-  "playlist.edit": "Öppna och redigera",
   'playlist.unavailable': 'Otillgänglig',
   'playlist.recovered': 'Alternativ hittat',
   'playlist.applyRecovery': 'Ersätt',
