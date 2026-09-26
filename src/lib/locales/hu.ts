@@ -3413,7 +3413,6 @@ export default {
   "v2.pl.edit": "Szerkesztés",
   "v2.pl.editDone": "Kész",
   "v2.pl.rename": "Átnevezés",
-  "v2.pl.delete": "Törlés",
   "v2.pl.remoteHint": "Ez a lejátszási lista a(z) {service} szolgáltatásnál van: a Tune-ból nem nevezhető át és nem szerkeszthető.",
   "v2.pl.export": "Exportálás",
   "v2.pl.exported": "{file} exportálva",
