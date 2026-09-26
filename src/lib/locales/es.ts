@@ -3980,7 +3980,7 @@ export default {
   "ban.error": "No se pudo cambiar el veto de este tema.",
   "ban.title": "Temas vetados",
   "ban.eyebrow": "Lo que ha apartado",
-  "ban.intro": "Un tema vetado sigue visible en su álbum, atenuado, pero nunca vuelve a sonar automáticamente: ni en aleatorio, ni por una lista inteligente, ni al encadenar. Un clic deliberado lo reproduce, tras confirmación.",
+  "ban.intro": "Un tema vetado —de tu biblioteca o de un servicio como Qobuz o Tidal— sigue visible en su álbum, atenuado, pero nunca vuelve a sonar automáticamente: ni en aleatorio, ni por una lista inteligente, ni por la radio, ni al encadenar. Un clic deliberado lo reproduce, tras confirmación.",
   "ban.empty": "Ningún tema vetado.",
   "ban.loadError": "No se pudieron cargar los temas vetados.",
   "ban.retry": "Reintentar",

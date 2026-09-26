@@ -106,7 +106,11 @@ describe('le bouton est BRANCHÉ, pas seulement écrit', () => {
     const br = lire('components/v2-heritage/BrowseView.svelte');
     expect(br).toMatch(/from '\.\.\/(\.\.\/)?lib\/stores\/repertoireCible'/);
     expect(br).toContain('consommerRepertoireCible()');
-    expect(br).toContain('void navigateTo(cible)');
+    // web#1619 : `charger`, pas `navigateTo` — ce dernier empile désormais une
+    // étape d'historique, et le dossier d'arrivée est déjà la clé de l'entrée
+    // écrite par le changement de vue (`ouvrirLeRepertoire` → `viserDetail`).
+    // Le comportement est gardé par `precedentRepertoiresPlaylist1619.test.ts`.
+    expect(br).toContain('void charger(cible)');
   });
 
   it('le libellé existe dans les 11 langues', () => {

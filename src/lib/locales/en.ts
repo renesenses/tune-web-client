@@ -4000,7 +4000,7 @@ export default {
   "ban.error": "Could not change the ban on this track.",
   "ban.title": "Banned tracks",
   "ban.eyebrow": "What you set aside",
-  "ban.intro": "A banned track stays visible in its album, greyed out, but is never played automatically again: not by shuffle, not by a smart playlist, not by auto-play. A deliberate click plays it, after confirmation.",
+  "ban.intro": "A banned track — from your library or from a service such as Qobuz or Tidal — stays visible in its album, greyed out, but is never played automatically again: not by shuffle, not by a smart playlist, not by radio, not by auto-play. A deliberate click plays it, after confirmation.",
   "ban.empty": "No banned tracks.",
   "ban.loadError": "Could not load the banned tracks.",
   "ban.retry": "Retry",

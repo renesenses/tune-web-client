@@ -185,6 +185,9 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
       fr['library.otherVersions'], fr['nowplaying.addToPlaylist'],
       fr['v2.cover.tags'], fr['trackTags.title'],
+      // tune-server-rust#4806 suite (fil 1946, réponse 6820) — un titre de
+      // service se bannit aussi.
+      fr['ban.ban'],
     ]);
   });
   /**
@@ -208,6 +211,8 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
       fr['trackTags.title'],
       // tune-server-rust#4993 — les crédits d'un titre Qobuz.
       fr['credits.see'],
+      // tune-server-rust#4806 suite (fil 1946, réponse 6820) — « Bannir ».
+      fr['ban.ban'],
     ]);
   });
   it('une piste de la BIBLIOTHÈQUE ouvre les douze gestes', () => {

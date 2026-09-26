@@ -3980,7 +3980,7 @@ export default {
   "ban.error": "Impossibile modificare il bando di questo brano.",
   "ban.title": "Brani banditi",
   "ban.eyebrow": "Ciò che hai messo da parte",
-  "ban.intro": "Un brano bandito resta visibile nel suo album, in grigio, ma non viene più riprodotto automaticamente: né in casuale, né da una smart playlist, né in concatenamento. Un clic deliberato lo riproduce, dopo conferma.",
+  "ban.intro": "Un brano bandito — della tua libreria o di un servizio come Qobuz o Tidal — resta visibile nel suo album, in grigio, ma non viene più riprodotto automaticamente: né in casuale, né da una smart playlist, né dalla radio, né in concatenamento. Un clic deliberato lo riproduce, dopo conferma.",
   "ban.empty": "Nessun brano bandito.",
   "ban.loadError": "Impossibile caricare i brani banditi.",
   "ban.retry": "Riprova",

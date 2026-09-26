@@ -3979,7 +3979,7 @@ export default {
   "ban.error": "Kunde inte ändra bannlysningen för detta spår.",
   "ban.title": "Bannlysta spår",
   "ban.eyebrow": "Det du lagt åt sidan",
-  "ban.intro": "Ett bannlyst spår syns fortfarande i sitt album, nedtonat, men spelas aldrig mer automatiskt: varken i slumpläge, av en smart spellista eller vid automatisk fortsättning. Ett avsiktligt klick spelar det, efter bekräftelse.",
+  "ban.intro": "Ett bannlyst spår – från ditt bibliotek eller från en tjänst som Qobuz eller Tidal – syns fortfarande i sitt album, nedtonat, men spelas aldrig mer automatiskt: varken i slumpläge, av en smart spellista, av radion eller vid automatisk fortsättning. Ett avsiktligt klick spelar det, efter bekräftelse.",
   "ban.empty": "Inga bannlysta spår.",
   "ban.loadError": "Kunde inte läsa in de bannlysta spåren.",
   "ban.retry": "Försök igen",

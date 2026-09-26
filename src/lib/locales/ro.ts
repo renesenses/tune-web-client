@@ -3980,7 +3980,7 @@ export default {
   "ban.error": "Interdicția acestei piese nu a putut fi modificată.",
   "ban.title": "Piese interzise",
   "ban.eyebrow": "Ce ați dat deoparte",
-  "ban.intro": "O piesă interzisă rămâne vizibilă în albumul ei, estompată, dar nu mai este redată niciodată automat: nici aleatoriu, nici printr-o listă inteligentă, nici la redarea continuă. Un clic deliberat o redă, după confirmare.",
+  "ban.intro": "O piesă interzisă — din biblioteca ta sau de la un serviciu precum Qobuz sau Tidal — rămâne vizibilă în albumul ei, estompată, dar nu mai este redată niciodată automat: nici aleatoriu, nici printr-o listă inteligentă, nici de radio, nici la redarea continuă. Un clic deliberat o redă, după confirmare.",
   "ban.empty": "Nicio piesă interzisă.",
   "ban.loadError": "Piesele interzise nu au putut fi încărcate.",
   "ban.retry": "Reîncearcă",

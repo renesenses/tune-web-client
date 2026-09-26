@@ -34,6 +34,8 @@
   import { entreesPochette } from '../../lib/actionsPochette';
   import RenommerModale from './RenommerModale.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
+  import { untrack } from 'svelte';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import '../../styles/tune-v2.css';
 
@@ -80,10 +82,58 @@
   const clePl = (it: NonNullable<typeof opened>) =>
     it.kind === 'local' ? `playlists:${it.pl.id}` : `streamingplaylists:${it.service}:${it.pl.source_id}`;
 
+  /**
+   * 🔴 OUVRIR UNE PLAYLIST EMPILE UNE ENTRÉE D'HISTORIQUE — web#1619.
+   *
+   * FabienM, fil 1955 (0.9.165) : « dans une playlist Qobuz, le BACK devrait
+   * simuler le bouton Retour mais il renvoie à la dernière page de 1er
+   * niveau ». Le détail est un CALQUE : l'ouvrir ne change pas `activeView`,
+   * la coquille n'écrivait donc rien, et le Précédent dépilait l'entrée de la
+   * vue d'avant.
+   *
+   * Les trois branchements des calques album (#980), par le mécanisme de la
+   * coquille : ouvrir empile (`ouvrirDetail`), le Retour de l'écran referme ET
+   * dépile, le Précédent du navigateur referme le calque. La clé est celle du
+   * raccourci (`clePl`) : une chaîne, jamais l'objet.
+   */
+  let cleCalqueEmpilee: string | null = null;
+
   function ouvrirPl(it: NonNullable<typeof opened>) {
     opened = it;
     setShortcutTarget({ key: clePl(it), restore: it, label: it.pl.name });
+    const cle = clePl(it);
+    cleCalqueEmpilee = cle;
+    ouvrirDetail(cle);
   }
+
+  function fermerCalquePl() {
+    opened = null;
+    cleCalqueEmpilee = null;
+    clearShortcutTarget();
+  }
+
+  /**
+   * Le Retour du détail : refermer ET dépiler. On ne recule que si l'entrée
+   * courante est bien celle de la playlist — sinon `history.back()` pourrait
+   * sortir de Tune.
+   */
+  function retourCalquePl() {
+    if (cleCalqueEmpilee != null && entreeCourantePorte(cleCalqueEmpilee)) {
+      fermerDetailEnReculant(fermerCalquePl);
+      return;
+    }
+    fermerCalquePl();
+  }
+
+  /** Le Précédent du navigateur a quitté l'entrée de la playlist : le calque suit. */
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      if (!opened || cleCalqueEmpilee == null) return;
+      if (voulu === cleCalqueEmpilee) return;
+      fermerCalquePl();
+    });
+  });
 
   $effect(() => {
     const auRetour = (ev: Event) => {
@@ -872,7 +922,7 @@
   </div>
 
   {#if opened}
-    <PlaylistDetailV2 item={opened} onClose={() => { opened = null; clearShortcutTarget(); }} onChanged={load} />
+    <PlaylistDetailV2 item={opened} onClose={retourCalquePl} onChanged={load} />
   {/if}
 
   {#if editeurSmart}
