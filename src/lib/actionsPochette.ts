@@ -195,12 +195,15 @@ export interface GestesPochette {
    * (`CollectionsV2.supprimerCollection`) et de playlist intelligente
    * (`PlaylistsV2.supprimerSmart`, `SmartPlaylistsView.handleDelete`). Pour une
    * playlist LOCALE, il existait sur sa FICHE (`PlaylistDetailV2`, bouton
-   * `v2.pl.delete` → `api.deletePlaylist`) et pas sur sa vignette : même
+   * `common.delete` → `api.deletePlaylist`) et pas sur sa vignette : même
    * divergence que l'aléatoire des intelligentes, même correction.
    *
-   * 🔴 Le libellé du catalogue est `common.delete`, celui des trois menus qui
-   * existaient. `v2.pl.delete` reste celui de la fiche ; les unifier est une
-   * question de vocabulaire, pas de catalogue, et n'a pas été tranchée.
+   * Le libellé est `common.delete` PARTOUT depuis le 26/09/2026. La fiche
+   * portait une seconde clé, `v2.pl.delete`, qui disait « Supprimer » dans les
+   * onze langues — exactement la même chose que `common.delete`. Deux clés pour
+   * un mot identique ne se voient pas à l'écran et dérivent au premier
+   * traducteur qui n'en touche qu'une : `v2.pl.delete` a été retirée des onze
+   * fichiers, la fiche emploie la clé commune.
    */
   supprimer?: () => void;
 }

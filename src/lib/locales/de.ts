@@ -3455,7 +3455,6 @@ export default {
   "v2.pl.edit": "Bearbeiten",
   "v2.pl.editDone": "Fertig",
   "v2.pl.rename": "Umbenennen",
-  "v2.pl.delete": "Löschen",
   "v2.pl.remoteHint": "Diese Playlist liegt bei {service} und kann in Tune weder umbenannt noch bearbeitet werden.",
   "v2.pl.export": "Exportieren",
   "v2.pl.exported": "{file} exportiert",

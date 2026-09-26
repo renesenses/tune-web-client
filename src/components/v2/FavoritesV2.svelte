@@ -20,7 +20,7 @@
   import { messageEchecLecture } from '../../lib/echecLecture';
   import { notifications } from '../../lib/stores/notifications';
   import {
-    currentProfileId, loadFavoriteIds, favoriteStreamingKeys,
+    currentProfileId, favoriteStreamingKeys,
     favoriteAlbumIds, favoriteTrackIds, favoriteArtistIds, favoritePlaylistIds,
     favoriteSmartPlaylistIds,
     favoriteStreamingTrackKeys, clePisteJumelee, streamingFavKey,
@@ -94,7 +94,6 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   let facettes = $state<api.FacetFavorite[]>([]);
   let loading = $state(true);
   let error = $state<string | null>(null);
-  let busy = $state(false);
   let opened = $state<Album | null>(null);
   /**
    * 🔴 LE CALQUE ALBUM EMPILE UNE ENTRÉE D'HISTORIQUE — #980.
@@ -692,21 +691,20 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     );
   }
 
-  /** Retrait d'un favori. On recharge aussi les ENSEMBLES d'identifiants du
-   *  store : sans ça, les boutons cœur des autres écrans continueraient
-   *  d'afficher l'élément comme favori jusqu'au prochain rechargement. */
-  async function unfav(body: { track_id?: number; album_id?: number; artist_id?: number }, e: MouseEvent) {
-    e.stopPropagation();
-    const pid = $currentProfileId;
-    if (pid == null || busy) return;
-    busy = true;
-    try {
-      await api.removeFavorite(pid, body);
-      await reload();
-      await loadFavoriteIds(pid);
-    } catch { error = $t('settings.errRemoveFailed' as any); }
-    busy = false;
-  }
+  /*
+   * `unfav` a été retirée le 26/09/2026 : plus aucun appelant.
+   *
+   * Elle portait le retrait d'un favori depuis cet écran, déclenché par un
+   * bouton propre. Ce geste appartient au cœur de `PochetteActions` depuis
+   * qu'il habille ces vignettes — lui-même passe par `basculerFavoriLocal`,
+   * qui met à jour les ensembles d'identifiants du store. La fonction est
+   * restée derrière, sans appelant, jusqu'à ce que le catalogue d'actions
+   * (PR #1628) la mette en évidence.
+   *
+   * Si le geste doit revenir un jour sur cet écran, il passe par la pochette,
+   * pas par une seconde voie : deux chemins vers le même retrait finiraient
+   * par différer — c'est exactement le défaut que le catalogue a refermé.
+   */
 </script>
 
 <section class="v2-fav tune-v2">
