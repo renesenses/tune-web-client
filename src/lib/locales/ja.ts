@@ -3455,7 +3455,6 @@ export default {
   "v2.pl.edit": "編集",
   "v2.pl.editDone": "完了",
   "v2.pl.rename": "名前を変更",
-  "v2.pl.delete": "削除",
   "v2.pl.remoteHint": "このプレイリストは {service} 上にあり、Tune から名前の変更も編集もできません。",
   "v2.pl.export": "書き出す",
   "v2.pl.exported": "{file} を書き出しました",

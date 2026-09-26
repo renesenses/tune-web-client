@@ -3455,7 +3455,6 @@ export default {
   "v2.pl.edit": "편집",
   "v2.pl.editDone": "완료",
   "v2.pl.rename": "이름 바꾸기",
-  "v2.pl.delete": "삭제",
   "v2.pl.remoteHint": "이 재생목록은 {service}에 있으며 Tune에서 이름을 바꾸거나 편집할 수 없습니다.",
   "v2.pl.export": "내보내기",
   "v2.pl.exported": "{file}을(를) 내보냈습니다",

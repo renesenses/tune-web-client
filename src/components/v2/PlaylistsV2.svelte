@@ -431,7 +431,7 @@
    * 🔴 Pas de « Supprimer » ici, et ce n'est pas un oubli.
    *
    * `api.deletePlaylist` existe et la FICHE l'offre (`PlaylistDetailV2`, bouton
-   * `v2.pl.delete`), mais cet écran n'a pas le geste : il lui faudrait une
+   * `common.delete`), mais cet écran n'a pas le geste : il lui faudrait une
    * fonction de confirmation et de relecture qui n'existe pas, et une clé de
    * confirmation qui n'existe dans aucune des onze langues. Le catalogue dit que
    * la CAPACITÉ est là ; tant que la SURFACE ne fournit pas le geste, l'entrée

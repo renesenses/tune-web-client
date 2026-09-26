@@ -395,7 +395,7 @@
         {/if}
         {#if edition && isLocal}
           <button class="ghost sm" onclick={() => { draft = item.pl.name; renaming = true; }}>{$tr('v2.pl.rename' as any)}</button>
-          <button class="ghost sm danger" onclick={() => { if (item.kind === 'local' && item.pl.id != null) api.deletePlaylist(item.pl.id).then(() => { onChanged?.(); onClose(); }).catch(() => {}); }}>{$tr('v2.pl.delete' as any)}</button>
+          <button class="ghost sm danger" onclick={() => { if (item.kind === 'local' && item.pl.id != null) api.deletePlaylist(item.pl.id).then(() => { onChanged?.(); onClose(); }).catch(() => {}); }}>{$tr('common.delete' as any)}</button>
         {/if}
         <!-- On DIT pourquoi il n'y a pas de bouton, au lieu de laisser chercher.
              Le client porte bien une fonction `importPlaylist`, mais elle vise

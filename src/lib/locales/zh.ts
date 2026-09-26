@@ -3455,7 +3455,6 @@ export default {
   "v2.pl.edit": "编辑",
   "v2.pl.editDone": "完成",
   "v2.pl.rename": "重命名",
-  "v2.pl.delete": "删除",
   "v2.pl.remoteHint": "此播放列表位于 {service}，无法在 Tune 中重命名或编辑。",
   "v2.pl.export": "导出",
   "v2.pl.exported": "已导出 {file}",

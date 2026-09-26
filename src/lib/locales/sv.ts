@@ -3454,7 +3454,6 @@ export default {
   "v2.pl.edit": "Redigera",
   "v2.pl.editDone": "Klar",
   "v2.pl.rename": "Byt namn",
-  "v2.pl.delete": "Ta bort",
   "v2.pl.remoteHint": "Den här spellistan finns hos {service} och kan varken byta namn eller redigeras i Tune.",
   "v2.pl.export": "Exportera",
   "v2.pl.exported": "{file} exporterad",
