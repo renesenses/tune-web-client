@@ -31,7 +31,7 @@
   import { t } from '../../lib/i18n';
   import { shortcuts, loadShortcuts, navigateToShortcut } from '../../lib/stores/shortcuts';
   import { activeStreamingService, streamingServices } from '../../lib/stores/streaming';
-  import { servicesDeLaBarre } from '../../lib/ongletsStreaming';
+  import { servicesConnectes } from '../../lib/ongletsStreaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
   import * as api from '../../lib/api';
   import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
@@ -397,18 +397,20 @@
   };
   const nomService = (s: string) => NOMS_SERVICE[s] ?? s.charAt(0).toUpperCase() + s.slice(1);
 
-  // 🔴 La MÊME règle et le MÊME ordre de préférence que la rangée d'onglets de
-  // l'écran (#998) — `ongletsStreaming`, sonde de l'extension Bandcamp
-  // comprise. Fil 1952 (Didier) : la barre ne lisait que `servicesConnectes`,
-  // et un compte Bandcamp lié mais jamais « activé » avait son onglet sur
-  // l'écran et aucune entrée ici.
-  let bandcampLive = $state(false);
-  $effect(() => {
-    // Même sonde FONCTIONNELLE que `StreamingV2` : seule une réponse réelle de
-    // l'extension prouve qu'elle est chargée. Un échec laisse `false`.
-    api.bandcampTags().then(() => { bandcampLive = true; }, () => {});
-  });
-  const servicesBarre = $derived(servicesDeLaBarre($streamingServices, bandcampLive));
+  // 🔴 Une seule règle pour TOUS les services, Bandcamp compris :
+  // `servicesConnectes`, c'est-à-dire activé ET connecté — `utilisable()` côté
+  // serveur (#5130), la règle qui garde aussi la recherche et l'accueil — dans
+  // l'ordre de préférence de l'écran (#998).
+  //
+  // Fil 1952 (Didier) : Bandcamp lié mais décoché n'avait pas d'entrée ici.
+  // web#1624 l'avait fait entrer par la sonde de l'extension, même décoché ;
+  // c'est le serveur qui a été corrigé (tune-server-rust, lot
+  // `batch/bandcamp-actif-connexion-20260926`) : lier son compte coche la
+  // case, et un compte déjà lié jamais touché est actif. L'exception
+  // Bandcamp n'a donc plus lieu d'être. Face à un serveur 0.9.165, un
+  // Bandcamp décoché reste absent, comme tout service décoché : il suffit de
+  // cocher sa case.
+  const servicesBarre = $derived(servicesConnectes($streamingServices));
 
   // Le magasin n'est rempli par AUCUN écran de cette coquille : sans ce
   // chargement la section resterait vide pour toujours (même constat que
