@@ -690,6 +690,7 @@ export default {
   'signal.outputDeviceMismatch': 'Ljudet spelas inte upp via enheten som är inställd för den här zonen.',
   'signal.lossless': 'Förlustfri',
   'signal.lossy': 'Förlustbehäftad',
+  'signal.unknownFormat': 'Okänt format',
   'signal.bitPerfect': 'Bit-perfect',
   'signal.transcoded': 'Omkodad',
   'signal.source': 'Källa',

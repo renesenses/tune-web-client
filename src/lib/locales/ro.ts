@@ -717,6 +717,7 @@ export default {
   'signal.outputDeviceMismatch': 'Sunetul nu iese prin dispozitivul configurat pentru această zonă.',
   'signal.lossless': 'Fără pierderi',
   'signal.lossy': 'Cu pierderi',
+  'signal.unknownFormat': 'Format necunoscut',
   'signal.bitPerfect': 'Bit-Perfect',
   'signal.transcoded': 'Transcodat',
   'signal.source': 'Sursă',

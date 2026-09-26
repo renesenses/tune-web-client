@@ -783,6 +783,7 @@ export default {
   "signal.outputDeviceMismatch": "A hang nem a zónához beállított eszközön szólal meg.",
   "signal.lossless": "Veszteségmentes",
   "signal.lossy": "Veszteséges",
+  "signal.unknownFormat": "Ismeretlen formátum",
   "signal.bitPerfect": "Bit-perfect",
   "signal.transcoded": "Átkódolt",
   "signal.source": "Forrás",

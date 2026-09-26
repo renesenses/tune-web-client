@@ -711,6 +711,7 @@ export default {
   'signal.outputDeviceMismatch': '이 존에 설정된 장치로 소리가 나오지 않습니다.',
   'signal.lossless': '무손실',
   'signal.lossy': '손실',
+  'signal.unknownFormat': '알 수 없는 형식',
   'signal.bitPerfect': 'Bit-Perfect',
   'signal.transcoded': '트랜스코딩됨',
   'signal.source': '소스',

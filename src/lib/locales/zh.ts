@@ -711,6 +711,7 @@ export default {
   'signal.outputDeviceMismatch': '声音没有通过该区域配置的设备输出。',
   'signal.lossless': '无损',
   'signal.lossy': '有损',
+  'signal.unknownFormat': '未知格式',
   'signal.bitPerfect': 'Bit-Perfect',
   'signal.transcoded': '已转码',
   'signal.source': '源',

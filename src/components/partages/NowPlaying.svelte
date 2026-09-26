@@ -1,5 +1,6 @@
 <script lang="ts">
   import { atteintLeSon } from '../../lib/porteeReglage';
+  import { descriptionDEtape, etatSansPerte } from '../../lib/formatInconnu';
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
   import { pisteDeFile } from '../../lib/pisteDeFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
@@ -2118,7 +2119,8 @@ import { ICONES } from '../../lib/menuPiste';
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="signal-path-card" onclick={(e) => e.stopPropagation()}>
                   <div class="sp-card-header">
-                    <h3>{$t('signal.title')} : <span class:sp-quality-good={zone.signal_path.lossless ?? zone.signal_path.bit_perfect} class:sp-quality-lossy={!(zone.signal_path.lossless ?? zone.signal_path.bit_perfect)}>{(zone.signal_path.lossless ?? zone.signal_path.bit_perfect) ? $t('signal.lossless') : $t('signal.lossy')}</span></h3>
+                    <!-- #4346 — `lossless: null` : codec inconnu, ni « sans perte » ni « avec perte ». -->
+                    <h3>{$t('signal.title')} : <span class:sp-quality-good={etatSansPerte(zone.signal_path) === 'lossless'} class:sp-quality-lossy={etatSansPerte(zone.signal_path) === 'lossy'} class:sp-quality-unknown={etatSansPerte(zone.signal_path) === 'unknown'}>{etatSansPerte(zone.signal_path) === 'unknown' ? $t('signal.unknownFormat') : etatSansPerte(zone.signal_path) === 'lossless' ? $t('signal.lossless') : $t('signal.lossy')}</span></h3>
                     <button class="sp-close" onclick={() => showSignalDetail = false}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                     </button>
@@ -2151,7 +2153,7 @@ import { ICONES } from '../../lib/menuPiste';
                           {/if}
                         </div>
                         <div class="sp-step-info">
-                          <span class="sp-step-name">{trDesc(step.description)} <span class="sp-step-dot" class:bit-perfect={etapeIntacte(step, zone.signal_path.bit_perfect)}></span></span>
+                          <span class="sp-step-name">{trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} <span class="sp-step-dot" class:bit-perfect={etapeIntacte(step, zone.signal_path.bit_perfect)}></span></span>
                           {#if step.detail}
                             <span class="sp-step-detail">{trDetail(step.detail)}</span>
                           {/if}
@@ -3206,6 +3208,7 @@ import { ICONES } from '../../lib/menuPiste';
 
   .sp-quality-good { color: #4ade80; font-weight: 600; }
   .sp-quality-lossy { color: #f59e0b; font-weight: 600; }
+  .sp-quality-unknown { color: var(--tune-text-muted, #9ca3af); font-weight: 600; }
 
   .sp-close {
     background: none;

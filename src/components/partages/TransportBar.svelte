@@ -1,5 +1,6 @@
 <script lang="ts">
   import { preferences } from '../../lib/stores/preferences';
+  import { descriptionDEtape, etatSansPerte } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
   import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../../lib/peakMetre';
   import { onMount, onDestroy } from 'svelte';
@@ -855,7 +856,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
             <span class="mini-badges">
               <ServiceBadge source={displayTrack.source} compact />
               {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || zone?.signal_path}
-                {@const sourceStep = zone?.signal_path?.steps?.find((s: any) => s.name === 'Source')?.description ?? ''}
+                {@const sourceStep = descriptionDEtape(zone?.signal_path?.steps?.find((s: any) => s.name === 'Source'), $t('signal.unknownFormat'))}
                 {@const spFormat = sourceStep.split(' ')[0]?.toUpperCase() || ''}
                 {@const spDetail = sourceStep || ''}
                 {@const hasTrackFormat = !!(displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth)}
@@ -868,7 +869,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                   onclick={(e) => { if (zone?.signal_path) { e.stopPropagation(); showSignalPath = true; } }}
                   onkeydown={(e) => { if (zone?.signal_path && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); showSignalPath = true; } }}
                   title={hasTrackFormat ? formatQualityTooltip(displayTrack) : (zone?.signal_path?.summary ?? '')}
-                >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || ((zone?.signal_path?.lossless ?? zone?.signal_path?.bit_perfect) ? 'Lossless' : 'Lossy'))}</span>
+                >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || (etatSansPerte(zone?.signal_path) === 'unknown' ? $t('signal.unknownFormat') : etatSansPerte(zone?.signal_path) === 'lossless' ? 'Lossless' : 'Lossy'))}</span>
             {/if}
             </span>
           {/if}
@@ -1347,7 +1348,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   <div class="sp-overlay" onclick={() => showSignalPath = false} role="button" tabindex={0} aria-label="Close signal path">
     <div class="sp-card" onclick={(e) => e.stopPropagation()} role="dialog" aria-label="Signal path details">
       <div class="sp-header">
-        <h3>{$t('signal.title')}{#if zone?.signal_path} : <span class:sp-good={zone.signal_path.lossless ?? zone.signal_path.bit_perfect} class:sp-lossy={!(zone.signal_path.lossless ?? zone.signal_path.bit_perfect)}>{(zone.signal_path.lossless ?? zone.signal_path.bit_perfect) ? $t('signal.lossless') : $t('signal.lossy')}</span>{/if}</h3>
+        <h3>{$t('signal.title')}{#if zone?.signal_path} : <span class:sp-good={etatSansPerte(zone.signal_path) === 'lossless'} class:sp-lossy={etatSansPerte(zone.signal_path) === 'lossy'} class:sp-unknown={etatSansPerte(zone.signal_path) === 'unknown'}>{etatSansPerte(zone.signal_path) === 'unknown' ? $t('signal.unknownFormat') : etatSansPerte(zone.signal_path) === 'lossless' ? $t('signal.lossless') : $t('signal.lossy')}</span>{/if}</h3>
         <button class="sp-x" onclick={() => showSignalPath = false}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
@@ -1419,7 +1420,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               {/if}
             </div>
             <div class="sp-info">
-              <span class="sp-name">{trDesc(step.description)} <span class="sp-ndot" class:bp={etapeIntacte(step, zone.signal_path.bit_perfect)}></span></span>
+              <span class="sp-name">{trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} <span class="sp-ndot" class:bp={etapeIntacte(step, zone.signal_path.bit_perfect)}></span></span>
               {#if step.detail}
                 <span class="sp-detail">{trDetail(step.detail)}</span>
               {/if}
@@ -2436,6 +2437,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
   .sp-good { color: #4ade80; font-weight: 600; }
   .sp-lossy { color: #f59e0b; font-weight: 600; }
+  .sp-unknown { color: var(--tune-text-muted, #9ca3af); font-weight: 600; }
   .sp-x {
     background: none;
     border: none;
