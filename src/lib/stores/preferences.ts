@@ -70,7 +70,7 @@ export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year'
 const OXYGEN_FACETS_REMOVED: string[] = [];
 /** Révision courante de la liste de facettes livrée. À incrémenter en même
  *  temps qu'on ajoute une entrée à ADDED_BY_REV ci-dessous. */
-const OXYGEN_FACETS_REV = 4;
+const OXYGEN_FACETS_REV = 5;
 /** Facettes apparues à chaque révision : elles sont ajoutées une fois aux
  *  préférences déjà enregistrées, puis le choix de l'utilisateur fait foi. */
 const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
@@ -90,7 +90,24 @@ const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
   // préférences enregistrées, sans quoi le correctif resterait invisible
   // pour eux — ce sont précisément les testeurs qui l'ont réclamée.
   4: ['dr'],
+  // Révision 5 : rien d'inconditionnel. Voir OXYGEN_FACETS_DEFAUTS_REV4.
 };
+/**
+ * #1636 — les défauts livrés jusqu'à la révision 4, qui oubliaient `dr`.
+ *
+ * La révision 4 n'ajoutait `dr` qu'aux préférences ANTÉRIEURES ; une
+ * préférence née à la révision 4 (navigateur neuf, autre adresse, données
+ * effacées, liste retombée sur les défauts) recevait ces défauts-là et
+ * n'avait donc jamais la facette (Patatorz, fil 1961).
+ *
+ * La révision 5 ne l'ajoute PAS à toutes les préférences de révision 4 :
+ * celui qui l'a décochée exprès la retrouverait cochée. Elle ne l'ajoute
+ * qu'à une liste restée EXACTEMENT sur ces défauts — l'empreinte d'une
+ * préférence née sans `dr` et jamais retouchée. Une préférence migrée depuis
+ * une révision antérieure porte aussi favorite/playlist/untagged/
+ * original_year (révisions 2 et 3) : décocher DR n'y redonne pas cette liste.
+ */
+const OXYGEN_FACETS_DEFAUTS_REV4 = ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country'];
 
 export interface Preferences {
   theme: ThemeMode;
@@ -306,7 +323,8 @@ const defaults: Preferences = {
   favoriteDeviceIds: [],
   oxygenEnabled: false,
   oxygenView: 'detail',
-  oxygenFacets: ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country'],
+  // `dr` en fait partie depuis #1636 : sans lui, un Oxygen neuf n'a pas de DR.
+  oxygenFacets: ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country'],
   oxygenFacetLimit: 200,
   oxygenFacetsRev: OXYGEN_FACETS_REV,
   albumSort: 'title',
@@ -443,6 +461,14 @@ function loadPrefs(): Preferences {
         : 0;
       if (rev < OXYGEN_FACETS_REV) {
         const add = new Set(p.oxygenFacets);
+        // #1636 — révision 5, conditionnelle : voir OXYGEN_FACETS_DEFAUTS_REV4.
+        if (
+          rev === 4 &&
+          add.size === OXYGEN_FACETS_DEFAUTS_REV4.length &&
+          OXYGEN_FACETS_DEFAUTS_REV4.every((f) => add.has(f))
+        ) {
+          add.add('dr');
+        }
         for (let r = rev + 1; r <= OXYGEN_FACETS_REV; r++) {
           for (const f of OXYGEN_FACETS_ADDED_BY_REV[r] ?? []) add.add(f);
         }
