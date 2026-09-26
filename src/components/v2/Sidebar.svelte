@@ -1,5 +1,6 @@
 <script lang="ts">
   import { concertsUtilisable, refreshConcertsPlugin } from '../../lib/stores/concerts';
+  import { circleCharge, refreshCirclePlugin } from '../../lib/circle';
   import { healthStatus } from '../../lib/stores/health';
   import { niveauDeLaSonde } from '../../lib/santeServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
@@ -155,6 +156,10 @@
     { view: 'tableaudebord', labelKey: 'nav.dashboard', icon: 'M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z' },
     { view: 'search', labelKey: 'nav.search', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
     { view: 'concerts', labelKey: 'nav.concerts', icon: 'M9 18V5l12-2v13M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6' },
+    // TUNE CIRCLE — demande de Bertrand du 26/09/2026 : une entrée à côté des
+    // autres greffons, visible seulement quand le greffon TOURNE. Le libellé
+    // est le nom du produit, déjà traduit dans les onze langues.
+    { view: 'circle', labelKey: 'v2.circle.title', icon: 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6M3 20a6 6 0 0 1 12 0M16 5.1a3 3 0 0 1 0 5.8M21 20a6 6 0 0 0-4-5.6' },
   ] as unknown as Item[];
   /**
    * SÉLECTIONS — ce que l'utilisateur a mis de côté lui-même.
@@ -243,7 +248,14 @@
   // l'embarque (comme dans l'ancienne barre). Une entrée qui mène à une porte
   // fermée est pire que pas d'entrée — et `null` (pas encore su) ne montre rien.
   $effect(() => { void refreshConcertsPlugin(); });
-  const avanceVisibles = $derived(ADVANCED.filter((it) => it.view !== 'concerts' || $concertsUtilisable));
+  // Tune Circle, lui, n'apparaît que CHARGÉ (installé et actif) : l'écran n'a
+  // aucune explication à offrir d'un greffon arrêté, ses routes rendraient le
+  // 404 nu d'axum. C'est la condition du bouton « Ouvrir » des Extensions.
+  $effect(() => { void refreshCirclePlugin(); });
+  const avanceVisibles = $derived(
+    ADVANCED.filter((it) => it.view !== 'concerts' || $concertsUtilisable)
+      .filter((it) => it.view !== 'circle' || $circleCharge),
+  );
 
   // Santé du serveur — portée de l'ancienne barre : sonde toutes les minutes,
   // pastille hors de « ok ». L'alerte en temps réel arrive par `v2Live`.
