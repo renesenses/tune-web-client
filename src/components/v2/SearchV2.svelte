@@ -336,11 +336,11 @@
     }
     // `get` et non `$store` : l'abonnement automatique n'existe qu'au premier
     // niveau du composant, et cette fonction n'y est pas.
-    const services = get(streamingServices);
+    // #5103 — la même règle que la moitié streaming de la recherche : activé
+    // ET connecté. Un service désactivé ne prête plus ses playlists.
     await Promise.all(
-      Object.entries(services)
-        .filter(([, st]: [string, any]) => st?.authenticated)
-        .map(([svc]) =>
+      servicesInterrogeables(get(streamingServices))
+        .map((svc) =>
           api.getStreamingPlaylists(svc)
             .then((pls: StreamingPlaylist[]) => {
               for (const pl of pls) {

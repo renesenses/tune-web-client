@@ -57,6 +57,7 @@
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, MODES_BRANCHES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { notifications } from '../../lib/stores/notifications';
+  import { streamingServices } from '../../lib/stores/streaming';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   import { telechargerJournaux } from '../../lib/journaux';
@@ -1167,6 +1168,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    *
    * L'état local suit tout de suite, puis la liste est relue : si le serveur
    * refuse, l'écran ne garde pas une valeur menteuse.
+   *
+   * 🔴 La liste relue va AUSSI dans le magasin `streamingServices`
+   * (renesenses/tune-server-rust#5103). La barre latérale y lit ses entrées
+   * « Streaming », et le magasin n'est chargé qu'UNE fois par page
+   * (`statutsStreaming` rend tel quel un magasin déjà rempli) : décocher
+   * YouTube laissait YouTube dans la barre, et dans la recherche, jusqu'au
+   * rechargement. `authenticated` ne bouge pas ici, donc aucune fausse
+   * alerte « session expirée ».
    */
   async function basculerSvc(name: string, actif: boolean) {
     svcBusy = name;
@@ -1176,7 +1185,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       if (actif) await api.enableStreamingService(name);
       else await api.disableStreamingService(name);
-      svcs = (await api.getStreamingServices()) ?? svcs;
+      const relus = await api.getStreamingServices();
+      svcs = relus ?? svcs;
+      if (relus) streamingServices.set(relus);
+      else streamingServices.update((s) => (s[name] ? { ...s, [name]: { ...s[name], enabled: actif } } : s));
     } catch {
       svcs = { ...svcs, [name]: { ...svcs[name], enabled: avant } };
       svcErr = { ...svcErr, [name]: get(t)('settings.errConnectFailed') };

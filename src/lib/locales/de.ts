@@ -3981,7 +3981,7 @@ export default {
   "ban.error": "Die Verbannung dieses Titels konnte nicht geändert werden.",
   "ban.title": "Verbannte Titel",
   "ban.eyebrow": "Was Sie beiseitegelegt haben",
-  "ban.intro": "Ein verbannter Titel bleibt in seinem Album sichtbar, ausgegraut, wird aber nie mehr automatisch abgespielt: weder per Zufall, noch durch eine Smart-Playlist, noch beim automatischen Weiterspielen. Ein bewusster Klick spielt ihn nach Bestätigung ab.",
+  "ban.intro": "Ein verbannter Titel – aus deiner Bibliothek oder von einem Dienst wie Qobuz oder Tidal – bleibt in seinem Album sichtbar, ausgegraut, wird aber nie mehr automatisch abgespielt: weder per Zufall, noch durch eine Smart-Playlist, noch durch das Radio, noch beim automatischen Weiterspielen. Ein bewusster Klick spielt ihn nach Bestätigung ab.",
   "ban.empty": "Keine verbannten Titel.",
   "ban.loadError": "Die verbannten Titel konnten nicht geladen werden.",
   "ban.retry": "Erneut versuchen",

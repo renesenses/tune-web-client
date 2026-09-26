@@ -4,7 +4,7 @@
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
   import { pisteDeFile } from '../../lib/pisteDeFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
-import { bannir, debannir, bannissable, estBannie, surchargesBannissement } from '../../lib/titreBanni';
+import { bannir, debannir, bannissable, cleDeBannissement, estBannie, surchargesBannissement } from '../../lib/titreBanni';
 import { ICONES } from '../../lib/menuPiste';
   import { doitReinitialiserLesParoles } from '../../lib/nowPlayingLyricsReset';
   import { currentZone } from '../../lib/stores/zones';
@@ -1060,9 +1060,10 @@ import { ICONES } from '../../lib/menuPiste';
   // titre quand on l'écoute » : « Bannir ce titre » dans la rangée d'En écoute,
   // à côté de Paroles, Sleep, Réveil. Le MÊME geste que le menu de piste
   // (`titreBanni.bannir` / `debannir` : même route, même message, même
-  // surcharge locale) et la même règle : bibliothèque LOCALE seulement
-  // (Bertrand, 23/09) — sur une piste de service, pas de bouton. Le serveur
-  // enchaîne lui-même le titre suivant quand on bannit ce qui joue (#4818).
+  // surcharge locale) et la même règle : une piste de la bibliothèque OU un
+  // titre de service (fil 1946, réponse 6820) — sur une radio, pas de bouton.
+  // Le serveur enchaîne lui-même le titre suivant quand on bannit ce qui joue
+  // (#4818).
   //
   // Déjà banni : la surcharge de l'écran d'abord, puis le drapeau `banned` —
   // celui de la piste, ou à défaut celui de sa ligne de file (`get_queue` le
@@ -1073,7 +1074,11 @@ import { ICONES } from '../../lib/menuPiste';
   let pisteEnCoursBannie = $derived.by(() => {
     const p = pisteBannissable;
     if (p == null) return false;
-    const drapeau = p.banned ?? $queueTracks.find((l) => l.id === p.id)?.banned;
+    // La ligne de file par sa CLÉ (`l:<id>` ou `s:<service>:<id>`), jamais
+    // par `id` seul : un titre de service a `id: null`, comme tous ses voisins
+    // de service de la file.
+    const cle = cleDeBannissement(p);
+    const drapeau = p.banned ?? $queueTracks.find((l) => cleDeBannissement(l) === cle)?.banned;
     return estBannie({ ...p, banned: drapeau }, $surchargesBannissement);
   });
   let bannissementEnCours = $state(false);

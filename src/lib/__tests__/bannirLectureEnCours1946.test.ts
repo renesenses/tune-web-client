@@ -7,9 +7,9 @@
 // Le témoin MONTE « En écoute », clique le bouton de la rangée, et regarde ce
 // qui PART SUR LE RÉSEAU et ce que l'écran DIT ensuite.
 //
-// Règles tenues (Bertrand, 23/09/2026) : bibliothèque LOCALE seulement — une
-// piste Qobuz n'a pas de bouton ; le geste est celui du menu de piste
-// (`titreBanni.bannir`), avec son message de confirmation.
+// Règles tenues (Bertrand, 23/09/2026) : le geste est celui du menu de piste
+// (`titreBanni.bannir`), avec son message de confirmation. Depuis le 26/09
+// (fil 1946, réponse 6820), un titre Qobuz a aussi son bouton.
 //
 // CONTRE-ÉPREUVE : sur origin/main, le bouton n'existe pas — les témoins
 // « présent », « clic » et « Débannir » rougissent.
@@ -104,11 +104,20 @@ describe('fil 1946 — « Bannir ce titre » dans En écoute', () => {
     expect(b!.closest('.np-extra-btns'), 'hors de la rangée des boutons').not.toBeNull();
   });
 
-  it('absent pour une piste Qobuz — bibliothèque locale seulement', async () => {
+  it('🔴 présent aussi pour une piste Qobuz (fil 1946, réponse 6820) : POST /library/tracks/streaming/ban', async () => {
     const h = poser(PISTE_QOBUZ);
     await respirer();
     expect(h.querySelector('.np-extra-btns'), 'rangée non rendue — témoin sans objet').not.toBeNull();
-    expect(bouton(h)).toBeNull();
+    const b = bouton(h);
+    expect(b, 'bouton « Bannir » absent sur un titre de service').not.toBeNull();
+    appels = [];
+    b!.click();
+    await respirer(120);
+    flushSync();
+    expect(appels.filter((a) => /\/library\/tracks\/streaming\/ban$/.test(a.url)).map((a) => a.methode))
+      .toEqual(['POST']);
+    expect(appels.some((a) => /\/library\/tracks\/\d+\/ban$/.test(a.url)), 'jamais la route par id').toBe(false);
+    expect((bouton(h)!.textContent ?? '').trim()).toBe('Débannir');
   });
 
   it('🔴 clic → POST /library/tracks/77/ban, message de confirmation, puis « Débannir »', async () => {
