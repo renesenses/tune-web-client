@@ -152,14 +152,20 @@ describe('point 2 — le menu « … » d’un titre d’historique', () => {
     // gardée plus bas, en appelant la règle : sans `similairesDeService`, une
     // piste de service ne l'a toujours pas.
     //
-    // Reste réservé à la bibliothèque : « Bannir » / « Débannir » (#4806),
-    // `POST /library/tracks/{id}/ban` prenant un `i64` — tranche locale seule.
-    const menu = sansCommentaires(lire('src/lib/menuPiste.ts'));
-    for (const cle of ['ban.ban', 'ban.unban']) {
-      expect(menu, `${cle} n’est plus réservée à la bibliothèque`).toMatch(
-        new RegExp(`pousser\\(deLaBibliotheque && [^,]+, '${cle.replace('.', '\\.')}'`),
-      );
-    }
+    // 🔄 Réécrit le 26/09/2026 (fil forum 1946, FabienM, réponse 6820) :
+    // « Bannir » / « Débannir » sortent à leur tour — un titre de service se
+    // désigne par sa paire (`POST /library/tracks/streaming/ban`,
+    // tune-server-rust#4806). L'intention est gardée en appelant la règle :
+    // sans `bannissableDeService`, une piste de service n'a toujours aucune
+    // des deux entrées.
+    const noop = () => {};
+    const service = { jouable: true, idBibliotheque: null, artistId: null, albumId: null };
+    const cles = (c: Parameters<typeof entreesMenuPiste>[0]) =>
+      entreesMenuPiste(c, { bannir: noop, debannir: noop }).map((e) => e.cle);
+    expect(cles(service), 'une piste de service non désignable a « Bannir »').not.toContain('ban.ban');
+    expect(cles({ ...service, bannie: true })).not.toContain('ban.unban');
+    expect(cles({ ...service, bannissableDeService: true })).toContain('ban.ban');
+    expect(cles({ ...service, bannissableDeService: true, bannie: true })).toContain('ban.unban');
   });
 
   it('« Autres versions » : ouverte à une piste de service NOMMÉE (titre + artiste), fermée sinon (23/09/2026)', () => {
