@@ -233,11 +233,48 @@ export function allerAuDetail(
   cle: string,
   options: { programmerFilet?: (cb: () => void, ms: number) => void } = {},
 ): void {
-  const programmerFilet = options.programmerFilet ?? ((cb: () => void, ms: number) => setTimeout(cb, ms));
-  leverIntention(cle, programmerFilet);
+  viserDetail(cle, options);
   // Le changement de vue fait le reste : l'abonnement du branchement lit
   // l'intention et écrit l'entrée composée.
   activeView.set(vue);
+}
+
+/**
+ * La moitié « intention » d'`allerAuDetail`, pour l'émetteur qui change de vue
+ * LUI-MÊME, juste après — web#1619.
+ *
+ * « Localiser sur le disque » (fiche album, Convertisseur) pose le dossier
+ * dans `repertoireCible` PUIS fait `activeView.set('browse')` ; deux gardes de
+ * texte (#854, `localiserSurLeDisque`) tiennent cet ordre. Le dossier d'arrivée
+ * doit être la clé de l'entrée `#browse` elle-même, sans cran de plus : sans
+ * cela, remonter depuis un sous-dossier retomberait sur la liste des
+ * emplacements, et un Précédent de plus serait nécessaire pour revenir à
+ * l'album. C'est exactement l'entrée COMPOSÉE de #1142.
+ *
+ * ⚠️ Le changement de vue doit suivre dans le même tour : l'intention est
+ * consommée par le PROCHAIN changement de vue, quel qu'il soit. Le filet la
+ * baisse si aucun ne vient.
+ */
+export function viserDetail(
+  cle: string,
+  options: { programmerFilet?: (cb: () => void, ms: number) => void } = {},
+): void {
+  const programmerFilet = options.programmerFilet ?? ((cb: () => void, ms: number) => setTimeout(cb, ms));
+  leverIntention(String(cle), programmerFilet);
+}
+
+/**
+ * Vrai si l'entrée d'historique COURANTE est l'une des nôtres et porte `cle`.
+ *
+ * C'est la garde d'un bouton « Retour » d'écran qui veut reculer au lieu
+ * d'empiler (web#1619) : `history.back()` n'est sûr que si l'entrée qu'on
+ * quitte est bien celle que l'écran a écrite. Sinon — coquille non branchée,
+ * entrée étrangère — reculer pourrait faire sortir de Tune.
+ */
+export function entreeCourantePorte(cle: string | null): boolean {
+  if (typeof window === 'undefined') return false;
+  const etat = window.history.state;
+  return estEtatCoquille(etat) && etat.detail === cle;
 }
 
 /**

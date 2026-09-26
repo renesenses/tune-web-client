@@ -14,7 +14,12 @@
   import { preferences } from '../../lib/stores/preferences';
   import ImportWizard from '../partages/ImportWizard.svelte';
 
-  import { repertoireCible, consommerRepertoireCible } from '../../lib/stores/repertoireCible';
+  import {
+    repertoireCible, consommerRepertoireCible, cleDossier, cheminDeCleDossier, CLE_EMPLACEMENTS,
+  } from '../../lib/stores/repertoireCible';
+  import { untrack } from 'svelte';
+  import { detailOuvert, ouvrirDetail, entreeCourantePorte } from '../../lib/historiqueCoquille';
+  import { reculerAvecIntention } from '../../lib/historiqueNavigation';
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
@@ -82,13 +87,84 @@
    * L'effet ne relit pas ce qu'il écrit : il lit le magasin, le vide, et
    * n'écrit que `browseResult` / `currentPath`.
    */
+  /**
+   * 🔴 CHAQUE DOSSIER OUVERT À LA MAIN EST UNE ÉTAPE D'HISTORIQUE — web#1619.
+   *
+   * FabienM, fil 1955 (0.9.165) : « dans un répertoire, le BACK devrait
+   * simuler le bouton Retour mais il renvoie à la dernière page de 1er
+   * niveau ». `navigateTo` ne changeait que `currentPath`, un `$state` local :
+   * aucune entrée n'était empilée, et le Précédent dépilait celle de la vue
+   * d'avant.
+   *
+   * Le mécanisme est celui de la coquille (`historiqueCoquille.ts`), pas un
+   * second : ouvrir un dossier pose sa clé par `ouvrirDetail`, la coquille
+   * empile `#browse/dossier:…`, et le Précédent repose la clé de l'entrée
+   * atteinte dans `detailOuvert`. Cet écran la SUIT : il recharge le dossier
+   * qu'elle désigne, ou la liste des emplacements si elle est vide.
+   *
+   * `cleAffichee` : la clé de ce que l'écran montre. Une clé que l'écran pose
+   * lui-même lui revient par le magasin ; elle est alors déjà affichée, et rien
+   * n'est rechargé deux fois.
+   *
+   * `pile` : les clés des entrées parcourues DANS cet écran, de l'entrée
+   * d'arrivée à la courante. Elle ne sert qu'au bouton « Retour » de l'écran
+   * (`goUp`), pour savoir si le dossier parent est l'entrée d'en dessous — il
+   * recule alors au lieu d'empiler, comme le Retour des fiches album.
+   */
+  let cleAffichee: string | null = null;
+  let pile: (string | null)[] = [get(detailOuvert)];
+  /** `undefined` avant la première lecture du magasin. */
+  let dejaLue: string | null | undefined = undefined;
+
+  /** Suivre l'entrée atteinte (Précédent, Suivant, arrivée) — sans rien écrire. */
+  function suivreLEntree(cle: string | null) {
+    const i = pile.lastIndexOf(cle);
+    pile = i >= 0 ? pile.slice(0, i + 1) : [...pile, cle];
+    cleAffichee = cle;
+    const chemin = cheminDeCleDossier(cle);
+    if (chemin) void charger(chemin);
+    else goToRoots();
+  }
+
+  // ⚠️ Déclaré AVANT l'effet de `repertoireCible` : au montage, les effets
+  // tournent dans l'ordre de déclaration, et celui-ci doit lire le magasin
+  // avant que le dossier d'arrivée ne soit posé.
+  $effect(() => {
+    const voulu = $detailOuvert;
+    // `untrack` : la suite lit et écrit l'état de l'écran ; l'effet ne doit
+    // dépendre que du magasin.
+    untrack(() => {
+      const avant = dejaLue;
+      dejaLue = voulu;
+      if (voulu === cleAffichee) return;
+      // Montage sans détail : la liste des emplacements est déjà là.
+      if (voulu === null && avant === undefined) return;
+      suivreLEntree(voulu);
+    });
+  });
+
+  /** Ouvrir à la main : la clé est posée, la coquille empile l'entrée. */
+  function empiler(cle: string) {
+    if (cle === cleAffichee) return;
+    cleAffichee = cle;
+    pile = [...pile, cle];
+    ouvrirDetail(cle);
+  }
+
   $effect(() => {
     const cible = $repertoireCible;
     if (!cible) return;
     consommerRepertoireCible();
-    void navigateTo(cible);
+    // web#1619 : l'émetteur a déjà fait du dossier la clé de l'entrée
+    // d'arrivée (`ouvrirLeRepertoire` → `viserDetail`) — rien à empiler ici,
+    // et rien à recharger si l'effet ci-dessus l'a déjà fait.
+    const cle = cleDossier(cible);
+    if (cle === cleAffichee) return;
+    cleAffichee = cle;
+    void charger(cible);
   });
 
+  /** Un dossier ouvert à la main : une étape d'historique, puis le contenu. */
   async function navigateTo(path: string, missing = false) {
     // A root flagged `exists === false` (NAS offline, external SSD unmounted)
     // used to stay clickable and silently no-op on failure — the browse call
@@ -98,11 +174,28 @@
       notifications.error($tr('browse.rootMissing'));
       return;
     }
+    empiler(cleDossier(path));
+    await charger(path);
+  }
+
+  /**
+   * Le numéro de la DERNIÈRE demande d'affichage. Deux Précédent rapprochés
+   * lancent deux chargements : la réponse de la première ne doit pas
+   * recouvrir celle de la seconde (web#1619).
+   */
+  let demande = 0;
+
+  /** Afficher un dossier, sans rien écrire dans l'historique. */
+  async function charger(path: string) {
+    const mienne = ++demande;
     loading = true;
     currentPath = path;
     try {
-      browseResult = await api.browseDirectory(path);
+      const res = await api.browseDirectory(path);
+      if (mienne !== demande) return;
+      browseResult = res;
     } catch (e) {
+      if (mienne !== demande) return;
       console.error('Browse directory error:', e);
       currentPath = null;
       notifications.error($tr('browse.openError'));
@@ -111,8 +204,21 @@
   }
 
   function goToRoots() {
+    demande++;
+    loading = false;
     browseResult = null;
     currentPath = null;
+  }
+
+  /** La liste des emplacements, rejointe à la main (fil d'Ariane). */
+  function allerAuxEmplacements() {
+    empiler(CLE_EMPLACEMENTS);
+    goToRoots();
+  }
+
+  /** La clé de l'entrée d'en dessous, si cet écran l'a parcourue. */
+  function cleDessous(): string | null | undefined {
+    return pile.length >= 2 ? pile[pile.length - 2] : undefined;
   }
 
   /**
@@ -136,9 +242,23 @@
       activeView.set(retour);
       return;
     }
+    // web#1619 : si le parent est l'entrée d'en dessous — on vient de lui —
+    // le Retour de l'écran RECULE, comme le Précédent du navigateur. Empiler
+    // ici laisserait la pile un cran plus haut que le chemin parcouru. Le
+    // `popstate` repose la clé du parent, que l'effet ci-dessus recharge.
+    const parent = browseResult?.parent ? cleDossier(browseResult.parent) : null;
+    const dessous = cleDessous();
+    const parentEnDessous = dessous !== undefined && (
+      parent !== null ? dessous === parent : (dessous === null || dessous === CLE_EMPLACEMENTS)
+    );
+    if (parentEnDessous && entreeCourantePorte(cleAffichee)) {
+      reculerAvecIntention(() => {});
+      return;
+    }
     if (browseResult?.parent) {
       navigateTo(browseResult.parent);
     } else {
+      empiler(CLE_EMPLACEMENTS);
       goToRoots();
     }
   }
@@ -201,8 +321,8 @@
         const status = await api.getScanStatus();
         scanning = status.scanning;
       }
-      // Reload current folder
-      await navigateTo(browseResult.path);
+      // Reload current folder — sans étape d'historique : on n'a pas bougé.
+      await charger(browseResult.path);
     } catch (e) {
       console.error('Rescan error:', e);
     }
@@ -252,7 +372,7 @@
             <span class="breadcrumb-sep">/</span>
           {/if}
           {#if i < breadcrumbs.length - 1}
-            <button class="breadcrumb-link" onclick={() => crumb.path ? navigateTo(crumb.path) : goToRoots()}>
+            <button class="breadcrumb-link" onclick={() => crumb.path ? navigateTo(crumb.path) : allerAuxEmplacements()}>
               {crumb.name}
             </button>
           {:else}
