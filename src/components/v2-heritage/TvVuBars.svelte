@@ -15,6 +15,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { audioLevels } from '../../lib/stores/audioLevels';
   import { RED_FROM_DB, PEAK_LAMP_DBFS } from '../../lib/tvVuScale';
+  import { avecAlpha, PALETTE_SOMBRE as PALETTE_VU_SOMBRE, paletteVuDepuis } from '../../lib/dessinVuMetre';
   import {
     BAR_SCALES,
     barFraction,
@@ -30,8 +31,11 @@
     scale?: BarScaleId;
     /** Largeur totale, hauteur déduite. */
     width?: number;
+    /** Le Grand écran est-il en mode CLAIR ? Sert à savoir QUAND relire la
+     *  palette — les couleurs, elles, sont posées par `TvView`. */
+    clair?: boolean;
   }
-  let { playing, scale = 'wide', width = 560 }: Props = $props();
+  let { playing, scale = 'wide', width = 560, clair = false }: Props = $props();
 
   let canvas: HTMLCanvasElement | undefined = $state();
   let animId: number | null = null;
@@ -48,9 +52,27 @@
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-  const IVORY = 'rgba(237,233,224,';
-  const RED = 'rgba(224,82,82,';
-  const AMBER = 'rgba(242,180,65,';
+  /**
+   * LES COULEURS SUIVENT L'ÉCRAN — audit du 27/09/2026.
+   *
+   * Le Grand écran a son propre mode clair/sombre, et son bargraphe peignait
+   * de l'ivoire et des voiles blancs quel qu'il soit : sur le fond `#f4f4f6`
+   * du mode clair, le rail et le remplissage ne se voyaient pas. Le cadran à
+   * aiguille vient d'être corrigé ; laisser le bargraphe en dur ferait deux
+   * instruments qui ne racontent pas la même chose du même écran.
+   *
+   * Les jetons sont posés par `TvView` sur `.tv-root` / `.tv-root.light` —
+   * c'est l'écran qui décide de son encre, pas le thème de l'application.
+   */
+  let palette = $state(PALETTE_VU_SOMBRE);
+  const IVORY = $derived(`rgba(${palette.encre},`);
+  const RED = $derived(`rgba(${palette.rouge},`);
+  const AMBER = $derived(palette.aiguille);
+
+  $effect(() => {
+    void clair;
+    palette = paletteVuDepuis(canvas);
+  });
 
   function drawBar(
     ctx: CanvasRenderingContext2D,
@@ -68,8 +90,8 @@
     const r = h / 2;
 
     // Rail
-    ctx.fillStyle = 'rgba(255,255,255,0.05)';
-    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    ctx.fillStyle = palette.faceHaut;
+    ctx.strokeStyle = palette.bord;
     ctx.lineWidth = 1 * dpr;
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, r);
@@ -100,7 +122,7 @@
     const pf = barFraction(peakDb, s);
     if (pf > 0) {
       const px = x + pf * w;
-      ctx.strokeStyle = peakDb >= RED_FROM_DB ? `${RED}1)` : `${AMBER}0.95)`;
+      ctx.strokeStyle = peakDb >= RED_FROM_DB ? `${RED}1)` : avecAlpha(AMBER, 0.95);
       ctx.lineWidth = 2 * dpr;
       ctx.beginPath();
       ctx.moveTo(px, y + 1 * dpr);
@@ -109,7 +131,7 @@
     }
 
     // Libellé de canal, à gauche du rail
-    ctx.fillStyle = `${AMBER}0.85)`;
+    ctx.fillStyle = avecAlpha(AMBER, 0.85);
     ctx.font = `600 ${Math.round(12 * dpr)}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
