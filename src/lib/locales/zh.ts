@@ -3443,6 +3443,7 @@ export default {
   "v2.set.pushHint": "分析结束、播放错误。此设置仅属于当前浏览器——不会随您的配置文件跨设备同步。",
   "v2.meta.foot": "补全进度可在 {p} 中查看。",
   "v2.home.wZonesCards": "正在收听",
+  "v2.home.wFirstRow": "第一行",
   "v2.home.zoneOf": "在 {z} 播放",
   "v2.lib.scopedFolder": "文件夹：{d}",
   "v2.lib.scopedClear": "显示整个音乐库",

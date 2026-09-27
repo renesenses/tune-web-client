@@ -78,6 +78,14 @@
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import MosaiqueDifferee from './MosaiqueDifferee.svelte';
+  // La première ligne (27/09/2026). Ses quatre pièces sont importées ICI et
+  // non déclarées dans le registre : `accueilWidgets.ts` n'importe aucun
+  // composant Svelte, et une douzaine de témoins l'importent en Node.
+  import CarteZoneL1 from './ligne1/CarteZoneL1.svelte';
+  import PanneauGenres from './ligne1/PanneauGenres.svelte';
+  import PanneauConcerts from './ligne1/PanneauConcerts.svelte';
+  import PanneauStats from './ligne1/PanneauStats.svelte';
+  import { COTE_L1 } from '../../lib/premiereLigne';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import {
     objetAlbum,
@@ -1098,7 +1106,13 @@
             ondragover={(e) => { if (saisi !== null) { e.preventDefault(); survole = i; } }}
             ondrop={(e) => { e.preventDefault(); deposer(i); }}
           >
-            <div class="tete">
+            <!-- La ligne d'en-tête n'a PAS de titre hors édition : elle est
+                 déjà sous « Bonsoir Bertrand ! », et un second titre y ferait
+                 deux en-têtes (maquette du 27/09/2026). En édition il revient —
+                 c'est lui qui nomme ce que la poignée déplace et ce que la
+                 croix retire, et une croix sans libellé est la plainte de
+                 Sandro (fil 1679) rejouée à l'identique. -->
+            <div class="tete" class:muette={w.sansTitre && !edition}>
               {#if edition}
                 <!-- La POIGNÉE seule est déplaçable. Rendre la bande entière
                      `draggable` empêcherait de la faire défiler à la souris,
@@ -1220,6 +1234,38 @@
               {@const Dessin = w.bloc.composant}
               <div class="blocpropre" style:min-height="{w.bloc.hauteur}px">
                 <Dessin donnees={et.donnees ?? null} />
+              </div>
+
+            {:else if w.forme === 'premiere-ligne'}
+              <!-- LA PREMIÈRE LIGNE — Bertrand, 27/09/2026, maquette Levente.
+
+                   Une carte carrée par zone qui joue, puis les trois panneaux.
+                   Les cartes poussent les panneaux vers la droite quand les
+                   zones se multiplient : c'est la deuxième capture de la
+                   maquette, et c'est pour cela que la ligne DÉFILE comme
+                   toutes les autres (`defilementHorizontal`, #1137).
+
+                   🔴 Les panneaux sont écrits ICI et non dans le registre,
+                   parce que `accueilWidgets.ts` n'importe AUCUN composant
+                   Svelte — une douzaine de témoins l'importent en Node, et
+                   `tableauDeBordWidgets.ts` existe précisément pour tenir ces
+                   deux mondes séparés.
+
+                   ⚠️ La hauteur est posée UNE FOIS, ici, sur `--l1-h` :
+                   cartes et panneaux la lisent, aucun ne se la donne. Quatre
+                   hauteurs voisines mais différentes sur une même ligne, c'est
+                   l'« assemblage de morceaux » que la règle « tous
+                   horizontaux » interdit depuis le 02/09. -->
+              <div class="l1" use:defilementHorizontal
+                   style:--l1-h="{COTE_L1}px"
+                   role="group" aria-label={$t(w.cleTitre as any)}>
+                {#each et.elements as el (el.id)}
+                  {@const z = zoneVivante(el.zoneId)}
+                  {#if z}<CarteZoneL1 zone={z} />{/if}
+                {/each}
+                <PanneauGenres />
+                <PanneauConcerts />
+                <PanneauStats />
               </div>
 
             {:else if !et.elements.length}
@@ -1561,6 +1607,24 @@
   /* La cible de dépôt se voit : sans repère, on lâche à l'aveugle. */
   .bloc.cible{border-top-color:var(--v2-acc1)}
   .tete{display:flex; align-items:center; gap:9px; padding:0 30px 10px}
+  /* La ligne d'en-tête n'affiche pas son titre hors du mode « Modifier ». */
+  .tete.muette{display:none}
+
+  /* ── LA PREMIÈRE LIGNE (27/09/2026) ──────────────────────────────────────
+     Une bande qui défile, comme toutes les autres — mais dont les éléments
+     n'ont pas tous la même NATURE. Ce qu'ils ont en commun est la hauteur, et
+     c'est tout ce qui compte : `--l1-h` est posé par le balisage, cartes et
+     panneaux la lisent, aucun ne se la donne.
+
+     `align-items:stretch` (le défaut du flex) fait le reste : un panneau dont
+     le contenu est court occupe quand même toute la hauteur, donc la ligne
+     reste droite même quand les concerts sont absents et les genres longs. */
+  .l1{display:flex; gap:16px; padding:0 30px 10px; overflow-x:auto;
+      scrollbar-width:none}
+  .l1::-webkit-scrollbar{display:none}
+
+  @media (max-width: 1024px){ .l1{padding-left:22px; padding-right:22px} }
+  @media (max-width: 640px){ .l1{padding-left:16px; padding-right:16px} }
   .tete h2{font-size:15px; font-weight:700; flex:1}
   .poignee{display:grid; place-items:center; width:24px; height:24px; border-radius:6px; cursor:grab;
     color:var(--v2-txt3); background:var(--v2-surface2)}

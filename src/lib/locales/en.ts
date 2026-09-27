@@ -3463,6 +3463,7 @@ export default {
   "v2.set.pushHint": "End of scan, playback errors. This setting belongs to this browser — it does not follow your profile from one device to another.",
   "v2.meta.foot": "Enrichment progress is tracked in {p}.",
   "v2.home.wZonesCards": "Now listening",
+  "v2.home.wFirstRow": "First row",
   "v2.home.zoneOf": "on {z}",
   "v2.lib.scopedFolder": "Folder: {d}",
   "v2.lib.scopedClear": "Show the whole library",

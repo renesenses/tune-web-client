@@ -37,10 +37,18 @@ describe('#1426 — le remplacement du tableau de bord est visible sans rien dem
     expect(DISPOSITION_DEFAUT).toContain('stats-semaine');
   });
 
-  it('les quatre sections historiques restent, et restent EN TÊTE', () => {
-    // On ajoute, on ne réordonne pas : un accueil existant garde son haut de
-    // page. Les deux nouveaux arrivent en dessous.
-    expect(DISPOSITION_DEFAUT.slice(0, 4)).toEqual([
+  it('les quatre sections historiques restent, dans leur ordre, sous la ligne d’en-tête', () => {
+    // On ajoute, on ne réordonne pas : les deux widgets de #1426 sont arrivés
+    // EN DESSOUS, et les quatre sections historiques n'ont pas bougé les unes
+    // par rapport aux autres.
+    //
+    // 🔴 27/09/2026 — une seule chose passe AU-DESSUS d'elles, et c'est une
+    // décision de Bertrand : « la première ligne de la homepage devient un
+    // gros widget horizontal ». Ce qui est vérifié ici reste donc bien ce que
+    // #1426 voulait tenir — les quatre sections, entières et dans l'ordre —
+    // et non l'indice 0, qui n'en était que le moyen.
+    expect(DISPOSITION_DEFAUT[0]).toBe('premiere-ligne');
+    expect(DISPOSITION_DEFAUT.slice(1, 5)).toEqual([
       'reprendre', 'nouveautes-artistes', 'recemment-ajoutes', 'statistiques',
     ]);
   });

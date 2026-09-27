@@ -3401,6 +3401,7 @@ export default {
   "v2.set.pushHint": "Az elemzés vége, lejátszási hibák. Ez a beállítás ehhez a böngészőhöz tartozik — nem követi a profilját eszközről eszközre.",
   "v2.meta.foot": "A gazdagítás haladása a(z) {p} alatt követhető.",
   "v2.home.wZonesCards": "Most szól",
+  "v2.home.wFirstRow": "Első sor",
   "v2.home.zoneOf": "itt: {z}",
   "v2.lib.scopedFolder": "Mappa: {d}",
   "v2.lib.scopedClear": "A teljes könyvtár megjelenítése",
