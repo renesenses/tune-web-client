@@ -620,7 +620,7 @@
           {#if c.cle === 'quality'}
             <span class="td" role="cell">
               <QualityBadge format={p.format} sampleRate={p.sample_rate}
-                bitDepth={p.bit_depth} source={p.source} />
+                bitDepth={p.bit_depth} source={p.source} ajuste />
             </span>
           {:else if c.verrouillee}
             <!-- Le TITRE porte le clic de lecture : c'est la cible la plus

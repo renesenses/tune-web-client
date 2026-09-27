@@ -6,8 +6,15 @@
     sampleRate?: number | null;
     bitDepth?: number | null;
     source?: string | null;
+    /**
+     * web#1683 — dans une cellule de largeur bornée (colonne Qualité du
+     * tableau des pistes), la pastille ne DÉBORDE plus : c'est le détail
+     * (« FLAC 192/24 ») qui s'abrège en « … », jamais le palier, et
+     * l'infobulle garde le libellé complet. Hors tableau, rien ne change.
+     */
+    ajuste?: boolean;
   }
-  let { format = null, sampleRate = null, bitDepth = null, source = null }: Props = $props();
+  let { format = null, sampleRate = null, bitDepth = null, source = null, ajuste = false }: Props = $props();
 
   let trackLike = $derived({ format, sample_rate: sampleRate, bit_depth: bitDepth, source });
   let tier = $derived(getQualityTier(trackLike));
@@ -22,7 +29,7 @@
 </script>
 
 {#if hasData && label}
-  <span class="quality-badge tier-{colorClass}" title={tooltip}>
+  <span class="quality-badge tier-{colorClass}" class:ajuste title={tooltip}>
     <span class="qb-tier">{tierLabel}</span>
     {#if tier === 'hires_max'}
       <span class="qb-star">✦</span>
@@ -48,6 +55,21 @@
     white-space: nowrap;
     flex-shrink: 0;
     line-height: 1.4;
+  }
+
+  /* web#1683 — borné par sa cellule : le détail s'abrège, le palier reste. */
+  .quality-badge.ajuste {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .quality-badge.ajuste .qb-tier,
+  .quality-badge.ajuste .qb-star {
+    flex-shrink: 0;
+  }
+  .quality-badge.ajuste .qb-detail {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .qb-tier {
