@@ -4298,11 +4298,29 @@ export function disableStreamingService(service: string) {
   return fetchJSON<{ status: string }>(`${BASE}/streaming/${encodeURIComponent(service)}/disable`, { method: 'POST' });
 }
 
-export function authenticateStreaming(service: string, body?: { username?: string; password?: string }) {
+export function authenticateStreaming(
+  service: string,
+  // `callback_url` — #2680 : l'adresse de rappel Spotify collée depuis un
+  // autre poste, où le rappel 127.0.0.1 ne peut pas aboutir.
+  body?: { username?: string; password?: string; callback_url?: string },
+) {
   return fetchJSON<StreamingAuthResponse>(`${BASE}/streaming/${encodeURIComponent(service)}/auth`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
   });
+}
+
+/**
+ * `GET /system/env` — #2680 : l'URI de redirection Spotify que le serveur
+ * enverra, résolue par la même fonction que celle qui construit le service,
+ * et le motif pour lequel Spotify la refusera, s'il y en a un.
+ */
+export function getSystemEnv() {
+  return fetchJSON<{
+    TUNE_PORT?: string;
+    spotify_redirect_uri?: string | null;
+    spotify_redirect_uri_refus?: 'localhost' | 'http_hors_bouclage' | null;
+  }>(`${BASE}/system/env`);
 }
 
 export function disconnectStreaming(service: string) {
