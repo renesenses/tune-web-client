@@ -178,7 +178,7 @@ function checkPlayError(zone: Zone) {
 async function handleBrowserPlayback(zone: Zone) {
   if (isBrowserZone(zone) && zone.stream_url) {
     const { browserPlay } = await getBrowserAudio();
-    browserPlay(zone.stream_url);
+    browserPlay(zone.stream_url, false, zone.id);
   }
 }
 
@@ -279,7 +279,7 @@ export async function resumeAndSync(zoneId: number): Promise<Zone> {
   // l'élément sur `stream_url` ; le bouton Lecture, lui, ne le faisait pas.
   if (isBrowserZone(zone)) {
     const { browserResume } = await getBrowserAudio();
-    browserResume(zone.stream_url);
+    browserResume(zone.stream_url, zone.id);
   }
   return zone;
 }
