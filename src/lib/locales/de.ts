@@ -3609,6 +3609,8 @@ export default {
   "v2.set.browserZoneDuplicates": "Es gibt bereits {n} Browser-Zonen. Sie sind austauschbar — eine genügt.",
   "v2.set.peakMeter": "Spitzenpegelmesser",
   "v2.set.peakMeterHint": "Nur Anzeige — das Signal bleibt unverändert. Die Wiedergabeleiste zeigt nur die Lampen: Die beiden Bargraphen sind dort zu breit.",
+  "v2.set.barVu": "Wiedergabeleiste mit VU-Metern",
+  "v2.set.barVuHint": "Nur Anzeige — das Signal bleibt unverändert. Zwei Zeigerinstrumente links und rechts der Bedienelemente; sie ersetzen die Spitzenlämpchen und das Mini-Spektrum. Bei schmaler Leiste kehrt die gewohnte Leiste zurück.",
   "v2.set.peakOff": "Keiner",
   "v2.set.peakLamps": "Lampen",
   "v2.set.peakDat": "DAT PCM-7030",

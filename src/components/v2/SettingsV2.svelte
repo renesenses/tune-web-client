@@ -97,6 +97,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import PluginsV2 from './PluginsV2.svelte';
   import { tip } from '../../lib/tooltip';
   import CreteMetre from '../partages/CreteMetre.svelte';
+  import VuMetreCanal from '../partages/VuMetreCanal.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { ORDRE_VERSIONS_DEFAUT, estOrdreVersions } from '../../lib/versionsPiste';
   import {
@@ -3227,6 +3228,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="apercu">
                     <CreteMetre style={$preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT} hauteur={22} largeur={150} />
                   </span>
+                </div>
+              </div>
+
+              <!-- La barre de lecture à VU-MÈTRES — Bertrand, 27/09/2026, sur
+                   la maquette de Levente. Un interrupteur à part et non une
+                   cinquième valeur du choix ci-dessus : celui-ci change la
+                   MISE EN PAGE de la barre, là où les quatre styles ne
+                   changent que l'apparence d'un instrument.
+
+                   L'aperçu vit, pour la même raison qu'au-dessus : « cadrans à
+                   aiguille » ne dit rien tant qu'on ne les a pas vus bouger. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('v2.set.barVu' as any)}</span>
+                  <span class="hint">{$t('v2.set.barVuHint' as any)}</span>
+                </div>
+                <div class="creterow">
+                  <span class="apercu">
+                    <VuMetreCanal canal="gauche" taille={64} joue={$preferences.barreVuMetres} />
+                  </span>
+                  <label class="sw">
+                    <input type="checkbox" checked={$preferences.barreVuMetres}
+                      onchange={(e) => preferences.update((pr) => ({
+                        ...pr, barreVuMetres: (e.currentTarget as HTMLInputElement).checked,
+                      }))} />
+                    <span class="slider"></span>
+                  </label>
                 </div>
               </div>
 

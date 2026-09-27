@@ -3609,6 +3609,8 @@ export default {
   "v2.set.browserZoneDuplicates": "Există deja {n} zone de browser. Sunt interschimbabile — una singură este de ajuns.",
   "v2.set.peakMeter": "Indicator de vârf",
   "v2.set.peakMeterHint": "Doar afișare — semnalul nu se schimbă. Bara de redare arată doar lămpile: cele două bargrafuri sunt prea late.",
+  "v2.set.barVu": "Bară de redare cu VU-metre",
+  "v2.set.barVuHint": "Doar afișare — semnalul nu se schimbă. Două cadrane cu ac de o parte și de alta a comenzilor; înlocuiesc lămpile de vârf și mini-spectrul. Pe o bară îngustă revine bara obișnuită.",
   "v2.set.peakOff": "Niciunul",
   "v2.set.peakLamps": "Lămpi",
   "v2.set.peakDat": "DAT PCM-7030",

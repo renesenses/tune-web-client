@@ -3609,6 +3609,8 @@ export default {
   "v2.set.browserZoneDuplicates": "已存在 {n} 个浏览器区域。它们可以互换 —— 一个就够了。",
   "v2.set.peakMeter": "峰值表",
   "v2.set.peakMeterHint": "仅用于显示，不改变信号。播放栏只显示指示灯：两种条形表在那里太宽。",
+  "v2.set.barVu": "带 VU 表的播放栏",
+  "v2.set.barVuHint": "仅显示 — 不改变信号。在播放控件两侧各放一个指针表盘，取代峰值指示灯和迷你频谱。播放栏过窄时会恢复为常规播放栏。",
   "v2.set.peakOff": "无",
   "v2.set.peakLamps": "指示灯",
   "v2.set.peakDat": "DAT PCM-7030",

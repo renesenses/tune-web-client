@@ -3609,6 +3609,8 @@ export default {
   "v2.set.browserZoneDuplicates": "브라우저 존이 이미 {n}개 있습니다. 서로 같은 역할이며 하나면 충분합니다.",
   "v2.set.peakMeter": "피크 미터",
   "v2.set.peakMeterHint": "표시 전용이며 신호는 바뀌지 않습니다. 재생 바에는 램프만 표시합니다. 막대 그래프는 너무 넓습니다.",
+  "v2.set.barVu": "VU 미터가 있는 재생 바",
+  "v2.set.barVuHint": "표시 전용 — 신호는 바뀌지 않습니다. 재생 조작 버튼 양옆에 바늘형 계기를 표시하며, 피크 램프와 미니 스펙트럼을 대신합니다. 바가 좁으면 기본 바로 돌아갑니다.",
   "v2.set.peakOff": "없음",
   "v2.set.peakLamps": "램프",
   "v2.set.peakDat": "DAT PCM-7030",

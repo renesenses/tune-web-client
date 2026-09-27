@@ -3609,6 +3609,8 @@ export default {
   "v2.set.browserZoneDuplicates": "Esistono già {n} zone browser. Sono intercambiabili — ne basta una.",
   "v2.set.peakMeter": "Misuratore di picco",
   "v2.set.peakMeterHint": "Solo visualizzazione — il segnale non cambia. La barra di riproduzione mostra solo le lampade: i due bargraph vi sono troppo larghi.",
+  "v2.set.barVu": "Barra di riproduzione con VU-meter",
+  "v2.set.barVuHint": "Solo visualizzazione — il segnale non cambia. Due quadranti a lancetta ai lati dei comandi; sostituiscono le spie di picco e il mini-spettro. Su una barra stretta torna la barra abituale.",
   "v2.set.peakOff": "Nessuno",
   "v2.set.peakLamps": "Lampade",
   "v2.set.peakDat": "DAT PCM-7030",

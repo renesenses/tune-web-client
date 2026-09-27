@@ -3609,6 +3609,8 @@ export default {
   "v2.set.browserZoneDuplicates": "ブラウザーのゾーンがすでに {n} 個あります。どれも同じ働きで、1 つで足ります。",
   "v2.set.peakMeter": "ピークメーター",
   "v2.set.peakMeterHint": "表示のみで、音は変わりません。再生バーにはランプだけを表示します。バーグラフは幅が足りません。",
+  "v2.set.barVu": "VUメーター付き再生バー",
+  "v2.set.barVuHint": "表示のみ — 信号は変化しません。操作ボタンの左右に針式メーターを表示し、ピークランプとミニスペクトラムに代わります。バーが狭いときは通常のバーに戻ります。",
   "v2.set.peakOff": "なし",
   "v2.set.peakLamps": "ランプ",
   "v2.set.peakDat": "DAT PCM-7030",

@@ -3631,6 +3631,8 @@ export default {
   "v2.set.browserZoneDuplicates": "{n} zones navigateur existent déjà. Elles sont interchangeables — une seule suffit.",
   "v2.set.peakMeter": "Crête-mètre",
   "v2.set.peakMeterHint": "Affichage seulement — le signal ne change pas. La barre de lecture n’affiche que les lampes : les deux bargraphes y sont trop larges.",
+  "v2.set.barVu": "Barre de lecture à VU-mètres",
+  "v2.set.barVuHint": "Affichage seulement — le signal ne change pas. Deux cadrans à aiguille de part et d’autre des commandes ; ils remplacent les lampes de crête et le mini-spectre. Sur une barre étroite, la barre habituelle revient.",
   "v2.set.peakOff": "Aucun",
   "v2.set.peakLamps": "Lampes",
   "v2.set.peakDat": "DAT PCM-7030",
