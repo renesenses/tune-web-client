@@ -1502,6 +1502,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   // ── Bibliotheque : dossiers, analyse, planification ───────────────────
   let musicDirs = $state<string[]>([]);
+  // #1688 — null means the server does not expose the #4907 order route.
+  let directoryOrder = $state<string[] | null>(null);
+  let orderBusy = $state(false);
+  let orderError = $state<string | null>(null);
+  const displayedMusicDirs = $derived(
+    directoryOrder === null ? musicDirs
+      : [...directoryOrder.filter((d) => musicDirs.includes(d)),
+        ...musicDirs.filter((d) => !directoryOrder?.includes(d))],
+  );
   let newDir = $state('');
   let dirBusy = $state(false);
   let scanning = $state(false);
@@ -1678,6 +1687,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const c: any = await api.getConfig();
       musicDirs = Array.isArray(c?.music_dirs) ? c.music_dirs : [];
+      await refreshDirectoryOrder();
       // Absent vaut VRAI cote serveur, et les valeurs peuvent arriver en
       // chaine ('false') aussi bien qu'en booleen.
       qualitySplit = !(c?.quality_split === false || c?.quality_split === 'false'
@@ -1691,6 +1701,35 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch { /* route absente sur un serveur anterieur */ }
   }
   $effect(() => { refreshLibrary(); });
+
+  async function refreshDirectoryOrder() {
+    try {
+      const r = await api.getMusicDirectoryOrder();
+      directoryOrder = Array.isArray(r?.ordre) ? r.ordre : null;
+    } catch {
+      directoryOrder = null; // Older server: keep the existing folder controls.
+    }
+  }
+
+  async function moveDirectory(path: string, offset: number) {
+    if (orderBusy || directoryOrder === null) return;
+    const previous = displayedMusicDirs;
+    const index = previous.indexOf(path);
+    const other = index + offset;
+    if (index < 0 || other < 0 || other >= previous.length) return;
+    const next = [...previous];
+    [next[index], next[other]] = [next[other], next[index]];
+    orderBusy = true;
+    orderError = null;
+    try {
+      const r = await api.setMusicDirectoryOrder(next);
+      directoryOrder = r.ordre;
+    } catch {
+      orderError = get(t)('settings.errDirectoryOrder' as any);
+    } finally {
+      orderBusy = false;
+    }
+  }
 
   // L'etat d'analyse est sonde UNIQUEMENT pendant une analyse.
   $effect(() => {
@@ -1734,6 +1773,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const r = await api.addMusicDir(path);
       musicDirs = r?.music_dirs ?? musicDirs;
+      await refreshDirectoryOrder();
       newDir = '';
     } catch (e: any) { libErr = e?.message ?? get(t)('settings.errFolderRejected'); }
     dirBusy = false;
@@ -1746,6 +1786,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const r = await api.removeMusicDir(path);
       musicDirs = r?.music_dirs ?? musicDirs.filter((d) => d !== path);
+      await refreshDirectoryOrder();
     } catch { libErr = get(t)('settings.errRemoveFailed'); }
     dirBusy = false;
   }
@@ -4479,11 +4520,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <button class="lnk" onclick={() => (showSmbWizard = true)}>{$t('settings.addSmbShare' as any)}</button>
               </div>
               {#if musicDirs.length}
+                {#if directoryOrder !== null && musicDirs.length > 1}
+                  <p class="hint directory-order-hint">{$t('settings.directoryOrderHint' as any)}</p>
+                {/if}
                 <div class="dirs">
-                  {#each musicDirs as d (d)}
-                    <div class="dir">
+                  {#each displayedMusicDirs as d, index (d)}
+                    <div class="dir" class:ordered={directoryOrder !== null && displayedMusicDirs.length > 1}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                       <span class="dp">{d}</span>
+                      {#if directoryOrder !== null && displayedMusicDirs.length > 1}
+                        <div class="dir-order">
+                          <button class="lnk" disabled={dirBusy || orderBusy || index === 0}
+                            aria-label={$t('settings.moveFolderUp' as any).replace('{path}', d)}
+                            onclick={() => moveDirectory(d, -1)}>↑</button>
+                          <button class="lnk" disabled={dirBusy || orderBusy || index === displayedMusicDirs.length - 1}
+                            aria-label={$t('settings.moveFolderDown' as any).replace('{path}', d)}
+                            onclick={() => moveDirectory(d, 1)}>↓</button>
+                        </div>
+                      {/if}
                       <!--
                         #1517 — analyser CE dossier, et lui seul.
 
@@ -4503,6 +4557,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </div>
                   {/each}
                 </div>
+                {#if orderError}<p class="errline" role="alert">{orderError}</p>{/if}
                 <p class="hint">{#each emphaseParts($t('settings.removeFolderHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {:else}
                 <p class="hint">{$t('settings.noFolderDeclared' as any)}</p>
@@ -5789,7 +5844,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .txt.wide{width:320px}
   .txt.time{width:130px; font-family:var(--v2-mono)}
   .dirs{display:flex; flex-direction:column; gap:1px; margin-top:12px}
-  .dir{display:grid; grid-template-columns:20px 1fr auto auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
+  .dir{display:grid; grid-template-columns:20px minmax(0,1fr) auto auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
+  .dir.ordered{grid-template-columns:20px minmax(0,1fr) auto auto auto}
+  .directory-order-hint{margin-top:12px}
+  .dir-order{display:flex; align-items:center; gap:3px}
+  .dir-order .lnk{min-width:28px; min-height:28px}
   /* #1517 — le geste par dossier reste discret jusqu au survol de la ligne. */
   .scan-dir{white-space:nowrap; opacity:.6}
   .dir:hover .scan-dir{opacity:1}
