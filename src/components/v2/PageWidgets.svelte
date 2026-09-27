@@ -85,7 +85,7 @@
   import PanneauGenres from './ligne1/PanneauGenres.svelte';
   import PanneauConcerts from './ligne1/PanneauConcerts.svelte';
   import PanneauStats from './ligne1/PanneauStats.svelte';
-  import { COTE_L1 } from '../../lib/premiereLigne';
+  import { COTE_L1, zonesDeLaLigne } from '../../lib/premiereLigne';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import {
     objetAlbum,
@@ -1274,9 +1274,14 @@
               <div class="l1" use:defilementHorizontal
                    style:--l1-h="{COTE_L1}px"
                    role="group" aria-label={$t(w.cleTitre as any)}>
-                {#each et.elements as el (el.id)}
-                  {@const z = zoneVivante(el.zoneId)}
-                  {#if z}<CarteZoneL1 zone={z} />{/if}
+                <!-- 🔴 LE MAGASIN VIVANT, et non `et.elements` — correctif
+                     du 27/09/2026. `charger` ne s'exécute qu'une fois : la
+                     liste des cartes était figée à l'ouverture de la page.
+                     Une zone démarrée ensuite n'apparaissait jamais, et une
+                     zone arrêtée gardait sa carte. Le filtre vit dans
+                     `lib/premiereLigne`, avec son test. -->
+                {#each zonesDeLaLigne($zones) as z (z.id)}
+                  <CarteZoneL1 zone={z} />
                 {/each}
                 <PanneauGenres />
                 <PanneauConcerts />
