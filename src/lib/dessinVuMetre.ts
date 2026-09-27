@@ -316,3 +316,23 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
 
   ctx.restore();
 }
+
+/**
+ * Une couleur du thème, à l'opacité demandée.
+ *
+ * Une toile ne sait pas appliquer une opacité à une couleur déjà résolue : il
+ * faut la reconstruire. `#rrggbb` et `rgb(...)` / `rgba(...)` sont acceptés —
+ * ce sont les deux formes que `getComputedStyle` rend pour un jeton. Une
+ * valeur qu'on ne sait pas lire est rendue telle quelle, plutôt que de peindre
+ * du noir : une couleur inattendue vaut mieux qu'une couleur fausse.
+ */
+export function avecAlpha(couleur: string, alpha: number): string {
+  const c = (couleur ?? '').trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(c)) {
+    const n = parseInt(c.slice(1), 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+  }
+  const m = c.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+  if (m) return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
+  return c;
+}

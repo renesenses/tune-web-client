@@ -210,10 +210,17 @@ describe('#1519 — la décision est BRANCHÉE au chargement', () => {
     );
     expect(charger.includes('setProfilePreferences')).toBe(false);
     expect(charger).toContain('if (migrationAFaire) void migrerLigneDeChiffres(pid, [...chiffres]);');
+    // La seconde migration part du même endroit, et sous son propre verdict :
+    // le chargement ne décide toujours rien de lui-même.
+    expect(charger).toContain('if (ligneAMigrer) void migrerPremiereLigne(');
     // Et l'écriture de la migration ne touche que les deux clés de la ligne.
+    // 🔴 27/09/2026 — la borne s'arrête à `migrerPremiereLigne`. Une seconde
+    // migration est née ce jour-là (la première ligne entre une fois dans les
+    // accueils déjà rangés) ; ce qui est mesuré ici reste que la migration de
+    // la ligne de CHIFFRES, elle, ne touche pas à la disposition.
     const migration = src.slice(
       src.indexOf('async function migrerLigneDeChiffres('),
-      src.indexOf('async function enregistrer()'),
+      src.indexOf('async function migrerPremiereLigne('),
     );
     expect(migration).toContain('[CLE_CHIFFRES]: ligne,');
     expect(migration).toContain('[CLE_CHIFFRES_MIGRE]: true,');
