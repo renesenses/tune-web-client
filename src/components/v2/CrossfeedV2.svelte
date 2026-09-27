@@ -30,8 +30,13 @@
     CF_COUPURE_DEFAUT, CF_PENTE_DEFAUT, CF_COUPURE_POSITIONS,
   } from '../../lib/crossfeed';
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
+  import VoilePur from './VoilePur.svelte';
+  import { audiophileEnabled } from '../../lib/stores/audiophile';
   import '../../styles/tune-v2.css';
 
+  /** web#1674 — la zone courante est en PURE : le crossfeed n'y agit pas.
+   *  L'état est celui du bouton PURE (`audiophileEnabled`), pas une relecture. */
+  const pur = $derived($audiophileEnabled);
   let enabled = $state(false);
   /** Incrémenté à chaque réglage enregistré : `CompensationNiveauV2` se relit. */
   let revisionDsp = $state(0);
@@ -217,12 +222,17 @@
     {:else if $currentZoneId == null}
       <div class="state">{$t('v2.cf.noZone' as any)}</div>
     {:else}
-      {#if indispo.indisponible}
+      <!-- web#1674 — en PURE, l'écran est VOILÉ : un message, et tous les
+           réglages grisés d'un bloc par le fieldset. Le motif `pure_mode` du
+           serveur dirait la même chose : on ne le répète pas. -->
+      {#if pur}<VoilePur cle="v2.pure.veilCf" />{/if}
+      {#if indispo.indisponible && !(pur && indispo.motif === 'pure_mode')}
         <div class="warn">
           {#if zoneName}<b>{zoneName}</b> — {/if}{$t(cleIndisponibiliteCrossfeed(indispo.motif) as any)}
         </div>
       {/if}
 
+      <fieldset class="reglages" class:voile={pur} disabled={pur} aria-disabled={pur}>
       <div class="card">
         <div class="row">
           <div class="lbl">
@@ -329,6 +339,7 @@
       </div>
 
       <CompensationNiveauV2 revision={revisionDsp} />
+      </fieldset>
     {/if}
   </div>
 </section>
@@ -346,6 +357,8 @@
   .warn{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .warn b{color:var(--v2-acc-tint)}
 
+  .reglages{border:0; margin:0; padding:0; min-width:0}
+  .reglages.voile{opacity:.45; pointer-events:none; user-select:none}
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:6px 20px 18px}
   .row{display:flex; align-items:center; justify-content:space-between; gap:24px; padding:16px 0;
     border-bottom:1px solid var(--v2-line)}

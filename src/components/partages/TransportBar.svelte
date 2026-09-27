@@ -2,6 +2,11 @@
   import { preferences } from '../../lib/stores/preferences';
   import { descriptionDEtape, etatSansPerte } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
+  // La barre à VU-mètres (Bertrand, 27/09/2026, maquette de Levente). Le
+  // cadran est celui du Grand écran, par `lib/dessinVuMetre` : une seconde
+  // aiguille écrite ici aurait divergé de la sienne au premier réglage.
+  import VuMetreCanal from './VuMetreCanal.svelte';
+  import { vuMetresVisibles } from '../../lib/barreVuMetres';
   import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../../lib/peakMetre';
   import { onMount, onDestroy } from 'svelte';
   import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
@@ -188,6 +193,42 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   let scrolledDown = $state(false);
   let isNarrowViewport = $state(false);
   let compact = $derived(isNarrowViewport && scrolledDown);
+
+  /**
+   * LA BARRE À VU-MÈTRES — réglage `barreVuMetres`, et largeur de LA BARRE.
+   *
+   * 🔴 `bind:clientWidth` et non `window.innerWidth` : la colonne latérale
+   * prend ~280 px, donc à fenêtre large la barre peut être étroite. Les
+   * styles de cette barre le disent déjà pour leurs propres seuils
+   * (`container-type: inline-size`) ; se tromper de mesure ici rétablirait les
+   * cadrans précisément là où il n'y a pas la place. Le seuil et la règle
+   * vivent dans `lib/barreVuMetres`, où un test les appelle.
+   */
+  let largeurBarre = $state(0);
+  let barreEl = $state<HTMLElement | null>(null);
+  let vuActif = $derived(vuMetresVisibles($preferences.barreVuMetres, largeurBarre));
+
+  /**
+   * 🔴 L'observateur est écrit À LA MAIN, et sous une garde d'existence.
+   *
+   * `bind:clientWidth` ferait la même chose en une ligne — mais il instancie
+   * un `ResizeObserver` sans condition, et jsdom n'en a pas : SOIXANTE-SEPT
+   * bancs qui montent la coquille sont tombés d'un coup sur
+   * « ResizeObserver is not defined », dont aucun ne parle de cette barre.
+   *
+   * La garde n'est pas qu'une commodité de test : là où l'objet n'existe pas,
+   * `largeurBarre` reste à 0, `vuMetresVisibles` rend `false`, et la barre est
+   * exactement celle d'avant. Une fonction d'affichage qui manque vaut mieux
+   * qu'une barre qui ne s'affiche plus.
+   */
+  $effect(() => {
+    const el = barreEl;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    largeurBarre = el.clientWidth;
+    const ro = new ResizeObserver(() => { largeurBarre = el.clientWidth; });
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
   let scrollObserver: IntersectionObserver | null = null;
 
   function handleGlobalKeydown(e: KeyboardEvent) {
@@ -845,7 +886,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
 </script>
 
-<div class="transport-bar" class:compact style="--compact-progress: {progressPercent}%" onclick={handleBarClick} role="button" tabindex={0} aria-label="Transport bar">
+<div class="transport-bar" class:compact class:vu={vuActif} bind:this={barreEl} style="--compact-progress: {progressPercent}%" onclick={handleBarClick} role="button" tabindex={0} aria-label="Transport bar">
   {#if enAttente}
     <div class="tb-attente" role="status" aria-live="polite">
       <span class="tb-attente-point"></span>{$t('transport.preparing')}
@@ -930,11 +971,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       <!-- #452 — le crête-mètre. `styleSurLaBarre` impose les LAMPES : « la
            barre de lecture n'affiche jamais DAT ni IEC (trop large) », et elle
            honore l'extinction. La règle vit dans `lib/peakMetre`, pas ici. -->
-      {#if styleSurLaBarre($preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT) !== 'off'}
+      {#if !vuActif && styleSurLaBarre($preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT) !== 'off'}
         <div class="tb-crete">
           <CreteMetre style="lamps" hauteur={22} largeur={56} joue={isPlaying} />
         </div>
       {/if}
+      {#if !vuActif}
       <div class="tb-mini-viz">
         <AudioVisualizer
           playing={isPlaying}
@@ -946,7 +988,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           format={displayTrack.format}
         />
       </div>
+      {/if}
     {/if}
+    <!-- Le cadran GAUCHE, au bout de la colonne du titre : c'est ce que montre
+         la maquette, juste à gauche des commandes. -->
+    {#if vuActif}<VuMetreCanal canal="gauche" joue={isPlaying} />{/if}
   </div>
 
   <div class="transport-controls">
@@ -1187,6 +1233,14 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   </div>
 
   <div class="transport-right">
+    <!-- Le cadran DROIT, en tête de la colonne des réglages. -->
+    {#if vuActif}<VuMetreCanal canal="droite" joue={isPlaying} />{/if}
+    <!-- 🔴 `.tb-pile` vaut `display:contents` tant que les cadrans sont
+         éteints : la barre d'origine reste alors EXACTEMENT celle d'avant,
+         sans un nœud de plus dans sa mise en page. Elle ne devient une
+         colonne que sous `.vu`, où `.transport-right` passe en ligne pour
+         poser le cadran à gauche d'elle. -->
+    <div class="tb-pile">
     <div class="transport-right-top">
     <!-- Sleep Timer -->
     <div class="sleep-timer-wrapper">
@@ -1386,6 +1440,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     {/if}
     </div>
     <VolumeControl />
+    </div>
   </div>
 </div>
 
@@ -2039,6 +2094,40 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   .signal-dot-btn:hover .signal-dot-indicator {
     transform: scale(1.3);
   }
+
+  /* ── LA BARRE À VU-MÈTRES (27/09/2026) ───────────────────────────────────
+     Rien de tout ceci ne s'applique sans `.vu` : barre éteinte, barre d'avant.
+
+     `.tb-pile` est transparente à la mise en page par défaut
+     (`display:contents`) et ne devient une colonne que sous `.vu`, où
+     `.transport-right` passe en LIGNE pour poser le cadran droit à sa gauche.
+     Sans cette bascule, passer la colonne en ligne aurait mis les icônes et le
+     volume côte à côte. */
+  .tb-pile { display: contents; }
+
+  .transport-bar.vu .tb-pile {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .transport-bar.vu .transport-right {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Le cadran gauche se colle aux commandes, comme sur la maquette : ce qui
+     reste d'espace part vers le titre.
+
+     🔴 Et `overflow: visible` : la colonne du titre coupe ce qui dépasse, et
+     rognerait le cadran. La coupe reste sur le TITRE, qui est ce qu'elle
+     protégeait — il porte sa propre troncature. */
+  .transport-bar.vu .transport-left { overflow: visible; }
+  .transport-bar.vu .transport-left :global(.vu) { margin-left: auto; }
 
   .transport-right {
     grid-column: 3;

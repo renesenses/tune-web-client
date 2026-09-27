@@ -61,6 +61,7 @@
   // `pendingLibraryAlbum`, lui, reste : c'est le contrat des liens de la
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
   import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryYear, type View } from '../../lib/stores/navigation';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
   import { melangee, rangAleatoire, graineAleatoire } from '../../lib/shuffle';
@@ -2092,7 +2093,15 @@
   // « Ajouter » — les dossiers de musique se déclarent dans les Réglages.
   // On y emmène directement plutôt que d'ouvrir un dialogue natif, bannis
   // dans les vues web.
-  function addContent() { activeView.set('settings'); }
+  //
+  // #1670 (Levente, fil 1992) — et on y emmène à l'ENDROIT EXACT : l'onglet
+  // Bibliothèque, carte « Emplacements » (`musicDirs`), où se tape le chemin.
+  // Sans cible, les Réglages s'ouvraient sur l'onglet Général, qui n'a aucun
+  // champ de dossier : le bouton avait l'air de ne rien faire.
+  function addContent() {
+    v2SettingsTarget.set({ tab: 'library', section: 'musicDirs' });
+    activeView.set('settings');
+  }
 </script>
 
 

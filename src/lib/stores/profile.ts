@@ -1,4 +1,4 @@
-import { writable, get } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import * as api from '../api';
 import type { StreamingItemType } from '../streamingFavorites';
 import { cleJumelage } from '../cleJumelage';
@@ -60,6 +60,36 @@ currentProfileId.subscribe(saveProfileId);
 
 export const profiles = writable<Profile[]>([]);
 export const profileReady = writable<boolean>(false);
+
+/**
+ * Le profil « Default », celui que le serveur crée et refuse de supprimer
+ * (`tune-core/src/db/profile_repo.rs` : `if id == 1 { return Err("cannot
+ * delete default profile") }`, la route rend 400) — web#1672.
+ */
+export const DEFAULT_PROFILE_ID = 1;
+
+/** Le serveur accepte-t-il de supprimer ce profil ? Jamais pour Default. */
+export function profilSupprimable(p: Pick<Profile, 'id'>): boolean {
+  return p.id !== DEFAULT_PROFILE_ID;
+}
+
+/**
+ * Les profils qu'on MONTRE dans les sélecteurs et la liste de gestion
+ * (web#1672, go de Bertrand le 27/09/2026).
+ *
+ * Dès qu'un profil personnel existe, « Default » disparaît : il ne sert plus à
+ * rien de le proposer, et l'écran offrait dessus un Supprimer que le serveur
+ * refuse. Il reste un profil RÉEL — il porte les réglages par défaut et sert de
+ * repli à plusieurs routes (`profile_id=1`) — : on le masque, on ne le retire
+ * pas de `profiles`. Seul, il reste visible : une liste vide ne se gère pas.
+ */
+export function profilsVisibles<P extends Pick<Profile, 'id'>>(list: P[]): P[] {
+  const personnels = list.filter((p) => p.id !== DEFAULT_PROFILE_ID);
+  return personnels.length > 0 ? personnels : list;
+}
+
+/** `profilsVisibles` du magasin, pour le menu de l'avatar et l'écran Profils. */
+export const visibleProfiles = derived(profiles, ($p) => profilsVisibles($p));
 
 // Favorite ids stored as sets so HeartButton can answer
 // 'is X favorited?' in O(1) without hitting the API per row.
@@ -315,9 +345,11 @@ export async function loadProfiles(): Promise<void> {
       currentProfileId.set(created.id);
     } else {
       // If stored id is invalid or null, select first profile
+      // Le premier profil MONTRÉ (web#1672) : sinon un navigateur neuf
+      // s'ouvrirait sur « Default », que la liste ne propose plus.
       const curId = get(currentProfileId);
       if (curId === null || !list.find((p: Profile) => p.id === curId)) {
-        currentProfileId.set(list[0].id);
+        currentProfileId.set(profilsVisibles(list)[0].id);
       }
     }
     profileReady.set(true);
@@ -418,7 +450,7 @@ export async function deleteProfile(id: number): Promise<void> {
     profiles.update((list) => list.filter((p) => p.id !== id));
     const curId = get(currentProfileId);
     if (curId === id) {
-      const remaining = get(profiles);
+      const remaining = profilsVisibles(get(profiles));
       if (remaining.length > 0) {
         currentProfileId.set(remaining[0].id);
       } else {
