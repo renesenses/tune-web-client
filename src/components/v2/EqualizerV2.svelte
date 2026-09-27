@@ -143,6 +143,8 @@
       .then(([res, eq]) => {
         if (res.status === 'fulfilled') bandCount = res.value.expert_bands ?? 10;
         const grid = GRIDS[bandCount] ?? GRIDS[10];
+        // #5171 — `null` : serveur antérieur au réglage, contrôle caché.
+        reserve = eq.status === 'fulfilled' ? lireReserve(eq.value?.headroom_mode) : null;
         if (eq.status === 'fulfilled' && eq.value) {
           enabled = eq.value.enabled ?? true;
           const bands = eq.value.bands ?? [];
@@ -203,6 +205,39 @@
       if (!nextTrackWarned) { nextTrackWarned = true; notifications.info($t('eq.effectNextTrack' as any)); }
     } else if (appliedLive === true) {
       nextTrackWarned = false;
+    }
+  }
+
+  /**
+   * tune-server-rust#5171 — la réserve anti-saturation. `null` quand le
+   * serveur ne publie pas `headroom_mode` : il ne connaît pas le réglage, le
+   * contrôle est caché.
+   */
+  let reserve = $state<api.HeadroomMode | null>(null);
+  function lireReserve(v: unknown): api.HeadroomMode | null {
+    return v === 'safe' || v === 'realistic' ? v : null;
+  }
+  let reserveEnCours = $state(false);
+  async function choisirReserve(mode: api.HeadroomMode) {
+    const zid = zoneRequise();
+    if (zid == null || reserveEnCours || reserve === mode) return;
+    // Résolu AVANT l'attente : un `$t()` dans un `catch` est invisible au build.
+    const msgKo = $t('v2.eq.errRefused' as any);
+    const avant = reserve;
+    reserve = mode;
+    reserveEnCours = true;
+    try {
+      const res = await api.setEqHeadroomMode(zid, mode);
+      reserve = lireReserve(res?.headroom_mode) ?? mode;
+      reportReach(atteintLeSon(res?.applied_live, res?.portee));
+      // La réserve change ce que l'égaliseur retire : la compensation aussi.
+      revisionDsp++;
+      error = null;
+    } catch (e: any) {
+      reserve = avant;
+      if (e?.message !== 'premium_required') error = msgKo;
+    } finally {
+      reserveEnCours = false;
     }
   }
 
@@ -532,6 +567,21 @@
 
 
       {/if}
+      <!-- tune-server-rust#5171 — la réserve, hors du choix de mode elle aussi :
+           elle protège la courbe quelle que soit la façon de la composer.
+           Cachée quand le serveur ne connaît pas le réglage. -->
+      {#if reserve}
+        <div class="ctrls reserve">
+          <span class="cl">{$t('v2.eq.headroom' as any)}</span>
+          <div class="seg" role="radiogroup" aria-label={$t('v2.eq.headroom' as any)}>
+            <button role="radio" aria-checked={reserve === 'safe'} class:on={reserve === 'safe'}
+              disabled={reserveEnCours} onclick={() => choisirReserve('safe')}>{$t('v2.eq.headroomSafe' as any)}</button>
+            <button role="radio" aria-checked={reserve === 'realistic'} class:on={reserve === 'realistic'}
+              disabled={reserveEnCours} onclick={() => choisirReserve('realistic')}>{$t('v2.eq.headroomRealistic' as any)}</button>
+          </div>
+          <span class="note">{$t('v2.eq.headroomHelp' as any)}</span>
+        </div>
+      {/if}
       <!-- tune-server-rust#4685 — hors du choix de mode : la compensation vaut
            pour la courbe, quelle que soit la façon de la composer. -->
       <CompensationNiveauV2 revision={revisionDsp} />
@@ -597,6 +647,7 @@
     padding:6px 12px; border-radius:8px; cursor:pointer}
   .seg button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .note{font-size:11px; color:var(--v2-txt3)}
+  .ctrls.reserve{padding-top:18px}
   .note b{color:var(--v2-txt2)}
 
   .board{display:flex; align-items:flex-end; gap:4px; padding:18px 16px 10px; border-radius:14px;

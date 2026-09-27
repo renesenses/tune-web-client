@@ -10,6 +10,21 @@ import { resolve } from 'node:path';
  * mais elle était derrière un MODE : un bouton « Fusionner » basculait
  * l'écran, et seulement alors les cases apparaissaient. Personne ne trouvait
  * la porte. On sélectionne désormais d'abord, la barre apparaît ensuite.
+ *
+ * ## 26/09/2026 — la grille est passée sur `PochetteActions`
+ *
+ * Quatre cas de ce fichier décrivaient les coins que cet écran dessinait
+ * lui-même. Ils sont réécrits sur place, chacun daté et motivé, et AUCUN n'est
+ * supprimé : le comportement gardé reste le même (les appels à l'action sur
+ * CHAQUE pochette, la vignette comme boîte de référence, pas de bouton dans un
+ * bouton), seule l'implémentation qui le tient a changé.
+ *
+ * ⚠️ CE FICHIER LIT UN TEXTE. C'est son angle mort, écrit noir sur blanc plus
+ * bas : il est déjà passé au vert alors que les coins avaient glissé hors de
+ * toute boîte positionnée. Il ne peut pas dire qu'un élément est VISIBLE, ni où
+ * il est dans l'arbre monté, ni ce qu'un menu contient à l'ouverture. Ces
+ * preuves-là sont dans `gestionnairePlaylistsCoinsPartages.test.ts`, qui MONTE
+ * l'écran avec trois cartes mixtes, pose les feuilles compilées et clique.
  */
 const ECRAN = readFileSync(
   resolve(process.cwd(), 'src/components/v2-heritage/PlaylistManagerView.svelte'),
@@ -80,81 +95,168 @@ describe('#playlists — fusionner sans mode', () => {
     expect(sansCommentaires).not.toContain('class="playlist-list"');
   });
 
-  it('🔴 les CINQ appels à l’action sont sur CHAQUE pochette, service compris', () => {
-    // Bertrand, 21/09/2026 : « je veux les 5 sur chaque cover de playlist ».
-    // Ils avaient d'abord été réservés au local, sur sa demande précédente —
-    // et l'écran filtré sur Qobuz devenait inerte, ce qu'il a vu tout de suite.
-    //
-    // Mesuré avant d'écrire : une playlist de SERVICE s'étiquette
-    // (POST /tags/{id}/streaming-items → 201), se met en favori
-    // (`ServiceFavType` porte « playlists »), se lit
-    // (`playStreamingPlaylist`) et se sélectionne (la fusion prend
-    // {service, playlist_id}).
+  /*
+   | 🔴 RÉÉCRIT LE 26/09/2026 — la grille est passée sur `PochetteActions`.
+   |
+   | Ce cas cherchait les CINQ classes que cet écran dessinait lui-même
+   | (`.pl-coin-hg`, `.pl-coin-hd`, `.pl-coin`, `.pl-coin-bd`, `.pl-lire`).
+   | Elles n'existent plus : la surcouche commune pose les quatre coins et le
+   | centre, aux mêmes places que sur les vingt-trois autres emplacements du
+   | client. Chercher les anciennes classes garderait une implémentation
+   | retirée, pas le comportement.
+   |
+   | CE QUI EST GARDÉ, MOT POUR MOT, c'est la demande de Bertrand du
+   | 21/09/2026 — « je veux les 5 sur chaque cover de playlist » : les appels à
+   | l'action ne doivent pas être RÉSERVÉS AU LOCAL. Ils l'avaient été, et
+   | l'écran filtré sur Qobuz devenait inerte. La garde locale existe encore
+   | plus bas, à juste titre (partager et supprimer n'ont pas de sens chez un
+   | service) ; la surcouche doit donc la PRÉCÉDER.
+   |
+   | Mesuré avant d'écrire, et toujours vrai : une playlist de SERVICE
+   | s'étiquette (POST /tags/{id}/streaming-items → 201), se met en favori
+   | (`ServiceFavType` porte « playlists »), se lit (`playStreamingPlaylist`)
+   | et se sélectionne (la fusion prend {service, playlist_id}).
+   */
+  it('🔴 la surcouche habille CHAQUE pochette, service compris', () => {
     const i = sansCommentaires.indexOf('class="pl-grille"');
     const carte = sansCommentaires.slice(i, sansCommentaires.indexOf('{/each}', i));
-    for (const cta of ['class="pl-coin-hg"', 'class="pl-coin-hd"', 'class="pl-coin"',
-                       'class="pl-coin-bd"', 'class="pl-lire"']) {
-      expect(carte, `${cta} absent`).toContain(cta);
+    expect(carte, 'la grille ne passe plus par la surcouche commune').toContain('<PochetteActions');
+    // Les cinq désignations, passées à la surcouche : cœur (local ET service),
+    // édition, lecture, étiquettes, et l'OBJET d'où le menu découle.
+    for (const prop of [
+      'favori={favoriDe(item)}',
+      'favoriExterne={favoriServiceDe(item, $favoriteStreamingKeys)}',
+      'etiquettes={cibleEtiquetteDe(item)}',
+      'onEditer=',
+      'onLire={() => lirePlaylist(item)}',
+      'objet={objetDe(item)}',
+    ]) {
+      expect(carte, `${prop} absent de la surcouche`).toContain(prop);
     }
-    // 🔴 Et aucun des cinq n'est enfermé dans la garde « locale ».
-    //
-    // Cette garde EXISTE encore plus bas, à juste titre : partager et
-    // supprimer n'ont pas de sens sur une playlist qui vit chez un service.
-    // Les cinq appels doivent donc tous la PRÉCÉDER — ils vivent dans la
-    // vignette, elle vient après.
+    // 🔴 Et rien de tout cela n'est enfermé dans la garde « locale ».
     const garde = carte.indexOf("item.type === 'local' && item.local?.id");
     expect(garde, 'la garde locale a disparu : le test ne garde plus rien').toBeGreaterThan(-1);
-    for (const cta of ['class="pl-coin-hg"', 'class="pl-coin-hd"', 'class="pl-coin"',
-                       'class="pl-coin-bd"', 'class="pl-lire"']) {
-      expect(carte.indexOf(cta), `${cta} de nouveau réservé au local`).toBeLessThan(garde);
+    expect(
+      carte.indexOf('<PochetteActions'),
+      'la surcouche est de nouveau réservée aux playlists locales',
+    ).toBeLessThan(garde);
+    // Les anciennes classes sont SUPPRIMÉES, pas laissées en doublon : deux
+    // jeux de coins sur la même carte, ce serait la divergence qu'on vient de
+    // fermer.
+    for (const morte of ['class="pl-coin-hg"', 'class="pl-coin-hd"', 'class="pl-coin"',
+                         'class="pl-coin-bd"', 'class="pl-lire"']) {
+      expect(sansCommentaires, `${morte} survit à côté de la surcouche`).not.toContain(morte);
     }
   });
 
   it('chaque appel réutilise ce qui existe, sans redessiner un sélecteur', () => {
-    // Le cœur et les étiquettes reçoivent une cible CONSTRUITE selon le type
-    // de la carte : identifiant de bibliothèque pour une locale, paire
-    // source + identifiant pour une playlist de service.
-    expect(sansCommentaires).toContain('<HeartButton {...favoriDe(item)}');
-    expect(sansCommentaires).toContain('etiquettesCible = cibleEtiquetteDe(item)');
-    expect(sansCommentaires).toContain('cible={etiquettesCible}');
+    // 26/09/2026 — le cœur ne passe plus par un `HeartButton` posé à la main
+    // dans un coin de cet écran : la surcouche le porte, et sépare les deux
+    // bascules parce qu'elles diffèrent vraiment — le favori d'une playlist de
+    // SERVICE ne vit pas dans `favorites`.
+    expect(sansCommentaires).toContain('function favoriDe(item: DisplayPlaylist): RefLocale | null');
+    expect(sansCommentaires).toContain('favoriExterneService(cles, {');
+    // Les étiquettes passent par le module PARTAGÉ, qui sait déjà distinguer
+    // les deux espaces d'identifiants : l'écran ne recompose plus sa cible.
+    expect(sansCommentaires).toContain("import { cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';");
+    expect(sansCommentaires).toContain('cibleEtiquettePlaylist(item.local)');
     // Le crayon OUVRE la playlist — c'est dans l'écran ouvert qu'on renomme.
     // Aucune route ne renomme une playlist chez un service.
-    expect(sansCommentaires).toContain("$tr('playlist.edit')");
+    expect(sansCommentaires).toContain('onEditer={() => selectItem(item)}');
     expect(sansCommentaires).toContain('api.updatePlaylist(');
   });
 
-  it('le panneau d’étiquettes est monté UNE fois pour toute la grille', () => {
-    // Un panneau par carte en aurait posé autant que de playlists.
-    expect((sansCommentaires.match(/EtiquettesPanneau/g) ?? []).length).toBe(1);
+  it('🔴 le panneau d’étiquettes a quitté l’écran : la surcouche le porte', () => {
+    // 26/09/2026 — il était monté ICI, une fois pour toute la grille, avec son
+    // état `etiquettesCible`. C'était le bon réflexe tant que l'écran dessinait
+    // ses coins. `PochetteActions` le porte désormais, à l'import dynamique.
+    // Le garder doublerait le chemin : deux états, deux vérités.
+    expect((sansCommentaires.match(/EtiquettesPanneau/g) ?? []).length).toBe(0);
+    expect(sansCommentaires).not.toContain('etiquettesCible');
+    // Et la cible part bien à la surcouche, sinon le bouton serait absent.
+    expect(sansCommentaires).toContain('etiquettes={cibleEtiquetteDe(item)}');
   });
 
-  it('🔴 les quatre coins sont ancrés à la POCHETTE, pas à la carte', () => {
-    // Bertrand, vu à l'écran : « le bouton de sélection est mal placé, il doit
-    // être au coin bas gauche de la pochette ». Ils étaient positionnés contre
-    // `.pl-carte`, qui contient AUSSI le nom, le badge et les actions : les
-    // coins du bas atterrissaient sous le texte.
+  /*
+   | 🔴 RÉÉCRIT LE 26/09/2026 — deux arbitrages de Bertrand.
+   |
+   | Ce cas gardait que les quatre coins étaient ANCRÉS À LA POCHETTE, et pour
+   | une bonne raison : ils avaient été positionnés contre `.pl-carte`, qui
+   | contient aussi le nom et le badge, et les coins du bas atterrissaient sous
+   | le texte (« bouton de sélection ok mais les autres néant »).
+   |
+   | Les coins sont désormais posés par `PochetteActions`, qui a sa propre garde
+   | et son propre banc. Ce qui reste à garder ICI, c'est la BOÎTE que cet écran
+   | fournit à la surcouche, et le nouveau partage :
+   |
+   |   · la vignette reste la boîte de référence, la carte ne l'est pas ;
+   |   · la vignette ne contient QUE la surcouche ;
+   |   · la CASE DE SÉLECTION est sortie de la vignette et vit dans `.pl-texte`.
+   |
+   | ⚠️ Une garde de texte ne peut pas dire qu'un élément est VISIBLE, ni où il
+   | est dans l'arbre monté. La preuve sur le DOM — la case hors de la vignette,
+   | son `opacity` calculé à 1 sans survol, les coordonnées du bouton de menu —
+   | est dans `gestionnairePlaylistsCoinsPartages.test.ts`, qui MONTE l'écran.
+   | Ce cas-ci ne garde que la source.
+   */
+  it('🔴 la vignette porte la surcouche, et la case de sélection en est SORTIE', () => {
     const style = ECRAN.slice(ECRAN.lastIndexOf('<style>'));
     expect(style).toMatch(/\.pl-vignette\{[^}]*position:relative/);
     // La carte ne doit PLUS être une référence de positionnement, sinon les
     // coins retombent dessus au premier remaniement.
     expect(style).not.toMatch(/\.pl-carte\{[^}]*position:relative/);
-    // 🔴 ET SURTOUT : les quatre coins sont DANS la vignette.
-    //
-    // Ce test ne vérifiait que « pas à l'intérieur du bouton de pochette », et
-    // il est passé au vert alors que le bloc entier avait glissé APRÈS
-    // `.pl-texte` — hors de toute boîte positionnée. Bertrand l'a vu avant
-    // moi : « bouton de sélection ok mais les autres néant ». Une garde qui
-    // dit où une chose n'est PAS ne dit pas où elle est.
+    // La vignette ne contient que la surcouche, qui reçoit la pochette.
     const i = sansCommentaires.indexOf('class="pl-vignette"');
     const finVignette = sansCommentaires.indexOf('class="pl-texte"', i);
+    expect(i, 'plus de vignette').toBeGreaterThan(-1);
+    expect(finVignette, 'plus de bloc de texte').toBeGreaterThan(i);
     const boite = sansCommentaires.slice(i, finVignette);
-    for (const coin of ['class="pl-coin"', 'class="pl-coin-hg"', 'class="pl-coin-hd"', 'class="pl-coin-bd"']) {
-      expect(boite, `${coin} hors de la vignette`).toContain(coin);
+    expect(boite).toContain('<PochetteActions');
+    expect(boite).toContain('class="pl-pochette"');
+    // 🔴 PIÈGE 3 (#1006) — la pochette n'est plus un `<button>` : la surcouche
+    // pose le sien, plein cadre, et un bouton dans un bouton est défait par les
+    // navigateurs.
+    expect(boite, 'la pochette est redevenue un bouton DANS la surcouche')
+      .not.toMatch(/<button[^>]*class="pl-pochette"/);
+    expect(boite).toMatch(/<span class="pl-pochette">/);
+    // 🔴 ET LA CASE N'EST PLUS DANS LA VIGNETTE.
+    expect(boite, 'la case de sélection est retournée dans la pochette').not.toContain('class="pl-case"');
+    const texte = sansCommentaires.slice(finVignette);
+    expect(texte, 'la case de sélection a disparu de la ligne du nom').toContain('class="pl-case"');
+    // Elle précède le nom, sur la même ligne.
+    const ligne = texte.indexOf('class="pl-ligne"');
+    expect(ligne, 'plus de ligne de nom').toBeGreaterThan(-1);
+    expect(texte.indexOf('class="pl-case"')).toBeGreaterThan(ligne);
+    expect(texte.indexOf('class="pl-nom"')).toBeGreaterThan(texte.indexOf('class="pl-case"'));
+  });
+
+  it('🔴 AUCUNE règle de survol ne cache la case de sélection', () => {
+    /*
+      26/09/2026 — c'est la RAISON d'être de sa sortie de la pochette. Les coins
+      de `PochetteActions` ne se montrent qu'au survol (seul le cœur actif
+      reste) : acceptable pour une action, inacceptable pour un geste de
+      SÉLECTION, et impossible sur tactile.
+
+      Le `opacity` calculé est vérifié sur le DOM monté ailleurs ; ici on refuse
+      la règle qui le remettrait à zéro, parce qu'une telle règle est ce qui
+      arriverait au premier « harmonisons avec les coins ».
+    */
+    const style = ECRAN.slice(ECRAN.lastIndexOf('<style>'));
+    const regles = style.match(/[^{}]*\.pl-case[^{}]*\{[^}]*\}/g) ?? [];
+    expect(regles.length, 'aucune règle pour .pl-case : la case n’est plus stylée').toBeGreaterThan(0);
+    for (const r of regles) {
+      const selecteur = r.slice(0, r.indexOf('{'));
+      // Pas de révélation au survol d'un ancêtre : `.pl-carte:hover .pl-case`.
+      expect(
+        /:hover\s+[^,{]*\.pl-case/.test(selecteur),
+        `la case est cachée puis révélée au survol : ${selecteur.trim()}`,
+      ).toBe(false);
+      // Et jamais d'`opacity` sur la case elle-même.
+      expect(
+        /\bopacity\s*:/.test(r.slice(r.indexOf('{'))),
+        `une règle touche l’opacité de la case : ${selecteur.trim()}`,
+      ).toBe(false);
     }
-    // Et ils restent FRÈRES du bouton de pochette, jamais dedans (#1006).
-    const ouvre = boite.indexOf('class="pl-pochette"');
-    const ferme = boite.indexOf('</button>', ouvre);
-    expect(boite.slice(ouvre, ferme)).not.toContain('pl-coin');
   });
 
   it('🔴 le bloc <style> a ses accolades ÉQUILIBRÉES', () => {

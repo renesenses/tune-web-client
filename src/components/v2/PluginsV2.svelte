@@ -21,6 +21,7 @@
   import { ajouterLaBoutique } from '../../lib/catalogueGreffons';
   import { activeView } from '../../lib/stores/navigation';
   import { refreshConcertsPlugin } from '../../lib/stores/concerts';
+  import { refreshCirclePlugin } from '../../lib/circle';
   import { estRefusPremium } from '../../lib/premiumRefus';
   import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import '../../styles/tune-v2.css';
@@ -46,6 +47,9 @@
       // L'entrée « Concerts » de la barre latérale suit l'installation sans
       // attendre un rechargement de la page (tune-server-rust#2363).
       void refreshConcertsPlugin();
+      // Idem pour « Tune Circle » : activer ou désactiver le greffon ici fait
+      // apparaître ou disparaître son entrée sur-le-champ.
+      void refreshCirclePlugin();
     }
     catch { error = $t('v2.plug.unavailable' as any); }
     loading = false;

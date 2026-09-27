@@ -31,9 +31,12 @@
   // dans `lib/tachesDeFond.ts`, hors du composant : elle se garde sans monter
   // l'écran, et l'absence de `pausable` (serveur < 0.9.159) s'y lit UNE fois.
   import {
+    choixPrioriteDr,
     pausesParTraitement,
     serveurSaitSuspendre,
     type InstantaneTachesDeFond,
+    type PrioriteDr,
+    type RattrapageRapportsDr,
   } from '../../lib/tachesDeFond';
   import { heureSeule } from '../../lib/dates';
   import { t } from '../../lib/i18n';
@@ -101,6 +104,37 @@
     pausePossible = serveurSaitSuspendre(inst);
     pauses = pausesParTraitement(inst);
     toutEnPause = !!inst?.all_paused;
+    prioriteDr = choixPrioriteDr(inst);
+    rattrapageDr = inst?.dynamic_range_sidecar ?? null;
+  }
+
+  // ── tune-server-rust#5169 : la place de la plage dynamique ─────────────
+  //
+  // Elle décodait en DERNIER, après le ReplayGain et les empreintes, en
+  // alternance avec le CLAP — des jours d'attente sur 537 910 pistes. Le
+  // serveur ≥ 0.9.167 annonce le réglage dans l'instantané ; un serveur plus
+  // ancien ne l'annonce pas, et `prioriteDr` reste `null` : aucun sélecteur.
+  let prioriteDr = $state<{ courante: PrioriteDr; choix: PrioriteDr[] } | null>(null);
+  /** tune-server-rust#5168 — le dernier passage du rattrapage des foo_dr.txt. */
+  let rattrapageDr = $state<RattrapageRapportsDr | null>(null);
+  let prioriteEnVol = $state(false);
+
+  const LIBELLES_PRIORITE_DR: Record<PrioriteDr, string> = {
+    last: 'v2.health.drPriorityLast',
+    before_fingerprints: 'v2.health.drPriorityBeforeFingerprints',
+    first: 'v2.health.drPriorityFirst',
+  };
+
+  async function changerPrioriteDr(p: string) {
+    prioriteEnVol = true;
+    try {
+      rangerLInstantane(await api.setDynamicRangePriority(p));
+      void collect();
+    } catch (e) {
+      notifications.error(errText(e) ?? $t('common.error' as any));
+    } finally {
+      prioriteEnVol = false;
+    }
   }
 
   async function basculerTraitement(id: string, versLaPause: boolean) {
@@ -346,6 +380,14 @@
     // autres n'ont plus rien). Une jauge sans cette explication laisserait
     // l'utilisateur devant un chiffre sans prise : le levier est sur la carte
     // d'à côté.
+    // ── Pause des traitements de fond (#1352) ─────────────────────────────
+    // `Promise.allSettled` comme partout ici : un serveur < 0.9.159 rend 404,
+    // l'écran se tait sur la pause et le reste des cartes n'en souffre pas.
+    // Lu AVANT la carte « Plage dynamique » : son détail dépend de l'ordre de
+    // passage réglé (tune-server-rust#5169).
+    const tdf = await Promise.allSettled([api.getBackgroundTasks()]);
+    rangerLInstantane(tdf[0].status === 'fulfilled' ? tdf[0].value : null);
+
     const drc = await Promise.allSettled([api.getCompletenessStats()]);
     if (drc[0].status === 'fulfilled' && drc[0].value?.with_dynamic_range !== undefined) {
       const c = drc[0].value;
@@ -353,6 +395,12 @@
       const total = c.total_tracks ?? 0;
       const mesure = c.dynamic_range_from_analysis ?? 0;
       const tague = c.dynamic_range_from_tag ?? 0;
+      // tune-server-rust#5168 — les DR lus dans les `foo_dr.txt`, comptés À
+      // PART. Serveur ≥ 0.9.152 ; absent avant, et la ligne garde alors sa
+      // forme d'origine plutôt qu'un « 0 lues dans les foo_dr.txt » inventé.
+      const rapporte = typeof c.dynamic_range_from_sidecar_file === 'number'
+        ? c.dynamic_range_from_sidecar_file
+        : null;
       const ecartees = c.dynamic_range_unavailable ?? 0;
       // Reportées (#4254) : fichier qui ne répond pas. Ni faites, ni écartées,
       // ni « en attente derrière ReplayGain » — en attente d'un disque.
@@ -370,11 +418,12 @@
         etat: !analyseActive ? 'off' : restantes === 0 && reportees === 0 ? 'done' : 'idle',
         // La ligne dit la RÉPARTITION, pas seulement le total : un DR tagué
         // n'a pas la même valeur qu'un DR mesuré.
-        ligne: $t('v2.health.drLine' as any)
+        ligne: $t((rapporte === null ? 'v2.health.drLine' : 'v2.health.drLineSidecar') as any)
           .replace('{n}', $formatNombre(avec))
           .replace('{t}', $formatNombre(total))
           .replace('{m}', $formatNombre(mesure))
-          .replace('{g}', $formatNombre(tague)),
+          .replace('{g}', $formatNombre(tague))
+          .replace('{s}', $formatNombre(rapporte ?? 0)),
         fait: avec,
         total: total || undefined,
         // Le détail porte la CAUSE, jamais un simple compteur.
@@ -382,12 +431,22 @@
           ? $t('v2.health.drOffBecauseRg' as any)
           : [
               restantes > 0
-                ? $t('v2.health.drQueuedBehindRg' as any).replace('{n}', $formatNombre(restantes))
+                ? $t((prioriteDr?.courante === 'first'
+                    ? 'v2.health.drQueuedFirst'
+                    : prioriteDr?.courante === 'before_fingerprints'
+                      ? 'v2.health.drQueuedBeforeFingerprints'
+                      : 'v2.health.drQueuedBehindRg') as any).replace('{n}', $formatNombre(restantes))
                 : ecartees > 0
                   ? $t('v2.health.drUnavailable' as any).replace('{n}', $formatNombre(ecartees))
                   : undefined,
               reportees > 0
                 ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(reportees))
+                : undefined,
+              // #5168 — ce que le dernier passage du rattrapage a lu.
+              rattrapageDr?.last && (rattrapageDr.last.folders ?? 0) > 0
+                ? $t('v2.health.drSidecarLast' as any)
+                    .replace('{d}', $formatNombre(rattrapageDr.last.folders ?? 0))
+                    .replace('{w}', $formatNombre(rattrapageDr.last.tracks_written ?? 0))
                 : undefined,
             ].filter(Boolean).join(' ') || undefined });
     } else {
@@ -434,12 +493,6 @@
       out.push({ id: 'covers', traitement: 'artist_images', titre: $t('v2.health.cardCovers' as any), sous: $t('v2.health.cardCoversSub' as any),
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any) });
     }
-
-    // ── Pause des traitements de fond (#1352) ─────────────────────────────
-    // `Promise.allSettled` comme partout ici : un serveur < 0.9.159 rend 404,
-    // l'écran se tait sur la pause et le reste des cartes n'en souffre pas.
-    const tdf = await Promise.allSettled([api.getBackgroundTasks()]);
-    rangerLInstantane(tdf[0].status === 'fulfilled' ? tdf[0].value : null);
 
     // ── Modules de sortie (#2392) ─────────────────────────────────────────
     // Un seul appel, celui de Diagnostics ; un serveur qui n'envoie pas
@@ -593,6 +646,26 @@
 
             {#if c.detail}<div class="detail">{c.detail}</div>{/if}
 
+            <!-- tune-server-rust#5169 — l'ordre de passage de la plage
+                 dynamique. Absent tant que le serveur ne l'annonce pas. -->
+            {#if c.id === 'dr' && prioriteDr}
+              <div class="prio">
+                <label class="prio-label" for="v2-dr-priorite">{$t('v2.health.drPriority' as any)}</label>
+                <select
+                  id="v2-dr-priorite"
+                  class="prio-select"
+                  value={prioriteDr.courante}
+                  disabled={prioriteEnVol}
+                  onchange={(e) => changerPrioriteDr((e.currentTarget as HTMLSelectElement).value)}
+                >
+                  {#each prioriteDr.choix as p (p)}
+                    <option value={p}>{$t(LIBELLES_PRIORITE_DR[p] as any)}</option>
+                  {/each}
+                </select>
+                <div class="prio-hint">{$t('v2.health.drPriorityHint' as any)}</div>
+              </div>
+            {/if}
+
             {#if boutonSurLaCarte(c)}
               <div class="cactions">
                 <button
@@ -714,6 +787,13 @@
   .badge.pause{color:var(--v2-txt2); border-color:var(--v2-txt3)}
   .card.pause{border-color:var(--v2-txt3)}
   .cactions{margin-top:13px; display:flex; gap:10px; flex-wrap:wrap}
+  /* tune-server-rust#5169 — le choix d'ordre de la plage dynamique. */
+  .prio{margin-top:13px; display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px}
+  .prio-label{font-size:11.5px; color:var(--v2-txt2)}
+  .prio-select{border:1px solid var(--v2-line2); background:var(--v2-bg); color:var(--v2-txt);
+    border-radius:8px; padding:5px 8px; font:12px var(--v2-sans); max-width:100%}
+  .prio-select:disabled{opacity:.5}
+  .prio-hint{flex-basis:100%; font-size:11px; color:var(--v2-txt3); line-height:1.45}
 
   .line{margin-top:13px; font-size:13px; color:var(--v2-txt2); line-height:1.5}
   .bar{margin-top:11px; height:6px; border-radius:4px; background:var(--v2-line); overflow:hidden}

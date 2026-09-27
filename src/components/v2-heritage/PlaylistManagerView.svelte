@@ -24,6 +24,23 @@
   import ClampedText from '../partages/ClampedText.svelte';
   import HeartButton from '../partages/HeartButton.svelte';
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
+  /**
+   * LA SURCOUCHE COMMUNE DES POCHETTES — 26/09/2026.
+   *
+   * Cette grille avait ses PROPRES coins (`.pl-coin-hg`, `.pl-coin-hd`,
+   * `.pl-coin`, `.pl-coin-bd`, `.pl-lire`), écrits à la main le 21/09 contre la
+   * maquette de Levente. Vingt-trois autres emplacements du client passent par
+   * `PochetteActions` ; celui-ci était le vingt-quatrième, et le seul à décider
+   * seul de la place et de l'allure de ses coins. Deux vérités pour les mêmes
+   * gestes : c'est le défaut que le catalogue d'actions a été écrit pour tuer.
+   */
+  import PochetteActions from '../v2/PochetteActions.svelte';
+  import { objetPlaylist, type ObjetMenu } from '../../lib/gestesObjet';
+  import type { GestesPochette } from '../../lib/actionsPochette';
+  import { cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
+  import { favoriExterneService } from '../../lib/streamingFavorites';
+  import { favoriteStreamingKeys } from '../../lib/stores/profile';
+  import type { RefLocale } from '../../lib/favorisLocaux';
   import { quatreDistinctes } from '../../lib/mosaique';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
@@ -205,54 +222,87 @@
   }
 
   /**
-   * LES TROIS AUTRES COINS DE LA CARTE (maquette Levente).
+   * CE QUE LA CARTE DONNE À `PochetteActions` — 26/09/2026.
    *
-   * Tous les trois se branchent sur de l'EXISTANT, mesuré sur le .18 le
-   * 21/09/2026 avant d'écrire une ligne — aucun travail serveur :
+   * Les quatre coins et le centre ne sont plus dessinés ici : la surcouche
+   * commune les pose, aux mêmes places et avec la même allure que sur les
+   * vingt-trois autres emplacements du client. Cet écran ne fournit plus que
+   * les DÉSIGNATIONS, et il les prend dans les modules partagés plutôt que de
+   * les recomposer :
    *
-   *   · cœur       `HeartButton` accepte déjà `playlistId` ;
-   *   · crayon     `api.updatePlaylist(id, { name })` ;
-   *   · étiquettes `EtiquettesPanneau` accepte `itemType="playlist"`, et la
-   *                route le prouve : POST /tags/{id}/items rend 201, la
-   *                relecture montre l'étiquette, DELETE rend 204.
+   *   · cœur       `favorisLocaux` pour une playlist de bibliothèque,
+   *                `favoriExterneService` pour une playlist de service — le
+   *                favori d'un objet de service ne vit pas dans `favorites` ;
+   *   · étiquettes `cibleEtiquettePlaylist`, qui sait déjà distinguer les deux
+   *                espaces (mesuré sur le .18 le 21/09/2026 : POST
+   *                /tags/{id}/streaming-items avec `item_type: "playlist"`
+   *                rend 201, et la relecture montre l'étiquette) ;
+   *   · menu       `objetPlaylist`, d'où `lib/actionsPochette` tire la liste et
+   *                `lib/gestesObjet` les gestes. Aucune action n'est inventée
+   *                ici : l'écran ne compose plus de tableau.
    *
-   * 🔴 Ils ne s'affichent que sur une playlist LOCALE. Une playlist de service
-   * n'a pas d'identifiant de bibliothèque à donner à ces trois routes : ce qui
-   * ne s'applique pas est ABSENT, jamais grisé.
+   * 🔴 Et ils s'affichent sur une carte de SERVICE comme sur une carte locale
+   * (Bertrand, 21/09/2026 : « je veux les 5 sur chaque cover de playlist »).
+   * Ce qui ne s'applique pas est absent, jamais grisé — c'est le catalogue qui
+   * en décide, pas une garde `item.type === 'local'` écrite à la main.
    */
-  /** La cible du panneau d'étiquettes : locale (`itemId`) ou de service. */
-  let etiquettesCible = $state<any | null>(null);
-
-  /** Ce qu'il faut étiqueter, selon le type de la carte. */
-  function cibleEtiquetteDe(item: DisplayPlaylist): any {
-    if (item.type === 'local' && item.local?.id != null) {
-      return { itemType: 'playlist', itemId: item.local.id };
-    }
-    // Mesuré sur le .18 le 21/09/2026 : POST /tags/{id}/streaming-items avec
-    // `item_type: "playlist"` rend 201, et la relecture montre l'étiquette.
-    // Une playlist de service s'étiquette donc aussi bien qu'une locale.
-    return {
-      itemType: 'playlist',
-      source: item.service,
-      sourceId: String(item.streaming?.source_id ?? ''),
-      titre: item.name,
-      pochette: item.coverPath ?? null,
-    };
-  }
-
-  /** Le favori : identifiant local, ou paire service + identifiant. */
-  function favoriDe(item: DisplayPlaylist): any {
+  /** Le favori LOCAL d'une carte : son identifiant de bibliothèque, ou rien. */
+  function favoriDe(item: DisplayPlaylist): RefLocale | null {
     return item.type === 'local' && item.local?.id != null
       ? { playlistId: item.local.id }
-      : {
-          streaming: {
-            itemType: 'playlist',
-            service: item.service,
-            serviceId: String(item.streaming?.source_id ?? ''),
-            title: item.name,
-            coverUrl: item.coverPath ?? undefined,
-          },
-        };
+      : null;
+  }
+
+  /**
+   * Le favori d'une playlist de SERVICE — il ne vit pas dans `favorites`.
+   *
+   * `PochetteActions` sépare les deux (`favori` / `favoriExterne`) parce que
+   * la bascule diffère ; l'apparence et la position, elles, sont partagées.
+   */
+  function favoriServiceDe(item: DisplayPlaylist, cles: ReadonlySet<string>) {
+    if (item.type === 'local') return null;
+    return favoriExterneService(cles, {
+      itemType: 'playlist',
+      service: item.service,
+      serviceId: String(item.streaming?.source_id ?? ''),
+      title: item.name,
+      coverUrl: item.coverPath ?? undefined,
+    });
+  }
+
+  /** La cible du panneau d'étiquettes : locale (`itemId`) ou de service. */
+  function cibleEtiquetteDe(item: DisplayPlaylist) {
+    return item.type === 'local' && item.local
+      ? cibleEtiquettePlaylist(item.local)
+      : cibleEtiquettePlaylist({ ...item.streaming, name: item.name }, item.service);
+  }
+
+  /** L'OBJET du menu d'actions : une playlist de bibliothèque, ou de service. */
+  function objetDe(item: DisplayPlaylist): ObjetMenu {
+    return item.type === 'local' && item.local
+      ? objetPlaylist(item.local)
+      : objetPlaylist(item.streaming, item.service);
+  }
+
+  /**
+   * Le SEUL geste que cet écran redirige : « Transférer ».
+   *
+   * Le geste commun de `lib/gestesObjet` pose `pendingPlaylistId` et navigue
+   * vers `playlistmanager` — c'est-à-dire ICI. Depuis cet écran il serait donc
+   * MUET, et « un geste muet est pire qu'une entrée absente ». La même entrée,
+   * le même libellé, le chemin de l'écran : on ouvre la playlist puis sa
+   * fenêtre de transfert, celle que l'en-tête du détail offre déjà. Rien de
+   * nouveau — `gestesMenu` sert exactement à ça.
+   */
+  function gestesDeLaCarte(item: DisplayPlaylist): GestesPochette {
+    const pl = item.type === 'local' ? item.local : null;
+    if (!pl || pl.id == null) return {};
+    return { transferer: () => void ouvrirTransfertDeLaCarte(pl) };
+  }
+
+  async function ouvrirTransfertDeLaCarte(pl: Playlist) {
+    await selectLocal(pl);
+    openTransfer();
   }
 
   /** Lire la playlist, quelle que soit son origine. */
@@ -2448,10 +2498,16 @@
       <!--
         LA GRILLE (maquette Levente, 20/09/2026). C'était une liste verticale.
 
-        Ce qui change vraiment n'est pas la forme mais le GESTE : le coin bas
-        gauche de chaque carte coche la playlist, et la barre de fusion
-        apparaît au-dessus. Plus de mode à découvrir — c'est ce qui faisait
-        dire « la fusion ne marche pas ».
+        Ce qui change vraiment n'est pas la forme mais le GESTE : on coche une
+        carte, et la barre de fusion apparaît au-dessus. Plus de mode à
+        découvrir — c'est ce qui faisait dire « la fusion ne marche pas ».
+
+        🔴 La case a DÉMÉNAGÉ le 26/09/2026 : elle était le coin bas gauche de
+        la pochette, elle est maintenant sur la ligne du NOM, et ce coin est
+        passé au menu d'actions. LE GESTE, LUI, N'A PAS BOUGÉ — toujours aucun
+        mode, toujours une case par carte, toujours la barre qui apparaît dès la
+        première cochée. C'est l'ABSENCE DE MODE qu'il ne faut jamais
+        réintroduire, pas l'emplacement de la case.
 
         🔴 La sélection FUT confinée à un service : cocher une carte TIDAL
         rendait inertes toutes les cartes Qobuz. Bertrand, 21/09 : « Quand
@@ -2464,102 +2520,102 @@
           {@const cle = mergeKey(item.service, identifiantDe(item))}
           {@const cochee = mergeSelected.has(cle)}
           <div class="pl-carte" class:cochee>
-            <!-- 🔴 LA VIGNETTE EST LA BOÎTE DE RÉFÉRENCE DES QUATRE COINS.
-                 Ils étaient positionnés contre la CARTE entière : les deux du
-                 haut tombaient juste par accident, et les deux du bas
-                 atterrissaient sous le nom et le badge, loin de la pochette.
-                 Bertrand : « le bouton de sélection doit être au coin bas
-                 gauche de la POCHETTE ». Les coins sont donc frères du bouton
-                 de pochette, dans une boîte qui a exactement sa taille — et
-                 jamais DEDANS : un bouton dans un bouton est du balisage
-                 invalide que les navigateurs défont (#1006). -->
-            <div class="pl-vignette">
-            <button class="pl-pochette" onclick={() => selectItem(item)} aria-label={item.name}>
-              {#if item.covers && item.covers.length > 0}
-                <!-- Les quatre pochettes que QOBUZ fournit déjà dans la liste :
-                     aucune requête de plus, là où le repli en coûte une par
-                     carte. Toujours quatre cases, même avec une seule image
-                     — la règle du 01/09. -->
-                <MosaiquePochettes pochettes={item.covers} alt={item.name} />
-              {:else if item.coverPath}
-                <AlbumArt coverPath={item.coverPath} size={0} alt={item.name} />
-              {:else if mosaiques[cle]}
-                <MosaiquePochettes pochettes={mosaiques[cle]} alt={item.name} />
-              {:else}
-                <span class="pl-vide">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13M9 18c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
-                </span>
-              {/if}
-            </button>
-
-
-
             <!--
-              LES CINQ APPELS À L'ACTION, sur CHAQUE pochette — locale comme de
-              service (Bertrand, 21/09/2026 : « je veux les 5 sur chaque cover
-              de playlist »).
+              LA VIGNETTE : la surcouche COMMUNE, et rien d'autre (26/09/2026).
 
-              Mesuré sur le .18 avant d'écrire, parce que « ça marche pour une
-              playlist de service » ne se devine pas :
+              🔴 Elle portait les cinq appels à l'action écrits à la main dans
+              cet écran. Ils sont partis chez `PochetteActions` : favori en haut
+              gauche, édition en haut droite, MENU D'ACTIONS en bas gauche,
+              étiquettes en bas droite, lecture au centre — les mêmes places que
+              les vingt-trois autres emplacements du client, et la même
+              révélation au survol.
 
-                · étiquettes  POST /tags/{id}/streaming-items {item_type:
-                              "playlist"} → 201, relu, puis retiré par
-                              /remove → 204 ;
-                · favori      `StreamingItemType` et `ServiceFavType` portent
-                              tous deux « playlist(s) », et `HeartButton`
-                              accepte déjà une cible de service ;
-                · lecture     `playStreamingPlaylist` existait ;
-                · sélection   la route de fusion prend {service, playlist_id}.
+              Le coin bas gauche cochait la playlist. Bertrand, 26/09/2026 : il
+              passe au menu d'actions, et la case de sélection SORT de la
+              pochette pour se poser sur la ligne du nom (voir plus bas). Cela
+              revient sur sa consigne du 21/09 — « le bouton de sélection doit
+              être au coin bas gauche de la POCHETTE » — et c'est voulu : les
+              boutons de `PochetteActions` n'apparaissent QU'AU SURVOL (seul le
+              cœur actif reste), ce qui est acceptable pour une action et
+              inacceptable pour un geste de SÉLECTION, qu'on doit voir sans
+              chercher.
 
-              Le CRAYON ouvre la playlist — c'est là qu'on la renomme
-              (Bertrand : « edit la playlist et permet de la renommer »). Il ne
-              renomme donc pas depuis la carte, ce qui règle au passage le seul
-              point impossible : aucune route ne renomme une playlist CHEZ un
-              service.
+              🔴 `PochetteActions` est une ENVELOPPE : elle reçoit la pochette en
+              `children` et pose ses boutons en FRÈRES. La pochette n'est donc
+              plus un `<button>` — c'est le bouton plein cadre de la surcouche
+              qui ouvre la playlist. Un bouton dans un bouton est du balisage
+              invalide que les navigateurs défont (#1006).
             -->
-            <span class="pl-coin-hg"><HeartButton {...favoriDe(item)} size={15} /></span>
-
-            <button
-              class="pl-coin-hd"
-              title={$tr('playlist.edit')}
-              aria-label={$tr('playlist.edit')}
-              onclick={(e) => { e.stopPropagation(); selectItem(item); }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
-            </button>
-
-            <button
-              class="pl-coin"
-              class:on={cochee}
-              aria-pressed={cochee}
-              aria-label={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
-              title={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
-              onclick={(e) => { e.stopPropagation(); toggleMergeSelect(item.service, identifiantDe(item)); }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M20 6L9 17l-5-5" /></svg>
-            </button>
-
-            <button
-              class="pl-coin-bd"
-              title={$tr('v2.nav.tags' as any)}
-              aria-label={$tr('v2.nav.tags' as any)}
-              onclick={(e) => { e.stopPropagation(); etiquettesCible = cibleEtiquetteDe(item); }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z" /><circle cx="6.5" cy="6.5" r="1.2" /></svg>
-            </button>
-
-            <button
-              class="pl-lire"
-              title={$tr('common.play')}
-              aria-label={$tr('common.play')}
-              onclick={(e) => { e.stopPropagation(); lirePlaylist(item); }}
-            >
-              <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z" /></svg>
-            </button>
+            <div class="pl-vignette">
+              <PochetteActions
+                favori={favoriDe(item)}
+                favoriExterne={favoriServiceDe(item, $favoriteStreamingKeys)}
+                etiquettes={cibleEtiquetteDe(item)}
+                onEditer={() => selectItem(item)}
+                onLire={() => lirePlaylist(item)}
+                onOuvrir={() => selectItem(item)}
+                objet={objetDe(item)}
+                gestesMenu={gestesDeLaCarte(item)}
+                rafraichir={loadAll}
+                nom={item.name}
+              >
+                <span class="pl-pochette">
+                  {#if item.covers && item.covers.length > 0}
+                    <!-- Les quatre pochettes que QOBUZ fournit déjà dans la
+                         liste : aucune requête de plus, là où le repli en coûte
+                         une par carte. Toujours quatre cases, même avec une
+                         seule image — la règle du 01/09. -->
+                    <MosaiquePochettes pochettes={item.covers} alt={item.name} />
+                  {:else if item.coverPath}
+                    <AlbumArt coverPath={item.coverPath} size={0} alt={item.name} />
+                  {:else if mosaiques[cle]}
+                    <MosaiquePochettes pochettes={mosaiques[cle]} alt={item.name} />
+                  {:else}
+                    <span class="pl-vide">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13M9 18c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
+                    </span>
+                  {/if}
+                </span>
+              </PochetteActions>
             </div>
 
             <div class="pl-texte">
-              <span class="pl-nom">{item.name}</span>
+              <!--
+                LA CASE DE SÉLECTION, sur la ligne du NOM — Bertrand,
+                26/09/2026.
+
+                🔴 Elle était le coin bas gauche de la pochette. Elle en sort
+                pour deux raisons, et la seconde est la vraie :
+
+                 1. le coin bas gauche revient au menu d'actions, comme partout
+                    ailleurs dans le client ;
+                 2. les coins de `PochetteActions` ne se montrent qu'au SURVOL.
+                    Une case de sélection qui n'existe qu'au survol n'existe pas
+                    : on ne peut pas voir ce qu'on a coché en parcourant la
+                    grille, et sur tactile il n'y a pas de survol du tout.
+
+                🔴 Le GESTE, lui, ne change pas d'un iota — c'est lui qui compte.
+                Il n'y a toujours AUCUN mode à découvrir : on coche, et la barre
+                de fusion apparaît au-dessus. C'est l'absence de mode qui avait
+                réglé « il me semble que la fusion ne marche pas ! ».
+
+                Donc : TOUJOURS visible, jamais sous une règle de survol. Aucune
+                règle `.pl-carte:hover .pl-case` — si elle réapparaît, la case
+                est redevenue invisible.
+              -->
+              <div class="pl-ligne">
+                <button
+                  class="pl-case"
+                  class:on={cochee}
+                  aria-pressed={cochee}
+                  aria-label={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
+                  title={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
+                  onclick={(e) => { e.stopPropagation(); toggleMergeSelect(item.service, identifiantDe(item)); }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M20 6L9 17l-5-5" /></svg>
+                </button>
+                <span class="pl-nom">{item.name}</span>
+              </div>
               <span class="pl-compte">{item.trackCount} {$tr('common.tracks')}</span>
               <span class="pl-badge" style="border-color: {serviceColor(item.service)}; color: {serviceColor(item.service)}">
                 {item.service === 'local' ? $tr('playlist.local') : serviceName(item.service)}
@@ -2605,17 +2661,20 @@
   {/if}
 </div>
 
-{#if etiquettesCible}
-  <!-- Monté UNE fois pour toute la grille, comme les autres écrans le font :
-       un panneau par carte en aurait posé autant que de playlists. -->
-  {#await import('../v2/EtiquettesPanneau.svelte') then m}
-    <m.default
-      cible={etiquettesCible}
-      nom={etiquettesCible.titre ?? ''}
-      onClose={() => (etiquettesCible = null)}
-    />
-  {/await}
-{/if}
+<!--
+  🔴 LE PANNEAU D'ÉTIQUETTES A QUITTÉ CET ÉCRAN — 26/09/2026.
+
+  Il était monté ici, une fois pour toute la grille, avec son état
+  `etiquettesCible` : le bouton d'une carte le remplissait, le panneau
+  s'ouvrait. C'était le bon réflexe quand l'écran dessinait ses propres coins —
+  un panneau par carte en aurait posé autant que de playlists.
+
+  `PochetteActions` le porte désormais lui-même, et à l'IMPORT DYNAMIQUE : le
+  module n'est chargé qu'au premier clic sur un bouton d'étiquettes, et une
+  seule carte peut avoir son panneau ouvert à la fois. Le garder ici en
+  doublerait le chemin — deux états, deux vérités, exactement ce que la
+  migration vient supprimer.
+-->
 
 <!-- Import Dialog Overlay -->
 {#if importTarget}
@@ -4665,25 +4724,38 @@
     gap:18px; padding:4px 0}
   .pl-carte{display:flex; flex-direction:column; gap:8px;
     border-radius:12px; transition:opacity .15s}
-  /* La boîte de référence des quatre coins : exactement la pochette. */
-  .pl-vignette{position:relative; width:100%; aspect-ratio:1}
-  .pl-pochette{width:100%; height:100%; border:0; padding:0;
-    border-radius:10px; overflow:hidden; cursor:pointer; background:var(--tune-surface);
-    display:block}
-  .pl-carte.cochee .pl-pochette{box-shadow:0 0 0 2px var(--tune-accent)}
-  .pl-pochette:focus-visible{outline:2px solid var(--tune-accent); outline-offset:2px}
+  /* La boîte de la pochette : c'est `PochetteActions` qui y pose les coins, et
+     c'est elle qui donne le rayon — la surcouche l'HÉRITE (`border-radius:
+     inherit`) et arrondit son propre cadre dessus. */
+  .pl-vignette{position:relative; width:100%; aspect-ratio:1; border-radius:10px}
+  /* 🔴 Plus un `<button>` : la surcouche pose son propre bouton plein cadre, et
+     un bouton dans un bouton est défait par les navigateurs (#1006). */
+  .pl-pochette{width:100%; height:100%; display:block; overflow:hidden;
+    border-radius:10px; background:var(--tune-surface)}
+  /* L'anneau de sélection est porté par la VIGNETTE : la surcouche coupe son
+     propre débordement, un anneau posé dedans serait rogné. */
+  .pl-carte.cochee .pl-vignette{box-shadow:0 0 0 2px var(--tune-accent)}
   .pl-vide{display:grid; place-items:center; width:100%; height:100%; color:var(--tune-text-muted)}
   .pl-vide svg{width:34px; height:34px}
 
-  /* Le coin de sélection : posé SUR la pochette, en bas à gauche. */
-  .pl-coin{position:absolute; left:8px; bottom:8px; width:26px; height:26px;
-    display:grid; place-items:center; border-radius:7px; cursor:pointer;
-    border:1px solid var(--tune-border); background:var(--tune-bg); color:transparent;
-    opacity:0; transition:opacity .12s}
-  .pl-carte:hover .pl-coin, .pl-coin:focus-visible, .pl-coin.on{opacity:1}
-  .pl-coin.on{background:var(--tune-accent); border-color:var(--tune-accent); color:#fff}
-  .pl-coin:disabled{cursor:default}
   .pl-texte{display:flex; flex-direction:column; gap:3px; min-width:0}
+  /* La ligne du NOM porte la case de sélection, à sa gauche. */
+  .pl-ligne{display:flex; align-items:center; gap:6px; min-width:0}
+  /*
+    LA CASE DE SÉLECTION — 26/09/2026.
+
+    🔴 AUCUNE règle de survol, et `opacity` n'est jamais touchée : elle est
+    visible en permanence, sur chaque carte. C'est tout l'objet de sa sortie de
+    la pochette — les coins de `PochetteActions` ne se montrent qu'au survol,
+    et un geste de sélection ne peut pas se cacher.
+  */
+  .pl-case{flex:0 0 auto; width:20px; height:20px;
+    display:grid; place-items:center; border-radius:5px; cursor:pointer;
+    border:1px solid var(--tune-border); background:var(--tune-bg); color:transparent;
+    transition:border-color .12s, background .12s}
+  .pl-case:hover{border-color:var(--tune-accent)}
+  .pl-case.on{background:var(--tune-accent); border-color:var(--tune-accent); color:#fff}
+  .pl-case:focus-visible{outline:2px solid var(--tune-accent); outline-offset:2px}
   .pl-nom{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .pl-compte{font-size:11.5px; color:var(--tune-text-secondary)}
   .pl-badge{align-self:flex-start; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase;
@@ -4719,31 +4791,20 @@
   .danger-btn:hover:not(:disabled){background:var(--tune-danger); color:#fff}
   .danger-btn:disabled{opacity:.5; cursor:default}
 
-  /* Les trois autres coins (maquette Levente). Même révélation au survol que
-     le coin de sélection, et mêmes cibles de 26 px. */
-  .pl-coin-hg, .pl-coin-hd, .pl-coin-bd{position:absolute; width:26px; height:26px;
-    display:grid; place-items:center; border-radius:7px; cursor:pointer;
-    border:1px solid var(--tune-border); background:var(--tune-bg);
-    color:var(--tune-text-secondary); opacity:0; transition:opacity .12s}
-  .pl-coin-hg{left:8px; top:8px}
-  .pl-coin-hd{right:8px; top:8px}
-  .pl-coin-bd{right:8px; bottom:8px}
-  .pl-carte:hover .pl-coin-hg,
-  .pl-carte:hover .pl-coin-hd,
-  .pl-carte:hover .pl-coin-bd,
-  .pl-coin-hd:focus-visible, .pl-coin-bd:focus-visible{opacity:1}
-  .pl-coin-hg:focus-within{opacity:1}
-  .pl-coin-hd:hover, .pl-coin-bd:hover{color:var(--tune-text)}
+  /*
+    🔴 LES QUATRE COINS ET LE CENTRE N'ONT PLUS DE CSS ICI — 26/09/2026.
+
+    `.pl-coin-hg`, `.pl-coin-hd`, `.pl-coin`, `.pl-coin-bd` et `.pl-lire`
+    déclaraient à la main la taille, le rayon, la couleur, la position et la
+    révélation au survol des cinq appels à l'action. `PochetteActions` les
+    déclare pour les vingt-trois autres emplacements du client ; cet écran en
+    avait sa propre copie, qui divergeait déjà (26 px contre 28, un rayon de
+    7 px contre 8, un disque de 44 px contre 52).
+
+    Elles sont supprimées, pas commentées : une règle morte finit par revivre.
+  */
 
   /* Le message de coupure premium d'un onglet. */
   .pm-premium{margin:0; padding:22px; text-align:center; color:var(--tune-text-secondary);
     font-size:13px; line-height:1.7; border:1px dashed var(--tune-border); border-radius:10px}
-
-  /* Le cinquième appel à l'action : lire, au CENTRE de la pochette. */
-  .pl-lire{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:44px; height:44px; display:grid; place-items:center; border-radius:50%;
-    border:0; cursor:pointer; background:var(--tune-accent); color:var(--tune-bg);
-    opacity:0; transition:opacity .12s}
-  .pl-carte:hover .pl-lire, .pl-lire:focus-visible{opacity:1}
-  .pl-lire:hover{filter:brightness(1.08)}
 </style>
