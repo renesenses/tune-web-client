@@ -1095,7 +1095,7 @@
     </div>
   {/if}
 
-  <div class="scroll" class:grille bind:this={zoneDefilante}>
+  <div class="scroll" bind:this={zoneDefilante}>
     {#if !charge}
       <div class="state">{$t('common.loading' as any)}</div>
     {:else if !disposition.length}
@@ -1854,7 +1854,9 @@
      Sous 720 px de large (le conteneur, pas la fenêtre : la barre latérale
      en prend sa part), deux colonnes ne tiennent plus : une seule, pleine
      largeur, comme sur téléphone. La page défile toujours par `.scroll`. */
-  .scroll.grille{container-type:inline-size}
+  /* `:has` et non une classe sur `.scroll` : la balise de `.scroll` est
+     épinglée à la lettre par le témoin de #1327 (le défileur lié). */
+  .scroll:has(> .mosaique){container-type:inline-size}
   .mosaique{display:grid; grid-template-columns:repeat(auto-fill, 315px); column-gap:16px; row-gap:16px;
     justify-content:start; align-items:stretch; padding:6px 30px 0}
   .mosaique > .bloc{min-width:0; max-width:315px; padding:14px 0 10px;
