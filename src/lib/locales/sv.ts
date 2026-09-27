@@ -3608,6 +3608,8 @@ export default {
   "v2.set.browserZoneDuplicates": "Det finns redan {n} webbläsarzoner. De är utbytbara — en räcker.",
   "v2.set.peakMeter": "Toppmätare",
   "v2.set.peakMeterHint": "Endast visning — signalen ändras inte. Uppspelningsraden visar bara lamporna: de två stapelmätarna är för breda där.",
+  "v2.set.barVu": "Uppspelningslist med VU-mätare",
+  "v2.set.barVuHint": "Endast visning — signalen ändras inte. Två visarinstrument på var sida om kontrollerna; de ersätter topplamporna och minispektrumet. På en smal list återkommer den vanliga listen.",
   "v2.set.peakOff": "Ingen",
   "v2.set.peakLamps": "Lampor",
   "v2.set.peakDat": "DAT PCM-7030",

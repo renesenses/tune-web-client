@@ -3609,6 +3609,8 @@ export default {
   "v2.set.browserZoneDuplicates": "Ya existen {n} zonas de navegador. Son intercambiables: basta con una.",
   "v2.set.peakMeter": "Medidor de picos",
   "v2.set.peakMeterHint": "Solo visualización: la señal no cambia. La barra de reproducción muestra solo las lámparas; los dos gráficos de barras son demasiado anchos.",
+  "v2.set.barVu": "Barra de reproducción con vúmetros",
+  "v2.set.barVuHint": "Solo visualización — la señal no cambia. Dos diales de aguja a ambos lados de los controles; sustituyen a las lámparas de pico y al miniespectro. En una barra estrecha vuelve la barra habitual.",
   "v2.set.peakOff": "Ninguno",
   "v2.set.peakLamps": "Lámparas",
   "v2.set.peakDat": "DAT PCM-7030",

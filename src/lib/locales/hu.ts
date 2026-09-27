@@ -3567,6 +3567,8 @@ export default {
   "v2.set.browserZoneDuplicates": "Már {n} böngészőzóna létezik. Egymással felcserélhetők — egy is elég.",
   "v2.set.peakMeter": "Csúcsszintmérő",
   "v2.set.peakMeterHint": "Csak megjelenítés — a jel nem változik. A lejátszássáv csak a lámpákat mutatja: a két oszlopdiagram túl széles hozzá.",
+  "v2.set.barVu": "Lejátszássáv VU-mérőkkel",
+  "v2.set.barVuHint": "Csak megjelenítés — a jel nem változik. Két mutatós műszer a kezelőszervek két oldalán; a csúcslámpák és a mini-spektrum helyére lépnek. Keskeny sávon visszatér a megszokott sáv.",
   "v2.set.peakOff": "Nincs",
   "v2.set.peakLamps": "Lámpák",
   "v2.set.peakDat": "DAT PCM-7030",
