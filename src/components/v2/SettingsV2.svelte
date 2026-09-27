@@ -25,6 +25,8 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { emphaseParts } from '../../lib/i18nEmphase';
   import { preferences } from '../../lib/stores/preferences';
+  import { typesSourcesBarre } from '../../lib/sources';
+  import { TYPES_SOURCE_BARRE, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
   import { atLeast } from '../../lib/uiLevel';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
@@ -97,6 +99,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import PluginsV2 from './PluginsV2.svelte';
   import { tip } from '../../lib/tooltip';
   import CreteMetre from '../partages/CreteMetre.svelte';
+  import VuMetreCanal from '../partages/VuMetreCanal.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { ORDRE_VERSIONS_DEFAUT, estOrdreVersions } from '../../lib/versionsPiste';
   import {
@@ -2935,6 +2938,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
   function go(id: V2SettingsTabId) { tabId = id; highlight = null; }
+
+  /** #5065, étape 3 — une case « Afficher dans la barre » par type de
+   *  source : décider une case ne décide qu'elle. */
+  function basculerTypeSource(type: TypeSourceBarre, coche: boolean) {
+    preferences.update((pr) => ({ ...pr, sourcesBarre: { ...(pr.sourcesBarre ?? {}), [type]: coche } }));
+  }
 </script>
 
 <section class="v2-settings tune-v2">
@@ -3142,6 +3151,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- tune-server-rust#5065, étape 3 — Bertrand, 27/09/2026 :
+                   toutes les sources connues dans la barre, grisées quand
+                   elles sont indisponibles, et une case par TYPE. Par défaut,
+                   seuls les types présents sur la machine sont cochés. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.sidebarSources' as any)}</span>
+                  <span class="hint">{$t('settings.sidebarSourcesHint' as any)}</span>
+                </div>
+              </div>
+              {#each TYPES_SOURCE_BARRE as type (type)}
+                <div class="row">
+                  <div class="lbl"><span>{$t(`v2.sources.type.${type}` as any)}</span></div>
+                  <label class="sw">
+                    <input type="checkbox" data-type-source={type} checked={$typesSourcesBarre[type]}
+                      onchange={(e) => basculerTypeSource(type, (e.currentTarget as HTMLInputElement).checked)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/each}
+
               <!-- tune-server-rust#4368 — FabienM (fil 1829, point 11) :
                    « Il faut grouper par source et tous les résultats Qobuz
                    doivent être avant Bandcamp ». L'entrelacement qu'il voit
@@ -3227,6 +3257,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="apercu">
                     <CreteMetre style={$preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT} hauteur={22} largeur={150} />
                   </span>
+                </div>
+              </div>
+
+              <!-- La barre de lecture à VU-MÈTRES — Bertrand, 27/09/2026, sur
+                   la maquette de Levente. Un interrupteur à part et non une
+                   cinquième valeur du choix ci-dessus : celui-ci change la
+                   MISE EN PAGE de la barre, là où les quatre styles ne
+                   changent que l'apparence d'un instrument.
+
+                   L'aperçu vit, pour la même raison qu'au-dessus : « cadrans à
+                   aiguille » ne dit rien tant qu'on ne les a pas vus bouger. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('v2.set.barVu' as any)}</span>
+                  <span class="hint">{$t('v2.set.barVuHint' as any)}</span>
+                </div>
+                <div class="creterow">
+                  <span class="apercu">
+                    <VuMetreCanal canal="gauche" taille={64} joue={$preferences.barreVuMetres} />
+                  </span>
+                  <label class="sw">
+                    <input type="checkbox" checked={$preferences.barreVuMetres}
+                      onchange={(e) => preferences.update((pr) => ({
+                        ...pr, barreVuMetres: (e.currentTarget as HTMLInputElement).checked,
+                      }))} />
+                    <span class="slider"></span>
+                  </label>
                 </div>
               </div>
 

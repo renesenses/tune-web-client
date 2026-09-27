@@ -26,6 +26,7 @@ import { currentZoneId, zones } from '../stores/zones';
 import { sources, sourceCourante, type Source } from '../sources';
 import { cdPlugin } from '../lectureCd';
 import { locale } from '../i18n';
+import { preferences } from '../stores/preferences';
 import lFr from '../locales/fr';
 
 const fr = lFr as unknown as Record<string, string>;
@@ -76,6 +77,9 @@ beforeEach(() => {
   activeView.set('home');
   sources.set(null);
   sourceCourante.set(null);
+  // Étape 3 : les types de la barre suivent la présence tant que rien n'est
+  // décidé — chaque témoin repart indécis.
+  preferences.update((p) => ({ ...p, sourcesBarre: null }));
   cdPlugin.set(null);
   currentZoneId.set(3);
   zones.set([{ id: 3, name: 'Salon', state: 'stopped' } as any]);
@@ -159,7 +163,7 @@ describe('#5065 — rubrique « Sources » : visible seulement avec au moins une
 });
 
 describe('#5065 — mise à jour en direct par sources.changed', () => {
-  it('🔴 CD inséré puis éjecté : la rubrique apparaît puis disparaît', async () => {
+  it('🔴 CD inséré puis lecteur retiré : la rubrique apparaît, puis le CD reste, grisé', async () => {
     listeServeur = [];
     monter();
     await jusqua(() => get(sources) !== null);
@@ -169,8 +173,14 @@ describe('#5065 — mise à jour en direct par sources.changed', () => {
     expect(rubrique(), 'CD inséré : la rubrique ne l’a pas vu').not.toBeNull();
     expect(entree('cd')!.querySelector('.src-nom')?.textContent).toBe('A Trick of the Tail');
 
+    // Étape 3 (#5065) : le type CD, vu présent, est figé coché — un type
+    // coché apparaît toujours, grisé quand il est indisponible.
     emettre('sources.changed', []);
-    expect(rubrique(), 'CD éjecté (lecteur retiré) : la rubrique reste').toBeNull();
+    expect(rubrique(), 'type coché : la rubrique doit rester').not.toBeNull();
+    const place = entree('absente:cd');
+    expect(place, 'le CD doit garder sa place, grisée').not.toBeNull();
+    expect(place!.classList.contains('grisee')).toBe(true);
+    expect(place!.querySelector('.src-nom')?.textContent).toBe(fr['v2.sources.type.cd']);
   });
 
   it('🔴 disque retiré (lecteur toujours là) : la pastille passe à « lecteur vide »', async () => {

@@ -11,19 +11,28 @@
  *        disparition ou changement d'état.
  *   POST /api/v1/sources/{id}/jouer { zone_id, piste? } → délégué au greffon.
  *
- * Seules les sources réellement présentes sur la machine du serveur sont
- * listées : une liste vide veut dire « rien à montrer ». Un serveur antérieur
- * ne connaît pas `/sources` (404) : c'est aussi une liste vide, sans bandeau.
+ * Étape 3 : le serveur liste aussi les sources ABSENTES ou inutilisables
+ * (CD sans lecteur `indisponible`, entrée refusée par macOS…), et une entrée
+ * présente que personne n'écoute est `disponible`. La barre n'affiche que les
+ * TYPES cochés dans les Réglages (`lib/typesSourcesBarre`) ; une source
+ * inutilisable y est grisée, et un type coché sans aucune source y figure
+ * quand même, grisé. Un serveur antérieur ne connaît pas `/sources` (404) :
+ * la rubrique se tait, sans bandeau.
  *
  * Tous les appels passent `sansBandeau` : l'écran porte ses erreurs.
  */
 import { writable, derived } from 'svelte/store';
 import { BASE, fetchJSON, type ApiError } from './api';
 import type { WSEvent } from './types';
+import { preferences } from './stores/preferences';
+import {
+  TYPES_SOURCE_BARRE, typeDansLaBarre, typesEnVigueur, unTypeCoche, figerTypesPresents,
+  type TypesBarre,
+} from './typesSourcesBarre';
 
 export type TypeSource = 'cd' | 'entree' | 'virtuelle' | 'hdmi';
 export type EtatSource =
-  | 'disque' | 'vide' | 'signal' | 'silence'
+  | 'disque' | 'vide' | 'signal' | 'silence' | 'disponible'
   | 'autorisation_refusee' | 'non_pris_en_charge' | 'indisponible';
 
 export interface DetailSource {
@@ -56,8 +65,56 @@ export const sources = writable<Source[] | null>(null);
 /** La source dont la page est ouverte (vue `source`). */
 export const sourceCourante = writable<string | null>(null);
 
-/** La rubrique n'existe que s'il y a au moins une source. */
-export const rubriqueSourcesVisible = derived(sources, ($s) => ($s?.length ?? 0) > 0);
+/** Vrai quand le serveur a répondu 404 à `/sources` : serveur antérieur. */
+export const routeSourcesAbsente = writable(false);
+
+/** Les cases « Afficher dans la barre » en vigueur (choix, sinon défaut). */
+export const typesSourcesBarre = derived(
+  [preferences, sources],
+  ([$p, $s]) => typesEnVigueur($p.sourcesBarre, $s ?? []),
+);
+
+/**
+ * La rubrique existe dès qu'un type est coché — et seulement face à un
+ * serveur qui connaît `/sources`. Aucun type coché : elle disparaît.
+ */
+export const rubriqueSourcesVisible = derived(
+  [sources, routeSourcesAbsente, typesSourcesBarre],
+  ([$s, $absente, $types]) => $s !== null && !$absente && unTypeCoche($types),
+);
+
+/** Préfixe des places réservées : un type coché dont le serveur ne connaît
+ *  aucune source. */
+export const PREFIXE_ABSENTE = 'absente:';
+
+/**
+ * Ce que la barre affiche : les sources des types cochés, et, pour un type
+ * coché sans aucune source, une place grisée (`detail.absente`) — un type
+ * coché apparaît toujours.
+ */
+export function sourcesDeLaBarre(liste: readonly Source[], types: TypesBarre): Source[] {
+  const vues = liste.filter((s) => {
+    const t = typeDansLaBarre(s);
+    return t !== null && types[t];
+  });
+  for (const t of TYPES_SOURCE_BARRE) {
+    if (types[t] && !vues.some((s) => typeDansLaBarre(s) === t)) {
+      vues.push({
+        id: `${PREFIXE_ABSENTE}${t}`, type: t, greffon: '', nom: '', etat: 'indisponible',
+        detail: { absente: true, virtuelle: t === 'virtuelle' },
+      });
+    }
+  }
+  return vues;
+}
+
+/** Voir `figerTypesPresents` : un type vu présent est figé coché. */
+export const figerTypesParDefaut = figerTypesPresents;
+
+/** Grisée dans la barre : absente, ou que le greffon ne peut pas ouvrir. */
+export function sourceGrisee(s: Source): boolean {
+  return s.detail?.absente === true || !sourceEcoutable(s);
+}
 
 const TYPES: ReadonlySet<string> = new Set(['cd', 'entree', 'virtuelle', 'hdmi']);
 
@@ -86,8 +143,12 @@ export function getSources(): Promise<Source[]> {
 export async function rafraichirSources(lire: () => Promise<Source[]> = getSources): Promise<void> {
   try {
     sources.set(await lire());
+    routeSourcesAbsente.set(false);
   } catch (e) {
-    if ((e as ApiError | null)?.status === 404) sources.set([]);
+    if ((e as ApiError | null)?.status === 404) {
+      routeSourcesAbsente.set(true);
+      sources.set([]);
+    }
   }
 }
 
