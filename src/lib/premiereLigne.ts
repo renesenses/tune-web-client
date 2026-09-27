@@ -96,3 +96,63 @@ export function zonesDeLaLigne<T extends { current_track?: unknown; state?: stri
     (z) => z?.current_track && (z.state === 'playing' || z.state === 'paused'),
   );
 }
+
+/** Un genre tel que `GET /library/genres` le rend depuis la v0.9.168. */
+export type GenreServi = {
+  name: string;
+  /** Le nombre d'albums EN BIBLIOTHÈQUE — ce qu'on POSSÈDE. */
+  count?: number;
+  /**
+   * Le nombre d'ÉCOUTES du genre — ce qu'on ÉCOUTE (v0.9.168).
+   *
+   * ABSENT d'un serveur plus ancien que la 0.9.168, et absent aussi d'un
+   * serveur dont la requête d'écoutes a échoué. Zéro pour un genre possédé mais
+   * jamais écouté. Les trois cas se lisent de la même façon ici : pas d'écoute
+   * connue, donc pas de classement par écoutes.
+   */
+  plays?: number;
+};
+
+/**
+ * LE CLASSEMENT DU PANNEAU « GENRES » — Bertrand, 27/09/2026, pour la v0.9.168.
+ *
+ * ## Le défaut corrigé
+ *
+ * Le panneau triait sur `count`, le nombre d'albums en bibliothèque. Pop-Rock
+ * arrivait donc en tête chez Bertrand parce que c'est ce qu'il POSSÈDE le plus,
+ * pas ce qu'il ÉCOUTE. Il trie désormais sur `plays`, et ne montre QUE les
+ * genres réellement écoutés.
+ *
+ * ## 🔴 LE REPLI, et pourquoi il n'est pas un mélange
+ *
+ * Un panneau vide passe pour cassé. Qui vient d'installer Tune n'a AUCUN
+ * historique : sans repli, il verrait une colonne vide et conclurait à une
+ * panne — or rien n'est en panne, il n'a simplement rien écouté encore. Tant
+ * qu'aucune écoute n'est connue, le panneau retombe donc sur l'ordre
+ * PRÉCÉDENT, par taille de bibliothèque.
+ *
+ * C'est un REPLI, pas un mélange : dès qu'il existe au moins une écoute, les
+ * genres jamais écoutés DISPARAISSENT. On ne complète pas une courte liste
+ * d'écoutés avec des genres possédés — ce serait promettre « voici ce que tu
+ * écoutes » en montrant autre chose.
+ *
+ * Le même repli couvre gratuitement le serveur d'avant la 0.9.168, qui ne sert
+ * pas `plays` : le client y garde exactement l'écran qu'il avait.
+ *
+ * ## L'ordre d'égalité
+ *
+ * À nombre d'écoutes égal, la taille de bibliothèque tranche, puis le nom :
+ * une colonne de pastilles qui se réordonne d'un rafraîchissement à l'autre,
+ * sans qu'aucun chiffre ait bougé, se lit comme un défaut.
+ */
+export function classerGenresDuPanneau<T extends GenreServi>(servis: readonly T[]): T[] {
+  const nommes = (servis ?? []).filter((g) => g?.name?.trim());
+  const ecoutes = nommes.filter((g) => (g.plays ?? 0) > 0);
+  const parNom = (a: T, b: T) => a.name.localeCompare(b.name);
+  const parTaille = (a: T, b: T) => (b.count ?? 0) - (a.count ?? 0) || parNom(a, b);
+  // Aucune écoute connue — serveur d'avant la 0.9.168, requête d'écoutes en
+  // échec, ou bibliothèque jamais jouée : l'ordre de la bibliothèque.
+  if (!ecoutes.length) return nommes.slice().sort(parTaille);
+  // Au moins une écoute : SEULS les écoutés, du plus écouté au moins écouté.
+  return ecoutes.slice().sort((a, b) => (b.plays ?? 0) - (a.plays ?? 0) || parTaille(a, b));
+}
