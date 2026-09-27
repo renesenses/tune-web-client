@@ -3332,6 +3332,8 @@ export default {
   "v2.health.pauseAll": "Minden feldolgozás szüneteltetése",
   "v2.health.resumeAll": "Összes folytatása",
   "v2.health.readAt": "leolvasva: {h}",
+  "v2.health.cpuTemp": "Processzor hőmérséklete",
+  "v2.health.cpuTempUnavailable": "nem elérhető",
   "v2.health.autoFollow": "automatikus követés",
   "v2.health.refreshing": "Leolvasás…",
   "v2.health.refresh": "Frissítés",
