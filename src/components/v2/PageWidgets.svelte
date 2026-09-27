@@ -141,6 +141,14 @@
      * deux fois dans la meme session, et ne dirait plus ou l'on est.
      */
     salut?: boolean;
+    /**
+     * #1671 — ranger les widgets sur une GRILLE plutôt qu'en une pile.
+     *
+     * Réservé au Tableau de bord, dont tous les widgets sont des blocs : sur
+     * l'Accueil, Qobuz et Tidal, les bandes défilent en pleine largeur et la
+     * règle « tous horizontaux » du 02/09 tient toujours.
+     */
+    grille?: boolean;
   }
   let {
     catalogue = WIDGETS,
@@ -153,6 +161,7 @@
     cleEyebrow = 'v2.home.eyebrow',
     cleTitre = 'v2.home.title',
     salut = false,
+    grille = false,
   }: Props = $props();
 
   /** Ce que le catalogue a appris après le montage — #987. */
@@ -1094,6 +1103,11 @@
            sinon elle se lit comme une panne. -->
       <div class="state">{$t('v2.home.emptyHint' as any)}</div>
     {:else}
+      <!-- #1671 — la pile, ou la GRILLE des maquettes de Levente. Le
+           conteneur existe dans les deux cas : c'est lui, et non `.scroll`,
+           qui porte la grille, parce qu'une requête de conteneur ne s'applique
+           qu'aux DESCENDANTS du conteneur interrogé (`.scroll`). -->
+      <div class="pile" class:mosaique={grille}>
       {#each disposition as id, i (id)}
         {@const w = parId(id)}
         <!-- Les DEUX `{@const}` ici : ils ne sont légaux qu'en enfant direct
@@ -1102,6 +1116,7 @@
         {#if w}
           <section
             class="bloc"
+            class:large={w.forme === 'bloc' && w.bloc?.colonnes === 2}
             class:cible={survole === i && saisi !== null && saisi !== i}
             ondragover={(e) => { if (saisi !== null) { e.preventDefault(); survole = i; } }}
             ondrop={(e) => { e.preventDefault(); deposer(i); }}
@@ -1537,6 +1552,7 @@
           </section>
         {/if}
       {/each}
+      </div>
     {/if}
   </div>
 </section>
@@ -1823,4 +1839,32 @@
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .topcol .s{font:11.5px var(--v2-sans); color:var(--v2-txt2);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+
+  /* ── #1671 — LA GRILLE DU TABLEAU DE BORD ───────────────────────────────
+     Levente Toth, fil 1994, 27/09/2026 : « looks like a stretched mobile /
+     table view ». La 0.9.166 empilait les onze blocs en une colonne PLEINE
+     LARGEUR. On revient aux proportions de ses maquettes : une colonne est le
+     carré de 315 px (PR web#1656), la gouttière vaut 16 px, un bloc large en
+     prend deux, et AUCUN bloc ne s'étire au-delà de ses colonnes.
+
+     Les cotes répètent `COTE_GRILLE` / `GOUTTIERE_GRILLE` de
+     `tableauDeBordWidgets.ts` ; `tableauDeBordGrille1671.test.ts` les
+     confronte au style calculé, dans les deux sens.
+
+     Sous 720 px de large (le conteneur, pas la fenêtre : la barre latérale
+     en prend sa part), deux colonnes ne tiennent plus : une seule, pleine
+     largeur, comme sur téléphone. La page défile toujours par `.scroll`. */
+  /* `:has` et non une classe sur `.scroll` : la balise de `.scroll` est
+     épinglée à la lettre par le témoin de #1327 (le défileur lié). */
+  .scroll:has(> .mosaique){container-type:inline-size}
+  .mosaique{display:grid; grid-template-columns:repeat(auto-fill, 315px); column-gap:16px; row-gap:16px;
+    justify-content:start; align-items:stretch; padding:6px 30px 0}
+  .mosaique > .bloc{min-width:0; max-width:315px; padding:14px 0 10px;
+    border:1px solid var(--v2-line); border-radius:var(--v2-r-card, 14px); background:var(--v2-surface, transparent)}
+  .mosaique > .bloc.large{grid-column:span 2; max-width:646px}
+  .mosaique > .bloc.cible{border-color:var(--v2-acc1)}
+  @container (max-width: 720px){
+    .mosaique{grid-template-columns:minmax(0,1fr); padding:6px 16px 0}
+    .mosaique > .bloc, .mosaique > .bloc.large{grid-column:auto; max-width:none}
+  }
 </style>
