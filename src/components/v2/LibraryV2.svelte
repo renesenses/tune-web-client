@@ -1321,6 +1321,13 @@
     if (!nu || !c || !Number.isFinite(i)) return;
     void demanderPage(c, Math.floor(i / TAILLE_PAGE));
   }
+  function reessayerPagesEnEchec() {
+    const c = clef;
+    if (!nu || !c) return;
+    for (const index of $albumsPagines.echecs.keys()) {
+      void demanderPage(c, index, { forcer: true });
+    }
+  }
   function observerCase(el: HTMLElement, i: number) {
     if (typeof IntersectionObserver === 'undefined') { demanderCase(i); return; }
     const racine = el.parentElement;
@@ -2520,6 +2527,13 @@
     </div>
   {/if}
 
+  {#if nu && $albumsPagines.echecs.size > 0 && $albumsPagines.pages.size > 0 && tab === 'albums'}
+    <div class="chargement-albums" role="alert">
+      <span>{$tr('oxygen.truncated')} {$tr('oxygen.loadError')}</span>
+      <button class="chip" onclick={reessayerPagesEnEchec}>{$tr('zone.retry')}</button>
+    </div>
+  {/if}
+
   <div class="body" class:encarrousel={enCarrousel}>
     {#if tab === 'recent'}
       <!-- #929 — le carrousel est le mode de parcours de la vue ALBUMS. Les
@@ -2547,7 +2561,10 @@
     {:else if tab !== 'tracks' && nu && sorted.length === 0 && $albumsPagines.erreur}
       <!-- #4800 — la première page n'est pas venue : on le DIT, plutôt que
            d'annoncer une bibliothèque vide qui ne l'est peut-être pas. -->
-      <div class="state">{$albumsPagines.erreur}</div>
+      <div class="state">
+        <span>{$albumsPagines.erreur}</span>
+        <button class="chip" onclick={reessayerPagesEnEchec}>{$tr('zone.retry')}</button>
+      </div>
     {:else if tab !== 'tracks' && (nu ? $albumsPagines.total === 0 : sorted.length === 0)}
       <!-- En pages, « vide » se lit sur le TOTAL du serveur, pas sur ce qui est
            arrivé : après une fin de scan les pages tombent mais le total
@@ -3045,6 +3062,7 @@
   .drop .menu button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .body{flex:1; min-height:0; display:flex; padding-left:18px}
+  .chargement-albums{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; color:var(--v2-txt2); font-size:14px}
   /*
     #929 — EN CARROUSEL, LE RAIL PASSE SOUS LA BANDE.
 
