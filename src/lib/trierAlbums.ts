@@ -91,6 +91,23 @@ function dateDeSortie(a: Album): string | null {
  * si `desc`, ce qui est le seul sens que « l'ordre inverse de pertinence »
  * puisse avoir.
  */
+/**
+ * Le sens à appliquer dans la RECHERCHE — web#1663.
+ *
+ * La pertinence de la recherche est un ordre (la bibliothèque d'abord, puis
+ * les services, le meilleur en tête), pas une grandeur : la renverser met
+ * Bandcamp en tête et la bibliothèque en dernier. Le sens reste mémorisé pour
+ * les autres clés, mais « Pertinence » le lit toujours `asc` — y compris
+ * quand un ancien client a gravé `desc` dans `v2.rech.albums.sens`. La flèche
+ * de sens est masquée pour cette clé (`TriAlbums`).
+ *
+ * `trierAlbums` garde son renversement : la collection intelligente s'en sert
+ * pour l'ordre de ses règles, qui, lui, se lit dans les deux sens.
+ */
+export function sensTriRecherche(cle: CleTriAlbums, sens: SensTri): SensTri {
+  return cle === 'pertinence' ? 'asc' : sens;
+}
+
 export function trierAlbums(albums: Album[], cle: CleTriAlbums, sens: SensTri): Album[] {
   if (cle === 'pertinence') return sens === 'asc' ? [...albums] : [...albums].reverse();
   const signe = sens === 'asc' ? 1 : -1;

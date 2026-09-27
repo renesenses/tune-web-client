@@ -3,8 +3,9 @@
    * Panneau « Modules de sortie » de l'écran Diagnostics (#2392, arbitrage du
    * 01/09/2026).
    *
-   * Le bandeau `OutputModuleBanner` ne dit que les REFUS, en langage courant,
-   * et cache volontairement le code technique. Ici c'est l'inverse, et c'est
+   * Le bandeau `partages/OutputModuleBanner.svelte`, monté par l'écran ZONES
+   * (`v2/ZonesV2.svelte`), ne dit que les REFUS, en langage courant, et cache
+   * volontairement le code technique. Ici c'est l'inverse, et c'est
    * complémentaire : Diagnostics est l'écran qu'on envoie au support, il doit
    * montrer l'ÉTAT COMPLET que le serveur sert déjà sous `output_providers` —
    * chaque fournisseur de sortie, le module qu'il exige, le nombre d'appareils
