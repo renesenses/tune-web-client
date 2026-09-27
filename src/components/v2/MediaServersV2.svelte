@@ -42,6 +42,9 @@
   import UpnpLibrarySourcesV2 from './UpnpLibrarySourcesV2.svelte';
   import { filtrerLocalement } from '../../lib/rechercheServeurMedia';
   import {
+    estAbsent, repartirParPresence, etiquetteServeur, ongletParDefaut, depuisSecondes,
+  } from '../../lib/presenceServeursMedia';
+  import {
     PALIERS, DEFAUTS, lirePlafonds, versPatch, libellePalier, verdictDe,
     type Axe, type Plafond, type Plafonds, type Verdict,
   } from '../../lib/indexationUpnp';
@@ -221,6 +224,12 @@
   const objetCourant = $derived(pile.length ? pile[pile.length - 1].objectId : '0');
   const open = $derived(servers.find((s) => s.id === actif) ?? null);
   const estTune = $derived(!!open && estUnServeurTune(open));
+  /** Le registre rend aussi les serveurs ABSENTS : ils ne sont plus des
+   *  pastilles, mais restent ouvrables depuis leur groupe replié, pour garder
+   *  leurs sources et le retrait de la bibliothèque. */
+  const parPresence = $derived(repartirParPresence(servers));
+  const ouvertAbsent = $derived(!!open && estAbsent(open));
+  const vuIlYa = (s: MediaServer) => depuisSecondes(s.last_seen_secs, (c) => $t(c as any));
 
   /** Ce qu'on affiche : les résultats s'il y en a, sinon le dossier courant. */
   const vue = $derived.by<MediaServerBrowseResult>(() => {
@@ -270,7 +279,8 @@
         // Un ecran d'onglets sans onglet ouvert n'affiche rien : on entre sur
         // le premier serveur, comme l'ecran Streaming entre sur le premier
         // service connecte.
-        if (actif == null && servers.length) actif = servers[0].id;
+        // Le premier PRÉSENT : un absent ne s'ouvre jamais d'office.
+        if (actif == null) actif = ongletParDefaut(null, servers);
       })
       .catch(() => { error = $t('v2.ms.discoveryUnavail' as any); })
       .finally(() => { loadingServers = false; });
@@ -282,6 +292,8 @@
     const s = open;
     if (!s || estUnServeurTune(s)) { return; }
     pile = []; browse = null; viderRecherche();
+    // Un absent ne répond pas : le parcourir finirait sur un bandeau d'erreur.
+    if (estAbsent(s)) return;
     ouvrirUpnp(s);
   });
 
@@ -319,7 +331,7 @@
   function viderRecherche() { q = ''; trouve = null; repliLocal = false; echecRecherche = false; }
 
   async function allerA(objectId: string, titre?: string, remplacer = false) {
-    if (!open) return;
+    if (!open || estAbsent(open)) return;
     busy = true;
     try {
       const r = await api.browseMediaServer(open.id, objectId);
@@ -461,7 +473,7 @@
       <h1>{$t('v2.ms.title' as any)}</h1>
     </div>
     <div class="v2-actions">
-    {#if open && !estTune}
+    {#if open && !estTune && !ouvertAbsent}
       <!-- Un serveur Tune a le champ de recherche de la Bibliotheque, dans la
            page, a cote de ses filtres : en ajouter un second ici poserait deux
            recherches concurrentes sur le meme ecran. -->
@@ -480,25 +492,43 @@
     </div>
   </header>
 
-  {#if servers.length}
-    <!-- UN ONGLET PAR SERVEUR. L'etiquette est l'ADRESSE, pas le nom : sur ce
-         reseau les cinq serveurs s'appellent tous « Tune Server » et une barre
-         de cinq onglets identiques ne designerait rien. -->
+  {#if parPresence.presents.length}
+    <!-- UN ONGLET PAR SERVEUR PRÉSENT. L'etiquette est l'ADRESSE, pas le nom :
+         sur ce reseau les cinq serveurs s'appellent tous « Tune Server ». Deux
+         presents sur le meme hote se distinguent par leur PORT. -->
     <nav class="svcs">
-      {#each servers as s (s.id)}
+      {#each parPresence.presents as s (s.id)}
         <button class:on={actif === s.id} onclick={() => (actif = s.id)}>
-          {s.host}
+          {etiquetteServeur(s, parPresence.presents)}
           {#if estUnServeurTune(s)}<span class="tag">Tune</span>{/if}
         </button>
       {/each}
     </nav>
   {/if}
 
+  {#if parPresence.absents.length}
+    <!-- LES ABSENTS, REPLIÉS. Le registre les garde (un serveur éteint peut
+         encore alimenter la bibliothèque) ; les peindre en pastilles comme les
+         présents se lisait comme des doublons. -->
+    <details class="absents">
+      <summary>{$t('v2.ms.absentGroup' as any).replace('{n}', String(parPresence.absents.length))}</summary>
+      <div class="absents-liste">
+        {#each parPresence.absents as s (s.id)}
+          <button class="absent" class:on={actif === s.id} onclick={() => (actif = s.id)}>
+            <span class="adr">{s.host}:{s.port}</span>
+            <span class="nom">{s.name}</span>
+            {#if vuIlYa(s)}<span class="vu">{$t('v2.ms.seenAgo' as any).replace('{ago}', vuIlYa(s) ?? '')}</span>{/if}
+          </button>
+        {/each}
+      </div>
+    </details>
+  {/if}
+
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
 
   <UpnpLibrarySourcesV2 server={open ?? null} container={estTune ? '0' : (objetCourant ?? '0')} name={estTune ? undefined : fil.map(c => c.titre).join(' / ')} />
 
-  {#if open && !estTune}
+  {#if open && (!estTune || ouvertAbsent)}
     <nav class="fil">
       <button class="back" onclick={remonter} aria-label="Retour">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
@@ -512,11 +542,13 @@
            route existait et personne ne pouvait l'appeler. Il part du dossier
            AFFICHÉ, ce qui est aussi le conseil que le serveur donne quand un
            plafond a mordu. -->
+      {#if !ouvertAbsent}
       <button class="idx" disabled={indexation} onclick={indexer}>
         {indexation ? $t('v2.ms.indexing' as any) : $t('v2.ms.index' as any)}
       </button>
       <button class="idx ghost" aria-expanded={plafondsOuverts}
         onclick={() => (plafondsOuverts = !plafondsOuverts)}>{$t('v2.ms.indexLimits' as any)}</button>
+      {/if}
       <!-- RETIRER (#4624). Le geste inverse d'« Indexer », posé juste à côté
            de lui : c'est là qu'on le cherche. Il ne sort pas sur le réseau,
            donc il marche serveur distant ÉTEINT — le cas nominal. -->
@@ -586,7 +618,7 @@
       </div>
     {/if}
 
-    {#if estTune}
+    {#if estTune && !ouvertAbsent}
       <!-- Rayons connus : on ne les propose QUE sur un serveur Tune, dont on
            connait la racine. Chez un tiers, ces dossiers n'existent pas. -->
       <div class="chips">
@@ -598,7 +630,7 @@
     {/if}
   {/if}
 
-  {#if estTune && open}
+  {#if estTune && open && !ouvertAbsent}
     <!-- LA VUE ISO BIBLIOTHEQUE. Ce n'est pas un ecran qui lui ressemble :
          c'est le MEME composant, monte sur le catalogue REST du serveur
          distant. Tout correctif de la Bibliotheque profite donc aux deux. -->
@@ -617,6 +649,11 @@
         <div class="state">{$t('v2.ms.pickServer' as any)}</div>
       {/if}
 
+    {:else if ouvertAbsent}
+      <div class="notice">
+        <p>{$t('v2.ms.absentHere' as any)}</p>
+        {#if vuIlYa(open)}<p class="sub">{$t('v2.ms.seenAgo' as any).replace('{ago}', vuIlYa(open) ?? '')}</p>{/if}
+      </div>
     {:else}
       {#if q.trim() && repliLocal && !echecRecherche}
         <!-- Dire la verite sur la portee : sans cela, une absence de resultat
@@ -834,6 +871,16 @@
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .svcs .tag{font:700 9px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; padding:2px 6px;
     border-radius:5px; border:1px solid currentColor; opacity:.75}
+  /* Absents : repliés par défaut, grisés, mais cliquables. */
+  .absents{padding:0 30px 12px; color:var(--v2-txt3); font:12px var(--v2-sans)}
+  .absents summary{cursor:pointer; width:max-content}
+  .absents-liste{display:flex; gap:8px; flex-wrap:wrap; padding-top:8px}
+  .absent{display:inline-flex; align-items:center; gap:8px; border:1px dashed var(--v2-line2);
+    background:transparent; color:var(--v2-txt3); cursor:pointer; border-radius:var(--v2-r-pill);
+    padding:6px 14px; font:12px var(--v2-sans); opacity:.7}
+  .absent:hover, .absent.on{opacity:1; color:var(--v2-txt2); border-color:var(--v2-acc2)}
+  .absent .adr{font:600 12px var(--v2-mono)}
+  .absent .vu{font-style:italic}
   /* La Bibliotheque montee ici est un composant plein ecran : sans cette
      regle elle se dimensionne a son contenu et laisse la coquille vide. */
   .v2-ms > :global(.v2-lib){flex:1; min-height:0}
