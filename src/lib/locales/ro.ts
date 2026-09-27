@@ -3374,6 +3374,8 @@ export default {
   "v2.health.pauseAll": "Suspendă toate procesările",
   "v2.health.resumeAll": "Reia tot",
   "v2.health.readAt": "citit la {h}",
+  "v2.health.cpuTemp": "Temperatura procesorului",
+  "v2.health.cpuTempUnavailable": "indisponibilă",
   "v2.health.autoFollow": "urmărire automată",
   "v2.health.refreshing": "Se citește…",
   "v2.health.refresh": "Actualizează",

@@ -3374,6 +3374,8 @@ export default {
   "v2.health.pauseAll": "すべての処理を一時停止",
   "v2.health.resumeAll": "すべて再開",
   "v2.health.readAt": "{h} 時点",
+  "v2.health.cpuTemp": "CPU 温度",
+  "v2.health.cpuTempUnavailable": "取得できません",
   "v2.health.autoFollow": "自動更新",
   "v2.health.refreshing": "取得中…",
   "v2.health.refresh": "更新",

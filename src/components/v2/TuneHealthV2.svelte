@@ -27,6 +27,8 @@
   // #4144 — ce que la carte ReplayGain a le droit d'afficher, y compris face à
   // un serveur qui ne connaît pas la route.
   import { jaugeReplayGain } from '../../lib/santeReplayGain';
+  // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
+  import { temperatureProcesseur } from '../../lib/temperatureProcesseur';
   // #1352 — la pause des traitements de fond. La lecture de l'instantané vit
   // dans `lib/tachesDeFond.ts`, hors du composant : elle se garde sans monter
   // l'écran, et l'absence de `pausable` (serveur < 0.9.159) s'y lit UNE fois.
@@ -82,6 +84,10 @@
   let refreshing = $state(false);
   /** #2392 — l'instantané `output_providers` ; `null` = serveur antérieur à v0.9.115, pas de panneau. */
   let modulesSortie = $state<TableauFournisseurs | null>(null);
+  /** tune-server-rust#5189 — `cpu_temp_c` brut : nombre, `null` (pas de
+   *  capteur) ou `undefined` (serveur antérieur, ou rapport illisible). */
+  let tempCpu = $state<unknown>(undefined);
+  const temperature = $derived(temperatureProcesseur(tempCpu, $t('v2.health.cpuTempUnavailable' as any)));
 
   // ── #1352 : la pause des traitements de fond ───────────────────────────
   //
@@ -501,6 +507,7 @@
     modulesSortie = diag[0].status === 'fulfilled'
       ? tableauFournisseurs(diag[0].value?.output_providers)
       : null;
+    tempCpu = diag[0].status === 'fulfilled' ? diag[0].value?.cpu_temp_c : undefined;
     asioBloque = diag[0].status === 'fulfilled' && !!(diag[0].value as any)?.asio_warm_scan?.blocked_after_crash;
 
     cards = out;
@@ -680,6 +687,15 @@
           </article>
         {/each}
       </div>
+
+      <!-- tune-server-rust#5189 — une ligne, sans seuil ni alerte. Absente
+           face à un serveur qui ne publie pas `cpu_temp_c`. -->
+      {#if temperature !== null}
+        <section class="modules">
+          <h2>{$t('v2.health.cpuTemp' as any)}</h2>
+          <div class="sub">{temperature}</div>
+        </section>
+      {/if}
 
       {#if modulesSortie}
         <section class="modules">

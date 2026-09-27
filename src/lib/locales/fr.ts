@@ -3396,6 +3396,8 @@ export default {
   "v2.health.pauseAll": "Suspendre tous les traitements",
   "v2.health.resumeAll": "Tout reprendre",
   "v2.health.readAt": "relevé à {h}",
+  "v2.health.cpuTemp": "Température du processeur",
+  "v2.health.cpuTempUnavailable": "indisponible",
   "v2.health.autoFollow": "suivi automatique",
   "v2.health.refreshing": "Relevé…",
   "v2.health.refresh": "Actualiser",
