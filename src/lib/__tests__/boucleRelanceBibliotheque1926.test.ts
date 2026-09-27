@@ -180,6 +180,15 @@ describe('fil 1926 — un serveur en panne sur /library/albums', () => {
     faireEntrer(grille.querySelector('.card.sq[data-i="170"]')!);
     await poser();
     expect(pagesDemandees()).toHaveLength(2);
+    // #1179 — les albums déjà reçus ne masquent pas une page manquante.
+    const alerte = el.querySelector<HTMLElement>('.chargement-albums[role="alert"]');
+    expect(alerte?.querySelector('button')).not.toBeNull();
+    enPanne = false;
+    alerte!.querySelector<HTMLButtonElement>('button')!.click();
+    await poser();
+    expect(pagesDemandees()).toHaveLength(3);
+    expect(get(albumsPagines).pages.has(1)).toBe(true);
+    expect(el.querySelector('.chargement-albums[role="alert"]')).toBeNull();
   });
 
   it('la liste ENTIÈRE en échec (recherche) ne se redemande pas en boucle', { timeout: 60_000 }, async () => {
