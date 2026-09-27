@@ -86,7 +86,19 @@ describe('#1426 — le remplacement du tableau de bord est visible sans rien dem
     // un second témoin vérifie qu'elle ne touche pas `CLE`.
     const charger = src.slice(src.indexOf('async function charger()'), src.indexOf('async function migrerLigneDeChiffres('));
     expect(charger.includes('setProfilePreferences'), 'le chargement écrit les préférences').toBe(false);
-    const migration = src.slice(src.indexOf('async function migrerLigneDeChiffres('), src.indexOf('async function enregistrer()'));
+    //
+    // 🔴 27/09/2026 — la borne s'arrête maintenant à `migrerPremiereLigne`, et
+    // non à `enregistrer()`. Une SECONDE migration existe depuis ce jour-là,
+    // sur arbitrage de Bertrand : la première ligne entre une fois en tête des
+    // dispositions DÉJÀ ENREGISTRÉES, sans quoi qui a rangé son accueil une
+    // seule fois ne verrait jamais la ligne d'en-tête.
+    //
+    // Ce que cette garde protégeait reste protégé : « un défaut écrit
+    // deviendrait un choix que personne n'a fait ». La nouvelle migration ne
+    // s'exécute QUE lorsqu'une disposition est déjà enregistrée — elle ne peut
+    // donc pas figer le défaut de qui n'a rien rangé. C'est
+    // `migrationPremiereLigne` qui le décide, et ses témoins le mesurent.
+    const migration = src.slice(src.indexOf('async function migrerLigneDeChiffres('), src.indexOf('async function migrerPremiereLigne('));
     expect(migration.includes('[CLE]:'), 'la migration de la ligne réécrit la disposition').toBe(false);
   });
 });

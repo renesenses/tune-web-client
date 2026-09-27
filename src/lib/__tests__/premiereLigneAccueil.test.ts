@@ -27,6 +27,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { WIDGETS, DISPOSITION_DEFAUT, widgetParId } from '../accueilWidgets';
 import { COTE_L1, LARGEUR_PANNEAU, PERIODE_L1, zonesDeLaLigne } from '../premiereLigne';
+import { migrationPremiereLigne } from '../migrationPremiereLigne';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 function sansCommentaires(src: string): string {
@@ -245,5 +246,86 @@ describe('ce que chaque panneau doit tenir', () => {
     const biblio = lire('src/components/v2/LibraryV2.svelte');
     expect(biblio, 'la Bibliothèque doit toujours écouter cet évènement')
       .toContain("addEventListener('tune:v2-facette'");
+  });
+});
+
+describe('la première ligne entre UNE FOIS dans les accueils déjà rangés', () => {
+  // Arbitrage de Bertrand du 27/09/2026. `DISPOSITION_DEFAUT` ne vaut que pour
+  // les profils qui n'ont JAMAIS rangé leur accueil : sans cette migration,
+  // quiconque a déplacé un widget une seule fois ne verrait jamais la ligne
+  // d'en-tête — le widget le plus visible du lot, invisible pour les
+  // utilisateurs les plus engagés.
+  const DEFAUT = ['premiere-ligne', 'reprendre', 'statistiques'];
+
+  it("l'insère EN TÊTE d'une disposition enregistrée qui ne l'a pas", () => {
+    const r = migrationPremiereLigne(['reprendre', 'favoris'], undefined, DEFAUT);
+    expect(r.aMigrer).toBe(true);
+    expect(r.disposition).toEqual(['premiere-ligne', 'reprendre', 'favoris']);
+  });
+
+  it('🔴 ne la remet JAMAIS à qui l’a retirée', () => {
+    // Sans marqueur, la migration se rejouerait contre l'utilisateur : un
+    // widget qu'on ne peut plus enlever serait pire que le défaut corrigé.
+    // C'est mot pour mot la leçon de #1519.
+    const r = migrationPremiereLigne(['reprendre'], true, DEFAUT);
+    expect(r.aMigrer).toBe(false);
+    expect(r.disposition).toEqual(['reprendre']);
+  });
+
+  it("n'écrit RIEN quand la ligne est déjà là", () => {
+    const r = migrationPremiereLigne(['premiere-ligne', 'reprendre'], undefined, DEFAUT);
+    expect(r.aMigrer).toBe(false);
+  });
+
+  it("n'écrit RIEN pour un profil qui n'a jamais rangé son accueil", () => {
+    // Il suit déjà le défaut, qui porte la ligne. Ouvrir l'accueil ne doit
+    // rien écrire chez lui.
+    expect(migrationPremiereLigne([], undefined, DEFAUT).aMigrer).toBe(false);
+    expect(migrationPremiereLigne(null, undefined, DEFAUT).aMigrer).toBe(false);
+  });
+
+  it('ÉPARGNE les écrans éditoriaux Qobuz et Tidal', () => {
+    // Ils instancient la même page avec leur propre catalogue, où
+    // `premiere-ligne` n'existe pas : leur insérer cet identifiant laisserait
+    // un trou muet dans leur page.
+    const r = migrationPremiereLigne(['qobuz-nouveautes'], undefined, ['qobuz-nouveautes']);
+    expect(r.aMigrer).toBe(false);
+    expect(r.disposition).toEqual(['qobuz-nouveautes']);
+  });
+
+  it('écrit la disposition ET son marqueur dans le MÊME appel', () => {
+    // Seul le marqueur : la ligne disparaîtrait au rechargement sans jamais
+    // revenir. Seule la disposition : elle reviendrait chez qui la retire.
+    const src = sansCommentaires(lire('src/components/v2/PageWidgets.svelte'));
+    const i = src.indexOf('async function migrerPremiereLigne');
+    const bloc = src.slice(i, src.indexOf('async function enregistrer', i));
+    expect(bloc).toContain('[CLE]: disp');
+    expect(bloc).toContain('[CLE_LIGNE_MIGRE]: true');
+  });
+
+  it('🔴 écrit la disposition NON filtrée : #987 ne se rejoue pas', () => {
+    // `disposition` est filtrée sur les identifiants que cette version sait
+    // nommer ; l'écrire effacerait un widget choisi avec une version plus
+    // récente.
+    const src = sansCommentaires(lire('src/components/v2/PageWidgets.svelte'));
+    expect(src).toContain('migrerPremiereLigne(pid, [...(dispositionEnregistree ?? [])])');
+  });
+});
+
+describe('« En écoute » (zones-cartes) ne fige plus sa liste non plus', () => {
+  it('son chargeur ne produit plus de liste', () => {
+    const src = sansCommentaires(lire('src/lib/accueilWidgets.ts'));
+    const i = src.indexOf("id: 'zones-cartes'");
+    const bloc = src.slice(i, src.indexOf("id: 'reprendre'", i));
+    expect(bloc).toContain('charger: async () => []');
+  });
+
+  it('son rendu lit le magasin, par le MÊME filtre que la première ligne', () => {
+    // Deux copies du filtre auraient divergé au premier ajustement.
+    const src = sansCommentaires(lire('src/components/v2/PageWidgets.svelte'));
+    const i = src.indexOf('class="zcartes"');
+    const bloc = src.slice(i, i + 900);
+    expect(bloc).toContain('zonesDeLaLigne($zones)');
+    expect(bloc, 'la liste figée est revenue').not.toContain('et.elements');
   });
 });
