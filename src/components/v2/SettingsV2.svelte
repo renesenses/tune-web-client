@@ -868,6 +868,71 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     if (caseCochee) caseCochee.checked = telActif;
   }
 
+  // ── Compte Mozaiklabs (session SSO) ────────────────────────────────────
+  // 🔴 Trois écrans envoient l'utilisateur ICI pour relier son compte — le
+  // panneau des modules de sortie, l'écran Concerts et le bandeau de refus de
+  // module — et la section ne portait QUE la télémétrie. Le geste ne vivait
+  // que dans le menu de l'avatar : le texte des onze langues pointait donc sur
+  // un écran où il n'y avait rien à faire.
+  //
+  // Même contrat lu que `AvatarMenu` (`GET /cloud/sso/status`), même chemin
+  // parcouru (`/api/v1/cloud/sso/authorize`), mêmes libellés. Deux boutons du
+  // même nom ne doivent pas mener à deux endroits — c'est tout l'intérêt.
+  let ssoConnecte = $state(false);
+  let ssoConfigure = $state(false);
+  let ssoNom = $state('');
+  let ssoCourriel = $state('');
+  let ssoQuitte = $state(false);
+
+  async function chargerSso() {
+    try {
+      const sso: any = await api.apiFetch('/cloud/sso/status');
+      ssoConfigure = !!sso?.configured;
+      if (sso?.connected && sso?.user) {
+        ssoConnecte = true;
+        ssoNom = sso.user.display_name || sso.user.email || '';
+        ssoCourriel = sso.user.email || '';
+        return;
+      }
+    } catch {
+      // Serveur muet ou hors ligne : on ne propose pas de relier un compte à
+      // un nuage dont on ne sait même pas s'il existe sur ce serveur.
+      ssoConfigure = false;
+    }
+    ssoConnecte = false;
+    ssoNom = '';
+    ssoCourriel = '';
+  }
+  $effect(() => {
+    if (sections.some((x) => x.id === 'cloud')) void chargerSso();
+  });
+
+  /**
+   * Relier le compte — EXACTEMENT le geste du menu de l'avatar.
+   *
+   * Le serveur redirige vers « / » sans indicateur, donc le drapeau est posé
+   * AVANT de partir, dans les deux stockages : `sessionStorage` ne survit pas
+   * de façon fiable à une chaîne de redirections inter-origines (ITP de
+   * Safari, navigateurs mobiles), l'un rattrape l'autre.
+   */
+  function relierCompteCloud() {
+    try { localStorage.setItem('tune_sso_pending', Date.now().toString()); } catch {}
+    try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
+    window.location.href = '/api/v1/cloud/sso/authorize';
+  }
+
+  async function delierCompteCloud() {
+    ssoQuitte = true;
+    try {
+      await api.ssoDisconnect();
+      await chargerSso();
+      notifications.success(get(t)('settings.cloudDisconnected' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? get(t)('common.error' as any));
+    }
+    ssoQuitte = false;
+  }
+
   // ── Serveurs Tune sur le reseau ────────────────────────────────────────
   // L'ajout manuel par IP:port est le chemin robuste quand la decouverte
   // multicast est bloquee (Docker macvlan, pare-feu Windows).
@@ -3444,6 +3509,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'cloud'}
               <p class="hint">{#each emphaseParts($t('settings.cloudScopeHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <!-- 🔴 LE GESTE DE CONNEXION AU COMPTE EST ICI.
+                   `outputModule.notLinkedBody`, l'écran Concerts et le panneau
+                   des modules de sortie promettent, dans onze langues, qu'on
+                   relie son compte « dans Réglages ▸ Système ▸ Cloud ». Il n'y
+                   avait rien. Aucun libellé neuf : ceux du menu de l'avatar. -->
+              <div class="row" data-sso="compte">
+                <div class="lbl">
+                  {#if ssoConnecte}
+                    <span>{ssoNom}</span>
+                    {#if ssoCourriel && ssoCourriel !== ssoNom}<span class="hint">{ssoCourriel}</span>{/if}
+                  {:else}
+                    <span>{$t('settings.notConnected' as any)}</span>
+                    {#if !ssoConfigure}<span class="hint">{$t('settings.cloudComingSoon' as any)}</span>{/if}
+                  {/if}
+                </div>
+                {#if ssoConnecte}
+                  <button class="lnk" disabled={ssoQuitte} onclick={delierCompteCloud}
+                    >{ssoQuitte ? $t('common.loading' as any) : $t('settings.signOut' as any)}</button>
+                {:else if ssoConfigure}
+                  <button class="lnk" onclick={relierCompteCloud}
+                    >{$t('settings.signIn' as any)}</button>
+                {/if}
+              </div>
               <!-- Consentement à la télémétrie — porté de l'ancien écran
                    (phase 5) : il ne doit JAMAIS devenir immodifiable. -->
               {#if telCharge}

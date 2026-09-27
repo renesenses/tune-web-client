@@ -72,7 +72,8 @@ describe('les deux écrans', () => {
   const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
   it('la recherche trie sa section Albums par le module partagé, pertinence par défaut', () => {
     const s = lire('src/components/v2/SearchV2.svelte');
-    expect(s).toMatch(/trierAlbums\(groupes\.albums\.filter\(dansLePerimetre\), triAlbums, sensAlbums\)/);
+    // web#1663 : le sens passe par `sensTriRecherche` — « Pertinence » ne se renverse pas.
+    expect(s).toMatch(/trierAlbums\(groupes\.albums\.filter\(dansLePerimetre\), triAlbums, sensTriRecherche\(triAlbums, sensAlbums\)\)/);
     expect(s).toMatch(/lireChoix<CleTriAlbums>\('v2\.rech\.albums\.tri', CLES_TRI_ALBUMS, 'pertinence'\)/);
     expect(s).toContain('<TriAlbums bind:cle={triAlbums} bind:sens={sensAlbums} />');
   });

@@ -29,6 +29,9 @@
       <option value={k}>{$t(LIBELLES_TRI_ALBUMS[k] as any)}</option>
     {/each}
   </select>
+  <!-- web#1663 : « Pertinence » est un ordre, pas une grandeur — pas de sens
+       à renverser, donc pas de flèche (`sensTriRecherche`). -->
+  {#if cle !== 'pertinence'}
   <button class="sens" type="button" onclick={() => (sens = sens === 'asc' ? 'desc' : 'asc')}
     title={$t((sens === 'asc' ? 'common.ascending' : 'common.descending') as any)}
     aria-label={$t((sens === 'asc' ? 'common.ascending' : 'common.descending') as any)}>
@@ -38,6 +41,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>
     {/if}
   </button>
+  {/if}
 </label>
 
 <style>
