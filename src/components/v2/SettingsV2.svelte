@@ -25,6 +25,8 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { emphaseParts } from '../../lib/i18nEmphase';
   import { preferences } from '../../lib/stores/preferences';
+  import { typesSourcesBarre } from '../../lib/sources';
+  import { TYPES_SOURCE_BARRE, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
   import { atLeast } from '../../lib/uiLevel';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
@@ -38,6 +40,7 @@
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
+  import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
@@ -96,6 +99,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import PluginsV2 from './PluginsV2.svelte';
   import { tip } from '../../lib/tooltip';
   import CreteMetre from '../partages/CreteMetre.svelte';
+  import VuMetreCanal from '../partages/VuMetreCanal.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { ORDRE_VERSIONS_DEFAUT, estOrdreVersions } from '../../lib/versionsPiste';
   import {
@@ -1274,6 +1278,45 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     stopPoll(name);
     deviceFlow = { ...deviceFlow, [name]: undefined };
     svcBusy = null;
+  }
+
+  // ── Spotify : l'URI de redirection — renesenses/tune-server-rust#2680 ──
+  //
+  // Chacun crée SA propre application Spotify et doit y déclarer, à
+  // l'identique, l'URI que Tune envoie : l'écran la montre donc (lue sur
+  // `GET /system/env`, résolue côté serveur). Si le serveur la sait refusée
+  // (`localhost`, `http://<IP LAN>` → « redirect_uri: Insecure »), il le dit.
+  // Et quand la page est ouverte depuis une autre machine, le rappel
+  // `127.0.0.1` ne s'ouvre pas ici : on propose de coller son adresse.
+  let spotifyRedirect = $state<{ uri: string | null; refus: string | null }>({ uri: null, refus: null });
+  let spotifyRappelColle = $state('');
+  $effect(() => {
+    api.getSystemEnv()
+      .then((env) => {
+        spotifyRedirect = { uri: env?.spotify_redirect_uri ?? null, refus: env?.spotify_redirect_uri_refus ?? null };
+      })
+      .catch(() => {});
+  });
+  const spotifyRappelIci = $derived(
+    rappelAboutitIci(spotifyRedirect.uri, typeof location !== 'undefined' ? location.hostname : ''),
+  );
+  async function validerRappelSpotify() {
+    const colle = spotifyRappelColle.trim();
+    if (!colle) return;
+    svcErr = { ...svcErr, spotify: null };
+    try {
+      const res = await api.authenticateStreaming('spotify', { callback_url: colle });
+      if (res?.authenticated) {
+        stopPoll('spotify');
+        svcs = { ...svcs, spotify: { ...svcs.spotify, authenticated: true, username: res.username ?? svcs.spotify?.username } };
+        deviceFlow = { ...deviceFlow, spotify: undefined };
+        spotifyRappelColle = '';
+        svcBusy = null;
+      }
+    } catch (e: any) {
+      const motif = typeof e?.message === 'string' ? e.message.trim() : '';
+      svcErr = { ...svcErr, spotify: motif || get(t)('settings.errConnectFailed') };
+    }
   }
 
   // ── Systeme : a propos, licence, sante ────────────────────────────────
@@ -2895,6 +2938,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
   function go(id: V2SettingsTabId) { tabId = id; highlight = null; }
+
+  /** #5065, étape 3 — une case « Afficher dans la barre » par type de
+   *  source : décider une case ne décide qu'elle. */
+  function basculerTypeSource(type: TypeSourceBarre, coche: boolean) {
+    preferences.update((pr) => ({ ...pr, sourcesBarre: { ...(pr.sourcesBarre ?? {}), [type]: coche } }));
+  }
 </script>
 
 <section class="v2-settings tune-v2">
@@ -3102,6 +3151,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- tune-server-rust#5065, étape 3 — Bertrand, 27/09/2026 :
+                   toutes les sources connues dans la barre, grisées quand
+                   elles sont indisponibles, et une case par TYPE. Par défaut,
+                   seuls les types présents sur la machine sont cochés. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.sidebarSources' as any)}</span>
+                  <span class="hint">{$t('settings.sidebarSourcesHint' as any)}</span>
+                </div>
+              </div>
+              {#each TYPES_SOURCE_BARRE as type (type)}
+                <div class="row">
+                  <div class="lbl"><span>{$t(`v2.sources.type.${type}` as any)}</span></div>
+                  <label class="sw">
+                    <input type="checkbox" data-type-source={type} checked={$typesSourcesBarre[type]}
+                      onchange={(e) => basculerTypeSource(type, (e.currentTarget as HTMLInputElement).checked)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/each}
+
               <!-- tune-server-rust#4368 — FabienM (fil 1829, point 11) :
                    « Il faut grouper par source et tous les résultats Qobuz
                    doivent être avant Bandcamp ». L'entrelacement qu'il voit
@@ -3187,6 +3257,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="apercu">
                     <CreteMetre style={$preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT} hauteur={22} largeur={150} />
                   </span>
+                </div>
+              </div>
+
+              <!-- La barre de lecture à VU-MÈTRES — Bertrand, 27/09/2026, sur
+                   la maquette de Levente. Un interrupteur à part et non une
+                   cinquième valeur du choix ci-dessus : celui-ci change la
+                   MISE EN PAGE de la barre, là où les quatre styles ne
+                   changent que l'apparence d'un instrument.
+
+                   L'aperçu vit, pour la même raison qu'au-dessus : « cadrans à
+                   aiguille » ne dit rien tant qu'on ne les a pas vus bouger. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('v2.set.barVu' as any)}</span>
+                  <span class="hint">{$t('v2.set.barVuHint' as any)}</span>
+                </div>
+                <div class="creterow">
+                  <span class="apercu">
+                    <VuMetreCanal canal="gauche" taille={64} joue={$preferences.barreVuMetres} />
+                  </span>
+                  <label class="sw">
+                    <input type="checkbox" checked={$preferences.barreVuMetres}
+                      onchange={(e) => preferences.update((pr) => ({
+                        ...pr, barreVuMetres: (e.currentTarget as HTMLInputElement).checked,
+                      }))} />
+                    <span class="slider"></span>
+                  </label>
                 </div>
               </div>
 
@@ -4917,6 +5014,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span class="waiting">{$t('v2.lbl.awaitingConfirm' as any)}</span>
                           <button class="lnk" onclick={() => cancelFlow(name)}>{$t('common.cancel' as any)}</button>
                         </div>
+                        {#if name === 'spotify' && !spotifyRappelIci}
+                          <!-- #2680 — Tune sur une autre machine : le rappel
+                               127.0.0.1 ne s'ouvre pas ici, son adresse porte
+                               le code, le serveur l'en extrait. -->
+                          <div class="sredir">
+                            <span>{$t('v2.set.spotifyPasteHint' as any)}</span>
+                            <div class="sredir-colle">
+                              <input class="txt" type="text" bind:value={spotifyRappelColle}
+                                placeholder="http://127.0.0.1:8888/api/v1/streaming/spotify/callback?code=…"
+                                aria-label={$t('v2.set.spotifyPasteHint' as any)} />
+                              <button class="lnk" disabled={!spotifyRappelColle.trim()} onclick={validerRappelSpotify}>{$t('v2.set.spotifyPasteSubmit' as any)}</button>
+                            </div>
+                          </div>
+                        {/if}
 
                       {:else if formeSvc(name) === 'pseudo' && cred[name]}
                         <!-- #1067 — Bandcamp : un PSEUDO, pas de mot de passe.
@@ -4947,6 +5058,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {:else}
                         <button class="lnk" disabled={svcBusy === name || !st.enabled}
                           onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
+                      {/if}
+
+                      {#if name === 'spotify' && !st.authenticated && spotifyRedirect.uri}
+                        <!-- #2680 — l'URI à recopier À L'IDENTIQUE dans
+                             l'application Spotify de l'utilisateur. -->
+                        {@const cleRefus = cleDuRefus(spotifyRedirect.refus)}
+                        <div class="sredir">
+                          <span>{$t('v2.set.spotifyRedirectDeclare' as any)}</span>
+                          <code>{spotifyRedirect.uri}</code>
+                          {#if cleRefus}<span class="sredir-refus">{$t(cleRefus as any)}</span>{/if}
+                        </div>
                       {/if}
 
                       {#if svcErr[name]}<div class="serr">{svcErr[name]}</div>{/if}
@@ -5723,6 +5845,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); border-radius:9px; padding:6px 13px}
   .waiting{font:11px var(--v2-mono); color:var(--v2-txt3)}
   .serr{flex-basis:100%; font-size:11.5px; color:var(--v2-danger)}
+  .sredir{flex-basis:100%; display:flex; flex-direction:column; gap:6px; font-size:11.5px; color:var(--v2-txt3)}
+  .sredir code{font:11px var(--v2-mono); color:var(--v2-acc-tint); user-select:all; word-break:break-all}
+  .sredir-refus{color:var(--v2-danger)}
+  .sredir-colle{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .sredir-colle .txt{flex:1; min-width:0}
   .unavail{font:11px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .lbl b{color:var(--v2-acc-tint); font-weight:700}
   .seg4{display:flex; gap:2px; padding:3px; border-radius:12px; flex:0 0 auto;

@@ -317,6 +317,83 @@
   let mesPresets = $state<api.EqProPreset[]>([]);
 
   /**
+   * MIROIR LOCAL de la liste serveur — restauré de l'ancien écran, où il
+   * existait (`EqualizerView.svelte`, `PRESETS_CACHE_KEY`) et a disparu avec
+   * lui le 19/09 (phase 5, `d5ed7deb`).
+   *
+   * Sans lui, un serveur qui ne répond pas produisait `mesPresets = []` et
+   * RIEN d'autre : une liste vide, muette, dont on ne peut que conclure que
+   * ses préréglages ont été supprimés. Ils sont côté serveur, intacts.
+   *
+   * La clé est celle de v1, volontairement : c'est le même tiroir, pour la
+   * même liste. La FORME stockée, elle, a changé — v1 y écrivait son propre
+   * `CustomEqPreset` (`mode`/`gains`), v2 y écrit le préréglage serveur tel
+   * qu'il arrive. Un reste de v1 est donc écarté à la lecture par
+   * `estPresetServeur` plutôt qu'appliqué à moitié : un préréglage sans
+   * bandes appliquerait une courbe plate en se présentant comme la sienne.
+   */
+  const CLE_CACHE_PRESETS = 'tune-eq-presets-cache';
+
+  /** Le serveur n'a pas rendu la liste au dernier chargement. */
+  let presetsServeurEchec = $state(false);
+  /**
+   * La liste affichée vient du miroir local, et il faut le dire.
+   *
+   * 🔴 LA CONDITION PORTE LE SENS. `eq.presetsLoadFailed` affirme « cette
+   * liste vient du cache local » : la montrer sur une liste VIDE — stockage
+   * indisponible, fenêtre privée, cache jamais écrit — serait un mensonge de
+   * plus. v1 ne faisait pas cette distinction (son avertissement ne dépendait
+   * que de l'échec serveur) ; c'est le seul point où l'on s'en écarte, et
+   * dans le sens de la vérité.
+   */
+  const presetsDuCache = $derived(presetsServeurEchec && mesPresets.length > 0);
+
+  /**
+   * Ce qui ressemble vraiment à un préréglage serveur. Tout le reste est
+   * écarté : un cache venu d'une autre version, ou trafiqué à la main, ne
+   * doit pas remonter jusqu'aux curseurs.
+   */
+  function estPresetServeur(v: unknown): v is api.EqProPreset {
+    if (!v || typeof v !== 'object') return false;
+    const p = v as Record<string, unknown>;
+    return typeof p.id === 'string' && p.id.length > 0
+      && typeof p.name === 'string' && p.name.length > 0
+      && (p.eq_type === 'graphic' || p.eq_type === 'parametric')
+      && Array.isArray(p.bands);
+  }
+
+  /**
+   * Le miroir local, ou `null` s'il n'y en a pas.
+   *
+   * Le stockage local est FAILLIBLE : fenêtre privée, données effacées, quota
+   * atteint, `localStorage` refusé par la politique du navigateur — l'accès
+   * lui-même peut lever. Tout est donc dans le `try`, y compris la lecture de
+   * la propriété, et un échec rend `null` : l'écran reste juste, simplement
+   * sans filet.
+   */
+  function lireCachePresets(): api.EqProPreset[] | null {
+    try {
+      const brut = localStorage.getItem(CLE_CACHE_PRESETS);
+      if (!brut) return null;
+      const lu: unknown = JSON.parse(brut);
+      if (!Array.isArray(lu)) return null;
+      return lu.filter(estPresetServeur);
+    } catch (e) {
+      console.warn('EQ miroir local des préréglages (lecture) —', e);
+      return null;
+    }
+  }
+
+  /** Rafraîchit le miroir. Un stockage qui refuse n'interrompt rien. */
+  function ecrireCachePresets(liste: api.EqProPreset[]) {
+    try {
+      localStorage.setItem(CLE_CACHE_PRESETS, JSON.stringify(liste));
+    } catch (e) {
+      console.warn('EQ miroir local des préréglages (écriture) —', e);
+    }
+  }
+
+  /**
    * QUEL préréglage est en vigueur — Thierry Clémont, 22/09/2026 : « quelle
    * égalisation est-elle choisie ? aucun moyen de le savoir alors qu'il eût
    * suffi de la surligner ».
@@ -364,7 +441,21 @@
     return null;
   });
   async function chargerMesPresets() {
-    try { mesPresets = await api.listEqPresets(); } catch { mesPresets = []; }
+    // 1) Peinture immédiate depuis le miroir — l'ordre de v1.
+    const cache = lireCachePresets();
+    if (cache?.length) mesPresets = cache;
+    // 2) Source de vérité : le serveur, partagé entre appareils.
+    try {
+      mesPresets = await api.listEqPresets();
+      presetsServeurEchec = false;
+      ecrireCachePresets($state.snapshot(mesPresets));
+    } catch (e) {
+      // 🔴 ON NE VIDE PLUS LA LISTE. Elle reste celle du miroir, et
+      // l'avertissement dit d'où elle vient — la taire revenait à annoncer
+      // une suppression qui n'a pas eu lieu.
+      presetsServeurEchec = true;
+      console.warn('EQ liste des préréglages serveur —', e);
+    }
   }
   $effect(() => { void chargerMesPresets(); });
 
@@ -382,6 +473,7 @@
       if (homonyme) { try { await api.deleteEqPreset(homonyme.id); } catch { /* le doublon restera visible */ } }
       const cree = await api.createEqPreset({ name: nom, eq_type, bands });
       mesPresets = [...mesPresets.filter((p) => p.name !== nom), cree];
+      ecrireCachePresets($state.snapshot(mesPresets));
       notifications.success($t('eq.presetSaved' as any).replace('{name}', nom));
     } catch {
       notifications.error($t('eq.presetSaveFailed' as any));
@@ -409,6 +501,9 @@
     mesPresets = mesPresets.filter((x) => x.id !== p.id);
     try {
       await api.deleteEqPreset(p.id);
+      // Le miroir ne suit qu'une suppression CONFIRMÉE : anticiper ferait
+      // disparaître du cache un préréglage que le serveur a gardé.
+      ecrireCachePresets($state.snapshot(mesPresets));
     } catch {
       // La suppression n'a pas eu lieu : la liste revient, et on le dit.
       mesPresets = avant;
@@ -504,6 +599,15 @@
         {/each}
         <button onclick={enregistrerPreset}>+ {$t('eq.savePreset' as any)}</button>
       </div>
+
+      <!-- La liste vient du miroir local : elle peut être périmée, et
+           enregistrer échouera de la même façon. Ce chemin part au montage,
+           sans geste de l'utilisateur — une notification y serait du bruit,
+           mais se taire laissait croire que le serveur avait répondu, donc que
+           les préréglages absents avaient été supprimés. -->
+      {#if presetsDuCache}
+        <p class="mes-cache">{$t('eq.presetsLoadFailed' as any)}</p>
+      {/if}
 
       {#if showExpert}
         <!--
@@ -643,6 +747,11 @@
   .mesl{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .mien{display:inline-flex}
   .mien .x{padding:0 7px}
+  /* Un avertissement, pas une erreur : la liste est utilisable, elle est
+     seulement peut-être périmée. D'où le ton d'accentuation et non le rouge
+     de `.err`, qui dirait à tort que rien ne marche. */
+  .mes-cache{margin:-8px 0 16px; padding:9px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;
+    border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
   .presets button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     font:600 12px var(--v2-sans); padding:8px 15px; border-radius:var(--v2-r-pill); transition:.15s}
   .presets button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
