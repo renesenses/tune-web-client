@@ -20,6 +20,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 
+// 🔴 Monter `SettingsV2` coûte cher — l'écran porte onze onglets et tout leur
+// balisage. Le premier montage d'un fichier paie en plus la compilation du
+// composant, et les 5 000 ms par défaut de vitest sont juste à la limite sur un
+// Mac chargé : le banc rougissait par DÉPASSEMENT, sans une seule assertion en
+// échec, ce qui est le pire des faux rouges. Même réglage, pour la même raison,
+// que `aideNommeEtatDuServeur1246.test.ts`, qui monte le même écran.
+vi.setConfig({ testTimeout: 30_000 });
+
 vi.mock('../api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api')>();
   return {

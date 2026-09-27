@@ -4618,9 +4618,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       ne coûte donc rien.
 
                       Ce qu'elle évite : `licenceRevalidationV2.test.ts:24`
-                      découpe le SOURCE de cet onglet, de `{#if lic.licenseKey}`
-                      jusqu'à la première branche « sinon » nue qui suit, pour y
-                      chercher `onclick={validateLic}`. Une telle branche
+                      découpe le SOURCE de cet onglet, de la garde
+                      `lic.licenseKey` jusqu'à la première branche « sinon » nue
+                      qui suit, pour y chercher
+                      `onclick={validateLic}`. Une telle branche
                       insérée ici rogne sa fenêtre et fait rougir son témoin
                       alors que le bouton « Revalider » n'a pas bougé d'un
                       pouce. Le mot-clé n'est écrit nulle part ci-dessus, pas
