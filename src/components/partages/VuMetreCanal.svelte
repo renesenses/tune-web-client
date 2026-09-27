@@ -25,8 +25,8 @@
    */
   import { audioLevels } from '../../lib/stores/audioLevels';
   import { MIN_DB, PEAK_LAMP_DBFS } from '../../lib/tvVuScale';
-  import { avancerAiguille, dessinerCadran, MAINTIEN_CRETE_MS } from '../../lib/dessinVuMetre';
-  import { RATIO_VU, TAILLE_VU_BARRE } from '../../lib/barreVuMetres';
+  import { avancerAiguille, cadreCadran, dessinerCadran, MAINTIEN_CRETE_MS } from '../../lib/dessinVuMetre';
+  import { RATIO_VU, RAYON_VU, TAILLE_VU_BARRE } from '../../lib/barreVuMetres';
   import { boucleImages } from '../../lib/boucleImages';
   import { tempsDeDessiner } from '../../lib/cadenceCreteMetre';
   import { cranOuDefaut } from '../../lib/cadenceAnimations';
@@ -50,6 +50,8 @@
   /** Instant (ms) jusqu'auquel le témoin de crête reste allumé. */
   let creteJusqua = 0;
 
+  /** La hauteur vient du CADRE de la face (`RATIO_VU` en est déduit), jamais
+   *  d'une cote recopiée d'une autre surface. */
   const hauteur = $derived(Math.round(taille * RATIO_VU));
 
   const mouvementReduit =
@@ -81,14 +83,17 @@
     aiguille = avancerAiguille(aiguille, cible, mouvementReduit);
     if (joue && crete > PEAK_LAMP_DBFS) creteJusqua = maintenant + MAINTIEN_CRETE_MS;
 
+    // 🔴 `cy` vient du CADRE, pas d'une fraction de la hauteur. La face monte à
+    // 0,92 rayon au-dessus du centre : à 42 % de la hauteur, son haut passait
+    // au-dessus du bord de la toile et il restait du vide en bas. C'est ce que
+    // Bertrand a vu sur le .18 — « mal centrés… en hauteur ! ».
     dessinerCadran(ctx, {
       cx: l / 2,
-      cy: h * 0.42,
-      rayon: l * 0.42,
+      cy: cadreCadran(l * RAYON_VU).cy,
+      rayon: l * RAYON_VU,
       libelle: canal === 'gauche' ? 'L' : 'R',
       db: aiguille,
       creteAllumee: maintenant < creteJusqua,
-      dpr: 1,
     });
   }
 
@@ -113,10 +118,10 @@
         c.width = Math.round(cote * dpr);
         c.height = Math.round(haut * dpr);
       }
-      // 🔴 La mise à l'échelle passe par la transformation, et le dessin
-      // travaille donc en pixels CSS (`dpr: 1` plus haut). Multiplier AUSSI
-      // les traits par `dpr` les épaissirait deux fois — l'aiguille devenait
-      // un trait gras sur un écran Retina.
+      // 🔴 La mise à l'échelle passe par la transformation : le dessin
+      // travaille en pixels CSS. C'est aussi pourquoi `dessinerCadran` ne
+      // prend plus de `dpr` — il tire tout du rayon, et multiplier une
+      // seconde fois faisait de l'aiguille un trait gras sur écran Retina.
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (auRepos(maintenant)) {
         aiguille = MIN_DB;

@@ -1,3 +1,5 @@
+import { BAS_FACE, HAUT_FACE } from './dessinVuMetre';
+
 /**
  * LA BARRE DE LECTURE À VU-MÈTRES — Bertrand, 27/09/2026, maquette de Levente.
  *
@@ -13,16 +15,30 @@
  * Le côté du cadran, en pixels de CSS. La toile en déduit sa hauteur.
  *
  * La géométrie est celle du Grand écran, à l'identique : là-bas les deux
- * cadrans partagent une toile large de `w` et haute de `0,34 w`, chacun d'un
- * rayon de `0,42 · w/2`. Un cadran SEUL dans une toile large de `t` est donc
- * exactement le même dessin avec `t = w/2` — d'où la hauteur `0,68 t` et le
- * rayon `0,42 t`. C'est ce qui garantit que les deux surfaces montrent le même
- * instrument et non deux cousins.
+ * cadrans partagent une toile large de `w`, chacun d'un rayon de `0,42 · w/2`.
+ * Un cadran SEUL dans une toile large de `t` est donc le même dessin avec
+ * `t = w/2`, d'où le rayon `0,42 t`.
+ *
+ * 🔴 Sa HAUTEUR, en revanche, ne se recopie pas du Grand écran : elle se déduit
+ * de la face (`cadreCadran`). Recopiée, elle coupait le haut du cadran et
+ * laissait du vide en bas — invisible sur un cadran de 235 px, criant sur un
+ * cadran de 35.
  */
 export const TAILLE_VU_BARRE = 84;
 
-/** Le rapport hauteur/largeur d'un cadran seul. Voir ci-dessus. */
-export const RATIO_VU = 0.68;
+/** Le rayon de la face, en fraction du côté. C'est la cote du Grand écran. */
+export const RAYON_VU = 0.42;
+
+/**
+ * Le rapport hauteur/largeur d'un cadran seul.
+ *
+ * 🔴 Il n'est plus écrit à la main — il se DÉDUIT de la face. Écrit à la main
+ * il valait 0,68, recopié du Grand écran ; or cette hauteur-là laissait du vide
+ * en bas et coupait le haut de la face, ce que Bertrand a vu tout de suite sur
+ * le .18 (« mal centrés… en hauteur ! »). Une cote recopiée d'une surface où le
+ * défaut ne se voyait pas est une cote fausse qui voyage.
+ */
+export const RATIO_VU = (HAUT_FACE + BAS_FACE) * RAYON_VU;
 
 /**
  * 🔴 EN DESSOUS DE CETTE LARGEUR DE BARRE, ON RETOMBE SUR LA BARRE NORMALE.
