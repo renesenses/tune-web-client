@@ -138,7 +138,7 @@ export function pistesDeLaSelection(
   garder: (t: Track) => boolean = () => true,
 ): number[] {
   const retenues = pistesRetenues(pistes, albums, garder).map((t) => t.id as number);
-  return bornee(melangee(retenues), plafond);
+  return tirageAleatoire(retenues, plafond);
 }
 
 /** Les pistes des albums retenus qui passent `garder` — la règle de portée,
@@ -160,6 +160,23 @@ function pistesRetenues(
 /** Le plafond de la file (`shuffle_max_tracks`, #2901), jamais sous 1. */
 export function bornee<T>(ids: readonly T[], plafond: number): T[] {
   return ids.slice(0, Math.max(1, Math.trunc(plafond)));
+}
+
+/**
+ * Un tirage aléatoire BORNÉ : la liste mélangée, puis coupée au plafond.
+ *
+ * tune-server-rust#5284 (Sevy Tabroc, fil 2002) : le réglage « Titres tirés en
+ * lecture aléatoire » était à 500, et des files de 4 986 titres partaient
+ * quand même. Le serveur borne `POST /playback/shuffle-all` ; mais toutes les
+ * listes que le CLIENT mélange lui-même (collection, favoris, liste de
+ * lecture, recherche, liste intelligente, provenance de la Bibliothèque,
+ * discographie d'un service) partaient par `play { track_ids }` sans jamais
+ * rencontrer le plafond. C'est ici, et nulle part ailleurs, qu'un mélange
+ * côté client le rencontre : on mélange D'ABORD (sinon on tirerait toujours
+ * les mêmes premiers titres), on coupe ENSUITE.
+ */
+export function tirageAleatoire<T>(liste: readonly T[], plafond: number): T[] {
+  return bornee(melangee(liste), plafond);
 }
 
 /**

@@ -49,7 +49,8 @@
  */
 import type { AddToQueueRequest } from './api';
 import { corpsDeFileListe, corpsDeLecture, estPisteLocale } from './pisteFile';
-import { melangee } from './shuffle';
+import { FILE_ALEATOIRE_DEFAUT, plafondFileAleatoire } from './fileAleatoire';
+import { tirageAleatoire } from './porteeAleatoire';
 import type { Track } from './types';
 /** Les portées que `POST /playback/shuffle-all` sait tirer lui-même. */
 export interface PorteeServeur {
@@ -96,9 +97,15 @@ export function planDeLecture(liste: readonly Track[]): PlanLecture {
     pistes: jouables.length,
   };
 }
-/** Le même plan, sur la liste MÉLANGÉE. Aucun drapeau de zone n'est touché. */
-export function planAleatoire(liste: readonly Track[]): PlanLecture {
-  return planDeLecture(melangee(pistesJouables(liste)));
+/**
+ * Le même plan, sur la liste MÉLANGÉE puis bornée au plafond de la file
+ * aléatoire (`shuffle_max_tracks`, #5284). Aucun drapeau de zone n'est touché.
+ */
+export function planAleatoire(
+  liste: readonly Track[],
+  plafond: number = FILE_ALEATOIRE_DEFAUT,
+): PlanLecture {
+  return planDeLecture(tirageAleatoire(pistesJouables(liste), plafond));
 }
 /** Une portée est utilisable si elle porte au moins un critère renseigné. */
 export function porteeUtilisable(p: PorteeServeur | null | undefined): boolean {
@@ -109,6 +116,12 @@ export function porteeUtilisable(p: PorteeServeur | null | undefined): boolean {
 export interface GestesLecture {
   lire: (corps: Record<string, unknown>) => Promise<unknown>;
   enfiler: (corps: AddToQueueRequest) => Promise<unknown>;
+  /**
+   * Le plafond de la file aléatoire. Absent : celui du serveur, lu par
+   * `plafondFileAleatoire` (#5284). Les écrans n'ont rien à fournir ; les
+   * épreuves, elles, l'imposent sans passer par le réseau.
+   */
+  plafond?: () => Promise<number>;
 }
 /**
  * Exécute un plan. Rend le nombre de pistes envoyées — zéro veut dire « rien
@@ -129,8 +142,9 @@ export function lireListe(liste: readonly Track[], g: GestesLecture): Promise<nu
   return executer(planDeLecture(liste), g);
 }
 /** « Lecture aléatoire » : la MÊME liste, mélangée. Jamais `setShuffle`. */
-export function lireListeAleatoire(liste: readonly Track[], g: GestesLecture): Promise<number> {
-  return executer(planAleatoire(liste), g);
+export async function lireListeAleatoire(liste: readonly Track[], g: GestesLecture): Promise<number> {
+  const plafond = await (g.plafond ?? plafondFileAleatoire)();
+  return executer(planAleatoire(liste, plafond), g);
 }
 /**
  * « Lire à partir d'ici » : la liste depuis `index`, dans son ordre.
