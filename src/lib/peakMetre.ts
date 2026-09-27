@@ -165,3 +165,56 @@ export function styleSurLaBarre(choisi: StyleCreteMetre): StyleCreteMetre {
 export function auRepos(): { gaucheDb: number; droiteDb: number; ppm: EtatPpm } {
   return { gaucheDb: PLANCHER_DB, droiteDb: PLANCHER_DB, ppm: { db: null, depuisMs: 0 } };
 }
+
+/**
+ * LA PALETTE DU CRÊTE-MÈTRE — audit du 27/09/2026.
+ *
+ * 🔴 Même défaut que le VU-mètre, trouvé en cherchant : une toile n'hérite
+ * d'aucune couleur, et celles-ci étaient écrites pour un fond noir. Sur les
+ * deux thèmes clairs, du crête-mètre il ne restait QUE les barres : le rail
+ * (blanc à 6 %), le trait de crête (blanc à 85 %) et surtout l'état ÉTEINT
+ * des lampes (blanc à 12 %) sont invisibles sur du blanc — et « éteint » est
+ * l'état normal d'une lampe. Les deux lampes de la barre de lecture
+ * n'existaient donc tout simplement pas en thème clair.
+ *
+ * Le vert et l'ambre, eux, se VOYAIENT mais passaient mal : `#4ade80` sur
+ * blanc, c'est 1,6:1 de contraste. Les valeurs claires les foncent.
+ *
+ * ⚠️ Le rouge, l'ambre et le vert portent un SENS (surcharge, alerte, ok) —
+ * pas une identité visuelle. Ils sont donc redéfinis pour rester LISIBLES,
+ * jamais remplacés par la couleur d'accent du thème : la repeindre effacerait
+ * l'information. C'est la règle déjà écrite dans `tune-v2.css` pour
+ * `--tune-danger` et ses voisines.
+ */
+export interface PaletteCrete {
+  fond: string;
+  vert: string;
+  ambre: string;
+  rouge: string;
+  ppm: string;
+  eteint: string;
+}
+
+/** Le crête-mètre d'origine, mot pour mot. Repli hors de `.tune-v2`. */
+export const PALETTE_CRETE_SOMBRE: PaletteCrete = {
+  fond: 'rgba(255,255,255,0.06)',
+  vert: '#4ade80',
+  ambre: '#fbbf24',
+  rouge: '#ef4444',
+  ppm: 'rgba(255,255,255,0.85)',
+  eteint: 'rgba(255,255,255,0.12)',
+};
+
+export function paletteCreteDepuis(el: Element | null | undefined): PaletteCrete {
+  if (!el || typeof getComputedStyle !== 'function') return PALETTE_CRETE_SOMBRE;
+  const style = getComputedStyle(el);
+  const lire = (nom: string, repli: string) => style.getPropertyValue(nom).trim() || repli;
+  return {
+    fond: lire('--v2-crete-fond', PALETTE_CRETE_SOMBRE.fond),
+    vert: lire('--v2-crete-vert', PALETTE_CRETE_SOMBRE.vert),
+    ambre: lire('--v2-crete-ambre', PALETTE_CRETE_SOMBRE.ambre),
+    rouge: lire('--v2-crete-rouge', PALETTE_CRETE_SOMBRE.rouge),
+    ppm: lire('--v2-crete-ppm', PALETTE_CRETE_SOMBRE.ppm),
+    eteint: lire('--v2-crete-eteint', PALETTE_CRETE_SOMBRE.eteint),
+  };
+}
