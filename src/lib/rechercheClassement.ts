@@ -22,6 +22,7 @@
  */
 
 import type { Album, Artist, SearchResult, Track } from './types';
+import { normaliser } from './rechercheRestreinte';
 
 /** Une ligne de résultat sait toujours d'où elle vient. */
 export type AvecSource<T> = T & { source?: string | null };
@@ -244,9 +245,27 @@ export function ordonnerSources<T>(elements: readonly T[], source: (x: T) => str
   return [...elements].sort((a, b) => bonusSource(source(b)) - bonusSource(source(a)));
 }
 
-/** Barème commun aux trois types : égalité 100, préfixe 50, contenu 20. */
+/**
+ * La pochette d'un album départage APRÈS la source, jamais avant (web#1662) :
+ * elle valait 5 points, plus que l'écart entre la bibliothèque (5) et
+ * Bandcamp (1). Un album local exact mais sans pochette perdait donc contre
+ * le même titre sur un service. Moins d'un point, elle ne tranche plus
+ * qu'entre deux albums de même source.
+ */
+const BONUS_POCHETTE = 0.5;
+
+/**
+ * Barème commun aux trois types : égalité 100, préfixe 50, contenu 20.
+ *
+ * `q` est déjà normalisée ; la valeur l'est ici, par la MÊME fonction que le
+ * filtre des phrases (`rechercheRestreinte.normaliser` : casse, accents,
+ * ponctuation — guillemets droits et typographiques compris — et espaces).
+ * web#1662 : comparée brute, la requête `"wish you were here"` n'égalait que
+ * le titre qui porte lui-même les guillemets, et l'album local tombait à 0.
+ */
 function scoreTexte(valeur: string | null | undefined, q: string): number {
-  const v = (valeur ?? '').toLowerCase();
+  if (!q) return 0;
+  const v = normaliser(valeur ?? '');
   if (!v) return 0;
   if (v === q) return 100;
   if (v.startsWith(q)) return 50;
@@ -259,15 +278,17 @@ function scoreTexte(valeur: string | null | undefined, q: string): number {
  *
  * Un artiste avec portrait est bonifié (+30) : c'est la carte qui a le plus à
  * gagner d'une grande image, et sans portrait elle ne montrerait qu'une
- * initiale. Un album avec pochette prend +5, de quoi départager deux titres
- * identiques sans écraser le score de texte.
+ * initiale. Un album avec pochette prend `BONUS_POCHETTE`, de quoi départager
+ * deux titres identiques de la MÊME source sans écraser le score de texte.
  */
 export function meilleurResultat(
   requete: string,
   r: ResultatsFusionnes,
 ): Meilleur | null {
-  const q = requete.trim().toLowerCase();
-  if (!q) return null;
+  if (!requete.trim()) return null;
+  // web#1662 — normalisée pour ce CALCUL seulement : la requête envoyée au
+  // serveur garde ses guillemets (recherche d'expression exacte).
+  const q = normaliser(requete);
 
   const candidats: { score: number; valeur: Meilleur }[] = [];
 
@@ -281,7 +302,7 @@ export function meilleurResultat(
 
   best = 0; gagnant = null;
   for (const a of r.albums) {
-    const s = scoreTexte(a.title, q) + (a.cover_path ? 5 : 0) + bonusSource(a.source);
+    const s = scoreTexte(a.title, q) + (a.cover_path ? BONUS_POCHETTE : 0) + bonusSource(a.source);
     if (s > 0 && s > best) { best = s; gagnant = { genre: 'album', album: a }; }
   }
   if (gagnant) candidats.push({ score: best, valeur: gagnant });
