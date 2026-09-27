@@ -22,7 +22,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import * as magasin from '../stores/profile';
 import { profiles, currentProfileId } from '../stores/profile';
 import ProfilsV2 from '../../components/v2/ProfilsV2.svelte';
@@ -111,8 +111,8 @@ describe('web#1672 — Default masqué dès qu’un profil personnel existe', ()
   });
 
   it('le menu de l’avatar liste les profils VISIBLES, pas le magasin brut', () => {
-    const menu = readFileSync(
-      fileURLToPath(new URL('../../components/v2/AvatarMenu.svelte', import.meta.url)), 'utf8');
+    // `import.meta.url` n'est pas un `file:` sous jsdom : chemin depuis `__dirname`.
+    const menu = readFileSync(resolve(__dirname, '../../components/v2/AvatarMenu.svelte'), 'utf8');
     const boucle = menu.indexOf('{#each $visibleProfiles as p (p.id)}');
     expect(boucle, 'le menu ne parcourt pas visibleProfiles').toBeGreaterThan(-1);
     expect(menu.includes('{#each $profiles as p'), 'le menu parcourt encore $profiles').toBe(false);

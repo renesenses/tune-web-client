@@ -21,6 +21,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
+import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 import { activeStreamingService } from '../stores/streaming';
 import { t } from '../i18n';
 import StreamingV2 from '../../components/v2/StreamingV2.svelte';
@@ -118,8 +119,8 @@ describe('tune-server-rust#5247 — onglets du compte YouTube', () => {
       en: ['No playlist in your {s} account.', 'No favourite in your {s} account.'],
       fr: ['Aucune playlist dans votre compte {s}.', 'Aucun favori dans votre compte {s}.'],
     };
-    for (const l of ['en', 'fr', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh']) {
-      const dict = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
+    for (const l of ONZE_LANGUES) {
+      const dict = dictionnaire(l);
       for (const cle of ['v2.str.noPlaylistsInAccount', 'v2.str.noFavoritesInAccount']) {
         expect(dict[cle], `${cle} manque en ${l}`).toContain('{s}');
         for (const ancien of anciens[l] ?? []) expect(dict[cle]).not.toBe(ancien);

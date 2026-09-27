@@ -134,7 +134,9 @@ describe('Le panneau du compte porte la bascule', () => {
     // Le bloc conditionnel le plus proche AU-DESSUS du titre doit être celui-ci,
     // et il ne doit pas s'être refermé entre les deux.
     const avant = src.slice(0, i);
-    const garde = avant.lastIndexOf('{#if $profiles.length > 1}');
+    // web#1672 : la garde compte les profils VISIBLES (Default masqué dès
+    // qu'un profil personnel existe), et reste ouverte si l'on est sur Default.
+    const garde = avant.lastIndexOf('{#if $visibleProfiles.length > 1');
     expect(garde, 'la rubrique n’est plus conditionnée au nombre de profils').toBeGreaterThan(-1);
     expect(
       avant.lastIndexOf('{/if}'),

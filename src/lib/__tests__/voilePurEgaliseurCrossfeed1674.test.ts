@@ -25,6 +25,7 @@ import { audiophileEnabled } from '../stores/audiophile';
 import { currentZoneId } from '../stores/zones';
 import { t } from '../i18n';
 import { get } from 'svelte/store';
+import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 import EqualizerV2 from '../../components/v2/EqualizerV2.svelte';
 import CrossfeedV2 from '../../components/v2/CrossfeedV2.svelte';
 
@@ -132,9 +133,8 @@ describe('web#1674 — voile PURE sur le Crossfeed', () => {
 
 describe('web#1674 — les trois libellés existent dans les onze langues', () => {
   it('v2.pure.veilEq / veilCf / veilExit', async () => {
-    const langues = ['en', 'fr', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh'];
-    for (const l of langues) {
-      const dict = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
+    for (const l of ONZE_LANGUES) {
+      const dict = dictionnaire(l);
       for (const cle of ['v2.pure.veilEq', 'v2.pure.veilCf', 'v2.pure.veilExit']) {
         expect(dict[cle], `${cle} manque en ${l}`).toBeTruthy();
         expect(dict[cle], `${cle} ne nomme pas PURE en ${l}`).toContain('PURE');
