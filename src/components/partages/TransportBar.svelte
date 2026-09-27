@@ -42,7 +42,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { zonesDuSelecteur } from '../../lib/zonesSelecteur';
   import {
     audiophileEnabled,
+    audiophileGlobalLockVolume,
     audiophileLockVolume,
+    audiophileZoneLockOverride,
     refreshAudiophile,
     refreshVolumeLock,
     setZoneVolumeLock,
@@ -690,15 +692,58 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     audiophileLoading = false;
   }
 
-  async function toggleVolumeLock() {
+  /**
+   * Les TROIS positions du verrou par zone (#2526).
+   *
+   * 🔴 Ce que l'interrupteur à deux positions avait supprimé sans le dire : le
+   * chemin du RETOUR. Le serveur résout l'héritage
+   * (`volume_lock_override(zone).unwrap_or(global)`), `setZoneVolumeLock`
+   * accepte `null` depuis toujours et `audiophileLockBadge` distingue encore
+   * `inherited` de `own` — mais une bascule booléenne n'envoie jamais `null`.
+   * Une zone ayant reçu une surcharge explicite ne pouvait donc plus revenir au
+   * réglage général depuis l'interface, alors que l'API sait l'y ramener. Ce
+   * n'était pas un libellé débranché : c'était un état atteignable par l'API et
+   * par personne d'autre.
+   *
+   * Les trois libellés existent dans les onze langues depuis #2526
+   * (`audiophile.lockInherit` / `lockAlways` / `lockNever`) : ils n'attendaient
+   * qu'un écran.
+   */
+  type ChoixVerrouZone = 'inherit' | 'on' | 'off';
+
+  /**
+   * La position à MONTRER, lue de la surcharge que le serveur a rendue — jamais
+   * déduite de la valeur effective, qui confondrait « hérité armé » et
+   * « surchargé armé », c'est-à-dire les deux cas que le badge d'appareil
+   * existe précisément pour distinguer.
+   */
+  let choixVerrou = $derived<ChoixVerrouZone>(
+    $audiophileZoneLockOverride == null
+      ? 'inherit'
+      : ($audiophileZoneLockOverride ? 'on' : 'off'),
+  );
+
+  async function toggleVolumeLock(souhait: ChoixVerrouZone) {
     const z = $currentZone;
     if (!z?.id || lockLoading) return;
     lockLoading = true;
-    const enabled = !$audiophileLockVolume;
-    const confirmationRequired = fullVolumeConfirmationRequired('volume-lock', {
-      audiophileEnabled: $audiophileEnabled,
-      volumeLockEnabled: $audiophileLockVolume,
-    });
+    // `null` RETIRE la surcharge : la zone repart sur le réglage général.
+    const enabled: boolean | null = souhait === 'inherit' ? null : souhait === 'on';
+    // Ce que la zone subira après l'écriture. Pour « hériter », c'est le défaut
+    // général : on ne rejoue pas l'héritage pour l'AFFICHER (le serveur le
+    // résout), seulement pour savoir s'il faut demander l'accord plein volume
+    // AVANT d'écrire — revenir à l'héritage peut armer le verrou.
+    const effetSouhaite = enabled ?? $audiophileGlobalLockVolume;
+    // Un `true` explicite s'atteste TOUJOURS : épingler « toujours 100 % » est
+    // une décision plein niveau même sur une zone déjà verrouillée par
+    // héritage, et `setZoneVolumeLock` refuse d'écrire sans l'attestation.
+    const confirmationRequired =
+      enabled === true
+      || (effetSouhaite
+        && fullVolumeConfirmationRequired('volume-lock', {
+          audiophileEnabled: $audiophileEnabled,
+          volumeLockEnabled: $audiophileLockVolume,
+        }));
     let fullVolumeConfirmed = false;
     if (confirmationRequired) {
       fullVolumeConfirmed = await dialogs.confirm($t('audiophile.lockVolumeWarn' as any), {
@@ -711,14 +756,14 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     }
     try {
       const res = await setZoneVolumeLock(z.id, enabled, fullVolumeConfirmed);
-      audiophileLockVolume.set(res.effective_lock_volume ?? enabled);
-      if ((res.effective_lock_volume ?? enabled) && $audiophileEnabled) {
+      audiophileLockVolume.set(res.effective_lock_volume ?? effetSouhaite);
+      if ((res.effective_lock_volume ?? effetSouhaite) && $audiophileEnabled) {
         // Le serveur a déjà envoyé la commande à 100 % avant de répondre.
         mutedVolume.set(null);
         zoneVolume.set(1);
       }
     } catch {
-      // Le serveur est la source de vérité : relire la zone restaure le toggle.
+      // Le serveur est la source de vérité : relire la zone restaure le choix.
       await refreshAudiophile(z.id);
     }
     lockLoading = false;
@@ -1437,23 +1482,29 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
       <!-- Le volume est un multiplicateur : en PURE il est la seule chose qui
            touche encore les échantillons. Le geler à 100 % est un choix, pas
-           un défaut — d'où l'interrupteur, inactif au départ. -->
+           un défaut.
+
+           TROIS positions, pas deux (#2526) : « hériter » envoie `null` et rend
+           la zone au réglage général. Sans elle, une surcharge posée une fois ne
+           se retirait plus — l'API savait le faire, l'utilisateur non. -->
       <div class="sp-audiophile sp-ap-sub-row">
         <div class="sp-ap-text">
           <span class="sp-ap-title">{$t('audiophile.lockVolumeZone' as any)}</span>
           <span class="sp-ap-sub">{$t('audiophile.lockVolumeZoneHelp' as any)}</span>
         </div>
-        <button
-          class="sp-ap-switch"
-          class:on={$audiophileLockVolume}
-          onclick={() => toggleVolumeLock()}
+        <select
+          class="sp-ap-choix"
+          value={choixVerrou}
           disabled={lockLoading}
-          role="switch"
-          aria-checked={$audiophileLockVolume}
           aria-label={$t('audiophile.lockVolumeZone' as any)}
+          onchange={(e) => toggleVolumeLock(
+            (e.currentTarget as HTMLSelectElement).value as ChoixVerrouZone,
+          )}
         >
-          <span class="sp-ap-knob"></span>
-        </button>
+          <option value="inherit">{$t('audiophile.lockInherit' as any)}</option>
+          <option value="on">{$t('audiophile.lockAlways' as any)}</option>
+          <option value="off">{$t('audiophile.lockNever' as any)}</option>
+        </select>
       </div>
 
       {#if zone?.signal_path}
@@ -2805,6 +2856,24 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
   .sp-ap-switch.on .sp-ap-knob {
     transform: translateX(16px);
+  }
+  /* Le verrou par zone a TROIS positions : une bascule ne peut pas les porter.
+     Même gabarit que les listes de réglage de zone, pour que la rangée reste
+     lisible sous l'interrupteur PURE qui la surplombe. */
+  .sp-ap-choix {
+    flex-shrink: 0;
+    max-width: 56%;
+    font-size: 12px;
+    padding: 4px 8px;
+    color: var(--tune-text);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .sp-ap-choix:disabled {
+    opacity: 0.6;
+    cursor: wait;
   }
 
   /* --- Sleep Timer --- */
