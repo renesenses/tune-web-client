@@ -29,12 +29,19 @@
  *       aveu-là suffisait à la déclarer vivante.
  *
  *   (c) 🔴 DU CODE DE PRODUCTION MORT. Le pire, et celui qu'aucune mesure ne
- *       voyait, parce qu'il ne vit pas dans `__tests__`. `volumeLockLabelKey()`
- *       et `volumeLockOriginKey()` (`lib/audiophileLockBadge.ts`) rendent
- *       quatre clés `devices.volumeLock*` en clair — mais `volumeLockBadge()`
- *       n'a aucun appelant de production, seulement son témoin. Une clé rangée
- *       dans une fonction exportée que personne n'appelle est indistinguable
- *       d'une clé affichée.
+ *       voyait, parce qu'il ne vit pas dans `__tests__`. Le cas qui a motivé ce
+ *       mécanisme : `volumeLockLabelKey()` et `volumeLockOriginKey()`
+ *       (`lib/audiophileLockBadge.ts`) rendaient quatre clés
+ *       `devices.volumeLock*` en clair, et `volumeLockBadge()` n'avait aucun
+ *       appelant de production, seulement son témoin. Une clé rangée dans une
+ *       fonction exportée que personne n'appelle est indistinguable d'une clé
+ *       affichée.
+ *
+ *       ✅ CE CAS-LÀ EST RÉPARÉ depuis le 27/09/2026 : le badge de verrou est
+ *       remonté sur la carte de zone (`components/v2/BadgeVerrouVolumeZone.svelte`)
+ *       et les quatre clés s'affichent pour de vrai — le plafond `fonctionMorte`
+ *       est passé de 20 à 16. L'exemple reste écrit ici parce qu'il dit ce que le
+ *       mécanisme cherche ; il ne décrit plus l'état de l'arbre.
  *
  * ── CE QUE CE MODULE FAIT, ET CE QU'IL NE FAIT PAS ───────────────────────
  *
@@ -591,11 +598,15 @@ export const MECANISMES = /** @type {const} */ ([
  *
  * `fonctionMorte`, non. Le site EST du code de production sans appelant : la
  * dette existe quoi qu'il arrive à la clé ailleurs. C'est pour cela que les
- * quatre `devices.volumeLock*` sont comptées, alors qu'un tableau de leur
- * témoin les nomme aussi — ce tableau ne prouve rien (sa boucle d'assertion est
- * VIDE, `verrouVolumeBadgeAppareil.test.ts`), et si l'on exigeait ici l'absence
- * de site solide, le mécanisme le plus grave des trois serait justement celui
- * qu'on ne verrait pas.
+ * quatre `devices.volumeLock*` ÉTAIENT comptées, alors qu'un tableau de leur
+ * témoin les nommait aussi — ce tableau ne prouvait rien, sa boucle d'assertion
+ * était VIDE (`verrouVolumeBadgeAppareil.test.ts`). Si l'on exigeait ici
+ * l'absence de site solide, le mécanisme le plus grave des trois serait
+ * justement celui qu'on ne verrait pas.
+ *
+ * (Ces quatre clés sont sorties du compte le 27/09/2026 : leur fonction a
+ * retrouvé son appelant, et la boucle du témoin a été remplie. La règle, elle,
+ * ne change pas — c'est elle qui avait rendu le défaut visible.)
  *
  * @param {string} racine
  * @returns {{faibles: Map<string, {mecanisme: string, site: string}>, fonctionsMortes: number, fonctionsTotal: number}}

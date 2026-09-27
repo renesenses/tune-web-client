@@ -117,6 +117,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
+  import BadgeVerrouVolumeZone from './BadgeVerrouVolumeZone.svelte';
   let indexTuneTested = $state<Map<string, AppareilTuneTested>>(new Map());
   // Une seule fois : l'effet ne lit RIEN de ce qu'il écrit.
   $effect(() => {
@@ -3823,6 +3824,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                              zone en vue grille porte le même, et deux copies
                              auraient divergé. -->
                         {#if tuneTestedDe(z)}<BadgeTuneTested />{/if}
+                        <!--
+                          VERROU DE VOLUME (#2395, #2506) — rebranché après la
+                          phase 5, qui l'a emporté avec `DevicesSettings.svelte`.
+                          Lecture seule : il dit ce qui s'applique VRAIMENT à
+                          cette zone (valeur résolue par le serveur) et d'où le
+                          réglage vient — général hérité, ou surcharge propre à
+                          la zone. Il se tait tant que le serveur n'a rien
+                          affirmé : un « non verrouillé » faux coûte du matériel.
+                        -->
+                        <BadgeVerrouVolumeZone zoneId={z.id} />
                       </div>
                       {#if jumelleDeProtocole(z, $zones)}
                         {@const j = jumelleDeProtocole(z, $zones)!}
