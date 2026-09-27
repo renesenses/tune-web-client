@@ -315,8 +315,29 @@ describe('sur l’arbre réel du client', () => {
     expect(comptes.assertionAbsence).toContain(cle('settings', 'crossfadeHint'));
     expect(comptes.assertionAbsence).toContain(cle('playlistManager', 'sameServiceOnly'));
     expect(comptes.assertionAbsence).toContain(cle('settings', 'migrateToSqliteBtn'));
-    expect(comptes.fonctionMorte).toContain(cle('devices', 'volumeLockOn'));
-    expect(comptes.fonctionMorte).toContain(cle('devices', 'volumeLockInherited'));
+  });
+
+  /**
+   * 🔴 LE CAS (c) DE LA CARTE EST RÉPARÉ — et c'est pour cela qu'il est inversé.
+   *
+   * La carte du 27/09 citait `devices.volumeLockOn` et
+   * `devices.volumeLockInherited` comme exemples de (c) : quatre clés rangées
+   * dans `volumeLockLabelKey()` / `volumeLockOriginKey()`, que `volumeLockBadge()`
+   * seul appelait — sans aucun appelant de production. Le badge de verrou avait
+   * quitté la carte d'appareil avec la phase 5.
+   *
+   * Il y est revenu (`components/v2/BadgeVerrouVolumeZone.svelte`, monté par la
+   * section « Réglages par zone »), et les quatre clés sont donc RÉELLEMENT
+   * affichées. Garder un `toContain` ici obligerait à laisser le défaut en
+   * place pour que la garde reste verte : un témoin ne demande pas que le
+   * défaut qu'il a nommé survive. Le sens est conservé en sens INVERSE — la
+   * détection ne doit plus les compter, sinon (c) verrait du code mort là où
+   * un écran affiche.
+   */
+  it('🔴 (c) ne compte plus les clés du badge de verrou : elles S’AFFICHENT', () => {
+    for (const nom of ['volumeLockOn', 'volumeLockOff', 'volumeLockInherited', 'volumeLockOwn']) {
+      expect(comptes.fonctionMorte, `devices.${nom}`).not.toContain(cle('devices', nom));
+    }
   });
 
   it('chaque compte reste sous son plafond', () => {

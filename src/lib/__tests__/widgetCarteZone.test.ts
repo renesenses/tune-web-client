@@ -22,6 +22,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { WIDGETS, DISPOSITION_DEFAUT, widgetParId } from '../accueilWidgets';
+import { zonesDeLaLigne } from '../premiereLigne';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 function sansCommentaires(src: string): string {
@@ -62,48 +63,45 @@ describe('le widget « En écoute »', () => {
     expect(WIDGETS.map((x) => x.id)).toContain('zones-cartes');
   });
 
-  it('ne fait AUCUN appel réseau : tout vient de ctx.zones', () => {
+  it('ne fait AUCUN appel réseau : tout vient du magasin de zones', () => {
     const src = sansCommentaires(lire('src/lib/accueilWidgets.ts'));
     const i = src.indexOf("id: 'zones-cartes'");
     const bloc = src.slice(i, src.indexOf("id: 'reprendre'", i));
-    expect(bloc).toContain('ctx.zones');
     expect(bloc, 'un widget de plus ne doit pas coûter une requête de plus')
       .not.toMatch(/\bapi\.\w+\(/);
   });
 
-  it('ne retient que les zones qui JOUENT ou sont en pause', async () => {
+  it('ne retient que les zones qui JOUENT ou sont en pause', () => {
     // Sur le .18, une zone `stopped` porte un `current_track` à la position 0 :
     // la retenir remplirait le widget de cartes muettes.
-    const els = await w.charger({
-      profileId: 1, albums: [],
-      zones: [
-        zone(),
-        zone({ id: 8, name: 'Cuisine', state: 'paused' }),
-        zone({ id: 9, name: 'Cet ordinateur', state: 'stopped', position_ms: 0 }),
-        zone({ id: 10, name: 'Vide', state: 'playing', current_track: null }),
-      ],
-    });
-    expect(els.map((e) => e.zoneId)).toEqual([7, 8]);
+    //
+    // 🔴 27/09/2026 — la question ne se pose plus au CHARGEUR mais au filtre
+    // partagé. Le chargeur ne produit plus de liste : il n'est appelé qu'une
+    // fois par `PageWidgets`, et sa liste était donc figée à l'ouverture de la
+    // page. C'est le défaut que Bertrand a vu sur la première ligne (« la zone
+    // active a disparu ») ; il vivait ici à l'identique, en moins visible
+    // parce qu'il faut ajouter ce widget à la main.
+    const zones = [
+      zone(),
+      zone({ id: 8, name: 'Cuisine', state: 'paused' }),
+      zone({ id: 9, name: 'Cet ordinateur', state: 'stopped', position_ms: 0 }),
+      zone({ id: 10, name: 'Vide', state: 'playing', current_track: null }),
+    ];
+    expect(zonesDeLaLigne(zones).map((z: any) => z.id)).toEqual([7, 8]);
   });
 
-  it('ne rend que des identifiants de zone, pas un instantané figé', async () => {
-    const els = await w.charger({ profileId: 1, albums: [], zones: [zone()] });
-    expect(els[0].zoneId).toBe(7);
-    expect(els[0].sous, 'le nom de la zone est le sous-titre').toBe('Salon');
-    // Ce qui bouge — position, durée, format — ne doit PAS être recopié ici :
-    // le rendu le relit dans le magasin vivant.
-    expect(els[0]).not.toHaveProperty('position_ms');
-    expect(els[0]).not.toHaveProperty('duration_ms');
+  it('le rendu lit le MAGASIN, jamais une liste figée', () => {
+    const src = sansCommentaires(lire('src/components/v2/PageWidgets.svelte'));
+    const i = src.indexOf('class="zcartes"');
+    const bloc = src.slice(i, i + 900);
+    expect(bloc).toContain('zonesDeLaLigne($zones)');
+    expect(bloc, 'la liste figée est revenue').not.toContain('et.elements');
   });
 
-  it('une zone sans titre reste affichée : la carte annonce la ZONE', async () => {
-    const els = await w.charger({
-      profileId: 1, albums: [],
-      zones: [zone({ current_track: { source: 'radio' } })],
-    });
-    expect(els).toHaveLength(1);
-    expect(els[0].titre).toBe('—');
-    expect(els[0].sous).toBe('Salon');
+  it('une zone sans titre reste affichée : la carte annonce la ZONE', () => {
+    // `utiles()` ne s'applique pas : une radio sans titre donne « — », mais la
+    // carte reste utile — c'est la ZONE qu'elle annonce, et son nom est là.
+    expect(zonesDeLaLigne([zone({ current_track: { source: 'radio' } })])).toHaveLength(1);
   });
 });
 
@@ -113,7 +111,12 @@ describe('le rendu de la carte', () => {
   it('relit le magasin VIVANT, pas l’élément chargé', () => {
     expect(src).toMatch(/const zoneVivante = \(id: number \| null \| undefined\) =>/);
     expect(src).toContain('$zones.find((z: any) => z.id === id)');
-    expect(src).toContain('{@const z = zoneVivante(el.zoneId)}');
+    // 27/09/2026 - la LISTE aussi vient du magasin, desormais, et plus
+    // seulement le contenu de chaque carte. `charger` ne s'executant qu'une
+    // fois, l'element charge decidait de l'EXISTENCE de la carte a l'ouverture
+    // de la page, pour toujours.
+    expect(src).toContain('{@const z = zoneVivante(zv.id)}');
+    expect(src, 'la liste figee est revenue').not.toContain('zoneVivante(el.zoneId)');
   });
 
   it('porte les deux ajouts demandés : nom de zone et spectrogramme', () => {

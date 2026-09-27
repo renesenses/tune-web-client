@@ -16,15 +16,29 @@
   import { onMount, onDestroy } from 'svelte';
   import { audioLevels } from '../../lib/stores/audioLevels';
   import { MIN_DB, PEAK_LAMP_DBFS } from '../../lib/tvVuScale';
-  import { avancerAiguille, cadreCadran, dessinerCadran, MAINTIEN_CRETE_MS } from '../../lib/dessinVuMetre';
+  import {
+    avancerAiguille, cadreCadran, dessinerCadran, MAINTIEN_CRETE_MS,
+    PALETTE_SOMBRE, paletteVuDepuis, type PaletteVu,
+  } from '../../lib/dessinVuMetre';
   import { t } from '../../lib/i18n';
 
   interface Props {
     playing: boolean;
     /** Largeur totale (les deux cadrans), hauteur déduite. */
     width?: number;
+    /**
+     * Le Grand écran est-il en mode CLAIR ?
+     *
+     * 🔴 Ce drapeau ne sert pas à choisir une couleur — c'est la feuille de
+     * style de `TvView` qui les porte, sur `.tv-root` et `.tv-root.light`. Il
+     * sert à SAVOIR QUAND relire : la palette est lue une fois, et sans lui le
+     * cadran garderait l'encre du mode précédent jusqu'à la fermeture de
+     * l'écran. Basculer clair/sombre se fait depuis le panneau du Grand écran,
+     * sans quitter la page.
+     */
+    clair?: boolean;
   }
-  let { playing, width = 560 }: Props = $props();
+  let { playing, width = 560, clair = false }: Props = $props();
 
   let canvas: HTMLCanvasElement | undefined = $state();
   let animId: number | null = null;
@@ -42,6 +56,12 @@
    *  60 Hz, 375 ms sur un écran à 120 Hz. Un témoin dont la durée dépend de
    *  l'écran n'est pas un témoin. */
   let peakUntil = [0, 0];
+
+  /** Les couleurs du thème, lues UNE fois au montage : le Grand écran ne
+   *  change pas de thème en cours de route, et `getComputedStyle` à chaque
+   *  image forcerait un recalcul de style par trame. Hors de `.tune-v2`, les
+   *  jetons ne résolvent pas et le repli rend le cadran d'origine. */
+  let palette: PaletteVu = PALETTE_SOMBRE;
 
   const reducedMotion =
     typeof window !== 'undefined' &&
@@ -82,12 +102,20 @@
         libelle: ch === 0 ? 'L' : 'R',
         db: needle[ch],
         creteAllumee: maintenant < peakUntil[ch],
+        palette,
       });
     }
     animId = requestAnimationFrame(frame);
   }
 
   onMount(() => { animId = requestAnimationFrame(frame); });
+
+  // La palette suit le mode de l'ÉCRAN, pas le thème de l'application : voir
+  // `clair` ci-dessus et les jetons posés sur `.tv-root` dans `TvView`.
+  $effect(() => {
+    void clair;
+    palette = paletteVuDepuis(canvas);
+  });
   onDestroy(() => { if (animId !== null) cancelAnimationFrame(animId); });
 </script>
 

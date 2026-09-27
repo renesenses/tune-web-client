@@ -357,7 +357,15 @@
 </div>
 
 <style>
-  .v2-ecran { padding: 24px; max-width: 760px; margin: 0 auto; }
+  /* 🔴 `min-height:0; overflow-y:auto` : la coquille met `.main` en
+     `overflow:hidden` et n'accorde l'ascenseur qu'à un enfant `.dash`
+     (`ShellV2:911,923`). Chaque écran porte donc le sien. Sans ça, une liste
+     d'alarmes plus haute que la fenêtre est COUPÉE, sans défilement — le même
+     défaut que FabienM avait signalé sous Recommandations (fil 1859, 20/09) et
+     que Bertrand a retrouvé sur Concerts le 27/09. `min-height:0` est
+     indispensable : un enfant de flex refuse sinon de rétrécir sous la hauteur
+     de son contenu, et le débordement ne défile pas. */
+  .v2-ecran { padding: 24px; max-width: 760px; margin: 0 auto; min-height: 0; overflow-y: auto; }
   .v2-entete { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
   .v2-entete h1 { margin: 0; font: 700 22px var(--v2-sans); color: var(--v2-txt); }
 

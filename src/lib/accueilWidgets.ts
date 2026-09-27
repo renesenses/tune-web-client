@@ -1146,18 +1146,19 @@ export const WIDGETS: Widget[] = [
      * muettes. C'est le filtre de `zones-cartes`, à l'identique et pour la
      * même raison.
      */
-    charger: async (ctx) =>
-      (ctx.zones ?? [])
-        .filter((z: any) => z?.current_track && (z.state === 'playing' || z.state === 'paused'))
-        .map((z: any, i: number) => ({
-          id: `l1zone${i}-${z?.id ?? ''}`,
-          titre: champ(z?.current_track, 'title') ?? '—',
-          sous: z?.name ?? '',
-          cover: champ(z?.current_track, 'cover_path', 'cover_url') ?? null,
-          source: champ(z?.current_track, 'source') ?? null,
-          zoneId: z?.id ?? null,
-          enLecture: z?.state === 'playing',
-        })),
+    // 🔴 RIEN. Et c'est le correctif du 27/09/2026 (« la zone active a
+    // disparu »). Ce chargeur produisait la liste des cartes ; or
+    // `PageWidgets` n'appelle `charger` qu'UNE FOIS par widget. La liste était
+    // donc figée à l'instant du chargement de la page : rien ne jouait à
+    // l'ouverture ⇒ aucune carte, pour toujours ; une zone démarrée après ⇒
+    // jamais de carte ; une zone arrêtée ⇒ sa carte restait.
+    //
+    // La ligne lit désormais le magasin VIVANT au rendu (`zonesDeLaLigne`).
+    // Ce chargeur n'a plus de matière à produire — il reste parce que le
+    // moteur attend une promesse pour faire passer le widget en « chargé »,
+    // et parce qu'un widget sans chargeur serait un cas de plus dans un moteur
+    // qui n'en a pas besoin.
+    charger: async () => [],
   },
   {
     id: 'zones',
@@ -1244,18 +1245,17 @@ export const WIDGETS: Widget[] = [
      * « — », mais la carte reste utile — c'est la ZONE qu'elle annonce, et son
      * nom est là.
      */
-    charger: async (ctx) =>
-      (ctx.zones ?? [])
-        .filter((z: any) => z?.current_track && (z.state === 'playing' || z.state === 'paused'))
-        .map((z: any, i: number) => ({
-          id: `zcarte${i}-${z?.id ?? ''}`,
-          titre: champ(z?.current_track, 'title') ?? '—',
-          sous: z?.name ?? '',
-          cover: champ(z?.current_track, 'cover_path', 'cover_url') ?? null,
-          source: champ(z?.current_track, 'source') ?? null,
-          zoneId: z?.id ?? null,
-          enLecture: z?.state === 'playing',
-        })),
+    // 🔴 RIEN — même correctif que la première ligne, 27/09/2026. Ce chargeur
+    // produisait la liste des cartes ; or `PageWidgets` n'appelle `charger`
+    // qu'UNE FOIS par widget. La liste était donc figée à l'ouverture de la
+    // page : rien ne jouait ⇒ widget vide pour toujours, une zone démarrée
+    // ensuite ⇒ jamais de carte, une zone arrêtée ⇒ sa carte restait.
+    //
+    // Le défaut était le même que celui que Bertrand a vu sur la première
+    // ligne (« la zone active a disparu ») ; il se voyait moins ici parce
+    // qu'il faut ajouter ce widget à la main. Le rendu lit désormais le
+    // magasin vivant par `zonesDeLaLigne`, comme la ligne d'en-tête.
+    charger: async () => [],
   },
   {
     id: 'reprendre',
