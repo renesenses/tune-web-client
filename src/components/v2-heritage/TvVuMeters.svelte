@@ -26,8 +26,19 @@
     playing: boolean;
     /** Largeur totale (les deux cadrans), hauteur déduite. */
     width?: number;
+    /**
+     * Le Grand écran est-il en mode CLAIR ?
+     *
+     * 🔴 Ce drapeau ne sert pas à choisir une couleur — c'est la feuille de
+     * style de `TvView` qui les porte, sur `.tv-root` et `.tv-root.light`. Il
+     * sert à SAVOIR QUAND relire : la palette est lue une fois, et sans lui le
+     * cadran garderait l'encre du mode précédent jusqu'à la fermeture de
+     * l'écran. Basculer clair/sombre se fait depuis le panneau du Grand écran,
+     * sans quitter la page.
+     */
+    clair?: boolean;
   }
-  let { playing, width = 560 }: Props = $props();
+  let { playing, width = 560, clair = false }: Props = $props();
 
   let canvas: HTMLCanvasElement | undefined = $state();
   let animId: number | null = null;
@@ -97,9 +108,13 @@
     animId = requestAnimationFrame(frame);
   }
 
-  onMount(() => {
+  onMount(() => { animId = requestAnimationFrame(frame); });
+
+  // La palette suit le mode de l'ÉCRAN, pas le thème de l'application : voir
+  // `clair` ci-dessus et les jetons posés sur `.tv-root` dans `TvView`.
+  $effect(() => {
+    void clair;
     palette = paletteVuDepuis(canvas);
-    animId = requestAnimationFrame(frame);
   });
   onDestroy(() => { if (animId !== null) cancelAnimationFrame(animId); });
 </script>

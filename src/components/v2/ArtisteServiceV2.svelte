@@ -90,7 +90,8 @@
   import { cibleRaccourciArtiste } from '../../lib/raccourciArtiste';
   import { focusDeSection, type FocusArtiste, type OrigineSection } from '../../lib/focusArtiste';
   import { dansSource } from '../../lib/provenanceBibliotheque';
-  import { melangee } from '../../lib/shuffle';
+  import { tirageAleatoire } from '../../lib/porteeAleatoire';
+  import { plafondFileAleatoire } from '../../lib/fileAleatoire';
 
   const cible = $derived($ficheArtisteService);
   /**
@@ -710,7 +711,8 @@
     try {
       if (provenance != null) {
         const pistes = ((await api.getArtistTracks(a.id)) ?? []).filter((p) => dansSource(p, provenance));
-        const n = await lirePistesSource(zid, a, aleatoire ? melangee(pistes) : pistes);
+        // #5284 — l'aléatoire rencontre le plafond de la file, comme partout.
+        const n = await lirePistesSource(zid, a, aleatoire ? tirageAleatoire(pistes, await plafondFileAleatoire()) : pistes);
         if (!n) notifications.error($tr('library.noTracks' as any));
       } else if (aleatoire) {
         const r = await api.shuffleAll(zid, { artist_id: a.id });
