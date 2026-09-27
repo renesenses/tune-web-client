@@ -16,7 +16,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { audioLevels } from '../../lib/stores/audioLevels';
   import { MIN_DB, PEAK_LAMP_DBFS } from '../../lib/tvVuScale';
-  import { avancerAiguille, dessinerCadran, MAINTIEN_CRETE_MS } from '../../lib/dessinVuMetre';
+  import { avancerAiguille, cadreCadran, dessinerCadran, MAINTIEN_CRETE_MS } from '../../lib/dessinVuMetre';
   import { t } from '../../lib/i18n';
 
   interface Props {
@@ -69,14 +69,19 @@
     for (let ch = 0; ch < 2; ch++) {
       needle[ch] = avancerAiguille(needle[ch], targets[ch], reducedMotion);
       if (playing && peaks[ch] > PEAK_LAMP_DBFS) peakUntil[ch] = maintenant + MAINTIEN_CRETE_MS;
+      // 🔴 `cy` vient du CADRE de la face, et non de 42 % de la hauteur : la
+      // face monte à 0,92 rayon au-dessus du centre, donc son haut passait
+      // au-dessus du bord de la toile. Le défaut est le même ici que dans la
+      // barre de lecture — il ne s'y voyait pas, sur un cadran de 235 px.
+      // La toile ne change pas de taille : le cadran s'y pose entier.
+      const rayon = (w / 2) * 0.42;
       dessinerCadran(ctx, {
         cx: w * (ch === 0 ? 0.26 : 0.74),
-        cy: h * 0.42,
-        rayon: (w / 2) * 0.42,
+        cy: cadreCadran(rayon).cy,
+        rayon,
         libelle: ch === 0 ? 'L' : 'R',
         db: needle[ch],
         creteAllumee: maintenant < peakUntil[ch],
-        dpr,
       });
     }
     animId = requestAnimationFrame(frame);

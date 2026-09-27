@@ -20,16 +20,20 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   RATIO_VU,
+  RAYON_VU,
   SEUIL_VU_PX,
   TAILLE_VU_BARRE,
   vuMetresVisibles,
 } from '../barreVuMetres';
 import {
+  BAS_FACE,
+  HAUT_FACE,
   MAINTIEN_CRETE_MS,
   MONTEE,
   RETOMBEE,
   SPAN,
   avancerAiguille,
+  cadreCadran,
   dbToAngle,
 } from '../dessinVuMetre';
 import { MIN_DB, MAX_DB } from '../tvVuScale';
@@ -178,22 +182,82 @@ describe('UN seul cadran pour les deux surfaces', () => {
 });
 
 describe('la géométrie du cadran de la barre', () => {
-  it('est celle du Grand écran, à l’identique', () => {
-    // Là-bas, deux cadrans partagent une toile large de `w`, haute de
-    // `0,34 w`, chacun d'un rayon de `0,42 · w/2`. Un cadran seul dans une
-    // toile large de `t` est le même dessin avec `t = w/2`.
-    expect(RATIO_VU).toBeCloseTo(0.68, 10);
-    expect(RATIO_VU).toBeCloseTo(0.34 * 2, 10);
+  it('garde le rayon du Grand écran', () => {
+    // Là-bas, deux cadrans partagent une toile large de `w`, chacun d'un rayon
+    // de `0,42 · w/2`. Un cadran seul dans une toile large de `t` est le même
+    // dessin avec `t = w/2`.
+    expect(RAYON_VU).toBeCloseTo(0.42, 10);
     expect(TAILLE_VU_BARRE).toBe(84);
   });
 
+  it('🔴 CONTIENT LA FACE ENTIÈRE — le défaut vu par Bertrand sur le .18', () => {
+    // « Vumètres mal centrés… en hauteur ! » (27/09/2026). La face monte à
+    // 0,92 rayon AU-DESSUS du centre du cadran ; le centre était posé à 42 %
+    // de la hauteur, donc le haut passait au-dessus du bord de la toile et il
+    // restait du vide en bas.
+    const cote = TAILLE_VU_BARRE;
+    const rayon = cote * RAYON_VU;
+    const hauteur = cote * RATIO_VU;
+    const { cy } = cadreCadran(rayon);
+
+    expect(cy - HAUT_FACE * rayon, 'le haut de la face est coupé').toBeGreaterThanOrEqual(0);
+    expect(cy + BAS_FACE * rayon, 'le bas de la face déborde').toBeLessThanOrEqual(hauteur);
+    // Et pas de vide inutile : la toile épouse la face au pixel près.
+    expect(hauteur).toBeCloseTo((HAUT_FACE + BAS_FACE) * rayon, 10);
+  });
+
+  it('CONTRE-ÉPREUVE : l’ancien cadrage coupait bien le haut', () => {
+    // Le témoin du défaut, pour qu'on ne puisse pas le réintroduire en
+    // croyant « simplifier » : 0,68 de côté et le centre à 42 % de la hauteur
+    // — les deux cotes recopiées du Grand écran — laissent la face hors cadre.
+    const rayon = TAILLE_VU_BARRE * RAYON_VU;
+    const ancienneHauteur = TAILLE_VU_BARRE * 0.68;
+    const ancienCy = ancienneHauteur * 0.42;
+    expect(ancienCy - HAUT_FACE * rayon).toBeLessThan(0);
+  });
+
+  it('la hauteur se DÉDUIT de la face, elle n’est pas recopiée', () => {
+    expect(RATIO_VU).toBeCloseTo((HAUT_FACE + BAS_FACE) * RAYON_VU, 10);
+    expect(sansCommentaires(lire('src/lib/barreVuMetres.ts')))
+      .toContain('(HAUT_FACE + BAS_FACE) * RAYON_VU');
+  });
+
+  it('le cadran n’a plus AUCUN pixel absolu', () => {
+    // Graduations, chiffres et polices étaient posés en pixels absolus
+    // (`arcR + 13`, `9px`) : justes vers r ≈ 118, absurdes vers r ≈ 35, où les
+    // chiffres sortaient de la face. Tout est désormais multiplié par `u`, la
+    // taille du cadran rapportée à son rayon nominal.
+    const src = sansCommentaires(lire('src/lib/dessinVuMetre.ts'));
+    expect(src).toContain('const u = rayon / 117.6');
+    expect(src, 'un `* dpr` a survécu').not.toMatch(/\*\s*dpr/);
+  });
+
+  it('les textes gardent un plancher de lisibilité', () => {
+    // Proportionnels comme le reste, mais à 2,7 px un chiffre n'est plus un
+    // chiffre. Le plancher ne mord que sur les petits cadrans : au rayon
+    // nominal, les trois polices valent exactement 9, 11 et 12.
+    const src = sansCommentaires(lire('src/lib/dessinVuMetre.ts'));
+    expect(src).toContain('Math.max(MIN_TICK, 9 * u)');
+    expect(src).toContain('Math.max(MIN_TEXTE_DB, 11 * u)');
+    expect(src).toContain('Math.max(MIN_CANAL, 12 * u)');
+  });
+
   it('dessine en pixels CSS : les traits ne sont pas épaissis deux fois', () => {
-    // La toile est mise à l'échelle par `setTransform(dpr, …)`. Multiplier
-    // AUSSI les traits par `dpr` ferait de l'aiguille un trait gras sur un
-    // écran Retina.
+    // La toile est mise à l'échelle par `setTransform(dpr, …)` : le dessin
+    // travaille en pixels CSS. C'est pourquoi `dessinerCadran` ne prend plus
+    // de `dpr` — il tire tout du rayon.
     const src = sansCommentaires(lire(CADRAN));
     expect(src).toContain('ctx.setTransform(dpr, 0, 0, dpr, 0, 0)');
-    expect(src).toContain('dpr: 1,');
+    expect(src).not.toContain('dpr: 1,');
+  });
+
+  it('les DEUX surfaces posent leur cadran par le même cadre', () => {
+    // Le Grand écran avait le même défaut, invisible sur un cadran de 235 px.
+    // Deux cadrages différents auraient redonné deux instruments.
+    expect(sansCommentaires(lire(CADRAN))).toContain('cadreCadran(');
+    expect(sansCommentaires(lire(GRAND_ECRAN))).toContain('cadreCadran(');
+    expect(sansCommentaires(lire(GRAND_ECRAN)), 'le cadrage de 42 % est revenu')
+      .not.toContain('cy: h * 0.42');
   });
 
   it('arrête sa boucle au repos, et la passe par la cadence réglée', () => {
