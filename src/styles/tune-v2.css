@@ -57,6 +57,12 @@
   --v2-vu-face-h:rgba(255,255,255,.055); --v2-vu-face-b:rgba(255,255,255,.015);
   --v2-vu-bord:rgba(255,255,255,.12); --v2-vu-encre:237,233,224;
   --v2-vu-rouge:224,82,82; --v2-vu-aiguille:#f2b441; --v2-vu-lueur:rgba(242,180,65,.45);
+  /* Le crête-mètre (#452), même raison : sa toile n'hérite d'aucune couleur.
+     Le vert, l'ambre et le rouge portent un SENS — ils sont rendus lisibles,
+     jamais repeints aux couleurs du thème. */
+  --v2-crete-fond:rgba(255,255,255,.06); --v2-crete-vert:#4ade80;
+  --v2-crete-ambre:#fbbf24; --v2-crete-rouge:#ef4444;
+  --v2-crete-ppm:rgba(255,255,255,.85); --v2-crete-eteint:rgba(255,255,255,.12);
   --v2-r-card:4px; --v2-r-pill:20px; --v2-r-md:12px;
   --v2-mono:'Roboto Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --v2-sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
@@ -123,6 +129,12 @@
   --v2-vu-face-h:rgba(28,32,38,.05); --v2-vu-face-b:rgba(28,32,38,.015);
   --v2-vu-bord:rgba(20,28,36,.22); --v2-vu-encre:44,50,58;
   --v2-vu-rouge:192,57,43; --v2-vu-aiguille:#B45309; --v2-vu-lueur:rgba(180,83,9,.30);
+  /* 🔴 En clair, du crête-mètre il ne restait QUE les barres : rail, trait de
+     crête et lampe ÉTEINTE étaient blancs sur blanc — et « éteint » est
+     l'état normal d'une lampe. */
+  --v2-crete-fond:rgba(20,28,36,.10); --v2-crete-vert:#16a34a;
+  --v2-crete-ambre:#b45309; --v2-crete-rouge:#c0392b;
+  --v2-crete-ppm:rgba(20,28,36,.80); --v2-crete-eteint:rgba(20,28,36,.18);
   --v2-glow:rgba(0,168,138,.20); --v2-glow-strong:rgba(0,168,138,.26); --v2-acc-soft:rgba(0,147,174,.09); --v2-focus:rgba(0,147,174,.22); --v2-scrim:rgba(255,255,255,.85); --v2-sh-sm:rgba(16,32,48,.14);
 }
 
@@ -145,6 +157,12 @@
   --v2-vu-face-h:rgba(28,32,38,.05); --v2-vu-face-b:rgba(28,32,38,.015);
   --v2-vu-bord:rgba(20,28,36,.22); --v2-vu-encre:44,50,58;
   --v2-vu-rouge:192,57,43; --v2-vu-aiguille:#B45309; --v2-vu-lueur:rgba(180,83,9,.30);
+  /* 🔴 En clair, du crête-mètre il ne restait QUE les barres : rail, trait de
+     crête et lampe ÉTEINTE étaient blancs sur blanc — et « éteint » est
+     l'état normal d'une lampe. */
+  --v2-crete-fond:rgba(20,28,36,.10); --v2-crete-vert:#16a34a;
+  --v2-crete-ambre:#b45309; --v2-crete-rouge:#c0392b;
+  --v2-crete-ppm:rgba(20,28,36,.80); --v2-crete-eteint:rgba(20,28,36,.18);
   --v2-glow:rgba(55,113,142,.20); --v2-glow-strong:rgba(55,113,142,.26); --v2-acc-soft:rgba(74,140,168,.10); --v2-focus:rgba(74,140,168,.24); --v2-scrim:rgba(237,239,242,.85); --v2-sh-sm:rgba(16,32,48,.14);
 }
 
