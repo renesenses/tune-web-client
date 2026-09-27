@@ -276,6 +276,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     v2SettingsTarget.set(null);
     if (target.zone != null) {
       tick().then(() => document.getElementById(`zc-${target.zone}`)?.scrollIntoView({ block: 'center' }));
+    } else if (target.section) {
+      // #1670 — la carte visée est mise en avant ET amenée à l'écran : une
+      // carte surlignée hors du cadre ne se voit pas plus qu'une carte muette.
+      const section = target.section;
+      tick().then(() => document.querySelector(`[data-section="${section}"]`)?.scrollIntoView?.({ block: 'start' }));
     }
   });
 
@@ -2976,7 +2981,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         </div>
 
         {#each sections as s (s.id)}
-          <section class="card" class:hl={highlight === s.id}>
+          <section class="card" class:hl={highlight === s.id} data-section={s.id}>
             <div class="cardhead">
               <h3>{title(s)}</h3>
             </div>
