@@ -1881,23 +1881,6 @@ export function getAlbum(id: number) {
   return fetchJSON<Album>(`${BASE}/library/albums/${id}`);
 }
 
-/** Effective reading order of configured music directories (#1688 / server #4907). */
-export interface MusicDirectoryOrder {
-  ordre: string[];
-  music_dirs: string[];
-  regle: string[];
-}
-
-export function getMusicDirectoryOrder(): Promise<MusicDirectoryOrder> {
-  return fetchJSON<MusicDirectoryOrder>(`${BASE}/library/repertoires/ordre`);
-}
-
-export function setMusicDirectoryOrder(ordre: string[]): Promise<MusicDirectoryOrder> {
-  return fetchJSON<MusicDirectoryOrder>(`${BASE}/library/repertoires/ordre`, {
-    method: 'PUT', body: JSON.stringify({ ordre }),
-  });
-}
-
 export function getAlbumTracks(id: number, quality?: string | null, format?: string | null) {
   // Forward the active library quality/format filter so the album detail shows
   // only the matching tracks (Sergio: a Hi-Res/FLAC filter must not reveal the
@@ -4022,6 +4005,23 @@ export async function removeMusicDir(path: string, confirmPurge?: number) {
     body: JSON.stringify(body),
   });
   return { ...r, music_dirs: listeDossiers(r) };
+}
+
+/** Effective reading order of configured music directories (#1688 / server #4907). */
+export interface MusicDirectoryOrder {
+  ordre: string[];
+  music_dirs: string[];
+  regle: string[];
+}
+
+export function getMusicDirectoryOrder(): Promise<MusicDirectoryOrder> {
+  return fetchJSON<MusicDirectoryOrder>(`${BASE}/library/repertoires/ordre`);
+}
+
+export function setMusicDirectoryOrder(ordre: string[]): Promise<MusicDirectoryOrder> {
+  return fetchJSON<MusicDirectoryOrder>(`${BASE}/library/repertoires/ordre`, {
+    method: 'PUT', body: JSON.stringify({ ordre }),
+  });
 }
 
 export function triggerScan(path?: string, full = false) {
