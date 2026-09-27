@@ -17,6 +17,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { balisageDe, noeudsDeTexte, ENTITES_HTML } from './lib/balisage.mjs';
 import { prefixesDynamiques, clesLitterales } from './lib/prefixesDynamiques.mjs';
+import { referencesFaibles } from './lib/referencesFaibles.mjs';
 
 const VISIBLE = />([^<>{}]*[a-zà-ÿ][^<>{}]*)<|(?:title|placeholder|aria-label|label)="([^"{}]+)"/g;
 
@@ -401,3 +402,102 @@ console.log(
   `i18n check: aucune clé orpheline (${prefixes.size} préfixes dynamiques dérivés du code, ` +
     `${exemptees} clés exemptées, ${enumerees.size} énumérées).`
 );
+
+/* -------------------------------------------------------------------------
+ * Cinquième contrôle : les RÉFÉRENCES QUI NE MONTRENT RIEN.
+ *
+ * Le quatrième contrôle tient le plafond des clés orphelines à zéro. Il décide
+ * « appelée » par `clesLitterales()` — la clé est écrite en entier quelque part
+ * sous `src` — et c'est volontairement généreux : un témoin compte, parce que
+ * c'est souvent le témoin qui garde la clé d'un écran que ce contrôle ne sait
+ * pas lire.
+ *
+ * Trois façons d'écrire une clé la déclaraient donc vivante sans qu'un seul
+ * pixel s'affiche. Mesurées le 27/09/2026 sur `main`, jamais supposées :
+ *
+ *   (a) un COMMENTAIRE suffit — 5 clés, dont deux dans un exemple de JSDoc de
+ *       `lib/stores/dialogs.ts`, un fichier de PRODUCTION ; et l'un des trois
+ *       commentaires de témoin est faux (`forcerImagesArtistes.test.ts` affirme
+ *       un `use:tip={'tip.rescanArtwork'}` qui n'existe nulle part) ;
+ *   (b) une ASSERTION D'ABSENCE — 3 clés. `expect(x).not.toContain('cle')` dit
+ *       que la clé n'est PAS rendue : c'est l'exact contraire d'une référence ;
+ *   (c) du CODE DE PRODUCTION MORT — 20 clés dans 10 fonctions exportées sans
+ *       le moindre appelant de production, réparties sur 7 modules de `lib/`.
+ *       C'est l'angle mort le plus grave, et celui qu'aucune mesure ne voyait :
+ *       il ne vit pas dans `__tests__`.
+ *
+ * 🔴 ON NE PURGE RIEN ICI. Ce contrôle CHIFFRE la dette et l'empêche de
+ * grandir. Les suppressions se décident famille par famille : plusieurs de ces
+ * clés nomment des fonctions PRÉSENTES dont le libellé a été perdu par
+ * accident, et deux lots sont en cours là-dessus. Purger sans trier détruirait
+ * ce qu'il faut justement rendre visible.
+ *
+ * Chaque mécanisme a son propre plafond, fixé au compte mesuré. Il ne pourra
+ * plus que baisser : la dette est chiffrée, et ne peut plus grandir en silence.
+ * Ce qu'aucune de ces trois détections ne voit est écrit dans
+ * `scripts/lib/referencesFaibles.mjs`, en tête — un contrôleur qui prétend plus
+ * qu'il ne fait est pire que pas de contrôleur.
+ * ---------------------------------------------------------------------- */
+
+const PLAFONDS = {
+  fonctionMorte: 20,
+  commentaire: 5,
+  assertionAbsence: 3,
+};
+
+const EXPLICATIONS = {
+  fonctionMorte:
+    "clé(s) rangée(s) dans une fonction de production SANS APPELANT — le\n" +
+    '  libellé existe, aucun écran ne le demande',
+  commentaire: "clé(s) que seul un COMMENTAIRE nomme — aucun appel, nulle part",
+  assertionAbsence:
+    "clé(s) dont la seule mention est une assertion d'ABSENCE — un test qui\n" +
+    "  affirme qu'elles ne sont pas rendues",
+};
+
+const { faibles } = referencesFaibles('src');
+
+/** @type {Record<string, [string, string][]>} */
+const parMecanisme = { fonctionMorte: [], commentaire: [], assertionAbsence: [] };
+for (const [cle, { mecanisme, site }] of faibles) {
+  // Une clé qu'aucun dictionnaire ne déclare n'est pas une clé ; une clé
+  // couverte par un préfixe dynamique ou énumérée est légitimement exemptée,
+  // et on le demande au MÊME code que la porte, jamais à un second calcul.
+  if (!fr.has(cle)) continue;
+  if (enumerees.has(cle) || couvertePar(cle)) continue;
+  parMecanisme[mecanisme].push([cle, site]);
+}
+
+let depassement = false;
+for (const [mecanisme, plafond] of Object.entries(PLAFONDS)) {
+  const liste = parMecanisme[mecanisme].sort(([a], [b]) => a.localeCompare(b));
+  if (liste.length <= plafond) {
+    console.log(`i18n check: ${mecanisme} — ${liste.length} clé(s) (plafond : ${plafond}).`);
+    continue;
+  }
+  depassement = true;
+  console.error(
+    `\n${liste.length} ${EXPLICATIONS[mecanisme]}\n  (plafond : ${plafond}) :\n`
+  );
+  for (const [cle, site] of liste) console.error(`  ${cle}\n      ${site}`);
+}
+
+if (depassement) {
+  console.error(`
+Ces clés passent pour vivantes SANS ÊTRE AFFICHÉES. Les plafonds sont fixés au
+compte mesuré le 27/09/2026 : ils ne peuvent que baisser.
+
+Ne relevez pas un plafond pour faire passer la porte — c'est exactement ce que
+cette garde empêche. Deux issues seulement :
+
+  - la clé doit VIVRE : branchez-la pour de bon (un écran qui l'affiche, ou
+    l'appelant qui manque à la fonction), et elle sort d'elle-même du compte ;
+  - la clé est MORTE : retirez-la des ${surDisque.length} fichiers de
+    src/lib/locales/, et baissez le plafond d'autant dans le même commit.
+
+Si la détection se trompe — un appel indirect qu'elle ne sait pas suivre —
+c'est la LECTURE qu'il faut corriger dans scripts/lib/referencesFaibles.mjs,
+dont l'en-tête dit déjà ce qu'elle ne voit pas. Pas le plafond.
+`);
+  process.exit(1);
+}
