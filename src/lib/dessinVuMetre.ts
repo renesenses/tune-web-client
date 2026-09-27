@@ -60,6 +60,45 @@ export function avancerAiguille(actuelle: number, cible: number, mouvementReduit
  */
 export const MAINTIEN_CRETE_MS = 750;
 
+/**
+ * 🔴 LA FACE, EN UNITÉS DE RAYON — et le cadre qu'elle exige.
+ *
+ * Bertrand, 27/09/2026, sur le .18 : « Vumètres mal centrés… en hauteur ! ».
+ * La face monte à `HAUT_FACE` rayons AU-DESSUS du centre du cadran et descend
+ * à `BAS_FACE` en dessous. Le Grand écran plaçait ce centre à 42 % de la
+ * hauteur de sa toile : le haut de la face passait donc au-dessus du bord
+ * — coupé — et il restait du vide en bas. Invisible sur un cadran de 235 px,
+ * criant sur un cadran de 35.
+ *
+ * `cadreCadran` rend le seul cadre qui contienne la face entière. Les deux
+ * surfaces l'appellent : une géométrie décidée à deux endroits redeviendrait
+ * deux instruments.
+ */
+export const HAUT_FACE = 0.92;
+export const BAS_FACE = 0.63;
+
+export function cadreCadran(rayon: number): { hauteur: number; cy: number } {
+  return { hauteur: (HAUT_FACE + BAS_FACE) * rayon, cy: HAUT_FACE * rayon };
+}
+
+/**
+ * Plancher de lisibilité des textes, en pixels de dessin.
+ *
+ * 🔴 Tout le reste du cadran est proportionnel au rayon — c'est ce qui manquait
+ * et ce qui cassait les petits cadrans : les graduations et les chiffres
+ * étaient posés en pixels ABSOLUS (`arcR + 13`, `9px`), justes vers r ≈ 118 et
+ * absurdes vers r ≈ 35, où les chiffres sortaient de la face.
+ *
+ * Le texte, lui, ne peut pas descendre indéfiniment : à 2,7 px un chiffre n'est
+ * plus un chiffre, c'est du bruit. Les trois polices sont donc proportionnelles
+ * AVEC un plancher, et le plancher ne mord que sur les petits cadrans — au
+ * rayon nominal du Grand écran, les trois valent exactement ce qu'elles
+ * valaient : 9, 11 et 12.
+ */
+const MIN_TICK = 7;
+const MIN_TEXTE_DB = 8;
+const MIN_CANAL = 9;
+
 export interface CadranVu {
   /** Centre du cadran, en pixels de la toile (déjà à l'échelle `dpr`). */
   cx: number;
@@ -72,8 +111,6 @@ export interface CadranVu {
   db: number;
   /** Le témoin de crête est-il allumé ? */
   creteAllumee: boolean;
-  /** Densité de pixels : les traits et les textes la suivent. */
-  dpr: number;
 }
 
 /**
@@ -81,7 +118,21 @@ export interface CadranVu {
  * `restore`) : l'appelant en pose plusieurs sans précaution.
  */
 export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void {
-  const { cx, cy, rayon, libelle, db, creteAllumee, dpr } = o;
+  const { cx, cy, rayon, libelle, db, creteAllumee } = o;
+
+  /**
+   * 🔴 PLUS AUCUN PIXEL ABSOLU ICI.
+   *
+   * Les fractions ci-dessous sont celles que les anciennes valeurs valaient au
+   * rayon nominal du Grand écran (toile de 560 px, `dpr` 2 ⇒ r = 235,2) : 3/r,
+   * 4,8/r, … Le Grand écran rend donc EXACTEMENT le même cadran, et un cadran
+   * de barre de lecture rend le même en petit — ce qui n'était pas le cas.
+   *
+   * `dpr` a disparu du contrat pour la même raison : le rayon le porte déjà.
+   * Le multiplier une seconde fois doublait l'épaisseur des traits sur les
+   * appelants qui dessinent, eux, en pixels CSS.
+   */
+  const u = rayon / 117.6;
 
   ctx.save();
   ctx.translate(cx, cy);
@@ -95,9 +146,9 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
   grad.addColorStop(1, 'rgba(255,255,255,0.015)');
   ctx.fillStyle = grad;
   ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-  ctx.lineWidth = 1.5 * dpr;
+  ctx.lineWidth = 1.5 * u;
   ctx.beginPath();
-  ctx.roundRect(-faceR, -faceR * 0.92, faceR * 2, faceR * 1.55, 10 * dpr);
+  ctx.roundRect(-faceR, -faceR * HAUT_FACE, faceR * 2, faceR * (HAUT_FACE + BAS_FACE), 10 * u);
   ctx.fill();
   ctx.stroke();
 
@@ -105,7 +156,7 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
   const a0 = -Math.PI / 2 + dbToAngle(MIN_DB);
   const aRed = -Math.PI / 2 + dbToAngle(RED_FROM_DB);
   const a1 = -Math.PI / 2 + dbToAngle(MAX_DB);
-  ctx.lineWidth = 2.4 * dpr;
+  ctx.lineWidth = 2.4 * u;
   ctx.strokeStyle = 'rgba(237,233,224,0.75)';
   ctx.beginPath();
   ctx.arc(0, faceR * 0.42, arcR, a0, aRed);
@@ -116,21 +167,21 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
   ctx.stroke();
 
   // Graduations + chiffres
-  ctx.font = `${Math.round(9 * dpr)}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
+  ctx.font = `${Math.round(Math.max(MIN_TICK, 9 * u))}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (const tick of TICKS) {
     const a = -Math.PI / 2 + dbToAngle(tick);
-    const inner = arcR - 6 * dpr;
-    const outer = arcR + (tick === RED_FROM_DB ? 7 : 4) * dpr;
+    const inner = arcR - 6 * u;
+    const outer = arcR + (tick === RED_FROM_DB ? 7 : 4) * u;
     ctx.strokeStyle = tick >= RED_FROM_DB ? 'rgba(224,82,82,0.95)' : 'rgba(237,233,224,0.7)';
-    ctx.lineWidth = (tick === RED_FROM_DB ? 2.2 : 1.2) * dpr;
+    ctx.lineWidth = (tick === RED_FROM_DB ? 2.2 : 1.2) * u;
     ctx.beginPath();
     ctx.moveTo(Math.cos(a) * inner, faceR * 0.42 + Math.sin(a) * inner);
     ctx.lineTo(Math.cos(a) * outer, faceR * 0.42 + Math.sin(a) * outer);
     ctx.stroke();
     if (LABELED_TICKS.includes(tick)) {
-      const tr = arcR + 13 * dpr;
+      const tr = arcR + 13 * u;
       ctx.fillStyle = tick >= RED_FROM_DB ? 'rgba(224,82,82,0.9)' : 'rgba(237,233,224,0.6)';
       ctx.fillText(String(Math.abs(tick)), Math.cos(a) * tr, faceR * 0.42 + Math.sin(a) * tr);
     }
@@ -140,20 +191,20 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
   // texte d'interface : ils ne se traduisent pas (un VU-mètre porte les mêmes
   // lettres dans toutes les langues).
   ctx.fillStyle = 'rgba(237,233,224,0.5)';
-  ctx.font = `600 ${Math.round(11 * dpr)}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
+  ctx.font = `600 ${Math.round(Math.max(MIN_TEXTE_DB, 11 * u))}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
   ctx.fillText('dB', 0, faceR * 0.06);
-  ctx.font = `600 ${Math.round(12 * dpr)}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
+  ctx.font = `600 ${Math.round(Math.max(MIN_CANAL, 12 * u))}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
   ctx.fillStyle = 'rgba(242,180,65,0.85)';
   ctx.fillText(libelle, 0, faceR * 0.5);
 
   // Témoin de crête
   ctx.beginPath();
-  ctx.arc(faceR * 0.72, -faceR * 0.6, 4.5 * dpr, 0, Math.PI * 2);
+  ctx.arc(faceR * 0.72, -faceR * 0.6, 4.5 * u, 0, Math.PI * 2);
   ctx.fillStyle = creteAllumee ? 'rgba(224,82,82,1)' : 'rgba(224,82,82,0.18)';
   ctx.fill();
   if (creteAllumee) {
     ctx.shadowColor = 'rgba(224,82,82,0.9)';
-    ctx.shadowBlur = 8 * dpr;
+    ctx.shadowBlur = 8 * u;
     ctx.fill();
     ctx.shadowBlur = 0;
   }
@@ -162,18 +213,18 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
   const na = -Math.PI / 2 + dbToAngle(db);
   const pivotY = faceR * 0.42;
   ctx.strokeStyle = '#f2b441';
-  ctx.lineWidth = 2.2 * dpr;
+  ctx.lineWidth = 2.2 * u;
   ctx.lineCap = 'round';
   ctx.shadowColor = 'rgba(242,180,65,0.45)';
-  ctx.shadowBlur = 6 * dpr;
+  ctx.shadowBlur = 6 * u;
   ctx.beginPath();
   ctx.moveTo(Math.cos(na) * (arcR * 0.12), pivotY + Math.sin(na) * (arcR * 0.12));
-  ctx.lineTo(Math.cos(na) * (arcR - 3 * dpr), pivotY + Math.sin(na) * (arcR - 3 * dpr));
+  ctx.lineTo(Math.cos(na) * (arcR - 3 * u), pivotY + Math.sin(na) * (arcR - 3 * u));
   ctx.stroke();
   ctx.shadowBlur = 0;
   // Pivot
   ctx.beginPath();
-  ctx.arc(0, pivotY, 5 * dpr, 0, Math.PI * 2);
+  ctx.arc(0, pivotY, 5 * u, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(237,233,224,0.85)';
   ctx.fill();
 
