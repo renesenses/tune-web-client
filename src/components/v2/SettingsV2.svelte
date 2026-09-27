@@ -25,6 +25,8 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { emphaseParts } from '../../lib/i18nEmphase';
   import { preferences } from '../../lib/stores/preferences';
+  import { typesSourcesBarre } from '../../lib/sources';
+  import { TYPES_SOURCE_BARRE, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
   import { atLeast } from '../../lib/uiLevel';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
@@ -2830,6 +2832,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
   function go(id: V2SettingsTabId) { tabId = id; highlight = null; }
+
+  /** #5065, étape 3 — une case « Afficher dans la barre » par type de
+   *  source : décider une case ne décide qu'elle. */
+  function basculerTypeSource(type: TypeSourceBarre, coche: boolean) {
+    preferences.update((pr) => ({ ...pr, sourcesBarre: { ...(pr.sourcesBarre ?? {}), [type]: coche } }));
+  }
 </script>
 
 <section class="v2-settings tune-v2">
@@ -3036,6 +3044,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+
+              <!-- tune-server-rust#5065, étape 3 — Bertrand, 27/09/2026 :
+                   toutes les sources connues dans la barre, grisées quand
+                   elles sont indisponibles, et une case par TYPE. Par défaut,
+                   seuls les types présents sur la machine sont cochés. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.sidebarSources' as any)}</span>
+                  <span class="hint">{$t('settings.sidebarSourcesHint' as any)}</span>
+                </div>
+              </div>
+              {#each TYPES_SOURCE_BARRE as type (type)}
+                <div class="row">
+                  <div class="lbl"><span>{$t(`v2.sources.type.${type}` as any)}</span></div>
+                  <label class="sw">
+                    <input type="checkbox" data-type-source={type} checked={$typesSourcesBarre[type]}
+                      onchange={(e) => basculerTypeSource(type, (e.currentTarget as HTMLInputElement).checked)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/each}
 
               <!-- tune-server-rust#4368 — FabienM (fil 1829, point 11) :
                    « Il faut grouper par source et tous les résultats Qobuz
