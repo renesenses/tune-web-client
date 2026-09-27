@@ -21,16 +21,28 @@
    * `stores/library.ts` dérive une liste de genres des albums DÉJÀ chargés :
    * elle ne vaut que ce que la coquille a eu le temps de charger, et une
    * bibliothèque paginée la rend fausse. La route, elle, compte sur la base.
+   *
+   * ## Le classement : CE QU'ON ÉCOUTE, pas ce qu'on possède (v0.9.168)
+   *
+   * Bertrand, 27/09/2026 : les pastilles se rangent par volume d'écoute
+   * décroissant, et le panneau ne montre QUE les genres réellement écoutés.
+   * `/library/genres` sert `plays` à côté de `count` depuis la 0.9.168 : la
+   * même requête, déjà faite ici, porte les deux chiffres — la première ligne
+   * se peint au démarrage et n'en supporterait pas une seconde.
+   *
+   * 🔴 Tant qu'aucune écoute n'est connue, l'ordre par taille de bibliothèque
+   * REPREND la main : sans cela, une installation neuve afficherait une colonne
+   * vide, qui passe pour une panne. Voir `classerGenresDuPanneau`.
    */
   import { tick } from 'svelte';
   import * as api from '../../../lib/api';
   import { t } from '../../../lib/i18n';
   import { activeView } from '../../../lib/stores/navigation';
-  import { LARGEUR_GENRES } from '../../../lib/premiereLigne';
+  import { LARGEUR_GENRES, classerGenresDuPanneau } from '../../../lib/premiereLigne';
   import PanneauL1 from './PanneauL1.svelte';
 
   let phase = $state<'attente' | 'charge' | 'echec'>('attente');
-  let genres = $state<{ name: string; count: number }[]>([]);
+  let genres = $state<{ name: string; count?: number; plays?: number }[]>([]);
 
   $effect(() => {
     let vivant = true;
@@ -38,11 +50,14 @@
       .getGenres()
       .then((g) => {
         if (!vivant) return;
-        // Les plus fournis d'abord : une colonne de quinze pastilles rangée
-        // par ordre alphabétique commencerait par ce que personne n'écoute.
-        genres = (g ?? [])
-          .filter((x) => x?.name?.trim())
-          .sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+        // 🔴 LES PLUS ÉCOUTÉS d'abord, et eux SEULS — v0.9.168.
+        //
+        // Le panneau triait sur `count`, le nombre d'albums en bibliothèque :
+        // il mettait donc en tête ce qu'on POSSÈDE le plus, pas ce qu'on
+        // ÉCOUTE. La règle, le repli quand rien n'a encore été écouté, et
+        // l'ordre d'égalité vivent dans `classerGenresDuPanneau` — une seule
+        // définition, gardée par `panneauGenresParEcoutes168.test.ts`.
+        genres = classerGenresDuPanneau(g ?? []);
         phase = 'charge';
       })
       .catch(() => {

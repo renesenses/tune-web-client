@@ -92,7 +92,9 @@
           <button class="carte" data-coffret={c.id} onclick={() => onOuvrir(c)}>
             <AlbumArt coverPath={c.cover_path ?? null} albumId={c.id ?? null} size={0} alt={c.title ?? ''} />
             <span class="titre">{c.title ?? ''}</span>
-            {#if c.artist_name}<span class="artiste">{c.artist_name}</span>{/if}
+            <!-- Toujours posée, vide s'il n'y a pas d'artiste : « N disques »
+                 reste sur la même ligne d'une carte à l'autre. -->
+            <span class="artiste">{c.artist_name ?? ''}</span>
             <span class="disques">{disques(c)}</span>
           </button>
           <span class="menu-carte"><MenuObjetV2 objet={objetAlbum(c)} gestes={{ ouvrir: () => onOuvrir(c) }} nom={c.title ?? ''} /></span>
@@ -113,7 +115,18 @@
   .compte{font:11px var(--v2-mono); color:var(--v2-txt3)}
   .etat{padding:24px 0; color:var(--v2-txt3); font-size:13px}
   .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:16px}
-  .carte{display:flex; flex-direction:column; gap:6px; padding:0; border:0; background:transparent; text-align:left; cursor:pointer; color:inherit}
+  /* 🔴 LA CARTE PORTE `width:100%` — Bertrand, 27/09/2026, 0.9.167-pre.
+     Depuis les menus d'objets (26/09), la carte n'est plus l'enfant de la
+     grille : elle est posée dans `.hote`, à côté de son « … ». Or un
+     `<button>` en `width:auto` n'est PAS étiré comme un bloc : il prend la
+     largeur de son contenu. La pochette (`AlbumArt` en `size={0}`, soit
+     `width:100%` rapporté à ce bouton) retombait alors sur la taille NATIVE
+     de l'image — petites, grandes, non carrées, débordant sur la colonne
+     voisine. Aux Ajouts récents, le bouton EST l'enfant de la grille, qui
+     l'étire : là, rien ne cassait. `min-width:0` laisse l'ellipse des titres
+     couper au lieu d'élargir la colonne. */
+  .hote{min-width:0}
+  .carte{display:flex; flex-direction:column; gap:6px; width:100%; min-width:0; padding:0; border:0; background:transparent; text-align:left; cursor:pointer; color:inherit}
   .liste{display:flex; flex-direction:column; gap:1px}
   .ligne{display:grid; grid-template-columns:44px minmax(0,2fr) minmax(0,1.4fr) auto; align-items:center;
     gap:14px; width:100%; padding:6px 10px; border:0; border-radius:9px; background:transparent;
@@ -131,5 +144,5 @@
   .lartiste{min-width:0; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ldisques, .disques{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
   .titre{font-size:13px; color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .artiste{font-size:12px; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .artiste{min-height:1.2em; font-size:12px; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 </style>

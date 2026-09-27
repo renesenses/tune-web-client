@@ -19,6 +19,7 @@
   import { audioLevels } from '../../lib/stores/audioLevels';
   import {
     BAR_RELEASE, PLANCHER_DB, PPM_HOLD_MS,
+    PALETTE_CRETE_SOMBRE, paletteCreteDepuis,
     fractionDe, suivreLaCrete, suivrePpm, surcharge, zoneIec,
     type EtatPpm, type StyleCreteMetre,
   } from '../../lib/peakMetre';
@@ -50,14 +51,20 @@
   let barres = [PLANCHER_DB, PLANCHER_DB];
   let ppm: EtatPpm[] = [{ db: null, depuisMs: 0 }, { db: null, depuisMs: 0 }];
 
-  const COULEURS = {
-    fond: 'rgba(255,255,255,0.06)',
-    vert: '#4ade80',
-    ambre: '#fbbf24',
-    rouge: '#ef4444',
-    ppm: 'rgba(255,255,255,0.85)',
-    eteint: 'rgba(255,255,255,0.12)',
-  };
+  /**
+   * LES COULEURS VIENNENT DU THÈME — audit du 27/09/2026.
+   *
+   * 🔴 Elles étaient écrites ici, pour un fond noir. Sur les deux thèmes
+   * clairs, il ne restait de l'instrument QUE les barres : le rail (blanc à
+   * 6 %), le trait de crête (blanc à 85 %) et l'état ÉTEINT des lampes (blanc
+   * à 12 %) sont invisibles sur du blanc — et « éteint » est l'état normal
+   * d'une lampe. Les deux témoins de la barre de lecture n'existaient donc
+   * pas en thème clair.
+   *
+   * Hors `$state` : lues au montage et à chaque changement de thème, jamais à
+   * chaque image — `getComputedStyle` force un recalcul de style.
+   */
+  let COULEURS = PALETTE_CRETE_SOMBRE;
 
   function couleurSegment(db: number): string {
     if (style === 'iec') {
@@ -176,6 +183,11 @@
     if (!c || style === 'off') return;
     const ctx = c.getContext('2d');
     if (!ctx) return;
+    // Le thème est une DÉPENDANCE de cet effet : en changer démonte la boucle
+    // et la remonte, ce qui relit la palette. Sans cela, l'instrument garderait
+    // les couleurs du thème précédent jusqu'au rechargement de la page.
+    void $preferences.v2Theme;
+    COULEURS = paletteCreteDepuis(c);
     return boucleImages(() => {
       const dpr = Math.min(2, globalThis.devicePixelRatio || 1);
       const l = largeur || c.clientWidth || 120;
