@@ -440,7 +440,13 @@ console.log(
  * ---------------------------------------------------------------------- */
 
 const PLAFONDS = {
-  fonctionMorte: 20,
+  // 20 → 16 le 27/09/2026 : les quatre clés `devices.volumeLock*` ne sont plus
+  // « rangées dans une fonction sans appelant ». `volumeLockBadge()` a retrouvé
+  // son écran — le badge de verrou est rendu sur la carte de zone par
+  // `components/v2/BadgeVerrouVolumeZone.svelte`, que la section « Réglages par
+  // zone » monte. Le plafond baisse d'autant : laissé à 20, il aurait couvert
+  // quatre dettes qui n'existent plus, et ne gardait donc plus rien.
+  fonctionMorte: 16,
   commentaire: 5,
   assertionAbsence: 3,
 };
