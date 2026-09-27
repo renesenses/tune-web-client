@@ -25,7 +25,10 @@
    */
   import { audioLevels } from '../../lib/stores/audioLevels';
   import { MIN_DB, PEAK_LAMP_DBFS } from '../../lib/tvVuScale';
-  import { avancerAiguille, cadreCadran, dessinerCadran, MAINTIEN_CRETE_MS } from '../../lib/dessinVuMetre';
+  import {
+    avancerAiguille, cadreCadran, dessinerCadran, MAINTIEN_CRETE_MS,
+    PALETTE_SOMBRE, paletteVuDepuis, type PaletteVu,
+  } from '../../lib/dessinVuMetre';
   import { RATIO_VU, RAYON_VU, TAILLE_VU_BARRE } from '../../lib/barreVuMetres';
   import { boucleImages } from '../../lib/boucleImages';
   import { tempsDeDessiner } from '../../lib/cadenceCreteMetre';
@@ -43,6 +46,18 @@
   let { canal, joue = true, taille = TAILLE_VU_BARRE }: Props = $props();
 
   let toile = $state<HTMLCanvasElement | null>(null);
+
+  /**
+   * LES COULEURS DU THÈME — Bertrand, 27/09/2026 : en clair, le cadran avait
+   * disparu.
+   *
+   * ⚠️ HORS `$state`, et relue seulement quand le thème change. Une toile
+   * n'hérite d'aucune couleur : il faut aller la lire, et `getComputedStyle`
+   * force un recalcul de style. Trente lectures par seconde et par cadran, sur
+   * une barre qui est TOUJOURS à l'écran, coûteraient plus cher que tout le
+   * reste du dessin.
+   */
+  let palette: PaletteVu = PALETTE_SOMBRE;
 
   // État de balistique, HORS `$state` : lu et écrit à chaque image par la
   // boucle, le rendre réactif relancerait le rendu de Svelte pour rien.
@@ -94,6 +109,7 @@
       libelle: canal === 'gauche' ? 'L' : 'R',
       db: aiguille,
       creteAllumee: maintenant < creteJusqua,
+      palette,
     });
   }
 
@@ -106,11 +122,17 @@
     const c = toile;
     const enLecture = joue;
     const cran = cranOuDefaut($preferences.cadenceAnimations);
+    // 🔴 Le thème est une DÉPENDANCE de cet effet : en changer démonte la
+    // boucle et la remonte, ce qui relit la palette. Sans cette ligne, le
+    // cadran garderait les couleurs du thème précédent jusqu'au prochain
+    // rechargement de la page.
+    void $preferences.v2Theme;
     const cote = taille;
     const haut = hauteur;
     if (!c) return;
     const ctx = c.getContext('2d');
     if (!ctx) return;
+    palette = paletteVuDepuis(c);
     void enLecture;
     return boucleImages((maintenant) => {
       const dpr = Math.min(2, globalThis.devicePixelRatio || 1);

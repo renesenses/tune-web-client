@@ -28,6 +28,8 @@ import {
 import {
   BAS_FACE,
   HAUT_FACE,
+  PALETTE_SOMBRE,
+  paletteVuDepuis,
   MAINTIEN_CRETE_MS,
   MONTEE,
   RETOMBEE,
@@ -287,5 +289,64 @@ describe('le réglage', () => {
   it('montre un aperçu vivant, comme le crête-mètre au-dessus', () => {
     // « Cadrans à aiguille » ne dit rien tant qu'on ne les a pas vus bouger.
     expect(reglages).toContain('<VuMetreCanal canal="gauche" taille={64}');
+  });
+});
+
+describe('le cadran en thème CLAIR', () => {
+  const css = lire('src/styles/tune-v2.css');
+  const dessin = sansCommentaires(lire('src/lib/dessinVuMetre.ts'));
+
+  it('🔴 ne dessine plus AUCUNE couleur en dur', () => {
+    // Bertrand, 27/09/2026 : « vumètres en thème clair ». En clair, le cadran
+    // avait purement disparu — face blanche à 5 %, graduations ivoire, bord
+    // blanc à 12 %, tout écrit pour un fond noir. Une toile n'hérite d'aucune
+    // couleur : il faut aller la lire.
+    const corps = dessin.slice(dessin.indexOf('export function dessinerCadran'));
+    expect(corps, 'une couleur écrite en dur a survécu dans le dessin')
+      .not.toMatch(/'rgba\(|'#[0-9a-fA-F]{6}'/);
+  });
+
+  it('laisse la décision au THÈME, pas à un tableau dans le code', () => {
+    // Six palettes aujourd'hui, d'autres demain : une correspondance écrite en
+    // JavaScript aurait redonné deux endroits où la couleur se décide.
+    expect(dessin).toContain("lire('--v2-vu-encre'");
+    for (const jeton of ['--v2-vu-face-h', '--v2-vu-bord', '--v2-vu-encre',
+                         '--v2-vu-rouge', '--v2-vu-aiguille', '--v2-vu-lueur']) {
+      expect(css, `${jeton} n'est pas défini dans le thème de base`).toContain(`${jeton}:`);
+    }
+  });
+
+  it('les DEUX thèmes clairs redéfinissent la palette entière', () => {
+    // Une palette à moitié redéfinie donne un cadran à moitié peint.
+    for (const theme of ['clear-white', 'clear-grey']) {
+      const i = css.indexOf(`[data-v2-theme="${theme}"]`);
+      expect(i, theme).toBeGreaterThan(-1);
+      const bloc = css.slice(i, css.indexOf('}', i));
+      for (const jeton of ['--v2-vu-face-h', '--v2-vu-face-b', '--v2-vu-bord',
+                           '--v2-vu-encre', '--v2-vu-rouge', '--v2-vu-aiguille',
+                           '--v2-vu-lueur']) {
+        expect(bloc, `${theme} ne redéfinit pas ${jeton}`).toContain(jeton);
+      }
+    }
+  });
+
+  it('retombe sur le cadran d’origine là où les jetons ne résolvent pas', () => {
+    // Le Grand écran vit dans la coquille historique, hors de `.tune-v2` : il
+    // doit rendre exactement ce qu'il rendait avant que la palette existe.
+    expect(paletteVuDepuis(null)).toEqual(PALETTE_SOMBRE);
+    expect(PALETTE_SOMBRE.aiguille).toBe('#f2b441');
+    expect(PALETTE_SOMBRE.encre).toBe('237,233,224');
+  });
+
+  it('relit la palette quand le thème change, et JAMAIS à chaque image', () => {
+    // `getComputedStyle` force un recalcul de style. Trente lectures par
+    // seconde et par cadran, sur une barre toujours à l'écran, coûteraient
+    // plus cher que tout le dessin.
+    const src = sansCommentaires(lire(CADRAN));
+    expect(src).toContain('void $preferences.v2Theme');
+    expect(src).toContain('palette = paletteVuDepuis(c)');
+    const boucle = src.slice(src.indexOf('return boucleImages('));
+    expect(boucle, 'la palette est relue dans la boucle de dessin')
+      .not.toContain('paletteVuDepuis');
   });
 });

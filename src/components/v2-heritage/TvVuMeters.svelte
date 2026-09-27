@@ -16,7 +16,10 @@
   import { onMount, onDestroy } from 'svelte';
   import { audioLevels } from '../../lib/stores/audioLevels';
   import { MIN_DB, PEAK_LAMP_DBFS } from '../../lib/tvVuScale';
-  import { avancerAiguille, cadreCadran, dessinerCadran, MAINTIEN_CRETE_MS } from '../../lib/dessinVuMetre';
+  import {
+    avancerAiguille, cadreCadran, dessinerCadran, MAINTIEN_CRETE_MS,
+    PALETTE_SOMBRE, paletteVuDepuis, type PaletteVu,
+  } from '../../lib/dessinVuMetre';
   import { t } from '../../lib/i18n';
 
   interface Props {
@@ -42,6 +45,12 @@
    *  60 Hz, 375 ms sur un écran à 120 Hz. Un témoin dont la durée dépend de
    *  l'écran n'est pas un témoin. */
   let peakUntil = [0, 0];
+
+  /** Les couleurs du thème, lues UNE fois au montage : le Grand écran ne
+   *  change pas de thème en cours de route, et `getComputedStyle` à chaque
+   *  image forcerait un recalcul de style par trame. Hors de `.tune-v2`, les
+   *  jetons ne résolvent pas et le repli rend le cadran d'origine. */
+  let palette: PaletteVu = PALETTE_SOMBRE;
 
   const reducedMotion =
     typeof window !== 'undefined' &&
@@ -82,12 +91,16 @@
         libelle: ch === 0 ? 'L' : 'R',
         db: needle[ch],
         creteAllumee: maintenant < peakUntil[ch],
+        palette,
       });
     }
     animId = requestAnimationFrame(frame);
   }
 
-  onMount(() => { animId = requestAnimationFrame(frame); });
+  onMount(() => {
+    palette = paletteVuDepuis(canvas);
+    animId = requestAnimationFrame(frame);
+  });
   onDestroy(() => { if (animId !== null) cancelAnimationFrame(animId); });
 </script>
 

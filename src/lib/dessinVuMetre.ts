@@ -99,6 +99,86 @@ const MIN_TICK = 7;
 const MIN_TEXTE_DB = 8;
 const MIN_CANAL = 9;
 
+/**
+ * LA PALETTE DU CADRAN — Bertrand, 27/09/2026 : « vumètres en thème clair ».
+ *
+ * 🔴 En thème clair, le cadran avait purement DISPARU : face blanche à 5 %,
+ * graduations ivoire, bord blanc à 12 % — tout cela écrit en dur pour un fond
+ * noir, et rigoureusement invisible sur du blanc.
+ *
+ * Une toile n'hérite d'aucune couleur : contrairement à du balisage, elle ne
+ * peut pas « suivre le thème » toute seule. Il faut donc aller LIRE la
+ * couleur. Elle est lue sur les jetons `--v2-vu-*` de `tune-v2.css`, ce qui
+ * laisse la décision au thème — les six palettes, et celles de demain, sans
+ * une ligne de JavaScript de plus. Un tableau de correspondance écrit ici
+ * aurait redonné deux endroits où la couleur se décide.
+ *
+ * `encre` et `rouge` sont des TRIPLETS `r,g,b` : le cadran en tire plusieurs
+ * opacités — l'arc, les graduations, les chiffres et le pivot ne pèsent pas
+ * pareil — et une toile ne sait pas appliquer une opacité à une couleur déjà
+ * résolue.
+ */
+export interface PaletteVu {
+  faceHaut: string;
+  faceBas: string;
+  bord: string;
+  /** `r,g,b` — l'encre de l'instrument (arc, graduations, chiffres, pivot). */
+  encre: string;
+  /** `r,g,b` — la zone rouge et le témoin de crête. */
+  rouge: string;
+  aiguille: string;
+  /** Le halo SOUS l'aiguille. Une couleur à part : la toile ne sait pas
+   *  appliquer une opacité à une couleur déjà résolue, et un halo opaque
+   *  transformerait l'aiguille en trait gras. */
+  lueur: string;
+}
+
+/**
+ * Le cadran d'origine, mot pour mot.
+ *
+ * C'est le repli de `paletteVuDepuis` : un appelant hors de `.tune-v2` — le
+ * Grand écran vit dans la coquille historique — rend donc exactement ce qu'il
+ * rendait avant que la palette existe.
+ */
+export const PALETTE_SOMBRE: PaletteVu = {
+  faceHaut: 'rgba(255,255,255,0.055)',
+  faceBas: 'rgba(255,255,255,0.015)',
+  bord: 'rgba(255,255,255,0.12)',
+  encre: '237,233,224',
+  rouge: '224,82,82',
+  aiguille: '#f2b441',
+  lueur: 'rgba(242,180,65,0.45)',
+};
+
+/**
+ * Lit la palette sur un élément — ses jetons, ou ceux dont il hérite.
+ *
+ * ⚠️ `getComputedStyle` coûte cher : on l'appelle quand le THÈME change, pas à
+ * chaque image. Trente lectures par seconde et par cadran forceraient un
+ * recalcul de style à chaque trame, sur une barre qui est toujours à l'écran.
+ *
+ * Une valeur vide retombe sur le sombre, jeton par jeton : un thème qui n'en
+ * déclarerait qu'une partie rend un cadran cohérent, pas un cadran à moitié
+ * peint.
+ */
+export function paletteVuDepuis(el: Element | null | undefined): PaletteVu {
+  if (!el || typeof getComputedStyle !== 'function') return PALETTE_SOMBRE;
+  const style = getComputedStyle(el);
+  const lire = (nom: string, repli: string) => {
+    const v = style.getPropertyValue(nom).trim();
+    return v || repli;
+  };
+  return {
+    faceHaut: lire('--v2-vu-face-h', PALETTE_SOMBRE.faceHaut),
+    faceBas: lire('--v2-vu-face-b', PALETTE_SOMBRE.faceBas),
+    bord: lire('--v2-vu-bord', PALETTE_SOMBRE.bord),
+    encre: lire('--v2-vu-encre', PALETTE_SOMBRE.encre),
+    rouge: lire('--v2-vu-rouge', PALETTE_SOMBRE.rouge),
+    aiguille: lire('--v2-vu-aiguille', PALETTE_SOMBRE.aiguille),
+    lueur: lire('--v2-vu-lueur', PALETTE_SOMBRE.lueur),
+  };
+}
+
 export interface CadranVu {
   /** Centre du cadran, en pixels de la toile (déjà à l'échelle `dpr`). */
   cx: number;
@@ -111,6 +191,8 @@ export interface CadranVu {
   db: number;
   /** Le témoin de crête est-il allumé ? */
   creteAllumee: boolean;
+  /** Les couleurs du thème. Absente : le cadran d'origine, sur fond sombre. */
+  palette?: PaletteVu;
 }
 
 /**
@@ -119,6 +201,10 @@ export interface CadranVu {
  */
 export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void {
   const { cx, cy, rayon, libelle, db, creteAllumee } = o;
+  const p = o.palette ?? PALETTE_SOMBRE;
+  /** Une opacité de l'encre du thème. */
+  const encre = (a: number) => `rgba(${p.encre},${a})`;
+  const rouge = (a: number) => `rgba(${p.rouge},${a})`;
 
   /**
    * 🔴 PLUS AUCUN PIXEL ABSOLU ICI.
@@ -142,10 +228,10 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
 
   // Face
   const grad = ctx.createLinearGradient(0, -faceR, 0, faceR * 0.4);
-  grad.addColorStop(0, 'rgba(255,255,255,0.055)');
-  grad.addColorStop(1, 'rgba(255,255,255,0.015)');
+  grad.addColorStop(0, p.faceHaut);
+  grad.addColorStop(1, p.faceBas);
   ctx.fillStyle = grad;
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.strokeStyle = p.bord;
   ctx.lineWidth = 1.5 * u;
   ctx.beginPath();
   ctx.roundRect(-faceR, -faceR * HAUT_FACE, faceR * 2, faceR * (HAUT_FACE + BAS_FACE), 10 * u);
@@ -157,11 +243,11 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
   const aRed = -Math.PI / 2 + dbToAngle(RED_FROM_DB);
   const a1 = -Math.PI / 2 + dbToAngle(MAX_DB);
   ctx.lineWidth = 2.4 * u;
-  ctx.strokeStyle = 'rgba(237,233,224,0.75)';
+  ctx.strokeStyle = encre(0.75);
   ctx.beginPath();
   ctx.arc(0, faceR * 0.42, arcR, a0, aRed);
   ctx.stroke();
-  ctx.strokeStyle = 'rgba(224,82,82,0.95)';
+  ctx.strokeStyle = rouge(0.95);
   ctx.beginPath();
   ctx.arc(0, faceR * 0.42, arcR, aRed, a1);
   ctx.stroke();
@@ -174,7 +260,7 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
     const a = -Math.PI / 2 + dbToAngle(tick);
     const inner = arcR - 6 * u;
     const outer = arcR + (tick === RED_FROM_DB ? 7 : 4) * u;
-    ctx.strokeStyle = tick >= RED_FROM_DB ? 'rgba(224,82,82,0.95)' : 'rgba(237,233,224,0.7)';
+    ctx.strokeStyle = tick >= RED_FROM_DB ? rouge(0.95) : encre(0.7);
     ctx.lineWidth = (tick === RED_FROM_DB ? 2.2 : 1.2) * u;
     ctx.beginPath();
     ctx.moveTo(Math.cos(a) * inner, faceR * 0.42 + Math.sin(a) * inner);
@@ -182,7 +268,7 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
     ctx.stroke();
     if (LABELED_TICKS.includes(tick)) {
       const tr = arcR + 13 * u;
-      ctx.fillStyle = tick >= RED_FROM_DB ? 'rgba(224,82,82,0.9)' : 'rgba(237,233,224,0.6)';
+      ctx.fillStyle = tick >= RED_FROM_DB ? rouge(0.9) : encre(0.6);
       ctx.fillText(String(Math.abs(tick)), Math.cos(a) * tr, faceR * 0.42 + Math.sin(a) * tr);
     }
   }
@@ -190,20 +276,20 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
   // Libellés. `dB` et « L » / « R » sont des repères d'instrument, pas du
   // texte d'interface : ils ne se traduisent pas (un VU-mètre porte les mêmes
   // lettres dans toutes les langues).
-  ctx.fillStyle = 'rgba(237,233,224,0.5)';
+  ctx.fillStyle = encre(0.5);
   ctx.font = `600 ${Math.round(Math.max(MIN_TEXTE_DB, 11 * u))}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
   ctx.fillText('dB', 0, faceR * 0.06);
   ctx.font = `600 ${Math.round(Math.max(MIN_CANAL, 12 * u))}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
-  ctx.fillStyle = 'rgba(242,180,65,0.85)';
+  ctx.fillStyle = p.aiguille;
   ctx.fillText(libelle, 0, faceR * 0.5);
 
   // Témoin de crête
   ctx.beginPath();
   ctx.arc(faceR * 0.72, -faceR * 0.6, 4.5 * u, 0, Math.PI * 2);
-  ctx.fillStyle = creteAllumee ? 'rgba(224,82,82,1)' : 'rgba(224,82,82,0.18)';
+  ctx.fillStyle = creteAllumee ? rouge(1) : rouge(0.18);
   ctx.fill();
   if (creteAllumee) {
-    ctx.shadowColor = 'rgba(224,82,82,0.9)';
+    ctx.shadowColor = rouge(0.9);
     ctx.shadowBlur = 8 * u;
     ctx.fill();
     ctx.shadowBlur = 0;
@@ -212,10 +298,10 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
   // Aiguille
   const na = -Math.PI / 2 + dbToAngle(db);
   const pivotY = faceR * 0.42;
-  ctx.strokeStyle = '#f2b441';
+  ctx.strokeStyle = p.aiguille;
   ctx.lineWidth = 2.2 * u;
   ctx.lineCap = 'round';
-  ctx.shadowColor = 'rgba(242,180,65,0.45)';
+  ctx.shadowColor = p.lueur;
   ctx.shadowBlur = 6 * u;
   ctx.beginPath();
   ctx.moveTo(Math.cos(na) * (arcR * 0.12), pivotY + Math.sin(na) * (arcR * 0.12));
@@ -225,7 +311,7 @@ export function dessinerCadran(ctx: CanvasRenderingContext2D, o: CadranVu): void
   // Pivot
   ctx.beginPath();
   ctx.arc(0, pivotY, 5 * u, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(237,233,224,0.85)';
+  ctx.fillStyle = encre(0.85);
   ctx.fill();
 
   ctx.restore();
