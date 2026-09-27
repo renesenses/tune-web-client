@@ -68,7 +68,7 @@
   import RenommerModale from './RenommerModale.svelte';
   import { t } from '../../lib/i18n';
   import TriAlbums from '../partages/TriAlbums.svelte';
-  import { CLES_TRI_ALBUMS, trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
+  import { CLES_TRI_ALBUMS, trierAlbums, sensTriRecherche, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import type { Artist, Playlist, StreamingPlaylist } from '../../lib/types';
   import { streamingServices } from '../../lib/stores/streaming';
@@ -617,7 +617,7 @@
   let sensAlbums = $state<SensTri>(lireChoix<SensTri>('v2.rech.albums.sens', ['asc', 'desc'], 'asc'));
   $effect(() => { ecrireChoix('v2.rech.albums.tri', triAlbums); });
   $effect(() => { ecrireChoix('v2.rech.albums.sens', sensAlbums); });
-  const albums = $derived(voirAlbums ? trierAlbums(groupes.albums.filter(dansLePerimetre), triAlbums, sensAlbums) : []);
+  const albums = $derived(voirAlbums ? trierAlbums(groupes.albums.filter(dansLePerimetre), triAlbums, sensTriRecherche(triAlbums, sensAlbums)) : []);
   const titres = $derived(voirTitres ? groupes.pistes.filter(dansLePerimetre) : []);
 
   /**

@@ -151,6 +151,24 @@ export interface Preferences {
    * elle honore l'extinction. Voir `lib/peakMetre.styleSurLaBarre`.
    */
   peakMeterStyle: StyleCreteMetre;
+  /**
+   * La barre de lecture à VU-MÈTRES — Bertrand, 27/09/2026, maquette de
+   * Levente. « Une seconde transport bar via toggle réglages qui affiche les
+   * vu-mètres à gauche et droite ».
+   *
+   * AFFICHAGE seulement, comme le crête-mètre : rien ici ne touche à l'audio.
+   * Allumée, elle remplace les lampes de crête et le mini-spectre — trois
+   * instruments de niveau dans une même barre se concurrencent, et la place
+   * manque. Éteinte, la barre est exactement celle d'avant.
+   *
+   * ⚠️ Un interrupteur à PART, et non une cinquième valeur de
+   * `peakMeterStyle` : celle-ci changerait la MISE EN PAGE de la barre, là où
+   * les quatre autres ne changent que l'apparence d'un instrument.
+   *
+   * Décochée : l'écran de qui n'a rien demandé ne bouge pas d'un pixel
+   * (la règle de #1428).
+   */
+  barreVuMetres: boolean;
   /** Afficher les bulles d'aide au survol des boutons.
    *
    *  Activé par défaut : trois testeurs de suite n'ont pas trouvé un bouton
@@ -347,6 +365,7 @@ const defaults: Preferences = {
   // oubli : l'écran de qui n'a rien demandé ne bouge pas d'un pixel.
   afficherBoutonStop: false,
   peakMeterStyle: STYLE_CRETE_DEFAUT,
+  barreVuMetres: false,
   v2Colonnes: { ...DEFAUTS_COLONNES },
   reglagesRendererEnregistres: {},
   // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.

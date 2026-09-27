@@ -43,6 +43,7 @@
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
+  import OutputModuleBanner from '../partages/OutputModuleBanner.svelte';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
@@ -230,6 +231,40 @@
     catch { paires = []; }
   }
   $effect(() => { void chargerPaires(); });
+
+  /* --- Le refus d'un module de sortie payant (#2392) ----------------------
+   *
+   * L'instantané `output_providers` de `/system/diagnostics` est chargé ICI,
+   * sur l'écran des Zones, et pas seulement dans Diagnostics. Diagnostics est
+   * l'endroit LOGIQUE ; ce n'est pas celui où l'utilisateur va quand aucun
+   * appareil n'apparaît. Le bêta-testeur du module Diretta a réinstallé son
+   * système d'exploitation sans jamais ouvrir Diagnostics — il est venu ici,
+   * a vu une liste vide, et n'a rien appris.
+   *
+   * 🔴 Ce chargement avait disparu avec `ZoneManagerView` le 19/09 (`d5ed7deb`,
+   * phase 5). `refusAAfficher` est resté juste et testé, sans un seul appelant
+   * de production : Zones ne disait plus rien. Le panneau technique de
+   * `TuneHealthV2` a survécu, mais il ne parle pas la langue de l'utilisateur
+   * et il n'est pas sur son chemin.
+   */
+  let instantaneFournisseurs = $state<unknown>(null);
+
+  /** Chargement délibérément SÉPARÉ de `refresh`.
+   *
+   *  Une panne de `/system/diagnostics` ne doit pas priver l'écran de ses
+   *  zones, et une panne des zones ne doit pas priver l'utilisateur de
+   *  l'explication qu'il est venu chercher. Un échec laisse simplement
+   *  l'instantané à `null`, donc aucun bandeau : on n'invente aucun refus.
+   */
+  async function chargerStatutFournisseurs() {
+    try {
+      const diag = await api.getServerDiagnostics();
+      instantaneFournisseurs = diag?.output_providers ?? null;
+    } catch {
+      instantaneFournisseurs = null;
+    }
+  }
+  $effect(() => { void chargerStatutFournisseurs(); });
 
   function voie(z: Zone): 'left' | 'right' | null {
     return voieDeLaZone(paires, z.id);
@@ -509,6 +544,16 @@
   </header>
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
+
+  <!-- Un module de sortie payant qui n'affiche aucun appareil, et pourquoi
+       (#2392). Volontairement HORS du bloc « aucune zone » ci-dessous : un
+       utilisateur qui a déjà un Sonos a une liste NON vide et reste pourtant
+       privé de son module Diretta en silence. Masquer l'avertissement dès
+       qu'une zone existe rejouerait le défaut sur lui — c'est la faute déjà
+       commise par le bloc de correction FIR, qui se cachait sur les zones
+       incompatibles et avait fait conclure à un abonné Premium que la
+       fonction n'existait pas. On prévient, on ne masque pas. -->
+  <OutputModuleBanner instantane={instantaneFournisseurs} />
 
   <div class="scroll">
     {#if !$zones.length && !listeVraimentVide($etatDesZones, $zones.length)}
