@@ -84,7 +84,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { zoneNavigateurExistante, zonesNavigateurEnDouble } from '../../lib/zoneNavigateur';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
-  import { licenseState, loadLicense } from '../../lib/stores/license';
+  import { licenseState, loadLicense, offlineGrace } from '../../lib/stores/license';
   import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
@@ -1305,6 +1305,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function maskKey(k: string | null): string {
     if (!k) return '';
     return k.length <= 4 ? '••••' : `••••-${k.slice(-4)}`;
+  }
+
+  /**
+   * « encore 1 jour » / « encore 3 jours » — le pluriel se choisit dans la
+   * locale, jamais par une concaténation « {n} jour(s) ».
+   *
+   * 🔴 Le chiffre vient du serveur et de nulle part ailleurs. La fenêtre est
+   * déjà passée de 30 à 14 jours une fois : un « 14 » recopié ici survivrait au
+   * prochain changement et mentirait à l'écran. `licenceGraceVisible.test.ts`
+   * refuse d'ailleurs tout « 14 » littéral dans les onze traductions.
+   */
+  function graceJours(n: number): string {
+    return $t(n === 1 ? 'settings.licenseGraceDayOne' : 'settings.licenseGraceDayOther')
+      .replace('{days}', String(n));
   }
   async function activateLic() {
     const k = licKey.trim();
@@ -4553,6 +4567,70 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
+              {#if $offlineGrace}
+                <!--
+                  Grâce hors ligne (#1999). Le serveur accorde une tolérance
+                  quand la vérification en ligne ne peut pas aboutir
+                  (`tune-core/src/license.rs`, `GRACE_PERIOD_DAYS`). Sans ce
+                  bandeau, un utilisateur hors ligne voyait ses fonctions
+                  Premium s'éteindre sans un mot — la question de Didier (fil
+                  forum 1491), posée AVANT son achat.
+
+                  Le magasin se tait déjà tant que la phase vaut `ok` : un
+                  serveur qui a manqué un battement va très bien, et un bandeau
+                  là transformerait une tolérance en inquiétude.
+
+                  Trois états, distingués comme le serveur les distingue :
+                  `grace` (fenêtre en cours, Premium intact), `expired` avec une
+                  ancre (fenêtre écoulée), `expired` sans ancre (`since` nul =
+                  jamais vérifiée en ligne, cf. le `let Some(anchor) = anchor
+                  else` de `offline_grace`).
+                -->
+                <div
+                  class="graceblock"
+                  class:okbox={$offlineGrace.phase === 'grace'}
+                  class:warnbox={$offlineGrace.phase !== 'grace'}
+                  role="status"
+                  data-grace={$offlineGrace.phase === 'grace'
+                    ? 'grace'
+                    : ($offlineGrace.since ? 'lapsed' : 'never')}
+                >
+                  {#if $offlineGrace.phase === 'grace'}
+                    <b>{$t('settings.licenseGraceTitle' as any)}</b>
+                    <span>
+                      {$t('settings.licenseGraceBody' as any)
+                        .replace('{since}', $dateCourte($offlineGrace.since))
+                        .replace('{until}', $dateCourte($offlineGrace.until))
+                        .replace('{remaining}', graceJours($offlineGrace.days_remaining))}
+                    </span>
+                  {:else if $offlineGrace.since}
+                    <b>{$t('settings.licenseGraceLapsedTitle' as any)}</b>
+                    <span>
+                      {$t('settings.licenseGraceLapsedBody' as any)
+                        .replace('{since}', $dateCourte($offlineGrace.since))
+                        .replace('{days}', String($offlineGrace.total_days))}
+                    </span>
+                  {:else}
+                    <b>{$t('settings.licenseGraceNeverTitle' as any)}</b>
+                    <span>{$t('settings.licenseGraceNeverBody' as any)}</span>
+                  {/if}
+                </div>
+              {/if}
+
+              {#if lic.offlineGrace}
+                <!--
+                  La règle, écrite noir sur blanc, avec le chiffre du serveur.
+                  Elle reste lisible même en phase `ok` : c'est exactement la
+                  question posée avant l'achat — « et si je n'ai pas Internet ? ».
+                  Elle lit `lic.offlineGrace`, l'état BRUT, et non le dérivé qui
+                  se tait.
+                -->
+                <p class="gracerule" data-grace-rule>
+                  {$t('settings.licenseOfflineRule' as any)
+                    .replace('{days}', String(lic.offlineGrace.total_days))}
+                </p>
+              {/if}
+
               {#if lic.licenseKey}
                 <div class="row">
                   <div class="lbl"><span>{$t('settings.validate' as any)}</span></div>
@@ -5516,6 +5594,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     font-family:var(--v2-mono, ui-monospace, monospace); font-size:12px}
   .ecartes-liste li{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .warnbox b,.okbox b{color:var(--v2-txt)}
+
+  /* Grâce hors ligne (#1999) : un titre, puis la phrase. Le cadre vient de
+     `.okbox` (fenêtre en cours — rassurant) ou de `.warnbox` (fenêtre écoulée,
+     jamais vérifiée). */
+  .graceblock{display:flex; flex-direction:column; gap:4px}
+  .gracerule{margin:10px 0 0; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
   .errline{margin-top:10px; font-size:12px; color:var(--v2-danger)}
   .comps{display:flex; gap:6px; flex-wrap:wrap; margin-top:14px}
   .comp{font:10px var(--v2-mono); padding:3px 9px; border-radius:999px;
