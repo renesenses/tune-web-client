@@ -163,6 +163,21 @@ describe('#3973 — chemin du signal : la conversion se VOIT', () => {
     hote = null;
   });
 
+  it('#1686 — une réponse crédits non tableau laisse le lecteur utilisable', async () => {
+    const h = poser({ bit_perfect: false, steps: ETAPES, summary: '' });
+    const bouton = h.querySelector<HTMLButtonElement>('button.np-credits-btn');
+    expect(bouton?.textContent).toContain('Crédits');
+    bouton!.click();
+    await vi.waitFor(() => {
+      flushSync();
+      expect(h.querySelector('.np-credits-empty')).not.toBeNull();
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/library/tracks/1/credits'),
+        expect.anything(),
+      );
+    });
+  });
+
   it('PURE dégradé : « PURE dégradé — 192 → 96 kHz, pas bit-perfect »', { timeout: 60_000 }, () => {
     const h = poser({
       bit_perfect: false, steps: ETAPES, summary: '',
