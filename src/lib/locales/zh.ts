@@ -3374,6 +3374,8 @@ export default {
   "v2.health.pauseAll": "暂停所有后台处理",
   "v2.health.resumeAll": "全部继续",
   "v2.health.readAt": "{h} 采集",
+  "v2.health.cpuTemp": "处理器温度",
+  "v2.health.cpuTempUnavailable": "不可用",
   "v2.health.autoFollow": "自动刷新",
   "v2.health.refreshing": "采集中…",
   "v2.health.refresh": "刷新",

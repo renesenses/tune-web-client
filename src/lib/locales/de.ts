@@ -3374,6 +3374,8 @@ export default {
   "v2.health.pauseAll": "Alle Verarbeitungen pausieren",
   "v2.health.resumeAll": "Alle fortsetzen",
   "v2.health.readAt": "erfasst um {h}",
+  "v2.health.cpuTemp": "Prozessortemperatur",
+  "v2.health.cpuTempUnavailable": "nicht verfügbar",
   "v2.health.autoFollow": "automatische Aktualisierung",
   "v2.health.refreshing": "Wird gelesen…",
   "v2.health.refresh": "Aktualisieren",

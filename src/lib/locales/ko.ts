@@ -3374,6 +3374,8 @@ export default {
   "v2.health.pauseAll": "모든 처리 일시 중지",
   "v2.health.resumeAll": "모두 재개",
   "v2.health.readAt": "{h} 기준",
+  "v2.health.cpuTemp": "CPU 온도",
+  "v2.health.cpuTempUnavailable": "사용할 수 없음",
   "v2.health.autoFollow": "자동 갱신",
   "v2.health.refreshing": "읽는 중…",
   "v2.health.refresh": "새로 고침",

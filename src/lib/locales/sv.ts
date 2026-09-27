@@ -3373,6 +3373,8 @@ export default {
   "v2.health.pauseAll": "Pausa alla bearbetningar",
   "v2.health.resumeAll": "Återuppta alla",
   "v2.health.readAt": "avläst {h}",
+  "v2.health.cpuTemp": "Processortemperatur",
+  "v2.health.cpuTempUnavailable": "inte tillgänglig",
   "v2.health.autoFollow": "automatisk uppdatering",
   "v2.health.refreshing": "Läser…",
   "v2.health.refresh": "Uppdatera",
