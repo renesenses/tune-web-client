@@ -38,6 +38,7 @@
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
+  import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
@@ -868,6 +869,71 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     if (caseCochee) caseCochee.checked = telActif;
   }
 
+  // ── Compte Mozaiklabs (session SSO) ────────────────────────────────────
+  // 🔴 Trois écrans envoient l'utilisateur ICI pour relier son compte — le
+  // panneau des modules de sortie, l'écran Concerts et le bandeau de refus de
+  // module — et la section ne portait QUE la télémétrie. Le geste ne vivait
+  // que dans le menu de l'avatar : le texte des onze langues pointait donc sur
+  // un écran où il n'y avait rien à faire.
+  //
+  // Même contrat lu que `AvatarMenu` (`GET /cloud/sso/status`), même chemin
+  // parcouru (`/api/v1/cloud/sso/authorize`), mêmes libellés. Deux boutons du
+  // même nom ne doivent pas mener à deux endroits — c'est tout l'intérêt.
+  let ssoConnecte = $state(false);
+  let ssoConfigure = $state(false);
+  let ssoNom = $state('');
+  let ssoCourriel = $state('');
+  let ssoQuitte = $state(false);
+
+  async function chargerSso() {
+    try {
+      const sso: any = await api.apiFetch('/cloud/sso/status');
+      ssoConfigure = !!sso?.configured;
+      if (sso?.connected && sso?.user) {
+        ssoConnecte = true;
+        ssoNom = sso.user.display_name || sso.user.email || '';
+        ssoCourriel = sso.user.email || '';
+        return;
+      }
+    } catch {
+      // Serveur muet ou hors ligne : on ne propose pas de relier un compte à
+      // un nuage dont on ne sait même pas s'il existe sur ce serveur.
+      ssoConfigure = false;
+    }
+    ssoConnecte = false;
+    ssoNom = '';
+    ssoCourriel = '';
+  }
+  $effect(() => {
+    if (sections.some((x) => x.id === 'cloud')) void chargerSso();
+  });
+
+  /**
+   * Relier le compte — EXACTEMENT le geste du menu de l'avatar.
+   *
+   * Le serveur redirige vers « / » sans indicateur, donc le drapeau est posé
+   * AVANT de partir, dans les deux stockages : `sessionStorage` ne survit pas
+   * de façon fiable à une chaîne de redirections inter-origines (ITP de
+   * Safari, navigateurs mobiles), l'un rattrape l'autre.
+   */
+  function relierCompteCloud() {
+    try { localStorage.setItem('tune_sso_pending', Date.now().toString()); } catch {}
+    try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
+    window.location.href = '/api/v1/cloud/sso/authorize';
+  }
+
+  async function delierCompteCloud() {
+    ssoQuitte = true;
+    try {
+      await api.ssoDisconnect();
+      await chargerSso();
+      notifications.success(get(t)('settings.cloudDisconnected' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? get(t)('common.error' as any));
+    }
+    ssoQuitte = false;
+  }
+
   // ── Serveurs Tune sur le reseau ────────────────────────────────────────
   // L'ajout manuel par IP:port est le chemin robuste quand la decouverte
   // multicast est bloquee (Docker macvlan, pare-feu Windows).
@@ -1210,6 +1276,45 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     stopPoll(name);
     deviceFlow = { ...deviceFlow, [name]: undefined };
     svcBusy = null;
+  }
+
+  // ── Spotify : l'URI de redirection — renesenses/tune-server-rust#2680 ──
+  //
+  // Chacun crée SA propre application Spotify et doit y déclarer, à
+  // l'identique, l'URI que Tune envoie : l'écran la montre donc (lue sur
+  // `GET /system/env`, résolue côté serveur). Si le serveur la sait refusée
+  // (`localhost`, `http://<IP LAN>` → « redirect_uri: Insecure »), il le dit.
+  // Et quand la page est ouverte depuis une autre machine, le rappel
+  // `127.0.0.1` ne s'ouvre pas ici : on propose de coller son adresse.
+  let spotifyRedirect = $state<{ uri: string | null; refus: string | null }>({ uri: null, refus: null });
+  let spotifyRappelColle = $state('');
+  $effect(() => {
+    api.getSystemEnv()
+      .then((env) => {
+        spotifyRedirect = { uri: env?.spotify_redirect_uri ?? null, refus: env?.spotify_redirect_uri_refus ?? null };
+      })
+      .catch(() => {});
+  });
+  const spotifyRappelIci = $derived(
+    rappelAboutitIci(spotifyRedirect.uri, typeof location !== 'undefined' ? location.hostname : ''),
+  );
+  async function validerRappelSpotify() {
+    const colle = spotifyRappelColle.trim();
+    if (!colle) return;
+    svcErr = { ...svcErr, spotify: null };
+    try {
+      const res = await api.authenticateStreaming('spotify', { callback_url: colle });
+      if (res?.authenticated) {
+        stopPoll('spotify');
+        svcs = { ...svcs, spotify: { ...svcs.spotify, authenticated: true, username: res.username ?? svcs.spotify?.username } };
+        deviceFlow = { ...deviceFlow, spotify: undefined };
+        spotifyRappelColle = '';
+        svcBusy = null;
+      }
+    } catch (e: any) {
+      const motif = typeof e?.message === 'string' ? e.message.trim() : '';
+      svcErr = { ...svcErr, spotify: motif || get(t)('settings.errConnectFailed') };
+    }
   }
 
   // ── Systeme : a propos, licence, sante ────────────────────────────────
@@ -3405,6 +3510,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'cloud'}
               <p class="hint">{#each emphaseParts($t('settings.cloudScopeHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <!-- 🔴 LE GESTE DE CONNEXION AU COMPTE EST ICI.
+                   `outputModule.notLinkedBody`, l'écran Concerts et le panneau
+                   des modules de sortie promettent, dans onze langues, qu'on
+                   relie son compte « dans Réglages ▸ Système ▸ Cloud ». Il n'y
+                   avait rien. Aucun libellé neuf : ceux du menu de l'avatar. -->
+              <div class="row" data-sso="compte">
+                <div class="lbl">
+                  {#if ssoConnecte}
+                    <span>{ssoNom}</span>
+                    {#if ssoCourriel && ssoCourriel !== ssoNom}<span class="hint">{ssoCourriel}</span>{/if}
+                  {:else}
+                    <span>{$t('settings.notConnected' as any)}</span>
+                    {#if !ssoConfigure}<span class="hint">{$t('settings.cloudComingSoon' as any)}</span>{/if}
+                  {/if}
+                </div>
+                {#if ssoConnecte}
+                  <button class="lnk" disabled={ssoQuitte} onclick={delierCompteCloud}
+                    >{ssoQuitte ? $t('common.loading' as any) : $t('settings.signOut' as any)}</button>
+                {:else if ssoConfigure}
+                  <button class="lnk" onclick={relierCompteCloud}
+                    >{$t('settings.signIn' as any)}</button>
+                {/if}
+              </div>
               <!-- Consentement à la télémétrie — porté de l'ancien écran
                    (phase 5) : il ne doit JAMAIS devenir immodifiable. -->
               {#if telCharge}
@@ -4840,6 +4968,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span class="waiting">{$t('v2.lbl.awaitingConfirm' as any)}</span>
                           <button class="lnk" onclick={() => cancelFlow(name)}>{$t('common.cancel' as any)}</button>
                         </div>
+                        {#if name === 'spotify' && !spotifyRappelIci}
+                          <!-- #2680 — Tune sur une autre machine : le rappel
+                               127.0.0.1 ne s'ouvre pas ici, son adresse porte
+                               le code, le serveur l'en extrait. -->
+                          <div class="sredir">
+                            <span>{$t('v2.set.spotifyPasteHint' as any)}</span>
+                            <div class="sredir-colle">
+                              <input class="txt" type="text" bind:value={spotifyRappelColle}
+                                placeholder="http://127.0.0.1:8888/api/v1/streaming/spotify/callback?code=…"
+                                aria-label={$t('v2.set.spotifyPasteHint' as any)} />
+                              <button class="lnk" disabled={!spotifyRappelColle.trim()} onclick={validerRappelSpotify}>{$t('v2.set.spotifyPasteSubmit' as any)}</button>
+                            </div>
+                          </div>
+                        {/if}
 
                       {:else if formeSvc(name) === 'pseudo' && cred[name]}
                         <!-- #1067 — Bandcamp : un PSEUDO, pas de mot de passe.
@@ -4870,6 +5012,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {:else}
                         <button class="lnk" disabled={svcBusy === name || !st.enabled}
                           onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
+                      {/if}
+
+                      {#if name === 'spotify' && !st.authenticated && spotifyRedirect.uri}
+                        <!-- #2680 — l'URI à recopier À L'IDENTIQUE dans
+                             l'application Spotify de l'utilisateur. -->
+                        {@const cleRefus = cleDuRefus(spotifyRedirect.refus)}
+                        <div class="sredir">
+                          <span>{$t('v2.set.spotifyRedirectDeclare' as any)}</span>
+                          <code>{spotifyRedirect.uri}</code>
+                          {#if cleRefus}<span class="sredir-refus">{$t(cleRefus as any)}</span>{/if}
+                        </div>
                       {/if}
 
                       {#if svcErr[name]}<div class="serr">{svcErr[name]}</div>{/if}
@@ -5646,6 +5799,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); border-radius:9px; padding:6px 13px}
   .waiting{font:11px var(--v2-mono); color:var(--v2-txt3)}
   .serr{flex-basis:100%; font-size:11.5px; color:var(--v2-danger)}
+  .sredir{flex-basis:100%; display:flex; flex-direction:column; gap:6px; font-size:11.5px; color:var(--v2-txt3)}
+  .sredir code{font:11px var(--v2-mono); color:var(--v2-acc-tint); user-select:all; word-break:break-all}
+  .sredir-refus{color:var(--v2-danger)}
+  .sredir-colle{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .sredir-colle .txt{flex:1; min-width:0}
   .unavail{font:11px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .lbl b{color:var(--v2-acc-tint); font-weight:700}
   .seg4{display:flex; gap:2px; padding:3px; border-radius:12px; flex:0 0 auto;

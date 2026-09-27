@@ -847,6 +847,8 @@ export interface StreamingServiceStatus {
 
 export interface StreamingAuthResponse {
   authenticated: boolean;
+  /** Le compte connecté, quand l'authentification aboutit (Spotify, #2680). */
+  username?: string | null;
   verification_url?: string | null;
   user_code?: string | null;
   /**
