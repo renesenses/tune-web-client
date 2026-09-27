@@ -64,9 +64,9 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
-  import { melangee, rangAleatoire, graineAleatoire } from '../../lib/shuffle';
-  import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection, pistesDansLOrdre, bornee } from '../../lib/porteeAleatoire';
-  import { lireFileAleatoire, FILE_ALEATOIRE_DEFAUT } from '../../lib/fileAleatoire';
+  import { rangAleatoire, graineAleatoire } from '../../lib/shuffle';
+  import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection, pistesDansLOrdre, bornee, tirageAleatoire } from '../../lib/porteeAleatoire';
+  import { plafondFileAleatoire } from '../../lib/fileAleatoire';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -1964,9 +1964,8 @@
   );
   /** Le plafond de la file aléatoire, lu au serveur (#2901) ; son défaut s'il
    *  ne répond pas. */
-  async function plafondAleatoire(): Promise<number> {
-    try { return lireFileAleatoire(await api.getConfig() as Record<string, unknown>); }
-    catch { return FILE_ALEATOIRE_DEFAUT; }
+  function plafondAleatoire(): Promise<number> {
+    return plafondFileAleatoire(() => api.getConfig());
   }
   async function shuffleAll() {
     const zid = zoneRequise();
@@ -1988,13 +1987,18 @@
         else notifications.error($tr('library.noTracks'));
       }
       else if (fProvenance != null) {
-        const liste = dossierPortee
-          ? (await api.getFilteredTracks({ folder: dossierPortee, limit: 5000 })).items ?? []
-          : await api.getAllTracks();
+        const [liste, plafond] = await Promise.all([
+          dossierPortee
+            ? api.getFilteredTracks({ folder: dossierPortee, limit: 5000 }).then((r) => r.items ?? [])
+            : api.getAllTracks(),
+          plafondAleatoire(),
+        ]);
         const needle = fold(q);
         const selection = liste.filter(p => dansSource(p, fProvenance) &&
           (!needle || fold(p.title).includes(needle) || fold(p.artist_name).includes(needle)));
-        const ids = melangee(selection).flatMap(p => p.id == null ? [] : [p.id]);
+        // #5284 — ce tirage-ci ne rencontrait pas le plafond : une provenance
+        // de 4 986 titres partait en entier.
+        const ids = tirageAleatoire(selection, plafond).flatMap(p => p.id == null ? [] : [p.id]);
         if (ids.length) await playAndSync(zid, { track_ids: ids });
         else notifications.error($tr('library.noTracks'));
       }
