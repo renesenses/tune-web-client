@@ -26,6 +26,8 @@
  * côté crossfeed, et on la suit ici.
  */
 
+import { getConfig } from './api';
+
 /** La clé de réglage, côté serveur. Elle voyage dans les deux sens : le `GET`
  *  la publie, le `PATCH` l'écrit. */
 export const CLE_FILE_ALEATOIRE = 'shuffle_max_tracks';
@@ -105,4 +107,21 @@ export function versPatchFileAleatoire(
   bornes: BornesFileAleatoire,
 ): Record<string, number> {
   return { [CLE_FILE_ALEATOIRE]: bornerFileAleatoire(valeur, bornes) };
+}
+
+/**
+ * Le plafond que le serveur appliquera, lu à `GET /system/config` ; son
+ * défaut s'il ne répond pas (tune-server-rust#5284).
+ *
+ * Un SEUL lecteur pour tous les tirages faits côté client : la Bibliothèque en
+ * portait une copie privée, et les autres écrans n'en lisaient aucune.
+ */
+export async function plafondFileAleatoire(
+  lireConfig: () => Promise<unknown> = getConfig,
+): Promise<number> {
+  try {
+    return lireFileAleatoire((await lireConfig()) as Record<string, unknown>);
+  } catch {
+    return FILE_ALEATOIRE_DEFAUT;
+  }
 }
