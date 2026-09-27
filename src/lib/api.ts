@@ -2637,8 +2637,16 @@ export function getDashboardStats() {
 }
 
 /** Les genres de la bibliothèque — on n'en lit ici que le NOMBRE. */
+/**
+ * Les genres de la bibliothèque, et depuis la v0.9.168 leur VOLUME D'ÉCOUTE.
+ *
+ * `count` = le nombre d'albums en rayon ; `plays` = le nombre d'écoutes du
+ * genre. `plays` est OPTIONNEL à dessein : un serveur d'avant la 0.9.168 ne le
+ * sert pas, et un serveur récent l'omet si sa requête d'écoutes a échoué. Les
+ * deux cas se lisent « aucune écoute connue » — cf `classerGenresDuPanneau`.
+ */
 export function getGenres() {
-  return fetchJSON<{ name: string; count: number }[]>(`${BASE}/library/genres`);
+  return fetchJSON<{ name: string; count: number; plays?: number }[]>(`${BASE}/library/genres`);
 }
 
 export function updateAlbum(id: number, data: { title?: string; artist_id?: number; artist_name?: string; year?: number; genre?: string; label?: string; catalog_number?: string }) {

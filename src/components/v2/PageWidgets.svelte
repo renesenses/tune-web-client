@@ -63,6 +63,7 @@
     type ChiffreAffiche,
   } from '../../lib/accueilWidgets';
   import { repartirWidgets } from '../../lib/ajoutWidgets';
+  import { migrationPremiereLigne } from '../../lib/migrationPremiereLigne';
   import { creneauxParalleles } from '../../lib/creneauxParalleles';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import AudioVisualizer from '../partages/AudioVisualizer.svelte';
@@ -85,7 +86,7 @@
   import PanneauGenres from './ligne1/PanneauGenres.svelte';
   import PanneauConcerts from './ligne1/PanneauConcerts.svelte';
   import PanneauStats from './ligne1/PanneauStats.svelte';
-  import { COTE_L1 } from '../../lib/premiereLigne';
+  import { COTE_L1, zonesDeLaLigne } from '../../lib/premiereLigne';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import {
     objetAlbum,
@@ -131,6 +132,14 @@
      * l'a pas été.
      */
     cleChiffresMigre?: string;
+    /**
+     * La clé du MARQUEUR de la migration de la première ligne — 27/09/2026.
+     *
+     * Une par page, comme celle des chiffres : migrer l'accueil ne doit pas
+     * déclarer migré un écran éditorial, qui n'a même pas ce widget dans son
+     * catalogue.
+     */
+    cleLigneMigre?: string;
     cleEyebrow?: string;
     cleTitre?: string;
     /**
@@ -158,6 +167,7 @@
     cleChiffres: CLE_CHIFFRES = 'home_stats',
     /** #1519 — le marqueur de migration, à côté de la ligne qu'il protège. */
     cleChiffresMigre: CLE_CHIFFRES_MIGRE = 'home_stats_migre',
+    cleLigneMigre: CLE_LIGNE_MIGRE = 'home_l1_migre',
     cleEyebrow = 'v2.home.eyebrow',
     cleTitre = 'v2.home.title',
     salut = false,
@@ -369,6 +379,8 @@
   async function charger() {
     /** #1519 — la lecture des préférences a-t-elle désigné une ligne figée ? */
     let migrationAFaire = false;
+    /** 27/09/2026 — la première ligne doit-elle entrer dans cette disposition ? */
+    let ligneAMigrer = false;
     const pid = $currentProfileId;
     if (pid == null) {
       // On rend la page malgré tout — un cadre vide vaut mieux qu'un écran
@@ -399,6 +411,17 @@
         // pas perdu (`qobuz-sec-new-releases` → `qobuz-nouveautes`). Les
         // identifiants simplement inconnus, eux, restent tels quels (#987).
         dispositionEnregistree = remplacerAliasWidgets(dispositionEnregistree);
+        // 🔴 La première ligne entre UNE FOIS dans les accueils déjà rangés —
+        // arbitrage de Bertrand du 27/09/2026. Sans cela, quiconque a déplacé
+        // un widget ne serait-ce qu'une fois ne verrait JAMAIS la ligne
+        // d'en-tête : une disposition enregistrée l'emporte toujours sur le
+        // défaut. Tout le raisonnement, et le marqueur qui la rend
+        // idempotente, sont dans `migrationPremiereLigne`.
+        const mig = migrationPremiereLigne(
+          dispositionEnregistree, prefs?.[CLE_LIGNE_MIGRE], dispositionDefaut,
+        );
+        dispositionEnregistree = mig.disposition;
+        ligneAMigrer = mig.aMigrer;
         disposition = dispositionEnregistree.filter((id) => parId(id));
       }
     } catch {
@@ -412,6 +435,13 @@
     // confort, elle ne doit pas retarder d'une milliseconde l'affichage de la
     // page. Ce que la ligne montre est déjà décidé ci-dessus.
     if (migrationAFaire) void migrerLigneDeChiffres(pid, [...chiffres]);
+    // Même règle pour la première ligne : APRÈS le rendu, sans le retenir.
+    // Ce que la page montre est déjà décidé ci-dessus.
+    // 🔴 `dispositionEnregistree` et NON `disposition` : la seconde est filtrée
+    // sur les identifiants que cette version sait nommer. L'écrire effacerait
+    // un widget choisi avec une version plus récente — le défaut de #987, payé
+    // une fois déjà.
+    if (ligneAMigrer) void migrerPremiereLigne(pid, [...(dispositionEnregistree ?? [])]);
   }
 
   /**
@@ -441,6 +471,34 @@
       // serait du bruit. Le marqueur n'est pas posé côté serveur, donc le
       // prochain chargement réessaiera — et la page suivante de cette session
       // n'y reviendra pas, `migres` la retient.
+    }
+  }
+
+  /**
+   * L'ÉCRITURE DE LA MIGRATION DE LA PREMIÈRE LIGNE, une fois par profil.
+   *
+   * 🔴 La disposition ET son marqueur dans le MÊME appel : si seul le marqueur
+   * partait, la ligne disparaîtrait au rechargement suivant sans jamais
+   * revenir ; si seule la disposition partait, un profil qui retire la ligne
+   * la reverrait au chargement d'après. C'est l'appel unique qui rend la
+   * migration idempotente, exactement comme pour la ligne de chiffres.
+   *
+   * Ce garde-ci n'est PAS un `$state` — même raison que `demandes` : il est lu
+   * et écrit hors du cycle réactif.
+   */
+  const lignesMigrees = new Set<number>();
+
+  async function migrerPremiereLigne(pid: number, disp: string[]) {
+    if (lignesMigrees.has(pid)) return;
+    lignesMigrees.add(pid);
+    try {
+      await api.setProfilePreferences(pid, {
+        [CLE]: disp,
+        [CLE_LIGNE_MIGRE]: true,
+      });
+    } catch {
+      // Silencieux : aucun geste de l'utilisateur n'est en jeu. Le marqueur
+      // n'est pas posé côté serveur, donc le prochain chargement réessaiera.
     }
   }
 
@@ -1274,9 +1332,14 @@
               <div class="l1" use:defilementHorizontal
                    style:--l1-h="{COTE_L1}px"
                    role="group" aria-label={$t(w.cleTitre as any)}>
-                {#each et.elements as el (el.id)}
-                  {@const z = zoneVivante(el.zoneId)}
-                  {#if z}<CarteZoneL1 zone={z} />{/if}
+                <!-- 🔴 LE MAGASIN VIVANT, et non `et.elements` — correctif
+                     du 27/09/2026. `charger` ne s'exécute qu'une fois : la
+                     liste des cartes était figée à l'ouverture de la page.
+                     Une zone démarrée ensuite n'apparaissait jamais, et une
+                     zone arrêtée gardait sa carte. Le filtre vit dans
+                     `lib/premiereLigne`, avec son test. -->
+                {#each zonesDeLaLigne($zones) as z (z.id)}
+                  <CarteZoneL1 zone={z} />
                 {/each}
                 <PanneauGenres />
                 <PanneauConcerts />
@@ -1347,15 +1410,21 @@
                    Le premier widget « Zones d'écoute actives » ne bouge pas :
                    celui-ci s'ajoute à côté, il ne le remplace pas. -->
               <div class="zcartes">
-                {#each et.elements as el (el.id)}
-                  {@const z = zoneVivante(el.zoneId)}
+                <!-- 🔴 LE MAGASIN VIVANT, et non `et.elements` — 27/09/2026,
+                     même correctif que la première ligne. `charger` ne
+                     s'exécute qu'une fois : la liste des cartes était figée à
+                     l'ouverture de la page, et se trompait dans les deux sens.
+                     Le filtre est partagé avec la ligne d'en-tête : deux
+                     copies auraient divergé au premier ajustement. -->
+                {#each zonesDeLaLigne($zones) as zv (zv.id)}
+                  {@const z = zoneVivante(zv.id)}
                   {#if z}
                     {@const ct = (z as any).current_track}
                     <article class="zcarte" class:joue={z.state === 'playing'}>
                       <div class="zcv">
-                        <AlbumArt coverPath={ct?.cover_path ?? el.cover} albumId={ct?.album_id ?? null}
-                          size={0} alt={ct?.title ?? ''} source={ct?.source ?? el.source}
-                          fallbackInitials={(ct?.title ?? el.titre)?.slice(0, 1)} />
+                        <AlbumArt coverPath={ct?.cover_path ?? null} albumId={ct?.album_id ?? null}
+                          size={0} alt={ct?.title ?? ''} source={ct?.source ?? null}
+                          fallbackInitials={(ct?.title ?? z.name ?? '?')?.slice(0, 1)} />
                       </div>
 
                       <div class="zinfo">

@@ -367,5 +367,17 @@
      d'outils de l'écran passerait dessous (garde `gouttiereGrappe`). */
   .cc {
     padding-right: var(--v2-grappe-w, 172px);
+    /* 🔴 Bertrand, 27/09/2026 : « on ne peut pas scroller vers le bas ».
+       La coquille met `.main` en `overflow:hidden` et n'accorde
+       `overflow-y:auto` qu'à un enfant de classe `.dash` (`ShellV2:911,923`) —
+       sa seule autre règle, `.main > :global(*)`, ne donne que le
+       dimensionnement flex. Chaque écran porte donc son propre défilement, et
+       celui-ci était le SEUL des neuf écrans hérités montés par la coquille à
+       n'en avoir aucun : la phase 5 lui a bien ajouté la réserve de la grappe
+       juste au-dessus, et a oublié le reste.
+       `min-height:0` est indispensable : sans lui, un enfant de flex refuse de
+       rétrécir sous sa hauteur de contenu et le débordement ne défile pas. */
+    min-height: 0;
+    overflow-y: auto;
   }
 </style>

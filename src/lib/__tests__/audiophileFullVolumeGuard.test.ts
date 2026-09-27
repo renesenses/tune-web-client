@@ -22,7 +22,7 @@ describe('garde plein volume transversale (#2445)', () => {
     const handler = bodyOf(
       transport,
       'async function toggleAudiophile()',
-      'async function toggleVolumeLock()',
+      'async function toggleVolumeLock(',
     );
     // Une déclaration et deux surfaces (bouclier de la barre + interrupteur
     // du chemin du signal) : toute surface supplémentaire doit réutiliser ce
@@ -37,8 +37,12 @@ describe('garde plein volume transversale (#2445)', () => {
     expect(handler).toContain('enabled, fullVolumeConfirmed');
   });
 
-  it('l’interrupteur du verrou confirme avant toute écriture', () => {
-    const handler = bodyOf(transport, 'async function toggleVolumeLock()', 'const detailTranslations');
+  it('le sélecteur du verrou confirme avant toute écriture', () => {
+    // La parenthèse reste OUVERTE dans le repère : le verrou par zone a trois
+    // positions depuis #2526, et son écrivain prend désormais le choix en
+    // paramètre. Ce qui est gardé ici n'a pas changé d'un pouce — la décision
+    // plein volume précède toujours l'écriture — seul le nom du sujet a bougé.
+    const handler = bodyOf(transport, 'async function toggleVolumeLock(', 'const detailTranslations');
     expect(handler.indexOf("fullVolumeConfirmationRequired('volume-lock'")).toBeLessThan(
       handler.indexOf('setZoneVolumeLock('),
     );

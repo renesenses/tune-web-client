@@ -404,11 +404,11 @@
                serveur — crêtes et moyennes gauche/droite. -->
           {#if settings.vuMeter === 'needle'}
             <div class="tv-visualizer">
-              <TvVuMeters playing={isPlaying} width={560} />
+              <TvVuMeters playing={isPlaying} width={560} clair={settings.theme === 'light'} />
             </div>
           {:else if settings.vuMeter === 'bars'}
             <div class="tv-visualizer">
-              <TvVuBars playing={isPlaying} scale={settings.vuBarScale} width={560} />
+              <TvVuBars playing={isPlaying} scale={settings.vuBarScale} width={560} clair={settings.theme === 'light'} />
             </div>
           {/if}
         </div>
@@ -517,6 +517,27 @@
     color: #fff;
     overflow: hidden;
     user-select: none;
+
+    /* 🔴 LA PALETTE DES INSTRUMENTS SUIT L'ÉCRAN, PAS LE THÈME DE L'APPLI.
+       27/09/2026, audit.
+
+       Le Grand écran a son PROPRE mode clair/sombre (`settings.theme`),
+       indépendant des six thèmes du client. Or ses cadrans lisent depuis peu
+       les jetons `--v2-vu-*`, qui viennent du thème de l'appli : un Grand
+       écran NOIR ouvert pendant que le client est en thème clair peignait
+       donc une encre sombre sur un fond noir — des cadrans invisibles.
+
+       `.tv-root` est un descendant de `.tune-v2` : redéclarer les jetons ici
+       les reprend pour tout ce qu'il contient, sans toucher au reste de
+       l'interface. C'est l'écran qui décide de sa propre encre, et c'est la
+       seule lecture juste. */
+    --v2-vu-face-h: rgba(255,255,255,.055);
+    --v2-vu-face-b: rgba(255,255,255,.015);
+    --v2-vu-bord: rgba(255,255,255,.12);
+    --v2-vu-encre: 237,233,224;
+    --v2-vu-rouge: 224,82,82;
+    --v2-vu-aiguille: #f2b441;
+    --v2-vu-lueur: rgba(242,180,65,.45);
   }
   .tv-root.hide-cursor {
     cursor: none;
@@ -524,6 +545,17 @@
   .tv-root.light {
     background: #f4f4f6;
     color: #17181c;
+
+    /* Le Grand écran en clair : l'encre ivoire y était déjà illisible AVANT
+       que les jetons existent — sur `#f4f4f6`, de l'ivoire à 75 % ne se voit
+       pas. Ce défaut-là est antérieur ; il se corrige ici en même temps. */
+    --v2-vu-face-h: rgba(28,32,38,.05);
+    --v2-vu-face-b: rgba(28,32,38,.015);
+    --v2-vu-bord: rgba(20,28,36,.22);
+    --v2-vu-encre: 44,50,58;
+    --v2-vu-rouge: 192,57,43;
+    --v2-vu-aiguille: #B45309;
+    --v2-vu-lueur: rgba(180,83,9,.30);
   }
 
   .tv-bg-blur {
