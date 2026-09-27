@@ -3071,6 +3071,8 @@ export default {
   "v2.disco.reset": "Összes mutatása",
   "v2.disco.noMatch": "Egy album sem felel meg ennek a szűrőnek.",
   "v2.disco.related": "Egyéb / Kapcsolódó",
+  "v2.disco.mainAlbums": "Fő albumok",
+  "v2.disco.epSingles": "EP-k és kislemezek",
   "v2.disco.compilations": "Válogatások",
   "v2.disco.appearances": "Közreműködések",
   "v2.fas.albums": "Albumok",

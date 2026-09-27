@@ -159,6 +159,8 @@ export interface Album {
    * que la base ne sait pas encore.
    */
   is_compilation?: boolean;
+  /** Type annoncé par MusicBrainz ou le service : absent quand il n'est pas connu. */
+  release_type?: string | null;
   /** D'OÙ sort ce Dynamic Range (#1388, serveur v0.9.142) : `album_tag` quand
    *  une piste porte `ALBUM DYNAMIC RANGE`, `track_average` quand Tune l'a
    *  déduite de la moyenne arrondie des `DYNAMIC RANGE` des pistes. Apparaît

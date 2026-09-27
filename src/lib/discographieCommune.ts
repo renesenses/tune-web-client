@@ -70,6 +70,23 @@ export interface EntreeDiscographie {
   qualites: Qualite[];
 }
 
+/** Les seuls types que la page peut ranger dans « EP et singles ». */
+export function estEpOuSingle(entree: EntreeDiscographie): boolean {
+  const types = entree.exemplaires.map((ex) => ex.album.release_type?.trim().toLowerCase());
+  // Un exemplaire sans type ou contradictoire reste dans la grille Albums.
+  return types.length > 0 && types.every((type) => type === 'ep' || type === 'single');
+}
+
+/** Conserve l'ordre reçu, y compris pour les albums sans type connu. */
+export function partagerParTypeDeSortie(entrees: EntreeDiscographie[]) {
+  const albums: EntreeDiscographie[] = [];
+  const epSingles: EntreeDiscographie[] = [];
+  for (const entree of entrees) {
+    (estEpOuSingle(entree) ? epSingles : albums).push(entree);
+  }
+  return { albums, epSingles };
+}
+
 /**
  * Le titre replié : sans accents, sans casse, sans ponctuation.
  *

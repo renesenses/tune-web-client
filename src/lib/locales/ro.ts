@@ -3113,6 +3113,8 @@ export default {
   "v2.disco.reset": "Arată tot",
   "v2.disco.noMatch": "Niciun album nu corespunde acestui filtru.",
   "v2.disco.related": "Altele / Conexe",
+  "v2.disco.mainAlbums": "Albume principale",
+  "v2.disco.epSingles": "EP-uri și single-uri",
   "v2.disco.compilations": "Compilații",
   "v2.disco.appearances": "Apariții",
   "v2.fas.albums": "Albume",
