@@ -56,6 +56,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { detailOuvert, fermerDetail } from '../../lib/historiqueCoquille';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
+  import { qualiteDuRepertoire, repertoiresDeLecture } from '../../lib/repertoireAlbum';
   import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
   import { chargerCollectionsCibles, entreesAjoutCollection, lignesMenuEnRayons, type CollectionCible } from '../../lib/albumVersCollection';
   import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
@@ -548,6 +549,55 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     api.getAlbum(id).then((a) => { if (vivant) fiche = a; }).catch(() => {});
     return () => { vivant = false; };
   });
+
+  // #1684 — la liste des exemplaires vient de la fiche locale complète. Les
+  // anciens serveurs n'envoient pas ce champ : aucun contrôle n'est affiché.
+  const repertoiresDeCetAlbum = $derived(repertoiresDeLecture(fiche));
+  let racinePreferee = $state<string | null>(null);
+  let preferenceChargee = $state(false);
+  let preferenceEnCours = $state(false);
+  let erreurPreference = $state('');
+  $effect(() => {
+    const id = album.id, d = depot, svc = service, bc = bandcamp;
+    const racines = repertoiresDeCetAlbum;
+    racinePreferee = null;
+    preferenceChargee = false;
+    preferenceEnCours = false;
+    erreurPreference = '';
+    if (id == null || d || svc || bc || !racines.length) return;
+    let vivant = true;
+    api.getAlbumPreferredDirectory(id)
+      .then((r) => {
+        if (!vivant) return;
+        racinePreferee = r.racine;
+        preferenceChargee = true;
+      })
+      .catch(() => { /* Un serveur antérieur n'a pas cette route. */ });
+    return () => { vivant = false; };
+  });
+
+  async function choisirRepertoire(event: Event) {
+    const element = event.currentTarget as HTMLSelectElement;
+    const id = album.id;
+    if (id == null || preferenceEnCours) return;
+    const avant = racinePreferee;
+    const voulu = element.value;
+    preferenceEnCours = true;
+    erreurPreference = '';
+    try {
+      const r = voulu
+        ? await api.setAlbumPreferredDirectory(id, voulu)
+        : await api.clearAlbumPreferredDirectory(id);
+      if (album.id === id) racinePreferee = r.racine;
+    } catch {
+      if (album.id === id) {
+        element.value = avant ?? '';
+        erreurPreference = get(tr)('v2.album.sourceSaveError' as any);
+      }
+    } finally {
+      if (album.id === id) preferenceEnCours = false;
+    }
+  }
 
   /* ══════════════════════════════════════════════════════════════════════
      LE MODE « MODIFIER » — GO de Bertrand, 25/09/2026.
@@ -1205,6 +1255,25 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
              valeur, provenance différente — voir `lib/dynamicRange.ts`. -->
         {#if dr}<span class="dr" class:deduit={dr.deduit} use:tip={dr.cleInfobulle}>DR {dr.texte}</span>{/if}
       </div>
+      {#if preferenceChargee && (repertoiresDeCetAlbum.length > 1 || racinePreferee)}
+        <div class="repertoire-lecture">
+          <label for="album-repertoire-{album.id}">{$tr('v2.album.playFrom' as any)}</label>
+          <select id="album-repertoire-{album.id}" data-album-source
+            value={racinePreferee ?? ''} disabled={preferenceEnCours}
+            onchange={choisirRepertoire}>
+            <option value="">{$tr('v2.album.sourceAutomatic' as any)}</option>
+            {#each repertoiresDeCetAlbum as exemplaire (exemplaire.racine)}
+              <option value={exemplaire.racine}>
+                {exemplaire.racine}{qualiteDuRepertoire(exemplaire) ? ` · ${qualiteDuRepertoire(exemplaire)}` : ''}{exemplaire.joignable ? '' : ` · ${$tr('v2.album.sourceUnavailable' as any)}`}
+              </option>
+            {/each}
+            {#if racinePreferee && !repertoiresDeCetAlbum.some((e) => e.racine === racinePreferee)}
+              <option value={racinePreferee}>{racinePreferee} · {$tr('v2.album.sourceUnavailable' as any)}</option>
+            {/if}
+          </select>
+          {#if erreurPreference}<p role="alert">{erreurPreference}</p>{/if}
+        </div>
+      {/if}
       <div class="actions">
         <button class="play" onclick={() => playAlbum(0)}>
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>{$tr('v2.album.play' as any)}
@@ -1486,6 +1555,14 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   .artist.lien:hover{color:var(--v2-acc-tint); text-decoration:underline}
   .artist.lien:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:3px; border-radius:4px}
   .facts{display:flex; gap:16px; font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .repertoire-lecture{display:flex; flex-direction:column; align-items:flex-start; gap:5px; max-width:min(100%, 520px)}
+  .repertoire-lecture label{font:600 12px var(--v2-sans); color:var(--v2-txt2)}
+  .repertoire-lecture select{width:100%; min-height:38px; padding:6px 10px; border-radius:8px;
+    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
+    font:13px var(--v2-sans)}
+  .repertoire-lecture select:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
+  .repertoire-lecture select:disabled{opacity:.6}
+  .repertoire-lecture p{margin:0; color:var(--v2-danger); font-size:12px}
   /* Le DR DÉDUIT (moyenne des pistes) : tilde dans le texte, soulignement
      pointillé en `currentColor` — donc lisible dans les deux thèmes sans
      jeton de couleur, et sans peser sur la ligne. Une mesure d'album ne porte
