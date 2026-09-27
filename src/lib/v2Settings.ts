@@ -240,7 +240,13 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'about',      titleKey: 'settings.about',             from: 'system', min: 'beginner', keywords: ['version', 'à propos'] },
       { id: 'health',     titleKey: 'settings.serverHealth',      from: 'system', min: 'intermediate', keywords: ['santé', 'état serveur'] },
       { id: 'push',       titleKey: 'settings.pushNotifications', from: 'system', min: 'intermediate', keywords: ['notifications'] },
-      { id: 'cloud',      title: 'Cloud',                         from: 'system', min: 'intermediate', keywords: ['sauvegarde', 'relais', 'télémétrie', 'telemetry', 'statistiques', 'consentement', 'vie privée'] },
+      /* 🔴 `min: 'beginner'` — et non 'intermediate'. Trois écrans envoient ici
+       * pour RELIER le compte Mozaiklabs ; au niveau « Essentiel » la section
+       * était filtrée hors de l'écran, et la navigation programmée atterrissait
+       * sur l'onglet Système SANS ce qu'on venait y chercher. Le geste de
+       * connexion y vit désormais : il doit être atteignable à tous les
+       * niveaux. Les mots-clés doivent le trouver (« compte », « relier »). */
+      { id: 'cloud',      title: 'Cloud',                         from: 'system', min: 'beginner', keywords: ['compte', 'relier', 'mozaiklabs', 'connexion', 'se connecter', 'account', 'sauvegarde', 'relais', 'télémétrie', 'telemetry', 'statistiques', 'consentement', 'vie privée'] },
       { id: 'database',   titleKey: 'settings.database',          from: 'system', min: 'expert', keywords: ['base', 'sqlite', 'postgres'] },
       { id: 'dataLoc',    titleKey: 'settings.dataLocation',      from: 'system', min: 'expert', keywords: ['emplacement', 'données'] },
       { id: 'import',     titleKey: 'import.title',               from: 'system', min: 'expert', keywords: ['import', 'roon', 'plex', 'migrer', 'autre lecteur'] },
