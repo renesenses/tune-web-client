@@ -4610,7 +4610,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         .replace('{since}', $dateCourte($offlineGrace.since))
                         .replace('{days}', String($offlineGrace.total_days))}
                     </span>
-                  {:else}
+                  {:else if !$offlineGrace.since}
+                    <!--
+                      🔴 Condition explicite, et non une branche « sinon » nue,
+                      à dessein. Les trois cas sont exhaustifs (`grace`,
+                      `expired` avec ancre, `expired` sans ancre) : la condition
+                      ne coûte donc rien.
+
+                      Ce qu'elle évite : `licenceRevalidationV2.test.ts:24`
+                      découpe le SOURCE de cet onglet, de `{#if lic.licenseKey}`
+                      jusqu'à la première branche « sinon » nue qui suit, pour y
+                      chercher `onclick={validateLic}`. Une telle branche
+                      insérée ici rogne sa fenêtre et fait rougir son témoin
+                      alors que le bouton « Revalider » n'a pas bougé d'un
+                      pouce. Le mot-clé n'est écrit nulle part ci-dessus, pas
+                      même en commentaire, pour la même raison.
+                    -->
                     <b>{$t('settings.licenseGraceNeverTitle' as any)}</b>
                     <span>{$t('settings.licenseGraceNeverBody' as any)}</span>
                   {/if}
