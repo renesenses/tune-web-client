@@ -193,8 +193,29 @@ export interface Element {
  * commentaire : `__tests__/blocsHorsAccueilQobuzTidal.test.ts` le mesure sur
  * les trois catalogues réels. Sans cette garde, la règle de Bertrand se
  * serait érodée à la première commodité.
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * `premiere-ligne` : LA LIGNE D'EN-TÊTE DE L'ACCUEIL — Bertrand, 27/09/2026,
+ * sur la maquette de Levente.
+ *
+ * C'est la seule forme qui rende plusieurs NATURES de contenu côte à côte :
+ * une carte carrée par zone qui joue, puis les genres, les concerts et les
+ * statistiques d'écoute. Le nombre de cartes suit les zones actives, et pousse
+ * les panneaux vers la droite — d'où une ligne qui DÉFILE, comme toutes les
+ * autres.
+ *
+ * 🔴 Elle ne dément pas la règle « tous horizontaux » : elle en est le cas le
+ * plus strict. Tout ce qu'elle porte a la MÊME hauteur, déclarée une seule
+ * fois dans `premiereLigne.ts` — c'est-à-dire précisément ce que la règle
+ * protégeait, une hauteur prévisible.
+ *
+ * ⚠️ Comme `bloc`, cette forme ne rend pas des `Element[]` affichables tels
+ * quels : son chargeur rend les IDENTIFIANTS DE ZONE, exactement comme
+ * `zones-cartes`, et les trois panneaux chargent chacun leur matière dans leur
+ * propre composant. Un panneau en panne — le greffon Concerts absent, par
+ * exemple — ne retient donc ni les autres panneaux ni les cartes.
  */
-export type Forme = 'bande' | 'chiffres' | 'zones-cartes' | 'tops' | 'bloc';
+export type Forme = 'bande' | 'chiffres' | 'zones-cartes' | 'tops' | 'bloc' | 'premiere-ligne';
 
 /**
  * CE QUE PORTE UN WIDGET `forme: 'bloc'`, en plus de son identité.
@@ -285,6 +306,19 @@ export interface Widget {
    * l'oublierait retombe sur « (vide) » plutôt que de casser la page.
    */
   bloc?: Bloc;
+  /**
+   * Ce widget porte-t-il son titre à l'écran ? — 27/09/2026.
+   *
+   * La première ligne n'en a pas sur la maquette : elle est la ligne d'en-tête
+   * de la page, sous « Bonsoir Bertrand ! », et un second titre au-dessus
+   * d'elle ferait deux en-têtes.
+   *
+   * 🔴 Le titre n'est pas SUPPRIMÉ pour autant, il est tu HORS du mode
+   * « Modifier ». En mode édition il revient, parce que c'est lui qui nomme ce
+   * qu'on déplace et ce que la croix retire : une poignée et une croix sans
+   * libellé, c'est la plainte de Sandro (fil 1679) rejouée à l'identique.
+   */
+  sansTitre?: boolean;
 }
 
 /**
@@ -1069,6 +1103,55 @@ function elementCollectionDuSeau(c: any, i: number, smart: boolean): Element {
 
 export const WIDGETS: Widget[] = [
   {
+    id: 'premiere-ligne',
+    cleTitre: 'v2.home.wFirstRow',
+    forme: 'premiere-ligne',
+    // La ligne d'en-tête de la page : elle ne porte pas de second titre.
+    sansTitre: true,
+    /**
+     * LA LIGNE D'EN-TÊTE — Bertrand, 27/09/2026, maquette de Levente.
+     *
+     * ## Ce que ce chargeur rend, et ce qu'il ne rend pas
+     *
+     * Les mêmes éléments que `zones-cartes` : une entrée par zone qui joue ou
+     * est en pause, ne portant que l'IDENTIFIANT de la zone. La carte relit le
+     * magasin vivant — sans cela la barre de progression resterait figée à
+     * l'instant du chargement, et la carte annoncerait encore le morceau
+     * précédent (leçon du 06/09/2026).
+     *
+     * Les TROIS PANNEAUX — genres, concerts, statistiques — ne passent pas par
+     * ici. Chacun charge sa matière dans son propre composant, et pour une
+     * raison précise : un chargeur unique ferait tomber la ligne entière sur
+     * le premier refus, or le greffon Concerts répond 402 à qui ne l'a pas.
+     * La carte d'une zone qui joue ne doit pas disparaître parce qu'un panneau
+     * de statistiques n'a pas répondu.
+     *
+     * ## ⚠️ Aucun appel réseau
+     *
+     * Tout vient de `/zones`, que la coquille tient déjà dans `ctx.zones`.
+     *
+     * ## Qui s'affiche
+     *
+     * Les zones qui JOUENT ou sont en PAUSE — pas celles qui sont à l'arrêt :
+     * sur le .18, « Cet ordinateur » est `stopped` et porte pourtant un
+     * `current_track` à la position 0, et la ligne s'ouvrirait sur des cartes
+     * muettes. C'est le filtre de `zones-cartes`, à l'identique et pour la
+     * même raison.
+     */
+    charger: async (ctx) =>
+      (ctx.zones ?? [])
+        .filter((z: any) => z?.current_track && (z.state === 'playing' || z.state === 'paused'))
+        .map((z: any, i: number) => ({
+          id: `l1zone${i}-${z?.id ?? ''}`,
+          titre: champ(z?.current_track, 'title') ?? '—',
+          sous: z?.name ?? '',
+          cover: champ(z?.current_track, 'cover_path', 'cover_url') ?? null,
+          source: champ(z?.current_track, 'source') ?? null,
+          zoneId: z?.id ?? null,
+          enLecture: z?.state === 'playing',
+        })),
+  },
+  {
     id: 'zones',
     cleTitre: 'v2.home.wZones',
     forme: 'bande',
@@ -1676,6 +1759,22 @@ export const WIDGETS: Widget[] = [
  * remplacent aucun accès perdu.
  */
 export const DISPOSITION_DEFAUT = [
+  /**
+   * 🔴 EN TÊTE, ET DANS LE DÉFAUT — décision de Bertrand du 27/09/2026.
+   *
+   * Les widgets ajoutés depuis le 06/09 sont restés HORS du défaut, sur une
+   * règle explicite : « personne ne doit voir son écran changer sans l'avoir
+   * demandé » (cf `__tests__/widgetCarteZone.test.ts`). Celui-ci y entre, et
+   * c'est délibéré : la demande n'était pas « un widget de plus », c'était
+   * « la première ligne de la homepage devient un gros widget horizontal ».
+   * Une ligne d'en-tête que personne ne voit sans être allé la chercher dans
+   * « Ajouter » ne serait pas la ligne d'en-tête.
+   *
+   * Ce que cela touche, exactement : les profils qui n'ont JAMAIS rangé leur
+   * accueil. Une disposition enregistrée l'emporte toujours sur ce défaut —
+   * c'est `charger()` qui le dit, et rien ici ne réécrit ce qui est rangé.
+   */
+  'premiere-ligne',
   'reprendre',
   'nouveautes-artistes',
   'recemment-ajoutes',
