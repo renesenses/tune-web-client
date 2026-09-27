@@ -61,3 +61,38 @@ export const PERIODE_L1 = '7d' as const;
  * ferait grandir la ligne entière, ou serait coupée en son milieu.
  */
 export const LIGNES_BARRES = 4;
+
+/**
+ * 🔴 LES ZONES QUE LA LIGNE MONTRE — lues sur le magasin VIVANT.
+ *
+ * Bertrand, 27/09/2026, sur le .18 : « la zone active a disparu ». La ligne
+ * rendait `et.elements`, c'est-à-dire ce que le chargeur du widget avait
+ * produit UNE FOIS, au chargement de la page. `PageWidgets` n'appelle
+ * `charger` qu'une seule fois par widget — c'est tout le principe de son
+ * chargement paresseux.
+ *
+ * La liste se trompait donc dans les DEUX sens :
+ *  - rien ne jouait à l'ouverture de l'accueil ⇒ aucune carte, pour toujours ;
+ *  - une zone démarrée après ⇒ jamais de carte ;
+ *  - une zone arrêtée depuis ⇒ sa carte restait.
+ *
+ * Seul le CONTENU de chaque carte était vivant (`zoneVivante` relisait le
+ * magasin) : la leçon du 06/09 avait été appliquée à la position de
+ * l'aiguille, pas à l'existence de la carte.
+ *
+ * Cette fonction est donc appelée par le RENDU, à chaque changement du
+ * magasin. Elle est ici, et pas dans le registre, pour qu'il n'y ait qu'un
+ * seul filtre : deux copies auraient divergé au premier ajustement.
+ *
+ * Qui passe : les zones qui JOUENT ou sont en PAUSE. Pas celles à l'arrêt —
+ * sur le .18, « Cet ordinateur » est `stopped` et porte pourtant un
+ * `current_track` à la position 0 : la retenir remplirait la ligne de cartes
+ * muettes.
+ */
+export function zonesDeLaLigne<T extends { current_track?: unknown; state?: string }>(
+  zones: readonly T[] | null | undefined,
+): T[] {
+  return (zones ?? []).filter(
+    (z) => z?.current_track && (z.state === 'playing' || z.state === 'paused'),
+  );
+}
