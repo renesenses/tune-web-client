@@ -59,8 +59,16 @@ describe('Accueil — le registre', () => {
       // 20/09/2026 — QUATRIÈME forme, sur décision de Bertrand : « gros widget
       // top Artists / Albums / Tracks ». Trois colonnes ne sont pas une bande,
       // et les comprimer en bande aurait perdu le classement.
-      expect(['bande', 'chiffres', 'zones-cartes', 'tops']).toContain(w.forme);
+      // 27/09/2026 — CINQUIÈME forme, sur décision de Bertrand : « la première
+      // ligne de la homepage devient un gros widget horizontal », d'après la
+      // maquette de Levente. C'est la seule qui mette plusieurs NATURES de
+      // contenu côte à côte — des cartes de zone, puis trois panneaux — et
+      // c'est aussi la plus stricte sur la hauteur : tout ce qu'elle porte
+      // lit `--l1-h`, posé une seule fois.
+      expect(['bande', 'chiffres', 'zones-cartes', 'tops', 'premiere-ligne']).toContain(w.forme);
     }
+    expect(WIDGETS.filter((w) => w.forme === 'premiere-ligne').map((w) => w.id))
+      .toEqual(['premiere-ligne']);
     // 20/09/2026 — « Widget Stats de la semaine » (Bertrand). La forme
     // `chiffres` a donc un SECOND utilisateur : ce n'est pas une forme
     // nouvelle, mais la garde nomme ses utilisateurs un par un, et c'est
@@ -91,7 +99,16 @@ describe('Accueil — le registre', () => {
     // L'entrée disparaissait, et rien n'apparaissait. Les deux widgets qui
     // la remplacent entrent donc au défaut, EN QUEUE — un accueil déjà
     // enregistré ne bouge pas, et le haut de page ne bouge pas non plus.
+    //
+    // 🔴 TROISIÈME exception, 27/09/2026 : « la première ligne de la homepage
+    // devient un gros widget horizontal » (Bertrand, sur la maquette de
+    // Levente). Celle-ci entre EN TÊTE, et ne pouvait pas entrer ailleurs :
+    // une ligne d'en-tête qu'il faut aller chercher dans « Ajouter » puis
+    // remonter à la main n'est pas une ligne d'en-tête. La règle tient
+    // toujours pour ce qu'elle protégeait vraiment — une disposition DÉJÀ
+    // ENREGISTRÉE l'emporte sur ce défaut et ne bouge pas.
     expect(DISPOSITION_DEFAUT).toEqual([
+      'premiere-ligne',
       'reprendre', 'nouveautes-artistes', 'recemment-ajoutes', 'statistiques',
       'top-artistes', 'stats-semaine',
     ]);

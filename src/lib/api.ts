@@ -6642,6 +6642,10 @@ export function getServerDiagnostics() {
     connectors: string[];
     // Memory: server uses "memory_rss_mb"
     memory_rss_mb: number | null;
+    // tune-server-rust#5189 — température du processeur en °C ; `null` sans
+    // capteur lisible (macOS, Windows, conteneur, VM). Optionnel : un serveur
+    // antérieur n'envoie pas le champ. Lu par `lib/temperatureProcesseur.ts`.
+    cpu_temp_c?: number | null;
     // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
     // compatible with older servers during rolling client/server updates.
     asio_warm_scan?: AsioWarmScanStatus;
