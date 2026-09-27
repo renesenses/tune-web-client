@@ -165,8 +165,7 @@ describe('#1517 — analyser UN dossier, et lui seul', () => {
    *  listés. */
   it('chaque dossier listé porte un bouton qui analyse CE dossier', () => {
     const ecran = readFileSync('src/components/v2/SettingsV2.svelte', 'utf8');
-    const liste = ecran.slice(ecran.indexOf('{#each musicDirs as d (d)}'));
-    const ligne = liste.slice(0, liste.indexOf('{/each}'));
+    const ligne = ecran.match(/\{#each\s+\S+\s+as d(?:,\s*\w+)?\s+\(d\)\}([\s\S]*?)\{\/each\}/)?.[1] ?? '';
     expect(ligne).toContain('scan(false, d)');
     expect(ligne).toContain("$t('v2.scan.folderAction'");
     // Le retrait reste ce qu'il était : on ajoute un geste, on n'en retire pas.
