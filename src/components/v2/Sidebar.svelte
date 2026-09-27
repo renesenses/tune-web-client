@@ -46,6 +46,7 @@
   import {
     sources, sourceCourante, rubriqueSourcesVisible, rafraichirSources, abonnerSources,
     partagerSources, nomSource, ICONES_SOURCE, type Source,
+    typesSourcesBarre, sourcesDeLaBarre, sourceGrisee, figerTypesParDefaut,
   } from '../../lib/sources';
 
   /**
@@ -553,16 +554,32 @@
    */
   $effect(() => { void rafraichirSources(); });
   $effect(() => abonnerSources((h) => tuneWS.onEvent(h)));
-  const sourcesBarre = $derived(partagerSources($sources ?? []));
+  // #5065, étape 3 — seuls les TYPES cochés dans les Réglages ; une source
+  // inutilisable est grisée, un type coché sans source a sa place grisée.
+  const sourcesBarre = $derived(partagerSources(sourcesDeLaBarre($sources ?? [], $typesSourcesBarre)));
+  // Le défaut (types présents) se fige à la première lecture qui en trouve un.
+  $effect(() => {
+    const fige = figerTypesParDefaut($preferences.sourcesBarre, $sources);
+    if (fige) preferences.update((p) => ({ ...p, sourcesBarre: fige }));
+  });
+  /** Nom montré : une place réservée porte le nom de son type. */
+  function nomDansLaBarre(s: Source): string {
+    return s.detail?.absente === true ? $t(`v2.sources.type.${s.type}` as any) : nomSource(s);
+  }
   /** Les entrées virtuelles sont REPLIÉES par défaut : elles sont rarement
    *  celles qu'on cherche, et un pilote en déclare parfois plusieurs. */
   let virtuellesDepliees = $state(false);
+  /** Un CD utilisable ouvre l'écran `lecturecd` ; une source grisée ouvre
+   *  sa page, qui explique pourquoi. */
+  function versLectureCd(s: Source): boolean {
+    return s.type === 'cd' && !sourceGrisee(s);
+  }
   function ouvrirSource(s: Source) {
     sourceCourante.set(s.id);
-    go(s.type === 'cd' ? 'lecturecd' : 'source');
+    go(versLectureCd(s) ? 'lecturecd' : 'source');
   }
   function sourceActive(s: Source, vue: View, courante: string | null): boolean {
-    return s.type === 'cd' ? vue === 'lecturecd' : vue === 'source' && courante === s.id;
+    return versLectureCd(s) ? vue === 'lecturecd' : vue === 'source' && courante === s.id;
   }
   const libelleVirtuelles = $derived(
     virtuellesDepliees ? $t('v2.sources.hideVirtual' as any) : $t('v2.sources.showVirtual' as any),
@@ -688,9 +705,10 @@
         <div class="grp-label">{$t('v2.sources.title' as any)}</div>
         {#snippet entreeSource(s: Source, sous: boolean)}
           <button class="nav src" class:sous class:active={sourceActive(s, $activeView, $sourceCourante)}
-            data-source={s.id} onclick={() => ouvrirSource(s)} title={enIcones ? nomSource(s) : undefined}>
+            class:grisee={sourceGrisee(s)} aria-disabled={sourceGrisee(s) ? 'true' : undefined}
+            data-source={s.id} onclick={() => ouvrirSource(s)} title={enIcones ? nomDansLaBarre(s) : undefined}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={ICONES_SOURCE[s.type]} /></svg>
-            <span class="src-nom">{nomSource(s)}</span>
+            <span class="src-nom">{nomDansLaBarre(s)}</span>
             <i class="pastille-src e-{s.etat}" role="img"
               aria-label={$t(`v2.sources.etat.${s.etat}` as any)} title={$t(`v2.sources.etat.${s.etat}` as any)}></i>
           </button>
@@ -975,6 +993,8 @@
      posée sur l'icône quand la barre est repliée. */
   .nav.src{position:relative}
   .nav.src.sous{padding-left:30px; font-size:13px}
+  /* #5065 — grisée : garde son nom et reste cliquable (sa page dit pourquoi). */
+  .nav.src.grisee{opacity:.45}
   .v2-sidebar.collapsed .nav.src.sous{padding-left:0}
   .src-nom{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .pastille-src{width:7px; height:7px; border-radius:50%; flex:none; background:var(--v2-txt3)}
@@ -982,6 +1002,7 @@
   .pastille-src.e-signal{background:var(--v2-ok, #3ecf8e)}
   .pastille-src.e-disque{background:var(--v2-acc1)}
   .pastille-src.e-silence{background:var(--v2-txt3)}
+  .pastille-src.e-disponible{background:transparent; box-shadow:inset 0 0 0 1.5px var(--v2-ok, #3ecf8e)}
   .pastille-src.e-vide{background:transparent; box-shadow:inset 0 0 0 1.5px var(--v2-txt3)}
   .pastille-src.e-autorisation_refusee{background:var(--v2-danger)}
   .pastille-src.e-non_pris_en_charge,.pastille-src.e-indisponible{background:var(--v2-line2)}

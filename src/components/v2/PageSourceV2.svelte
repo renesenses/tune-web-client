@@ -20,12 +20,20 @@
   import { currentZoneId, currentZone, syncZone } from '../../lib/stores/zones';
   import {
     sources, sourceCourante, jouerSource, sourceEcoutable, frequenceSource, remplissageNiveau,
-    ICONES_SOURCE,
+    ICONES_SOURCE, sourcesDeLaBarre, typesSourcesBarre, sourceGrisee,
   } from '../../lib/sources';
   import LectureCdV2 from './LectureCdV2.svelte';
   import '../../styles/tune-v2.css';
 
-  const source = $derived(($sources ?? []).find((s) => s.id === $sourceCourante) ?? null);
+  // #5065, étape 3 — les places réservées de la barre (type coché sans
+  // source) s'ouvrent aussi : leur page dit pourquoi elles sont grisées.
+  const source = $derived(
+    sourcesDeLaBarre($sources ?? [], $typesSourcesBarre).find((s) => s.id === $sourceCourante)
+      ?? ($sources ?? []).find((s) => s.id === $sourceCourante)
+      ?? null,
+  );
+  const absente = $derived(source?.detail?.absente === true);
+  const autorisationADemander = $derived(source?.detail?.autorisation === 'non_demandee');
 
   let occupe = $state(false);
   let erreur = $state<string | null>(null);
@@ -53,14 +61,14 @@
   const nomZone = $derived($currentZone?.name ?? '');
 </script>
 
-{#if source?.type === 'cd'}
+{#if source?.type === 'cd' && !sourceGrisee(source)}
   <LectureCdV2 />
 {:else}
   <section class="v2-source tune-v2">
     <header class="v2-top">
       <div class="v2-titres">
         <div class="v2-eyebrow">{$t('v2.sources.title' as any)}</div>
-        <h1>{source?.nom ?? $t('v2.sources.title' as any)}</h1>
+        <h1>{source && !absente ? source.nom : source ? $t(`v2.sources.type.${source.type}` as any) : $t('v2.sources.title' as any)}</h1>
       </div>
     </header>
 
@@ -86,7 +94,9 @@
             <dt>{$t('v2.sources.permission' as any)}</dt>
             <dd class="autorisation">{source.etat === 'autorisation_refusee'
               ? $t('v2.sources.permissionRefused' as any)
-              : $t('v2.sources.permissionGranted' as any)}</dd>
+              : autorisationADemander
+                ? $t('v2.sources.permissionNotAsked' as any)
+                : $t('v2.sources.permissionGranted' as any)}</dd>
           </dl>
         </div>
 
@@ -106,8 +116,14 @@
           </div>
         {:else if source.etat === 'non_pris_en_charge'}
           <div class="state encadre">{$t('v2.sources.unsupported' as any)}</div>
+        {:else if absente}
+          <div class="state encadre">{$t('v2.sources.absent' as any)}</div>
+        {:else if source.etat === 'indisponible' && source.detail?.raison === 'aucun_lecteur'}
+          <div class="state encadre">{$t('v2.sources.noDrive' as any)}</div>
         {:else if source.etat === 'indisponible'}
           <div class="state encadre">{$t('v2.sources.unavailable' as any)}</div>
+        {:else if autorisationADemander}
+          <div class="state encadre">{$t('v2.sources.permissionAsk' as any)}</div>
         {/if}
 
         <div class="actions">
@@ -142,6 +158,7 @@
   .e-signal{background:var(--v2-ok, #3ecf8e)}
   .e-disque{background:var(--v2-acc1)}
   .e-silence{background:var(--v2-txt3)}
+  .e-disponible{background:transparent; box-shadow:inset 0 0 0 1.5px var(--v2-ok, #3ecf8e)}
   .e-vide{background:transparent; box-shadow:inset 0 0 0 1.5px var(--v2-txt3)}
   .e-autorisation_refusee{background:var(--v2-danger)}
   .e-non_pris_en_charge,.e-indisponible{background:var(--v2-line2)}

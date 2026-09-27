@@ -14,6 +14,7 @@ import {
 import {
   CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
 } from '../cadenceAnimations';
+import { normaliserTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
  *
@@ -327,6 +328,13 @@ export interface Preferences {
    * Ralentir le dessin ne touche à aucun échantillon.
    */
   cadenceAnimations: CranCadence;
+  /**
+   * Les types de sources affichés dans la barre latérale — une case par type
+   * (tune-server-rust#5065, étape 3). Rangé TYPE PAR TYPE : un type absent
+   * n'est pas décidé et suit la présence ; vu présent, il est figé coché.
+   * `null` : rien de décidé. Voir `lib/typesSourcesBarre`.
+   */
+  sourcesBarre: ChoixTypesBarre | null;
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -379,6 +387,7 @@ const defaults: Preferences = {
   // réelle et mesurée, mais elle SE VOIT — elle se propose, elle ne s'impose
   // pas. Personne ne doit voir son affichage changer sans l'avoir demandé.
   cadenceAnimations: CRAN_CADENCE_DEFAUT,
+  sourcesBarre: null,
 };
 
 /** Migration one-shot du toggle « Afficher les réglages avancés » (#1617) :
@@ -536,6 +545,9 @@ function loadPrefs(): Preferences {
       if (!estCranCadence((raw as { cadenceAnimations?: unknown })?.cadenceAnimations)) {
         p.cadenceAnimations = CRAN_CADENCE_DEFAUT;
       }
+      // #5065 — même règle : un choix de types abîmé retombe sur « pas encore
+      // décidé », donc sur les types présents ; une clé inconnue est écartée.
+      p.sourcesBarre = normaliserTypesBarre((raw as { sourcesBarre?: unknown })?.sourcesBarre);
       return p;
     }
   } catch { /* ignore */ }
@@ -596,8 +608,15 @@ export async function syncPreferencesFromServer() {
       // `defaults` qui doit reprendre la main, sinon un blob abîmé figerait
       // les animations sur une cadence qui n'existe pas.
       if (!estCranCadence(server.cadenceAnimations)) delete server.cadenceAnimations;
+      // #5065 — idem pour les types de sources de la barre.
+      if (server.sourcesBarre !== undefined && !normaliserTypesBarre(server.sourcesBarre)) delete server.sourcesBarre;
       if (hadLocalPrefs) {
-        preferences.update((local) => ({ ...defaults, ...server, ...local }));
+        // #5065 — un `sourcesBarre` local encore indécis (`null`) ne doit pas
+        // effacer le choix que le serveur porte, fait sur un autre poste.
+        preferences.update((local) => ({
+          ...defaults, ...server, ...local,
+          sourcesBarre: { ...(normaliserTypesBarre(server.sourcesBarre) ?? {}), ...(local.sourcesBarre ?? {}) },
+        }));
       } else {
         preferences.update(() => ({ ...defaults, ...server }));
       }
