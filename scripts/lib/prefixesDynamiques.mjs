@@ -108,8 +108,12 @@ const COMPARAISON = /[A-Za-z_$][\w$.?![\]']*\s*(?:===|!==|==|!=)\s*(?:'[^']*'|"[
 /**
  * Les fichiers de `racine` et leur contenu, lus UNE fois.
  *
- * Les deux passes (préfixes, puis littéraux) parcourent le même arbre ; sans
- * cette mémoire, `check-i18n` relisait 1 228 fichiers deux fois.
+ * Les trois passes (préfixes, littéraux, puis références faibles) parcourent le
+ * même arbre ; sans cette mémoire, `check-i18n` relisait 1 239 fichiers autant
+ * de fois. `referencesFaibles.mjs` partage donc CETTE mémoire, et c'est pour
+ * cela qu'elle est exportée : la lecture seule pèse 255 ms de temps CPU sur les
+ * 10,6 Mo de `src`, mesurés le 27/09/2026 — autant que la moitié des trois
+ * détections réunies, pour rien.
  *
  * @type {Map<string, {chemin: string, texte: string}[]>}
  */
@@ -119,7 +123,7 @@ const lus = new Map();
  * @param {string} racine
  * @returns {{chemin: string, texte: string}[]}
  */
-function fichiersLus(racine) {
+export function fichiersLus(racine) {
   const memo = lus.get(racine);
   if (memo) return memo;
   const liste = [...fichiersSource(racine)].map((chemin) => ({
