@@ -3441,6 +3441,7 @@ export default {
   "v2.set.pushHint": "Ende der Analyse, Wiedergabefehler. Diese Einstellung gilt nur für diesen Browser — sie folgt Ihrem Profil nicht von Gerät zu Gerät.",
   "v2.meta.foot": "Der Fortschritt der Anreicherung wird in {p} verfolgt.",
   "v2.home.wZonesCards": "Läuft gerade",
+  "v2.home.wFirstRow": "Erste Zeile",
   "v2.home.zoneOf": "auf {z}",
   "v2.lib.scopedFolder": "Ordner: {d}",
   "v2.lib.scopedClear": "Ganze Bibliothek anzeigen",

@@ -3441,6 +3441,7 @@ export default {
   "v2.set.pushHint": "Fine dell’analisi, errori di riproduzione. Impostazione propria di questo browser — non segue il tuo profilo da un dispositivo all’altro.",
   "v2.meta.foot": "L’avanzamento dell’arricchimento si segue in {p}.",
   "v2.home.wZonesCards": "In ascolto",
+  "v2.home.wFirstRow": "Prima riga",
   "v2.home.zoneOf": "su {z}",
   "v2.lib.scopedFolder": "Cartella: {d}",
   "v2.lib.scopedClear": "Mostra tutta la libreria",

@@ -3441,6 +3441,7 @@ export default {
   "v2.set.pushHint": "Sfârșitul analizei, erori de redare. Setare proprie acestui browser — nu vă urmează profilul de la un dispozitiv la altul.",
   "v2.meta.foot": "Progresul îmbogățirii se urmărește în {p}.",
   "v2.home.wZonesCards": "Se ascultă acum",
+  "v2.home.wFirstRow": "Primul rând",
   "v2.home.zoneOf": "pe {z}",
   "v2.lib.scopedFolder": "Dosar: {d}",
   "v2.lib.scopedClear": "Vezi toată biblioteca",
