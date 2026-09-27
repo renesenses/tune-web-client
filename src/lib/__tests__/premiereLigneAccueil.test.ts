@@ -26,7 +26,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { WIDGETS, DISPOSITION_DEFAUT, widgetParId } from '../accueilWidgets';
-import { COTE_L1, LARGEUR_PANNEAU, PERIODE_L1 } from '../premiereLigne';
+import { COTE_L1, LARGEUR_PANNEAU, PERIODE_L1, zonesDeLaLigne } from '../premiereLigne';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 function sansCommentaires(src: string): string {
@@ -78,41 +78,64 @@ describe('le widget « Première ligne »', () => {
     expect(WIDGETS.filter((x) => x.forme === 'premiere-ligne')).toHaveLength(1);
   });
 
-  it('ne retient que les zones qui jouent ou sont en pause', async () => {
+  it('ne fait AUCUN appel réseau', () => {
+    const src = sansCommentaires(lire('src/lib/accueilWidgets.ts'));
+    const i = src.indexOf("id: 'premiere-ligne'");
+    const bloc = src.slice(i, src.indexOf("id: 'zones'", i));
+    expect(bloc, 'la ligne d’en-tête ne doit pas coûter une requête').not.toContain('api.');
+  });
+});
+
+describe('🔴 la zone active ne doit JAMAIS disparaître', () => {
+  // Bertrand, 27/09/2026, sur le .18 : « la zone active a disparu ». La ligne
+  // rendait `et.elements` — ce que le chargeur avait produit UNE FOIS, au
+  // chargement de la page. `PageWidgets` n'appelle `charger` qu'une seule fois
+  // par widget : la liste des cartes était donc figée à l'ouverture.
+
+  it('retient les zones qui jouent ou sont en pause, et elles seules', () => {
     // Sur le .18, « Cet ordinateur » est `stopped` et porte pourtant un
-    // `current_track` à la position 0 : le garder ouvrirait la page sur une
-    // carte muette.
-    const els = await w.charger(ctx([
+    // `current_track` à la position 0 : le garder remplirait la ligne de
+    // cartes muettes.
+    const zones = [
       zone({ id: 1, name: 'Salon', state: 'playing' }),
       zone({ id: 2, name: 'Bureau', state: 'paused' }),
       zone({ id: 3, name: 'Cet ordinateur', state: 'stopped' }),
       zone({ id: 4, name: 'Cuisine', state: 'playing', current_track: null }),
-    ]));
-    expect(els.map((e: any) => e.zoneId)).toEqual([1, 2]);
-    expect(els[0].enLecture).toBe(true);
-    expect(els[1].enLecture).toBe(false);
+    ];
+    expect(zonesDeLaLigne(zones).map((z: any) => z.id)).toEqual([1, 2]);
   });
 
-  it('ne rend que des IDENTIFIANTS de zone, jamais la position', async () => {
-    // `charger` ne s'exécute qu'une fois : en recopiant la position, la barre
-    // de progression resterait figée à l'instant du chargement.
-    const els = await w.charger(ctx([zone()]));
-    expect(els[0]).toHaveProperty('zoneId', 7);
-    expect(els[0]).not.toHaveProperty('position_ms');
+  it('suit le magasin dans les DEUX sens', () => {
+    // Une zone qui démarre APRÈS l'ouverture doit apparaître ; une zone
+    // arrêtée doit disparaître. L'ancienne liste figée se trompait des deux
+    // côtés.
+    const arret = [zone({ id: 1, state: 'stopped' })];
+    expect(zonesDeLaLigne(arret)).toHaveLength(0);
+    const demarre = [zone({ id: 1, state: 'playing' })];
+    expect(zonesDeLaLigne(demarre)).toHaveLength(1);
   });
 
-  it('rend une ligne vide de cartes quand aucune zone ne joue', async () => {
-    // Et c'est normal : les trois panneaux, eux, restent. Voir la garde
-    // d'ordre des branches plus bas.
-    expect(await w.charger(ctx([zone({ state: 'stopped' })]))).toEqual([]);
+  it('supporte un magasin vide ou absent', () => {
+    // La coquille charge les zones en deux temps : au premier rendu, le
+    // magasin peut être vide. Ce n'est pas une panne, c'est l'instant d'avant.
+    expect(zonesDeLaLigne([])).toEqual([]);
+    expect(zonesDeLaLigne(null)).toEqual([]);
+    expect(zonesDeLaLigne(undefined)).toEqual([]);
   });
 
-  it('ne fait AUCUN appel réseau : tout vient de ctx.zones', () => {
+  it('le chargeur ne produit plus de liste — le rendu lirait du figé', () => {
     const src = sansCommentaires(lire('src/lib/accueilWidgets.ts'));
     const i = src.indexOf("id: 'premiere-ligne'");
     const bloc = src.slice(i, src.indexOf("id: 'zones'", i));
-    expect(bloc).toContain('ctx.zones');
-    expect(bloc, 'la ligne d’en-tête ne doit pas coûter une requête').not.toContain('api.');
+    expect(bloc).toContain('charger: async () => []');
+  });
+
+  it('le rendu lit le MAGASIN, jamais `et.elements`', () => {
+    const src = sansCommentaires(lire('src/components/v2/PageWidgets.svelte'));
+    const i = src.indexOf("w.forme === 'premiere-ligne'");
+    const bloc = src.slice(i, src.indexOf('<PanneauStats />', i));
+    expect(bloc).toContain('zonesDeLaLigne($zones)');
+    expect(bloc, 'la liste figée est revenue').not.toContain('et.elements');
   });
 });
 
