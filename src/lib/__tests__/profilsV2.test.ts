@@ -29,8 +29,8 @@ describe('gestion des profils dans la coquille v2', () => {
     for (const geste of ['createProfile', 'updateProfile', 'deleteProfile', 'selectProfile']) {
       expect(comp.includes(`${geste}(`), `${geste} non appelé`).toBe(true);
     }
-    // On ne supprime jamais le dernier profil.
-    expect(comp).toMatch(/\{#if \$profiles\.length > 1\}\s*<button class="lnk danger"/);
+    // On ne supprime jamais le dernier profil, ni Default (web#1672).
+    expect(comp).toMatch(/\{#if \$profiles\.length > 1 && profilSupprimable\(p\)\}\s*<button class="lnk danger"/);
   });
 
   it('le menu avatar mène à la section, même avec un seul profil', () => {
@@ -39,7 +39,8 @@ describe('gestion des profils dans la coquille v2', () => {
     expect(i, 'aucun lien « Gérer les profils »').toBeGreaterThan(0);
     // Le lien n'est pas sous la garde `$profiles.length > 1` : il est dans la
     // partie « items » du menu, après la fermeture de cette garde.
-    const garde = menu.indexOf('{#if $profiles.length > 1}');
+    const garde = menu.indexOf('{#if $visibleProfiles.length > 1');
+    expect(garde, 'garde de la liste des profils introuvable').toBeGreaterThan(-1);
     const finGarde = menu.indexOf('{/if}', garde);
     expect(i).toBeGreaterThan(finGarde);
   });
