@@ -70,15 +70,20 @@
   .quoi { font: 600 13px var(--v2-sans); color: var(--v2-txt); }
   .appoint { font: 400 12px var(--v2-sans); color: var(--v2-txt3); }
 
-  /* Les barres RESPIRENT : une gouttière franche de 3 px, et une hauteur qui
-     prend ce que le bloc lui laisse (`flex:1`) plutôt qu'une valeur fixe —
-     c'est ce qui fait que le bloc remplit la hauteur qu'il a déclarée. */
+  /* Les barres RESPIRENT : une gouttière franche de 3 px.
+
+     🔴 #1671 — la hauteur de la rangée est FIXE, et c'est ce qui dessine les
+     barres. Elle valait `flex:1 1 auto; min-height:90px` : une hauteur que le
+     bloc lui laissait, jamais DÉFINIE (le bloc n'a qu'un `min-height`). Or
+     chaque barre porte sa valeur en `height: N %`, et un pourcentage d'une
+     hauteur indéfinie se résout en `auto` — soit zéro pour un `<div>` vide.
+     D'où la capture de Levente : « 108 Plays », 250 px de vide, aucune barre. */
   .barres {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     display: flex;
     align-items: flex-end;
     gap: 3px;
-    min-height: 90px;
+    height: 220px;
     padding: 0 30px;
   }
   .barre {
@@ -103,6 +108,6 @@
   @media (max-width: 640px) {
     .tete, .barres, .axe { padding-left: 16px; padding-right: 16px; }
     .grand { font-size: 34px; }
-    .barres { gap: 2px; min-height: 70px; }
+    .barres { gap: 2px; height: 140px; }
   }
 </style>

@@ -74,6 +74,7 @@
     ongletApresDemande,
     ongletDeRestitution,
     ongletsStreaming,
+    aUneBibliothequeDeCompte,
     pseudoOnglet,
   } from '../../lib/ongletsStreaming';
   import { get } from 'svelte/store';
@@ -389,6 +390,13 @@
    * figée : la garde de l'onglet Genres (`streamingOngletGenres`) reste tenue.
    */
   const ongletYouTube = $derived(active === 'youtube');
+  /** tune-server-rust#5247 — le compte de ce service se lit-il ? Non pour YouTube. */
+  const bibliothequeDeCompte = $derived(aUneBibliothequeDeCompte(cleServeur(active)));
+  // Un sous-onglet du compte resté ouvert (arrivée par un autre chemin que
+  // `ouvrirOnglet`) retombe sur l'éditorial plutôt que d'afficher un vide.
+  $effect(() => {
+    if (!bibliothequeDeCompte && (sub === 'playlists' || sub === 'favorites')) sub = 'editorial';
+  });
   const SUBS = $derived<{ id: Sub; label: string }[]>(
     isBc
       // BANDCAMP A SON ONGLET GENRES, par une AUTRE route (Bertrand, 04/09/2026).
@@ -406,8 +414,12 @@
          { id: 'genres', label: $t('common.genres' as any) },
          { id: 'mine', label: $t('v2.str.myCollection' as any) }]
       : [{ id: 'editorial', label: $t('v2.str.editorial' as any) },
-         { id: 'playlists', label: $t('v2.nav.playlists' as any) },
-         { id: 'favorites', label: $t('v2.nav.favorites' as any) },
+         // tune-server-rust#5247 — pas d'onglets du COMPTE là où Tune ne sait
+         // pas le lire (YouTube) : ils affirmaient un compte vide.
+         ...(bibliothequeDeCompte
+           ? [{ id: 'playlists' as Sub, label: $t('v2.nav.playlists' as any) },
+              { id: 'favorites' as Sub, label: $t('v2.nav.favorites' as any) }]
+           : []),
          // QUATRIÈME onglet, et seulement là où le serveur sert vraiment des
          // genres. Les genres avaient une section tout EN BAS de l'éditorial :
          // il fallait dérouler la page entière pour tomber dessus. C'est une

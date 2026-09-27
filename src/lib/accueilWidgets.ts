@@ -254,6 +254,14 @@ export interface Bloc<D = any> {
    * la page ne se réorganise pas sous les yeux pendant le chargement.
    */
   hauteur: number;
+  /**
+   * #1671 — combien de colonnes de la grille le bloc occupe (1 par défaut).
+   *
+   * La grille est celle des maquettes de Levente : un carré de 315 px par
+   * colonne, gouttière de 16 px. Un bloc large (tendance, grilles d'heures)
+   * en prend deux. Ignoré hors d'une page montée en grille (`grille`).
+   */
+  colonnes?: 1 | 2;
   /** La matière du bloc. Peut lever : `PageWidgets` l'attrape, comme ailleurs. */
   donnees: (ctx: Contexte) => Promise<D>;
 }

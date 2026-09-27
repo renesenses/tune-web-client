@@ -22,7 +22,7 @@
    *   - la création est réservée au Premium, et on le dit, sans envoyer à la
    *     caisse pour une coupure réseau.
    */
-  import { profiles, currentProfileId, createProfile, deleteProfile, updateProfile, selectProfile, type MotifEchecCreation, type Profile } from '../../lib/stores/profile';
+  import { profiles, visibleProfiles, profilSupprimable, currentProfileId, createProfile, deleteProfile, updateProfile, selectProfile, type MotifEchecCreation, type Profile } from '../../lib/stores/profile';
   import { dialogs } from '../../lib/stores/dialogs';
   import { isPremium } from '../../lib/stores/license';
   import { t } from '../../lib/i18n';
@@ -115,8 +115,11 @@
 
 <p class="hint">{$t('profiles.hint')}</p>
 
+<!-- web#1672 : « Default » est masqué dès qu'un profil personnel existe
+     (`visibleProfiles`), et n'a JAMAIS de Supprimer — le serveur le refuse en
+     400. On ne supprime pas non plus le dernier profil. -->
 <ul class="liste">
-  {#each $profiles as p (p.id)}
+  {#each $visibleProfiles as p (p.id)}
     <li class="profil" class:actif={p.id === $currentProfileId}>
       {#if enEdition === p.id}
         <!-- 🔴 `{@const}` ICI, enfant immédiat du bloc : c'est la seule place
@@ -158,7 +161,7 @@
           {#if p.id === $currentProfileId}<span class="badge">{$t('profiles.active')}</span>{/if}
         </button>
         <button class="lnk" onclick={() => editer(p)}>{$t('common.edit')}</button>
-        {#if $profiles.length > 1}
+        {#if $profiles.length > 1 && profilSupprimable(p)}
           <button class="lnk danger" onclick={() => supprimer(p)}>{$t('common.delete')}</button>
         {/if}
       {/if}

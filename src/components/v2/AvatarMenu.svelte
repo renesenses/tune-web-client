@@ -24,7 +24,7 @@
   } from '../../lib/proprietaireAvatar';
   import { notifications } from '../../lib/stores/notifications';
   import { avatarDepuisFichier, AvatarRefuse, CLE_MESSAGE } from '../../lib/avatarLocal';
-  import { profiles, currentProfileId, type Profile } from '../../lib/stores/profile';
+  import { visibleProfiles, currentProfileId, type Profile } from '../../lib/stores/profile';
   import { basculerVers } from '../../lib/basculeDeProfil';
 
   const LEVELS: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
@@ -357,11 +357,14 @@
         Elle n'apparaît qu'à partir de DEUX profils : sur une installation qui
         n'en a qu'un, une liste à un élément n'est pas un choix, c'est du bruit.
       -->
-      {#if $profiles.length > 1}
+      <!-- web#1672 : « Default » n'y figure plus dès qu'un profil personnel
+           existe (`visibleProfiles`). La section reste utile si l'on est
+           encore SUR Default : elle offre alors d'en sortir. -->
+      {#if $visibleProfiles.length > 1 || ($visibleProfiles.length === 1 && $visibleProfiles[0].id !== $currentProfileId)}
         <div class="sep"></div>
         <div class="sec">{$t('profiles.title')}</div>
         <div class="profils">
-          {#each $profiles as p (p.id)}
+          {#each $visibleProfiles as p (p.id)}
             <button
               class="profil"
               class:actif={p.id === $currentProfileId}

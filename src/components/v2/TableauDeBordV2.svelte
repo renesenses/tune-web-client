@@ -47,4 +47,5 @@
   cleChiffres="tableau_de_bord_stats"
   cleChiffresMigre="tableau_de_bord_stats_migre"
   cleTitre="dashboard.title"
+  grille
 />

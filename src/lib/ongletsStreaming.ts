@@ -245,3 +245,25 @@ export function ongletApresDemande(
   if (!cible || cible === actif) return null;
   return cible;
 }
+
+/**
+ * Les services dont Tune ne sait PAS lire la bibliothèque du compte —
+ * tune-server-rust#5247.
+ *
+ * YouTube : `get_user_playlists`, `get_user_albums` et `get_user_artists`
+ * rendent une liste vide EN DUR (`tune-core/src/streaming/youtube.rs:3118`,
+ * « Requires Google OAuth — not implemented for now »). Les onglets Playlists
+ * et Favoris affichaient donc « No playlist in your Youtube account » à
+ * Levente Toth (fil 1995), qui en a : l'écran accusait son compte d'une limite
+ * de Tune. Décision de Bertrand (27/09/2026) : retirer ces deux onglets de
+ * YouTube tant que la lecture n'existe pas.
+ *
+ * On raisonne sur la clé du SERVEUR (`cleServeur`), pas sur l'onglet.
+ */
+const SANS_BIBLIOTHEQUE_DE_COMPTE: ReadonlySet<string> = new Set(['youtube']);
+
+/** Les onglets « Playlists » et « Favoris » du compte ont-ils un sens ici ? */
+export function aUneBibliothequeDeCompte(service: string | null | undefined): boolean {
+  if (!service) return true;
+  return !SANS_BIBLIOTHEQUE_DE_COMPTE.has(service);
+}

@@ -32,12 +32,17 @@
   import { t } from '../../lib/i18n';
   import { NEUTRAL_PARAMETRIC_BAND } from '../../lib/eqReset';
   import ParametricEq from '../partages/ParametricEq.svelte';
+  import VoilePur from './VoilePur.svelte';
+  import { audiophileEnabled } from '../../lib/stores/audiophile';
   import ProfilerV2 from './ProfilerV2.svelte';
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
+  /** web#1674 — la zone courante est en PURE : l'égaliseur n'y agit pas.
+   *  L'état est celui du bouton PURE (`audiophileEnabled`), pas une relecture. */
+  const pur = $derived($audiophileEnabled);
   const showExpert = $derived(atLeast(level, 'expert'));
 
   // Grilles ISO : octave (10), 2/3 d'octave (15), 1/3 d'octave (31) — les
@@ -540,11 +545,11 @@
     {#if !nonInstalle}
       <div class="v2-actions">
         <label class="sw">
-          <input type="checkbox" checked={enabled} onchange={toggle} />
+          <input type="checkbox" checked={enabled} onchange={toggle} disabled={pur} />
           <span class="slider"></span>
         </label>
         <span class="onoff">{enabled ? $t('v2.eq.on' as any) : $t('v2.eq.off' as any)}</span>
-        <button class="v2-btn" onclick={reset}>{$t('v2.eq.reset' as any)}</button>
+        <button class="v2-btn" onclick={reset} disabled={pur}>{$t('v2.eq.reset' as any)}</button>
       </div>
     {/if}
   </header>
@@ -571,6 +576,11 @@
     {:else if $currentZoneId == null}
       <div class="state">{$t('v2.eq.noZone' as any)}</div>
     {:else}
+      <!-- web#1674 — en PURE, l'écran est VOILÉ : un message, et tous les
+           réglages grisés d'un bloc par le fieldset (boutons, curseurs, et
+           ceux des sous-écrans). Hors PURE, le fieldset ne change rien. -->
+      {#if pur}<VoilePur cle="v2.pure.veilEq" />{/if}
+      <fieldset class="reglages" class:voile={pur} disabled={pur} aria-disabled={pur}>
       <div class="presets">
         {#each PRESETS as p (p.key)}
           {@const actif = presetActif === p.key}
@@ -689,6 +699,7 @@
       <!-- tune-server-rust#4685 — hors du choix de mode : la compensation vaut
            pour la courbe, quelle que soit la façon de la composer. -->
       <CompensationNiveauV2 revision={revisionDsp} />
+      </fieldset>
     {/if}
   </div>
 </section>
@@ -697,6 +708,8 @@
   .v2-eq{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .onoff{font:11px var(--v2-mono); color:var(--v2-txt3); margin-right:auto}
+  .reglages{border:0; margin:0; padding:0; min-width:0}
+  .reglages.voile{opacity:.45; pointer-events:none; user-select:none}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     border-radius:var(--v2-r-pill); padding:8px 15px; font:600 12px var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}

@@ -76,6 +76,23 @@ export const PETIT = MODULE;        // 132 — deux nombres, une rangée
 export const MOYEN = MODULE * 2;    // 264 — une grille, une liste courte
 export const GRAND = MODULE * 3;    // 396 — un classement, le point focal
 
+/**
+ * #1671 — LA GRILLE DES MAQUETTES DE LEVENTE (fil 1994, 27/09/2026).
+ *
+ * La 0.9.166 empilait les onze blocs en UNE colonne pleine largeur : sur un
+ * écran de 2 560 px, chaque barre, chaque case d'heure s'étirait sur toute la
+ * page (« a stretched mobile / table view »). Décision de Bertrand : suivre
+ * les maquettes. Leur cote est le carré de 315 px (« 315x315 so it's more on
+ * grid », PR web#1656), et « tout sur la grille » : une colonne = 315 px, une
+ * gouttière = 16 px, et un bloc ne dépasse JAMAIS la largeur de ses colonnes.
+ */
+export const COTE_GRILLE = 315;
+export const GOUTTIERE_GRILLE = 16;
+/** La largeur maximale d'un bloc de `n` colonnes, gouttières comprises. */
+export function largeurBloc(n: 1 | 2): number {
+  return n * COTE_GRILLE + (n - 1) * GOUTTIERE_GRILLE;
+}
+
 /** La période du nouvel écran. Voir l'en-tête : sept jours, pas trente. */
 const PERIODE = '7d' as const;
 /** Combien de jours la tendance dessine — la période, jour pour jour. */
@@ -215,6 +232,7 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      colonnes: 2,
       composant: BlocTendance,
       hauteur: GRAND,
       donnees: async (ctx) => {
@@ -234,6 +252,7 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      colonnes: 2,
       composant: BlocSemaineHeures,
       hauteur: MOYEN,
       donnees: async () => {
@@ -248,6 +267,7 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      colonnes: 2,
       composant: BlocHeures,
       hauteur: PETIT,
       donnees: async () => {
