@@ -309,7 +309,7 @@
       </div>
     {:else if contactOuvert}
       {#key contactOuvert.user_id}
-        <CatalogueContactV2 contact={contactOuvert} onFermer={fermerCatalogue} />
+        <CatalogueContactV2 contact={contactOuvert} onFermer={fermerCatalogue} premium={synchro?.premium ?? null} />
       {/key}
     {:else}
       <p class="intro">{$t('v2.circle.intro' as any)}</p>
