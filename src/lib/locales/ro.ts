@@ -3683,6 +3683,7 @@ export default {
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Refuză redarea în loc să convertească frecvența atunci când ieșirea nu redă frecvența sursei.",
   "bitperfect.refused": "Bit-perfect strict: redare refuzată — ieșirea nu redă {requested} kHz fără conversie (funcționează la {device} kHz). Dezactivează „Bit-perfect strict” în setările zonei pentru a reda cu conversie.",
+  "bitperfect.refusedDepth": "Bit-perfect strict: redare refuzată — această cale de redare reduce sursa de la {requested} biți la {device} biți. Dezactivează „Bit-perfect strict” în setările zonei pentru a reda cu conversie.",
   "bitperfect.pureDegraded": "PURE degradat — {from} → {to} kHz, nu este bit-perfect",
   "bitperfect.rateConversion": "{from} → {to} kHz, nu este bit-perfect",
   "v2.lib.chipAll": "Tot ({n})",

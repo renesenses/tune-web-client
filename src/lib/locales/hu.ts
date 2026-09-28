@@ -3641,6 +3641,7 @@ export default {
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "A lejátszás megtagadása a mintavételi frekvencia átalakítása helyett, ha a kimenet nem tudja lejátszani a forrás frekvenciáját.",
   "bitperfect.refused": "Szigorú bit-perfect: a lejátszás megtagadva — a kimenet nem tudja átalakítás nélkül lejátszani a(z) {requested} kHz-et (jelenleg {device} kHz-en fut). Az átalakítással történő lejátszáshoz kapcsold ki a „Bit-perfect strict” beállítást a zóna beállításaiban.",
+  "bitperfect.refusedDepth": "Szigorú bit-perfect: a lejátszás megtagadva — ez a lejátszási útvonal {requested} bitről {device} bitre csökkentené a forrást. Az átalakítással történő lejátszáshoz kapcsold ki a „Bit-perfect strict” beállítást a zóna beállításaiban.",
   "bitperfect.pureDegraded": "PURE korlátozott — {from} → {to} kHz, nem bit-perfect",
   "bitperfect.rateConversion": "{from} → {to} kHz, nem bit-perfect",
   "v2.lib.chipAll": "Mind ({n})",
