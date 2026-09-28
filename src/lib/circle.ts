@@ -393,6 +393,195 @@ export function plusPartage(e: unknown): boolean {
   return (e as ApiError | null)?.status === 404;
 }
 
+// ─── T3 : rayons partagés (étiquettes et collections intelligentes) ─────────
+//
+// renesenses/tune-server-rust#5326, décisions du 28/09/2026. Un « rayon » est
+// une étiquette ou une collection intelligente du propriétaire, qu'il coche
+// UNE PAR UNE, PAR CERCLE. Rien n'est coché par défaut.
+//
+//   GET    /circles/{id}/sets                    → { tags: […], smart_collections: […] },
+//                                                  chacun { kind, source_id, name, count, shared } :
+//                                                  mes étiquettes et collections LOCALES, et si
+//                                                  CE cercle les voit ; `count` null pour une
+//                                                  collection non cochée
+//   PUT    /circles/{id}/sets/{kind}/{source_id} → SANS corps : le greffon résout
+//                                                  lui-même les membres
+//   DELETE /circles/{id}/sets/{kind}/{source_id} → effet immédiat → { ok: true }
+//   GET    /contacts/{uid}/sets                  → [{ id, kind, name, count, counts }],
+//                                                  `counts` = { albums, tracks, artists, streaming }
+//   GET    /contacts/{uid}/sets/{set_id}/albums|tracks|artists|streaming
+//
+// Refus : 409 `library_not_shared`, 422 `too_many_sets` / `set_too_large`,
+// 500 `circle.set_unresolved` (le greffon n'a pas pu résoudre l'ensemble).
+//
+// 🔴 Le client ne fournit JAMAIS la liste des membres d'un rayon : c'est le
+// greffon qui la construit, depuis la base locale.
+
+export type GenreRayon = 'tag' | 'smart_collection';
+const GENRES_RAYON: readonly GenreRayon[] = ['tag', 'smart_collection'];
+const estGenreRayon = (v: unknown): v is GenreRayon => GENRES_RAYON.includes(v as GenreRayon);
+
+/** Une de MES étiquettes ou collections, et si ce cercle la voit. */
+export interface RayonLocal {
+  kind: GenreRayon;
+  source_id: number;
+  name: string;
+  /** Nombre d'éléments, s'il est connu. */
+  count: number | null;
+  /** 🔴 Seul un `true` explicite vaut « coché ». */
+  shared: boolean;
+}
+
+/** Les deux listes à cocher d'un cercle. */
+export interface RayonsCercle { tags: RayonLocal[]; smart_collections: RayonLocal[] }
+
+function rayonLocal(b: any, kindParDefaut?: GenreRayon): RayonLocal | null {
+  const kind = estGenreRayon(b?.kind) ? b.kind : kindParDefaut;
+  const sid = nombreOuNul(b?.source_id ?? b?.id);
+  if (!kind || sid == null) return null;
+  return {
+    kind, source_id: sid, name: String(b?.name ?? ''),
+    count: nombreOuNul(b?.count), shared: b?.shared === true,
+  };
+}
+
+/**
+ * Lit la réponse du greffon, tolérante à deux formes : une liste plate
+ * `[{ kind, source_id, name, count, shared }]`, ou `{ tags: […],
+ * smart_collections: […] }`. Tout le reste est ignoré.
+ */
+export function lireRayonsCercle(brut: any): RayonsCercle {
+  const tout: RayonLocal[] = [];
+  const liste: any[] | null = Array.isArray(brut) ? brut : Array.isArray(brut?.data) ? brut.data : null;
+  if (liste) for (const b of liste) { const r = rayonLocal(b); if (r) tout.push(r); }
+  else {
+    for (const k of GENRES_RAYON) {
+      const l = brut?.[k === 'tag' ? 'tags' : 'smart_collections'];
+      if (Array.isArray(l)) for (const b of l) { const r = rayonLocal(b, k); if (r) tout.push(r); }
+    }
+  }
+  return {
+    tags: tout.filter((r) => r.kind === 'tag'),
+    smart_collections: tout.filter((r) => r.kind === 'smart_collection'),
+  };
+}
+
+export async function getRayonsCercle(id: number): Promise<RayonsCercle> {
+  return lireRayonsCercle(await fetchJSON<unknown>(`${BASE}/ext/circle/circles/${seg(id)}/sets`, undefined, undefined, true));
+}
+
+const routeRayon = (id: number, kind: GenreRayon, sourceId: number) =>
+  `${BASE}/ext/circle/circles/${seg(id)}/sets/${encodeURIComponent(kind)}/${seg(sourceId)}`;
+
+/** Coche : SANS corps. Le greffon résout les membres et ajoute son `server_id`. */
+export function partagerRayon(id: number, kind: GenreRayon, sourceId: number): Promise<unknown> {
+  return envoyer(routeRayon(id, kind, sourceId), 'PUT');
+}
+
+/** Décoche : le rayon disparaît pour ce cercle, tout de suite. */
+export function retirerRayon(id: number, kind: GenreRayon, sourceId: number): Promise<{ ok: boolean }> {
+  return envoyer(routeRayon(id, kind, sourceId), 'DELETE');
+}
+
+/** Un rayon qu'un contact partage avec moi. Jamais son `source_id`, jamais un nom de cercle. */
+export interface ComptesRayon { albums: number | null; tracks: number | null; artists: number | null; streaming: number | null }
+export interface RayonContact {
+  id: number | string; kind: GenreRayon | null; name: string; count: number | null;
+  /** Par type, si le cloud le dit ; `null` = inconnu (l'écran montre alors tous les onglets). */
+  counts: ComptesRayon | null;
+}
+
+const ID_OPAQUE = /^[A-Za-z0-9_-]{1,64}$/;
+
+export function rayonContact(b: any): RayonContact | null {
+  const id = typeof b?.id === 'number' && Number.isFinite(b.id) ? b.id
+    : typeof b?.id === 'string' && ID_OPAQUE.test(b.id) ? b.id : null;
+  if (id == null) return null;
+  const c = b?.counts;
+  const counts = c && typeof c === 'object'
+    ? { albums: nombreOuNul(c.albums), tracks: nombreOuNul(c.tracks), artists: nombreOuNul(c.artists), streaming: nombreOuNul(c.streaming) }
+    : null;
+  return { id, kind: estGenreRayon(b?.kind) ? b.kind : null, name: String(b?.name ?? ''), count: nombreOuNul(b?.count), counts };
+}
+
+export async function rayonsContact(uid: number): Promise<RayonContact[]> {
+  const b = await lire<any>(`${BASE}/ext/circle/contacts/${seg(uid)}/sets`);
+  const liste: any[] = Array.isArray(b) ? b : (b?.data ?? []);
+  return liste.map(rayonContact).filter((r): r is RayonContact => r !== null);
+}
+
+const racineRayon = (uid: number, setId: number | string) =>
+  `${BASE}/ext/circle/contacts/${seg(uid)}/sets/${encodeURIComponent(String(setId))}`;
+
+export async function albumsRayon(uid: number, setId: number | string, q: RequeteCatalogue = {}): Promise<PageContact<AlbumContact>> {
+  return lirePage(await lire<any>(`${racineRayon(uid, setId)}/albums?${requete(q)}`), q.page ?? 1, PAGE_CATALOGUE, albumContact);
+}
+
+export async function pistesRayon(uid: number, setId: number | string, q: RequeteCatalogue = {}): Promise<PageContact<PisteContact>> {
+  return lirePage(await lire<any>(`${racineRayon(uid, setId)}/tracks?${requete(q)}`), q.page ?? 1, PAGE_CATALOGUE, pisteContact);
+}
+
+export async function artistesRayon(uid: number, setId: number | string, q: RequeteCatalogue = {}): Promise<PageContact<ArtisteContact>> {
+  return lirePage(await lire<any>(`${racineRayon(uid, setId)}/artists?${requete(q)}`), q.page ?? 1, PAGE_CATALOGUE, artisteContact);
+}
+
+/**
+ * Un élément de STREAMING d'un rayon (décision 1 du 28/09/2026) : une
+ * RÉFÉRENCE, que le contact rejouera avec son propre service, comme à T5.
+ * Reconstruite champ par champ : jamais un chemin, une adresse, un `source_id`.
+ */
+export type GenreReference = 'track' | 'album' | 'artist';
+export type ServiceReference = 'qobuz' | 'tidal' | 'spotify' | 'deezer' | 'youtube';
+export const SERVICES_REFERENCE: readonly ServiceReference[] = ['qobuz', 'tidal', 'spotify', 'deezer', 'youtube'];
+/** Le nom d'un service tel qu'il s'affiche : des marques, pas des phrases. */
+export const NOM_SERVICE: Record<ServiceReference, string> = {
+  qobuz: 'Qobuz', tidal: 'TIDAL', spotify: 'Spotify', deezer: 'Deezer', youtube: 'YouTube',
+};
+
+export interface ReferenceContact {
+  type: GenreReference;
+  title: string;
+  artist_name: string | null;
+  album_title: string | null;
+  duration_ms: number | null;
+  isrc: string | null;
+  qobuz_id: string | null;
+  tidal_id: string | null;
+  spotify_id: string | null;
+  deezer_id: string | null;
+  youtube_id: string | null;
+}
+
+const ID_SERVICE = /^[A-Za-z0-9._:-]{1,64}$/;
+const idService = (v: unknown): string | null => (typeof v === 'string' && ID_SERVICE.test(v) ? v : null);
+const ISRC = /^[A-Z]{2}[A-Z0-9]{3}[0-9]{7}$/;
+
+export function referenceContact(b: any): ReferenceContact {
+  const type: GenreReference = b?.type === 'album' || b?.type === 'artist' ? b.type : 'track';
+  return {
+    type, title: String(b?.title ?? ''), artist_name: texteOuNul(b?.artist_name),
+    album_title: texteOuNul(b?.album_title), duration_ms: nombreOuNul(b?.duration_ms),
+    isrc: typeof b?.isrc === 'string' && ISRC.test(b.isrc) ? b.isrc : null,
+    qobuz_id: idService(b?.qobuz_id), tidal_id: idService(b?.tidal_id), spotify_id: idService(b?.spotify_id),
+    deezer_id: idService(b?.deezer_id), youtube_id: idService(b?.youtube_id),
+  };
+}
+
+/** Les services qui connaissent cette référence, dans un ordre fixe. */
+export function servicesReference(r: ReferenceContact): ServiceReference[] {
+  return SERVICES_REFERENCE.filter((s) => r[`${s}_id` as const] != null);
+}
+
+export async function referencesRayon(uid: number, setId: number | string, q: RequeteCatalogue = {}): Promise<PageContact<ReferenceContact>> {
+  return lirePage(await lire<any>(`${racineRayon(uid, setId)}/streaming?${requete(q)}`), q.page ?? 1, PAGE_CATALOGUE, referenceContact);
+}
+
+/** 409 `library_not_shared` : le cercle ne partage pas (ou plus) la bibliothèque. */
+export function estBibliothequeNonPartagee(e: unknown): boolean {
+  const code = typeof (e as ApiError | null)?.code === 'string' ? (e as ApiError).code! : '';
+  return /(^|[._])library_not_shared$/.test(code);
+}
+
 // ─── Le greffon est-il là ? ─────────────────────────────────────────────────
 
 export interface EtatPluginCircle {
@@ -474,6 +663,12 @@ export function motifCercle(e: unknown, champ: 'email' | 'name' | null = null): 
   }
   if (status === 503 || code === 'circle.cloud_unavailable') return { cle: 'v2.circle.err.unavailable', indisponible: true };
   if (status === 412 || code === 'circle.not_connected' || status === 401) return { cle: 'v2.circle.err.notConnected', deconnecte: true };
+  // T3 : les refus des rayons, avec ou sans le préfixe `circle.` du greffon.
+  const nu = code.replace(/^circle\./, '');
+  if (nu === 'library_not_shared') return { cle: 'v2.circle.err.libraryNotShared' };
+  if (nu === 'too_many_sets') return { cle: 'v2.circle.err.tooManySets' };
+  if (nu === 'set_too_large') return { cle: 'v2.circle.err.setTooLarge' };
+  if (nu === 'set_unresolved') return { cle: 'v2.circle.err.setUnresolved' };
   switch (code) {
     case 'already_member': return { cle: 'v2.circle.err.alreadyMember' };
     case 'already_invited': return { cle: 'v2.circle.err.alreadyInvited' };
@@ -506,3 +701,108 @@ export function nomCercleValide(brut: string): string | null {
 
 /** Relecture modérée tant que l'écran est ouvert et l'onglet visible. */
 export const RELECTURE_CERCLE_MS = 60_000;
+
+// ─── T4 : écouter chez un contact (Premium) ─────────────────────────────────
+//
+// renesenses/tune-server-rust#5327 et les décisions de Bertrand du 28/09/2026 :
+//
+//   POST /contacts/{uid}/listen { track_id, zone_id } → { ok: true }
+//        Le greffon demande au cloud un billet court pour CETTE piste, puis lance
+//        la lecture du flux relayé sur la zone. L'écran ne voit jamais le billet
+//        ni l'adresse du flux : il ne reçoit que `ok`.
+//
+// Refus : 404 (plus partagé, identique à « inexistant ») ; 402 relayé du cloud ;
+// 409 `owner_unavailable` ; 503 `circle.owner_offline` (le pont ne joint pas le
+// serveur du contact) ; 503 `circle.cloud_unavailable`, 412, 429 comme T1.
+//
+// Décisions : aucune présence permanente (le contact apprend que le serveur est
+// éteint EN LANÇANT l'écoute) ; refus Premium ou indisponibilité = phrase NEUTRE,
+// jamais « l'autre n'a pas Premium » ; qualité = fichier d'origine, rien à régler.
+
+/**
+ * L'écoute à distance est-elle offerte ici ? Le `premium` de `/library-sync`
+ * (le greffon le lit du compte relié) fait foi ; sans lui (greffon plus ancien,
+ * lecture en échec), l'état de licence du serveur. Tant que ni l'un ni l'autre
+ * n'a répondu : NON — aucun bouton ne s'affiche sur une supposition.
+ */
+export function ecoutePermise(
+  premiumSynchro: boolean | null | undefined,
+  licence: { loaded: boolean; premium: boolean },
+): boolean {
+  if (typeof premiumSynchro === 'boolean') return premiumSynchro;
+  return licence.loaded && licence.premium;
+}
+
+/**
+ * Lance, sur ma zone, l'écoute d'une piste d'un contact — ou d'un album
+ * entier : `track_ids` dans l'ordre, et le greffon demande un billet par
+ * piste au moment de la jouer. Une piste seule part en `track_id`.
+ *
+ * 🔴 Le 402 est accepté ICI et relevé à la main : `fetchJSON` pose sinon son
+ * bandeau global générique, EN PLUS de la phrase que l'écran dit lui-même.
+ */
+export async function ecouterChezContact(uid: number, pistes: number | number[], zoneId: number): Promise<void> {
+  let statut = 0;
+  const corps = Array.isArray(pistes) ? { track_ids: pistes, zone_id: zoneId } : { track_id: pistes, zone_id: zoneId };
+  await fetchJSON<unknown>(
+    `${BASE}/ext/circle/contacts/${seg(uid)}/listen`,
+    { method: 'POST', body: JSON.stringify(corps) },
+    (s) => { statut = s; return s === 402; },
+    true,
+  );
+  if (statut === 402) {
+    const err = new Error('premium_required') as ApiError;
+    err.status = 402;
+    err.code = 'premium_required';
+    throw err;
+  }
+}
+
+/** Ce que l'écran dit d'un refus d'écoute : toujours une clé `v2.circle.listen.*` ou une de T1. */
+export type MotifEcoute =
+  | { cle: 'v2.circle.listen.ownerOffline' }
+  | { cle: 'v2.circle.listen.unavailable' }
+  | { cle: 'v2.circle.listen.premiumRequired' }
+  | { cle: 'v2.circle.listen.notShared' }
+  | MotifCercle;
+
+const codeDe = (e: unknown): string => {
+  const err = e as ApiError | null;
+  if (typeof err?.code === 'string') return err.code;
+  const c = (err?.corps as { code?: unknown; error?: unknown } | undefined);
+  return typeof c?.code === 'string' ? c.code : typeof c?.error === 'string' ? c.error : '';
+};
+
+/**
+ * Traduit un refus de `POST /listen` (contrat cloud site-mozaiklabs#237,
+ * consignes du 28/09/2026) :
+ *
+ * - 503 `owner_offline` (le pont, relayé) : le serveur du contact est éteint
+ *   ou injoignable — le catalogue, lui, reste consultable ;
+ * - 402 `premium_required` (`who: listener`) : c'est MON abonnement, je peux
+ *   le savoir ;
+ * - 409 `owner_unavailable` : phrase NEUTRE — rien sur le propriétaire ;
+ * - 404 : ce titre n'est plus partagé avec moi ;
+ * - le reste comme T1 (412, 429, 503 `circle.cloud_unavailable`).
+ */
+export function motifEcoute(e: unknown): MotifEcoute {
+  const err = e as ApiError | null;
+  const code = codeDe(e);
+  if (/(^|[._])owner_offline$/.test(code)) return { cle: 'v2.circle.listen.ownerOffline' };
+  if (/(^|[._])owner_unavailable$/.test(code) || err?.status === 409) return { cle: 'v2.circle.listen.unavailable' };
+  if (err?.status === 402 || /(^|[._])premium_required$/.test(code)) return { cle: 'v2.circle.listen.premiumRequired' };
+  if (plusPartage(e)) return { cle: 'v2.circle.listen.notShared' };
+  return motifCercle(e);
+}
+
+/**
+ * L'événement de fin d'écoute (`circle.stream_revoked`) : le pont a refusé
+ * le billet en cours de lecture (révocation, partage coupé, fin du Premium).
+ * Accepté sous son propre type, ou comme `code` d'un échec de lecture.
+ */
+export function estEcouteRevoquee(event: { type?: unknown; data?: any } | null | undefined): boolean {
+  if (!event) return false;
+  if (event.type === 'circle.stream_revoked') return true;
+  const echec = event.type === 'zone.playback_error' || event.type === 'playback.error';
+  return echec && (event.data?.code === 'circle.stream_revoked' || event.data?.reason === 'circle.stream_revoked');
+}
