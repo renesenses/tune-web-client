@@ -32,6 +32,30 @@ import { fileURLToPath } from 'node:url';
 
 const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 const live = () => lire('../v2Live.ts');
+
+/**
+ * 🔴 UNE FENÊTRE DE N CARACTÈRES N'EST PAS UNE BRANCHE — 28/09/2026.
+ *
+ * Deux témoins d'ici découpaient `src.slice(i, i + 420)` depuis le début d'une
+ * branche `if`. C'est une cote arbitraire : le jour où quelqu'un commente cette
+ * branche — ce qui est arrivé en corrigeant la synchronisation des deux barres
+ * de progression (Sevy, 28/09) — la ligne cherchée sort de la fenêtre et le
+ * témoin rougit sur du code parfaitement juste. Il mesurait la LONGUEUR du
+ * commentaire, pas la présence du geste.
+ *
+ * `branche()` coupe au `return;` qui ferme réellement le bloc, et retire les
+ * commentaires : une phrase qui NOMME `rechargerZones` ne peut donc ni
+ * satisfaire ni faire échouer une garde qui le cherche.
+ */
+const sansCommentaires = (s: string) =>
+  s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+function branche(src: string, entete: string): string {
+  const i = src.indexOf(entete);
+  expect(i, `branche introuvable : ${entete}`).toBeGreaterThan(-1);
+  const fin = src.indexOf('return;', i);
+  return sansCommentaires(src.slice(i, fin > -1 ? fin + 7 : src.length));
+}
 const shell = () => lire('../../components/v2/ShellV2.svelte');
 
 describe('Nouveau client — le transport est alimenté', () => {
@@ -155,10 +179,7 @@ describe('Nouveau client — la vue « Lecture en cours »', () => {
  */
 describe('Nouveau client — le curseur de progression', () => {
   it('un déplacement confirmé s’applique, sans relire les zones', () => {
-    const src = live();
-    const i = src.indexOf("type === 'playback.seek'");
-    expect(i, 'la branche du déplacement a disparu').toBeGreaterThan(-1);
-    const bloc = src.slice(i, i + 420);
+    const bloc = branche(live(), "type === 'playback.seek'");
     expect(bloc.includes('seekPositionMs.set'), 'la position n’est plus posée').toBe(true);
     expect(
       bloc.includes('rechargerZones'),
@@ -181,10 +202,7 @@ describe('Nouveau client — le curseur de progression', () => {
   });
 
   it('la position en continu est filtrée, pas rechargée', () => {
-    const src = live();
-    const i = src.indexOf("type === 'playback.position'");
-    expect(i, 'la branche de position a disparu').toBeGreaterThan(-1);
-    const bloc = src.slice(i, i + 400);
+    const bloc = branche(live(), "type === 'playback.position'");
     expect(bloc.includes('DERIVE_MAX_MS'), 'le filtre de dérive a disparu').toBe(true);
     expect(bloc.includes('rechargerZones'), 'chaque point serveur déclenche une requête complète').toBe(false);
   });
