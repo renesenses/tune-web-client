@@ -3705,6 +3705,7 @@ export default {
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Refuse playback rather than convert the sample rate when the output cannot play the source's rate.",
   "bitperfect.refused": "Strict bit-perfect: playback refused — the output cannot play {requested} kHz without conversion (it runs at {device} kHz). Turn off “Bit-perfect strict” in the zone settings to play with conversion.",
+  "bitperfect.refusedDepth": "Strict bit-perfect: playback refused — this playback path reduces the source from {requested} bits to {device} bits. Turn off “Bit-perfect strict” in the zone settings to play with conversion.",
   "bitperfect.pureDegraded": "PURE degraded — {from} → {to} kHz, not bit-perfect",
   "bitperfect.rateConversion": "{from} → {to} kHz, not bit-perfect",
   "v2.lib.chipAll": "All ({n})",
