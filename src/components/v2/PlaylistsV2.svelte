@@ -413,6 +413,47 @@
   let editeurSmart = $state<{ id: number | null } | null>(null);
 
   /**
+   * 🔴 L'ÉDITEUR DE RÈGLE EMPILE UNE ENTRÉE D'HISTORIQUE — web#1649.
+   *
+   * FabienM, fil 1982 : « Menu Playlists, onglet SmartPlaylists, on ouvre une
+   * playlist, le BACK […] renvoie à la dernière page de 1er niveau ». Le seul
+   * calque de cet onglet est l'éditeur. Décision de Bertrand (28/09) : le
+   * Précédent le REFERME, sans confirmation — une modification non enregistrée
+   * est perdue, comme avec la croix. Même branchement que `ouvrirPl` ci-dessus.
+   */
+  let cleEditeurEmpilee: string | null = null;
+
+  function ouvrirEditeurSmart(id: number | null) {
+    editeurSmart = { id };
+    cleEditeurEmpilee = `smartplaylist:${id ?? 'nouvelle'}`;
+    ouvrirDetail(cleEditeurEmpilee);
+  }
+
+  function fermerEditeurSmart() {
+    editeurSmart = null;
+    cleEditeurEmpilee = null;
+  }
+
+  /** La croix, Annuler ou l'enregistrement : refermer ET dépiler. */
+  function retourEditeurSmart() {
+    if (cleEditeurEmpilee != null && entreeCourantePorte(cleEditeurEmpilee)) {
+      fermerDetailEnReculant(fermerEditeurSmart);
+      return;
+    }
+    fermerEditeurSmart();
+  }
+
+  /** Le Précédent du navigateur a quitté l'entrée de l'éditeur : il se referme. */
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      if (!editeurSmart || cleEditeurEmpilee == null) return;
+      if (voulu === cleEditeurEmpilee) return;
+      fermerEditeurSmart();
+    });
+  });
+
+  /**
    * Les menus « … » de cet écran — `lib/actionsPochette` décide des entrées,
    * `lib/gestesObjet` les fait (menus d'objets, 26/09/2026). La suppression
    * d'une playlist intelligente (`deleteSmartPlaylist`, jamais
@@ -733,7 +774,7 @@
            Avant la liste, vide ou non — c'est quand il n'y a rien que le
            bouton sert le plus. -->
       <div class="grp creer">
-        <button class="v2-btn primaire" onclick={() => (editeurSmart = { id: null })}>{$t('smartPlaylists.new')}</button>
+        <button class="v2-btn primaire" onclick={() => ouvrirEditeurSmart(null)}>{$t('smartPlaylists.new')}</button>
       </div>
       {#if !smart.length}
         <div class="state">{$t('v2.pl.noSmart' as any)}</div>
@@ -753,7 +794,7 @@
                   <PochetteActions onLire={() => lireSmart(sp)} nom={sp.name}
                     favori={sp.id != null ? { smartPlaylistId: sp.id } : null}
                     etiquettes={sp.id != null ? cibleSmartPlaylist(sp.id) : null}
-                    onEditer={sp.id != null ? () => (editeurSmart = { id: sp.id }) : null}
+                    onEditer={sp.id != null ? () => ouvrirEditeurSmart(sp.id) : null}
                     objet={objetPlaylistIntelligente(sp)} rafraichir={rechargerSmart}>
                     {#if mos}
                       <MosaiquePochettes pochettes={mos} initiales={sp.name?.slice(0, 1)} alt={sp.name} />
@@ -829,7 +870,7 @@
     {#await import('./PlaylistSmartEditeurV2.svelte') then m}
       <m.default
         id={cibleSmart.id}
-        onClose={() => (editeurSmart = null)}
+        onClose={retourEditeurSmart}
         onSaved={rechargerSmart} />
     {/await}
   {/if}
