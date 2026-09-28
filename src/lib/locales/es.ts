@@ -3114,6 +3114,8 @@ export default {
   "v2.disco.reset": "Mostrar todo",
   "v2.disco.noMatch": "Ningún álbum coincide con este filtro.",
   "v2.disco.related": "Otros / Relacionados",
+  "v2.disco.mainAlbums": "Álbumes principales",
+  "v2.disco.epSingles": "EP y sencillos",
   "v2.disco.compilations": "Recopilatorios",
   "v2.disco.appearances": "Apariciones",
   "v2.fas.albums": "Álbumes",
