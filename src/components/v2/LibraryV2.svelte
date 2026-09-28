@@ -110,6 +110,8 @@
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { lireChoix, ecrireChoix, lireNombre } from '../../lib/preferencesEcran';
+  import BasculeAffichage from './BasculeAffichage.svelte';
+  import { AFFICHAGES, GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
@@ -824,13 +826,14 @@
    * reste atteignable d'un clic : la réserve posée le 19/08 — « superbe sur
    * cinquante albums, hostile sur deux mille » — vaut toujours, et c'est
    * l'utilisateur qui tranche pour sa discothèque, pas nous.
+   *
+   * 🔴 web#1719 — les modes, les libellés et la rotation ne vivent PLUS ici.
+   * FabienM demande la même bascule dans les Favoris et le Gestionnaire de
+   * playlists ; les recopier aurait donné trois définitions du même geste. Ils
+   * sont dans `lib/affichage`, le bouton dans `BasculeAffichage.svelte`, et
+   * cet écran n'en garde que ce qui lui est propre : le troisième cran.
    */
-  type Display = 'grid' | 'list' | 'carousel';
-  const AFFICHAGES = ['grid', 'list', 'carousel'] as const;
-  /** Le libellé d'un mode. La bascule annonce celui où elle MÈNE. */
-  const LIBELLE_AFFICHAGE: Record<Display, string> = {
-    grid: 'v2.lib.viewGrid', list: 'v2.lib.viewList', carousel: 'v2.lib.viewCarousel',
-  };
+  type Display = Affichage;
   /**
    * 🔴 `lireChoix` VALIDE contre cette liste : un `'carousel'` écrit puis
    * retiré de `AFFICHAGES` retomberait silencieusement sur la grille. C'est ce
@@ -1106,12 +1109,7 @@
    * sur la grille, sans effacer le choix retenu pour la vue Albums.
    */
   const modesAffichage = $derived<readonly Display[]>(
-    tab === 'albums' ? AFFICHAGES : (['grid', 'list'] as const),
-  );
-  const affichageSuivant = $derived<Display>(
-    modesAffichage.indexOf(display) < 0
-      ? 'grid'
-      : modesAffichage[(modesAffichage.indexOf(display) + 1) % modesAffichage.length],
+    tab === 'albums' ? AFFICHAGES : GRILLE_OU_LISTE,
   );
   /** Le carrousel est-il RÉELLEMENT à l'écran ? Le rail et le corps s'y règlent. */
   const enCarrousel = $derived(display === 'carousel' && tab === 'albums');
@@ -2400,39 +2398,13 @@
         </button>
       {/if}
       {/if}
-      <!-- #929 — la bascule tourne sur TROIS modes. `data-vue` porte le mode
-           COURANT : c'est ce que lit le témoin, et c'est ce qui rend le
-           troisième mode atteignable sans inventer un second bouton. L'icône
-           et le libellé, eux, annoncent le mode où le clic MÈNE. -->
-      <button class="viewtog" data-vue={display} onclick={() => (display = affichageSuivant)}
-        aria-label={$tr(LIBELLE_AFFICHAGE[affichageSuivant] as any)}
-        title={$tr(LIBELLE_AFFICHAGE[affichageSuivant] as any)}>
-        {#if display === 'grid'}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-        {:else if display === 'list'}
-          <!-- Trois pochettes de front, celle du milieu en avant : le geste du
-               carrousel, sans promettre une troisième dimension qu'on ne rend pas. -->
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="4" height="10"/><rect x="8.5" y="4" width="7" height="16"/><rect x="18" y="7" width="4" height="10"/></svg>
-        {:else}
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        {/if}
-        <!--
-          #929 — LA BASCULE DIT OÙ L'ON EST.
-
-          Sur sa capture, Bertrand ne voyait qu'une icône de grille isolée :
-          rien n'indiquait le mode courant ni qu'il existât un troisième cran.
-          L'icône, elle, annonce la DESTINATION — c'est la convention de ce
-          bouton depuis qu'il existe, et la changer tromperait ceux qui la
-          connaissent. Une pastille par cran, allumée sur le mode courant,
-          ajoute le repère manquant sans toucher au contrôle.
-
-          `aria-hidden` : le libellé du bouton dit déjà tout à un lecteur
-          d'écran, et trois puces vides n'y ajouteraient que du bruit.
-        -->
-        <span class="vpts" aria-hidden="true">
-          {#each modesAffichage as m (m)}<i class:on={m === display}></i>{/each}
-        </span>
-      </button>
+      <!-- #929 — la bascule tourne sur TROIS modes ici, deux ailleurs.
+           web#1719 — LE MÊME bouton que les Favoris et le Gestionnaire de
+           playlists : `BasculeAffichage`, où il a été déplacé pour qu'il n'en
+           existe qu'une définition. Cet écran ne lui apporte que ses modes
+           (`modesAffichage`) et son état retenu (`lib.display`). -->
+      <BasculeAffichage modes={modesAffichage} valeur={display}
+        onChanger={(v) => (display = v)} />
     {/if}
   </div>
 
@@ -3197,12 +3169,9 @@
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); display:grid; place-items:center}
   .viewtog:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .viewtog svg{width:16px; height:16px}
-  /* #929 — une pastille par cran, allumée sur le mode courant. Le bouton
-     empile icone puis pastilles : 16 + 3 + 4 = 23 px dans une boite de 38. */
-  .viewtog:has(.vpts){display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px}
-  .vpts{display:flex; gap:3px}
-  .vpts i{width:4px; height:4px; border-radius:50%; background:var(--v2-line2)}
-  .vpts i.on{background:var(--v2-acc1)}
+  /* web#1719 — les pastilles sont parties avec le bouton, dans
+     `BasculeAffichage.svelte`. Ce qui reste de `.viewtog` ici ne sert plus
+     qu'au re-tirage (#4558), qui en emprunte la taille et le cadre. */
 
   /* Vues par facette : une section par valeur (artiste, genre, année, label). */
   .facets{flex:1; overflow-y:auto; padding:8px 30px 40px}

@@ -246,13 +246,29 @@ export function ordonnerSources<T>(elements: readonly T[], source: (x: T) => str
 }
 
 /**
- * La pochette d'un album départage APRÈS la source, jamais avant (web#1662) :
- * elle valait 5 points, plus que l'écart entre la bibliothèque (5) et
- * Bandcamp (1). Un album local exact mais sans pochette perdait donc contre
- * le même titre sur un service. Moins d'un point, elle ne tranche plus
- * qu'entre deux albums de même source.
+ * UNE image vaut UN bonus, quel que soit le TYPE — web#1662 puis web#1708.
+ *
+ * #1662 avait déjà tranché pour les albums : la pochette départage APRÈS la
+ * source, jamais avant. Elle valait 5 points, soit plus que l'écart entre la
+ * bibliothèque (5) et Bandcamp (1), et un album local exact mais sans
+ * pochette perdait contre le même titre chez un marchand.
+ *
+ * 🔴 Ce correctif n'avait été posé que sur UNE des deux copies de la règle :
+ * le portrait d'artiste gardait son +30 écrit en clair dans sa boucle.
+ * FabienM, fil 1991, 0.9.167 : sur `"wish you were here"`, l'artiste de
+ * service au nom exact faisait 100 + 30 + 4 = 134 et passait devant l'album
+ * Pink Floyd de sa bibliothèque (100 + 0,5 + 5 = 105,5). Le +30 valait six
+ * fois l'écart entre la bibliothèque et Bandcamp : AUCUNE source ne pouvait
+ * le rattraper, et la promesse « à texte égal la bibliothèque passe devant
+ * les services » était fausse dès que les types se disputaient le médaillon.
+ *
+ * D'où UNE constante lue par les deux boucles, et non deux barèmes qui
+ * redivergeront au correctif suivant. Sous le plus petit écart de source
+ * (1 point), l'image ne tranche plus qu'entre deux lignes de MÊME source — et
+ * à égalité parfaite l'ordre des candidats (artiste, album, piste) laisse le
+ * médaillon à l'artiste, celui qui a le plus à gagner d'une grande image.
  */
-const BONUS_POCHETTE = 0.5;
+const BONUS_IMAGE = 0.5;
 
 /**
  * Barème commun aux trois types : égalité 100, préfixe 50, contenu 20.
@@ -276,10 +292,11 @@ function scoreTexte(valeur: string | null | undefined, q: string): number {
 /**
  * Le résultat à mettre en avant, ou `null` si rien ne correspond.
  *
- * Un artiste avec portrait est bonifié (+30) : c'est la carte qui a le plus à
- * gagner d'une grande image, et sans portrait elle ne montrerait qu'une
- * initiale. Un album avec pochette prend `BONUS_POCHETTE`, de quoi départager
- * deux titres identiques de la MÊME source sans écraser le score de texte.
+ * Une image — portrait d'artiste ou pochette d'album — vaut `BONUS_IMAGE` :
+ * la grande carte du médaillon gagne à montrer autre chose qu'une initiale,
+ * mais pas au point d'effacer d'où vient la ligne (web#1708). Le même bonus
+ * pour les deux types, sans quoi comparer un artiste à un album reviendrait à
+ * comparer deux barèmes différents.
  */
 export function meilleurResultat(
   requete: string,
@@ -295,14 +312,14 @@ export function meilleurResultat(
   let best = 0;
   let gagnant: Meilleur | null = null;
   for (const a of r.artistes) {
-    const s = scoreTexte(a.name, q) + (a.image_path ? 30 : 0) + bonusSource(a.source);
+    const s = scoreTexte(a.name, q) + (a.image_path ? BONUS_IMAGE : 0) + bonusSource(a.source);
     if (s > 0 && s > best) { best = s; gagnant = { genre: 'artiste', artiste: a }; }
   }
   if (gagnant) candidats.push({ score: best, valeur: gagnant });
 
   best = 0; gagnant = null;
   for (const a of r.albums) {
-    const s = scoreTexte(a.title, q) + (a.cover_path ? BONUS_POCHETTE : 0) + bonusSource(a.source);
+    const s = scoreTexte(a.title, q) + (a.cover_path ? BONUS_IMAGE : 0) + bonusSource(a.source);
     if (s > 0 && s > best) { best = s; gagnant = { genre: 'album', album: a }; }
   }
   if (gagnant) candidats.push({ score: best, valeur: gagnant });

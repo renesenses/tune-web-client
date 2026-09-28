@@ -7,6 +7,8 @@
   import { concertsCharge, concertsAttendRedemarrage } from '../../lib/stores/concerts';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import { preferences } from '../../lib/stores/preferences';
+  import { grouperConcerts, normaliserTriConcerts, type TriConcerts } from '../../lib/concertsTri';
 
   // L'écran répond à une question, une seule : « les artistes que j'écoute
   // jouent-ils près de chez moi ? » — demande de FabienM et Didier, fil 1540.
@@ -35,17 +37,21 @@
   let localisee = $state<boolean | null>(null);
   let enregistrement = $state(false);
 
-  /** Les concerts groupés par artiste : c'est ainsi que l'utilisateur les
-   *  cherche — il part de ce qu'il écoute, pas d'une date. */
-  let parArtiste = $derived.by(() => {
-    const groupes = new Map<string, api.Concert[]>();
-    for (const c of concerts) {
-      const liste = groupes.get(c.artist_name) ?? [];
-      liste.push(c);
-      groupes.set(c.artist_name, liste);
-    }
-    return [...groupes.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  });
+  /** L'ordre choisi. Groupé par artiste PAR DÉFAUT : c'est ainsi que
+   *  l'utilisateur cherche — il part de ce qu'il écoute, pas d'une date.
+   *  « Par date » répond à la demande de FabienM (fil 2013, point 1) sans
+   *  déplacer l'écran de qui n'a rien demandé. */
+  let tri = $derived(normaliserTriConcerts($preferences.concertsTri));
+
+  /** Le tri lui-même vit dans `lib/concertsTri.ts` : une fonction pure, qui se
+   *  mesure sur des listes et non sur la lecture de ce gabarit. */
+  let groupes = $derived(grouperConcerts(concerts, tri));
+
+  /** Retenu comme tous les choix d'affichage des écrans voisins — dans les
+   *  préférences synchronisées, pas dans un `localStorage` à part. */
+  function choisirTri(vise: TriConcerts) {
+    preferences.update((p) => ({ ...p, concertsTri: vise }));
+  }
 
   /** Proposer d'élargir n'a de sens que s'il reste un cran au-dessus. */
   let cranPlusLarge = $derived<api.PerimetreConcerts | null>(
@@ -311,12 +317,20 @@
         {/if}
       </div>
     {:else}
-      <ul class="cc-liste">
-        {#each parArtiste as [artiste, dates] (artiste)}
+      <div class="cc-tri" role="group" aria-label={$t('concerts.trier')}>
+        <button class:actif={tri === 'artiste'} onclick={() => choisirTri('artiste')}>
+          {$t('concerts.triArtiste')}
+        </button>
+        <button class:actif={tri === 'date'} onclick={() => choisirTri('date')}>
+          {$t('concerts.triDate')}
+        </button>
+      </div>
+      <ul class="cc-liste" class:cc-par-date={tri === 'date'}>
+        {#each groupes as groupe (groupe.cle)}
           <li>
-            <h3>{artiste}</h3>
+            <h3>{groupe.artiste}</h3>
             <ul class="cc-dates">
-              {#each dates as date (date.event_date + (date.venue ?? '') + (date.city ?? ''))}
+              {#each groupe.concerts as date (date.event_date + (date.venue ?? '') + (date.city ?? ''))}
                 <li>
                   <span class="cc-date">{dateLisible(date.event_date)}</span>
                   <span class="cc-lieu">
@@ -355,7 +369,13 @@
   .cc-attention { color: var(--warning, #d99a2b); }
   .cc-erreur { color: var(--danger, #e05252); }
   .cc-muet, .cc-vide { color: var(--text-muted, #888); }
+  .cc-tri { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0 0 0.75rem; }
+  .cc-tri button { padding: 0.35rem 0.85rem; border-radius: 999px; }
+  .cc-tri button.actif { background: var(--accent, #2b7); color: #fff; }
   .cc-liste { list-style: none; padding: 0; margin: 0; }
+  /* Une ligne par concert : le nom d'artiste se répète, et la séparation
+     serrée évite qu'une liste chronologique ne s'étire sur trois écrans. */
+  .cc-liste.cc-par-date > li { padding: 0.35rem 0; }
   .cc-liste > li { padding: 0.75rem 0; border-bottom: 1px solid var(--border, #2a2a2a); }
   .cc-liste h3 { margin: 0 0 0.35rem; font-size: 1rem; }
   .cc-dates { list-style: none; padding: 0; margin: 0; }
