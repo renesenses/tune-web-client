@@ -32,9 +32,25 @@
   import { formatTime } from '../../../lib/utils';
   import { switchZone } from '../../../lib/stores/zones';
   import { togglePlayPause } from '../../../lib/playback-controls';
+  import { positionsZones } from '../../../lib/positionsZones';
   import type { Zone } from '../../../lib/types';
 
   let { zone }: { zone: Zone } = $props();
+
+  /**
+   * 🔴 #1711 — LA POSITION NE VIENT PLUS DE L'OBJET DE ZONE.
+   *
+   * JeromeQ, fil 2011, 28/09/2026 : « le temps reste à 0:00 et la barre
+   * vide » pendant la lecture. `zone.position_ms` ne bouge qu'à l'arrivée
+   * d'un `zone.updated` — en pratique au changement de piste — et rien, dans
+   * le client, ne suivait la position d'une zone AUTRE que la zone courante
+   * (`v2Live.suivreProgression` rend la main sur toute autre zone).
+   *
+   * Cette ligne montre TOUTES les zones qui jouent : il lui fallait donc une
+   * horloge par zone. Elle vit dans `lib/positionsZones`, avec ses règles et
+   * ses témoins.
+   */
+  const positionMs = $derived($positionsZones[zone?.id as number] ?? zone?.position_ms ?? 0);
 
   const piste = $derived((zone as any)?.current_track ?? null);
   const joue = $derived(zone?.state === 'playing');
@@ -53,7 +69,7 @@
   const avance = $derived.by(() => {
     const d = piste?.duration_ms ?? 0;
     if (!d) return 0;
-    return Math.max(0, Math.min(100, ((zone?.position_ms ?? 0) / d) * 100));
+    return Math.max(0, Math.min(100, (positionMs / d) * 100));
   });
 
   /**
@@ -121,7 +137,7 @@
     </button>
 
     <footer class="transport">
-      <span class="temps">{formatTime(zone?.position_ms ?? 0)}</span>
+      <span class="temps">{formatTime(positionMs)}</span>
       <div class="piste"><i style:width="{avance}%"></i></div>
       <span class="temps">{piste?.duration_ms ? formatTime(piste.duration_ms) : '--:--'}</span>
     </footer>
