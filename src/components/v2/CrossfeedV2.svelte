@@ -17,6 +17,7 @@
    * l'autre.
    */
   import * as api from '../../lib/api';
+  import { atteintLeSon } from '../../lib/porteeReglage';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
@@ -123,7 +124,9 @@
       status = res?.crossfeed_status ?? status;
       // « Prendra effet à la piste suivante » serait faux là où le serveur
       // vient de dire « jamais » (tune-server-rust#2742).
-      if (!indispo.indisponible) reportReach(res?.crossfeed_applied_live);
+      // #4680 — `crossfeed_portee` d'abord : une relance réseau s'entend
+      // dans l'instant, ce n'est pas « la piste suivante ».
+      if (!indispo.indisponible) reportReach(atteintLeSon(res?.crossfeed_applied_live, res?.crossfeed_portee));
       // Le dosage a changé : ce que la compensation rend aussi (#4685).
       revisionDsp++;
       error = null;

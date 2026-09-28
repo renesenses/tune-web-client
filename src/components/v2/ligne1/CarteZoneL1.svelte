@@ -17,24 +17,42 @@
    * progression resterait figée à l'instant du chargement et la carte
    * annoncerait encore le morceau précédent (06/09/2026).
    *
-   * ## Ce que la maquette montre et qui n'est PAS ici : aléatoire et boucle
+   * ## Aléatoire et boucle : SEULEMENT si le serveur dit leur état (#1714)
    *
-   * 🔴 Volontaire. `GET /zones` — la route dont vit le magasin — ne porte NI
-   * `shuffle` NI `repeat` : ils sont sur `/zones/now-listening`, que cette
-   * ligne n'interroge pas. Deux boutons dont on ne sait pas dire l'état sont
-   * pires que pas de boutons : on ne peut pas distinguer « aléatoire éteint »
-   * de « aléatoire inconnu », et le premier clic ment une fois sur deux.
-   * `api.setShuffle` / `api.setRepeat` existent et prennent une zone : le jour
-   * où l'état voyagera sur `/zones`, les deux boutons tiennent en dix lignes.
+   * `GET /zones` porte `shuffle` et `repeat` par zone (tune-server-rust
+   * `03c1d12c`). Un serveur plus ancien ne les envoie pas : les boutons ne
+   * s'affichent alors PAS. Deux boutons dont on ne sait pas dire l'état sont
+   * pires que pas de boutons — « aléatoire éteint » et « aléatoire inconnu »
+   * se ressembleraient, et le premier clic mentirait une fois sur deux.
    */
   import AlbumArt from '../../partages/AlbumArt.svelte';
   import { t } from '../../../lib/i18n';
   import { formatTime } from '../../../lib/utils';
   import { switchZone } from '../../../lib/stores/zones';
   import { togglePlayPause } from '../../../lib/playback-controls';
-  import type { Zone } from '../../../lib/types';
+  import { positionsZones } from '../../../lib/positionsZones';
+  import { transportOf } from '../../../lib/transportSync';
+  import { libelleAleatoire, libelleRepetition } from '../../../lib/etatTransport';
+  import { zones } from '../../../lib/stores/zones';
+  import * as api from '../../../lib/api';
+  import type { RepeatMode, Zone } from '../../../lib/types';
 
   let { zone }: { zone: Zone } = $props();
+
+  /**
+   * 🔴 #1711 — LA POSITION NE VIENT PLUS DE L'OBJET DE ZONE.
+   *
+   * JeromeQ, fil 2011, 28/09/2026 : « le temps reste à 0:00 et la barre
+   * vide » pendant la lecture. `zone.position_ms` ne bouge qu'à l'arrivée
+   * d'un `zone.updated` — en pratique au changement de piste — et rien, dans
+   * le client, ne suivait la position d'une zone AUTRE que la zone courante
+   * (`v2Live.suivreProgression` rend la main sur toute autre zone).
+   *
+   * Cette ligne montre TOUTES les zones qui jouent : il lui fallait donc une
+   * horloge par zone. Elle vit dans `lib/positionsZones`, avec ses règles et
+   * ses témoins.
+   */
+  const positionMs = $derived($positionsZones[zone?.id as number] ?? zone?.position_ms ?? 0);
 
   const piste = $derived((zone as any)?.current_track ?? null);
   const joue = $derived(zone?.state === 'playing');
@@ -53,7 +71,7 @@
   const avance = $derived.by(() => {
     const d = piste?.duration_ms ?? 0;
     if (!d) return 0;
-    return Math.max(0, Math.min(100, ((zone?.position_ms ?? 0) / d) * 100));
+    return Math.max(0, Math.min(100, (positionMs / d) * 100));
   });
 
   /**
@@ -64,6 +82,33 @@
    * service ou bibliothèque. `playback-controls` sait tout cela ; le réécrire
    * ici donnerait une deuxième vérité (#1478).
    */
+  /** Ce que la zone dit de son transport — champs ABSENTS s'ils sont inconnus. */
+  const transport = $derived(transportOf(zone));
+
+  /** Même ordre que la barre de lecture : off → one → all → off. */
+  const MODES: RepeatMode[] = ['off', 'one', 'all'];
+
+  /** Pose la réponse du serveur dans le magasin : la carte la relit, et la
+   *  barre de lecture aussi si c'est la zone courante (`v2Live`). */
+  function poser(id: number, champs: Partial<Zone>) {
+    zones.update((zs) => zs.map((z) => (z.id === id ? { ...z, ...champs } : z)));
+  }
+
+  async function basculerAleatoire() {
+    const id = zone?.id;
+    if (id == null || transport.shuffle === undefined) return;
+    const r = await api.setShuffle(id, !transport.shuffle);
+    poser(id, { shuffle: r.shuffle });
+  }
+
+  async function tournerRepetition() {
+    const id = zone?.id;
+    if (id == null || transport.repeat === undefined) return;
+    const suivant = MODES[(MODES.indexOf(transport.repeat) + 1) % MODES.length];
+    const r = await api.setRepeat(id, suivant);
+    poser(id, { repeat: r.repeat });
+  }
+
   async function basculer() {
     if (zone?.id == null) return;
     // `state` est OPTIONNEL sur `Zone` — un serveur plus ancien peut ne pas le
@@ -120,8 +165,30 @@
       {/if}
     </button>
 
+    {#if transport.shuffle !== undefined || transport.repeat !== undefined}
+      <div class="modes">
+        {#if transport.shuffle !== undefined}
+          <button class="mode aleatoire" class:actif={transport.shuffle} onclick={basculerAleatoire}
+            aria-pressed={transport.shuffle}
+            aria-label={libelleAleatoire($t, transport.shuffle)}
+            title={libelleAleatoire($t, transport.shuffle)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+          </button>
+        {/if}
+        {#if transport.repeat !== undefined}
+          <!-- Pas d'`aria-pressed` : trois états, pas une bascule (voir
+               `etatTransport`). L'état passe par le nom accessible. -->
+          <button class="mode repetition" class:actif={transport.repeat !== 'off'} onclick={tournerRepetition}
+            aria-label={libelleRepetition($t, transport.repeat)}
+            title={libelleRepetition($t, transport.repeat)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>{#if transport.repeat === 'one'}<text x="12" y="14" text-anchor="middle" font-size="8" fill="currentColor" stroke="none" font-weight="bold">1</text>{/if}</svg>
+          </button>
+        {/if}
+      </div>
+    {/if}
+
     <footer class="transport">
-      <span class="temps">{formatTime(zone?.position_ms ?? 0)}</span>
+      <span class="temps">{formatTime(positionMs)}</span>
       <div class="piste"><i style:width="{avance}%"></i></div>
       <span class="temps">{piste?.duration_ms ? formatTime(piste.duration_ms) : '--:--'}</span>
     </footer>
@@ -201,6 +268,17 @@
     box-sizing: border-box;
   }
   .galet:hover svg { background: rgba(0, 0, 0, .58); border-color: #fff; }
+
+  .modes { display: flex; justify-content: center; gap: 10px; }
+  .mode {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; padding: 7px; border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, .28); background: rgba(0, 0, 0, .42);
+    color: rgba(255, 255, 255, .78); cursor: pointer; box-sizing: border-box;
+  }
+  .mode:hover { border-color: #fff; color: #fff; }
+  .mode.actif { color: var(--v2-acc1); border-color: var(--v2-acc1); }
+  .mode svg { width: 100%; height: 100%; }
 
   .transport { display: flex; align-items: center; gap: 9px; }
   .temps {

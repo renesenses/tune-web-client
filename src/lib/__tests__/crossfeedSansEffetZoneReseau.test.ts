@@ -180,7 +180,7 @@ describe('#2742 — les deux écrans lisent le verdict et verrouillent', () => {
         ).toBe(false);
       } else {
         const appel = nom === 'v2/CrossfeedV2.svelte'
-          ? 'reportReach(res?.crossfeed_applied_live)'
+          ? 'reportReach(atteintLeSon(res?.crossfeed_applied_live, res?.crossfeed_portee))'
           : 'signalerPortee(res?.crossfeed_applied_live)';
         expect(source).toContain(`if (!${garde}.indisponible) ${appel}`);
         // Contre-épreuve du test : l'appel doit exister, sinon la ligne

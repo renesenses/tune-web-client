@@ -427,6 +427,11 @@ export interface Zone {
   current_track?: NowPlaying | null;
   position_ms?: number;
   queue_length?: number;
+  /** Aléatoire et répétition de la zone, portés par `GET /zones` depuis
+   *  tune-server-rust `03c1d12c`. Absents d'un serveur plus ancien : l'absence
+   *  veut dire « inconnu », jamais « éteint » (#1714). */
+  shuffle?: boolean;
+  repeat?: RepeatMode;
   /** Index de la piste en cours dans la file. Porté par `GET /zones/{id}` (pas
    *  par la liste `/zones`) et par les événements `playback.started` /
    *  `playback.track_changed` : il évite de retélécharger la file entière à

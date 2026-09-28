@@ -152,6 +152,20 @@ export function cibleEtiquettePlaylist(pl: any, service: string | null = null): 
   return cibleDeService('playlist', { ...pl, source });
 }
 
+/**
+ * #1659 — l'écran d'une étiquette charge son contenu UNE fois, à l'ouverture.
+ * Le panneau Étiquettes, ouvert par-dessus (vignette, ligne de piste…), posait
+ * ou retirait côté serveur sans prévenir personne : l'objet retiré restait à
+ * l'écran jusqu'au rechargement de la page (FabienM, fils 1990 et 2013).
+ * Chaque pose ou retrait RÉUSSI émet donc cet événement, que l'écran écoute.
+ */
+export const EVENEMENT_ETIQUETTE_MODIFIEE = 'tune:etiquettes-modifiees';
+
+function signalerEtiquetteModifiee(tagId: number): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(EVENEMENT_ETIQUETTE_MODIFIEE, { detail: { tagId } }));
+}
+
 /** Les étiquettes déjà posées sur la cible. */
 export function etiquettesPosees(c: CibleEtiquette): Promise<UserTag[]> {
   return estCibleService(c)
@@ -169,23 +183,26 @@ export function poserEtiquette(tagId: number, c: CibleEtiquette): Promise<void> 
   if (!estCibleService(c) && !(Number.isInteger(c.itemId) && c.itemId > 0)) {
     return Promise.reject(new Error(`identifiant local invalide : ${c.itemId}`));
   }
-  if (!estCibleService(c)) return api.tagItem(tagId, c.itemType, c.itemId);
-  return api.tagStreamingItem(tagId, {
-    item_type: c.itemType,
-    source: c.source,
-    source_id: c.sourceId,
-    title: c.titre ?? null,
-    artist: c.artiste ?? null,
-    album: c.album ?? null,
-    cover_url: c.pochette ?? null,
-  });
+  const appel = !estCibleService(c)
+    ? api.tagItem(tagId, c.itemType, c.itemId)
+    : api.tagStreamingItem(tagId, {
+      item_type: c.itemType,
+      source: c.source,
+      source_id: c.sourceId,
+      title: c.titre ?? null,
+      artist: c.artiste ?? null,
+      album: c.album ?? null,
+      cover_url: c.pochette ?? null,
+    });
+  return appel.then(() => signalerEtiquetteModifiee(tagId));
 }
 
 /** Retire l'étiquette `tagId` de la cible. */
 export function retirerEtiquette(tagId: number, c: CibleEtiquette): Promise<void> {
-  return estCibleService(c)
+  const appel = estCibleService(c)
     ? api.untagStreamingItem(tagId, c.itemType, c.source, c.sourceId)
     : api.untagItem(tagId, c.itemType, c.itemId);
+  return appel.then(() => signalerEtiquetteModifiee(tagId));
 }
 
 /**
