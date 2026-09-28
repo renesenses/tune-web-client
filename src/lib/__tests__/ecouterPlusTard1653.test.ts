@@ -26,6 +26,7 @@ import { cibleDeService } from '../cibleEtiquette';
 import {
   CLE_REGLAGE,
   NOM_ETIQUETTE,
+  assurerEtiquette,
   basculerLeSas,
   chargerSas,
   cleCible,
@@ -230,6 +231,119 @@ describe('#1653 — le sas est rangé SUR LE SERVEUR, dans l’étiquetage exist
     await chargerSas();
     expect(requetes.some((r) => r.method === 'POST' && /\/tags\/$/.test(r.url))).toBe(false);
     expect(sasEcouterPlusTard && estDansLeSas({ itemType: 'album', itemId: 1 })).toBe(false);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+describe('#1653 — deux clics, une panne, un profil : le sas ne se dédouble pas', () => {
+  it('🔴 deux dépôts SIMULTANÉS ne créent qu’UNE étiquette', async () => {
+    reponses = [
+      ['/profiles/1/settings', {}],
+      ['POST /tags/', { id: 9 }],
+      ['/tags', []],
+    ];
+    // Deux objets d'une même grille, cliqués avant que le premier ait fini.
+    await Promise.all([
+      basculerLeSas({ itemType: 'album', itemId: 11032 }),
+      basculerLeSas({ itemType: 'playlist', itemId: 23 }),
+    ]);
+    const creations = requetes.filter((r) => r.method === 'POST' && /\/tags\/$/.test(r.url));
+    expect(
+      creations.length,
+      'DEUX étiquettes « Écouter plus tard » : l’écran du sas n’en montrerait que la moitié',
+    ).toBe(1);
+  });
+
+  it('🔴 un DOUBLE CLIC sur le même objet n’envoie qu’un dépôt', async () => {
+    serveurAvecSasVide();
+    const [a, b] = await Promise.all([
+      basculerLeSas({ itemType: 'album', itemId: 11032 }),
+      basculerLeSas({ itemType: 'album', itemId: 11032 }),
+    ]);
+    const poses = requetes.filter((r) => r.method === 'POST' && /\/tags\/7\/items$/.test(r.url));
+    expect(poses.length, 'le second clic a re-déposé, et rougit sur un geste réussi').toBe(1);
+    expect(a).toBe(true);
+    expect(b).toBe(true);
+  });
+
+  it('🔴 la liste des étiquettes ILLISIBLE n’autorise PAS une création', async () => {
+    // `GET /tags` en panne : une étiquette existe peut-être déjà.
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      const method = (init?.method ?? 'GET').toUpperCase();
+      requetes.push({ method, url, body: null });
+      if (/\/tags\/?$/.test(url) && method === 'GET') throw new Error('réseau');
+      return {
+        ok: true, status: 200,
+        headers: new Headers({ 'Content-Type': 'application/json' }),
+        text: async () => '{}', json: async () => ({}),
+      } as unknown as Response;
+    }));
+    await basculerLeSas({ itemType: 'album', itemId: 11032 });
+    expect(
+      requetes.some((r) => r.method === 'POST' && /\/tags\/$/.test(r.url)),
+      'une panne de lecture a fabriqué un doublon de l’étiquette existante',
+    ).toBe(false);
+  });
+
+  it('🔴 une étiquette TROUVÉE en cours de route fait relire ses membres', async () => {
+    // Premier chargement SANS profil : le réglage n'a pas d'adresse, et la
+    // liste ne rend encore rien.
+    currentProfileId.set(null);
+    reponses = [['/tags', []]];
+    await chargerSas();
+    // Le profil arrive, et avec lui l'étiquette de FabienM, DÉJÀ remplie.
+    currentProfileId.set(1);
+    reponses = [
+      ['/profiles/1/settings', { [CLE_REGLAGE]: 7 }],
+      ['/tags/7/albums', { albums: [{ id: 11032, title: 'MCMXC a.D.' }], count: 1 }],
+      ['/tags/7/tracks', { tracks: [], count: 0 }],
+      ['/tags/7/playlists', { playlists: [], count: 0 }],
+      ['/tags', [{ id: 7, name: NOM_ETIQUETTE, color: '#808080' }]],
+    ];
+    // On dépose une PLAYLIST : l'album déjà rangé doit être relu au passage.
+    await basculerLeSas({ itemType: 'playlist', itemId: 23 });
+    expect(
+      estDansLeSas({ itemType: 'album', itemId: 11032 }),
+      'le reste du sas resterait annoncé « à ajouter », et un clic le re-déposerait',
+    ).toBe(true);
+  });
+
+  it('🔴 le réglage du profil n’est écrit qu’UNE fois, pas à chaque résolution', async () => {
+    // 🔴 On appelle `assurerEtiquette` DEUX fois, et non deux bascules : la
+    // seconde bascule ne repasse pas par la résolution (l'étiquette est déjà
+    // dans le magasin), si bien qu'un témoin écrit ainsi restait vert même le
+    // correctif retiré — il ne gardait rien.
+    serveurAvecSasVide();
+    await assurerEtiquette(1);
+    await assurerEtiquette(1);
+    const ecritures = requetes.filter((r) => r.method === 'POST' && /\/settings$/.test(r.url));
+    expect(
+      ecritures.length,
+      'chaque résolution relit et repose TOUS les réglages du profil — la course avec l’écran de réglages cesse d’être théorique',
+    ).toBeLessThanOrEqual(1);
+  });
+
+  it('🔴 changer de PROFIL fait tout relire — le sas suit le profil', async () => {
+    reponses = [
+      ['/profiles/1/settings', { [CLE_REGLAGE]: 7 }],
+      ['/tags/7/albums', { albums: [{ id: 11032, title: 'MCMXC a.D.' }], count: 1 }],
+      ['/tags/7/tracks', { tracks: [], count: 0 }],
+      ['/tags/7/playlists', { playlists: [], count: 0 }],
+      ['/tags', [{ id: 7, name: NOM_ETIQUETTE, color: '#808080' }]],
+    ];
+    await chargerSas();
+    expect(estDansLeSas({ itemType: 'album', itemId: 11032 })).toBe(true);
+    currentProfileId.set(2);
+    reponses = [
+      ['/profiles/2/settings', {}],
+      ['/tags', []],
+    ];
+    await chargerSas();
+    expect(
+      estDansLeSas({ itemType: 'album', itemId: 11032 }),
+      'le sas du premier profil a survécu au changement de profil',
+    ).toBe(false);
   });
 });
 

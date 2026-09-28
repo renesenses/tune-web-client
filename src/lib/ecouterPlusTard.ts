@@ -170,6 +170,9 @@ export interface EtatSas {
 
 const VIDE: EtatSas = { etiquette: null, membres: new Set(), charge: false };
 
+/** Ce qu'on a déjà écrit dans le réglage de chaque profil, pour ne pas le redire. */
+const reglageEcrit = new Map<number, number>();
+
 export const sasEcouterPlusTard = writable<EtatSas>(VIDE);
 
 /**
@@ -199,7 +202,20 @@ export function rangeableDansLeSas(c: CibleEtiquette | null | undefined): boolea
  * supprime depuis l'écran Étiquettes, et un identifiant mort ferait ranger
  * dans le vide, en 404 muet). Sinon l'adoption par le nom.
  */
-export async function resoudreEtiquette(profileId: number | null): Promise<number | null> {
+interface Resolution {
+  etiquette: number | null;
+  /**
+   * 🔴 La liste des étiquettes a-t-elle été LUE ?
+   *
+   * Sans ce drapeau, « aucune étiquette de sas » et « je n'ai pas pu lire les
+   * étiquettes » se ressemblent — les deux rendent `null` —, et le premier
+   * dépôt après une panne réseau CRÉERAIT un doublon de l'étiquette existante.
+   * C'est exactement ce que l'en-tête de ce module interdit.
+   */
+  listeLue: boolean;
+}
+
+async function resoudre(profileId: number | null): Promise<Resolution> {
   let voulu: number | null = null;
   if (profileId != null) {
     try {
@@ -218,11 +234,16 @@ export async function resoudreEtiquette(profileId: number | null): Promise<numbe
   } catch {
     // Le serveur ne répond pas : on ne sait rien, et on ne CRÉE surtout rien —
     // ce serait un doublon au prochain chargement réussi.
-    return voulu;
+    return { etiquette: voulu, listeLue: false };
   }
-  if (voulu != null && tags.some((tag) => tag?.id === voulu)) return voulu;
-  const adoptee = etiquetteAdoptable(tags);
-  return adoptee?.id ?? null;
+  if (voulu != null && tags.some((tag) => tag?.id === voulu)) {
+    return { etiquette: voulu, listeLue: true };
+  }
+  return { etiquette: etiquetteAdoptable(tags)?.id ?? null, listeLue: true };
+}
+
+export async function resoudreEtiquette(profileId: number | null): Promise<number | null> {
+  return (await resoudre(profileId)).etiquette;
 }
 
 /**
@@ -231,27 +252,59 @@ export async function resoudreEtiquette(profileId: number | null): Promise<numbe
  * Appelé au PREMIER dépôt, jamais au chargement : une installation où personne
  * ne s'en sert n'a pas à porter une étiquette vide dans son écran Étiquettes.
  */
-export async function assurerEtiquette(profileId: number | null): Promise<number | null> {
-  const deja = await resoudreEtiquette(profileId);
-  if (deja != null) {
-    await retenirEtiquette(profileId, deja);
-    return deja;
-  }
-  let cree: number | null = null;
-  try {
-    cree = (await api.createTag(NOM_ETIQUETTE, COULEUR_ETIQUETTE))?.id ?? null;
-  } catch {
-    return null;
-  }
-  if (cree != null) await retenirEtiquette(profileId, cree);
-  return cree;
+let obtention: Promise<number | null> | null = null;
+
+export function assurerEtiquette(profileId: number | null): Promise<number | null> {
+  /**
+   * 🔴 UNE SEULE obtention à la fois, comme `chargerSas`.
+   *
+   * Sans cette file, deux dépôts lancés avant que l'un finisse — deux objets
+   * d'une grille, ou un double clic — voyaient TOUS DEUX « pas d'étiquette »
+   * et appelaient `POST /tags`. On se retrouvait avec DEUX étiquettes
+   * homonymes, un objet dans chacune, le réglage du profil gardant celle dont
+   * l'écriture arrive la dernière : l'écran du sas n'en montrait que la
+   * moitié, sans que rien ne le dise.
+   */
+  if (obtention) return obtention;
+  obtention = (async () => {
+    const { etiquette, listeLue } = await resoudre(profileId);
+    if (etiquette != null) {
+      await retenirEtiquette(profileId, etiquette);
+      return etiquette;
+    }
+    // Liste illisible : on ne CRÉE pas. Une étiquette existe peut-être, et un
+    // doublon se verrait tout de suite dans l'écran Étiquettes.
+    if (!listeLue) return null;
+    let cree: number | null = null;
+    try {
+      cree = (await api.createTag(NOM_ETIQUETTE, COULEUR_ETIQUETTE))?.id ?? null;
+    } catch {
+      return null;
+    }
+    if (cree != null) await retenirEtiquette(profileId, cree);
+    return cree;
+  })();
+  const fini = obtention;
+  return fini.finally(() => {
+    if (obtention === fini) obtention = null;
+  });
 }
 
-/** Retient l'identifiant dans le profil. Un échec n'empêche pas le geste. */
+/**
+ * Retient l'identifiant dans le profil. Un échec n'empêche pas le geste.
+ *
+ * 🔴 On n'écrit que si la valeur CHANGE. `setProfilePreferences` relit tout
+ * l'objet et le repose (le serveur REMPLACE, il ne fusionne pas) : réécrire à
+ * chaque dépôt ferait passer un clic de menu par une lecture-modification-
+ * écriture des réglages du profil, et la course avec un écran de réglages
+ * ouvert en même temps — que `api.ts` écarte au motif qu'« un seul écran écrit
+ * ces réglages à la fois » — cesserait d'être théorique.
+ */
 async function retenirEtiquette(profileId: number | null, tagId: number): Promise<void> {
-  if (profileId == null) return;
+  if (profileId == null || reglageEcrit.get(profileId) === tagId) return;
   try {
     await api.setProfilePreferences(profileId, { [CLE_REGLAGE]: tagId });
+    reglageEcrit.set(profileId, tagId);
   } catch {
     // Le sas marche quand même pour cette session : l'adoption par le nom le
     // retrouvera au prochain chargement.
@@ -288,15 +341,22 @@ export async function membresEtiquette(tagId: number): Promise<Set<string>> {
 }
 
 let lecture: Promise<void> | null = null;
+/** Le profil pour lequel `lecture` a été faite : il change, tout est à relire. */
+let profilDuSas: number | null = null;
 
 /**
  * Lit le sas UNE fois. Idempotent : les vingt menus d'une grille qui
  * l'appellent au montage ne font qu'une lecture.
  */
 export function chargerSas(): Promise<void> {
+  const profileId = get(currentProfileId);
+  // 🔴 Le sas d'un AUTRE profil n'est pas le nôtre : le réglage qui désigne
+  // l'étiquette vit dans le profil. Sans cette remise à zéro, changer de
+  // profil en cours de session gardait l'étiquette et les membres du premier.
+  if (lecture && profilDuSas !== profileId) lecture = null;
   if (lecture) return lecture;
+  profilDuSas = profileId;
   lecture = (async () => {
-    const profileId = get(currentProfileId);
     const tagId = await resoudreEtiquette(profileId);
     if (tagId == null) {
       // Pas encore de sas : c'est un état LU, pas une ignorance. Le premier
@@ -317,6 +377,9 @@ export function chargerSas(): Promise<void> {
 /** Pour les tests, et pour un changement de profil : tout oublier. */
 export function oublierSas(): void {
   lecture = null;
+  obtention = null;
+  profilDuSas = null;
+  reglageEcrit.clear();
   sasEcouterPlusTard.set({ etiquette: null, membres: new Set(), charge: false });
 }
 
@@ -328,13 +391,34 @@ export function oublierSas(): void {
  * serveur : un sas qui montre un objet que le serveur n'a pas rangé ment à
  * l'écran, et c'est exactement le reproche de #1659.
  */
-export async function basculerLeSas(c: CibleEtiquette | null | undefined): Promise<boolean> {
+/**
+ * Les clés dont la bascule est EN VOL.
+ *
+ * 🔴 L'état est lu après `await chargerSas()` et n'est écrit qu'une fois le
+ * serveur d'accord — c'est ce qui l'empêche de mentir. Mais deux clics rapides
+ * sur le même objet lisaient donc tous deux l'état d'AVANT : deux dépôts, ou
+ * deux retraits, et le second échouait en rouge sur un geste pourtant réussi.
+ * Le second clic ne refait rien et rend l'état visé par le premier.
+ */
+const enVol = new Map<string, Promise<boolean>>();
+
+export function basculerLeSas(c: CibleEtiquette | null | undefined): Promise<boolean> {
   const cle = cleCible(c);
-  if (cle == null || !c) return false;
+  if (cle == null || !c) return Promise.resolve(false);
+  const deja = enVol.get(cle);
+  if (deja) return deja;
+  const vol = basculerVraiment(cle, c).finally(() => {
+    if (enVol.get(cle) === vol) enVol.delete(cle);
+  });
+  enVol.set(cle, vol);
+  return vol;
+}
+
+async function basculerVraiment(cle: string, c: CibleEtiquette): Promise<boolean> {
   const traduire = (k: string) => get(t)(k as any);
   try {
     await chargerSas();
-    const etat = get(sasEcouterPlusTard);
+    let etat = get(sasEcouterPlusTard);
     if (etat.membres.has(cle)) {
       if (etat.etiquette == null) return true;
       await retirerEtiquette(etat.etiquette, c);
@@ -346,16 +430,42 @@ export async function basculerLeSas(c: CibleEtiquette | null | undefined): Promi
       notifications.success(traduire('v2.later.removed'));
       return false;
     }
-    const tagId = etat.etiquette ?? (await assurerEtiquette(get(currentProfileId)));
+    let tagId = etat.etiquette;
     if (tagId == null) {
-      notifications.error(traduire('common.error'));
-      return false;
+      tagId = await assurerEtiquette(get(currentProfileId));
+      if (tagId == null) {
+        notifications.error(traduire('common.error'));
+        return false;
+      }
+      /**
+       * 🔴 L'étiquette vient d'être TROUVÉE, pas forcément créée : le
+       * chargement avait pu échouer, ou passer avant que le profil arrive, ou
+       * précéder l'étiquette de FabienM. Elle porte alors déjà des objets, et
+       * la liste en mémoire est vide. Sans cette relecture, tout le reste du
+       * sas restait annoncé « à ajouter » pour la session entière, et un clic
+       * dessus RE-DÉPOSAIT au lieu de retirer.
+       */
+      const membres = await membresEtiquette(tagId).catch(() => new Set<string>());
+      sasEcouterPlusTard.set({ etiquette: tagId, membres, charge: true });
+      etat = get(sasEcouterPlusTard);
+      if (etat.membres.has(cle)) {
+        // Il y était déjà : le geste attendu est le RETRAIT, pas un doublon.
+        await retirerEtiquette(tagId, c);
+        sasEcouterPlusTard.update((e) => {
+          const m = new Set(e.membres);
+          m.delete(cle);
+          return { ...e, membres: m };
+        });
+        notifications.success(traduire('v2.later.removed'));
+        return false;
+      }
     }
     await poserEtiquette(tagId, c);
+    const fixe = tagId;
     sasEcouterPlusTard.update((e) => {
       const membres = new Set(e.membres);
       membres.add(cle);
-      return { etiquette: tagId, membres, charge: true };
+      return { etiquette: fixe, membres, charge: true };
     });
     notifications.success(traduire('v2.later.added'));
     return true;

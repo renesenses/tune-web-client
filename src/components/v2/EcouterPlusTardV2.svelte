@@ -99,7 +99,17 @@
      */
     const surModification = (ev: Event) => {
       const id = (ev as CustomEvent)?.detail?.tagId;
-      if (id != null && id !== $sasEcouterPlusTard.etiquette) return;
+      const notre = $sasEcouterPlusTard.etiquette;
+      /**
+       * 🔴 `notre == null` fait relire, il ne fait pas taire.
+       *
+       * L'événement part depuis `poserEtiquette`, donc AVANT que la bascule
+       * écrive l'étiquette dans le magasin. Au tout premier dépôt de la
+       * session, cet écran voyait donc `null` d'un côté, l'identifiant tout
+       * neuf de l'autre, et se taisait : il continuait d'annoncer « Rien à
+       * écouter plus tard » alors qu'on venait d'y déposer un album.
+       */
+      if (id != null && notre != null && id !== notre) return;
       void charger();
     };
     window.addEventListener(EVENEMENT_ETIQUETTE_MODIFIEE, surModification);
