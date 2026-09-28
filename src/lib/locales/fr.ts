@@ -3705,6 +3705,7 @@ export default {
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Refuser la lecture plutôt que convertir la fréquence quand la sortie ne lit pas celle de la source.",
   "bitperfect.refused": "Bit-perfect strict : lecture refusée — la sortie ne lit pas le {requested} kHz sans conversion (elle tourne à {device} kHz). Désactivez « Bit-perfect strict » dans les réglages de la zone pour jouer avec conversion.",
+  "bitperfect.refusedDepth": "Bit-perfect strict : lecture refusée — ce chemin de lecture réduit la source de {requested} bits à {device} bits. Désactivez « Bit-perfect strict » dans les réglages de la zone pour jouer avec conversion.",
   "bitperfect.pureDegraded": "PURE dégradé — {from} → {to} kHz, pas bit-perfect",
   "bitperfect.rateConversion": "{from} → {to} kHz, pas bit-perfect",
   "v2.lib.chipAll": "Tout ({n})",
