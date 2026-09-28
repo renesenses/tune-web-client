@@ -431,7 +431,8 @@ describe('T3 — les rayons d’un contact', () => {
     // Aucun bouton, aucun lien : une référence ne se joue pas ici.
     for (const r of refs) { expect(r.querySelector('button, a')).toBeNull(); }
     sansFuite(el);
-    expect(appels.some((a) => /\/(play|queue)/.test(a.url))).toBe(false);
+    // Fin de segment exigée : `/ext/circle/playlists` (T5) n'est pas une lecture.
+    expect(appels.some((a) => /\/(play|queue)(\/|\?|$)/.test(a.url))).toBe(false);
   });
 
   it('les onglets d’un rayon suivent `counts` quand le cloud les donne', async () => {

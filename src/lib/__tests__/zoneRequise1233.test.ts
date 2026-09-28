@@ -70,7 +70,7 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     expect(coupables, `gestes encore muets : ${coupables.join(', ')}`).toEqual([]);
   });
 
-  it('et les dix-huit écrans passent par le helper', () => {
+  it('et les dix-neuf écrans passent par le helper', () => {
     const avec = fichiersV2.filter((f) => lire(f).includes("from '../../lib/zoneRequise'"));
     // Quinze depuis la phase 5, lot 4 : `YouTubeDecouverteV2` (tendances et
     // ambiances YouTube Music) lance la lecture, donc passe par le helper.
@@ -81,7 +81,10 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // réglage DE ZONE, partagé par l'Égaliseur et le Crossfeed.
     // Dix-huit depuis le fil forum 1906 (FabienM, point 3) : `PisteActions`
     // lance « Plus comme ça » d'un titre Qobuz, et réclame la zone.
-    expect(avec.length).toBe(18);
+    // Dix-neuf depuis Tune Circle T5 (tune-server-rust#5328) :
+    // `PlaylistCercleV2` lance une playlist de cercle sur la zone active.
+    expect(avec.length).toBe(19);
+    expect(avec).toContain('PlaylistCercleV2.svelte');
     expect(avec).toContain('PisteActions.svelte');
     expect(avec).toContain('CompensationNiveauV2.svelte');
     expect(avec).toContain('ListePistesV2.svelte');
