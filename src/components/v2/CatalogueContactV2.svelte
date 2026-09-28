@@ -11,8 +11,12 @@
    * - Les pistes passent par la liste commune de la Bibliothèque
    *   (`ListePistesV2`), en `lectureSeule` : ni barre d'actions, ni clic de
    *   lecture, ni colonne « Chemin ».
-   * - Les pochettes : `AlbumArt` sans chemin ni identifiant rend l'icône
-   *   générique. Aucune pochette n'est demandée au serveur du contact.
+   * - Les pochettes (décision 4 du 28/09) : la pochette PUBLIQUE de Cover Art
+   *   Archive, par l'identifiant MusicBrainz de release-group quand la
+   *   projection le porte (`pochetteAlbumContact`), sinon — ou si elle ne se
+   *   charge pas — l'icône générique d'`AlbumArt`. Seul le MBID sort, par le
+   *   relais de NOTRE serveur ; aucun titre, aucun artiste, et rien n'est
+   *   demandé au serveur du contact.
    * - 🔴 Un 404 à n'importe quel moment (partage coupé, retrait du cercle,
    *   révocation) : l'écran se FERME et le dit. Rien n'est gardé — ce
    *   composant détruit, toutes ses listes partent avec lui.
@@ -22,7 +26,7 @@
   import { dateCourte } from '../../lib/dates';
   import {
     statsContact, artistesContact, albumsContact, pistesContact, pistesAlbumContact,
-    pisteVersTrack, plusPartage, motifCercle,
+    pisteVersTrack, plusPartage, motifCercle, pochetteAlbumContact,
     type PartageRecu, type StatsContact, type ArtisteContact, type AlbumContact,
     type MotifCercle, type PageContact,
   } from '../../lib/circle';
@@ -46,7 +50,7 @@
 
   let onglet = $state<Onglet>('albums');
   let recherche = $state('');
-  let artiste = $state<string | null>(null);
+  let artiste = $state<ArtisteContact | null>(null);
   let stats = $state<StatsContact | null>(null);
   let artistes = $state<ArtisteContact[]>([]);
   let albums = $state<AlbumContact[]>([]);
@@ -93,7 +97,8 @@
   }
 
   function chargerPage(n: number) {
-    const q = { page: n, search: recherche, artist: onglet === 'albums' ? artiste ?? undefined : undefined };
+    // Le filtre part par l'IDENTIFIANT d'artiste : c'est ce que le cloud attend.
+    const q = { page: n, search: recherche, artist: onglet === 'albums' ? artiste?.id : undefined };
     const uid = contact.user_id;
     const suite = <T,>(liste: T[], p: PageContact<T>) => (n === 1 ? p.items : [...liste, ...p.items]);
     if (onglet === 'artists') {
@@ -129,7 +134,7 @@
   }
 
   function voirArtiste(a: ArtisteContact) {
-    artiste = a.name;
+    artiste = a;
     onglet = 'albums';
     recherche = '';
     recharger();
@@ -184,7 +189,7 @@
     <div class="album-ouvert">
       <button class="lnk retour-albums" onclick={() => { album = null; pistesAlbum = []; }}>← {$t('v2.circle.lib.backToAlbums' as any)}</button>
       <div class="album-tete">
-        <span class="pochette"><AlbumArt coverPath={null} albumId={null} size={0} alt={album.title} /></span>
+        <span class="pochette"><AlbumArt coverPath={pochetteAlbumContact(album)} albumId={null} size={0} alt={album.title} /></span>
         <div class="album-infos">
           <h3 class="album-titre">{album.title}</h3>
           <p class="note">{detailsAlbum(album)}{#if album.genre} · {album.genre}{/if}</p>
@@ -214,7 +219,7 @@
       <input id="circle-lib-recherche" class="champ recherche" type="search"
         placeholder={$t('v2.circle.lib.search' as any)} value={recherche} oninput={rechercher} />
       {#if artiste && onglet === 'albums'}
-        <span class="filtre-artiste">{$t('v2.circle.lib.byArtist' as any).replace('{name}', artiste)}</span>
+        <span class="filtre-artiste">{$t('v2.circle.lib.byArtist' as any).replace('{name}', artiste.name)}</span>
         <button class="lnk tous-artistes" onclick={toutesLesArtistes}>{$t('v2.circle.lib.allArtists' as any)}</button>
       {/if}
     </div>
@@ -232,7 +237,7 @@
           {#each albums as a (a.id)}
             <li>
               <button class="album-contact" onclick={() => ouvrirAlbum(a)} title={a.title}>
-                <span class="pochette"><AlbumArt coverPath={null} albumId={null} size={0} alt={a.title} /></span>
+                <span class="pochette"><AlbumArt coverPath={pochetteAlbumContact(a)} albumId={null} size={0} alt={a.title} /></span>
                 <span class="album-nom">{a.title}</span>
                 <span class="note">{detailsAlbum(a)}</span>
               </button>

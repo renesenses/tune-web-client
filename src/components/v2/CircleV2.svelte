@@ -30,13 +30,15 @@
   import { onDestroy } from 'svelte';
   import { dialogs } from '../../lib/stores/dialogs';
   import { dateCourte } from '../../lib/dates';
+  import { activeView } from '../../lib/stores/navigation';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import {
     circleCharge, circlePlugin, refreshCirclePlugin, getCercle, estConnecte,
     inviterAuCercle, accepterInvitation, refuserInvitation, annulerInvitation,
     revoquerContact, creerCercle, renommerCercle, supprimerCercle,
     rangerDansCercle, retirerDuCercle, motifCercle, nomCercleValide,
     seConnecterAMozaiklabs, NOM_CERCLE_MAX, RELECTURE_CERCLE_MS,
-    partageActif, partagerBibliotheque, arreterPartageBibliotheque,
+    partageActif, partagerBibliotheque, arreterPartageBibliotheque, ouPartage,
     getSynchroBibliotheque, avisSynchro, getPartagesAvecMoi, plusPartage,
     type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme,
     type EtatSynchroBibliotheque, type PartageRecu, type AvisSynchro,
@@ -44,7 +46,8 @@
   import CatalogueContactV2 from './CatalogueContactV2.svelte';
   import '../../styles/tune-v2.css';
 
-  type Retour = { texte: string; erreur: boolean; reessayer?: () => void };
+  /** `relier` : le refus dit que ce serveur n'est pas relié au compte (T2). */
+  type Retour = { texte: string; erreur: boolean; reessayer?: () => void; relier?: boolean };
 
   let etat = $state<EtatCercle | null>(null);
   let erreurLecture = $state<MotifCercle | null>(null);
@@ -148,6 +151,7 @@
         texte: phrase(m),
         erreur: true,
         reessayer: m.indisponible ? () => void geste(nom, action, opts) : undefined,
+        relier: m.nonRelie === true,
       });
     } finally {
       occupe = null;
@@ -210,13 +214,36 @@
     void geste(`ranger-${c.id}`, () => rangerDansCercle(c.id, uid), { apres: () => { ajout[c.id] = ''; } });
   }
 
-  /** L'interrupteur : allumé → DELETE, éteint → PUT (sans corps). Puis relecture. */
-  function basculerPartage(c: CercleNomme) {
-    if (partageActif(c)) {
+  /** Le `server_id` de CE serveur, quand le greffon le dit. */
+  const serveurLocal = $derived(synchro?.server_id ?? null);
+  const ou = (c: CercleNomme) => ouPartage(c, serveurLocal);
+  /** Un de mes cercles partage-t-il un AUTRE de mes serveurs ? */
+  const partageAilleurs = $derived(cercles.some((c) => ou(c) === 'ailleurs'));
+
+  /**
+   * L'interrupteur : allumé ici → DELETE ; sinon → PUT (sans corps), puis relecture.
+   *
+   * Décision du 28/09/2026 : UN seul serveur partagé par propriétaire, pour
+   * tous ses cercles. Si un cercle partage déjà un autre de mes serveurs,
+   * activer ici DÉPLACE le partage — l'écran le dit et le fait confirmer
+   * AVANT d'envoyer quoi que ce soit.
+   */
+  async function basculerPartage(c: CercleNomme) {
+    if (ou(c) === 'ici') {
       void geste(`partage-${c.id}`, () => arreterPartageBibliotheque(c.id), { succes: 'v2.circle.share.stopped' });
-    } else {
-      void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started' });
+      return;
     }
+    if (partageAilleurs) {
+      const ok = await dialogs.confirm($t('v2.circle.share.confirmMove' as any));
+      if (!ok) return;
+    }
+    void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started' });
+  }
+
+  /** Réglages ▸ Système ▸ Cloud : le chemin de `OutputModuleBanner.ouvrirLiaisonCompte`. */
+  function ouvrirLiaisonCompte() {
+    v2SettingsTarget.set({ tab: 'system', section: 'cloud' });
+    activeView.set('settings');
   }
 
   function texteAvis(a: AvisSynchro): string {
@@ -293,6 +320,9 @@
           {#if retour.reessayer}
             <button class="lnk reessayer" onclick={retour.reessayer}>{$t('v2.circle.retry' as any)}</button>
           {/if}
+          {#if retour.relier}
+            <button class="lnk relier-compte" onclick={ouvrirLiaisonCompte}>{$t('outputModule.notLinkedAction' as any)}</button>
+          {/if}
         </div>
       {/if}
 
@@ -364,13 +394,16 @@
               </div>
               {#if t2}
                 <div class="partage">
-                  <button class="interrupteur interrupteur-partage" role="switch" aria-checked={partageActif(c)}
-                    disabled={occupe !== null} onclick={() => basculerPartage(c)}>
+                  <button class="interrupteur interrupteur-partage" role="switch" aria-checked={ou(c) === 'ici'}
+                    disabled={occupe !== null} onclick={() => void basculerPartage(c)}>
                     <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
                     <span>{$t('v2.circle.share.toggle' as any)}</span>
                   </button>
                   <p class="note partage-quoi">{$t('v2.circle.share.what' as any)}</p>
-                  {#if partageActif(c) && avis}
+                  {#if ou(c) === 'ailleurs'}
+                    <p class="note partage-ailleurs">{$t('v2.circle.share.elsewhere' as any)}</p>
+                  {/if}
+                  {#if ou(c) === 'ici' && avis}
                     <p class={avis.cle === 'v2.circle.share.syncOk' ? 'note avis-synchro' : 'note avis-synchro alerte'}>{texteAvis(avis)}</p>
                   {/if}
                 </div>

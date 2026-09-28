@@ -41,12 +41,13 @@
  *                                          avec CE cercle (sans corps : le greffon
  *                                          ajoute lui-même son `server_id`)
  *   DELETE /circles/{id}/sharing/library → coupe, effet immédiat → { ok: true }
- *   GET    /library-sync                → { premium, active, last_sync, pending },
- *                                          état LOCAL de la copie en ligne
+ *   GET    /library-sync                → { premium, active, last_sync, pending, server_id? },
+ *                                          état LOCAL de la copie en ligne ; `server_id`
+ *                                          = CE serveur (décision du 28/09, facultatif)
  *   GET    /shared-with-me              → [{ user_id, name, library }]
  *   GET    /contacts/{uid}/library/stats                 → { tracks, albums, artists, last_sync }
  *   GET    /contacts/{uid}/library/artists?search&sort&page
- *   GET    /contacts/{uid}/library/albums?search&sort&artist&page
+ *   GET    /contacts/{uid}/library/albums?search&sort&artist&page   (`artist` = IDENTIFIANT d'artiste)
  *   GET    /contacts/{uid}/library/albums/{album_id}/tracks
  *   GET    /contacts/{uid}/library/tracks?search&sort&page
  *
@@ -181,6 +182,27 @@ export interface EtatSynchroBibliotheque {
   active?: boolean;
   last_sync?: string | null;
   pending?: number;
+  /** Le `server_id` de CE serveur (décision du 28/09/2026). Absent = inconnu. */
+  server_id?: string | null;
+}
+
+/**
+ * Où ce cercle partage-t-il ? Décision du 28/09/2026 : UN seul serveur
+ * partagé par propriétaire, pour tous ses cercles.
+ *
+ * - `non`      : l'interrupteur est éteint ;
+ * - `ici`      : il partage CE serveur (ou on ne sait pas lequel : sans
+ *                `server_id` local, l'écran ne suppose pas un « ailleurs ») ;
+ * - `ailleurs` : il partage un AUTRE serveur du compte ; l'activer ici
+ *                DÉPLACE le partage.
+ */
+export type OuPartage = 'non' | 'ici' | 'ailleurs';
+
+export function ouPartage(c: CercleNomme, serveurLocal: string | null | undefined): OuPartage {
+  if (!partageActif(c)) return 'non';
+  const sid = c.sharing?.server_id;
+  if (serveurLocal && sid && sid !== serveurLocal) return 'ailleurs';
+  return 'ici';
 }
 
 export function getSynchroBibliotheque(): Promise<EtatSynchroBibliotheque> {
@@ -229,6 +251,8 @@ export interface ArtisteContact { id: number; name: string }
 export interface AlbumContact {
   id: number; title: string; artist_name: string | null; genre: string | null;
   track_count: number | null; year: number | null;
+  /** Décision 4 du 28/09 : la pochette PUBLIQUE vient de Cover Art Archive par cet identifiant. */
+  musicbrainz_release_group_id: string | null;
 }
 export interface PisteContact {
   id: number; title: string; artist_name: string | null; album_title: string | null;
@@ -251,7 +275,30 @@ export function albumContact(b: any): AlbumContact {
   return {
     id: Number(b?.id), title: String(b?.title ?? ''), artist_name: texteOuNul(b?.artist_name),
     genre: texteOuNul(b?.genre), track_count: nombreOuNul(b?.track_count), year: nombreOuNul(b?.year),
+    musicbrainz_release_group_id: mbidValide(b?.musicbrainz_release_group_id),
   };
+}
+
+const MBID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Un MBID bien formé, ou `null` : rien d'autre n'entre dans une adresse. */
+function mbidValide(v: unknown): string | null {
+  return typeof v === 'string' && MBID.test(v) ? v.toLowerCase() : null;
+}
+
+/**
+ * La pochette PUBLIQUE d'un album de contact, ou `null` (icône générique).
+ *
+ * 🔴 Seul l'identifiant MusicBrainz sort — jamais un titre ni un artiste —,
+ * et il sort par le relais de pochettes de NOTRE serveur (`artworkUrl` fait
+ * passer toute adresse absolue par `/library/artwork/proxy`, qui admet
+ * `coverartarchive.org` et `archive.org`, vers lequel il redirige). Rien
+ * n'est demandé au serveur du contact. Une pochette introuvable (404) laisse
+ * l'icône générique : `AlbumArt` s'en charge sur `onerror`.
+ */
+export function pochetteAlbumContact(a: Pick<AlbumContact, 'musicbrainz_release_group_id'>): string | null {
+  const m = a.musicbrainz_release_group_id;
+  return m ? `https://coverartarchive.org/release-group/${m}/front-250` : null;
 }
 
 export function pisteContact(b: any): PisteContact {
@@ -299,7 +346,8 @@ function lirePage<T>(brut: any, page: number, taille: number, un: (b: any) => T)
 /** Taille d'une page demandée au cloud. */
 export const PAGE_CATALOGUE = 50;
 
-export interface RequeteCatalogue { page?: number; search?: string; sort?: string; artist?: string }
+/** `artist` : l'IDENTIFIANT d'artiste de la projection (ce que le cloud attend), jamais son nom. */
+export interface RequeteCatalogue { page?: number; search?: string; sort?: string; artist?: number }
 
 function requete(q: RequeteCatalogue): string {
   const p = new URLSearchParams();
@@ -307,7 +355,7 @@ function requete(q: RequeteCatalogue): string {
   p.set('per_page', String(PAGE_CATALOGUE));
   if (q.search?.trim()) p.set('search', q.search.trim());
   if (q.sort) p.set('sort', q.sort);
-  if (q.artist) p.set('artist', q.artist);
+  if (q.artist != null) p.set('artist', String(q.artist));
   return p.toString();
 }
 
@@ -395,6 +443,17 @@ export interface MotifCercle {
   indisponible?: boolean;
   /** La session mozaiklabs n'est plus là : l'écran relit et le dira. */
   deconnecte?: boolean;
+  /** T2 : ce serveur n'est pas relié au compte ; l'écran mène à Réglages ▸ Système ▸ Cloud. */
+  nonRelie?: boolean;
+}
+
+/**
+ * T2 — le refus de LIAISON du serveur, à l'activation d'un partage.
+ * Le code exact est à confirmer avec le lot greffon : tout code qui dit
+ * « not_linked » est lu comme tel, quel que soit le statut HTTP.
+ */
+export function estRefusDeLiaison(code: string): boolean {
+  return /(^|[._])not_linked$/.test(code) || code === 'circle.server_unlinked';
 }
 
 /**
@@ -408,6 +467,7 @@ export function motifCercle(e: unknown, champ: 'email' | 'name' | null = null): 
   const err = e as ApiError | null;
   const status = err?.status;
   const code = typeof err?.code === 'string' ? err.code : '';
+  if (estRefusDeLiaison(code)) return { cle: 'v2.circle.share.notLinked', nonRelie: true };
   if (status === 429) {
     const s = err?.retryAfter;
     return s ? { cle: 'v2.circle.err.tooManyWait', minutes: Math.max(1, Math.ceil(s / 60)) } : { cle: 'v2.circle.err.tooMany' };

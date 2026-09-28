@@ -10,7 +10,11 @@ import ListePistesV2 from '../../components/v2/ListePistesV2.svelte';
 import { preparerLocale } from '../i18n';
 import { preferences } from '../stores/preferences';
 import { dialogs } from '../stores/dialogs';
-import { circlePlugin, avisSynchro, pisteContact, albumContact, pisteVersTrack } from '../circle';
+import { activeView } from '../stores/navigation';
+import { v2SettingsTarget } from '../stores/v2SettingsNav';
+import {
+  circlePlugin, avisSynchro, pisteContact, albumContact, pisteVersTrack, pochetteAlbumContact, ouPartage,
+} from '../circle';
 import fr from '../locales/fr';
 
 /**
@@ -34,6 +38,9 @@ let synchro: Record<string, unknown> | null = null;
 /** Le partage d'Élise (uid 40) avec moi : faux = 404 partout, comme une révocation. */
 let elisePartage = true;
 let greffonT2 = true;
+/** Refus imposé au prochain PUT de partage (refus de liaison du serveur). */
+let refusPut: { status: number; corps: unknown } | null = null;
+const MBID_KOB = 'f5093c06-23e3-404f-aeaa-40f72885ee3a';
 
 type Appel = { url: string; method: string; body: unknown };
 let appels: Appel[] = [];
@@ -54,8 +61,11 @@ const ARTISTES = [
   { id: 2, name: 'Bill Evans', ...FUITES },
 ];
 const ALBUMS = [
-  { id: 11, title: 'Kind of Blue', artist_name: 'Miles Davis', year: 1959, genre: 'Jazz', track_count: 2, ...FUITES },
-  { id: 12, title: 'Sunday at the Village Vanguard', artist_name: 'Bill Evans', year: 1961, genre: 'Jazz', track_count: 1, ...FUITES },
+  { id: 11, title: 'Kind of Blue', artist_name: 'Miles Davis', year: 1959, genre: 'Jazz', track_count: 2,
+    musicbrainz_release_group_id: MBID_KOB, ...FUITES },
+  // Un MBID mal formé ne doit jamais entrer dans une adresse.
+  { id: 12, title: 'Sunday at the Village Vanguard', artist_name: 'Bill Evans', year: 1961, genre: 'Jazz', track_count: 1,
+    musicbrainz_release_group_id: '../../x?y=Bill Evans', ...FUITES },
 ];
 const PISTES = [
   { id: 101, title: 'So What', artist_name: 'Miles Davis', album_title: 'Kind of Blue', album_id: 11, format: 'flac',
@@ -100,7 +110,15 @@ function greffon(u: string, method: string): Response {
   if ((m = chemin.match(/^\/circles\/(\d+)\/sharing\/library$/))) {
     const c = cercles.find((x) => x.id === Number(m![1]));
     if (!c) return introuvable();
-    if (method === 'PUT') { c.sharing = { library: true, server_id: 'srv-moi' }; return reponse(200, c); }
+    if (method === 'PUT') {
+      if (refusPut) { const r = refusPut; refusPut = null; return reponse(r.status, r.corps); }
+      // Un seul serveur partagé par propriétaire : tous les cercles qui
+      // partagent pointent désormais sur CE serveur.
+      const ici = (synchro?.server_id as string | undefined) ?? 'srv-moi';
+      for (const x of cercles) if (x.sharing?.library) x.sharing.server_id = ici;
+      c.sharing = { library: true, server_id: ici };
+      return reponse(200, c);
+    }
     if (method === 'DELETE') { c.sharing = { library: false, server_id: null }; return reponse(200, { ok: true }); }
   }
   if ((m = chemin.match(/^\/contacts\/(\d+)\/library(\/.*)$/)) && method === 'GET') {
@@ -112,8 +130,10 @@ function greffon(u: string, method: string): Response {
     if (reste === '/stats') return reponse(200, { tracks: 2, albums: 2, artists: 2, last_sync: '2026-09-27T08:00:00Z', ...FUITES });
     if (reste === '/artists') return reponse(200, paginer(filtre(ARTISTES, 'name'), q));
     if (reste === '/albums') {
-      const artiste = q.get('artist');
-      const l = filtre(ALBUMS, 'title', 'artist_name').filter((a) => !artiste || a.artist_name === artiste);
+      // `artist` = IDENTIFIANT d'artiste ; un nom ne correspond à rien.
+      const aid = q.get('artist');
+      const nom = aid == null ? null : ARTISTES.find((x) => String(x.id) === aid)?.name ?? '\u0000';
+      const l = filtre(ALBUMS, 'title', 'artist_name').filter((a) => nom == null || a.artist_name === nom);
       return reponse(200, paginer(l, q));
     }
     if (reste === '/tracks') return reponse(200, paginer(filtre(PISTES, 'title', 'artist_name', 'album_title'), q));
@@ -137,6 +157,7 @@ beforeEach(() => {
   synchro = { premium: false, active: true, last_sync: '2026-09-27T08:00:00Z', pending: 0 };
   elisePartage = true;
   greffonT2 = true;
+  refusPut = null;
   circlePlugin.set(null);
   preferences.update((p) => ({ ...p, settingsLevel: 'intermediate' }));
   vi.stubGlobal(
@@ -332,9 +353,26 @@ describe('T2 — parcourir le catalogue d’un contact', () => {
     expect(texte(el.querySelector('.stats')!)).toMatch(/^2 albums · 2 artistes · 2 titres/);
     expect(noms(el, 'button.album-contact .album-nom')).toEqual(['Kind of Blue', 'Sunday at the Village Vanguard']);
     expect(texte(el.querySelector('button.album-contact .note')!)).toBe('Miles Davis · 1959 · 2 titres');
-    // Pochette : l'icône générique, aucune image demandée à qui que ce soit.
-    expect(el.querySelectorAll('button.album-contact .album-art .placeholder svg')).toHaveLength(2);
-    expect(el.querySelector('button.album-contact img')).toBeNull();
+    // Pochettes : Cover Art Archive par le MBID, via le relais de NOTRE serveur ;
+    // l'album au MBID mal formé garde l'icône générique.
+    const tuiles = [...el.querySelectorAll('button.album-contact')];
+    const img = tuiles[0].querySelector('img')!;
+    expect(img.getAttribute('src')).toBe(
+      `/api/v1/library/artwork/proxy?url=${encodeURIComponent(`https://coverartarchive.org/release-group/${MBID_KOB}/front-250`)}`,
+    );
+    expect(tuiles[1].querySelector('img')).toBeNull();
+    expect(tuiles[1].querySelector('.placeholder svg')).not.toBeNull();
+    // Aucun titre ni artiste dans une adresse d'image.
+    for (const i of el.querySelectorAll('img')) {
+      expect(i.getAttribute('src')).not.toMatch(/Kind|Blue|Miles|Davis|Bill|Evans|Vanguard/);
+    }
+    // Pochette introuvable : l'icône générique revient.
+    img.dispatchEvent(new Event('error'));
+    await laisserFaire();
+    expect(tuiles[0].querySelector('img')).toBeNull();
+    expect(tuiles[0].querySelector('.placeholder svg')).not.toBeNull();
+    // …sans repli sur l'album LOCAL qui porterait le même numéro que celui de l'ami.
+    expect(appels.filter((x) => !x.url.includes('/ext/circle') && /\/library\/albums\/\d+/.test(x.url))).toEqual([]);
     expect(lecturesCatalogue()).toEqual(['/contacts/40/library/stats', '/contacts/40/library/albums?page=1&per_page=50']);
 
     await cliquer(el, 'button.album-contact');
@@ -356,8 +394,8 @@ describe('T2 — parcourir le catalogue d’un contact', () => {
     await cliquer(el, 'button.onglet-artists');
     expect(noms(el, 'button.artiste-contact')).toEqual(['Miles Davis', 'Bill Evans']);
     await cliquer(el, 'button.artiste-contact:nth-of-type(1)');
-    // Le filtre part par le NOM : la projection d'album n'a pas d'identifiant d'artiste.
-    expect(lecturesCatalogue().at(-1)).toBe('/contacts/40/library/albums?page=1&per_page=50&artist=Miles+Davis');
+    // Le filtre part par l'IDENTIFIANT d'artiste, jamais par son nom.
+    expect(lecturesCatalogue().at(-1)).toBe('/contacts/40/library/albums?page=1&per_page=50&artist=1');
     expect(noms(el, 'button.album-contact .album-nom')).toEqual(['Kind of Blue']);
     expect(texte(el.querySelector('.filtre-artiste')!)).toBe('Artiste : Miles Davis');
 
@@ -432,6 +470,93 @@ describe('T2 — contact révoqué, partage coupé : 404', () => {
   });
 });
 
+describe('T2 — un seul serveur partagé par propriétaire', () => {
+  it('ouPartage : non / ici / ailleurs ; sans server_id local, jamais « ailleurs »', () => {
+    const c = (sid: string | null, on = true) => ({ id: 1, name: 'x', member_ids: [], sharing: { library: on, server_id: sid } });
+    expect(ouPartage({ id: 1, name: 'x', member_ids: [] }, 'srv-ici')).toBe('non');
+    expect(ouPartage(c('srv-ici', false), 'srv-ici')).toBe('non');
+    expect(ouPartage(c('srv-ici'), 'srv-ici')).toBe('ici');
+    expect(ouPartage(c('srv-autre'), 'srv-ici')).toBe('ailleurs');
+    expect(ouPartage(c('srv-autre'), null)).toBe('ici');
+    expect(ouPartage(c(null), 'srv-ici')).toBe('ici');
+  });
+
+  it('cercle partagé depuis un autre serveur : la phrase, puis confirmer AVANT de déplacer', async () => {
+    synchro = { active: true, last_sync: '2026-09-27T08:00:00Z', pending: 0, server_id: 'srv-ici' };
+    cercles[1].sharing = { library: true, server_id: 'srv-autre' };
+    const el = await poser(CircleV2);
+    const jazz = cercleDe(el, 'Jazz');
+    expect(jazz.querySelector('button.interrupteur-partage')!.getAttribute('aria-checked')).toBe('false');
+    expect(texte(jazz.querySelector('.partage-ailleurs')!)).toBe(fr['v2.circle.share.elsewhere']);
+    // Pas d'avis de synchro : il décrirait CE serveur, pas celui qui est partagé.
+    expect(jazz.querySelector('.avis-synchro')).toBeNull();
+    expect(cercleDe(el, 'Famille').querySelector('.partage-ailleurs')).toBeNull();
+
+    // Refuser : rien ne part.
+    await cliquer(jazz, 'button.interrupteur-partage');
+    expect(get(dialogs)[0]?.message).toBe(fr['v2.circle.share.confirmMove']);
+    dialogs.settle(get(dialogs)[0].id, false);
+    await laisserFaire();
+    expect(gestes()).toHaveLength(0);
+
+    // Accepter : PUT sans corps, et le partage est ICI.
+    await cliquer(cercleDe(el, 'Jazz'), 'button.interrupteur-partage');
+    dialogs.settle(get(dialogs)[0].id, true);
+    await laisserFaire();
+    expect(gestes().map((a) => `${a.method} ${chemin(a)}`)).toEqual(['PUT /circles/8/sharing/library']);
+    expect(gestes()[0].body).toBeUndefined();
+    expect(cercleDe(el, 'Jazz').querySelector('button.interrupteur-partage')!.getAttribute('aria-checked')).toBe('true');
+    expect(cercleDe(el, 'Jazz').querySelector('.partage-ailleurs')).toBeNull();
+  });
+
+  it('activer un AUTRE cercle pendant qu’un cercle partage ailleurs : même confirmation', async () => {
+    synchro = { active: true, last_sync: '2026-09-27T08:00:00Z', pending: 0, server_id: 'srv-ici' };
+    cercles[1].sharing = { library: true, server_id: 'srv-autre' };
+    const el = await poser(CircleV2);
+    await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
+    expect(get(dialogs)[0]?.message).toBe(fr['v2.circle.share.confirmMove']);
+    dialogs.settle(get(dialogs)[0].id, true);
+    await laisserFaire();
+    expect(gestes().map((a) => `${a.method} ${chemin(a)}`)).toEqual(['PUT /circles/7/sharing/library']);
+    // Le cloud a déplacé tout le partage : les deux cercles partagent ICI.
+    for (const n of ['Famille', 'Jazz']) {
+      expect(cercleDe(el, n).querySelector('button.interrupteur-partage')!.getAttribute('aria-checked')).toBe('true');
+    }
+  });
+
+  it('même serveur : aucune confirmation', async () => {
+    synchro = { active: true, last_sync: '2026-09-27T08:00:00Z', pending: 0, server_id: 'srv-ici' };
+    cercles[1].sharing = { library: true, server_id: 'srv-ici' };
+    const el = await poser(CircleV2);
+    await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
+    expect(get(dialogs)).toHaveLength(0);
+    expect(gestes().map((a) => `${a.method} ${chemin(a)}`)).toEqual(['PUT /circles/7/sharing/library']);
+  });
+});
+
+describe('T2 — serveur non relié au compte', () => {
+  it('refus de liaison : la phrase, et le bouton mène à Réglages ▸ Système ▸ Cloud', async () => {
+    refusPut = { status: 409, corps: { code: 'circle.server_not_linked', error: 'server not linked' } };
+    const el = await poser(CircleV2);
+    await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
+    expect(texte(el.querySelector('.retour span')!)).toBe(fr['v2.circle.share.notLinked']);
+    expect(fr['v2.circle.share.notLinked']).toMatch(/Réglages ▸ Système ▸ Cloud/);
+    expect(cercleDe(el, 'Famille').querySelector('button.interrupteur-partage')!.getAttribute('aria-checked')).toBe('false');
+    v2SettingsTarget.set(null);
+    await cliquer(el, '.retour button.relier-compte');
+    expect(get(activeView)).toBe('settings');
+    expect(get(v2SettingsTarget)).toEqual({ tab: 'system', section: 'cloud' });
+  });
+
+  it('un autre refus (503) ne propose pas de relier', async () => {
+    refusPut = { status: 503, corps: { code: 'circle.cloud_unavailable' } };
+    const el = await poser(CircleV2);
+    await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
+    expect(texte(el.querySelector('.retour span')!)).toBe(fr['v2.circle.err.unavailable']);
+    expect(el.querySelector('.retour button.relier-compte')).toBeNull();
+  });
+});
+
 describe('T2 — liste blanche côté client', () => {
   it('pisteContact / albumContact ne recopient que les champs du contrat', () => {
     expect(Object.keys(pisteContact(PISTES[0])).sort()).toEqual([
@@ -439,8 +564,12 @@ describe('T2 — liste blanche côté client', () => {
       'id', 'isrc', 'sample_rate', 'title', 'track_number',
     ]);
     expect(Object.keys(albumContact(ALBUMS[0])).sort()).toEqual([
-      'artist_name', 'genre', 'id', 'title', 'track_count', 'year',
+      'artist_name', 'genre', 'id', 'musicbrainz_release_group_id', 'title', 'track_count', 'year',
     ]);
+    expect(albumContact(ALBUMS[1]).musicbrainz_release_group_id).toBeNull();
+    expect(pochetteAlbumContact(albumContact(ALBUMS[1]))).toBeNull();
+    expect(pochetteAlbumContact(albumContact({ ...ALBUMS[0], musicbrainz_release_group_id: undefined }))).toBeNull();
+    expect(pochetteAlbumContact(albumContact(ALBUMS[0]))).toBe(`https://coverartarchive.org/release-group/${MBID_KOB}/front-250`);
     const t = pisteVersTrack(pisteContact(PISTES[0]));
     // Les identifiants de l'AMI ne deviennent pas des identifiants locaux.
     expect(t.id).toBeNull();
