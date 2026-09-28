@@ -107,7 +107,9 @@ describe('Écrans Favoris et Étiquettes — une playlist intelligente cliquable
     expect(etiquettes).toContain('ouvrirSmartPlaylist(pl)');
     const brique = lire('lib/ouvrirParRaccourci.ts');
     expect(brique).toContain("ouvrirParRaccourci('smartplaylists', `smartplaylists:${sp.id}`");
-    // Dans les Étiquettes, la ligne devient un BOUTON quand elle s'ouvre.
-    expect(etiquettes).toContain("<svelte:element this={locale ? 'button' : 'div'} class=\"simple\"");
+    // Dans les Étiquettes, la VIGNETTE devient un BOUTON quand elle s'ouvre.
+    // (web#1660 : l'onglet Playlists dessine une grille, plus des lignes —
+    // la règle « ce qui ne mène nulle part n'est pas cliquable » a suivi.)
+    expect(etiquettes).toContain("<svelte:element this={ouvrir ? 'button' : 'div'} class=\"meta\"");
   });
 });
