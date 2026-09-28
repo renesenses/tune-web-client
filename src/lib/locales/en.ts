@@ -4026,6 +4026,7 @@ export default {
   "v2.circle.err.libraryNotShared": "This circle no longer shares this server's library: share it first.",
   "v2.circle.err.tooManySets": "This circle already shares 100 shelves, the maximum.",
   "v2.circle.err.setTooLarge": "This shelf has more than 20,000 items: it cannot be shared.",
+  "v2.circle.err.setUnresolved": "This shelf could not be computed on this server. Try again later.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Edit",
   "v2.edition.modifyTip": "Edit the album, its discs and its tracks",

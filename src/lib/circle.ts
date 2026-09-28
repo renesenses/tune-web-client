@@ -399,13 +399,20 @@ export function plusPartage(e: unknown): boolean {
 // une étiquette ou une collection intelligente du propriétaire, qu'il coche
 // UNE PAR UNE, PAR CERCLE. Rien n'est coché par défaut.
 //
-//   GET    /circles/{id}/sets                    → la liste LOCALE de mes étiquettes
-//                                                  et collections, avec l'état coché
+//   GET    /circles/{id}/sets                    → { tags: […], smart_collections: […] },
+//                                                  chacun { kind, source_id, name, count, shared } :
+//                                                  mes étiquettes et collections LOCALES, et si
+//                                                  CE cercle les voit ; `count` null pour une
+//                                                  collection non cochée
 //   PUT    /circles/{id}/sets/{kind}/{source_id} → SANS corps : le greffon résout
 //                                                  lui-même les membres
 //   DELETE /circles/{id}/sets/{kind}/{source_id} → effet immédiat → { ok: true }
-//   GET    /contacts/{uid}/sets                  → [{ id, kind, name, count }]
-//   GET    /contacts/{uid}/sets/{set_id}/albums|tracks|artists
+//   GET    /contacts/{uid}/sets                  → [{ id, kind, name, count, counts }],
+//                                                  `counts` = { albums, tracks, artists, streaming }
+//   GET    /contacts/{uid}/sets/{set_id}/albums|tracks|artists|streaming
+//
+// Refus : 409 `library_not_shared`, 422 `too_many_sets` / `set_too_large`,
+// 500 `circle.set_unresolved` (le greffon n'a pas pu résoudre l'ensemble).
 //
 // 🔴 Le client ne fournit JAMAIS la liste des membres d'un rayon : c'est le
 // greffon qui la construit, depuis la base locale.
@@ -661,6 +668,7 @@ export function motifCercle(e: unknown, champ: 'email' | 'name' | null = null): 
   if (nu === 'library_not_shared') return { cle: 'v2.circle.err.libraryNotShared' };
   if (nu === 'too_many_sets') return { cle: 'v2.circle.err.tooManySets' };
   if (nu === 'set_too_large') return { cle: 'v2.circle.err.setTooLarge' };
+  if (nu === 'set_unresolved') return { cle: 'v2.circle.err.setUnresolved' };
   switch (code) {
     case 'already_member': return { cle: 'v2.circle.err.alreadyMember' };
     case 'already_invited': return { cle: 'v2.circle.err.alreadyInvited' };

@@ -3964,6 +3964,7 @@ export default {
   "v2.circle.err.libraryNotShared": "Ez a kör már nem osztja meg ennek a szervernek a könyvtárát: előbb ossza meg.",
   "v2.circle.err.tooManySets": "Ez a kör már 100 polcot oszt meg, ez a maximum.",
   "v2.circle.err.setTooLarge": "Ez a polc több mint 20 000 elemet tartalmaz: nem osztható meg.",
+  "v2.circle.err.setUnresolved": "Ezt a polcot nem sikerült kiszámítani ezen a szerveren. Próbálja újra később.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Szerkesztés",
   "v2.edition.modifyTip": "Az album, a lemezek és a számok szerkesztése",

@@ -4005,6 +4005,7 @@ export default {
   "v2.circle.err.libraryNotShared": "Den här kretsen delar inte längre den här serverns bibliotek: dela det först.",
   "v2.circle.err.tooManySets": "Den här kretsen delar redan 100 hyllor, max.",
   "v2.circle.err.setTooLarge": "Den här hyllan har fler än 20 000 objekt: den kan inte delas.",
+  "v2.circle.err.setUnresolved": "Den här hyllan kunde inte beräknas på den här servern. Försök igen senare.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Redigera",
   "v2.edition.modifyTip": "Redigera albumet, dess skivor och spår",

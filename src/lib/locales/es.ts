@@ -4006,6 +4006,7 @@ export default {
   "v2.circle.err.libraryNotShared": "Este círculo ya no comparte la biblioteca de este servidor: compártela primero.",
   "v2.circle.err.tooManySets": "Este círculo ya comparte 100 estanterías, el máximo.",
   "v2.circle.err.setTooLarge": "Esta estantería tiene más de 20 000 elementos: no se puede compartir.",
+  "v2.circle.err.setUnresolved": "No se ha podido calcular esta estantería en este servidor. Inténtalo más tarde.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Editar",
   "v2.edition.modifyTip": "Editar el álbum, sus discos y sus pistas",

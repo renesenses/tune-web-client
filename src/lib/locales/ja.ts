@@ -4006,6 +4006,7 @@ export default {
   "v2.circle.err.libraryNotShared": "このサークルはこのサーバーのライブラリを共有していません。先に共有してください。",
   "v2.circle.err.tooManySets": "このサークルはすでに上限の100個の棚を共有しています。",
   "v2.circle.err.setTooLarge": "この棚は20,000項目を超えているため共有できません。",
+  "v2.circle.err.setUnresolved": "このサーバーでこの棚を計算できませんでした。後でもう一度お試しください。",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "編集",
   "v2.edition.modifyTip": "アルバム、ディスク、トラックを編集",

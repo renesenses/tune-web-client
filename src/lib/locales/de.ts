@@ -4006,6 +4006,7 @@ export default {
   "v2.circle.err.libraryNotShared": "Dieser Kreis teilt die Bibliothek dieses Servers nicht mehr: teilen Sie sie zuerst.",
   "v2.circle.err.tooManySets": "Dieser Kreis teilt bereits 100 Regale, das Maximum.",
   "v2.circle.err.setTooLarge": "Dieses Regal hat mehr als 20.000 Elemente: es kann nicht geteilt werden.",
+  "v2.circle.err.setUnresolved": "Dieses Regal konnte auf diesem Server nicht berechnet werden. Versuchen Sie es später erneut.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Bearbeiten",
   "v2.edition.modifyTip": "Album, Discs und Titel bearbeiten",

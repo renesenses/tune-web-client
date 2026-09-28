@@ -105,7 +105,16 @@ function greffon(u: string, method: string): Response {
   if ((m = chemin.match(/^\/circles\/(\d+)\/sets$/)) && method === 'GET') {
     const c = cercles.find((x) => x.id === Number(m![1]));
     if (!c) return introuvable();
-    return reponse(200, locaux.map((l) => ({ ...l, shared: coches.has(`${c.id}:${l.kind}:${l.source_id}`), server_id: 'srv-moi' })));
+    // La forme du greffon (`rayons.rs`) : deux listes. Une collection non
+    // cochée n'a pas de nombre (`null`) : la compter coûterait une résolution.
+    const vue = (l: Local) => {
+      const shared = coches.has(`${c.id}:${l.kind}:${l.source_id}`);
+      return { ...l, count: l.kind === 'tag' || shared ? l.count : null, shared, server_id: 'srv-moi' };
+    };
+    return reponse(200, {
+      tags: locaux.filter((l) => l.kind === 'tag').map(vue),
+      smart_collections: locaux.filter((l) => l.kind === 'smart_collection').map(vue),
+    });
   }
   if ((m = chemin.match(/^\/circles\/(\d+)\/sets\/(tag|smart_collection)\/(\d+)$/))) {
     const c = cercles.find((x) => x.id === Number(m![1]));
@@ -284,6 +293,8 @@ describe('T3 — mes rayons partagés, par cercle', () => {
     expect(noms(famille, '.groupe-tags .nom-rayon')).toEqual(['Vinyles rippés', '24/192']);
     expect(noms(famille, '.groupe-smart .nom-rayon')).toEqual(['Jazz ECM']);
     expect(noms(famille, '.groupe-tags .compte-rayon')).toEqual(['42 éléments', '7 éléments']);
+    // Collection non cochée : pas de nombre, et rien d'inventé à la place.
+    expect(famille.querySelector('.groupe-smart .compte-rayon')).toBeNull();
     for (const c of famille.querySelectorAll('input.coche-rayon')) expect((c as HTMLInputElement).checked).toBe(false);
     expect(el.innerHTML).not.toContain('srv-moi');
     expect(gestes()).toHaveLength(0);
@@ -340,6 +351,7 @@ describe('T3 — mes rayons partagés, par cercle', () => {
     expect(motifCercle(e(409, 'library_not_shared')).cle).toBe('v2.circle.err.libraryNotShared');
     expect(motifCercle(e(422, 'too_many_sets')).cle).toBe('v2.circle.err.tooManySets');
     expect(motifCercle(e(422, 'circle.set_too_large')).cle).toBe('v2.circle.err.setTooLarge');
+    expect(motifCercle(e(500, 'circle.set_unresolved')).cle).toBe('v2.circle.err.setUnresolved');
   });
 
   it('lireRayonsCercle : liste plate ou { tags, smart_collections } ; `shared` n’est vrai que s’il est `true`', () => {

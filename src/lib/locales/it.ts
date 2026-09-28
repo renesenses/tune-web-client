@@ -4006,6 +4006,7 @@ export default {
   "v2.circle.err.libraryNotShared": "Questa cerchia non condivide più la libreria di questo server: condividila prima.",
   "v2.circle.err.tooManySets": "Questa cerchia condivide già 100 scaffali, il massimo.",
   "v2.circle.err.setTooLarge": "Questo scaffale ha più di 20.000 elementi: non può essere condiviso.",
+  "v2.circle.err.setUnresolved": "Impossibile calcolare questo scaffale su questo server. Riprova più tardi.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Modifica",
   "v2.edition.modifyTip": "Modifica l'album, i suoi dischi e le sue tracce",

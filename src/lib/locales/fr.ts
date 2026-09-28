@@ -4028,6 +4028,7 @@ export default {
   "v2.circle.err.libraryNotShared": "Ce cercle ne partage plus la bibliothèque de ce serveur : partagez-la d'abord.",
   "v2.circle.err.tooManySets": "Ce cercle partage déjà 100 rayons, le maximum.",
   "v2.circle.err.setTooLarge": "Ce rayon compte plus de 20 000 éléments : il ne peut pas être partagé.",
+  "v2.circle.err.setUnresolved": "Ce rayon n'a pas pu être calculé sur ce serveur. Réessayez plus tard.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Modifier",
   "v2.edition.modifyTip": "Modifier l'album, ses disques et ses pistes",

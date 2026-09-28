@@ -4006,6 +4006,7 @@ export default {
   "v2.circle.err.libraryNotShared": "이 서클은 더 이상 이 서버의 라이브러리를 공유하지 않습니다. 먼저 공유하세요.",
   "v2.circle.err.tooManySets": "이 서클은 이미 최대치인 100개의 선반을 공유하고 있습니다.",
   "v2.circle.err.setTooLarge": "이 선반은 항목이 20,000개를 넘어 공유할 수 없습니다.",
+  "v2.circle.err.setUnresolved": "이 서버에서 이 선반을 계산할 수 없습니다. 나중에 다시 시도하세요.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "편집",
   "v2.edition.modifyTip": "앨범, 디스크, 트랙 편집",

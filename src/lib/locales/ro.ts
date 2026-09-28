@@ -4006,6 +4006,7 @@ export default {
   "v2.circle.err.libraryNotShared": "Acest cerc nu mai partajează biblioteca acestui server: partajați-o mai întâi.",
   "v2.circle.err.tooManySets": "Acest cerc partajează deja 100 de rafturi, maximul.",
   "v2.circle.err.setTooLarge": "Acest raft are peste 20.000 de elemente: nu poate fi partajat.",
+  "v2.circle.err.setUnresolved": "Acest raft nu a putut fi calculat pe acest server. Încercați mai târziu.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Editează",
   "v2.edition.modifyTip": "Editează albumul, discurile și piesele",

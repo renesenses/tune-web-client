@@ -4006,6 +4006,7 @@ export default {
   "v2.circle.err.libraryNotShared": "此圈子不再共享此服务器的音乐库：请先共享。",
   "v2.circle.err.tooManySets": "此圈子已共享 100 个书架，已达上限。",
   "v2.circle.err.setTooLarge": "此书架超过 20,000 项，无法共享。",
+  "v2.circle.err.setUnresolved": "无法在此服务器上计算此书架，请稍后再试。",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "编辑",
   "v2.edition.modifyTip": "编辑专辑、碟片和曲目",
