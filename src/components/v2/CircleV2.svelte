@@ -33,9 +33,11 @@
    *   (`PlaylistCercleV2`), où tout membre retire et réordonne ;
    * - « Nouvelle playlist » sous chacun de MES cercles : le propriétaire du
    *   cercle seul crée, renomme, supprime ;
-   * - à la suppression d'un de mes cercles, la proposition de récupérer une
-   *   COPIE de ses playlists dans mes playlists (décision 3) — la seule copie
-   *   que l'écran offre (décision 5).
+   * - « Playlists à récupérer » : à la suppression d'un cercle, le cloud
+   *   ARCHIVE ses playlists (site-mozaiklabs#236) ; le propriétaire et chaque
+   *   membre rangé et actif à ce moment peuvent en récupérer une COPIE dans
+   *   leurs playlists, ou y renoncer (décision 3) — la seule copie que
+   *   l'écran offre (décision 5).
    * Même règle qu'en T2 : un 404 sur `/playlists` dit un greffon d'avant T5,
    * et le bloc reste caché.
    */
@@ -56,8 +58,9 @@
     type EtatSynchroBibliotheque, type PartageRecu, type AvisSynchro,
   } from '../../lib/circle';
   import {
-    listerPlaylistsCercle, creerPlaylistCercle, copierPlaylistCercle, nomPlaylistValide, codeT5,
-    NOM_PLAYLIST_MAX, type IdOpaque, type PlaylistCercleResume,
+    listerPlaylistsCercle, creerPlaylistCercle, nomPlaylistValide, codeT5,
+    listerRecuperables, recupererCopie, renoncerRecuperable,
+    NOM_PLAYLIST_MAX, type IdOpaque, type PlaylistCercleResume, type PlaylistRecuperable,
   } from '../../lib/circlePlaylists';
   import CatalogueContactV2 from './CatalogueContactV2.svelte';
   import PlaylistCercleV2 from './PlaylistCercleV2.svelte';
@@ -89,6 +92,7 @@
   let playlists = $state<PlaylistCercleResume[]>([]);
   let erreurPlaylists = $state<MotifCercle | null>(null);
   let playlistOuverte = $state<IdOpaque | null>(null);
+  let recuperables = $state<PlaylistRecuperable[]>([]);
 
   let fini = false;
   let enCours = false;
@@ -141,15 +145,13 @@
 
   /** T5 : les playlists de cercle visibles par moi. Un 404 dit un greffon d'avant T5. */
   async function relireT5() {
-    try {
-      const l = await listerPlaylistsCercle();
-      if (fini) return;
-      playlists = l; t5 = true; erreurPlaylists = null;
-    } catch (e) {
-      if (fini) return;
-      if (plusPartage(e)) { playlists = []; t5 = false; erreurPlaylists = null; }
-      else erreurPlaylists = motifCercle(e);
-    }
+    const [l, r] = await Promise.allSettled([listerPlaylistsCercle(), listerRecuperables()]);
+    if (fini) return;
+    if (l.status === 'fulfilled') { playlists = l.value; t5 = true; erreurPlaylists = null; }
+    else if (plusPartage(l.reason)) { playlists = []; t5 = false; erreurPlaylists = null; }
+    else erreurPlaylists = motifCercle(l.reason);
+    // Rien à récupérer, ou une panne : le bloc se tait (il ne porte aucun geste urgent).
+    recuperables = r.status === 'fulfilled' ? r.value : [];
   }
 
   /** Relecture modérée : onglet visible, écran ouvert, rien en cours. */
@@ -240,27 +242,26 @@
   const playlistsDe = (c: CercleNomme) => playlists.filter((p) => p.mine && p.circle_id === c.id);
 
   async function supprimer(c: CercleNomme) {
+    // Décision 3 du 28/09 : ses playlists sont ARCHIVÉES par le cloud, et
+    // chacun pourra en récupérer une copie. On le dit AVANT de supprimer.
+    const n = playlistsDe(c).length;
+    const note = n > 0 ? ` ${$t('v2.circle.pl.deleteCircleNote' as any).replace('{n}', String(n))}` : '';
     const ok = await dialogs.confirm(
-      $t('v2.circle.confirmDeleteCircle' as any).replace('{name}', c.name),
+      $t('v2.circle.confirmDeleteCircle' as any).replace('{name}', c.name) + note,
       { danger: true },
     );
     if (!ok) return;
-    // Décision 3 du 28/09 : ses playlists partent avec lui ; on propose d'en
-    // garder une COPIE locale, AVANT de supprimer — après, il n'y a plus rien.
-    const siennes = playlistsDe(c);
-    let copier = false;
-    if (siennes.length > 0) {
-      copier = await dialogs.confirm(
-        $t('v2.circle.pl.recoverConfirm' as any).replace('{n}', String(siennes.length)),
-      );
-    }
-    void geste(`supprimer-${c.id}`, async () => {
-      if (copier) {
-        // Une copie qui échoue ARRÊTE la suppression : on ne perd rien en silence.
-        for (const p of siennes) await copierPlaylistCercle(p.id);
-      }
-      await supprimerCercle(c.id);
-    }, { succes: copier ? 'v2.circle.pl.recovered' : undefined });
+    void geste(`supprimer-${c.id}`, () => supprimerCercle(c.id));
+  }
+
+  /** Décision 3 : récupérer une copie d'une playlist archivée, ou y renoncer. */
+  function recuperer(r: PlaylistRecuperable) {
+    void geste(`recuperer-${String(r.id)}`, () => recupererCopie(r.id), { succes: 'v2.circle.pl.rec.copied' });
+  }
+  async function renoncer(r: PlaylistRecuperable) {
+    const ok = await dialogs.confirm($t('v2.circle.pl.rec.confirmDecline' as any).replace('{name}', r.name), { danger: true });
+    if (!ok) return;
+    void geste(`renoncer-${String(r.id)}`, () => renoncerRecuperable(r.id));
   }
 
   /** Le propriétaire du cercle crée une playlist pour CE cercle. */
@@ -580,6 +581,30 @@
               {/each}
             </ul>
           {/if}
+        </section>
+      {/if}
+
+      {#if t5 && recuperables.length > 0}
+        <section class="bloc recuperables" aria-labelledby="circle-recuperables">
+          <h2 id="circle-recuperables">{$t('v2.circle.pl.rec.title' as any)}</h2>
+          <p class="note">{$t('v2.circle.pl.rec.hint' as any)}</p>
+          <ul>
+            {#each recuperables as r (String(r.id))}
+              <li class="ligne recuperable">
+                <span class="nom">{r.name}</span>
+                <span class="note">
+                  {$t('v2.circle.pl.count' as any).replace('{n}', String(r.count))}{#if !r.mine && r.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', r.owner.name)}{/if}
+                </span>
+                <span class="gestes">
+                  <button class="lnk recuperer-copie" disabled={occupe !== null}
+                    aria-label={$t('v2.circle.pl.rec.copyNamed' as any).replace('{name}', r.name)}
+                    onclick={() => recuperer(r)}>{$t('v2.circle.pl.rec.copy' as any)}</button>
+                  <button class="lnk renoncer" disabled={occupe !== null}
+                    onclick={() => void renoncer(r)}>{$t('v2.circle.pl.rec.decline' as any)}</button>
+                </span>
+              </li>
+            {/each}
+          </ul>
         </section>
       {/if}
 

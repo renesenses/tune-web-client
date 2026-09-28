@@ -21,12 +21,22 @@
  *   PUT    /playlists/{id}/order {item_ids, version} → la playlist (permutation EXACTE)
  *   POST   /playlists/{id}/resolve          → [{ item_id, status: matched|not_found, source, source_id }]
  *   POST   /playlists/{id}/play {zone_id}   → ce qui est parti, et ce qui manque
- *   POST   /playlists/{id}/copy             → une playlist LOCALE (seulement à la
- *                                             suppression du cercle : décision 5)
+ *   GET    /recoverable-playlists           → [{ id, name, owner, mine, count, archived_at }]
+ *                                             les playlists d'un cercle SUPPRIMÉ que j'ai le
+ *                                             droit de récupérer (décision 3)
+ *   POST   /recoverable-playlists/{id}/copy → copie en playlist LOCALE, puis le droit
+ *                                             disparaît (greffon ; seule copie offerte : décision 5)
+ *   DELETE /recoverable-playlists/{id}      → « je n'en veux pas » : le droit disparaît
  *
  * Refus : 404 pour tout ce qui n'est pas visible (révocation, retrait du
- * cercle, suppression — même corps qu'« inexistant ») ; 409 `version_conflict`
- * avec l'état courant ; 422 ; 429 ; et les états T1 (412, 503).
+ * cercle, suppression — même corps qu'« inexistant ») ; 409
+ * `{error:"version_conflict", playlist}` avec l'état courant ; 422
+ * `too_many_playlists`, `playlist_too_large`, `invalid_position`,
+ * `invalid_order` ou la validation Laravel ; 429 ; et les états T1 (412, 503).
+ *
+ * Contrat cloud figé : site-mozaiklabs#236, section « Contrat pour le greffon
+ * et l'écran » (formes aux clés exactes, `added_by` = `{user_id, name}` entre
+ * contacts ou `null`, `mine` par morceau, archivage à la suppression du cercle).
  *
  * 🔴 Tout ce qui vient du cloud est reconstruit CHAMP PAR CHAMP : si une
  * référence portait un jour `path`, `file_path`, `source_id` ou une adresse,
@@ -63,7 +73,7 @@ export interface PlaylistCercleResume {
 
 /** Les champs d'une référence, et EUX SEULS. */
 export const CHAMPS_REFERENCE = [
-  'title', 'artist_name', 'album_title', 'duration_ms', 'isrc',
+  'title', 'artist_name', 'album_title', 'duration_ms', 'isrc', 'musicbrainz_recording_id',
   'qobuz_id', 'tidal_id', 'spotify_id', 'deezer_id', 'youtube_id',
 ] as const;
 
@@ -73,6 +83,7 @@ export interface ReferenceMorceau {
   album_title?: string | null;
   duration_ms?: number | null;
   isrc?: string | null;
+  musicbrainz_recording_id?: string | null;
   qobuz_id?: string | null;
   tidal_id?: string | null;
   spotify_id?: string | null;
@@ -92,6 +103,8 @@ export type AuteurAjout = { nom: string } | null;
 export interface MorceauCercle extends ReferenceMorceau {
   item_id: IdOpaque;
   added_by: AuteurAjout;
+  /** C'est moi qui l'ai ajouté (toujours faux pour un ajout anonymisé). */
+  mine: boolean;
   added_at: string | null;
 }
 
@@ -124,6 +137,9 @@ export function isrcNormalise(v: unknown): string | null {
   const n = s.replace(/[-\s]/g, '').toUpperCase();
   return /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/.test(n) ? n : null;
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const mbidRecording = (v: unknown): string | null => (typeof v === 'string' && UUID.test(v) ? v.toLowerCase() : null);
 
 function liste(brut: unknown): unknown[] {
   if (Array.isArray(brut)) return brut;
@@ -163,6 +179,7 @@ export function reference(b: any): ReferenceMorceau {
     album_title: texte(b?.album_title),
     duration_ms: entier(b?.duration_ms),
     isrc: isrcNormalise(b?.isrc),
+    musicbrainz_recording_id: mbidRecording(b?.musicbrainz_recording_id),
     qobuz_id: idService(b?.qobuz_id),
     tidal_id: idService(b?.tidal_id),
     spotify_id: idService(b?.spotify_id),
@@ -174,7 +191,7 @@ export function reference(b: any): ReferenceMorceau {
 export function morceauCercle(b: any): MorceauCercle | null {
   const item_id = idOpaque(b?.item_id ?? b?.id);
   if (item_id == null) return null;
-  return { item_id, ...reference(b), added_by: auteur(b), added_at: texte(b?.added_at) };
+  return { item_id, ...reference(b), added_by: auteur(b), mine: b?.mine === true, added_at: texte(b?.added_at) };
 }
 
 /** La playlist, ou `null` si le corps n'en est pas une (on relira alors). */
@@ -252,9 +269,51 @@ export function reordonnerMorceaux(id: IdOpaque, itemIds: IdOpaque[], version: n
   return envoyer(`${racine}/${seg(id)}/order`, 'PUT', { item_ids: itemIds, version });
 }
 
-/** À la suppression du cercle SEULEMENT (décisions 3 et 5 du 28/09). */
-export function copierPlaylistCercle(id: IdOpaque): Promise<unknown> {
-  return envoyer(`${racine}/${seg(id)}/copy`, 'POST');
+// ─── Après la suppression d'un cercle : récupérer une copie ──────────────────
+
+/**
+ * Une playlist d'un cercle SUPPRIMÉ, archivée par le cloud, que j'ai le droit
+ * de récupérer (décision 3 du 28/09) : le propriétaire, et chaque contact
+ * rangé et actif au moment de la suppression.
+ */
+export interface PlaylistRecuperable {
+  id: IdOpaque;
+  name: string;
+  owner: ProprietairePlaylist | null;
+  mine: boolean;
+  count: number;
+  archived_at: string | null;
+}
+
+export function playlistRecuperable(b: any): PlaylistRecuperable | null {
+  const id = idOpaque(b?.id);
+  if (id == null) return null;
+  const o = b?.owner;
+  return {
+    id, name: String(b?.name ?? ''),
+    owner: o && typeof o === 'object' ? { user_id: entier(o.user_id), name: String(o.name ?? '') } : null,
+    mine: b?.mine === true, count: entier(b?.count) ?? 0, archived_at: texte(b?.archived_at),
+  };
+}
+
+const racineRecup = `${BASE}/ext/circle/recoverable-playlists`;
+
+export async function listerRecuperables(): Promise<PlaylistRecuperable[]> {
+  const brut = await fetchJSON<unknown>(racineRecup, undefined, undefined, true);
+  return liste(brut).map(playlistRecuperable).filter((x): x is PlaylistRecuperable => x != null);
+}
+
+/**
+ * La SEULE copie que l'écran offre (décision 5). Le greffon lit la playlist
+ * archivée, crée la playlist locale, puis rend le droit au cloud.
+ */
+export function recupererCopie(id: IdOpaque): Promise<unknown> {
+  return envoyer(`${racineRecup}/${seg(id)}/copy`, 'POST');
+}
+
+/** « Je n'en veux pas » : mon droit disparaît ; la playlist, avec le dernier droit. */
+export function renoncerRecuperable(id: IdOpaque): Promise<unknown> {
+  return envoyer(`${racineRecup}/${seg(id)}`, 'DELETE');
 }
 
 // ─── Résolution, chez MOI ────────────────────────────────────────────────────
@@ -424,7 +483,8 @@ export function codeT5(e: unknown): string | null {
   switch (code) {
     case 'playlist_too_large': return 'v2.circle.pl.err.tooLarge';
     case 'too_many_playlists': return 'v2.circle.pl.err.tooMany';
-    case 'playlist_name_taken': return 'v2.circle.pl.err.nameTaken';
+    case 'invalid_order':
+    case 'invalid_position': return 'v2.circle.pl.changed';
   }
   if (err?.status === 422) {
     const erreurs = (err?.corps as { errors?: Record<string, unknown> } | undefined)?.errors;

@@ -15,7 +15,8 @@
    *   cloud et refait le geste s'il a encore un sens, sinon le dit.
    * - 🔴 Un 404, à n'importe quel moment : la vue se FERME et le dit. Rien
    *   n'est gardé : ce composant détruit, la playlist part avec lui.
-   * - Pas de bouton « copier » ici (décision 5).
+   * - Pas de bouton « copier » ici (décision 5) : la copie ne s'offre que
+   *   pour une playlist d'un cercle supprimé (bloc « Playlists à récupérer »).
    */
   import { onDestroy } from 'svelte';
   import { t } from '../../lib/i18n';
@@ -200,6 +201,7 @@
   }
 
   function auteur(m: MorceauCercle): string {
+    if (m.mine) return $t('v2.circle.pl.addedByMe' as any);
     return m.added_by ? $t('v2.circle.pl.addedBy' as any).replace('{name}', m.added_by.nom) : $t('v2.circle.pl.addedByMember' as any);
   }
 

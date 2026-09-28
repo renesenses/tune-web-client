@@ -51,6 +51,8 @@ let pls: Pl[] = [];
 let coupees = new Set<string>();
 let greffonT5 = true;
 let copieEchoue = false;
+/** Les playlists archivées d'un cercle supprimé que je peux récupérer. */
+let recup: { id: number; name: string; owner: { user_id: number; name: string }; mine: boolean; count: number; archived_at: string }[] = [];
 let resolution: Record<string, { status: string; source?: string; source_id?: string }> = {};
 /** Un autre membre écrit ENTRE ma lecture et mon geste. */
 let avantMonGeste: ((p: Pl) => void) | null = null;
@@ -87,10 +89,21 @@ function greffon(u: string, method: string, body: any): Response {
   }
   if (chemin === '/library-sync' || chemin === '/shared-with-me') return reponse(200, chemin === '/shared-with-me' ? [] : { active: true, last_sync: null });
   if (!greffonT5) return introuvable();
+  if (chemin === '/recoverable-playlists' && method === 'GET') return reponse(200, recup);
+  if ((m = chemin.match(/^\/recoverable-playlists\/(\d+)(\/copy)?$/))) {
+    const r = recup.find((x) => x.id === Number(m![1]));
+    if (!r) return introuvable();
+    if (m[2] && method === 'POST') {
+      if (copieEchoue) return reponse(503, { error: 'circle.cloud_unavailable' });
+      recup = recup.filter((x) => x !== r);
+      return reponse(201, { id: 55, name: r.name });
+    }
+    if (!m[2] && method === 'DELETE') { recup = recup.filter((x) => x !== r); return reponse(200, { ok: true }); }
+  }
   if (chemin === '/playlists' && method === 'GET') {
     return reponse(200, pls.filter((p) => !coupees.has(p.id)).map((p) => ({
       id: p.id, name: p.name, owner: p.owner, count: p.items.length, version: p.version,
-      updated_at: '2026-09-28T10:00:00Z', mine: p.mine, ...(p.mine ? { circle_id: p.circle_id } : {}),
+      updated_at: '2026-09-28T10:00:00Z', mine: p.mine, circle_id: p.mine ? p.circle_id : null,
     })));
   }
   if (chemin === '/playlists' && method === 'POST') {
@@ -110,9 +123,6 @@ function greffon(u: string, method: string, body: any): Response {
       const manquants = p.items.filter((x) => (resolution[x.item_id]?.status ?? 'not_found') === 'not_found').map((x) => x.item_id);
       return reponse(200, { queued: p.items.length - manquants.length, missing: manquants });
     }
-    if (reste === '/copy' && method === 'POST') {
-      return copieEchoue ? reponse(503, { error: 'circle.cloud_unavailable' }) : reponse(201, { id: 55, name: p.name });
-    }
     // Les écritures : un autre membre peut passer juste avant.
     if (avantMonGeste) { const f = avantMonGeste; avantMonGeste = null; f(p); }
     if (reste === '' && method === 'DELETE') { if (!p.mine) return introuvable(); pls = pls.filter((x) => x !== p); return reponse(200, { ok: true }); }
@@ -123,7 +133,7 @@ function greffon(u: string, method: string, body: any): Response {
     }
     if (reste === '/items' && method === 'POST') {
       if (body.version !== p.version) return conflit(p);
-      for (const ref of body.items ?? []) p.items.push({ item_id: `it-${prochainItem++}`, ...ref, added_by: { user_id: 1, name: 'Moi' }, added_at: '2026-09-28T11:00:00Z' });
+      for (const ref of body.items ?? []) p.items.push({ item_id: `it-${prochainItem++}`, ...ref, added_by: { user_id: 1, name: 'Moi' }, mine: true, added_at: '2026-09-28T11:00:00Z' });
       for (const tid of body.track_ids ?? []) p.items.push({ item_id: `it-${prochainItem++}`, title: `Piste ${tid}`, added_by: null, added_at: '2026-09-28T11:00:00Z' });
       p.version++;
       return reponse(200, vue(p));
@@ -139,7 +149,7 @@ function greffon(u: string, method: string, body: any): Response {
     if (reste === '/order' && method === 'PUT') {
       if (body.version !== p.version) return conflit(p);
       const ids = p.items.map((x) => x.item_id).sort();
-      if (JSON.stringify([...body.item_ids].sort()) !== JSON.stringify(ids)) return reponse(422, { errors: { item_ids: ['not a permutation'] } });
+      if (JSON.stringify([...body.item_ids].sort()) !== JSON.stringify(ids)) return reponse(422, { error: 'invalid_order' });
       p.items = body.item_ids.map((i: string) => p.items.find((x) => x.item_id === i)!);
       p.version++;
       return reponse(200, vue(p));
@@ -156,6 +166,7 @@ beforeEach(() => {
   coupees = new Set();
   greffonT5 = true;
   copieEchoue = false;
+  recup = [];
   avantMonGeste = null;
   prochainItem = 900;
   pls = [
@@ -168,7 +179,10 @@ beforeEach(() => {
         { item_id: 'it-2', title: 'Blue in Green', artist_name: 'Miles Davis', album_title: 'Kind of Blue', duration_ms: 337000,
           added_by: { user_id: 77, name: null }, added_at: '2026-09-28T09:05:00Z', ...FUITES },
         { item_id: 'it-3', title: 'Naima', artist_name: 'John Coltrane', album_title: 'Giant Steps', duration_ms: 261000,
-          added_by: null, added_at: '2026-09-28T09:10:00Z', ...FUITES },
+          added_by: null, mine: false, added_at: '2026-09-28T09:10:00Z', ...FUITES },
+        // Le mien : le cloud me nomme, l'écran dit « vous ».
+        { item_id: 'it-4', title: 'Alabama', artist_name: 'John Coltrane', album_title: 'Live at Birdland', duration_ms: 305000,
+          added_by: { user_id: 1, name: 'Bertrand' }, mine: true, added_at: '2026-09-28T09:12:00Z' },
       ],
     },
     { id: 'pl-b', name: 'Famille en voiture', version: 1, mine: true, circle_id: 7, owner: { user_id: 1, name: 'Moi' }, items: [] },
@@ -177,6 +191,7 @@ beforeEach(() => {
     'it-1': { status: 'matched', source: 'qobuz', source_id: '123' },
     'it-2': { status: 'matched', source: 'local', source_id: '/Users/moi/Music/blue-in-green.flac' },
     'it-3': { status: 'not_found' },
+    'it-4': { status: 'matched', source: 'tidal', source_id: '9' },
   };
   circlePlugin.set(null);
   currentZoneId.set(2);
@@ -274,7 +289,7 @@ describe('T5 — la liste des playlists de cercle', () => {
     expect(bloc).not.toBeNull();
     const lignes = [...bloc.querySelectorAll('li.playlist-cercle')].map(texte);
     expect(lignes[0]).toContain('Dimanche');
-    expect(lignes[0]).toContain('3 morceaux');
+    expect(lignes[0]).toContain('4 morceaux');
     expect(lignes[0]).toContain('de Élise');
     // La mienne : pas de « de Moi ».
     expect(lignes[1]).toContain('Famille en voiture');
@@ -312,10 +327,11 @@ describe('T5 — la vue d\'une playlist', () => {
   it('« ajouté par {nom} » seulement quand le cloud rend un nom ; sinon « un membre du cercle »', async () => {
     const el = await poser(CircleV2);
     await ouvrir(el, 'Dimanche');
-    expect(titres(el)).toEqual(['So What', 'Blue in Green', 'Naima']);
+    expect(titres(el)).toEqual(['So What', 'Blue in Green', 'Naima', 'Alabama']);
     expect(texte(ligne(el, 'So What').querySelector('.auteur')!)).toBe('ajouté par Élise');
     expect(texte(ligne(el, 'Blue in Green').querySelector('.auteur')!)).toBe('ajouté par un membre du cercle');
     expect(texte(ligne(el, 'Naima').querySelector('.auteur')!)).toBe('ajouté par un membre du cercle');
+    expect(texte(ligne(el, 'Alabama').querySelector('.auteur')!)).toBe('ajouté par vous');
   });
 
   it('les trois états de résolution, chez MOI, et l\'introuvable dit clairement', async () => {
@@ -359,7 +375,7 @@ describe('T5 — la vue d\'une playlist', () => {
     await cliquer(ligne(el, 'Blue in Green'), 'button.retirer-morceau');
     const d = ecritures().find((a) => a.method === 'DELETE')!;
     expect(chemin(d)).toBe('/playlists/pl-a/items/it-2?version=3');
-    expect(titres(el)).toEqual(['So What', 'Naima']);
+    expect(titres(el)).toEqual(['So What', 'Naima', 'Alabama']);
   });
 
   it('réordonner : PUT /order avec la permutation EXACTE et la version', async () => {
@@ -368,8 +384,8 @@ describe('T5 — la vue d\'une playlist', () => {
     await cliquer(ligne(el, 'So What'), 'button.descendre');
     const put = ecritures().find((a) => a.method === 'PUT')!;
     expect(chemin(put)).toBe('/playlists/pl-a/order');
-    expect(put.body).toEqual({ item_ids: ['it-2', 'it-1', 'it-3'], version: 3 });
-    expect(titres(el)).toEqual(['Blue in Green', 'So What', 'Naima']);
+    expect(put.body).toEqual({ item_ids: ['it-2', 'it-1', 'it-3', 'it-4'], version: 3 });
+    expect(titres(el)).toEqual(['Blue in Green', 'So What', 'Naima', 'Alabama']);
   });
 
   it('le glisser-déposer mène au même PUT /order', async () => {
@@ -380,7 +396,7 @@ describe('T5 — la vue d\'une playlist', () => {
     ligne(el, 'So What').dispatchEvent(new Event('drop', { bubbles: true, cancelable: true }));
     await laisserFaire();
     const put = ecritures().find((a) => a.method === 'PUT')!;
-    expect(put.body).toEqual({ item_ids: ['it-3', 'it-1', 'it-2'], version: 3 });
+    expect(put.body).toEqual({ item_ids: ['it-3', 'it-1', 'it-2', 'it-4'], version: 3 });
   });
 
   it('409 : l\'état reçu remplace l\'état connu et le geste est REFAIT sur la nouvelle version', async () => {
@@ -391,7 +407,7 @@ describe('T5 — la vue d\'une playlist', () => {
     await cliquer(ligne(el, 'Blue in Green'), 'button.retirer-morceau');
     const d = ecritures().filter((a) => a.method === 'DELETE').map(chemin);
     expect(d).toEqual(['/playlists/pl-a/items/it-2?version=3', '/playlists/pl-a/items/it-2?version=5']);
-    expect(titres(el)).toEqual(['So What', 'Naima', 'Impressions']);
+    expect(titres(el)).toEqual(['So What', 'Naima', 'Alabama', 'Impressions']);
     expect(texte(el.querySelector('.retour-playlist')!)).toContain('appliquée à la version à jour');
   });
 
@@ -402,7 +418,7 @@ describe('T5 — la vue d\'une playlist', () => {
     avantMonGeste = (p) => { p.items = p.items.filter((x) => x.item_id !== 'it-2'); p.version = 4; };
     await cliquer(ligne(el, 'Blue in Green'), 'button.retirer-morceau');
     expect(ecritures().filter((a) => a.method === 'DELETE')).toHaveLength(1);
-    expect(titres(el)).toEqual(['So What', 'Naima']);
+    expect(titres(el)).toEqual(['So What', 'Naima', 'Alabama']);
     expect(texte(el.querySelector('.retour-playlist')!)).toContain('La playlist a changé entre-temps');
   });
 
@@ -413,8 +429,8 @@ describe('T5 — la vue d\'une playlist', () => {
     await cliquer(ligne(el, 'So What'), 'button.descendre');
     const puts = ecritures().filter((a) => a.method === 'PUT').map((a) => a.body);
     expect(puts).toEqual([
-      { item_ids: ['it-2', 'it-1', 'it-3'], version: 3 },
-      { item_ids: ['it-2', 'it-1', 'it-3', 'it-8'], version: 4 },
+      { item_ids: ['it-2', 'it-1', 'it-3', 'it-4'], version: 3 },
+      { item_ids: ['it-2', 'it-1', 'it-3', 'it-4', 'it-8'], version: 4 },
     ]);
   });
 
@@ -463,52 +479,63 @@ describe('T5 — la vue d\'une playlist', () => {
 });
 
 describe('T5 — suppression d\'un cercle : récupérer une copie', () => {
-  function supprimerFamille(el: Element) {
+  const archivee = { id: 31, name: 'Été 2026', owner: { user_id: 40, name: 'Élise' }, mine: false, count: 12, archived_at: '2026-09-28T12:00:00Z' };
+
+  it('la confirmation de suppression dit que ses playlists seront archivées et récupérables', async () => {
+    const el = await poser(CircleV2);
     const famille = [...el.querySelectorAll('article.cercle')].find((a) => a.querySelector('.cercle-nom')?.textContent === 'Famille')!;
     (famille.querySelector('button.supprimer') as HTMLButtonElement).click();
-  }
-
-  it('propose la copie de SES playlists, copie AVANT de supprimer le cercle', async () => {
-    const el = await poser(CircleV2);
-    supprimerFamille(el);
     await laisserFaire();
-    await repondre(true); // supprimer le cercle
-    expect(get(dialogs)[0].message).toContain('1 playlists partagées');
-    await repondre(true); // récupérer une copie
-    const ordre = appels.filter((a) => a.method !== 'GET' && a.url.includes('/ext/circle')).map((a) => `${a.method} ${chemin(a)}`)
-      .filter((x) => !x.endsWith('/resolve'));
-    expect(ordre).toEqual(['POST /playlists/pl-b/copy', 'DELETE /circles/7']);
-  });
-
-  it('sans copie demandée : le cercle est supprimé, rien n\'est copié', async () => {
-    const el = await poser(CircleV2);
-    supprimerFamille(el);
-    await laisserFaire();
+    expect(get(dialogs)[0].message).toContain('Ses 1 playlists partagées seront archivées');
     await repondre(true);
-    await repondre(false);
-    expect(appels.some((a) => a.url.endsWith('/copy'))).toBe(false);
     expect(appels.some((a) => a.method === 'DELETE' && chemin(a) === '/circles/7')).toBe(true);
+    // Aucune copie n'est faite À LA PLACE de l'utilisateur.
+    expect(appels.some((a) => a.url.includes('/copy'))).toBe(false);
   });
 
-  it('une copie qui échoue ARRÊTE la suppression : rien n\'est perdu en silence', async () => {
-    copieEchoue = true;
-    const el = await poser(CircleV2);
-    supprimerFamille(el);
-    await laisserFaire();
-    await repondre(true);
-    await repondre(true);
-    expect(appels.some((a) => a.method === 'DELETE' && chemin(a) === '/circles/7')).toBe(false);
-    expect(el.querySelector('.retour')?.getAttribute('role')).toBe('alert');
-  });
-
-  it('un cercle sans playlist ne pose pas la question', async () => {
+  it('un cercle sans playlist garde la confirmation d\'origine', async () => {
     const el = await poser(CircleV2);
     const jazz = [...el.querySelectorAll('article.cercle')].find((a) => a.querySelector('.cercle-nom')?.textContent === 'Jazz')!;
     (jazz.querySelector('button.supprimer') as HTMLButtonElement).click();
     await laisserFaire();
+    expect(get(dialogs)[0].message).not.toContain('archivées');
+  });
+
+  it('« Playlists à récupérer » : récupérer une copie passe par le greffon, puis la liste est relue', async () => {
+    recup = [archivee];
+    const el = await poser(CircleV2);
+    const li = el.querySelector('section.recuperables li.recuperable')!;
+    expect(texte(li)).toContain('Été 2026');
+    expect(texte(li)).toContain('12 morceaux');
+    expect(texte(li)).toContain('de Élise');
+    await cliquer(li, 'button.recuperer-copie');
+    expect(ecritures().map((a) => `${a.method} ${chemin(a)}`)).toEqual([]);
+    expect(appels.filter((a) => a.method === 'POST').map(chemin)).toEqual(['/recoverable-playlists/31/copy']);
+    expect(el.querySelector('section.recuperables')).toBeNull();
+    expect(texte(el.querySelector('.retour')!)).toBe('Copie ajoutée à vos playlists.');
+  });
+
+  it('« Je n\'en veux pas » : confirmé, DELETE /recoverable-playlists/{id}, sans copie', async () => {
+    recup = [archivee];
+    const el = await poser(CircleV2);
+    await cliquer(el, 'section.recuperables button.renoncer');
     await repondre(true);
-    expect(get(dialogs)).toHaveLength(0);
-    expect(appels.some((a) => a.method === 'DELETE' && chemin(a) === '/circles/8')).toBe(true);
+    expect(appels.filter((a) => a.method === 'DELETE').map(chemin)).toEqual(['/recoverable-playlists/31']);
+    expect(appels.some((a) => a.url.includes('/copy'))).toBe(false);
+  });
+
+  it('une copie qui échoue se DIT, et la playlist reste à récupérer', async () => {
+    recup = [archivee];
+    copieEchoue = true;
+    const el = await poser(CircleV2);
+    await cliquer(el, 'section.recuperables button.recuperer-copie');
+    expect(el.querySelector('.retour')?.getAttribute('role')).toBe('alert');
+    expect(el.querySelector('section.recuperables li.recuperable')).not.toBeNull();
+  });
+
+  it('rien à récupérer : pas de bloc', async () => {
+    const el = await poser(CircleV2);
+    expect(el.querySelector('section.recuperables')).toBeNull();
   });
 });
 
@@ -582,7 +609,7 @@ describe('T5 — lecture défensive', () => {
     const p = playlistCercle({ id: 'x', name: 'n', version: 2, items: [{ item_id: 'i', title: 't', ...FUITES, added_by: { name: 'A', email: 'a@b.c' } }] })!;
     expect(Object.keys(p.items[0]).sort()).toEqual([
       'added_at', 'added_by', 'album_title', 'artist_name', 'deezer_id', 'duration_ms', 'isrc', 'item_id',
-      'qobuz_id', 'spotify_id', 'tidal_id', 'title', 'youtube_id',
+      'mine', 'musicbrainz_recording_id', 'qobuz_id', 'spotify_id', 'tidal_id', 'title', 'youtube_id',
     ]);
     expect(p.items[0].added_by).toEqual({ nom: 'A' });
   });
