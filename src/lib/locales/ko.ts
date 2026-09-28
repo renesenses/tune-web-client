@@ -2052,6 +2052,7 @@ export default {
   "oxygen.settingsTitle": "Oxygen 보기 · 고급 라이브러리",
   "playback.errorFileNotFound": "파일을 찾을 수 없습니다. 이동되었거나 삭제되었을 수 있습니다(드라이브나 네트워크 공유가 마운트되지 않았나요?). 라이브러리를 다시 스캔하세요.",
   "playback.errorNoOutputDevice": "이 존에는 오디오 출력이 없습니다. 다른 존을 선택하거나 출력을 다시 설정하세요.",
+  "playback.errorSampleRateUnknown": "Qobuz가 이 트랙의 샘플링 주파수를 알려 주지 않았고, Tune도 파일에서 읽어 내지 못했습니다. 재생할 수 없습니다. 나중에 다시 시도하거나 다른 음질을 선택하세요.",
   "playlist.moveDown": "아래로",
   "playlist.moveUp": "위로",
   "podcasts.noEpisodesFound": "프로그램을 찾을 수 없습니다",

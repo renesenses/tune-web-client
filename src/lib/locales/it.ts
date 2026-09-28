@@ -2058,6 +2058,7 @@ export default {
   "oxygen.settingsTitle": "Vista Oxygen · libreria avanzata",
   "playback.errorFileNotFound": "File non trovato — potrebbe essere stato spostato o eliminato (disco o condivisione di rete non montata?). Riesegui la scansione della libreria.",
   "playback.errorNoOutputDevice": "Questa zona non ha alcuna uscita audio. Scegli un'altra zona o riconfigura la sua uscita.",
+  "playback.errorSampleRateUnknown": "Qobuz non ha indicato la frequenza di campionamento di questo brano e Tune non è riuscito a leggerla dal file: riproduzione impossibile. Riprova più tardi o scegli un'altra qualità.",
   "playlist.moveDown": "Sposta giù",
   "playlist.moveUp": "Sposta su",
   "podcasts.noEpisodesFound": "Nessun programma trovato",
