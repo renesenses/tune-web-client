@@ -4040,6 +4040,8 @@ export default {
   "v2.circle.pl.rec.confirmDecline": "재생목록 \"{name}\"을(를) 포기할까요? 이후에는 복구할 수 없습니다.",
   "v2.circle.pl.rec.copied": "사본을 내 재생목록에 추가했습니다.",
   "v2.circle.pl.rec.until": "{date}까지 복구 가능",
+  "v2.circle.pl.rec.partial": "내 쪽에서 찾을 수 없는 곡이 {n}곡 있습니다. 보관본은 {date}까지 유지됩니다. 서비스를 연결한 뒤 다시 시도하면 같은 재생목록이 채워집니다.",
+  "v2.circle.pl.rec.partialNoDate": "내 쪽에서 찾을 수 없는 곡이 {n}곡 있습니다. 보관본은 계속 유지됩니다. 서비스를 연결한 뒤 다시 시도하면 같은 재생목록이 채워집니다.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "편집",
   "v2.edition.modifyTip": "앨범, 디스크, 트랙 편집",

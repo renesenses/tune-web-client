@@ -4040,6 +4040,8 @@ export default {
   "v2.circle.pl.rec.confirmDecline": "Renunți la playlistul „{name}”? Nu îl vei mai putea recupera.",
   "v2.circle.pl.rec.copied": "Copie adăugată în playlisturile tale.",
   "v2.circle.pl.rec.until": "recuperabil până la {date}",
+  "v2.circle.pl.rec.partial": "{n} piese negăsite la tine: arhiva rămâne disponibilă până la {date}. Încearcă din nou după ce conectezi un serviciu; același playlist va fi completat.",
+  "v2.circle.pl.rec.partialNoDate": "{n} piese negăsite la tine: arhiva rămâne disponibilă. Încearcă din nou după ce conectezi un serviciu; același playlist va fi completat.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Editează",
   "v2.edition.modifyTip": "Editează albumul, discurile și piesele",

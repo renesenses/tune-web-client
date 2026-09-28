@@ -7,8 +7,9 @@
    * - une piste de la BIBLIOTHÈQUE : son seul `track_id` ; le greffon bâtit
    *   la référence (titre, artiste, album, durée, ISRC, identifiants de
    *   service) sans `source_id` ni chemin ;
-   * - une piste de SERVICE : une référence en liste blanche, l'identifiant
-   *   rangé sous le nom de son service (`qobuz_id`, `tidal_id`…).
+   * - un titre de SERVICE : sa seule paire `service_tracks: [{source,
+   *   source_id}]` ; le greffon lit le titre chez le service connecté et bâtit
+   *   la référence, ISRC compris (greffon tune-server-rust#5345).
    *
    * Tout membre ajoute. L'ajout porte la `version` connue ; un 409 relit la
    * version et refait l'ajout une fois — un ajout garde toujours son sens.

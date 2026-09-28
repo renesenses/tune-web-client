@@ -4040,6 +4040,8 @@ export default {
   "v2.circle.pl.rec.confirmDecline": "¿Renunciar a la playlist «{name}»? Ya no podrás recuperarla.",
   "v2.circle.pl.rec.copied": "Copia añadida a tus playlists.",
   "v2.circle.pl.rec.until": "recuperable hasta el {date}",
+  "v2.circle.pl.rec.partial": "{n} pistas no encontradas en tu lado: el archivo sigue disponible hasta el {date}. Vuelve a intentarlo tras conectar un servicio; se completará la misma playlist.",
+  "v2.circle.pl.rec.partialNoDate": "{n} pistas no encontradas en tu lado: el archivo sigue disponible. Vuelve a intentarlo tras conectar un servicio; se completará la misma playlist.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Editar",
   "v2.edition.modifyTip": "Editar el álbum, sus discos y sus pistas",

@@ -4039,6 +4039,8 @@ export default {
   "v2.circle.pl.rec.confirmDecline": "Avstå från spellistan ”{name}”? Du kan inte längre återställa den.",
   "v2.circle.pl.rec.copied": "Kopian har lagts till bland dina spellistor.",
   "v2.circle.pl.rec.until": "kan återställas till och med {date}",
+  "v2.circle.pl.rec.partial": "{n} spår hittas inte hos dig: arkivet finns kvar till och med {date}. Försök igen när du har anslutit en tjänst; samma spellista kompletteras.",
+  "v2.circle.pl.rec.partialNoDate": "{n} spår hittas inte hos dig: arkivet finns kvar. Försök igen när du har anslutit en tjänst; samma spellista kompletteras.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Redigera",
   "v2.edition.modifyTip": "Redigera albumet, dess skivor och spår",

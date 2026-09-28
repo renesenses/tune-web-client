@@ -3998,6 +3998,8 @@ export default {
   "v2.circle.pl.rec.confirmDecline": "Lemondasz a(z) „{name}” listáról? Utána már nem állíthatod vissza.",
   "v2.circle.pl.rec.copied": "Másolat hozzáadva a listáidhoz.",
   "v2.circle.pl.rec.until": "visszaállítható eddig: {date}",
+  "v2.circle.pl.rec.partial": "{n} szám nem található nálad: az archívum eddig elérhető: {date}. Próbáld újra, miután csatlakoztattál egy szolgáltatást; ugyanaz a lista egészül ki.",
+  "v2.circle.pl.rec.partialNoDate": "{n} szám nem található nálad: az archívum elérhető marad. Próbáld újra, miután csatlakoztattál egy szolgáltatást; ugyanaz a lista egészül ki.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Szerkesztés",
   "v2.edition.modifyTip": "Az album, a lemezek és a számok szerkesztése",

@@ -62,7 +62,7 @@
   import {
     listerPlaylistsCercle, creerPlaylistCercle, nomPlaylistValide, codeT5,
     listerRecuperables, recupererCopie, renoncerRecuperable,
-    NOM_PLAYLIST_MAX, type IdOpaque, type PlaylistCercleResume, type PlaylistRecuperable,
+    NOM_PLAYLIST_MAX, type IdOpaque, type PlaylistCercleResume, type PlaylistRecuperable, type BilanCopie,
   } from '../../lib/circlePlaylists';
   import CatalogueContactV2 from './CatalogueContactV2.svelte';
   import PlaylistCercleV2 from './PlaylistCercleV2.svelte';
@@ -258,7 +258,20 @@
 
   /** Décision 3 : récupérer une copie d'une playlist archivée, ou y renoncer. */
   function recuperer(r: PlaylistRecuperable) {
-    void geste(`recuperer-${String(r.id)}`, () => recupererCopie(r.id), { succes: 'v2.circle.pl.rec.copied' });
+    let bilan: BilanCopie | null = null;
+    void geste(`recuperer-${String(r.id)}`, async () => { bilan = await recupererCopie(r.id); }, {
+      apres: () => {
+        const b = bilan as BilanCopie | null;
+        if (!b || b.liberee) { retour = { texte: $t('v2.circle.pl.rec.copied' as any), erreur: false }; return; }
+        // Décision du 28/09 : des introuvables gardent l'archive ; une seconde
+        // copie, après avoir branché un service, complétera la même playlist.
+        const cle = r.expires_at ? 'v2.circle.pl.rec.partial' : 'v2.circle.pl.rec.partialNoDate';
+        retour = {
+          texte: $t(cle as any).replace('{n}', String(b.manquants)).replace('{date}', r.expires_at ? $dateCourte(r.expires_at) : ''),
+          erreur: true,
+        };
+      },
+    });
   }
   async function renoncer(r: PlaylistRecuperable) {
     const ok = await dialogs.confirm($t('v2.circle.pl.rec.confirmDecline' as any).replace('{name}', r.name), { danger: true });

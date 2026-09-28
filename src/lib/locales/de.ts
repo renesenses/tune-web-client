@@ -4040,6 +4040,8 @@ export default {
   "v2.circle.pl.rec.confirmDecline": "Auf die Playlist „{name}“ verzichten? Sie können sie danach nicht mehr wiederherstellen.",
   "v2.circle.pl.rec.copied": "Kopie zu Ihren Playlists hinzugefügt.",
   "v2.circle.pl.rec.until": "wiederherstellbar bis {date}",
+  "v2.circle.pl.rec.partial": "{n} Titel bei Ihnen nicht gefunden: Das Archiv bleibt bis {date} verfügbar. Versuchen Sie es erneut, nachdem Sie einen Dienst verbunden haben; dieselbe Playlist wird ergänzt.",
+  "v2.circle.pl.rec.partialNoDate": "{n} Titel bei Ihnen nicht gefunden: Das Archiv bleibt verfügbar. Versuchen Sie es erneut, nachdem Sie einen Dienst verbunden haben; dieselbe Playlist wird ergänzt.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Bearbeiten",
   "v2.edition.modifyTip": "Album, Discs und Titel bearbeiten",

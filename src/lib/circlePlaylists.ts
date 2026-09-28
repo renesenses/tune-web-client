@@ -16,18 +16,24 @@
  *   GET    /playlists/{id}                  → { id, name, version, items: [{ item_id, …référence, added_by, added_at }] }
  *   PATCH  /playlists/{id} {name, version}  → la playlist (propriétaire seul)
  *   DELETE /playlists/{id}                  → { ok: true } (propriétaire seul)
- *   POST   /playlists/{id}/items {items|track_ids, position?, version} → la playlist (tout membre)
+ *   POST   /playlists/{id}/items {track_ids?|service_tracks?|items?, position?, version}
+ *                                            → la playlist (tout membre ; greffon #5345)
  *   DELETE /playlists/{id}/items/{item_id}?version= → la playlist (tout membre)
  *   PUT    /playlists/{id}/order {item_ids, version} → la playlist (permutation EXACTE)
- *   POST   /playlists/{id}/resolve          → [{ item_id, status: matched|not_found, source, source_id }]
- *   POST   /playlists/{id}/play {zone_id}   → ce qui est parti, et ce qui manque
+ *   POST   /playlists/{id}/resolve          → [{ item_id, status: matched|not_found, source, source_id, method, track_id? }]
+ *   POST   /playlists/{id}/play {zone_id}   → { ok, zone_id, queued, missing: [item_id…], resolution }
  *   GET    /recoverable-playlists           → [{ id, name, owner, mine, count, archived_at, expires_at? }]
  *                                             les playlists ARCHIVÉES (cercle supprimé, ou
  *                                             playlist supprimée par son propriétaire) que
  *                                             j'ai le droit de récupérer, 30 jours durant
  *                                             (décisions du 28/09)
- *   POST   /recoverable-playlists/{id}/copy → copie en playlist LOCALE, puis le droit
- *                                             disparaît (greffon ; seule copie offerte : décision 5)
+ *   POST   /recoverable-playlists/{id}/copy → { playlist, playlist_id, copied, missing,
+ *                                             not_copied: [{item_id, title, artist_name}], released }
+ *                                             copie en playlist LOCALE (seule copie offerte :
+ *                                             décision 5). Décision du 28/09 : tant qu'il reste
+ *                                             des introuvables, `released:false` — l'archive
+ *                                             reste, et une seconde copie complète la MÊME
+ *                                             playlist locale.
  *   DELETE /recoverable-playlists/{id}      → « je n'en veux pas » : le droit disparaît
  *
  * Refus : 404 pour tout ce qui n'est pas visible (révocation, retrait du
@@ -252,12 +258,15 @@ export function supprimerPlaylistCercle(id: IdOpaque): Promise<unknown> {
  */
 export interface Ajout {
   track_ids?: number[];
+  /** Titres de service par leur paire : le greffon bâtit la référence (#5345). */
+  service_tracks?: PisteDeServiceCercle[];
   items?: ReferenceMorceau[];
 }
 
 export function ajouterMorceaux(id: IdOpaque, ajout: Ajout, version: number, position?: number): Promise<unknown> {
   const corps: Record<string, unknown> = { version };
   if (ajout.track_ids?.length) corps.track_ids = ajout.track_ids;
+  if (ajout.service_tracks?.length) corps.service_tracks = ajout.service_tracks;
   if (ajout.items?.length) corps.items = ajout.items;
   if (position != null) corps.position = position;
   return envoyer(`${racine}/${seg(id)}/items`, 'POST', corps);
@@ -314,12 +323,25 @@ export async function listerRecuperables(): Promise<PlaylistRecuperable[]> {
   return liste(brut).map(playlistRecuperable).filter((x): x is PlaylistRecuperable => x != null);
 }
 
+/** Ce que la copie a fait. `liberee` : le droit est rendu, l'archive part de ma liste. */
+export interface BilanCopie { copies: number; manquants: number; liberee: boolean }
+
+export function bilanCopie(b: any): BilanCopie {
+  const nc = Array.isArray(b?.not_copied) ? b.not_copied.length : 0;
+  const manquants = entier(b?.missing) ?? (Array.isArray(b?.missing) ? b.missing.length : nc);
+  // 🔴 `released` n'est cru que VRAI explicitement : sans lui, des manquants
+  // disent que l'archive reste (décision du 28/09).
+  const liberee = b?.released === true || (b?.released == null && manquants === 0);
+  return { copies: entier(b?.copied) ?? 0, manquants, liberee };
+}
+
 /**
  * La SEULE copie que l'écran offre (décision 5). Le greffon lit la playlist
- * archivée, crée la playlist locale, puis rend le droit au cloud.
+ * archivée, écrit la playlist locale, et ne rend le droit au cloud que si
+ * TOUT a été copié ; sinon une seconde copie complète la même playlist.
  */
-export function recupererCopie(id: IdOpaque): Promise<unknown> {
-  return envoyer(`${racineRecup}/${seg(id)}/copy`, 'POST');
+export async function recupererCopie(id: IdOpaque): Promise<BilanCopie> {
+  return bilanCopie(await envoyer<unknown>(`${racineRecup}/${seg(id)}/copy`, 'POST'));
 }
 
 /** « Je n'en veux pas » : mon droit disparaît ; la playlist, avec le dernier droit. */
@@ -378,42 +400,32 @@ export async function jouerPlaylistCercle(id: IdOpaque, zoneId: number): Promise
 
 // ─── Ajouter une piste depuis son menu ───────────────────────────────────────
 
-const CHAMP_DU_SERVICE: Record<string, keyof ReferenceMorceau> = {
-  qobuz: 'qobuz_id', tidal: 'tidal_id', spotify: 'spotify_id', deezer: 'deezer_id', youtube: 'youtube_id',
-};
+/** Les services dont le greffon sait lire un titre pour en bâtir la référence. */
+const SERVICES_REFERENCABLES = new Set(['qobuz', 'tidal', 'spotify', 'deezer', 'youtube']);
+
+/** Un titre de service désigné par sa paire — le greffon lit le reste chez le service. */
+export interface PisteDeServiceCercle { source: string; source_id: string }
 
 /**
- * La référence d'une piste de SERVICE, construite ici en liste blanche.
- *
- * 🔴 Rien d'autre que les champs du contrat : ni `source_id` brut, ni
- * `cover_path`, ni adresse. L'identifiant de service n'entre que sous le nom
- * de son service (`qobuz_id`…), et seulement s'il est fait de caractères sûrs.
- * `null` : une piste sans titre, ou d'un service que la référence ne sait pas
- * nommer (radio, Bandcamp…) — l'entrée du menu est alors absente.
+ * La paire `source` + `source_id` d'un titre de SERVICE (greffon #5345 :
+ * `service_tracks`). Le GREFFON lit le titre chez le service connecté et
+ * bâtit la référence, ISRC compris ; l'écran n'envoie ni titre, ni pochette,
+ * ni adresse. `null` : radio, Bandcamp, service inconnu, ou identifiant qui
+ * n'est pas fait de caractères sûrs — l'entrée du menu est alors absente.
  */
-export function referenceDeService(t: Track): ReferenceMorceau | null {
+export function pisteDeServiceCercle(t: Track): PisteDeServiceCercle | null {
   if (estPisteLocale(t)) return null;
-  const titre = texte(t.title);
   const service = String(t.source ?? '').toLowerCase();
-  const champ = CHAMP_DU_SERVICE[service];
   const sid = idService(t.source_id);
-  if (!titre || !champ || !sid) return null;
-  const r: ReferenceMorceau = { title: titre.slice(0, 300) };
-  if (texte(t.artist_name)) r.artist_name = t.artist_name!;
-  if (texte(t.album_title)) r.album_title = t.album_title!;
-  const d = entier(t.duration_ms);
-  if (d != null && d > 0) r.duration_ms = d;
-  const isrc = isrcNormalise((t as { isrc?: unknown }).isrc);
-  if (isrc) r.isrc = isrc;
-  (r as unknown as Record<string, string>)[champ] = sid;
-  return r;
+  if (!SERVICES_REFERENCABLES.has(service) || !sid || !texte(t.title)) return null;
+  return { source: service, source_id: sid };
 }
 
 /** Ce qu'une piste envoie pour rejoindre une playlist de cercle, ou `null` (entrée absente). */
 export function ajoutDePiste(t: Track): Ajout | null {
   if (estPisteLocale(t) && typeof t.id === 'number') return { track_ids: [t.id] };
-  const r = referenceDeService(t);
-  return r ? { items: [r] } : null;
+  const p = pisteDeServiceCercle(t);
+  return p ? { service_tracks: [p] } : null;
 }
 
 // ─── Concurrence et refus ────────────────────────────────────────────────────
@@ -494,6 +506,7 @@ export function codeT5(e: unknown): string | null {
   switch (code) {
     case 'playlist_too_large': return 'v2.circle.pl.err.tooLarge';
     case 'too_many_playlists': return 'v2.circle.pl.err.tooMany';
+    case 'circle.nothing_playable': return 'v2.circle.pl.nothingPlayable';
     case 'invalid_order':
     case 'invalid_position': return 'v2.circle.pl.changed';
   }

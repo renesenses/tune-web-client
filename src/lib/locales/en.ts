@@ -4060,6 +4060,8 @@ export default {
   "v2.circle.pl.rec.confirmDecline": "Give up the playlist \"{name}\"? You will no longer be able to recover it.",
   "v2.circle.pl.rec.copied": "Copy added to your playlists.",
   "v2.circle.pl.rec.until": "recoverable until {date}",
+  "v2.circle.pl.rec.partial": "{n} tracks not found on your side: the archive stays available until {date}. Try again after connecting a service; the same playlist will be completed.",
+  "v2.circle.pl.rec.partialNoDate": "{n} tracks not found on your side: the archive stays available. Try again after connecting a service; the same playlist will be completed.",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "Edit",
   "v2.edition.modifyTip": "Edit the album, its discs and its tracks",

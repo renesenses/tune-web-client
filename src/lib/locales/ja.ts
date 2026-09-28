@@ -4040,6 +4040,8 @@ export default {
   "v2.circle.pl.rec.confirmDecline": "プレイリスト「{name}」を不要にしますか？以後は復元できません。",
   "v2.circle.pl.rec.copied": "コピーをあなたのプレイリストに追加しました。",
   "v2.circle.pl.rec.until": "{date} まで復元できます",
+  "v2.circle.pl.rec.partial": "お使いの環境で見つからない曲が {n} 曲あります。アーカイブは {date} まで利用できます。サービスを接続してから再試行すると、同じプレイリストに追加されます。",
+  "v2.circle.pl.rec.partialNoDate": "お使いの環境で見つからない曲が {n} 曲あります。アーカイブは引き続き利用できます。サービスを接続してから再試行すると、同じプレイリストに追加されます。",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "編集",
   "v2.edition.modifyTip": "アルバム、ディスク、トラックを編集",

@@ -14,7 +14,7 @@ import { currentZoneId } from '../stores/zones';
 import { notifications } from '../stores/notifications';
 import { circlePlugin } from '../circle';
 import {
-  ajoutDePiste, referenceDeService, playlistCercle, etatResolution, ordreDeplace, isrcNormalise,
+  ajoutDePiste, pisteDeServiceCercle, bilanCopie, playlistCercle, etatResolution, ordreDeplace, isrcNormalise,
 } from '../circlePlaylists';
 import { entreesMenuPiste } from '../menuPiste';
 import type { Track } from '../types';
@@ -51,6 +51,8 @@ let pls: Pl[] = [];
 let coupees = new Set<string>();
 let greffonT5 = true;
 let copieEchoue = false;
+/** Titres que la copie ne trouve pas chez moi (décision du 28/09 : l'archive reste). */
+let introuvablesACopier = 0;
 /** Les playlists archivées d'un cercle supprimé que je peux récupérer. */
 let recup: { id: number; name: string; owner: { user_id: number; name: string }; mine: boolean; count: number; archived_at: string; expires_at?: string }[] = [];
 let resolution: Record<string, { status: string; source?: string; source_id?: string }> = {};
@@ -95,8 +97,17 @@ function greffon(u: string, method: string, body: any): Response {
     if (!r) return introuvable();
     if (m[2] && method === 'POST') {
       if (copieEchoue) return reponse(503, { error: 'circle.cloud_unavailable' });
-      recup = recup.filter((x) => x !== r);
-      return reponse(201, { id: 55, name: r.name });
+      // Forme du greffon #5345. Le droit n'est rendu que si TOUT est copié.
+      const manquent = introuvablesACopier;
+      const released = manquent === 0;
+      if (released) recup = recup.filter((x) => x !== r);
+      else introuvablesACopier = 0; // la seconde copie, service branché, trouvera tout
+      return reponse(200, {
+        ok: true, playlist: { id: 55, name: r.name, description: null, track_count: r.count - manquent }, playlist_id: 55, name: r.name,
+        copied: r.count - manquent, missing: manquent,
+        not_copied: Array.from({ length: manquent }, (_, k) => ({ item_id: 700 + k, title: `Perdu ${k}`, artist_name: 'X' })),
+        resolution: [], released,
+      });
     }
     if (!m[2] && method === 'DELETE') { recup = recup.filter((x) => x !== r); return reponse(200, { ok: true }); }
   }
@@ -117,11 +128,17 @@ function greffon(u: string, method: string, body: any): Response {
     const reste = m[2] ?? '';
     if (reste === '' && method === 'GET') return reponse(200, vue(p));
     if (reste === '/resolve' && method === 'POST') {
-      return reponse(200, p.items.map((x) => ({ item_id: x.item_id, ...(resolution[x.item_id] ?? { status: 'not_found' }) })));
+      // Tableau NU (greffon #5345), avec `method` et `track_id` pour la bibliothèque.
+      return reponse(200, p.items.map((x) => {
+        const r = resolution[x.item_id] ?? { status: 'not_found' };
+        return { item_id: x.item_id, source: null, source_id: null, ...r,
+          ...(r.status === 'matched' ? { method: 'isrc' } : {}), ...(r.source === 'local' ? { track_id: 44 } : {}) };
+      }));
     }
     if (reste === '/play' && method === 'POST') {
       const manquants = p.items.filter((x) => (resolution[x.item_id]?.status ?? 'not_found') === 'not_found').map((x) => x.item_id);
-      return reponse(200, { queued: p.items.length - manquants.length, missing: manquants });
+      if (manquants.length === p.items.length) return reponse(422, { error: 'circle.nothing_playable' });
+      return reponse(200, { ok: true, zone_id: body.zone_id, queued: p.items.length - manquants.length, missing: manquants, resolution: [] });
     }
     // Les écritures : un autre membre peut passer juste avant.
     if (avantMonGeste) { const f = avantMonGeste; avantMonGeste = null; f(p); }
@@ -140,6 +157,7 @@ function greffon(u: string, method: string, body: any): Response {
     if (reste === '/items' && method === 'POST') {
       if (body.version !== p.version) return conflit(p);
       for (const ref of body.items ?? []) p.items.push({ item_id: `it-${prochainItem++}`, ...ref, added_by: { user_id: 1, name: 'Moi' }, mine: true, added_at: '2026-09-28T11:00:00Z' });
+      for (const st of body.service_tracks ?? []) p.items.push({ item_id: `it-${prochainItem++}`, title: `Titre ${st.source}:${st.source_id}`, isrc: 'USSM15900113', added_by: { user_id: 1, name: 'Moi' }, mine: true, added_at: '2026-09-28T11:00:00Z' });
       for (const tid of body.track_ids ?? []) p.items.push({ item_id: `it-${prochainItem++}`, title: `Piste ${tid}`, added_by: null, added_at: '2026-09-28T11:00:00Z' });
       p.version++;
       return reponse(200, vue(p));
@@ -173,6 +191,7 @@ beforeEach(() => {
   greffonT5 = true;
   copieEchoue = false;
   recup = [];
+  introuvablesACopier = 0;
   avantMonGeste = null;
   prochainItem = 900;
   pls = [
@@ -472,6 +491,14 @@ describe('T5 — la vue d\'une playlist', () => {
     expect(JSON.stringify(n)).toContain('1 morceaux introuvables chez vous');
   });
 
+  it('Lire une playlist dont rien n\'est jouable : le refus 422 `circle.nothing_playable` est dit en clair', async () => {
+    resolution = {};
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    await cliquer(el, 'button.lire-playlist');
+    expect(texte(el.querySelector('.retour-playlist')!)).toBe('Aucun morceau de cette playlist n\'est jouable chez vous.');
+  });
+
   it('le propriétaire renomme avec la version ; un 409 refait le renommage sur la nouvelle version', async () => {
     const el = await poser(CircleV2);
     await ouvrir(el, 'Famille en voiture');
@@ -568,6 +595,36 @@ describe('T5 — suppression d\'un cercle : récupérer une copie', () => {
     expect(li.querySelector('.echeance')).not.toBeNull();
   });
 
+  it('copie PARTIELLE (released:false) : l\'écran dit les introuvables et l\'échéance, et la garde à récupérer', async () => {
+    recup = [{ ...archivee, expires_at: '2026-10-28T12:00:00Z' }];
+    introuvablesACopier = 3;
+    const el = await poser(CircleV2);
+    await cliquer(el, 'section.recuperables button.recuperer-copie');
+    const r = el.querySelector('.retour')!;
+    expect(texte(r)).toMatch(/^3 titres introuvables chez vous : l'archive reste disponible jusqu'au .*2026\. Réessayez après avoir branché un service/);
+    expect(el.querySelector('section.recuperables li.recuperable')).not.toBeNull();
+    // Seconde copie, service branché : la même playlist est complétée, l'archive part.
+    await cliquer(el, 'section.recuperables button.recuperer-copie');
+    expect(appels.filter((a) => a.method === 'POST' && a.url.endsWith('/copy'))).toHaveLength(2);
+    expect(texte(el.querySelector('.retour')!)).toBe('Copie ajoutée à vos playlists.');
+    expect(el.querySelector('section.recuperables')).toBeNull();
+  });
+
+  it('copie partielle sans échéance connue : la phrase sans date', async () => {
+    recup = [archivee];
+    introuvablesACopier = 1;
+    const el = await poser(CircleV2);
+    await cliquer(el, 'section.recuperables button.recuperer-copie');
+    expect(texte(el.querySelector('.retour')!)).toBe('1 titres introuvables chez vous : l\'archive reste disponible. Réessayez après avoir branché un service ; la même playlist sera complétée.');
+  });
+
+  it('bilanCopie : `released` n\'est cru que vrai, et des manquants sans lui gardent l\'archive', () => {
+    expect(bilanCopie({ copied: 4, missing: 0, released: true })).toEqual({ copies: 4, manquants: 0, liberee: true });
+    expect(bilanCopie({ copied: 2, missing: 2, released: false }).liberee).toBe(false);
+    expect(bilanCopie({ copied: 2, not_copied: [{}, {}] })).toEqual({ copies: 2, manquants: 2, liberee: false });
+    expect(bilanCopie({ copied: 2, missing: 2, released: 'yes' }).liberee).toBe(false);
+  });
+
   it('rien à récupérer : pas de bloc', async () => {
     const el = await poser(CircleV2);
     expect(el.querySelector('section.recuperables')).toBeNull();
@@ -588,14 +645,11 @@ describe('T5 — « Ajouter à une playlist de cercle » depuis le menu d\'un ti
     expect(JSON.stringify(a)).not.toContain('/Users');
   });
 
-  it('piste de service : une référence en liste blanche, l\'identifiant sous le nom de son service', () => {
-    expect(ajoutDePiste(qobuz)).toEqual({
-      items: [{ title: 'So What', artist_name: 'Miles Davis', album_title: 'Kind of Blue', duration_ms: 562000, isrc: 'USSM15900113', qobuz_id: '5966783' }],
-    });
-    const r = referenceDeService({ ...qobuz, source: 'tidal', source_id: '77' } as Track)!;
-    expect(r.tidal_id).toBe('77');
-    expect(Object.keys(r)).not.toContain('source_id');
-    expect(JSON.stringify(r)).not.toContain('qobuz.com');
+  it('titre de service : sa SEULE paire `service_tracks` — le greffon bâtit la référence (#5345)', () => {
+    expect(ajoutDePiste(qobuz)).toEqual({ service_tracks: [{ source: 'qobuz', source_id: '5966783' }] });
+    expect(pisteDeServiceCercle({ ...qobuz, source: 'TIDAL', source_id: '77' } as unknown as Track)).toEqual({ source: 'tidal', source_id: '77' });
+    // Ni titre, ni pochette, ni ISRC de l'écran : c'est le greffon qui lit le service.
+    expect(JSON.stringify(ajoutDePiste(qobuz))).not.toMatch(/qobuz\.com|So What|USSM/);
   });
 
   it('une radio, Bandcamp, un identifiant douteux ou une piste sans titre : pas d\'entrée', () => {
@@ -624,9 +678,10 @@ describe('T5 — « Ajouter à une playlist de cercle » depuis le menu d\'un ti
     await laisserFaire();
     const posts = ecritures().filter((a) => a.method === 'POST' && chemin(a) === '/playlists/pl-a/items').map((a) => a.body as any);
     expect(posts.map((b) => b.version)).toEqual([3, 6]);
-    expect(Object.keys(posts[0].items[0]).sort()).toEqual(['album_title', 'artist_name', 'duration_ms', 'isrc', 'qobuz_id', 'title']);
+    expect(Object.keys(posts[0]).sort()).toEqual(['service_tracks', 'version']);
+    expect(posts[0].service_tracks).toEqual([{ source: 'qobuz', source_id: '5966783' }]);
     expect(fermer).toHaveBeenCalled();
-    expect(pls[0].items.at(-1)!.title).toBe('So What');
+    expect(pls[0].items.at(-1)!.title).toBe('Titre qobuz:5966783');
   });
 
   it('la fenêtre : un 404 dit « plus partagée » et relit la liste', async () => {

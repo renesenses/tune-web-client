@@ -4040,6 +4040,8 @@ export default {
   "v2.circle.pl.rec.confirmDecline": "放弃播放列表“{name}”？之后将无法恢复。",
   "v2.circle.pl.rec.copied": "副本已添加到您的播放列表。",
   "v2.circle.pl.rec.until": "可恢复至 {date}",
+  "v2.circle.pl.rec.partial": "有 {n} 首曲目在您这边找不到：归档保留至 {date}。连接服务后请重试，将补全同一个播放列表。",
+  "v2.circle.pl.rec.partialNoDate": "有 {n} 首曲目在您这边找不到：归档仍可用。连接服务后请重试，将补全同一个播放列表。",
   // Mode « Modifier » de la fiche album (25/09/2026)
   "v2.edition.modify": "编辑",
   "v2.edition.modifyTip": "编辑专辑、碟片和曲目",
