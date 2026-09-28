@@ -293,6 +293,23 @@ export const RAISONS_IGNORE = [
   'hors_racines', 'liens_multiples', 'lecture_seule', 'dossier_en_lecture_seule', 'en_lecture',
 ] as const;
 
+/**
+ * Les noms de balises que le plan rend (`changements[].champ`) — une clé i18n
+ * chacun (`v2.edition.tagField.<NOM>`). Un nom absent de cette liste reste
+ * affiché tel quel : un serveur plus récent peut en écrire d'autres.
+ */
+export const CHAMPS_BALISES = [
+  'ALBUM', 'ALBUMARTIST', 'DISCNUMBER', 'DISCTOTAL', 'DISCSUBTITLE',
+  'TRACKNUMBER', 'TRACKTOTAL', 'TITLE', 'ARTIST', 'COMPILATION', 'GENRE',
+] as const;
+
+/** Le libellé d'un nom de balise, par `traduire` s'il est connu, brut sinon. */
+export function libelleChampBalise(champ: string, traduire: (cle: string) => string): string {
+  return (CHAMPS_BALISES as readonly string[]).includes(champ)
+    ? traduire(`v2.edition.tagField.${champ}`)
+    : champ;
+}
+
 /** Le serveur annonce-t-il « Écrire dans les fichiers » ? */
 export function ecritureBalisesAnnoncee(r: EditionReponse | null | undefined): boolean {
   return (r as { ecriture_balises?: unknown } | null | undefined)?.ecriture_balises === true;
