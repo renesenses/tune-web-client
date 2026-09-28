@@ -5,10 +5,20 @@
 // n'apparaissait pas dans la liste des zones de la barre de lecture, alors que
 // la zone « LVDS » y était.
 //
-// Le sélecteur ne garde qu'une zone par appareil de sortie, et gardait la
-// PREMIÈRE venue : deux zones sur le même `output_device_id`, et la zone
-// pilotée disparaissait de son propre sélecteur. Le compteur de l'en-tête,
-// lui, comptait encore la zone masquée.
+// Le sélecteur ne gardait qu'une zone par `output_device_id`, et gardait la
+// PREMIÈRE venue : deux zones sur le même appareil, et la zone pilotée
+// disparaissait de son propre sélecteur. Le compteur de l'en-tête, lui,
+// comptait encore la zone masquée.
+//
+// ⚠️ Attentes RÉVISÉES par #1664 (Patatorz, 27/09/2026, « Non toujours pas
+// réglé »). Ce fichier exigeait aussi que l'AUTRE zone du groupe disparaisse
+// (`not.toContain(LVDS.name)`) : personne ne l'a jamais demandé, et c'est
+// précisément le défaut. L'attendu de #1272 — « garder la zone pilotée plutôt
+// que la première venue » — est tenu a fortiori quand les deux lignes
+// restent. Le regroupement ne vaut plus que pour l'indistinguable : même
+// appareil ET même nom (voir `zonesSelecteur1664.test.ts`). Les témoins qui
+// portent la règle de représentation la jouent donc sur un groupe de MÊME nom,
+// le seul où elle décide encore de quelque chose.
 //
 // Deux étages de témoins :
 // 1. la règle, sur la vraie fonction `zonesDuSelecteur` ;
@@ -25,17 +35,19 @@ const USB = { id: 9, name: 'dCS Vivaldi Upsampler Plus USB', output_device_id: '
 const SALON = { id: 1, name: 'Salon', output_device_id: 'alsa:hw0', online: true, state: 'stopped', volume: 0.4 };
 const NAVIGATEUR = { id: 3, name: 'Navigateur', output_device_id: null, online: true, state: 'stopped', volume: 0.4 };
 
-describe('#1272 — zonesDuSelecteur : la zone pilotée représente son appareil', () => {
-  it('garde la zone PILOTÉE quand une autre zone, plus haut, partage son appareil', () => {
+describe('#1272 — zonesDuSelecteur : la zone pilotée est dans son propre sélecteur', () => {
+  it('liste la zone PILOTÉE même quand une autre zone, plus haut, partage son appareil', () => {
     const rendu = zonesDuSelecteur([SALON, LVDS, USB, NAVIGATEUR], USB.id);
     expect(
       rendu.map((z) => z.id),
       'la zone pilotée a disparu de son propre sélecteur (#1272) : le dédoublonnage par appareil garde la première venue',
-    ).toEqual([SALON.id, USB.id, NAVIGATEUR.id]);
+    ).toContain(USB.id);
+    // #1664 : la zone LVDS n'a pas à disparaître pour autant.
+    expect(rendu.map((z) => z.id)).toEqual([SALON.id, LVDS.id, USB.id, NAVIGATEUR.id]);
   });
 
-  it('reste à une zone par appareil (la garde de 2fe77a3e contre les centaines de doublons)', () => {
-    const doublons = Array.from({ length: 300 }, (_, i) => ({ id: 100 + i, output_device_id: 'dlna:uuid-1' }));
+  it('reste à une zone par appareil ET par nom (la garde de 2fe77a3e contre les centaines de doublons)', () => {
+    const doublons = Array.from({ length: 300 }, (_, i) => ({ id: 100 + i, name: 'Chambre', output_device_id: 'dlna:uuid-1' }));
     const rendu = zonesDuSelecteur([...doublons, SALON], SALON.id);
     expect(rendu.map((z) => z.id)).toEqual([100, SALON.id]);
   });
@@ -45,14 +57,16 @@ describe('#1272 — zonesDuSelecteur : la zone pilotée représente son appareil
   // Ludovic s'est plaint en v0.9.158 : sa zone qui joue restait invisible
   // parce qu'il pilotait une troisième zone. « La première venue » ne vaut
   // donc plus que si AUCUNE zone du groupe ne se distingue.
-  it('sans zone pilotée, c\u2019est la zone qui JOUE qui représente le groupe (#1345)', () => {
-    expect(zonesDuSelecteur([LVDS, USB, SALON], SALON.id).map((z) => z.id)).toEqual([USB.id, SALON.id]);
-    expect(zonesDuSelecteur([LVDS, USB], null).map((z) => z.id)).toEqual([USB.id]);
+  it('dans un groupe indistinguable, c’est la zone qui JOUE qui le représente (#1345)', () => {
+    const a = { ...LVDS, name: 'Diretta' };
+    const b = { ...USB, name: 'Diretta' };
+    expect(zonesDuSelecteur([a, b, SALON], SALON.id).map((z) => z.id)).toEqual([b.id, SALON.id]);
+    expect(zonesDuSelecteur([a, b], null).map((z) => z.id)).toEqual([b.id]);
   });
 
   it('aucune zone ne se distingue : la première venue, comme avant', () => {
-    const a = { ...LVDS, state: 'stopped' };
-    const b = { ...USB, state: 'stopped' };
+    const a = { ...LVDS, name: 'Diretta', state: 'stopped' };
+    const b = { ...USB, name: 'Diretta', state: 'stopped' };
     expect(zonesDuSelecteur([a, b, SALON], SALON.id).map((z) => z.id)).toEqual([a.id, SALON.id]);
     expect(zonesDuSelecteur([a, b], null).map((z) => z.id)).toEqual([a.id]);
   });
@@ -122,7 +136,8 @@ describe('#1272 — la barre de lecture montée', () => {
       noms,
       'la zone pilotée « dCS Vivaldi Upsampler Plus USB » manque au sélecteur de la barre de lecture (#1272)',
     ).toContain(USB.name);
-    expect(noms).not.toContain(LVDS.name);
+    // #1664 : et la zone du même appareil n'a pas été sacrifiée pour ça.
+    expect(noms).toContain(LVDS.name);
 
     const compteur = el.querySelector('.zone-popover-count')?.textContent?.trim();
     expect(
@@ -138,8 +153,10 @@ describe('#1272 — la barre de lecture montée', () => {
 
 // #1345 — Ludovic Audouin, v0.9.158 : la zone dCS, PAR DÉFAUT et EN LECTURE,
 // restait invisible parce qu'il pilotait une troisième zone (le Serenade).
+// L'attendu tenu ici : elle est LÀ. #1664 retire l'exigence inverse — « et
+// LVDS n'y est pas » — qui n'a jamais été demandée par personne.
 
-describe('#1345 — la zone qui joue représente son appareil', () => {
+describe('#1345 — la zone qui joue est dans le sélecteur', () => {
   const lvds = { id: 7, output_device_id: 'diretta:target-1', name: 'LVDS' };
   const dcs = {
     id: 12,
@@ -151,41 +168,50 @@ describe('#1345 — la zone qui joue représente son appareil', () => {
   const serenade = { id: 3, output_device_id: 'dlna:serenade', name: 'Serenade' };
   const zones = [lvds, dcs, serenade];
 
-  it('pilote ailleurs : c’est la zone qui JOUE qui apparaît', () => {
+  it('pilote ailleurs : la zone qui JOUE est listée', () => {
     const r = zonesDuSelecteur(zones, serenade.id).map((z) => z.name);
-    expect(r).toEqual(['dCS Vivaldi', 'Serenade']);
+    expect(r).toEqual(['LVDS', 'dCS Vivaldi', 'Serenade']);
   });
 
-  it('la zone pilotée garde la priorité sur la zone qui joue', () => {
+  it('la zone pilotée est listée elle aussi', () => {
     const r = zonesDuSelecteur(zones, lvds.id).map((z) => z.name);
-    expect(r).toEqual(['LVDS', 'Serenade']);
+    expect(r).toEqual(['LVDS', 'dCS Vivaldi', 'Serenade']);
   });
 
-  it('sans lecture, la zone PAR DÉFAUT représente son appareil', () => {
+  it('sans lecture, la zone PAR DÉFAUT reste listée', () => {
     const dcsArretee = { ...dcs, state: 'stopped' };
     const r = zonesDuSelecteur([lvds, dcsArretee, serenade], serenade.id).map((z) => z.name);
-    expect(r).toEqual(['dCS Vivaldi', 'Serenade']);
+    expect(r).toEqual(['LVDS', 'dCS Vivaldi', 'Serenade']);
   });
 
-  it('contre-épreuve : sans zone pilotée, sans lecture et sans défaut, la première gagne comme avant', () => {
+  it('dans un groupe de MÊME nom, la zone qui joue représente le groupe', () => {
+    const a = { id: 7, output_device_id: 'diretta:target-1', name: 'Diretta' };
+    const b = { id: 12, output_device_id: 'diretta:target-1', name: 'Diretta', state: 'playing' };
+    expect(zonesDuSelecteur([a, b, serenade], serenade.id).map((z) => z.id)).toEqual([b.id, serenade.id]);
+  });
+
+  it('contre-épreuve : même nom, rien qui distingue, la première gagne comme avant', () => {
     const neutres = [
-      { id: 7, output_device_id: 'diretta:target-1', name: 'LVDS' },
-      { id: 12, output_device_id: 'diretta:target-1', name: 'dCS Vivaldi' },
+      { id: 7, output_device_id: 'diretta:target-1', name: 'Diretta' },
+      { id: 12, output_device_id: 'diretta:target-1', name: 'Diretta' },
     ];
-    expect(zonesDuSelecteur(neutres, null).map((z) => z.name)).toEqual(['LVDS']);
+    expect(zonesDuSelecteur(neutres, null).map((z) => z.id)).toEqual([7]);
   });
 
   it('la pause compte comme une écoute en cours', () => {
-    const enPause = { ...dcs, state: 'paused', is_default: false };
-    const r = zonesDuSelecteur([lvds, enPause, serenade], serenade.id).map((z) => z.name);
-    expect(r).toEqual(['dCS Vivaldi', 'Serenade']);
+    const a = { id: 7, output_device_id: 'diretta:target-1', name: 'Diretta' };
+    const enPause = { id: 12, output_device_id: 'diretta:target-1', name: 'Diretta', state: 'paused' };
+    const r = zonesDuSelecteur([a, enPause, serenade], serenade.id).map((z) => z.id);
+    expect(r).toEqual([enPause.id, serenade.id]);
   });
 
-  it('la place de l’appareil dans la liste ne bouge pas', () => {
+  it('la place du groupe dans la liste ne bouge pas', () => {
     const avant = { id: 1, output_device_id: 'dlna:a', name: 'Avant' };
     const apres = { id: 2, output_device_id: 'dlna:b', name: 'Après' };
-    const r = zonesDuSelecteur([avant, lvds, dcs, apres], null).map((z) => z.name);
-    expect(r).toEqual(['Avant', 'dCS Vivaldi', 'Après']);
+    const a = { id: 7, output_device_id: 'diretta:target-1', name: 'Diretta' };
+    const b = { id: 12, output_device_id: 'diretta:target-1', name: 'Diretta', state: 'playing' };
+    const r = zonesDuSelecteur([avant, a, b, apres], null).map((z) => z.id);
+    expect(r).toEqual([avant.id, b.id, apres.id]);
   });
 
   it('le plafond ne peut pas exclure la zone qui joue', () => {
