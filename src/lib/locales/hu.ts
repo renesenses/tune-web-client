@@ -73,6 +73,7 @@ export default {
   // Oxygen (haladó gyűjteménynézet)
   "playback.errorFileNotFound": "A fájl nem található — lehet, hogy áthelyezték vagy törölték (nincs csatlakoztatva a meghajtó vagy a hálózati megosztás?). Olvasd be újra a gyűjteményedet.",
   "playback.errorNoOutputDevice": "Ennek a zónának nincs hangkimenete. Válassz másik zónát, vagy állítsd be újra a kimenetét.",
+  "playback.errorSampleRateUnknown": "A Qobuz nem adta meg ennek a számnak a mintavételezési frekvenciáját, és a Tune a fájlból sem tudta kiolvasni: a lejátszás nem lehetséges. Próbáld újra később, vagy válassz másik minőséget.",
   "oxygen.eyebrow": "Gyűjtemény · Oxygen",
   "oxygen.title": "Kollekció",
   "oxygen.view.album": "Albumok",
