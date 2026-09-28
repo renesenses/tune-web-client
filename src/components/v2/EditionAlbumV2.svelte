@@ -33,7 +33,7 @@
   import {
     brouillonDepuis, corpsEdition, deplacer, deplacerPiste, validerBrouillon,
     TYPES_DE_SORTIE, type Brouillon, type EditionReponse, type ModeCompilation,
-    champsDuPlan, ecritureBalisesAnnoncee, estRapportBalises, nomDeFichier, raisonsIgnorees,
+    champsDuPlan, ecritureBalisesAnnoncee, estRapportBalises, libelleChampBalise, nomDeFichier, raisonsIgnorees,
     RAISONS_IGNORE, type RapportBalises,
   } from '../../lib/editionAlbum';
 
@@ -275,7 +275,8 @@
       }
       let question = $tr('v2.edition.writeTagsAsk' as any)
         .replace('{n}', String(plan.a_ecrire))
-        .replace('{champs}', champsDuPlan(plan).join(', '));
+        .replace('{champs}', champsDuPlan(plan)
+          .map((c) => libelleChampBalise(c, (cle) => $tr(cle as any))).join(', '));
       if (plan.ignores.length) {
         question += ' ' + $tr('v2.edition.writeTagsAskSkipped' as any)
           .replace('{n}', String(plan.ignores.length))

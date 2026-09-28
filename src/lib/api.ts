@@ -3463,6 +3463,110 @@ export function deleteCrossfeedPreset(id: string): Promise<void> {
   return fetchVoid(`${BASE}/crossfeed/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
+/*
+ * GREFFONS AUDIO NATIFS TIERS — réglage par zone et profils nommés
+ * (tune-server-rust, `routes/greffons_natifs_tiers.rs`, v0.9.167).
+ *
+ * L'hôte ne connaît pas la sémantique des réglages : il stocke le JSON du
+ * greffon tel quel et le fait valider par le greffon lui-même. Il ne publie
+ * NI le schéma, NI les bornes, NI les préréglages du greffon.
+ *
+ * Refus (corps `{ error }`, rangé dans `ApiError.code`) :
+ *   404 `plugin_inconnu`          le greffon n'est ni sur le disque ni chargé ;
+ *   402                           pas de Premium (écriture seulement) ;
+ *   409 `plugin_unavailable`      installé mais désactivé ou non chargé ;
+ *   400 `invalid_plugin_settings` réglage refusé par le greffon.
+ * Lire est libre ; écrire exige le Premium ET le greffon actif.
+ */
+
+/** `GET /audio-plugins/{id}/zones/{zone}` — `settings` vaut `null` tant que
+ *  la zone n'a rien enregistré ; `active` = installé, activé ET chargé. */
+export interface ReglageGreffonNatif {
+  plugin: string;
+  zone_id: number;
+  settings: Record<string, unknown> | null;
+  active: boolean;
+}
+
+/** `PUT` — `applied_live: false` n'est pas un échec (rien ne joue, zone non
+ *  locale, mode PURE) : le réglage vaudra à la lecture suivante. */
+export interface ReglageGreffonNatifApplique {
+  plugin: string;
+  zone_id: number;
+  settings: Record<string, unknown>;
+  applied_live: boolean;
+}
+
+export interface ProfilGreffonNatif {
+  id: string;
+  name: string;
+  settings: Record<string, unknown>;
+  created_at?: number;
+}
+
+/** Un emplacement de `GET /audio-plugins/` : les quatre intégrés
+ *  (`third_party: false`) et les greffons natifs TIERS présents sur le disque. */
+export interface GreffonAudioNatif {
+  id: string;
+  third_party: boolean;
+  /** Chargé en mémoire par l'hôte (bibliothèque native enregistrée). */
+  native_loaded: boolean;
+  /** Le motif d'un échec de chargement, sinon `null`. */
+  error: string | null;
+}
+
+export interface EtatGreffonsAudioNatifs {
+  abi?: number;
+  target?: string;
+  trust_configured?: boolean;
+  plugins: GreffonAudioNatif[];
+}
+
+/** `GET /audio-plugins` — réservé à l'administrateur quand l'authentification
+ *  est active (403 sinon) : l'appelant traite l'échec comme « rien à montrer ». */
+export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs> {
+  const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins`);
+  return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
+}
+
+const racineGreffonNatif = (id: string) => `${BASE}/audio-plugins/${encodeURIComponent(id)}`;
+
+export function getReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
+  return fetchJSON<ReglageGreffonNatif>(`${racineGreffonNatif(id)}/zones/${zoneId}`);
+}
+
+export function setReglageGreffonNatif(
+  id: string,
+  zoneId: number,
+  settings: Record<string, unknown>,
+): Promise<ReglageGreffonNatifApplique> {
+  return fetchJSON<ReglageGreffonNatifApplique>(`${racineGreffonNatif(id)}/zones/${zoneId}`, {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  });
+}
+
+export async function listProfilsGreffonNatif(id: string): Promise<ProfilGreffonNatif[]> {
+  const r = await fetchJSON<{ profiles: ProfilGreffonNatif[] }>(`${racineGreffonNatif(id)}/profiles`);
+  return Array.isArray(r?.profiles) ? r.profiles : [];
+}
+
+/** Même nom (casse et espaces ignorés) = mise à jour, même `id` (200) ;
+ *  sinon création (201). */
+export function saveProfilGreffonNatif(
+  id: string,
+  body: { name: string; settings: Record<string, unknown> },
+): Promise<ProfilGreffonNatif> {
+  return fetchJSON<ProfilGreffonNatif>(`${racineGreffonNatif(id)}/profiles`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteProfilGreffonNatif(id: string, profil: string): Promise<void> {
+  return fetchVoid(`${racineGreffonNatif(id)}/profiles/${encodeURIComponent(profil)}`, { method: 'DELETE' });
+}
+
 export function getDsp(zoneId: number) {
   return fetchJSON<DspSettings>(`${BASE}/zones/${zoneId}/dsp`);
 }

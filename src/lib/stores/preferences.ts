@@ -624,6 +624,26 @@ export async function syncPreferencesFromServer() {
         preferences.update((local) => ({
           ...defaults, ...server, ...local,
           sourcesBarre: { ...(normaliserTypesBarre(server.sourcesBarre) ?? {}), ...(local.sourcesBarre ?? {}) },
+          // #1673 — même piège, et il a mordu la photo d'avatar.
+          //
+          // `...local` gagne clé par clé, et `createPreferences` sérialise le
+          // blob ENTIER dès la première émission : toute machine ayant affiché
+          // Tune une seule fois porte déjà `avatarImage: ''` en localStorage.
+          // Ce `''` n'est pas un choix, c'est le défaut — et il écrasait, à
+          // chaque chargement, la photo que le serveur porte pour ce profil.
+          // Levente Toth la voyait sur la machine A et sur aucune autre, alors
+          // que le transport, lui, marche : mesuré sur le serveur d'essai, un
+          // `PATCH` de 12 023 octets de donnée URL est relu INTACT, et reste
+          // invisible du profil voisin.
+          //
+          // On n'adopte donc que sur une ABSENCE locale : une photo choisie
+          // ici garde la main. `avatarCompte` voyage AVEC l'image et jamais
+          // sans — `photoAAfficher` refuse d'afficher une photo dont le
+          // propriétaire ne correspond pas au compte ouvert, et une image
+          // adoptée sans son propriétaire serait reçue puis jamais montrée.
+          ...(!local.avatarImage && server.avatarImage
+            ? { avatarImage: server.avatarImage, avatarCompte: server.avatarCompte ?? '' }
+            : {}),
         }));
       } else {
         preferences.update(() => ({ ...defaults, ...server }));

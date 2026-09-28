@@ -213,7 +213,8 @@ const texte = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim(
 const noms = (el: Element, sel: string) => [...el.querySelectorAll(sel)].map((n) => texte(n));
 const chemin = (a: Appel) => a.url.replace(/^.*ext\/circle/, '');
 const gestes = () => appels.filter((a) => a.url.includes('/ext/circle') && a.method !== 'GET');
-const lecturesCatalogue = () => appels.filter((a) => /\/ext\/circle\/contacts\//.test(a.url)).map(chemin);
+// T3 (#5326) lit aussi `/contacts/{uid}/sets` à l'ouverture : ce témoin ne compte que le catalogue.
+const lecturesCatalogue = () => appels.filter((a) => /\/ext\/circle\/contacts\/\d+\/library\//.test(a.url)).map(chemin);
 
 function cercleDe(el: Element, nom: string): Element {
   const a = [...el.querySelectorAll('article.cercle')].find((n) => n.querySelector('.cercle-nom')?.textContent === nom);
@@ -385,7 +386,9 @@ describe('T2 — parcourir le catalogue d’un contact', () => {
     expect(texte(el.querySelector('.lecture-seule')!)).toBe(fr['v2.circle.lib.readOnly']);
     sansFuite(el);
     // Aucune demande de lecture n'est partie vers le serveur local.
-    expect(appels.some((a) => /\/(play|queue)/.test(a.url))).toBe(false);
+    // (`/(play|queue)` suivi d'une fin de segment : `/ext/circle/playlists`, T5,
+    // est une LISTE de playlists de cercle, pas une demande de lecture.)
+    expect(appels.some((a) => /\/(play|queue)(\/|\?|$)/.test(a.url))).toBe(false);
   });
 
   it('artistes → albums de l’artiste ; titres ; recherche', async () => {
