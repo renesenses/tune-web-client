@@ -103,7 +103,17 @@ describe('fil 1919 (ticket 165) — les trois vues d’albums paient le même pr
     // vue : si un jour les trois vues partagent un seul `{#each}`, ce test
     // rougira, et c'est à ce moment-là qu'il faudra le retirer — pas avant.
     const src = sourceSansCommentaires();
-    expect(src.includes("type Display = 'grid' | 'list' | 'carousel'"), 'les trois vues ont changé de forme').toBe(true);
+    // web#1719 — les trois modes ont été SORTIS de ce fichier (`lib/affichage`)
+    // pour que les Favoris et le Gestionnaire de playlists emploient la même
+    // bascule. Même intention, même sévérité : on lit la liste là où elle est
+    // désormais, et on garde le fait que la Bibliothèque en est le seul écran
+    // à trois crans.
+    const partage = readFileSync(resolve(process.cwd(), 'src/lib/affichage.ts'), 'utf8');
+    expect(
+      /AFFICHAGES\s*=\s*\['grid',\s*'list',\s*'carousel'\]/.test(partage),
+      'les trois vues ont changé de forme',
+    ).toBe(true);
+    expect(src.includes('type Display = Affichage'), 'la Bibliothèque ne lit plus les modes partagés').toBe(true);
     const branches = (src.match(/display === 'list'|display === 'carousel'/g) ?? []).length;
     expect(
       branches,

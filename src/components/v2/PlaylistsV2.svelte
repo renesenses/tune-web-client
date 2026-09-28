@@ -33,6 +33,9 @@
   import { objetPlaylist, objetPlaylistIntelligente } from '../../lib/gestesObjet';
   import RenommerModale from './RenommerModale.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
+  import BasculeAffichage from './BasculeAffichage.svelte';
+  import { GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
+  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import { untrack } from 'svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
@@ -311,6 +314,25 @@
    */
   type Onglet = 'listes' | 'smart';
   let onglet = $state<Onglet>('listes');
+
+  /**
+   * web#1719 — LA BASCULE D'AFFICHAGE, celle de la Bibliothèque.
+   *
+   * FabienM, fil 2013, point 4 : « …et aussi dans le menu Playlists ». Sur sa
+   * capture, le Gestionnaire de playlists est DÉJÀ en mosaïques : ce qui lui
+   * manque, c'est le choix — et le bouton qui le dit.
+   *
+   * 🔴 UN SEUL état pour les trois listes de l'écran (un service, les
+   * intelligentes, les locales). Ce sont les mêmes cartes sous trois filtres,
+   * et non trois écrans : un choix par onglet obligerait à rebasculer à chaque
+   * pastille. C'est le contraire des Favoris, où Albums et Playlists n'ont ni
+   * la même forme ni le même défaut.
+   *
+   * La grille reste le défaut — « playlists en vue grille par défaut »,
+   * Bertrand, 02/09/2026 : personne ne voit son écran changer à la mise à jour.
+   */
+  let affichage = $state<Affichage>(lireChoix('pl.display', GRILLE_OU_LISTE, 'grid'));
+  $effect(() => ecrireChoix('pl.display', affichage));
 
   /**
    * DEUX NIVEAUX d'onglets, comme l'écran Streaming.
@@ -617,6 +639,14 @@
         <button class="vider" onclick={() => (recherche = '')} aria-label={$t('common.clear' as any)}>×</button>
       {/if}
     </label>
+    <!-- web#1719 — LE MÊME bouton que la Bibliothèque et les Favoris
+         (`BasculeAffichage`). Hors de `showAdvanced` : choisir la forme de sa
+         liste n'est pas une fonction avancée, et le niveau Essentiel a
+         justement le plus besoin d'une liste lisible. -->
+    <span class="vues">
+      <BasculeAffichage modes={GRILLE_OU_LISTE} valeur={affichage}
+        onChanger={(v) => (affichage = v)} />
+    </span>
     {#if showAdvanced}
       {#if creating}
         <div class="newp">
@@ -730,7 +760,7 @@
       {#if !liste.length}
         <div class="state">{$t('v2.pl.noneHere' as any)}</div>
       {:else}
-        <div class="grid">
+        <div class="grid" class:liste={affichage === 'list'}>
           {#each liste as pl (pl.source_id)}
             <!-- La surcouche commune, comme les playlists locales de cet ecran
                  (Bertrand, 03/09/2026). Pas de coeur ici. Les ETIQUETTES, si :
@@ -780,7 +810,7 @@
         <div class="state">{$t('v2.pl.noSmart' as any)}</div>
       {:else}
         <section class="grp">
-          <div class="grid">
+          <div class="grid" class:liste={affichage === 'list'}>
             {#each smart.filter((sp) => correspond(sp?.name)) as sp (sp.id)}
               {@const mos = sp.id != null ? smartMosaiques[sp.id] : undefined}
               <div class="card local">
@@ -815,7 +845,7 @@
     {:else}
       <section class="grp">
         {#if local.filter((pl) => correspond(pl?.name)).length}
-          <div class="grid">
+          <div class="grid" class:liste={affichage === 'list'}>
             {#each local.filter((pl) => correspond(pl?.name)) as pl (pl.id)}
               <!-- `pl.id` est nullable dans le type : on résout la mosaïque UNE
                    fois ici, plutôt que d'indexer trois fois avec un garde. -->
@@ -921,6 +951,18 @@
   .grp h2{font-size:18px; font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:22px}
   .card{position:relative; border:0; background:transparent; color:inherit; text-align:left; padding:0; display:flex; flex-direction:column}
+  /* web#1719 — LA LISTE, c'est la même grille couchée. Une colonne, une carte
+     par ligne, la mosaïque réduite. Aucune seconde branche de gabarit : les
+     cinq actions, la pochette et le titre cliquable sont ceux de la grille. */
+  .grid.liste{grid-template-columns:1fr; gap:2px}
+  .grid.liste .card{flex-direction:row; align-items:center; gap:14px;
+    padding:6px 10px; border-radius:9px}
+  .grid.liste .card:hover{background:var(--v2-hover)}
+  .grid.liste .cv{width:48px; flex:0 0 48px}
+  .grid.liste .meta{display:flex; align-items:baseline; gap:12px; flex:1; min-width:0; padding:0}
+  .grid.liste .meta .ct{max-width:48%}
+  .grid.liste .ct, .grid.liste .ca{margin-top:0; min-width:0}
+  .vues{display:inline-flex}
   .outils{display:flex; align-items:center; gap:8px}
   .ghost{position:relative; display:inline-flex; align-items:center; gap:7px; cursor:pointer;
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:transparent;

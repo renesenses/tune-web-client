@@ -460,9 +460,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   let transferringTo = $state<number | null>(null);
   let showTransferDropdown = $state(false);
   /**
-   * Les lignes du menu des zones : une par appareil, et la zone PILOTÉE
-   * représente toujours le sien (#1272 — elle disparaissait de son propre
-   * sélecteur quand une autre zone partageait son appareil Diretta).
+   * Les lignes du menu des zones. Toute zone que l'utilisateur peut NOMMER a
+   * sa ligne : seules les zones indistinguables — même appareil ET même nom —
+   * se regroupent (#1664 ; avant, deux Targets Diretta d'un même boîtier se
+   * mangeaient l'un l'autre, cf. #1272 et #1345). Le plafond de cinquante
+   * lignes reste le garde-fou contre le figeage.
    */
   let zonesDuMenu = $derived(zonesDuSelecteur($zones, $currentZoneId));
   /** Les zones vers lesquelles transférer : les lignes du menu des zones, sauf
