@@ -105,6 +105,13 @@
       if (fini) return;
       etat = e;
       erreurLecture = null;
+      // Un cercle qui ne partage plus ici (coupé ailleurs, déplacé) perd ses
+      // listes gardées : rallumé, il repartira d'une liste relue, décochée.
+      if (estConnecte(e)) {
+        for (const c of e.circles ?? []) {
+          if (!partageIci(c) && (rayons[c.id] || rayonsOuverts[c.id])) { delete rayons[c.id]; delete rayonsOuverts[c.id]; }
+        }
+      }
       if (estConnecte(e)) await relireT2();
     } catch (e) {
       if (fini) return;
@@ -244,15 +251,53 @@
    * AVANT d'envoyer quoi que ce soit.
    */
   async function basculerPartage(c: CercleNomme) {
+    if (occupe !== null) return;
     if (ou(c) === 'ici') {
-      void geste(`partage-${c.id}`, () => arreterPartageBibliotheque(c.id), { succes: 'v2.circle.share.stopped' });
+      // T3 (décision 4 du contrat cloud) : couper le partage SUPPRIME les
+      // sélections de ce cercle. S'il en a, l'écran le dit et le fait
+      // confirmer AVANT d'envoyer quoi que ce soit.
+      const message = await confirmationCoupure(c);
+      if (message !== null && !(await dialogs.confirm(message, { danger: true }))) return;
+      void geste(`partage-${c.id}`, () => arreterPartageBibliotheque(c.id), {
+        succes: 'v2.circle.share.stopped', apres: oublierSelections,
+      });
       return;
     }
     if (partageAilleurs) {
+      // Le texte dit aussi que les sélections des cercles déplacés partent.
       const ok = await dialogs.confirm($t('v2.circle.share.confirmMove' as any));
       if (!ok) return;
     }
-    void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started' });
+    void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started', apres: oublierSelections });
+  }
+
+  /**
+   * Le texte de confirmation d'une coupure, ou `null` s'il n'y a rien à perdre.
+   * Les cases sont relues au greffon, pas prises dans une liste affichée
+   * peut-être ancienne. Un 404 (greffon sans T3) : aucune sélection possible.
+   * Une autre panne : on ne sait pas, on prévient quand même.
+   */
+  async function confirmationCoupure(c: CercleNomme): Promise<string | null> {
+    try {
+      const d = await getRayonsCercle(c.id);
+      const n = [...d.tags, ...d.smart_collections].filter((r) => r.shared).length;
+      if (n === 0) return null;
+      return n === 1 ? $t('v2.circle.sel.confirmStopOne' as any)
+        : $t('v2.circle.sel.confirmStopMany' as any).replace('{n}', String(n));
+    } catch (e) {
+      return plusPartage(e) ? null : $t('v2.circle.sel.confirmStopUnknown' as any);
+    }
+  }
+
+  /**
+   * Après une coupure, un rallumage ou un déplacement : les listes gardées
+   * sont oubliées. Le cloud a supprimé les sélections coupées ; montrer
+   * l'ancienne liste ferait croire qu'elles sont encore cochées. Rien n'est
+   * recoché de soi-même : il faut un nouveau geste du propriétaire.
+   */
+  function oublierSelections() {
+    rayons = {};
+    rayonsOuverts = {};
   }
 
   // ── T3 : rayons partagés ─────────────────────────────────────────────────

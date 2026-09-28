@@ -41,6 +41,8 @@ let rayonsElise: { id: number; kind: string; name: string; count: number }[] = [
 let elisePartage = true;
 /** Le greffon connaît-il T3 ? Sinon ses routes `/sets` n'existent pas (404 nu d'axum). */
 let greffonT3 = true;
+/** La liste locale d'un cercle ne répond pas (503). */
+let panneSets = false;
 
 type Appel = { url: string; method: string; body: unknown };
 let appels: Appel[] = [];
@@ -101,6 +103,22 @@ function greffon(u: string, method: string): Response {
     return reponse(200, { active: true, last_sync: '2026-09-27T08:00:00Z', pending: 0, server_id: 'srv-moi' });
   }
   if (method === 'GET' && chemin === '/shared-with-me') return reponse(200, [{ user_id: 40, name: 'Élise', library: true }]);
+  // T2 : l'interrupteur. Décision 4 du contrat cloud (#235) : couper ou
+  // déplacer le partage SUPPRIME les sélections des cercles concernés.
+  if ((m = chemin.match(/^\/circles\/(\d+)\/sharing\/library$/))) {
+    const c = cercles.find((x) => x.id === Number(m![1]));
+    if (!c) return introuvable();
+    const oublier = (id: number) => { for (const k of [...coches]) if (k.startsWith(`${id}:`)) coches.delete(k); };
+    if (method === 'DELETE') { c.sharing = { library: false, server_id: null }; oublier(c.id); return reponse(200, { ok: true }); }
+    if (method === 'PUT') {
+      for (const x of cercles) {
+        if (x.sharing?.library && x.sharing.server_id !== 'srv-moi') { oublier(x.id); x.sharing.server_id = 'srv-moi'; }
+      }
+      c.sharing = { library: true, server_id: 'srv-moi' };
+      return reponse(200, c);
+    }
+  }
+  if (panneSets && chemin.match(/^\/circles\/\d+\/sets$/)) return reponse(503, { code: 'circle.cloud_unavailable' });
   if (!greffonT3 && chemin.includes('/sets')) return reponse(404, null);
   if ((m = chemin.match(/^\/circles\/(\d+)\/sets$/)) && method === 'GET') {
     const c = cercles.find((x) => x.id === Number(m![1]));
@@ -166,6 +184,7 @@ beforeEach(() => {
   rayonsElise = [{ id: 501, kind: 'tag', name: 'Jazz ECM', count: 3 }, { id: 502, kind: 'smart_collection', name: 'Nuit', count: 5 }];
   elisePartage = true;
   greffonT3 = true;
+  panneSets = false;
   circlePlugin.set(null);
   preferences.update((p) => ({ ...p, settingsLevel: 'intermediate' }));
   vi.stubGlobal(
@@ -499,6 +518,83 @@ describe('T3 — le mot « Sélection » (décision de Bertrand du 28/09) : jama
     await cliquer(el, 'button.rayon-contact');
     expect(texte(el.querySelector('.rayon-parti')!)).toBe('Cette sélection n\'est plus partagée.');
     expect(el.textContent).not.toMatch(/rayon/i);
+  });
+});
+
+describe('T3 — couper le partage supprime les sélections (décision 4, site-mozaiklabs#235)', () => {
+  const dialogue = () => get(dialogs)[0];
+  async function repondre(oui: boolean) { dialogs.settle(dialogue().id, oui); await laisserFaire(); }
+  async function cocherDansFamille(el: Element, ...nomsCases: string[]) {
+    await cliquer(cercleDe(el, 'Famille'), 'button.ouvrir-rayons');
+    for (const n of nomsCases) await cocher(cercleDe(el, 'Famille'), n);
+  }
+  const partageGestes = () => gestes().filter((a) => /sharing\/library$/.test(a.url)).map((a) => `${a.method} ${chemin(a)}`);
+
+  it('éteindre avec 2 sélections cochées : « Les 2 sélections… » ; refuser n’envoie RIEN', async () => {
+    const el = await poser();
+    await cocherDansFamille(el, 'Jazz ECM', 'Vinyles rippés');
+    const avant = gestes().length;
+    await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
+    expect(dialogue()?.message).toBe(fr['v2.circle.sel.confirmStopMany'].replace('{n}', '2'));
+    expect(dialogue()?.message).toMatch(/recocher/);
+    await repondre(false);
+    expect(gestes()).toHaveLength(avant);
+    expect(cercleDe(el, 'Famille').querySelector('button.interrupteur-partage')!.getAttribute('aria-checked')).toBe('true');
+    // Accepter : DELETE du partage, et rien d'autre.
+    await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
+    await repondre(true);
+    expect(gestes().slice(avant).map((a) => `${a.method} ${chemin(a)}`)).toEqual(['DELETE /circles/7/sharing/library']);
+  });
+
+  it('une seule sélection : la phrase au singulier', async () => {
+    const el = await poser();
+    await cocherDansFamille(el, 'Jazz ECM');
+    await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
+    expect(dialogue()?.message).toBe(fr['v2.circle.sel.confirmStopOne']);
+  });
+
+  it('aucune sélection cochée : pas de confirmation, DELETE tout de suite', async () => {
+    const el = await poser();
+    await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
+    expect(get(dialogs)).toHaveLength(0);
+    expect(partageGestes()).toEqual(['DELETE /circles/7/sharing/library']);
+  });
+
+  it('liste illisible (503) : on ne sait pas, on prévient quand même', async () => {
+    panneSets = true;
+    const el = await poser();
+    await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
+    expect(dialogue()?.message).toBe(fr['v2.circle.sel.confirmStopUnknown']);
+    await repondre(false);
+    expect(partageGestes()).toEqual([]);
+  });
+
+  it('rallumer : les cases sont DÉCOCHÉES, rien n’est recoché tout seul', async () => {
+    const el = await poser();
+    await cocherDansFamille(el, 'Jazz ECM');
+    expect(caseDe(cercleDe(el, 'Famille'), 'Jazz ECM').checked).toBe(true);
+    await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
+    await repondre(true);
+    await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
+    expect(partageGestes()).toEqual(['DELETE /circles/7/sharing/library', 'PUT /circles/7/sharing/library']);
+    // Aucune ancienne liste n'est remontrée comme vraie…
+    const famille = cercleDe(el, 'Famille');
+    expect(famille.querySelector('input.coche-rayon')).toBeNull();
+    expect(famille.querySelector('button.ouvrir-rayons')!.getAttribute('aria-expanded')).toBe('false');
+    // …la liste relue est décochée, et aucun PUT de sélection n'est reparti.
+    await cliquer(famille, 'button.ouvrir-rayons');
+    for (const c of cercleDe(el, 'Famille').querySelectorAll('input.coche-rayon')) expect((c as HTMLInputElement).checked).toBe(false);
+    expect(gestes().filter((a) => /\/sets\//.test(a.url)).map((a) => a.method)).toEqual(['PUT']);
+  });
+
+  it('déplacer le partage vers ce serveur : le texte dit que les sélections partent ; refuser n’envoie rien', async () => {
+    cercles[1].sharing = { library: true, server_id: 'srv-autre' };
+    const el = await poser();
+    await cliquer(cercleDe(el, 'Jazz'), 'button.interrupteur-partage');
+    expect(dialogue()?.message).toBe(fr['v2.circle.share.confirmMove']);
+    expect(fr['v2.circle.share.confirmMove']).toMatch(/sélections partagées par ces cercles seront retirées/);
+    await repondre(false);
+    expect(gestes()).toHaveLength(0);
   });
 });
 
