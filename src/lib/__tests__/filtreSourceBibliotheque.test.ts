@@ -40,7 +40,7 @@ import {
 } from '../facettesBibliotheque';
 import type { Album, Source } from '../types';
 
-import { provenanceDe } from '../provenanceBibliotheque';
+import { libelleProvenance, provenanceDe } from '../provenanceBibliotheque';
 import { dictionnaire } from './onzeDictionnaires';
 
 const OUTILS: Outils = {
@@ -223,7 +223,11 @@ describe('la pilule dans la barre de filtres', () => {
     // quand un nom existe. Le registre est `/network/media-servers`, dont le
     // champ `id` est ce même UDN.
     expect(SOURCE_LIBRARYV2).toContain('api.getMediaServers()');
-    expect(SOURCE_LIBRARYV2).toContain('nomsServeurs[udn]');
+    // La règle vit dans `libelleProvenance` depuis que la fiche artiste
+    // l'emploie aussi (pastilles « Source », 28/09/2026) ; l'écran lui passe
+    // les noms du registre.
+    expect(SOURCE_LIBRARYV2).toContain('libelleProvenanceDe(cle, nomsServeurs,');
+    expect(libelleProvenance('upnp:uuid:srv', { 'uuid:srv': 'Sonos' }, 'Local')).toBe('Sonos');
   });
 });
 
