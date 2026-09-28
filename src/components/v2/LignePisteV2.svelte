@@ -80,9 +80,18 @@
      * chose, et l'écran qui le sait le dit (`playlist.unavailable`).
      */
     etiquetteIndispo?: string;
+    /**
+     * 🔴 LECTURE SEULE — une piste qu'on ne peut que REGARDER (Tune Circle T2,
+     * renesenses/tune-server-rust#5325 : le catalogue d'un contact).
+     *
+     * Ni barre d'actions, ni clic de lecture, ni état « en lecture » : la
+     * piste appartient au serveur d'un AMI, et ses identifiants ne désignent
+     * rien chez nous. Écouter, c'est l'étape T4. Absent = la ligne d'avant.
+     */
+    lectureSeule?: boolean;
   }
   let { piste, onLire, onLireDepuis = null, numero = null, pochette = true, avecAlbum = true,
-        onOuvrirAlbum = null, etiquetteIndispo = 'v2.str.coming' }: Props = $props();
+        onOuvrirAlbum = null, etiquetteIndispo = 'v2.str.coming', lectureSeule = false }: Props = $props();
 
   /**
    * 🔴 Les colonnes sont CALCULÉES, pas figées dans la feuille.
@@ -111,7 +120,7 @@
    * calcul : une piste en PAUSE s'affichait comme si elle jouait.
    */
   const etatLigne = $derived(
-    etatDeLaLigne(piste, $currentTrackId, $currentTrack, $playbackState),
+    lectureSeule ? null : etatDeLaLigne(piste, $currentTrackId, $currentTrack, $playbackState),
   );
   const enLecture = $derived(etatLigne != null);
   /** Point 10 (17/09/2026) — le service ne sert pas encore cette piste : la
@@ -123,9 +132,12 @@
    * grisé » (Bertrand, 23/09/2026). La surcharge locale dit ce que le menu
    * vient de décider, sans recharger la liste.
    */
-  const bannie = $derived(estBannie(piste, $surchargesBannissement));
+  const bannie = $derived(!lectureSeule && estBannie(piste, $surchargesBannissement));
+  /** Lecture seule : le titre ne lance rien, et le dit (désactivé). */
+  const inerte = $derived(lectureSeule ? { disabled: true } : {});
   async function lireDelibere() {
     if (indispo) return;
+    if (lectureSeule) return;
     if (!(await confirmerLectureBannie(piste))) return;
     onLire();
   }
@@ -184,7 +196,7 @@
       </span>
     {/if}
   {/if}
-  <button class="tclick" onclick={() => void lireDelibere()} disabled={indispo}>
+  <button class="tclick" onclick={() => void lireDelibere()} disabled={indispo} {...inerte}>
     <span class="ti">
       <!-- `title` : ces deux lignes s'elident. Sans lui, un titre long est
            illisible et rien ne permet d'en lire la fin (Bilou, forum). -->
@@ -205,7 +217,7 @@
   <span class="qb"><QualityBadge format={piste.format} sampleRate={piste.sample_rate}
     bitDepth={piste.bit_depth} source={piste.source} /></span>
   <span class="dur">{piste.duration_ms ? formatTime(piste.duration_ms) : ''}</span>
-  <PisteActions {piste} {onLireDepuis} />
+  {#if !lectureSeule}<PisteActions {piste} {onLireDepuis} />{/if}
 </div>
 
 <style>

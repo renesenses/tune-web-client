@@ -31,10 +31,34 @@
  *
  * Tous les appels passent `sansBandeau` : l'écran dit lui-même chaque refus,
  * dans sa langue — jamais le bandeau brut « Server error: … ».
+ *
+ * ── Étape T2 (renesenses/tune-server-rust#5325, décisions du 28/09/2026) ──
+ * Le catalogue d'un contact, EN LECTURE, lu dans sa copie en ligne :
+ *
+ *   GET    /                            → chaque cercle gagne
+ *                                          `sharing: { library, server_id }` (additif)
+ *   PUT    /circles/{id}/sharing/library → partage la bibliothèque de CE serveur
+ *                                          avec CE cercle (sans corps : le greffon
+ *                                          ajoute lui-même son `server_id`)
+ *   DELETE /circles/{id}/sharing/library → coupe, effet immédiat → { ok: true }
+ *   GET    /library-sync                → { premium, active, last_sync, pending, server_id? },
+ *                                          état LOCAL de la copie en ligne ; `server_id`
+ *                                          = CE serveur (décision du 28/09, facultatif)
+ *   GET    /shared-with-me              → [{ user_id, name, library }]
+ *   GET    /contacts/{uid}/library/stats                 → { tracks, albums, artists, last_sync }
+ *   GET    /contacts/{uid}/library/artists?search&sort&page
+ *   GET    /contacts/{uid}/library/albums?search&sort&artist&page   (`artist` = IDENTIFIANT d'artiste)
+ *   GET    /contacts/{uid}/library/albums/{album_id}/tracks
+ *   GET    /contacts/{uid}/library/tracks?search&sort&page
+ *
+ * Un 404 sur `/contacts/…` veut dire « plus partagé » (révocation, retrait du
+ * cercle, partage coupé) : il est identique pour un compte inexistant, et
+ * l'écran n'en déduit rien d'autre.
  */
 import { writable, derived } from 'svelte/store';
 import * as api from './api';
 import { BASE, fetchJSON, type ApiError } from './api';
+import type { Track } from './types';
 
 export interface ContactCercle {
   user_id: number;
@@ -50,11 +74,18 @@ export interface InvitationCercle {
   expires_at: string;
 }
 
+/** T2 — ce qu'un de MES cercles partage. Absent = rien (greffon T1, ou jamais activé). */
+export interface PartageCercle {
+  library: boolean;
+  server_id?: string | null;
+}
+
 /** Un de MES cercles : un classement privé, que les contacts ne voient pas. */
 export interface CercleNomme {
   id: number;
   name: string;
   member_ids: number[];
+  sharing?: PartageCercle | null;
 }
 
 export interface EtatCercleConnecte {
@@ -129,6 +160,239 @@ export function retirerDuCercle(id: number, userId: number): Promise<{ ok: boole
   return envoyer(`${BASE}/ext/circle/circles/${seg(id)}/members/${seg(userId)}`, 'DELETE');
 }
 
+// ─── T2 : partager ma bibliothèque avec un cercle ───────────────────────────
+
+/** 🔴 Désactivé par défaut : seul un `sharing.library === true` explicite compte. */
+export function partageActif(c: CercleNomme): boolean {
+  return c.sharing?.library === true;
+}
+
+/** Sans corps : le greffon ajoute SON `server_id`, jamais celui du client. */
+export function partagerBibliotheque(id: number): Promise<unknown> {
+  return envoyer(`${BASE}/ext/circle/circles/${seg(id)}/sharing/library`, 'PUT');
+}
+
+export function arreterPartageBibliotheque(id: number): Promise<{ ok: boolean }> {
+  return envoyer(`${BASE}/ext/circle/circles/${seg(id)}/sharing/library`, 'DELETE');
+}
+
+/** L'état LOCAL de la copie en ligne : sans lui, on croirait partager un catalogue vide ou vieux. */
+export interface EtatSynchroBibliotheque {
+  premium?: boolean;
+  active?: boolean;
+  last_sync?: string | null;
+  pending?: number;
+  /** Le `server_id` de CE serveur (décision du 28/09/2026). Absent = inconnu. */
+  server_id?: string | null;
+}
+
+/**
+ * Où ce cercle partage-t-il ? Décision du 28/09/2026 : UN seul serveur
+ * partagé par propriétaire, pour tous ses cercles.
+ *
+ * - `non`      : l'interrupteur est éteint ;
+ * - `ici`      : il partage CE serveur (ou on ne sait pas lequel : sans
+ *                `server_id` local, l'écran ne suppose pas un « ailleurs ») ;
+ * - `ailleurs` : il partage un AUTRE serveur du compte ; l'activer ici
+ *                DÉPLACE le partage.
+ */
+export type OuPartage = 'non' | 'ici' | 'ailleurs';
+
+export function ouPartage(c: CercleNomme, serveurLocal: string | null | undefined): OuPartage {
+  if (!partageActif(c)) return 'non';
+  const sid = c.sharing?.server_id;
+  if (serveurLocal && sid && sid !== serveurLocal) return 'ailleurs';
+  return 'ici';
+}
+
+export function getSynchroBibliotheque(): Promise<EtatSynchroBibliotheque> {
+  return fetchJSON<EtatSynchroBibliotheque>(`${BASE}/ext/circle/library-sync`, undefined, undefined, true);
+}
+
+/** Ce que l'écran dit de la copie en ligne, à côté d'un interrupteur allumé. */
+export type AvisSynchro =
+  | { cle: 'v2.circle.share.syncNone' }
+  | { cle: 'v2.circle.share.syncInactive' }
+  | { cle: 'v2.circle.share.syncPending'; n: number }
+  | { cle: 'v2.circle.share.syncOk'; date: string };
+
+export function avisSynchro(e: EtatSynchroBibliotheque | null): AvisSynchro | null {
+  if (!e) return null;
+  if (!e.last_sync) return { cle: 'v2.circle.share.syncNone' };
+  if (e.active === false) return { cle: 'v2.circle.share.syncInactive' };
+  if (typeof e.pending === 'number' && e.pending > 0) return { cle: 'v2.circle.share.syncPending', n: e.pending };
+  return { cle: 'v2.circle.share.syncOk', date: e.last_sync };
+}
+
+// ─── T2 : ce que mes contacts partagent avec moi ────────────────────────────
+
+/** Un contact qui partage sa bibliothèque avec moi. Jamais le nom ni le nombre de ses cercles. */
+export interface PartageRecu {
+  user_id: number;
+  name: string;
+}
+
+export async function getPartagesAvecMoi(): Promise<PartageRecu[]> {
+  const brut = await fetchJSON<unknown>(`${BASE}/ext/circle/shared-with-me`, undefined, undefined, true);
+  const liste = Array.isArray(brut) ? brut : ((brut as { data?: unknown[] } | null)?.data ?? []);
+  return liste
+    .filter((x: any) => x && typeof x.user_id === 'number' && x.library !== false)
+    .map((x: any) => ({ user_id: x.user_id, name: String(x.name ?? '') }));
+}
+
+/**
+ * Les objets du catalogue d'un contact, reconstruits CHAMP PAR CHAMP.
+ *
+ * 🔴 Jamais `{ ...brut }` : si le cloud laissait un jour passer `cover_path`,
+ * `source_id` ou un chemin quelconque, il ne toucherait pas l'écran. La liste
+ * blanche est celle de la projection du contrat (#5325), rien de plus.
+ */
+export interface ArtisteContact { id: number; name: string }
+export interface AlbumContact {
+  id: number; title: string; artist_name: string | null; genre: string | null;
+  track_count: number | null; year: number | null;
+  /** Décision 4 du 28/09 : la pochette PUBLIQUE vient de Cover Art Archive par cet identifiant. */
+  musicbrainz_release_group_id: string | null;
+}
+export interface PisteContact {
+  id: number; title: string; artist_name: string | null; album_title: string | null;
+  album_id: number | null; format: string | null; sample_rate: number | null;
+  bit_depth: number | null; duration_ms: number | null; genre: string | null;
+  track_number: number | null; disc_number: number | null;
+  /** Décision 3 du 28/09 : servira à T5 (ajout à une playlist collaborative). */
+  isrc: string | null;
+}
+export interface StatsContact { tracks: number; albums: number; artists: number; last_sync: string | null }
+
+const texteOuNul = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
+const nombreOuNul = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+
+export function artisteContact(b: any): ArtisteContact {
+  return { id: Number(b?.id), name: String(b?.name ?? '') };
+}
+
+export function albumContact(b: any): AlbumContact {
+  return {
+    id: Number(b?.id), title: String(b?.title ?? ''), artist_name: texteOuNul(b?.artist_name),
+    genre: texteOuNul(b?.genre), track_count: nombreOuNul(b?.track_count), year: nombreOuNul(b?.year),
+    musicbrainz_release_group_id: mbidValide(b?.musicbrainz_release_group_id),
+  };
+}
+
+const MBID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Un MBID bien formé, ou `null` : rien d'autre n'entre dans une adresse. */
+function mbidValide(v: unknown): string | null {
+  return typeof v === 'string' && MBID.test(v) ? v.toLowerCase() : null;
+}
+
+/**
+ * La pochette PUBLIQUE d'un album de contact, ou `null` (icône générique).
+ *
+ * 🔴 Seul l'identifiant MusicBrainz sort — jamais un titre ni un artiste —,
+ * et il sort par le relais de pochettes de NOTRE serveur (`artworkUrl` fait
+ * passer toute adresse absolue par `/library/artwork/proxy`, qui admet
+ * `coverartarchive.org` et `archive.org`, vers lequel il redirige). Rien
+ * n'est demandé au serveur du contact. Une pochette introuvable (404) laisse
+ * l'icône générique : `AlbumArt` s'en charge sur `onerror`.
+ */
+export function pochetteAlbumContact(a: Pick<AlbumContact, 'musicbrainz_release_group_id'>): string | null {
+  const m = a.musicbrainz_release_group_id;
+  return m ? `https://coverartarchive.org/release-group/${m}/front-250` : null;
+}
+
+export function pisteContact(b: any): PisteContact {
+  return {
+    id: Number(b?.id), title: String(b?.title ?? ''), artist_name: texteOuNul(b?.artist_name),
+    album_title: texteOuNul(b?.album_title), album_id: nombreOuNul(b?.album_id),
+    format: texteOuNul(b?.format), sample_rate: nombreOuNul(b?.sample_rate),
+    bit_depth: nombreOuNul(b?.bit_depth), duration_ms: nombreOuNul(b?.duration_ms),
+    genre: texteOuNul(b?.genre), track_number: nombreOuNul(b?.track_number),
+    disc_number: nombreOuNul(b?.disc_number), isrc: texteOuNul(b?.isrc),
+  };
+}
+
+/**
+ * Une piste de contact à la forme `Track` de la Bibliothèque, pour la liste
+ * commune (`ListePistesV2`, en `lectureSeule`).
+ *
+ * 🔴 `id`, `album_id` et `artist_id` restent NULS : ce sont des identifiants
+ * du serveur de l'AMI. Passés tels quels, `AlbumArt` irait chercher la
+ * pochette de l'album local de même numéro, et la ligne se croirait « en
+ * lecture » dès que la piste locale de même numéro joue.
+ */
+export function pisteVersTrack(p: PisteContact): Track {
+  return {
+    id: null, title: p.title, artist_name: p.artist_name, album_title: p.album_title,
+    album_id: null, format: (p.format ?? null) as any, sample_rate: p.sample_rate,
+    bit_depth: p.bit_depth, duration_ms: p.duration_ms ?? undefined,
+    genre: p.genre as any, track_number: p.track_number ?? undefined,
+    disc_number: p.disc_number ?? undefined, cover_path: null,
+  } as Track;
+}
+
+/** Une page du cloud : tableau nu, ou `{ data, current_page, last_page }` à la Laravel. */
+export interface PageContact<T> { items: T[]; page: number; derniere: boolean; total: number | null }
+
+function lirePage<T>(brut: any, page: number, taille: number, un: (b: any) => T): PageContact<T> {
+  const liste: any[] = Array.isArray(brut) ? brut : (brut?.data ?? brut?.items ?? []);
+  const items = liste.map(un);
+  const cp = nombreOuNul(brut?.current_page) ?? page;
+  const lp = nombreOuNul(brut?.last_page);
+  const derniere = lp != null ? cp >= lp : items.length < taille;
+  return { items, page: cp, derniere, total: nombreOuNul(brut?.total) };
+}
+
+/** Taille d'une page demandée au cloud. */
+export const PAGE_CATALOGUE = 50;
+
+/** `artist` : l'IDENTIFIANT d'artiste de la projection (ce que le cloud attend), jamais son nom. */
+export interface RequeteCatalogue { page?: number; search?: string; sort?: string; artist?: number }
+
+function requete(q: RequeteCatalogue): string {
+  const p = new URLSearchParams();
+  p.set('page', String(q.page ?? 1));
+  p.set('per_page', String(PAGE_CATALOGUE));
+  if (q.search?.trim()) p.set('search', q.search.trim());
+  if (q.sort) p.set('sort', q.sort);
+  if (q.artist != null) p.set('artist', String(q.artist));
+  return p.toString();
+}
+
+const racineContact = (uid: number) => `${BASE}/ext/circle/contacts/${seg(uid)}/library`;
+const lire = <T>(url: string) => fetchJSON<T>(url, undefined, undefined, true);
+
+export async function statsContact(uid: number): Promise<StatsContact> {
+  const b = await lire<any>(`${racineContact(uid)}/stats`);
+  return {
+    tracks: nombreOuNul(b?.tracks) ?? 0, albums: nombreOuNul(b?.albums) ?? 0,
+    artists: nombreOuNul(b?.artists) ?? 0, last_sync: texteOuNul(b?.last_sync),
+  };
+}
+
+export async function artistesContact(uid: number, q: RequeteCatalogue = {}): Promise<PageContact<ArtisteContact>> {
+  return lirePage(await lire<any>(`${racineContact(uid)}/artists?${requete(q)}`), q.page ?? 1, PAGE_CATALOGUE, artisteContact);
+}
+
+export async function albumsContact(uid: number, q: RequeteCatalogue = {}): Promise<PageContact<AlbumContact>> {
+  return lirePage(await lire<any>(`${racineContact(uid)}/albums?${requete(q)}`), q.page ?? 1, PAGE_CATALOGUE, albumContact);
+}
+
+export async function pistesContact(uid: number, q: RequeteCatalogue = {}): Promise<PageContact<PisteContact>> {
+  return lirePage(await lire<any>(`${racineContact(uid)}/tracks?${requete(q)}`), q.page ?? 1, PAGE_CATALOGUE, pisteContact);
+}
+
+export async function pistesAlbumContact(uid: number, albumId: number): Promise<PisteContact[]> {
+  const b = await lire<any>(`${racineContact(uid)}/albums/${seg(albumId)}/tracks`);
+  const liste: any[] = Array.isArray(b) ? b : (b?.data ?? b?.items ?? []);
+  return liste.map(pisteContact);
+}
+
+/** Un 404 pendant la navigation : le catalogue n'est plus partagé avec moi. */
+export function plusPartage(e: unknown): boolean {
+  return (e as ApiError | null)?.status === 404;
+}
+
 // ─── Le greffon est-il là ? ─────────────────────────────────────────────────
 
 export interface EtatPluginCircle {
@@ -179,6 +443,17 @@ export interface MotifCercle {
   indisponible?: boolean;
   /** La session mozaiklabs n'est plus là : l'écran relit et le dira. */
   deconnecte?: boolean;
+  /** T2 : ce serveur n'est pas relié au compte ; l'écran mène à Réglages ▸ Système ▸ Cloud. */
+  nonRelie?: boolean;
+}
+
+/**
+ * T2 — le refus de LIAISON du serveur, à l'activation d'un partage.
+ * Le code exact est à confirmer avec le lot greffon : tout code qui dit
+ * « not_linked » est lu comme tel, quel que soit le statut HTTP.
+ */
+export function estRefusDeLiaison(code: string): boolean {
+  return /(^|[._])not_linked$/.test(code) || code === 'circle.server_unlinked';
 }
 
 /**
@@ -192,6 +467,7 @@ export function motifCercle(e: unknown, champ: 'email' | 'name' | null = null): 
   const err = e as ApiError | null;
   const status = err?.status;
   const code = typeof err?.code === 'string' ? err.code : '';
+  if (estRefusDeLiaison(code)) return { cle: 'v2.circle.share.notLinked', nonRelie: true };
   if (status === 429) {
     const s = err?.retryAfter;
     return s ? { cle: 'v2.circle.err.tooManyWait', minutes: Math.max(1, Math.ceil(s / 60)) } : { cle: 'v2.circle.err.tooMany' };

@@ -208,7 +208,10 @@ async function poser(Vue: typeof CircleV2 | typeof PluginsV2): Promise<HTMLDivEl
 }
 
 const appelsCercle = () => appels.filter((a) => a.url.includes('/ext/circle'));
-const lectures = () => appelsCercle().filter((a) => a.method === 'GET').length;
+// Les lectures de l'ÉTAT du cercle (`GET /`) : depuis T2 (#5325), l'écran lit
+// aussi `/library-sync` et `/shared-with-me` après chaque `GET /`, et ce
+// compteur dit combien de fois l'état a été relu, pas combien de routes.
+const lectures = () => appelsCercle().filter((a) => a.method === 'GET' && /\/ext\/circle\/?$/.test(a.url)).length;
 const gestes = () => appelsCercle().filter((a) => a.method !== 'GET');
 const texte = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
 const noms = (el: Element, sel: string) => [...el.querySelectorAll(sel)].map((n) => texte(n));
