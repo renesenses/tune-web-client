@@ -23,7 +23,7 @@ import {
   type View,
 } from './stores/navigation';
 import { ficheAlbumDeRetour, ficheArtisteService, type CibleFicheAlbumService } from './stores/streaming';
-import { trouverArtisteExact } from './libraryNavigation';
+import { trouverArtisteExact, nomsDeRechercheArtiste, ARTISTES_A_LIRE } from './libraryNavigation';
 import { estDeBibliotheque } from './provenanceBibliotheque';
 import { cleServeur } from './ongletsStreaming';
 import { messageRepli, resoudreArtisteDeService, type ChercherArtistes } from './repliArtisteService';
@@ -64,17 +64,55 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View, options: Options
   if (!a.name) return;
   // Un nom seul : la fiche locale s'il y a une correspondance EXACTE, sinon
   // l'onglet Artistes — jamais un approchant.
-  let id: number | null = null;
-  try {
-    id = trouverArtisteExact((await api.searchLibrary(a.name, 5))?.artists, a.name);
-  } catch { /* repli ci-dessous */ }
-  if (id !== null) {
-    ouvrirFicheArtisteLocale(id, a.name, depuis, options.provenance);
+  const trouve = await artisteLocalParNom(a.name);
+  if (trouve !== null) {
+    // Le nom RETENU, pas celui reçu : la fiche de « Daft Punk feat. Pharrell
+    // Williams » est celle de Daft Punk, et c'est ce nom-là qu'elle affiche.
+    ouvrirFicheArtisteLocale(trouve.id, trouve.nom, depuis, options.provenance);
     return;
   }
   vueDeRetour.set(depuis);
   ficheAlbumDeRetour.set(null);
   activeView.set('library');
+}
+
+/**
+ * L'artiste de la bibliothèque dont on n'a que le NOM — son identifiant ET le
+ * nom RETENU, ou `null`. #1696.
+ *
+ * C'est le seul endroit du client qui fait ce rapprochement pour la page
+ * artiste commune, et il est exporté pour être MESURABLE : un témoin lui donne
+ * une recherche et lit l'identifiant rendu, sans monter d'écran.
+ *
+ * Deux corrections, toutes deux mesurées le 28/09/2026 sur le .18 et
+ * documentées à côté de ce qu'elles emploient (`libraryNavigation`) :
+ *
+ *  1. on lit `ARTISTES_A_LIRE` résultats et non cinq — à cinq, les approchants
+ *     cachaient « Air », pourtant dans la bibliothèque (id 3671) ;
+ *  2. à défaut, on cherche la TÊTE du nom avant le marqueur d'invité — le
+ *     classement vient de l'historique, où « Daft Punk feat. Pharrell
+ *     Williams » est le nom de la PISTE et ne désigne aucune fiche.
+ *
+ * 🔴 LA RECHERCHE QUI LÈVE LAISSE UNE TRACE. Le `catch` d'origine était muet :
+ * une erreur réseau produisait le même retour silencieux à la Bibliothèque
+ * qu'un artiste absent, et rien dans la console ne permettait de les
+ * distinguer — le défaut que #956 avait déjà corrigé côté service.
+ */
+export async function artisteLocalParNom(
+  nom: string | null | undefined,
+): Promise<{ id: number; nom: string } | null> {
+  for (const candidat of nomsDeRechercheArtiste(nom)) {
+    let reponse: any;
+    try {
+      reponse = await api.searchLibrary(candidat, ARTISTES_A_LIRE);
+    } catch (e) {
+      console.warn('[artiste par nom] la recherche de bibliothèque a levé', candidat, e);
+      return null;
+    }
+    const id = trouverArtisteExact(reponse?.artists, candidat);
+    if (id !== null) return { id, nom: candidat };
+  }
+  return null;
 }
 
 /**

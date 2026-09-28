@@ -52,6 +52,71 @@ export function trouverArtisteExact(
 }
 
 /**
+ * 🔴 COMBIEN DE RÉSULTATS DEMANDER POUR RETROUVER UN ARTISTE PAR SON NOM — #1696.
+ *
+ * Daniel LEVY, fil 2005, 27/09/2026, widget « Artistes les plus écoutés » :
+ * « le clique sur un portrait renvoie a la page bibliothèque, dernier index
+ * sélectionné ». Le classement ne porte QUE le nom de l'artiste
+ * (`TopArtistEntry`, serveur `history_repo.rs:1419` : `artist_name`, `plays`,
+ * `listening_ms`, `cover_path` — aucun identifiant) : le clic doit le
+ * retrouver dans la bibliothèque, et sans correspondance EXACTE il retombait
+ * sur `activeView.set('library')`, sans cible — la Bibliothèque se rouvre
+ * alors dans son dernier état, très exactement le symptôme décrit.
+ *
+ * On demandait CINQ résultats, et c'est la première cause. MESURÉ le
+ * 28/09/2026 sur le .18 (`GET /library/search`), les cinquante artistes du
+ * classement sur 30 jours, un par un :
+ *
+ *     'Air'   limit=5  → 5 artistes, AUCUN exact
+ *                        (Airto Moreira, Des Airs, Chairmen of the Board,
+ *                         Fred Astaire, Jefferson Airplane)
+ *     'Air'   limit=50 → 17 artistes, exact TROUVÉ : id 3671
+ *
+ * L'exemple de l'en-tête de `trouverArtisteExact` — « chercher Air ramène
+ * Airbourne, Air France… » — était donc plus qu'une illustration : les
+ * approchants OCCUPAIENT la fenêtre et cachaient l'entrée cherchée. Cinquante
+ * est la valeur par défaut de `api.searchLibrary`, et au-delà la réponse ne
+ * grossit plus (17 à 50 comme à 100).
+ *
+ * Ce n'est pas un assouplissement : la correspondance reste EXACTE. On élargit
+ * la FENÊTRE de lecture, pas le critère.
+ */
+export const ARTISTES_A_LIRE = 50;
+
+/**
+ * Les noms sous lesquels chercher un artiste de classement, du plus fidèle au
+ * moins — #1696, deuxième cause.
+ *
+ * `listen_history.artist_name` est l'artiste de la PISTE écoutée, pas celui
+ * d'une fiche de `artists`. MESURÉ le 28/09/2026 sur le .18, sur les mêmes
+ * cinquante artistes :
+ *
+ *     'Daft Punk feat. Pharrell Williams' → 0 artiste, à 5 comme à 100
+ *     'Daft Punk'                        → exact TROUVÉ : id 3399
+ *
+ * La tête, avant le marqueur d'invité, EST l'artiste principal de la piste. On
+ * la cherche donc en second, et toujours par égalité EXACTE — jamais un
+ * approchant.
+ *
+ * 🔴 SEULEMENT `feat.` / `ft.` / `featuring`, ET RIEN D'AUTRE. Les deux
+ * séparateurs qu'on aurait envie d'ajouter sont des pièges, et les mêmes
+ * cinquante artistes les portent tous les deux :
+ *
+ * - `&` — « Daryl Hall & John Oates », « Polo & Pan » sont des noms de groupe,
+ *   entiers dans la bibliothèque ; les couper chercherait « Daryl Hall » ;
+ * - ` with ` — « Diving With Andy » est un nom de groupe, pas une invitation.
+ *
+ * Le marqueur doit être un MOT isolé : sans la limite de mot, « Software » ou
+ * un artiste dont le nom finit par « ft » se ferait couper.
+ */
+export function nomsDeRechercheArtiste(nom: string | null | undefined): string[] {
+  const entier = (nom ?? '').trim();
+  if (!entier) return [];
+  const tete = entier.split(/\s[([]?(?:feat|ft|featuring)\.?\s/i)[0]?.trim() ?? '';
+  return tete && tete.toLowerCase() !== entier.toLowerCase() ? [entier, tete] : [entier];
+}
+
+/**
  * Ouvre la fiche d'un album, pistes comprises.
  *
  * Huitième écrivain d'`albumTracks` (#3178) : les classements de l'Accueil, du

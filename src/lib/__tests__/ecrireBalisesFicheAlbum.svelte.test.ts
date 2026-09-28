@@ -19,7 +19,7 @@ import { activeView } from '../stores/navigation';
 import type { Album } from '../types';
 import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
 import {
-  champsDuPlan, ecritureBalisesAnnoncee, estRapportBalises, raisonsIgnorees,
+  CHAMPS_BALISES, champsDuPlan, ecritureBalisesAnnoncee, estRapportBalises, libelleChampBalise, raisonsIgnorees,
   type EditionReponse, type RapportBalises,
 } from '../editionAlbum';
 
@@ -53,6 +53,9 @@ function rapport(dryRun: boolean, aEcrire = 2): RapportBalises {
     changements: [
       { champ: 'ALBUM', avant: 'Kind Of Blue', apres: 'Kind of Blue' },
       { champ: 'TRACKTOTAL', avant: null, apres: '2' },
+      { champ: 'GENRE', avant: 'jazz', apres: 'Jazz' },
+      // Un nom que ce client ne connaît pas (serveur plus récent) : brut.
+      { champ: 'MOOD', avant: null, apres: 'x' },
     ],
   }));
   return {
@@ -193,8 +196,15 @@ describe('plan d’abord, confirmation, puis écriture', () => {
     expect(ecritures()[0].methode).toBe('POST');
     expect(ecritures()[0].corps).toEqual({ dry_run: true });
     const question = get(dialogs)[0].message;
-    expect(question).toContain('ALBUM');
-    expect(question).toContain('TRACKTOTAL');
+    // Les noms de balises sont traduits, pas rendus tels que le serveur les écrit.
+    for (const c of ['ALBUM', 'TRACKTOTAL', 'GENRE']) {
+      const libelle = tr(`v2.edition.tagField.${c}`);
+      expect(libelle, `clé manquante pour ${c}`).not.toBe(`v2.edition.tagField.${c}`);
+      expect(question).toContain(libelle);
+      expect(question, `${c} affiché brut`).not.toContain(c);
+    }
+    // Un nom inconnu reste tel quel.
+    expect(question).toContain('MOOD');
     expect(question).toContain(tr('v2.edition.tagsSkip.format_non_gere'));
     expect(question).toMatch(/\b2\b/);
 
@@ -236,7 +246,7 @@ describe('règles pures du rapport', () => {
     expect(estRapportBalises(r)).toBe(true);
     expect(estRapportBalises(edition(true))).toBe(false);
     expect(estRapportBalises([])).toBe(false);
-    expect(champsDuPlan(r)).toEqual(['ALBUM', 'TRACKTOTAL']);
+    expect(champsDuPlan(r)).toEqual(['ALBUM', 'TRACKTOTAL', 'GENRE', 'MOOD']);
     expect(raisonsIgnorees({ ...r, ignores: [
       { track_id: 1, path: 'a', raison: 'en_lecture' },
       { track_id: 2, path: 'b', raison: 'piste_cue' },
@@ -244,5 +254,23 @@ describe('règles pures du rapport', () => {
     ] })).toEqual([{ raison: 'piste_cue', n: 1 }, { raison: 'en_lecture', n: 2 }]);
     expect(ecritureBalisesAnnoncee(edition(true))).toBe(true);
     expect(ecritureBalisesAnnoncee(edition(false))).toBe(false);
+  });
+});
+
+describe('libellé des noms de balises', () => {
+  it('les onze noms connus passent par leur clé, un nom inconnu reste brut', () => {
+    const vues: string[] = [];
+    const traduire = (cle: string) => { vues.push(cle); return `«${cle}»`; };
+    expect(libelleChampBalise('GENRE', traduire)).toBe('«v2.edition.tagField.GENRE»');
+    expect(libelleChampBalise('ALBUMARTIST', traduire)).toBe('«v2.edition.tagField.ALBUMARTIST»');
+    expect(libelleChampBalise('MOOD', traduire)).toBe('MOOD');
+    expect(libelleChampBalise('genre', traduire), 'la casse compte').toBe('genre');
+    expect(vues).toEqual(['v2.edition.tagField.GENRE', 'v2.edition.tagField.ALBUMARTIST']);
+  });
+  it('chaque nom connu a sa traduction dans la langue des bancs', () => {
+    expect(CHAMPS_BALISES).toHaveLength(11);
+    for (const c of CHAMPS_BALISES) {
+      expect(tr(`v2.edition.tagField.${c}`), c).not.toBe(`v2.edition.tagField.${c}`);
+    }
   });
 });

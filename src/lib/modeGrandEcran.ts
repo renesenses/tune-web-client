@@ -109,3 +109,78 @@ export function entrerEnModeGrandEcran(
   demanderPleinEcran(racine);
   aller('tv');
 }
+
+/** Ce qu'il faut d'un document pour OBSERVER le plein écran natif. */
+export interface DocumentPleinEcran {
+  fullscreenElement?: Element | null;
+  addEventListener(type: string, ecouteur: () => void): void;
+  removeEventListener(type: string, ecouteur: () => void): void;
+}
+
+/**
+ * La sortie par Échap — #1720, FabienM, fil 2013 point 6 : « quitter le mode
+ * avec ECHAP ne revient pas à l'écran normal. Il faut ECHAP une seconde fois ».
+ *
+ * 🔴 LA CAUSE N'EST PAS DANS LE CLAVIER. En plein écran natif, le navigateur
+ * GARDE POUR LUI la première pression sur Échap : il quitte le plein écran et
+ * n'émet aucun `keydown` vers la page (comportement de Chrome, Edge et
+ * Firefox). Le `keydown` de `TvView` ne voit donc rien, la vue Grand écran
+ * reste affichée — dans une fenêtre — et il faut un second Échap, celui-là
+ * transmis, pour qu'elle se ferme. Chercher le défaut dans l'écouteur clavier
+ * ne mène nulle part : l'événement n'existe pas.
+ *
+ * Le seul signal que le navigateur donne dans ce cas est `fullscreenchange`.
+ * C'est pourquoi la sortie doit AUSSI s'accrocher là, et pas seulement au
+ * clavier.
+ *
+ * ## Pourquoi une machine à deux états, et pas un simple « si null, sortir »
+ *
+ * `requestFullscreen` est asynchrone, et `entrerEnModeGrandEcran` ouvre la vue
+ * SANS l'attendre : quand `TvView` se monte, `fullscreenElement` peut encore
+ * être nul alors que le plein écran est en route. Une garde qui sortirait sur
+ * le premier « null » venu refermerait l'écran à l'instant même où il s'ouvre.
+ * On n'arme donc la sortie qu'après avoir VU le plein écran actif.
+ *
+ * 🔴 Et c'est aussi ce qui laisse intact le cas du plein écran REFUSÉ, que
+ * `demanderPleinEcran` avale volontairement : sans plein écran, aucun
+ * `fullscreenchange` n'est émis, rien ne s'arme, et la vue Grand écran reste
+ * utilisable en fenêtre — où le premier Échap arrive déjà au clavier.
+ *
+ * Rend de quoi ARRÊTER la garde. L'appelant doit s'en servir avant toute
+ * sortie délibérée : son propre `exitFullscreen()` émet un `fullscreenchange`
+ * qui rejouerait la sortie une seconde fois.
+ *
+ * ⚠️ Seul l'événement non préfixé est écouté, comme seul `requestFullscreen`
+ * non préfixé est appelé à l'entrée : un navigateur qui n'aurait que les
+ * variantes `webkit` n'entre jamais en plein écran, et n'a donc rien à quitter.
+ */
+export function surSortieDuPleinEcran(
+  quitter: () => void,
+  doc: DocumentPleinEcran | null | undefined =
+    typeof document !== 'undefined' ? (document as DocumentPleinEcran) : null,
+): () => void {
+  if (!doc) return () => {};
+
+  let pleinEcranVu = !!doc.fullscreenElement;
+  let fini = false;
+
+  function surChangement(): void {
+    if (fini || !doc) return;
+    if (doc.fullscreenElement) {
+      pleinEcranVu = true;
+      return;
+    }
+    if (!pleinEcranVu) return;
+    arreter();
+    quitter();
+  }
+
+  function arreter(): void {
+    if (fini || !doc) return;
+    fini = true;
+    doc.removeEventListener('fullscreenchange', surChangement);
+  }
+
+  doc.addEventListener('fullscreenchange', surChangement);
+  return arreter;
+}
