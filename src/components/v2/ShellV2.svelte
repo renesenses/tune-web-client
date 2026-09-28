@@ -52,6 +52,7 @@
   // elle se pose ici sans adaptateur. Ses couleurs suivent le thème v2 par le
   // pont de variables de `tune-v2.css`.
   import EtiquettesV2 from './EtiquettesV2.svelte';
+  import EcouterPlusTardV2 from './EcouterPlusTardV2.svelte';
   import RaccourcisV2 from './RaccourcisV2.svelte';
   import TransportBar from '../partages/TransportBar.svelte';
   // « Lecture en cours » : l'écran du client actuel, monté ici. Il n'a jamais
@@ -260,7 +261,7 @@
     search: 'nav.search', podcasts: 'v2.nav.podcasts', streaming: 'v2.nav.streaming',
     queue: 'nav.queue', favorites: 'v2.nav.favorites', zonemanager: 'nav.zonemanager',
     mediaservers: 'nav.mediaservers', history: 'nav.history', oxygen: 'v2.nav.oxygen',
-    bannedtracks: 'ban.title',
+    bannedtracks: 'ban.title', ecouterplustard: 'v2.nav.later',
     ambiance: 'nav.ambiance', browse: 'nav.browse', equalizer: 'nav.equalizer',
     crossfeed: 'v2.nav.crossfeed', crossfeedpro: 'v2.nav.crossfeedPro', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
     alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', lecturecd: 'v2.cd.title', circle: 'v2.circle.title', source: 'v2.sources.title', diagnostics: 'v2.nav.processing',
@@ -669,6 +670,8 @@
         <TvView />
       {:else if $activeView === 'tags'}
         <EtiquettesV2 />
+      {:else if $activeView === 'ecouterplustard'}
+        <EcouterPlusTardV2 />
       {:else if $activeView === 'shortcuts'}
         <RaccourcisV2 />
       {:else if $activeView === 'favorites'}

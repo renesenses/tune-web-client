@@ -87,6 +87,14 @@
     onChampsDuFichier?: () => void;
     /** « Voir les crédits » (#1572). Omis : l'entrée est absente. */
     onVoirCredits?: () => void;
+    /**
+     * « Écouter plus tard » (web#1653) — le sas d'écoute.
+     *
+     * 🔴 Omis, l'entrée est absente, et les deux menus DIVERGENT : le témoin
+     * `uniformitePiste1848` compare les deux listes montées, et c'est lui qui
+     * a attrapé l'oubli. Même leçon que `etiquetable` en son temps.
+     */
+    onEcouterPlusTard?: () => void;
     /** Ce que la PISTE permet. Par défaut : tout, le geste seul décide. */
     capacites?: CapacitesPiste;
   }
@@ -106,6 +114,7 @@
     onUnban,
     onChampsDuFichier,
     onVoirCredits,
+    onEcouterPlusTard,
     capacites = { jouable: true, idBibliotheque: 1, artistId: 1, albumId: 1 },
   }: Props = $props();
   const entrees = $derived(
@@ -119,6 +128,7 @@
       allerArtiste: onGoToArtist,
       allerAlbum: onGoToAlbum,
       etiqueter: onTag,
+      basculerEcouterPlusTard: onEcouterPlusTard,
       bannir: onBan,
       debannir: onUnban,
       champsDuFichier: onChampsDuFichier,
