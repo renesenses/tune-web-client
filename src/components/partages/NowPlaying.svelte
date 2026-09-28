@@ -269,7 +269,9 @@ import { ICONES } from '../../lib/menuPiste';
       // pousse le curseur, rien ne change a l'oreille, et ca se raconte
       // ensuite comme « le crossfeed ne marche pas ».
       cfStatut = res?.crossfeed_status ?? cfStatut;
-      cfPorteeLive = res?.crossfeed_applied_live ?? null;
+      // #4680 — `crossfeed_portee` d'abord : une relance réseau s'entend
+      // dans l'instant, ce n'est pas « la piste suivante ».
+      cfPorteeLive = atteintLeSon(res?.crossfeed_applied_live, res?.crossfeed_portee) ?? null;
     } catch (e) {
       if ((e as Error)?.message !== 'premium_required') {
         console.error('Crossfeed :', e);

@@ -18,6 +18,7 @@
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import { atteintLeSon } from '../../lib/porteeReglage';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import * as controls from '../../lib/playback-controls';
   import { suivantDesactive } from '../../lib/boutonSuivant';
@@ -685,7 +686,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       // serveur antérieur n'envoie pas le champ, et on n'affirme rien de ce
       // qu'il ne dit pas. (Le garde lit la source telle quelle, commentaires
       // compris — d'où la formulation en toutes lettres.)
-      if (res.applied_live === false && z.state === 'playing') {
+      //
+      // #4680 — `portee` d'abord : sur une zone réseau le serveur relance le
+      // flux à la position courante (`restart`), et la bascule s'entend dans
+      // l'instant — ce n'est PAS la piste suivante (Eversolo en DLNA, recette
+      // v0.9.161). Sans `portee` (serveur antérieur), `atteintLeSon` rend
+      // `applied_live` tel quel.
+      if (atteintLeSon(res.applied_live, res.portee) === false && z.state === 'playing') {
         notifications.info($t('eq.effectNextTrack' as any));
       }
     } catch {}
