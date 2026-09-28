@@ -3994,6 +3994,8 @@ export default {
   "v2.circle.listen.playAlbum": "Album abspielen",
   "v2.circle.listen.ownerOffline": "Der Server von {name} ist ausgeschaltet oder nicht erreichbar.",
   "v2.circle.listen.unavailable": "Fernhören ist für diese Bibliothek nicht verfügbar.",
+  "v2.circle.listen.premiumRequired": "Fernhören erfordert ein Premium-Abonnement.",
+  "v2.circle.listen.notShared": "Dieser Titel wird nicht mehr mit Ihnen geteilt.",
   "v2.circle.listen.revoked": "Dieses Anhören ist nicht mehr erlaubt.",
   "v2.circle.listen.noZone": "Wählen Sie eine Zone, um das Anhören zu starten.",
   "v2.circle.listen.dismiss": "Schließen",

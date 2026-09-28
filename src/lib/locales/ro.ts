@@ -3994,6 +3994,8 @@ export default {
   "v2.circle.listen.playAlbum": "Redă albumul",
   "v2.circle.listen.ownerOffline": "Serverul lui {name} este oprit sau inaccesibil.",
   "v2.circle.listen.unavailable": "Ascultarea la distanță nu este disponibilă pentru această bibliotecă.",
+  "v2.circle.listen.premiumRequired": "Ascultarea la distanță necesită un abonament Premium.",
+  "v2.circle.listen.notShared": "Această piesă nu mai este partajată cu tine.",
   "v2.circle.listen.revoked": "Această ascultare nu mai este permisă.",
   "v2.circle.listen.noZone": "Alege o zonă pentru a începe ascultarea.",
   "v2.circle.listen.dismiss": "Închide",

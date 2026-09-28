@@ -20,8 +20,9 @@ import fr from '../locales/fr';
  * de Bertrand du 28/09/2026 : écouter chez un contact, Premium.
  *
  * Le faux greffon suit le contrat de l'issue, sous `/api/v1/ext/circle` :
- *   POST /contacts/{uid}/listen { track_id, zone_id } → { ok: true }
- * et ses refus : 404 (plus partagé), 402 relayé, 409 `owner_unavailable`,
+ *   POST /contacts/{uid}/listen { track_id | track_ids, zone_id } → { ok: true }
+ * et ses refus (contrat cloud site-mozaiklabs#237) : 404 `not_found`,
+ * 402 `premium_required` (`who: listener`), 409 `owner_unavailable`,
  * 503 `circle.owner_offline`, 503 `circle.cloud_unavailable`.
  *
  * Ce qui est tenu :
@@ -29,8 +30,10 @@ import fr from '../locales/fr';
  *  - avec Premium : Lire envoie l'identifiant de piste DU CONTACT et MA zone
  *    active, rien d'autre ;
  *  - serveur éteint : la phrase nommée, le catalogue reste affiché ;
- *  - 402 / 409 : la MÊME phrase neutre, jamais le bandeau « Premium » global ;
- *  - 404 à l'écoute (révocation) : le catalogue se ferme, comme en T2 ;
+ *  - 402 : c'est MON abonnement, la phrase le dit ; 409 : phrase NEUTRE, rien
+ *    sur le propriétaire ; aucun des deux ne lève le bandeau global ;
+ *  - 404 à l'écoute : « ce titre n'est plus partagé », le catalogue reste ;
+ *  - l'album part en `track_ids`, dans l'ordre ;
  *  - aucune présence permanente : aucun appel `/presence`, ni à l'ouverture
  *    ni au fil du temps.
  */
@@ -224,13 +227,19 @@ describe('T4 — avec Premium : Lire', () => {
     expect(appels.some((a) => a.url.includes('/presence'))).toBe(false);
   });
 
-  it('un album : Lire l’album part de sa première piste ; chaque ligne a son bouton', async () => {
+  it('un album : Lire l’album envoie TOUTES ses pistes, dans l’ordre ; chaque ligne a son bouton', async () => {
     const el = await poser();
     await cliquer(el, 'li.partage-recu button.ouvrir-catalogue');
     await cliquer(el, 'button.album-contact');
-    expect(el.querySelectorAll('.pistes-album button.lire-piste')).toHaveLength(2);
+    const lignes = el.querySelectorAll('.pistes-album button.lire-piste');
+    expect(lignes).toHaveLength(2);
     await cliquer(el, 'button.lire-album');
-    expect(ecoutes().map((a) => a.body)).toEqual([{ track_id: 101, zone_id: 3 }]);
+    (lignes[1] as HTMLButtonElement).click();
+    await laisserFaire();
+    expect(ecoutes().map((a) => a.body)).toEqual([
+      { track_ids: [101, 102], zone_id: 3 },
+      { track_id: 102, zone_id: 3 },
+    ]);
   });
 
   it('aucune zone active : la phrase, et aucun appel', async () => {
@@ -261,28 +270,46 @@ describe('T4 — refus d’écoute', () => {
     expect(ecoutes()).toHaveLength(2);
   });
 
+  const bandeaux = () => get(notifications).map((n) => n.message).join('|');
+
   it.each([
     ['402 relayé (auditeur)', { status: 402, corps: { error: 'premium_required', who: 'listener' } }],
+    ['402 préfixé par le greffon', { status: 402, corps: { error: 'circle.premium_required', who: 'listener' } }],
     ['402 sans corps', { status: 402, corps: null }],
+  ])('%s : c’est MON abonnement, la phrase le dit ; aucun bandeau global', async (_nom, refus) => {
+    refusEcoute = refus;
+    const el = await poser();
+    await ouvrirTitresElise(el);
+    await cliquer(el, 'button.lire-piste');
+    expect(texte(el.querySelector('.refus-ecoute span')!)).toBe(fr['v2.circle.listen.premiumRequired']);
+    expect(bandeaux()).toBe('');
+    expect(el.querySelectorAll('.pistes-contact .tt')).toHaveLength(2);
+  });
+
+  it.each([
     ['409 owner_unavailable', { status: 409, corps: { error: 'owner_unavailable' } }],
     ['409 préfixé', { status: 409, corps: { error: 'circle.owner_unavailable' } }],
-  ])('%s : la MÊME phrase neutre, et aucun bandeau « Premium »', async (_nom, refus) => {
+  ])('%s : phrase NEUTRE — rien sur le propriétaire ni sur un abonnement', async (_nom, refus) => {
     refusEcoute = refus;
     const el = await poser();
     await ouvrirTitresElise(el);
     await cliquer(el, 'button.lire-piste');
     expect(texte(el.querySelector('.refus-ecoute span')!)).toBe(fr['v2.circle.listen.unavailable']);
-    const dit = get(notifications).map((n) => n.message).join('|') + texte(el);
-    expect(dit).not.toMatch(/Premium|abonnement/);
+    expect(bandeaux() + texte(el)).not.toMatch(/Premium|abonnement/);
+    expect(el.innerHTML).not.toContain(fr['v2.circle.listen.premiumRequired']);
     expect(el.querySelectorAll('.pistes-contact .tt')).toHaveLength(2);
   });
 
-  it('404 à l’écoute (révoqué, retiré du cercle) : le catalogue se ferme, comme en T2', async () => {
+  it('404 à l’écoute (révoqué, retiré du cercle) : « ce titre n’est plus partagé », le catalogue reste', async () => {
     const el = await poser();
     await ouvrirTitresElise(el);
     elisePartage = false;
-    partagesRecus = [];
     await cliquer(el, 'button.lire-piste');
+    expect(texte(el.querySelector('.refus-ecoute span')!)).toBe(fr['v2.circle.listen.notShared']);
+    expect(el.querySelector('.catalogue-contact')).not.toBeNull();
+    // La navigation suivante, elle, ferme l'écran comme en T2.
+    partagesRecus = [];
+    await cliquer(el, 'button.onglet-albums');
     expect(el.querySelector('.catalogue-contact')).toBeNull();
     expect(texte(el.querySelector('.retour')!)).toBe(fr['v2.circle.shared.gone']);
     expect(el.innerHTML).not.toContain('So What');

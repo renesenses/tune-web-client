@@ -4016,6 +4016,8 @@ export default {
   "v2.circle.listen.playAlbum": "Lire l'album",
   "v2.circle.listen.ownerOffline": "Le serveur de {name} est éteint ou injoignable.",
   "v2.circle.listen.unavailable": "L'écoute à distance n'est pas disponible pour cette bibliothèque.",
+  "v2.circle.listen.premiumRequired": "L'écoute à distance demande un abonnement Premium.",
+  "v2.circle.listen.notShared": "Ce titre n'est plus partagé avec vous.",
   "v2.circle.listen.revoked": "Cette écoute n'est plus autorisée.",
   "v2.circle.listen.noZone": "Choisissez une zone pour lancer l'écoute.",
   "v2.circle.listen.dismiss": "Fermer",

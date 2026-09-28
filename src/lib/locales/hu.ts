@@ -3952,6 +3952,8 @@ export default {
   "v2.circle.listen.playAlbum": "Album lejátszása",
   "v2.circle.listen.ownerOffline": "{name} szervere ki van kapcsolva vagy nem érhető el.",
   "v2.circle.listen.unavailable": "Ehhez a könyvtárhoz nem érhető el távoli hallgatás.",
+  "v2.circle.listen.premiumRequired": "A távoli hallgatáshoz Premium előfizetés szükséges.",
+  "v2.circle.listen.notShared": "Ezt a számot már nem osztják meg Önnel.",
   "v2.circle.listen.revoked": "Ez a hallgatás már nem engedélyezett.",
   "v2.circle.listen.noZone": "Válasszon zónát a hallgatás indításához.",
   "v2.circle.listen.dismiss": "Bezárás",

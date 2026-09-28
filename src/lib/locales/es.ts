@@ -3994,6 +3994,8 @@ export default {
   "v2.circle.listen.playAlbum": "Reproducir el álbum",
   "v2.circle.listen.ownerOffline": "El servidor de {name} está apagado o inaccesible.",
   "v2.circle.listen.unavailable": "La escucha remota no está disponible para esta biblioteca.",
+  "v2.circle.listen.premiumRequired": "La escucha remota requiere una suscripción Premium.",
+  "v2.circle.listen.notShared": "Esta pista ya no se comparte contigo.",
   "v2.circle.listen.revoked": "Esta escucha ya no está autorizada.",
   "v2.circle.listen.noZone": "Elige una zona para empezar a escuchar.",
   "v2.circle.listen.dismiss": "Cerrar",

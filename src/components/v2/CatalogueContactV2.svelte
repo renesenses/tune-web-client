@@ -179,24 +179,23 @@
   }
 
   /**
-   * T4 — écouter une piste du contact sur MA zone active.
-   *
-   * Un 404 ferme le catalogue, comme partout ailleurs (plus partagé) ; tout
-   * autre refus laisse le catalogue ouvert et dit sa phrase.
+   * T4 — écouter une piste du contact (ou tout l'album, `liste`) sur MA zone
+   * active. Tout refus laisse le catalogue ouvert et dit sa phrase, 404
+   * compris (« ce titre n'est plus partagé ») ; la navigation suivante, elle,
+   * fermera l'écran si le catalogue entier n'est plus à moi.
    */
-  async function lancerEcoute(p: PisteContact | undefined) {
+  async function lancerEcoute(p: PisteContact | undefined, liste?: PisteContact[]) {
     if (!ecoute || !p || ecouteEnCours != null) return;
     const zone = $currentZone?.id ?? null;
     if (zone == null) { refusEcoute = $t('v2.circle.listen.noZone' as any); return; }
     refusEcoute = null;
     ecouteEnCours = p.id;
     try {
-      await ecouterChezContact(contact.user_id, p.id, zone);
+      await ecouterChezContact(contact.user_id, liste ? liste.map((x) => x.id) : p.id, zone);
     } catch (e) {
       if (fini) return;
       const m = motifEcoute(e);
-      if ('plusPartage' in m) { fermerPlusPartage(); return; }
-      refusEcoute = 'cle' in m && m.cle.startsWith('v2.circle.listen.')
+      refusEcoute = m.cle.startsWith('v2.circle.listen.')
         ? $t(m.cle as any).replace('{name}', contact.name)
         : phrase(m as MotifCercle);
     } finally {
@@ -265,7 +264,7 @@
           <p class="note">{detailsAlbum(album)}{#if album.genre} · {album.genre}{/if}</p>
           {#if ecoute && sourcesAlbum.length > 0}
             <button class="lire-album" disabled={ecouteEnCours != null}
-              onclick={() => void lancerEcoute(sourcesAlbum[0])}>▶ {$t('v2.circle.listen.playAlbum' as any)}</button>
+              onclick={() => void lancerEcoute(sourcesAlbum[0], sourcesAlbum)}>▶ {$t('v2.circle.listen.playAlbum' as any)}</button>
           {/if}
         </div>
       </div>

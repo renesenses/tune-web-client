@@ -3994,6 +3994,8 @@ export default {
   "v2.circle.listen.playAlbum": "播放专辑",
   "v2.circle.listen.ownerOffline": "{name} 的服务器已关闭或无法访问。",
   "v2.circle.listen.unavailable": "此音乐库无法进行远程收听。",
+  "v2.circle.listen.premiumRequired": "远程收听需要 Premium 订阅。",
+  "v2.circle.listen.notShared": "此曲目已不再与您共享。",
   "v2.circle.listen.revoked": "此次收听已不再被允许。",
   "v2.circle.listen.noZone": "请选择一个区域以开始收听。",
   "v2.circle.listen.dismiss": "关闭",

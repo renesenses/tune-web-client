@@ -4014,6 +4014,8 @@ export default {
   "v2.circle.listen.playAlbum": "Play album",
   "v2.circle.listen.ownerOffline": "{name}'s server is off or unreachable.",
   "v2.circle.listen.unavailable": "Remote listening is not available for this library.",
+  "v2.circle.listen.premiumRequired": "Remote listening requires a Premium subscription.",
+  "v2.circle.listen.notShared": "This track is no longer shared with you.",
   "v2.circle.listen.revoked": "This listening session is no longer allowed.",
   "v2.circle.listen.noZone": "Choose a zone to start listening.",
   "v2.circle.listen.dismiss": "Close",

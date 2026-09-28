@@ -3994,6 +3994,8 @@ export default {
   "v2.circle.listen.playAlbum": "앨범 재생",
   "v2.circle.listen.ownerOffline": "{name}의 서버가 꺼져 있거나 연결할 수 없습니다.",
   "v2.circle.listen.unavailable": "이 라이브러리에서는 원격 듣기를 사용할 수 없습니다.",
+  "v2.circle.listen.premiumRequired": "원격 듣기에는 Premium 구독이 필요합니다.",
+  "v2.circle.listen.notShared": "이 트랙은 더 이상 공유되지 않습니다.",
   "v2.circle.listen.revoked": "이 듣기는 더 이상 허용되지 않습니다.",
   "v2.circle.listen.noZone": "듣기를 시작할 존을 선택하세요.",
   "v2.circle.listen.dismiss": "닫기",

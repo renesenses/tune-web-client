@@ -3993,6 +3993,8 @@ export default {
   "v2.circle.listen.playAlbum": "Spela albumet",
   "v2.circle.listen.ownerOffline": "{name}s server är avstängd eller går inte att nå.",
   "v2.circle.listen.unavailable": "Fjärrlyssning är inte tillgänglig för det här biblioteket.",
+  "v2.circle.listen.premiumRequired": "Fjärrlyssning kräver ett Premium-abonnemang.",
+  "v2.circle.listen.notShared": "Det här spåret delas inte längre med dig.",
   "v2.circle.listen.revoked": "Den här lyssningen är inte längre tillåten.",
   "v2.circle.listen.noZone": "Välj en zon för att börja lyssna.",
   "v2.circle.listen.dismiss": "Stäng",

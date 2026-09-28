@@ -3994,6 +3994,8 @@ export default {
   "v2.circle.listen.playAlbum": "アルバムを再生",
   "v2.circle.listen.ownerOffline": "{name} のサーバーはオフか、接続できません。",
   "v2.circle.listen.unavailable": "このライブラリではリモート再生を利用できません。",
+  "v2.circle.listen.premiumRequired": "リモート再生には Premium サブスクリプションが必要です。",
+  "v2.circle.listen.notShared": "このトラックは共有されなくなりました。",
   "v2.circle.listen.revoked": "この再生は許可されなくなりました。",
   "v2.circle.listen.noZone": "再生するゾーンを選択してください。",
   "v2.circle.listen.dismiss": "閉じる",

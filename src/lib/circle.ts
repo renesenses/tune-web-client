@@ -539,18 +539,19 @@ export function ecoutePermise(
 }
 
 /**
- * Lance, sur ma zone, l'écoute d'une piste d'un contact.
+ * Lance, sur ma zone, l'écoute d'une piste d'un contact — ou d'un album
+ * entier : `track_ids` dans l'ordre, et le greffon demande un billet par
+ * piste au moment de la jouer. Une piste seule part en `track_id`.
  *
  * 🔴 Le 402 est accepté ICI et relevé à la main : `fetchJSON` pose sinon son
- * bandeau global « fonctionnalité Premium », qui laisserait entendre à
- * l'auditeur que c'est une question d'abonnement — la décision 3 du 28/09
- * veut une phrase neutre, que l'écran pose lui-même.
+ * bandeau global générique, EN PLUS de la phrase que l'écran dit lui-même.
  */
-export async function ecouterChezContact(uid: number, trackId: number, zoneId: number): Promise<void> {
+export async function ecouterChezContact(uid: number, pistes: number | number[], zoneId: number): Promise<void> {
   let statut = 0;
+  const corps = Array.isArray(pistes) ? { track_ids: pistes, zone_id: zoneId } : { track_id: pistes, zone_id: zoneId };
   await fetchJSON<unknown>(
     `${BASE}/ext/circle/contacts/${seg(uid)}/listen`,
-    { method: 'POST', body: JSON.stringify({ track_id: trackId, zone_id: zoneId }) },
+    { method: 'POST', body: JSON.stringify(corps) },
     (s) => { statut = s; return s === 402; },
     true,
   );
@@ -562,11 +563,12 @@ export async function ecouterChezContact(uid: number, trackId: number, zoneId: n
   }
 }
 
-/** Ce que l'écran dit d'un refus d'écoute. `plusPartage` : fermer le catalogue (404). */
+/** Ce que l'écran dit d'un refus d'écoute : toujours une clé `v2.circle.listen.*` ou une de T1. */
 export type MotifEcoute =
   | { cle: 'v2.circle.listen.ownerOffline' }
   | { cle: 'v2.circle.listen.unavailable' }
-  | { plusPartage: true }
+  | { cle: 'v2.circle.listen.premiumRequired' }
+  | { cle: 'v2.circle.listen.notShared' }
   | MotifCercle;
 
 const codeDe = (e: unknown): string => {
@@ -577,23 +579,24 @@ const codeDe = (e: unknown): string => {
 };
 
 /**
- * Traduit un refus de `POST /listen`.
+ * Traduit un refus de `POST /listen` (contrat cloud site-mozaiklabs#237,
+ * consignes du 28/09/2026) :
  *
- * - `owner_offline` (503 du pont, relayé) : le serveur du contact est éteint
+ * - 503 `owner_offline` (le pont, relayé) : le serveur du contact est éteint
  *   ou injoignable — le catalogue, lui, reste consultable ;
- * - 402, 409 `owner_unavailable` : la même phrase NEUTRE, qu'il s'agisse de
- *   mon abonnement, du sien ou de son pont. Rien n'en est déduit ;
- * - 404 : plus partagé (révocation, retrait du cercle, partage coupé) ;
+ * - 402 `premium_required` (`who: listener`) : c'est MON abonnement, je peux
+ *   le savoir ;
+ * - 409 `owner_unavailable` : phrase NEUTRE — rien sur le propriétaire ;
+ * - 404 : ce titre n'est plus partagé avec moi ;
  * - le reste comme T1 (412, 429, 503 `circle.cloud_unavailable`).
  */
 export function motifEcoute(e: unknown): MotifEcoute {
   const err = e as ApiError | null;
   const code = codeDe(e);
   if (/(^|[._])owner_offline$/.test(code)) return { cle: 'v2.circle.listen.ownerOffline' };
-  if (err?.status === 402 || code === 'premium_required' || /(^|[._])owner_unavailable$/.test(code) || err?.status === 409) {
-    return { cle: 'v2.circle.listen.unavailable' };
-  }
-  if (plusPartage(e)) return { plusPartage: true };
+  if (/(^|[._])owner_unavailable$/.test(code) || err?.status === 409) return { cle: 'v2.circle.listen.unavailable' };
+  if (err?.status === 402 || /(^|[._])premium_required$/.test(code)) return { cle: 'v2.circle.listen.premiumRequired' };
+  if (plusPartage(e)) return { cle: 'v2.circle.listen.notShared' };
   return motifCercle(e);
 }
 
