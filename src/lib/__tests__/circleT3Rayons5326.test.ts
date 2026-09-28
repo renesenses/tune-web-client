@@ -266,11 +266,11 @@ describe('T3 — mes rayons partagés, par cercle', () => {
     expect(bloc.classList.contains('grise')).toBe(true);
     expect(bloc.getAttribute('aria-disabled')).toBe('true');
     expect((jazz.querySelector('button.ouvrir-rayons') as HTMLButtonElement).disabled).toBe(true);
-    expect(texte(jazz.querySelector('.rayons-quoi')!)).toBe(fr['v2.circle.sets.needLibrary']);
+    expect(texte(jazz.querySelector('.rayons-quoi')!)).toBe(fr['v2.circle.sel.needLibrary']);
     expect(jazz.querySelector('input.coche-rayon')).toBeNull();
     // Le cercle qui partage, lui, n'est pas grisé.
     expect(cercleDe(el, 'Famille').querySelector('.rayons')!.classList.contains('grise')).toBe(false);
-    expect(texte(cercleDe(el, 'Famille').querySelector('.rayons-quoi')!)).toBe(fr['v2.circle.sets.hint']);
+    expect(texte(cercleDe(el, 'Famille').querySelector('.rayons-quoi')!)).toBe(fr['v2.circle.sel.hint']);
     // Les listes se lisent à la demande : aucune lecture tant qu'on n'ouvre pas.
     expect(lecturesSets()).toEqual([]);
     expect(gestes()).toHaveLength(0);
@@ -288,8 +288,8 @@ describe('T3 — mes rayons partagés, par cercle', () => {
     await cliquer(famille, 'button.ouvrir-rayons');
     expect(lecturesSets()).toEqual(['/circles/7/sets']);
     expect(famille.querySelector('button.ouvrir-rayons')!.getAttribute('aria-expanded')).toBe('true');
-    expect(texte(famille.querySelector('.groupe-tags legend')!)).toBe(fr['v2.circle.sets.tags']);
-    expect(texte(famille.querySelector('.groupe-smart legend')!)).toBe(fr['v2.circle.sets.smart']);
+    expect(texte(famille.querySelector('.groupe-tags legend')!)).toBe(fr['v2.circle.sel.tags']);
+    expect(texte(famille.querySelector('.groupe-smart legend')!)).toBe(fr['v2.circle.sel.smart']);
     expect(noms(famille, '.groupe-tags .nom-rayon')).toEqual(['Vinyles rippés', '24/192']);
     expect(noms(famille, '.groupe-smart .nom-rayon')).toEqual(['Jazz ECM']);
     expect(noms(famille, '.groupe-tags .compte-rayon')).toEqual(['42 éléments', '7 éléments']);
@@ -374,11 +374,11 @@ describe('T3 — les rayons d’un contact', () => {
     await cliquer(el, 'li.partage-recu button.ouvrir-catalogue');
   }
 
-  it('la rangée « Rayons » en tête du catalogue, sans nom de cercle ni identifiant local', async () => {
+  it('la rangée « Sélections » en tête du catalogue, sans nom de cercle ni identifiant local', async () => {
     const el = await poser();
     await ouvrirElise(el);
     const rangee = el.querySelector('section.rayons-contact')!;
-    expect(texte(rangee.querySelector('h3')!)).toBe(fr['v2.circle.sets.shelves']);
+    expect(texte(rangee.querySelector('h3')!)).toBe(fr['v2.circle.sel.contactTitle']);
     expect(noms(rangee, 'button.rayon-contact .nom-rayon')).toEqual(['Jazz ECM', 'Nuit']);
     expect(noms(rangee, 'button.rayon-contact .note')).toEqual(['3 éléments', '5 éléments']);
     // Le catalogue est là aussi, comme en T2.
@@ -394,7 +394,7 @@ describe('T3 — les rayons d’un contact', () => {
     expect(texte(el.querySelector('.titre-rayon')!)).toBe('Jazz ECM');
     expect(el.querySelector('section.rayons-contact')).toBeNull();
     expect(noms(el, 'button.album-contact .album-nom')).toEqual(['Kind of Blue']);
-    expect(noms(el, '.onglets .onglet')).toEqual([fr['v2.circle.lib.albums'], fr['v2.circle.lib.tracks'], fr['v2.circle.lib.artists'], fr['v2.circle.sets.streaming']]);
+    expect(noms(el, '.onglets .onglet')).toEqual([fr['v2.circle.lib.albums'], fr['v2.circle.lib.tracks'], fr['v2.circle.lib.artists'], fr['v2.circle.sel.streaming']]);
 
     await cliquer(el, 'button.onglet-tracks');
     expect(chemin(appels.at(-1)!)).toBe('/contacts/40/sets/501/tracks?page=1&per_page=50');
@@ -406,7 +406,7 @@ describe('T3 — les rayons d’un contact', () => {
     const refs = [...el.querySelectorAll('li.reference')];
     expect(refs.map((r) => texte(r.querySelector('.ref-titre')!))).toEqual(['Blue in Green', 'Waltz for Debby']);
     expect(texte(refs[0].querySelector('.note')!)).toBe('Bill Evans Trio · Portrait in Jazz · 5:27');
-    expect(texte(refs[1].querySelector('.note')!)).toBe(`${fr['v2.circle.sets.refAlbum']} · Bill Evans Trio`);
+    expect(texte(refs[1].querySelector('.note')!)).toBe(`${fr['v2.circle.sel.refAlbum']} · Bill Evans Trio`);
     expect(noms(refs[0], '.service')).toEqual(['Qobuz', 'TIDAL']);
     expect(noms(refs[1], '.service')).toEqual(['TIDAL', 'Deezer']);
     // Aucun bouton, aucun lien : une référence ne se joue pas ici.
@@ -420,7 +420,7 @@ describe('T3 — les rayons d’un contact', () => {
     const el = await poser();
     await ouvrirElise(el);
     await cliquer(el, 'button.rayon-contact');
-    expect(noms(el, '.onglets .onglet')).toEqual([fr['v2.circle.sets.streaming']]);
+    expect(noms(el, '.onglets .onglet')).toEqual([fr['v2.circle.sel.streaming']]);
     expect(chemin(appels.at(-1)!)).toBe('/contacts/40/sets/501/streaming?page=1&per_page=50');
     expect(el.querySelectorAll('li.reference')).toHaveLength(2);
   });
@@ -435,7 +435,7 @@ describe('T3 — les rayons d’un contact', () => {
     expect(el.querySelector('.rayon-parti')).toBeNull();
   });
 
-  it('404 dans un rayon (décoché) : retour au catalogue, « Ce rayon n’est plus partagé », liste relue', async () => {
+  it('404 dans un rayon (décoché) : retour au catalogue, « Cette sélection n’est plus partagée », liste relue', async () => {
     const el = await poser();
     await ouvrirElise(el);
     await cliquer(el, 'button.rayon-contact');
@@ -444,7 +444,7 @@ describe('T3 — les rayons d’un contact', () => {
     rayonsElise = rayonsElise.filter((r) => r.id !== 501);
     await cliquer(el, 'button.onglet-tracks');
     expect(el.querySelector('.titre-rayon')).toBeNull();
-    expect(texte(el.querySelector('.rayon-parti')!)).toBe(fr['v2.circle.sets.gone']);
+    expect(texte(el.querySelector('.rayon-parti')!)).toBe(fr['v2.circle.sel.gone']);
     // Le catalogue du contact est toujours là (le partage de bibliothèque tient)…
     expect(el.querySelector('.catalogue-contact')).not.toBeNull();
     expect(noms(el, 'button.album-contact .album-nom')).toEqual(['Kind of Blue']);
@@ -481,6 +481,24 @@ describe('T3 — les rayons d’un contact', () => {
     await cliquer(cercleDe(el, 'Famille'), 'button.ouvrir-rayons');
     expect(cercleDe(el, 'Famille').querySelector('.erreur-rayons')).not.toBeNull();
     expect(cercleDe(el, 'Famille').querySelector('input.coche-rayon')).toBeNull();
+  });
+});
+
+describe('T3 — le mot « Sélection » (décision de Bertrand du 28/09) : jamais « Rayon »', () => {
+  it('les libellés, et aucun « rayon » à l’écran, propriétaire comme contact', async () => {
+    expect(fr['v2.circle.sel.title']).toBe('Sélections partagées');
+    expect(fr['v2.circle.sel.contactTitle']).toBe('Sélections');
+    expect(fr['v2.circle.sel.gone']).toBe('Cette sélection n\'est plus partagée.');
+    const el = await poser();
+    await cliquer(cercleDe(el, 'Famille'), 'button.ouvrir-rayons');
+    expect(texte(cercleDe(el, 'Famille').querySelector('button.ouvrir-rayons')!)).toBe('Sélections partagées');
+    expect(el.textContent).not.toMatch(/rayon/i);
+    await cliquer(el, 'li.partage-recu button.ouvrir-catalogue');
+    expect(texte(el.querySelector('section.rayons-contact h3')!)).toBe('Sélections');
+    rayonsElise = rayonsElise.filter((r) => r.id !== 501);
+    await cliquer(el, 'button.rayon-contact');
+    expect(texte(el.querySelector('.rayon-parti')!)).toBe('Cette sélection n\'est plus partagée.');
+    expect(el.textContent).not.toMatch(/rayon/i);
   });
 });
 

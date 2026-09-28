@@ -28,7 +28,7 @@
    * alors cachée plutôt que d'offrir des gestes qui échoueraient.
    *
    * Étape T3 (renesenses/tune-server-rust#5326, décisions du 28/09/2026) :
-   * sous l'interrupteur, « Rayons partagés » — mes étiquettes et mes
+   * sous l'interrupteur, « Sélections partagées » — mes étiquettes et mes
    * collections intelligentes, à cocher UNE PAR UNE pour CE cercle, aucune
    * cochée par défaut. Grisé tant que ce cercle ne partage pas la
    * bibliothèque de CE serveur. Les listes se lisent à la demande (bouton),
@@ -305,7 +305,7 @@
   const partageIci = (c: CercleNomme) => ou(c) === 'ici';
 
   const compteRayon = (r: RayonLocal) =>
-    r.count != null ? $t('v2.circle.sets.count' as any).replace('{n}', String(r.count)) : '';
+    r.count != null ? $t('v2.circle.sel.count' as any).replace('{n}', String(r.count)) : '';
 
   /** Réglages ▸ Système ▸ Cloud : le chemin de `OutputModuleBanner.ouvrirLiaisonCompte`. */
   function ouvrirLiaisonCompte() {
@@ -477,8 +477,8 @@
                 <div class="rayons" class:grise={!partageIci(c)} aria-disabled={!partageIci(c)}>
                   <button class="lnk ouvrir-rayons" aria-expanded={partageIci(c) && rayonsOuverts[c.id] === true}
                     aria-controls={`circle-rayons-${c.id}`} disabled={!partageIci(c)}
-                    onclick={() => basculerOuvertureRayons(c)}>{$t('v2.circle.sets.title' as any)}</button>
-                  <p class="note rayons-quoi">{$t((partageIci(c) ? 'v2.circle.sets.hint' : 'v2.circle.sets.needLibrary') as any)}</p>
+                    onclick={() => basculerOuvertureRayons(c)}>{$t('v2.circle.sel.title' as any)}</button>
+                  <p class="note rayons-quoi">{$t((partageIci(c) ? 'v2.circle.sel.hint' : 'v2.circle.sel.needLibrary') as any)}</p>
                   {#if partageIci(c) && rayonsOuverts[c.id]}
                     {@const r = rayons[c.id]}
                     <div class="rayons-listes" id={`circle-rayons-${c.id}`}>
@@ -490,8 +490,8 @@
                         <div class="state">{$t('v2.tool.loading' as any)}</div>
                       {:else if r.donnees}
                         {#each [
-                          { cle: 'tags', titre: 'v2.circle.sets.tags', vide: 'v2.circle.sets.noTags', liste: r.donnees.tags },
-                          { cle: 'smart', titre: 'v2.circle.sets.smart', vide: 'v2.circle.sets.noSmart', liste: r.donnees.smart_collections },
+                          { cle: 'tags', titre: 'v2.circle.sel.tags', vide: 'v2.circle.sel.noTags', liste: r.donnees.tags },
+                          { cle: 'smart', titre: 'v2.circle.sel.smart', vide: 'v2.circle.sel.noSmart', liste: r.donnees.smart_collections },
                         ] as groupe (groupe.cle)}
                           <fieldset class="groupe-rayons groupe-{groupe.cle}">
                             <legend>{$t(groupe.titre as any)}</legend>

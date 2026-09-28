@@ -22,7 +22,7 @@
    *   composant détruit, toutes ses listes partent avec lui.
    *
    * Étape T3 (renesenses/tune-server-rust#5326, décisions du 28/09/2026) :
-   * - en tête, la rangée « Rayons » : les étiquettes et collections
+   * - en tête, la rangée « Sélections » : les étiquettes et collections
    *   intelligentes que ce contact a cochées pour un cercle où je suis rangé,
    *   réunies, sans aucun nom de cercle ;
    * - la vue d'un rayon : ses albums, titres et artistes de bibliothèque avec
@@ -67,7 +67,7 @@
     { id: 'albums', cle: 'v2.circle.lib.albums', compte: 'albums' },
     { id: 'tracks', cle: 'v2.circle.lib.tracks', compte: 'tracks' },
     { id: 'artists', cle: 'v2.circle.lib.artists', compte: 'artists' },
-    { id: 'streaming', cle: 'v2.circle.sets.streaming', compte: 'streaming' },
+    { id: 'streaming', cle: 'v2.circle.sel.streaming', compte: 'streaming' },
   ];
 
   let onglet = $state<Onglet>('albums');
@@ -87,7 +87,7 @@
   let rayonsListe = $state<RayonContact[]>([]);
   let rayon = $state<RayonContact | null>(null);
   let references = $state<ReferenceContact[]>([]);
-  /** « Ce rayon n'est plus partagé » : posé au retour d'un 404 dans un rayon. */
+  /** « Cette sélection n'est plus partagée » : posé au retour d'un 404 dans un rayon. */
   let rayonParti = $state(false);
 
   /** Les onglets d'un rayon : ceux qui ont quelque chose, tous si le cloud ne compte pas. */
@@ -257,13 +257,13 @@
 
   /** Artiste · album · durée d'une référence ; le genre si ce n'est pas un titre. */
   const detailsReference = (r: ReferenceContact) =>
-    [r.type === 'album' ? $t('v2.circle.sets.refAlbum' as any) : r.type === 'artist' ? $t('v2.circle.sets.refArtist' as any) : null,
+    [r.type === 'album' ? $t('v2.circle.sel.refAlbum' as any) : r.type === 'artist' ? $t('v2.circle.sel.refArtist' as any) : null,
       r.type !== 'artist' ? r.artist_name : null, r.type === 'track' ? r.album_title : null,
       r.duration_ms != null && r.type === 'track' ? formatTime(r.duration_ms) : null]
       .filter(Boolean).join(' · ');
 
   const compteRayon = (r: RayonContact) =>
-    r.count != null ? $t('v2.circle.sets.count' as any).replace('{n}', String(r.count)) : '';
+    r.count != null ? $t('v2.circle.sel.count' as any).replace('{n}', String(r.count)) : '';
 
   // Première lecture : les chiffres, puis la première page d'albums et les rayons.
   void lire(() => statsContact(contact.user_id), (s) => { stats = s; chargerPage(1); void lireRayons(); });
@@ -281,18 +281,18 @@
   </div>
 
   {#if rayonParti && !rayon}
-    <div class="err rayon-parti" role="alert"><span>{$t('v2.circle.sets.gone' as any)}</span></div>
+    <div class="err rayon-parti" role="alert"><span>{$t('v2.circle.sel.gone' as any)}</span></div>
   {/if}
 
   {#if rayon && !album}
     <div class="rayon-tete">
-      <button class="lnk retour-catalogue" onclick={() => fermerRayon(false)}>← {$t('v2.circle.sets.backToLibrary' as any)}</button>
+      <button class="lnk retour-catalogue" onclick={() => fermerRayon(false)}>← {$t('v2.circle.sel.backToLibrary' as any)}</button>
       <h3 class="titre-rayon">{rayon.name}</h3>
       {#if rayon.count != null}<p class="note">{compteRayon(rayon)}</p>{/if}
     </div>
   {:else if !rayon && !album && rayonsListe.length > 0}
     <section class="rayons-contact" aria-labelledby="circle-rayons-contact">
-      <h3 id="circle-rayons-contact" class="titre-rayons">{$t('v2.circle.sets.shelves' as any)}</h3>
+      <h3 id="circle-rayons-contact" class="titre-rayons">{$t('v2.circle.sel.contactTitle' as any)}</h3>
       <ul class="liste-rayons">
         {#each rayonsListe as r (r.id)}
           <li>
@@ -378,7 +378,7 @@
         </ul>
       {/if}
     {:else if onglet === 'streaming'}
-      <p class="note references-quoi">{$t('v2.circle.sets.streamingHint' as any)}</p>
+      <p class="note references-quoi">{$t('v2.circle.sel.streamingHint' as any)}</p>
       {#if references.length === 0 && !chargement && !erreur}
         <p class="note vide">{$t('v2.circle.lib.empty' as any)}</p>
       {:else}
