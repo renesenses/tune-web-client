@@ -193,6 +193,16 @@
     // D'où l'alias, sans quoi aucune entrée ne s'allumerait quand on y est.
     { view: 'playlistmanager', labelKey: 'v2.nav.playlists', aussi: ['playlists', 'smartplaylists', 'smart-ai'],
       icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
+    /**
+     * « Écouter plus tard » — web#1653, FabienM, fil 1986.
+     *
+     * 🔴 AU-DESSUS des Étiquettes, comme sur la capture 3 du fil (la barre de
+     * Roon : « Écouter plus tard », puis « Étiquettes », puis « Historique »).
+     * Le sas EST une étiquette, et c'est justement pourquoi il se range juste
+     * avant elles : on y dépose sans choisir, on range ensuite.
+     */
+    { view: 'ecouterplustard', labelKey: 'v2.nav.later',
+      icon: 'M12 21a9 9 0 1 1 8.94-10M12 7v5l3 2M17 17h6M20 14v6' },
     { view: 'tags', labelKey: 'v2.nav.tags', icon: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42zM6.5 6.5h.01' },
     { view: 'favorites', labelKey: 'v2.nav.favorites', icon: 'M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z' },
     // #4806 — « Titres bannis » : ce que l'utilisateur a ÉCARTÉ lui-même,

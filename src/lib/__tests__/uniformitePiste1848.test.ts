@@ -184,7 +184,7 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
     expect(rendus).toEqual([
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
       fr['library.otherVersions'], fr['nowplaying.addToPlaylist'],
-      fr['v2.cover.tags'], fr['trackTags.title'],
+      fr['v2.later.add'], fr['v2.cover.tags'], fr['trackTags.title'],
       // tune-server-rust#4806 suite (fil 1946, réponse 6820) — un titre de
       // service se bannit aussi.
       fr['ban.ban'],
@@ -206,7 +206,7 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
       // 23/09/2026 — « Autres versions » par titre + artiste, même libellé,
       // même place que pour une piste de la bibliothèque.
       fr['library.otherVersions'],
-      fr['nowplaying.addToPlaylist'], fr['v2.cover.tags'],
+      fr['nowplaying.addToPlaylist'], fr['v2.later.add'], fr['v2.cover.tags'],
       // Fil forum 1906 — « Tous les champs piste », en lecture seule.
       fr['trackTags.title'],
       // tune-server-rust#4993 — les crédits d'un titre Qobuz.
@@ -215,12 +215,12 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
       fr['ban.ban'],
     ]);
   });
-  it('une piste de la BIBLIOTHÈQUE ouvre les douze gestes', () => {
+  it('une piste de la BIBLIOTHÈQUE ouvre les treize gestes', () => {
     expect(libelles(ouvrir(LOCALE))).toEqual([
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
       fr['library.playSimilar'], fr['library.otherVersions'],
       fr['nowplaying.addToPlaylist'], fr['library.goToArtist'],
-      fr['library.goToAlbum'], fr['v2.cover.tags'],
+      fr['library.goToAlbum'], fr['v2.later.add'], fr['v2.cover.tags'],
       // #851 — « Tous les champs piste », que seul `MenuPisteV2` rendait.
       fr['trackTags.title'],
       // #1572 — « Voir les crédits » (fil 1921), bibliothèque seule : les
@@ -411,7 +411,7 @@ describe('parité des menus — MenuPisteV1 et PisteActions rendent la même lis
       expect(v1, `V1 ${JSON.stringify(v1)} ≠ V2 ${JSON.stringify(v2)}`).toEqual(v2);
     });
   }
-  it('la piste de la bibliothèque a ses douze gestes dans les deux menus, « Autres versions » compris', () => {
+  it('la piste de la bibliothèque a ses treize gestes dans les deux menus, « Autres versions » compris', () => {
     for (const composant of [MenuPisteV1, PisteActions]) {
       const rendus = menuDe(composant, LOCALE);
       expect(rendus).toContain(fr['library.otherVersions']);
@@ -420,7 +420,12 @@ describe('parité des menus — MenuPisteV1 et PisteActions rendent la même lis
       expect(rendus).toContain(fr['ban.ban']);
       // #1572 — « Voir les crédits », dans les DEUX menus.
       expect(rendus).toContain(fr['credits.see']);
-      expect(rendus).toHaveLength(12);
+      // web#1653 — « Écouter plus tard », le treizième, dans les DEUX menus.
+      // C'est ce témoin qui a attrapé l'oubli de `MenuPisteV1` : l'entrée
+      // était née dans `v2/PisteActions` seule, et les deux clients auraient
+      // divergé — le reproche d'origine de #1848.
+      expect(rendus).toContain(fr['v2.later.add']);
+      expect(rendus).toHaveLength(13);
     }
   });
 });

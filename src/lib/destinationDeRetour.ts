@@ -91,6 +91,9 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   declick: 'destination',
   shortcuts: 'destination',
   tags: 'destination',
+  // web#1653 — le sas « Écouter plus tard » : une entrée de barre latérale
+  // comme ses voisines de SÉLECTIONS, donc une destination.
+  ecouterplustard: 'destination',
   oxygen: 'destination',
   support: 'destination',
   bandcamp: 'destination',

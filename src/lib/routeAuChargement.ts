@@ -91,6 +91,11 @@ const VUES: Record<View, boolean> = {
   declick: true,
   shortcuts: true,
   tags: true,
+  // web#1653 — le sas « Écouter plus tard ». Une DESTINATION à part
+  // entière : FabienM demande « une entrée dans le menu pour retrouver les
+  // objets à écouter plus tard », et une entrée de barre latérale se
+  // rouvre par son adresse comme ses quatre voisines de SÉLECTIONS.
+  ecouterplustard: true,
   oxygen: true,
   support: true,
   bandcamp: true,

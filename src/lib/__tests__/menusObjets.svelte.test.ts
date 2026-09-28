@@ -157,17 +157,24 @@ const cliquer = (cle: string) => {
 
 const LIRE = ['common.play', 'library.shuffle', 'v2.pa.next', 'queue.addToQueue'];
 
+// web#1653 — « Écouter plus tard » se range juste AVANT « Étiquettes », dans
+// le groupe du rangement, et seulement sur l'ALBUM et la PLAYLIST : ce sont,
+// avec la piste (`uniformitePiste1848`), les trois objets que FabienM nomme
+// mot pour mot dans le fil 1986. L'artiste, les collections et la playlist
+// intelligente s'étiquettent tout aussi bien et ne l'ont PAS — l'écran du sas
+// ne relit que ces trois familles, et offrir un dépôt qu'on ne relit pas
+// donnerait un objet rangé qui n'apparaît nulle part.
 describe('1. Les entrées de chaque type, selon ce que l’objet permet', () => {
   it('album de la BIBLIOTHÈQUE : lecture, fiche, artiste, ranger, corriger', () => {
     expect(ouvrirLigne(ALBUM_LOCAL)).toEqual([
-      ...LIRE, 'common.open', 'library.goToArtist', 'v2.cover.favorite', 'v2.cover.tags',
+      ...LIRE, 'common.open', 'library.goToArtist', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags',
       'v2.album.addToCollection', 'credits.see', 'v2.cover.edit', 'library.reidentify', 'v2.album.locate',
     ]);
   });
 
   it('album de SERVICE (Qobuz) : rien de ce qui prend un `i64`, les crédits parce que Qobuz en rend', () => {
     expect(ouvrirLigne(ALBUM_QOBUZ)).toEqual([
-      ...LIRE, 'common.open', 'library.goToArtist', 'v2.cover.favorite', 'v2.cover.tags', 'credits.see',
+      ...LIRE, 'common.open', 'library.goToArtist', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags', 'credits.see',
     ]);
   });
 
@@ -179,7 +186,7 @@ describe('1. Les entrées de chaque type, selon ce que l’objet permet', () => 
 
   it('playlist LOCALE : organiser, partager, supprimer — et « Transférer » avec le greffon seulement', () => {
     expect(ouvrirLigne(PLAYLIST)).toEqual([
-      ...LIRE, 'common.open', 'v2.cover.favorite', 'v2.cover.tags', 'v2.pl.rename', 'menuObjet.duplicate',
+      ...LIRE, 'common.open', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags', 'v2.pl.rename', 'menuObjet.duplicate',
       'v2.pl.export', 'menuObjet.transfer', 'v2.pl.share', 'common.delete',
     ]);
     convertisseurGreffon.set('absent');
@@ -188,7 +195,7 @@ describe('1. Les entrées de chaque type, selon ce que l’objet permet', () => 
 
   it('playlist de SERVICE : ni renommer, ni supprimer, ni partager', () => {
     expect(ouvrirLigne(PLAYLIST_QOBUZ, { ouvrir: () => {} })).toEqual([
-      ...LIRE, 'common.open', 'v2.cover.favorite', 'v2.cover.tags',
+      ...LIRE, 'common.open', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags',
     ]);
   });
 
