@@ -3684,6 +3684,7 @@ export default {
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Rechazar la reproducción en lugar de convertir la frecuencia cuando la salida no admite la de la fuente.",
   "bitperfect.refused": "Bit-perfect estricto: reproducción rechazada — la salida no reproduce {requested} kHz sin conversión (funciona a {device} kHz). Desactiva «Bit-perfect strict» en los ajustes de la zona para reproducir con conversión.",
+  "bitperfect.refusedDepth": "Bit-perfect estricto: reproducción rechazada — esta ruta de reproducción reduce la fuente de {requested} bits a {device} bits. Desactiva «Bit-perfect strict» en los ajustes de la zona para reproducir con conversión.",
   "bitperfect.pureDegraded": "PURE degradado — {from} → {to} kHz, no bit-perfect",
   "bitperfect.rateConversion": "{from} → {to} kHz, no bit-perfect",
   "v2.lib.chipAll": "Todo ({n})",

@@ -479,7 +479,9 @@ import { ICONES } from '../../lib/menuPiste';
       const credits = await api.getTrackCredits(trackId);
       // Une réponse lente de la piste précédente ne doit pas remplacer les
       // crédits de celle qui joue maintenant.
-      if (npCreditsTrackId === trackId) npCredits = credits;
+      // Une réponse absente ou mal formée ne doit pas casser les effets
+      // réactifs du lecteur, qui parcourent toujours une liste de crédits.
+      if (npCreditsTrackId === trackId) npCredits = Array.isArray(credits) ? credits : [];
     } catch {
       if (npCreditsTrackId === trackId) npCredits = [];
     }
