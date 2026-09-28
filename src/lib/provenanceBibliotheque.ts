@@ -43,6 +43,22 @@ export function compterSources(items: Iterable<Iterable<string>>): Map<string, n
   return comptes;
 }
 
+/**
+ * Le libellé d'une provenance — menu « Source » de la Bibliothèque et
+ * pastilles de la fiche artiste.
+ *
+ * Un serveur UPnP s'affiche sous le NOM qu'il s'annonce au registre
+ * (`GET /network/media-servers`, `id` = son UDN) ; Bertrand, 14/09/2026 : jamais
+ * `upnp` ni une IP quand un nom existe. À défaut, l'UDN abrégé, qui reste
+ * distinctif quand deux serveurs cohabitent.
+ */
+export function libelleProvenance(cle: string, nomsServeurs: Record<string, string>, libelleLocal: string): string {
+  if (cle === 'local') return libelleLocal;
+  if (!cle.startsWith('upnp:')) return cle.toUpperCase();
+  const udn = cle.slice(cle.indexOf(':') + 1);
+  return nomsServeurs[udn] ?? `${udn.slice(0, 18)}…`;
+}
+
 export interface ComptesArtistesSources {
   comptes: Map<string, number>;
   total: number;

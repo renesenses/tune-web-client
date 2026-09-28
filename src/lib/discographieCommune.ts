@@ -70,6 +70,23 @@ export interface EntreeDiscographie {
   qualites: Qualite[];
 }
 
+/** Les seuls types que la page peut ranger dans « EP et singles ». */
+export function estEpOuSingle(entree: EntreeDiscographie): boolean {
+  const types = entree.exemplaires.map((ex) => ex.album.release_type?.trim().toLowerCase());
+  // Un exemplaire sans type ou contradictoire reste dans la grille Albums.
+  return types.length > 0 && types.every((type) => type === 'ep' || type === 'single');
+}
+
+/** Conserve l'ordre reçu, y compris pour les albums sans type connu. */
+export function partagerParTypeDeSortie(entrees: EntreeDiscographie[]) {
+  const albums: EntreeDiscographie[] = [];
+  const epSingles: EntreeDiscographie[] = [];
+  for (const entree of entrees) {
+    (estEpOuSingle(entree) ? epSingles : albums).push(entree);
+  }
+  return { albums, epSingles };
+}
+
 /**
  * Le titre replié : sans accents, sans casse, sans ponctuation.
  *
@@ -206,6 +223,71 @@ export function dansProvenance(e: EntreeDiscographie, filtre: string | null): bo
  *  sources compte pour chacune, et une seule fois dans le total. */
 export function comptesProvenanceFiche(entrees: EntreeDiscographie[]): ComptesArtistesSources {
   return { comptes: compterSources(entrees.map(provenancesEntree)), total: entrees.length };
+}
+
+/**
+ * LES PASTILLES « SOURCE » DE LA FICHE — Bertrand, 28/09/2026 : « Dans la
+ * fiche artiste, je veux ajouter un filtre par source (local, upnp, Qobuz…) ».
+ *
+ * Le filtre existait, replié dans le Focus, et parlait la langue de la FUSION :
+ * une case « Bibliothèque » pour le local ET tous les serveurs UPnP. Les
+ * pastilles parlent celle du menu « Source » de la Bibliothèque — `local`,
+ * `upnp:<udn>` par serveur, puis chaque service — pour que la source choisie
+ * dans la grille soit une pastille comme les autres, visible et décochable.
+ *
+ * Arbitrages du 28/09/2026 : plusieurs sources à la fois (OU), et le filtre
+ * porte sur TOUTES les sections de la fiche, pas la seule discographie.
+ */
+export interface CompteProvenance {
+  cle: string;
+  n: number;
+}
+
+/** Local d'abord, puis les serveurs UPnP, puis les services dans l'ordre de la règle 3. */
+const rangProvenance = (cle: string) => (cle.startsWith('upnp') ? 0.5 : rang(cle));
+
+/**
+ * Les pastilles à montrer, comptées sur toutes les sections réunies : une
+ * vignette à deux sources compte pour chacune, une vignette présente dans deux
+ * sections compte deux fois — c'est ce que la fiche affiche.
+ *
+ * Seules les provenances PRÉSENTES sont rendues, comme au Focus.
+ */
+export function compterProvenances(sections: readonly (readonly EntreeDiscographie[])[]): CompteProvenance[] {
+  const comptes = new Map<string, number>();
+  for (const entrees of sections) {
+    for (const e of entrees) {
+      for (const cle of new Set(provenancesEntree(e))) comptes.set(cle, (comptes.get(cle) ?? 0) + 1);
+    }
+  }
+  return [...comptes.entries()]
+    .map(([cle, n]) => ({ cle, n }))
+    .sort((a, b) => rangProvenance(a.cle) - rangProvenance(b.cle) || a.cle.localeCompare(b.cle));
+}
+
+/**
+ * Le choix courant couvre-t-il cette pastille ? Le choix peut porter `upnp`
+ * tout court — la grille de la Bibliothèque sait le poser — qui couvre chacun
+ * de ses serveurs.
+ */
+export function provenanceCochee(cle: string, choix: ReadonlySet<string>): boolean {
+  return [...choix].some((c) => sourceCorrespond(cle, c));
+}
+
+/** Rien de coché = tout ; sinon UN exemplaire d'une source cochée suffit. */
+export function dansProvenances(e: EntreeDiscographie, choix: ReadonlySet<string>): boolean {
+  return choix.size === 0 || provenancesEntree(e).some((s) => provenanceCochee(s, choix));
+}
+
+/**
+ * Coche ou décoche UNE pastille. Le choix est d'abord ramené aux pastilles
+ * présentes : décocher « Sonos » sous un `upnp` venu de la grille doit laisser
+ * les autres serveurs cochés, pas tout effacer ni rien changer.
+ */
+export function basculerProvenance(choix: ReadonlySet<string>, cle: string, presentes: readonly string[]): Set<string> {
+  const n = new Set(presentes.filter((p) => provenanceCochee(p, choix)));
+  if (n.has(cle)) n.delete(cle); else n.add(cle);
+  return n;
 }
 
 /** Ce que le Focus retient. Un ensemble vide = pas de filtre sur cet axe. */

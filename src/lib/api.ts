@@ -22,6 +22,11 @@ import { estDepotTuneDistant } from './depotsTuneDistants';
 const PLAY_ERROR_KEYS: Record<string, string> = {
   file_not_found: 'playback.errorFileNotFound',
   zone_no_output_device: 'playback.errorNoOutputDevice',
+  // #5283 — Qobuz n'a annoncé aucune fréquence, et ni l'en-tête du flux ni le
+  // catalogue ne la donnent : le serveur refuse la lecture (422) plutôt que de
+  // transcoder à 0 Hz. Sa phrase est technique et toujours en français ; la
+  // clé dit la même chose dans la langue de l'interface.
+  streaming_sample_rate_unknown: 'playback.errorSampleRateUnknown',
 };
 
 /**
@@ -615,7 +620,12 @@ export async function fetchJSON<T>(
         }
         err.dejaAnnonce = true;
       } else if (key) {
-        notifications.error(get(t)(key as any));
+        const traduit = get(t)(key as any);
+        notifications.error(traduit);
+        // Les écrans à bandeau (`messageEchecLecture`) lisent `err.message` :
+        // ils disent la phrase traduite, comme le toast, et non le texte
+        // technique du serveur (#5283 — même geste que le refus bit-perfect).
+        err.message = traduit;
         // Dit à l'appelant que c'est fait : voir `ApiError.dejaAnnonce`.
         err.dejaAnnonce = true;
       }
@@ -1879,6 +1889,29 @@ export async function getSampleRateLabels(): Promise<LibelleServi[]> {
 
 export function getAlbum(id: number) {
   return fetchJSON<Album>(`${BASE}/library/albums/${id}`);
+}
+
+/** Album playback source (#1684 / tune-server-rust#4907). */
+export interface PreferenceRepertoireAlbum {
+  album_id: number;
+  racine: string | null;
+  retire?: boolean;
+}
+
+export function getAlbumPreferredDirectory(id: number): Promise<PreferenceRepertoireAlbum> {
+  return fetchJSON<PreferenceRepertoireAlbum>(`${BASE}/library/albums/${id}/repertoire-prefere`);
+}
+
+export function setAlbumPreferredDirectory(id: number, racine: string): Promise<PreferenceRepertoireAlbum> {
+  return fetchJSON<PreferenceRepertoireAlbum>(`${BASE}/library/albums/${id}/repertoire-prefere`, {
+    method: 'PUT', body: JSON.stringify({ racine }),
+  });
+}
+
+export function clearAlbumPreferredDirectory(id: number): Promise<PreferenceRepertoireAlbum> {
+  return fetchJSON<PreferenceRepertoireAlbum>(`${BASE}/library/albums/${id}/repertoire-prefere`, {
+    method: 'DELETE',
+  });
 }
 
 export function getAlbumTracks(id: number, quality?: string | null, format?: string | null) {
@@ -4013,6 +4046,23 @@ export async function removeMusicDir(path: string, confirmPurge?: number) {
     body: JSON.stringify(body),
   });
   return { ...r, music_dirs: listeDossiers(r) };
+}
+
+/** Effective reading order of configured music directories (#1688 / server #4907). */
+export interface MusicDirectoryOrder {
+  ordre: string[];
+  music_dirs: string[];
+  regle: string[];
+}
+
+export function getMusicDirectoryOrder(): Promise<MusicDirectoryOrder> {
+  return fetchJSON<MusicDirectoryOrder>(`${BASE}/library/repertoires/ordre`);
+}
+
+export function setMusicDirectoryOrder(ordre: string[]): Promise<MusicDirectoryOrder> {
+  return fetchJSON<MusicDirectoryOrder>(`${BASE}/library/repertoires/ordre`, {
+    method: 'PUT', body: JSON.stringify({ ordre }),
+  });
 }
 
 export function triggerScan(path?: string, full = false) {

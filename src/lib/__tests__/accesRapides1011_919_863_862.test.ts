@@ -38,7 +38,9 @@ describe('#1011 — l’éditeur de playlists intelligentes est monté, et attei
   it('🔴 l’onglet « Intelligentes » porte le bouton qui y mène — avant la liste, vide ou non', () => {
     const src = lire('src/components/v2/PlaylistsV2.svelte');
     const i = src.indexOf("{:else if onglet === 'smart'}");
-    const bouton = src.indexOf("onclick={() => (editeurSmart = { id: null })}", i);
+    // web#1649 : le bouton passe par `ouvrirEditeurSmart`, qui empile aussi
+    // l'entrée d'historique de l'éditeur.
+    const bouton = src.indexOf("onclick={() => ouvrirEditeurSmart(null)}", i);
     const vide = src.indexOf("{#if !smart.length}", i);
     expect(bouton).toBeGreaterThan(i);
     expect(bouton).toBeLessThan(vide);
