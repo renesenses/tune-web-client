@@ -37,6 +37,7 @@
   import * as api from '../../lib/api';
   import type { FolderChild, FolderCrumb } from '../../lib/api';
   import OxygenFolderFacet from './OxygenFolderFacet.svelte';
+  import { normaliserChemin } from '../../lib/cheminNfc';
 
   interface Props {
     /** Le chemin absolu porté par la règle. */
@@ -58,13 +59,17 @@
     chargement = true;
     panne = false;
     try {
-      const f = await api.getFolderFacet(p);
+      // 🔴 NFC AVANT D'INTERROGER — Yves, 28/09/2026. Un chemin venu du Finder
+      // macOS arrive DÉCOMPOSÉ ; le serveur cherche en composé et découpe la
+      // réponse sur la longueur du brut. Résultat : une lettre perdue par
+      // accent, « arillion » pour Marillion. Voir `lib/cheminNfc`.
+      const f = await api.getFolderFacet(p ? normaliserChemin(p) : p);
       chemin = f.path;
       crumbs = f.crumbs;
       enfants = f.children;
       // Naviguer EST choisir : le dossier courant devient la valeur de la
       // règle. Sauf à la racine, où `path` est nul — il n'y a rien à choisir.
-      if (f.path) onChange(f.path);
+      if (f.path) onChange(normaliserChemin(f.path));
     } catch {
       panne = true;
       crumbs = [];
@@ -78,7 +83,7 @@
     ouvert = !ouvert;
     // On ouvre sur le dossier DÉJÀ choisi quand il y en a un : rouvrir une
     // règle existante doit montrer où elle pointe, pas repartir de la racine.
-    if (ouvert && !crumbs.length) void charger(value || null);
+    if (ouvert && !crumbs.length) void charger(value ? normaliserChemin(value) : null);
   }
 </script>
 
@@ -87,7 +92,7 @@
     class="value"
     placeholder={$t('smartCollection.folderPlaceholder')}
     {value}
-    oninput={(e) => onChange((e.target as HTMLInputElement).value)}
+    oninput={(e) => onChange(normaliserChemin((e.target as HTMLInputElement).value))}
   />
   <button
     type="button"
