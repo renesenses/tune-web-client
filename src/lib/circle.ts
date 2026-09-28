@@ -701,3 +701,108 @@ export function nomCercleValide(brut: string): string | null {
 
 /** Relecture modérée tant que l'écran est ouvert et l'onglet visible. */
 export const RELECTURE_CERCLE_MS = 60_000;
+
+// ─── T4 : écouter chez un contact (Premium) ─────────────────────────────────
+//
+// renesenses/tune-server-rust#5327 et les décisions de Bertrand du 28/09/2026 :
+//
+//   POST /contacts/{uid}/listen { track_id, zone_id } → { ok: true }
+//        Le greffon demande au cloud un billet court pour CETTE piste, puis lance
+//        la lecture du flux relayé sur la zone. L'écran ne voit jamais le billet
+//        ni l'adresse du flux : il ne reçoit que `ok`.
+//
+// Refus : 404 (plus partagé, identique à « inexistant ») ; 402 relayé du cloud ;
+// 409 `owner_unavailable` ; 503 `circle.owner_offline` (le pont ne joint pas le
+// serveur du contact) ; 503 `circle.cloud_unavailable`, 412, 429 comme T1.
+//
+// Décisions : aucune présence permanente (le contact apprend que le serveur est
+// éteint EN LANÇANT l'écoute) ; refus Premium ou indisponibilité = phrase NEUTRE,
+// jamais « l'autre n'a pas Premium » ; qualité = fichier d'origine, rien à régler.
+
+/**
+ * L'écoute à distance est-elle offerte ici ? Le `premium` de `/library-sync`
+ * (le greffon le lit du compte relié) fait foi ; sans lui (greffon plus ancien,
+ * lecture en échec), l'état de licence du serveur. Tant que ni l'un ni l'autre
+ * n'a répondu : NON — aucun bouton ne s'affiche sur une supposition.
+ */
+export function ecoutePermise(
+  premiumSynchro: boolean | null | undefined,
+  licence: { loaded: boolean; premium: boolean },
+): boolean {
+  if (typeof premiumSynchro === 'boolean') return premiumSynchro;
+  return licence.loaded && licence.premium;
+}
+
+/**
+ * Lance, sur ma zone, l'écoute d'une piste d'un contact — ou d'un album
+ * entier : `track_ids` dans l'ordre, et le greffon demande un billet par
+ * piste au moment de la jouer. Une piste seule part en `track_id`.
+ *
+ * 🔴 Le 402 est accepté ICI et relevé à la main : `fetchJSON` pose sinon son
+ * bandeau global générique, EN PLUS de la phrase que l'écran dit lui-même.
+ */
+export async function ecouterChezContact(uid: number, pistes: number | number[], zoneId: number): Promise<void> {
+  let statut = 0;
+  const corps = Array.isArray(pistes) ? { track_ids: pistes, zone_id: zoneId } : { track_id: pistes, zone_id: zoneId };
+  await fetchJSON<unknown>(
+    `${BASE}/ext/circle/contacts/${seg(uid)}/listen`,
+    { method: 'POST', body: JSON.stringify(corps) },
+    (s) => { statut = s; return s === 402; },
+    true,
+  );
+  if (statut === 402) {
+    const err = new Error('premium_required') as ApiError;
+    err.status = 402;
+    err.code = 'premium_required';
+    throw err;
+  }
+}
+
+/** Ce que l'écran dit d'un refus d'écoute : toujours une clé `v2.circle.listen.*` ou une de T1. */
+export type MotifEcoute =
+  | { cle: 'v2.circle.listen.ownerOffline' }
+  | { cle: 'v2.circle.listen.unavailable' }
+  | { cle: 'v2.circle.listen.premiumRequired' }
+  | { cle: 'v2.circle.listen.notShared' }
+  | MotifCercle;
+
+const codeDe = (e: unknown): string => {
+  const err = e as ApiError | null;
+  if (typeof err?.code === 'string') return err.code;
+  const c = (err?.corps as { code?: unknown; error?: unknown } | undefined);
+  return typeof c?.code === 'string' ? c.code : typeof c?.error === 'string' ? c.error : '';
+};
+
+/**
+ * Traduit un refus de `POST /listen` (contrat cloud site-mozaiklabs#237,
+ * consignes du 28/09/2026) :
+ *
+ * - 503 `owner_offline` (le pont, relayé) : le serveur du contact est éteint
+ *   ou injoignable — le catalogue, lui, reste consultable ;
+ * - 402 `premium_required` (`who: listener`) : c'est MON abonnement, je peux
+ *   le savoir ;
+ * - 409 `owner_unavailable` : phrase NEUTRE — rien sur le propriétaire ;
+ * - 404 : ce titre n'est plus partagé avec moi ;
+ * - le reste comme T1 (412, 429, 503 `circle.cloud_unavailable`).
+ */
+export function motifEcoute(e: unknown): MotifEcoute {
+  const err = e as ApiError | null;
+  const code = codeDe(e);
+  if (/(^|[._])owner_offline$/.test(code)) return { cle: 'v2.circle.listen.ownerOffline' };
+  if (/(^|[._])owner_unavailable$/.test(code) || err?.status === 409) return { cle: 'v2.circle.listen.unavailable' };
+  if (err?.status === 402 || /(^|[._])premium_required$/.test(code)) return { cle: 'v2.circle.listen.premiumRequired' };
+  if (plusPartage(e)) return { cle: 'v2.circle.listen.notShared' };
+  return motifCercle(e);
+}
+
+/**
+ * L'événement de fin d'écoute (`circle.stream_revoked`) : le pont a refusé
+ * le billet en cours de lecture (révocation, partage coupé, fin du Premium).
+ * Accepté sous son propre type, ou comme `code` d'un échec de lecture.
+ */
+export function estEcouteRevoquee(event: { type?: unknown; data?: any } | null | undefined): boolean {
+  if (!event) return false;
+  if (event.type === 'circle.stream_revoked') return true;
+  const echec = event.type === 'zone.playback_error' || event.type === 'playback.error';
+  return echec && (event.data?.code === 'circle.stream_revoked' || event.data?.reason === 'circle.stream_revoked');
+}
