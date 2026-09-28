@@ -208,6 +208,16 @@ export interface Track {
   sample_rate?: number | null;
   bit_depth?: number | null;
   channels?: number;
+  /**
+   * La disposition de canaux, NOMMÉE par le serveur : `5.1`, `7.1.4 Atmos`…
+   * et `null` pour mono et stéréo, qui n'ont pas de pastille à porter.
+   *
+   * Champ CALCULÉ (`Track::to_json`, serveur) : il n'est pas en base. Il
+   * accompagne `channels` partout où le serveur sert une piste de la
+   * bibliothèque — et nulle part ailleurs : l'état de zone ne le porte pas.
+   * Voir `lib/canauxPiste.ts`.
+   */
+  channel_badge?: string | null;
   cover_path?: string | null;
   source?: Source;
   source_id?: string | null;
