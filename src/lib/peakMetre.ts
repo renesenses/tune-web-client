@@ -161,6 +161,45 @@ export function styleSurLaBarre(choisi: StyleCreteMetre): StyleCreteMetre {
   return choisi === 'off' ? 'off' : 'lamps';
 }
 
+/**
+ * LES DEUX CANAUX, NOMMÉS — demande de Bertrand, 28/09/2026 : « ajouter un
+ * libellé de canal (surtout pour le multicanal) dans la vue Lecture en cours
+ * sous la pochette ».
+ *
+ * 🔴 `L` et `R`, PAS `G` et `D`, et ces lettres NE SE TRADUISENT PAS.
+ *
+ * Ce n'est pas un oubli d'i18n : c'est la règle déjà écrite pour le cadran du
+ * Grand écran (`dessinVuMetre.ts`, « des repères d'instrument, pas du texte
+ * d'interface — un VU-mètre porte les mêmes lettres dans toutes les langues »),
+ * et les deux cadrans de la barre de lecture les portent déjà. Traduire ici
+ * ferait cohabiter deux conventions pour un même fait sur un même écran : des
+ * aiguilles marquées `L`/`R` et, trois centimètres plus bas, un bargraphe
+ * marqué `G`/`D`.
+ *
+ * `canauxIdentiquesAuCadran` le verrouille : les deux instruments ne peuvent
+ * plus diverger sans faire rougir la suite.
+ */
+export const LIBELLES_CANAUX: readonly [string, string] = ['L', 'R'];
+
+/**
+ * Le corps de police des libellés, en pixels.
+ *
+ * Plancher à 9 px — la MÊME valeur que `MIN_CANAL` du cadran, et pour la même
+ * raison : en dessous, deux lettres deviennent deux taches. La cote relative
+ * (34 % de la hauteur) sert les instruments plus grands ; sur la fiche (26 px)
+ * et sur la barre de lecture (22 px), c'est le plancher qui gagne.
+ *
+ * 🔴 Une cote ABSOLUE recopiée d'une surface où le défaut ne se voit pas est
+ * ce qui avait rogné le cadran du Grand écran (27/09) — d'où le rapport, et
+ * d'où le plancher.
+ */
+export function policeLibelleCanal(hauteur: number): number {
+  return Math.max(9, Math.round(hauteur * 0.34));
+}
+
+/** L'air entre le libellé et le début de l'instrument, en pixels. */
+export const ECART_LIBELLE_PX = 5;
+
 /** À l'arrêt, tout retombe au plancher — voir `PLANCHER_DB`. */
 export function auRepos(): { gaucheDb: number; droiteDb: number; ppm: EtatPpm } {
   return { gaucheDb: PLANCHER_DB, droiteDb: PLANCHER_DB, ppm: { db: null, depuisMs: 0 } };
@@ -193,6 +232,13 @@ export interface PaletteCrete {
   rouge: string;
   ppm: string;
   eteint: string;
+  /**
+   * L'encre des libellés de canal (« G », « D »), quand l'appelant en demande
+   * — voir `CreteMetre.libelles`. Elle NE porte pas de sens, contrairement au
+   * vert, à l'ambre et au rouge : c'est du texte, et elle suit donc la
+   * lisibilité du thème comme n'importe quelle étiquette.
+   */
+  libelle: string;
 }
 
 /** Le crête-mètre d'origine, mot pour mot. Repli hors de `.tune-v2`. */
@@ -203,6 +249,7 @@ export const PALETTE_CRETE_SOMBRE: PaletteCrete = {
   rouge: '#ef4444',
   ppm: 'rgba(255,255,255,0.85)',
   eteint: 'rgba(255,255,255,0.12)',
+  libelle: 'rgba(255,255,255,0.55)',
 };
 
 export function paletteCreteDepuis(el: Element | null | undefined): PaletteCrete {
@@ -216,5 +263,6 @@ export function paletteCreteDepuis(el: Element | null | undefined): PaletteCrete
     rouge: lire('--v2-crete-rouge', PALETTE_CRETE_SOMBRE.rouge),
     ppm: lire('--v2-crete-ppm', PALETTE_CRETE_SOMBRE.ppm),
     eteint: lire('--v2-crete-eteint', PALETTE_CRETE_SOMBRE.eteint),
+    libelle: lire('--v2-crete-libelle', PALETTE_CRETE_SOMBRE.libelle),
   };
 }

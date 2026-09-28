@@ -101,6 +101,19 @@ export interface SuiviPosition {
   /** La piste à laquelle la position affichée appartient. */
   clePiste: string | null;
   positionMs: number;
+  /**
+   * L'état de la zone au relevé précédent — web#1652. `undefined` tant qu'on
+   * n'a rien vu : c'est ce qui distingue un ARRÊT vécu dans cette session
+   * d'une zone trouvée déjà arrêtée à l'ouverture.
+   */
+  etat?: string | null;
+  /**
+   * La position que le serveur annonçait au moment de l'arrêt vu en session,
+   * quand la barre a été remise à zéro — web#1652. Tant que le serveur répète
+   * cette valeur, on reste à zéro ; s'il en annonce une autre (un déplacement
+   * du curseur à l'arrêt, que Lecture honore), c'est elle qui fait foi.
+   */
+  positionAuStop?: number;
 }
 
 export interface Decision {
@@ -115,8 +128,10 @@ export interface Decision {
    * `horloge`    : même piste, l'écart est dans le seuil — l'horloge locale
    *                fait foi, et on n'écrit rien (sinon la barre saccade).
    * `arret`      : la zone ne joue pas ; on prend la position du serveur.
+   * `stop`       : la zone vient de passer à l'arrêt sous nos yeux ; la barre
+   *                revient à 0:00 (web#1652).
    */
-  raison: 'changement' | 'recalage' | 'horloge' | 'arret';
+  raison: 'changement' | 'recalage' | 'horloge' | 'arret' | 'stop';
 }
 
 /**
@@ -134,20 +149,50 @@ export function positionApresReleve(
 ): Decision {
   const cle = clePisteEnCours(zone);
   const duServeur = Math.max(0, Number(zone?.position_ms ?? 0) || 0);
+  const etat = zone?.state ?? null;
 
   if (cle !== precedent.clePiste) {
     // La piste a changé. On repart de zéro, sans regarder ce que le serveur
     // annonce : tant qu'il n'a pas ré-échantillonné, il parle de l'ancienne.
-    return { suivi: { clePiste: cle, positionMs: 0 }, ecrire: true, raison: 'changement' };
+    return { suivi: { clePiste: cle, positionMs: 0, etat }, ecrire: true, raison: 'changement' };
   }
 
-  if (zone?.state !== 'playing') {
-    return { suivi: { clePiste: cle, positionMs: duServeur }, ecrire: true, raison: 'arret' };
+  /**
+   * 🔴 web#1652 — STOP RAMÈNE LA BARRE À 0:00.
+   *
+   * Didier, fil 1983 : après « Arrêter », la barre restait à 1:36. Le serveur
+   * conserve bien `position_ms` à l'arrêt (`PlaybackManager::stop`), mais il
+   * ne la REJOUE pas : en session, Lecture après Stop relance la piste depuis
+   * le début (`play` avec `track_id` seul ; `reprise_applicable` ne vaut que
+   * pour la position restaurée au démarrage — test serveur
+   * `sans_marqueur_la_lecture_repart_de_zero`, #2876). La barre annonçait donc
+   * une position que le bouton Lecture n'honore pas.
+   *
+   * On remet à zéro sur la TRANSITION vers `stopped` vue dans cette session,
+   * et on s'y tient tant que la zone reste arrêtée — les relevés suivants
+   * reportent encore l'ancienne position, et seulement tant qu'ils la
+   * répètent : un déplacement du curseur à l'arrêt change `position_ms`, et
+   * Lecture repart alors de là — la barre suit. Une zone trouvée DÉJÀ arrêtée
+   * (`precedent.etat` inconnu) garde la position du serveur : c'est le cas du
+   * redémarrage, où Lecture reprend bien à cet endroit (#2876).
+   */
+  const vientDeSArreter = precedent.etat != null && precedent.etat !== 'stopped';
+  const resteRemiseAZero = precedent.positionAuStop != null && precedent.positionAuStop === duServeur;
+  if (etat === 'stopped' && (vientDeSArreter || resteRemiseAZero)) {
+    return {
+      suivi: { clePiste: cle, positionMs: 0, etat, positionAuStop: duServeur },
+      ecrire: true,
+      raison: 'stop',
+    };
+  }
+
+  if (etat !== 'playing') {
+    return { suivi: { clePiste: cle, positionMs: duServeur, etat }, ecrire: true, raison: 'arret' };
   }
 
   if (Math.abs(positionLocale - duServeur) > deriveMaxMs) {
-    return { suivi: { clePiste: cle, positionMs: duServeur }, ecrire: true, raison: 'recalage' };
+    return { suivi: { clePiste: cle, positionMs: duServeur, etat }, ecrire: true, raison: 'recalage' };
   }
 
-  return { suivi: { clePiste: cle, positionMs: positionLocale }, ecrire: false, raison: 'horloge' };
+  return { suivi: { clePiste: cle, positionMs: positionLocale, etat }, ecrire: false, raison: 'horloge' };
 }
