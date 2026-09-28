@@ -26,6 +26,18 @@
    *   (`CatalogueContactV2`). Un 404 y ramène ici, avec la phrase.
    * Un greffon T1 ne connaît pas `/library-sync` (404) : la partie T2 reste
    * alors cachée plutôt que d'offrir des gestes qui échoueraient.
+   *
+   * Étape T5 (renesenses/tune-server-rust#5328, décisions du 28/09/2026) :
+   * - le bloc « Playlists partagées » (`GET /playlists`) : les miennes et
+   *   celles des cercles où je suis rangé ; la vue d'une playlist
+   *   (`PlaylistCercleV2`), où tout membre retire et réordonne ;
+   * - « Nouvelle playlist » sous chacun de MES cercles : le propriétaire du
+   *   cercle seul crée, renomme, supprime ;
+   * - à la suppression d'un de mes cercles, la proposition de récupérer une
+   *   COPIE de ses playlists dans mes playlists (décision 3) — la seule copie
+   *   que l'écran offre (décision 5).
+   * Même règle qu'en T2 : un 404 sur `/playlists` dit un greffon d'avant T5,
+   * et le bloc reste caché.
    */
   import { onDestroy } from 'svelte';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -43,7 +55,12 @@
     type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme,
     type EtatSynchroBibliotheque, type PartageRecu, type AvisSynchro,
   } from '../../lib/circle';
+  import {
+    listerPlaylistsCercle, creerPlaylistCercle, copierPlaylistCercle, nomPlaylistValide, codeT5,
+    NOM_PLAYLIST_MAX, type IdOpaque, type PlaylistCercleResume,
+  } from '../../lib/circlePlaylists';
   import CatalogueContactV2 from './CatalogueContactV2.svelte';
+  import PlaylistCercleV2 from './PlaylistCercleV2.svelte';
   import '../../styles/tune-v2.css';
 
   /** `relier` : le refus dit que ce serveur n'est pas relié au compte (T2). */
@@ -66,6 +83,12 @@
   let partages = $state<PartageRecu[]>([]);
   let erreurPartages = $state<MotifCercle | null>(null);
   let contactOuvert = $state<PartageRecu | null>(null);
+
+  /** T5 : `null` tant qu'on ne sait pas si le greffon connaît l'étape (404 = non). */
+  let t5 = $state<boolean | null>(null);
+  let playlists = $state<PlaylistCercleResume[]>([]);
+  let erreurPlaylists = $state<MotifCercle | null>(null);
+  let playlistOuverte = $state<IdOpaque | null>(null);
 
   let fini = false;
   let enCours = false;
@@ -90,7 +113,7 @@
       if (fini) return;
       etat = e;
       erreurLecture = null;
-      if (estConnecte(e)) await relireT2();
+      if (estConnecte(e)) await Promise.all([relireT2(), relireT5()]);
     } catch (e) {
       if (fini) return;
       // Pas de liste périmée affichée comme vraie : l'écran dit la panne.
@@ -114,6 +137,19 @@
     if (p.status === 'fulfilled') { partages = p.value; erreurPartages = null; }
     else if (plusPartage(p.reason)) { partages = []; erreurPartages = null; }
     else { erreurPartages = motifCercle(p.reason); }
+  }
+
+  /** T5 : les playlists de cercle visibles par moi. Un 404 dit un greffon d'avant T5. */
+  async function relireT5() {
+    try {
+      const l = await listerPlaylistsCercle();
+      if (fini) return;
+      playlists = l; t5 = true; erreurPlaylists = null;
+    } catch (e) {
+      if (fini) return;
+      if (plusPartage(e)) { playlists = []; t5 = false; erreurPlaylists = null; }
+      else erreurPlaylists = motifCercle(e);
+    }
   }
 
   /** Relecture modérée : onglet visible, écran ouvert, rien en cours. */
@@ -147,8 +183,9 @@
       if (opts.succes) poser({ texte: $t(opts.succes as any), erreur: false });
     } catch (e) {
       const m = motifCercle(e, opts.champ ?? null);
+      const t5cle = codeT5(e);
       poser({
-        texte: phrase(m),
+        texte: t5cle ? $t(t5cle as any).replace('{max}', String(NOM_PLAYLIST_MAX)) : phrase(m),
         erreur: true,
         reessayer: m.indisponible ? () => void geste(nom, action, opts) : undefined,
         relier: m.nonRelie === true,
@@ -199,13 +236,48 @@
     void geste(`renommer-${c.id}`, () => renommerCercle(c.id, nom), { champ: 'name' });
   }
 
+  /** Mes playlists de CE cercle (le cloud dit `circle_id` des miennes seulement). */
+  const playlistsDe = (c: CercleNomme) => playlists.filter((p) => p.mine && p.circle_id === c.id);
+
   async function supprimer(c: CercleNomme) {
     const ok = await dialogs.confirm(
       $t('v2.circle.confirmDeleteCircle' as any).replace('{name}', c.name),
       { danger: true },
     );
     if (!ok) return;
-    void geste(`supprimer-${c.id}`, () => supprimerCercle(c.id));
+    // Décision 3 du 28/09 : ses playlists partent avec lui ; on propose d'en
+    // garder une COPIE locale, AVANT de supprimer — après, il n'y a plus rien.
+    const siennes = playlistsDe(c);
+    let copier = false;
+    if (siennes.length > 0) {
+      copier = await dialogs.confirm(
+        $t('v2.circle.pl.recoverConfirm' as any).replace('{n}', String(siennes.length)),
+      );
+    }
+    void geste(`supprimer-${c.id}`, async () => {
+      if (copier) {
+        // Une copie qui échoue ARRÊTE la suppression : on ne perd rien en silence.
+        for (const p of siennes) await copierPlaylistCercle(p.id);
+      }
+      await supprimerCercle(c.id);
+    }, { succes: copier ? 'v2.circle.pl.recovered' : undefined });
+  }
+
+  /** Le propriétaire du cercle crée une playlist pour CE cercle. */
+  async function nouvellePlaylist(c: CercleNomme) {
+    const saisi = await dialogs.prompt($t('v2.circle.pl.newPrompt' as any).replace('{max}', String(NOM_PLAYLIST_MAX)), '');
+    if (saisi === null) return;
+    const nom = nomPlaylistValide(saisi);
+    if (nom === null) { retour = { texte: $t('v2.circle.pl.err.nameInvalid' as any).replace('{max}', String(NOM_PLAYLIST_MAX)), erreur: true }; return; }
+    void geste(`playlist-${c.id}`, () => creerPlaylistCercle(c.id, nom), { succes: 'v2.circle.pl.created' });
+  }
+
+  /** Retour de la vue d'une playlist : la phrase qui convient, et la liste relue. */
+  function fermerPlaylist(raison: 'retour' | 'plusPartagee' | 'supprimee') {
+    playlistOuverte = null;
+    if (raison === 'plusPartagee') retour = { texte: $t('v2.circle.pl.gone' as any), erreur: true };
+    else if (raison === 'supprimee') retour = { texte: $t('v2.circle.pl.deleted' as any), erreur: false };
+    void relire();
   }
 
   function ranger(c: CercleNomme) {
@@ -307,6 +379,10 @@
         <p>{$t('v2.circle.notConnected' as any)}</p>
         <button class="go se-connecter" onclick={seConnecterAMozaiklabs}>{$t('v2.circle.signIn' as any)}</button>
       </div>
+    {:else if playlistOuverte != null}
+      {#key String(playlistOuverte)}
+        <PlaylistCercleV2 id={playlistOuverte} onFermer={fermerPlaylist} />
+      {/key}
     {:else if contactOuvert}
       {#key contactOuvert.user_id}
         <CatalogueContactV2 contact={contactOuvert} onFermer={fermerCatalogue} />
@@ -390,6 +466,9 @@
               <div class="cercle-tete">
                 <h3 class="cercle-nom">{c.name}</h3>
                 <button class="lnk renommer" disabled={occupe !== null} onclick={() => void renommer(c)}>{$t('v2.circle.rename' as any)}</button>
+                {#if t5}
+                  <button class="lnk nouvelle-playlist" disabled={occupe !== null} onclick={() => void nouvellePlaylist(c)}>{$t('v2.circle.pl.new' as any)}</button>
+                {/if}
                 <button class="lnk danger supprimer" disabled={occupe !== null} onclick={() => void supprimer(c)}>{$t('v2.circle.deleteCircle' as any)}</button>
               </div>
               {#if t2}
@@ -464,6 +543,37 @@
                       aria-label={$t('v2.circle.shared.browseNamed' as any).replace('{name}', p.name)}
                       onclick={() => { retour = null; contactOuvert = p; }}>
                       {$t('v2.circle.shared.browse' as any)}
+                    </button>
+                  </span>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </section>
+      {/if}
+
+      {#if t5}
+        <section class="bloc playlists-cercle" aria-labelledby="circle-playlists">
+          <h2 id="circle-playlists">{$t('v2.circle.pl.title' as any)}</h2>
+          <p class="note">{$t('v2.circle.pl.hint' as any)}</p>
+          {#if erreurPlaylists}
+            <div class="err" role="alert"><span>{phrase(erreurPlaylists)}</span>
+              <button class="lnk reessayer" onclick={() => void relire()}>{$t('v2.circle.retry' as any)}</button></div>
+          {:else if playlists.length === 0}
+            <p class="note vide">{$t('v2.circle.pl.none' as any)}</p>
+          {:else}
+            <ul>
+              {#each playlists as p (String(p.id))}
+                <li class="ligne playlist-cercle">
+                  <span class="nom">{p.name}</span>
+                  <span class="note">
+                    {$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}{#if !p.mine && p.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', p.owner.name)}{/if}
+                  </span>
+                  <span class="gestes">
+                    <button class="lnk ouvrir-playlist"
+                      aria-label={$t('v2.circle.pl.openNamed' as any).replace('{name}', p.name)}
+                      onclick={() => { retour = null; playlistOuverte = p.id; }}>
+                      {$t('v2.circle.pl.open' as any)}
                     </button>
                   </span>
                 </li>
