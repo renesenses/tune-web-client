@@ -20,6 +20,7 @@ import { ICONES } from '../../lib/menuPiste';
   import * as api from '../../lib/api';
   import { lireOuAjouter } from '../../lib/playback';
   import CreteMetre from './CreteMetre.svelte';
+  import { libelleCanaux } from '../../lib/canauxPiste';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { preferences } from '../../lib/stores/preferences';
   import { partagerEcoute } from '../../lib/partageEcoute';
@@ -268,7 +269,9 @@ import { ICONES } from '../../lib/menuPiste';
       // pousse le curseur, rien ne change a l'oreille, et ca se raconte
       // ensuite comme « le crossfeed ne marche pas ».
       cfStatut = res?.crossfeed_status ?? cfStatut;
-      cfPorteeLive = res?.crossfeed_applied_live ?? null;
+      // #4680 — `crossfeed_portee` d'abord : une relance réseau s'entend
+      // dans l'instant, ce n'est pas « la piste suivante ».
+      cfPorteeLive = atteintLeSon(res?.crossfeed_applied_live, res?.crossfeed_portee) ?? null;
     } catch (e) {
       if ((e as Error)?.message !== 'premium_required') {
         console.error('Crossfeed :', e);
@@ -1143,16 +1146,37 @@ import { ICONES } from '../../lib/menuPiste';
    * moyenne, et l'infobulle dit si la valeur vient du tag ou de l'analyse.
    */
   let trackDr = $state<AffichageDynamicRange | null>(null);
+  /**
+   * LA DISPOSITION DE CANAUX — demande de Bertrand, 28/09/2026 : « ajouter un
+   * libellé de canal (surtout pour le multicanal) sous la pochette ».
+   *
+   * Même provenance et même garde que le DR ci-dessus, et surtout le MÊME
+   * appel : `GET /library/tracks/{id}` rend `channel_badge` dans la réponse
+   * que la fiche demande déjà. Aucune requête de plus.
+   *
+   * `null` en stéréo — le serveur ne badge que le multicanal — et `null` sur
+   * un titre de service, qui n'a pas de piste de bibliothèque à interroger.
+   * Voir `lib/canauxPiste.ts` pour le détail de ce qui est disponible où.
+   */
+  let badgeCanaux = $state<string | null>(null);
   $effect(() => {
     const dt = normalizedTrack;
     const id = dt?.id ?? null;
     trackDr = null;
+    badgeCanaux = null;
     if (id != null && dt?.source === 'local') {
       api.getTrack(id)
-        .then((t) => { if (normalizedTrack?.id === id) trackDr = afficherDynamicRange(t as any); })
+        .then((t) => {
+          // La garde d'identifiant vaut pour les deux : une réponse tardive ne
+          // doit pas poser les canaux de la piste précédente sous la suivante.
+          if (normalizedTrack?.id !== id) return;
+          trackDr = afficherDynamicRange(t as any);
+          badgeCanaux = t.channel_badge ?? null;
+        })
         .catch(() => {});
     }
   });
+  let libelleDesCanaux = $derived(libelleCanaux(badgeCanaux, (cle) => $t(cle as any)));
   // Zone playing OR IFrame playing while yt-dlp loads
   let isEffectivePlaying = $derived(
     playState === 'playing' || (ytState.active && ytState.playing && playState === 'stopped')
@@ -1702,8 +1726,18 @@ import { ICONES } from '../../lib/menuPiste';
           <!-- #452 — ici, le visuel CHOISI : la fiche a la place que la barre
                de lecture n'a pas. -->
           {#if styleCrete !== 'off'}
+            <!-- 28/09/2026 — les deux voies sont enfin NOMMÉES (`L`/`R`, dans
+                 la toile, en face de leur barre), et la disposition de canaux
+                 se lit à droite quand la piste est multicanale. En stéréo, pas
+                 de pastille : c'est le serveur qui décide de ce qui mérite un
+                 badge, et il n'en donne pas pour deux voies. -->
             <div class="np-crete">
-              <CreteMetre style={styleCrete} hauteur={26} joue={playState === 'playing'} />
+              <div class="np-crete-inst">
+                <CreteMetre style={styleCrete} hauteur={26} joue={playState === 'playing'} libelles />
+              </div>
+              {#if libelleDesCanaux}
+                <span class="np-canaux" title={$t('zoneConfig.channelsTitle' as any)}>{libelleDesCanaux}</span>
+              {/if}
             </div>
           {/if}
           {#if ytActive}
@@ -2623,7 +2657,21 @@ import { ICONES } from '../../lib/menuPiste';
 {/if}
 
 <style>
-  .np-crete { margin-top: 10px; width: 100%; max-width: 440px; }
+  .np-crete {
+    margin-top: 10px; width: 100%; max-width: 440px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  /* `min-width: 0` : sans lui, la toile impose sa largeur intrinsèque au
+     conteneur souple et la pastille se fait pousser hors du cadre. */
+  .np-crete-inst { flex: 1; min-width: 0; }
+  .np-canaux {
+    flex: none;
+    font-size: 10px; font-weight: 700; letter-spacing: .06em;
+    padding: 2px 7px; border-radius: 10px; white-space: nowrap;
+    color: var(--v2-txt2, var(--text-secondary, #9aa0a6));
+    border: 1px solid var(--v2-line, rgba(255,255,255,.14));
+    background: var(--v2-surface2, rgba(255,255,255,.05));
+  }
   .now-playing {
     display: flex;
     align-items: center;

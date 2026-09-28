@@ -279,6 +279,19 @@
     /** La clé i18n de l'étiquette d'une piste indisponible — voir
      *  `LignePisteV2`. Une playlist dit « Indisponible », pas « À paraître ». */
     etiquetteIndispo?: string;
+    /**
+     * 🔴 LECTURE SEULE — Tune Circle T2 (renesenses/tune-server-rust#5325) :
+     * le catalogue d'un CONTACT se parcourt, il ne s'écoute pas (T4).
+     *
+     * Quand la prop est vraie : aucune colonne d'actions (ni en-tête, ni
+     * cellule, ni largeur dans le gabarit), aucun clic de lecture, aucun état
+     * « en lecture », aucun lien vers un artiste de NOTRE bibliothèque, et la
+     * colonne « Chemin » est retirée — un chemin de fichier n'a rien à faire
+     * sur l'écran d'un autre. Transmise telle quelle à `LignePisteV2`.
+     *
+     * Absente, RIEN ne change.
+     */
+    lectureSeule?: boolean;
   }
   let {
     pistes, onLire, onLireDepuis = null, numerotation = 'rang',
@@ -289,6 +302,7 @@
     enTetesDisque = false,
     reordonnable = false, onReordonner = null,
     etiquetteIndispo = 'v2.str.coming',
+    lectureSeule = false,
   }: Props = $props();
   /**
    * Le glisser-déposer : deux rangs, et rien d'autre.
@@ -391,7 +405,8 @@
 
   // Le MODE est passé : une colonne réservée à Expert ne doit pas apparaître
   // si un réglage plus ancien la coche pour un mode inférieur.
-  const colonnes = $derived(colonnesRetenues($preferences.v2Colonnes?.[mode] ?? [], mode));
+  const colonnesDuMode = $derived(colonnesRetenues($preferences.v2Colonnes?.[mode] ?? [], mode));
+  const colonnes = $derived(lectureSeule ? colonnesDuMode.filter((c) => c.cle !== 'path') : colonnesDuMode);
   /**
    * 🔴 AUCUN `auto` dans ce gabarit. C'est la règle, et elle a une raison.
    *
@@ -433,7 +448,10 @@
   // comme dans les lignes : la même règle que le suffixe, pour la même raison.
   const colonnePoignee = $derived(reordonnable ? `${LARGEUR_POIGNEE_PX}px ` : '');
   const gabarit = $derived(
-    `${colonnePoignee}${gabaritGrille(colonnes)} ${largeurDesActions}${apres ? ` ${largeurApres}` : ''}`,
+    // Lecture seule : pas de colonne d'actions du tout, ni ici ni en en-tête.
+    lectureSeule
+      ? `${colonnePoignee}${gabaritGrille(colonnes)}${apres ? ` ${largeurApres}` : ''}`
+      : `${colonnePoignee}${gabaritGrille(colonnes)} ${largeurDesActions}${apres ? ` ${largeurApres}` : ''}`,
   );
 
   /**
@@ -446,7 +464,7 @@
    * DÉBORDER : sinon elle les ignore et comprime quand même.
    */
   const minGrille = $derived(
-    largeurMinimale(colonnes, largeurDesActionsPx + (apres ? largeurApresPx : 0)
+    largeurMinimale(colonnes, (lectureSeule ? 0 : largeurDesActionsPx) + (apres ? largeurApresPx : 0)
       + (reordonnable ? LARGEUR_POIGNEE_PX : 0)),
   );
 
@@ -461,7 +479,7 @@
   const npId = $derived($currentTrackId);
   const npPiste = $derived($currentTrack);
   const npEtat = $derived($playbackState);
-  const etatDe = (p: Track) => etatDeLaLigne(p, npId, npPiste, npEtat);
+  const etatDe = (p: Track) => (lectureSeule ? null : etatDeLaLigne(p, npId, npPiste, npEtat));
   /**
    * #4806 — en mode TABLEAU, le titre banni est grisé et barré ICI (le mode
    * lignes le fait dans `LignePisteV2`) ; un clic délibéré le joue après
@@ -469,9 +487,12 @@
    * trois du dessus.
    */
   const surcharges = $derived($surchargesBannissement);
-  const bannieDe = (p: Track) => estBannie(p, surcharges);
+  const bannieDe = (p: Track) => !lectureSeule && estBannie(p, surcharges);
+  /** Lecture seule : le titre ne lance rien, et le dit (désactivé). */
+  const inerte = $derived(lectureSeule ? { disabled: true } : {});
   async function lireDelibere(p: Track, i: number) {
     if (pisteIndisponible(p)) return;
+    if (lectureSeule) return;
     if (!(await confirmerLectureBannie(p))) return;
     onLire(p, i);
   }
@@ -545,6 +566,7 @@
           {pochette}
           onOuvrirAlbum={ouvrir}
           {etiquetteIndispo}
+          {lectureSeule}
         />
         <!--
           🔴 Le suffixe est enveloppé, et ce n'est pas cosmétique.
@@ -572,6 +594,7 @@
         {pochette}
         onOuvrirAlbum={ouvrir}
         {etiquetteIndispo}
+        {lectureSeule}
       />
     {/if}
   {/each}
@@ -590,7 +613,7 @@
       {/each}
       <!-- La colonne d'actions n'a pas d'en-tête : son contenu se lit seul, et
            un libellé y serait répété sur chaque ligne pour rien. -->
-      <span class="th" role="columnheader" aria-label={$t('v2.tcol.actions' as any)}></span>
+      {#if !lectureSeule}<span class="th" role="columnheader" aria-label={$t('v2.tcol.actions' as any)}></span>{/if}
       {#if apres}<span class="th" role="columnheader"></span>{/if}
     </div>
 
@@ -626,7 +649,7 @@
             <!-- Le TITRE porte le clic de lecture : c'est la cible la plus
                  large et la plus évidente de la ligne. -->
             <button class="td titre" onclick={() => void lireDelibere(p, i)}
-              disabled={indispo} title={indispo ? $t(etiquetteIndispo as any) : p.title}>
+              disabled={indispo} {...inerte} title={indispo ? $t(etiquetteIndispo as any) : p.title}>
               <!-- L'indicateur est DANS la cellule du titre : une colonne de plus
                    décalerait l'en-tête, et la règle de ce composant est qu'un
                    seul gabarit vaut pour l'en-tête et pour les lignes.
@@ -659,7 +682,7 @@
               distingue un identifiant de bibliothèque d'un identifiant de
               service — les confondre ouvrirait un artiste au hasard.
             -->
-            {@const artiste = c.cle === 'artist' ? artisteDePiste(p) : null}
+            {@const artiste = lectureSeule ? null : (c.cle === 'artist' ? artisteDePiste(p) : null)}
             <!-- Une cellule sans valeur reste VIDE : « — » affirmerait une
                  absence qu'on n'a pas mesurée. -->
             <!-- #3924 — l'infobulle dit la PROVENANCE quand la colonne en a
@@ -677,8 +700,8 @@
             {/if}
           {/if}
         {/each}
-        <span class="td act" role="cell"><PisteActions piste={p}
-          onLireDepuis={() => lireDepuis(p, i)} /></span>
+        {#if !lectureSeule}<span class="td act" role="cell"><PisteActions piste={p}
+          onLireDepuis={() => lireDepuis(p, i)} /></span>{/if}
         {#if apres}<span class="td act" role="cell">{@render apres(p, i)}</span>{/if}
       </div>
     {/each}

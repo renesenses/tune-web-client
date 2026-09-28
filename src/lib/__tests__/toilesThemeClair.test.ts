@@ -61,9 +61,15 @@ describe('le crête-mètre suit désormais le thème', () => {
     expect(boucle).not.toContain('paletteCreteDepuis');
   });
 
-  it('les six jetons existent dans le thème de base ET dans les deux clairs', () => {
+  // 28/09/2026 — un SEPTIÈME jeton : `--v2-crete-libelle`, l'encre des lettres
+  // `L` / `R` ajoutées sous la pochette. Même raison que les six autres, et
+  // c'est bien pour cela qu'il est ajouté ici plutôt que gardé à part : une
+  // toile n'hérite d'aucune couleur, et du texte blanc à 55 % sur un thème
+  // clair, c'est du texte qui n'existe pas.
+  it('les sept jetons existent dans le thème de base ET dans les deux clairs', () => {
     const jetons = ['--v2-crete-fond', '--v2-crete-vert', '--v2-crete-ambre',
-                    '--v2-crete-rouge', '--v2-crete-ppm', '--v2-crete-eteint'];
+                    '--v2-crete-rouge', '--v2-crete-ppm', '--v2-crete-eteint',
+                    '--v2-crete-libelle'];
     for (const j of jetons) expect(css, `${j} manque au thème de base`).toContain(`${j}:`);
     for (const theme of ['clear-white', 'clear-grey']) {
       const i = css.indexOf(`[data-v2-theme="${theme}"]`);

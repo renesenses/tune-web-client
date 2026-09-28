@@ -74,7 +74,9 @@ describe('#3822 — la vignette d\'une playlist de service porte le cœur', () =
   it('la rangée « mes playlists » passe `playlist` et garde son ouverture de fiche', () => {
     const l = ligne('#each myPlaylists as p');
     expect(l).toContain("playPlaylist(p), 'playlist'");
-    expect(l).toContain('fichePlaylist = p');
+    // web#1649 : la fiche s'ouvre par `ouvrirCalquePlaylist`, qui pose
+    // `fichePlaylist` ET empile l'entrée d'historique.
+    expect(l).toContain('ouvrirCalquePlaylist(p)');
     expect(l).not.toMatch(/playPlaylist\(p\),\s*null/);
   });
 

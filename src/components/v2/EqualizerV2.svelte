@@ -37,6 +37,7 @@
   import ProfilerV2 from './ProfilerV2.svelte';
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
+  import { estCourbeGraphique } from '../../lib/eqHydratation';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -153,12 +154,22 @@
         if (eq.status === 'fulfilled' && eq.value) {
           enabled = eq.value.enabled ?? true;
           const bands = eq.value.bands ?? [];
+          // #1646 : le serveur ne renvoie pas de mode. Seule une grille que
+          // l'éditeur graphique peut réémettre à l'identique est graphique.
+          // Toute autre courbe garde ses bandes exactes dans le PEQ ; sinon
+          // le premier geste réécrirait une courbe arbitrairement plate.
+          pBandes = bands.map((b) => ({ ...b }));
+          sousMode = bands.length && !estCourbeGraphique(bands, grid, GRID_Q[bandCount] ?? 1.0)
+            ? 'parametrique' : 'graphique';
           const left = bands.filter((b) => b.channel === undefined || b.channel === 0);
           const right = bands.filter((b) => b.channel === 1);
           gains = grid.map((f) => left.find((b) => Math.abs(b.freq - f) < 0.51)?.gain ?? 0);
           gainsRight = right.length ? grid.map((f) => right.find((b) => Math.abs(b.freq - f) < 0.51)?.gain ?? 0) : null;
         } else {
           gains = Array(grid.length).fill(0);
+          gainsRight = null;
+          pBandes = [];
+          sousMode = 'graphique';
         }
         error = null;
       })

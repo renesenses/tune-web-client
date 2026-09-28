@@ -19,6 +19,7 @@
   import { audioLevels } from '../../lib/stores/audioLevels';
   import {
     BAR_RELEASE, PLANCHER_DB, PPM_HOLD_MS,
+    ECART_LIBELLE_PX, LIBELLES_CANAUX, policeLibelleCanal,
     PALETTE_CRETE_SOMBRE, paletteCreteDepuis,
     fractionDe, suivreLaCrete, suivrePpm, surcharge, zoneIec,
     type EtatPpm, type StyleCreteMetre,
@@ -39,9 +40,18 @@
     largeur?: number;
     /** La lecture est-elle en cours ? À l'arrêt, tout retombe au plancher. */
     joue?: boolean;
+    /**
+     * Écrire `L` et `R` en face des deux voies — Bertrand, 28/09/2026.
+     *
+     * Le défaut est `false` : la barre de lecture n'a pas la largeur de deux
+     * lettres de plus, et l'aperçu des Réglages n'a pas à les montrer. Seule
+     * la fiche « Lecture en cours » les demande. Les lettres NE se traduisent
+     * PAS — voir `LIBELLES_CANAUX`.
+     */
+    libelles?: boolean;
   }
 
-  let { style, hauteur = 18, largeur = 0, joue = true }: Props = $props();
+  let { style, hauteur = 18, largeur = 0, joue = true, libelles = false }: Props = $props();
 
   let toile = $state<HTMLCanvasElement | null>(null);
 
@@ -65,6 +75,64 @@
    * chaque image — `getComputedStyle` force un recalcul de style.
    */
   let COULEURS = PALETTE_CRETE_SOMBRE;
+
+  /**
+   * LA GÉOMÉTRIE DES DEUX VOIES, EN UN SEUL ENDROIT.
+   *
+   * 🔴 Le libellé doit tomber EXACTEMENT en face de sa barre, et la seule
+   * façon de le garantir est que les deux lisent la MÊME fonction. Deux
+   * formules recopiées qui se ressemblent aujourd'hui finissent par diverger :
+   * c'est précisément comme ça que le cadran du Grand écran s'est retrouvé mal
+   * cadré en hauteur le 27/09 — une cote prise sur une surface où l'écart ne
+   * se voyait pas.
+   *
+   * Les deux visuels ne posent pas leurs voies au même endroit : les lampes
+   * sont centrées sur la hauteur, le bargraphe part du haut. La fonction
+   * répond pour les deux, et rend le CENTRE de la voie — le seul point dont
+   * le texte a besoin.
+   */
+  function centreDeLaVoie(ch: number, h: number): number {
+    if (style === 'lamps') {
+      const r = Math.min(h / 2 - 1, 5);
+      const ecart = r * 2 + 4;
+      return h / 2 - ecart / 2 + ch * ecart;
+    }
+    const hb = Math.max(3, (h - 6) / 2);
+    return ch * (hb + 4) + 2 + hb / 2;
+  }
+
+  /**
+   * La largeur que le texte réclame à gauche — MESURÉE, jamais devinée.
+   *
+   * `measureText` parce qu'une largeur en dur serait juste pour `L`/`R` et
+   * fausse le jour où ces lettres changent. L'instrument est décalé d'autant
+   * et perd cette largeur : il ne s'écrit jamais dessus.
+   */
+  function gouttiereDesLibelles(ctx: CanvasRenderingContext2D, h: number): number {
+    if (!libelles) return 0;
+    ctx.font = policeDesLibelles(h);
+    const large = Math.max(...LIBELLES_CANAUX.map((texte) => ctx.measureText(texte).width));
+    return Math.ceil(large) + ECART_LIBELLE_PX;
+  }
+
+  function policeDesLibelles(h: number): string {
+    return `600 ${policeLibelleCanal(h)}px "Avenir Next Condensed", "Arial Narrow", sans-serif`;
+  }
+
+  /** `L` et `R`, chacun centré sur sa voie. Rien d'autre ne les place. */
+  function dessinerLibelles(ctx: CanvasRenderingContext2D, h: number) {
+    ctx.font = policeDesLibelles(h);
+    ctx.fillStyle = COULEURS.libelle;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    for (let ch = 0; ch < 2; ch++) {
+      ctx.fillText(LIBELLES_CANAUX[ch], 0, centreDeLaVoie(ch, h));
+    }
+    // Les réglages de texte ne fuient pas vers le reste du dessin : la toile
+    // est partagée avec les barres, qui n'en veulent pas.
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
+  }
 
   function couleurSegment(db: number): string {
     if (style === 'iec') {
@@ -92,18 +160,28 @@
         : { db: null, depuisMs: 0 };
     }
 
-    if (style === 'lamps') return dessinerLampes(ctx, l, h, cretes, overs);
-    dessinerBargraphe(ctx, l, h);
+    // La gouttière d'abord : tout le reste du dessin part de là. `translate`
+    // plutôt qu'un `x0` promené de fonction en fonction — c'est la même
+    // géométrie qu'avant, simplement décalée.
+    const x0 = gouttiereDesLibelles(ctx, h);
+    if (x0) dessinerLibelles(ctx, h);
+    ctx.save();
+    ctx.translate(x0, 0);
+    const utileL = Math.max(0, l - x0);
+    if (style === 'lamps') dessinerLampes(ctx, utileL, h, cretes, overs);
+    else dessinerBargraphe(ctx, utileL, h);
+    ctx.restore();
   }
 
   /** Deux témoins compacts — le seul visuel que la barre de lecture accepte. */
   function dessinerLampes(ctx: CanvasRenderingContext2D, l: number, h: number, cretes: number[], overs: boolean[]) {
+    // Le rayon reste ici — le CENTRE des voies, lui, vient de la géométrie
+    // partagée : c'est ce qui garantit que `L` et `R` tombent en face.
     const r = Math.min(h / 2 - 1, 5);
-    const ecart = r * 2 + 4;
     for (let ch = 0; ch < 2; ch++) {
       const etat = joue ? surcharge(cretes[ch], overs[ch]) : 'aucune';
       ctx.beginPath();
-      ctx.arc(r + 1, h / 2 - ecart / 2 + ch * ecart, r, 0, Math.PI * 2);
+      ctx.arc(r + 1, centreDeLaVoie(ch, h), r, 0, Math.PI * 2);
       ctx.fillStyle =
         etat === 'rouge' ? COULEURS.rouge : etat === 'ambre' ? COULEURS.ambre : COULEURS.eteint;
       ctx.fill();
@@ -113,7 +191,7 @@
     const x0 = r * 2 + 6;
     const large = Math.max(0, l - x0);
     for (let ch = 0; ch < 2; ch++) {
-      const y = h / 2 - ecart / 2 + ch * ecart - 1.5;
+      const y = centreDeLaVoie(ch, h) - 1.5;
       ctx.fillStyle = COULEURS.fond;
       ctx.fillRect(x0, y, large, 3);
       ctx.fillStyle = COULEURS.vert;
@@ -128,7 +206,7 @@
     const hb = Math.max(3, (h - 6) / 2);
 
     for (let ch = 0; ch < 2; ch++) {
-      const y = ch * (hb + 4) + 2;
+      const y = centreDeLaVoie(ch, h) - hb / 2;
       ctx.fillStyle = COULEURS.fond;
       ctx.fillRect(0, y, utile, hb);
 

@@ -22,6 +22,11 @@ import { estDepotTuneDistant } from './depotsTuneDistants';
 const PLAY_ERROR_KEYS: Record<string, string> = {
   file_not_found: 'playback.errorFileNotFound',
   zone_no_output_device: 'playback.errorNoOutputDevice',
+  // #5283 — Qobuz n'a annoncé aucune fréquence, et ni l'en-tête du flux ni le
+  // catalogue ne la donnent : le serveur refuse la lecture (422) plutôt que de
+  // transcoder à 0 Hz. Sa phrase est technique et toujours en français ; la
+  // clé dit la même chose dans la langue de l'interface.
+  streaming_sample_rate_unknown: 'playback.errorSampleRateUnknown',
 };
 
 /**
@@ -615,7 +620,12 @@ export async function fetchJSON<T>(
         }
         err.dejaAnnonce = true;
       } else if (key) {
-        notifications.error(get(t)(key as any));
+        const traduit = get(t)(key as any);
+        notifications.error(traduit);
+        // Les écrans à bandeau (`messageEchecLecture`) lisent `err.message` :
+        // ils disent la phrase traduite, comme le toast, et non le texte
+        // technique du serveur (#5283 — même geste que le refus bit-perfect).
+        err.message = traduit;
         // Dit à l'appelant que c'est fait : voir `ApiError.dejaAnnonce`.
         err.dejaAnnonce = true;
       }
@@ -1879,6 +1889,29 @@ export async function getSampleRateLabels(): Promise<LibelleServi[]> {
 
 export function getAlbum(id: number) {
   return fetchJSON<Album>(`${BASE}/library/albums/${id}`);
+}
+
+/** Album playback source (#1684 / tune-server-rust#4907). */
+export interface PreferenceRepertoireAlbum {
+  album_id: number;
+  racine: string | null;
+  retire?: boolean;
+}
+
+export function getAlbumPreferredDirectory(id: number): Promise<PreferenceRepertoireAlbum> {
+  return fetchJSON<PreferenceRepertoireAlbum>(`${BASE}/library/albums/${id}/repertoire-prefere`);
+}
+
+export function setAlbumPreferredDirectory(id: number, racine: string): Promise<PreferenceRepertoireAlbum> {
+  return fetchJSON<PreferenceRepertoireAlbum>(`${BASE}/library/albums/${id}/repertoire-prefere`, {
+    method: 'PUT', body: JSON.stringify({ racine }),
+  });
+}
+
+export function clearAlbumPreferredDirectory(id: number): Promise<PreferenceRepertoireAlbum> {
+  return fetchJSON<PreferenceRepertoireAlbum>(`${BASE}/library/albums/${id}/repertoire-prefere`, {
+    method: 'DELETE',
+  });
 }
 
 export function getAlbumTracks(id: number, quality?: string | null, format?: string | null) {
@@ -3364,6 +3397,9 @@ export interface DspSettings {
   crossfeed?: CrossfeedSettings;
   /** #2742 — verdict du serveur sur cette zone. Voir CrossfeedStatus. */
   crossfeed_status?: CrossfeedStatus | null;
+  /** #4680 — QUAND le crossfeed écrit s'entend ; absent d'un serveur
+   *  antérieur. Lire par `atteintLeSon(crossfeed_applied_live, crossfeed_portee)`. */
+  crossfeed_portee?: import('./porteeReglage').PorteeDuReglage | null;
   /** tune-server-rust#4683 — les bornes que le serveur applique. Absent d'un
    *  serveur antérieur : `bornesCrossfeed` retombe sur les constantes. */
   crossfeed_limits?: CrossfeedLimits | null;
@@ -4013,6 +4049,23 @@ export async function removeMusicDir(path: string, confirmPurge?: number) {
     body: JSON.stringify(body),
   });
   return { ...r, music_dirs: listeDossiers(r) };
+}
+
+/** Effective reading order of configured music directories (#1688 / server #4907). */
+export interface MusicDirectoryOrder {
+  ordre: string[];
+  music_dirs: string[];
+  regle: string[];
+}
+
+export function getMusicDirectoryOrder(): Promise<MusicDirectoryOrder> {
+  return fetchJSON<MusicDirectoryOrder>(`${BASE}/library/repertoires/ordre`);
+}
+
+export function setMusicDirectoryOrder(ordre: string[]): Promise<MusicDirectoryOrder> {
+  return fetchJSON<MusicDirectoryOrder>(`${BASE}/library/repertoires/ordre`, {
+    method: 'PUT', body: JSON.stringify({ ordre }),
+  });
 }
 
 export function triggerScan(path?: string, full = false) {
@@ -6390,6 +6443,13 @@ export interface AudiophileModeState {
   /** Valeur réellement appliquée après héritage. */
   effective_lock_volume?: boolean;
   applied_live?: boolean;
+  /**
+   * QUAND la bascule s'entend (tune-server-rust#4680, PR serveur #5338) :
+   * `restart` = zone réseau dont le flux est relancé dans l'instant, PAS la
+   * piste suivante. `null` quand seule la valeur du verrou de volume change ;
+   * absent d'un serveur antérieur. Lire par `atteintLeSon()`.
+   */
+  portee?: import('./porteeReglage').PorteeDuReglage | null;
 }
 
 export function getAudiophileMode(zoneId: number) {

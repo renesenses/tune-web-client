@@ -18,6 +18,7 @@
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import { atteintLeSon } from '../../lib/porteeReglage';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import * as controls from '../../lib/playback-controls';
   import { suivantDesactive } from '../../lib/boutonSuivant';
@@ -685,7 +686,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       // serveur antérieur n'envoie pas le champ, et on n'affirme rien de ce
       // qu'il ne dit pas. (Le garde lit la source telle quelle, commentaires
       // compris — d'où la formulation en toutes lettres.)
-      if (res.applied_live === false && z.state === 'playing') {
+      //
+      // #4680 — `portee` d'abord : sur une zone réseau le serveur relance le
+      // flux à la position courante (`restart`), et la bascule s'entend dans
+      // l'instant — ce n'est PAS la piste suivante (Eversolo en DLNA, recette
+      // v0.9.161). Sans `portee` (serveur antérieur), `atteintLeSon` rend
+      // `applied_live` tel quel.
+      if (atteintLeSon(res.applied_live, res.portee) === false && z.state === 'playing') {
         notifications.info($t('eq.effectNextTrack' as any));
       }
     } catch {}
@@ -2111,7 +2118,30 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     justify-content: center;
     align-items: flex-end;
     gap: 4px;
-    min-width: 0;
+    /* 🔴 #1712 — `min-width: 0` laissait cette colonne DÉBORDER PAR LA GAUCHE,
+       par-dessus le cadran droit.
+
+       JeromeQ, fil 2011, 28/09/2026 : « Position du vu-mètre ? », avec une
+       capture où le cadran R est intercalé entre la lune et le bouclier PURE,
+       alors que le balisage le pose à gauche de TOUTE la colonne.
+
+       Le mécanisme : `min-width: 0` autorise la colonne à devenir plus étroite
+       que son contenu, et la rangée d'icônes qu'elle porte ne sait pas
+       rétrécir (`.zone-selector`, `.transfer-selector` sont en
+       `flex-shrink: 0`). Elle débordait donc — et comme la colonne est alignée
+       `flex-end`, un contenu trop large sort du côté GAUCHE : la lune passait
+       devant le cadran, qui se retrouvait visuellement au milieu des icônes.
+
+       `max-content` lui rend sa largeur naturelle : elle ne peut plus empiéter
+       sur son voisin. Le cadran, lui, était déjà insécable (`.vu` porte
+       `flex: 0 0 auto`) — ce n'est donc pas lui qui glissait, c'est la rangée
+       qui lui passait dessus.
+
+       ⚠️ Mécanisme établi par LECTURE, pas reproduit : je n'ai pas de
+       navigateur ici, et la question du testeur — trois mots — peut aussi
+       porter sur l'aiguille ou sur l'écart entre les deux cadrans. Ce qui est
+       corrigé est le débordement, qui est réel et indépendant de sa question. */
+    min-width: max-content;
   }
 
   .transport-bar.vu .transport-right {

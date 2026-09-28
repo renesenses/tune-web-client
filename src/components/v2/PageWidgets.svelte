@@ -1704,9 +1704,26 @@
      `align-items:stretch` (le défaut du flex) fait le reste : un panneau dont
      le contenu est court occupe quand même toute la hauteur, donc la ligne
      reste droite même quand les concerts sont absents et les genres longs. */
+  /* 🔴 #1721 — LA BARRE DE DÉFILEMENT EST VISIBLE, comme sur `.bande`.
+     FabienM, fil 2013 point 7, 28/09/2026 : « impossible de faire défiler à
+     droite (il manque la barre horizontale de défilement) ». Avec trois zones,
+     Genres et Concerts, le panneau Concerts était coupé au bord — et hors
+     d'atteinte à la souris.
+
+     Cette ligne masquait sa barre (`scrollbar-width:none` + la règle webkit)
+     alors que le commentaire ci-dessus annonce « une bande qui défile, comme
+     toutes les autres » et que TOUTES les autres (`.bande`, l. plus bas)
+     portent `scrollbar-width:thin`. C'était une déviation sans raison écrite,
+     livrée le 27/09.
+
+     ⚠️ Et le geste de molette ne rattrapait rien : `defilementHorizontal`
+     laisse DÉLIBÉRÉMENT la priorité à la page tant qu'elle peut descendre —
+     c'est le correctif de #1327 (Didier, fil 1858 : « la zone permettant le
+     défilement vers le bas est très étroite »). Le lui reprendre ici
+     rouvrirait ce défaut-là. La barre est la bonne réponse, et c'est celle
+     que le testeur demande mot pour mot. */
   .l1{display:flex; gap:16px; padding:0 30px 10px; overflow-x:auto;
-      scrollbar-width:none}
-  .l1::-webkit-scrollbar{display:none}
+      scrollbar-width:thin}
 
   @media (max-width: 1024px){ .l1{padding-left:22px; padding-right:22px} }
   @media (max-width: 640px){ .l1{padding-left:16px; padding-right:16px} }
