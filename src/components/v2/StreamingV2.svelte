@@ -57,7 +57,7 @@
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
   import BandcampAchats from './BandcampAchats.svelte';
@@ -77,6 +77,7 @@
     aUneBibliothequeDeCompte,
     pseudoOnglet,
   } from '../../lib/ongletsStreaming';
+  import { untrack } from 'svelte';
   import { get } from 'svelte/store';
   import { activeStreamingService } from '../../lib/stores/streaming';
   import type { StreamingGenre } from '../../lib/types';
@@ -726,6 +727,45 @@
   let ficheBc = $state<any | null>(null);
   /** La fiche d'une PLAYLIST de service. */
   let fichePlaylist = $state<any | null>(null);
+  /**
+   * 🔴 LA FICHE PLAYLIST EMPILE UNE ENTRÉE D'HISTORIQUE — web#1649.
+   *
+   * FabienM, fil 1982 (0.9.166) : « dans le menu Qobuz, onglet Playlist, on
+   * ouvre une playlist Qobuz, le BACK […] renvoie à la dernière page de 1er
+   * niveau ». Le calque album de cet écran empilait (#980) ; celui de la
+   * playlist ne posait que `fichePlaylist`. Même branchement que web#1619
+   * dans `PlaylistsV2` : ouvrir empile, le Retour referme ET dépile, le
+   * Précédent referme le calque. La clé est celle de `PlaylistsV2.clePl`.
+   */
+  let clePlaylistEmpilee: string | null = null;
+  function ouvrirCalquePlaylist(p: any, svc: string | null = p?.source ?? active) {
+    const pl = { ...p, source: svc };
+    fichePlaylist = pl;
+    const sid = pl.source_id;
+    if (!svc || sid == null || sid === '') return;
+    clePlaylistEmpilee = `streamingplaylists:${svc}:${sid}`;
+    ouvrirDetail(clePlaylistEmpilee);
+  }
+  function fermerCalquePlaylist() {
+    fichePlaylist = null;
+    clePlaylistEmpilee = null;
+  }
+  /** On ne recule que si l'entrée courante est bien celle de la playlist. */
+  function retourCalquePlaylist() {
+    if (clePlaylistEmpilee != null && entreeCourantePorte(clePlaylistEmpilee)) {
+      fermerDetailEnReculant(fermerCalquePlaylist);
+      return;
+    }
+    fermerCalquePlaylist();
+  }
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      if (!fichePlaylist || clePlaylistEmpilee == null) return;
+      if (voulu === clePlaylistEmpilee) return;
+      fermerCalquePlaylist();
+    });
+  });
 
   /** `null` quand l'objet n'a pas de fiche : une piste, ou un objet sans
    *  identifiant exploitable. */
@@ -768,9 +808,7 @@
     // deux testeurs les ont re-signalées le 17/09/2026. Elles se réparent dans
     // les fabriques d'éléments (`playlistDistante`, `ficheDe`), pas ici.
     if (type === 'playlist' && sid && svc && svc !== BANDCAMP) {
-        return () => {
-            fichePlaylist = { ...p, source: svc };
-        };
+        return () => ouvrirCalquePlaylist(p, svc);
     }
     if (type !== 'album' || !sid || !svc || svc === BANDCAMP) return null;
     return () => {
@@ -1400,7 +1438,7 @@
 
     {:else if sub === 'playlists'}
       {#if myPlaylists.length}
-        <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => (fichePlaylist = p))}{/each}</div>
+        <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
       {:else}
         <div class="state">{$t('v2.str.noPlaylistsInAccount' as any).replace('{s}', label(active ?? ''))}</div>
       {/if}
@@ -1642,7 +1680,7 @@
   {#await import('./PlaylistDetailV2.svelte') then m}
     <m.default
       item={{ kind: 'streaming', service: (fichePlaylist.source ?? active ?? ''), pl: fichePlaylist }}
-      onClose={() => (fichePlaylist = null)}
+      onClose={retourCalquePlaylist}
     />
   {/await}
 {/if}
