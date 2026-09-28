@@ -37,7 +37,9 @@
    *   ARCHIVE ses playlists (site-mozaiklabs#236) ; le propriétaire et chaque
    *   membre rangé et actif à ce moment peuvent en récupérer une COPIE dans
    *   leurs playlists, ou y renoncer (décision 3) — la seule copie que
-   *   l'écran offre (décision 5).
+   *   l'écran offre (décision 5). Décisions du 28/09 (suite) : ce droit dure
+   *   30 jours (échéance `expires_at`, affichée quand le cloud la rend), et
+   *   supprimer une playlist VIVANTE l'archive aussi : elle arrive ici.
    * Même règle qu'en T2 : un 404 sur `/playlists` dit un greffon d'avant T5,
    * et le bloc reste caché.
    */
@@ -593,7 +595,7 @@
               <li class="ligne recuperable">
                 <span class="nom">{r.name}</span>
                 <span class="note">
-                  {$t('v2.circle.pl.count' as any).replace('{n}', String(r.count))}{#if !r.mine && r.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', r.owner.name)}{/if}
+                  {$t('v2.circle.pl.count' as any).replace('{n}', String(r.count))}{#if !r.mine && r.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', r.owner.name)}{/if}{#if r.expires_at} · <span class="echeance">{$t('v2.circle.pl.rec.until' as any).replace('{date}', $dateCourte(r.expires_at))}</span>{/if}
                 </span>
                 <span class="gestes">
                   <button class="lnk recuperer-copie" disabled={occupe !== null}

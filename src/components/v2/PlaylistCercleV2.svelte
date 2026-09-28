@@ -15,6 +15,8 @@
    *   cloud et refait le geste s'il a encore un sens, sinon le dit.
    * - 🔴 Un 404, à n'importe quel moment : la vue se FERME et le dit. Rien
    *   n'est gardé : ce composant détruit, la playlist part avec lui.
+   * - Supprimer ARCHIVE la playlist (décision du 28/09) : les membres
+   *   peuvent en récupérer une copie 30 jours durant ; la confirmation le dit.
    * - Pas de bouton « copier » ici (décision 5) : la copie ne s'offre que
    *   pour une playlist d'un cercle supprimé (bloc « Playlists à récupérer »).
    */

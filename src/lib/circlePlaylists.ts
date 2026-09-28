@@ -21,9 +21,11 @@
  *   PUT    /playlists/{id}/order {item_ids, version} → la playlist (permutation EXACTE)
  *   POST   /playlists/{id}/resolve          → [{ item_id, status: matched|not_found, source, source_id }]
  *   POST   /playlists/{id}/play {zone_id}   → ce qui est parti, et ce qui manque
- *   GET    /recoverable-playlists           → [{ id, name, owner, mine, count, archived_at }]
- *                                             les playlists d'un cercle SUPPRIMÉ que j'ai le
- *                                             droit de récupérer (décision 3)
+ *   GET    /recoverable-playlists           → [{ id, name, owner, mine, count, archived_at, expires_at? }]
+ *                                             les playlists ARCHIVÉES (cercle supprimé, ou
+ *                                             playlist supprimée par son propriétaire) que
+ *                                             j'ai le droit de récupérer, 30 jours durant
+ *                                             (décisions du 28/09)
  *   POST   /recoverable-playlists/{id}/copy → copie en playlist LOCALE, puis le droit
  *                                             disparaît (greffon ; seule copie offerte : décision 5)
  *   DELETE /recoverable-playlists/{id}      → « je n'en veux pas » : le droit disparaît
@@ -283,6 +285,8 @@ export interface PlaylistRecuperable {
   mine: boolean;
   count: number;
   archived_at: string | null;
+  /** Fin du droit de récupérer (30 jours, décision du 28/09). Absent = l'écran ne dit pas de date. */
+  expires_at: string | null;
 }
 
 export function playlistRecuperable(b: any): PlaylistRecuperable | null {
@@ -293,7 +297,14 @@ export function playlistRecuperable(b: any): PlaylistRecuperable | null {
     id, name: String(b?.name ?? ''),
     owner: o && typeof o === 'object' ? { user_id: entier(o.user_id), name: String(o.name ?? '') } : null,
     mine: b?.mine === true, count: entier(b?.count) ?? 0, archived_at: texte(b?.archived_at),
+    expires_at: dateValide(b?.expires_at),
   };
+}
+
+/** Une date ISO lisible, ou `null` : une échéance illisible ne s'affiche pas. */
+function dateValide(v: unknown): string | null {
+  const s = texte(v);
+  return s && !Number.isNaN(Date.parse(s)) ? s : null;
 }
 
 const racineRecup = `${BASE}/ext/circle/recoverable-playlists`;

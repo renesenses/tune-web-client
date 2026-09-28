@@ -52,7 +52,7 @@ let coupees = new Set<string>();
 let greffonT5 = true;
 let copieEchoue = false;
 /** Les playlists archivées d'un cercle supprimé que je peux récupérer. */
-let recup: { id: number; name: string; owner: { user_id: number; name: string }; mine: boolean; count: number; archived_at: string }[] = [];
+let recup: { id: number; name: string; owner: { user_id: number; name: string }; mine: boolean; count: number; archived_at: string; expires_at?: string }[] = [];
 let resolution: Record<string, { status: string; source?: string; source_id?: string }> = {};
 /** Un autre membre écrit ENTRE ma lecture et mon geste. */
 let avantMonGeste: ((p: Pl) => void) | null = null;
@@ -125,7 +125,13 @@ function greffon(u: string, method: string, body: any): Response {
     }
     // Les écritures : un autre membre peut passer juste avant.
     if (avantMonGeste) { const f = avantMonGeste; avantMonGeste = null; f(p); }
-    if (reste === '' && method === 'DELETE') { if (!p.mine) return introuvable(); pls = pls.filter((x) => x !== p); return reponse(200, { ok: true }); }
+    if (reste === '' && method === 'DELETE') {
+      if (!p.mine) return introuvable();
+      pls = pls.filter((x) => x !== p);
+      // Décision du 28/09 : supprimer une playlist vivante l'ARCHIVE, récupérable 30 jours.
+      recup.push({ id: 60, name: p.name, owner: p.owner, mine: true, count: p.items.length, archived_at: '2026-09-28T12:00:00Z', expires_at: '2026-10-28T12:00:00Z' });
+      return reponse(200, { ok: true });
+    }
     if (reste === '' && method === 'PATCH') {
       if (!p.mine) return introuvable();
       if (body.version !== p.version) return conflit(p);
@@ -487,6 +493,7 @@ describe('T5 — suppression d\'un cercle : récupérer une copie', () => {
     (famille.querySelector('button.supprimer') as HTMLButtonElement).click();
     await laisserFaire();
     expect(get(dialogs)[0].message).toContain('Ses 1 playlists partagées seront archivées');
+    expect(get(dialogs)[0].message).toContain('pendant 30 jours');
     await repondre(true);
     expect(appels.some((a) => a.method === 'DELETE' && chemin(a) === '/circles/7')).toBe(true);
     // Aucune copie n'est faite À LA PLACE de l'utilisateur.
@@ -531,6 +538,34 @@ describe('T5 — suppression d\'un cercle : récupérer une copie', () => {
     await cliquer(el, 'section.recuperables button.recuperer-copie');
     expect(el.querySelector('.retour')?.getAttribute('role')).toBe('alert');
     expect(el.querySelector('section.recuperables li.recuperable')).not.toBeNull();
+  });
+
+  it('l\'échéance des 30 jours s\'affiche quand le cloud rend `expires_at`, et son absence est acceptée', async () => {
+    recup = [{ ...archivee, expires_at: '2026-10-28T12:00:00Z' }, { ...archivee, id: 32, name: 'Sans date' }];
+    const el = await poser(CircleV2);
+    const [avec, sans] = [...el.querySelectorAll('section.recuperables li.recuperable')];
+    expect(texte(avec.querySelector('.echeance')!)).toMatch(/^récupérable jusqu'au .*2026/);
+    expect(sans.querySelector('.echeance')).toBeNull();
+    expect(texte(sans)).not.toContain('jusqu');
+  });
+
+  it('une échéance illisible ne s\'affiche pas', async () => {
+    recup = [{ ...archivee, expires_at: 'demain peut-être' }];
+    const el = await poser(CircleV2);
+    expect(el.querySelector('section.recuperables .echeance')).toBeNull();
+  });
+
+  it('supprimer une playlist VIVANTE : la confirmation dit la copie récupérable 30 jours, puis elle arrive dans « Playlists à récupérer »', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Famille en voiture');
+    await cliquer(el, 'button.supprimer-playlist');
+    expect(get(dialogs)[0].message).toContain('les membres pourront en récupérer une copie pendant 30 jours');
+    await repondre(true);
+    expect(appels.some((a) => a.method === 'DELETE' && chemin(a) === '/playlists/pl-b')).toBe(true);
+    expect(texte(el.querySelector('.retour')!)).toContain('pendant 30 jours');
+    const li = el.querySelector('section.recuperables li.recuperable')!;
+    expect(texte(li)).toContain('Famille en voiture');
+    expect(li.querySelector('.echeance')).not.toBeNull();
   });
 
   it('rien à récupérer : pas de bloc', async () => {
