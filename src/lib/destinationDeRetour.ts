@@ -85,6 +85,7 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   genretree: 'destination',
   equalizer: 'destination',
   crossfeed: 'destination',
+  crossfeedpro: 'destination',
   plugins: 'destination',
   alarms: 'destination',
   converter: 'destination',
