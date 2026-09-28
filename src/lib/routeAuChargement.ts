@@ -85,6 +85,9 @@ const VUES: Record<View, boolean> = {
   genretree: true,
   equalizer: true,
   crossfeed: true,
+  // Crossfeed Pro (greffon natif tiers, 28/09/2026) : l'écran dit lui-même
+  // quand le greffon est absent — l'adresse reste donc atteignable.
+  crossfeedpro: true,
   plugins: true,
   alarms: true,
   converter: true,

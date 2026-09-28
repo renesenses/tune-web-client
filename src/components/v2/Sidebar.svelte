@@ -36,6 +36,7 @@
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
   import * as api from '../../lib/api';
   import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
+  import { presenceCrossfeedPro, sonderCrossfeedPro, entreesAvecCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
@@ -218,6 +219,9 @@
     // CASQUE, pas une correction de courbe. Melange a l'egaliseur il etait
     // introuvable pour qui le cherche.
     { view: 'crossfeed', labelKey: 'v2.nav.crossfeed', icon: 'M8 6a6 6 0 0 0 0 12M16 6a6 6 0 0 1 0 12M4 12h4M16 12h4' },
+    // Crossfeed Pro — greffon natif tiers PREMIUM (28/09/2026) : son entrée
+    // n'apparaît que si le greffon est installé, activé et chargé.
+    { view: 'crossfeedpro', labelKey: 'v2.nav.crossfeedPro', icon: 'M8 6a6 6 0 0 0 0 12M16 6a6 6 0 0 1 0 12M4 12h4M16 12h4M12 4v2M12 18v2' },
     { view: 'converter', labelKey: 'v2.nav.converter', icon: 'M4 8h13l-3-3M20 16H7l3 3' },
     { view: 'declick', labelKey: 'v2.nav.declick', icon: 'M3 12h4l3-8 4 16 3-8h4' },
     // Réveils — porté depuis l'écran actuel (Bertrand, 14/09/2026). Rangé
@@ -252,8 +256,13 @@
   // #1261 — les quatre outils audio sont des greffons depuis la v0.9.156 :
   // leur entrée suit l'état réel (installé et actif), et l'écran Extensions
   // republie cet état après chaque geste.
-  const studioVisible = $derived(entreesStudioVisibles(STUDIO, $etatGreffons));
+  const studioVisible = $derived(
+    entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
+  );
   $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
+  // Un greffon natif TIERS n'est pas dans `GET /plugins` : on le sonde à part
+  // (`stores/crossfeedPro`) ; la zone n'y compte pas, la présence est globale.
+  $effect(() => { void sonderCrossfeedPro(null); });
 
   // Concerts est un GREFFON : son entrée n'apparaît que si le serveur
   // l'embarque (comme dans l'ancienne barre). Une entrée qui mène à une porte
