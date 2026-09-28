@@ -171,7 +171,21 @@ export const COLONNES: Colonne[] = [
   { cle: 'channels',   cleI18n: 'v2.tcol.channels',   largeur: '72px',  align: 'centre' },
   { cle: 'bpm',        cleI18n: 'v2.tcol.bpm',        largeur: '64px',  align: 'droite' },
   { cle: 'genre',      cleI18n: 'v2.tcol.genre',      largeur: 'minmax(100px,1fr)' },
-  { cle: 'quality',    cleI18n: 'v2.tcol.quality',    largeur: '132px' },
+  /**
+   * Qualité — web#1683 (Levente, fil 1998) : à 132 px, la pastille la plus
+   * courante d'un fichier haute résolution, « HI-RES MAX ✦ FLAC 192/24 », se
+   * lisait « HI-RES MAX ✦ FLAC 19 » : la cadence, c'est-à-dire ce que la
+   * colonne sert à montrer, était coupée — en Essentiel comme en Expert.
+   *
+   * Pas d'`auto` (voir `ListePistesV2` : l'en-tête et les lignes sont deux
+   * grilles, une largeur au contenu les désaligne). La colonne est donc
+   * dimensionnée pour la pastille la PLUS longue qu'on sait produire,
+   * « HI-RES MAX ✦ AIFF 352.8/24 » (~172 px en police système, plus sur une
+   * police Linux plus large) ; au-delà, le détail s'abrège avec une
+   * infobulle (`QualityBadge ajuste`) au lieu d'être tranché. Un témoin
+   * tient ce plancher.
+   */
+  { cle: 'quality',    cleI18n: 'v2.tcol.quality',    largeur: '196px' },
 
   // ── À partir d'AVANCÉ ────────────────────────────────────────────────────
   //

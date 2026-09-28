@@ -21,13 +21,15 @@
   import type { GroupeCollaborations } from '../../lib/api';
   import { partagerDiscographie } from '../../lib/discographieConnexes';
   import {
-    BIBLIOTHEQUE, compterFocus, comptesProvenanceFiche, dansProvenance, filtrerFocus, fusionnerDiscographie,
+    BIBLIOTHEQUE, basculerProvenance, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances,
+    filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee,
     type EntreeDiscographie, type Exemplaire, type Qualite,
   } from '../../lib/discographieCommune';
   import { trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
   import type { OrigineSection } from '../../lib/focusArtiste';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
-  import type { ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
+  import { libelleProvenance, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
+  import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
@@ -68,7 +70,7 @@
      */
     collaborations?: GroupeCollaborations[];
     reprises?: Album[];
-    /** Le filtre « Source » de la Bibliothèque, appliqué AVANT le Focus. */
+    /** Le filtre « Source » de la Bibliothèque : la pastille cochée à l'ouverture. */
     provenance?: string | null;
     /** Les comptes de ce filtre, pour que le menu parle de CETTE discographie. */
     onComptesProvenance?: (c: ComptesArtistesSources) => void;
@@ -91,37 +93,94 @@
    */
   const partage = $derived(partagerDiscographie(services, nomArtiste));
   const toutes = $derived(fusionnerDiscographie(locaux, partage.propres));
-  const connexes = $derived(
-    fusionnerDiscographie([], partage.connexes).filter((e) => dansProvenance(e, provenance)),
-  );
+  const connexesToutes = $derived(fusionnerDiscographie([], partage.connexes));
   $effect(() => { onComptesProvenance?.(comptesProvenanceFiche(toutes)); });
-  const entrees = $derived(toutes.filter((e) => dansProvenance(e, provenance)));
+
+  /*
+   * #4767 — les sections de FabienM. Fusionnées SÉPARÉMENT, comme « Autres /
+   * Connexes » : une compilation homonyme d'un album de l'artiste ne doit pas
+   * se replier sur lui. « Collaborations » : une sous-section « Avec
+   * {artiste} » par artiste principal, dans l'ordre où le serveur range les
+   * groupes (par nom).
+   */
+  const compilationsToutes = $derived(fusionnerDiscographie(compilations, []));
+  const apparitionsToutes = $derived(fusionnerDiscographie(apparitions, []));
+  const reprisesToutes = $derived(fusionnerDiscographie(reprises, []));
+  const collaborationsToutes = $derived(
+    (collaborations ?? []).map((g, i) => ({
+      cle: `${g?.artist_id ?? ''}|${g?.artist_name ?? ''}|${i}`,
+      nom: g?.artist_name ?? '',
+      entrees: fusionnerDiscographie(g?.albums ?? [], []),
+    })),
+  );
+
+  // ── Source ───────────────────────────────────────────────────────────────
+  // Les pastilles au-dessus de la grille (28/09/2026) : voir
+  // `compterProvenances`. Elles filtrent TOUTES les sections de la fiche.
+  const provenances = $derived(
+    compterProvenances([
+      toutes, connexesToutes, compilationsToutes, apparitionsToutes, reprisesToutes,
+      ...collaborationsToutes.map((g) => g.entrees),
+    ]),
+  );
+  /** Les provenances cochées ; vide = toutes. */
+  let choix = $state<Set<string>>(new Set());
+  // La source choisie dans la grille de la Bibliothèque (#1501) est la
+  // pastille cochée à l'OUVERTURE — et plus un filtre invisible qu'on ne
+  // pouvait pas retirer depuis la fiche. La fiche démonte cette grille pendant
+  // chaque chargement : un autre artiste repart donc de là.
+  $effect.pre(() => {
+    choix = provenance ? new Set([provenance]) : new Set();
+  });
+  // Un ensemble REMPLACÉ, pas modifié en place : `$state` suit l'affectation,
+  // et un `Set` muté garderait la même référence.
+  function basculerPastille(cle: string) {
+    choix = basculerProvenance(choix, cle, provenances.map((p) => p.cle));
+  }
+  const garder = (liste: EntreeDiscographie[]) => liste.filter((e) => dansProvenances(e, choix));
+
+  /**
+   * Les noms des serveurs UPnP, pour qu'une pastille dise « Sonos » et pas un
+   * UDN. Le registre n'est interrogé que si la fiche a un serveur à nommer,
+   * et il est CONSULTÉ, jamais exigé : muet, la pastille garde l'UDN abrégé.
+   */
+  let nomsServeurs = $state<Record<string, string>>({});
+  const aDesServeurs = $derived(provenances.some((p) => p.cle.startsWith('upnp:')));
+  $effect(() => {
+    if (!aDesServeurs) return;
+    let vivant = true;
+    api.getMediaServers()
+      .then((liste) => {
+        if (!vivant) return;
+        const carte: Record<string, string> = {};
+        for (const s of liste) if (s.id && s.name) carte[s.id] = s.name;
+        nomsServeurs = carte;
+      })
+      .catch(() => { /* registre muet : l'UDN abrégé suffit */ });
+    return () => { vivant = false; };
+  });
+
+  const entrees = $derived(garder(toutes));
+  const connexes = $derived(garder(connexesToutes));
   const comptes = $derived(compterFocus(entrees));
 
   // ── Focus ────────────────────────────────────────────────────────────────
+  // La source en est sortie pour devenir les pastilles : il ne garde que la
+  // qualité, sur la discographie.
   let focusOuvert = $state(false);
-  let sourcesCochees = $state<Set<string>>(new Set());
   let qualitesCochees = $state<Set<Qualite>>(new Set());
-  const focusActif = $derived(sourcesCochees.size + qualitesCochees.size > 0);
+  const focusActif = $derived(qualitesCochees.size > 0);
 
-  // Un ensemble REMPLACÉ, pas modifié en place : `$state` suit l'affectation,
-  // et un `Set` muté garderait la même référence.
-  function basculerSource(s: string) {
-    const n = new Set(sourcesCochees);
-    if (n.has(s)) n.delete(s); else n.add(s);
-    sourcesCochees = n;
-  }
   function basculerQualite(q: Qualite) {
     const n = new Set(qualitesCochees);
     if (n.has(q)) n.delete(q); else n.add(q);
     qualitesCochees = n;
   }
   function toutAfficher() {
-    sourcesCochees = new Set();
     qualitesCochees = new Set();
   }
 
-  const filtrees = $derived(filtrerFocus(entrees, { sources: sourcesCochees, qualites: qualitesCochees }));
+  const filtrees = $derived(filtrerFocus(entrees, { sources: new Set(), qualites: qualitesCochees }));
 
   // ── Tri ──────────────────────────────────────────────────────────────────
   // Mêmes clés et même mémoire que la fiche d'avant (#4246) : un réglage déjà
@@ -153,35 +212,23 @@
     return trierAlbums(albums, cle, sens).map((a) => parAlbum.get(a)!);
   }
   const triees = $derived(trier(filtrees, triAlbums, sensAlbums));
+  const sectionsSortie = $derived(partagerParTypeDeSortie(triees));
   const connexesTriees = $derived(trier(connexes, triAlbums, sensAlbums));
 
-  /**
-   * #4767 — les deux sections de FabienM. Fusionnées SÉPARÉMENT, comme
-   * « Autres / Connexes » : une compilation homonyme d'un album de l'artiste
-   * ne doit pas se replier sur lui. Le filtre « Source » ne s'y applique pas
-   * — elles ne viennent que de la bibliothèque — mais le TRI, si : un seul
-   * réglage pour toute la page.
+  /*
+   * Les sections #4767 : même filtre « Source » et même TRI que la
+   * discographie — un seul réglage pour toute la page. Une section (ou un
+   * groupe « Avec … ») que le filtre vide ne se rend pas.
    */
-  const compilationsTriees = $derived(trier(fusionnerDiscographie(compilations, []), triAlbums, sensAlbums));
-  const apparitionsTriees = $derived(trier(fusionnerDiscographie(apparitions, []), triAlbums, sensAlbums));
-
-  /**
-   * #4767 (crédits) — « Collaborations », une sous-section « Avec {artiste} »
-   * par artiste principal, dans l'ordre où le serveur range les groupes (par
-   * nom) ; « Reprises » d'un bloc. Même fusion séparée et même tri que les
-   * deux sections d'au-dessus. Un groupe vide ne se rend pas.
-   */
+  const compilationsTriees = $derived(trier(garder(compilationsToutes), triAlbums, sensAlbums));
+  const apparitionsTriees = $derived(trier(garder(apparitionsToutes), triAlbums, sensAlbums));
   const collaborationsTriees = $derived(
-    (collaborations ?? [])
-      .map((g, i) => ({
-        cle: `${g?.artist_id ?? ''}|${g?.artist_name ?? ''}|${i}`,
-        nom: g?.artist_name ?? '',
-        entrees: trier(fusionnerDiscographie(g?.albums ?? [], []), triAlbums, sensAlbums),
-      }))
+    collaborationsToutes
+      .map((g) => ({ ...g, entrees: trier(garder(g.entrees), triAlbums, sensAlbums) }))
       .filter((g) => g.entrees.length > 0),
   );
   const collaborationsCompte = $derived(collaborationsTriees.reduce((n, g) => n + g.entrees.length, 0));
-  const reprisesTriees = $derived(trier(fusionnerDiscographie(reprises, []), triAlbums, sensAlbums));
+  const reprisesTriees = $derived(trier(garder(reprisesToutes), triAlbums, sensAlbums));
 
   /** L'exemplaire local d'une vignette, s'il y en a un — il porte le cœur. */
   const local = (e: EntreeDiscographie) => e.exemplaires.find((x) => x.source === BIBLIOTHEQUE)?.album ?? null;
@@ -197,29 +244,38 @@
 </script>
 
 <div class="disco">
+  {#if provenances.length > 1 || choix.size}
+    <!-- « Toutes » OUVRE la rangée et y est toujours : l'absence de filtre ne
+         se dit pas en allumant toutes les autres (#1145, même rangée qu'à la
+         Recherche). Une seule source : rien à choisir, pas de rangée. -->
+    <div class="pills" role="group" aria-label={$t('v2.disco.source' as any)}>
+      <button class="pill raz" data-pastille="tout" class:on={choix.size === 0}
+        aria-pressed={choix.size === 0} onclick={() => (choix = new Set())}>{$t('v2.fav.allSources' as any)}</button>
+      {#each provenances as p (p.cle)}
+        <button class="pill" data-pastille={p.cle} class:on={provenanceCochee(p.cle, choix)}
+          aria-pressed={provenanceCochee(p.cle, choix)} onclick={() => basculerPastille(p.cle)}>
+          {#if p.cle.startsWith('upnp')}<ServiceBadge source="upnp" compact />{/if}
+          {libelleProvenance(p.cle, nomsServeurs, $t('v2.lib.sourceLocal' as any))} <b>{p.n}</b>
+        </button>
+      {/each}
+    </div>
+  {/if}
+
   <div class="barre">
-    <button class="focus" class:ouvert={focusOuvert} class:actif={focusActif}
-      aria-expanded={focusOuvert} onclick={() => (focusOuvert = !focusOuvert)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
-      {$t('v2.disco.focus' as any)}
-    </button>
-    <span class="cpt">{filtrees.length} / {entrees.length} {$t('v2.art.albums' as any)}</span>
+    {#if comptes.qualites.length || focusActif}
+      <button class="focus" class:ouvert={focusOuvert} class:actif={focusActif}
+        aria-expanded={focusOuvert} onclick={() => (focusOuvert = !focusOuvert)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        {$t('v2.disco.focus' as any)}
+      </button>
+    {/if}
+    <span class="cpt">{filtrees.length} / {toutes.length} {$t('v2.art.albums' as any)}</span>
     <span class="espace"></span>
     <TriAlbums bind:cle={triAlbums} bind:sens={sensAlbums} cles={CLES_FICHE} />
   </div>
 
   {#if focusOuvert}
     <div class="panneau">
-      <div class="axe">
-        <h3>{$t('v2.disco.source' as any)}</h3>
-        {#each comptes.sources as c (c.source)}
-          <label class="case">
-            <input type="checkbox" checked={sourcesCochees.has(c.source)} onchange={() => basculerSource(c.source)} />
-            <span>{c.source === BIBLIOTHEQUE ? $t('v2.disco.library' as any) : c.source}</span>
-            <span class="n">({c.n})</span>
-          </label>
-        {/each}
-      </div>
       {#if comptes.qualites.length}
         <div class="axe">
           <h3>{$t('v2.disco.quality' as any)}</h3>
@@ -238,14 +294,35 @@
     </div>
   {/if}
 
-  {#if !filtrees.length && entrees.length}
+  {#if !filtrees.length && toutes.length}
     <div class="etat">{$t('v2.disco.noMatch' as any)}</div>
   {:else}
-    <div class="gr">
-      {#each triees as e (e.cle)}
-        {@render carte(e)}
-      {/each}
-    </div>
+    {#if !sectionsSortie.epSingles.length}
+      <div class="gr">
+        {#each triees as e (e.cle)}
+          {@render carte(e)}
+        {/each}
+      </div>
+    {:else}
+      {#if sectionsSortie.albums.length}
+        <section data-section="albums-principaux">
+          <h3 class="titre-connexes">{$t('v2.disco.mainAlbums' as any)} <span class="cpt">{sectionsSortie.albums.length}</span></h3>
+          <div class="gr">
+            {#each sectionsSortie.albums as e (e.cle)}
+              {@render carte(e)}
+            {/each}
+          </div>
+        </section>
+      {/if}
+      <section class="connexes" data-section="ep-singles">
+        <h3 class="titre-connexes">{$t('v2.disco.epSingles' as any)} <span class="cpt">{sectionsSortie.epSingles.length}</span></h3>
+        <div class="gr">
+          {#each sectionsSortie.epSingles as e (e.cle)}
+            {@render carte(e)}
+          {/each}
+        </div>
+      </section>
+    {/if}
     {#if servicesEnCharge}
       <div class="etat">{$t('common.loading' as any)}</div>
     {/if}
@@ -367,6 +444,16 @@
 
 <style>
   .disco { display: flex; flex-direction: column; }
+  .pills { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 0 0 12px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt3); cursor: pointer;
+    border-radius: var(--v2-r-pill); padding: 5px 12px; font: 600 12px var(--v2-sans);
+  }
+  .pill b { font: 700 10px var(--v2-mono); opacity: .75; }
+  .pill:hover { color: var(--v2-txt); }
+  .pill.on { color: var(--v2-acc-tint); border-color: var(--v2-acc2); background: var(--v2-acc-soft); }
+  .pill.raz { border-style: dashed; }
   .barre { display: flex; align-items: center; gap: 14px; padding: 0 0 12px; flex-wrap: wrap; }
   .espace { flex: 1; }
   .focus {
