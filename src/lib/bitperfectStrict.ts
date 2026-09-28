@@ -26,6 +26,13 @@ import { locale, t } from './i18n';
 export const CODE_REFUS_BITPERFECT = 'bitperfect_strict_refused';
 
 /**
+ * Le refus de PROFONDEUR (tune-server-rust#5217) : la cadence reste la même,
+ * mais le chemin de lecture ramènerait la source à moins de bits (radio FLAC
+ * 24 bits vers une sortie réseau 16 bits). Code distinct, champs en bits.
+ */
+export const CODE_REFUS_PROFONDEUR = 'bitperfect_depth_strict_refused';
+
+/**
  * Une fréquence en kHz, décimale seulement si elle n'est pas entière :
  * 192000 → « 192 », 44100 → « 44,1 » (fr) / « 44.1 » (en), 22050 → « 22,05 ».
  * Sans séparateur de milliers : « 2822,4 » et non « 2 822,4 ».
@@ -46,7 +53,7 @@ function langue(): string {
   }
 }
 
-function hzValide(v: unknown): number | null {
+function positifValide(v: unknown): number | null {
   const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN;
   return Number.isFinite(n) && n > 0 ? n : null;
 }
@@ -56,21 +63,31 @@ export interface RefusBitperfect {
   code?: unknown;
   requested_hz?: unknown;
   device_hz?: unknown;
+  requested_bits?: unknown;
+  device_bits?: unknown;
 }
 
 /**
  * La phrase localisée du refus, ou `null` si ce n'est pas ce refus-là (ou si
- * le serveur n'a pas donné les deux fréquences) : l'appelant garde alors son
- * chemin habituel, texte du serveur compris.
+ * le serveur n'a pas donné les deux fréquences, ou les deux profondeurs) :
+ * l'appelant garde alors son chemin habituel, texte du serveur compris.
  */
 export function messageRefusBitperfect(
   d: RefusBitperfect | null | undefined,
   tr: (cle: string) => string = get(t),
   loc: string = langue(),
 ): string | null {
+  if (d?.code === CODE_REFUS_PROFONDEUR) {
+    const demandes = positifValide(d.requested_bits);
+    const sortis = positifValide(d.device_bits);
+    if (demandes == null || sortis == null) return null;
+    return tr('bitperfect.refusedDepth')
+      .replace('{requested}', String(demandes))
+      .replace('{device}', String(sortis));
+  }
   if (!d || d.code !== CODE_REFUS_BITPERFECT) return null;
-  const demande = hzValide(d.requested_hz);
-  const sortie = hzValide(d.device_hz);
+  const demande = positifValide(d.requested_hz);
+  const sortie = positifValide(d.device_hz);
   if (demande == null || sortie == null) return null;
   return tr('bitperfect.refused')
     .replace('{requested}', frequenceKhz(demande, loc))
@@ -97,8 +114,8 @@ export function libelleConversion(
 ): string | null {
   const rc = sp?.rate_conversion;
   if (!rc) return null;
-  const de = hzValide(rc.from_hz);
-  const vers = hzValide(rc.to_hz);
+  const de = positifValide(rc.from_hz);
+  const vers = positifValide(rc.to_hz);
   if (de == null || vers == null) return null;
   const cle = sp?.pure_degraded ? 'bitperfect.pureDegraded' : 'bitperfect.rateConversion';
   return tr(cle).replace('{from}', frequenceKhz(de, loc)).replace('{to}', frequenceKhz(vers, loc));

@@ -3683,6 +3683,7 @@ export default {
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "出力がソースのサンプルレートを再生できない場合、変換せずに再生を拒否します。",
   "bitperfect.refused": "厳格な bit-perfect：再生を拒否しました — 出力は {requested} kHz を変換なしで再生できません（{device} kHz で動作中）。変換して再生するには、ゾーン設定で「Bit-perfect strict」をオフにしてください。",
+  "bitperfect.refusedDepth": "厳格な bit-perfect：再生を拒否しました — この再生経路ではソースが {requested} ビットから {device} ビットに削減されます。変換して再生するには、ゾーン設定で「Bit-perfect strict」をオフにしてください。",
   "bitperfect.pureDegraded": "PURE 劣化 — {from} → {to} kHz、bit-perfect ではありません",
   "bitperfect.rateConversion": "{from} → {to} kHz、bit-perfect ではありません",
   "v2.lib.chipAll": "すべて ({n})",

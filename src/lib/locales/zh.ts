@@ -3683,6 +3683,7 @@ export default {
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "当输出设备无法播放音源的采样率时，拒绝播放而不是转换采样率。",
   "bitperfect.refused": "严格 bit-perfect：已拒绝播放 — 输出设备无法在不转换的情况下播放 {requested} kHz（其运行于 {device} kHz）。请在区域设置中关闭“Bit-perfect strict”以进行转换播放。",
+  "bitperfect.refusedDepth": "严格 bit-perfect：已拒绝播放 — 此播放路径会将音源从 {requested} 位降低到 {device} 位。请在区域设置中关闭“Bit-perfect strict”以进行转换播放。",
   "bitperfect.pureDegraded": "PURE 降级 — {from} → {to} kHz，非 bit-perfect",
   "bitperfect.rateConversion": "{from} → {to} kHz，非 bit-perfect",
   "v2.lib.chipAll": "全部 ({n})",
