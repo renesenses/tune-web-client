@@ -15,6 +15,7 @@ import {
   CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
 } from '../cadenceAnimations';
 import { normaliserTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
+import { TRI_CONCERTS_DEFAUT, type TriConcerts } from '../concertsTri';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
  *
@@ -140,6 +141,12 @@ export interface Preferences {
   albumSortOrder: 'asc' | 'desc';
   /** Densité de la grille d'albums — voir AlbumGridDensity. */
   albumGridDensity: AlbumGridDensity;
+  /** L'ordre de la liste de l'écran Concerts — `artiste` (défaut, l'ordre
+   *  d'origine) ou `date`. Ici, et pas dans un `localStorage` à part : c'est
+   *  ainsi que tous les choix d'affichage des écrans voisins sont retenus
+   *  (`oxygenView`, `albumSort`, `albumGridDensity`), donc synchronisés avec
+   *  le profil au lieu de rester dans un seul navigateur (#1134). */
+  concertsTri: TriConcerts;
   /**
    * Le crête-mètre affiché — #452, spécifié par Xavijol.
    *
@@ -356,6 +363,7 @@ const defaults: Preferences = {
   albumSort: 'title',
   albumSortOrder: 'asc',
   albumGridDensity: 'detail',
+  concertsTri: TRI_CONCERTS_DEFAUT,
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
