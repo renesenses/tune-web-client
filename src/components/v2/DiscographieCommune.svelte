@@ -22,7 +22,7 @@
   import { partagerDiscographie } from '../../lib/discographieConnexes';
   import {
     BIBLIOTHEQUE, basculerProvenance, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances,
-    filtrerFocus, fusionnerDiscographie, provenanceCochee,
+    filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee,
     type EntreeDiscographie, type Exemplaire, type Qualite,
   } from '../../lib/discographieCommune';
   import { trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
@@ -212,6 +212,7 @@
     return trierAlbums(albums, cle, sens).map((a) => parAlbum.get(a)!);
   }
   const triees = $derived(trier(filtrees, triAlbums, sensAlbums));
+  const sectionsSortie = $derived(partagerParTypeDeSortie(triees));
   const connexesTriees = $derived(trier(connexes, triAlbums, sensAlbums));
 
   /*
@@ -296,11 +297,32 @@
   {#if !filtrees.length && toutes.length}
     <div class="etat">{$t('v2.disco.noMatch' as any)}</div>
   {:else}
-    <div class="gr">
-      {#each triees as e (e.cle)}
-        {@render carte(e)}
-      {/each}
-    </div>
+    {#if !sectionsSortie.epSingles.length}
+      <div class="gr">
+        {#each triees as e (e.cle)}
+          {@render carte(e)}
+        {/each}
+      </div>
+    {:else}
+      {#if sectionsSortie.albums.length}
+        <section data-section="albums-principaux">
+          <h3 class="titre-connexes">{$t('v2.disco.mainAlbums' as any)} <span class="cpt">{sectionsSortie.albums.length}</span></h3>
+          <div class="gr">
+            {#each sectionsSortie.albums as e (e.cle)}
+              {@render carte(e)}
+            {/each}
+          </div>
+        </section>
+      {/if}
+      <section class="connexes" data-section="ep-singles">
+        <h3 class="titre-connexes">{$t('v2.disco.epSingles' as any)} <span class="cpt">{sectionsSortie.epSingles.length}</span></h3>
+        <div class="gr">
+          {#each sectionsSortie.epSingles as e (e.cle)}
+            {@render carte(e)}
+          {/each}
+        </div>
+      </section>
+    {/if}
     {#if servicesEnCharge}
       <div class="etat">{$t('common.loading' as any)}</div>
     {/if}
