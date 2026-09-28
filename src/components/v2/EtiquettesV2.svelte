@@ -65,7 +65,9 @@
   import type { Album, Artist, Track, UserTag } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import { cibleEtiquetteAlbum, cleLigneEtiquetee, corpsLectureAlbumEtiquete } from '../../lib/cibleEtiquette';
+  import {
+    cibleEtiquetteAlbum, cleLigneEtiquetee, corpsLectureAlbumEtiquete, EVENEMENT_ETIQUETTE_MODIFIEE,
+  } from '../../lib/cibleEtiquette';
   import {
     cibleEtiquetteObjet, gestesObjet,
     objetAlbum, objetArtiste, objetCollection, objetPlaylist, objetPlaylistIntelligente,
@@ -368,12 +370,28 @@
   // une étiquette qu'on ne regarde plus.
   $effect(() => () => clearShortcutTarget());
 
-  async function ouvrir(tag: UserTag) {
+  /**
+   * #1659 — une pose ou un retrait fait depuis le panneau Étiquettes, par-dessus
+   * cet écran, recharge l'étiquette OUVERTE si c'est elle qui a changé. On
+   * garde l'onglet : l'utilisateur est en train de le regarder.
+   */
+  $effect(() => {
+    const aChange = (ev: Event) => {
+      const tagId = (ev as CustomEvent).detail?.tagId;
+      if (ouverte && ouverte.id === tagId) void ouvrir(ouverte, { recharger: true });
+    };
+    window.addEventListener(EVENEMENT_ETIQUETTE_MODIFIEE, aChange);
+    return () => window.removeEventListener(EVENEMENT_ETIQUETTE_MODIFIEE, aChange);
+  });
+
+  async function ouvrir(tag: UserTag, { recharger = false }: { recharger?: boolean } = {}) {
     ouverte = tag;
     setShortcutTarget({ key: cleCible(tag), restore: { id: tag.id, name: tag.name }, label: tag.name });
-    albums = []; artistes = []; pistes = []; listes = []; dossiers = [];
-    famille = 'albums';
-    albumsChargement = true;
+    if (!recharger) {
+      albums = []; artistes = []; pistes = []; listes = []; dossiers = [];
+      famille = 'albums';
+      albumsChargement = true;
+    }
     // Les sept EN PARALLÈLE, chacune au mieux : une famille qui échoue ne
     // doit pas vider les autres, et les compteurs des onglets doivent
     // être justes dès l'ouverture — un onglet « Artistes » sans nombre
@@ -407,7 +425,7 @@
     // On se pose sur la première famille NON VIDE : ouvrir une étiquette qui
     // ne porte que des artistes sur un onglet Albums vide se lit comme une
     // panne, et c'est exactement le défaut signalé.
-    famille = ONGLETS.find((o) => compte[o.id] > 0)?.id ?? 'albums';
+    if (!recharger) famille = ONGLETS.find((o) => compte[o.id] > 0)?.id ?? 'albums';
     albumsChargement = false;
   }
 

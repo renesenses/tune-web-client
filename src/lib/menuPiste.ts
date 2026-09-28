@@ -153,6 +153,14 @@ export interface CapacitesPiste {
    * autres. Voir `lib/creditsService`.
    */
   creditsDeService?: boolean;
+  /**
+   * La piste peut-elle rejoindre une playlist de CERCLE ? — Tune Circle T5
+   * (renesenses/tune-server-rust#5328). Vrai quand le greffon `circle` tourne
+   * ET que la piste sait se dire en référence (`ajoutDePiste`,
+   * `lib/circlePlaylists`) : une piste de la bibliothèque, ou un titre Qobuz,
+   * Tidal, Spotify, Deezer ou YouTube. Absent = non.
+   */
+  playlistDeCercle?: boolean;
 }
 /**
  * Les gestes, fournis par le composant : le module ne sait pas les faire.
@@ -168,6 +176,8 @@ export interface GestesPiste {
   plusCommeCa?: () => void;
   autresVersions?: () => void;
   ajouterAPlaylist?: () => void;
+  /** « Ajouter à une playlist de cercle » — Tune Circle T5. */
+  ajouterAPlaylistDeCercle?: () => void;
   allerArtiste?: () => void;
   allerAlbum?: () => void;
   etiqueter?: () => void;
@@ -271,6 +281,9 @@ export function entreesMenuPiste(
     ICONES.playlist,
     g.ajouterAPlaylist,
   );
+  // Tune Circle T5 (#5328) : juste sous l'entrée des playlists, même icône —
+  // c'est le même geste, vers une playlist commune à un cercle.
+  pousser(!!c.playlistDeCercle, 'v2.circle.pl.addToCircle', ICONES.playlist, g.ajouterAPlaylistDeCercle);
   /**
    * « Aller à l'artiste » et « Aller à l'album » — #3777, famille C.
    *
