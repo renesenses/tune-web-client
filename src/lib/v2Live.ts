@@ -88,6 +88,7 @@ import {
   type SuiviPosition,
 } from './positionLecture';
 import { positionFileAnnoncee } from './suiviPisteEnCours';
+import { ancrerPosition } from './positionsZones';
 import { doitRechargerLaFile } from './rechargementFile';
 
 /**
@@ -471,6 +472,11 @@ export function demarrerTransportV2(): () => void {
     // barre revenait en arrière. On glissait le curseur et il sautait à sa
     // place d'avant — « le slider ne marche pas » (Bertrand, 02/09/2026).
     if (type === 'playback.seek' && event.data?.position_ms !== undefined) {
+      // 🔴 D'ABORD toutes les zones, ensuite la zone courante. La premiere
+      // ligne de l'Accueil en montre plusieurs, et le deplacement du curseur
+      // d'une zone voisine ne lui parvenait jamais : sa carte continuait de
+      // compter depuis l'ancien point, parfois plusieurs minutes durant.
+      ancrerPosition(event.data.zone_id, event.data.position_ms);
       if (concerneLaZoneCourante(event)) {
         seekPositionMs.set(event.data.position_ms);
         startSeekTimer();
@@ -482,6 +488,18 @@ export function demarrerTransportV2(): () => void {
     // une requête par point — une tempête d'appels pour une valeur que
     // l'événement porte déjà.
     if (type === 'playback.position' && event.data?.position_ms !== undefined) {
+      // 🔴 LE FLUX EST DIFFUSE POUR TOUTES LES ZONES — Sevy, 28/09/2026.
+      //
+      // Le serveur estampille chaque message de son `zone_id` et ne filtre
+      // rien (`tune-server/src/routes/ws.rs`). C'est ici que le client jetait
+      // tout ce qui ne concernait pas la zone courante : les cartes des autres
+      // zones n'avaient donc AUCUNE source vivante, et celle de la zone
+      // courante lisait un autre magasin que la barre de lecture. D'ou « pas
+      // de synchro entre les deux barres ».
+      //
+      // Le filtre ci-dessous reste : il protege `seekPositionMs`, qui ne parle
+      // que de la zone courante et porte en plus le deplacement manuel.
+      ancrerPosition(event.data.zone_id, event.data.position_ms);
       if (
         concerneLaZoneCourante(event) &&
         Math.abs(get(seekPositionMs) - event.data.position_ms) > DERIVE_MAX_MS

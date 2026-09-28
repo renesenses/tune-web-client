@@ -33,6 +33,8 @@
   import { switchZone } from '../../../lib/stores/zones';
   import { togglePlayPause } from '../../../lib/playback-controls';
   import { positionsZones } from '../../../lib/positionsZones';
+  import { currentZoneId } from '../../../lib/stores/zones';
+  import { seekPositionMs } from '../../../lib/stores/nowPlaying';
   import type { Zone } from '../../../lib/types';
 
   let { zone }: { zone: Zone } = $props();
@@ -50,7 +52,28 @@
    * horloge par zone. Elle vit dans `lib/positionsZones`, avec ses règles et
    * ses témoins.
    */
-  const positionMs = $derived($positionsZones[zone?.id as number] ?? zone?.position_ms ?? 0);
+  /**
+   * 🔴 LA ZONE COURANTE LIT LE NOMBRE DE LA BARRE DE LECTURE — Sevy, 28/09.
+   *
+   * « Pas de synchro entre la barre de progression de la transport bar et
+   * celle affichée dans le widget de la première ligne. »
+   *
+   * La barre affiche littéralement `formatTime($seekPositionMs)`. Faire lire
+   * autre chose à cette carte — fût-ce une horloge nourrie à la même source —
+   * les laisserait s'écarter : deux minuteurs d'une seconde démarrés à des
+   * instants différents ne se rattrapent jamais, et l'un afficherait 1:23
+   * quand l'autre affiche 1:24. Un SEUL nombre ne le peut pas.
+   *
+   * Les autres zones, que `seekPositionMs` ne sait pas décrire — il n'en
+   * connaît qu'une — viennent de `positionsZones`, qui écoute le même flux
+   * `playback.position` pour chacune d'elles.
+   */
+  const estCourante = $derived(zone?.id != null && zone.id === $currentZoneId);
+  const positionMs = $derived(
+    estCourante
+      ? $seekPositionMs
+      : ($positionsZones[zone?.id as number] ?? zone?.position_ms ?? 0),
+  );
 
   const piste = $derived((zone as any)?.current_track ?? null);
   const joue = $derived(zone?.state === 'playing');
