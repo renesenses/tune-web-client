@@ -3397,6 +3397,9 @@ export interface DspSettings {
   crossfeed?: CrossfeedSettings;
   /** #2742 — verdict du serveur sur cette zone. Voir CrossfeedStatus. */
   crossfeed_status?: CrossfeedStatus | null;
+  /** #4680 — QUAND le crossfeed écrit s'entend ; absent d'un serveur
+   *  antérieur. Lire par `atteintLeSon(crossfeed_applied_live, crossfeed_portee)`. */
+  crossfeed_portee?: import('./porteeReglage').PorteeDuReglage | null;
   /** tune-server-rust#4683 — les bornes que le serveur applique. Absent d'un
    *  serveur antérieur : `bornesCrossfeed` retombe sur les constantes. */
   crossfeed_limits?: CrossfeedLimits | null;
@@ -6440,6 +6443,13 @@ export interface AudiophileModeState {
   /** Valeur réellement appliquée après héritage. */
   effective_lock_volume?: boolean;
   applied_live?: boolean;
+  /**
+   * QUAND la bascule s'entend (tune-server-rust#4680, PR serveur #5338) :
+   * `restart` = zone réseau dont le flux est relancé dans l'instant, PAS la
+   * piste suivante. `null` quand seule la valeur du verrou de volume change ;
+   * absent d'un serveur antérieur. Lire par `atteintLeSon()`.
+   */
+  portee?: import('./porteeReglage').PorteeDuReglage | null;
 }
 
 export function getAudiophileMode(zoneId: number) {

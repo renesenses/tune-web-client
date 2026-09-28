@@ -110,8 +110,11 @@ describe('garde : la bascule PURE rapporte sa portée', () => {
   });
 
   it('applied_live est lu, et « faux » distingué de « absent »', () => {
+    // #4680 — lu à travers `atteintLeSon`, qui lit d'abord `portee` (une
+    // relance réseau n'est pas « la piste suivante ») et retombe sur
+    // `applied_live` tel quel pour un serveur antérieur.
     expect(
-      source.includes('res.applied_live === false'),
+      source.includes('atteintLeSon(res.applied_live, res.portee) === false'),
       'applied_live n’est lu nulle part : le testeur ne saura pas que PURE ' +
         'n’a pas encore atteint le son',
     ).toBe(true);
