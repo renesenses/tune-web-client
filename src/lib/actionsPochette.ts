@@ -147,6 +147,15 @@ export interface CapacitesPochette {
   favori?: boolean | null;
   /** L'objet peut-il porter une étiquette (`lib/cibleEtiquette`) ? */
   etiquetable?: boolean;
+  /**
+   * L'objet est-il dans le sas « Écouter plus tard » (web#1653) ?
+   *
+   * Absent (`undefined`/`null`) = il ne s'y range pas — c'est une CAPACITÉ, pas
+   * seulement un état, exactement comme `favori` juste au-dessus. Un objet qui
+   * ne se désigne pas (`lib/ecouterPlusTard.rangeableDansLeSas`) n'a pas
+   * l'entrée : absente, pas grisée.
+   */
+  dansEcouterPlusTard?: boolean | null;
   /** Album de service dont le service rend des crédits (#4993, Qobuz). */
   creditsDeService?: boolean;
   /** Album : l'artiste se désigne (identifiant local, ou nom chez le service). */
@@ -181,6 +190,8 @@ export interface GestesPochette {
   basculerFavori?: () => void;
   /** Ouvre le panneau d'étiquettes — fourni par le COMPOSANT qui le montre. */
   etiqueter?: () => void;
+  /** Dépose l'objet dans le sas « Écouter plus tard », ou l'en retire (web#1653). */
+  basculerEcouterPlusTard?: () => void;
   /** Sous-menu des collections manuelles, rangées par rayons (web#1591). */
   ajouterACollection?: () => Promise<SousEntreePochette[]>;
   /** Ouvre le tiroir des crédits — fourni par le composant. */
@@ -280,6 +291,26 @@ export function entreesPochette(
   // ── Ranger ──────────────────────────────────────────────────────────────
   if (c.favori != null) {
     pousser(true, c.favori ? 'v2.cover.unfavorite' : 'v2.cover.favorite', g.basculerFavori);
+  }
+  /**
+   * « Écouter plus tard » — web#1653, FabienM, fil 1986.
+   *
+   * 🔴 Rangée avec les autres gestes de RANGEMENT, entre le favori et les
+   * étiquettes : c'est là qu'elle a son sens. FabienM le dit lui-même — le sas
+   * est le lieu temporaire d'où l'on décide ensuite « rien, mise en favoris,
+   * ajout dans une playlist ». Ses deux voisines sont donc ses deux suites.
+   *
+   * Une bascule, un seul geste, deux libellés — la capture 2 du fil montre le
+   * bouton de Roon avec sa coche et l'infobulle « Retirer d'Écouter plus
+   * tard ». Même forme que le favori juste au-dessus : l'état se LIT dans le
+   * libellé, il ne se devine pas.
+   */
+  if (c.dansEcouterPlusTard != null) {
+    pousser(
+      true,
+      c.dansEcouterPlusTard ? 'v2.later.remove' : 'v2.later.add',
+      g.basculerEcouterPlusTard,
+    );
   }
   pousser(!!c.etiquetable, 'v2.cover.tags', g.etiqueter);
   /**

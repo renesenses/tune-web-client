@@ -1,27 +1,57 @@
 /**
- * Les zones que propose le sélecteur de la barre de lecture — #1272.
+ * Les zones que propose le sélecteur de la barre de lecture — #1272, #1345, #1664.
  *
  * Ludovic Audouin, v0.9.156, 19/09/2026 : la zone Diretta « dCS Vivaldi
  * Upsampler Plus USB », zone par défaut ET en cours de lecture, n'apparaissait
  * pas dans la liste des zones de la barre de lecture. La zone « LVDS », elle,
  * y était.
  *
- * Le sélecteur ne garde qu'UNE zone par appareil de sortie (`2fe77a3e`, juin
- * 2026 : des centaines de zones en double figeaient l'écran). Mais il gardait
- * la PREMIÈRE de la liste, quelle qu'elle soit : quand deux zones visent le
- * même `output_device_id`, la zone pilotée pouvait disparaître de son propre
- * sélecteur, pendant que le compteur de l'en-tête (`$zones.length`) comptait
- * encore la zone masquée.
+ * Le sélecteur ne gardait qu'UNE zone par `output_device_id` (`2fe77a3e`, juin
+ * 2026 : des centaines de zones en double figeaient l'écran) : la PREMIÈRE de
+ * la liste, quelle qu'elle soit. #1272 puis #1345 ont changé QUI survit au
+ * tri — la zone pilotée, puis celle qui joue. Patatorz, fil 1860, 27/09/2026,
+ * après la livraison des deux : « Non toujours pas réglé ».
  *
- * #1345 — le même testeur, en v0.9.158 : la zone dCS reste invisible. Le
- * correctif ne couvrait que la zone PILOTÉE, et il pilotait le Serenade. Le
- * groupe Diretta retombait donc sur « la première de la liste », c'est-à-dire
- * LVDS — pendant que la zone dCS, par défaut, JOUAIT.
+ * ## #1664 — ce n'est pas le choix du survivant, c'est le fait qu'il y en ait un
  *
- * La règle, désormais. Une zone par appareil, comme avant ; une zone sans
- * appareil n'est jamais regroupée ; et dans un groupe, l'appareil est
- * représenté par la zone la plus significative, à la place qu'occupait le
- * groupe (la liste ne saute pas) :
+ * Deux correctifs ont réordonné un tri sans jamais demander si ce tri avait
+ * lieu d'être. Il n'en a pas : `output_device_id` n'est pas la relation
+ * « même appareil », et ne l'a jamais été.
+ *
+ * - Le serveur, lui, sait dire quand deux zones désignent le même appareil, et
+ *   il le publie (`/system/diagnostics`, `zones_doublons`). Sa clé
+ *   (`tune-server-rust`, `routes/system/diagnostics.rs`, `cle_appareil`) n'est
+ *   justement PAS l'égalité des `output_device_id` : un Sonos annonce TROIS
+ *   UDN pour une seule enceinte (racine, `_MR`, `_MS`), donc trois zones à
+ *   trois `output_device_id` DIFFÉRENTS — que ce tri-ci ne regroupe pas. Et
+ *   pour une sortie sans identité réseau, Diretta comprise, cette clé rend
+ *   `None` : le serveur ne déclare jamais ces zones-là doublons.
+ * - Côté Diretta, deux Targets logiques d'un même boîtier reçoivent des
+ *   identifiants DISTINCTS — `diretta:{adresse}-{nom}` — et c'est délibéré :
+ *   l'index de découverte n'étant pas stable, deux cibles ont échangé leurs
+ *   rangs entre deux passes et un `POST /zones` s'est raccroché à la mauvaise
+ *   zone (mesuré le 23/08/2026 sur le DDC-0 à deux cibles, LVDS + le port USB
+ *   qui alimente le dCS Vivaldi).
+ *
+ * Bref : le tri retirait des lignes qu'il n'aurait jamais dû retirer, et ne
+ * retirait pas celles pour lesquelles il avait été écrit. Le vrai garde-fou
+ * contre le figeage de juin, c'est le PLAFOND de cinquante lignes, et il
+ * reste.
+ *
+ * ## La règle, désormais
+ *
+ * On ne regroupe que ce que l'utilisateur ne peut pas distinguer : même
+ * `output_device_id` ET même nom. Deux zones qu'il voit sous deux noms sont
+ * deux lignes, toujours — aucune zone nommée ne disparaît en silence de la
+ * barre alors que la page Zones l'affiche (les deux lisent le MÊME magasin
+ * `zones`, c'est bien ce seul tri qui faisait l'écart).
+ *
+ * Le cas de juin est intact : des centaines de zones nées de la redécouverte
+ * du même appareil portent le même nom que lui, elles se regroupent comme
+ * avant ; et, quoi qu'il arrive, le plafond borne la liste.
+ *
+ * Dans un groupe, l'appareil est représenté par la zone la plus significative,
+ * à la place qu'occupait le groupe (la liste ne saute pas) :
  *
  * 1. la zone PILOTÉE ;
  * 2. sinon celle qui JOUE (ou qui est en pause — c'est une écoute en cours) ;
@@ -35,6 +65,8 @@
 export interface ZoneDuSelecteur {
   id: number | null;
   output_device_id?: string | null;
+  /** Le nom AFFICHÉ : c'est par lui que l'utilisateur distingue deux zones. */
+  name?: string | null;
   /** `playing` / `paused` : une écoute en cours. */
   state?: string | null;
   is_default?: boolean | null;
@@ -46,8 +78,21 @@ function ecouteEnCours(z: ZoneDuSelecteur): boolean {
 }
 
 /**
- * Rang de représentation d'une zone dans son groupe d'appareil : plus il est
- * petit, plus la zone mérite la ligne. Voir l'ordre en tête de fichier.
+ * La clé de regroupement, ou `null` quand la zone ne se regroupe avec personne.
+ *
+ * L'appareil ET le nom, parce que seul le second est ce que l'utilisateur lit.
+ * Le séparateur est un octet nul : aucun nom ni identifiant ne le contient, là
+ * où un `:` ou un `-` laisserait deux couples différents produire la même clé.
+ */
+export function cleDeGroupe(z: ZoneDuSelecteur): string | null {
+  const appareil = (z.output_device_id ?? '').trim();
+  if (!appareil) return null;
+  return `${appareil}\u0000${(z.name ?? '').trim().toLowerCase()}`;
+}
+
+/**
+ * Rang de représentation d'une zone dans son groupe : plus il est petit, plus
+ * la zone mérite la ligne. Voir l'ordre en tête de fichier.
  */
 export function rangDeRepresentation(
   z: ZoneDuSelecteur,
@@ -59,7 +104,7 @@ export function rangDeRepresentation(
   return 3;
 }
 
-/** Plafond historique du menu (`2fe77a3e`). */
+/** Plafond historique du menu (`2fe77a3e`) — le vrai garde-fou du figeage. */
 export const PLAFOND_ZONES_SELECTEUR = 50;
 
 export function zonesDuSelecteur<Z extends ZoneDuSelecteur>(
@@ -68,45 +113,47 @@ export function zonesDuSelecteur<Z extends ZoneDuSelecteur>(
   plafond: number = PLAFOND_ZONES_SELECTEUR,
 ): Z[] {
   const liste = zones ?? [];
-  const pilotee = zonePiloteeId == null ? undefined : liste.find((z) => z.id === zonePiloteeId);
-  const appareilPilote = pilotee?.output_device_id || null;
 
-  // Le représentant de chaque appareil, choisi par rang — à égalité, la
-  // première rencontrée gagne, ce qui garde le comportement d'origine quand
-  // aucune zone ne se distingue.
+  // Le représentant de chaque groupe, choisi par rang — à égalité, la première
+  // rencontrée gagne, ce qui garde le comportement d'origine quand aucune zone
+  // ne se distingue.
   const representant = new Map<string, Z>();
   for (const z of liste) {
-    const appareil = z.output_device_id || null;
-    if (!appareil) continue;
-    const tenant = representant.get(appareil);
+    const cle = cleDeGroupe(z);
+    if (!cle) continue;
+    const tenant = representant.get(cle);
     if (
       !tenant ||
       rangDeRepresentation(z, zonePiloteeId) < rangDeRepresentation(tenant, zonePiloteeId)
     ) {
-      representant.set(appareil, z);
+      representant.set(cle, z);
     }
   }
 
   const vus = new Set<string>();
   const rendu: Z[] = [];
   for (const z of liste) {
-    const appareil = z.output_device_id || null;
-    if (!appareil) {
+    const cle = cleDeGroupe(z);
+    if (!cle) {
       rendu.push(z);
       continue;
     }
-    if (vus.has(appareil)) continue;
-    vus.add(appareil);
-    // L'appareil garde la place qu'occupait sa première zone : la liste ne
+    if (vus.has(cle)) continue;
+    vus.add(cle);
+    // Le groupe garde la place qu'occupait sa première zone : la liste ne
     // saute pas, seul le nom affiché change.
-    rendu.push(representant.get(appareil) ?? z);
+    rendu.push(representant.get(cle) ?? z);
   }
 
   if (rendu.length <= plafond) return rendu;
   const coupe = rendu.slice(0, plafond);
   if (plafond > 0) {
     // Ni la zone pilotée, ni une zone qui joue ne peuvent tomber sous le
-    // plafond : ce sont justement celles qu'on cherche du regard.
+    // plafond : ce sont justement celles qu'on cherche du regard. On les prend
+    // dans `rendu` et non dans la liste d'origine — une zone écartée par le
+    // regroupement n'a pas de ligne à sauver, et la repêcher en écraserait une
+    // autre pour rien.
+    const pilotee = zonePiloteeId == null ? undefined : rendu.find((z) => z.id === zonePiloteeId);
     const aSauver = [pilotee, rendu.find((z) => ecouteEnCours(z))].filter(
       (z): z is Z => !!z && !coupe.includes(z),
     );

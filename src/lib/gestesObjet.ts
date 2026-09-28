@@ -63,6 +63,7 @@ import {
   cibleSmartPlaylist,
   type CibleEtiquette,
 } from './cibleEtiquette';
+import { basculerLeSas, estDansLeSas, rangeableDansLeSas } from './ecouterPlusTard';
 import { serviceACredits } from './creditsService';
 import { ouvrirArtisteDepuis } from './ouvrirArtisteDepuis';
 import { ouvrirCollection, ouvrirParRaccourci, ouvrirSmartPlaylist } from './ouvrirParRaccourci';
@@ -224,6 +225,23 @@ export function cibleEtiquetteObjet(o: ObjetMenu): CibleEtiquette | null {
   }
 }
 
+/**
+ * Ce que le SAS « Écouter plus tard » prend de cet objet, ou `null` (web#1653).
+ *
+ * 🔴 ALBUM et PLAYLIST seulement, plus la PISTE dans l'autre menu
+ * (`lib/menuPiste`) : ce sont les trois objets que FabienM nomme, mot pour mot,
+ * dans le fil 1986 — « un titre, un album ou une playlist ». Un artiste, une
+ * collection, une playlist intelligente s'étiquettent tout aussi bien, et le
+ * sas ne les propose pas : l'issue ne les demande pas, et `membresEtiquette`
+ * ne lit que ces trois familles — offrir un dépôt qu'on ne relit pas donnerait
+ * un objet rangé qui n'apparaît nulle part.
+ */
+function cibleDuSas(o: ObjetMenu): CibleEtiquette | null {
+  if (o.type !== 'album' && o.type !== 'playlist') return null;
+  const cible = cibleEtiquetteObjet(o);
+  return rangeableDansLeSas(cible) ? cible : null;
+}
+
 /** Ce que l'objet permet — la moitié « capacités » du catalogue. */
 export function capacitesObjet(o: ObjetMenu, options: { dansCollectionManuelle?: boolean } = {}): CapacitesPochette {
   const c: CapacitesPochette = {
@@ -249,7 +267,12 @@ export function capacitesObjet(o: ObjetMenu, options: { dansCollectionManuelle?:
     const rs = refService(o);
     if (rs) c.favori = get(favoriteStreamingKeys).has(favKeyOf(rs)!);
   }
+  const pourLeSas = cibleDuSas(o);
   c.etiquetable = cibleEtiquetteObjet(o) != null;
+  // web#1653 — l'état du sas est une CAPACITÉ : absent, pas d'entrée. Lu dans
+  // le magasin, jamais au serveur : une grille de 6 704 albums (fil 1919) ne
+  // part pas en 6 704 `GET /tags/for/…` pour peindre ses vignettes.
+  if (pourLeSas) c.dansEcouterPlusTard = estDansLeSas(pourLeSas);
   if (o.type === 'album') {
     c.artisteConnu = o.artisteId != null || !!o.artisteNom;
     if (deService(o)) c.creditsDeService = serviceACredits(o.service);
@@ -726,6 +749,10 @@ export function gestesObjet(o: ObjetMenu, options: OptionsMenuObjet = {}): Geste
     allerArtiste: allerArtiste(o),
     basculerFavori: () => void basculerFavori(o),
   };
+  // web#1653 — LE geste du sas, celui-là même que le menu d'une piste appelle.
+  // La bascule vit dans `lib/ecouterPlusTard` : ni ici, ni dans `menuPiste`.
+  const pourLeSas = cibleDuSas(o);
+  if (pourLeSas) g.basculerEcouterPlusTard = () => void basculerLeSas(pourLeSas);
   if (o.type === 'album' && o.id != null) {
     const id = o.id;
     g.ajouterACollection = () => sousMenuCollections(id);

@@ -15,6 +15,7 @@ import {
   CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
 } from '../cadenceAnimations';
 import { normaliserTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
+import { TRI_CONCERTS_DEFAUT, type TriConcerts } from '../concertsTri';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
  *
@@ -140,6 +141,12 @@ export interface Preferences {
   albumSortOrder: 'asc' | 'desc';
   /** Densité de la grille d'albums — voir AlbumGridDensity. */
   albumGridDensity: AlbumGridDensity;
+  /** L'ordre de la liste de l'écran Concerts — `artiste` (défaut, l'ordre
+   *  d'origine) ou `date`. Ici, et pas dans un `localStorage` à part : c'est
+   *  ainsi que tous les choix d'affichage des écrans voisins sont retenus
+   *  (`oxygenView`, `albumSort`, `albumGridDensity`), donc synchronisés avec
+   *  le profil au lieu de rester dans un seul navigateur (#1134). */
+  concertsTri: TriConcerts;
   /**
    * Le crête-mètre affiché — #452, spécifié par Xavijol.
    *
@@ -356,6 +363,7 @@ const defaults: Preferences = {
   albumSort: 'title',
   albumSortOrder: 'asc',
   albumGridDensity: 'detail',
+  concertsTri: TRI_CONCERTS_DEFAUT,
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
@@ -616,6 +624,26 @@ export async function syncPreferencesFromServer() {
         preferences.update((local) => ({
           ...defaults, ...server, ...local,
           sourcesBarre: { ...(normaliserTypesBarre(server.sourcesBarre) ?? {}), ...(local.sourcesBarre ?? {}) },
+          // #1673 — même piège, et il a mordu la photo d'avatar.
+          //
+          // `...local` gagne clé par clé, et `createPreferences` sérialise le
+          // blob ENTIER dès la première émission : toute machine ayant affiché
+          // Tune une seule fois porte déjà `avatarImage: ''` en localStorage.
+          // Ce `''` n'est pas un choix, c'est le défaut — et il écrasait, à
+          // chaque chargement, la photo que le serveur porte pour ce profil.
+          // Levente Toth la voyait sur la machine A et sur aucune autre, alors
+          // que le transport, lui, marche : mesuré sur le serveur d'essai, un
+          // `PATCH` de 12 023 octets de donnée URL est relu INTACT, et reste
+          // invisible du profil voisin.
+          //
+          // On n'adopte donc que sur une ABSENCE locale : une photo choisie
+          // ici garde la main. `avatarCompte` voyage AVEC l'image et jamais
+          // sans — `photoAAfficher` refuse d'afficher une photo dont le
+          // propriétaire ne correspond pas au compte ouvert, et une image
+          // adoptée sans son propriétaire serait reçue puis jamais montrée.
+          ...(!local.avatarImage && server.avatarImage
+            ? { avatarImage: server.avatarImage, avatarCompte: server.avatarCompte ?? '' }
+            : {}),
         }));
       } else {
         preferences.update(() => ({ ...defaults, ...server }));

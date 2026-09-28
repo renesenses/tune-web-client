@@ -42,6 +42,7 @@
     type BarScaleId,
   } from '../../lib/tvBarScale';
   import { t } from '../../lib/i18n';
+  import { surSortieDuPleinEcran } from '../../lib/modeGrandEcran';
 
   let track = $derived($currentTrack);
   let zone = $derived($currentZone);
@@ -144,7 +145,15 @@
   // « Lecture en cours », donc `previousView` y vaut presque toujours
   // `'nowplaying'` — mais les deux sorties lisent désormais le MÊME contrat,
   // plutôt que chacune sa comparaison en dur.
+  //
+  // #1720 : la garde `fullscreenchange` est coupée AVANT tout le reste. Le
+  // `exitFullscreen()` de la ligne suivante émet lui-même un
+  // `fullscreenchange`, qui rejouerait cette sortie une seconde fois — sur une
+  // `previousView` entre-temps devenue `'tv'`.
+  let arreterGardePleinEcran: (() => void) | null = null;
   function exitTv() {
+    arreterGardePleinEcran?.();
+    arreterGardePleinEcran = null;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     activeView.set(destinationDeRetour(get(previousView), { depuis: 'tv', repli: 'nowplaying' }));
   }
@@ -344,6 +353,10 @@
     acquireWakeLock();
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('keydown', handleKeydown, true);
+    // #1720 : en plein écran natif, le navigateur consomme le PREMIER Échap
+    // pour en sortir et ne le transmet pas à la page. Sans cette garde, la vue
+    // resterait affichée en fenêtre et il faudrait un second Échap.
+    arreterGardePleinEcran = surSortieDuPleinEcran(exitTv);
     rafId = requestAnimationFrame(rafTick);
   });
 
@@ -352,6 +365,8 @@
     cancelAnimationFrame(rafId);
     document.removeEventListener('visibilitychange', handleVisibility);
     window.removeEventListener('keydown', handleKeydown, true);
+    arreterGardePleinEcran?.();
+    arreterGardePleinEcran = null;
     wakeLock?.release().catch(() => {});
     wakeLock = null;
   });
