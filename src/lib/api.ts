@@ -4025,6 +4025,23 @@ export async function removeMusicDir(path: string, confirmPurge?: number) {
   return { ...r, music_dirs: listeDossiers(r) };
 }
 
+/** Effective reading order of configured music directories (#1688 / server #4907). */
+export interface MusicDirectoryOrder {
+  ordre: string[];
+  music_dirs: string[];
+  regle: string[];
+}
+
+export function getMusicDirectoryOrder(): Promise<MusicDirectoryOrder> {
+  return fetchJSON<MusicDirectoryOrder>(`${BASE}/library/repertoires/ordre`);
+}
+
+export function setMusicDirectoryOrder(ordre: string[]): Promise<MusicDirectoryOrder> {
+  return fetchJSON<MusicDirectoryOrder>(`${BASE}/library/repertoires/ordre`, {
+    method: 'PUT', body: JSON.stringify({ ordre }),
+  });
+}
+
 export function triggerScan(path?: string, full = false) {
   const params = new URLSearchParams();
   if (path) params.set('path', path);
