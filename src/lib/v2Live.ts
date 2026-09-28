@@ -68,6 +68,7 @@ import { niveauApresAlerte } from './santeServeur';
 import { tachesDeFond } from './stores/tachesDeFond';
 import { t } from './i18n';
 import { signalerErreurServeur } from './echecLecture';
+import { estEcouteRevoquee } from './circle';
 import { playbackHistory } from './stores/history';
 import { noterSiDebutDEcoute } from './historiqueEcoutes';
 import { appliquerEvenementAudioNavigateur } from './audioNavigateurSync';
@@ -417,6 +418,15 @@ export function demarrerTransportV2(): () => void {
     //
     // ⚠️ Placé AVANT le bloc générique `playback.*`, qui se contenterait de
     // recharger les zones en silence.
+    // Tune Circle T4 (tune-server-rust#5327) — l'écoute chez un contact a été
+    // refusée en cours de lecture : une phrase claire, pas un échec de décodage,
+    // et jamais tue par la fenêtre de grâce (c'est définitif).
+    if (estEcouteRevoquee(event)) {
+      notifications.error(get(t)('v2.circle.listen.revoked' as any), 8000);
+      void rechargerZones();
+      return;
+    }
+
     if (type === 'zone.playback_error' || type === 'playback.error') {
       const zoneId = event?.data?.zone_id as number | null | undefined;
       // La fenêtre de grâce, telle que la v1 la tient (#1146) : pendant les
