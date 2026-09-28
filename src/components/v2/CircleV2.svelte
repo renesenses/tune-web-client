@@ -26,6 +26,14 @@
    *   (`CatalogueContactV2`). Un 404 y ramène ici, avec la phrase.
    * Un greffon T1 ne connaît pas `/library-sync` (404) : la partie T2 reste
    * alors cachée plutôt que d'offrir des gestes qui échoueraient.
+   *
+   * Étape T3 (renesenses/tune-server-rust#5326, décisions du 28/09/2026) :
+   * sous l'interrupteur, « Rayons partagés » — mes étiquettes et mes
+   * collections intelligentes, à cocher UNE PAR UNE pour CE cercle, aucune
+   * cochée par défaut. Grisé tant que ce cercle ne partage pas la
+   * bibliothèque de CE serveur. Les listes se lisent à la demande (bouton),
+   * pas à chaque relecture de `GET /` : les compter coûte au serveur.
+   * Cocher = PUT sans corps (le greffon résout les membres), décocher = DELETE.
    */
   import { onDestroy } from 'svelte';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -40,6 +48,8 @@
     seConnecterAMozaiklabs, NOM_CERCLE_MAX, RELECTURE_CERCLE_MS,
     partageActif, partagerBibliotheque, arreterPartageBibliotheque, ouPartage,
     getSynchroBibliotheque, avisSynchro, getPartagesAvecMoi, plusPartage,
+    getRayonsCercle, partagerRayon, retirerRayon, estBibliothequeNonPartagee,
+    type RayonsCercle, type RayonLocal,
     type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme,
     type EtatSynchroBibliotheque, type PartageRecu, type AvisSynchro,
   } from '../../lib/circle';
@@ -66,6 +76,11 @@
   let partages = $state<PartageRecu[]>([]);
   let erreurPartages = $state<MotifCercle | null>(null);
   let contactOuvert = $state<PartageRecu | null>(null);
+
+  /** T3 : les rayons d'un cercle, lus à la demande. Clé = id du cercle. */
+  type EtatRayons = { chargement: boolean; donnees: RayonsCercle | null; erreur: MotifCercle | null };
+  let rayons = $state<Record<number, EtatRayons>>({});
+  let rayonsOuverts = $state<Record<number, boolean>>({});
 
   let fini = false;
   let enCours = false;
@@ -240,6 +255,58 @@
     void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started' });
   }
 
+  // ── T3 : rayons partagés ─────────────────────────────────────────────────
+
+  async function chargerRayons(id: number) {
+    rayons[id] = { chargement: true, donnees: rayons[id]?.donnees ?? null, erreur: null };
+    try {
+      const d = await getRayonsCercle(id);
+      if (fini) return;
+      rayons[id] = { chargement: false, donnees: d, erreur: null };
+    } catch (e) {
+      if (fini) return;
+      // Pas de cases périmées affichées comme vraies : la panne, et c'est tout.
+      rayons[id] = { chargement: false, donnees: null, erreur: motifCercle(e) };
+    }
+  }
+
+  function basculerOuvertureRayons(c: CercleNomme) {
+    const ouvrir = !rayonsOuverts[c.id];
+    rayonsOuverts[c.id] = ouvrir;
+    if (ouvrir) void chargerRayons(c.id);
+  }
+
+  /**
+   * Cocher = PUT sans corps, décocher = DELETE ; puis les cases sont RELUES :
+   * elles disent ce que le greffon dit, pas ce que l'écran suppose.
+   */
+  async function basculerRayon(c: CercleNomme, r: RayonLocal) {
+    if (occupe !== null) return;
+    occupe = `rayon-${c.id}-${r.kind}-${r.source_id}`;
+    let erreur: MotifCercle | null = null;
+    let relireTout = false;
+    try {
+      if (r.shared) await retirerRayon(c.id, r.kind, r.source_id);
+      else await partagerRayon(c.id, r.kind, r.source_id);
+    } catch (e) {
+      erreur = motifCercle(e);
+      // Le partage de bibliothèque a été coupé ailleurs : relire le cercle.
+      relireTout = estBibliothequeNonPartagee(e);
+    } finally {
+      occupe = null;
+    }
+    if (fini) return;
+    await chargerRayons(c.id);
+    if (erreur && rayons[c.id]) rayons[c.id] = { ...rayons[c.id], erreur };
+    if (relireTout) await relire();
+  }
+
+  /** Les rayons ne s'offrent que si ce cercle partage la bibliothèque de CE serveur. */
+  const partageIci = (c: CercleNomme) => ou(c) === 'ici';
+
+  const compteRayon = (r: RayonLocal) =>
+    r.count != null ? $t('v2.circle.sets.count' as any).replace('{n}', String(r.count)) : '';
+
   /** Réglages ▸ Système ▸ Cloud : le chemin de `OutputModuleBanner.ouvrirLiaisonCompte`. */
   function ouvrirLiaisonCompte() {
     v2SettingsTarget.set({ tab: 'system', section: 'cloud' });
@@ -405,6 +472,45 @@
                   {/if}
                   {#if ou(c) === 'ici' && avis}
                     <p class={avis.cle === 'v2.circle.share.syncOk' ? 'note avis-synchro' : 'note avis-synchro alerte'}>{texteAvis(avis)}</p>
+                  {/if}
+                </div>
+                <div class="rayons" class:grise={!partageIci(c)} aria-disabled={!partageIci(c)}>
+                  <button class="lnk ouvrir-rayons" aria-expanded={partageIci(c) && rayonsOuverts[c.id] === true}
+                    aria-controls={`circle-rayons-${c.id}`} disabled={!partageIci(c)}
+                    onclick={() => basculerOuvertureRayons(c)}>{$t('v2.circle.sets.title' as any)}</button>
+                  <p class="note rayons-quoi">{$t((partageIci(c) ? 'v2.circle.sets.hint' : 'v2.circle.sets.needLibrary') as any)}</p>
+                  {#if partageIci(c) && rayonsOuverts[c.id]}
+                    {@const r = rayons[c.id]}
+                    <div class="rayons-listes" id={`circle-rayons-${c.id}`}>
+                      {#if r?.erreur}
+                        <div class="err erreur-rayons" role="alert"><span>{phrase(r.erreur)}</span>
+                          <button class="lnk reessayer" onclick={() => void chargerRayons(c.id)}>{$t('v2.circle.retry' as any)}</button></div>
+                      {/if}
+                      {#if !r || (r.chargement && !r.donnees)}
+                        <div class="state">{$t('v2.tool.loading' as any)}</div>
+                      {:else if r.donnees}
+                        {#each [
+                          { cle: 'tags', titre: 'v2.circle.sets.tags', vide: 'v2.circle.sets.noTags', liste: r.donnees.tags },
+                          { cle: 'smart', titre: 'v2.circle.sets.smart', vide: 'v2.circle.sets.noSmart', liste: r.donnees.smart_collections },
+                        ] as groupe (groupe.cle)}
+                          <fieldset class="groupe-rayons groupe-{groupe.cle}">
+                            <legend>{$t(groupe.titre as any)}</legend>
+                            {#if groupe.liste.length === 0}
+                              <p class="note vide">{$t(groupe.vide as any)}</p>
+                            {:else}
+                              {#each groupe.liste as x (`${x.kind}-${x.source_id}`)}
+                                <label class="case-rayon">
+                                  <input type="checkbox" class="coche-rayon" checked={x.shared}
+                                    disabled={occupe !== null} onchange={(ev) => { (ev.currentTarget as HTMLInputElement).checked = x.shared; void basculerRayon(c, x); }} />
+                                  <span class="nom-rayon">{x.name}</span>
+                                  {#if x.count != null}<span class="note compte-rayon">{compteRayon(x)}</span>{/if}
+                                </label>
+                              {/each}
+                            {/if}
+                          </fieldset>
+                        {/each}
+                      {/if}
+                    </div>
                   {/if}
                 </div>
               {/if}
@@ -574,6 +680,16 @@
   .bouton-interrupteur{position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--v2-surface); transition:left .15s}
   .interrupteur[aria-checked="true"] .piste-interrupteur{background:var(--v2-acc2)}
   .interrupteur[aria-checked="true"] .bouton-interrupteur{left:16px}
+  .rayons{display:flex; flex-direction:column; gap:4px; padding:2px 0 6px; border-bottom:1px solid var(--v2-line)}
+  .rayons.grise{opacity:.55}
+  .ouvrir-rayons{align-self:flex-start; font-weight:600}
+  .rayons-quoi{margin:0}
+  .rayons-listes{display:flex; flex-direction:column; gap:10px; padding-top:4px}
+  .groupe-rayons{border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; min-width:0}
+  .groupe-rayons legend{font-size:12.5px; font-weight:700; color:var(--v2-txt2); padding:0; margin-bottom:2px}
+  .case-rayon{display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; min-width:0}
+  .case-rayon input:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .nom-rayon{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
   @media (max-width: 640px){
     .scroll{padding:6px 16px 32px}

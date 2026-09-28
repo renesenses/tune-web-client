@@ -393,6 +393,188 @@ export function plusPartage(e: unknown): boolean {
   return (e as ApiError | null)?.status === 404;
 }
 
+// ─── T3 : rayons partagés (étiquettes et collections intelligentes) ─────────
+//
+// renesenses/tune-server-rust#5326, décisions du 28/09/2026. Un « rayon » est
+// une étiquette ou une collection intelligente du propriétaire, qu'il coche
+// UNE PAR UNE, PAR CERCLE. Rien n'est coché par défaut.
+//
+//   GET    /circles/{id}/sets                    → la liste LOCALE de mes étiquettes
+//                                                  et collections, avec l'état coché
+//   PUT    /circles/{id}/sets/{kind}/{source_id} → SANS corps : le greffon résout
+//                                                  lui-même les membres
+//   DELETE /circles/{id}/sets/{kind}/{source_id} → effet immédiat → { ok: true }
+//   GET    /contacts/{uid}/sets                  → [{ id, kind, name, count }]
+//   GET    /contacts/{uid}/sets/{set_id}/albums|tracks|artists
+//
+// 🔴 Le client ne fournit JAMAIS la liste des membres d'un rayon : c'est le
+// greffon qui la construit, depuis la base locale.
+
+export type GenreRayon = 'tag' | 'smart_collection';
+const GENRES_RAYON: readonly GenreRayon[] = ['tag', 'smart_collection'];
+const estGenreRayon = (v: unknown): v is GenreRayon => GENRES_RAYON.includes(v as GenreRayon);
+
+/** Une de MES étiquettes ou collections, et si ce cercle la voit. */
+export interface RayonLocal {
+  kind: GenreRayon;
+  source_id: number;
+  name: string;
+  /** Nombre d'éléments, s'il est connu. */
+  count: number | null;
+  /** 🔴 Seul un `true` explicite vaut « coché ». */
+  shared: boolean;
+}
+
+/** Les deux listes à cocher d'un cercle. */
+export interface RayonsCercle { tags: RayonLocal[]; smart_collections: RayonLocal[] }
+
+function rayonLocal(b: any, kindParDefaut?: GenreRayon): RayonLocal | null {
+  const kind = estGenreRayon(b?.kind) ? b.kind : kindParDefaut;
+  const sid = nombreOuNul(b?.source_id ?? b?.id);
+  if (!kind || sid == null) return null;
+  return {
+    kind, source_id: sid, name: String(b?.name ?? ''),
+    count: nombreOuNul(b?.count), shared: b?.shared === true,
+  };
+}
+
+/**
+ * Lit la réponse du greffon, tolérante à deux formes : une liste plate
+ * `[{ kind, source_id, name, count, shared }]`, ou `{ tags: […],
+ * smart_collections: […] }`. Tout le reste est ignoré.
+ */
+export function lireRayonsCercle(brut: any): RayonsCercle {
+  const tout: RayonLocal[] = [];
+  const liste: any[] | null = Array.isArray(brut) ? brut : Array.isArray(brut?.data) ? brut.data : null;
+  if (liste) for (const b of liste) { const r = rayonLocal(b); if (r) tout.push(r); }
+  else {
+    for (const k of GENRES_RAYON) {
+      const l = brut?.[k === 'tag' ? 'tags' : 'smart_collections'];
+      if (Array.isArray(l)) for (const b of l) { const r = rayonLocal(b, k); if (r) tout.push(r); }
+    }
+  }
+  return {
+    tags: tout.filter((r) => r.kind === 'tag'),
+    smart_collections: tout.filter((r) => r.kind === 'smart_collection'),
+  };
+}
+
+export async function getRayonsCercle(id: number): Promise<RayonsCercle> {
+  return lireRayonsCercle(await fetchJSON<unknown>(`${BASE}/ext/circle/circles/${seg(id)}/sets`, undefined, undefined, true));
+}
+
+const routeRayon = (id: number, kind: GenreRayon, sourceId: number) =>
+  `${BASE}/ext/circle/circles/${seg(id)}/sets/${encodeURIComponent(kind)}/${seg(sourceId)}`;
+
+/** Coche : SANS corps. Le greffon résout les membres et ajoute son `server_id`. */
+export function partagerRayon(id: number, kind: GenreRayon, sourceId: number): Promise<unknown> {
+  return envoyer(routeRayon(id, kind, sourceId), 'PUT');
+}
+
+/** Décoche : le rayon disparaît pour ce cercle, tout de suite. */
+export function retirerRayon(id: number, kind: GenreRayon, sourceId: number): Promise<{ ok: boolean }> {
+  return envoyer(routeRayon(id, kind, sourceId), 'DELETE');
+}
+
+/** Un rayon qu'un contact partage avec moi. Jamais son `source_id`, jamais un nom de cercle. */
+export interface ComptesRayon { albums: number | null; tracks: number | null; artists: number | null; streaming: number | null }
+export interface RayonContact {
+  id: number | string; kind: GenreRayon | null; name: string; count: number | null;
+  /** Par type, si le cloud le dit ; `null` = inconnu (l'écran montre alors tous les onglets). */
+  counts: ComptesRayon | null;
+}
+
+const ID_OPAQUE = /^[A-Za-z0-9_-]{1,64}$/;
+
+export function rayonContact(b: any): RayonContact | null {
+  const id = typeof b?.id === 'number' && Number.isFinite(b.id) ? b.id
+    : typeof b?.id === 'string' && ID_OPAQUE.test(b.id) ? b.id : null;
+  if (id == null) return null;
+  const c = b?.counts;
+  const counts = c && typeof c === 'object'
+    ? { albums: nombreOuNul(c.albums), tracks: nombreOuNul(c.tracks), artists: nombreOuNul(c.artists), streaming: nombreOuNul(c.streaming) }
+    : null;
+  return { id, kind: estGenreRayon(b?.kind) ? b.kind : null, name: String(b?.name ?? ''), count: nombreOuNul(b?.count), counts };
+}
+
+export async function rayonsContact(uid: number): Promise<RayonContact[]> {
+  const b = await lire<any>(`${BASE}/ext/circle/contacts/${seg(uid)}/sets`);
+  const liste: any[] = Array.isArray(b) ? b : (b?.data ?? []);
+  return liste.map(rayonContact).filter((r): r is RayonContact => r !== null);
+}
+
+const racineRayon = (uid: number, setId: number | string) =>
+  `${BASE}/ext/circle/contacts/${seg(uid)}/sets/${encodeURIComponent(String(setId))}`;
+
+export async function albumsRayon(uid: number, setId: number | string, q: RequeteCatalogue = {}): Promise<PageContact<AlbumContact>> {
+  return lirePage(await lire<any>(`${racineRayon(uid, setId)}/albums?${requete(q)}`), q.page ?? 1, PAGE_CATALOGUE, albumContact);
+}
+
+export async function pistesRayon(uid: number, setId: number | string, q: RequeteCatalogue = {}): Promise<PageContact<PisteContact>> {
+  return lirePage(await lire<any>(`${racineRayon(uid, setId)}/tracks?${requete(q)}`), q.page ?? 1, PAGE_CATALOGUE, pisteContact);
+}
+
+export async function artistesRayon(uid: number, setId: number | string, q: RequeteCatalogue = {}): Promise<PageContact<ArtisteContact>> {
+  return lirePage(await lire<any>(`${racineRayon(uid, setId)}/artists?${requete(q)}`), q.page ?? 1, PAGE_CATALOGUE, artisteContact);
+}
+
+/**
+ * Un élément de STREAMING d'un rayon (décision 1 du 28/09/2026) : une
+ * RÉFÉRENCE, que le contact rejouera avec son propre service, comme à T5.
+ * Reconstruite champ par champ : jamais un chemin, une adresse, un `source_id`.
+ */
+export type GenreReference = 'track' | 'album' | 'artist';
+export type ServiceReference = 'qobuz' | 'tidal' | 'spotify' | 'deezer' | 'youtube';
+export const SERVICES_REFERENCE: readonly ServiceReference[] = ['qobuz', 'tidal', 'spotify', 'deezer', 'youtube'];
+/** Le nom d'un service tel qu'il s'affiche : des marques, pas des phrases. */
+export const NOM_SERVICE: Record<ServiceReference, string> = {
+  qobuz: 'Qobuz', tidal: 'TIDAL', spotify: 'Spotify', deezer: 'Deezer', youtube: 'YouTube',
+};
+
+export interface ReferenceContact {
+  type: GenreReference;
+  title: string;
+  artist_name: string | null;
+  album_title: string | null;
+  duration_ms: number | null;
+  isrc: string | null;
+  qobuz_id: string | null;
+  tidal_id: string | null;
+  spotify_id: string | null;
+  deezer_id: string | null;
+  youtube_id: string | null;
+}
+
+const ID_SERVICE = /^[A-Za-z0-9._:-]{1,64}$/;
+const idService = (v: unknown): string | null => (typeof v === 'string' && ID_SERVICE.test(v) ? v : null);
+const ISRC = /^[A-Z]{2}[A-Z0-9]{3}[0-9]{7}$/;
+
+export function referenceContact(b: any): ReferenceContact {
+  const type: GenreReference = b?.type === 'album' || b?.type === 'artist' ? b.type : 'track';
+  return {
+    type, title: String(b?.title ?? ''), artist_name: texteOuNul(b?.artist_name),
+    album_title: texteOuNul(b?.album_title), duration_ms: nombreOuNul(b?.duration_ms),
+    isrc: typeof b?.isrc === 'string' && ISRC.test(b.isrc) ? b.isrc : null,
+    qobuz_id: idService(b?.qobuz_id), tidal_id: idService(b?.tidal_id), spotify_id: idService(b?.spotify_id),
+    deezer_id: idService(b?.deezer_id), youtube_id: idService(b?.youtube_id),
+  };
+}
+
+/** Les services qui connaissent cette référence, dans un ordre fixe. */
+export function servicesReference(r: ReferenceContact): ServiceReference[] {
+  return SERVICES_REFERENCE.filter((s) => r[`${s}_id` as const] != null);
+}
+
+export async function referencesRayon(uid: number, setId: number | string, q: RequeteCatalogue = {}): Promise<PageContact<ReferenceContact>> {
+  return lirePage(await lire<any>(`${racineRayon(uid, setId)}/streaming?${requete(q)}`), q.page ?? 1, PAGE_CATALOGUE, referenceContact);
+}
+
+/** 409 `library_not_shared` : le cercle ne partage pas (ou plus) la bibliothèque. */
+export function estBibliothequeNonPartagee(e: unknown): boolean {
+  const code = typeof (e as ApiError | null)?.code === 'string' ? (e as ApiError).code! : '';
+  return /(^|[._])library_not_shared$/.test(code);
+}
+
 // ─── Le greffon est-il là ? ─────────────────────────────────────────────────
 
 export interface EtatPluginCircle {
@@ -474,6 +656,11 @@ export function motifCercle(e: unknown, champ: 'email' | 'name' | null = null): 
   }
   if (status === 503 || code === 'circle.cloud_unavailable') return { cle: 'v2.circle.err.unavailable', indisponible: true };
   if (status === 412 || code === 'circle.not_connected' || status === 401) return { cle: 'v2.circle.err.notConnected', deconnecte: true };
+  // T3 : les refus des rayons, avec ou sans le préfixe `circle.` du greffon.
+  const nu = code.replace(/^circle\./, '');
+  if (nu === 'library_not_shared') return { cle: 'v2.circle.err.libraryNotShared' };
+  if (nu === 'too_many_sets') return { cle: 'v2.circle.err.tooManySets' };
+  if (nu === 'set_too_large') return { cle: 'v2.circle.err.setTooLarge' };
   switch (code) {
     case 'already_member': return { cle: 'v2.circle.err.alreadyMember' };
     case 'already_invited': return { cle: 'v2.circle.err.alreadyInvited' };

@@ -20,6 +20,19 @@
    * - 🔴 Un 404 à n'importe quel moment (partage coupé, retrait du cercle,
    *   révocation) : l'écran se FERME et le dit. Rien n'est gardé — ce
    *   composant détruit, toutes ses listes partent avec lui.
+   *
+   * Étape T3 (renesenses/tune-server-rust#5326, décisions du 28/09/2026) :
+   * - en tête, la rangée « Rayons » : les étiquettes et collections
+   *   intelligentes que ce contact a cochées pour un cercle où je suis rangé,
+   *   réunies, sans aucun nom de cercle ;
+   * - la vue d'un rayon : ses albums, titres et artistes de bibliothèque avec
+   *   les mêmes composants, et ses éléments de STREAMING comme des
+   *   RÉFÉRENCES (titre, artiste, album, services) — rien à écouter ici ;
+   * - 🔴 un 404 dans un rayon ramène au catalogue du contact avec « Ce rayon
+   *   n'est plus partagé » ; si le catalogue lui-même répond 404 ensuite,
+   *   l'écran se ferme comme en T2.
+   * La liste des rayons qui échoue (greffon T2 sans la route, panne) laisse
+   * simplement la rangée absente : elle ne ferme jamais le catalogue.
    */
   import { onDestroy } from 'svelte';
   import { t } from '../../lib/i18n';
@@ -27,9 +40,11 @@
   import {
     statsContact, artistesContact, albumsContact, pistesContact, pistesAlbumContact,
     pisteVersTrack, plusPartage, motifCercle, pochetteAlbumContact,
+    rayonsContact, albumsRayon, pistesRayon, artistesRayon, referencesRayon, servicesReference, NOM_SERVICE,
     type PartageRecu, type StatsContact, type ArtisteContact, type AlbumContact,
-    type MotifCercle, type PageContact,
+    type MotifCercle, type PageContact, type RayonContact, type ReferenceContact, type ComptesRayon,
   } from '../../lib/circle';
+  import { formatTime } from '../../lib/utils';
   import type { Track } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
@@ -41,11 +56,18 @@
   }
   let { contact, onFermer }: Props = $props();
 
-  type Onglet = 'albums' | 'artists' | 'tracks';
+  type Onglet = 'albums' | 'artists' | 'tracks' | 'streaming';
   const ONGLETS: { id: Onglet; cle: string }[] = [
     { id: 'albums', cle: 'v2.circle.lib.albums' },
     { id: 'artists', cle: 'v2.circle.lib.artists' },
     { id: 'tracks', cle: 'v2.circle.lib.tracks' },
+  ];
+  /** Dans un rayon : les mêmes, plus ses éléments de streaming. */
+  const ONGLETS_RAYON: { id: Onglet; cle: string; compte: keyof ComptesRayon }[] = [
+    { id: 'albums', cle: 'v2.circle.lib.albums', compte: 'albums' },
+    { id: 'tracks', cle: 'v2.circle.lib.tracks', compte: 'tracks' },
+    { id: 'artists', cle: 'v2.circle.lib.artists', compte: 'artists' },
+    { id: 'streaming', cle: 'v2.circle.sets.streaming', compte: 'streaming' },
   ];
 
   let onglet = $state<Onglet>('albums');
@@ -61,6 +83,21 @@
   let erreur = $state<MotifCercle | null>(null);
   let album = $state<AlbumContact | null>(null);
   let pistesAlbum = $state<Track[]>([]);
+  /** T3 : les rayons de ce contact, et celui qu'on parcourt. */
+  let rayonsListe = $state<RayonContact[]>([]);
+  let rayon = $state<RayonContact | null>(null);
+  let references = $state<ReferenceContact[]>([]);
+  /** « Ce rayon n'est plus partagé » : posé au retour d'un 404 dans un rayon. */
+  let rayonParti = $state(false);
+
+  /** Les onglets d'un rayon : ceux qui ont quelque chose, tous si le cloud ne compte pas. */
+  const ongletsRayon = $derived.by(() => {
+    const c = rayon?.counts;
+    if (!c) return ONGLETS_RAYON;
+    const pleins = ONGLETS_RAYON.filter((o) => (c[o.compte] ?? 0) > 0);
+    return pleins.length > 0 ? pleins : ONGLETS_RAYON.slice(0, 1);
+  });
+  const ongletsAffiches = $derived(rayon ? ongletsRayon : ONGLETS);
 
   let fini = false;
   /** Chaque lecture porte un jeton : une réponse arrivée après un autre geste est jetée. */
@@ -83,7 +120,7 @@
       poser(v);
     } catch (e) {
       if (fini || moi !== jeton) return;
-      if (plusPartage(e)) { fermerPlusPartage(); return; }
+      if (plusPartage(e)) { if (rayon) fermerRayon(true); else fermerPlusPartage(); return; }
       erreur = motifCercle(e);
     } finally {
       if (!fini && moi === jeton) chargement = false;
@@ -93,7 +130,49 @@
   function fermerPlusPartage() {
     fini = true;
     stats = null; artistes = []; albums = []; pistes = []; pistesAlbum = []; album = null;
+    rayonsListe = []; rayon = null; references = [];
     onFermer(true);
+  }
+
+  /** Les rayons de ce contact. Un échec (greffon T2, panne, 404) : pas de rangée, rien d'autre. */
+  async function lireRayons() {
+    try {
+      const l = await rayonsContact(contact.user_id);
+      if (!fini) rayonsListe = l;
+    } catch {
+      if (!fini) rayonsListe = [];
+    }
+  }
+
+  function viderListes() {
+    artistes = []; albums = []; pistes = []; references = []; album = null; pistesAlbum = [];
+  }
+
+  function ouvrirRayon(r: RayonContact) {
+    rayon = r;
+    rayonParti = false;
+    recherche = '';
+    artiste = null;
+    viderListes();
+    onglet = ongletsRayon[0]?.id ?? 'albums';
+    recharger();
+  }
+
+  /**
+   * Retour au catalogue du contact. `parti` : le rayon a répondu 404 — la
+   * phrase, et la liste des rayons RELUE ; le catalogue relu dira, lui, si
+   * c'est tout le partage qui est coupé.
+   */
+  function fermerRayon(parti: boolean) {
+    rayon = null;
+    rayonParti = parti;
+    recherche = '';
+    artiste = null;
+    viderListes();
+    onglet = 'albums';
+    if (parti) rayonsListe = [];
+    void lireRayons();
+    recharger();
   }
 
   function chargerPage(n: number) {
@@ -101,12 +180,18 @@
     const q = { page: n, search: recherche, artist: onglet === 'albums' ? artiste?.id : undefined };
     const uid = contact.user_id;
     const suite = <T,>(liste: T[], p: PageContact<T>) => (n === 1 ? p.items : [...liste, ...p.items]);
-    if (onglet === 'artists') {
-      void lire(() => artistesContact(uid, q), (p) => { artistes = suite(artistes, p); page = p.page; derniere = p.derniere; });
+    // Dans un rayon, les mêmes listes, lues sous `/sets/{id}/…`.
+    const r = rayon;
+    if (onglet === 'streaming' && r) {
+      void lire(() => referencesRayon(uid, r.id, q), (p) => { references = suite(references, p); page = p.page; derniere = p.derniere; });
+    } else if (onglet === 'artists') {
+      void lire(() => (r ? artistesRayon(uid, r.id, q) : artistesContact(uid, q)),
+        (p) => { artistes = suite(artistes, p); page = p.page; derniere = p.derniere; });
     } else if (onglet === 'albums') {
-      void lire(() => albumsContact(uid, q), (p) => { albums = suite(albums, p); page = p.page; derniere = p.derniere; });
+      void lire(() => (r ? albumsRayon(uid, r.id, q) : albumsContact(uid, q)),
+        (p) => { albums = suite(albums, p); page = p.page; derniere = p.derniere; });
     } else {
-      void lire(() => pistesContact(uid, q), (p) => {
+      void lire(() => (r ? pistesRayon(uid, r.id, q) : pistesContact(uid, q)), (p) => {
         const neuves = p.items.map(pisteVersTrack);
         pistes = n === 1 ? neuves : [...pistes, ...neuves];
         page = p.page; derniere = p.derniere;
@@ -170,8 +255,18 @@
 
   const rienNeBouge = () => {};
 
-  // Première lecture : les chiffres, puis la première page d'albums.
-  void lire(() => statsContact(contact.user_id), (s) => { stats = s; chargerPage(1); });
+  /** Artiste · album · durée d'une référence ; le genre si ce n'est pas un titre. */
+  const detailsReference = (r: ReferenceContact) =>
+    [r.type === 'album' ? $t('v2.circle.sets.refAlbum' as any) : r.type === 'artist' ? $t('v2.circle.sets.refArtist' as any) : null,
+      r.type !== 'artist' ? r.artist_name : null, r.type === 'track' ? r.album_title : null,
+      r.duration_ms != null && r.type === 'track' ? formatTime(r.duration_ms) : null]
+      .filter(Boolean).join(' · ');
+
+  const compteRayon = (r: RayonContact) =>
+    r.count != null ? $t('v2.circle.sets.count' as any).replace('{n}', String(r.count)) : '';
+
+  // Première lecture : les chiffres, puis la première page d'albums et les rayons.
+  void lire(() => statsContact(contact.user_id), (s) => { stats = s; chargerPage(1); void lireRayons(); });
   onDestroy(() => { fini = true; if (minuteurRecherche) clearTimeout(minuteurRecherche); });
 </script>
 
@@ -184,6 +279,32 @@
     {/if}
     <p class="note lecture-seule">{$t('v2.circle.lib.readOnly' as any)}</p>
   </div>
+
+  {#if rayonParti && !rayon}
+    <div class="err rayon-parti" role="alert"><span>{$t('v2.circle.sets.gone' as any)}</span></div>
+  {/if}
+
+  {#if rayon && !album}
+    <div class="rayon-tete">
+      <button class="lnk retour-catalogue" onclick={() => fermerRayon(false)}>← {$t('v2.circle.sets.backToLibrary' as any)}</button>
+      <h3 class="titre-rayon">{rayon.name}</h3>
+      {#if rayon.count != null}<p class="note">{compteRayon(rayon)}</p>{/if}
+    </div>
+  {:else if !rayon && !album && rayonsListe.length > 0}
+    <section class="rayons-contact" aria-labelledby="circle-rayons-contact">
+      <h3 id="circle-rayons-contact" class="titre-rayons">{$t('v2.circle.sets.shelves' as any)}</h3>
+      <ul class="liste-rayons">
+        {#each rayonsListe as r (r.id)}
+          <li>
+            <button class="rayon-contact" onclick={() => ouvrirRayon(r)}>
+              <span class="nom-rayon">{r.name}</span>
+              {#if r.count != null}<span class="note">{compteRayon(r)}</span>{/if}
+            </button>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  {/if}
 
   {#if album}
     <div class="album-ouvert">
@@ -209,7 +330,7 @@
     </div>
   {:else}
     <div class="onglets" role="tablist">
-      {#each ONGLETS as o (o.id)}
+      {#each ongletsAffiches as o (o.id)}
         <button class="onglet onglet-{o.id}" role="tab" aria-selected={onglet === o.id}
           onclick={() => choisirOnglet(o.id)}>{$t(o.cle as any)}</button>
       {/each}
@@ -251,7 +372,29 @@
       {:else}
         <ul class="artistes">
           {#each artistes as a (a.id)}
-            <li class="ligne"><button class="lnk artiste-contact" onclick={() => voirArtiste(a)}>{a.name}</button></li>
+            <!-- Dans un rayon, le cloud ne filtre pas ses albums par artiste : le nom seul, sans lien trompeur. -->
+            <li class="ligne">{#if rayon}<span class="artiste-rayon">{a.name}</span>{:else}<button class="lnk artiste-contact" onclick={() => voirArtiste(a)}>{a.name}</button>{/if}</li>
+          {/each}
+        </ul>
+      {/if}
+    {:else if onglet === 'streaming'}
+      <p class="note references-quoi">{$t('v2.circle.sets.streamingHint' as any)}</p>
+      {#if references.length === 0 && !chargement && !erreur}
+        <p class="note vide">{$t('v2.circle.lib.empty' as any)}</p>
+      {:else}
+        <ul class="references">
+          {#each references as r, i (i)}
+            <li class="ligne reference reference-{r.type}">
+              <span class="ref-texte">
+                <span class="ref-titre">{r.title}</span>
+                <span class="note">{detailsReference(r)}</span>
+              </span>
+              <span class="services">
+                {#each servicesReference(r) as sv (sv)}
+                  <span class="service service-{sv}">{NOM_SERVICE[sv]}</span>
+                {/each}
+              </span>
+            </li>
           {/each}
         </ul>
       {/if}
@@ -307,5 +450,22 @@
   .album-infos{min-width:0}
   .album-titre{font-size:15px; font-weight:700; margin:0; overflow-wrap:anywhere}
   .plus{align-self:flex-start}
+  .rayon-tete{display:flex; flex-direction:column; gap:2px; align-items:flex-start}
+  .titre-rayon{font-size:15px; font-weight:700; margin:0; overflow-wrap:anywhere}
+  .rayons-contact{display:flex; flex-direction:column; gap:6px}
+  .titre-rayons{font-size:13px; font-weight:700; margin:0; color:var(--v2-txt2)}
+  .liste-rayons{display:flex; gap:8px; flex-wrap:wrap}
+  .rayon-contact{display:flex; flex-direction:column; align-items:flex-start; gap:2px; max-width:220px; min-width:0; padding:8px 12px;
+    border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface); color:var(--v2-txt);
+    font:600 12.5px var(--v2-sans); cursor:pointer; text-align:left}
+  .rayon-contact:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .rayon-contact .nom-rayon{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .references{display:flex; flex-direction:column}
+  .reference{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px}
+  .ref-texte{display:flex; flex-direction:column; min-width:0}
+  .ref-titre{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ref-texte .note{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .services{display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; flex:none}
+  .service{font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); color:var(--v2-txt2)}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
 </style>
