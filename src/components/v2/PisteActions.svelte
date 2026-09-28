@@ -96,6 +96,8 @@
   import type { Track } from '../../lib/types';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { cibleParTitre, type CibleParTitre } from '../../lib/versionsParTitre';
+  import { circleCharge } from '../../lib/circle';
+  import { ajoutDePiste } from '../../lib/circlePlaylists';
 
   interface Props {
     piste: Track;
@@ -123,6 +125,10 @@
    *  écran qui pose la barre l'aurait sinon recopiée, avec son état et son
    *  import. C'est ce que fait déjà `PochetteActions` pour les étiquettes. */
   let modalePlaylist = $state(false);
+  /** Tune Circle T5 — « Ajouter à une playlist de cercle ». */
+  let modaleCercle = $state(false);
+  /** Ce que la piste enverrait à une playlist de cercle, ou `null` (entrée absente). */
+  const ajoutCercle = $derived($circleCharge ? ajoutDePiste(piste) : null);
   let panneauEtiquettes = $state(false);
   /** Le tiroir « Tous les champs piste » — #851. Chargé à la demande, comme
    *  les deux panneaux voisins : il tire `getTrackAllTags` et sa grille de
@@ -425,6 +431,8 @@
         champsDeService: pisteService != null,
         similairesDeService: pisteSimilaires != null,
         creditsDeService: pisteCredits != null,
+        // Tune Circle T5 (#5328) : seulement quand le greffon tourne.
+        playlistDeCercle: ajoutCercle != null,
       },
       {
         lire: () => void lire(new MouseEvent('click')),
@@ -433,6 +441,7 @@
         plusCommeCa: () => void plusCommeCa(),
         autresVersions: () => (panneauVersions = true),
         ajouterAPlaylist: () => (modalePlaylist = true),
+        ajouterAPlaylistDeCercle: () => (modaleCercle = true),
         allerArtiste,
         allerAlbum,
         etiqueter: () => (panneauEtiquettes = true),
@@ -632,6 +641,11 @@
     <m.default
       cible={{ type: 'piste', trackId: local ? piste.id : null, service: local ? null : creditsDuService, titre: piste.title, artiste: piste.artist_name ?? null, album: piste.album_title ?? null }}
       onClose={() => (tiroirCredits = false)} />
+  {/await}
+{/if}
+{#if modaleCercle && ajoutCercle}
+  {#await import('./AjoutPlaylistCercleV2.svelte') then m}
+    <m.default ajout={ajoutCercle} titre={piste.title ?? ''} onClose={() => (modaleCercle = false)} />
   {/await}
 {/if}
 {#if modalePlaylist}

@@ -24,6 +24,10 @@
   import { refreshCirclePlugin } from '../../lib/circle';
   import { estRefusPremium } from '../../lib/premiumRefus';
   import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
+  import { sonderCrossfeedPro } from '../../lib/stores/crossfeedPro';
+  import {
+    greffonsNatifsTiers, etatDeChargement, ecranDuGreffon, NOMS_GREFFONS_NATIFS,
+  } from '../../lib/greffonsAudioNatifs';
   import '../../styles/tune-v2.css';
 
   let plugins = $state<MergedPlugin[]>([]);
@@ -33,6 +37,25 @@
   let restartNeeded = $state(false);
   let q = $state('');
   let tab = $state<'installed' | 'all'>('installed');
+  /**
+   * Les greffons audio natifs TIERS (`GET /audio-plugins`, `third_party`) :
+   * absents de `GET /plugins`, ils étaient invisibles ici. Liste à part, qui ne
+   * touche pas à celle du dessus. Route réservée à l'administrateur : un refus
+   * (403) ou une panne laisse simplement la section vide.
+   */
+  let natifs = $state<api.GreffonAudioNatif[]>([]);
+  async function relireNatifs() {
+    try { natifs = greffonsNatifsTiers((await api.getGreffonsAudioNatifs()).plugins); }
+    catch { natifs = []; }
+    // L'entrée « Crossfeed Pro » de la barre suit, comme Concerts et Circle.
+    void sonderCrossfeedPro(null);
+  }
+  const natifsFiltres = $derived(
+    natifs.filter((g) => {
+      const nom = NOMS_GREFFONS_NATIFS[g.id] ? $t(NOMS_GREFFONS_NATIFS[g.id] as any) : g.id;
+      return !q || fold(nom).includes(fold(q)) || fold(g.id).includes(fold(q));
+    }),
+  );
 
   async function reload() {
     try {
@@ -55,6 +78,7 @@
     loading = false;
   }
   $effect(() => { reload(); });
+  $effect(() => { void relireNatifs(); });
 
   const filtered = $derived(
     plugins
@@ -208,6 +232,33 @@
         {/each}
       </div>
     {/if}
+
+    {#if !loading && natifsFiltres.length}
+      <!-- Greffons audio natifs tiers : état de chargement et écran de réglage. -->
+      <h3 class="sect" data-natifs>{$t('v2.plug.nativeTitle' as any)}</h3>
+      <div class="list">
+        {#each natifsFiltres as g (g.id)}
+          {@const etat = etatDeChargement(g)}
+          {@const ecran = ecranDuGreffon(g)}
+          <article class="pl" class:err={etat === 'erreur'} data-natif={g.id}>
+            <div class="pi">
+              <div class="ph">
+                <h2>{NOMS_GREFFONS_NATIFS[g.id] ? $t(NOMS_GREFFONS_NATIFS[g.id] as any) : g.id}</h2>
+                <span class="cat">{$t('v2.plug.nativeBadge' as any)}</span>
+                <span class="etat" class:ok={etat === 'charge'} data-etat={etat}>{$t(`v2.plug.native_${etat}` as any)}</span>
+              </div>
+              <p class="pd">{$t('v2.plug.nativeHint' as any)}</p>
+              {#if g.error}<div class="why bad">{g.error}</div>{/if}
+            </div>
+            <div class="pact">
+              {#if ecran}
+                <button class="lnk ouvrir-natif" onclick={() => activeView.set(ecran)}>{$t('v2.plug.nativeSettings' as any)}</button>
+              {/if}
+            </div>
+          </article>
+        {/each}
+      </div>
+    {/if}
   </div>
 </section>
 
@@ -232,6 +283,11 @@
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
   .list{display:flex; flex-direction:column; gap:10px}
+  .sect{margin:22px 0 10px; font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .etat{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:999px;
+    color:var(--v2-txt3); border:1px solid var(--v2-line2)}
+  .etat.ok{color:var(--v2-acc-tint); border-color:var(--v2-acc2)}
+  .pl.err .etat{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
 
   .pl{display:flex; align-items:flex-start; gap:20px; padding:16px 18px; border-radius:13px;
     border:1px solid var(--v2-line); background:var(--v2-surface2)}

@@ -688,6 +688,34 @@
    */
   let editeurSmart = $state<{ id: number | null } | null>(null);
 
+  /**
+   * 🔴 APRÈS AVOIR ENREGISTRÉ DES RÈGLES, LE CONTENU AUSSI A CHANGÉ.
+   *
+   * Yves Corbat, en direct le 28/09/2026 : « pas de rafraîchissement de la
+   * collection après avoir enregistré ».
+   *
+   * `charger()` reconstruit la LISTE des collections — nom, compte, pochettes.
+   * Il ne touche pas à `albums`, la grille de la collection OUVERTE, qui est
+   * chargée à part par `chargerAlbums`. Or pour une collection intelligente,
+   * les règles SONT la définition du contenu : les changer et voir la même
+   * grille est le contraire de ce que l'écran promet.
+   *
+   * `ouverte` est en plus une entrée de l'ANCIENNE liste — après rechargement,
+   * l'objet équivalent est un autre objet. On la retrouve donc par sa paire
+   * (sorte, id), jamais par identité, et jamais par l'id seul : les deux
+   * espaces d'identifiants se recouvrent, et l'id 1 désigne aussi une
+   * collection manuelle.
+   */
+  async function rafraichirApresRegles(id: number | null) {
+    await charger();
+    if (id == null) return;                       // création : rien n'est ouvert
+    if (ouverte?.sorte !== 'smart' || ouverte.id !== id) return;
+    const fraiche = entrees.find((x) => x.sorte === 'smart' && x.id === id);
+    if (!fraiche) return;                         // supprimée entre-temps
+    ouverte = fraiche;
+    await chargerAlbums(fraiche);
+  }
+
   async function charger() {
     chargement = true;
     void chargerLesRayons();
@@ -1276,7 +1304,7 @@
       <m.default
         id={editeurSmart.id}
         onClose={() => (editeurSmart = null)}
-        onSaved={charger}
+        onSaved={() => rafraichirApresRegles(editeurSmart?.id ?? null)}
         supprimer={cibleSmart ? () => supprimerCollection(cibleSmart) : null}
       />
     {/await}

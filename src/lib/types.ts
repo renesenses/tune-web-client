@@ -427,6 +427,11 @@ export interface Zone {
   current_track?: NowPlaying | null;
   position_ms?: number;
   queue_length?: number;
+  /** Aléatoire et répétition de la zone, portés par `GET /zones` depuis
+   *  tune-server-rust `03c1d12c`. Absents d'un serveur plus ancien : l'absence
+   *  veut dire « inconnu », jamais « éteint » (#1714). */
+  shuffle?: boolean;
+  repeat?: RepeatMode;
   /** Index de la piste en cours dans la file. Porté par `GET /zones/{id}` (pas
    *  par la liste `/zones`) et par les événements `playback.started` /
    *  `playback.track_changed` : il évite de retélécharger la file entière à
@@ -1525,6 +1530,18 @@ export interface TopArtist {
   play_count?: number;
   artist_id?: number | null;
   id?: number | null;
+  /**
+   * 🔴 #1697 — le PORTRAIT de l'artiste, et il manquait à ce type.
+   *
+   * `GET /library/history/top-artists` le rend depuis toujours (mesuré le
+   * 28/09/2026 sur le .18 : une URL absolue `https://static.qobuz.com/images/
+   * artists/covers/large/…` pour vingt-huit des deux cents artistes servis),
+   * mais aucun appelant ne pouvait le lire sans un `as any` : le champ était
+   * absent de l'interface. C'est la seule route de ce client qui sait donner
+   * un portrait à un artiste ÉCOUTÉ — `GET /library/artists` rend
+   * `image_path: null` pour les 2 626 fiches de cette base, portraits compris.
+   */
+  image_path?: string | null;
 }
 
 export interface ArtistMetadata {

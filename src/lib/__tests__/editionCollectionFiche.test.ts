@@ -93,13 +93,33 @@ describe('🔴 la fiche suit le rechargement', () => {
   });
 
   it('les deux éditeurs rechargent après enregistrement', () => {
-    // Sans `onSaved={charger}`, la reprise ci-dessus n'aurait jamais lieu.
-    expect(sansCommentaires).toContain('onSaved={charger}');
+    // Sans rechargement, la reprise ci-dessus n'aurait jamais lieu.
+    //
+    // 🔴 MISE À JOUR DU 28/09/2026 — Yves Corbat : « pas de rafraîchissement de
+    // la collection après avoir enregistré ». Ce témoin exigeait le littéral
+    // `onSaved={charger}` DANS LES DEUX ÉDITEURS. Or `charger()` reconstruit la
+    // LISTE et ne touche pas à `albums`, la grille de la collection ouverte :
+    // pour l'éditeur de RÈGLES, il était donc insuffisant, et ce témoin
+    // certifiait l'insuffisance.
+    //
+    // La distinction est maintenant faite, parce qu'elle est réelle :
+    //   - modale de RENOMMAGE : `charger` seul suffit — un nom ne change pas
+    //     le contenu, et recharger la grille serait une requête gratuite ;
+    //   - éditeur de RÈGLES : les règles SONT la définition du contenu, donc
+    //     `rafraichirApresRegles`, qui recharge la liste PUIS la grille.
+    // Même intention qu'avant — « après enregistrement, l'écran dit la vérité »
+    // — appliquée à ce que chaque éditeur change vraiment.
+    expect(sansCommentaires, 'la modale de renommage ne recharge plus rien')
+      .toContain('onSaved={charger}');
+
     // La fenêtre s'arrête au `{/if}` du bloc, pas à un nombre de caractères :
     // #1143 y a ajouté un `{@const}` et une prop `supprimer`, et une fenêtre de
-    // 300 signes rougissait alors que `onSaved={charger}` était toujours là.
+    // 300 signes rougissait alors que l'appel était toujours là.
     const debut = sansCommentaires.indexOf('{#if editeurSmart}');
     const smart = sansCommentaires.slice(debut, sansCommentaires.indexOf('{/if}', debut));
-    expect(smart).toContain('onSaved={charger}');
+    expect(smart, "l'éditeur de règles ne recharge plus après enregistrement")
+      .toContain('rafraichirApresRegles');
+    expect(smart, 'il est revenu au rechargement de la seule liste')
+      .not.toContain('onSaved={charger}');
   });
 });
