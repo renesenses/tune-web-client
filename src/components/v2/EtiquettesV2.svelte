@@ -48,7 +48,7 @@
    * ⚠️ Les deux sortes de COLLECTION (#3194) restent hors de cet écran : le
    * serveur ne les liste pas par étiquette. On ne les annonce donc pas.
    */
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { zoneRequise } from '../../lib/zoneRequise';
   import * as api from '../../lib/api';
@@ -68,11 +68,19 @@
   import {
     cibleEtiquetteAlbum, cleLigneEtiquetee, corpsLectureAlbumEtiquete, EVENEMENT_ETIQUETTE_MODIFIEE,
   } from '../../lib/cibleEtiquette';
-  import { objetAlbum, objetArtiste, objetCollection, objetPlaylist, objetPlaylistIntelligente } from '../../lib/gestesObjet';
+  import {
+    cibleEtiquetteObjet, gestesObjet,
+    objetAlbum, objetArtiste, objetCollection, objetPlaylist, objetPlaylistIntelligente,
+  } from '../../lib/gestesObjet';
   import MenuObjetV2 from './MenuObjetV2.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  // La mosaïque 2×2 des playlists, et son dédoublonnage : les MÊMES que
+  // `PlaylistsV2` et `CollectionsV2` (web#1660). Une seconde définition de la
+  // pochette d'une playlist finirait par diverger de celle-là.
+  import MosaiquePochettes from './MosaiquePochettes.svelte';
+  import { quatreDistinctes } from '../../lib/mosaique';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { corpsDeLecture } from '../../lib/pisteFile';
   import { ouvrirParRaccourci, ouvrirSmartPlaylist, ouvrirCollection } from '../../lib/ouvrirParRaccourci';
@@ -133,6 +141,161 @@
     pistes: pistes.length, listes: listes.length, dossiers: dossiers.length,
   });
   const total = $derived(albums.length + artistes.length + pistes.length + listes.length + dossiers.length);
+
+  /* ─────────────── L'onglet Playlists, en GRILLE — web#1660 ───────────────
+   *
+   * FabienM, fil 1990 point 2 (27/09/2026) : « Les playlists mises dans
+   * l'étiquette apparaissent en ligne. Mettre le mode GRID et permettre
+   * d'ouvrir la playlist en cliquant sur la vignette et proposer les actions
+   * sur la vignette comme par défaut. »
+   *
+   * Cet onglet dessinait une LIGNE par playlist — un pictogramme, le nom, un
+   * compte — quand les onglets Albums et Artistes du même écran dessinaient
+   * déjà des vignettes. Il passe par la même grille et le même
+   * `PochetteActions` qu'eux : pas une seconde présentation à maintenir.
+   *
+   * La pochette d'une playlist LOCALE ou INTELLIGENTE n'existe pas côté
+   * serveur (`/playlists` ne rend que `description, id, name, track_count`) :
+   * elle se compose de celles de ses pistes, exactement comme dans
+   * `PlaylistsV2` — mêmes pièces (`MosaiquePochettes`, `quatreDistinctes`).
+   * Une playlist de SERVICE, elle, porte l'instantané `cover_path` posé avec
+   * l'étiquette : on le montre tel quel, sans le découper en quatre — ce
+   * n'est pas un assemblage d'albums, c'est une image.
+   */
+
+  /** La clé d'une playlist étiquetée — LA MÊME pour le `{#each}` et pour sa
+   *  mosaïque. 🔴 Elle porte la SORTE : une playlist intelligente et une
+   *  playlist ordinaire peuvent avoir le même id (#4798). */
+  function cleListe(pl: any): string {
+    return (pl.smart ? `s-${pl.id}` : `p-${pl.id ?? pl.name}`);
+  }
+
+  /** Pochettes de mosaïque, par clé de playlist. */
+  let mosaiques = $state<Record<string, string[]>>({});
+  /**
+   * Les playlists déjà demandées. Volontairement HORS `$state` : cette
+   * mémoire est lue par l'effet qui la remplit, et l'y rendre réactive le
+   * réveillerait en boucle.
+   */
+  const mosaiquesDemandees = new Set<string>();
+
+  /**
+   * Les pochettes arrivent APRÈS la grille, jamais avant : c'est une requête
+   * PAR playlist, et un échec ne doit coûter que sa propre vignette. La
+   * grille s'affiche d'abord avec ses initiales.
+   */
+  async function chargerMosaiques(liste: any[]): Promise<void> {
+    await Promise.allSettled(
+      liste.map(async (pl) => {
+        const cle = cleListe(pl);
+        if (mosaiquesDemandees.has(cle)) return;
+        mosaiquesDemandees.add(cle);
+        // Une playlist de SERVICE n'a pas d'identifiant local : ses pistes ne
+        // se lisent pas par ici, et elle a déjà son image.
+        if (pl?.id == null) return;
+        const pistes = pl.smart
+          ? await api.getSmartPlaylistTracks(pl.id)
+          : await api.getPlaylistTracks(pl.id);
+        const covers = quatreDistinctes(((pistes ?? []) as any[]).slice(0, 60));
+        if (covers.length) mosaiques = { ...mosaiques, [cle]: covers };
+      }),
+    );
+  }
+
+  $effect(() => {
+    if (famille !== 'listes') return;
+    const liste = listes;
+    // `untrack` : le chargement ÉCRIT `mosaiques`, qu'on ne veut pas voir
+    // relancer cet effet.
+    untrack(() => void chargerMosaiques(liste));
+  });
+
+  /** L'objet de menu d'une playlist étiquetée — la sorte vient de la ROUTE. */
+  function objetListe(pl: any) {
+    return pl?.smart ? objetPlaylistIntelligente(pl) : objetPlaylist(pl);
+  }
+
+  /** Le cœur : seul un objet de la bibliothèque en a un, comme pour les
+   *  albums de cet écran. */
+  function favoriListe(pl: any) {
+    if (pl?.id == null) return null;
+    return pl.smart ? { smartPlaylistId: pl.id } : { playlistId: pl.id };
+  }
+
+  /**
+   * 🔴 UNE PLAYLIST DE SERVICE S'OUVRE MAINTENANT — web#1660.
+   *
+   * Le commentaire d'ici disait « n'a pas encore d'écran qui l'accueille » et
+   * la rendait inerte. C'était vrai à l'écriture, faux depuis web#1649 :
+   * `PlaylistDetailV2` sait la nature `streaming`, et `StreamingV2` l'ouvre
+   * déjà ainsi. `ouvrirParDefaut` de `gestesObjet` laisse d'ailleurs ce cas à
+   * l'écran qui montre la playlist — « aucune route commune n'y mène » —,
+   * c'est donc bien ici que le calque se monte.
+   */
+  let playlistService = $state<any | null>(null);
+  /**
+   * Le calque EMPILE une entrée d'historique, comme celui de l'album (#980) :
+   * ouvrir empile, le Retour referme ET dépile, le Précédent referme.
+   * La clé est celle de `StreamingV2`, pour que les deux écrans parlent de la
+   * même playlist dans la même langue.
+   */
+  let clePlaylistEmpilee: string | null = null;
+  function ouvrirCalquePlaylistService(pl: any) {
+    playlistService = pl;
+    const sid = pl?.source_id;
+    if (!pl?.source || sid == null || sid === '') return;
+    clePlaylistEmpilee = `streamingplaylists:${pl.source}:${sid}`;
+    ouvrirDetail(clePlaylistEmpilee);
+  }
+  function fermerCalquePlaylistService() {
+    playlistService = null;
+    clePlaylistEmpilee = null;
+  }
+  /** On ne recule que si l'entrée courante est bien celle de la playlist. */
+  function retourCalquePlaylistService() {
+    if (clePlaylistEmpilee != null && entreeCourantePorte(clePlaylistEmpilee)) {
+      fermerDetailEnReculant(fermerCalquePlaylistService);
+      return;
+    }
+    fermerCalquePlaylistService();
+  }
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      if (!playlistService || clePlaylistEmpilee == null) return;
+      if (voulu === clePlaylistEmpilee) return;
+      fermerCalquePlaylistService();
+    });
+  });
+
+  /**
+   * Le geste « ouvrir » d'une playlist étiquetée, ou `null` quand elle ne mène
+   * nulle part (une ligne de service sans paire `source` + `source_id`).
+   */
+  function ouvrirListe(pl: any): (() => void) | null {
+    if (pl?.smart) return pl.id != null ? () => ouvrirSmartPlaylist(pl) : null;
+    if (pl?.id != null) {
+      return () => void ouvrirParRaccourci('playlists', `playlists:${pl.id}`, pl.id, pl.name ?? '');
+    }
+    const sid = pl?.source_id;
+    if (!pl?.source || sid == null || sid === '') return null;
+    return () => ouvrirCalquePlaylistService(pl);
+  }
+
+  /** « Lire » de la vignette : le geste COMMUN des objets — il sait déjà la
+   *  playlist locale (`playlist_id`), celle de service
+   *  (`streaming_playlist_id`) et la règle (ses pistes, enfilées). */
+  function lireListePlaylist(pl: any): void {
+    gestesObjet(objetListe(pl)).lire?.();
+  }
+
+  /** La seconde ligne de la vignette : le compte, ou « règle » pour une
+   *  playlist intelligente — dont le contenu n'est pas une liste figée. */
+  function sousTitreListe(pl: any): string {
+    if (pl?.smart) return $t('v2.pl.rule' as any);
+    const n = pl?.track_count ?? 0;
+    return $t((n > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(n));
+  }
 
   /*
    * Renommer et supprimer une étiquette — portés de l'ancienne Bibliothèque,
@@ -402,39 +565,42 @@
         {#if !listes.length}
           <div class="etat">{$t('v2.tags.noPlaylistWithTag' as any)}</div>
         {:else}
-          <div class="simples">
-            <!-- 🔴 La clé porte la SORTE : une playlist intelligente et une
-                 playlist ordinaire peuvent avoir le même id (#4798), et deux
-                 clés égales feraient disparaître l'onglet entier. -->
-            {#each listes as pl (pl.smart ? `s-${pl.id}` : `p-${pl.id ?? pl.name}`)}
-              {@const locale = pl.id != null}
-              <div class="shote">
-              <span class="smenu"><MenuObjetV2 objet={pl.smart ? objetPlaylistIntelligente(pl) : objetPlaylist(pl)} nom={pl.name ?? ''} /></span>
-              <!-- Une playlist LOCALE ou INTELLIGENTE s'ouvre dans son écran ;
-                   une playlist de service (id nul) n'a pas encore d'écran qui
-                   l'accueille : on l'affiche sans la rendre cliquable. -->
-              <svelte:element this={locale ? 'button' : 'div'} class="simple" class:inerte={!locale}
-                              onclick={!locale ? undefined
-                                : pl.smart ? () => ouvrirSmartPlaylist(pl)
-                                : () => ouvrirParRaccourci('playlists', `playlists:${pl.id}`, pl.id, pl.name ?? '')}>
-                <span class="si" aria-hidden="true" title={pl.smart ? $t('v2.pl.tabSmart' as any) : undefined}>
-                  {#if pl.smart}
-                    <!-- La playlist INTELLIGENTE se distingue à l'œil, comme
-                         la collection intelligente : son contenu est une règle. -->
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                         stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M3 5h18l-7 8v6l-4 2v-8z"/>
-                    </svg>
-                  {:else}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                         stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M4 6h11M4 12h11M4 18h7"/><path d="M18 9v9"/><circle cx="16" cy="18" r="2"/>
-                    </svg>
-                  {/if}
-                </span>
-                <span class="sn" title={pl.name}>{pl.name}</span>
-                {#if pl.track_count != null}<span class="sc">{pl.track_count}</span>{/if}
-              </svelte:element>
+          <!-- web#1660 — LA MÊME grille et LE MÊME `PochetteActions` que les
+               onglets Albums et Artistes ci-dessus. La ligne sans pochette a
+               disparu : « Mettre le mode GRID […] et proposer les actions sur
+               la vignette comme par défaut » (FabienM, fil 1990 point 2). -->
+          <div class="grille">
+            {#each listes as pl (cleListe(pl))}
+              {@const mos = mosaiques[cleListe(pl)] ?? []}
+              {@const ouvrir = ouvrirListe(pl)}
+              <div class="carte">
+                <div class="cv">
+                  <PochetteActions
+                    favori={favoriListe(pl)}
+                    etiquettes={cibleEtiquetteObjet(objetListe(pl))}
+                    onLire={() => lireListePlaylist(pl)}
+                    onOuvrir={ouvrir}
+                    objet={objetListe(pl)}
+                    nom={pl.name ?? ''}
+                  >
+                    {#if mos.length}
+                      <MosaiquePochettes pochettes={mos} initiales={pl.name?.slice(0, 1)} alt={pl.name ?? ''} />
+                    {:else}
+                      <!-- Pas encore de mosaïque, ou une playlist de service :
+                           son instantané, sinon l'initiale — le repli de
+                           toutes les vignettes de cet écran. -->
+                      <AlbumArt coverPath={pl.cover_path ?? null} albumId={null} size={0} alt={pl.name ?? ''}
+                        fallbackInitials={pl.name?.slice(0, 1)} />
+                    {/if}
+                  </PochetteActions>
+                </div>
+                <!-- Une playlist qui ne mène nulle part garde sa vignette mais
+                     pas le curseur : il ne promet pas un clic sans suite. -->
+                <svelte:element this={ouvrir ? 'button' : 'div'} class="meta" class:inerte={!ouvrir}
+                                onclick={ouvrir ?? undefined}>
+                  <span class="ct" title={pl.name}>{pl.name}</span>
+                  <span class="ca" title={sousTitreListe(pl)}>{sousTitreListe(pl)}</span>
+                </svelte:element>
               </div>
             {/each}
           </div>
@@ -483,6 +649,19 @@
 
     {#if albumOuvert}
       <AlbumDetailV2 album={albumOuvert} depot={null} onClose={retourCalqueAlbum} />
+    {/if}
+
+    <!-- web#1660 — la fiche d'une playlist DE SERVICE, dans son calque, comme
+         `StreamingV2`. Chargée à la demande : cet écran ne la montre que
+         lorsqu'une playlist Qobuz ou Tidal est étiquetée. -->
+    {#if playlistService}
+      {@const pls = playlistService}
+      {#await import('./PlaylistDetailV2.svelte') then m}
+        <m.default
+          item={{ kind: 'streaming', service: String(pls.source ?? ''), pl: pls }}
+          onClose={retourCalquePlaylistService}
+        />
+      {/await}
     {/if}
 
   {:else}
@@ -561,8 +740,9 @@
     padding:9px 12px; border:0; border-radius:9px; background:transparent; color:var(--v2-txt2);
     text-align:left; cursor:pointer; font:inherit}
   .simple:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .simple.inerte{cursor:default}
-  .simple.inerte:hover{background:transparent; color:var(--v2-txt2)}
+  /* `.simple.inerte` a disparu avec la ligne de playlist (web#1660) : plus
+     aucune ligne de cet écran n'est inerte — la règle vit désormais sur la
+     vignette (`.meta.inerte`). */
   .simple .si{display:inline-flex; color:var(--v2-acc1)}
   .simple .si svg{width:17px; height:17px}
   .simple .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px}
@@ -577,6 +757,9 @@
   .cv{position:relative; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden}
   .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
   .meta{display:block; width:100%; border:0; background:transparent; padding:0; text-align:left; color:inherit; font:inherit; cursor:pointer}
+  /* Une vignette sans destination reste LISIBLE, mais son curseur ne promet
+     rien (web#1660) — la même règle que la ligne inerte des collections. */
+  .meta.inerte{cursor:default}
   .ct{display:block; margin-top:9px; font:600 12.5px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{display:block; margin-top:2px; font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 </style>
