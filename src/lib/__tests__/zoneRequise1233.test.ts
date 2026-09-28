@@ -81,10 +81,12 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // réglage DE ZONE, partagé par l'Égaliseur et le Crossfeed.
     // Dix-huit depuis le fil forum 1906 (FabienM, point 3) : `PisteActions`
     // lance « Plus comme ça » d'un titre Qobuz, et réclame la zone.
-    // Dix-neuf depuis le 28/09/2026 : `CrossfeedProV2` écrit un réglage DE
-    // ZONE du greffon Crossfeed Pro, comme le Crossfeed.
-    expect(avec.length).toBe(19);
-    expect(avec).toContain('CrossfeedProV2.svelte');
+    // Vingt depuis le 28/09/2026 : `CrossfeedProV2` écrit un réglage DE ZONE
+    // du greffon Crossfeed Pro, comme le Crossfeed ; `PlaylistCercleV2` (Tune
+    // Circle T5, tune-server-rust#5328) lance une playlist de cercle sur la zone active.
+    expect(avec.length).toBe(20);
+    expect(avec).toContain("CrossfeedProV2.svelte");
+    expect(avec).toContain("PlaylistCercleV2.svelte");
     expect(avec).toContain('PisteActions.svelte');
     expect(avec).toContain('CompensationNiveauV2.svelte');
     expect(avec).toContain('ListePistesV2.svelte');

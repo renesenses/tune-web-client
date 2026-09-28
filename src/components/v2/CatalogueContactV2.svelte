@@ -6,7 +6,15 @@
    * Le contact a partagé sa bibliothèque avec un de ses cercles, où je suis
    * rangé. Je parcours sa COPIE EN LIGNE (pas son serveur en direct) :
    * artistes, albums, pistes, recherche. Métadonnées seules — jamais un
-   * chemin — et rien à écouter : c'est l'étape T4.
+   * chemin.
+   *
+   * T4 (renesenses/tune-server-rust#5327, décisions du 28/09/2026) : un
+   * bouton Lire par piste, et un pour l'album ouvert, SEULEMENT si j'ai
+   * Premium (`ecoutePermise`). Il demande au greffon `POST /listen` sur ma
+   * zone active ; l'audio reste chez le contact et passe par le relais, en
+   * fichier d'origine — rien à régler. Aucune présence permanente : que son
+   * serveur soit éteint ne se dit qu'à la tentative d'écoute, et un refus
+   * Premium ou d'indisponibilité se dit en une phrase NEUTRE.
    *
    * - Les pistes passent par la liste commune de la Bibliothèque
    *   (`ListePistesV2`), en `lectureSeule` : ni barre d'actions, ni clic de
@@ -41,10 +49,13 @@
     statsContact, artistesContact, albumsContact, pistesContact, pistesAlbumContact,
     pisteVersTrack, plusPartage, motifCercle, pochetteAlbumContact,
     rayonsContact, albumsRayon, pistesRayon, artistesRayon, referencesRayon, servicesReference, NOM_SERVICE,
+    ecoutePermise, ecouterChezContact, motifEcoute,
     type PartageRecu, type StatsContact, type ArtisteContact, type AlbumContact,
-    type MotifCercle, type PageContact, type RayonContact, type ReferenceContact, type ComptesRayon,
+    type MotifCercle, type PageContact, type PisteContact, type RayonContact, type ReferenceContact, type ComptesRayon,
   } from '../../lib/circle';
   import { formatTime } from '../../lib/utils';
+  import { currentZone } from '../../lib/stores/zones';
+  import { licenseState, isPremium } from '../../lib/stores/license';
   import type { Track } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
@@ -53,8 +64,13 @@
     contact: PartageRecu;
     /** `plusPartage` : le cloud a répondu 404, le catalogue n'est plus à moi. */
     onFermer: (plusPartage: boolean) => void;
+    /** T4 — le `premium` de `/library-sync`, s'il a répondu. Sinon : la licence. */
+    premium?: boolean | null;
   }
-  let { contact, onFermer }: Props = $props();
+  let { contact, onFermer, premium = null }: Props = $props();
+
+  /** Le bouton Lire n'existe que pour un auditeur Premium : aucun appel sinon. */
+  const ecoute = $derived(ecoutePermise(premium, { loaded: $licenseState.loaded, premium: $isPremium }));
 
   type Onglet = 'albums' | 'artists' | 'tracks' | 'streaming';
   const ONGLETS: { id: Onglet; cle: string }[] = [
@@ -98,6 +114,13 @@
     return pleins.length > 0 ? pleins : ONGLETS_RAYON.slice(0, 1);
   });
   const ongletsAffiches = $derived(rayon ? ongletsRayon : ONGLETS);
+  /** Les pistes du contact, dans l'ordre de la liste : c'est leur `id` qui part à `/listen`. */
+  let sourcesPistes = $state<PisteContact[]>([]);
+  let sourcesAlbum = $state<PisteContact[]>([]);
+  /** La phrase d'un refus d'écoute ; le catalogue reste affiché. */
+  let refusEcoute = $state<string | null>(null);
+  /** L'identifiant de la piste dont l'écoute est en cours de demande. */
+  let ecouteEnCours = $state<number | null>(null);
 
   let fini = false;
   /** Chaque lecture porte un jeton : une réponse arrivée après un autre geste est jetée. */
@@ -131,6 +154,7 @@
     fini = true;
     stats = null; artistes = []; albums = []; pistes = []; pistesAlbum = []; album = null;
     rayonsListe = []; rayon = null; references = [];
+    sourcesPistes = []; sourcesAlbum = [];
     onFermer(true);
   }
 
@@ -194,6 +218,7 @@
       void lire(() => (r ? pistesRayon(uid, r.id, q) : pistesContact(uid, q)), (p) => {
         const neuves = p.items.map(pisteVersTrack);
         pistes = n === 1 ? neuves : [...pistes, ...neuves];
+        sourcesPistes = n === 1 ? p.items : [...sourcesPistes, ...p.items];
         page = p.page; derniere = p.derniere;
       });
     }
@@ -202,6 +227,7 @@
   function recharger() {
     album = null;
     pistesAlbum = [];
+    sourcesAlbum = [];
     chargerPage(1);
   }
 
@@ -233,7 +259,33 @@
   function ouvrirAlbum(a: AlbumContact) {
     album = a;
     pistesAlbum = [];
-    void lire(() => pistesAlbumContact(contact.user_id, a.id), (l) => { pistesAlbum = l.map(pisteVersTrack); });
+    sourcesAlbum = [];
+    void lire(() => pistesAlbumContact(contact.user_id, a.id), (l) => { sourcesAlbum = l; pistesAlbum = l.map(pisteVersTrack); });
+  }
+
+  /**
+   * T4 — écouter une piste du contact (ou tout l'album, `liste`) sur MA zone
+   * active. Tout refus laisse le catalogue ouvert et dit sa phrase, 404
+   * compris (« ce titre n'est plus partagé ») ; la navigation suivante, elle,
+   * fermera l'écran si le catalogue entier n'est plus à moi.
+   */
+  async function lancerEcoute(p: PisteContact | undefined, liste?: PisteContact[]) {
+    if (!ecoute || !p || ecouteEnCours != null) return;
+    const zone = $currentZone?.id ?? null;
+    if (zone == null) { refusEcoute = $t('v2.circle.listen.noZone' as any); return; }
+    refusEcoute = null;
+    ecouteEnCours = p.id;
+    try {
+      await ecouterChezContact(contact.user_id, liste ? liste.map((x) => x.id) : p.id, zone);
+    } catch (e) {
+      if (fini) return;
+      const m = motifEcoute(e);
+      refusEcoute = m.cle.startsWith('v2.circle.listen.')
+        ? $t(m.cle as any).replace('{name}', contact.name)
+        : phrase(m as MotifCercle);
+    } finally {
+      if (!fini) ecouteEnCours = null;
+    }
   }
 
   function reessayer() {
@@ -254,6 +306,7 @@
     : '');
 
   const rienNeBouge = () => {};
+  const lireLigne = (_p: Track, i: number) => void lancerEcoute((album ? sourcesAlbum : sourcesPistes)[i]);
 
   /** Artiste · album · durée d'une référence ; le genre si ce n'est pas un titre. */
   const detailsReference = (r: ReferenceContact) =>
@@ -277,7 +330,16 @@
     {#if stats}
       <p class="note stats">{ligneStats}{#if stats.last_sync} · {$t('v2.circle.lib.updated' as any).replace('{date}', $dateCourte(stats.last_sync))}{/if}</p>
     {/if}
-    <p class="note lecture-seule">{$t('v2.circle.lib.readOnly' as any)}</p>
+    {#if ecoute}
+      <p class="note ecoute-note">{$t('v2.circle.listen.hint' as any)}</p>
+    {:else}
+      <p class="note lecture-seule">{$t('v2.circle.lib.readOnly' as any)}</p>
+      <p class="note ecoute-premium"><span aria-hidden="true">🔒</span> {$t('v2.circle.listen.premiumOnly' as any)}</p>
+    {/if}
+    {#if refusEcoute}
+      <div class="err refus-ecoute" role="alert"><span>{refusEcoute}</span>
+        <button class="lnk fermer-refus" onclick={() => (refusEcoute = null)}>{$t('v2.circle.listen.dismiss' as any)}</button></div>
+    {/if}
   </div>
 
   {#if rayonParti && !rayon}
@@ -305,6 +367,12 @@
       </ul>
     </section>
   {/if}
+{#snippet boutonLire(_p: Track, i: number)}
+  {@const source = (album ? sourcesAlbum : sourcesPistes)[i]}
+  <button class="lire-piste" disabled={ecouteEnCours != null || !source}
+    aria-label={$t('v2.circle.listen.playTrack' as any).replace('{title}', source?.title ?? '')}
+    onclick={() => lireLigne(_p, i)}>▶ {$t('v2.circle.listen.play' as any)}</button>
+{/snippet}
 
   {#if album}
     <div class="album-ouvert">
@@ -314,6 +382,10 @@
         <div class="album-infos">
           <h3 class="album-titre">{album.title}</h3>
           <p class="note">{detailsAlbum(album)}{#if album.genre} · {album.genre}{/if}</p>
+          {#if ecoute && sourcesAlbum.length > 0}
+            <button class="lire-album" disabled={ecouteEnCours != null}
+              onclick={() => void lancerEcoute(sourcesAlbum[0], sourcesAlbum)}>▶ {$t('v2.circle.listen.playAlbum' as any)}</button>
+          {/if}
         </div>
       </div>
       {#if erreur}
@@ -324,7 +396,8 @@
       {:else}
         <div class="pistes-album">
           <ListePistesV2 pistes={pistesAlbum} onLire={rienNeBouge} numerotation="piste"
-            avecAlbum={false} pochette={false} enTetesDisque lectureSeule />
+            avecAlbum={false} pochette={false} enTetesDisque lectureSeule
+            apres={ecoute ? boutonLire : undefined} largeurApres="84px" />
         </div>
       {/if}
     </div>
@@ -403,7 +476,8 @@
         <p class="note vide">{$t('v2.circle.lib.empty' as any)}</p>
       {:else}
         <div class="pistes-contact">
-          <ListePistesV2 {pistes} onLire={rienNeBouge} pochette={false} lectureSeule />
+          <ListePistesV2 {pistes} onLire={rienNeBouge} pochette={false} lectureSeule
+            apres={ecoute ? boutonLire : undefined} largeurApres="84px" />
         </div>
       {/if}
     {/if}
@@ -467,5 +541,10 @@
   .ref-texte .note{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .services{display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; flex:none}
   .service{font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); color:var(--v2-txt2)}
+  .lire-piste,.lire-album{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
+    background:var(--v2-surface); color:var(--v2-txt); font:600 12px var(--v2-sans); cursor:pointer; white-space:nowrap}
+  .lire-album{margin-top:6px}
+  .lire-piste:disabled,.lire-album:disabled{opacity:.5; cursor:default}
+  .lire-piste:focus-visible,.lire-album:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
 </style>
