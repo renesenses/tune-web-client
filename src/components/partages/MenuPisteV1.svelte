@@ -52,6 +52,13 @@
     bannir, bannissableDeService, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
   } from '../../lib/titreBanni';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import {
+    basculerLeSas,
+    chargerSas,
+    estDansLeSas,
+    rangeableDansLeSas,
+    sasEcouterPlusTard,
+  } from '../../lib/ecouterPlusTard';
   import { serviceDePlaylist } from '../../lib/playlistService';
   import { cibleParTitre, type CibleParTitre } from '../../lib/versionsParTitre';
   import TrackContextMenu from './TrackContextMenu.svelte';
@@ -215,6 +222,13 @@
     // ce menu oubliait — la parité des deux menus se joue ici, et le témoin
     // `uniformitePiste1848` les compare montés.
     etiquetable: cibleEtiquettes != null,
+    // web#1653 — le sas « Écouter plus tard ». Même capacité, même geste et
+    // même rang que `v2/PisteActions.svelte` : la parité des deux menus se
+    // joue ici aussi (`uniformitePiste1848`), et la bascule elle-même vit dans
+    // `lib/ecouterPlusTard`, jamais recopiée.
+    dansEcouterPlusTard: rangeableDansLeSas(cibleEtiquettes)
+      ? estDansLeSas(cibleEtiquettes, $sasEcouterPlusTard)
+      : null,
     // #1268 — une piste Qobuz/Tidal/Deezer/Spotify rejoint une playlist DE SON
     // SERVICE ; `AddToPlaylistModal` bifurque sur la piste, pas sur l'écran.
     playlistDeService: serviceDePlaylist(piste),
@@ -292,6 +306,9 @@
     title={$tr('library.moreOptions')} aria-label={$tr('library.moreOptions')}
     onclick={(e) => {
       e.stopPropagation(); e.preventDefault();
+      // web#1653 — la liste du sas se lit UNE fois pour tout le client ; le
+      // menu est `$derived` du magasin et se recompose quand elle arrive.
+      void chargerSas();
       ancre = (e.currentTarget as HTMLElement).getBoundingClientRect();
       ouvert = !ouvert;
     }}>
@@ -315,6 +332,7 @@
       onGoToArtist={allerArtiste}
       onGoToAlbum={allerAlbum}
       onTag={() => (panneauEtiquettes = true)}
+      onEcouterPlusTard={() => void basculerLeSas(cibleEtiquettes)}
       onChampsDuFichier={() => (tiroirChamps = true)}
       onVoirCredits={() => { creditsDuService = pisteCredits; tiroirCredits = true; }}
     />

@@ -58,6 +58,13 @@ export const ICONES = {
   artist: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8',
   album: 'M3 3h18v18H3zM9 9h6M9 13h4',
   tag: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z',
+  /**
+   * Une horloge avec un `+` — « Écouter plus tard » (web#1653). C'est l'icône
+   * de la capture 1 du fil 1986, et la même que la barre latérale.
+   */
+  later: 'M12 21a9 9 0 1 1 8.94-10M12 7v5l3 2M17 17h6M20 14v6',
+  /** La même horloge, avec une COCHE : l'objet est déjà dans le sas. */
+  laterOn: 'M12 21a9 9 0 1 1 8.94-10M12 7v5l3 2M17 17.5l2 2 4-4',
   /** Une fiche de champs — le tiroir « Tous les champs piste » (#851). */
   champs: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5',
   /** Un cercle barré — « Bannir ce titre » (#4806). */
@@ -97,6 +104,16 @@ export interface CapacitesPiste {
    * `POST /tags/{id}/streaming-items` — c'est l'appelant qui le sait.
    */
   etiquetable?: boolean;
+  /**
+   * La piste est-elle dans le sas « Écouter plus tard » (web#1653) ?
+   *
+   * Absent (`undefined`/`null`) = elle ne s'y range pas : l'entrée est ABSENTE,
+   * pas grisée. Une piste qui se désigne — par son `i64` ou par sa paire
+   * `source` + `source_id` — s'y range, c'est `rangeableDansLeSas` qui le dit
+   * (`lib/ecouterPlusTard`), et c'est l'appelant qui le pose, comme
+   * `etiquetable` juste au-dessus : le sas EST une étiquette.
+   */
+  dansEcouterPlusTard?: boolean | null;
   /**
    * Le service dont la piste peut rejoindre une playlist DU COMPTE — #1268.
    * `null`/absent : pas de playlist de service possible (piste locale, ou
@@ -181,6 +198,8 @@ export interface GestesPiste {
   allerArtiste?: () => void;
   allerAlbum?: () => void;
   etiqueter?: () => void;
+  /** Dépose la piste dans le sas « Écouter plus tard », ou l'en retire (web#1653). */
+  basculerEcouterPlusTard?: () => void;
   /** Ouvre le tiroir « Tous les champs piste » — #851, lecture des tags. */
   champsDuFichier?: () => void;
   /** Ouvre la fiche « Crédits » du titre — #1572. */
@@ -320,6 +339,27 @@ export function entreesMenuPiste(
     ICONES.album,
     g.allerAlbum,
   );
+  /**
+   * « Écouter plus tard » — web#1653, FabienM, fil 1986.
+   *
+   * 🔴 LE MÊME GESTE que sur un album et sur une playlist, et au même rang :
+   * juste avant « Étiquettes », dans le groupe du rangement. Les deux menus le
+   * poussent au même endroit, et la bascule elle-même ne vit ni ici ni dans
+   * `actionsPochette` mais dans `lib/ecouterPlusTard` — trois copies
+   * divergeraient, c'est le reproche d'origine de #1848.
+   *
+   * L'icône CHANGE avec l'état, comme le libellé : horloge + `+` pour déposer,
+   * horloge + coche pour retirer. C'est la paire de captures que FabienM joint
+   * au fil (« Ajouter à Écouter plus tard » / « Retirer d'Écouter plus tard »).
+   */
+  if (c.dansEcouterPlusTard != null) {
+    pousser(
+      true,
+      c.dansEcouterPlusTard ? 'v2.later.remove' : 'v2.later.add',
+      c.dansEcouterPlusTard ? ICONES.laterOn : ICONES.later,
+      g.basculerEcouterPlusTard,
+    );
+  }
   pousser(c.etiquetable ?? deLaBibliotheque, 'v2.cover.tags', ICONES.tag, g.etiqueter);
   /**
    * « Tous les champs piste » — #851 (Pierre M, fil 1671, 10/09/2026).

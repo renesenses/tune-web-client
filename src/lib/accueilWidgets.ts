@@ -809,6 +809,94 @@ const CHIFFRES_SEMAINE = ['lectures', 'heures-ecoutees', 'titres-ecoutes', 'arti
  * elle est même partagée avec les extraits de l'Accueil quand la période
  * coïncide.
  */
+/**
+ * ── LES PORTRAITS DES ARTISTES LES PLUS ÉCOUTÉS (#1697) ────────────────────
+ *
+ * Daniel LEVY, fil 2005, 27/09/2026 : « widget Artistes les plus écoutés, les
+ * portraits restent noirs (alors qu'ils existent) ». Le carré sombre à
+ * l'initiale, c'est le repli d'`AlbumArt` : il s'affiche quand il n'y a PAS
+ * d'image.
+ *
+ * MESURÉ le 28/09/2026 sur le serveur de test (.18), et non déduit :
+ *
+ *   GET /library/history/dashboard?period=7d&top_n=50
+ *     → 50 artistes, dont ONZE sans `cover_path` (« Brian Eno », « AC/DC »,
+ *       « Wire », « Adele », « Cat Stevens »…). Ce sont les artistes écoutés
+ *       en streaming qui n'ont AUCUN album local : `pochettes_par_artiste`
+ *       côté serveur ne sait les retrouver que par `artists.image_path` (nul
+ *       pour les 2 626 fiches de cette base) ou par un album local dont
+ *       `album_artist` correspond. Rien des deux ⇒ champ absent ⇒ initiale.
+ *
+ *   GET /library/history/top-artists?limit=200
+ *     → « Brian Eno » y porte `image_path =
+ *       https://static.qobuz.com/images/artists/covers/large/1ed323fb….jpg »,
+ *       et cette URL rend bien une image :
+ *       GET /library/artwork/proxy?url=… → 200 image/jpeg, 33 050 octets.
+ *
+ * L'image EXISTE donc, sur ce serveur, et sur une route que ce client appelle
+ * déjà ailleurs (recherche, `DashboardHighlights`). Le widget ne la demandait
+ * simplement jamais. C'est la seule chose que ce correctif change.
+ *
+ * 🔴 On ne COMBLE que les trous. Quand le tableau de bord donne une
+ * `cover_path`, elle garde la main : c'est la pochette d'album que les
+ * captures montrent depuis toujours, et la remplacer par un portrait serait
+ * un changement d'apparence que personne n'a demandé.
+ *
+ * 🔴 Un échec de cette route ne doit RIEN casser : elle est accessoire. Le
+ * `catch` rend une table vide, et le widget retombe sur l'initiale — l'état
+ * d'avant, pas un écran en erreur.
+ */
+const PORTRAITS_DEMANDES = 200;
+let EN_VOL_PORTRAITS: Promise<Map<string, string>> | null = null;
+export function portraitsDArtistes(): Promise<Map<string, string>> {
+  if (EN_VOL_PORTRAITS) return EN_VOL_PORTRAITS;
+  const promesse = api
+    .getTopArtists(PORTRAITS_DEMANDES)
+    .then((liste) => {
+      const table = new Map<string, string>();
+      for (const a of liste ?? []) {
+        const nom = cleDeNom(a?.artist_name ?? a?.name);
+        const img = a?.image_path;
+        if (nom && img) table.set(nom, img);
+      }
+      return table;
+    })
+    .catch(() => new Map<string, string>())
+    .finally(() => {
+      EN_VOL_PORTRAITS = null;
+    });
+  EN_VOL_PORTRAITS = promesse;
+  return promesse;
+}
+
+/** Le nom d'artiste réduit à ce qui se compare : le serveur rapproche en
+ *  minuscules (`LOWER(name)`), on fait pareil plutôt que d'inventer mieux. */
+function cleDeNom(nom: string | null | undefined): string {
+  return (nom ?? '').trim().toLowerCase();
+}
+
+/**
+ * La table des portraits, mais SEULEMENT si au moins un artiste en manque.
+ *
+ * Quand le tableau de bord les a tous servis — le cas d'une bibliothèque
+ * entièrement locale — cette requête n'aurait rien à combler : on ne la lance
+ * pas. `null` veut dire « personne n'en avait besoin ».
+ */
+async function portraitsSiTrou(
+  arts: readonly { cover_path?: string | null }[],
+): Promise<Map<string, string> | null> {
+  if (!arts.some((a) => !a.cover_path)) return null;
+  return portraitsDArtistes();
+}
+
+/** La pochette d'un artiste du tableau de bord : la sienne, sinon son portrait. */
+function coverArtisteTop(
+  a: { artist_name: string; cover_path?: string | null },
+  portraits: Map<string, string> | null,
+): string | null {
+  return a.cover_path ?? portraits?.get(cleDeNom(a.artist_name)) ?? null;
+}
+
 const EN_VOL = new Map<string, Promise<api.DashboardData>>();
 export function tableauDeBord(periode: api.DashboardPeriod): Promise<api.DashboardData> {
   const deja = EN_VOL.get(periode);
@@ -1612,16 +1700,21 @@ export const WIDGETS: Widget[] = [
     id: 'top-artistes',
     cleTitre: 'v2.home.wTopArtists',
     forme: 'bande',
-    charger: async (ctx) =>
-      utiles(
-        (await tableauDeBord(PERIODE_TOPS)).top_artists.slice(0, TOPS_DEMANDES).map((a, i) => ({
+    charger: async (ctx) => {
+      const arts = (await tableauDeBord(PERIODE_TOPS)).top_artists.slice(0, TOPS_DEMANDES);
+      // #1697 — les artistes sans `cover_path` empruntent leur PORTRAIT à
+      // `/library/history/top-artists`, la seule route qui en connaisse un.
+      const portraits = await portraitsSiTrou(arts);
+      return utiles(
+        arts.map((a, i) => ({
           id: `top-art-${i}-${a.artist_name}`,
           titre: a.artist_name,
           sous: lectures(a.plays, ctx.langue ?? 'fr'),
-          cover: a.cover_path ?? null,
+          cover: coverArtisteTop(a, portraits),
           ...gesteArtisteTop(a.artist_name),
         })),
-      ),
+      );
+    },
   },
   {
     id: 'top-radios',
@@ -1696,11 +1789,15 @@ export const WIDGETS: Widget[] = [
     charger: async (ctx) => {
       const d = await tableauDeBord(PERIODE_TOPS);
       const n = (v: number) => lectures(v, ctx.langue ?? 'fr');
-      const artistes: Element[] = d.top_artists.slice(0, RANG_TOPS).map((a, i) => ({
+      // #1697 — même colonne d'artistes, même trou de portraits : la vignette
+      // de 40 px du gros widget se remplit de la même façon.
+      const arts = d.top_artists.slice(0, RANG_TOPS);
+      const portraits = await portraitsSiTrou(arts);
+      const artistes: Element[] = arts.map((a, i) => ({
         id: `tops-art-${i}-${a.artist_name}`,
         titre: a.artist_name,
         sous: n(a.plays),
-        cover: a.cover_path ?? null,
+        cover: coverArtisteTop(a, portraits),
         colonne: 'artistes' as const,
         ...gesteArtisteTop(a.artist_name),
       }));

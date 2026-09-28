@@ -95,6 +95,13 @@
   import { serviceDePlaylist } from '../../lib/playlistService';
   import type { Track } from '../../lib/types';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import {
+    basculerLeSas,
+    chargerSas,
+    estDansLeSas,
+    rangeableDansLeSas,
+    sasEcouterPlusTard,
+  } from '../../lib/ecouterPlusTard';
   import { cibleParTitre, type CibleParTitre } from '../../lib/versionsParTitre';
   import { circleCharge } from '../../lib/circle';
   import { ajoutDePiste } from '../../lib/circlePlaylists';
@@ -162,6 +169,20 @@
     local && piste.id != null
       ? { itemType: 'track', itemId: piste.id }
       : cibleDeService('track', piste),
+  );
+  /**
+   * web#1653 — la piste est-elle dans le sas « Écouter plus tard » ?
+   *
+   * `null` quand elle ne s'y range pas (une radio n'a ni `i64` ni paire) :
+   * l'entrée est alors ABSENTE, pas grisée, comme partout ailleurs dans ce
+   * menu. La lecture est SYNCHRONE, dans le magasin — une liste de 6 000
+   * lignes ne part pas en 6 000 requêtes pour peindre ses boutons. Le magasin
+   * est un abonnement : l'entrée se recompose toute seule après la bascule.
+   */
+  const dansLeSas = $derived<boolean | null>(
+    rangeableDansLeSas(cibleEtiquettes)
+      ? estDansLeSas(cibleEtiquettes, $sasEcouterPlusTard)
+      : null,
   );
   /**
    * 🔴 La clé passe par `favKeyOf`, JAMAIS par `streamingFavKey` en direct.
@@ -417,6 +438,9 @@
         albumDeService,
         artisteDeService,
         etiquetable: cibleEtiquettes != null,
+        // web#1653 — le sas prend la piste comme il prend l'album et la
+        // playlist : même module, même bascule (`lib/ecouterPlusTard`).
+        dansEcouterPlusTard: dansLeSas,
         playlistDeService: serviceDePlaylist(piste),
         // #4889 — une playlist TUNE porte désormais un titre de service.
         rangeableEnPlaylist: rangeableEnPlaylist(piste),
@@ -445,6 +469,7 @@
         allerArtiste,
         allerAlbum,
         etiqueter: () => (panneauEtiquettes = true),
+        basculerEcouterPlusTard: () => void basculerLeSas(cibleEtiquettes),
         champsDuFichier: () => (tiroirChamps = true),
         voirCredits: () => { creditsDuService = pisteCredits; tiroirCredits = true; },
         // #4806 — le module tient l'appel, la surcharge et le toast : le menu
@@ -457,6 +482,10 @@
 
   function ouvrirMenu(e: MouseEvent) {
     stop(e);
+    // web#1653 — la liste du sas se lit UNE fois pour tout le client. Le menu
+    // est `$derived` du magasin : il se recompose quand elle arrive, et
+    // « Écouter plus tard » porte alors le bon libellé.
+    void chargerSas();
     ancreMenu = (e.currentTarget as HTMLElement).getBoundingClientRect();
   }
 </script>

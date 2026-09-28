@@ -43,7 +43,12 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
+  import MosaiquePochettes from './MosaiquePochettes.svelte';
+  import { quatreDistinctes } from '../../lib/mosaique';
+  import { cibleEtiquetteAlbum, cibleEtiquettePlaylist, cibleSmartPlaylist } from '../../lib/cibleEtiquette';
+  import BasculeAffichage from './BasculeAffichage.svelte';
+  import { GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
+  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import {
     objetAlbum,
     objetArtiste,
@@ -78,6 +83,29 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   type Tab = 'albums' | 'tracks' | 'artists' | 'playlists' | 'collections' | 'facettes' | 'radio';
   let tab = $state<Tab>('albums');
   let q = $state('');
+
+  /**
+   * web#1719 — LA BASCULE D'AFFICHAGE, celle de la Bibliothèque.
+   *
+   * FabienM, fil 2013, point 4 : « Proposer l'icone affichage grille dans le
+   * menu favoris pour les albums et playlists ». C'est le bouton de #929,
+   * déplacé dans `BasculeAffichage.svelte` pour qu'il n'en existe qu'un.
+   *
+   * 🔴 UN CHOIX PAR ONGLET, et non un choix d'écran. Les Albums arrivent en
+   * vignettes et les Playlists en liste : un seul état ferait basculer les
+   * deux ensemble, et l'utilisateur qui met ses playlists en grille perdrait
+   * la liste d'albums qu'il vient de choisir. Deux clés, deux défauts — ceux
+   * d'aujourd'hui, pour que personne ne voie son écran changer à la mise à
+   * jour.
+   *
+   * Même magasin que la Bibliothèque (`lib/preferencesEcran`, préfixe
+   * `tune_v2_ecran_`) : le choix est retenu d'une visite à l'autre, dans le
+   * navigateur — c'est une préférence de confort, pas une donnée de profil.
+   */
+  let affichageAlbums = $state<Affichage>(lireChoix('fav.albums.display', GRILLE_OU_LISTE, 'grid'));
+  $effect(() => ecrireChoix('fav.albums.display', affichageAlbums));
+  let affichagePlaylists = $state<Affichage>(lireChoix('fav.playlists.display', GRILLE_OU_LISTE, 'list'));
+  $effect(() => ecrireChoix('fav.playlists.display', affichagePlaylists));
 
   let albums = $state<Album[]>([]);
   let tracks = $state<Track[]>([]);
@@ -337,6 +365,50 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
         : p?.id != null ? $favoritePlaylistIds.has(p.id) : encoreFavori(p, 'playlist')) && match(p?.name),
     ),
   );
+
+  /**
+   * web#1719 / web#1650 — LA POCHETTE d'une playlist favorite, en mode grille.
+   *
+   * Le serveur ne rend AUCUNE pochette pour une playlist locale : `/playlists`
+   * ne porte que `description, id, name, track_count` (mesuré le 01/09/2026,
+   * voir `PlaylistsV2`). Les pochettes se trouvent dans les PISTES, et
+   * `MosaiquePochettes` + `quatreDistinctes` sont LES pièces que `PlaylistsV2`,
+   * `CollectionsV2` et `EtiquettesV2` emploient déjà — on les emprunte, on n'en
+   * réécrit pas une quatrième.
+   *
+   * 🔴 CHARGÉES SEULEMENT EN GRILLE. La liste n'a pas de vignette : tant que
+   * l'utilisateur y reste — le défaut de cet onglet — aucune requête ne part.
+   * C'est ce qui rend la grille gratuite pour ceux qui n'en veulent pas.
+   *
+   * ⚠️ Une requête PAR playlist. `demandees` n'est PAS réactif : le lire dans
+   * l'effet qui l'écrit relancerait l'effet sans fin.
+   */
+  let mosaiquesPl = $state<Record<string, string[]>>({});
+  const demandees = new Set<string>();
+  const clefMosaique = (pl: any): string | null =>
+    pl?.id == null ? null : `${pl.smart ? 's' : 'p'}${pl.id}`;
+
+  async function chargerMosaiques(liste: any[]): Promise<void> {
+    await Promise.allSettled(
+      liste.map(async (pl) => {
+        const k = clefMosaique(pl);
+        if (!k || demandees.has(k)) return;
+        demandees.add(k);
+        // Une règle peut viser des milliers de pistes : on n'en lit que le
+        // début, comme l'onglet des playlists intelligentes.
+        const pistes = pl.smart
+          ? ((await api.getSmartPlaylistTracks(pl.id)) ?? []).slice(0, 60)
+          : ((await api.getPlaylistTracks(pl.id)) ?? []);
+        const vues = quatreDistinctes(pistes as any[]);
+        if (vues.length) mosaiquesPl = { ...mosaiquesPl, [k]: vues };
+      }),
+    );
+  }
+
+  $effect(() => {
+    if (tab !== 'playlists' || affichagePlaylists !== 'grid') return;
+    void chargerMosaiques(vPlaylists);
+  });
   /**
    * Le nom AFFICHE d'une collection favorite.
    *
@@ -728,7 +800,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     Les puces de source n'apparaissent qu'a partir de DEUX sources : avec une
     seule, le filtre ne peut rien retirer — c'est un bouton qui ne fait rien.
   -->
-  {#if tab === 'albums' || tab === 'tracks' || tab === 'artists'}
+  <!-- web#1719 — la barre s'ouvre aussi à l'onglet Playlists : il n'y avait
+       rien à y régler, il y a désormais la bascule d'affichage. Le TRI, lui,
+       n'y entre pas — `vPlaylists` n'est pas trié par `trierEtFiltrer`, et un
+       menu de tri sans effet serait le clic mort qu'on corrige ailleurs. -->
+  {#if tab === 'albums' || tab === 'tracks' || tab === 'artists' || tab === 'playlists'}
     <div class="barre">
       {#if tab === 'tracks' && vTracks.length}
         <div class="masse">
@@ -748,15 +824,30 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           {/each}
         </div>
       {/if}
-      <label class="tris">
-        <span>{$t('v2.fav.sortBy' as any)}</span>
-        <select class="sel" bind:value={tri}>
-          <option value="recent">{$t('v2.fav.sortRecent' as any)}</option>
-          <option value="ancien">{$t('v2.fav.sortOldest' as any)}</option>
-          <option value="alpha">{$t('v2.fav.sortAlpha' as any)}</option>
-          <option value="alphaInverse">{$t('v2.fav.sortAlphaDesc' as any)}</option>
-        </select>
-      </label>
+      {#if tab !== 'playlists'}
+        <label class="tris">
+          <span>{$t('v2.fav.sortBy' as any)}</span>
+          <select class="sel" bind:value={tri}>
+            <option value="recent">{$t('v2.fav.sortRecent' as any)}</option>
+            <option value="ancien">{$t('v2.fav.sortOldest' as any)}</option>
+            <option value="alpha">{$t('v2.fav.sortAlpha' as any)}</option>
+            <option value="alphaInverse">{$t('v2.fav.sortAlphaDesc' as any)}</option>
+          </select>
+        </label>
+      {/if}
+      <!-- web#1719 — la bascule de la Bibliothèque, telle quelle. Elle ne
+           paraît que là où elle change quelque chose : les Titres ont leur
+           propre tableau (`ListePistesV2`), les Artistes une grille de
+           portraits qu'aucune liste ne remplace. -->
+      {#if tab === 'albums' || tab === 'playlists'}
+        <span class="vues">
+          <BasculeAffichage modes={GRILLE_OU_LISTE}
+            valeur={tab === 'albums' ? affichageAlbums : affichagePlaylists}
+            onChanger={(v) => {
+              if (tab === 'albums') affichageAlbums = v; else affichagePlaylists = v;
+            }} />
+        </span>
+      {/if}
     </div>
   {/if}
 
@@ -771,7 +862,13 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       {#if !vAlbums.length}
         <div class="state">{albums.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyAlbums' as any)}</div>
       {:else}
-        <div class="grid">
+        <!-- web#1719 — la LISTE est la même grille, couchée. Une seconde
+             branche de gabarit aurait dupliqué les cinq actions de
+             `PochetteActions`, la pochette et les deux lignes de texte ; les
+             deux copies auraient divergé au premier correctif. C'est donc la
+             MISE EN PAGE qui change, pas le contenu — et rien ne disparaît en
+             passant d'un mode à l'autre. -->
+        <div class="grid" class:liste={affichageAlbums === 'list'}>
           {#each vAlbums as a, i (clef(a, i))}
             <!--
               La MEME surcouche que partout ailleurs (Bertrand, 03/09/2026).
@@ -872,6 +969,79 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     {:else if tab === 'playlists'}
       {#if !vPlaylists.length}
         <div class="state">{playlists.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyPlaylists' as any)}</div>
+      {:else if affichagePlaylists === 'grid'}
+        <!--
+          web#1719 — LA GRILLE DES PLAYLISTS FAVORITES.
+
+          Le commentaire qui tenait la branche d'à côté disait : « Playlists et
+          collections : une liste sobre. Ni pochette ni grille — une playlist
+          n'a pas d'image ». C'était vrai quand il a été écrit ; ce ne l'est
+          plus depuis que `MosaiquePochettes` compose la pochette d'une
+          playlist avec celles de ses pistes (`PlaylistsV2`, 01/09/2026). La
+          liste reste — c'est toujours le défaut de cet onglet — mais elle
+          n'est plus le seul choix.
+
+          🔴 Les mêmes pièces que les trois autres écrans qui montrent des
+          playlists en vignettes : `PochetteActions` pour les actions,
+          `MosaiquePochettes` + `quatreDistinctes` pour la pochette,
+          `objetPlaylist` / `objetPlaylistIntelligente` pour le menu. Rien
+          n'est réécrit ici.
+        -->
+        <div class="grid">
+          {#each vPlaylists as pl, i (pl.smart ? `s-${pl.id}` : clef(pl, i))}
+            {@const locale = pl.id != null}
+            {@const deService = !locale && !!pl.source && !!pl.source_id}
+            {@const ouvrir = () => (locale ? ouvrirPlaylist(pl) : ouvrirPlaylistDeService(pl))}
+            {@const mos = mosaiquesPl[clefMosaique(pl) ?? '']}
+            <!-- La seconde ligne : le nombre de titres, ou « règle » pour une
+                 playlist intelligente — la distinction que porte le picto.
+                 Élidée à la largeur de la carte, elle porte donc son `title`
+                 (Bilou, 05/09/2026). -->
+            {@const sousTitre = pl.smart
+              ? $t('v2.pl.rule' as any)
+              : pl.track_count != null
+                ? $t((pl.track_count > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(pl.track_count))
+                : ''}
+            <div class="card">
+              <span class="cv pl" class:img={!!mos || (!locale && !!pl.cover_path)}>
+                <PochetteActions
+                  favori={locale ? (pl.smart ? { smartPlaylistId: pl.id } : { playlistId: pl.id }) : null}
+                  favoriExterne={locale ? null : coeurService(pl, 'playlist')}
+                  etiquettes={locale
+                    ? (pl.smart ? cibleSmartPlaylist(pl.id) : { itemType: 'playlist', itemId: pl.id })
+                    : cibleEtiquettePlaylist(pl, pl.source ?? null)}
+                  onOuvrir={locale || deService ? ouvrir : null}
+                  objet={pl.smart ? objetPlaylistIntelligente(pl) : objetPlaylist(pl)}
+                  rafraichir={reload}
+                  nom={pl.name ?? ''}
+                >
+                  {#if mos}
+                    <MosaiquePochettes pochettes={mos} initiales={pl.name?.slice(0, 1)} alt={pl.name} />
+                  {:else if !locale && pl.cover_path}
+                    <!-- Une playlist de SERVICE porte SON image, entière : ce
+                         n'est pas un assemblage d'albums, on ne la coupe donc
+                         pas en quatre. -->
+                    <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name}
+                              source={pl.source} fallbackInitials={pl.name?.slice(0, 1)} />
+                  {:else}
+                    <!-- Tant que les pochettes ne sont pas revenues — ou si la
+                         playlist n'en a aucune — le pictogramme de la liste. -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      {#if pl.smart}
+                        <path d="M3 5h18l-7 8v6l-4 2v-8z"/>
+                      {:else}
+                        <path d="M3 6h13M3 12h13M3 18h9"/><path d="M19 8v9.5"/><circle cx="17" cy="18" r="2"/>
+                      {/if}
+                    </svg>
+                  {/if}
+                </PochetteActions>
+              </span>
+              <span class="ct" title={pl.name}>{pl.name}</span>
+              <span class="ca" title={sousTitre}>{sousTitre}</span>
+            </div>
+          {/each}
+        </div>
       {:else}
         <div class="simples">
           <!-- 🔴 La clé passe par `clef` : `id` est NUL sur toute playlist de
@@ -1255,6 +1425,27 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:22px}
   .card{position:relative; display:flex; flex-direction:column}
+  /* web#1719 — LA LISTE, c'est la même grille couchée. Une colonne, une carte
+     par ligne, la pochette réduite au format d'une vignette de liste. Rien
+     n'est retiré : les cinq actions de `PochetteActions` restent au survol. */
+  .grid.liste{grid-template-columns:1fr; gap:2px}
+  .grid.liste .card{flex-direction:row; align-items:center; gap:14px;
+    padding:6px 10px; border-radius:9px}
+  .grid.liste .card:hover{background:var(--v2-hover)}
+  .grid.liste .cv{width:48px; flex:0 0 48px}
+  .grid.liste .ct{margin-top:0; flex:0 1 auto; min-width:0; max-width:48%}
+  .grid.liste .ca{margin-top:0; flex:1 1 auto; min-width:0}
+  /* web#1719 — la vignette d'une playlist SANS pochette : le fond de l'écran
+     Playlists, pour que les deux écrans montrent la même chose. */
+  .cv.pl{display:grid; place-items:center; color:var(--v2-on-acc);
+    background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .cv.pl.img{background:none; color:inherit}
+  .cv.pl svg{width:52px; height:52px; opacity:.9}
+  .grid.liste .cv.pl svg{width:24px; height:24px}
+  /* La bascule, au bout de la barre. Elle prend la place libre quand aucun
+     menu de tri ne la précède — l'onglet Playlists. */
+  .vues{display:inline-flex; margin-left:10px}
+  .barre:not(:has(.tris)) .vues{margin-left:auto}
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .card:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}

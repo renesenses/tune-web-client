@@ -35,6 +35,7 @@
   import { portail } from '../../lib/portail';
   import { styleMenuAncre } from '../../lib/ancrageMenu';
   import { cibleEtiquetteObjet, entreesObjet, objetAUnMenu, pistesDe, type ObjetMenu } from '../../lib/gestesObjet';
+  import { chargerSas } from '../../lib/ecouterPlusTard';
   import type { EntreePochette, GestesPochette, SousEntreePochette } from '../../lib/actionsPochette';
   import { notifications } from '../../lib/stores/notifications';
 
@@ -111,6 +112,17 @@
     sous = null;
     ancre = { top: boite.top, bottom: boite.bottom, right: boite.right };
     surOuverture?.(true);
+    /**
+     * web#1653 — « Écouter plus tard » a besoin de savoir si l'objet est DÉJÀ
+     * dans le sas pour choisir son libellé. La liste se lit UNE fois pour tout
+     * le client (`chargerSas` est idempotent) ; si elle arrive après
+     * l'ouverture, on RECOMPOSE le menu encore ouvert. Sans cette reprise, le
+     * tout premier menu de la session proposerait « Écouter plus tard » sur un
+     * objet qui y est déjà — un geste qui ment sur son effet.
+     */
+    void chargerSas().then(() => {
+      if (ancre && !sous) entrees = calculer((k) => $t(k as any));
+    });
   }
   export function fermer(): void {
     const etait = ancre != null;

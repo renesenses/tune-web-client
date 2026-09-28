@@ -36,13 +36,32 @@
  *    en lecture ⇒ aucun `setInterval` : un minuteur oublié tourne pour la vie
  *    de la page, et l'Accueil est un écran qu'on laisse ouvert.
  *
- * ## Pourquoi pas `seekPositionMs`
+ * ## 🔴 LA SOURCE EST LE FLUX, PAS `zone.updated` — corrigé le 28/09 (Sevy)
  *
- * Parce qu'il ne sait parler que d'UNE zone, par construction, et qu'il porte
- * en plus le déplacement manuel (`playback.seek`). Le brancher ici ferait
- * deux sources pour un même fait, et « deux règles pour un même fait finissent
- * par diverger » est déjà écrit ailleurs dans ce dépôt. La carte lit ce
- * magasin pour toutes ses zones, la zone courante comprise.
+ * Sevy Tabroc : « pas de synchro entre la barre de progression de la transport
+ * bar et celle affichee dans le widget de la premiere ligne ».
+ *
+ * La premiere version de ce magasin ne se re-ancrait qu'a l'arrivee d'un
+ * `zone.updated`. C'etait une erreur de conception : le serveur emet
+ * `playback.position` EN CONTINU et POUR CHAQUE ZONE — le message est estampille
+ * de son `zone_id` et diffuse sans filtre (`tune-server/src/routes/ws.rs`), et
+ * le poller precise lui-meme qu'il publie la position RETENUE, « celle servie
+ * par `GET /zones` », pour que l'evenement et la route ne divergent pas.
+ *
+ * C'est le CLIENT qui jetait ce flux : `v2Live` ecarte tout ce qui ne concerne
+ * pas la zone courante, et ce magasin ne l'ecoutait pas du tout. Les deux
+ * barres lisaient donc deux choses differentes — et deux minuteurs d'une
+ * seconde demarres a des instants differents ne se rattrapent jamais.
+ *
+ * `ancrerPosition` recoit desormais ce flux, pour TOUTES les zones.
+ *
+ * ## Et pour la zone COURANTE, la carte ne lit meme pas ce magasin
+ *
+ * Elle lit `seekPositionMs` — le nombre que la barre de lecture affiche,
+ * litteralement (`formatTime($seekPositionMs)`). Deux horloges nourries a la
+ * meme source finiraient quand meme par s'ecarter d'une fraction de seconde ;
+ * un seul nombre ne le peut pas. Ce magasin reste l'autorite pour toutes les
+ * AUTRES zones, que rien d'autre ne suit.
  */
 import { readable } from 'svelte/store';
 import { zones } from './stores/zones';
@@ -111,6 +130,29 @@ export function ancrerDepuisZone(
 
 type Table = Record<number, number>;
 
+/** Les ancres vivent au niveau du MODULE : le flux arrive par `v2Live`, qui
+ *  n'est abonne a rien. `republier` n'est branche que tant qu'on ecoute. */
+const ancres = new Map<number, Ancre>();
+let republier: (() => void) | null = null;
+
+/**
+ * Une position annoncee par le flux (`playback.position`, `playback.seek`).
+ *
+ * 🔴 Appelee pour TOUTES les zones, sans le filtre de zone courante : c'est
+ * tout l'objet du correctif. Une zone que le magasin `zones` n'a pas encore
+ * posee est ignoree — on ne fabrique pas une ancre sans savoir de quelle piste
+ * ni de quelle duree on parle ; `zones` la posera au premier releve.
+ */
+export function ancrerPosition(zoneId: unknown, positionMs: unknown): void {
+  const id = typeof zoneId === 'number' ? zoneId : Number(zoneId);
+  const ms = Number(positionMs);
+  if (!Number.isFinite(id) || !Number.isFinite(ms)) return;
+  const a = ancres.get(id);
+  if (!a) return;
+  ancres.set(id, { ...a, base: Math.max(0, ms), depuis: Date.now() });
+  republier?.();
+}
+
 /**
  * `{ identifiant de zone → position en ms }`, rafraîchi chaque seconde.
  *
@@ -118,7 +160,6 @@ type Table = Record<number, number>;
  * Personne n'affiche de zone ⇒ rien ne tourne.
  */
 export const positionsZones = readable<Table>({}, (set) => {
-  const ancres = new Map<number, Ancre>();
   let minuteur: ReturnType<typeof setInterval> | null = null;
 
   const publier = () => {
@@ -137,6 +178,8 @@ export const positionsZones = readable<Table>({}, (set) => {
       minuteur = null;
     }
   };
+
+  republier = publier;
 
   const desabonner = zones.subscribe((liste) => {
     const maintenant = Date.now();
@@ -158,5 +201,7 @@ export const positionsZones = readable<Table>({}, (set) => {
     desabonner();
     if (minuteur != null) clearInterval(minuteur);
     minuteur = null;
+    republier = null;
+    ancres.clear();
   };
 });
