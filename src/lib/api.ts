@@ -1891,6 +1891,29 @@ export function getAlbum(id: number) {
   return fetchJSON<Album>(`${BASE}/library/albums/${id}`);
 }
 
+/** Album playback source (#1684 / tune-server-rust#4907). */
+export interface PreferenceRepertoireAlbum {
+  album_id: number;
+  racine: string | null;
+  retire?: boolean;
+}
+
+export function getAlbumPreferredDirectory(id: number): Promise<PreferenceRepertoireAlbum> {
+  return fetchJSON<PreferenceRepertoireAlbum>(`${BASE}/library/albums/${id}/repertoire-prefere`);
+}
+
+export function setAlbumPreferredDirectory(id: number, racine: string): Promise<PreferenceRepertoireAlbum> {
+  return fetchJSON<PreferenceRepertoireAlbum>(`${BASE}/library/albums/${id}/repertoire-prefere`, {
+    method: 'PUT', body: JSON.stringify({ racine }),
+  });
+}
+
+export function clearAlbumPreferredDirectory(id: number): Promise<PreferenceRepertoireAlbum> {
+  return fetchJSON<PreferenceRepertoireAlbum>(`${BASE}/library/albums/${id}/repertoire-prefere`, {
+    method: 'DELETE',
+  });
+}
+
 export function getAlbumTracks(id: number, quality?: string | null, format?: string | null) {
   // Forward the active library quality/format filter so the album detail shows
   // only the matching tracks (Sergio: a Hi-Res/FLAC filter must not reveal the
