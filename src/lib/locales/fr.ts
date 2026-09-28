@@ -72,6 +72,7 @@ export default {
   // Oxygen (vue bibliothèque avancée)
   'playback.errorFileNotFound': "Fichier introuvable — il a peut-être été déplacé ou supprimé (disque ou partage réseau non monté ?). Relancez un scan de la bibliothèque.",
   'playback.errorNoOutputDevice': "Cette zone n'a aucune sortie audio associée. Choisissez une autre zone ou reconfigurez sa sortie.",
+  "playback.errorSampleRateUnknown": "Qobuz n'a pas indiqué la fréquence de cette piste, et Tune n'a pas pu la lire dans le fichier : lecture impossible. Réessayez plus tard ou choisissez une autre qualité.",
   'oxygen.eyebrow': 'Bibliothèque · Oxygen',
   'oxygen.title': 'Collection',
   'oxygen.view.album': 'Albums',

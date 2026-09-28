@@ -2061,6 +2061,7 @@ export default {
   "oxygen.settingsTitle": "Vizualizare Oxygen · bibliotecă avansată",
   "playback.errorFileNotFound": "Fișier negăsit — poate a fost mutat sau șters (disc sau partajare de rețea nemontată?). Rescanează biblioteca.",
   "playback.errorNoOutputDevice": "Această zonă nu are nicio ieșire audio. Alege altă zonă sau reconfigurează ieșirea ei.",
+  "playback.errorSampleRateUnknown": "Qobuz nu a indicat frecvența de eșantionare a acestei piese, iar Tune nu a putut-o citi din fișier: redarea este imposibilă. Încearcă din nou mai târziu sau alege altă calitate.",
   "playlist.moveDown": "Mută în jos",
   "playlist.moveUp": "Mută în sus",
   "podcasts.noEpisodesFound": "Nicio emisiune găsită",

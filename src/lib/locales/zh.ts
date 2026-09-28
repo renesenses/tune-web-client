@@ -2058,6 +2058,7 @@ export default {
   "oxygen.settingsTitle": "Oxygen 视图 · 高级音乐库",
   "playback.errorFileNotFound": "找不到文件——可能已被移动或删除（磁盘或网络共享未挂载？）。请重新扫描音乐库。",
   "playback.errorNoOutputDevice": "此区域没有关联的音频输出。请选择其他区域或重新配置其输出。",
+  "playback.errorSampleRateUnknown": "Qobuz 未提供此曲目的采样率，Tune 也无法从文件中读取：无法播放。请稍后重试或选择其他音质。",
   "playlist.moveDown": "下移",
   "playlist.moveUp": "上移",
   "podcasts.noEpisodesFound": "未找到节目",

@@ -2068,6 +2068,7 @@ export default {
   "oxygen.settingsTitle": "Oxygen-vyn · avancerat bibliotek",
   "playback.errorFileNotFound": "Filen hittades inte – den kan ha flyttats eller raderats (enhet eller nätverksresurs inte monterad?). Skanna om biblioteket.",
   "playback.errorNoOutputDevice": "Den här zonen har ingen ljudutgång. Välj en annan zon eller konfigurera om dess utgång.",
+  "playback.errorSampleRateUnknown": "Qobuz angav inte samplingsfrekvensen för det här spåret, och Tune kunde inte läsa den ur filen: uppspelning är inte möjlig. Försök igen senare eller välj en annan kvalitet.",
   "playlist.moveDown": "Flytta ned",
   "playlist.moveUp": "Flytta upp",
   "podcasts.noEpisodesFound": "Inget program hittades",

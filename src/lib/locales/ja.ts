@@ -2056,6 +2056,7 @@ export default {
   "oxygen.settingsTitle": "Oxygen ビュー · 高度なライブラリ",
   "playback.errorFileNotFound": "ファイルが見つかりません。移動または削除された可能性があります（ドライブやネットワーク共有が未マウント？）。ライブラリを再スキャンしてください。",
   "playback.errorNoOutputDevice": "このゾーンにはオーディオ出力がありません。別のゾーンを選ぶか、出力を設定し直してください。",
+  "playback.errorSampleRateUnknown": "Qobuz がこのトラックのサンプリング周波数を通知せず、Tune もファイルから読み取れませんでした。再生できません。しばらくしてから再試行するか、別の音質を選んでください。",
   "playlist.moveDown": "下へ",
   "playlist.moveUp": "上へ",
   "podcasts.noEpisodesFound": "番組が見つかりません",

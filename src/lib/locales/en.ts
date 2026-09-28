@@ -72,6 +72,7 @@ export default {
   // Oxygen (advanced library view)
   'playback.errorFileNotFound': 'File not found — it may have been moved or deleted (drive or network share not mounted?). Rescan your library.',
   'playback.errorNoOutputDevice': 'This zone has no audio output. Pick another zone or reconfigure its output.',
+  "playback.errorSampleRateUnknown": "Qobuz did not report the sample rate of this track, and Tune could not read it from the file: playback is not possible. Try again later or choose another quality.",
   'oxygen.eyebrow': 'Library · Oxygen',
   'oxygen.title': 'Collection',
   'oxygen.view.album': 'Albums',
