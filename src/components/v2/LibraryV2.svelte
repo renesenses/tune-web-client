@@ -83,7 +83,7 @@
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
-  import { provenanceDe, dansSource, sourcesParArtiste, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
+  import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey } from '../../lib/stores/profile';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -375,12 +375,7 @@
 
   /** Le libellé d'une provenance dans le menu et sur la pilule. */
   function libelleProvenance(cle: string): string {
-    if (cle === 'local') return $tr('v2.lib.sourceLocal' as any);
-    if (!cle.startsWith('upnp:')) return cle.toUpperCase();
-    const udn = cle.slice(cle.indexOf(':') + 1);
-    // Le nom du registre d'abord ; à défaut, l'UDN abrégé — lisible, et qui
-    // reste distinctif quand deux serveurs cohabitent.
-    return nomsServeurs[udn] ?? `${udn.slice(0, 18)}…`;
+    return libelleProvenanceDe(cle, nomsServeurs, $tr('v2.lib.sourceLocal' as any));
   }
 
   /** Formats et profondeurs REELLEMENT presents, avec leur compte. Proposer
