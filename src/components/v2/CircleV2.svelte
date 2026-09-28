@@ -17,6 +17,15 @@
    *
    * Il n'existe que si le greffon tourne (`circleCharge`) : sans lui, ses
    * routes ne sont pas montées, et l'écran le dit sans rien interroger.
+   *
+   * Étape T2 (renesenses/tune-server-rust#5325, décisions du 28/09/2026) :
+   * - sous chaque cercle, l'interrupteur « Partager ma bibliothèque »,
+   *   ÉTEINT par défaut, qui dit ce qui part (des métadonnées, de CE serveur
+   *   seulement) et ce qui ne part jamais (les fichiers, leurs chemins) ;
+   * - le bloc « Partagé avec moi », et le catalogue d'un contact en lecture
+   *   (`CatalogueContactV2`). Un 404 y ramène ici, avec la phrase.
+   * Un greffon T1 ne connaît pas `/library-sync` (404) : la partie T2 reste
+   * alors cachée plutôt que d'offrir des gestes qui échoueraient.
    */
   import { onDestroy } from 'svelte';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -27,8 +36,12 @@
     revoquerContact, creerCercle, renommerCercle, supprimerCercle,
     rangerDansCercle, retirerDuCercle, motifCercle, nomCercleValide,
     seConnecterAMozaiklabs, NOM_CERCLE_MAX, RELECTURE_CERCLE_MS,
+    partageActif, partagerBibliotheque, arreterPartageBibliotheque,
+    getSynchroBibliotheque, avisSynchro, getPartagesAvecMoi, plusPartage,
     type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme,
+    type EtatSynchroBibliotheque, type PartageRecu, type AvisSynchro,
   } from '../../lib/circle';
+  import CatalogueContactV2 from './CatalogueContactV2.svelte';
   import '../../styles/tune-v2.css';
 
   type Retour = { texte: string; erreur: boolean; reessayer?: () => void };
@@ -43,6 +56,13 @@
   let cercleInvitation = $state<number | ''>('');
   let nomNouveau = $state('');
   let ajout = $state<Record<number, number | ''>>({});
+
+  /** T2 : `null` tant qu'on ne sait pas si le greffon connaît l'étape (404 = non). */
+  let t2 = $state<boolean | null>(null);
+  let synchro = $state<EtatSynchroBibliotheque | null>(null);
+  let partages = $state<PartageRecu[]>([]);
+  let erreurPartages = $state<MotifCercle | null>(null);
+  let contactOuvert = $state<PartageRecu | null>(null);
 
   let fini = false;
   let enCours = false;
@@ -67,6 +87,7 @@
       if (fini) return;
       etat = e;
       erreurLecture = null;
+      if (estConnecte(e)) await relireT2();
     } catch (e) {
       if (fini) return;
       // Pas de liste périmée affichée comme vraie : l'écran dit la panne.
@@ -75,6 +96,21 @@
     } finally {
       enCours = false;
     }
+  }
+
+  /**
+   * T2 : l'état de ma copie en ligne et ce qu'on partage avec moi. Lus après
+   * `GET /`, seulement quand je suis connecté. Un 404 sur `/library-sync`
+   * dit un greffon T1 : la partie T2 se cache.
+   */
+  async function relireT2() {
+    const [s, p] = await Promise.allSettled([getSynchroBibliotheque(), getPartagesAvecMoi()]);
+    if (fini) return;
+    if (s.status === 'fulfilled') { synchro = s.value; t2 = true; }
+    else { synchro = null; t2 = plusPartage(s.reason) ? false : t2; }
+    if (p.status === 'fulfilled') { partages = p.value; erreurPartages = null; }
+    else if (plusPartage(p.reason)) { partages = []; erreurPartages = null; }
+    else { erreurPartages = motifCercle(p.reason); }
   }
 
   /** Relecture modérée : onglet visible, écran ouvert, rien en cours. */
@@ -174,6 +210,30 @@
     void geste(`ranger-${c.id}`, () => rangerDansCercle(c.id, uid), { apres: () => { ajout[c.id] = ''; } });
   }
 
+  /** L'interrupteur : allumé → DELETE, éteint → PUT (sans corps). Puis relecture. */
+  function basculerPartage(c: CercleNomme) {
+    if (partageActif(c)) {
+      void geste(`partage-${c.id}`, () => arreterPartageBibliotheque(c.id), { succes: 'v2.circle.share.stopped' });
+    } else {
+      void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started' });
+    }
+  }
+
+  function texteAvis(a: AvisSynchro): string {
+    const s = $t(a.cle as any);
+    if (a.cle === 'v2.circle.share.syncPending') return s.replace('{n}', String(a.n));
+    if (a.cle === 'v2.circle.share.syncOk') return s.replace('{date}', $dateCourte(a.date));
+    return s;
+  }
+  const avis = $derived(avisSynchro(synchro));
+
+  /** Retour du catalogue d'un contact. Un 404 : la phrase, et la liste relue. */
+  function fermerCatalogue(plusPartageAvecMoi: boolean) {
+    contactOuvert = null;
+    if (plusPartageAvecMoi) retour = { texte: $t('v2.circle.shared.gone' as any), erreur: true };
+    void relire();
+  }
+
   function retirerDe(c: CercleNomme, uid: number) {
     // Pas une révocation : le contact reste un contact, et reste dans ses
     // autres cercles.
@@ -220,6 +280,10 @@
         <p>{$t('v2.circle.notConnected' as any)}</p>
         <button class="go se-connecter" onclick={seConnecterAMozaiklabs}>{$t('v2.circle.signIn' as any)}</button>
       </div>
+    {:else if contactOuvert}
+      {#key contactOuvert.user_id}
+        <CatalogueContactV2 contact={contactOuvert} onFermer={fermerCatalogue} />
+      {/key}
     {:else}
       <p class="intro">{$t('v2.circle.intro' as any)}</p>
 
@@ -298,6 +362,19 @@
                 <button class="lnk renommer" disabled={occupe !== null} onclick={() => void renommer(c)}>{$t('v2.circle.rename' as any)}</button>
                 <button class="lnk danger supprimer" disabled={occupe !== null} onclick={() => void supprimer(c)}>{$t('v2.circle.deleteCircle' as any)}</button>
               </div>
+              {#if t2}
+                <div class="partage">
+                  <button class="interrupteur interrupteur-partage" role="switch" aria-checked={partageActif(c)}
+                    disabled={occupe !== null} onclick={() => basculerPartage(c)}>
+                    <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
+                    <span>{$t('v2.circle.share.toggle' as any)}</span>
+                  </button>
+                  <p class="note partage-quoi">{$t('v2.circle.share.what' as any)}</p>
+                  {#if partageActif(c) && avis}
+                    <p class={avis.cle === 'v2.circle.share.syncOk' ? 'note avis-synchro' : 'note avis-synchro alerte'}>{texteAvis(avis)}</p>
+                  {/if}
+                </div>
+              {/if}
               {#if c.member_ids.length === 0}
                 <p class="note vide">{$t('v2.circle.circleEmpty' as any)}</p>
               {:else}
@@ -333,6 +410,35 @@
           {/each}
         {/if}
       </section>
+
+      {#if t2}
+        <section class="bloc partages-recus" aria-labelledby="circle-partages-recus">
+          <h2 id="circle-partages-recus">{$t('v2.circle.shared.title' as any)}</h2>
+          <p class="note">{$t('v2.circle.shared.hint' as any)}</p>
+          {#if erreurPartages}
+            <div class="err" role="alert"><span>{phrase(erreurPartages)}</span>
+              <button class="lnk reessayer" onclick={() => void relire()}>{$t('v2.circle.retry' as any)}</button></div>
+          {:else if partages.length === 0}
+            <p class="note vide">{$t('v2.circle.shared.none' as any)}</p>
+          {:else}
+            <ul>
+              {#each partages as p (p.user_id)}
+                <li class="ligne partage-recu">
+                  <span class="nom">{p.name}</span>
+                  <span></span>
+                  <span class="gestes">
+                    <button class="lnk ouvrir-catalogue"
+                      aria-label={$t('v2.circle.shared.browseNamed' as any).replace('{name}', p.name)}
+                      onclick={() => { retour = null; contactOuvert = p; }}>
+                      {$t('v2.circle.shared.browse' as any)}
+                    </button>
+                  </span>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </section>
+      {/if}
 
       <section class="bloc inviter" aria-labelledby="circle-inviter">
         <h2 id="circle-inviter">{$t('v2.circle.invite' as any)}</h2>
@@ -423,6 +529,18 @@
   .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:13px; padding:4px 2px}
   .lnk:disabled{opacity:.35; cursor:not-allowed}
   .danger{color:var(--v2-danger)}
+  .partage{display:flex; flex-direction:column; gap:4px; padding:4px 0 6px; border-bottom:1px solid var(--v2-line)}
+  .partage-quoi{margin:0}
+  .avis-synchro{margin:0}
+  .avis-synchro.alerte{color:var(--v2-danger)}
+  .interrupteur{display:inline-flex; align-items:center; gap:10px; border:0; background:transparent; color:var(--v2-txt);
+    font:600 13px var(--v2-sans); cursor:pointer; padding:2px 0; align-self:flex-start}
+  .interrupteur:disabled{opacity:.35; cursor:not-allowed}
+  .interrupteur:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .piste-interrupteur{position:relative; width:34px; height:20px; border-radius:10px; background:var(--v2-line2); flex:none; transition:background .15s}
+  .bouton-interrupteur{position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--v2-surface); transition:left .15s}
+  .interrupteur[aria-checked="true"] .piste-interrupteur{background:var(--v2-acc2)}
+  .interrupteur[aria-checked="true"] .bouton-interrupteur{left:16px}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
   @media (max-width: 640px){
     .scroll{padding:6px 16px 32px}
