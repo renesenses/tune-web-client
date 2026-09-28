@@ -1481,11 +1481,43 @@
       tabChoisi = d.onglet;
       q = '';
       const valeur = String(d.valeur ?? '');
-      tick().then(() => {
-        const cible = [...document.querySelectorAll<HTMLElement>('.facet[data-facette]')]
-          .find((el) => el.dataset.facette === valeur);
-        cible?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-      });
+      /**
+       * 🔴 #1722 — OUVRIR LE GENRE, pas seulement son onglet.
+       *
+       * FabienM, fil 2013 point 8, 28/09/2026 : « quand on clique sur un
+       * genre, cela renvoie à la page bibliothèque onglet genre mais le genre
+       * n'est pas sélectionné ». L'en-tête de `PanneauGenres` promet pourtant
+       * que « le clic ouvre le GENRE, pas la liste des genres ». Il mentait.
+       *
+       * Ce qui manquait tient en deux défauts superposés :
+       *
+       * 1. `facetteOuverte` n'était jamais posée. Sans elle, `groupeOuvert`
+       *    reste nul et l'écran affiche la LISTE des valeurs.
+       * 2. Le `scrollIntoView` cherchait `.facet[data-facette]` — une section
+       *    qui n'est rendue QUE dans la branche `groupeOuvert != null`. Tant
+       *    que rien n'était ouvert, elle n'existait pas : la recherche ne
+       *    rendait jamais rien, en silence.
+       *
+       * 🔴 L'ORDRE COMPTE, et c'est le piège. `facetteOuverte` est remise à
+       * zéro par un effet qui dépend de `tab` et de `q` — les deux que l'on
+       * vient justement de changer. La poser AVANT le `tick()` la ferait
+       * effacer par cet effet-là, et le défaut survivrait à son correctif.
+       *
+       * Elle est donc posée SANS condition, après le tick : si les albums ne
+       * sont pas encore chargés, `groups` est vide et `groupeOuvert` reste nul
+       * — puis s'ouvre tout seul quand la donnée arrive. Vérifier l'existence
+       * ici perdrait le genre pour qui arrive sur une bibliothèque froide.
+       */
+      tick()
+        .then(() => {
+          facetteOuverte = valeur;
+          return tick();
+        })
+        .then(() => {
+          const cible = [...document.querySelectorAll<HTMLElement>('.facet[data-facette]')]
+            .find((el) => el.dataset.facette === valeur);
+          cible?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        });
     };
     window.addEventListener('tune:v2-facette', surFacette);
     return () => window.removeEventListener('tune:v2-facette', surFacette);

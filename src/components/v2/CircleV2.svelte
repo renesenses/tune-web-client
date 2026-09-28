@@ -27,6 +27,13 @@
    * Un greffon T1 ne connaît pas `/library-sync` (404) : la partie T2 reste
    * alors cachée plutôt que d'offrir des gestes qui échoueraient.
    *
+   * Étape T3 (renesenses/tune-server-rust#5326, décisions du 28/09/2026) :
+   * sous l'interrupteur, « Sélections partagées » — mes étiquettes et mes
+   * collections intelligentes, à cocher UNE PAR UNE pour CE cercle, aucune
+   * cochée par défaut. Grisé tant que ce cercle ne partage pas la
+   * bibliothèque de CE serveur. Les listes se lisent à la demande (bouton),
+   * pas à chaque relecture de `GET /` : les compter coûte au serveur.
+   * Cocher = PUT sans corps (le greffon résout les membres), décocher = DELETE.
    * Étape T5 (renesenses/tune-server-rust#5328, décisions du 28/09/2026) :
    * - le bloc « Playlists partagées » (`GET /playlists`) : les miennes et
    *   celles des cercles où je suis rangé ; la vue d'une playlist
@@ -56,6 +63,8 @@
     seConnecterAMozaiklabs, NOM_CERCLE_MAX, RELECTURE_CERCLE_MS,
     partageActif, partagerBibliotheque, arreterPartageBibliotheque, ouPartage,
     getSynchroBibliotheque, avisSynchro, getPartagesAvecMoi, plusPartage,
+    getRayonsCercle, partagerRayon, retirerRayon, estBibliothequeNonPartagee,
+    type RayonsCercle, type RayonLocal,
     type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme,
     type EtatSynchroBibliotheque, type PartageRecu, type AvisSynchro,
   } from '../../lib/circle';
@@ -89,6 +98,10 @@
   let erreurPartages = $state<MotifCercle | null>(null);
   let contactOuvert = $state<PartageRecu | null>(null);
 
+  /** T3 : les rayons d'un cercle, lus à la demande. Clé = id du cercle. */
+  type EtatRayons = { chargement: boolean; donnees: RayonsCercle | null; erreur: MotifCercle | null };
+  let rayons = $state<Record<number, EtatRayons>>({});
+  let rayonsOuverts = $state<Record<number, boolean>>({});
   /** T5 : `null` tant qu'on ne sait pas si le greffon connaît l'étape (404 = non). */
   let t5 = $state<boolean | null>(null);
   let playlists = $state<PlaylistCercleResume[]>([]);
@@ -119,6 +132,13 @@
       if (fini) return;
       etat = e;
       erreurLecture = null;
+      // Un cercle qui ne partage plus ici (coupé ailleurs, déplacé) perd ses
+      // listes gardées : rallumé, il repartira d'une liste relue, décochée.
+      if (estConnecte(e)) {
+        for (const c of e.circles ?? []) {
+          if (!partageIci(c) && (rayons[c.id] || rayonsOuverts[c.id])) { delete rayons[c.id]; delete rayonsOuverts[c.id]; }
+        }
+      }
       if (estConnecte(e)) await Promise.all([relireT2(), relireT5()]);
     } catch (e) {
       if (fini) return;
@@ -317,16 +337,106 @@
    * AVANT d'envoyer quoi que ce soit.
    */
   async function basculerPartage(c: CercleNomme) {
+    if (occupe !== null) return;
     if (ou(c) === 'ici') {
-      void geste(`partage-${c.id}`, () => arreterPartageBibliotheque(c.id), { succes: 'v2.circle.share.stopped' });
+      // T3 (décision 4 du contrat cloud) : couper le partage SUPPRIME les
+      // sélections de ce cercle. S'il en a, l'écran le dit et le fait
+      // confirmer AVANT d'envoyer quoi que ce soit.
+      const message = await confirmationCoupure(c);
+      if (message !== null && !(await dialogs.confirm(message, { danger: true }))) return;
+      void geste(`partage-${c.id}`, () => arreterPartageBibliotheque(c.id), {
+        succes: 'v2.circle.share.stopped', apres: oublierSelections,
+      });
       return;
     }
     if (partageAilleurs) {
+      // Le texte dit aussi que les sélections des cercles déplacés partent.
       const ok = await dialogs.confirm($t('v2.circle.share.confirmMove' as any));
       if (!ok) return;
     }
-    void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started' });
+    void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started', apres: oublierSelections });
   }
+
+  /**
+   * Le texte de confirmation d'une coupure, ou `null` s'il n'y a rien à perdre.
+   * Les cases sont relues au greffon, pas prises dans une liste affichée
+   * peut-être ancienne. Un 404 (greffon sans T3) : aucune sélection possible.
+   * Une autre panne : on ne sait pas, on prévient quand même.
+   */
+  async function confirmationCoupure(c: CercleNomme): Promise<string | null> {
+    try {
+      const d = await getRayonsCercle(c.id);
+      const n = [...d.tags, ...d.smart_collections].filter((r) => r.shared).length;
+      if (n === 0) return null;
+      return n === 1 ? $t('v2.circle.sel.confirmStopOne' as any)
+        : $t('v2.circle.sel.confirmStopMany' as any).replace('{n}', String(n));
+    } catch (e) {
+      return plusPartage(e) ? null : $t('v2.circle.sel.confirmStopUnknown' as any);
+    }
+  }
+
+  /**
+   * Après une coupure, un rallumage ou un déplacement : les listes gardées
+   * sont oubliées. Le cloud a supprimé les sélections coupées ; montrer
+   * l'ancienne liste ferait croire qu'elles sont encore cochées. Rien n'est
+   * recoché de soi-même : il faut un nouveau geste du propriétaire.
+   */
+  function oublierSelections() {
+    rayons = {};
+    rayonsOuverts = {};
+  }
+
+  // ── T3 : rayons partagés ─────────────────────────────────────────────────
+
+  async function chargerRayons(id: number) {
+    rayons[id] = { chargement: true, donnees: rayons[id]?.donnees ?? null, erreur: null };
+    try {
+      const d = await getRayonsCercle(id);
+      if (fini) return;
+      rayons[id] = { chargement: false, donnees: d, erreur: null };
+    } catch (e) {
+      if (fini) return;
+      // Pas de cases périmées affichées comme vraies : la panne, et c'est tout.
+      rayons[id] = { chargement: false, donnees: null, erreur: motifCercle(e) };
+    }
+  }
+
+  function basculerOuvertureRayons(c: CercleNomme) {
+    const ouvrir = !rayonsOuverts[c.id];
+    rayonsOuverts[c.id] = ouvrir;
+    if (ouvrir) void chargerRayons(c.id);
+  }
+
+  /**
+   * Cocher = PUT sans corps, décocher = DELETE ; puis les cases sont RELUES :
+   * elles disent ce que le greffon dit, pas ce que l'écran suppose.
+   */
+  async function basculerRayon(c: CercleNomme, r: RayonLocal) {
+    if (occupe !== null) return;
+    occupe = `rayon-${c.id}-${r.kind}-${r.source_id}`;
+    let erreur: MotifCercle | null = null;
+    let relireTout = false;
+    try {
+      if (r.shared) await retirerRayon(c.id, r.kind, r.source_id);
+      else await partagerRayon(c.id, r.kind, r.source_id);
+    } catch (e) {
+      erreur = motifCercle(e);
+      // Le partage de bibliothèque a été coupé ailleurs : relire le cercle.
+      relireTout = estBibliothequeNonPartagee(e);
+    } finally {
+      occupe = null;
+    }
+    if (fini) return;
+    await chargerRayons(c.id);
+    if (erreur && rayons[c.id]) rayons[c.id] = { ...rayons[c.id], erreur };
+    if (relireTout) await relire();
+  }
+
+  /** Les rayons ne s'offrent que si ce cercle partage la bibliothèque de CE serveur. */
+  const partageIci = (c: CercleNomme) => ou(c) === 'ici';
+
+  const compteRayon = (r: RayonLocal) =>
+    r.count != null ? $t('v2.circle.sel.count' as any).replace('{n}', String(r.count)) : '';
 
   /** Réglages ▸ Système ▸ Cloud : le chemin de `OutputModuleBanner.ouvrirLiaisonCompte`. */
   function ouvrirLiaisonCompte() {
@@ -500,6 +610,45 @@
                   {/if}
                   {#if ou(c) === 'ici' && avis}
                     <p class={avis.cle === 'v2.circle.share.syncOk' ? 'note avis-synchro' : 'note avis-synchro alerte'}>{texteAvis(avis)}</p>
+                  {/if}
+                </div>
+                <div class="rayons" class:grise={!partageIci(c)} aria-disabled={!partageIci(c)}>
+                  <button class="lnk ouvrir-rayons" aria-expanded={partageIci(c) && rayonsOuverts[c.id] === true}
+                    aria-controls={`circle-rayons-${c.id}`} disabled={!partageIci(c)}
+                    onclick={() => basculerOuvertureRayons(c)}>{$t('v2.circle.sel.title' as any)}</button>
+                  <p class="note rayons-quoi">{$t((partageIci(c) ? 'v2.circle.sel.hint' : 'v2.circle.sel.needLibrary') as any)}</p>
+                  {#if partageIci(c) && rayonsOuverts[c.id]}
+                    {@const r = rayons[c.id]}
+                    <div class="rayons-listes" id={`circle-rayons-${c.id}`}>
+                      {#if r?.erreur}
+                        <div class="err erreur-rayons" role="alert"><span>{phrase(r.erreur)}</span>
+                          <button class="lnk reessayer" onclick={() => void chargerRayons(c.id)}>{$t('v2.circle.retry' as any)}</button></div>
+                      {/if}
+                      {#if !r || (r.chargement && !r.donnees)}
+                        <div class="state">{$t('v2.tool.loading' as any)}</div>
+                      {:else if r.donnees}
+                        {#each [
+                          { cle: 'tags', titre: 'v2.circle.sel.tags', vide: 'v2.circle.sel.noTags', liste: r.donnees.tags },
+                          { cle: 'smart', titre: 'v2.circle.sel.smart', vide: 'v2.circle.sel.noSmart', liste: r.donnees.smart_collections },
+                        ] as groupe (groupe.cle)}
+                          <fieldset class="groupe-rayons groupe-{groupe.cle}">
+                            <legend>{$t(groupe.titre as any)}</legend>
+                            {#if groupe.liste.length === 0}
+                              <p class="note vide">{$t(groupe.vide as any)}</p>
+                            {:else}
+                              {#each groupe.liste as x (`${x.kind}-${x.source_id}`)}
+                                <label class="case-rayon">
+                                  <input type="checkbox" class="coche-rayon" checked={x.shared}
+                                    disabled={occupe !== null} onchange={(ev) => { (ev.currentTarget as HTMLInputElement).checked = x.shared; void basculerRayon(c, x); }} />
+                                  <span class="nom-rayon">{x.name}</span>
+                                  {#if x.count != null}<span class="note compte-rayon">{compteRayon(x)}</span>{/if}
+                                </label>
+                              {/each}
+                            {/if}
+                          </fieldset>
+                        {/each}
+                      {/if}
+                    </div>
                   {/if}
                 </div>
               {/if}
@@ -724,6 +873,16 @@
   .bouton-interrupteur{position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--v2-surface); transition:left .15s}
   .interrupteur[aria-checked="true"] .piste-interrupteur{background:var(--v2-acc2)}
   .interrupteur[aria-checked="true"] .bouton-interrupteur{left:16px}
+  .rayons{display:flex; flex-direction:column; gap:4px; padding:2px 0 6px; border-bottom:1px solid var(--v2-line)}
+  .rayons.grise{opacity:.55}
+  .ouvrir-rayons{align-self:flex-start; font-weight:600}
+  .rayons-quoi{margin:0}
+  .rayons-listes{display:flex; flex-direction:column; gap:10px; padding-top:4px}
+  .groupe-rayons{border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; min-width:0}
+  .groupe-rayons legend{font-size:12.5px; font-weight:700; color:var(--v2-txt2); padding:0; margin-bottom:2px}
+  .case-rayon{display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; min-width:0}
+  .case-rayon input:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .nom-rayon{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
   @media (max-width: 640px){
     .scroll{padding:6px 16px 32px}
