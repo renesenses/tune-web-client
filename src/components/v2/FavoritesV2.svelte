@@ -642,7 +642,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     // Étiquettes (`ouvrirParRaccourci`, #1754) : `PlaylistsV2` pose cette même
     // clé en l'ouvrant. Sans elle, `#playlists` (la liste, jamais vue) puis
     // `#playlists/<clé>` : le premier Précédent tombait sur la liste.
-    if (vue === 'playlists') viserDetail(cle);
+    // web#1790 — et de même pour une playlist intelligente
+    // (`SmartPlaylistsView`) et une collection (`CollectionsV2`, #1807), qui
+    // posent elles aussi cette clé en s'ouvrant.
+    viserDetail(cle);
     activeView.set(vue as any);
     await tick();
     window.dispatchEvent(

@@ -51,7 +51,7 @@
  * on ne la réécrit pas.
  */
 import { get, writable } from 'svelte/store';
-import { activeView, type View } from './stores/navigation';
+import { activeView, vueDeRetour, type View } from './stores/navigation';
 import {
   finDuRetourProgrammatique,
   opPourFiche,
@@ -151,6 +151,39 @@ export const detailOuvert = writable<string | null>(null);
  * montage.
  */
 export const ongletCourant = writable<string | null>(null);
+
+/**
+ * L'ONGLET À REPOSER AU RETOUR D'UNE PAGE — web#1790.
+ *
+ * Le bouton Retour de la page artiste ne recule pas : il CHANGE de vue vers
+ * `vueDeRetour` (#3824), ce qui empile une entrée neuve, sans onglet — les
+ * Favoris rouvraient donc sur « Albums ». L'émetteur pose `vueDeRetour`
+ * pendant qu'il est encore à l'écran : c'est à cet instant que l'onglet de la
+ * vue de départ est retenu, et `revenirA` le repose sur l'entrée d'arrivée.
+ */
+let ongletRetenu: { vue: string; onglet: string } | null = null;
+
+function retenirOngletPour(vue: string | null): void {
+  if (vue == null) return;
+  if (get(activeView) === vue) {
+    const o = get(ongletCourant);
+    ongletRetenu = o != null ? { vue, onglet: o } : null;
+  } else if (ongletRetenu?.vue !== vue) {
+    // Posé depuis un autre écran (fiche album de #1602, en chaîne) : on ne
+    // garde que ce qui visait déjà cette vue.
+    ongletRetenu = null;
+  }
+}
+
+/** Le Retour d'une page : aller à `vue` et y reposer l'onglet retenu. */
+export function revenirA(vue: View): void {
+  const r = ongletRetenu;
+  ongletRetenu = null;
+  activeView.set(vue);
+  // Après le changement de vue, qui remet l'onglet à `null` : l'entrée neuve
+  // est réécrite avec lui, et l'écran le lit à son montage.
+  if (r && r.vue === vue) ongletCourant.set(r.onglet);
+}
 
 /** Ouvrir un niveau de détail : l'entrée d'historique est empilée. */
 export function ouvrirDetail(cle: string): void {
@@ -454,6 +487,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
 
   // web#1790 — changer d'onglet réécrit l'entrée courante, sans empiler.
   let premierOnglet = true;
+  const arretRetour = vueDeRetour.subscribe((v) => retenirOngletPour(v as string | null));
   const arretOnglet = ongletCourant.subscribe(() => {
     if (premierOnglet) { premierOnglet = false; return; }
     if (enRestauration) return;
@@ -482,6 +516,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     arretVue();
     arretDetail();
     arretOnglet();
+    arretRetour();
     fenetre.removeEventListener('popstate', surRetour as EventListener);
   };
 }
