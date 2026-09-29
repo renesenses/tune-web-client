@@ -12,6 +12,7 @@ import { activeView } from '../stores/navigation';
 import { v2SettingsTarget } from '../stores/v2SettingsNav';
 import { concertsPlugin, concertsUtilisable } from '../stores/concerts';
 import { notifications } from '../stores/notifications';
+import { preferences } from '../stores/preferences';
 import { nomFonctionnalite } from '../nomFonctionnaliteLicence';
 import { t } from '../i18n';
 import { readFileSync } from 'node:fs';
@@ -128,6 +129,11 @@ beforeEach(() => {
     removeEventListener() {}
     send() {}
   } as unknown as typeof WebSocket);
+  // web#1718 : le défaut est devenu « Par date ». Ce banc porte sur la
+  // localisation et lit la liste GROUPÉE par artiste : il se place dans cet
+  // ordre par un choix retenu, ce qui garde son objet. Posé APRÈS le doublage
+  // de `fetch` : chaque écriture de préférence part en PATCH.
+  preferences.update((p) => ({ ...p, concertsTri: 'artiste' }));
 });
 
 let hote: HTMLDivElement | null = null;
@@ -138,6 +144,7 @@ afterEach(() => {
   monte = null;
   hote?.remove();
   hote = null;
+  preferences.update((p) => ({ ...p, concertsTri: null }));
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
