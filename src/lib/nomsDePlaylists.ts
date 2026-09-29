@@ -26,6 +26,8 @@ export type DemandePlaylist = (service: string, id: string) =>
 export class NomsDePlaylists {
   private readonly connues = new Map<string, FichePlaylist | null>();
   private readonly enCours = new Map<string, Promise<FichePlaylist | null>>();
+  /** #1789 — les playlists dont la DEMANDE a échoué (introuvable, service en panne). */
+  private readonly echecs = new Set<string>();
 
   constructor(private readonly demander: DemandePlaylist) {}
 
@@ -36,6 +38,14 @@ export class NomsDePlaylists {
   /** Ce qu'on sait déjà, sans rien demander. `undefined` = jamais demandé. */
   lire(service: string, id: string): FichePlaylist | null | undefined {
     return this.connues.get(NomsDePlaylists.cle(service, id));
+  }
+
+  /**
+   * #1789 — la demande a-t-elle ÉCHOUÉ ? Distingue « le service ne la connaît
+   * plus » (on dit « Indisponible ») de « le service l'a rendue sans nom ».
+   */
+  aEchoue(service: string, id: string): boolean {
+    return this.echecs.has(NomsDePlaylists.cle(service, id));
   }
 
   /**
@@ -57,6 +67,7 @@ export class NomsDePlaylists {
         return fiche;
       })
       .catch(() => {
+        this.echecs.add(cle);
         this.connues.set(cle, null);
         return null;
       })

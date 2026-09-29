@@ -4889,10 +4889,18 @@ export function createStreamingPlaylist(service: string, name: string) {
  * description, owner, source_id, track_count }` (mesuré sur la .18 en
  * v0.9.151). L'Historique s'en sert pour nommer une playlist de service
  * jouée, que `/library/history` ne sait pas nommer.
+ *
+ * `sansBandeau` — #1789 (FabienM, fil 2037, points 5 et 14). Une playlist
+ * que le service ne connaît plus (supprimée, désabonnée) rend 404 chez Qobuz,
+ * que le serveur relaie en 502. Son seul appelant, l'Historique, attrape
+ * l'échec et dit lui-même « Indisponible » à la place du nom ; le bandeau
+ * « Server error: qobuz /playlist/get: 404 » repartait pourtant à CHAQUE
+ * visite de l'écran, pour un simple nom manquant.
  */
 export function getStreamingPlaylist(service: string, id: string) {
   return fetchJSON<{ name?: string | null; cover_path?: string | null; source_id?: string }>(
     `${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(id)}`,
+    undefined, undefined, true,
   );
 }
 
