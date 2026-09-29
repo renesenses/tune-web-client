@@ -308,7 +308,11 @@
   /** Lire la playlist, quelle que soit son origine. */
   function lirePlaylist(item: DisplayPlaylist) {
     if (item.type === 'local' && item.local?.id != null) playPlaylist(item.local.id);
-    else if (item.streaming) void playStreamingPlaylist(item.streaming);
+    // #1760 — le SERVICE de la carte part avec la playlist. Les routes
+    // `/streaming/{qobuz,tidal}/playlists` ne rendent aucun `source`, et sur la
+    // grille `selectedService` est vide : sans `item.service`, le bouton lecture
+    // d'une playlist Qobuz ou TIDAL ne faisait rien, sans requête ni message.
+    else if (item.streaming) void playStreamingPlaylist(item.streaming, undefined, item.service);
   }
 
   /**
@@ -1292,11 +1296,11 @@
 
   // Playback
   async function playPlaylist(playlistId: number) {
-    if (!zone?.id) return;
+    if (!zone?.id) { notifications.error($tr('library.noZoneSelected')); return; }
     try {
       await playAndSync(zone.id, { playlist_id: playlistId });
     } catch (e) {
-      console.error('Play playlist error:', e);
+      notifications.error(errText(e) ?? $tr('common.error'));
     }
   }
 
@@ -1345,14 +1349,25 @@
     fileOccupee = false;
   }
 
-  async function playStreamingPlaylist(pl: StreamingPlaylist, startIndex?: number) {
-    if (!zone?.id) return;
-    const source = pl.source || selectedService;
-    if (!source) return;
+  /**
+   * Lire une playlist de SERVICE.
+   *
+   * `service` est celui de la carte (grille) ; à défaut, le `source` de la
+   * playlist, puis le service du détail ouvert. Un service introuvable — ou
+   * `local`, qui n'a rien à faire ici — se DIT au lieu d'échouer en silence
+   * (#1760).
+   */
+  async function playStreamingPlaylist(pl: StreamingPlaylist, startIndex?: number, service?: string) {
+    if (!zone?.id) { notifications.error($tr('library.noZoneSelected')); return; }
+    const source = service || pl.source || selectedService;
+    if (!source || source === 'local') {
+      notifications.error($tr('playlistManager.unknownSource' as any));
+      return;
+    }
     try {
       await playAndSync(zone.id, { source: source as any, streaming_playlist_id: pl.source_id, start_index: startIndex });
     } catch (e) {
-      console.error('Play streaming playlist error:', e);
+      notifications.error(errText(e) ?? $tr('common.error'));
     }
   }
 

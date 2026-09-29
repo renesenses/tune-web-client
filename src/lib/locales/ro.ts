@@ -1576,6 +1576,7 @@ export default {
   "alarms.fadeIn": "Estompare intrare ({value}s)",
   "playlistManager.linkCopied": "Link copiat în clipboard",
   "playlistManager.shareError": "Eroare la partajare",
+  "playlistManager.unknownSource": "Redare imposibilă: serviciul acestei liste de redare este necunoscut",
   "playlistManager.mergeError": "Eroare la îmbinare: {error}",
   "playlistManager.errorGeneric": "Eroare: {error}",
   "playlistManager.confirmDeleteCollab": "Ștergi acest playlist colaborativ?",
