@@ -45,6 +45,8 @@
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
   import { listResetNonce } from '../../lib/stores/navigation';
+  import { untrack } from 'svelte';
+  import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { convertisseurCharge, rafraichirConvertisseur } from '../../lib/stores/convertisseurPlaylists';
   import TransfertsConvertisseur from './convertisseur/TransfertsConvertisseur.svelte';
   import SnapshotsConvertisseur from './convertisseur/SnapshotsConvertisseur.svelte';
@@ -107,6 +109,48 @@
     $listResetNonce;
     selectedPlaylist = null;
     selectedStreamingPl = null;
+    // web#1790 — l'entrée d'historique ne doit plus porter la playlist refermée.
+    untrack(() => {
+      if (cleDetailEmpilee != null && get(detailOuvert) === cleDetailEmpilee) fermerDetail();
+      cleDetailEmpilee = null;
+    });
+  });
+
+  /**
+   * 🔴 OUVRIR UNE PLAYLIST EMPILE UNE ENTRÉE D'HISTORIQUE — web#1790.
+   *
+   * FabienM, fil 2037, point 9 : « on ouvre une playlist et le BACK ne revient
+   * pas à l'accueil des playlists ». L'entrée « Playlists » de la barre
+   * latérale ouvre CET écran (`playlistmanager`), pas `PlaylistsV2` : le
+   * correctif web#1619 n'y était pas. Le détail est un `$state` local ; l'ouvrir
+   * ne changeait pas `activeView`, la coquille n'écrivait rien, et le Précédent
+   * dépilait l'entrée de la vue d'avant.
+   *
+   * Même mécanisme que les calques album (#980) et `PlaylistsV2` (web#1619) :
+   * ouvrir empile (`ouvrirDetail`), le Retour de l'écran referme ET dépile, le
+   * Précédent referme le détail. La clé est celle de `PlaylistsV2` (`clePl`) :
+   * une chaîne, jamais l'objet.
+   */
+  let cleDetailEmpilee: string | null = null;
+
+  function empilerDetail(cle: string) {
+    cleDetailEmpilee = cle;
+    ouvrirDetail(cle);
+  }
+
+  /** Le Précédent du navigateur a quitté l'entrée de la playlist : le détail suit. */
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      if (!(selectedPlaylist || selectedStreamingPl) || cleDetailEmpilee == null) return;
+      if (voulu === cleDetailEmpilee) return;
+      fermerLeDetail();
+    });
+  });
+
+  // La clé posée par cet écran part avec lui (même geste que web#1661).
+  $effect(() => () => {
+    if (cleDetailEmpilee != null && get(detailOuvert) === cleDetailEmpilee) fermerDetail();
   });
 
   // Import dialog
@@ -1213,6 +1257,7 @@
     selectedPlaylist = pl;
     selectedStreamingPl = null;
     selectedService = 'local';
+    empilerDetail(`playlists:${pl.id}`);
     detailLoading = true;
     try {
       detailTracks = await api.getPlaylistTracks(pl.id);
@@ -1226,6 +1271,7 @@
     selectedStreamingPl = pl;
     selectedPlaylist = null;
     selectedService = service;
+    empilerDetail(`streamingplaylists:${service}:${pl.source_id}`);
     detailLoading = true;
     try {
       detailTracks = await api.getStreamingPlaylistTracks(service, pl.source_id);
@@ -1243,11 +1289,27 @@
     }
   }
 
-  function goBack() {
+  function fermerLeDetail() {
     selectedPlaylist = null;
     selectedStreamingPl = null;
     detailTracks = [];
     selectedService = '';
+    cleDetailEmpilee = null;
+  }
+
+  /**
+   * Le Retour du détail : refermer ET dépiler (web#1790). On ne recule que si
+   * l'entrée courante est bien celle de la playlist — sinon `history.back()`
+   * pourrait sortir de Tune.
+   */
+  function goBack() {
+    const cle = cleDetailEmpilee;
+    if (cle != null && entreeCourantePorte(cle)) {
+      fermerDetailEnReculant(fermerLeDetail);
+      return;
+    }
+    fermerLeDetail();
+    if (cle != null && get(detailOuvert) === cle) fermerDetail();
   }
 
   // Import flow

@@ -38,6 +38,7 @@
   import MetadataChips from '../partages/MetadataChips.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import PisteActions from './PisteActions.svelte';
+  import type { CoeurExterne } from '../../lib/coeurExterne';
   import { displayFields } from '../../lib/stores/displayFields';
   import { champsUtiles } from '../../lib/champsLigne';
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
@@ -89,9 +90,12 @@
      * rien chez nous. Écouter, c'est l'étape T4. Absent = la ligne d'avant.
      */
     lectureSeule?: boolean;
+    /** #1771 — le cœur fourni par l'écran, transmis tel quel à `PisteActions`. */
+    coeur?: CoeurExterne | null;
   }
   let { piste, onLire, onLireDepuis = null, numero = null, pochette = true, avecAlbum = true,
-        onOuvrirAlbum = null, etiquetteIndispo = 'v2.str.coming', lectureSeule = false }: Props = $props();
+        onOuvrirAlbum = null, etiquetteIndispo = 'v2.str.coming', lectureSeule = false,
+        coeur = null }: Props = $props();
 
   /**
    * 🔴 Les colonnes sont CALCULÉES, pas figées dans la feuille.
@@ -217,7 +221,7 @@
   <span class="qb"><QualityBadge format={piste.format} sampleRate={piste.sample_rate}
     bitDepth={piste.bit_depth} source={piste.source} /></span>
   <span class="dur">{piste.duration_ms ? formatTime(piste.duration_ms) : ''}</span>
-  {#if !lectureSeule}<PisteActions {piste} {onLireDepuis} />{/if}
+  {#if !lectureSeule}<PisteActions {piste} {onLireDepuis} {coeur} />{/if}
 </div>
 
 <style>

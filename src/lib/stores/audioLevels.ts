@@ -78,6 +78,44 @@ const defaultLevels: AudioLevels = {
   sample_rate: null,
 };
 
+/**
+ * Au-delà de ce délai sans trame, les niveaux affichés ne décrivent plus rien.
+ *
+ * 🔴 #1791 (suite de tune-server-rust#5104, fil 1954) — UNE seule valeur pour
+ * le spectre ET les instruments de crête. Le spectre retombait à plat après
+ * 500 ms sans trame ; les barres, elles, gardaient la dernière trame tant que
+ * la zone jouait. Un flux de niveaux coupé montrait donc un spectre à plat à
+ * côté de barres « vivantes », et l'on a cru à deux défauts.
+ */
+export const FRAICHEUR_TRAME_MS = 500;
+
+/** La dernière trame, reçue à `derniereMs`, décrit-elle encore le son ? */
+export function trameFraiche(derniereMs: number, maintenantMs: number): boolean {
+  return maintenantMs - derniereMs < FRAICHEUR_TRAME_MS;
+}
+
+/**
+ * Suivi de fraîcheur pour une boucle de dessin qui lit `$audioLevels`.
+ *
+ * Chaque trame du serveur est un NOUVEL objet (`handleAudioLevelsEvent`) ; le
+ * magasin dérivé rend le même objet tant que la zone n'a rien publié. Un
+ * changement d'identité vu par la boucle date donc l'arrivée d'une trame, à
+ * une image près. La première valeur vue ne compte pas : au montage, elle peut
+ * dater d'avant, et rien ne dit qu'elle est fraîche. Le repli `zone_id === 0`
+ * (aucune trame pour la zone) ne l'est jamais.
+ */
+export function suiviDeFraicheur(): (niv: AudioLevels, maintenantMs: number) => boolean {
+  let vue: AudioLevels | null = null;
+  let depuisMs = Number.NEGATIVE_INFINITY;
+  return (niv, maintenantMs) => {
+    if (niv !== vue) {
+      if (vue !== null && niv.zone_id !== 0) depuisMs = maintenantMs;
+      vue = niv;
+    }
+    return trameFraiche(depuisMs, maintenantMs);
+  };
+}
+
 /// Niveaux les plus récents de CHAQUE zone.
 ///
 /// Tune est multi-room : plusieurs zones peuvent jouer en même temps, et

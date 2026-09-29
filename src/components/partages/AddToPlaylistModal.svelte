@@ -8,9 +8,16 @@
 
   interface Props {
     track: Track;
+    /**
+     * Plusieurs pistes de la BIBLIOTHÈQUE d'un coup — web#1683, sélection
+     * multiple de la fiche album. `track` reste la première : c'est elle qui
+     * décide des groupes proposés, et des pistes locales n'ont pas de
+     * playlist de service. Toutes partent en UNE requête, dans l'ordre donné.
+     */
+    tracks?: Track[] | null;
     onClose: () => void;
   }
-  let { track, onClose }: Props = $props();
+  let { track, tracks = null, onClose }: Props = $props();
 
   /**
    * OÙ PEUT ALLER CETTE PISTE — #1268, puis #4889.
@@ -99,6 +106,9 @@
    * même règle.
    */
   function buildAddArgs(): { trackIds: number[]; streamingTracks: StreamingTrackInfo[] | undefined } {
+    if (tracks?.length && tracks.every(estPisteLocale)) {
+      return { trackIds: tracks.map((x) => x.id!), streamingTracks: undefined };
+    }
     if (estPisteLocale(track)) {
       return { trackIds: [track.id!], streamingTracks: undefined };
     }
