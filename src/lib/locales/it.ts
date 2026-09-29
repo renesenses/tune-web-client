@@ -4286,6 +4286,10 @@ export default {
   "v2.plug.catalogErr_catalog_rate_limited": "Troppe richieste al catalogo. Riprova tra un minuto.",
   "v2.plug.catalogErr_package_checksum_mismatch": "Il pacchetto ricevuto è incompleto o danneggiato. Non è stato installato nulla; riprova.",
   "v2.plug.catalogErr_other": "Installazione non riuscita. Riprova più tardi.",
+  "v2.plug.catalogNoPackage": "Non ancora disponibile per questa piattaforma.",
+  "v2.plug.catalogUpdateAvailable": "Nuova versione {version} disponibile.",
+  "v2.plug.catalogUpdate": "Aggiorna",
+  "v2.plug.catalogRestart": "Riavvia",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

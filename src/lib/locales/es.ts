@@ -4286,6 +4286,10 @@ export default {
   "v2.plug.catalogErr_catalog_rate_limited": "Demasiadas solicitudes al catálogo. Vuelve a intentarlo en un minuto.",
   "v2.plug.catalogErr_package_checksum_mismatch": "El paquete recibido está incompleto o dañado. No se ha instalado nada; vuelve a intentarlo.",
   "v2.plug.catalogErr_other": "La instalación ha fallado. Vuelve a intentarlo más tarde.",
+  "v2.plug.catalogNoPackage": "Aún no disponible para esta plataforma.",
+  "v2.plug.catalogUpdateAvailable": "Nueva versión {version} disponible.",
+  "v2.plug.catalogUpdate": "Actualizar",
+  "v2.plug.catalogRestart": "Reiniciar",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

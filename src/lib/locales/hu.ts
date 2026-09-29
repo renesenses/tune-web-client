@@ -4244,6 +4244,10 @@ export default {
   "v2.plug.catalogErr_catalog_rate_limited": "Túl sok kérés a katalógus felé. Próbálja újra egy perc múlva.",
   "v2.plug.catalogErr_package_checksum_mismatch": "A kapott csomag hiányos vagy sérült. Semmi sem lett telepítve; próbálja újra.",
   "v2.plug.catalogErr_other": "A telepítés nem sikerült. Próbálja újra később.",
+  "v2.plug.catalogNoPackage": "Erre a platformra még nem érhető el.",
+  "v2.plug.catalogUpdateAvailable": "Új verzió érhető el: {version}.",
+  "v2.plug.catalogUpdate": "Frissítés",
+  "v2.plug.catalogRestart": "Újraindítás",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

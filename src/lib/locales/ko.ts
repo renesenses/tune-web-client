@@ -4286,6 +4286,10 @@ export default {
   "v2.plug.catalogErr_catalog_rate_limited": "카탈로그 요청이 너무 많습니다. 1분 후에 다시 시도하세요.",
   "v2.plug.catalogErr_package_checksum_mismatch": "받은 패키지가 불완전하거나 손상되었습니다. 아무것도 설치되지 않았습니다. 다시 시도하세요.",
   "v2.plug.catalogErr_other": "설치에 실패했습니다. 나중에 다시 시도하세요.",
+  "v2.plug.catalogNoPackage": "이 플랫폼에서는 아직 사용할 수 없습니다.",
+  "v2.plug.catalogUpdateAvailable": "새 버전 {version}을(를) 사용할 수 있습니다.",
+  "v2.plug.catalogUpdate": "업데이트",
+  "v2.plug.catalogRestart": "다시 시작",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

@@ -3554,6 +3554,26 @@ export interface InstallationGreffonNatif {
  *   503 `catalog_rate_limited`.
  * `sansBandeau` : la carte du greffon porte elle-même le message d'échec.
  */
+/** `GET /audio-plugins/{id}/catalog` — ce que le catalogue publie pour la
+ *  plateforme de CE serveur. `available: false` + `reason:
+ *  "no_package_for_target"` : pas de paquet pour ce triplet (un état, pas une
+ *  panne). `update_available` : une version plus récente que celle installée
+ *  depuis le catalogue ; rien ne s'installe tout seul. */
+export interface EtatCatalogueGreffonNatif {
+  id: string;
+  target: string;
+  available: boolean;
+  reason?: string;
+  latest_version: string | null;
+  installed: boolean;
+  installed_version: string | null;
+  update_available: boolean;
+}
+
+export function getCatalogueGreffonNatif(id: string): Promise<EtatCatalogueGreffonNatif> {
+  return fetchJSON<EtatCatalogueGreffonNatif>(`${racineGreffonNatif(id)}/catalog`, undefined, undefined, true);
+}
+
 export function installerGreffonNatifDuCatalogue(id: string): Promise<InstallationGreffonNatif> {
   return fetchJSON<InstallationGreffonNatif>(
     `${racineGreffonNatif(id)}/install-from-catalog`,

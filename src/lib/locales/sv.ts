@@ -4285,4 +4285,8 @@ export default {
   "v2.plug.catalogErr_catalog_rate_limited": "För många förfrågningar till katalogen. Försök igen om en minut.",
   "v2.plug.catalogErr_package_checksum_mismatch": "Det mottagna paketet är ofullständigt eller skadat. Inget installerades; försök igen.",
   "v2.plug.catalogErr_other": "Installationen misslyckades. Försök igen senare.",
+  "v2.plug.catalogNoPackage": "Ännu inte tillgänglig för den här plattformen.",
+  "v2.plug.catalogUpdateAvailable": "Ny version {version} tillgänglig.",
+  "v2.plug.catalogUpdate": "Uppdatera",
+  "v2.plug.catalogRestart": "Starta om",
 } as const;

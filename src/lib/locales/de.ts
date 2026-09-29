@@ -4286,6 +4286,10 @@ export default {
   "v2.plug.catalogErr_catalog_rate_limited": "Zu viele Anfragen an den Katalog. Versuchen Sie es in einer Minute erneut.",
   "v2.plug.catalogErr_package_checksum_mismatch": "Das empfangene Paket ist unvollständig oder beschädigt. Es wurde nichts installiert; versuchen Sie es erneut.",
   "v2.plug.catalogErr_other": "Die Installation ist fehlgeschlagen. Versuchen Sie es später erneut.",
+  "v2.plug.catalogNoPackage": "Für diese Plattform noch nicht verfügbar.",
+  "v2.plug.catalogUpdateAvailable": "Neue Version {version} verfügbar.",
+  "v2.plug.catalogUpdate": "Aktualisieren",
+  "v2.plug.catalogRestart": "Neu starten",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

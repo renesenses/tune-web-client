@@ -4308,6 +4308,10 @@ export default {
   "v2.plug.catalogErr_catalog_rate_limited": "Trop de demandes au catalogue. Réessayez dans une minute.",
   "v2.plug.catalogErr_package_checksum_mismatch": "Le paquet reçu est incomplet ou altéré. Rien n’a été installé ; réessayez.",
   "v2.plug.catalogErr_other": "L’installation a échoué. Réessayez plus tard.",
+  "v2.plug.catalogNoPackage": "Pas encore disponible pour cette plateforme.",
+  "v2.plug.catalogUpdateAvailable": "Nouvelle version {version} disponible.",
+  "v2.plug.catalogUpdate": "Mettre à jour",
+  "v2.plug.catalogRestart": "Redémarrer",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

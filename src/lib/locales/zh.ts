@@ -4286,6 +4286,10 @@ export default {
   "v2.plug.catalogErr_catalog_rate_limited": "对目录的请求过多。请一分钟后重试。",
   "v2.plug.catalogErr_package_checksum_mismatch": "收到的安装包不完整或已损坏。未安装任何内容，请重试。",
   "v2.plug.catalogErr_other": "安装失败。请稍后重试。",
+  "v2.plug.catalogNoPackage": "此平台暂不可用。",
+  "v2.plug.catalogUpdateAvailable": "新版本 {version} 可用。",
+  "v2.plug.catalogUpdate": "更新",
+  "v2.plug.catalogRestart": "重启",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

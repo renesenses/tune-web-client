@@ -4286,6 +4286,10 @@ export default {
   "v2.plug.catalogErr_catalog_rate_limited": "カタログへのリクエストが多すぎます。1 分後にもう一度お試しください。",
   "v2.plug.catalogErr_package_checksum_mismatch": "受信したパッケージが不完全か破損しています。何もインストールされていません。もう一度お試しください。",
   "v2.plug.catalogErr_other": "インストールに失敗しました。しばらくしてからもう一度お試しください。",
+  "v2.plug.catalogNoPackage": "このプラットフォームではまだ利用できません。",
+  "v2.plug.catalogUpdateAvailable": "新しいバージョン {version} が利用できます。",
+  "v2.plug.catalogUpdate": "更新",
+  "v2.plug.catalogRestart": "再起動",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

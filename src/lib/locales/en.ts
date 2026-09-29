@@ -4306,6 +4306,10 @@ export default {
   "v2.plug.catalogErr_catalog_rate_limited": "Too many requests to the catalogue. Try again in a minute.",
   "v2.plug.catalogErr_package_checksum_mismatch": "The package received is incomplete or corrupted. Nothing was installed; try again.",
   "v2.plug.catalogErr_other": "Installation failed. Try again later.",
+  "v2.plug.catalogNoPackage": "Not yet available for this platform.",
+  "v2.plug.catalogUpdateAvailable": "New version {version} available.",
+  "v2.plug.catalogUpdate": "Update",
+  "v2.plug.catalogRestart": "Restart",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

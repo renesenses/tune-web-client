@@ -4286,6 +4286,10 @@ export default {
   "v2.plug.catalogErr_catalog_rate_limited": "Prea multe cereri către catalog. Încercați din nou peste un minut.",
   "v2.plug.catalogErr_package_checksum_mismatch": "Pachetul primit este incomplet sau deteriorat. Nu s-a instalat nimic; încercați din nou.",
   "v2.plug.catalogErr_other": "Instalarea a eșuat. Încercați din nou mai târziu.",
+  "v2.plug.catalogNoPackage": "Încă indisponibil pentru această platformă.",
+  "v2.plug.catalogUpdateAvailable": "Versiune nouă disponibilă: {version}.",
+  "v2.plug.catalogUpdate": "Actualizează",
+  "v2.plug.catalogRestart": "Repornește",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
