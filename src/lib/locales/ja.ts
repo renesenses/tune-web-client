@@ -4281,6 +4281,9 @@ export default {
   "v2.plug.native_charge": "読み込み済み",
   "v2.plug.native_erreur": "エラー",
   "v2.plug.native_non_charge": "未読み込み",
+  "v2.plug.errSetupTimeout": "起動に時間がかかりすぎました（{s} 秒）。",
+  "v2.plug.errSetupFailed": "起動に失敗しました。",
+  "v2.plug.retry": "再試行",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

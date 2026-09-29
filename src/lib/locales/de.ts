@@ -4281,6 +4281,9 @@ export default {
   "v2.plug.native_charge": "Geladen",
   "v2.plug.native_erreur": "Fehler",
   "v2.plug.native_non_charge": "Nicht geladen",
+  "v2.plug.errSetupTimeout": "Start dauerte zu lange ({s} s).",
+  "v2.plug.errSetupFailed": "Start fehlgeschlagen.",
+  "v2.plug.retry": "Erneut versuchen",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
