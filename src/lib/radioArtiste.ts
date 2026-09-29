@@ -43,20 +43,35 @@ export function corpsRadioArtiste(
   };
 }
 
-export type IssueRadio = 'radio' | 'repli' | 'rien';
+/**
+ * - `radio` : la radio du serveur est partie ;
+ * - `repli` : la route manquait ou n'a rien trouvé, les titres phares mélangés
+ *   sont partis ;
+ * - `serveur-ancien` : la route n'existe pas (serveur plus ancien) ET la fiche
+ *   n'a aucun titre phare à mélanger — l'écran doit le dire ;
+ * - `rien` : ni radio ni titre phare.
+ */
+export type IssueRadio = 'radio' | 'repli' | 'serveur-ancien' | 'rien';
 
 /**
- * `radio` rend la zone quand la radio est partie, `null` quand la route
- * n'existe pas ou n'a rien trouvé ; `repli` joue l'ancien mélange et rend le
- * nombre de titres partis.
+ * `radio` rend la zone quand la radio est partie, `'absente'` quand la route
+ * n'existe pas (serveur plus ancien), `'vide'` quand le serveur n'a trouvé
+ * aucun titre ; `repli` joue l'ancien mélange et rend le nombre de titres
+ * partis.
  */
 export async function lancerRadioArtiste(
   corps: CorpsRadioArtiste | null,
   gestes: {
-    radio: (corps: CorpsRadioArtiste) => Promise<unknown | null>;
+    radio: (corps: CorpsRadioArtiste) => Promise<unknown>;
     repli: () => Promise<number>;
   },
 ): Promise<IssueRadio> {
-  if (corps && (await gestes.radio(corps))) return 'radio';
-  return (await gestes.repli()) ? 'repli' : 'rien';
+  let refus: unknown = null;
+  if (corps) {
+    const rep = await gestes.radio(corps);
+    if (rep && typeof rep === 'object') return 'radio';
+    refus = rep;
+  }
+  if (await gestes.repli()) return 'repli';
+  return refus === 'absente' ? 'serveur-ancien' : 'rien';
 }

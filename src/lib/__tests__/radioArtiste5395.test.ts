@@ -63,20 +63,20 @@ describe('#5395 — la route du serveur', () => {
   it('appelle POST /zones/{id}/radio/artist et rend la zone quand la radio part', async () => {
     const f = repondre(200, { id: 3, state: 'playing', radio: { count: 25 } });
     const zone = await api.radioArtiste(3, { artist: 'Graine', service: 'qobuz', artist_id: 'g' });
-    expect(zone?.radio.count).toBe(25);
+    expect(typeof zone === 'object' ? zone.radio.count : zone).toBe(25);
     const [url, init] = f.mock.calls[0];
     expect(String(url)).toMatch(/\/zones\/3\/radio\/artist$/);
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body)).toEqual({ artist: 'Graine', service: 'qobuz', artist_id: 'g' });
   });
-  it('un serveur plus ancien (route inconnue) rend null, sans bandeau', async () => {
+  it('un serveur plus ancien (route inconnue) rend « absente », sans bandeau', async () => {
     repondre(404, { error: 'not found', path: '/api/v1/zones/3/radio/artist' });
-    await expect(api.radioArtiste(3, { artist: 'X', service: null, artist_id: null })).resolves.toBeNull();
+    await expect(api.radioArtiste(3, { artist: 'X', service: null, artist_id: null })).resolves.toBe('absente');
     expect(erreurs).not.toHaveBeenCalled();
   });
-  it('une radio sans titre rend null, sans bandeau', async () => {
+  it('une radio sans titre rend « vide », sans bandeau', async () => {
     repondre(404, { error: 'radio_artiste_vide', artist: 'X' });
-    await expect(api.radioArtiste(3, { artist: 'X', service: null, artist_id: null })).resolves.toBeNull();
+    await expect(api.radioArtiste(3, { artist: 'X', service: null, artist_id: null })).resolves.toBe('vide');
     expect(erreurs).not.toHaveBeenCalled();
   });
 });
@@ -85,7 +85,7 @@ describe('#5395 — le repli sur l’ancien geste', () => {
   it('route absente : les titres phares mélangés partent, une fois', async () => {
     const repli = vi.fn().mockResolvedValue(10);
     const issue = await lancerRadioArtiste(corpsRadioArtiste({ service: 'tidal', id: 7 }, 'A'), {
-      radio: async () => null,
+      radio: async () => 'absente',
       repli,
     });
     expect(issue).toBe('repli');
@@ -101,8 +101,12 @@ describe('#5395 — le repli sur l’ancien geste', () => {
     expect(repli).not.toHaveBeenCalled();
   });
   it('ni radio ni titres phares : « rien », que l’écran dit', async () => {
-    const issue = await lancerRadioArtiste(null, { radio: async () => ({}), repli: async () => 0 });
+    const issue = await lancerRadioArtiste(corpsRadioArtiste(null, 'A'), { radio: async () => 'vide', repli: async () => 0 });
     expect(issue).toBe('rien');
+  });
+  it('serveur ancien ET aucun titre phare : « serveur-ancien », pour un message clair', async () => {
+    const issue = await lancerRadioArtiste(corpsRadioArtiste(null, 'A'), { radio: async () => 'absente', repli: async () => 0 });
+    expect(issue).toBe('serveur-ancien');
   });
 });
 
@@ -112,5 +116,16 @@ describe('#5395 — le bouton de la fiche', () => {
     const bouton = svc.match(/<button[^>]*onclick=\{\(\) => ([a-zA-Z]+)\([^)]*\)\}>\s*\{\$tr\('v2\.fas\.radio'/);
     expect(bouton?.[1], 'le bouton Radio ne passe pas par jouerLaRadio').toBe('jouerLaRadio');
     expect(svc).toContain('radio: (corps) => radioArtisteAndSync(zid, corps)');
+  });
+  it('le bouton Radio est TOUJOURS là : hors du bloc conditionné par les titres phares', () => {
+    // Le bloc de BALISAGE (un commentaire du script cite aussi `{#if titres.length}`).
+    const debut = svc.search(/\n\s*\{#if titres\.length\}\n/);
+    const fin = svc.indexOf('{/if}', debut);
+    const bouton = svc.indexOf("onclick={() => jouerLaRadio()}");
+    expect(debut).toBeGreaterThan(-1);
+    expect(bouton, 'le bouton Radio est encore sous {#if titres.length}').toBeGreaterThan(fin);
+  });
+  it('serveur ancien sans titres phares : le message dédié, pas un clic muet', () => {
+    expect(svc).toContain("if (issue === 'serveur-ancien') notifications.error($tr('v2.fas.radioServeurAncien' as any));");
   });
 });

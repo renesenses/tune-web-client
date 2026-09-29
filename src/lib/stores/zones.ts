@@ -227,7 +227,7 @@ export async function playAndSync(zoneId: number, body?: Parameters<typeof api.p
 
 /**
  * La radio artiste du serveur (tune-server-rust#5395), synchronisée comme
- * `playAndSync`. `null` : route absente (serveur plus ancien) ou aucun titre —
+ * `playAndSync`. `'absente'` (serveur plus ancien) ou `'vide'` (aucun titre) :
  * l'appelant retombe sur l'ancien geste.
  *
  * ⚠️ Pas de « Lire en boucle par défaut » ici, à la différence de
@@ -236,18 +236,18 @@ export async function playAndSync(zoneId: number, body?: Parameters<typeof api.p
 export async function radioArtisteAndSync(
   zoneId: number,
   corps: Parameters<typeof api.radioArtiste>[1],
-): Promise<Zone | null> {
+): Promise<Zone | 'absente' | 'vide'> {
   ouvrirAttente(zoneId);
-  let zone: Zone | null;
+  let zone: Awaited<ReturnType<typeof api.radioArtiste>>;
   try {
     zone = await api.radioArtiste(zoneId, corps);
   } catch (e) {
     fermerAttente(zoneId);
     throw e;
   }
-  if (!zone) {
+  if (typeof zone === 'string') {
     fermerAttente(zoneId);
-    return null;
+    return zone;
   }
   checkPlayError(zone);
   syncZone(zone);
