@@ -3318,6 +3318,19 @@ export function createEqPreset(body: { name: string; eq_type: string; bands: EqB
   });
 }
 
+/**
+ * web#1750 — « Enregistrer » : met à jour le préréglage SUR PLACE (même id),
+ * `PUT /eq/presets/{id}`. Remplace l'ancien « supprimer puis recréer » sur
+ * homonyme, qui n'était pas atomique : un échec de suppression laissait deux
+ * préréglages du même nom.
+ */
+export function updateEqPreset(id: string, body: { name: string; eq_type: string; bands: EqBand[] }): Promise<EqProPreset> {
+  return fetchJSON<EqProPreset>(`${BASE}/eq/presets/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
 export function deleteEqPreset(id: string): Promise<void> {
   return fetchVoid(`${BASE}/eq/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }

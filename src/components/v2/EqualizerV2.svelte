@@ -140,6 +140,9 @@
     const zid = $currentZoneId;
     void rechargement; // relu exprès : l'installation du greffon relance le chargement
     loading = true;
+    // web#1750 — une autre zone, une autre courbe : « Enregistrer » ne doit
+    // pas l'écrire dans le préréglage qu'on éditait sur la précédente.
+    enCoursId = null;
     // Le greffon se lit SANS zone : « pas installé » se dit même quand aucune
     // zone n'est choisie, sinon l'écran réclamerait une zone pour un
     // égaliseur qui n'existe pas encore.
@@ -316,6 +319,7 @@
     queueSave();
   }
   function applyPreset(p: { gains: number[] }) {
+    enCoursId = null;
     const next = bandCount === 10 ? [...p.gains] : resample(p.gains, GRIDS[10], BANDS);
     if (gainsRight !== null && editing === 'right') gainsRight = next; else gains = next;
     save();
@@ -433,24 +437,37 @@
     return PRESETS.find((p) => p.gains.every((g, i) => memeGain(g, gains[i])))?.key ?? null;
   });
 
-  /** Le préréglage PERSONNEL dont la courbe est celle affichée. */
-  const mienActif: string | null = $derived.by(() => {
-    const courant = sousMode === 'parametrique' ? pBandes : null;
-    for (const p of mesPresets) {
-      const bandes = p.bands ?? [];
-      if (!bandes.length) continue;
-      if (p.eq_type === 'parametric') {
-        if (sousMode !== 'parametrique' || !courant) continue;
-        if (bandes.length !== courant.length) continue;
-        if (bandes.every((b, i) => b.freq === courant[i].freq && memeGain(b.gain, courant[i].gain))) return p.id;
-      } else {
-        if (sousMode !== 'graphique' || gainsRight !== null) continue;
-        if (bandes.length !== BANDS.length) continue;
-        if (bandes.every((b, i) => b.freq === BANDS[i] && memeGain(b.gain, gains[i]))) return p.id;
-      }
+  /** La courbe affichée est-elle exactement celle de ce préréglage personnel ? */
+  function correspond(p: api.EqProPreset): boolean {
+    const bandes = p.bands ?? [];
+    if (!bandes.length) return false;
+    if (p.eq_type === 'parametric') {
+      if (sousMode !== 'parametrique') return false;
+      return bandes.length === pBandes.length
+        && bandes.every((b, i) => b.freq === pBandes[i].freq && memeGain(b.gain, pBandes[i].gain));
     }
-    return null;
-  });
+    if (sousMode !== 'graphique' || gainsRight !== null) return false;
+    return bandes.length === BANDS.length
+      && bandes.every((b, i) => b.freq === BANDS[i] && memeGain(b.gain, gains[i]));
+  }
+
+  /** Le préréglage PERSONNEL dont la courbe est celle affichée. */
+  const mienActif: string | null = $derived.by(() => mesPresets.find(correspond)?.id ?? null);
+
+  /**
+   * web#1750 — le préréglage personnel EN COURS D'ÉDITION : le dernier
+   * appliqué ou enregistré. `mienActif` ne suffit pas : il s'éteint au premier
+   * curseur touché, c'est-à-dire précisément quand on voudrait « Enregistrer ».
+   *
+   * Il s'efface quand la courbe cesse d'en descendre : préréglage intégré,
+   * remise à plat, changement de zone (une autre zone, une autre courbe), ou
+   * suppression du préréglage. Il SURVIT au passage graphique/paramétrique :
+   * « Enregistrer » écrit alors la courbe dans le mode affiché.
+   */
+  let enCoursId = $state<string | null>(null);
+  const presetEnCours = $derived(mesPresets.find((p) => p.id === enCoursId) ?? null);
+  /** « Modifié, non enregistré » : la courbe affichée n'est plus la sienne. */
+  const modifie = $derived(presetEnCours != null && !correspond(presetEnCours));
   async function chargerMesPresets() {
     // 1) Peinture immédiate depuis le miroir — l'ordre de v1.
     const cache = lireCachePresets();
@@ -470,28 +487,55 @@
   }
   $effect(() => { void chargerMesPresets(); });
 
-  async function enregistrerPreset() {
-    const saisi = await dialogs.prompt($t('eq.presetNamePlaceholder' as any));
-    const nom = saisi?.trim();
-    if (!nom) return;
+  /** La courbe affichée, sous la forme d'un préréglage. */
+  function courbeAEnregistrer(nom: string) {
     const eq_type = sousMode === 'parametrique' ? 'parametric' : 'graphic';
     const bands: EqBand[] = sousMode === 'parametrique'
       ? $state.snapshot(pBandes)
       : bandesGraphiques(BANDS, gains, null, GRID_Q[bandCount] ?? 1.0);
+    return { name: nom, eq_type, bands };
+  }
+
+  /**
+   * Écrit la courbe sous ce nom. Un préréglage de ce nom existe déjà : il est
+   * mis à jour SUR PLACE (`PUT`, même id) — plus de « supprimer puis
+   * recréer », dont un échec de suppression laissait un doublon.
+   */
+  async function ecrirePreset(nom: string, cible: api.EqProPreset | undefined) {
+    // Résolus AVANT l'attente : un `$t()` dans un `catch` est invisible au build.
+    const msgOk = $t('eq.presetSaved' as any).replace('{name}', nom);
+    const msgKo = $t('eq.presetSaveFailed' as any);
+    const corps = courbeAEnregistrer(nom);
     try {
-      // Même nom = remplacer : supprimer l'ancien, puis recréer.
-      const homonyme = mesPresets.find((p) => p.name === nom);
-      if (homonyme) { try { await api.deleteEqPreset(homonyme.id); } catch { /* le doublon restera visible */ } }
-      const cree = await api.createEqPreset({ name: nom, eq_type, bands });
-      mesPresets = [...mesPresets.filter((p) => p.name !== nom), cree];
+      const ecrit = cible ? await api.updateEqPreset(cible.id, corps) : await api.createEqPreset(corps);
+      mesPresets = cible
+        ? mesPresets.map((p) => (p.id === cible.id ? ecrit : p))
+        : [...mesPresets, ecrit];
+      enCoursId = ecrit.id;
       ecrireCachePresets($state.snapshot(mesPresets));
-      notifications.success($t('eq.presetSaved' as any).replace('{name}', nom));
+      notifications.success(msgOk);
     } catch {
-      notifications.error($t('eq.presetSaveFailed' as any));
+      notifications.error(msgKo);
     }
   }
 
+  /** « Enregistrer » : le préréglage en cours, sans redemander son nom. */
+  async function enregistrer() {
+    const p = presetEnCours;
+    if (!p) return;
+    await ecrirePreset(p.name, p);
+  }
+
+  /** « Enregistrer sous » : un nom, prérempli avec celui du préréglage en cours. */
+  async function enregistrerSous() {
+    const saisi = await dialogs.prompt($t('eq.presetNamePlaceholder' as any), presetEnCours?.name ?? '');
+    const nom = saisi?.trim();
+    if (!nom) return;
+    await ecrirePreset(nom, mesPresets.find((p) => p.name === nom));
+  }
+
   function appliquerMonPreset(p: api.EqProPreset) {
+    enCoursId = p.id;
     const bandes = p.bands ?? [];
     if (p.eq_type === 'parametric') {
       pBandes = bandes.map((b) => ({ ...b }));
@@ -512,6 +556,7 @@
     mesPresets = mesPresets.filter((x) => x.id !== p.id);
     try {
       await api.deleteEqPreset(p.id);
+      if (enCoursId === p.id) enCoursId = null;
       // Le miroir ne suit qu'une suppression CONFIRMÉE : anticiper ferait
       // disparaître du cache un préréglage que le serveur a gardé.
       ecrireCachePresets($state.snapshot(mesPresets));
@@ -523,6 +568,7 @@
   }
 
   function reset() {
+    enCoursId = null;
     gains = Array(BANDS.length).fill(0);
     if (gainsRight !== null) gainsRight = Array(BANDS.length).fill(0);
     save();
@@ -608,7 +654,17 @@
               title={$t('eq.deletePreset' as any)} aria-label={$t('eq.deletePreset' as any)}>×</button>
           </span>
         {/each}
-        <button onclick={enregistrerPreset}>+ {$t('eq.savePreset' as any)}</button>
+        <!-- web#1750 — « Enregistrer » et « Enregistrer sous », comme partout
+             ailleurs. Sans préréglage en cours, il n'y a rien à mettre à jour :
+             le seul geste est d'en créer un. -->
+        {#if presetEnCours}
+          {#if modifie}<span class="modif">{$t('eq.presetModified' as any)}</span>{/if}
+          <button class="enreg" disabled={!modifie} onclick={enregistrer}
+            title={$t('eq.saveTitle' as any).replace('{name}', presetEnCours.name)}>{$t('eq.save' as any)}</button>
+          <button class="enreg-sous" onclick={enregistrerSous}>{$t('eq.saveAs' as any)}</button>
+        {:else}
+          <button class="enreg-sous" onclick={enregistrerSous}>+ {$t('eq.savePreset' as any)}</button>
+        {/if}
       </div>
 
       <!-- La liste vient du miroir local : elle peut être périmée, et
@@ -758,6 +814,8 @@
   .mesl{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .mien{display:inline-flex}
   .mien .x{padding:0 7px}
+  .modif{font:italic 11.5px var(--v2-sans); color:var(--v2-acc-tint)}
+  .presets button:disabled{opacity:.45; cursor:default}
   /* Un avertissement, pas une erreur : la liste est utilisable, elle est
      seulement peut-être périmée. D'où le ton d'accentuation et non le rouge
      de `.err`, qui dirait à tort que rien ne marche. */
