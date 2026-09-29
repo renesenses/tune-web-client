@@ -12,6 +12,8 @@ import { mount, unmount, flushSync } from 'svelte';
 import EcouterPlusTardV2 from '../../components/v2/EcouterPlusTardV2.svelte';
 import { oublierSas } from '../ecouterPlusTard';
 import { currentProfileId } from '../stores/profile';
+import { get } from 'svelte/store';
+import { t } from '../i18n';
 
 /**
  * Trois albums, un titre, deux playlists. Les dates de dépôt sont CROISÉES
@@ -171,27 +173,61 @@ describe('#1802 — les quatre tris', () => {
 });
 
 describe('#1802 — les vues', () => {
-  it('🔴 grille par défaut ; la bascule passe en liste, et le choix est retenu', async () => {
-    const h = await poser();
-    expect(h.querySelector('[data-vue="grid"].grille')).toBeTruthy();
-    expect(h.querySelectorAll('.grille .carte').length).toBe(6);
+  const bouton = (h: HTMLElement) => {
     const b = h.querySelector<HTMLButtonElement>('button.viewtog');
     expect(b, 'la bascule BasculeAffichage est absente').toBeTruthy();
-    b!.click();
-    flushSync();
-    expect(h.querySelector('.grille')).toBeNull();
-    expect(h.querySelector('[data-vue="list"].lignes')).toBeTruthy();
+    return b!;
+  };
+  const cliquer = (h: HTMLElement) => { bouton(h).click(); flushSync(); };
+  const vue = (h: HTMLElement) =>
+    h.querySelector('.grille.grande') ? 'grande'
+      : h.querySelector('.grille') ? 'petite'
+      : h.querySelector('.lignes') ? 'liste' : 'aucune';
+
+  it('🔴 trois crans : petite vignette (défaut) → grande vignette → liste → petite', async () => {
+    const h = await poser();
+    expect(vue(h)).toBe('petite');
+    expect(h.querySelectorAll('.grille .carte').length).toBe(6);
+    // Le bouton annonce la DESTINATION : les grandes vignettes.
+    expect(bouton(h).getAttribute('aria-label')).toBe(get(t)('v2.lib.viewGridLarge' as any));
+    expect(cle('later.display')).toBeNull();
+
+    cliquer(h);
+    expect(vue(h)).toBe('grande');
+    expect(h.querySelector('[data-vue="gridLarge"]')).toBeTruthy();
+    expect(h.querySelectorAll('.grille.grande .carte').length).toBe(6);
+    expect(cle('later.display')).toBe('gridLarge');
+    expect(bouton(h).getAttribute('aria-label')).toBe(get(t)('v2.lib.viewList' as any));
+
+    cliquer(h);
+    expect(vue(h)).toBe('liste');
     expect(h.querySelectorAll('.lignes .ligne').length).toBe(6);
     // La liste garde l'ordre du tri courant.
     expect(ordre(h)[0]).toBe('Alabama');
     expect(cle('later.display')).toBe('list');
+    expect(bouton(h).getAttribute('aria-label')).toBe(get(t)('v2.later.viewSmall' as any));
+
+    cliquer(h);
+    expect(vue(h)).toBe('petite');
+    expect(cle('later.display')).toBe('grid');
   });
 
-  it('la liste retenue revient à la visite suivante', async () => {
-    localStorage.setItem('tune_v2_ecran_later.display', 'list');
+  it('🔴 l’ancien choix « grille » est la PETITE vignette, la grille d’avant', async () => {
+    localStorage.setItem('tune_v2_ecran_later.display', 'grid');
     const h = await poser();
-    expect(h.querySelector('.lignes')).toBeTruthy();
-    expect(h.querySelector('.grille')).toBeNull();
+    expect(vue(h)).toBe('petite');
+    expect(cle('later.display')).toBe('grid');
+  });
+
+  it('les grandes vignettes et la liste retenues reviennent à la visite suivante', async () => {
+    localStorage.setItem('tune_v2_ecran_later.display', 'gridLarge');
+    let h = await poser();
+    expect(vue(h)).toBe('grande');
+    for (const { m, h: x } of montes.splice(0)) { unmount(m); x.remove(); }
+    oublierSas();
+    localStorage.setItem('tune_v2_ecran_later.display', 'list');
+    h = await poser();
+    expect(vue(h)).toBe('liste');
   });
 
   it('🔴 une playlist sans image a une vignette de REPLI, une avec image garde la sienne', async () => {
@@ -205,5 +241,18 @@ describe('#1802 — les vues', () => {
     // Un album garde sa pochette, jamais le repli.
     const album = h.querySelector<HTMLElement>('.carte[data-genre="album"]')!;
     expect(album.querySelector('.repli')).toBeNull();
+  });
+});
+
+describe('#1802 — le troisième cran reste dans « Écouter plus tard »', () => {
+  it('🔴 les autres écrans n’ont ni le cran ni les options de la bascule', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { AFFICHAGES, GRILLE_OU_LISTE } = await import('../affichage');
+    expect([...AFFICHAGES]).toEqual(['grid', 'list', 'carousel']);
+    expect([...GRILLE_OU_LISTE]).toEqual(['grid', 'list']);
+    for (const f of ['LibraryV2', 'FavoritesV2', 'PlaylistsV2']) {
+      const src = readFileSync(`src/components/v2/${f}.svelte`, 'utf8');
+      expect(src, f).not.toMatch(/iconeDeDestination|LISTE_ET_DEUX_GRILLES|gridLarge/);
+    }
   });
 });
