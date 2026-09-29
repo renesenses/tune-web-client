@@ -1364,8 +1364,9 @@ import { ICONES } from '../../lib/menuPiste';
   // Place réellement rendue au panneau, à droite du contenu (#3676). Zéro dès
   // que le panneau n'est pas une colonne de droite : file fermée, ou
   // disposition étroite où il est une feuille ancrée en bas.
+  // web#1800 : file dépliée sous la barre, rien n'est ancré à droite.
   let reserveFileAttente = $derived(
-    largeurReserveeFileAttente(isWide && !fileSousLaBarre, queueSheetState, sheetCustomWidth),
+    fileSousLaBarre ? 0 : largeurReserveeFileAttente(isWide, queueSheetState, sheetCustomWidth),
   );
 
   // The size the panel should actually take, or '' to keep the CSS defaults.
@@ -2477,10 +2478,11 @@ import { ICONES } from '../../lib/menuPiste';
       commandes de lecture inertes pour refermer un panneau qu'un second glissé
       referme déjà.
     -->
-    {#if queueSheetState === 'expanded' && !fileSousLaBarre}
-      <div class="qs-backdrop" onclick={closeQueueSheet}></div>
-    {/if}
+    <!-- web#1800 : file dépliée sous la barre, ni voile ni feuille ici. -->
     {#if !fileSousLaBarre}
+      {#if queueSheetState === 'expanded'}
+        <div class="qs-backdrop" onclick={closeQueueSheet}></div>
+      {/if}
       {@render feuilleFile()}
     {/if}
   {/if}
