@@ -143,3 +143,36 @@ export function initialeAlphabetique(s: string | null | undefined): string {
   const c = sansAccentsMinuscule((s ?? '').replace(SIGNES_DE_TETE, '')).charAt(0).toUpperCase();
   return c >= 'A' && c <= 'Z' ? c : '#';
 }
+
+/** Ce qu'il faut d'un artiste pour le ranger. */
+export interface ArtisteTriable {
+  id?: number | null;
+  name?: string | null;
+  sort_name?: string | null;
+}
+
+/**
+ * La clé de tri d'un artiste, celle du serveur (`trier_artistes`, #4956,
+ * décision de Bertrand du 29/09/2026) : le nom de tri s'il est renseigné
+ * (« Beatles, The »), sinon le nom. Un nom de tri vide ou fait d'espaces ne
+ * compte pas.
+ */
+export function cleDeTriArtiste(a: ArtisteTriable): string {
+  const s = a.sort_name;
+  return s != null && s.trim() !== '' ? s : (a.name ?? '');
+}
+
+/**
+ * L'ordre des artistes du serveur : `comparerAlphabetique` sur
+ * `cleDeTriArtiste`, et à clé égale l'identifiant (un id absent passe en
+ * premier, comme `None` en Rust).
+ */
+export function comparerArtistes(a: ArtisteTriable, b: ArtisteTriable): number {
+  const c = comparerAlphabetique(cleDeTriArtiste(a), cleDeTriArtiste(b));
+  if (c !== 0) return c;
+  const ia = a.id ?? null, ib = b.id ?? null;
+  if (ia === ib) return 0;
+  if (ia === null) return -1;
+  if (ib === null) return 1;
+  return ia < ib ? -1 : 1;
+}
