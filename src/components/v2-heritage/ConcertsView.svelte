@@ -37,6 +37,26 @@
   let localisee = $state<boolean | null>(null);
   let enregistrement = $state(false);
 
+  /** Le périmètre qui a VRAIMENT filtré la liste (`applied_scope`), s'il est
+   *  connu. `perimetre` reste le choix, qui pré-remplit le formulaire : un
+   *  rayon sans commune localisée retombe sur le pays (tune-server-rust#5368). */
+  let perimetreApplique = $state<api.PerimetreConcerts | null>(null);
+  /** Le nom saisi désigne plusieurs communes : demander le code postal. */
+  let ambigue = $state(false);
+  /** `total` et `has_more` de la réponse. `null` / `false` sur un serveur
+   *  ancien, qui ne les rend pas : l'écran se tait alors, comme avant
+   *  (tune-server-rust#5369). */
+  let total = $state<number | null>(null);
+  let resteAVoir = $state(false);
+  let suiteEnCours = $state(false);
+
+  /** « Autour de moi » ne s'affiche actif que si le rayon s'applique VRAIMENT.
+   *  Commune non localisée : le cran effectivement appliqué est le pays. */
+  let rayonInactif = $derived(perimetre === 'radius' && localisee === false);
+  let cranAffiche = $derived<api.PerimetreConcerts>(
+    rayonInactif ? (perimetreApplique ?? 'country') : perimetre,
+  );
+
   /** L'ordre choisi. Groupé par artiste PAR DÉFAUT : c'est ainsi que
    *  l'utilisateur cherche — il part de ce qu'il écoute, pas d'une date.
    *  « Par date » répond à la demande de FabienM (fil 2013, point 1) sans
@@ -83,12 +103,37 @@
       if (l.city && l.city !== '—') commune = l.city;
       if (l.postal_code) codePostal = l.postal_code;
       if (l.country) pays = l.country;
-      if (typeof l.located === 'boolean') localisee = l.located;
+      // Ne pas écraser le verdict plus frais de `upcoming` : la liste vient
+      // d'être servie, c'est elle qui dit si le rayon s'applique.
+      if (typeof l.located === 'boolean' && localisee === null) localisee = l.located;
+      if (typeof l.ambiguous === 'boolean') ambigue = l.ambiguous;
     } catch (e) {
       const r = refusConcerts(e);
       if (r) refus = r;
       else if ((e as api.ApiError)?.status === 404) serveurTropAncien = true;
       // Toute autre erreur : on garde les valeurs de `upcoming`, rien à dire.
+    }
+  }
+
+  function lirePage(reponse: api.ConcertsAVenir) {
+    total = typeof reponse.total === 'number' ? reponse.total : null;
+    resteAVoir = reponse.has_more === true;
+  }
+
+  /** La page suivante, à la suite de celles déjà affichées. Demandée
+   *  seulement si la réponse a dit `has_more` : un serveur ancien ignore
+   *  `offset` et renverrait la même liste. */
+  async function chargerPlus() {
+    if (!resteAVoir || suiteEnCours) return;
+    suiteEnCours = true;
+    try {
+      const reponse = await api.getConcertsAVenir({ offset: concerts.length });
+      concerts = [...concerts, ...(reponse.concerts ?? [])];
+      lirePage(reponse);
+    } catch {
+      notifications.error($t('concerts.indisponible'));
+    } finally {
+      suiteEnCours = false;
     }
   }
 
@@ -98,8 +143,13 @@
     try {
       const reponse = await api.getConcertsAVenir();
       concerts = reponse.concerts ?? [];
+      lirePage(reponse);
       refus = null;
       if (reponse.scope) perimetre = reponse.scope;
+      // Champs du lot `batch/fix-5369-20260929`. Absents d'un serveur ancien :
+      // rien ne change alors, `localisee` garde ce que dit `/location`.
+      if (reponse.applied_scope) perimetreApplique = reponse.applied_scope;
+      if (typeof reponse.located === 'boolean') localisee = reponse.located;
       if (reponse.radius_km) rayon = reponse.radius_km;
       if (reponse.city) commune = reponse.city;
       if (reponse.country) pays = reponse.country;
@@ -153,6 +203,8 @@
       });
       perimetre = reponse.scope;
       localisee = reponse.located ?? null;
+      ambigue = reponse.ambiguous === true;
+      perimetreApplique = null;
       refus = null;
       await charger();
     } catch (e) {
@@ -245,13 +297,15 @@
     {:else}
     <section class="cc-perimetre">
       <div class="cc-crans">
-        <button class:actif={perimetre === 'radius'} onclick={choisirRayon}>
+        <!-- Le cran AFFICHÉ actif est celui qui filtre vraiment : un rayon
+             sans commune localisée n'est pas « Autour de moi ». -->
+        <button class:actif={cranAffiche === 'radius'} onclick={choisirRayon}>
           {$t('concerts.autourDeMoi')}
         </button>
-        <button class:actif={perimetre === 'country'} onclick={() => enregistrerLocalisation('country')}>
+        <button class:actif={cranAffiche === 'country'} onclick={() => enregistrerLocalisation('country')}>
           {$t('concerts.dansMonPays')}
         </button>
-        <button class:actif={perimetre === 'world'} onclick={() => enregistrerLocalisation('world')}>
+        <button class:actif={cranAffiche === 'world'} onclick={() => enregistrerLocalisation('world')}>
           {$t('concerts.partout')}
         </button>
       </div>
@@ -267,11 +321,13 @@
           <input
             type="text"
             class="cc-cp"
+            class:cc-a-preciser={ambigue}
+            aria-invalid={ambigue ? 'true' : undefined}
             bind:value={codePostal}
             placeholder={$t('concerts.codePostalPlaceholder')}
             aria-label={$t('concerts.codePostal')}
           />
-          <select bind:value={rayon} aria-label={$t('concerts.rayon')}>
+          <select bind:value={rayon} class:cc-inactif={rayonInactif} aria-label={$t('concerts.rayon')}>
             {#each api.RAYONS_CONCERTS as km (km)}
               <option value={km}>{km} km</option>
             {/each}
@@ -284,12 +340,20 @@
              coordonnées tirées de l'adresse IP, qui derrière un VPN désignent
              un autre pays. -->
         <p class="cc-note">{$t('concerts.communeSaisieNote')}</p>
+        {#if ambigue && localisee !== false}
+          <p class="cc-note cc-attention cc-ambigue">{$t('concerts.communeAmbigue')}</p>
+        {/if}
       {/if}
-      <!-- HORS du bloc « rayon » : quand la commune est introuvable, le nuage
-           retombe sur le pays et renvoie `scope: country` — l'avertissement
-           disparaissait avec le bloc, au moment précis où il fallait le lire. -->
+      <!-- HORS du bloc « rayon » : l'avertissement doit rester lisible quel
+           que soit le cran ouvert. ⚠️ Le nuage NE renvoie PAS `scope: country`
+           quand la commune est introuvable : `scope` reste le choix
+           enregistré (`radius`). C'est `located: false` — et, depuis le lot
+           `batch/fix-5369-20260929`, `applied_scope` — qui le disent. -->
       {#if localisee === false}
         <p class="cc-note cc-attention cc-introuvable">{$t('concerts.communeIntrouvable')}</p>
+        {#if rayonInactif}
+          <p class="cc-note cc-attention cc-rayon-inactif">{$t('concerts.rayonInactif')}</p>
+        {/if}
       {/if}
     </section>
     {/if}
@@ -317,6 +381,13 @@
         {/if}
       </div>
     {:else}
+      {#if total !== null}
+        <!-- « 100 sur 187 » : la liste peut ne pas tout montrer, et c'est
+             désormais dit (tune-server-rust#5369). -->
+        <p class="cc-note cc-compte">
+          {$t('concerts.nSurTotal').replace('{n}', String(concerts.length)).replace('{total}', String(total))}
+        </p>
+      {/if}
       <div class="cc-tri" role="group" aria-label={$t('concerts.trier')}>
         <button class:actif={tri === 'artiste'} onclick={() => choisirTri('artiste')}>
           {$t('concerts.triArtiste')}
@@ -345,6 +416,11 @@
           </li>
         {/each}
       </ul>
+      {#if resteAVoir}
+        <button class="cc-principal cc-plus" disabled={suiteEnCours} onclick={chargerPlus}>
+          {$t('concerts.plus')}
+        </button>
+      {/if}
     {/if}
   {/if}
 </div>
@@ -367,6 +443,8 @@
   .cc-commune .cc-cp { flex: 0 0 6rem; min-width: 5rem; }
   .cc-note { color: var(--text-muted, #888); font-size: 0.875rem; margin: 0.35rem 0; }
   .cc-attention { color: var(--warning, #d99a2b); }
+  .cc-inactif { opacity: 0.55; }
+  .cc-commune .cc-a-preciser { outline: 2px solid var(--warning, #d99a2b); }
   .cc-erreur { color: var(--danger, #e05252); }
   .cc-muet, .cc-vide { color: var(--text-muted, #888); }
   .cc-tri { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0 0 0.75rem; }
