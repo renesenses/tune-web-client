@@ -24,7 +24,7 @@
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
   import { emphaseParts } from '../../lib/i18nEmphase';
-  import { preferences } from '../../lib/stores/preferences';
+  import { preferences, estDispositionFile, DISPOSITION_FILE_DEFAUT } from '../../lib/stores/preferences';
   import { typesSourcesBarre } from '../../lib/sources';
   import { TYPES_SOURCE_BARRE, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
   import { atLeast } from '../../lib/uiLevel';
@@ -3281,6 +3281,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     }))} />
                   <span class="slider"></span>
                 </label>
+              </div>
+
+              <!-- web#1800 — FabienM (fil 2037, point 8), go de Bertrand du
+                   29/09/2026 : la file peut se déplier sous la barre
+                   d'avancement au lieu de glisser en colonne à droite. Le
+                   défaut reste la colonne de droite. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.queuePlacement' as any)}</span>
+                  <span class="hint">{$t('settings.queuePlacementHint' as any)}</span>
+                </div>
+                <select class="sel" data-reglage="disposition-file"
+                  value={estDispositionFile($preferences.dispositionFile) ? $preferences.dispositionFile : DISPOSITION_FILE_DEFAUT}
+                  onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                    if (estDispositionFile(v)) preferences.update((pr) => ({ ...pr, dispositionFile: v })); }}>
+                  <option value="sousLaBarre">{$t('settings.queuePlacementBelow' as any)}</option>
+                  <option value="droite">{$t('settings.queuePlacementRight' as any)}</option>
+                </select>
               </div>
 
             {:else if s.id === 'profiles'}

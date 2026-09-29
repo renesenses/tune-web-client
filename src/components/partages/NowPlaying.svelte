@@ -1184,6 +1184,13 @@ import { ICONES } from '../../lib/menuPiste';
 
   let containerWidth = $state(0);
   let isWide = $derived(containerWidth > 700);
+  // web#1800 — FabienM (fil 2037, point 8) : Réglages ▸ Affichage ▸ « File
+  // d'attente : sous la barre d'avancement ». Sur écran large, la file se
+  // déplie alors SUR PLACE, dans la colonne titres, au lieu de glisser en
+  // colonne à droite : pas de glissement, pas de réserve à droite, la colonne
+  // titres s'élargit et `.np-scroll` fait défiler le tout. Sur écran étroit,
+  // rien ne change : il n'y a pas de colonne de droite à éviter.
+  let fileSousLaBarre = $derived(isWide && $preferences.dispositionFile === 'sousLaBarre');
 
   // YouTube video overlay
   let artworkEl = $state<HTMLElement | null>(null);
@@ -1358,7 +1365,7 @@ import { ICONES } from '../../lib/menuPiste';
   // que le panneau n'est pas une colonne de droite : file fermée, ou
   // disposition étroite où il est une feuille ancrée en bas.
   let reserveFileAttente = $derived(
-    largeurReserveeFileAttente(isWide, queueSheetState, sheetCustomWidth),
+    largeurReserveeFileAttente(isWide && !fileSousLaBarre, queueSheetState, sheetCustomWidth),
   );
 
   // The size the panel should actually take, or '' to keep the CSS defaults.
@@ -1452,7 +1459,9 @@ import { ICONES } from '../../lib/menuPiste';
     // web#1762 : le geste n'existe que si l'utilisateur l'a demandé
     // (Réglages ▸ Affichage ▸ « Ouvrir la file en faisant défiler »,
     // décoché par défaut). La molette reste alors à la page.
-    if ($preferences.ouvrirFileAuDefilement !== true) {
+    // web#1800 : file sous la barre, la molette fait défiler la page, qui
+    // porte la file — elle n'a rien à ouvrir.
+    if ($preferences.ouvrirFileAuDefilement !== true || fileSousLaBarre) {
       npWheelAccum = 0;
       return;
     }
@@ -1714,7 +1723,7 @@ import { ICONES } from '../../lib/menuPiste';
        d'appuyer sur Lecture, pas une fois la file remplie pour rien (#1499). -->
   <ZoneOutputBanner {zone} />
   {#if zone && displayTrack}
-    <div class="content-layout" class:wide={isWide}>
+    <div class="content-layout" class:wide={isWide} class:file-sous-barre={fileSousLaBarre}>
       <div class="artwork-container" bind:this={artworkEl}>
         {#if ytShowVideo}
           <!-- Placeholder keeping layout while IFrame is rendered on top via position:fixed -->
@@ -2380,6 +2389,11 @@ import { ICONES } from '../../lib/menuPiste';
           </button>
         {/if}
 
+        <!-- web#1800 : la file dépliée sur place, sous la barre d'avancement. -->
+        {#if fileSousLaBarre && queueSheetState !== 'collapsed' && $queueTracks.length > 0}
+          {@render feuilleFile()}
+        {/if}
+
         <!-- Up Next (only when sheet is collapsed) -->
         {#if $upNextTracks.length > 0 && queueSheetState === 'collapsed'}
           <div class="up-next">
@@ -2463,146 +2477,159 @@ import { ICONES } from '../../lib/menuPiste';
       commandes de lecture inertes pour refermer un panneau qu'un second glissé
       referme déjà.
     -->
-    {#if queueSheetState === 'expanded'}
+    {#if queueSheetState === 'expanded' && !fileSousLaBarre}
       <div class="qs-backdrop" onclick={closeQueueSheet}></div>
     {/if}
-    <div
-      class="queue-sheet"
-      class:peek={queueSheetState === 'peek'}
-      class:expanded={queueSheetState === 'expanded'}
-      class:dragging={sheetDragging || sheetResizing}
-      class:wide-layout={isWide}
-      style={sheetSizeStyle()}
-      bind:this={sheetEl}
-      ontouchstart={handleSheetTouchStart}
-      ontouchmove={handleSheetTouchMove}
-      ontouchend={handleSheetTouchEnd}
-    >
-      <!-- Left edge: the only resize affordance on a wide screen, where the
-           column is pinned right and the grip below is hidden. -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div
-        class="qs-resize-edge"
-        onmousedown={startSheetResize}
-        ondblclick={resetSheetSize}
-        role="separator"
-        aria-orientation="vertical"
-        aria-label={$t('queue.resizePanel')}
-      ></div>
-
-      <!-- Drag handle: toggles on click, resizes on drag -->
-      <div
-        class="qs-handle-bar"
-        onclick={handleSheetGripClick}
-        onmousedown={startSheetResize}
-        ondblclick={resetSheetSize}
-        title={$t('queue.resizePanel')}
-      >
-        <div class="qs-handle-pill"></div>
-      </div>
-
-      <!-- Sheet header -->
-      <div class="qs-header">
-        <div class="qs-header-left">
-          <h3 class="qs-title">{$t('queue.title')}</h3>
-          <span class="qs-count">{$queueTracks.length} {$t('common.tracks')}</span>
-          <!-- Le total ne bouge pas pendant qu'on ecoute : c'est ce qui reste
-               a entendre qu'on veut savoir (Dominique COMET). -->
-          {#if $upNextCount > 0}
-            <span class="qs-remaining">{$t('queue.upNextSummary').replace('{count}', String($upNextCount)).replace('{time}', formatDuration($upNextMs))}</span>
-          {:else if $queueTracks.length > 0}
-            <span class="qs-remaining">{$t('queue.nothingNext')}</span>
-          {/if}
-        </div>
-        <div class="qs-header-actions">
-          {#if $queueTracks.length > 0}
-            <button class="qs-action-btn" onclick={qsHandleSaveAsPlaylist} disabled={qsSavingQueue} title={$t('nowplaying.saveAsPlaylist')}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
-            </button>
-            <button class="qs-action-btn qs-clear-btn" onclick={qsHandleClearQueue} disabled={qsClearingQueue} title={`${$t('nowplaying.clearQueue')} — ${$t('queue.clearTip')}`}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-            </button>
-          {/if}
-          <button class="qs-close-btn" onclick={closeQueueSheet} title={$t('nowplaying.close')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Track list -->
-      <div class="qs-track-list">
-        <!-- 🔴 #1430 — `id` d'une ligne de file est `queue_items.id`, la piste
-             est `track_id`. Le menu « … » (« Autres versions », « Plus comme
-             ça », « Étiquettes », « Tous les champs piste »), `rangeableEnPlaylist`
-             et le bouton playlist visaient donc une AUTRE piste. `QueueV2`
-             applique déjà `pisteDeFile` ; les gestes de file (lire à ce rang,
-             glisser, retirer) travaillent à l'`index` et ne changent pas. -->
-        {#each $queueTracks as ligneDeFile, index}
-          {@const queueTrack = pisteDeFile(ligneDeFile)}
-          <div
-            class="qs-item"
-            class:qs-current={qsIsCurrent(index)}
-            class:qs-passee={index < $queuePosition}
-            class:qs-dragging={qsDragIndex === index}
-            class:qs-drop-above={qsDropIndex === index && qsDragIndex !== null && qsDragIndex > index}
-            class:qs-drop-below={qsDropIndex === index && qsDragIndex !== null && qsDragIndex < index}
-            draggable="true"
-            ondragstart={(e) => qsHandleDragStart(e, index)}
-            ondragover={(e) => qsHandleDragOver(e, index)}
-            ondragleave={qsHandleDragLeave}
-            ondrop={(e) => qsHandleDrop(e, index)}
-            ondragend={qsHandleDragEnd}
-            role="listitem"
-          >
-            {#if qsIsCurrent(index)}
-              <span class="qs-current-bar"></span>
-            {/if}
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <span class="qs-drag-handle" onclick={(e) => e.stopPropagation()}>
-              <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
-                <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />
-                <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
-                <circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" />
-              </svg>
-            </span>
-            <button class="qs-item-play" onclick={() => qsPlayFromPosition(index)}>
-              <span class="qs-index">{index + 1}</span>
-              {#if queueTrack.cover_path}
-                <img src={api.artworkSrc(queueTrack.cover_path)} alt="" width="36" height="36" loading="lazy" style="border-radius:5px;object-fit:cover;flex-shrink:0" />
-              {:else}
-                <AlbumArt albumId={queueTrack.album_id} size={36} alt={queueTrack.title} />
-              {/if}
-              <div class="qs-track-info">
-                <span class="qs-track-title truncate" title={queueTrack.title || $t('nowplaying.unknownTrack')}>{queueTrack.title || $t('nowplaying.unknownTrack')}</span>
-                {#if queueTrack.artist_name}
-                  <span class="qs-track-artist truncate" title={queueTrack.artist_name}>{queueTrack.artist_name}</span>
-                {/if}
-                <MetadataChips track={queueTrack} fields={$displayFields} />
-              </div>
-              <ServiceBadge source={queueTrack.source} compact />
-              {#if queueTrack.format}
-                {@const qTier = getQualityTier(queueTrack)}
-                <span class="qs-quality tier-{getQualityTierColor(qTier)}" title={formatQualityTooltip(queueTrack)}>{formatCompactQuality(queueTrack)}</span>
-              {/if}
-              <span class="qs-duration">{formatTime(queueTrack.duration_ms)}</span>
-            </button>
-            {#if onAddToPlaylist && rangeableEnPlaylist(queueTrack)}
-              <button class="qs-btn qs-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack); }} title={$t('queue.addToPlaylist')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-              </button>
-            {/if}
-            <MenuPisteV1 piste={queueTrack} />
-            <button class="qs-btn qs-remove-btn" onclick={(e) => { e.stopPropagation(); qsRemoveFromQueue(index); }} title={$t('queue.removeFromQueue')}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-            </button>
-          </div>
-        {/each}
-      </div>
-    </div>
+    {#if !fileSousLaBarre}
+      {@render feuilleFile()}
+    {/if}
   {/if}
 </div>
+
+<!--
+  La feuille de la file, rendue à UN de deux endroits (web#1800) : en colonne
+  à droite / feuille en bas (défaut), ou dépliée SUR PLACE sous la barre
+  d'avancement (`fileSousLaBarre`). Un seul balisage, pour que les deux
+  dispositions ne divergent pas.
+-->
+{#snippet feuilleFile()}
+  <div
+    class="queue-sheet"
+    class:peek={queueSheetState === 'peek'}
+    class:expanded={queueSheetState === 'expanded'}
+    class:dragging={sheetDragging || sheetResizing}
+    class:wide-layout={isWide && !fileSousLaBarre}
+    class:en-ligne={fileSousLaBarre}
+    style={fileSousLaBarre ? '' : sheetSizeStyle()}
+    bind:this={sheetEl}
+    ontouchstart={handleSheetTouchStart}
+    ontouchmove={handleSheetTouchMove}
+    ontouchend={handleSheetTouchEnd}
+  >
+    <!-- Left edge: the only resize affordance on a wide screen, where the
+         column is pinned right and the grip below is hidden. -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="qs-resize-edge"
+      onmousedown={startSheetResize}
+      ondblclick={resetSheetSize}
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={$t('queue.resizePanel')}
+    ></div>
+
+    <!-- Drag handle: toggles on click, resizes on drag -->
+    <div
+      class="qs-handle-bar"
+      onclick={handleSheetGripClick}
+      onmousedown={startSheetResize}
+      ondblclick={resetSheetSize}
+      title={$t('queue.resizePanel')}
+    >
+      <div class="qs-handle-pill"></div>
+    </div>
+
+    <!-- Sheet header -->
+    <div class="qs-header">
+      <div class="qs-header-left">
+        <h3 class="qs-title">{$t('queue.title')}</h3>
+        <span class="qs-count">{$queueTracks.length} {$t('common.tracks')}</span>
+        <!-- Le total ne bouge pas pendant qu'on ecoute : c'est ce qui reste
+             a entendre qu'on veut savoir (Dominique COMET). -->
+        {#if $upNextCount > 0}
+          <span class="qs-remaining">{$t('queue.upNextSummary').replace('{count}', String($upNextCount)).replace('{time}', formatDuration($upNextMs))}</span>
+        {:else if $queueTracks.length > 0}
+          <span class="qs-remaining">{$t('queue.nothingNext')}</span>
+        {/if}
+      </div>
+      <div class="qs-header-actions">
+        {#if $queueTracks.length > 0}
+          <button class="qs-action-btn" onclick={qsHandleSaveAsPlaylist} disabled={qsSavingQueue} title={$t('nowplaying.saveAsPlaylist')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
+          </button>
+          <button class="qs-action-btn qs-clear-btn" onclick={qsHandleClearQueue} disabled={qsClearingQueue} title={`${$t('nowplaying.clearQueue')} — ${$t('queue.clearTip')}`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+          </button>
+        {/if}
+        <button class="qs-close-btn" onclick={closeQueueSheet} title={$t('nowplaying.close')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Track list -->
+    <div class="qs-track-list">
+      <!-- 🔴 #1430 — `id` d'une ligne de file est `queue_items.id`, la piste
+           est `track_id`. Le menu « … » (« Autres versions », « Plus comme
+           ça », « Étiquettes », « Tous les champs piste »), `rangeableEnPlaylist`
+           et le bouton playlist visaient donc une AUTRE piste. `QueueV2`
+           applique déjà `pisteDeFile` ; les gestes de file (lire à ce rang,
+           glisser, retirer) travaillent à l'`index` et ne changent pas. -->
+      {#each $queueTracks as ligneDeFile, index}
+        {@const queueTrack = pisteDeFile(ligneDeFile)}
+        <div
+          class="qs-item"
+          class:qs-current={qsIsCurrent(index)}
+          class:qs-passee={index < $queuePosition}
+          class:qs-dragging={qsDragIndex === index}
+          class:qs-drop-above={qsDropIndex === index && qsDragIndex !== null && qsDragIndex > index}
+          class:qs-drop-below={qsDropIndex === index && qsDragIndex !== null && qsDragIndex < index}
+          draggable="true"
+          ondragstart={(e) => qsHandleDragStart(e, index)}
+          ondragover={(e) => qsHandleDragOver(e, index)}
+          ondragleave={qsHandleDragLeave}
+          ondrop={(e) => qsHandleDrop(e, index)}
+          ondragend={qsHandleDragEnd}
+          role="listitem"
+        >
+          {#if qsIsCurrent(index)}
+            <span class="qs-current-bar"></span>
+          {/if}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <span class="qs-drag-handle" onclick={(e) => e.stopPropagation()}>
+            <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+              <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />
+              <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
+              <circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" />
+            </svg>
+          </span>
+          <button class="qs-item-play" onclick={() => qsPlayFromPosition(index)}>
+            <span class="qs-index">{index + 1}</span>
+            {#if queueTrack.cover_path}
+              <img src={api.artworkSrc(queueTrack.cover_path)} alt="" width="36" height="36" loading="lazy" style="border-radius:5px;object-fit:cover;flex-shrink:0" />
+            {:else}
+              <AlbumArt albumId={queueTrack.album_id} size={36} alt={queueTrack.title} />
+            {/if}
+            <div class="qs-track-info">
+              <span class="qs-track-title truncate" title={queueTrack.title || $t('nowplaying.unknownTrack')}>{queueTrack.title || $t('nowplaying.unknownTrack')}</span>
+              {#if queueTrack.artist_name}
+                <span class="qs-track-artist truncate" title={queueTrack.artist_name}>{queueTrack.artist_name}</span>
+              {/if}
+              <MetadataChips track={queueTrack} fields={$displayFields} />
+            </div>
+            <ServiceBadge source={queueTrack.source} compact />
+            {#if queueTrack.format}
+              {@const qTier = getQualityTier(queueTrack)}
+              <span class="qs-quality tier-{getQualityTierColor(qTier)}" title={formatQualityTooltip(queueTrack)}>{formatCompactQuality(queueTrack)}</span>
+            {/if}
+            <span class="qs-duration">{formatTime(queueTrack.duration_ms)}</span>
+          </button>
+          {#if onAddToPlaylist && rangeableEnPlaylist(queueTrack)}
+            <button class="qs-btn qs-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack); }} title={$t('queue.addToPlaylist')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            </button>
+          {/if}
+          <MenuPisteV1 piste={queueTrack} />
+          <button class="qs-btn qs-remove-btn" onclick={(e) => { e.stopPropagation(); qsRemoveFromQueue(index); }} title={$t('queue.removeFromQueue')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        </div>
+      {/each}
+    </div>
+  </div>
+{/snippet}
 
 <!-- Lightbox overlay for hi-res artwork -->
 {#if showLightbox && resolvedCoverUrl}
@@ -4765,6 +4792,38 @@ import { ICONES } from '../../lib/menuPiste';
       max-width: 160px;
       opacity: 0.7;
     }
+  }
+
+  /* web#1800 — la file dépliée SUR PLACE, sous la barre d'avancement : dans
+     le flux de la colonne titres, sans glissement ni ombre portée, et sans
+     défilement propre — c'est `.np-scroll` qui fait défiler la page.
+     `.now-playing` en tête : l'emporte sur `.queue-sheet.expanded`, y
+     compris dans la requête de média mobile placée plus bas. */
+  .now-playing .queue-sheet.en-ligne {
+    position: static;
+    transform: none;
+    transition: none;
+    height: auto;
+    max-height: none;
+    width: 100%;
+    z-index: auto;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-lg, 12px);
+    box-shadow: none;
+  }
+  .now-playing .queue-sheet.en-ligne .qs-track-list {
+    overflow: visible;
+  }
+  .now-playing .queue-sheet.en-ligne .qs-handle-bar,
+  .now-playing .queue-sheet.en-ligne .qs-resize-edge {
+    display: none;
+  }
+  /* La colonne titres prend la place que la colonne de droite n'occupe plus.
+     Deux classes de plus que `.content-layout.wide .info-column` : l'emporte
+     aussi sur les paliers des très grands écrans, quel que soit l'ordre. */
+  .content-layout.wide.file-sous-barre .info-column {
+    flex: 1 1 auto;
+    max-width: none;
   }
 
   /* ─── Sheet Handle ──────────────────────────────────────────────────── */
