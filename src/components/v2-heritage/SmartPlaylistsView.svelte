@@ -23,6 +23,7 @@
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { optionOperateur } from '../../lib/smartPlaylistOperateurs';
+  import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   // La GRAMMAIRE des règles — champs, opérateurs offerts par champ, lecture
   // des règles stockées, mise en forme pour le serveur — a quitté ce fichier
   // pour `lib/smartPlaylistChamps` (#1150) : le nouveau client a désormais le
@@ -282,9 +283,9 @@
   };
 
   function parNom(a: SmartPlaylist, b: SmartPlaylist): number {
-    // `sensitivity: 'base'` : « Été » et « ete » se suivent. `numeric` pour que
-    // « Best 2 » vienne avant « Best 10 ».
-    return (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base', numeric: true });
+    // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956) :
+    // « Été » et « ete » se suivent, « Best 2 » vient avant « Best 10 ».
+    return comparerAlphabetique(a.name, b.name);
   }
 
   /**
