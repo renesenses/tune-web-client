@@ -36,6 +36,14 @@ import { activeStreamingService } from '../stores/streaming';
 import { currentProfileId } from '../stores/profile';
 import { currentZoneId } from '../stores/zones';
 import Q from './qobuz18Etiquettes.fixture.json';
+// #1794 — le coin « Étiquettes » de `PochetteActions` ouvre le panneau par un
+// `{#await import('./EtiquettesPanneau.svelte')}`. Sans cet import-ci, la
+// PREMIÈRE ouverture fait transformer le panneau par Vite PENDANT le cas, et
+// l'attente qui suit (`respirer`, comptée en tours) s'épuise avant qu'il soit
+// né quand la machine est chargée : « le panneau n'a interrogé aucune
+// étiquette ». L'importer ici fait payer cette transformation à la COLLECTE,
+// comme `etiquetterFicheAlbum1357` (même parade, même panneau).
+import '../../components/v2/EtiquettesPanneau.svelte';
 
 vi.setConfig({ testTimeout: 60_000 });
 
