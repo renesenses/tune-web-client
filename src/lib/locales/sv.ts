@@ -1543,6 +1543,7 @@ export default {
   "alarms.fadeIn": "Intoning ({value}s)",
   "playlistManager.linkCopied": "Länk kopierad till urklipp",
   "playlistManager.shareError": "Delningsfel",
+  "playlistManager.unknownSource": "Kan inte spela: den här spellistans tjänst är okänd",
   "playlistManager.mergeError": "Ihopslagningsfel: {error}",
   "playlistManager.errorGeneric": "Fel: {error}",
   "playlistManager.confirmDeleteCollab": "Ta bort den här samarbetsspellistan?",

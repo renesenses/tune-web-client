@@ -1652,6 +1652,7 @@ export default {
   "alarms.fadeIn": "Felúsztatás ({value} mp)",
   "playlistManager.linkCopied": "A hivatkozás a vágólapra másolva",
   "playlistManager.shareError": "Megosztási hiba",
+  "playlistManager.unknownSource": "Nem játszható le: a lejátszási lista szolgáltatása ismeretlen",
   "playlistManager.mergeError": "Összevonási hiba: {error}",
   "playlistManager.errorGeneric": "Hiba: {error}",
   "playlistManager.confirmDeleteCollab": "Törlöd ezt a közös lejátszási listát?",

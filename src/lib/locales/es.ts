@@ -1570,6 +1570,7 @@ export default {
   "alarms.fadeIn": "Fundido de entrada ({value}s)",
   "playlistManager.linkCopied": "Enlace copiado al portapapeles",
   "playlistManager.shareError": "Error al compartir",
+  "playlistManager.unknownSource": "No se puede reproducir: se desconoce el servicio de esta lista",
   "playlistManager.mergeError": "Error al fusionar: {error}",
   "playlistManager.errorGeneric": "Error: {error}",
   "playlistManager.confirmDeleteCollab": "¿Eliminar esta lista de reproducción colaborativa?",

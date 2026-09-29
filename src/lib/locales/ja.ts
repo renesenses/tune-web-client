@@ -1568,6 +1568,7 @@ export default {
   "alarms.fadeIn": "フェードイン ({value}秒)",
   "playlistManager.linkCopied": "リンクをクリップボードにコピーしました",
   "playlistManager.shareError": "共有エラー",
+  "playlistManager.unknownSource": "再生できません：このプレイリストのサービスが不明です",
   "playlistManager.mergeError": "結合エラー: {error}",
   "playlistManager.errorGeneric": "エラー: {error}",
   "playlistManager.confirmDeleteCollab": "この共同プレイリストを削除しますか？",

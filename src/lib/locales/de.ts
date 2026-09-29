@@ -1570,6 +1570,7 @@ export default {
   "alarms.fadeIn": "Einblenden ({value}s)",
   "playlistManager.linkCopied": "Link in die Zwischenablage kopiert",
   "playlistManager.shareError": "Fehler beim Teilen",
+  "playlistManager.unknownSource": "Wiedergabe nicht möglich: Der Dienst dieser Playlist ist unbekannt",
   "playlistManager.mergeError": "Fehler beim Zusammenführen: {error}",
   "playlistManager.errorGeneric": "Fehler: {error}",
   "playlistManager.confirmDeleteCollab": "Diese kollaborative Playlist löschen?",

@@ -166,13 +166,14 @@ describe('#1719 — la bascule d’affichage, la MÊME, sur les trois écrans', 
     ).toBe(true);
   });
 
-  it('🔴 Favoris › Playlists : la liste reste le défaut, la GRILLE devient possible', async () => {
+  it('🔴 Favoris › Playlists : depuis la liste, la GRILLE est possible', async () => {
+    // web#1650 : la grille est devenue le DÉFAUT. On part donc d'un choix
+    // « liste » RETENU, pour garder le passage liste → grille sous témoin.
+    localStorage.setItem('tune_v2_ecran_fav.playlists.display', 'list');
     const h = poser(FavoritesV2);
     await ongletFavoris(h, /playlist/i);
 
-    // Le défaut d'aujourd'hui ne bouge pas : personne ne voit son écran
-    // changer à la mise à jour.
-    expect(h.querySelector('.simples'), 'les playlists favorites ne sont plus en liste par défaut').toBeTruthy();
+    expect(h.querySelector('.simples'), 'le choix « liste » retenu n’est pas relu').toBeTruthy();
     const b = bascule(h);
     expect(b, 'aucune bascule d’affichage dans Favoris › Playlists').toBeTruthy();
     expect(b!.getAttribute('data-vue')).toBe('list');
@@ -197,6 +198,7 @@ describe('#1719 — la bascule d’affichage, la MÊME, sur les trois écrans', 
   });
 
   it('🔴 Favoris › Playlists : en LISTE, aucune mosaïque n’est demandée', async () => {
+    localStorage.setItem('tune_v2_ecran_fav.playlists.display', 'list');
     const h = poser(FavoritesV2);
     await ongletFavoris(h, /playlist/i);
     await respirer(120);
