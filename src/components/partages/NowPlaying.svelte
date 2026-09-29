@@ -1449,6 +1449,13 @@ import { ICONES } from '../../lib/menuPiste';
   let npMiddlePressTs = -Infinity; // when the wheel was last pressed (see #1261)
 
   function handleNpWheel(e: WheelEvent) {
+    // web#1762 : le geste n'existe que si l'utilisateur l'a demandé
+    // (Réglages ▸ Affichage ▸ « Ouvrir la file en faisant défiler »,
+    // décoché par défaut). La molette reste alors à la page.
+    if ($preferences.ouvrirFileAuDefilement !== true) {
+      npWheelAccum = 0;
+      return;
+    }
     // #1261: a wheel PRESS is not a scroll. Pressing the wheel almost always
     // rotates it a little, and that rotation is a real wheel event — which is
     // why blocking Firefox's autoscroll stopped the view from jumping but left

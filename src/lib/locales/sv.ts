@@ -3488,6 +3488,8 @@ export default {
   "settings.sidebarSourcesHint": "En brytare per typ: en markerad typ visas alltid, nedtonad när den inte är tillgänglig. Som standard är bara de typer som finns på datorn markerade.",
   "settings.animationRate": "Animationernas mjukhet",
   "settings.animationRateHint": "Nivåmätarna och spektrumet på skärmen Spelas nu. Mindre mjukt betyder mindre arbete för webbläsaren — och ljudet rörs aldrig.",
+  "settings.openQueueOnScroll": "Öppna kön genom att scrolla",
+  "settings.openQueueOnScrollHint": "På skärmen Spelas nu öppnar en scrollning nedåt med mushjulet kön. Avstängt öppnas kön bara med sin knapp.",
   "settings.animationRateSmooth": "Mjuk — dagens visning",
   "settings.animationRateSaving": "Sparsam — omkring 30 % mindre processor",
   "settings.animationRateMinimal": "Minimal — omkring 40 % mindre, mätarna rör sig lite ryckigt",

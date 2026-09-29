@@ -3509,6 +3509,8 @@ export default {
   "settings.sidebarSourcesHint": "One switch per type: a checked type always shows, greyed out when unavailable. By default, only the types present on the machine are checked.",
   "settings.animationRate": "Animation smoothness",
   "settings.animationRateHint": "The level meters and the spectrum on the Now playing screen. Less smooth means less work for the browser — and the sound is never touched.",
+  "settings.openQueueOnScroll": "Open the queue by scrolling",
+  "settings.openQueueOnScrollHint": "On the Now Playing screen, scrolling down with the mouse wheel opens the queue. When off, the queue only opens with its button.",
   "settings.animationRateSmooth": "Smooth — today's display",
   "settings.animationRateSaving": "Economical — about 30% less processor",
   "settings.animationRateMinimal": "Minimal — about 40% less, the meters look a little steppy",

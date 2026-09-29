@@ -3489,6 +3489,8 @@ export default {
   "settings.sidebarSourcesHint": "Un interruttore per tipo: un tipo selezionato appare sempre, in grigio quando non è disponibile. Per impostazione predefinita sono selezionati solo i tipi presenti sulla macchina.",
   "settings.animationRate": "Fluidità delle animazioni",
   "settings.animationRateHint": "Gli indicatori di livello e lo spettro della schermata In riproduzione. Meno fluido significa meno lavoro per il browser, e il suono non viene mai toccato.",
+  "settings.openQueueOnScroll": "Apri la coda scorrendo",
+  "settings.openQueueOnScrollHint": "Nella schermata In riproduzione, scorrere verso il basso con la rotella del mouse apre la coda. Se disattivato, la coda si apre solo con il suo pulsante.",
   "settings.animationRateSmooth": "Fluido: la resa di oggi",
   "settings.animationRateSaving": "Economico: circa il 30 % di processore in meno",
   "settings.animationRateMinimal": "Minimo: circa il 40 % in meno, gli indicatori appaiono un po' a scatti",

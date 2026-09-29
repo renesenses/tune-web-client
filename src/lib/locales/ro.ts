@@ -3489,6 +3489,8 @@ export default {
   "settings.sidebarSourcesHint": "Un comutator pe tip: un tip bifat apare mereu, estompat când nu este disponibil. Implicit, sunt bifate doar tipurile prezente pe mașină.",
   "settings.animationRate": "Fluiditatea animațiilor",
   "settings.animationRateHint": "Indicatoarele de nivel și spectrul din ecranul În redare. Mai puțin fluid înseamnă mai puțină muncă pentru browser — iar sunetul nu este atins niciodată.",
+  "settings.openQueueOnScroll": "Deschide coada prin derulare",
+  "settings.openQueueOnScrollHint": "În ecranul Se redă acum, derularea în jos cu rotița mouse-ului deschide coada. Dezactivat, coada se deschide doar cu butonul ei.",
   "settings.animationRateSmooth": "Fluid — afișarea de astăzi",
   "settings.animationRateSaving": "Economic — cu circa 30 % mai puțin procesor",
   "settings.animationRateMinimal": "Minim — cu circa 40 % mai puțin, indicatoarele par ușor sacadate",
