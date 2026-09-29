@@ -20,6 +20,7 @@
  */
 import { tick } from 'svelte';
 import { activeView, type View } from './stores/navigation';
+import { viserDetail } from './historiqueCoquille';
 
 export async function ouvrirParRaccourci(
   vue: Extract<View, 'playlists' | 'smartplaylists' | 'collections'>,
@@ -27,6 +28,13 @@ export async function ouvrirParRaccourci(
   id: number,
   nom: string,
 ): Promise<void> {
+  // web#1661 — `PlaylistsV2` rouvre la playlist en posant CETTE clé
+  // (`playlists:12`) dans `detailOuvert`. Sans intention, le geste coûtait
+  // DEUX entrées (`#playlists`, puis `#playlists/playlists:12`) et le premier
+  // Précédent retombait sur la liste des playlists, jamais vue. L'entrée
+  // composée de #1142 n'en écrit qu'une. Les autres écrans d'arrivée ne
+  // posent aucune clé : pas d'intention pour eux.
+  if (vue === 'playlists') viserDetail(cle);
   activeView.set(vue);
   await tick();
   window.dispatchEvent(
