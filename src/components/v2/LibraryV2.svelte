@@ -835,9 +835,7 @@
    * sont dans `lib/affichage`, le bouton dans `BasculeAffichage.svelte`, et
    * cet écran n'en garde que ce qui lui est propre : le troisième cran.
    */
-  // web#1801 : les SEULS modes de la Bibliothèque. `Affichage` connaît aussi
-  // `bigGrid`, que cet écran ne rend pas.
-  type Display = Extract<Affichage, (typeof AFFICHAGES)[number]>;
+  type Display = Affichage;
   /**
    * 🔴 `lireChoix` VALIDE contre cette liste : un `'carousel'` écrit puis
    * retiré de `AFFICHAGES` retomberait silencieusement sur la grille. C'est ce
@@ -2408,7 +2406,7 @@
            existe qu'une définition. Cet écran ne lui apporte que ses modes
            (`modesAffichage`) et son état retenu (`lib.display`). -->
       <BasculeAffichage modes={modesAffichage} valeur={display}
-        onChanger={(v) => (display = v as Display)} />
+        onChanger={(v) => (display = v)} />
     {/if}
   </div>
 
@@ -2546,11 +2544,11 @@
            par titre, à cette lettre. Pas de `navMode` ici : cet onglet n'a
            pas de frise. -->
       {@render railAZ()}
-      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display} />
+      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'list' ? 'list' : 'grid'} />
     {:else if tab === 'coffrets'}
       <!-- Le clic ouvre la fiche d'album habituelle : celle qui, depuis la
            v0.9.162, affiche un en-tête par disque. -->
-      <CoffretsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display} />
+      <CoffretsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'list' ? 'list' : 'grid'} />
     {:else if tab === 'artists'}
       <!-- Les artistes ont leur PROPRE source, `/library/artists`, et non une
            déduction depuis les albums chargés. Ils ne passent donc pas par les
