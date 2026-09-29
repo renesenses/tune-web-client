@@ -49,6 +49,7 @@
    * serveur ne les liste pas par étiquette. On ne les annonce donc pas.
    */
   import { onMount, untrack } from 'svelte';
+  import { get } from 'svelte/store';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { zoneRequise } from '../../lib/zoneRequise';
   import * as api from '../../lib/api';
@@ -80,7 +81,7 @@
   // pochette d'une playlist finirait par diverger de celle-là.
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import { quatreDistinctes } from '../../lib/mosaique';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { corpsDeLecture } from '../../lib/pisteFile';
   import { ouvrirParRaccourci, ouvrirSmartPlaylist, ouvrirCollection } from '../../lib/ouvrirParRaccourci';
@@ -123,11 +124,21 @@
     fermerDetailEnReculant(fermerCalqueAlbum);
   }
   $effect(() => {
-    if ($detailOuvert == null && albumOuvert) fermerCalqueAlbum();
+    // web#1661 — l'étiquette ouverte porte désormais SA clé dans l'entrée :
+    // reculer depuis l'album ramène à elle, plus à `null`.
+    if (albumOuvert && ($detailOuvert == null || (ouverte != null && $detailOuvert === cleEtiquetteOuverte(ouverte)))) {
+      fermerCalqueAlbum();
+    }
   });
 
   type Famille = 'albums' | 'artistes' | 'pistes' | 'listes' | 'dossiers';
   let famille = $state<Famille>('albums');
+
+  /** Un clic sur un onglet : on le montre ET on s'en souvient (web#1661). */
+  function choisirFamille(f: Famille) {
+    famille = f;
+    if (ouverte?.id != null) ongletsRegardes.set(ouverte.id, f);
+  }
 
   const ONGLETS: { id: Famille; cle: string }[] = [
     { id: 'albums', cle: 'favorites.albums' },
@@ -350,6 +361,61 @@
    */
   const cleCible = (tag: UserTag) => `tags:${tag.id}`;
 
+  /**
+   * 🔴 L'ÉTIQUETTE OUVERTE EMPILE UNE ENTRÉE D'HISTORIQUE — web#1661.
+   *
+   * FabienM, fil 1990 point 3 : « Le bouton BACK du navigateur ne revient pas
+   * à l'endroit souhaité quand j'ouvre une playlist. Il revient à la page
+   * d'accueil de l'étiquette alors qu'il devrait revenir à l'onglet Playlists
+   * de l'étiquette ».
+   *
+   * MESURÉ en montant `ShellV2` (`precedentEtiquetteOnglet1661.test.ts`,
+   * avant correctif) : ouvrir l'étiquette n'écrivait RIEN (`#tags`, détail
+   * `null`) ; ouvrir la playlist change de vue, l'écran est démonté ; le
+   * Précédent repose `#tags` et remonte un écran NEUF, `ouverte` à `null` :
+   * la liste de TOUTES les étiquettes. Le chemin ne passe jamais par
+   * `tune:shortcut-restore`.
+   *
+   * L'étiquette ouverte pose donc sa clé dans `detailOuvert`, comme les
+   * calques (#980) : ouvrir empile, le Retour referme ET dépile, le Précédent
+   * referme — et un écran remonté sur cette clé rouvre l'étiquette, sur
+   * l'onglet qu'on regardait (`ongletsRegardes`). Une clé, jamais l'objet.
+   */
+  const cleEtiquetteOuverte = (tag: UserTag) => `etiquette:${tag.id}`;
+
+  function retourEtiquette() {
+    const cle = ouverte ? cleEtiquetteOuverte(ouverte) : null;
+    if (cle != null && entreeCourantePorte(cle)) {
+      fermerDetailEnReculant(() => { ouverte = null; });
+      return;
+    }
+    ouverte = null;
+    if (cle != null && get(detailOuvert) === cle) fermerDetail();
+  }
+
+  /** Rouvrir, depuis l'entrée d'historique, l'étiquette qu'elle porte. */
+  async function rouvrirDepuisHistorique(id: number) {
+    let tag = etiquettes.find((x) => x.id === id);
+    if (!tag) { await charger(); tag = etiquettes.find((x) => x.id === id); }
+    // Le Précédent a pu repartir entre-temps : on n'ouvre que ce que
+    // l'entrée courante demande encore.
+    if (!tag || get(detailOuvert) !== `etiquette:${id}`) return;
+    void ouvrir(tag, { famille: ongletsRegardes.get(id) as Famille | undefined });
+  }
+
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      // Reculé jusqu'à la racine de l'écran : l'étiquette se referme.
+      if (voulu == null) { if (ouverte) ouverte = null; return; }
+      const m = /^etiquette:(\d+)$/.exec(voulu);
+      if (!m) return;
+      const id = Number(m[1]);
+      if (ouverte?.id === id) return;
+      void rouvrirDepuisHistorique(id);
+    });
+  });
+
   $effect(() => {
     const auRetour = async (ev: Event) => {
       const cible = (ev as CustomEvent).detail?.target;
@@ -369,6 +435,12 @@
   // Quitter l'écran oublie la cible : sinon le raccourci suivant capturerait
   // une étiquette qu'on ne regarde plus.
   $effect(() => () => clearShortcutTarget());
+  // web#1661 — la clé posée par cet écran part avec lui. Dans la coquille, un
+  // changement de vue l'a déjà remplacée avant le démontage (rien à faire) ;
+  // hors coquille, elle ferait rouvrir l'étiquette au montage suivant.
+  $effect(() => () => {
+    if (/^etiquette:/.test(get(detailOuvert) ?? '')) fermerDetail();
+  });
 
   /**
    * #1659 — une pose ou un retrait fait depuis le panneau Étiquettes, par-dessus
@@ -384,10 +456,16 @@
     return () => window.removeEventListener(EVENEMENT_ETIQUETTE_MODIFIEE, aChange);
   });
 
-  async function ouvrir(tag: UserTag, { recharger = false }: { recharger?: boolean } = {}) {
+  async function ouvrir(
+    tag: UserTag,
+    { recharger = false, famille: voulue }: { recharger?: boolean; famille?: Famille } = {},
+  ) {
     ouverte = tag;
     setShortcutTarget({ key: cleCible(tag), restore: { id: tag.id, name: tag.name }, label: tag.name });
     if (!recharger) {
+      // web#1661 — l'entrée d'historique porte l'étiquette. Déjà posée (retour
+      // par l'historique) : le magasin ne change pas, rien n'est empilé.
+      ouvrirDetail(cleEtiquetteOuverte(tag));
       albums = []; artistes = []; pistes = []; listes = []; dossiers = [];
       famille = 'albums';
       albumsChargement = true;
@@ -425,7 +503,14 @@
     // On se pose sur la première famille NON VIDE : ouvrir une étiquette qui
     // ne porte que des artistes sur un onglet Albums vide se lit comme une
     // panne, et c'est exactement le défaut signalé.
-    if (!recharger) famille = ONGLETS.find((o) => compte[o.id] > 0)?.id ?? 'albums';
+    //
+    // web#1661 — SAUF au retour par l'historique : l'onglet qu'on regardait,
+    // s'il a encore quelque chose à montrer.
+    if (!recharger) {
+      famille = ONGLETS.find((o) => compte[o.id] > 0)?.id ?? 'albums';
+      if (voulue && compte[voulue] > 0) famille = voulue;
+      if (tag.id != null) ongletsRegardes.set(tag.id, famille);
+    }
     albumsChargement = false;
   }
 
@@ -469,12 +554,25 @@
   });
 </script>
 
+<script module lang="ts">
+  /**
+   * web#1661 — l'onglet regardé, PAR étiquette, qui survit au démontage.
+   *
+   * L'écran est démonté dès qu'on le quitte (`ShellV2` : `{#if $activeView
+   * === 'tags'}`) : `famille` est un `$state` local et meurt avec lui. Le
+   * Précédent qui y ramène remonte un écran neuf ; sans cette mémoire, il
+   * retomberait sur le premier onglet non vide. Une chaîne par identifiant,
+   * jamais un proxy.
+   */
+  const ongletsRegardes = new Map<number, string>();
+</script>
+
 <section class="v2-tags tune-v2">
   {#if ouverte}
     {@const tag = ouverte}
     <header class="v2-top detail">
       <div class="v2-titres">
-        <button class="back" onclick={() => (ouverte = null)}>← {$t('common.back' as any)}</button>
+        <button class="back" onclick={retourEtiquette}>← {$t('common.back' as any)}</button>
         <div class="v2-eyebrow">{$t('v2.tags.eyebrow' as any)}</div>
         <h1><span class="pastille" style={tag.color ? `--c:${tag.color}` : ''}></span>{tag.name}</h1>
         <!-- Le total porte sur les QUATRE familles, et chaque onglet porte le
@@ -492,7 +590,7 @@
     {:else}
       <nav class="onglets">
         {#each ONGLETS as o (o.id)}
-          <button class:on={famille === o.id} onclick={() => (famille = o.id)}>
+          <button class:on={famille === o.id} onclick={() => choisirFamille(o.id)}>
             {$t(o.cle as any)}<span>{compte[o.id]}</span>
           </button>
         {/each}

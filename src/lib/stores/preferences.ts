@@ -342,6 +342,20 @@ export interface Preferences {
    */
   cadenceAnimations: CranCadence;
   /**
+   * « Ouvrir la file en faisant défiler » — web#1762, Bertrand, 28/09/2026.
+   *
+   * Dans « Lecture en cours », 130 px de molette vers le bas faisaient passer
+   * la feuille de la file en `peek` : la file semblait s'ouvrir toute seule.
+   * Le geste devient un CHOIX, DÉCOCHÉ par défaut (décision du 29/09/2026).
+   * Le bouton de la file et les autres gestes ne changent pas.
+   *
+   * Rangé ici comme les autres réglages de l'écran (`cadenceAnimations`,
+   * `afficherBoutonStop`) : `ui_preferences`, synchronisé serveur. Un blob
+   * enregistré qui ne connaît pas la clé reçoit le défaut par la fusion
+   * `{ ...defaults, ...raw }` de `loadPrefs`.
+   */
+  ouvrirFileAuDefilement: boolean;
+  /**
    * Les types de sources affichés dans la barre latérale — une case par type
    * (tune-server-rust#5065, étape 3). Rangé TYPE PAR TYPE : un type absent
    * n'est pas décidé et suit la présence ; vu présent, il est figé coché.
@@ -403,6 +417,9 @@ const defaults: Preferences = {
   // réelle et mesurée, mais elle SE VOIT — elle se propose, elle ne s'impose
   // pas. Personne ne doit voir son affichage changer sans l'avoir demandé.
   cadenceAnimations: CRAN_CADENCE_DEFAUT,
+  // web#1762 : DÉCOCHÉ — la molette ne révèle plus la file sans qu'on l'ait
+  // demandé.
+  ouvrirFileAuDefilement: false,
   sourcesBarre: null,
 };
 
