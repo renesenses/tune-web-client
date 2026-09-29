@@ -50,7 +50,7 @@
   import MenuObjetV2 from './MenuObjetV2.svelte';
   import PisteActions from './PisteActions.svelte';
   import BasculeAffichage from './BasculeAffichage.svelte';
-  import { GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
+  import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import {
     elementsDuSas,
@@ -83,7 +83,14 @@
    */
   const CLE_VUE = 'later.display';
   const CLE_TRI = 'later.sort';
-  let affichage = $state<Affichage>(lireChoix(CLE_VUE, GRILLE_OU_LISTE, 'grid'));
+  /**
+   * web#1802, suite — trois crans : liste, petite vignette (`grid`), grande
+   * vignette (`gridLarge`). 🔴 Un choix `grid` déjà retenu reste `grid` : c'est
+   * EXACTEMENT la grille d'avant (148 px), donc la petite vignette. Aucune
+   * valeur à réécrire, et personne ne voit son écran changer.
+   */
+  let affichage = $state<AffichageEtendu>(lireChoix(CLE_VUE, LISTE_ET_DEUX_GRILLES, 'grid'));
+  const LIBELLES_VUE = { grid: 'v2.later.viewSmall' } as const;
   const triRetenu = lireChoix<string>(CLE_TRI, TRIS_SAS, '');
   let choixTri = $state<TriSas | null>(triRetenu === '' ? null : (triRetenu as TriSas));
 
@@ -94,7 +101,7 @@
   /** Les titres dans l'ordre AFFICHÉ — la suite de « Lire à partir d'ici ». */
   const pistesAffichees = $derived(affiches.filter((e) => e.genre === 'track').map((e) => e.ligne as Track));
 
-  function changerVue(v: Affichage) {
+  function changerVue(v: AffichageEtendu) {
     affichage = v;
     ecrireChoix(CLE_VUE, v);
   }
@@ -226,7 +233,8 @@
             {/each}
           </select>
         </label>
-        <BasculeAffichage modes={GRILLE_OU_LISTE} valeur={affichage} onChanger={changerVue} />
+        <BasculeAffichage modes={LISTE_ET_DEUX_GRILLES} valeur={affichage} onChanger={changerVue}
+          iconeDeDestination libelles={LIBELLES_VUE} />
       </div>
     {/if}
   </header>
@@ -257,8 +265,8 @@
     <div class="etat">{$t('common.loading' as any)}</div>
   {:else if total === 0}
     <div class="etat">{$t('v2.later.empty' as any)}</div>
-  {:else if affichage === 'grid'}
-    <div class="grille" data-vue="grid" data-tri={tri}>
+  {:else if affichage === 'grid' || affichage === 'gridLarge'}
+    <div class="grille" class:grande={affichage === 'gridLarge'} data-vue={affichage} data-tri={tri}>
       {#each affiches as e, i (cle(e))}
         {@const locale = e.ligne.id != null}
         {#if debutDeFamille(i)}<h2 class="fam dans-grille">{$t(INTERTITRE[e.genre] as any)}</h2>{/if}
@@ -380,6 +388,7 @@
   .lire svg{width:14px; height:14px}
 
   .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(148px, 1fr)); gap:22px 18px; padding:12px 30px 24px}
+  .grille.grande{grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:28px 24px}
   .carte{display:flex; flex-direction:column; content-visibility:auto; contain-intrinsic-size:auto 210px}
   .cv{position:relative; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden}
   .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
