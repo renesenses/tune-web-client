@@ -15,6 +15,10 @@
   import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { conserverRetourConvertisseur, consommerRetourConvertisseur } from '../../lib/retourConvertisseur';
+  import {
+    tachesConversion, ajouter, avecStatut, avecTelechargement, sans, fusionner, aSonder,
+  } from '../../lib/convertisseurTaches';
+  import { ligneFormat } from '../../lib/ligneFormatConvertisseur';
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
   import { albums } from '../../lib/stores/library';
@@ -40,10 +44,9 @@
   let picked = $state<Set<number>>(new Set(retour?.picked ?? []));
   let presetId = $state<string | null>(retour?.presetId ?? null);
 
-  let jobId = $state<string | null>(retour?.jobId ?? null);
-  let job = $state<Awaited<ReturnType<typeof api.getConversionStatus>> | null>(retour?.job ?? null);
+  // #1804 — les tâches vivent HORS du composant (`convertisseurTaches`) :
+  // quitter l'écran ne les perd plus, en lancer une autre ne les écrase plus.
   let starting = $state(false);
-  let downloadUrl = $state<string | null>(retour?.downloadUrl ?? null);
 
   $effect(() => {
     Promise.allSettled([api.getConverterCapabilities(), api.getConverterPresets()])
@@ -123,9 +126,30 @@
     picked = next;
   }
 
+  // #1804 — au montage, ce que le serveur connaît : une conversion lancée
+  // avant un rechargement de la page, ou depuis un autre appareil. Un serveur
+  // qui n'a pas encore la route (404) laisse l'écran tel qu'avant.
+  $effect(() => {
+    api.listConversions()
+      .then((liste) => { if (alive && Array.isArray(liste)) tachesConversion.update((ts) => fusionner(ts, liste)); })
+      .catch(() => { /* serveur antérieur : rien à reprendre */ });
+  });
+
+  /** La ligne d'information du format, sans séparateur orphelin (#1804). */
+  const ligne = $derived(ligneFormat(
+    preset,
+    $albums.filter((a) => a.id != null && picked.has(a.id)),
+    {
+      originalRate: $t('v2.conv.originalRate' as any),
+      fromDsd: $t('v2.conv.fromDsd' as any),
+      bits: $t('v2.conv.bits' as any),
+    },
+    (khz) => $formatNombre(khz),
+  ));
+
   async function start() {
     if (!preset || !picked.size || starting) return;
-    starting = true; error = null; downloadUrl = null;
+    starting = true; error = null;
     try {
       // Le serveur attend un tableau PLAT de sources, et des nombres pour
       // sample_rate/bit_depth — pas des chaînes (#1094/#1095).
@@ -137,41 +161,47 @@
         Number.isFinite(rate) && rate > 0 ? rate : null,
         Number.isFinite(depth) && depth > 0 ? depth : null,
       );
-      jobId = res.job_id;
-      job = null;
+      const libelle = `${preset.label} — ${(picked.size > 1 ? $t('v2.tool.pickedMany' as any) : $t('v2.tool.pickedOne' as any)).replace('{count}', String(picked.size))}`;
+      tachesConversion.update((ts) => ajouter(ts, res.job_id, libelle));
     } catch (e: any) {
       error = e?.message ?? $t('v2.tool.errStart' as any);
     }
     starting = false;
   }
 
-  // Suivi : uniquement tant que la tâche tourne.
+  // Suivi : chaque tâche sans statut ou en cours, tant que l'écran est
+  // monté. Démonté, le serveur continue ; au retour, le sondage reprend.
+  // L'effet ne dépend que de la LISTE des tâches à sonder, pas de leur
+  // statut : une mise à jour de progression ne le relance pas.
+  const aSonderIds = $derived($tachesConversion.filter(aSonder).map((t) => t.jobId).join('\n'));
   $effect(() => {
-    const jid = jobId;
-    if (!jid) return;
-    let alive = true;
+    const ids = aSonderIds ? aSonderIds.split('\n') : [];
+    if (!ids.length) return;
+    let vivant = true;
+    let minuterie: ReturnType<typeof setTimeout> | undefined;
     const tick = async () => {
-      if (!alive) return;
-      try {
-        const s = await api.getConversionStatus(jid);
-        if (!alive) return;
-        job = s;
-        if (s.state === 'converting') setTimeout(tick, 1200);
-      } catch { /* la tâche a peut-être disparu */ }
+      for (const id of ids) {
+        if (!vivant) return;
+        try {
+          const s = await api.getConversionStatus(id);
+          if (vivant) tachesConversion.update((ts) => avecStatut(ts, id, s));
+        } catch { /* la tâche a peut-être disparu : on réessaie au tour suivant */ }
+      }
+      if (vivant) minuterie = setTimeout(tick, 1200);
     };
     tick();
-    return () => { alive = false; };
+    return () => { vivant = false; clearTimeout(minuterie); };
   });
 
-  async function download() {
-    if (!jobId) return;
-    try { downloadUrl = await api.downloadConversion(jobId); }
-    catch { error = $t('v2.tool.errDownload' as any); }
+  async function download(jobId: string) {
+    try {
+      const url = await api.downloadConversion(jobId);
+      tachesConversion.update((ts) => avecTelechargement(ts, jobId, url));
+    } catch { error = $t('v2.tool.errDownload' as any); }
   }
-  async function cancel() {
-    if (!jobId) return;
+  async function cancel(jobId: string) {
     try { await api.cancelConversion(jobId); } catch { /* déjà finie */ }
-    jobId = null; job = null;
+    tachesConversion.update((ts) => sans(ts, jobId));
   }
 
   async function localiser(album: Album) {
@@ -182,9 +212,7 @@
       if (!alive || starting) return;
       const dossier = dossierDeLAlbum(tracks);
       if (!dossier) { error = $t('converter.folderUnavailable'); return; }
-      conserverRetourConvertisseur('v2', {
-        q, picked: [...picked], presetId, jobId, job, downloadUrl,
-      });
+      conserverRetourConvertisseur('v2', { q, picked: [...picked], presetId });
       vueDeRetour.set('converter');
       ouvrirLeRepertoire(dossier);
       activeView.set('browse');
@@ -223,9 +251,9 @@
             </button>
           {/each}
         </div>
-        {#if preset}
+        {#if preset && ligne}
           <div class="pinfo">
-            {preset.format?.toUpperCase()} · {preset.sample_rate} · {preset.bit_depth}
+            {ligne}
             {#if preset.estimated_size_per_min}<span>≈ {preset.estimated_size_per_min} / min</span>{/if}
           </div>
         {/if}
@@ -234,12 +262,17 @@
         {/if}
       </div>
 
-      {#if jobId}
+      <!-- #1804 — TOUTES les tâches, la plus récente d'abord : une tâche
+           terminée reste, avec son téléchargement, quand on en lance une
+           autre. -->
+      {#each $tachesConversion as tache (tache.jobId)}
+        {@const job = tache.job}
         <div class="job">
           <div class="jh">
-            <h2>{$t('v2.conv.running' as any)}</h2>
-            <button class="lnk danger" onclick={cancel}>{$t('v2.tool.cancel' as any)}</button>
+            <h2>{job?.state === 'done' ? $t('v2.tool.done' as any) : job?.state === 'error' ? $t('v2.tool.failed' as any) : $t('v2.conv.running' as any)}</h2>
+            <button class="lnk danger" onclick={() => cancel(tache.jobId)}>{$t('v2.tool.cancel' as any)}</button>
           </div>
+          {#if tache.libelle}<div class="jl">{tache.libelle}</div>{/if}
           {#if job}
             <div class="bar"><span style="width:{Math.min(100, Math.round(job.progress ?? 0))}%"></span></div>
             <div class="jl">
@@ -249,10 +282,10 @@
             {#if job.state === 'done'}
               <div class="done">
                 {$t('v2.tool.done' as any)}{#if job.download_size} — {job.download_size}{/if}
-                {#if downloadUrl}
-                  <a class="lnk" href={downloadUrl} download>{$t('v2.tool.saveFile' as any)}</a>
+                {#if tache.downloadUrl}
+                  <a class="lnk" href={tache.downloadUrl} download>{$t('v2.tool.saveFile' as any)}</a>
                 {:else}
-                  <button class="lnk" onclick={download}>{$t('v2.tool.prepareDownload' as any)}</button>
+                  <button class="lnk" onclick={() => download(tache.jobId)}>{$t('v2.tool.prepareDownload' as any)}</button>
                 {/if}
               </div>
             {:else if job.state === 'error'}
@@ -262,7 +295,7 @@
             <div class="jl">{$t('v2.tool.jobStarting' as any)}</div>
           {/if}
         </div>
-      {/if}
+      {/each}
 
       <div class="pick">
         <div class="ph">

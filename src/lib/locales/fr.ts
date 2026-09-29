@@ -2649,6 +2649,9 @@ export default {
   "v2.conv.albumsToConvert": "Albums à convertir",
   "v2.conv.sourceFolder": "Dossier d'origine :",
   "v2.conv.start": "Convertir",
+  "v2.conv.originalRate": "fréquence d'origine",
+  "v2.conv.fromDsd": "DSD → {rate}",
+  "v2.conv.bits": "{n} bits",
   // v2 — Dé-ploc
   "v2.declick.title": "Dé-ploc",
   "v2.declick.leadA": "Retire les artefacts laissés par un encodage : retard d'encodeur, bourrage de fin, clics aux jointures. Le résultat est ré-exporté",

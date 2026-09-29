@@ -2647,6 +2647,9 @@ export default {
   "v2.conv.albumsToConvert": "Albums to convert",
   "v2.conv.sourceFolder": "Source folder:",
   "v2.conv.start": "Convert",
+  "v2.conv.originalRate": "original sample rate",
+  "v2.conv.fromDsd": "DSD → {rate}",
+  "v2.conv.bits": "{n}-bit",
   // v2 — De-click
   "v2.declick.title": "De-click",
   "v2.declick.leadA": "Removes the artefacts left by an encoder: encoder delay, end padding, clicks at the joins. The result is re-exported",

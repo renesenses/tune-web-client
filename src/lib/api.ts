@@ -8185,6 +8185,14 @@ export function getConversionStatus(jobId: string): Promise<{
   return fetchJSON(`${BASE}/converter/status/${encodeURIComponent(jobId)}`);
 }
 
+/** Les tâches que le serveur connaît encore, en cours ou terminées — chacune
+ *  dans la forme de `getConversionStatus`, plus son `job_id` (#1804,
+ *  tune-server-rust#5480). Un serveur qui n'a pas encore la route répond 404 :
+ *  l'appelant l'ignore, l'écran fait alors comme avant. */
+export function listConversions(): Promise<Array<Awaited<ReturnType<typeof getConversionStatus>> & { job_id: string }>> {
+  return fetchJSON(`${BASE}/converter/jobs`);
+}
+
 export async function downloadConversion(jobId: string): Promise<string> {
   const token = getToken();
   const headers: Record<string, string> = {};
