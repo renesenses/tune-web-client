@@ -93,8 +93,11 @@ export function largeurBloc(n: 1 | 2): number {
   return n * COTE_GRILLE + (n - 1) * GOUTTIERE_GRILLE;
 }
 
-/** La période du nouvel écran. Voir l'en-tête : sept jours, pas trente. */
-const PERIODE = '7d' as const;
+/** La période du nouvel écran. Voir l'en-tête : sept jours, pas trente.
+ *  🔴 #1781 : le message vide des blocs de période (`dashboard.emptyLast7Days`)
+ *  NOMME ces sept jours. Changer la période, c'est changer ce texte aussi —
+ *  `tableauDeBordVide1781.test.ts` le rappelle. */
+export const PERIODE = '7d' as const;
 /** Combien de jours la tendance dessine — la période, jour pour jour. */
 const JOURS_TENDANCE = 7;
 /** Au-delà, les genres se replient derrière « voir plus » (comme avant). */

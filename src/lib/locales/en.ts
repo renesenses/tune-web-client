@@ -815,6 +815,8 @@ export default {
   "dashboard.completion.completed": "30 s or more",
   "dashboard.completion.skipped": "Less than 30 s",
   'dashboard.empty': 'No listening history yet. Start something 🎶',
+  "dashboard.onThisDayEmpty": "No plays on this date in previous years.",
+  "dashboard.emptyLast7Days": "Nothing to show for the last 7 days.",
 
   // Equalizer
   'settings.eqBandsTitle': "Expert equalizer",
@@ -839,6 +841,10 @@ export default {
   'eq.deletePreset': 'Delete',
   'eq.presetSaved': 'Preset "{name}" saved',
   'eq.presetSaveFailed': 'Could not save preset',
+  'eq.save': 'Save',
+  'eq.saveAs': 'Save as…',
+  'eq.saveTitle': 'Save changes to "{name}"',
+  'eq.presetModified': 'modified, not saved',
   'eq.applyFailed': 'Setting not applied — the server refused it',
   'eq.errorNetwork': 'Server unreachable — the setting never left',
   'eq.errorSession': 'Session expired — sign in again to adjust the equaliser',
@@ -3509,6 +3515,8 @@ export default {
   "settings.sidebarSourcesHint": "One switch per type: a checked type always shows, greyed out when unavailable. By default, only the types present on the machine are checked.",
   "settings.animationRate": "Animation smoothness",
   "settings.animationRateHint": "The level meters and the spectrum on the Now playing screen. Less smooth means less work for the browser — and the sound is never touched.",
+  "settings.openQueueOnScroll": "Open the queue by scrolling",
+  "settings.openQueueOnScrollHint": "On the Now Playing screen, scrolling down with the mouse wheel opens the queue. When off, the queue only opens with its button.",
   "settings.animationRateSmooth": "Smooth — today's display",
   "settings.animationRateSaving": "Economical — about 30% less processor",
   "settings.animationRateMinimal": "Minimal — about 40% less, the meters look a little steppy",

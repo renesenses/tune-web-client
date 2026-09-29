@@ -718,6 +718,8 @@ export default {
   "dashboard.completion.completed": "30秒以上",
   "dashboard.completion.skipped": "30秒未満",
   'dashboard.empty': 'まだ再生履歴がありません。何か聴いてみましょう 🎶',
+  "dashboard.onThisDayEmpty": "過去の年のこの日付には再生記録がありません。",
+  "dashboard.emptyLast7Days": "過去7日間に表示するものはありません。",
 
   // Equalizer
   'settings.eqBandsTitle': "エキスパートEQ",
@@ -742,6 +744,10 @@ export default {
   'eq.deletePreset': '削除',
   'eq.presetSaved': 'プリセット「{name}」を保存しました',
   'eq.presetSaveFailed': 'プリセットを保存できませんでした',
+  'eq.save': '保存',
+  'eq.saveAs': '名前を付けて保存…',
+  'eq.saveTitle': '「{name}」に変更を保存',
+  'eq.presetModified': '変更あり（未保存）',
   'eq.applyFailed': '設定は適用されませんでした — サーバーが拒否しました',
   'eq.errorNetwork': 'サーバーに接続できません — 設定は送信されませんでした',
   'eq.errorSession': 'セッションが期限切れです — イコライザーを調整するには再度サインインしてください',
@@ -3489,6 +3495,8 @@ export default {
   "settings.sidebarSourcesHint": "種類ごとに 1 つのスイッチ：オンにした種類は常に表示され、利用できない場合はグレー表示になります。既定では、マシンに存在する種類だけがオンになります。",
   "settings.animationRate": "アニメーションの滑らかさ",
   "settings.animationRateHint": "「再生中」画面のレベルメーターとスペクトラムです。滑らかさを下げるほどブラウザの負担が減ります — 音には一切影響しません。",
+  "settings.openQueueOnScroll": "スクロールでキューを開く",
+  "settings.openQueueOnScrollHint": "「再生中」画面でマウスホイールを下にスクロールするとキューが開きます。オフの場合、キューはボタンでのみ開きます。",
   "settings.animationRateSmooth": "滑らか — 現在の表示",
   "settings.animationRateSaving": "省エネ — プロセッサ負荷が約 30 % 減",
   "settings.animationRateMinimal": "最小 — 約 40 % 減、メーターの動きは少しカクつきます",

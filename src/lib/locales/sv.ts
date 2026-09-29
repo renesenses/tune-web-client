@@ -698,6 +698,8 @@ export default {
   "dashboard.completion.completed": "30 s eller mer",
   "dashboard.completion.skipped": "Mindre än 30 s",
   'dashboard.empty': 'Ingen lyssningshistorik än. Sätt igång något 🎶',
+  "dashboard.onThisDayEmpty": "Inga lyssningar på detta datum tidigare år.",
+  "dashboard.emptyLast7Days": "Inget att visa för de senaste 7 dagarna.",
 
   // Equalizer
   'eq.myPresets': 'Mina förinställningar',
@@ -706,6 +708,10 @@ export default {
   'eq.deletePreset': 'Ta bort',
   'eq.presetSaved': 'Förinställning "{name}" sparad',
   'eq.presetSaveFailed': 'Kunde inte spara förinställningen',
+  'eq.save': 'Spara',
+  'eq.saveAs': 'Spara som…',
+  'eq.saveTitle': 'Spara ändringarna i "{name}"',
+  'eq.presetModified': 'ändrad, inte sparad',
   'eq.applyFailed': 'Inställningen tillämpades inte — servern nekade',
   'eq.errorNetwork': 'Servern går inte att nå — inställningen skickades aldrig',
   'eq.errorSession': 'Sessionen har gått ut — logga in igen för att justera equalizern',
@@ -3488,6 +3494,8 @@ export default {
   "settings.sidebarSourcesHint": "En brytare per typ: en markerad typ visas alltid, nedtonad när den inte är tillgänglig. Som standard är bara de typer som finns på datorn markerade.",
   "settings.animationRate": "Animationernas mjukhet",
   "settings.animationRateHint": "Nivåmätarna och spektrumet på skärmen Spelas nu. Mindre mjukt betyder mindre arbete för webbläsaren — och ljudet rörs aldrig.",
+  "settings.openQueueOnScroll": "Öppna kön genom att scrolla",
+  "settings.openQueueOnScrollHint": "På skärmen Spelas nu öppnar en scrollning nedåt med mushjulet kön. Avstängt öppnas kön bara med sin knapp.",
   "settings.animationRateSmooth": "Mjuk — dagens visning",
   "settings.animationRateSaving": "Sparsam — omkring 30 % mindre processor",
   "settings.animationRateMinimal": "Minimal — omkring 40 % mindre, mätarna rör sig lite ryckigt",

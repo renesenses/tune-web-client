@@ -718,6 +718,8 @@ export default {
   "dashboard.completion.completed": "30 s oder mehr",
   "dashboard.completion.skipped": "Weniger als 30 s",
   'dashboard.empty': 'Noch kein Hörverlauf vorhanden. Starte etwas 🎶',
+  "dashboard.onThisDayEmpty": "Keine Wiedergaben an diesem Datum in den Vorjahren.",
+  "dashboard.emptyLast7Days": "Nichts anzuzeigen für die letzten 7 Tage.",
 
   // Equalizer
   'settings.eqBandsTitle': "Experten-Equalizer",
@@ -742,6 +744,10 @@ export default {
   'eq.deletePreset': 'Löschen',
   'eq.presetSaved': 'Preset „{name}" gespeichert',
   'eq.presetSaveFailed': 'Preset konnte nicht gespeichert werden',
+  'eq.save': 'Speichern',
+  'eq.saveAs': 'Speichern unter…',
+  'eq.saveTitle': 'Änderungen in „{name}" speichern',
+  'eq.presetModified': 'geändert, nicht gespeichert',
   'eq.applyFailed': 'Einstellung nicht übernommen — der Server hat sie abgelehnt',
   'eq.errorNetwork': 'Server nicht erreichbar — die Einstellung wurde nicht gesendet',
   'eq.errorSession': 'Sitzung abgelaufen — melden Sie sich erneut an, um den Equalizer zu ändern',
@@ -3489,6 +3495,8 @@ export default {
   "settings.sidebarSourcesHint": "Ein Schalter pro Typ: Ein aktivierter Typ erscheint immer, ausgegraut, wenn er nicht verfügbar ist. Standardmäßig sind nur die auf dem Rechner vorhandenen Typen aktiviert.",
   "settings.animationRate": "Flüssigkeit der Animationen",
   "settings.animationRateHint": "Die Pegelanzeigen und das Spektrum im Bildschirm „Aktuelle Wiedergabe“. Weniger flüssig heißt weniger Arbeit für den Browser — und der Klang bleibt unberührt.",
+  "settings.openQueueOnScroll": "Warteschlange durch Scrollen öffnen",
+  "settings.openQueueOnScrollHint": "Im Bildschirm „Wird gerade gespielt“ öffnet das Scrollen mit dem Mausrad nach unten die Warteschlange. Ausgeschaltet öffnet sie sich nur über ihre Schaltfläche.",
   "settings.animationRateSmooth": "Flüssig — die heutige Darstellung",
   "settings.animationRateSaving": "Sparsam — etwa 30 % weniger Prozessorlast",
   "settings.animationRateMinimal": "Minimal — etwa 40 % weniger, die Anzeigen wirken leicht stufig",

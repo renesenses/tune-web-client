@@ -718,6 +718,8 @@ export default {
   "dashboard.completion.completed": "30초 이상",
   "dashboard.completion.skipped": "30초 미만",
   'dashboard.empty': '아직 청취 기록이 없습니다. 음악을 재생해 보세요 🎶',
+  "dashboard.onThisDayEmpty": "지난 해 이 날짜에는 청취 기록이 없습니다.",
+  "dashboard.emptyLast7Days": "최근 7일 동안 표시할 항목이 없습니다.",
 
   // Equalizer
   'eq.myPresets': '내 프리셋',
@@ -726,6 +728,10 @@ export default {
   'eq.deletePreset': '삭제',
   'eq.presetSaved': '프리셋 "{name}" 저장됨',
   'eq.presetSaveFailed': '프리셋을 저장할 수 없습니다',
+  'eq.save': '저장',
+  'eq.saveAs': '다른 이름으로 저장…',
+  'eq.saveTitle': '"{name}"에 변경 사항 저장',
+  'eq.presetModified': '수정됨, 저장되지 않음',
   'eq.applyFailed': '설정이 적용되지 않았습니다 — 서버가 거부했습니다',
   'eq.errorNetwork': '서버에 연결할 수 없습니다 — 설정이 전송되지 않았습니다',
   'eq.errorSession': '세션이 만료되었습니다 — 이퀄라이저를 조정하려면 다시 로그인하세요',
@@ -3489,6 +3495,8 @@ export default {
   "settings.sidebarSourcesHint": "유형별 스위치 하나: 선택한 유형은 항상 표시되며, 사용할 수 없으면 회색으로 표시됩니다. 기본적으로 컴퓨터에 있는 유형만 선택됩니다.",
   "settings.animationRate": "애니메이션 부드러움",
   "settings.animationRateHint": "「재생 중」 화면의 레벨 미터와 스펙트럼입니다. 덜 부드러울수록 브라우저 부담이 줄어듭니다 — 소리는 전혀 건드리지 않습니다.",
+  "settings.openQueueOnScroll": "스크롤하여 대기열 열기",
+  "settings.openQueueOnScrollHint": "「현재 재생」 화면에서 마우스 휠을 아래로 스크롤하면 대기열이 열립니다. 끄면 대기열은 버튼으로만 열립니다.",
   "settings.animationRateSmooth": "부드럽게 — 지금의 표시",
   "settings.animationRateSaving": "절약 — 프로세서 사용량 약 30 % 감소",
   "settings.animationRateMinimal": "최소 — 약 40 % 감소, 미터가 약간 끊겨 보입니다",

@@ -69,6 +69,9 @@
 
   $effect(() => {
     const zid = $currentZoneId;
+    // web#1750 — une autre zone, d'autres réglages : « Enregistrer » ne doit
+    // pas les écrire dans le préréglage qu'on éditait sur la précédente.
+    enCoursId = null;
     if (zid == null) { loading = false; return; }
     loading = true;
     api.getDsp(zid)
@@ -141,6 +144,10 @@
     queueSave();
   }
   function applyPreset(p: { amount: number; delay: number }) {
+    enCoursId = null;
+    appliquer(p);
+  }
+  function appliquer(p: { amount: number; delay: number }) {
     amount = p.amount; delay = p.delay;
     if (!enabled) enabled = true;
     save();
@@ -159,21 +166,43 @@
   }
   $effect(() => { void chargerMesPresets(); });
 
-  async function enregistrerPreset() {
-    const saisi = await dialogs.prompt($t('eq.presetNamePlaceholder' as any));
-    const nom = saisi?.trim();
-    if (!nom) return;
+  /**
+   * Écrit les réglages affichés sous ce nom. Même nom (casse et espaces
+   * ignorés) = le serveur met à jour le préréglage existant, même id : c'est
+   * ce qui fait « Enregistrer », sans route de plus.
+   */
+  async function ecrirePreset(nom: string) {
     const { amount: a, delay_ms } = reglagesCrossfeed(enabled, amount, delay, bornes);
     // #5081 — le filtre fait aussi le son : il entre dans le préréglage.
     const ombre = bornesOm ? reglagesOmbre(ombreActive, coupure, pente, bornesOm) : {};
+    // Résolus AVANT l'attente : un `$t()` dans un `catch` est invisible au build.
+    const msgOk = $t('eq.presetSaved' as any);
+    const msgKo = $t('eq.presetSaveFailed' as any);
     try {
-      // Même nom = le serveur met à jour le préréglage existant (même id).
       const p = await api.saveCrossfeedPreset({ name: nom, amount: a, delay_ms, ...ombre });
-      mesPresets = [...mesPresets.filter((x) => x.id !== p.id), p];
-      notifications.success($t('eq.presetSaved' as any).replace('{name}', p.name));
+      mesPresets = mesPresets.some((x) => x.id === p.id)
+        ? mesPresets.map((x) => (x.id === p.id ? p : x))
+        : [...mesPresets, p];
+      enCoursId = p.id;
+      notifications.success(msgOk.replace('{name}', p.name));
     } catch (e: any) {
-      if (e?.message !== 'premium_required') notifications.error($t('eq.presetSaveFailed' as any));
+      if (e?.message !== 'premium_required') notifications.error(msgKo);
     }
+  }
+
+  /** « Enregistrer » : le préréglage en cours, sans redemander son nom. */
+  async function enregistrer() {
+    const p = presetEnCours;
+    if (!p) return;
+    await ecrirePreset(p.name);
+  }
+
+  /** « Enregistrer sous » : un nom, prérempli avec celui du préréglage en cours. */
+  async function enregistrerSous() {
+    const saisi = await dialogs.prompt($t('eq.presetNamePlaceholder' as any), presetEnCours?.name ?? '');
+    const nom = saisi?.trim();
+    if (!nom) return;
+    await ecrirePreset(nom);
   }
 
   function appliquerMonPreset(p: api.CrossfeedPresetServeur) {
@@ -183,7 +212,8 @@
       coupure = p.cutoff_hz ?? CF_COUPURE_DEFAUT;
       pente = p.slope_db_per_octave ?? CF_PENTE_DEFAUT;
     }
-    applyPreset({ amount: p.amount, delay: p.delay_ms });
+    enCoursId = p.id;
+    appliquer({ amount: p.amount, delay: p.delay_ms });
   }
 
   async function supprimerMonPreset(p: api.CrossfeedPresetServeur) {
@@ -191,18 +221,33 @@
     mesPresets = mesPresets.filter((x) => x.id !== p.id);
     try {
       await api.deleteCrossfeedPreset(p.id);
+      if (enCoursId === p.id) enCoursId = null;
     } catch {
       // La suppression n'a pas eu lieu : la liste revient, et on le dit.
       mesPresets = avant;
       notifications.error($t('common.error' as any));
     }
   }
-  /** Le préréglage personnel qui correspond aux curseurs, s'il y en a un. */
-  const monActif = $derived(
-    mesPresets.find((p) => Math.abs(p.amount - amount) < 0.005 && Math.abs(p.delay_ms - delay) < 0.005
+  /** Les curseurs sont-ils exactement ceux de ce préréglage personnel ? */
+  function correspond(p: api.CrossfeedPresetServeur): boolean {
+    return Math.abs(p.amount - amount) < 0.005 && Math.abs(p.delay_ms - delay) < 0.005
       && (!bornesOm || (!!p.head_shadow_enabled === ombreActive
-        && (!ombreActive || (p.cutoff_hz === coupure && p.slope_db_per_octave === pente)))))?.id ?? null
-  );
+        && (!ombreActive || (p.cutoff_hz === coupure && p.slope_db_per_octave === pente))));
+  }
+  /** Le préréglage personnel qui correspond aux curseurs, s'il y en a un. */
+  const monActif = $derived(mesPresets.find(correspond)?.id ?? null);
+
+  /**
+   * web#1750 — le préréglage personnel EN COURS D'ÉDITION : le dernier
+   * appliqué ou enregistré. `monActif` ne suffit pas : il s'éteint au premier
+   * curseur touché, précisément quand on voudrait « Enregistrer ». Il
+   * s'efface sur un réglage tout fait, un changement de zone ou sa
+   * suppression.
+   */
+  let enCoursId = $state<string | null>(null);
+  const presetEnCours = $derived(mesPresets.find((p) => p.id === enCoursId) ?? null);
+  /** « Modifié, non enregistré » : les curseurs ne sont plus les siens. */
+  const modifie = $derived(presetEnCours != null && !correspond(presetEnCours));
 </script>
 
 <section class="v2-cf tune-v2">
@@ -266,7 +311,16 @@
                 title={$t('eq.deletePreset' as any)} aria-label={$t('eq.deletePreset' as any)}>×</button>
             </span>
           {/each}
-          <button disabled={!enabled || indispo.indisponible} onclick={enregistrerPreset}>+ {$t('eq.savePreset' as any)}</button>
+          <!-- web#1750 — « Enregistrer » et « Enregistrer sous ». Sans
+               préréglage en cours, le seul geste est d'en créer un. -->
+          {#if presetEnCours}
+            {#if modifie}<span class="modif">{$t('eq.presetModified' as any)}</span>{/if}
+            <button class="enreg" disabled={!modifie || !enabled || indispo.indisponible} onclick={enregistrer}
+              title={$t('eq.saveTitle' as any).replace('{name}', presetEnCours.name)}>{$t('eq.save' as any)}</button>
+            <button class="enreg-sous" disabled={!enabled || indispo.indisponible} onclick={enregistrerSous}>{$t('eq.saveAs' as any)}</button>
+          {:else}
+            <button class="enreg-sous" disabled={!enabled || indispo.indisponible} onclick={enregistrerSous}>+ {$t('eq.savePreset' as any)}</button>
+          {/if}
         </div>
 
         <div class="row" class:off={!enabled}>
@@ -387,10 +441,12 @@
   .presets button:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-acc2)}
   .presets button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .presets button:disabled{cursor:default}
+  .presets button.enreg:disabled{opacity:.45}
   .presets.mes{align-items:center; padding-top:10px}
   .mesl{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .mien{display:inline-flex}
   .mien .x{padding:0 7px}
+  .modif{font:italic 11.5px var(--v2-sans); color:var(--v2-acc-tint)}
 
   .sl{display:flex; align-items:center; gap:14px; flex:0 0 auto}
   .sl input{width:220px; accent-color:var(--v2-acc1)}

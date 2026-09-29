@@ -718,6 +718,8 @@ export default {
   "dashboard.completion.completed": "30 s o más",
   "dashboard.completion.skipped": "Menos de 30 s",
   'dashboard.empty': 'Aún no hay historial de escucha. Pon algo de música 🎶',
+  "dashboard.onThisDayEmpty": "No hay escuchas en esta fecha en años anteriores.",
+  "dashboard.emptyLast7Days": "Nada que mostrar en los últimos 7 días.",
 
   // Equalizer
   'settings.eqBandsTitle': "Ecualizador Experto",
@@ -742,6 +744,10 @@ export default {
   'eq.deletePreset': 'Eliminar',
   'eq.presetSaved': 'Ajuste «{name}» guardado',
   'eq.presetSaveFailed': 'No se pudo guardar el ajuste',
+  'eq.save': 'Guardar',
+  'eq.saveAs': 'Guardar como…',
+  'eq.saveTitle': 'Guardar los cambios en «{name}»',
+  'eq.presetModified': 'modificado, sin guardar',
   'eq.applyFailed': 'Ajuste no aplicado — el servidor lo rechazó',
   'eq.errorNetwork': 'Servidor inaccesible — el ajuste no se envió',
   'eq.errorSession': 'Sesión caducada — vuelve a iniciar sesión para ajustar el ecualizador',
@@ -3489,6 +3495,8 @@ export default {
   "settings.sidebarSourcesHint": "Un interruptor por tipo: un tipo marcado aparece siempre, atenuado cuando no está disponible. Por defecto, solo se marcan los tipos presentes en el equipo.",
   "settings.animationRate": "Fluidez de las animaciones",
   "settings.animationRateHint": "Los medidores de nivel y el espectro de la pantalla Reproduciendo. Menos fluido significa menos trabajo para el navegador, y el sonido nunca se ve afectado.",
+  "settings.openQueueOnScroll": "Abrir la cola al desplazarse",
+  "settings.openQueueOnScrollHint": "En la pantalla Reproduciendo ahora, desplazarse hacia abajo con la rueda del ratón abre la cola. Desactivado, la cola solo se abre con su botón.",
   "settings.animationRateSmooth": "Fluido: la vista actual",
   "settings.animationRateSaving": "Económico: alrededor de un 30 % menos de procesador",
   "settings.animationRateMinimal": "Mínimo: alrededor de un 40 % menos, los medidores se ven algo entrecortados",

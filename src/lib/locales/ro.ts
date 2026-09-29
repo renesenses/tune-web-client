@@ -724,6 +724,8 @@ export default {
   "dashboard.completion.completed": "30 s sau mai mult",
   "dashboard.completion.skipped": "Mai puțin de 30 s",
   'dashboard.empty': 'Încă niciun istoric de ascultare. Pornește ceva 🎶',
+  "dashboard.onThisDayEmpty": "Nicio ascultare la această dată în anii anteriori.",
+  "dashboard.emptyLast7Days": "Nimic de afișat pentru ultimele 7 zile.",
 
   // Equalizer
   'settings.eqBandsTitle': "Egalizator Expert",
@@ -748,6 +750,10 @@ export default {
   'eq.deletePreset': 'Șterge',
   'eq.presetSaved': 'Preset „{name}" salvat',
   'eq.presetSaveFailed': 'Presetul nu a putut fi salvat',
+  'eq.save': 'Salvează',
+  'eq.saveAs': 'Salvează ca…',
+  'eq.saveTitle': 'Salvează modificările în „{name}"',
+  'eq.presetModified': 'modificat, nesalvat',
   'eq.applyFailed': 'Setarea nu a fost aplicată — serverul a refuzat-o',
   'eq.errorNetwork': 'Server inaccesibil — setarea nu a plecat',
   'eq.errorSession': 'Sesiune expirată — autentifică-te din nou pentru a regla egalizatorul',
@@ -3489,6 +3495,8 @@ export default {
   "settings.sidebarSourcesHint": "Un comutator pe tip: un tip bifat apare mereu, estompat când nu este disponibil. Implicit, sunt bifate doar tipurile prezente pe mașină.",
   "settings.animationRate": "Fluiditatea animațiilor",
   "settings.animationRateHint": "Indicatoarele de nivel și spectrul din ecranul În redare. Mai puțin fluid înseamnă mai puțină muncă pentru browser — iar sunetul nu este atins niciodată.",
+  "settings.openQueueOnScroll": "Deschide coada prin derulare",
+  "settings.openQueueOnScrollHint": "În ecranul Se redă acum, derularea în jos cu rotița mouse-ului deschide coada. Dezactivat, coada se deschide doar cu butonul ei.",
   "settings.animationRateSmooth": "Fluid — afișarea de astăzi",
   "settings.animationRateSaving": "Economic — cu circa 30 % mai puțin procesor",
   "settings.animationRateMinimal": "Minim — cu circa 40 % mai puțin, indicatoarele par ușor sacadate",

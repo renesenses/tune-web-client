@@ -13,7 +13,7 @@
    */
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
-  import { ordreNaturel } from '../../lib/ordreNaturel';
+  import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   import type { GravureDrEtat, MetadataProposal, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon, AlbumDetailed } from '../../lib/api';
   import { } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -304,7 +304,7 @@
     if (q.length < 2) return [];
     return cpTous
       .filter((a) => pliage(a.title ?? '').includes(q) || pliage(a.album_artist ?? '').includes(q))
-      .sort((x, y) => ordreNaturel(x.title, y.title) || (x.album_artist ?? '').localeCompare(y.album_artist ?? ''))
+      .sort((x, y) => comparerAlphabetique(x.title, y.title) || comparerAlphabetique(x.album_artist, y.album_artist))
       .slice(0, 300);
   });
 
@@ -414,7 +414,7 @@
     // « CD 10 » d'un coffret Radio Nova passait avant le « CD 2 ».
     return cpTous
       .filter((a) => pliage(a.title ?? '').includes(q) || pliage(a.album_artist ?? '').includes(q))
-      .sort((x, y) => ordreNaturel(x.title, y.title))
+      .sort((x, y) => comparerAlphabetique(x.title, y.title))
       .slice(0, 300);
   });
 

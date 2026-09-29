@@ -718,6 +718,8 @@ export default {
   "dashboard.completion.completed": "30 秒及以上",
   "dashboard.completion.skipped": "少于 30 秒",
   'dashboard.empty': '暂无收听历史。播放一些音乐吧 🎶',
+  "dashboard.onThisDayEmpty": "往年的这一天没有收听记录。",
+  "dashboard.emptyLast7Days": "最近 7 天没有可显示的内容。",
 
   // Equalizer
   'settings.eqBandsTitle': "专家均衡器",
@@ -742,6 +744,10 @@ export default {
   'eq.deletePreset': '删除',
   'eq.presetSaved': '预设"{name}"已保存',
   'eq.presetSaveFailed': '无法保存预设',
+  'eq.save': '保存',
+  'eq.saveAs': '另存为…',
+  'eq.saveTitle': '将更改保存到"{name}"',
+  'eq.presetModified': '已修改，未保存',
   'eq.applyFailed': '设置未应用 — 服务器已拒绝',
   'eq.errorNetwork': '无法连接服务器 — 设置未发送',
   'eq.errorSession': '会话已过期 — 请重新登录以调整均衡器',
@@ -3489,6 +3495,8 @@ export default {
   "settings.sidebarSourcesHint": "每种类型一个开关：勾选的类型始终显示，不可用时显示为灰色。默认只勾选机器上存在的类型。",
   "settings.animationRate": "动画流畅度",
   "settings.animationRateHint": "“正在播放”界面的电平表和频谱。越不流畅，浏览器的负担越小——声音完全不受影响。",
+  "settings.openQueueOnScroll": "滚动时打开播放队列",
+  "settings.openQueueOnScrollHint": "在“正在播放”界面，用鼠标滚轮向下滚动会打开播放队列。关闭后，播放队列只能通过其按钮打开。",
   "settings.animationRateSmooth": "流畅 — 当前的显示效果",
   "settings.animationRateSaving": "节能 — 处理器占用约减少 30%",
   "settings.animationRateMinimal": "最低 — 约减少 40%，电平表会略有顿挫",

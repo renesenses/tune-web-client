@@ -819,6 +819,8 @@ export default {
   "dashboard.completion.completed": "30 s et plus",
   "dashboard.completion.skipped": "Moins de 30 s",
   'dashboard.empty': 'Pas encore d\'historique d\'écoute. Lance quelque chose 🎶',
+  "dashboard.onThisDayEmpty": "Aucune écoute à cette date les années précédentes.",
+  "dashboard.emptyLast7Days": "Rien à afficher sur les 7 derniers jours.",
 
   // Equalizer
   'settings.eqBandsTitle': "Égaliseur Expert",
@@ -843,6 +845,10 @@ export default {
   'eq.deletePreset': 'Supprimer',
   'eq.presetSaved': 'Preset « {name} » enregistré',
   'eq.presetSaveFailed': 'Enregistrement du preset impossible',
+  'eq.save': 'Enregistrer',
+  'eq.saveAs': 'Enregistrer sous…',
+  'eq.saveTitle': 'Enregistrer les modifications dans « {name} »',
+  'eq.presetModified': 'modifié, non enregistré',
   'eq.applyFailed': 'Réglage non appliqué — le serveur l’a refusé',
   'eq.errorNetwork': 'Serveur injoignable — le réglage n’est pas parti',
   'eq.errorSession': 'Session expirée — reconnectez-vous pour régler l’égaliseur',
@@ -3511,6 +3517,8 @@ export default {
   "settings.sidebarSourcesHint": "Une case par type : un type coché apparaît toujours, grisé quand il est indisponible. Par défaut, seuls les types présents sur la machine sont cochés.",
   "settings.animationRate": "Fluidité des animations",
   "settings.animationRateHint": "Les barres de niveau et le spectre de l'écran Lecture en cours. Moins fluide, c'est moins de travail pour le navigateur — et le son n'est jamais touché.",
+  "settings.openQueueOnScroll": "Ouvrir la file en faisant défiler",
+  "settings.openQueueOnScrollHint": "Dans Lecture en cours, faire défiler vers le bas à la molette ouvre la file d'attente. Désactivé, la file ne s'ouvre qu'avec son bouton.",
   "settings.animationRateSmooth": "Fluide — l'affichage d'aujourd'hui",
   "settings.animationRateSaving": "Économe — environ 30 % de processeur en moins",
   "settings.animationRateMinimal": "Minimal — environ 40 % en moins, les barres saccadent un peu",
