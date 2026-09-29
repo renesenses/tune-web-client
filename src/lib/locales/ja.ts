@@ -718,6 +718,8 @@ export default {
   "dashboard.completion.completed": "30秒以上",
   "dashboard.completion.skipped": "30秒未満",
   'dashboard.empty': 'まだ再生履歴がありません。何か聴いてみましょう 🎶',
+  "dashboard.onThisDayEmpty": "過去の年のこの日付には再生記録がありません。",
+  "dashboard.emptyLast7Days": "過去7日間に表示するものはありません。",
 
   // Equalizer
   'settings.eqBandsTitle': "エキスパートEQ",

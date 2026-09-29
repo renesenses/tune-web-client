@@ -815,6 +815,8 @@ export default {
   "dashboard.completion.completed": "30 s or more",
   "dashboard.completion.skipped": "Less than 30 s",
   'dashboard.empty': 'No listening history yet. Start something 🎶',
+  "dashboard.onThisDayEmpty": "No plays on this date in previous years.",
+  "dashboard.emptyLast7Days": "Nothing to show for the last 7 days.",
 
   // Equalizer
   'settings.eqBandsTitle': "Expert equalizer",
