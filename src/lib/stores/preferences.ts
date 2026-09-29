@@ -15,7 +15,7 @@ import {
   CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
 } from '../cadenceAnimations';
 import { normaliserTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
-import { TRI_CONCERTS_DEFAUT, type TriConcerts } from '../concertsTri';
+import type { TriConcerts } from '../concertsTri';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
  *
@@ -141,12 +141,18 @@ export interface Preferences {
   albumSortOrder: 'asc' | 'desc';
   /** Densité de la grille d'albums — voir AlbumGridDensity. */
   albumGridDensity: AlbumGridDensity;
-  /** L'ordre de la liste de l'écran Concerts — `artiste` (défaut, l'ordre
-   *  d'origine) ou `date`. Ici, et pas dans un `localStorage` à part : c'est
-   *  ainsi que tous les choix d'affichage des écrans voisins sont retenus
-   *  (`oxygenView`, `albumSort`, `albumGridDensity`), donc synchronisés avec
-   *  le profil au lieu de rester dans un seul navigateur (#1134). */
-  concertsTri: TriConcerts;
+  /** L'ordre de la liste de l'écran Concerts — `date` ou `artiste`. Ici, et
+   *  pas dans un `localStorage` à part : c'est ainsi que tous les choix
+   *  d'affichage des écrans voisins sont retenus (`oxygenView`, `albumSort`,
+   *  `albumGridDensity`), donc synchronisés avec le profil au lieu de rester
+   *  dans un seul navigateur (#1134).
+   *
+   *  🔴 `null` = RIEN CHOISI (web#1718). Le magasin enregistre l'objet
+   *  ENTIER à chaque écriture : un défaut rangé ici en clair se retrouverait
+   *  écrit comme un choix (piège de #1650), et un changement de défaut
+   *  n'atteindrait plus personne. Seul le clic sur la bascule y écrit ; le
+   *  défaut (`TRI_CONCERTS_DEFAUT`, « Par date ») s'applique à l'affichage. */
+  concertsTri: TriConcerts | null;
   /**
    * Le crête-mètre affiché — #452, spécifié par Xavijol.
    *
@@ -363,7 +369,9 @@ const defaults: Preferences = {
   albumSort: 'title',
   albumSortOrder: 'asc',
   albumGridDensity: 'detail',
-  concertsTri: TRI_CONCERTS_DEFAUT,
+  // web#1718 : `null`, pas le défaut — voir le type. L'écran lit
+  // `normaliserTriConcerts(null)`, donc « Par date ».
+  concertsTri: null,
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
