@@ -10,7 +10,7 @@
   // défaut — `get()` n'abonne à rien sous les runes. Si un `get(` réapparaît
   // ici, c'est presque sûrement la même faute : préférer `$monMagasin`.
   import { t as tr, locale } from '../../lib/i18n';
-  import { comparerAlphabetique, initialeAlphabetique } from '../../lib/ordreAlphabetique';
+  import { comparerAlphabetique, initialeAlbum, initialeAlphabetique } from '../../lib/ordreAlphabetique';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { paliersDeFrequence, type LibelleServi } from '../../lib/libellesFrequence';
   import { formatNombre } from '../../lib/formats';
@@ -926,14 +926,10 @@
    * Ce n'était pas un rail imprécis, c'était un rail qui visait autre chose.
    */
   function firstLetter(a: Album): string {
-    const source = sortKey === 'artist' ? (a.artist_name ?? '') : (a.title ?? '');
-    // #1772 — hors pages, la liste suit `comparerAlphabetique` : la lettre
-    // suit la même règle. En pages, l'ordre est celui de l'API du serveur,
-    // qui compte encore les signes de tête : la dichotomie d'`offsetDeLettre`
-    // exige une initiale qui croisse dans CET ordre-là.
-    if (!nu) return initialeAlphabetique(source);
-    const c = fold(source).charAt(0).toUpperCase();
-    return c >= 'A' && c <= 'Z' ? c : '#';
+    // #1772 — hors pages, la liste suit `comparerAlphabetique` ; en pages,
+    // l'API range dans le même ordre depuis tune-server-rust#5423. Une seule
+    // initiale, celle que la dichotomie d'`offsetDeLettre` exige.
+    return initialeAlbum(a, sortKey === 'artist');
   }
 
   /**

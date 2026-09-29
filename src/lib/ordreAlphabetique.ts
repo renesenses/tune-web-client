@@ -176,3 +176,21 @@ export function comparerArtistes(a: ArtisteTriable, b: ArtisteTriable): number {
   if (ib === null) return 1;
   return ia < ib ? -1 : 1;
 }
+
+/**
+ * La lettre d'un album sur le rail A–Z de la Bibliothèque : celle de son
+ * artiste au tri Artiste, celle de son titre sinon.
+ *
+ * Une seule règle, en pages comme hors pages : depuis tune-server-rust#5423,
+ * l'API paginée range les albums par `comparer_alphabetique` (titre, ou nom
+ * d'artiste `ar.name` au tri Artiste). La dichotomie d'`offsetDeLettre`
+ * exige une initiale qui croisse le long de CET ordre : « (Inédit) », rangé
+ * à I par le serveur, doit s'annoncer sous I — sous « # », le saut à I
+ * tomberait une case trop loin.
+ */
+export function initialeAlbum(
+  a: { title?: string | null; artist_name?: string | null },
+  parArtiste: boolean,
+): string {
+  return initialeAlphabetique(parArtiste ? a.artist_name : a.title);
+}
