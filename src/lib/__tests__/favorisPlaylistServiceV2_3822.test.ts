@@ -57,6 +57,10 @@ beforeEach(() => {
   vi.stubGlobal('ResizeObserver', class { observe(){} unobserve(){} disconnect(){} } as any);
   currentProfileId.set(1);
   favoriteStreamingKeys.set(new Set([streamingFavKey('playlist', 'qobuz', '77')]));
+  // web#1650 : Favoris › Playlists s'ouvre désormais en GRILLE. Ce témoin
+  // garde la LIGNE de liste : on s'y place par le choix retenu, comme un
+  // utilisateur qui l'a choisie.
+  localStorage.setItem('tune_v2_ecran_fav.playlists.display', 'list');
 });
 
 afterEach(() => {
@@ -65,6 +69,7 @@ afterEach(() => {
   if (hote) hote.remove();
   hote = null;
   vi.unstubAllGlobals();
+  localStorage.clear();
 });
 
 const poser = () => {
