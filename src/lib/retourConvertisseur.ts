@@ -4,6 +4,8 @@ import { activeView } from './stores/navigation';
 // qui survit au démontage de l'écran, quel que soit le trajet.
 export interface RetourV2 {
   q: string; picked: number[]; presetId: string | null;
+  /** tune-server-rust#5483 — pistes choisies des albums partiels. */
+  pistes?: [number, number[]][];
 }
 export interface RetourLegacy {
   selectedAlbumIds: number[]; selectedDirPaths: string[];
