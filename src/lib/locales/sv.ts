@@ -698,6 +698,8 @@ export default {
   "dashboard.completion.completed": "30 s eller mer",
   "dashboard.completion.skipped": "Mindre än 30 s",
   'dashboard.empty': 'Ingen lyssningshistorik än. Sätt igång något 🎶',
+  "dashboard.onThisDayEmpty": "Inga lyssningar på detta datum tidigare år.",
+  "dashboard.emptyLast7Days": "Inget att visa för de senaste 7 dagarna.",
 
   // Equalizer
   'eq.myPresets': 'Mina förinställningar',

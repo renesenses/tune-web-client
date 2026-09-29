@@ -718,6 +718,8 @@ export default {
   "dashboard.completion.completed": "30 s o más",
   "dashboard.completion.skipped": "Menos de 30 s",
   'dashboard.empty': 'Aún no hay historial de escucha. Pon algo de música 🎶',
+  "dashboard.onThisDayEmpty": "No hay escuchas en esta fecha en años anteriores.",
+  "dashboard.emptyLast7Days": "Nada que mostrar en los últimos 7 días.",
 
   // Equalizer
   'settings.eqBandsTitle': "Ecualizador Experto",

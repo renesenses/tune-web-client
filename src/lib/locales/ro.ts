@@ -724,6 +724,8 @@ export default {
   "dashboard.completion.completed": "30 s sau mai mult",
   "dashboard.completion.skipped": "Mai puțin de 30 s",
   'dashboard.empty': 'Încă niciun istoric de ascultare. Pornește ceva 🎶',
+  "dashboard.onThisDayEmpty": "Nicio ascultare la această dată în anii anteriori.",
+  "dashboard.emptyLast7Days": "Nimic de afișat pentru ultimele 7 zile.",
 
   // Equalizer
   'settings.eqBandsTitle': "Egalizator Expert",
