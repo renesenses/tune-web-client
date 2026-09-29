@@ -10,6 +10,7 @@
  */
 import type { Album } from './types';
 import { ordreNaturel } from './ordreNaturel';
+import { comparerAlphabetique } from './ordreAlphabetique';
 
 export type Manque = 'cover' | 'genre' | 'year';
 
@@ -59,7 +60,7 @@ export function genresConnus(albums: Album[]): string[] {
     const g = (a.genre ?? '').trim();
     if (g) s.add(g);
   }
-  return [...s].sort((x, y) => x.localeCompare(y));
+  return [...s].sort(comparerAlphabetique);
 }
 
 /**
