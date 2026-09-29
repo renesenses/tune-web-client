@@ -3301,6 +3301,7 @@ export default {
   "v2.album.boxUndo": "Défaire le coffret",
   "v2.album.boxUndoTip": "Ses disques redeviennent des albums séparés",
   "v2.album.boxUndoConfirm": "Défaire ce coffret ? Ses disques redeviendront des albums séparés, et ce regroupement automatique ne reviendra pas, même après un nouveau scan.",
+  "v2.album.boxUndoManualConfirm": "Défaire ce coffret ? Chaque disque redevient l’album de son dossier, sous son titre d’origine. Les titres et artistes de pistes modifiés à la main sont conservés.",
   "v2.album.boxUndone": "Coffret défait : ses disques sont de nouveau des albums séparés.",
   "v2.album.boxUndoError": "Le coffret n’a pas pu être défait.",
   "v2.album.playNext": "Lire ensuite",

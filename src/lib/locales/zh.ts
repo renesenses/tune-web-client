@@ -3279,6 +3279,7 @@ export default {
   "v2.album.boxUndo": "拆分套装",
   "v2.album.boxUndoTip": "各张碟将重新成为独立专辑",
   "v2.album.boxUndoConfirm": "拆分此套装？各张碟将重新成为独立专辑，且此自动合并即使重新扫描也不会恢复。",
+  "v2.album.boxUndoManualConfirm": "拆分此套装？每张碟将以原标题重新成为其文件夹的专辑。手动修改过的曲目标题和艺人将被保留。",
   "v2.album.boxUndone": "套装已拆分：各张碟重新成为独立专辑。",
   "v2.album.boxUndoError": "无法拆分套装。",
   "v2.album.playNext": "下一首播放",

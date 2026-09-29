@@ -3278,6 +3278,7 @@ export default {
   "v2.album.boxUndo": "Lös upp boxen",
   "v2.album.boxUndoTip": "Skivorna blir separata album igen",
   "v2.album.boxUndoConfirm": "Lösa upp den här boxen? Skivorna blir separata album igen, och den här automatiska sammanslagningen kommer inte tillbaka, inte ens efter en ny skanning.",
+  "v2.album.boxUndoManualConfirm": "Lösa upp den här boxen? Varje skiva blir åter albumet för sin mapp, med sin ursprungliga titel. Spårtitlar och artister som du ändrat för hand behålls.",
   "v2.album.boxUndone": "Boxen upplöst: skivorna är separata album igen.",
   "v2.album.boxUndoError": "Boxen kunde inte lösas upp.",
   "v2.album.playNext": "Spela härnäst",

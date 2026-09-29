@@ -3237,6 +3237,7 @@ export default {
   "v2.album.boxUndo": "Díszdoboz felbontása",
   "v2.album.boxUndoTip": "A lemezek újra külön albumok lesznek",
   "v2.album.boxUndoConfirm": "Felbontja ezt a díszdobozt? A lemezek újra külön albumok lesznek, és ez az automatikus összevonás új beolvasás után sem tér vissza.",
+  "v2.album.boxUndoManualConfirm": "Felbontja ezt a díszdobozt? Minden lemez újra a mappája albuma lesz, eredeti címével. A kézzel módosított számcímek és előadók megmaradnak.",
   "v2.album.boxUndone": "Díszdoboz felbontva: a lemezek újra külön albumok.",
   "v2.album.boxUndoError": "A díszdobozt nem sikerült felbontani.",
   "v2.album.playNext": "Következőként",

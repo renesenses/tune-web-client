@@ -3279,6 +3279,7 @@ export default {
   "v2.album.boxUndo": "Sciogli il cofanetto",
   "v2.album.boxUndoTip": "I dischi tornano album separati",
   "v2.album.boxUndoConfirm": "Sciogliere questo cofanetto? I dischi torneranno album separati e questo raggruppamento automatico non tornerà, nemmeno dopo una nuova scansione.",
+  "v2.album.boxUndoManualConfirm": "Sciogliere questo cofanetto? Ogni disco torna l’album della sua cartella, con il suo titolo originale. Titoli e artisti dei brani modificati a mano vengono mantenuti.",
   "v2.album.boxUndone": "Cofanetto sciolto: i dischi sono di nuovo album separati.",
   "v2.album.boxUndoError": "Impossibile sciogliere il cofanetto.",
   "v2.album.playNext": "Riproduci dopo",

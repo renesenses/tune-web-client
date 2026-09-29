@@ -8539,6 +8539,19 @@ export function defaireCoffret(id: number) {
   );
 }
 /**
+ * DÉFAIT un coffret composé À LA MAIN (décision de Bertrand du 29/09/2026,
+ * tune-server-rust#5319) : chaque disque redevient l'album de son dossier,
+ * sous son titre d'origine ; les titres et artistes de piste modifiés à la
+ * main restent. 409 `pas_un_coffret_manuel` sur tout autre album. N'existe
+ * que si la fiche d'édition annonce `defaire_coffret_manuel`.
+ */
+export function defaireCoffretManuel(id: number) {
+  return fetchJSON<{ cible: number; albums_recrees: number[] }>(
+    `${BASE}/library/coffrets/${id}/defaire-manuel`,
+    { method: 'POST' },
+  );
+}
+/**
  * Composer un coffret À LA MAIN — Bertrand, 20/09/2026.
  *
  * 🔴 `albumIds` est ORDONNÉ, et l'ordre EST celui des disques : le premier

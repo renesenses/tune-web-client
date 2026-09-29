@@ -63,6 +63,12 @@ export interface EditionReponse {
   tracks: EditionPiste[];
   /** Tranche 4 : le serveur sait écrire dans les fichiers (voir plus bas). */
   ecriture_balises?: boolean;
+  /**
+   * Le serveur sait DÉFAIRE un coffret composé à la main
+   * (`POST /library/coffrets/{id}/defaire-manuel`, tune-server-rust#5319).
+   * Absent d'un serveur antérieur : pas de bouton.
+   */
+  defaire_coffret_manuel?: boolean;
 }
 
 export interface CorpsEdition {
@@ -308,6 +314,11 @@ export function libelleChampBalise(champ: string, traduire: (cle: string) => str
   return (CHAMPS_BALISES as readonly string[]).includes(champ)
     ? traduire(`v2.edition.tagField.${champ}`)
     : champ;
+}
+
+/** Le serveur annonce-t-il « Défaire » pour un coffret MANUEL (#5319) ? */
+export function defaireCoffretManuelAnnonce(r: EditionReponse | null | undefined): boolean {
+  return (r as { defaire_coffret_manuel?: unknown } | null | undefined)?.defaire_coffret_manuel === true;
 }
 
 /** Le serveur annonce-t-il « Écrire dans les fichiers » ? */

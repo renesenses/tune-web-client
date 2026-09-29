@@ -3279,6 +3279,7 @@ export default {
   "v2.album.boxUndo": "박스 세트 해제",
   "v2.album.boxUndoTip": "디스크가 다시 별도의 앨범이 됩니다",
   "v2.album.boxUndoConfirm": "이 박스 세트를 해제할까요? 디스크는 다시 별도의 앨범이 되며, 이 자동 묶음은 다시 스캔해도 돌아오지 않습니다.",
+  "v2.album.boxUndoManualConfirm": "이 박스 세트를 해제할까요? 각 디스크는 원래 제목으로 해당 폴더의 앨범으로 돌아갑니다. 직접 수정한 트랙 제목과 아티스트는 유지됩니다.",
   "v2.album.boxUndone": "박스 세트를 해제했습니다. 디스크가 다시 별도의 앨범입니다.",
   "v2.album.boxUndoError": "박스 세트를 해제할 수 없습니다.",
   "v2.album.playNext": "다음에 재생",

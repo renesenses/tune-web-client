@@ -3279,6 +3279,7 @@ export default {
   "v2.album.boxUndo": "ボックスセットを解除",
   "v2.album.boxUndoTip": "各ディスクが別々のアルバムに戻ります",
   "v2.album.boxUndoConfirm": "このボックスセットを解除しますか？各ディスクは別々のアルバムに戻り、この自動まとめは再スキャン後も復活しません。",
+  "v2.album.boxUndoManualConfirm": "このボックスセットを解除しますか？各ディスクは元のタイトルで、それぞれのフォルダのアルバムに戻ります。手動で変更したトラックのタイトルとアーティストはそのまま残ります。",
   "v2.album.boxUndone": "ボックスセットを解除しました。各ディスクは別々のアルバムに戻りました。",
   "v2.album.boxUndoError": "ボックスセットを解除できませんでした。",
   "v2.album.playNext": "次に再生",

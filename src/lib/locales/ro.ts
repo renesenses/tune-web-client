@@ -3279,6 +3279,7 @@ export default {
   "v2.album.boxUndo": "Desfă cutia",
   "v2.album.boxUndoTip": "Discurile redevin albume separate",
   "v2.album.boxUndoConfirm": "Desfaceți această cutie? Discurile vor redeveni albume separate, iar această grupare automată nu va reveni, nici după o nouă scanare.",
+  "v2.album.boxUndoManualConfirm": "Desfaceți această cutie? Fiecare disc redevine albumul folderului său, cu titlul original. Titlurile și artiștii pieselor modificați manual se păstrează.",
   "v2.album.boxUndone": "Cutie desfăcută: discurile sunt din nou albume separate.",
   "v2.album.boxUndoError": "Cutia nu a putut fi desfăcută.",
   "v2.album.playNext": "Redă în continuare",

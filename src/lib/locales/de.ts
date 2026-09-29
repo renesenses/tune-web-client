@@ -3279,6 +3279,7 @@ export default {
   "v2.album.boxUndo": "Box-Set auflösen",
   "v2.album.boxUndoTip": "Die Discs werden wieder eigene Alben",
   "v2.album.boxUndoConfirm": "Dieses Box-Set auflösen? Die Discs werden wieder eigene Alben, und diese automatische Zusammenführung kommt nicht zurück, auch nicht nach einem neuen Scan.",
+  "v2.album.boxUndoManualConfirm": "Dieses Box-Set auflösen? Jede Disc wird wieder das Album ihres Ordners, mit ihrem ursprünglichen Titel. Von Hand geänderte Titelnamen und Interpreten bleiben erhalten.",
   "v2.album.boxUndone": "Box-Set aufgelöst: die Discs sind wieder eigene Alben.",
   "v2.album.boxUndoError": "Das Box-Set konnte nicht aufgelöst werden.",
   "v2.album.playNext": "Als Nächstes",

@@ -3299,6 +3299,7 @@ export default {
   "v2.album.boxUndo": "Undo box set",
   "v2.album.boxUndoTip": "Its discs become separate albums again",
   "v2.album.boxUndoConfirm": "Undo this box set? Its discs will become separate albums again, and this automatic grouping will not come back, even after a new scan.",
+  "v2.album.boxUndoManualConfirm": "Undo this box set? Each disc becomes the album of its folder again, under its original title. Track titles and artists you edited by hand are kept.",
   "v2.album.boxUndone": "Box set undone: its discs are separate albums again.",
   "v2.album.boxUndoError": "The box set could not be undone.",
   "v2.album.playNext": "Play next",

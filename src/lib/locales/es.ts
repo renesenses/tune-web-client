@@ -3279,6 +3279,7 @@ export default {
   "v2.album.boxUndo": "Deshacer la caja",
   "v2.album.boxUndoTip": "Sus discos vuelven a ser álbumes separados",
   "v2.album.boxUndoConfirm": "¿Deshacer esta caja? Sus discos volverán a ser álbumes separados y esta agrupación automática no volverá, ni siquiera tras un nuevo escaneo.",
+  "v2.album.boxUndoManualConfirm": "¿Deshacer esta caja? Cada disco vuelve a ser el álbum de su carpeta, con su título original. Se conservan los títulos y artistas de pista modificados a mano.",
   "v2.album.boxUndone": "Caja deshecha: sus discos vuelven a ser álbumes separados.",
   "v2.album.boxUndoError": "No se pudo deshacer la caja.",
   "v2.album.playNext": "Reproducir a continuación",
