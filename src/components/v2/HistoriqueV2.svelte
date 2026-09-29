@@ -41,6 +41,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { preferences } from '../../lib/stores/preferences';
   import { colonnesRetenues } from '../../lib/colonnesPistes';
+  import type { CoeurExterne } from '../../lib/coeurExterne';
   import '../../styles/tune-v2.css';
 
   /**
@@ -127,6 +128,12 @@
    */
   const noms = new NomsDePlaylists(api.getStreamingPlaylist);
   let fiches = $state(new Map<string, FichePlaylist | null>());
+  /**
+   * #1789 — les objets dont la playlist n'a PAS pu être demandée (Qobuz ne la
+   * connaît plus : 404, relayé en 502). Ils disent « Indisponible », sans
+   * bandeau d'erreur (`getStreamingPlaylist` est `sansBandeau`).
+   */
+  let indisponibles = $state(new Set<string>());
   $effect(() => {
     for (const tr of tranches) {
       if (tr.genre !== 'objet' || fiches.has(tr.cle)) continue;
@@ -134,7 +141,11 @@
       const service = serviceDePlaylist(tr.type, tr.entrees);
       if (!service) continue;
       const cle = tr.cle;
-      noms.resoudre(service, tr.id).then((f) => {
+      const id = tr.id;
+      noms.resoudre(service, id).then((f) => {
+        if (f == null && noms.aEchoue(service, id)) {
+          const i = new Set(indisponibles); i.add(cle); indisponibles = i;
+        }
         const n = new Map(fiches); n.set(cle, f); fiches = n;
       });
     }
@@ -275,6 +286,31 @@
     occupe = null;
   }
 
+  /**
+   * 🔴 #1771 — le cœur radio est posé DANS la barre d'actions, à la case du
+   * cœur des autres lignes.
+   *
+   * Bertrand, 29/09/2026, 0.9.168 : « il manque le cœur, même non rempli, sur
+   * l'Historique pour les titres de radio diffusés ». Ce cœur vivait dans le
+   * snippet `colonnes`, donc dans la colonne de QUEUE (`apres`), après la
+   * zone et l'instant ; et la barre d'actions, qui ne sait pas désigner un
+   * titre de radio, laissait sa propre case vide. On lui confie le favori
+   * radio : même case, même tracé. Les règles de #589
+   * (`estRadioEnregistrable`) restent les seules à dire s'il y a un cœur ;
+   * sinon `null`, et la barre garde sa case vide — l'alignement tient.
+   */
+  function coeurRadio(e: HistoryEntry): CoeurExterne | null {
+    if (!estRadioEnregistrable(e.track)) return null;
+    const cle = cleFavoriRadio(e.track.title, e.track.artist_name);
+    const favori = favorisRadio.has(cle);
+    return {
+      favori,
+      occupe: occupe === cle,
+      libelle: $tr(favori ? 'history.removeRadioFav' : 'history.saveRadioFav'),
+      basculer: (ev) => basculerFav(e, ev),
+    };
+  }
+
   async function vider() {
     invalidateHistory();
     vidage = true;
@@ -330,6 +366,7 @@
               onLire={(_p, i) => rejouer(lot[i])}
               clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + lot[i].playedAt}
               apres={suffixeNu}
+              coeurDe={(_p, i) => coeurRadio(lot[i])}
               largeurApres="164px"
             />
             {#snippet suffixeNu(_p: any, i: number)}
@@ -381,7 +418,7 @@
                       size={36} alt={nom ?? ''} source={lot[0]?.track?.source ?? null} />
                   </span>
                   <span class="otxt">
-                    <span class="otitre">{fiche?.nom ?? nom ?? $tr('v2.hist.ctx.sansNom' as any)}</span>
+                    <span class="otitre">{fiche?.nom ?? nom ?? (indisponibles.has(tranche.cle) ? $tr('playlist.unavailable') : $tr('v2.hist.ctx.sansNom' as any))}</span>
                     <!-- #988, point 11 — l'artiste de l'album joué. -->
                     {#if artiste}<span class="oart">{artiste}</span>{/if}
                   </span>
@@ -406,6 +443,7 @@
                   onLire={(_p, i) => rejouer(lot[i])}
                   clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + lot[i].playedAt}
                   apres={suffixeObjet}
+                  coeurDe={(_p, i) => coeurRadio(lot[i])}
                   largeurApres="164px"
                 />
                 {#snippet suffixeObjet(_p: any, i: number)}
@@ -420,8 +458,6 @@
              le cœur d'un titre entendu à la radio — sont les mêmes aux deux
              niveaux. Elles sont donc écrites UNE fois. -->
         {#snippet colonnes(e: HistoryEntry)}
-          {@const radio = estRadioEnregistrable(e.track)}
-          {@const cle = cleFavoriRadio(e.track.title, e.track.artist_name)}
           <!-- 🔴 LA ZONE, que l'écran actuel affiche depuis toujours
                (`HistoryView.svelte:149`) et que le portage avait perdue.
                FabienM, fil 1739, point 8. -->
@@ -430,17 +466,10 @@
             {#if zn}<span class="zone" title={zn}>{zn}</span>{/if}
             <span class="when" class:busy={rejeuEnCours === cleEntree(e)}>{depuis(e.playedAt)}</span>
           </span>
-          {#if radio}
-            <button class="fav" class:on={favorisRadio.has(cle)} disabled={occupe === cle}
-                    onclick={(ev) => basculerFav(e, ev)}
-                    title={$tr(favorisRadio.has(cle) ? 'history.removeRadioFav' : 'history.saveRadioFav')}
-                    aria-label={$tr(favorisRadio.has(cle) ? 'history.removeRadioFav' : 'history.saveRadioFav')}>
-              <svg viewBox="0 0 24 24" fill={favorisRadio.has(cle) ? 'currentColor' : 'none'}
-                   stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            </button>
-          {:else}
-            <span class="fav-vide" aria-hidden="true"></span>
-          {/if}
+          <!-- #1771 — le cœur radio a rejoint la barre d'actions (`coeurRadio`).
+               Sa place reste réservée ici, vide, sur TOUTES les lignes comme
+               sur la ligne d'objet (`.osuffixe`) : l'instant ne bouge pas. -->
+          <span class="fav-vide" aria-hidden="true"></span>
         {/snippet}
       </div>
     {/if}
@@ -471,32 +500,11 @@
     max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .quand .when{font:11px var(--v2-mono); color:var(--v2-txt3)}
 
-  /* Le cœur d'un titre radio DÉJÀ en favori reste visible : sans cela on ne
-     peut plus lire lesquels le sont sans les survoler un par un — la même
-     règle que sur les pochettes. */
-  /* 🔴 #874 — LE SURVOL ÉTAIT UN SÉLECTEUR MORT.
-     `.fav` naissait en `opacity:0`, révélé par `.row:hover .fav`. Or ce
-     composant ne rend AUCUN `class="row"` : la ligne vient de
-     `ListePistesV2`, qui l'appelle `.trow`. Et même en la renommant, la règle
-     ne mordrait pas — Svelte porte ses styles par composant, et `.trow` ne
-     porte pas le sceau de CELUI-CI.
-     Conséquence mesurée : sur un poste de bureau, le cœur d'un titre PAS
-     ENCORE en favori était invisible — donc inatteignable. Il ne s'affichait
-     que sur tablette, par la règle `@media (hover:none)` juste en dessous.
-     Reivax66 (fil 1729) est sous Windows.
-     On ne remplace pas par `:global(.trow:hover)` : une règle qui perce la
-     portée d'un autre composant se casse à son prochain renommage, en
-     silence, exactement comme celle-ci. Le cœur reste VISIBLE — sa colonne
-     est déjà réservée (`.fav-vide` fait la même largeur), il ne coûte donc
-     aucune place. */
-  .fav{width:28px; height:28px; border-radius:8px; border:1px solid transparent; background:transparent;
-    color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; transition:color .12s}
-  .fav.on{opacity:1}
-  .fav.on{color:var(--v2-danger)}
-  .fav:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-line2)}
-  .fav.on:hover{color:var(--v2-danger)}
-  .fav:disabled{opacity:.4; cursor:default}
-  .fav svg{width:14px; height:14px}
+  /* #1771 — le cœur radio est rendu par `PisteActions` (`.pa.coeur`), dans
+     la barre d'actions. Il n'en reste ici que la place réservée, qui garde
+     l'instant au même endroit sur les lignes de piste et d'objet. Les règles
+     `.fav` (#874 : visible sans survol) valent désormais par `.pa`, qui n'a
+     pas d'état caché. */
   .fav-vide{width:28px; height:28px}
 
   /* #904 — la ligne d'objet du premier niveau, et son tiroir. */

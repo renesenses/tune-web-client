@@ -72,6 +72,11 @@ export interface EtatCoquille {
   vue: string;
   /** Le niveau ouvert DANS la vue (`album:12`), ou `null` à la racine. */
   detail: string | null;
+  /**
+   * web#1790 — l'ONGLET de la vue (`playlists` dans les Favoris). Absent quand
+   * la vue n'en déclare pas : les entrées des autres écrans gardent leur forme.
+   */
+  onglet?: string;
 }
 
 /**
@@ -82,12 +87,14 @@ export interface EtatCoquille {
  * de surface d'un proxy Svelte rend un objet dont les valeurs sont encore des
  * proxies dès qu'elles ne sont pas primitives. Ici rien ne survit à `String()`.
  */
-export function etatCoquille(vue: unknown, detail: unknown): EtatCoquille {
-  return {
+export function etatCoquille(vue: unknown, detail: unknown, onglet: unknown = null): EtatCoquille {
+  const etat: EtatCoquille = {
     tune: 'v2',
     vue: String(vue ?? ''),
     detail: detail == null ? null : String(detail),
   };
+  if (onglet != null) etat.onglet = String(onglet);
+  return etat;
 }
 
 /** Vrai si l'entrée atteinte est l'une des nôtres. */
@@ -128,6 +135,22 @@ export function adressePour(etat: EtatCoquille): string {
  * recharger l'artiste, ce que ce lot ne fait pas (voir la note de fin).
  */
 export const detailOuvert = writable<string | null>(null);
+
+/**
+ * L'ONGLET DE LA VUE COURANTE, porté par l'entrée d'historique — web#1790.
+ *
+ * FabienM, fil 2037, point 9 : « dans le menu Favoris, on ouvre une playlist
+ * favorite, on ne revient pas sur l'onglet playlists favoris. Pour les
+ * artistes favoris, on ouvre et le BACK ne renvoie pas à l'onglet Artistes
+ * favoris ». L'entrée `#favorites` était bien là ; c'est l'onglet qu'elle ne
+ * portait pas, et l'écran remonté repartait sur son onglet par défaut.
+ *
+ * Changer d'onglet RÉÉCRIT l'entrée courante (jamais d'empilement : un onglet
+ * n'est pas un niveau de plus). Changer de vue le remet à `null`. Revenir sur
+ * une entrée le repose AVANT la vue, pour que l'écran remonté le lise dès son
+ * montage.
+ */
+export const ongletCourant = writable<string | null>(null);
 
 /** Ouvrir un niveau de détail : l'entrée d'historique est empilée. */
 export function ouvrirDetail(cle: string): void {
@@ -351,7 +374,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
   let enRestauration = false;
 
   const ecrire = (pousser: boolean, vue: unknown, detail: unknown) => {
-    const etat = etatCoquille(vue, detail);
+    const etat = etatCoquille(vue, detail, get(ongletCourant));
     if (pousser) historique.pushState(etat, '', adressePour(etat));
     else historique.replaceState(etat, '', adressePour(etat));
   };
@@ -408,6 +431,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     const vise = consommerVuePourEntree();
     enRestauration = true;
     detailOuvert.set(vise);
+    // web#1790 — l'onglet appartient à la vue qu'on quitte.
+    ongletCourant.set(null);
     enRestauration = false;
     ecrire(true, vue, vise);
   });
@@ -427,6 +452,14 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     else if (op === 'replace') ecrire(false, get(activeView), null);
   });
 
+  // web#1790 — changer d'onglet réécrit l'entrée courante, sans empiler.
+  let premierOnglet = true;
+  const arretOnglet = ongletCourant.subscribe(() => {
+    if (premierOnglet) { premierOnglet = false; return; }
+    if (enRestauration) return;
+    ecrire(false, get(activeView), get(detailOuvert));
+  });
+
   const surRetour = (e: PopStateEvent) => {
     // Le retour annoncé par `reculerAvecIntention` est consommé : les
     // fermetures suivantes redeviennent des réécritures.
@@ -435,6 +468,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     if (!estEtatCoquille(etat)) return;
     enRestauration = true;
     try {
+      // L'onglet d'abord : l'écran que la vue remonte le lit à son montage.
+      ongletCourant.set(etat.onglet ?? null);
       activeView.set(etat.vue as View);
       detailOuvert.set(etat.detail);
     } finally {
@@ -446,6 +481,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
   return () => {
     arretVue();
     arretDetail();
+    arretOnglet();
     fenetre.removeEventListener('popstate', surRetour as EventListener);
   };
 }
