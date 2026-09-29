@@ -718,6 +718,8 @@ export default {
   "dashboard.completion.completed": "30초 이상",
   "dashboard.completion.skipped": "30초 미만",
   'dashboard.empty': '아직 청취 기록이 없습니다. 음악을 재생해 보세요 🎶',
+  "dashboard.onThisDayEmpty": "지난 해 이 날짜에는 청취 기록이 없습니다.",
+  "dashboard.emptyLast7Days": "최근 7일 동안 표시할 항목이 없습니다.",
 
   // Equalizer
   'eq.myPresets': '내 프리셋',

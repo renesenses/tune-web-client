@@ -718,6 +718,8 @@ export default {
   "dashboard.completion.completed": "30 s oder mehr",
   "dashboard.completion.skipped": "Weniger als 30 s",
   'dashboard.empty': 'Noch kein Hörverlauf vorhanden. Starte etwas 🎶',
+  "dashboard.onThisDayEmpty": "Keine Wiedergaben an diesem Datum in den Vorjahren.",
+  "dashboard.emptyLast7Days": "Nichts anzuzeigen für die letzten 7 Tage.",
 
   // Equalizer
   'settings.eqBandsTitle': "Experten-Equalizer",

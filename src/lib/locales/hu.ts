@@ -783,6 +783,8 @@ export default {
   "dashboard.completion.completed": "Legalább 30 mp",
   "dashboard.completion.skipped": "Kevesebb mint 30 mp",
   "dashboard.empty": "Még nincs hallgatási előzmény. Indíts el valamit 🎶",
+  "dashboard.onThisDayEmpty": "A korábbi években ezen a napon nem volt lejátszás.",
+  "dashboard.emptyLast7Days": "Az elmúlt 7 napból nincs megjeleníthető adat.",
   // Hangszínszabályzó
   "settings.eqBandsTitle": "Szakértői hangszínszabályzó",
   "settings.eqBandsHint": "A sávok száma Szakértő módban. A jelenlegi görbéd megmarad (újramintavételezve) váltáskor. ISO-rácsok — ugyanazok a viszonyítási pontok, mint a REW-ben.",

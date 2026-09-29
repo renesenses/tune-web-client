@@ -25,7 +25,10 @@
 </script>
 
 {#if !lignes.length}
-  <p class="rien">{$t('dashboard.empty' as any)}</p>
+  <!-- #1781 — une liste vide veut dire « rien à cette date les années
+       d'avant », pas « aucun historique » : 108 écoutes récentes et ce bloc
+       vide coexistent (Levente, fil 1994). -->
+  <p class="rien">{$t('dashboard.onThisDayEmpty' as any)}</p>
 {:else}
   <ul class="liste">
     {#each lignes as l, i (`${i}-${l.titre}`)}
