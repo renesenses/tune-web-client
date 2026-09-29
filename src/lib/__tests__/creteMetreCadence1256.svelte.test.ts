@@ -111,7 +111,12 @@ describe('#1256 — le crête-mètre ne dessine qu’à ~30 images par seconde',
 describe('#1256 — lecture arrêtée, la boucle s’arrête une fois tout retombé', () => {
   it('🔴 à l’arrêt, les barres retombent en douceur, puis plus aucun dessin ni réveil', () => {
     const props = monter(true);
-    images(30, A_60_HZ); // les barres montent à -6 dB, le trait PPM s'accroche
+    // #1791 — une trame ne vaut que 500 ms : la zone qui joue fort doit
+    // PUBLIER pendant la lecture, sinon les barres retombent d'elles-mêmes.
+    for (let i = 0; i < 30; i++) {
+      handleAudioLevelsEvent({ zone_id: 1, peak_left_db: -6, peak_right_db: -6 });
+      images(1, A_60_HZ); // les barres montent à -6 dB, le trait PPM s'accroche
+    }
     props.joue = false;
     flushSync();
     const avantRetombee = dessins;
