@@ -105,6 +105,7 @@
   import { cibleParTitre, type CibleParTitre } from '../../lib/versionsParTitre';
   import { circleCharge } from '../../lib/circle';
   import { ajoutDePiste } from '../../lib/circlePlaylists';
+  import type { CoeurExterne } from '../../lib/coeurExterne';
 
   interface Props {
     piste: Track;
@@ -125,8 +126,23 @@
      * 1906) : les colonnes d'une ligne à l'autre ne doivent pas en dépendre.
      */
     onLireDepuis?: (() => void) | null;
+    /**
+     * 🔴 #1771 — un cœur fourni par l'ÉCRAN, à la place de celui de la piste.
+     *
+     * Bertrand, 29/09/2026, capture de l'Historique en 0.9.168 : « il manque
+     * le cœur, même non rempli, sur l'Historique pour les titres de radio
+     * diffusés ». Un titre entendu à la radio n'a ni identifiant de
+     * bibliothèque ni clé de service : `coeurPossible` est faux, et sa case
+     * restait VIDE. Son cœur — le favori RADIO, `/radio-favorites` — était
+     * posé par l'Historique dans SA colonne de queue, après la zone et
+     * l'instant : hors de la barre, 28 px plus loin que tous les autres.
+     *
+     * Seul l'écran sait ce qu'est ce favori-là : il le décrit, la barre le
+     * pose dans la MÊME case que son propre cœur. `null` : rien ne change.
+     */
+    coeur?: CoeurExterne | null;
   }
-  let { piste, onLireDepuis = null }: Props = $props();
+  let { piste, onLireDepuis = null, coeur = null }: Props = $props();
 
   /** La modale de playlists est portée ICI, chargée à la demande : chaque
    *  écran qui pose la barre l'aurait sinon recopiée, avec son état et son
@@ -223,6 +239,13 @@
   );
   /** Un cœur n'a de sens que si la piste est désignable d'une façon ou d'une autre. */
   const coeurPossible = $derived(local || cleService != null);
+  /**
+   * #1771 — le cœur que l'écran a fourni (favori radio de l'Historique) prend
+   * la MÊME case, le même bouton et le même tracé ; seuls son état et son
+   * geste viennent de l'écran.
+   */
+  const coeurAffiche = $derived(coeur != null || coeurPossible);
+  const coeurPlein = $derived(coeur ? coeur.favori : favori);
   const jouable = $derived(corpsDeLecture(piste) != null);
 
   let occupe = $state(false);
@@ -273,6 +296,11 @@
       notifications.error($t('v2.pa.queueError' as any));
     }
     occupe = false;
+  }
+
+  function cliquerCoeur(e: MouseEvent) {
+    if (coeur) { stop(e); coeur.basculer(e); return; }
+    void basculerCoeur(e);
   }
 
   async function basculerCoeur(e: MouseEvent) {
@@ -490,7 +518,7 @@
   }
 </script>
 
-<span class="pactions" class:a-favori={favori}>
+<span class="pactions" class:a-favori={coeurPlein}>
   <!-- 🔴 CHAQUE BOUTON GARDE SA CASE — fil forum 1906 (FabienM, v0.9.163).
 
        Un geste qui n'a pas lieu d'être était ABSENT, et tout ce qui le suivait
@@ -592,13 +620,14 @@
   {:else}
     <span class="pa vide" aria-hidden="true"></span>
   {/if}
-  {#if coeurPossible}
-    <button class="pa coeur" class:on={favori} onclick={basculerCoeur} disabled={occupe}
-            title={$t(favori ? 'v2.pa.unfav' as any : 'v2.pa.fav' as any)}
-            aria-label={$t(favori ? 'v2.pa.unfav' as any : 'v2.pa.fav' as any)}>
+  {#if coeurAffiche}
+    <button class="pa coeur" class:on={coeurPlein} onclick={cliquerCoeur}
+            disabled={coeur ? coeur.occupe : occupe}
+            title={coeur ? coeur.libelle : $t(favori ? 'v2.pa.unfav' as any : 'v2.pa.fav' as any)}
+            aria-label={coeur ? coeur.libelle : $t(favori ? 'v2.pa.unfav' as any : 'v2.pa.fav' as any)}>
       <!-- lucide `heart`, tracé officiel. Le REMPLISSAGE reste piloté par
            l'état : plein quand la piste est en favori, vide sinon. -->
-      <svg viewBox="0 0 24 24" fill={favori ? 'currentColor' : 'none'} stroke="currentColor"
+      <svg viewBox="0 0 24 24" fill={coeurPlein ? 'currentColor' : 'none'} stroke="currentColor"
            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>
       </svg>

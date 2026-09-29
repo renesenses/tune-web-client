@@ -356,6 +356,17 @@ export interface Preferences {
    */
   ouvrirFileAuDefilement: boolean;
   /**
+   * « Lecture en cours » mène à CE QUI JOUE — web#1784.
+   *
+   * Didier (fil 2036, 29/09/2026) : l'entrée « Lecture en cours » de la barre
+   * latérale devrait ouvrir la page de l'album en cours ; FabienM ajoute : la
+   * page de la PLAYLIST quand la lecture en vient. Go de Bertrand du
+   * 29/09/2026 : oui, derrière un réglage DÉCOCHÉ par défaut — sans lui, rien
+   * ne change. L'écran dédié reste monté, et la vignette de la barre de
+   * transport continue d'y mener. Voir `lib/lienLectureEnCours`.
+   */
+  lienLectureVersSource: boolean;
+  /**
    * Les types de sources affichés dans la barre latérale — une case par type
    * (tune-server-rust#5065, étape 3). Rangé TYPE PAR TYPE : un type absent
    * n'est pas décidé et suit la présence ; vu présent, il est figé coché.
@@ -420,6 +431,9 @@ const defaults: Preferences = {
   // web#1762 : DÉCOCHÉ — la molette ne révèle plus la file sans qu'on l'ait
   // demandé.
   ouvrirFileAuDefilement: false,
+  // web#1784 : DÉCOCHÉ — l'entrée « Lecture en cours » ouvre l'écran dédié,
+  // comme avant, tant qu'on ne l'a pas demandé.
+  lienLectureVersSource: false,
   sourcesBarre: null,
 };
 

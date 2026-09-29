@@ -138,7 +138,8 @@ describe('#874 — deux homonymes d’artistes différents, deux favoris distinc
     await souffler(120);
     flushSync();
 
-    const coeurs = Array.from(hote.querySelectorAll('button.fav'));
+    // #1771 — le cœur radio vit dans la barre d'actions, case du cœur.
+    const coeurs = Array.from(hote.querySelectorAll('.pactions button.pa.coeur'));
     expect(coeurs.length, 'les deux écoutes de radio ne sont pas rendues').toBe(2);
 
     const allumes = coeurs.filter((b) => b.classList.contains('on'));

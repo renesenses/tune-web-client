@@ -28,6 +28,7 @@
   import { updateAvailable, latestVersion, currentVersion } from '../../lib/stores/updates';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { preferences } from '../../lib/stores/preferences';
+  import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
   import { shortcuts, loadShortcuts, navigateToShortcut } from '../../lib/stores/shortcuts';
@@ -382,7 +383,25 @@
    * manquaient. Elles sont branchées ici, dans `LibraryV2` et dans
    * `ArtistesV2`.
    */
-  function go(v: View) { requestListReset(); activeView.set(v); tiroirOuvert.set(false); }
+  function go(v: View) {
+    if (versCeQuiJoue(v)) return;
+    requestListReset(); activeView.set(v); tiroirOuvert.set(false);
+  }
+
+  /**
+   * web#1784 — réglage « Lecture en cours ouvre l'album ou la playlist »,
+   * DÉCOCHÉ par défaut (go de Bertrand, 29/09/2026). Décoché : rend `false`,
+   * et `go` garde le geste d'avant, à l'identique. Coché : la fiche de ce qui
+   * joue, avec l'écran dédié pour repli (radio, rien en lecture, aucune fiche
+   * trouvée). Pas de `requestListReset()` ici : il refermerait la fiche
+   * qu'on vient d'ouvrir.
+   */
+  function versCeQuiJoue(v: View): boolean {
+    if (v !== 'nowplaying' || $preferences.lienLectureVersSource !== true) return false;
+    tiroirOuvert.set(false);
+    void ouvrirLienLectureEnCours();
+    return true;
+  }
 
   /**
    * 🔴 LE BOUTON DE MISE À JOUR, à côté du logo — comme dans le client actuel.
