@@ -63,6 +63,7 @@
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { initialesArtiste } from '../../lib/initialesArtiste';
+  import { cleDeTriArtiste, comparerArtistes, initialeAlphabetique } from '../../lib/ordreAlphabetique';
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
@@ -150,7 +151,9 @@
   const artistesRecherche = $derived(dansLaPortee.filter(a => plier(a.name).includes(plier(q))));
   const affiches = $derived(artistesRecherche.filter(a => provenance == null ||
     [...(sourcesArtistes.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance)))
-    .sort((x, z) => plier(x.name).localeCompare(plier(z.name))));
+    // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956), sur
+    // sa clé : `sort_name` s'il existe (« Beatles, The » à B), sinon `name`.
+    .sort(comparerArtistes));
   $effect(() => {
     onComptesSources?.({
       total: artistesRecherche.length,
@@ -158,10 +161,11 @@
     });
   });
 
-  /** Première lettre, chiffres et symboles rassemblés sous « # ». */
+  /** Première lettre, chiffres et symboles rassemblés sous « # ». Même clé et
+   *  même règle que l'ordre : « (hed) p.e. » est sous H, « The Beatles »
+   *  (nom de tri « Beatles, The ») sous B. */
   function lettre(a: Artist): string {
-    const c = plier(a.name).charAt(0).toUpperCase();
-    return c >= 'A' && c <= 'Z' ? c : '#';
+    return initialeAlphabetique(cleDeTriArtiste(a));
   }
   const ALPHABET = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
   const presentes = $derived(new Set(affiches.map(lettre)));

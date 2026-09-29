@@ -101,11 +101,19 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
    * Même magasin que la Bibliothèque (`lib/preferencesEcran`, préfixe
    * `tune_v2_ecran_`) : le choix est retenu d'une visite à l'autre, dans le
    * navigateur — c'est une préférence de confort, pas une donnée de profil.
+   *
+   * web#1650 — Bertrand, 29/09/2026 : les playlists favorites arrivent en
+   * GRILLE par défaut. Seul le DÉFAUT change : un choix retenu, sous la même
+   * clé, continue de primer.
+   *
+   * 🔴 ON N'ÉCRIT QUE LE CHOIX, JAMAIS LE DÉFAUT. Un `$effect` d'écriture
+   * enregistrait la valeur dès le montage : le défaut de l'époque (« liste »)
+   * se trouvait retenu comme si l'utilisateur l'avait choisi, et aucun
+   * changement de défaut ne l'aurait plus jamais atteint. L'écriture suit donc
+   * le clic sur la bascule, et elle seule.
    */
   let affichageAlbums = $state<Affichage>(lireChoix('fav.albums.display', GRILLE_OU_LISTE, 'grid'));
-  $effect(() => ecrireChoix('fav.albums.display', affichageAlbums));
-  let affichagePlaylists = $state<Affichage>(lireChoix('fav.playlists.display', GRILLE_OU_LISTE, 'list'));
-  $effect(() => ecrireChoix('fav.playlists.display', affichagePlaylists));
+  let affichagePlaylists = $state<Affichage>(lireChoix('fav.playlists.display', GRILLE_OU_LISTE, 'grid'));
 
   let albums = $state<Album[]>([]);
   let tracks = $state<Track[]>([]);
@@ -844,7 +852,8 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           <BasculeAffichage modes={GRILLE_OU_LISTE}
             valeur={tab === 'albums' ? affichageAlbums : affichagePlaylists}
             onChanger={(v) => {
-              if (tab === 'albums') affichageAlbums = v; else affichagePlaylists = v;
+              if (tab === 'albums') { affichageAlbums = v; ecrireChoix('fav.albums.display', v); }
+              else { affichagePlaylists = v; ecrireChoix('fav.playlists.display', v); }
             }} />
         </span>
       {/if}
@@ -978,8 +987,8 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           n'a pas d'image ». C'était vrai quand il a été écrit ; ce ne l'est
           plus depuis que `MosaiquePochettes` compose la pochette d'une
           playlist avec celles de ses pistes (`PlaylistsV2`, 01/09/2026). La
-          liste reste — c'est toujours le défaut de cet onglet — mais elle
-          n'est plus le seul choix.
+          liste reste un choix ; la grille est le défaut de cet onglet depuis
+          web#1650 (Bertrand, 29/09/2026).
 
           🔴 Les mêmes pièces que les trois autres écrans qui montrent des
           playlists en vignettes : `PochetteActions` pour les actions,
@@ -1197,6 +1206,12 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                    bouton n'est pas du HTML valide. On sort l'enveloppe, la
                    lecture garde son bouton, le cœur a le sien. -->
               <div class="stcarte" class:occupee={retraitStation === r.id}>
+                <!-- 🔴 #1650 — FabienM, fil 1982 point 1 : la carte n'avait que
+                     le nom et le genre. Le logo est rendu comme dans
+                     `RadiosV2` (même objet, même champ `logo_url`), initiale
+                     à défaut. Il reste hors du bouton de lecture pour ne pas
+                     changer la cible du clic ni la place du cœur. -->
+                <span class="stlogo"><AlbumArt coverPath={r.logo_url ?? null} albumId={null} size={0} alt={r.name} fallbackInitials={r.name?.slice(0,1)} /></span>
                 <button class="stlire" onclick={() => lireStation(r)} title={r.name}>
                   <span class="stnom">{r.name}</span>
                   {#if r.genre}<span class="stgenre">{r.genre}</span>{/if}
@@ -1333,6 +1348,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     background:transparent; color:var(--v2-txt); min-width:0}
   .stcarte:hover{border-color:var(--v2-acc1)}
   .stcarte.occupee{opacity:.55}
+  /* #1650 — la boîte du logo : `AlbumArt` en `size={0}` adopte celle de son
+     parent (voir `.lcv`). */
+  .stlogo{display:block; width:40px; height:40px; border-radius:8px; overflow:hidden;
+    background:var(--v2-surface); flex-shrink:0}
+  .stlogo :global(img){width:100%; height:100%; object-fit:cover; display:block}
   .stlire{display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left;
     flex:1; min-width:0; padding:0; border:0; background:transparent;
     color:inherit; font:inherit; cursor:pointer}
