@@ -2774,6 +2774,7 @@ export default {
   "v2.zone.noOutputLong": "No audio output — playback will be refused. Open the zone settings to give it one.",
   "v2.zone.badgeBrowser": "No tab",
   "v2.zone.badgeOffline": "Offline",
+  "v2.zone.horsBackendAsio": "ASIO is selected: use the ASIO zone",
   "v2.zone.openNowPlaying": "Open Now Playing on this zone",
   "v2.zone.openSettings": "Settings for this zone",
   "v2.zone.presenceAbsent": "Absent for {days} d",

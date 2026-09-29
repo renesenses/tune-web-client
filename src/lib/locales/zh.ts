@@ -2758,6 +2758,7 @@ export default {
   "v2.zone.noOutputLong": "没有音频输出，播放将被拒绝。请在区域设置中为其分配一个输出。",
   "v2.zone.badgeBrowser": "无标签页",
   "v2.zone.badgeOffline": "离线",
+  "v2.zone.horsBackendAsio": "已选择 ASIO：请使用 ASIO 区域",
   "v2.zone.openNowPlaying": "打开此区域的正在播放",
   "v2.zone.openSettings": "此区域的设置",
   "v2.zone.presenceAbsent": "已离线 {days} 天",

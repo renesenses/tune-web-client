@@ -2758,6 +2758,7 @@ export default {
   "v2.zone.noOutputLong": "오디오 출력이 없습니다. 재생이 거부됩니다. 존 설정에서 출력을 지정하세요.",
   "v2.zone.badgeBrowser": "탭 없음",
   "v2.zone.badgeOffline": "오프라인",
+  "v2.zone.horsBackendAsio": "ASIO가 선택되어 있습니다: ASIO 영역을 사용하세요",
   "v2.zone.openNowPlaying": "이 존의 지금 재생 중 열기",
   "v2.zone.openSettings": "이 존의 설정",
   "v2.zone.presenceAbsent": "{days}일째 없음",

@@ -2758,6 +2758,7 @@ export default {
   "v2.zone.noOutputLong": "Sin salida de audio: se rechazará la reproducción. Abra los ajustes de la zona para asignarle una.",
   "v2.zone.badgeBrowser": "Sin pestaña",
   "v2.zone.badgeOffline": "Sin conexión",
+  "v2.zone.horsBackendAsio": "ASIO está seleccionado: use la zona ASIO",
   "v2.zone.openNowPlaying": "Abrir la reproducción actual en esta zona",
   "v2.zone.openSettings": "Ajustes de esta zona",
   "v2.zone.presenceAbsent": "Ausente desde hace {days} d",

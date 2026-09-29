@@ -2758,6 +2758,7 @@ export default {
   "v2.zone.noOutputLong": "Fără ieșire audio — redarea va fi refuzată. Deschideți setările zonei pentru a-i atribui una.",
   "v2.zone.badgeBrowser": "Nicio filă",
   "v2.zone.badgeOffline": "Offline",
+  "v2.zone.horsBackendAsio": "ASIO este selectat: folosiți zona ASIO",
   "v2.zone.openNowPlaying": "Deschide redarea curentă pe această zonă",
   "v2.zone.openSettings": "Setările acestei zone",
   "v2.zone.presenceAbsent": "Absentă de {days} z",

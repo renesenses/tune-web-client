@@ -2757,6 +2757,7 @@ export default {
   "v2.zone.noOutputLong": "Ingen ljudutgång – uppspelning nekas. Öppna zonens inställningar för att ge den en.",
   "v2.zone.badgeBrowser": "Ingen flik",
   "v2.zone.badgeOffline": "Offline",
+  "v2.zone.horsBackendAsio": "ASIO är valt: använd ASIO-zonen",
   "v2.zone.openNowPlaying": "Öppna Spelas nu för den här zonen",
   "v2.zone.openSettings": "Inställningar för den här zonen",
   "v2.zone.presenceAbsent": "Borta i {days} d",

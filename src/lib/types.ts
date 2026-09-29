@@ -448,6 +448,14 @@ export interface Zone {
   error?: string | null;
   stream_url?: string | null;
   online?: boolean;
+  /** tune-server-rust#5353 — le backend réel de la sortie de la zone
+   *  (`wasapi`, `asio`…). Absent d'un serveur antérieur, d'une zone non locale
+   *  ou d'une sortie inconnue. */
+  backend_sortie?: string;
+  /** tune-server-rust#5353 — la sortie s'ouvre hors du backend choisi (ex. une
+   *  zone WASAPI quand ASIO est choisi). La zone reste jouable ; elle est
+   *  signalée. */
+  hors_backend_choisi?: boolean;
   /** DUP-1 phase 2 : à côté de `online`, DEPUIS QUAND l'appareil ne répond
    *  plus. `absente_depuis` s'accompagne de `jours_absente`. */
   presence?: 'en_ligne' | 'eteinte_recemment' | 'absente_depuis' | 'jamais_vue';

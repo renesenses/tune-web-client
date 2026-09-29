@@ -2716,6 +2716,7 @@ export default {
   "v2.zone.noOutputLong": "Nincs hangkimenet – a lejátszás el lesz utasítva. Nyissa meg a zóna beállításait, és adjon hozzá egyet.",
   "v2.zone.badgeBrowser": "Nincs lap",
   "v2.zone.badgeOffline": "Offline",
+  "v2.zone.horsBackendAsio": "Az ASIO van kiválasztva: használja az ASIO zónát",
   "v2.zone.openNowPlaying": "A most játszott megnyitása ezen a zónán",
   "v2.zone.openSettings": "Ennek a zónának a beállításai",
   "v2.zone.presenceAbsent": "{days} napja hiányzik",

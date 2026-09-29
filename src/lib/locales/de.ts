@@ -2758,6 +2758,7 @@ export default {
   "v2.zone.noOutputLong": "Kein Audioausgang – die Wiedergabe wird abgelehnt. Öffnen Sie die Zoneneinstellungen, um einen zuzuweisen.",
   "v2.zone.badgeBrowser": "Kein Tab",
   "v2.zone.badgeOffline": "Offline",
+  "v2.zone.horsBackendAsio": "ASIO ist ausgewählt: Verwenden Sie die ASIO-Zone",
   "v2.zone.openNowPlaying": "„Aktuelle Wiedergabe“ für diese Zone öffnen",
   "v2.zone.openSettings": "Einstellungen dieser Zone",
   "v2.zone.presenceAbsent": "Seit {days} T. abwesend",
