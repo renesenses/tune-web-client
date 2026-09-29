@@ -22,7 +22,12 @@
 
 /** Les trois formes qu'un même contenu peut prendre. */
 export const AFFICHAGES = ['grid', 'list', 'carousel'] as const;
-export type Affichage = (typeof AFFICHAGES)[number];
+/**
+ * Toutes les formes connues de la bascule. `bigGrid` (grandes vignettes,
+ * web#1801) n'est PAS dans `AFFICHAGES` : ce tableau est la liste que la
+ * Bibliothèque valide et fait tourner, et elle ne sait pas rendre ce mode.
+ */
+export type Affichage = (typeof AFFICHAGES)[number] | 'bigGrid';
 
 /**
  * Les deux modes qu'un écran ordinaire propose.
@@ -33,6 +38,16 @@ export type Affichage = (typeof AFFICHAGES)[number];
  * défaut que la garde de `modesAffichage` évite déjà dans `LibraryV2`.
  */
 export const GRILLE_OU_LISTE = ['grid', 'list'] as const;
+
+/**
+ * Liste, petites vignettes, grandes vignettes — web#1801, FabienM (fil 2037,
+ * point 13), go de Bertrand du 29/09/2026 : les trois crans de la
+ * Bibliothèque, pour un écran qui n'a pas de carrousel.
+ *
+ * Même rotation que la Bibliothèque, les grandes vignettes à la place du
+ * carrousel : grille → liste → grandes vignettes → grille.
+ */
+export const LISTE_ET_DEUX_VIGNETTES = ['grid', 'list', 'bigGrid'] as const;
 
 /**
  * Le libellé d'un mode.
@@ -48,6 +63,8 @@ export const LIBELLE_AFFICHAGE: Record<Affichage, string> = {
   grid: 'v2.lib.viewGrid',
   list: 'v2.lib.viewList',
   carousel: 'v2.lib.viewCarousel',
+  // web#1801 — la seule clé ajoutée depuis #929, dans les onze langues.
+  bigGrid: 'v2.lib.viewLargeGrid',
 };
 
 /**

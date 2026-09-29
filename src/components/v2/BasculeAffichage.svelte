@@ -47,9 +47,17 @@
 <button class="viewtog" data-vue={valeur} onclick={() => onChanger(suivant)}
   aria-label={$t(LIBELLE_AFFICHAGE[suivant] as any)}
   title={$t(LIBELLE_AFFICHAGE[suivant] as any)}>
-  {#if valeur === 'grid'}
+  <!-- L'icône est celle de la DESTINATION (`suivant`), comme le libellé.
+       Elle se lisait sur `valeur`, en supposant la rotation de la
+       Bibliothèque (grille → liste → carrousel) : sur un écran à deux crans,
+       la liste montrait le carrousel pour mener à la grille. Pour la
+       Bibliothèque, rien ne change. -->
+  {#if suivant === 'list'}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-  {:else if valeur === 'list'}
+  {:else if suivant === 'bigGrid'}
+    <!-- web#1801 — deux grandes vignettes, chacune avec sa ligne de titre. -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="3" width="8.5" height="12"/><rect x="13" y="3" width="8.5" height="12"/><path d="M2.5 19.5h8.5M13 19.5h8.5"/></svg>
+  {:else if suivant === 'carousel'}
     <!-- Trois pochettes de front, celle du milieu en avant : le geste du
          carrousel, sans promettre une troisième dimension qu'on ne rend pas. -->
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="4" height="10"/><rect x="8.5" y="4" width="7" height="16"/><rect x="18" y="7" width="4" height="10"/></svg>

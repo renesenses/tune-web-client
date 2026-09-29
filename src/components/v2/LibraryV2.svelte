@@ -835,7 +835,9 @@
    * sont dans `lib/affichage`, le bouton dans `BasculeAffichage.svelte`, et
    * cet écran n'en garde que ce qui lui est propre : le troisième cran.
    */
-  type Display = Affichage;
+  // web#1801 : les SEULS modes de la Bibliothèque. `Affichage` connaît aussi
+  // `bigGrid`, que cet écran ne rend pas.
+  type Display = Extract<Affichage, (typeof AFFICHAGES)[number]>;
   /**
    * 🔴 `lireChoix` VALIDE contre cette liste : un `'carousel'` écrit puis
    * retiré de `AFFICHAGES` retomberait silencieusement sur la grille. C'est ce
@@ -2406,7 +2408,7 @@
            existe qu'une définition. Cet écran ne lui apporte que ses modes
            (`modesAffichage`) et son état retenu (`lib.display`). -->
       <BasculeAffichage modes={modesAffichage} valeur={display}
-        onChanger={(v) => (display = v)} />
+        onChanger={(v) => (display = v as Display)} />
     {/if}
   </div>
 
