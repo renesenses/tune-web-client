@@ -3312,6 +3312,7 @@ export default {
   "v2.album.queuedNext": "« {title} » sera lu ensuite.",
   "v2.lib.openAlbum": "Ouvrir l'album",
   "v2.rech.seeMore": "Voir plus ({n})",
+  "v2.rech.seeMoreOn": "Voir plus sur {service}",
   "v2.nav.radios": "Radio en direct",
   "v2.nav.podcasts": "Podcasts",
   "v2.nav.streaming": "Streaming",

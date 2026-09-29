@@ -3290,6 +3290,7 @@ export default {
   "v2.album.queuedNext": "「{title}」を次に再生します。",
   "v2.lib.openAlbum": "アルバムを開く",
   "v2.rech.seeMore": "さらに表示（{n}）",
+  "v2.rech.seeMoreOn": "{service} でさらに表示",
   "v2.nav.radios": "ライブラジオ",
   "v2.nav.podcasts": "ポッドキャスト",
   "v2.nav.streaming": "ストリーミング",

@@ -39,8 +39,10 @@ describe('les plafonds de la recherche', () => {
   it('les trois familles ont leur révélateur', () => {
     for (const v of ['montreArtistes', 'montreAlbums', 'montreTitres'])
       expect(src, `${v} manque`).toContain(v);
-    // Trois révélateurs, et (#4663) trois demandes de la suite locale.
-    expect(src.match(/class="voirplus"/g)).toHaveLength(6);
+    // Trois révélateurs, (#4663) trois demandes de la suite locale, et
+    // (#4803, web #1757) trois « Voir plus sur <Service> ».
+    expect(src.match(/class="voirplus"/g)).toHaveLength(9);
+    expect(src.match(/data-suite-service=\{svc\} data-famille="(artists|albums|tracks)"/g)).toHaveLength(3);
     expect(src.match(/data-suite="(artists|albums|tracks)"/g)).toHaveLength(3);
   });
 

@@ -3290,6 +3290,7 @@ export default {
   "v2.album.queuedNext": "\"{title}\"을(를) 다음에 재생합니다.",
   "v2.lib.openAlbum": "앨범 열기",
   "v2.rech.seeMore": "더 보기 ({n})",
+  "v2.rech.seeMoreOn": "{service}에서 더 보기",
   "v2.nav.radios": "라이브 라디오",
   "v2.nav.podcasts": "팟캐스트",
   "v2.nav.streaming": "스트리밍",
