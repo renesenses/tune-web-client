@@ -59,12 +59,12 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   } from '../../lib/gestesObjet';
   import MenuObjetV2 from './MenuObjetV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, ongletCourant, viserDetail } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import RenommerModale from './RenommerModale.svelte';
   import { dialogs } from '../../lib/stores/dialogs';
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { activeView } from '../../lib/stores/navigation';
   import { t } from '../../lib/i18n';
   import { get } from 'svelte/store';
@@ -81,7 +81,30 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
    * n'existe pas en v2 — donc invisible.
    */
   type Tab = 'albums' | 'tracks' | 'artists' | 'playlists' | 'collections' | 'facettes' | 'radio';
-  let tab = $state<Tab>('albums');
+  /**
+   * 🔴 L'ONGLET EST PORTÉ PAR L'ENTRÉE D'HISTORIQUE — web#1790.
+   *
+   * FabienM, fil 2037, point 9 : « on ouvre une playlist favorite, on ne
+   * revient pas sur l'onglet playlists favoris » ; idem pour les artistes.
+   * L'écran est remonté à chaque changement de vue, et `tab` repartait sur
+   * « Albums » : le Précédent revenait bien aux Favoris, jamais au bon onglet.
+   *
+   * Choisir un onglet le pose dans `ongletCourant` (l'entrée courante est
+   * RÉÉCRITE, rien n'est empilé) ; revenir sur une entrée le repose avant le
+   * montage, et l'écran le relit.
+   */
+  const ONGLETS: readonly Tab[] = ['albums', 'tracks', 'artists', 'playlists', 'collections', 'facettes', 'radio'];
+  const ongletDe = (o: string | null): Tab => (ONGLETS as readonly string[]).includes(o ?? '') ? (o as Tab) : 'albums';
+  let tab = $state<Tab>(ongletDe(get(ongletCourant)));
+  function choisirOnglet(id: Tab) {
+    tab = id;
+    ongletCourant.set(id);
+  }
+  // Un Précédent entre deux entrées des Favoris (l'écran reste monté).
+  $effect(() => {
+    const voulu = ongletDe($ongletCourant);
+    untrack(() => { if (voulu !== tab) tab = voulu; });
+  });
   let q = $state('');
 
   /**
@@ -615,6 +638,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     nom: string,
     restore: unknown = { id, name: nom },
   ) {
+    // web#1790 — UNE entrée pour la playlist ouverte, comme depuis les
+    // Étiquettes (`ouvrirParRaccourci`, #1754) : `PlaylistsV2` pose cette même
+    // clé en l'ouvrant. Sans elle, `#playlists` (la liste, jamais vue) puis
+    // `#playlists/<clé>` : le premier Précédent tombait sur la liste.
+    if (vue === 'playlists') viserDetail(cle);
     activeView.set(vue as any);
     await tick();
     window.dispatchEvent(
@@ -795,7 +823,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       </div>
       <nav class="tabs">
         {#each TABS as t (t.id)}
-          <button class:on={tab === t.id} onclick={() => (tab = t.id)}>{t.label}<span>{t.n}</span></button>
+          <button class:on={tab === t.id} onclick={() => choisirOnglet(t.id)}>{t.label}<span>{t.n}</span></button>
         {/each}
       </nav>
     </div>
