@@ -77,6 +77,7 @@
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import LignePisteV2 from './LignePisteV2.svelte';
   import PisteActions from './PisteActions.svelte';
+  import type { CoeurExterne } from '../../lib/coeurExterne';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
   import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
@@ -216,6 +217,14 @@
      */
     apres?: Snippet<[Track, number]>;
     /**
+     * 🔴 #1771 — le cœur qu'un écran pose dans la barre d'actions d'une ligne.
+     *
+     * L'Historique y met le favori RADIO d'un titre entendu à la radio : dans
+     * la case du cœur, pas dans le suffixe. `null` pour une ligne : la barre
+     * garde son propre cœur.
+     */
+    coeurDe?: ((piste: Track, index: number) => CoeurExterne | null) | null;
+    /**
      * 🔴 La clé de liste, quand `id` ne suffit pas.
      *
      * L'Historique peut afficher DEUX FOIS la même piste — écoutée deux fois.
@@ -315,7 +324,7 @@
     pistes, onLire, onLireDepuis = null, numerotation = 'rang',
     avecAlbum = true, pochette = true, pochetteEnTableau = false,
     sourceEnTableau = false,
-    ouvertureAlbum = null, apres,
+    ouvertureAlbum = null, apres, coeurDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
     enTetesDisque = false,
     reordonnable = false, onReordonner = null,
@@ -603,6 +612,7 @@
           onOuvrirAlbum={ouvrir}
           {etiquetteIndispo}
           {lectureSeule}
+          coeur={coeurDe?.(p, i) ?? null}
         />
         <!--
           🔴 Le suffixe est enveloppé, et ce n'est pas cosmétique.
@@ -631,6 +641,7 @@
         onOuvrirAlbum={ouvrir}
         {etiquetteIndispo}
         {lectureSeule}
+        coeur={coeurDe?.(p, i) ?? null}
       />
     {/if}
   {/each}
@@ -739,7 +750,7 @@
           {/if}
         {/each}
         {#if !lectureSeule}<span class="td act" role="cell"><PisteActions piste={p}
-          onLireDepuis={() => lireDepuis(p, i)} /></span>{/if}
+          onLireDepuis={() => lireDepuis(p, i)} coeur={coeurDe?.(p, i) ?? null} /></span>{/if}
         {#if apres}<span class="td act" role="cell">{@render apres(p, i)}</span>{/if}
       </div>
     {/each}
