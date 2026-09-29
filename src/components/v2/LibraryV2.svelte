@@ -10,7 +10,7 @@
   // défaut — `get()` n'abonne à rien sous les runes. Si un `get(` réapparaît
   // ici, c'est presque sûrement la même faute : préférer `$monMagasin`.
   import { t as tr, locale } from '../../lib/i18n';
-  import { ordreNaturel } from '../../lib/ordreNaturel';
+  import { comparerAlphabetique, initialeAlphabetique } from '../../lib/ordreAlphabetique';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { paliersDeFrequence, type LibelleServi } from '../../lib/libellesFrequence';
   import { formatNombre } from '../../lib/formats';
@@ -467,10 +467,12 @@
   const sorted = $derived.by(() => {
     const list = [...src];
     // #1434 — « Disc 2 » avant « Disc 10 » : l'ordre des NOMBRES, pas du texte.
-    const byTitle = (a: Album, b: Album) => ordreNaturel(fold(a.title), fold(b.title));
+    // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956) : signes
+    // de tête ignorés, sans casse ni accents, ex æquo départagés par le brut.
+    const byTitle = (a: Album, b: Album) => comparerAlphabetique(a.title, b.title);
     switch (sortKey) {
       case 'artist':
-        return list.sort((a, b) => fold(a.artist_name).localeCompare(fold(b.artist_name)) || byTitle(a, b));
+        return list.sort((a, b) => comparerAlphabetique(a.artist_name, b.artist_name) || byTitle(a, b));
       case 'year':
         // Sans annee en DERNIER quel que soit le sens : un album non date ne
         // doit pas squatter la tete de liste.
@@ -925,6 +927,11 @@
    */
   function firstLetter(a: Album): string {
     const source = sortKey === 'artist' ? (a.artist_name ?? '') : (a.title ?? '');
+    // #1772 — hors pages, la liste suit `comparerAlphabetique` : la lettre
+    // suit la même règle. En pages, l'ordre est celui de l'API du serveur,
+    // qui compte encore les signes de tête : la dichotomie d'`offsetDeLettre`
+    // exige une initiale qui croisse dans CET ordre-là.
+    if (!nu) return initialeAlphabetique(source);
     const c = fold(source).charAt(0).toUpperCase();
     return c >= 'A' && c <= 'Z' ? c : '#';
   }
@@ -1390,10 +1397,8 @@
    * seulement leur ordre), toutes offertes en pages, comme sur le tri Titre.
    */
   const railRamene = $derived(tab === 'recent' || !railUtile);
-  const initialeDuTitre = (a: Album): string => {
-    const c = fold(a.title ?? '').charAt(0).toUpperCase();
-    return c >= 'A' && c <= 'Z' ? c : '#';
-  };
+  // Servie hors pages seulement (`!nu`) : la règle de `comparerAlphabetique`.
+  const initialeDuTitre = (a: Album): string => initialeAlphabetique(a.title);
   const present = $derived(
     railRamene
       ? (tab === 'albums' && !nu ? new Set(affiches.map(initialeDuTitre)) : new Set(ALPHA))
@@ -1553,7 +1558,8 @@
         return comparerAnnees(Number.isNaN(nx) ? null : nx, Number.isNaN(nz) ? null : nz, ordreAnnee);
       });
     } else {
-      out.sort((x, z) => fold(x.key).localeCompare(fold(z.key)));
+      // #1772 — l'ordre du serveur : « ␣Blues » à B, « 9s » avant « 10s ».
+      out.sort((x, z) => comparerAlphabetique(x.key, z.key));
     }
     return out;
   });

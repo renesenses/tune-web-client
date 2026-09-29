@@ -104,9 +104,13 @@ describe('#1434 — le Disc 10 ne passe plus avant le Disc 2', () => {
   });
 
   it('la Bibliothèque et les Compilations trient leurs titres par le même ordre', () => {
+    // #1772 — les deux écrans passent à `comparerAlphabetique`, qui lit aussi
+    // les nombres par valeur (« Disc 2 » avant « Disc 10 », testé dans
+    // ordreAlphabetique1772.test.ts) : la garde suit le comparateur commun.
     const lib = readFileSync('src/components/v2/LibraryV2.svelte', 'utf8');
-    expect(lib).toMatch(/const byTitle = \(a: Album, b: Album\) => ordreNaturel\(/);
+    expect(lib).toMatch(/const byTitle = \(a: Album, b: Album\) => comparerAlphabetique\(/);
     const meta = readFileSync('src/components/v2/MetadataV2.svelte', 'utf8');
+    expect(meta).toMatch(/comparerAlphabetique\(x\.title, y\.title\)/);
     expect(meta).not.toMatch(/\(x\.title \?\? ''\)\.localeCompare\(/);
   });
 });

@@ -49,6 +49,7 @@
   import TransfertsConvertisseur from './convertisseur/TransfertsConvertisseur.svelte';
   import SnapshotsConvertisseur from './convertisseur/SnapshotsConvertisseur.svelte';
   import LiensConvertisseur from './convertisseur/LiensConvertisseur.svelte';
+  import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
 
   let viewTab = $state<'manual' | 'smart' | 'smart-ai'>('manual');
 
@@ -1619,9 +1620,7 @@
           ? await api.getCollections()
           : (streamingPlaylists[service] ?? []);
       // Sort the comparison list alphabetically by name (Elie).
-      diffTargetPlaylists = [...list].sort((a: any, b: any) =>
-        (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }),
-      );
+      diffTargetPlaylists = [...list].sort((a: any, b: any) => comparerAlphabetique(a.name, b.name));
     } catch (e) {
       console.error('Load diff playlists error:', e);
     }

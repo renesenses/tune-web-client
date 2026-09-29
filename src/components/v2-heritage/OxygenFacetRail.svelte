@@ -5,6 +5,7 @@
   import { t } from '../../lib/i18n';
   import { OXYGEN_FACETS_ALL } from '../../lib/stores/preferences';
   import { chainesUniques, sansDoublons } from '../../lib/clesUniques';
+  import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   import OxygenFolderFacet from '../partages/OxygenFolderFacet.svelte';
 
   interface Props {
@@ -199,7 +200,7 @@
   function sortFacet(field: string, vals: FacetValue[]): FacetValue[] {
     const out = [...vals];
     if (modeOf(field) === 'alpha') {
-      return out.sort((a, b) => a.value.localeCompare(b.value, 'fr', { numeric: true }));
+      return out.sort((a, b) => comparerAlphabetique(a.value, b.value));
     }
     if (field === 'year' || field === 'sample_rate' || field === 'bit_depth' || field === 'rating' || field === 'dr')
       return out.sort((a, b) => Number(b.value) - Number(a.value));
