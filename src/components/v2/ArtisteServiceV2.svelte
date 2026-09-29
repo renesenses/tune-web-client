@@ -71,7 +71,8 @@
   import { initialesArtiste } from '../../lib/initialesArtiste';
   import DiscographieCommune from './DiscographieCommune.svelte';
   import BioEtTitresPhares from './BioEtTitresPhares.svelte';
-  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync, radioArtisteAndSync } from '../../lib/stores/zones';
+  import { corpsRadioArtiste, lancerRadioArtiste } from '../../lib/radioArtiste';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { t as tr, locale as langueCourante } from '../../lib/i18n';
   import { normaliserMetadonnees, bioDans, bilanEnrichissement } from '../../lib/metadonneesArtiste';
@@ -670,6 +671,42 @@
   }
 
   /**
+   * « Radio de l'artiste » — une VRAIE radio, tune-server-rust#5395.
+   *
+   * Bertrand, 29/09/2026 : le bouton est REMPLACÉ. Il ne mélange plus les
+   * seuls titres phares de ce service : il demande au serveur une radio sans
+   * fin — cet artiste (environ 20 %) et des artistes proches, le service de la
+   * fiche d'abord, les autres services connectés et la bibliothèque ensuite.
+   * Sur un serveur qui ne connaît pas encore la route, ou quand il ne trouve
+   * rien, le geste d'avant reprend la main, sans erreur : le mélange des titres
+   * phares (`jouerLesTitres(true)`).
+   */
+  async function jouerLaRadio() {
+    // #1233 — pas de geste muet : sans zone, `zoneRequise` le dit.
+    const zid = zoneRequise();
+    if (zid == null) return;
+    enMasse = true;
+    let issue: 'radio' | 'repli' | 'rien' = 'rien';
+    try {
+      issue = await lancerRadioArtiste(corpsRadioArtiste(cible, nom), {
+        radio: (corps) => radioArtisteAndSync(zid, corps),
+        repli: async () => {
+          if (!titres.length) return 0;
+          const gestes = {
+            lire: (c: any) => playAndSync(zid, c),
+            enfiler: (c: any) => api.addToQueue(zid, c),
+          };
+          return lireListeAleatoire(titres, gestes);
+        },
+      });
+      if (issue === 'rien') notifications.error($tr('v2.fas.empty' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $tr('v2.fas.empty' as any));
+    }
+    enMasse = false;
+  }
+
+  /**
    * « Toutes les pistes » et « Lecture aléatoire » — PORTÉS de la fiche de
    * bibliothèque (#1356).
    *
@@ -783,7 +820,7 @@
         <button class="v2-btn" disabled={enMasse} onclick={() => jouerLesTitres(false)}>
           {$tr('v2.fas.bestOf' as any)}
         </button>
-        <button class="v2-btn ghost" disabled={enMasse} onclick={() => jouerLesTitres(true)}>
+        <button class="v2-btn ghost" disabled={enMasse} onclick={() => jouerLaRadio()}>
           {$tr('v2.fas.radio' as any)}
         </button>
       {:else if titresEnEchec && !chargement}
