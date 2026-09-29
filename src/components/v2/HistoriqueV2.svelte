@@ -127,6 +127,12 @@
    */
   const noms = new NomsDePlaylists(api.getStreamingPlaylist);
   let fiches = $state(new Map<string, FichePlaylist | null>());
+  /**
+   * #1789 — les objets dont la playlist n'a PAS pu être demandée (Qobuz ne la
+   * connaît plus : 404, relayé en 502). Ils disent « Indisponible », sans
+   * bandeau d'erreur (`getStreamingPlaylist` est `sansBandeau`).
+   */
+  let indisponibles = $state(new Set<string>());
   $effect(() => {
     for (const tr of tranches) {
       if (tr.genre !== 'objet' || fiches.has(tr.cle)) continue;
@@ -134,7 +140,11 @@
       const service = serviceDePlaylist(tr.type, tr.entrees);
       if (!service) continue;
       const cle = tr.cle;
-      noms.resoudre(service, tr.id).then((f) => {
+      const id = tr.id;
+      noms.resoudre(service, id).then((f) => {
+        if (f == null && noms.aEchoue(service, id)) {
+          const i = new Set(indisponibles); i.add(cle); indisponibles = i;
+        }
         const n = new Map(fiches); n.set(cle, f); fiches = n;
       });
     }
@@ -381,7 +391,7 @@
                       size={36} alt={nom ?? ''} source={lot[0]?.track?.source ?? null} />
                   </span>
                   <span class="otxt">
-                    <span class="otitre">{fiche?.nom ?? nom ?? $tr('v2.hist.ctx.sansNom' as any)}</span>
+                    <span class="otitre">{fiche?.nom ?? nom ?? (indisponibles.has(tranche.cle) ? $tr('playlist.unavailable') : $tr('v2.hist.ctx.sansNom' as any))}</span>
                     <!-- #988, point 11 — l'artiste de l'album joué. -->
                     {#if artiste}<span class="oart">{artiste}</span>{/if}
                   </span>
