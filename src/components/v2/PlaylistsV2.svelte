@@ -138,13 +138,25 @@
   });
 
   $effect(() => {
-    const auRetour = (ev: Event) => {
+    const auRetour = async (ev: Event) => {
       const cible = (ev as CustomEvent).detail?.target;
       const cle: string | undefined = cible?.key;
       if (!cle || !/^(streaming)?playlists:/.test(cle)) return;
       // `restore` porte l'element complet : on le rouvre tel quel, sans avoir
       // a le retrouver dans une liste peut-etre pas encore chargee.
-      if (cible.restore?.pl) ouvrirPl(cible.restore);
+      if (cible.restore?.pl) { ouvrirPl(cible.restore); return; }
+      // web#1661 — les Étiquettes (`lib/ouvrirParRaccourci`) et les Favoris
+      // (`ouvrirAilleurs`) n'envoient, pour une playlist LOCALE, que
+      // `{ id, name }`. Sans `pl`, rien ne s'ouvrait : le clic posait la liste
+      // des playlists et s'arrêtait là (mesuré en montant `ShellV2`).
+      const m = /^playlists:(\d+)$/.exec(cle);
+      if (!m) return;
+      const id = Number(m[1]);
+      const pl = local.find((x) => x.id === id) ?? (await api.getPlaylist(id).catch(() => null));
+      // La réponse a pu arriver après qu'on a quitté l'écran : ne rien empiler ailleurs.
+      if (!pl || opened || $activeView !== 'playlists') return;
+      const retrouvee = { kind: 'local' as const, pl };
+      ouvrirPl(retrouvee);
     };
     window.addEventListener('tune:shortcut-restore', auRetour);
     return () => window.removeEventListener('tune:shortcut-restore', auRetour);

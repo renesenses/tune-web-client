@@ -1206,6 +1206,12 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                    bouton n'est pas du HTML valide. On sort l'enveloppe, la
                    lecture garde son bouton, le cœur a le sien. -->
               <div class="stcarte" class:occupee={retraitStation === r.id}>
+                <!-- 🔴 #1650 — FabienM, fil 1982 point 1 : la carte n'avait que
+                     le nom et le genre. Le logo est rendu comme dans
+                     `RadiosV2` (même objet, même champ `logo_url`), initiale
+                     à défaut. Il reste hors du bouton de lecture pour ne pas
+                     changer la cible du clic ni la place du cœur. -->
+                <span class="stlogo"><AlbumArt coverPath={r.logo_url ?? null} albumId={null} size={0} alt={r.name} fallbackInitials={r.name?.slice(0,1)} /></span>
                 <button class="stlire" onclick={() => lireStation(r)} title={r.name}>
                   <span class="stnom">{r.name}</span>
                   {#if r.genre}<span class="stgenre">{r.genre}</span>{/if}
@@ -1342,6 +1348,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     background:transparent; color:var(--v2-txt); min-width:0}
   .stcarte:hover{border-color:var(--v2-acc1)}
   .stcarte.occupee{opacity:.55}
+  /* #1650 — la boîte du logo : `AlbumArt` en `size={0}` adopte celle de son
+     parent (voir `.lcv`). */
+  .stlogo{display:block; width:40px; height:40px; border-radius:8px; overflow:hidden;
+    background:var(--v2-surface); flex-shrink:0}
+  .stlogo :global(img){width:100%; height:100%; object-fit:cover; display:block}
   .stlire{display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left;
     flex:1; min-width:0; padding:0; border:0; background:transparent;
     color:inherit; font:inherit; cursor:pointer}
