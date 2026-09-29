@@ -2124,6 +2124,7 @@ export default {
   "alarms.fadeIn": "Fade-in ({value}s)",
   "playlistManager.linkCopied": "Link copied to clipboard",
   "playlistManager.shareError": "Share error",
+  "playlistManager.unknownSource": "Cannot play: this playlist's service is unknown",
   "playlistManager.mergeError": "Merge error: {error}",
   "playlistManager.errorGeneric": "Error: {error}",
   "playlistManager.confirmDeleteCollab": "Delete this collaborative playlist?",

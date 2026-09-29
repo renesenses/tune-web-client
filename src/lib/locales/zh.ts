@@ -1570,6 +1570,7 @@ export default {
   "alarms.fadeIn": "淡入（{value}秒）",
   "playlistManager.linkCopied": "链接已复制到剪贴板",
   "playlistManager.shareError": "分享错误",
+  "playlistManager.unknownSource": "无法播放：此播放列表的服务未知",
   "playlistManager.mergeError": "合并错误：{error}",
   "playlistManager.errorGeneric": "错误：{error}",
   "playlistManager.confirmDeleteCollab": "删除此协作播放列表？",

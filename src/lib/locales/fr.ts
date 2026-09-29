@@ -2127,6 +2127,7 @@ export default {
   "alarms.fadeIn": "Fondu ({value}s)",
   "playlistManager.linkCopied": "Lien copié dans le presse-papier",
   "playlistManager.shareError": "Erreur partage",
+  "playlistManager.unknownSource": "Lecture impossible : le service de cette playlist est inconnu",
   "playlistManager.mergeError": "Erreur merge : {error}",
   "playlistManager.errorGeneric": "Erreur : {error}",
   "playlistManager.confirmDeleteCollab": "Supprimer cette playlist collaborative ?",
