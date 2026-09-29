@@ -3446,6 +3446,8 @@ export default {
   "settings.sidebarSourcesHint": "Típusonként egy kapcsoló: a bejelölt típus mindig megjelenik, szürkén, ha nem elérhető. Alapértelmezés szerint csak a gépen jelen lévő típusok vannak bejelölve.",
   "settings.animationRate": "Az animációk finomsága",
   "settings.animationRateHint": "A „Most szól” képernyő szintjelzői és spektruma. Minél kevésbé finom, annál kevesebb munka a böngészőnek — a hangot pedig semmi nem érinti.",
+  "settings.openQueueOnScroll": "Várólista megnyitása görgetéssel",
+  "settings.openQueueOnScrollHint": "A „Most szól” képernyőn az egérgörgő lefelé görgetése megnyitja a várólistát. Kikapcsolva a várólista csak a gombjával nyílik meg.",
   "settings.animationRateSmooth": "Finom — a mai megjelenítés",
   "settings.animationRateSaving": "Takarékos — mintegy 30 %-kal kevesebb processzor",
   "settings.animationRateMinimal": "Minimális — mintegy 40 %-kal kevesebb, a jelzők kissé szaggatnak",

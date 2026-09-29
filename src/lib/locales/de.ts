@@ -3488,6 +3488,8 @@ export default {
   "settings.sidebarSourcesHint": "Ein Schalter pro Typ: Ein aktivierter Typ erscheint immer, ausgegraut, wenn er nicht verfügbar ist. Standardmäßig sind nur die auf dem Rechner vorhandenen Typen aktiviert.",
   "settings.animationRate": "Flüssigkeit der Animationen",
   "settings.animationRateHint": "Die Pegelanzeigen und das Spektrum im Bildschirm „Aktuelle Wiedergabe“. Weniger flüssig heißt weniger Arbeit für den Browser — und der Klang bleibt unberührt.",
+  "settings.openQueueOnScroll": "Warteschlange durch Scrollen öffnen",
+  "settings.openQueueOnScrollHint": "Im Bildschirm „Wird gerade gespielt“ öffnet das Scrollen mit dem Mausrad nach unten die Warteschlange. Ausgeschaltet öffnet sie sich nur über ihre Schaltfläche.",
   "settings.animationRateSmooth": "Flüssig — die heutige Darstellung",
   "settings.animationRateSaving": "Sparsam — etwa 30 % weniger Prozessorlast",
   "settings.animationRateMinimal": "Minimal — etwa 40 % weniger, die Anzeigen wirken leicht stufig",

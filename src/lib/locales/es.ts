@@ -3488,6 +3488,8 @@ export default {
   "settings.sidebarSourcesHint": "Un interruptor por tipo: un tipo marcado aparece siempre, atenuado cuando no está disponible. Por defecto, solo se marcan los tipos presentes en el equipo.",
   "settings.animationRate": "Fluidez de las animaciones",
   "settings.animationRateHint": "Los medidores de nivel y el espectro de la pantalla Reproduciendo. Menos fluido significa menos trabajo para el navegador, y el sonido nunca se ve afectado.",
+  "settings.openQueueOnScroll": "Abrir la cola al desplazarse",
+  "settings.openQueueOnScrollHint": "En la pantalla Reproduciendo ahora, desplazarse hacia abajo con la rueda del ratón abre la cola. Desactivado, la cola solo se abre con su botón.",
   "settings.animationRateSmooth": "Fluido: la vista actual",
   "settings.animationRateSaving": "Económico: alrededor de un 30 % menos de procesador",
   "settings.animationRateMinimal": "Mínimo: alrededor de un 40 % menos, los medidores se ven algo entrecortados",
