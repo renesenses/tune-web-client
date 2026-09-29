@@ -4272,6 +4272,20 @@ export default {
   "v2.plug.native_charge": "Geladen",
   "v2.plug.native_erreur": "Fehler",
   "v2.plug.native_non_charge": "Nicht geladen",
+  "v2.plug.crossfeedProDesc": "Erweitertes Kopfhörer-Crossfeed, in Tune Premium enthalten.",
+  "v2.plug.catalogInstall": "Installieren",
+  "v2.plug.catalogInstalling": "Wird installiert…",
+  "v2.plug.catalogInstalled": "Installiert: Starten Sie den Server neu, um es zu aktivieren.",
+  "v2.plug.catalogPremiumOnly": "Nur mit Tune Premium.",
+  "v2.plug.catalogErr_premium_required": "Die Installation erfordert eine gültige Tune-Premium-Lizenz oder ein Premium-Konto.",
+  "v2.plug.catalogErr_not_connected": "Melden Sie sich mit Ihrem Tune-Konto an oder aktivieren Sie Ihre Premium-Lizenz und versuchen Sie es erneut.",
+  "v2.plug.catalogErr_no_package_for_target": "Dieses Plugin ist für die Plattform dieses Servers noch nicht verfügbar.",
+  "v2.plug.catalogErr_plugin_not_in_catalog": "Dieses Plugin ist noch nicht im Katalog veröffentlicht.",
+  "v2.plug.catalogErr_signature_invalid": "Paket abgelehnt: Seine Signatur wird nicht erkannt. Es wurde nichts installiert.",
+  "v2.plug.catalogErr_catalog_unreachable": "Der mozaiklabs-Katalog ist nicht erreichbar. Prüfen Sie die Verbindung des Servers und versuchen Sie es erneut.",
+  "v2.plug.catalogErr_catalog_rate_limited": "Zu viele Anfragen an den Katalog. Versuchen Sie es in einer Minute erneut.",
+  "v2.plug.catalogErr_package_checksum_mismatch": "Das empfangene Paket ist unvollständig oder beschädigt. Es wurde nichts installiert; versuchen Sie es erneut.",
+  "v2.plug.catalogErr_other": "Die Installation ist fehlgeschlagen. Versuchen Sie es später erneut.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

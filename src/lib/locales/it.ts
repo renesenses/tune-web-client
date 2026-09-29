@@ -4272,6 +4272,20 @@ export default {
   "v2.plug.native_charge": "Caricato",
   "v2.plug.native_erreur": "Errore",
   "v2.plug.native_non_charge": "Non caricato",
+  "v2.plug.crossfeedProDesc": "Crossfeed avanzato per cuffie, incluso in Tune Premium.",
+  "v2.plug.catalogInstall": "Installa",
+  "v2.plug.catalogInstalling": "Installazione…",
+  "v2.plug.catalogInstalled": "Installato: riavvia il server per attivarlo.",
+  "v2.plug.catalogPremiumOnly": "Solo con Tune Premium.",
+  "v2.plug.catalogErr_premium_required": "L’installazione richiede una licenza o un account Tune Premium valido.",
+  "v2.plug.catalogErr_not_connected": "Accedi al tuo account Tune o attiva la licenza Premium, poi riprova.",
+  "v2.plug.catalogErr_no_package_for_target": "Questo plugin non è ancora disponibile per la piattaforma di questo server.",
+  "v2.plug.catalogErr_plugin_not_in_catalog": "Questo plugin non è ancora pubblicato nel catalogo.",
+  "v2.plug.catalogErr_signature_invalid": "Pacchetto rifiutato: la sua firma non è riconosciuta. Non è stato installato nulla.",
+  "v2.plug.catalogErr_catalog_unreachable": "Il catalogo mozaiklabs non è raggiungibile. Controlla la connessione del server, poi riprova.",
+  "v2.plug.catalogErr_catalog_rate_limited": "Troppe richieste al catalogo. Riprova tra un minuto.",
+  "v2.plug.catalogErr_package_checksum_mismatch": "Il pacchetto ricevuto è incompleto o danneggiato. Non è stato installato nulla; riprova.",
+  "v2.plug.catalogErr_other": "Installazione non riuscita. Riprova più tardi.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

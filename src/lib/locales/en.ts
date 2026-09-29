@@ -4292,6 +4292,20 @@ export default {
   "v2.plug.native_charge": "Loaded",
   "v2.plug.native_erreur": "Error",
   "v2.plug.native_non_charge": "Not loaded",
+  "v2.plug.crossfeedProDesc": "Advanced headphone crossfeed, included in Tune Premium.",
+  "v2.plug.catalogInstall": "Install",
+  "v2.plug.catalogInstalling": "Installing…",
+  "v2.plug.catalogInstalled": "Installed: restart the server to activate it.",
+  "v2.plug.catalogPremiumOnly": "Tune Premium only.",
+  "v2.plug.catalogErr_premium_required": "Installing requires a valid Tune Premium licence or account.",
+  "v2.plug.catalogErr_not_connected": "Sign in to your Tune account or activate your Premium licence, then try again.",
+  "v2.plug.catalogErr_no_package_for_target": "This plugin is not yet available for this server’s platform.",
+  "v2.plug.catalogErr_plugin_not_in_catalog": "This plugin is not published in the catalogue yet.",
+  "v2.plug.catalogErr_signature_invalid": "Package refused: its signature is not recognised. Nothing was installed.",
+  "v2.plug.catalogErr_catalog_unreachable": "The mozaiklabs catalogue cannot be reached. Check the server’s connection, then try again.",
+  "v2.plug.catalogErr_catalog_rate_limited": "Too many requests to the catalogue. Try again in a minute.",
+  "v2.plug.catalogErr_package_checksum_mismatch": "The package received is incomplete or corrupted. Nothing was installed; try again.",
+  "v2.plug.catalogErr_other": "Installation failed. Try again later.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

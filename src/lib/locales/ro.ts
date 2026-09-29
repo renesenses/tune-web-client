@@ -4272,6 +4272,20 @@ export default {
   "v2.plug.native_charge": "Încărcat",
   "v2.plug.native_erreur": "Eroare",
   "v2.plug.native_non_charge": "Neîncărcat",
+  "v2.plug.crossfeedProDesc": "Crossfeed avansat pentru căști, inclus în Tune Premium.",
+  "v2.plug.catalogInstall": "Instalează",
+  "v2.plug.catalogInstalling": "Se instalează…",
+  "v2.plug.catalogInstalled": "Instalat: reporniți serverul pentru a-l activa.",
+  "v2.plug.catalogPremiumOnly": "Doar cu Tune Premium.",
+  "v2.plug.catalogErr_premium_required": "Instalarea necesită o licență sau un cont Tune Premium valid.",
+  "v2.plug.catalogErr_not_connected": "Conectați-vă la contul Tune sau activați licența Premium, apoi încercați din nou.",
+  "v2.plug.catalogErr_no_package_for_target": "Acest plugin nu este încă disponibil pentru platforma acestui server.",
+  "v2.plug.catalogErr_plugin_not_in_catalog": "Acest plugin nu este încă publicat în catalog.",
+  "v2.plug.catalogErr_signature_invalid": "Pachet refuzat: semnătura sa nu este recunoscută. Nu s-a instalat nimic.",
+  "v2.plug.catalogErr_catalog_unreachable": "Catalogul mozaiklabs nu poate fi accesat. Verificați conexiunea serverului, apoi încercați din nou.",
+  "v2.plug.catalogErr_catalog_rate_limited": "Prea multe cereri către catalog. Încercați din nou peste un minut.",
+  "v2.plug.catalogErr_package_checksum_mismatch": "Pachetul primit este incomplet sau deteriorat. Nu s-a instalat nimic; încercați din nou.",
+  "v2.plug.catalogErr_other": "Instalarea a eșuat. Încercați din nou mai târziu.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -4230,6 +4230,20 @@ export default {
   "v2.plug.native_charge": "Betöltve",
   "v2.plug.native_erreur": "Hiba",
   "v2.plug.native_non_charge": "Nincs betöltve",
+  "v2.plug.crossfeedProDesc": "Fejlett fejhallgató-crossfeed, a Tune Premium része.",
+  "v2.plug.catalogInstall": "Telepítés",
+  "v2.plug.catalogInstalling": "Telepítés…",
+  "v2.plug.catalogInstalled": "Telepítve: indítsa újra a szervert az aktiváláshoz.",
+  "v2.plug.catalogPremiumOnly": "Csak Tune Premiummal.",
+  "v2.plug.catalogErr_premium_required": "A telepítéshez érvényes Tune Premium licenc vagy fiók szükséges.",
+  "v2.plug.catalogErr_not_connected": "Jelentkezzen be Tune-fiókjába, vagy aktiválja Premium licencét, majd próbálja újra.",
+  "v2.plug.catalogErr_no_package_for_target": "Ez a bővítmény még nem érhető el ennek a szervernek a platformjára.",
+  "v2.plug.catalogErr_plugin_not_in_catalog": "Ez a bővítmény még nincs közzétéve a katalógusban.",
+  "v2.plug.catalogErr_signature_invalid": "A csomag elutasítva: az aláírása nem ismert. Semmi sem lett telepítve.",
+  "v2.plug.catalogErr_catalog_unreachable": "A mozaiklabs katalógus nem érhető el. Ellenőrizze a szerver kapcsolatát, majd próbálja újra.",
+  "v2.plug.catalogErr_catalog_rate_limited": "Túl sok kérés a katalógus felé. Próbálja újra egy perc múlva.",
+  "v2.plug.catalogErr_package_checksum_mismatch": "A kapott csomag hiányos vagy sérült. Semmi sem lett telepítve; próbálja újra.",
+  "v2.plug.catalogErr_other": "A telepítés nem sikerült. Próbálja újra később.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

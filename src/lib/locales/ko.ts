@@ -4272,6 +4272,20 @@ export default {
   "v2.plug.native_charge": "로드됨",
   "v2.plug.native_erreur": "오류",
   "v2.plug.native_non_charge": "로드되지 않음",
+  "v2.plug.crossfeedProDesc": "헤드폰용 고급 크로스피드, Tune Premium에 포함되어 있습니다.",
+  "v2.plug.catalogInstall": "설치",
+  "v2.plug.catalogInstalling": "설치 중…",
+  "v2.plug.catalogInstalled": "설치됨: 활성화하려면 서버를 다시 시작하세요.",
+  "v2.plug.catalogPremiumOnly": "Tune Premium 전용입니다.",
+  "v2.plug.catalogErr_premium_required": "설치하려면 유효한 Tune Premium 라이선스 또는 계정이 필요합니다.",
+  "v2.plug.catalogErr_not_connected": "Tune 계정에 로그인하거나 Premium 라이선스를 활성화한 뒤 다시 시도하세요.",
+  "v2.plug.catalogErr_no_package_for_target": "이 플러그인은 아직 이 서버의 플랫폼용으로 제공되지 않습니다.",
+  "v2.plug.catalogErr_plugin_not_in_catalog": "이 플러그인은 아직 카탈로그에 게시되지 않았습니다.",
+  "v2.plug.catalogErr_signature_invalid": "패키지가 거부되었습니다: 서명을 확인할 수 없습니다. 아무것도 설치되지 않았습니다.",
+  "v2.plug.catalogErr_catalog_unreachable": "mozaiklabs 카탈로그에 연결할 수 없습니다. 서버 연결을 확인한 뒤 다시 시도하세요.",
+  "v2.plug.catalogErr_catalog_rate_limited": "카탈로그 요청이 너무 많습니다. 1분 후에 다시 시도하세요.",
+  "v2.plug.catalogErr_package_checksum_mismatch": "받은 패키지가 불완전하거나 손상되었습니다. 아무것도 설치되지 않았습니다. 다시 시도하세요.",
+  "v2.plug.catalogErr_other": "설치에 실패했습니다. 나중에 다시 시도하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

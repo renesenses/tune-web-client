@@ -4272,6 +4272,20 @@ export default {
   "v2.plug.native_charge": "已加载",
   "v2.plug.native_erreur": "错误",
   "v2.plug.native_non_charge": "未加载",
+  "v2.plug.crossfeedProDesc": "高级耳机交叉馈送，包含在 Tune Premium 中。",
+  "v2.plug.catalogInstall": "安装",
+  "v2.plug.catalogInstalling": "正在安装…",
+  "v2.plug.catalogInstalled": "已安装：请重启服务器以启用。",
+  "v2.plug.catalogPremiumOnly": "仅限 Tune Premium。",
+  "v2.plug.catalogErr_premium_required": "安装需要有效的 Tune Premium 许可证或账户。",
+  "v2.plug.catalogErr_not_connected": "请登录 Tune 账户或激活 Premium 许可证，然后重试。",
+  "v2.plug.catalogErr_no_package_for_target": "此插件暂未提供适用于本服务器平台的版本。",
+  "v2.plug.catalogErr_plugin_not_in_catalog": "此插件尚未在目录中发布。",
+  "v2.plug.catalogErr_signature_invalid": "安装包被拒绝：无法识别其签名。未安装任何内容。",
+  "v2.plug.catalogErr_catalog_unreachable": "无法连接 mozaiklabs 目录。请检查服务器的网络连接，然后重试。",
+  "v2.plug.catalogErr_catalog_rate_limited": "对目录的请求过多。请一分钟后重试。",
+  "v2.plug.catalogErr_package_checksum_mismatch": "收到的安装包不完整或已损坏。未安装任何内容，请重试。",
+  "v2.plug.catalogErr_other": "安装失败。请稍后重试。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

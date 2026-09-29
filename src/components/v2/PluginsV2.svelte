@@ -27,7 +27,9 @@
   import { sonderCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import {
     greffonsNatifsTiers, etatDeChargement, ecranDuGreffon, NOMS_GREFFONS_NATIFS,
+    greffonsAProposer, DESCRIPTIONS_GREFFONS_NATIFS, cleDuRefusDInstallation,
   } from '../../lib/greffonsAudioNatifs';
+  import { licenseState, isPremium } from '../../lib/stores/license';
   import '../../styles/tune-v2.css';
 
   let plugins = $state<MergedPlugin[]>([]);
@@ -45,11 +47,48 @@
    */
   let natifs = $state<api.GreffonAudioNatif[]>([]);
   async function relireNatifs() {
-    try { natifs = greffonsNatifsTiers((await api.getGreffonsAudioNatifs()).plugins); }
+    try { natifs = greffonsNatifsTiers((await api.getGreffonsAudioNatifs()).plugins); natifsLus = true; }
     catch { natifs = []; }
     // L'entrée « Crossfeed Pro » de la barre suit, comme Concerts et Circle.
     void sonderCrossfeedPro(null);
   }
+  /**
+   * Les greffons natifs du catalogue de mozaiklabs pas encore installés
+   * (Crossfeed Pro). Premium : un bouton « Installer » ; sinon, la mention
+   * Premium, sans bouton. `natifsLus` : tant que l'état des greffons n'est pas
+   * lu, on ne propose rien (un greffon installé passerait pour absent).
+   */
+  let natifsLus = $state(false);
+  let installation = $state<string | null>(null);
+  let refusInstallation = $state<Record<string, string>>({});
+  let installes = $state<Record<string, string>>({});
+  const aProposer = $derived(
+    natifsLus
+      ? greffonsAProposer(natifs).filter((id) => {
+          const nom = NOMS_GREFFONS_NATIFS[id] ? $t(NOMS_GREFFONS_NATIFS[id] as any) : id;
+          return !q || fold(nom).includes(fold(q)) || fold(id).includes(fold(q));
+        })
+      : [],
+  );
+  const premium = $derived($licenseState.loaded && $isPremium);
+
+  async function installerDuCatalogue(id: string) {
+    if (installation) return;
+    installation = id;
+    const { [id]: _ancien, ...autres } = refusInstallation;
+    refusInstallation = autres;
+    try {
+      const r = await api.installerGreffonNatifDuCatalogue(id);
+      installes = { ...installes, [id]: r.version };
+      if (r.restart_required) restartNeeded = true;
+      await relireNatifs();
+    } catch (e: any) {
+      const cle = estRefusPremium(e) ? cleDuRefusDInstallation('premium_required') : cleDuRefusDInstallation(e?.code);
+      refusInstallation = { ...refusInstallation, [id]: cle };
+    }
+    installation = null;
+  }
+
   const natifsFiltres = $derived(
     natifs.filter((g) => {
       const nom = NOMS_GREFFONS_NATIFS[g.id] ? $t(NOMS_GREFFONS_NATIFS[g.id] as any) : g.id;
@@ -233,10 +272,34 @@
       </div>
     {/if}
 
-    {#if !loading && natifsFiltres.length}
+    {#if !loading && (natifsFiltres.length || aProposer.length)}
       <!-- Greffons audio natifs tiers : état de chargement et écran de réglage. -->
       <h3 class="sect" data-natifs>{$t('v2.plug.nativeTitle' as any)}</h3>
       <div class="list">
+        {#each aProposer as id (id)}
+          <!-- Au catalogue de mozaiklabs, pas encore sur ce serveur. -->
+          <article class="pl" data-catalogue={id}>
+            <div class="pi">
+              <div class="ph">
+                <h2>{NOMS_GREFFONS_NATIFS[id] ? $t(NOMS_GREFFONS_NATIFS[id] as any) : id}</h2>
+                <span class="cat">{$t('v2.plug.nativeBadge' as any)}</span>
+                <span class="prem">{$t('v2.plug.premium' as any)}</span>
+              </div>
+              {#if DESCRIPTIONS_GREFFONS_NATIFS[id]}<p class="pd">{$t(DESCRIPTIONS_GREFFONS_NATIFS[id] as any)}</p>{/if}
+              {#if !premium}
+                <div class="why" data-premium-seulement>{$t('v2.plug.catalogPremiumOnly' as any)}</div>
+              {/if}
+              {#if refusInstallation[id]}<div class="why bad" data-refus>{$t(refusInstallation[id] as any)}</div>{/if}
+            </div>
+            <div class="pact">
+              {#if premium}
+                <button class="go installer-natif" disabled={installation !== null} onclick={() => installerDuCatalogue(id)}>
+                  {installation === id ? $t('v2.plug.catalogInstalling' as any) : $t('v2.plug.catalogInstall' as any)}
+                </button>
+              {/if}
+            </div>
+          </article>
+        {/each}
         {#each natifsFiltres as g (g.id)}
           {@const etat = etatDeChargement(g)}
           {@const ecran = ecranDuGreffon(g)}
@@ -246,9 +309,11 @@
                 <h2>{NOMS_GREFFONS_NATIFS[g.id] ? $t(NOMS_GREFFONS_NATIFS[g.id] as any) : g.id}</h2>
                 <span class="cat">{$t('v2.plug.nativeBadge' as any)}</span>
                 <span class="etat" class:ok={etat === 'charge'} data-etat={etat}>{$t(`v2.plug.native_${etat}` as any)}</span>
+                {#if g.version ?? installes[g.id]}<span class="ver" data-version>v{g.version ?? installes[g.id]}</span>{/if}
               </div>
               <p class="pd">{$t('v2.plug.nativeHint' as any)}</p>
               {#if g.error}<div class="why bad">{g.error}</div>{/if}
+              {#if installes[g.id] && etat === 'non_charge'}<div class="why" data-redemarrer>{$t('v2.plug.catalogInstalled' as any)}</div>{/if}
             </div>
             <div class="pact">
               {#if ecran}
