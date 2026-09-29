@@ -2188,9 +2188,9 @@
   </header>
 
   <!-- La ligne de filtres existe a TOUS les niveaux : chez Levente le champ
-       de recherche vit dans la page, a cote des filtres, et c'est le seul
-       moyen de chercher en Essentiel depuis que la Recherche a quitte la
-       barre laterale. Seules les PUCES de filtrage sont reservees a Avance. -->
+       de recherche vit dans la page, a cote des filtres. (La Recherche
+       complete est revenue dans le noyau de la barre le 29/09/2026, web#1759.)
+       Seules les PUCES de filtrage sont reservees a Avance. -->
   {#if erreurD}<div class="derr">{erreurD}</div>{/if}
 
   <!-- 🔴 La portée se VOIT et se RETIRE.

@@ -15,7 +15,7 @@ import {
   CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
 } from '../cadenceAnimations';
 import { normaliserTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
-import { TRI_CONCERTS_DEFAUT, type TriConcerts } from '../concertsTri';
+import type { TriConcerts } from '../concertsTri';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
  *
@@ -141,12 +141,18 @@ export interface Preferences {
   albumSortOrder: 'asc' | 'desc';
   /** Densité de la grille d'albums — voir AlbumGridDensity. */
   albumGridDensity: AlbumGridDensity;
-  /** L'ordre de la liste de l'écran Concerts — `artiste` (défaut, l'ordre
-   *  d'origine) ou `date`. Ici, et pas dans un `localStorage` à part : c'est
-   *  ainsi que tous les choix d'affichage des écrans voisins sont retenus
-   *  (`oxygenView`, `albumSort`, `albumGridDensity`), donc synchronisés avec
-   *  le profil au lieu de rester dans un seul navigateur (#1134). */
-  concertsTri: TriConcerts;
+  /** L'ordre de la liste de l'écran Concerts — `date` ou `artiste`. Ici, et
+   *  pas dans un `localStorage` à part : c'est ainsi que tous les choix
+   *  d'affichage des écrans voisins sont retenus (`oxygenView`, `albumSort`,
+   *  `albumGridDensity`), donc synchronisés avec le profil au lieu de rester
+   *  dans un seul navigateur (#1134).
+   *
+   *  🔴 `null` = RIEN CHOISI (web#1718). Le magasin enregistre l'objet
+   *  ENTIER à chaque écriture : un défaut rangé ici en clair se retrouverait
+   *  écrit comme un choix (piège de #1650), et un changement de défaut
+   *  n'atteindrait plus personne. Seul le clic sur la bascule y écrit ; le
+   *  défaut (`TRI_CONCERTS_DEFAUT`, « Par date ») s'applique à l'affichage. */
+  concertsTri: TriConcerts | null;
   /**
    * Le crête-mètre affiché — #452, spécifié par Xavijol.
    *
@@ -336,6 +342,20 @@ export interface Preferences {
    */
   cadenceAnimations: CranCadence;
   /**
+   * « Ouvrir la file en faisant défiler » — web#1762, Bertrand, 28/09/2026.
+   *
+   * Dans « Lecture en cours », 130 px de molette vers le bas faisaient passer
+   * la feuille de la file en `peek` : la file semblait s'ouvrir toute seule.
+   * Le geste devient un CHOIX, DÉCOCHÉ par défaut (décision du 29/09/2026).
+   * Le bouton de la file et les autres gestes ne changent pas.
+   *
+   * Rangé ici comme les autres réglages de l'écran (`cadenceAnimations`,
+   * `afficherBoutonStop`) : `ui_preferences`, synchronisé serveur. Un blob
+   * enregistré qui ne connaît pas la clé reçoit le défaut par la fusion
+   * `{ ...defaults, ...raw }` de `loadPrefs`.
+   */
+  ouvrirFileAuDefilement: boolean;
+  /**
    * Les types de sources affichés dans la barre latérale — une case par type
    * (tune-server-rust#5065, étape 3). Rangé TYPE PAR TYPE : un type absent
    * n'est pas décidé et suit la présence ; vu présent, il est figé coché.
@@ -363,7 +383,9 @@ const defaults: Preferences = {
   albumSort: 'title',
   albumSortOrder: 'asc',
   albumGridDensity: 'detail',
-  concertsTri: TRI_CONCERTS_DEFAUT,
+  // web#1718 : `null`, pas le défaut — voir le type. L'écran lit
+  // `normaliserTriConcerts(null)`, donc « Par date ».
+  concertsTri: null,
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
@@ -395,6 +417,9 @@ const defaults: Preferences = {
   // réelle et mesurée, mais elle SE VOIT — elle se propose, elle ne s'impose
   // pas. Personne ne doit voir son affichage changer sans l'avoir demandé.
   cadenceAnimations: CRAN_CADENCE_DEFAUT,
+  // web#1762 : DÉCOCHÉ — la molette ne révèle plus la file sans qu'on l'ait
+  // demandé.
+  ouvrirFileAuDefilement: false,
   sourcesBarre: null,
 };
 

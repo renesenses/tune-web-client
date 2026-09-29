@@ -3265,6 +3265,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </select>
               </div>
 
+              <!-- web#1762 — Bertrand, 28/09/2026 : dans Lecture en cours, la
+                   molette ouvrait la file toute seule. Le geste devient un
+                   CHOIX, décoché par défaut ; le bouton de la file ne change
+                   pas. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.openQueueOnScroll' as any)}</span>
+                  <span class="hint">{$t('settings.openQueueOnScrollHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.ouvrirFileAuDefilement === true}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, ouvrirFileAuDefilement: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
             {:else if s.id === 'profiles'}
               <ProfilsV2 />
             {:else if s.id === 'interface'}
