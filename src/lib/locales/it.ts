@@ -3509,6 +3509,8 @@ export default {
   "settings.animationRateHint": "Gli indicatori di livello e lo spettro della schermata In riproduzione. Meno fluido significa meno lavoro per il browser, e il suono non viene mai toccato.",
   "settings.openQueueOnScroll": "Apri la coda scorrendo",
   "settings.openQueueOnScrollHint": "Nella schermata In riproduzione, scorrere verso il basso con la rotella del mouse apre la coda. Se disattivato, la coda si apre solo con il suo pulsante.",
+  "settings.nowPlayingLinkToSource": "«In riproduzione» apre l'album o la playlist",
+  "settings.nowPlayingLinkToSourceHint": "La voce «In riproduzione» della barra laterale apre la pagina dell'album in ascolto, o quella della playlist se la riproduzione parte da lì. Per una radio, o se non esiste alcuna pagina, apre la schermata In riproduzione, come oggi.",
   "settings.animationRateSmooth": "Fluido: la resa di oggi",
   "settings.animationRateSaving": "Economico: circa il 30 % di processore in meno",
   "settings.animationRateMinimal": "Minimo: circa il 40 % in meno, gli indicatori appaiono un po' a scatti",

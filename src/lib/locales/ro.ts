@@ -3509,6 +3509,8 @@ export default {
   "settings.animationRateHint": "Indicatoarele de nivel și spectrul din ecranul În redare. Mai puțin fluid înseamnă mai puțină muncă pentru browser — iar sunetul nu este atins niciodată.",
   "settings.openQueueOnScroll": "Deschide coada prin derulare",
   "settings.openQueueOnScrollHint": "În ecranul Se redă acum, derularea în jos cu rotița mouse-ului deschide coada. Dezactivat, coada se deschide doar cu butonul ei.",
+  "settings.nowPlayingLinkToSource": "„Se redă acum” deschide albumul sau playlistul",
+  "settings.nowPlayingLinkToSourceHint": "Intrarea „Se redă acum” din bara laterală deschide pagina albumului care se redă, sau pe cea a playlistului dacă redarea pornește de acolo. Pentru un post de radio, sau dacă nu există nicio pagină, deschide ecranul Se redă acum, ca până acum.",
   "settings.animationRateSmooth": "Fluid — afișarea de astăzi",
   "settings.animationRateSaving": "Economic — cu circa 30 % mai puțin procesor",
   "settings.animationRateMinimal": "Minim — cu circa 40 % mai puțin, indicatoarele par ușor sacadate",

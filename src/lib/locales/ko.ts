@@ -3509,6 +3509,8 @@ export default {
   "settings.animationRateHint": "「재생 중」 화면의 레벨 미터와 스펙트럼입니다. 덜 부드러울수록 브라우저 부담이 줄어듭니다 — 소리는 전혀 건드리지 않습니다.",
   "settings.openQueueOnScroll": "스크롤하여 대기열 열기",
   "settings.openQueueOnScrollHint": "「현재 재생」 화면에서 마우스 휠을 아래로 스크롤하면 대기열이 열립니다. 끄면 대기열은 버튼으로만 열립니다.",
+  "settings.nowPlayingLinkToSource": "「현재 재생」에서 앨범 또는 재생목록 열기",
+  "settings.nowPlayingLinkToSourceHint": "사이드바의 「현재 재생」 항목이 재생 중인 앨범 페이지를 엽니다. 재생목록에서 재생을 시작했다면 그 재생목록을 엽니다. 라디오이거나 페이지가 없으면 지금처럼 「현재 재생」 화면을 엽니다.",
   "settings.animationRateSmooth": "부드럽게 — 지금의 표시",
   "settings.animationRateSaving": "절약 — 프로세서 사용량 약 30 % 감소",
   "settings.animationRateMinimal": "최소 — 약 40 % 감소, 미터가 약간 끊겨 보입니다",

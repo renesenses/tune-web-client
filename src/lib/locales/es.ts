@@ -3509,6 +3509,8 @@ export default {
   "settings.animationRateHint": "Los medidores de nivel y el espectro de la pantalla Reproduciendo. Menos fluido significa menos trabajo para el navegador, y el sonido nunca se ve afectado.",
   "settings.openQueueOnScroll": "Abrir la cola al desplazarse",
   "settings.openQueueOnScrollHint": "En la pantalla Reproduciendo ahora, desplazarse hacia abajo con la rueda del ratón abre la cola. Desactivado, la cola solo se abre con su botón.",
+  "settings.nowPlayingLinkToSource": "«Reproduciendo ahora» abre el álbum o la lista",
+  "settings.nowPlayingLinkToSourceHint": "La entrada «Reproduciendo ahora» de la barra lateral abre la página del álbum que suena, o la de la lista de reproducción si la reproducción viene de ella. Para una radio, o si no existe ninguna página, abre la pantalla Reproduciendo ahora, como hasta ahora.",
   "settings.animationRateSmooth": "Fluido: la vista actual",
   "settings.animationRateSaving": "Económico: alrededor de un 30 % menos de procesador",
   "settings.animationRateMinimal": "Mínimo: alrededor de un 40 % menos, los medidores se ven algo entrecortados",

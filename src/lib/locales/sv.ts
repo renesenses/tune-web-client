@@ -3508,6 +3508,8 @@ export default {
   "settings.animationRateHint": "Nivåmätarna och spektrumet på skärmen Spelas nu. Mindre mjukt betyder mindre arbete för webbläsaren — och ljudet rörs aldrig.",
   "settings.openQueueOnScroll": "Öppna kön genom att scrolla",
   "settings.openQueueOnScrollHint": "På skärmen Spelas nu öppnar en scrollning nedåt med mushjulet kön. Avstängt öppnas kön bara med sin knapp.",
+  "settings.nowPlayingLinkToSource": "”Spelas nu” öppnar albumet eller spellistan",
+  "settings.nowPlayingLinkToSourceHint": "Posten ”Spelas nu” i sidofältet öppnar sidan för albumet som spelas, eller för spellistan om uppspelningen startade därifrån. För en radiostation, eller om ingen sida finns, öppnas skärmen Spelas nu, som i dag.",
   "settings.animationRateSmooth": "Mjuk — dagens visning",
   "settings.animationRateSaving": "Sparsam — omkring 30 % mindre processor",
   "settings.animationRateMinimal": "Minimal — omkring 40 % mindre, mätarna rör sig lite ryckigt",
