@@ -68,6 +68,20 @@
    * page bouge sous lui : des coordonnées figées suivraient le bouton de très
    * loin.
    *
+   * ## Le menu n'est MONTÉ qu'à la première interaction (#1796)
+   *
+   * Le coin bas-gauche, lui, est là dès le départ : c'est un vrai bouton,
+   * focalisable, avec son `aria-haspopup` et son `aria-expanded`. Ce qui
+   * attend, c'est le composant `MenuObjetV2` qu'il ouvre — ses états, ses
+   * dérivés, son effet. Une grille de 800 albums en montait 800, pour un menu
+   * qu'on ouvre sur une vignette à la fois.
+   *
+   * Il se monte au premier survol de la pochette, au premier focus clavier
+   * dedans, ou — sans survol ni focus préalable (tactile, clic programmé) —
+   * au clic lui-même : `flushSync` le monte alors AVANT d'ouvrir, dans le même
+   * geste. Une fois monté, il reste : rien ne se démonte au départ du
+   * pointeur.
+   *
    * ## Pourquoi les boutons n'apparaissent qu'au survol
    *
    * Cinq icônes en permanence sur chaque vignette d'une grille de 800 albums
@@ -90,7 +104,7 @@
     favoriteSmartPlaylistIds,
   } from '../../lib/stores/profile';
   import { basculerFavoriLocal, estFavoriLocal, type RefLocale } from '../../lib/favorisLocaux';
-  import type { Snippet } from 'svelte';
+  import { flushSync, type Snippet } from 'svelte';
   import type { CibleEtiquette } from '../../lib/cibleEtiquette';
   import type { GestesPochette } from '../../lib/actionsPochette';
   import { objetAUnMenu, type ObjetMenu } from '../../lib/gestesObjet';
@@ -220,14 +234,44 @@
   const gestesDuMenu = $derived<GestesPochette>(onOuvrir ? { ouvrir: onOuvrir, ...gestesMenu } : gestesMenu);
   /** Le bouton n'existe que si le menu a au moins une entrée — absent sinon. */
   const menuPresent = $derived(!!objet && objetAUnMenu(objet, gestesDuMenu));
+  /** #1796 — `MenuObjetV2` n'existe qu'à partir de la première interaction. */
+  let menuMonte = $state(false);
+  function monterMenu() {
+    if (!menuMonte && menuPresent) menuMonte = true;
+  }
+  /**
+   * Survol ou focus clavier DANS la pochette : on monte le menu avant qu'on
+   * l'ouvre. Écouté une seule fois ; `focusin` et non `focus`, qui ne remonte
+   * pas depuis le bouton.
+   */
+  function amorcerMenu(noeud: HTMLElement) {
+    const amorcer = () => {
+      monterMenu();
+      if (!menuMonte) return;
+      noeud.removeEventListener('pointerenter', amorcer);
+      noeud.removeEventListener('focusin', amorcer);
+    };
+    noeud.addEventListener('pointerenter', amorcer);
+    noeud.addEventListener('focusin', amorcer);
+    return () => {
+      noeud.removeEventListener('pointerenter', amorcer);
+      noeud.removeEventListener('focusin', amorcer);
+    };
+  }
   function ouvrirMenu(ev: MouseEvent) {
     ev.stopPropagation();
     ev.preventDefault();
-    menuObjet?.basculer((ev.currentTarget as HTMLElement).getBoundingClientRect());
+    const boite = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    // Clic sans survol ni focus préalable : le menu se monte ICI, avant d'ouvrir.
+    if (!menuObjet) {
+      menuMonte = true;
+      flushSync();
+    }
+    menuObjet?.basculer(boite);
   }
 </script>
 
-<div class="pa">
+<div class="pa" {@attach amorcerMenu}>
   {@render children()}
 
   {#if onOuvrir}
@@ -306,8 +350,9 @@
   {/if}
 </div>
 
-<!-- Le menu : `MenuObjetV2`, porté à la racine du document par lui-même. -->
-{#if objet}
+<!-- Le menu : `MenuObjetV2`, porté à la racine du document par lui-même.
+     Monté à la première interaction seulement (#1796). -->
+{#if objet && menuMonte}
   <MenuObjetV2 bind:this={menuObjet} {objet} gestes={gestesDuMenu} {rafraichir}
     {dansCollectionManuelle} bouton={false} {nom} surOuverture={(o) => (menuOuvert = o)} />
 {/if}

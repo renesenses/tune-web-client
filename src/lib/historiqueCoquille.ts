@@ -51,7 +51,7 @@
  * on ne la réécrit pas.
  */
 import { get, writable } from 'svelte/store';
-import { activeView, type View } from './stores/navigation';
+import { activeView, vueDeRetour, type View } from './stores/navigation';
 import {
   finDuRetourProgrammatique,
   opPourFiche,
@@ -72,6 +72,11 @@ export interface EtatCoquille {
   vue: string;
   /** Le niveau ouvert DANS la vue (`album:12`), ou `null` à la racine. */
   detail: string | null;
+  /**
+   * web#1790 — l'ONGLET de la vue (`playlists` dans les Favoris). Absent quand
+   * la vue n'en déclare pas : les entrées des autres écrans gardent leur forme.
+   */
+  onglet?: string;
 }
 
 /**
@@ -82,12 +87,14 @@ export interface EtatCoquille {
  * de surface d'un proxy Svelte rend un objet dont les valeurs sont encore des
  * proxies dès qu'elles ne sont pas primitives. Ici rien ne survit à `String()`.
  */
-export function etatCoquille(vue: unknown, detail: unknown): EtatCoquille {
-  return {
+export function etatCoquille(vue: unknown, detail: unknown, onglet: unknown = null): EtatCoquille {
+  const etat: EtatCoquille = {
     tune: 'v2',
     vue: String(vue ?? ''),
     detail: detail == null ? null : String(detail),
   };
+  if (onglet != null) etat.onglet = String(onglet);
+  return etat;
 }
 
 /** Vrai si l'entrée atteinte est l'une des nôtres. */
@@ -128,6 +135,55 @@ export function adressePour(etat: EtatCoquille): string {
  * recharger l'artiste, ce que ce lot ne fait pas (voir la note de fin).
  */
 export const detailOuvert = writable<string | null>(null);
+
+/**
+ * L'ONGLET DE LA VUE COURANTE, porté par l'entrée d'historique — web#1790.
+ *
+ * FabienM, fil 2037, point 9 : « dans le menu Favoris, on ouvre une playlist
+ * favorite, on ne revient pas sur l'onglet playlists favoris. Pour les
+ * artistes favoris, on ouvre et le BACK ne renvoie pas à l'onglet Artistes
+ * favoris ». L'entrée `#favorites` était bien là ; c'est l'onglet qu'elle ne
+ * portait pas, et l'écran remonté repartait sur son onglet par défaut.
+ *
+ * Changer d'onglet RÉÉCRIT l'entrée courante (jamais d'empilement : un onglet
+ * n'est pas un niveau de plus). Changer de vue le remet à `null`. Revenir sur
+ * une entrée le repose AVANT la vue, pour que l'écran remonté le lise dès son
+ * montage.
+ */
+export const ongletCourant = writable<string | null>(null);
+
+/**
+ * L'ONGLET À REPOSER AU RETOUR D'UNE PAGE — web#1790.
+ *
+ * Le bouton Retour de la page artiste ne recule pas : il CHANGE de vue vers
+ * `vueDeRetour` (#3824), ce qui empile une entrée neuve, sans onglet — les
+ * Favoris rouvraient donc sur « Albums ». L'émetteur pose `vueDeRetour`
+ * pendant qu'il est encore à l'écran : c'est à cet instant que l'onglet de la
+ * vue de départ est retenu, et `revenirA` le repose sur l'entrée d'arrivée.
+ */
+let ongletRetenu: { vue: string; onglet: string } | null = null;
+
+function retenirOngletPour(vue: string | null): void {
+  if (vue == null) return;
+  if (get(activeView) === vue) {
+    const o = get(ongletCourant);
+    ongletRetenu = o != null ? { vue, onglet: o } : null;
+  } else if (ongletRetenu?.vue !== vue) {
+    // Posé depuis un autre écran (fiche album de #1602, en chaîne) : on ne
+    // garde que ce qui visait déjà cette vue.
+    ongletRetenu = null;
+  }
+}
+
+/** Le Retour d'une page : aller à `vue` et y reposer l'onglet retenu. */
+export function revenirA(vue: View): void {
+  const r = ongletRetenu;
+  ongletRetenu = null;
+  activeView.set(vue);
+  // Après le changement de vue, qui remet l'onglet à `null` : l'entrée neuve
+  // est réécrite avec lui, et l'écran le lit à son montage.
+  if (r && r.vue === vue) ongletCourant.set(r.onglet);
+}
 
 /** Ouvrir un niveau de détail : l'entrée d'historique est empilée. */
 export function ouvrirDetail(cle: string): void {
@@ -351,7 +407,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
   let enRestauration = false;
 
   const ecrire = (pousser: boolean, vue: unknown, detail: unknown) => {
-    const etat = etatCoquille(vue, detail);
+    const etat = etatCoquille(vue, detail, get(ongletCourant));
     if (pousser) historique.pushState(etat, '', adressePour(etat));
     else historique.replaceState(etat, '', adressePour(etat));
   };
@@ -408,6 +464,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     const vise = consommerVuePourEntree();
     enRestauration = true;
     detailOuvert.set(vise);
+    // web#1790 — l'onglet appartient à la vue qu'on quitte.
+    ongletCourant.set(null);
     enRestauration = false;
     ecrire(true, vue, vise);
   });
@@ -427,6 +485,15 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     else if (op === 'replace') ecrire(false, get(activeView), null);
   });
 
+  // web#1790 — changer d'onglet réécrit l'entrée courante, sans empiler.
+  let premierOnglet = true;
+  const arretRetour = vueDeRetour.subscribe((v) => retenirOngletPour(v as string | null));
+  const arretOnglet = ongletCourant.subscribe(() => {
+    if (premierOnglet) { premierOnglet = false; return; }
+    if (enRestauration) return;
+    ecrire(false, get(activeView), get(detailOuvert));
+  });
+
   const surRetour = (e: PopStateEvent) => {
     // Le retour annoncé par `reculerAvecIntention` est consommé : les
     // fermetures suivantes redeviennent des réécritures.
@@ -435,6 +502,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     if (!estEtatCoquille(etat)) return;
     enRestauration = true;
     try {
+      // L'onglet d'abord : l'écran que la vue remonte le lit à son montage.
+      ongletCourant.set(etat.onglet ?? null);
       activeView.set(etat.vue as View);
       detailOuvert.set(etat.detail);
     } finally {
@@ -446,6 +515,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
   return () => {
     arretVue();
     arretDetail();
+    arretOnglet();
+    arretRetour();
     fenetre.removeEventListener('popstate', surRetour as EventListener);
   };
 }
