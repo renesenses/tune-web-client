@@ -15,7 +15,7 @@
    *
    * Une seule barre, trois profondeurs pilotées par le niveau d'interface
    * (`preferences.settingsLevel`, partagé avec la vue Réglages) :
-   *   - Essentiel  : le noyau seul (Accueil, Bibliothèque, Radio, Playlists, Recherche)
+   *   - Essentiel  : le noyau seul (Accueil, Recherche, Bibliothèque, Radio…)
    *   - Avancé     : + File, Favoris, Zones, Serveurs multimédia
    *   - Expert     : + section « Studio » (EQ, Convertisseur, Métadonnées, Diagnostics)
    *     Les Extensions ont rejoint les Réglages (onglet dédié) le 01/09/2026.
@@ -125,6 +125,14 @@
    *   Ambiance · Répertoires · Serveurs multimédia · Zones ·
    *   TABLEAU DE BORD · Recherche · Concerts
    *
+   * ⚠️ ARBITRAGE DU 29/09/2026 (web#1759) — la RECHERCHE REMONTE dans le
+   * noyau, juste sous Accueil, et devient visible dès l'Essentiel. Elle
+   * quitte l'étage avancé, qui se termine désormais par Tableau de bord ·
+   * Concerts. Le noyau devient :
+   *
+   *   Accueil · Recherche · Lecture en cours · File d'attente · Historique ·
+   *   Bibliothèque · Oxygen · Streaming · Radio en direct · Podcasts
+   *
    * 🔴 `__tests__/ordreBarreLaterale.test.ts` fige cet ordre par `toEqual`,
    * étage par étage : il EST l'arbitrage, pas une garde trop stricte. Ses
    * deux listes attendues ont été COMPLÉTÉES avec cette entrée, à cette
@@ -133,6 +141,10 @@
    */
   const CORE: Item[] = [
     { view: 'home', labelKey: 'nav.home', icon: 'M3 11l9-8 9 8M5 10v10h14V10' },
+    // RECHERCHE — juste sous Accueil, dès l'Essentiel : arbitrage de Bertrand
+    // du 29/09/2026 (web#1759). Elle quitte l'étage « Avancé » : une seule
+    // entrée, jamais deux.
+    { view: 'search', labelKey: 'nav.search', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
     { view: 'nowplaying', labelKey: 'nav.nowplaying', icon: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0m12-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0' },
     { view: 'queue', labelKey: 'nav.queue', icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
     { view: 'history', labelKey: 'nav.history', icon: 'M3 12a9 9 0 1 0 3-6.7M3 4v4h4M12 7v5l3.5 2' },
@@ -148,15 +160,14 @@
     { view: 'mediaservers', labelKey: 'nav.mediaservers', icon: 'M4 5h16v5H4zM4 14h16v5H4zM7.5 7.5h.01M7.5 16.5h.01' },
     { view: 'zonemanager', labelKey: 'nav.zonemanager', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
     // TABLEAU DE BORD — le NOUVEL écran à widgets, arbitrage de Bertrand du
-    // 25/09/2026 : au menu, et AVANT « Recherche ». Sa place est donc ici,
-    // entre les Zones et la Recherche, et nulle part ailleurs.
+    // 25/09/2026 : au menu, après les Zones. La Recherche, qui le suivait, est
+    // montée dans le noyau le 29/09/2026 (web#1759).
     //
     // ⚠️ `nav.dashboard` est réemployée telle quelle — elle existe déjà dans
     // les onze langues. L'ANCIEN écran, lui, ne porte plus d'entrée depuis la
     // 0.9.161 : les deux ne se disputent aucun libellé, et le retrait décidé
     // le 20/09 reste acquis (`ordreBarreLaterale` le garde encore).
     { view: 'tableaudebord', labelKey: 'nav.dashboard', icon: 'M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z' },
-    { view: 'search', labelKey: 'nav.search', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
     { view: 'concerts', labelKey: 'nav.concerts', icon: 'M9 18V5l12-2v13M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6' },
     // TUNE CIRCLE — demande de Bertrand du 26/09/2026 : une entrée à côté des
     // autres greffons, visible seulement quand le greffon TOURNE. Le libellé
