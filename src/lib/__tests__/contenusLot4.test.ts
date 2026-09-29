@@ -19,7 +19,9 @@ describe('égaliseur : mes préréglages', () => {
   const EQ = lire('src/components/v2/EqualizerV2.svelte');
   it('lister, enregistrer, appliquer, supprimer', () => {
     expect(EQ).toContain('api.listEqPresets()');
-    expect(EQ).toContain('onclick={enregistrerPreset}');
+    // web#1750 — « Enregistrer sous » crée ; « Enregistrer » met à jour.
+    expect(EQ).toContain('onclick={enregistrerSous}');
+    expect(EQ).toContain('onclick={enregistrer}');
     expect(EQ).toContain('onclick={() => appliquerMonPreset(p)}');
     expect(EQ).toContain('onclick={() => supprimerMonPreset(p)}');
   });
