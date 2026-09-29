@@ -1938,6 +1938,19 @@ export function getAlbumEdition(id: number) {
   return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition`, undefined, undefined, true);
 }
 
+/**
+ * RÉTABLIT un champ modifié à la main (tune-server-rust#5319) : il reprend la
+ * valeur des balises des fichiers et n'est plus marqué. Rend la fiche
+ * d'édition. 409 `retablir_par_defaire` pour les disques d'un coffret.
+ */
+export function retablirChampAlbum(id: number, champ: string) {
+  return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition/retablir`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ field: champ }),
+  });
+}
+
 /** Un seul PUT avec tout ce qui a changé ; 422 si `discs` n'est pas complet. */
 export function putAlbumEdition(id: number, corps: CorpsEdition) {
   return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition`, {

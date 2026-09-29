@@ -69,6 +69,12 @@ export interface EditionReponse {
    * Absent d'un serveur antérieur : pas de bouton.
    */
   defaire_coffret_manuel?: boolean;
+  /**
+   * Le serveur sait RÉTABLIR un champ depuis les balises
+   * (`POST /library/albums/{id}/edition/retablir`, tune-server-rust#5319).
+   * Absent : les badges « modifié à la main » s'affichent, sans bouton.
+   */
+  retablir_champ?: boolean;
 }
 
 export interface CorpsEdition {
@@ -315,6 +321,16 @@ export function libelleChampBalise(champ: string, traduire: (cle: string) => str
     ? traduire(`v2.edition.tagField.${champ}`)
     : champ;
 }
+
+/** Le serveur annonce-t-il « Rétablir » un champ (#5319) ? */
+export function retablirChampAnnonce(r: EditionReponse | null | undefined): boolean {
+  return (r as { retablir_champ?: unknown } | null | undefined)?.retablir_champ === true;
+}
+
+/** Les champs que l'écran sait marquer « modifié à la main », noms du contrat. */
+export type ChampEdite =
+  | 'title' | 'album_artist' | 'year' | 'label' | 'genre' | 'release_type'
+  | 'compilation_mode' | 'discs' | 'tracks';
 
 /** Le serveur annonce-t-il « Défaire » pour un coffret MANUEL (#5319) ? */
 export function defaireCoffretManuelAnnonce(r: EditionReponse | null | undefined): boolean {
