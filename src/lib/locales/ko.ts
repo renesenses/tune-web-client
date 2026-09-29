@@ -1554,6 +1554,7 @@ export default {
   "alarms.fadeIn": "페이드인 ({value}초)",
   "playlistManager.linkCopied": "링크가 클립보드에 복사됨",
   "playlistManager.shareError": "공유 오류",
+  "playlistManager.unknownSource": "재생할 수 없습니다: 이 재생목록의 서비스를 알 수 없습니다",
   "playlistManager.mergeError": "병합 오류: {error}",
   "playlistManager.errorGeneric": "오류: {error}",
   "playlistManager.confirmDeleteCollab": "이 공동 플레이리스트를 삭제할까요?",

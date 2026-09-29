@@ -1570,6 +1570,7 @@ export default {
   "alarms.fadeIn": "Dissolvenza in entrata ({value}s)",
   "playlistManager.linkCopied": "Link copiato negli appunti",
   "playlistManager.shareError": "Errore di condivisione",
+  "playlistManager.unknownSource": "Riproduzione impossibile: il servizio di questa playlist è sconosciuto",
   "playlistManager.mergeError": "Errore di unione: {error}",
   "playlistManager.errorGeneric": "Errore: {error}",
   "playlistManager.confirmDeleteCollab": "Eliminare questa playlist collaborativa?",
