@@ -4315,4 +4315,7 @@ export default {
   "v2.plug.native_charge": "Laddat",
   "v2.plug.native_erreur": "Fel",
   "v2.plug.native_non_charge": "Inte laddat",
+  "v2.plug.errSetupTimeout": "Starten tog för lång tid ({s} s).",
+  "v2.plug.errSetupFailed": "Starten misslyckades.",
+  "v2.plug.retry": "Försök igen",
 } as const;

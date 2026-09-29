@@ -4316,6 +4316,9 @@ export default {
   "v2.plug.native_charge": "로드됨",
   "v2.plug.native_erreur": "오류",
   "v2.plug.native_non_charge": "로드되지 않음",
+  "v2.plug.errSetupTimeout": "시작이 너무 오래 걸렸습니다({s}초).",
+  "v2.plug.errSetupFailed": "시작하지 못했습니다.",
+  "v2.plug.retry": "다시 시도",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

@@ -4316,6 +4316,9 @@ export default {
   "v2.plug.native_charge": "已加载",
   "v2.plug.native_erreur": "错误",
   "v2.plug.native_non_charge": "未加载",
+  "v2.plug.errSetupTimeout": "启动时间过长（{s} 秒）。",
+  "v2.plug.errSetupFailed": "启动失败。",
+  "v2.plug.retry": "重试",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

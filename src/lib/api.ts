@@ -7142,6 +7142,16 @@ export interface MergedPlugin {
   update_available: boolean;
   status: 'available' | 'active' | 'disabled' | 'error';
   error_message?: string | null;
+  /**
+   * Greffon compilé resté en erreur (tune-server-rust#5403) : `setup_timeout`
+   * = « démarrage trop long » (coupé à la borne), `setup_failed` = un nouvel
+   * essai a échoué. Accompagné de `setup_duration_ms` (durée du dernier essai)
+   * et de `setup_timeout_ms`. Un serveur plus ancien ne l'envoie pas : absent,
+   * l'écran se comporte comme avant.
+   */
+  error_reason?: 'setup_timeout' | 'setup_failed' | null;
+  setup_duration_ms?: number | null;
+  setup_timeout_ms?: number | null;
   source?: string;
   min_tune_version?: string;
   max_tune_version?: string;
@@ -7403,6 +7413,23 @@ export function ignorerSuggestionReinstallationGreffons(ids: string[]): Promise<
     method: 'POST',
     body: JSON.stringify({ ids }),
   });
+}
+
+/**
+ * Réessayer : relance le `setup()` d'un greffon resté en erreur, sous la même
+ * borne qu'au démarrage (tune-server-rust#5403). La réponse est la fiche du
+ * greffon : `status: 'loaded'` s'il a chargé, sinon la fiche en erreur avec la
+ * durée de ce nouvel essai. `restart_required` : ses routes ne se monteront
+ * qu'au prochain démarrage.
+ */
+export function retryPlugin(name: string): Promise<{
+  name: string;
+  status: 'loaded' | 'error';
+  error_reason?: 'setup_timeout' | 'setup_failed' | null;
+  setup_duration_ms?: number | null;
+  restart_required?: boolean;
+}> {
+  return fetchJSON(`${BASE}/plugins/${encodeURIComponent(name)}/retry`, { method: 'POST' });
 }
 
 /** Update a plugin to the latest version via the server (pip install --upgrade). */

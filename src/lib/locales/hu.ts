@@ -4274,6 +4274,9 @@ export default {
   "v2.plug.native_charge": "Betöltve",
   "v2.plug.native_erreur": "Hiba",
   "v2.plug.native_non_charge": "Nincs betöltve",
+  "v2.plug.errSetupTimeout": "Az indítás túl sokáig tartott ({s} mp).",
+  "v2.plug.errSetupFailed": "Az indítás sikertelen.",
+  "v2.plug.retry": "Újrapróbálás",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

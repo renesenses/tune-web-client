@@ -4316,6 +4316,9 @@ export default {
   "v2.plug.native_charge": "Încărcat",
   "v2.plug.native_erreur": "Eroare",
   "v2.plug.native_non_charge": "Neîncărcat",
+  "v2.plug.errSetupTimeout": "Pornirea a durat prea mult ({s} s).",
+  "v2.plug.errSetupFailed": "Pornirea a eșuat.",
+  "v2.plug.retry": "Reîncearcă",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
