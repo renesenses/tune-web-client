@@ -3500,6 +3500,8 @@ export default {
   "settings.animationRateHint": "“正在播放”界面的电平表和频谱。越不流畅，浏览器的负担越小——声音完全不受影响。",
   "settings.openQueueOnScroll": "滚动时打开播放队列",
   "settings.openQueueOnScrollHint": "在“正在播放”界面，用鼠标滚轮向下滚动会打开播放队列。关闭后，播放队列只能通过其按钮打开。",
+  "settings.nowPlayingLinkToSource": "“正在播放”打开专辑或播放列表",
+  "settings.nowPlayingLinkToSourceHint": "侧边栏中的“正在播放”会打开正在播放的专辑页面；如果是从播放列表开始播放，则打开该播放列表。对于电台，或没有对应页面时，会像现在一样打开“正在播放”界面。",
   "settings.animationRateSmooth": "流畅 — 当前的显示效果",
   "settings.animationRateSaving": "节能 — 处理器占用约减少 30%",
   "settings.animationRateMinimal": "最低 — 约减少 40%，电平表会略有顿挫",

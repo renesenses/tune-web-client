@@ -3520,6 +3520,8 @@ export default {
   "settings.animationRateHint": "The level meters and the spectrum on the Now playing screen. Less smooth means less work for the browser — and the sound is never touched.",
   "settings.openQueueOnScroll": "Open the queue by scrolling",
   "settings.openQueueOnScrollHint": "On the Now Playing screen, scrolling down with the mouse wheel opens the queue. When off, the queue only opens with its button.",
+  "settings.nowPlayingLinkToSource": "“Now Playing” opens the album or playlist",
+  "settings.nowPlayingLinkToSourceHint": "The “Now Playing” entry in the sidebar opens the page of the album that is playing, or of the playlist if playback started from one. For a radio station, or when no page exists, it opens the Now Playing screen, as it does today.",
   "settings.animationRateSmooth": "Smooth — today's display",
   "settings.animationRateSaving": "Economical — about 30% less processor",
   "settings.animationRateMinimal": "Minimal — about 40% less, the meters look a little steppy",

@@ -3500,6 +3500,8 @@ export default {
   "settings.animationRateHint": "Die Pegelanzeigen und das Spektrum im Bildschirm „Aktuelle Wiedergabe“. Weniger flüssig heißt weniger Arbeit für den Browser — und der Klang bleibt unberührt.",
   "settings.openQueueOnScroll": "Warteschlange durch Scrollen öffnen",
   "settings.openQueueOnScrollHint": "Im Bildschirm „Wird gerade gespielt“ öffnet das Scrollen mit dem Mausrad nach unten die Warteschlange. Ausgeschaltet öffnet sie sich nur über ihre Schaltfläche.",
+  "settings.nowPlayingLinkToSource": "„Wird gerade gespielt“ öffnet Album oder Playlist",
+  "settings.nowPlayingLinkToSourceHint": "Der Eintrag „Wird gerade gespielt“ in der Seitenleiste öffnet die Seite des laufenden Albums oder der Playlist, aus der die Wiedergabe stammt. Bei einem Radiosender oder wenn keine Seite existiert, öffnet er wie bisher den Bildschirm „Wird gerade gespielt“.",
   "settings.animationRateSmooth": "Flüssig — die heutige Darstellung",
   "settings.animationRateSaving": "Sparsam — etwa 30 % weniger Prozessorlast",
   "settings.animationRateMinimal": "Minimal — etwa 40 % weniger, die Anzeigen wirken leicht stufig",

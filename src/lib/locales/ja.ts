@@ -3500,6 +3500,8 @@ export default {
   "settings.animationRateHint": "「再生中」画面のレベルメーターとスペクトラムです。滑らかさを下げるほどブラウザの負担が減ります — 音には一切影響しません。",
   "settings.openQueueOnScroll": "スクロールでキューを開く",
   "settings.openQueueOnScrollHint": "「再生中」画面でマウスホイールを下にスクロールするとキューが開きます。オフの場合、キューはボタンでのみ開きます。",
+  "settings.nowPlayingLinkToSource": "「再生中」でアルバムまたはプレイリストを開く",
+  "settings.nowPlayingLinkToSourceHint": "サイドバーの「再生中」は、再生中のアルバムのページを開きます。プレイリストから再生した場合はそのプレイリストを開きます。ラジオの場合、またはページがない場合は、これまでどおり「再生中」画面を開きます。",
   "settings.animationRateSmooth": "滑らか — 現在の表示",
   "settings.animationRateSaving": "省エネ — プロセッサ負荷が約 30 % 減",
   "settings.animationRateMinimal": "最小 — 約 40 % 減、メーターの動きは少しカクつきます",
