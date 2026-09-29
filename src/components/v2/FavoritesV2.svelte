@@ -101,11 +101,19 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
    * Même magasin que la Bibliothèque (`lib/preferencesEcran`, préfixe
    * `tune_v2_ecran_`) : le choix est retenu d'une visite à l'autre, dans le
    * navigateur — c'est une préférence de confort, pas une donnée de profil.
+   *
+   * web#1650 — Bertrand, 29/09/2026 : les playlists favorites arrivent en
+   * GRILLE par défaut. Seul le DÉFAUT change : un choix retenu, sous la même
+   * clé, continue de primer.
+   *
+   * 🔴 ON N'ÉCRIT QUE LE CHOIX, JAMAIS LE DÉFAUT. Un `$effect` d'écriture
+   * enregistrait la valeur dès le montage : le défaut de l'époque (« liste »)
+   * se trouvait retenu comme si l'utilisateur l'avait choisi, et aucun
+   * changement de défaut ne l'aurait plus jamais atteint. L'écriture suit donc
+   * le clic sur la bascule, et elle seule.
    */
   let affichageAlbums = $state<Affichage>(lireChoix('fav.albums.display', GRILLE_OU_LISTE, 'grid'));
-  $effect(() => ecrireChoix('fav.albums.display', affichageAlbums));
-  let affichagePlaylists = $state<Affichage>(lireChoix('fav.playlists.display', GRILLE_OU_LISTE, 'list'));
-  $effect(() => ecrireChoix('fav.playlists.display', affichagePlaylists));
+  let affichagePlaylists = $state<Affichage>(lireChoix('fav.playlists.display', GRILLE_OU_LISTE, 'grid'));
 
   let albums = $state<Album[]>([]);
   let tracks = $state<Track[]>([]);
@@ -844,7 +852,8 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           <BasculeAffichage modes={GRILLE_OU_LISTE}
             valeur={tab === 'albums' ? affichageAlbums : affichagePlaylists}
             onChanger={(v) => {
-              if (tab === 'albums') affichageAlbums = v; else affichagePlaylists = v;
+              if (tab === 'albums') { affichageAlbums = v; ecrireChoix('fav.albums.display', v); }
+              else { affichagePlaylists = v; ecrireChoix('fav.playlists.display', v); }
             }} />
         </span>
       {/if}
@@ -978,8 +987,8 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           n'a pas d'image ». C'était vrai quand il a été écrit ; ce ne l'est
           plus depuis que `MosaiquePochettes` compose la pochette d'une
           playlist avec celles de ses pistes (`PlaylistsV2`, 01/09/2026). La
-          liste reste — c'est toujours le défaut de cet onglet — mais elle
-          n'est plus le seul choix.
+          liste reste un choix ; la grille est le défaut de cet onglet depuis
+          web#1650 (Bertrand, 29/09/2026).
 
           🔴 Les mêmes pièces que les trois autres écrans qui montrent des
           playlists en vignettes : `PochetteActions` pour les actions,
