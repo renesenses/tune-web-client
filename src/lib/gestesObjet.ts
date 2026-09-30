@@ -147,7 +147,16 @@ export function objetPlaylist(pl: any, service: string | null = null): ObjetMenu
   const nom = texte(pl?.name ?? pl?.nom);
   const svc = cleServeur(texte(pl?.source) ?? service);
   if (svc && !estDeBibliotheque({ id: 1, source: svc })) {
-    return { type: 'playlist', service: svc, sourceId: texte(pl?.source_id ?? pl?.id), nom };
+    /**
+     * 🔴 web#1838 — la POCHETTE voyage avec la playlist de service, comme
+     * avec l'album (`objetAlbum`). Sans elle, le dépôt dans « Écouter plus
+     * tard » (et l'étiquette posée depuis ce menu) partait avec
+     * `cover_url: null` : le serveur rend l'instantané qu'on lui donne, et les
+     * deux playlists Qobuz du sas de Bertrand (.18, 30/09/2026) étaient
+     * revenues `cover_path: null` alors que le service a leur image.
+     */
+    const pochette = texte(pl?.cover_path ?? pl?.cover_url ?? pl?.image ?? pl?.pochette);
+    return { type: 'playlist', service: svc, sourceId: texte(pl?.source_id ?? pl?.id), nom, ...(pochette ? { pochette } : {}) };
   }
   return { type: 'playlist', id: Number.isInteger(pl?.id) ? pl.id : null, nom };
 }
@@ -213,7 +222,10 @@ export function cibleEtiquetteObjet(o: ObjetMenu): CibleEtiquette | null {
       if (o.id != null) return { itemType: 'artist', itemId: o.id };
       return deService(o) ? cibleDeService('artist', { source: o.service, source_id: o.sourceId, name: o.nom }) : null;
     case 'playlist':
-      return cibleEtiquettePlaylist({ id: o.id ?? null, source_id: o.sourceId, name: o.nom }, o.service ?? null);
+      return cibleEtiquettePlaylist(
+        { id: o.id ?? null, source_id: o.sourceId, name: o.nom, cover_path: o.pochette ?? null },
+        o.service ?? null,
+      );
     case 'playlistIntelligente':
       return o.id != null ? cibleSmartPlaylist(o.id) : null;
     case 'collection':
