@@ -2778,6 +2778,7 @@ export default {
   "v2.zone.noOutputLong": "オーディオ出力がありません。再生は拒否されます。ゾーンの設定で出力を割り当ててください。",
   "v2.zone.badgeBrowser": "タブなし",
   "v2.zone.badgeOffline": "オフライン",
+  "v2.zone.horsBackendAsio": "ASIO が選択されています：ASIO ゾーンを使用してください",
   "v2.zone.openNowPlaying": "このゾーンの再生中画面を開く",
   "v2.zone.openSettings": "このゾーンの設定",
   "v2.zone.presenceAbsent": "{days} 日間不在",
