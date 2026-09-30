@@ -1965,6 +1965,19 @@ export function getAlbumEdition(id: number) {
   return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition`, undefined, undefined, true);
 }
 
+/**
+ * RÉTABLIT un champ modifié à la main (tune-server-rust#5319) : il reprend la
+ * valeur des balises des fichiers et n'est plus marqué. Rend la fiche
+ * d'édition. 409 `retablir_par_defaire` pour les disques d'un coffret.
+ */
+export function retablirChampAlbum(id: number, champ: string) {
+  return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition/retablir`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ field: champ }),
+  });
+}
+
 /** Un seul PUT avec tout ce qui a changé ; 422 si `discs` n'est pas complet. */
 export function putAlbumEdition(id: number, corps: CorpsEdition) {
   return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition`, {
@@ -3561,6 +3574,9 @@ export interface GreffonAudioNatif {
   native_loaded: boolean;
   /** Le motif d'un échec de chargement, sinon `null`. */
   error: string | null;
+  /** La version annoncée par le catalogue à l'installation ; `null` (ou
+   *  absent, serveur ancien) pour un paquet envoyé à la main. */
+  version?: string | null;
 }
 
 export interface EtatGreffonsAudioNatifs {
@@ -3578,6 +3594,55 @@ export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs>
 }
 
 const racineGreffonNatif = (id: string) => `${BASE}/audio-plugins/${encodeURIComponent(id)}`;
+
+/** `POST /audio-plugins/{id}/install-from-catalog` — réussi. Le greffon est
+ *  actif au PROCHAIN démarrage du serveur (`restart_required`). */
+export interface InstallationGreffonNatif {
+  id: string;
+  installed: boolean;
+  restart_required: boolean;
+  target: string;
+  version: string;
+}
+
+/**
+ * Le serveur télécharge le paquet signé de SA plateforme depuis le catalogue
+ * de mozaiklabs (licence ou compte Premium), vérifie la somme et la
+ * signature, puis l'installe. Refus (`err.code`) :
+ *   402 `premium_required`, 412 `not_connected`,
+ *   404 `no_package_for_target` / `plugin_not_in_catalog`,
+ *   400 `signature_invalid`, 502 `catalog_unreachable` (et autres 502),
+ *   503 `catalog_rate_limited`.
+ * `sansBandeau` : la carte du greffon porte elle-même le message d'échec.
+ */
+/** `GET /audio-plugins/{id}/catalog` — ce que le catalogue publie pour la
+ *  plateforme de CE serveur. `available: false` + `reason:
+ *  "no_package_for_target"` : pas de paquet pour ce triplet (un état, pas une
+ *  panne). `update_available` : une version plus récente que celle installée
+ *  depuis le catalogue ; rien ne s'installe tout seul. */
+export interface EtatCatalogueGreffonNatif {
+  id: string;
+  target: string;
+  available: boolean;
+  reason?: string;
+  latest_version: string | null;
+  installed: boolean;
+  installed_version: string | null;
+  update_available: boolean;
+}
+
+export function getCatalogueGreffonNatif(id: string): Promise<EtatCatalogueGreffonNatif> {
+  return fetchJSON<EtatCatalogueGreffonNatif>(`${racineGreffonNatif(id)}/catalog`, undefined, undefined, true);
+}
+
+export function installerGreffonNatifDuCatalogue(id: string): Promise<InstallationGreffonNatif> {
+  return fetchJSON<InstallationGreffonNatif>(
+    `${racineGreffonNatif(id)}/install-from-catalog`,
+    { method: 'POST' },
+    undefined,
+    true,
+  );
+}
 
 export function getReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
   return fetchJSON<ReglageGreffonNatif>(`${racineGreffonNatif(id)}/zones/${zoneId}`);
@@ -4394,6 +4459,18 @@ export function getScanStatus() {
  * plutôt que d'afficher une jauge vide. Voir `lib/santeReplayGain.ts`, qui
  * tient cette décision, et le témoin qui la garde.
  */
+/**
+ * L'avancement de la mesure de la plage dynamique (serveur #4185), et surtout
+ * `candidates` : le stock du RATTRAPAGE, compté par le serveur hors mesure à la
+ * demande. tune-web-client#1828 — la carte Santé en tire la part des pistes
+ * sans plage dynamique que l'ordre de passage règle vraiment.
+ */
+export function getDynamicRangeProgress() {
+  return fetchJSON<import('./santePlageDynamique').AvancementPlageDynamique>(
+    `${BASE}/system/dynamic-range/progress`,
+  );
+}
+
 export function getReplayGainProgress() {
   return fetchJSON<import('./santeReplayGain').AvancementReplayGain>(
     `${BASE}/system/replaygain/progress`,
@@ -8705,6 +8782,19 @@ export function defaireCoffret(id: number) {
   );
 }
 /**
+ * DÉFAIT un coffret composé À LA MAIN (décision de Bertrand du 29/09/2026,
+ * tune-server-rust#5319) : chaque disque redevient l'album de son dossier,
+ * sous son titre d'origine ; les titres et artistes de piste modifiés à la
+ * main restent. 409 `pas_un_coffret_manuel` sur tout autre album. N'existe
+ * que si la fiche d'édition annonce `defaire_coffret_manuel`.
+ */
+export function defaireCoffretManuel(id: number) {
+  return fetchJSON<{ cible: number; albums_recrees: number[] }>(
+    `${BASE}/library/coffrets/${id}/defaire-manuel`,
+    { method: 'POST' },
+  );
+}
+/**
  * Composer un coffret À LA MAIN — Bertrand, 20/09/2026.
  *
  * 🔴 `albumIds` est ORDONNÉ, et l'ordre EST celui des disques : le premier
@@ -9043,8 +9133,23 @@ export const RAYONS_CONCERTS = [50, 100, 200] as const;
 
 export interface ConcertsAVenir {
   concerts: Concert[];
-  /** Le périmètre effectivement appliqué par le nuage. */
+  /** Le périmètre CHOISI et enregistré — pas forcément celui qui a filtré la
+   *  liste : un rayon sans commune localisée retombe sur le pays, et `scope`
+   *  reste `radius` (tune-server-rust#5368). Voir `applied_scope`. */
   scope?: PerimetreConcerts;
+  /** Le périmètre qui a VRAIMENT filtré la liste. Absent d'un serveur ou d'un
+   *  nuage antérieurs au lot `batch/fix-5369-20260929`. */
+  applied_scope?: PerimetreConcerts;
+  /** `false` : le rayon est demandé mais la commune n'est pas localisée. */
+  located?: boolean;
+  /** Nombre de concerts dans le périmètre, toutes pages confondues. Absent
+   *  d'un serveur ancien : la liste était alors coupée à 100 sans le dire
+   *  (tune-server-rust#5369). */
+  total?: number;
+  limit?: number;
+  offset?: number;
+  /** Vrai s'il reste des concerts au-delà de cette page. */
+  has_more?: boolean;
   radius_km?: number | null;
   city?: string | null;
   country?: string | null;
@@ -9061,6 +9166,10 @@ export interface LocalisationConcerts {
    *  trouvée : la lecture retombe alors sur le pays. Sans ce drapeau,
    *  l'utilisateur croit filtrer à 50 km alors qu'il voit tout son pays. */
   located?: boolean;
+  /** Vrai quand le nom désigne plusieurs communes éloignées et qu'aucun code
+   *  postal n'a tranché : le rayon est centré sur la plus connue, qui n'est
+   *  peut-être pas la bonne (tune-server-rust#5368). */
+  ambiguous?: boolean;
   /** Rendu par `GET /location` : le code postal saisi, pour pré-remplir. */
   postal_code?: string | null;
   code?: string;
@@ -9070,8 +9179,19 @@ export interface LocalisationConcerts {
 // lui-même chaque échec, par un code traduit (`concerts.unavailable`,
 // `concerts.rate_limited`…). Sans lui, un 502 du nuage affichait en plus
 // « Server error: 502 Bad Gateway ».
-export function getConcertsAVenir() {
-  return fetchJSON<ConcertsAVenir>(`${BASE}/ext/concerts/upcoming`, undefined, undefined, true);
+/** Sans `offset`, la première page, de la taille que le nuage choisit. Un
+ *  serveur ancien ignore `offset` et rend toujours la même liste : l'écran ne
+ *  le demande donc que si la réponse a dit `has_more`. */
+export function getConcertsAVenir(page: { offset?: number } = {}) {
+  // Suffixe de requête écrit EN LIGNE, sous la forme que lit le cartographe
+  // du contrat (`scripts/web-contract-map.py`, dépôt serveur) : une variable
+  // interpolée rendrait la route « non résolue » dans la carte.
+  return fetchJSON<ConcertsAVenir>(
+    `${BASE}/ext/concerts/upcoming${page.offset ? `?offset=${page.offset}` : ''}`,
+    undefined,
+    undefined,
+    true,
+  );
 }
 
 /** Enregistre la commune SAISIE par l'utilisateur et le périmètre voulu.

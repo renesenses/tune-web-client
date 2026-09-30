@@ -40,6 +40,10 @@ export interface AvancementReplayGain {
   /** `"unresolved_paths"` quand les reports sont la SEULE chose qui reste :
    *  la passe n'a rien à faire tant que le disque ne revient pas (#4254). */
   waiting_reason?: string | null;
+  /** La passe DÉCODE-t-elle en ce moment (serveur, #5519) ? `active` reste
+   *  vrai tant qu'une campagne est ouverte, y compris quand la plage dynamique
+   *  « En premier » tient le créneau. Absent d'un serveur plus ancien. */
+  working?: boolean;
 }
 
 export type EtatCarteReplayGain = 'inconnu' | 'idle' | 'running' | 'done' | 'off';
@@ -112,7 +116,10 @@ export function jaugeReplayGain(
       : { etat: 'done', sansJauge: true, reportees, attendLesFichiers: false };
   }
 
-  if (avancement.active) {
+  // Campagne ouverte, mais un AUTRE rang décode (la plage dynamique « En
+  // premier », tune-web-client#1828) : la jauge reste, la carte dit « au
+  // repos » au lieu d'un « en cours » figé. Serveur sans `working` : comme avant.
+  if (avancement.active && avancement.working !== false) {
     return { etat: 'running', fait, total, sansJauge: false, reportees, attendLesFichiers: false };
   }
   if (fait >= total) {

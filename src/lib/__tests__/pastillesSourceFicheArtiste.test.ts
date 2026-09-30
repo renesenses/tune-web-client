@@ -78,13 +78,13 @@ describe('le composant applique les pastilles', () => {
   const src = readFileSync(resolve(__dirname, '../../components/v2/DiscographieCommune.svelte'), 'utf-8');
 
   it('chaque section passe par le filtre', () => {
-    for (const s of ['toutes', 'connexesToutes', 'compilationsToutes', 'apparitionsToutes', 'reprisesToutes', 'g.entrees']) {
+    for (const s of ['toutes', 'compilationsToutes', 'apparitionsToutes', 'reprisesToutes', 'g.entrees']) {
       expect(src.includes(`garder(${s})`), `garder(${s})`).toBe(true);
     }
   });
 
   it('les comptes réunissent toutes les sections, collaborations comprises', () => {
-    expect(/compterProvenances\(\[\s*toutes, connexesToutes, compilationsToutes, apparitionsToutes, reprisesToutes,\s*\.\.\.collaborationsToutes/.test(src)).toBe(true);
+    expect(/compterProvenances\(\[\s*toutes, compilationsToutes, apparitionsToutes, reprisesToutes,\s*\.\.\.collaborationsToutes/.test(src)).toBe(true);
   });
 
   it('la source de la grille est une pastille cochée, pas un filtre caché', () => {

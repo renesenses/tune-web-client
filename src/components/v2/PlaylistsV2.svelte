@@ -34,7 +34,7 @@
   import RenommerModale from './RenommerModale.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
   import BasculeAffichage from './BasculeAffichage.svelte';
-  import { GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
+  import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import { untrack } from 'svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
@@ -342,9 +342,22 @@
    *
    * La grille reste le défaut — « playlists en vue grille par défaut »,
    * Bertrand, 02/09/2026 : personne ne voit son écran changer à la mise à jour.
+   *
+   * 30/09/2026 : les TROIS crans de Collections (web#1801), d'« Écouter plus
+   * tard » (web#1802) et du gestionnaire de playlists (#1848) — petites
+   * vignettes, grandes vignettes, liste. Un choix `grid` ou `list` déjà retenu
+   * sous `pl.display` reste valide.
+   *
+   * 🔴 Écrit au CLIC seulement (`changerAffichage`). Il l'était par un
+   * `$effect`, donc dès l'ouverture de l'écran : le défaut se figeait en faux
+   * choix, et plus aucun changement de défaut n'atteignait personne — le
+   * piège de #1650.
    */
-  let affichage = $state<Affichage>(lireChoix('pl.display', GRILLE_OU_LISTE, 'grid'));
-  $effect(() => ecrireChoix('pl.display', affichage));
+  let affichage = $state<AffichageEtendu>(lireChoix<AffichageEtendu>('pl.display', LISTE_ET_DEUX_GRILLES, 'grid'));
+  function changerAffichage(v: AffichageEtendu) {
+    affichage = v;
+    ecrireChoix('pl.display', v);
+  }
 
   /**
    * DEUX NIVEAUX d'onglets, comme l'écran Streaming.
@@ -656,8 +669,8 @@
          liste n'est pas une fonction avancée, et le niveau Essentiel a
          justement le plus besoin d'une liste lisible. -->
     <span class="vues">
-      <BasculeAffichage modes={GRILLE_OU_LISTE} valeur={affichage}
-        onChanger={(v) => (affichage = v)} />
+      <BasculeAffichage modes={LISTE_ET_DEUX_GRILLES} valeur={affichage}
+        onChanger={changerAffichage} iconeDeDestination />
     </span>
     {#if showAdvanced}
       {#if creating}
@@ -772,7 +785,7 @@
       {#if !liste.length}
         <div class="state">{$t('v2.pl.noneHere' as any)}</div>
       {:else}
-        <div class="grid" class:liste={affichage === 'list'}>
+        <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
           {#each liste as pl (pl.source_id)}
             <!-- La surcouche commune, comme les playlists locales de cet ecran
                  (Bertrand, 03/09/2026). Pas de coeur ici. Les ETIQUETTES, si :
@@ -822,7 +835,7 @@
         <div class="state">{$t('v2.pl.noSmart' as any)}</div>
       {:else}
         <section class="grp">
-          <div class="grid" class:liste={affichage === 'list'}>
+          <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
             {#each smart.filter((sp) => correspond(sp?.name)) as sp (sp.id)}
               {@const mos = sp.id != null ? smartMosaiques[sp.id] : undefined}
               <div class="card local">
@@ -857,7 +870,7 @@
     {:else}
       <section class="grp">
         {#if local.filter((pl) => correspond(pl?.name)).length}
-          <div class="grid" class:liste={affichage === 'list'}>
+          <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
             {#each local.filter((pl) => correspond(pl?.name)) as pl (pl.id)}
               <!-- `pl.id` est nullable dans le type : on résout la mosaïque UNE
                    fois ici, plutôt que d'indexer trois fois avec un garde. -->
@@ -966,6 +979,9 @@
   /* web#1719 — LA LISTE, c'est la même grille couchée. Une colonne, une carte
      par ligne, la mosaïque réduite. Aucune seconde branche de gabarit : les
      cinq actions, la pochette et le titre cliquable sont ceux de la grille. */
+  /* Grandes vignettes : la même carte, un pas de grille plus large (web#1801). */
+  .grid.grandes{grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:26px}
+  .grid.grandes .ct{font-size:15px}
   .grid.liste{grid-template-columns:1fr; gap:2px}
   .grid.liste .card{flex-direction:row; align-items:center; gap:14px;
     padding:6px 10px; border-radius:9px}

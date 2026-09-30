@@ -15,6 +15,7 @@ import {
   CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
 } from '../cadenceAnimations';
 import { normaliserTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
+import { normaliserChoixBarre, type ChoixBarre } from '../ordreBarreLaterale';
 import type { TriConcerts } from '../concertsTri';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
@@ -384,6 +385,13 @@ export interface Preferences {
    * `null` : rien de décidé. Voir `lib/typesSourcesBarre`.
    */
   sourcesBarre: ChoixTypesBarre | null;
+  /**
+   * L'ordre de la barre latérale et ses entrées masquées — web#1827,
+   * Bertrand, 30/09/2026. `null` : l'ordre livré, rien de masqué — c'est le
+   * défaut, et « Rétablir l'ordre par défaut » y revient. Voir
+   * `lib/ordreBarreLaterale`.
+   */
+  barreLaterale: ChoixBarre | null;
 }
 
 /** web#1800 — où la file d'attente s'ouvre dans « Lecture en cours ». */
@@ -456,6 +464,8 @@ const defaults: Preferences = {
   // comme avant, tant qu'on ne l'a pas demandé.
   lienLectureVersSource: false,
   sourcesBarre: null,
+  // web#1827 : l'ordre livré — rien ne bouge pour qui n'a rien demandé.
+  barreLaterale: null,
 };
 
 /** Migration one-shot du toggle « Afficher les réglages avancés » (#1617) :
@@ -620,6 +630,9 @@ function loadPrefs(): Preferences {
       // #5065 — même règle : un choix de types abîmé retombe sur « pas encore
       // décidé », donc sur les types présents ; une clé inconnue est écartée.
       p.sourcesBarre = normaliserTypesBarre((raw as { sourcesBarre?: unknown })?.sourcesBarre);
+      // web#1827 — même règle : un ordre abîmé retombe sur l'ordre livré ; un
+      // groupe inconnu est écarté, Accueil ne peut pas être masqué.
+      p.barreLaterale = normaliserChoixBarre((raw as { barreLaterale?: unknown })?.barreLaterale);
       return p;
     }
   } catch { /* ignore */ }
@@ -684,6 +697,11 @@ export async function syncPreferencesFromServer() {
       if (!estDispositionFile(server.dispositionFile)) delete server.dispositionFile;
       // #5065 — idem pour les types de sources de la barre.
       if (server.sourcesBarre !== undefined && !normaliserTypesBarre(server.sourcesBarre)) delete server.sourcesBarre;
+      // web#1827 — idem pour l'ordre de la barre : assaini, ou supprimé.
+      if (server.barreLaterale !== undefined) {
+        const choix = normaliserChoixBarre(server.barreLaterale);
+        if (choix) server.barreLaterale = choix; else delete server.barreLaterale;
+      }
       if (hadLocalPrefs) {
         // #5065 — un `sourcesBarre` local encore indécis (`null`) ne doit pas
         // effacer le choix que le serveur porte, fait sur un autre poste.

@@ -99,6 +99,9 @@ beforeEach(() => {
       return reponse({ id: 7, name: 'Salon', state: 'playing' });
     }
     if (/\/library\/tracks(\?|$)/.test(url)) return reponse(PISTES);
+    // #5526 — une sélection de quelques albums se lit fiche par fiche.
+    const fiche = /\/library\/albums\/(\d+)\/tracks/.exec(url);
+    if (fiche) return reponse(PISTES.filter((p) => p.album_id === Number(fiche[1])));
     if (url.includes('/system/config')) return reponse({});
     if (/\/queue/.test(url)) return reponse({ tracks: [], position: 0, length: 0 });
     return reponse([]);

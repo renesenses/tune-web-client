@@ -218,7 +218,12 @@ describe('#1719 — la bascule d’affichage, la MÊME, sur les trois écrans', 
     expect(b, 'aucune bascule d’affichage dans le Gestionnaire de playlists').toBeTruthy();
     expect(b!.getAttribute('data-vue')).toBe('grid');
 
+    // Trois crans depuis le 30/09/2026 (`LISTE_ET_DEUX_GRILLES`) : petites
+    // vignettes → grandes vignettes → liste. Deux clics mènent à la liste.
     b!.click();
+    flushSync();
+    await respirer(20);
+    bascule(h)!.click();
     flushSync();
     await respirer(20);
     const grilles = Array.from(h.querySelectorAll('.grid'));

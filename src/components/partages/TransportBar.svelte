@@ -36,6 +36,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';
   import type { OutputType, RepeatMode } from '../../lib/types';
   import { activeView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
+  import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
   import { isPremium } from '../../lib/stores/license';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -893,6 +894,14 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   */
   const enAttente = $derived($lectureEnAttente != null && $lectureEnAttente === $currentZoneId);
 
+  // web#1845 : réglage « Lecture en cours ouvre l'album ou la playlist ».
+  // Coché, la vignette suit la même règle que l'entrée de la barre latérale
+  // (même repli : radio ou page introuvable → écran Lecture en cours).
+  function ouvrirDepuisVignette() {
+    if ($preferences.lienLectureVersSource === true) void ouvrirLienLectureEnCours();
+    else activeView.set('nowplaying');
+  }
+
 </script>
 
 <div class="transport-bar" class:compact class:vu={vuActif} bind:this={barreEl} style="--compact-progress: {progressPercent}%" onclick={handleBarClick} role="button" tabindex={0} aria-label="Transport bar">
@@ -912,7 +921,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   {/if}
   <div class="transport-left">
     {#if displayTrack}
-      <div class="track-mini-clickable" onclick={() => activeView.set('nowplaying')} role="button" tabindex={0} aria-label="Open now playing">
+      <div class="track-mini-clickable" onclick={ouvrirDepuisVignette} role="button" tabindex={0} aria-label="Open now playing">
         <!-- `album_id` n'existe pas sur le now-playing de la zone (le serveur ne
              l'envoie pas) : on ne le passe que quand la piste vient de la file. -->
         <AlbumArt coverPath={displayTrack.cover_path} albumId={'album_id' in displayTrack ? displayTrack.album_id : null} size={56} alt={displayTrack.title} />
