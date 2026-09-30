@@ -3574,6 +3574,9 @@ export interface GreffonAudioNatif {
   native_loaded: boolean;
   /** Le motif d'un échec de chargement, sinon `null`. */
   error: string | null;
+  /** La version annoncée par le catalogue à l'installation ; `null` (ou
+   *  absent, serveur ancien) pour un paquet envoyé à la main. */
+  version?: string | null;
 }
 
 export interface EtatGreffonsAudioNatifs {
@@ -3591,6 +3594,55 @@ export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs>
 }
 
 const racineGreffonNatif = (id: string) => `${BASE}/audio-plugins/${encodeURIComponent(id)}`;
+
+/** `POST /audio-plugins/{id}/install-from-catalog` — réussi. Le greffon est
+ *  actif au PROCHAIN démarrage du serveur (`restart_required`). */
+export interface InstallationGreffonNatif {
+  id: string;
+  installed: boolean;
+  restart_required: boolean;
+  target: string;
+  version: string;
+}
+
+/**
+ * Le serveur télécharge le paquet signé de SA plateforme depuis le catalogue
+ * de mozaiklabs (licence ou compte Premium), vérifie la somme et la
+ * signature, puis l'installe. Refus (`err.code`) :
+ *   402 `premium_required`, 412 `not_connected`,
+ *   404 `no_package_for_target` / `plugin_not_in_catalog`,
+ *   400 `signature_invalid`, 502 `catalog_unreachable` (et autres 502),
+ *   503 `catalog_rate_limited`.
+ * `sansBandeau` : la carte du greffon porte elle-même le message d'échec.
+ */
+/** `GET /audio-plugins/{id}/catalog` — ce que le catalogue publie pour la
+ *  plateforme de CE serveur. `available: false` + `reason:
+ *  "no_package_for_target"` : pas de paquet pour ce triplet (un état, pas une
+ *  panne). `update_available` : une version plus récente que celle installée
+ *  depuis le catalogue ; rien ne s'installe tout seul. */
+export interface EtatCatalogueGreffonNatif {
+  id: string;
+  target: string;
+  available: boolean;
+  reason?: string;
+  latest_version: string | null;
+  installed: boolean;
+  installed_version: string | null;
+  update_available: boolean;
+}
+
+export function getCatalogueGreffonNatif(id: string): Promise<EtatCatalogueGreffonNatif> {
+  return fetchJSON<EtatCatalogueGreffonNatif>(`${racineGreffonNatif(id)}/catalog`, undefined, undefined, true);
+}
+
+export function installerGreffonNatifDuCatalogue(id: string): Promise<InstallationGreffonNatif> {
+  return fetchJSON<InstallationGreffonNatif>(
+    `${racineGreffonNatif(id)}/install-from-catalog`,
+    { method: 'POST' },
+    undefined,
+    true,
+  );
+}
 
 export function getReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
   return fetchJSON<ReglageGreffonNatif>(`${racineGreffonNatif(id)}/zones/${zoneId}`);
