@@ -1415,7 +1415,7 @@ export default {
   "smartCollection.fieldTrackNumber": "Numero di traccia",
   "smartCollection.fieldDiscNumber": "Numero di disco",
   "smartCollection.fieldBpm": "BPM",
-  "smartCollection.fieldRating": "Valutazione",
+  "smartCollection.fieldRating": "Voto dell'album",
   "smartCollection.fieldCover": "Copertina",
   "smartCollection.fieldAddedAt": "Data di aggiunta",
   "smartCollection.fieldCredit": "Credito (tecnico/esecutore/...)",

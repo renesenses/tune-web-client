@@ -1421,7 +1421,7 @@ export default {
   "smartCollection.fieldTrackNumber": "Număr piesă",
   "smartCollection.fieldDiscNumber": "Număr disc",
   "smartCollection.fieldBpm": "BPM",
-  "smartCollection.fieldRating": "Evaluare",
+  "smartCollection.fieldRating": "Nota albumului",
   "smartCollection.fieldCover": "Copertă",
   "smartCollection.fieldAddedAt": "Data adăugării",
   "smartCollection.fieldCredit": "Credit (inginer/interpret/...)",

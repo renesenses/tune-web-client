@@ -1415,7 +1415,7 @@ export default {
   "smartCollection.fieldTrackNumber": "曲目编号",
   "smartCollection.fieldDiscNumber": "碟片编号",
   "smartCollection.fieldBpm": "BPM",
-  "smartCollection.fieldRating": "评分",
+  "smartCollection.fieldRating": "专辑评分",
   "smartCollection.fieldCover": "封面",
   "smartCollection.fieldAddedAt": "添加日期",
   "smartCollection.fieldCredit": "演职人员（工程师/演奏者/…）",

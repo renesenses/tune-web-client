@@ -1413,7 +1413,7 @@ export default {
   "smartCollection.fieldTrackNumber": "トラック番号",
   "smartCollection.fieldDiscNumber": "ディスク番号",
   "smartCollection.fieldBpm": "BPM",
-  "smartCollection.fieldRating": "評価",
+  "smartCollection.fieldRating": "アルバムの評価",
   "smartCollection.fieldCover": "カバー",
   "smartCollection.fieldAddedAt": "追加日",
   "smartCollection.fieldCredit": "クレジット（エンジニア／演奏者／...）",
