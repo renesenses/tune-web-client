@@ -15,6 +15,16 @@
   import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { conserverRetourConvertisseur, consommerRetourConvertisseur } from '../../lib/retourConvertisseur';
+  import {
+    tachesConversion, ajouter, avecStatut, avecTelechargement, sans, fusionner, aSonder,
+  } from '../../lib/convertisseurTaches';
+  import { ligneFormat } from '../../lib/ligneFormatConvertisseur';
+  import {
+    albumsConcernes, basculerAlbum, pistesCochees, poserPistes, sourcesDeLaSelection, type Selection,
+  } from '../../lib/convertisseurPistes';
+  import { frequencesProposees, ligneFormatsEcrits, presetEffectif } from '../../lib/convertisseurFrequence';
+  import { nomDArchive } from '../../lib/convertisseurArchive';
+  import ConvertisseurPistes from './ConvertisseurPistes.svelte';
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
   import { albums } from '../../lib/stores/library';
@@ -37,13 +47,24 @@
   let error = $state<string | null>(null);
 
   let q = $state(retour?.q ?? '');
-  let picked = $state<Set<number>>(new Set(retour?.picked ?? []));
+  // tune-server-rust#5483 — albums entiers ET pistes choisies une à une.
+  // `picked` reste l'ensemble des albums CONCERNÉS (entiers ou partiels) :
+  // compteur, dossiers d'origine et ligne de format le lisent comme avant.
+  let selection = $state<Selection>({
+    albums: new Set(retour?.picked ?? []),
+    pistes: new Map((retour?.pistes ?? []).map(([id, ts]) => [id, new Set(ts)])),
+  });
+  const picked = $derived(new Set(albumsConcernes(selection)));
+  /** Les pistes des albums, chargées une fois (dossiers d'origine, dépliage). */
+  let pistesDesAlbums = $state<Map<number, any[]>>(new Map());
+  let albumOuvert = $state<number | null>(null);
+  // tune-server-rust#5481 — la fréquence choisie à la place de « Auto ».
+  let frequenceChoisie = $state<number | null>(null);
   let presetId = $state<string | null>(retour?.presetId ?? null);
 
-  let jobId = $state<string | null>(retour?.jobId ?? null);
-  let job = $state<Awaited<ReturnType<typeof api.getConversionStatus>> | null>(retour?.job ?? null);
+  // #1804 — les tâches vivent HORS du composant (`convertisseurTaches`) :
+  // quitter l'écran ne les perd plus, en lancer une autre ne les écrase plus.
   let starting = $state(false);
-  let downloadUrl = $state<string | null>(retour?.downloadUrl ?? null);
 
   $effect(() => {
     Promise.allSettled([api.getConverterCapabilities(), api.getConverterPresets()])
@@ -105,6 +126,7 @@
         .then((ts) => {
           // 🔴 Une nouvelle `Map` : muter celle du `$state` ne réveille rien.
           dossiers = new Map(dossiers).set(id, dossierDeLAlbumSur(ts));
+          pistesDesAlbums = new Map(pistesDesAlbums).set(id, ts ?? []);
         })
         .catch(() => { dossiers = new Map(dossiers).set(id, null); })
         .finally(() => dossiersEnCours.delete(id));
@@ -118,18 +140,60 @@
 
   function toggle(id: number | null) {
     if (id == null) return;
-    const next = new Set(picked);
-    next.has(id) ? next.delete(id) : next.add(id);
-    picked = next;
+    selection = basculerAlbum(selection, id);
   }
 
+  /** #5483 — déplier un album : ses pistes, par dossier. */
+  function ouvrirPistes(id: number | null) {
+    if (id == null) return;
+    albumOuvert = albumOuvert === id ? null : id;
+    if (albumOuvert == null || pistesDesAlbums.has(id)) return;
+    api.getAlbumTracks(id)
+      .then((ts) => { if (alive) pistesDesAlbums = new Map(pistesDesAlbums).set(id, ts ?? []); })
+      .catch(() => { if (alive) error = $t('v2.conv.tracksUnavailable' as any); });
+  }
+  const idsDesPistes = (id: number) => (pistesDesAlbums.get(id) ?? [])
+    .map((p: any) => p.id).filter((x: unknown): x is number => typeof x === 'number');
+  function poserLesPistes(id: number, cochees: Set<number>) {
+    selection = poserPistes(selection, id, idsDesPistes(id), cochees);
+  }
+  const albumDeplie = $derived(albumOuvert == null ? null : $albums.find((a) => a.id === albumOuvert) ?? null);
+
+  /** #5481 — le préréglage tel qu'il part : la fréquence choisie remplace
+   *  « Auto » quand le serveur la propose. */
+  const frequences = $derived(frequencesProposees(preset));
+  const presetEnvoye = $derived(preset ? presetEffectif(preset, frequenceChoisie) : null);
+
+  // #1804 — au montage, ce que le serveur connaît : une conversion lancée
+  // avant un rechargement de la page, ou depuis un autre appareil. Un serveur
+  // qui n'a pas encore la route (404) laisse l'écran tel qu'avant.
+  $effect(() => {
+    api.listConversions()
+      .then((liste) => { if (alive && Array.isArray(liste)) tachesConversion.update((ts) => fusionner(ts, liste)); })
+      .catch(() => { /* serveur antérieur : rien à reprendre */ });
+  });
+
+  /** La ligne d'information du format, sans séparateur orphelin (#1804). */
+  const ligne = $derived(ligneFormat(
+    presetEnvoye,
+    $albums.filter((a) => a.id != null && picked.has(a.id)),
+    {
+      originalRate: $t('v2.conv.originalRate' as any),
+      fromDsd: $t('v2.conv.fromDsd' as any),
+      bits: $t('v2.conv.bits' as any),
+    },
+    (khz) => $formatNombre(khz),
+  ));
+
   async function start() {
+    const preset = presetEnvoye;
     if (!preset || !picked.size || starting) return;
-    starting = true; error = null; downloadUrl = null;
+    starting = true; error = null;
     try {
       // Le serveur attend un tableau PLAT de sources, et des nombres pour
-      // sample_rate/bit_depth — pas des chaînes (#1094/#1095).
-      const sources = [...picked].map((album_id) => ({ album_id }));
+      // sample_rate/bit_depth — pas des chaînes (#1094/#1095). #5483 : les
+      // albums entiers, puis les pistes choisies des albums partiels.
+      const sources = sourcesDeLaSelection(selection);
       const rate = Number(preset.sample_rate);
       const depth = Number(preset.bit_depth);
       const res = await api.startConversion(
@@ -137,41 +201,47 @@
         Number.isFinite(rate) && rate > 0 ? rate : null,
         Number.isFinite(depth) && depth > 0 ? depth : null,
       );
-      jobId = res.job_id;
-      job = null;
+      const libelle = `${preset.label} — ${(picked.size > 1 ? $t('v2.tool.pickedMany' as any) : $t('v2.tool.pickedOne' as any)).replace('{count}', String(picked.size))}`;
+      tachesConversion.update((ts) => ajouter(ts, res.job_id, libelle));
     } catch (e: any) {
       error = e?.message ?? $t('v2.tool.errStart' as any);
     }
     starting = false;
   }
 
-  // Suivi : uniquement tant que la tâche tourne.
+  // Suivi : chaque tâche sans statut ou en cours, tant que l'écran est
+  // monté. Démonté, le serveur continue ; au retour, le sondage reprend.
+  // L'effet ne dépend que de la LISTE des tâches à sonder, pas de leur
+  // statut : une mise à jour de progression ne le relance pas.
+  const aSonderIds = $derived($tachesConversion.filter(aSonder).map((t) => t.jobId).join('\n'));
   $effect(() => {
-    const jid = jobId;
-    if (!jid) return;
-    let alive = true;
+    const ids = aSonderIds ? aSonderIds.split('\n') : [];
+    if (!ids.length) return;
+    let vivant = true;
+    let minuterie: ReturnType<typeof setTimeout> | undefined;
     const tick = async () => {
-      if (!alive) return;
-      try {
-        const s = await api.getConversionStatus(jid);
-        if (!alive) return;
-        job = s;
-        if (s.state === 'converting') setTimeout(tick, 1200);
-      } catch { /* la tâche a peut-être disparu */ }
+      for (const id of ids) {
+        if (!vivant) return;
+        try {
+          const s = await api.getConversionStatus(id);
+          if (vivant) tachesConversion.update((ts) => avecStatut(ts, id, s));
+        } catch { /* la tâche a peut-être disparu : on réessaie au tour suivant */ }
+      }
+      if (vivant) minuterie = setTimeout(tick, 1200);
     };
     tick();
-    return () => { alive = false; };
+    return () => { vivant = false; clearTimeout(minuterie); };
   });
 
-  async function download() {
-    if (!jobId) return;
-    try { downloadUrl = await api.downloadConversion(jobId); }
-    catch { error = $t('v2.tool.errDownload' as any); }
+  async function download(jobId: string) {
+    try {
+      const url = await api.downloadConversion(jobId);
+      tachesConversion.update((ts) => avecTelechargement(ts, jobId, url));
+    } catch { error = $t('v2.tool.errDownload' as any); }
   }
-  async function cancel() {
-    if (!jobId) return;
+  async function cancel(jobId: string) {
     try { await api.cancelConversion(jobId); } catch { /* déjà finie */ }
-    jobId = null; job = null;
+    tachesConversion.update((ts) => sans(ts, jobId));
   }
 
   async function localiser(album: Album) {
@@ -183,7 +253,8 @@
       const dossier = dossierDeLAlbum(tracks);
       if (!dossier) { error = $t('converter.folderUnavailable'); return; }
       conserverRetourConvertisseur('v2', {
-        q, picked: [...picked], presetId, jobId, job, downloadUrl,
+        q, picked: [...selection.albums], presetId,
+        pistes: [...selection.pistes].map(([id, ts]) => [id, [...ts]] as [number, number[]]),
       });
       vueDeRetour.set('converter');
       ouvrirLeRepertoire(dossier);
@@ -223,9 +294,20 @@
             </button>
           {/each}
         </div>
-        {#if preset}
+        <!-- #5481 — la fréquence de sortie, quand le préréglage laisse le choix. -->
+        {#if frequences.length}
+          <div class="chips freq" role="group" aria-label={$t('v2.conv.outputRate' as any)}>
+            <span class="cl">{$t('v2.conv.outputRate' as any)}</span>
+            <button class:on={frequenceChoisie == null || !frequences.includes(frequenceChoisie)}
+              onclick={() => (frequenceChoisie = null)}>{$t('v2.conv.rateAuto' as any)}</button>
+            {#each frequences as f (f)}
+              <button class:on={frequenceChoisie === f} onclick={() => (frequenceChoisie = f)}>{$formatNombre(f / 1000)} kHz</button>
+            {/each}
+          </div>
+        {/if}
+        {#if preset && ligne}
           <div class="pinfo">
-            {preset.format?.toUpperCase()} · {preset.sample_rate} · {preset.bit_depth}
+            {ligne}
             {#if preset.estimated_size_per_min}<span>≈ {preset.estimated_size_per_min} / min</span>{/if}
           </div>
         {/if}
@@ -234,25 +316,32 @@
         {/if}
       </div>
 
-      {#if jobId}
+      <!-- #1804 — TOUTES les tâches, la plus récente d'abord : une tâche
+           terminée reste, avec son téléchargement, quand on en lance une
+           autre. -->
+      {#each $tachesConversion as tache (tache.jobId)}
+        {@const job = tache.job}
         <div class="job">
           <div class="jh">
-            <h2>{$t('v2.conv.running' as any)}</h2>
-            <button class="lnk danger" onclick={cancel}>{$t('v2.tool.cancel' as any)}</button>
+            <h2>{job?.state === 'done' ? $t('v2.tool.done' as any) : job?.state === 'error' ? $t('v2.tool.failed' as any) : $t('v2.conv.running' as any)}</h2>
+            <button class="lnk danger" onclick={() => cancel(tache.jobId)}>{$t('v2.tool.cancel' as any)}</button>
           </div>
+          {#if tache.libelle}<div class="jl">{tache.libelle}</div>{/if}
           {#if job}
             <div class="bar"><span style="width:{Math.min(100, Math.round(job.progress ?? 0))}%"></span></div>
             <div class="jl">
               {$t('v2.tool.count' as any).replace('{done}', $formatNombre(job.converted ?? 0)).replace('{total}', $formatNombre(job.total ?? 0))}
               {#if job.current_file}<em>{job.current_file}</em>{/if}
             </div>
+            {@const ecrit = ligneFormatsEcrits(null, job.output_formats, $t('v2.conv.bits' as any), (khz) => $formatNombre(khz))}
+            {#if ecrit}<div class="jl">{$t('v2.conv.written' as any).replace('{formats}', ecrit)}</div>{/if}
             {#if job.state === 'done'}
               <div class="done">
                 {$t('v2.tool.done' as any)}{#if job.download_size} — {job.download_size}{/if}
-                {#if downloadUrl}
-                  <a class="lnk" href={downloadUrl} download>{$t('v2.tool.saveFile' as any)}</a>
+                {#if tache.downloadUrl}
+                  <a class="lnk" href={tache.downloadUrl} download={nomDArchive(job)}>{$t('v2.tool.saveFile' as any)}</a>
                 {:else}
-                  <button class="lnk" onclick={download}>{$t('v2.tool.prepareDownload' as any)}</button>
+                  <button class="lnk" onclick={() => download(tache.jobId)}>{$t('v2.tool.prepareDownload' as any)}</button>
                 {/if}
               </div>
             {:else if job.state === 'error'}
@@ -262,7 +351,7 @@
             <div class="jl">{$t('v2.tool.jobStarting' as any)}</div>
           {/if}
         </div>
-      {/if}
+      {/each}
 
       <div class="pick">
         <div class="ph">
@@ -286,13 +375,21 @@
             {#each dossiersRetenus as d (d)}<code class="dp" title={d}>{d}</code>{/each}
           </div>
         {/if}
+        <!-- #5483 — l'album déplié : ses pistes, par dossier. -->
+        {#if albumDeplie && albumDeplie.id != null}
+          {@const id = albumDeplie.id}
+          <ConvertisseurPistes titre={albumDeplie.title} pistes={pistesDesAlbums.get(id) ?? null}
+            cochees={pistesCochees(selection, id, idsDesPistes(id))}
+            onchange={(c) => poserLesPistes(id, c)} onclose={() => (albumOuvert = null)} />
+        {/if}
         {#if !$albums.length}
           <div class="state">{$t('v2.tool.libraryEmpty' as any)}</div>
         {:else}
           <div class="grid">
             {#each shown as a (a.id)}
               <div class="album-source">
-              <button class="card" class:sel={a.id != null && picked.has(a.id)} onclick={() => toggle(a.id)}>
+              <button class="card" class:sel={a.id != null && picked.has(a.id)}
+                class:partiel={a.id != null && selection.pistes.has(a.id)} onclick={() => toggle(a.id)}>
                 <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
                 <span class="ct" title={a.title}>{a.title}</span>
                 <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
@@ -318,8 +415,12 @@
                   <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>
                 {/if}
               </button>
+              <div class="actions-source">
               <button class="lnk source-folder" disabled={starting || locating != null || a.id == null}
                 onclick={() => localiser(a)}>{$t('v2.album.locate')}</button>
+              <button class="lnk source-tracks" class:on={albumOuvert === a.id} disabled={a.id == null}
+                aria-expanded={albumOuvert === a.id} onclick={() => ouvrirPistes(a.id)}>{$t('v2.conv.tracks' as any)}</button>
+              </div>
               </div>
             {/each}
           </div>
@@ -336,6 +437,13 @@
   .album-source{min-width:0; display:flex; flex-direction:column; gap:7px}
   .album-source .card{width:100%; flex:1}
   .source-folder{align-self:flex-start}
+  /* #5483 — Localiser et Pistes, côte à côte. */
+  .actions-source{display:flex; flex-wrap:wrap; gap:6px}
+  .source-tracks.on{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  /* Un album dont seules certaines pistes sont retenues. */
+  .card.partiel .cv{box-shadow:0 0 0 3px var(--v2-acc2)}
+  .chips.freq{align-items:center; padding-top:9px}
+  .chips.freq button{padding:6px 12px; font-size:11.5px}
 
   .v2-conv{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}

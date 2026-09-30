@@ -9,11 +9,14 @@ import { albums } from '../stores/library';
 import { activeView, vueDeRetour } from '../stores/navigation';
 import { repertoireCible } from '../stores/repertoireCible';
 import { licenseState } from '../stores/license';
+import { tachesConversion } from '../convertisseurTaches';
 
 vi.mock('../api', async (original) => ({
   ...await original<typeof import('../api')>(),
   getAllAlbums: vi.fn(), getAlbumTracks: vi.fn(), getConverterCapabilities: vi.fn(),
   getConverterPresets: vi.fn(), downloadConversion: vi.fn(async () => 'blob:ready-archive'), startConversion: vi.fn(), getConversionStatus: vi.fn(),
+  // #1804 — l'écran relit les tâches du serveur au montage.
+  listConversions: vi.fn(async () => []),
   getBrowseRoots: vi.fn(async () => ({ roots: [] })),
   browseDirectory: vi.fn(async (path) => ({ path, music_root: '/music', parent: '/music',
     directories: [], tracks: [], total_tracks: 0 })),
@@ -44,6 +47,8 @@ function click(selector: string) {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  // #1804 — les tâches vivent hors du composant : chaque test part à vide.
+  tachesConversion.set([]);
   activeView.set('home'); activeView.set('converter');
   vueDeRetour.set(null); repertoireCible.set(null);
   albums.set([album as any]);

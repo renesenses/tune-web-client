@@ -441,6 +441,18 @@ export interface Zone {
    *  réelle sous aléatoire, contrairement à `queue_position` et à l'ordre brut
    *  de la file. Absente avec un serveur antérieur à #2337. */
   can_skip_next?: boolean;
+  /**
+   * Ce que l'auditeur a DEMANDÉ de lire — l'objet sur lequel il a cliqué
+   * « Lire » (`album`, `playlist`, `track`, `artist`, `label`), son
+   * identifiant, et chez qui (`local` ou le service). Publiés par
+   * `GET /zones` et `GET /zones/{id}` (tune-server `inject_session_context`).
+   * Ils survivent aux avances automatiques : la troisième piste d'une
+   * playlist reste une écoute « playlist ». `null` : aucun contexte ;
+   * absents : serveur plus ancien. Lus par `lib/lienLectureEnCours` (web#1784).
+   */
+  session_context_type?: string | null;
+  session_context_id?: string | null;
+  session_context_source?: string | null;
   signal_path?: SignalPath | null;
   stereo_pair_id?: string | null;
   stereo_channel?: 'left' | 'right' | null;

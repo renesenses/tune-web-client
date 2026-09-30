@@ -20,11 +20,12 @@
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
+  import { versionDeBase } from '../../lib/versions';
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
   import { emphaseParts } from '../../lib/i18nEmphase';
-  import { preferences } from '../../lib/stores/preferences';
+  import { preferences, estDispositionFile, DISPOSITION_FILE_DEFAUT } from '../../lib/stores/preferences';
   import { typesSourcesBarre } from '../../lib/sources';
   import { TYPES_SOURCE_BARRE, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
   import { atLeast } from '../../lib/uiLevel';
@@ -1336,7 +1337,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let updateInfo = $state<any | null>(null);
   let health = $state<{ status: string; components?: Record<string, boolean> } | null>(null);
   let stats = $state<{ tracks: number; albums: number; artists: number; zones: number; devices: number } | null>(null);
-  const clientStale = $derived(!!serverVersion && !!CLIENT_VERSION && serverVersion !== CLIENT_VERSION);
+  // Base X.Y.Z contre base X.Y.Z : sous le tag v1.0.0-rc1, le serveur se dit
+  // `1.0.0-rc1` et le client embarqué `1.0.0` (le suffixe vit sur le tag seul).
+  // Ce n'est pas une dérive ; un client 0.9.169 servi par un serveur rc1, si.
+  const clientStale = $derived(
+    !!serverVersion && !!CLIENT_VERSION && versionDeBase(serverVersion) !== versionDeBase(CLIENT_VERSION),
+  );
 
   /**
    * Phase 5 (web#1257) — « Quoi de neuf » et la documentation de l'API, que
@@ -3283,6 +3289,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- web#1800 — FabienM (fil 2037, point 8), go de Bertrand du
+                   29/09/2026 : la file peut se déplier sous la barre
+                   d'avancement au lieu de glisser en colonne à droite. Le
+                   défaut reste la colonne de droite. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.queuePlacement' as any)}</span>
+                  <span class="hint">{$t('settings.queuePlacementHint' as any)}</span>
+                </div>
+                <select class="sel" data-reglage="disposition-file"
+                  value={estDispositionFile($preferences.dispositionFile) ? $preferences.dispositionFile : DISPOSITION_FILE_DEFAUT}
+                  onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                    if (estDispositionFile(v)) preferences.update((pr) => ({ ...pr, dispositionFile: v })); }}>
+                  <option value="sousLaBarre">{$t('settings.queuePlacementBelow' as any)}</option>
+                  <option value="droite">{$t('settings.queuePlacementRight' as any)}</option>
+                </select>
+              </div>
+
             {:else if s.id === 'profiles'}
               <ProfilsV2 />
             {:else if s.id === 'interface'}
@@ -3372,6 +3396,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   onchange={(e) => preferences.update((pr) => ({ ...pr, startupView: (e.currentTarget as HTMLSelectElement).value as StartupView }))}>
                   {#each STARTUP as o (o.v)}<option value={o.v}>{$t(o.k as any)}</option>{/each}
                 </select>
+              </div>
+
+              <!-- web#1784 — Didier et FabienM (fil 2036, 29/09/2026) : l'entrée
+                   « Lecture en cours » devrait ouvrir l'album, ou la playlist,
+                   qui joue. Go de Bertrand du 29/09 : un CHOIX, décoché par
+                   défaut — décoché, l'entrée mène à l'écran dédié comme avant.
+                   Rangé ici, à côté de l'écran de démarrage : c'est une
+                   question de navigation, pas de lecture. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.nowPlayingLinkToSource' as any)}</span>
+                  <span class="hint">{$t('settings.nowPlayingLinkToSourceHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-reglage="lienLectureVersSource"
+                    checked={$preferences.lienLectureVersSource === true}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, lienLectureVersSource: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
               </div>
 
               <div class="row">
