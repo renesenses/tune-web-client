@@ -214,7 +214,7 @@ describe('ce que chaque panneau doit tenir', () => {
     // au même instant ; `tableauDeBord()` la partage EN VOL. Et `30d` dépasse
     // le chien de garde de 8 s.
     const s = sansCommentaires(lire('src/components/v2/ligne1/PanneauStats.svelte'));
-    expect(s).toContain('tableauDeBord(PERIODE_L1)');
+    expect(s).toContain('tableauDeBord(PERIODE_L1, controle.signal)');
     expect(PERIODE_L1).toBe('7d');
   });
 

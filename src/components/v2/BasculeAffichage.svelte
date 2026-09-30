@@ -1,4 +1,4 @@
-<script lang="ts">
+<script lang="ts" generics="T extends AffichageEtendu">
   /**
    * La bascule d'affichage — LE bouton, extrait de `LibraryV2.svelte`.
    *
@@ -29,25 +29,49 @@
    * liste est une combinaison légitime.
    */
   import { t } from '../../lib/i18n';
-  import { affichageSuivant, LIBELLE_AFFICHAGE, type Affichage } from '../../lib/affichage';
+  import { affichageSuivant, LIBELLE_AFFICHAGE, type AffichageEtendu } from '../../lib/affichage';
 
   interface Props {
     /** Les crans offerts, dans l'ordre de rotation. Deux au minimum. */
-    modes: readonly Affichage[];
+    modes: readonly T[];
     /** Le mode COURANT. */
-    valeur: Affichage;
+    valeur: T;
     /** Appelé avec le mode SUIVANT. L'écran décide quoi en faire. */
-    onChanger: (v: Affichage) => void;
+    onChanger: (v: T) => void;
+    /**
+     * web#1802 — OPT-IN, pour « Écouter plus tard » et Collections (web#1801) : l'icône est celle
+     * du mode SUIVANT, quel que soit l'ordre des crans.
+     *
+     * Sans cette option, l'icône suit la rotation historique de la
+     * Bibliothèque (grille → liste → carrousel), et un troisième cran dans un
+     * autre ordre montrerait la mauvaise destination. Les autres écrans ne la
+     * passent pas : leur bouton reste au pixel près ce qu'il était.
+     */
+    iconeDeDestination?: boolean;
+    /** Libellés propres à l'écran, par mode (clés i18n). Absent : les communs. */
+    libelles?: Partial<Record<AffichageEtendu, string>>;
   }
-  let { modes, valeur, onChanger }: Props = $props();
+  let { modes, valeur, onChanger, iconeDeDestination = false, libelles = {} }: Props = $props();
 
   const suivant = $derived(affichageSuivant(modes, valeur));
+  const libelle = $derived(libelles[suivant] ?? LIBELLE_AFFICHAGE[suivant]);
 </script>
 
 <button class="viewtog" data-vue={valeur} onclick={() => onChanger(suivant)}
-  aria-label={$t(LIBELLE_AFFICHAGE[suivant] as any)}
-  title={$t(LIBELLE_AFFICHAGE[suivant] as any)}>
-  {#if valeur === 'grid'}
+  aria-label={$t(libelle as any)}
+  title={$t(libelle as any)}>
+  {#if iconeDeDestination}
+    {#if suivant === 'list'}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    {:else if suivant === 'gridLarge'}
+      <!-- Grandes vignettes : deux pochettes, plus grandes que les quatre de la grille. -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="8" height="16"/><rect x="13" y="4" width="8" height="16"/></svg>
+    {:else if suivant === 'carousel'}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="4" height="10"/><rect x="8.5" y="4" width="7" height="16"/><rect x="18" y="7" width="4" height="10"/></svg>
+    {:else}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    {/if}
+  {:else if valeur === 'grid'}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
   {:else if valeur === 'list'}
     <!-- Trois pochettes de front, celle du milieu en avant : le geste du

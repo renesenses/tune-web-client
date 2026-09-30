@@ -85,7 +85,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { messageEchecFiche, motifEchecFiche, type MotifEchecFiche } from '../../lib/echecFicheArtiste';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, revenirA } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { cibleRaccourciArtiste } from '../../lib/raccourciArtiste';
@@ -627,7 +627,8 @@
       return;
     }
     vueDeRetour.set(null);
-    activeView.set(ou ?? (local ? 'library' : 'search'));
+    // web#1790 — l'onglet de départ revient avec la vue (Favoris › Artistes).
+    revenirA(ou ?? (local ? 'library' : 'search'));
   }
 
   /**

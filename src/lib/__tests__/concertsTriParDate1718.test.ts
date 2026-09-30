@@ -90,15 +90,15 @@ describe('grouperConcerts — l’ordre demandé, mesuré sur les données', () 
     expect(air.concerts.map((x) => x.event_date)).toEqual(['2026-10-20', '2027-01-05']);
   });
 
-  it('le défaut est « par artiste » : l’écran de qui n’a rien demandé ne bouge pas', () => {
-    expect(TRI_CONCERTS_DEFAUT).toBe('artiste');
-    expect(artistes(grouperConcerts(LISTE))).toEqual(artistes(grouperConcerts(LISTE, 'artiste')));
+  it('🔴 le défaut est « par date » — Bertrand, 29/09/2026', () => {
+    expect(TRI_CONCERTS_DEFAUT).toBe('date');
+    expect(artistes(grouperConcerts(LISTE))).toEqual(artistes(grouperConcerts(LISTE, 'date')));
   });
 
-  it('un tri inconnu ou absent retombe sur l’ordre d’origine, il ne vide rien', () => {
+  it('un tri inconnu ou absent (`null` = rien choisi) retombe sur le défaut, il ne vide rien', () => {
     for (const mauvais of [undefined, null, '', 'chronologique', 42, {}]) {
-      expect(normaliserTriConcerts(mauvais)).toBe('artiste');
-      expect(grouperConcerts(LISTE, mauvais)).toHaveLength(3);
+      expect(normaliserTriConcerts(mauvais)).toBe('date');
+      expect(grouperConcerts(LISTE, mauvais)).toHaveLength(LISTE.length);
     }
   });
 
@@ -222,7 +222,8 @@ beforeEach(() => {
   } as unknown as typeof WebSocket);
   // APRÈS le doublage de `fetch` : chaque écriture de préférence part en PATCH,
   // et on ne veut pas d'un appel réel dans un banc.
-  preferences.update((p) => ({ ...p, concertsTri: 'artiste' }));
+  // `null` : RIEN CHOISI, l'état d'une installation neuve (web#1718).
+  preferences.update((p) => ({ ...p, concertsTri: null }));
 });
 
 afterEach(() => {
@@ -230,7 +231,7 @@ afterEach(() => {
   monte = null;
   hote?.remove();
   hote = null;
-  preferences.update((p) => ({ ...p, concertsTri: 'artiste' }));
+  preferences.update((p) => ({ ...p, concertsTri: null }));
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
@@ -259,15 +260,29 @@ const bouton = (el: HTMLElement, libelle: string) =>
   [...el.querySelectorAll('button')].find((b) => (b.textContent ?? '').trim() === libelle) as HTMLButtonElement | undefined;
 
 describe('Concerts — la bascule de tri à l’écran', () => {
-  it('s’ouvre groupé par artiste, et propose les deux ordres', async () => {
+  it('🔴 sans choix, s’ouvre « Par date », les plus proches d’abord, et propose les deux ordres', async () => {
+    const el = await poser();
+    expect(entetes(el)).toEqual(['Radiohead', 'Air', 'Radiohead', 'Bertrand Belin', 'Air']);
+    expect(bouton(el, fr['concerts.triDate'])!.classList.contains('actif')).toBe(true);
+    expect(bouton(el, fr['concerts.triArtiste'])!.classList.contains('actif')).toBe(false);
+  });
+
+  it('🔴 le défaut n’est PAS noté comme un choix (piège de #1650)', async () => {
+    await poser();
+    expect(get(preferences).concertsTri, 'ouvrir l’écran a écrit le défaut comme un choix').toBeNull();
+  });
+
+  it('🔴 un choix « Par artiste » déjà retenu garde la priorité sur le défaut', async () => {
+    preferences.update((p) => ({ ...p, concertsTri: 'artiste' }));
     const el = await poser();
     expect(entetes(el)).toEqual(['Air', 'Bertrand Belin', 'Radiohead']);
     expect(bouton(el, fr['concerts.triArtiste'])!.classList.contains('actif')).toBe(true);
-    expect(bouton(el, fr['concerts.triDate'])!.classList.contains('actif')).toBe(false);
   });
 
-  it('🔴 « Par date » réordonne la liste du plus proche au plus lointain', async () => {
+  it('« Par date » réordonne la liste du plus proche au plus lointain', async () => {
+    preferences.update((p) => ({ ...p, concertsTri: 'artiste' }));
     const el = await poser();
+    expect(entetes(el)).toEqual(['Air', 'Bertrand Belin', 'Radiohead']);
     bouton(el, fr['concerts.triDate'])!.click();
     await laisserFaire();
     expect(entetes(el)).toEqual(['Radiohead', 'Air', 'Radiohead', 'Bertrand Belin', 'Air']);
@@ -281,24 +296,58 @@ describe('Concerts — la bascule de tri à l’écran', () => {
 
   it('le choix est RETENU comme les autres réglages d’affichage', async () => {
     const el = await poser();
-    bouton(el, fr['concerts.triDate'])!.click();
+    bouton(el, fr['concerts.triArtiste'])!.click();
     await laisserFaire();
-    expect(get(preferences).concertsTri).toBe('date');
+    expect(get(preferences).concertsTri).toBe('artiste');
     // Rouvrir l'écran : il rouvre sur l'ordre choisi, pas sur le défaut.
     unmount(monte!); monte = null; hote?.remove(); hote = null;
     const rouvert = await poser();
-    expect(bouton(rouvert, fr['concerts.triDate'])!.classList.contains('actif')).toBe(true);
-    expect(entetes(rouvert)).toEqual(['Radiohead', 'Air', 'Radiohead', 'Bertrand Belin', 'Air']);
+    expect(bouton(rouvert, fr['concerts.triArtiste'])!.classList.contains('actif')).toBe(true);
+    expect(entetes(rouvert)).toEqual(['Air', 'Bertrand Belin', 'Radiohead']);
     void el;
   });
 
   it('on revient à l’ordre par artiste, et le choix se réenregistre', async () => {
     const el = await poser();
-    bouton(el, fr['concerts.triDate'])!.click();
-    await laisserFaire();
     bouton(el, fr['concerts.triArtiste'])!.click();
     await laisserFaire();
-    expect(get(preferences).concertsTri).toBe('artiste');
-    expect(entetes(el)).toEqual(['Air', 'Bertrand Belin', 'Radiohead']);
+    bouton(el, fr['concerts.triDate'])!.click();
+    await laisserFaire();
+    expect(get(preferences).concertsTri).toBe('date');
+    expect(entetes(el)).toEqual(['Radiohead', 'Air', 'Radiohead', 'Bertrand Belin', 'Air']);
+  });
+});
+
+/**
+ * Le chargement des préférences — web#1718. Un blob enregistré SANS la clé
+ * (installation d'avant le tri, ou rien choisi) ne porte aucun choix ; un blob
+ * qui porte « artiste » le garde.
+ */
+describe('Concerts — le tri au chargement des préférences', () => {
+  const chargerAvec = async (blob: Record<string, unknown> | null) => {
+    vi.resetModules();
+    localStorage.clear();
+    if (blob) localStorage.setItem('tune-preferences', JSON.stringify(blob));
+    const frais = await import('../stores/preferences');
+    return get(frais.preferences).concertsTri;
+  };
+
+  afterEach(() => { localStorage.clear(); vi.resetModules(); });
+
+  it('🔴 installation neuve : rien de choisi, rien d’écrit comme un choix', async () => {
+    expect(await chargerAvec(null)).toBeNull();
+    const brut = JSON.parse(localStorage.getItem('tune-preferences') ?? '{}');
+    expect(brut.concertsTri ?? null, 'le défaut est écrit comme un choix dans le stockage').toBeNull();
+  });
+
+  it('blob sans la clé : rien de choisi, donc « Par date » à l’écran', async () => {
+    const tri = await chargerAvec({ theme: 'dark' });
+    expect(tri).toBeNull();
+    expect(normaliserTriConcerts(tri)).toBe('date');
+  });
+
+  it('blob qui porte « artiste » : le choix retenu prime', async () => {
+    const tri = await chargerAvec({ concertsTri: 'artiste' });
+    expect(normaliserTriConcerts(tri)).toBe('artiste');
   });
 });

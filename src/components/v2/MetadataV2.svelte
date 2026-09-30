@@ -13,7 +13,7 @@
    */
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
-  import { ordreNaturel } from '../../lib/ordreNaturel';
+  import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   import type { GravureDrEtat, MetadataProposal, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon, AlbumDetailed } from '../../lib/api';
   import { } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -26,6 +26,7 @@
   import { artisteApresFusion } from '../../lib/compilationArtiste';
   import { grouperParArtisteDevine, type PisteDouteuse } from '../../lib/artisteDepuisChemin';
   import { t } from '../../lib/i18n';
+  import { chargerLesDoublons, DELAI_DOUBLONS_MS, type EchecDoublons } from '../../lib/doublonsChargement';
   import '../../styles/tune-v2.css';
 
   type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr' | 'compil' | 'coffret' | 'manquants';
@@ -58,6 +59,10 @@
   let dblPaires = $state<PaireDoublonNommee[]>([]);
   let dblLoading = $state(false);
   let dblLoaded = false;
+  // #1788 (tune-server-rust#5455) : une route qui ne répond pas, ou qui
+  // échoue, se DIT — au lieu d'un « Chargement » sans fin ou d'un « rien à
+  // regrouper » qui n'en sait rien.
+  let dblEchec = $state<EchecDoublons>(null);
   let arme = $state<string | null>(null);
   /**
    * 🔴 #4471 — LES COFFRETS RIPÉS EN CD1/CD2.
@@ -127,12 +132,10 @@
 
   async function chargerDoublons() {
     dblLoading = true;
-    const [al, ar, pa] = await Promise.all([
-      api.getAlbumsEclates().catch(() => [] as GroupeAlbumsEclates[]),
-      api.getArtistsDoublons().catch(() => [] as GroupeArtistes[]),
-      api.getPairesDoublons().catch(() => [] as PaireDoublonNommee[]),
-    ]);
-    dblAlbums = al; dblArtistes = ar; dblPaires = pa;
+    dblEchec = null;
+    const r = await chargerLesDoublons();
+    dblAlbums = r.albums; dblArtistes = r.artistes; dblPaires = r.paires;
+    dblEchec = r.echec;
     dblLoading = false;
     // #4471 : même onglet, même moment — mais une requête à part, pour qu'un
     // serveur antérieur (404) ne prive pas l'écran de ses trois autres listes.
@@ -304,7 +307,7 @@
     if (q.length < 2) return [];
     return cpTous
       .filter((a) => pliage(a.title ?? '').includes(q) || pliage(a.album_artist ?? '').includes(q))
-      .sort((x, y) => ordreNaturel(x.title, y.title) || (x.album_artist ?? '').localeCompare(y.album_artist ?? ''))
+      .sort((x, y) => comparerAlphabetique(x.title, y.title) || comparerAlphabetique(x.album_artist, y.album_artist))
       .slice(0, 300);
   });
 
@@ -414,7 +417,7 @@
     // « CD 10 » d'un coffret Radio Nova passait avant le « CD 2 ».
     return cpTous
       .filter((a) => pliage(a.title ?? '').includes(q) || pliage(a.album_artist ?? '').includes(q))
-      .sort((x, y) => ordreNaturel(x.title, y.title))
+      .sort((x, y) => comparerAlphabetique(x.title, y.title))
       .slice(0, 300);
   });
 
@@ -780,10 +783,18 @@
           </div>
         </article>
       {/if}
+      {#if !dblLoading && dblEchec}
+        <div class="state dbl-echec" role="alert">
+          {dblEchec === 'delai'
+            ? $t('v2.meta.dupTimeout' as any).replace('{s}', String(Math.round(DELAI_DOUBLONS_MS / 1000)))
+            : $t('v2.meta.dupFailed' as any)}
+          <button class="lnk" onclick={() => chargerDoublons()}>{$t('v2.meta.dupRetry' as any)}</button>
+        </div>
+      {/if}
       {#if dblLoading}
         <div class="state">{$t('v2.tool.loading' as any)}</div>
       {:else if !dblAlbums.length && !dblArtistes.length && !dblPaires.length}
-        {#if (!disques || disques.albums === 0) && !coffrets.length}
+        {#if !dblEchec && (!disques || disques.albums === 0) && !coffrets.length}
           <div class="state">{$t('v2.meta.noDup' as any)}</div>
         {/if}
       {:else}
@@ -1167,6 +1178,7 @@
     border:1px solid var(--v2-acc2); color:var(--v2-acc-tint);
     font:700 9.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase}
   .state{padding:30px 0; color:var(--v2-txt3)}
+  .dbl-echec{display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; color:var(--v2-txt2)}
   .note{padding:4px 0 16px; font-size:12.5px; color:var(--v2-txt3)}
   .note b{color:var(--v2-txt2)}
 

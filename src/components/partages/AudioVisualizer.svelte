@@ -2,7 +2,7 @@
   import { estDuDSD } from '../../lib/utils';
   import { onMount, untrack } from 'svelte';
   import { boucleImages } from '../../lib/boucleImages';
-  import { audioLevels, levelsForZone, type AudioLevels } from '../../lib/stores/audioLevels';
+  import { audioLevels, levelsForZone, trameFraiche, type AudioLevels } from '../../lib/stores/audioLevels';
   import { freqLabel, spectrumGravesTicks, spectrumIsoTicks, type AnnonceSpectre } from '../../lib/spectrumScale';
   import { cleFormat, capaciteMaintenue, CAPACITE_VIDE, type CapaciteSpectre } from '../../lib/axeSpectre';
   import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../../lib/waveformHistory';
@@ -313,7 +313,7 @@
       tauxAnalyse = null;
       return;
     }
-    const useReal = realLevels && (performance.now() - lastRealUpdate < 500);
+    const useReal = realLevels && trameFraiche(lastRealUpdate, performance.now());
 
     if (mode === 'spectrum') {
       const bandes = spectrumTargets(useReal ? realLevels : null);
@@ -371,7 +371,7 @@
     const followingRealSpectrum =
       playing &&
       realLevels != null &&
-      timestamp - lastRealUpdate < 500 &&
+      trameFraiche(lastRealUpdate, timestamp) &&
       (realLevels.spectrum.length > 0 || realLevels.spectrum_db.length > 0);
     if (playing && (followingRealSpectrum || timestamp - lastTargetUpdate > TARGET_INTERVAL)) {
       lastTargetUpdate = timestamp;

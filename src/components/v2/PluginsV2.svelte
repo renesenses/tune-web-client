@@ -131,6 +131,21 @@
     act(p, () => (p.marketplace ? api.uninstallMarketplacePlugin(p.slug ?? p.name) : api.uninstallPlugin(p.name)));
   // La pastille « mise à jour disponible » existait sans geste pour la faire.
   const mettreAJour = (p: MergedPlugin) => act(p, () => api.updatePlugin(p.name));
+  /**
+   * tune-server-rust#5403 — un greffon dont le `setup()` a dépassé la borne
+   * reste listé, en erreur, avec son motif (`error_reason`) et un bouton
+   * Réessayer. Un serveur plus ancien n'envoie pas `error_reason` : rien ne
+   * s'affiche de plus, et aucun bouton n'appelle une route qu'il n'a pas.
+   */
+  const peutReessayer = (p: MergedPlugin) => p.status === 'error' && !!p.error_reason;
+  function motifErreur(p: MergedPlugin): string {
+    if (p.error_reason === 'setup_timeout') {
+      const s = Math.round((p.setup_duration_ms ?? p.setup_timeout_ms ?? 0) / 1000);
+      return $t('v2.plug.errSetupTimeout' as any).replace('{s}', String(s));
+    }
+    return $t('v2.plug.errSetupFailed' as any);
+  }
+  const reessayer = (p: MergedPlugin) => act(p, () => api.retryPlugin(p.name));
 </script>
 
 <section class="v2-plug tune-v2">
@@ -191,6 +206,9 @@
                   {$t('v2.plug.requiresTune' as any).replace('{plage}', [p.min_tune_version ? `≥ ${p.min_tune_version}` : '', p.max_tune_version ? `≤ ${p.max_tune_version}` : ''].filter(Boolean).join(` ${$t('v2.common.and' as any)} `))}
                 </div>
               {/if}
+              {#if peutReessayer(p)}
+                <div class="why bad" data-motif={p.error_reason}>{motifErreur(p)}</div>
+              {/if}
               {#if p.status === 'error' && p.error_message}
                 <div class="why bad">{p.error_message}</div>
               {/if}
@@ -198,6 +216,11 @@
 
             <div class="pact">
               {#if p.installed}
+                {#if peutReessayer(p)}
+                  <button class="lnk reessayer" disabled={busy === key(p)} onclick={() => reessayer(p)}>
+                    {busy === key(p) ? '…' : $t('v2.plug.retry' as any)}
+                  </button>
+                {/if}
                 <!-- Pont Roon (#4349) : son écran d'import s'ouvre depuis sa
                      carte. Seulement s'il tourne — éteint, ses routes ne sont
                      pas montées et l'écran n'aurait rien à lire. -->
