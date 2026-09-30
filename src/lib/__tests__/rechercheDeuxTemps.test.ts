@@ -55,7 +55,8 @@ describe('l’écran ne fait plus chercher le local deux fois', () => {
   // libellé aurait été garder une orthographe, pas un comportement.
 
   it('🔴 il NOMME toujours ses sources', () => {
-    expect(vue).toContain('api.federatedSearch(query, sources)');
+    // #4803 (web #1757) — la pagination s'ajoute après les sources.
+    expect(vue).toMatch(/api\.federatedSearch\(query, sources[,)]/);
   });
 
   it('🔴 il ne l’appelle jamais à nu', () => {

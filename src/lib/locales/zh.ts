@@ -3330,6 +3330,7 @@ export default {
   "v2.album.queuedNext": "《{title}》将下一首播放。",
   "v2.lib.openAlbum": "打开专辑",
   "v2.rech.seeMore": "显示更多（{n}）",
+  "v2.rech.seeMoreOn": "在 {service} 上显示更多",
   "v2.nav.radios": "直播电台",
   "v2.nav.podcasts": "播客",
   "v2.nav.streaming": "流媒体",

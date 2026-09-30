@@ -3288,6 +3288,7 @@ export default {
   "v2.album.queuedNext": "A(z) „{title}” következik.",
   "v2.lib.openAlbum": "Album megnyitása",
   "v2.rech.seeMore": "Több megjelenítése ({n})",
+  "v2.rech.seeMoreOn": "Továbbiak itt: {service}",
   "v2.nav.radios": "Élő rádió",
   "v2.nav.podcasts": "Podcastok",
   "v2.nav.streaming": "Streaming",

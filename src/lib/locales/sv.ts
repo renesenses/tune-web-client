@@ -3329,6 +3329,7 @@ export default {
   "v2.album.queuedNext": "”{title}” spelas härnäst.",
   "v2.lib.openAlbum": "Öppna albumet",
   "v2.rech.seeMore": "Visa fler ({n})",
+  "v2.rech.seeMoreOn": "Visa fler på {service}",
   "v2.nav.radios": "Direktsänd radio",
   "v2.nav.podcasts": "Poddar",
   "v2.nav.streaming": "Streaming",

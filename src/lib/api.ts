@@ -3937,7 +3937,34 @@ export const SEARCH_PAGE_LIMIT = 50;
  */
 export const SEARCH_FEDEREE_LIMIT = 100;
 
-export function federatedSearch(q: string, sources?: string[], limit = SEARCH_FEDEREE_LIMIT, offset = 0) {
+/**
+ * Pagination des SERVICES dans la recherche fédérée
+ * (renesenses/tune-server-rust#4803, servie depuis la v0.9.164).
+ *
+ * - `paged` : première page, blocs de service enrichis de `offset`, `limit`,
+ *   `total`, `has_more`, `truncated` ;
+ * - `serviceOffsets` / `serviceLimits` : `qobuz:100` — décalage et limite par
+ *   service (« Voir plus sur <Service> »).
+ *
+ * Un serveur plus ancien ignore ces paramètres : il rend la réponse d'avant,
+ * sans `has_more` dans les blocs, donc sans bouton (`rechercheSuiteService`).
+ */
+export interface PaginationServices {
+  paged?: boolean;
+  serviceOffsets?: Record<string, number>;
+  serviceLimits?: Record<string, number>;
+}
+
+const tableServices = (t: Record<string, number>) =>
+  Object.entries(t).map(([svc, n]) => `${svc}:${n}`).join(',');
+
+export function federatedSearch(
+  q: string,
+  sources?: string[],
+  limit = SEARCH_FEDEREE_LIMIT,
+  offset = 0,
+  pagination?: PaginationServices,
+) {
   let url = `${BASE}/search?q=${encodeURIComponent(q)}&limit=${limit}`;
   // #3189 — la suite de la bibliothèque locale (le serveur ne pagine que
   // celle-là). Absent = 0 = la page d'avant : l'URL des appels existants ne
@@ -3945,6 +3972,14 @@ export function federatedSearch(q: string, sources?: string[], limit = SEARCH_FE
   if (offset > 0) url += `&offset=${offset}`;
   if (sources && sources.length > 0) {
     url += `&sources=${sources.join(',')}`;
+  }
+  // #4803 — sans `pagination`, l'URL ne change pas d'un caractère.
+  if (pagination?.paged) url += '&paged=true';
+  if (pagination?.serviceOffsets && Object.keys(pagination.serviceOffsets).length > 0) {
+    url += `&service_offsets=${encodeURIComponent(tableServices(pagination.serviceOffsets))}`;
+  }
+  if (pagination?.serviceLimits && Object.keys(pagination.serviceLimits).length > 0) {
+    url += `&service_limits=${encodeURIComponent(tableServices(pagination.serviceLimits))}`;
   }
   return fetchJSON<FederatedSearchResult>(url).then(result => {
     if (result.local) result.local.tracks = mapStreamingTracks(result.local.tracks);
