@@ -71,7 +71,8 @@
   import { initialesArtiste } from '../../lib/initialesArtiste';
   import DiscographieCommune from './DiscographieCommune.svelte';
   import BioEtTitresPhares from './BioEtTitresPhares.svelte';
-  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync, radioArtisteAndSync } from '../../lib/stores/zones';
+  import { corpsRadioArtiste, lancerRadioArtiste, type IssueRadio } from '../../lib/radioArtiste';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { t as tr, locale as langueCourante } from '../../lib/i18n';
   import { normaliserMetadonnees, bioDans, bilanEnrichissement } from '../../lib/metadonneesArtiste';
@@ -671,6 +672,45 @@
   }
 
   /**
+   * « Radio de l'artiste » — une VRAIE radio, tune-server-rust#5395.
+   *
+   * Bertrand, 29/09/2026 : le bouton est REMPLACÉ. Il ne mélange plus les
+   * seuls titres phares de ce service : il demande au serveur une radio sans
+   * fin — cet artiste (environ 20 %) et des artistes proches, le service de la
+   * fiche d'abord, les autres services connectés et la bibliothèque ensuite.
+   * Sur un serveur qui ne connaît pas encore la route, ou quand il ne trouve
+   * rien, le geste d'avant reprend la main, sans erreur : le mélange des titres
+   * phares (`jouerLesTitres(true)`).
+   */
+  async function jouerLaRadio() {
+    // #1233 — pas de geste muet : sans zone, `zoneRequise` le dit.
+    const zid = zoneRequise();
+    if (zid == null) return;
+    enMasse = true;
+    let issue: IssueRadio = 'rien';
+    try {
+      issue = await lancerRadioArtiste(corpsRadioArtiste(cible, nom), {
+        radio: (corps) => radioArtisteAndSync(zid, corps),
+        repli: async () => {
+          if (!titres.length) return 0;
+          const gestes = {
+            lire: (c: any) => playAndSync(zid, c),
+            enfiler: (c: any) => api.addToQueue(zid, c),
+          };
+          return lireListeAleatoire(titres, gestes);
+        },
+      });
+      // Serveur ancien ET pas de titres phares : le dire, au lieu d'un clic
+      // qui ne fait rien.
+      if (issue === 'serveur-ancien') notifications.error($tr('v2.fas.radioServeurAncien' as any));
+      else if (issue === 'rien') notifications.error($tr('v2.fas.empty' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $tr('v2.fas.empty' as any));
+    }
+    enMasse = false;
+  }
+
+  /**
    * « Toutes les pistes » et « Lecture aléatoire » — PORTÉS de la fiche de
    * bibliothèque (#1356).
    *
@@ -784,17 +824,19 @@
         <button class="v2-btn" disabled={enMasse} onclick={() => jouerLesTitres(false)}>
           {$tr('v2.fas.bestOf' as any)}
         </button>
-        <button class="v2-btn ghost" disabled={enMasse} onclick={() => jouerLesTitres(true)}>
-          {$tr('v2.fas.radio' as any)}
-        </button>
       {:else if titresEnEchec && !chargement}
-        <!-- #910 — dire pourquoi les deux gestes manquent, et laisser
-             réessayer. Ils ne sont PAS retirés : le service n'a pas répondu. -->
+        <!-- #910 — dire pourquoi le best of manque, et laisser réessayer. Il
+             n'est PAS retiré : le service n'a pas répondu. -->
         <span class="echec">{$tr('v2.fas.topTracksFailed' as any)}</span>
         <button class="v2-btn ghost" onclick={() => cible && charger(cible.service as Source, cible.id)}>
           {$tr('zone.retry' as any)}
         </button>
       {/if}
+      <!-- tune-server-rust#5395 — la radio est TOUJOURS proposée (Bertrand,
+           29/09) : le serveur la compose sans les titres phares de la fiche. -->
+      <button class="v2-btn ghost" disabled={enMasse} onclick={() => jouerLaRadio()}>
+        {$tr('v2.fas.radio' as any)}
+      </button>
       <!-- PORTÉS de la fiche de bibliothèque, et seulement quand elle connaît
            cet artiste : voir `lireDiscographieLocale` (#1356). -->
       {#if artisteLocal?.id != null}
