@@ -6,11 +6,13 @@
  * entrée, « Rétablir l'ordre par défaut », rangé dans `ui_preferences`
  * (synchronisé serveur) sous `barreLaterale`.
  *
- * 🔴 L'ordre se règle À L'INTÉRIEUR d'un groupe. Les groupes de la barre
- * (`noyau`, `avance`, `selections`, `studio`) gardent leur place et leur
- * niveau d'affichage : une entrée Avancée ne se retrouve jamais dans le
- * noyau d'un débutant, et le principe de stabilité spatiale de la barre
- * (« le noyau ne bouge jamais d'un niveau à l'autre ») tient toujours.
+ * 🔴 UNE SEULE LISTE, LIBRE — arbitrage de Bertrand du 30/09/2026 : toute
+ * entrée peut aller n'importe où, y compris d'un groupe à l'autre. Le niveau
+ * d'affichage, lui, ne change pas : une entrée Avancée placée en tête reste
+ * cachée au niveau Essentiel, et apparaît À SA PLACE choisie dès qu'elle est
+ * visible. Tant que l'ordre est celui livré, la barre garde ses groupes et
+ * leurs intertitres ; dès qu'il en diffère, elle devient une liste unique,
+ * sans intertitre (« Sélections », « Studio » ne voudraient plus rien dire).
  *
  * Trois règles qui protègent un ordre ENREGISTRÉ :
  *   - une entrée que ce client ne connaît pas (écrite par une version plus
@@ -24,16 +26,13 @@
  * la couche API (voir le commentaire de `profileHeader` là-bas).
  */
 
-export type GroupeBarre = 'noyau' | 'avance' | 'selections' | 'studio';
-export const GROUPES_BARRE: readonly GroupeBarre[] = ['noyau', 'avance', 'selections', 'studio'];
-
 /** Accueil ne se masque pas. Réglages non plus, mais ce n'est pas une entrée
  *  de liste : c'est la roue de l'en-tête, qui ne se déplace pas. */
 export const ENTREES_TOUJOURS_VISIBLES: readonly string[] = ['home'];
 
 export interface ChoixBarre {
-  /** L'ordre enregistré, groupe par groupe. Un groupe absent suit le défaut. */
-  ordre: Partial<Record<GroupeBarre, string[]>>;
+  /** L'ordre enregistré, toutes entrées confondues. Vide : l'ordre livré. */
+  ordre: string[];
   /** Les vues masquées. Jamais Accueil. */
   masquees: string[];
 }
@@ -46,29 +45,22 @@ function chaines(v: unknown): string[] {
 }
 
 /**
- * Une valeur enregistrée — donc venue du SERVEUR : ses seuls groupes connus,
+ * Une valeur enregistrée — donc venue du SERVEUR : un ordre et des masquées,
  * des listes de chaînes sans doublon ; `null` si ce n'est pas un objet.
  */
 export function normaliserChoixBarre(v: unknown): ChoixBarre | null {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
   const o = v as Record<string, unknown>;
-  const ordre: ChoixBarre['ordre'] = {};
-  const brut = o.ordre;
-  if (brut && typeof brut === 'object' && !Array.isArray(brut)) {
-    for (const g of GROUPES_BARRE) {
-      const liste = (brut as Record<string, unknown>)[g];
-      if (Array.isArray(liste)) ordre[g] = chaines(liste);
-    }
-  }
   const masquees = chaines(o.masquees).filter((vue) => !ENTREES_TOUJOURS_VISIBLES.includes(vue));
-  return { ordre, masquees };
+  return { ordre: chaines(o.ordre), masquees };
 }
 
 /**
- * Les entrées d'un groupe dans l'ordre enregistré.
+ * Les entrées dans l'ordre enregistré.
  *
- * `defaut` est la liste LIVRÉE (déjà filtrée des entrées absentes : greffon
- * arrêté, etc.) ; `enregistre` l'ordre choisi. Sans ordre, `defaut` tel quel.
+ * `defaut` est la liste LIVRÉE, complète ; `enregistre` l'ordre choisi. Sans
+ * ordre, `defaut` tel quel. Filtrer (niveau, greffon, masquées) APRÈS : une
+ * entrée nouvelle se place par rapport à la liste complète.
  */
 export function ordonnerEntrees<T extends { view: string }>(
   defaut: readonly T[],
@@ -100,14 +92,12 @@ export function estMasquee(vue: string, choix: ChoixBarre | null | undefined): b
   return !!choix?.masquees.includes(vue);
 }
 
-/** Ce que la barre affiche d'un groupe : l'ordre choisi, sans les masquées. */
-export function entreesAffichees<T extends { view: string }>(
-  groupe: GroupeBarre,
-  defaut: readonly T[],
-  choix: ChoixBarre | null | undefined,
-): T[] {
+/** L'ordre choisi diffère-t-il de l'ordre livré ? Masquer seul ne compte pas. */
+export function ordreModifie(defaut: readonly { view: string }[], choix: ChoixBarre | null | undefined): boolean {
   const c = normaliserChoixBarre(choix);
-  return ordonnerEntrees(defaut, c?.ordre[groupe]).filter((it) => !estMasquee(it.view, c));
+  if (!c?.ordre.length) return false;
+  const r = ordonnerEntrees(defaut, c.ordre);
+  return r.some((it, i) => it !== defaut[i]);
 }
 
 /** Déplace l'élément d'indice `de` à l'indice `vers` (bornés). */
@@ -120,15 +110,15 @@ export function deplacer<T>(liste: readonly T[], de: number, vers: number): T[] 
   return copie;
 }
 
-/** Le nouveau choix après un réordonnancement du groupe. */
-export function avecOrdre(choix: ChoixBarre | null | undefined, groupe: GroupeBarre, vues: readonly string[]): ChoixBarre {
-  const c = normaliserChoixBarre(choix) ?? { ordre: {}, masquees: [] };
-  return { ordre: { ...c.ordre, [groupe]: chaines(vues) }, masquees: c.masquees };
+/** Le nouveau choix après un réordonnancement. */
+export function avecOrdre(choix: ChoixBarre | null | undefined, vues: readonly string[]): ChoixBarre {
+  const c = normaliserChoixBarre(choix) ?? { ordre: [], masquees: [] };
+  return { ordre: chaines(vues), masquees: c.masquees };
 }
 
 /** Le nouveau choix après avoir coché / décoché une entrée. */
 export function avecVisibilite(choix: ChoixBarre | null | undefined, vue: string, visible: boolean): ChoixBarre {
-  const c = normaliserChoixBarre(choix) ?? { ordre: {}, masquees: [] };
+  const c = normaliserChoixBarre(choix) ?? { ordre: [], masquees: [] };
   if (ENTREES_TOUJOURS_VISIBLES.includes(vue)) return c;
   const masquees = c.masquees.filter((v) => v !== vue);
   if (!visible) masquees.push(vue);

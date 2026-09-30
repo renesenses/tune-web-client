@@ -6,8 +6,11 @@
 // « Rétablir l'ordre par défaut », rangé dans `ui_preferences`.
 //
 // Ce que ce témoin prouve, dans le DOM de composants réellement montés :
-//   - sans choix, la barre rend EXACTEMENT l'ordre livré (rien ne change) ;
-//   - un ordre enregistré est suivi, groupe par groupe ;
+//   - sans choix, la barre rend EXACTEMENT l'ordre livré, groupes et
+//     intertitres compris (rien ne change) ;
+//   - un ordre enregistré est suivi en LISTE LIBRE (arbitrage du 30/09) :
+//     une seule liste, sans intertitre, entrées mêlées d'un groupe à l'autre ;
+//   - une entrée Avancée reste cachée en Essentiel, puis s'affiche à sa place ;
 //   - une entrée masquée disparaît de la barre, Accueil jamais ;
 //   - une entrée INCONNUE de l'ordre enregistré est ignorée, sans erreur ;
 //   - une entrée NOUVELLE apparaît à sa place par défaut, sans casser l'ordre ;
@@ -28,15 +31,18 @@ import { activeView } from '../stores/navigation';
 import { activeStreamingService, streamingServices } from '../stores/streaming';
 import { shortcuts } from '../stores/shortcuts';
 import {
-  normaliserChoixBarre, ordonnerEntrees, entreesAffichees, deplacer, avecOrdre, avecVisibilite,
+  normaliserChoixBarre, ordonnerEntrees, ordreModifie, deplacer, avecOrdre, avecVisibilite,
 } from '../ordreBarreLaterale';
-import Sidebar, { CORE, ADVANCED, SELECTIONS, STUDIO } from '../../components/v2/Sidebar.svelte';
+import Sidebar, { CORE, ADVANCED, SELECTIONS, STUDIO, TOUTES_ENTREES } from '../../components/v2/Sidebar.svelte';
 import OrdreBarreLateraleV2 from '../../components/v2/OrdreBarreLateraleV2.svelte';
 
 vi.setConfig({ testTimeout: 60_000 });
 
 const vues = (l: readonly { view: string }[]) => l.map((it) => it.view);
 const NOYAU = vues(CORE);
+const TOUTES = vues(TOUTES_ENTREES);
+/** L'ordre livré, avec `v` déplacée à l'indice `i`. */
+const avecEn = (v: string, i: number) => { const l = TOUTES.filter((x) => x !== v); l.splice(i, 0, v); return l; };
 
 function reponse(corps: unknown) {
   return {
@@ -59,8 +65,8 @@ async function laisserTourner(n = 30) {
   }
 }
 
-function poserChoix(barreLaterale: unknown) {
-  preferences.update((p) => ({ ...p, settingsLevel: 'expert', barreLaterale: barreLaterale as any }));
+function poserChoix(barreLaterale: unknown, settingsLevel: 'beginner' | 'intermediate' | 'expert' = 'expert') {
+  preferences.update((p) => ({ ...p, settingsLevel, barreLaterale: barreLaterale as any }));
 }
 
 async function monterBarre() {
@@ -80,12 +86,15 @@ function noyauRendu(): string[] {
 function vuesRendues(): string[] {
   return Array.from(hote!.querySelectorAll<HTMLElement>('button.nav[data-vue]')).map((b) => b.dataset.vue!);
 }
-/** L'entrée du noyau et ses sous-entrées, dans l'ordre du DOM. */
-function sequenceNoyau(): string[] {
-  const nav = hote!.querySelector('.navscroll nav.grp') as HTMLElement;
+/** Les entrées de la liste libre et leurs sous-entrées, dans l'ordre du DOM. */
+function sequenceLibre(): string[] {
+  const nav = hote!.querySelector('nav[data-ordre="libre"]') as HTMLElement;
   return Array.from(nav.querySelectorAll<HTMLElement>('button.nav'))
     .map((b) => b.dataset.vue ?? `svc:${b.dataset.service}`);
 }
+const libre = () => hote!.querySelector('nav[data-ordre="libre"]');
+const intertitres = () => Array.from(hote!.querySelectorAll('.grp-label')).map((e) => (e.textContent ?? '').trim());
+const SELECTIONS_FR = 'Sélections';
 
 beforeEach(() => {
   vi.stubGlobal('ResizeObserver', ObservateurInerte as any);
@@ -117,48 +126,46 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('#1827 — la logique d’ordre', () => {
+describe('#1827 — la logique d’ordre (liste libre)', () => {
   it('sans ordre enregistré, l’ordre livré tel quel', () => {
-    expect(vues(ordonnerEntrees(CORE, undefined))).toEqual(NOYAU);
-    expect(vues(entreesAffichees('noyau', CORE, null))).toEqual(NOYAU);
+    expect(vues(ordonnerEntrees(TOUTES_ENTREES, undefined))).toEqual(TOUTES);
+    expect(ordreModifie(TOUTES_ENTREES, null)).toBe(false);
+    expect(ordreModifie(TOUTES_ENTREES, { ordre: [], masquees: ['history'] })).toBe(false);
+    expect(ordreModifie(TOUTES_ENTREES, { ordre: TOUTES, masquees: [] })).toBe(false);
+    expect(ordreModifie(TOUTES_ENTREES, { ordre: avecEn('tags', 0), masquees: [] })).toBe(true);
   });
 
   it('une entrée inconnue et un doublon sont écartés', () => {
-    const enregistre = ['search', 'hologramme', 'search', 'home', ...NOYAU.filter((v) => v !== 'search' && v !== 'home')];
-    const r = ordonnerEntrees(CORE, enregistre);
-    expect(vues(r)).toEqual(['search', 'home', ...NOYAU.filter((v) => v !== 'search' && v !== 'home')]);
-    expect(vues(r)).not.toContain('hologramme');
-    expect(new Set(vues(r)).size).toBe(CORE.length);
+    const r = ordonnerEntrees(TOUTES_ENTREES, ['tags', 'hologramme', 'tags', ...TOUTES.filter((v) => v !== 'tags')]);
+    expect(vues(r)).toEqual(avecEn('tags', 0));
   });
 
   it('une entrée nouvelle se place juste après sa voisine par défaut', () => {
-    // Un ordre enregistré AVANT les Podcasts : ils suivent Radio, où qu'elle soit.
-    const sansPodcasts = ['radios', ...NOYAU.filter((v) => v !== 'radios' && v !== 'podcasts')];
-    const r = vues(ordonnerEntrees(CORE, sansPodcasts));
-    expect(r.slice(0, 2)).toEqual(['radios', 'podcasts']);
-    // Une nouvelle entrée de TÊTE (sans voisine précédente) va en tête.
-    expect(vues(ordonnerEntrees(CORE, NOYAU.filter((v) => v !== 'home')))[0]).toBe('home');
+    // Ordre enregistré sans les Podcasts, Radio déplacée en tête : ils la suivent.
+    const enregistre = ['radios', ...TOUTES.filter((v) => v !== 'radios' && v !== 'podcasts')];
+    expect(vues(ordonnerEntrees(TOUTES_ENTREES, enregistre)).slice(0, 2)).toEqual(['radios', 'podcasts']);
+    // Sans voisine précédente, en tête.
+    expect(vues(ordonnerEntrees(TOUTES_ENTREES, TOUTES.filter((v) => v !== 'home')))[0]).toBe('home');
   });
 
   it('Accueil ne se masque jamais, même écrit par le serveur', () => {
     expect(normaliserChoixBarre({ masquees: ['home', 'history'] })!.masquees).toEqual(['history']);
     expect(avecVisibilite(null, 'home', false).masquees).toEqual([]);
-    expect(vues(entreesAffichees('noyau', CORE, { ordre: {}, masquees: ['home'] }))).toContain('home');
   });
 
   it('une valeur abîmée venue du serveur retombe sur le défaut', () => {
     expect(normaliserChoixBarre('n’importe quoi')).toBeNull();
     expect(normaliserChoixBarre([1, 2])).toBeNull();
-    const c = normaliserChoixBarre({ ordre: { noyau: ['search', 3, null], inconnu: ['x'] }, masquees: 'history' })!;
-    expect(c.ordre).toEqual({ noyau: ['search'] });
-    expect(c.masquees).toEqual([]);
+    const c = normaliserChoixBarre({ ordre: ['search', 3, null, 'search'], masquees: 'history' })!;
+    expect(c).toEqual({ ordre: ['search'], masquees: [] });
+    // Un ancien format par groupe (jamais publié) retombe sur l'ordre livré.
+    expect(normaliserChoixBarre({ ordre: { noyau: ['search'] } })!.ordre).toEqual([]);
   });
 
-  it('déplacer, puis enregistrer, garde les autres groupes', () => {
+  it('déplacer, puis enregistrer, garde les masquées', () => {
     expect(deplacer(['a', 'b', 'c'], 0, 2)).toEqual(['b', 'c', 'a']);
     expect(deplacer(['a', 'b', 'c'], 2, -5)).toEqual(['c', 'a', 'b']);
-    const c = avecOrdre({ ordre: { studio: ['metadata'] }, masquees: ['tags'] }, 'noyau', ['search', 'home']);
-    expect(c).toEqual({ ordre: { studio: ['metadata'], noyau: ['search', 'home'] }, masquees: ['tags'] });
+    expect(avecOrdre({ ordre: ['x'], masquees: ['tags'] }, ['search', 'home'])).toEqual({ ordre: ['search', 'home'], masquees: ['tags'] });
   });
 
   it('les préférences assainissent la clé, au chargement ET à la synchronisation', () => {
@@ -170,157 +177,159 @@ describe('#1827 — la logique d’ordre', () => {
 });
 
 describe('#1827 — la barre suit le choix', () => {
-  it('🔴 par défaut, rien ne change : l’ordre livré, Recherche sous Accueil', async () => {
+  it('🔴 par défaut, rien ne change : les groupes, leurs intertitres, Recherche sous Accueil', async () => {
     await monterBarre();
+    expect(libre()).toBeNull();
     expect(noyauRendu()).toEqual(NOYAU);
     expect(noyauRendu().slice(0, 2)).toEqual(['home', 'search']);
+    expect(intertitres()).toContain(SELECTIONS_FR);
     const toutes = vuesRendues();
-    for (const v of vues(SELECTIONS)) expect(toutes, v).toContain(v);
-    // L'ordre des sélections, lui aussi, est celui livré.
     expect(toutes.filter((v) => vues(SELECTIONS).includes(v))).toEqual(vues(SELECTIONS));
   });
 
-  it('un ordre enregistré est suivi, groupe par groupe', async () => {
-    const noyau = ['library', 'home', ...NOYAU.filter((v) => v !== 'library' && v !== 'home')];
-    const selections = [...vues(SELECTIONS)].reverse();
-    poserChoix({ ordre: { noyau, selections }, masquees: [] });
+  it('masquer seul garde les groupes ; l’entrée masquée disparaît, Accueil reste', async () => {
+    poserChoix({ ordre: [], masquees: ['history', 'home', 'tags'] });
     await monterBarre();
-    expect(noyauRendu()).toEqual(noyau);
-    expect(vuesRendues().filter((v) => selections.includes(v))).toEqual(selections);
-  });
-
-  it('une entrée masquée disparaît, Accueil reste', async () => {
-    poserChoix({ ordre: {}, masquees: ['history', 'home', 'tags'] });
-    await monterBarre();
+    expect(libre()).toBeNull();
     const toutes = vuesRendues();
     expect(toutes).not.toContain('history');
     expect(toutes).not.toContain('tags');
     expect(toutes).toContain('home');
   });
 
+  it('un ordre enregistré mêle les groupes : une liste unique, sans intertitre de groupe', async () => {
+    // Étiquettes (Sélections) en tête, Égaliseur (Studio) sous Accueil.
+    const ordre = ['tags', 'home', 'equalizer', ...TOUTES.filter((v) => !['tags', 'home', 'equalizer'].includes(v))];
+    poserChoix({ ordre, masquees: [] });
+    await monterBarre();
+    expect(libre()).not.toBeNull();
+    expect(sequenceLibre().slice(0, 3)).toEqual(['tags', 'home', 'equalizer']);
+    expect(intertitres()).not.toContain(SELECTIONS_FR);
+    expect(intertitres()).not.toContain('Studio');
+    // Chaque entrée une seule fois.
+    expect(new Set(vuesRendues()).size).toBe(vuesRendues().length);
+  });
+
+  it('niveau : une entrée Avancée placée en 2e reste cachée en Essentiel, puis s’affiche à sa place', async () => {
+    const ordre = avecEn('zonemanager', 1);
+    poserChoix({ ordre, masquees: [] }, 'beginner');
+    await monterBarre();
+    expect(vuesRendues()).not.toContain('zonemanager');
+    expect(vuesRendues()).not.toContain('equalizer');
+    preferences.update((p) => ({ ...p, settingsLevel: 'intermediate' }));
+    await laisserTourner(5);
+    expect(sequenceLibre().slice(0, 3)).toEqual(['home', 'zonemanager', 'search']);
+    expect(vuesRendues()).not.toContain('equalizer');
+  });
+
   it('une entrée inconnue de l’ordre enregistré ne casse rien', async () => {
-    poserChoix({ ordre: { noyau: ['hologramme', 'search', ...NOYAU.filter((v) => v !== 'search')] }, masquees: ['fantome'] });
+    poserChoix({ ordre: ['hologramme', ...avecEn('tags', 0)], masquees: ['fantome'] });
     await monterBarre();
-    expect(noyauRendu()).toEqual(['search', ...NOYAU.filter((v) => v !== 'search')]);
+    expect(sequenceLibre()[0]).toBe('tags');
+    expect(vuesRendues()).not.toContain('hologramme');
   });
 
-  it('une entrée nouvelle apparaît à sa place par défaut', async () => {
-    // Ordre enregistré par une version qui n'avait pas encore la Recherche au
-    // noyau : elle revient juste après Accueil, le reste de l'ordre tient.
-    const ancien = ['home', 'podcasts', ...NOYAU.filter((v) => !['home', 'podcasts', 'search'].includes(v))];
-    poserChoix({ ordre: { noyau: ancien }, masquees: [] });
+  it('une entrée nouvelle apparaît juste après sa voisine par défaut', async () => {
+    // Enregistré par une version sans la Recherche : elle revient sous Accueil.
+    const ancien = avecEn('tags', 1).filter((v) => v !== 'search');
+    poserChoix({ ordre: ancien, masquees: [] });
     await monterBarre();
-    expect(noyauRendu()).toEqual(['home', 'search', ...ancien.slice(1)]);
+    expect(sequenceLibre().slice(0, 3)).toEqual(['home', 'search', 'tags']);
   });
 
-  it('les services de Streaming restent sous Streaming', async () => {
-    poserChoix({ ordre: { noyau: ['streaming', ...NOYAU.filter((v) => v !== 'streaming')] }, masquees: [] });
+  it('les services de Streaming suivent Streaming, où qu’il aille', async () => {
+    poserChoix({ ordre: avecEn('streaming', 0), masquees: [] });
     await monterBarre();
-    const seq = sequenceNoyau();
-    expect(seq.slice(0, 2)).toEqual(['streaming', 'svc:qobuz']);
+    expect(sequenceLibre().slice(0, 3)).toEqual(['streaming', 'svc:qobuz', 'home']);
   });
 
-  it('rétablir (choix `null`) rend l’ordre livré', async () => {
-    poserChoix({ ordre: { noyau: [...NOYAU].reverse() }, masquees: ['history'] });
+  it('rétablir (choix `null`) rend les groupes et l’ordre livré', async () => {
+    poserChoix({ ordre: [...TOUTES].reverse(), masquees: ['history'] });
     await monterBarre();
-    expect(noyauRendu()).not.toEqual(NOYAU);
+    expect(libre()).not.toBeNull();
     poserChoix(null);
     await laisserTourner(5);
+    expect(libre()).toBeNull();
     expect(noyauRendu()).toEqual(NOYAU);
+    expect(intertitres()).toContain(SELECTIONS_FR);
   });
 
-  it('les quatre groupes sont connus du réglage', () => {
-    // Le réglage lit les MÊMES tableaux que la barre : aucune entrée oubliée.
+  it('le réglage lit la même liste que la barre', () => {
     const src = readFileSync(resolve(process.cwd(), 'src/components/v2/OrdreBarreLateraleV2.svelte'), 'utf-8');
-    expect(src).toContain("import { CORE, ADVANCED, SELECTIONS, STUDIO, type Item } from './Sidebar.svelte';");
-    expect(ADVANCED.length + STUDIO.length).toBeGreaterThan(0);
+    expect(src).toContain("import { TOUTES_ENTREES, NIVEAU_ENTREE, type Item } from './Sidebar.svelte';");
+    expect(TOUTES).toEqual([...CORE, ...ADVANCED, ...SELECTIONS, ...STUDIO].map((it) => it.view));
   });
 });
 
 describe('#1827 — le réglage, au clavier, à la souris', () => {
-  const liste = (g: string) =>
-    Array.from(hote!.querySelectorAll<HTMLElement>(`[data-ordre-barre="${g}"] li`)).map((li) => li.dataset.vue!);
-  const ligne = (g: string, v: string) =>
-    hote!.querySelector<HTMLElement>(`[data-ordre-barre="${g}"] li[data-vue="${v}"]`)!;
+  const liste = () =>
+    Array.from(hote!.querySelectorAll<HTMLElement>('[data-ordre-barre] li')).map((li) => li.dataset.vue!);
+  const ligne = (v: string) => hote!.querySelector<HTMLElement>(`[data-ordre-barre] li[data-vue="${v}"]`)!;
   const choix = () => get(preferences).barreLaterale;
 
-  it('par défaut : l’ordre livré, « Rétablir » inactif, Accueil non masquable', async () => {
+  it('par défaut : une seule liste, l’ordre livré, pastilles de niveau, Accueil non masquable', async () => {
     await monterReglage();
-    expect(liste('noyau')).toEqual(NOYAU);
-    expect(liste('selections')).toEqual(vues(SELECTIONS));
-    const retablir = hote!.querySelector<HTMLButtonElement>('[data-action="retablir-ordre-barre"]')!;
-    expect(retablir.disabled).toBe(true);
-    const caseAccueil = ligne('noyau', 'home').querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+    expect(liste()).toEqual(TOUTES);
+    expect(hote!.querySelector<HTMLButtonElement>('[data-action="retablir-ordre-barre"]')!.disabled).toBe(true);
+    const caseAccueil = ligne('home').querySelector<HTMLInputElement>('input[type="checkbox"]')!;
     expect(caseAccueil.disabled).toBe(true);
     expect(caseAccueil.checked).toBe(true);
+    expect(ligne('zonemanager').querySelector('[data-niveau]')?.getAttribute('data-niveau')).toBe('intermediate');
+    expect(ligne('equalizer').querySelector('[data-niveau]')?.getAttribute('data-niveau')).toBe('expert');
+    expect(ligne('home').querySelector('[data-niveau]')).toBeNull();
   });
 
   it('descendre au clavier : Accueil passe sous Recherche, et c’est enregistré', async () => {
     await monterReglage();
-    const bas = ligne('noyau', 'home').querySelector<HTMLButtonElement>('[data-sens="bas"]')!;
+    const bas = ligne('home').querySelector<HTMLButtonElement>('[data-sens="bas"]')!;
     bas.focus();
     bas.click();
     await laisserTourner(3);
-    expect(choix()!.ordre.noyau!.slice(0, 2)).toEqual(['search', 'home']);
-    expect(liste('noyau').slice(0, 2)).toEqual(['search', 'home']);
-    // La première ligne n'a pas de « monter », la dernière pas de « descendre ».
-    expect(ligne('noyau', 'search').querySelector<HTMLButtonElement>('[data-sens="haut"]')!.disabled).toBe(true);
-    // L'annonce dit la nouvelle place.
+    expect(choix()!.ordre.slice(0, 2)).toEqual(['search', 'home']);
+    expect(liste().slice(0, 2)).toEqual(['search', 'home']);
+    expect(ligne('search').querySelector<HTMLButtonElement>('[data-sens="haut"]')!.disabled).toBe(true);
     expect(hote!.querySelector('[role="status"]')!.textContent).toMatch(/2/);
-    // Le focus suit l'entrée déplacée : on peut presser encore.
     expect((document.activeElement as HTMLElement)?.closest('li')?.dataset.vue).toBe('home');
   });
 
-  it('glisser-déposer dans le groupe ; refusé vers un autre groupe', async () => {
+  it('glisser-déposer d’un groupe à l’autre : les Étiquettes en tête', async () => {
     await monterReglage();
-    const podcasts = ligne('noyau', 'podcasts');
-    podcasts.dispatchEvent(new Event('dragstart', { bubbles: true }));
-    const cible = ligne('noyau', 'home');
-    cible.dispatchEvent(new Event('dragover', { bubbles: true, cancelable: true }));
-    cible.dispatchEvent(new Event('drop', { bubbles: true, cancelable: true }));
-    await laisserTourner(3);
-    expect(liste('noyau')[0]).toBe('podcasts');
-
-    const avant = liste('selections');
-    ligne('noyau', 'home').dispatchEvent(new Event('dragstart', { bubbles: true }));
-    const autre = ligne('selections', avant[0]);
+    ligne('tags').dispatchEvent(new Event('dragstart', { bubbles: true }));
     const survol = new Event('dragover', { bubbles: true, cancelable: true });
-    autre.dispatchEvent(survol);
-    expect(survol.defaultPrevented, 'le dépôt vers un autre groupe doit être refusé').toBe(false);
-    autre.dispatchEvent(new Event('drop', { bubbles: true, cancelable: true }));
+    ligne('home').dispatchEvent(survol);
+    expect(survol.defaultPrevented, 'le dépôt doit être accepté').toBe(true);
+    ligne('home').dispatchEvent(new Event('drop', { bubbles: true, cancelable: true }));
     await laisserTourner(3);
-    expect(liste('selections')).toEqual(avant);
-    expect(liste('noyau')).toContain('home');
+    expect(liste()[0]).toBe('tags');
+    expect(choix()!.ordre[0]).toBe('tags');
   });
 
   it('masquer une entrée, puis rétablir l’ordre par défaut', async () => {
     await monterReglage();
-    const caseHisto = ligne('noyau', 'history').querySelector<HTMLInputElement>('input[type="checkbox"]')!;
-    caseHisto.click();
+    ligne('history').querySelector<HTMLInputElement>('input[type="checkbox"]')!.click();
     await laisserTourner(3);
     expect(choix()!.masquees).toEqual(['history']);
-    ligne('noyau', 'home').querySelector<HTMLButtonElement>('[data-sens="bas"]')!.click();
+    ligne('home').querySelector<HTMLButtonElement>('[data-sens="bas"]')!.click();
     await laisserTourner(3);
-
     const retablir = hote!.querySelector<HTMLButtonElement>('[data-action="retablir-ordre-barre"]')!;
     expect(retablir.disabled).toBe(false);
     retablir.click();
     await laisserTourner(3);
     expect(choix()).toBeNull();
-    expect(liste('noyau')).toEqual(NOYAU);
-    expect(ligne('noyau', 'history').querySelector<HTMLInputElement>('input[type="checkbox"]')!.checked).toBe(true);
+    expect(liste()).toEqual(TOUTES);
+    expect(ligne('history').querySelector<HTMLInputElement>('input[type="checkbox"]')!.checked).toBe(true);
     expect(retablir.disabled).toBe(true);
   });
 });
 
 describe('#1827 — traductions', () => {
   const CLES = [
-    'sidebarOrder', 'sidebarOrderHint', 'sidebarGroupMain', 'sidebarGroupAdvanced', 'sidebarMoveUp',
+    'sidebarOrder', 'sidebarOrderHint', 'sidebarMoveUp',
     'sidebarMoveDown', 'sidebarShow', 'sidebarAlwaysVisible', 'sidebarReset', 'sidebarResetDone',
     'sidebarMoved', 'sidebarDrag',
   ];
   const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
-  it.each(LANGUES)('%s porte les douze clés, avec leurs jetons', (l) => {
+  it.each(LANGUES)('%s porte les dix clés, avec leurs jetons', (l) => {
     const src = readFileSync(resolve(process.cwd(), `src/lib/locales/${l}.ts`), 'utf-8');
     for (const k of CLES) {
       const m = src.match(new RegExp(`"settings\\.${k}": "([^"]+)"`));

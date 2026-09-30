@@ -8,32 +8,28 @@
    * entrée, « Rétablir l'ordre par défaut ». Accueil ne se masque pas ;
    * Réglages est la roue de l'en-tête de la barre, hors de ces listes.
    *
-   * L'ordre se règle À L'INTÉRIEUR de chaque groupe : les groupes gardent
-   * leur place et leur niveau d'affichage (voir `lib/ordreBarreLaterale`).
-   * Les sous-entrées (services de Streaming, rayons de Collections) suivent
+   * UNE SEULE LISTE, libre (arbitrage de Bertrand du 30/09/2026) : toute
+   * entrée va n'importe où. Une entrée Avancée ou Expert le reste — sa
+   * pastille le dit — et n'apparaît dans la barre qu'à ce niveau, à la place
+   * choisie (voir `lib/ordreBarreLaterale`). Les sous-entrées (services de Streaming, rayons de Collections) suivent
    * leur parent dans la barre : elles ne figurent pas ici.
    */
+  import { tick } from 'svelte';
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import {
     ordonnerEntrees, estMasquee, deplacer, avecOrdre, avecVisibilite,
-    ENTREES_TOUJOURS_VISIBLES, type GroupeBarre,
+    ENTREES_TOUJOURS_VISIBLES,
   } from '../../lib/ordreBarreLaterale';
-  import { CORE, ADVANCED, SELECTIONS, STUDIO, type Item } from './Sidebar.svelte';
+  import { TOUTES_ENTREES, NIVEAU_ENTREE, type Item } from './Sidebar.svelte';
 
-  const GROUPES: { id: GroupeBarre; titre: string; entrees: readonly Item[] }[] = [
-    { id: 'noyau', titre: 'settings.sidebarGroupMain', entrees: CORE },
-    { id: 'avance', titre: 'settings.sidebarGroupAdvanced', entrees: ADVANCED },
-    { id: 'selections', titre: 'v2.nav.selections', entrees: SELECTIONS },
-    { id: 'studio', titre: 'v2.nav.studio', entrees: STUDIO },
-  ];
+  /** La pastille de niveau d'une entrée qui n'est pas visible dès l'Essentiel. */
+  const PASTILLE_NIVEAU = { intermediate: 'settings.levelAdvanced', expert: 'settings.levelExpert' } as const;
 
   const choix = $derived($preferences.barreLaterale);
   const parDefaut = $derived(choix === null || choix === undefined);
 
-  function ordreDe(g: (typeof GROUPES)[number]): Item[] {
-    return ordonnerEntrees(g.entrees, choix?.ordre?.[g.id]);
-  }
+  const liste = $derived(ordonnerEntrees(TOUTES_ENTREES, choix?.ordre));
 
   /** Annonce lue par les lecteurs d'écran après un déplacement. */
   let annonce = $state('');
@@ -41,24 +37,26 @@
   const libelle = (it: Item) => $t(it.labelKey as any);
   const avec = (cle: string, it: Item) => $t(cle as any).replace('{x}', libelle(it));
 
-  function deplacerDans(g: (typeof GROUPES)[number], de: number, vers: number, focaliser = false) {
-    const liste = ordreDe(g);
+  function deplacerA(de: number, vers: number, focaliser = false) {
     if (vers < 0 || vers >= liste.length || de === vers) return;
-    const nouvel = deplacer(liste, de, vers);
-    preferences.update((p) => ({ ...p, barreLaterale: avecOrdre(p.barreLaterale, g.id, nouvel.map((it) => it.view)) }));
+    // 🔴 Lu AVANT l'enregistrement : `liste` est dérivée des préférences, et
+    // se relit déjà dans le nouvel ordre juste après.
     const it = liste[de];
-    const place = String(vers + 1);
     const total = String(liste.length);
+    const nouvel = deplacer(liste, de, vers);
+    preferences.update((p) => ({ ...p, barreLaterale: avecOrdre(p.barreLaterale, nouvel.map((x) => x.view)) }));
+    const place = String(vers + 1);
     annonce = avec('settings.sidebarMoved', it).replace('{p}', place).replace('{n}', total);
     if (focaliser) {
       // Le bouton pressé suit l'entrée : on peut presser plusieurs fois de suite.
       const sens = vers < de ? 'haut' : 'bas';
-      queueMicrotask(() => {
+      // Après le rendu : la ligne a changé de place dans le DOM.
+      void tick().then(() => {
         const b = document.querySelector<HTMLButtonElement>(
-          `[data-ordre-barre="${g.id}"] [data-vue="${it.view}"] [data-sens="${sens}"]`,
+          `[data-ordre-barre] [data-vue="${it.view}"] [data-sens="${sens}"]`,
         );
         (b && !b.disabled ? b : document.querySelector<HTMLButtonElement>(
-          `[data-ordre-barre="${g.id}"] [data-vue="${it.view}"] [data-sens="${sens === 'haut' ? 'bas' : 'haut'}"]`,
+          `[data-ordre-barre] [data-vue="${it.view}"] [data-sens="${sens === 'haut' ? 'bas' : 'haut'}"]`,
         ))?.focus();
       });
     }
@@ -74,28 +72,27 @@
   }
 
   // --- Glisser-déposer (souris) — le clavier passe par les flèches. -------
-  let glisse = $state<{ groupe: GroupeBarre; index: number } | null>(null);
-  let survol = $state<{ groupe: GroupeBarre; index: number } | null>(null);
+  let glisse = $state<number | null>(null);
+  let survol = $state<number | null>(null);
 
-  function debutGlisse(e: DragEvent, groupe: GroupeBarre, index: number, vue: string) {
-    glisse = { groupe, index };
+  function debutGlisse(e: DragEvent, index: number, vue: string) {
+    glisse = index;
     try {
       e.dataTransfer?.setData('text/plain', vue);
       if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
     } catch { /* jsdom, vieux navigateurs */ }
   }
-  function surSurvol(e: DragEvent, groupe: GroupeBarre, index: number) {
-    // Un dépôt dans un AUTRE groupe est refusé : pas de `preventDefault`.
-    if (!glisse || glisse.groupe !== groupe) return;
+  function surSurvol(e: DragEvent, index: number) {
+    if (glisse === null) return;
     e.preventDefault();
-    survol = { groupe, index };
+    survol = index;
   }
-  function surDepot(e: DragEvent, g: (typeof GROUPES)[number], index: number) {
-    if (!glisse || glisse.groupe !== g.id) return;
+  function surDepot(e: DragEvent, index: number) {
+    if (glisse === null) return;
     e.preventDefault();
-    const de = glisse.index;
+    const de = glisse;
     glisse = null; survol = null;
-    deplacerDans(g, de, index);
+    deplacerA(de, index);
   }
   function finGlisse() { glisse = null; survol = null; }
 </script>
@@ -111,41 +108,36 @@
     </button>
   </div>
 
-  {#each GROUPES as g (g.id)}
-    {@const liste = ordreDe(g)}
-    <div class="groupe">
-      <div class="titre" id="ordre-barre-{g.id}">{$t(g.titre as any)}</div>
-      <ol data-ordre-barre={g.id} aria-labelledby="ordre-barre-{g.id}">
-        {#each liste as it, i (it.view)}
-          {@const fixe = ENTREES_TOUJOURS_VISIBLES.includes(it.view)}
-          {@const masquee = estMasquee(it.view, choix)}
-          <li data-vue={it.view} class:masquee class:survol={survol?.groupe === g.id && survol.index === i}
-            class:glisse={glisse?.groupe === g.id && glisse.index === i}
-            draggable="true"
-            ondragstart={(e) => debutGlisse(e, g.id, i, it.view)}
-            ondragover={(e) => surSurvol(e, g.id, i)}
-            ondrop={(e) => surDepot(e, g, i)}
-            ondragend={finGlisse}>
-            <span class="poignee" aria-hidden="true" title={avec('settings.sidebarDrag', it)}>⋮⋮</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={it.icon} /></svg>
-            <span class="nom">{libelle(it)}</span>
-            <button class="fl" data-sens="haut" disabled={i === 0}
-              aria-label={avec('settings.sidebarMoveUp', it)} title={avec('settings.sidebarMoveUp', it)}
-              onclick={() => deplacerDans(g, i, i - 1, true)}>↑</button>
-            <button class="fl" data-sens="bas" disabled={i === liste.length - 1}
-              aria-label={avec('settings.sidebarMoveDown', it)} title={avec('settings.sidebarMoveDown', it)}
-              onclick={() => deplacerDans(g, i, i + 1, true)}>↓</button>
-            <label class="sw" title={fixe ? $t('settings.sidebarAlwaysVisible' as any) : avec('settings.sidebarShow', it)}>
-              <input type="checkbox" data-visible={it.view} checked={fixe || !masquee} disabled={fixe}
-                aria-label={fixe ? `${libelle(it)} — ${$t('settings.sidebarAlwaysVisible' as any)}` : avec('settings.sidebarShow', it)}
-                onchange={(e) => basculer(it.view, (e.currentTarget as HTMLInputElement).checked)} />
-              <span class="slider"></span>
-            </label>
-          </li>
-        {/each}
-      </ol>
-    </div>
-  {/each}
+  <ol data-ordre-barre aria-label={$t('settings.sidebarOrder' as any)}>
+    {#each liste as it, i (it.view)}
+      {@const fixe = ENTREES_TOUJOURS_VISIBLES.includes(it.view)}
+      {@const masquee = estMasquee(it.view, choix)}
+      {@const niveau = NIVEAU_ENTREE[it.view]}
+      <li data-vue={it.view} class:masquee class:survol={survol === i} class:glisse={glisse === i}
+        draggable="true"
+        ondragstart={(e) => debutGlisse(e, i, it.view)}
+        ondragover={(e) => surSurvol(e, i)}
+        ondrop={(e) => surDepot(e, i)}
+        ondragend={finGlisse}>
+        <span class="poignee" aria-hidden="true" title={avec('settings.sidebarDrag', it)}>⋮⋮</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={it.icon} /></svg>
+        <span class="nom">{libelle(it)}</span>
+        {#if niveau}<span class="niveau" data-niveau={niveau}>{$t(PASTILLE_NIVEAU[niveau] as any)}</span>{/if}
+        <button class="fl" data-sens="haut" disabled={i === 0}
+          aria-label={avec('settings.sidebarMoveUp', it)} title={avec('settings.sidebarMoveUp', it)}
+          onclick={() => deplacerA(i, i - 1, true)}>↑</button>
+        <button class="fl" data-sens="bas" disabled={i === liste.length - 1}
+          aria-label={avec('settings.sidebarMoveDown', it)} title={avec('settings.sidebarMoveDown', it)}
+          onclick={() => deplacerA(i, i + 1, true)}>↓</button>
+        <label class="sw" title={fixe ? $t('settings.sidebarAlwaysVisible' as any) : avec('settings.sidebarShow', it)}>
+          <input type="checkbox" data-visible={it.view} checked={fixe || !masquee} disabled={fixe}
+            aria-label={fixe ? `${libelle(it)} — ${$t('settings.sidebarAlwaysVisible' as any)}` : avec('settings.sidebarShow', it)}
+            onchange={(e) => basculer(it.view, (e.currentTarget as HTMLInputElement).checked)} />
+          <span class="slider"></span>
+        </label>
+      </li>
+    {/each}
+  </ol>
   <div class="annonce" role="status" aria-live="polite">{annonce}</div>
 </div>
 
@@ -158,9 +150,7 @@
   .retablir{flex:0 0 auto; height:32px; padding:0 12px; border-radius:9px; border:1px solid var(--v2-line2);
     background:var(--v2-surface2); color:var(--v2-txt); font:inherit; font-size:12.5px; cursor:pointer}
   .retablir:disabled{opacity:.45; cursor:default}
-  .groupe{margin-top:12px}
-  .titre{font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); margin-bottom:4px}
-  ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px}
+  ol{list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:2px}
   li{display:flex; align-items:center; gap:8px; padding:4px 8px; border-radius:8px;
     border:1px solid transparent; background:var(--v2-surface2)}
   li.masquee .nom, li.masquee svg{opacity:.45}
@@ -169,6 +159,8 @@
   .poignee{cursor:grab; color:var(--v2-txt3); font-size:12px; letter-spacing:-2px; user-select:none}
   li svg{width:16px; height:16px; flex:0 0 auto}
   .nom{flex:1; min-width:0; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .niveau{flex:0 0 auto; font-size:10.5px; padding:1px 7px; border-radius:999px;
+    border:1px solid var(--v2-line2); color:var(--v2-txt3)}
   .fl{width:28px; height:28px; border-radius:7px; border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt); cursor:pointer; font-size:13px; line-height:1}
   .fl:disabled{opacity:.3; cursor:default}

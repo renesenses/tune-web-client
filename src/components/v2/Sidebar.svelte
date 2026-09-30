@@ -201,6 +201,17 @@
     { view: 'metadata', labelKey: 'metadata.title', icon: 'M20 12l-8 8-9-9V4h7zM8 8h.01' },
     { view: 'diagnostics', labelKey: 'v2.nav.processing', icon: 'M3 12h4l2 6 4-14 2 8h6' },
   ];
+
+  /**
+   * web#1827 — TOUTES les entrées, dans l'ordre livré : la liste libre que
+   * Réglages › Interface réordonne (arbitrage de Bertrand du 30/09/2026).
+   * Une entrée garde le niveau de son groupe d'origine, où qu'on la place.
+   */
+  export const TOUTES_ENTREES: Item[] = [...CORE, ...ADVANCED, ...SELECTIONS, ...STUDIO];
+  export const NIVEAU_ENTREE: Record<string, 'intermediate' | 'expert'> = Object.fromEntries([
+    ...ADVANCED.map((it) => [it.view, 'intermediate'] as const),
+    ...STUDIO.map((it) => [it.view, 'expert'] as const),
+  ]);
 </script>
 
 <script lang="ts">
@@ -233,7 +244,7 @@
   import { updateAvailable, latestVersion, currentVersion } from '../../lib/stores/updates';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { preferences } from '../../lib/stores/preferences';
-  import { entreesAffichees } from '../../lib/ordreBarreLaterale';
+  import { estMasquee, ordonnerEntrees, ordreModifie } from '../../lib/ordreBarreLaterale';
   import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
@@ -283,15 +294,15 @@
   // #1261 — les quatre outils audio sont des greffons depuis la v0.9.156 :
   // leur entrée suit l'état réel (installé et actif), et l'écran Extensions
   // republie cet état après chaque geste.
-  // web#1827 — chaque groupe dans l'ordre choisi (Réglages › Interface),
-  // sans ses entrées masquées. Sans choix enregistré, l'ordre livré tel quel.
+  // web#1827 — les entrées masquées (Réglages › Interface) sortent de la barre.
   const choixBarre = $derived($preferences.barreLaterale);
-  const studioVisible = $derived(entreesAffichees('studio',
+  const sansMasquees = (l: Item[]) => l.filter((it) => !estMasquee(it.view, choixBarre));
+  const studioDisponibles = $derived(
     entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
-    choixBarre,
-  ));
-  const noyauAffiche = $derived(entreesAffichees('noyau', CORE, choixBarre));
-  const selectionsAffichees = $derived(entreesAffichees('selections', SELECTIONS, choixBarre));
+  );
+  const studioVisible = $derived(sansMasquees(studioDisponibles));
+  const noyauAffiche = $derived(sansMasquees(CORE));
+  const selectionsAffichees = $derived(sansMasquees(SELECTIONS));
   $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
   // Un greffon natif TIERS n'est pas dans `GET /plugins` : on le sonde à part
   // (`stores/crossfeedPro`) ; la zone n'y compte pas, la présence est globale.
@@ -305,11 +316,34 @@
   // aucune explication à offrir d'un greffon arrêté, ses routes rendraient le
   // 404 nu d'axum. C'est la condition du bouton « Ouvrir » des Extensions.
   $effect(() => { void refreshCirclePlugin(); });
-  const avanceVisibles = $derived(entreesAffichees('avance',
+  const avanceDisponibles = $derived(
     ADVANCED.filter((it) => it.view !== 'concerts' || $concertsUtilisable)
       .filter((it) => it.view !== 'circle' || $circleCharge),
-    choixBarre,
-  ));
+  );
+  const avanceVisibles = $derived(sansMasquees(avanceDisponibles));
+
+  /**
+   * web#1827 — LA LISTE LIBRE (arbitrage de Bertrand du 30/09/2026).
+   *
+   * Tant que l'ordre est celui livré, la barre garde ses groupes, leurs
+   * intertitres et leurs dévoilements par niveau, à l'identique. Dès que
+   * l'ordre en diffère, elle rend UNE liste, sans intertitre : « Sélections »
+   * ou « Studio » ne voudraient plus rien dire au-dessus d'entrées mêlées.
+   * Chaque entrée y garde son niveau et sa condition de greffon : invisible
+   * à ce niveau, elle est simplement absente, et reprend SA place choisie dès
+   * qu'elle redevient visible. Masquer seul ne fait pas passer en liste libre.
+   */
+  const ordreLibre = $derived(ordreModifie(TOUTES_ENTREES, choixBarre));
+  const listeLibre = $derived.by(() => {
+    if (!ordreLibre) return [] as Item[];
+    const disponibles = new Set<string>([
+      ...CORE, ...SELECTIONS,
+      ...(showAdvanced ? avanceDisponibles : []),
+      ...(showStudio ? studioDisponibles : []),
+    ].map((it) => it.view));
+    return sansMasquees(ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre)
+      .filter((it) => disponibles.has(it.view)));
+  });
 
   // Santé du serveur — portée de l'ancienne barre : sonde toutes les minutes,
   // pastille hors de « ok ». L'alerte en temps réel arrive par `v2Live`.
@@ -739,6 +773,57 @@
   </div>
 
   <div class="navscroll">
+    {#snippet boutonEntree(it: Item)}
+      <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
+        <span>{$t(it.labelKey as any)}</span>
+      </button>
+    {/snippet}
+    {#snippet servicesSousStreaming()}
+      {#each servicesBarre as svc (svc)}
+        <button class="nav svc" data-service={svc}
+          class:active={$activeView === 'streaming' && $activeStreamingService === svc}
+          onclick={() => allerService(svc)} title={enIcones ? nomService(svc) : undefined}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M10 8.5l6 3.5-6 3.5z" /></svg>
+          <span>{nomService(svc)}</span>
+        </button>
+      {/each}
+    {/snippet}
+    {#snippet collectionsEtRayons(it: Item)}
+      <!-- #1580 : l'entrée garde son geste (ouvrir l'écran) ; le chevron,
+           bouton frère et non enfant, replie l'arbre entier. -->
+      <div class="nav-pli">
+        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
+          <span>{$t(it.labelKey as any)}</span>
+        </button>
+        <button class="pli-arbre" aria-expanded={!arbreBarreReplie}
+          aria-label={libellePliArbre} title={libellePliArbre}
+          onclick={basculerArbreBarre}>
+          <svg viewBox="0 0 24 24" class:ferme={arbreBarreReplie}><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+        </button>
+      </div>
+      <!-- La garde de mode est reprise ICI : un snippet ne voit pas le
+           rétrécissement de type fait par l'appelant. -->
+      {#if !arbreBarreReplie && $etatRayons.mode === 'arbre'}
+        <ArbreRayons compact arbre={$etatRayons.arbre} onOuvrir={ouvrirCollectionRangee} />
+      {/if}
+    {/snippet}
+
+    {#if ordreLibre}
+      <!-- web#1827 — la liste libre : une seule liste, sans intertitre. Les
+           sous-entrées (services, rayons) suivent leur parent. -->
+      <nav class="grp libre" data-ordre="libre">
+        {#each listeLibre as it (it.view)}
+          {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
+            {@render collectionsEtRayons(it)}
+          {:else}
+            {@render boutonEntree(it)}
+            {#if it.view === 'streaming'}{@render servicesSousStreaming()}{/if}
+          {/if}
+        {/each}
+      </nav>
+    {:else}
     <nav class="grp">
       {#each noyauAffiche as it (it.view)}
         <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
@@ -749,16 +834,7 @@
              complètent — #1138. La pastille reprend celle de l'ancienne barre :
              elle dit « ce compte est connecté », la seule information que le
              nom seul ne porte pas. -->
-        {#if it.view === 'streaming'}
-          {#each servicesBarre as svc (svc)}
-            <button class="nav svc" data-service={svc}
-              class:active={$activeView === 'streaming' && $activeStreamingService === svc}
-              onclick={() => allerService(svc)} title={enIcones ? nomService(svc) : undefined}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M10 8.5l6 3.5-6 3.5z" /></svg>
-              <span>{nomService(svc)}</span>
-            </button>
-          {/each}
-        {/if}
+        {#if it.view === 'streaming'}{@render servicesSousStreaming()}{/if}
       {/each}
     </nav>
 
@@ -770,6 +846,7 @@
         </button>
       {/each}
     </nav>
+    {/if}
 
     {#if $rubriqueSourcesVisible}
       <nav class="grp sources-barre" aria-label={$t('v2.sources.title' as any)}>
@@ -834,27 +911,12 @@
       {/if}
     </nav>
 
-    {#if selectionsAffichees.length}
+    {#if !ordreLibre && selectionsAffichees.length}
     <nav class="grp">
       <div class="grp-label">{$t('v2.nav.selections' as any)}</div>
       {#each selectionsAffichees as it (it.view)}
         {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
-          <!-- #1580 : l'entrée garde son geste (ouvrir l'écran) ; le chevron,
-               bouton frère et non enfant, replie l'arbre entier. -->
-          <div class="nav-pli">
-            <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-              <span>{$t(it.labelKey as any)}</span>
-            </button>
-            <button class="pli-arbre" aria-expanded={!arbreBarreReplie}
-              aria-label={libellePliArbre} title={libellePliArbre}
-              onclick={basculerArbreBarre}>
-              <svg viewBox="0 0 24 24" class:ferme={arbreBarreReplie}><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" /></svg>
-            </button>
-          </div>
-          {#if !arbreBarreReplie}
-            <ArbreRayons compact arbre={$etatRayons.arbre} onOuvrir={ouvrirCollectionRangee} />
-          {/if}
+          {@render collectionsEtRayons(it)}
         {:else}
           <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
@@ -866,7 +928,9 @@
     {/if}
 
     <!-- web#1827 : toutes ses entrées masquées, le groupe se referme avec
-         son intitulé plutôt que de laisser « Studio » seul. -->
+         son intitulé plutôt que de laisser « Studio » seul ; en liste libre,
+         ses entrées sont dans la liste unique. -->
+    {#if !ordreLibre}
     <nav class="grp reveal" class:show={showStudio && studioVisible.length > 0} aria-hidden={!showStudio || !studioVisible.length}>
       <div class="grp-label">{$t('v2.nav.studio' as any)}</div>
       {#each studioVisible as it (it.view)}
@@ -876,6 +940,7 @@
         </button>
       {/each}
     </nav>
+    {/if}
   </div>
 
   <!-- 🔴 Le Support est la SEULE entrée qui n'avait aucune infobulle — même
