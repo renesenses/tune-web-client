@@ -4011,6 +4011,20 @@ export function federatedSearch(
             if (x && !x.source) x.source = key;
           }
         }
+        // 🔴 web#1826 : les ARTISTES de service n'ont pas de `source_id`.
+        // `StreamArtist` (`tune-core/src/streaming/traits.rs`) sérialise `id`,
+        // sans le `rename = "source_id"` de `StreamPlaylist`. Mesuré sur le .18
+        // (0.9.168) le 30/09/2026 avec `/search?q=Leprous` : qobuz
+        // `{"id":"610403"}`, tidal `{"id":"3631982"}`, et aucun `source_id`.
+        // Or `SearchV2.ouvrirArtiste`, `ouvrirArtisteDepuis` et `objetArtiste`
+        // l'exigent pour désigner l'artiste chez son service. Faute de quoi le
+        // clic retombait sans rien dire sur `q = ar.name` : la recherche
+        // repartait sur le nom et la fiche ne s'ouvrait jamais.
+        for (const x of (result.services[key] as any).artists ?? []) {
+          if (x && x.source_id == null && x.id != null && String(x.id).trim() !== '') {
+            x.source_id = String(x.id);
+          }
+        }
       }
     }
     return result;
