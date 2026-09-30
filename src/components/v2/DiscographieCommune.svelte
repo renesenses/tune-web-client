@@ -21,7 +21,7 @@
   import type { GroupeCollaborations } from '../../lib/api';
   import { partagerDiscographie } from '../../lib/discographieConnexes';
   import {
-    BIBLIOTHEQUE, basculerProvenance, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances,
+    BIBLIOTHEQUE, basculerProvenance, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances, recentrerSurProvenances,
     filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee,
     type EntreeDiscographie, type Exemplaire, type Qualite,
   } from '../../lib/discographieCommune';
@@ -137,7 +137,10 @@
   function basculerPastille(cle: string) {
     choix = basculerProvenance(choix, cle, provenances.map((p) => p.cle));
   }
-  const garder = (liste: EntreeDiscographie[]) => liste.filter((e) => dansProvenances(e, choix));
+  // Filtrer ne suffit pas : la vignette gardée pour son exemplaire Qobuz doit
+  // aussi OUVRIR cet exemplaire, pas la copie locale (30/09/2026, Yves Corbat).
+  const garder = (liste: EntreeDiscographie[]) =>
+    liste.filter((e) => dansProvenances(e, choix)).map((e) => recentrerSurProvenances(e, choix));
 
   /**
    * Les noms des serveurs UPnP, pour qu'une pastille dise « Sonos » et pas un
@@ -401,14 +404,15 @@
 {#snippet carte(e: EntreeDiscographie, origine: OrigineSection = null)}
   {@const al = e.principal.album}
   {@const loc = local(e)}
+  {@const enBiblio = e.principal.source === BIBLIOTHEQUE}
   <div class="carte" data-sources={e.sources.join(' ')}>
     <div class="cv">
       <PochetteActions
         favori={loc?.id != null ? { albumId: loc.id } : null}
-        etiquettes={cibleEtiquetteAlbum(loc ?? al, e.principal.source)}
+        etiquettes={cibleEtiquetteAlbum(al, e.principal.source)}
         onLire={() => onLire(e.principal)}
         onOuvrir={() => onOuvrir(e.principal, origine)}
-        objet={loc ? objetAlbum(loc) : objetAlbum(al, e.principal.source ?? null)}
+        objet={enBiblio && loc ? objetAlbum(loc) : objetAlbum(al, e.principal.source ?? null)}
         nom={al.title}
       >
         <!-- `source` n'est PAS passé à `AlbumArt` : il y poserait sa
