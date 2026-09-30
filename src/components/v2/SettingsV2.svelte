@@ -47,6 +47,7 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
@@ -1936,7 +1937,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   // ── Reglages par zone ─────────────────────────────────────────────────
   const RATES: { v: number; l: string }[] = [
-    { v: 0, l: $t('v2.set.noLimit' as any) }, { v: 48000, l: '48 kHz' }, { v: 88200, l: '88,2 kHz' },
+    // tune-server-rust#5524 — 44,1 kHz manquait : c'est le plafond d'un
+    // Ruark R5 (Yves Corbat). Au-dessus du plafond, le serveur rééchantillonne
+    // dans la famille de la source (44,1 ou 48 kHz), profondeur conservée.
+    { v: 0, l: $t('settings.maxSampleRateAuto' as any) }, { v: 44100, l: '44,1 kHz' },
+    { v: 48000, l: '48 kHz' }, { v: 88200, l: '88,2 kHz' },
     { v: 96000, l: '96 kHz' }, { v: 176400, l: '176,4 kHz' }, { v: 192000, l: '192 kHz' },
     { v: 352800, l: '352,8 kHz' }, { v: 384000, l: '384 kHz' }, { v: 705600, l: '705,6 kHz' },
     { v: 1411200, l: '1411,2 kHz' },
@@ -3457,6 +3462,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- web#1827 — Bertrand, 30/09/2026 : l'ordre de la barre
+                   latérale, glisser-déposer ou flèches au clavier, entrées
+                   masquables, « Rétablir l'ordre par défaut ». Rangé à côté
+                   des autres réglages de navigation. -->
+              <OrdreBarreLateraleV2 />
+
               <div class="row">
                 <div class="lbl">
                     <span>{$t('settings.defaultZone' as any)}</span>
@@ -4194,7 +4205,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             <option value="dop">DoP</option><option value="pcm">PCM</option>
                           </select>
                         </label>
-                        <label class="zf">
+                        <label class="zf" title={$t('settings.maxSampleRateHint' as any)}>
                           <span>{$t('settings.maxSampleRate' as any)}</span>
                           <select class="sel sm" value={String(z.max_sample_rate ?? 0)}
                             onchange={(e) => { const v = Number((e.currentTarget as HTMLSelectElement).value);
