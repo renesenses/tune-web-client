@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import * as api from '../api';
 import { normaliserVerificationMaj } from '../miseAJour';
+import { estPlusRecente } from '../versions';
 
 export const updateAvailable = writable(false);
 export const latestVersion = writable<string | null>(null);
@@ -11,17 +12,13 @@ const DISMISSED_KEY = 'tune_update_dismissed_version';
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-/** Compare two semver strings. Returns true if b > a. */
+/**
+ * `b` est-elle plus récente que `a` ? Pré-versions comprises (1.0.0-rc1) :
+ * voir `../versions`. L'ancienne version passait `0-rc1` à `Number` (NaN) et
+ * ne voyait jamais rc1 → rc2 ni rc1 → 1.0.0.
+ */
 function isNewer(a: string, b: string): boolean {
-  const pa = a.replace(/^v/, '').split('.').map(Number);
-  const pb = b.replace(/^v/, '').split('.').map(Number);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const na = pa[i] ?? 0;
-    const nb = pb[i] ?? 0;
-    if (nb > na) return true;
-    if (nb < na) return false;
-  }
-  return false;
+  return estPlusRecente(a, b);
 }
 
 async function poll() {
