@@ -61,9 +61,12 @@ describe('#874 — le survol qui devait révéler le cœur était un sélecteur 
   });
 
   it('le cœur n’est plus caché derrière un survol', () => {
-    const css = src.slice(src.lastIndexOf('<style')).replace(/\/\*[\s\S]*?\*\//g, ' ');
-    const regle = /\.fav\{([^}]*)\}/.exec(css)?.[1] ?? '';
-    expect(regle, 'la règle `.fav` a disparu').not.toBe('');
+    // #1771 — le cœur radio est rendu par la barre d'actions (`.pa.coeur`) :
+    // c'est la règle `.pa` de `PisteActions` qui décide s'il est visible.
+    const pa = lire('PisteActions.svelte');
+    const css = pa.slice(pa.lastIndexOf('<style')).replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const regle = /\.pa\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(regle, 'la règle `.pa` a disparu').not.toBe('');
     expect(
       /opacity:\s*0/.test(regle),
       'le cœur naît invisible : sur un poste de bureau il est inatteignable',
