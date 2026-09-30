@@ -23,7 +23,7 @@
    * `TvVuMeters` ont tranché de la même façon ; on ne rejoue pas ce
    * raisonnement.
    */
-  import { audioLevels } from '../../lib/stores/audioLevels';
+  import { audioLevels, suiviDeFraicheur } from '../../lib/stores/audioLevels';
   import { MIN_DB, PEAK_LAMP_DBFS } from '../../lib/tvVuScale';
   import {
     avancerAiguille, cadreCadran, dessinerCadran, MAINTIEN_CRETE_MS,
@@ -64,6 +64,9 @@
   let aiguille = MIN_DB;
   /** Instant (ms) jusqu'auquel le témoin de crête reste allumé. */
   let creteJusqua = 0;
+  // #1791 (suite de tune-server-rust#5104) — sans trame depuis
+  // `FRAICHEUR_TRAME_MS`, l'aiguille retombe en butée comme à l'arrêt.
+  const fraicheur = suiviDeFraicheur();
 
   /** La hauteur vient du CADRE de la face (`RATIO_VU` en est déduit), jamais
    *  d'une cote recopiée d'une autre surface. */
@@ -93,10 +96,11 @@
     const crete = canal === 'gauche' ? niv.peak_left_db : niv.peak_right_db;
     // −95 dBFS et moins : le serveur annonce le silence, pas un niveau. Le
     // repli est la butée basse, jamais une aiguille qui flotte.
-    const cible = !joue || rms <= -95 ? MIN_DB : rms;
+    const vivant = fraicheur(niv, maintenant) && joue;
+    const cible = !vivant || rms <= -95 ? MIN_DB : rms;
 
     aiguille = avancerAiguille(aiguille, cible, mouvementReduit);
-    if (joue && crete > PEAK_LAMP_DBFS) creteJusqua = maintenant + MAINTIEN_CRETE_MS;
+    if (vivant && crete > PEAK_LAMP_DBFS) creteJusqua = maintenant + MAINTIEN_CRETE_MS;
 
     // 🔴 `cy` vient du CADRE, pas d'une fraction de la hauteur. La face monte à
     // 0,92 rayon au-dessus du centre : à 42 % de la hauteur, son haut passait
