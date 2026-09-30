@@ -306,7 +306,7 @@ describe('Accueil — le mode édition', () => {
     // remède que sur l'écran Podcasts, où le défaut s'était déjà produit.
     const src = ecran();
     expect(/DELAI_MS\s*=\s*8000/.test(src), 'le délai a disparu ou rallongé').toBe(true);
-    expect(src.includes('avecDelai(Promise.resolve(p))'), 'le chargement attend sans limite').toBe(true);
+    expect(src.includes('avecDelai(Promise.resolve(p), controle)'), 'le chargement attend sans limite').toBe(true);
     // Et la RAISON est affichée : « ça a échoué » sans dire pourquoi ne se
     // diagnostique pas.
     expect(src.includes('et.raison'), 'la raison de l’échec n’est plus affichée').toBe(true);
