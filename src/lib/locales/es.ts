@@ -2099,6 +2099,8 @@ export default {
   'player.showTotalTime': 'Mostrar duración total',
   "queue.upNextSummary": "{count} a continuación · {time}",
   "queue.nothingNext": "Nada a continuación",
+  "queue.upNextMoreOne": "+ 1 pista más",
+  "queue.upNextMore": "+ {count} pistas más",
   "radio.importResult": "{imported} importadas, {skipped} omitidas",
   "search.topArtists": "Artistas más escuchados",
   "settings.alacPassthrough": "ALAC directo",

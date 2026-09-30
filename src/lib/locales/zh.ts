@@ -2099,6 +2099,8 @@ export default {
   'player.showTotalTime': '显示总时长',
   "queue.upNextSummary": "接下来 {count} 首 · {time}",
   "queue.nothingNext": "没有后续曲目",
+  "queue.upNextMoreOne": "+ 另外 1 首",
+  "queue.upNextMore": "+ 另外 {count} 首",
   "radio.importResult": "已导入 {imported} 个，跳过 {skipped} 个",
   "search.topArtists": "最常收听的艺人",
   "settings.alacPassthrough": "ALAC 直通",

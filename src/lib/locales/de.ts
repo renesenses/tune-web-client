@@ -2099,6 +2099,8 @@ export default {
   'player.showTotalTime': 'Gesamtdauer anzeigen',
   "queue.upNextSummary": "{count} als Nächstes · {time}",
   "queue.nothingNext": "Nichts folgt",
+  "queue.upNextMoreOne": "+ 1 weiterer Titel",
+  "queue.upNextMore": "+ {count} weitere Titel",
   "radio.importResult": "{imported} importiert, {skipped} übersprungen",
   "search.topArtists": "Meistgehörte Interpreten",
   "settings.alacPassthrough": "ALAC direkt",

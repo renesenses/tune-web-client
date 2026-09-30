@@ -2093,6 +2093,8 @@ export default {
   'player.showTotalTime': '전체 길이 표시',
   "queue.upNextSummary": "다음 {count}곡 · {time}",
   "queue.nothingNext": "다음 곡 없음",
+  "queue.upNextMoreOne": "+ 1곡 더",
+  "queue.upNextMore": "+ {count}곡 더",
   "radio.importResult": "{imported}개 가져옴, {skipped}개 건너뜀",
   "search.topArtists": "가장 많이 들은 아티스트",
   "settings.alacPassthrough": "ALAC 직접 전송",

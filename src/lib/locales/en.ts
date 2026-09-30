@@ -60,6 +60,8 @@ export default {
   'player.showTotalTime': 'Show total duration',
   'queue.upNextSummary': '{count} up next · {time}',
   'queue.nothingNext': 'Nothing up next',
+  'queue.upNextMoreOne': '+ 1 more track',
+  'queue.upNextMore': '+ {count} more tracks',
   'lyrics.plainText': 'Plain text',
   'lyrics.karaoke': 'Karaoke',
   'lyrics.source.lrc': 'Source: .lrc file',
