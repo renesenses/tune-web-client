@@ -97,6 +97,12 @@
         pas. Vide face à un serveur d'avant #901, qui ne donne que le compte. */
     manquantsDetail: { id: number; titre: string | null; artiste: string | null }[];
     covers: string[];
+    /** Le serveur a-t-il RENDU le champ `covers` — même vide ? (#1798,
+        tune-server-rust#5438). Présent, c'est la réponse : une collection vide
+        n'a pas de pochette, inutile de redemander ses albums. Absent — serveur
+        plus ancien, ou collection tirant un catalogue distant que le serveur
+        ne compose pas seul —, l'écran va les chercher lui-même. */
+    coversServies: boolean;
     /** Date de création, pour le tri par date. Les DEUX familles la portent. */
     creee: string | null;
   }
@@ -766,6 +772,7 @@
           manquants: compteManquants(c) > 0 ? compteManquants(c) : null,
           manquantsDetail: detailManquants(c),
           covers: Array.isArray(c.covers) ? c.covers : [],
+          coversServies: Array.isArray(c.covers),
           creee: c.created_at ?? null,
         });
       }
@@ -787,6 +794,7 @@
           manquants: null,
           manquantsDetail: [],
           covers: Array.isArray((c as any).covers) ? (c as any).covers : [],
+          coversServies: Array.isArray((c as any).covers),
           creee: (c as any).created_at ?? null,
         });
       }
@@ -822,7 +830,11 @@
   }
 
   async function completerPochettes(): Promise<void> {
-    const manquantes = entrees.filter((e) => !e.covers.length);
+    // #1798 — seulement celles dont le serveur n'a PAS rendu le champ. Une
+    // liste qui dit `covers: []` a répondu : redemander les albums d'une
+    // collection vide, à chaque ouverture, était une requête lourde pour rien
+    // (tune-server-rust#5438, micro-coupures chez Yves).
+    const manquantes = entrees.filter((e) => !e.coversServies);
     if (!manquantes.length) return;
     await Promise.allSettled(
       manquantes.map(async (e) => {
