@@ -52,6 +52,8 @@
   import ArbreRayons from './ArbreRayons.svelte';
   import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import BasculeAffichage from './BasculeAffichage.svelte';
+  import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
   import { trierAlbums } from '../../lib/trierAlbums';
   import { fold } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -187,6 +189,24 @@
   type Tri = (typeof TRIS)[number];
   let tri = $state<Tri>(lireChoix<Tri>('v2.collections.tri', TRIS, 'alpha'));
   $effect(() => { ecrireChoix('v2.collections.tri', tri); });
+
+  /**
+   * web#1801 — FabienM (fil 2037, point 13), go de Bertrand du 29/09/2026 :
+   * la bascule de la Bibliothèque, à trois crans (petites vignettes, liste,
+   * grandes vignettes), pour les collections ET les collections
+   * intelligentes. Un seul choix pour l'écran, sous SA clé : la Bibliothèque
+   * et les Favoris gardent chacun le leur.
+   *
+   * 🔴 Écrit au CLIC seulement (`changerAffichage`), jamais par un `$effect` :
+   * écrire au montage figerait le défaut comme un faux choix, et plus aucun
+   * changement de défaut n'atteindrait personne — le piège de #1650.
+   */
+  const CLE_AFFICHAGE = 'v2.collections.display';
+  let affichage = $state<AffichageEtendu>(lireChoix<AffichageEtendu>(CLE_AFFICHAGE, LISTE_ET_DEUX_GRILLES, 'grid'));
+  function changerAffichage(v: AffichageEtendu) {
+    affichage = v;
+    ecrireChoix(CLE_AFFICHAGE, v);
+  }
 
   /**
    * Le nom AFFICHÉ d'une collection, et sa description affichée.
@@ -1180,6 +1200,11 @@
           <option value="ancien">{$t('v2.fav.sortOldest' as any)}</option>
         </select>
       </label>
+      <!-- web#1801 — la forme de la liste, pour les deux onglets. Pas sur
+           l'arbre des rayons, qui n'est pas une grille. -->
+      {#if onglet !== 'rayons'}
+        <BasculeAffichage modes={LISTE_ET_DEUX_GRILLES} valeur={affichage} onChanger={changerAffichage} iconeDeDestination />
+      {/if}
     </nav>
 
     <!-- #855 : seule la liste défile ; l'en-tête et les onglets restent à l'écran,
@@ -1216,7 +1241,7 @@
           {/each}
         </div>
         {/if}
-      <div class="grid">
+      <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
         {#each visibles as e (e.sorte + ':' + e.id)}
           <!-- Un LISERE de couleur, pas un fond : une pochette doit rester
                lisible. -->
@@ -1438,6 +1463,21 @@
      les deux ecrans se parcourent de la meme facon. */
   .aveclettres{display:flex; min-height:0; flex:1}
   .aveclettres .grid{flex:1; min-width:0}
+  /* web#1801 — GRANDES VIGNETTES : la même carte, un pas de grille plus
+     large. */
+  .grid.grandes{grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px}
+  .grid.grandes .ct{font-size:15px}
+  /* web#1801 — LA LISTE, c'est la même grille couchée, comme dans Playlists
+     (#1719) : une carte par ligne, la mosaïque réduite. Aucune seconde
+     branche de gabarit — les actions de la pochette, le titre cliquable et
+     la mention des manquants sont ceux de la grille. */
+  .grid.liste{grid-template-columns:1fr; gap:2px}
+  .grid.liste .card{flex-direction:row; align-items:center; gap:14px; padding:6px 10px; border-radius:9px}
+  .grid.liste .card:hover{background:var(--v2-hover)}
+  .grid.liste .cv{width:48px; flex:0 0 48px}
+  .grid.liste .meta{flex-direction:row; align-items:baseline; gap:12px; flex:1; min-width:0}
+  .grid.liste .meta .ct{max-width:60%; min-width:0}
+  .grid.liste .mq{width:auto; flex:0 0 auto}
   .rail{display:flex; flex-direction:column; justify-content:center; gap:2px;
     padding:10px 12px 10px 4px; margin-right:6px; position:sticky; top:0; align-self:flex-start;
     border-right:1px solid var(--v2-line)}

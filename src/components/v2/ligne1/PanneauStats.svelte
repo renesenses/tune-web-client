@@ -37,7 +37,10 @@
 
   $effect(() => {
     let vivant = true;
-    tableauDeBord(PERIODE_L1)
+    // #1763 — quitter l'Accueil abandonne la requête partagée : sans signal,
+    // ce panneau la tenait en vie pour tous, jusqu'à la réponse du serveur.
+    const controle = new AbortController();
+    tableauDeBord(PERIODE_L1, controle.signal)
       .then((r) => {
         if (!vivant) return;
         d = r;
@@ -46,7 +49,7 @@
       .catch(() => {
         if (vivant) phase = 'echec';
       });
-    return () => { vivant = false; };
+    return () => { vivant = false; controle.abort(); };
   });
 
   /** Un nombre écrit dans la langue de l'écran. */
@@ -130,7 +133,10 @@
         {#if groupe.lignes.length}
           <section class="barres">
             <h4>{$t(groupe.cle as any)}</h4>
-            {#each groupe.lignes as l (l.label)}
+            <!-- #1763 — clé par RANG : deux zones homonymes (groupées par
+                 `zone_id` côté serveur) levaient `each_key_duplicate`, et
+                 l'erreur figeait tout le rendu de la coquille. -->
+            {#each groupe.lignes as l, i (i)}
               <div class="ligne">
                 <span class="nom" title={l.label}>{l.label}</span>
                 <span class="rail"><i style:width="{Math.max((l.valeur / max(groupe.lignes)) * 100, 3)}%"></i></span>

@@ -39,7 +39,7 @@
     /** Appelé avec le mode SUIVANT. L'écran décide quoi en faire. */
     onChanger: (v: T) => void;
     /**
-     * web#1802 — OPT-IN, pour « Écouter plus tard » seul : l'icône est celle
+     * web#1802 — OPT-IN, pour « Écouter plus tard » et Collections (web#1801) : l'icône est celle
      * du mode SUIVANT, quel que soit l'ordre des crans.
      *
      * Sans cette option, l'icône suit la rotation historique de la

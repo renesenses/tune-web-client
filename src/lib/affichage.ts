@@ -24,10 +24,11 @@
 export const AFFICHAGES = ['grid', 'list', 'carousel'] as const;
 
 /**
- * web#1802 — le cran « grandes vignettes », propre à « Écouter plus tard ».
+ * web#1802 — le cran « grandes vignettes », propre à « Écouter plus tard »,
+ * repris par Collections (web#1801, même go de Bertrand du 29/09/2026).
  *
- * Bertrand, 29/09/2026 : liste, petite vignette, grande vignette — dans cet
- * écran SEUL. Le cran est donc HORS d'`AFFICHAGES` : la Bibliothèque tourne
+ * Bertrand, 29/09/2026 : liste, petite vignette, grande vignette — dans ces
+ * écrans SEULS. Le cran est donc HORS d'`AFFICHAGES` : la Bibliothèque tourne
  * sur cette liste et lit ses choix contre elle ; l'y ajouter lui donnerait un
  * quatrième cran que personne n'a demandé. `grid` reste la petite vignette,
  * la taille de toujours.
@@ -42,7 +43,7 @@ export type Affichage = (typeof AFFICHAGES)[number];
  */
 export type AffichageEtendu = Affichage | typeof GRANDE_GRILLE;
 
-/** Les trois crans d'« Écouter plus tard », dans l'ordre de rotation. */
+/** Les trois crans d'« Écouter plus tard » et de Collections (web#1801), dans l'ordre de rotation. */
 export const LISTE_ET_DEUX_GRILLES = ['list', 'grid', GRANDE_GRILLE] as const;
 
 /**

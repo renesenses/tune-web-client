@@ -34,7 +34,9 @@ describe('#855 / #907 — l’en-tête de Collections reste à l’écran', () =
     const liste = SRC.slice(SRC.indexOf('<header class="v2-top">'), SRC.indexOf('</section>'));
     const d = liste.indexOf('<div class="defil">');
     expect(d).toBeGreaterThan(liste.indexOf('</nav>'));
-    expect(liste.indexOf('<div class="grid">')).toBeGreaterThan(d);
+    // web#1801 : la grille porte désormais ses classes de forme (`class:liste`,
+    // `class:grandes`) — on cherche donc son ouverture, sans le chevron final.
+    expect(liste.indexOf('<div class="grid"')).toBeGreaterThan(d);
   });
 });
 

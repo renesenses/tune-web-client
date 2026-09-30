@@ -2270,12 +2270,20 @@ export interface DashboardData {
   completion: { completed: number; skipped: number; avg_listened_ms: number; avg_track_duration_ms: number };
 }
 
-export function getDashboard(period: DashboardPeriod = '30d', opts?: { zoneId?: number; profileId?: number; topN?: number }) {
+export function getDashboard(
+  period: DashboardPeriod = '30d',
+  opts?: { zoneId?: number; profileId?: number; topN?: number; signal?: AbortSignal },
+) {
   const params = new URLSearchParams({ period });
   if (opts?.zoneId !== undefined) params.set('zone_id', String(opts.zoneId));
   if (opts?.profileId !== undefined) params.set('profile_id', String(opts.profileId));
   if (opts?.topN !== undefined) params.set('top_n', String(opts.topN));
-  return fetchJSON<DashboardData>(`${BASE}/library/history/dashboard?${params}`);
+  // #1763 — le signal permet à l'écran qui l'a demandée d'ANNULER la requête
+  // quand on le quitte : sans lui, elle garde son socket jusqu'au bout.
+  return fetchJSON<DashboardData>(
+    `${BASE}/library/history/dashboard?${params}`,
+    opts?.signal ? { signal: opts.signal } : undefined,
+  );
 }
 
 /** Une piste écoutée pendant une case jour×heure de la carte de chaleur.
@@ -8216,6 +8224,10 @@ export function getConversionStatus(jobId: string): Promise<{
   total: number;
   download_size?: string;
   error?: string;
+  /** tune-server-rust#5482 — « Artiste - Album (FORMAT).zip ». */
+  archive_name?: string;
+  /** tune-server-rust#5481 — fréquences et profondeurs réellement écrites. */
+  output_formats?: Array<{ sample_rate: number; bit_depth: number | null }>;
 }> {
   return fetchJSON(`${BASE}/converter/status/${encodeURIComponent(jobId)}`);
 }
