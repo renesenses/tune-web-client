@@ -6465,6 +6465,28 @@ export function addAlbumToCollection(collectionId: number, albumId: number) {
 export function removeAlbumFromCollection(collectionId: number, albumId: number) {
   return fetchJSON<any>(`${BASE}/library/collections/${collectionId}/albums/${albumId}`, { method: 'DELETE' });
 }
+/** Un album vivant proposé pour un manquant (tune-server-rust#5527, #5528). */
+export interface AlbumProposeCollection {
+  id: number;
+  title: string;
+  artist: string | null;
+  /** Déjà rangé dans ce dossier : le manquant n'en est qu'un doublon. */
+  in_collection?: boolean;
+}
+/** Un album manquant d'un dossier, avec de quoi le résoudre. */
+export interface AlbumManquantCollection {
+  id: number;
+  title: string | null;
+  artist: string | null;
+  /** L'album vivant qui a reçu ses pistes, quand le scan l'a noté. */
+  merged_into: AlbumProposeCollection | null;
+  /** Albums vivants de même artiste et de même titre — PROPOSÉS, jamais substitués. */
+  candidates: AlbumProposeCollection[];
+}
+/** `GET /library/collections/{id}/missing` — servi depuis tune-server-rust#5528. */
+export function getCollectionMissing(collectionId: number) {
+  return fetchJSON<AlbumManquantCollection[]>(`${BASE}/library/collections/${collectionId}/missing`);
+}
 
 // --- Smart Duplicates ---
 export function getSmartDuplicates(limit = 50) { return fetchJSON<any>(`${BASE}/library/duplicates/smart?limit=${limit}`); }
