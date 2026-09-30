@@ -20,11 +20,12 @@
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
+  import { versionDeBase } from '../../lib/versions';
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
   import { emphaseParts } from '../../lib/i18nEmphase';
-  import { preferences } from '../../lib/stores/preferences';
+  import { preferences, estDispositionFile, DISPOSITION_FILE_DEFAUT } from '../../lib/stores/preferences';
   import { typesSourcesBarre } from '../../lib/sources';
   import { TYPES_SOURCE_BARRE, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
   import { atLeast } from '../../lib/uiLevel';
@@ -40,6 +41,7 @@
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
+  import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
@@ -1280,6 +1282,43 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       svcs = { ...svcs, [name]: { ...svcs[name], authenticated: false, username: null } };
     } catch { svcErr = { ...svcErr, [name]: get(t)('settings.errDisconnectFailed') }; }
   }
+  // Serveur #5427 — l'ARL Deezer se saisit sur la carte Streaming. Offert
+  // seulement si le serveur annonce `arl_streaming` : sur un serveur plus
+  // ancien, la carte ne change pas. Voir `lib/arlDeezer`.
+  let arlOffert = $state(false);
+  let arlSaisi = $state('');
+  let arlVisible = $state(false);
+  let arlRetour = $state<RetourArl | null>(null);
+  $effect(() => {
+    api.listServiceTokens()
+      .then((l) => { arlOffert = offreChampArl(l); })
+      .catch(() => {});
+  });
+  async function enregistrerArl() {
+    const arl = arlSaisi.trim();
+    if (!arl) return;
+    svcBusy = 'deezer';
+    svcErr = { ...svcErr, deezer: null };
+    arlRetour = null;
+    try {
+      arlRetour = lireRetourArl(await api.saveServiceToken('deezer', { arl }));
+    } catch (e: any) {
+      const motif = typeof e?.message === 'string' ? e.message.trim() : '';
+      arlRetour = { etat: 'injoignable', message: motif };
+    }
+    // L'ARL ne survit pas à la réponse, quelle qu'elle soit.
+    arlSaisi = '';
+    arlVisible = false;
+    if (arlRetour.etat === 'accepte') {
+      try {
+        const st = await api.getStreamingServiceStatus('deezer');
+        svcs = { ...svcs, deezer: { ...svcs.deezer, ...st, authenticated: true } };
+      } catch {
+        svcs = { ...svcs, deezer: { ...svcs.deezer, authenticated: true } };
+      }
+    }
+    svcBusy = null;
+  }
   function cancelFlow(name: string) {
     stopPoll(name);
     deviceFlow = { ...deviceFlow, [name]: undefined };
@@ -1336,7 +1375,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let updateInfo = $state<any | null>(null);
   let health = $state<{ status: string; components?: Record<string, boolean> } | null>(null);
   let stats = $state<{ tracks: number; albums: number; artists: number; zones: number; devices: number } | null>(null);
-  const clientStale = $derived(!!serverVersion && !!CLIENT_VERSION && serverVersion !== CLIENT_VERSION);
+  // Base X.Y.Z contre base X.Y.Z : sous le tag v1.0.0-rc1, le serveur se dit
+  // `1.0.0-rc1` et le client embarqué `1.0.0` (le suffixe vit sur le tag seul).
+  // Ce n'est pas une dérive ; un client 0.9.169 servi par un serveur rc1, si.
+  const clientStale = $derived(
+    !!serverVersion && !!CLIENT_VERSION && versionDeBase(serverVersion) !== versionDeBase(CLIENT_VERSION),
+  );
 
   /**
    * Phase 5 (web#1257) — « Quoi de neuf » et la documentation de l'API, que
@@ -3265,6 +3309,42 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </select>
               </div>
 
+              <!-- web#1762 — Bertrand, 28/09/2026 : dans Lecture en cours, la
+                   molette ouvrait la file toute seule. Le geste devient un
+                   CHOIX, décoché par défaut ; le bouton de la file ne change
+                   pas. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.openQueueOnScroll' as any)}</span>
+                  <span class="hint">{$t('settings.openQueueOnScrollHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.ouvrirFileAuDefilement === true}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, ouvrirFileAuDefilement: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- web#1800 — FabienM (fil 2037, point 8), go de Bertrand du
+                   29/09/2026 : la file peut se déplier sous la barre
+                   d'avancement au lieu de glisser en colonne à droite. Le
+                   défaut reste la colonne de droite. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.queuePlacement' as any)}</span>
+                  <span class="hint">{$t('settings.queuePlacementHint' as any)}</span>
+                </div>
+                <select class="sel" data-reglage="disposition-file"
+                  value={estDispositionFile($preferences.dispositionFile) ? $preferences.dispositionFile : DISPOSITION_FILE_DEFAUT}
+                  onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                    if (estDispositionFile(v)) preferences.update((pr) => ({ ...pr, dispositionFile: v })); }}>
+                  <option value="sousLaBarre">{$t('settings.queuePlacementBelow' as any)}</option>
+                  <option value="droite">{$t('settings.queuePlacementRight' as any)}</option>
+                </select>
+              </div>
+
             {:else if s.id === 'profiles'}
               <ProfilsV2 />
             {:else if s.id === 'interface'}
@@ -3354,6 +3434,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   onchange={(e) => preferences.update((pr) => ({ ...pr, startupView: (e.currentTarget as HTMLSelectElement).value as StartupView }))}>
                   {#each STARTUP as o (o.v)}<option value={o.v}>{$t(o.k as any)}</option>{/each}
                 </select>
+              </div>
+
+              <!-- web#1784 — Didier et FabienM (fil 2036, 29/09/2026) : l'entrée
+                   « Lecture en cours » devrait ouvrir l'album, ou la playlist,
+                   qui joue. Go de Bertrand du 29/09 : un CHOIX, décoché par
+                   défaut — décoché, l'entrée mène à l'écran dédié comme avant.
+                   Rangé ici, à côté de l'écran de démarrage : c'est une
+                   question de navigation, pas de lecture. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.nowPlayingLinkToSource' as any)}</span>
+                  <span class="hint">{$t('settings.nowPlayingLinkToSourceHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-reglage="lienLectureVersSource"
+                    checked={$preferences.lienLectureVersSource === true}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, lienLectureVersSource: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
               </div>
 
               <div class="row">
@@ -5126,9 +5227,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
                         </div>
 
+                      {:else if name === 'deezer' && arlOffert}
+                        <!-- Serveur #5427 : Deezer se connecte par son ARL. Le
+                             champ passe par la route d'Accès et jetons. -->
+                        <div class="inline" data-arl-deezer>
+                          <input class="txt" type={arlVisible ? 'text' : 'password'} autocomplete="off"
+                            spellcheck="false" placeholder={$t('settings.deezerArlPlaceholder' as any)}
+                            aria-label={$t('settings.deezerArlPlaceholder' as any)}
+                            bind:value={arlSaisi} disabled={svcBusy === name}
+                            onkeydown={(e) => { if (e.key === 'Enter' && arlSaisi.trim()) enregistrerArl(); }} />
+                          <button class="lnk" type="button" aria-pressed={arlVisible}
+                            onclick={() => (arlVisible = !arlVisible)}>{$t((arlVisible ? 'settings.deezerArlHide' : 'settings.deezerArlShow') as any)}</button>
+                          <button class="lnk" data-arl-enregistrer disabled={svcBusy === name || !st.enabled || !arlSaisi.trim()}
+                            onclick={enregistrerArl}>{svcBusy === name ? '…' : $t('settings.deezerArlSave' as any)}</button>
+                        </div>
+                        <p class="hint">{$t('settings.deezerArlHint' as any)}</p>
+
                       {:else}
                         <button class="lnk" disabled={svcBusy === name || !st.enabled}
                           onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
+                      {/if}
+
+                      {#if name === 'deezer' && arlRetour}
+                        <div class={arlRetour.etat === 'accepte' ? 'hint' : 'serr'} data-arl-retour={arlRetour.etat}>
+                          {$t(cleDuRetourArl(arlRetour.etat) as any)}{#if arlRetour.message} — {arlRetour.message}{/if}
+                        </div>
                       {/if}
 
                       {#if name === 'spotify' && !st.authenticated && spotifyRedirect.uri}

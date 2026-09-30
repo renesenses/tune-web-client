@@ -72,6 +72,7 @@
  * déplier répéterait le même morceau trois fois.
  */
 import { cleJumelage } from './cleJumelage';
+import { comparerAlphabetique } from './ordreAlphabetique';
 
 /** Les tris proposés. */
 export type TriFavoris = 'alpha' | 'alphaInverse' | 'recent' | 'ancien';
@@ -172,9 +173,9 @@ export function titreDe(o: Favori): string {
 }
 
 function comparerTitres(a: Favori, b: Favori): number {
-  // `localeCompare` en base : « Édith » se range à É, pas après Z, et « 2 »
-  // avant « 10 ».
-  return titreDe(a).localeCompare(titreDe(b), 'fr', { sensitivity: 'base', numeric: true });
+  // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956) :
+  // « Édith » avec « Edith », « 2 » avant « 10 », signes de tête ignorés.
+  return comparerAlphabetique(titreDe(a), titreDe(b));
 }
 
 /**

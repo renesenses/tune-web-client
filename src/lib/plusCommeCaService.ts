@@ -19,12 +19,17 @@ import { lireListe, type GestesLecture } from './lectureEnMasse';
 /**
  * Les services dont le serveur sait rendre les titres voisins.
  *
- * Qobuz SEUL : c'est le seul service qui implémente `get_similar_artists`
- * (`artist/getSimilarArtists`). Tidal, Deezer, Spotify, YouTube, Amazon,
- * Bandcamp n'ont pas de similarité d'artiste — le serveur leur répond 501, et
- * l'entrée leur reste ABSENTE, pas grisée.
+ * Qobuz (`artist/getSimilarArtists`), et depuis tune-server-rust#5395 TIDAL
+ * (`/artists/{id}/similar`) et Deezer (`/artist/{id}/related`) — décision de
+ * Bertrand du 29/09/2026. Spotify, YouTube, Amazon, Bandcamp n'ont pas de
+ * similarité d'artiste — le serveur leur répond 501, et l'entrée leur reste
+ * ABSENTE, pas grisée.
+ *
+ * ⚠️ Un serveur plus ancien répond encore 501 pour TIDAL et Deezer : le geste
+ * le traite comme « aucun voisin » (`library.noSimilarService`), pas comme une
+ * panne.
  */
-export const SERVICES_PLUS_COMME_CA: ReadonlySet<string> = new Set(['qobuz']);
+export const SERVICES_PLUS_COMME_CA: ReadonlySet<string> = new Set(['qobuz', 'tidal', 'deezer']);
 
 /** Le titre de service qui a droit à « Plus comme ça », ou `null`. */
 export function plusCommeCaDeServiceDe(piste: unknown): PisteDeService | null {
@@ -46,6 +51,14 @@ export async function lirePlusCommeCaDeService(
   p: PisteDeService,
   gestes: GestesLecture,
 ): Promise<number> {
-  const pistes = await api.similairesDeService(p.service, p.sourceId);
+  let pistes;
+  try {
+    pistes = await api.similairesDeService(p.service, p.sourceId);
+  } catch (e: any) {
+    // 501 : le serveur (plus ancien) ne sait pas encore les voisins de ce
+    // service. Pour l'auditeur, c'est « aucun titre voisin ».
+    if (e?.status === 501) return 0;
+    throw e;
+  }
   return lireListe(pistes, gestes);
 }
