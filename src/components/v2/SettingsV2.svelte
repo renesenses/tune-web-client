@@ -41,6 +41,7 @@
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
+  import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
@@ -1280,6 +1281,43 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await api.disconnectStreaming(name);
       svcs = { ...svcs, [name]: { ...svcs[name], authenticated: false, username: null } };
     } catch { svcErr = { ...svcErr, [name]: get(t)('settings.errDisconnectFailed') }; }
+  }
+  // Serveur #5427 — l'ARL Deezer se saisit sur la carte Streaming. Offert
+  // seulement si le serveur annonce `arl_streaming` : sur un serveur plus
+  // ancien, la carte ne change pas. Voir `lib/arlDeezer`.
+  let arlOffert = $state(false);
+  let arlSaisi = $state('');
+  let arlVisible = $state(false);
+  let arlRetour = $state<RetourArl | null>(null);
+  $effect(() => {
+    api.listServiceTokens()
+      .then((l) => { arlOffert = offreChampArl(l); })
+      .catch(() => {});
+  });
+  async function enregistrerArl() {
+    const arl = arlSaisi.trim();
+    if (!arl) return;
+    svcBusy = 'deezer';
+    svcErr = { ...svcErr, deezer: null };
+    arlRetour = null;
+    try {
+      arlRetour = lireRetourArl(await api.saveServiceToken('deezer', { arl }));
+    } catch (e: any) {
+      const motif = typeof e?.message === 'string' ? e.message.trim() : '';
+      arlRetour = { etat: 'injoignable', message: motif };
+    }
+    // L'ARL ne survit pas à la réponse, quelle qu'elle soit.
+    arlSaisi = '';
+    arlVisible = false;
+    if (arlRetour.etat === 'accepte') {
+      try {
+        const st = await api.getStreamingServiceStatus('deezer');
+        svcs = { ...svcs, deezer: { ...svcs.deezer, ...st, authenticated: true } };
+      } catch {
+        svcs = { ...svcs, deezer: { ...svcs.deezer, authenticated: true } };
+      }
+    }
+    svcBusy = null;
   }
   function cancelFlow(name: string) {
     stopPoll(name);
@@ -5189,9 +5227,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
                         </div>
 
+                      {:else if name === 'deezer' && arlOffert}
+                        <!-- Serveur #5427 : Deezer se connecte par son ARL. Le
+                             champ passe par la route d'Accès et jetons. -->
+                        <div class="inline" data-arl-deezer>
+                          <input class="txt" type={arlVisible ? 'text' : 'password'} autocomplete="off"
+                            spellcheck="false" placeholder={$t('settings.deezerArlPlaceholder' as any)}
+                            aria-label={$t('settings.deezerArlPlaceholder' as any)}
+                            bind:value={arlSaisi} disabled={svcBusy === name}
+                            onkeydown={(e) => { if (e.key === 'Enter' && arlSaisi.trim()) enregistrerArl(); }} />
+                          <button class="lnk" type="button" aria-pressed={arlVisible}
+                            onclick={() => (arlVisible = !arlVisible)}>{$t((arlVisible ? 'settings.deezerArlHide' : 'settings.deezerArlShow') as any)}</button>
+                          <button class="lnk" data-arl-enregistrer disabled={svcBusy === name || !st.enabled || !arlSaisi.trim()}
+                            onclick={enregistrerArl}>{svcBusy === name ? '…' : $t('settings.deezerArlSave' as any)}</button>
+                        </div>
+                        <p class="hint">{$t('settings.deezerArlHint' as any)}</p>
+
                       {:else}
                         <button class="lnk" disabled={svcBusy === name || !st.enabled}
                           onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
+                      {/if}
+
+                      {#if name === 'deezer' && arlRetour}
+                        <div class={arlRetour.etat === 'accepte' ? 'hint' : 'serr'} data-arl-retour={arlRetour.etat}>
+                          {$t(cleDuRetourArl(arlRetour.etat) as any)}{#if arlRetour.message} — {arlRetour.message}{/if}
+                        </div>
                       {/if}
 
                       {#if name === 'spotify' && !st.authenticated && spotifyRedirect.uri}
