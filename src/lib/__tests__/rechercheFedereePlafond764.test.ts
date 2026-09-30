@@ -59,11 +59,16 @@ describe('Le plafond de la recherche fédérée', () => {
     // rougissait dès qu'on ajoutait un argument sans rapport avec le plafond
     // (le jeton `streaming` du deuxième temps, 19/09/2026). Elle mesure
     // désormais ce qu'elle annonce.
-    const appel = v2.match(/api\.federatedSearch\(([^)]*)\)/);
-    expect(appel, 'SearchV2 doit appeler la recherche fédérée').not.toBeNull();
-    const args = appel![1].split(',').map((a) => a.trim());
-    expect(args[0]).toBe('query');
-    expect(args.length, `un troisième argument imposerait un plafond : ${appel![0]}`)
-      .toBeLessThanOrEqual(2);
+    //
+    // #4803 (web #1757) — la pagination des services est un CINQUIÈME
+    // argument ; le troisième reste alors `undefined`, c'est-à-dire le défaut.
+    const appels = [...v2.matchAll(/api\.federatedSearch\(([^)]*)\)/g)];
+    expect(appels.length, 'SearchV2 doit appeler la recherche fédérée').toBeGreaterThan(0);
+    for (const appel of appels) {
+      const args = appel[1].split(',').map((a) => a.trim());
+      expect(args[0]).toBe('query');
+      expect(args[2] ?? 'undefined', `un troisième argument imposerait un plafond : ${appel[0]}`)
+        .toBe('undefined');
+    }
   });
 });
