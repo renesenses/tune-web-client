@@ -3192,7 +3192,6 @@ export default {
   "v2.disco.lossy": "Compressé",
   "v2.disco.reset": "Tout afficher",
   "v2.disco.noMatch": "Aucun album ne correspond à ce filtre.",
-  "v2.disco.related": "Autres / Connexes",
   "v2.disco.mainAlbums": "Albums principaux",
   "v2.disco.epSingles": "EP et singles",
   "v2.disco.compilations": "Compilations",

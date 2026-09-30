@@ -3169,7 +3169,6 @@ export default {
   "v2.disco.lossy": "Komprimerad",
   "v2.disco.reset": "Visa alla",
   "v2.disco.noMatch": "Inget album matchar detta filter.",
-  "v2.disco.related": "Övrigt / Relaterat",
   "v2.disco.mainAlbums": "Huvudalbum",
   "v2.disco.epSingles": "EP och singlar",
   "v2.disco.compilations": "Samlingar",

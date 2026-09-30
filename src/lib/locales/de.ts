@@ -3170,7 +3170,6 @@ export default {
   "v2.disco.lossy": "Verlustbehaftet",
   "v2.disco.reset": "Alle anzeigen",
   "v2.disco.noMatch": "Kein Album entspricht diesem Filter.",
-  "v2.disco.related": "Andere / Verwandte",
   "v2.disco.mainAlbums": "Hauptalben",
   "v2.disco.epSingles": "EPs und Singles",
   "v2.disco.compilations": "Kompilationen",

@@ -3170,7 +3170,6 @@ export default {
   "v2.disco.lossy": "非可逆圧縮",
   "v2.disco.reset": "すべて表示",
   "v2.disco.noMatch": "このフィルターに一致するアルバムはありません。",
-  "v2.disco.related": "その他 / 関連",
   "v2.disco.mainAlbums": "メインアルバム",
   "v2.disco.epSingles": "EP・シングル",
   "v2.disco.compilations": "コンピレーション",

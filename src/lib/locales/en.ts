@@ -3190,7 +3190,6 @@ export default {
   "v2.disco.lossy": "Lossy",
   "v2.disco.reset": "Show all",
   "v2.disco.noMatch": "No album matches this filter.",
-  "v2.disco.related": "Other / Related",
   "v2.disco.mainAlbums": "Main albums",
   "v2.disco.epSingles": "EPs and singles",
   "v2.disco.compilations": "Compilations",

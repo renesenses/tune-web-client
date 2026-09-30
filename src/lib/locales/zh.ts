@@ -3170,7 +3170,6 @@ export default {
   "v2.disco.lossy": "有损",
   "v2.disco.reset": "显示全部",
   "v2.disco.noMatch": "没有符合此筛选条件的专辑。",
-  "v2.disco.related": "其他 / 相关",
   "v2.disco.mainAlbums": "主要专辑",
   "v2.disco.epSingles": "EP 与单曲",
   "v2.disco.compilations": "合辑",
