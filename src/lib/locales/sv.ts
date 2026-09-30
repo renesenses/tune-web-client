@@ -3553,7 +3553,7 @@ export default {
   "settings.sidebarMoved": "{x}: plats {p} av {n}",
   "settings.sidebarDrag": "Dra för att flytta {x}",
   "settings.nowPlayingLinkToSource": "”Spelas nu” öppnar albumet eller spellistan",
-  "settings.nowPlayingLinkToSourceHint": "Posten ”Spelas nu” i sidofältet öppnar sidan för albumet som spelas, eller för spellistan om uppspelningen startade därifrån. För en radiostation, eller om ingen sida finns, öppnas skärmen Spelas nu, som i dag.",
+  "settings.nowPlayingLinkToSourceHint": "Posten ”Spelas nu” i sidofältet och miniatyren i uppspelningsfältet öppnar sidan för albumet som spelas, eller för spellistan om uppspelningen startade därifrån. För en radiostation, eller om ingen sida finns, öppnas skärmen Spelas nu, som i dag.",
   "settings.animationRateSmooth": "Mjuk — dagens visning",
   "settings.animationRateSaving": "Sparsam — omkring 30 % mindre processor",
   "settings.animationRateMinimal": "Minimal — omkring 40 % mindre, mätarna rör sig lite ryckigt",

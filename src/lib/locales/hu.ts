@@ -3512,7 +3512,7 @@ export default {
   "settings.sidebarMoved": "{x}: {p}. hely / {n}",
   "settings.sidebarDrag": "Húzza el {x} áthelyezéséhez",
   "settings.nowPlayingLinkToSource": "A „Most szól” az albumot vagy a lejátszási listát nyitja meg",
-  "settings.nowPlayingLinkToSourceHint": "Az oldalsáv „Most szól” bejegyzése a szóló album oldalát nyitja meg, vagy a lejátszási listáét, ha a lejátszás onnan indult. Rádió esetén, vagy ha nincs ilyen oldal, a „Most szól” képernyőt nyitja meg, mint eddig.",
+  "settings.nowPlayingLinkToSourceHint": "Az oldalsáv „Most szól” bejegyzése és a lejátszósáv bélyegképe a szóló album oldalát nyitja meg, vagy a lejátszási listáét, ha a lejátszás onnan indult. Rádió esetén, vagy ha nincs ilyen oldal, a „Most szól” képernyőt nyitja meg, mint eddig.",
   "settings.animationRateSmooth": "Finom — a mai megjelenítés",
   "settings.animationRateSaving": "Takarékos — mintegy 30 %-kal kevesebb processzor",
   "settings.animationRateMinimal": "Minimális — mintegy 40 %-kal kevesebb, a jelzők kissé szaggatnak",

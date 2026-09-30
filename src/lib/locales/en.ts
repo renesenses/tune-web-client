@@ -3574,7 +3574,7 @@ export default {
   "settings.sidebarMoved": "{x}: position {p} of {n}",
   "settings.sidebarDrag": "Drag to move {x}",
   "settings.nowPlayingLinkToSource": "“Now Playing” opens the album or playlist",
-  "settings.nowPlayingLinkToSourceHint": "The “Now Playing” entry in the sidebar opens the page of the album that is playing, or of the playlist if playback started from one. For a radio station, or when no page exists, it opens the Now Playing screen, as it does today.",
+  "settings.nowPlayingLinkToSourceHint": "The “Now Playing” entry in the sidebar and the thumbnail in the playback bar open the page of the album that is playing, or of the playlist if playback started from one. For a radio station, or when no page exists, it opens the Now Playing screen, as it does today.",
   "settings.animationRateSmooth": "Smooth — today's display",
   "settings.animationRateSaving": "Economical — about 30% less processor",
   "settings.animationRateMinimal": "Minimal — about 40% less, the meters look a little steppy",
