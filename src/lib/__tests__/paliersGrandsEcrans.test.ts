@@ -77,6 +77,10 @@ const HORS_PERIMETRE: Record<string, string> = {
   // Affichage. La colonne titres y perd son plafond (`max-width: none`) pour
   // prendre la place que la colonne de droite n'occupe plus.
   '.content-layout.wide.file-sous-barre .info-column': "file sous la barre d'avancement (web#1800)",
+  // web#1837 : dans la même disposition, l'îlot perd aussi son plafond et la
+  // pochette suit sa largeur. Couvert par `plafondSousLaBarre1837.test.ts`.
+  '.content-layout.wide.file-sous-barre': "file sous la barre d'avancement (web#1837)",
+  '.content-layout.wide.file-sous-barre .artwork-container': "file sous la barre d'avancement (web#1837)",
 };
 
 /** `max-width` effective, en px, ou échec explicite si la règle a disparu. */
