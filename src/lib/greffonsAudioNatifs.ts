@@ -38,3 +38,37 @@ export function greffonsNatifsTiers(liste: GreffonAudioNatif[] | null | undefine
 export function ecranDuGreffon(g: Pick<GreffonAudioNatif, 'id' | 'native_loaded' | 'error'>): View | null {
   return etatDeChargement(g) === 'charge' ? ECRANS_GREFFONS_NATIFS[g.id] ?? null : null;
 }
+
+/**
+ * Les greffons natifs que l'écran Extensions propose d'installer depuis le
+ * catalogue de mozaiklabs (`POST /audio-plugins/{id}/install-from-catalog`).
+ * Chacun a une description traduite ; tous exigent le Premium.
+ */
+export const CATALOGUE_GREFFONS_NATIFS: readonly string[] = [CROSSFEED_PRO_ID];
+
+export const DESCRIPTIONS_GREFFONS_NATIFS: Record<string, string> = {
+  [CROSSFEED_PRO_ID]: 'v2.plug.crossfeedProDesc',
+};
+
+/** Les greffons du catalogue qui ne sont PAS encore sur ce serveur. */
+export function greffonsAProposer(installes: Pick<GreffonAudioNatif, 'id'>[] | null | undefined): string[] {
+  const presents = new Set((installes ?? []).map((g) => g.id));
+  return CATALOGUE_GREFFONS_NATIFS.filter((id) => !presents.has(id));
+}
+
+/** Les refus de l'installation depuis le catalogue qui ont leur phrase. */
+const REFUS_CONNUS = new Set([
+  'premium_required',
+  'not_connected',
+  'no_package_for_target',
+  'plugin_not_in_catalog',
+  'signature_invalid',
+  'catalog_unreachable',
+  'catalog_rate_limited',
+  'package_checksum_mismatch',
+]);
+
+/** La clé de traduction d'un refus d'installation (`err.code`). */
+export function cleDuRefusDInstallation(code: string | null | undefined): string {
+  return code && REFUS_CONNUS.has(code) ? `v2.plug.catalogErr_${code}` : 'v2.plug.catalogErr_other';
+}
