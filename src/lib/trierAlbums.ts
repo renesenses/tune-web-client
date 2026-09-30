@@ -1,5 +1,6 @@
 import type { Album } from './types';
 import { ordreNaturel } from './ordreNaturel';
+import { comparerAlphabetique } from './ordreAlphabetique';
 
 /**
  * Trie les albums d'un artiste par année, dans le sens demandé.
@@ -63,10 +64,8 @@ export const LIBELLES_TRI_ALBUMS: Record<CleTriAlbums, string> = {
   added_at: 'library.sortAddedDate',
 };
 
-const plier = (s: string) =>
-  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-const parTexte = (x: string, y: string) =>
-  plier(x).localeCompare(plier(y), undefined, { numeric: true, sensitivity: 'base' });
+// #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956).
+const parTexte = comparerAlphabetique;
 
 /**
  * La date de sortie telle que le serveur la trie :

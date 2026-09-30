@@ -1,5 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import type { Album, Artist, Track } from '../types';
+import { comparerAlphabetique } from '../ordreAlphabetique';
 
 /**
  * `recent` — l'onglet « Ajouts récents » (#3039). Sevy Tabroc le demandait au
@@ -131,6 +132,6 @@ export const genres = derived(albums, ($albums) => {
     }
   });
   return [...genreMap.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0]))
+    .sort((a, b) => comparerAlphabetique(a[0], b[0]))
     .map(([name, count]) => ({ name, count }));
 });

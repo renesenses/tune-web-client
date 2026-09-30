@@ -45,10 +45,13 @@
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
   import { listResetNonce } from '../../lib/stores/navigation';
+  import { untrack } from 'svelte';
+  import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { convertisseurCharge, rafraichirConvertisseur } from '../../lib/stores/convertisseurPlaylists';
   import TransfertsConvertisseur from './convertisseur/TransfertsConvertisseur.svelte';
   import SnapshotsConvertisseur from './convertisseur/SnapshotsConvertisseur.svelte';
   import LiensConvertisseur from './convertisseur/LiensConvertisseur.svelte';
+  import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
 
   let viewTab = $state<'manual' | 'smart' | 'smart-ai'>('manual');
 
@@ -106,6 +109,48 @@
     $listResetNonce;
     selectedPlaylist = null;
     selectedStreamingPl = null;
+    // web#1790 — l'entrée d'historique ne doit plus porter la playlist refermée.
+    untrack(() => {
+      if (cleDetailEmpilee != null && get(detailOuvert) === cleDetailEmpilee) fermerDetail();
+      cleDetailEmpilee = null;
+    });
+  });
+
+  /**
+   * 🔴 OUVRIR UNE PLAYLIST EMPILE UNE ENTRÉE D'HISTORIQUE — web#1790.
+   *
+   * FabienM, fil 2037, point 9 : « on ouvre une playlist et le BACK ne revient
+   * pas à l'accueil des playlists ». L'entrée « Playlists » de la barre
+   * latérale ouvre CET écran (`playlistmanager`), pas `PlaylistsV2` : le
+   * correctif web#1619 n'y était pas. Le détail est un `$state` local ; l'ouvrir
+   * ne changeait pas `activeView`, la coquille n'écrivait rien, et le Précédent
+   * dépilait l'entrée de la vue d'avant.
+   *
+   * Même mécanisme que les calques album (#980) et `PlaylistsV2` (web#1619) :
+   * ouvrir empile (`ouvrirDetail`), le Retour de l'écran referme ET dépile, le
+   * Précédent referme le détail. La clé est celle de `PlaylistsV2` (`clePl`) :
+   * une chaîne, jamais l'objet.
+   */
+  let cleDetailEmpilee: string | null = null;
+
+  function empilerDetail(cle: string) {
+    cleDetailEmpilee = cle;
+    ouvrirDetail(cle);
+  }
+
+  /** Le Précédent du navigateur a quitté l'entrée de la playlist : le détail suit. */
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      if (!(selectedPlaylist || selectedStreamingPl) || cleDetailEmpilee == null) return;
+      if (voulu === cleDetailEmpilee) return;
+      fermerLeDetail();
+    });
+  });
+
+  // La clé posée par cet écran part avec lui (même geste que web#1661).
+  $effect(() => () => {
+    if (cleDetailEmpilee != null && get(detailOuvert) === cleDetailEmpilee) fermerDetail();
   });
 
   // Import dialog
@@ -308,7 +353,11 @@
   /** Lire la playlist, quelle que soit son origine. */
   function lirePlaylist(item: DisplayPlaylist) {
     if (item.type === 'local' && item.local?.id != null) playPlaylist(item.local.id);
-    else if (item.streaming) void playStreamingPlaylist(item.streaming);
+    // #1760 — le SERVICE de la carte part avec la playlist. Les routes
+    // `/streaming/{qobuz,tidal}/playlists` ne rendent aucun `source`, et sur la
+    // grille `selectedService` est vide : sans `item.service`, le bouton lecture
+    // d'une playlist Qobuz ou TIDAL ne faisait rien, sans requête ni message.
+    else if (item.streaming) void playStreamingPlaylist(item.streaming, undefined, item.service);
   }
 
   /**
@@ -1208,6 +1257,7 @@
     selectedPlaylist = pl;
     selectedStreamingPl = null;
     selectedService = 'local';
+    empilerDetail(`playlists:${pl.id}`);
     detailLoading = true;
     try {
       detailTracks = await api.getPlaylistTracks(pl.id);
@@ -1221,6 +1271,7 @@
     selectedStreamingPl = pl;
     selectedPlaylist = null;
     selectedService = service;
+    empilerDetail(`streamingplaylists:${service}:${pl.source_id}`);
     detailLoading = true;
     try {
       detailTracks = await api.getStreamingPlaylistTracks(service, pl.source_id);
@@ -1238,11 +1289,27 @@
     }
   }
 
-  function goBack() {
+  function fermerLeDetail() {
     selectedPlaylist = null;
     selectedStreamingPl = null;
     detailTracks = [];
     selectedService = '';
+    cleDetailEmpilee = null;
+  }
+
+  /**
+   * Le Retour du détail : refermer ET dépiler (web#1790). On ne recule que si
+   * l'entrée courante est bien celle de la playlist — sinon `history.back()`
+   * pourrait sortir de Tune.
+   */
+  function goBack() {
+    const cle = cleDetailEmpilee;
+    if (cle != null && entreeCourantePorte(cle)) {
+      fermerDetailEnReculant(fermerLeDetail);
+      return;
+    }
+    fermerLeDetail();
+    if (cle != null && get(detailOuvert) === cle) fermerDetail();
   }
 
   // Import flow
@@ -1292,11 +1359,11 @@
 
   // Playback
   async function playPlaylist(playlistId: number) {
-    if (!zone?.id) return;
+    if (!zone?.id) { notifications.error($tr('library.noZoneSelected')); return; }
     try {
       await playAndSync(zone.id, { playlist_id: playlistId });
     } catch (e) {
-      console.error('Play playlist error:', e);
+      notifications.error(errText(e) ?? $tr('common.error'));
     }
   }
 
@@ -1345,14 +1412,25 @@
     fileOccupee = false;
   }
 
-  async function playStreamingPlaylist(pl: StreamingPlaylist, startIndex?: number) {
-    if (!zone?.id) return;
-    const source = pl.source || selectedService;
-    if (!source) return;
+  /**
+   * Lire une playlist de SERVICE.
+   *
+   * `service` est celui de la carte (grille) ; à défaut, le `source` de la
+   * playlist, puis le service du détail ouvert. Un service introuvable — ou
+   * `local`, qui n'a rien à faire ici — se DIT au lieu d'échouer en silence
+   * (#1760).
+   */
+  async function playStreamingPlaylist(pl: StreamingPlaylist, startIndex?: number, service?: string) {
+    if (!zone?.id) { notifications.error($tr('library.noZoneSelected')); return; }
+    const source = service || pl.source || selectedService;
+    if (!source || source === 'local') {
+      notifications.error($tr('playlistManager.unknownSource' as any));
+      return;
+    }
     try {
       await playAndSync(zone.id, { source: source as any, streaming_playlist_id: pl.source_id, start_index: startIndex });
     } catch (e) {
-      console.error('Play streaming playlist error:', e);
+      notifications.error(errText(e) ?? $tr('common.error'));
     }
   }
 
@@ -1619,9 +1697,7 @@
           ? await api.getCollections()
           : (streamingPlaylists[service] ?? []);
       // Sort the comparison list alphabetically by name (Elie).
-      diffTargetPlaylists = [...list].sort((a: any, b: any) =>
-        (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }),
-      );
+      diffTargetPlaylists = [...list].sort((a: any, b: any) => comparerAlphabetique(a.name, b.name));
     } catch (e) {
       console.error('Load diff playlists error:', e);
     }

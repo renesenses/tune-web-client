@@ -57,10 +57,10 @@
     rayonInactif ? (perimetreApplique ?? 'country') : perimetre,
   );
 
-  /** L'ordre choisi. Groupé par artiste PAR DÉFAUT : c'est ainsi que
-   *  l'utilisateur cherche — il part de ce qu'il écoute, pas d'une date.
-   *  « Par date » répond à la demande de FabienM (fil 2013, point 1) sans
-   *  déplacer l'écran de qui n'a rien demandé. */
+  /** L'ordre choisi. « Par date » PAR DÉFAUT depuis le 29/09/2026
+   *  (web#1718) : les plus proches d'abord, la demande de FabienM (fil 2013,
+   *  point 1). Tant que rien n'est choisi, la préférence vaut `null` et le
+   *  défaut s'applique ICI — il n'est jamais écrit comme un choix. */
   let tri = $derived(normaliserTriConcerts($preferences.concertsTri));
 
   /** Le tri lui-même vit dans `lib/concertsTri.ts` : une fonction pure, qui se

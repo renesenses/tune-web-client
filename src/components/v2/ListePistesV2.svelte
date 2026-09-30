@@ -77,6 +77,7 @@
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import LignePisteV2 from './LignePisteV2.svelte';
   import PisteActions from './PisteActions.svelte';
+  import type { CoeurExterne } from '../../lib/coeurExterne';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
   import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
@@ -216,6 +217,14 @@
      */
     apres?: Snippet<[Track, number]>;
     /**
+     * 🔴 #1771 — le cœur qu'un écran pose dans la barre d'actions d'une ligne.
+     *
+     * L'Historique y met le favori RADIO d'un titre entendu à la radio : dans
+     * la case du cœur, pas dans le suffixe. `null` pour une ligne : la barre
+     * garde son propre cœur.
+     */
+    coeurDe?: ((piste: Track, index: number) => CoeurExterne | null) | null;
+    /**
      * 🔴 La clé de liste, quand `id` ne suffit pas.
      *
      * L'Historique peut afficher DEUX FOIS la même piste — écoutée deux fois.
@@ -292,18 +301,40 @@
      * Absente, RIEN ne change.
      */
     lectureSeule?: boolean;
+    /**
+     * 🔴 LA SÉLECTION MULTIPLE — web#1683, point 3 — OPT-IN.
+     *
+     * `selection` non nulle pose une CASE À COCHER en tête de chaque ligne
+     * (colonne de 28 px, en tableau comme en lignes — la place et la règle de
+     * la poignée ci-dessus). La liste ne sélectionne rien elle-même : elle DIT
+     * `onCocher(piste, rang, etendre)`, `etendre` vrai pour Maj+clic, et
+     * l'écran tient l'état (`lib/selectionPistes`).
+     *
+     * Seule une piste de la BIBLIOTHÈQUE (`id` numérique) se coche : les
+     * gestes groupés passent par des routes qui désignent une piste par son
+     * identifiant. Les autres gardent une case désactivée, pour que la
+     * colonne reste alignée.
+     *
+     * Absente, RIEN ne change : ni colonne, ni case.
+     */
+    selection?: ReadonlySet<number> | null;
+    onCocher?: ((piste: Track, index: number, etendre: boolean) => void) | null;
   }
   let {
     pistes, onLire, onLireDepuis = null, numerotation = 'rang',
     avecAlbum = true, pochette = true, pochetteEnTableau = false,
     sourceEnTableau = false,
-    ouvertureAlbum = null, apres,
+    ouvertureAlbum = null, apres, coeurDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
     enTetesDisque = false,
     reordonnable = false, onReordonner = null,
     etiquetteIndispo = 'v2.str.coming',
     lectureSeule = false,
+    selection = null, onCocher = null,
   }: Props = $props();
+  const selectionnable = $derived(selection != null);
+  /** La largeur de la colonne des cases : celle de la poignée. */
+  const LARGEUR_CASE_PX = LARGEUR_POIGNEE_PX;
   /**
    * Le glisser-déposer : deux rangs, et rien d'autre.
    *
@@ -446,7 +477,9 @@
   const largeurDesActionsPx = LARGEUR_ACTIONS_PX;
   // La poignée est une COLONNE de la grille, en tête, présente dans l'en-tête
   // comme dans les lignes : la même règle que le suffixe, pour la même raison.
-  const colonnePoignee = $derived(reordonnable ? `${LARGEUR_POIGNEE_PX}px ` : '');
+  const colonnePoignee = $derived(
+    (reordonnable ? `${LARGEUR_POIGNEE_PX}px ` : '') + (selectionnable ? `${LARGEUR_CASE_PX}px ` : ''),
+  );
   const gabarit = $derived(
     // Lecture seule : pas de colonne d'actions du tout, ni ici ni en en-tête.
     lectureSeule
@@ -465,7 +498,7 @@
    */
   const minGrille = $derived(
     largeurMinimale(colonnes, (lectureSeule ? 0 : largeurDesActionsPx) + (apres ? largeurApresPx : 0)
-      + (reordonnable ? LARGEUR_POIGNEE_PX : 0)),
+      + (reordonnable ? LARGEUR_POIGNEE_PX : 0) + (selectionnable ? LARGEUR_CASE_PX : 0)),
   );
 
   /**
@@ -534,6 +567,16 @@
     </svg>
   </button>
 {/snippet}
+{#snippet caseACocher(p: Track, i: number)}
+  <!-- La case de sélection (#1683). Un vrai `<input type="checkbox">` : le
+       clavier (Espace) et le lecteur d'écran le connaissent. Le clic, et non
+       `onchange`, parce que seul le clic porte `shiftKey` — la plage. -->
+  <input class="case" type="checkbox" data-case-piste={p.id ?? ''}
+    checked={typeof p.id === 'number' && !!selection?.has(p.id)}
+    disabled={typeof p.id !== 'number'}
+    aria-label={$t('v2.selection.toggleTrack' as any).replace('{title}', p.title ?? '')}
+    onclick={(e) => { e.stopPropagation(); onCocher?.(p, i, e.shiftKey); }} />
+{/snippet}
 {#if !enTableau}
   <!-- Les modes HORS tableau — Avancé seul depuis le 09/09/2026, Expert étant
        passé au tableau. Ce rendu est inchangé à la virgule près : le suffixe
@@ -542,13 +585,14 @@
   {#each pistes as p, i (clef(p, i))}
     {@const ouvrir = ouvertureAlbum?.(p, i) ?? null}
     {@render enTeteDisque(i)}
-    {#if apres || reordonnable}
+    {#if apres || reordonnable || selectionnable}
       <!-- L'enveloppe sert au suffixe ET à la poignée : sans l'un ni l'autre,
            la ligne est rendue nue, exactement comme avant. -->
       <!-- Le glisser à la souris est un raccourci : le geste ACCESSIBLE est
            la poignée, un bouton focalisable qui répond aux flèches. -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="avecSuffixe" class:avecPoignee={reordonnable} class:sansSuffixe={!apres}
+      <div class="avecSuffixe" class:avecPoignee={reordonnable || selectionnable}
+        class:double={reordonnable && selectionnable} class:sansSuffixe={!apres}
         class:saisie={saisi === i} class:survolee={survolee === i}
         draggable={reordonnable || undefined}
         ondragstart={reordonnable ? (e) => saisir(e, i) : undefined}
@@ -557,6 +601,7 @@
         ondrop={reordonnable ? (e) => deposer(e, i) : undefined}
         ondragend={reordonnable ? relacher : undefined}>
         {#if reordonnable}{@render poignee(i)}{/if}
+        {#if selectionnable}{@render caseACocher(p, i)}{/if}
         <LignePisteV2
           piste={p}
           numero={numerotation === 'aucune' ? null : Number(numero(p, i))}
@@ -567,6 +612,7 @@
           onOuvrirAlbum={ouvrir}
           {etiquetteIndispo}
           {lectureSeule}
+          coeur={coeurDe?.(p, i) ?? null}
         />
         <!--
           🔴 Le suffixe est enveloppé, et ce n'est pas cosmétique.
@@ -595,6 +641,7 @@
         onOuvrirAlbum={ouvrir}
         {etiquetteIndispo}
         {lectureSeule}
+        coeur={coeurDe?.(p, i) ?? null}
       />
     {/if}
   {/each}
@@ -602,11 +649,12 @@
   <!-- 🔴 #853 — `--tmin` est la largeur en deçà de laquelle le tableau DÉFILE
        au lieu de comprimer. Sans elle, les planchers des colonnes de texte
        seraient simplement ignorés par la grille, qui redescendrait sous eux. -->
-  <div class="tbl" class:reordonnable style="--tcols:{gabarit}; --tmin:{minGrille}px" role="table">
+  <div class="tbl" class:reordonnable class:selectionnable style="--tcols:{gabarit}; --tmin:{minGrille}px" role="table">
     <div class="thead" role="row">
       <!-- La colonne de la poignée : dans l'en-tête aussi, sinon tout dérive
            d'une colonne vers la droite. -->
       {#if reordonnable}<span class="th" role="columnheader"></span>{/if}
+      {#if selectionnable}<span class="th" role="columnheader"></span>{/if}
       {#each colonnes as c (c.cle)}
         <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
           role="columnheader">{$t(c.cleI18n as any)}</span>
@@ -639,6 +687,7 @@
         ondragend={reordonnable ? relacher : undefined}
         role="row">
         {#if reordonnable}<span class="td act" role="cell">{@render poignee(i)}</span>{/if}
+        {#if selectionnable}<span class="td act" role="cell">{@render caseACocher(p, i)}</span>{/if}
         {#each colonnes as c (c.cle)}
           {#if c.cle === 'quality'}
             <span class="td" role="cell">
@@ -701,7 +750,7 @@
           {/if}
         {/each}
         {#if !lectureSeule}<span class="td act" role="cell"><PisteActions piste={p}
-          onLireDepuis={() => lireDepuis(p, i)} /></span>{/if}
+          onLireDepuis={() => lireDepuis(p, i)} coeur={coeurDe?.(p, i) ?? null} /></span>{/if}
         {#if apres}<span class="td act" role="cell">{@render apres(p, i)}</span>{/if}
       </div>
     {/each}
@@ -785,6 +834,14 @@
      dernière disparaît : la ligne reste `1fr`, jamais plus étroite. */
   .avecSuffixe.avecPoignee{grid-template-columns:auto minmax(0,1fr) auto}
   .avecSuffixe.avecPoignee.sansSuffixe{grid-template-columns:auto minmax(0,1fr)}
+  /* Poignée ET case (#1683) : deux colonnes en tête. */
+  .avecSuffixe.avecPoignee.double{grid-template-columns:auto auto minmax(0,1fr) auto}
+  .avecSuffixe.avecPoignee.double.sansSuffixe{grid-template-columns:auto auto minmax(0,1fr)}
+  /* La case de sélection : la taille d'un bouton de la barre, la couleur
+     d'accent des listes à cocher (`ManquantsV2`). */
+  .case{width:16px; height:16px; margin:6px; flex:0 0 auto; cursor:pointer; accent-color:var(--v2-acc2)}
+  .case:disabled{cursor:default; opacity:.4}
+  .case:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
   /* La poignée de réordonnancement : la taille d'un bouton de `PisteActions`
      (28 px), discrète au repos, franche au survol ou au focus. `grab` dit le
      geste à la souris ; le clavier a son `aria-label`. */
@@ -808,7 +865,8 @@
     .thead{display:none}
     .trow{grid-template-columns:minmax(0,1fr) auto}
     /* La poignée est une cellule `.act` : elle reste, et prend sa colonne. */
-    .tbl.reordonnable .trow{grid-template-columns:auto minmax(0,1fr) auto}
+    .tbl.reordonnable .trow, .tbl.selectionnable .trow{grid-template-columns:auto minmax(0,1fr) auto}
+    .tbl.reordonnable.selectionnable .trow{grid-template-columns:auto auto minmax(0,1fr) auto}
     .trow .td:not(.act):not(.titre){display:none}
   }
 </style>

@@ -24,8 +24,14 @@ describe('onglet Doublons', () => {
   it("l'écran a son onglet, charge les trois listes et agit en deux clics", () => {
     const src = lire('src/components/v2/MetadataV2.svelte');
     expect(src).toContain("tab === 'doublons'");
-    for (const f of ['api.getAlbumsEclates()', 'api.getArtistsDoublons()', 'api.getPairesDoublons()', 'api.absorbAlbum(', 'api.absorbArtist(', 'api.resolveTrackDuplicate(']) {
+    for (const f of ['chargerLesDoublons()', 'api.absorbAlbum(', 'api.absorbArtist(', 'api.resolveTrackDuplicate(']) {
       expect(src, f).toContain(f);
+    }
+    // Les trois listes sont chargées par `lib/doublonsChargement` (#1788),
+    // qui porte le délai d'abandon.
+    const chargement = lire('src/lib/doublonsChargement.ts');
+    for (const f of ['api.getAlbumsEclates(', 'api.getArtistsDoublons(', 'api.getPairesDoublons(']) {
+      expect(chargement, f).toContain(f);
     }
     expect(src).toContain("if (arme !== cle) { arme = cle; return; }");
     // Un groupe d'artistes aux identifiants MusicBrainz distincts ne se fusionne pas d'un clic.

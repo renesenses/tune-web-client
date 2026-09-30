@@ -45,6 +45,23 @@ import { albums, libraryLoading, libraryFolderScope } from '../stores/library';
 import { activeView } from '../stores/navigation';
 import { sauterVersAncre, TOLERANCE_SAUT } from '../sautAlphabetique';
 
+// #1794 — CE QUE COÛTE UNE VIGNETTE, et pourquoi on ne le paie pas ici.
+//
+// Chaque cas monte une grille de 260 vignettes. Mesuré sur Shrek : ~4 ms par
+// vignette, dont 60 % dans ce qu'elle porte — la pochette et ses actions
+// (`PochetteActions`, qui monte aussi `AlbumArt` et le menu), la ligne de
+// qualité (`QualiteAlbum`). Soit plus d'une seconde par cas au repos, et plus
+// de 5 s dès que la machine est chargée : le cas expirait sans que le rail
+// soit en cause.
+//
+// Rien de ce qu'ils rendent ne compte ici : la géométrie des vignettes est
+// celle du modèle ci-dessous, pas celle de leur contenu, et le rail, les
+// ancres `data-letter` et le saut appartiennent à `LibraryV2` lui-même. On les
+// remplace donc par un composant qui ne rend rien. La grille, ses 260 `.card`,
+// le rail et `sauterVersAncre` restent les vrais.
+vi.mock('../../components/v2/PochetteActions.svelte', () => ({ default: () => {} }));
+vi.mock('../../components/v2/QualiteAlbum.svelte', () => ({ default: () => {} }));
+
 /** L'estimation que porte la règle `.card` tant qu'une vignette n'a rien rendu. */
 const ESTIMEE = 210;
 /** Sa hauteur réelle sur une colonne étroite : pochette 148 + les trois lignes. */
