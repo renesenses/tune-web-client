@@ -3552,7 +3552,7 @@ export default {
   "settings.sidebarMoved": "{x}：{n} 件中 {p} 番目",
   "settings.sidebarDrag": "ドラッグして {x} を移動",
   "settings.nowPlayingLinkToSource": "「再生中」でアルバムまたはプレイリストを開く",
-  "settings.nowPlayingLinkToSourceHint": "サイドバーの「再生中」は、再生中のアルバムのページを開きます。プレイリストから再生した場合はそのプレイリストを開きます。ラジオの場合、またはページがない場合は、これまでどおり「再生中」画面を開きます。",
+  "settings.nowPlayingLinkToSourceHint": "サイドバーの「再生中」と再生バーのサムネイルは、再生中のアルバムのページを開きます。プレイリストから再生した場合はそのプレイリストを開きます。ラジオの場合、またはページがない場合は、これまでどおり「再生中」画面を開きます。",
   "settings.animationRateSmooth": "滑らか — 現在の表示",
   "settings.animationRateSaving": "省エネ — プロセッサ負荷が約 30 % 減",
   "settings.animationRateMinimal": "最小 — 約 40 % 減、メーターの動きは少しカクつきます",

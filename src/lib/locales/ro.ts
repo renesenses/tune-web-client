@@ -3552,7 +3552,7 @@ export default {
   "settings.sidebarMoved": "{x}: poziția {p} din {n}",
   "settings.sidebarDrag": "Trageți pentru a muta {x}",
   "settings.nowPlayingLinkToSource": "„Se redă acum” deschide albumul sau playlistul",
-  "settings.nowPlayingLinkToSourceHint": "Intrarea „Se redă acum” din bara laterală deschide pagina albumului care se redă, sau pe cea a playlistului dacă redarea pornește de acolo. Pentru un post de radio, sau dacă nu există nicio pagină, deschide ecranul Se redă acum, ca până acum.",
+  "settings.nowPlayingLinkToSourceHint": "Intrarea „Se redă acum” din bara laterală și miniatura din bara de redare deschid pagina albumului care se redă, sau pe cea a playlistului dacă redarea pornește de acolo. Pentru un post de radio, sau dacă nu există nicio pagină, deschide ecranul Se redă acum, ca până acum.",
   "settings.animationRateSmooth": "Fluid — afișarea de astăzi",
   "settings.animationRateSaving": "Economic — cu circa 30 % mai puțin procesor",
   "settings.animationRateMinimal": "Minim — cu circa 40 % mai puțin, indicatoarele par ușor sacadate",

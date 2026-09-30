@@ -3552,7 +3552,7 @@ export default {
   "settings.sidebarMoved": "{x}: posición {p} de {n}",
   "settings.sidebarDrag": "Arrastrar para mover {x}",
   "settings.nowPlayingLinkToSource": "«Reproduciendo ahora» abre el álbum o la lista",
-  "settings.nowPlayingLinkToSourceHint": "La entrada «Reproduciendo ahora» de la barra lateral abre la página del álbum que suena, o la de la lista de reproducción si la reproducción viene de ella. Para una radio, o si no existe ninguna página, abre la pantalla Reproduciendo ahora, como hasta ahora.",
+  "settings.nowPlayingLinkToSourceHint": "La entrada «Reproduciendo ahora» de la barra lateral y la miniatura de la barra de reproducción abren la página del álbum que suena, o la de la lista de reproducción si la reproducción viene de ella. Para una radio, o si no existe ninguna página, abre la pantalla Reproduciendo ahora, como hasta ahora.",
   "settings.animationRateSmooth": "Fluido: la vista actual",
   "settings.animationRateSaving": "Económico: alrededor de un 30 % menos de procesador",
   "settings.animationRateMinimal": "Mínimo: alrededor de un 40 % menos, los medidores se ven algo entrecortados",

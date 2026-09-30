@@ -3552,7 +3552,7 @@ export default {
   "settings.sidebarMoved": "{x}: Position {p} von {n}",
   "settings.sidebarDrag": "Ziehen, um {x} zu verschieben",
   "settings.nowPlayingLinkToSource": "„Wird gerade gespielt“ öffnet Album oder Playlist",
-  "settings.nowPlayingLinkToSourceHint": "Der Eintrag „Wird gerade gespielt“ in der Seitenleiste öffnet die Seite des laufenden Albums oder der Playlist, aus der die Wiedergabe stammt. Bei einem Radiosender oder wenn keine Seite existiert, öffnet er wie bisher den Bildschirm „Wird gerade gespielt“.",
+  "settings.nowPlayingLinkToSourceHint": "Der Eintrag „Wird gerade gespielt“ in der Seitenleiste und das Vorschaubild in der Wiedergabeleiste öffnen die Seite des laufenden Albums oder der Playlist, aus der die Wiedergabe stammt. Bei einem Radiosender oder wenn keine Seite existiert, öffnet er wie bisher den Bildschirm „Wird gerade gespielt“.",
   "settings.animationRateSmooth": "Flüssig — die heutige Darstellung",
   "settings.animationRateSaving": "Sparsam — etwa 30 % weniger Prozessorlast",
   "settings.animationRateMinimal": "Minimal — etwa 40 % weniger, die Anzeigen wirken leicht stufig",
