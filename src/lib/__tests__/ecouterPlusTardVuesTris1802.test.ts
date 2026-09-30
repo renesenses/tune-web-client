@@ -250,7 +250,10 @@ describe('#1802 — le troisième cran reste dans « Écouter plus tard »', () 
     const { AFFICHAGES, GRILLE_OU_LISTE } = await import('../affichage');
     expect([...AFFICHAGES]).toEqual(['grid', 'list', 'carousel']);
     expect([...GRILLE_OU_LISTE]).toEqual(['grid', 'list']);
-    for (const f of ['LibraryV2', 'FavoritesV2', 'PlaylistsV2']) {
+    // PlaylistsV2 a reçu les trois crans le 30/09/2026, comme Collections et
+    // les écrans Playlists de la barre latérale (#1848) : il sort de la liste,
+    // et son comportement est gardé par `basculePlaylistsV2EcriteAuClic.test.ts`.
+    for (const f of ['LibraryV2', 'FavoritesV2']) {
       const src = readFileSync(`src/components/v2/${f}.svelte`, 'utf8');
       expect(src, f).not.toMatch(/iconeDeDestination|LISTE_ET_DEUX_GRILLES|gridLarge/);
     }
