@@ -2551,7 +2551,10 @@
     {:else if tab === 'coffrets'}
       <!-- Le clic ouvre la fiche d'album habituelle : celle qui, depuis la
            v0.9.162, affiche un en-tête par disque. -->
-      <CoffretsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display} />
+      <!-- #1824 — la portée « Répertoire » borne AUSSI les coffrets : les
+           mêmes identifiants que l'onglet Albums. -->
+      <CoffretsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display}
+        porteeActive={porteeActive && !depot} idsPortee={idsPortee} />
     {:else if tab === 'artists'}
       <!-- Les artistes ont leur PROPRE source, `/library/artists`, et non une
            déduction depuis les albums chargés. Ils ne passent donc pas par les

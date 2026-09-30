@@ -237,9 +237,31 @@ function suivreProgression(zoneList: any[]): void {
  * annonçait « rien à venir » sur une file pleine, et le bouton « suivant »
  * s'en servait pour se désactiver.
  */
+/**
+ * 🔴 #1823 — une demande de file arrivée AVANT la liste des zones.
+ *
+ * Au rechargement de page, `currentZoneId` naît de `localStorage` : la zone
+ * est connue avant que `zones` soit rempli, `currentZone` vaut encore `null`
+ * et `rechargerFile()` rendait la main sans rien charger. L'amorçage remplit
+ * ensuite `zones` sans réécrire `currentZoneId` (la zone mémorisée existe
+ * toujours) : rien ne relançait la demande, et une lecture sans blanc — des
+ * `track_changed` porteurs de `queue_position` (#1126) — laissait la file vide
+ * jusqu'au prochain `playback.started`. Plus de bandeau « File d'attente » ni
+ * d'« À suivre » ; seul l'écran File d'attente, qui recharge lui-même, les
+ * faisait revenir (Gros Bidon, fil 2049).
+ *
+ * La demande est donc NOTÉE, et servie dès que les zones résolvent la zone
+ * courante — une fois, pas à chaque `zone.updated`.
+ */
+let fileEnAttenteDeZone = false;
+
 async function rechargerFile(): Promise<void> {
   const zone = get(currentZone) as { id?: number } | null;
-  if (!zone?.id) return;
+  if (!zone?.id) {
+    fileEnAttenteDeZone = true;
+    return;
+  }
+  fileEnAttenteDeZone = false;
   try {
     const q = await api.getQueue(zone.id);
     queuePosition.set(q.position);
@@ -318,6 +340,11 @@ export function demarrerTransportV2(): () => void {
   // soit le chemin qui a écrit le magasin. Posé APRÈS l'abonnement à la zone
   // courante : la valeur initiale des zones s'applique ainsi à la bonne zone.
   const desabonnerTransport = zones.subscribe(suivreTransportDesZones);
+
+  // #1823 — la file demandée avant l'arrivée des zones est servie ici.
+  const desabonnerFileEnAttente = zones.subscribe(() => {
+    if (fileEnAttenteDeZone && (get(currentZone) as { id?: number } | null)?.id) void rechargerFile();
+  });
 
   const desabonnerEvents = tuneWS.onEvent((event: any) => {
     const type = event?.type as string | undefined;
@@ -658,6 +685,8 @@ export function demarrerTransportV2(): () => void {
     desabonnerEvents?.();
     desabonnerZone?.();
     desabonnerTransport?.();
+    desabonnerFileEnAttente?.();
+    fileEnAttenteDeZone = false;
     stopSeekTimer();
     // Le souvenir de la piste suivie meurt avec le branchement : une coquille
     // remontée comparerait sinon à la piste d'une session d'avant, et refuserait
