@@ -75,3 +75,43 @@ export function ouvrirCollection(c: {
     c.name ?? '',
   );
 }
+
+/**
+ * Ouvrir une playlist d'un SERVICE dans l'écran Playlists (web#1784).
+ *
+ * Même chemin que l'onglet Playlists des Favoris (#1620) : la clé est celle
+ * que `PlaylistsV2` publie (`streamingplaylists:<service>:<source_id>`), et
+ * `restore` porte l'élément complet — `{ kind: 'streaming', service, pl }` —
+ * que son écouteur rouvre tel quel dans `PlaylistDetailV2`.
+ */
+export async function ouvrirPlaylistDeService(
+  service: string,
+  pl: { source_id: string; name: string; cover_path?: string | null; track_count?: number | null },
+): Promise<void> {
+  const cle = `streamingplaylists:${service}:${pl.source_id}`;
+  viserDetail(cle);
+  activeView.set('playlists');
+  await tick();
+  window.dispatchEvent(
+    new CustomEvent('tune:shortcut-restore', {
+      detail: {
+        target: {
+          key: cle,
+          restore: {
+            kind: 'streaming',
+            service,
+            pl: {
+              source_id: pl.source_id,
+              name: pl.name,
+              track_count: pl.track_count ?? 0,
+              duration_ms: 0,
+              cover_path: pl.cover_path ?? null,
+              source: service,
+            },
+          },
+          label: pl.name,
+        },
+      },
+    }),
+  );
+}

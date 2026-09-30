@@ -68,7 +68,8 @@ describe('#1061 — la liste passe le RANG, pas la liste', () => {
 
   it('la ligne la transmet à la barre', () => {
     const ligne = lire('src/components/v2/LignePisteV2.svelte');
-    expect(ligne).toContain('<PisteActions {piste} {onLireDepuis} />');
+    // #1771 — la ligne transmet aussi le cœur fourni par l'écran.
+    expect(ligne).toContain('<PisteActions {piste} {onLireDepuis} {coeur} />');
   });
 });
 
