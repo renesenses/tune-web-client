@@ -20,6 +20,7 @@
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
+  import { versionDeBase } from '../../lib/versions';
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -1336,7 +1337,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let updateInfo = $state<any | null>(null);
   let health = $state<{ status: string; components?: Record<string, boolean> } | null>(null);
   let stats = $state<{ tracks: number; albums: number; artists: number; zones: number; devices: number } | null>(null);
-  const clientStale = $derived(!!serverVersion && !!CLIENT_VERSION && serverVersion !== CLIENT_VERSION);
+  // Base X.Y.Z contre base X.Y.Z : sous le tag v1.0.0-rc1, le serveur se dit
+  // `1.0.0-rc1` et le client embarqué `1.0.0` (le suffixe vit sur le tag seul).
+  // Ce n'est pas une dérive ; un client 0.9.169 servi par un serveur rc1, si.
+  const clientStale = $derived(
+    !!serverVersion && !!CLIENT_VERSION && versionDeBase(serverVersion) !== versionDeBase(CLIENT_VERSION),
+  );
 
   /**
    * Phase 5 (web#1257) — « Quoi de neuf » et la documentation de l'API, que
