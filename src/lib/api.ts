@@ -1642,6 +1642,31 @@ export async function addToQueue(zoneId: number, body: AddToQueueRequest) {
   return res;
 }
 
+/**
+ * La radio artiste du serveur — tune-server-rust#5395. Remplace la file de la
+ * zone par un premier lot et lance la lecture ; l'auto-lecture la recharge.
+ *
+ * Rend la zone (comme `play`) quand la radio est partie ; SANS bandeau,
+ * `'absente'` quand la route n'existe pas (serveur plus ancien : 404 « not
+ * found », ou 405) et `'vide'` quand le serveur n'a trouvé aucun titre
+ * (`radio_artiste_vide`). L'appelant retombe alors sur l'ancien geste
+ * (`radioArtiste.ts`). Tout autre échec reste une erreur.
+ */
+export async function radioArtiste(
+  zoneId: number,
+  corps: { artist: string; service: string | null; artist_id: string | null },
+): Promise<(Zone & { radio: { count: number } }) | 'absente' | 'vide'> {
+  const rep = await fetchJSON<any>(
+    `${BASE}/zones/${zoneId}/radio/artist`,
+    { method: 'POST', body: JSON.stringify(corps) },
+    (statut) => statut === 404 || statut === 405,
+  );
+  if (rep && typeof rep === 'object' && rep.radio) return rep;
+  // Le nouveau serveur NOMME ses refus ; tout autre 404/405 est la route
+  // inconnue d'un serveur plus ancien.
+  return rep?.error === 'radio_artiste_vide' || rep?.error === 'zone_not_found' ? 'vide' : 'absente';
+}
+
 export function removeFromQueue(zoneId: number, index: number) {
   return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/${index}`, {
     method: 'DELETE',
