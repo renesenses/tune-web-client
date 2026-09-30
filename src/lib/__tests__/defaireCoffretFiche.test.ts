@@ -114,7 +114,7 @@ describe('fiche d’album — « Défaire le coffret »', () => {
     expect(fermee).toBe(0);
   });
 
-  it('🔴 un coffret MANUEL n’a pas de bouton (sa route répond 409)', async () => {
+  it('🔴 un coffret MANUEL, sans la sonde du serveur, n’a pas de bouton (voir defaireCoffretManuelFiche5319)', async () => {
     expect(bouton(await ouvrir(MANUEL))).toBeNull();
   });
 
