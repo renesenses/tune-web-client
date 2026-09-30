@@ -29,7 +29,7 @@
    * PR serveur supprime. Ce repli disparaîtra une fois la version publiée ;
    * jusque-là, l'écran fonctionne contre les deux.
    */
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import * as api from '../../lib/api';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
@@ -44,14 +44,16 @@
   import { objetAlbum, objetCollection } from '../../lib/gestesObjet';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
+  import { retourProgrammatiqueEnCours } from '../../lib/historiqueNavigation';
+  import { get } from 'svelte/store';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import RenommerModale from './RenommerModale.svelte';
   import ArbreRayons from './ArbreRayons.svelte';
   import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import BasculeAffichage from './BasculeAffichage.svelte';
-  import { LISTE_ET_DEUX_VIGNETTES, type Affichage } from '../../lib/affichage';
+  import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
   import { trierAlbums } from '../../lib/trierAlbums';
   import { fold } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -194,8 +196,8 @@
    * changement de défaut n'atteindrait personne — le piège de #1650.
    */
   const CLE_AFFICHAGE = 'v2.collections.display';
-  let affichage = $state<Affichage>(lireChoix<Affichage>(CLE_AFFICHAGE, LISTE_ET_DEUX_VIGNETTES, 'grid'));
-  function changerAffichage(v: Affichage) {
+  let affichage = $state<AffichageEtendu>(lireChoix<AffichageEtendu>(CLE_AFFICHAGE, LISTE_ET_DEUX_GRILLES, 'grid'));
+  function changerAffichage(v: AffichageEtendu) {
     affichage = v;
     ecrireChoix(CLE_AFFICHAGE, v);
   }
@@ -366,7 +368,11 @@
       // Retirée de la liste sur la PAIRE (sorte, id), pour la même raison que
       // la clé de boucle : l'id seul viserait les deux sortes.
       entrees = entrees.filter((x) => !(x.sorte === e.sorte && x.id === e.id));
-      if (ouverte && ouverte.sorte === e.sorte && ouverte.id === e.id) ouverte = null;
+      if (ouverte && ouverte.sorte === e.sorte && ouverte.id === e.id) {
+        ouverte = null;
+        // web#1790 — l'entrée ne doit plus porter une collection disparue.
+        if (get(detailOuvert) === cleCible(e)) fermerDetail();
+      }
       // Appelée DEPUIS un éditeur, il faut le refermer : laisser ouverte la
       // fiche d'une collection qui n'existe plus proposerait de l'enregistrer.
       if (enEdition && enEdition.sorte === e.sorte && enEdition.id === e.id) enEdition = null;
@@ -872,8 +878,55 @@
   // capturerait une collection qu'on ne regarde plus.
   $effect(() => () => clearShortcutTarget());
 
+  /**
+   * 🔴 OUVRIR UNE COLLECTION EMPILE UNE ENTRÉE D'HISTORIQUE — web#1790.
+   *
+   * FabienM, fil 2037, point 9 : « Le BACK navigateur à l'intérieur d'une
+   * collection ne revient sur l'accueil des collections ». La collection
+   * ouverte est un `$state` local : l'ouvrir ne changeait pas `activeView`,
+   * la coquille n'écrivait rien, et le Précédent dépilait l'entrée de la vue
+   * d'avant — il quittait l'écran.
+   *
+   * Même mécanisme que les calques album (#980) et l'étiquette ouverte
+   * (web#1661) : ouvrir empile (`ouvrirDetail`), le Retour de l'écran referme
+   * ET dépile, le Précédent referme. La clé est celle du raccourci
+   * (`cleCible`) : une chaîne, jamais l'objet.
+   */
+  function retourCollection() {
+    const cle = ouverte ? cleCible(ouverte) : null;
+    const fermer = () => { ouverte = null; clearShortcutTarget(); };
+    if (cle != null && entreeCourantePorte(cle)) {
+      fermerDetailEnReculant(fermer);
+      return;
+    }
+    fermer();
+    if (cle != null && get(detailOuvert) === cle) fermerDetail();
+  }
+
+  /** Le Précédent du navigateur est revenu à la racine de l'écran : la collection se referme. */
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      // `null` posé par le Retour d'un ALBUM de la collection
+      // (`fermerDetailEnReculant`) n'est qu'un passage : le `popstate` qui
+      // suit repose la clé de la collection. On ne referme pas pour lui.
+      if (voulu == null && ouverte && !retourProgrammatiqueEnCours()) {
+        ouverte = null;
+        clearShortcutTarget();
+      }
+    });
+  });
+
+  // La clé posée par cet écran part avec lui (même geste que web#1661).
+  $effect(() => () => {
+    if (/^(smart)?collections:/.test(get(detailOuvert) ?? '')) fermerDetail();
+  });
+
   async function ouvrir(e: Entree) {
     ouverte = e;
+    // web#1790 — l'entrée d'historique porte la collection. Déjà posée : le
+    // magasin ne change pas, rien n'est empilé.
+    ouvrirDetail(cleCible(e));
     // `restore.name` est la valeur STOCKEE — elle sert a retrouver la
     // collection, pas a l'afficher ; `label` est ce qui se lit.
     setShortcutTarget({ key: cleCible(e), restore: { id: e.id, name: e.nom }, label: libelleTradu(e) });
@@ -917,7 +970,11 @@
     fermerDetailEnReculant(fermerCalqueAlbum);
   }
   $effect(() => {
-    if ($detailOuvert == null && fiche) fermerCalqueAlbum();
+    // web#1790 — la collection ouverte porte désormais SA clé dans l'entrée :
+    // reculer depuis l'album ramène à elle, plus à `null`.
+    if (fiche && ($detailOuvert == null || (ouverte != null && $detailOuvert === cleCible(ouverte)))) {
+      fermerCalqueAlbum();
+    }
   });
   let albumEnEdition = $state<any | null>(null);
 
@@ -952,7 +1009,7 @@
   {#if ouverte}
     <header class="v2-top detail">
       <div class="v2-titres">
-        <button class="back" onclick={() => { ouverte = null; clearShortcutTarget(); }}>← {$t('common.back' as any)}</button>
+        <button class="back" onclick={retourCollection}>← {$t('common.back' as any)}</button>
         <div class="v2-eyebrow">{ouverte.sorte === 'smart' ? $t('v2.col.smart' as any) : $t('v2.col.manual' as any)}</div>
         <h1>{libelleTradu(ouverte)}</h1>
         {#if descriptionTraduite(ouverte)}<p class="v2-sous">{descriptionTraduite(ouverte)}</p>{/if}
@@ -1134,7 +1191,7 @@
       <!-- web#1801 — la forme de la liste, pour les deux onglets. Pas sur
            l'arbre des rayons, qui n'est pas une grille. -->
       {#if onglet !== 'rayons'}
-        <BasculeAffichage modes={LISTE_ET_DEUX_VIGNETTES} valeur={affichage} onChanger={changerAffichage} />
+        <BasculeAffichage modes={LISTE_ET_DEUX_GRILLES} valeur={affichage} onChanger={changerAffichage} iconeDeDestination />
       {/if}
     </nav>
 
@@ -1172,7 +1229,7 @@
           {/each}
         </div>
         {/if}
-      <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'bigGrid'}>
+      <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
         {#each visibles as e (e.sorte + ':' + e.id)}
           <!-- Un LISERE de couleur, pas un fond : une pochette doit rester
                lisible. -->

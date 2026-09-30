@@ -3374,6 +3374,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </select>
               </div>
 
+              <!-- web#1784 — Didier et FabienM (fil 2036, 29/09/2026) : l'entrée
+                   « Lecture en cours » devrait ouvrir l'album, ou la playlist,
+                   qui joue. Go de Bertrand du 29/09 : un CHOIX, décoché par
+                   défaut — décoché, l'entrée mène à l'écran dédié comme avant.
+                   Rangé ici, à côté de l'écran de démarrage : c'est une
+                   question de navigation, pas de lecture. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.nowPlayingLinkToSource' as any)}</span>
+                  <span class="hint">{$t('settings.nowPlayingLinkToSourceHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-reglage="lienLectureVersSource"
+                    checked={$preferences.lienLectureVersSource === true}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, lienLectureVersSource: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <div class="row">
                 <div class="lbl">
                     <span>{$t('settings.defaultZone' as any)}</span>

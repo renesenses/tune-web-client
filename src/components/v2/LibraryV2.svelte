@@ -2544,11 +2544,11 @@
            par titre, à cette lettre. Pas de `navMode` ici : cet onglet n'a
            pas de frise. -->
       {@render railAZ()}
-      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'list' ? 'list' : 'grid'} />
+      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display} />
     {:else if tab === 'coffrets'}
       <!-- Le clic ouvre la fiche d'album habituelle : celle qui, depuis la
            v0.9.162, affiche un en-tête par disque. -->
-      <CoffretsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'list' ? 'list' : 'grid'} />
+      <CoffretsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display} />
     {:else if tab === 'artists'}
       <!-- Les artistes ont leur PROPRE source, `/library/artists`, et non une
            déduction depuis les albums chargés. Ils ne passent donc pas par les

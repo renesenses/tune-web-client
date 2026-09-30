@@ -2,7 +2,7 @@
 //
 // web#1801 — FabienM (fil 2037, point 13), go de Bertrand du 29/09/2026 :
 // Collections reçoit la bascule d'affichage de la Bibliothèque, à trois crans
-// (petites vignettes, liste, grandes vignettes), pour les collections ET les
+// (liste, petites vignettes, grandes vignettes), pour les collections ET les
 // collections intelligentes.
 //
 // Le témoin MONTE l'écran, lit la grille et clique la bascule :
@@ -113,14 +113,16 @@ describe('web#1801 — la bascule d’affichage dans Collections', () => {
     expect(localStorage.getItem(CLE), 'le défaut est retenu comme un choix (#1650)').toBeNull();
   });
 
-  it('🔴 trois crans : liste, grandes vignettes, retour — chaque clic est retenu', async () => {
+  // Rotation commune avec « Écouter plus tard » (#1802, `LISTE_ET_DEUX_GRILLES`) :
+  // liste → petites → grandes → liste.
+  it('🔴 trois crans : grandes vignettes, liste, retour — chaque clic est retenu', async () => {
     const racine = await poser();
+    await basculer(racine);
+    expect(forme(racine)).toBe('grandes');
+    expect(localStorage.getItem(CLE)).toBe('gridLarge');
     await basculer(racine);
     expect(forme(racine)).toBe('liste');
     expect(localStorage.getItem(CLE)).toBe('list');
-    await basculer(racine);
-    expect(forme(racine)).toBe('grandes');
-    expect(localStorage.getItem(CLE)).toBe('bigGrid');
     await basculer(racine);
     expect(forme(racine)).toBe('petites');
     expect(localStorage.getItem(CLE)).toBe('grid');
@@ -130,14 +132,14 @@ describe('web#1801 — la bascule d’affichage dans Collections', () => {
     const racine = await poser();
     // Premier onglet : les intelligentes.
     await basculer(racine);
-    expect(forme(racine)).toBe('liste');
+    expect(forme(racine)).toBe('grandes');
     await onglet(racine, 1);
     expect(racine.textContent).toContain('Zénith');
-    expect(forme(racine)).toBe('liste');
+    expect(forme(racine)).toBe('grandes');
   });
 
   it('🔴 un choix retenu est relu à l’ouverture', async () => {
-    localStorage.setItem(CLE, 'bigGrid');
+    localStorage.setItem(CLE, 'gridLarge');
     const racine = await poser();
     expect(forme(racine)).toBe('grandes');
   });

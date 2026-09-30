@@ -4889,10 +4889,18 @@ export function createStreamingPlaylist(service: string, name: string) {
  * description, owner, source_id, track_count }` (mesuré sur la .18 en
  * v0.9.151). L'Historique s'en sert pour nommer une playlist de service
  * jouée, que `/library/history` ne sait pas nommer.
+ *
+ * `sansBandeau` — #1789 (FabienM, fil 2037, points 5 et 14). Une playlist
+ * que le service ne connaît plus (supprimée, désabonnée) rend 404 chez Qobuz,
+ * que le serveur relaie en 502. Son seul appelant, l'Historique, attrape
+ * l'échec et dit lui-même « Indisponible » à la place du nom ; le bandeau
+ * « Server error: qobuz /playlist/get: 404 » repartait pourtant à CHAQUE
+ * visite de l'écran, pour un simple nom manquant.
  */
 export function getStreamingPlaylist(service: string, id: string) {
   return fetchJSON<{ name?: string | null; cover_path?: string | null; source_id?: string }>(
     `${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(id)}`,
+    undefined, undefined, true,
   );
 }
 
@@ -7134,6 +7142,16 @@ export interface MergedPlugin {
   update_available: boolean;
   status: 'available' | 'active' | 'disabled' | 'error';
   error_message?: string | null;
+  /**
+   * Greffon compilé resté en erreur (tune-server-rust#5403) : `setup_timeout`
+   * = « démarrage trop long » (coupé à la borne), `setup_failed` = un nouvel
+   * essai a échoué. Accompagné de `setup_duration_ms` (durée du dernier essai)
+   * et de `setup_timeout_ms`. Un serveur plus ancien ne l'envoie pas : absent,
+   * l'écran se comporte comme avant.
+   */
+  error_reason?: 'setup_timeout' | 'setup_failed' | null;
+  setup_duration_ms?: number | null;
+  setup_timeout_ms?: number | null;
   source?: string;
   min_tune_version?: string;
   max_tune_version?: string;
@@ -7395,6 +7413,23 @@ export function ignorerSuggestionReinstallationGreffons(ids: string[]): Promise<
     method: 'POST',
     body: JSON.stringify({ ids }),
   });
+}
+
+/**
+ * Réessayer : relance le `setup()` d'un greffon resté en erreur, sous la même
+ * borne qu'au démarrage (tune-server-rust#5403). La réponse est la fiche du
+ * greffon : `status: 'loaded'` s'il a chargé, sinon la fiche en erreur avec la
+ * durée de ce nouvel essai. `restart_required` : ses routes ne se monteront
+ * qu'au prochain démarrage.
+ */
+export function retryPlugin(name: string): Promise<{
+  name: string;
+  status: 'loaded' | 'error';
+  error_reason?: 'setup_timeout' | 'setup_failed' | null;
+  setup_duration_ms?: number | null;
+  restart_required?: boolean;
+}> {
+  return fetchJSON(`${BASE}/plugins/${encodeURIComponent(name)}/retry`, { method: 'POST' });
 }
 
 /** Update a plugin to the latest version via the server (pip install --upgrade). */
@@ -8183,6 +8218,14 @@ export function getConversionStatus(jobId: string): Promise<{
   error?: string;
 }> {
   return fetchJSON(`${BASE}/converter/status/${encodeURIComponent(jobId)}`);
+}
+
+/** Les tâches que le serveur connaît encore, en cours ou terminées — chacune
+ *  dans la forme de `getConversionStatus`, plus son `job_id` (#1804,
+ *  tune-server-rust#5480). Un serveur qui n'a pas encore la route répond 404 :
+ *  l'appelant l'ignore, l'écran fait alors comme avant. */
+export function listConversions(): Promise<Array<Awaited<ReturnType<typeof getConversionStatus>> & { job_id: string }>> {
+  return fetchJSON(`${BASE}/converter/jobs`);
 }
 
 export async function downloadConversion(jobId: string): Promise<string> {

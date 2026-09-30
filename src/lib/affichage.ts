@@ -22,12 +22,29 @@
 
 /** Les trois formes qu'un même contenu peut prendre. */
 export const AFFICHAGES = ['grid', 'list', 'carousel'] as const;
+
 /**
- * Toutes les formes connues de la bascule. `bigGrid` (grandes vignettes,
- * web#1801) n'est PAS dans `AFFICHAGES` : ce tableau est la liste que la
- * Bibliothèque valide et fait tourner, et elle ne sait pas rendre ce mode.
+ * web#1802 — le cran « grandes vignettes », propre à « Écouter plus tard »,
+ * repris par Collections (web#1801, même go de Bertrand du 29/09/2026).
+ *
+ * Bertrand, 29/09/2026 : liste, petite vignette, grande vignette — dans ces
+ * écrans SEULS. Le cran est donc HORS d'`AFFICHAGES` : la Bibliothèque tourne
+ * sur cette liste et lit ses choix contre elle ; l'y ajouter lui donnerait un
+ * quatrième cran que personne n'a demandé. `grid` reste la petite vignette,
+ * la taille de toujours.
  */
-export type Affichage = (typeof AFFICHAGES)[number] | 'bigGrid';
+export const GRANDE_GRILLE = 'gridLarge' as const;
+/** Les crans COMMUNS — le type que la Bibliothèque et les Favoris manipulent. */
+export type Affichage = (typeof AFFICHAGES)[number];
+/**
+ * Tout cran que la bascule sait dessiner, grandes vignettes comprises. Type À
+ * PART : élargir `Affichage` ferait entrer `gridLarge` dans les types de la
+ * Bibliothèque, qui n'en veut pas.
+ */
+export type AffichageEtendu = Affichage | typeof GRANDE_GRILLE;
+
+/** Les trois crans d'« Écouter plus tard » et de Collections (web#1801), dans l'ordre de rotation. */
+export const LISTE_ET_DEUX_GRILLES = ['list', 'grid', GRANDE_GRILLE] as const;
 
 /**
  * Les deux modes qu'un écran ordinaire propose.
@@ -40,16 +57,6 @@ export type Affichage = (typeof AFFICHAGES)[number] | 'bigGrid';
 export const GRILLE_OU_LISTE = ['grid', 'list'] as const;
 
 /**
- * Liste, petites vignettes, grandes vignettes — web#1801, FabienM (fil 2037,
- * point 13), go de Bertrand du 29/09/2026 : les trois crans de la
- * Bibliothèque, pour un écran qui n'a pas de carrousel.
- *
- * Même rotation que la Bibliothèque, les grandes vignettes à la place du
- * carrousel : grille → liste → grandes vignettes → grille.
- */
-export const LISTE_ET_DEUX_VIGNETTES = ['grid', 'list', 'bigGrid'] as const;
-
-/**
  * Le libellé d'un mode.
  *
  * 🔴 La bascule annonce le mode où le clic MÈNE, pas celui où l'on est — c'est
@@ -59,12 +66,11 @@ export const LISTE_ET_DEUX_VIGNETTES = ['grid', 'list', 'bigGrid'] as const;
  * Les trois clés existent dans les onze langues depuis #929 : cette
  * généralisation n'en ajoute AUCUNE.
  */
-export const LIBELLE_AFFICHAGE: Record<Affichage, string> = {
+export const LIBELLE_AFFICHAGE: Record<AffichageEtendu, string> = {
   grid: 'v2.lib.viewGrid',
   list: 'v2.lib.viewList',
   carousel: 'v2.lib.viewCarousel',
-  // web#1801 — la seule clé ajoutée depuis #929, dans les onze langues.
-  bigGrid: 'v2.lib.viewLargeGrid',
+  gridLarge: 'v2.lib.viewGridLarge',
 };
 
 /**
@@ -77,10 +83,10 @@ export const LIBELLE_AFFICHAGE: Record<Affichage, string> = {
  * Albums, et un choix `'carousel'` retenu doit alors retomber sur la grille
  * sans effacer le choix de l'onglet Albums.
  */
-export function affichageSuivant(
-  modes: readonly Affichage[],
-  courant: Affichage,
-): Affichage {
+export function affichageSuivant<T extends AffichageEtendu>(
+  modes: readonly T[],
+  courant: T,
+): T {
   const i = modes.indexOf(courant);
-  return i < 0 ? (modes[0] ?? 'grid') : modes[(i + 1) % modes.length];
+  return i < 0 ? (modes[0] ?? ('grid' as T)) : modes[(i + 1) % modes.length];
 }
