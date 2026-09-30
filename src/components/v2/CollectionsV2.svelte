@@ -48,6 +48,10 @@
   import { retourProgrammatiqueEnCours } from '../../lib/historiqueNavigation';
   import { get } from 'svelte/store';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import {
+    albumProche, lireResolutions, remplacantsAOffrir, resoudreManquant,
+    type AlbumProche, type Remplacant,
+  } from '../../lib/resolutionManquants';
   import RenommerModale from './RenommerModale.svelte';
   import ArbreRayons from './ArbreRayons.svelte';
   import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
@@ -95,7 +99,7 @@
         `titre` est nul quand l'album a disparu avant que le serveur n'ait su
         conserver son nom : il ne reste que l'identifiant, et on ne l'invente
         pas. Vide face à un serveur d'avant #901, qui ne donne que le compte. */
-    manquantsDetail: { id: number; titre: string | null; artiste: string | null }[];
+    manquantsDetail: Manquant[];
     covers: string[];
     /** Le serveur a-t-il RENDU le champ `covers` — même vide ? (#1798,
         tune-server-rust#5438). Présent, c'est la réponse : une collection vide
@@ -106,6 +110,15 @@
     /** Date de création, pour le tri par date. Les DEUX familles la portent. */
     creee: string | null;
   }
+
+  /** Un album manquant d'un dossier (#901), et l'album VIVANT qui a reçu ses
+      pistes quand le serveur l'a noté (`merged_into`, tune-server-rust#5528). */
+  type Manquant = {
+    id: number;
+    titre: string | null;
+    artiste: string | null;
+    reuniDans: AlbumProche | null;
+  };
 
   /**
    * Combien d'albums rangés dans ce dossier ont disparu de la base.
@@ -131,7 +144,7 @@
    * nue des identifiants. Un serveur d'avant #901 ne donne ni l'un ni l'autre
    * — la liste reste vide, et l'écran le dit au lieu d'afficher du vide.
    */
-  function detailManquants(c: any): { id: number; titre: string | null; artiste: string | null }[] {
+  function detailManquants(c: any): Manquant[] {
     if (Array.isArray(c?.orphan_albums)) {
       return c.orphan_albums
         .filter((a: any) => a && typeof a.id === 'number')
@@ -139,12 +152,13 @@
           id: a.id,
           titre: typeof a.title === 'string' && a.title ? a.title : null,
           artiste: typeof a.artist === 'string' && a.artist ? a.artist : null,
+          reuniDans: albumProche(a.merged_into),
         }));
     }
     if (Array.isArray(c?.orphan_album_ids)) {
       return c.orphan_album_ids
         .filter((id: any) => typeof id === 'number')
-        .map((id: number) => ({ id, titre: null, artiste: null }));
+        .map((id: number) => ({ id, titre: null, artiste: null, reuniDans: null }));
     }
     return [];
   }
@@ -325,6 +339,65 @@
   let enEdition = $state<Entree | null>(null);
   /** Le dossier dont on regarde les albums manquants (#901). */
   let manquantsOuverts = $state<Entree | null>(null);
+
+  /**
+   * RÉSOUDRE un manquant — tune-server-rust#5527 et #5528 (Lulu, fil 1891).
+   *
+   * « Lorsque je transfère un album manquant de la bibliothèque vers un
+   * répertoire de Collections, cet album figure encore dans la liste des
+   * albums manquants » ; et des opéras « compilés dans un seul album » y
+   * restent sans rien qui le dise. Trois gestes par ligne, jamais d'office :
+   *
+   *   - « Oublier » : la route de retrait EXISTANTE, avec l'identifiant mort ;
+   *   - « Remplacer par … » : un album vivant de même artiste et de même
+   *     titre, PROPOSÉ par `GET /collections/{id}/missing` ;
+   *   - « Réuni dans … » : l'album qui a reçu ses pistes, quand le scan l'a
+   *     noté — un lien vers lui, et « Remplacer ».
+   *
+   * Remplacer = ranger le vivant PUIS retirer le mort : si le premier appel
+   * échoue, rien n'est perdu. Un serveur d'avant #5528 ne sert pas
+   * `/missing` : la liste garde alors le seul « Oublier ».
+   */
+  let resolutions = $state<Record<number, Remplacant[]>>({});
+  let manquantEnCours = $state<number | null>(null);
+  let manquantEchec = $state(false);
+
+  async function chargerResolutions(dossier: Entree) {
+    resolutions = {};
+    manquantEchec = false;
+    try {
+      const r = lireResolutions(await api.getCollectionMissing(dossier.id));
+      if (manquantsOuverts?.id === dossier.id) resolutions = r;
+    } catch {
+      // Serveur d'avant #5528 : pas de remplaçant proposé, « Oublier » reste.
+    }
+  }
+
+  /** Un geste sur un manquant, puis la liste relue — ou fermée si elle est vide. */
+  async function resoudre(dossier: Entree, mort: number, remplacant: number | null) {
+    manquantEnCours = mort;
+    manquantEchec = false;
+    try {
+      await resoudreManquant(api, dossier.id, mort, remplacant);
+    } catch {
+      manquantEchec = true;
+      manquantEnCours = null;
+      return;
+    }
+    await charger();
+    manquantEnCours = null;
+    const frais = entrees.find((x) => x.sorte === 'normale' && x.id === dossier.id) ?? null;
+    manquantsOuverts = frais && frais.manquantsDetail.length ? frais : null;
+    if (manquantsOuverts) void chargerResolutions(manquantsOuverts);
+  }
+
+  /** « Réuni dans … » : l'album vivant, dans le calque album de l'écran. */
+  function ouvrirReuni(a: AlbumProche) {
+    manquantsOuverts = null;
+    const album = { id: a.id, title: a.titre, artist_name: a.artiste, source: 'local' };
+    ouvrirCalqueAlbum(album);
+    fiche = album;
+  }
 
   /**
    * SUPPRIMER une collection — #983.
@@ -1294,7 +1367,7 @@
                  seule l'explication : elle n'existe pas au tactile. -->
             {#if e.manquants}
               <button class="mq" title={$t('collections.missingHint' as any)}
-                onclick={(ev) => { ev.stopPropagation(); manquantsOuverts = e; }}
+                onclick={(ev) => { ev.stopPropagation(); manquantsOuverts = e; void chargerResolutions(e); }}
                 >{(e.manquants > 1
                   ? $t('collections.missingMany' as any)
                   : $t('collections.missingOne' as any)
@@ -1336,11 +1409,37 @@
                   <span class="mqt inc"
                     >{$t('collections.missingUnknown' as any).replace('{id}', String(m.id))}</span>
                 {/if}
+                {#if m.reuniDans}
+                  {@const r = m.reuniDans}
+                  <span class="mqr">{$t('collections.missingMergedInto' as any)}
+                    <button class="mql" onclick={() => ouvrirReuni(r)}>{r.titre}</button></span>
+                {/if}
+                <span class="mqg">
+                  {#if m.reuniDans}
+                    {@const r = m.reuniDans}
+                    <button class="mqb" disabled={manquantEnCours != null}
+                      onclick={() => resoudre(dossier, m.id, r.id)}
+                      >{$t('collections.missingReplace' as any)}</button>
+                  {/if}
+                  {#each remplacantsAOffrir(resolutions[m.id], m.reuniDans) as c (c.id)}
+                    <button class="mqb" disabled={manquantEnCours != null}
+                      title={c.artiste ?? ''}
+                      onclick={() => resoudre(dossier, m.id, c.id)}
+                      >{$t('collections.missingReplaceBy' as any).replace('{title}', c.titre)}</button>
+                  {/each}
+                  <button class="mqb mqo" disabled={manquantEnCours != null}
+                    title={$t('collections.missingForgetHint' as any)}
+                    onclick={() => resoudre(dossier, m.id, null)}
+                    >{$t('collections.missingForget' as any)}</button>
+                </span>
               </li>
             {/each}
           </ul>
         {:else}
           <p class="mqh">{$t('collections.missingNoList' as any)}</p>
+        {/if}
+        {#if manquantEchec}
+          <p class="mqh mqe" role="alert">{$t('collections.missingActionFailed' as any)}</p>
         {/if}
       </div>
     </div>
@@ -1516,6 +1615,16 @@
   .mqt{font-size:13.5px; font-weight:600}
   .mqt.inc{font:12px var(--v2-mono); color:var(--v2-txt3); font-weight:400}
   .mqa{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .mqr{font-size:12px; color:var(--v2-txt2)}
+  .mql{border:0; background:transparent; padding:0; color:var(--v2-acc-tint, #e6c176); cursor:pointer;
+    text-decoration:underline; text-underline-offset:2px; font:inherit}
+  .mqg{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px}
+  .mqb{font-size:12px; padding:3px 10px; border-radius:var(--v2-r-pill, 999px); cursor:pointer;
+    border:1px solid var(--v2-line2, rgba(255,255,255,.16)); background:transparent; color:inherit;
+    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .mqb:disabled{opacity:.5; cursor:default}
+  .mqo{color:var(--v2-txt2)}
+  .mqe{color:var(--v2-warn, #c8922b)}
   .tag{font-style:normal; padding:1px 6px; border-radius:var(--v2-r-pill); background:var(--v2-surface2); color:var(--v2-txt2)}
   .fa{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
   .fab{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
