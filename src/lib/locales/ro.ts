@@ -3397,6 +3397,7 @@ export default {
   "v2.health.drLineSidecar": "{n} din {t} piese — {m} măsurate de Tune, {g} citite din etichete, {s} citite din foo_dr.txt",
   "v2.health.drQueuedBeforeFingerprints": "{n} piese în așteptare. Gama dinamică vine imediat după ReplayGain, înaintea amprentelor și a CLAP.",
   "v2.health.drQueuedFirst": "{n} piese în așteptare. Gama dinamică vine prima, înaintea ReplayGain, a amprentelor și a CLAP.",
+  "v2.health.drMeasuredByRg": "{n} piese nu au fost încă văzute de ReplayGain: trecerea sa le va măsura gama dinamică, pe aceeași decodare, oricare ar fi ordinea aleasă.",
   "v2.health.drSidecarLast": "Rapoarte foo_dr.txt: {d} dosare verificate, {w} piese completate la ultima trecere.",
   "v2.health.drPriority": "Ordinea procesării",
   "v2.health.drPriorityLast": "La final (implicit)",

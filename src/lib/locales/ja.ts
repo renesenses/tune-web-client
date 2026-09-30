@@ -3397,6 +3397,7 @@ export default {
   "v2.health.drLineSidecar": "{t} 曲中 {n} 曲 — Tune による測定 {m} 曲、タグから読み取り {g} 曲、foo_dr.txt から読み取り {s} 曲",
   "v2.health.drQueuedBeforeFingerprints": "{n} 曲が待機中です。ダイナミックレンジは ReplayGain の直後、指紋と CLAP の前に処理されます。",
   "v2.health.drQueuedFirst": "{n} 曲が待機中です。ダイナミックレンジは最初に、ReplayGain・指紋・CLAP より前に処理されます。",
+  "v2.health.drMeasuredByRg": "{n} 曲はまだ ReplayGain で処理されていません。選んだ順序にかかわらず、ReplayGain の処理が同じ復号でダイナミックレンジも測定します。",
   "v2.health.drSidecarLast": "foo_dr.txt レポート：前回の処理で {d} フォルダを確認し、{w} 曲に値を設定しました。",
   "v2.health.drPriority": "処理の順序",
   "v2.health.drPriorityLast": "最後（既定）",

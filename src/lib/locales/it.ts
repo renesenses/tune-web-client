@@ -3397,6 +3397,7 @@ export default {
   "v2.health.drLineSidecar": "{n} di {t} brani — {m} misurati da Tune, {g} letti dai tag, {s} letti dai foo_dr.txt",
   "v2.health.drQueuedBeforeFingerprints": "{n} brani in attesa. La gamma dinamica viene subito dopo ReplayGain, prima delle impronte e di CLAP.",
   "v2.health.drQueuedFirst": "{n} brani in attesa. La gamma dinamica viene per prima, prima di ReplayGain, delle impronte e di CLAP.",
+  "v2.health.drMeasuredByRg": "{n} brani non sono ancora stati visti da ReplayGain: sarà il suo passaggio a misurarne la gamma dinamica, sulla stessa decodifica, qualunque sia l'ordine scelto.",
   "v2.health.drSidecarLast": "Rapporti foo_dr.txt: {d} cartelle controllate, {w} brani completati all'ultimo passaggio.",
   "v2.health.drPriority": "Ordine di elaborazione",
   "v2.health.drPriorityLast": "Per ultima (predefinito)",

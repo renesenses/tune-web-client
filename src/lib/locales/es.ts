@@ -3397,6 +3397,7 @@ export default {
   "v2.health.drLineSidecar": "{n} de {t} pistas — {m} medidas por Tune, {g} leídas de las etiquetas, {s} leídas de los foo_dr.txt",
   "v2.health.drQueuedBeforeFingerprints": "{n} pistas en espera. El rango dinámico va justo después de ReplayGain, antes de las huellas y de CLAP.",
   "v2.health.drQueuedFirst": "{n} pistas en espera. El rango dinámico va primero, antes de ReplayGain, las huellas y CLAP.",
+  "v2.health.drMeasuredByRg": "{n} pistas aún no han pasado por ReplayGain: su pasada medirá su rango dinámico en la misma decodificación, sea cual sea el orden elegido.",
   "v2.health.drSidecarLast": "Informes foo_dr.txt: {d} carpetas comprobadas, {w} pistas completadas en la última pasada.",
   "v2.health.drPriority": "Orden de procesamiento",
   "v2.health.drPriorityLast": "Al final (predeterminado)",

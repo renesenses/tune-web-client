@@ -3397,6 +3397,7 @@ export default {
   "v2.health.drLineSidecar": "{t} 首中的 {n} 首 — Tune 测得 {m} 首，从标签读取 {g} 首，从 foo_dr.txt 读取 {s} 首",
   "v2.health.drQueuedBeforeFingerprints": "{n} 首等待中。动态范围紧跟在 ReplayGain 之后，排在指纹和 CLAP 之前。",
   "v2.health.drQueuedFirst": "{n} 首等待中。动态范围排在最前，先于 ReplayGain、指纹和 CLAP。",
+  "v2.health.drMeasuredByRg": "{n} 首尚未经过 ReplayGain：无论选择何种顺序，都由其处理在同一次解码中测量动态范围。",
   "v2.health.drSidecarLast": "foo_dr.txt 报告：上次处理检查了 {d} 个文件夹，补全了 {w} 首。",
   "v2.health.drPriority": "处理顺序",
   "v2.health.drPriorityLast": "最后（默认）",

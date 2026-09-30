@@ -3417,6 +3417,7 @@ export default {
   "v2.health.drLineSidecar": "{n} of {t} tracks — {m} measured by Tune, {g} read from tags, {s} read from foo_dr.txt files",
   "v2.health.drQueuedBeforeFingerprints": "{n} tracks waiting. Dynamic range runs right after ReplayGain, before fingerprints and CLAP.",
   "v2.health.drQueuedFirst": "{n} tracks waiting. Dynamic range runs first, before ReplayGain, fingerprints and CLAP.",
+  "v2.health.drMeasuredByRg": "{n} tracks have not been seen by ReplayGain yet: its pass will measure their dynamic range on the same decode, whatever order is chosen.",
   "v2.health.drSidecarLast": "foo_dr.txt reports: {d} folders checked, {w} tracks filled in on the last pass.",
   "v2.health.drPriority": "Processing order",
   "v2.health.drPriorityLast": "Last (default)",

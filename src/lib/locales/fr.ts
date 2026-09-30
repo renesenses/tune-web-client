@@ -3419,6 +3419,7 @@ export default {
   "v2.health.drLineSidecar": "{n} pistes sur {t} — {m} mesurées par Tune, {g} lues dans les tags, {s} lues dans les foo_dr.txt",
   "v2.health.drQueuedBeforeFingerprints": "{n} pistes en attente. La plage dynamique passe juste après le ReplayGain, avant les empreintes et le CLAP.",
   "v2.health.drQueuedFirst": "{n} pistes en attente. La plage dynamique passe en premier, avant le ReplayGain, les empreintes et le CLAP.",
+  "v2.health.drMeasuredByRg": "{n} pistes n'ont pas encore été vues par le ReplayGain : c'est sa passe qui mesurera leur plage dynamique, sur le même décodage, quel que soit l'ordre choisi.",
   "v2.health.drSidecarLast": "Rapports foo_dr.txt : {d} dossiers vérifiés, {w} pistes pourvues au dernier passage.",
   "v2.health.drPriority": "Ordre de passage",
   "v2.health.drPriorityLast": "En dernier (par défaut)",

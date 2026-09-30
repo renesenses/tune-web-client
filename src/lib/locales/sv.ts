@@ -3396,6 +3396,7 @@ export default {
   "v2.health.drLineSidecar": "{n} av {t} spår — {m} uppmätta av Tune, {g} lästa ur taggar, {s} lästa ur foo_dr.txt",
   "v2.health.drQueuedBeforeFingerprints": "{n} spår väntar. Det dynamiska omfånget kommer direkt efter ReplayGain, före fingeravtryck och CLAP.",
   "v2.health.drQueuedFirst": "{n} spår väntar. Det dynamiska omfånget kommer först, före ReplayGain, fingeravtryck och CLAP.",
+  "v2.health.drMeasuredByRg": "{n} spår har ännu inte setts av ReplayGain: dess körning mäter deras dynamiska omfång i samma avkodning, oavsett vald ordning.",
   "v2.health.drSidecarLast": "foo_dr.txt-rapporter: {d} mappar kontrollerade, {w} spår kompletterade vid senaste körningen.",
   "v2.health.drPriority": "Bearbetningsordning",
   "v2.health.drPriorityLast": "Sist (standard)",

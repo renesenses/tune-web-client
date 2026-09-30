@@ -3355,6 +3355,7 @@ export default {
   "v2.health.drLineSidecar": "{t} számból {n} — {m} a Tune mérése, {g} címkékből olvasva, {s} foo_dr.txt fájlokból olvasva",
   "v2.health.drQueuedBeforeFingerprints": "{n} szám várakozik. A dinamikatartomány közvetlenül a ReplayGain után jön, az ujjlenyomatok és a CLAP előtt.",
   "v2.health.drQueuedFirst": "{n} szám várakozik. A dinamikatartomány jön elsőként, a ReplayGain, az ujjlenyomatok és a CLAP előtt.",
+  "v2.health.drMeasuredByRg": "{n} számot a ReplayGain még nem látott: az ő menete méri meg a dinamikatartományukat ugyanazzal a dekódolással, a választott sorrendtől függetlenül.",
   "v2.health.drSidecarLast": "foo_dr.txt jelentések: {d} mappa ellenőrizve, {w} szám kiegészítve a legutóbbi futáskor.",
   "v2.health.drPriority": "Feldolgozási sorrend",
   "v2.health.drPriorityLast": "Utolsóként (alapértelmezett)",

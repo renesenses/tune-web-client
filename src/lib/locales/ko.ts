@@ -3397,6 +3397,7 @@ export default {
   "v2.health.drLineSidecar": "{t}곡 중 {n}곡 — Tune이 측정한 {m}곡, 태그에서 읽은 {g}곡, foo_dr.txt에서 읽은 {s}곡",
   "v2.health.drQueuedBeforeFingerprints": "{n}곡이 대기 중입니다. 다이내믹 레인지는 ReplayGain 바로 다음, 지문과 CLAP보다 먼저 처리됩니다.",
   "v2.health.drQueuedFirst": "{n}곡이 대기 중입니다. 다이내믹 레인지가 ReplayGain, 지문, CLAP보다 먼저 처리됩니다.",
+  "v2.health.drMeasuredByRg": "{n}곡은 아직 ReplayGain이 처리하지 않았습니다. 선택한 순서와 관계없이 ReplayGain 처리가 같은 디코딩으로 다이내믹 레인지도 측정합니다.",
   "v2.health.drSidecarLast": "foo_dr.txt 보고서: 마지막 처리에서 폴더 {d}개를 확인하고 {w}곡을 채웠습니다.",
   "v2.health.drPriority": "처리 순서",
   "v2.health.drPriorityLast": "마지막 (기본값)",

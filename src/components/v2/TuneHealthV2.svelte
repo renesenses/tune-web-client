@@ -27,6 +27,9 @@
   // #4144 — ce que la carte ReplayGain a le droit d'afficher, y compris face à
   // un serveur qui ne connaît pas la route.
   import { jaugeReplayGain } from '../../lib/santeReplayGain';
+  import {
+    etatCartePlageDynamique, etatServeurPlageDynamique, stockDuRattrapage, stocksPlageDynamique,
+  } from '../../lib/santePlageDynamique';
   // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
   import { temperatureProcesseur } from '../../lib/temperatureProcesseur';
   // #1352 — la pause des traitements de fond. La lecture de l'instantané vit
@@ -77,6 +80,13 @@
    *  (`rattraper_un_lot_de_dr` n'est atteint que sous `EtatAnalyse::Active`),
    *  d'où ce partage plutôt qu'une seconde lecture de la config. */
   let cfgDrActive = false;
+  // tune-web-client#1828 — ReplayGain ARMÉ (mode et coche) : c'est alors lui
+  // qui mesure la plage dynamique des pistes qu'il n'a pas encore vues.
+  let cfgRgArme = false;
+  // Le dernier stock du rattrapage lu, et quand (voir la carte DR).
+  let stockRattrapageLu: { a: number; n: number | null } | null = null;
+  // tune-web-client#1828 — l'état `dynamic_range` publié par l'instantané.
+  let etatServeurDr = $state<string | undefined>(undefined);
 
   let cards = $state<Card[]>([]);
   let loading = $state(true);
@@ -112,6 +122,7 @@
     toutEnPause = !!inst?.all_paused;
     prioriteDr = choixPrioriteDr(inst);
     rattrapageDr = inst?.dynamic_range_sidecar ?? null;
+    etatServeurDr = etatServeurPlageDynamique(inst);
   }
 
   // ── tune-server-rust#5169 : la place de la plage dynamique ─────────────
@@ -346,6 +357,7 @@
       // Le DR dépend du MÊME interrupteur : on le retient ici plutôt que de
       // relire la config une seconde fois.
       cfgDrActive = analysis;
+      cfgRgArme = analysis && mode !== 'off';
       const jauge = jaugeReplayGain(mode !== 'off', cfg[1].status === 'fulfilled' ? cfg[1].value : null);
       out.push({
         id: 'rg', traitement: 'replaygain', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
@@ -416,12 +428,31 @@
       // dépend du MÊME réglage, on ne le relit pas.
       const analyseActive = cfgDrActive;
       const restantes = Math.max(0, total - avec - ecartees - reportees);
+      // tune-web-client#1828 — le stock du RATTRAPAGE, le seul que l'ordre de
+      // passage règle. Demandé seulement quand il y a deux stocks à séparer
+      // (ReplayGain armé, pistes restantes), et au plus une fois par minute :
+      // c'est un `COUNT(*)` côté serveur (≈ 0,5 s sur 500 000 pistes, mesuré
+      // sur Shrek), et l'écran sonde toutes les 5 s. Un serveur qui ne le dit
+      // pas rend `null`, et la carte garde son message d'origine.
+      let rattrapage: number | null = null;
+      if (analyseActive && cfgRgArme && restantes > 0) {
+        if (!stockRattrapageLu || Date.now() - stockRattrapageLu.a > 60_000) {
+          const pr = await Promise.allSettled([api.getDynamicRangeProgress()]);
+          stockRattrapageLu = {
+            a: Date.now(),
+            n: pr[0].status === 'fulfilled' ? stockDuRattrapage(pr[0].value) : null,
+          };
+        }
+        rattrapage = stockRattrapageLu.n;
+      }
+      const stocks = stocksPlageDynamique({ restantes, rattrapage, replayGainArme: cfgRgArme });
+      const enAttente = stocks ? stocks.rattrapage : restantes;
 
       out.push({
         id: 'dr', traitement: 'dynamic_range',
         titre: $t('v2.health.cardDr' as any),
         sous: $t('v2.health.cardDrSub' as any),
-        etat: !analyseActive ? 'off' : restantes === 0 && reportees === 0 ? 'done' : 'idle',
+        etat: etatCartePlageDynamique({ analyseActive, restantes, reportees, etatServeur: etatServeurDr }),
         // La ligne dit la RÉPARTITION, pas seulement le total : un DR tagué
         // n'a pas la même valeur qu'un DR mesuré.
         ligne: $t((rapporte === null ? 'v2.health.drLine' : 'v2.health.drLineSidecar') as any)
@@ -436,15 +467,21 @@
         detail: !analyseActive
           ? $t('v2.health.drOffBecauseRg' as any)
           : [
-              restantes > 0
+              enAttente > 0
                 ? $t((prioriteDr?.courante === 'first'
                     ? 'v2.health.drQueuedFirst'
                     : prioriteDr?.courante === 'before_fingerprints'
                       ? 'v2.health.drQueuedBeforeFingerprints'
-                      : 'v2.health.drQueuedBehindRg') as any).replace('{n}', $formatNombre(restantes))
-                : ecartees > 0
+                      : 'v2.health.drQueuedBehindRg') as any).replace('{n}', $formatNombre(enAttente))
+                : restantes === 0 && ecartees > 0
                   ? $t('v2.health.drUnavailable' as any).replace('{n}', $formatNombre(ecartees))
                   : undefined,
+              // #1828 — les pistes que le ReplayGain n'a pas encore vues : c'est
+              // SA passe qui mesurera leur plage dynamique, l'ordre choisi n'y
+              // change rien.
+              stocks && stocks.parLeReplayGain > 0
+                ? $t('v2.health.drMeasuredByRg' as any).replace('{n}', $formatNombre(stocks.parLeReplayGain))
+                : undefined,
               reportees > 0
                 ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(reportees))
                 : undefined,

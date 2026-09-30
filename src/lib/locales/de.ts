@@ -3397,6 +3397,7 @@ export default {
   "v2.health.drLineSidecar": "{n} von {t} Titeln — {m} von Tune gemessen, {g} aus Tags gelesen, {s} aus foo_dr.txt gelesen",
   "v2.health.drQueuedBeforeFingerprints": "{n} Titel warten. Der Dynamikumfang kommt direkt nach ReplayGain, vor Fingerabdrücken und CLAP.",
   "v2.health.drQueuedFirst": "{n} Titel warten. Der Dynamikumfang kommt zuerst, vor ReplayGain, Fingerabdrücken und CLAP.",
+  "v2.health.drMeasuredByRg": "{n} Titel wurden von ReplayGain noch nicht erfasst: Sein Durchlauf misst ihren Dynamikumfang in derselben Dekodierung, unabhängig von der gewählten Reihenfolge.",
   "v2.health.drSidecarLast": "foo_dr.txt-Berichte: {d} Ordner geprüft, {w} Titel beim letzten Durchlauf ergänzt.",
   "v2.health.drPriority": "Reihenfolge",
   "v2.health.drPriorityLast": "Zuletzt (Standard)",
