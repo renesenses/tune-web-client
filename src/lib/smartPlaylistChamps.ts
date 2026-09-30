@@ -1,84 +1,127 @@
 /**
- * La GRAMMAIRE des règles d'une playlist intelligente : champs, opérateurs
- * offerts par champ, lecture des règles stockées, et la forme exacte du corps
- * envoyé au serveur.
+ * Les règles d'une playlist intelligente, telles que ses deux éditeurs les
+ * manipulent : champs, opérateurs offerts par champ, lecture des règles
+ * stockées, et la forme exacte du corps envoyé au serveur.
  *
- * Extraite de `v2-heritage/SmartPlaylistsView.svelte`, sans rien y changer,
- * le jour où le nouveau client a eu besoin du même éditeur (#1150). Recopier
- * quatorze champs et quatre familles d'opérateurs dans un second composant
- * aurait donné DEUX grammaires : elles auraient divergé à la première
- * addition, et le serveur n'en accepte qu'une
- * (`tune-server/src/routes/smart_playlists.rs`, `build_smart_query`).
+ * ## Une seule grammaire — tune-server-rust#5547
  *
- * Les opérateurs « ordinaires » et leur normalisation vivent déjà à côté, dans
- * `smartPlaylistOperateurs.ts` ; ce module s'appuie dessus plutôt que de les
- * redire.
+ * Bertrand, 30/09/2026, sur le .18 en 0.9.169 : « l'éditeur des playlists
+ * intelligentes n'offre pas les mêmes critères de sélection que celui des
+ * collections intelligentes. Il manque notamment les ÉTIQUETTES. Harmonise
+ * avec les smart collections ! »
+ *
+ * Ce module portait SA liste : quatorze champs et un seul jeu d'opérateurs,
+ * le même pour un titre que pour une année. Les collections en avaient une
+ * autre, de vingt-quatre champs typés, dans `smartRegles.ts`. Deux listes,
+ * et elles avaient divergé : l'étiquette, le label, le répertoire, la
+ * pochette, les dates, les crédits, les écoutes et les opérateurs « parmi » /
+ * « entre » n'existaient que d'un côté.
+ *
+ * Il n'y a plus qu'une définition, `smartRegles.ts` ; ce module n'en garde
+ * que ce qui est propre à la playlist : le niveau `'playlist'`, la clé
+ * `operator` de ses éditeurs, et la lecture des anciennes graphies.
  */
 import {
-  OPERATEURS,
-  normaliserOperateur,
-  type OptionOperateur,
-} from './smartPlaylistOperateurs';
+  champsDe,
+  operateursDe as operateursDuNiveau,
+  regleComplete,
+  typeDuChamp as typeDuNiveau,
+  type Operateur,
+  type TypeChamp,
+} from './smartRegles';
 
 /** Une règle telle que l'éditeur la manipule (l'opérateur y est `operator`). */
 export interface RegleSmartPlaylist {
   field: string;
   operator: string;
+  /** Texte, nombre, paire (`between`) ou objet (`credit`), comme au serveur. */
+  value: any;
+}
+
+/** Une entrée du menu des opérateurs : un symbole littéral ou une clé i18n. */
+export interface OptionOperateur {
   value: string;
+  key?: string;
+  label?: string;
 }
 
 /** Les champs sur lesquels une règle peut porter, dans l'ordre du menu. */
-export const CHAMPS: readonly { value: string; key: string }[] = [
-  { value: 'title', key: 'common.title' },
-  { value: 'artist', key: 'common.artist' },
-  { value: 'album', key: 'common.album' },
-  { value: 'genre', key: 'smartPlaylists.fieldGenre' },
-  { value: 'year', key: 'smartPlaylists.fieldYear' },
-  { value: 'format', key: 'smartPlaylists.fieldFormat' },
-  { value: 'sample_rate', key: 'smartPlaylists.fieldSampleRate' },
-  { value: 'bit_depth', key: 'smartPlaylists.fieldBitDepth' },
-  { value: 'source', key: 'smartPlaylists.fieldSource' },
-  { value: 'composer', key: 'smartPlaylists.fieldComposer' },
-  { value: 'comments', key: 'smartPlaylists.fieldComments' },
-  // Références : appartenance à une collection / playlist (classique ou
-  // smart) et statut favori — mêmes libellés que l'éditeur de smart
-  // collections (clés smartCollection.*).
-  { value: 'in_collection', key: 'smartCollection.fieldInCollection' },
-  { value: 'in_playlist', key: 'smartCollection.fieldInPlaylist' },
-  { value: 'favorite', key: 'smartCollection.fieldFavorite' },
-];
+export const CHAMPS: readonly { value: string; key: string; type: TypeChamp }[] = champsDe(
+  'playlist',
+).map((c) => ({ value: c.value, key: c.labelKey, type: c.type }));
 
-/**
- * Les champs « référence » n'acceptent que est / n'est pas — `in`/`not_in`
- * côté serveur, `is`/`is_not` pour les favoris.
- */
-export const REF_OPERATEURS: readonly OptionOperateur[] = [
-  { value: 'in', key: 'smartCollection.opRefIn' },
-  { value: 'not_in', key: 'smartCollection.opRefNotIn' },
-];
-export const FAV_OPERATEURS: readonly OptionOperateur[] = [
-  { value: 'is', key: 'smartCollection.opRefIn' },
-  { value: 'is_not', key: 'smartCollection.opRefNotIn' },
-];
-/**
- * « Source » se choisit dans une LISTE (#4299) : est / n'est pas. Le serveur
- * ne ramène les favoris d'un service que sur une règle positive.
- */
-export const SOURCE_OPERATEURS: readonly OptionOperateur[] = [
-  { value: 'equals', label: '=' },
-  { value: 'not_equals', label: '≠' },
-];
-
-export function estChampReference(field: string): boolean {
-  return field === 'in_collection' || field === 'in_playlist' || field === 'favorite';
+/** Le type d'un champ de playlist : il décide des opérateurs ET de la saisie. */
+export function typeDuChamp(field: string): TypeChamp {
+  return typeDuNiveau(field, 'playlist');
 }
 
-/** Les opérateurs offerts pour ce champ. */
+const enOption = (o: Operateur): OptionOperateur =>
+  o.labelKey ? { value: o.value, key: o.labelKey } : { value: o.value, label: o.label };
+
+/** Les opérateurs offerts pour ce champ — ceux des collections, mot pour mot. */
 export function operateursDe(field: string): readonly OptionOperateur[] {
-  if (field === 'favorite') return FAV_OPERATEURS;
-  if (estChampReference(field)) return REF_OPERATEURS;
-  if (field === 'source') return SOURCE_OPERATEURS;
-  return OPERATEURS;
+  return operateursDuNiveau(field, 'playlist').map(enOption);
+}
+
+/**
+ * Les opérateurs du MENU pour cette règle : ceux du champ, plus l'opérateur
+ * enregistré s'il n'y figure pas.
+ *
+ * Une règle écrite avant l'harmonisation peut porter un opérateur que le menu
+ * ne propose plus — `branch_of`, qu'aucun des deux moteurs ne sait traduire.
+ * Sans cette entrée, le `<select>` s'afficherait vide et rouvrir puis
+ * enregistrer la playlist changerait sa règle en silence. On la montre telle
+ * quelle : elle se garde, ou se change à la main.
+ */
+export function operateursPour(r: RegleSmartPlaylist): readonly OptionOperateur[] {
+  const offerts = operateursDe(r.field);
+  if (!r.operator || offerts.some((o) => o.value === r.operator)) return offerts;
+  return [...offerts, { value: r.operator, label: r.operator }];
+}
+
+/**
+ * Les anciennes graphies de l'éditeur des playlists, ramenées aux valeurs du
+ * menu commun.
+ *
+ * Chaque paire désigne la MÊME chose pour le serveur
+ * (`regles_sql::normaliser_op`) : `equals` et `=` y deviennent `=`, `gte` et
+ * `>=` y deviennent `>=`. La relecture ne change donc aucun résultat — elle
+ * rend seulement l'opérateur visible dans le menu. `>` et `<` restent eux-mêmes :
+ * le serveur les lit stricts.
+ */
+const ANCIENNES_GRAPHIES: Readonly<Record<string, string>> = {
+  equals: '=',
+  eq: '=',
+  not_equals: '!=',
+  ne: '!=',
+  neq: '!=',
+  gte: '>=',
+  greater_than: '>=',
+  greater_equal: '>=',
+  lte: '<=',
+  less_than: '<=',
+  less_equal: '<=',
+  gt: '>',
+  lt: '<',
+  is_empty: 'is_null',
+  empty: 'is_null',
+  is_not_empty: 'is_not_null',
+  not_empty: 'is_not_null',
+};
+
+export function normaliserOperateur(op: string): string {
+  return ANCIENNES_GRAPHIES[op] ?? op;
+}
+
+/** L'entrée de menu d'une valeur d'opérateur, pour afficher une règle. */
+export function optionOperateur(field: string, op: string): OptionOperateur | undefined {
+  return operateursDe(field).find((o) => o.value === op);
+}
+
+/** Les champs « référence » : collection, playlist, favori, étiquette. */
+export function estChampReference(field: string): boolean {
+  const t = typeDuChamp(field);
+  return t === 'collection_ref' || t === 'playlist_ref' || t === 'favorite' || t === 'tag_ref';
 }
 
 /** La règle posée par défaut, à l'ouverture comme sur « ajouter une règle ». */
@@ -90,9 +133,7 @@ export function regleNeuve(): RegleSmartPlaylist {
  * Les règles d'une playlist stockée, ramenées à la forme de l'éditeur.
  *
  * Le serveur rend tantôt un tableau, tantôt sa forme JSON encodée, et
- * l'opérateur y porte tantôt `op`, tantôt `operator`. `normaliserOperateur`
- * ramène les alias (`>=`, `greater_than`, …) sur une entrée du menu : sans
- * lui, rouvrir puis enregistrer une playlist PERD son opérateur.
+ * l'opérateur y porte tantôt `op`, tantôt `operator`.
  */
 export function lireRegles(rules: unknown): RegleSmartPlaylist[] {
   const brut: any[] = Array.isArray(rules)
@@ -112,13 +153,23 @@ export function lireRegles(rules: unknown): RegleSmartPlaylist[] {
 }
 
 /**
- * Les règles à envoyer au serveur : celles qui portent une valeur, et sous le
- * nom de champ qu'il attend (`op`, pas `operator`).
+ * Les règles à envoyer au serveur : celles qui sont COMPLÈTES, sous le nom de
+ * champ qu'il attend (`op`, pas `operator`).
+ *
+ * « Complète » est la définition des collections (`regleComplete`) : une règle
+ * « est vide » part sans valeur — l'ancien filtre sur la valeur la jetait, et
+ * la règle n'atteignait jamais le serveur.
  */
 export function reglesPourServeur(
   regles: readonly RegleSmartPlaylist[],
-): { field: string; op: string; value: string }[] {
+): { field: string; op: string; value: any }[] {
   return regles
-    .filter((r) => String(r.value ?? '').trim())
+    .filter((r) =>
+      regleComplete({
+        field: r.field,
+        op: r.operator,
+        value: typeof r.value === 'string' ? r.value.trim() : r.value,
+      }),
+    )
     .map((r) => ({ field: r.field, op: r.operator, value: r.value }));
 }

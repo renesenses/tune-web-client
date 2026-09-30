@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  CHAMPS, OPERATEURS, typeDuChamp, operateursDe, sansValeur, regleComplete, valeurInitiale,
+  CHAMPS, OPERATEURS, SAISISSABLES, champsDe, typeDuChamp, operateursDe, sansValeur, regleComplete, valeurInitiale,
 } from '../smartRegles';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
@@ -16,7 +16,11 @@ describe('Grammaire des règles : une seule, partagée', () => {
     // 25 depuis l'ajout de « répertoire » (localisation sur le disque).
     // 26 depuis « étiquette » (Bertrand, 21/09 : « impossible de choisir un
     // tag comme règle de smart collection »).
-    expect(CHAMPS.length).toBe(26);
+    // 28 définitions depuis tune-server-rust#5547 : la liste est COMMUNE aux
+    // collections et aux playlists, et deux critères n'ont de sens que pour
+    // une piste (titre du morceau, commentaire). Les collections en voient 26.
+    expect(CHAMPS.length).toBe(28);
+    expect(champsDe('collection').length).toBe(26);
     for (const c of CHAMPS) {
       expect(OPERATEURS[c.type], `${c.value} : type sans opérateurs`).toBeTruthy();
       expect(OPERATEURS[c.type].length).toBeGreaterThan(0);
@@ -109,7 +113,9 @@ describe("L'éditeur v2 de collection intelligente", () => {
     // collections, playlists et favoris ». La valeur est `classic:<id>` ou
     // `smart:<id>` — une saisie libre y produirait des règles refusées après
     // coup.
-    expect(ed).toContain("'collection_ref', 'playlist_ref'");
+    // Les deux types sont saisissables — liste commune depuis tune-server-rust#5547.
+    expect(SAISISSABLES).toContain('collection_ref');
+    expect(SAISISSABLES).toContain('playlist_ref');
     expect(ed).toContain('`classic:${c.id}`');
     expect(ed).toContain('`smart:${c.id}`');
     expect(ed).toContain('`classic:${p.id}`');
@@ -139,8 +145,11 @@ describe("L'éditeur v2 de collection intelligente", () => {
   it("le seul champ encore hors de portee est `credit`", () => {
     // Il demande un controle a DEUX valeurs (role + nom). Il reste dans la
     // grammaire : une collection qui l'utilise s'ouvre sans le perdre.
-    expect(ed).toContain('SAISISSABLES');
+    // La liste des types saisissables est COMMUNE aux trois éditeurs depuis
+    // tune-server-rust#5547 : elle vit dans la grammaire.
+    expect(ed).toContain("champsSaisissables('collection')");
     expect(ed).not.toContain("'credit'");
+    expect(SAISISSABLES).not.toContain('credit');
     expect(CHAMPS.some((c) => c.type === 'credit')).toBe(true);
   });
 
@@ -241,7 +250,7 @@ describe('Le champ « répertoire »', () => {
     // cette liste disparaît du sélecteur SANS erreur — le champ existerait
     // dans la grammaire et nulle part à l'écran.
     const v2 = sansCommentaires(lire('src/components/v2/CollectionSmartEditeurV2.svelte'));
-    expect(v2, 'le v2 doit déclarer `folder` saisissable').toContain("'folder'");
+    expect(SAISISSABLES, '`folder` doit être saisissable').toContain('folder');
     expect(v2).toContain('SmartFolderPicker');
   });
 

@@ -24,15 +24,21 @@
   import { sourcesDisponibles, libelleSource } from '../../lib/sourcesRegle';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { signalerEchecLecture } from '../../lib/echecLecture';
-  import { optionOperateur } from '../../lib/smartPlaylistOperateurs';
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   // La GRAMMAIRE des règles — champs, opérateurs offerts par champ, lecture
   // des règles stockées, mise en forme pour le serveur — a quitté ce fichier
   // pour `lib/smartPlaylistChamps` (#1150) : le nouveau client a désormais le
   // même éditeur, et deux copies auraient divergé à la première addition.
+  // tune-server-rust#5547 — et depuis le 30/09/2026 cette grammaire est
+  // celle des COLLECTIONS (`lib/smartRegles`, niveau `'playlist'`) : mêmes
+  // critères, mêmes opérateurs, mêmes libellés, étiquettes comprises.
+  import { champsSaisissables, sansValeur, valeurInitiale } from '../../lib/smartRegles';
+  import type { UserTag } from '../../lib/types';
   import {
     CHAMPS as FIELDS,
-    operateursDe as opsFor,
+    operateursPour as opsFor,
+    optionOperateur,
+    typeDuChamp,
     estChampReference as isRefField,
     lireRegles,
     reglesPourServeur,
@@ -73,6 +79,12 @@
 
   let statutsServices = $state<Record<string, any>>({});
 
+  /** Les champs du menu : ceux des collections, au niveau de la piste. */
+  const champsMenu = champsSaisissables('playlist');
+
+  /** Les étiquettes de l'utilisateur, pour une règle « Étiquette ». */
+  let etiquettes = $state<UserTag[]>([]);
+
   // Listes pour les sélecteurs de référence (chargées avec la vue).
   let refOptions = $state<{
     collections: any[]; smartCollections: any[]; playlists: any[]; smartPlaylists: any[];
@@ -85,6 +97,9 @@
       api.getPlaylists(500).catch(() => []),
       api.getSmartPlaylists().catch(() => []),
     ]);
+    etiquettes = ((await api.getTags().catch(() => [])) ?? [])
+      .filter((x: UserTag) => x.id != null)
+      .sort((a: UserTag, b: UserTag) => a.name.localeCompare(b.name));
     refOptions = {
       collections: collections ?? [],
       smartCollections: smartCollections ?? [],
@@ -106,8 +121,13 @@
   // « référence » affichent le nom de la collection/playlist, pas
   // `in_playlist in smart:4`.
   function displayRule(r: Rule): string {
+    const fieldLabel = $tr((FIELDS.find(f => f.value === r.field)?.key ?? r.field) as any);
+    if (r.field === 'tag') {
+      const opLabel = $tr(r.operator === 'is_not' ? 'smartCollection.opHasNotTag' : 'smartCollection.opHasTag');
+      const nom = etiquettes.find((e) => String(e.id) === String(r.value))?.name ?? String(r.value ?? '');
+      return `${fieldLabel} ${opLabel} « ${nom} »`;
+    }
     if (isRefField(r.field)) {
-      const fieldLabel = $tr(FIELDS.find(f => f.value === r.field)?.key ?? r.field);
       const opLabel = $tr(
         (r.operator === 'not_in' || r.operator === 'is_not')
           ? 'smartCollection.opRefNotIn'
@@ -119,15 +139,20 @@
       return `${fieldLabel} ${opLabel} « ${valueLabel} »`;
     }
     if (r.field === 'source') {
-      const fieldLabel = $tr('smartPlaylists.fieldSource');
-      const opLabel = r.operator === 'not_equals' ? '≠' : '=';
+      const opLabel = r.operator === 'not_equals' || r.operator === '!=' ? '≠' : '=';
       return `${fieldLabel} ${opLabel} « ${libelleSource(r.value, $tr('v2.lib.sourceLocal' as any))} »`;
     }
     // Le libellé du menu, pas la valeur interne : le résumé d'une règle doit se
     // lire « bit_depth ≥ "24" », pas « bit_depth gte "24" ».
-    const option = optionOperateur(r.operator);
-    const opLabel = option ? (option.key ? $tr(option.key) : option.label) : r.operator;
-    return `${r.field} ${opLabel} "${r.value}"`;
+    const option = optionOperateur(r.field, r.operator);
+    const opLabel = option ? (option.key ? $tr(option.key as any) : option.label) : r.operator;
+    if (sansValeur(r.operator)) return `${fieldLabel} ${opLabel}`;
+    const valeur = Array.isArray(r.value)
+      ? r.value.join(` ${$tr('v2.smart.and' as any)} `)
+      : typeof r.value === 'object' && r.value != null
+        ? Object.values(r.value).filter(Boolean).join(' · ')
+        : String(r.value ?? '');
+    return `${fieldLabel} ${opLabel} "${valeur}"`;
   }
 
   const SORT_OPTIONS: { value: string; key: string }[] = [
@@ -757,19 +782,43 @@
                 value={rule.field}
                 onchange={(e) => {
                   const f = (e.target as HTMLSelectElement).value;
-                  const ops = opsFor(f);
+                  const op = opsFor({ field: f, operator: '', value: '' })[0].value;
                   // Changer de famille de champ invalide l'opérateur et la
                   // valeur : on repart sur le premier opérateur valide.
                   newRules = newRules.map((r, idx) =>
-                    idx === i ? { field: f, operator: ops[0].value, value: '' } : r);
+                    idx === i ? { field: f, operator: op, value: valeurInitiale(op, typeDuChamp(f)) } : r);
                 }}
               >
-                {#each FIELDS as f}<option value={f.value}>{$tr(f.key)}</option>{/each}
+                {#each champsMenu as f}<option value={f.value}>{$tr(f.labelKey as any)}</option>{/each}
               </select>
-              <select bind:value={rule.operator} class="sp-select">
-                {#each opsFor(rule.field) as op}<option value={op.value}>{op.key ? $tr(op.key) : op.label}</option>{/each}
+              <select
+                class="sp-select"
+                value={rule.operator}
+                onchange={(e) => {
+                  const op = (e.target as HTMLSelectElement).value;
+                  newRules = newRules.map((r, idx) =>
+                    idx === i ? { ...r, operator: op, value: valeurInitiale(op, typeDuChamp(r.field)) } : r);
+                }}
+              >
+                {#each opsFor(rule) as op}<option value={op.value}>{op.key ? $tr(op.key as any) : op.label}</option>{/each}
               </select>
-              {#if rule.field === 'in_collection'}
+              {#if sansValeur(rule.operator)}
+                <span class="sp-input-sm">—</span>
+              {:else if rule.operator === 'between'}
+                <input type={typeDuChamp(rule.field) === 'timestamp' ? 'date' : 'number'} class="sp-input sp-input-sm"
+                  value={Array.isArray(rule.value) ? rule.value[0] : ''}
+                  oninput={(e) => { const v = (e.target as HTMLInputElement).value; newRules = newRules.map((r, idx) => idx === i ? { ...r, value: [v, Array.isArray(r.value) ? r.value[1] : ''] } : r); }} />
+                <input type={typeDuChamp(rule.field) === 'timestamp' ? 'date' : 'number'} class="sp-input sp-input-sm"
+                  value={Array.isArray(rule.value) ? rule.value[1] : ''}
+                  oninput={(e) => { const v = (e.target as HTMLInputElement).value; newRules = newRules.map((r, idx) => idx === i ? { ...r, value: [Array.isArray(r.value) ? r.value[0] : '', v] } : r); }} />
+              {:else if rule.field === 'tag'}
+                <select bind:value={rule.value} class="sp-select sp-input-sm">
+                  <option value="" disabled>{$tr('smartCollection.refPick')}</option>
+                  {#each etiquettes as e (e.id)}
+                    <option value={String(e.id)}>{e.name}</option>
+                  {/each}
+                </select>
+              {:else if rule.field === 'in_collection'}
                 <select bind:value={rule.value} class="sp-select sp-input-sm">
                   <option value="" disabled>{$tr('smartCollection.refPick')}</option>
                   <optgroup label={$tr('smartCollection.groupCollections')}>
@@ -812,7 +861,8 @@
                   <option value="artist">{$tr('smartCollection.favArtist')}</option>
                 </select>
               {:else}
-                <input type="text" placeholder={$tr('smartPlaylists.valuePlaceholder')} bind:value={rule.value} class="sp-input sp-input-sm" />
+                <input type={['int', 'count'].includes(typeDuChamp(rule.field)) ? 'number' : typeDuChamp(rule.field) === 'timestamp' ? 'date' : 'text'}
+                  placeholder={$tr('smartPlaylists.valuePlaceholder')} bind:value={rule.value} class="sp-input sp-input-sm" />
               {/if}
               <button class="sp-remove-rule" onclick={() => removeRule(i)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>

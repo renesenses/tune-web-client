@@ -41,6 +41,16 @@
    * de modification est écartée de la sienne : une règle qui se référence
    * elle-même est refusée par le serveur.
    *
+   * ## Les CRITÈRES sont ceux des collections — tune-server-rust#5547
+   *
+   * Bertrand, 30/09/2026 : « l'éditeur des playlists intelligentes n'offre pas
+   * les mêmes critères de sélection que celui des collections intelligentes.
+   * Il manque notamment les ÉTIQUETTES. » Le menu vient maintenant de la
+   * définition UNIQUE de `lib/smartRegles` (niveau `'playlist'`), avec les
+   * opérateurs et les libellés des collections, et chaque type a le contrôle
+   * de saisie des collections : liste d'étiquettes, deux bornes pour
+   * « entre », navigateur de répertoire, rien pour « est vide ».
+   *
    * ## Ce que cet éditeur ne fait PAS
    *
    * Pas d'aperçu. `/smart-collections/preview` n'a pas d'équivalent pour les
@@ -57,14 +67,18 @@
   import { sourcesDisponibles, libelleSource, estSourceDeService, serviceDuCatalogue } from '../../lib/sourcesRegle';
   import { manqueUneCible } from '../../lib/regleSourceAide';
   import { errText } from '../../lib/utils';
+  import type { UserTag } from '../../lib/types';
+  import { champsSaisissables, sansValeur, valeurInitiale } from '../../lib/smartRegles';
   import {
-    CHAMPS,
     operateursDe,
+    operateursPour,
+    typeDuChamp,
     lireRegles,
     reglesPourServeur,
     regleNeuve,
     type RegleSmartPlaylist,
   } from '../../lib/smartPlaylistChamps';
+  import SmartFolderPicker from '../partages/SmartFolderPicker.svelte';
   import '../../styles/tune-v2.css';
 
   interface Props {
@@ -121,6 +135,24 @@
       });
   });
 
+  /**
+   * Les champs du menu : ceux des collections, au niveau de la PISTE
+   * (tune-server-rust#5547). Triés comme dans l'éditeur des collections.
+   */
+  const champsOfferts = $derived(
+    [...champsSaisissables('playlist')]
+      .sort((a, b) => $t(a.labelKey as any).localeCompare($t(b.labelKey as any))),
+  );
+
+  /** Les étiquettes de l'utilisateur, pour la liste d'une règle « Étiquette ». */
+  let etiquettes = $state<UserTag[]>([]);
+  onMount(() => {
+    api.getTags()
+      // Une étiquette sans identifiant ne peut pas être visée par une règle.
+      .then((l) => { etiquettes = (l ?? []).filter((x) => x.id != null).sort((a, b) => a.name.localeCompare(b.name)); })
+      .catch(() => { /* la règle reste proposée, sa liste vide dit qu'il n'y a rien à choisir */ });
+  });
+
   /** Les statuts des services, pour la liste d'une règle « Source » (#4299). */
   let statutsServices = $state<Record<string, any>>({});
   onMount(() => {
@@ -165,13 +197,23 @@
     // Changer de famille de champ invalide l'opérateur et la valeur : on
     // repart sur le premier opérateur valide.
     const op = operateursDe(champ)[0]?.value ?? 'contains';
-    regles = regles.map((r, k) => (k === i ? { field: champ, operator: op, value: '' } : r));
+    const value = valeurInitiale(op, typeDuChamp(champ));
+    regles = regles.map((r, k) => (k === i ? { field: champ, operator: op, value } : r));
   }
   function changerOp(i: number, op: string) {
-    regles = regles.map((r, k) => (k === i ? { ...r, operator: op } : r));
+    regles = regles.map((r, k) =>
+      k === i ? { ...r, operator: op, value: valeurInitiale(op, typeDuChamp(r.field)) } : r);
   }
-  function changerValeur(i: number, v: string) {
+  function changerValeur(i: number, v: any) {
     regles = regles.map((r, k) => (k === i ? { ...r, value: v } : r));
+  }
+  function changerBorne(i: number, rang: 0 | 1, v: any) {
+    regles = regles.map((r, k) => {
+      if (k !== i) return r;
+      const paire = Array.isArray(r.value) ? [...r.value] : ['', ''];
+      paire[rang] = v;
+      return { ...r, value: paire };
+    });
   }
 
   // #4473, second volet — une source `catalogue:` sans artiste ni album nommé :
@@ -245,20 +287,45 @@
     <div class="regles">
       <span class="lbl">{$t('smartPlaylists.rules')}</span>
       {#each regles as r, i (i)}
+        {@const type = typeDuChamp(r.field)}
         <div class="regle">
           <select class="sel" value={r.field} onchange={(e) => changerChamp(i, e.currentTarget.value)}>
-            {#each CHAMPS as c (c.value)}
-              <option value={c.value}>{$t(c.key as any)}</option>
+            {#each champsOfferts as c (c.value)}
+              <option value={c.value}>{$t(c.labelKey as any)}</option>
             {/each}
           </select>
 
           <select class="sel op" value={r.operator} onchange={(e) => changerOp(i, e.currentTarget.value)}>
-            {#each operateursDe(r.field) as o (o.value)}
+            {#each operateursPour(r) as o (o.value)}
               <option value={o.value}>{o.key ? $t(o.key as any) : o.label}</option>
             {/each}
           </select>
 
-          {#if r.field === 'in_collection'}
+          {#if sansValeur(r.operator)}
+            <span class="rien">—</span>
+          {:else if r.operator === 'between'}
+            <span class="paire">
+              <input class="txt" type={type === 'timestamp' ? 'date' : 'number'}
+                value={Array.isArray(r.value) ? r.value[0] : ''}
+                oninput={(e) => changerBorne(i, 0, e.currentTarget.value)} />
+              <em>{$t('v2.smart.and' as any)}</em>
+              <input class="txt" type={type === 'timestamp' ? 'date' : 'number'}
+                value={Array.isArray(r.value) ? r.value[1] : ''}
+                oninput={(e) => changerBorne(i, 1, e.currentTarget.value)} />
+            </span>
+          {:else if type === 'tag_ref'}
+            <!-- Une étiquette se CHOISIT : la règle porte son identifiant.
+                 Au niveau de la piste, le serveur la lit sur la piste, son
+                 album OU son artiste (`smart_refs::track_ref_condition`). -->
+            <select class="sel" value={String(r.value ?? '')} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
+              <option value="" disabled>{$t('smartCollection.refPick')}</option>
+              {#each etiquettes as e (e.id)}
+                <option value={String(e.id)}>{e.name}</option>
+              {/each}
+            </select>
+          {:else if type === 'folder'}
+            <SmartFolderPicker value={r.value ?? ''} onChange={(v) => changerValeur(i, v)} />
+          {:else if r.field === 'in_collection'}
             <select class="sel" value={r.value ?? ''} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
               <option value="" disabled>{$t('smartCollection.refPick')}</option>
               <optgroup label={$t('smartCollection.groupCollections')}>
@@ -317,8 +384,11 @@
               </span>
             {/if}
           {:else}
-            <input class="txt" value={r.value ?? ''} placeholder={$t('smartPlaylists.valuePlaceholder')}
-              oninput={(e) => changerValeur(i, e.currentTarget.value)} />
+            <input class="txt"
+              type={type === 'int' || type === 'count' ? 'number' : type === 'timestamp' ? 'date' : 'text'}
+              value={r.value ?? ''} placeholder={$t('smartPlaylists.valuePlaceholder')}
+              oninput={(e) => changerValeur(i, type === 'int' || type === 'count'
+                ? Number(e.currentTarget.value) : e.currentTarget.value)} />
           {/if}
 
           <button class="rm" onclick={() => retirer(i)}
@@ -393,6 +463,9 @@
   .sel{height:38px; border-radius:10px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
     color:var(--v2-txt); font:13px var(--v2-sans); padding:0 10px; outline:none; min-width:0}
   .sel.op{min-width:120px}
+  .paire{display:flex; align-items:center; gap:8px; min-width:0}
+  .paire em{font:11px var(--v2-mono); font-style:normal; color:var(--v2-txt3)}
+  .rien{color:var(--v2-txt3); font:12px var(--v2-mono)}
   .rm{width:34px; height:34px; border-radius:9px; border:1px solid transparent; background:transparent;
     color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center}
   .rm:hover{color:var(--v2-danger); border-color:var(--v2-danger-bd)}

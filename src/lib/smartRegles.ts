@@ -20,15 +20,37 @@ export type TypeChamp =
   // Une ÉTIQUETTE de l'utilisateur, choisie dans une liste. Valeur : `tags.id`.
   | 'tag_ref';
 
+/**
+ * Ce que l'éditeur ÉDITE : une collection porte sur des ALBUMS, une playlist
+ * sur des PISTES. Même découpe que le serveur (`tune-smart-http/src/criteres.rs`).
+ */
+export type Niveau = 'collection' | 'playlist';
+
 export interface Champ {
+  /** Le nom du champ dans une règle de COLLECTION. */
   value: string;
   labelKey: string;
   type: TypeChamp;
+  /**
+   * Le nom du champ dans une règle de PLAYLIST, quand il diffère — tune-server-rust#5547.
+   *
+   * Absent : le même nom. Deux champs seulement ont un autre nom au niveau de
+   * la piste, et ce sont des noms que les playlists déjà enregistrées portent :
+   * `artist` (et non `artist_name`) et `album` pour le titre de l'album — dans
+   * une playlist, `title` est le titre de la PISTE (`regles_sql::colonne_piste`).
+   */
+  piste?: string;
+  /**
+   * Le critère n'existe qu'à UN niveau. Rien d'autre ne peut diverger entre
+   * les deux listes : la garde `criteresPartages5547.test.ts` échoue sur toute
+   * entrée propre à un niveau qui n'est pas nommée dans sa liste d'exceptions.
+   */
+  seulement?: Niveau;
 }
 
 export const CHAMPS: readonly Champ[] = [
-  { value: 'artist_name',    labelKey: 'smartCollection.fieldArtist',      type: 'text' },
-  { value: 'title',          labelKey: 'smartCollection.fieldAlbumTitle',  type: 'text' },
+  { value: 'artist_name',    labelKey: 'smartCollection.fieldArtist',      type: 'text', piste: 'artist' },
+  { value: 'title',          labelKey: 'smartCollection.fieldAlbumTitle',  type: 'text', piste: 'album' },
   { value: 'genre',          labelKey: 'smartCollection.fieldGenre',       type: 'text' },
   { value: 'composer',       labelKey: 'smartCollection.fieldComposer',    type: 'text' },
   { value: 'label',          labelKey: 'smartCollection.fieldLabel',       type: 'text' },
@@ -62,7 +84,64 @@ export const CHAMPS: readonly Champ[] = [
   // ici, ni côté serveur (`smart_refs`, champ `tag`). L'album correspond s'il
   // porte l'étiquette, ou si son ARTISTE la porte.
   { value: 'tag',            labelKey: 'smartCollection.fieldTag',          type: 'tag_ref' },
+  // --- Propres aux PLAYLISTS : ce qui ne se dit que d'une piste. ---
+  // Le titre du MORCEAU. À l'album, `title` est déjà le titre de l'album.
+  { value: 'title',          labelKey: 'smartCollection.fieldTrackTitle',   type: 'text', seulement: 'playlist' },
+  // Le commentaire d'une piste (étiquette COMMENT du fichier) ; les albums
+  // n'en ont pas, et `build_album_query` ne le connaît pas.
+  { value: 'comments',       labelKey: 'smartPlaylists.fieldComments',      type: 'text', seulement: 'playlist' },
 ];
+
+/** Le nom qu'un champ porte dans une règle de ce niveau. */
+export function nomAuNiveau(c: Champ, niveau: Niveau): string {
+  return niveau === 'playlist' ? (c.piste ?? c.value) : c.value;
+}
+
+/**
+ * LA liste des champs d'un niveau, tirée de la seule définition ci-dessus
+ * (tune-server-rust#5547).
+ *
+ * Bertrand, 30/09/2026 : « l'éditeur des playlists intelligentes n'offre pas
+ * les mêmes critères que celui des collections — il manque les étiquettes.
+ * Harmonise ! » Il y avait deux listes : quatorze champs pour les playlists,
+ * vingt-quatre pour les collections. Il n'y en a plus qu'une, et chaque
+ * niveau en lit sa part.
+ */
+export function champsDe(niveau: Niveau): readonly Champ[] {
+  return CHAMPS
+    .filter((c) => !c.seulement || c.seulement === niveau)
+    .map((c) => ({ ...c, value: nomAuNiveau(c, niveau) }));
+}
+
+/**
+ * Les types qu'un éditeur sait SAISIR. `credit` reste dans la grammaire — une
+ * règle qui l'utilise s'ouvre et s'enregistre sans le perdre — mais il demande
+ * un contrôle à trois valeurs (rôle, nom, instrument) qu'aucun éditeur n'a
+ * encore. Une seule liste pour les trois éditeurs (tune-server-rust#5547) :
+ * c'est elle qui décide de ce que le menu propose, donc de ce qui peut
+ * diverger.
+ */
+export const SAISISSABLES: readonly TypeChamp[] = [
+  'text', 'int', 'nullable', 'timestamp', 'count', 'favorite',
+  'collection_ref', 'playlist_ref', 'folder', 'source', 'tag_ref',
+];
+
+/**
+ * Les critères que le serveur ne sait pas évaluer aujourd'hui, et qu'aucun
+ * menu ne propose donc (tune-server-rust#5547).
+ *
+ * « Note » (`rating`) compile en `t.rating`, colonne qui n'existe pas : l'aperçu
+ * rend une erreur 500, aux collections comme aux playlists (mesuré sur le .18
+ * en 0.9.169). Les notes vivent dans `album_ratings`, par album et par
+ * profil ; le choix de la traduction est rendu à Bertrand. Le champ reste dans
+ * la grammaire : une règle déjà enregistrée s'ouvre sans être perdue.
+ */
+export const EN_ATTENTE: readonly string[] = ['rating'];
+
+/** Les champs qu'un éditeur de ce niveau propose dans son menu. */
+export function champsSaisissables(niveau: Niveau): readonly Champ[] {
+  return champsDe(niveau).filter((c) => SAISISSABLES.includes(c.type) && !EN_ATTENTE.includes(c.value));
+}
 
 export interface Operateur {
   value: string;
@@ -141,13 +220,19 @@ export const OPERATEURS: Record<TypeChamp, readonly Operateur[]> = {
   ],
 };
 
-export function typeDuChamp(champ: string): TypeChamp {
-  return CHAMPS.find((f) => f.value === champ)?.type ?? 'text';
+export function typeDuChamp(champ: string, niveau: Niveau = 'collection'): TypeChamp {
+  // Les alias que les deux moteurs lisent aussi (`artist_name` dans une
+  // playlist, `album` dans une collection) retrouvent leur type.
+  const alias: Record<string, string> = niveau === 'playlist'
+    ? { artist_name: 'artist', album_title: 'album' }
+    : { artist: 'artist_name', album: 'title', album_title: 'title' };
+  const nom = alias[champ] ?? champ;
+  return champsDe(niveau).find((f) => f.value === nom)?.type ?? 'text';
 }
 
 /** Les opérateurs légaux pour un champ. Jamais vide : `text` sert de repli. */
-export function operateursDe(champ: string): readonly Operateur[] {
-  return OPERATEURS[typeDuChamp(champ)] ?? OPERATEURS.text;
+export function operateursDe(champ: string, niveau: Niveau = 'collection'): readonly Operateur[] {
+  return OPERATEURS[typeDuChamp(champ, niveau)] ?? OPERATEURS.text;
 }
 
 /**
