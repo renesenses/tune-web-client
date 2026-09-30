@@ -30,10 +30,20 @@
 </script>
 
 {#if !lignes.length}
-  <p class="rien">{$t('dashboard.empty' as any)}</p>
+  <!-- #1781 — « aucun historique » était faux : ce bloc ne lit que les SEPT
+       derniers jours (`PERIODE` de `tableauDeBordWidgets`). Une semaine
+       vide ne dit rien de l'historique plus ancien. -->
+  <p class="rien">{$t('dashboard.emptyLast7Days' as any)}</p>
 {:else}
   <ul class="liste">
-    {#each visibles as l (l.label)}
+    <!-- 🔴 #1763 — clé par RANG, jamais par libellé. `by_zone` est groupé par
+         `zone_id` côté serveur : deux zones du même nom (« Cet ordinateur »
+         sur deux machines, un DMP-A8 recréé) donnent deux lignes au même
+         libellé. Une clé en double lève `each_key_duplicate` pendant le
+         rendu, et l'erreur laisse l'ordonnanceur de Svelte bloqué : plus
+         aucune mise à jour ne s'affiche, et la barre latérale ne fait plus
+         changer de vue (FabienM, fil 2037). -->
+    {#each visibles as l, i (i)}
       <li>
         <span class="nom" title={l.label}>{l.label}</span>
         <span class="piste">

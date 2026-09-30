@@ -17,12 +17,15 @@
   import { preferences } from '../../lib/stores/preferences';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import { get } from 'svelte/store';
+  import { untrack } from 'svelte';
+  import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { streamingServices } from '../../lib/stores/streaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
   import { sourcesDisponibles, libelleSource } from '../../lib/sourcesRegle';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { optionOperateur } from '../../lib/smartPlaylistOperateurs';
+  import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   // La GRAMMAIRE des règles — champs, opérateurs offerts par champ, lecture
   // des règles stockées, mise en forme pour le serveur — a quitté ce fichier
   // pour `lib/smartPlaylistChamps` (#1150) : le nouveau client a désormais le
@@ -282,9 +285,9 @@
   };
 
   function parNom(a: SmartPlaylist, b: SmartPlaylist): number {
-    // `sensitivity: 'base'` : « Été » et « ete » se suivent. `numeric` pour que
-    // « Best 2 » vienne avant « Best 10 ».
-    return (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base', numeric: true });
+    // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956) :
+    // « Été » et « ete » se suivent, « Best 2 » vient avant « Best 10 ».
+    return comparerAlphabetique(a.name, b.name);
   }
 
   /**
@@ -377,8 +380,59 @@
     return () => window.removeEventListener('tune:shortcut-restore', onRestore);
   });
 
+  /**
+   * 🔴 OUVRIR UNE PLAYLIST INTELLIGENTE EMPILE UNE ENTRÉE D'HISTORIQUE — web#1790.
+   *
+   * Même défaut que `PlaylistManagerView` (#1807) : le détail est un `$state`
+   * local, rien n'était écrit, et le Précédent quittait l'écran. Depuis les
+   * Favoris, c'est aussi cette clé que `ouvrirAilleurs` vise, pour que
+   * l'ouverture ne coûte qu'UNE entrée. Même mécanisme que #980 : ouvrir
+   * empile, le Retour referme ET dépile, le Précédent referme.
+   */
+  const cleSp = (sp: SmartPlaylist) => `smartplaylists:${sp.id}`;
+  let cleSpEmpilee: string | null = null;
+
+  function fermerSp() {
+    selectedSp = null;
+    spTracks = [];
+    cleSpEmpilee = null;
+    clearShortcutTarget();
+  }
+
+  /** Refermer à la main (édition, suppression) : l'entrée courante est réécrite. */
+  function fermerSpSansReculer() {
+    const cle = cleSpEmpilee;
+    fermerSp();
+    if (cle != null && get(detailOuvert) === cle) fermerDetail();
+  }
+
+  function retourSp() {
+    if (cleSpEmpilee != null && entreeCourantePorte(cleSpEmpilee)) {
+      fermerDetailEnReculant(fermerSp);
+      return;
+    }
+    fermerSpSansReculer();
+  }
+
+  /** Le Précédent du navigateur a quitté l'entrée de la playlist : le détail suit. */
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      if (!selectedSp || cleSpEmpilee == null) return;
+      if (voulu === cleSpEmpilee) return;
+      fermerSp();
+    });
+  });
+
+  // La clé posée par cet écran part avec lui (même geste que web#1661).
+  $effect(() => () => {
+    if (cleSpEmpilee != null && get(detailOuvert) === cleSpEmpilee) fermerDetail();
+  });
+
   async function selectSp(sp: SmartPlaylist) {
     selectedSp = sp;
+    cleSpEmpilee = cleSp(sp);
+    ouvrirDetail(cleSpEmpilee);
     setShortcutTarget({
       key: `smartplaylists:${sp.id}`,
       restore: { id: sp.id, name: sp.name },
@@ -441,10 +495,7 @@
       await api.deleteSmartPlaylist(sp.id);
       smartPlaylists = smartPlaylists.filter(s => s.id !== sp.id);
       oublierContenu(sp.id);
-      if (selectedSp?.id === sp.id) {
-        selectedSp = null;
-        spTracks = [];
-      }
+      if (selectedSp?.id === sp.id) fermerSpSansReculer();
       notifications.success($tr('smartPlaylists.deleted').replace('{name}', sp.name));
     } catch (e: any) {
       // apiError range le corps `error` du serveur dans e.code (ex. le
@@ -619,7 +670,7 @@
   {#if selectedSp}
     <!-- Detail view -->
     <div class="sp-header">
-      <button class="back-btn" onclick={() => { selectedSp = null; spTracks = []; clearShortcutTarget(); }}>
+      <button class="back-btn" onclick={retourSp}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
         {$tr('common.back')}
       </button>
@@ -651,7 +702,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
           {$tr('library.shuffle')}
         </button>
-        <button class="edit-btn" onclick={() => { const sp = selectedSp!; selectedSp = null; spTracks = []; startEdit(sp); }}>
+        <button class="edit-btn" onclick={() => { const sp = selectedSp!; fermerSpSansReculer(); startEdit(sp); }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
           {$tr('smartPlaylists.edit')}
         </button>

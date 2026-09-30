@@ -15,7 +15,7 @@ import {
   CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
 } from '../cadenceAnimations';
 import { normaliserTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
-import { TRI_CONCERTS_DEFAUT, type TriConcerts } from '../concertsTri';
+import type { TriConcerts } from '../concertsTri';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
  *
@@ -141,12 +141,18 @@ export interface Preferences {
   albumSortOrder: 'asc' | 'desc';
   /** Densité de la grille d'albums — voir AlbumGridDensity. */
   albumGridDensity: AlbumGridDensity;
-  /** L'ordre de la liste de l'écran Concerts — `artiste` (défaut, l'ordre
-   *  d'origine) ou `date`. Ici, et pas dans un `localStorage` à part : c'est
-   *  ainsi que tous les choix d'affichage des écrans voisins sont retenus
-   *  (`oxygenView`, `albumSort`, `albumGridDensity`), donc synchronisés avec
-   *  le profil au lieu de rester dans un seul navigateur (#1134). */
-  concertsTri: TriConcerts;
+  /** L'ordre de la liste de l'écran Concerts — `date` ou `artiste`. Ici, et
+   *  pas dans un `localStorage` à part : c'est ainsi que tous les choix
+   *  d'affichage des écrans voisins sont retenus (`oxygenView`, `albumSort`,
+   *  `albumGridDensity`), donc synchronisés avec le profil au lieu de rester
+   *  dans un seul navigateur (#1134).
+   *
+   *  🔴 `null` = RIEN CHOISI (web#1718). Le magasin enregistre l'objet
+   *  ENTIER à chaque écriture : un défaut rangé ici en clair se retrouverait
+   *  écrit comme un choix (piège de #1650), et un changement de défaut
+   *  n'atteindrait plus personne. Seul le clic sur la bascule y écrit ; le
+   *  défaut (`TRI_CONCERTS_DEFAUT`, « Par date ») s'applique à l'affichage. */
+  concertsTri: TriConcerts | null;
   /**
    * Le crête-mètre affiché — #452, spécifié par Xavijol.
    *
@@ -336,12 +342,55 @@ export interface Preferences {
    */
   cadenceAnimations: CranCadence;
   /**
+   * « Ouvrir la file en faisant défiler » — web#1762, Bertrand, 28/09/2026.
+   *
+   * Dans « Lecture en cours », 130 px de molette vers le bas faisaient passer
+   * la feuille de la file en `peek` : la file semblait s'ouvrir toute seule.
+   * Le geste devient un CHOIX, DÉCOCHÉ par défaut (décision du 29/09/2026).
+   * Le bouton de la file et les autres gestes ne changent pas.
+   *
+   * Rangé ici comme les autres réglages de l'écran (`cadenceAnimations`,
+   * `afficherBoutonStop`) : `ui_preferences`, synchronisé serveur. Un blob
+   * enregistré qui ne connaît pas la clé reçoit le défaut par la fusion
+   * `{ ...defaults, ...raw }` de `loadPrefs`.
+   */
+  ouvrirFileAuDefilement: boolean;
+  /**
+   * « File d'attente : sous la barre d'avancement / à droite » — web#1800,
+   * FabienM (fil 2037, point 8), go de Bertrand du 29/09/2026.
+   *
+   * Sur écran large, la file ouverte glissait en colonne à droite de la
+   * pochette. `sousLaBarre` la déplie SUR PLACE, sous la barre d'avancement,
+   * sans glissement ; la colonne titres s'élargit et la page défile. Le
+   * défaut `droite` garde l'affichage d'avant. Rangé et synchronisé comme
+   * `ouvrirFileAuDefilement` (web#1762).
+   */
+  dispositionFile: DispositionFile;
+  /**
+   * « Lecture en cours » mène à CE QUI JOUE — web#1784.
+   *
+   * Didier (fil 2036, 29/09/2026) : l'entrée « Lecture en cours » de la barre
+   * latérale devrait ouvrir la page de l'album en cours ; FabienM ajoute : la
+   * page de la PLAYLIST quand la lecture en vient. Go de Bertrand du
+   * 29/09/2026 : oui, derrière un réglage DÉCOCHÉ par défaut — sans lui, rien
+   * ne change. L'écran dédié reste monté, et la vignette de la barre de
+   * transport continue d'y mener. Voir `lib/lienLectureEnCours`.
+   */
+  lienLectureVersSource: boolean;
+  /**
    * Les types de sources affichés dans la barre latérale — une case par type
    * (tune-server-rust#5065, étape 3). Rangé TYPE PAR TYPE : un type absent
    * n'est pas décidé et suit la présence ; vu présent, il est figé coché.
    * `null` : rien de décidé. Voir `lib/typesSourcesBarre`.
    */
   sourcesBarre: ChoixTypesBarre | null;
+}
+
+/** web#1800 — où la file d'attente s'ouvre dans « Lecture en cours ». */
+export type DispositionFile = 'droite' | 'sousLaBarre';
+export const DISPOSITION_FILE_DEFAUT: DispositionFile = 'droite';
+export function estDispositionFile(v: unknown): v is DispositionFile {
+  return v === 'droite' || v === 'sousLaBarre';
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -363,7 +412,9 @@ const defaults: Preferences = {
   albumSort: 'title',
   albumSortOrder: 'asc',
   albumGridDensity: 'detail',
-  concertsTri: TRI_CONCERTS_DEFAUT,
+  // web#1718 : `null`, pas le défaut — voir le type. L'écran lit
+  // `normaliserTriConcerts(null)`, donc « Par date ».
+  concertsTri: null,
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
@@ -395,6 +446,15 @@ const defaults: Preferences = {
   // réelle et mesurée, mais elle SE VOIT — elle se propose, elle ne s'impose
   // pas. Personne ne doit voir son affichage changer sans l'avoir demandé.
   cadenceAnimations: CRAN_CADENCE_DEFAUT,
+  // web#1762 : DÉCOCHÉ — la molette ne révèle plus la file sans qu'on l'ait
+  // demandé.
+  ouvrirFileAuDefilement: false,
+  // web#1800 : la colonne de droite reste le défaut — rien ne bouge pour qui
+  // n'a rien demandé.
+  dispositionFile: DISPOSITION_FILE_DEFAUT,
+  // web#1784 : DÉCOCHÉ — l'entrée « Lecture en cours » ouvre l'écran dédié,
+  // comme avant, tant qu'on ne l'a pas demandé.
+  lienLectureVersSource: false,
   sourcesBarre: null,
 };
 
@@ -553,6 +613,10 @@ function loadPrefs(): Preferences {
       if (!estCranCadence((raw as { cadenceAnimations?: unknown })?.cadenceAnimations)) {
         p.cadenceAnimations = CRAN_CADENCE_DEFAUT;
       }
+      // web#1800 — même règle : une disposition inconnue retombe sur le défaut.
+      if (!estDispositionFile((raw as { dispositionFile?: unknown })?.dispositionFile)) {
+        p.dispositionFile = DISPOSITION_FILE_DEFAUT;
+      }
       // #5065 — même règle : un choix de types abîmé retombe sur « pas encore
       // décidé », donc sur les types présents ; une clé inconnue est écartée.
       p.sourcesBarre = normaliserTypesBarre((raw as { sourcesBarre?: unknown })?.sourcesBarre);
@@ -616,6 +680,8 @@ export async function syncPreferencesFromServer() {
       // `defaults` qui doit reprendre la main, sinon un blob abîmé figerait
       // les animations sur une cadence qui n'existe pas.
       if (!estCranCadence(server.cadenceAnimations)) delete server.cadenceAnimations;
+      // web#1800 — idem pour la disposition de la file.
+      if (!estDispositionFile(server.dispositionFile)) delete server.dispositionFile;
       // #5065 — idem pour les types de sources de la barre.
       if (server.sourcesBarre !== undefined && !normaliserTypesBarre(server.sourcesBarre)) delete server.sourcesBarre;
       if (hadLocalPrefs) {

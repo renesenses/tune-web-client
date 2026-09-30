@@ -20,6 +20,7 @@
  */
 import { tick } from 'svelte';
 import { activeView, type View } from './stores/navigation';
+import { viserDetail } from './historiqueCoquille';
 
 export async function ouvrirParRaccourci(
   vue: Extract<View, 'playlists' | 'smartplaylists' | 'collections'>,
@@ -27,6 +28,13 @@ export async function ouvrirParRaccourci(
   id: number,
   nom: string,
 ): Promise<void> {
+  // web#1661 — `PlaylistsV2` rouvre la playlist en posant CETTE clé
+  // (`playlists:12`) dans `detailOuvert`. Sans intention, le geste coûtait
+  // DEUX entrées (`#playlists`, puis `#playlists/playlists:12`) et le premier
+  // Précédent retombait sur la liste des playlists, jamais vue. L'entrée
+  // composée de #1142 n'en écrit qu'une. Les autres écrans d'arrivée ne
+  // posent aucune clé : pas d'intention pour eux.
+  if (vue === 'playlists') viserDetail(cle);
   activeView.set(vue);
   await tick();
   window.dispatchEvent(
@@ -65,5 +73,45 @@ export function ouvrirCollection(c: {
     `${c.smart ? 'smartcollections' : 'collections'}:${c.id}`,
     c.id,
     c.name ?? '',
+  );
+}
+
+/**
+ * Ouvrir une playlist d'un SERVICE dans l'écran Playlists (web#1784).
+ *
+ * Même chemin que l'onglet Playlists des Favoris (#1620) : la clé est celle
+ * que `PlaylistsV2` publie (`streamingplaylists:<service>:<source_id>`), et
+ * `restore` porte l'élément complet — `{ kind: 'streaming', service, pl }` —
+ * que son écouteur rouvre tel quel dans `PlaylistDetailV2`.
+ */
+export async function ouvrirPlaylistDeService(
+  service: string,
+  pl: { source_id: string; name: string; cover_path?: string | null; track_count?: number | null },
+): Promise<void> {
+  const cle = `streamingplaylists:${service}:${pl.source_id}`;
+  viserDetail(cle);
+  activeView.set('playlists');
+  await tick();
+  window.dispatchEvent(
+    new CustomEvent('tune:shortcut-restore', {
+      detail: {
+        target: {
+          key: cle,
+          restore: {
+            kind: 'streaming',
+            service,
+            pl: {
+              source_id: pl.source_id,
+              name: pl.name,
+              track_count: pl.track_count ?? 0,
+              duration_ms: 0,
+              cover_path: pl.cover_path ?? null,
+              source: service,
+            },
+          },
+          label: pl.name,
+        },
+      },
+    }),
   );
 }

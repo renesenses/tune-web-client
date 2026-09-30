@@ -4,6 +4,7 @@
   import * as api from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
   import { t } from '../../lib/i18n';
+  import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
 
   type Tree = Record<string, string[]>;
 
@@ -28,7 +29,7 @@
         const albums = await api.getAllAlbums();
         const set = new Set<string>();
         for (const a of albums) if (a.genre) set.add(a.genre);
-        knownGenres = [...set].sort((a, b) => a.localeCompare(b));
+        knownGenres = [...set].sort(comparerAlphabetique);
       } catch {
         knownGenres = [];
       }
@@ -267,7 +268,7 @@
     <div class="state">…</div>
   {:else}
     <div class="grid">
-      {#each Object.keys(tree).sort((a, b) => a.localeCompare(b)) as parent (parent)}
+      {#each Object.keys(tree).sort(comparerAlphabetique) as parent (parent)}
         <div
           class="branch"
           class:drop-target={dragHoverTarget === parent}

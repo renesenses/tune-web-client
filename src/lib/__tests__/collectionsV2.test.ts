@@ -193,8 +193,12 @@ describe('Collections — l’écran', () => {
 
   it('garde le repli tant que le serveur ne rend pas `covers`', () => {
     const src = ecran();
+    // #1798 — le repli vise les collections dont le serveur n'a PAS rendu le
+    // champ, et non plus celles dont la liste est vide : une collection vide a
+    // répondu. Le comportement est tenu, écran monté, par
+    // `pochettesDeLaListe1798.test.ts`.
     expect(
-      src.includes('const manquantes = entrees.filter((e) => !e.covers.length)'),
+      src.includes('const manquantes = entrees.filter((e) => !e.coversServies)'),
       'le repli a disparu : les mosaïques seraient vides sur tout serveur antérieur à la PR #3151.',
     ).toBe(true);
     // Et il ne s'applique QU'aux manquantes : rappeler le serveur pour celles

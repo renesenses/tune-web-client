@@ -7,11 +7,16 @@ import type { Concert } from './api';
  *
  * Deux ordres, et un seul choix à faire :
  *
- *  - `artiste` — l'ordre d'origine, et le DÉFAUT : un groupe par artiste,
- *    groupes rangés par nom. C'est ainsi qu'on cherche quand on part de ce
- *    qu'on écoute. L'écran de qui n'a rien demandé ne change pas d'ordre.
- *  - `date` — une ligne par concert, la plus proche en tête, l'artiste porté
- *    en tête de chaque ligne. C'est la lecture « qui joue bientôt ».
+ *  - `date` — le DÉFAUT depuis le 29/09/2026 (décision de Bertrand,
+ *    web#1718) : une ligne par concert, la plus proche en tête, l'artiste
+ *    porté en tête de chaque ligne. C'est la lecture « qui joue bientôt ».
+ *  - `artiste` — l'ordre d'origine : un groupe par artiste, groupes rangés
+ *    par nom. C'est ainsi qu'on cherche quand on part de ce qu'on écoute.
+ *
+ * 🔴 Le défaut n'est JAMAIS enregistré comme un choix (piège de #1650) : la
+ * préférence `concertsTri` vaut `null` tant que l'utilisateur n'a pas cliqué,
+ * et c'est ici, à l'affichage, que `null` devient `date`. Changer le défaut
+ * plus tard atteindra donc tous ceux qui n'ont rien choisi.
  *
  * ⚠️ Le tri vit ICI, pas dans le gabarit : il se mesure sur des DONNÉES
  * (liste en entrée, ordre en sortie), et non sur la lecture d'un `.svelte`.
@@ -25,13 +30,13 @@ export type TriConcerts = 'artiste' | 'date';
 
 export const TRIS_CONCERTS = ['artiste', 'date'] as const;
 
-/** L'ordre d'origine : changer de défaut changerait l'écran de tout le monde. */
-export const TRI_CONCERTS_DEFAUT: TriConcerts = 'artiste';
+/** « Par date », les plus proches d'abord — web#1718, Bertrand, 29/09/2026. */
+export const TRI_CONCERTS_DEFAUT: TriConcerts = 'date';
 
 /**
- * Ramène n'importe quoi à un tri connu. Une préférence enregistrée par une
- * version future — ou effacée à moitié — ne doit pas vider la liste : elle
- * retombe sur l'ordre d'origine.
+ * Ramène n'importe quoi à un tri connu. `null` (rien choisi), une préférence
+ * enregistrée par une version future — ou effacée à moitié — ne doit pas
+ * vider la liste : elle retombe sur le défaut.
  */
 export function normaliserTriConcerts(valeur: unknown): TriConcerts {
   return valeur === 'date' || valeur === 'artiste' ? valeur : TRI_CONCERTS_DEFAUT;

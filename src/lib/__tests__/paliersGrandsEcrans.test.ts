@@ -73,6 +73,10 @@ const HORS_PERIMETRE: Record<string, string> = {
   // `.np-scroll`, pas une `max-width` sur l'îlot. Voir
   // `fileAttenteReserve.test.ts`.
   '.now-playing.queue-open .artwork-container': "file d'attente ouverte",
+  // web#1800 : file dépliée sous la barre, choix explicite de Réglages ▸
+  // Affichage. La colonne titres y perd son plafond (`max-width: none`) pour
+  // prendre la place que la colonne de droite n'occupe plus.
+  '.content-layout.wide.file-sous-barre .info-column': "file sous la barre d'avancement (web#1800)",
 };
 
 /** `max-width` effective, en px, ou échec explicite si la règle a disparu. */

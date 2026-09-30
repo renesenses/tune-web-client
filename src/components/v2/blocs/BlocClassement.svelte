@@ -51,7 +51,10 @@
 </script>
 
 {#if !elements.length}
-  <p class="rien">{$t('dashboard.empty' as any)}</p>
+  <!-- #1781 — « aucun historique » était faux : ce bloc ne lit que les SEPT
+       derniers jours (`PERIODE` de `tableauDeBordWidgets`). Une semaine
+       vide ne dit rien de l'historique plus ancien. -->
+  <p class="rien">{$t('dashboard.emptyLast7Days' as any)}</p>
 {:else}
   <ol class="liste">
     {#each elements as el, rang (el.id)}
