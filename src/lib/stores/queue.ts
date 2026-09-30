@@ -108,10 +108,31 @@ export async function jumpAndSync(
   }
 }
 
-/** Next 5 tracks after the current position */
+/**
+ * Taille de l'aperçu « À suivre » de Lecture en cours.
+ *
+ * L'aperçu reste court exprès : c'est un coup d'œil sous la barre de
+ * transport, la file entière se lit en dépliant le bandeau « File d'attente ».
+ */
+export const UP_NEXT_APERCU = 5;
+
+/** Les 5 titres qui suivent celui qui joue (l'aperçu « À suivre »). */
 export const upNextTracks = derived(
   [queueTracks, queuePosition],
-  ([$tracks, $pos]) => $tracks.slice($pos + 1, $pos + 6)
+  ([$tracks, $pos]) => $tracks.slice($pos + 1, $pos + 1 + UP_NEXT_APERCU)
+);
+
+/**
+ * web#1836 — combien de titres à suivre l'aperçu NE montre PAS.
+ *
+ * FabienM (fil 2057, point 1) : le bandeau annonçait « 9 à suivre » au-dessus
+ * d'une liste de 5, et rien ne disait qu'il en restait. L'aperçu garde ses 5
+ * titres ; ce compte nourrit la ligne « + N autres titres » posée dessous, qui
+ * déplie la file. Zéro quand l'aperçu montre tout : la ligne disparaît.
+ */
+export const upNextHiddenCount = derived(
+  [queueTracks, queuePosition],
+  ([$tracks, $pos]) => Math.max(0, $tracks.length - ($pos + 1) - UP_NEXT_APERCU)
 );
 
 /**

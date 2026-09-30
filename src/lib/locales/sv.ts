@@ -2109,6 +2109,8 @@ export default {
   'player.showTotalTime': 'Visa total längd',
   "queue.upNextSummary": "{count} härnäst · {time}",
   "queue.nothingNext": "Inget härnäst",
+  "queue.upNextMoreOne": "+ 1 spår till",
+  "queue.upNextMore": "+ {count} spår till",
   "radio.importResult": "{imported} importerade, {skipped} överhoppade",
   "search.topArtists": "Mest spelade artister",
   "settings.cloudDisconnected": "Utloggad från molnet",

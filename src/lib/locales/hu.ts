@@ -61,6 +61,8 @@ export default {
   'player.showTotalTime': 'Teljes hossz megjelenítése',
   "queue.upNextSummary": "{count} következik · {time}",
   "queue.nothingNext": "Nincs következő",
+  "queue.upNextMoreOne": "+ még 1 szám",
+  "queue.upNextMore": "+ még {count} szám",
   "lyrics.plainText": "Egyszerű szöveg",
   "lyrics.karaoke": "Karaoke",
   "lyrics.source.lrc": "Forrás: .lrc fájl",

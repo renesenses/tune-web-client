@@ -2097,6 +2097,8 @@ export default {
   'player.showTotalTime': '総再生時間を表示',
   "queue.upNextSummary": "次に {count} 曲 · {time}",
   "queue.nothingNext": "次の曲はありません",
+  "queue.upNextMoreOne": "+ ほか 1 曲",
+  "queue.upNextMore": "+ ほか {count} 曲",
   "radio.importResult": "{imported} 件をインポート、{skipped} 件をスキップ",
   "search.topArtists": "よく聴くアーティスト",
   "settings.alacPassthrough": "ALAC ダイレクト",

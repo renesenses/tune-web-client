@@ -60,6 +60,8 @@ export default {
   'player.showTotalTime': 'Afficher la durée totale',
   'queue.upNextSummary': '{count} à suivre · {time}',
   'queue.nothingNext': 'Rien à suivre',
+  'queue.upNextMoreOne': '+ 1 autre titre',
+  'queue.upNextMore': '+ {count} autres titres',
   'lyrics.plainText': 'Texte simple',
   'lyrics.karaoke': 'Karaoké',
   'lyrics.source.lrc': 'Source : fichier .lrc',

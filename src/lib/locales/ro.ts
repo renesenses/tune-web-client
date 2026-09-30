@@ -2102,6 +2102,8 @@ export default {
   'player.showTotalTime': 'Afișează durata totală',
   "queue.upNextSummary": "{count} în continuare · {time}",
   "queue.nothingNext": "Nimic în continuare",
+  "queue.upNextMoreOne": "+ încă 1 piesă",
+  "queue.upNextMore": "+ încă {count} piese",
   "radio.importResult": "{imported} importate, {skipped} ignorate",
   "search.topArtists": "Cei mai ascultați artiști",
   "settings.alacPassthrough": "ALAC direct",

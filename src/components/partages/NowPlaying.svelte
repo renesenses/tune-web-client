@@ -11,7 +11,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { dialogs } from '../../lib/stores/dialogs';
   import { tip } from '../../lib/tooltip';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, nowPlayingToTrack } from '../../lib/stores/nowPlaying';
-  import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
+  import { upNextTracks, upNextHiddenCount, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
   import type { QueueSheetState } from '../../lib/stores/queue';
   import { currentZoneId } from '../../lib/stores/zones';
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality, copyText } from '../../lib/utils';
@@ -2419,6 +2419,16 @@ import { ICONES } from '../../lib/menuPiste';
                 </button>
               {/each}
             </div>
+            <!-- web#1836 (FabienM, fil 2057) : l'aperçu garde 5 titres, mais
+                 dit qu'il en reste. La ligne déplie la file, comme le bandeau
+                 « File d'attente » ; absente quand l'aperçu montre tout. -->
+            {#if $upNextHiddenCount > 0}
+              <button class="up-next-more" onclick={expandQueueSheet}>
+                {$upNextHiddenCount === 1
+                  ? $t('queue.upNextMoreOne')
+                  : $t('queue.upNextMore').replace('{count}', String($upNextHiddenCount))}
+              </button>
+            {/if}
           </div>
         {/if}
       </div>
@@ -3528,6 +3538,24 @@ import { ICONES } from '../../lib/menuPiste';
 
   .up-next-item:hover {
     background: rgba(255, 255, 255, 0.1);
+  }
+
+  .up-next-more {
+    align-self: flex-start;
+    margin-top: 4px;
+    padding: 4px 8px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+  }
+
+  .up-next-more:hover {
+    color: var(--tune-text);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .up-next-info {
