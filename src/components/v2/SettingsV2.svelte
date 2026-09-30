@@ -46,6 +46,7 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
@@ -3418,6 +3419,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+
+              <!-- web#1827 — Bertrand, 30/09/2026 : l'ordre de la barre
+                   latérale, glisser-déposer ou flèches au clavier, entrées
+                   masquables, « Rétablir l'ordre par défaut ». Rangé à côté
+                   des autres réglages de navigation. -->
+              <OrdreBarreLateraleV2 />
 
               <div class="row">
                 <div class="lbl">

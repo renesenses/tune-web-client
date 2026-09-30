@@ -1,55 +1,14 @@
-<script lang="ts">
-  import { concertsUtilisable, refreshConcertsPlugin } from '../../lib/stores/concerts';
-  import { circleCharge, refreshCirclePlugin } from '../../lib/circle';
-  import { healthStatus } from '../../lib/stores/health';
-  import { niveauDeLaSonde } from '../../lib/santeServeur';
-  import { tachesDeFond } from '../../lib/stores/tachesDeFond';
-  import { libelleBanniereEnrichissement } from '../../lib/tachesDeFond';
-  import {
-    avancementAnalyse, pourcentAnalyse, abonnerAvancementAnalyse, demarrerAvancement, terminerAvancement,
-  } from '../../lib/analyseBibliotheque';
-  import { tuneWS } from '../../lib/websocket';
-  import { formatNombre } from '../../lib/formats';
+<script module lang="ts">
   /**
-   * Barre latérale du nouveau client (direction Levente).
+   * Les entrées de la barre, au niveau du MODULE — web#1827 : l'écran
+   * Réglages › Interface les lit pour proposer de les réordonner et de les
+   * masquer. Une seule liste, lue aux deux endroits : le réglage ne peut pas
+   * proposer une entrée que la barre n'a pas, ni en oublier une.
    *
-   * Une seule barre, trois profondeurs pilotées par le niveau d'interface
-   * (`preferences.settingsLevel`, partagé avec la vue Réglages) :
-   *   - Essentiel  : le noyau seul (Accueil, Recherche, Bibliothèque, Radio…)
-   *   - Avancé     : + File, Favoris, Zones, Serveurs multimédia
-   *   - Expert     : + section « Studio » (EQ, Convertisseur, Métadonnées, Diagnostics)
-   *     Les Extensions ont rejoint les Réglages (onglet dédié) le 01/09/2026.
-   *
-   * Principe de stabilité spatiale : le noyau ne bouge JAMAIS d'un niveau à
-   * l'autre — les groupes se révèlent en place, jamais de réorganisation.
+   * Aucun effet ici, que des constantes : importer ce composant avant les
+   * `vi.stubGlobal(…)` des témoins ne déclenche toujours rien (#1333).
    */
-  import { activeView, requestListReset, type View } from '../../lib/stores/navigation';
-  import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
-  import { updateAvailable, latestVersion, currentVersion } from '../../lib/stores/updates';
-  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
-  import { preferences } from '../../lib/stores/preferences';
-  import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
-  import { atLeast } from '../../lib/uiLevel';
-  import { t } from '../../lib/i18n';
-  import { shortcuts, loadShortcuts, navigateToShortcut } from '../../lib/stores/shortcuts';
-  import { activeStreamingService, streamingServices } from '../../lib/stores/streaming';
-  import { servicesConnectes } from '../../lib/ongletsStreaming';
-  import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
-  import * as api from '../../lib/api';
-  import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
-  import { presenceCrossfeedPro, sonderCrossfeedPro, entreesAvecCrossfeedPro } from '../../lib/stores/crossfeedPro';
-  import { get } from 'svelte/store';
-  import glyph from '../../assets/tune-glyph.png';
-  import '../../styles/tune-v2.css';
-  import ArbreRayons from './ArbreRayons.svelte';
-  import {
-    etatRayons, rafraichirRayons, cleCibleCollection, lireArbreBarreReplie, ecrireArbreBarreReplie,
-  } from '../../lib/rayonsCollections';
-  import {
-    sources, sourceCourante, rubriqueSourcesVisible, rafraichirSources, abonnerSources,
-    partagerSources, nomSource, ICONES_SOURCE, type Source,
-    typesSourcesBarre, sourcesDeLaBarre, sourceGrisee, figerTypesParDefaut,
-  } from '../../lib/sources';
+  import type { View } from '../../lib/stores/navigation';
 
   /**
    * 🔴 `labelKey`, PAS `label`.
@@ -71,7 +30,7 @@
    * ou comme écran de démarrage. Sans alias, l'utilisateur y serait sans
    * qu'aucune entrée ne s'allume — il ne saurait plus où il est.
    */
-  type Item = { view: View; labelKey: string; icon: string; aussi?: View[] };
+  export type Item = { view: View; labelKey: string; icon: string; aussi?: View[] };
 
   /** L'entrée correspond-elle à l'écran courant ? */
   function estActif(it: Item, vue: View): boolean {
@@ -140,7 +99,7 @@
    * place — jamais assouplies. Toute addition future exige le même mandat
    * explicite, faute de quoi la liste dériverait en silence.
    */
-  const CORE: Item[] = [
+  export const CORE: Item[] = [
     { view: 'home', labelKey: 'nav.home', icon: 'M3 11l9-8 9 8M5 10v10h14V10' },
     // RECHERCHE — juste sous Accueil, dès l'Essentiel : arbitrage de Bertrand
     // du 29/09/2026 (web#1759). Elle quitte l'étage « Avancé » : une seule
@@ -155,7 +114,7 @@
     { view: 'radios', labelKey: 'v2.nav.radios', icon: 'M12 12h.01M7.5 7.5a6 6 0 0 0 0 9M16.5 7.5a6 6 0 0 1 0 9M4.5 4.5a10 10 0 0 0 0 15M19.5 4.5a10 10 0 0 1 0 15' },
     { view: 'podcasts', labelKey: 'v2.nav.podcasts', icon: 'M12 4a7 7 0 0 0 0 14M12 4a7 7 0 0 1 0 14M9 20h6' },
   ];
-  const ADVANCED: Item[] = [
+  export const ADVANCED: Item[] = [
     { view: 'ambiance', labelKey: 'nav.ambiance', icon: 'M4 9v6M9 5v14M14 8v8M19 11v2' },
     { view: 'browse', labelKey: 'nav.browse', icon: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' },
     { view: 'mediaservers', labelKey: 'nav.mediaservers', icon: 'M4 5h16v5H4zM4 14h16v5H4zM7.5 7.5h.01M7.5 16.5h.01' },
@@ -187,7 +146,7 @@
    */
   // Les deux nouveaux groupes sont TRADUITS, là où le reste de la barre porte
   // encore ses libellés en dur (dette connue) : on n'en ajoute pas.
-  const SELECTIONS: Item[] = [
+  export const SELECTIONS: Item[] = [
     // COLLECTIONS et PLAYLISTS rejoignent le groupe (Bertrand, 02/09/2026) :
     // ce sont des sélections que l'utilisateur a constituées lui-même, au même
     // titre que les étiquettes et les favoris. Dans le noyau, elles voisinaient
@@ -225,7 +184,7 @@
     { view: 'bannedtracks', labelKey: 'ban.title', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M5.6 5.6l12.8 12.8' },
   ];
 
-  const STUDIO: Item[] = [
+  export const STUDIO: Item[] = [
     { view: 'equalizer', labelKey: 'nav.equalizer', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
     // Crossfeed sorti de l'Egaliseur (Bertrand, 27/08) : c'est un reglage de
     // CASQUE, pas une correction de courbe. Melange a l'egaliseur il etait
@@ -242,6 +201,62 @@
     { view: 'metadata', labelKey: 'metadata.title', icon: 'M20 12l-8 8-9-9V4h7zM8 8h.01' },
     { view: 'diagnostics', labelKey: 'v2.nav.processing', icon: 'M3 12h4l2 6 4-14 2 8h6' },
   ];
+</script>
+
+<script lang="ts">
+  import { concertsUtilisable, refreshConcertsPlugin } from '../../lib/stores/concerts';
+  import { circleCharge, refreshCirclePlugin } from '../../lib/circle';
+  import { healthStatus } from '../../lib/stores/health';
+  import { niveauDeLaSonde } from '../../lib/santeServeur';
+  import { tachesDeFond } from '../../lib/stores/tachesDeFond';
+  import { libelleBanniereEnrichissement } from '../../lib/tachesDeFond';
+  import {
+    avancementAnalyse, pourcentAnalyse, abonnerAvancementAnalyse, demarrerAvancement, terminerAvancement,
+  } from '../../lib/analyseBibliotheque';
+  import { tuneWS } from '../../lib/websocket';
+  import { formatNombre } from '../../lib/formats';
+  /**
+   * Barre latérale du nouveau client (direction Levente).
+   *
+   * Une seule barre, trois profondeurs pilotées par le niveau d'interface
+   * (`preferences.settingsLevel`, partagé avec la vue Réglages) :
+   *   - Essentiel  : le noyau seul (Accueil, Recherche, Bibliothèque, Radio…)
+   *   - Avancé     : + File, Favoris, Zones, Serveurs multimédia
+   *   - Expert     : + section « Studio » (EQ, Convertisseur, Métadonnées, Diagnostics)
+   *     Les Extensions ont rejoint les Réglages (onglet dédié) le 01/09/2026.
+   *
+   * Principe de stabilité spatiale : le noyau ne bouge JAMAIS d'un niveau à
+   * l'autre — les groupes se révèlent en place, jamais de réorganisation.
+   */
+  import { activeView, requestListReset } from '../../lib/stores/navigation';
+  import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
+  import { updateAvailable, latestVersion, currentVersion } from '../../lib/stores/updates';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import { preferences } from '../../lib/stores/preferences';
+  import { entreesAffichees } from '../../lib/ordreBarreLaterale';
+  import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
+  import { atLeast } from '../../lib/uiLevel';
+  import { t } from '../../lib/i18n';
+  import { shortcuts, loadShortcuts, navigateToShortcut } from '../../lib/stores/shortcuts';
+  import { activeStreamingService, streamingServices } from '../../lib/stores/streaming';
+  import { servicesConnectes } from '../../lib/ongletsStreaming';
+  import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
+  import * as api from '../../lib/api';
+  import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
+  import { presenceCrossfeedPro, sonderCrossfeedPro, entreesAvecCrossfeedPro } from '../../lib/stores/crossfeedPro';
+  import { get } from 'svelte/store';
+  import glyph from '../../assets/tune-glyph.png';
+  import '../../styles/tune-v2.css';
+  import ArbreRayons from './ArbreRayons.svelte';
+  import {
+    etatRayons, rafraichirRayons, cleCibleCollection, lireArbreBarreReplie, ecrireArbreBarreReplie,
+  } from '../../lib/rayonsCollections';
+  import {
+    sources, sourceCourante, rubriqueSourcesVisible, rafraichirSources, abonnerSources,
+    partagerSources, nomSource, ICONES_SOURCE, type Source,
+    typesSourcesBarre, sourcesDeLaBarre, sourceGrisee, figerTypesParDefaut,
+  } from '../../lib/sources';
+
 
   /**
    * RACCOURCIS — cinq au plus dans la barre, un écran au-delà.
@@ -268,9 +283,15 @@
   // #1261 — les quatre outils audio sont des greffons depuis la v0.9.156 :
   // leur entrée suit l'état réel (installé et actif), et l'écran Extensions
   // republie cet état après chaque geste.
-  const studioVisible = $derived(
+  // web#1827 — chaque groupe dans l'ordre choisi (Réglages › Interface),
+  // sans ses entrées masquées. Sans choix enregistré, l'ordre livré tel quel.
+  const choixBarre = $derived($preferences.barreLaterale);
+  const studioVisible = $derived(entreesAffichees('studio',
     entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
-  );
+    choixBarre,
+  ));
+  const noyauAffiche = $derived(entreesAffichees('noyau', CORE, choixBarre));
+  const selectionsAffichees = $derived(entreesAffichees('selections', SELECTIONS, choixBarre));
   $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
   // Un greffon natif TIERS n'est pas dans `GET /plugins` : on le sonde à part
   // (`stores/crossfeedPro`) ; la zone n'y compte pas, la présence est globale.
@@ -284,10 +305,11 @@
   // aucune explication à offrir d'un greffon arrêté, ses routes rendraient le
   // 404 nu d'axum. C'est la condition du bouton « Ouvrir » des Extensions.
   $effect(() => { void refreshCirclePlugin(); });
-  const avanceVisibles = $derived(
+  const avanceVisibles = $derived(entreesAffichees('avance',
     ADVANCED.filter((it) => it.view !== 'concerts' || $concertsUtilisable)
       .filter((it) => it.view !== 'circle' || $circleCharge),
-  );
+    choixBarre,
+  ));
 
   // Santé du serveur — portée de l'ancienne barre : sonde toutes les minutes,
   // pastille hors de « ok ». L'alerte en temps réel arrive par `v2Live`.
@@ -718,8 +740,8 @@
 
   <div class="navscroll">
     <nav class="grp">
-      {#each CORE as it (it.view)}
-        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+      {#each noyauAffiche as it (it.view)}
+        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
@@ -729,7 +751,7 @@
              nom seul ne porte pas. -->
         {#if it.view === 'streaming'}
           {#each servicesBarre as svc (svc)}
-            <button class="nav svc"
+            <button class="nav svc" data-service={svc}
               class:active={$activeView === 'streaming' && $activeStreamingService === svc}
               onclick={() => allerService(svc)} title={enIcones ? nomService(svc) : undefined}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M10 8.5l6 3.5-6 3.5z" /></svg>
@@ -742,7 +764,7 @@
 
     <nav class="grp reveal" class:show={showAdvanced} aria-hidden={!showAdvanced}>
       {#each avanceVisibles as it (it.view)}
-        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
@@ -812,14 +834,15 @@
       {/if}
     </nav>
 
+    {#if selectionsAffichees.length}
     <nav class="grp">
       <div class="grp-label">{$t('v2.nav.selections' as any)}</div>
-      {#each SELECTIONS as it (it.view)}
+      {#each selectionsAffichees as it (it.view)}
         {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
           <!-- #1580 : l'entrée garde son geste (ouvrir l'écran) ; le chevron,
                bouton frère et non enfant, replie l'arbre entier. -->
           <div class="nav-pli">
-            <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)}>
+            <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
               <span>{$t(it.labelKey as any)}</span>
             </button>
@@ -833,18 +856,21 @@
             <ArbreRayons compact arbre={$etatRayons.arbre} onOuvrir={ouvrirCollectionRangee} />
           {/if}
         {:else}
-          <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+          <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
             <span>{$t(it.labelKey as any)}</span>
           </button>
         {/if}
       {/each}
     </nav>
+    {/if}
 
-    <nav class="grp reveal" class:show={showStudio} aria-hidden={!showStudio}>
+    <!-- web#1827 : toutes ses entrées masquées, le groupe se referme avec
+         son intitulé plutôt que de laisser « Studio » seul. -->
+    <nav class="grp reveal" class:show={showStudio && studioVisible.length > 0} aria-hidden={!showStudio || !studioVisible.length}>
       <div class="grp-label">{$t('v2.nav.studio' as any)}</div>
       {#each studioVisible as it (it.view)}
-        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
