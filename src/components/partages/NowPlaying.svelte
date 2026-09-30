@@ -11,7 +11,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { dialogs } from '../../lib/stores/dialogs';
   import { tip } from '../../lib/tooltip';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, nowPlayingToTrack } from '../../lib/stores/nowPlaying';
-  import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
+  import { upNextTracks, upNextHiddenCount, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
   import type { QueueSheetState } from '../../lib/stores/queue';
   import { currentZoneId } from '../../lib/stores/zones';
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality, copyText } from '../../lib/utils';
@@ -2419,6 +2419,16 @@ import { ICONES } from '../../lib/menuPiste';
                 </button>
               {/each}
             </div>
+            <!-- web#1836 (FabienM, fil 2057) : l'aperçu garde 5 titres, mais
+                 dit qu'il en reste. La ligne déplie la file, comme le bandeau
+                 « File d'attente » ; absente quand l'aperçu montre tout. -->
+            {#if $upNextHiddenCount > 0}
+              <button class="up-next-more" onclick={expandQueueSheet}>
+                {$upNextHiddenCount === 1
+                  ? $t('queue.upNextMoreOne')
+                  : $t('queue.upNextMore').replace('{count}', String($upNextHiddenCount))}
+              </button>
+            {/if}
           </div>
         {/if}
       </div>
@@ -3528,6 +3538,24 @@ import { ICONES } from '../../lib/menuPiste';
 
   .up-next-item:hover {
     background: rgba(255, 255, 255, 0.1);
+  }
+
+  .up-next-more {
+    align-self: flex-start;
+    margin-top: 4px;
+    padding: 4px 8px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+  }
+
+  .up-next-more:hover {
+    color: var(--tune-text);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .up-next-info {
@@ -4826,6 +4854,23 @@ import { ICONES } from '../../lib/menuPiste';
   .content-layout.wide.file-sous-barre .info-column {
     flex: 1 1 auto;
     max-width: none;
+  }
+  /* web#1837 (FabienM, fil 2057, point 2) — l'îlot lui-même n'est plus
+     plafonné. Il gardait ses 960 / 1200 px (1720 et 2200 aux très grands
+     écrans) : la colonne titres s'élargissait jusqu'à ce plafond, et une
+     bande vide restait à droite sur un grand écran. Sans colonne de file à
+     droite, rien ne réclame plus cette place : l'îlot prend toute la largeur
+     de `.np-scroll`. Trois classes : l'emporte sur les paliers, requêtes de
+     média comprises. « À droite » garde l'îlot plafonné. */
+  .content-layout.wide.file-sous-barre {
+    max-width: none;
+  }
+  /* La pochette suit l'îlot sans s'y perdre : au moins le palier habituel
+     (`--np-art`), au moins 40 % de la largeur de l'îlot, jamais plus de 62 %
+     de la hauteur de fenêtre — la borne qui l'empêche de déborder en
+     hauteur (Gilles Olive, 19/08/2026). La colonne titres garde le reste. */
+  .content-layout.wide.file-sous-barre .artwork-container {
+    max-width: min(max(var(--np-art), 40%), 62vh);
   }
 
   /* ─── Sheet Handle ──────────────────────────────────────────────────── */

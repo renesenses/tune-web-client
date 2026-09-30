@@ -41,11 +41,13 @@
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
+  import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
@@ -1297,6 +1299,43 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       svcs = { ...svcs, [name]: { ...svcs[name], authenticated: false, username: null } };
     } catch { svcErr = { ...svcErr, [name]: get(t)('settings.errDisconnectFailed') }; }
   }
+  // Serveur #5427 — l'ARL Deezer se saisit sur la carte Streaming. Offert
+  // seulement si le serveur annonce `arl_streaming` : sur un serveur plus
+  // ancien, la carte ne change pas. Voir `lib/arlDeezer`.
+  let arlOffert = $state(false);
+  let arlSaisi = $state('');
+  let arlVisible = $state(false);
+  let arlRetour = $state<RetourArl | null>(null);
+  $effect(() => {
+    api.listServiceTokens()
+      .then((l) => { arlOffert = offreChampArl(l); })
+      .catch(() => {});
+  });
+  async function enregistrerArl() {
+    const arl = arlSaisi.trim();
+    if (!arl) return;
+    svcBusy = 'deezer';
+    svcErr = { ...svcErr, deezer: null };
+    arlRetour = null;
+    try {
+      arlRetour = lireRetourArl(await api.saveServiceToken('deezer', { arl }));
+    } catch (e: any) {
+      const motif = typeof e?.message === 'string' ? e.message.trim() : '';
+      arlRetour = { etat: 'injoignable', message: motif };
+    }
+    // L'ARL ne survit pas à la réponse, quelle qu'elle soit.
+    arlSaisi = '';
+    arlVisible = false;
+    if (arlRetour.etat === 'accepte') {
+      try {
+        const st = await api.getStreamingServiceStatus('deezer');
+        svcs = { ...svcs, deezer: { ...svcs.deezer, ...st, authenticated: true } };
+      } catch {
+        svcs = { ...svcs, deezer: { ...svcs.deezer, authenticated: true } };
+      }
+    }
+    svcBusy = null;
+  }
   function cancelFlow(name: string) {
     stopPoll(name);
     deviceFlow = { ...deviceFlow, [name]: undefined };
@@ -1914,7 +1953,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   // ── Reglages par zone ─────────────────────────────────────────────────
   const RATES: { v: number; l: string }[] = [
-    { v: 0, l: $t('v2.set.noLimit' as any) }, { v: 48000, l: '48 kHz' }, { v: 88200, l: '88,2 kHz' },
+    // tune-server-rust#5524 — 44,1 kHz manquait : c'est le plafond d'un
+    // Ruark R5 (Yves Corbat). Au-dessus du plafond, le serveur rééchantillonne
+    // dans la famille de la source (44,1 ou 48 kHz), profondeur conservée.
+    { v: 0, l: $t('settings.maxSampleRateAuto' as any) }, { v: 44100, l: '44,1 kHz' },
+    { v: 48000, l: '48 kHz' }, { v: 88200, l: '88,2 kHz' },
     { v: 96000, l: '96 kHz' }, { v: 176400, l: '176,4 kHz' }, { v: 192000, l: '192 kHz' },
     { v: 352800, l: '352,8 kHz' }, { v: 384000, l: '384 kHz' }, { v: 705600, l: '705,6 kHz' },
     { v: 1411200, l: '1411,2 kHz' },
@@ -3435,6 +3478,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- web#1827 — Bertrand, 30/09/2026 : l'ordre de la barre
+                   latérale, glisser-déposer ou flèches au clavier, entrées
+                   masquables, « Rétablir l'ordre par défaut ». Rangé à côté
+                   des autres réglages de navigation. -->
+              <OrdreBarreLateraleV2 />
+
               <div class="row">
                 <div class="lbl">
                     <span>{$t('settings.defaultZone' as any)}</span>
@@ -4172,7 +4221,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             <option value="dop">DoP</option><option value="pcm">PCM</option>
                           </select>
                         </label>
-                        <label class="zf">
+                        <label class="zf" title={$t('settings.maxSampleRateHint' as any)}>
                           <span>{$t('settings.maxSampleRate' as any)}</span>
                           <select class="sel sm" value={String(z.max_sample_rate ?? 0)}
                             onchange={(e) => { const v = Number((e.currentTarget as HTMLSelectElement).value);
@@ -4768,6 +4817,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <p class="hint">{$t('settings.updateStopsPlayback' as any)}</p>
                 {/if}
                 <!--
+                  renesenses/tune-server-rust#5531 — le bouton envoie `force` :
+                  pendant une analyse, le serveur l'ARRÊTE, installe, puis la
+                  reprend au redémarrage sans relire les fichiers déjà analysés.
+                  Le libellé le dit (« Arrêter l'analyse et mettre à jour »,
+                  demandé par Thierry CLEMONT, fil 2058).
+                -->
+                {#if scanning && updateInfo.installable !== false && !updDone && !updDmg && !updBusy}
+                  <p class="hint">{$t('settings.updateStopsScan' as any)}</p>
+                {/if}
+                <!--
                   🔴 PARITÉ AVEC LA COQUILLE ACTUELLE (`SettingsView`, l. 6405-6428).
                   « MAJ v2 toujours pas de bouton comme dans la version actuelle »
                   (Bertrand). Cet écran n'avait qu'UNE branche : quel que soit
@@ -4795,7 +4854,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       >{'⚠️ ' + $t('settings.sourceInstallNote' as any)}</b>
                   {:else}
                     <button class="lnk" disabled={updBusy} onclick={installerMaj}>
-                      {updBusy ? $t('common.loading' as any) : $t('settings.updateButton' as any)}
+                      {updBusy
+                        ? $t('common.loading' as any)
+                        : scanning
+                          ? $t('settings.updateButtonStopScan' as any)
+                          : $t('settings.updateButton' as any)}
                     </button>
                   {/if}
                 </div>
@@ -5205,9 +5268,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
                         </div>
 
+                      {:else if name === 'deezer' && arlOffert}
+                        <!-- Serveur #5427 : Deezer se connecte par son ARL. Le
+                             champ passe par la route d'Accès et jetons. -->
+                        <div class="inline" data-arl-deezer>
+                          <input class="txt" type={arlVisible ? 'text' : 'password'} autocomplete="off"
+                            spellcheck="false" placeholder={$t('settings.deezerArlPlaceholder' as any)}
+                            aria-label={$t('settings.deezerArlPlaceholder' as any)}
+                            bind:value={arlSaisi} disabled={svcBusy === name}
+                            onkeydown={(e) => { if (e.key === 'Enter' && arlSaisi.trim()) enregistrerArl(); }} />
+                          <button class="lnk" type="button" aria-pressed={arlVisible}
+                            onclick={() => (arlVisible = !arlVisible)}>{$t((arlVisible ? 'settings.deezerArlHide' : 'settings.deezerArlShow') as any)}</button>
+                          <button class="lnk" data-arl-enregistrer disabled={svcBusy === name || !st.enabled || !arlSaisi.trim()}
+                            onclick={enregistrerArl}>{svcBusy === name ? '…' : $t('settings.deezerArlSave' as any)}</button>
+                        </div>
+                        <p class="hint">{$t('settings.deezerArlHint' as any)}</p>
+
                       {:else}
                         <button class="lnk" disabled={svcBusy === name || !st.enabled}
                           onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
+                      {/if}
+
+                      {#if name === 'deezer' && arlRetour}
+                        <div class={arlRetour.etat === 'accepte' ? 'hint' : 'serr'} data-arl-retour={arlRetour.etat}>
+                          {$t(cleDuRetourArl(arlRetour.etat) as any)}{#if arlRetour.message} — {arlRetour.message}{/if}
+                        </div>
                       {/if}
 
                       {#if name === 'spotify' && !st.authenticated && spotifyRedirect.uri}

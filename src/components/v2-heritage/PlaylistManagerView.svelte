@@ -24,6 +24,9 @@
   import ClampedText from '../partages/ClampedText.svelte';
   import HeartButton from '../partages/HeartButton.svelte';
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
+  import BasculeAffichage from '../v2/BasculeAffichage.svelte';
+  import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
+  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   /**
    * LA SURCOUCHE COMMUNE DES POCHETTES — 26/09/2026.
    *
@@ -562,6 +565,23 @@
    */
   type OngletConvertisseur = 'conv-transferts' | 'conv-snapshots' | 'conv-synchro';
   let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab' | OngletConvertisseur>('playlists');
+
+  /**
+   * FabienM (fil 2057), go de Bertrand du 30/09/2026 : la bascule de
+   * Collections (web#1801) et d'« Écouter plus tard » (web#1802) — petites
+   * vignettes, grandes vignettes, liste. Un choix pour CET écran, sous sa clé :
+   * les playlists intelligentes gardent le leur.
+   *
+   * 🔴 Écrit au CLIC seulement (`changerAffichage`), jamais par un `$effect` :
+   * écrire au montage figerait le défaut comme un faux choix, et plus aucun
+   * changement de défaut n'atteindrait personne — le piège de #1650.
+   */
+  const CLE_AFFICHAGE = 'v2.playlistmanager.display';
+  let affichage = $state<AffichageEtendu>(lireChoix<AffichageEtendu>(CLE_AFFICHAGE, LISTE_ET_DEUX_GRILLES, 'grid'));
+  function changerAffichage(v: AffichageEtendu) {
+    affichage = v;
+    ecrireChoix(CLE_AFFICHAGE, v);
+  }
 
   // Le greffon peut disparaître (désactivé, désinstallé) pendant qu'un de ses
   // onglets est ouvert : on ne reste pas sur un onglet sans bouton.
@@ -2442,6 +2462,11 @@
           {/if}
         </button>
       {/each}
+      <!-- La forme de la grille, à droite des filtres : elle ne vaut que pour
+           cet onglet, les autres ne sont pas des grilles. -->
+      <span class="pl-bascule">
+        <BasculeAffichage modes={LISTE_ET_DEUX_GRILLES} valeur={affichage} onChanger={changerAffichage} iconeDeDestination />
+      </span>
     </div>
     <!-- Le bouton de MODE « Fusionner » a disparu : on sélectionne d'abord,
          par le coin d'une carte, et la barre d'actions apparaît ensuite.
@@ -2591,7 +2616,7 @@
         la cible ? » — jamais, puisqu'il ne pouvait pas mélanger. Le verrou
         est tombé, et la cible se choisit dans la barre.
       -->
-      <div class="pl-grille">
+      <div class="pl-grille" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
         {#each displayPlaylists as item}
           {@const cle = mergeKey(item.service, identifiantDe(item))}
           {@const cochee = mergeSelected.has(cle)}
@@ -3248,6 +3273,7 @@
   /* Filter chips */
   .filter-chips {
     display: flex;
+    align-items: center;
     gap: 8px;
     margin-bottom: var(--space-lg);
     flex-wrap: wrap;
@@ -4843,6 +4869,23 @@
     cursor:pointer}
   .pl-actions button:hover{color:var(--tune-text)}
   .pl-actions button.danger:hover{color:var(--tune-danger); border-color:var(--tune-danger)}
+  /* La bascule d'affichage, poussée à droite de la rangée de filtres. */
+  .pl-bascule{margin-left:auto; display:flex; align-items:center}
+  /* Grandes vignettes : la même carte, un pas de grille plus large (web#1801). */
+  .pl-grille.grandes{grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px}
+  .pl-grille.grandes .pl-nom{font-size:15px}
+  /* La liste : la même grille couchée, comme dans Collections. Une carte par
+     ligne, la pochette ou la mosaïque réduite ; la case de sélection, les
+     gestes de la pochette et les actions restent ceux de la grille. */
+  .pl-grille.liste{grid-template-columns:1fr; gap:2px}
+  .pl-grille.liste .pl-carte{flex-direction:row; align-items:center; gap:14px; padding:6px 10px; border-radius:9px}
+  .pl-grille.liste .pl-carte:hover{background:var(--v2-hover, var(--tune-surface))}
+  .pl-grille.liste .pl-vignette{width:48px; flex:0 0 48px; border-radius:6px}
+  .pl-grille.liste .pl-pochette{border-radius:6px}
+  .pl-grille.liste .pl-vide svg{width:20px; height:20px}
+  .pl-grille.liste .pl-texte{flex:1; flex-direction:row; align-items:center; gap:12px}
+  .pl-grille.liste .pl-ligne{flex:0 1 auto; max-width:60%}
+  .pl-grille.liste .pl-badge{align-self:center}
   .merge-hint{margin:6px 0 0; font-size:11.5px; color:var(--tune-text-secondary)}
   /* Le geste destructeur de la barre : lisible, mais jamais aussi présent que
      la fusion — c'est elle qu'on vient faire ici. */

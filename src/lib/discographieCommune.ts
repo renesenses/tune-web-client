@@ -280,6 +280,28 @@ export function dansProvenances(e: EntreeDiscographie, choix: ReadonlySet<string
 }
 
 /**
+ * L'exemplaire qu'une vignette ouvre et lit SOUS LE FILTRE — Bertrand et Yves
+ * Corbat, 30/09/2026, v0.9.168 : « dans la fiche artiste, si on choisit Qobuz
+ * comme source des albums puis qu'on clique sur un album, c'est l'album LOCAL
+ * qui s'ouvre ». `dansProvenances` garde la vignette parce qu'UN exemplaire
+ * vient de Qobuz, mais le principal restait le premier de `ORDRE_SOURCES` —
+ * la bibliothèque — et le clic, la lecture, la pochette et le menu partaient
+ * sur lui.
+ *
+ * Le principal reste celui de la règle 3 quand rien n'est coché ou quand sa
+ * provenance est cochée ; sinon, c'est le premier exemplaire (dans l'ordre de
+ * préférence) d'une provenance cochée. La vignette est RENDUE neuve, jamais
+ * modifiée : les entrées fusionnées servent à toutes les sections.
+ */
+export function recentrerSurProvenances(e: EntreeDiscographie, choix: ReadonlySet<string>): EntreeDiscographie {
+  if (choix.size === 0) return e;
+  const coche = (x: Exemplaire) => provenanceCochee(x.source === BIBLIOTHEQUE ? provenanceDe(x.album) : x.source, choix);
+  if (coche(e.principal)) return e;
+  const retenu = e.exemplaires.find(coche);
+  return retenu ? { ...e, principal: retenu } : e;
+}
+
+/**
  * Coche ou décoche UNE pastille. Le choix est d'abord ramené aux pastilles
  * présentes : décocher « Sonos » sous un `upnp` venu de la grille doit laisser
  * les autres serveurs cochés, pas tout effacer ni rien changer.

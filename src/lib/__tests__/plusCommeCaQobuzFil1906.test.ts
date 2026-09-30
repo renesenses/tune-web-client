@@ -148,7 +148,7 @@ describe('🔴 fil 1906 — barre v2 (`PisteActions`)', () => {
     expect(entree(items, PLUS_COMME_CA), libelles(items).join(' | ')).toBeTruthy();
   });
 
-  for (const s of ['tidal', 'bandcamp', 'deezer', 'spotify', 'youtube', 'amazon']) {
+  for (const s of ['bandcamp', 'spotify', 'youtube', 'amazon']) {
     it(`titre ${s} : « Plus comme ça » absent`, () => {
       expect(entree(menuV2(service(s)), PLUS_COMME_CA)).toBeUndefined();
     });
@@ -212,7 +212,7 @@ describe('🔴 fil 1906 — menu du client actuel (`MenuPisteV1`)', () => {
     expect(entree(items, PLUS_COMME_CA), libelles(items).join(' | ')).toBeTruthy();
   });
 
-  for (const s of ['tidal', 'bandcamp']) {
+  for (const s of ['spotify', 'bandcamp']) {
     it(`titre ${s} : « Plus comme ça » absent`, () => {
       expect(entree(menuV1(service(s)), PLUS_COMME_CA)).toBeUndefined();
     });
@@ -225,5 +225,37 @@ describe('🔴 fil 1906 — menu du client actuel (`MenuPisteV1`)', () => {
     expect(indexDe(estLecture)).toBeGreaterThan(indexDe(estSimilaires));
     expect(indexDe(estSimilaires)).toBeGreaterThan(-1);
     expect(appels[indexDe(estLecture)].corps).toMatchObject({ source: 'qobuz', source_id: 'q-a2' });
+  });
+});
+
+describe('tune-server-rust#5395 — « Plus comme ça » ouvert à TIDAL et Deezer', () => {
+  for (const s of ['tidal', 'deezer']) {
+    it(`titre ${s} : « Plus comme ça » présent, dans les deux menus`, () => {
+      expect(entree(menuV2(service(s)), PLUS_COMME_CA)).toBeTruthy();
+      if (monte) unmount(monte);
+      document.body.innerHTML = '';
+      expect(entree(menuV1(service(s)), PLUS_COMME_CA)).toBeTruthy();
+    });
+
+    it(`clic sur un titre ${s} : la route des voisins DE ${s}, puis la lecture`, async () => {
+      entree(menuV2(service(s, '441078583')), PLUS_COMME_CA)!.click();
+      flushSync();
+      await vi.waitFor(() => expect(indexDe(estLecture)).toBeGreaterThan(-1));
+      const iSim = appels.findIndex((a) => a.url.includes(`/streaming/${s}/tracks/441078583/similar`));
+      expect(iSim).toBeGreaterThan(-1);
+      expect(indexDe(estLecture)).toBeGreaterThan(iSim);
+      expect(appels[indexDe(estLecture)].corps).toMatchObject({ source: s, source_id: 'q-a2' });
+    });
+  }
+
+  it('serveur plus ancien (501 pour TIDAL) : « aucun titre voisin », pas une panne', async () => {
+    reponseSimilaires = { statut: 501, corps: { error: 'unsupported' } };
+    entree(menuV2(service('tidal', '441078583')), PLUS_COMME_CA)!.click();
+    flushSync();
+    await vi.waitFor(() => expect(
+      get(notifications).some((n) => n.level === 'info' && n.message.includes('aucun titre voisin')),
+    ).toBe(true));
+    expect(get(notifications).some((n) => n.message.includes('Impossible de récupérer'))).toBe(false);
+    expect(appels.some(estLecture)).toBe(false);
   });
 });

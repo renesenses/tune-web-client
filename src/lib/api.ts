@@ -1642,6 +1642,31 @@ export async function addToQueue(zoneId: number, body: AddToQueueRequest) {
   return res;
 }
 
+/**
+ * La radio artiste du serveur — tune-server-rust#5395. Remplace la file de la
+ * zone par un premier lot et lance la lecture ; l'auto-lecture la recharge.
+ *
+ * Rend la zone (comme `play`) quand la radio est partie ; SANS bandeau,
+ * `'absente'` quand la route n'existe pas (serveur plus ancien : 404 « not
+ * found », ou 405) et `'vide'` quand le serveur n'a trouvé aucun titre
+ * (`radio_artiste_vide`). L'appelant retombe alors sur l'ancien geste
+ * (`radioArtiste.ts`). Tout autre échec reste une erreur.
+ */
+export async function radioArtiste(
+  zoneId: number,
+  corps: { artist: string; service: string | null; artist_id: string | null },
+): Promise<(Zone & { radio: { count: number } }) | 'absente' | 'vide'> {
+  const rep = await fetchJSON<any>(
+    `${BASE}/zones/${zoneId}/radio/artist`,
+    { method: 'POST', body: JSON.stringify(corps) },
+    (statut) => statut === 404 || statut === 405,
+  );
+  if (rep && typeof rep === 'object' && rep.radio) return rep;
+  // Le nouveau serveur NOMME ses refus ; tout autre 404/405 est la route
+  // inconnue d'un serveur plus ancien.
+  return rep?.error === 'radio_artiste_vide' || rep?.error === 'zone_not_found' ? 'vide' : 'absente';
+}
+
 export function removeFromQueue(zoneId: number, index: number) {
   return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/${index}`, {
     method: 'DELETE',
@@ -1938,6 +1963,19 @@ export function getAlbumTracks(id: number, quality?: string | null, format?: str
  */
 export function getAlbumEdition(id: number) {
   return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition`, undefined, undefined, true);
+}
+
+/**
+ * RÉTABLIT un champ modifié à la main (tune-server-rust#5319) : il reprend la
+ * valeur des balises des fichiers et n'est plus marqué. Rend la fiche
+ * d'édition. 409 `retablir_par_defaire` pour les disques d'un coffret.
+ */
+export function retablirChampAlbum(id: number, champ: string) {
+  return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition/retablir`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ field: champ }),
+  });
 }
 
 /** Un seul PUT avec tout ce qui a changé ; 422 si `discs` n'est pas complet. */
@@ -3536,6 +3574,9 @@ export interface GreffonAudioNatif {
   native_loaded: boolean;
   /** Le motif d'un échec de chargement, sinon `null`. */
   error: string | null;
+  /** La version annoncée par le catalogue à l'installation ; `null` (ou
+   *  absent, serveur ancien) pour un paquet envoyé à la main. */
+  version?: string | null;
 }
 
 export interface EtatGreffonsAudioNatifs {
@@ -3553,6 +3594,55 @@ export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs>
 }
 
 const racineGreffonNatif = (id: string) => `${BASE}/audio-plugins/${encodeURIComponent(id)}`;
+
+/** `POST /audio-plugins/{id}/install-from-catalog` — réussi. Le greffon est
+ *  actif au PROCHAIN démarrage du serveur (`restart_required`). */
+export interface InstallationGreffonNatif {
+  id: string;
+  installed: boolean;
+  restart_required: boolean;
+  target: string;
+  version: string;
+}
+
+/**
+ * Le serveur télécharge le paquet signé de SA plateforme depuis le catalogue
+ * de mozaiklabs (licence ou compte Premium), vérifie la somme et la
+ * signature, puis l'installe. Refus (`err.code`) :
+ *   402 `premium_required`, 412 `not_connected`,
+ *   404 `no_package_for_target` / `plugin_not_in_catalog`,
+ *   400 `signature_invalid`, 502 `catalog_unreachable` (et autres 502),
+ *   503 `catalog_rate_limited`.
+ * `sansBandeau` : la carte du greffon porte elle-même le message d'échec.
+ */
+/** `GET /audio-plugins/{id}/catalog` — ce que le catalogue publie pour la
+ *  plateforme de CE serveur. `available: false` + `reason:
+ *  "no_package_for_target"` : pas de paquet pour ce triplet (un état, pas une
+ *  panne). `update_available` : une version plus récente que celle installée
+ *  depuis le catalogue ; rien ne s'installe tout seul. */
+export interface EtatCatalogueGreffonNatif {
+  id: string;
+  target: string;
+  available: boolean;
+  reason?: string;
+  latest_version: string | null;
+  installed: boolean;
+  installed_version: string | null;
+  update_available: boolean;
+}
+
+export function getCatalogueGreffonNatif(id: string): Promise<EtatCatalogueGreffonNatif> {
+  return fetchJSON<EtatCatalogueGreffonNatif>(`${racineGreffonNatif(id)}/catalog`, undefined, undefined, true);
+}
+
+export function installerGreffonNatifDuCatalogue(id: string): Promise<InstallationGreffonNatif> {
+  return fetchJSON<InstallationGreffonNatif>(
+    `${racineGreffonNatif(id)}/install-from-catalog`,
+    { method: 'POST' },
+    undefined,
+    true,
+  );
+}
 
 export function getReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
   return fetchJSON<ReglageGreffonNatif>(`${racineGreffonNatif(id)}/zones/${zoneId}`);
@@ -3912,7 +4002,34 @@ export const SEARCH_PAGE_LIMIT = 50;
  */
 export const SEARCH_FEDEREE_LIMIT = 100;
 
-export function federatedSearch(q: string, sources?: string[], limit = SEARCH_FEDEREE_LIMIT, offset = 0) {
+/**
+ * Pagination des SERVICES dans la recherche fédérée
+ * (renesenses/tune-server-rust#4803, servie depuis la v0.9.164).
+ *
+ * - `paged` : première page, blocs de service enrichis de `offset`, `limit`,
+ *   `total`, `has_more`, `truncated` ;
+ * - `serviceOffsets` / `serviceLimits` : `qobuz:100` — décalage et limite par
+ *   service (« Voir plus sur <Service> »).
+ *
+ * Un serveur plus ancien ignore ces paramètres : il rend la réponse d'avant,
+ * sans `has_more` dans les blocs, donc sans bouton (`rechercheSuiteService`).
+ */
+export interface PaginationServices {
+  paged?: boolean;
+  serviceOffsets?: Record<string, number>;
+  serviceLimits?: Record<string, number>;
+}
+
+const tableServices = (t: Record<string, number>) =>
+  Object.entries(t).map(([svc, n]) => `${svc}:${n}`).join(',');
+
+export function federatedSearch(
+  q: string,
+  sources?: string[],
+  limit = SEARCH_FEDEREE_LIMIT,
+  offset = 0,
+  pagination?: PaginationServices,
+) {
   let url = `${BASE}/search?q=${encodeURIComponent(q)}&limit=${limit}`;
   // #3189 — la suite de la bibliothèque locale (le serveur ne pagine que
   // celle-là). Absent = 0 = la page d'avant : l'URL des appels existants ne
@@ -3920,6 +4037,14 @@ export function federatedSearch(q: string, sources?: string[], limit = SEARCH_FE
   if (offset > 0) url += `&offset=${offset}`;
   if (sources && sources.length > 0) {
     url += `&sources=${sources.join(',')}`;
+  }
+  // #4803 — sans `pagination`, l'URL ne change pas d'un caractère.
+  if (pagination?.paged) url += '&paged=true';
+  if (pagination?.serviceOffsets && Object.keys(pagination.serviceOffsets).length > 0) {
+    url += `&service_offsets=${encodeURIComponent(tableServices(pagination.serviceOffsets))}`;
+  }
+  if (pagination?.serviceLimits && Object.keys(pagination.serviceLimits).length > 0) {
+    url += `&service_limits=${encodeURIComponent(tableServices(pagination.serviceLimits))}`;
   }
   return fetchJSON<FederatedSearchResult>(url).then(result => {
     if (result.local) result.local.tracks = mapStreamingTracks(result.local.tracks);
@@ -3949,6 +4074,20 @@ export function federatedSearch(q: string, sources?: string[], limit = SEARCH_FE
         for (const fam of ['tracks', 'albums', 'artists', 'playlists'] as const) {
           for (const x of (result.services[key] as any)[fam] ?? []) {
             if (x && !x.source) x.source = key;
+          }
+        }
+        // 🔴 web#1826 : les ARTISTES de service n'ont pas de `source_id`.
+        // `StreamArtist` (`tune-core/src/streaming/traits.rs`) sérialise `id`,
+        // sans le `rename = "source_id"` de `StreamPlaylist`. Mesuré sur le .18
+        // (0.9.168) le 30/09/2026 avec `/search?q=Leprous` : qobuz
+        // `{"id":"610403"}`, tidal `{"id":"3631982"}`, et aucun `source_id`.
+        // Or `SearchV2.ouvrirArtiste`, `ouvrirArtisteDepuis` et `objetArtiste`
+        // l'exigent pour désigner l'artiste chez son service. Faute de quoi le
+        // clic retombait sans rien dire sur `q = ar.name` : la recherche
+        // repartait sur le nom et la fiche ne s'ouvrait jamais.
+        for (const x of (result.services[key] as any).artists ?? []) {
+          if (x && x.source_id == null && x.id != null && String(x.id).trim() !== '') {
+            x.source_id = String(x.id);
           }
         }
       }
@@ -8621,6 +8760,19 @@ export function defaireCoffret(id: number) {
   );
 }
 /**
+ * DÉFAIT un coffret composé À LA MAIN (décision de Bertrand du 29/09/2026,
+ * tune-server-rust#5319) : chaque disque redevient l'album de son dossier,
+ * sous son titre d'origine ; les titres et artistes de piste modifiés à la
+ * main restent. 409 `pas_un_coffret_manuel` sur tout autre album. N'existe
+ * que si la fiche d'édition annonce `defaire_coffret_manuel`.
+ */
+export function defaireCoffretManuel(id: number) {
+  return fetchJSON<{ cible: number; albums_recrees: number[] }>(
+    `${BASE}/library/coffrets/${id}/defaire-manuel`,
+    { method: 'POST' },
+  );
+}
+/**
  * Composer un coffret À LA MAIN — Bertrand, 20/09/2026.
  *
  * 🔴 `albumIds` est ORDONNÉ, et l'ordre EST celui des disques : le premier
@@ -8959,8 +9111,23 @@ export const RAYONS_CONCERTS = [50, 100, 200] as const;
 
 export interface ConcertsAVenir {
   concerts: Concert[];
-  /** Le périmètre effectivement appliqué par le nuage. */
+  /** Le périmètre CHOISI et enregistré — pas forcément celui qui a filtré la
+   *  liste : un rayon sans commune localisée retombe sur le pays, et `scope`
+   *  reste `radius` (tune-server-rust#5368). Voir `applied_scope`. */
   scope?: PerimetreConcerts;
+  /** Le périmètre qui a VRAIMENT filtré la liste. Absent d'un serveur ou d'un
+   *  nuage antérieurs au lot `batch/fix-5369-20260929`. */
+  applied_scope?: PerimetreConcerts;
+  /** `false` : le rayon est demandé mais la commune n'est pas localisée. */
+  located?: boolean;
+  /** Nombre de concerts dans le périmètre, toutes pages confondues. Absent
+   *  d'un serveur ancien : la liste était alors coupée à 100 sans le dire
+   *  (tune-server-rust#5369). */
+  total?: number;
+  limit?: number;
+  offset?: number;
+  /** Vrai s'il reste des concerts au-delà de cette page. */
+  has_more?: boolean;
   radius_km?: number | null;
   city?: string | null;
   country?: string | null;
@@ -8977,6 +9144,10 @@ export interface LocalisationConcerts {
    *  trouvée : la lecture retombe alors sur le pays. Sans ce drapeau,
    *  l'utilisateur croit filtrer à 50 km alors qu'il voit tout son pays. */
   located?: boolean;
+  /** Vrai quand le nom désigne plusieurs communes éloignées et qu'aucun code
+   *  postal n'a tranché : le rayon est centré sur la plus connue, qui n'est
+   *  peut-être pas la bonne (tune-server-rust#5368). */
+  ambiguous?: boolean;
   /** Rendu par `GET /location` : le code postal saisi, pour pré-remplir. */
   postal_code?: string | null;
   code?: string;
@@ -8986,8 +9157,19 @@ export interface LocalisationConcerts {
 // lui-même chaque échec, par un code traduit (`concerts.unavailable`,
 // `concerts.rate_limited`…). Sans lui, un 502 du nuage affichait en plus
 // « Server error: 502 Bad Gateway ».
-export function getConcertsAVenir() {
-  return fetchJSON<ConcertsAVenir>(`${BASE}/ext/concerts/upcoming`, undefined, undefined, true);
+/** Sans `offset`, la première page, de la taille que le nuage choisit. Un
+ *  serveur ancien ignore `offset` et rend toujours la même liste : l'écran ne
+ *  le demande donc que si la réponse a dit `has_more`. */
+export function getConcertsAVenir(page: { offset?: number } = {}) {
+  // Suffixe de requête écrit EN LIGNE, sous la forme que lit le cartographe
+  // du contrat (`scripts/web-contract-map.py`, dépôt serveur) : une variable
+  // interpolée rendrait la route « non résolue » dans la carte.
+  return fetchJSON<ConcertsAVenir>(
+    `${BASE}/ext/concerts/upcoming${page.offset ? `?offset=${page.offset}` : ''}`,
+    undefined,
+    undefined,
+    true,
+  );
 }
 
 /** Enregistre la commune SAISIE par l'utilisateur et le périmètre voulu.

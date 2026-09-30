@@ -65,7 +65,7 @@
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
   import { rangAleatoire, graineAleatoire } from '../../lib/shuffle';
-  import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection, pistesDansLOrdre, bornee, tirageAleatoire } from '../../lib/porteeAleatoire';
+  import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection, pistesDansLOrdre, bornee, tirageAleatoire, pistesDesAlbums } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
@@ -2001,6 +2001,8 @@
   function plafondAleatoire(): Promise<number> {
     return plafondFileAleatoire(() => api.getConfig());
   }
+  /** #5526 — d'où `pistesDesAlbums` tire les pistes d'une sélection d'albums. */
+  const chargeursDePistes = { parAlbums: api.getAlbumTracksBatch, toutes: () => api.getAllTracks() };
   async function shuffleAll() {
     const zid = zoneRequise();
     if (zid == null) return;
@@ -2015,7 +2017,8 @@
         // des pistes ne change pas ce qu'on a demandé.
         const albumsVoulus = albumsAleatoire;
         const provenance = fProvenance;
-        const [liste, plafond] = await Promise.all([api.getAllTracks(), plafondAleatoire()]);
+        // #5526 — les pistes de CES albums, pas toute la bibliothèque.
+        const [liste, plafond] = await Promise.all([pistesDesAlbums(albumsVoulus, chargeursDePistes), plafondAleatoire()]);
         const ids = pistesDeLaSelection(liste, albumsVoulus, plafond, (p) => dansSource(p, provenance));
         if (ids.length) await playAndSync(zid, { track_ids: ids });
         else notifications.error($tr('library.noTracks'));
@@ -2090,7 +2093,7 @@
         if (nu) await demanderBibliothequeEntiere();
         const ordre = albumsDansLOrdre.flatMap((a) => (a.id == null ? [] : [a.id]));
         const provenance = fProvenance;
-        const [liste, plafond] = await Promise.all([api.getAllTracks(), plafondAleatoire()]);
+        const [liste, plafond] = await Promise.all([pistesDesAlbums(ordre, chargeursDePistes), plafondAleatoire()]);
         ids = pistesDansLOrdre(liste, ordre, plafond, (p) => dansSource(p, provenance));
       }
       if (ids.length) await playAndSync(zid, { track_ids: ids });
@@ -2548,7 +2551,10 @@
     {:else if tab === 'coffrets'}
       <!-- Le clic ouvre la fiche d'album habituelle : celle qui, depuis la
            v0.9.162, affiche un en-tête par disque. -->
-      <CoffretsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display} />
+      <!-- #1824 — la portée « Répertoire » borne AUSSI les coffrets : les
+           mêmes identifiants que l'onglet Albums. -->
+      <CoffretsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display}
+        porteeActive={porteeActive && !depot} idsPortee={idsPortee} />
     {:else if tab === 'artists'}
       <!-- Les artistes ont leur PROPRE source, `/library/artists`, et non une
            déduction depuis les albums chargés. Ils ne passent donc pas par les
