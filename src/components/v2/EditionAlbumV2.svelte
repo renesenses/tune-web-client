@@ -34,7 +34,7 @@
     brouillonDepuis, corpsEdition, deplacer, deplacerPiste, validerBrouillon,
     TYPES_DE_SORTIE, type Brouillon, type EditionReponse, type ModeCompilation,
     champsDuPlan, ecritureBalisesAnnoncee, estRapportBalises, libelleChampBalise, nomDeFichier, raisonsIgnorees,
-    RAISONS_IGNORE, type RapportBalises,
+    RAISONS_IGNORE, type RapportBalises, retablirChampAnnonce, type ChampEdite,
   } from '../../lib/editionAlbum';
 
   let { albumId, donnees, onFermer, onEnregistre, onRecharger }: {
@@ -98,11 +98,38 @@
 
   /** Relit la fiche d'édition après une opération du serveur. */
   async function relire() {
-    const r = await api.getAlbumEdition(albumId);
+    adopter(await api.getAlbumEdition(albumId));
+  }
+  function adopter(r: EditionReponse) {
     source = r;
     b = brouillonDepuis(r);
     balisesPossibles = ecritureBalisesAnnoncee(r);
+    retablirPossible = retablirChampAnnonce(r);
     onRecharger?.();
+  }
+
+  /* ── « Modifié à la main » et « Rétablir » — décision de Bertrand du
+     29/09/2026 (tune-server-rust#5319). Chaque champ de `champs_edites` porte
+     un badge ; « Rétablir » lui rend la valeur des BALISES des fichiers et
+     retire la marque. Le bouton n'existe que si le serveur l'annonce
+     (`retablir_champ`), et il attend que rien d'autre ne soit en suspens. */
+  const edites = $derived(new Set(source.album.champs_edites ?? []));
+  let retablirPossible = $state(untrack(() => retablirChampAnnonce(donnees)));
+
+  async function retablir(champ: ChampEdite) {
+    if (modifie || enCours || !retablirPossible) return;
+    if (!(await dialogs.confirm($tr('v2.edition.restoreAsk' as any)))) return;
+    enCours = true;
+    erreur = null;
+    try {
+      adopter(await api.retablirChampAlbum(albumId, champ));
+    } catch (e) {
+      const x = e as { status?: number } | null;
+      if (x?.status === 404 || x?.status === 405) retablirPossible = false;
+      erreur = x?.status === 409 ? { cle: 'v2.edition.restoreByUndo' } : erreurDe(e, 'v2.edition.errOperation');
+    } finally {
+      enCours = false;
+    }
   }
 
   async function detacher(i: number) {
@@ -308,6 +335,18 @@
   ];
 </script>
 
+{#snippet marque(champ: ChampEdite)}
+  {#if edites.has(champ)}
+    <span class="ed-badge" data-modifie={champ}>{$tr('v2.edition.editedBadge' as any)}</span>
+    {#if retablirPossible}
+      <button type="button" class="ed-retablir" data-retablir={champ}
+        disabled={modifie || enCours}
+        title={modifie ? $tr('v2.edition.saveFirst' as any) : $tr('v2.edition.restoreTip' as any)}
+        onclick={(e) => { e.preventDefault(); retablir(champ); }}>{$tr('v2.edition.restore' as any)}</button>
+    {/if}
+  {/if}
+{/snippet}
+
 {#snippet poigneeDisque(i: number)}
   <button type="button" class="ed-poignee" data-disque-rang={i} draggable="true"
     ondragstart={(e) => saisir(e, { sorte: 'disque', i })} ondragend={relacher}
@@ -381,17 +420,17 @@
 
   <fieldset class="ed-champs">
     <legend>{$tr('v2.edition.sectionAlbum' as any)}</legend>
-    <label>{$tr('v2.edition.fieldTitle' as any)}
+    <label><span class="ed-etiquette">{$tr('v2.edition.fieldTitle' as any)}{@render marque('title')}</span>
       <input type="text" name="title" bind:value={b.title} required /></label>
-    <label>{$tr('v2.edition.fieldAlbumArtist' as any)}
+    <label><span class="ed-etiquette">{$tr('v2.edition.fieldAlbumArtist' as any)}{@render marque('album_artist')}</span>
       <input type="text" name="album_artist" bind:value={b.album_artist} /></label>
-    <label>{$tr('v2.edition.fieldYear' as any)}
+    <label><span class="ed-etiquette">{$tr('v2.edition.fieldYear' as any)}{@render marque('year')}</span>
       <input type="text" name="year" inputmode="numeric" maxlength="4" bind:value={b.year} /></label>
-    <label>{$tr('v2.edition.fieldLabel' as any)}
+    <label><span class="ed-etiquette">{$tr('v2.edition.fieldLabel' as any)}{@render marque('label')}</span>
       <input type="text" name="label" bind:value={b.label} /></label>
-    <label>{$tr('v2.edition.fieldGenre' as any)}
+    <label><span class="ed-etiquette">{$tr('v2.edition.fieldGenre' as any)}{@render marque('genre')}</span>
       <input type="text" name="genre" bind:value={b.genre} /></label>
-    <label>{$tr('v2.edition.fieldType' as any)}
+    <label><span class="ed-etiquette">{$tr('v2.edition.fieldType' as any)}{@render marque('release_type')}</span>
       <select name="release_type" bind:value={b.release_type}>
         <option value="">{$tr('v2.edition.typeUnknown' as any)}</option>
         {#each TYPES as ty (ty.v)}<option value={ty.v}>{$tr(ty.cle as any)}</option>{/each}
@@ -400,6 +439,7 @@
 
     <div class="ed-comp" role="radiogroup" aria-labelledby="edition-comp">
       <span id="edition-comp" class="ed-comp-titre">{$tr('v2.edition.compilation' as any)}</span>
+      {@render marque('compilation_mode')}
       {#each MODES as m (m.v)}
         <label class="ed-radio">
           <input type="radio" name="compilation_mode" value={m.v} bind:group={b.compilation_mode} />
@@ -419,7 +459,7 @@
 
   <div class="ed-disques">
     {#if afficherDisques}
-      <h3>{$tr('v2.edition.sectionDiscs' as any)}</h3>
+      <h3>{$tr('v2.edition.sectionDiscs' as any)}{@render marque('discs')}{@render marque('tracks')}</h3>
       {#each b.disques as disque, i (disque.number)}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="ed-disque" data-disque={disque.number}
@@ -447,7 +487,7 @@
         </div>
       {/each}
     {:else if b.disques.length === 1}
-      <h3>{$tr('v2.edition.sectionTracks' as any)}</h3>
+      <h3>{$tr('v2.edition.sectionTracks' as any)}{@render marque('discs')}{@render marque('tracks')}</h3>
       {@render pistes(0)}
     {/if}
 
@@ -548,6 +588,13 @@
   .ed-champs label.ed-radio{flex-direction:row; align-items:center; gap:6px; font-size:14px; color:var(--v2-txt)}
   .ed-effet{font-size:12px; font-style:italic; color:var(--v2-txt3)}
   .ed-coffret{grid-column:1 / -1; margin:0; font-size:12px; color:var(--v2-txt3)}
+  .ed-etiquette{display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+  .ed-badge{font:600 11px var(--v2-sans); color:var(--v2-acc-tint); padding:1px 8px; margin-left:6px;
+    border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
+  .ed-retablir{padding:0; border:0; background:transparent; cursor:pointer; color:var(--v2-txt2);
+    font:600 11px var(--v2-sans); text-decoration:underline}
+  .ed-retablir:hover:not(:disabled){color:var(--v2-acc-tint)}
+  .ed-retablir:disabled{opacity:.5; cursor:default}
   .ed-disques{display:flex; flex-direction:column; gap:12px}
   .ed-disques h3{margin:0; font-size:15px; font-weight:700}
   .ed-disque{border:1px solid var(--v2-line2); border-radius:var(--v2-r-md); padding:10px}

@@ -35,7 +35,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import ClampedText from '../partages/ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
-  import { estReponseEdition, type EditionReponse } from '../../lib/editionAlbum';
+  import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
   import {
     SELECTION_VIDE, appliquerGenre, basculer, choisiesDansLOrdre, corpsArtistePistes,
     idsSelectionnables, restreindre, toutEstChoisi, toutOuRien, type Bilan, type EtatSelection,
@@ -390,8 +390,13 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   /**
    * « Défaire le coffret » — GO de Bertrand du 25/09/2026. Seulement sur un
    * coffret AUTOMATIQUE d'un album LOCAL : l'origine se lit dans le magasin
-   * clé-valeur de l'album (`coffret`, voir `lib/coffretAuto.ts`). Un coffret
-   * manuel n'a pas de bouton — sa route répond 409.
+   * clé-valeur de l'album (`coffret`, voir `lib/coffretAuto.ts`).
+   *
+   * Un coffret MANUEL a le sien depuis la décision de Bertrand du 29/09/2026
+   * (tune-server-rust#5319) : `POST /library/coffrets/{id}/defaire-manuel`.
+   * 🔴 LA SONDE DÉCIDE : la fiche d'édition (`edition`, plus bas) doit annoncer
+   * `defaire_coffret_manuel`. Un serveur antérieur ne l'annonce pas, et sa
+   * route des coffrets automatiques répondrait 409 : pas de bouton.
    */
   let origineCoffret = $state<OrigineCoffret | null>(null);
   let defaireEnCours = $state(false);
@@ -403,15 +408,24 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
       .then((m) => { if (album.id === id) origineCoffret = origineDuCoffret(m?.coffret); })
       .catch(() => { /* pas de bouton : rien n'est promis */ });
   });
+  function coffretDefaisable(): 'auto' | 'manuel' | null {
+    if (origineCoffret === 'auto') return 'auto';
+    if (origineCoffret === 'manuel' && edition?.album.id === album.id && defaireCoffretManuelAnnonce(edition)) {
+      return 'manuel';
+    }
+    return null;
+  }
   async function defaireCoffret() {
     const id = album.id;
-    if (id == null || defaireEnCours || origineCoffret !== 'auto') return;
-    const ok = await dialogs.confirm($tr('v2.album.boxUndoConfirm' as any), { danger: true });
+    const genre = coffretDefaisable();
+    if (id == null || defaireEnCours || genre == null) return;
+    const question = genre === 'auto' ? 'v2.album.boxUndoConfirm' : 'v2.album.boxUndoManualConfirm';
+    const ok = await dialogs.confirm($tr(question as any), { danger: true });
     if (!ok) return;
     defaireEnCours = true;
     let reussi = false;
     try {
-      await api.defaireCoffret(id);
+      await (genre === 'auto' ? api.defaireCoffret(id) : api.defaireCoffretManuel(id));
       reussi = true;
     } catch {
       reussi = false;
@@ -1434,7 +1448,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             {$tr('v2.album.locate' as any)}
           </button>
         {/if}
-        {#if origineCoffret === 'auto'}
+        {#if coffretDefaisable()}
           <button class="ghost defaire-coffret" onclick={defaireCoffret} disabled={defaireEnCours}
             title={$tr('v2.album.boxUndoTip' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M7 12h10M10 17h4"/></svg>

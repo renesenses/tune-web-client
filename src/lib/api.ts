@@ -1965,6 +1965,19 @@ export function getAlbumEdition(id: number) {
   return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition`, undefined, undefined, true);
 }
 
+/**
+ * RÉTABLIT un champ modifié à la main (tune-server-rust#5319) : il reprend la
+ * valeur des balises des fichiers et n'est plus marqué. Rend la fiche
+ * d'édition. 409 `retablir_par_defaire` pour les disques d'un coffret.
+ */
+export function retablirChampAlbum(id: number, champ: string) {
+  return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition/retablir`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ field: champ }),
+  });
+}
+
 /** Un seul PUT avec tout ce qui a changé ; 422 si `discs` n'est pas complet. */
 export function putAlbumEdition(id: number, corps: CorpsEdition) {
   return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition`, {
@@ -8679,6 +8692,19 @@ export function getCoffrets() {
 export function defaireCoffret(id: number) {
   return fetchJSON<{ cible: number; albums_recrees: number[] }>(
     `${BASE}/library/coffrets/${id}/defaire`,
+    { method: 'POST' },
+  );
+}
+/**
+ * DÉFAIT un coffret composé À LA MAIN (décision de Bertrand du 29/09/2026,
+ * tune-server-rust#5319) : chaque disque redevient l'album de son dossier,
+ * sous son titre d'origine ; les titres et artistes de piste modifiés à la
+ * main restent. 409 `pas_un_coffret_manuel` sur tout autre album. N'existe
+ * que si la fiche d'édition annonce `defaire_coffret_manuel`.
+ */
+export function defaireCoffretManuel(id: number) {
+  return fetchJSON<{ cible: number; albums_recrees: number[] }>(
+    `${BASE}/library/coffrets/${id}/defaire-manuel`,
     { method: 'POST' },
   );
 }
