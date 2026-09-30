@@ -26,7 +26,7 @@
    * qu'au premier dépôt. L'écran le DIT, et dit comment remplir le sas : un
    * écran vide sans explication se lit comme une panne.
    */
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -42,7 +42,9 @@
     corpsLectureAlbumEtiquete,
     EVENEMENT_ETIQUETTE_MODIFIEE,
   } from '../../lib/cibleEtiquette';
-  import { chargerSas, sasEcouterPlusTard } from '../../lib/ecouterPlusTard';
+  import { chargerSas, cleLigne, sasEcouterPlusTard } from '../../lib/ecouterPlusTard';
+  import { quatreDistinctes } from '../../lib/mosaique';
+  import MosaiquePochettes from './MosaiquePochettes.svelte';
   import { gestesObjet, objetAlbum, objetPlaylist } from '../../lib/gestesObjet';
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -155,6 +157,56 @@
     chargement = false;
   }
 
+  /**
+   * web#1838 — l'IMAGE d'une playlist du sas, quand la ligne n'en porte pas.
+   *
+   * Mesuré sur le .18 le 30/09/2026 (v0.9.169) : les deux playlists Qobuz du
+   * sas de Bertrand reviennent de `/tags/6/playlists` avec `cover_path: null`
+   * — l'instantané avait été déposé sans image (corrigé dans `objetPlaylist`,
+   * mais les lignes déjà posées restent nulles : le serveur ne réécrit pas un
+   * dépôt existant). Et une playlist de BIBLIOTHÈQUE n'a jamais d'image côté
+   * serveur (`id, name, description, track_count`).
+   *
+   * Deux replis, ceux des autres écrans :
+   *  - playlist LOCALE → la mosaïque de ses pistes (`MosaiquePochettes` +
+   *    `quatreDistinctes`, comme Playlists, Favoris et Étiquettes) ;
+   *  - playlist de SERVICE sans image → celle du service
+   *    (`getStreamingPlaylist`, la route qu'emploie déjà l'Historique), une
+   *    image seule, pas un assemblage.
+   *
+   * APRÈS la grille, une requête par playlist, et un échec ne coûte que sa
+   * vignette : elle garde son repli. `demandees` n'est PAS réactif — l'effet
+   * qui l'écrit ne doit pas se relancer lui-même.
+   */
+  let mosaiques = $state<Record<string, string[]>>({});
+  let imagesService = $state<Record<string, string>>({});
+  const demandees = new Set<string>();
+
+  async function chargerImagesListes(liste: any[]): Promise<void> {
+    await Promise.allSettled(
+      liste.map(async (pl) => {
+        const k = cleLigne('playlist', pl);
+        if (!k || demandees.has(k)) return;
+        if (pl?.id == null && pl?.cover_path) return;
+        demandees.add(k);
+        if (typeof pl?.id === 'number') {
+          const pistes = ((await api.getPlaylistTracks(pl.id)) ?? []) as any[];
+          const vues = quatreDistinctes(pistes.slice(0, 60));
+          if (vues.length) mosaiques = { ...mosaiques, [k]: vues };
+          return;
+        }
+        const info = await api.getStreamingPlaylist(String(pl.source), String(pl.source_id));
+        const image = info?.cover_path;
+        if (image) imagesService = { ...imagesService, [k]: image };
+      }),
+    );
+  }
+
+  $effect(() => {
+    const liste = listes;
+    untrack(() => void chargerImagesListes(liste));
+  });
+
   onMount(() => {
     void charger();
     /**
@@ -250,8 +302,12 @@
 
   {#snippet vignette(e: ElementSas)}
     {#if e.genre === 'playlist'}
-      {#if e.ligne.cover_path}
-        <AlbumArt coverPath={e.ligne.cover_path} size={0} alt={e.titre} />
+      {@const k = cleLigne('playlist', e.ligne) ?? ''}
+      {@const image = e.ligne.cover_path || imagesService[k]}
+      {#if image}
+        <AlbumArt coverPath={image} albumId={null} size={0} alt={e.titre} />
+      {:else if mosaiques[k]?.length}
+        <MosaiquePochettes pochettes={mosaiques[k]} initiales={e.titre?.slice(0, 1)} alt={e.titre ?? ''} />
       {:else}
         {@render repliListe()}
       {/if}
