@@ -1965,6 +1965,19 @@ export function getAlbumEdition(id: number) {
   return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition`, undefined, undefined, true);
 }
 
+/**
+ * RÉTABLIT un champ modifié à la main (tune-server-rust#5319) : il reprend la
+ * valeur des balises des fichiers et n'est plus marqué. Rend la fiche
+ * d'édition. 409 `retablir_par_defaire` pour les disques d'un coffret.
+ */
+export function retablirChampAlbum(id: number, champ: string) {
+  return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition/retablir`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ field: champ }),
+  });
+}
+
 /** Un seul PUT avec tout ce qui a changé ; 422 si `discs` n'est pas complet. */
 export function putAlbumEdition(id: number, corps: CorpsEdition) {
   return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition`, {
@@ -3561,6 +3574,9 @@ export interface GreffonAudioNatif {
   native_loaded: boolean;
   /** Le motif d'un échec de chargement, sinon `null`. */
   error: string | null;
+  /** La version annoncée par le catalogue à l'installation ; `null` (ou
+   *  absent, serveur ancien) pour un paquet envoyé à la main. */
+  version?: string | null;
 }
 
 export interface EtatGreffonsAudioNatifs {
@@ -3578,6 +3594,55 @@ export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs>
 }
 
 const racineGreffonNatif = (id: string) => `${BASE}/audio-plugins/${encodeURIComponent(id)}`;
+
+/** `POST /audio-plugins/{id}/install-from-catalog` — réussi. Le greffon est
+ *  actif au PROCHAIN démarrage du serveur (`restart_required`). */
+export interface InstallationGreffonNatif {
+  id: string;
+  installed: boolean;
+  restart_required: boolean;
+  target: string;
+  version: string;
+}
+
+/**
+ * Le serveur télécharge le paquet signé de SA plateforme depuis le catalogue
+ * de mozaiklabs (licence ou compte Premium), vérifie la somme et la
+ * signature, puis l'installe. Refus (`err.code`) :
+ *   402 `premium_required`, 412 `not_connected`,
+ *   404 `no_package_for_target` / `plugin_not_in_catalog`,
+ *   400 `signature_invalid`, 502 `catalog_unreachable` (et autres 502),
+ *   503 `catalog_rate_limited`.
+ * `sansBandeau` : la carte du greffon porte elle-même le message d'échec.
+ */
+/** `GET /audio-plugins/{id}/catalog` — ce que le catalogue publie pour la
+ *  plateforme de CE serveur. `available: false` + `reason:
+ *  "no_package_for_target"` : pas de paquet pour ce triplet (un état, pas une
+ *  panne). `update_available` : une version plus récente que celle installée
+ *  depuis le catalogue ; rien ne s'installe tout seul. */
+export interface EtatCatalogueGreffonNatif {
+  id: string;
+  target: string;
+  available: boolean;
+  reason?: string;
+  latest_version: string | null;
+  installed: boolean;
+  installed_version: string | null;
+  update_available: boolean;
+}
+
+export function getCatalogueGreffonNatif(id: string): Promise<EtatCatalogueGreffonNatif> {
+  return fetchJSON<EtatCatalogueGreffonNatif>(`${racineGreffonNatif(id)}/catalog`, undefined, undefined, true);
+}
+
+export function installerGreffonNatifDuCatalogue(id: string): Promise<InstallationGreffonNatif> {
+  return fetchJSON<InstallationGreffonNatif>(
+    `${racineGreffonNatif(id)}/install-from-catalog`,
+    { method: 'POST' },
+    undefined,
+    true,
+  );
+}
 
 export function getReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
   return fetchJSON<ReglageGreffonNatif>(`${racineGreffonNatif(id)}/zones/${zoneId}`);
@@ -4394,6 +4459,18 @@ export function getScanStatus() {
  * plutôt que d'afficher une jauge vide. Voir `lib/santeReplayGain.ts`, qui
  * tient cette décision, et le témoin qui la garde.
  */
+/**
+ * L'avancement de la mesure de la plage dynamique (serveur #4185), et surtout
+ * `candidates` : le stock du RATTRAPAGE, compté par le serveur hors mesure à la
+ * demande. tune-web-client#1828 — la carte Santé en tire la part des pistes
+ * sans plage dynamique que l'ordre de passage règle vraiment.
+ */
+export function getDynamicRangeProgress() {
+  return fetchJSON<import('./santePlageDynamique').AvancementPlageDynamique>(
+    `${BASE}/system/dynamic-range/progress`,
+  );
+}
+
 export function getReplayGainProgress() {
   return fetchJSON<import('./santeReplayGain').AvancementReplayGain>(
     `${BASE}/system/replaygain/progress`,
@@ -6387,6 +6464,28 @@ export function addAlbumToCollection(collectionId: number, albumId: number) {
 }
 export function removeAlbumFromCollection(collectionId: number, albumId: number) {
   return fetchJSON<any>(`${BASE}/library/collections/${collectionId}/albums/${albumId}`, { method: 'DELETE' });
+}
+/** Un album vivant proposé pour un manquant (tune-server-rust#5527, #5528). */
+export interface AlbumProposeCollection {
+  id: number;
+  title: string;
+  artist: string | null;
+  /** Déjà rangé dans ce dossier : le manquant n'en est qu'un doublon. */
+  in_collection?: boolean;
+}
+/** Un album manquant d'un dossier, avec de quoi le résoudre. */
+export interface AlbumManquantCollection {
+  id: number;
+  title: string | null;
+  artist: string | null;
+  /** L'album vivant qui a reçu ses pistes, quand le scan l'a noté. */
+  merged_into: AlbumProposeCollection | null;
+  /** Albums vivants de même artiste et de même titre — PROPOSÉS, jamais substitués. */
+  candidates: AlbumProposeCollection[];
+}
+/** `GET /library/collections/{id}/missing` — servi depuis tune-server-rust#5528. */
+export function getCollectionMissing(collectionId: number) {
+  return fetchJSON<AlbumManquantCollection[]>(`${BASE}/library/collections/${collectionId}/missing`);
 }
 
 // --- Smart Duplicates ---
@@ -8679,6 +8778,19 @@ export function getCoffrets() {
 export function defaireCoffret(id: number) {
   return fetchJSON<{ cible: number; albums_recrees: number[] }>(
     `${BASE}/library/coffrets/${id}/defaire`,
+    { method: 'POST' },
+  );
+}
+/**
+ * DÉFAIT un coffret composé À LA MAIN (décision de Bertrand du 29/09/2026,
+ * tune-server-rust#5319) : chaque disque redevient l'album de son dossier,
+ * sous son titre d'origine ; les titres et artistes de piste modifiés à la
+ * main restent. 409 `pas_un_coffret_manuel` sur tout autre album. N'existe
+ * que si la fiche d'édition annonce `defaire_coffret_manuel`.
+ */
+export function defaireCoffretManuel(id: number) {
+  return fetchJSON<{ cible: number; albums_recrees: number[] }>(
+    `${BASE}/library/coffrets/${id}/defaire-manuel`,
     { method: 'POST' },
   );
 }

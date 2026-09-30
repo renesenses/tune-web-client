@@ -23,6 +23,7 @@
 
 import type { Album, Artist, SearchResult, Track } from './types';
 import { normaliser } from './rechercheRestreinte';
+import { estDeBibliotheque } from './provenanceBibliotheque';
 
 /** Une ligne de résultat sait toujours d'où elle vient. */
 export type AvecSource<T> = T & { source?: string | null };
@@ -271,6 +272,21 @@ export function ordonnerSources<T>(elements: readonly T[], source: (x: T) => str
 const BONUS_IMAGE = 0.5;
 
 /**
+ * Le bonus de source d'une LIGNE du médaillon — web#1708, suite du 28/09.
+ *
+ * Décision de Bertrand (28/09/2026) : à texte égal, la BIBLIOTHÈQUE passe
+ * devant un service. `bonusSource` ne connaît que la chaîne `'local'` : un
+ * album de bibliothèque venu d'un serveur UPnP (`upnp`, `upnp:<udn>`) ou à
+ * source vide (`fusionnerParType` n'estampille `'local'` que sur
+ * `null`/`undefined`) tombait à 0,5 et perdait encore le médaillon face à un
+ * artiste de service à portrait. La provenance se lit donc par LE prédicat
+ * commun `estDeBibliotheque`, et non par une troisième copie de la règle.
+ */
+function bonusSourceLigne(x: { id?: unknown; source?: string | null }): number {
+  return estDeBibliotheque(x) ? RANG_SOURCE.local : bonusSource(x.source);
+}
+
+/**
  * Barème commun aux trois types : égalité 100, préfixe 50, contenu 20.
  *
  * `q` est déjà normalisée ; la valeur l'est ici, par la MÊME fonction que le
@@ -312,21 +328,21 @@ export function meilleurResultat(
   let best = 0;
   let gagnant: Meilleur | null = null;
   for (const a of r.artistes) {
-    const s = scoreTexte(a.name, q) + (a.image_path ? BONUS_IMAGE : 0) + bonusSource(a.source);
+    const s = scoreTexte(a.name, q) + (a.image_path ? BONUS_IMAGE : 0) + bonusSourceLigne(a);
     if (s > 0 && s > best) { best = s; gagnant = { genre: 'artiste', artiste: a }; }
   }
   if (gagnant) candidats.push({ score: best, valeur: gagnant });
 
   best = 0; gagnant = null;
   for (const a of r.albums) {
-    const s = scoreTexte(a.title, q) + (a.cover_path ? BONUS_IMAGE : 0) + bonusSource(a.source);
+    const s = scoreTexte(a.title, q) + (a.cover_path ? BONUS_IMAGE : 0) + bonusSourceLigne(a);
     if (s > 0 && s > best) { best = s; gagnant = { genre: 'album', album: a }; }
   }
   if (gagnant) candidats.push({ score: best, valeur: gagnant });
 
   best = 0; gagnant = null;
   for (const t of r.pistes) {
-    const s = scoreTexte(t.title, q) + bonusSource(t.source);
+    const s = scoreTexte(t.title, q) + bonusSourceLigne(t);
     if (s > 0 && s > best) { best = s; gagnant = { genre: 'piste', piste: t }; }
   }
   if (gagnant) candidats.push({ score: best, valeur: gagnant });

@@ -16,6 +16,8 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { preferences } from '../../lib/stores/preferences';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import BasculeAffichage from '../v2/BasculeAffichage.svelte';
+  import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
   import { get } from 'svelte/store';
   import { untrack } from 'svelte';
   import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
@@ -304,6 +306,23 @@
   let sens = $state<Sens>(lireChoix<Sens>('v2.smartplaylists.sens', SENS, 'asc'));
   $effect(() => { ecrireChoix('v2.smartplaylists.tri', tri); });
   $effect(() => { ecrireChoix('v2.smartplaylists.sens', sens); });
+
+  /**
+   * FabienM (fil 2057), go de Bertrand du 30/09/2026 : la bascule de
+   * Collections (web#1801) et d'« Écouter plus tard » (web#1802) — petites
+   * vignettes, grandes vignettes, liste. Un choix pour CET écran, sous sa clé :
+   * le gestionnaire de playlists garde le sien.
+   *
+   * 🔴 Écrit au CLIC seulement (`changerAffichage`), jamais par un `$effect` :
+   * écrire au montage figerait le défaut comme un faux choix, et plus aucun
+   * changement de défaut n'atteindrait personne — le piège de #1650.
+   */
+  const CLE_AFFICHAGE = 'v2.smartplaylists.display';
+  let affichage = $state<AffichageEtendu>(lireChoix<AffichageEtendu>(CLE_AFFICHAGE, LISTE_ET_DEUX_GRILLES, 'grid'));
+  function changerAffichage(v: AffichageEtendu) {
+    affichage = v;
+    ecrireChoix(CLE_AFFICHAGE, v);
+  }
   const LIBELLES_TRI: Record<Tri, string> = {
     nom: 'smartPlaylists.sortName',
     pistes: 'smartPlaylists.sortTracks',
@@ -926,6 +945,7 @@
             {/if}
           </button>
         </label>
+        <BasculeAffichage modes={LISTE_ET_DEUX_GRILLES} valeur={affichage} onChanger={changerAffichage} iconeDeDestination />
       </div>
     {/if}
 
@@ -940,7 +960,7 @@
           {/each}
         </div>
       {/if}
-      <div class="grid">
+      <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
         {#each visibles as sp (sp.id)}
           <!-- Un LISERÉ de couleur, pas un fond : la mosaïque doit rester
                lisible. Même formule de teinte que les collections. -->
@@ -1049,10 +1069,22 @@
   .ca { font: 11px var(--v2-mono); color: var(--v2-txt3); display: flex; align-items: center; gap: 6px; }
   /* Le résumé des règles : une ligne, l'infobulle porte le reste. */
   .cd { font-size: 11.5px; color: var(--v2-txt3); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Grandes vignettes : la même carte, un pas de grille plus large (web#1801). */
+  .grid.grandes { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; }
+  .grid.grandes .ct { font-size: 15px; }
+  /* La liste : la même grille couchée, comme dans Collections. Une carte par
+     ligne, la mosaïque réduite ; les gestes de la pochette et le titre
+     cliquable restent ceux de la grille. */
+  .grid.liste { grid-template-columns: 1fr; gap: 2px; }
+  .grid.liste .card { flex-direction: row; align-items: center; gap: 14px; padding: 6px 10px; border-radius: 9px; }
+  .grid.liste .card:hover { background: var(--v2-hover); }
+  .grid.liste .cv { width: 48px; flex: 0 0 48px; }
+  .grid.liste .meta { flex-direction: row; align-items: baseline; gap: 12px; flex: 1; }
+  .grid.liste .meta .ct { max-width: 60%; min-width: 0; }
   .sp-empty { font-family: var(--font-body); font-size: 14px; color: var(--tune-text-muted); text-align: center; padding: var(--space-2xl); grid-column: 1 / -1; }
 
   /* Tri de la liste — mêmes commandes que Collections. */
-  .sp-barre { display: flex; justify-content: flex-end; padding-right: var(--v2-grappe-w, 172px); }
+  .sp-barre { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding-right: var(--v2-grappe-w, 172px); }
   .tricol { display: inline-flex; align-items: center; gap: 8px; }
   .tricol span { font: 9.5px var(--v2-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--v2-txt3); }
   .tricol select { height: 30px; padding: 0 8px; border: 1px solid var(--v2-line2); border-radius: var(--v2-r-pill);

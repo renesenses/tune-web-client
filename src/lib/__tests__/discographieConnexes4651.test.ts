@@ -95,14 +95,15 @@ const titresDe = (racine: Element | null) =>
   [...(racine?.querySelectorAll('.ct') ?? [])].map((n) => n.textContent?.trim());
 
 describe('#4651 — la fiche artiste', () => {
-  it('la grille principale ne montre plus « Pass Them By » ; « Connexes » le montre', () => {
+  it('la grille principale ne montre plus « Pass Them By » ; « Apparitions » le montre (#1839)', () => {
     const h = poser({ locaux: [], services: [QOBUZ, TIDAL, YOUTUBE], nomArtiste: 'Agnes Obel' });
     const principale = h.querySelector('.disco > .gr');
-    const connexes = h.querySelector('[data-section="connexes"]');
+    const connexes = h.querySelector('[data-section="apparitions"]');
     expect(titresDe(principale)).not.toContain('Pass Them By');
     expect(titresDe(principale)).not.toContain('Trojan');
     expect(titresDe(principale)).toEqual(expect.arrayContaining(['Philharmonics', 'Citizen of Glass', 'The Curse', 'Myopia']));
-    expect(connexes, 'la section « Autres / Connexes » n’est pas rendue').not.toBeNull();
+    expect(connexes, 'la section « Apparitions » n’est pas rendue').not.toBeNull();
+    expect(h.querySelector('[data-section="connexes"]'), '#1839 : plus de section « Autres / Connexes »').toBeNull();
     expect(titresDe(connexes)).toEqual(expect.arrayContaining(['Pass Them By', 'Trojan', 'The Curse']));
   });
 
@@ -113,8 +114,8 @@ describe('#4651 — la fiche artiste', () => {
     expect(total).toBe(3);
   });
 
-  it('sans intrus, pas de section « Connexes »', () => {
+  it('sans intrus, pas de section « Apparitions »', () => {
     const h = poser({ locaux: [], services: [YOUTUBE], nomArtiste: 'Agnes Obel' });
-    expect(h.querySelector('[data-section="connexes"]')).toBeNull();
+    expect(h.querySelector('[data-section="apparitions"]')).toBeNull();
   });
 });

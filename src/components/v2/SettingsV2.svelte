@@ -365,6 +365,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let rgPreamp = $state(0);
   let rgAntiClip = $state(true);
   let rgAnalysis = $state(true);
+  // tune-server-rust#5519 — la vitesse des analyses de fond, et combien de
+  // pistes chaque vitesse décode à la fois SUR CE SERVEUR (« Rapide » dépend
+  // de ses cœurs). `null` : serveur qui ne connaît pas le réglage, on le tait.
+  let bgSpeed = $state<string | null>(null);
+  let bgSpeedWidths = $state<Record<string, number>>({});
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let devicesLoaded = $state(false);
   let creatingBrowserZone = $state(false);
@@ -381,6 +386,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         rgAntiClip = c?.replaygain_prevent_clipping ?? true;
         // Absent cote serveur vaut VRAI : d'ou le test sur !== false.
         rgAnalysis = c?.replaygain_analysis_enabled !== false && c?.replaygain_analysis_enabled !== 'false';
+        const vitesse = c?.background_analysis_speed;
+        bgSpeed = ['discreet', 'normal', 'fast'].includes(vitesse) ? vitesse : null;
+        bgSpeedWidths = c?.background_analysis_speed_widths ?? {};
       })
       .catch(() => {});
     api.withTimeout(api.getAudioDevices(), 8_000, '/devices/audio')
@@ -428,6 +436,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function setRgAntiClip(v: boolean) {
     const before = rgAntiClip; rgAntiClip = v;
     patch({ replaygain_prevent_clipping: v }, () => { rgAntiClip = before; });
+  }
+  function setBgSpeed(v: string) {
+    const before = bgSpeed; bgSpeed = v;
+    patch({ background_analysis_speed: v }, () => { bgSpeed = before; });
+  }
+  function libelleVitesse(v: string, cle: string): string {
+    const n = bgSpeedWidths?.[v];
+    return typeof n === 'number' ? `${$t(cle as any)} · ${n}` : $t(cle as any);
   }
   function setRgAnalysis(v: boolean) {
     const before = rgAnalysis; rgAnalysis = v;
@@ -4801,6 +4817,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <p class="hint">{$t('settings.updateStopsPlayback' as any)}</p>
                 {/if}
                 <!--
+                  renesenses/tune-server-rust#5531 — le bouton envoie `force` :
+                  pendant une analyse, le serveur l'ARRÊTE, installe, puis la
+                  reprend au redémarrage sans relire les fichiers déjà analysés.
+                  Le libellé le dit (« Arrêter l'analyse et mettre à jour »,
+                  demandé par Thierry CLEMONT, fil 2058).
+                -->
+                {#if scanning && updateInfo.installable !== false && !updDone && !updDmg && !updBusy}
+                  <p class="hint">{$t('settings.updateStopsScan' as any)}</p>
+                {/if}
+                <!--
                   🔴 PARITÉ AVEC LA COQUILLE ACTUELLE (`SettingsView`, l. 6405-6428).
                   « MAJ v2 toujours pas de bouton comme dans la version actuelle »
                   (Bertrand). Cet écran n'avait qu'UNE branche : quel que soit
@@ -4828,7 +4854,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       >{'⚠️ ' + $t('settings.sourceInstallNote' as any)}</b>
                   {:else}
                     <button class="lnk" disabled={updBusy} onclick={installerMaj}>
-                      {updBusy ? $t('common.loading' as any) : $t('settings.updateButton' as any)}
+                      {updBusy
+                        ? $t('common.loading' as any)
+                        : scanning
+                          ? $t('settings.updateButtonStopScan' as any)
+                          : $t('settings.updateButton' as any)}
                     </button>
                   {/if}
                 </div>
@@ -5752,6 +5782,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="slider"></span>
                   </label>
                 </div>
+                {#if bgSpeed !== null}
+                  <div class="row">
+                    <div class="lbl">
+                      <span>{$t('settings.analysisSpeed' as any)}</span>
+                      <span class="hint">{$t('settings.analysisSpeedHint' as any)}</span>
+                    </div>
+                    <div class="seg4">
+                      <button class:on={bgSpeed === 'discreet'} onclick={() => setBgSpeed('discreet')}>{libelleVitesse('discreet', 'settings.analysisSpeedDiscreet')}</button>
+                      <button class:on={bgSpeed === 'normal'} onclick={() => setBgSpeed('normal')}>{libelleVitesse('normal', 'settings.analysisSpeedNormal')}</button>
+                      <button class:on={bgSpeed === 'fast'} onclick={() => setBgSpeed('fast')}>{libelleVitesse('fast', 'settings.analysisSpeedFast')}</button>
+                    </div>
+                  </div>
+                {/if}
               {/if}
 
               <div class="devlist">
