@@ -37,9 +37,9 @@ const src = () => sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
 
 describe('le rail A–Z suit le tri', () => {
   it('il lit l’ARTISTE quand on trie par artiste', () => {
-    expect(src()).toMatch(
-      /sortKey === 'artist' \? \(a\.artist_name \?\? ''\) : \(a\.title \?\? ''\)/,
-    );
+    // #1772 — la règle vit dans `initialeAlbum` (artiste au tri Artiste,
+    // titre sinon), tenue par railPagineOrdreServeur1772.test.ts.
+    expect(src()).toMatch(/initialeAlbum\(a, sortKey === 'artist'\)/);
   });
 
   it('🔴 sur un tri chronologique, il RESTE et repasse au tri Titre (Bertrand, 25/09/2026)', () => {

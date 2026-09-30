@@ -16,7 +16,7 @@
    * quelques centaines de nœuds à remuer. `TvVuMeters` a tranché de la même
    * façon pour les cadrans du Grand écran ; on ne rejoue pas ce raisonnement.
    */
-  import { audioLevels } from '../../lib/stores/audioLevels';
+  import { audioLevels, suiviDeFraicheur } from '../../lib/stores/audioLevels';
   import {
     BAR_RELEASE, PLANCHER_DB, PPM_HOLD_MS,
     ECART_LIBELLE_PX, LIBELLES_CANAUX, policeLibelleCanal,
@@ -60,6 +60,10 @@
   // rendu de Svelte à chaque image pour rien.
   let barres = [PLANCHER_DB, PLANCHER_DB];
   let ppm: EtatPpm[] = [{ db: null, depuisMs: 0 }, { db: null, depuisMs: 0 }];
+  // #1791 (suite de tune-server-rust#5104) — la dernière trame ne vaut que
+  // `FRAICHEUR_TRAME_MS`, comme pour le spectre. Au-delà, les barres retombent
+  // au plancher au lieu de rester figées sur un son qu'on n'entend plus.
+  const fraicheur = suiviDeFraicheur();
 
   /**
    * LES COULEURS VIENNENT DU THÈME — audit du 27/09/2026.
@@ -149,13 +153,14 @@
     if (style === 'off') return;
 
     const niv = $audioLevels;
-    const cretes = joue ? [niv.peak_left_db, niv.peak_right_db] : [PLANCHER_DB, PLANCHER_DB];
-    const overs = joue ? [niv.over_left, niv.over_right] : [false, false];
     const maintenant = performance.now();
+    const vivant = fraicheur(niv, maintenant) && joue;
+    const cretes = vivant ? [niv.peak_left_db, niv.peak_right_db] : [PLANCHER_DB, PLANCHER_DB];
+    const overs = vivant ? [niv.over_left, niv.over_right] : [false, false];
 
     for (let ch = 0; ch < 2; ch++) {
       barres[ch] = suivreLaCrete(barres[ch], cretes[ch], BAR_RELEASE);
-      ppm[ch] = joue
+      ppm[ch] = vivant
         ? suivrePpm(ppm[ch], cretes[ch], maintenant, PPM_HOLD_MS)
         : { db: null, depuisMs: 0 };
     }
@@ -169,7 +174,7 @@
     ctx.translate(x0, 0);
     const utileL = Math.max(0, l - x0);
     if (style === 'lamps') dessinerLampes(ctx, utileL, h, cretes, overs);
-    else dessinerBargraphe(ctx, utileL, h);
+    else dessinerBargraphe(ctx, utileL, h, cretes, overs);
     ctx.restore();
   }
 
@@ -179,7 +184,7 @@
     // partagée : c'est ce qui garantit que `L` et `R` tombent en face.
     const r = Math.min(h / 2 - 1, 5);
     for (let ch = 0; ch < 2; ch++) {
-      const etat = joue ? surcharge(cretes[ch], overs[ch]) : 'aucune';
+      const etat = surcharge(cretes[ch], overs[ch]);
       ctx.beginPath();
       ctx.arc(r + 1, centreDeLaVoie(ch, h), r, 0, Math.PI * 2);
       ctx.fillStyle =
@@ -200,7 +205,7 @@
   }
 
   /** DAT PCM-7030 et IEC 268-18 : même format horizontal, échelles distinctes. */
-  function dessinerBargraphe(ctx: CanvasRenderingContext2D, l: number, h: number) {
+  function dessinerBargraphe(ctx: CanvasRenderingContext2D, l: number, h: number, cretes: number[], overs: boolean[]) {
     const largeurOver = 26;
     const utile = Math.max(0, l - largeurOver - 6);
     const hb = Math.max(3, (h - 6) / 2);
@@ -227,12 +232,7 @@
       }
 
       // OVER à droite, comme sur l'appareil d'origine.
-      const etat = joue
-        ? surcharge(
-            $audioLevels[ch === 0 ? 'peak_left_db' : 'peak_right_db'],
-            $audioLevels[ch === 0 ? 'over_left' : 'over_right'],
-          )
-        : 'aucune';
+      const etat = surcharge(cretes[ch], overs[ch]);
       ctx.fillStyle =
         etat === 'rouge' ? COULEURS.rouge : etat === 'ambre' ? COULEURS.ambre : COULEURS.eteint;
       ctx.fillRect(utile + 6, y, largeurOver, hb);

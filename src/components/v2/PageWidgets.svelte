@@ -279,12 +279,43 @@
    * ressent comme une lenteur — c'est ce qu'il a signalé.
    */
   const DELAI_MS = 8000;
-  function avecDelai<T>(p: Promise<T>): Promise<T> {
+  /**
+   * 🔴 #1763 — le délai ANNULE ce qu'il abandonne.
+   *
+   * `Promise.race` seul cessait d'attendre sans rien arrêter : le `fetch`
+   * gardait son socket jusqu'à la réponse du serveur, parfois bien après.
+   * Le contrôleur du chargement est donc abattu à l'échéance, et les chargeurs
+   * qui transmettent `ctx.signal` à leurs requêtes les voient annulées.
+   */
+  function avecDelai<T>(p: Promise<T>, controle?: AbortController): Promise<T> {
+    let minuteur: ReturnType<typeof setTimeout> | undefined;
     return Promise.race([
       p,
-      new Promise<T>((_, rejeter) => setTimeout(() => rejeter(new Error('delai')), DELAI_MS)),
-    ]);
+      new Promise<T>((_, rejeter) => {
+        minuteur = setTimeout(() => {
+          rejeter(new Error('delai'));
+          controle?.abort();
+        }, DELAI_MS);
+      }),
+    ]).finally(() => clearTimeout(minuteur));
   }
+
+  /**
+   * 🔴 #1763 — QUITTER LA PAGE ANNULE SES CHARGEMENTS.
+   *
+   * Chaque chargement a son `AbortController`, rangé ici tant qu'il est en
+   * vol. Au démontage, tous sont abattus : les requêtes `/history/dashboard`
+   * d'un serveur lent ne survivent plus à l'écran qui les a demandées, et les
+   * tâches encore en file ne partent plus du tout. Rien dans la navigation
+   * n'attend ces requêtes — le changement de vue ne fait que les annuler.
+   */
+  const controles = new Set<AbortController>();
+  let demonte = false;
+  onMount(() => () => {
+    demonte = true;
+    for (const c of controles) c.abort();
+    controles.clear();
+  });
 
   /**
    * 🔴 #1152 — LES HUIT SECONDES NE DOIVENT PAS COURIR DANS LA FILE DU
@@ -584,8 +615,13 @@
      * l'effet repartait à chaque étape.
      */
     creneau(() => {
+      // Une tâche restée en file après le démontage ne part pas : personne ne
+      // lira sa réponse.
+      if (demonte) return Promise.reject(new Error('demonte'));
+      const controle = new AbortController();
+      controles.add(controle);
       const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones),
-                    chiffresChoisis: chiffres, langue: get(locale) };
+                    chiffresChoisis: chiffres, langue: get(locale), signal: controle.signal };
       // Trois chargeurs, un par nature de matière. `bloc` (25/09/2026) a le
       // sien pour la même raison que `chiffres` : `charger` promet des
       // `Element[]`, et la matière d'un bloc n'en est pas une.
@@ -594,9 +630,10 @@
         : w.forme === 'bloc' && w.bloc
           ? w.bloc.donnees(ctx)
           : w.charger(ctx);
-      return avecDelai(Promise.resolve(p));
+      return avecDelai(Promise.resolve(p), controle).finally(() => controles.delete(controle));
     })
       .then((r: any) => {
+        if (demonte) return;
         if (perime()) return;
         majEtat(id, w.forme === 'chiffres'
           ? { phase: 'charge', chiffres: r ?? [], recompose: false }
@@ -608,6 +645,8 @@
             : { phase: 'charge', elements: r ?? [], recompose: false });
       })
       .catch((err: any) => {
+        // #1763 — la page est partie : rien à écrire, rien à signaler.
+        if (demonte) return;
         // #1561 — un échec PÉRIMÉ ne dit rien et ne rend rien : la demande
         // du registre appartient au chargement qui l'a remplacé.
         if (perime()) return;
@@ -1305,9 +1344,26 @@
                    sortir les sections de l'ancien Tableau de bord sans les
                    redessiner. -->
               {@const Dessin = w.bloc.composant}
-              <div class="blocpropre" style:min-height="{w.bloc.hauteur}px">
-                <Dessin donnees={et.donnees ?? null} />
-              </div>
+              <!-- 🔴 #1763 — UNE FRONTIÈRE PAR BLOC. Une erreur levée pendant le
+                   rendu d'un bloc (une clé `{#each}` en double, par exemple)
+                   remontait sans rencontrer de frontière : Svelte laissait
+                   alors son lot de mises à jour ouvert, et plus RIEN ne se
+                   rafraîchissait — ni les blocs suivants, ni la vue que la
+                   barre latérale demande. Le clic changeait `activeView`,
+                   l'écran restait sur le Tableau de bord (FabienM, fil 2037).
+                   La frontière garde l'erreur dans son bloc, qui dit qu'il a
+                   échoué ; le reste de la coquille continue de vivre. -->
+              <svelte:boundary onerror={(err) => console.warn('[tableau de bord] bloc en échec', id, err)}>
+                <div class="blocpropre" style:min-height="{w.bloc.hauteur}px">
+                  <Dessin donnees={et.donnees ?? null} />
+                </div>
+                {#snippet failed(_erreur: unknown, reessayer: () => void)}
+                  <div class="state mince err">
+                    <span>{$t('v2.home.widgetFailed' as any)}</span>
+                    <button class="relancer" onclick={reessayer}>{$t('v2.pod.retry' as any)}</button>
+                  </div>
+                {/snippet}
+              </svelte:boundary>
 
             {:else if w.forme === 'premiere-ligne'}
               <!-- LA PREMIÈRE LIGNE — Bertrand, 27/09/2026, maquette Levente.

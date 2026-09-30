@@ -70,6 +70,7 @@
   import { aUnOngletGenres, normaliserGenres, ouvertureGenre, sousGenresUtiles } from '../../lib/streamingGenres';
   import {
     BANDCAMP_EXT,
+    BANDCAMP_SVC,
     cleServeur,
     ongletApresDemande,
     ongletDeRestitution,
@@ -770,7 +771,13 @@
   /** `null` quand l'objet n'a pas de fiche : une piste, ou un objet sans
    *  identifiant exploitable. */
   function ouvrirFiche(p: any, type: 'track' | 'album' | 'artist' | 'playlist' | null) {
-    const svc = p?.source ?? active;
+    // 🔴 web#1761 — « Ma collection » pose `source: 'bandcamp'`, la clé du
+    // SERVEUR (`collection_mise_en_forme` du greffon), et l'onglet s'appelle
+    // `__bandcamp__`. Sans cette traduction, le test Bandcamp plus bas
+    // échouait, la fiche rendait `null` et la pochette LANÇAIT la lecture au
+    // lieu d'ouvrir l'album. L'inverse de #1409 : ici c'est la clé du serveur
+    // que l'onglet ne reconnaissait pas.
+    const svc = p?.source === BANDCAMP_SVC ? BANDCAMP : (p?.source ?? active);
     const sid = p?.source_id;
     // 🔴 BANDCAMP s'ouvre, lui aussi (Bertrand, 05/09/2026 : « Click sur un
     // album doit ouvrir l'album ! »). Un clic lancait l'extrait sans jamais
@@ -967,11 +974,13 @@
     const corps = corpsDeLectureBandcamp(
       {
         url: it?.url ?? null,
-        title: it?.titre,
-        artist: it?.artiste,
+        // web#1761 — Découvrir et la recherche disent `titre`/`artiste`, « Ma
+        // collection » dit `title`/`artist` : on lit les deux.
+        title: it?.titre ?? it?.title,
+        artist: it?.artiste ?? it?.artist,
         pochette: it?.pochette ?? null,
         tracks: it?.extrait
-          ? [{ stream_url: String(it.extrait), title: it?.titre ?? '', artist: it?.artiste ?? '' }]
+          ? [{ stream_url: String(it.extrait), title: it?.titre ?? it?.title ?? '', artist: it?.artiste ?? it?.artist ?? '' }]
           : [],
       },
       0,

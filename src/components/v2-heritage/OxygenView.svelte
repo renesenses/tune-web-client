@@ -16,6 +16,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { pisteRepondAuTexteLibre } from '../../lib/texteLibreOxygen';
   import { t } from '../../lib/i18n';
+  import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   import type { Track } from '../../lib/types';
 
   const NEW_KEYS = new Set(['release_country', 'mb_release_track_id', 'encoder_software', 'source_media']);
@@ -245,7 +246,7 @@
     // whichever track happened to load first (Dominique). Single-artist albums
     // keep that artist. (See albumArtistOf.)
     for (const g of m.values()) g.artist = albumArtistOf(g);
-    return [...m.values()].sort((a, b) => (a.artist || '').localeCompare(b.artist || '', 'fr') || (a.title || '').localeCompare(b.title || '', 'fr'));
+    return [...m.values()].sort((a, b) => comparerAlphabetique(a.artist, b.artist) || comparerAlphabetique(a.title, b.title));
   });
   // Mirrors the server's compilation detection (case-insensitive ALBUMARTIST
   // sentinels) so a "Various Artists"-tagged album is recognised even when the

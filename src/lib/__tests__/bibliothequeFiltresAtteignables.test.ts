@@ -156,7 +156,9 @@ describe('Bibliothèque — les filtres retirent, ils n’atténuent pas', () =>
       'le rail lit une liste NON filtrée',
     ).toBe(false);
     // Et il vise la même chose que le tri : sinon « M » atterrit ailleurs.
-    expect(src).toMatch(/sortKey === 'artist' \? \(a\.artist_name \?\? ''\) : \(a\.title \?\? ''\)/);
+    // #1772 — la règle vit dans `initialeAlbum` (artiste au tri Artiste,
+    // titre sinon), tenue par railPagineOrdreServeur1772.test.ts.
+    expect(src).toMatch(/initialeAlbum\(a, sortKey === 'artist'\)/);
   });
 
   it('un filtre sans résultat le DIT, au lieu d’une page blanche', () => {

@@ -362,6 +362,13 @@ export interface Contexte {
    * liste des zones, que la coquille tient déjà.
    */
   zones: any[];
+  /**
+   * #1763 — le signal du chargement de CE widget : il s'abat quand la page est
+   * démontée, ou quand le délai de 8 s de `PageWidgets` est écoulé. Un
+   * chargeur qui le transmet à ses requêtes les voit annulées au lieu de
+   * garder leur socket jusqu'à la réponse.
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -897,15 +904,77 @@ function coverArtisteTop(
   return a.cover_path ?? portraits?.get(cleDeNom(a.artist_name)) ?? null;
 }
 
-const EN_VOL = new Map<string, Promise<api.DashboardData>>();
-export function tableauDeBord(periode: api.DashboardPeriod): Promise<api.DashboardData> {
-  const deja = EN_VOL.get(periode);
-  if (deja) return deja;
-  const promesse = api
-    .getDashboard(periode, { topN: TOPS_DEMANDES })
-    .finally(() => EN_VOL.delete(periode));
-  EN_VOL.set(periode, promesse);
-  return promesse;
+/**
+ * 🔴 #1763 — LA REQUÊTE PARTAGÉE S'ANNULE QUAND PLUS PERSONNE NE L'ATTEND.
+ *
+ * Dix blocs du Tableau de bord et quatre widgets de l'Accueil lisent la même
+ * réponse : la requête est partagée tant qu'elle est en vol. Chaque appelant
+ * peut passer le `signal` de SA page. Quand tous les appelants munis d'un
+ * signal l'ont abandonnée — on a quitté l'écran, ou leur délai de 8 s est
+ * écoulé — et qu'aucun appelant sans signal ne l'attend, le `fetch` est
+ * ANNULÉ : il rend son socket au lieu de le garder jusqu'à la réponse.
+ *
+ * Un appelant qui abandonne est rejeté AUSSITÔT (`AbortError`), sans attendre
+ * le serveur. Un appelant sans signal (`PanneauStats`) compte pour un
+ * abonné permanent : la requête ne s'annule jamais sous lui.
+ */
+interface RequeteEnVol {
+  promesse: Promise<api.DashboardData>;
+  controle: AbortController;
+  /** Abonnés encore intéressés ; `Infinity` dès qu'un appelant n'a pas de signal. */
+  abonnes: number;
+}
+const EN_VOL = new Map<string, RequeteEnVol>();
+
+function erreurAbandon(): Error {
+  const e = new Error('abandon');
+  e.name = 'AbortError';
+  return e;
+}
+
+export function tableauDeBord(
+  periode: api.DashboardPeriod,
+  signal?: AbortSignal,
+): Promise<api.DashboardData> {
+  if (signal?.aborted) return Promise.reject(erreurAbandon());
+  let vol = EN_VOL.get(periode);
+  if (!vol) {
+    const controle = new AbortController();
+    const courant: RequeteEnVol = {
+      promesse: api
+        .getDashboard(periode, { topN: TOPS_DEMANDES, signal: controle.signal })
+        .finally(() => { if (EN_VOL.get(periode) === courant) EN_VOL.delete(periode); }),
+      controle,
+      abonnes: 0,
+    };
+    // Personne n'observe peut-être plus la promesse partagée une fois tous les
+    // abonnés partis : son rejet par l'annulation ne doit pas remonter en
+    // « unhandled rejection ».
+    courant.promesse.catch(() => {});
+    EN_VOL.set(periode, courant);
+    vol = courant;
+  }
+  const v = vol;
+  if (!signal) {
+    v.abonnes = Infinity;
+    return v.promesse;
+  }
+  v.abonnes += 1;
+  return new Promise<api.DashboardData>((resoudre, rejeter) => {
+    const quitter = () => {
+      rejeter(erreurAbandon());
+      v.abonnes -= 1;
+      if (v.abonnes <= 0) {
+        if (EN_VOL.get(periode) === v) EN_VOL.delete(periode);
+        v.controle.abort();
+      }
+    };
+    signal.addEventListener('abort', quitter, { once: true });
+    v.promesse.then(
+      (d) => { signal.removeEventListener('abort', quitter); resoudre(d); },
+      (e) => { signal.removeEventListener('abort', quitter); rejeter(e); },
+    );
+  });
 }
 
 /**
@@ -1701,7 +1770,7 @@ export const WIDGETS: Widget[] = [
     cleTitre: 'v2.home.wTopArtists',
     forme: 'bande',
     charger: async (ctx) => {
-      const arts = (await tableauDeBord(PERIODE_TOPS)).top_artists.slice(0, TOPS_DEMANDES);
+      const arts = (await tableauDeBord(PERIODE_TOPS, ctx.signal)).top_artists.slice(0, TOPS_DEMANDES);
       // #1697 — les artistes sans `cover_path` empruntent leur PORTRAIT à
       // `/library/history/top-artists`, la seule route qui en connaisse un.
       const portraits = await portraitsSiTrou(arts);
@@ -1724,7 +1793,7 @@ export const WIDGETS: Widget[] = [
       utiles(
         // `top_radios` est ABSENT de la réponse quand la liste est vide
         // (`skip_serializing_if` côté serveur) — pas `[]`, absent.
-        ((await tableauDeBord(PERIODE_TOPS)).top_radios ?? []).slice(0, TOPS_DEMANDES).map((r, i) => {
+        ((await tableauDeBord(PERIODE_TOPS, ctx.signal)).top_radios ?? []).slice(0, TOPS_DEMANDES).map((r, i) => {
           const el = {
             id: `top-rad-${i}-${r.station_name}`,
             titre: r.station_name,
@@ -1754,7 +1823,7 @@ export const WIDGETS: Widget[] = [
     forme: 'chiffres',
     charger: async () => [],
     chiffres: async (ctx) => {
-      const t = (await tableauDeBord(PERIODE_TOPS)).totals;
+      const t = (await tableauDeBord(PERIODE_TOPS, ctx.signal)).totals;
       const ecoute = {
         total_listens: t.plays,
         total_duration_ms: t.listening_ms,
@@ -1787,7 +1856,7 @@ export const WIDGETS: Widget[] = [
     cleTitre: 'v2.home.wTops',
     forme: 'tops',
     charger: async (ctx) => {
-      const d = await tableauDeBord(PERIODE_TOPS);
+      const d = await tableauDeBord(PERIODE_TOPS, ctx.signal);
       const n = (v: number) => lectures(v, ctx.langue ?? 'fr');
       // #1697 — même colonne d'artistes, même trou de portraits : la vignette
       // de 40 px du gros widget se remplit de la même façon.
