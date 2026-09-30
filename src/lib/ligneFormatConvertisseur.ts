@@ -25,6 +25,9 @@ export interface PresetConvertisseur {
   quality?: string | number | null;
   sample_rate?: string | number | null;
   bit_depth?: string | number | null;
+  /** Fréquence de sortie d'une source DSD, annoncée par le serveur ≥ #5481
+   *  sur le préréglage Hi-Res (176 400). Absente d'un serveur antérieur. */
+  dsd_sample_rate?: number | null;
 }
 
 /** Ce qu'il faut savoir des albums retenus : leur format et leur fréquence. */
@@ -59,7 +62,12 @@ function nombre(v: string | number | null | undefined): number | null {
  * (renesenses/tune-server-rust#5480) : si le serveur change de règle, ce test-là
  * rougit, et cette fonction doit suivre.
  */
-export function frequenceDeSortieDSD(frequenceDSD: number | null | undefined): number {
+export function frequenceDeSortieDSD(frequenceDSD: number | null | undefined, annoncee?: number | null): number {
+  // tune-server-rust#5481 : le serveur annonce désormais SA règle
+  // (`dsd_sample_rate`, 176,4 kHz pour tous les rangs DSD) ; on la lit plutôt
+  // que de la recopier. La recopie ci-dessous ne sert plus qu'aux serveurs
+  // antérieurs, qui ne l'annoncent pas.
+  if (annoncee != null && Number.isFinite(annoncee) && annoncee > 0) return annoncee;
   return (frequenceDSD ?? 0) >= 5_000_000 ? 352_800 : 176_400;
 }
 
@@ -83,7 +91,7 @@ export function morceauxLigneFormat(
     morceaux.push(`${kHz(frequence / 1000)} kHz`);
   } else if (SANS_PERTE.has(format)) {
     const dsd = sources.filter((s) => estDuDSD(s.format));
-    const sorties = [...new Set(dsd.map((s) => frequenceDeSortieDSD(s.sample_rate)))].sort((a, b) => a - b);
+    const sorties = [...new Set(dsd.map((s) => frequenceDeSortieDSD(s.sample_rate, preset.dsd_sample_rate)))].sort((a, b) => a - b);
     // Tout ce qui n'est pas du DSD garde sa fréquence : on le dit. Rien de
     // retenu encore : même chose, c'est ce que le préréglage promet.
     if (dsd.length < sources.length || sources.length === 0) morceaux.push(textes.originalRate);
