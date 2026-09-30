@@ -8224,6 +8224,10 @@ export function getConversionStatus(jobId: string): Promise<{
   total: number;
   download_size?: string;
   error?: string;
+  /** tune-server-rust#5482 — « Artiste - Album (FORMAT).zip ». */
+  archive_name?: string;
+  /** tune-server-rust#5481 — fréquences et profondeurs réellement écrites. */
+  output_formats?: Array<{ sample_rate: number; bit_depth: number | null }>;
 }> {
   return fetchJSON(`${BASE}/converter/status/${encodeURIComponent(jobId)}`);
 }
