@@ -28,7 +28,8 @@
   // un serveur qui ne connaît pas la route.
   import { jaugeReplayGain } from '../../lib/santeReplayGain';
   import {
-    etatCartePlageDynamique, etatServeurPlageDynamique, stockDuRattrapage, stocksPlageDynamique,
+    drActiveSelonServeur, etatCartePlageDynamique, etatServeurPlageDynamique, stockDuRattrapage,
+    stocksPlageDynamique,
   } from '../../lib/santePlageDynamique';
   // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
   import { temperatureProcesseur } from '../../lib/temperatureProcesseur';
@@ -84,7 +85,7 @@
   // qui mesure la plage dynamique des pistes qu'il n'a pas encore vues.
   let cfgRgArme = false;
   // Le dernier stock du rattrapage lu, et quand (voir la carte DR).
-  let stockRattrapageLu: { a: number; n: number | null } | null = null;
+  let stockRattrapageLu: { a: number; n: number | null; active: boolean | null } | null = null;
   // tune-web-client#1828 — l'état `dynamic_range` publié par l'instantané.
   let etatServeurDr = $state<string | undefined>(undefined);
 
@@ -426,7 +427,6 @@
       const reportees = typeof c.dynamic_range_deferred === 'number' ? c.dynamic_range_deferred : 0;
       // `cfgDr` est la config déjà lue plus haut pour ReplayGain : le DR
       // dépend du MÊME réglage, on ne le relit pas.
-      const analyseActive = cfgDrActive;
       const restantes = Math.max(0, total - avec - ecartees - reportees);
       // tune-web-client#1828 — le stock du RATTRAPAGE, le seul que l'ordre de
       // passage règle. Demandé seulement quand il y a deux stocks à séparer
@@ -434,17 +434,19 @@
       // c'est un `COUNT(*)` côté serveur (≈ 0,5 s sur 500 000 pistes, mesuré
       // sur Shrek), et l'écran sonde toutes les 5 s. Un serveur qui ne le dit
       // pas rend `null`, et la carte garde son message d'origine.
+      //
+      // La même lecture dit aussi si la plage dynamique peut tourner
+      // (`enabled`) : depuis tune-server-rust#5246 elle tourne même ReplayGain
+      // coupé, et la carte se disait « éteinte » à tort. Un serveur qui ne
+      // répond pas garde l'ancienne règle (le réglage ReplayGain).
       let rattrapage: number | null = null;
-      if (analyseActive && cfgRgArme && restantes > 0) {
-        if (!stockRattrapageLu || Date.now() - stockRattrapageLu.a > 60_000) {
-          const pr = await Promise.allSettled([api.getDynamicRangeProgress()]);
-          stockRattrapageLu = {
-            a: Date.now(),
-            n: pr[0].status === 'fulfilled' ? stockDuRattrapage(pr[0].value) : null,
-          };
-        }
-        rattrapage = stockRattrapageLu.n;
+      if (!stockRattrapageLu || Date.now() - stockRattrapageLu.a > 60_000) {
+        const pr = await Promise.allSettled([api.getDynamicRangeProgress()]);
+        const av = pr[0].status === 'fulfilled' ? pr[0].value : null;
+        stockRattrapageLu = { a: Date.now(), n: stockDuRattrapage(av), active: drActiveSelonServeur(av) };
       }
+      const analyseActive = stockRattrapageLu.active ?? cfgDrActive;
+      if (analyseActive && restantes > 0) rattrapage = stockRattrapageLu.n;
       const stocks = stocksPlageDynamique({ restantes, rattrapage, replayGainArme: cfgRgArme });
       const enAttente = stocks ? stocks.rattrapage : restantes;
 

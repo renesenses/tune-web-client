@@ -35,6 +35,24 @@ export interface AvancementPlageDynamique {
   remaining?: number;
   /** Compté par le serveur seulement hors mesure à la demande ; `null` sinon. */
   candidates?: number | null;
+  /** La plage dynamique peut-elle tourner. Toujours `true` depuis
+   *  tune-server-rust#5246 : elle ne dépend plus du réglage ReplayGain. */
+  enabled?: boolean;
+}
+
+/**
+ * La plage dynamique tourne-t-elle, selon le serveur ? `null` quand il ne le
+ * dit pas (route absente) : l'appelant garde alors l'ancienne règle, le
+ * réglage ReplayGain.
+ *
+ * Défaut voisin de tune-web-client#1828 : la carte se disait « éteinte »
+ * ReplayGain coupé, alors que depuis tune-server-rust#5246 la plage dynamique
+ * se mesure quand même.
+ */
+export function drActiveSelonServeur(
+  av: AvancementPlageDynamique | null | undefined,
+): boolean | null {
+  return typeof av?.enabled === 'boolean' ? av.enabled : null;
 }
 
 export type EtatCartePlageDynamique = 'idle' | 'running' | 'done' | 'off';

@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { jaugeReplayGain } from '../santeReplayGain';
 import {
+  drActiveSelonServeur,
   etatCartePlageDynamique,
   etatServeurPlageDynamique,
   stockDuRattrapage,
@@ -102,5 +104,38 @@ describe('#1828 — la carte est branchée sur ces décisions', () => {
   it('le message d’ordre de passage porte le stock du rattrapage, pas le total', () => {
     expect(src).toMatch(/drQueuedBehindRg'\) as any\)\.replace\('\{n\}', \$formatNombre\(enAttente\)\)/);
     expect(src).toMatch(/v2\.health\.drMeasuredByRg/);
+  });
+});
+
+describe('#1828 (défauts voisins) — la carte ReplayGain et la carte éteinte', () => {
+  it('campagne ouverte mais un autre rang décode : ReplayGain « au repos », jauge gardée', () => {
+    const j = jaugeReplayGain(true, {
+      active: true, working: false, processed: 8_250, total: 471_938, enabled: true, reported: true,
+    });
+    expect(j.etat).toBe('idle');
+    expect(j.fait).toBe(8_250);
+    expect(j.sansJauge).toBe(false);
+  });
+
+  it('la passe décode : « en cours » ; serveur sans `working` : comme avant', () => {
+    const base = { active: true, processed: 10, total: 100, enabled: true, reported: true };
+    expect(jaugeReplayGain(true, { ...base, working: true }).etat).toBe('running');
+    expect(jaugeReplayGain(true, base).etat).toBe('running');
+  });
+
+  it('la plage dynamique tourne selon le serveur, même ReplayGain coupé (#5246)', () => {
+    expect(drActiveSelonServeur({ enabled: true })).toBe(true);
+    expect(drActiveSelonServeur({ enabled: false })).toBe(false);
+    expect(drActiveSelonServeur({})).toBeNull();
+    expect(drActiveSelonServeur(null)).toBeNull();
+  });
+
+  it('la carte lit `enabled` du serveur avant le réglage ReplayGain', () => {
+    const src = fs.readFileSync(
+      fileURLToPath(new URL('../../components/v2/TuneHealthV2.svelte', import.meta.url)),
+      'utf-8',
+    );
+    expect(src).toMatch(/const analyseActive = stockRattrapageLu\.active \?\? cfgDrActive;/);
+    expect(src).not.toMatch(/const analyseActive = cfgDrActive;/);
   });
 });
