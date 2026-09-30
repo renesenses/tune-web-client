@@ -52,8 +52,7 @@
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import {
-    CHAMPS, operateursDe, typeDuChamp, sansValeur, regleComplete, valeurInitiale,
-    type TypeChamp,
+    champsSaisissables, operateursDe, typeDuChamp, sansValeur, regleComplete, valeurInitiale,
   } from '../../lib/smartRegles';
   import SmartFolderPicker from '../partages/SmartFolderPicker.svelte';
   import { comptesDesEtiquettes, libelleEtiquette } from '../../lib/compteEtiquetteCollection';
@@ -108,12 +107,6 @@
       .finally(() => { chargement = false; });
   });
 
-  /** Les champs que CET éditeur sait saisir. Voir l'en-tête. */
-  const SAISISSABLES: TypeChamp[] = [
-    'text', 'int', 'nullable', 'timestamp', 'count', 'favorite',
-    'collection_ref', 'playlist_ref', 'folder', 'source', 'tag_ref',
-  ];
-
   /** Les étiquettes de l'utilisateur, pour la liste d'une règle « Étiquette ». */
   let etiquettes = $state<UserTag[]>([]);
   onMount(() => {
@@ -157,8 +150,11 @@
       };
     });
   });
+  // Les champs saisissables du niveau COLLECTION — la même liste que celle
+  // des playlists, moins ce qui n'a de sens que pour une piste
+  // (tune-server-rust#5547, `lib/smartRegles`).
   const champsOfferts = $derived(
-    [...CHAMPS.filter((c) => SAISISSABLES.includes(c.type))]
+    [...champsSaisissables('collection')]
       .sort((a, b) => $t(a.labelKey as any).localeCompare($t(b.labelKey as any))),
   );
 

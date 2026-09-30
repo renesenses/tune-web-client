@@ -5,7 +5,9 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { CHAMPS, operateursDe, typeDuChamp, valeurInitiale, regleComplete } from '../smartRegles';
+import {
+  CHAMPS, SAISISSABLES, champsSaisissables, operateursDe, typeDuChamp, valeurInitiale, regleComplete,
+} from '../smartRegles';
 
 const EDITEUR = readFileSync(
   resolve(process.cwd(), 'src/components/v2/CollectionSmartEditeurV2.svelte'),
@@ -34,10 +36,11 @@ describe('règle « Étiquette » d’une smart collection', () => {
 
   it('l’éditeur de smart collection sait la SAISIR', () => {
     // Un champ absent de `SAISISSABLES` n'est pas proposé : il resterait
-    // invisible, exactement le défaut signalé.
-    const debut = EDITEUR.indexOf('const SAISISSABLES');
-    expect(debut, 'SAISISSABLES introuvable').toBeGreaterThan(-1);
-    expect(EDITEUR.slice(debut, debut + 300)).toContain("'tag_ref'");
+    // invisible, exactement le défaut signalé. La liste est commune aux trois
+    // éditeurs depuis tune-server-rust#5547.
+    expect(SAISISSABLES).toContain('tag_ref');
+    expect(champsSaisissables('collection').map((c) => c.value)).toContain('tag');
+    expect(EDITEUR).toContain("champsSaisissables('collection')");
   });
 
   it('la valeur se CHOISIT dans les étiquettes de l’utilisateur', () => {
