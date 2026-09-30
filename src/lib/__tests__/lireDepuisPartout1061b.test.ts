@@ -224,6 +224,9 @@ describe('🔴 les icônes sont les tracés OFFICIELS de lucide', () => {
   it('le cœur reste PLEIN quand la piste est en favori', () => {
     // Le tracé vient de lucide ; le remplissage, lui, porte l'état — le
     // reprendre tel quel (toujours `fill="none"`) aurait effacé l'information.
-    expect(barre).toContain("fill={favori ? 'currentColor' : 'none'}");
+    // #1771 — `coeurPlein` : l'état du favori de la piste, ou celui du cœur
+    // fourni par l'écran (favori radio de l'Historique).
+    expect(barre).toContain("fill={coeurPlein ? 'currentColor' : 'none'}");
+    expect(barre).toContain('const coeurPlein = $derived(coeur ? coeur.favori : favori);');
   });
 });

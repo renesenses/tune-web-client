@@ -36,6 +36,10 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import ListePistesV2 from './ListePistesV2.svelte';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
+  import {
+    SELECTION_VIDE, appliquerGenre, basculer, choisiesDansLOrdre, corpsArtistePistes,
+    idsSelectionnables, restreindre, toutEstChoisi, toutOuRien, type Bilan, type EtatSelection,
+  } from '../../lib/selectionPistes';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
@@ -673,6 +677,129 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
       const a = await api.getAlbum(id);
       if (album.id === id && a) album = a;
     } catch { /* l'en-tête garde l'ancien texte ; les pistes, elles, sont relues */ }
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     LA SÉLECTION MULTIPLE DES PISTES — web#1683, point 3 (go de Bertrand,
+     27/09/2026).
+
+     Levente Toth, fil 1998 : sélectionner plusieurs titres, voire tous,
+     « in case the user wants to update metadata eg. Artist / Genre so they
+     don't have to do it one-by-one ». Le mode « Modifier » édite l'artiste
+     piste par piste ; il n'avait aucun geste groupé, et le genre d'une piste
+     n'y figure pas.
+
+     Un album de la BIBLIOTHÈQUE seulement — la garde de `editionPossible` :
+     toutes les actions groupées désignent une piste par son identifiant
+     local. Les règles (plage, ordre, corps) vivent dans `lib/selectionPistes`.
+
+     Les actions sont celles qui existaient déjà pour UNE piste ou pour
+     l'album, sur les mêmes routes : lire (`track_ids`), lire ensuite et
+     ajouter à la file (`queue/add` + `track_ids`), ajouter à une playlist
+     (la fenêtre partagée, en une requête), et les deux éditions.
+     ══════════════════════════════════════════════════════════════════════ */
+  const selectionPossible = $derived(album.id != null && !depot && !service && !bandcamp);
+  let enSelection = $state(false);
+  let sel = $state.raw<EtatSelection>(SELECTION_VIDE);
+  /** Les pistes cochables, dans l'ordre AFFICHÉ (focus artiste compris). */
+  const ordreSelection = $derived(idsSelectionnables(pistesVisibles));
+  const choisies = $derived(choisiesDansLOrdre(sel, ordreSelection));
+  const toutChoisi = $derived(toutEstChoisi(sel, ordreSelection));
+  let champGroupe = $state<'artist' | 'genre' | null>(null);
+  let valeurGroupe = $state('');
+  let groupeOccupe = $state(false);
+  let playlistSelection = $state(false);
+  // Une autre fiche s'ouvre : la sélection de l'album d'avant ne la suit pas.
+  $effect(() => { void album?.id; quitterSelection(); });
+  // Le mode Modifier et la sélection ne vivent pas ensemble : l'un remplace
+  // la liste des pistes, l'autre la coche.
+  $effect(() => { if (enEdition) untrack(quitterSelection); });
+  // Après une relecture, ce qui a disparu se décoche. PAS pendant le
+  // chargement : la liste repart vide, et tout se décocherait.
+  $effect(() => {
+    const o = ordreSelection;
+    if (loading) return;
+    sel = restreindre(untrack(() => sel), o);
+  });
+
+  function quitterSelection() {
+    enSelection = false;
+    sel = SELECTION_VIDE;
+    champGroupe = null;
+    valeurGroupe = '';
+    playlistSelection = false;
+  }
+  function cocher(p: Track, _i: number, etendre: boolean) {
+    if (typeof p.id !== 'number') return;
+    sel = basculer(sel, p.id, ordreSelection, etendre);
+  }
+  function lireSelection() {
+    const zid = zoneRequise();
+    if (zid == null || !choisies.length) return;
+    playAndSync(zid, { track_ids: [...choisies] }).catch(signalerEchecLecture);
+  }
+  /** UNE requête, dans l'ordre de l'album — la règle de `enfiler`. */
+  async function enfilerSelection(position: number | undefined, cle: string) {
+    const zid = zoneRequise();
+    const ids = [...choisies];
+    if (zid == null || !ids.length || fileOccupee) return;
+    fileOccupee = true;
+    try {
+      await api.addToQueue(zid, { track_ids: ids, ...(position != null ? { position } : {}) });
+      notifications.success($tr(cle as any).replace('{n}', String(ids.length)));
+    } catch {
+      notifications.error($tr('v2.pa.queueError' as any));
+    }
+    fileOccupee = false;
+  }
+  const pistesChoisies = $derived(
+    choisies.map((id) => tracks.find((t) => t.id === id)).filter((t): t is Track => t != null),
+  );
+  function ouvrirChamp(champ: 'artist' | 'genre') {
+    champGroupe = champGroupe === champ ? null : champ;
+    valeurGroupe = '';
+  }
+  /**
+   * L'artiste ou le genre des pistes choisies.
+   *
+   * L'artiste passe par `PUT /library/albums/{id}/edition` (une requête, le
+   * nom résolu en artiste de la bibliothèque) ; il n'est offert que si la
+   * sonde du mode Modifier a répondu. Le genre, par `PUT /library/tracks/{id}`,
+   * une piste à la fois. Le bilan se DIT, succès partiel compris.
+   */
+  async function appliquerGroupe() {
+    const id = album.id, champ = champGroupe, ids = [...choisies], v = valeurGroupe.trim();
+    if (id == null || !champ || !ids.length || !v || groupeOccupe) return;
+    groupeOccupe = true;
+    let bilan: Bilan;
+    if (champ === 'artist') {
+      const corps = corpsArtistePistes(ids, v);
+      try {
+        if (corps) await api.putAlbumEdition(id, corps);
+        bilan = { reussies: ids.length, echouees: 0 };
+      } catch {
+        bilan = { reussies: 0, echouees: ids.length };
+      }
+    } else {
+      bilan = await appliquerGenre(ids, v, (tid, c) => api.updateTrack(tid, c));
+    }
+    groupeOccupe = false;
+    if (album.id !== id) return;
+    if (bilan.reussies === 0) {
+      notifications.error($tr('v2.selection.editError' as any));
+      return;
+    }
+    if (bilan.echouees) {
+      notifications.error($tr('v2.selection.editPartial' as any)
+        .replace('{ok}', String(bilan.reussies)).replace('{ko}', String(bilan.echouees)));
+    } else {
+      notifications.success($tr('v2.selection.edited' as any).replace('{n}', String(bilan.reussies)));
+    }
+    champGroupe = null;
+    valeurGroupe = '';
+    // Les pistes se relisent ; la sélection, elle, reste — pour enchaîner
+    // l'artiste puis le genre sur les mêmes titres.
+    rechargement += 1;
   }
 
   /** Le badge DR, et ce qu'il doit dire de sa provenance. */
@@ -1383,6 +1510,17 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
           {/if}
           <!-- Le mode « Modifier » : seulement si le serveur sert la fiche
                d'édition (voir `edition`). -->
+          <!-- #1683 — la sélection multiple : sous la garde du mode Modifier
+               (album de la BIBLIOTHÈQUE), et seulement quand il y a des
+               pistes à cocher. -->
+          {#if selectionPossible && !enEdition && ordreSelection.length > 0}
+            <button class="ghost" data-selection-album aria-pressed={enSelection}
+              onclick={() => (enSelection ? quitterSelection() : (enSelection = true))}
+              title={$tr('v2.selection.startTip' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg>
+              {$tr((enSelection ? 'v2.selection.done' : 'v2.selection.start') as any)}
+            </button>
+          {/if}
           {#if edition && !enEdition}
             <button class="ghost" data-modifier-album onclick={() => (enEdition = true)}
               aria-expanded={enEdition} title={$tr('v2.edition.modifyTip' as any)}>
@@ -1457,7 +1595,44 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
           </span>
         </div>
       {/if}
+      {#if enSelection}
+        <!-- #1683 — la barre des gestes groupés. Les libellés d'action sont
+             ceux des boutons de l'album : ce sont les mêmes gestes. -->
+        <div class="barre-selection" role="toolbar" aria-label={$tr('v2.selection.toolbar' as any)}>
+          <span class="sel-compte" data-sel-compte aria-live="polite">
+            {$tr((choisies.length === 0 ? 'v2.selection.countNone' : choisies.length === 1 ? 'v2.selection.countOne' : 'v2.selection.countMany') as any).replace('{n}', String(choisies.length))}
+          </span>
+          <button class="sel-btn" data-sel-tout onclick={() => (sel = toutOuRien(sel, ordreSelection))}>
+            {$tr((toutChoisi ? 'v2.selection.none' : 'v2.selection.all') as any)}
+          </button>
+          <button class="sel-btn" data-sel-lire disabled={!choisies.length} onclick={lireSelection}>{$tr('v2.album.play' as any)}</button>
+          <button class="sel-btn" data-sel-ensuite disabled={!choisies.length || fileOccupee}
+            onclick={() => enfilerSelection(rangLireEnsuite(), 'v2.selection.queuedNext')}>{$tr('v2.album.playNext' as any)}</button>
+          <button class="sel-btn" data-sel-file disabled={!choisies.length || fileOccupee}
+            onclick={() => enfilerSelection(undefined, 'v2.selection.queued')}>{$tr('v2.album.addQueue' as any)}</button>
+          <button class="sel-btn" data-sel-playlist disabled={!pistesChoisies.length}
+            onclick={() => (playlistSelection = true)}>{$tr('playlist.addToPlaylist')}</button>
+          {#if edition}
+            <button class="sel-btn" data-sel-artiste disabled={!choisies.length} aria-pressed={champGroupe === 'artist'}
+              onclick={() => ouvrirChamp('artist')}>{$tr('v2.selection.setArtist' as any)}</button>
+          {/if}
+          <button class="sel-btn" data-sel-genre disabled={!choisies.length} aria-pressed={champGroupe === 'genre'}
+            onclick={() => ouvrirChamp('genre')}>{$tr('v2.selection.setGenre' as any)}</button>
+        </div>
+        {#if champGroupe && choisies.length}
+          <form class="sel-edition" data-sel-edition onsubmit={(e) => { e.preventDefault(); void appliquerGroupe(); }}>
+            <label for="sel-valeur-{album.id}">{$tr((champGroupe === 'artist' ? 'v2.selection.newArtist' : 'v2.selection.newGenre') as any)}</label>
+            <input id="sel-valeur-{album.id}" type="text" bind:value={valeurGroupe} disabled={groupeOccupe} />
+            <button class="sel-btn primaire" type="submit" disabled={!valeurGroupe.trim() || groupeOccupe}>
+              {$tr('v2.selection.apply' as any).replace('{n}', String(choisies.length))}
+            </button>
+            <button class="sel-btn" type="button" onclick={() => (champGroupe = null)}>{$tr('v2.edition.cancel' as any)}</button>
+          </form>
+        {/if}
+      {/if}
       <ListePistesV2
+        selection={enSelection ? sel.choisies : null}
+        onCocher={cocher}
         pistes={pistesVisibles}
         numerotation="piste"
         pochette={pochettesDePisteDistinctesIci}
@@ -1478,6 +1653,14 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   {#await import('./EtiquettesPanneau.svelte') then m}
     <m.default cible={cibleEtiquettes} nom={album.title}
       onClose={() => (etiquettesOuvertes = false)} />
+  {/await}
+{/if}
+<!-- #1683 — la fenêtre de playlists PARTAGÉE, pour toutes les pistes
+     choisies en une requête. -->
+{#if playlistSelection && pistesChoisies.length}
+  {#await import('../partages/AddToPlaylistModal.svelte') then m}
+    <m.default track={pistesChoisies[0]} tracks={pistesChoisies}
+      onClose={() => (playlistSelection = false)} />
   {/await}
 {/if}
 <!-- #1572 — la fiche « Crédits » de l'album : la même que celle d'un titre,
@@ -1617,6 +1800,24 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   .fchip button:hover{background:color-mix(in srgb, var(--v2-acc1) 22%, transparent)}
   .fchip button:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
   .state{padding:24px 6px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
+  /* #1683 — la barre de sélection : collée en haut de la fiche qui défile,
+     pour que les gestes restent à portée pendant qu'on coche plus bas. */
+  .barre-selection{position:sticky; top:0; z-index:3; display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+    padding:10px 12px; margin-bottom:8px; border-radius:var(--v2-r-md);
+    border:1px solid var(--v2-line2); background:var(--v2-surface)}
+  .sel-compte{font:600 13px var(--v2-sans); color:var(--v2-txt); margin-right:6px}
+  .sel-btn{height:32px; padding:0 14px; border-radius:var(--v2-r-pill); cursor:pointer;
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); font:600 12.5px var(--v2-sans)}
+  .sel-btn:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .sel-btn:disabled{opacity:.45; cursor:default}
+  .sel-btn[aria-pressed="true"]{border-color:var(--v2-acc2); color:var(--v2-acc-tint); background:var(--v2-acc-soft)}
+  .sel-btn.primaire{color:var(--v2-on-acc); border:0; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .sel-btn:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
+  .sel-edition{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:0 12px 10px}
+  .sel-edition label{font:600 12px var(--v2-sans); color:var(--v2-txt2)}
+  .sel-edition input{min-width:220px; height:32px; padding:0 10px; border-radius:8px;
+    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans)}
+  .sel-edition input:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
   /* Les regles de LIGNE ont disparu avec la boucle qu'elles habillaient :
      la fiche monte `ListePistesV2`, qui porte les siennes. Le compilateur
      Svelte les signalait toutes les neuf en « Unused CSS selector » des que

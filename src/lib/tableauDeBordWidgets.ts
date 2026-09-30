@@ -93,8 +93,11 @@ export function largeurBloc(n: 1 | 2): number {
   return n * COTE_GRILLE + (n - 1) * GOUTTIERE_GRILLE;
 }
 
-/** La période du nouvel écran. Voir l'en-tête : sept jours, pas trente. */
-const PERIODE = '7d' as const;
+/** La période du nouvel écran. Voir l'en-tête : sept jours, pas trente.
+ *  🔴 #1781 : le message vide des blocs de période (`dashboard.emptyLast7Days`)
+ *  NOMME ces sept jours. Changer la période, c'est changer ce texte aussi —
+ *  `tableauDeBordVide1781.test.ts` le rappelle. */
+export const PERIODE = '7d' as const;
 /** Combien de jours la tendance dessine — la période, jour pour jour. */
 const JOURS_TENDANCE = 7;
 /** Au-delà, les genres se replient derrière « voir plus » (comme avant). */
@@ -236,7 +239,7 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
       composant: BlocTendance,
       hauteur: GRAND,
       donnees: async (ctx) => {
-        const d = await tableauDeBord(PERIODE);
+        const d = await tableauDeBord(PERIODE, ctx.signal);
         const jours = joursPleins(d.trend ?? []);
         return {
           jours,
@@ -255,8 +258,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
       colonnes: 2,
       composant: BlocSemaineHeures,
       hauteur: MOYEN,
-      donnees: async () => {
-        const d = await tableauDeBord(PERIODE);
+      donnees: async (ctx) => {
+        const d = await tableauDeBord(PERIODE, ctx.signal);
         return { grille: grilleSemaine(d.weekday_hourly ?? []), periode: PERIODE };
       },
     },
@@ -270,8 +273,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
       colonnes: 2,
       composant: BlocHeures,
       hauteur: PETIT,
-      donnees: async () => {
-        const d = await tableauDeBord(PERIODE);
+      donnees: async (ctx) => {
+        const d = await tableauDeBord(PERIODE, ctx.signal);
         const par = Array(24).fill(0);
         for (const h of d.hourly ?? []) {
           if (h.hour >= 0 && h.hour < 24) par[h.hour] = h.plays;
@@ -288,7 +291,7 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     bloc: {
       composant: BlocClassement,
       hauteur: GRAND,
-      donnees: async () => elementsAlbums(await tableauDeBord(PERIODE)),
+      donnees: async (ctx) => elementsAlbums(await tableauDeBord(PERIODE, ctx.signal)),
     },
   },
   {
@@ -299,7 +302,7 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     bloc: {
       composant: BlocClassement,
       hauteur: GRAND,
-      donnees: async () => elementsTitres(await tableauDeBord(PERIODE)),
+      donnees: async (ctx) => elementsTitres(await tableauDeBord(PERIODE, ctx.signal)),
     },
   },
   {
@@ -310,12 +313,12 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     bloc: {
       composant: BlocBarres,
       hauteur: GRAND,
-      donnees: async () => {
+      donnees: async (ctx) => {
         // 🔴 L'arbre des genres ne doit PAS emporter le bloc. Il est un
         // confort de regroupement : sans lui, tout retombe sur « Hors arbre »,
         // ce qui reste plus utile qu'un bloc en échec.
         const [d, arbre] = await Promise.all([
-          tableauDeBord(PERIODE),
+          tableauDeBord(PERIODE, ctx.signal),
           api.getGenreTree().then((r: any) => r?.tree ?? {}).catch(() => ({})),
         ]);
         return { lignes: branches(d.by_genre ?? [], arbre), plafond: PLAFOND_GENRES };
@@ -330,8 +333,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     bloc: {
       composant: BlocBarres,
       hauteur: MOYEN,
-      donnees: async () => {
-        const d = await tableauDeBord(PERIODE);
+      donnees: async (ctx) => {
+        const d = await tableauDeBord(PERIODE, ctx.signal);
         return {
           lignes: (d.by_zone ?? []).map((z) => ({
             label: z.zone_name ?? `#${z.zone_id ?? '?'}`,
@@ -349,8 +352,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     bloc: {
       composant: BlocBarres,
       hauteur: MOYEN,
-      donnees: async () => {
-        const d = await tableauDeBord(PERIODE);
+      donnees: async (ctx) => {
+        const d = await tableauDeBord(PERIODE, ctx.signal);
         return {
           lignes: (d.by_source ?? []).map((s) => ({ label: s.source ?? '—', valeur: s.plays })),
         };
@@ -365,8 +368,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     bloc: {
       composant: BlocCeJourLa,
       hauteur: MOYEN,
-      donnees: async () => {
-        const d = await tableauDeBord(PERIODE);
+      donnees: async (ctx) => {
+        const d = await tableauDeBord(PERIODE, ctx.signal);
         return {
           lignes: (d.on_this_day ?? []).slice(0, 8).map((o) => ({
             annee: o.year ?? null,
@@ -385,8 +388,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     bloc: {
       composant: BlocSerie,
       hauteur: PETIT,
-      donnees: async () => {
-        const d = await tableauDeBord(PERIODE);
+      donnees: async (ctx) => {
+        const d = await tableauDeBord(PERIODE, ctx.signal);
         return { courante: d.streak?.current ?? 0, record: d.streak?.best ?? 0 };
       },
     },
@@ -399,8 +402,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     bloc: {
       composant: BlocCompletion,
       hauteur: PETIT,
-      donnees: async () => {
-        const d = await tableauDeBord(PERIODE);
+      donnees: async (ctx) => {
+        const d = await tableauDeBord(PERIODE, ctx.signal);
         return { completes: d.completion?.completed ?? 0, passes: d.completion?.skipped ?? 0 };
       },
     },

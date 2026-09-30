@@ -29,7 +29,7 @@
    * PR serveur supprime. Ce repli disparaîtra une fois la version publiée ;
    * jusque-là, l'écran fonctionne contre les deux.
    */
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import * as api from '../../lib/api';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
@@ -44,12 +44,16 @@
   import { objetAlbum, objetCollection } from '../../lib/gestesObjet';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
+  import { retourProgrammatiqueEnCours } from '../../lib/historiqueNavigation';
+  import { get } from 'svelte/store';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import RenommerModale from './RenommerModale.svelte';
   import ArbreRayons from './ArbreRayons.svelte';
   import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import BasculeAffichage from './BasculeAffichage.svelte';
+  import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
   import { trierAlbums } from '../../lib/trierAlbums';
   import { fold } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -93,6 +97,12 @@
         pas. Vide face à un serveur d'avant #901, qui ne donne que le compte. */
     manquantsDetail: { id: number; titre: string | null; artiste: string | null }[];
     covers: string[];
+    /** Le serveur a-t-il RENDU le champ `covers` — même vide ? (#1798,
+        tune-server-rust#5438). Présent, c'est la réponse : une collection vide
+        n'a pas de pochette, inutile de redemander ses albums. Absent — serveur
+        plus ancien, ou collection tirant un catalogue distant que le serveur
+        ne compose pas seul —, l'écran va les chercher lui-même. */
+    coversServies: boolean;
     /** Date de création, pour le tri par date. Les DEUX familles la portent. */
     creee: string | null;
   }
@@ -179,6 +189,24 @@
   type Tri = (typeof TRIS)[number];
   let tri = $state<Tri>(lireChoix<Tri>('v2.collections.tri', TRIS, 'alpha'));
   $effect(() => { ecrireChoix('v2.collections.tri', tri); });
+
+  /**
+   * web#1801 — FabienM (fil 2037, point 13), go de Bertrand du 29/09/2026 :
+   * la bascule de la Bibliothèque, à trois crans (petites vignettes, liste,
+   * grandes vignettes), pour les collections ET les collections
+   * intelligentes. Un seul choix pour l'écran, sous SA clé : la Bibliothèque
+   * et les Favoris gardent chacun le leur.
+   *
+   * 🔴 Écrit au CLIC seulement (`changerAffichage`), jamais par un `$effect` :
+   * écrire au montage figerait le défaut comme un faux choix, et plus aucun
+   * changement de défaut n'atteindrait personne — le piège de #1650.
+   */
+  const CLE_AFFICHAGE = 'v2.collections.display';
+  let affichage = $state<AffichageEtendu>(lireChoix<AffichageEtendu>(CLE_AFFICHAGE, LISTE_ET_DEUX_GRILLES, 'grid'));
+  function changerAffichage(v: AffichageEtendu) {
+    affichage = v;
+    ecrireChoix(CLE_AFFICHAGE, v);
+  }
 
   /**
    * Le nom AFFICHÉ d'une collection, et sa description affichée.
@@ -346,7 +374,11 @@
       // Retirée de la liste sur la PAIRE (sorte, id), pour la même raison que
       // la clé de boucle : l'id seul viserait les deux sortes.
       entrees = entrees.filter((x) => !(x.sorte === e.sorte && x.id === e.id));
-      if (ouverte && ouverte.sorte === e.sorte && ouverte.id === e.id) ouverte = null;
+      if (ouverte && ouverte.sorte === e.sorte && ouverte.id === e.id) {
+        ouverte = null;
+        // web#1790 — l'entrée ne doit plus porter une collection disparue.
+        if (get(detailOuvert) === cleCible(e)) fermerDetail();
+      }
       // Appelée DEPUIS un éditeur, il faut le refermer : laisser ouverte la
       // fiche d'une collection qui n'existe plus proposerait de l'enregistrer.
       if (enEdition && enEdition.sorte === e.sorte && enEdition.id === e.id) enEdition = null;
@@ -740,6 +772,7 @@
           manquants: compteManquants(c) > 0 ? compteManquants(c) : null,
           manquantsDetail: detailManquants(c),
           covers: Array.isArray(c.covers) ? c.covers : [],
+          coversServies: Array.isArray(c.covers),
           creee: c.created_at ?? null,
         });
       }
@@ -761,6 +794,7 @@
           manquants: null,
           manquantsDetail: [],
           covers: Array.isArray((c as any).covers) ? (c as any).covers : [],
+          coversServies: Array.isArray((c as any).covers),
           creee: (c as any).created_at ?? null,
         });
       }
@@ -796,7 +830,11 @@
   }
 
   async function completerPochettes(): Promise<void> {
-    const manquantes = entrees.filter((e) => !e.covers.length);
+    // #1798 — seulement celles dont le serveur n'a PAS rendu le champ. Une
+    // liste qui dit `covers: []` a répondu : redemander les albums d'une
+    // collection vide, à chaque ouverture, était une requête lourde pour rien
+    // (tune-server-rust#5438, micro-coupures chez Yves).
+    const manquantes = entrees.filter((e) => !e.coversServies);
     if (!manquantes.length) return;
     await Promise.allSettled(
       manquantes.map(async (e) => {
@@ -852,8 +890,55 @@
   // capturerait une collection qu'on ne regarde plus.
   $effect(() => () => clearShortcutTarget());
 
+  /**
+   * 🔴 OUVRIR UNE COLLECTION EMPILE UNE ENTRÉE D'HISTORIQUE — web#1790.
+   *
+   * FabienM, fil 2037, point 9 : « Le BACK navigateur à l'intérieur d'une
+   * collection ne revient sur l'accueil des collections ». La collection
+   * ouverte est un `$state` local : l'ouvrir ne changeait pas `activeView`,
+   * la coquille n'écrivait rien, et le Précédent dépilait l'entrée de la vue
+   * d'avant — il quittait l'écran.
+   *
+   * Même mécanisme que les calques album (#980) et l'étiquette ouverte
+   * (web#1661) : ouvrir empile (`ouvrirDetail`), le Retour de l'écran referme
+   * ET dépile, le Précédent referme. La clé est celle du raccourci
+   * (`cleCible`) : une chaîne, jamais l'objet.
+   */
+  function retourCollection() {
+    const cle = ouverte ? cleCible(ouverte) : null;
+    const fermer = () => { ouverte = null; clearShortcutTarget(); };
+    if (cle != null && entreeCourantePorte(cle)) {
+      fermerDetailEnReculant(fermer);
+      return;
+    }
+    fermer();
+    if (cle != null && get(detailOuvert) === cle) fermerDetail();
+  }
+
+  /** Le Précédent du navigateur est revenu à la racine de l'écran : la collection se referme. */
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      // `null` posé par le Retour d'un ALBUM de la collection
+      // (`fermerDetailEnReculant`) n'est qu'un passage : le `popstate` qui
+      // suit repose la clé de la collection. On ne referme pas pour lui.
+      if (voulu == null && ouverte && !retourProgrammatiqueEnCours()) {
+        ouverte = null;
+        clearShortcutTarget();
+      }
+    });
+  });
+
+  // La clé posée par cet écran part avec lui (même geste que web#1661).
+  $effect(() => () => {
+    if (/^(smart)?collections:/.test(get(detailOuvert) ?? '')) fermerDetail();
+  });
+
   async function ouvrir(e: Entree) {
     ouverte = e;
+    // web#1790 — l'entrée d'historique porte la collection. Déjà posée : le
+    // magasin ne change pas, rien n'est empilé.
+    ouvrirDetail(cleCible(e));
     // `restore.name` est la valeur STOCKEE — elle sert a retrouver la
     // collection, pas a l'afficher ; `label` est ce qui se lit.
     setShortcutTarget({ key: cleCible(e), restore: { id: e.id, name: e.nom }, label: libelleTradu(e) });
@@ -897,7 +982,11 @@
     fermerDetailEnReculant(fermerCalqueAlbum);
   }
   $effect(() => {
-    if ($detailOuvert == null && fiche) fermerCalqueAlbum();
+    // web#1790 — la collection ouverte porte désormais SA clé dans l'entrée :
+    // reculer depuis l'album ramène à elle, plus à `null`.
+    if (fiche && ($detailOuvert == null || (ouverte != null && $detailOuvert === cleCible(ouverte)))) {
+      fermerCalqueAlbum();
+    }
   });
   let albumEnEdition = $state<any | null>(null);
 
@@ -932,7 +1021,7 @@
   {#if ouverte}
     <header class="v2-top detail">
       <div class="v2-titres">
-        <button class="back" onclick={() => { ouverte = null; clearShortcutTarget(); }}>← {$t('common.back' as any)}</button>
+        <button class="back" onclick={retourCollection}>← {$t('common.back' as any)}</button>
         <div class="v2-eyebrow">{ouverte.sorte === 'smart' ? $t('v2.col.smart' as any) : $t('v2.col.manual' as any)}</div>
         <h1>{libelleTradu(ouverte)}</h1>
         {#if descriptionTraduite(ouverte)}<p class="v2-sous">{descriptionTraduite(ouverte)}</p>{/if}
@@ -1111,6 +1200,11 @@
           <option value="ancien">{$t('v2.fav.sortOldest' as any)}</option>
         </select>
       </label>
+      <!-- web#1801 — la forme de la liste, pour les deux onglets. Pas sur
+           l'arbre des rayons, qui n'est pas une grille. -->
+      {#if onglet !== 'rayons'}
+        <BasculeAffichage modes={LISTE_ET_DEUX_GRILLES} valeur={affichage} onChanger={changerAffichage} iconeDeDestination />
+      {/if}
     </nav>
 
     <!-- #855 : seule la liste défile ; l'en-tête et les onglets restent à l'écran,
@@ -1147,7 +1241,7 @@
           {/each}
         </div>
         {/if}
-      <div class="grid">
+      <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
         {#each visibles as e (e.sorte + ':' + e.id)}
           <!-- Un LISERE de couleur, pas un fond : une pochette doit rester
                lisible. -->
@@ -1369,6 +1463,21 @@
      les deux ecrans se parcourent de la meme facon. */
   .aveclettres{display:flex; min-height:0; flex:1}
   .aveclettres .grid{flex:1; min-width:0}
+  /* web#1801 — GRANDES VIGNETTES : la même carte, un pas de grille plus
+     large. */
+  .grid.grandes{grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px}
+  .grid.grandes .ct{font-size:15px}
+  /* web#1801 — LA LISTE, c'est la même grille couchée, comme dans Playlists
+     (#1719) : une carte par ligne, la mosaïque réduite. Aucune seconde
+     branche de gabarit — les actions de la pochette, le titre cliquable et
+     la mention des manquants sont ceux de la grille. */
+  .grid.liste{grid-template-columns:1fr; gap:2px}
+  .grid.liste .card{flex-direction:row; align-items:center; gap:14px; padding:6px 10px; border-radius:9px}
+  .grid.liste .card:hover{background:var(--v2-hover)}
+  .grid.liste .cv{width:48px; flex:0 0 48px}
+  .grid.liste .meta{flex-direction:row; align-items:baseline; gap:12px; flex:1; min-width:0}
+  .grid.liste .meta .ct{max-width:60%; min-width:0}
+  .grid.liste .mq{width:auto; flex:0 0 auto}
   .rail{display:flex; flex-direction:column; justify-content:center; gap:2px;
     padding:10px 12px 10px 4px; margin-right:6px; position:sticky; top:0; align-self:flex-start;
     border-right:1px solid var(--v2-line)}
