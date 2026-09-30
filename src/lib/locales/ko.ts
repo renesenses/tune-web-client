@@ -3552,7 +3552,7 @@ export default {
   "settings.sidebarMoved": "{x}: {n}개 중 {p}번째",
   "settings.sidebarDrag": "끌어서 {x} 이동",
   "settings.nowPlayingLinkToSource": "「현재 재생」에서 앨범 또는 재생목록 열기",
-  "settings.nowPlayingLinkToSourceHint": "사이드바의 「현재 재생」 항목이 재생 중인 앨범 페이지를 엽니다. 재생목록에서 재생을 시작했다면 그 재생목록을 엽니다. 라디오이거나 페이지가 없으면 지금처럼 「현재 재생」 화면을 엽니다.",
+  "settings.nowPlayingLinkToSourceHint": "사이드바의 「현재 재생」 항목과 재생 바의 썸네일이 재생 중인 앨범 페이지를 엽니다. 재생목록에서 재생을 시작했다면 그 재생목록을 엽니다. 라디오이거나 페이지가 없으면 지금처럼 「현재 재생」 화면을 엽니다.",
   "settings.animationRateSmooth": "부드럽게 — 지금의 표시",
   "settings.animationRateSaving": "절약 — 프로세서 사용량 약 30 % 감소",
   "settings.animationRateMinimal": "최소 — 약 40 % 감소, 미터가 약간 끊겨 보입니다",
