@@ -137,7 +137,16 @@ export function objetArtiste(a: any): ObjetMenu {
   const service = cleServeur(texte(a?.source));
   const sourceId = texte(a?.source_id);
   if (service && sourceId && !estDeBibliotheque({ id: 1, source: service })) {
-    return { type: 'artiste', service, sourceId, nom };
+    /**
+     * 🔴 web#1838, suite — l'IMAGE voyage avec l'artiste de service, comme la
+     * pochette avec l'album et la playlist. Sans elle, l'étiquette posée
+     * depuis ce menu (et le favori) déposait un instantané sans image : le
+     * serveur le rend tel quel dans `/tags/{id}/artists` (`image_path`). La
+     * recherche Qobuz du .18 rend `{"id":"38326","image_path":"https://…",
+     * "name":"David Bowie"}` (30/09/2026).
+     */
+    const pochette = texte(a?.image_path ?? a?.image ?? a?.picture ?? a?.cover_path ?? a?.cover_url ?? a?.pochette);
+    return { type: 'artiste', service, sourceId, nom, ...(pochette ? { pochette } : {}) };
   }
   return { type: 'artiste', nom };
 }
@@ -220,7 +229,9 @@ export function cibleEtiquetteObjet(o: ObjetMenu): CibleEtiquette | null {
       });
     case 'artiste':
       if (o.id != null) return { itemType: 'artist', itemId: o.id };
-      return deService(o) ? cibleDeService('artist', { source: o.service, source_id: o.sourceId, name: o.nom }) : null;
+      return deService(o)
+        ? cibleDeService('artist', { source: o.service, source_id: o.sourceId, name: o.nom, image_path: o.pochette ?? null })
+        : null;
     case 'playlist':
       return cibleEtiquettePlaylist(
         { id: o.id ?? null, source_id: o.sourceId, name: o.nom, cover_path: o.pochette ?? null },
