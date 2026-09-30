@@ -1500,7 +1500,7 @@ export default {
   "smartCollection.fieldTrackNumber": "Sorszám",
   "smartCollection.fieldDiscNumber": "Lemez sorszáma",
   "smartCollection.fieldBpm": "BPM",
-  "smartCollection.fieldRating": "Értékelés",
+  "smartCollection.fieldRating": "Album értékelése",
   "smartCollection.fieldCover": "Borító",
   "smartCollection.fieldAddedAt": "Hozzáadás dátuma",
   "smartCollection.fieldCredit": "Közreműködő (hangmérnök/előadó/...)",
