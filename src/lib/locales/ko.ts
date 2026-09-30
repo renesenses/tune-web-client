@@ -1397,7 +1397,7 @@ export default {
   "smartCollection.fieldTrackNumber": "트랙 번호",
   "smartCollection.fieldDiscNumber": "디스크 번호",
   "smartCollection.fieldBpm": "BPM",
-  "smartCollection.fieldRating": "평점",
+  "smartCollection.fieldRating": "앨범 평점",
   "smartCollection.fieldCover": "커버",
   "smartCollection.fieldAddedAt": "추가된 날짜",
   "smartCollection.fieldCredit": "크레딧 (엔지니어/연주자/...)",

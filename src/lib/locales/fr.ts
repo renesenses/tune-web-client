@@ -1986,7 +1986,7 @@ export default {
   "smartCollection.fieldTrackNumber": "N° de piste",
   "smartCollection.fieldDiscNumber": "N° de disque",
   "smartCollection.fieldBpm": "BPM",
-  "smartCollection.fieldRating": "Note",
+  "smartCollection.fieldRating": "Note de l'album",
   "smartCollection.fieldCover": "Pochette",
   "smartCollection.fieldAddedAt": "Date d'ajout",
   "smartCollection.fieldCredit": "Crédit (engineer/performer/...)",

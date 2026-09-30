@@ -16,7 +16,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import {
   CHAMPS as DEFINITION,
-  EN_ATTENTE,
   champsDe,
   champsSaisissables,
   operateursDe as operateursCollection,
@@ -80,22 +79,24 @@ describe('#5547 — une seule définition, deux niveaux', () => {
     expect(operateursPlaylist('tag').map((o) => o.value)).toEqual(['is', 'is_not']);
   });
 
-  it('« Note » n’est proposée NULLE PART tant qu’elle est cassée côté serveur', () => {
-    // `t.rating` n'existe pas : l'aperçu rend une erreur 500, aux collections
-    // comme aux playlists (mesuré sur le .18 en 0.9.169). Question rendue à
-    // Bertrand dans tune-server-rust#5547.
-    expect(EN_ATTENTE).toEqual(['rating']);
+  it('« Note » est proposée des DEUX côtés, avec les opérateurs numériques', () => {
+    // Elle était retirée des menus tant que le serveur la cassait (`t.rating`,
+    // 500 sur le .18). Réparée : la note de l'album pour le profil actif. Le
+    // test est adapté, pas supprimé.
     for (const n of ['collection', 'playlist'] as const) {
-      expect(champsSaisissables(n).map((c) => c.value), n).not.toContain('rating');
+      const note = champsSaisissables(n).find((c) => c.value === 'rating');
+      expect(note, `${n} : « Note » absente du menu`).toBeTruthy();
+      expect(note!.type).toBe('int');
     }
-    // Mais la grammaire la garde : une règle enregistrée s'ouvre sans la perdre.
-    expect(DEFINITION.some((c) => c.value === 'rating')).toBe(true);
+    expect(operateursPlaylist('rating').map((o) => o.value)).toEqual(['=', '!=', '>=', '>', '<=', '<', 'between']);
+    // Pas d'« n'est pas noté » : la famille numérique n'en a pas.
+    expect(operateursPlaylist('rating').map((o) => o.value)).not.toContain('is_null');
   });
 
   it('les critères rattrapés sont tous là', () => {
     const offerts = champsSaisissables('playlist').map((c) => c.value);
     for (const f of ['tag', 'label', 'folder', 'track_count', 'duration', 'track_number',
-      'disc_number', 'bpm', 'cover_path', 'added_at', 'play_count', 'last_played_at']) {
+      'disc_number', 'bpm', 'rating', 'cover_path', 'added_at', 'play_count', 'last_played_at']) {
       expect(offerts, f).toContain(f);
     }
   });

@@ -1386,7 +1386,7 @@ export default {
   "smartCollection.fieldTrackNumber": "Spårnummer",
   "smartCollection.fieldDiscNumber": "Skivnummer",
   "smartCollection.fieldBpm": "BPM",
-  "smartCollection.fieldRating": "Betyg",
+  "smartCollection.fieldRating": "Albumbetyg",
   "smartCollection.fieldCover": "Omslag",
   "smartCollection.fieldAddedAt": "Datum tillagt",
   "smartCollection.fieldCredit": "Medverkande (ljudtekniker/utövare/...)",

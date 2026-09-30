@@ -68,6 +68,9 @@ export const CHAMPS: readonly Champ[] = [
   { value: 'track_number',   labelKey: 'smartCollection.fieldTrackNumber', type: 'int' },
   { value: 'disc_number',    labelKey: 'smartCollection.fieldDiscNumber',  type: 'int' },
   { value: 'bpm',            labelKey: 'smartCollection.fieldBpm',         type: 'int' },
+  // « Note » : la note de l'ALBUM pour le profil actif (`album_ratings`) ;
+  // dans une playlist, celle de l'album de chaque piste. Un album sans note ne
+  // passe aucune comparaison (décision de Bertrand, 30/09/2026, #5547).
   { value: 'rating',         labelKey: 'smartCollection.fieldRating',      type: 'int' },
   { value: 'cover_path',     labelKey: 'smartCollection.fieldCover',       type: 'nullable' },
   { value: 'added_at',       labelKey: 'smartCollection.fieldAddedAt',     type: 'timestamp' },
@@ -126,21 +129,9 @@ export const SAISISSABLES: readonly TypeChamp[] = [
   'collection_ref', 'playlist_ref', 'folder', 'source', 'tag_ref',
 ];
 
-/**
- * Les critères que le serveur ne sait pas évaluer aujourd'hui, et qu'aucun
- * menu ne propose donc (tune-server-rust#5547).
- *
- * « Note » (`rating`) compile en `t.rating`, colonne qui n'existe pas : l'aperçu
- * rend une erreur 500, aux collections comme aux playlists (mesuré sur le .18
- * en 0.9.169). Les notes vivent dans `album_ratings`, par album et par
- * profil ; le choix de la traduction est rendu à Bertrand. Le champ reste dans
- * la grammaire : une règle déjà enregistrée s'ouvre sans être perdue.
- */
-export const EN_ATTENTE: readonly string[] = ['rating'];
-
 /** Les champs qu'un éditeur de ce niveau propose dans son menu. */
 export function champsSaisissables(niveau: Niveau): readonly Champ[] {
-  return champsDe(niveau).filter((c) => SAISISSABLES.includes(c.type) && !EN_ATTENTE.includes(c.value));
+  return champsDe(niveau).filter((c) => SAISISSABLES.includes(c.type));
 }
 
 export interface Operateur {
