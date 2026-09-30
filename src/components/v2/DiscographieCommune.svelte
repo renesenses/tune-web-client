@@ -87,13 +87,15 @@
    * #4651 — Qobuz range sous un artiste des reprises et des albums d'autres
    * artistes (15 sur 52 pour Agnes Obel, mesuré sur le .18). La grille
    * principale ne garde que ceux DE l'artiste ; les autres ne sont pas jetés,
-   * ils passent sous « Autres / Connexes », comme le testeur l'a proposé.
+   * ils passent sous « Apparitions » (#1839, décision de Bertrand du
+   * 30/09/2026 : plus de section « Autres / Connexes » ; les invitations d'un
+   * artiste de service vont au même endroit, sous le même libellé, que celles
+   * d'un artiste local).
    * Les deux groupes sont fusionnés SÉPARÉMENT : « The Curse » d'Echoes of
    * Maya ne se replie plus sur « The Curse » d'Agnes Obel.
    */
   const partage = $derived(partagerDiscographie(services, nomArtiste));
   const toutes = $derived(fusionnerDiscographie(locaux, partage.propres));
-  const connexesToutes = $derived(fusionnerDiscographie([], partage.connexes));
   $effect(() => { onComptesProvenance?.(comptesProvenanceFiche(toutes)); });
 
   /*
@@ -104,7 +106,9 @@
    * groupes (par nom).
    */
   const compilationsToutes = $derived(fusionnerDiscographie(compilations, []));
-  const apparitionsToutes = $derived(fusionnerDiscographie(apparitions, []));
+  // #1839 — les apparitions du serveur (artiste local) ET les albums d'autres
+  // artistes que les services rangent sous lui (#4651) : une seule section.
+  const apparitionsToutes = $derived(fusionnerDiscographie(apparitions, partage.connexes));
   const reprisesToutes = $derived(fusionnerDiscographie(reprises, []));
   const collaborationsToutes = $derived(
     (collaborations ?? []).map((g, i) => ({
@@ -119,7 +123,7 @@
   // `compterProvenances`. Elles filtrent TOUTES les sections de la fiche.
   const provenances = $derived(
     compterProvenances([
-      toutes, connexesToutes, compilationsToutes, apparitionsToutes, reprisesToutes,
+      toutes, compilationsToutes, apparitionsToutes, reprisesToutes,
       ...collaborationsToutes.map((g) => g.entrees),
     ]),
   );
@@ -164,7 +168,6 @@
   });
 
   const entrees = $derived(garder(toutes));
-  const connexes = $derived(garder(connexesToutes));
   const comptes = $derived(compterFocus(entrees));
 
   // ── Focus ────────────────────────────────────────────────────────────────
@@ -216,7 +219,6 @@
   }
   const triees = $derived(trier(filtrees, triAlbums, sensAlbums));
   const sectionsSortie = $derived(partagerParTypeDeSortie(triees));
-  const connexesTriees = $derived(trier(connexes, triAlbums, sensAlbums));
 
   /*
    * Les sections #4767 : même filtre « Source » et même TRI que la
@@ -329,17 +331,6 @@
     {#if servicesEnCharge}
       <div class="etat">{$t('common.loading' as any)}</div>
     {/if}
-  {/if}
-
-  {#if connexesTriees.length}
-    <section class="connexes" data-section="connexes">
-      <h3 class="titre-connexes">{$t('v2.disco.related' as any)} <span class="cpt">{connexesTriees.length}</span></h3>
-      <div class="gr">
-        {#each connexesTriees as e (e.cle)}
-          {@render carte(e)}
-        {/each}
-      </div>
-    </section>
   {/if}
 
   <!-- #4767 — les deux sections que FabienM demande d'après Roon. Rendues

@@ -3174,7 +3174,6 @@ export default {
   "v2.disco.lossy": "손실 압축",
   "v2.disco.reset": "모두 보기",
   "v2.disco.noMatch": "이 필터와 일치하는 앨범이 없습니다.",
-  "v2.disco.related": "기타 / 관련",
   "v2.disco.mainAlbums": "정규 앨범",
   "v2.disco.epSingles": "EP 및 싱글",
   "v2.disco.compilations": "컴필레이션",
