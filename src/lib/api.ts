@@ -9047,8 +9047,23 @@ export const RAYONS_CONCERTS = [50, 100, 200] as const;
 
 export interface ConcertsAVenir {
   concerts: Concert[];
-  /** Le périmètre effectivement appliqué par le nuage. */
+  /** Le périmètre CHOISI et enregistré — pas forcément celui qui a filtré la
+   *  liste : un rayon sans commune localisée retombe sur le pays, et `scope`
+   *  reste `radius` (tune-server-rust#5368). Voir `applied_scope`. */
   scope?: PerimetreConcerts;
+  /** Le périmètre qui a VRAIMENT filtré la liste. Absent d'un serveur ou d'un
+   *  nuage antérieurs au lot `batch/fix-5369-20260929`. */
+  applied_scope?: PerimetreConcerts;
+  /** `false` : le rayon est demandé mais la commune n'est pas localisée. */
+  located?: boolean;
+  /** Nombre de concerts dans le périmètre, toutes pages confondues. Absent
+   *  d'un serveur ancien : la liste était alors coupée à 100 sans le dire
+   *  (tune-server-rust#5369). */
+  total?: number;
+  limit?: number;
+  offset?: number;
+  /** Vrai s'il reste des concerts au-delà de cette page. */
+  has_more?: boolean;
   radius_km?: number | null;
   city?: string | null;
   country?: string | null;
@@ -9065,6 +9080,10 @@ export interface LocalisationConcerts {
    *  trouvée : la lecture retombe alors sur le pays. Sans ce drapeau,
    *  l'utilisateur croit filtrer à 50 km alors qu'il voit tout son pays. */
   located?: boolean;
+  /** Vrai quand le nom désigne plusieurs communes éloignées et qu'aucun code
+   *  postal n'a tranché : le rayon est centré sur la plus connue, qui n'est
+   *  peut-être pas la bonne (tune-server-rust#5368). */
+  ambiguous?: boolean;
   /** Rendu par `GET /location` : le code postal saisi, pour pré-remplir. */
   postal_code?: string | null;
   code?: string;
@@ -9074,8 +9093,19 @@ export interface LocalisationConcerts {
 // lui-même chaque échec, par un code traduit (`concerts.unavailable`,
 // `concerts.rate_limited`…). Sans lui, un 502 du nuage affichait en plus
 // « Server error: 502 Bad Gateway ».
-export function getConcertsAVenir() {
-  return fetchJSON<ConcertsAVenir>(`${BASE}/ext/concerts/upcoming`, undefined, undefined, true);
+/** Sans `offset`, la première page, de la taille que le nuage choisit. Un
+ *  serveur ancien ignore `offset` et rend toujours la même liste : l'écran ne
+ *  le demande donc que si la réponse a dit `has_more`. */
+export function getConcertsAVenir(page: { offset?: number } = {}) {
+  // Suffixe de requête écrit EN LIGNE, sous la forme que lit le cartographe
+  // du contrat (`scripts/web-contract-map.py`, dépôt serveur) : une variable
+  // interpolée rendrait la route « non résolue » dans la carte.
+  return fetchJSON<ConcertsAVenir>(
+    `${BASE}/ext/concerts/upcoming${page.offset ? `?offset=${page.offset}` : ''}`,
+    undefined,
+    undefined,
+    true,
+  );
 }
 
 /** Enregistre la commune SAISIE par l'utilisateur et le périmètre voulu.
