@@ -207,3 +207,51 @@ export function pistesDansLOrdre(
     || num(a.track_number) - num(b.track_number));
   return bornee(retenues.map((t) => t.id as number), plafond);
 }
+
+/**
+ * ## 🔴 tune-server-rust#5526 — Sevy Tabroc, fil 2051, v0.9.168, 109 004 pistes
+ *
+ * « J'ai sélectionné lecture en aléatoire et cela a pris 30 secondes (voire
+ * plus) pour que la mise en lecture joue. » La file partie : 322 pistes, celles
+ * de 25 albums.
+ *
+ * Pour tirer dans ces 25 albums, l'écran chargeait la bibliothèque ENTIÈRE
+ * (`api.getAllTracks()`) : `GET /library/tracks` par pages de 2 000, l'une
+ * APRÈS l'autre — une cinquantaine sur 109 004 pistes, chacune triant toute la table
+ * côté serveur (≈ 0,5 s). Le journal n'en montrait que les six dernières, les
+ * seules au-dessus du seuil `slow_query` de 500 ms : le reste de la demi-minute
+ * était là, sous le seuil. Tout ça pour en garder 322.
+ *
+ * Une sélection de quelques albums se lit maintenant ALBUM PAR ALBUM
+ * (`/library/albums/{id}/tracks`, la liste de la fiche, concurrence bornée et
+ * reprise : `api.getAlbumTracksBatch`). Au-delà de `seuil` albums, la
+ * bibliothèque entière redevient moins chère que tant de requêtes : on la
+ * charge comme avant. Un album illisible après reprise fait aussi retomber
+ * sur la bibliothèque entière — lente, mais jamais une file tronquée en
+ * silence (le défaut que `getAlbumTracksBatch` a été écrit pour fermer).
+ *
+ * Même ensemble dans les deux cas : l'appelant filtre toujours par album
+ * (`pistesDeLaSelection`, `pistesDansLOrdre`), et la fiche replie les copies
+ * de moindre qualité comme la liste des pistes (#1362, #4101).
+ */
+export const SEUIL_ALBUMS_PAR_FICHE = 300;
+
+export interface ChargeursDePistes {
+  /** Les pistes de ces albums, fiche par fiche (`api.getAlbumTracksBatch`). */
+  parAlbums: (albumIds: number[]) => Promise<{ tracks: Track[]; failedAlbums: number }>;
+  /** Toute la bibliothèque (`api.getAllTracks`). */
+  toutes: () => Promise<Track[]>;
+}
+
+/** Les pistes où chercher celles des `albums` retenus — voir plus haut. */
+export async function pistesDesAlbums(
+  albums: Iterable<number>,
+  charger: ChargeursDePistes,
+  seuil: number = SEUIL_ALBUMS_PAR_FICHE,
+): Promise<Track[]> {
+  const ids = [...new Set(albums)];
+  if (ids.length === 0) return [];
+  if (ids.length > seuil) return charger.toutes();
+  const { tracks, failedAlbums } = await charger.parAlbums(ids);
+  return failedAlbums > 0 ? charger.toutes() : tracks;
+}
