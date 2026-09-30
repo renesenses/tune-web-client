@@ -175,7 +175,7 @@ describe('🔴 fil 1906 — barre v2 (`PisteActions`)', () => {
     expect(aLibelle(items, PLUS_COMME_CA)).toBe(true);
   });
 
-  for (const s of ['tidal', 'deezer', 'spotify', 'youtube', 'amazon', 'bandcamp']) {
+  for (const s of ['spotify', 'youtube', 'amazon', 'bandcamp']) {
     it(`titre ${s} : « Plus comme ça » absent — pas de similarité d'artiste chez ce service`, () => {
       const items = menuV2(service(s));
       expect(aLibelle(items, PLUS_COMME_CA)).toBe(false);

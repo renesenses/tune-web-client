@@ -21,19 +21,48 @@
   import { objetAlbum } from '../../lib/gestesObjet';
   import MenuObjetV2 from './MenuObjetV2.svelte';
 
-  let { onOuvrir, vue = 'grid' }: { onOuvrir: (a: Album) => void; vue?: 'grid' | 'list' } = $props();
+  /**
+   * 🔴 #1824 — LA PORTÉE « Répertoire » (Sevy Tabroc, réunion du 30/09/2026,
+   * v0.9.168). `GET /library/coffrets` rend les coffrets de TOUTE la
+   * bibliothèque. Sous une puce « Répertoire : … », l'onglet montrait donc
+   * aussi ceux des autres racines : une bibliothèque en deux exemplaires
+   * (NAS et copie locale) affichait chaque coffret DEUX fois, alors que
+   * l'onglet Albums, lui, n'en montrait qu'un. Même défaut que #3101 pour les
+   * albums. `LibraryV2` passe ici les identifiants d'albums de la portée,
+   * ceux qui filtrent déjà l'onglet Albums : UNE source de vérité.
+   *
+   * `porteeActive` sans `idsPortee` : la portée n'est pas encore arrivée. On
+   * attend, plutôt que de montrer tout sous une puce qui annonce un dossier.
+   */
+  let {
+    onOuvrir,
+    vue = 'grid',
+    porteeActive = false,
+    idsPortee = null,
+  }: {
+    onOuvrir: (a: Album) => void;
+    vue?: 'grid' | 'list';
+    porteeActive?: boolean;
+    idsPortee?: Set<number> | null;
+  } = $props();
 
-  let coffrets = $state<api.CoffretReuni[]>([]);
+  let tousLesCoffrets = $state<api.CoffretReuni[]>([]);
+  const coffrets: api.CoffretReuni[] = $derived(
+    !porteeActive ? tousLesCoffrets
+      : idsPortee == null ? []
+      : tousLesCoffrets.filter((c) => c.id != null && idsPortee.has(c.id)),
+  );
+  const porteeEnAttente = $derived(porteeActive && idsPortee == null);
   /** `ancien` : un serveur sans la route (404). */
   let etat = $state<'attente' | 'charge' | 'ancien' | 'erreur'>('attente');
 
   async function charger() {
     try {
       const r = await api.getCoffrets();
-      coffrets = r?.items ?? [];
+      tousLesCoffrets = r?.items ?? [];
       etat = 'charge';
     } catch (e) {
-      coffrets = [];
+      tousLesCoffrets = [];
       // Un serveur antérieur au lot des coffrets automatiques ne sert pas la
       // route : le DIRE, plutôt que d'annoncer une bibliothèque sans coffret.
       etat = (e as api.ApiError)?.status === 404 ? 'ancien' : 'erreur';
@@ -61,7 +90,7 @@
     {/if}
   </div>
 
-  {#if etat === 'attente'}
+  {#if etat === 'attente' || (etat === 'charge' && porteeEnAttente)}
     <div class="etat">{$tr('common.loading' as any)}</div>
   {:else if etat === 'ancien'}
     <div class="etat">{$tr('library.boxSetsUnsupported' as any)}</div>

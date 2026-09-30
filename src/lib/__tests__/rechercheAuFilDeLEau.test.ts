@@ -296,7 +296,9 @@ describe('l’écran le fait VRAIMENT', () => {
   });
 
   it('🔴 les sources viennent du PLAN, pas de l’écran', () => {
-    expect(src).toContain('(sources) => api.federatedSearch(query, sources)');
+    // #4803 (web #1757) — `paged=true` s'ajoute APRÈS les sources, qui restent
+    // celles du plan.
+    expect(src).toMatch(/\(sources\) => api\.federatedSearch\(query, sources[,)]/);
   });
 
   it('🔴 `fed` est REMPLACÉ, jamais muté', () => {

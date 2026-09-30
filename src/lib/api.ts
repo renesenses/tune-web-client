@@ -1642,6 +1642,31 @@ export async function addToQueue(zoneId: number, body: AddToQueueRequest) {
   return res;
 }
 
+/**
+ * La radio artiste du serveur — tune-server-rust#5395. Remplace la file de la
+ * zone par un premier lot et lance la lecture ; l'auto-lecture la recharge.
+ *
+ * Rend la zone (comme `play`) quand la radio est partie ; SANS bandeau,
+ * `'absente'` quand la route n'existe pas (serveur plus ancien : 404 « not
+ * found », ou 405) et `'vide'` quand le serveur n'a trouvé aucun titre
+ * (`radio_artiste_vide`). L'appelant retombe alors sur l'ancien geste
+ * (`radioArtiste.ts`). Tout autre échec reste une erreur.
+ */
+export async function radioArtiste(
+  zoneId: number,
+  corps: { artist: string; service: string | null; artist_id: string | null },
+): Promise<(Zone & { radio: { count: number } }) | 'absente' | 'vide'> {
+  const rep = await fetchJSON<any>(
+    `${BASE}/zones/${zoneId}/radio/artist`,
+    { method: 'POST', body: JSON.stringify(corps) },
+    (statut) => statut === 404 || statut === 405,
+  );
+  if (rep && typeof rep === 'object' && rep.radio) return rep;
+  // Le nouveau serveur NOMME ses refus ; tout autre 404/405 est la route
+  // inconnue d'un serveur plus ancien.
+  return rep?.error === 'radio_artiste_vide' || rep?.error === 'zone_not_found' ? 'vide' : 'absente';
+}
+
 export function removeFromQueue(zoneId: number, index: number) {
   return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/${index}`, {
     method: 'DELETE',
@@ -3912,7 +3937,34 @@ export const SEARCH_PAGE_LIMIT = 50;
  */
 export const SEARCH_FEDEREE_LIMIT = 100;
 
-export function federatedSearch(q: string, sources?: string[], limit = SEARCH_FEDEREE_LIMIT, offset = 0) {
+/**
+ * Pagination des SERVICES dans la recherche fédérée
+ * (renesenses/tune-server-rust#4803, servie depuis la v0.9.164).
+ *
+ * - `paged` : première page, blocs de service enrichis de `offset`, `limit`,
+ *   `total`, `has_more`, `truncated` ;
+ * - `serviceOffsets` / `serviceLimits` : `qobuz:100` — décalage et limite par
+ *   service (« Voir plus sur <Service> »).
+ *
+ * Un serveur plus ancien ignore ces paramètres : il rend la réponse d'avant,
+ * sans `has_more` dans les blocs, donc sans bouton (`rechercheSuiteService`).
+ */
+export interface PaginationServices {
+  paged?: boolean;
+  serviceOffsets?: Record<string, number>;
+  serviceLimits?: Record<string, number>;
+}
+
+const tableServices = (t: Record<string, number>) =>
+  Object.entries(t).map(([svc, n]) => `${svc}:${n}`).join(',');
+
+export function federatedSearch(
+  q: string,
+  sources?: string[],
+  limit = SEARCH_FEDEREE_LIMIT,
+  offset = 0,
+  pagination?: PaginationServices,
+) {
   let url = `${BASE}/search?q=${encodeURIComponent(q)}&limit=${limit}`;
   // #3189 — la suite de la bibliothèque locale (le serveur ne pagine que
   // celle-là). Absent = 0 = la page d'avant : l'URL des appels existants ne
@@ -3920,6 +3972,14 @@ export function federatedSearch(q: string, sources?: string[], limit = SEARCH_FE
   if (offset > 0) url += `&offset=${offset}`;
   if (sources && sources.length > 0) {
     url += `&sources=${sources.join(',')}`;
+  }
+  // #4803 — sans `pagination`, l'URL ne change pas d'un caractère.
+  if (pagination?.paged) url += '&paged=true';
+  if (pagination?.serviceOffsets && Object.keys(pagination.serviceOffsets).length > 0) {
+    url += `&service_offsets=${encodeURIComponent(tableServices(pagination.serviceOffsets))}`;
+  }
+  if (pagination?.serviceLimits && Object.keys(pagination.serviceLimits).length > 0) {
+    url += `&service_limits=${encodeURIComponent(tableServices(pagination.serviceLimits))}`;
   }
   return fetchJSON<FederatedSearchResult>(url).then(result => {
     if (result.local) result.local.tracks = mapStreamingTracks(result.local.tracks);
@@ -3949,6 +4009,20 @@ export function federatedSearch(q: string, sources?: string[], limit = SEARCH_FE
         for (const fam of ['tracks', 'albums', 'artists', 'playlists'] as const) {
           for (const x of (result.services[key] as any)[fam] ?? []) {
             if (x && !x.source) x.source = key;
+          }
+        }
+        // 🔴 web#1826 : les ARTISTES de service n'ont pas de `source_id`.
+        // `StreamArtist` (`tune-core/src/streaming/traits.rs`) sérialise `id`,
+        // sans le `rename = "source_id"` de `StreamPlaylist`. Mesuré sur le .18
+        // (0.9.168) le 30/09/2026 avec `/search?q=Leprous` : qobuz
+        // `{"id":"610403"}`, tidal `{"id":"3631982"}`, et aucun `source_id`.
+        // Or `SearchV2.ouvrirArtiste`, `ouvrirArtisteDepuis` et `objetArtiste`
+        // l'exigent pour désigner l'artiste chez son service. Faute de quoi le
+        // clic retombait sans rien dire sur `q = ar.name` : la recherche
+        // repartait sur le nom et la fiche ne s'ouvrait jamais.
+        for (const x of (result.services[key] as any).artists ?? []) {
+          if (x && x.source_id == null && x.id != null && String(x.id).trim() !== '') {
+            x.source_id = String(x.id);
           }
         }
       }

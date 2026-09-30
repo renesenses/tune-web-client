@@ -49,6 +49,8 @@
   import { formatDuration, getQualityTier } from '../../lib/utils';
   import type { Album, Source, Track, SearchResult } from '../../lib/types';
   import { fusionnerSuite, rangSuivant, restantLocal, type FamilleLocale } from '../../lib/rechercheSuiteLocale';
+  import { servicesAvecSuite, decalageSuivant, parametresSuite, fusionnerSuiteService, type FamilleService } from '../../lib/rechercheSuiteService';
+  import { nomService } from '../../lib/convertisseurPlaylists';
   import AlbumArt from '../partages/AlbumArt.svelte';
   // #1136 — le MÊME composant que partout ailleurs (~45 emplois, table de neuf
   // provenances, `local: { name: 'LOCAL' }` comprise). Pas un troisième style
@@ -299,7 +301,9 @@
     if (mine !== seq) return;
     await chercherAuFilDeLEau(
       planDuDeuxiemeTemps(servicesInterrogeables(statuts)),
-      (sources) => api.federatedSearch(query, sources),
+      // #4803 — `paged=true` : chaque bloc dit s'il a une suite
+      // (« Voir plus sur <Service> »). Ignoré d'un serveur antérieur.
+      (sources) => api.federatedSearch(query, sources, undefined, 0, { paged: true }),
       (svc, resultats) => { fed = { ...fed, [svc]: resultats }; },
       () => mine === seq,
     );
@@ -697,6 +701,50 @@
       suiteEnCours = null;
     }
   }
+
+  /**
+   * #4803 (web #1757) — « Voir plus sur <Service> » : la page SUIVANTE d'un
+   * seul service, sous chaque section de type. Bertrand, 29/09/2026.
+   *
+   * Un bouton par service dont le bloc paginé dit qu'il reste des résultats
+   * POUR CE TYPE (`rechercheSuiteService.aUneSuite`), dans le périmètre
+   * choisi. Rien ici ne nomme Qobuz : un service qui paginera demain aura son
+   * bouton sans changer ce fichier ; un serveur qui ne rend pas `has_more`
+   * n'en a aucun.
+   */
+  const suitesService = (f: FamilleService) =>
+    servicesAvecSuite(fed, f).filter((svc) => dansLePerimetreDe(sourcesActives, svc));
+  const suitesArtistes = $derived(voirArtistes ? suitesService('artists') : []);
+  const suitesAlbums = $derived(voirAlbums ? suitesService('albums') : []);
+  const suitesTitres = $derived(voirTitres ? suitesService('tracks') : []);
+  let suiteServiceEnCours = $state<string | null>(null);
+  const libelleVoirPlusSur = (svc: string) =>
+    $t('v2.rech.seeMoreOn' as any).replace('{service}', nomService(svc));
+  async function chargerSuiteService(svc: string, f: FamilleService) {
+    const bloc = fed[svc];
+    const decalage = decalageSuivant(bloc);
+    const query = q.trim();
+    if (!bloc || decalage == null || suiteServiceEnCours || query.length < 2) return;
+    const mine = seq;
+    suiteServiceEnCours = svc;
+    try {
+      const p = parametresSuite(svc, decalage);
+      const r = await api.federatedSearch(query, p.sources, undefined, 0, {
+        serviceOffsets: p.serviceOffsets, serviceLimits: p.serviceLimits,
+      });
+      // Une frappe entre-temps : la réponse parle d'une autre recherche.
+      if (mine !== seq || fed[svc] !== bloc) return;
+      fed = { ...fed, [svc]: fusionnerSuiteService(bloc, r?.services?.[svc]) };
+      if (f === 'tracks') montreTitres += PAS_TITRES;
+      else if (f === 'albums') montreAlbums += PAS_ALBUMS;
+      else montreArtistes += PAS_ARTISTES;
+    } catch (e) {
+      notifications.error(String((e as Error)?.message ?? e));
+    } finally {
+      suiteServiceEnCours = null;
+    }
+  }
+
   const lesPlaylists = $derived(voirPlaylists ? playlists.filter((pl) => respecteLesPhrases(pl, phrases)) : []);
 
   // Déclaré APRÈS `dansLePerimetre` : il s'en sert. Le meilleur résultat doit
@@ -1275,6 +1323,14 @@
                   onclick={() => chargerSuite('artists')}
                   >{libelleVoirPlus(restantArtistes.n)}{restantArtistes.auMoins ? '+' : ''}</button>
               {/if}
+              {#if resteArtistes <= 0}
+                {#each suitesArtistes as svc (svc)}
+                  <button class="voirplus" data-suite-service={svc} data-famille="artists"
+                    disabled={suiteServiceEnCours != null}
+                    onclick={() => chargerSuiteService(svc, 'artists')}
+                    >{libelleVoirPlusSur(svc)}</button>
+                {/each}
+              {/if}
             </div>
           {/if}
         </section>
@@ -1374,6 +1430,14 @@
               onclick={() => chargerSuite('albums')}
               >{libelleVoirPlus(restantAlbums.n)}{restantAlbums.auMoins ? '+' : ''}</button>
           {/if}
+          {#if resteAlbums <= 0}
+            {#each suitesAlbums as svc (svc)}
+              <button class="voirplus" data-suite-service={svc} data-famille="albums"
+                disabled={suiteServiceEnCours != null}
+                onclick={() => chargerSuiteService(svc, 'albums')}
+                >{libelleVoirPlusSur(svc)}</button>
+            {/each}
+          {/if}
         </section>
       {/if}
 
@@ -1425,6 +1489,14 @@
             <button class="voirplus" data-suite="tracks" disabled={suiteEnCours != null}
               onclick={() => chargerSuite('tracks')}
               >{libelleVoirPlus(restantTitres.n)}{restantTitres.auMoins ? '+' : ''}</button>
+          {/if}
+          {#if resteTitres <= 0}
+            {#each suitesTitres as svc (svc)}
+              <button class="voirplus" data-suite-service={svc} data-famille="tracks"
+                disabled={suiteServiceEnCours != null}
+                onclick={() => chargerSuiteService(svc, 'tracks')}
+                >{libelleVoirPlusSur(svc)}</button>
+            {/each}
           {/if}
         </section>
       {/if}
