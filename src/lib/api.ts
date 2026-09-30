@@ -4459,6 +4459,18 @@ export function getScanStatus() {
  * plutôt que d'afficher une jauge vide. Voir `lib/santeReplayGain.ts`, qui
  * tient cette décision, et le témoin qui la garde.
  */
+/**
+ * L'avancement de la mesure de la plage dynamique (serveur #4185), et surtout
+ * `candidates` : le stock du RATTRAPAGE, compté par le serveur hors mesure à la
+ * demande. tune-web-client#1828 — la carte Santé en tire la part des pistes
+ * sans plage dynamique que l'ordre de passage règle vraiment.
+ */
+export function getDynamicRangeProgress() {
+  return fetchJSON<import('./santePlageDynamique').AvancementPlageDynamique>(
+    `${BASE}/system/dynamic-range/progress`,
+  );
+}
+
 export function getReplayGainProgress() {
   return fetchJSON<import('./santeReplayGain').AvancementReplayGain>(
     `${BASE}/system/replaygain/progress`,

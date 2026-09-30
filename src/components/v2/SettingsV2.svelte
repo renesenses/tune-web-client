@@ -365,6 +365,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let rgPreamp = $state(0);
   let rgAntiClip = $state(true);
   let rgAnalysis = $state(true);
+  // tune-server-rust#5519 — la vitesse des analyses de fond, et combien de
+  // pistes chaque vitesse décode à la fois SUR CE SERVEUR (« Rapide » dépend
+  // de ses cœurs). `null` : serveur qui ne connaît pas le réglage, on le tait.
+  let bgSpeed = $state<string | null>(null);
+  let bgSpeedWidths = $state<Record<string, number>>({});
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let devicesLoaded = $state(false);
   let creatingBrowserZone = $state(false);
@@ -381,6 +386,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         rgAntiClip = c?.replaygain_prevent_clipping ?? true;
         // Absent cote serveur vaut VRAI : d'ou le test sur !== false.
         rgAnalysis = c?.replaygain_analysis_enabled !== false && c?.replaygain_analysis_enabled !== 'false';
+        const vitesse = c?.background_analysis_speed;
+        bgSpeed = ['discreet', 'normal', 'fast'].includes(vitesse) ? vitesse : null;
+        bgSpeedWidths = c?.background_analysis_speed_widths ?? {};
       })
       .catch(() => {});
     api.withTimeout(api.getAudioDevices(), 8_000, '/devices/audio')
@@ -428,6 +436,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function setRgAntiClip(v: boolean) {
     const before = rgAntiClip; rgAntiClip = v;
     patch({ replaygain_prevent_clipping: v }, () => { rgAntiClip = before; });
+  }
+  function setBgSpeed(v: string) {
+    const before = bgSpeed; bgSpeed = v;
+    patch({ background_analysis_speed: v }, () => { bgSpeed = before; });
+  }
+  function libelleVitesse(v: string, cle: string): string {
+    const n = bgSpeedWidths?.[v];
+    return typeof n === 'number' ? `${$t(cle as any)} · ${n}` : $t(cle as any);
   }
   function setRgAnalysis(v: boolean) {
     const before = rgAnalysis; rgAnalysis = v;
@@ -5766,6 +5782,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="slider"></span>
                   </label>
                 </div>
+                {#if bgSpeed !== null}
+                  <div class="row">
+                    <div class="lbl">
+                      <span>{$t('settings.analysisSpeed' as any)}</span>
+                      <span class="hint">{$t('settings.analysisSpeedHint' as any)}</span>
+                    </div>
+                    <div class="seg4">
+                      <button class:on={bgSpeed === 'discreet'} onclick={() => setBgSpeed('discreet')}>{libelleVitesse('discreet', 'settings.analysisSpeedDiscreet')}</button>
+                      <button class:on={bgSpeed === 'normal'} onclick={() => setBgSpeed('normal')}>{libelleVitesse('normal', 'settings.analysisSpeedNormal')}</button>
+                      <button class:on={bgSpeed === 'fast'} onclick={() => setBgSpeed('fast')}>{libelleVitesse('fast', 'settings.analysisSpeedFast')}</button>
+                    </div>
+                  </div>
+                {/if}
               {/if}
 
               <div class="devlist">
