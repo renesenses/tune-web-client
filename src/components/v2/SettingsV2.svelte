@@ -4801,6 +4801,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <p class="hint">{$t('settings.updateStopsPlayback' as any)}</p>
                 {/if}
                 <!--
+                  renesenses/tune-server-rust#5531 — le bouton envoie `force` :
+                  pendant une analyse, le serveur l'ARRÊTE, installe, puis la
+                  reprend au redémarrage sans relire les fichiers déjà analysés.
+                  Le libellé le dit (« Arrêter l'analyse et mettre à jour »,
+                  demandé par Thierry CLEMONT, fil 2058).
+                -->
+                {#if scanning && updateInfo.installable !== false && !updDone && !updDmg && !updBusy}
+                  <p class="hint">{$t('settings.updateStopsScan' as any)}</p>
+                {/if}
+                <!--
                   🔴 PARITÉ AVEC LA COQUILLE ACTUELLE (`SettingsView`, l. 6405-6428).
                   « MAJ v2 toujours pas de bouton comme dans la version actuelle »
                   (Bertrand). Cet écran n'avait qu'UNE branche : quel que soit
@@ -4828,7 +4838,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       >{'⚠️ ' + $t('settings.sourceInstallNote' as any)}</b>
                   {:else}
                     <button class="lnk" disabled={updBusy} onclick={installerMaj}>
-                      {updBusy ? $t('common.loading' as any) : $t('settings.updateButton' as any)}
+                      {updBusy
+                        ? $t('common.loading' as any)
+                        : scanning
+                          ? $t('settings.updateButtonStopScan' as any)
+                          : $t('settings.updateButton' as any)}
                     </button>
                   {/if}
                 </div>

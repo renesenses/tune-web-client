@@ -96,6 +96,23 @@ describe('Réglages — installation de la mise à jour', () => {
     ).toBe(true);
   });
 
+  it("pendant une analyse, le bouton dit qu'il l'arrête (#5531)", () => {
+    // Depuis renesenses/tune-server-rust#5531, `force` ARRÊTE l'analyse en
+    // cours, installe, puis la reprend au redémarrage. Le bouton qui envoie
+    // `force` doit le dire, et seulement pendant une analyse.
+    const src = code();
+    const i = src.indexOf("$t('settings.updateButtonStopScan'");
+    expect(i, "le libellé « Arrêter l'analyse et mettre à jour » a disparu").toBeGreaterThan(-1);
+    expect(
+      src.slice(Math.max(0, i - 80), i).includes('scanning'),
+      "le libellé n'est plus conditionné à une analyse en cours : il promettrait d'arrêter " +
+        "une analyse qui n'existe pas.",
+    ).toBe(true);
+    const j = src.indexOf("$t('settings.updateStopsScan'");
+    expect(j, "l'explication de la reprise a disparu").toBeGreaterThan(-1);
+    expect(src.slice(Math.max(0, j - 200), j).includes('scanning')).toBe(true);
+  });
+
   it('le forçage est délibéré, et documenté comme tel', () => {
     // `force=true` contourne les gardes serveur. C'est légitime ICI, parce que
     // le bouton est cliqué sous l'avertissement — mais jamais par défaut.
