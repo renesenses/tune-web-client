@@ -848,6 +848,10 @@ export default {
   'sleep.2h': '2시간',
   'sleep.cancel': '타이머 취소',
   'sleep.fading': '페이드 아웃 중...',
+  "sleep.customLabel": "직접 입력 (분)",
+  "sleep.customPlaceholder": "분",
+  "sleep.customStart": "시작",
+  "sleep.customInvalid": "1에서 1440 사이의 정수로 분을 입력하세요.",
 
   // Scan Schedule
   'settings.scanSchedule': '예약 스캔',
@@ -3537,6 +3541,8 @@ export default {
   "settings.collectionsMosaicHint": "컬렉션마다 커버 4장. 체크를 해제하면 이전 클라이언트처럼 커버 한 장만 표시합니다.",
   "settings.showStopButton": "정지 버튼 표시",
   "settings.showStopButtonHint": "정지 버튼을 재생 표시줄에 다시 표시합니다. 두 가지 동작은 이미 있으며 그대로입니다: 재생 두 번 클릭, 그리고 S 키.",
+  "settings.showSleepTimer": "수면 타이머 버튼 표시",
+  "settings.showSleepTimerHint": "재생 막대의 달 버튼입니다. 숨겨도 타이머가 작동하는 동안에는 확인하고 취소할 수 있도록 다시 나타납니다.",
   "settings.sidebarSources": "사이드바의 소스",
   "settings.sidebarSourcesHint": "유형별 스위치 하나: 선택한 유형은 항상 표시되며, 사용할 수 없으면 회색으로 표시됩니다. 기본적으로 컴퓨터에 있는 유형만 선택됩니다.",
   "settings.animationRate": "애니메이션 부드러움",

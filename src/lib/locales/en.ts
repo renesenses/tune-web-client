@@ -984,6 +984,10 @@ export default {
   'sleep.2h': '2 hours',
   'sleep.cancel': 'Cancel timer',
   'sleep.fading': 'Fading out...',
+  "sleep.customLabel": "Custom duration, in minutes",
+  "sleep.customPlaceholder": "min",
+  "sleep.customStart": "Start",
+  "sleep.customInvalid": "Enter a whole number of minutes, from 1 to 1440.",
 
   // Scan Schedule
   'settings.scanSchedule': 'Scheduled Scan',
@@ -3557,6 +3561,8 @@ export default {
   "settings.collectionsMosaicHint": "Four covers assembled per collection. Uncheck for a single cover, like the previous client’s screen.",
   "settings.showStopButton": "Show the Stop button",
   "settings.showStopButtonHint": "Brings the Stop button back to the transport bar. Both gestures already exist and stay: double-click Play, and the S key.",
+  "settings.showSleepTimer": "Show the Sleep timer button",
+  "settings.showSleepTimerHint": "The moon button in the transport bar. When hidden, it comes back while a timer is running, so you can follow and cancel it.",
   "settings.sidebarSources": "Sources in the sidebar",
   "settings.sidebarSourcesHint": "One switch per type: a checked type always shows, greyed out when unavailable. By default, only the types present on the machine are checked.",
   "settings.animationRate": "Animation smoothness",

@@ -870,6 +870,10 @@ export default {
   'sleep.2h': '2 ore',
   'sleep.cancel': 'Anulează cronometrul',
   'sleep.fading': 'Se estompează...',
+  "sleep.customLabel": "Durată liberă, în minute",
+  "sleep.customPlaceholder": "min",
+  "sleep.customStart": "Pornește",
+  "sleep.customInvalid": "Introduceți un număr întreg de minute, între 1 și 1440.",
 
   // Scan Schedule
   'settings.scanSchedule': 'Scanare programată',
@@ -3537,6 +3541,8 @@ export default {
   "settings.collectionsMosaicHint": "Patru coperte pe colecție. Debifați pentru o singură copertă, ca în clientul anterior.",
   "settings.showStopButton": "Afișează butonul Oprește",
   "settings.showStopButtonHint": "Aduce înapoi butonul Oprește în bara de transport. Ambele gesturi există deja și rămân: dublu clic pe Redare și tasta S.",
+  "settings.showSleepTimer": "Afișează butonul Temporizator",
+  "settings.showSleepTimerHint": "Butonul lună din bara de redare. Ascuns, reapare cât timp rulează un temporizator, ca să-l puteți urmări și anula.",
   "settings.sidebarSources": "Surse în bara laterală",
   "settings.sidebarSourcesHint": "Un comutator pe tip: un tip bifat apare mereu, estompat când nu este disponibil. Implicit, sunt bifate doar tipurile prezente pe mașină.",
   "settings.animationRate": "Fluiditatea animațiilor",

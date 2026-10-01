@@ -941,6 +941,10 @@ export default {
   "sleep.2h": "2 óra",
   "sleep.cancel": "Időzítő törlése",
   "sleep.fading": "Elhalkulás...",
+  "sleep.customLabel": "Egyéni időtartam, percben",
+  "sleep.customPlaceholder": "perc",
+  "sleep.customStart": "Indítás",
+  "sleep.customInvalid": "Adjon meg egész számú percet, 1 és 1440 között.",
   // Ütemezett beolvasás
   "settings.scanSchedule": "Ütemezett beolvasás",
   // Zónák automatikus létrehozása
@@ -3495,6 +3499,8 @@ export default {
   "settings.collectionsMosaicHint": "Négy borító gyűjteményenként. Vegye ki a pipát az egyetlen borítóhoz, mint a korábbi kliensben.",
   "settings.showStopButton": "A Leállítás gomb megjelenítése",
   "settings.showStopButtonHint": "Visszahozza a Leállítás gombot a lejátszósávra. Mindkét mozdulat már most is létezik és megmarad: dupla kattintás a Lejátszás gombon és az S billentyű.",
+  "settings.showSleepTimer": "Elalváskapcsoló gomb megjelenítése",
+  "settings.showSleepTimerHint": "A hold gomb a lejátszósávban. Elrejtve újra megjelenik, amíg egy időzítő fut, hogy követni és törölni lehessen.",
   "settings.sidebarSources": "Források az oldalsávon",
   "settings.sidebarSourcesHint": "Típusonként egy kapcsoló: a bejelölt típus mindig megjelenik, szürkén, ha nem elérhető. Alapértelmezés szerint csak a gépen jelen lévő típusok vannak bejelölve.",
   "settings.animationRate": "Az animációk finomsága",
