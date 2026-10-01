@@ -864,6 +864,10 @@ export default {
   'sleep.2h': '2時間',
   'sleep.cancel': 'タイマーをキャンセル',
   'sleep.fading': 'フェードアウト中...',
+  "sleep.customLabel": "任意の時間（分）",
+  "sleep.customPlaceholder": "分",
+  "sleep.customStart": "開始",
+  "sleep.customInvalid": "1〜1440 の整数で分を入力してください。",
 
   // Scan Schedule
   'settings.scanSchedule': 'スケジュールスキャン',
@@ -3537,6 +3541,8 @@ export default {
   "settings.collectionsMosaicHint": "コレクションごとに4枚のジャケット。チェックを外すと、以前のクライアントと同じ1枚表示になります。",
   "settings.showStopButton": "停止ボタンを表示",
   "settings.showStopButtonHint": "停止ボタンをトランスポートバーに戻します。2つの操作はすでに存在し、変わりません：再生ボタンのダブルクリックと S キー。",
+  "settings.showSleepTimer": "スリープタイマーのボタンを表示",
+  "settings.showSleepTimerHint": "再生バーの月のボタンです。非表示にしても、タイマーの作動中は確認と取り消しのために再び表示されます。",
   "settings.sidebarSources": "サイドバーのソース",
   "settings.sidebarSourcesHint": "種類ごとに 1 つのスイッチ：オンにした種類は常に表示され、利用できない場合はグレー表示になります。既定では、マシンに存在する種類だけがオンになります。",
   "settings.animationRate": "アニメーションの滑らかさ",

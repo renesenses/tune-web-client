@@ -864,6 +864,10 @@ export default {
   'sleep.2h': '2 ore',
   'sleep.cancel': 'Annulla timer',
   'sleep.fading': 'Dissolvenza in corso...',
+  "sleep.customLabel": "Durata libera, in minuti",
+  "sleep.customPlaceholder": "min",
+  "sleep.customStart": "Avvia",
+  "sleep.customInvalid": "Inserisci un numero intero di minuti, da 1 a 1440.",
 
   // Scan Schedule
   'settings.scanSchedule': 'Scansione programmata',
@@ -3537,6 +3541,8 @@ export default {
   "settings.collectionsMosaicHint": "Quattro copertine per raccolta. Deseleziona per una sola copertina, come nel client precedente.",
   "settings.showStopButton": "Mostra il pulsante Ferma",
   "settings.showStopButtonHint": "Riporta il pulsante Ferma nella barra di trasporto. Entrambi i gesti esistono già e restano: doppio clic su Riproduci e il tasto S.",
+  "settings.showSleepTimer": "Mostra il pulsante Timer",
+  "settings.showSleepTimerHint": "Il pulsante luna nella barra di riproduzione. Se nascosto, ricompare finché un timer è attivo, per seguirlo e annullarlo.",
   "settings.sidebarSources": "Sorgenti nella barra laterale",
   "settings.sidebarSourcesHint": "Un interruttore per tipo: un tipo selezionato appare sempre, in grigio quando non è disponibile. Per impostazione predefinita sono selezionati solo i tipi presenti sulla macchina.",
   "settings.animationRate": "Fluidità delle animazioni",

@@ -3263,6 +3263,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- web#1861 — Levente Toth (fil 2068) : pouvoir masquer le
+                   bouton lune de la barre de transport, « comme les
+                   VU-mètres ». Coché par défaut : le bouton est là aujourd'hui. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.showSleepTimer' as any)}</span>
+                  <span class="hint">{$t('settings.showSleepTimerHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.afficherMinuteurSommeil}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, afficherMinuteurSommeil: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <!-- tune-server-rust#5065, étape 3 — Bertrand, 27/09/2026 :
                    toutes les sources connues dans la barre, grisées quand
                    elles sont indisponibles, et une case par TYPE. Par défaut,
