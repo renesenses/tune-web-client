@@ -186,3 +186,32 @@ export function cleContrainteCanaux(motif: string | null | undefined): string {
       return 'zoneConfig.channelsUnavailable';
   }
 }
+
+/** Ce que la vignette d'une carte de zone montre (#1394, web#1865). */
+export type VignetteZone = 'pochette' | 'photo' | 'type';
+
+/**
+ * La vignette d'une carte de zone : pochette, photo de l'appareil, ou icône
+ * du type de sortie.
+ *
+ * 🔴 web#1865 — la pochette se décidait sur la seule PRÉSENCE d'une piste
+ * courante. Or `current_track` survit à un arrêt (web#1652) : une zone
+ * ARRÊTÉE gardait la pochette du dernier morceau, et la photo de l'appareil
+ * — que Réglages › Appareils promet « quand rien n'y joue »
+ * (`v2.zone.deviceImageHint`) — n'apparaissait jamais. Une photo changée
+ * restait donc invisible, ce que le testeur a pris pour un échec.
+ *
+ * Règle : la pochette l'emporte tant que la zone JOUE ou est EN PAUSE (le
+ * morceau est encore « en cours »). Arrêtée, la photo de l'appareil passe
+ * devant ; sans photo, la dernière pochette reste préférable à l'icône — la
+ * carte ne doit jamais être vide (#1394).
+ */
+export function vignetteDeZone(z: ZoneJouable & { image_path?: unknown }): VignetteZone {
+  const np = z.current_track as { cover_path?: unknown; album_id?: unknown } | null | undefined;
+  const pochette = !!(np && (np.cover_path || np.album_id));
+  const photo = typeof z.image_path === 'string' && z.image_path !== '';
+  const enCours = etatLectureDeZone(z) !== 'idle';
+  if (pochette && (enCours || !photo)) return 'pochette';
+  if (photo) return 'photo';
+  return 'type';
+}
