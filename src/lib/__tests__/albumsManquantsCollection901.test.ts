@@ -138,11 +138,30 @@ describe('#901 — les albums manquants d’un dossier sont dits, puis NOMMÉS',
     expect(ligne('collections.missingOne')).not.toContain('{count}');
   });
 
-  it('l’album sans nom est désigné par son identifiant, dans les onze langues', () => {
+  // tune-server-rust#5615 (Lulu, fil 1891, 01/10) — « Album n° 992 » a la
+  // forme de l'adresse d'une fiche (`#library/album:992`) : Lulu a cherché
+  // ce numéro dans la Bibliothèque. Or il désigne un album qui n'existe plus
+  // en base. L'identifiant ne doit donc plus être montré comme une piste.
+  it('🔴 #5615 — l’album sans nom n’est PLUS désigné par son identifiant, dans les onze langues', () => {
     for (const langue of LANGUES) {
       const dictionnaire = lire(`src/lib/locales/${langue}.ts`);
       const ligne = dictionnaire.split('\n').find((l) => l.includes('"collections.missingUnknown"')) ?? '';
-      expect(ligne, `collections.missingUnknown doit porter {id} dans ${langue}.ts`).toContain('{id}');
+      expect(ligne, `collections.missingUnknown absent de ${langue}.ts`).not.toBe('');
+      expect(ligne, `collections.missingUnknown ne doit plus porter {id} dans ${langue}.ts`).not.toContain('{id}');
     }
+    const fr = lire('src/lib/locales/fr.ts');
+    const ligneFr = fr.split('\n').find((l) => l.includes('"collections.missingUnknown"')) ?? '';
+    expect(ligneFr).toContain('retiré de la bibliothèque');
+  });
+
+  it('🔴 #5615 — l’entrée sans nom n’affiche pas le numéro et n’est pas cliquable', () => {
+    const src = ecran();
+    const debut = src.indexOf('{#if m.titre}');
+    const fin = src.indexOf('{/if}', src.indexOf('collections.missingUnknown', debut));
+    expect(debut, 'branche « album nommé / sans nom » introuvable').toBeGreaterThan(-1);
+    const sansNom = src.slice(src.indexOf('{:else}', debut), fin);
+    expect(sansNom).toContain('collections.missingUnknown');
+    expect(sansNom, 'le numéro interne ne doit plus être injecté dans le libellé').not.toMatch(/m\.id/);
+    expect(sansNom, 'une entrée sans fiche ne mène nulle part : pas de bouton').not.toMatch(/<button|<a\s|onclick/);
   });
 });
