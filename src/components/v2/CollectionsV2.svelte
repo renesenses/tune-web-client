@@ -1384,8 +1384,12 @@
   {#if manquantsOuverts}
     {@const dossier = manquantsOuverts}
     <!-- Les albums manquants, NOMMÉS quand le serveur a su garder leur nom.
-         Un identifiant seul n'est pas caché : c'est ce qu'on sait, et c'est
-         encore assez pour retrouver la trace d'un album dans un journal. -->
+         🔴 tune-server-rust#5615 (Lulu, fil 1891) — sans nom, on ne montre
+         PLUS l'identifiant : « Album n° 992 » a la forme de l'adresse d'une
+         fiche (`#library/album:992`), et Lulu l'a cherché dans la Bibliothèque.
+         Cet album n'existe plus en base : le numéro ne mène nulle part. Le
+         libellé dit donc ce qui est arrivé, et l'entrée n'est pas cliquable
+         (aucune fiche à ouvrir). -->
     <div
       class="mqf"
       role="presentation"
@@ -1407,7 +1411,7 @@
                   {#if m.artiste}<span class="mqa">{m.artiste}</span>{/if}
                 {:else}
                   <span class="mqt inc"
-                    >{$t('collections.missingUnknown' as any).replace('{id}', String(m.id))}</span>
+                    >{$t('collections.missingUnknown' as any)}</span>
                 {/if}
                 {#if m.reuniDans}
                   {@const r = m.reuniDans}

@@ -17,6 +17,7 @@
    */
   import { t } from '../../lib/i18n';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
+  import { natifServiEnDop } from '../../lib/transportDsd';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
@@ -4306,6 +4307,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             <option value="auto">Auto</option><option value="native">{$t('v2.lbl.native' as any)}</option>
                             <option value="dop">DoP</option><option value="pcm">PCM</option>
                           </select>
+                          <!-- #1876 — sur une sortie locale, « Natif » part en DoP : le
+                               serveur le publie (`dsd_transport`), l'écran le dit. -->
+                          {#if natifServiEnDop(z)}
+                            <small class="dsd-dop" data-dsd-transport="natif_servi_en_dop">{$t('v2.set.dsdNativeServedAsDop' as any)}</small>
+                          {/if}
                         </label>
                         <label class="zf" title={$t('settings.maxSampleRateHint' as any)}>
                           <span>{$t('settings.maxSampleRate' as any)}</span>
@@ -6077,6 +6083,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .svcon input{cursor:pointer}
   .zr{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px}
   .zf{display:flex; flex-direction:column; gap:5px}
+  .zf .dsd-dop{max-width:220px; font:11.5px/1.35 var(--v2-sans); color:var(--v2-txt2)}
   .zf > span{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .zf.chk{flex-direction:row; align-items:center; gap:8px; align-self:flex-end; padding-bottom:8px; cursor:pointer}
   .zf.chk input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
