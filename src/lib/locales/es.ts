@@ -1790,7 +1790,7 @@ export default {
   "collections.missingMany": "{count} álbumes ausentes",
   "collections.missingHint": "Estos álbumes ya no están en la base de datos: disco no montado, análisis en curso o archivos eliminados. La carpeta no se modifica.",
   "collections.missingListTitle": "Álbumes ausentes",
-  "collections.missingUnknown": "Álbum n.º {id}: nombre no conservado",
+  "collections.missingUnknown": "Álbum eliminado de la biblioteca: nombre no conservado",
   "collections.missingNoList": "Su servidor aún no ofrece el detalle de estos álbumes. Actualícelo para saber cuáles son.",
   "collections.missingMergedInto": "Reunido en",
   "collections.missingReplace": "Reemplazar",

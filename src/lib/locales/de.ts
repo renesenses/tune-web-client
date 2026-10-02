@@ -1790,7 +1790,7 @@ export default {
   "collections.missingMany": "{count} fehlende Alben",
   "collections.missingHint": "Diese Alben sind nicht mehr in der Datenbank: Laufwerk nicht eingebunden, Scan läuft oder Dateien entfernt. Die Sammlung selbst bleibt unverändert.",
   "collections.missingListTitle": "Fehlende Alben",
-  "collections.missingUnknown": "Album Nr. {id} – Name nicht gespeichert",
+  "collections.missingUnknown": "Aus der Bibliothek entferntes Album – Name nicht gespeichert",
   "collections.missingNoList": "Ihr Server liefert die Details zu diesen Alben noch nicht. Aktualisieren Sie ihn, um zu erfahren, welche es sind.",
   "collections.missingMergedInto": "Zusammengeführt in",
   "collections.missingReplace": "Ersetzen",
