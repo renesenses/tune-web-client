@@ -3610,6 +3610,7 @@ export interface InstallationGreffonNatif {
  * de mozaiklabs (licence ou compte Premium), vérifie la somme et la
  * signature, puis l'installe. Refus (`err.code`) :
  *   402 `premium_required`, 412 `not_connected`,
+ *   412 `account_token_rejected` (jeton du compte refusé par le site, #5601),
  *   404 `no_package_for_target` / `plugin_not_in_catalog`,
  *   400 `signature_invalid`, 502 `catalog_unreachable` (et autres 502),
  *   503 `catalog_rate_limited`.
@@ -6984,13 +6985,35 @@ export function enableYoutubePlayback() {
 
 // --- Network Diagnostics ---
 
+/** Écoute réseau telle que le serveur la publie ; `null` = jamais tentée. */
+export interface EcouteReseauBrute {
+  port?: number;
+  ecoute?: boolean;
+  protocole?: string;
+  cause?: string | null;
+  message?: string | null;
+  erreur_systeme?: string | null;
+  echecs?: number;
+  reponses_msearch?: number;
+}
+
+/**
+ * `GET /system/diagnostics/network` — forme RÉELLE du serveur Rust
+ * (`diagnostics_network`, web#1867). L'ancien type (`multicast_ssdp`,
+ * `port_8888`, `internet`, `dns_resolution`, `renderers`) n'a jamais été
+ * rendu : l'écran affichait trois croix sur toute installation. Lecture :
+ * `lib/diagnosticReseau.ts`.
+ */
 export function getNetworkDiagnostics() {
   return fetchJSON<{
-    multicast_ssdp: boolean;
-    port_8888: boolean;
-    internet: boolean;
-    dns_resolution: Record<string, boolean>;
-    renderers: Array<{ name: string; host: string; available: boolean }>;
+    discovered_devices?: number;
+    discovered_media_servers?: number;
+    registered_outputs?: number;
+    ssdp?: EcouteReseauBrute | null;
+    slimproto?: EcouteReseauBrute | null;
+    slimproto_udp?: EcouteReseauBrute | null;
+    lms_cli?: EcouteReseauBrute | null;
+    devices?: Array<{ id?: string; name?: string; host?: string; type?: string }>;
   }>(`${BASE}/system/diagnostics/network`);
 }
 

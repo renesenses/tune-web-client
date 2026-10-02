@@ -17,6 +17,7 @@
    */
   import { t } from '../../lib/i18n';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
+  import { natifServiEnDop } from '../../lib/transportDsd';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
@@ -50,6 +51,7 @@
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
+  import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import {
     DELAI_MAJ_HOMEBREW_MS,
@@ -885,6 +887,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       const etat = etatTelemetrie(r, { actif: souhait, verrouEnvironnement: telVerrou });
       telActif = etat.actif;
       telVerrou = etat.verrouEnvironnement;
+      // `community_contribution.effective` dépend de la télémétrie.
+      void chargerPartage();
     } catch (e: any) {
       const motif = errText(e);
       const base = get(t)('settings.telemetryError' as any);
@@ -894,6 +898,49 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     // Le clic a déjà bougé la case : on la repose sur l'état CONFIRMÉ, sinon
     // un refus (verrou, erreur) la laisserait mentir.
     if (caseCochee) caseCochee.checked = telActif;
+  }
+
+  // ── Partage communautaire (web#1866) ───────────────────────────────────
+  // Les deux bascules que la phase 5 avait emportées avec l'ancien écran :
+  // sans elles, l'opt-in était impossible sans `PATCH` à la main. Même routes
+  // que l'ancien écran (`GET`/`PATCH /system/config`), rien de neuf côté
+  // serveur. La télémétrie est NÉCESSAIRE mais pas suffisante
+  // (`consent.rs`) : un choix posé sans elle est dit « sans effet ».
+  let partageCharge = $state(false);
+  let syncCommunautaire = $state(false);
+  let contribution = $state<ContributionCommunautaire | null>(null);
+  let partageBusy = $state(false);
+  let partageErr = $state<string | null>(null);
+  async function chargerPartage() {
+    try {
+      const c: any = await api.getConfig();
+      syncCommunautaire = reglageVrai(c?.[CLE_SYNC_COMMUNAUTAIRE]);
+      contribution = contributionDepuisConfig(c);
+      partageCharge = true;
+    } catch { /* config illisible : les bascules ne sont pas offertes */ }
+  }
+  $effect(() => {
+    if (sections.some((x) => x.id === 'cloud')) void chargerPartage();
+  });
+  async function basculerPartage(cle: string, ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    partageBusy = true;
+    partageErr = null;
+    try {
+      await api.updateConfig({ [cle]: souhait });
+    } catch {
+      partageErr = get(t)('settings.errSaveFailed');
+    }
+    // L'état affiché est celui que le serveur RELIT (y compris `effective`),
+    // jamais l'intention locale : un refus remet la case en place.
+    await chargerPartage();
+    partageBusy = false;
+    if (caseCochee) {
+      caseCochee.checked = cle === CLE_SYNC_COMMUNAUTAIRE
+        ? syncCommunautaire
+        : !!contribution?.active;
+    }
   }
 
   // ── Compte Mozaiklabs (session SSO) ────────────────────────────────────
@@ -3795,6 +3842,46 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
                 {#if telErr}<div class="errline">{telErr}</div>{/if}
               {/if}
+              <!-- web#1866 — partage communautaire : les deux bascules perdues
+                   à la phase 5. Libellé de la synchro repris de l'ancien
+                   écran ; celui de la contribution vient du SERVEUR, tel quel. -->
+              {#if partageCharge}
+                <div class="row" data-partage="sync">
+                  <div class="lbl">
+                    <span>{$t('settings.communitySync' as any)}</span>
+                    <span class="hint">{$t('settings.communitySyncHint' as any)}</span>
+                    {#if syncCommunautaire && telCharge && !telActif}
+                      <span class="hint" role="status">{$t('settings.communityNeedsTelemetry' as any)}</span>
+                    {/if}
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle="community_sync_enabled" checked={syncCommunautaire}
+                      disabled={partageBusy}
+                      aria-label={$t('settings.communitySync' as any)}
+                      onchange={(e) => basculerPartage(CLE_SYNC_COMMUNAUTAIRE, e)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                {#if contribution}
+                  <div class="row" data-partage="contribution">
+                    <div class="lbl">
+                      <span>{contribution.libelle ?? $t('settings.communityContribution' as any)}</span>
+                      {#if contribution.description}<span class="hint">{contribution.description}</span>{/if}
+                      {#if contribution.active && !contribution.effective}
+                        <span class="hint" role="status">{$t('settings.communityNeedsTelemetry' as any)}</span>
+                      {/if}
+                    </div>
+                    <label class="sw">
+                      <input type="checkbox" data-cle={contribution.cle} checked={contribution.active}
+                        disabled={partageBusy}
+                        aria-label={contribution.libelle ?? $t('settings.communityContribution' as any)}
+                        onchange={(e) => basculerPartage(contribution!.cle, e)} />
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                {/if}
+                {#if partageErr}<div class="errline">{partageErr}</div>{/if}
+              {/if}
 
             {:else if s.id === 'import'}
               <!-- Phase 5 (web#1257) : import Roon / Plex, aperçu puis confirmation. -->
@@ -4220,6 +4307,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             <option value="auto">Auto</option><option value="native">{$t('v2.lbl.native' as any)}</option>
                             <option value="dop">DoP</option><option value="pcm">PCM</option>
                           </select>
+                          <!-- #1876 — sur une sortie locale, « Natif » part en DoP : le
+                               serveur le publie (`dsd_transport`), l'écran le dit. -->
+                          {#if natifServiEnDop(z)}
+                            <small class="dsd-dop" data-dsd-transport="natif_servi_en_dop">{$t('v2.set.dsdNativeServedAsDop' as any)}</small>
+                          {/if}
                         </label>
                         <label class="zf" title={$t('settings.maxSampleRateHint' as any)}>
                           <span>{$t('settings.maxSampleRate' as any)}</span>
@@ -5991,6 +6083,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .svcon input{cursor:pointer}
   .zr{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px}
   .zf{display:flex; flex-direction:column; gap:5px}
+  .zf .dsd-dop{max-width:220px; font:11.5px/1.35 var(--v2-sans); color:var(--v2-txt2)}
   .zf > span{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .zf.chk{flex-direction:row; align-items:center; gap:8px; align-self:flex-end; padding-bottom:8px; cursor:pointer}
   .zf.chk input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}

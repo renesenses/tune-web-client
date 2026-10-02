@@ -246,7 +246,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        * sur l'onglet Système SANS ce qu'on venait y chercher. Le geste de
        * connexion y vit désormais : il doit être atteignable à tous les
        * niveaux. Les mots-clés doivent le trouver (« compte », « relier »). */
-      { id: 'cloud',      title: 'Cloud',                         from: 'system', min: 'beginner', keywords: ['compte', 'relier', 'mozaiklabs', 'connexion', 'se connecter', 'account', 'sauvegarde', 'relais', 'télémétrie', 'telemetry', 'statistiques', 'consentement', 'vie privée'] },
+      { id: 'cloud',      title: 'Cloud',                         from: 'system', min: 'beginner', keywords: ['compte', 'relier', 'mozaiklabs', 'connexion', 'se connecter', 'account', 'sauvegarde', 'relais', 'télémétrie', 'telemetry', 'statistiques', 'consentement', 'vie privée', 'partage', 'communauté', 'communautaire', 'community', 'sharing'] },
       { id: 'database',   titleKey: 'settings.database',          from: 'system', min: 'expert', keywords: ['base', 'sqlite', 'postgres'] },
       { id: 'dataLoc',    titleKey: 'settings.dataLocation',      from: 'system', min: 'expert', keywords: ['emplacement', 'données'] },
       { id: 'import',     titleKey: 'import.title',               from: 'system', min: 'expert', keywords: ['import', 'roon', 'plex', 'migrer', 'autre lecteur'] },
