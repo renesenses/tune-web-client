@@ -3676,6 +3676,7 @@ export default {
   "v2.lbl.token": "令牌",
   "v2.lbl.theTokens": "这些令牌",
   "v2.lbl.native": "原生",
+  "v2.set.dsdNativeServedAsDop": "在此输出上，原生 DSD 以 DoP 方式发送。",
   "v2.lbl.displayName": "显示名称",
   "v2.lbl.notifications": "通知",
   "v2.lbl.newPlaylist": "新建播放列表",

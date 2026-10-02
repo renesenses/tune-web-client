@@ -3676,6 +3676,7 @@ export default {
   "v2.lbl.token": "토큰",
   "v2.lbl.theTokens": "토큰",
   "v2.lbl.native": "네이티브",
+  "v2.set.dsdNativeServedAsDop": "이 출력에서는 네이티브 DSD가 DoP로 전송됩니다.",
   "v2.lbl.displayName": "표시 이름",
   "v2.lbl.notifications": "알림",
   "v2.lbl.newPlaylist": "새 재생목록",

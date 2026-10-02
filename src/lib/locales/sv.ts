@@ -3675,6 +3675,7 @@ export default {
   "v2.lbl.token": "Token",
   "v2.lbl.theTokens": "Tokenarna",
   "v2.lbl.native": "Nativt",
+  "v2.set.dsdNativeServedAsDop": "På den här utgången skickas nativt DSD som DoP.",
   "v2.lbl.displayName": "Visningsnamn",
   "v2.lbl.notifications": "Aviseringar",
   "v2.lbl.newPlaylist": "Ny spellista",

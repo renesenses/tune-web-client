@@ -502,6 +502,15 @@ export interface Zone {
   is_default?: boolean;
   /** DSD playback mode: auto, native, dop, pcm */
   dsd_mode?: string;
+  /**
+   * #1876 — ce qu'une source DSD OBTIENDRA sur cette zone, déduit par le
+   * serveur de la sortie et de `dsd_mode` (`TransportDsd::as_str`, #2369) :
+   * `pcm`, `dop` ou `natif_servi_en_dop` (« natif » demandé sur une sortie
+   * locale, qui n'a aucun chemin natif : c'est du DoP qui part). Ce n'est pas
+   * `dop_active`, détecté sur les octets pendant la lecture. Absent des
+   * serveurs qui ne le publient pas : l'interface n'affirme alors rien.
+   */
+  dsd_transport?: string;
   /** Décalage des paroles synchronisées, en ms. Positif = paroles retardées,
    *  pour compenser la latence serveur → oreille propre à l'appareil (#1328). */
   lyrics_offset_ms?: number;
