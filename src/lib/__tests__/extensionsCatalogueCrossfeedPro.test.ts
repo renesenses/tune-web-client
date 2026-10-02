@@ -172,6 +172,27 @@ describe('Extensions — installer Crossfeed Pro depuis le catalogue', () => {
     expect(q('[data-natif="crossfeed-pro"]')).toBeNull();
   });
 
+  it('🔴 #5601 — jeton du compte refusé par le site : « reconnectez », jamais « fait partie de Tune Premium »', async () => {
+    palier('premium');
+    const { notifications } = await import('../stores/notifications');
+    const toasts: string[] = [];
+    const espion = vi.spyOn(notifications, 'error').mockImplementation((m: string) => { toasts.push(m); return 0; });
+    installation = { status: 412, corps: {
+      error: 'account_token_rejected', detail: 'mozaiklabs.fr ne reconnaît plus le compte (invalid_token)',
+      plugin: 'crossfeed-pro', target: 'x86_64-unknown-linux-gnu',
+    } };
+    monte = mount(PluginsV2, { target: cible! });
+    await jusqua(() => !!q('[data-catalogue="crossfeed-pro"] .installer-natif'));
+    (q('[data-catalogue="crossfeed-pro"] .installer-natif') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-catalogue="crossfeed-pro"] [data-refus]'));
+    const ligne = q('[data-catalogue="crossfeed-pro"] [data-refus]')!.textContent;
+    expect(ligne).toBe(texte('v2.plug.catalogErr_account_token_rejected'));
+    expect(ligne).not.toBe(texte('v2.plug.catalogErr_premium_required'));
+    expect(toasts).not.toContain(texte('premium.required'));
+    expect(q('[data-catalogue="crossfeed-pro"] .installer-natif')).toBeTruthy();
+    espion.mockRestore();
+  });
+
   it('état des greffons illisible (403) : rien n’est proposé', async () => {
     palier('premium');
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
@@ -269,12 +290,13 @@ describe('catalogue des greffons natifs — logique pure et libellés', () => {
     expect(greffonsAProposer([{ id: 'crossfeed-pro' }])).toEqual([]);
     expect(greffonsAProposer(null)).toEqual(['crossfeed-pro']);
     expect(cleDuRefusDInstallation('signature_invalid')).toBe('v2.plug.catalogErr_signature_invalid');
+    expect(cleDuRefusDInstallation('account_token_rejected')).toBe('v2.plug.catalogErr_account_token_rejected');
     expect(cleDuRefusDInstallation('inconnu')).toBe('v2.plug.catalogErr_other');
     expect(cleDuRefusDInstallation(undefined)).toBe('v2.plug.catalogErr_other');
   });
 
   it('les libellés existent dans les onze langues', () => {
-    const codes = ['premium_required', 'not_connected', 'no_package_for_target', 'plugin_not_in_catalog',
+    const codes = ['premium_required', 'not_connected', 'account_token_rejected', 'no_package_for_target', 'plugin_not_in_catalog',
       'signature_invalid', 'catalog_unreachable', 'catalog_rate_limited', 'package_checksum_mismatch', 'other'];
     const cles = ['v2.plug.crossfeedProDesc', 'v2.plug.catalogInstall', 'v2.plug.catalogInstalling',
       'v2.plug.catalogNoPackage', 'v2.plug.catalogUpdateAvailable', 'v2.plug.catalogUpdate', 'v2.plug.catalogRestart',

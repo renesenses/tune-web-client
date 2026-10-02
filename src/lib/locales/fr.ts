@@ -4413,6 +4413,7 @@ export default {
   "v2.plug.catalogPremiumOnly": "Réservé à Tune Premium.",
   "v2.plug.catalogErr_premium_required": "L’installation demande une licence ou un compte Tune Premium valide.",
   "v2.plug.catalogErr_not_connected": "Connectez votre compte Tune ou activez votre licence Premium, puis réessayez.",
+  "v2.plug.catalogErr_account_token_rejected": "mozaiklabs.fr ne reconnaît plus le compte connecté à ce serveur. Reconnectez votre compte mozaiklabs.fr dans Réglages › Licence Tune Premium, puis réessayez.",
   "v2.plug.catalogErr_no_package_for_target": "Ce greffon n’est pas encore disponible pour la plateforme de ce serveur.",
   "v2.plug.catalogErr_plugin_not_in_catalog": "Ce greffon n’est pas encore publié au catalogue.",
   "v2.plug.catalogErr_signature_invalid": "Paquet refusé : sa signature n’est pas reconnue. Rien n’a été installé.",

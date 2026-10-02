@@ -4391,6 +4391,7 @@ export default {
   "v2.plug.catalogPremiumOnly": "Solo con Tune Premium.",
   "v2.plug.catalogErr_premium_required": "L’installazione richiede una licenza o un account Tune Premium valido.",
   "v2.plug.catalogErr_not_connected": "Accedi al tuo account Tune o attiva la licenza Premium, poi riprova.",
+  "v2.plug.catalogErr_account_token_rejected": "mozaiklabs.fr non riconosce più l’account collegato a questo server. Ricollega il tuo account mozaiklabs.fr in Impostazioni › Licenza Tune Premium, poi riprova.",
   "v2.plug.catalogErr_no_package_for_target": "Questo plugin non è ancora disponibile per la piattaforma di questo server.",
   "v2.plug.catalogErr_plugin_not_in_catalog": "Questo plugin non è ancora pubblicato nel catalogo.",
   "v2.plug.catalogErr_signature_invalid": "Pacchetto rifiutato: la sua firma non è riconosciuta. Non è stato installato nulla.",

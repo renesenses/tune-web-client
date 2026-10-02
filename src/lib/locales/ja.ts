@@ -4391,6 +4391,7 @@ export default {
   "v2.plug.catalogPremiumOnly": "Tune Premium 専用です。",
   "v2.plug.catalogErr_premium_required": "インストールには有効な Tune Premium のライセンスまたはアカウントが必要です。",
   "v2.plug.catalogErr_not_connected": "Tune アカウントにログインするか Premium ライセンスを有効にしてから、もう一度お試しください。",
+  "v2.plug.catalogErr_account_token_rejected": "mozaiklabs.fr はこのサーバーに接続されたアカウントを認識できなくなりました。設定 › Tune Premium ライセンスで mozaiklabs.fr アカウントを再接続してから、もう一度お試しください。",
   "v2.plug.catalogErr_no_package_for_target": "このプラグインは、このサーバーのプラットフォーム向けにはまだ提供されていません。",
   "v2.plug.catalogErr_plugin_not_in_catalog": "このプラグインはまだカタログに公開されていません。",
   "v2.plug.catalogErr_signature_invalid": "パッケージを拒否しました：署名を確認できません。何もインストールされていません。",
