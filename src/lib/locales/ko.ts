@@ -4376,6 +4376,7 @@ export default {
   "v2.plug.catalogPremiumOnly": "Tune Premium 전용입니다.",
   "v2.plug.catalogErr_premium_required": "설치하려면 유효한 Tune Premium 라이선스 또는 계정이 필요합니다.",
   "v2.plug.catalogErr_not_connected": "Tune 계정에 로그인하거나 Premium 라이선스를 활성화한 뒤 다시 시도하세요.",
+  "v2.plug.catalogErr_account_token_rejected": "mozaiklabs.fr가 이 서버에 연결된 계정을 더 이상 인식하지 않습니다. 설정 › Tune Premium 라이선스에서 mozaiklabs.fr 계정을 다시 연결한 뒤 다시 시도하세요.",
   "v2.plug.catalogErr_no_package_for_target": "이 플러그인은 아직 이 서버의 플랫폼용으로 제공되지 않습니다.",
   "v2.plug.catalogErr_plugin_not_in_catalog": "이 플러그인은 아직 카탈로그에 게시되지 않았습니다.",
   "v2.plug.catalogErr_signature_invalid": "패키지가 거부되었습니다: 서명을 확인할 수 없습니다. 아무것도 설치되지 않았습니다.",

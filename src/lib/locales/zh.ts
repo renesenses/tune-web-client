@@ -4376,6 +4376,7 @@ export default {
   "v2.plug.catalogPremiumOnly": "仅限 Tune Premium。",
   "v2.plug.catalogErr_premium_required": "安装需要有效的 Tune Premium 许可证或账户。",
   "v2.plug.catalogErr_not_connected": "请登录 Tune 账户或激活 Premium 许可证，然后重试。",
+  "v2.plug.catalogErr_account_token_rejected": "mozaiklabs.fr 不再识别与此服务器关联的账户。请在 设置 › Tune Premium 许可证 中重新连接您的 mozaiklabs.fr 账户，然后重试。",
   "v2.plug.catalogErr_no_package_for_target": "此插件暂未提供适用于本服务器平台的版本。",
   "v2.plug.catalogErr_plugin_not_in_catalog": "此插件尚未在目录中发布。",
   "v2.plug.catalogErr_signature_invalid": "安装包被拒绝：无法识别其签名。未安装任何内容。",

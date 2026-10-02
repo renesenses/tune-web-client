@@ -3610,6 +3610,7 @@ export interface InstallationGreffonNatif {
  * de mozaiklabs (licence ou compte Premium), vérifie la somme et la
  * signature, puis l'installe. Refus (`err.code`) :
  *   402 `premium_required`, 412 `not_connected`,
+ *   412 `account_token_rejected` (jeton du compte refusé par le site, #5601),
  *   404 `no_package_for_target` / `plugin_not_in_catalog`,
  *   400 `signature_invalid`, 502 `catalog_unreachable` (et autres 502),
  *   503 `catalog_rate_limited`.
