@@ -51,6 +51,7 @@
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
+  import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import {
     DELAI_MAJ_HOMEBREW_MS,
@@ -886,6 +887,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       const etat = etatTelemetrie(r, { actif: souhait, verrouEnvironnement: telVerrou });
       telActif = etat.actif;
       telVerrou = etat.verrouEnvironnement;
+      // `community_contribution.effective` dépend de la télémétrie.
+      void chargerPartage();
     } catch (e: any) {
       const motif = errText(e);
       const base = get(t)('settings.telemetryError' as any);
@@ -895,6 +898,49 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     // Le clic a déjà bougé la case : on la repose sur l'état CONFIRMÉ, sinon
     // un refus (verrou, erreur) la laisserait mentir.
     if (caseCochee) caseCochee.checked = telActif;
+  }
+
+  // ── Partage communautaire (web#1866) ───────────────────────────────────
+  // Les deux bascules que la phase 5 avait emportées avec l'ancien écran :
+  // sans elles, l'opt-in était impossible sans `PATCH` à la main. Même routes
+  // que l'ancien écran (`GET`/`PATCH /system/config`), rien de neuf côté
+  // serveur. La télémétrie est NÉCESSAIRE mais pas suffisante
+  // (`consent.rs`) : un choix posé sans elle est dit « sans effet ».
+  let partageCharge = $state(false);
+  let syncCommunautaire = $state(false);
+  let contribution = $state<ContributionCommunautaire | null>(null);
+  let partageBusy = $state(false);
+  let partageErr = $state<string | null>(null);
+  async function chargerPartage() {
+    try {
+      const c: any = await api.getConfig();
+      syncCommunautaire = reglageVrai(c?.[CLE_SYNC_COMMUNAUTAIRE]);
+      contribution = contributionDepuisConfig(c);
+      partageCharge = true;
+    } catch { /* config illisible : les bascules ne sont pas offertes */ }
+  }
+  $effect(() => {
+    if (sections.some((x) => x.id === 'cloud')) void chargerPartage();
+  });
+  async function basculerPartage(cle: string, ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    partageBusy = true;
+    partageErr = null;
+    try {
+      await api.updateConfig({ [cle]: souhait });
+    } catch {
+      partageErr = get(t)('settings.errSaveFailed');
+    }
+    // L'état affiché est celui que le serveur RELIT (y compris `effective`),
+    // jamais l'intention locale : un refus remet la case en place.
+    await chargerPartage();
+    partageBusy = false;
+    if (caseCochee) {
+      caseCochee.checked = cle === CLE_SYNC_COMMUNAUTAIRE
+        ? syncCommunautaire
+        : !!contribution?.active;
+    }
   }
 
   // ── Compte Mozaiklabs (session SSO) ────────────────────────────────────
@@ -3795,6 +3841,46 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </p>
                 {/if}
                 {#if telErr}<div class="errline">{telErr}</div>{/if}
+              {/if}
+              <!-- web#1866 — partage communautaire : les deux bascules perdues
+                   à la phase 5. Libellé de la synchro repris de l'ancien
+                   écran ; celui de la contribution vient du SERVEUR, tel quel. -->
+              {#if partageCharge}
+                <div class="row" data-partage="sync">
+                  <div class="lbl">
+                    <span>{$t('settings.communitySync' as any)}</span>
+                    <span class="hint">{$t('settings.communitySyncHint' as any)}</span>
+                    {#if syncCommunautaire && telCharge && !telActif}
+                      <span class="hint" role="status">{$t('settings.communityNeedsTelemetry' as any)}</span>
+                    {/if}
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle="community_sync_enabled" checked={syncCommunautaire}
+                      disabled={partageBusy}
+                      aria-label={$t('settings.communitySync' as any)}
+                      onchange={(e) => basculerPartage(CLE_SYNC_COMMUNAUTAIRE, e)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                {#if contribution}
+                  <div class="row" data-partage="contribution">
+                    <div class="lbl">
+                      <span>{contribution.libelle ?? $t('settings.communityContribution' as any)}</span>
+                      {#if contribution.description}<span class="hint">{contribution.description}</span>{/if}
+                      {#if contribution.active && !contribution.effective}
+                        <span class="hint" role="status">{$t('settings.communityNeedsTelemetry' as any)}</span>
+                      {/if}
+                    </div>
+                    <label class="sw">
+                      <input type="checkbox" data-cle={contribution.cle} checked={contribution.active}
+                        disabled={partageBusy}
+                        aria-label={contribution.libelle ?? $t('settings.communityContribution' as any)}
+                        onchange={(e) => basculerPartage(contribution!.cle, e)} />
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                {/if}
+                {#if partageErr}<div class="errline">{partageErr}</div>{/if}
               {/if}
 
             {:else if s.id === 'import'}
