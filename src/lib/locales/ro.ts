@@ -1796,7 +1796,7 @@ export default {
   "collections.missingMany": "{count} albume lipsă",
   "collections.missingHint": "Aceste albume nu mai sunt în baza de date: disc nemontat, scanare în curs sau fișiere șterse. Dosarul în sine rămâne neatins.",
   "collections.missingListTitle": "Albume lipsă",
-  "collections.missingUnknown": "Album nr. {id} — numele nu a fost păstrat",
+  "collections.missingUnknown": "Album eliminat din bibliotecă — numele nu a fost păstrat",
   "collections.missingNoList": "Serverul dumneavoastră nu oferă încă detaliile acestor albume. Actualizați-l pentru a afla care sunt.",
   "collections.missingMergedInto": "Reunit în",
   "collections.missingReplace": "Înlocuiește",

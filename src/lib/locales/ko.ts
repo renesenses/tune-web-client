@@ -1774,7 +1774,7 @@ export default {
   "collections.missingMany": "누락된 앨범 {count}개",
   "collections.missingHint": "이 앨범들은 더 이상 데이터베이스에 없습니다: 드라이브 미마운트, 검사 진행 중 또는 파일 삭제. 폴더 자체는 변경되지 않습니다.",
   "collections.missingListTitle": "누락된 앨범",
-  "collections.missingUnknown": "앨범 {id}번 — 이름이 보관되지 않음",
+  "collections.missingUnknown": "라이브러리에서 제거된 앨범 — 이름이 보관되지 않음",
   "collections.missingNoList": "서버가 아직 이 앨범들의 상세 정보를 제공하지 않습니다. 어떤 앨범인지 확인하려면 업데이트하세요.",
   "collections.missingMergedInto": "통합된 앨범",
   "collections.missingReplace": "교체",

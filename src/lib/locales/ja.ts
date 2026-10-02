@@ -1788,7 +1788,7 @@ export default {
   "collections.missingMany": "不明なアルバム {count} 枚",
   "collections.missingHint": "これらのアルバムはデータベースにありません（ドライブ未マウント、スキャン中、ファイル削除）。フォルダー自体は変更されません。",
   "collections.missingListTitle": "不足しているアルバム",
-  "collections.missingUnknown": "アルバム番号 {id} — 名前は保存されていません",
+  "collections.missingUnknown": "ライブラリから削除されたアルバム — 名前は保存されていません",
   "collections.missingNoList": "お使いのサーバーはまだこれらのアルバムの詳細を返しません。どれなのかを知るには更新してください。",
   "collections.missingMergedInto": "統合先",
   "collections.missingReplace": "置き換え",

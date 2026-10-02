@@ -1790,7 +1790,7 @@ export default {
   "collections.missingMany": "缺少 {count} 张专辑",
   "collections.missingHint": "这些专辑已不在数据库中：驱动器未挂载、正在扫描或文件已删除。收藏夹本身不会被修改。",
   "collections.missingListTitle": "缺失的专辑",
-  "collections.missingUnknown": "专辑 {id} 号 — 未保存名称",
+  "collections.missingUnknown": "已从资料库中移除的专辑 — 未保存名称",
   "collections.missingNoList": "您的服务器尚未提供这些专辑的详情。请更新服务器以了解是哪些专辑。",
   "collections.missingMergedInto": "已合并到",
   "collections.missingReplace": "替换",
