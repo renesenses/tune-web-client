@@ -3676,6 +3676,7 @@ export default {
   "v2.lbl.token": "Token",
   "v2.lbl.theTokens": "Los tokens",
   "v2.lbl.native": "Nativo",
+  "v2.set.dsdNativeServedAsDop": "En esta salida, el DSD nativo se envía como DoP.",
   "v2.lbl.displayName": "Nombre mostrado",
   "v2.lbl.notifications": "Notificaciones",
   "v2.lbl.newPlaylist": "Nueva lista",

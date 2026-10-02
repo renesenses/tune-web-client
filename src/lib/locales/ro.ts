@@ -3676,6 +3676,7 @@ export default {
   "v2.lbl.token": "Token",
   "v2.lbl.theTokens": "Tokenurile",
   "v2.lbl.native": "Nativ",
+  "v2.set.dsdNativeServedAsDop": "Pe această ieșire, DSD-ul nativ este trimis ca DoP.",
   "v2.lbl.displayName": "Nume afișat",
   "v2.lbl.notifications": "Notificări",
   "v2.lbl.newPlaylist": "Listă nouă",

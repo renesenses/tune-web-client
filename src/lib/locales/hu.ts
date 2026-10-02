@@ -3634,6 +3634,7 @@ export default {
   "v2.lbl.token": "Token",
   "v2.lbl.theTokens": "A tokenek",
   "v2.lbl.native": "Natív",
+  "v2.set.dsdNativeServedAsDop": "Ezen a kimeneten a natív DSD DoP-ként kerül kiküldésre.",
   "v2.lbl.displayName": "Megjelenő név",
   "v2.lbl.notifications": "Értesítések",
   "v2.lbl.newPlaylist": "Új lejátszási lista",
