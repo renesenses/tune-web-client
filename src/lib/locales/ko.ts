@@ -3436,6 +3436,7 @@ export default {
   "v2.health.rgSourceTags": "파일 태그만",
   "v2.health.rgNoProgress": "서버가 계산 진행률을 제공하지 않습니다.",
   "v2.health.rgProgress": "{t}개 중 {n}개 트랙 분석됨",
+  "v2.health.rgCampaign": "(서버 마지막 시작 이후 {n}개 처리됨)",
   "v2.health.cardEnrich": "메타데이터 보강",
   "v2.health.cardEnrichSub": "공개 데이터베이스에서 보완",
   "v2.health.enrichProgress": "{t}개 중 {n}개",

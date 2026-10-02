@@ -377,6 +377,12 @@
               : $t('v2.health.rgProgress' as any)
                   .replace('{n}', $formatNombre(jauge.fait ?? 0))
                   .replace('{t}', $formatNombre(jauge.total ?? 0)),
+          // tune-server-rust#5597 — la jauge parle de la bibliothèque ; la
+          // campagne en cours (qui repart de 0 à chaque démarrage) vient en
+          // second, seulement quand elle a traité quelque chose.
+          jauge.bibliotheque && jauge.faitCampagne
+            ? $t('v2.health.rgCampaign' as any).replace('{n}', $formatNombre(jauge.faitCampagne))
+            : undefined,
           jauge.reportees > 0
             ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(jauge.reportees))
             : undefined,
