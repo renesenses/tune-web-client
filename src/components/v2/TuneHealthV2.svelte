@@ -51,6 +51,7 @@
   // #865 — le geste des journaux, PARTAGÉ avec `DiagnosticsView`. Voir
   // `lib/journaux.ts` : aucune copie de la route ni du nom de fichier ici.
   import { lireJournaux, telechargerJournaux } from '../../lib/journaux';
+  import { lireDiagnosticReseau, iconeVerdict, type EcouteReseau } from '../../lib/diagnosticReseau';
   import '../../styles/tune-v2.css';
 
   type Card = {
@@ -232,6 +233,12 @@
   }
 
   let reseau = $state<Awaited<ReturnType<typeof api.getNetworkDiagnostics>> | null>(null);
+  const LIBELLE_ECOUTE: Record<EcouteReseau['cle'], string> = {
+    ssdp: 'diagnostics.netSsdp',
+    slimproto: 'diagnostics.netSlimproto',
+    slimproto_udp: 'diagnostics.netSlimprotoUdp',
+    lms_cli: 'diagnostics.netLmsCli',
+  };
   let reseauOuvert = $state(false);
   let reseauChargement = $state(false);
   async function lireReseau() {
@@ -764,16 +771,25 @@
           {#if reseauChargement}
             <div class="sub">{$t('common.loading' as any)}</div>
           {:else if reseau}
-            <ul class="reseau">
-              <li>{reseau.multicast_ssdp ? '✅' : '❌'} {$t('diagnostics.multicastSsdp' as any)}</li>
-              <li>{reseau.port_8888 ? '✅' : '❌'} {$t('diagnostics.port8888' as any)}</li>
-              <li>{reseau.internet ? '✅' : '❌'} {$t('diagnostics.internet' as any)}</li>
-              {#each Object.entries(reseau.dns_resolution ?? {}) as [domaine, ok] (domaine)}
-                <li class="ind">{ok ? '✅' : '❌'} {$t('diagnostics.dnsResolution' as any)} · <code>{domaine}</code></li>
+            {@const d = lireDiagnosticReseau(reseau)}
+            <!-- web#1867 — la forme RÉELLE de la réponse (`lib/diagnosticReseau`).
+                 Un champ absent se lit « inconnu » (❔), jamais en échec. -->
+            <ul class="reseau" data-diag="reseau">
+              {#each d.ecoutes as e (e.cle)}
+                <li data-ecoute={e.cle} data-verdict={e.verdict}>
+                  {iconeVerdict(e.verdict)} {$t(LIBELLE_ECOUTE[e.cle] as any)}
+                  {#if e.port !== null}<code>{$t('diagnostics.netPort' as any).replace('{port}', String(e.port))}</code>{/if}
+                  {#if e.verdict === 'inconnu'} · {$t('diagnostics.netUnknown' as any)}{/if}
+                  {#if e.reponsesMsearch !== null} · {$t('diagnostics.netMsearch' as any).replace('{n}', String(e.reponsesMsearch))}{/if}
+                  {#if e.message}<div class="ind">{e.message}</div>{/if}
+                </li>
               {/each}
-              {#each reseau.renderers ?? [] as rd (rd.host + rd.name)}
-                <li class="ind">{rd.available ? '✅' : '❌'} {rd.name} <code>{rd.host}</code></li>
+              <li data-compte="devices">{$t('diagnostics.netDevices' as any)} <b>{d.appareilsDecouverts ?? $t('diagnostics.netUnknown' as any)}</b></li>
+              {#each d.appareils as rd, i (rd.hote + rd.nom + i)}
+                <li class="ind">{rd.nom} <code>{rd.hote}</code>{#if rd.type} · {rd.type}{/if}</li>
               {/each}
+              <li data-compte="media_servers">{$t('diagnostics.netMediaServers' as any)} <b>{d.serveursDecouverts ?? $t('diagnostics.netUnknown' as any)}</b></li>
+              <li data-compte="outputs">{$t('diagnostics.netOutputs' as any)} <b>{d.sortiesEnregistrees ?? $t('diagnostics.netUnknown' as any)}</b></li>
             </ul>
           {:else}
             <div class="sub">{$t('diagnostics.networkUnavailable' as any)}</div>
