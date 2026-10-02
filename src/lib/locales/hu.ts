@@ -1890,7 +1890,7 @@ export default {
   "collections.missingMany": "{count} hiányzó album",
   "collections.missingHint": "Ezek az albumok már nincsenek az adatbázisban: a meghajtó nincs csatolva, keresés fut, vagy a fájlokat eltávolították. A gyűjtemény maga változatlan marad.",
   "collections.missingListTitle": "Hiányzó albumok",
-  "collections.missingUnknown": "{id}. számú album — a név nem maradt meg",
+  "collections.missingUnknown": "A könyvtárból eltávolított album — a név nem maradt meg",
   "collections.missingNoList": "A kiszolgáló még nem adja meg ezeknek az albumoknak a részleteit. Frissítse, hogy megtudja, melyekről van szó.",
   "collections.missingMergedInto": "Egyesítve ebbe:",
   "collections.missingReplace": "Csere",

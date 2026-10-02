@@ -2375,7 +2375,7 @@ export default {
   "collections.missingMany": "{count} missing albums",
   "collections.missingHint": "These albums are no longer in the database: drive not mounted, scan in progress or files removed. The folder itself is left untouched.",
   "collections.missingListTitle": "Missing albums",
-  "collections.missingUnknown": "Album #{id} — name not kept",
+  "collections.missingUnknown": "Album removed from the library — name not kept",
   "collections.missingNoList": "Your server does not provide the details of these albums yet. Update it to find out which ones.",
   "collections.missingMergedInto": "Merged into",
   "collections.missingReplace": "Replace",
