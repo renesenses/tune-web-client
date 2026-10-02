@@ -25,7 +25,7 @@
   import { t } from '../../lib/i18n';
   import { zonesAppairables, parametresPaire, voieDeLaZone } from '../../lib/pairesStereo';
   import '../../styles/tune-v2.css';
-  import { appareilDeLaZone, lireVueZones, ecrireVueZones, etatLectureDeZone, type VueZones } from '../../lib/vueZones';
+  import { appareilDeLaZone, lireVueZones, ecrireVueZones, etatLectureDeZone, vignetteDeZone, type VueZones } from '../../lib/vueZones';
   import EtatZone from './EtatZone.svelte';
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
@@ -597,6 +597,7 @@
           {@const r = reach(z)}
           {@const teste = tuneTestedDe(z)}
           {@const np = z.current_track}
+          {@const vignette = vignetteDeZone(z)}
           <div class="carte" class:active={z.id === $currentZoneId} class:offline={z.online === false}>
             <div class="ctete">
 <!--
@@ -614,16 +615,19 @@
                 cours (#1006), l'icône n'a aucune lecture à ouvrir et se
                 contente d'activer la zone, comme le reste de la carte.
               -->
-              {#if np?.cover_path || np?.album_id}
+              <!-- web#1865 : la pochette suit l'ÉTAT de lecture, pas la seule
+                   présence d'une piste courante — arrêtée, la zone montre la
+                   photo de son appareil (`vignetteDeZone`, lib/vueZones). -->
+              {#if vignette === 'pochette'}
                 <button class="cpoch" onclick={() => ouvrirLecture(z)}
                   title={$t('v2.zone.openNowPlaying' as any)} aria-label={$t('v2.zone.openNowPlaying' as any)}>
                   <AlbumArt coverPath={np?.cover_path ?? null} albumId={np?.album_id ?? null} size={64} alt={np?.title ?? ''} />
                 </button>
-              {:else if z.image_path}
+              {:else if vignette === 'photo'}
                 <!-- Maillon 2 : la PHOTO de l'appareil (#1394). Rien ne joue,
                      mais la zone reste reconnaissable. -->
                 <button class="cpoch crepli" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
-                  <AlbumArt coverPath={z.image_path} albumId={null} size={64} alt={z.name} />
+                  <AlbumArt coverPath={z.image_path ?? null} albumId={null} size={64} alt={z.name} />
                 </button>
               {:else}
                 <button class="cpoch crepli" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>

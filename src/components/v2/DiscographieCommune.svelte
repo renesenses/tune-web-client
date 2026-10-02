@@ -294,7 +294,7 @@
         </div>
       {/if}
       {#if focusActif}
-        <button class="raz" onclick={toutAfficher}>{$t('v2.disco.reset' as any)}</button>
+        <button class="raz-focus" onclick={toutAfficher}>{$t('v2.disco.reset' as any)}</button>
       {/if}
     </div>
   {/if}
@@ -473,7 +473,11 @@
   .case { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--v2-txt2); cursor: pointer; }
   .case span:first-of-type { text-transform: capitalize; }
   .case .n { font: 11px var(--v2-mono); color: var(--v2-txt3); }
-  .raz {
+  /* Le « Tout afficher » du panneau Focus. PAS `.raz` : ce nom est aussi celui
+     de la pastille « Toutes » (`.pill.raz`), et cette règle, de même poids que
+     `.pill` mais écrite après, lui ôtait bordure et marge et la posait en bas
+     de la rangée (#1873). */
+  .raz-focus {
     align-self: flex-end; border: 0; background: transparent; cursor: pointer; padding: 0;
     font: 600 12px var(--v2-sans); color: var(--v2-acc1);
   }
