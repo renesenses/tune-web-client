@@ -3450,6 +3450,7 @@ export default {
   "v2.health.rgSourceTags": "doar etichete din fișiere",
   "v2.health.rgNoProgress": "Serverul nu expune progresul calculului.",
   "v2.health.rgProgress": "{n} din {t} piese analizate",
+  "v2.health.rgCampaign": "({n} procesate de la ultima pornire a serverului)",
   "v2.health.cardEnrich": "Îmbogățirea metadatelor",
   "v2.health.cardEnrichSub": "Completare din baze publice",
   "v2.health.enrichProgress": "{n} din {t}",

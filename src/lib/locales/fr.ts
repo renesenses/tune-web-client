@@ -3472,6 +3472,7 @@ export default {
   "v2.health.rgSourceTags": "tags des fichiers seuls",
   "v2.health.rgNoProgress": "Le serveur n’expose pas l’avancement du calcul.",
   "v2.health.rgProgress": "{n} pistes analysées sur {t}",
+  "v2.health.rgCampaign": "({n} traitées depuis le dernier démarrage du serveur)",
   "v2.health.cardEnrich": "Enrichissement des métadonnées",
   "v2.health.cardEnrichSub": "Complément depuis les bases publiques",
   "v2.health.enrichProgress": "{n} sur {t}",

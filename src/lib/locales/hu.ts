@@ -3408,6 +3408,7 @@ export default {
   "v2.health.rgSourceTags": "csak fájlcímkék",
   "v2.health.rgNoProgress": "A kiszolgáló nem közli a számítás előrehaladását.",
   "v2.health.rgProgress": "{t} számból {n} elemezve",
+  "v2.health.rgCampaign": "({n} feldolgozva a szerver legutóbbi indítása óta)",
   "v2.health.cardEnrich": "Metaadatok gazdagítása",
   "v2.health.cardEnrichSub": "Kiegészítés nyilvános adatbázisokból",
   "v2.health.enrichProgress": "{t}-ból {n}",
