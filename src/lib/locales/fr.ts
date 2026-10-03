@@ -1713,6 +1713,7 @@ export default {
   "settings.updateAvailable": "Mise à jour disponible",
   "settings.updateReloadGaveUp": "Le serveur n'est pas revenu. Il redémarre peut-être encore : rechargez la page dans un instant.",
   "settings.updateStatusUnknown": "Impossible de savoir si la mise à jour s'est installée : le serveur n'a pas répondu. Rechargez la page pour voir la version en cours.",
+  "settings.updateInstallFailed": "La mise à jour a échoué. Raison donnée par le serveur : {reason}",
   "settings.updateButton": "Mettre à jour",
   "settings.updateStopsPlayback": "De la musique joue en ce moment : installer la mise à jour redémarre le serveur et coupera la lecture.",
   "settings.updateStopsScan": "Une analyse de la bibliothèque est en cours : l'installation l'arrête, puis elle reprend après le redémarrage, sans relire les fichiers déjà analysés.",

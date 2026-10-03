@@ -1155,6 +1155,7 @@ export default {
   "settings.updateAvailable": "アップデートあり",
   "settings.updateReloadGaveUp": "サーバーが復帰しませんでした。まだ再起動中の可能性があります。少ししてからページを再読み込みしてください。",
   "settings.updateStatusUnknown": "更新がインストールされたか判断できません。サーバーが応答しませんでした。ページを再読み込みして実行中のバージョンを確認してください。",
+  "settings.updateInstallFailed": "更新に失敗しました。サーバーが示した理由: {reason}",
   "settings.updateButton": "アップデート",
   "settings.updateStopsPlayback": "現在音楽を再生中です。アップデートをインストールするとサーバーが再起動し、再生が停止します。",
   "settings.updateStopsScan": "ライブラリのスキャン中です。インストールするとスキャンを停止し、再起動後にスキャン済みのファイルを読み直さずに再開します。",

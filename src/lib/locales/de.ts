@@ -1155,6 +1155,7 @@ export default {
   "settings.updateAvailable": "Update verfügbar",
   "settings.updateReloadGaveUp": "Der Server ist nicht zurückgekehrt. Möglicherweise startet er noch — laden Sie die Seite gleich neu.",
   "settings.updateStatusUnknown": "Es lässt sich nicht feststellen, ob die Aktualisierung installiert wurde: der Server hat nicht geantwortet. Laden Sie die Seite neu, um die laufende Version zu sehen.",
+  "settings.updateInstallFailed": "Die Aktualisierung ist fehlgeschlagen. Vom Server genannter Grund: {reason}",
   "settings.updateButton": "Aktualisieren",
   "settings.updateStopsPlayback": "Es läuft gerade Musik: Die Installation startet den Server neu und stoppt die Wiedergabe.",
   "settings.updateStopsScan": "Ein Bibliotheks-Scan läuft: Die Installation hält ihn an; nach dem Neustart wird er fortgesetzt, ohne bereits erfasste Dateien erneut zu lesen.",

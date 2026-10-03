@@ -1224,6 +1224,7 @@ export default {
   "settings.updateAvailable": "Elérhető frissítés",
   "settings.updateReloadGaveUp": "A kiszolgáló nem tért vissza. Lehet, hogy még újraindul — töltse újra az oldalt egy pillanat múlva.",
   "settings.updateStatusUnknown": "Nem állapítható meg, hogy a frissítés települt-e: a kiszolgáló nem válaszolt. Töltse újra az oldalt a futó verzió megtekintéséhez.",
+  "settings.updateInstallFailed": "A frissítés sikertelen. A kiszolgáló által megadott ok: {reason}",
   "settings.updateButton": "Frissítés",
   "settings.updateStopsPlayback": "Éppen szól a zene: a frissítés telepítése újraindítja a szervert, és leállítja a lejátszást.",
   "settings.updateStopsScan": "Gyűjteménybeolvasás fut: a telepítés leállítja, majd az újraindítás után folytatódik, a már beolvasott fájlok újraolvasása nélkül.",
