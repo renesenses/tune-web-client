@@ -58,6 +58,16 @@ describe('AlarmesV2 — l’écran suit cette convention', () => {
     expect(corps).not.toMatch(/days:\s*r\.days\s*\?\?/);
   });
 
+  it('un compte gratuit peut enregistrer : aucun champ resté Premium dans le corps', () => {
+    // Bertrand, 03/10/2026 : « Jours et montée gratuits ». Côté serveur, seul
+    // le multi-zone (et le nombre de réveils) reste Premium : l'écran ne doit
+    // pas l'envoyer, sinon un compte gratuit reçoit 402 sur un réveil simple.
+    const bloc = ecran.slice(ecran.indexOf('function corps('));
+    const corps = bloc.slice(0, bloc.indexOf('\n  }'));
+    expect(corps).not.toContain('multi_zone_ids');
+    expect(ecran).not.toMatch(/premium/i);
+  });
+
   it('les boutons des jours commencent au lundi', () => {
     const bloc = ecran.slice(ecran.indexOf('const joursCourts'));
     const liste = bloc.slice(0, bloc.indexOf(']);'));
