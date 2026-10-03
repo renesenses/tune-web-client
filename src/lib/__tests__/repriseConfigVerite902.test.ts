@@ -60,6 +60,17 @@
  * machine » une fonction payante : c'est un arbitrage produit, pas un
  * correctif, et il n'est pas pris ici.
  */
+/*
+ * ## Mise à jour — fil forum 2110 (ticket 221), décision de Bertrand du 03/10
+ *
+ * « Zones dans l'export gratuit » : `GET /system/config/export` porte
+ * désormais les zones (format versionné, `tune_core::config_export`), et
+ * l'import les rapproche par identifiant d'appareil. Les trois gardes « zones »
+ * ci-dessous sont donc RETOURNÉES : les textes de promesse doivent nommer les
+ * zones, la liste des manques ne doit plus les nommer, et la reprise Premium
+ * ne doit plus les revendiquer. Discogs et les jetons, eux, ne suivent
+ * toujours pas.
+ */
 import { describe, it, expect } from 'vitest';
 import fr from '../locales/fr';
 import en from '../locales/en';
@@ -124,22 +135,21 @@ describe('#902 — la reprise ne promet que ce que le dump de `settings` emporte
     }
   });
 
-  it('AUCUN des deux textes de promesse ne dit que les zones reviennent', () => {
-    // `export_config` ne lit que `settings.all()`. Les zones sont une TABLE :
-    // `export_zones` fait `FROM zones`, et il n'est atteint que par
-    // `/system/config-backup/export`, que ce client n'appelle pas.
-    const fautifs: string[] = [];
+  it('les deux textes de promesse disent que les zones reviennent (fil 2110)', () => {
+    // L'export gratuit porte les zones depuis le fil forum 2110 : le taire
+    // ferait refaire à la main des zones que la restauration rétablit.
+    const muets: string[] = [];
     for (const l of LANGUES) {
       const { dict, zone } = MOTS[l];
-      if (porte(dict[DESC], zone)) fautifs.push(`${l}.${DESC}`);
-      if (porte(dict[AIDE], zone)) fautifs.push(`${l}.${AIDE}`);
+      if (!porte(dict[DESC], zone)) muets.push(`${l}.${DESC}`);
+      if (!porte(dict[AIDE], zone)) muets.push(`${l}.${AIDE}`);
     }
-    expect(fautifs, 'une promesse de zones que la route ne tient pas').toEqual([]);
+    expect(muets, 'les zones reviennent et le texte ne le dit pas').toEqual([]);
   });
 
-  it('la liste des manques nomme les zones', () => {
-    const muets = LANGUES.filter((l) => !porte(MOTS[l].dict[LIMITES], MOTS[l].zone));
-    expect(muets, 'les zones ne reviennent pas et ne sont pas annoncées').toEqual([]);
+  it('la liste des manques ne nomme plus les zones : elles suivent', () => {
+    const fautifs = LANGUES.filter((l) => porte(MOTS[l].dict[LIMITES], MOTS[l].zone));
+    expect(fautifs, 'on annonce perdues des zones que la restauration rétablit').toEqual([]);
   });
 
   it('la liste des manques nomme Discogs — nom propre, identique partout', () => {
@@ -186,16 +196,15 @@ describe('#902 — la reprise ne promet que ce que le dump de `settings` emporte
     expect(muets, 'la reprise complète est payante et l’écran ne le dit pas').toEqual([]);
   });
 
-  it('🔴 ils nomment les ZONES — ce que l’utilisateur venait justement chercher', () => {
-    // `ConfigSnapshot` porte zones, playlists, favorites, radio_stations,
-    // alarms, eq_presets, room_profiles et `sealed_tokens`. La phrase ne vaut
-    // que si elle nomme ce que la ligne du dessus vient de retirer.
-    const muets = LANGUES.filter(
+  it('🔴 ils ne revendiquent plus les ZONES — l’export gratuit les porte (fil 2110)', () => {
+    // Présenter les zones comme réservées au Premium ferait acheter ce que
+    // l'export gratuit fait déjà.
+    const fautifs = LANGUES.filter(
       (l) =>
-        !porte(MOTS[l].dict[PREMIUM_ASSISTANT], MOTS[l].zone) ||
-        !porte(MOTS[l].dict[PREMIUM_REGLAGES], MOTS[l].zone),
+        porte(MOTS[l].dict[PREMIUM_ASSISTANT], MOTS[l].zone) ||
+        porte(MOTS[l].dict[PREMIUM_REGLAGES], MOTS[l].zone),
     );
-    expect(muets, 'une reprise « complète » qui ne dit pas qu’elle emporte les zones').toEqual([]);
+    expect(fautifs, 'les zones présentées comme Premium alors qu’elles sont gratuites').toEqual([]);
   });
 
   it('🔴 ils disent OÙ la trouver — sinon le constat est un cul-de-sac', () => {

@@ -104,14 +104,15 @@ describe('#902 — l’assistant propose de reprendre une installation', () => {
   it('la phrase des limites nomme les familles non reprises', () => {
     // ⚠️ `galiseur` a été RETIRÉ de cette liste : les préréglages
     // d'égaliseur sont rangés sous la clé de réglage `eq_presets`, donc le
-    // dump plat de `settings` les emporte. Les zones et le jeton Discogs, eux,
-    // n'en sortent pas — voir `repriseConfigVerite902.test.ts`, qui tient la
+    // dump plat de `settings` les emporte. ⚠️ `zone` a été retiré à son tour
+    // (fil forum 2110) : l'export gratuit porte les zones. Le jeton Discogs,
+    // lui, n'en sort pas — voir `repriseConfigVerite902.test.ts`, qui tient la
     // règle dans les onze langues.
     const fr = lire('src/lib/locales/fr.ts');
     const ligne =
       fr.split('\n').find((l) => /['"]onboarding\.restoreLimits['"]/.test(l)) ?? '';
     expect(ligne, 'la phrase des limites a disparu du dictionnaire français').not.toBe('');
-    for (const mot of ['zone', 'Discogs', 'streaming', 'radio']) {
+    for (const mot of ['Discogs', 'streaming', 'radio']) {
       expect(ligne.toLowerCase()).toContain(mot.toLowerCase());
     }
   });
