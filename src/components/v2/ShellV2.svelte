@@ -10,6 +10,8 @@
    */
   import { activeView, vueDeRetour, focusMode, type View } from '../../lib/stores/navigation';
   import { entrerEnModeGrandEcran } from '../../lib/modeGrandEcran';
+  import { boutonGrandEcranVisible } from '../../lib/modeGrandEcran';
+  import { currentZone } from '../../lib/stores/zones';
   import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
   import Sidebar from './Sidebar.svelte';
   import LibraryV2 from './LibraryV2.svelte';
@@ -552,7 +554,12 @@
       demande de corriger aucun nombre, nulle part. C'est très exactement ce
       que cette mécanique a été écrite pour absorber.
     -->
-    {#if $activeView === 'nowplaying'}
+    <!--
+      Fil 2116 (JLuc Cassé) — réglage `lienLectureVersSource` coché, plus aucun
+      chemin ne mène à l'écran Lecture en cours : le bouton suit alors ce qui
+      joue, sur tous les écrans. La règle vit dans `boutonGrandEcranVisible`.
+    -->
+    {#if boutonGrandEcranVisible($activeView, $preferences.lienLectureVersSource, $currentZone?.current_track)}
       <button class="raccourci tv" class:nomme={$formatEcran !== 'tiroir'} onclick={modeTv}
         aria-label={$t('nowplaying.tvMode' as any)} title={$t('nowplaying.tvMode' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
