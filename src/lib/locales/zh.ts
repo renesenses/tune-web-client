@@ -1155,6 +1155,7 @@ export default {
   "settings.updateAvailable": "有可用更新",
   "settings.updateReloadGaveUp": "服务器尚未恢复。它可能仍在重启——请稍后重新加载页面。",
   "settings.updateStatusUnknown": "无法确定更新是否已安装：服务器没有响应。请重新加载页面以查看正在运行的版本。",
+  "settings.updateInstallFailed": "更新失败。服务器给出的原因：{reason}",
   "settings.updateButton": "更新",
   "settings.updateStopsPlayback": "当前正在播放音乐：安装更新会重启服务器并中断播放。",
   "settings.updateStopsScan": "音乐库正在扫描：安装会停止扫描，重启后继续扫描，不会重新读取已扫描的文件。",

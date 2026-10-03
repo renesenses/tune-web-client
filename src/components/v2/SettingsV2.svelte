@@ -45,6 +45,7 @@
   import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
+  import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
@@ -2465,7 +2466,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const j = dataStatus?.job;
         if (!j) continue;
         if (j.phase === 'done') { dataDone = true; await api.restartServer().catch(() => {}); break; }
-        if (j.phase === 'failed') { dataError = j.error || 'failed'; break; }
+        if (raisonEchecPhase(j.phase) !== null) { dataError = j.error || raisonEchecPhase(j.phase) || 'failed'; break; }
       }
     } catch (e: any) {
       dataError = e?.message ?? String(e);
@@ -2504,7 +2505,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const st = await api.applianceInstallStatus();
         installWritten = st.written_bytes;
         if (st.phase === 'done') { installDone = true; break; }
-        if (st.phase === 'failed') { installError = st.error || 'failed'; break; }
+        if (raisonEchecPhase(st.phase) !== null) { installError = st.error || raisonEchecPhase(st.phase) || 'failed'; break; }
       }
     } catch (e: any) {
       installError = e?.message ?? String(e);
@@ -2579,7 +2580,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       let st: any = null;
       try { st = await api.getUpdateStatus(); } catch { vuHorsService = true; continue; }
       if (st?.phase === 'dmg_ready') { updDmg = st.dmg_path || '~/Downloads'; updBusy = false; return; }
-      if (st?.phase === 'failed') { updBusy = false; updRefus = get(t)('settings.updateBlockedUnknown'); return; }
+      // #1891 — le serveur publie `failed: <raison>`, jamais `failed` nu : un
+      // test d'égalité ne voyait pas l'échec, la boucle allait au bout des
+      // 180 s et la raison donnée par le serveur n'arrivait pas à l'écran.
+      const raisonEchec = raisonEchecPhase(st?.phase);
+      if (raisonEchec !== null) {
+        updBusy = false;
+        updRefus = raisonEchec
+          ? get(t)('settings.updateInstallFailed').replace('{reason}', raisonEchec)
+          : get(t)('settings.updateBlockedUnknown');
+        return;
+      }
       // L'étape Homebrew vit sur le disque : elle survit au redémarrage.
       const hb = etatHomebrew(st);
       if (hb?.genre === 'en_cours') {

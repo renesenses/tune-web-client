@@ -1161,6 +1161,7 @@ export default {
   "settings.updateAvailable": "Actualizare disponibilă",
   "settings.updateReloadGaveUp": "Serverul nu a revenit. Poate încă reporneşte — reîncarcă pagina peste o clipă.",
   "settings.updateStatusUnknown": "Nu se poate şti dacă actualizarea s-a instalat: serverul nu a răspuns. Reîncarcă pagina pentru a vedea versiunea curentă.",
+  "settings.updateInstallFailed": "Actualizarea a eșuat. Motivul dat de server: {reason}",
   "settings.updateButton": "Actualizează",
   "settings.updateStopsPlayback": "Se redă muzică chiar acum: instalarea actualizării repornește serverul și va opri redarea.",
   "settings.updateStopsScan": "O scanare a bibliotecii este în curs: instalarea o oprește, iar după repornire ea continuă fără a reciti fișierele deja scanate.",

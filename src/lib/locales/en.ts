@@ -1710,6 +1710,7 @@ export default {
   "settings.updateAvailable": "Update available",
   "settings.updateReloadGaveUp": "The server hasn't come back. It may still be restarting — reload the page in a moment.",
   "settings.updateStatusUnknown": "Can't tell whether the update installed: the server didn't answer. Reload the page to see the running version.",
+  "settings.updateInstallFailed": "The update failed. Reason given by the server: {reason}",
   "settings.updateButton": "Update",
   "settings.updateStopsPlayback": "Music is playing right now: installing the update restarts the server and will stop playback.",
   "settings.updateStopsScan": "A library scan is running: installing stops it, and it resumes after the restart without re-reading the files already scanned.",
