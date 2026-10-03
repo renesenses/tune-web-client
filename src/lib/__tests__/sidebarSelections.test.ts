@@ -348,7 +348,10 @@ describe('Mode TV — dans la grappe, et routé', () => {
     // #1141 — la classe a gagné `tv` et `class:nomme` : le bouton porte
     // désormais son LIBELLÉ. Ce qui est gardé ici n'a pas changé — il est
     // toujours le premier enfant de la garde de vue, DANS la grappe.
-    expect(src.includes("$activeView === 'nowplaying'}\n      <button class=\"raccourci tv\" class:nomme="), 'le bouton a quitté la grappe').toBe(true);
+    // Fil 2116 — la garde est devenue `boutonGrandEcranVisible(...)` : réglage
+    // `lienLectureVersSource` coché, le bouton suit ce qui joue sur tous les
+    // écrans (règle et cas gardés dans `modeGrandEcranAtteignable1141`).
+    expect(src.includes("$currentZone?.current_track)}\n      <button class=\"raccourci tv\" class:nomme="), 'le bouton a quitté la grappe').toBe(true);
     expect(
       /right:\s*108px/.test(src),
       'le décalage au pixel est revenu : il ne s’aligne sur rien et casse au premier bouton ajouté.',

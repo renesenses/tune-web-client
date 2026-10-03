@@ -3596,7 +3596,7 @@ export default {
   "settings.sidebarMoved": "{x} : position {p} sur {n}",
   "settings.sidebarDrag": "Glisser pour déplacer {x}",
   "settings.nowPlayingLinkToSource": "« Lecture en cours » ouvre l'album ou la playlist",
-  "settings.nowPlayingLinkToSourceHint": "L'entrée « Lecture en cours » de la barre latérale et la vignette de la barre de lecture ouvrent la page de l'album qui joue, ou celle de la playlist si la lecture en vient. Pour une radio, ou si aucune page n'existe, elle ouvre l'écran Lecture en cours, comme aujourd'hui.",
+  "settings.nowPlayingLinkToSourceHint": "L'entrée « Lecture en cours » de la barre latérale et la vignette de la barre de lecture ouvrent la page de l'album qui joue, ou celle de la playlist si la lecture en vient. Pour une radio, ou si aucune page n'existe, elle ouvre l'écran Lecture en cours, comme aujourd'hui. Le bouton « Mode Grand écran » reste accessible : tant qu'une piste joue, il s'affiche en haut à droite sur tous les écrans.",
   "settings.animationRateSmooth": "Fluide — l'affichage d'aujourd'hui",
   "settings.animationRateSaving": "Économe — environ 30 % de processeur en moins",
   "settings.animationRateMinimal": "Minimal — environ 40 % en moins, les barres saccadent un peu",
