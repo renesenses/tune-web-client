@@ -1155,6 +1155,7 @@ export default {
   "settings.updateAvailable": "Aggiornamento disponibile",
   "settings.updateReloadGaveUp": "Il server non è tornato. Forse si sta ancora riavviando: ricarica la pagina tra un istante.",
   "settings.updateStatusUnknown": "Impossibile sapere se l'aggiornamento è stato installato: il server non ha risposto. Ricarica la pagina per vedere la versione in esecuzione.",
+  "settings.updateInstallFailed": "L'aggiornamento non è riuscito. Motivo indicato dal server: {reason}",
   "settings.updateButton": "Aggiorna",
   "settings.updateStopsPlayback": "È in corso una riproduzione: installare l'aggiornamento riavvia il server e interromperà l'ascolto.",
   "settings.updateStopsScan": "È in corso una scansione della libreria: l'installazione la interrompe, poi riprende dopo il riavvio senza rileggere i file già analizzati.",

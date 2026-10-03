@@ -1119,6 +1119,7 @@ export default {
   "settings.updateAvailable": "Uppdatering tillgänglig",
   "settings.updateReloadGaveUp": "Servern har inte kommit tillbaka. Den kanske fortfarande startar om — ladda om sidan om en stund.",
   "settings.updateStatusUnknown": "Går inte att avgöra om uppdateringen installerades: servern svarade inte. Ladda om sidan för att se vilken version som körs.",
+  "settings.updateInstallFailed": "Uppdateringen misslyckades. Orsak enligt servern: {reason}",
   "settings.updateButton": "Uppdatera",
   "settings.updateStopsPlayback": "Musik spelas just nu: att installera uppdateringen startar om servern och avbryter uppspelningen.",
   "settings.updateStopsScan": "En biblioteksgenomsökning pågår: installationen stoppar den, och efter omstarten fortsätter den utan att läsa om filer som redan genomsökts.",
