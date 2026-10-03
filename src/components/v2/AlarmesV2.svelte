@@ -43,6 +43,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { errText } from '../../lib/utils';
+  import { champsJours, EN_SEMAINE, joursDuReveil, WEEK_END } from '../../lib/joursReveil';
   import '../../styles/tune-v2.css';
 
   interface Reveil {
@@ -50,6 +51,8 @@
     name: string;
     time: string;
     days: string;
+    /** Masque lun..dim, celui que lit le planificateur (#5669). */
+    days_of_week?: string | null;
     skip_holidays: number;
     holiday_country: string;
     zone_id: number | null;
@@ -70,14 +73,15 @@
   let chargement = $state(true);
   let enregistrement = $state(false);
 
+  // Indice = convention du serveur : 0 = lundi … 6 = dimanche (#5669).
   const joursCourts = $derived([
-    $t('alarms.daySun'), $t('alarms.dayMon'), $t('alarms.dayTue'),
-    $t('alarms.dayWed'), $t('alarms.dayThu'), $t('alarms.dayFri'), $t('alarms.daySat'),
+    $t('alarms.dayMon'), $t('alarms.dayTue'), $t('alarms.dayWed'),
+    $t('alarms.dayThu'), $t('alarms.dayFri'), $t('alarms.daySat'), $t('alarms.daySun'),
   ]);
 
   let fNom = $state('');
   let fHeure = $state('07:00');
-  let fJours = $state<number[]>([1, 2, 3, 4, 5]);
+  let fJours = $state<number[]>([...EN_SEMAINE]);
   let fFeries = $state(true);
   let fZone = $state<number | null>(null);
   let fTypeSource = $state('radio');
@@ -111,7 +115,7 @@
     edite = null;
     fNom = $t('alarms.defaultName');
     fHeure = '07:00';
-    fJours = [1, 2, 3, 4, 5];
+    fJours = [...EN_SEMAINE];
     fFeries = true;
     fZone = $currentZone?.id ?? null;
     fTypeSource = 'radio';
@@ -126,7 +130,7 @@
     edite = r;
     fNom = r.name;
     fHeure = r.time;
-    fJours = r.days.split(',').map(Number);
+    fJours = joursDuReveil(r);
     fFeries = !!r.skip_holidays;
     fZone = r.zone_id;
     fTypeSource = r.source_type;
@@ -152,10 +156,14 @@
    * transpile sans résoudre. D'où `Omit` : on retire le champ du type source
    * avant d'imposer le nôtre. */
   function corps(r: Partial<Omit<Reveil, 'enabled'>> & { enabled: boolean }) {
+    // Les jours partent en `days_of_week` (le masque que lit le planificateur)
+    // ET en `days`, dans la même convention. N'envoyer que `days` laissait le
+    // masque à `1111111` : le réveil sonnait tous les jours (#5669).
+    const jours = r.days !== undefined || r.days_of_week !== undefined ? joursDuReveil(r) : fJours;
     return {
       name: r.name ?? fNom,
       time: r.time ?? fHeure,
-      days: r.days ?? fJours.join(','),
+      ...champsJours(jours),
       skip_holidays: r.skip_holidays ?? fFeries,
       holiday_country: r.holiday_country ?? 'FR',
       zone_id: r.zone_id !== undefined ? r.zone_id : fZone,
@@ -218,11 +226,12 @@
     }
   }
 
-  function libelleJours(jours: string): string {
-    const n = jours.split(',').map(Number);
+  /** Ce que le réveil FERA : lu comme le planificateur le lit, masque d'abord. */
+  function libelleJours(r: Reveil): string {
+    const n = joursDuReveil(r);
     if (n.length === 7) return $t('alarms.everyday');
-    if (n.length === 5 && [1, 2, 3, 4, 5].every((d) => n.includes(d))) return $t('alarms.weekdays');
-    if (n.length === 2 && [0, 6].every((d) => n.includes(d))) return $t('alarms.weekend');
+    if (n.length === 5 && EN_SEMAINE.every((d) => n.includes(d))) return $t('alarms.weekdays');
+    if (n.length === 2 && WEEK_END.every((d) => n.includes(d))) return $t('alarms.weekend');
     return n.map((d) => joursCourts[d]).join(', ');
   }
 
@@ -335,7 +344,7 @@
             <span class="detail">
               <b>{r.name}</b>
               <span class="jours-txt">
-                {libelleJours(r.days)}{r.skip_holidays ? ' · ' + $t('alarms.exceptHolidays') : ''}
+                {libelleJours(r)}{r.skip_holidays ? ' · ' + $t('alarms.exceptHolidays') : ''}
               </span>
               <span class="source">{r.source_name || r.source_id}</span>
               {#if atLeast(niveau, 'intermediate')}
