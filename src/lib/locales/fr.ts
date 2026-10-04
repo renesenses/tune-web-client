@@ -1861,6 +1861,7 @@ export default {
   "settings.signIn": "Se connecter",
   "settings.signOut": "Se déconnecter",
   "settings.cloudDisconnected": "Déconnecté du cloud",
+  "settings.signOutConfirm": "Se déconnecter du compte mozaiklabs ? Ce serveur sera délié du compte : sa copie de bibliothèque en ligne et ses partages Tune Circle seront supprimés, et les fonctions premium apportées par le compte s'arrêteront (une clé de licence reste active). Vous pourrez vous reconnecter ensuite.",
   "settings.licenseRateLimited": "Trop de tentatives — patiente une minute avant de réessayer.",
   "settings.cloudComingSoon": "Cloud bientôt disponible sur ce serveur",
   "settings.telemetry": "Télémétrie",

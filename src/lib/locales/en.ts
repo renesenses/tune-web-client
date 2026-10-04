@@ -1858,6 +1858,7 @@ export default {
   "settings.signIn": "Sign in",
   "settings.signOut": "Sign out",
   "settings.cloudDisconnected": "Signed out of cloud",
+  "settings.signOutConfirm": "Sign out of your mozaiklabs account? This server will be unlinked from the account: its online library copy and its Tune Circle shares will be removed, and premium features that come from the account will stop (a license key stays active). You can sign in again afterwards.",
   "settings.licenseRateLimited": "Too many attempts — wait a minute before trying again.",
   "settings.cloudComingSoon": "Cloud coming soon on this server",
   "settings.telemetry": "Telemetry",

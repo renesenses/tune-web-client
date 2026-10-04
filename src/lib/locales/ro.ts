@@ -2131,6 +2131,7 @@ export default {
   "settings.aacPassthroughHint": "Trimite AAC ca atare către acest renderer în loc să-l transcodeze în FLAC. Sursa este deja cu pierderi, deci transcodarea nu adaugă calitate — doar întârzie primul sunet. Activează doar dacă renderer-ul decodează AAC nativ, altfel nu va exista sunet.",
   "settings.browserZoneCreated": "Zonă creată — redarea se va face pe acest dispozitiv",
   "settings.cloudDisconnected": "Deconectat de la cloud",
+  "settings.signOutConfirm": "Vă deconectați de la contul mozaiklabs? Acest server va fi dezlegat de cont: copia online a bibliotecii și partajările Tune Circle vor fi șterse, iar funcțiile premium oferite de cont se vor opri (o cheie de licență rămâne activă). Vă puteți reconecta ulterior.",
   "settings.createBrowserZone": "Creează o zonă pe acest computer",
   "settings.dlnaCap16bit": "Limitează la 16 biți",
   "settings.dlnaCap16bitHint": "Activează dacă hi-res (24 de biți) rămâne mut pe acest renderer, în timp ce 16 biți funcționează (Ruark R3). Reconvertește în FLAC pe 16 biți în loc să trimită 24 de biți direct, pe care renderer-ul nu îi decodează.",

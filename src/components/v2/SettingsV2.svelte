@@ -999,6 +999,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
 
   async function delierCompteCloud() {
+    // Se déconnecter DÉLIE ce serveur du compte : sa copie de bibliothèque en
+    // ligne et ses partages de cercle sont effacés chez le cloud, le premium
+    // du compte tombe. Un clic égaré ne doit pas suffire : on demande, et la
+    // question dit ce qui sera perdu.
+    if (!(await dialogs.confirm(get(t)('settings.signOutConfirm' as any), { danger: true }))) return;
     ssoQuitte = true;
     try {
       await api.ssoDisconnect();

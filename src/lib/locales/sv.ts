@@ -2132,6 +2132,7 @@ export default {
   "radio.importResult": "{imported} importerade, {skipped} överhoppade",
   "search.topArtists": "Mest spelade artister",
   "settings.cloudDisconnected": "Utloggad från molnet",
+  "settings.signOutConfirm": "Logga ut från mozaiklabs-kontot? Den här servern kopplas bort från kontot: dess onlinekopia av biblioteket och dess delningar i Tune Circle tas bort, och premiumfunktionerna från kontot upphör (en licensnyckel förblir aktiv). Du kan logga in igen efteråt.",
   "settings.dsdNetworkHint": "Skickar den omkodade DSD:n som en kontinuerlig ström i stället för en temporär fil. Åtgärdar avbrott/tystnad vid DSD 256/512 på vissa DLNA-renderare. Träder i kraft direkt, utan omstart.",
   "settings.dsdNetworkLabel": "DSD-omkodning → nätverk",
   "settings.dsdNetworkTitle": "DSD-uppspelning (nätverksrenderare)",

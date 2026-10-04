@@ -2128,6 +2128,7 @@ export default {
   "settings.aacPassthroughHint": "将 AAC 原样发送给此渲染器，而不转码为 FLAC。源已是有损格式，转码不会提升音质，只会延迟出声。仅当渲染器原生解码 AAC 时启用，否则将无声。",
   "settings.browserZoneCreated": "区域已创建——将在此设备上播放",
   "settings.cloudDisconnected": "已退出云端",
+  "settings.signOutConfirm": "要退出 mozaiklabs 账户吗？此服务器将与该账户解除关联：其在线资料库副本和 Tune Circle 共享将被删除，账户提供的高级功能也将停止（许可证密钥仍然有效）。之后可以重新登录。",
   "settings.createBrowserZone": "在此电脑上创建区域",
   "settings.dlnaCap16bit": "限制为 16 位",
   "settings.dlnaCap16bitHint": "若此渲染器播放 16 位正常、而高解析（24 位）无声（如 Ruark R3），请启用。它会重新编码为 16 位 FLAC，而不是直接发送渲染器无法解码的 24 位。",

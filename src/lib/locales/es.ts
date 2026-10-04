@@ -2128,6 +2128,7 @@ export default {
   "settings.aacPassthroughHint": "Envía el AAC tal cual a este reproductor en lugar de transcodificarlo a FLAC. La fuente ya tiene pérdidas, así que transcodificar no añade calidad: solo retrasa el primer sonido. Actívalo solo si el reproductor decodifica AAC de forma nativa; si no, no habrá sonido.",
   "settings.browserZoneCreated": "Zona creada: la reproducción se hará en este dispositivo",
   "settings.cloudDisconnected": "Sesión cerrada en la nube",
+  "settings.signOutConfirm": "¿Cerrar sesión en la cuenta mozaiklabs? Este servidor se desvinculará de la cuenta: se eliminarán su copia de la biblioteca en línea y lo que comparte en Tune Circle, y se desactivarán las funciones premium que aporta la cuenta (una clave de licencia sigue activa). Podrás volver a iniciar sesión después.",
   "settings.createBrowserZone": "Crear una zona en este ordenador",
   "settings.dlnaCap16bit": "Limitar a 16 bits",
   "settings.dlnaCap16bitHint": "Actívalo si el hi-res (24 bits) queda mudo en este reproductor mientras que el 16 bits funciona (Ruark R3). Reconvierte a FLAC de 16 bits en vez de enviar 24 bits directos que el reproductor no decodifica.",
