@@ -52,7 +52,8 @@
   // `lib/stores/albumsPagines` pour ce que le serveur sait et ne sait pas.
   import {
     albumsPagines, albumsCharges, casesDeLaListe, demanderPage, demanderBibliothequeEntiere,
-    mettreAJourAlbum, offsetDeLettre, TAILLE_PAGE, type ClefDeListe,
+    listeEntierePerimee, mettreAJourAlbum, offsetDeLettre, rafraichirPagesPerimees, TAILLE_PAGE,
+    type ClefDeListe,
   } from '../../lib/stores/albumsPagines';
   // 🔴 `pendingLibraryFolder` n'existe PLUS : `main` l'a remplacé par le
   // magasin `libraryFolderScope` (voir `lib/porteeBibliotheque`) parce qu'un
@@ -1268,12 +1269,15 @@
   /** Le mode paginé. */
   const nu = $derived(!depot && !bibliothequeEntiere && !sortirDesPages);
 
-  // La liste entière, quand un geste l'exige et qu'elle n'est pas là. Après
-  // une invalidation (`albums` vidé), l'effet se rejoue : un écran monté qui
-  // en a toujours besoin la redemande, un écran qui n'en a plus besoin ne
-  // coûte rien.
+  // La liste entière, quand un geste l'exige et qu'elle n'est pas là.
+  //
+  // 🔴 Fil 2134 — après une invalidation, `albums` n'est plus VIDÉ : il est
+  // périmé (`listeEntierePerimee` passe à `true`). L'écran qui la MONTRE la redemande,
+  // et la neuve REMPLACE l'ancienne sans passer par une grille vide : la
+  // position de défilement tient. Un écran démonté ne redemande rien.
   $effect(() => {
-    if (depot || !besoinDeTout || bibliothequeEntiere) return;
+    if (depot) return;
+    if (bibliothequeEntiere ? !$listeEntierePerimee : !besoinDeTout) return;
     void demanderBibliothequeEntiere().catch(() => {
       /* dit par `libraryLoading` retombé et une grille vide ; le bandeau
          d'`api` a déjà parlé */
@@ -1293,13 +1297,45 @@
   // dépend plus que de `nu`, `clef` et de la génération, extraite en valeur
   // PRIMITIVE (un `$derived` ne notifie que si elle change) ; l'appel est
   // sous `untrack` pour que rien de ce qu'il lit ou écrit ne l'inscrive.
+  //
+  // 🔴 Fil 2134 — après une invalidation, les pages ne sont plus vidées :
+  // elles sont PÉRIMÉES. Celles qui sont EN VUE se redemandent et restent à
+  // l'écran jusqu'à leur remplacement ; les autres tombent et se
+  // redemanderont en entrant dans le cadre (`pagesEnVue`).
   const generationDesPages = $derived($albumsPagines.generation);
   $effect(() => {
     if (!nu || !clef) return;
     void generationDesPages;
     const c = clef;
-    untrack(() => { void demanderPage(c, 0, { forcer: true }); });
+    untrack(() => {
+      rafraichirPagesPerimees(c, pagesEnVue());
+      void demanderPage(c, 0, { forcer: true });
+    });
   });
+
+  /**
+   * Fil 2134 — les pages dont une case est dans le cadre du conteneur
+   * défilant, à une demi-hauteur près (la marge de `observerCase`). Sans mise
+   * en page mesurable (conteneur de hauteur nulle : témoins), toute case
+   * montée compte comme en vue.
+   */
+  function pagesEnVue(): Set<number> {
+    const enVue = new Set<number>();
+    const racine = gridEl;
+    if (!racine) return enVue;
+    const cadre = racine.getBoundingClientRect();
+    const marge = cadre.height / 2;
+    for (const el of racine.querySelectorAll<HTMLElement>('[data-i]')) {
+      const i = Number(el.dataset.i);
+      if (!Number.isFinite(i)) continue;
+      if (cadre.height > 0) {
+        const r = el.getBoundingClientRect();
+        if (r.bottom < cadre.top - marge || r.top > cadre.bottom + marge) continue;
+      }
+      enVue.add(Math.floor(i / TAILLE_PAGE));
+    }
+    return enVue;
+  }
 
   /** Les cases de la grille en pages : une par album du total, vide ou pleine. */
   const cases: (Album | null)[] = $derived.by(() => (nu ? casesDeLaListe($albumsPagines) : []));
