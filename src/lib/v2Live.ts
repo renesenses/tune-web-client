@@ -481,7 +481,21 @@ export function demarrerTransportV2(): () => void {
     // Le volume peut changer AILLEURS — depuis l'appareil lui-même, ou depuis
     // un autre client. Sans cela, le curseur de la barre reste sur la dernière
     // valeur qu'on lui a donnée soi-même.
-    if (type === 'zone.volume_changed' && event.data?.zone_id !== undefined) {
+    //
+    // 🔴 Fil forum 2129 (Pierre, 04/10/2026) — « moving the sound bar up &
+    // down is creating instability ». Le serveur Rust émet `playback.volume`
+    // (`tune-core/src/playback/mod.rs`, `set_volume`, relayé par
+    // `routes/ws.rs` avec `{ volume, zone_id }`, volume linéaire 0..1) ; il
+    // n'émet jamais `zone.volume_changed`. L'événement tombait donc dans la
+    // branche générique `playback.*` plus bas : un `GET /zones` complet par pas
+    // de curseur, une piste en cours qui redevenait un objet neuf, et un écran
+    // de lecture qui effaçait puis rechargeait puce DR, canaux et écoutes
+    // environ douze fois par seconde. Les deux noms passent ici, sans relire.
+    if (
+      (type === 'zone.volume_changed' || type === 'playback.volume') &&
+      event.data?.zone_id !== undefined &&
+      typeof event.data?.volume === 'number'
+    ) {
       const { zone_id, volume } = event.data;
       zones.update((liste: any[]) =>
         liste.map((z) => (z?.id === zone_id ? { ...z, volume } : z)),
