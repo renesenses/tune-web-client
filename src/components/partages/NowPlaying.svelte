@@ -1785,7 +1785,10 @@ import { ICONES } from '../../lib/menuPiste';
       <div class="info-column">
         <div class="np-badges-row">
           <ServiceBadge source={displayTrack.source} />
-          {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
+          <!-- Fil 2126 : ce badge ne porte QUE le palier ; sans palier (format au
+               codec non déterminé, « M4A »), il n'a rien à dire et ne s'affiche
+               pas. Le format reste lisible dans les puces juste en dessous. -->
+          {#if (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth) && getQualityTier(displayTrack) !== 'inconnu'}
             {@const tier = getQualityTier(displayTrack)}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
