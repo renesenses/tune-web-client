@@ -2903,6 +2903,7 @@ export default {
   "v2.meta.drHint": "A Tune megmérte e számok DR-jét; az érték csak az adatbázisban él. A beírás a fájlba teszi (DYNAMIC RANGE kulcs, amelyet a beolvasás és a foobar2000 is visszaolvas). Csak FLAC, Ogg és Opus; a kulcsot már hordozó fájl soha nem íródik felül.",
   "v2.meta.drEngraveBtn": "Beírás",
   "v2.meta.drRunning": "Beírás folyamatban…",
+  "v2.meta.drInterrupted": "Megszakadt: {done} / {total} — újraindítás",
   "v2.meta.drToEngrave": "beírandó szám",
   "v2.meta.drInFiles": "szám, ahol a DR már a fájlban van",
   "v2.meta.drOtherFormats": "mért, de nem beírható (MP3, M4A…)",

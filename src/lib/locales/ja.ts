@@ -2945,6 +2945,7 @@ export default {
   "v2.meta.drHint": "Tune が測定した DR はデータベースにしかありません。書き込むとファイルに保存されます（DYNAMIC RANGE キー。スキャン時と foobar2000 で読み返されます）。FLAC・Ogg・Opus のみ。すでにキーを持つファイルは書き換えません。",
   "v2.meta.drEngraveBtn": "書き込む",
   "v2.meta.drRunning": "書き込み中…",
+  "v2.meta.drInterrupted": "{done} / {total} で中断 — 再実行",
   "v2.meta.drToEngrave": "書き込み対象のトラック",
   "v2.meta.drInFiles": "ファイルに DR 済みのトラック",
   "v2.meta.drOtherFormats": "測定済みだが書き込めない（MP3、M4A など）",

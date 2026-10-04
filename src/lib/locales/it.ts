@@ -2945,6 +2945,7 @@ export default {
   "v2.meta.drHint": "Tune ha misurato il DR di queste tracce; esiste solo nel database. Scriverlo lo mette nel file (chiave DYNAMIC RANGE, riletta alla scansione e da foobar2000). Solo FLAC, Ogg e Opus; un file che porta già la chiave non viene mai riscritto.",
   "v2.meta.drEngraveBtn": "Scrivi",
   "v2.meta.drRunning": "Scrittura in corso…",
+  "v2.meta.drInterrupted": "Interrotta a {done} / {total} — riavvia",
   "v2.meta.drToEngrave": "tracce da scrivere",
   "v2.meta.drInFiles": "tracce con il DR già nel file",
   "v2.meta.drOtherFormats": "misurate ma non scrivibili (MP3, M4A…)",

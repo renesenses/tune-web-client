@@ -211,6 +211,8 @@
       drMinuterie = setTimeout(chargerDr, 2000);
     }
   }
+  // Pistes déjà traitées par la passe (en cours ou interrompue).
+  const drFaites = $derived(dr ? (dr.written ?? 0) + (dr.already ?? 0) + (dr.skipped ?? 0) + (dr.errors ?? 0) : 0);
   async function graverDr() {
     if (drBusy) return;
     drBusy = true;
@@ -919,8 +921,13 @@
             <span>{$t('v2.meta.drEngrave' as any)}</span>
             <span class="hint">{$t('v2.meta.drHint' as any)}</span>
           </div>
+          <!-- Fil 2137 : une passe morte en route rendait `running` à vie, et
+               le bouton restait grisé. Le serveur dit désormais `interrupted` :
+               le bouton redevient cliquable et dit où elle s'est arrêtée. -->
           <button class="go" disabled={drBusy || dr.status === 'running' || dr.a_graver === 0} onclick={graverDr}>
-            {dr.status === 'running' ? $t('v2.meta.drRunning' as any) : $t('v2.meta.drEngraveBtn' as any)}
+            {#if dr.status === 'running'}{$t('v2.meta.drRunning' as any)}
+            {:else if dr.status === 'interrupted'}{$t('v2.meta.drInterrupted' as any).replace('{done}', $formatNombre(drFaites)).replace('{total}', $formatNombre(dr.total ?? 0))}
+            {:else}{$t('v2.meta.drEngraveBtn' as any)}{/if}
           </button>
         </div>
         <div class="drgrid">
@@ -929,7 +936,7 @@
           <div class="drk"><b>{$formatNombre(dr.hors_format)}</b><span>{$t('v2.meta.drOtherFormats' as any)}</span></div>
         </div>
         {#if dr.status === 'running'}
-          <p class="note">{$t('v2.meta.drProgress' as any).replace('{done}', $formatNombre((dr.written ?? 0) + (dr.already ?? 0) + (dr.skipped ?? 0) + (dr.errors ?? 0))).replace('{total}', $formatNombre(dr.total ?? 0))}</p>
+          <p class="note">{$t('v2.meta.drProgress' as any).replace('{done}', $formatNombre(drFaites)).replace('{total}', $formatNombre(dr.total ?? 0))}</p>
         {:else if dr.status === 'done'}
           <p class="note">{$t('v2.meta.drDone' as any).replace('{written}', $formatNombre(dr.written ?? 0)).replace('{already}', $formatNombre(dr.already ?? 0)).replace('{skipped}', $formatNombre(dr.skipped ?? 0)).replace('{errors}', $formatNombre(dr.errors ?? 0))}</p>
         {:else if dr.a_graver === 0}
