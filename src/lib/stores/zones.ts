@@ -265,7 +265,13 @@ export async function nextAndSync(zoneId: number): Promise<Zone> {
 }
 
 export async function previousAndSync(zoneId: number): Promise<Zone> {
-  await api.previous(zoneId);
+  // Fil 1476 — zone navigateur : le serveur ne connaît pas la position, et le
+  // déplacement à 0 qu'il fait en « relançant » n'atteint pas l'onglet. On lui
+  // envoie la position jouée ici, et on applique nous-mêmes la relance.
+  const navigateur = get(zones).find((z) => z.id === zoneId)?.output_type === 'browser';
+  const audio = navigateur ? await getBrowserAudio() : null;
+  const reponse = await api.previous(zoneId, audio?.browserPositionMsPour(zoneId) ?? null);
+  if (audio && reponse?.status === 'restarted') audio.browserSeek(0);
   const zone = await api.getZone(zoneId);
   checkPlayError(zone);
   syncZone(zone);

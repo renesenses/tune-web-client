@@ -38,6 +38,7 @@
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
   import { estCourbeGraphique } from '../../lib/eqHydratation';
+  import { bilanImportPeq, db, nomDuFichierPeq, TAILLE_MAX_FICHIER_PEQ, type BilanImportPeq } from '../../lib/eqImportPeq';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -605,6 +606,49 @@
     }
   }
 
+  /**
+   * web#1647 — importer un fichier PEQ (AutoEq « ParametricEQ.txt »). Le
+   * serveur l'analyse et l'enregistre dans « Mes presets » ; on l'ouvre en
+   * paramétrique, sauf si le fichier demande plus de marge que ses gains n'en
+   * justifient : il est alors seulement ajouté, et l'écran dit pourquoi.
+   */
+  let fichierPeq: HTMLInputElement | null = $state(null);
+  let importEnCours = $state(false);
+  let bilanPeq = $state<BilanImportPeq | null>(null);
+  async function importerPeq(e: Event) {
+    const champ = e.currentTarget as HTMLInputElement;
+    const fichier = champ.files?.[0];
+    champ.value = '';
+    if (!fichier) return;
+    // Résolus AVANT l'attente : un `$t()` dans un `catch` est invisible au build.
+    const msgTropGros = $t('eq.importPeqTooLarge' as any);
+    const msgKo = $t('eq.importPeqFailed' as any);
+    const msgOk = $t('eq.importPeqDone' as any);
+    if (fichier.size > TAILLE_MAX_FICHIER_PEQ) {
+      notifications.error(msgTropGros);
+      return;
+    }
+    importEnCours = true;
+    try {
+      const texte = await fichier.text();
+      const r = await api.importAutoEqPreset({ text: texte, name: nomDuFichierPeq(fichier.name) });
+      const bilan = bilanImportPeq(r);
+      bilanPeq = bilan;
+      mesPresets = [...mesPresets.filter((p) => p.id !== r.preset.id), r.preset];
+      ecrireCachePresets($state.snapshot(mesPresets));
+      notifications.success(msgOk.replace('{name}', bilan.nom).replace('{count}', String(bilan.bandes)));
+      if (!bilan.alerte) appliquerMonPreset(r.preset);
+    } catch (err) {
+      // 402 : `fetchJSON` a déjà dit le refus Premium dans la langue de l'écran.
+      if ((err as { status?: number })?.status !== 402) {
+        const detail = err instanceof Error ? err.message : String(err);
+        notifications.error(msgKo.replace('{detail}', detail));
+      }
+    } finally {
+      importEnCours = false;
+    }
+  }
+
   function reset() {
     enCoursId = null;
     gains = Array(BANDS.length).fill(0);
@@ -711,7 +755,29 @@
         {:else}
           <button class="enreg-sous" onclick={enregistrerSous}>+ {$t('eq.savePreset' as any)}</button>
         {/if}
+        <!-- web#1647 — un fichier PEQ (AutoEq, Equalizer APO) au lieu de dix
+             bandes saisies à la main. -->
+        <button class="import-peq" disabled={importEnCours} onclick={() => fichierPeq?.click()}
+          title={$t('eq.importPeqTitle' as any)}>{$t('eq.importPeq' as any)}</button>
+        <input class="import-peq-fichier" type="file" accept=".txt,text/plain" hidden
+          bind:this={fichierPeq} onchange={importerPeq} />
       </div>
+      {#if bilanPeq}
+        <!-- Le bilan est DIT, pas avalé : bandes retenues, lignes écartées,
+             préampli du fichier non appliqué en plus de la réserve de Tune. -->
+        <div class="bilan-peq" class:alerte={bilanPeq.alerte} role="status">
+          <p>{$t('eq.importPeqSummary' as any).replace('{name}', bilanPeq.nom).replace('{count}', String(bilanPeq.bandes))}</p>
+          {#if bilanPeq.lignesIgnorees}
+            <p class="ignores">{$t('eq.importPeqIgnored' as any).replace('{lines}', bilanPeq.lignesIgnorees)}</p>
+          {/if}
+          {#if bilanPeq.preampDb !== null && bilanPeq.reserveDb !== null}
+            <p>{$t('eq.importPeqPreamp' as any).replace('{preamp}', db(bilanPeq.preampDb)).replace('{reserved}', db(bilanPeq.reserveDb))}</p>
+          {/if}
+          {#if bilanPeq.alerte}
+            <p class="avert">{$t('eq.importPeqWarning' as any)}</p>
+          {/if}
+        </div>
+      {/if}
 
       <!-- La liste vient du miroir local : elle peut être périmée, et
            enregistrer échouera de la même façon. Ce chemin part au montage,
@@ -867,6 +933,10 @@
   .mien{display:inline-flex}
   .mien .x{padding:0 7px}
   .modif{font:italic 11.5px var(--v2-sans); color:var(--v2-acc-tint)}
+  .bilan-peq{margin:-8px 0 16px; padding:9px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;
+    border:1px solid var(--v2-line2); color:var(--v2-txt2)}
+  .bilan-peq p{margin:0}
+  .bilan-peq.alerte{border-color:var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
   .presets button:disabled{opacity:.45; cursor:default}
   /* Un avertissement, pas une erreur : la liste est utilisable, elle est
      seulement peut-être périmée. D'où le ton d'accentuation et non le rouge
