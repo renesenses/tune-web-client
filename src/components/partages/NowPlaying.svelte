@@ -1121,11 +1121,23 @@ import { ICONES } from '../../lib/menuPiste';
   // Play count for the current local track (Progman, #1056). Fetched on demand;
   // guarded to the exact track id so a race doesn't show a stale count.
   let trackPlays = $state<number | null>(null);
+  /**
+   * 🔴 Fil forum 2129 — L'IDENTITÉ de la piste locale, pas l'objet.
+   *
+   * Chaque relecture de `/zones` rend un `current_track` NEUF, même quand rien
+   * n'a changé (un pas de volume en provoquait une douzaine par seconde). Les
+   * deux effets ci-dessous lisaient `normalizedTrack` lui-même : ils vidaient
+   * donc écoutes, puce DR et canaux puis les redemandaient à chaque fois, et la
+   * colonne titre sautait. Un `$derived` primitif ne notifie que si la VALEUR
+   * change : les effets ne se relancent plus qu'au vrai changement de piste.
+   */
+  let idPisteLocale = $derived(
+    normalizedTrack?.source === 'local' ? (normalizedTrack?.id ?? null) : null,
+  );
   $effect(() => {
-    const dt = normalizedTrack;
-    const id = dt?.id ?? null;
+    const id = idPisteLocale;
     trackPlays = null;
-    if (id != null && dt?.source === 'local') {
+    if (id != null) {
       api.getTrackPlays(id)
         .then((r) => { if (normalizedTrack?.id === id) trackPlays = r.plays; })
         .catch(() => {});
@@ -1160,11 +1172,10 @@ import { ICONES } from '../../lib/menuPiste';
    */
   let badgeCanaux = $state<string | null>(null);
   $effect(() => {
-    const dt = normalizedTrack;
-    const id = dt?.id ?? null;
+    const id = idPisteLocale;
     trackDr = null;
     badgeCanaux = null;
-    if (id != null && dt?.source === 'local') {
+    if (id != null) {
       api.getTrack(id)
         .then((t) => {
           // La garde d'identifiant vaut pour les deux : une réponse tardive ne

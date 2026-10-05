@@ -42,6 +42,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { dialogs } from '../../lib/stores/dialogs';
   import { fullVolumeConfirmationRequired } from '../../lib/audiophileSafety';
   import { zonesDuSelecteur } from '../../lib/zonesSelecteur';
+  import { creerLimiteurVolume } from '../../lib/limiteurVolume';
   import {
     audiophileEnabled,
     audiophileGlobalLockVolume,
@@ -75,13 +76,18 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     if (isBrowserZone(z)) browserSetVolume(val);
   }
 
-  async function handleMobileVolume(e: Event) {
+  // Fil forum 2129 : même limitation que le curseur principal (`VolumeControl`).
+  // Sans elle, chaque événement `input` partait en `PUT /zones/{id}/volume`.
+  const limiterEnvoiMobile = creerLimiteurVolume();
+
+  function handleMobileVolume(e: Event) {
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
     const val = Number((e.target as HTMLInputElement).value);
     if (val > 0) mutedVolume.set(null);
     applyMobileVolume(z, val);
-    await api.setVolume(z.id, val);
+    const zoneId = z.id;
+    limiterEnvoiMobile(() => { void api.setVolume(zoneId, val); });
   }
 
   async function mobileVolumeStep(delta: number) {

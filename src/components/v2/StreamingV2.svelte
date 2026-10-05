@@ -513,6 +513,30 @@
   }
 
   /**
+   * 🔴 Fil forum 2128 (Didier, 03/10/2026) — « après une recherche, les choix
+   * Éditorial, Playlists, Favoris, Genres ne sont plus actifs ».
+   *
+   * Pendant une recherche, la zone de contenu montre les RÉSULTATS avant de
+   * regarder le sous-onglet (`{:else if results || bcSearch}`). Le clic ne
+   * faisait que changer `sub`, sans rien de visible, et l'onglet restait
+   * allumé au-dessus de résultats qui n'étaient pas les siens.
+   *
+   * Choix : le clic SORT de la recherche et ouvre l'onglet — le même geste que
+   * changer de service (`ouvrirOnglet` vide déjà la recherche). Griser aurait
+   * laissé l'utilisateur chercher comment revenir à l'onglet ; ici, il obtient
+   * ce qu'il vient de demander. Et pendant la recherche, aucun sous-onglet
+   * n'est allumé : aucun ne décrit ce qui est affiché.
+   */
+  let rechercheAffichee = $derived(q.trim().length >= 2 || results !== null || bcSearch !== null);
+
+  function ouvrirSousOnglet(id: Sub) {
+    sub = id;
+    q = '';
+    results = null;
+    bcSearch = null;
+  }
+
+  /**
    * Le service demande de l'EXTERIEUR, suivi tant que l'ecran est monte —
    * #1358.
    *
@@ -1108,7 +1132,7 @@
     {#if active}
       <nav class="subs" use:molettePortee={() => zoneDefilante}>
         {#each SUBS as sb (sb.id)}
-          <button class:on={sub === sb.id} onclick={() => (sub = sb.id)}>{sb.label}</button>
+          <button class:on={sub === sb.id && !rechercheAffichee} onclick={() => ouvrirSousOnglet(sb.id)}>{sb.label}</button>
         {/each}
       </nav>
     {/if}

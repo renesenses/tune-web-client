@@ -124,3 +124,71 @@ export function avecVisibilite(choix: ChoixBarre | null | undefined, vue: string
   if (!visible) masquees.push(vue);
   return { ordre: c.ordre, masquees };
 }
+
+// ---------------------------------------------------------------------------
+// Un réglage du PROFIL, pas du navigateur — fil 2109 du forum (Levente Toth,
+// ticket 220) : « ce serait bien que ce soit un réglage global, comme l'image
+// de profil ».
+//
+// Le transport existait déjà : `barreLaterale` vit dans `ui_preferences`,
+// rangé PAR PROFIL côté serveur et réécrit par `PATCH /system/config` à chaque
+// geste. C'est la RELECTURE qui le gardait au navigateur :
+// `syncPreferencesFromServer` fusionne `{ ...defaults, ...server, ...local }`,
+// et le blob local porte `barreLaterale: null` dès la première ouverture — le
+// défaut, pas un choix. Une barre réglée sur la machine A n'apparaissait donc
+// jamais sur la machine B déjà ouverte une fois : même piège que la photo de
+// profil (#1673).
+//
+// « Adopter le serveur quand le local est vide », le remède de la photo, ne
+// suffit pas ici : la barre se règle PUIS se modifie et se rétablit. Avec ce
+// remède, B garderait sa première copie, la renverrait au serveur au moindre
+// réglage, et un « Rétablir » fait sur A serait défait par B. On date donc le
+// dernier geste (`barreLateraleMaj`, en millisecondes) et le plus RÉCENT des
+// deux gagne, quel qu'il soit — un « Rétablir » compris. La fusion elle-même
+// réécrit le blob au serveur (le magasin envoie chaque émission) : l'appareil
+// qui portait le geste le plus frais répare le serveur à son prochain
+// chargement, même si un onglet resté ouvert ailleurs l'avait écrasé.
+// ---------------------------------------------------------------------------
+
+/** Horodatage relu (local ou SERVEUR) : un nombre fini positif, sinon 0 —
+ *  « jamais daté », c'est-à-dire écrit avant ce correctif. */
+export function horodatageBarre(v: unknown): number {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0;
+}
+
+/** La barre telle qu'elle se range dans les préférences. */
+export interface EtatBarre {
+  barreLaterale: ChoixBarre | null;
+  barreLateraleMaj: number;
+}
+
+/** Les deux champs à poser après un geste sur la barre. */
+export function gesteBarre(choix: ChoixBarre | null, maintenant: number = Date.now()): EtatBarre {
+  return { barreLaterale: choix, barreLateraleMaj: horodatageBarre(maintenant) };
+}
+
+/**
+ * La barre à retenir entre cet appareil et le serveur.
+ *
+ * - Le serveur ne dit rien de la barre (blob antérieur à web#1827, ou valeur
+ *   abîmée déjà écartée) : celle de l'appareil.
+ * - Sinon, le geste le plus RÉCENT gagne, y compris un retour à l'ordre livré
+ *   (`null` daté).
+ * - À égalité — en pratique deux blobs jamais datés, écrits avant ce
+ *   correctif : un choix fait quelque part l'emporte sur un défaut que
+ *   personne n'a choisi, le serveur d'abord.
+ */
+export function arbitrerBarre(
+  local: EtatBarre,
+  serveur: { barreLaterale?: unknown; barreLateraleMaj?: unknown },
+): EtatBarre {
+  if (!('barreLaterale' in serveur)) return local;
+  const choixServeur = serveur.barreLaterale === null ? null : normaliserChoixBarre(serveur.barreLaterale);
+  if (serveur.barreLaterale !== null && choixServeur === null) return local;
+  const majServeur = horodatageBarre(serveur.barreLateraleMaj);
+  const majLocale = horodatageBarre(local.barreLateraleMaj);
+  const duServeur = { barreLaterale: choixServeur, barreLateraleMaj: majServeur };
+  if (majServeur > majLocale) return duServeur;
+  if (majLocale > majServeur) return local;
+  return choixServeur !== null || local.barreLaterale === null ? duServeur : local;
+}
