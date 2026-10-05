@@ -22,6 +22,10 @@
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
   import { versionDeBase } from '../../lib/versions';
+  import {
+    lireApercu, compterReglages, compterZones, rienNeChange, reglagesQuiChangent,
+    cleStatutZone, remplir, type ApercuRestauration,
+  } from '../../lib/apercuRestauration';
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -2200,6 +2204,32 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let rstName = $state('');
   let rstTyped = $state('');
   let rstBusy = $state(false);
+  // Fil forum 2110 — l'APERÇU, demandé au serveur dès le fichier lu, avant la
+  // saisie du mot : ce que la restauration ajoutera, modifiera ou laissera
+  // intact, réglages et zones. « indisponible » = serveur antérieur à
+  // l'aperçu : la confirmation reste possible, sans détail, comme avant.
+  let rstApercu = $state<ApercuRestauration | null>(null);
+  let rstApercuEtat = $state<'aucun' | 'chargement' | 'pret' | 'indisponible'>('aucun');
+
+  async function rstApercevoir() {
+    if (!rstData) return;
+    rstApercu = null;
+    rstApercuEtat = 'chargement';
+    try {
+      const a = lireApercu(await api.previewImportConfig(rstData));
+      rstApercu = a;
+      rstApercuEtat = a ? 'pret' : 'indisponible';
+    } catch (e: any) {
+      // 400 : le serveur REFUSE ce fichier (version future, entrée invalide).
+      // L'import le refuserait aussi : inutile de faire taper un mot.
+      if (e?.status === 400) {
+        sysErr = `${get(t)('settings.importConfigError')} : ${e?.message ?? e}`;
+        rstAnnuler();
+        return;
+      }
+      rstApercuEtat = 'indisponible';
+    }
+  }
 
   async function rstChoisi(e: Event) {
     const input = e.target as HTMLInputElement;
@@ -2213,10 +2243,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch {
       rstData = null; rstName = '';
       sysErr = get(t)('settings.restoreConfigBadFile');
+      return;
     }
+    await rstApercevoir();
   }
 
-  function rstAnnuler() { rstData = null; rstName = ''; rstTyped = ''; }
+  function rstAnnuler() {
+    rstData = null; rstName = ''; rstTyped = '';
+    rstApercu = null; rstApercuEtat = 'aucun';
+  }
 
   async function rstConfirmer() {
     if (!rstData) return;
@@ -4121,11 +4156,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'config'}
               <p class="hint">{#each emphaseParts($t('settings.configBackupHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
-              <!-- #902 — Cette sauvegarde-ci ne porte ni les zones, ni les
-                   jetons de services. Celle qui les porte existe
-                   (les routes `system/config-backup`, instantané complet) et
-                   elle est adossée à la licence : le dire ICI, où l'utilisateur vient
-                   chercher ses zones, plutôt que de le laisser deviner. -->
+              <!-- #902 — Cette sauvegarde-ci ne porte pas les jetons de
+                   services ; depuis le fil forum 2110 elle porte les ZONES.
+                   Celle qui porte le reste (les routes `system/config-backup`,
+                   instantané complet) est adossée à la licence : le dire ICI
+                   plutôt que de le laisser deviner. -->
               <p class="hint">{#each emphaseParts($t('settings.configBackupPremium' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               <div class="inline" style="margin-top:12px">
                 <button class="lnk" disabled={cfgBusy} onclick={doExportConfig}>
@@ -4140,10 +4175,44 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               {#if rstData}
                 <div class="fvbox">
-                  <p>{#each emphaseParts($t('settings.restoreConfigWarning' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
                   <p class="hint"><b class="mono">{rstName}</b></p>
+                  {#if rstApercuEtat === 'chargement'}
+                    <p class="hint">{$t('settings.restorePreviewLoading' as any)}</p>
+                  {:else if rstApercuEtat === 'indisponible'}
+                    <p class="hint">{$t('settings.restorePreviewUnavailable' as any)}</p>
+                  {:else if rstApercu}
+                    <p><b>{$t('settings.restorePreviewTitle' as any)}</b></p>
+                    {#if rienNeChange(rstApercu)}
+                      <p class="hint">{$t('settings.restorePreviewNothing' as any)}</p>
+                    {:else}
+                      <p class="hint">{remplir($t('settings.restorePreviewSettings' as any), compterReglages(rstApercu))}</p>
+                      {#if reglagesQuiChangent(rstApercu).length}
+                        <details>
+                          <summary class="hint">{$t('settings.restorePreviewDetails' as any)}</summary>
+                          <p class="hint mono">{reglagesQuiChangent(rstApercu).join(', ')}</p>
+                        </details>
+                      {/if}
+                      {#if rstApercu.zones.length}
+                        <p class="hint">{remplir($t('settings.restorePreviewZones' as any), compterZones(rstApercu))}</p>
+                        <ul class="hint">
+                          {#each rstApercu.zones as z, i (i)}
+                            <li>
+                              <b>{z.name}</b> — {$t(cleStatutZone(z.status) as any)}{#if z.offline} · {$t('settings.restorePreviewOffline' as any)}{/if}{#if z.hidden} · {$t('settings.restorePreviewHidden' as any)}{/if}
+                            </li>
+                          {/each}
+                        </ul>
+                      {/if}
+                    {/if}
+                    {#if rstApercu.avertissements.length}
+                      <p class="hint">{$t('settings.restorePreviewWarnings' as any)} : {rstApercu.avertissements.join(' · ')}</p>
+                    {/if}
+                  {/if}
+                  {#if rstApercuEtat === 'indisponible' || (rstApercuEtat === 'pret' && rstApercu && !rienNeChange(rstApercu))}
+                  <p>{#each emphaseParts($t('settings.restoreConfigWarning' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
                   <p class="hint">{#each emphaseParts($t('settings.restoreConfigType' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+                  {/if}
                   <div class="inline">
+                    {#if rstApercuEtat === 'indisponible' || (rstApercuEtat === 'pret' && rstApercu && !rienNeChange(rstApercu))}
                     <input class="txt" type="text" bind:value={rstTyped}
                       placeholder={$t('settings.restoreConfigWord' as any)}
                       onkeydown={(e) => { if (e.key === 'Escape') rstAnnuler(); }} />
@@ -4152,6 +4221,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       onclick={rstConfirmer}>
                       {rstBusy ? $t('common.loading' as any) : $t('settings.confirm' as any)}
                     </button>
+                    {/if}
                     <button class="lnk" disabled={rstBusy} onclick={rstAnnuler}>{$t('common.cancel' as any)}</button>
                   </div>
                 </div>
