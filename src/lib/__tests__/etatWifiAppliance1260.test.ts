@@ -39,6 +39,15 @@ describe('etatWifi (#1260)', () => {
   it('carte disponible, recherche en cours : recherche', () => {
     expect(etatWifi(statut([eth, wlan('disconnected')]), [], true)).toBe('recherche');
   });
+  it("fil 2159 : carte PCI liée à iwlwifi mais sans interface → pilote ou firmware manquant", () => {
+    const nuc = { bus: 'pci', slot: '0000:02:00.0', id: '8086:08b1', driver: 'iwlwifi', interfaces: [] };
+    expect(etatWifi(statut([eth], { wifi_hardware: [nuc] }), [], false)).toBe('carte-sans-pilote');
+    expect(etatWifi(statut([eth], { wifi_hardware: [{ ...nuc, driver: null }] }), [], true)).toBe('carte-sans-pilote');
+  });
+  it('contre-épreuve : aucune carte PCI, ou serveur sans ce relevé → toujours « sans carte »', () => {
+    expect(etatWifi(statut([eth], { wifi_hardware: [] }), [], false)).toBe('sans-carte');
+    expect(etatWifi(statut([eth]), [], false)).toBe('sans-carte');
+  });
   it('des réseaux trouvés priment sur tout', () => {
     expect(etatWifi(statut([eth]), [borne], false)).toBe('liste');
   });
