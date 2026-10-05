@@ -29,7 +29,7 @@
   import { jaugeReplayGain } from '../../lib/santeReplayGain';
   import {
     drActiveSelonServeur, etatCartePlageDynamique, etatServeurPlageDynamique, stockDuRattrapage,
-    stocksPlageDynamique,
+    stocksPlageDynamique, jaugePlageDynamique,
   } from '../../lib/santePlageDynamique';
   // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
   import { temperatureProcesseur } from '../../lib/temperatureProcesseur';
@@ -438,9 +438,18 @@
       // ni « en attente derrière ReplayGain » — en attente d'un disque.
       // Serveur ≥ 0.9.152 ; absent avant, donc 0.
       const reportees = typeof c.dynamic_range_deferred === 'number' ? c.dynamic_range_deferred : 0;
+      // tune-server-rust#5834 (fil 2157, « bloquée à 97 % ») — les pistes
+      // qu'aucune passe ne mesurera : trop longues pour le budget de
+      // l'analyse, ou sans fichier propre (CUE). Elles étaient comptées « en
+      // attente » pour toujours. Absentes d'un serveur plus ancien, donc 0.
+      const tropLongues = typeof c.dynamic_range_oversized === 'number' ? c.dynamic_range_oversized : 0;
+      const sansFichier = typeof c.dynamic_range_without_file === 'number' ? c.dynamic_range_without_file : 0;
       // `cfgDr` est la config déjà lue plus haut pour ReplayGain : le DR
       // dépend du MÊME réglage, on ne le relit pas.
-      const restantes = Math.max(0, total - avec - ecartees - reportees);
+      const restantes = Math.max(0, total - avec - ecartees - reportees - tropLongues - sansFichier);
+      // La jauge porte sur ce qui PEUT se mesurer (#5834) : sans quoi une
+      // seule piste écartée l'empêchait d'atteindre 100 %.
+      const jauge = jaugePlageDynamique({ total, avec, ecartees, tropLongues, sansFichier });
       // tune-web-client#1828 — le stock du RATTRAPAGE, le seul que l'ordre de
       // passage règle. Demandé seulement quand il y a deux stocks à séparer
       // (ReplayGain armé, pistes restantes), et au plus une fois par minute :
@@ -476,8 +485,8 @@
           .replace('{m}', $formatNombre(mesure))
           .replace('{g}', $formatNombre(tague))
           .replace('{s}', $formatNombre(rapporte ?? 0)),
-        fait: avec,
-        total: total || undefined,
+        fait: jauge.fait,
+        total: jauge.total || undefined,
         // Le détail porte la CAUSE, jamais un simple compteur.
         detail: !analyseActive
           ? $t('v2.health.drOffBecauseRg' as any)
@@ -488,9 +497,22 @@
                     : prioriteDr?.courante === 'before_fingerprints'
                       ? 'v2.health.drQueuedBeforeFingerprints'
                       : 'v2.health.drQueuedBehindRg') as any).replace('{n}', $formatNombre(enAttente))
-                : restantes === 0 && ecartees > 0
-                  ? $t('v2.health.drUnavailable' as any).replace('{n}', $formatNombre(ecartees))
-                  : undefined,
+                : undefined,
+              // #5834 — ce que la jauge ne compte pas, et pourquoi : dit à
+              // chaque fois, pas seulement une fois le reste fini. Sans ces
+              // lignes, une jauge à 97 % se lisait « bloquée ».
+              jauge.exclues > 0
+                ? $t('v2.health.drGaugeMeasurable' as any).replace('{n}', $formatNombre(jauge.total))
+                : undefined,
+              ecartees > 0
+                ? $t('v2.health.drUnavailable' as any).replace('{n}', $formatNombre(ecartees))
+                : undefined,
+              tropLongues > 0
+                ? $t('v2.health.drOversized' as any).replace('{n}', $formatNombre(tropLongues))
+                : undefined,
+              sansFichier > 0
+                ? $t('v2.health.drWithoutFile' as any).replace('{n}', $formatNombre(sansFichier))
+                : undefined,
               // #1828 — les pistes que le ReplayGain n'a pas encore vues : c'est
               // SA passe qui mesurera leur plage dynamique, l'ordre choisi n'y
               // change rien.
