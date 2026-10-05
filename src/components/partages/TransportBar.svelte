@@ -1,6 +1,6 @@
 <script lang="ts">
   import { preferences } from '../../lib/stores/preferences';
-  import { descriptionDEtape, etatSansPerte } from '../../lib/formatInconnu';
+  import { descriptionDEtape, etapeIntacte, etatSansPerte, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
   // La barre à VU-mètres (Bertrand, 27/09/2026, maquette de Levente). Le
   // cadran est celui du Grand écran, par `lib/dessinVuMetre` : une seconde
@@ -18,6 +18,7 @@
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { atteintLeSon } from '../../lib/porteeReglage';
   import { gainIgnoreParPure, gainReplayGainApplique, replayGainActif } from '../../lib/pureReplayGain';
   import { dbSigne } from '../../lib/compensationNiveau';
@@ -636,12 +637,6 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
 
   let showSignalPath = $state(false);
-
-  // #1097 — même lecture par étape que dans NowPlaying. Le verdict global
-  // reste le repli des serveurs anciens qui ne renseignent pas ce drapeau.
-  function etapeIntacte(step: { bit_perfect?: boolean }, verdict: boolean): boolean {
-    return step.bit_perfect ?? verdict;
-  }
 
   // Audiophile mode — l'état vit dans un store partagé : VolumeControl doit
   // lire le même (griser le curseur quand le verrou est armé).
@@ -1568,7 +1563,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                 {/if}
               </div>
               {#if i < zone.signal_path.steps.length - 1}
-                <div class="sp-line" class:bp={etapeIntacte(step, zone.signal_path.bit_perfect)}></div>
+                <!-- Fil 1825 : même règle que Lecture en cours (`traitIntact`). -->
+                <div class="sp-line" class:bp={traitIntact(zone.signal_path.steps, i, zone.signal_path.bit_perfect)}></div>
               {/if}
             </div>
             <div class="sp-info">
@@ -1620,7 +1616,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     allZones={$zones}
     groups={[]}
     onClose={() => configZone = null}
-    onDelete={() => { configZone = null; }}
+    onDelete={async (id) => { await supprimerZoneConfirmee(id); configZone = null; }}
     onGroupChanged={() => {}}
     onRenamed={() => {}}
   />

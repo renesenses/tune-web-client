@@ -1,6 +1,6 @@
 <script lang="ts">
   import { atteintLeSon } from '../../lib/porteeReglage';
-  import { descriptionDEtape, etatSansPerte } from '../../lib/formatInconnu';
+  import { descriptionDEtape, etapeIntacte, etatSansPerte, traitIntact } from '../../lib/formatInconnu';
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
   import { pisteDeFile } from '../../lib/pisteDeFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
@@ -876,33 +876,8 @@ import { ICONES } from '../../lib/menuPiste';
     return text;
   }
 
-  /**
-   * Cette étape-là laisse-t-elle le signal intact ?
-   *
-   * Le serveur calcule ce drapeau POUR CHAQUE étape (`zones.rs`,
-   * `build_signal_path` : source, transcodage, volume, DSP, transport…) et le
-   * sérialise dans `steps[].bit_perfect`. Le champ était typé dans
-   * `SignalPathStep`… et lu nulle part : les trois pastilles — icône, trait,
-   * point — étaient toutes liées au verdict GLOBAL. La conséquence est double,
-   * et fausse dans les deux sens :
-   *
-   *   - un seul maillon altéré (une atténuation de volume, un égaliseur) fait
-   *     virer au gris TOUTE la chaîne, y compris la source et le transport, qui
-   *     n'ont rien fait ;
-   *   - un verdict vert peint en vert un maillon que le serveur a marqué faux.
-   *
-   * Le panneau n'existe que pour répondre « où mon signal a-t-il été touché ? ».
-   * Répéter six fois la réponse d'ensemble ne répond jamais à cette question
-   * (Jean Valjean, #1985 : « tout est en vert donc en théorie pas de
-   * modification »).
-   *
-   * Le repli sur le verdict global n'est pas décoratif : `bit_perfect` est
-   * optionnel dans `SignalPathStep` et les serveurs qui ne l'envoient pas
-   * doivent garder l'affichage d'avant, pas une chaîne entièrement grise.
-   */
-  function etapeIntacte(step: { bit_perfect?: boolean }, verdict: boolean): boolean {
-    return step.bit_perfect ?? verdict;
-  }
+  // `etapeIntacte` et `traitIntact` vivent dans `lib/formatInconnu` : les deux
+  // panneaux du chemin du signal lisent la même règle (fil 1825).
 
   $effect(() => {
     const tr = normalizedTrack;
@@ -2229,7 +2204,7 @@ import { ICONES } from '../../lib/menuPiste';
                                  si ses DEUX extrémités le sont. Le peindre
                                  d'après la seule étape amont ferait descendre du
                                  vert dans un maillon altéré. -->
-                            <div class="sp-step-line" class:bit-perfect={etapeIntacte(step, zone.signal_path.bit_perfect) && etapeIntacte(zone.signal_path.steps[i + 1], zone.signal_path.bit_perfect)}></div>
+                            <div class="sp-step-line" class:bit-perfect={traitIntact(zone.signal_path.steps, i, zone.signal_path.bit_perfect)}></div>
                           {/if}
                         </div>
                         <div class="sp-step-info">
