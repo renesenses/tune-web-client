@@ -5,6 +5,7 @@
   // Head of the queue — the store serializes concurrent requests.
   let current = $derived($dialogs[0] ?? null);
   let value = $state('');
+  let coche = $state(true);
   let currentId = -1;
 
   // Seed the input when a new request becomes visible (and only then —
@@ -13,16 +14,17 @@
     if (current && current.id !== currentId) {
       currentId = current.id;
       value = current.initial;
+      coche = current.case?.coche ?? true;
     }
   });
 
   function validate() {
     if (!current) return;
-    dialogs.settle(current.id, current.kind === 'prompt' ? value : true);
+    dialogs.settle(current.id, current.kind === 'prompt' ? value : current.case ? { coche } : true);
   }
   function cancel() {
     if (!current) return;
-    dialogs.settle(current.id, current.kind === 'prompt' ? null : false);
+    dialogs.settle(current.id, current.kind === 'prompt' || current.case ? null : false);
   }
   function onWindowKeydown(e: KeyboardEvent) {
     if (!current) return;
@@ -53,6 +55,12 @@
       <p class="dialog-message">{current.message}</p>
       {#if current.kind === 'prompt'}
         <input class="dialog-input" type="text" bind:value use:autofocus />
+      {/if}
+      {#if current.case}
+        <label class="dialog-case">
+          <input type="checkbox" bind:checked={coche} />
+          <span>{current.case.label}</span>
+        </label>
       {/if}
       <div class="dialog-actions">
         <button class="dialog-btn" onclick={cancel}>{$t('common.cancel')}</button>
@@ -108,6 +116,16 @@
     color: var(--tune-text);
     white-space: pre-line;
     word-break: break-word;
+  }
+
+  .dialog-case {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--tune-text);
+    cursor: pointer;
   }
 
   .dialog-input {

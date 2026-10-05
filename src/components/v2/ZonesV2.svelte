@@ -18,6 +18,7 @@
    */
   import * as api from '../../lib/api';
   import { zones, currentZoneId } from '../../lib/stores/zones';
+  import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { chargerLesZones, etatDesZones, listeVraimentVide } from '../../lib/chargementDesZones';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -393,12 +394,8 @@
     if (z.id == null) return;
     const question = $t('v2.zone.deleteExplain' as any).replace('{name}', z.name);
     if (!(await dialogs.confirm(question, { danger: true }))) return;
-    act(async () => {
-      await api.deleteZone(z.id as number);
-      // La zone active vient d'être supprimée : on ne laisse pas l'interface
-      // pointer sur un identifiant mort.
-      if ($currentZoneId === z.id) currentZoneId.set(null);
-    });
+    // Même geste que la barre de lecture (fil 2013, point 9) : un seul endroit.
+    act(() => supprimerZoneConfirmee(z.id as number));
   }
   function setVol(z: Zone, v: number) {
     if (z.id == null) return;

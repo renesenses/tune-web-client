@@ -401,7 +401,7 @@
           <li>
             <h3>{groupe.artiste}</h3>
             <ul class="cc-dates">
-              {#each groupe.concerts as date (date.event_date + (date.venue ?? '') + (date.city ?? ''))}
+              {#each groupe.concerts as date, i (groupe.cles[i])}
                 <li>
                   <span class="cc-date">{dateLisible(date.event_date)}</span>
                   <span class="cc-lieu">
