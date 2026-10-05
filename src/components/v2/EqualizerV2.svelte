@@ -104,6 +104,28 @@
   let enabled = $state(true);
   let loading = $state(true);
   let error = $state<string | null>(null);
+  /**
+   * Ticket 177 (Levente, fil 1974) — « l'EQ a oublié mes réglages ».
+   *
+   * La courbe EN SERVICE n'a pas pu être relue (`GET /zones/{id}/eq` en
+   * échec). L'écran tombait alors dans la branche « aucune courbe » et
+   * dessinait des curseurs à plat — sans un mot, alors que le serveur
+   * appliquait toujours ses bandes ; et le premier geste écrasait la vraie
+   * courbe par celle, plate, de l'écran. On n'affiche plus rien d'éditable :
+   * on le dit, et on propose de relire.
+   */
+  let lectureEchouee = $state(false);
+  /** Le numéro de la dernière lecture : une réponse plus ancienne, arrivée
+   *  après (changement de zone, rechargement), ne remplace plus l'écran. */
+  let numeroLecture = 0;
+  /**
+   * La courbe en service est PARAMÉTRIQUE (ou l'est devenue au dernier
+   * enregistrement). Sur l'onglet Graphique, ses bandes n'ont pas de curseur :
+   * la grille paraît à plat, et « Plat » s'allumait comme préréglage actif
+   * alors que l'égaliseur corrigeait toujours. On ne l'allume plus, et une
+   * note le dit.
+   */
+  let courbeEnServiceParametrique = $state(false);
 
   /**
    * Égaliseur en greffon FACULTATIF (v0.9.156).
@@ -141,6 +163,8 @@
     const zid = $currentZoneId;
     void rechargement; // relu exprès : l'installation du greffon relance le chargement
     loading = true;
+    const lecture = ++numeroLecture;
+    const msgIndisponible = $t('v2.eq.errUnavailable' as any);
     // web#1750 — une autre zone, une autre courbe : « Enregistrer » ne doit
     // pas l'écrire dans le préréglage qu'on éditait sur la précédente.
     enCoursId = null;
@@ -151,6 +175,14 @@
       .then((p) => { greffon = p ?? null; }, () => { greffon = null; });
     const lectureZone = zid == null ? Promise.resolve() : Promise.allSettled([api.getEqExpertSettings(), api.getEq(zid)])
       .then(([res, eq]) => {
+        if (lecture !== numeroLecture) return;
+        if (eq.status === 'rejected') {
+          // Ticket 177 — surtout pas la branche « à plat » ci-dessous.
+          lectureEchouee = true;
+          error = msgIndisponible;
+          return;
+        }
+        lectureEchouee = false;
         if (res.status === 'fulfilled') bandCount = res.value.expert_bands ?? 10;
         const grid = GRIDS[bandCount] ?? GRIDS[10];
         // #5171 — `null` : serveur antérieur au réglage, contrôle caché.
@@ -165,6 +197,7 @@
           pBandes = bands.map((b) => ({ ...b }));
           sousMode = bands.length && !estCourbeGraphique(bands, grid, GRID_Q[bandCount] ?? 1.0)
             ? 'parametrique' : 'graphique';
+          courbeEnServiceParametrique = sousMode === 'parametrique';
           const left = bands.filter((b) => b.channel === undefined || b.channel === 0);
           const right = bands.filter((b) => b.channel === 1);
           gains = grid.map((f) => left.find((b) => Math.abs(b.freq - f) < 0.51)?.gain ?? 0);
@@ -174,10 +207,11 @@
           gainsRight = null;
           pBandes = [];
           sousMode = 'graphique';
+          courbeEnServiceParametrique = false;
         }
         error = null;
       })
-      .catch(() => { error = $t('v2.eq.errUnavailable' as any); });
+      .catch(() => { error = msgIndisponible; });
     Promise.allSettled([lectureGreffon, lectureZone]).finally(() => { loading = false; });
   });
 
@@ -274,6 +308,7 @@
       : bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0);
     try {
       const res: any = await api.setEq(zid, { bands, enabled });
+      courbeEnServiceParametrique = sousMode === 'parametrique';
       reportReach(atteintLeSon(res?.applied_live, res?.portee));
       // La courbe a changé : ce que la compensation rend aussi (#4685).
       revisionDsp++;
@@ -431,6 +466,8 @@
   /** Le préréglage intégré dont la courbe est exactement celle affichée. */
   const presetActif: string | null = $derived.by(() => {
     if (sousMode !== 'graphique') return null;
+    // Ticket 177 — la grille à plat d'une courbe paramétrique n'est pas « Plat ».
+    if (courbeEnServiceParametrique) return null;
     // Les sept courbes sont écrites sur la grille à DIX bandes : sur une
     // autre résolution, la comparaison n'aurait pas de sens.
     if (bandCount !== 10) return null;
@@ -448,6 +485,7 @@
         && bandes.every((b, i) => b.freq === pBandes[i].freq && memeGain(b.gain, pBandes[i].gain));
     }
     if (sousMode !== 'graphique' || gainsRight !== null) return false;
+    if (courbeEnServiceParametrique) return false;
     return bandes.length === BANDS.length
       && bandes.every((b, i) => b.freq === BANDS[i] && memeGain(b.gain, gains[i]));
   }
@@ -676,6 +714,14 @@
       </div>
     {:else if $currentZoneId == null}
       <div class="state">{$t('v2.eq.noZone' as any)}</div>
+    {:else if lectureEchouee}
+      <!-- Ticket 177 — la courbe en service n'a pas pu être relue : rien
+           d'éditable, sinon le premier geste la remplacerait par une courbe
+           plate que personne n'a réglée. -->
+      <div class="state lecture-echouee">
+        <p>{$t('v2.eq.readFailed' as any)}</p>
+        <button class="v2-btn" onclick={() => rechargement++}>{$t('v2.eq.retry' as any)}</button>
+      </div>
     {:else}
       <!-- web#1674 — en PURE, l'écran est VOILÉ : un message, et tous les
            réglages grisés d'un bloc par le fieldset (boutons, curseurs, et
@@ -797,6 +843,9 @@
         </div>
       {/if}
 
+      {#if courbeEnServiceParametrique}
+        <p class="note-peq">{$t('v2.eq.graphicHidesParametric' as any)}</p>
+      {/if}
       <div class="board" class:off={!enabled}>
         {#each BANDS as f, i (f)}
           <div class="band">
@@ -842,6 +891,9 @@
     font-family:var(--v2-sans); overflow:hidden}
   .onoff{font:11px var(--v2-mono); color:var(--v2-txt3); margin-right:auto}
   .reglages{border:0; margin:0; padding:0; min-width:0}
+  .note-peq{margin:0 0 12px; font-size:12px; line-height:1.45; color:var(--v2-txt3)}
+  .lecture-echouee{display:flex; flex-direction:column; align-items:flex-start; gap:12px}
+  .lecture-echouee p{margin:0}
   .reglages.voile{opacity:.45; pointer-events:none; user-select:none}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     border-radius:var(--v2-r-pill); padding:8px 15px; font:600 12px var(--v2-sans)}

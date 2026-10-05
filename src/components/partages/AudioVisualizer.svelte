@@ -183,7 +183,11 @@
   // Cache accent color (avoid getComputedStyle per frame)
   let cachedAccent = '#6B6ED9';
   let cachedMuted = 'rgba(255, 255, 255, 0.4)';
-  let accentCacheTime = 0;
+  // 🔴 -Infinity, pas 0 — web#1888 (Didier, fil 2049). L'horodatage d'une
+  // image compte depuis l'ouverture de la PAGE : avec 0, la première relecture
+  // n'avait lieu qu'après 2 s de vie de la page, et le spectre démarré entre-
+  // temps dessinait ses barres dans le bleu de repli au lieu du thème.
+  let accentCacheTime = Number.NEGATIVE_INFINITY;
 
   // Derive energy profile from audio metadata
   function getEnergyProfile(): { bass: number; mid: number; treble: number; speed: number } {
