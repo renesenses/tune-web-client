@@ -2322,6 +2322,7 @@ export default {
   "v2.pod.noSelection": "지금은 여기에 보여드릴 것이 없습니다.",
   "v2.nav.addShortcut": "이 화면의 바로가기 만들기",
   "v2.nav.shortcutName": "바로가기 이름…",
+  "v2.nav.shortcutTargetHint": "이 바로가기로 열리는 항목: {nom}",
   "v2.fav.radioLoading": "라디오 즐겨찾기를 불러오는 중…",
   "v2.fav.radioEmpty": "아직 담긴 곡이 없습니다. 라디오를 듣는 중에 곡을 좋아요 하면 여기에 들어옵니다.",
   "v2.fav.radioMakePlaylist": "재생목록 만들기",
@@ -4028,6 +4029,10 @@ export default {
   "v2.cd.playTrack": "이 트랙 재생",
   "v2.cd.trackN": "트랙 {n}",
   "v2.cd.toZone": "{zone}(으)로",
+  "v2.cd.eject": "꺼내기",
+  "v2.cd.ejectConfirm": "디스크를 재생하고 있습니다. 재생을 멈추고 디스크를 꺼낼까요?",
+  "v2.cd.ejectFailed": "디스크를 꺼낼 수 없습니다. 다른 프로그램이 사용 중일 수 있습니다.",
+  "v2.cd.ejectUnsupported": "이 드라이브는 Tune에서 꺼낼 수 없습니다.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "Tune Circle 확장 기능이 활성화되어 있지 않습니다. 확장 기능에서 설치한 다음 Tune을 다시 시작하세요.",

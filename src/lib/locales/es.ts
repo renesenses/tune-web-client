@@ -2322,6 +2322,7 @@ export default {
   "v2.pod.noSelection": "Por ahora no hay nada que mostrar aquí.",
   "v2.nav.addShortcut": "Crear un acceso directo a esta pantalla",
   "v2.nav.shortcutName": "Nombre del acceso directo…",
+  "v2.nav.shortcutTargetHint": "Este acceso directo abrirá: {nom}",
   "v2.fav.radioLoading": "Cargando los favoritos de radio…",
   "v2.fav.radioEmpty": "Todavía no se ha captado nada. Marque un tema mientras escucha una radio: aparecerá aquí.",
   "v2.fav.radioMakePlaylist": "Crear una lista",
@@ -4028,6 +4029,10 @@ export default {
   "v2.cd.playTrack": "Reproducir esta pista",
   "v2.cd.trackN": "Pista {n}",
   "v2.cd.toZone": "En {zone}",
+  "v2.cd.eject": "Expulsar",
+  "v2.cd.ejectConfirm": "El disco se está reproduciendo. ¿Detener la reproducción y expulsar el disco?",
+  "v2.cd.ejectFailed": "No se ha podido expulsar el disco. Puede que otro programa lo esté usando.",
+  "v2.cd.ejectUnsupported": "Este lector no se puede expulsar desde Tune.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "La extensión Tune Circle no está activa. Instálala desde Extensiones y reinicia Tune.",

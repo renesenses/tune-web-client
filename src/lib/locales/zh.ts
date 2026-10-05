@@ -2322,6 +2322,7 @@ export default {
   "v2.pod.noSelection": "目前这里没有可显示的内容。",
   "v2.nav.addShortcut": "为此界面创建快捷方式",
   "v2.nav.shortcutName": "快捷方式名称…",
+  "v2.nav.shortcutTargetHint": "此快捷方式将重新打开：{nom}",
   "v2.fav.radioLoading": "正在加载电台收藏…",
   "v2.fav.radioEmpty": "暂时没有捕获到任何内容。收听电台时喜欢某首曲目，它就会出现在这里。",
   "v2.fav.radioMakePlaylist": "创建播放列表",
@@ -4028,6 +4029,10 @@ export default {
   "v2.cd.playTrack": "播放此音轨",
   "v2.cd.trackN": "音轨 {n}",
   "v2.cd.toZone": "到 {zone}",
+  "v2.cd.eject": "弹出",
+  "v2.cd.ejectConfirm": "光盘正在播放。要停止播放并弹出光盘吗？",
+  "v2.cd.ejectFailed": "无法弹出光盘。可能有其他程序正在使用它。",
+  "v2.cd.ejectUnsupported": "无法从 Tune 弹出此光驱。",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "Tune Circle 扩展未启用。请在“扩展”中安装，然后重启 Tune。",

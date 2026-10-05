@@ -2322,6 +2322,7 @@ export default {
   "v2.pod.noSelection": "Deocamdată nu este nimic de arătat aici.",
   "v2.nav.addShortcut": "Creați o scurtătură către acest ecran",
   "v2.nav.shortcutName": "Numele scurtăturii…",
+  "v2.nav.shortcutTargetHint": "Această scurtătură va redeschide: {nom}",
   "v2.fav.radioLoading": "Se încarcă favoritele radio…",
   "v2.fav.radioEmpty": "Încă nimic captat. Apreciați o piesă în timp ce ascultați un radio: va ajunge aici.",
   "v2.fav.radioMakePlaylist": "Creează o listă",
@@ -4028,6 +4029,10 @@ export default {
   "v2.cd.playTrack": "Redă această piesă",
   "v2.cd.trackN": "Piesa {n}",
   "v2.cd.toZone": "Către {zone}",
+  "v2.cd.eject": "Scoate discul",
+  "v2.cd.ejectConfirm": "Discul este în redare. Oprești redarea și scoți discul?",
+  "v2.cd.ejectFailed": "Discul nu a putut fi scos. Poate fi folosit de alt program.",
+  "v2.cd.ejectUnsupported": "Discul din această unitate nu poate fi scos din Tune.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "Extensia Tune Circle nu este activă. Instalați-o din Extensii, apoi reporniți Tune.",
