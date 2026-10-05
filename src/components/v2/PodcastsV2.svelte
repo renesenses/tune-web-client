@@ -17,6 +17,8 @@
    */
   import * as api from '../../lib/api';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
+  import { listResetNonce } from '../../lib/stores/navigation';
+  import { untrack } from 'svelte';
   import { currentZoneId } from '../../lib/stores/zones';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -417,6 +419,20 @@
 
   // Quitter l'écran oublie la cible.
   $effect(() => () => clearShortcutTarget());
+
+  // Fil 2143, point 7 — recliquer « Podcasts » dans la barre latérale referme
+  // la fiche ouverte. Cet écran ne passe pas par `detailOuvert` : il écoute
+  // donc le signal de la barre, comme la Bibliothèque et les Playlists.
+  // `$listResetNonce`, pas `get()` : sans dépendance, l'effet ne tournerait
+  // qu'au montage (#3843).
+  $effect(() => {
+    $listResetNonce;
+    untrack(() => {
+      if (opened == null) return;
+      opened = null;
+      clearShortcutTarget();
+    });
+  });
 
   /*
    * Radio France avec CLÉ D'API — porté de l'ancien écran Podcasts, seul à
