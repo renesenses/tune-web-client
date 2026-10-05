@@ -221,6 +221,17 @@
   --tune-text-dim: var(--v2-txt3);
 }
 
+/* `--tune-grey2` (fond des puces, champs et vignettes des écrans repris du
+   client actuel) n'était pas ponté : il gardait le #2A2A2A sombre de
+   `tune-theme.css` dans les deux thèmes CLAIRS. Fil 2136 (Pierre, 04/10/2026),
+   écran Ambiance en « Clair / Gris » : puces gris foncé, texte à 2,1:1.
+   Il prend la surface de choix du thème — c'est exactement son rôle.
+   Limité aux thèmes clairs : sur les quatre thèmes sombres, rien ne change. */
+:root[data-v2-theme="clear-white"] .tune-v2,
+:root[data-v2-theme="clear-grey"] .tune-v2{
+  --tune-grey2: var(--v2-surface2);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    EN-TÊTE D'ÉCRAN — une seule définition pour vingt-cinq écrans.
 

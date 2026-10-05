@@ -429,7 +429,7 @@
   .cc { padding: 1rem; max-width: 60rem; margin: 0 auto; }
   .cc-tete h2 { margin: 0 0 0.25rem; }
   .cc-sous { color: var(--text-muted, #888); margin: 0 0 1.5rem; }
-  .cc-encart { background: var(--surface, #1b1b1b); padding: 1rem; border-radius: 8px; }
+  .cc-encart { background: var(--tune-surface); padding: 1rem; border-radius: 8px; }
   .cc-principal {
     display: inline-block; margin-top: 0.75rem; padding: 0.45rem 1rem;
     border-radius: 6px; background: var(--accent, #2b7); color: #fff; text-decoration: none;
@@ -454,7 +454,7 @@
   /* Une ligne par concert : le nom d'artiste se répète, et la séparation
      serrée évite qu'une liste chronologique ne s'étire sur trois écrans. */
   .cc-liste.cc-par-date > li { padding: 0.35rem 0; }
-  .cc-liste > li { padding: 0.75rem 0; border-bottom: 1px solid var(--border, #2a2a2a); }
+  .cc-liste > li { padding: 0.75rem 0; border-bottom: 1px solid var(--tune-border); }
   .cc-liste h3 { margin: 0 0 0.35rem; font-size: 1rem; }
   .cc-dates { list-style: none; padding: 0; margin: 0; }
   .cc-dates li { display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 0.15rem 0; }
