@@ -57,7 +57,7 @@
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, ongletCourant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
   import BandcampAchats from './BandcampAchats.svelte';
@@ -96,7 +96,30 @@
   // Bandcamp garde deux entrees seulement : il n'a pas de playlists, sa
   // « collection » EST l'ensemble de ce qu'on y possede.
   type Sub = 'editorial' | 'genres' | 'playlists' | 'favorites' | 'mine' | 'ytmusic';
-  let sub = $state<Sub>('editorial');
+  /**
+   * 🔴 LE SOUS-ONGLET EST PUBLIÉ DANS `ongletCourant` — fil 2143, point 2.
+   *
+   * FabienM : « impossible de définir un raccourci sur un sous menu ». Le
+   * raccourci figeait le SERVICE (#1138), jamais son sous-onglet : posé sur
+   * « Favoris » de Qobuz, il rouvrait l'éditorial. Même magasin que les
+   * Favoris et la Bibliothèque : le raccourci le fige et le repose, l'écran le
+   * lit au montage et le suit ensuite.
+   */
+  const SOUS_ONGLETS: readonly Sub[] = ['editorial', 'genres', 'playlists', 'favorites', 'mine', 'ytmusic'];
+  const sousOngletDe = (o: string | null): Sub | null =>
+    (SOUS_ONGLETS as readonly string[]).includes(o ?? '') ? (o as Sub) : null;
+  let sub = $state<Sub>(sousOngletDe(get(ongletCourant)) ?? 'editorial');
+  $effect(() => {
+    const s = sub;
+    untrack(() => { if (get(ongletCourant) !== s) ongletCourant.set(s); });
+  });
+  // Même règle que la Bibliothèque : démonté sans changement de vue, l'écran
+  // reprend l'onglet qu'il avait publié ; sinon la coquille s'en est chargée.
+  const vueAuMontage = get(activeView);
+  $effect(() => () => {
+    if (get(activeView) !== vueAuMontage) return;
+    if (get(ongletCourant) === sub) ongletCourant.set(null);
+  });
 
   let q = $state('');
   /**
@@ -539,6 +562,12 @@
     results = null;
     bcSearch = null;
   }
+
+  // Un raccourci (ou un Précédent) qui repose le sous-onglet, écran monté.
+  $effect(() => {
+    const voulu = sousOngletDe($ongletCourant);
+    untrack(() => { if (voulu && voulu !== sub) ouvrirSousOnglet(voulu); });
+  });
 
   /**
    * Le service demande de l'EXTERIEUR, suivi tant que l'ecran est monte —
