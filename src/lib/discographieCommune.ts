@@ -103,16 +103,34 @@ export function rangDeSortie(entree: EntreeDiscographie): 'album' | 'ep' | 'sing
   return entree.exemplaires.every((ex) => typeDeSortie(ex.album) === 'single') ? 'single' : 'ep';
 }
 
+/**
+ * Section « Live » (Bertrand, 05/10/2026) : une entrée va dans « Live » dès
+ * qu'un de ses exemplaires porte le type secondaire `live`
+ * (`release_secondary_types`, serveur), QUEL QUE SOIT son type primaire : un EP
+ * live est un live. Les services ne publient pas de type secondaire ; leur
+ * silence ne contredit donc pas la bibliothèque.
+ */
+export function estLive(entree: EntreeDiscographie): boolean {
+  return entree.exemplaires.some((ex) =>
+    (ex.album.release_secondary_types ?? []).some((t) => t?.trim().toLowerCase() === 'live'),
+  );
+}
+
 /** Conserve l'ordre reçu, y compris pour les albums sans type connu. */
 export function partagerParTypeDeSortie(entrees: EntreeDiscographie[]) {
   const albums: EntreeDiscographie[] = [];
   const eps: EntreeDiscographie[] = [];
   const singles: EntreeDiscographie[] = [];
+  const live: EntreeDiscographie[] = [];
   for (const entree of entrees) {
+    if (estLive(entree)) {
+      live.push(entree);
+      continue;
+    }
     const rang = rangDeSortie(entree);
     (rang === 'single' ? singles : rang === 'ep' ? eps : albums).push(entree);
   }
-  return { albums, eps, singles };
+  return { albums, eps, singles, live };
 }
 
 /**

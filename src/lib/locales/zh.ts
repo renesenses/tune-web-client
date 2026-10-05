@@ -3212,6 +3212,7 @@ export default {
   "v2.disco.mainAlbums": "主要专辑",
   "v2.disco.eps": "EP",
   "v2.disco.singles": "单曲",
+  "v2.disco.live": "现场",
   "v2.disco.compilations": "合辑",
   "v2.disco.appearances": "参与专辑",
   "v2.fas.albums": "专辑",

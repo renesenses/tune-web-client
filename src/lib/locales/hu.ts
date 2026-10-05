@@ -3170,6 +3170,7 @@ export default {
   "v2.disco.mainAlbums": "Fő albumok",
   "v2.disco.eps": "EP-k",
   "v2.disco.singles": "Kislemezek",
+  "v2.disco.live": "Élő felvételek",
   "v2.disco.compilations": "Válogatások",
   "v2.disco.appearances": "Közreműködések",
   "v2.fas.albums": "Albumok",

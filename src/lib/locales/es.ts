@@ -3212,6 +3212,7 @@ export default {
   "v2.disco.mainAlbums": "Álbumes principales",
   "v2.disco.eps": "EP",
   "v2.disco.singles": "Sencillos",
+  "v2.disco.live": "En directo",
   "v2.disco.compilations": "Recopilatorios",
   "v2.disco.appearances": "Apariciones",
   "v2.fas.albums": "Álbumes",

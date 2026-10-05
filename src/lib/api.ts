@@ -2082,6 +2082,12 @@ export function getArtistAlbums(id: number) {
  */
 export interface AlbumsArtisteSections {
   albums: Album[];
+  /**
+   * Section « Live » (05/10/2026) — les disques dont les types secondaires
+   * portent `live`, que le serveur retire de `albums`. Absente devant un
+   * serveur antérieur, et quand il n'y en a pas.
+   */
+  live?: Album[];
   /** Compilations portant au moins une piste de l'artiste. */
   compilations?: Album[];
   /** Albums d'un AUTRE artiste portant au moins une piste de celui-ci. */
@@ -2119,6 +2125,7 @@ export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
   const o = (brut ?? {}) as AlbumsArtisteSections;
   return {
     albums: o.albums ?? [],
+    live: o.live,
     compilations: o.compilations,
     appearances: o.appearances,
     collaborations: o.collaborations,
