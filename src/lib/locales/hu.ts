@@ -3977,6 +3977,10 @@ export default {
   "v2.cd.playTrack": "Szám lejátszása",
   "v2.cd.trackN": "{n}. szám",
   "v2.cd.toZone": "Ide: {zone}",
+  "v2.cd.eject": "Kiadás",
+  "v2.cd.ejectConfirm": "A lemez lejátszás alatt van. Leállítod a lejátszást, és kiadod a lemezt?",
+  "v2.cd.ejectFailed": "A lemezt nem sikerült kiadni. Lehet, hogy egy másik program használja.",
+  "v2.cd.ejectUnsupported": "Ezt a meghajtót nem lehet a Tune-ból kiadni.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "A Tune Circle bővítmény nem aktív. Telepítse a Bővítmények között, majd indítsa újra a Tune-t.",
