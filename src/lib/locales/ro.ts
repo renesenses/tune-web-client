@@ -3036,6 +3036,7 @@ export default {
   "v2.stream.nothingForGenre": "Nimic de descoperit pentru acest gen.",
   "v2.stream.bcNoAccount": "Niciun cont Bandcamp asociat.",
   "v2.stream.bcEmpty": "Colecția dumneavoastră Bandcamp este goală.",
+  "v2.stream.bcCollectionFailed": "Bandcamp nu a răspuns: colecția dumneavoastră nu a putut fi încărcată. Contul rămâne conectat.",
   "v2.stream.bcSessionNone": "Pentru a descărca achizițiile în FLAC, Tune are nevoie de sesiunea dumneavoastră Bandcamp.",
   "v2.stream.bcSessionExpired": "Sesiunea Bandcamp nu mai dă acces la descărcări: a expirat. Lipiți una nouă.",
   "v2.stream.bcSessionHowTo": "Conectați-vă pe bandcamp.com, deschideți instrumentele pentru dezvoltatori ale browserului (Application › Cookies › bandcamp.com), copiați valoarea cookie-ului „identity” și lipiți-o aici. Tune o păstrează pe serverul dumneavoastră, nu o afișează niciodată și o trimite doar către Bandcamp.",

@@ -2994,6 +2994,7 @@ export default {
   "v2.stream.nothingForGenre": "Ebben a műfajban nincs mit felfedezni.",
   "v2.stream.bcNoAccount": "Nincs összekapcsolt Bandcamp-fiók.",
   "v2.stream.bcEmpty": "A Bandcamp-gyűjteménye üres.",
+  "v2.stream.bcCollectionFailed": "A Bandcamp nem válaszolt: a gyűjteményét nem sikerült betölteni. A fiókja továbbra is össze van kapcsolva.",
   "v2.stream.bcSessionNone": "A vásárlások FLAC-ban való letöltéséhez a Tune-nak szüksége van a Bandcamp-munkamenetére.",
   "v2.stream.bcSessionExpired": "A Bandcamp-munkamenet már nem nyitja meg a letöltéseket: lejárt. Illesszen be egy újat.",
   "v2.stream.bcSessionHowTo": "Jelentkezzen be a bandcamp.com oldalon, nyissa meg a böngésző fejlesztői eszközeit (Application › Cookies › bandcamp.com), másolja ki az „identity” süti értékét, és illessze be ide. A Tune a szerverén tárolja, soha nem mutatja meg, és csak a Bandcampnek küldi el.",

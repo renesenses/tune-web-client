@@ -3036,6 +3036,7 @@ export default {
   "v2.stream.nothingForGenre": "이 장르에는 발견할 것이 없습니다.",
   "v2.stream.bcNoAccount": "연결된 Bandcamp 계정이 없습니다.",
   "v2.stream.bcEmpty": "Bandcamp 컬렉션이 비어 있습니다.",
+  "v2.stream.bcCollectionFailed": "Bandcamp가 응답하지 않았습니다. 컬렉션을 불러오지 못했습니다. 계정 연결은 그대로 유지됩니다.",
   "v2.stream.bcSessionNone": "구매한 음반을 FLAC으로 다운로드하려면 Bandcamp 세션이 필요합니다.",
   "v2.stream.bcSessionExpired": "Bandcamp 세션으로 더 이상 다운로드할 수 없습니다. 만료되었습니다. 새 세션을 붙여넣으세요.",
   "v2.stream.bcSessionHowTo": "bandcamp.com에 로그인한 뒤 브라우저 개발자 도구(Application › Cookies › bandcamp.com)를 열고 「identity」 쿠키 값을 복사해 여기에 붙여넣으세요. Tune은 이 값을 서버에 보관하며, 표시하지 않고 Bandcamp에만 전송합니다.",

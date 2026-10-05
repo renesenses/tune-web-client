@@ -3036,6 +3036,7 @@ export default {
   "v2.stream.nothingForGenre": "このジャンルには見つかるものがありません。",
   "v2.stream.bcNoAccount": "連携された Bandcamp アカウントがありません。",
   "v2.stream.bcEmpty": "Bandcamp のコレクションが空です。",
+  "v2.stream.bcCollectionFailed": "Bandcamp から応答がありません。コレクションを読み込めませんでした。アカウントの連携はそのままです。",
   "v2.stream.bcSessionNone": "購入した作品を FLAC でダウンロードするには、Bandcamp のセッションが必要です。",
   "v2.stream.bcSessionExpired": "Bandcamp のセッションではダウンロードできなくなりました。期限切れです。新しいものを貼り付けてください。",
   "v2.stream.bcSessionHowTo": "bandcamp.com にログインし、ブラウザの開発者ツール（Application › Cookies › bandcamp.com）を開いて、Cookie「identity」の値をコピーし、ここに貼り付けてください。Tune はこの値をサーバー上に保管し、表示せず、Bandcamp 以外には送信しません。",

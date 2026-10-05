@@ -3057,6 +3057,7 @@ export default {
   "v2.stream.nothingForGenre": "Rien à découvrir pour ce genre.",
   "v2.stream.bcNoAccount": "Aucun compte Bandcamp relié.",
   "v2.stream.bcEmpty": "Votre collection Bandcamp est vide.",
+  "v2.stream.bcCollectionFailed": "Bandcamp n'a pas répondu : votre collection n'a pas pu être chargée. Votre compte reste relié.",
   "v2.stream.bcSessionNone": "Pour télécharger vos achats en FLAC, Tune a besoin de votre session Bandcamp.",
   "v2.stream.bcSessionExpired": "La session Bandcamp ne donne plus accès aux téléchargements : elle a expiré. Collez-en une nouvelle.",
   "v2.stream.bcSessionHowTo": "Connectez-vous sur bandcamp.com, ouvrez les outils de développement du navigateur (Application › Cookies › bandcamp.com), copiez la valeur du cookie « identity » et collez-la ici. Tune la garde sur votre serveur, ne la montre jamais et ne l’envoie qu’à Bandcamp.",
