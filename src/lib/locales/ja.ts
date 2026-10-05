@@ -4484,6 +4484,28 @@ export default {
   "v2.plug.errSetupTimeout": "起動に時間がかかりすぎました（{s} 秒）。",
   "v2.plug.errSetupFailed": "起動に失敗しました。",
   "v2.plug.retry": "再試行",
+  // tune-server-rust#5868 — identification par empreinte AcoustID
+  "acoustid.title": "音響フィンガープリント (AcoustID)",
+  "acoustid.subtitle": "MusicBrainz の検索で見つからなかったアルバム",
+  "acoustid.available": "利用可能です。設定 › 補完 から実行できます。",
+  "acoustid.reasonFpcalc": "無効：サーバーに fpcalc ツール (Chromaprint) がインストールされていません。",
+  "acoustid.reasonKey": "無効：AcoustID キーが設定されていません。設定 › Services & Jetons で追加してください。",
+  "acoustid.reasonPaused": "識別は一時停止中です。再開してから再実行してください。",
+  "acoustid.reasonAlreadyRunning": "ライブラリの識別はすでに実行中です。",
+  "acoustid.running": "{total} 枚中 {n} 枚のアルバムを処理済み",
+  "acoustid.paused": "{total} 枚中 {n} 枚で一時停止しました。",
+  "acoustid.stopped": "{total} 枚中 {n} 枚で停止しました。",
+  "acoustid.done": "完了：{total} 枚中 {ok} 枚を識別、{sans} 枚は過半数なし。",
+  "acoustid.reasonLabel": "理由：{code}",
+  "acoustid.launch": "音響フィンガープリントで識別 (AcoustID)",
+  "acoustid.launchHint": "MusicBrainz の検索で見つからなかったアルバムが対象です。トラックごとにフィンガープリントを取り、アルバム単位で投票します。過半数に達しない場合は何も書き込みません。時間がかかります：各トラックをデコードし、再生中は停止します。",
+  "acoustid.started": "フィンガープリントによる識別を開始しました：{n} 枚のアルバム。",
+  "acoustid.nothing": "フィンガープリントで識別するアルバムはありません。",
+  "acoustid.keyLabel": "AcoustID アプリケーションキー",
+  "acoustid.keyHint": "acoustid.org で無料で作成できます。キーはサーバーに保存され、再表示されることはありません。",
+  "acoustid.keyConfigured": "キー設定済み",
+  "acoustid.keySaved": "AcoustID キーを保存しました。",
+  "acoustid.keyRemoved": "AcoustID キーを削除しました。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

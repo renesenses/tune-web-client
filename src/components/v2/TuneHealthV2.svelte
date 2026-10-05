@@ -44,6 +44,8 @@
     type PrioriteDr,
     type RattrapageRapportsDr,
   } from '../../lib/tachesDeFond';
+  // tune-server-rust#5868 — l'identification par empreinte AcoustID.
+  import { lireBlocAcoustid, carteAcoustid, type BlocAcoustid } from '../../lib/acoustid';
   import { heureSeule } from '../../lib/dates';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
@@ -125,7 +127,11 @@
     prioriteDr = choixPrioriteDr(inst);
     rattrapageDr = inst?.dynamic_range_sidecar ?? null;
     etatServeurDr = etatServeurPlageDynamique(inst);
+    blocAcoustid = lireBlocAcoustid(inst);
   }
+  /** tune-server-rust#5868 — le bloc `acoustid` de l'instantané ; `null` face
+   *  à un serveur qui ne le publie pas : aucune carte. */
+  let blocAcoustid: BlocAcoustid | null = null;
 
   // ── tune-server-rust#5169 : la place de la plage dynamique ─────────────
   //
@@ -572,6 +578,27 @@
     } else {
       out.push({ id: 'covers', traitement: 'artist_images', titre: $t('v2.health.cardCovers' as any), sous: $t('v2.health.cardCoversSub' as any),
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any) });
+    }
+
+    // ── Empreinte acoustique AcoustID (tune-server-rust#5868) ─────────────
+    // Seulement si le serveur publie le bloc : un serveur plus ancien n'a ni
+    // la passe ni sa carte. L'avancement vient de l'état PARTAGÉ de la passe
+    // par lot ; `carteAcoustid` n'en lit que le mode `acoustid`.
+    if (blocAcoustid) {
+      const lot = await Promise.allSettled([api.getIdentifyAllStatus()]);
+      const ca = carteAcoustid(
+        blocAcoustid,
+        lot[0].status === 'fulfilled' ? lot[0].value : null,
+        (k) => $t(k as any),
+        (x) => $formatNombre(x),
+      );
+      if (ca) {
+        out.push({
+          id: 'acoustid', traitement: 'identification',
+          titre: $t('acoustid.title' as any), sous: $t('acoustid.subtitle' as any),
+          etat: ca.etat, ligne: ca.ligne, fait: ca.fait, total: ca.total || undefined,
+          detail: ca.motif ? $t('acoustid.reasonLabel' as any).replace('{code}', ca.motif) : undefined });
+      }
     }
 
     // ── Modules de sortie (#2392) ─────────────────────────────────────────

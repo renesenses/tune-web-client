@@ -4484,6 +4484,28 @@ export default {
   "v2.plug.errSetupTimeout": "El inicio tardó demasiado ({s} s).",
   "v2.plug.errSetupFailed": "Error al iniciar.",
   "v2.plug.retry": "Reintentar",
+  // tune-server-rust#5868 — identification par empreinte AcoustID
+  "acoustid.title": "Huella acústica (AcoustID)",
+  "acoustid.subtitle": "Álbumes que la búsqueda de MusicBrainz no encontró",
+  "acoustid.available": "Disponible. La pasada se inicia desde Ajustes › Enriquecimiento.",
+  "acoustid.reasonFpcalc": "Desactivada: la herramienta fpcalc (Chromaprint) no está instalada en el servidor.",
+  "acoustid.reasonKey": "Desactivada: no hay ninguna clave AcoustID configurada. Añádela en Ajustes › Services & Jetons.",
+  "acoustid.reasonPaused": "La identificación está en pausa. Reanúdala antes de volver a iniciarla.",
+  "acoustid.reasonAlreadyRunning": "Ya hay una identificación de la biblioteca en curso.",
+  "acoustid.running": "{n} de {total} álbumes procesados",
+  "acoustid.paused": "En pausa tras {n} de {total} álbumes.",
+  "acoustid.stopped": "Detenida tras {n} de {total} álbumes.",
+  "acoustid.done": "Terminada: {ok} álbumes identificados, {sans} sin mayoría, de {total}.",
+  "acoustid.reasonLabel": "Motivo: {code}",
+  "acoustid.launch": "Identificar por huella acústica (AcoustID)",
+  "acoustid.launchHint": "Para los álbumes que la búsqueda de MusicBrainz no encontró: una huella por pista y luego un voto por álbum. Sin mayoría, no se escribe nada. Lento: la pasada decodifica cada pista y se detiene durante la reproducción.",
+  "acoustid.started": "Identificación por huella iniciada: {n} álbumes.",
+  "acoustid.nothing": "Ningún álbum que identificar por huella.",
+  "acoustid.keyLabel": "Clave de aplicación AcoustID",
+  "acoustid.keyHint": "Clave gratuita que se crea en acoustid.org. Se queda en el servidor y nunca se vuelve a mostrar.",
+  "acoustid.keyConfigured": "Clave configurada",
+  "acoustid.keySaved": "Clave AcoustID guardada.",
+  "acoustid.keyRemoved": "Clave AcoustID eliminada.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

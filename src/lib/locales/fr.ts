@@ -4506,6 +4506,28 @@ export default {
   "v2.plug.errSetupTimeout": "Démarrage trop long ({s} s).",
   "v2.plug.errSetupFailed": "Échec du démarrage.",
   "v2.plug.retry": "Réessayer",
+  // tune-server-rust#5868 — identification par empreinte AcoustID
+  "acoustid.title": "Empreinte acoustique (AcoustID)",
+  "acoustid.subtitle": "Albums que la recherche MusicBrainz n’a pas trouvés",
+  "acoustid.available": "Disponible. La passe se lance depuis Réglages › Enrichissement.",
+  "acoustid.reasonFpcalc": "Désactivée : l’outil fpcalc (Chromaprint) n’est pas installé sur le serveur.",
+  "acoustid.reasonKey": "Désactivée : aucune clé AcoustID n’est configurée. Ajoutez-la dans Réglages › Services & Jetons.",
+  "acoustid.reasonPaused": "L’identification est suspendue. Reprenez-la avant de la relancer.",
+  "acoustid.reasonAlreadyRunning": "Une identification de la bibliothèque est déjà en cours.",
+  "acoustid.running": "{n} albums traités sur {total}",
+  "acoustid.paused": "En pause après {n} albums sur {total}.",
+  "acoustid.stopped": "Arrêtée après {n} albums sur {total}.",
+  "acoustid.done": "Terminée : {ok} albums identifiés, {sans} sans majorité, sur {total}.",
+  "acoustid.reasonLabel": "Motif : {code}",
+  "acoustid.launch": "Identifier par empreinte acoustique (AcoustID)",
+  "acoustid.launchHint": "Pour les albums que la recherche MusicBrainz n’a pas trouvés : une empreinte par piste, puis un vote par album. Sans majorité, rien n’est écrit. Long : la passe décode chaque piste et s’interrompt pendant la lecture.",
+  "acoustid.started": "Identification par empreinte lancée : {n} albums.",
+  "acoustid.nothing": "Aucun album à identifier par empreinte.",
+  "acoustid.keyLabel": "Clé d’application AcoustID",
+  "acoustid.keyHint": "Clé gratuite à créer sur acoustid.org. Elle reste sur le serveur et n’est jamais réaffichée.",
+  "acoustid.keyConfigured": "Clé configurée",
+  "acoustid.keySaved": "Clé AcoustID enregistrée.",
+  "acoustid.keyRemoved": "Clé AcoustID retirée.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

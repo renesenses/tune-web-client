@@ -78,6 +78,8 @@
   import { streamingServices } from '../../lib/stores/streaming';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
+  // tune-server-rust#5868 — l'identification par empreinte AcoustID.
+  import { lireBlocAcoustid, issueDuLancement, reglageCle, phraseDuMotif, NOM_ACOUSTID, type BlocAcoustid } from '../../lib/acoustid';
   import { telechargerJournaux } from '../../lib/journaux';
 import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../lib/annonceSlimproto';
   import {
@@ -3258,6 +3260,84 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     await relireCredits();
   }
 
+  /**
+   * Identification par empreinte acoustique — tune-server-rust#5868.
+   *
+   * Tout dépend du bloc `acoustid` de `GET /system/background-tasks` : un
+   * serveur qui ne le publie pas (antérieur à #5868) ne connaît pas
+   * `?mode=acoustid` et répondrait `400 mode_inconnu`. Sans bloc, ni bouton
+   * ni champ de clé.
+   *
+   * Le `409` (pas de `fpcalc`, pas de clé, identification en pause ou déjà en
+   * cours) est lu comme une RÉPONSE : l'écran dit le motif dans sa langue.
+   */
+  let acoustid = $state<BlocAcoustid | null>(null);
+  let acoustidEnVol = $state(false);
+  let acoustidErr = $state<string | null>(null);
+  async function relireAcoustid() {
+    try { acoustid = lireBlocAcoustid(await api.getBackgroundTasks()); }
+    catch { acoustid = null; }
+  }
+  $effect(() => { void relireAcoustid(); });
+  async function lancerAcoustid() {
+    if (acoustidEnVol) return;
+    acoustidErr = null;
+    acoustidEnVol = true;
+    const tr = get(t);
+    try {
+      const issue = issueDuLancement(await api.lancerIdentificationAcoustid(), (k) => tr(k as any));
+      if (issue.genre === 'refuse') acoustidErr = issue.phrase;
+      else if (issue.total === 0) notifications.info(tr('acoustid.nothing' as any));
+      else notifications.info(tr('acoustid.started' as any).replace('{n}', get(formatNombre)(issue.total)));
+    } catch (e) {
+      acoustidErr = errText(e) ?? tr('settings.errStartFailed');
+    } finally {
+      acoustidEnVol = false;
+    }
+    await relireAcoustid();
+  }
+
+  /**
+   * La clé d'application AcoustID — réglage SERVEUR (`acoustid_api_key`),
+   * caviardé par `tune_core::secrets`. Même règle que les jetons de services :
+   * 🔴 le champ reste VIDE, toujours. Le client ne détient jamais la clé en
+   * clair ; l'état « configurée » vient du bloc (`api_key_configured`).
+   */
+  let acoustidCle = $state('');
+  let acoustidCleEnVol = $state(false);
+  async function enregistrerCleAcoustid() {
+    const tr = get(t);
+    const valeur = acoustidCle.trim();
+    if (!valeur) { notifications.error(tr('serviceTokens.noValueEntered' as any)); return; }
+    acoustidCleEnVol = true;
+    try {
+      await api.updateConfig({ [reglageCle(acoustid)]: valeur });
+      acoustidCle = '';
+      notifications.success(tr('acoustid.keySaved' as any));
+    } catch (e) {
+      notifications.error(`${tr('serviceTokens.error' as any)} : ${errText(e) ?? ''}`);
+    } finally {
+      acoustidCleEnVol = false;
+    }
+    await relireAcoustid();
+  }
+  async function retirerCleAcoustid() {
+    const tr = get(t);
+    const ok = await dialogs.confirm(tr('serviceTokens.confirmRemove' as any).replace('{name}', NOM_ACOUSTID), { danger: true });
+    if (!ok) return;
+    acoustidCleEnVol = true;
+    try {
+      await api.updateConfig({ [reglageCle(acoustid)]: '' });
+      acoustidCle = '';
+      notifications.success(tr('acoustid.keyRemoved' as any));
+    } catch (e) {
+      notifications.error(`${tr('serviceTokens.error' as any)} : ${errText(e) ?? ''}`);
+    } finally {
+      acoustidCleEnVol = false;
+    }
+    await relireAcoustid();
+  }
+
   // ── Rangement des fichiers importes ───────────────────────────────────
   let ingest = $state<any | null>(null);
   let ingestErr = $state<string | null>(null);
@@ -3925,6 +4005,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
               <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
+              <!-- tune-server-rust#5868 — absente face à un serveur sans le bloc `acoustid`. -->
+              {#if acoustid}
+                <div class="row" data-acoustid="lancer">
+                  <div class="lbl">
+                    <span>{$t('acoustid.launch' as any)}</span>
+                    <span class="hint">{$t('acoustid.launchHint' as any)}</span>
+                    {#if !acoustid.available}
+                      <span class="hint bad" data-acoustid="motif">{phraseDuMotif(acoustid.reason, acoustid.message, (k) => $t(k as any))}</span>
+                    {/if}
+                  </div>
+                  <button class="lnk" disabled={acoustidEnVol} onclick={lancerAcoustid}>
+                    {$t((acoustidEnVol ? 'v2.set.running' : 'v2.set.start') as any)}
+                  </button>
+                </div>
+                {#if acoustidErr}<div class="errline" data-acoustid="refus">{acoustidErr}</div>{/if}
+              {/if}
 
             {:else if s.id === 'ingest'}
               {#if !ingest}
@@ -4408,6 +4504,35 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <PluginsV2 />
 
             {:else if s.id === 'tokens'}
+              <!-- tune-server-rust#5868 — la clé AcoustID, réglage serveur
+                   caviardé : champ TOUJOURS vide. Absente sans le bloc, et si
+                   le serveur la sert un jour dans la liste des jetons. -->
+              {#if acoustid && !(Array.isArray(stk) && stk.some((x) => x?.id === 'acoustid'))}
+                <div class="svc" data-acoustid="cle">
+                  <div class="svchead">
+                    <span class="svcdot" style:background={acoustid.api_key_configured ? '#22c55e' : 'transparent'}></span>
+                    <span class="svcname">{NOM_ACOUSTID}</span>
+                    <span class="svcstate">{#if acoustid.api_key_configured}{$t('acoustid.keyConfigured' as any)}{:else}{$t('serviceTokens.statusNotConfigured' as any)}{/if}</span>
+                  </div>
+                  <p class="hint">{$t('acoustid.keyHint' as any)}</p>
+                  <div class="svcfields">
+                    <label class="svcfield">
+                      <span>{$t('acoustid.keyLabel' as any)}</span>
+                      <input type="password" bind:value={acoustidCle} autocomplete="off"
+                        placeholder={acoustid.api_key_configured ? $t('serviceTokens.configuredPlaceholder' as any) : ''} />
+                    </label>
+                  </div>
+                  <div class="inline">
+                    <button class="lnk" disabled={acoustidCleEnVol} onclick={enregistrerCleAcoustid}>
+                      {$t((acoustidCleEnVol ? 'common.loading' : 'common.save') as any)}
+                    </button>
+                    {#if acoustid.api_key_configured}
+                      <button class="lnk danger" disabled={acoustidCleEnVol} onclick={retirerCleAcoustid}>{$t('common.delete' as any)}</button>
+                    {/if}
+                  </div>
+                  <a class="lnk" href="https://acoustid.org/new-application" target="_blank" rel="noopener noreferrer">{$t('serviceTokens.howToGetToken' as any)}</a>
+                </div>
+              {/if}
               <p class="hint">
                 {$t('v2.lbl.theTokens' as any)} <b>MusicBrainz</b>, <b>Discogs</b>, <b>Last.fm</b>, <b>Genius</b> {$t('v2.smart.and' as any)}
                 <b>ListenBrainz</b> {$t('v2.hint.tokensUse' as any)}
