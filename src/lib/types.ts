@@ -187,6 +187,13 @@ export interface Track {
   album_id_service?: string | null;
   album_title?: string | null;
   artist_id?: number | null;
+  /**
+   * L'artiste CHEZ SON SERVICE, quand l'appelant l'a appris ailleurs que dans
+   * `artist_id` — le jumeau d'`album_id_service`. Fil forum 2143 (#5758) :
+   * posé par `GET /zones/{id}/queue`, `null` quand rien n'est connu. Lu par
+   * `routageArtiste.destinationArtiste`.
+   */
+  artist_id_service?: string | null;
   artist_name?: string | null;
   album_artist?: string | null;
   disc_number?: number;
