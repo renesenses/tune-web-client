@@ -8,6 +8,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import * as api from '../../lib/api';
   import { analyserDb, formaterDb, lineaireDepuisDb } from '../../lib/volumeDb';
+  import { creerLimiteurVolume } from '../../lib/limiteurVolume';
 
   let zone = $derived($currentZone);
   let vol = $derived($zoneVolume);
@@ -78,8 +79,7 @@
     }
   }
 
-  let _volThrottleTimer: ReturnType<typeof setTimeout> | null = null;
-  let _volPending: (() => void) | null = null;
+  const limiterEnvoi = creerLimiteurVolume();
 
   function handleVolume(e: Event) {
     if (!zone?.id || $volumeLocked) return;
@@ -88,15 +88,7 @@
     zoneVolume.set(val);
     if (isBrowserZone(zone)) browserSetVolume(val);
     const zoneId = zone.id;
-    _volPending = () => api.setVolume(zoneId, val);
-    if (!_volThrottleTimer) {
-      _volPending();
-      _volPending = null;
-      _volThrottleTimer = setTimeout(() => {
-        _volThrottleTimer = null;
-        if (_volPending) { _volPending(); _volPending = null; }
-      }, 80);
-    }
+    limiterEnvoi(() => { void api.setVolume(zoneId, val); });
   }
 
   // Une zone navigateur joue dans CET onglet (<audio>) : le serveur ignore
