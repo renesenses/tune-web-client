@@ -27,6 +27,20 @@ export function flecheDeLecture(
   return surEcranDeLecture;
 }
 
+/**
+ * #1872 — les touches que `setupKeyboardShortcuts` intercepte, par `code`.
+ *
+ * La Bibliothèque redirige toute autre frappe imprimable vers son champ de
+ * recherche (`frappeVersRecherche.ts`) : ces touches-là gardent leur sens de
+ * raccourci de lecture. Un banc vérifie que chaque `case` du gestionnaire
+ * ci-dessous figure dans cette liste — l'oublier ici ferait taper la lettre
+ * dans la recherche EN PLUS de lancer l'action.
+ */
+export const TOUCHES_RACCOURCIS: readonly string[] = [
+  'Space', 'KeyS', 'KeyN', 'KeyP', 'KeyM', 'MediaStop',
+  'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+];
+
 function surEcranDeLecture(): boolean {
   return get(activeView) === 'nowplaying' || get(mobileNowPlayingOpen);
 }
