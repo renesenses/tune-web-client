@@ -39,6 +39,7 @@
   } from '../../lib/historiqueParContexte';
   import { NomsDePlaylists, type FichePlaylist } from '../../lib/nomsDePlaylists';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
+  import { ouverturePlaylistDuLot } from '../../lib/lienPlaylistDHistorique';
   import { gestesNavigationService, type GestesNavigationService } from '../../lib/stores/navigation';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { preferences } from '../../lib/stores/preferences';
@@ -403,6 +404,9 @@
               : pochetteDObjet(lot)}
             {@const artiste = artisteDObjet(tranche.type, lot)}
             {@const versAlbum = ouvertureAlbumDuLot(tranche.type, lot, $gestesNavigationService)}
+            <!-- web#1895 — le nom d'une ligne PLAYLIST mène à sa fiche, quand
+                 l'écoute dit chez qui la chercher (`lib/lienPlaylistDHistorique`). -->
+            {@const versPlaylist = ouverturePlaylistDuLot(tranche.type, lot, fiche?.nom ?? nom, fiche?.pochette ?? null)}
             <!-- Le « + » / « − » du schéma de FabienM. L'objet est REPLIÉ par
                  défaut : déplié, l'écran redeviendrait la liste plate qu'il
                  remplace. -->
@@ -450,6 +454,12 @@
                       <span class="otitre lien-album" role="link" title={nom}
                         onclick={(e) => { e.stopPropagation(); versAlbum(); }}
                         onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); versAlbum(); } }}>{nom}</span>
+                    {:else if versPlaylist}
+                      <!-- Même forme que le lien d'album, juste au-dessus. -->
+                      <!-- svelte-ignore a11y_interactive_supports_focus -->
+                      <span class="otitre lien-album lien-playlist" role="link" title={fiche?.nom ?? nom}
+                        onclick={(e) => { e.stopPropagation(); versPlaylist(); }}
+                        onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); versPlaylist(); } }}>{fiche?.nom ?? nom}</span>
                     {:else}
                       <span class="otitre">{fiche?.nom ?? nom ?? (indisponibles.has(tranche.cle) ? $tr('playlist.unavailable') : $tr('v2.hist.ctx.sansNom' as any))}</span>
                     {/if}

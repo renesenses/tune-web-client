@@ -1503,8 +1503,19 @@ export function next(zoneId: number) {
   return fetchJSON<{ status: string; queue_position?: number }>(`${BASE}/zones/${zoneId}/next`, { method: 'POST' });
 }
 
-export function previous(zoneId: number) {
-  return fetchJSON<{ status: string; queue_position?: number }>(`${BASE}/zones/${zoneId}/previous`, { method: 'POST' });
+/**
+ * Fil 1476 (FabienM, rc2) — `positionMs` : la position que JOUE l'onglet, pour
+ * une zone navigateur. Le serveur ne la relève pas (pas de périphérique à
+ * interroger) et la croyait à 0 : « précédent » reculait toujours au lieu de
+ * relancer la piste (#1929). Le serveur ne la lit que pour une zone navigateur.
+ */
+export function previous(zoneId: number, positionMs?: number | null) {
+  return fetchJSON<{ status: string; queue_position?: number }>(
+    `${BASE}/zones/${zoneId}/previous`,
+    positionMs != null
+      ? { method: 'POST', body: JSON.stringify({ position_ms: Math.max(0, Math.floor(positionMs)) }) }
+      : { method: 'POST' },
+  );
 }
 
 /** #3662 — le serveur rend `{position_ms}`, PAS une `Zone`
@@ -6163,10 +6174,53 @@ export function testSmbConnection(host: string, share: string, username?: string
 }
 
 export function mountSmbShare(host: string, share: string, username?: string, password?: string) {
-  return fetchJSON<{ mount_path: string; id: number }>(`${BASE}/network/smb/mount`, {
+  // `deja_monte` : le partage était déjà monté à ce point, le serveur rend
+  // son chemin sans remonter (fil 2145).
+  return fetchJSON<{ mount_path: string; id: number; deja_monte?: boolean }>(`${BASE}/network/smb/mount`, {
     method: 'POST',
     body: JSON.stringify({ host, share_name: share, username, password }),
   });
+}
+
+/** Réponse de `DELETE /network/smb/mounts/{id}` (fil 2145). Un 409
+ *  `racines_dependantes` porte la liste des dossiers de la bibliothèque qui
+ *  vivent sur le partage : il faut la confirmation de l'utilisateur. */
+export interface OubliPartage {
+  oublie?: boolean;
+  demonte?: boolean;
+  racines?: string[];
+  /** 409 : pistes qui partiraient si ces dossiers étaient retirés. */
+  pistes?: number;
+  racines_retirees?: string[];
+  pistes_retirees?: number;
+  purge_refusee?: boolean;
+  error?: string;
+  message?: string;
+}
+
+/** « Oublier ce partage » : le serveur DÉMONTE puis supprime l'enregistrement.
+ *  `unmountSmbShare` (DELETE /network/mounts/{id}) supprimait la ligne sans
+ *  démonter. */
+export function forgetSmbShare(
+  id: number,
+  confirmer = false,
+  retirer?: { pistes: number },
+) {
+  // `retirer` : retirer aussi les dossiers de la bibliothèque, avec la purge
+  // de leurs pistes — `pistes` est le nombre montré à l'utilisateur, même
+  // contrat que `confirm_purge` du retrait de dossier (#1943).
+  const q = new URLSearchParams();
+  if (confirmer) q.set('confirmer', 'true');
+  if (retirer) {
+    q.set('retirer_racines', 'true');
+    q.set('confirmer_purge', String(retirer.pistes));
+  }
+  const qs = q.toString();
+  return fetchJSON<OubliPartage>(
+    `${BASE}/network/smb/mounts/${id}${qs ? `?${qs}` : ''}`,
+    { method: 'DELETE' },
+    (statut) => statut === 409,
+  );
 }
 
 export function unmountSmbShare(id: number) {
