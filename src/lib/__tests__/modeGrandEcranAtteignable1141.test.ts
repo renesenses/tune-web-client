@@ -30,7 +30,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { demanderPleinEcran, entrerEnModeGrandEcran } from '../modeGrandEcran';
+import { boutonGrandEcranVisible, demanderPleinEcran, entrerEnModeGrandEcran } from '../modeGrandEcran';
 import fr from '../locales/fr';
 import en from '../locales/en';
 
@@ -184,5 +184,58 @@ describe('#1141 — le geste lui-même', () => {
   it('`demanderPleinEcran` ne lève jamais', () => {
     expect(() => demanderPleinEcran(null)).not.toThrow();
     expect(() => demanderPleinEcran({ requestFullscreen: () => { throw new Error('x'); } })).not.toThrow();
+  });
+});
+
+/**
+ * Fil 2116 (JLuc Cassé) — réglage « Lecture en cours ouvre l'album ou la
+ * playlist » (`lienLectureVersSource`) coché, l'entrée de la barre latérale et
+ * la vignette de la barre de lecture mènent à la fiche de ce qui joue, plus à
+ * l'écran Lecture en cours : le bouton, rendu là seulement, devenait
+ * inatteignable. Réglage coché + piste en cours → il est rendu partout.
+ */
+describe('fil 2116 — le Grand écran reste atteignable, réglage `lienLectureVersSource` coché', () => {
+  const piste = { title: 'Kind of Blue' };
+
+  it('réglage coché + piste en lecture → bouton visible hors de Lecture en cours', () => {
+    for (const vue of ['library', 'playlists', 'home', 'streaming', 'zones']) {
+      expect(boutonGrandEcranVisible(vue, true, piste), vue).toBe(true);
+    }
+  });
+
+  it('réglage coché mais rien ne joue → comportement d\'origine', () => {
+    expect(boutonGrandEcranVisible('library', true, null)).toBe(false);
+    expect(boutonGrandEcranVisible('library', true, undefined)).toBe(false);
+    expect(boutonGrandEcranVisible('nowplaying', true, null)).toBe(true);
+  });
+
+  it('réglage décoché → seulement sur Lecture en cours, comme avant', () => {
+    for (const reglage of [false, undefined]) {
+      expect(boutonGrandEcranVisible('nowplaying', reglage, piste)).toBe(true);
+      expect(boutonGrandEcranVisible('nowplaying', reglage, null)).toBe(true);
+      expect(boutonGrandEcranVisible('library', reglage, piste)).toBe(false);
+    }
+  });
+
+  it("jamais sur l'écran Grand écran lui-même", () => {
+    expect(boutonGrandEcranVisible('tv', true, piste)).toBe(false);
+  });
+
+  it('la coquille rend le bouton selon cette règle, avec le réglage et la piste de la zone courante', () => {
+    expect(SHELL).toContain(
+      "{#if boutonGrandEcranVisible($activeView, $preferences.lienLectureVersSource, $currentZone?.current_track)}",
+    );
+    expect(SHELL).not.toContain("{#if $activeView === 'nowplaying'}\n      <button class=\"raccourci tv\"");
+  });
+
+  it("le texte d'aide du réglage dit que le Grand écran reste accessible, en onze langues", () => {
+    for (const langue of LANGUES) {
+      const dico = lire(`../locales/${langue}.ts`);
+      const aide = dico.match(/"settings\.nowPlayingLinkToSourceHint":\s*"([^"]*)"/);
+      const nom = dico.match(/"nowplaying\.tvMode":\s*"([^"]*)"/);
+      expect(aide, `aide absente en ${langue}`).not.toBeNull();
+      expect((aide as RegExpMatchArray)[1], `l'aide ne nomme pas le Grand écran en ${langue}`)
+        .toContain((nom as RegExpMatchArray)[1]);
+    }
   });
 });

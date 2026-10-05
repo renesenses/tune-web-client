@@ -4660,6 +4660,8 @@ export function getSystemEnv() {
     TUNE_PORT?: string;
     spotify_redirect_uri?: string | null;
     spotify_redirect_uri_refus?: 'localhost' | 'http_hors_bouclage' | null;
+    /** Fil 221 — `false` : le serveur n'a aucun Client ID Spotify (absent : serveur plus ancien). */
+    spotify_client_id_configure?: boolean;
   }>(`${BASE}/system/env`);
 }
 

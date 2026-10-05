@@ -57,7 +57,9 @@ describe('contrat d’identifiant du lecteur (#2430)', () => {
     expect(autoLoad).toContain('const tr = normalizedTrack');
     expect(autoLoad).toContain('const id = tr?.id ?? null');
     expect(autoLoad).not.toContain('displayTrack.id');
-    expect(plays).toContain('const dt = normalizedTrack');
+    // Fil 2129 : les effets lisent l'identifiant dérivé de `normalizedTrack`
+    // (et non plus l'objet), pour ne pas se relancer à chaque relecture.
+    expect(plays).toContain('(normalizedTrack?.id ?? null)');
     expect(plays).toContain('normalizedTrack?.id === id');
   });
 });

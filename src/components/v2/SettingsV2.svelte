@@ -47,8 +47,10 @@
   } from '../../lib/analyseBibliotheque';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
   import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
+  import { clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, type RetourClientId } from '../../lib/clientIdSpotify';
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
+  import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
@@ -1407,9 +1409,43 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     api.getSystemEnv()
       .then((env) => {
         spotifyRedirect = { uri: env?.spotify_redirect_uri ?? null, refus: env?.spotify_redirect_uri_refus ?? null };
+        spotifyClientIdManque = clientIdSpotifyManquant(env);
       })
       .catch(() => {});
   });
+
+  // ── Spotify : le Client ID — forum, fil 221 ──
+  //
+  // Sans Client ID, le serveur tourne avec « placeholder » et Spotify répond
+  // `invalid_client` à tout. Le champ n'est offert que si le serveur le dit
+  // manquant (`spotify_client_id_configure: false`) ; il passe par la route
+  // d'Accès et jetons, appliquée à chaud. Voir `lib/clientIdSpotify`.
+  let spotifyClientIdManque = $state(false);
+  let clientIdSaisi = $state('');
+  let clientIdRetour = $state<RetourClientId | null>(null);
+  async function enregistrerClientIdSpotify() {
+    const client_id = clientIdSaisi.trim();
+    if (!client_id) return;
+    svcBusy = 'spotify';
+    svcErr = { ...svcErr, spotify: null };
+    clientIdRetour = null;
+    try {
+      clientIdRetour = lireRetourClientId(await api.saveServiceToken('spotify', { client_id }));
+    } catch (e: any) {
+      const motif = typeof e?.message === 'string' ? e.message.trim() : '';
+      clientIdRetour = { etat: 'refuse', message: motif };
+    }
+    if (clientIdRetour.etat === 'enregistre') {
+      clientIdSaisi = '';
+      spotifyClientIdManque = false;
+      // Le service se déclare actif dès qu'il a un Client ID : relire son état.
+      try {
+        const st = await api.getStreamingServiceStatus('spotify');
+        svcs = { ...svcs, spotify: { ...svcs.spotify, ...st } };
+      } catch {}
+    }
+    svcBusy = null;
+  }
   const spotifyRappelIci = $derived(
     rappelAboutitIci(spotifyRedirect.uri, typeof location !== 'undefined' ? location.hostname : ''),
   );
@@ -2500,7 +2536,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const j = dataStatus?.job;
         if (!j) continue;
         if (j.phase === 'done') { dataDone = true; await api.restartServer().catch(() => {}); break; }
-        if (j.phase === 'failed') { dataError = j.error || 'failed'; break; }
+        if (raisonEchecPhase(j.phase) !== null) { dataError = j.error || raisonEchecPhase(j.phase) || 'failed'; break; }
       }
     } catch (e: any) {
       dataError = e?.message ?? String(e);
@@ -2539,7 +2575,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const st = await api.applianceInstallStatus();
         installWritten = st.written_bytes;
         if (st.phase === 'done') { installDone = true; break; }
-        if (st.phase === 'failed') { installError = st.error || 'failed'; break; }
+        if (raisonEchecPhase(st.phase) !== null) { installError = st.error || raisonEchecPhase(st.phase) || 'failed'; break; }
       }
     } catch (e: any) {
       installError = e?.message ?? String(e);
@@ -2614,7 +2650,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       let st: any = null;
       try { st = await api.getUpdateStatus(); } catch { vuHorsService = true; continue; }
       if (st?.phase === 'dmg_ready') { updDmg = st.dmg_path || '~/Downloads'; updBusy = false; return; }
-      if (st?.phase === 'failed') { updBusy = false; updRefus = get(t)('settings.updateBlockedUnknown'); return; }
+      // #1891 — le serveur publie `failed: <raison>`, jamais `failed` nu : un
+      // test d'égalité ne voyait pas l'échec, la boucle allait au bout des
+      // 180 s et la raison donnée par le serveur n'arrivait pas à l'écran.
+      const raisonEchec = raisonEchecPhase(st?.phase);
+      if (raisonEchec !== null) {
+        updBusy = false;
+        updRefus = raisonEchec
+          ? get(t)('settings.updateInstallFailed').replace('{reason}', raisonEchec)
+          : get(t)('settings.updateBlockedUnknown');
+        return;
+      }
       // L'étape Homebrew vit sur le disque : elle survit au redémarrage.
       const hb = etatHomebrew(st);
       if (hb?.genre === 'en_cours') {
@@ -5446,9 +5492,32 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         </div>
                         <p class="hint">{$t('settings.deezerArlHint' as any)}</p>
 
+                      {:else if name === 'spotify' && spotifyClientIdManque}
+                        <!-- Fil 221 : sans Client ID, « Se connecter » est voué à
+                             `invalid_client`. On le demande d'abord. -->
+                        <div class="inline" data-client-id-spotify>
+                          <input class="txt" type="text" autocomplete="off" spellcheck="false"
+                            placeholder={$t('v2.set.spotifyClientIdLabel' as any)}
+                            aria-label={$t('v2.set.spotifyClientIdLabel' as any)}
+                            bind:value={clientIdSaisi} disabled={svcBusy === name}
+                            onkeydown={(e) => { if (e.key === 'Enter' && clientIdSaisi.trim()) enregistrerClientIdSpotify(); }} />
+                          <button class="lnk" data-client-id-enregistrer disabled={svcBusy === name || !clientIdSaisi.trim()}
+                            onclick={enregistrerClientIdSpotify}>{svcBusy === name ? '…' : $t('v2.set.spotifyClientIdSave' as any)}</button>
+                        </div>
+                        <p class="hint">
+                          {$t('v2.set.spotifyClientIdHint' as any)}
+                          <a class="lnk" href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">{$t('v2.set.spotifyClientIdDashboard' as any)}</a>
+                        </p>
+
                       {:else}
                         <button class="lnk" disabled={svcBusy === name || !st.enabled}
                           onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
+                      {/if}
+
+                      {#if name === 'spotify' && clientIdRetour}
+                        <div class={clientIdRetour.etat === 'enregistre' ? 'hint' : 'serr'} data-client-id-retour={clientIdRetour.etat}>
+                          {$t(cleDuRetourClientId(clientIdRetour.etat) as any)}{#if clientIdRetour.message} — {clientIdRetour.message}{/if}
+                        </div>
                       {/if}
 
                       {#if name === 'deezer' && arlRetour}
