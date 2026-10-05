@@ -19,6 +19,7 @@ import { get } from 'svelte/store';
 import * as api from './api';
 import { zones, currentZoneId } from './stores/zones';
 import { invaliderBibliotheque } from './stores/albumsPagines';
+import { regrouper } from './regroupement';
 import { tuneWS } from './websocket';
 import { devices } from './stores/devices';
 import { loadProfiles, loadFavoriteIds, currentProfileId } from './stores/profile';
@@ -134,12 +135,26 @@ async function loadProfile(): Promise<void> {
  * la bibliothèque ne coûte rien. Rendre l'abonnement permet de le couper au
  * démontage de la coquille.
  */
+/**
+ * 🔴 Fil forum 2134 — UNE invalidation par rafale, pas une par événement.
+ * Pendant une réécriture massive (gravure des DR, par exemple), le serveur
+ * émet `library.updated` toutes les 0,96 s ; chaque événement faisait
+ * recharger l'écran monté. Voir `lib/regroupement`.
+ */
+export const CALME_BIBLIOTHEQUE_MS = 2_500;
+export const INTERVALLE_BIBLIOTHEQUE_MS = 10_000;
+
 export function suivreLaBibliotheque(): () => void {
-  return tuneWS.onEvent((event: { type?: string }) => {
+  const regroupeur = regrouper(() => invaliderBibliotheque(), {
+    calmeMs: CALME_BIBLIOTHEQUE_MS,
+    intervalleMs: INTERVALLE_BIBLIOTHEQUE_MS,
+  });
+  const desabonner = tuneWS.onEvent((event: { type?: string }) => {
     if (event?.type === 'library.scan.completed' || event?.type === 'library.updated') {
-      invaliderBibliotheque();
+      regroupeur.signaler();
     }
   });
+  return () => { desabonner(); regroupeur.arreter(); };
 }
 
 export async function bootstrapV2(): Promise<void> {

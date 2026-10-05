@@ -18,7 +18,7 @@
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import {
-    ordonnerEntrees, estMasquee, deplacer, avecOrdre, avecVisibilite,
+    ordonnerEntrees, estMasquee, deplacer, avecOrdre, avecVisibilite, gesteBarre,
     ENTREES_TOUJOURS_VISIBLES,
   } from '../../lib/ordreBarreLaterale';
   import { TOUTES_ENTREES, NIVEAU_ENTREE, type Item } from './Sidebar.svelte';
@@ -44,7 +44,7 @@
     const it = liste[de];
     const total = String(liste.length);
     const nouvel = deplacer(liste, de, vers);
-    preferences.update((p) => ({ ...p, barreLaterale: avecOrdre(p.barreLaterale, nouvel.map((x) => x.view)) }));
+    preferences.update((p) => ({ ...p, ...gesteBarre(avecOrdre(p.barreLaterale, nouvel.map((x) => x.view))) }));
     const place = String(vers + 1);
     annonce = avec('settings.sidebarMoved', it).replace('{p}', place).replace('{n}', total);
     if (focaliser) {
@@ -63,11 +63,11 @@
   }
 
   function basculer(vue: string, visible: boolean) {
-    preferences.update((p) => ({ ...p, barreLaterale: avecVisibilite(p.barreLaterale, vue, visible) }));
+    preferences.update((p) => ({ ...p, ...gesteBarre(avecVisibilite(p.barreLaterale, vue, visible)) }));
   }
 
   function retablir() {
-    preferences.update((p) => ({ ...p, barreLaterale: null }));
+    preferences.update((p) => ({ ...p, ...gesteBarre(null) }));
     annonce = $t('settings.sidebarResetDone' as any);
   }
 

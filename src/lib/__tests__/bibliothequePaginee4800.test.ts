@@ -177,6 +177,7 @@ afterEach(() => {
   albums.set([]);
   _remiseAZeroPourTests();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe('#4800 — la Bibliothèque montée sur un magasin vide', () => {
@@ -220,21 +221,40 @@ describe('#4800 — la Bibliothèque montée sur un magasin vide', () => {
     expect(pagesDemandees()).toHaveLength(2);
   });
 
-  it('la fin de scan fait tomber les pages, et seule la première repart', { timeout: 60_000 }, async () => {
+  it('la fin de scan PÉRIME les pages : celle en vue reste affichée et repart, les autres tombent (fil 2134)', { timeout: 60_000 }, async () => {
     const el = await ecranMonte();
     const grille = el.querySelector('.grid')!;
     faireEntrer(grille.querySelector('.card.sq[data-i="150"]')!);
     await poser();
     expect(pagesDemandees()).toHaveLength(2);
+    expect(grille.querySelectorAll('.card:not(.sq)').length).toBe(2 * TAILLE_PAGE);
+
+    // Une mise en page : le cadre fait 1 000 px, une case 20 px. Avec la
+    // marge d'une demi-hauteur, seules les cases 0 à 75 sont « en vue » :
+    // la page 0 l'est, la page 1 non.
+    const origine = Element.prototype.getBoundingClientRect;
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      if (this === grille) return { top: 0, bottom: 1000, height: 1000, left: 0, right: 800, width: 800, x: 0, y: 0, toJSON() {} } as DOMRect;
+      const i = Number((this as HTMLElement).dataset?.i);
+      if (Number.isFinite(i)) return { top: i * 20, bottom: i * 20 + 20, height: 20, left: 0, right: 100, width: 100, x: 0, y: i * 20, toJSON() {} } as DOMRect;
+      return origine.call(this);
+    });
 
     invaliderBibliotheque();
-    await poser();
-    // La grille est restée LA MÊME : pas de passage par « bibliothèque vide »
-    // ni de remontage — le total est tenu, seules les cases se sont vidées…
+    flushSync();
+    flushSync();
+    // 🔴 Fil 2134 — AUCUNE case en vue ne s'est vidée : la page 0 reste
+    // affichée pendant qu'elle se redemande (avant : les 200 cases vides).
     expect(el.querySelector('.grid')).toBe(grille);
     expect(grille.querySelectorAll('[data-i]').length).toBe(TOTAL);
-    // …la première page est revenue, la seconde attend d'être regardée.
+    expect(grille.querySelector('.card[data-i="0"] .ct')?.textContent).toBe('A0');
+    expect(grille.querySelectorAll('.card:not(.sq)').length, 'la page en vue reste affichée').toBe(TAILLE_PAGE);
+    expect(grille.querySelector('.card.sq[data-i="150"]'), 'la page hors du cadre est tombée').not.toBeNull();
+
+    await poser();
+    // La page en vue est revenue, la seconde attend d'être regardée.
     expect(pagesDemandees()).toHaveLength(3);
+    expect(pagesDemandees()[2]).toContain('offset=0&');
     expect(grille.querySelectorAll('.card:not(.sq)').length).toBe(TAILLE_PAGE);
     expect(chargementsComplets()).toHaveLength(0);
   });
