@@ -3227,6 +3227,8 @@ export default {
   "v2.stream.favIndex": "Cuprinsul favoritelor",
   "v2.fas.topTracks": "Piese populare",
   "v2.art.bio": "Biografie",
+  "v2.art.bioReadMore": "Citește mai mult",
+  "v2.art.bioReadLess": "Restrânge",
   "v2.disco.focus": "Focus",
   "v2.disco.source": "Sursă",
   "v2.disco.quality": "Calitate",

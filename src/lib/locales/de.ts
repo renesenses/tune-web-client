@@ -3227,6 +3227,8 @@ export default {
   "v2.stream.favIndex": "Favoriten-Übersicht",
   "v2.fas.topTracks": "Top-Titel",
   "v2.art.bio": "Biografie",
+  "v2.art.bioReadMore": "Weiterlesen",
+  "v2.art.bioReadLess": "Weniger anzeigen",
   "v2.disco.focus": "Fokus",
   "v2.disco.source": "Quelle",
   "v2.disco.quality": "Qualität",
