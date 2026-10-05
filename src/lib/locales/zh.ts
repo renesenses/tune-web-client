@@ -2313,6 +2313,7 @@ export default {
   "v2.pod.noSelection": "目前这里没有可显示的内容。",
   "v2.nav.addShortcut": "为此界面创建快捷方式",
   "v2.nav.shortcutName": "快捷方式名称…",
+  "v2.nav.shortcutTargetHint": "此快捷方式将重新打开：{nom}",
   "v2.fav.radioLoading": "正在加载电台收藏…",
   "v2.fav.radioEmpty": "暂时没有捕获到任何内容。收听电台时喜欢某首曲目，它就会出现在这里。",
   "v2.fav.radioMakePlaylist": "创建播放列表",

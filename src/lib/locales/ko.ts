@@ -2313,6 +2313,7 @@ export default {
   "v2.pod.noSelection": "지금은 여기에 보여드릴 것이 없습니다.",
   "v2.nav.addShortcut": "이 화면의 바로가기 만들기",
   "v2.nav.shortcutName": "바로가기 이름…",
+  "v2.nav.shortcutTargetHint": "이 바로가기로 열리는 항목: {nom}",
   "v2.fav.radioLoading": "라디오 즐겨찾기를 불러오는 중…",
   "v2.fav.radioEmpty": "아직 담긴 곡이 없습니다. 라디오를 듣는 중에 곡을 좋아요 하면 여기에 들어옵니다.",
   "v2.fav.radioMakePlaylist": "재생목록 만들기",

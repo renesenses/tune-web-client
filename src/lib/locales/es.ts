@@ -2313,6 +2313,7 @@ export default {
   "v2.pod.noSelection": "Por ahora no hay nada que mostrar aquí.",
   "v2.nav.addShortcut": "Crear un acceso directo a esta pantalla",
   "v2.nav.shortcutName": "Nombre del acceso directo…",
+  "v2.nav.shortcutTargetHint": "Este acceso directo abrirá: {nom}",
   "v2.fav.radioLoading": "Cargando los favoritos de radio…",
   "v2.fav.radioEmpty": "Todavía no se ha captado nada. Marque un tema mientras escucha una radio: aparecerá aquí.",
   "v2.fav.radioMakePlaylist": "Crear una lista",

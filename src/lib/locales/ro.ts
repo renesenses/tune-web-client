@@ -2313,6 +2313,7 @@ export default {
   "v2.pod.noSelection": "Deocamdată nu este nimic de arătat aici.",
   "v2.nav.addShortcut": "Creați o scurtătură către acest ecran",
   "v2.nav.shortcutName": "Numele scurtăturii…",
+  "v2.nav.shortcutTargetHint": "Această scurtătură va redeschide: {nom}",
   "v2.fav.radioLoading": "Se încarcă favoritele radio…",
   "v2.fav.radioEmpty": "Încă nimic captat. Apreciați o piesă în timp ce ascultați un radio: va ajunge aici.",
   "v2.fav.radioMakePlaylist": "Creează o listă",

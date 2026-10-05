@@ -57,6 +57,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import { currentShortcutTarget, setShortcutTarget, type ShortcutTarget } from '../../lib/stores/shortcuts';
+  import { cibleRaccourciAlbum } from '../../lib/raccourciAlbum';
   import { detailOuvert, fermerDetail } from '../../lib/historiqueCoquille';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
@@ -206,6 +208,37 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   );
   /** Le panneau partagé — celui des vignettes, pas une seconde copie. */
   let etiquettesOuvertes = $state(false);
+
+  /**
+   * LA FICHE SE DÉCLARE COMME CIBLE DE RACCOURCI — fil 2143, point 2.
+   *
+   * FabienM : « impossible de définir un raccourci sur […] un album ouvert ».
+   * Même mécanisme que la page d'artiste (#1501) et les listes de lecture
+   * (`setShortcutTarget`) ; la forme et la restitution vivent dans
+   * `lib/raccourciAlbum`.
+   *
+   * 🔴 La fiche est un CALQUE par-dessus un écran qui a pu publier SA cible
+   * (une collection, une étiquette, une page d'artiste) : on la retient en
+   * s'ouvrant et on la rend en se refermant — sans quoi, la fiche refermée,
+   * un raccourci posé sur la collection viserait encore l'album. On ne la
+   * rend que si la cible courante est toujours la nôtre : un écran qui a
+   * publié depuis garde la main.
+   */
+  const cibleRaccourci = $derived(cibleRaccourciAlbum({ album: albumAffiche, service, depot, bandcamp }));
+  let cibleDessous: ShortcutTarget | null | undefined = undefined;
+  let clePubliee: string | null = null;
+  $effect(() => {
+    const c = cibleRaccourci;
+    untrack(() => {
+      if (cibleDessous === undefined) cibleDessous = get(currentShortcutTarget);
+      if (!c) return;
+      setShortcutTarget(c);
+      clePubliee = c.key;
+    });
+  });
+  $effect(() => () => {
+    if (clePubliee != null && get(currentShortcutTarget)?.key === clePubliee) setShortcutTarget(cibleDessous ?? null);
+  });
 
   /**
    * « Crédits » — #1572 (FabienM, fil forum 1921 : « ajouter un bouton pour
