@@ -1503,8 +1503,19 @@ export function next(zoneId: number) {
   return fetchJSON<{ status: string; queue_position?: number }>(`${BASE}/zones/${zoneId}/next`, { method: 'POST' });
 }
 
-export function previous(zoneId: number) {
-  return fetchJSON<{ status: string; queue_position?: number }>(`${BASE}/zones/${zoneId}/previous`, { method: 'POST' });
+/**
+ * Fil 1476 (FabienM, rc2) — `positionMs` : la position que JOUE l'onglet, pour
+ * une zone navigateur. Le serveur ne la relève pas (pas de périphérique à
+ * interroger) et la croyait à 0 : « précédent » reculait toujours au lieu de
+ * relancer la piste (#1929). Le serveur ne la lit que pour une zone navigateur.
+ */
+export function previous(zoneId: number, positionMs?: number | null) {
+  return fetchJSON<{ status: string; queue_position?: number }>(
+    `${BASE}/zones/${zoneId}/previous`,
+    positionMs != null
+      ? { method: 'POST', body: JSON.stringify({ position_ms: Math.max(0, Math.floor(positionMs)) }) }
+      : { method: 'POST' },
+  );
 }
 
 /** #3662 — le serveur rend `{position_ms}`, PAS une `Zone`
