@@ -120,3 +120,70 @@ describe('Fil 2136 — contraste des thèmes v2 clairs', () => {
     }
   });
 });
+
+// Décision de Bertrand (04/10/2026) : le texte ATTÉNUÉ des thèmes clairs
+// (`--v2-txt3`, ponté en `--tune-text-muted` et `--tune-text-dim`) était à
+// 3,03:1 (Blanc) et 3,66:1 (Gris) sur la surface, 2,74 et 2,92 sur la surface
+// de choix. Il doit tenir 4,5:1 sur tous les fonds où il est posé.
+describe('Texte atténué des thèmes v2 clairs — ≥ 4,5:1', () => {
+  const ambiance = sansCommentaires(lire('src/components/v2-heritage/AmbianceView.svelte'));
+  const progres = sansCommentaires(lire('src/components/partages/AcousticProgress.svelte'));
+  // Fond, fond 2, surface (et la carte d'analyse d'Ambiance, posée dessus),
+  // surface de choix (`--tune-grey2` des puces y est pontée) et survol.
+  const FONDS = ['--v2-bg', '--v2-bg2', '--tune-surface', '--v2-surface2', '--tune-grey2', '--v2-hover'];
+
+  it('--tune-text-muted et --tune-text-dim ≥ 4,5:1 sur chaque fond', () => {
+    for (const t of THEMES_CLAIRS) {
+      for (const texte of ['--tune-text-muted', '--tune-text-dim']) {
+        for (const f of FONDS) {
+          const c = contraste(resoudre(t, f), resoudre(t, texte));
+          expect(c, `${t} : ${texte} sur ${f} = ${c.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
+  });
+
+  it('la hiérarchie tient : l’atténué reste plus clair que le secondaire', () => {
+    for (const t of THEMES_CLAIRS) {
+      const fond = resoudre(t, '--tune-surface');
+      const attenue = contraste(fond, resoudre(t, '--tune-text-muted'));
+      const secondaire = contraste(fond, resoudre(t, '--tune-text-secondary'));
+      expect(attenue, t).toBeLessThan(secondaire);
+    }
+  });
+
+  it('carte d’analyse : son texte d’explication lit un jeton du thème', () => {
+    const corps = /\.acoustic-notice-body\s*\{([^}]*)\}/.exec(ambiance);
+    expect(corps, 'règle .acoustic-notice-body introuvable').not.toBeNull();
+    // `--text-muted` n'existe nulle part : seul le repli #a0a0a8 s'appliquait,
+    // à 2,6:1 sur la carte devenue blanche.
+    expect(corps![1]).toContain('color: var(--tune-text-secondary)');
+    expect(progres).toMatch(/\.acx-sub\s*\{[^}]*color: var\(--tune-text-muted\)/);
+  });
+
+  it('les thèmes sombres gardent leur --v2-txt3 (rien ne change pour eux)', () => {
+    const attendu: Record<string, string> = {
+      'black-green': '#4F5D6D',
+      'black-blue': '#4D5B70',
+      'midnight-orange': '#5D6788',
+      brown: '#7A6753',
+    };
+    for (const [t, v] of Object.entries(attendu)) expect(resoudre(t, '--v2-txt3'), t).toBe(v);
+  });
+});
+
+describe('SmartFolderPicker — jetons réels, plus de replis sombres', () => {
+  const picker = sansCommentaires(lire('src/components/partages/SmartFolderPicker.svelte'));
+
+  it('n’utilise plus --border, --bg-elev, --text-dim ni --accent', () => {
+    expect(picker).not.toMatch(/var\(--(border|bg-elev|text-dim|accent)\b/);
+  });
+
+  it('chaque variable qu’il lit est définie, dans les six thèmes', () => {
+    const noms = [...new Set([...picker.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]))];
+    expect(noms.length).toBeGreaterThan(0);
+    for (const t of ['black-green', 'black-blue', 'midnight-orange', 'brown', ...THEMES_CLAIRS]) {
+      for (const n of noms) resoudre(t, n);
+    }
+  });
+});

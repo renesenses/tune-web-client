@@ -750,7 +750,7 @@
   .acoustic-notice-body {
     margin: 0;
     font-size: 0.9rem;
-    color: var(--text-muted, #a0a0a8);
+    color: var(--tune-text-secondary);
     max-width: 70ch;
   }
   .acoustic-notice-btn {
