@@ -6163,10 +6163,53 @@ export function testSmbConnection(host: string, share: string, username?: string
 }
 
 export function mountSmbShare(host: string, share: string, username?: string, password?: string) {
-  return fetchJSON<{ mount_path: string; id: number }>(`${BASE}/network/smb/mount`, {
+  // `deja_monte` : le partage était déjà monté à ce point, le serveur rend
+  // son chemin sans remonter (fil 2145).
+  return fetchJSON<{ mount_path: string; id: number; deja_monte?: boolean }>(`${BASE}/network/smb/mount`, {
     method: 'POST',
     body: JSON.stringify({ host, share_name: share, username, password }),
   });
+}
+
+/** Réponse de `DELETE /network/smb/mounts/{id}` (fil 2145). Un 409
+ *  `racines_dependantes` porte la liste des dossiers de la bibliothèque qui
+ *  vivent sur le partage : il faut la confirmation de l'utilisateur. */
+export interface OubliPartage {
+  oublie?: boolean;
+  demonte?: boolean;
+  racines?: string[];
+  /** 409 : pistes qui partiraient si ces dossiers étaient retirés. */
+  pistes?: number;
+  racines_retirees?: string[];
+  pistes_retirees?: number;
+  purge_refusee?: boolean;
+  error?: string;
+  message?: string;
+}
+
+/** « Oublier ce partage » : le serveur DÉMONTE puis supprime l'enregistrement.
+ *  `unmountSmbShare` (DELETE /network/mounts/{id}) supprimait la ligne sans
+ *  démonter. */
+export function forgetSmbShare(
+  id: number,
+  confirmer = false,
+  retirer?: { pistes: number },
+) {
+  // `retirer` : retirer aussi les dossiers de la bibliothèque, avec la purge
+  // de leurs pistes — `pistes` est le nombre montré à l'utilisateur, même
+  // contrat que `confirm_purge` du retrait de dossier (#1943).
+  const q = new URLSearchParams();
+  if (confirmer) q.set('confirmer', 'true');
+  if (retirer) {
+    q.set('retirer_racines', 'true');
+    q.set('confirmer_purge', String(retirer.pistes));
+  }
+  const qs = q.toString();
+  return fetchJSON<OubliPartage>(
+    `${BASE}/network/smb/mounts/${id}${qs ? `?${qs}` : ''}`,
+    { method: 'DELETE' },
+    (statut) => statut === 409,
+  );
 }
 
 export function unmountSmbShare(id: number) {
