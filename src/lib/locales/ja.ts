@@ -4383,6 +4383,13 @@ export default {
   "v2.sources.noDrive": "Tune を実行しているマシンに CD ドライブが接続されていません。",
   "v2.sources.permissionAsk": "macOS はまだ Tune にオーディオ入力の聴取を許可していません。最初の「再生」時に確認されます。",
   "v2.sources.permissionNotAsked": "未確認",
+  // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
+  "v2.plug.entreeAudioNom": "オーディオ入力",
+  "v2.sources.greffonManque": "「オーディオ入力」プラグインがインストールされていません。これがないと、オーディオ入力も仮想入力も表示されません。インストールには Tune サーバーの再起動が必要です。",
+  "v2.sources.greffonInstaller": "プラグインをインストール",
+  "v2.sources.greffonInstallation": "インストール中…",
+  "v2.sources.greffonRedemarrer": "「オーディオ入力」プラグインをインストールしました。オーディオ入力と仮想入力を表示するには Tune サーバーを再起動してください。",
+  "v2.sources.greffonErreur": "「オーディオ入力」プラグインをインストールできませんでした。",
   // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
   "menuObjet.duplicate": "複製",
   "menuObjet.duplicated": "「{name}」を作成しました",

@@ -4383,6 +4383,13 @@ export default {
   "v2.sources.noDrive": "An dem Rechner, auf dem Tune läuft, ist kein CD-Laufwerk angeschlossen.",
   "v2.sources.permissionAsk": "macOS hat Tune noch nicht erlaubt, Audioeingänge abzuhören: Es fragt beim ersten „Anhören“ nach.",
   "v2.sources.permissionNotAsked": "Noch nicht angefragt",
+  // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
+  "v2.plug.entreeAudioNom": "Audioeingang",
+  "v2.sources.greffonManque": "Das Plugin „Audioeingang“ ist nicht installiert: Ohne es erscheint weder ein Audio- noch ein virtueller Eingang. Die Installation erfordert einen Neustart des Tune-Servers.",
+  "v2.sources.greffonInstaller": "Plugin installieren",
+  "v2.sources.greffonInstallation": "Wird installiert…",
+  "v2.sources.greffonRedemarrer": "Plugin „Audioeingang“ installiert. Starten Sie den Tune-Server neu, um Audio- und virtuelle Eingänge zu sehen.",
+  "v2.sources.greffonErreur": "Das Plugin „Audioeingang“ konnte nicht installiert werden.",
   // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
   "menuObjet.duplicate": "Duplizieren",
   "menuObjet.duplicated": "„{name}“ erstellt",

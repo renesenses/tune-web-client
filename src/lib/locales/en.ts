@@ -4403,6 +4403,13 @@ export default {
   "v2.sources.noDrive": "No CD drive is connected to the machine running Tune.",
   "v2.sources.permissionAsk": "macOS has not yet allowed Tune to listen to audio inputs: it will ask on the first “Listen”.",
   "v2.sources.permissionNotAsked": "Not asked yet",
+  // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
+  "v2.plug.entreeAudioNom": "Audio input",
+  "v2.sources.greffonManque": "The “Audio input” plugin is not installed: without it, no audio or virtual input appears. Installing it requires restarting the Tune server.",
+  "v2.sources.greffonInstaller": "Install the plugin",
+  "v2.sources.greffonInstallation": "Installing…",
+  "v2.sources.greffonRedemarrer": "“Audio input” plugin installed. Restart the Tune server to see audio and virtual inputs.",
+  "v2.sources.greffonErreur": "The “Audio input” plugin could not be installed.",
   // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
   "menuObjet.duplicate": "Duplicate",
   "menuObjet.duplicated": "“{name}” created",
