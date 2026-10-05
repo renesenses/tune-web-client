@@ -14,7 +14,7 @@
   import { formatNombre } from '../../lib/formats';
   import type { DeclickOptions } from '../../lib/api';
   import { albums } from '../../lib/stores/library';
-  import { demanderBibliothequeEntiere } from '../../lib/stores/albumsPagines';
+  import { demanderBibliothequeEntiere, listeEntierePerimee } from '../../lib/stores/albumsPagines';
   import { fold } from '../../lib/utils';
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -40,9 +40,10 @@
 
   // #4800 — la coquille ne charge plus la bibliothèque au démarrage : cet
   // écran, qui choisit parmi TOUS les albums, la demande lui-même à son
-  // montage, et la redemande si un scan l'a vidée (`$albums` retombe à `[]`).
+  // montage, et la redemande si un scan l'a vidée (fil 2134 : la liste périmée reste
+  // affichée, `listeEntierePerimee` passe à `true`, la neuve la remplace).
   $effect(() => {
-    if ($albums.length) return;
+    if ($albums.length && !$listeEntierePerimee) return;
     void demanderBibliothequeEntiere().catch(() => { /* le bandeau d'`api` a parlé */ });
   });
   const shown = $derived(

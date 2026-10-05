@@ -49,7 +49,7 @@ describe('la bibliothèque se recharge quand le serveur le dit', () => {
    * COMPORTEMENT, jamais une vitesse, et le plafond n'est là que pour empêcher
    * un blocage réel de durer.
    */
-  it('les deux événements sont écoutés — et INVALIDENT, sans recharger (#4800)', { timeout: 60_000 }, async () => {
+  it('les deux événements sont écoutés — et INVALIDENT, sans recharger (#4800), UNE fois par rafale (fil 2134)', { timeout: 60_000 }, async () => {
     let recu: ((e: any) => void) | null = null;
     const desabonner = vi.fn();
     vi.resetModules();
@@ -72,21 +72,33 @@ describe('la bibliothèque se recharge quand le serveur le dit', () => {
     const stop = m.suivreLaBibliotheque();
     expect(recu, "aucun abonnement n'a été posé").toBeTypeOf('function');
 
-    recu!({ type: 'library.scan.completed' });
-    recu!({ type: 'library.updated' });
-    await new Promise((r) => setTimeout(r, 0));
-    expect(get(pagines.generationBibliotheque) - avant, 'les deux événements doivent invalider').toBe(2);
-    expect(requetes.length, "une invalidation ne recharge RIEN d'elle-même").toBe(0);
+    vi.useFakeTimers();
+    try {
+      recu!({ type: 'library.scan.completed' });
+      recu!({ type: 'library.updated' });
+      // Fil 2134 — rien tout de suite : la rafale est REGROUPÉE…
+      expect(get(pagines.generationBibliotheque) - avant).toBe(0);
+      vi.advanceTimersByTime(m.CALME_BIBLIOTHEQUE_MS);
+      // …puis une seule invalidation pour les deux événements.
+      expect(get(pagines.generationBibliotheque) - avant, 'les deux événements doivent invalider, une fois').toBe(1);
+      expect(requetes.length, "une invalidation ne recharge RIEN d'elle-même").toBe(0);
 
-    // Un événement SANS rapport ne doit rien invalider : sur 46 877 pistes,
-    // les écrans montés rechargeraient à chaque battement de transport.
-    recu!({ type: 'zone.state.changed' });
-    recu!({});
-    await new Promise((r) => setTimeout(r, 0));
-    expect(get(pagines.generationBibliotheque) - avant).toBe(2);
-    expect(requetes.length).toBe(0);
+      // Un événement SANS rapport ne doit rien invalider : sur 46 877 pistes,
+      // les écrans montés rechargeraient à chaque battement de transport.
+      recu!({ type: 'zone.state.changed' });
+      recu!({});
+      vi.advanceTimersByTime(m.INTERVALLE_BIBLIOTHEQUE_MS * 2);
+      expect(get(pagines.generationBibliotheque) - avant).toBe(1);
+      expect(requetes.length).toBe(0);
 
-    stop();
+      // Un événement en attente au démontage ne part plus.
+      recu!({ type: 'library.updated' });
+      stop();
+      vi.advanceTimersByTime(m.INTERVALLE_BIBLIOTHEQUE_MS * 2);
+      expect(get(pagines.generationBibliotheque) - avant).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
     expect(desabonner, "l'abonnement doit se couper au démontage").toHaveBeenCalled();
   });
 });

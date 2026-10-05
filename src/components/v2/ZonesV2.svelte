@@ -361,6 +361,9 @@
     renaming = z.id; draft = z.name;
   }
   function commitRename(z: Zone) {
+    // Échap (ou un premier Entrée) a déjà refermé le champ : le `blur` que
+    // déclenche sa disparition ne doit ni renommer ni renommer deux fois.
+    if (renaming !== z.id) return;
     const name = draft.trim();
     renaming = null;
     if (!name || name === z.name || z.id == null) return;
@@ -578,9 +581,15 @@
         point), le NOM, l'APPAREIL, les BADGES (Tune tested, hors ligne,
         éteinte récemment, aucune sortie — en pastilles, la phrase en
         infobulle), ce qui joue, puis le volume et le lien vers les réglages
-        de la zone. Les gestes destructifs (renommer, supprimer, fusionner)
-        restent à la LISTE : une carte qu'on clique pour activer une zone ne
-        doit pas porter une corbeille à portée de pouce.
+        de la zone. Les gestes (renommer, supprimer, fusionner…) passent par
+        le MENU de la carte (#1392), jamais par une corbeille à portée de
+        pouce.
+
+        Fil 2132 — « Renommer » posait `renaming` mais seule la LISTE lisait
+        cet état : en grille, le clic ne montrait rien. La carte dessine
+        maintenant le même champ, à la place du nom. Il est le FRÈRE de
+        `.cpick` : un champ de saisie DANS un bouton est du balisage
+        invalide (#1006).
 
         🔴 #1006 — la carte n'est PLUS un seul <button> : une pochette
         cliquable et un lien dans un bouton, c'est du balisage invalide que
@@ -644,7 +653,7 @@
                   {#if sortieSecondaire(z)}<span class="cot">{sortieSecondaire(z)}</span>{/if}
                   {#if z.is_default}<span class="cdef">{$t('v2.zone.default' as any)}</span>{/if}
                 </span>
-                <span class="cnom">{z.name}</span>
+                {#if renaming !== z.id}<span class="cnom">{z.name}</span>{/if}
                 <span class="cappareil" class:muet={!appareilDeLaZone(z)}>{appareilOuSortie(z)}</span>
                 <span class="cbadges">
                   {#if teste}<BadgeTuneTested taille="sm" />{/if}
@@ -658,6 +667,15 @@
                 {/if}
               </button>
             </div>
+            {#if renaming === z.id}
+              <div class="crn">
+                <!-- svelte-ignore a11y_autofocus -->
+                <input class="rn" bind:value={draft} autofocus
+                  aria-label={$t('zone.rename' as any)}
+                  onblur={() => commitRename(z)}
+                  onkeydown={(e) => { if (e.key === 'Enter') commitRename(z); if (e.key === 'Escape') renaming = null; }} />
+              </div>
+            {/if}
             <div class="cvol">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
               <input type="range" min="0" max="100" step="1" value={Math.round((z.volume ?? 0) * 100)}
@@ -919,6 +937,8 @@
   .cnp{margin-top:10px; font:12px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%}
   .cna{color:var(--v2-txt3)}
 
+  .crn{padding:0 16px 4px}
+  .crn .rn{width:100%; box-sizing:border-box}
   .cvol{display:flex; align-items:center; gap:10px; padding:10px 16px 13px;
     border-top:1px solid var(--v2-line)}
   .cvol svg{width:15px; height:15px; color:var(--v2-txt3); flex:0 0 auto}
