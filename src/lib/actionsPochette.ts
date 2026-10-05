@@ -187,6 +187,8 @@ export interface GestesPochette {
   enfiler?: () => void;
   ouvrir?: () => void;
   allerArtiste?: () => void;
+  /** « Ajouter aux raccourcis » — le formulaire du signet, sur CET objet (web#1922). */
+  ajouterAuxRaccourcis?: () => void;
   basculerFavori?: () => void;
   /** Ouvre le panneau d'étiquettes — fourni par le COMPOSANT qui le montre. */
   etiqueter?: () => void;
@@ -287,6 +289,12 @@ export function entreesPochette(
   // ── Aller ───────────────────────────────────────────────────────────────
   pousser(true, 'common.open', g.ouvrir);
   pousser(album && !!c.artisteConnu, 'library.goToArtist', g.allerArtiste);
+  /**
+   * « Ajouter aux raccourcis » — web#1922 (FabienM, fil 2143, point 2). Le
+   * geste n'existe que si l'objet se DÉSIGNE (`lib/raccourciObjet`) : sans
+   * cible, `gestesObjet` ne le fournit pas, et l'entrée est absente.
+   */
+  pousser(true, 'menuObjet.addShortcut', g.ajouterAuxRaccourcis);
 
   // ── Ranger ──────────────────────────────────────────────────────────────
   if (c.favori != null) {
