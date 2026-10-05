@@ -61,7 +61,7 @@
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
   import BandcampAchats from './BandcampAchats.svelte';
-  import { cleTelechargeable, telechargementDe } from '../../lib/bandcampAchats';
+  import { cleTelechargeable, compteBandcampARelier, telechargementDe } from '../../lib/bandcampAchats';
   import type { BandcampTelechargement } from '../../lib/api';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -345,6 +345,10 @@
   // Collection : le serveur repond 428 tant qu'aucun compte n'est relie.
   // C'est un NOM D'UTILISATEUR public, pas un identifiant de connexion.
   let bcNeedsLink = $state(false);
+  /** #2778 — la collection n'a pas pu être lue alors qu'un compte est relié
+   *  (Bandcamp en refus, réseau) : on le DIT, au lieu d'afficher une
+   *  collection vide ou de redemander le nom du compte. */
+  let bcEchec = $state(false);
   let bcUser = $state('');
   let bcLinking = $state(false);
   // Lot 3 (Yves, 16/09/2026) : les achats en FLAC. `downloads_available` dit
@@ -633,13 +637,17 @@
           .then((d: any) => { bcItems = d?.items ?? []; }).catch(() => { bcItems = []; }).finally(done);
       } else {
         bcNeedsLink = false;
+        bcEchec = false;
         api.bandcampCollection()
           .then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; bcDownloadsAvailable = !!d?.downloads_available; chargerCopiesLocales(); })
           .catch((e: any) => {
             // 428 : aucun compte relie. Ce n'est pas une panne, c'est une
             // etape a franchir — on le dit au lieu d'afficher « rien ».
+            // #2778 : le STATUT seul en decide. Le texte d'un 502 recopie la
+            // page de Bandcamp, et une page HTML contient « link ».
             bcCollection = [];
-            bcNeedsLink = e?.status === 428 || /lié|link/i.test(e?.message ?? '');
+            bcNeedsLink = compteBandcampARelier(e);
+            bcEchec = !bcNeedsLink;
           })
           .finally(done);
       }
@@ -1060,15 +1068,25 @@
     bcLinking = true;
     try {
       await api.bandcampLink(u);
-      bcNeedsLink = false;
+    } catch {
+      error = $t('v2.str.bandcampNotFound' as any);
+      bcLinking = false;
+      return;
+    }
+    // #2778 — le compte EST relié : un rechargement qui échoue ensuite
+    // (Bandcamp en refus) ne doit pas le dire « introuvable ».
+    bcNeedsLink = false;
+    bcEchec = false;
+    try {
       await rechargerCollection();
-    } catch { error = $t('v2.str.bandcampNotFound' as any); }
+    } catch { bcEchec = true; }
     bcLinking = false;
   }
   /** Relire « Ma collection » — après une liaison, ou une session posée/oubliée
    *  (lot 3 : c'est elle qui décide de `downloadable` sur chaque achat). */
   async function rechargerCollection() {
     const d: any = await api.bandcampCollection();
+    bcEchec = false;
     bcCollection = d?.items ?? d?.collection ?? [];
     bcDownloadsAvailable = !!d?.downloads_available;
     chargerCopiesLocales();
@@ -1400,6 +1418,8 @@
                 </button>
               {/if}
             </div>{/each}</div>
+        {:else if bcEchec}
+          <div class="state">{$t('v2.stream.bcCollectionFailed' as any)}</div>
         {:else}
           <div class="state">{$t('v2.stream.bcEmpty' as any)}</div>
         {/if}

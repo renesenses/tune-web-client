@@ -86,6 +86,9 @@ export function entreesDepuisServeur(items: readonly any[]): HistoryEntry[] {
       position: e.context_position ?? null,
       // #988 — servi depuis la v0.9.151 ; absent d'un serveur plus ancien.
       nom: e.context_name ?? null,
+      // web#1895 — chez qui chercher `id` : seule source sûre pour ouvrir la
+      // playlist (un identifiant Qobuz est un entier, comme un local).
+      source: e.context_source ?? null,
     },
   }));
 }

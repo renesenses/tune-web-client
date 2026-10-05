@@ -161,6 +161,13 @@ export interface Album {
   is_compilation?: boolean;
   /** Type annoncé par MusicBrainz ou le service : absent quand il n'est pas connu. */
   release_type?: string | null;
+  /**
+   * Type DÉDUIT par le serveur (#5616) quand `release_type` est absent :
+   * `single` (1 à 3 pistes, moins de 15 min), `ep` (4 à 6 pistes, moins de
+   * 30 min) ou `album`. Jamais publié pour une compilation ni à côté d'un type
+   * explicite, qui gagne toujours. Absent sur un serveur antérieur.
+   */
+  inferred_release_type?: string | null;
   /** D'OÙ sort ce Dynamic Range (#1388, serveur v0.9.142) : `album_tag` quand
    *  une piste porte `ALBUM DYNAMIC RANGE`, `track_average` quand Tune l'a
    *  déduite de la moyenne arrondie des `DYNAMIC RANGE` des pistes. Apparaît
@@ -187,6 +194,13 @@ export interface Track {
   album_id_service?: string | null;
   album_title?: string | null;
   artist_id?: number | null;
+  /**
+   * L'artiste CHEZ SON SERVICE, quand l'appelant l'a appris ailleurs que dans
+   * `artist_id` — le jumeau d'`album_id_service`. Fil forum 2143 (#5758) :
+   * posé par `GET /zones/{id}/queue`, `null` quand rien n'est connu. Lu par
+   * `routageArtiste.destinationArtiste`.
+   */
+  artist_id_service?: string | null;
   artist_name?: string | null;
   album_artist?: string | null;
   disc_number?: number;
