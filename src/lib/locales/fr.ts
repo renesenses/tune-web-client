@@ -1760,6 +1760,7 @@ export default {
   "settings.wifiNoNetworks": "Aucun réseau WiFi à portée",
   "settings.wifiNoAdapter": "Aucune carte WiFi détectée sur cette machine — matériel absent ou pilote non installé.",
   "settings.wifiAdapterUnavailable": "La carte WiFi est présente mais indisponible : radio coupée ou pilote incomplet.",
+  "settings.wifiAdapterNoFirmware": "Carte Wi-Fi présente mais pilote ou firmware manquant.",
   "settings.wifiAdapterUnmanaged": "La carte WiFi n'est pas gérée par NetworkManager.",
   "settings.wifiInUse": "connecté",
   "settings.wifiForget": "Oublier",

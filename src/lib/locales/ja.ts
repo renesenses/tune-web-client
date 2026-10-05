@@ -1188,6 +1188,7 @@ export default {
   "settings.wifiNoNetworks": "ネットワークが見つかりません",
   "settings.wifiNoAdapter": "このマシンで WiFi アダプターが検出されません。ハードウェアがないか、ドライバーが未インストールです。",
   "settings.wifiAdapterUnavailable": "WiFi アダプターはありますが使用できません。無線がオフか、ドライバーが不完全です。",
+  "settings.wifiAdapterNoFirmware": "WiFi アダプターはありますが、ドライバーまたはファームウェアがありません。",
   "settings.wifiAdapterUnmanaged": "WiFi アダプターは NetworkManager で管理されていません。",
   "settings.wifiInUse": "接続中",
   "settings.wifiForget": "削除",

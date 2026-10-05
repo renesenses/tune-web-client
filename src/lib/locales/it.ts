@@ -1188,6 +1188,7 @@ export default {
   "settings.wifiNoNetworks": "Nessuna rete trovata",
   "settings.wifiNoAdapter": "Nessuna scheda WiFi rilevata su questa macchina: hardware assente o driver non installato.",
   "settings.wifiAdapterUnavailable": "La scheda WiFi è presente ma non disponibile: radio spenta o driver incompleto.",
+  "settings.wifiAdapterNoFirmware": "Scheda WiFi presente, ma manca il driver o il firmware.",
   "settings.wifiAdapterUnmanaged": "La scheda WiFi non è gestita da NetworkManager.",
   "settings.wifiInUse": "connesso",
   "settings.wifiForget": "Dimentica",

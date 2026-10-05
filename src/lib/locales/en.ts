@@ -1757,6 +1757,7 @@ export default {
   "settings.wifiNoNetworks": "No networks found",
   "settings.wifiNoAdapter": "No WiFi adapter detected on this machine — missing hardware or driver not installed.",
   "settings.wifiAdapterUnavailable": "The WiFi adapter is present but unavailable: radio switched off or incomplete driver.",
+  "settings.wifiAdapterNoFirmware": "WiFi adapter present but its driver or firmware is missing.",
   "settings.wifiAdapterUnmanaged": "The WiFi adapter is not managed by NetworkManager.",
   "settings.wifiInUse": "connected",
   "settings.wifiForget": "Forget",

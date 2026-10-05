@@ -1188,6 +1188,7 @@ export default {
   "settings.wifiNoNetworks": "No se encontraron redes",
   "settings.wifiNoAdapter": "No se ha detectado ningún adaptador WiFi en esta máquina: falta el hardware o el controlador no está instalado.",
   "settings.wifiAdapterUnavailable": "El adaptador WiFi está presente pero no disponible: radio desactivada o controlador incompleto.",
+  "settings.wifiAdapterNoFirmware": "Adaptador WiFi presente, pero falta el controlador o el firmware.",
   "settings.wifiAdapterUnmanaged": "El adaptador WiFi no está gestionado por NetworkManager.",
   "settings.wifiInUse": "conectado",
   "settings.wifiForget": "Olvidar",

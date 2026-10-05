@@ -1257,6 +1257,7 @@ export default {
   "settings.wifiNoNetworks": "Nem található hálózat",
   "settings.wifiNoAdapter": "Ezen a gépen nem található WiFi-adapter – hiányzó hardver vagy telepítetlen illesztőprogram.",
   "settings.wifiAdapterUnavailable": "A WiFi-adapter jelen van, de nem elérhető: a rádió ki van kapcsolva, vagy az illesztőprogram hiányos.",
+  "settings.wifiAdapterNoFirmware": "A WiFi-adapter jelen van, de hiányzik az illesztőprogram vagy a firmware.",
   "settings.wifiAdapterUnmanaged": "A WiFi-adaptert nem a NetworkManager kezeli.",
   "settings.wifiInUse": "csatlakoztatva",
   "settings.wifiForget": "Elfelejtés",

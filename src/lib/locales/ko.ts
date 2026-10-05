@@ -1172,6 +1172,7 @@ export default {
   "settings.wifiNoNetworks": "네트워크를 찾을 수 없습니다",
   "settings.wifiNoAdapter": "이 기기에서 WiFi 어댑터가 감지되지 않습니다 — 하드웨어가 없거나 드라이버가 설치되지 않았습니다.",
   "settings.wifiAdapterUnavailable": "WiFi 어댑터가 있지만 사용할 수 없습니다: 무선이 꺼져 있거나 드라이버가 불완전합니다.",
+  "settings.wifiAdapterNoFirmware": "WiFi 어댑터가 있지만 드라이버 또는 펌웨어가 없습니다.",
   "settings.wifiAdapterUnmanaged": "WiFi 어댑터가 NetworkManager에서 관리되지 않습니다.",
   "settings.wifiInUse": "연결됨",
   "settings.wifiForget": "삭제",

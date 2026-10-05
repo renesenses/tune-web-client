@@ -1188,6 +1188,7 @@ export default {
   "settings.wifiNoNetworks": "Keine Netzwerke gefunden",
   "settings.wifiNoAdapter": "Auf diesem Gerät wurde kein WLAN-Adapter erkannt – Hardware fehlt oder Treiber nicht installiert.",
   "settings.wifiAdapterUnavailable": "Der WLAN-Adapter ist vorhanden, aber nicht verfügbar: Funk ausgeschaltet oder Treiber unvollständig.",
+  "settings.wifiAdapterNoFirmware": "WLAN-Adapter vorhanden, aber Treiber oder Firmware fehlt.",
   "settings.wifiAdapterUnmanaged": "Der WLAN-Adapter wird nicht von NetworkManager verwaltet.",
   "settings.wifiInUse": "verbunden",
   "settings.wifiForget": "Vergessen",
