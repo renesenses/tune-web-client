@@ -68,7 +68,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
   import { styleMenuAncre } from '../../lib/ancrageMenu';
   import { portail } from '../../lib/portail';
-  import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
+  import { estMarqueIa, marquageIaADemander } from '../../lib/contenuIa';
+import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
   import { dialogs } from '../../lib/stores/dialogs';
   import { origineDuCoffret, EVT_COFFRET_DEFAIT, type OrigineCoffret } from '../../lib/coffretAuto';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -138,7 +139,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 
   $effect(() => {
     const svc = service, sid = sidDistant;
-    const manque = !enTeteComplet(album);
+    // #5530 — un album Qobuz reçu sans son marquage IA le demande aussi.
+    const manque = !enTeteComplet(album) || marquageIaADemander(svc, album);
     detailService = null;
     if (!svc || !sid || !manque) return;
     let perime = false;
@@ -163,6 +165,10 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     const fusion: any = { ...(album as any) };
     for (const cle of ['cover_path', 'artist_name', 'artist_id', 'year', 'release_date', 'original_year', 'original_date']) {
       if (vide(fusion[cle])) fusion[cle] = (d as any)[cle] ?? null;
+    }
+    // #5530 — le marquage IA, seulement si l'appelant ne l'avait pas.
+    if (fusion.ai_generated === undefined && typeof (d as any).ai_generated === 'boolean') {
+      fusion.ai_generated = (d as any).ai_generated;
     }
     return fusion as Album;
   });
@@ -1408,6 +1414,9 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
              « compilation ». -->
         {#if depuisCue}<div class="qbadge cue" title={$tr('v2.album.cueTip' as any)}>{$tr('v2.album.cue' as any)}</div>{/if}
         {#if mention}<div class="qbadge cue" title={$tr('v2.album.alsoOnTip' as any)}>{$tr(mention.cle as any).replace('{servers}', mention.serveurs.join(', '))}</div>{/if}
+        <!-- #5530 — le marquage « généré par IA » que le service pose sur
+             l'album (Qobuz). Rien quand il ne dit rien. -->
+        {#if estMarqueIa(albumAffiche)}<div class="qbadge cue ia" data-ia title={$tr('v2.str.aiGeneratedTip' as any)}>{$tr('v2.str.aiGenerated' as any)}</div>{/if}
       </div>
       <h1>{album.title}</h1>
       <!-- Un vrai BOUTON, pas un `<div onclick>` : le clavier doit l'atteindre.

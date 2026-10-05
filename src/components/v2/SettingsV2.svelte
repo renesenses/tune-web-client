@@ -33,6 +33,10 @@
   import { preferences, estDispositionFile, DISPOSITION_FILE_DEFAUT } from '../../lib/stores/preferences';
   import { typesSourcesBarre } from '../../lib/sources';
   import { TYPES_SOURCE_BARRE, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
+  import {
+    ID_GREFFON_ENTREE_AUDIO, etatGreffonEntreeAudio, propositionEntreeAudioVisible,
+    type EtatGreffonEntreeAudio, type FicheGreffon,
+  } from '../../lib/greffonEntreeAudio';
   import { atLeast } from '../../lib/uiLevel';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
@@ -85,7 +89,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
-  import { etatPartage } from '../../lib/smbMountState';
+  import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
   import {
     detailAppareilIgnore,
     libelleAppareilIgnore,
@@ -1708,6 +1712,46 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
   $effect(() => { void loadSmbMounts(); });
 
+  /* Fil 2145 (Daniel Levy) — la ligne d'un partage n'avait AUCUNE action.
+   * Un partage monté mais jamais déclaré ne pouvait être déclaré qu'en
+   * recopiant son chemin /mnt/… à la main, et un partage en double (même NAS
+   * sous deux adresses) ne pouvait pas être retiré. */
+  let smbBusy = $state<number | null>(null);
+  let smbErr = $state<string | null>(null);
+  async function ajouterPartage(m: api.SmbMount) {
+    if (!m.mount_path || smbBusy !== null) return;
+    smbBusy = m.id; smbErr = null;
+    try {
+      const r = await api.addMusicDir(m.mount_path);
+      musicDirs = r?.music_dirs ?? [...musicDirs, m.mount_path];
+      await refreshDirectoryOrder();
+    } catch (e: any) { smbErr = e?.message ?? get(t)('settings.errFolderRejected'); }
+    smbBusy = null;
+  }
+  async function oublierPartage(m: api.SmbMount) {
+    if (smbBusy !== null) return;
+    smbBusy = m.id; smbErr = null;
+    try {
+      const r = await oublierUnPartage(
+        m.id,
+        (id, confirmer, retirer) => api.forgetSmbShare(id, confirmer, retirer),
+        (racines, pistes) => dialogs.confirmAvecCase(
+          get(t)('settings.smbForgetConfirm' as any)
+            .replace('{count}', String(racines.length))
+            .replace('{paths}', racines.join('\n')),
+          get(t)('settings.smbForgetRemoveDirs' as any).replace('{tracks}', String(pistes)),
+          { danger: true, coche: true },
+        ),
+      );
+      if (r?.racines_retirees?.length) {
+        await refreshLibrary();
+        if (r.purge_refusee) smbErr = get(t)('settings.smbForgetPurgeRefused' as any);
+      }
+      await loadSmbMounts();
+    } catch (e: any) { smbErr = e?.message ?? get(t)('settings.smbForgetFailed' as any); }
+    smbBusy = null;
+  }
+
   /* --- Base : sauvegardes, export / import, index de recherche ------------
    *
    * Portés de l'ancienne interface, où ils vivaient dans deux écrans :
@@ -3210,6 +3254,37 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function basculerTypeSource(type: TypeSourceBarre, coche: boolean) {
     preferences.update((pr) => ({ ...pr, sourcesBarre: { ...(pr.sourcesBarre ?? {}), [type]: coche } }));
   }
+
+  // tune-server-rust#5296 — « Entrée audio » ou « Entrée virtuelle » cochée,
+  // mais le greffon qui publie ces sources n'est pas installé : le proposer
+  // ici, par la route d'installation existante, et rappeler le redémarrage.
+  let greffonEntreeAudio = $state<EtatGreffonEntreeAudio>('inconnu');
+  let installationEntreeAudio = $state(false);
+  let erreurEntreeAudio = $state<string | null>(null);
+  const entreeAudioCochee = $derived($typesSourcesBarre.entree || $typesSourcesBarre.virtuelle);
+  $effect(() => {
+    if (!entreeAudioCochee) return;
+    api.getInstalledPlugins()
+      .then((liste) => { greffonEntreeAudio = etatGreffonEntreeAudio(liste as unknown as FicheGreffon[]); })
+      // Indéterminé : on ne propose rien sur une erreur réseau.
+      .catch(() => {});
+  });
+  async function installerGreffonEntreeAudio() {
+    if (installationEntreeAudio) return;
+    installationEntreeAudio = true;
+    erreurEntreeAudio = null;
+    // Résolue AVANT l'attente : un `$t()` dans un `catch` est invisible au build.
+    const msgKo = $t('v2.sources.greffonErreur' as any);
+    try {
+      const r = await api.installPlugin(ID_GREFFON_ENTREE_AUDIO);
+      greffonEntreeAudio = r?.restart_required === false ? 'actif' : 'a_redemarrer';
+    } catch {
+      erreurEntreeAudio = msgKo;
+      notifications.error(msgKo);
+    } finally {
+      installationEntreeAudio = false;
+    }
+  }
 </script>
 
 <section class="v2-settings tune-v2">
@@ -3437,6 +3512,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </label>
                 </div>
               {/each}
+              {#if propositionEntreeAudioVisible($typesSourcesBarre, greffonEntreeAudio)}
+                <div class="row" data-greffon-entree-audio={greffonEntreeAudio}>
+                  <div class="lbl">
+                    <span>{greffonEntreeAudio === 'a_installer'
+                      ? $t('v2.sources.greffonManque' as any)
+                      : $t('v2.sources.greffonRedemarrer' as any)}</span>
+                    {#if erreurEntreeAudio}<span class="hint">{erreurEntreeAudio}</span>{/if}
+                  </div>
+                  {#if greffonEntreeAudio === 'a_installer'}
+                    <button class="lnk installer-entree-audio" disabled={installationEntreeAudio}
+                      onclick={installerGreffonEntreeAudio}>
+                      {installationEntreeAudio
+                        ? $t('v2.sources.greffonInstallation' as any)
+                        : $t('v2.sources.greffonInstaller' as any)}
+                    </button>
+                  {/if}
+                </div>
+              {/if}
 
               <!-- tune-server-rust#4368 — FabienM (fil 1829, point 11) :
                    « Il faut grouper par source et tous les résultats Qobuz
@@ -4964,10 +5057,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <!-- SMB 1 est obsolète et non chiffré : y retomber peut être
                            la seule façon de lire un streamer, mais pas en silence. -->
                       <span class="dh" title={e.signalerSmb1 ? $t('settings.smb1Hint' as any) : undefined}>{e.signalerSmb1 ? 'SMB 1.0' : (m.mount_path ?? '')}</span>
-                      <span></span>
+                      <span class="smb-actions">
+                        {#if proposerAjout(m, musicDirs)}
+                          <button class="lnk" disabled={smbBusy !== null} onclick={() => ajouterPartage(m)}
+                            title={$t('settings.smbNotDeclaredHint' as any)}>{$t('smb.addToLibrary' as any)}</button>
+                        {/if}
+                        <button class="lnk" disabled={smbBusy !== null} onclick={() => oublierPartage(m)}>{$t('settings.smbForget' as any)}</button>
+                      </span>
                     </div>
                     {#if e.cause}<div class="errline">{e.cause}</div>{/if}
+                    {#if proposerAjout(m, musicDirs)}<p class="hint">{$t('settings.smbNotDeclaredHint' as any)}</p>{/if}
                   {/each}
+                  {#if smbErr}<div class="errline" role="alert">{smbErr}</div>{/if}
                 </div>
               {/if}
 
@@ -6450,6 +6551,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dev.ign{grid-template-columns:minmax(0,1fr) auto auto auto; cursor:default}
   .dev.ign.ko .dt{color:var(--v2-danger)}
   .devlist.smb{margin-top:14px}
+  .smb-actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
   .dev .dh{font:10px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .dev .pin{width:110px; height:28px; border-radius:8px; border:1px solid var(--v2-acc2);
     background:var(--v2-surface2); color:var(--v2-txt); font:12px var(--v2-mono); padding:0 9px; outline:none}
