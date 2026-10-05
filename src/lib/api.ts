@@ -3640,6 +3640,9 @@ export interface LevelCompensation {
   unrendered_db?: number;
   /** Volume linéaire (0..1) sur lequel ce partage est calculé. */
   volume?: number;
+  /** Par où la compensation passe : le volume de la sortie locale (raboté à
+   *  l'unité) ou le gain cuit dans le flux d'une zone réseau (#5071). */
+  applied_by?: 'output_volume' | 'stream_gain';
 }
 
 export interface DspSettings {

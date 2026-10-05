@@ -39,6 +39,8 @@
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
   import { estCourbeGraphique } from '../../lib/eqHydratation';
   import { bilanImportPeq, db, nomDuFichierPeq, TAILLE_MAX_FICHIER_PEQ, type BilanImportPeq } from '../../lib/eqImportPeq';
+  import { avertissementMasque, doitAvertir, masquerAvertissement, sautALaCoupure } from '../../lib/avertissementCoupureEq';
+  import { dbSigne } from '../../lib/compensationNiveau';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -655,7 +657,39 @@
     if (gainsRight !== null) gainsRight = Array(BANDS.length).fill(0);
     save();
   }
-  function toggle() { enabled = !enabled; save(); }
+  /**
+   * tune-server-rust#5215 — couper l'égaliseur rend d'un coup le niveau qu'il
+   * retirait. Au casque, ce saut fait mal : on prévient AVANT, avec le chiffre
+   * quand le serveur publie de quoi le calculer, et une case « Ne plus
+   * afficher ». Rallumer ne prévient pas : le niveau baisse.
+   */
+  async function accepterLaCoupure(): Promise<boolean> {
+    if (avertissementMasque()) return true;
+    const zid = $currentZoneId;
+    const lc = zid == null ? null : await api.getDsp(zid).then((d) => d?.level_compensation, () => null);
+    const saut = sautALaCoupure(lc);
+    if (!doitAvertir(saut)) return true;
+    const message = saut == null
+      ? $t('v2.eq.offWarn' as any)
+      : $t('v2.eq.offWarnDb' as any).replace('{db}', dbSigne(saut));
+    const reponse = await dialogs.confirmAvecCase(message, $t('v2.eq.offWarnDontShow' as any), { coche: false });
+    const ok = reponse !== null;
+    if (reponse?.coche) masquerAvertissement();
+    return ok;
+  }
+  let coupureEnCours = false;
+  async function toggle(e?: Event) {
+    const caseCochee = e?.currentTarget as HTMLInputElement | undefined;
+    if (enabled) {
+      if (coupureEnCours) return;
+      coupureEnCours = true;
+      const ok = await accepterLaCoupure().finally(() => { coupureEnCours = false; });
+      // Refusé : l'interrupteur, que le navigateur a déjà basculé, revient.
+      if (!ok) { if (caseCochee) caseCochee.checked = true; return; }
+    }
+    enabled = !enabled;
+    save();
+  }
   async function setBands(n: number) {
     const from = BANDS, prevRight = gainsRight;
     bandCount = n;
