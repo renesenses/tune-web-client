@@ -31,11 +31,18 @@ function open() {
 function rowColors(index: number, expected: boolean) {
   const row = host.querySelectorAll('.sp-row')[index];
   expect(row, 'the signal step must be rendered').toBeDefined();
-  for (const selector of ['.sp-icon', '.sp-ndot', ...(index < 2 ? ['.sp-line'] : [])]) {
+  for (const selector of ['.sp-icon', '.sp-ndot']) {
     const element = row.querySelector(selector);
     expect(element, selector).not.toBeNull();
     expect(element!.classList.contains('bp'), `${selector} on step ${index}`).toBe(expected);
   }
+}
+/** Fil 1825 — le trait entre l'étape `index` et la suivante : intact
+ *  seulement si ses DEUX extrémités le sont, comme dans Lecture en cours. */
+function lineColor(index: number, expected: boolean) {
+  const line = host.querySelectorAll('.sp-row')[index]?.querySelector('.sp-line');
+  expect(line, `line after step ${index}`).not.toBeNull();
+  expect(line!.classList.contains('bp'), `.sp-line after step ${index}`).toBe(expected);
 }
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { headers: { 'content-type': 'application/json' } })));
@@ -63,6 +70,9 @@ describe('#1097 — the transport signal panel paints each step', () => {
     rowColors(0, expected);
     rowColors(1, false);
     rowColors(2, true);
+    // Both lines touch the altered resampler: neither may stay green.
+    lineColor(0, false);
+    lineColor(1, false);
     // The bar keeps its GLOBAL verdict; lossless remains independent in the header.
     expect(host.querySelector('.signal-led')!.classList.contains('bit-perfect')).toBe(global);
     expect(host.querySelector('.sp-header .sp-good')).not.toBeNull();
@@ -75,6 +85,8 @@ describe('#1097 — the transport signal panel paints each step', () => {
     currentZoneId.set(1);
     open();
     for (let index = 0; index < 3; index++) rowColors(index, global);
+    lineColor(0, global);
+    lineColor(1, global);
   });
 
   it('updates all three indicators while the panel stays open', () => {
@@ -86,5 +98,25 @@ describe('#1097 — the transport signal panel paints each step', () => {
     rowColors(0, true);
     rowColors(1, false);
     expect(host.querySelector('.signal-led')!.classList.contains('bit-perfect')).toBe(false);
+  });
+});
+
+describe('fil 1825 — the transport panel and Now Playing draw the same lines', () => {
+  it('a line descending into an altered step is not green (it used to follow the upstream step only)', () => {
+    zones.set([{ id: 1, name: 'Salon', state: 'playing', online: true, volume: 0.4,
+      signal_path: { bit_perfect: false, lossless: true, steps: [
+        { name: 'Source', description: 'FLAC 44kHz/16bit', bit_perfect: true },
+        { name: 'Decoder', description: 'FLAC', bit_perfect: true },
+        { name: 'Resampler', description: '44kHz → 192kHz (mesuré)', bit_perfect: false },
+        { name: 'Transport', description: 'WASAPI', bit_perfect: true },
+        { name: 'Output', description: 'local:Haut-parleurs', bit_perfect: true },
+      ] },
+    }] as never);
+    currentZoneId.set(1);
+    open();
+    lineColor(0, true);
+    lineColor(1, false);
+    lineColor(2, false);
+    lineColor(3, true);
   });
 });
