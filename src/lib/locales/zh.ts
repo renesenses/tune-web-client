@@ -3026,6 +3026,7 @@ export default {
   "v2.stream.nothingForGenre": "此类型下没有可发现的内容。",
   "v2.stream.bcNoAccount": "没有已关联的 Bandcamp 账户。",
   "v2.stream.bcEmpty": "您的 Bandcamp 收藏是空的。",
+  "v2.stream.bcCollectionFailed": "Bandcamp 没有响应：无法加载您的收藏。您的账户仍保持关联。",
   "v2.stream.bcSessionNone": "要以 FLAC 下载您购买的作品，Tune 需要您的 Bandcamp 会话。",
   "v2.stream.bcSessionExpired": "Bandcamp 会话已无法访问下载：它已过期。请粘贴一个新的。",
   "v2.stream.bcSessionHowTo": "登录 bandcamp.com，打开浏览器开发者工具（Application › Cookies › bandcamp.com），复制 Cookie「identity」的值并粘贴到此处。Tune 将其保存在您的服务器上，从不显示，只发送给 Bandcamp。",

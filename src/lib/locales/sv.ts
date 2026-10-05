@@ -3025,6 +3025,7 @@ export default {
   "v2.stream.nothingForGenre": "Inget att upptäcka för den här genren.",
   "v2.stream.bcNoAccount": "Inget Bandcamp-konto länkat.",
   "v2.stream.bcEmpty": "Din Bandcamp-samling är tom.",
+  "v2.stream.bcCollectionFailed": "Bandcamp svarade inte: din samling kunde inte läsas in. Ditt konto är fortfarande kopplat.",
   "v2.stream.bcSessionNone": "För att ladda ner dina köp i FLAC behöver Tune din Bandcamp-session.",
   "v2.stream.bcSessionExpired": "Bandcamp-sessionen ger inte längre tillgång till nedladdningarna: den har gått ut. Klistra in en ny.",
   "v2.stream.bcSessionHowTo": "Logga in på bandcamp.com, öppna webbläsarens utvecklarverktyg (Application › Cookies › bandcamp.com), kopiera värdet på kakan ”identity” och klistra in det här. Tune sparar det på din server, visar det aldrig och skickar det bara till Bandcamp.",
