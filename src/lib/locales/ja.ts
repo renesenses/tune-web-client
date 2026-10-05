@@ -110,6 +110,7 @@ export default {
   'concerts.commune': '市区町村',
   'concerts.communePlaceholder': 'お住まいの市区町村',
   'concerts.codePostal': '郵便番号',
+  'concerts.pays': '国',
   'concerts.codePostalPlaceholder': '郵便番号',
   'concerts.rayon': '範囲',
   'concerts.appliquer': '適用',

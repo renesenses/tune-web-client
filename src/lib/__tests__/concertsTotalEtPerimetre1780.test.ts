@@ -170,7 +170,7 @@ describe('Concerts — un rayon qui ne s’applique pas n’est pas affiché act
 
     expect(bouton(el, fr['concerts.autourDeMoi'])!.classList.contains('actif')).toBe(false);
     expect(bouton(el, fr['concerts.dansMonPays'])!.classList.contains('actif')).toBe(true);
-    expect(el.querySelector('select')!.classList.contains('cc-inactif')).toBe(true);
+    expect(el.querySelector('.cc-commune select')!.classList.contains('cc-inactif')).toBe(true);
     expect(texte(el.querySelector('.cc-introuvable') as HTMLElement)).toContain(fr['concerts.communeIntrouvable']);
     expect(texte(el.querySelector('.cc-rayon-inactif') as HTMLElement)).toContain(fr['concerts.rayonInactif']);
     // Le formulaire reste ouvert : c'est là qu'on corrige la commune.
@@ -187,7 +187,7 @@ describe('Concerts — un rayon qui ne s’applique pas n’est pas affiché act
     const el = await poser();
 
     expect(bouton(el, fr['concerts.autourDeMoi'])!.classList.contains('actif')).toBe(true);
-    expect(el.querySelector('select')!.classList.contains('cc-inactif')).toBe(false);
+    expect(el.querySelector('.cc-commune select')!.classList.contains('cc-inactif')).toBe(false);
     expect(el.querySelector('.cc-introuvable')).toBeNull();
     expect(el.querySelector('.cc-rayon-inactif')).toBeNull();
   });

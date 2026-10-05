@@ -110,6 +110,7 @@ export default {
   'concerts.commune': '도시',
   'concerts.communePlaceholder': '거주 도시',
   'concerts.codePostal': '우편번호',
+  'concerts.pays': '국가',
   'concerts.codePostalPlaceholder': '우편번호',
   'concerts.rayon': '반경',
   'concerts.appliquer': '적용',

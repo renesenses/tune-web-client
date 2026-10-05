@@ -81,6 +81,7 @@ export default {
   'concerts.commune': 'Ort',
   'concerts.communePlaceholder': 'Din ort',
   'concerts.codePostal': 'Postnummer',
+  'concerts.pays': 'Land',
   'concerts.codePostalPlaceholder': 'Postnummer',
   'concerts.rayon': 'Radie',
   'concerts.appliquer': 'Tillämpa',

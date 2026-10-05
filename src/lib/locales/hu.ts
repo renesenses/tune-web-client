@@ -178,6 +178,7 @@ export default {
   "concerts.commune": "Település",
   "concerts.communePlaceholder": "Az Ön települése",
   "concerts.codePostal": "Irányítószám",
+  "concerts.pays": "Ország",
   "concerts.codePostalPlaceholder": "Irányítószám",
   "concerts.rayon": "Sugár",
   "concerts.appliquer": "Alkalmaz",

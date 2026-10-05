@@ -110,6 +110,7 @@ export default {
   'concerts.commune': 'Comune',
   'concerts.communePlaceholder': 'Il tuo comune',
   'concerts.codePostal': 'CAP',
+  'concerts.pays': 'Paese',
   'concerts.codePostalPlaceholder': 'CAP',
   'concerts.rayon': 'Raggio',
   'concerts.appliquer': 'Applica',
