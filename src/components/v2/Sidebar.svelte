@@ -240,6 +240,7 @@
    * l'autre — les groupes se révèlent en place, jamais de réorganisation.
    */
   import { activeView, requestListReset } from '../../lib/stores/navigation';
+  import { fermerDetail } from '../../lib/historiqueCoquille';
   import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
   import { updateAvailable, latestVersion, currentVersion } from '../../lib/stores/updates';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
@@ -439,9 +440,29 @@
    * manquaient. Elles sont branchées ici, dans `LibraryV2` et dans
    * `ArtistesV2`.
    */
+  /*
+   * 🔴 RECLIQUER LE MENU OÙ L'ON EST RAMÈNE À SON ACCUEIL — fil 2143, point 7
+   * (FabienM, v1.0.0-rc2).
+   *
+   * `requestListReset()` ne touchait que les deux écrans qui écoutent
+   * `listResetNonce` (Bibliothèque, Playlists) : Collections, Étiquettes,
+   * Favoris, Streaming, Recherche, Répertoires… restaient sur leur détail.
+   * Ces écrans suivent TOUS déjà `detailOuvert` — c'est par lui que le
+   * Précédent du navigateur referme leur calque (web#1790, #980). Le reclic
+   * passe par la même porte : `fermerDetail()` remet la clé à `null`, chaque
+   * écran referme ce qu'il avait ouvert, et la coquille réécrit l'entrée
+   * courante sans empiler.
+   *
+   * ⚠️ SEULEMENT quand la vue ne change pas. Vers une autre vue, refermer le
+   * détail réécrirait l'entrée qu'on QUITTE : le Précédent n'y retrouverait
+   * plus la fiche qu'on y avait laissée.
+   */
   function go(v: View) {
     if (versCeQuiJoue(v)) return;
-    requestListReset(); activeView.set(v); tiroirOuvert.set(false);
+    const dejaSurPlace = $activeView === v;
+    requestListReset();
+    if (dejaSurPlace) fermerDetail();
+    activeView.set(v); tiroirOuvert.set(false);
   }
 
   /**

@@ -2312,6 +2312,7 @@ export default {
   "v2.pod.noSelection": "Inget att visa här för tillfället.",
   "v2.nav.addShortcut": "Skapa en genväg till den här vyn",
   "v2.nav.shortcutName": "Genvägens namn…",
+  "v2.nav.shortcutTargetHint": "Genvägen öppnar: {nom}",
   "v2.fav.radioLoading": "Läser in radiofavoriter…",
   "v2.fav.radioEmpty": "Inget fångat ännu. Gilla ett spår medan en radio spelar, så hamnar det här.",
   "v2.fav.radioMakePlaylist": "Skapa en spellista",
@@ -4018,6 +4019,10 @@ export default {
   "v2.cd.playTrack": "Spela det här spåret",
   "v2.cd.trackN": "Spår {n}",
   "v2.cd.toZone": "Till {zone}",
+  "v2.cd.eject": "Mata ut",
+  "v2.cd.ejectConfirm": "Skivan spelas. Stoppa uppspelningen och mata ut skivan?",
+  "v2.cd.ejectFailed": "Skivan kunde inte matas ut. Ett annat program kanske använder den.",
+  "v2.cd.ejectUnsupported": "Den här enheten kan inte matas ut från Tune.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "Tillägget Tune Circle är inte aktivt. Installera det under Tillägg och starta sedan om Tune.",

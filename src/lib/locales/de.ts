@@ -2313,6 +2313,7 @@ export default {
   "v2.pod.noSelection": "Hier gibt es derzeit nichts zu zeigen.",
   "v2.nav.addShortcut": "Verknüpfung zu dieser Ansicht anlegen",
   "v2.nav.shortcutName": "Name der Verknüpfung…",
+  "v2.nav.shortcutTargetHint": "Diese Verknüpfung öffnet: {nom}",
   "v2.fav.radioLoading": "Radio-Favoriten werden geladen…",
   "v2.fav.radioEmpty": "Noch nichts aufgefangen. Markieren Sie einen Titel während einer Radiosendung — er landet hier.",
   "v2.fav.radioMakePlaylist": "Playlist erstellen",
@@ -4019,6 +4020,10 @@ export default {
   "v2.cd.playTrack": "Diesen Titel abspielen",
   "v2.cd.trackN": "Titel {n}",
   "v2.cd.toZone": "An {zone}",
+  "v2.cd.eject": "Auswerfen",
+  "v2.cd.ejectConfirm": "Die Disc wird gerade abgespielt. Wiedergabe stoppen und Disc auswerfen?",
+  "v2.cd.ejectFailed": "Die Disc konnte nicht ausgeworfen werden. Möglicherweise wird sie von einem anderen Programm verwendet.",
+  "v2.cd.ejectUnsupported": "Dieses Laufwerk kann nicht über Tune ausgeworfen werden.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "Die Erweiterung Tune Circle ist nicht aktiv. Installieren Sie sie unter Erweiterungen und starten Sie Tune neu.",
