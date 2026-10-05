@@ -15,7 +15,9 @@ import {
   CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
 } from '../cadenceAnimations';
 import { normaliserTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
-import { normaliserChoixBarre, type ChoixBarre } from '../ordreBarreLaterale';
+import {
+  normaliserChoixBarre, horodatageBarre, arbitrerBarre, type ChoixBarre,
+} from '../ordreBarreLaterale';
 import type { TriConcerts } from '../concertsTri';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
@@ -392,6 +394,13 @@ export interface Preferences {
    * `lib/ordreBarreLaterale`.
    */
   barreLaterale: ChoixBarre | null;
+  /**
+   * Fil 2109 du forum — l'instant (ms) du dernier geste sur la barre, pour
+   * qu'un réglage fait sur un autre appareil du même profil arrive ici, et
+   * qu'un « Rétablir » y arrive aussi. `0` : jamais daté. Voir
+   * `arbitrerBarre` dans `lib/ordreBarreLaterale`.
+   */
+  barreLateraleMaj: number;
 }
 
 /** web#1800 — où la file d'attente s'ouvre dans « Lecture en cours ». */
@@ -466,6 +475,7 @@ const defaults: Preferences = {
   sourcesBarre: null,
   // web#1827 : l'ordre livré — rien ne bouge pour qui n'a rien demandé.
   barreLaterale: null,
+  barreLateraleMaj: 0,
 };
 
 /** Migration one-shot du toggle « Afficher les réglages avancés » (#1617) :
@@ -633,6 +643,7 @@ function loadPrefs(): Preferences {
       // web#1827 — même règle : un ordre abîmé retombe sur l'ordre livré ; un
       // groupe inconnu est écarté, Accueil ne peut pas être masqué.
       p.barreLaterale = normaliserChoixBarre((raw as { barreLaterale?: unknown })?.barreLaterale);
+      p.barreLateraleMaj = horodatageBarre((raw as { barreLateraleMaj?: unknown })?.barreLateraleMaj);
       return p;
     }
   } catch { /* ignore */ }
@@ -698,10 +709,13 @@ export async function syncPreferencesFromServer() {
       // #5065 — idem pour les types de sources de la barre.
       if (server.sourcesBarre !== undefined && !normaliserTypesBarre(server.sourcesBarre)) delete server.sourcesBarre;
       // web#1827 — idem pour l'ordre de la barre : assaini, ou supprimé.
-      if (server.barreLaterale !== undefined) {
+      // Fil 2109 — sauf `null`, qui n'est pas abîmé : c'est « l'ordre livré »,
+      // et un « Rétablir » fait sur un autre appareil doit arriver ici.
+      if (server.barreLaterale !== undefined && server.barreLaterale !== null) {
         const choix = normaliserChoixBarre(server.barreLaterale);
         if (choix) server.barreLaterale = choix; else delete server.barreLaterale;
       }
+      server.barreLateraleMaj = horodatageBarre(server.barreLateraleMaj);
       if (hadLocalPrefs) {
         // #5065 — un `sourcesBarre` local encore indécis (`null`) ne doit pas
         // effacer le choix que le serveur porte, fait sur un autre poste.
@@ -728,6 +742,13 @@ export async function syncPreferencesFromServer() {
           ...(!local.avatarImage && server.avatarImage
             ? { avatarImage: server.avatarImage, avatarCompte: server.avatarCompte ?? '' }
             : {}),
+          // Fil 2109 (Levente Toth) — la barre latérale suit le PROFIL : le
+          // geste le plus récent gagne, d'où qu'il vienne. `...local` seul la
+          // gardait au navigateur, comme la photo avant #1673.
+          ...arbitrerBarre(
+            { barreLaterale: local.barreLaterale ?? null, barreLateraleMaj: horodatageBarre(local.barreLateraleMaj) },
+            server,
+          ),
         }));
       } else {
         preferences.update(() => ({ ...defaults, ...server }));

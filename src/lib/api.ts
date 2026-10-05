@@ -6830,10 +6830,32 @@ export async function exportConfig(): Promise<void> {
 }
 
 export async function importConfig(data: any) {
-  return fetchJSON<{ imported: boolean }>(`${BASE}/system/config/import`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
+  return fetchJSON<{ imported: number; zones_added?: number; zones_modified?: number }>(
+    `${BASE}/system/config/import`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+/**
+ * Aperçu d'une restauration (fil forum 2110) : ce que l'import AJOUTERAIT,
+ * MODIFIERAIT ou laisserait INCHANGÉ, réglages et zones, sans rien écrire.
+ *
+ * Chemin dédié, et non `/system/config/import?dry_run=true` : un serveur
+ * antérieur à l'aperçu ignorerait le paramètre et APPLIQUERAIT l'import dès le
+ * choix du fichier. Ce chemin-ci, il ne le connaît pas — 404 / 405, acceptés
+ * ici sans bandeau ; la réponse est alors lue par `lireApercu`, qui la rejette,
+ * et l'écran retombe sur la confirmation sans aperçu.
+ */
+export async function previewImportConfig(data: any): Promise<unknown> {
+  return fetchJSON<unknown>(
+    `${BASE}/system/config/import/preview`,
+    { method: 'POST', body: JSON.stringify(data) },
+    (statut) => statut === 404 || statut === 405,
+    true,
+  );
 }
 
 // --- MusicBrainz Batch Enrichment ---

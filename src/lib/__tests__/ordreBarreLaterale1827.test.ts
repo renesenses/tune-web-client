@@ -172,7 +172,8 @@ describe('#1827 — la logique d’ordre (liste libre)', () => {
     const src = readFileSync(resolve(process.cwd(), 'src/lib/stores/preferences.ts'), 'utf-8');
     expect(src).toContain('p.barreLaterale = normaliserChoixBarre(');
     expect(src).toContain('const choix = normaliserChoixBarre(server.barreLaterale);');
-    expect(src).toMatch(/barreLaterale: null,\n\};/);
+    // Fil 2109 : l'horodatage du dernier geste suit le défaut, à zéro.
+    expect(src).toMatch(/barreLaterale: null,\n  barreLateraleMaj: 0,\n\};/);
   });
 });
 
