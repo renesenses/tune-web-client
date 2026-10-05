@@ -6151,6 +6151,11 @@ export interface OubliPartage {
   oublie?: boolean;
   demonte?: boolean;
   racines?: string[];
+  /** 409 : pistes qui partiraient si ces dossiers étaient retirés. */
+  pistes?: number;
+  racines_retirees?: string[];
+  pistes_retirees?: number;
+  purge_refusee?: boolean;
   error?: string;
   message?: string;
 }
@@ -6158,9 +6163,23 @@ export interface OubliPartage {
 /** « Oublier ce partage » : le serveur DÉMONTE puis supprime l'enregistrement.
  *  `unmountSmbShare` (DELETE /network/mounts/{id}) supprimait la ligne sans
  *  démonter. */
-export function forgetSmbShare(id: number, confirmer = false) {
+export function forgetSmbShare(
+  id: number,
+  confirmer = false,
+  retirer?: { pistes: number },
+) {
+  // `retirer` : retirer aussi les dossiers de la bibliothèque, avec la purge
+  // de leurs pistes — `pistes` est le nombre montré à l'utilisateur, même
+  // contrat que `confirm_purge` du retrait de dossier (#1943).
+  const q = new URLSearchParams();
+  if (confirmer) q.set('confirmer', 'true');
+  if (retirer) {
+    q.set('retirer_racines', 'true');
+    q.set('confirmer_purge', String(retirer.pistes));
+  }
+  const qs = q.toString();
   return fetchJSON<OubliPartage>(
-    `${BASE}/network/smb/mounts/${id}${confirmer ? '?confirmer=true' : ''}`,
+    `${BASE}/network/smb/mounts/${id}${qs ? `?${qs}` : ''}`,
     { method: 'DELETE' },
     (statut) => statut === 409,
   );

@@ -83,22 +83,26 @@ export function proposerAjout(m: SmbMount, musicDirs: string[]): boolean {
 
 /**
  * « Oublier ce partage » : premier appel sans confirmation ; si le serveur
- * répond que des dossiers de la bibliothèque en dépendent, on demande à
- * l'utilisateur, et on ne rappelle qu'avec son accord.
+ * répond que des dossiers de la bibliothèque en dépendent, on les montre à
+ * l'utilisateur, qui peut aussi les retirer de la bibliothèque (case cochée
+ * par défaut, décision de Bertrand du 05/10), avec la purge habituelle de
+ * leurs pistes. Décoché, ils restent déclarés.
  *
- * Rend `true` si le partage a été oublié, `false` si l'utilisateur a renoncé.
+ * Rend la réponse finale du serveur, ou `null` si l'utilisateur a renoncé.
  * Une autre erreur (démontage refusé…) est levée avec le message du serveur.
  */
 export async function oublierUnPartage(
   id: number,
-  oublier: (id: number, confirmer: boolean) => Promise<OubliPartage>,
-  confirmer: (racines: string[]) => Promise<boolean>,
-): Promise<boolean> {
+  oublier: (id: number, confirmer: boolean, retirer?: { pistes: number }) => Promise<OubliPartage>,
+  confirmer: (racines: string[], pistes: number) => Promise<{ coche: boolean } | null>,
+): Promise<OubliPartage | null> {
   let r = await oublier(id, false);
   if (r?.error === 'racines_dependantes') {
-    if (!(await confirmer(r.racines ?? []))) return false;
-    r = await oublier(id, true);
+    const pistes = r.pistes ?? 0;
+    const reponse = await confirmer(r.racines ?? [], pistes);
+    if (!reponse) return null;
+    r = await oublier(id, true, reponse.coche ? { pistes } : undefined);
   }
   if (!r?.oublie) throw new Error(r?.message || r?.error || 'forget failed');
-  return true;
+  return r;
 }

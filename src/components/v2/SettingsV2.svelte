@@ -1722,16 +1722,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     if (smbBusy !== null) return;
     smbBusy = m.id; smbErr = null;
     try {
-      await oublierUnPartage(
+      const r = await oublierUnPartage(
         m.id,
-        (id, confirmer) => api.forgetSmbShare(id, confirmer),
-        (racines) => dialogs.confirm(
+        (id, confirmer, retirer) => api.forgetSmbShare(id, confirmer, retirer),
+        (racines, pistes) => dialogs.confirmAvecCase(
           get(t)('settings.smbForgetConfirm' as any)
             .replace('{count}', String(racines.length))
-            .replace('{paths}', racines.join(', ')),
-          { danger: true },
+            .replace('{paths}', racines.join('\n')),
+          get(t)('settings.smbForgetRemoveDirs' as any).replace('{tracks}', String(pistes)),
+          { danger: true, coche: true },
         ),
       );
+      if (r?.racines_retirees?.length) {
+        await refreshLibrary();
+        if (r.purge_refusee) smbErr = get(t)('settings.smbForgetPurgeRefused' as any);
+      }
       await loadSmbMounts();
     } catch (e: any) { smbErr = e?.message ?? get(t)('settings.smbForgetFailed' as any); }
     smbBusy = null;

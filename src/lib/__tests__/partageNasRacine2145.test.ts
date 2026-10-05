@@ -8,6 +8,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { mount, unmount, flushSync } from 'svelte';
 import SmbWizard from '../../components/partages/SmbWizard.svelte';
+import DialogContainer from '../../components/partages/DialogContainer.svelte';
+import { dialogs } from '../stores/dialogs';
+import { forgetSmbShare } from '../api';
+import { get } from 'svelte/store';
 import { oublierUnPartage, proposerAjout, racineDeclaree } from '../smbMountState';
 import type { SmbMount } from '../api';
 
@@ -52,33 +56,93 @@ describe('« Ajouter à la bibliothèque » sur la ligne d’un partage', () => 
 describe('« Oublier ce partage »', () => {
   it('sans racine dépendante : un seul appel, sans confirmation', async () => {
     const oublier = vi.fn(async () => ({ oublie: true, demonte: true, racines: [] }));
-    const confirmer = vi.fn(async () => true);
-    expect(await oublierUnPartage(4, oublier, confirmer)).toBe(true);
+    const confirmer = vi.fn(async () => ({ coche: true }));
+    expect(await oublierUnPartage(4, oublier, confirmer)).toMatchObject({ oublie: true });
     expect(oublier.mock.calls).toEqual([[4, false]]);
     expect(confirmer).not.toHaveBeenCalled();
   });
 
-  it('une racine dépend du partage : on demande, et on ne rappelle qu’avec l’accord', async () => {
+  // Décision de Bertrand (05/10) : la confirmation liste les dossiers et
+  // propose de les retirer, case cochée par défaut, avec la purge habituelle.
+  it('case cochée : on rappelle en retirant les dossiers, avec le nombre de pistes montré', async () => {
     const reponses = [
-      { error: 'racines_dependantes', racines: ['/mnt/192.168.10.69_Music'] },
-      { oublie: true, demonte: true, racines: ['/mnt/192.168.10.69_Music'] },
+      { error: 'racines_dependantes', racines: ['/mnt/192.168.10.69_Music'], pistes: 1234 },
+      { oublie: true, demonte: true, racines_retirees: ['/mnt/192.168.10.69_Music'], pistes_retirees: 1234 },
     ];
     const oublier = vi.fn(async () => reponses.shift()!);
-    const confirmer = vi.fn(async () => true);
-    expect(await oublierUnPartage(4, oublier, confirmer)).toBe(true);
-    expect(confirmer).toHaveBeenCalledWith(['/mnt/192.168.10.69_Music']);
-    expect(oublier.mock.calls).toEqual([[4, false], [4, true]]);
+    const confirmer = vi.fn(async () => ({ coche: true }));
+    const r = await oublierUnPartage(4, oublier, confirmer);
+    expect(confirmer).toHaveBeenCalledWith(['/mnt/192.168.10.69_Music'], 1234);
+    expect(oublier.mock.calls).toEqual([[4, false], [4, true, { pistes: 1234 }]]);
+    expect(r?.pistes_retirees).toBe(1234);
   });
 
-  it('l’utilisateur renonce : aucun second appel', async () => {
-    const oublier = vi.fn(async () => ({ error: 'racines_dependantes', racines: ['/x'] }));
-    expect(await oublierUnPartage(4, oublier, async () => false)).toBe(false);
+  it('case décochée : on oublie le partage, les dossiers restent déclarés', async () => {
+    const reponses = [
+      { error: 'racines_dependantes', racines: ['/x'], pistes: 3 },
+      { oublie: true, demonte: true, racines: ['/x'], racines_retirees: [] },
+    ];
+    const oublier = vi.fn(async () => reponses.shift()!);
+    await oublierUnPartage(4, oublier, async () => ({ coche: false }));
+    expect(oublier.mock.calls).toEqual([[4, false], [4, true, undefined]]);
+  });
+
+  it('l’utilisateur annule : aucun second appel', async () => {
+    const oublier = vi.fn(async () => ({ error: 'racines_dependantes', racines: ['/x'], pistes: 0 }));
+    expect(await oublierUnPartage(4, oublier, async () => null)).toBeNull();
     expect(oublier).toHaveBeenCalledTimes(1);
   });
 
   it('un démontage refusé remonte le message du serveur', async () => {
     const oublier = vi.fn(async () => ({ error: 'demontage_impossible', message: 'Impossible de démonter' }));
-    await expect(oublierUnPartage(4, oublier, async () => true)).rejects.toThrow('Impossible de démonter');
+    await expect(oublierUnPartage(4, oublier, async () => ({ coche: true }))).rejects.toThrow('Impossible de démonter');
+  });
+
+  it('l’appel serveur porte les options de retrait', async () => {
+    const urls: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      urls.push(String(url));
+      return { ok: true, status: 200, statusText: 'OK', headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ oublie: true }), text: async () => '{"oublie":true}' } as unknown as Response;
+    }));
+    await forgetSmbShare(4);
+    await forgetSmbShare(4, true);
+    await forgetSmbShare(4, true, { pistes: 12 });
+    expect(urls.map((u) => u.replace(/^.*\/network/, ''))).toEqual([
+      '/smb/mounts/4',
+      '/smb/mounts/4?confirmer=true',
+      '/smb/mounts/4?confirmer=true&retirer_racines=true&confirmer_purge=12',
+    ]);
+  });
+});
+
+describe('la confirmation porte une case cochée par défaut', () => {
+  it('validée : rend l’état de la case ; annulée : null', async () => {
+    const coche = dialogs.confirmAvecCase('msg', 'Retirer aussi', { danger: true });
+    const req = get(dialogs)[0];
+    expect(req.case).toEqual({ label: 'Retirer aussi', coche: true });
+    dialogs.settle(req.id, { coche: true });
+    expect(await coche).toEqual({ coche: true });
+    const annule = dialogs.confirmAvecCase('msg', 'Retirer aussi');
+    dialogs.settle(get(dialogs)[0].id, null);
+    expect(await annule).toBeNull();
+  });
+
+  it('le conteneur affiche la case, cochée, et rend son état', async () => {
+    const cible = document.createElement('div');
+    document.body.appendChild(cible);
+    const c = mount(DialogContainer, { target: cible });
+    const reponse = dialogs.confirmAvecCase('Ce partage porte 1 dossier', 'Retirer aussi ces dossiers');
+    flushSync();
+    const caseAjout = cible.querySelector('.dialog-case input') as HTMLInputElement;
+    expect(caseAjout, 'la case manque dans la confirmation').not.toBeNull();
+    expect(caseAjout.checked).toBe(true);
+    caseAjout.click();
+    flushSync();
+    (cible.querySelector('.dialog-btn.primary') as HTMLButtonElement).click();
+    expect(await reponse).toEqual({ coche: false });
+    unmount(c);
+    cible.remove();
   });
 });
 
@@ -94,7 +158,8 @@ describe('les deux actions sont branchées sur la ligne du partage', () => {
 
   it('« Oublier ce partage » passe par la route qui DÉMONTE', () => {
     expect(bloc).toContain('onclick={() => oublierPartage(m)}');
-    expect(V2).toContain('api.forgetSmbShare(id, confirmer)');
+    expect(V2).toContain('api.forgetSmbShare(id, confirmer, retirer)');
+    expect(V2).toContain('dialogs.confirmAvecCase(');
     // L'ancienne suppression efface la ligne sans démonter : jamais exposée.
     expect(V2).not.toContain('unmountSmbShare(');
   });
