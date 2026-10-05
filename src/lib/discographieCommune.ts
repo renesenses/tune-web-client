@@ -70,9 +70,23 @@ export interface EntreeDiscographie {
   qualites: Qualite[];
 }
 
+/** Le vocabulaire du type explicite (`release_type`, serveur #4767). */
+const TYPES_EXPLICITES = new Set(['album', 'ep', 'single', 'broadcast', 'other']);
+
+/**
+ * Le type d'un exemplaire : l'explicite (MusicBrainz, service, édition) s'il
+ * est reconnu, sinon le type déduit par le serveur d'après les pistes et la
+ * durée (#5616). Même ordre que le serveur : l'explicite gagne toujours.
+ */
+export function typeDeSortie(album: Album): string | undefined {
+  const explicite = album.release_type?.trim().toLowerCase();
+  if (explicite && TYPES_EXPLICITES.has(explicite)) return explicite;
+  return album.inferred_release_type?.trim().toLowerCase() || explicite || undefined;
+}
+
 /** Les seuls types que la page peut ranger dans « EP et singles ». */
 export function estEpOuSingle(entree: EntreeDiscographie): boolean {
-  const types = entree.exemplaires.map((ex) => ex.album.release_type?.trim().toLowerCase());
+  const types = entree.exemplaires.map((ex) => typeDeSortie(ex.album));
   // Un exemplaire sans type ou contradictoire reste dans la grille Albums.
   return types.length > 0 && types.every((type) => type === 'ep' || type === 'single');
 }
