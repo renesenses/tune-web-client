@@ -63,3 +63,25 @@ export function pretsALImport(liste: readonly BandcampTelechargement[]): (Bandca
 export function enMo(octets: number): string {
   return `${(octets / 1_048_576).toFixed(octets < 10 * 1_048_576 ? 1 : 0)} Mo`;
 }
+
+/**
+ * « Ma collection » n'a pas chargé : faut-il proposer de RELIER le compte ?
+ *
+ * FabienM, fil 1606 (#2778) : « quand je quitte le menu Bandcamp et quand je
+ * reviens mon compte n'est plus actif, je suis obligé de ressaisir mon
+ * identifiant ». Le compte, lui, est gardé en base par le greffon
+ * (`compte_lie`) : le serveur ne répond `428` QUE s'il n'en trouve aucun.
+ *
+ * L'écran, lui, concluait aussi « compte à relier » sur tout message qui
+ * contenait « lié » ou « link ». Or l'échec d'une page de collection est un
+ * `502` dont le message recopie la réponse de Bandcamp (`passerelle_en_echec`,
+ * « HTTP 403 Forbidden: <!DOCTYPE html>… ») : une page HTML porte presque
+ * toujours une balise `<link …>`. Un refus passager de Bandcamp faisait donc
+ * réapparaître le formulaire de liaison, alors que le compte était toujours
+ * relié — et ressaisir le nom « réparait » ce qui n'était pas cassé.
+ *
+ * Seul le statut décide : `428`, et rien d'autre.
+ */
+export function compteBandcampARelier(e: unknown): boolean {
+  return (e as { status?: unknown } | null | undefined)?.status === 428;
+}

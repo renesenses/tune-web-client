@@ -43,7 +43,18 @@
     return Math.max(0, Math.min(1, (x - rect.left) / rect.width));
   }
 
+  /** Le relâchement (souris ou doigt) vient d'envoyer le Seek de ce geste.
+   *  Le navigateur fait suivre un `click` sur la barre, à la même position :
+   *  sans ce drapeau, un simple clic partait DEUX fois au serveur, donc deux
+   *  Seek au renderer à ~150 ms d'écart (ticket 193). Remis à zéro à chaque
+   *  nouvel appui. */
+  let seekEnvoyeAuRelachement = false;
+
   function handleClick(e: MouseEvent) {
+    if (seekEnvoyeAuRelachement) {
+      seekEnvoyeAuRelachement = false;
+      return;
+    }
     if (!enabled || !durationMs || !zone?.id) return;
     const newPos = Math.floor(pctFromX(e.clientX) * durationMs);
     // Optimistically update the seek position so the progress bar
@@ -56,6 +67,7 @@
   }
 
   function handleMouseDown(e: MouseEvent) {
+    seekEnvoyeAuRelachement = false;
     if (!enabled || !durationMs) return;
     isDragging = true;
     dragPositionMs = Math.floor(pctFromX(e.clientX) * durationMs);
@@ -72,6 +84,7 @@
         syncTicker();
         if (isBrowserZone(zone)) browserSeek(dragPositionMs);
         api.seek(zone.id, dragPositionMs);
+        seekEnvoyeAuRelachement = true;
       }
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
@@ -81,6 +94,7 @@
   }
 
   function handleTouchStart(e: TouchEvent) {
+    seekEnvoyeAuRelachement = false;
     if (!enabled || !durationMs) return;
     isDragging = true;
     dragPositionMs = Math.floor(pctFromX(e.touches[0].clientX) * durationMs);
@@ -98,6 +112,7 @@
         syncTicker();
         if (isBrowserZone(zone)) browserSeek(dragPositionMs);
         api.seek(zone.id, dragPositionMs);
+        seekEnvoyeAuRelachement = true;
       }
       window.removeEventListener('touchmove', onMove);
       window.removeEventListener('touchend', onEnd);
