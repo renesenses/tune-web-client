@@ -333,6 +333,12 @@
         </label>
       {/if}
 
+      {#if perimetre === 'country'}
+        <!-- Fil 2150 (#5807) : un seul pays par instance côté nuage. Pour
+             deux pays voisins, c'est le rayon qu'il faut. -->
+        <p class="cc-note cc-pays-voisins">{$t('concerts.paysVoisinsNote')}</p>
+      {/if}
+
       {#if perimetre === 'radius'}
         <div class="cc-commune">
           <input
@@ -363,6 +369,11 @@
              coordonnées tirées de l'adresse IP, qui derrière un VPN désignent
              un autre pays. -->
         <p class="cc-note">{$t('concerts.communeSaisieNote')}</p>
+        <!-- Fil 2150 (#5807) : le rayon du nuage est une distance autour de
+             la commune (`PerimetreConcerts::appliquer`), sans aucun filtre de
+             pays. Près de Genève, 100 km depuis une commune française
+             couvrent aussi la Suisse : le pays ne sert qu'au géocodage. -->
+        <p class="cc-note cc-sans-frontiere">{$t('concerts.rayonSansFrontiere')}</p>
         {#if ambigue && localisee !== false}
           <p class="cc-note cc-attention cc-ambigue">{$t('concerts.communeAmbigue')}</p>
         {/if}

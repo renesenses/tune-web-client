@@ -111,6 +111,8 @@ export default {
   'concerts.communePlaceholder': 'Ihr Ort',
   'concerts.codePostal': 'Postleitzahl',
   'concerts.pays': 'Land',
+  "concerts.rayonSansFrontiere": "Der Umkreis endet nicht an Grenzen: Er umfasst auch Konzerte in Nachbarländern. Das Land dient nur dazu, den Ort zu finden.",
+  "concerts.paysVoisinsNote": "In Grenznähe? „In meiner Nähe“ deckt auch Nachbarländer ab: Geben Sie Ihren Ort und einen Umkreis an.",
   'concerts.codePostalPlaceholder': 'Postleitzahl',
   'concerts.rayon': 'Umkreis',
   'concerts.appliquer': 'Anwenden',

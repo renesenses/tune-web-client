@@ -111,6 +111,8 @@ export default {
   'concerts.communePlaceholder': '你所在的城市',
   'concerts.codePostal': '邮政编码',
   'concerts.pays': '国家',
+  "concerts.rayonSansFrontiere": "半径不受国界限制：也包括邻国的演出。国家仅用于查找所在城镇。",
+  "concerts.paysVoisinsNote": "靠近边境？“我的附近”也涵盖邻国：请输入您所在的城镇和半径。",
   'concerts.codePostalPlaceholder': '邮政编码',
   'concerts.rayon': '范围',
   'concerts.appliquer': '应用',

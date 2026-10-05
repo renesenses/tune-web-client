@@ -111,6 +111,8 @@ export default {
   'concerts.communePlaceholder': '거주 도시',
   'concerts.codePostal': '우편번호',
   'concerts.pays': '국가',
+  "concerts.rayonSansFrontiere": "반경은 국경에서 멈추지 않습니다. 이웃 나라의 공연도 포함합니다. 국가는 지역을 찾는 데만 쓰입니다.",
+  "concerts.paysVoisinsNote": "국경 근처에 계신가요? '내 주변'은 이웃 나라도 포함합니다. 지역과 반경을 입력하세요.",
   'concerts.codePostalPlaceholder': '우편번호',
   'concerts.rayon': '반경',
   'concerts.appliquer': '적용',

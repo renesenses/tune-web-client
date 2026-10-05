@@ -82,6 +82,8 @@ export default {
   'concerts.communePlaceholder': 'Din ort',
   'concerts.codePostal': 'Postnummer',
   'concerts.pays': 'Land',
+  "concerts.rayonSansFrontiere": "Radien stannar inte vid gränser: den räknar även konserter i grannländer. Landet används bara för att hitta orten.",
+  "concerts.paysVoisinsNote": "Nära en gräns? ”Nära mig” täcker även grannländer: ange din ort och en radie.",
   'concerts.codePostalPlaceholder': 'Postnummer',
   'concerts.rayon': 'Radie',
   'concerts.appliquer': 'Tillämpa',

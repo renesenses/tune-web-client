@@ -180,6 +180,8 @@ export default {
   'concerts.communePlaceholder': 'Votre commune',
   'concerts.codePostal': 'Code postal',
   'concerts.pays': 'Pays',
+  "concerts.rayonSansFrontiere": "Le rayon ne s’arrête pas aux frontières : il compte aussi les concerts des pays voisins. Le pays sert seulement à trouver la commune.",
+  "concerts.paysVoisinsNote": "Près d’une frontière ? « Autour de moi » couvre aussi les pays voisins : saisissez votre commune et un rayon.",
   'concerts.codePostalPlaceholder': 'Code postal',
   'concerts.rayon': 'Rayon',
   'concerts.appliquer': 'Appliquer',
