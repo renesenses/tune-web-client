@@ -44,6 +44,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
+  import { fichiersInchanges } from '../../lib/ecritureFichiers';
   import { favoriteAlbumIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { favKeyOf, refFavoriDeFiche, toggleStreamingFavorite } from '../../lib/streamingFavorites';
@@ -811,6 +812,9 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     if (id == null || !champ || !ids.length || !v || groupeOccupe) return;
     groupeOccupe = true;
     let bilan: Bilan;
+    // Le serveur dit si le genre a atteint les fichiers (réglage « Écrire les
+    // modifications dans les fichiers audio », décoché par défaut).
+    let baseSeule = false;
     if (champ === 'artist') {
       const corps = corpsArtistePistes(ids, v);
       try {
@@ -820,7 +824,11 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         bilan = { reussies: 0, echouees: ids.length };
       }
     } else {
-      bilan = await appliquerGenre(ids, v, (tid, c) => api.updateTrack(tid, c));
+      bilan = await appliquerGenre(ids, v, async (tid, c) => {
+        const r = await api.updateTrack(tid, c);
+        if (fichiersInchanges(r)) baseSeule = true;
+        return r;
+      });
     }
     groupeOccupe = false;
     if (album.id !== id) return;
@@ -832,7 +840,8 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
       notifications.error($tr('v2.selection.editPartial' as any)
         .replace('{ok}', String(bilan.reussies)).replace('{ko}', String(bilan.echouees)));
     } else {
-      notifications.success($tr('v2.selection.edited' as any).replace('{n}', String(bilan.reussies)));
+      const fait = $tr('v2.selection.edited' as any).replace('{n}', String(bilan.reussies));
+      notifications.success(baseSeule ? `${fait} ${$tr('fileWrites.savedInTuneOnly' as any)}` : fait);
     }
     champGroupe = null;
     valeurGroupe = '';

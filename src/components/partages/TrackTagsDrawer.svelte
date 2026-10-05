@@ -4,6 +4,7 @@
   import type { TrackAllTags } from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
   import { t } from '../../lib/i18n';
+  import { fichiersInchanges } from '../../lib/ecritureFichiers';
   import TiroirLateral from './TiroirLateral.svelte';
   import {
     CHAMPS_MODIFIABLES,
@@ -102,8 +103,11 @@
     if (Object.keys(dirtyFields).length === 0) return;
     saving = true;
     try {
-      await api.updateTrackMetadata(trackId!, dirtyFields);
-      notifications.success($t('trackTags.trackUpdated').replace('{count}', String(Object.keys(dirtyFields).length)));
+      const r = await api.updateTrackMetadata(trackId!, dirtyFields);
+      const fait = $t('trackTags.trackUpdated').replace('{count}', String(Object.keys(dirtyFields).length));
+      // Réglage « Écrire les modifications dans les fichiers audio » décoché :
+      // le dire, plutôt que de laisser croire que le fichier a suivi.
+      notifications.success(fichiersInchanges(r) ? `${fait} ${$t('fileWrites.savedInTuneOnly' as any)}` : fait);
       // Refresh
       await load();
     } catch (e: any) {

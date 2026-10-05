@@ -101,6 +101,10 @@ export const SETTING_LEVELS = {
   // fonction qu'on ne peut pas trouver ne se distingue pas d'une fonction
   // absente.
   'library.lyricsLrclib': { tab: 'library', level: 'beginner' },
+  // « Écrire les modifications dans les fichiers audio » (05/10/2026) :
+  // désactivé par défaut, donc visible dès le niveau débutant — un réglage
+  // qui protège les fichiers doit pouvoir se lire, et se rallumer, partout.
+  'library.fileWrites': { tab: 'library', level: 'beginner' },
   'library.replaygainAnalysis': { tab: 'library', level: 'intermediate' },
   'library.oxygenEnable': { tab: 'library', level: 'intermediate' },
   'library.oxygenView': { tab: 'library', level: 'intermediate' },

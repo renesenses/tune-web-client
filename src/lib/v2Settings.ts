@@ -116,7 +116,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        * l'intérieur de la carte, comme avant.
        */
       { id: 'metadata',   titleKey: 'metadata.title',        from: 'library', min: 'beginner',
-        keywords: ['métadonnées', 'tags', 'paroles', 'lyrics', 'lrclib', 'en ligne'] },
+        keywords: ['métadonnées', 'tags', 'paroles', 'lyrics', 'lrclib', 'en ligne', 'fichiers', 'écrire', 'balises'] },
       { id: 'enrichment', titleKey: 'settings.enrichment',   from: 'library', min: 'expert',   keywords: ['enrichissement', 'musicbrainz'] },
       { id: 'ingest',     titleKey: 'settings.ingest',       from: 'library', min: 'expert',   keywords: ['import', 'rangement'] },
       { id: 'oxygen',     titleKey: 'oxygen.settingsTitle',  from: 'library', min: 'expert' },
