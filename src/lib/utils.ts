@@ -34,7 +34,19 @@ export function formatAudioBadge(
 
 // --- Streaming quality tier helpers ---
 
-export type QualityTier = 'mqa' | 'hires_max' | 'hires' | 'cd' | 'lossy' | 'dsd';
+/**
+ * `inconnu` : AUCUN palier (fil 2126, décision de Bertrand du 04/10 : « ni
+ * palier ni badge »). Le format est affiché tel quel (« M4A »), sans jugement.
+ */
+export type QualityTier = 'mqa' | 'hires_max' | 'hires' | 'cd' | 'lossy' | 'dsd' | 'inconnu';
+
+/**
+ * Les formats dont le codec n'est PAS déterminé : `m4a` est le conteneur MP4
+ * que le serveur écrit quand il n'a pu lire le codec (AAC ou ALAC). Aucun
+ * palier, quelles que soient les spécifications — comme côté serveur, où
+ * `Album::quality` ne lui donne aucun badge.
+ */
+const FORMATS_INDETERMINES = new Set(['m4a']);
 
 /**
  * Les formats DSD, par leur nom de FICHIER.
@@ -185,6 +197,9 @@ export function getQualityTier(
   // mp3|ogg|opus|wma|aac. Sans cette garde, `bd >= 24` plus bas le rangeait
   // en Hi-Res, et `source === 'qobuz'` faisait d'un MP3 16 bits un « CD ».
   if (LOSSY_FORMATS.has(fmt)) return 'lossy';
+  // Fil 2126 — codec non déterminé : ni « Lossy » ni palier déduit des
+  // spécifications. Il s'affichait « LOSSY » par le repli final.
+  if (FORMATS_INDETERMINES.has(fmt)) return 'inconnu';
 
   // A track is lossless when its declared format says so, OR when its specs /
   // source make it unambiguous: no lossy codec (MP3/AAC/OGG/Opus/WMA) can exceed
@@ -205,8 +220,10 @@ export function getQualityTier(
     return 'cd';
   }
 
-  // Everything else (MP3, AAC, OGG, Opus, WMA, unknown) is lossy
-  return 'lossy';
+  // Un format DÉCLARÉ mais inconnu des deux listes n'est pas jugé (fil 2126) :
+  // le repli « lossy » affirmait une perte que rien n'avait mesurée. Sans
+  // format du tout, le repli d'avant demeure.
+  return fmt ? 'inconnu' : 'lossy';
 }
 
 /** Get tier display label */
@@ -218,6 +235,8 @@ export function getQualityTierLabel(tier: QualityTier): string {
     case 'dsd': return 'DSD';
     case 'cd': return 'CD';
     case 'lossy': return 'Lossy';
+    // Aucun palier : l'appelant affiche le format seul.
+    case 'inconnu': return '';
   }
 }
 
@@ -230,6 +249,7 @@ export function getQualityTierColor(tier: QualityTier): string {
     case 'dsd': return 'green';
     case 'cd': return 'blue';
     case 'lossy': return 'gray';
+    case 'inconnu': return 'neutre';
   }
 }
 
@@ -353,7 +373,7 @@ export function formatQualityTooltip(
   const bd = track.bit_depth ?? 0;
 
   const lines: string[] = [];
-  lines.push(`Quality: ${tierLabel}`);
+  if (tierLabel) lines.push(`Quality: ${tierLabel}`);
   lines.push(`Source: ${source}`);
   lines.push(`Format: ${fmt}`);
   const debit = fixedBitrateLabel(track.source);

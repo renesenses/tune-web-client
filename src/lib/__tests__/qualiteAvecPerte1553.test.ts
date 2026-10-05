@@ -49,8 +49,9 @@ describe('#1553 — le codec avec perte l emporte sur la profondeur de bits', ()
     // Sans format déclaré, les spécifications restent le seul indice.
     expect(getQualityTier({ format: null, sample_rate: 96000, bit_depth: 24, source: 'qobuz' })).toBe('hires');
     expect(getQualityTier({ format: '', sample_rate: 44100, bit_depth: 24 })).toBe('hires');
-    // m4a n'est pas tranché ici : le serveur le résout en alac ou aac.
-    expect(getQualityTier({ format: 'm4a', sample_rate: 44100, bit_depth: 24 })).toBe('hires');
+    // m4a : le serveur ne l'écrit que quand il n'a pas pu lire le codec —
+    // aucun palier, quelles que soient les spécifications (fil 2126).
+    expect(getQualityTier({ format: 'm4a', sample_rate: 44100, bit_depth: 24 })).toBe('inconnu');
     expect(getQualityTier({ format: 'dsf', sample_rate: 2822400, bit_depth: 1 })).toBe('dsd');
     expect(getQualityTier({ format: 'mqa', sample_rate: 48000, bit_depth: 24 })).toBe('mqa');
   });
