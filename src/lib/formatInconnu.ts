@@ -49,3 +49,36 @@ export function descriptionDEtape(
   if (step?.code !== CODE_CODEC_INCONNU) return description;
   return description.split(JETON_CODEC_INCONNU).join(libelleInconnu);
 }
+
+/**
+ * Cette étape-là laisse-t-elle le signal intact ?
+ *
+ * Le serveur calcule le drapeau POUR CHAQUE étape (`steps[].bit_perfect`) ; le
+ * verdict global n'est que le repli des serveurs qui ne l'envoient pas (#1097,
+ * #1985). Une seule définition, lue par les DEUX panneaux du chemin du signal.
+ */
+export function etapeIntacte(step: { bit_perfect?: boolean } | null | undefined, verdict: boolean): boolean {
+  return step?.bit_perfect ?? verdict;
+}
+
+/**
+ * Le trait qui relie l'étape `i` à la suivante est-il intact ?
+ *
+ * Jean Valjean, fil 1825 : « Deux affichages différents pour la même
+ * indication ». Le chemin du signal se dessine à deux endroits — la fenêtre de
+ * la barre de lecture et l'onglet Bit-perfect de Lecture en cours — et chacun
+ * avait sa copie de la règle. Lecture en cours peignait le trait d'après ses
+ * DEUX extrémités ; la barre de lecture d'après la seule étape amont. Sur un
+ * rééchantillonnage 44,1 → 192 kHz (étape altérée), le trait qui y DESCEND
+ * restait vert dans la barre et virait à l'orange dans Lecture en cours.
+ *
+ * La règle est celle de Lecture en cours : un trait n'est intact que si ses
+ * deux extrémités le sont — du vert ne descend pas dans un maillon altéré.
+ */
+export function traitIntact(
+  steps: readonly ({ bit_perfect?: boolean } | null | undefined)[],
+  i: number,
+  verdict: boolean,
+): boolean {
+  return etapeIntacte(steps[i], verdict) && etapeIntacte(steps[i + 1], verdict);
+}
