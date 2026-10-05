@@ -4020,6 +4020,10 @@ export default {
   "v2.cd.playTrack": "このトラックを再生",
   "v2.cd.trackN": "トラック {n}",
   "v2.cd.toZone": "{zone} へ",
+  "v2.cd.eject": "取り出す",
+  "v2.cd.ejectConfirm": "ディスクを再生中です。再生を停止してディスクを取り出しますか？",
+  "v2.cd.ejectFailed": "ディスクを取り出せませんでした。別のプログラムが使用している可能性があります。",
+  "v2.cd.ejectUnsupported": "このドライブは Tune から取り出せません。",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "Tune Circle 拡張機能が有効になっていません。拡張機能からインストールし、Tune を再起動してください。",

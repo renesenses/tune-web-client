@@ -12,9 +12,15 @@
  *                   404 aucun_lecteur · 409 aucun_disque · 502 lecture_toc
  *   POST /jouer   { zone_id, piste? } → le disque ENTIER en file, joué à
  *                   partir de `piste` (la 1ʳᵉ sans elle) ; 400 piste_inconnue
+ *   POST /ejecter { forcer? } → { ejecte, lecteur, zones_arretees }
+ *                   (forum, fil 2135 : un SuperDrive n'a pas de bouton) ;
+ *                   409 lecture_en_cours { zones } si une zone joue le disque
+ *                   et que `forcer` manque · 409 aucun_disque · 404
+ *                   aucun_lecteur · 501 ejection_non_prise_en_charge · 502
+ *                   ejection
  *
- * Le greffon ne publie aucun événement sur le bus : l'insertion et l'éjection
- * se voient en relisant `/etat` (voir `LectureCdV2.svelte`).
+ * L'insertion et l'éjection se voient en relisant `/etat` (voir
+ * `LectureCdV2.svelte`) ; le greffon publie aussi `sources.changed`.
  *
  * Tous les appels passent `sansBandeau` : l'écran porte lui-même ses erreurs,
  * dans sa langue — jamais le bandeau brut « Server error: … ».
@@ -69,6 +75,26 @@ export function jouerCd(zoneId: number, piste?: number): Promise<LectureCdLancee
   return fetchJSON<LectureCdLancee>(
     `${BASE}/ext/cd/jouer`,
     { method: 'POST', body: JSON.stringify(corps) },
+    undefined,
+    true,
+  );
+}
+
+export interface EjectionCd {
+  ejecte: boolean;
+  lecteur: string;
+  zones_arretees: number[];
+}
+
+/**
+ * Éjecte le disque. Sans `forcer`, le serveur REFUSE (409 lecture_en_cours)
+ * si une zone le joue : l'écran demande alors confirmation, puis rappelle
+ * avec `forcer`, qui arrête ces zones avant d'éjecter.
+ */
+export function ejecterCd(forcer = false): Promise<EjectionCd> {
+  return fetchJSON<EjectionCd>(
+    `${BASE}/ext/cd/ejecter`,
+    { method: 'POST', body: JSON.stringify({ forcer }) },
     undefined,
     true,
   );

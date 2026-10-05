@@ -4019,6 +4019,10 @@ export default {
   "v2.cd.playTrack": "Spela det här spåret",
   "v2.cd.trackN": "Spår {n}",
   "v2.cd.toZone": "Till {zone}",
+  "v2.cd.eject": "Mata ut",
+  "v2.cd.ejectConfirm": "Skivan spelas. Stoppa uppspelningen och mata ut skivan?",
+  "v2.cd.ejectFailed": "Skivan kunde inte matas ut. Ett annat program kanske använder den.",
+  "v2.cd.ejectUnsupported": "Den här enheten kan inte matas ut från Tune.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "Tillägget Tune Circle är inte aktivt. Installera det under Tillägg och starta sedan om Tune.",

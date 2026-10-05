@@ -10,6 +10,7 @@ import PluginsV2 from '../../components/v2/PluginsV2.svelte';
 import { preparerLocale } from '../i18n';
 import { currentZoneId } from '../stores/zones';
 import { activeView } from '../stores/navigation';
+import { dialogs } from '../stores/dialogs';
 import { cdPlugin, dureeCd, delaiRelectureCd, RELECTURE_CD_MS, RELECTURE_CD_MAX_MS } from '../lectureCd';
 import fr from '../locales/fr';
 
@@ -53,6 +54,8 @@ let etat: { plateforme_prise_en_charge: boolean; lecteur: string | null; presenc
 let disque: unknown = DISQUE;
 let refusDisque: { status: number; corps: unknown } | null = null;
 let refusJouer: { status: number; corps: unknown } | null = null;
+/** Réponses successives de `POST /ext/cd/ejecter` ; vide = 200. */
+let reponsesEjecter: { status: number; corps: unknown }[] = [];
 
 function reponse(status: number, corps: unknown): Response {
   return {
@@ -75,6 +78,7 @@ beforeEach(() => {
   disque = DISQUE;
   refusDisque = null;
   refusJouer = null;
+  reponsesEjecter = [];
   cdPlugin.set(null);
   currentZoneId.set(3);
   vi.stubGlobal(
@@ -89,6 +93,11 @@ beforeEach(() => {
         if (refusJouer) return reponse(refusJouer.status, refusJouer.corps);
         const b = JSON.parse(String(init?.body));
         return reponse(200, { zone_id: b.zone_id, disc_id: DISQUE.disc_id, piste: b.piste ?? 1, file: 3 });
+      }
+      if (u.includes('/ext/cd/ejecter')) {
+        const r = reponsesEjecter.shift();
+        if (r) return reponse(r.status, r.corps);
+        return reponse(200, { ejecte: true, lecteur: '/dev/sr0', zones_arretees: [] });
       }
       if (/\/zones\/3$/.test(u)) return reponse(200, { id: 3, name: 'Salon', state: 'playing' });
       if (u.includes('/marketplace')) return reponse(200, { plugins: [] });
@@ -263,6 +272,84 @@ describe('Lecture CD — insertion, éjection, erreurs', () => {
     (el.querySelector('button.lire-disque') as HTMLButtonElement).click();
     await laisserFaire();
     expect(el.querySelector('.err')?.textContent).toBe(fr['v2.cd.playFailed']);
+  });
+});
+
+describe('Lecture CD — éjecter (forum, fil 2135)', () => {
+  const ejections = () => appels.filter((a) => a.url.includes('/ext/cd/ejecter'));
+  const bouton = (el: HTMLElement) => el.querySelector('button.ejecter') as HTMLButtonElement | null;
+  /** La demande de confirmation en attente, s'il y en a une. */
+  const enAttente = () => get(dialogs)[0] as { id: number; message: string } | undefined;
+
+  it('« Éjecter » n’apparaît que si un disque est présent', async () => {
+    let el = await poser(LectureCdV2);
+    expect(bouton(el)?.textContent?.trim()).toBe(fr['v2.cd.eject']);
+    unmount(monte!); monte = null; hote?.remove();
+
+    etat = { ...etat, presence: 'vide' };
+    el = await poser(LectureCdV2);
+    expect(bouton(el)).toBeNull();
+    unmount(monte!); monte = null; hote?.remove();
+
+    etat = { plateforme_prise_en_charge: true, lecteur: null, presence: 'aucun_lecteur' };
+    el = await poser(LectureCdV2);
+    expect(bouton(el)).toBeNull();
+  });
+
+  it('sans lecture en cours : éjecte sans confirmation, l’écran passe à « vide »', async () => {
+    const el = await poser(LectureCdV2);
+    bouton(el)!.click();
+    await laisserFaire();
+    expect(ejections()).toHaveLength(1);
+    expect(ejections()[0].method).toBe('POST');
+    expect(ejections()[0].body).toEqual({ forcer: false });
+    expect(enAttente(), 'aucune confirmation').toBeUndefined();
+    expect(el.querySelector('li.piste')).toBeNull();
+    expect(el.querySelector('.vide')?.textContent).toBe(fr['v2.cd.noDisc']);
+    expect(bouton(el)).toBeNull();
+  });
+
+  it('pendant une lecture : confirmation, puis éjection forcée', async () => {
+    reponsesEjecter = [{ status: 409, corps: { error: 'lecture_en_cours', message: '…', zones: [3] } }];
+    const el = await poser(LectureCdV2);
+    bouton(el)!.click();
+    await laisserFaire();
+    const q = enAttente();
+    expect(q?.message).toBe(fr['v2.cd.ejectConfirm']);
+    expect(ejections()).toHaveLength(1);
+    dialogs.settle(q!.id, true);
+    await laisserFaire();
+    expect(ejections().map((a) => a.body)).toEqual([{ forcer: false }, { forcer: true }]);
+    expect(el.querySelector('.vide')).not.toBeNull();
+    expect(el.querySelector('.err')).toBeNull();
+  });
+
+  it('pendant une lecture, confirmation refusée : rien n’est éjecté', async () => {
+    reponsesEjecter = [{ status: 409, corps: { error: 'lecture_en_cours', message: '…', zones: [3] } }];
+    const el = await poser(LectureCdV2);
+    bouton(el)!.click();
+    await laisserFaire();
+    dialogs.settle(enAttente()!.id, false);
+    await laisserFaire();
+    expect(ejections().map((a) => a.body)).toEqual([{ forcer: false }]);
+    expect(el.querySelectorAll('li.piste')).toHaveLength(3);
+    expect(bouton(el)?.disabled).toBe(false);
+  });
+
+  it('un refus du système se dit par une phrase, le disque reste affiché', async () => {
+    reponsesEjecter = [{ status: 502, corps: { error: 'ejection', message: 'CDROMEJECT : EBUSY' } }];
+    const el = await poser(LectureCdV2);
+    bouton(el)!.click();
+    await laisserFaire();
+    const err = el.querySelector('.err-ejection')?.textContent ?? '';
+    expect(err).toBe(fr['v2.cd.ejectFailed']);
+    expect(err).not.toContain('EBUSY');
+    expect(el.querySelectorAll('li.piste')).toHaveLength(3);
+
+    reponsesEjecter = [{ status: 501, corps: { error: 'ejection_non_prise_en_charge', message: '…' } }];
+    bouton(el)!.click();
+    await laisserFaire();
+    expect(el.querySelector('.err-ejection')?.textContent).toBe(fr['v2.cd.ejectUnsupported']);
   });
 });
 

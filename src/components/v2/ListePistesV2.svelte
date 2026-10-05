@@ -90,6 +90,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import { enTetesDisque as calculerEnTetes } from '../../lib/enTetesDisque';
+  import { sectionsParRang } from '../../lib/library/grouping';
 
   interface Props {
     pistes: Track[];
@@ -397,6 +398,10 @@
 
   // #1431 — pour chaque rang, l'en-tête à poser AVANT la ligne, ou `null`.
   const enTetes = $derived(enTetesDisque ? calculerEnTetes(pistes) : []);
+  // web#1862 — les sections GROUPING (#2130) À L'INTÉRIEUR d'un disque, sous
+  // la même prop : seule la fiche d'album rend les pistes d'UN album dans
+  // l'ordre disque/piste. Règle et témoins dans `lib/library/grouping.ts`.
+  const sections = $derived(enTetesDisque ? sectionsParRang(pistes) : []);
 
   /**
    * « Lire à partir d'ici », par DÉFAUT — Bertrand, 20/09/2026.
@@ -550,6 +555,9 @@
       <span class="discno">{$t('library.disc' as any).replace('{num}', String(e.disque))}</span>
       {#if e.sousTitre}<span class="discsub">{e.sousTitre}</span>{/if}
     </div>
+  {/if}
+  {#if sections[i]}
+    <div class="grouphead">{sections[i]}</div>
   {/if}
 {/snippet}
 
@@ -771,6 +779,8 @@
   .discno{font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
     color:var(--v2-txt3)}
   .discsub{font-size:12px; color:var(--v2-txt2)}
+  /* web#1862 — l'en-tête de section GROUPING : un cran sous celui du disque. */
+  .grouphead{padding:10px 10px 2px; font-size:12px; font-weight:600; color:var(--v2-txt2)}
   .tbl::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .thead, .trow{display:grid; grid-template-columns:var(--tcols); align-items:center;
     gap:14px; padding:0 10px; min-width:var(--tmin, 0)}

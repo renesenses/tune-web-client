@@ -4020,6 +4020,10 @@ export default {
   "v2.cd.playTrack": "播放此音轨",
   "v2.cd.trackN": "音轨 {n}",
   "v2.cd.toZone": "到 {zone}",
+  "v2.cd.eject": "弹出",
+  "v2.cd.ejectConfirm": "光盘正在播放。要停止播放并弹出光盘吗？",
+  "v2.cd.ejectFailed": "无法弹出光盘。可能有其他程序正在使用它。",
+  "v2.cd.ejectUnsupported": "无法从 Tune 弹出此光驱。",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "Tune Circle 扩展未启用。请在“扩展”中安装，然后重启 Tune。",

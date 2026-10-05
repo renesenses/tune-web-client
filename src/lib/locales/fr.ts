@@ -4042,6 +4042,10 @@ export default {
   "v2.cd.playTrack": "Lire cette piste",
   "v2.cd.trackN": "Piste {n}",
   "v2.cd.toZone": "Vers {zone}",
+  "v2.cd.eject": "Éjecter",
+  "v2.cd.ejectConfirm": "Le disque est en cours de lecture. Arrêter la lecture et éjecter le disque ?",
+  "v2.cd.ejectFailed": "Le disque n'a pas pu être éjecté. Il est peut-être utilisé par un autre programme.",
+  "v2.cd.ejectUnsupported": "Ce lecteur ne peut pas être éjecté depuis Tune.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "L'extension Tune Circle n'est pas active. Installez-la depuis les Extensions, puis redémarrez Tune.",

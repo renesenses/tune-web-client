@@ -4020,6 +4020,10 @@ export default {
   "v2.cd.playTrack": "Diesen Titel abspielen",
   "v2.cd.trackN": "Titel {n}",
   "v2.cd.toZone": "An {zone}",
+  "v2.cd.eject": "Auswerfen",
+  "v2.cd.ejectConfirm": "Die Disc wird gerade abgespielt. Wiedergabe stoppen und Disc auswerfen?",
+  "v2.cd.ejectFailed": "Die Disc konnte nicht ausgeworfen werden. Möglicherweise wird sie von einem anderen Programm verwendet.",
+  "v2.cd.ejectUnsupported": "Dieses Laufwerk kann nicht über Tune ausgeworfen werden.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "Die Erweiterung Tune Circle ist nicht aktiv. Installieren Sie sie unter Erweiterungen und starten Sie Tune neu.",
