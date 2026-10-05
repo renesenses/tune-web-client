@@ -4019,6 +4019,10 @@ export default {
   "v2.cd.playTrack": "이 트랙 재생",
   "v2.cd.trackN": "트랙 {n}",
   "v2.cd.toZone": "{zone}(으)로",
+  "v2.cd.eject": "꺼내기",
+  "v2.cd.ejectConfirm": "디스크를 재생하고 있습니다. 재생을 멈추고 디스크를 꺼낼까요?",
+  "v2.cd.ejectFailed": "디스크를 꺼낼 수 없습니다. 다른 프로그램이 사용 중일 수 있습니다.",
+  "v2.cd.ejectUnsupported": "이 드라이브는 Tune에서 꺼낼 수 없습니다.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "Tune Circle 확장 기능이 활성화되어 있지 않습니다. 확장 기능에서 설치한 다음 Tune을 다시 시작하세요.",
