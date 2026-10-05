@@ -123,6 +123,7 @@
   } from '../../lib/historiqueCoquille';
   import {
     albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant } from '../../lib/tuneRemote';
+  import { gestionnaireFrappeVersRecherche } from '../../lib/frappeVersRecherche';
   import '../../styles/tune-v2.css';
 
   let { depot = null }: { depot?: DepotDistant | null } = $props();
@@ -1956,6 +1957,28 @@
   let enEdition = $state<Album | null>(null);
 
   /**
+   * #1872 — taper au clavier écrit dans la recherche, sans clic préalable
+   * (Levente Toth, fil 2102). La règle et ses exclusions vivent dans
+   * `lib/frappeVersRecherche.ts` : les raccourcis de lecture (Espace, S, N,
+   * P, M, flèches) gardent leur sens, « / » donne le focus, Échap le rend.
+   *
+   * Bibliothèque LOCALE seulement : sous un serveur multimédia (`depot`),
+   * cet écran est monté dans un autre. Inerte tant qu'un calque (fiche
+   * d'album, édition) ou un menu de facette recouvre la grille — taper
+   * derrière une fiche ouverte filtrerait une grille invisible.
+   */
+  let champRecherche = $state<HTMLInputElement | null>(null);
+  $effect(() => {
+    if (depot) return;
+    const surFrappe = gestionnaireFrappeVersRecherche({
+      champ: () => champRecherche,
+      disponible: () => !opened && !enEdition && !ddOpen,
+    });
+    window.addEventListener('keydown', surFrappe);
+    return () => window.removeEventListener('keydown', surFrappe);
+  });
+
+  /**
    * Lecture depuis la pochette — le bouton central.
    *
    * Sur un serveur DISTANT, un `album_id` désignerait un tout autre album ici :
@@ -2362,7 +2385,8 @@
     {#if showSearch}
       <div class="v2-rech">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-        <input placeholder={$tr('v2.lib.searchPlaceholder' as any)} bind:value={q} />
+        <input bind:this={champRecherche} placeholder={$tr('v2.lib.searchPlaceholder' as any)}
+               aria-label={$tr('v2.lib.searchPlaceholder' as any)} aria-keyshortcuts="/" bind:value={q} />
         {#if q}
           <button class="clr" onclick={() => (q = '')} aria-label={$tr('common.clear' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
