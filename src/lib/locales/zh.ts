@@ -3234,6 +3234,8 @@ export default {
   "v2.stream.favIndex": "收藏目录",
   "v2.fas.topTracks": "热门单曲",
   "v2.art.bio": "简介",
+  "v2.art.bioReadMore": "展开全文",
+  "v2.art.bioReadLess": "收起",
   "v2.disco.focus": "聚焦",
   "v2.disco.source": "来源",
   "v2.disco.quality": "音质",

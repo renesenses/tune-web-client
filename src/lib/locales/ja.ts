@@ -3234,6 +3234,8 @@ export default {
   "v2.stream.favIndex": "お気に入りの目次",
   "v2.fas.topTracks": "人気の曲",
   "v2.art.bio": "バイオグラフィー",
+  "v2.art.bioReadMore": "続きを読む",
+  "v2.art.bioReadLess": "折りたたむ",
   "v2.disco.focus": "フォーカス",
   "v2.disco.source": "ソース",
   "v2.disco.quality": "音質",

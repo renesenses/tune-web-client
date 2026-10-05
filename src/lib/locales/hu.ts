@@ -3192,6 +3192,8 @@ export default {
   "v2.stream.favIndex": "Kedvencek tartalomjegyzéke",
   "v2.fas.topTracks": "Népszerű dalok",
   "v2.art.bio": "Életrajz",
+  "v2.art.bioReadMore": "Tovább olvasom",
+  "v2.art.bioReadLess": "Kevesebb",
   "v2.disco.focus": "Fókusz",
   "v2.disco.source": "Forrás",
   "v2.disco.quality": "Minőség",
