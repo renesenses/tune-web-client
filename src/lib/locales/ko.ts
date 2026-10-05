@@ -2958,6 +2958,7 @@ export default {
   "v2.meta.drHint": "Tune이 측정한 DR은 데이터베이스에만 있습니다. 기록하면 파일에 저장됩니다(DYNAMIC RANGE 키, 스캔 시와 foobar2000에서 다시 읽음). FLAC, Ogg, Opus만 해당하며 이미 키가 있는 파일은 덮어쓰지 않습니다.",
   "v2.meta.drEngraveBtn": "기록",
   "v2.meta.drRunning": "기록 중…",
+  "v2.meta.drInterrupted": "{done} / {total}에서 중단됨 — 다시 실행",
   "v2.meta.drToEngrave": "기록할 트랙",
   "v2.meta.drInFiles": "파일에 DR이 이미 있는 트랙",
   "v2.meta.drOtherFormats": "측정했지만 기록 불가(MP3, M4A 등)",

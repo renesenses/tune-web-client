@@ -8926,7 +8926,10 @@ export function listMetadataProposals(
  * `written / already / skipped / errors` avancent ; à la fin `status = done`.
  */
 export interface GravureDrEtat {
-  status: 'idle' | 'running' | 'done';
+  /** `interrupted` (fil 2137) : la passe est morte en route (redémarrage,
+   *  panne) ; les compteurs sont ceux de son dernier jalon. Un serveur plus
+   *  ancien ne le renvoie jamais : il laissait un `running` périmé. */
+  status: 'idle' | 'running' | 'done' | 'interrupted';
   a_graver: number;
   hors_format: number;
   dans_les_fichiers: number;

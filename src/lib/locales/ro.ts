@@ -2958,6 +2958,7 @@ export default {
   "v2.meta.drHint": "Tune a măsurat DR-ul acestor piese; există doar în baza de date. Scrierea îl pune în fișier (cheia DYNAMIC RANGE, recitită la scanare și de foobar2000). Doar FLAC, Ogg și Opus; un fișier care are deja cheia nu este niciodată rescris.",
   "v2.meta.drEngraveBtn": "Scrie",
   "v2.meta.drRunning": "Se scrie…",
+  "v2.meta.drInterrupted": "Întreruptă la {done} / {total} — reluați",
   "v2.meta.drToEngrave": "piese de scris",
   "v2.meta.drInFiles": "piese cu DR deja în fișier",
   "v2.meta.drOtherFormats": "măsurate, dar nescriibile (MP3, M4A…)",

@@ -2979,6 +2979,7 @@ export default {
   "v2.meta.drHint": "Tune a mesuré le DR de ces pistes ; il ne vit qu'en base. Graver l'écrit dans le fichier (clé DYNAMIC RANGE, relue au scan et par foobar2000). FLAC, Ogg et Opus seulement ; un fichier qui porte déjà la clé n'est jamais réécrit.",
   "v2.meta.drEngraveBtn": "Graver",
   "v2.meta.drRunning": "Gravure en cours…",
+  "v2.meta.drInterrupted": "Interrompue à {done} / {total} — relancer",
   "v2.meta.drToEngrave": "pistes à graver",
   "v2.meta.drInFiles": "pistes déjà gravées dans le fichier",
   "v2.meta.drOtherFormats": "mesurées mais non gravables (MP3, M4A…)",

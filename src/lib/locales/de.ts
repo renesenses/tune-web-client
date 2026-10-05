@@ -2958,6 +2958,7 @@ export default {
   "v2.meta.drHint": "Tune hat den DR dieser Titel gemessen; er existiert nur in der Datenbank. Schreiben legt ihn in der Datei ab (Schlüssel DYNAMIC RANGE, beim Scan und von foobar2000 gelesen). Nur FLAC, Ogg und Opus; eine Datei, die den Schlüssel bereits trägt, wird nie überschrieben.",
   "v2.meta.drEngraveBtn": "Schreiben",
   "v2.meta.drRunning": "Schreiben läuft…",
+  "v2.meta.drInterrupted": "Abgebrochen bei {done} / {total} — neu starten",
   "v2.meta.drToEngrave": "zu schreibende Titel",
   "v2.meta.drInFiles": "Titel mit DR bereits in der Datei",
   "v2.meta.drOtherFormats": "gemessen, aber nicht schreibbar (MP3, M4A…)",

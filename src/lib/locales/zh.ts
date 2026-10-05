@@ -2958,6 +2958,7 @@ export default {
   "v2.meta.drHint": "Tune 测得的 DR 仅存在于数据库中。写入后会保存到文件（DYNAMIC RANGE 键，扫描时及 foobar2000 均可读回）。仅限 FLAC、Ogg 和 Opus；已带有该键的文件不会被改写。",
   "v2.meta.drEngraveBtn": "写入",
   "v2.meta.drRunning": "写入中…",
+  "v2.meta.drInterrupted": "已在 {done} / {total} 处中断 — 重新开始",
   "v2.meta.drToEngrave": "待写入的曲目",
   "v2.meta.drInFiles": "文件中已有 DR 的曲目",
   "v2.meta.drOtherFormats": "已测量但不可写入（MP3、M4A 等）",
