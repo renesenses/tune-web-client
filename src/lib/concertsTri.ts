@@ -49,6 +49,29 @@ export interface GroupeConcerts {
   /** Le nom porté en tête du bloc. */
   artiste: string;
   concerts: Concert[];
+  /**
+   * Clé de boucle de chaque date du bloc, dans l'ordre de `concerts` — web#1856.
+   *
+   * Le greffon ne rend aucun identifiant d'événement, et deux concerts peuvent
+   * partager date, artiste, ville et salle : deux soirs Muse jumeaux à Nanterre
+   * le 27/11, vus dans la capture réseau du 02/10. La clé `date + salle + ville`
+   * du gabarit se répétait, et Svelte levait `each_key_duplicate` à chaque
+   * ouverture de l'écran rangé par artiste. Le rang de la ligne parmi ses
+   * jumelles départage : la clé reste la même tant que la liste ne change pas.
+   */
+  cles: string[];
+}
+
+/** Les clés des dates d'un bloc : les champs du concert, puis son rang parmi
+ *  les lignes qui ont exactement les mêmes champs. Uniques par construction. */
+function clesDesDates(concerts: readonly Concert[]): string[] {
+  const vues = new Map<string, number>();
+  return concerts.map((c) => {
+    const base = [c.event_date, c.artist_name, c.city ?? '', c.venue ?? '', c.event_url ?? ''].join('|');
+    const rang = vues.get(base) ?? 0;
+    vues.set(base, rang + 1);
+    return `${base}#${rang}`;
+  });
 }
 
 /**
@@ -95,13 +118,16 @@ export function grouperConcerts(
   if (liste.length === 0) return [];
 
   if (normaliserTriConcerts(tri) === 'date') {
-    return liste
-      .sort(parDate)
-      .map((c, i) => ({
-        cle: `${i}|${c.event_date}|${c.artist_name}|${c.city ?? ''}|${c.venue ?? ''}`,
-        artiste: c.artist_name,
-        concerts: [c],
-      }));
+    const triee = liste.sort(parDate);
+    // Les clés se calculent sur TOUTE la liste : deux jumelles, chacune dans
+    // son bloc d'une ligne, gardent quand même deux clés distinctes.
+    const cles = clesDesDates(triee);
+    return triee.map((c, i) => ({
+      cle: `${i}|${c.event_date}|${c.artist_name}|${c.city ?? ''}|${c.venue ?? ''}`,
+      artiste: c.artist_name,
+      concerts: [c],
+      cles: [cles[i]],
+    }));
   }
 
   const groupes = new Map<string, Concert[]>();
@@ -114,5 +140,8 @@ export function grouperConcerts(
     .sort((a, b) => a[0].localeCompare(b[0]))
     // Dans un groupe, la prochaine date d'abord : « les prochaines dates » de
     // la demande valent aussi quand on lit par artiste.
-    .map(([artiste, dates]) => ({ cle: `a|${artiste}`, artiste, concerts: dates.sort(parDate) }));
+    .map(([artiste, dates]) => {
+      const triees = dates.sort(parDate);
+      return { cle: `a|${artiste}`, artiste, concerts: triees, cles: clesDesDates(triees) };
+    });
 }

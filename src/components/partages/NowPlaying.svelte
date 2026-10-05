@@ -41,6 +41,8 @@ import { ICONES } from '../../lib/menuPiste';
   import { afficherDynamicRange, type AffichageDynamicRange } from '../../lib/dynamicRange';
   import { t, locale } from '../../lib/i18n';
   import { libelleConversion } from '../../lib/bitperfectStrict';
+  import { gainIgnoreParPure } from '../../lib/pureReplayGain';
+  import { dbSigne } from '../../lib/compensationNiveau';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab, yearFilter } from '../../lib/stores/library';
@@ -2157,6 +2159,12 @@ import { ICONES } from '../../lib/menuPiste';
             {@const conversion = libelleConversion(zone.signal_path, $t, $locale)}
             {#if conversion}
               <p class="sp-conversion" class:degrade={zone.signal_path.pure_degraded}>{conversion}</p>
+            {/if}
+            <!-- tune-server-rust#5633 — sous PURE, le ReplayGain de la piste
+                 n'est pas appliqué : on le dit quand le serveur publie le gain. -->
+            {@const rgIgnoreDb = gainIgnoreParPure(zone.signal_path)}
+            {#if rgIgnoreDb != null}
+              <p class="sp-conversion sp-pure-rg">{$t('signal.pureRgIgnoredDb' as any).replace('{db}', dbSigne(rgIgnoreDb))}</p>
             {/if}
             {#if showSignalDetail}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
