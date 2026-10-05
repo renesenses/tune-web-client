@@ -18,6 +18,7 @@
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { atteintLeSon } from '../../lib/porteeReglage';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import * as controls from '../../lib/playback-controls';
@@ -1598,7 +1599,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     allZones={$zones}
     groups={[]}
     onClose={() => configZone = null}
-    onDelete={() => { configZone = null; }}
+    onDelete={async (id) => { await supprimerZoneConfirmee(id); configZone = null; }}
     onGroupChanged={() => {}}
     onRenamed={() => {}}
   />
