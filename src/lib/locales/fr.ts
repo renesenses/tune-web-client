@@ -1365,6 +1365,7 @@ export default {
   "v2.pod.noSelection": "Rien à proposer ici pour l’instant.",
   "v2.nav.addShortcut": "Créer un raccourci sur cet écran",
   "v2.nav.shortcutName": "Nom du raccourci…",
+  "v2.nav.shortcutTargetHint": "Ce raccourci rouvrira : {nom}",
   "v2.fav.radioLoading": "Chargement des favoris radio…",
   "v2.fav.radioEmpty": "Aucun titre capté pour l’instant. Aimez un morceau pendant l’écoute d’une radio : il se rangera ici.",
   "v2.fav.radioMakePlaylist": "Créer une playlist",

@@ -2312,6 +2312,7 @@ export default {
   "v2.pod.noSelection": "Inget att visa här för tillfället.",
   "v2.nav.addShortcut": "Skapa en genväg till den här vyn",
   "v2.nav.shortcutName": "Genvägens namn…",
+  "v2.nav.shortcutTargetHint": "Genvägen öppnar: {nom}",
   "v2.fav.radioLoading": "Läser in radiofavoriter…",
   "v2.fav.radioEmpty": "Inget fångat ännu. Gilla ett spår medan en radio spelar, så hamnar det här.",
   "v2.fav.radioMakePlaylist": "Skapa en spellista",

@@ -2313,6 +2313,7 @@ export default {
   "v2.pod.noSelection": "Hier gibt es derzeit nichts zu zeigen.",
   "v2.nav.addShortcut": "Verknüpfung zu dieser Ansicht anlegen",
   "v2.nav.shortcutName": "Name der Verknüpfung…",
+  "v2.nav.shortcutTargetHint": "Diese Verknüpfung öffnet: {nom}",
   "v2.fav.radioLoading": "Radio-Favoriten werden geladen…",
   "v2.fav.radioEmpty": "Noch nichts aufgefangen. Markieren Sie einen Titel während einer Radiosendung — er landet hier.",
   "v2.fav.radioMakePlaylist": "Playlist erstellen",

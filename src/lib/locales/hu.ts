@@ -2271,6 +2271,7 @@ export default {
   "v2.pod.noSelection": "Itt egyelőre nincs mit mutatni.",
   "v2.nav.addShortcut": "Gyorsindító létrehozása ehhez a képernyőhöz",
   "v2.nav.shortcutName": "A gyorsindító neve…",
+  "v2.nav.shortcutTargetHint": "Ez a gyorsindító ezt nyitja meg: {nom}",
   "v2.fav.radioLoading": "Rádiókedvencek betöltése…",
   "v2.fav.radioEmpty": "Még semmi nem került ide. Kedveljen egy számot rádióhallgatás közben: itt fog megjelenni.",
   "v2.fav.radioMakePlaylist": "Lejátszási lista létrehozása",

@@ -2313,6 +2313,7 @@ export default {
   "v2.pod.noSelection": "Per ora non c'è nulla da mostrare qui.",
   "v2.nav.addShortcut": "Crea una scorciatoia per questa schermata",
   "v2.nav.shortcutName": "Nome della scorciatoia…",
+  "v2.nav.shortcutTargetHint": "Questa scorciatoia riaprirà: {nom}",
   "v2.fav.radioLoading": "Caricamento dei preferiti radio…",
   "v2.fav.radioEmpty": "Ancora nulla di catturato. Metti mi piace a un brano mentre ascolti una radio: finirà qui.",
   "v2.fav.radioMakePlaylist": "Crea una playlist",

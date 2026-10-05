@@ -1362,6 +1362,7 @@ export default {
   "v2.pod.noSelection": "Nothing to show here yet.",
   "v2.nav.addShortcut": "Add a shortcut to this view",
   "v2.nav.shortcutName": "Shortcut name…",
+  "v2.nav.shortcutTargetHint": "This shortcut will reopen: {nom}",
   "v2.fav.radioLoading": "Loading radio favourites…",
   "v2.fav.radioEmpty": "Nothing captured yet. Like a track while a radio plays and it will land here.",
   "v2.fav.radioMakePlaylist": "Create a playlist",
