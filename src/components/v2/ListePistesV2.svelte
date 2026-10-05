@@ -82,7 +82,8 @@
   import { pisteIndisponible } from '../../lib/albumAParaitre';
   import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
   import { ouvrirArtisteDepuis, artisteDePiste } from '../../lib/ouvrirArtisteDepuis';
-  import { activeView } from '../../lib/stores/navigation';
+  import { activeView, gestesNavigationService } from '../../lib/stores/navigation';
+  import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
   import { signalerEchecLecture } from '../../lib/echecLecture';
@@ -738,10 +739,25 @@
                  une (le Dynamic Range, et lui seul). Partout ailleurs elle
                  reste la valeur brute, comme avant. -->
             {@const ib = cleInfobulleColonne(p, c.cle)}
+            <!--
+              Fil 2143, point 3 (web#1871, fil 2097) — la colonne ALBUM mène à
+              la fiche de l'album, par le geste d'« Aller à l'album »
+              (`lib/lienAlbumDePiste`). L'écran qui sait mieux ouvrir l'album
+              (`ouvertureAlbum`, la Bibliothèque) garde la main. Sans
+              identifiant d'album connu, la cellule reste du texte.
+            -->
+            {@const versAlbum = lectureSeule || c.cle !== 'album' || !v
+              ? null
+              : (ouvertureAlbum?.(p, i) ?? ouvertureAlbumDePiste(p, $gestesNavigationService))}
             {#if artiste && v}
               <span class="td" role="cell">
                 <button class="lien-artiste" title={v}
                   onclick={(e) => { e.stopPropagation(); void ouvrirArtisteDepuis(artiste, $activeView); }}>{v}</button>
+              </span>
+            {:else if versAlbum}
+              <span class="td" role="cell">
+                <button class="lien-artiste lien-album" title={v}
+                  onclick={(e) => { e.stopPropagation(); versAlbum(); }}>{v}</button>
               </span>
             {:else}
               <span class="td" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
