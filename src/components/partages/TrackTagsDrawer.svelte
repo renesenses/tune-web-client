@@ -68,8 +68,30 @@
   let dbEdits = $state<Record<string, any>>({});
   let originalDb = $state<Record<string, any>>({});
 
+  /** Champs corrigés dans Tune et tenus face aux analyses (05/10/2026). */
+  let champsTenus = $state<string[]>([]);
+  async function chargerChampsTenus() {
+    try {
+      champsTenus = (await api.getTrackHeldFields(trackId!)).fields ?? [];
+    } catch {
+      champsTenus = []; // serveur antérieur : pas de route, rien de tenu
+    }
+  }
+  async function retablirDepuisLeFichier() {
+    saving = true;
+    try {
+      await api.restoreTrackFromFile(trackId!);
+      notifications.success($t('trackTags.restoredFromFile' as any));
+      await load();
+    } catch (e: any) {
+      notifications.error(`${$t('trackTags.saveError')} : ${e?.message || e}`);
+    }
+    saving = false;
+  }
+
   async function load() {
     loading = true;
+    void chargerChampsTenus();
     try {
       // Bound: a hung lofty read of a NAS file used to leave this drawer on
       // "Chargement…" until F5 (same family as TrackEditModal #1079).
@@ -190,6 +212,14 @@
       <div class="state err">{$t('trackTags.loadFailed')}</div>
     {:else}
       <div class="drawer-body">
+        {#if champsTenus.length}
+          <div class="tenus" data-champs-tenus>
+            <span>{$t('trackTags.heldFields' as any).replace('{fields}', champsTenus.join(', '))}</span>
+            <button class="btn-write-tags" onclick={retablirDepuisLeFichier} disabled={saving}>
+              {$t('trackTags.restoreFromFile' as any)}
+            </button>
+          </div>
+        {/if}
         <!-- DB fields, grouped -->
         {#each groupesAffiches as groupe (groupe.nom)}
           <div class="group">
@@ -285,6 +315,10 @@
     text-transform: uppercase; letter-spacing: 0.06em;
     color: var(--tune-text-muted);
     display: flex; align-items: center; gap: 8px;
+  }
+  .tenus {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    font-size: 12px; color: var(--tune-text-muted);
   }
   .badge-warn {
     background: rgba(220,38,38,0.15);
