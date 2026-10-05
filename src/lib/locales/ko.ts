@@ -2122,6 +2122,7 @@ export default {
   "settings.aacPassthroughHint": "AAC를 FLAC로 변환하지 않고 그대로 이 렌더러로 보냅니다. 원본이 이미 손실 압축이므로 변환해도 음질은 좋아지지 않고 첫 소리만 늦어집니다. 렌더러가 AAC를 기본 지원할 때만 켜세요. 그렇지 않으면 소리가 나지 않습니다.",
   "settings.browserZoneCreated": "존을 만들었습니다 — 이 기기에서 재생됩니다",
   "settings.cloudDisconnected": "클라우드에서 로그아웃했습니다",
+  "settings.signOutConfirm": "mozaiklabs 계정에서 로그아웃하시겠습니까? 이 서버와 계정의 연결이 해제됩니다. 온라인 라이브러리 사본과 Tune Circle 공유가 삭제되고, 계정으로 제공되던 프리미엄 기능이 중지됩니다(라이선스 키는 계속 유효합니다). 나중에 다시 로그인할 수 있습니다.",
   "settings.createBrowserZone": "이 컴퓨터에 존 만들기",
   "settings.dlnaCap16bit": "16비트로 제한",
   "settings.dlnaCap16bitHint": "16비트는 재생되는데 하이레조(24비트)에서 소리가 나지 않는 렌더러(Ruark R3)에서 켜세요. 렌더러가 디코딩하지 못하는 24비트를 그대로 보내는 대신 16비트 FLAC으로 다시 인코딩합니다.",

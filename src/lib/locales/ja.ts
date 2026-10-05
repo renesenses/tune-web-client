@@ -2126,6 +2126,7 @@ export default {
   "settings.aacPassthroughHint": "AAC を FLAC に変換せず、そのままこのレンダラーに送ります。元がすでに非可逆圧縮なため、変換しても音質は向上せず、最初の音が遅くなるだけです。レンダラーが AAC をネイティブ再生できる場合のみ有効にしてください。そうでないと無音になります。",
   "settings.browserZoneCreated": "ゾーンを作成しました — この端末で再生されます",
   "settings.cloudDisconnected": "クラウドからサインアウトしました",
+  "settings.signOutConfirm": "mozaiklabs アカウントからサインアウトしますか？このサーバーとアカウントの連携が解除されます。オンラインのライブラリのコピーと Tune Circle の共有は削除され、アカウントによるプレミアム機能は停止します（ライセンスキーは有効なままです）。後で再度サインインできます。",
   "settings.createBrowserZone": "このコンピューターにゾーンを作成",
   "settings.dlnaCap16bit": "16 ビットに制限",
   "settings.dlnaCap16bitHint": "16 ビットは鳴るのにハイレゾ（24 ビット）が無音になるレンダラー（Ruark R3 など）で有効にしてください。レンダラーが解釈できない 24 ビットを直接送る代わりに、16 ビット FLAC に変換します。",

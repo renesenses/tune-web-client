@@ -15,6 +15,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import SettingsV2 from '../../components/v2/SettingsV2.svelte';
+import { dialogs } from '../stores/dialogs';
 import { preferences } from '../stores/preferences';
 import type { SettingsLevel } from '../uiLevel';
 import lFr from '../locales/fr';
@@ -196,6 +197,9 @@ describe('Réglages ▸ Système ▸ Cloud — relier son compte Mozaiklabs', ()
     };
     const el = await ouvrirSysteme('beginner');
     statutSso = { configured: true, connected: false };
+    // La déconnexion délie le serveur du compte : elle demande d'abord
+    // confirmation (voir confirmerDeconnexionCompte.test.ts).
+    vi.spyOn(dialogs, 'confirm').mockResolvedValue(true);
     bouton(el, fr['settings.signOut'])!.click();
     await attendre(10);
     expect(

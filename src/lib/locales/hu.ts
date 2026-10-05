@@ -1371,6 +1371,7 @@ export default {
   "settings.signIn": "Bejelentkezés",
   "settings.signOut": "Kijelentkezés",
   "settings.cloudDisconnected": "Kijelentkezve a felhőből",
+  "settings.signOutConfirm": "Kijelentkezik a mozaiklabs-fiókból? Ez a szerver leválik a fiókról: a könyvtár online másolata és a Tune Circle-megosztásai törlődnek, a fiókhoz kötött prémium funkciók pedig megszűnnek (a licenckulcs aktív marad). Később újra bejelentkezhet.",
   "settings.licenseRateLimited": "Túl sok próbálkozás — várj egy percet, mielőtt újra megpróbálod.",
   "settings.cloudComingSoon": "A felhő hamarosan elérhető ezen a szerveren",
   "settings.telemetry": "Telemetria",

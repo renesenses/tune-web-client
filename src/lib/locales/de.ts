@@ -2128,6 +2128,7 @@ export default {
   "settings.aacPassthroughHint": "AAC unverändert an diesen Renderer senden, statt es in FLAC umzuwandeln. Die Quelle ist bereits verlustbehaftet — Transcoding bringt keine Qualität, es verzögert nur den ersten Ton. Nur aktivieren, wenn der Renderer AAC nativ dekodiert, sonst kein Ton.",
   "settings.browserZoneCreated": "Zone erstellt — die Wiedergabe erfolgt auf diesem Gerät",
   "settings.cloudDisconnected": "Von der Cloud abgemeldet",
+  "settings.signOutConfirm": "Vom mozaiklabs-Konto abmelden? Dieser Server wird vom Konto getrennt: Seine Online-Kopie der Bibliothek und seine Freigaben in Tune Circle werden entfernt, und die Premium-Funktionen des Kontos enden (ein Lizenzschlüssel bleibt aktiv). Sie können sich danach wieder anmelden.",
   "settings.createBrowserZone": "Eine Zone auf diesem Computer erstellen",
   "settings.dlnaCap16bit": "Auf 16 Bit begrenzen",
   "settings.dlnaCap16bitHint": "Aktivieren, wenn Hi-Res (24 Bit) auf diesem Renderer stumm bleibt, während 16 Bit funktioniert (Ruark R3). Kodiert in 16-Bit-FLAC um, statt 24 Bit direkt zu senden, was der Renderer nicht dekodiert.",
