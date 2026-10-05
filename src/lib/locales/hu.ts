@@ -4321,6 +4321,13 @@ export default {
   "v2.sources.noDrive": "A Tune-t futtató gépen nincs CD-meghajtó csatlakoztatva.",
   "v2.sources.permissionAsk": "A macOS még nem engedélyezte a Tune számára a hangbemenetek hallgatását: az első „Hallgatás” gombnyomáskor kérni fogja.",
   "v2.sources.permissionNotAsked": "Még nem kérték",
+  // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
+  "v2.plug.entreeAudioNom": "Audiobemenet",
+  "v2.sources.greffonManque": "Az „Audiobemenet” bővítmény nincs telepítve: nélküle sem audio-, sem virtuális bemenet nem jelenik meg. A telepítéshez újra kell indítani a Tune-kiszolgálót.",
+  "v2.sources.greffonInstaller": "Bővítmény telepítése",
+  "v2.sources.greffonInstallation": "Telepítés…",
+  "v2.sources.greffonRedemarrer": "Az „Audiobemenet” bővítmény telepítve. Indítsa újra a Tune-kiszolgálót az audio- és virtuális bemenetek megjelenítéséhez.",
+  "v2.sources.greffonErreur": "Az „Audiobemenet” bővítményt nem sikerült telepíteni.",
   // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
   "menuObjet.duplicate": "Duplikálás",
   "menuObjet.duplicated": "„{name}” létrehozva",

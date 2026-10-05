@@ -4362,6 +4362,13 @@ export default {
   "v2.sources.noDrive": "Ingen cd-enhet är ansluten till datorn som kör Tune.",
   "v2.sources.permissionAsk": "macOS har ännu inte gett Tune tillåtelse att lyssna på ljudingångar: det frågar vid första ”Lyssna”.",
   "v2.sources.permissionNotAsked": "Inte tillfrågad än",
+  // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
+  "v2.plug.entreeAudioNom": "Ljudingång",
+  "v2.sources.greffonManque": "Tillägget ”Ljudingång” är inte installerat: utan det visas varken ljudingångar eller virtuella ingångar. Installationen kräver att Tune-servern startas om.",
+  "v2.sources.greffonInstaller": "Installera tillägget",
+  "v2.sources.greffonInstallation": "Installerar…",
+  "v2.sources.greffonRedemarrer": "Tillägget ”Ljudingång” är installerat. Starta om Tune-servern för att se ljudingångar och virtuella ingångar.",
+  "v2.sources.greffonErreur": "Tillägget ”Ljudingång” kunde inte installeras.",
   // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
   "menuObjet.duplicate": "Duplicera",
   "menuObjet.duplicated": "”{name}” skapad",

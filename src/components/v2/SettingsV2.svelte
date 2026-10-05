@@ -33,6 +33,10 @@
   import { preferences, estDispositionFile, DISPOSITION_FILE_DEFAUT } from '../../lib/stores/preferences';
   import { typesSourcesBarre } from '../../lib/sources';
   import { TYPES_SOURCE_BARRE, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
+  import {
+    ID_GREFFON_ENTREE_AUDIO, etatGreffonEntreeAudio, propositionEntreeAudioVisible,
+    type EtatGreffonEntreeAudio, type FicheGreffon,
+  } from '../../lib/greffonEntreeAudio';
   import { atLeast } from '../../lib/uiLevel';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
@@ -3189,6 +3193,37 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function basculerTypeSource(type: TypeSourceBarre, coche: boolean) {
     preferences.update((pr) => ({ ...pr, sourcesBarre: { ...(pr.sourcesBarre ?? {}), [type]: coche } }));
   }
+
+  // tune-server-rust#5296 — « Entrée audio » ou « Entrée virtuelle » cochée,
+  // mais le greffon qui publie ces sources n'est pas installé : le proposer
+  // ici, par la route d'installation existante, et rappeler le redémarrage.
+  let greffonEntreeAudio = $state<EtatGreffonEntreeAudio>('inconnu');
+  let installationEntreeAudio = $state(false);
+  let erreurEntreeAudio = $state<string | null>(null);
+  const entreeAudioCochee = $derived($typesSourcesBarre.entree || $typesSourcesBarre.virtuelle);
+  $effect(() => {
+    if (!entreeAudioCochee) return;
+    api.getInstalledPlugins()
+      .then((liste) => { greffonEntreeAudio = etatGreffonEntreeAudio(liste as unknown as FicheGreffon[]); })
+      // Indéterminé : on ne propose rien sur une erreur réseau.
+      .catch(() => {});
+  });
+  async function installerGreffonEntreeAudio() {
+    if (installationEntreeAudio) return;
+    installationEntreeAudio = true;
+    erreurEntreeAudio = null;
+    // Résolue AVANT l'attente : un `$t()` dans un `catch` est invisible au build.
+    const msgKo = $t('v2.sources.greffonErreur' as any);
+    try {
+      const r = await api.installPlugin(ID_GREFFON_ENTREE_AUDIO);
+      greffonEntreeAudio = r?.restart_required === false ? 'actif' : 'a_redemarrer';
+    } catch {
+      erreurEntreeAudio = msgKo;
+      notifications.error(msgKo);
+    } finally {
+      installationEntreeAudio = false;
+    }
+  }
 </script>
 
 <section class="v2-settings tune-v2">
@@ -3416,6 +3451,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </label>
                 </div>
               {/each}
+              {#if propositionEntreeAudioVisible($typesSourcesBarre, greffonEntreeAudio)}
+                <div class="row" data-greffon-entree-audio={greffonEntreeAudio}>
+                  <div class="lbl">
+                    <span>{greffonEntreeAudio === 'a_installer'
+                      ? $t('v2.sources.greffonManque' as any)
+                      : $t('v2.sources.greffonRedemarrer' as any)}</span>
+                    {#if erreurEntreeAudio}<span class="hint">{erreurEntreeAudio}</span>{/if}
+                  </div>
+                  {#if greffonEntreeAudio === 'a_installer'}
+                    <button class="lnk installer-entree-audio" disabled={installationEntreeAudio}
+                      onclick={installerGreffonEntreeAudio}>
+                      {installationEntreeAudio
+                        ? $t('v2.sources.greffonInstallation' as any)
+                        : $t('v2.sources.greffonInstaller' as any)}
+                    </button>
+                  {/if}
+                </div>
+              {/if}
 
               <!-- tune-server-rust#4368 — FabienM (fil 1829, point 11) :
                    « Il faut grouper par source et tous les résultats Qobuz

@@ -4363,6 +4363,13 @@ export default {
   "v2.sources.noDrive": "Nessuna unità CD è collegata alla macchina su cui gira Tune.",
   "v2.sources.permissionAsk": "macOS non ha ancora autorizzato Tune ad ascoltare gli ingressi audio: lo chiederà al primo «Ascolta».",
   "v2.sources.permissionNotAsked": "Non ancora richiesta",
+  // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
+  "v2.plug.entreeAudioNom": "Ingresso audio",
+  "v2.sources.greffonManque": "Il plugin «Ingresso audio» non è installato: senza di esso non compare alcun ingresso audio né virtuale. L'installazione richiede il riavvio del server Tune.",
+  "v2.sources.greffonInstaller": "Installa il plugin",
+  "v2.sources.greffonInstallation": "Installazione…",
+  "v2.sources.greffonRedemarrer": "Plugin «Ingresso audio» installato. Riavvia il server Tune per vedere gli ingressi audio e virtuali.",
+  "v2.sources.greffonErreur": "Impossibile installare il plugin «Ingresso audio».",
   // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
   "menuObjet.duplicate": "Duplica",
   "menuObjet.duplicated": "«{name}» creata",

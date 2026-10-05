@@ -4363,6 +4363,13 @@ export default {
   "v2.sources.noDrive": "Niciun cititor CD nu este conectat la mașina pe care rulează Tune.",
   "v2.sources.permissionAsk": "macOS nu a autorizat încă Tune să asculte intrările audio: va cere la primul „Ascultă”.",
   "v2.sources.permissionNotAsked": "Încă nesolicitată",
+  // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
+  "v2.plug.entreeAudioNom": "Intrare audio",
+  "v2.sources.greffonManque": "Pluginul „Intrare audio” nu este instalat: fără el nu apare nicio intrare audio sau virtuală. Instalarea necesită repornirea serverului Tune.",
+  "v2.sources.greffonInstaller": "Instalați pluginul",
+  "v2.sources.greffonInstallation": "Se instalează…",
+  "v2.sources.greffonRedemarrer": "Pluginul „Intrare audio” a fost instalat. Reporniți serverul Tune pentru a vedea intrările audio și virtuale.",
+  "v2.sources.greffonErreur": "Pluginul „Intrare audio” nu a putut fi instalat.",
   // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
   "menuObjet.duplicate": "Duplică",
   "menuObjet.duplicated": "„{name}” creată",

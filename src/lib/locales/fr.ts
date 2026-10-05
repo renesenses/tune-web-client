@@ -4385,6 +4385,13 @@ export default {
   "v2.sources.noDrive": "Aucun lecteur de CD n'est branché sur la machine qui fait tourner Tune.",
   "v2.sources.permissionAsk": "macOS n'a pas encore autorisé Tune à écouter les entrées audio : il le demandera au premier « Écouter ».",
   "v2.sources.permissionNotAsked": "Pas encore demandée",
+  // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
+  "v2.plug.entreeAudioNom": "Entrée audio",
+  "v2.sources.greffonManque": "Le greffon « Entrée audio » n'est pas installé : sans lui, aucune entrée audio ni virtuelle n'apparaît. Son installation demande un redémarrage du serveur Tune.",
+  "v2.sources.greffonInstaller": "Installer le greffon",
+  "v2.sources.greffonInstallation": "Installation…",
+  "v2.sources.greffonRedemarrer": "Greffon « Entrée audio » installé. Redémarrez le serveur Tune pour voir les entrées audio et virtuelles.",
+  "v2.sources.greffonErreur": "L'installation du greffon « Entrée audio » a échoué.",
   // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
   "menuObjet.duplicate": "Dupliquer",
   "menuObjet.duplicated": "« {name} » créée",

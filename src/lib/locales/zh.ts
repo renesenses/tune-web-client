@@ -4363,6 +4363,13 @@ export default {
   "v2.sources.noDrive": "运行 Tune 的机器上没有连接 CD 驱动器。",
   "v2.sources.permissionAsk": "macOS 尚未允许 Tune 收听音频输入：首次点击“收听”时会请求授权。",
   "v2.sources.permissionNotAsked": "尚未请求",
+  // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
+  "v2.plug.entreeAudioNom": "音频输入",
+  "v2.sources.greffonManque": "“音频输入”插件尚未安装：没有它，音频输入和虚拟输入都不会显示。安装后需要重启 Tune 服务器。",
+  "v2.sources.greffonInstaller": "安装插件",
+  "v2.sources.greffonInstallation": "正在安装…",
+  "v2.sources.greffonRedemarrer": "“音频输入”插件已安装。请重启 Tune 服务器以查看音频输入和虚拟输入。",
+  "v2.sources.greffonErreur": "无法安装“音频输入”插件。",
   // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
   "menuObjet.duplicate": "复制",
   "menuObjet.duplicated": "已创建“{name}”",
