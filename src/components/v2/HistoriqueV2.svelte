@@ -38,6 +38,8 @@
     regrouperParContexte,
   } from '../../lib/historiqueParContexte';
   import { NomsDePlaylists, type FichePlaylist } from '../../lib/nomsDePlaylists';
+  import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
+  import { gestesNavigationService, type GestesNavigationService } from '../../lib/stores/navigation';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { preferences } from '../../lib/stores/preferences';
   import { colonnesRetenues } from '../../lib/colonnesPistes';
@@ -127,6 +129,25 @@
    * demande au service, une fois par playlist, et on s'en souvient.
    */
   const noms = new NomsDePlaylists(api.getStreamingPlaylist);
+  /**
+   * Fil 2143, point 3 — web#1895 (FabienM, fil 2120) : « cliquer sur le nom de
+   * l'album […] pour aller directement sur la page album ». Le nom d'une
+   * ligne ALBUM mène à sa fiche quand une de ses pistes porte l'identifiant de
+   * l'album (`lib/lienAlbumDePiste`, le geste d'« Aller à l'album »). Le reste
+   * de la ligne garde son geste : déplier le tiroir.
+   *
+   * `context_id` n'est PAS lu : il n'est jamais interprété dans cet écran
+   * (`historiqueLecture`), et ses quatre formes ne désignent pas toutes un
+   * album. Ce sont les pistes qui le disent.
+   */
+  function ouvertureAlbumDuLot(type: string, lot: readonly HistoryEntry[], gestes: GestesNavigationService | null): (() => void) | null {
+    if (type !== 'album') return null;
+    for (const e of lot) {
+      const f = ouvertureAlbumDePiste(e.track, gestes);
+      if (f) return f;
+    }
+    return null;
+  }
   let fiches = $state(new Map<string, FichePlaylist | null>());
   /**
    * #1789 — les objets dont la playlist n'a PAS pu être demandée (Qobuz ne la
@@ -381,6 +402,7 @@
               ? { cover_path: fiche.pochette, album_id: null }
               : pochetteDObjet(lot)}
             {@const artiste = artisteDObjet(tranche.type, lot)}
+            {@const versAlbum = ouvertureAlbumDuLot(tranche.type, lot, $gestesNavigationService)}
             <!-- Le « + » / « − » du schéma de FabienM. L'objet est REPLIÉ par
                  défaut : déplié, l'écran redeviendrait la liste plate qu'il
                  remplace. -->
@@ -418,7 +440,19 @@
                       size={36} alt={nom ?? ''} source={lot[0]?.track?.source ?? null} />
                   </span>
                   <span class="otxt">
-                    <span class="otitre">{fiche?.nom ?? nom ?? (indisponibles.has(tranche.cle) ? $tr('playlist.unavailable') : $tr('v2.hist.ctx.sansNom' as any))}</span>
+                    {#if versAlbum && nom}
+                      <!-- Un `<span>` et non un `<button>` : la ligne entière EST
+                           un bouton (déplier), et un bouton n'en contient pas
+                           d'autre. Le clic s'arrête ici ; au clavier, la même
+                           fiche s'atteint par la colonne ALBUM du tiroir et par
+                           « Aller à l'album ». -->
+                      <!-- svelte-ignore a11y_interactive_supports_focus -->
+                      <span class="otitre lien-album" role="link" title={nom}
+                        onclick={(e) => { e.stopPropagation(); versAlbum(); }}
+                        onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); versAlbum(); } }}>{nom}</span>
+                    {:else}
+                      <span class="otitre">{fiche?.nom ?? nom ?? (indisponibles.has(tranche.cle) ? $tr('playlist.unavailable') : $tr('v2.hist.ctx.sansNom' as any))}</span>
+                    {/if}
                     <!-- #988, point 11 — l'artiste de l'album joué. -->
                     {#if artiste}<span class="oart">{artiste}</span>{/if}
                   </span>
@@ -536,6 +570,8 @@
   .objet .ovig{flex:none; width:36px; height:36px}
   .objet .otxt{display:flex; flex-direction:column; min-width:0; line-height:1.25}
   .objet .otitre, .objet .oart{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .objet .lien-album{cursor:pointer}
+  .objet .lien-album:hover{text-decoration:underline; color:var(--v2-txt)}
   .objet .oart{font-size:12px; color:var(--v2-txt3)}
   /* Le compte tient la colonne des actions, calé à droite comme `.act` du
      tableau : la pastille tombe ainsi au-dessus du dernier bouton de la barre,
