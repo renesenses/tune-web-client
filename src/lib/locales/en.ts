@@ -4039,6 +4039,10 @@ export default {
   "v2.cd.playTrack": "Play this track",
   "v2.cd.trackN": "Track {n}",
   "v2.cd.toZone": "To {zone}",
+  "v2.cd.eject": "Eject",
+  "v2.cd.ejectConfirm": "The disc is playing. Stop playback and eject the disc?",
+  "v2.cd.ejectFailed": "The disc could not be ejected. Another program may be using it.",
+  "v2.cd.ejectUnsupported": "This drive cannot be ejected from Tune.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "The Tune Circle extension is not active. Install it from Extensions, then restart Tune.",

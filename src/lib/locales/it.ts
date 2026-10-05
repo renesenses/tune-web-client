@@ -4019,6 +4019,10 @@ export default {
   "v2.cd.playTrack": "Riproduci questa traccia",
   "v2.cd.trackN": "Traccia {n}",
   "v2.cd.toZone": "Su {zone}",
+  "v2.cd.eject": "Espelli",
+  "v2.cd.ejectConfirm": "Il disco è in riproduzione. Interrompere la riproduzione ed espellere il disco?",
+  "v2.cd.ejectFailed": "Impossibile espellere il disco. Potrebbe essere in uso da un altro programma.",
+  "v2.cd.ejectUnsupported": "Questo lettore non può essere espulso da Tune.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "L'estensione Tune Circle non è attiva. Installala da Estensioni, poi riavvia Tune.",

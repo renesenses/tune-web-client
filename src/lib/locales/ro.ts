@@ -4019,6 +4019,10 @@ export default {
   "v2.cd.playTrack": "Redă această piesă",
   "v2.cd.trackN": "Piesa {n}",
   "v2.cd.toZone": "Către {zone}",
+  "v2.cd.eject": "Scoate discul",
+  "v2.cd.ejectConfirm": "Discul este în redare. Oprești redarea și scoți discul?",
+  "v2.cd.ejectFailed": "Discul nu a putut fi scos. Poate fi folosit de alt program.",
+  "v2.cd.ejectUnsupported": "Discul din această unitate nu poate fi scos din Tune.",
   // Tune Circle (tune-server-rust#5018)
   "v2.circle.title": "Tune Circle",
   "v2.circle.notInstalled": "Extensia Tune Circle nu este activă. Instalați-o din Extensii, apoi reporniți Tune.",
