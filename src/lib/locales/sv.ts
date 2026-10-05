@@ -862,6 +862,9 @@ export default {
   "settings.shuffleMaxTracks": "Spår som dras vid slumpuppspelning",
   "settings.shuffleMaxTracksHint": "Högsta antal spår som en slumpuppspelning lägger i kön.",
   "settings.shuffleMaxTracksRange": "från {min} till {max}",
+  "settings.networkPollInterval": "Ny kontroll av nätverksresurser (minuter)",
+  "settings.networkPollIntervalHint": "En NAS meddelar inte Tune om sina ändringar: Tune kontrollerar själv, i den här takten. Bara ändrade mappar läses om; en fullständig genomgång sker högst en gång i timmen.",
+  "settings.networkPollIntervalRange": "från {min} till {max} minuter",
   "settings.searchExactLabel": "Exakt sökning",
   "settings.searchExactHint": "Söker de inskrivna orden som en fras, i den ordningen, i namnet på en artist, ett album eller ett spår – som inom citattecken.",
 
@@ -2621,6 +2624,9 @@ export default {
   "v2.scan.skipDuplicate": "Dubbletter",
   "settings.addFolder": "Lägg till en mapp",
   "settings.directoryOrderHint": "Vid samma kvalitet avgör mapparnas ordning. Ett val för ett enskilt album har företräde.",
+  "settings.backgroundAnalysisFolder": "Bakgrundsanalys",
+  "settings.backgroundAnalysisFolderAria": "Analysera {path} i bakgrunden",
+  "settings.backgroundAnalysisFoldersHint": "Avmarkera en mapp för att undanta den från bakgrundsanalysen: ReplayGain, dynamiskt omfång, fingeravtryck och stämningar. Redan uppmätta värden behålls och mappen finns kvar i biblioteket.",
   "settings.moveFolderUp": "Flytta {path} uppåt",
   "settings.moveFolderDown": "Flytta {path} nedåt",
   "settings.errDirectoryOrder": "Det gick inte att spara mapparnas ordning.",
@@ -4383,6 +4389,13 @@ export default {
   "v2.sources.noDrive": "Ingen cd-enhet är ansluten till datorn som kör Tune.",
   "v2.sources.permissionAsk": "macOS har ännu inte gett Tune tillåtelse att lyssna på ljudingångar: det frågar vid första ”Lyssna”.",
   "v2.sources.permissionNotAsked": "Inte tillfrågad än",
+  // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
+  "v2.plug.entreeAudioNom": "Ljudingång",
+  "v2.sources.greffonManque": "Tillägget ”Ljudingång” är inte installerat: utan det visas varken ljudingångar eller virtuella ingångar. Installationen kräver att Tune-servern startas om.",
+  "v2.sources.greffonInstaller": "Installera tillägget",
+  "v2.sources.greffonInstallation": "Installerar…",
+  "v2.sources.greffonRedemarrer": "Tillägget ”Ljudingång” är installerat. Starta om Tune-servern för att se ljudingångar och virtuella ingångar.",
+  "v2.sources.greffonErreur": "Tillägget ”Ljudingång” kunde inte installeras.",
   // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
   "menuObjet.duplicate": "Duplicera",
   "menuObjet.duplicated": "”{name}” skapad",

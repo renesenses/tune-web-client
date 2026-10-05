@@ -898,6 +898,9 @@ export default {
   "settings.shuffleMaxTracks": "随机播放抽取的曲目数",
   "settings.shuffleMaxTracksHint": "随机播放放入播放队列的最大曲目数。",
   "settings.shuffleMaxTracksRange": "{min} 至 {max}",
+  "settings.networkPollInterval": "网络共享重新检查间隔（分钟）",
+  "settings.networkPollIntervalHint": "NAS 不会通知 Tune 其变更：Tune 按此间隔自行检查。只重新读取有变动的文件夹；完整遍历最多每小时一次。",
+  "settings.networkPollIntervalRange": "{min} 至 {max} 分钟",
   "settings.searchExactLabel": "精确搜索",
   "settings.searchExactHint": "按输入顺序将词语作为短语，在艺人、专辑或曲目名称中查找——相当于加上双引号。",
 
@@ -2622,6 +2625,9 @@ export default {
   "v2.scan.skipDuplicate": "重复项",
   "settings.addFolder": "添加文件夹",
   "settings.directoryOrderHint": "音质相同时，按文件夹顺序选择；单张专辑的选择优先。",
+  "settings.backgroundAnalysisFolder": "后台分析",
+  "settings.backgroundAnalysisFolderAria": "在后台分析 {path}",
+  "settings.backgroundAnalysisFoldersHint": "取消勾选某个文件夹，即可将其排除在后台分析之外：ReplayGain、动态范围、指纹和氛围。已测得的数值会保留，文件夹仍留在资料库中。",
   "settings.moveFolderUp": "上移 {path}",
   "settings.moveFolderDown": "下移 {path}",
   "settings.errDirectoryOrder": "无法保存文件夹顺序。",
@@ -4384,6 +4390,13 @@ export default {
   "v2.sources.noDrive": "运行 Tune 的机器上没有连接 CD 驱动器。",
   "v2.sources.permissionAsk": "macOS 尚未允许 Tune 收听音频输入：首次点击“收听”时会请求授权。",
   "v2.sources.permissionNotAsked": "尚未请求",
+  // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
+  "v2.plug.entreeAudioNom": "音频输入",
+  "v2.sources.greffonManque": "“音频输入”插件尚未安装：没有它，音频输入和虚拟输入都不会显示。安装后需要重启 Tune 服务器。",
+  "v2.sources.greffonInstaller": "安装插件",
+  "v2.sources.greffonInstallation": "正在安装…",
+  "v2.sources.greffonRedemarrer": "“音频输入”插件已安装。请重启 Tune 服务器以查看音频输入和虚拟输入。",
+  "v2.sources.greffonErreur": "无法安装“音频输入”插件。",
   // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
   "menuObjet.duplicate": "复制",
   "menuObjet.duplicated": "已创建“{name}”",

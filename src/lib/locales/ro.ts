@@ -904,6 +904,9 @@ export default {
   "settings.shuffleMaxTracks": "Piese extrase la redare aleatorie",
   "settings.shuffleMaxTracksHint": "Numărul maxim de piese pe care o redare aleatorie le pune în coadă.",
   "settings.shuffleMaxTracksRange": "de la {min} la {max}",
+  "settings.networkPollInterval": "Reverificarea partajărilor de rețea (minute)",
+  "settings.networkPollIntervalHint": "Un NAS nu anunță Tune despre modificările sale: Tune verifică singur, în acest ritm. Sunt recitite doar folderele modificate; o parcurgere completă are loc cel mult o dată pe oră.",
+  "settings.networkPollIntervalRange": "de la {min} la {max} minute",
   "settings.searchExactLabel": "Căutare exactă",
   "settings.searchExactHint": "Caută cuvintele introduse ca frază, în această ordine, în numele unui artist, album sau piese — ca între ghilimele.",
 
@@ -2622,6 +2625,9 @@ export default {
   "v2.scan.skipDuplicate": "Duplicate",
   "settings.addFolder": "Adaugă un dosar",
   "settings.directoryOrderHint": "La aceeași calitate, decide ordinea dosarelor. Alegerea pentru un album are prioritate.",
+  "settings.backgroundAnalysisFolder": "Analize în fundal",
+  "settings.backgroundAnalysisFolderAria": "Analizează {path} în fundal",
+  "settings.backgroundAnalysisFoldersHint": "Debifați un dosar pentru a-l scoate din analizele în fundal: ReplayGain, gamă dinamică, amprente și atmosfere. Valorile deja măsurate se păstrează, iar dosarul rămâne în bibliotecă.",
   "settings.moveFolderUp": "Mută {path} în sus",
   "settings.moveFolderDown": "Mută {path} în jos",
   "settings.errDirectoryOrder": "Nu s-a putut salva ordinea dosarelor.",
@@ -4384,6 +4390,13 @@ export default {
   "v2.sources.noDrive": "Niciun cititor CD nu este conectat la mașina pe care rulează Tune.",
   "v2.sources.permissionAsk": "macOS nu a autorizat încă Tune să asculte intrările audio: va cere la primul „Ascultă”.",
   "v2.sources.permissionNotAsked": "Încă nesolicitată",
+  // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
+  "v2.plug.entreeAudioNom": "Intrare audio",
+  "v2.sources.greffonManque": "Pluginul „Intrare audio” nu este instalat: fără el nu apare nicio intrare audio sau virtuală. Instalarea necesită repornirea serverului Tune.",
+  "v2.sources.greffonInstaller": "Instalați pluginul",
+  "v2.sources.greffonInstallation": "Se instalează…",
+  "v2.sources.greffonRedemarrer": "Pluginul „Intrare audio” a fost instalat. Reporniți serverul Tune pentru a vedea intrările audio și virtuale.",
+  "v2.sources.greffonErreur": "Pluginul „Intrare audio” nu a putut fi instalat.",
   // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
   "menuObjet.duplicate": "Duplică",
   "menuObjet.duplicated": "„{name}” creată",
