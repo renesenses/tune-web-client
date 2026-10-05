@@ -3297,6 +3297,7 @@ export default {
   "v2.sup.bugImagesHint": "Fino a 3 immagini (PNG, JPEG, GIF o WebP), 4 MB ciascuna. Vengono aggiunte alla discussione del forum.",
   "v2.sup.bugImagesTooMany": "Troppe schermate: al massimo {max} immagini.",
   "v2.sup.bugImagesType": "«{nom}» non è un'immagine.",
+  "v2.sup.filesType": "«{nom}» non è accettato dal supporto. Tipi ammessi: {types}.",
   "v2.sup.bugImagesTooLarge": "«{nom}» supera {max} MB.",
   "v2.sup.bugImagesSent": "{n} schermata/e allegata/e alla discussione.",
   "v2.sup.bugImagesNotAttached": "Non è stato possibile allegare le schermate alla discussione: il servizio del forum non le ha accettate. Aggiungile direttamente nella discussione.",

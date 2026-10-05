@@ -3297,6 +3297,7 @@ export default {
   "v2.sup.bugImagesHint": "Hasta 3 imágenes (PNG, JPEG, GIF o WebP), 4 MB cada una. Se añaden al hilo del foro.",
   "v2.sup.bugImagesTooMany": "Demasiadas capturas: {max} imágenes como máximo.",
   "v2.sup.bugImagesType": "«{nom}» no es una imagen.",
+  "v2.sup.filesType": "«{nom}» no lo acepta el soporte. Tipos admitidos: {types}.",
   "v2.sup.bugImagesTooLarge": "«{nom}» supera {max} MB.",
   "v2.sup.bugImagesSent": "{n} captura(s) adjunta(s) al hilo.",
   "v2.sup.bugImagesNotAttached": "No se han podido adjuntar sus capturas al hilo: el servicio del foro no las ha aceptado. Añádalas directamente en el hilo.",

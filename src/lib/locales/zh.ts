@@ -3297,6 +3297,7 @@ export default {
   "v2.sup.bugImagesHint": "最多 3 张图片（PNG、JPEG、GIF 或 WebP），每张 4 MB。它们会附加到论坛帖子中。",
   "v2.sup.bugImagesTooMany": "截图过多：最多 {max} 张图片。",
   "v2.sup.bugImagesType": "“{nom}”不是图片。",
+  "v2.sup.filesType": "支持团队不接受“{nom}”。允许的类型：{types}。",
   "v2.sup.bugImagesTooLarge": "“{nom}”超过 {max} MB。",
   "v2.sup.bugImagesSent": "已向帖子附加 {n} 张截图。",
   "v2.sup.bugImagesNotAttached": "无法将您的截图附加到帖子：论坛服务未接受它们。请直接在帖子中添加。",

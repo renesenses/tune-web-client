@@ -21,7 +21,10 @@
   import { currentZone } from '../../lib/stores/zones';
   import { t, locale } from '../../lib/i18n';
   import { messageErreurSupport, messageLimiteRapportBogue } from '../../lib/supportErrors';
-  import { cumulerFichiers, retirerFichier } from '../../lib/piecesJointes';
+  import {
+    cumulerFichiers, retirerFichier, refusPieceJointe,
+    ACCEPT_PIECES_JOINTES, EXTENSIONS_PIECES_JOINTES, MAX_PIECE_JOINTE_OCTETS,
+  } from '../../lib/piecesJointes';
   import { get } from 'svelte/store';
   import { dateEtHeure } from '../../lib/dates';
   import { zones } from '../../lib/stores/zones';
@@ -333,6 +336,32 @@
   let zone = $state('');
   let joindreDiag = $state(true);
   let fichiers = $state<File[]>([]);
+  let fichiersErreur = $state<string | null>(null);
+
+  /** web#1905 — les pièces jointes du ticket, triées dès le choix. Un refus
+   *  garde la liste déjà retenue et dit pourquoi, nom du fichier compris. */
+  function choisirFichiers(liste: FileList | null) {
+    fichiersErreur = null;
+    const nouveaux = [...(liste ?? [])];
+    for (const f of nouveaux) {
+      const refus = refusPieceJointe(f);
+      if (refus === 'type') {
+        fichiersErreur = tr1('v2.sup.filesType', {
+          nom: f.name,
+          types: EXTENSIONS_PIECES_JOINTES.join(', '),
+        });
+        return;
+      }
+      if (refus === 'taille') {
+        fichiersErreur = tr1('v2.sup.bugImagesTooLarge', {
+          nom: f.name,
+          max: Math.round(MAX_PIECE_JOINTE_OCTETS / (1024 * 1024)),
+        });
+        return;
+      }
+    }
+    fichiers = cumulerFichiers(fichiers, nouveaux);
+  }
   let envoi = $state(false);
 
   /**
@@ -383,7 +412,7 @@
       for (const f of fichiers) form.append('attachments[]', f, f.name);
 
       await api.createSupportTicketMultipart(form);
-      sujet = ''; corps = ''; categorie = 'other'; fichiers = []; redaction = false;
+      sujet = ''; corps = ''; categorie = 'other'; fichiers = []; fichiersErreur = null; redaction = false;
       rechargerTickets();
     } catch (e: any) {
       // 🔴 C'EST L'ÉCRAN DE LA CAPTURE DE REIVAX66 (#1294) : « Support premium
@@ -702,10 +731,14 @@
           <!-- #4664 — chaque sélection S'AJOUTE à la liste. L'affectation
                d'avant (`fichiers = Array.from(files)`) la remplaçait : trois
                captures choisies une par une, une seule arrivait au ticket. -->
-          <input type="file" multiple
+          <!-- web#1905 — `accept` : les seuls types que le site admet. Le
+               sélecteur peut quand même offrir « Tous les fichiers » :
+               `choisirFichiers` refuse alors dès le choix, avec une phrase,
+               au lieu d'un envoi rejeté. -->
+          <input type="file" multiple accept={ACCEPT_PIECES_JOINTES}
             onchange={(e) => {
               const champ = e.currentTarget as HTMLInputElement;
-              fichiers = cumulerFichiers(fichiers, champ.files);
+              choisirFichiers(champ.files);
               champ.value = '';
             }} />
           {#if fichiers.length}
@@ -715,13 +748,14 @@
                   <em class="fnoms">{f.name}</em>
                   <button type="button" class="lnk"
                     aria-label={`${$t('v2.sup.fileRemove' as any)} ${f.name}`}
-                    onclick={() => (fichiers = retirerFichier(fichiers, i))}>
+                    onclick={() => { fichiers = retirerFichier(fichiers, i); fichiersErreur = null; }}>
                     {$t('v2.sup.fileRemove' as any)}
                   </button>
                 </li>
               {/each}
             </ul>
           {/if}
+          {#if fichiersErreur}<span class="bogue-err">{fichiersErreur}</span>{/if}
         </label>
 
         <div class="actions">

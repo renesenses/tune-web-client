@@ -3297,6 +3297,7 @@ export default {
   "v2.sup.bugImagesHint": "Cel mult 3 imagini (PNG, JPEG, GIF sau WebP), 4 MB fiecare. Sunt adăugate în discuția de pe forum.",
   "v2.sup.bugImagesTooMany": "Prea multe capturi: cel mult {max} imagini.",
   "v2.sup.bugImagesType": "„{nom}” nu este o imagine.",
+  "v2.sup.filesType": "„{nom}” nu este acceptat de asistență. Tipuri permise: {types}.",
   "v2.sup.bugImagesTooLarge": "„{nom}” depășește {max} MB.",
   "v2.sup.bugImagesSent": "{n} captură(i) atașată(e) la discuție.",
   "v2.sup.bugImagesNotAttached": "Capturile nu au putut fi atașate discuției: serviciul forumului nu le-a acceptat. Adăugați-le direct în discuție.",

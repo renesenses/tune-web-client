@@ -3319,6 +3319,7 @@ export default {
   "v2.sup.bugImagesHint": "Jusqu’à 3 images (PNG, JPEG, GIF ou WebP), 4 Mo chacune. Elles sont ajoutées au fil du forum.",
   "v2.sup.bugImagesTooMany": "Trop de captures : {max} images au maximum.",
   "v2.sup.bugImagesType": "« {nom} » n’est pas une image.",
+  "v2.sup.filesType": "« {nom} » n’est pas accepté par le support. Types admis : {types}.",
   "v2.sup.bugImagesTooLarge": "« {nom} » dépasse {max} Mo.",
   "v2.sup.bugImagesSent": "{n} capture(s) jointe(s) au fil.",
   "v2.sup.bugImagesNotAttached": "Vos captures n’ont pas pu être jointes au fil : le service du forum ne les a pas acceptées. Déposez-les directement sur le fil.",

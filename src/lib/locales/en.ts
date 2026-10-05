@@ -3317,6 +3317,7 @@ export default {
   "v2.sup.bugImagesHint": "Up to 3 images (PNG, JPEG, GIF or WebP), 4 MB each. They are added to the forum thread.",
   "v2.sup.bugImagesTooMany": "Too many screenshots: {max} images at most.",
   "v2.sup.bugImagesType": "“{nom}” is not an image.",
+  "v2.sup.filesType": "“{nom}” is not accepted by support. Allowed types: {types}.",
   "v2.sup.bugImagesTooLarge": "“{nom}” is larger than {max} MB.",
   "v2.sup.bugImagesSent": "{n} screenshot(s) attached to the thread.",
   "v2.sup.bugImagesNotAttached": "Your screenshots could not be attached to the thread: the forum service did not accept them. Add them directly on the thread.",

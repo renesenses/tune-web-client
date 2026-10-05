@@ -3297,6 +3297,7 @@ export default {
   "v2.sup.bugImagesHint": "Bis zu 3 Bilder (PNG, JPEG, GIF oder WebP), je 4 MB. Sie werden dem Forumsbeitrag hinzugefügt.",
   "v2.sup.bugImagesTooMany": "Zu viele Bildschirmfotos: höchstens {max} Bilder.",
   "v2.sup.bugImagesType": "„{nom}“ ist kein Bild.",
+  "v2.sup.filesType": "„{nom}“ wird vom Support nicht angenommen. Erlaubte Typen: {types}.",
   "v2.sup.bugImagesTooLarge": "„{nom}“ ist größer als {max} MB.",
   "v2.sup.bugImagesSent": "{n} Bildschirmfoto(s) an den Beitrag angehängt.",
   "v2.sup.bugImagesNotAttached": "Ihre Bildschirmfotos konnten dem Beitrag nicht angehängt werden: der Forumsdienst hat sie nicht angenommen. Fügen Sie sie direkt im Beitrag hinzu.",

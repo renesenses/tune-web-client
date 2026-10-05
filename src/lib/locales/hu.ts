@@ -3255,6 +3255,7 @@ export default {
   "v2.sup.bugImagesHint": "Legfeljebb 3 kép (PNG, JPEG, GIF vagy WebP), egyenként 4 MB. A fórumtémához kerülnek.",
   "v2.sup.bugImagesTooMany": "Túl sok képernyőkép: legfeljebb {max} kép.",
   "v2.sup.bugImagesType": "A(z) „{nom}” nem kép.",
+  "v2.sup.filesType": "A(z) „{nom}” fájlt a támogatás nem fogadja el. Engedélyezett típusok: {types}.",
   "v2.sup.bugImagesTooLarge": "A(z) „{nom}” nagyobb mint {max} MB.",
   "v2.sup.bugImagesSent": "{n} képernyőkép csatolva a témához.",
   "v2.sup.bugImagesNotAttached": "A képernyőképeket nem sikerült a témához csatolni: a fórumszolgáltatás nem fogadta el őket. Töltse fel őket közvetlenül a témában.",

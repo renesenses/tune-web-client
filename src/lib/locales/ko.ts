@@ -3297,6 +3297,7 @@ export default {
   "v2.sup.bugImagesHint": "이미지는 최대 3장(PNG, JPEG, GIF 또는 WebP), 각 4 MB까지. 포럼 글에 첨부됩니다.",
   "v2.sup.bugImagesTooMany": "스크린샷이 너무 많습니다. 최대 {max}장입니다.",
   "v2.sup.bugImagesType": "'{nom}'은(는) 이미지가 아닙니다.",
+  "v2.sup.filesType": "'{nom}'은(는) 지원팀에서 받을 수 없습니다. 허용 형식: {types}.",
   "v2.sup.bugImagesTooLarge": "'{nom}'이(가) {max} MB를 초과합니다.",
   "v2.sup.bugImagesSent": "스크린샷 {n}장을 글에 첨부했습니다.",
   "v2.sup.bugImagesNotAttached": "스크린샷을 글에 첨부하지 못했습니다. 포럼 서비스가 받아들이지 않았습니다. 글에 직접 추가해 주세요.",

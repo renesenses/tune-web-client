@@ -3296,6 +3296,7 @@ export default {
   "v2.sup.bugImagesHint": "Upp till 3 bilder (PNG, JPEG, GIF eller WebP), 4 MB vardera. De läggs till i forumtråden.",
   "v2.sup.bugImagesTooMany": "För många skärmbilder: högst {max} bilder.",
   "v2.sup.bugImagesType": "”{nom}” är inte en bild.",
+  "v2.sup.filesType": "”{nom}” tas inte emot av supporten. Tillåtna typer: {types}.",
   "v2.sup.bugImagesTooLarge": "”{nom}” är större än {max} MB.",
   "v2.sup.bugImagesSent": "{n} skärmbild(er) bifogade till tråden.",
   "v2.sup.bugImagesNotAttached": "Dina skärmbilder kunde inte bifogas tråden: forumtjänsten tog inte emot dem. Lägg till dem direkt i tråden.",
