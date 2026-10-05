@@ -1191,6 +1191,7 @@ export default {
   "settings.wifiNoNetworks": "未找到网络",
   "settings.wifiNoAdapter": "此设备未检测到 WiFi 网卡——缺少硬件或未安装驱动。",
   "settings.wifiAdapterUnavailable": "WiFi 网卡存在但不可用：无线电已关闭或驱动不完整。",
+  "settings.wifiAdapterNoFirmware": "WiFi 网卡存在，但缺少驱动或固件。",
   "settings.wifiAdapterUnmanaged": "WiFi 网卡不受 NetworkManager 管理。",
   "settings.wifiInUse": "已连接",
   "settings.wifiForget": "忘记",

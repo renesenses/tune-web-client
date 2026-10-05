@@ -1155,6 +1155,7 @@ export default {
   "settings.wifiNoNetworks": "Inga nätverk hittades",
   "settings.wifiNoAdapter": "Ingen WiFi-adapter hittades på den här maskinen – hårdvara saknas eller drivrutinen är inte installerad.",
   "settings.wifiAdapterUnavailable": "WiFi-adaptern finns men är inte tillgänglig: radion är avstängd eller drivrutinen ofullständig.",
+  "settings.wifiAdapterNoFirmware": "WiFi-adapter finns, men drivrutin eller firmware saknas.",
   "settings.wifiAdapterUnmanaged": "WiFi-adaptern hanteras inte av NetworkManager.",
   "settings.wifiInUse": "ansluten",
   "settings.wifiForget": "Glöm",

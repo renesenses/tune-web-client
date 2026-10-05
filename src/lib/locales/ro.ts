@@ -1197,6 +1197,7 @@ export default {
   "settings.wifiNoNetworks": "Nicio rețea găsită",
   "settings.wifiNoAdapter": "Nu a fost detectat niciun adaptor WiFi pe acest dispozitiv — hardware absent sau driver neinstalat.",
   "settings.wifiAdapterUnavailable": "Adaptorul WiFi este prezent, dar indisponibil: radio oprit sau driver incomplet.",
+  "settings.wifiAdapterNoFirmware": "Adaptor WiFi prezent, dar lipsește driverul sau firmware-ul.",
   "settings.wifiAdapterUnmanaged": "Adaptorul WiFi nu este gestionat de NetworkManager.",
   "settings.wifiInUse": "conectat",
   "settings.wifiForget": "Uită",
