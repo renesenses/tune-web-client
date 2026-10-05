@@ -18,7 +18,10 @@ export type TypeChamp =
   // La PROVENANCE, choisie dans une liste (#4299) — voir `lib/sourcesRegle`.
   | 'source'
   // Une ÉTIQUETTE de l'utilisateur, choisie dans une liste. Valeur : `tags.id`.
-  | 'tag_ref';
+  | 'tag_ref'
+  // Un MARQUAGE du service, oui ou non, sans valeur à saisir
+  // (tune-server-rust#5530 : « généré par IA », Qobuz).
+  | 'marquage';
 
 /**
  * Ce que l'éditeur ÉDITE : une collection porte sur des ALBUMS, une playlist
@@ -87,6 +90,11 @@ export const CHAMPS: readonly Champ[] = [
   // ici, ni côté serveur (`smart_refs`, champ `tag`). L'album correspond s'il
   // porte l'étiquette, ou si son ARTISTE la porte.
   { value: 'tag',            labelKey: 'smartCollection.fieldTag',          type: 'tag_ref' },
+  // tune-server-rust#5530 — le marquage « généré par IA » que Qobuz pose sur
+  // un ALBUM. Dans une playlist, celui de l'album de la piste. Seuls les
+  // contenus de service le portent (favoris Qobuz, avec « Source = Qobuz ») ;
+  // un fichier de la bibliothèque n'est jamais marqué.
+  { value: 'ai_generated',   labelKey: 'smartCollection.fieldAiGenerated',  type: 'marquage' },
   // --- Propres aux PLAYLISTS : ce qui ne se dit que d'une piste. ---
   // Le titre du MORCEAU. À l'album, `title` est déjà le titre de l'album.
   { value: 'title',          labelKey: 'smartCollection.fieldTrackTitle',   type: 'text', seulement: 'playlist' },
@@ -126,7 +134,7 @@ export function champsDe(niveau: Niveau): readonly Champ[] {
  */
 export const SAISISSABLES: readonly TypeChamp[] = [
   'text', 'int', 'nullable', 'timestamp', 'count', 'favorite',
-  'collection_ref', 'playlist_ref', 'folder', 'source', 'tag_ref',
+  'collection_ref', 'playlist_ref', 'folder', 'source', 'tag_ref', 'marquage',
 ];
 
 /** Les champs qu'un éditeur de ce niveau propose dans son menu. */
@@ -204,6 +212,13 @@ export const OPERATEURS: Record<TypeChamp, readonly Operateur[]> = {
     { value: 'is', labelKey: 'smartCollection.opHasTag' },
     { value: 'is_not', labelKey: 'smartCollection.opHasNotTag' },
   ],
+  // « non » d'abord : c'est la règle demandée (« pas d'IA »), et l'éditeur
+  // part sur le premier opérateur. Mêmes graphies que le serveur
+  // (`criteres.rs`, famille `Marquage`).
+  marquage: [
+    { value: 'is_false', labelKey: 'smartCollection.opNo' },
+    { value: 'is_true', labelKey: 'smartCollection.opYes' },
+  ],
   count: [
     { value: '>=', label: '≥' }, { value: '>', label: '>' },
     { value: '<', label: '<' }, { value: '=', label: '=' },
@@ -231,7 +246,8 @@ export function operateursDe(champ: string, niveau: Niveau = 'collection'): read
  * Exiger une saisie pour ceux-là bloquerait une règle parfaitement formée.
  */
 export function sansValeur(op: string): boolean {
-  return op === 'is_null' || op === 'is_not_null';
+  // `is_false` / `is_true` : un marquage se dit oui ou non (#5530).
+  return op === 'is_null' || op === 'is_not_null' || op === 'is_false' || op === 'is_true';
 }
 
 /**

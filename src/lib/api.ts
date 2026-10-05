@@ -5162,6 +5162,11 @@ export interface StreamingFavorite {
    * préfère cette date-ci quand elle est là et retombe sur l'autre sinon.
    */
   first_seen_at?: string | null;
+  /**
+   * tune-server-rust#5530 — le marquage « généré par IA » du service (Qobuz,
+   * celui de l'album). Absent quand il est inconnu.
+   */
+  ai_generated?: boolean;
 }
 
 export function getProfileStreamingFavorites(
@@ -5182,6 +5187,8 @@ export function addProfileStreamingFavorite(
     artist?: string;
     album?: string;
     cover_url?: string;
+    /** tune-server-rust#5530 — le marquage IA connu du client, s'il l'a. */
+    ai_generated?: boolean;
   },
 ) {
   return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites/streaming/add`, {

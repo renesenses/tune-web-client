@@ -19,8 +19,10 @@ describe('Grammaire des règles : une seule, partagée', () => {
     // 28 définitions depuis tune-server-rust#5547 : la liste est COMMUNE aux
     // collections et aux playlists, et deux critères n'ont de sens que pour
     // une piste (titre du morceau, commentaire). Les collections en voient 26.
-    expect(CHAMPS.length).toBe(28);
-    expect(champsDe('collection').length).toBe(26);
+    // 29 depuis tune-server-rust#5530 : « Généré par IA » (Qobuz), aux deux
+    // niveaux. Les collections en voient 27.
+    expect(CHAMPS.length).toBe(29);
+    expect(champsDe('collection').length).toBe(27);
     for (const c of CHAMPS) {
       expect(OPERATEURS[c.type], `${c.value} : type sans opérateurs`).toBeTruthy();
       expect(OPERATEURS[c.type].length).toBeGreaterThan(0);
