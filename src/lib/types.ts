@@ -1076,6 +1076,13 @@ export interface CompletenessStats {
   /** Pistes que la passe REPORTE (fichier qui ne répond pas, #1865) — ni
    *  faites, ni écartées. Serveur ≥ 0.9.152 (#4254). */
   dynamic_range_deferred?: number;
+  /** Pistes que la passe ReplayGain a refusé de décoder pour leur taille
+   *  estimée (`rg_skipped_oversized`), sans DR : aucune passe ne les mesurera.
+   *  tune-server-rust#5834 ; absent avant, donc 0. */
+  dynamic_range_oversized?: number;
+  /** Pistes sans fichier propre (images CUE), sans DR : hors de toute passe.
+   *  tune-server-rust#5834 ; absent avant, donc 0. */
+  dynamic_range_without_file?: number;
   dynamic_range_pct?: number;
 }
 
