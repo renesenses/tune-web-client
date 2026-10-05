@@ -802,6 +802,10 @@ export default {
   // Audiophile Mode
   'audiophile.title': '오디오파일 모드',
   'audiophile.enabled': '오디오파일 모드 활성',
+  "audiophile.rgIgnored": "PURE: ReplayGain은 무시되며 재생은 비트퍼펙트로 유지됩니다.",
+  "audiophile.rgIgnoredDb": "PURE: ReplayGain은 무시되며 재생은 비트퍼펙트로 유지됩니다. 현재 트랙: {db} dB가 적용되지 않아 레벨이 그만큼 바뀝니다.",
+  "signal.pureRgIgnored": "PURE에서는 ReplayGain이 무시됩니다: 재생은 비트퍼펙트로 유지됩니다.",
+  "signal.pureRgIgnoredDb": "PURE에서는 ReplayGain이 무시됩니다: 재생은 비트퍼펙트로 유지됩니다. 현재 트랙: {db} dB 미적용.",
   'audiophile.disabled': '오디오파일 모드 비활성',
   'audiophile.pure': 'PURE',
   'audiophile.lockVolume': "오디오파일 모드가 켜질 때 볼륨 100 % 고정(모든 구역의 기본값)",

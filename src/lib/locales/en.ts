@@ -938,6 +938,10 @@ export default {
   // Audiophile Mode
   'audiophile.title': 'Audiophile Mode',
   'audiophile.enabled': 'Audiophile mode active',
+  "audiophile.rgIgnored": "PURE: ReplayGain is ignored, playback stays bit-perfect.",
+  "audiophile.rgIgnoredDb": "PURE: ReplayGain is ignored, playback stays bit-perfect. Current track: {db} dB not applied, the level changes by that much.",
+  "signal.pureRgIgnored": "ReplayGain is ignored in PURE: playback stays bit-perfect.",
+  "signal.pureRgIgnoredDb": "ReplayGain is ignored in PURE: playback stays bit-perfect. Current track: {db} dB not applied.",
   'audiophile.disabled': 'Audiophile mode inactive',
   'audiophile.pure': 'PURE',
   'audiophile.lockVolume': "Full volume when Audiophile mode turns on (default for every zone)",

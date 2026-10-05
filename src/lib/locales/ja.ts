@@ -818,6 +818,10 @@ export default {
   // Audiophile Mode
   'audiophile.title': 'オーディオファイルモード',
   'audiophile.enabled': 'オーディオファイルモード有効',
+  "audiophile.rgIgnored": "PURE：ReplayGain は無視され、再生はビットパーフェクトのままです。",
+  "audiophile.rgIgnoredDb": "PURE：ReplayGain は無視され、再生はビットパーフェクトのままです。再生中のトラック：{db} dB は適用されず、その分レベルが変わります。",
+  "signal.pureRgIgnored": "PURE では ReplayGain は無視されます：再生はビットパーフェクトのままです。",
+  "signal.pureRgIgnoredDb": "PURE では ReplayGain は無視されます：再生はビットパーフェクトのままです。再生中のトラック：{db} dB は適用されていません。",
   'audiophile.disabled': 'オーディオファイルモード無効',
   'audiophile.pure': 'PURE',
   'audiophile.lockVolume': "オーディオファイルモードの開始時に音量を 100 % に固定（全ゾーンの既定）",

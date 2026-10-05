@@ -824,6 +824,10 @@ export default {
   // Audiophile Mode
   'audiophile.title': 'Mod audiofil',
   'audiophile.enabled': 'Mod audiofil activ',
+  "audiophile.rgIgnored": "PURE: ReplayGain este ignorat, redarea rămâne bit-perfect.",
+  "audiophile.rgIgnoredDb": "PURE: ReplayGain este ignorat, redarea rămâne bit-perfect. Piesa curentă: {db} dB neaplicați, nivelul se schimbă cu atât.",
+  "signal.pureRgIgnored": "ReplayGain este ignorat în PURE: redarea rămâne bit-perfect.",
+  "signal.pureRgIgnoredDb": "ReplayGain este ignorat în PURE: redarea rămâne bit-perfect. Piesa curentă: {db} dB neaplicați.",
   'audiophile.disabled': 'Mod audiofil inactiv',
   'audiophile.pure': 'PUR',
   'audiophile.lockVolume': "Volum la 100 % la activarea modului Audiofil (implicit pentru toate zonele)",

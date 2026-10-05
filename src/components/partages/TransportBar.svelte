@@ -19,6 +19,8 @@
   import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
   import { atteintLeSon } from '../../lib/porteeReglage';
+  import { gainIgnoreParPure, gainReplayGainApplique, replayGainActif } from '../../lib/pureReplayGain';
+  import { dbSigne } from '../../lib/compensationNiveau';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import * as controls from '../../lib/playback-controls';
   import { suivantDesactive } from '../../lib/boutonSuivant';
@@ -673,11 +675,21 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         return;
       }
     }
+    // tune-server-rust#5633 — PURE ignore le ReplayGain (bit-perfect) : le
+    // niveau de la piste change d'autant. On le lit AVANT la bascule, sur
+    // l'étape ReplayGain que le chemin du signal publie hors PURE. Messages
+    // résolus avant l'attente.
+    const rgIgnore = enabled && replayGainActif(z.signal_path);
+    const rgGain = gainReplayGainApplique(z.signal_path);
+    const msgRgIgnore = rgGain == null
+      ? $t('audiophile.rgIgnored' as any)
+      : $t('audiophile.rgIgnoredDb' as any).replace('{db}', dbSigne(rgGain));
     try {
       // Le témoin n'est envoyé qu'après l'accord : le serveur refuse sinon
       // avant d'écrire PURE ou de toucher au volume (#2445).
       const res = await api.setAudiophileMode(z.id, enabled, fullVolumeConfirmed);
       audiophileEnabled.set(res.enabled);
+      if (res.enabled && rgIgnore) notifications.info(msgRgIgnore);
       // Le serveur remonte le volume lui-même quand le verrou est armé ;
       // on reflète tout de suite, sans attendre un événement.
       if (res.enabled && $audiophileLockVolume) {
@@ -1530,6 +1542,16 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           <option value="off">{$t('audiophile.lockNever' as any)}</option>
         </select>
       </div>
+
+      <!-- tune-server-rust#5633 — PURE ignore le ReplayGain, et le DIT : avec
+           le gain que la piste en cours recevrait hors PURE, quand le serveur
+           le publie. -->
+      {#if $audiophileEnabled}
+        {@const rgIgnoreDb = gainIgnoreParPure(zone?.signal_path)}
+        <p class="sp-pure-rg">{rgIgnoreDb == null
+          ? $t('signal.pureRgIgnored' as any)
+          : $t('signal.pureRgIgnoredDb' as any).replace('{db}', dbSigne(rgIgnoreDb))}</p>
+      {/if}
 
       {#if zone?.signal_path}
       <div class="sp-body">
@@ -2853,6 +2875,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
   /* Rangée secondaire : elle qualifie le mode juste au-dessus, elle doit
      donc s'y rattacher visuellement au lieu de flotter comme un pair. */
+  .sp-pure-rg {
+    margin: 0 0 12px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--tune-text-secondary, var(--tune-text));
+  }
+
   .sp-ap-sub-row {
     margin-top: -6px;
     background: transparent;

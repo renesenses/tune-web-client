@@ -782,6 +782,10 @@ export default {
   // Audiophile Mode
   'audiophile.title': 'Audiofilläge',
   'audiophile.enabled': 'Audiofilläge aktivt',
+  "audiophile.rgIgnored": "PURE: ReplayGain ignoreras, uppspelningen förblir bit-perfect.",
+  "audiophile.rgIgnoredDb": "PURE: ReplayGain ignoreras, uppspelningen förblir bit-perfect. Aktuellt spår: {db} dB tillämpas inte, nivån ändras med lika mycket.",
+  "signal.pureRgIgnored": "ReplayGain ignoreras i PURE: uppspelningen förblir bit-perfect.",
+  "signal.pureRgIgnoredDb": "ReplayGain ignoreras i PURE: uppspelningen förblir bit-perfect. Aktuellt spår: {db} dB tillämpas inte.",
   'audiophile.disabled': 'Audiofilläge inaktivt',
   'audiophile.pure': 'PURE',
   'audiophile.lockVolume': "Full volym när Audiofilt läge slås på (standard för alla zoner)",
