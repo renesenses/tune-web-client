@@ -18,6 +18,7 @@ export type EtatWifi =
   | 'liste'
   | 'recherche'
   | 'sans-carte'
+  | 'carte-sans-pilote'
   | 'carte-indisponible'
   | 'carte-non-geree'
   | 'rien-a-portee';
@@ -30,7 +31,16 @@ export function etatWifi(
   if (reseaux.length > 0) return 'liste';
   if (status && !status.network_error) {
     const cartes = (status.devices ?? []).filter((d) => d.type === 'wifi');
-    if (cartes.length === 0) return 'sans-carte';
+    if (cartes.length === 0) {
+      // nmcli ne voit que les cartes qui ont une interface. Une carte sur le
+      // bus PCI sans interface, c'est un pilote ou un firmware manquant, pas
+      // une absence : NUC DN2820FYKH, Intel 7260 sans iwlwifi-mvm-firmware
+      // (forum, fil 2159, #5833).
+      if ((status.wifi_hardware ?? []).some((c) => c.interfaces.length === 0)) {
+        return 'carte-sans-pilote';
+      }
+      return 'sans-carte';
+    }
     if (cartes.every((d) => d.state === 'unmanaged')) return 'carte-non-geree';
     if (cartes.every((d) => d.state === 'unavailable' || d.state === 'unmanaged')) {
       return 'carte-indisponible';
@@ -44,6 +54,7 @@ export function etatWifi(
 export const MESSAGE_ETAT_WIFI: Record<Exclude<EtatWifi, 'liste'>, string> = {
   recherche: 'settings.wifiScanning',
   'sans-carte': 'settings.wifiNoAdapter',
+  'carte-sans-pilote': 'settings.wifiAdapterNoFirmware',
   'carte-indisponible': 'settings.wifiAdapterUnavailable',
   'carte-non-geree': 'settings.wifiAdapterUnmanaged',
   'rien-a-portee': 'settings.wifiNoNetworks',

@@ -8672,6 +8672,11 @@ export interface ApplianceStatus {
   wifi_signal: number | null;
   /** Motif quand `nmcli` n'a pas répondu : l'état réseau est alors inconnu, pas vide. */
   network_error?: string | null;
+  /**
+   * Cartes Wi-Fi PCI vues par le noyau, interface créée ou non (#5833). Absent
+   * sur un serveur plus ancien : on ne conclut alors rien de plus.
+   */
+  wifi_hardware?: { bus: string; slot: string; id: string; driver: string | null; interfaces: string[] }[];
 }
 
 /** Like apiFetch/apiPost but surfaces the server's JSON error message. */
