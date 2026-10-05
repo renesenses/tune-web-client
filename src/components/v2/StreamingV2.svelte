@@ -44,6 +44,7 @@
   import { objetAlbum, objetArtiste, objetPlaylist, type ObjetMenu } from '../../lib/gestesObjet';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist, cibleDeService } from '../../lib/cibleEtiquette';
   import { estAParaitre, dateDeParution } from '../../lib/albumAParaitre';
+  import { estMarqueIa } from '../../lib/contenuIa';
   import {
     ouvrirArtisteDepuis,
     artisteDeService,
@@ -1683,6 +1684,8 @@
               title: pTitle(p),
               artist: p?.artist_name ?? p?.artist ?? undefined,
               coverUrl: pCover(p) ?? undefined,
+              // #5530 — le marquage IA de l'album, quand le service l'a rendu.
+              aiGenerated: typeof p?.ai_generated === 'boolean' ? p.ai_generated : undefined,
             })
           : null}
       >
@@ -1714,6 +1717,10 @@
     {#if aParaitre}
       {@const d = dateDeParution(p)}
       <span class="cp">{d ? $t('v2.str.comingOn' as any).replace('{d}', d) : $t('v2.str.coming' as any)}</span>
+    {/if}
+    <!-- #5530 — le marquage « généré par IA » du service (Qobuz, par album). -->
+    {#if estMarqueIa(p)}
+      <span class="cp cia" data-ia title={$t('v2.str.aiGeneratedTip' as any)}>{$t('v2.str.aiGenerated' as any)}</span>
     {/if}
     <!-- TROISIEME LIGNE, comme dans la Bibliotheque : d'ou vient le disque et
          en quelle qualite. `p.quality` est la forme que rendent les services
