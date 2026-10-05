@@ -894,6 +894,9 @@ export default {
   "settings.shuffleMaxTracks": "シャッフルで取り込む曲数",
   "settings.shuffleMaxTracksHint": "シャッフル再生がキューに入れる曲数の上限。",
   "settings.shuffleMaxTracksRange": "{min}～{max}",
+  "settings.networkPollInterval": "ネットワーク共有の再確認間隔（分）",
+  "settings.networkPollIntervalHint": "NAS は変更を Tune に通知しません。Tune がこの間隔で自ら確認します。変更されたフォルダーだけを読み直し、全体の走査は多くても 1 時間に 1 回です。",
+  "settings.networkPollIntervalRange": "{min}～{max} 分",
   "settings.searchExactLabel": "完全一致検索",
   "settings.searchExactHint": "入力した語句をその順序のまま、アーティスト・アルバム・トラック名から検索します（二重引用符で囲んだ場合と同じ）。",
 

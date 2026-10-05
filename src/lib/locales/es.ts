@@ -894,6 +894,9 @@ export default {
   "settings.shuffleMaxTracks": "Pistas extraídas en reproducción aleatoria",
   "settings.shuffleMaxTracksHint": "Número máximo de pistas que una reproducción aleatoria pone en la cola.",
   "settings.shuffleMaxTracksRange": "de {min} a {max}",
+  "settings.networkPollInterval": "Revisión de recursos de red (minutos)",
+  "settings.networkPollIntervalHint": "Un NAS no avisa a Tune de sus cambios: Tune lo comprueba por sí mismo, a este ritmo. Solo se releen las carpetas modificadas; un recorrido completo se hace como mucho una vez por hora.",
+  "settings.networkPollIntervalRange": "de {min} a {max} minutos",
   "settings.searchExactLabel": "Búsqueda exacta",
   "settings.searchExactHint": "Busca las palabras escritas como una frase, en ese orden, en el nombre de un artista, álbum o pista, como si estuvieran entre comillas dobles.",
 

@@ -858,6 +858,9 @@ export default {
   "settings.shuffleMaxTracks": "Spår som dras vid slumpuppspelning",
   "settings.shuffleMaxTracksHint": "Högsta antal spår som en slumpuppspelning lägger i kön.",
   "settings.shuffleMaxTracksRange": "från {min} till {max}",
+  "settings.networkPollInterval": "Ny kontroll av nätverksresurser (minuter)",
+  "settings.networkPollIntervalHint": "En NAS meddelar inte Tune om sina ändringar: Tune kontrollerar själv, i den här takten. Bara ändrade mappar läses om; en fullständig genomgång sker högst en gång i timmen.",
+  "settings.networkPollIntervalRange": "från {min} till {max} minuter",
   "settings.searchExactLabel": "Exakt sökning",
   "settings.searchExactHint": "Söker de inskrivna orden som en fras, i den ordningen, i namnet på en artist, ett album eller ett spår – som inom citattecken.",
 
