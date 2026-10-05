@@ -1022,6 +1022,9 @@ export default {
   "settings.shuffleMaxTracks": "Titres tirés en lecture aléatoire",
   "settings.shuffleMaxTracksHint": "Nombre maximal de titres qu'une lecture aléatoire place dans la file d'attente.",
   "settings.shuffleMaxTracksRange": "de {min} à {max}",
+  "settings.networkPollInterval": "Relecture des partages réseau (minutes)",
+  "settings.networkPollIntervalHint": "Un NAS ne prévient pas Tune de ses changements : Tune va voir lui-même, à ce rythme. Seuls les dossiers modifiés sont relus ; un parcours complet a lieu au plus une fois par heure.",
+  "settings.networkPollIntervalRange": "de {min} à {max} minutes",
   "settings.searchExactLabel": "Recherche exacte",
   "settings.searchExactHint": "Cherche les mots saisis tels quels, dans cet ordre, dans le nom d’un artiste, d’un album ou d’un titre — comme s’ils étaient entre guillemets. Les doubles guillemets restent utilisables sans ce réglage.",
 

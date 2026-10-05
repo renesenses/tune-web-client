@@ -1018,6 +1018,9 @@ export default {
   "settings.shuffleMaxTracks": "Tracks drawn when shuffling",
   "settings.shuffleMaxTracksHint": "Maximum number of tracks a shuffle puts into the queue.",
   "settings.shuffleMaxTracksRange": "from {min} to {max}",
+  "settings.networkPollInterval": "Network share re-check (minutes)",
+  "settings.networkPollIntervalHint": "A NAS does not notify Tune of its changes: Tune checks by itself, at this pace. Only changed folders are re-read; a full walk happens at most once an hour.",
+  "settings.networkPollIntervalRange": "from {min} to {max} minutes",
   "settings.searchExactLabel": "Exact search",
   "settings.searchExactHint": "Match the typed words as a phrase, in that order, in an artist, album or track name — as if they were in double quotes. Double quotes still work without this setting.",
 

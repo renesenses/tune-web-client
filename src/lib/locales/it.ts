@@ -898,6 +898,9 @@ export default {
   "settings.shuffleMaxTracks": "Brani estratti in riproduzione casuale",
   "settings.shuffleMaxTracksHint": "Numero massimo di brani che una riproduzione casuale mette in coda.",
   "settings.shuffleMaxTracksRange": "da {min} a {max}",
+  "settings.networkPollInterval": "Ricontrollo delle condivisioni di rete (minuti)",
+  "settings.networkPollIntervalHint": "Un NAS non avvisa Tune delle sue modifiche: Tune controlla da sé, con questa cadenza. Vengono rilette solo le cartelle modificate; una scansione completa avviene al massimo una volta all'ora.",
+  "settings.networkPollIntervalRange": "da {min} a {max} minuti",
   "settings.searchExactLabel": "Ricerca esatta",
   "settings.searchExactHint": "Cerca le parole digitate come frase, in quest’ordine, nel nome di un artista, album o brano, come se fossero tra virgolette.",
 

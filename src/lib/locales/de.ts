@@ -898,6 +898,9 @@ export default {
   "settings.shuffleMaxTracks": "Titel bei Zufallswiedergabe",
   "settings.shuffleMaxTracksHint": "Maximale Anzahl Titel, die eine Zufallswiedergabe in die Warteschlange stellt.",
   "settings.shuffleMaxTracksRange": "von {min} bis {max}",
+  "settings.networkPollInterval": "Netzwerkfreigaben erneut prüfen (Minuten)",
+  "settings.networkPollIntervalHint": "Ein NAS meldet Tune keine Änderungen: Tune prüft selbst, in diesem Takt. Nur geänderte Ordner werden neu gelesen; ein vollständiger Durchlauf erfolgt höchstens einmal pro Stunde.",
+  "settings.networkPollIntervalRange": "von {min} bis {max} Minuten",
   "settings.searchExactLabel": "Exakte Suche",
   "settings.searchExactHint": "Sucht die eingegebenen Wörter als Phrase, in dieser Reihenfolge, im Namen eines Interpreten, Albums oder Titels – als stünden sie in Anführungszeichen.",
 

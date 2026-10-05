@@ -882,6 +882,9 @@ export default {
   "settings.shuffleMaxTracks": "셔플 시 가져올 트랙 수",
   "settings.shuffleMaxTracksHint": "셔플 재생이 대기열에 넣는 최대 트랙 수입니다.",
   "settings.shuffleMaxTracksRange": "{min}~{max}",
+  "settings.networkPollInterval": "네트워크 공유 재확인 간격(분)",
+  "settings.networkPollIntervalHint": "NAS는 변경 사항을 Tune에 알리지 않습니다. Tune이 이 간격으로 직접 확인합니다. 변경된 폴더만 다시 읽고, 전체 탐색은 많아야 한 시간에 한 번입니다.",
+  "settings.networkPollIntervalRange": "{min}~{max}분",
   "settings.searchExactLabel": "정확히 일치 검색",
   "settings.searchExactHint": "입력한 단어를 그 순서대로 아티스트, 앨범, 트랙 이름에서 찾습니다(큰따옴표로 묶은 것과 같음).",
 

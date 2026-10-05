@@ -85,6 +85,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     FILE_ALEATOIRE_DEFAUT, FILE_ALEATOIRE_MIN_REPLI, FILE_ALEATOIRE_MAX_REPLI,
     type BornesFileAleatoire,
   } from '../../lib/fileAleatoire';
+  import {
+    bornesSondeReseau, lireSondeReseau, versPatchSondeReseau, bornerSondeReseau,
+    SONDE_RESEAU_DEFAUT_S, type BornesSondeReseau,
+  } from '../../lib/sondeReseau';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
@@ -363,6 +367,39 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.error(get(t)('renderer.saveError' as any));
     }
     finally { fileAleatoireBusy = false; }
+  }
+
+  // Délai de relecture des partages réseau — `network_poll_interval_secs`
+  // (tune-server-rust#5792, fil 2148). En minutes à l'écran, en secondes côté
+  // serveur ; caché si le serveur ne publie pas la clé.
+  let sondeReseau = $state<number | null>(null);
+  let sondeReseauSaisie = $state<string>('');
+  let sondeReseauBornes = $state<BornesSondeReseau>({ min: 1, max: 60 });
+  let sondeReseauBusy = $state(false);
+  $effect(() => {
+    api.getConfig()
+      .then((c: any) => {
+        sondeReseauBornes = bornesSondeReseau(c);
+        sondeReseau = lireSondeReseau(c, sondeReseauBornes);
+        sondeReseauSaisie = sondeReseau === null ? '' : String(sondeReseau);
+      })
+      .catch(() => { sondeReseau = null; });
+  });
+  async function setSondeReseau(brut: string) {
+    if (sondeReseau === null) return;
+    const valeur = bornerSondeReseau(brut.trim(), sondeReseauBornes);
+    sondeReseauSaisie = String(valeur);
+    if (valeur === sondeReseau) return;
+    const avant = sondeReseau;
+    sondeReseau = valeur;
+    sondeReseauBusy = true;
+    try { await api.updateConfig(versPatchSondeReseau(brut.trim(), sondeReseauBornes)); }
+    catch {
+      sondeReseau = avant;
+      sondeReseauSaisie = String(avant);
+      notifications.error(get(t)('renderer.saveError' as any));
+    }
+    finally { sondeReseauBusy = false; }
   }
 
   // « Sorties audio locales » — plusieurs reglages serveur + la liste des
@@ -5044,6 +5081,28 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <p class="hint">{$t('settings.noFolderDeclared' as any)}</p>
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
+              <!-- Délai de relecture des partages réseau (#5792, fil 2148).
+                   Les bornes sont celles que le serveur publie. -->
+              {#if sondeReseau !== null}
+                <div class="row sonde-reseau">
+                  <div class="lbl">
+                    <span>{$t('settings.networkPollInterval' as any)}</span>
+                    <span class="hint">{$t('settings.networkPollIntervalHint' as any)}</span>
+                    <span class="hint">
+                      {$t('settings.defaultValueColon' as any)} {$formatNombre(Math.round(SONDE_RESEAU_DEFAUT_S / 60))}
+                      — {$t('settings.networkPollIntervalRange' as any)
+                        .replace('{min}', $formatNombre(sondeReseauBornes.min))
+                        .replace('{max}', $formatNombre(sondeReseauBornes.max))}
+                    </span>
+                  </div>
+                  <input class="txt num" type="number"
+                    min={sondeReseauBornes.min} max={sondeReseauBornes.max} step="1"
+                    disabled={sondeReseauBusy}
+                    aria-label={$t('settings.networkPollInterval' as any)}
+                    bind:value={sondeReseauSaisie}
+                    onchange={(e) => setSondeReseau((e.currentTarget as HTMLInputElement).value)} />
+                </div>
+              {/if}
               <!-- Partages réseau et leur état réel (#2069). Masquée s'il n'y en
                    a aucun, ou si le serveur ne publie pas la route. -->
               {#if smbMounts.length}

@@ -904,6 +904,9 @@ export default {
   "settings.shuffleMaxTracks": "Piese extrase la redare aleatorie",
   "settings.shuffleMaxTracksHint": "Numărul maxim de piese pe care o redare aleatorie le pune în coadă.",
   "settings.shuffleMaxTracksRange": "de la {min} la {max}",
+  "settings.networkPollInterval": "Reverificarea partajărilor de rețea (minute)",
+  "settings.networkPollIntervalHint": "Un NAS nu anunță Tune despre modificările sale: Tune verifică singur, în acest ritm. Sunt recitite doar folderele modificate; o parcurgere completă are loc cel mult o dată pe oră.",
+  "settings.networkPollIntervalRange": "de la {min} la {max} minute",
   "settings.searchExactLabel": "Căutare exactă",
   "settings.searchExactHint": "Caută cuvintele introduse ca frază, în această ordine, în numele unui artist, album sau piese — ca între ghilimele.",
 

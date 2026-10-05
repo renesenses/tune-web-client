@@ -898,6 +898,9 @@ export default {
   "settings.shuffleMaxTracks": "随机播放抽取的曲目数",
   "settings.shuffleMaxTracksHint": "随机播放放入播放队列的最大曲目数。",
   "settings.shuffleMaxTracksRange": "{min} 至 {max}",
+  "settings.networkPollInterval": "网络共享重新检查间隔（分钟）",
+  "settings.networkPollIntervalHint": "NAS 不会通知 Tune 其变更：Tune 按此间隔自行检查。只重新读取有变动的文件夹；完整遍历最多每小时一次。",
+  "settings.networkPollIntervalRange": "{min} 至 {max} 分钟",
   "settings.searchExactLabel": "精确搜索",
   "settings.searchExactHint": "按输入顺序将词语作为短语，在艺人、专辑或曲目名称中查找——相当于加上双引号。",
 

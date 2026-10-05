@@ -973,6 +973,9 @@ export default {
   "settings.shuffleMaxTracks": "Véletlenszerű lejátszáskor kiválasztott számok",
   "settings.shuffleMaxTracksHint": "A várólistára kerülő számok legnagyobb száma véletlenszerű lejátszáskor.",
   "settings.shuffleMaxTracksRange": "{min} és {max} között",
+  "settings.networkPollInterval": "Hálózati megosztások újraellenőrzése (perc)",
+  "settings.networkPollIntervalHint": "A NAS nem értesíti a Tune-t a változásairól: a Tune maga nézi meg, ilyen időközönként. Csak a módosult mappákat olvassa újra; teljes bejárás legfeljebb óránként egyszer történik.",
+  "settings.networkPollIntervalRange": "{min} és {max} perc között",
   "settings.searchExactLabel": "Pontos keresés",
   "settings.searchExactHint": "A beírt szavakat kifejezésként, ebben a sorrendben keresi előadó, album vagy szám nevében – mintha idézőjelben lennének.",
   // Squeezebox / Lyrion
