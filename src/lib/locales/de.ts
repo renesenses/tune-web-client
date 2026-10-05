@@ -4371,6 +4371,7 @@ export default {
   "menuObjet.editRules": "Regeln bearbeiten",
   "menuObjet.deletePlaylistAsk": "Playlist „{name}“ löschen? Ihre Titel bleiben in der Bibliothek.",
   "menuObjet.noFolder": "Kein Ordner auf der Festplatte für dieses Album.",
+  "menuObjet.addShortcut": "Zu den Verknüpfungen hinzufügen",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
   "v2.pure.veilCfPro": "Crossfeed Pro wirkt im PURE-Modus nicht: Das Signal bleibt unverändert. Ihre Einstellungen bleiben erhalten.",
   "v2.cfp.eyebrow": "Kopfhörer · Premium",

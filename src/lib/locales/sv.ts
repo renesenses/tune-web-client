@@ -4370,6 +4370,7 @@ export default {
   "menuObjet.editRules": "Redigera reglerna",
   "menuObjet.deletePlaylistAsk": "Ta bort spellistan ”{name}”? Spåren finns kvar i biblioteket.",
   "menuObjet.noFolder": "Ingen mapp på disken för det här albumet.",
+  "menuObjet.addShortcut": "Lägg till i genvägar",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
   "v2.pure.veilCfPro": "Crossfeed Pro har ingen effekt i PURE-läget: signalen lämnar orörd. Dina inställningar sparas.",
   "v2.cfp.eyebrow": "Hörlurar · Premium",

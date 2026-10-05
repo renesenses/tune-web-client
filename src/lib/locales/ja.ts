@@ -4371,6 +4371,7 @@ export default {
   "menuObjet.editRules": "ルールを編集",
   "menuObjet.deletePlaylistAsk": "プレイリスト「{name}」を削除しますか？曲はライブラリに残ります。",
   "menuObjet.noFolder": "このアルバムのフォルダーはディスク上にありません。",
+  "menuObjet.addShortcut": "ショートカットに追加",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
   "v2.pure.veilCfPro": "PURE モードでは Crossfeed Pro は作用しません。信号はそのまま出力されます。設定は保持されます。",
   "v2.cfp.eyebrow": "ヘッドホン · Premium",

@@ -4391,6 +4391,7 @@ export default {
   "menuObjet.editRules": "Edit rules",
   "menuObjet.deletePlaylistAsk": "Delete the playlist “{name}”? Its tracks stay in the library.",
   "menuObjet.noFolder": "No folder on disk for this album.",
+  "menuObjet.addShortcut": "Add to shortcuts",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
   "v2.pure.veilCfPro": "Crossfeed Pro has no effect in PURE mode: the signal leaves untouched. Your settings are kept.",
   "v2.cfp.eyebrow": "Headphones · Premium",
