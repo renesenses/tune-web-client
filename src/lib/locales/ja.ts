@@ -3281,6 +3281,7 @@ export default {
   "v2.sup.bugImagesHint": "画像は最大 3 枚（PNG、JPEG、GIF、WebP）、各 4 MB まで。フォーラムのスレッドに添付されます。",
   "v2.sup.bugImagesTooMany": "スクリーンショットが多すぎます。最大 {max} 枚です。",
   "v2.sup.bugImagesType": "「{nom}」は画像ではありません。",
+  "v2.sup.filesType": "「{nom}」はサポートで受け付けられません。使用できる形式：{types}。",
   "v2.sup.bugImagesTooLarge": "「{nom}」は {max} MB を超えています。",
   "v2.sup.bugImagesSent": "{n} 枚のスクリーンショットをスレッドに添付しました。",
   "v2.sup.bugImagesNotAttached": "スクリーンショットをスレッドに添付できませんでした。フォーラムのサービスが受け付けませんでした。スレッドに直接追加してください。",
