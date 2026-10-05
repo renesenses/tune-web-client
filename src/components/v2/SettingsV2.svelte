@@ -1669,6 +1669,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       : [...directoryOrder.filter((d) => musicDirs.includes(d)),
         ...musicDirs.filter((d) => !directoryOrder?.includes(d))],
   );
+  /**
+   * tune-server-rust#5593 — les racines EXCLUES des analyses de fond
+   * (ReplayGain, plage dynamique, empreintes, CLAP). `null` : le serveur ne
+   * publie pas le réglage, et les cases ne s'affichent pas.
+   */
+  let analysisExcluded = $state<string[] | null>(null);
   let newDir = $state('');
   let dirBusy = $state(false);
   let scanning = $state(false);
@@ -1885,6 +1891,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const c: any = await api.getConfig();
       musicDirs = Array.isArray(c?.music_dirs) ? c.music_dirs : [];
+      analysisExcluded = Array.isArray(c?.background_analysis_excluded_roots)
+        ? c.background_analysis_excluded_roots.filter((r: unknown) => typeof r === 'string')
+        : null;
       await refreshDirectoryOrder();
       // Absent vaut VRAI cote serveur, et les valeurs peuvent arriver en
       // chaine ('false') aussi bien qu'en booleen.
@@ -1975,6 +1984,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       newDir = '';
     } catch (e: any) { libErr = e?.message ?? get(t)('settings.errFolderRejected'); }
     dirBusy = false;
+  }
+  /**
+   * #5593 — cocher ou décocher les analyses de fond d'une racine. Le serveur
+   * reçoit la liste COMPLÈTE des racines exclues ; s'il refuse, la case revient
+   * à son état d'avant.
+   */
+  function setAnalyseDuDossier(d: string, analyser: boolean) {
+    if (analysisExcluded === null) return;
+    const avant = analysisExcluded;
+    const suivant = analyser ? avant.filter((r) => r !== d) : [...avant.filter((r) => r !== d), d];
+    analysisExcluded = suivant;
+    patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
   }
   /** Retirer un dossier ne SUPPRIME aucun fichier : on le dit dans l'ecran,
    *  sinon le bouton fait peur a juste titre. */
@@ -4970,7 +4991,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
                 <div class="dirs">
                   {#each displayedMusicDirs as d, index (d)}
-                    <div class="dir" class:ordered={directoryOrder !== null && displayedMusicDirs.length > 1}>
+                    <div class="dir" class:ordered={directoryOrder !== null && displayedMusicDirs.length > 1}
+                      class:avec-analyse={analysisExcluded !== null}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                       <span class="dp">{d}</span>
                       {#if directoryOrder !== null && displayedMusicDirs.length > 1}
@@ -4996,6 +5018,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <button class="lnk scan-dir" disabled={dirBusy || scanning}
                         onclick={() => scan(false, d)}
                         title={$t('v2.scan.folderHint' as any)}>{$t('v2.scan.folderAction' as any)}</button>
+                      <!-- tune-server-rust#5593 — inclure ou exclure CETTE racine des
+                           analyses de fond (ReplayGain, plage dynamique, empreintes,
+                           CLAP). Cochée par défaut : rien n'est exclu. -->
+                      {#if analysisExcluded !== null}
+                        <label class="dir-analyse" title={$t('settings.backgroundAnalysisFoldersHint' as any)}>
+                          <input type="checkbox" checked={!analysisExcluded.includes(d)} disabled={dirBusy}
+                            aria-label={$t('settings.backgroundAnalysisFolderAria' as any).replace('{path}', d)}
+                            onchange={(e) => setAnalyseDuDossier(d, (e.currentTarget as HTMLInputElement).checked)} />
+                          <span>{$t('settings.backgroundAnalysisFolder' as any)}</span>
+                        </label>
+                      {/if}
                       <button class="del" disabled={dirBusy} onclick={() => removeDir(d)} aria-label={$t('settings.removeFolderAria' as any)}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                       </button>
@@ -5003,6 +5036,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/each}
                 </div>
                 {#if orderError}<p class="errline" role="alert">{orderError}</p>{/if}
+                {#if analysisExcluded !== null}
+                  <p class="hint">{$t('settings.backgroundAnalysisFoldersHint' as any)}</p>
+                {/if}
                 <p class="hint">{#each emphaseParts($t('settings.removeFolderHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {:else}
                 <p class="hint">{$t('settings.noFolderDeclared' as any)}</p>
@@ -6372,6 +6408,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dirs{display:flex; flex-direction:column; gap:1px; margin-top:12px}
   .dir{display:grid; grid-template-columns:20px minmax(0,1fr) auto auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
   .dir.ordered{grid-template-columns:20px minmax(0,1fr) auto auto auto}
+  .dir.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto}
+  .dir.ordered.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
+  .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:12px; color:var(--v2-txt2)}
   .directory-order-hint{margin-top:12px}
   .dir-order{display:flex; align-items:center; gap:3px}
   .dir-order .lnk{min-width:28px; min-height:28px}
