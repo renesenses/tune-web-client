@@ -4349,6 +4349,7 @@ export default {
   "menuObjet.editRules": "Szabályok szerkesztése",
   "menuObjet.deletePlaylistAsk": "Törlöd a(z) „{name}” lejátszási listát? A számok a könyvtárban maradnak.",
   "menuObjet.noFolder": "Ehhez az albumhoz nincs mappa a lemezen.",
+  "menuObjet.addShortcut": "Hozzáadás a gyorsindítókhoz",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
   "v2.pure.veilCfPro": "A Crossfeed Pro PURE módban nem hat: a jel érintetlenül megy tovább. A beállítások megmaradnak.",
   "v2.cfp.eyebrow": "Fejhallgató · Premium",

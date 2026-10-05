@@ -4391,6 +4391,7 @@ export default {
   "menuObjet.editRules": "Editar las reglas",
   "menuObjet.deletePlaylistAsk": "¿Eliminar la lista «{name}»? Sus pistas permanecen en la biblioteca.",
   "menuObjet.noFolder": "No hay carpeta en el disco para este álbum.",
+  "menuObjet.addShortcut": "Añadir a los accesos directos",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
   "v2.pure.veilCfPro": "Crossfeed Pro no actúa en modo PURE: la señal sale intacta. Sus ajustes se conservan.",
   "v2.cfp.eyebrow": "Auriculares · Premium",

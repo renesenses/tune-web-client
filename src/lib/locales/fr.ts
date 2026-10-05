@@ -4413,6 +4413,7 @@ export default {
   "menuObjet.editRules": "Modifier les règles",
   "menuObjet.deletePlaylistAsk": "Supprimer la playlist « {name} » ? Ses pistes restent dans la bibliothèque.",
   "menuObjet.noFolder": "Aucun dossier sur le disque pour cet album.",
+  "menuObjet.addShortcut": "Ajouter aux raccourcis",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
   "v2.pure.veilCfPro": "Crossfeed Pro n’agit pas en mode PURE : le signal part intact. Vos réglages sont conservés.",
   "v2.cfp.eyebrow": "Casque · Premium",

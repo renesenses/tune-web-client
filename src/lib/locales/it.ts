@@ -4391,6 +4391,7 @@ export default {
   "menuObjet.editRules": "Modifica le regole",
   "menuObjet.deletePlaylistAsk": "Eliminare la playlist «{name}»? I brani restano nella libreria.",
   "menuObjet.noFolder": "Nessuna cartella su disco per questo album.",
+  "menuObjet.addShortcut": "Aggiungi alle scorciatoie",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
   "v2.pure.veilCfPro": "Crossfeed Pro non agisce in modalità PURE: il segnale esce intatto. Le impostazioni vengono conservate.",
   "v2.cfp.eyebrow": "Cuffie · Premium",

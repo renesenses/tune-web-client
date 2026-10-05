@@ -4391,6 +4391,7 @@ export default {
   "menuObjet.editRules": "编辑规则",
   "menuObjet.deletePlaylistAsk": "删除播放列表“{name}”？其曲目仍保留在音乐库中。",
   "menuObjet.noFolder": "此专辑在磁盘上没有文件夹。",
+  "menuObjet.addShortcut": "添加到快捷方式",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
   "v2.pure.veilCfPro": "PURE 模式下 Crossfeed Pro 不起作用：信号原样输出。您的设置会被保留。",
   "v2.cfp.eyebrow": "耳机 · Premium",

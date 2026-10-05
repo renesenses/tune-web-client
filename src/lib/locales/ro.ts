@@ -4391,6 +4391,7 @@ export default {
   "menuObjet.editRules": "Editează regulile",
   "menuObjet.deletePlaylistAsk": "Ștergi playlistul „{name}”? Piesele rămân în bibliotecă.",
   "menuObjet.noFolder": "Niciun dosar pe disc pentru acest album.",
+  "menuObjet.addShortcut": "Adaugă la scurtături",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
   "v2.pure.veilCfPro": "Crossfeed Pro nu acționează în modul PURE: semnalul pleacă intact. Setările sunt păstrate.",
   "v2.cfp.eyebrow": "Căști · Premium",

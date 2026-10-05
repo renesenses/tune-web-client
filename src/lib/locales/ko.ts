@@ -4391,6 +4391,7 @@ export default {
   "menuObjet.editRules": "규칙 편집",
   "menuObjet.deletePlaylistAsk": "재생 목록 “{name}”을(를) 삭제할까요? 트랙은 라이브러리에 남습니다.",
   "menuObjet.noFolder": "이 앨범의 디스크 폴더가 없습니다.",
+  "menuObjet.addShortcut": "바로가기에 추가",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
   "v2.pure.veilCfPro": "PURE 모드에서는 Crossfeed Pro가 작동하지 않습니다. 신호는 그대로 출력됩니다. 설정은 유지됩니다.",
   "v2.cfp.eyebrow": "헤드폰 · Premium",
