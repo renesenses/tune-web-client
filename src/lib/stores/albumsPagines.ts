@@ -23,10 +23,11 @@
  *     convertisseur, déclic) : PARESSEUX, à la demande, mémorisé, jamais au
  *     démarrage. Il remplit le magasin partagé `albums` (`stores/library`).
  *  3. `invaliderBibliotheque` — ce que fait `library.scan.completed` : les
- *     pages tombent, la liste entière tombe, la génération avance. RIEN n'est
- *     rechargé ici : chaque écran monté redemande ce qu'il montre — les cases
- *     redevenues vides se re-demandent d'elles-mêmes au défilement, et un
- *     consommateur de la liste entière relit `$albums` vide et la redemande.
+ *     pages et la liste entière deviennent PÉRIMÉES, la génération avance.
+ *     RIEN n'est rechargé ici, et RIEN n'est effacé (fil 2134) : ce qui est
+ *     à l'écran y reste jusqu'à ce que sa version neuve arrive. Chaque écran
+ *     monté redemande ce qu'il montre (`rafraichirPagesPerimees`, et
+ *     `listeEntierePerimee` pour la liste entière).
  *  4. `offsetDeLettre` — le rail A–Z sans route serveur : le serveur ne rend
  *     pas de borne par lettre. On la trouve par DICHOTOMIE sur `offset` avec
  *     `limit=1`, soit ⌈log₂ 9 427⌉ = 14 requêtes d'un album, mises en cache
@@ -78,6 +79,12 @@ export interface EtatPagine {
   echecs: ReadonlyMap<number, { tentatives: number; jusqua: number }>;
   /** Avance à chaque invalidation : ce qui a été demandé AVANT ne s'écrit plus. */
   generation: number;
+  /**
+   * Fil 2134 — les pages d'une génération PASSÉE : encore affichées, à
+   * redemander. Une page périmée se redemande comme une page absente, mais
+   * reste à l'écran jusqu'à ce que la neuve la remplace.
+   */
+  perimees: ReadonlySet<number>;
 }
 
 export function clefDeListe(c: ClefDeListe): string {
@@ -86,6 +93,7 @@ export function clefDeListe(c: ClefDeListe): string {
 
 const etatInitial = (): EtatPagine => ({
   clef: '', total: null, pages: new Map(), enVol: new Set(), erreur: null, echecs: new Map(), generation: 0,
+  perimees: new Set(),
 });
 
 export const albumsPagines = writable<EtatPagine>(etatInitial());
@@ -99,9 +107,20 @@ export const albumsPagines = writable<EtatPagine>(etatInitial());
 const generation = writable(0);
 export const generationBibliotheque: Readable<number> = { subscribe: generation.subscribe };
 
+/**
+ * Fil 2134 — `albums` décrit-il une génération PASSÉE ? Une invalidation ne
+ * vide plus `albums` (l'écran gardait sa liste, sa position de défilement) :
+ * elle la dit périmée. Un écran monté qui montre la liste entière la
+ * redemande quand ceci passe à `true` ; la liste neuve le remet à `false`.
+ */
+const listePerimee = writable(false);
+export const listeEntierePerimee: Readable<boolean> = { subscribe: listePerimee.subscribe };
+
 /** Les pages tombent, mais pas le total : la grille garde sa hauteur. */
 function reinitialiser(clef: string, total: number | null): void {
-  albumsPagines.update((e) => ({ ...e, clef, total, pages: new Map(), enVol: new Set(), erreur: null, echecs: new Map() }));
+  albumsPagines.update((e) => ({
+    ...e, clef, total, pages: new Map(), enVol: new Set(), erreur: null, echecs: new Map(), perimees: new Set(),
+  }));
 }
 
 /** Le premier délai après un échec, et le plafond : 1 s, 2 s, 4 s… 30 s. */
@@ -130,7 +149,8 @@ export async function demanderPage(
     reinitialiser(clef, etat.total);
     etat = get(albumsPagines);
   }
-  if (index < 0 || etat.pages.has(index) || etat.enVol.has(index)) return;
+  if (index < 0 || etat.enVol.has(index)) return;
+  if (etat.pages.has(index) && !etat.perimees.has(index)) return;
   const echec = etat.echecs.get(index);
   if (echec && !options.forcer && Date.now() < echec.jusqua) return;
   const gen = etat.generation;
@@ -148,7 +168,8 @@ export async function demanderPage(
       // Un serveur sans `total` : on en déduit un du dernier lot, comme avant.
       const total = page.total ?? (page.items.length < TAILLE_PAGE ? index * TAILLE_PAGE + page.items.length : e.total);
       const echecs = new Map(e.echecs); echecs.delete(index);
-      return { ...e, pages, enVol, total, erreur: null, echecs };
+      const perimees = new Set(e.perimees); perimees.delete(index);
+      return { ...e, pages, enVol, total, erreur: null, echecs, perimees };
     });
   } catch (err: any) {
     albumsPagines.update((e) => {
@@ -256,13 +277,16 @@ let chargementEntier: { generation: number; promesse: Promise<Album[]> } | null 
 export function demanderBibliothequeEntiere(): Promise<Album[]> {
   const gen = get(generation);
   if (chargementEntier && chargementEntier.generation === gen) return chargementEntier.promesse;
-  libraryLoading.set(true);
+  // Fil 2134 — un RAFRAÎCHISSEMENT (une liste, périmée, est déjà là) ne
+  // remet pas l'écran en « Chargement… » : il garde ce qu'il montre.
+  if (!get(albums).length) libraryLoading.set(true);
   const promesse = api.getAllAlbums(2000, null, null)
     .then((liste) => {
       // Un scan passé entre-temps : cette liste décrit une bibliothèque
       // d'avant, on ne l'écrit pas.
       if (get(generation) !== gen) return get(albums);
       albums.set(liste);
+      listePerimee.set(false);
       return liste;
     })
     .finally(() => { if (get(generation) === gen) libraryLoading.set(false); });
@@ -273,20 +297,51 @@ export function demanderBibliothequeEntiere(): Promise<Album[]> {
 
 /**
  * Le serveur dit que la bibliothèque a changé (`library.scan.completed`,
- * `library.updated`) : tout ce qu'on en tenait est PÉRIMÉ. Les pages tombent
- * (le total reste, la grille garde sa hauteur jusqu'à la première page
- * neuve), la liste entière tombe, les bornes de lettres tombent, la
- * génération avance. Aucune requête ne part d'ici.
+ * `library.updated`) : tout ce qu'on en tenait est PÉRIMÉ. Les bornes de
+ * lettres tombent, la génération avance. Aucune requête ne part d'ici.
+ *
+ * 🔴 Fil 2134 — on PÉRIME, on n'EFFACE plus. Vider les pages et `albums`
+ * faisait passer l'écran par des cases vides (ou « Chargement… »), et en
+ * liste entière le ramenait en haut : à chaque `library.updated`, la vue
+ * clignotait. Les pages restent, marquées périmées ; `albums` reste, et
+ * `listeEntierePerimee` passe à `true`. Ce qui est à l'écran est REMPLACÉ quand la
+ * version neuve arrive.
  */
 export function invaliderBibliotheque(): void {
   generation.update((g) => g + 1);
   chargementEntier = null;
   lettresConnues.clear();
   albumsPagines.update((e) => ({
-    ...e, pages: new Map(), enVol: new Set(), erreur: null, echecs: new Map(), generation: e.generation + 1,
+    ...e, enVol: new Set(), erreur: null, echecs: new Map(), generation: e.generation + 1,
+    perimees: new Set(e.pages.keys()),
   }));
-  if (get(albums).length) albums.set([]);
+  if (get(albums).length) listePerimee.set(true);
   libraryLoading.set(false);
+}
+
+/**
+ * Fil 2134 — après une invalidation, l'écran monté redemande les pages
+ * périmées qu'il MONTRE (`enVue`), et laisse tomber les autres : hors du
+ * cadre, une case redevenue vide redemandera sa page en y entrant. Rien ne
+ * clignote — ce qui est en vue reste affiché jusqu'à sa page neuve — et une
+ * bibliothèque parcourue loin ne se recharge pas en entier.
+ */
+export function rafraichirPagesPerimees(c: ClefDeListe, enVue: ReadonlySet<number>): void {
+  const clef = clefDeListe(c);
+  const e = get(albumsPagines);
+  if (e.clef !== clef || !e.perimees.size) return;
+  const aGarder = [...e.perimees].filter((index) => enVue.has(index));
+  albumsPagines.update((x) => {
+    const pages = new Map(x.pages);
+    const perimees = new Set(x.perimees);
+    for (const index of x.perimees) {
+      if (enVue.has(index)) continue;
+      pages.delete(index);
+      perimees.delete(index);
+    }
+    return { ...x, pages, perimees };
+  });
+  for (const index of aGarder) void demanderPage(c, index, { forcer: true });
 }
 
 /** Une fiche modifiée : reportée dans les pages ET dans la liste entière. */
@@ -309,6 +364,7 @@ export function mettreAJourAlbum(maj: Partial<Album> & { id: number | null }): v
 export function _remiseAZeroPourTests(): void {
   albumsPagines.set(etatInitial());
   generation.set(0);
+  listePerimee.set(false);
   chargementEntier = null;
   lettresConnues.clear();
 }
