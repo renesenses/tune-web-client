@@ -254,6 +254,16 @@ export function browserStopForZone(zoneId: number): boolean {
   return true;
 }
 
+/**
+ * La position que joue l'élément, en ms, s'il joue la zone `zoneId` — sinon
+ * `null` (fil 1476 : seul l'onglet connaît la position d'une zone navigateur).
+ */
+export function browserPositionMsPour(zoneId: number): number | null {
+  if (!audioElement || sourceZoneId !== zoneId) return null;
+  const t = audioElement.currentTime;
+  return Number.isFinite(t) ? Math.floor(t * 1000) : null;
+}
+
 /** Seek to a position in milliseconds */
 export function browserSeek(positionMs: number) {
   const audio = getAudio();
