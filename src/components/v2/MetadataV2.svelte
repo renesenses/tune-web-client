@@ -12,6 +12,7 @@
    * qu'on possède déjà. L'écran le dit, sinon on croit jeter l'information.
    */
   import * as api from '../../lib/api';
+  import { finDeDossier } from '../../lib/repereCoffret';
   import { formatNombre } from '../../lib/formats';
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   import type { GravureDrEtat, MetadataProposal, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon, AlbumDetailed } from '../../lib/api';
@@ -417,9 +418,12 @@
     // justement l'un de l'autre. Le tri par titre les met côte à côte.
     // 🔴 #1434 — par NOMBRE : « Disc 2 » avant « Disc 10 ». En texte, le
     // « CD 10 » d'un coffret Radio Nova passait avant le « CD 2 ».
+    // Fil 2094 — le DOSSIER aussi : « CD07 » se cherche, et deux titres
+    // identiques se rangent dans l'ordre de leurs dossiers (CD01 … CD27).
     return cpTous
-      .filter((a) => pliage(a.title ?? '').includes(q) || pliage(a.album_artist ?? '').includes(q))
-      .sort((x, y) => comparerAlphabetique(x.title, y.title))
+      .filter((a) => pliage(a.title ?? '').includes(q) || pliage(a.album_artist ?? '').includes(q)
+        || pliage(a.folder ?? '').includes(q))
+      .sort((x, y) => comparerAlphabetique(x.title, y.title) || comparerAlphabetique(x.folder ?? '', y.folder ?? ''))
       .slice(0, 300);
   });
 
@@ -1047,6 +1051,14 @@
                 <span class="sub">
                   {a.album_artist ?? '—'} ·
                   {$t('v2.meta.compilTracks' as any).replace('{count}', $formatNombre(a.track_count))}
+                  <!-- Fil 2094 — le numéro de disque et le DOSSIER : vingt-sept
+                       « Arkhangelsk » identiques ne se distinguaient pas. -->
+                  {#if typeof a.disc_number === 'number' && a.disc_number > 0}
+                    · <span class="cfrepere">{$t('v2.meta.boxDisc' as any).replace('{n}', String(a.disc_number))}</span>
+                  {/if}
+                  {#if finDeDossier(a.folder)}
+                    · <span class="cfrepere" title={a.folder ?? ''}>{finDeDossier(a.folder)}</span>
+                  {/if}
                 </span>
               </span>
               <!-- Le RANG, visible : c'est le numéro de disque que l'album
