@@ -937,6 +937,22 @@
    * `smartcollections:` est la meme cle que l'ecran du client actuel : un
    * raccourci pose d'un cote se rouvre de l'autre.
    */
+  /** La fiche d'une collection connue par son seul raccourci (fil 2149). */
+  const entreeProvisoire = (sorte: Sorte, id: number, nom: unknown): Entree => ({
+    sorte,
+    id,
+    nom: typeof nom === 'string' ? nom : '',
+    description: null,
+    nomCle: null,
+    descriptionCle: null,
+    albums: null,
+    manquants: null,
+    manquantsDetail: [],
+    covers: [],
+    coversServies: false,
+    creee: null,
+  });
+
   const cleCible = (e: Entree) =>
     `${e.sorte === 'smart' ? 'smartcollections' : 'collections'}:${e.id}`;
 
@@ -951,9 +967,20 @@
       // L'onglet doit suivre, sinon on rouvrirait une fiche sous un onglet qui
       // ne la contient pas — et la fermer retomberait sur la mauvaise liste.
       onglet = smart ? 'smart' : 'manuelle';
-      let e = entrees.find((x) => x.id === id && (x.sorte === 'smart') === smart);
-      if (!e) { await charger(); e = entrees.find((x) => x.id === id && (x.sorte === 'smart') === smart); }
-      if (e) ouvrir(e);
+      const e = entrees.find((x) => x.id === id && (x.sorte === 'smart') === smart);
+      if (e) { ouvrir(e); return; }
+      // 🔴 Fil forum 2149 — « lenteur à l'ouverture d'un raccourci vers une
+      // smart collection ». Le raccourci arrive 150 ms après l'écran, quand
+      // la LISTE est encore en route : on relançait alors une seconde fois
+      // `charger()` — deux `GET /library/smart-collections`, chacun comptant
+      // TOUTES les collections sur toute la bibliothèque — et la collection
+      // visée n'ouvrait qu'après la seconde réponse. Elle s'ouvre désormais
+      // tout de suite, sur ce que le raccourci sait d'elle (son id, son nom
+      // stocké) : ses albums partent aussitôt, et la liste en cours, à son
+      // arrivée, remplace cette fiche provisoire par la vraie (`charger`
+      // retrouve `ouverte` par sorte et id, et la referme si elle a disparu).
+      ouvrir(entreeProvisoire(smart ? 'smart' : 'normale', id, cible.restore?.name));
+      if (!chargement) void charger();
     };
     window.addEventListener('tune:shortcut-restore', auRetour);
     return () => window.removeEventListener('tune:shortcut-restore', auRetour);
