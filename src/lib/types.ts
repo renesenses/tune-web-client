@@ -315,6 +315,8 @@ export interface SignalPathStep {
   detail?: string | null;
   /** Code stable de l'étape, ex. `rate_conversion` sur le `Resampler` (#3973). */
   code?: string;
+  /** tune-server-rust#5633 — étape `ReplayGain` : le gain appliqué, en dB. */
+  gain_db?: number;
 }
 
 export interface SignalPath {
@@ -341,6 +343,9 @@ export interface SignalPath {
   strict_bitperfect?: boolean;
   /** #3973 — la conversion de fréquence appliquée, ou `null`. */
   rate_conversion?: { from_hz: number; to_hz: number } | null;
+  /** tune-server-rust#5633 — sous PURE, le ReplayGain que la piste en cours
+   *  recevrait hors PURE. Absent hors PURE, sans gain, ou d'un vieux serveur. */
+  pure_replaygain_ignored?: { gain_db: number; granularity?: string } | null;
 }
 
 /** Le PÉRIPHÉRIQUE que la sortie locale a réellement ouvert, face à celui que

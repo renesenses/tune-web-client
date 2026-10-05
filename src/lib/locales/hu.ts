@@ -918,6 +918,10 @@ export default {
   // Audiofil mód
   "audiophile.title": "Audiofil mód",
   "audiophile.enabled": "Az audiofil mód aktív",
+  "audiophile.rgIgnored": "PURE: a ReplayGain figyelmen kívül marad, a lejátszás bit-perfect marad.",
+  "audiophile.rgIgnoredDb": "PURE: a ReplayGain figyelmen kívül marad, a lejátszás bit-perfect marad. Aktuális szám: {db} dB nincs alkalmazva, a szint ennyivel változik.",
+  "signal.pureRgIgnored": "PURE módban a ReplayGain figyelmen kívül marad: a lejátszás bit-perfect marad.",
+  "signal.pureRgIgnoredDb": "PURE módban a ReplayGain figyelmen kívül marad: a lejátszás bit-perfect marad. Aktuális szám: {db} dB nincs alkalmazva.",
   "audiophile.disabled": "Az audiofil mód inaktív",
   "audiophile.pure": "PURE",
   "audiophile.lockVolume": "Teljes hangerő az audiofil mód bekapcsolásakor (minden zóna alapértéke)",

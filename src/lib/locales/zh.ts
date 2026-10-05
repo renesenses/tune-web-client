@@ -833,6 +833,10 @@ export default {
   // Audiophile Mode
   'audiophile.title': '发烧友模式',
   'audiophile.enabled': '发烧友模式已启用',
+  "audiophile.rgIgnored": "PURE：忽略 ReplayGain，播放保持比特完美。",
+  "audiophile.rgIgnoredDb": "PURE：忽略 ReplayGain，播放保持比特完美。当前曲目：{db} dB 未应用，电平会相应变化。",
+  "signal.pureRgIgnored": "PURE 模式下忽略 ReplayGain：播放保持比特完美。",
+  "signal.pureRgIgnoredDb": "PURE 模式下忽略 ReplayGain：播放保持比特完美。当前曲目：{db} dB 未应用。",
   'audiophile.disabled': '发烧友模式未启用',
   'audiophile.pure': 'PURE',
   'audiophile.lockVolume': "开启发烧模式时音量固定为 100 %（所有区域的默认值）",
