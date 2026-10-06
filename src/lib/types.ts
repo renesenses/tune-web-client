@@ -84,6 +84,8 @@ export interface Artist {
   musicbrainz_id?: string | null;
   discogs_id?: string | null;
   bio?: string | null;
+  /** Provenance de `bio` (source, URL, licence, langue) — absente sur un serveur ancien. */
+  bio_provenance?: import('./library/attributionBio').BioProvenance | null;
   image_path?: string | null;
   image_source?: string | null;
   source_id?: string | null;
