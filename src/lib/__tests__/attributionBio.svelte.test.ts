@@ -71,7 +71,8 @@ describe('attributionBio — règles', () => {
   });
 
   it('un lien n’est posé que sur une URL http(s)', () => {
-    expect(attributionBio({ source: 'wikipedia', source_url: 'javascript:alert(1)' })!.urlArticle).toBeNull();
+    expect(attributionBio({ source: 'wikipedia', source_url: 'javascript:void(0)' })!.urlArticle).toBeNull();
+    expect(attributionBio({ source: 'wikipedia', source_url: 'data:text/html,x' })!.urlArticle).toBeNull();
   });
 
   it('provenanceDe : `bio_provenance` d’abord, sinon les champs à plat du proxy', () => {
