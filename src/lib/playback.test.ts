@@ -172,7 +172,7 @@ describe('playFromHere — les titres précédents (#5770)', () => {
     const tete = addToQueue.mock.calls.slice(1).map((c) => c[1]);
     expect(tete).toEqual([
       { position: 0, track_id: 1 },
-      expect.objectContaining({ position: 1, source_id: 'a' }),
+      { tracks: [expect.objectContaining({ source: 'qobuz', source_id: 'a' })], position: 1 },
       { position: 2, track_id: 2 },
     ]);
   });
