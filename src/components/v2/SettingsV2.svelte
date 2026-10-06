@@ -33,12 +33,17 @@
   import { preferences, estDispositionFile, DISPOSITION_FILE_DEFAUT } from '../../lib/stores/preferences';
   import { typesSourcesBarre } from '../../lib/sources';
   import { TYPES_SOURCE_BARRE, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
+  import {
+    ID_GREFFON_ENTREE_AUDIO, etatGreffonEntreeAudio, propositionEntreeAudioVisible,
+    type EtatGreffonEntreeAudio, type FicheGreffon,
+  } from '../../lib/greffonEntreeAudio';
   import { atLeast } from '../../lib/uiLevel';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
+  import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
   import {
@@ -74,6 +79,8 @@
   import { streamingServices } from '../../lib/stores/streaming';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
+  // tune-server-rust#5868 — l'identification par empreinte AcoustID.
+  import { lireBlocAcoustid, issueDuLancement, reglageCle, phraseDuMotif, NOM_ACOUSTID, type BlocAcoustid } from '../../lib/acoustid';
   import { telechargerJournaux } from '../../lib/journaux';
 import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../lib/annonceSlimproto';
   import {
@@ -81,11 +88,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     FILE_ALEATOIRE_DEFAUT, FILE_ALEATOIRE_MIN_REPLI, FILE_ALEATOIRE_MAX_REPLI,
     type BornesFileAleatoire,
   } from '../../lib/fileAleatoire';
+  import {
+    bornesSondeReseau, lireSondeReseau, versPatchSondeReseau, bornerSondeReseau,
+    SONDE_RESEAU_DEFAUT_S, type BornesSondeReseau,
+  } from '../../lib/sondeReseau';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
-  import { etatPartage } from '../../lib/smbMountState';
+  import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
   import {
     detailAppareilIgnore,
     libelleAppareilIgnore,
@@ -106,7 +117,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
-  import { V2_SETTINGS, type V2SettingsTabId, tabLabel } from '../../lib/v2Settings';
+  import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
   import PluginsV2 from './PluginsV2.svelte';
   import { tip } from '../../lib/tooltip';
   import CreteMetre from '../partages/CreteMetre.svelte';
@@ -282,7 +293,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   $effect(() => {
     const target = $v2SettingsTarget;
     if (!target) return;
-    tabId = target.tab;
+    // Une section déplacée (Wi-Fi : Audio → Système) reste atteignable par
+    // une cible qui nomme encore son ancien onglet.
+    tabId = ongletDeLaSection(target.tab, target.section);
     highlight = target.section ?? null;
     cibleZone = target.zone ?? null;
     v2SettingsTarget.set(null);
@@ -359,6 +372,39 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.error(get(t)('renderer.saveError' as any));
     }
     finally { fileAleatoireBusy = false; }
+  }
+
+  // Délai de relecture des partages réseau — `network_poll_interval_secs`
+  // (tune-server-rust#5792, fil 2148). En minutes à l'écran, en secondes côté
+  // serveur ; caché si le serveur ne publie pas la clé.
+  let sondeReseau = $state<number | null>(null);
+  let sondeReseauSaisie = $state<string>('');
+  let sondeReseauBornes = $state<BornesSondeReseau>({ min: 1, max: 60 });
+  let sondeReseauBusy = $state(false);
+  $effect(() => {
+    api.getConfig()
+      .then((c: any) => {
+        sondeReseauBornes = bornesSondeReseau(c);
+        sondeReseau = lireSondeReseau(c, sondeReseauBornes);
+        sondeReseauSaisie = sondeReseau === null ? '' : String(sondeReseau);
+      })
+      .catch(() => { sondeReseau = null; });
+  });
+  async function setSondeReseau(brut: string) {
+    if (sondeReseau === null) return;
+    const valeur = bornerSondeReseau(brut.trim(), sondeReseauBornes);
+    sondeReseauSaisie = String(valeur);
+    if (valeur === sondeReseau) return;
+    const avant = sondeReseau;
+    sondeReseau = valeur;
+    sondeReseauBusy = true;
+    try { await api.updateConfig(versPatchSondeReseau(brut.trim(), sondeReseauBornes)); }
+    catch {
+      sondeReseau = avant;
+      sondeReseauSaisie = String(avant);
+      notifications.error(get(t)('renderer.saveError' as any));
+    }
+    finally { sondeReseauBusy = false; }
   }
 
   // « Sorties audio locales » — plusieurs reglages serveur + la liste des
@@ -1665,6 +1711,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       : [...directoryOrder.filter((d) => musicDirs.includes(d)),
         ...musicDirs.filter((d) => !directoryOrder?.includes(d))],
   );
+  /**
+   * tune-server-rust#5593 — les racines EXCLUES des analyses de fond
+   * (ReplayGain, plage dynamique, empreintes, CLAP). `null` : le serveur ne
+   * publie pas le réglage, et les cases ne s'affichent pas.
+   */
+  let analysisExcluded = $state<string[] | null>(null);
   let newDir = $state('');
   let dirBusy = $state(false);
   let scanning = $state(false);
@@ -1674,6 +1726,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    *  éteinte : le serveur n'interroge LRCLIB que sur la chaîne "true". */
   let lrclibOn = $state(false);
   let lrclibErr = $state<string | null>(null);
+  // « Écrire les modifications dans les fichiers audio » — décoché par défaut
+  // (Bertrand, 05/10/2026). Absent de la config : décoché, comme le serveur.
+  let ecritureFichiersOn = $state(false);
+  let ecritureFichiersErr = $state<string | null>(null);
   let schedOn = $state(false);
   let schedTime = $state('03:00');
   // #1578 : date (jour local) de la dernière occurrence honorée du scan
@@ -1701,6 +1757,46 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try { smbMounts = await api.listSmbMounts(); } catch { smbMounts = []; }
   }
   $effect(() => { void loadSmbMounts(); });
+
+  /* Fil 2145 (Daniel Levy) — la ligne d'un partage n'avait AUCUNE action.
+   * Un partage monté mais jamais déclaré ne pouvait être déclaré qu'en
+   * recopiant son chemin /mnt/… à la main, et un partage en double (même NAS
+   * sous deux adresses) ne pouvait pas être retiré. */
+  let smbBusy = $state<number | null>(null);
+  let smbErr = $state<string | null>(null);
+  async function ajouterPartage(m: api.SmbMount) {
+    if (!m.mount_path || smbBusy !== null) return;
+    smbBusy = m.id; smbErr = null;
+    try {
+      const r = await api.addMusicDir(m.mount_path);
+      musicDirs = r?.music_dirs ?? [...musicDirs, m.mount_path];
+      await refreshDirectoryOrder();
+    } catch (e: any) { smbErr = e?.message ?? get(t)('settings.errFolderRejected'); }
+    smbBusy = null;
+  }
+  async function oublierPartage(m: api.SmbMount) {
+    if (smbBusy !== null) return;
+    smbBusy = m.id; smbErr = null;
+    try {
+      const r = await oublierUnPartage(
+        m.id,
+        (id, confirmer, retirer) => api.forgetSmbShare(id, confirmer, retirer),
+        (racines, pistes) => dialogs.confirmAvecCase(
+          get(t)('settings.smbForgetConfirm' as any)
+            .replace('{count}', String(racines.length))
+            .replace('{paths}', racines.join('\n')),
+          get(t)('settings.smbForgetRemoveDirs' as any).replace('{tracks}', String(pistes)),
+          { danger: true, coche: true },
+        ),
+      );
+      if (r?.racines_retirees?.length) {
+        await refreshLibrary();
+        if (r.purge_refusee) smbErr = get(t)('settings.smbForgetPurgeRefused' as any);
+      }
+      await loadSmbMounts();
+    } catch (e: any) { smbErr = e?.message ?? get(t)('settings.smbForgetFailed' as any); }
+    smbBusy = null;
+  }
 
   /* --- Base : sauvegardes, export / import, index de recherche ------------
    *
@@ -1841,12 +1937,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const c: any = await api.getConfig();
       musicDirs = Array.isArray(c?.music_dirs) ? c.music_dirs : [];
+      analysisExcluded = Array.isArray(c?.background_analysis_excluded_roots)
+        ? c.background_analysis_excluded_roots.filter((r: unknown) => typeof r === 'string')
+        : null;
       await refreshDirectoryOrder();
       // Absent vaut VRAI cote serveur, et les valeurs peuvent arriver en
       // chaine ('false') aussi bien qu'en booleen.
       qualitySplit = !(c?.quality_split === false || c?.quality_split === 'false'
         || c?.quality_split === 0 || c?.quality_split === '0');
       lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
+      ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
     } catch { libErr = get(t)('settings.errConfigUnavailable'); }
     try {
       const sch: any = await api.getScanSchedule();
@@ -1931,6 +2031,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       newDir = '';
     } catch (e: any) { libErr = e?.message ?? get(t)('settings.errFolderRejected'); }
     dirBusy = false;
+  }
+  /**
+   * #5593 — cocher ou décocher les analyses de fond d'une racine. Le serveur
+   * reçoit la liste COMPLÈTE des racines exclues ; s'il refuse, la case revient
+   * à son état d'avant.
+   */
+  function setAnalyseDuDossier(d: string, analyser: boolean) {
+    if (analysisExcluded === null) return;
+    const avant = analysisExcluded;
+    const suivant = analyser ? avant.filter((r) => r !== d) : [...avant.filter((r) => r !== d), d];
+    analysisExcluded = suivant;
+    patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
   }
   /** Retirer un dossier ne SUPPRIME aucun fichier : on le dit dans l'ecran,
    *  sinon le bouton fait peur a juste titre. */
@@ -2032,6 +2144,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch {
       lrclibOn = before;
       lrclibErr = get(t)('settings.errSaveFailed');
+    }
+  }
+  /** Même patron que `setLrclib` : un refus du serveur remet la case en place. */
+  async function setEcritureFichiers(v: boolean) {
+    const before = ecritureFichiersOn; ecritureFichiersOn = v; ecritureFichiersErr = null;
+    try {
+      await api.updateConfig({ [CLE_ECRITURE_FICHIERS]: v });
+    } catch {
+      ecritureFichiersOn = before;
+      ecritureFichiersErr = get(t)('settings.errSaveFailed');
     }
   }
   async function saveSchedule() {
@@ -3156,6 +3278,84 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     await relireCredits();
   }
 
+  /**
+   * Identification par empreinte acoustique — tune-server-rust#5868.
+   *
+   * Tout dépend du bloc `acoustid` de `GET /system/background-tasks` : un
+   * serveur qui ne le publie pas (antérieur à #5868) ne connaît pas
+   * `?mode=acoustid` et répondrait `400 mode_inconnu`. Sans bloc, ni bouton
+   * ni champ de clé.
+   *
+   * Le `409` (pas de `fpcalc`, pas de clé, identification en pause ou déjà en
+   * cours) est lu comme une RÉPONSE : l'écran dit le motif dans sa langue.
+   */
+  let acoustid = $state<BlocAcoustid | null>(null);
+  let acoustidEnVol = $state(false);
+  let acoustidErr = $state<string | null>(null);
+  async function relireAcoustid() {
+    try { acoustid = lireBlocAcoustid(await api.getBackgroundTasks()); }
+    catch { acoustid = null; }
+  }
+  $effect(() => { void relireAcoustid(); });
+  async function lancerAcoustid() {
+    if (acoustidEnVol) return;
+    acoustidErr = null;
+    acoustidEnVol = true;
+    const tr = get(t);
+    try {
+      const issue = issueDuLancement(await api.lancerIdentificationAcoustid(), (k) => tr(k as any));
+      if (issue.genre === 'refuse') acoustidErr = issue.phrase;
+      else if (issue.total === 0) notifications.info(tr('acoustid.nothing' as any));
+      else notifications.info(tr('acoustid.started' as any).replace('{n}', get(formatNombre)(issue.total)));
+    } catch (e) {
+      acoustidErr = errText(e) ?? tr('settings.errStartFailed');
+    } finally {
+      acoustidEnVol = false;
+    }
+    await relireAcoustid();
+  }
+
+  /**
+   * La clé d'application AcoustID — réglage SERVEUR (`acoustid_api_key`),
+   * caviardé par `tune_core::secrets`. Même règle que les jetons de services :
+   * 🔴 le champ reste VIDE, toujours. Le client ne détient jamais la clé en
+   * clair ; l'état « configurée » vient du bloc (`api_key_configured`).
+   */
+  let acoustidCle = $state('');
+  let acoustidCleEnVol = $state(false);
+  async function enregistrerCleAcoustid() {
+    const tr = get(t);
+    const valeur = acoustidCle.trim();
+    if (!valeur) { notifications.error(tr('serviceTokens.noValueEntered' as any)); return; }
+    acoustidCleEnVol = true;
+    try {
+      await api.updateConfig({ [reglageCle(acoustid)]: valeur });
+      acoustidCle = '';
+      notifications.success(tr('acoustid.keySaved' as any));
+    } catch (e) {
+      notifications.error(`${tr('serviceTokens.error' as any)} : ${errText(e) ?? ''}`);
+    } finally {
+      acoustidCleEnVol = false;
+    }
+    await relireAcoustid();
+  }
+  async function retirerCleAcoustid() {
+    const tr = get(t);
+    const ok = await dialogs.confirm(tr('serviceTokens.confirmRemove' as any).replace('{name}', NOM_ACOUSTID), { danger: true });
+    if (!ok) return;
+    acoustidCleEnVol = true;
+    try {
+      await api.updateConfig({ [reglageCle(acoustid)]: '' });
+      acoustidCle = '';
+      notifications.success(tr('acoustid.keyRemoved' as any));
+    } catch (e) {
+      notifications.error(`${tr('serviceTokens.error' as any)} : ${errText(e) ?? ''}`);
+    } finally {
+      acoustidCleEnVol = false;
+    }
+    await relireAcoustid();
+  }
+
   // ── Rangement des fichiers importes ───────────────────────────────────
   let ingest = $state<any | null>(null);
   let ingestErr = $state<string | null>(null);
@@ -3188,6 +3388,37 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    *  source : décider une case ne décide qu'elle. */
   function basculerTypeSource(type: TypeSourceBarre, coche: boolean) {
     preferences.update((pr) => ({ ...pr, sourcesBarre: { ...(pr.sourcesBarre ?? {}), [type]: coche } }));
+  }
+
+  // tune-server-rust#5296 — « Entrée audio » ou « Entrée virtuelle » cochée,
+  // mais le greffon qui publie ces sources n'est pas installé : le proposer
+  // ici, par la route d'installation existante, et rappeler le redémarrage.
+  let greffonEntreeAudio = $state<EtatGreffonEntreeAudio>('inconnu');
+  let installationEntreeAudio = $state(false);
+  let erreurEntreeAudio = $state<string | null>(null);
+  const entreeAudioCochee = $derived($typesSourcesBarre.entree || $typesSourcesBarre.virtuelle);
+  $effect(() => {
+    if (!entreeAudioCochee) return;
+    api.getInstalledPlugins()
+      .then((liste) => { greffonEntreeAudio = etatGreffonEntreeAudio(liste as unknown as FicheGreffon[]); })
+      // Indéterminé : on ne propose rien sur une erreur réseau.
+      .catch(() => {});
+  });
+  async function installerGreffonEntreeAudio() {
+    if (installationEntreeAudio) return;
+    installationEntreeAudio = true;
+    erreurEntreeAudio = null;
+    // Résolue AVANT l'attente : un `$t()` dans un `catch` est invisible au build.
+    const msgKo = $t('v2.sources.greffonErreur' as any);
+    try {
+      const r = await api.installPlugin(ID_GREFFON_ENTREE_AUDIO);
+      greffonEntreeAudio = r?.restart_required === false ? 'actif' : 'a_redemarrer';
+    } catch {
+      erreurEntreeAudio = msgKo;
+      notifications.error(msgKo);
+    } finally {
+      installationEntreeAudio = false;
+    }
   }
 </script>
 
@@ -3416,6 +3647,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </label>
                 </div>
               {/each}
+              {#if propositionEntreeAudioVisible($typesSourcesBarre, greffonEntreeAudio)}
+                <div class="row" data-greffon-entree-audio={greffonEntreeAudio}>
+                  <div class="lbl">
+                    <span>{greffonEntreeAudio === 'a_installer'
+                      ? $t('v2.sources.greffonManque' as any)
+                      : $t('v2.sources.greffonRedemarrer' as any)}</span>
+                    {#if erreurEntreeAudio}<span class="hint">{erreurEntreeAudio}</span>{/if}
+                  </div>
+                  {#if greffonEntreeAudio === 'a_installer'}
+                    <button class="lnk installer-entree-audio" disabled={installationEntreeAudio}
+                      onclick={installerGreffonEntreeAudio}>
+                      {installationEntreeAudio
+                        ? $t('v2.sources.greffonInstallation' as any)
+                        : $t('v2.sources.greffonInstaller' as any)}
+                    </button>
+                  {/if}
+                </div>
+              {/if}
 
               <!-- tune-server-rust#4368 — FabienM (fil 1829, point 11) :
                    « Il faut grouper par source et tous les résultats Qobuz
@@ -3696,6 +3945,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
             {:else if s.id === 'metadata'}
+              <!-- Bertrand, 05/10/2026 : « Écrire les tags dans les fichiers :
+                   inactif par défaut ! » Décochée, une modification ne va
+                   qu'en base ; les fichiers audio ne sont pas touchés. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.fileWrites' as any)}</span>
+                  <span class="hint">{$t('settings.fileWritesHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-cle={CLE_ECRITURE_FICHIERS} checked={ecritureFichiersOn}
+                    onchange={(e) => setEcritureFichiers((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if ecritureFichiersErr}<div class="errline">{ecritureFichiersErr}</div>{/if}
               <!-- #4051 : la carte descend au niveau débutant pour cette case
                    (#2859) ; le renvoi vers le Studio reste Avancé. -->
               <div class="row">
@@ -3774,6 +4038,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
               <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
+              <!-- tune-server-rust#5868 — absente face à un serveur sans le bloc `acoustid`. -->
+              {#if acoustid}
+                <div class="row" data-acoustid="lancer">
+                  <div class="lbl">
+                    <span>{$t('acoustid.launch' as any)}</span>
+                    <span class="hint">{$t('acoustid.launchHint' as any)}</span>
+                    {#if !acoustid.available}
+                      <span class="hint bad" data-acoustid="motif">{phraseDuMotif(acoustid.reason, acoustid.message, (k) => $t(k as any))}</span>
+                    {/if}
+                  </div>
+                  <button class="lnk" disabled={acoustidEnVol} onclick={lancerAcoustid}>
+                    {$t((acoustidEnVol ? 'v2.set.running' : 'v2.set.start') as any)}
+                  </button>
+                </div>
+                {#if acoustidErr}<div class="errline" data-acoustid="refus">{acoustidErr}</div>{/if}
+              {/if}
 
             {:else if s.id === 'ingest'}
               {#if !ingest}
@@ -3832,6 +4112,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="slider"></span>
                   </label>
                 </div>
+                {#if ingest.file_writes_enabled === false}<p class="hint">{$t('fileWrites.offHint' as any)}</p>{/if}
                 {#if ingestErr}<div class="errline">{ingestErr}</div>{/if}
               {/if}
 
@@ -4257,6 +4538,35 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <PluginsV2 />
 
             {:else if s.id === 'tokens'}
+              <!-- tune-server-rust#5868 — la clé AcoustID, réglage serveur
+                   caviardé : champ TOUJOURS vide. Absente sans le bloc, et si
+                   le serveur la sert un jour dans la liste des jetons. -->
+              {#if acoustid && !(Array.isArray(stk) && stk.some((x) => x?.id === 'acoustid'))}
+                <div class="svc" data-acoustid="cle">
+                  <div class="svchead">
+                    <span class="svcdot" style:background={acoustid.api_key_configured ? '#22c55e' : 'transparent'}></span>
+                    <span class="svcname">{NOM_ACOUSTID}</span>
+                    <span class="svcstate">{#if acoustid.api_key_configured}{$t('acoustid.keyConfigured' as any)}{:else}{$t('serviceTokens.statusNotConfigured' as any)}{/if}</span>
+                  </div>
+                  <p class="hint">{$t('acoustid.keyHint' as any)}</p>
+                  <div class="svcfields">
+                    <label class="svcfield">
+                      <span>{$t('acoustid.keyLabel' as any)}</span>
+                      <input type="password" bind:value={acoustidCle} autocomplete="off"
+                        placeholder={acoustid.api_key_configured ? $t('serviceTokens.configuredPlaceholder' as any) : ''} />
+                    </label>
+                  </div>
+                  <div class="inline">
+                    <button class="lnk" disabled={acoustidCleEnVol} onclick={enregistrerCleAcoustid}>
+                      {$t((acoustidCleEnVol ? 'common.loading' : 'common.save') as any)}
+                    </button>
+                    {#if acoustid.api_key_configured}
+                      <button class="lnk danger" disabled={acoustidCleEnVol} onclick={retirerCleAcoustid}>{$t('common.delete' as any)}</button>
+                    {/if}
+                  </div>
+                  <a class="lnk" href="https://acoustid.org/new-application" target="_blank" rel="noopener noreferrer">{$t('serviceTokens.howToGetToken' as any)}</a>
+                </div>
+              {/if}
               <p class="hint">
                 {$t('v2.lbl.theTokens' as any)} <b>MusicBrainz</b>, <b>Discogs</b>, <b>Last.fm</b>, <b>Genius</b> {$t('v2.smart.and' as any)}
                 <b>ListenBrainz</b> {$t('v2.hint.tokensUse' as any)}
@@ -4877,7 +5187,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
                 <div class="dirs">
                   {#each displayedMusicDirs as d, index (d)}
-                    <div class="dir" class:ordered={directoryOrder !== null && displayedMusicDirs.length > 1}>
+                    <div class="dir" class:ordered={directoryOrder !== null && displayedMusicDirs.length > 1}
+                      class:avec-analyse={analysisExcluded !== null}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                       <span class="dp">{d}</span>
                       {#if directoryOrder !== null && displayedMusicDirs.length > 1}
@@ -4903,6 +5214,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <button class="lnk scan-dir" disabled={dirBusy || scanning}
                         onclick={() => scan(false, d)}
                         title={$t('v2.scan.folderHint' as any)}>{$t('v2.scan.folderAction' as any)}</button>
+                      <!-- tune-server-rust#5593 — inclure ou exclure CETTE racine des
+                           analyses de fond (ReplayGain, plage dynamique, empreintes,
+                           CLAP). Cochée par défaut : rien n'est exclu. -->
+                      {#if analysisExcluded !== null}
+                        <label class="dir-analyse" title={$t('settings.backgroundAnalysisFoldersHint' as any)}>
+                          <input type="checkbox" checked={!analysisExcluded.includes(d)} disabled={dirBusy}
+                            aria-label={$t('settings.backgroundAnalysisFolderAria' as any).replace('{path}', d)}
+                            onchange={(e) => setAnalyseDuDossier(d, (e.currentTarget as HTMLInputElement).checked)} />
+                          <span>{$t('settings.backgroundAnalysisFolder' as any)}</span>
+                        </label>
+                      {/if}
                       <button class="del" disabled={dirBusy} onclick={() => removeDir(d)} aria-label={$t('settings.removeFolderAria' as any)}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                       </button>
@@ -4910,11 +5232,36 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/each}
                 </div>
                 {#if orderError}<p class="errline" role="alert">{orderError}</p>{/if}
+                {#if analysisExcluded !== null}
+                  <p class="hint">{$t('settings.backgroundAnalysisFoldersHint' as any)}</p>
+                {/if}
                 <p class="hint">{#each emphaseParts($t('settings.removeFolderHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {:else}
                 <p class="hint">{$t('settings.noFolderDeclared' as any)}</p>
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
+              <!-- Délai de relecture des partages réseau (#5792, fil 2148).
+                   Les bornes sont celles que le serveur publie. -->
+              {#if sondeReseau !== null}
+                <div class="row sonde-reseau">
+                  <div class="lbl">
+                    <span>{$t('settings.networkPollInterval' as any)}</span>
+                    <span class="hint">{$t('settings.networkPollIntervalHint' as any)}</span>
+                    <span class="hint">
+                      {$t('settings.defaultValueColon' as any)} {$formatNombre(Math.round(SONDE_RESEAU_DEFAUT_S / 60))}
+                      — {$t('settings.networkPollIntervalRange' as any)
+                        .replace('{min}', $formatNombre(sondeReseauBornes.min))
+                        .replace('{max}', $formatNombre(sondeReseauBornes.max))}
+                    </span>
+                  </div>
+                  <input class="txt num" type="number"
+                    min={sondeReseauBornes.min} max={sondeReseauBornes.max} step="1"
+                    disabled={sondeReseauBusy}
+                    aria-label={$t('settings.networkPollInterval' as any)}
+                    bind:value={sondeReseauSaisie}
+                    onchange={(e) => setSondeReseau((e.currentTarget as HTMLInputElement).value)} />
+                </div>
+              {/if}
               <!-- Partages réseau et leur état réel (#2069). Masquée s'il n'y en
                    a aucun, ou si le serveur ne publie pas la route. -->
               {#if smbMounts.length}
@@ -4928,10 +5275,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <!-- SMB 1 est obsolète et non chiffré : y retomber peut être
                            la seule façon de lire un streamer, mais pas en silence. -->
                       <span class="dh" title={e.signalerSmb1 ? $t('settings.smb1Hint' as any) : undefined}>{e.signalerSmb1 ? 'SMB 1.0' : (m.mount_path ?? '')}</span>
-                      <span></span>
+                      <span class="smb-actions">
+                        {#if proposerAjout(m, musicDirs)}
+                          <button class="lnk" disabled={smbBusy !== null} onclick={() => ajouterPartage(m)}
+                            title={$t('settings.smbNotDeclaredHint' as any)}>{$t('smb.addToLibrary' as any)}</button>
+                        {/if}
+                        <button class="lnk" disabled={smbBusy !== null} onclick={() => oublierPartage(m)}>{$t('settings.smbForget' as any)}</button>
+                      </span>
                     </div>
                     {#if e.cause}<div class="errline">{e.cause}</div>{/if}
+                    {#if proposerAjout(m, musicDirs)}<p class="hint">{$t('settings.smbNotDeclaredHint' as any)}</p>{/if}
                   {/each}
+                  {#if smbErr}<div class="errline" role="alert">{smbErr}</div>{/if}
                 </div>
               {/if}
 
@@ -6271,6 +6626,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dirs{display:flex; flex-direction:column; gap:1px; margin-top:12px}
   .dir{display:grid; grid-template-columns:20px minmax(0,1fr) auto auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
   .dir.ordered{grid-template-columns:20px minmax(0,1fr) auto auto auto}
+  .dir.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto}
+  .dir.ordered.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
+  .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:12px; color:var(--v2-txt2)}
   .directory-order-hint{margin-top:12px}
   .dir-order{display:flex; align-items:center; gap:3px}
   .dir-order .lnk{min-width:28px; min-height:28px}
@@ -6411,6 +6769,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dev.ign{grid-template-columns:minmax(0,1fr) auto auto auto; cursor:default}
   .dev.ign.ko .dt{color:var(--v2-danger)}
   .devlist.smb{margin-top:14px}
+  .smb-actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
   .dev .dh{font:10px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .dev .pin{width:110px; height:28px; border-radius:8px; border:1px solid var(--v2-acc2);
     background:var(--v2-surface2); color:var(--v2-txt); font:12px var(--v2-mono); padding:0 9px; outline:none}

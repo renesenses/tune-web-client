@@ -5,6 +5,7 @@ import { notifications } from '../stores/notifications';
 import { getToken, clearToken } from '../auth';
 import { profileHeader } from '../profileHeader';
 import { messageRefusPremium, type CorpsRefusPremium } from '../premiumRefus';
+import { estRefusEcriture, messageRefusEcriture } from '../ecritureFichiers';
 
 export const BASE = '/api/v1';
 
@@ -24,7 +25,8 @@ async function apiError(response: Response): Promise<Error> {
     // dont le message est souvent la seule explication actionnable ("destination
     // hors des dossiers musicaux configurés") — le perdre laissait l'UI avec un
     // « 400 Bad Request » nu.
-    if (body.detail) detail = body.detail;
+    if (estRefusEcriture(body)) detail = messageRefusEcriture();
+    else if (body.detail) detail = body.detail;
     else if (typeof body.error === 'string') detail = body.error;
   } catch {
     /* ignore */

@@ -75,6 +75,13 @@ export interface PisteEcoutee {
   source?: string | null;
   /** Un nombre pour la bibliothèque ; une chaîne (ou un nombre, Deezer) pour un service. */
   artist_id?: number | string | null;
+  /**
+   * L'artiste chez le SERVICE, posé à part — fil forum 2143 (#5758) : les
+   * lignes de `GET /zones/{id}/queue` portent `artist_id` (entier de
+   * bibliothèque) ET `artist_id_service`. Il prime sur `artist_id` pour une
+   * piste de service, comme `album_id_service` dans `routageAlbum`.
+   */
+  artist_id_service?: string | null;
   artist_name?: string | null;
 }
 
@@ -113,8 +120,10 @@ export function destinationArtiste(piste: PisteEcoutee | null | undefined): Dest
   // 0. SERVICE avec identifiant — #956 : l'identifiant est celui du service,
   //    quel que soit son type (Qobuz le sert en chaîne, Deezer en nombre).
   //    Il ne désigne RIEN dans la bibliothèque, et ouvre la fiche directement.
-  if (estUnService(source) && id != null && String(id).trim() !== '') {
-    return { type: 'artiste-service', service: source as string, id: String(id).trim(), nom };
+  //    `artist_id_service` (file d'attente, #5758) passe d'abord.
+  const idService = piste?.artist_id_service?.trim() ? piste.artist_id_service.trim() : id;
+  if (estUnService(source) && idService != null && String(idService).trim() !== '') {
+    return { type: 'artiste-service', service: source as string, id: String(idService).trim(), nom };
   }
 
   // 1. LOCAL — l'identifiant prime sur tout le reste : c'est la seule donnée

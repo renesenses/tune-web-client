@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import * as api from '../../lib/api';
   import { refusConcerts, type RefusConcerts } from '../../lib/concertsRefus';
@@ -9,6 +9,7 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { preferences } from '../../lib/stores/preferences';
   import { grouperConcerts, normaliserTriConcerts, type TriConcerts } from '../../lib/concertsTri';
+  import { PAYS_PAR_DEFAUT, codeDePays, optionsDePays } from '../../lib/concertsPays';
 
   // L'écran répond à une question, une seule : « les artistes que j'écoute
   // jouent-ils près de chez moi ? » — demande de FabienM et Didier, fil 1540.
@@ -33,7 +34,11 @@
   let rayon = $state<number>(100);
   let commune = $state('');
   let codePostal = $state('');
-  let pays = $state('FR');
+  // Fil forum 2150 : le pays se CHOISIT (sélecteur ci-dessous). Il valait
+  // `'FR'` sans champ pour le changer, si bien qu'une commune suisse partait
+  // au géocodeur avec `country=FR` et que « Dans mon pays » montrait la France.
+  let pays = $state(PAYS_PAR_DEFAUT);
+  let optionsPays = $derived(optionsDePays($locale, pays));
   let localisee = $state<boolean | null>(null);
   let enregistrement = $state(false);
 
@@ -102,7 +107,7 @@
       if (l.radius_km) rayon = l.radius_km;
       if (l.city && l.city !== '—') commune = l.city;
       if (l.postal_code) codePostal = l.postal_code;
-      if (l.country) pays = l.country;
+      if (codeDePays(l.country)) pays = codeDePays(l.country)!;
       // Ne pas écraser le verdict plus frais de `upcoming` : la liste vient
       // d'être servie, c'est elle qui dit si le rayon s'applique.
       if (typeof l.located === 'boolean' && localisee === null) localisee = l.located;
@@ -152,7 +157,7 @@
       if (typeof reponse.located === 'boolean') localisee = reponse.located;
       if (reponse.radius_km) rayon = reponse.radius_km;
       if (reponse.city) commune = reponse.city;
-      if (reponse.country) pays = reponse.country;
+      if (codeDePays(reponse.country)) pays = codeDePays(reponse.country)!;
       // Un code d'anomalie est traduisible ; une phrase du serveur ne l'est pas.
       if (reponse.code) anomalie = reponse.code;
     } catch (e) {
@@ -310,6 +315,30 @@
         </button>
       </div>
 
+      <!-- Fil forum 2150 : le pays de la commune ET de « Dans mon pays ».
+           Changé sous « Dans mon pays », il s'applique aussitôt ; sous
+           « Autour de moi », avec la commune, par « Appliquer ». -->
+      {#if perimetre !== 'world'}
+        <label class="cc-pays">
+          <span>{$t('concerts.pays')}</span>
+          <select
+            bind:value={pays}
+            disabled={enregistrement}
+            onchange={() => { if (perimetre === 'country') void enregistrerLocalisation('country'); }}
+          >
+            {#each optionsPays as option (option.code)}
+              <option value={option.code}>{option.nom}</option>
+            {/each}
+          </select>
+        </label>
+      {/if}
+
+      {#if perimetre === 'country'}
+        <!-- Fil 2150 (#5807) : un seul pays par instance côté nuage. Pour
+             deux pays voisins, c'est le rayon qu'il faut. -->
+        <p class="cc-note cc-pays-voisins">{$t('concerts.paysVoisinsNote')}</p>
+      {/if}
+
       {#if perimetre === 'radius'}
         <div class="cc-commune">
           <input
@@ -340,6 +369,11 @@
              coordonnées tirées de l'adresse IP, qui derrière un VPN désignent
              un autre pays. -->
         <p class="cc-note">{$t('concerts.communeSaisieNote')}</p>
+        <!-- Fil 2150 (#5807) : le rayon du nuage est une distance autour de
+             la commune (`PerimetreConcerts::appliquer`), sans aucun filtre de
+             pays. Près de Genève, 100 km depuis une commune française
+             couvrent aussi la Suisse : le pays ne sert qu'au géocodage. -->
+        <p class="cc-note cc-sans-frontiere">{$t('concerts.rayonSansFrontiere')}</p>
         {#if ambigue && localisee !== false}
           <p class="cc-note cc-attention cc-ambigue">{$t('concerts.communeAmbigue')}</p>
         {/if}
@@ -401,7 +435,7 @@
           <li>
             <h3>{groupe.artiste}</h3>
             <ul class="cc-dates">
-              {#each groupe.concerts as date (date.event_date + (date.venue ?? '') + (date.city ?? ''))}
+              {#each groupe.concerts as date, i (groupe.cles[i])}
                 <li>
                   <span class="cc-date">{dateLisible(date.event_date)}</span>
                   <span class="cc-lieu">
@@ -441,6 +475,8 @@
   .cc-commune { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.75rem 0 0.25rem; }
   .cc-commune input { flex: 1; min-width: 8rem; padding: 0.5rem 0.75rem; border-radius: 6px; }
   .cc-commune .cc-cp { flex: 0 0 6rem; min-width: 5rem; }
+  .cc-pays { display: flex; align-items: center; gap: 0.5rem; margin: 0.75rem 0 0.25rem; }
+  .cc-pays select { padding: 0.4rem 0.6rem; border-radius: 6px; }
   .cc-note { color: var(--text-muted, #888); font-size: 0.875rem; margin: 0.35rem 0; }
   .cc-attention { color: var(--warning, #d99a2b); }
   .cc-inactif { opacity: 0.55; }

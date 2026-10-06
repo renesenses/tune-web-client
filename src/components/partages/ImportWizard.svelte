@@ -91,7 +91,11 @@
   function templateWithoutArtistLevel(tpl: string): string {
     return tpl.replace(/^\s*\{(albumartist|artist)\}\/+/, '');
   }
-  let writeTags = $state(true);
+  // Décochée par défaut (05/10/2026, « inactif par défaut ») : l'import ne
+  // retouche les fichiers que sur demande, et seulement si le réglage général
+  // « Écrire les modifications dans les fichiers audio » est coché.
+  let writeTags = $state(false);
+  let ecritureFichiersCoupee = $state(false);
   let showAdvanced = $state(false);
 
   let busy = $state(false);
@@ -173,7 +177,8 @@
       settings = s;
       mode = s.mode;
       conflictPolicy = s.conflict_policy;
-      writeTags = s.write_tags;
+      ecritureFichiersCoupee = s.file_writes_enabled === false;
+      writeTags = s.write_tags === true && !ecritureFichiersCoupee;
       template = s.template === s.default_template ? '' : s.template;
       // Une destination imposée gagne sur le réglage : l'utilisateur vient de
       // désigner un dossier, c'est plus explicite que sa préférence globale.
@@ -782,9 +787,10 @@
             <small class="muted">{$t('ingest.templateHint')}</small>
           </label>
           <label class="check">
-            <input type="checkbox" bind:checked={writeTags} />
+            <input type="checkbox" bind:checked={writeTags} disabled={ecritureFichiersCoupee} />
             <span>{$t('ingest.writeTags')}</span>
           </label>
+          {#if ecritureFichiersCoupee}<small class="muted">{$t('fileWrites.offHint' as any)}</small>{/if}
         </details>
 
         <div class="actions">

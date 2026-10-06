@@ -21,8 +21,8 @@ describe('#1682 — sections de sortie de la page artiste', () => {
     const sections = partagerParTypeDeSortie(entrees);
     expect(sections.albums.map((e) => e.principal.album.title))
       .toEqual(['Album sans type', 'Album connu', 'Type non reconnu']);
-    expect(sections.epSingles.map((e) => e.principal.album.title))
-      .toEqual(['EP connu', 'Single connu']);
+    expect(sections.eps.map((e) => e.principal.album.title)).toEqual(['EP connu']);
+    expect(sections.singles.map((e) => e.principal.album.title)).toEqual(['Single connu']);
   });
 
   it('garde les éditions fusionnées avec type manquant ou contradictoire dans Albums', () => {
@@ -36,10 +36,11 @@ describe('#1682 — sections de sortie de la page artiste', () => {
     );
 
     const sections = partagerParTypeDeSortie(entrees);
-    expect(sections.epSingles.map((e) => e.principal.album.title)).toEqual(['EP partagé']);
+    expect(sections.eps.map((e) => e.principal.album.title)).toEqual(['EP partagé']);
+    expect(sections.singles).toEqual([]);
     expect(sections.albums.map((e) => e.principal.album.title))
       .toEqual(['Copie locale', 'Edition contradictoire']);
-    expect([...sections.albums, ...sections.epSingles]).toHaveLength(entrees.length);
+    expect([...sections.albums, ...sections.eps, ...sections.singles]).toHaveLength(entrees.length);
   });
 
   it('rend les deux sections sur la fiche sans perdre une édition de type inconnu', () => {
@@ -58,7 +59,9 @@ describe('#1682 — sections de sortie de la page artiste', () => {
     try {
       flushSync();
       expect(hote.querySelector('[data-section="albums-principaux"] .ct')?.textContent).toBe('Sans type');
-      expect(hote.querySelector('[data-section="ep-singles"] .ct')?.textContent).toBe('EP certain');
+      expect(hote.querySelector('[data-section="eps"] .ct')?.textContent).toBe('EP certain');
+      expect(hote.querySelector('[data-section="singles"]')).toBeNull();
+      expect(hote.querySelector('[data-section="ep-singles"]')).toBeNull();
     } finally {
       unmount(composant);
       hote.remove();

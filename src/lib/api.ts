@@ -97,6 +97,7 @@ import type {
 
 import { baseApi, entetesRelais } from './bridge';
 import { messageRefusPremium, type CorpsRefusPremium } from './premiumRefus';
+import { estRefusEcriture, messageRefusEcriture, CODE_REFUS_ECRITURE } from './ecritureFichiers';
 import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
 import { messageRefusBitperfect } from './bitperfectStrict';
 import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
@@ -191,6 +192,7 @@ export async function erreurDepuisReponse(resp: Response): Promise<Error> {
         const j = JSON.parse(t);
         corps = j;
         if (typeof j === 'string') detail = j;
+        else if (estRefusEcriture(j)) detail = messageRefusEcriture();
         else detail = j?.error ?? j?.message ?? j?.detail ?? '';
       } catch {
         // Pas du JSON. Une page d'erreur HTML n'apprend rien a l'utilisateur ;
@@ -212,6 +214,7 @@ export async function erreurDepuisReponse(resp: Response): Promise<Error> {
   // a detourner la traduction) et le `retry_after` d'un 429 s'y perdait
   // entierement (#2178).
   err.status = resp.status;
+  if (estRefusEcriture(corps)) err.code = CODE_REFUS_ECRITURE;
   err.retryAfter = retryAfterDe(resp, corps);
   return err;
 }
@@ -391,6 +394,12 @@ async function apiError(response: Response): Promise<ApiError> {
     else if (body.message) detail = body.message;
     else if (typeof body.error === 'string' && body.error) detail = body.error;
     code = body.code ?? body.error;
+    // « Écrire les modifications dans les fichiers audio » décoché : la phrase
+    // du client, dans sa langue — le `message` du serveur est en français.
+    if (estRefusEcriture(body)) {
+      detail = messageRefusEcriture();
+      code = CODE_REFUS_ECRITURE;
+    }
   } catch {
     // Pas du JSON : c'est un message en clair, et c'est tout ce qu'on a.
     const texte = brut.trim();
@@ -1503,8 +1512,19 @@ export function next(zoneId: number) {
   return fetchJSON<{ status: string; queue_position?: number }>(`${BASE}/zones/${zoneId}/next`, { method: 'POST' });
 }
 
-export function previous(zoneId: number) {
-  return fetchJSON<{ status: string; queue_position?: number }>(`${BASE}/zones/${zoneId}/previous`, { method: 'POST' });
+/**
+ * Fil 1476 (FabienM, rc2) — `positionMs` : la position que JOUE l'onglet, pour
+ * une zone navigateur. Le serveur ne la relève pas (pas de périphérique à
+ * interroger) et la croyait à 0 : « précédent » reculait toujours au lieu de
+ * relancer la piste (#1929). Le serveur ne la lit que pour une zone navigateur.
+ */
+export function previous(zoneId: number, positionMs?: number | null) {
+  return fetchJSON<{ status: string; queue_position?: number }>(
+    `${BASE}/zones/${zoneId}/previous`,
+    positionMs != null
+      ? { method: 'POST', body: JSON.stringify({ position_ms: Math.max(0, Math.floor(positionMs)) }) }
+      : { method: 'POST' },
+  );
 }
 
 /** #3662 — le serveur rend `{position_ms}`, PAS une `Zone`
@@ -2082,6 +2102,12 @@ export function getArtistAlbums(id: number) {
  */
 export interface AlbumsArtisteSections {
   albums: Album[];
+  /**
+   * Section « Live » (05/10/2026) — les disques dont les types secondaires
+   * portent `live`, que le serveur retire de `albums`. Absente devant un
+   * serveur antérieur, et quand il n'y en a pas.
+   */
+  live?: Album[];
   /** Compilations portant au moins une piste de l'artiste. */
   compilations?: Album[];
   /** Albums d'un AUTRE artiste portant au moins une piste de celui-ci. */
@@ -2119,6 +2145,7 @@ export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
   const o = (brut ?? {}) as AlbumsArtisteSections;
   return {
     albums: o.albums ?? [],
+    live: o.live,
     compilations: o.compilations,
     appearances: o.appearances,
     collaborations: o.collaborations,
@@ -2769,7 +2796,10 @@ export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string;
  *  liste sur `updated.id`, un champ jamais envoyé (#3638). Pour rafraîchir un
  *  affichage, relire la piste avec `getTrack`. */
 export function updateTrack(id: number, data: { title?: string; album_id?: number; artist_id?: number; disc_number?: number; track_number?: number; genre?: string; year?: string }) {
-  return fetchJSON<{ status: string; track_id: number }>(`${BASE}/library/tracks/${id}`, {
+  // `file_writes_enabled` / `file_written` : publiés depuis le réglage « Écrire
+  // les modifications dans les fichiers audio » (05/10/2026) ; absents d'un
+  // serveur antérieur.
+  return fetchJSON<{ status: string; track_id: number; file_writes_enabled?: boolean; file_written?: boolean }>(`${BASE}/library/tracks/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
@@ -3387,6 +3417,33 @@ export function updateEqPreset(id: string, body: { name: string; eq_type: string
 
 export function deleteEqPreset(id: string): Promise<void> {
   return fetchVoid(`${BASE}/eq/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+/**
+ * web#1647 — importer un fichier PEQ (format AutoEq « ParametricEQ.txt », que
+ * lit aussi Equalizer APO). `POST /eq/import/autoeq` (tune-server-rust#1405,
+ * depuis v0.9.142) analyse le texte et ENREGISTRE un préréglage paramétrique
+ * dans « Mes presets » ; un fichier malformé est refusé (400, ligne nommée).
+ * Le `Preamp` du fichier n'est pas appliqué en plus de la réserve de Tune :
+ * la réponse le dit, avec les lignes écartées.
+ */
+export interface EqAutoEqImport {
+  preset: EqProPreset;
+  band_count: number;
+  ignored_filter_count?: number;
+  ignored_filters?: { line: number; filter_type: string | null; reason: string; reason_detail?: string }[];
+  preamp_db?: number;
+  reserved_headroom_db?: number;
+  preamp_applied?: boolean;
+  preamp_covered_by_headroom?: boolean;
+  warning?: string;
+}
+
+export function importAutoEqPreset(body: { text: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
+  return fetchJSON<EqAutoEqImport>(`${BASE}/eq/import/autoeq`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 
 // Headphone crossfeed — bleeds a delayed, attenuated copy of each channel
@@ -5130,6 +5187,11 @@ export interface StreamingFavorite {
    * préfère cette date-ci quand elle est là et retombe sur l'autre sinon.
    */
   first_seen_at?: string | null;
+  /**
+   * tune-server-rust#5530 — le marquage « généré par IA » du service (Qobuz,
+   * celui de l'album). Absent quand il est inconnu.
+   */
+  ai_generated?: boolean;
 }
 
 export function getProfileStreamingFavorites(
@@ -5150,6 +5212,8 @@ export function addProfileStreamingFavorite(
     artist?: string;
     album?: string;
     cover_url?: string;
+    /** tune-server-rust#5530 — le marquage IA connu du client, s'il l'a. */
+    ai_generated?: boolean;
   },
 ) {
   return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites/streaming/add`, {
@@ -6142,10 +6206,53 @@ export function testSmbConnection(host: string, share: string, username?: string
 }
 
 export function mountSmbShare(host: string, share: string, username?: string, password?: string) {
-  return fetchJSON<{ mount_path: string; id: number }>(`${BASE}/network/smb/mount`, {
+  // `deja_monte` : le partage était déjà monté à ce point, le serveur rend
+  // son chemin sans remonter (fil 2145).
+  return fetchJSON<{ mount_path: string; id: number; deja_monte?: boolean }>(`${BASE}/network/smb/mount`, {
     method: 'POST',
     body: JSON.stringify({ host, share_name: share, username, password }),
   });
+}
+
+/** Réponse de `DELETE /network/smb/mounts/{id}` (fil 2145). Un 409
+ *  `racines_dependantes` porte la liste des dossiers de la bibliothèque qui
+ *  vivent sur le partage : il faut la confirmation de l'utilisateur. */
+export interface OubliPartage {
+  oublie?: boolean;
+  demonte?: boolean;
+  racines?: string[];
+  /** 409 : pistes qui partiraient si ces dossiers étaient retirés. */
+  pistes?: number;
+  racines_retirees?: string[];
+  pistes_retirees?: number;
+  purge_refusee?: boolean;
+  error?: string;
+  message?: string;
+}
+
+/** « Oublier ce partage » : le serveur DÉMONTE puis supprime l'enregistrement.
+ *  `unmountSmbShare` (DELETE /network/mounts/{id}) supprimait la ligne sans
+ *  démonter. */
+export function forgetSmbShare(
+  id: number,
+  confirmer = false,
+  retirer?: { pistes: number },
+) {
+  // `retirer` : retirer aussi les dossiers de la bibliothèque, avec la purge
+  // de leurs pistes — `pistes` est le nombre montré à l'utilisateur, même
+  // contrat que `confirm_purge` du retrait de dossier (#1943).
+  const q = new URLSearchParams();
+  if (confirmer) q.set('confirmer', 'true');
+  if (retirer) {
+    q.set('retirer_racines', 'true');
+    q.set('confirmer_purge', String(retirer.pistes));
+  }
+  const qs = q.toString();
+  return fetchJSON<OubliPartage>(
+    `${BASE}/network/smb/mounts/${id}${qs ? `?${qs}` : ''}`,
+    { method: 'DELETE' },
+    (statut) => statut === 409,
+  );
 }
 
 export function unmountSmbShare(id: number) {
@@ -6940,6 +7047,29 @@ export interface EtatEnrichCredits {
 /** `GET /system/enrich-credits` — avancement chiffré de la passe (#4862). */
 export function getEnrichCreditsStatus() {
   return fetchJSON<EtatEnrichCredits>(`${BASE}/system/enrich-credits`);
+}
+
+/**
+ * Identification par empreinte acoustique — `POST /library/identify-all?mode=acoustid`
+ * (tune-server-rust#5868). `202 { status: 'started', total }`, ou `409` avec
+ * `code` (`fpcalc_absent`, `acoustid_cle_absente`, `identification_en_pause`,
+ * `identification_deja_en_cours`) et `message` : le 409 est ACCEPTÉ, rendu
+ * comme une réponse, pour que l'écran dise le motif au lieu d'un bandeau
+ * générique. La lecture vit dans `lib/acoustid.ts` (`issueDuLancement`).
+ */
+export function lancerIdentificationAcoustid() {
+  return fetchJSON<Record<string, unknown>>(
+    `${BASE}/library/identify-all?mode=acoustid`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
+}
+
+/** `GET /library/identify-all/status` — l'état de la passe par lot, tous modes confondus. */
+export function getIdentifyAllStatus() {
+  return fetchJSON<import('./acoustid').EtatLotIdentification>(
+    `${BASE}/library/identify-all/status`,
+  );
 }
 
 /**
@@ -8590,6 +8720,11 @@ export interface ApplianceStatus {
   wifi_signal: number | null;
   /** Motif quand `nmcli` n'a pas répondu : l'état réseau est alors inconnu, pas vide. */
   network_error?: string | null;
+  /**
+   * Cartes Wi-Fi PCI vues par le noyau, interface créée ou non (#5833). Absent
+   * sur un serveur plus ancien : on ne conclut alors rien de plus.
+   */
+  wifi_hardware?: { bus: string; slot: string; id: string; driver: string | null; interfaces: string[] }[];
 }
 
 /** Like apiFetch/apiPost but surfaces the server's JSON error message. */

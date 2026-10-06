@@ -452,7 +452,10 @@
       artisteLocal = a.value;
     }
     if (d.status === 'fulfilled') {
-      locaux = (d.value?.albums ?? []) as Album[];
+      // Section « Live » : le serveur sert les lives À PART ; ils rejoignent
+      // la grille, qui les fusionne avec les services puis les range sous
+      // « Live » d'après `release_secondary_types` (`partagerParTypeDeSortie`).
+      locaux = [...(d.value?.albums ?? []), ...(d.value?.live ?? [])] as Album[];
       // Clé ABSENTE = section vide : le serveur ne rend jamais un tableau
       // vide, et `?? []` dit ici la même chose que lui.
       compilations = (d.value?.compilations ?? []) as Album[];
