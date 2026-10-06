@@ -44,6 +44,7 @@
   import { objetAlbum, objetArtiste, objetPlaylist, type ObjetMenu } from '../../lib/gestesObjet';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist, cibleDeService } from '../../lib/cibleEtiquette';
   import { estAParaitre, dateDeParution } from '../../lib/albumAParaitre';
+  import { estMarqueIa } from '../../lib/contenuIa';
   import {
     ouvrirArtisteDepuis,
     artisteDeService,
@@ -57,11 +58,11 @@
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, ongletCourant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
   import BandcampAchats from './BandcampAchats.svelte';
-  import { cleTelechargeable, telechargementDe } from '../../lib/bandcampAchats';
+  import { cleTelechargeable, compteBandcampARelier, telechargementDe } from '../../lib/bandcampAchats';
   import type { BandcampTelechargement } from '../../lib/api';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -96,7 +97,30 @@
   // Bandcamp garde deux entrees seulement : il n'a pas de playlists, sa
   // « collection » EST l'ensemble de ce qu'on y possede.
   type Sub = 'editorial' | 'genres' | 'playlists' | 'favorites' | 'mine' | 'ytmusic';
-  let sub = $state<Sub>('editorial');
+  /**
+   * 🔴 LE SOUS-ONGLET EST PUBLIÉ DANS `ongletCourant` — fil 2143, point 2.
+   *
+   * FabienM : « impossible de définir un raccourci sur un sous menu ». Le
+   * raccourci figeait le SERVICE (#1138), jamais son sous-onglet : posé sur
+   * « Favoris » de Qobuz, il rouvrait l'éditorial. Même magasin que les
+   * Favoris et la Bibliothèque : le raccourci le fige et le repose, l'écran le
+   * lit au montage et le suit ensuite.
+   */
+  const SOUS_ONGLETS: readonly Sub[] = ['editorial', 'genres', 'playlists', 'favorites', 'mine', 'ytmusic'];
+  const sousOngletDe = (o: string | null): Sub | null =>
+    (SOUS_ONGLETS as readonly string[]).includes(o ?? '') ? (o as Sub) : null;
+  let sub = $state<Sub>(sousOngletDe(get(ongletCourant)) ?? 'editorial');
+  $effect(() => {
+    const s = sub;
+    untrack(() => { if (get(ongletCourant) !== s) ongletCourant.set(s); });
+  });
+  // Même règle que la Bibliothèque : démonté sans changement de vue, l'écran
+  // reprend l'onglet qu'il avait publié ; sinon la coquille s'en est chargée.
+  const vueAuMontage = get(activeView);
+  $effect(() => () => {
+    if (get(activeView) !== vueAuMontage) return;
+    if (get(ongletCourant) === sub) ongletCourant.set(null);
+  });
 
   let q = $state('');
   /**
@@ -322,6 +346,10 @@
   // Collection : le serveur repond 428 tant qu'aucun compte n'est relie.
   // C'est un NOM D'UTILISATEUR public, pas un identifiant de connexion.
   let bcNeedsLink = $state(false);
+  /** #2778 — la collection n'a pas pu être lue alors qu'un compte est relié
+   *  (Bandcamp en refus, réseau) : on le DIT, au lieu d'afficher une
+   *  collection vide ou de redemander le nom du compte. */
+  let bcEchec = $state(false);
   let bcUser = $state('');
   let bcLinking = $state(false);
   // Lot 3 (Yves, 16/09/2026) : les achats en FLAC. `downloads_available` dit
@@ -536,6 +564,12 @@
     bcSearch = null;
   }
 
+  // Un raccourci (ou un Précédent) qui repose le sous-onglet, écran monté.
+  $effect(() => {
+    const voulu = sousOngletDe($ongletCourant);
+    untrack(() => { if (voulu && voulu !== sub) ouvrirSousOnglet(voulu); });
+  });
+
   /**
    * Le service demande de l'EXTERIEUR, suivi tant que l'ecran est monte —
    * #1358.
@@ -604,13 +638,17 @@
           .then((d: any) => { bcItems = d?.items ?? []; }).catch(() => { bcItems = []; }).finally(done);
       } else {
         bcNeedsLink = false;
+        bcEchec = false;
         api.bandcampCollection()
           .then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; bcDownloadsAvailable = !!d?.downloads_available; chargerCopiesLocales(); })
           .catch((e: any) => {
             // 428 : aucun compte relie. Ce n'est pas une panne, c'est une
             // etape a franchir — on le dit au lieu d'afficher « rien ».
+            // #2778 : le STATUT seul en decide. Le texte d'un 502 recopie la
+            // page de Bandcamp, et une page HTML contient « link ».
             bcCollection = [];
-            bcNeedsLink = e?.status === 428 || /lié|link/i.test(e?.message ?? '');
+            bcNeedsLink = compteBandcampARelier(e);
+            bcEchec = !bcNeedsLink;
           })
           .finally(done);
       }
@@ -1031,15 +1069,25 @@
     bcLinking = true;
     try {
       await api.bandcampLink(u);
-      bcNeedsLink = false;
+    } catch {
+      error = $t('v2.str.bandcampNotFound' as any);
+      bcLinking = false;
+      return;
+    }
+    // #2778 — le compte EST relié : un rechargement qui échoue ensuite
+    // (Bandcamp en refus) ne doit pas le dire « introuvable ».
+    bcNeedsLink = false;
+    bcEchec = false;
+    try {
       await rechargerCollection();
-    } catch { error = $t('v2.str.bandcampNotFound' as any); }
+    } catch { bcEchec = true; }
     bcLinking = false;
   }
   /** Relire « Ma collection » — après une liaison, ou une session posée/oubliée
    *  (lot 3 : c'est elle qui décide de `downloadable` sur chaque achat). */
   async function rechargerCollection() {
     const d: any = await api.bandcampCollection();
+    bcEchec = false;
     bcCollection = d?.items ?? d?.collection ?? [];
     bcDownloadsAvailable = !!d?.downloads_available;
     chargerCopiesLocales();
@@ -1371,6 +1419,8 @@
                 </button>
               {/if}
             </div>{/each}</div>
+        {:else if bcEchec}
+          <div class="state">{$t('v2.stream.bcCollectionFailed' as any)}</div>
         {:else}
           <div class="state">{$t('v2.stream.bcEmpty' as any)}</div>
         {/if}
@@ -1654,6 +1704,8 @@
               title: pTitle(p),
               artist: p?.artist_name ?? p?.artist ?? undefined,
               coverUrl: pCover(p) ?? undefined,
+              // #5530 — le marquage IA de l'album, quand le service l'a rendu.
+              aiGenerated: typeof p?.ai_generated === 'boolean' ? p.ai_generated : undefined,
             })
           : null}
       >
@@ -1685,6 +1737,10 @@
     {#if aParaitre}
       {@const d = dateDeParution(p)}
       <span class="cp">{d ? $t('v2.str.comingOn' as any).replace('{d}', d) : $t('v2.str.coming' as any)}</span>
+    {/if}
+    <!-- #5530 — le marquage « généré par IA » du service (Qobuz, par album). -->
+    {#if estMarqueIa(p)}
+      <span class="cp cia" data-ia title={$t('v2.str.aiGeneratedTip' as any)}>{$t('v2.str.aiGenerated' as any)}</span>
     {/if}
     <!-- TROISIEME LIGNE, comme dans la Bibliotheque : d'ou vient le disque et
          en quelle qualite. `p.quality` est la forme que rendent les services

@@ -57,6 +57,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import { currentShortcutTarget, setShortcutTarget, type ShortcutTarget } from '../../lib/stores/shortcuts';
+  import { cibleRaccourciAlbum } from '../../lib/raccourciAlbum';
   import { detailOuvert, fermerDetail } from '../../lib/historiqueCoquille';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
@@ -66,7 +68,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
   import { styleMenuAncre } from '../../lib/ancrageMenu';
   import { portail } from '../../lib/portail';
-  import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
+  import { estMarqueIa, marquageIaADemander } from '../../lib/contenuIa';
+import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
   import { dialogs } from '../../lib/stores/dialogs';
   import { origineDuCoffret, EVT_COFFRET_DEFAIT, type OrigineCoffret } from '../../lib/coffretAuto';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -136,7 +139,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 
   $effect(() => {
     const svc = service, sid = sidDistant;
-    const manque = !enTeteComplet(album);
+    // #5530 — un album Qobuz reçu sans son marquage IA le demande aussi.
+    const manque = !enTeteComplet(album) || marquageIaADemander(svc, album);
     detailService = null;
     if (!svc || !sid || !manque) return;
     let perime = false;
@@ -161,6 +165,10 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     const fusion: any = { ...(album as any) };
     for (const cle of ['cover_path', 'artist_name', 'artist_id', 'year', 'release_date', 'original_year', 'original_date']) {
       if (vide(fusion[cle])) fusion[cle] = (d as any)[cle] ?? null;
+    }
+    // #5530 — le marquage IA, seulement si l'appelant ne l'avait pas.
+    if (fusion.ai_generated === undefined && typeof (d as any).ai_generated === 'boolean') {
+      fusion.ai_generated = (d as any).ai_generated;
     }
     return fusion as Album;
   });
@@ -206,6 +214,37 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   );
   /** Le panneau partagé — celui des vignettes, pas une seconde copie. */
   let etiquettesOuvertes = $state(false);
+
+  /**
+   * LA FICHE SE DÉCLARE COMME CIBLE DE RACCOURCI — fil 2143, point 2.
+   *
+   * FabienM : « impossible de définir un raccourci sur […] un album ouvert ».
+   * Même mécanisme que la page d'artiste (#1501) et les listes de lecture
+   * (`setShortcutTarget`) ; la forme et la restitution vivent dans
+   * `lib/raccourciAlbum`.
+   *
+   * 🔴 La fiche est un CALQUE par-dessus un écran qui a pu publier SA cible
+   * (une collection, une étiquette, une page d'artiste) : on la retient en
+   * s'ouvrant et on la rend en se refermant — sans quoi, la fiche refermée,
+   * un raccourci posé sur la collection viserait encore l'album. On ne la
+   * rend que si la cible courante est toujours la nôtre : un écran qui a
+   * publié depuis garde la main.
+   */
+  const cibleRaccourci = $derived(cibleRaccourciAlbum({ album: albumAffiche, service, depot, bandcamp }));
+  let cibleDessous: ShortcutTarget | null | undefined = undefined;
+  let clePubliee: string | null = null;
+  $effect(() => {
+    const c = cibleRaccourci;
+    untrack(() => {
+      if (cibleDessous === undefined) cibleDessous = get(currentShortcutTarget);
+      if (!c) return;
+      setShortcutTarget(c);
+      clePubliee = c.key;
+    });
+  });
+  $effect(() => () => {
+    if (clePubliee != null && get(currentShortcutTarget)?.key === clePubliee) setShortcutTarget(cibleDessous ?? null);
+  });
 
   /**
    * « Crédits » — #1572 (FabienM, fil forum 1921 : « ajouter un bouton pour
@@ -1375,6 +1414,9 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
              « compilation ». -->
         {#if depuisCue}<div class="qbadge cue" title={$tr('v2.album.cueTip' as any)}>{$tr('v2.album.cue' as any)}</div>{/if}
         {#if mention}<div class="qbadge cue" title={$tr('v2.album.alsoOnTip' as any)}>{$tr(mention.cle as any).replace('{servers}', mention.serveurs.join(', '))}</div>{/if}
+        <!-- #5530 — le marquage « généré par IA » que le service pose sur
+             l'album (Qobuz). Rien quand il ne dit rien. -->
+        {#if estMarqueIa(albumAffiche)}<div class="qbadge cue ia" data-ia title={$tr('v2.str.aiGeneratedTip' as any)}>{$tr('v2.str.aiGenerated' as any)}</div>{/if}
       </div>
       <h1>{album.title}</h1>
       <!-- Un vrai BOUTON, pas un `<div onclick>` : le clavier doit l'atteindre.
