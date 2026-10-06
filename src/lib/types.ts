@@ -1104,12 +1104,36 @@ export interface ArtworkRescanResult {
  *  Le `verdict` est délibérément explicite : « retomber sur le même pressage »
  *  n'est pas un échec mais ce n'est pas non plus une correction, et l'utilisateur
  *  doit pouvoir faire la différence — sans quoi il recommence indéfiniment. */
+/** Une édition candidate rendue par `ambiguous` (`MBReleaseMatch` du serveur). */
+export interface ReidentifyCandidate {
+  release_id: string;
+  title: string;
+  artist: string;
+  score: number;
+  year?: number | null;
+  country?: string | null;
+  label?: string | null;
+  track_count?: number | null;
+  media_format?: string | null;
+  disambiguation?: string | null;
+}
+
 export interface ReidentifyResult {
   album_id: number;
   /** `reidentified` : nouveau pressage. `unchanged` : le même qu'avant, la
    *  source en ligne confirme. `not_found` : rien trouvé, l'identification
-   *  précédente a été reposée. `no_tracks` : rien à ré-identifier. */
-  verdict: 'reidentified' | 'unchanged' | 'not_found' | 'no_tracks';
+   *  précédente a été reposée. `no_tracks` : rien à ré-identifier.
+   *  `ambiguous` (#4805 D) : plusieurs éditions se valent, RIEN n'a été écrit ;
+   *  `candidates` les liste, et `reidentifyAlbum(id, release_id)` impose
+   *  celle que l'utilisateur choisit. */
+  verdict: 'reidentified' | 'unchanged' | 'not_found' | 'ambiguous' | 'no_tracks';
+  /** Sur `ambiguous` : `albums_concurrents`, `pistes_incompatibles`… */
+  reason?: string | null;
+  /** Sur `ambiguous` : les éditions entre lesquelles rien n'a tranché. */
+  candidates?: ReidentifyCandidate[];
+  /** D'où vient le pressage posé : `balise_release`, `recherche`,
+   *  `choix_utilisateur`… */
+  source?: string | null;
   tracks_total: number;
   tracks_matched?: number;
   tracks_unmatched?: number;
