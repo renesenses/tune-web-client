@@ -3247,6 +3247,7 @@ export default {
   "v2.disco.mainAlbums": "Huvudalbum",
   "v2.disco.eps": "EP",
   "v2.disco.singles": "Singlar",
+  "v2.disco.live": "Live",
   "v2.disco.compilations": "Samlingar",
   "v2.disco.appearances": "Medverkan",
   "v2.fas.albums": "Album",

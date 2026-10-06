@@ -3248,6 +3248,7 @@ export default {
   "v2.disco.mainAlbums": "Albume principale",
   "v2.disco.eps": "EP-uri",
   "v2.disco.singles": "Single-uri",
+  "v2.disco.live": "Live",
   "v2.disco.compilations": "Compilații",
   "v2.disco.appearances": "Apariții",
   "v2.fas.albums": "Albume",

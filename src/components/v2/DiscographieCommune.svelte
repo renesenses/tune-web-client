@@ -302,7 +302,7 @@
   {#if !filtrees.length && toutes.length}
     <div class="etat">{$t('v2.disco.noMatch' as any)}</div>
   {:else}
-    {#if !sectionsSortie.eps.length && !sectionsSortie.singles.length}
+    {#if !sectionsSortie.eps.length && !sectionsSortie.singles.length && !sectionsSortie.live.length}
       <div class="gr">
         {#each triees as e (e.cle)}
           {@render carte(e)}
@@ -335,6 +335,17 @@
           <h3 class="titre-connexes">{$t('v2.disco.singles' as any)} <span class="cpt">{sectionsSortie.singles.length}</span></h3>
           <div class="gr">
             {#each sectionsSortie.singles as e (e.cle)}
+              {@render carte(e)}
+            {/each}
+          </div>
+        </section>
+      {/if}
+      <!-- Section « Live » (Bertrand, 05/10) : après Albums, EP et Singles. -->
+      {#if sectionsSortie.live.length}
+        <section class="connexes" data-section="live">
+          <h3 class="titre-connexes">{$t('v2.disco.live' as any)} <span class="cpt">{sectionsSortie.live.length}</span></h3>
+          <div class="gr">
+            {#each sectionsSortie.live as e (e.cle)}
               {@render carte(e)}
             {/each}
           </div>

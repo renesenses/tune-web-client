@@ -3248,6 +3248,7 @@ export default {
   "v2.disco.mainAlbums": "정규 앨범",
   "v2.disco.eps": "EP",
   "v2.disco.singles": "싱글",
+  "v2.disco.live": "라이브",
   "v2.disco.compilations": "컴필레이션",
   "v2.disco.appearances": "참여 앨범",
   "v2.fas.albums": "앨범",
