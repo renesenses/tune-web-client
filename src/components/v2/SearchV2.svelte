@@ -76,6 +76,7 @@
   import { streamingServices } from '../../lib/stores/streaming';
   import { servicesInterrogeables, statutsStreaming } from '../../lib/albumsArtisteStreaming';
   import { chercherAuFilDeLEau, planDuDeuxiemeTemps } from '../../lib/rechercheAuFilDeLEau';
+  import { champAlbumBandcamp } from '../../lib/albumBandcampDuTitre';
   import {
     fusionnerParType,
     regrouperArtistes,
@@ -998,7 +999,7 @@
       playAndSync(zid, { source: t.source, source_id: String(t.source_id),
         title: t.title ?? null, artist_name: t.artist_name ?? null,
         album_title: t.album_title ?? null, cover_path: t.cover_path ?? null,
-        duration_ms: t.duration_ms }).catch(signalerEchecLecture);
+        duration_ms: t.duration_ms, ...champAlbumBandcamp(t) } as any).catch(signalerEchecLecture);
     }
   }
 </script>

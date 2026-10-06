@@ -4,6 +4,7 @@ import * as api from './api';
 import { notifications } from './stores/notifications';
 import { queueTracks, queuePosition } from './stores/queue';
 import { t } from './i18n';
+import { champAlbumBandcamp } from './albumBandcampDuTitre';
 
 /**
  * A row a list can offer to "play from here": local (numeric `id`) or streaming
@@ -26,6 +27,8 @@ export type PlayableRow = {
   album_title?: string | null;
   cover_path?: string | null;
   duration_ms?: number;
+  /** La page de l'album d'un titre Bandcamp (web#1923), quand elle est connue. */
+  album_id_service?: string | null;
 };
 
 function estStreaming(t?: PlayableRow | null): boolean {
@@ -39,6 +42,7 @@ async function lireUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
       source: t.source as any, source_id: t.source_id as string,
       title: t.title, artist_name: t.artist_name,
       album_title: t.album_title, cover_path: t.cover_path,
+      ...champAlbumBandcamp(t),
     } as any);
   } else {
     await playAndSync(zoneId, { track_id: t.id as number });
@@ -57,6 +61,7 @@ async function enfilerUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
       title: t.title, artist_name: t.artist_name ?? undefined,
       album_title: t.album_title ?? undefined,
       cover_path: t.cover_path, duration_ms: t.duration_ms,
+      ...champAlbumBandcamp(t),
     });
   } else {
     await api.addToQueue(zoneId, { track_id: t.id as number });
@@ -126,6 +131,7 @@ export async function playFromHere(
           album_title: track.album_title,
           cover_path: track.cover_path,
           duration_ms: track.duration_ms,
+          ...champAlbumBandcamp(track),
         })),
       });
     } else {
