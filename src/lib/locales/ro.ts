@@ -4484,6 +4484,28 @@ export default {
   "v2.plug.errSetupTimeout": "Pornirea a durat prea mult ({s} s).",
   "v2.plug.errSetupFailed": "Pornirea a eșuat.",
   "v2.plug.retry": "Reîncearcă",
+  // tune-server-rust#5868 — identification par empreinte AcoustID
+  "acoustid.title": "Amprentă acustică (AcoustID)",
+  "acoustid.subtitle": "Albume pe care căutarea MusicBrainz nu le-a găsit",
+  "acoustid.available": "Disponibilă. Trecerea se pornește din Setări › Îmbogățire.",
+  "acoustid.reasonFpcalc": "Dezactivată: instrumentul fpcalc (Chromaprint) nu este instalat pe server.",
+  "acoustid.reasonKey": "Dezactivată: nicio cheie AcoustID configurată. Adaug-o în Setări › Services & Jetons.",
+  "acoustid.reasonPaused": "Identificarea este în pauză. Reia-o înainte de a o porni din nou.",
+  "acoustid.reasonAlreadyRunning": "O identificare a bibliotecii este deja în curs.",
+  "acoustid.running": "{n} din {total} albume procesate",
+  "acoustid.paused": "În pauză după {n} din {total} albume.",
+  "acoustid.stopped": "Oprită după {n} din {total} albume.",
+  "acoustid.done": "Încheiată: {ok} albume identificate, {sans} fără majoritate, din {total}.",
+  "acoustid.reasonLabel": "Motiv: {code}",
+  "acoustid.launch": "Identifică prin amprentă acustică (AcoustID)",
+  "acoustid.launchHint": "Pentru albumele pe care căutarea MusicBrainz nu le-a găsit: o amprentă pe piesă, apoi un vot pe album. Fără majoritate, nu se scrie nimic. Lent: trecerea decodează fiecare piesă și se oprește în timpul redării.",
+  "acoustid.started": "Identificare prin amprentă pornită: {n} albume.",
+  "acoustid.nothing": "Niciun album de identificat prin amprentă.",
+  "acoustid.keyLabel": "Cheie de aplicație AcoustID",
+  "acoustid.keyHint": "Cheie gratuită, creată pe acoustid.org. Rămâne pe server și nu mai este afișată niciodată.",
+  "acoustid.keyConfigured": "Cheie configurată",
+  "acoustid.keySaved": "Cheia AcoustID a fost salvată.",
+  "acoustid.keyRemoved": "Cheia AcoustID a fost eliminată.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

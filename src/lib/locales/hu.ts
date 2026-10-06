@@ -4442,6 +4442,28 @@ export default {
   "v2.plug.errSetupTimeout": "Az indítás túl sokáig tartott ({s} mp).",
   "v2.plug.errSetupFailed": "Az indítás sikertelen.",
   "v2.plug.retry": "Újrapróbálás",
+  // tune-server-rust#5868 — identification par empreinte AcoustID
+  "acoustid.title": "Akusztikus ujjlenyomat (AcoustID)",
+  "acoustid.subtitle": "Albumok, amelyeket a MusicBrainz-keresés nem talált meg",
+  "acoustid.available": "Elérhető. A futtatás a Beállítások › Gazdagítás menüből indítható.",
+  "acoustid.reasonFpcalc": "Kikapcsolva: az fpcalc eszköz (Chromaprint) nincs telepítve a szerveren.",
+  "acoustid.reasonKey": "Kikapcsolva: nincs beállítva AcoustID-kulcs. Add meg a Beállítások › Services & Jetons alatt.",
+  "acoustid.reasonPaused": "Az azonosítás szünetel. Folytasd, mielőtt újraindítod.",
+  "acoustid.reasonAlreadyRunning": "A könyvtár azonosítása már folyamatban van.",
+  "acoustid.running": "{total} albumból {n} feldolgozva",
+  "acoustid.paused": "Szüneteltetve {total} albumból {n} után.",
+  "acoustid.stopped": "Leállítva {total} albumból {n} után.",
+  "acoustid.done": "Kész: {total} albumból {ok} azonosítva, {sans} többség nélkül.",
+  "acoustid.reasonLabel": "Ok: {code}",
+  "acoustid.launch": "Azonosítás akusztikus ujjlenyomattal (AcoustID)",
+  "acoustid.launchHint": "Azokhoz az albumokhoz, amelyeket a MusicBrainz-keresés nem talált meg: számonként egy ujjlenyomat, majd albumonként egy szavazás. Többség nélkül semmi sem íródik. Lassú: minden számot dekódol, és lejátszás közben szünetel.",
+  "acoustid.started": "Ujjlenyomatos azonosítás elindítva: {n} album.",
+  "acoustid.nothing": "Nincs ujjlenyomattal azonosítandó album.",
+  "acoustid.keyLabel": "AcoustID alkalmazáskulcs",
+  "acoustid.keyHint": "Ingyenes kulcs, az acoustid.org oldalon hozható létre. A szerveren marad, és soha többé nem jelenik meg.",
+  "acoustid.keyConfigured": "Kulcs beállítva",
+  "acoustid.keySaved": "AcoustID-kulcs mentve.",
+  "acoustid.keyRemoved": "AcoustID-kulcs eltávolítva.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

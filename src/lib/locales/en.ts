@@ -4504,6 +4504,28 @@ export default {
   "v2.plug.errSetupTimeout": "Startup took too long ({s} s).",
   "v2.plug.errSetupFailed": "Startup failed.",
   "v2.plug.retry": "Retry",
+  // tune-server-rust#5868 — identification par empreinte AcoustID
+  "acoustid.title": "Acoustic fingerprint (AcoustID)",
+  "acoustid.subtitle": "Albums the MusicBrainz search could not find",
+  "acoustid.available": "Available. Start the pass from Settings › Enrichment.",
+  "acoustid.reasonFpcalc": "Disabled: the fpcalc tool (Chromaprint) is not installed on the server.",
+  "acoustid.reasonKey": "Disabled: no AcoustID key is configured. Add it in Settings › Services & Jetons.",
+  "acoustid.reasonPaused": "Identification is paused. Resume it before starting it again.",
+  "acoustid.reasonAlreadyRunning": "A library identification is already running.",
+  "acoustid.running": "{n} of {total} albums processed",
+  "acoustid.paused": "Paused after {n} of {total} albums.",
+  "acoustid.stopped": "Stopped after {n} of {total} albums.",
+  "acoustid.done": "Finished: {ok} albums identified, {sans} without a majority, out of {total}.",
+  "acoustid.reasonLabel": "Reason: {code}",
+  "acoustid.launch": "Identify by acoustic fingerprint (AcoustID)",
+  "acoustid.launchHint": "For albums the MusicBrainz search could not find: one fingerprint per track, then one vote per album. Without a majority, nothing is written. Slow: the pass decodes every track and pauses during playback.",
+  "acoustid.started": "Fingerprint identification started: {n} albums.",
+  "acoustid.nothing": "No album to identify by fingerprint.",
+  "acoustid.keyLabel": "AcoustID application key",
+  "acoustid.keyHint": "Free key to create on acoustid.org. It stays on the server and is never shown again.",
+  "acoustid.keyConfigured": "Key configured",
+  "acoustid.keySaved": "AcoustID key saved.",
+  "acoustid.keyRemoved": "AcoustID key removed.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

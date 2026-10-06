@@ -4484,6 +4484,28 @@ export default {
   "v2.plug.errSetupTimeout": "시작이 너무 오래 걸렸습니다({s}초).",
   "v2.plug.errSetupFailed": "시작하지 못했습니다.",
   "v2.plug.retry": "다시 시도",
+  // tune-server-rust#5868 — identification par empreinte AcoustID
+  "acoustid.title": "음향 지문 (AcoustID)",
+  "acoustid.subtitle": "MusicBrainz 검색으로 찾지 못한 앨범",
+  "acoustid.available": "사용 가능. 설정 › 보강에서 실행할 수 있습니다.",
+  "acoustid.reasonFpcalc": "비활성화됨: 서버에 fpcalc 도구(Chromaprint)가 설치되어 있지 않습니다.",
+  "acoustid.reasonKey": "비활성화됨: AcoustID 키가 구성되지 않았습니다. 설정 › Services & Jetons에서 추가하세요.",
+  "acoustid.reasonPaused": "식별이 일시 중지되었습니다. 다시 시작하기 전에 재개하세요.",
+  "acoustid.reasonAlreadyRunning": "라이브러리 식별이 이미 진행 중입니다.",
+  "acoustid.running": "앨범 {total}개 중 {n}개 처리됨",
+  "acoustid.paused": "앨범 {total}개 중 {n}개 처리 후 일시 중지됨.",
+  "acoustid.stopped": "앨범 {total}개 중 {n}개 처리 후 중지됨.",
+  "acoustid.done": "완료: {total}개 중 {ok}개 식별, {sans}개는 과반 없음.",
+  "acoustid.reasonLabel": "사유: {code}",
+  "acoustid.launch": "음향 지문으로 식별 (AcoustID)",
+  "acoustid.launchHint": "MusicBrainz 검색으로 찾지 못한 앨범 대상: 트랙마다 지문을 만든 뒤 앨범별로 투표합니다. 과반이 없으면 아무것도 기록하지 않습니다. 느림: 모든 트랙을 디코딩하며 재생 중에는 멈춥니다.",
+  "acoustid.started": "지문 식별 시작: 앨범 {n}개.",
+  "acoustid.nothing": "지문으로 식별할 앨범이 없습니다.",
+  "acoustid.keyLabel": "AcoustID 애플리케이션 키",
+  "acoustid.keyHint": "acoustid.org에서 무료로 만들 수 있습니다. 키는 서버에 보관되며 다시 표시되지 않습니다.",
+  "acoustid.keyConfigured": "키 구성됨",
+  "acoustid.keySaved": "AcoustID 키를 저장했습니다.",
+  "acoustid.keyRemoved": "AcoustID 키를 삭제했습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

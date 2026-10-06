@@ -4484,6 +4484,28 @@ export default {
   "v2.plug.errSetupTimeout": "启动时间过长（{s} 秒）。",
   "v2.plug.errSetupFailed": "启动失败。",
   "v2.plug.retry": "重试",
+  // tune-server-rust#5868 — identification par empreinte AcoustID
+  "acoustid.title": "声学指纹 (AcoustID)",
+  "acoustid.subtitle": "MusicBrainz 搜索未找到的专辑",
+  "acoustid.available": "可用。请在 设置 › 丰富 中启动此任务。",
+  "acoustid.reasonFpcalc": "已停用：服务器上未安装 fpcalc 工具 (Chromaprint)。",
+  "acoustid.reasonKey": "已停用：未配置 AcoustID 密钥。请在 设置 › Services & Jetons 中添加。",
+  "acoustid.reasonPaused": "识别已暂停。请先恢复再重新启动。",
+  "acoustid.reasonAlreadyRunning": "资料库识别已在进行中。",
+  "acoustid.running": "已处理 {n} / {total} 张专辑",
+  "acoustid.paused": "已在处理 {n} / {total} 张专辑后暂停。",
+  "acoustid.stopped": "已在处理 {n} / {total} 张专辑后停止。",
+  "acoustid.done": "已完成：共 {total} 张，识别 {ok} 张，{sans} 张未形成多数。",
+  "acoustid.reasonLabel": "原因：{code}",
+  "acoustid.launch": "通过声学指纹识别 (AcoustID)",
+  "acoustid.launchHint": "针对 MusicBrainz 搜索未找到的专辑：每首曲目生成一个指纹，再按专辑投票。未形成多数时不写入任何内容。较慢：任务会解码每首曲目，并在播放时暂停。",
+  "acoustid.started": "指纹识别已启动：{n} 张专辑。",
+  "acoustid.nothing": "没有需要通过指纹识别的专辑。",
+  "acoustid.keyLabel": "AcoustID 应用密钥",
+  "acoustid.keyHint": "可在 acoustid.org 免费创建。密钥保存在服务器上，不会再次显示。",
+  "acoustid.keyConfigured": "密钥已配置",
+  "acoustid.keySaved": "AcoustID 密钥已保存。",
+  "acoustid.keyRemoved": "AcoustID 密钥已移除。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

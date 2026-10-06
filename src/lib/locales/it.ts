@@ -4484,6 +4484,28 @@ export default {
   "v2.plug.errSetupTimeout": "Avvio troppo lungo ({s} s).",
   "v2.plug.errSetupFailed": "Avvio non riuscito.",
   "v2.plug.retry": "Riprova",
+  // tune-server-rust#5868 — identification par empreinte AcoustID
+  "acoustid.title": "Impronta acustica (AcoustID)",
+  "acoustid.subtitle": "Album che la ricerca MusicBrainz non ha trovato",
+  "acoustid.available": "Disponibile. Il passaggio si avvia da Impostazioni › Arricchimento.",
+  "acoustid.reasonFpcalc": "Disattivata: lo strumento fpcalc (Chromaprint) non è installato sul server.",
+  "acoustid.reasonKey": "Disattivata: nessuna chiave AcoustID configurata. Aggiungila in Impostazioni › Services & Jetons.",
+  "acoustid.reasonPaused": "L’identificazione è in pausa. Riprendila prima di riavviarla.",
+  "acoustid.reasonAlreadyRunning": "Un’identificazione della libreria è già in corso.",
+  "acoustid.running": "{n} album elaborati su {total}",
+  "acoustid.paused": "In pausa dopo {n} album su {total}.",
+  "acoustid.stopped": "Interrotta dopo {n} album su {total}.",
+  "acoustid.done": "Terminata: {ok} album identificati, {sans} senza maggioranza, su {total}.",
+  "acoustid.reasonLabel": "Motivo: {code}",
+  "acoustid.launch": "Identifica tramite impronta acustica (AcoustID)",
+  "acoustid.launchHint": "Per gli album che la ricerca MusicBrainz non ha trovato: un’impronta per traccia, poi un voto per album. Senza maggioranza non viene scritto nulla. Lento: il passaggio decodifica ogni traccia e si ferma durante la riproduzione.",
+  "acoustid.started": "Identificazione tramite impronta avviata: {n} album.",
+  "acoustid.nothing": "Nessun album da identificare tramite impronta.",
+  "acoustid.keyLabel": "Chiave applicazione AcoustID",
+  "acoustid.keyHint": "Chiave gratuita da creare su acoustid.org. Resta sul server e non viene mai più mostrata.",
+  "acoustid.keyConfigured": "Chiave configurata",
+  "acoustid.keySaved": "Chiave AcoustID salvata.",
+  "acoustid.keyRemoved": "Chiave AcoustID rimossa.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

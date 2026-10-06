@@ -7025,6 +7025,29 @@ export function getEnrichCreditsStatus() {
 }
 
 /**
+ * Identification par empreinte acoustique — `POST /library/identify-all?mode=acoustid`
+ * (tune-server-rust#5868). `202 { status: 'started', total }`, ou `409` avec
+ * `code` (`fpcalc_absent`, `acoustid_cle_absente`, `identification_en_pause`,
+ * `identification_deja_en_cours`) et `message` : le 409 est ACCEPTÉ, rendu
+ * comme une réponse, pour que l'écran dise le motif au lieu d'un bandeau
+ * générique. La lecture vit dans `lib/acoustid.ts` (`issueDuLancement`).
+ */
+export function lancerIdentificationAcoustid() {
+  return fetchJSON<Record<string, unknown>>(
+    `${BASE}/library/identify-all?mode=acoustid`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
+}
+
+/** `GET /library/identify-all/status` — l'état de la passe par lot, tous modes confondus. */
+export function getIdentifyAllStatus() {
+  return fetchJSON<import('./acoustid').EtatLotIdentification>(
+    `${BASE}/library/identify-all/status`,
+  );
+}
+
+/**
  * Pochettes d'ALBUMS manquantes — `POST /library/artwork/enrich` (Cover Art
  * Archive, puis Discogs quand un jeton est enregistré). Rend 202 et travaille
  * en tâche de fond ; `skipped` quand aucun album n'est sans pochette.
