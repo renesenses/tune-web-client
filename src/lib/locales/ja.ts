@@ -111,6 +111,8 @@ export default {
   'concerts.communePlaceholder': 'お住まいの市区町村',
   'concerts.codePostal': '郵便番号',
   'concerts.pays': '国',
+  "concerts.rayonSansFrontiere": "半径は国境で止まりません。近隣の国のコンサートも含みます。国は市町村を特定するためだけに使われます。",
+  "concerts.paysVoisinsNote": "国境の近くですか？「近くで」なら近隣の国も対象になります。市町村と半径を入力してください。",
   'concerts.codePostalPlaceholder': '郵便番号',
   'concerts.rayon': '範囲',
   'concerts.appliquer': '適用',

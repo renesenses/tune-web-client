@@ -111,6 +111,8 @@ export default {
   'concerts.communePlaceholder': 'Su municipio',
   'concerts.codePostal': 'Código postal',
   'concerts.pays': 'País',
+  "concerts.rayonSansFrontiere": "El radio no se detiene en las fronteras: también incluye los conciertos de los países vecinos. El país solo sirve para encontrar la localidad.",
+  "concerts.paysVoisinsNote": "¿Cerca de una frontera? «Cerca de mí» también cubre los países vecinos: indique su localidad y un radio.",
   'concerts.codePostalPlaceholder': 'Código postal',
   'concerts.rayon': 'Radio',
   'concerts.appliquer': 'Aplicar',

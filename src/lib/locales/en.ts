@@ -180,6 +180,8 @@ export default {
   'concerts.communePlaceholder': 'Your town',
   'concerts.codePostal': 'Postcode',
   'concerts.pays': 'Country',
+  "concerts.rayonSansFrontiere": "The radius ignores borders: it also counts concerts in neighbouring countries. The country is only used to find the town.",
+  "concerts.paysVoisinsNote": "Near a border? “Around me” also covers neighbouring countries: enter your town and a radius.",
   'concerts.codePostalPlaceholder': 'Postcode',
   'concerts.rayon': 'Radius',
   'concerts.appliquer': 'Apply',

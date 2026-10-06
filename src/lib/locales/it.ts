@@ -111,6 +111,8 @@ export default {
   'concerts.communePlaceholder': 'Il tuo comune',
   'concerts.codePostal': 'CAP',
   'concerts.pays': 'Paese',
+  "concerts.rayonSansFrontiere": "Il raggio non si ferma ai confini: comprende anche i concerti dei paesi vicini. Il paese serve solo a trovare il comune.",
+  "concerts.paysVoisinsNote": "Vicino a un confine? «Vicino a me» copre anche i paesi vicini: indica il tuo comune e un raggio.",
   'concerts.codePostalPlaceholder': 'CAP',
   'concerts.rayon': 'Raggio',
   'concerts.appliquer': 'Applica',

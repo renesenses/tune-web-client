@@ -179,6 +179,8 @@ export default {
   "concerts.communePlaceholder": "Az Ön települése",
   "concerts.codePostal": "Irányítószám",
   "concerts.pays": "Ország",
+  "concerts.rayonSansFrontiere": "A sugár nem áll meg a határoknál: a szomszédos országok koncertjeit is számolja. Az ország csak a település megtalálására szolgál.",
+  "concerts.paysVoisinsNote": "Határ közelében? Az „A közelemben” nézet a szomszédos országokat is lefedi: adja meg a települését és egy sugarat.",
   "concerts.codePostalPlaceholder": "Irányítószám",
   "concerts.rayon": "Sugár",
   "concerts.appliquer": "Alkalmaz",

@@ -111,6 +111,8 @@ export default {
   'concerts.communePlaceholder': 'Localitatea ta',
   'concerts.codePostal': 'Cod poștal',
   'concerts.pays': 'Țară',
+  "concerts.rayonSansFrontiere": "Raza nu se oprește la granițe: include și concertele din țările vecine. Țara servește doar la găsirea localității.",
+  "concerts.paysVoisinsNote": "Aproape de o graniță? „În apropierea mea” acoperă și țările vecine: introduceți localitatea și o rază.",
   'concerts.codePostalPlaceholder': 'Cod poștal',
   'concerts.rayon': 'Rază',
   'concerts.appliquer': 'Aplică',
