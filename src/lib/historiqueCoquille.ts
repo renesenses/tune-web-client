@@ -57,7 +57,7 @@ import {
   opPourFiche,
   reculerAvecIntention,
 } from './historiqueNavigation';
-import { vueDepuisHash } from './routeAuChargement';
+import { vueAuChargement } from './routeAuChargement';
 
 /**
  * Ce qu'une entrée d'historique de la coquille v2 transporte.
@@ -384,6 +384,13 @@ export interface OptionsBranchement {
     history: History;
     location?: { hash: string };
   };
+  /**
+   * La vue de démarrage choisie dans Réglages › Général
+   * (`preferences.startupView`) — fil 2166. Posée seulement quand l'adresse
+   * ne porte AUCUNE route : un lien profond passe avant. Absente : l'Accueil,
+   * comme avant.
+   */
+  vueDeDemarrage?: unknown;
 }
 
 /**
@@ -434,7 +441,14 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
    *     la bonne valeur. Aucun effet réactif n'est en jeu, aucune boucle
    *     possible : `brancherHistoriqueCoquille` s'exécute une fois par montage.
    */
-  const vueDemandee = vueDepuisHash(fenetre.location?.hash ?? '');
+  // Fil 2166 — sans route dans l'adresse, la vue de démarrage choisie dans
+  // les Réglages : elle n'avait plus de lecteur depuis le retrait d'`App.svelte`.
+  // Elle remplace la vue de NAISSANCE (`'home'`), jamais une vue qu'un
+  // écrivain a déjà posée avant le montage de la coquille.
+  const vueDemandee = vueAuChargement(
+    fenetre.location?.hash ?? '',
+    get(activeView) === 'home' ? options.vueDeDemarrage : null,
+  );
   if (vueDemandee && vueDemandee !== get(activeView)) activeView.set(vueDemandee);
 
   // L'entrée COURANTE est ancrée, pas empilée : au chargement, la page a déjà

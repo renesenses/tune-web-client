@@ -97,6 +97,7 @@ import type {
 
 import { baseApi, entetesRelais } from './bridge';
 import { messageRefusPremium, type CorpsRefusPremium } from './premiumRefus';
+import { estRefusEcriture, messageRefusEcriture, CODE_REFUS_ECRITURE } from './ecritureFichiers';
 import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
 import { messageRefusBitperfect } from './bitperfectStrict';
 import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
@@ -191,6 +192,7 @@ export async function erreurDepuisReponse(resp: Response): Promise<Error> {
         const j = JSON.parse(t);
         corps = j;
         if (typeof j === 'string') detail = j;
+        else if (estRefusEcriture(j)) detail = messageRefusEcriture();
         else detail = j?.error ?? j?.message ?? j?.detail ?? '';
       } catch {
         // Pas du JSON. Une page d'erreur HTML n'apprend rien a l'utilisateur ;
@@ -212,6 +214,7 @@ export async function erreurDepuisReponse(resp: Response): Promise<Error> {
   // a detourner la traduction) et le `retry_after` d'un 429 s'y perdait
   // entierement (#2178).
   err.status = resp.status;
+  if (estRefusEcriture(corps)) err.code = CODE_REFUS_ECRITURE;
   err.retryAfter = retryAfterDe(resp, corps);
   return err;
 }
@@ -391,6 +394,12 @@ async function apiError(response: Response): Promise<ApiError> {
     else if (body.message) detail = body.message;
     else if (typeof body.error === 'string' && body.error) detail = body.error;
     code = body.code ?? body.error;
+    // « Écrire les modifications dans les fichiers audio » décoché : la phrase
+    // du client, dans sa langue — le `message` du serveur est en français.
+    if (estRefusEcriture(body)) {
+      detail = messageRefusEcriture();
+      code = CODE_REFUS_ECRITURE;
+    }
   } catch {
     // Pas du JSON : c'est un message en clair, et c'est tout ce qu'on a.
     const texte = brut.trim();
@@ -2573,6 +2582,12 @@ export interface AlbumDetailed {
    *  (`MAX(al.is_compilation)`), jamais déclaré ici — d'où l'écran qui ne
    *  pouvait pas le montrer. Voir `Album.is_compilation` : ABSENT ≠ FAUX. */
   is_compilation?: boolean;
+  /** Fil 2094 — le DOSSIER de l'album (celui que la ligne album retient,
+   *  sinon celui de sa première piste). Absent d'un serveur d'avant. */
+  folder?: string | null;
+  /** Fil 2094 — le numéro de disque que portent TOUTES ses pistes ; `null`
+   *  quand elles en portent plusieurs (voir `disc_count`). */
+  disc_number?: number | null;
 }
 
 /** Albums agrégés pour la vue cartes. `filters` = les mêmes paramètres de
@@ -2781,7 +2796,10 @@ export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string;
  *  liste sur `updated.id`, un champ jamais envoyé (#3638). Pour rafraîchir un
  *  affichage, relire la piste avec `getTrack`. */
 export function updateTrack(id: number, data: { title?: string; album_id?: number; artist_id?: number; disc_number?: number; track_number?: number; genre?: string; year?: string }) {
-  return fetchJSON<{ status: string; track_id: number }>(`${BASE}/library/tracks/${id}`, {
+  // `file_writes_enabled` / `file_written` : publiés depuis le réglage « Écrire
+  // les modifications dans les fichiers audio » (05/10/2026) ; absents d'un
+  // serveur antérieur.
+  return fetchJSON<{ status: string; track_id: number; file_writes_enabled?: boolean; file_written?: boolean }>(`${BASE}/library/tracks/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });

@@ -94,7 +94,6 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'eqBands',       titleKey: 'settings.eqBandsTitle',        from: 'network', min: 'expert',   keywords: ['égaliseur', 'bandes'] },
       { id: 'audioDiag',     titleKey: 'settings.audioDiagnostic',     from: 'network', min: 'expert',   keywords: ['diagnostic', 'dépannage'] },
       { id: 'tuneServers',   titleKey: 'settings.tuneServersOnNetwork', from: 'network', min: 'expert',  keywords: ['serveurs', 'découverte'] },
-      { id: 'wifi',          titleKey: 'settings.applianceWifi',       from: 'network', min: 'expert',   keywords: ['wifi', 'réseau', 'appliance'] },
     ],
   },
   {
@@ -116,7 +115,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        * l'intérieur de la carte, comme avant.
        */
       { id: 'metadata',   titleKey: 'metadata.title',        from: 'library', min: 'beginner',
-        keywords: ['métadonnées', 'tags', 'paroles', 'lyrics', 'lrclib', 'en ligne'] },
+        keywords: ['métadonnées', 'tags', 'paroles', 'lyrics', 'lrclib', 'en ligne', 'fichiers', 'écrire', 'balises'] },
       { id: 'enrichment', titleKey: 'settings.enrichment',   from: 'library', min: 'expert',   keywords: ['enrichissement', 'musicbrainz'] },
       { id: 'ingest',     titleKey: 'settings.ingest',       from: 'library', min: 'expert',   keywords: ['import', 'rangement'] },
       { id: 'oxygen',     titleKey: 'oxygen.settingsTitle',  from: 'library', min: 'expert' },
@@ -239,6 +238,11 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'about',      titleKey: 'settings.about',             from: 'system', min: 'beginner', keywords: ['version', 'à propos'] },
       { id: 'health',     titleKey: 'settings.serverHealth',      from: 'system', min: 'intermediate', keywords: ['santé', 'état serveur'] },
+      /* Le Wi-Fi de l'appliance Tune OS relève du réseau de la MACHINE, pas de
+       * la chaîne audio : il était rangé dans l'onglet Audio, où personne ne
+       * va le chercher. Même niveau qu'avant ('expert') ; la section garde son
+       * id, et `ongletDeLaSection` redirige une cible restée sur « audio ». */
+      { id: 'wifi',       titleKey: 'settings.applianceWifi',     from: 'network', min: 'expert', keywords: ['wifi', 'wi-fi', 'wlan', 'réseau', 'network', 'appliance', 'tune os'] },
       { id: 'push',       titleKey: 'settings.pushNotifications', from: 'system', min: 'intermediate', keywords: ['notifications'] },
       /* 🔴 `min: 'beginner'` — et non 'intermediate'. Trois écrans envoient ici
        * pour RELIER le compte Mozaiklabs ; au niveau « Essentiel » la section
@@ -299,6 +303,23 @@ export interface V2SettingsHit {
  * deux écrans qui affichent un onglet passent par ici, sinon trois endroits
  * décideraient chacun quoi faire d'un `labelKey` absent.
  */
+/**
+ * L'onglet qui porte RÉELLEMENT une section.
+ *
+ * Une cible de navigation nomme un onglet et une section. Quand une section
+ * change d'onglet (le Wi-Fi, passé d'Audio à Système), une cible écrite avant
+ * le déplacement ouvrirait l'ancien onglet, sans la section. On suit donc la
+ * section : si elle n'est pas dans l'onglet nommé, on renvoie celui qui la
+ * porte. Sans section, ou section inconnue, l'onglet demandé est conservé.
+ */
+export function ongletDeLaSection(tab: V2SettingsTabId, section?: string | null): V2SettingsTabId {
+  if (!section) return tab;
+  const demande = V2_SETTINGS.find((t) => t.id === tab);
+  if (demande?.sections.some((s) => s.id === section)) return tab;
+  const porteur = V2_SETTINGS.find((t) => t.sections.some((s) => s.id === section));
+  return porteur?.id ?? tab;
+}
+
 export function tabLabel(tab: V2SettingsTab, resolve: (key: string) => string): string {
   return tab.labelKey ? resolve(tab.labelKey) : (tab.label ?? tab.id);
 }
