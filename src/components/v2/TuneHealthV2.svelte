@@ -31,6 +31,9 @@
     drActiveSelonServeur, etatCartePlageDynamique, etatServeurPlageDynamique, stockDuRattrapage,
     stocksPlageDynamique, jaugePlageDynamique,
   } from '../../lib/santePlageDynamique';
+  // Décision du 06/10 — les jauges valent les pistes TRAITÉES (mesurées ou
+  // déclarées non gérables) sur le TOTAL, et nomment les non gérées.
+  import { jaugeTraiteesPlageDynamique, jaugeTraiteesReplayGain, ligneNonGerees } from '../../lib/santeJaugeTraitees';
   // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
   import { temperatureProcesseur } from '../../lib/temperatureProcesseur';
   // #1352 — la pause des traitements de fond. La lecture de l'instantané vit
@@ -372,13 +375,19 @@
       // relire la config une seconde fois.
       cfgDrActive = analysis;
       cfgRgArme = analysis && mode !== 'off';
-      const jauge = jaugeReplayGain(mode !== 'off', cfg[1].status === 'fulfilled' ? cfg[1].value : null);
+      const avRg = cfg[1].status === 'fulfilled' ? cfg[1].value : null;
+      const jauge = jaugeReplayGain(mode !== 'off', avRg);
+      // Décision du 06/10 — traitées sur le TOTAL, quand la jauge parle de la
+      // bibliothèque et que le serveur compte les traitées. Sinon, la jauge
+      // d'avant (analysées sur éligibles, ou la campagne).
+      const rgTraitees = jauge.bibliotheque ? jaugeTraiteesReplayGain(avRg) : null;
       out.push({
         id: 'rg', traitement: 'replaygain', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
         etat: jauge.etat,
         ligne: $t('v2.health.rgLine' as any).replace('{m}', modeLabel)
           .replace('{s}', analysis ? $t('v2.health.rgSourceBoth' as any) : $t('v2.health.rgSourceTags' as any)),
-        fait: jauge.fait, total: jauge.total,
+        fait: rgTraitees ? rgTraitees.fait : jauge.fait,
+        total: rgTraitees ? rgTraitees.total : jauge.total,
         // Le message d'absence ne s'affiche que quand l'absence est réelle.
         // Les reports (#4254) s'ajoutent au détail, quel qu'il soit : une
         // passe « à jour » sur un disque absent n'est pas à jour.
@@ -387,9 +396,14 @@
             ? undefined
             : jauge.sansJauge
               ? $t('v2.health.rgNoProgress' as any)
-              : $t('v2.health.rgProgress' as any)
-                  .replace('{n}', $formatNombre(jauge.fait ?? 0))
-                  .replace('{t}', $formatNombre(jauge.total ?? 0)),
+              : rgTraitees
+                ? $t('v2.health.rgProcessed' as any)
+                    .replace('{n}', $formatNombre(rgTraitees.fait))
+                    .replace('{t}', $formatNombre(rgTraitees.total))
+                : $t('v2.health.rgProgress' as any)
+                    .replace('{n}', $formatNombre(jauge.fait ?? 0))
+                    .replace('{t}', $formatNombre(jauge.total ?? 0)),
+          ligneNonGerees(rgTraitees, (k) => $t(k as any), (n) => $formatNombre(n)),
           // tune-server-rust#5597 — la jauge parle de la bibliothèque ; la
           // campagne en cours (qui repart de 0 à chaque démarrage) vient en
           // second, seulement quand elle a traité quelque chose.
@@ -456,10 +470,17 @@
       const horsPerimetre = typeof c.dynamic_range_out_of_scope === 'number' ? c.dynamic_range_out_of_scope : 0;
       // `cfgDr` est la config déjà lue plus haut pour ReplayGain : le DR
       // dépend du MÊME réglage, on ne le relit pas.
-      const restantes = Math.max(0, total - avec - ecartees - reportees - tropLongues - sansFichier - horsPerimetre);
-      // La jauge porte sur ce qui PEUT se mesurer (#5834) : sans quoi une
-      // seule piste écartée l'empêchait d'atteindre 100 %.
-      const jauge = jaugePlageDynamique({ total, avec, ecartees, tropLongues, sansFichier, horsPerimetre });
+      // Décision du 06/10 — la jauge vaut les pistes TRAITÉES (avec un DR, ou
+      // déclarées non gérables) sur le TOTAL. Le serveur les compte, une fois
+      // chacune ; une piste reportée n'en fait pas partie. `null` face à un
+      // serveur qui ne les compte pas : la carte garde alors le calcul d'avant.
+      const traitees = jaugeTraiteesPlageDynamique(c);
+      const restantes = traitees
+        ? Math.max(0, total - traitees.fait - reportees)
+        : Math.max(0, total - avec - ecartees - reportees - tropLongues - sansFichier - horsPerimetre);
+      // Serveur ancien : la jauge porte sur ce qui PEUT se mesurer (#5834).
+      const jaugeAvant = jaugePlageDynamique({ total, avec, ecartees, tropLongues, sansFichier, horsPerimetre });
+      const jauge = traitees ? { fait: traitees.fait, total: traitees.total, exclues: 0 } : jaugeAvant;
       // tune-web-client#1828 — le stock du RATTRAPAGE, le seul que l'ordre de
       // passage règle. Demandé seulement quand il y a deux stocks à séparer
       // (ReplayGain armé, pistes restantes), et au plus une fois par minute :
@@ -514,16 +535,20 @@
               jauge.exclues > 0
                 ? $t('v2.health.drGaugeMeasurable' as any).replace('{n}', $formatNombre(jauge.total))
                 : undefined,
-              ecartees > 0
+              // Décision du 06/10 — UNE ligne : combien de pistes non gérées,
+              // et pourquoi. Les phrases par cause restent pour un serveur
+              // ancien, qui ne compte pas les traitées.
+              ligneNonGerees(traitees, (k) => $t(k as any), (n) => $formatNombre(n)),
+              !traitees && ecartees > 0
                 ? $t('v2.health.drUnavailable' as any).replace('{n}', $formatNombre(ecartees))
                 : undefined,
-              tropLongues > 0
+              !traitees && tropLongues > 0
                 ? $t('v2.health.drOversized' as any).replace('{n}', $formatNombre(tropLongues))
                 : undefined,
-              sansFichier > 0
+              !traitees && sansFichier > 0
                 ? $t('v2.health.drWithoutFile' as any).replace('{n}', $formatNombre(sansFichier))
                 : undefined,
-              horsPerimetre > 0
+              !traitees && horsPerimetre > 0
                 ? $t('v2.health.drOutOfScope' as any).replace('{n}', $formatNombre(horsPerimetre))
                 : undefined,
               // #1828 — les pistes que le ReplayGain n'a pas encore vues : c'est
