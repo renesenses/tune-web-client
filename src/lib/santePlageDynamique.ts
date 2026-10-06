@@ -152,10 +152,12 @@ export function jaugePlageDynamique(p: {
   ecartees: number;
   tropLongues: number;
   sansFichier: number;
+  /** Fil 2157 — sans DR, dans une racine exclue des analyses (#5593). */
+  horsPerimetre?: number;
 }): JaugePlageDynamique {
   const n = (v: number) => (Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
   const total = n(p.total);
   const avec = Math.min(n(p.avec), total);
-  const exclues = n(p.ecartees) + n(p.tropLongues) + n(p.sansFichier);
+  const exclues = n(p.ecartees) + n(p.tropLongues) + n(p.sansFichier) + n(p.horsPerimetre ?? 0);
   return { fait: avec, total: Math.max(avec, total - exclues), exclues };
 }
