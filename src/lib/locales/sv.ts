@@ -3498,6 +3498,7 @@ export default {
   "v2.health.drGaugeMeasurable": "Mätaren gäller de {n} spår som kan mätas.",
   "v2.health.drOversized": "{n} spår undantagna från mätningen: för långa för analysens minnesbudget (högupplöst eller DSD längre än några minuter).",
   "v2.health.drWithoutFile": "{n} spår utan egen fil (CUE-avbilder): mätningen läser en hel fil, inte ett utskuret spår.",
+  "v2.health.drOutOfScope": "{n} spår utan DR ligger i en mapp som är undantagen från analyserna: ingen körning mäter dem så länge undantaget gäller.",
   "v2.health.drLineSidecar": "{n} av {t} spår — {m} uppmätta av Tune, {g} lästa ur taggar, {s} lästa ur foo_dr.txt",
   "v2.health.drQueuedBeforeFingerprints": "{n} spår väntar. Det dynamiska omfånget kommer direkt efter ReplayGain, före fingeravtryck och CLAP.",
   "v2.health.drQueuedFirst": "{n} spår väntar. Det dynamiska omfånget kommer först, före ReplayGain, fingeravtryck och CLAP.",

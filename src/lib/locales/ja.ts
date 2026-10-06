@@ -3499,6 +3499,7 @@ export default {
   "v2.health.drGaugeMeasurable": "このゲージは測定可能な {n} 曲を対象にしています。",
   "v2.health.drOversized": "{n} 曲を測定対象から除外：解析のメモリ上限に対して長すぎます（数分を超えるハイレゾまたは DSD）。",
   "v2.health.drWithoutFile": "{n} 曲は個別のファイルがありません（CUE イメージ）：測定はファイル全体を読むため、分割されたトラックには適用されません。",
+  "v2.health.drOutOfScope": "DR のない {n} 曲は解析から除外されたフォルダーにあります：除外が有効な間は測定されません。",
   "v2.health.drLineSidecar": "{t} 曲中 {n} 曲 — Tune による測定 {m} 曲、タグから読み取り {g} 曲、foo_dr.txt から読み取り {s} 曲",
   "v2.health.drQueuedBeforeFingerprints": "{n} 曲が待機中です。ダイナミックレンジは ReplayGain の直後、指紋と CLAP の前に処理されます。",
   "v2.health.drQueuedFirst": "{n} 曲が待機中です。ダイナミックレンジは最初に、ReplayGain・指紋・CLAP より前に処理されます。",

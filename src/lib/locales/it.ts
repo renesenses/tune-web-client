@@ -3499,6 +3499,7 @@ export default {
   "v2.health.drGaugeMeasurable": "L'indicatore riguarda le {n} tracce misurabili.",
   "v2.health.drOversized": "{n} tracce escluse dalla misura: troppo lunghe per il budget di memoria dell'analisi (alta risoluzione o DSD di più di qualche minuto).",
   "v2.health.drWithoutFile": "{n} tracce senza un file proprio (immagini CUE): la misura legge un file intero, non una traccia ritagliata.",
+  "v2.health.drOutOfScope": "{n} tracce senza DR si trovano in una cartella esclusa dalle analisi: nessun passaggio le misurerà finché vale l'esclusione.",
   "v2.health.drLineSidecar": "{n} di {t} brani — {m} misurati da Tune, {g} letti dai tag, {s} letti dai foo_dr.txt",
   "v2.health.drQueuedBeforeFingerprints": "{n} brani in attesa. La gamma dinamica viene subito dopo ReplayGain, prima delle impronte e di CLAP.",
   "v2.health.drQueuedFirst": "{n} brani in attesa. La gamma dinamica viene per prima, prima di ReplayGain, delle impronte e di CLAP.",

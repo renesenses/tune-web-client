@@ -3521,6 +3521,7 @@ export default {
   "v2.health.drGaugeMeasurable": "La jauge porte sur les {n} pistes mesurables.",
   "v2.health.drOversized": "{n} pistes exclues de la mesure : trop longues pour le budget mémoire de l'analyse (haute résolution ou DSD de plus de quelques minutes).",
   "v2.health.drWithoutFile": "{n} pistes sans fichier propre (images CUE) : la mesure porte sur un fichier entier, pas sur une piste découpée.",
+  "v2.health.drOutOfScope": "{n} pistes sans DR sont dans un dossier exclu des analyses : aucune passe ne les mesurera tant que l'exclusion tient.",
   "v2.health.drLineSidecar": "{n} pistes sur {t} — {m} mesurées par Tune, {g} lues dans les tags, {s} lues dans les foo_dr.txt",
   "v2.health.drQueuedBeforeFingerprints": "{n} pistes en attente. La plage dynamique passe juste après le ReplayGain, avant les empreintes et le CLAP.",
   "v2.health.drQueuedFirst": "{n} pistes en attente. La plage dynamique passe en premier, avant le ReplayGain, les empreintes et le CLAP.",

@@ -3499,6 +3499,7 @@ export default {
   "v2.health.drGaugeMeasurable": "Indicatorul se referă la cele {n} piese care pot fi măsurate.",
   "v2.health.drOversized": "{n} piese excluse de la măsurare: prea lungi pentru bugetul de memorie al analizei (rezoluție înaltă sau DSD de peste câteva minute).",
   "v2.health.drWithoutFile": "{n} piese fără fișier propriu (imagini CUE): măsurarea citește un fișier întreg, nu o piesă decupată.",
+  "v2.health.drOutOfScope": "{n} piese fără DR se află într-un dosar exclus din analize: nicio trecere nu le va măsura cât timp excluderea rămâne.",
   "v2.health.drLineSidecar": "{n} din {t} piese — {m} măsurate de Tune, {g} citite din etichete, {s} citite din foo_dr.txt",
   "v2.health.drQueuedBeforeFingerprints": "{n} piese în așteptare. Gama dinamică vine imediat după ReplayGain, înaintea amprentelor și a CLAP.",
   "v2.health.drQueuedFirst": "{n} piese în așteptare. Gama dinamică vine prima, înaintea ReplayGain, a amprentelor și a CLAP.",

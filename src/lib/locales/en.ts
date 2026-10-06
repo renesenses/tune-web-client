@@ -3519,6 +3519,7 @@ export default {
   "v2.health.drGaugeMeasurable": "The gauge covers the {n} tracks that can be measured.",
   "v2.health.drOversized": "{n} tracks excluded from measurement: too long for the analysis memory budget (high-resolution or DSD files longer than a few minutes).",
   "v2.health.drWithoutFile": "{n} tracks without a file of their own (CUE images): the measurement reads a whole file, not a split track.",
+  "v2.health.drOutOfScope": "{n} tracks without DR sit in a folder excluded from analysis: no pass will measure them while the exclusion stands.",
   "v2.health.drLineSidecar": "{n} of {t} tracks — {m} measured by Tune, {g} read from tags, {s} read from foo_dr.txt files",
   "v2.health.drQueuedBeforeFingerprints": "{n} tracks waiting. Dynamic range runs right after ReplayGain, before fingerprints and CLAP.",
   "v2.health.drQueuedFirst": "{n} tracks waiting. Dynamic range runs first, before ReplayGain, fingerprints and CLAP.",

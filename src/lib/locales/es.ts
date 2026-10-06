@@ -3499,6 +3499,7 @@ export default {
   "v2.health.drGaugeMeasurable": "El indicador abarca las {n} pistas que se pueden medir.",
   "v2.health.drOversized": "{n} pistas excluidas de la medición: demasiado largas para el presupuesto de memoria del análisis (alta resolución o DSD de más de unos minutos).",
   "v2.health.drWithoutFile": "{n} pistas sin archivo propio (imágenes CUE): la medición lee un archivo entero, no una pista recortada.",
+  "v2.health.drOutOfScope": "{n} pistas sin DR están en una carpeta excluida de los análisis: ninguna pasada las medirá mientras dure la exclusión.",
   "v2.health.drLineSidecar": "{n} de {t} pistas — {m} medidas por Tune, {g} leídas de las etiquetas, {s} leídas de los foo_dr.txt",
   "v2.health.drQueuedBeforeFingerprints": "{n} pistas en espera. El rango dinámico va justo después de ReplayGain, antes de las huellas y de CLAP.",
   "v2.health.drQueuedFirst": "{n} pistas en espera. El rango dinámico va primero, antes de ReplayGain, las huellas y CLAP.",

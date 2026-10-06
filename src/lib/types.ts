@@ -1091,6 +1091,9 @@ export interface CompletenessStats {
   /** Pistes sans fichier propre (images CUE), sans DR : hors de toute passe.
    *  tune-server-rust#5834 ; absent avant, donc 0. */
   dynamic_range_without_file?: number;
+  /** Pistes sans DR d'une racine EXCLUE des analyses (#5593) : aucune passe
+   *  ne les prendra tant que l'exclusion tient. Fil 2157 ; absent avant, donc 0. */
+  dynamic_range_out_of_scope?: number;
   dynamic_range_pct?: number;
 }
 

@@ -3499,6 +3499,7 @@ export default {
   "v2.health.drGaugeMeasurable": "进度条按可测量的 {n} 首曲目计算。",
   "v2.health.drOversized": "{n} 首曲目未纳入测量：对分析的内存预算而言过长（超过几分钟的高解析度或 DSD 文件）。",
   "v2.health.drWithoutFile": "{n} 首曲目没有独立文件（CUE 映像）：测量读取整个文件，不适用于切分出的曲目。",
+  "v2.health.drOutOfScope": "{n} 首没有 DR 的曲目位于已排除分析的文件夹中：在排除生效期间不会被测量。",
   "v2.health.drLineSidecar": "{t} 首中的 {n} 首 — Tune 测得 {m} 首，从标签读取 {g} 首，从 foo_dr.txt 读取 {s} 首",
   "v2.health.drQueuedBeforeFingerprints": "{n} 首等待中。动态范围紧跟在 ReplayGain 之后，排在指纹和 CLAP 之前。",
   "v2.health.drQueuedFirst": "{n} 首等待中。动态范围排在最前，先于 ReplayGain、指纹和 CLAP。",

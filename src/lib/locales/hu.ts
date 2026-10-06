@@ -3457,6 +3457,7 @@ export default {
   "v2.health.drGaugeMeasurable": "A mérő a {n} mérhető számra vonatkozik.",
   "v2.health.drOversized": "{n} szám kimaradt a mérésből: túl hosszú az elemzés memóriakeretéhez (néhány percnél hosszabb nagy felbontású vagy DSD fájl).",
   "v2.health.drWithoutFile": "{n} szám saját fájl nélkül (CUE-képfájlok): a mérés egész fájlt olvas, nem kivágott számot.",
+  "v2.health.drOutOfScope": "{n} DR nélküli szám az elemzésből kizárt mappában van: amíg a kizárás érvényes, egyik menet sem méri meg őket.",
   "v2.health.drLineSidecar": "{t} számból {n} — {m} a Tune mérése, {g} címkékből olvasva, {s} foo_dr.txt fájlokból olvasva",
   "v2.health.drQueuedBeforeFingerprints": "{n} szám várakozik. A dinamikatartomány közvetlenül a ReplayGain után jön, az ujjlenyomatok és a CLAP előtt.",
   "v2.health.drQueuedFirst": "{n} szám várakozik. A dinamikatartomány jön elsőként, a ReplayGain, az ujjlenyomatok és a CLAP előtt.",

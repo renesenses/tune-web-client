@@ -3499,6 +3499,7 @@ export default {
   "v2.health.drGaugeMeasurable": "게이지는 측정 가능한 {n}개 트랙을 기준으로 합니다.",
   "v2.health.drOversized": "{n}개 트랙이 측정에서 제외됨: 분석 메모리 한도에 비해 너무 깁니다(몇 분을 넘는 고해상도 또는 DSD).",
   "v2.health.drWithoutFile": "{n}개 트랙에 개별 파일이 없음(CUE 이미지): 측정은 파일 전체를 읽으므로 분할된 트랙에는 적용되지 않습니다.",
+  "v2.health.drOutOfScope": "DR이 없는 {n}개 트랙이 분석에서 제외된 폴더에 있습니다: 제외가 유지되는 동안 측정되지 않습니다.",
   "v2.health.drLineSidecar": "{t}곡 중 {n}곡 — Tune이 측정한 {m}곡, 태그에서 읽은 {g}곡, foo_dr.txt에서 읽은 {s}곡",
   "v2.health.drQueuedBeforeFingerprints": "{n}곡이 대기 중입니다. 다이내믹 레인지는 ReplayGain 바로 다음, 지문과 CLAP보다 먼저 처리됩니다.",
   "v2.health.drQueuedFirst": "{n}곡이 대기 중입니다. 다이내믹 레인지가 ReplayGain, 지문, CLAP보다 먼저 처리됩니다.",

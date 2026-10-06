@@ -3499,6 +3499,7 @@ export default {
   "v2.health.drGaugeMeasurable": "Die Anzeige bezieht sich auf die {n} messbaren Titel.",
   "v2.health.drOversized": "{n} Titel von der Messung ausgeschlossen: zu lang für das Speicherbudget der Analyse (Hi-Res oder DSD über einige Minuten).",
   "v2.health.drWithoutFile": "{n} Titel ohne eigene Datei (CUE-Images): Die Messung liest eine ganze Datei, keinen geschnittenen Titel.",
+  "v2.health.drOutOfScope": "{n} Titel ohne DR liegen in einem von den Analysen ausgeschlossenen Ordner: Keine Analyse misst sie, solange der Ausschluss gilt.",
   "v2.health.drLineSidecar": "{n} von {t} Titeln — {m} von Tune gemessen, {g} aus Tags gelesen, {s} aus foo_dr.txt gelesen",
   "v2.health.drQueuedBeforeFingerprints": "{n} Titel warten. Der Dynamikumfang kommt direkt nach ReplayGain, vor Fingerabdrücken und CLAP.",
   "v2.health.drQueuedFirst": "{n} Titel warten. Der Dynamikumfang kommt zuerst, vor ReplayGain, Fingerabdrücken und CLAP.",
