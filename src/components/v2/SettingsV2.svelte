@@ -3819,9 +3819,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               <div class="row">
                 <div class="lbl"><span>{$t('settings.language' as any)}</span></div>
-                <select class="sel" value={$preferences.language ?? 'fr'}
+                <select class="sel" value={$preferences.language ?? 'en'}
                   onchange={(e) => { const l = (e.currentTarget as HTMLSelectElement).value as Locale;
-                    preferences.update((pr) => ({ ...pr, language: l })); locale.set(l); }}>
+                    preferences.update((pr) => ({ ...pr, language: l, langueAuto: null })); locale.set(l); }}>
                   {#each Object.entries(localeNames) as [code, name] (code)}
                     <option value={code}>{name}</option>
                   {/each}
