@@ -43,6 +43,7 @@
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
+  import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
   import {
@@ -1723,6 +1724,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    *  éteinte : le serveur n'interroge LRCLIB que sur la chaîne "true". */
   let lrclibOn = $state(false);
   let lrclibErr = $state<string | null>(null);
+  // « Écrire les modifications dans les fichiers audio » — décoché par défaut
+  // (Bertrand, 05/10/2026). Absent de la config : décoché, comme le serveur.
+  let ecritureFichiersOn = $state(false);
+  let ecritureFichiersErr = $state<string | null>(null);
   let schedOn = $state(false);
   let schedTime = $state('03:00');
   // #1578 : date (jour local) de la dernière occurrence honorée du scan
@@ -1939,6 +1944,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       qualitySplit = !(c?.quality_split === false || c?.quality_split === 'false'
         || c?.quality_split === 0 || c?.quality_split === '0');
       lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
+      ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
     } catch { libErr = get(t)('settings.errConfigUnavailable'); }
     try {
       const sch: any = await api.getScanSchedule();
@@ -2136,6 +2142,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch {
       lrclibOn = before;
       lrclibErr = get(t)('settings.errSaveFailed');
+    }
+  }
+  /** Même patron que `setLrclib` : un refus du serveur remet la case en place. */
+  async function setEcritureFichiers(v: boolean) {
+    const before = ecritureFichiersOn; ecritureFichiersOn = v; ecritureFichiersErr = null;
+    try {
+      await api.updateConfig({ [CLE_ECRITURE_FICHIERS]: v });
+    } catch {
+      ecritureFichiersOn = before;
+      ecritureFichiersErr = get(t)('settings.errSaveFailed');
     }
   }
   async function saveSchedule() {
@@ -3927,6 +3943,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
             {:else if s.id === 'metadata'}
+              <!-- Bertrand, 05/10/2026 : « Écrire les tags dans les fichiers :
+                   inactif par défaut ! » Décochée, une modification ne va
+                   qu'en base ; les fichiers audio ne sont pas touchés. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.fileWrites' as any)}</span>
+                  <span class="hint">{$t('settings.fileWritesHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-cle={CLE_ECRITURE_FICHIERS} checked={ecritureFichiersOn}
+                    onchange={(e) => setEcritureFichiers((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if ecritureFichiersErr}<div class="errline">{ecritureFichiersErr}</div>{/if}
               <!-- #4051 : la carte descend au niveau débutant pour cette case
                    (#2859) ; le renvoi vers le Studio reste Avancé. -->
               <div class="row">
@@ -4079,6 +4110,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="slider"></span>
                   </label>
                 </div>
+                {#if ingest.file_writes_enabled === false}<p class="hint">{$t('fileWrites.offHint' as any)}</p>{/if}
                 {#if ingestErr}<div class="errline">{ingestErr}</div>{/if}
               {/if}
 
