@@ -177,13 +177,49 @@ describe('#1342 — la fiche nue du menu « … » se complète à la source', (
 
   it('un en-tête DÉJÀ complet ne demande rien au service', async () => {
     // Le filet ne coûte une requête qu'aux fiches qui s'ouvriraient nues.
+    // tune-server-rust#5530 : pour Qobuz, « complet » inclut désormais le
+    // marquage IA (`ai_generated`) — un album qui le porte déjà, même à
+    // `false`, ne demande rien.
+    poser(AlbumDetailV2, {
+      album: { ...FICHE_NUE, cover_path: POCHETTE, artist_name: 'Neil Young', artist_id: '35865', year: 2026, ai_generated: false } as any,
+      service: 'qobuz', onClose: () => {},
+    });
+    await attendre();
+    flushSync();
+    expect(appelsDetail(), `appels vus : ${JSON.stringify(appels)}`).toEqual([]);
+  });
+
+  it('#5530 — un en-tête Qobuz complet SANS marquage IA le demande, une fois', async () => {
     poser(AlbumDetailV2, {
       album: { ...FICHE_NUE, cover_path: POCHETTE, artist_name: 'Neil Young', artist_id: '35865', year: 2026 },
       service: 'qobuz', onClose: () => {},
     });
     await attendre();
     flushSync();
-    expect(appelsDetail(), `appels vus : ${JSON.stringify(appels)}`).toEqual([]);
+    expect(appelsDetail().length, `appels vus : ${JSON.stringify(appels)}`).toBe(1);
+  });
+
+  it('#5530 — le badge « IA » vient de la réponse du service, et de rien d’autre', async () => {
+    // Sans la clé (le témoin Kind of Blue sur le .18) : pas de badge.
+    let el = poser(AlbumDetailV2, { album: { ...FICHE_NUE }, service: 'qobuz', onClose: () => {} });
+    await attendre();
+    flushSync();
+    expect(el.querySelector('[data-ia]'), 'badge sans marquage du service').toBeNull();
+    if (monte) unmount(monte);
+    monte = null;
+    hote?.remove();
+    // Avec `ai_generated: true` (la forme relevée sur `album/get`) : le badge.
+    vi.stubGlobal('fetch', vi.fn(async (url: any) => {
+      const u = String(url);
+      appels.push(u);
+      if (/\/albums\/[^/]+\/tracks/.test(u)) return reponse(PISTES);
+      if (/\/streaming\/qobuz\/albums\//.test(u)) return reponse({ ...DETAIL, ai_generated: true });
+      return reponse([]);
+    }));
+    el = poser(AlbumDetailV2, { album: { ...FICHE_NUE }, service: 'qobuz', onClose: () => {} });
+    await attendre();
+    flushSync();
+    expect(el.querySelector('[data-ia]'), 'le marquage IA du service n’est pas affiché').not.toBeNull();
   });
 
   it('ce que l’appelant porte PRIME sur la réponse du service', async () => {

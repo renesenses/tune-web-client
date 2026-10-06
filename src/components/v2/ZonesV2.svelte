@@ -18,6 +18,7 @@
    */
   import * as api from '../../lib/api';
   import { zones, currentZoneId } from '../../lib/stores/zones';
+  import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { chargerLesZones, etatDesZones, listeVraimentVide } from '../../lib/chargementDesZones';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -393,17 +394,20 @@
     if (z.id == null) return;
     const question = $t('v2.zone.deleteExplain' as any).replace('{name}', z.name);
     if (!(await dialogs.confirm(question, { danger: true }))) return;
-    act(async () => {
-      await api.deleteZone(z.id as number);
-      // La zone active vient d'être supprimée : on ne laisse pas l'interface
-      // pointer sur un identifiant mort.
-      if ($currentZoneId === z.id) currentZoneId.set(null);
-    });
+    // Même geste que la barre de lecture (fil 2013, point 9) : un seul endroit.
+    act(() => supprimerZoneConfirmee(z.id as number));
   }
+  /** `v` est le POUR-CENT du curseur (0..100) ; la zone porte un volume
+   *  LINÉAIRE (0..1), comme `/zones` et `playback.volume`. Le pour-cent
+   *  était recopié tel quel dans le magasin : à 30, la zone valait 30, le
+   *  curseur redessiné `Math.round(30 * 100)` = 3000 se calait au maximum et
+   *  le chiffre affichait « 3000 » jusqu’à l’écho du serveur (trouvé en
+   *  instruisant le fil forum 2147). */
   function setVol(z: Zone, v: number) {
     if (z.id == null) return;
-    zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume: v } : x)));
-    api.setVolume(z.id, v / 100).catch(() => { error = $t('v2.zone.volumeRefused' as any); refresh(); });
+    const lineaire = v / 100;
+    zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume: lineaire } : x)));
+    api.setVolume(z.id, lineaire).catch(() => { error = $t('v2.zone.volumeRefused' as any); refresh(); });
   }
 
   const OUTPUTS: Record<string, string> = {

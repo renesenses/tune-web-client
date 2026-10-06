@@ -26,7 +26,8 @@
  *
  * # La règle, et pourquoi elle est exacte plutôt qu'heuristique
  *
- * Tune n'a qu'une forme d'adresse de flux, et elle est construite à un seul
+ * Tune n'a qu'une forme d'adresse de flux de session (la seconde, celle du
+ * mandataire Deezer, est décrite plus bas : #5632), et elle est construite à un seul
  * endroit — `tune-core/src/http/streamer.rs:1181` :
  *
  *     format!("http://{server_ip}:{}/stream/{stream_id}.{ext}", self.port)
@@ -53,6 +54,22 @@
 const ROUTE_DE_FLUX_TUNE = /^\/stream\/[^/]+$/;
 
 /**
+ * #5632 — la SECONDE adresse de flux de Tune : le mandataire Deezer.
+ *
+ * Fil 2090 (1.0.0-rc1, Docker, zone « Cet ordinateur ») : un titre Deezer
+ * s'affiche, sa ligne de temps avance, et rien ne sonne. Le serveur rend pour
+ * Deezer `http://{server_ip}:{port}/deezer-proxy/deezer/<id>.flac`
+ * (`tune-server/src/background.rs`, `base_du_proxy_deezer` ;
+ * `tune-core/src/streaming/deezer.rs`, `get_track_url`). Ce chemin n'est pas
+ * `/stream/<id>` : il gardait donc l'IP annoncée — ici celle du réseau Docker,
+ * que le navigateur ne joint pas. L'onglet ne demandait jamais le flux.
+ *
+ * Les deux routes servies, et elles seules (`tune-server/src/routes/mod.rs`) :
+ * `/deezer-proxy/{filename}` et `/deezer-proxy/deezer/{filename}`.
+ */
+const ROUTE_DU_MANDATAIRE_DEEZER = /^\/deezer-proxy\/(?:deezer\/)?[^/]+$/;
+
+/**
  * L'adresse à poser dans `audio.src`.
  *
  * @param urlDeFlux   ce que le serveur a rendu dans `stream_url`
@@ -68,5 +85,6 @@ export function sourceDuLecteur(urlDeFlux: string, origineCourante?: string | nu
   }
   if (origineCourante && u.origin === origineCourante) return u.pathname + u.search;
   if (ROUTE_DE_FLUX_TUNE.test(u.pathname)) return u.pathname + u.search;
+  if (ROUTE_DU_MANDATAIRE_DEEZER.test(u.pathname)) return u.pathname + u.search;
   return urlDeFlux;
 }
