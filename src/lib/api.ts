@@ -10,6 +10,7 @@ import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 import type { RetraitDossier } from './purgeOrphelines';
+import type { EstimationDossier } from './ajoutDossier';
 import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
 import type { CorpsEdition, EditionReponse, RapportBalises } from './editionAlbum';
@@ -4381,6 +4382,41 @@ export async function removeMusicDir(path: string, confirmPurge?: number) {
     body: JSON.stringify(body),
   });
   return { ...r, music_dirs: listeDossiers(r) };
+}
+
+/** Une entrée de l'explorateur de dossiers du serveur. */
+export interface DossierServeur {
+  name: string;
+  path: string;
+  has_children: boolean;
+}
+
+/** Réponse de `GET /system/browse-dirs`. `drives` : liste des lecteurs Windows. */
+export interface ListeDossiersServeur {
+  dirs: DossierServeur[];
+  parent: string | null;
+  current: string;
+  drives?: boolean;
+  error?: string;
+}
+
+/**
+ * Explorateur de dossiers du SERVEUR (#1275, fil forum 2171). Sans `path`, le
+ * serveur part de sa racine : `/` sous Unix, la liste des lecteurs sous
+ * Windows. Un refus de périmètre (403) rend quand même un corps lisible.
+ */
+export async function browseServerDirs(path?: string): Promise<ListeDossiersServeur> {
+  const qs = path ? `?path=${encodeURIComponent(path)}` : '';
+  return fetchJSON<ListeDossiersServeur>(`${BASE}/system/browse-dirs${qs}`, undefined, (s) => s === 403);
+}
+
+/** Ce que l'ajout de ce dossier ferait analyser (comptage borné, fil 2171). */
+export function estimateMusicDir(path: string): Promise<EstimationDossier> {
+  return fetchJSON<EstimationDossier>(
+    `${BASE}/system/browse-dirs/estimate?path=${encodeURIComponent(path)}`,
+    undefined,
+    (s) => s === 403,
+  );
 }
 
 /** Effective reading order of configured music directories (#1688 / server #4907). */
