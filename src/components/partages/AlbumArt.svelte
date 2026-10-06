@@ -109,13 +109,26 @@
    */
   let boite = $state<HTMLDivElement | undefined>();
   let largeurMesuree = $state<number | undefined>(undefined);
+  /*
+   * Seule la route `/library/artwork/{condensat}` lit `?size=` : le relais
+   * (`/library/artwork/proxy?url=…`, pochettes des services de streaming,
+   * logos de radio) et les autres routes l'ignorent. Pour celles-là, une
+   * tuile `vignette` se comporte exactement comme avant — ni mesure, ni
+   * image retenue le temps de mesurer. `artworkUrl` décide seul : si une
+   * taille (ici la plus petite case, 80) ne change pas l'adresse, elle ne
+   * sert à rien.
+   */
+  const vignetteUtile = $derived(
+    vignette && !!resolvedCoverPath
+      && artworkUrl(resolvedCoverPath, 80) !== artworkUrl(resolvedCoverPath),
+  );
   $effect(() => {
-    if (!vignette || size || !boite || largeurMesuree !== undefined) return;
+    if (!vignetteUtile || size || !boite || largeurMesuree !== undefined) return;
     largeurMesuree = boite.getBoundingClientRect().width;
   });
   const densite = typeof window !== 'undefined' && window.devicePixelRatio > 0 ? window.devicePixelRatio : 1;
-  const tailleDemandee = $derived(vignette ? tailleDeVignette(size || largeurMesuree || 0, densite) : undefined);
-  const enAttenteDeMesure = $derived(vignette && !size && largeurMesuree === undefined);
+  const tailleDemandee = $derived(vignetteUtile ? tailleDeVignette(size || largeurMesuree || 0, densite) : undefined);
+  const enAttenteDeMesure = $derived(vignetteUtile && !size && largeurMesuree === undefined);
 
   let src = $derived(enAttenteDeMesure ? '' : artworkUrl(resolvedCoverPath, tailleDemandee));
 </script>

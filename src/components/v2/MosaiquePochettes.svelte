@@ -53,7 +53,7 @@
   <div class="mos" aria-label={alt}>
     {#each cases as c, i (i)}
       <div class="case">
-        <AlbumArt coverPath={c} albumId={null} size={0} alt="" />
+        <AlbumArt coverPath={c} albumId={null} size={0} vignette alt="" />
       </div>
     {/each}
   </div>
