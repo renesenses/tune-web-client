@@ -1653,7 +1653,9 @@ export interface AddToQueueRequest {
  * et faire reculer l'appelant serait faux.
  */
 export async function addToQueue(zoneId: number, body: AddToQueueRequest) {
-  const res = await fetchJSON<{ queue_length: number; unresolved?: PisteNonResolue[] }>(
+  // `queue_position` : le curseur APRÈS l'ajout, absent sur un serveur
+  // antérieur à tune-server-rust#5770 (voir `playback.ts`).
+  const res = await fetchJSON<{ queue_length: number; queue_position?: number; unresolved?: PisteNonResolue[] }>(
     `${BASE}/zones/${zoneId}/queue/add`,
     { method: 'POST', body: JSON.stringify(body) },
   );
