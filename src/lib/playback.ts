@@ -49,10 +49,41 @@ async function lireUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
   }
 }
 
+/** Ce que rend `POST /zones/{id}/queue/add`, réduit à ce qu'on en lit ici. */
+type ReponseAjout = { queue_position?: unknown } | null | undefined;
+
+/**
+ * Ce serveur fait-il suivre la piste en cours quand on insère AVANT elle ?
+ *
+ * tune-server-rust#5770 : depuis ce correctif, `queue_add` décale le curseur
+ * et le dit par un champ additif, `queue_position`. Un serveur plus ancien ne
+ * l'envoie pas et garde l'ancien curseur : une insertion en tête lui ferait
+ * désigner une ligne insérée au lieu de la piste qui joue. On ne remet donc
+ * les titres précédents en tête que si la réponse porte le champ.
+ *
+ * Mémorisé pour la session : la PREMIÈRE réponse suffit, et c'est elle qui
+ * permet de trancher quand le titre cliqué est le dernier de la liste (aucune
+ * suite à enfiler, donc aucune réponse à lire avant l'insertion en tête).
+ */
+let serveurSuitLeCurseur: boolean | null = null;
+
+function noterReponse(rep: ReponseAjout): void {
+  if (rep && typeof rep === 'object') {
+    serveurSuitLeCurseur = typeof rep.queue_position === 'number';
+  }
+}
+
+/** Pour les épreuves seulement : repartir d'un serveur inconnu. */
+export function oublierCapaciteCurseur(): void {
+  serveurSuitLeCurseur = null;
+}
+
 /** Append one row to the queue, whichever kind it is. */
-async function enfilerUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
+async function enfilerUneLigne(zoneId: number, t: PlayableRow, position?: number): Promise<ReponseAjout> {
+  const ou = position === undefined ? {} : { position };
   if (estStreaming(t)) {
-    await api.addToQueue(zoneId, {
+    return api.addToQueue(zoneId, {
+      ...ou,
       source: t.source as any, source_id: t.source_id as string,
       // `?? undefined` et non le `null` brut : `JSON.stringify` supprime une
       // clé `undefined` mais transmet `null`. Une ligne sans artiste connu doit
@@ -63,8 +94,39 @@ async function enfilerUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
       cover_path: t.cover_path, duration_ms: t.duration_ms,
       ...champAlbumBandcamp(t),
     });
+  }
+  return api.addToQueue(zoneId, { ...ou, track_id: t.id as number });
+}
+
+/** Le corps d'une ligne de service dans `tracks[]`. */
+function ligneDeService(track: PlayableRow) {
+  return {
+    source: track.source as any,
+    source_id: track.source_id as string,
+    title: track.title,
+    artist_name: track.artist_name,
+    album_title: track.album_title,
+    cover_path: track.cover_path,
+    duration_ms: track.duration_ms,
+    ...champAlbumBandcamp(track),
+  };
+}
+
+/**
+ * Remettre les titres qui PRÉCÈDENT le titre cliqué en tête de file (#5770).
+ *
+ * Sans eux, le titre cliqué était en tête : un second « Précédent » le
+ * rejouait au lieu de reculer. Une liste homogène part en un appel ; une
+ * liste mixte ligne par ligne, aux rangs 0, 1, 2… pour garder l'ordre (le
+ * serveur range les pistes locales d'une requête APRÈS ses pistes de service).
+ */
+async function remettreLesPrecedents(zoneId: number, avant: PlayableRow[]): Promise<void> {
+  if (avant.every(estStreaming)) {
+    await api.addToQueue(zoneId, { tracks: avant.map(ligneDeService), position: 0 });
+  } else if (avant.every((t) => !estStreaming(t))) {
+    await api.addToQueue(zoneId, { track_ids: avant.map((t) => t.id as number), position: 0 });
   } else {
-    await api.addToQueue(zoneId, { track_id: t.id as number });
+    for (let i = 0; i < avant.length; i++) await enfilerUneLigne(zoneId, avant[i], i);
   }
 }
 
@@ -81,6 +143,11 @@ async function enfilerUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
  * with no local row at all returned in silence. Here we start the clicked row
  * and enqueue what follows it, the same compromise `playAllTracks` already
  * makes in FavoritesView.
+ *
+ * #5770 — then the rows BEFORE it go back in front (`position: 0`), so that
+ * « Précédent » steps back through the list instead of replaying the clicked
+ * row. Only on a server that keeps the playing track under the cursor across
+ * such an insertion (see `serveurSuitLeCurseur`).
  */
 export async function playFromHere(
   tracks: PlayableRow[],
@@ -122,20 +189,15 @@ export async function playFromHere(
     if (suite.length > 0 && suite.every(estStreaming)) {
       // Une liste de favoris est 100 % streaming : un seul appel conserve
       // l'ordre et évite une requête HTTP par piste (#2140).
-      await api.addToQueue(zoneId, {
-        tracks: suite.map((track) => ({
-          source: track.source as any,
-          source_id: track.source_id as string,
-          title: track.title,
-          artist_name: track.artist_name,
-          album_title: track.album_title,
-          cover_path: track.cover_path,
-          duration_ms: track.duration_ms,
-          ...champAlbumBandcamp(track),
-        })),
-      });
+      noterReponse(await api.addToQueue(zoneId, { tracks: suite.map(ligneDeService) }));
     } else {
-      for (const track of suite) await enfilerUneLigne(zoneId, track);
+      for (const track of suite) noterReponse(await enfilerUneLigne(zoneId, track));
+    }
+    // #5770 — puis ce qui précède, en tête, si le serveur sait garder la
+    // piste en cours sous le curseur. Sinon, comme avant : la suite seule.
+    const avant = liste.slice(0, index).filter(jouable);
+    if (avant.length > 0 && serveurSuitLeCurseur === true) {
+      await remettreLesPrecedents(zoneId, avant);
     }
     // The queue view follows `POST /play`'s zone, not our appends: re-read it,
     // otherwise "up next" stays empty until the next WebSocket event.
