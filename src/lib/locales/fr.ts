@@ -179,6 +179,7 @@ export default {
   'concerts.commune': 'Commune',
   'concerts.communePlaceholder': 'Votre commune',
   'concerts.codePostal': 'Code postal',
+  'concerts.pays': 'Pays',
   'concerts.codePostalPlaceholder': 'Code postal',
   'concerts.rayon': 'Rayon',
   'concerts.appliquer': 'Appliquer',

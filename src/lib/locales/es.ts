@@ -110,6 +110,7 @@ export default {
   'concerts.commune': 'Municipio',
   'concerts.communePlaceholder': 'Su municipio',
   'concerts.codePostal': 'Código postal',
+  'concerts.pays': 'País',
   'concerts.codePostalPlaceholder': 'Código postal',
   'concerts.rayon': 'Radio',
   'concerts.appliquer': 'Aplicar',

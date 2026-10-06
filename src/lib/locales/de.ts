@@ -110,6 +110,7 @@ export default {
   'concerts.commune': 'Ort',
   'concerts.communePlaceholder': 'Ihr Ort',
   'concerts.codePostal': 'Postleitzahl',
+  'concerts.pays': 'Land',
   'concerts.codePostalPlaceholder': 'Postleitzahl',
   'concerts.rayon': 'Umkreis',
   'concerts.appliquer': 'Anwenden',

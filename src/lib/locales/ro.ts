@@ -110,6 +110,7 @@ export default {
   'concerts.commune': 'Localitate',
   'concerts.communePlaceholder': 'Localitatea ta',
   'concerts.codePostal': 'Cod poștal',
+  'concerts.pays': 'Țară',
   'concerts.codePostalPlaceholder': 'Cod poștal',
   'concerts.rayon': 'Rază',
   'concerts.appliquer': 'Aplică',

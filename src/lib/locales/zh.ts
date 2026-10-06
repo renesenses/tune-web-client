@@ -110,6 +110,7 @@ export default {
   'concerts.commune': '城市',
   'concerts.communePlaceholder': '你所在的城市',
   'concerts.codePostal': '邮政编码',
+  'concerts.pays': '国家',
   'concerts.codePostalPlaceholder': '邮政编码',
   'concerts.rayon': '范围',
   'concerts.appliquer': '应用',
