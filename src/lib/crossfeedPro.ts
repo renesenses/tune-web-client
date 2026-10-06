@@ -19,11 +19,18 @@ import type { ApiError } from './api';
 
 export const CROSSFEED_PRO_ID = 'crossfeed-pro';
 
+/** Le moteur : `tune` (défaut) ou `classique` (libbs2b). Un réglage
+ *  enregistré sans `mode` est en mode Tune. */
+export type ModeCrossfeedPro = 'tune' | 'classique';
+
 /** Les réglages d'une zone, tels que le greffon les enregistre. Les champs
  *  inconnus de ce client sont CONSERVÉS tels quels à l'écriture : un greffon
  *  plus récent ne doit pas perdre un réglage parce que l'écran l'ignore. */
 export interface ReglagesCrossfeedPro {
   enabled: boolean;
+  /** `tune` ou `classique` ; une autre chaîne (greffon plus récent) est
+   *  gardée telle quelle. */
+  mode: ModeCrossfeedPro | string;
   amount: number;
   delay_ms: number;
   head_shadow: boolean;
@@ -66,10 +73,25 @@ export const BORNES_CROSSFEED_PRO: Record<CurseurCrossfeedPro, Borne> = {
   itd_smoothing_ms: { min: 100, max: 200, pas: 5 },
 };
 
-/** Les défauts du schéma : éteint, ombre de la tête, coupe-bas et mode
- *  expérimental ÉTEINTS, garde de phase allumée. */
+/** En mode classique, seuls le dosage et la coupure servent, et le greffon
+ *  les borne à ceux de libbs2b (300–2000 Hz, niveau de 1 à 15 dB, soit un
+ *  dosage d'au plus 0,47). */
+export const BORNES_CLASSIQUE: Pick<Record<CurseurCrossfeedPro, Borne>, 'amount' | 'head_shadow_hz'> = {
+  amount: { min: 0.2, max: 0.47, pas: 0.01 },
+  head_shadow_hz: { min: 300, max: 2000, pas: 10 },
+};
+
+/** Les bornes d'un curseur dans le mode du réglage. */
+export function borneCrossfeedPro(cle: CurseurCrossfeedPro, mode: string): Borne {
+  if (mode === 'classique' && (cle === 'amount' || cle === 'head_shadow_hz')) return BORNES_CLASSIQUE[cle];
+  return BORNES_CROSSFEED_PRO[cle];
+}
+
+/** Les défauts du schéma : éteint, mode Tune, ombre de la tête, coupe-bas et
+ *  mode expérimental ÉTEINTS, garde de phase allumée. */
 export const DEFAUTS_CROSSFEED_PRO: ReglagesCrossfeedPro = {
   enabled: false,
+  mode: 'tune',
   amount: 0.3,
   delay_ms: 0.3,
   head_shadow: false,
@@ -100,9 +122,11 @@ export function reglagesCrossfeedPro(brut: unknown): ReglagesCrossfeedPro {
   for (const cle of BOOLEENS) {
     if (typeof src[cle] === 'boolean') r[cle] = src[cle] as boolean;
   }
+  if (typeof src.mode === 'string' && src.mode) r.mode = src.mode;
   for (const cle of Object.keys(BORNES_CROSSFEED_PRO) as CurseurCrossfeedPro[]) {
     const v = src[cle];
-    if (typeof v === 'number' && Number.isFinite(v)) r[cle] = borner(v, BORNES_CROSSFEED_PRO[cle]);
+    if (typeof v === 'number' && Number.isFinite(v)) r[cle] = v;
+    r[cle] = borner(r[cle], borneCrossfeedPro(cle, r.mode));
   }
   return r;
 }
@@ -110,13 +134,14 @@ export function reglagesCrossfeedPro(brut: unknown): ReglagesCrossfeedPro {
 /**
  * Les PRÉRÉGLAGES — ceux de libbs2b 3.1.0 (`src/bs2b.h`, bibliothèque
  * publique) : coupure et niveau croisé de BS2B (700 Hz, 4,5 dB), Chu Moy
- * (700 Hz, 6 dB) et Jan Meier (650 Hz, 9,5 dB), avec le passe-bas du 1er ordre
- * de libbs2b (6 dB/octave). Le niveau croisé y est exprimé en dosage linéaire,
- * l'unité du réglage `amount`.
+ * (700 Hz, 6 dB) et Jan Meier (650 Hz, 9,5 dB). Le niveau croisé y est
+ * exprimé en dosage linéaire, l'unité du réglage `amount`. Ils passent en mode
+ * `classique` (libbs2b).
  *
- * libbs2b n'a pas de ligne à retard : un préréglage remet le retard à zéro et
- * allume l'ombre de la tête. Le reste (activation, coupe-bas, garde de phase,
- * mode expérimental) n'est pas touché.
+ * Un préréglage allume le greffon, passe en mode classique, et ÉTEINT la garde
+ * de phase et le retard adaptatif. Retard et ombre de la tête sont posés
+ * comme avant (sans effet en mode classique, ils servent si l'on repasse en
+ * mode Tune) ; le coupe-bas n'est pas touché.
  *
  * ⚠️ Le greffon connaît aussi un préréglage « Meier extended » dont les valeurs
  * ne sont pas publiées : il n'est pas proposé ici tant que l'hôte ne publie
@@ -125,15 +150,16 @@ export function reglagesCrossfeedPro(brut: unknown): ReglagesCrossfeedPro {
 export interface PresetCrossfeedPro {
   key: string;
   labelKey: string;
+  mode: ModeCrossfeedPro;
   amount: number;
   head_shadow_hz: number;
   head_shadow_slope_db_oct: number;
 }
 
 export const PRESETS_CROSSFEED_PRO: PresetCrossfeedPro[] = [
-  { key: 'bs2b', labelKey: 'v2.cfp.presetBs2b', amount: 0.3733, head_shadow_hz: 700, head_shadow_slope_db_oct: 6 },
-  { key: 'chu_moy', labelKey: 'v2.cfp.presetChuMoy', amount: 0.3339, head_shadow_hz: 700, head_shadow_slope_db_oct: 6 },
-  { key: 'jan_meier', labelKey: 'v2.cfp.presetJanMeier', amount: 0.2509, head_shadow_hz: 650, head_shadow_slope_db_oct: 6 },
+  { key: 'bs2b', labelKey: 'v2.cfp.presetBs2b', mode: 'classique', amount: 0.3733, head_shadow_hz: 700, head_shadow_slope_db_oct: 6 },
+  { key: 'chu_moy', labelKey: 'v2.cfp.presetChuMoy', mode: 'classique', amount: 0.3339, head_shadow_hz: 700, head_shadow_slope_db_oct: 6 },
+  { key: 'jan_meier', labelKey: 'v2.cfp.presetJanMeier', mode: 'classique', amount: 0.2509, head_shadow_hz: 650, head_shadow_slope_db_oct: 6 },
 ];
 
 export function appliquerPresetCrossfeedPro(
@@ -143,6 +169,9 @@ export function appliquerPresetCrossfeedPro(
   return {
     ...r,
     enabled: true,
+    mode: p.mode,
+    phase_guard: false,
+    experimental_itd: false,
     amount: p.amount,
     delay_ms: 0,
     head_shadow: true,
@@ -158,11 +187,10 @@ export function presetCrossfeedProActif(r: ReglagesCrossfeedPro): string | null 
   return (
     PRESETS_CROSSFEED_PRO.find(
       (p) =>
-        r.head_shadow &&
-        proche(r.delay_ms, 0, 1e-6) &&
+        // En mode classique, seuls le dosage et la coupure comptent.
+        r.mode === p.mode &&
         proche(r.amount, p.amount, 0.005) &&
-        proche(r.head_shadow_hz, p.head_shadow_hz, 0.5) &&
-        proche(r.head_shadow_slope_db_oct, p.head_shadow_slope_db_oct, 0.01),
+        proche(r.head_shadow_hz, p.head_shadow_hz, 0.5),
     )?.key ?? null
   );
 }
@@ -186,16 +214,14 @@ export function profilCrossfeedProActif(
 
 export const POSITIONS_COUPURE = 1000;
 
-export function positionCoupure(hz: number): number {
-  const b = BORNES_CROSSFEED_PRO.head_shadow_hz;
+export function positionCoupure(hz: number, b: Borne = BORNES_CROSSFEED_PRO.head_shadow_hz): number {
   const v = borner(Number.isFinite(hz) ? hz : DEFAUTS_CROSSFEED_PRO.head_shadow_hz, b);
   return Math.round((Math.log(v / b.min) / Math.log(b.max / b.min)) * POSITIONS_COUPURE);
 }
 
 /** Position → coupure, arrondie à un pas lisible (10 Hz sous 1 kHz, 50 Hz
  *  sous 10 kHz, 100 Hz au-delà). */
-export function coupureDePosition(position: number): number {
-  const b = BORNES_CROSSFEED_PRO.head_shadow_hz;
+export function coupureDePosition(position: number, b: Borne = BORNES_CROSSFEED_PRO.head_shadow_hz): number {
   const r = Math.min(1, Math.max(0, Number.isFinite(position) ? position / POSITIONS_COUPURE : 0));
   const hz = b.min * Math.pow(b.max / b.min, r);
   const pas = hz < 1000 ? 10 : hz < 10000 ? 50 : 100;
