@@ -2582,6 +2582,12 @@ export interface AlbumDetailed {
    *  (`MAX(al.is_compilation)`), jamais déclaré ici — d'où l'écran qui ne
    *  pouvait pas le montrer. Voir `Album.is_compilation` : ABSENT ≠ FAUX. */
   is_compilation?: boolean;
+  /** Fil 2094 — le DOSSIER de l'album (celui que la ligne album retient,
+   *  sinon celui de sa première piste). Absent d'un serveur d'avant. */
+  folder?: string | null;
+  /** Fil 2094 — le numéro de disque que portent TOUTES ses pistes ; `null`
+   *  quand elles en portent plusieurs (voir `disc_count`). */
+  disc_number?: number | null;
 }
 
 /** Albums agrégés pour la vue cartes. `filters` = les mêmes paramètres de
