@@ -187,7 +187,7 @@
    * clique pas — la grappe ne gagne donc qu'un rond de 32 px.
    */
   import GlobalSearchBar from '../partages/GlobalSearchBar.svelte';
-  import { addShortcut, currentShortcutTarget } from '../../lib/stores/shortcuts';
+  import { addShortcut, currentShortcutTarget, raccourciPropose, type PropositionRaccourci } from '../../lib/stores/shortcuts';
   import { notifications } from '../../lib/stores/notifications';
   import { t, locale } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
@@ -470,19 +470,42 @@
    * page d'artiste…) : le formulaire dit ce que le raccourci rouvrira, et
    * propose son nom quand le champ est vide.
    */
-  const cibleAPoser = $derived($currentShortcutTarget?.label?.trim() || null);
+  /**
+   * web#1922 — le MÊME formulaire, ouvert par l'entrée « Ajouter aux
+   * raccourcis » du menu « … » d'un objet (`lib/raccourciObjet`). La
+   * proposition porte sa cible : le raccourci retient l'objet désigné, pas
+   * l'écran d'où vient le menu.
+   */
+  let proposition = $state.raw<PropositionRaccourci | null>(null);
+  $effect(() => {
+    const p = $raccourciPropose;
+    if (!p) return;
+    raccourciPropose.set(null);
+    proposition = p;
+    nomRaccourci = p.label?.trim() ?? '';
+    poseRaccourci = true;
+  });
+  const cibleAPoser = $derived(
+    (proposition ? proposition.label?.trim() : $currentShortcutTarget?.label?.trim()) || null,
+  );
+  function fermerPoseRaccourci() {
+    poseRaccourci = false;
+    if (proposition) { proposition = null; nomRaccourci = ''; }
+  }
   function basculerPoseRaccourci() {
-    poseRaccourci = !poseRaccourci;
-    if (poseRaccourci && !nomRaccourci.trim() && cibleAPoser) nomRaccourci = cibleAPoser;
+    if (poseRaccourci) { fermerPoseRaccourci(); return; }
+    poseRaccourci = true;
+    if (!nomRaccourci.trim() && cibleAPoser) nomRaccourci = cibleAPoser;
   }
   async function poser() {
     const n = nomRaccourci.trim();
     if (!n || pose) return;
     pose = true;
     try {
-      await addShortcut(n, '⭐');
+      await addShortcut(n, '⭐', proposition ? { view: proposition.view, state: proposition.state } : undefined);
       nomRaccourci = '';
       poseRaccourci = false;
+      proposition = null;
     } catch (e: any) {
       notifications.error(e?.message ?? $t('v2.nav.shortcutFailed' as any));
     }
@@ -594,13 +617,13 @@
   </div>
 
   {#if poseRaccourci}
-    <div class="rc-fond" role="presentation" onclick={() => (poseRaccourci = false)}>
+    <div class="rc-fond" role="presentation" onclick={fermerPoseRaccourci}>
       <form class="rc" onclick={(e) => e.stopPropagation()}
         onsubmit={(e) => { e.preventDefault(); void poser(); }}>
         <label for="rc-nom">{$t('v2.nav.addShortcut' as any)}</label>
         <!-- svelte-ignore a11y_autofocus -->
         <input id="rc-nom" bind:value={nomRaccourci} placeholder={$t('v2.nav.shortcutName' as any)} autofocus
-          onkeydown={(e) => { if (e.key === 'Escape') poseRaccourci = false; }} />
+          onkeydown={(e) => { if (e.key === 'Escape') fermerPoseRaccourci(); }} />
         {#if cibleAPoser}
           <p class="rc-cible">{$t('v2.nav.shortcutTargetHint' as any).replace('{nom}', cibleAPoser)}</p>
         {/if}

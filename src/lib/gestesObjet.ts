@@ -73,6 +73,8 @@ import { dossierDeLAlbum } from './dossierAlbum';
 import { shareLink } from './playlistShare';
 import { cleServeur } from './ongletsStreaming';
 import { estDeBibliotheque } from './provenanceBibliotheque';
+import { proposerRaccourci } from './stores/shortcuts';
+import { propositionRaccourciObjet } from './raccourciObjet';
 import {
   entreesPochette,
   type CapacitesPochette,
@@ -774,6 +776,9 @@ export function gestesObjet(o: ObjetMenu, options: OptionsMenuObjet = {}): Geste
   };
   // web#1653 — LE geste du sas, celui-là même que le menu d'une piste appelle.
   // La bascule vit dans `lib/ecouterPlusTard` : ni ici, ni dans `menuPiste`.
+  // web#1922 — le raccourci sur l'objet, par le formulaire du signet.
+  const raccourci = propositionRaccourciObjet(o);
+  if (raccourci) g.ajouterAuxRaccourcis = () => proposerRaccourci(raccourci);
   const pourLeSas = cibleDuSas(o);
   if (pourLeSas) g.basculerEcouterPlusTard = () => void basculerLeSas(pourLeSas);
   if (o.type === 'album' && o.id != null) {

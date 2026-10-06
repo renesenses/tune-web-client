@@ -302,7 +302,7 @@
   {#if !filtrees.length && toutes.length}
     <div class="etat">{$t('v2.disco.noMatch' as any)}</div>
   {:else}
-    {#if !sectionsSortie.epSingles.length}
+    {#if !sectionsSortie.eps.length && !sectionsSortie.singles.length && !sectionsSortie.live.length}
       <div class="gr">
         {#each triees as e (e.cle)}
           {@render carte(e)}
@@ -319,14 +319,38 @@
           </div>
         </section>
       {/if}
-      <section class="connexes" data-section="ep-singles">
-        <h3 class="titre-connexes">{$t('v2.disco.epSingles' as any)} <span class="cpt">{sectionsSortie.epSingles.length}</span></h3>
-        <div class="gr">
-          {#each sectionsSortie.epSingles as e (e.cle)}
-            {@render carte(e)}
-          {/each}
-        </div>
-      </section>
+      <!-- #5616 — deux sections, « EP » puis « Singles » (Bertrand, 05/10). -->
+      {#if sectionsSortie.eps.length}
+        <section class="connexes" data-section="eps">
+          <h3 class="titre-connexes">{$t('v2.disco.eps' as any)} <span class="cpt">{sectionsSortie.eps.length}</span></h3>
+          <div class="gr">
+            {#each sectionsSortie.eps as e (e.cle)}
+              {@render carte(e)}
+            {/each}
+          </div>
+        </section>
+      {/if}
+      {#if sectionsSortie.singles.length}
+        <section class="connexes" data-section="singles">
+          <h3 class="titre-connexes">{$t('v2.disco.singles' as any)} <span class="cpt">{sectionsSortie.singles.length}</span></h3>
+          <div class="gr">
+            {#each sectionsSortie.singles as e (e.cle)}
+              {@render carte(e)}
+            {/each}
+          </div>
+        </section>
+      {/if}
+      <!-- Section « Live » (Bertrand, 05/10) : après Albums, EP et Singles. -->
+      {#if sectionsSortie.live.length}
+        <section class="connexes" data-section="live">
+          <h3 class="titre-connexes">{$t('v2.disco.live' as any)} <span class="cpt">{sectionsSortie.live.length}</span></h3>
+          <div class="gr">
+            {#each sectionsSortie.live as e (e.cle)}
+              {@render carte(e)}
+            {/each}
+          </div>
+        </section>
+      {/if}
     {/if}
     {#if servicesEnCharge}
       <div class="etat">{$t('common.loading' as any)}</div>
