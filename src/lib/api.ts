@@ -2093,6 +2093,12 @@ export function getArtistAlbums(id: number) {
  */
 export interface AlbumsArtisteSections {
   albums: Album[];
+  /**
+   * Section « Live » (05/10/2026) — les disques dont les types secondaires
+   * portent `live`, que le serveur retire de `albums`. Absente devant un
+   * serveur antérieur, et quand il n'y en a pas.
+   */
+  live?: Album[];
   /** Compilations portant au moins une piste de l'artiste. */
   compilations?: Album[];
   /** Albums d'un AUTRE artiste portant au moins une piste de celui-ci. */
@@ -2130,6 +2136,7 @@ export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
   const o = (brut ?? {}) as AlbumsArtisteSections;
   return {
     albums: o.albums ?? [],
+    live: o.live,
     compilations: o.compilations,
     appearances: o.appearances,
     collaborations: o.collaborations,
@@ -7024,6 +7031,29 @@ export interface EtatEnrichCredits {
 /** `GET /system/enrich-credits` — avancement chiffré de la passe (#4862). */
 export function getEnrichCreditsStatus() {
   return fetchJSON<EtatEnrichCredits>(`${BASE}/system/enrich-credits`);
+}
+
+/**
+ * Identification par empreinte acoustique — `POST /library/identify-all?mode=acoustid`
+ * (tune-server-rust#5868). `202 { status: 'started', total }`, ou `409` avec
+ * `code` (`fpcalc_absent`, `acoustid_cle_absente`, `identification_en_pause`,
+ * `identification_deja_en_cours`) et `message` : le 409 est ACCEPTÉ, rendu
+ * comme une réponse, pour que l'écran dise le motif au lieu d'un bandeau
+ * générique. La lecture vit dans `lib/acoustid.ts` (`issueDuLancement`).
+ */
+export function lancerIdentificationAcoustid() {
+  return fetchJSON<Record<string, unknown>>(
+    `${BASE}/library/identify-all?mode=acoustid`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
+}
+
+/** `GET /library/identify-all/status` — l'état de la passe par lot, tous modes confondus. */
+export function getIdentifyAllStatus() {
+  return fetchJSON<import('./acoustid').EtatLotIdentification>(
+    `${BASE}/library/identify-all/status`,
+  );
 }
 
 /**

@@ -168,6 +168,14 @@ export interface Album {
    * explicite, qui gagne toujours. Absent sur un serveur antérieur.
    */
   inferred_release_type?: string | null;
+  /**
+   * Types SECONDAIRES MusicBrainz du disque (`live`, `compilation`,
+   * `soundtrack`, `remix`…), lus par le serveur dans la balise `RELEASETYPE`.
+   * `live` range le disque dans la section « Live » de la fiche artiste, quel
+   * que soit son type primaire. Absent quand rien n'est connu, ou devant un
+   * serveur antérieur.
+   */
+  release_secondary_types?: string[] | null;
   /** D'OÙ sort ce Dynamic Range (#1388, serveur v0.9.142) : `album_tag` quand
    *  une piste porte `ALBUM DYNAMIC RANGE`, `track_average` quand Tune l'a
    *  déduite de la moyenne arrondie des `DYNAMIC RANGE` des pistes. Apparaît
