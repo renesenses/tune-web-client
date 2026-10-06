@@ -117,7 +117,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
-  import { V2_SETTINGS, type V2SettingsTabId, tabLabel } from '../../lib/v2Settings';
+  import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
   import PluginsV2 from './PluginsV2.svelte';
   import { tip } from '../../lib/tooltip';
   import CreteMetre from '../partages/CreteMetre.svelte';
@@ -293,7 +293,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   $effect(() => {
     const target = $v2SettingsTarget;
     if (!target) return;
-    tabId = target.tab;
+    // Une section déplacée (Wi-Fi : Audio → Système) reste atteignable par
+    // une cible qui nomme encore son ancien onglet.
+    tabId = ongletDeLaSection(target.tab, target.section);
     highlight = target.section ?? null;
     cibleZone = target.zone ?? null;
     v2SettingsTarget.set(null);
