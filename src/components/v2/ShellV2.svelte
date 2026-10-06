@@ -304,7 +304,7 @@
    * ⚠️ Pas de boucle : `locale` n'écrit jamais dans `preferences`. Le seul
    * autre écrivain est le sélecteur des Réglages, qui met les deux à jour.
    */
-  $effect(() => { locale.set($preferences.language ?? 'fr'); });
+  $effect(() => { locale.set($preferences.language ?? 'en'); });
 
   // Les stores partagés sont alimentés par App.svelte, que `?v2` ne monte
   // jamais : sans cet appel, zones/albums/appareils restent vides et toute
