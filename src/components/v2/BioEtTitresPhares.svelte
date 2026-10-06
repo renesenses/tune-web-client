@@ -62,7 +62,8 @@
   <section class="bloc bio-bloc">
     <h2>{$t('v2.art.bio' as any)}</h2>
     {#if bioPropre}
-      <ClampedText lines={4} resetKey={cle}>
+      <ClampedText lines={4} resetKey={cle}
+        moreLabel={$t('v2.art.bioReadMore' as any)} lessLabel={$t('v2.art.bioReadLess' as any)}>
         <p class="bio">{bioPropre}</p>
       </ClampedText>
     {/if}

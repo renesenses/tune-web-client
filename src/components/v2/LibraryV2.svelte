@@ -120,7 +120,7 @@
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import {
-    detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant,
+    detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, ongletCourant,
   } from '../../lib/historiqueCoquille';
   import {
     albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant } from '../../lib/tuneRemote';
@@ -1068,10 +1068,48 @@
   ];
   // L'ONGLET aussi : revenir à la Bibliothèque après avoir consulté les Titres
   // pour retomber sur les Albums est le même agacement, d'un cran plus haut.
-  let tabChoisi = $state<Tab>(lireChoix('lib.tab', TABS.map((t2) => t2.id), 'albums'));
+  /**
+   * 🔴 L'ONGLET EST PUBLIÉ DANS `ongletCourant` — fil 2143, point 2.
+   *
+   * FabienM : « impossible de définir un raccourci sur un sous menu ». Le
+   * raccourci figeait `libraryTab`, un magasin de l'ANCIEN client que cet
+   * écran n'a jamais lu ni écrit : posé sur « Titres », il rouvrait l'onglet
+   * retenu par `lireChoix`, quel qu'il soit. L'onglet passe désormais par le
+   * magasin de la coquille, comme celui des Favoris (web#1790) : le raccourci
+   * le fige (`captureCurrentView`), le repose avant le montage, et l'entrée
+   * d'historique le porte aussi.
+   *
+   * Pas pour un DÉPÔT distant (`MediaServersV2`) : l'écran y est un morceau
+   * d'une autre vue, et l'onglet qu'il publierait serait pris pour le sien.
+   */
+  const ongletDeLaCoquille = (o: string | null): Tab | null =>
+    TABS.some((t2) => t2.id === o) ? (o as Tab) : null;
+  let tabChoisi = $state<Tab>(
+    // Lu UNE fois, au montage : c'est l'onglet d'arrivée, pas un suivi.
+    untrack(() => (depot ? null : ongletDeLaCoquille($ongletCourant))) ?? lireChoix('lib.tab', TABS.map((t2) => t2.id), 'albums'),
+  );
   // C'est le CHOIX qu'on retient, jamais sa substitution ci-dessous : ouvrir
   // un serveur distant ne doit pas effacer l'onglet où l'on était chez soi.
   $effect(() => ecrireChoix('lib.tab', tabChoisi));
+  $effect(() => {
+    const o = tabChoisi;
+    if (depot) return;
+    untrack(() => { if ($ongletCourant !== o) ongletCourant.set(o); });
+  });
+  // L'onglet publié part avec l'écran quand il est démonté SANS changement de
+  // vue (un montage isolé) : sinon le suivant l'hériterait. Après un
+  // changement de vue, la coquille l'a déjà remis à zéro, ou y a reposé
+  // l'onglet de la vue d'arrivée (Précédent) — on n'y touche pas.
+  const vueAuMontage = $activeView;
+  $effect(() => () => {
+    if (depot || $activeView !== vueAuMontage) return;
+    if ($ongletCourant === tabChoisi) ongletCourant.set(null);
+  });
+  // Un raccourci (ou un Précédent) qui repose l'onglet alors que l'écran est monté.
+  $effect(() => {
+    const voulu = depot ? null : ongletDeLaCoquille($ongletCourant);
+    untrack(() => { if (voulu && voulu !== tabChoisi) tabChoisi = voulu; });
+  });
 
   /**
    * 🔴 #1372 — LES ONGLETS RÉELLEMENT OFFERTS, et l'onglet réellement MONTRÉ.

@@ -202,6 +202,13 @@ export interface Track {
   album_id_service?: string | null;
   album_title?: string | null;
   artist_id?: number | null;
+  /**
+   * L'artiste CHEZ SON SERVICE, quand l'appelant l'a appris ailleurs que dans
+   * `artist_id` — le jumeau d'`album_id_service`. Fil forum 2143 (#5758) :
+   * posé par `GET /zones/{id}/queue`, `null` quand rien n'est connu. Lu par
+   * `routageArtiste.destinationArtiste`.
+   */
+  artist_id_service?: string | null;
   artist_name?: string | null;
   album_artist?: string | null;
   disc_number?: number;
@@ -316,6 +323,8 @@ export interface SignalPathStep {
   detail?: string | null;
   /** Code stable de l'étape, ex. `rate_conversion` sur le `Resampler` (#3973). */
   code?: string;
+  /** tune-server-rust#5633 — étape `ReplayGain` : le gain appliqué, en dB. */
+  gain_db?: number;
 }
 
 export interface SignalPath {
@@ -342,6 +351,9 @@ export interface SignalPath {
   strict_bitperfect?: boolean;
   /** #3973 — la conversion de fréquence appliquée, ou `null`. */
   rate_conversion?: { from_hz: number; to_hz: number } | null;
+  /** tune-server-rust#5633 — sous PURE, le ReplayGain que la piste en cours
+   *  recevrait hors PURE. Absent hors PURE, sans gain, ou d'un vieux serveur. */
+  pure_replaygain_ignored?: { gain_db: number; granularity?: string } | null;
 }
 
 /** Le PÉRIPHÉRIQUE que la sortie locale a réellement ouvert, face à celui que
@@ -1072,6 +1084,13 @@ export interface CompletenessStats {
   /** Pistes que la passe REPORTE (fichier qui ne répond pas, #1865) — ni
    *  faites, ni écartées. Serveur ≥ 0.9.152 (#4254). */
   dynamic_range_deferred?: number;
+  /** Pistes que la passe ReplayGain a refusé de décoder pour leur taille
+   *  estimée (`rg_skipped_oversized`), sans DR : aucune passe ne les mesurera.
+   *  tune-server-rust#5834 ; absent avant, donc 0. */
+  dynamic_range_oversized?: number;
+  /** Pistes sans fichier propre (images CUE), sans DR : hors de toute passe.
+   *  tune-server-rust#5834 ; absent avant, donc 0. */
+  dynamic_range_without_file?: number;
   dynamic_range_pct?: number;
 }
 
