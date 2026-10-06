@@ -761,7 +761,7 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="sp-track-row" onclick={() => playTrack(t)}>
               <span class="sp-track-num">{i + 1}</span>
-              <div class="sp-track-art"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={40} alt={t.title} /></div>
+              <div class="sp-track-art"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={40} vignette alt={t.title} /></div>
               <div class="sp-track-info">
                 <span class="sp-track-title truncate">{t.title}</span>
                 <span class="sp-track-artist truncate">{t.artist_name ?? ''}</span>
@@ -993,7 +993,7 @@
                 {#if $preferences.v2CollectionsMosaique}
                   <MosaiquePochettes pochettes={mosaiques[sp.id] ?? []} initiales={sp.name?.slice(0, 1)} alt={sp.name} />
                 {:else}
-                  <AlbumArt coverPath={mosaiques[sp.id]?.[0] ?? null} albumId={null} size={0} alt={sp.name}
+                  <AlbumArt coverPath={mosaiques[sp.id]?.[0] ?? null} albumId={null} size={0} vignette alt={sp.name}
                     fallbackInitials={sp.name?.slice(0, 1)} />
                 {/if}
               </PochetteActions>

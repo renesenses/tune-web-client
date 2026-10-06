@@ -1435,7 +1435,7 @@
                                 ? `${$t('common.open' as any)} — ${el.titre}`
                                 : `${$t('common.play' as any)} — ${el.titre}`}>
                               <span class="rang">{rang + 1}</span>
-                              <span class="vign"><AlbumArt coverPath={el.cover ?? null} size={40} alt="" /></span>
+                              <span class="vign"><AlbumArt coverPath={el.cover ?? null} size={40} vignette alt="" /></span>
                               <span class="txt">
                                 <span class="t">{el.titre}</span>
                                 {#if el.sous}<span class="s">{el.sous}</span>{/if}
@@ -1479,7 +1479,7 @@
                     <article class="zcarte" class:joue={z.state === 'playing'}>
                       <div class="zcv">
                         <AlbumArt coverPath={ct?.cover_path ?? null} albumId={ct?.album_id ?? null}
-                          size={0} alt={ct?.title ?? ''} source={ct?.source ?? null}
+                          size={0} vignette alt={ct?.title ?? ''} source={ct?.source ?? null}
                           fallbackInitials={(ct?.title ?? z.name ?? '?')?.slice(0, 1)} />
                       </div>
 
@@ -1629,7 +1629,7 @@
                           <MosaiqueDifferee pochettes={el.pochettes ?? []} charger={el.mosaique ?? null}
                             initiales={el.titre?.slice(0, 1)} alt={el.titre} />
                         {:else}
-                          <AlbumArt coverPath={el.cover} albumId={null} size={0} alt={el.titre}
+                          <AlbumArt coverPath={el.cover} albumId={null} size={0} vignette alt={el.titre}
                             source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
                         {/if}
                       </PochetteActions>
