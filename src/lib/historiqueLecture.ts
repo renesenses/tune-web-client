@@ -28,6 +28,7 @@ import { playAndSync } from './stores/zones';
 // `cleFavoriRadio` plus bas. Le module ne touche au stockage que dans ses
 // fonctions : l'importer ne lit rien.
 import { radioFavListenKey } from './radioFavListenAt';
+import { champAlbumBandcamp } from './albumBandcampDuTitre';
 
 /** Nombre d'entrées rendues par la fusion — au-delà, la liste n'est plus lue. */
 const PLAFOND = 200;
@@ -352,6 +353,8 @@ function metaDeRejeu(track: Track) {
     ...(track.album_title ? { album_title: track.album_title } : {}),
     ...(track.cover_path ? { cover_path: track.cover_path } : {}),
     ...(track.duration_ms ? { duration_ms: track.duration_ms } : {}),
+    // web#1923 : la page de l'album d'une écoute Bandcamp, si le contexte la dit.
+    ...champAlbumBandcamp(track),
   };
 }
 

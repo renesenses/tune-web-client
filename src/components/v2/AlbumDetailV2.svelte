@@ -568,6 +568,11 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
           artist_name: t.artist ?? album.artist_name ?? null,
           album_title: album.title, duration_ms: (t.duration_s ?? 0) * 1000,
           source: 'bandcamp', source_id: t.stream_url,
+          // web#1923, #1924 : chaque piste garde la page de SON album. Lancée
+          // seule (aléatoire, file, menu de la ligne), elle l'emporte dans
+          // `album_ref` (`champAlbumBandcamp`), sans quoi un titre que Tune
+          // n'a jamais vu entrait en file sans album.
+          album_id_service: d2?.url ?? bc,
           cover_path: album.cover_path ?? null, format: 'MP3',
         })) as unknown as Track[])
       : svc && sid

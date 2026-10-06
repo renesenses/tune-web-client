@@ -1490,7 +1490,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string }) {
+export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1621,6 +1621,9 @@ export interface StreamingQueueItem {
   album_title?: string | null;
   cover_path?: string | null;
   duration_ms?: number;
+  /** La page de l'album d'un titre Bandcamp (web#1923, #1924). Ignorée par un
+   *  serveur antérieur, et par le serveur pour toute autre source. */
+  album_ref?: string;
 }
 
 export interface AddToQueueRequest {
@@ -1636,6 +1639,8 @@ export interface AddToQueueRequest {
   album_title?: string | null;
   cover_path?: string | null;
   duration_ms?: number;
+  /** La page de l'album d'un titre Bandcamp seul (web#1923, #1924). */
+  album_ref?: string;
   /** Ordered streaming rows, supported by QueueAddRequest on the server. */
   tracks?: StreamingQueueItem[];
 }

@@ -13,6 +13,7 @@
 import type { AddToQueueRequest } from './api';
 import type { Track } from './types';
 import { estDeBibliotheque } from './provenanceBibliotheque';
+import { champAlbumBandcamp } from './albumBandcampDuTitre';
 
 /** Une piste locale : un identifiant, et rien d'autre à transporter. */
 export function estPisteLocale(t: Pick<Track, 'id' | 'source'>): boolean {
@@ -41,6 +42,8 @@ export function corpsDeFile(t: Track, position?: number): AddToQueueRequest | nu
         album_title: t.album_title ?? null,
         cover_path: t.cover_path ?? null,
         duration_ms: t.duration_ms,
+        // web#1923, #1924 : la page de l'album d'un titre Bandcamp.
+        ...champAlbumBandcamp(t),
       }],
       ...rang,
     };
@@ -60,6 +63,7 @@ export function corpsDeLecture(t: Track): Record<string, unknown> | null {
       album_title: t.album_title ?? null,
       cover_path: t.cover_path ?? null,
       duration_ms: t.duration_ms,
+      ...champAlbumBandcamp(t),
     };
   }
   return null;
@@ -100,6 +104,7 @@ export function corpsDeFileListe(liste: Track[], position?: number): AddToQueueR
         album_title: t.album_title ?? null,
         cover_path: t.cover_path ?? null,
         duration_ms: t.duration_ms,
+        ...champAlbumBandcamp(t),
       });
     }
   }
