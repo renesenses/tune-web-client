@@ -168,6 +168,14 @@ export interface Album {
    * explicite, qui gagne toujours. Absent sur un serveur antérieur.
    */
   inferred_release_type?: string | null;
+  /**
+   * Types SECONDAIRES MusicBrainz du disque (`live`, `compilation`,
+   * `soundtrack`, `remix`…), lus par le serveur dans la balise `RELEASETYPE`.
+   * `live` range le disque dans la section « Live » de la fiche artiste, quel
+   * que soit son type primaire. Absent quand rien n'est connu, ou devant un
+   * serveur antérieur.
+   */
+  release_secondary_types?: string[] | null;
   /** D'OÙ sort ce Dynamic Range (#1388, serveur v0.9.142) : `album_tag` quand
    *  une piste porte `ALBUM DYNAMIC RANGE`, `track_average` quand Tune l'a
    *  déduite de la moyenne arrondie des `DYNAMIC RANGE` des pistes. Apparaît
@@ -1076,6 +1084,13 @@ export interface CompletenessStats {
   /** Pistes que la passe REPORTE (fichier qui ne répond pas, #1865) — ni
    *  faites, ni écartées. Serveur ≥ 0.9.152 (#4254). */
   dynamic_range_deferred?: number;
+  /** Pistes que la passe ReplayGain a refusé de décoder pour leur taille
+   *  estimée (`rg_skipped_oversized`), sans DR : aucune passe ne les mesurera.
+   *  tune-server-rust#5834 ; absent avant, donc 0. */
+  dynamic_range_oversized?: number;
+  /** Pistes sans fichier propre (images CUE), sans DR : hors de toute passe.
+   *  tune-server-rust#5834 ; absent avant, donc 0. */
+  dynamic_range_without_file?: number;
   dynamic_range_pct?: number;
 }
 

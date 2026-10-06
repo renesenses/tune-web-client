@@ -91,14 +91,46 @@ export function estEpOuSingle(entree: EntreeDiscographie): boolean {
   return types.length > 0 && types.every((type) => type === 'ep' || type === 'single');
 }
 
+/**
+ * Le rang de sortie d'une entrée : `single` si TOUS ses exemplaires sont des
+ * singles, `ep` si tous sont des EP ou des singles avec au moins un EP (une
+ * édition annoncée EP par une source l'emporte sur le single d'une autre),
+ * `album` sinon. Décision de Bertrand du 05/10/2026 : deux sections, « EP » et
+ * « Singles », au lieu d'« EP & singles » (#5616).
+ */
+export function rangDeSortie(entree: EntreeDiscographie): 'album' | 'ep' | 'single' {
+  if (!estEpOuSingle(entree)) return 'album';
+  return entree.exemplaires.every((ex) => typeDeSortie(ex.album) === 'single') ? 'single' : 'ep';
+}
+
+/**
+ * Section « Live » (Bertrand, 05/10/2026) : une entrée va dans « Live » dès
+ * qu'un de ses exemplaires porte le type secondaire `live`
+ * (`release_secondary_types`, serveur), QUEL QUE SOIT son type primaire : un EP
+ * live est un live. Les services ne publient pas de type secondaire ; leur
+ * silence ne contredit donc pas la bibliothèque.
+ */
+export function estLive(entree: EntreeDiscographie): boolean {
+  return entree.exemplaires.some((ex) =>
+    (ex.album.release_secondary_types ?? []).some((t) => t?.trim().toLowerCase() === 'live'),
+  );
+}
+
 /** Conserve l'ordre reçu, y compris pour les albums sans type connu. */
 export function partagerParTypeDeSortie(entrees: EntreeDiscographie[]) {
   const albums: EntreeDiscographie[] = [];
-  const epSingles: EntreeDiscographie[] = [];
+  const eps: EntreeDiscographie[] = [];
+  const singles: EntreeDiscographie[] = [];
+  const live: EntreeDiscographie[] = [];
   for (const entree of entrees) {
-    (estEpOuSingle(entree) ? epSingles : albums).push(entree);
+    if (estLive(entree)) {
+      live.push(entree);
+      continue;
+    }
+    const rang = rangDeSortie(entree);
+    (rang === 'single' ? singles : rang === 'ep' ? eps : albums).push(entree);
   }
-  return { albums, epSingles };
+  return { albums, eps, singles, live };
 }
 
 /**
