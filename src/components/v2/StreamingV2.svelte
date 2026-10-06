@@ -1622,7 +1622,7 @@
           coverUrl: ar?.image_path ?? ar?.picture ?? undefined,
         })}
       >
-        <AlbumArt coverPath={ar.image_path ?? ar.picture ?? null} albumId={null} size={0} alt={ar.name}
+        <AlbumArt coverPath={ar.image_path ?? ar.picture ?? null} albumId={null} size={0} vignette alt={ar.name}
           source={ar?.source ?? active} fallbackInitials={ar.name?.slice(0,1)} />
       </PochetteActions>
     </span>
@@ -1709,7 +1709,7 @@
             })
           : null}
       >
-        <AlbumArt coverPath={pCover(p)} albumId={null} size={0} alt={pTitle(p)} source={p?.source ?? active} fallbackInitials={pTitle(p).slice(0,1)} />
+        <AlbumArt coverPath={pCover(p)} albumId={null} size={0} vignette alt={pTitle(p)} source={p?.source ?? active} fallbackInitials={pTitle(p).slice(0,1)} />
       </PochetteActions>
     </span>
     <!-- 🔴 Le TITRE est cliquable (Bertrand, 05/09/2026 : « le titre des
