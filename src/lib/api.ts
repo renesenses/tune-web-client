@@ -2839,8 +2839,10 @@ export function rescanAlbumArtwork(albumId: number) {
  *  à cet album, et rien de ce que l'utilisateur a saisi n'est écrasé. Compter
  *  quelques secondes — deux allers-retours MusicBrainz, dont un délai de
  *  courtoisie imposé par leur limite de débit. */
-export function reidentifyAlbum(albumId: number) {
-  return fetchJSON<ReidentifyResult>(`${BASE}/library/albums/${albumId}/reidentify`, {
+export function reidentifyAlbum(albumId: number, releaseId?: string) {
+  // #4805 D — `release_id` impose l'édition choisie après un `ambiguous`.
+  const choix = releaseId ? `?release_id=${encodeURIComponent(releaseId)}` : '';
+  return fetchJSON<ReidentifyResult>(`${BASE}/library/albums/${albumId}/reidentify${choix}`, {
     method: 'POST',
   });
 }
