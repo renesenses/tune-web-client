@@ -258,7 +258,7 @@
               objet={objetArtiste(a)}
               nom={a.name}
             >
-              <AlbumArt coverPath={a.image_path} size={0} alt={a.name}
+              <AlbumArt coverPath={a.image_path} size={0} vignette alt={a.name}
                 fallbackInitials={initiales(a.name)} />
             </PochetteActions>
           </div>

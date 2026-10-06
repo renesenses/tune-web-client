@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { artworkUrl, getAlbumCoverPath } from '../../lib/api';
+  import { artworkUrl, getAlbumCoverPath, tailleDeVignette } from '../../lib/api';
   import ServiceBadge from './ServiceBadge.svelte';
 
   interface Props {
@@ -14,9 +14,14 @@
        (a broken/phantom URL). Lets artist avatars fall back to a proper
        initials placeholder in every case, not just when image_path is null. */
     fallbackInitials?: string | null;
+    /* Fil 2167 — pochette de GRILLE : demander au serveur une vignette à la
+       taille affichée (`?size=`, densité de l'écran comprise) plutôt que
+       l'original. À réserver aux tuiles : les vues de détail et « Lecture en
+       cours » gardent la grande image. */
+    vignette?: boolean;
   }
 
-  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null, fallbackInitials = null }: Props = $props();
+  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null, fallbackInitials = null, vignette = false }: Props = $props();
 
   let hasError = $state(false);
   let resolvedCoverPath = $state<string | null>(null);
@@ -92,10 +97,30 @@
     }
   });
 
-  let src = $derived(artworkUrl(resolvedCoverPath));
+  /*
+   * Fil 2167 — la grille demandait chaque pochette en pleine résolution
+   * (1 200 px), pour une tuile de 150 à 300 px : le cache d'images du
+   * navigateur gonflait d'autant. Une tuile `vignette` mesure sa largeur UNE
+   * fois, au montage, avant que l'image ne parte — pas de double chargement —
+   * et demande la case de vignette qui couvre cette largeur × la densité de
+   * l'écran. Largeur inconnue (rien de mis en page), affichage trop grand
+   * pour une vignette : pas de `?size=`, l'original comme avant. Un serveur
+   * qui ignore `?size=` rend l'original, comme avant aussi.
+   */
+  let boite = $state<HTMLDivElement | undefined>();
+  let largeurMesuree = $state<number | undefined>(undefined);
+  $effect(() => {
+    if (!vignette || size || !boite || largeurMesuree !== undefined) return;
+    largeurMesuree = boite.getBoundingClientRect().width;
+  });
+  const densite = typeof window !== 'undefined' && window.devicePixelRatio > 0 ? window.devicePixelRatio : 1;
+  const tailleDemandee = $derived(vignette ? tailleDeVignette(size || largeurMesuree || 0, densite) : undefined);
+  const enAttenteDeMesure = $derived(vignette && !size && largeurMesuree === undefined);
+
+  let src = $derived(enAttenteDeMesure ? '' : artworkUrl(resolvedCoverPath, tailleDemandee));
 </script>
 
-<div class="album-art" class:round class:fill={!size} style={size ? `width: ${size}px; height: ${size}px;` : ''}>
+<div bind:this={boite} class="album-art" class:round class:fill={!size} style={size ? `width: ${size}px; height: ${size}px;` : ''}>
   {#if src && !hasError}
     <img
       {src}
