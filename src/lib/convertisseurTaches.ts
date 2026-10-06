@@ -46,6 +46,18 @@ export function avecTelechargement(taches: TacheConversion[], jobId: string, dow
   return taches.map((t) => (t.jobId === jobId ? { ...t, downloadUrl } : t));
 }
 
+/** Le lien de téléchargement d'une tâche, retiré (fil 2167) : son URL d'objet
+ *  vient d'être libérée, l'écran repropose « Préparer le téléchargement ». */
+export function sansTelechargement(taches: TacheConversion[], jobId: string): TacheConversion[] {
+  return taches.map((t) => (t.jobId === jobId ? { ...t, downloadUrl: null } : t));
+}
+
+/** L'URL d'objet que porte une tâche, à libérer avant de la remplacer ou de
+ *  retirer la tâche (fil 2167). */
+export function urlDeTelechargement(taches: TacheConversion[], jobId: string): string | null {
+  return taches.find((t) => t.jobId === jobId)?.downloadUrl ?? null;
+}
+
 export function sans(taches: TacheConversion[], jobId: string): TacheConversion[] {
   return taches.filter((t) => t.jobId !== jobId);
 }
