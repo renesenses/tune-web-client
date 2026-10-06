@@ -41,6 +41,8 @@
     coupureDePosition,
     presenceDepuis,
     zoneStereo,
+    borneCrossfeedPro,
+    type ModeCrossfeedPro,
     type ReglagesCrossfeedPro,
     type PresetCrossfeedPro,
     type PresenceCrossfeedPro,
@@ -67,6 +69,14 @@
   /** Tout ce qui rend le réglage impossible ou sans effet grise l'écran. */
   const verrouille = $derived(pur || sansPremium || nonStereo || presence !== 'actif');
   const presetActif = $derived(presetCrossfeedProActif(r));
+  /** Mode classique (libbs2b) : seuls le dosage et la coupure servent. */
+  const classique = $derived(r.mode === 'classique');
+  const bDosage = $derived(borneCrossfeedPro('amount', r.mode));
+  const bCoupure = $derived(borneCrossfeedPro('head_shadow_hz', r.mode));
+  const MODES: { mode: ModeCrossfeedPro; cle: string }[] = [
+    { mode: 'classique', cle: 'v2.cfp.modeClassic' },
+    { mode: 'tune', cle: 'v2.cfp.modeTune' },
+  ];
   const profilActif = $derived(profilCrossfeedProActif(r, profils));
 
   function publierPresence(p: PresenceCrossfeedPro) {
@@ -145,8 +155,14 @@
     queueSave();
   }
   function reglerCoupure(e: Event) {
-    r = { ...r, head_shadow_hz: coupureDePosition(Number((e.currentTarget as HTMLInputElement).value)) };
+    r = { ...r, head_shadow_hz: coupureDePosition(Number((e.currentTarget as HTMLInputElement).value), bCoupure) };
     queueSave();
+  }
+  function choisirMode(m: ModeCrossfeedPro) {
+    if (r.mode === m) return;
+    // Borné aussitôt : le mode classique a ses propres bornes.
+    r = reglagesCrossfeedPro({ ...r, mode: m });
+    void save();
   }
   function choisirPreset(p: PresetCrossfeedPro) {
     r = appliquerPresetCrossfeedPro(r, p);
@@ -231,6 +247,15 @@
             </label>
           </div>
 
+          <div class="presets" data-cfp="mode" role="radiogroup" aria-label={$t('v2.cfp.mode' as any)}>
+            <span class="mesl">{$t('v2.cfp.mode' as any)}</span>
+            {#each MODES as m (m.mode)}
+              <button class:on={r.mode === m.mode} data-mode={m.mode} role="radio" aria-checked={r.mode === m.mode}
+                onclick={() => choisirMode(m.mode)}>{$t(m.cle as any)}</button>
+            {/each}
+          </div>
+          <p class="hint sous">{$t('v2.cfp.modeHint' as any)}</p>
+
           <div class="presets" data-cfp="presets">
             <span class="mesl">{$t('v2.cfp.presets' as any)}</span>
             {#each PRESETS_CROSSFEED_PRO as p (p.key)}
@@ -256,15 +281,29 @@
           <div class="row" class:off={eteint}>
             <div class="lbl">
               <span>{$t('v2.cfp.amount' as any)}</span>
-              <span class="hint">{$t('v2.cfp.amountHint' as any)}</span>
+              <span class="hint">{$t((classique ? 'v2.cfp.amountHintClassic' : 'v2.cfp.amountHint') as any)}</span>
             </div>
             <div class="sl">
-              <input type="range" data-cfp="amount" min={B.amount.min} max={B.amount.max} step={B.amount.pas}
+              <input type="range" data-cfp="amount" min={bDosage.min} max={bDosage.max} step={bDosage.pas}
                 value={r.amount} oninput={(e) => regler('amount', e)} aria-label={$t('v2.cfp.amount' as any)} />
               <span class="val">{r.amount.toFixed(2)}</span>
             </div>
           </div>
 
+          {#if classique}
+            <div class="row" class:off={eteint}>
+              <div class="lbl">
+                <span>{$t('v2.cfp.cutoff' as any)}</span>
+                <span class="hint">{$t('v2.cfp.cutoffHintClassic' as any)}</span>
+              </div>
+              <div class="sl">
+                <input type="range" data-cfp="head_shadow_hz" min="0" max={POSITIONS_COUPURE} step="1"
+                  value={positionCoupure(r.head_shadow_hz, bCoupure)} oninput={reglerCoupure}
+                  aria-label={$t('v2.cfp.cutoff' as any)} aria-valuetext={libelleCoupure(r.head_shadow_hz)} />
+                <span class="val">{libelleCoupure(r.head_shadow_hz)}</span>
+              </div>
+            </div>
+          {:else}
           <div class="row" class:off={eteint || r.experimental_itd}>
             <div class="lbl">
               <span>{$t('v2.cfp.delay' as any)}</span>
@@ -344,9 +383,12 @@
               </div>
             </div>
           {/if}
+          {/if}
         </div>
 
-        <!-- Le mode ITD est EXPÉRIMENTAL : bloc à part, marqué, éteint par défaut. -->
+        <!-- Le mode ITD est EXPÉRIMENTAL : bloc à part, marqué, éteint par défaut.
+             Sans objet en mode classique. -->
+        {#if !classique}
         <div class="card exp" data-cfp="experimental">
           <div class="row">
             <div class="lbl">
@@ -380,6 +422,7 @@
             </div>
           {/if}
         </div>
+        {/if}
       </fieldset>
     {/if}
   </div>

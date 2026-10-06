@@ -2,7 +2,9 @@
 // préréglages ; présence du greffon ; zone stéréo ; entrée de la barre.
 import { describe, expect, it } from 'vitest';
 import {
+  BORNES_CLASSIQUE,
   BORNES_CROSSFEED_PRO,
+  borneCrossfeedPro,
   DEFAUTS_CROSSFEED_PRO,
   PRESETS_CROSSFEED_PRO,
   appliquerPresetCrossfeedPro,
@@ -34,6 +36,29 @@ describe('Crossfeed Pro — réglages lus de l’hôte', () => {
     expect(r.phase_guard).toBe(DEFAUTS_CROSSFEED_PRO.phase_guard);
   });
 
+  it('un réglage enregistré sans `mode` est en mode Tune ; le mode lu est gardé', () => {
+    expect(reglagesCrossfeedPro({ enabled: true, amount: 0.5 }).mode).toBe('tune');
+    expect(reglagesCrossfeedPro({ mode: 'classique' }).mode).toBe('classique');
+    expect(reglagesCrossfeedPro({ mode: 'futur' }).mode).toBe('futur');
+    expect(reglagesCrossfeedPro({ mode: 3 }).mode).toBe('tune');
+  });
+
+  it('en mode classique, dosage et coupure sont bornés à ceux de libbs2b ; en mode Tune, non', () => {
+    const c = reglagesCrossfeedPro({ mode: 'classique', amount: 0.6, head_shadow_hz: 100 });
+    expect(c.amount).toBe(BORNES_CLASSIQUE.amount.max);
+    expect(c.head_shadow_hz).toBe(BORNES_CLASSIQUE.head_shadow_hz.min);
+    expect(reglagesCrossfeedPro({ mode: 'classique', head_shadow_hz: 20000 }).head_shadow_hz).toBe(2000);
+    const t = reglagesCrossfeedPro({ mode: 'tune', amount: 0.6, head_shadow_hz: 100 });
+    expect(t).toMatchObject({ amount: 0.6, head_shadow_hz: 100 });
+    expect(borneCrossfeedPro('delay_ms', 'classique')).toBe(BORNES_CROSSFEED_PRO.delay_ms);
+  });
+
+  it('un profil ancien (sans `mode`) se reconnaît en mode Tune', () => {
+    const r = reglagesCrossfeedPro({ enabled: true, amount: 0.45 });
+    expect(profilCrossfeedProActif(r, [{ id: 'vieux', settings: { amount: 0.45 } }])).toBe('vieux');
+    expect(profilCrossfeedProActif({ ...r, mode: 'classique' }, [{ id: 'vieux', settings: { amount: 0.45 } }])).toBeNull();
+  });
+
   it('garde un champ inconnu : un greffon plus récent ne perd rien à l’écriture', () => {
     const r = reglagesCrossfeedPro({ enabled: true, futur_reglage: 42 });
     expect(r.futur_reglage).toBe(42);
@@ -42,13 +67,20 @@ describe('Crossfeed Pro — réglages lus de l’hôte', () => {
 });
 
 describe('Crossfeed Pro — préréglages', () => {
-  it('un préréglage allume le greffon et l’ombre de la tête, remet le retard à zéro, et ne touche pas au reste', () => {
-    const base = reglagesCrossfeedPro({ low_cut: true, phase_guard: false, experimental_itd: true, delay_ms: 0.7 });
-    const p = PRESETS_CROSSFEED_PRO[0];
-    const r = appliquerPresetCrossfeedPro(base, p);
-    expect(r).toMatchObject({ enabled: true, delay_ms: 0, head_shadow: true, amount: p.amount, head_shadow_hz: p.head_shadow_hz });
-    expect(r).toMatchObject({ low_cut: true, phase_guard: false, experimental_itd: true });
-    expect(presetCrossfeedProActif(r)).toBe(p.key);
+  it('un préréglage allume le greffon, passe en mode classique, ÉTEINT la garde et le retard adaptatif, et laisse le coupe-bas', () => {
+    const base = reglagesCrossfeedPro({ low_cut: true, phase_guard: true, experimental_itd: true, delay_ms: 0.7 });
+    for (const p of PRESETS_CROSSFEED_PRO) {
+      const r = appliquerPresetCrossfeedPro(base, p);
+      expect(r).toMatchObject({ enabled: true, mode: 'classique', amount: p.amount, head_shadow_hz: p.head_shadow_hz });
+      expect(r).toMatchObject({ phase_guard: false, experimental_itd: false, low_cut: true });
+      expect(presetCrossfeedProActif(r)).toBe(p.key);
+      // Le même dosage en mode Tune n'est pas le préréglage.
+      expect(presetCrossfeedProActif({ ...r, mode: 'tune' })).toBeNull();
+    }
+  });
+
+  it('les libellés disent libbs2b', () => {
+    expect(PRESETS_CROSSFEED_PRO.map((p) => p.mode)).toEqual(['classique', 'classique', 'classique']);
   });
 
   it('chaque préréglage reste dans les bornes du greffon', () => {
