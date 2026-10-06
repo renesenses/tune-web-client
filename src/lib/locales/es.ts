@@ -2594,6 +2594,8 @@ export default {
   "settings.serverPathHint": "Ruta absoluta vista por el SERVIDOR, no por este navegador.",
   "settings.noFolderDeclared": "Ninguna carpeta declarada — la biblioteca seguirá vacía.",
   "settings.scanScheduleHint": "Una pasada rápida, cada día, a la hora elegida.",
+  "settings.scanOnStartup": "Analizar la biblioteca al iniciar",
+  "settings.scanOnStartupHint": "Se aplica en el próximo inicio del servidor. Un análisis solo vuelve a leer los archivos modificados.",
   "settings.noScanScheduled": "No hay ningún análisis automático programado.",
   "settings.releaseLicenseHint": "Necesario antes de activarla en otro servidor.",
   "settings.licenceKeyByEmail": "La clave se le envió por correo al comprarla.",

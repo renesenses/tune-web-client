@@ -2594,6 +2594,8 @@ export default {
   "settings.serverPathHint": "Absoluter Pfad, wie ihn der SERVER sieht, nicht dieser Browser.",
   "settings.noFolderDeclared": "Kein Ordner angegeben — die Bibliothek bleibt leer.",
   "settings.scanScheduleHint": "Ein schneller Durchlauf, täglich, zur gewählten Uhrzeit.",
+  "settings.scanOnStartup": "Bibliothek beim Start analysieren",
+  "settings.scanOnStartupHint": "Wirkt ab dem nächsten Serverstart. Eine Analyse liest nur geänderte Dateien neu.",
   "settings.noScanScheduled": "Keine automatische Analyse geplant.",
   "settings.releaseLicenseHint": "Erforderlich, bevor sie auf einem anderen Server aktiviert wird.",
   "settings.licenceKeyByEmail": "Der Schlüssel wurde Ihnen beim Kauf per E-Mail zugesandt.",

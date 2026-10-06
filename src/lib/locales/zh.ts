@@ -2594,6 +2594,8 @@ export default {
   "settings.serverPathHint": "服务器看到的绝对路径，而非此浏览器看到的路径。",
   "settings.noFolderDeclared": "未指定文件夹 — 音乐库将保持为空。",
   "settings.scanScheduleHint": "每天在所选时间进行一次快速扫描。",
+  "settings.scanOnStartup": "启动时扫描音乐库",
+  "settings.scanOnStartupHint": "在服务器下次启动时生效。扫描只会重新读取已修改的文件。",
   "settings.noScanScheduled": "没有安排自动扫描。",
   "settings.releaseLicenseHint": "在另一台服务器上激活之前需要先释放。",
   "settings.licenceKeyByEmail": "密钥已在购买时通过电子邮件发送给您。",

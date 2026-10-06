@@ -2552,6 +2552,8 @@ export default {
   "settings.serverPathHint": "A KISZOLGÁLÓ által látott abszolút útvonal, nem ezé a böngészőé.",
   "settings.noFolderDeclared": "Nincs megadott mappa — a könyvtár üres marad.",
   "settings.scanScheduleHint": "Egy gyors menet, minden nap, a választott időpontban.",
+  "settings.scanOnStartup": "Könyvtár elemzése indításkor",
+  "settings.scanOnStartupHint": "A szerver következő indításakor lép életbe. Az elemzés csak a módosított fájlokat olvassa újra.",
   "settings.noScanScheduled": "Nincs automatikus elemzés ütemezve.",
   "settings.releaseLicenseHint": "Szükséges, mielőtt más kiszolgálón aktiválná.",
   "settings.licenceKeyByEmail": "A kulcsot a vásárláskor e-mailben küldtük el Önnek.",

@@ -2594,6 +2594,8 @@ export default {
   "settings.serverPathHint": "이 브라우저가 아니라 서버가 보는 절대 경로입니다.",
   "settings.noFolderDeclared": "지정된 폴더가 없습니다 — 라이브러리는 비어 있게 됩니다.",
   "settings.scanScheduleHint": "매일 지정한 시각에 가벼운 스캔을 한 번 수행합니다.",
+  "settings.scanOnStartup": "시작할 때 라이브러리 스캔",
+  "settings.scanOnStartupHint": "다음 서버 시작 시 적용됩니다. 스캔은 변경된 파일만 다시 읽습니다.",
   "settings.noScanScheduled": "예약된 자동 스캔이 없습니다.",
   "settings.releaseLicenseHint": "다른 서버에서 활성화하기 전에 필요합니다.",
   "settings.licenceKeyByEmail": "키는 구매 시 이메일로 발송되었습니다.",

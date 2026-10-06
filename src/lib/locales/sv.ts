@@ -2593,6 +2593,8 @@ export default {
   "settings.serverPathHint": "Absolut sökväg som SERVERN ser den, inte den här webbläsaren.",
   "settings.noFolderDeclared": "Ingen mapp angiven — biblioteket förblir tomt.",
   "settings.scanScheduleHint": "Ett snabbt pass, varje dag, vid vald tid.",
+  "settings.scanOnStartup": "Genomsök biblioteket vid start",
+  "settings.scanOnStartupHint": "Gäller från nästa serverstart. En genomsökning läser bara om ändrade filer.",
   "settings.noScanScheduled": "Ingen automatisk genomsökning är schemalagd.",
   "settings.releaseLicenseHint": "Krävs innan den aktiveras på en annan server.",
   "settings.licenceKeyByEmail": "Nyckeln skickades till dig via e-post vid köpet.",

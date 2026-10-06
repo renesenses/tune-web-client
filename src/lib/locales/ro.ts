@@ -2594,6 +2594,8 @@ export default {
   "settings.serverPathHint": "Cale absolută văzută de SERVER, nu de acest browser.",
   "settings.noFolderDeclared": "Niciun dosar declarat — biblioteca va rămâne goală.",
   "settings.scanScheduleHint": "O trecere rapidă, în fiecare zi, la ora aleasă.",
+  "settings.scanOnStartup": "Analizează biblioteca la pornire",
+  "settings.scanOnStartupHint": "Intră în vigoare la următoarea pornire a serverului. O analiză recitește doar fișierele modificate.",
   "settings.noScanScheduled": "Nicio analiză automată programată.",
   "settings.releaseLicenseHint": "Necesar înainte de a o activa pe alt server.",
   "settings.licenceKeyByEmail": "Cheia v-a fost trimisă prin e-mail la cumpărare.",
