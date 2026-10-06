@@ -157,6 +157,7 @@
   const destination = $derived(destinationArtiste({
     source: local ? 'local' : (piste.source ?? null),
     artist_id: piste.artist_id as any,
+    artist_id_service: piste.artist_id_service ?? null,
     artist_name: piste.artist_name ?? null,
   }));
   const artisteDeService = $derived.by(() => {

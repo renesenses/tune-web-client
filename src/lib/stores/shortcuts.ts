@@ -229,8 +229,32 @@ function shortcutKey(view: string, state: Record<string, any>): string {
   return `${view}:${JSON.stringify(state || {})}`;
 }
 
-export async function addShortcut(name: string, icon: string) {
-  const captured = captureCurrentView();
+/**
+ * Un raccourci PROPOSÉ par un geste qui désigne déjà sa cible — l'entrée
+ * « Ajouter aux raccourcis » du menu « … » d'un objet (web#1922,
+ * `lib/raccourciObjet`). La coquille ouvre alors le MÊME formulaire que son
+ * signet, prérempli du nom de l'objet, et le raccourci retient cette cible au
+ * lieu de l'écran sous les yeux.
+ */
+export interface PropositionRaccourci {
+  view: View;
+  state: Record<string, any>;
+  label?: string;
+}
+export const raccourciPropose = writable<PropositionRaccourci | null>(null);
+
+/** Le geste du menu : demander à la coquille d'ouvrir son formulaire de pose. */
+export function proposerRaccourci(p: PropositionRaccourci | null) {
+  raccourciPropose.set(p);
+}
+
+/**
+ * `capture` : la vue et l'état à retenir. Absent, c'est l'écran courant
+ * (`captureCurrentView`) — le signet de la coquille ; fourni, c'est la cible
+ * d'une proposition (`raccourciPropose`).
+ */
+export async function addShortcut(name: string, icon: string, capture?: Pick<Shortcut, 'view' | 'state'>) {
+  const captured: Partial<Shortcut> = capture ?? captureCurrentView();
   const key = shortcutKey(captured.view!, captured.state || {});
   // Don't create a second shortcut to the same target (Elie).
   const existing = get(shortcuts).find(s => shortcutKey(s.view, s.state || {}) === key);
