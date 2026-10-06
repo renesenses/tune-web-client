@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import type { Locale } from '../i18n';
+import { resoudreLangue } from '../langueParDefaut';
 import { isSettingsLevel, legacyAdvancedToLevel, type SettingsLevel } from '../settingLevels';
 import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
 import {
@@ -117,6 +118,10 @@ const OXYGEN_FACETS_DEFAUTS_REV4 = ['genre', 'artist', 'composer', 'label', 'yea
 export interface Preferences {
   theme: ThemeMode;
   language: Locale;
+  /** `null` : `language` a été CHOISIE dans les Réglages. Une langue : celle
+   *  que Tune a posée d'après le navigateur, qui n'est donc pas un choix.
+   *  Absent d'un blob ancien. Règle complète : `langueParDefaut.ts`. */
+  langueAuto: Locale | null;
   volumeDisplay: VolumeDisplay;
   startupView: StartupView;
   defaultZoneId: number | null;
@@ -414,7 +419,9 @@ const STORAGE_KEY = 'tune-preferences';
 
 const defaults: Preferences = {
   theme: 'dark',
-  language: 'fr',
+  // Jamais `'fr'` : la langue du navigateur si l'interface la parle, l'anglais
+  // sinon (`langueParDefaut.ts`).
+  ...resoudreLangue([]),
   volumeDisplay: 'percent',
   startupView: 'home',
   defaultZoneId: null,
@@ -644,6 +651,9 @@ function loadPrefs(): Preferences {
       // groupe inconnu est écarté, Accueil ne peut pas être masqué.
       p.barreLaterale = normaliserChoixBarre((raw as { barreLaterale?: unknown })?.barreLaterale);
       p.barreLateraleMaj = horodatageBarre((raw as { barreLateraleMaj?: unknown })?.barreLateraleMaj);
+      // Lue sur le blob BRUT : `{ ...defaults, ...raw }` y aurait déjà glissé
+      // le `langueAuto` des défauts, et un ancien `'fr'` passerait pour choisi.
+      Object.assign(p, resoudreLangue([raw]));
       return p;
     }
   } catch { /* ignore */ }
@@ -749,9 +759,13 @@ export async function syncPreferencesFromServer() {
             { barreLaterale: local.barreLaterale ?? null, barreLateraleMaj: horodatageBarre(local.barreLateraleMaj) },
             server,
           ),
+          // La langue : un CHOIX local d'abord, puis un choix porté par le
+          // profil, sinon le navigateur. Un `language: 'fr'` qui n'était que
+          // le défaut, d'un côté ou de l'autre, ne compte pas.
+          ...resoudreLangue([local, server]),
         }));
       } else {
-        preferences.update(() => ({ ...defaults, ...server }));
+        preferences.update(() => ({ ...defaults, ...server, ...resoudreLangue([server]) }));
       }
     }
   } catch { /* ignore */ }

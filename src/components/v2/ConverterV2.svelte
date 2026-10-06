@@ -17,6 +17,7 @@
   import { conserverRetourConvertisseur, consommerRetourConvertisseur } from '../../lib/retourConvertisseur';
   import {
     tachesConversion, ajouter, avecStatut, avecTelechargement, sans, fusionner, aSonder,
+    sansTelechargement, urlDeTelechargement,
   } from '../../lib/convertisseurTaches';
   import { ligneFormat } from '../../lib/ligneFormatConvertisseur';
   import {
@@ -26,6 +27,8 @@
   import { nomDArchive } from '../../lib/convertisseurArchive';
   import ConvertisseurPistes from './ConvertisseurPistes.svelte';
   import * as api from '../../lib/api';
+  import { get } from 'svelte/store';
+  import { libererUrlObjet, libererApresTelechargement } from '../../lib/urlObjet';
   import { formatNombre } from '../../lib/formats';
   import { albums } from '../../lib/stores/library';
   import { demanderBibliothequeEntiere, listeEntierePerimee } from '../../lib/stores/albumsPagines';
@@ -234,14 +237,31 @@
     return () => { vivant = false; clearTimeout(minuterie); };
   });
 
+  // Fil 2167 — chaque archive préparée est un blob épinglé par une URL
+  // d'objet. Elle se libère quand une autre la remplace, quand la tâche est
+  // retirée, et une fois le téléchargement parti. Le magasin survit à l'écran
+  // (#1804) : un lien préparé reste donc valable au retour, et n'est libéré
+  // que par l'un de ces trois gestes.
   async function download(jobId: string) {
     try {
       const url = await api.downloadConversion(jobId);
+      const ancienne = urlDeTelechargement(get(tachesConversion), jobId);
       tachesConversion.update((ts) => avecTelechargement(ts, jobId, url));
+      if (ancienne !== url) libererUrlObjet(ancienne);
     } catch { error = $t('v2.tool.errDownload' as any); }
+  }
+  function telechargementParti(jobId: string, url: string) {
+    libererApresTelechargement(url, () => {
+      // Seulement si la tâche porte encore CETTE URL : une archive préparée
+      // à nouveau entre-temps n'est pas à retirer.
+      if (urlDeTelechargement(get(tachesConversion), jobId) === url) {
+        tachesConversion.update((ts) => sansTelechargement(ts, jobId));
+      }
+    });
   }
   async function cancel(jobId: string) {
     try { await api.cancelConversion(jobId); } catch { /* déjà finie */ }
+    libererUrlObjet(urlDeTelechargement(get(tachesConversion), jobId));
     tachesConversion.update((ts) => sans(ts, jobId));
   }
 
@@ -340,7 +360,7 @@
               <div class="done">
                 {$t('v2.tool.done' as any)}{#if job.download_size} — {job.download_size}{/if}
                 {#if tache.downloadUrl}
-                  <a class="lnk" href={tache.downloadUrl} download={nomDArchive(job)}>{$t('v2.tool.saveFile' as any)}</a>
+                  <a class="lnk" href={tache.downloadUrl} download={nomDArchive(job)} onclick={() => telechargementParti(tache.jobId, tache.downloadUrl!)}>{$t('v2.tool.saveFile' as any)}</a>
                 {:else}
                   <button class="lnk" onclick={() => download(tache.jobId)}>{$t('v2.tool.prepareDownload' as any)}</button>
                 {/if}

@@ -2839,8 +2839,10 @@ export function rescanAlbumArtwork(albumId: number) {
  *  à cet album, et rien de ce que l'utilisateur a saisi n'est écrasé. Compter
  *  quelques secondes — deux allers-retours MusicBrainz, dont un délai de
  *  courtoisie imposé par leur limite de débit. */
-export function reidentifyAlbum(albumId: number) {
-  return fetchJSON<ReidentifyResult>(`${BASE}/library/albums/${albumId}/reidentify`, {
+export function reidentifyAlbum(albumId: number, releaseId?: string) {
+  // #4805 D — `release_id` impose l'édition choisie après un `ambiguous`.
+  const choix = releaseId ? `?release_id=${encodeURIComponent(releaseId)}` : '';
+  return fetchJSON<ReidentifyResult>(`${BASE}/library/albums/${albumId}/reidentify${choix}`, {
     method: 'POST',
   });
 }
@@ -3176,11 +3178,11 @@ export function getTagSmartCollections(tagId: number) {
 // --- Smart Playlists ---
 
 export function getAlbumBio(albumId: number) {
-  return fetchJSON<{ bio: string | null; source: string | null; release_id?: string | null }>(`${BASE}/library/albums/${albumId}/bio`);
+  return fetchJSON<{ bio: string | null; source: string | null; release_id?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null }>(`${BASE}/library/albums/${albumId}/bio`);
 }
 
 export function getArtistBio(artistId: number) {
-  return fetchJSON<{ bio: string | null; source?: string | null }>(`${BASE}/library/artists/${artistId}/bio`);
+  return fetchJSON<{ bio: string | null; source?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null }>(`${BASE}/library/artists/${artistId}/bio`);
 }
 
 export function getArtistTimeline(artistId: number) {
@@ -6005,6 +6007,13 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
   // (e.g. /api/v1/library/artwork/abc.jpg or /api/v1/library/artwork/proxy?url=...).
   // Detect these and use them directly.
   if (coverPath.startsWith('/api/')) {
+    // Fil 2167 — une adresse de pochette déjà toute faite reçoit la taille
+    // elle aussi, sinon la grille repartait en pleine résolution. Seule la
+    // route `/library/artwork/{condensat}` lit `?size=` ; le relais et les
+    // autres routes restent tels quels.
+    if (size && /^\/api\/v1\/library\/artwork\/(?!proxy(?:[/?]|$))[^/?#]+$/.test(coverPath)) {
+      return `${coverPath}?size=${size}`;
+    }
     return coverPath;
   }
   if (coverPath.startsWith('http://') || coverPath.startsWith('https://')) {
@@ -6021,6 +6030,38 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
   const filename = coverPath.split('/').pop() ?? coverPath;
   const sizeParam = size ? `?size=${size}` : '';
   return `${BASE}/library/artwork/${encodeURIComponent(filename)}${sizeParam}`;
+}
+
+/**
+ * Les cases de vignette que le serveur sait servir (`THUMB_SIZES`,
+ * tune-core/src/library/artwork.rs, branche feat-rc3) : `?size=N` y choisit la
+ * plus petite case ≥ N ; au-delà de la dernière, il rend l'original.
+ */
+export const CASES_VIGNETTE = [80, 128, 200, 400] as const;
+
+/** Marge tolérée au-dessus de la dernière case : une tuile qui voudrait
+ *  480 pixels physiques se contente de 400 (agrandie de 20 %, invisible sur
+ *  une pochette), plutôt que de retomber sur l'original de 1 200 pixels. */
+const MARGE_DERNIERE_CASE = 1.25;
+
+/**
+ * Fil 2167 — la taille à demander pour une pochette affichée sur `cssPx`
+ * pixels CSS, écran de densité `dpr`. Rend une case du serveur, ou
+ * `undefined` (= pas de `?size=`, l'original) quand l'affichage est trop grand
+ * pour qu'une vignette suffise, ou que la largeur est inconnue.
+ *
+ * Arrondir à une case et non à la largeur exacte sert deux fois : le serveur
+ * n'en fabrique pas d'autre, et deux tuiles de largeurs voisines partagent la
+ * même adresse — donc la même entrée du cache du navigateur.
+ */
+export function tailleDeVignette(cssPx: number, dpr = 1): number | undefined {
+  if (!Number.isFinite(cssPx) || cssPx <= 0) return undefined;
+  const densite = Number.isFinite(dpr) && dpr > 0 ? dpr : 1;
+  const voulu = Math.ceil(cssPx * densite);
+  const trouvee = CASES_VIGNETTE.find((c) => c >= voulu);
+  if (trouvee) return trouvee;
+  const derniere = CASES_VIGNETTE[CASES_VIGNETTE.length - 1];
+  return voulu <= derniere * MARGE_DERNIERE_CASE ? derniere : undefined;
 }
 
 /**
@@ -8596,6 +8637,8 @@ export function listConversions(): Promise<Array<Awaited<ReturnType<typeof getCo
   return fetchJSON(`${BASE}/converter/jobs`);
 }
 
+/** Rend une URL d'objet (`blob:`) qui épingle toute l'archive en mémoire :
+ *  l'appelant la libère (`libererUrlObjet`, `lib/urlObjet.ts`) — fil 2167. */
 export async function downloadConversion(jobId: string): Promise<string> {
   const token = getToken();
   const headers: Record<string, string> = {};
@@ -8656,6 +8699,8 @@ export function getDeclickStatus(jobId: string): Promise<{
   return fetchJSON(`${BASE}/declick/status/${encodeURIComponent(jobId)}`);
 }
 
+/** Rend une URL d'objet (`blob:`) qui épingle toute l'archive en mémoire :
+ *  l'appelant la libère (`libererUrlObjet`, `lib/urlObjet.ts`) — fil 2167. */
 export async function downloadDeclick(jobId: string): Promise<string> {
   const token = getToken();
   const headers: Record<string, string> = {};

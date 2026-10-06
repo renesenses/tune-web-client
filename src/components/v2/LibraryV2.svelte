@@ -2811,7 +2811,7 @@
                   <div class="lhote">
                   <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
                   <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
-                    <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
+                    <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
                     <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
                     <span class="la">{a.artist_name ?? ''}</span>
                     <span class="ly">{albumYear(a) ?? ''}</span>
@@ -2835,7 +2835,7 @@
                         objet={objetMenuAlbum(a)}
                         nom={a.title}
                       >
-                        <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                        <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                       </PochetteActions>
                       {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
                     </div>
@@ -2989,7 +2989,7 @@
           objet={objetMenuAlbum(a)}
           nom={a.title}
         >
-          <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+          <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
         </PochetteActions>
         {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
       </div>
@@ -3010,7 +3010,7 @@
     <div class="lhote" data-letter={firstLetter(a)} data-i={i}>
     <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
     <button class="lrow" onclick={() => ouvrirCalqueAlbum(a)}>
-      <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
+      <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
       <!-- La pastille reste DANS la cellule du titre : une septieme
            colonne decalerait toutes les autres, et seule une poignee de
            lignes la porte (#1957, et la lecon d'alignement du 05/09). -->
@@ -3045,7 +3045,7 @@
           objet={objetMenuAlbum(a)}
           nom={a.title}
         >
-          <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+          <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
         </PochetteActions>
         {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
       </div>
