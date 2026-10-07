@@ -199,7 +199,12 @@ export const COLONNES: Colonne[] = [
   { cle: 'disc',        cleI18n: 'v2.tcol.disc',        largeur: '56px',  align: 'droite', min: 'intermediate' },
   { cle: 'label',       cleI18n: 'v2.tcol.label',       largeur: 'minmax(100px,1fr)',   min: 'intermediate' },
 
-  { cle: 'format',      cleI18n: 'v2.tcol.format',      largeur: '76px',  min: 'intermediate' },
+  // #1901 (Fredouille40, fil 2131) — « le type de fichier dans une colonne ».
+  // Seule de ce groupe à être proposée à TOUS les niveaux : en Essentiel, le
+  // format n'apparaissait que noyé dans la pastille Qualité. Elle garde sa
+  // place, à côté de la fréquence et de la profondeur, et reste décochée
+  // d'office.
+  { cle: 'format',      cleI18n: 'v2.tcol.format',      largeur: '76px' },
   { cle: 'sampleRate',  cleI18n: 'v2.tcol.sampleRate',  largeur: '86px',  align: 'droite', min: 'intermediate' },
   { cle: 'bitDepth',    cleI18n: 'v2.tcol.bitDepth',    largeur: '68px',  align: 'droite', min: 'intermediate' },
 
