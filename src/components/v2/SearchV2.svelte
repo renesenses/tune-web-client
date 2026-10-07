@@ -76,6 +76,7 @@
   import { streamingServices } from '../../lib/stores/streaming';
   import { servicesInterrogeables, statutsStreaming } from '../../lib/albumsArtisteStreaming';
   import { chercherAuFilDeLEau, planDuDeuxiemeTemps } from '../../lib/rechercheAuFilDeLEau';
+  import { champAlbumBandcamp } from '../../lib/albumBandcampDuTitre';
   import {
     fusionnerParType,
     regrouperArtistes,
@@ -998,7 +999,7 @@
       playAndSync(zid, { source: t.source, source_id: String(t.source_id),
         title: t.title ?? null, artist_name: t.artist_name ?? null,
         album_title: t.album_title ?? null, cover_path: t.cover_path ?? null,
-        duration_ms: t.duration_ms }).catch(signalerEchecLecture);
+        duration_ms: t.duration_ms, ...champAlbumBandcamp(t) } as any).catch(signalerEchecLecture);
     }
   }
 </script>
@@ -1127,7 +1128,7 @@
                      onze dictionnaires. -->
                 <button type="button" class="acv" onclick={() => ouvrirTeteAffiche(a)}
                   aria-label={a.nom} title={a.nom}>
-                  <AlbumArt coverPath={a.image_path} albumId={null} size={0} alt={a.nom} fallbackInitials={a.nom?.slice(0,1)} />
+                  <AlbumArt coverPath={a.image_path} albumId={null} size={0} vignette alt={a.nom} fallbackInitials={a.nom?.slice(0,1)} />
                 </button>
                 <button class="meta" onclick={() => ouvrirTeteAffiche(a)}><span class="an" title={a.nom}>{a.nom}</span></button>
               </div>
@@ -1152,7 +1153,7 @@
                     objet={objetAlbum(a)}
                     nom={a.title}
                   >
-                    <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                    <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                   </PochetteActions>
                 </span>
                 <button class="meta" onclick={() => ouvrirFiche(a)}>
@@ -1224,7 +1225,7 @@
                   bas, et c'est l'arbitrage de #1129 repris tel quel.
                 -->
                 <button class="bcard" onclick={() => ouvrirArtiste(a)}>
-                  <span class="bcv rond"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
+                  <span class="bcv rond"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} vignette alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
                   <span class="bt">{a.name}</span>
                   <span class="bk">{$t('v2.rech.kindArtist' as any)}</span>
                 </button>
@@ -1242,14 +1243,14 @@
                      même geste ouvre la fiche pour un local : deux gestes
                      différents sous une carte identique. -->
                 <button class="bcard" onclick={() => ouvrirFiche(a)}>
-                  <span class="bcv"><AlbumArt coverPath={a.cover_path} albumId={estLocal(a) ? a.id : null} size={0} alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} /></span>
+                  <span class="bcv"><AlbumArt coverPath={a.cover_path} albumId={estLocal(a) ? a.id : null} size={0} vignette alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} /></span>
                   <span class="bt">{a.title}</span>
                   <span class="bk">{$t('v2.rech.kindAlbum' as any)} · {a.artist_name ?? ''}</span>
                 </button>
               {:else}
                 {@const pi = meilleur.piste}
                 <button class="bcard" onclick={() => lirePiste(pi)}>
-                  <span class="bcv"><AlbumArt coverPath={pi.cover_path} albumId={estLocal(pi) ? (pi.album_id ?? null) : null} size={0} alt={pi.title} source={pi.source as any} fallbackInitials={pi.title?.slice(0,1)} /></span>
+                  <span class="bcv"><AlbumArt coverPath={pi.cover_path} albumId={estLocal(pi) ? (pi.album_id ?? null) : null} size={0} vignette alt={pi.title} source={pi.source as any} fallbackInitials={pi.title?.slice(0,1)} /></span>
                   <span class="bt">{pi.title}</span>
                   <span class="bk">{$t('v2.rech.kindTrack' as any)} · {pi.artist_name ?? ''}</span>
                 </button>
@@ -1276,7 +1277,7 @@
                              source, quatre « Marco Iacobini » identiques.
                              🔴 #1136 — mais plus par INCRUSTATION : voir
                              `.asrc` juste en dessous. -->
-                        <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} />
+                        <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} vignette alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} />
                       </PochetteActions>
                     </span>
                     <button class="meta" onclick={() => ouvrirArtiste(ar)}><span class="an" title={ar.name}>{ar.name}</span></button>
@@ -1398,7 +1399,7 @@
                     objet={objetAlbum(a)}
                     nom={a.title}
                   >
-                    <AlbumArt coverPath={a.cover_path} albumId={local_ ? a.id : null} size={0} alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} />
+                    <AlbumArt coverPath={a.cover_path} albumId={local_ ? a.id : null} size={0} vignette alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} />
                   </PochetteActions>
                 </span>
                 <!-- Le TITRE mène à la fiche, pour un album de service comme

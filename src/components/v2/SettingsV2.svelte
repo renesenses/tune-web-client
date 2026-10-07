@@ -38,6 +38,13 @@
     type EtatGreffonEntreeAudio, type FicheGreffon,
   } from '../../lib/greffonEntreeAudio';
   import { atLeast } from '../../lib/uiLevel';
+  import {
+    backendSelectionne,
+    choixDeBackend,
+    libelleBackend,
+    modeWasapiPertinent,
+    type ChoixBackend,
+  } from '../../lib/audioBackends';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
@@ -97,6 +104,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
+  import FolderBrowser from '../partages/FolderBrowser.svelte';
+  import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
   import {
     detailAppareilIgnore,
@@ -414,7 +423,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // Repartition par niveau, pour que l'Essentiel ne voie que ce qu'il peut
   // decider seul : la liste des sorties et « lire ici ». Le moteur audio,
   // le mode WASAPI et le detail ReplayGain n'apparaissent qu'au-dessus.
-  let audioBackend = $state('wasapi');
+  // Backend de la SORTIE LOCALE (tune-web-client#1268, tune-server-rust#2265).
+  // Les choix viennent du serveur (`supported_audio_backends`), calculés par
+  // SA plateforme : Linux ne publie que « Auto (ALSA) », un build sans sortie
+  // locale (Docker) publie `[]`. On n'écrit plus Auto/WASAPI/ASIO en dur, et
+  // on ne replie plus sur `wasapi`. Serveur antérieur sans le champ :
+  // `choixDeBackend` rend `auto` plus la valeur déjà persistée, rien d'autre.
+  let audioBackend = $state('auto');
+  let backendChoix = $state<ChoixBackend[]>([]);
+  // Faux tant que la config n'est pas lue : on ne conclut pas « pas de
+  // sortie locale » avant d'avoir la réponse.
+  let backendChoixLu = $state(false);
   let exclusiveMode = $state(false);
   let rgMode = $state('off');
   let rgPreamp = $state(0);
@@ -432,9 +451,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   $effect(() => {
     api.getConfig()
       .then((c: any) => {
-        // `audio_backend` d'abord : c'est la cle que renvoie le serveur recent,
-        // `local_audio_backend` restant pour les versions anterieures.
-        audioBackend = c?.audio_backend ?? c?.local_audio_backend ?? 'wasapi';
+        // `local_audio_backend` est LE réglage de la sortie locale ;
+        // `audio_backend` n'est lu qu'en repli par `backendPersiste`, pour les
+        // serveurs qui ne publiaient que l'ancien nom.
+        backendChoix = choixDeBackend(c);
+        audioBackend = backendSelectionne(c, backendChoix);
+        backendChoixLu = true;
         exclusiveMode = c?.local_exclusive_mode ?? false;
         rgMode = c?.replaygain_mode ?? 'off';
         rgPreamp = Number(c?.replaygain_preamp_db ?? 0);
@@ -2026,15 +2048,28 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // qu'une analyse tourne : le badge doit le dire.
   $effect(() => { if (aDesChiffres($avancementAnalyse)) scanning = true; });
 
+  /** Fil forum 2171 — le sélecteur de dossier du serveur, perdu avec l'ancienne
+   *  interface (`FolderWizard`). La saisie à la main reste possible. */
+  let showFolderBrowser = $state(false);
+  /** Fil forum 2171 — une racine de disque ou un très gros dossier demande une
+   *  confirmation chiffrée AVANT l'ajout, qui lance l'analyse sur-le-champ. */
   async function addDir() {
     const path = newDir.trim();
     if (!path || dirBusy) return;
     dirBusy = true; libErr = null;
     try {
-      const r = await api.addMusicDir(path);
-      musicDirs = r?.music_dirs ?? musicDirs;
-      await refreshDirectoryOrder();
-      newDir = '';
+      const r = await ajouterUnDossier(path, {
+        estimer: api.estimateMusicDir,
+        ajouter: api.addMusicDir,
+        confirmer: (m) => dialogs.confirm(m),
+        tr: (k) => get(t)(k as any),
+        nombre: (n) => get(formatNombre)(n),
+      });
+      if (r) {
+        musicDirs = r?.music_dirs ?? musicDirs;
+        await refreshDirectoryOrder();
+        newDir = '';
+      }
     } catch (e: any) { libErr = e?.message ?? get(t)('settings.errFolderRejected'); }
     dirBusy = false;
   }
@@ -2056,8 +2091,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     if (dirBusy) return;
     dirBusy = true; libErr = null;
     try {
-      const r = await api.removeMusicDir(path);
-      musicDirs = r?.music_dirs ?? musicDirs.filter((d) => d !== path);
+      // Fil forum 2171 — retirer le dossier ne suffisait pas : ses pistes
+      // restaient dans la bibliothèque, hors de portée du scan. La question de
+      // #2149 est de nouveau posée, et dit que les fichiers ne sont pas touchés.
+      musicDirs = await retirerUnDossier(path, {
+        retirer: api.removeMusicDir,
+        confirmer: (m) => dialogs.confirm(m, { danger: true }),
+        annoncer: (v) => notifications[v.ton](v.message),
+        tr: (k) => get(t)(k as any),
+      });
       await refreshDirectoryOrder();
     } catch { libErr = get(t)('settings.errRemoveFailed'); }
     dirBusy = false;
@@ -3835,9 +3877,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               <div class="row">
                 <div class="lbl"><span>{$t('settings.language' as any)}</span></div>
-                <select class="sel" value={$preferences.language ?? 'fr'}
+                <select class="sel" value={$preferences.language ?? 'en'}
                   onchange={(e) => { const l = (e.currentTarget as HTMLSelectElement).value as Locale;
-                    preferences.update((pr) => ({ ...pr, language: l })); locale.set(l); }}>
+                    preferences.update((pr) => ({ ...pr, language: l, langueAuto: null })); locale.set(l); }}>
                   {#each Object.entries(localeNames) as [code, name] (code)}
                     <option value={code}>{name}</option>
                   {/each}
@@ -5191,6 +5233,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="inline">
                   <input class="txt wide" type="text" placeholder="/Volumes/Musique" bind:value={newDir}
                     disabled={dirBusy} onkeydown={(e) => { if (e.key === 'Enter') addDir(); }} />
+                  <button class="lnk" disabled={dirBusy} onclick={() => (showFolderBrowser = true)}>{$t('ingest.browse' as any)}</button>
                   <button class="lnk" disabled={dirBusy || !newDir.trim()} onclick={addDir}>{$t('v2.tags.add' as any)}</button>
                 </div>
               </div>
@@ -5241,8 +5284,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span>{$t('settings.backgroundAnalysisFolder' as any)}</span>
                         </label>
                       {/if}
-                      <button class="del" disabled={dirBusy} onclick={() => removeDir(d)} aria-label={$t('settings.removeFolderAria' as any)}>
+                      <button class="del avec-texte" disabled={dirBusy} onclick={() => removeDir(d)}
+                        aria-label={$t('settings.removeFolderAria' as any)} title={$t('settings.removeFolderButton' as any)}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        <span>{$t('settings.removeFolderButton' as any)}</span>
                       </button>
                     </div>
                   {/each}
@@ -5254,6 +5299,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <p class="hint">{#each emphaseParts($t('settings.removeFolderHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {:else}
                 <p class="hint">{$t('settings.noFolderDeclared' as any)}</p>
+                <!-- Fil 2145 (web#1935) — l'écran disait « aucun dossier » et,
+                     plus bas, « Monté », sans relier les deux. -->
+                {#if Array.isArray(smbMounts) && smbMounts.some((m) => proposerAjout(m, musicDirs))}
+                  <p class="hint">{$t('settings.noFolderShareMounted' as any)}</p>
+                {/if}
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- Délai de relecture des partages réseau (#5792, fil 2148).
@@ -6336,15 +6386,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="row">
                   <div class="lbl">
                     <span>{$t('settings.audioBackend' as any)}</span>
-                    <span class="hint">{$t('v2.hint.audioBackend' as any)}</span>
+                    <!-- L'aide parle d'ASIO : on la tait là où ASIO n'existe pas. -->
+                    {#if backendChoix.some((b) => b.value === 'asio')}
+                      <span class="hint">{$t('v2.hint.audioBackend' as any)}</span>
+                    {/if}
                   </div>
-                  <div class="seg4">
-                    <button class:on={audioBackend === 'auto'} onclick={() => setBackend('auto')}>{$t('settings.autoDefault' as any)}</button>
-                    <button class:on={audioBackend === 'wasapi'} onclick={() => setBackend('wasapi')}>WASAPI</button>
-                    <button class:on={audioBackend === 'asio'} onclick={() => setBackend('asio')}>ASIO</button>
-                  </div>
+                  {#if backendChoix.length > 0}
+                    <div class="seg4">
+                      {#each backendChoix as b (b.value)}
+                        <button class:on={audioBackend === b.value} onclick={() => setBackend(b.value)}>{libelleBackend(b, $t as any)}</button>
+                      {/each}
+                    </div>
+                  {:else if backendChoixLu}
+                    <span class="hint">{$t('settings.audioBackendNoLocalOutput' as any)}</span>
+                  {/if}
                 </div>
-                {#if audioBackend === 'wasapi'}
+                {#if modeWasapiPertinent(backendChoix, audioBackend)}
                   <div class="row">
                     <div class="lbl">
                     <span>{$t('settings.wasapiMode' as any)}</span>
@@ -6500,6 +6557,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     </div>
   </div>
 </section>
+
+{#if showFolderBrowser}
+  <FolderBrowser
+    initialPath={newDir}
+    onSelect={(p) => { newDir = p; showFolderBrowser = false; }}
+    onClose={() => (showFolderBrowser = false)}
+  />
+{/if}
 
 {#if showSmbWizard}
   <SmbWizard
@@ -6808,6 +6873,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; flex:0 0 auto}
   .del:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .del svg{width:13px; height:13px}
+  .del.avec-texte{width:auto; padding:0 8px; display:flex; gap:5px; align-items:center;
+    border-color:var(--v2-line, transparent); font:11px var(--v2-sans); white-space:nowrap}
   .foot{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:14px;
     padding-top:12px; border-top:1px solid var(--v2-line)}
   .foot .hint{flex:1; min-width:200px}

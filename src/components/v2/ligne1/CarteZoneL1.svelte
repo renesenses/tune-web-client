@@ -147,7 +147,7 @@
        dans ce `<style>` (leçon des favoris Radio, 03/09/2026). -->
   <div class="cv" aria-hidden="true">
     <AlbumArt coverPath={piste?.cover_path ?? null} albumId={piste?.album_id ?? null}
-      size={0} alt="" source={piste?.source ?? null}
+      size={0} vignette alt="" source={piste?.source ?? null}
       fallbackInitials={(piste?.title ?? zone?.name ?? '?').slice(0, 1)} />
   </div>
 

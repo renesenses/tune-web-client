@@ -462,7 +462,7 @@
 <style>
   .cc { padding: 1rem; max-width: 60rem; margin: 0 auto; }
   .cc-tete h2 { margin: 0 0 0.25rem; }
-  .cc-sous { color: var(--text-muted, #888); margin: 0 0 1.5rem; }
+  .cc-sous { color: var(--tune-text-muted); margin: 0 0 1.5rem; }
   .cc-encart { background: var(--tune-surface); padding: 1rem; border-radius: 8px; }
   .cc-principal {
     display: inline-block; margin-top: 0.75rem; padding: 0.45rem 1rem;
@@ -477,12 +477,12 @@
   .cc-commune .cc-cp { flex: 0 0 6rem; min-width: 5rem; }
   .cc-pays { display: flex; align-items: center; gap: 0.5rem; margin: 0.75rem 0 0.25rem; }
   .cc-pays select { padding: 0.4rem 0.6rem; border-radius: 6px; }
-  .cc-note { color: var(--text-muted, #888); font-size: 0.875rem; margin: 0.35rem 0; }
+  .cc-note { color: var(--tune-text-muted); font-size: 0.875rem; margin: 0.35rem 0; }
   .cc-attention { color: var(--warning, #d99a2b); }
   .cc-inactif { opacity: 0.55; }
   .cc-commune .cc-a-preciser { outline: 2px solid var(--warning, #d99a2b); }
   .cc-erreur { color: var(--danger, #e05252); }
-  .cc-muet, .cc-vide { color: var(--text-muted, #888); }
+  .cc-muet, .cc-vide { color: var(--tune-text-muted); }
   .cc-tri { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0 0 0.75rem; }
   .cc-tri button { padding: 0.35rem 0.85rem; border-radius: 999px; }
   .cc-tri button.actif { background: var(--accent, #2b7); color: #fff; }
@@ -495,7 +495,7 @@
   .cc-dates { list-style: none; padding: 0; margin: 0; }
   .cc-dates li { display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 0.15rem 0; }
   .cc-date { font-variant-numeric: tabular-nums; min-width: 6.5rem; }
-  .cc-lieu { color: var(--text-muted, #aaa); }
+  .cc-lieu { color: var(--tune-text-muted); }
   /* Monté DANS la coquille v2 (phase 5, lot 4) : la grappe de lecture est en
      position absolue au-dessus des écrans ; sans cette réserve, la barre
      d'outils de l'écran passerait dessous (garde `gouttiereGrappe`). */

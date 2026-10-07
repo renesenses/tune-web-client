@@ -10,6 +10,7 @@ import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 import type { RetraitDossier } from './purgeOrphelines';
+import type { EstimationDossier } from './ajoutDossier';
 import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
 import type { CorpsEdition, EditionReponse, RapportBalises } from './editionAlbum';
@@ -1489,7 +1490,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string }) {
+export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1620,6 +1621,9 @@ export interface StreamingQueueItem {
   album_title?: string | null;
   cover_path?: string | null;
   duration_ms?: number;
+  /** La page de l'album d'un titre Bandcamp (web#1923, #1924). Ignorée par un
+   *  serveur antérieur, et par le serveur pour toute autre source. */
+  album_ref?: string;
 }
 
 export interface AddToQueueRequest {
@@ -1635,6 +1639,8 @@ export interface AddToQueueRequest {
   album_title?: string | null;
   cover_path?: string | null;
   duration_ms?: number;
+  /** La page de l'album d'un titre Bandcamp seul (web#1923, #1924). */
+  album_ref?: string;
   /** Ordered streaming rows, supported by QueueAddRequest on the server. */
   tracks?: StreamingQueueItem[];
 }
@@ -1653,7 +1659,9 @@ export interface AddToQueueRequest {
  * et faire reculer l'appelant serait faux.
  */
 export async function addToQueue(zoneId: number, body: AddToQueueRequest) {
-  const res = await fetchJSON<{ queue_length: number; unresolved?: PisteNonResolue[] }>(
+  // `queue_position` : le curseur APRÈS l'ajout, absent sur un serveur
+  // antérieur à tune-server-rust#5770 (voir `playback.ts`).
+  const res = await fetchJSON<{ queue_length: number; queue_position?: number; unresolved?: PisteNonResolue[] }>(
     `${BASE}/zones/${zoneId}/queue/add`,
     { method: 'POST', body: JSON.stringify(body) },
   );
@@ -2839,8 +2847,10 @@ export function rescanAlbumArtwork(albumId: number) {
  *  à cet album, et rien de ce que l'utilisateur a saisi n'est écrasé. Compter
  *  quelques secondes — deux allers-retours MusicBrainz, dont un délai de
  *  courtoisie imposé par leur limite de débit. */
-export function reidentifyAlbum(albumId: number) {
-  return fetchJSON<ReidentifyResult>(`${BASE}/library/albums/${albumId}/reidentify`, {
+export function reidentifyAlbum(albumId: number, releaseId?: string) {
+  // #4805 D — `release_id` impose l'édition choisie après un `ambiguous`.
+  const choix = releaseId ? `?release_id=${encodeURIComponent(releaseId)}` : '';
+  return fetchJSON<ReidentifyResult>(`${BASE}/library/albums/${albumId}/reidentify${choix}`, {
     method: 'POST',
   });
 }
@@ -3176,11 +3186,11 @@ export function getTagSmartCollections(tagId: number) {
 // --- Smart Playlists ---
 
 export function getAlbumBio(albumId: number) {
-  return fetchJSON<{ bio: string | null; source: string | null; release_id?: string | null }>(`${BASE}/library/albums/${albumId}/bio`);
+  return fetchJSON<{ bio: string | null; source: string | null; release_id?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null }>(`${BASE}/library/albums/${albumId}/bio`);
 }
 
 export function getArtistBio(artistId: number) {
-  return fetchJSON<{ bio: string | null; source?: string | null }>(`${BASE}/library/artists/${artistId}/bio`);
+  return fetchJSON<{ bio: string | null; source?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null }>(`${BASE}/library/artists/${artistId}/bio`);
 }
 
 export function getArtistTimeline(artistId: number) {
@@ -4379,6 +4389,41 @@ export async function removeMusicDir(path: string, confirmPurge?: number) {
     body: JSON.stringify(body),
   });
   return { ...r, music_dirs: listeDossiers(r) };
+}
+
+/** Une entrée de l'explorateur de dossiers du serveur. */
+export interface DossierServeur {
+  name: string;
+  path: string;
+  has_children: boolean;
+}
+
+/** Réponse de `GET /system/browse-dirs`. `drives` : liste des lecteurs Windows. */
+export interface ListeDossiersServeur {
+  dirs: DossierServeur[];
+  parent: string | null;
+  current: string;
+  drives?: boolean;
+  error?: string;
+}
+
+/**
+ * Explorateur de dossiers du SERVEUR (#1275, fil forum 2171). Sans `path`, le
+ * serveur part de sa racine : `/` sous Unix, la liste des lecteurs sous
+ * Windows. Un refus de périmètre (403) rend quand même un corps lisible.
+ */
+export async function browseServerDirs(path?: string): Promise<ListeDossiersServeur> {
+  const qs = path ? `?path=${encodeURIComponent(path)}` : '';
+  return fetchJSON<ListeDossiersServeur>(`${BASE}/system/browse-dirs${qs}`, undefined, (s) => s === 403);
+}
+
+/** Ce que l'ajout de ce dossier ferait analyser (comptage borné, fil 2171). */
+export function estimateMusicDir(path: string): Promise<EstimationDossier> {
+  return fetchJSON<EstimationDossier>(
+    `${BASE}/system/browse-dirs/estimate?path=${encodeURIComponent(path)}`,
+    undefined,
+    (s) => s === 403,
+  );
 }
 
 /** Effective reading order of configured music directories (#1688 / server #4907). */
@@ -6005,6 +6050,13 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
   // (e.g. /api/v1/library/artwork/abc.jpg or /api/v1/library/artwork/proxy?url=...).
   // Detect these and use them directly.
   if (coverPath.startsWith('/api/')) {
+    // Fil 2167 — une adresse de pochette déjà toute faite reçoit la taille
+    // elle aussi, sinon la grille repartait en pleine résolution. Seule la
+    // route `/library/artwork/{condensat}` lit `?size=` ; le relais et les
+    // autres routes restent tels quels.
+    if (size && /^\/api\/v1\/library\/artwork\/(?!proxy(?:[/?]|$))[^/?#]+$/.test(coverPath)) {
+      return `${coverPath}?size=${size}`;
+    }
     return coverPath;
   }
   if (coverPath.startsWith('http://') || coverPath.startsWith('https://')) {
@@ -6021,6 +6073,38 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
   const filename = coverPath.split('/').pop() ?? coverPath;
   const sizeParam = size ? `?size=${size}` : '';
   return `${BASE}/library/artwork/${encodeURIComponent(filename)}${sizeParam}`;
+}
+
+/**
+ * Les cases de vignette que le serveur sait servir (`THUMB_SIZES`,
+ * tune-core/src/library/artwork.rs, branche feat-rc3) : `?size=N` y choisit la
+ * plus petite case ≥ N ; au-delà de la dernière, il rend l'original.
+ */
+export const CASES_VIGNETTE = [80, 128, 200, 400] as const;
+
+/** Marge tolérée au-dessus de la dernière case : une tuile qui voudrait
+ *  480 pixels physiques se contente de 400 (agrandie de 20 %, invisible sur
+ *  une pochette), plutôt que de retomber sur l'original de 1 200 pixels. */
+const MARGE_DERNIERE_CASE = 1.25;
+
+/**
+ * Fil 2167 — la taille à demander pour une pochette affichée sur `cssPx`
+ * pixels CSS, écran de densité `dpr`. Rend une case du serveur, ou
+ * `undefined` (= pas de `?size=`, l'original) quand l'affichage est trop grand
+ * pour qu'une vignette suffise, ou que la largeur est inconnue.
+ *
+ * Arrondir à une case et non à la largeur exacte sert deux fois : le serveur
+ * n'en fabrique pas d'autre, et deux tuiles de largeurs voisines partagent la
+ * même adresse — donc la même entrée du cache du navigateur.
+ */
+export function tailleDeVignette(cssPx: number, dpr = 1): number | undefined {
+  if (!Number.isFinite(cssPx) || cssPx <= 0) return undefined;
+  const densite = Number.isFinite(dpr) && dpr > 0 ? dpr : 1;
+  const voulu = Math.ceil(cssPx * densite);
+  const trouvee = CASES_VIGNETTE.find((c) => c >= voulu);
+  if (trouvee) return trouvee;
+  const derniere = CASES_VIGNETTE[CASES_VIGNETTE.length - 1];
+  return voulu <= derniere * MARGE_DERNIERE_CASE ? derniere : undefined;
 }
 
 /**
@@ -8596,6 +8680,8 @@ export function listConversions(): Promise<Array<Awaited<ReturnType<typeof getCo
   return fetchJSON(`${BASE}/converter/jobs`);
 }
 
+/** Rend une URL d'objet (`blob:`) qui épingle toute l'archive en mémoire :
+ *  l'appelant la libère (`libererUrlObjet`, `lib/urlObjet.ts`) — fil 2167. */
 export async function downloadConversion(jobId: string): Promise<string> {
   const token = getToken();
   const headers: Record<string, string> = {};
@@ -8656,6 +8742,8 @@ export function getDeclickStatus(jobId: string): Promise<{
   return fetchJSON(`${BASE}/declick/status/${encodeURIComponent(jobId)}`);
 }
 
+/** Rend une URL d'objet (`blob:`) qui épingle toute l'archive en mémoire :
+ *  l'appelant la libère (`libererUrlObjet`, `lib/urlObjet.ts`) — fil 2167. */
 export async function downloadDeclick(jobId: string): Promise<string> {
   const token = getToken();
   const headers: Record<string, string> = {};

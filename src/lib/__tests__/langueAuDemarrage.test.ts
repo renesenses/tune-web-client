@@ -37,7 +37,7 @@ describe('la langue enregistrée au démarrage', () => {
 
   it('la coquille v2 applique la préférence', () => {
     expect(shell).toContain("import { t, locale } from '../../lib/i18n';");
-    expect(shell).toMatch(/\$effect\(\(\) => \{ locale\.set\(\$preferences\.language \?\? 'fr'\); \}\);/);
+    expect(shell).toMatch(/\$effect\(\(\) => \{ locale\.set\(\$preferences\.language \?\? 'en'\); \}\);/);
   });
 
   it("aucune boucle : `locale` n'écrit jamais dans `preferences`", () => {
@@ -52,7 +52,7 @@ describe('la langue enregistrée au démarrage', () => {
     // Il met les deux à jour. L'effet le rend redondant, pas inutile : sans
     // lui, le changement n'aurait lieu qu'au prochain montage de la coquille.
     const set = sansCommentaires(lire('src/components/v2/SettingsV2.svelte'));
-    expect(set).toMatch(/preferences\.update\(\(pr\) => \(\{ \.\.\.pr, language: l \}\)\); locale\.set\(l\);/);
+    expect(set).toMatch(/preferences\.update\(\(pr\) => \(\{ \.\.\.pr, language: l, langueAuto: null \}\)\); locale\.set\(l\);/);
   });
 });
 

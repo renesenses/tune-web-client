@@ -83,7 +83,7 @@ import {
   type SousEntreePochette,
   type TypePochette,
 } from './actionsPochette';
-import type { StreamingTrackInfo, Track } from './types';
+import type { ReidentifyCandidate, ReidentifyResult, StreamingTrackInfo, Track } from './types';
 
 /**
  * L'objet d'un menu, tel que l'écran le connaît — et rien de plus.
@@ -570,16 +570,48 @@ export async function sousMenuRayons(o: ObjetMenu, apres?: () => void): Promise<
 
 // ── Album : corriger, localiser ───────────────────────────────────────────
 
+/** Le libellé d'une édition candidate : titre, année, pays, pistes, note. */
+export function libelleEdition(c: ReidentifyCandidate): string {
+  const pistes = c.track_count ? get(t)('library.reidentifyTracks' as any).replace('{n}', String(c.track_count)) : '';
+  return [c.title, c.disambiguation, c.year, c.country, c.label, c.media_format, pistes]
+    .filter((x) => x != null && String(x).trim() !== '')
+    .join(' · ');
+}
+
+/**
+ * #4805 D — aucune édition n'est sûre : rien n'a été écrit, et on le DIT.
+ * Chaque candidat (trois au plus) vient avec son bouton « Choisir », qui
+ * relance la ré-identification sur CETTE édition (`release_id`).
+ */
+function proposerLesEditions(albumId: number, r: ReidentifyResult) {
+  const traduire = get(t);
+  const candidats = (r.candidates ?? []).slice(0, 3);
+  notifications.info(
+    traduire('library.reidentifyAmbiguous' as any)
+      .replace('{title}', r.searched_title ?? '')
+      .replace('{n}', String(r.candidates?.length ?? 0)),
+    15000,
+  );
+  for (const c of candidats) {
+    notifications.withAction(
+      libelleEdition(c),
+      traduire('library.reidentifyChoose' as any),
+      () => { void reidentifierAlbum(albumId, c.release_id); },
+      20000,
+    );
+  }
+}
+
 /**
  * « Ré-identifier » — le geste de la fiche album (#2128), sorti ici pour que le
  * menu et la fiche disent la MÊME chose. Rend `true` quand l'album a changé :
  * la fiche le relit alors.
  */
-export async function reidentifierAlbum(albumId: number): Promise<boolean> {
+export async function reidentifierAlbum(albumId: number, releaseId?: string): Promise<boolean> {
   const traduire = get(t);
   const tid = notifications.info(traduire('library.reidentifying' as any), 0);
   try {
-    const r = await api.reidentifyAlbum(albumId);
+    const r = await api.reidentifyAlbum(albumId, releaseId);
     notifications.dismiss(tid);
     // Le verdict est rendu tel quel, y compris décevant : « même pressage »
     // et « rien trouvé » sont des réponses (fil forum #1455).
@@ -589,6 +621,7 @@ export async function reidentifierAlbum(albumId: number): Promise<boolean> {
       return false;
     }
     if (r.verdict === 'unchanged') { notifications.info(traduire('library.reidentifyUnchanged' as any), 9000); return false; }
+    if (r.verdict === 'ambiguous') { proposerLesEditions(albumId, r); return false; }
     let msg = traduire('library.reidentifySuccess' as any)
       .replace('{title}', r.release_title ?? '')
       .replace('{matched}', String(r.tracks_matched ?? 0))

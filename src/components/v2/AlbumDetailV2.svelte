@@ -33,6 +33,8 @@ import AlbumRating from '../partages/AlbumRating.svelte';
 import ReportButton from '../partages/ReportButton.svelte';
 import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import ClampedText from '../partages/ClampedText.svelte';
+  import AttributionBio from './AttributionBio.svelte';
+  import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
   import ListePistesV2 from './ListePistesV2.svelte';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
@@ -566,6 +568,11 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
           artist_name: t.artist ?? album.artist_name ?? null,
           album_title: album.title, duration_ms: (t.duration_s ?? 0) * 1000,
           source: 'bandcamp', source_id: t.stream_url,
+          // web#1923, #1924 : chaque piste garde la page de SON album. Lancée
+          // seule (aléatoire, file, menu de la ligne), elle l'emporte dans
+          // `album_ref` (`champAlbumBandcamp`), sans quoi un titre que Tune
+          // n'a jamais vu entrait en file sans album.
+          album_id_service: d2?.url ?? bc,
           cover_path: album.cover_path ?? null, format: 'MP3',
         })) as unknown as Track[])
       : svc && sid
@@ -1157,6 +1164,8 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
    */
   let bioOuverte = $state(false);
   let bio = $state<string | null>(null);
+  /** Provenance de la notice (`bio_provenance`) — attribution CC BY-SA. */
+  let bioProvenance = $state<BioProvenance | null>(null);
   let bioChargement = $state(false);
   let bioErreur = $state(false);
   /** Album dont la bio est en mémoire — la fiche est réutilisée d'un album à
@@ -1169,6 +1178,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     bioAlbumId = id;
     bioOuverte = false;
     bio = null;
+    bioProvenance = null;
     bioErreur = false;
   });
 
@@ -1181,7 +1191,10 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     try {
       const r = await api.getAlbumBio(id);
       // Course : l'utilisateur a pu changer d'album pendant la requête.
-      if (album.id === id) bio = r.bio ?? '';
+      if (album.id === id) {
+        bio = r.bio ?? '';
+        bioProvenance = provenanceDe(r);
+      }
     } catch {
       if (album.id === id) bioErreur = true;
     }
@@ -1601,6 +1614,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
           <ClampedText lines={4} resetKey={bio}>
             <p class="bio-text">{bio}</p>
           </ClampedText>
+          <AttributionBio provenance={bioProvenance} />
         {:else}
           <p class="bio-state">{$tr('library.noAlbumNote')}</p>
         {/if}

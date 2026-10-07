@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import type { Locale } from '../i18n';
+import { resoudreLangue } from '../langueParDefaut';
 import { isSettingsLevel, legacyAdvancedToLevel, type SettingsLevel } from '../settingLevels';
 import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
 import {
@@ -117,6 +118,10 @@ const OXYGEN_FACETS_DEFAUTS_REV4 = ['genre', 'artist', 'composer', 'label', 'yea
 export interface Preferences {
   theme: ThemeMode;
   language: Locale;
+  /** `null` : `language` a été CHOISIE dans les Réglages. Une langue : celle
+   *  que Tune a posée d'après le navigateur, qui n'est donc pas un choix.
+   *  Absent d'un blob ancien. Règle complète : `langueParDefaut.ts`. */
+  langueAuto: Locale | null;
   volumeDisplay: VolumeDisplay;
   startupView: StartupView;
   defaultZoneId: number | null;
@@ -414,7 +419,9 @@ const STORAGE_KEY = 'tune-preferences';
 
 const defaults: Preferences = {
   theme: 'dark',
-  language: 'fr',
+  // Jamais `'fr'` : la langue du navigateur si l'interface la parle, l'anglais
+  // sinon (`langueParDefaut.ts`).
+  ...resoudreLangue([]),
   volumeDisplay: 'percent',
   startupView: 'home',
   defaultZoneId: null,
@@ -510,8 +517,15 @@ function adoptLegacyAlbumSort(p: Preferences) {
 }
 
 function loadPrefs(): Preferences {
+  let stored: string | null = null;
+  try { stored = localStorage.getItem(STORAGE_KEY); } catch { /* ignore */ }
+  return lirePrefs(stored);
+}
+
+/** La normalisation de `loadPrefs`, sur un blob donné : celui du stockage au
+ *  chargement, ou celui qu'un AUTRE onglet vient d'écrire (fil 2168). */
+function lirePrefs(stored: string | null): Preferences {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const raw = JSON.parse(stored);
       const p: Preferences = { ...defaults, ...raw };
@@ -644,6 +658,9 @@ function loadPrefs(): Preferences {
       // groupe inconnu est écarté, Accueil ne peut pas être masqué.
       p.barreLaterale = normaliserChoixBarre((raw as { barreLaterale?: unknown })?.barreLaterale);
       p.barreLateraleMaj = horodatageBarre((raw as { barreLateraleMaj?: unknown })?.barreLateraleMaj);
+      // Lue sur le blob BRUT : `{ ...defaults, ...raw }` y aurait déjà glissé
+      // le `langueAuto` des défauts, et un ancien `'fr'` passerait pour choisi.
+      Object.assign(p, resoudreLangue([raw]));
       return p;
     }
   } catch { /* ignore */ }
@@ -656,22 +673,102 @@ function loadPrefs(): Preferences {
 
 const hadLocalPrefs = !!localStorage.getItem(STORAGE_KEY);
 
+/** Deux valeurs de réglage sont-elles la même ? Comparaison par contenu :
+ *  les réglages sont des données JSON, et c'est sous cette forme qu'ils sont
+ *  rangés. */
+function memeValeur(a: unknown, b: unknown): boolean {
+  return a === b || JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * 🔴 Fil 2168 — le blob à écrire : celui du STOCKAGE, relu, où seuls les
+ * réglages que CET onglet a changés prennent sa valeur.
+ *
+ * Le serveur ouvre un onglet neuf à chaque lancement de Tune (et l'ancien
+ * reste ouvert) : un testeur finit avec plusieurs onglets. Chacun gardait son
+ * blob en mémoire et le réécrivait EN ENTIER — en `localStorage` et en
+ * `PATCH /system/config` — au premier réglage touché. Un onglet resté ouvert
+ * depuis la veille effaçait donc, en changeant le thème, l'ordre de la barre
+ * latérale réglé dans l'onglet neuf : « tout reste affiché ». Le même sort
+ * guettait la langue (`langueAuto`, #1977), la vue de démarrage (#1971) et
+ * tout le reste du blob.
+ *
+ * Écrire champ par champ ferme la porte même si l'évènement `storage` ne
+ * passe pas (onglet gelé, navigateur qui le retient) : un onglet n'écrit
+ * jamais une valeur qu'il n'a pas changée.
+ */
+function blobAEcrire(precedent: Preferences | null, v: Preferences): Record<string, unknown> {
+  if (!precedent) return { ...v };
+  let range: unknown = null;
+  try {
+    const brut = localStorage.getItem(STORAGE_KEY);
+    range = brut ? JSON.parse(brut) : null;
+  } catch { range = null; }
+  if (!range || typeof range !== 'object' || Array.isArray(range)) return { ...v };
+  const blob: Record<string, unknown> = { ...(range as Record<string, unknown>) };
+  for (const cle of Object.keys(v) as (keyof Preferences)[]) {
+    if (!memeValeur(v[cle], precedent[cle])) blob[cle] = v[cle];
+  }
+  return blob;
+}
+
 function createPreferences() {
   const { subscribe, set, update } = writable<Preferences>(loadPrefs());
   let initialized = false;
+  /** Le dernier état aligné sur le stockage : la référence du « qu'est-ce
+   *  que CET onglet a changé ». */
+  let connu: Preferences | null = null;
+  /** Une valeur posée d'APRÈS le stockage (autre onglet) : à adopter sans la
+   *  réécrire ni la renvoyer au serveur — l'onglet qui l'a écrite l'a fait. */
+  let venueDuStockage: Preferences | null = null;
+
+  const adopter = (blob: string) => {
+    const p = lirePrefs(blob);
+    venueDuStockage = p;
+    set(p);
+  };
+
   subscribe((v) => {
+    if (v === venueDuStockage) {
+      venueDuStockage = null;
+      connu = v;
+      return;
+    }
+    const blob = blobAEcrire(connu, v);
+    connu = v;
+    const texte = JSON.stringify(blob);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(v));
+      localStorage.setItem(STORAGE_KEY, texte);
     } catch { /* ignore */ }
     if (initialized) {
+      // Le blob FUSIONNÉ, pas celui de la mémoire : le serveur le rend tel
+      // quel au prochain onglet ouvert, il ne doit pas être périmé.
       fetch('/api/v1/system/config', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...profileHeader() },
-        body: JSON.stringify({ ui_preferences: JSON.stringify(v) }),
+        body: JSON.stringify({ ui_preferences: texte }),
       }).catch(() => {});
+    }
+    // Un autre onglet avait écrit des réglages que celui-ci n'avait pas
+    // encore vus (évènement `storage` perdu) : les adopter aussi en mémoire.
+    if (Object.keys(v).some((cle) => !memeValeur(blob[cle], v[cle as keyof Preferences]))) {
+      adopter(texte);
     }
   });
   initialized = true;
+
+  // Fil 2168 — un réglage changé dans un AUTRE onglet arrive ici. Le
+  // navigateur n'envoie cet évènement qu'aux autres onglets, jamais à celui
+  // qui écrit.
+  try {
+    window.addEventListener('storage', (e: StorageEvent) => {
+      if (e.storageArea && e.storageArea !== localStorage) return;
+      if (e.key !== null && e.key !== STORAGE_KEY) return;
+      const blob = e.key === null ? localStorage.getItem(STORAGE_KEY) : e.newValue;
+      if (blob) adopter(blob);
+    });
+  } catch { /* ignore */ }
+
   return { subscribe, set, update };
 }
 
@@ -749,9 +846,13 @@ export async function syncPreferencesFromServer() {
             { barreLaterale: local.barreLaterale ?? null, barreLateraleMaj: horodatageBarre(local.barreLateraleMaj) },
             server,
           ),
+          // La langue : un CHOIX local d'abord, puis un choix porté par le
+          // profil, sinon le navigateur. Un `language: 'fr'` qui n'était que
+          // le défaut, d'un côté ou de l'autre, ne compte pas.
+          ...resoudreLangue([local, server]),
         }));
       } else {
-        preferences.update(() => ({ ...defaults, ...server }));
+        preferences.update(() => ({ ...defaults, ...server, ...resoudreLangue([server]) }));
       }
     }
   } catch { /* ignore */ }

@@ -82,6 +82,38 @@ export function proposerAjout(m: SmbMount, musicDirs: string[]): boolean {
 }
 
 /**
+ * Fil 2145 (web#1935) — pourquoi la bibliothèque est-elle vide ?
+ *
+ * La vue Bibliothèque disait seulement « Votre bibliothèque est vide. » à un
+ * utilisateur dont le partage était monté, mais dont aucun dossier n'était
+ * déclaré : il a conclu à une perte de sa musique. La cause se lit pourtant
+ * dans deux listes que le client possède déjà.
+ *
+ * - `partageNonDeclare` : au moins un partage MONTÉ dont la racine n'est pas
+ *   déclarée (même règle que « Ajouter à la bibliothèque », `proposerAjout`).
+ *   `partages` les nomme, `\\serveur\partage`.
+ * - `aucunDossier` : aucun dossier déclaré, et aucun partage à proposer.
+ * - `null` : des dossiers sont déclarés et tous les partages montés sont lus ;
+ *   la bibliothèque est vide pour une autre raison (analyse pas encore faite,
+ *   dossier sans musique), rien de plus précis à dire.
+ */
+export type CauseBibliothequeVide =
+  | { cause: 'partageNonDeclare'; partages: string[] }
+  | { cause: 'aucunDossier' };
+
+export function causeBibliothequeVide(
+  musicDirs: string[],
+  partages: SmbMount[],
+): CauseBibliothequeVide | null {
+  const nonLus = partages.filter((m) => proposerAjout(m, musicDirs));
+  if (nonLus.length) {
+    return { cause: 'partageNonDeclare', partages: nonLus.map((m) => `\\\\${m.server}\\${m.share}`) };
+  }
+  if (!musicDirs.length) return { cause: 'aucunDossier' };
+  return null;
+}
+
+/**
  * « Oublier ce partage » : premier appel sans confirmation ; si le serveur
  * répond que des dossiers de la bibliothèque en dépendent, on les montre à
  * l'utilisateur, qui peut aussi les retirer de la bibliothèque (case cochée
