@@ -7071,6 +7071,23 @@ export async function previewImportConfig(data: any): Promise<unknown> {
 
 // --- MusicBrainz Batch Enrichment ---
 
+/**
+ * #1875 — ouvrir le dossier d'un album dans le gestionnaire de fichiers de la
+ * machine du SERVEUR. Admin, et seulement depuis un navigateur de cette même
+ * machine : voir `lib/revelerDossier`.
+ */
+export function getRevelationDisponible() {
+  return fetchJSON<{ available: boolean; reason?: string }>(
+    `${BASE}/library/reveal/available`, undefined, undefined, true,
+  );
+}
+
+export function revelerDossierAlbum(albumId: number) {
+  return fetchJSON<{ status: string; path?: string }>(
+    `${BASE}/library/albums/${albumId}/reveal`, { method: 'POST' }, undefined, true,
+  );
+}
+
 export function startBatchEnrich() {
   return fetchJSON<{ status: string }>(`${BASE}/library/enrich-all`, { method: 'POST' });
 }
