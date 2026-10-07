@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Menu avatar (coin haut-droit) du nouveau client.
    *
@@ -334,10 +335,10 @@
         </button>
         <div class="avid">
           {#if ssoConnected}
-            <div class="avname">{ssoName}</div>
-            {#if ssoEmail && ssoEmail !== ssoName}<div class="avmail">{ssoEmail}</div>{/if}
+            <div class="avname" use:bulleTexte>{ssoName}</div>
+            {#if ssoEmail && ssoEmail !== ssoName}<div class="avmail" use:bulleTexte>{ssoEmail}</div>{/if}
           {:else}
-            <div class="avname">{$t('settings.notConnected')}</div>
+            <div class="avname" use:bulleTexte>{$t('settings.notConnected')}</div>
           {/if}
         </div>
       </div>
@@ -380,7 +381,7 @@
               <span class="pastille" style="background:{p.avatar_color || 'var(--v2-line2)'}"
                 >{nomDuProfil(p).charAt(0).toUpperCase()}</span
               >
-              <span class="pnom">{nomDuProfil(p)}</span>
+              <span class="pnom" use:bulleTexte>{nomDuProfil(p)}</span>
             </button>
           {/each}
         </div>
@@ -404,7 +405,7 @@
           {#if hits.length}
             {#each hits as h (h.tab.id + '/' + h.section.id)}
               <button class="hit" onclick={() => openSetting(h)}>
-                <span class="hl">{h.label}</span>
+                <span class="hl" use:bulleTexte>{h.label}</span>
                 <span class="ht">{tabLabel(h.tab, (k) => $t(k as any))}</span>
               </button>
             {/each}
