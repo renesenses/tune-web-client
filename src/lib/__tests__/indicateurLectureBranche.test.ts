@@ -14,7 +14,7 @@
 // déplace vers `$currentTrackId`, le magasin qui alimente la comparaison ».
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mount, unmount } from 'svelte';
-import LignePisteV2 from '../../components/v2/LignePisteV2.svelte';
+import ListePistesV2 from '../../components/v2/ListePistesV2.svelte';
 import { zones, currentZoneId } from '../stores/zones';
 import lFr from '../locales/fr';
 import type { NowPlaying, Track, Zone } from '../types';
@@ -43,9 +43,10 @@ let monte: Record<string, any> | null = null;
 function poser(piste: Track): HTMLDivElement {
   hote = document.createElement('div');
   document.body.appendChild(hote);
-  monte = mount(LignePisteV2, {
+  // Une liste d'une ligne : le TABLEAU, seul rendu de piste depuis #1470.
+  monte = mount(ListePistesV2, {
     target: hote,
-    props: { piste, onLire: () => {}, numero: 1, pochette: false },
+    props: { pistes: [piste], onLire: () => {} },
   });
   return hote;
 }
@@ -64,7 +65,7 @@ describe('la ligne de piste porte l’indicateur (#1845)', () => {
   it('la piste qui joue est marquée, et la ligne est « courante » pour un lecteur d’écran', () => {
     zones.set([zone('playing', { track_id: 7 })]);
     const el = poser(PISTE);
-    const ligne = el.querySelector('.trk');
+    const ligne = el.querySelector('.trow');
     expect(ligne?.getAttribute('aria-current')).toBe('true');
     expect(ligne?.classList.contains('np')).toBe(true);
     expect(el.querySelector('.il')?.getAttribute('aria-label')).toBe(fr['v2.piste.enLecture']);
@@ -75,7 +76,7 @@ describe('la ligne de piste porte l’indicateur (#1845)', () => {
   it('une autre piste de la même liste n’est pas marquée', () => {
     zones.set([zone('playing', { track_id: 7 })]);
     const el = poser(AUTRE);
-    expect(el.querySelector('.trk')?.getAttribute('aria-current')).toBeNull();
+    expect(el.querySelector('.trow')?.getAttribute('aria-current')).toBeNull();
     expect(el.querySelector('.il')).toBeNull();
   });
 
@@ -84,7 +85,7 @@ describe('la ligne de piste porte l’indicateur (#1845)', () => {
     const el = poser(PISTE);
     expect(el.querySelector('.il')?.getAttribute('aria-label')).toBe(fr['v2.piste.enPause']);
     // La ligne reste repérée : c'est là qu'on a laissé son écoute.
-    expect(el.querySelector('.trk')?.getAttribute('aria-current')).toBe('true');
+    expect(el.querySelector('.trow')?.getAttribute('aria-current')).toBe('true');
   });
 
   // Une piste de service n'a pas d'identifiant local. La comparaison précédente
@@ -100,6 +101,6 @@ describe('la ligne de piste porte l’indicateur (#1845)', () => {
     zones.set([zone('stopped', null)]);
     const el = poser(PISTE);
     expect(el.querySelector('.il')).toBeNull();
-    expect(el.querySelector('.trk')?.getAttribute('aria-current')).toBeNull();
+    expect(el.querySelector('.trow')?.getAttribute('aria-current')).toBeNull();
   });
 });

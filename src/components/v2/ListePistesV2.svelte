@@ -36,7 +36,7 @@
 
 <script lang="ts">
   /**
-   * Une liste de pistes — en TABLEAU au mode Essentiel, en lignes ailleurs.
+   * Une liste de pistes — en TABLEAU, à tous les modes.
    *
    * Chantier ouvert par Bertrand le 07/09/2026 sur la maquette de Levente.
    *
@@ -48,12 +48,12 @@
    * que les colonnes ne s'alignaient d'aucune ligne à l'autre (Bertrand,
    * 05/09/2026). Un seul gabarit, calculé ici, passé en variable CSS.
    *
-   * ## Les deux autres modes ne bougent pas
+   * ## Une seule forme depuis #1470
    *
-   * « Pour le moment les deux autres modes restent inchangés » (Bertrand). Au
-   * dessus d'Essentiel, ce composant rend exactement ce qu'il rendait avant :
-   * des `LignePisteV2`, mêmes props, même apparence. Le tableau n'est pas un
-   * remplacement, c'est une seconde forme.
+   * Le tableau est né au mode Essentiel (07/09/2026), Expert l'a rejoint le
+   * 09/09, Avancé le 07/10 (#1470). L'ancien rendu en lignes (`LignePisteV2`)
+   * ne servait plus aucun mode : il est retiré, et une garde
+   * (`ancienRenduEnLignesRetire1470.test.ts`) échoue s'il revient.
    *
    * ## Les actions restent celles de la v1
    *
@@ -70,12 +70,11 @@
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import {
-    cleInfobulleColonne, colonnesRetenues, gabaritGrille, largeurMinimale, modeEnTableau,
+    cleInfobulleColonne, colonnesRetenues, gabaritGrille, largeurMinimale,
     valeurColonne, type CleColonne,
   } from '../../lib/colonnesPistes';
   import type { Track } from '../../lib/types';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
-  import LignePisteV2 from './LignePisteV2.svelte';
   import PisteActions from './PisteActions.svelte';
   import type { CoeurExterne } from '../../lib/coeurExterne';
   import QualityBadge from '../partages/QualityBadge.svelte';
@@ -127,9 +126,6 @@
      *  - `aucune`: pas de numéro, même si la colonne est cochée.
      */
     numerotation?: 'piste' | 'rang' | 'aucune';
-    /** Transmis tel quel au rendu en LIGNES (modes Avancé et Expert). */
-    avecAlbum?: boolean;
-    pochette?: boolean;
     /**
      * 🔴 La vignette en tête de ligne AU MODE TABLEAU — #3823.
      *
@@ -141,8 +137,7 @@
      * L'écran de l'ANCIEN client porte cette vignette depuis toujours et à
      * tous les niveaux — `HistoryView.svelte:142`, un `AlbumArt` de 44 px en
      * tête de chaque ligne. Le portage vers la liste partagée l'a perdue aux
-     * niveaux Essentiel et Expert, les deux qui rendent le TABLEAU
-     * (`MODES_BRANCHES`) ; seul le rendu en lignes (Avancé) la garde.
+     * niveaux qui rendent le TABLEAU — tous, depuis #1470.
      *
      * ⚠️ OPT-IN, et volontairement. Le même tableau sert la Bibliothèque
      * (onglet Titres), les playlists et la Recherche : y ajouter une pochette
@@ -203,8 +198,8 @@
      * lignes, y compris celles qu'elle ne peut pas ouvrir — un bouton qui ne
      * fait rien est pire qu'un bouton absent.
      *
-     * Rendre `null` pour une piste, c'est dire « pas de loupe ici ».
-     * Sans objet au mode tableau, qui n'a pas de pochette.
+     * Rendre `null` pour une piste, c'est dire « pas de lien ici ». Le
+     * tableau s'en sert pour la colonne Album.
      */
     ouvertureAlbum?: ((piste: Track, index: number) => (() => void) | null) | null;
     /**
@@ -269,8 +264,7 @@
      * ici, et l'écran se branche sur la liste commune comme les autres.
      *
      * Ce que ça pose, quand la prop est vraie :
-     *   · une POIGNÉE en tête de ligne (colonne de 28 px, en tableau comme en
-     *     lignes), focalisable : ↑ et ↓ déplacent la piste d'un rang — les
+     *   · une POIGNÉE en tête de ligne (colonne de 28 px), focalisable : ↑ et ↓ déplacent la piste d'un rang — les
      *     flèches de la file (`QueueV2`), pour que le geste se lise partout
      *     pareil, et pour que le réordonnancement soit atteignable au clavier
      *     et au lecteur d'écran, ce que le glisser seul n'est pas ;
@@ -287,8 +281,8 @@
      */
     reordonnable?: boolean;
     onReordonner?: ((de: number, vers: number) => void | Promise<void>) | null;
-    /** La clé i18n de l'étiquette d'une piste indisponible — voir
-     *  `LignePisteV2`. Une playlist dit « Indisponible », pas « À paraître ». */
+    /** La clé i18n de l'étiquette d'une piste indisponible. Une playlist dit
+     *  « Indisponible », pas « À paraître ». */
     etiquetteIndispo?: string;
     /**
      * 🔴 LECTURE SEULE — Tune Circle T2 (renesenses/tune-server-rust#5325) :
@@ -298,7 +292,7 @@
      * cellule, ni largeur dans le gabarit), aucun clic de lecture, aucun état
      * « en lecture », aucun lien vers un artiste de NOTRE bibliothèque, et la
      * colonne « Chemin » est retirée — un chemin de fichier n'a rien à faire
-     * sur l'écran d'un autre. Transmise telle quelle à `LignePisteV2`.
+     * sur l'écran d'un autre.
      *
      * Absente, RIEN ne change.
      */
@@ -307,7 +301,7 @@
      * 🔴 LA SÉLECTION MULTIPLE — web#1683, point 3 — OPT-IN.
      *
      * `selection` non nulle pose une CASE À COCHER en tête de chaque ligne
-     * (colonne de 28 px, en tableau comme en lignes — la place et la règle de
+     * (colonne de 28 px — la place et la règle de
      * la poignée ci-dessus). La liste ne sélectionne rien elle-même : elle DIT
      * `onCocher(piste, rang, etendre)`, `etendre` vrai pour Maj+clic, et
      * l'écran tient l'état (`lib/selectionPistes`).
@@ -324,7 +318,7 @@
   }
   let {
     pistes, onLire, onLireDepuis = null, numerotation = 'rang',
-    avecAlbum = true, pochette = true, pochetteEnTableau = false,
+    pochetteEnTableau = false,
     sourceEnTableau = false,
     ouvertureAlbum = null, apres, coeurDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
@@ -426,19 +420,6 @@
   }
 
   const mode = $derived($preferences.settingsLevel);
-  /**
-   * 🔴 Une SEULE source de vérité : `MODES_BRANCHES`, via `modeEnTableau`.
-   *
-   * Cette ligne testait `mode === 'beginner'` en dur, pendant que l'écran des
-   * Réglages, lui, consultait `MODES_BRANCHES` pour griser les modes non
-   * branchés. Deux réponses à une seule question : brancher Expert dans la
-   * constante n'aurait rien changé ici, et la matrice aurait annoncé cochable
-   * un mode que le tableau continuait d'ignorer — le défaut exact que ce
-   * client passe son temps à corriger.
-   *
-   * Ne jamais remettre de nom de mode en dur ici. Une garde le vérifie.
-   */
-  const enTableau = $derived(modeEnTableau(mode));
 
   // Le MODE est passé : une colonne réservée à Expert ne doit pas apparaître
   // si un réglage plus ancien la coche pour un mode inférieur.
@@ -508,10 +489,9 @@
   );
 
   /**
-   * L'état de lecture d'une ligne, en mode TABLEAU (#1845).
+   * L'état de lecture d'une ligne du tableau (#1845).
    *
-   * Le mode lignes délègue à `LignePisteV2`, qui le calcule chez lui ; le
-   * tableau rend ses cellules lui-même et doit donc le faire ici. Les trois
+   * Le tableau rend ses cellules lui-même et doit donc le calculer ici. Les trois
    * magasins sont lus UNE fois, dans des `$derived` : lus dans la fonction,
    * ils seraient réabonnés à chaque ligne de chaque rendu.
    */
@@ -520,8 +500,7 @@
   const npEtat = $derived($playbackState);
   const etatDe = (p: Track) => (lectureSeule ? null : etatDeLaLigne(p, npId, npPiste, npEtat));
   /**
-   * #4806 — en mode TABLEAU, le titre banni est grisé et barré ICI (le mode
-   * lignes le fait dans `LignePisteV2`) ; un clic délibéré le joue après
+   * #4806 — le titre banni est grisé et barré ICI ; un clic délibéré le joue après
    * confirmation. Le magasin est lu UNE fois, pour la même raison que les
    * trois du dessus.
    */
@@ -586,75 +565,6 @@
     aria-label={$t('v2.selection.toggleTrack' as any).replace('{title}', p.title ?? '')}
     onclick={(e) => { e.stopPropagation(); onCocher?.(p, i, e.shiftKey); }} />
 {/snippet}
-{#if !enTableau}
-  <!-- Les modes HORS tableau — Avancé seul depuis le 09/09/2026, Expert étant
-       passé au tableau. Ce rendu est inchangé à la virgule près : le suffixe
-       garde la même enveloppe en grille que les écrans avaient chez eux. Une
-       garde vérifie qu'Avancé l'emprunte toujours. -->
-  {#each pistes as p, i (clef(p, i))}
-    {@const ouvrir = ouvertureAlbum?.(p, i) ?? null}
-    {@render enTeteDisque(i)}
-    {#if apres || reordonnable || selectionnable}
-      <!-- L'enveloppe sert au suffixe ET à la poignée : sans l'un ni l'autre,
-           la ligne est rendue nue, exactement comme avant. -->
-      <!-- Le glisser à la souris est un raccourci : le geste ACCESSIBLE est
-           la poignée, un bouton focalisable qui répond aux flèches. -->
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="avecSuffixe" class:avecPoignee={reordonnable || selectionnable}
-        class:double={reordonnable && selectionnable} class:sansSuffixe={!apres}
-        class:saisie={saisi === i} class:survolee={survolee === i}
-        draggable={reordonnable || undefined}
-        ondragstart={reordonnable ? (e) => saisir(e, i) : undefined}
-        ondragover={reordonnable ? (e) => survoler(e, i) : undefined}
-        ondragleave={reordonnable ? () => quitter(i) : undefined}
-        ondrop={reordonnable ? (e) => deposer(e, i) : undefined}
-        ondragend={reordonnable ? relacher : undefined}>
-        {#if reordonnable}{@render poignee(i)}{/if}
-        {#if selectionnable}{@render caseACocher(p, i)}{/if}
-        <LignePisteV2
-          piste={p}
-          numero={numerotation === 'aucune' ? null : Number(numero(p, i))}
-          onLire={() => onLire(p, i)}
-          onLireDepuis={() => lireDepuis(p, i)}
-          {avecAlbum}
-          {pochette}
-          onOuvrirAlbum={ouvrir}
-          {etiquetteIndispo}
-          {lectureSeule}
-          coeur={coeurDe?.(p, i) ?? null}
-        />
-        <!--
-          🔴 Le suffixe est enveloppé, et ce n'est pas cosmétique.
-          `.avecSuffixe` est une grille à DEUX colonnes. Un extrait qui rend
-          plusieurs éléments racine — l'Historique en rend deux, l'heure et le
-          cœur radio — en posait donc TROIS dans deux colonnes : le troisième
-          passait à une seconde ligne IMPLICITE, sous la piste.
-          Le cœur radio est en `opacity:0` hors survol : la ligne supplémentaire
-          était invisible, et coûtait pourtant 28 px de hauteur plus les 8 px de
-          gouttière. Bertrand, 09/09/2026 : « Historique : diminue l'espace
-          entre les pistes ». Ce n'était pas un réglage d'espacement, c'était
-          une ligne de grille en trop, à chaque piste.
-          Une enveloppe, et le nombre de colonnes cesse de dépendre de ce que
-          l'appelant a écrit dans son extrait.
-        -->
-        {#if apres}<span class="suffixe">{@render apres(p, i)}</span>{/if}
-      </div>
-    {:else}
-      <LignePisteV2
-        piste={p}
-        numero={numerotation === 'aucune' ? null : Number(numero(p, i))}
-        onLire={() => onLire(p, i)}
-        onLireDepuis={() => lireDepuis(p, i)}
-        {avecAlbum}
-        {pochette}
-        onOuvrirAlbum={ouvrir}
-        {etiquetteIndispo}
-        {lectureSeule}
-        coeur={coeurDe?.(p, i) ?? null}
-      />
-    {/if}
-  {/each}
-{:else}
   <!-- 🔴 #853 — `--tmin` est la largeur en deçà de laquelle le tableau DÉFILE
        au lieu de comprimer. Sans elle, les planchers des colonnes de texte
        seraient simplement ignorés par la grille, qui redescendrait sous eux. -->
@@ -683,8 +593,8 @@
       {@const bannie = bannieDe(p)}
       <!-- Les attributs du glisser ne sont posés QUE si la liste est
            réordonnable : sans la prop, la ligne est celle d'avant. -->
-      <!-- Même règle qu'en mode lignes : la ligne se saisit à la souris, la
-           poignée (un bouton) porte le geste au clavier. -->
+      <!-- La ligne se saisit à la souris, la poignée (un bouton) porte le
+           geste au clavier. -->
       <!-- svelte-ignore a11y_interactive_supports_focus -->
       <div class="trow" class:np={etat != null} class:indispo class:bannie aria-current={etat ? 'true' : undefined}
         class:saisie={saisi === i} class:survolee={survolee === i}
@@ -779,7 +689,6 @@
       </div>
     {/each}
   </div>
-{/if}
 
 <style>
   /* 🔴 UN seul gabarit, posé sur le conteneur et hérité par l'en-tête comme
@@ -852,17 +761,6 @@
      gauche — les cœurs ne seraient plus l'un sous l'autre. */
   .act{overflow:visible; display:flex; align-items:center; justify-content:flex-end}
 
-  /* Le suffixe en mode LIGNES : la même grille que les écrans avaient chez
-     eux (`1fr auto`), pour que rien ne bouge à leurs yeux. */
-  .avecSuffixe{display:grid; grid-template-columns:minmax(0,1fr) auto;
-    align-items:center; gap:8px}
-  /* Avec la poignée, une colonne de plus EN TÊTE — et sans suffixe, la
-     dernière disparaît : la ligne reste `1fr`, jamais plus étroite. */
-  .avecSuffixe.avecPoignee{grid-template-columns:auto minmax(0,1fr) auto}
-  .avecSuffixe.avecPoignee.sansSuffixe{grid-template-columns:auto minmax(0,1fr)}
-  /* Poignée ET case (#1683) : deux colonnes en tête. */
-  .avecSuffixe.avecPoignee.double{grid-template-columns:auto auto minmax(0,1fr) auto}
-  .avecSuffixe.avecPoignee.double.sansSuffixe{grid-template-columns:auto auto minmax(0,1fr)}
   /* La case de sélection : la taille d'un bouton de la barre, la couleur
      d'accent des listes à cocher (`ManquantsV2`). */
   .case{width:16px; height:16px; margin:6px; flex:0 0 auto; cursor:pointer; accent-color:var(--v2-acc2)}
@@ -879,11 +777,8 @@
   .poignee:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:1px}
   /* Le retour du glisser : la ligne saisie s'estompe, la ligne survolée
      porte un trait d'accent au-dessus — la place où la piste tombera. */
-  .trow.saisie, .avecSuffixe.saisie{opacity:.45}
-  .trow.survolee, .avecSuffixe.survolee{box-shadow:inset 0 2px 0 0 var(--v2-acc1)}
-  /* L'enveloppe du suffixe : quel que soit le nombre d'éléments que l'extrait
-     rend, ils tiennent sur UNE ligne et dans UNE colonne. */
-  .suffixe{display:flex; align-items:center; gap:8px; justify-content:flex-end}
+  .trow.saisie{opacity:.45}
+  .trow.survolee{box-shadow:inset 0 2px 0 0 var(--v2-acc1)}
 
   /* Sous 720 px les colonnes ne tiennent plus : l'en-tête se retire et les
      lignes redeviennent lisibles en pile plutôt que d'être rognées. */

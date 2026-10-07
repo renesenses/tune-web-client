@@ -1700,9 +1700,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         onCocher={cocher}
         pistes={pistesVisibles}
         numerotation="piste"
-        pochette={pochettesDePisteDistinctesIci}
         pochetteEnTableau={pochettesDePisteDistinctesIci}
-        avecAlbum={false}
         enTetesDisque
         onLire={(_p, i) => playAlbum(i)}
         onLireDepuis={(_p, i) => playAlbum(i)}

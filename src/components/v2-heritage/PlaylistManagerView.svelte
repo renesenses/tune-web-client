@@ -3760,7 +3760,6 @@
     align-items: center;
   }
   :global(.track-list .trow:hover) .remove-btn,
-  :global(.track-list .avecSuffixe:hover) .remove-btn,
   .remove-btn:focus-visible {
     opacity: 1;
   }

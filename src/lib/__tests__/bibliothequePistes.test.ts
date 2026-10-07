@@ -65,51 +65,6 @@ describe('le compteur de pistes', () => {
   });
 });
 
-describe('la loupe sur la pochette', () => {
-  const brut = lire('src/components/v2/LignePisteV2.svelte');
-  const src = sansCommentaires(brut);
-
-  it('existe, et seulement quand il y a un album à ouvrir', () => {
-    expect(src).toContain('{#if onOuvrirAlbum}');
-    expect(src).toContain('class="loupe"');
-  });
-
-  it("🔴 la pochette est SŒUR du bouton de lecture, jamais dedans", () => {
-    // Un bouton dans un bouton est du balisage invalide — le piège récurrent
-    // de ce client. La garde lit l'ORDRE : le bouton de pochette doit se
-    // fermer avant que celui de lecture s'ouvre.
-    const finPochette = src.indexOf('</button>', src.indexOf('class="cvsm cvbtn"'));
-    const debutLecture = src.indexOf('<button class="tclick"');
-    expect(finPochette).toBeGreaterThan(-1);
-    expect(debutLecture).toBeGreaterThan(finPochette);
-  });
-
-  it('les colonnes sont CALCULÉES, pas figées', () => {
-    // Sinon le `1fr` se pose sur la mauvaise colonne dès qu'un numéro ou une
-    // pochette manque : le défaut d'alignement du 05/09, une ligne plus bas.
-    expect(src).toMatch(/const colonnes = \$derived\(/);
-    expect(src).toContain('style="--tcols:{colonnes}"');
-    expect(src).toContain('grid-template-columns:var(--tcols,');
-  });
-
-  it("elle est atteignable au CLAVIER, pas seulement à la souris", () => {
-    expect(src).toContain('.cvbtn:hover .loupe, .cvbtn:focus-visible .loupe');
-    expect(src).toContain('.cvbtn:focus-visible{outline:');
-  });
-
-  it('elle est nommée, pas muette', () => {
-    expect(src).toContain("aria-label={$t('v2.lib.openAlbum' as any)}");
-  });
-
-  it('le mouvement se coupe si le système le demande', () => {
-    expect(src).toMatch(/@media \(prefers-reduced-motion: reduce\)/);
-  });
-
-  it("sans album, la pochette reste un simple conteneur", () => {
-    expect(src).toContain('{:else}\n      <span class="cvsm">');
-  });
-});
-
 describe("l'ouverture depuis l'onglet Titres", () => {
   const src = sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
 

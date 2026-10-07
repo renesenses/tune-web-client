@@ -58,7 +58,7 @@ describe('les écrans', () => {
   });
   it('Streaming › favoris : les titres en liste avec actions, lecture depuis la ligne (#1062)', () => {
     const s = sans(lire('src/components/v2/StreamingV2.svelte'));
-    expect(s).toMatch(/<ListePistesV2 pistes=\{favTracks as any\} numerotation="aucune" avecAlbum pochetteEnTableau/);
+    expect(s).toMatch(/<ListePistesV2 pistes=\{favTracks as any\} numerotation="aucune" pochetteEnTableau/);
     expect(s).not.toMatch(/\{#each favTracks as tr[^}]*\}\{@render tile\(/);
   });
   it('Playlist ouverte : vignettes en mode tableau (#1057)', () => {
