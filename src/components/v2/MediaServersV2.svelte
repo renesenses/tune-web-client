@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Serveurs multimédia (UPnP/DLNA) — nouveau client (direction Levente).
    *
@@ -710,7 +711,7 @@
                     </button>
                   </span>
                   <span class="ct" title={txt(c.title)}>{txt(c.title)}</span>
-                  <span class="ca">{c.artist ? txt(c.artist) : (c.child_count ? `${c.child_count} éléments` : '')}</span>
+                  <span class="ca" use:bulleTexte>{c.artist ? txt(c.artist) : (c.child_count ? `${c.child_count} éléments` : '')}</span>
                 </div>
               {/each}
             </div>
@@ -719,7 +720,7 @@
               {#each vue.containers as c (c.id)}
                 <button class="folder" onclick={() => allerA(c.id, c.title)}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-                  <span class="fn">{txt(c.title)}</span>
+                  <span class="fn" use:bulleTexte>{txt(c.title)}</span>
                   {#if c.child_count}<span class="fc">{c.child_count}</span>{/if}
                   <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
                 </button>
@@ -768,8 +769,8 @@
                   </svg>
                 </button>
                 </span>
-                <span class="ti">{txt(it.title)}</span>
-                <span class="tar">{[it.artist, it.album].filter(Boolean).map(txt).join(' · ')}</span>
+                <span class="ti" use:bulleTexte>{txt(it.title)}</span>
+                <span class="tar" use:bulleTexte>{[it.artist, it.album].filter(Boolean).map(txt).join(' · ')}</span>
                 <span class="td">{it.duration_ms ? formatTime(it.duration_ms) : ''}</span>
                 <button class="tq" onclick={() => enfiler(it)} aria-label={$t('v2.ms.addToQueue' as any)}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
