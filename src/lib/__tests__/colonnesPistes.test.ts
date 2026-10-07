@@ -328,12 +328,11 @@ describe('les défauts par mode', () => {
     expect(DEFAUTS.intermediate.length).toBeLessThan(DEFAUTS.expert.length);
   });
 
-  it('🔴 Essentiel ET Expert sont branchés ; Avancé ne l’est pas', () => {
+  it('🔴 les trois modes sont branchés, Avancé compris (#1470)', () => {
     // Arbitrage du 09/09/2026 : « on branche le tableau en mode Expert ».
-    // Avancé reste dehors — périmètre explicite, pas un oubli : la matrice
-    // des Réglages continue de le griser et de le dire.
-    expect(MODES_BRANCHES).toEqual(['beginner', 'expert']);
-    expect(MODES_BRANCHES).not.toContain('intermediate');
+    // Avancé l'a rejoint le 07/10/2026 (#1470) : sans tableau, ses colonnes
+    // « # écoutes » et « Dernière écoute » étaient inatteignables.
+    expect(MODES_BRANCHES).toEqual(['beginner', 'intermediate', 'expert']);
   });
 
   it('🔴 les modes branchés ouvrent sur des colonnes, jamais sur une grille NUE', () => {

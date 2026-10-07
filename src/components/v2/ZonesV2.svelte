@@ -39,6 +39,7 @@
   import MultiroomSettings from '../partages/MultiroomSettings.svelte';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { poserPhotoAppareil } from '../../lib/photoAppareil';
   import { devices } from '../../lib/stores/devices';
   import { sortiesProposees } from '../../lib/sortiesDeZone';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -460,8 +461,12 @@
     input.value = '';
     zoneAImager = null;
     if (!fichier || !z || z.id == null) return;
+    // #1394 — rien ne part avant que l'utilisateur ait lu où va la photo.
     act(async () => {
-      await api.uploadZoneImage(z.id as number, fichier);
+      await poserPhotoAppareil(z.id as number, fichier, {
+        confirmer: (m) => dialogs.confirm(m),
+        traduire: (k) => $t(k as any),
+      });
     });
   }
 
