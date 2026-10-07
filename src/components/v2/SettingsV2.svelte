@@ -38,6 +38,13 @@
     type EtatGreffonEntreeAudio, type FicheGreffon,
   } from '../../lib/greffonEntreeAudio';
   import { atLeast } from '../../lib/uiLevel';
+  import {
+    backendSelectionne,
+    choixDeBackend,
+    libelleBackend,
+    modeWasapiPertinent,
+    type ChoixBackend,
+  } from '../../lib/audioBackends';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
@@ -415,7 +422,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // Repartition par niveau, pour que l'Essentiel ne voie que ce qu'il peut
   // decider seul : la liste des sorties et « lire ici ». Le moteur audio,
   // le mode WASAPI et le detail ReplayGain n'apparaissent qu'au-dessus.
-  let audioBackend = $state('wasapi');
+  // Backend de la SORTIE LOCALE (tune-web-client#1268, tune-server-rust#2265).
+  // Les choix viennent du serveur (`supported_audio_backends`), calculés par
+  // SA plateforme : Linux ne publie que « Auto (ALSA) », un build sans sortie
+  // locale (Docker) publie `[]`. On n'écrit plus Auto/WASAPI/ASIO en dur, et
+  // on ne replie plus sur `wasapi`. Serveur antérieur sans le champ :
+  // `choixDeBackend` rend `auto` plus la valeur déjà persistée, rien d'autre.
+  let audioBackend = $state('auto');
+  let backendChoix = $state<ChoixBackend[]>([]);
+  // Faux tant que la config n'est pas lue : on ne conclut pas « pas de
+  // sortie locale » avant d'avoir la réponse.
+  let backendChoixLu = $state(false);
   let exclusiveMode = $state(false);
   let rgMode = $state('off');
   let rgPreamp = $state(0);
@@ -433,9 +450,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   $effect(() => {
     api.getConfig()
       .then((c: any) => {
-        // `audio_backend` d'abord : c'est la cle que renvoie le serveur recent,
-        // `local_audio_backend` restant pour les versions anterieures.
-        audioBackend = c?.audio_backend ?? c?.local_audio_backend ?? 'wasapi';
+        // `local_audio_backend` est LE réglage de la sortie locale ;
+        // `audio_backend` n'est lu qu'en repli par `backendPersiste`, pour les
+        // serveurs qui ne publiaient que l'ancien nom.
+        backendChoix = choixDeBackend(c);
+        audioBackend = backendSelectionne(c, backendChoix);
+        backendChoixLu = true;
         exclusiveMode = c?.local_exclusive_mode ?? false;
         rgMode = c?.replaygain_mode ?? 'off';
         rgPreamp = Number(c?.replaygain_preamp_db ?? 0);
@@ -6331,15 +6351,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="row">
                   <div class="lbl">
                     <span>{$t('settings.audioBackend' as any)}</span>
-                    <span class="hint">{$t('v2.hint.audioBackend' as any)}</span>
+                    <!-- L'aide parle d'ASIO : on la tait là où ASIO n'existe pas. -->
+                    {#if backendChoix.some((b) => b.value === 'asio')}
+                      <span class="hint">{$t('v2.hint.audioBackend' as any)}</span>
+                    {/if}
                   </div>
-                  <div class="seg4">
-                    <button class:on={audioBackend === 'auto'} onclick={() => setBackend('auto')}>{$t('settings.autoDefault' as any)}</button>
-                    <button class:on={audioBackend === 'wasapi'} onclick={() => setBackend('wasapi')}>WASAPI</button>
-                    <button class:on={audioBackend === 'asio'} onclick={() => setBackend('asio')}>ASIO</button>
-                  </div>
+                  {#if backendChoix.length > 0}
+                    <div class="seg4">
+                      {#each backendChoix as b (b.value)}
+                        <button class:on={audioBackend === b.value} onclick={() => setBackend(b.value)}>{libelleBackend(b, $t as any)}</button>
+                      {/each}
+                    </div>
+                  {:else if backendChoixLu}
+                    <span class="hint">{$t('settings.audioBackendNoLocalOutput' as any)}</span>
+                  {/if}
                 </div>
-                {#if audioBackend === 'wasapi'}
+                {#if modeWasapiPertinent(backendChoix, audioBackend)}
                   <div class="row">
                     <div class="lbl">
                     <span>{$t('settings.wasapiMode' as any)}</span>
