@@ -167,8 +167,10 @@ describe('#2264 — les aides pures', () => {
   });
 
   it('on joue LA PISTE : de la bibliothèque par son id, du service par source + source_id', () => {
-    expect(corpsMembre(membre({ track_id: 7 }))).toEqual({ track_id: 7 });
-    expect(corpsMembre(membre({ source: 'qobuz', source_id: 'q1', album_id: 'a1' }))).toMatchObject({ source: 'qobuz', source_id: 'q1' });
+    // #2264 (07/10) — un lancement depuis le panneau est un CHOIX EXPLICITE :
+    // la règle de version du profil ne s'y applique pas.
+    expect(corpsMembre(membre({ track_id: 7 }))).toEqual({ track_id: 7, explicit_version: true });
+    expect(corpsMembre(membre({ source: 'qobuz', source_id: 'q1', album_id: 'a1' }))).toMatchObject({ source: 'qobuz', source_id: 'q1', explicit_version: true });
     expect(corpsMembre(membre({ source: 'qobuz' }))).toBeNull();
   });
 

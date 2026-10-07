@@ -58,7 +58,7 @@
    * laquelle il joue par défaut selon la règle réglée. L'écran le dessine tel
    * quel. Un serveur antérieur répond 404 : on retombe sur la liste plate.
    */
-  import { cleLien, corpsMembre, getTrackVersionGroups, groupeVide, qualiteMembre, type GroupesVersions, type MembreGroupe } from '../../lib/groupesVersions';
+  import { choixExplicite, cleLien, corpsMembre, getTrackVersionGroups, groupeVide, qualiteMembre, type GroupesVersions, type MembreGroupe } from '../../lib/groupesVersions';
 
   interface Props {
     /** La piste de la BIBLIOTHÈQUE. `null` : voir `parTitre`. */
@@ -125,7 +125,8 @@
 
   function lireLocale(v: { track_id: number | null }) {
     const zid = $currentZoneId;
-    const corps = corpsVersionLocale(v);
+    // #2264 — un choix fait ici prime sur la règle de version du profil.
+    const corps = choixExplicite(corpsVersionLocale(v));
     if (zid == null || !corps) return;
     playAndSync(zid, corps as any)
       .then(onClose)
@@ -150,7 +151,7 @@
    */
   function lireFlux(v: VersionService) {
     const zid = $currentZoneId;
-    const corps = corpsVersionService(v);
+    const corps = choixExplicite(corpsVersionService(v));
     if (zid == null || !corps) return;
     playAndSync(zid, corps as any)
       .then(onClose)

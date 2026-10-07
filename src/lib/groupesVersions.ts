@@ -59,7 +59,8 @@ export interface GroupesVersions {
   artist_name: string;
   /** `local`, `quality` ou `service:<nom>`. */
   rule: string;
-  rule_origin: 'query' | 'setting' | 'default';
+  /** `profile` : la règle du profil de la requête ; `setting` : le défaut global. */
+  rule_origin: 'query' | 'profile' | 'setting' | 'default';
   groups: GroupeVersions[];
 }
 
@@ -87,10 +88,20 @@ export function qualiteMembre(m: Pick<MembreGroupe, 'quality'>): string | null {
   return libelleQualite(q) || null;
 }
 
+/**
+ * Un lancement depuis « Autres versions » est un CHOIX EXPLICITE de version :
+ * le serveur ne lui applique pas la règle du profil (décision du 07/10/2026).
+ * Sans ce drapeau, cliquer sur la version FLAC d'un MP3 sous la règle
+ * « Qobuz d'abord » aurait joué Qobuz.
+ */
+export function choixExplicite(corps: Record<string, unknown> | null): Record<string, unknown> | null {
+  return corps ? { ...corps, explicit_version: true } : null;
+}
+
 /** Ce qu'on envoie à la lecture : la piste de bibliothèque, ou la piste du service. */
 export function corpsMembre(m: MembreGroupe): Record<string, unknown> | null {
-  if (m.track_id != null) return corpsVersionLocale({ track_id: m.track_id });
-  return corpsVersionService({
+  if (m.track_id != null) return choixExplicite(corpsVersionLocale({ track_id: m.track_id }));
+  return choixExplicite(corpsVersionService({
     service: m.source,
     source_id: m.source_id,
     album_id: m.album_id == null ? null : String(m.album_id),
@@ -98,7 +109,7 @@ export function corpsMembre(m: MembreGroupe): Record<string, unknown> | null {
     artist_name: m.artist_name,
     album_title: m.album_title,
     cover_path: m.cover_path,
-  });
+  }));
 }
 
 /** La clé i18n du libellé d'un lien. */
@@ -118,4 +129,55 @@ export function cleLien(l: LienVersion): string | null {
  */
 export function groupeVide(g: GroupeVersions): boolean {
   return g.members.length === 1 && g.members[0].is_reference;
+}
+
+// ─── La règle, par profil (tune-server-rust#2264, décision 3 du 07/10) ───
+
+/** Les règles qu'on propose. Les services sont ceux qu'interroge « Autres versions ». */
+export const REGLES_VERSION = ['local', 'quality', 'service:qobuz', 'service:tidal', 'service:deezer', 'service:spotify'] as const;
+
+export interface RegleVersion {
+  /** `local`, `quality` ou `service:<nom>`. */
+  rule: string;
+  /** `profile` : réglée sur ce profil ; `setting` : le défaut global ; `default` : rien n'est réglé. */
+  origin: 'profile' | 'setting' | 'default';
+  scope: 'profile' | 'global';
+  profile_id: number | null;
+}
+
+/**
+ * La règle qui s'applique au profil ACTIF : la requête porte son
+ * `X-Profile-Id` (`fetchJSON`), et le serveur répond pour lui. `'global'` :
+ * le défaut du serveur, que suit un profil sans règle à lui.
+ */
+export function getVersionRule(portee?: 'global'): Promise<RegleVersion> {
+  const q = portee === 'global' ? '?scope=global' : '';
+  return fetchJSON<RegleVersion>(`${BASE}/library/versions/rule${q}`);
+}
+
+/** Règle celle du profil actif ; `null` le rend au défaut du serveur. */
+export function setVersionRule(rule: string | null): Promise<RegleVersion> {
+  return fetchJSON<RegleVersion>(`${BASE}/library/versions/rule`, {
+    method: 'PUT',
+    body: JSON.stringify({ rule }),
+  });
+}
+
+/** La réponse a-t-elle la forme de la route ? (Un serveur antérieur rend autre chose.) */
+export function regleLisible(r: unknown): r is RegleVersion {
+  return !!r && typeof (r as RegleVersion).rule === 'string' && typeof (r as RegleVersion).origin === 'string';
+}
+
+/** Le libellé d'une règle. `t` : la fonction de traduction courante. */
+export function libelleRegle(rule: string, t: (k: string) => string): string {
+  if (typeof rule !== 'string') return '';
+  if (rule === 'local') return t('profiles.versionRule.local');
+  if (rule === 'quality') return t('profiles.versionRule.quality');
+  const service = rule.startsWith('service:') ? rule.slice('service:'.length) : rule;
+  return t('profiles.versionRule.service').replace('{service}', nomDeService(service));
+}
+
+/** `qobuz` → `Qobuz`. */
+export function nomDeService(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
