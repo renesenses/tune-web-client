@@ -1122,6 +1122,60 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
   }
 
+  // ── Maître / agent (tune-server-rust#4626) ────────────────────────────
+  // Côté AGENT : ce serveur prête ses sorties locales ; le code d'appairage
+  // s'affiche ici et se saisit sur le maître. Côté MAÎTRE : les serveurs du
+  // réseau qui savent être agents, et ceux déjà appairés.
+  let agentEtat = $state<api.EtatAgentTune | null>(null);
+  let agentCode = $state<{ code: string; emisA: number; duree: number } | null>(null);
+  let agentHorloge = $state(Date.now());
+  let agentsAppaires = $state<api.AgentAppaire[]>([]);
+  let agentsCandidats = $state<api.CandidatAgent[]>([]);
+  let agentSaisies = $state<Record<string, string>>({});
+  let agentOccupe = $state(false);
+  async function chargerAgentTune() {
+    // Un serveur ancien n'a pas ces routes : la section reste vide, sans erreur.
+    try { agentEtat = api.etatAgentTuneLisible(await api.withTimeout(api.etatAgentTune(), 8_000, '/agent-tune/agent')); } catch { agentEtat = null; }
+    try {
+      const r = await api.withTimeout(api.listerAgentsTune(), 15_000, '/agent-tune/agents');
+      agentsAppaires = Array.isArray(r?.agents) ? r.agents : [];
+      agentsCandidats = Array.isArray(r?.candidats) ? r.candidats : [];
+    } catch { /* la découverte peut échouer sans que ce soit une panne */ }
+  }
+  $effect(() => { chargerAgentTune(); });
+  $effect(() => {
+    if (!agentCode) return;
+    const id = setInterval(() => { agentHorloge = Date.now(); }, 1000);
+    return () => clearInterval(id);
+  });
+  let agentRestant = $derived(agentCode ? api.secondesRestantesCode(agentCode.emisA, agentCode.duree, agentHorloge) : 0);
+  async function afficherCodeAgent() {
+    try {
+      const r = await api.emettreCodeAgent();
+      agentCode = { code: r.code, emisA: Date.now(), duree: r.expire_dans_s };
+      agentHorloge = Date.now();
+    } catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+  }
+  async function revoquerMaitreAgent(m: api.MaitreAppaire) {
+    try { await api.revoquerMaitre(m.maitre_id); await chargerAgentTune(); }
+    catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+  }
+  async function appairerCandidat(c: api.CandidatAgent) {
+    const saisie = agentSaisies[c.agent_id] ?? '';
+    if (!api.codeAgentRecevable(saisie)) return;
+    agentOccupe = true;
+    try {
+      const r = await api.appairerAgentTune(c.host, c.port, api.codeAgentNormalise(saisie));
+      notifications.success($t('settings.agentPairedOk' as any).replace('{n}', String(r.zones.length)));
+      agentSaisies = { ...agentSaisies, [c.agent_id]: '' };
+      await chargerAgentTune();
+    } catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+    agentOccupe = false;
+  }
+  async function oublierAgent(a: api.AgentAppaire) {
+    try { await api.oublierAgentTune(a.agent_id); await chargerAgentTune(); }
+    catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+  }
   // ── Wi-Fi de l'appliance (Tune OS) ─────────────────────────────────────
   // N'a de sens QUE sur une appliance : ailleurs, le reseau est gere par le
   // systeme hote. La section se declare donc indisponible plutot que
@@ -6142,6 +6196,84 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <button class="lnk" onclick={fetchPeers} disabled={peersBusy}>{$t('settings.refresh' as any)}</button>
                 </div>
               </div>
+
+              <!-- tune-server-rust#4626 — jouer sur les sorties d'un autre
+                   serveur Tune (ce serveur est le MAÎTRE). -->
+              <div class="subhead">
+                <span>{$t('settings.agentUseTitle' as any)}</span>
+                <button class="lnk" onclick={chargerAgentTune}>{$t('settings.refresh' as any)}</button>
+              </div>
+              <p class="hint">{$t('settings.agentUseHint' as any)}</p>
+              {#if agentsAppaires.length}
+                <div class="devlist">
+                  {#each agentsAppaires as a (a.agent_id)}
+                    <div class="dev ign">
+                      <span class="dn">{a.nom}</span>
+                      <span class="dt">{$t('settings.agentOutputsCount' as any).replace('{n}', String(a.sorties_inscrites))}</span>
+                      <span class="badge up">{$t('settings.agentPaired' as any)}</span>
+                      <button class="lnk danger" onclick={() => oublierAgent(a)}>{$t('settings.agentForget' as any)}</button>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+              {#if agentsCandidats.filter((c) => !c.appaire).length}
+                <div class="devlist">
+                  {#each agentsCandidats.filter((c) => !c.appaire) as c (c.agent_id)}
+                    <div class="row">
+                      <div class="lbl">
+                        <span>{c.nom ?? c.host}</span>
+                        <span class="hint">{c.host}:{c.port}</span>
+                      </div>
+                      <div class="inline">
+                        <input class="txt num" type="text" inputmode="numeric" maxlength="7"
+                          placeholder={$t('settings.agentCodePlaceholder' as any)}
+                          aria-label={$t('settings.agentCodePlaceholder' as any)}
+                          value={agentSaisies[c.agent_id] ?? ''}
+                          oninput={(e) => { agentSaisies = { ...agentSaisies, [c.agent_id]: (e.currentTarget as HTMLInputElement).value }; }}
+                          onkeydown={(e) => { if (e.key === 'Enter') appairerCandidat(c); }} />
+                        <button class="lnk" onclick={() => appairerCandidat(c)}
+                          disabled={agentOccupe || !api.codeAgentRecevable(agentSaisies[c.agent_id] ?? '')}>{$t('settings.agentPair' as any)}</button>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              {:else if !agentsAppaires.length}
+                <p class="hint">{$t('settings.agentNoCandidate' as any)}</p>
+              {/if}
+
+              <!-- tune-server-rust#4626 — prêter les sorties de CE serveur
+                   (ce serveur est l'AGENT). -->
+              <div class="subhead">
+                <span>{$t('settings.agentLendTitle' as any)}</span>
+                <button class="lnk" onclick={afficherCodeAgent}>{$t('settings.agentShowCode' as any)}</button>
+              </div>
+              <p class="hint">{$t('settings.agentLendHint' as any)}</p>
+              {#if agentCode && agentRestant > 0}
+                <div class="tok">
+                  <span class="tlab">{$t('settings.agentCodeLabel' as any)}</span>
+                  <code>{api.codeAgentAffiche(agentCode.code)}</code>
+                  <span class="warnline">{$t('settings.agentCodeExpires' as any).replace('{s}', String(agentRestant))}</span>
+                </div>
+              {/if}
+              {#if agentEtat}
+                {#if agentEtat.sorties.length}
+                  <p class="hint">{$t('settings.agentLentOutputs' as any).replace('{list}', agentEtat.sorties.map((s) => s.nom).join(', '))}</p>
+                {:else}
+                  <p class="hint">{$t('settings.agentNoLocalOutput' as any)}</p>
+                {/if}
+                {#if agentEtat.maitres.length}
+                  <div class="devlist">
+                    {#each agentEtat.maitres as m (m.maitre_id)}
+                      <div class="dev ign">
+                        <span class="dn">{m.nom}</span>
+                        <span class="dt">{$t('settings.agentMaster' as any)}</span>
+                        <span></span>
+                        <button class="lnk danger" onclick={() => revoquerMaitreAgent(m)}>{$t('settings.agentRevoke' as any)}</button>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              {/if}
 
             {:else if s.id === 'squeezebox'}
               <div class="row">
