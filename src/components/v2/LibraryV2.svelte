@@ -73,6 +73,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration,  type QualityTier } from '../../lib/utils';
+  import { formatDeFichier } from '../../lib/typeDeFichier';
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
@@ -1040,6 +1041,17 @@
     if (t === 'dsd') return 'DSD';
     if (t === 'hires' || t === 'hires_max') return RATES.find((r) => r.v === a.sample_rate)?.court ?? null;
     return null;
+  }
+  /**
+   * #1901 (Fredouille40, fil 2131) — la colonne de badge de la vue LISTE dit
+   * aussi le TYPE de fichier quand l'album n'est ni DSD ni hi-res : « FLAC »,
+   * « WAV », « MP3 ». La vue grille le dit déjà sous chaque pochette
+   * (`QualiteAlbum`) ; la liste, elle, n'avait rien pour un disque en 44,1/16.
+   * Le badge POSÉ SUR LA POCHETTE reste réservé au DSD et au hi-res : un
+   * « FLAC » sur chaque vignette serait du bruit.
+   */
+  function badgeListe(a: Album): string | null {
+    return badge(a) ?? formatDeFichier(a.format);
   }
 
   // ── Onglets de la bibliotheque (brouillon v3 : Albums, Artists, Tracks,
@@ -2849,7 +2861,7 @@
                     <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
                     <span class="la">{a.artist_name ?? ''}</span>
                     <span class="ly">{albumYear(a) ?? ''}</span>
-                    {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
+                    {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
                     {#if showTech}<span class="lq">{tech(a)}</span>{/if}
                   </button>
                   </div>
@@ -3061,7 +3073,7 @@
         a photographié le 05/09/2026 ; l'autre moitié est que chaque
         ligne était sa PROPRE grille (voir `--lcols` plus bas).
       -->
-      {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
+      {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
       {#if showTech}<span class="lq">{tech(a)}</span>{/if}
     </button>
     </div>

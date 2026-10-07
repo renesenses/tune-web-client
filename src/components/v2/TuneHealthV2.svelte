@@ -57,6 +57,7 @@
   // `lib/journaux.ts` : aucune copie de la route ni du nom de fichier ici.
   import { lireJournaux, telechargerJournaux } from '../../lib/journaux';
   import { lireDiagnosticReseau, iconeVerdict, type EcouteReseau } from '../../lib/diagnosticReseau';
+  import { boutonLancer, CLE_ISSUE, estLancable, lancerTout, lancerTraitement, type CarteLancable } from '../../lib/lancerTraitement';
   import '../../styles/tune-v2.css';
 
   type Card = {
@@ -178,6 +179,50 @@
       notifications.error(errText(e) ?? $t('common.error' as any));
     } finally {
       bascule = null;
+    }
+  }
+
+  // ── #1751 : LANCER un traitement, pas seulement le suspendre ────────────
+  /** La carte dont le lancement est en vol ; `'*'` pour « Tout relancer ». */
+  let lancement = $state<string | null>(null);
+
+  async function lancer(id: CarteLancable) {
+    lancement = id;
+    try {
+      const issue = await lancerTraitement(id);
+      notifications[issue === 'lance' ? 'success' : 'info']($t(CLE_ISSUE[issue] as any));
+      void collect();
+    } catch (e) {
+      notifications.error(errText(e) ?? $t('common.error' as any));
+    } finally {
+      lancement = null;
+    }
+  }
+
+  /** Les traitements lançables qui tournent ou sont suspendus : « Tout
+   *  relancer » ne les touche pas (le second se REPREND, par son bouton). */
+  const lancablesOccupes = $derived(new Set(
+    cards
+      .filter((c) => estLancable(c.id) && (c.etat === 'running' || !!(c.traitement && pauses[c.traitement])))
+      .map((c) => c.id as CarteLancable),
+  ));
+  /** Au moins une carte lançable dont l'état est connu. */
+  const relancePossible = $derived(cards.some((c) => estLancable(c.id) && c.etat !== 'inconnu' && c.etat !== 'off'));
+
+  async function toutRelancer() {
+    lancement = '*';
+    try {
+      const r = await lancerTout(lancablesOccupes);
+      const issues = Object.values(r);
+      const lances = issues.filter((x) => x === 'lance').length;
+      const echecs = issues.filter((x) => x === 'erreur').length;
+      notifications[lances ? 'success' : 'info'](
+        $t('v2.health.launchAllDone' as any).replace('{n}', String(lances)),
+      );
+      if (echecs) notifications.error($t('v2.health.launchAllErrors' as any).replace('{n}', String(echecs)));
+      void collect();
+    } finally {
+      lancement = null;
     }
   }
 
@@ -736,6 +781,13 @@
       <!-- #1352 — l'interrupteur général. En tête d'écran, à côté d'Actualiser :
            c'est le geste d'un soir d'écoute, il ne se cherche pas carte par
            carte. Absent tant que le serveur ne sait pas suspendre. -->
+      <!-- #1751 — le geste unique du fil 2043 : plage dynamique, métadonnées,
+           images d'artistes, en un clic. Ce qui tourne déjà n'est pas relancé. -->
+      {#if relancePossible}
+        <button class="lnk" onclick={toutRelancer} disabled={lancement !== null}>
+          {$t('v2.health.launchAll' as any)}
+        </button>
+      {/if}
       {#if pausePossible}
         <button
           class="lnk"
@@ -806,6 +858,14 @@
               </div>
             {/if}
 
+            {#if boutonLancer(c, enPause)}
+              <!-- #1751 — au repos ou terminée, la carte sait LANCER. -->
+              <div class="cactions">
+                <button class="lnk sm" onclick={() => lancer(c.id as CarteLancable)} disabled={lancement !== null}>
+                  {$t('v2.health.launch' as any)}
+                </button>
+              </div>
+            {/if}
             {#if boutonSurLaCarte(c)}
               <div class="cactions">
                 <button
