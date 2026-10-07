@@ -4484,6 +4484,7 @@ export default {
   "menuObjet.noFolder": "このアルバムのフォルダーはディスク上にありません。",
   "menuObjet.addShortcut": "ショートカットに追加",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
+  "dsp.crossfeedReplacedByPro": "このゾーンは Crossfeed Pro が処理しています。内蔵クロスフィードはオフです。両者が重ねて適用されることはありません。",
   "v2.pure.veilCfPro": "PURE モードでは Crossfeed Pro は作用しません。信号はそのまま出力されます。設定は保持されます。",
   "v2.cfp.eyebrow": "ヘッドホン · Premium",
   "v2.cfp.lead": "ヘッドホン再生のための高度なクロスフィード：量、遅延、頭部の影、ローカット、位相ガード、名前付きプロファイルをゾーンごとに設定します。",

@@ -4442,6 +4442,7 @@ export default {
   "menuObjet.noFolder": "Ehhez az albumhoz nincs mappa a lemezen.",
   "menuObjet.addShortcut": "Hozzáadás a gyorsindítókhoz",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
+  "dsp.crossfeedReplacedByPro": "A Crossfeed Pro dolgozza fel ezt a zónát: a beépített crossfeed itt ki van kapcsolva. A kettő soha nem adódik össze.",
   "v2.pure.veilCfPro": "A Crossfeed Pro PURE módban nem hat: a jel érintetlenül megy tovább. A beállítások megmaradnak.",
   "v2.cfp.eyebrow": "Fejhallgató · Premium",
   "v2.cfp.lead": "Fejlett crossfeed fejhallgatós hallgatáshoz: arány, késleltetés, fejárnyék, mélyvágás, fázisvédelem és elnevezett profilok, zónánként.",

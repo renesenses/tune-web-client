@@ -4483,6 +4483,7 @@ export default {
   "menuObjet.noFolder": "Ingen mapp på disken för det här albumet.",
   "menuObjet.addShortcut": "Lägg till i genvägar",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
+  "dsp.crossfeedReplacedByPro": "Crossfeed Pro bearbetar den här zonen: den inbyggda crossfeeden är avstängd här. De två läggs aldrig ihop.",
   "v2.pure.veilCfPro": "Crossfeed Pro har ingen effekt i PURE-läget: signalen lämnar orörd. Dina inställningar sparas.",
   "v2.cfp.eyebrow": "Hörlurar · Premium",
   "v2.cfp.lead": "Avancerad crossfeed för lyssning i hörlurar: mängd, fördröjning, huvudskugga, basfilter, fasskydd och namngivna profiler, zon för zon.",

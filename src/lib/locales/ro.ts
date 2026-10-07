@@ -4484,6 +4484,7 @@ export default {
   "menuObjet.noFolder": "Niciun dosar pe disc pentru acest album.",
   "menuObjet.addShortcut": "Adaugă la scurtături",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
+  "dsp.crossfeedReplacedByPro": "Crossfeed Pro procesează această zonă: crossfeed-ul integrat este oprit aici. Cele două nu se adună niciodată.",
   "v2.pure.veilCfPro": "Crossfeed Pro nu acționează în modul PURE: semnalul pleacă intact. Setările sunt păstrate.",
   "v2.cfp.eyebrow": "Căști · Premium",
   "v2.cfp.lead": "Crossfeed avansat pentru ascultarea în căști: doză, întârziere, umbra capului, tăiere de bas, protecție de fază și profiluri cu nume, zonă cu zonă.",

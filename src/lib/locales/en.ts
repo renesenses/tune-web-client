@@ -4504,6 +4504,7 @@ export default {
   "menuObjet.noFolder": "No folder on disk for this album.",
   "menuObjet.addShortcut": "Add to shortcuts",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
+  "dsp.crossfeedReplacedByPro": "Crossfeed Pro is processing this zone: the built-in crossfeed is off here. The two never stack.",
   "v2.pure.veilCfPro": "Crossfeed Pro has no effect in PURE mode: the signal leaves untouched. Your settings are kept.",
   "v2.cfp.eyebrow": "Headphones · Premium",
   "v2.cfp.lead": "Advanced crossfeed for headphone listening: amount, delay, head shadow, low cut, phase guard and named profiles, zone by zone.",

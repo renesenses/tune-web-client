@@ -4484,6 +4484,7 @@ export default {
   "menuObjet.noFolder": "Nessuna cartella su disco per questo album.",
   "menuObjet.addShortcut": "Aggiungi alle scorciatoie",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
+  "dsp.crossfeedReplacedByPro": "Crossfeed Pro elabora questa zona: il crossfeed integrato qui è spento. I due non si sommano mai.",
   "v2.pure.veilCfPro": "Crossfeed Pro non agisce in modalità PURE: il segnale esce intatto. Le impostazioni vengono conservate.",
   "v2.cfp.eyebrow": "Cuffie · Premium",
   "v2.cfp.lead": "Crossfeed avanzato per l’ascolto in cuffia: dosaggio, ritardo, ombra della testa, taglio dei bassi, protezione di fase e profili con nome, zona per zona.",

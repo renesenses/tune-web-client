@@ -4484,6 +4484,7 @@ export default {
   "menuObjet.noFolder": "No hay carpeta en el disco para este álbum.",
   "menuObjet.addShortcut": "Añadir a los accesos directos",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
+  "dsp.crossfeedReplacedByPro": "Crossfeed Pro procesa esta zona: el crossfeed integrado está apagado aquí. Los dos nunca se suman.",
   "v2.pure.veilCfPro": "Crossfeed Pro no actúa en modo PURE: la señal sale intacta. Sus ajustes se conservan.",
   "v2.cfp.eyebrow": "Auriculares · Premium",
   "v2.cfp.lead": "Crossfeed avanzado para escuchar con auriculares: dosis, retardo, sombra de la cabeza, corte de graves, protección de fase y perfiles con nombre, zona por zona.",

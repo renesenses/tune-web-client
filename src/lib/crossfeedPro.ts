@@ -250,6 +250,22 @@ export function presenceDepuis(reponse: { active?: unknown } | null, erreur?: un
 }
 
 /**
+ * Crossfeed Pro TRAITE-t-il la zone ? Le greffon est actif (installé, activé,
+ * chargé) ET sa case est cochée sur cette zone.
+ *
+ * L'hôte éteint alors le crossfeed intégré : les deux ne s'additionnent
+ * jamais. Les écrans du crossfeed intégré le disent et le verrouillent, et
+ * Lecture en cours nomme l'étape « Crossfeed Pro ».
+ */
+export function crossfeedProTraite(
+  reponse: { active?: unknown; settings?: unknown } | null | undefined,
+): boolean {
+  if (!reponse || typeof reponse !== 'object' || reponse.active !== true) return false;
+  const s = reponse.settings as { enabled?: unknown } | null | undefined;
+  return !!s && typeof s === 'object' && s.enabled === true;
+}
+
+/**
  * La zone est-elle STÉRÉO ? Le greffon ne traite que la stéréo.
  *
  * On lit la disposition EFFECTIVE que le serveur publie
