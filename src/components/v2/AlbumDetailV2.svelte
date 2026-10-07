@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Fiche album du nouveau client (direction Levente). Ouvre par-dessus la
    * grille : pochette + métadonnées + liste de pistes jouables. Détail
@@ -1751,17 +1752,17 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     {#if entreesCollection.length}
       {#each lignesCollection as l (l.cle)}
         {#if l.sorte === 'rayon'}
-          <p class="coll-rayon" role="presentation" style:padding-left="{10 + l.profondeur * 14}px">{l.nom}</p>
+          <p class="coll-rayon" role="presentation" style:padding-left="{10 + l.profondeur * 14}px" use:bulleTexte>{l.nom}</p>
         {:else}
         {@const e = l.entree}
         <button type="button" role="menuitem" class="coll-item" class:deja={e.deja}
           style:padding-left="{10 + l.profondeur * 14}px"
-          onclick={(ev) => choisirCollection(ev, e.faire)}>{e.libelle}</button>
+          onclick={(ev) => choisirCollection(ev, e.faire)} use:bulleTexte>{e.libelle}</button>
         {/if}
       {/each}
     {:else}
       <p class="coll-vide">{$tr('v2.album.noCollection' as any)}</p>
-      <button type="button" role="menuitem" class="coll-item coll-lien" onclick={allerCollections}>
+      <button type="button" role="menuitem" class="coll-item coll-lien" onclick={allerCollections} use:bulleTexte>
         {$tr('v2.nav.collections' as any)}
       </button>
     {/if}
