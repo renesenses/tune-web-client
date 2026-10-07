@@ -51,6 +51,7 @@
   import * as api from '../../lib/api';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
+  import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
   import {
@@ -1752,6 +1753,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // (Bertrand, 05/10/2026). Absent de la config : décoché, comme le serveur.
   let ecritureFichiersOn = $state(false);
   let ecritureFichiersErr = $state<string | null>(null);
+  // « Analyser la bibliothèque au démarrage ». `null` : le serveur ne publie
+  // pas le réglage (version antérieure), l'interrupteur ne s'affiche pas.
+  let scanDemarrage = $state<boolean | null>(null);
+  let scanDemarrageErr = $state<string | null>(null);
   let schedOn = $state(false);
   let schedTime = $state('03:00');
   // #1578 : date (jour local) de la dernière occurrence honorée du scan
@@ -1969,6 +1974,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         || c?.quality_split === 0 || c?.quality_split === '0');
       lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
       ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
+      scanDemarrage = scanAuDemarrageDepuisConfig(c);
     } catch { libErr = get(t)('settings.errConfigUnavailable'); }
     try {
       const sch: any = await api.getScanSchedule();
@@ -2196,6 +2202,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch {
       ecritureFichiersOn = before;
       ecritureFichiersErr = get(t)('settings.errSaveFailed');
+    }
+  }
+  /** Même patron que `setEcritureFichiers` ; la valeur vaut au prochain démarrage. */
+  async function setScanDemarrage(v: boolean) {
+    const before = scanDemarrage; scanDemarrage = v; scanDemarrageErr = null;
+    try {
+      await api.updateConfig({ [CLE_SCAN_AU_DEMARRAGE]: v });
+    } catch {
+      scanDemarrage = before;
+      scanDemarrageErr = get(t)('settings.errSaveFailed');
     }
   }
   async function saveSchedule() {
@@ -5283,6 +5299,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <p class="hint">{#each emphaseParts($t('settings.removeFolderHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {:else}
                 <p class="hint">{$t('settings.noFolderDeclared' as any)}</p>
+                <!-- Fil 2145 (web#1935) — l'écran disait « aucun dossier » et,
+                     plus bas, « Monté », sans relier les deux. -->
+                {#if Array.isArray(smbMounts) && smbMounts.some((m) => proposerAjout(m, musicDirs))}
+                  <p class="hint">{$t('settings.noFolderShareMounted' as any)}</p>
+                {/if}
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- Délai de relecture des partages réseau (#5792, fil 2148).
@@ -5370,6 +5391,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <p class="hint">{#each emphaseParts($t('settings.needsFullScanHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
 
             {:else if s.id === 'scanSched'}
+              {#if scanDemarrage !== null}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.scanOnStartup' as any)}</span>
+                    <span class="hint">{$t('settings.scanOnStartupHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle={CLE_SCAN_AU_DEMARRAGE} checked={scanDemarrage}
+                      onchange={(e) => setScanDemarrage((e.currentTarget as HTMLInputElement).checked)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                {#if scanDemarrageErr}<div class="errline">{scanDemarrageErr}</div>{/if}
+              {/if}
               <div class="row">
                 <div class="lbl">
                   <span>{$t('v2.lbl.autoAnalysis' as any)}</span>

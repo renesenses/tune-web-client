@@ -24,7 +24,7 @@ vi.mock('./i18n', () => ({
   t: { subscribe: (run: any) => { run((k: string) => k); return () => {}; } },
 }));
 
-import { playFromHere } from './playback';
+import { playFromHere, oublierCapaciteCurseur } from './playback';
 
 const local = (id: number) => ({ id, title: `t${id}` });
 const flux = (sid: string) => ({ id: null, source: 'qobuz', source_id: sid, title: sid });
@@ -33,6 +33,7 @@ describe('playFromHere', () => {
   beforeEach(() => {
     zone = { id: 7 };
     playAndSync.mockClear(); addToQueue.mockClear(); getQueue.mockClear(); erreur.mockClear();
+    oublierCapaciteCurseur();
   });
 
   it('liste 100 % locale : un seul appel, la file entière, départ au rang cliqué', async () => {
@@ -127,5 +128,110 @@ describe('playFromHere', () => {
     getQueue.mockRejectedValueOnce(new Error('hs'));
     await playFromHere([flux('a'), flux('b')], 0);
     expect(erreur).not.toHaveBeenCalled();
+  });
+});
+
+// #5770 — « Précédent » deux fois rejouait le titre cliqué : les titres qui le
+// précèdent n'étaient jamais enfilés, il était en tête de file.
+describe('playFromHere — les titres précédents (#5770)', () => {
+  /** Un serveur qui fait suivre le curseur : sa réponse porte `queue_position`. */
+  const serveurNeuf = async (..._a: any[]) => ({ queue_length: 9, queue_position: 2 }) as any;
+
+  beforeEach(() => {
+    zone = { id: 7 };
+    playAndSync.mockClear(); addToQueue.mockReset(); getQueue.mockClear(); erreur.mockClear();
+    addToQueue.mockImplementation(async () => ({ queue_length: 0 }));
+    oublierCapaciteCurseur();
+  });
+
+  it('liste de service : la suite, PUIS les précédents en tête, dans l’ordre', async () => {
+    addToQueue.mockImplementation(serveurNeuf);
+    await playFromHere([flux('x'), flux('y'), flux('z'), flux('w')], 2);
+    expect(playAndSync).toHaveBeenCalledTimes(1);
+    expect(playAndSync.mock.calls[0][1]).toMatchObject({ source_id: 'z' });
+    expect(addToQueue).toHaveBeenCalledTimes(2);
+    expect(addToQueue.mock.calls[0][1]).toEqual({
+      tracks: [expect.objectContaining({ source_id: 'w' })],
+    });
+    expect(addToQueue.mock.calls[1][1]).toEqual({
+      tracks: [
+        expect.objectContaining({ source: 'qobuz', source_id: 'x' }),
+        expect.objectContaining({ source: 'qobuz', source_id: 'y' }),
+      ],
+      position: 0,
+    });
+    // La vue de file est relue APRÈS l'insertion en tête.
+    expect(getQueue.mock.invocationCallOrder[0])
+      .toBeGreaterThan(addToQueue.mock.invocationCallOrder[1]);
+    expect(erreur).not.toHaveBeenCalled();
+  });
+
+  it('précédents mixtes : un par un, aux rangs 0, 1, 2', async () => {
+    addToQueue.mockImplementation(serveurNeuf);
+    await playFromHere([local(1), flux('a'), local(2), flux('b'), flux('c')], 3);
+    const tete = addToQueue.mock.calls.slice(1).map((c) => c[1]);
+    expect(tete).toEqual([
+      { position: 0, track_id: 1 },
+      { tracks: [expect.objectContaining({ source: 'qobuz', source_id: 'a' })], position: 1 },
+      { position: 2, track_id: 2 },
+    ]);
+  });
+
+  it('précédents tous locaux : un seul appel', async () => {
+    addToQueue.mockImplementation(serveurNeuf);
+    await playFromHere([local(1), local(2), flux('a'), flux('b')], 2);
+    expect(addToQueue.mock.calls[1][1]).toEqual({ track_ids: [1, 2], position: 0 });
+  });
+
+  it('serveur ancien (pas de `queue_position`) : la suite seule, comme avant', async () => {
+    await playFromHere([flux('x'), flux('y'), flux('z'), flux('w')], 2);
+    expect(addToQueue).toHaveBeenCalledTimes(1);
+    expect(addToQueue.mock.calls.some((c) => 'position' in c[1])).toBe(false);
+  });
+
+  it('dernier titre cliqué : rien à lire avant, donc rien en tête tant que le serveur est inconnu', async () => {
+    addToQueue.mockImplementation(serveurNeuf);
+    await playFromHere([flux('x'), flux('y')], 1);
+    expect(addToQueue).not.toHaveBeenCalled();
+
+    // Une réponse antérieure de la session a tranché : on peut insérer.
+    await playFromHere([flux('x'), flux('y'), flux('z')], 1);
+    addToQueue.mockClear();
+    await playFromHere([flux('x'), flux('y')], 1);
+    expect(addToQueue).toHaveBeenCalledTimes(1);
+    expect(addToQueue.mock.calls[0][1]).toMatchObject({ position: 0 });
+  });
+
+  // #5758 — au plus 200 titres avant le titre cliqué, et un titre local
+  // cliqué dans une liste mixte n'est pas une « demande nue ».
+  it('liste locale très longue : au plus 200 titres avant le titre cliqué', async () => {
+    const liste = Array.from({ length: 1000 }, (_, i) => local(i + 1));
+    await playFromHere(liste, 600);
+    const corps = playAndSync.mock.calls[0][1];
+    expect(corps.track_ids[0]).toBe(401);
+    expect(corps.track_ids).toHaveLength(600);
+    expect(corps.track_ids[corps.start_index]).toBe(601);
+  });
+
+  it('liste de service très longue : 200 précédents en tête', async () => {
+    addToQueue.mockImplementation(serveurNeuf);
+    const liste = Array.from({ length: 300 }, (_, i) => flux(`s${i}`));
+    await playFromHere(liste, 250);
+    const tete = addToQueue.mock.calls.map((c) => c[1]).find((c: any) => c.position === 0);
+    expect(tete.tracks).toHaveLength(200);
+    expect(tete.tracks[0].source_id).toBe('s50');
+  });
+
+  it('titre local cliqué dans une liste mixte : `start_index`, pas `{ track_id }` seul', async () => {
+    addToQueue.mockImplementation(serveurNeuf);
+    await playFromHere([flux('a'), local(7), flux('b')], 1);
+    expect(playAndSync.mock.calls[0][1]).toEqual({ track_id: 7, start_index: 0 });
+  });
+
+  it('le lancement reste `playAndSync` (contexte de lecture, boucle par défaut)', async () => {
+    addToQueue.mockImplementation(serveurNeuf);
+    await playFromHere([flux('x'), flux('y'), flux('z')], 1);
+    expect(playAndSync).toHaveBeenCalledTimes(1);
+    expect(playAndSync.mock.calls[0][0]).toBe(7);
   });
 });

@@ -103,8 +103,9 @@ describe('le bouton est sur CHAQUE ligne, sans que l’écran ait à le demander
     await Promise.resolve();
     expect(espions.zones, 'la zone courante n’a pas été consultée').toContain(7);
     expect(espions.lire).toHaveBeenCalledTimes(1);
-    // La SUITE, pas la liste entière : 12 et 13, jamais 11.
-    expect(espions.lire.mock.calls[0][0]).toEqual({ track_ids: [12, 13] });
+    // #5770 — la liste ENTIÈRE, la lecture au rang cliqué : 11 reste dans la
+    // file, derrière, pour que « Précédent » y revienne.
+    expect(espions.lire.mock.calls[0][0]).toEqual({ track_ids: [11, 12, 13], start_index: 1 });
   });
 
   it('l’écran garde la main quand sa suite n’est pas la liste rendue', async () => {

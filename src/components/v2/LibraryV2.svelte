@@ -64,6 +64,7 @@
   import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryYear, type View } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
+  import { causeBibliothequeVide, type CauseBibliothequeVide } from '../../lib/smbMountState';
   import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
   import { rangAleatoire, graineAleatoire } from '../../lib/shuffle';
   import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection, pistesDansLOrdre, bornee, tirageAleatoire, pistesDesAlbums } from '../../lib/porteeAleatoire';
@@ -2240,6 +2241,33 @@
     v2SettingsTarget.set({ tab: 'library', section: 'musicDirs' });
     activeView.set('settings');
   }
+
+  /* Fil 2145 (web#1935) — une bibliothèque vide DIT pourquoi, quand la cause
+   * se lit : un partage monté dont la racine n'est pas déclarée, ou aucun
+   * dossier déclaré. « Votre bibliothèque est vide. » seul a fait croire à un
+   * testeur que sa musique était perdue, alors que son partage était monté.
+   * Lu seulement quand la grille locale est vide : rien n'est demandé au
+   * serveur tant qu'il y a des albums. */
+  const grilleLocaleVide = $derived(
+    !depot && !enCharge && (nu ? $albumsPagines.total === 0 : sorted.length === 0),
+  );
+  let causeVide = $state<CauseBibliothequeVide | null>(null);
+  async function lireCauseVide() {
+    try {
+      const [c, partages] = await Promise.all([
+        api.getConfig() as Promise<any>,
+        api.listSmbMounts().catch(() => [] as api.SmbMount[]),
+      ]);
+      const dirs = Array.isArray(c?.music_dirs) ? (c.music_dirs as string[]) : [];
+      causeVide = causeBibliothequeVide(dirs, Array.isArray(partages) ? partages : []);
+    } catch {
+      causeVide = null;
+    }
+  }
+  $effect(() => {
+    if (grilleLocaleVide) untrack(() => void lireCauseVide());
+    else causeVide = null;
+  });
 </script>
 
 
@@ -2680,7 +2708,13 @@
            un defaut de la sienne. Mesure : 192.168.1.16 rend `[]`. -->
       <div class="state">{depot
           ? $tr('v2.lib.emptyDepot' as any).replace('{nom}', depot.nom).replace('{hote}', depot.hote)
-          : $tr('v2.lib.emptyLibrary' as any)}</div>
+          : $tr('v2.lib.emptyLibrary' as any)}
+        {#if !depot && causeVide}
+          <span class="cause-vide">{causeVide.cause === 'partageNonDeclare'
+            ? $tr('v2.lib.emptyShareNotDeclared' as any).replace('{partages}', causeVide.partages.join(', '))
+            : $tr('v2.lib.emptyNoFolder' as any)}</span>
+          <button class="chip" onclick={addContent}>{$tr('v2.lib.emptyOpenFolders' as any)}</button>
+        {/if}</div>
     {:else}
       <!-- Le rail reste sur TOUS les tris (Bertrand, 25/09/2026) : sur un tri
            qui n'est pas alphabétique, une lettre repasse au tri Titre puis
@@ -3186,6 +3220,8 @@
   */
   .body.encarrousel{flex-direction:column-reverse}
   .state{flex:1; display:grid; place-items:center; color:var(--v2-txt3); font-size:15px}
+  .state:has(.cause-vide){align-content:center; gap:10px}
+  .state .cause-vide{max-width:46ch; text-align:center; font-size:13px; line-height:1.5}
   /* Rail A-Z : c'est un REPERE, il doit se lire d'un coup d'oeil et se viser
      au doigt. Auparavant 11 px colles a 1 px d'intervalle contre la grille —
      illisible et impossible a cliquer juste. */
