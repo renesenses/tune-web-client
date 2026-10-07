@@ -91,8 +91,9 @@ describe('#1636 — la facette DR dans Oxygen', () => {
     const p = await recharger();
     expect(p.oxygenFacets).not.toContain('dr');
     // Même quand ce qui reste est exactement l'ancienne liste par défaut :
-    // à la révision courante, c'est un choix, pas une empreinte.
-    expect([...p.oxygenFacets].sort()).toEqual([...DEFAUTS_REV4].sort());
+    // à la révision courante, c'est un choix, pas une empreinte. (Les défauts
+    // portent `folder` depuis #1640, d'où sa présence ici.)
+    expect([...p.oxygenFacets].sort()).toEqual([...DEFAUTS_REV4, 'folder'].sort());
     expect((await recharger()).oxygenFacets).not.toContain('dr');
   });
 });
