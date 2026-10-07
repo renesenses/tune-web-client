@@ -70,9 +70,9 @@
  * de Bertrand, 09/09/2026 : **on branche le tableau en mode Expert**, et `dr`
  * garde son niveau. C'est l'écran qui descend vers la colonne, pas l'inverse.
  *
- * `MODES_BRANCHES` cite donc `beginner` ET `expert`. Avancé reste hors du
- * tableau : le périmètre est explicite, et rien ici ne le lui interdit le jour
- * où il suivra — il suffira de l'ajouter à cette liste, et à elle seule.
+ * `MODES_BRANCHES` cite donc `beginner` ET `expert`. Avancé est resté hors du
+ * tableau jusqu'au 07/10/2026 (#1470) : il y est entré par cette liste, et
+ * par elle seule.
  */
 import { levelRank, type SettingsLevel } from './uiLevel';
 import type { Track } from './types';
@@ -281,7 +281,7 @@ export const PAR_CLE: Record<CleColonne, Colonne> = Object.fromEntries(
  * toutes PROPOSÉES, pas toutes cochées — mais on sait maintenant ce qu'elle
  * coûte, et une liste vide ici ouvrirait une grille nue.
  *
- * Avancé, lui, reste hors du tableau : voir `MODES_BRANCHES`.
+ * Avancé porte le tableau depuis #1470 : voir `MODES_BRANCHES`.
  */
 export const DEFAUTS: Record<SettingsLevel, CleColonne[]> = {
   beginner:     ['num', 'title', 'artist', 'time', 'quality'],
@@ -302,11 +302,14 @@ export const DEFAUTS: Record<SettingsLevel, CleColonne[]> = {
  * matrice aurait annoncé un mode branché que le tableau ignorait. Le
  * composant lit maintenant cette constante, et elle seule.
  *
- * Avancé n'y est pas : périmètre explicite de l'arbitrage du 09/09/2026, pas
- * un oubli. L'y ajouter suffira le jour venu — c'est tout l'intérêt d'une
- * source unique.
+ * Avancé n'y était pas (arbitrage du 09/09/2026). #1470 (Steve Taylor, fil
+ * 1671) en a mesuré le coût : en Avancé, la liste de pistes était rendue en
+ * LIGNES, et les colonnes « # écoutes » et « Dernière écoute » — livrées en
+ * v0.9.147 — y étaient inatteignables quel que soit le réglage, sur les dix
+ * écrans qui montent `ListePistesV2`. Go de Bertrand le 07/10/2026 : Avancé
+ * rejoint le tableau. Comme annoncé, l'ajouter ICI a suffi.
  */
-export const MODES_BRANCHES: SettingsLevel[] = ['beginner', 'expert'];
+export const MODES_BRANCHES: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
 
 /**
  * Ce mode rend-il un TABLEAU, ou des lignes ?
