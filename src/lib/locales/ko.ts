@@ -4467,6 +4467,7 @@ export default {
   "menuObjet.noFolder": "이 앨범의 디스크 폴더가 없습니다.",
   "menuObjet.addShortcut": "바로가기에 추가",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
+  "dsp.crossfeedReplacedByPro": "이 존은 Crossfeed Pro가 처리합니다. 내장 크로스피드는 꺼져 있습니다. 두 가지가 겹쳐 적용되지 않습니다.",
   "v2.pure.veilCfPro": "PURE 모드에서는 Crossfeed Pro가 작동하지 않습니다. 신호는 그대로 출력됩니다. 설정은 유지됩니다.",
   "v2.cfp.eyebrow": "헤드폰 · Premium",
   "v2.cfp.lead": "헤드폰 청취를 위한 고급 크로스피드: 양, 지연, 머리 그림자, 저역 차단, 위상 보호, 이름 있는 프로필을 존별로 설정합니다.",

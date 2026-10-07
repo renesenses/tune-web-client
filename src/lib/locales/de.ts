@@ -4467,6 +4467,7 @@ export default {
   "menuObjet.noFolder": "Kein Ordner auf der Festplatte für dieses Album.",
   "menuObjet.addShortcut": "Zu den Verknüpfungen hinzufügen",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
+  "dsp.crossfeedReplacedByPro": "Crossfeed Pro verarbeitet diese Zone: Der integrierte Crossfeed ist hier aus. Beide werden nie addiert.",
   "v2.pure.veilCfPro": "Crossfeed Pro wirkt im PURE-Modus nicht: Das Signal bleibt unverändert. Ihre Einstellungen bleiben erhalten.",
   "v2.cfp.eyebrow": "Kopfhörer · Premium",
   "v2.cfp.lead": "Erweitertes Crossfeed für das Hören mit Kopfhörern: Anteil, Verzögerung, Kopfschatten, Tiefensperre, Phasenschutz und benannte Profile, Zone für Zone.",

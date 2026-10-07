@@ -4489,6 +4489,7 @@ export default {
   "menuObjet.noFolder": "Aucun dossier sur le disque pour cet album.",
   "menuObjet.addShortcut": "Ajouter aux raccourcis",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
+  "dsp.crossfeedReplacedByPro": "Crossfeed Pro traite cette zone : le crossfeed intégré y est éteint. Les deux ne s’additionnent jamais.",
   "v2.pure.veilCfPro": "Crossfeed Pro n’agit pas en mode PURE : le signal part intact. Vos réglages sont conservés.",
   "v2.cfp.eyebrow": "Casque · Premium",
   "v2.cfp.lead": "Le crossfeed avancé, pour l’écoute au casque : dosage, retard, ombre de la tête, coupe-bas, garde de phase et profils nommés, zone par zone.",

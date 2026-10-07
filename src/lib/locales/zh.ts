@@ -4467,6 +4467,7 @@ export default {
   "menuObjet.noFolder": "此专辑在磁盘上没有文件夹。",
   "menuObjet.addShortcut": "添加到快捷方式",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
+  "dsp.crossfeedReplacedByPro": "此区域由 Crossfeed Pro 处理：内置交叉馈送在此关闭。两者绝不会叠加。",
   "v2.pure.veilCfPro": "PURE 模式下 Crossfeed Pro 不起作用：信号原样输出。您的设置会被保留。",
   "v2.cfp.eyebrow": "耳机 · Premium",
   "v2.cfp.lead": "面向耳机聆听的高级交叉馈送：按区域设置馈送量、延迟、头部阴影、低切、相位保护和命名配置。",
