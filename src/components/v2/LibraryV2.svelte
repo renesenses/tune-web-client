@@ -1665,7 +1665,11 @@
   );
 
   // Pistes et appartenances des artistes : un chargement partagé par portée.
-  let tracks = $state<Track[]>([]);
+  // #1716 — `$state.raw` : la liste n'est jamais modifiée sur place, seulement
+  // REMPLACÉE. Un `$state` profond enveloppait chacune des dizaines de
+  // milliers de pistes dans un proxy au premier filtrage, et la liste
+  // mémorisée (`pistesEntieres`) est partagée entre les écrans.
+  let tracks = $state.raw<Track[]>([]);
   let tracksLoading = $state(false);
   let tracksError = $state<string | null>(null);
   /**
