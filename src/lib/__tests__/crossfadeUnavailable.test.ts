@@ -53,6 +53,17 @@ describe('fondu enchaîné de zone locale (#2211)', () => {
     expect(modal).toContain("if (!zoneLocale || zone.id === null || fonduCharge) return;");
   });
 
+  // Décision du 07/10 : une zone locale en mode EXCLUSIF refuse le fondu
+  // (501 `crossfade_unavailable_exclusive`). Le curseur est grisé, et l'écran
+  // dit « indisponible en mode exclusif ».
+  it('en mode exclusif, le curseur est grisé et dit pourquoi', () => {
+    expect(modal).toContain('fonduExclusif = r?.exclusive === true;');
+    expect(modal).toContain('disabled={fonduSaving || !fonduCharge || fonduExclusif || zone.id === null}');
+    expect(modal).toContain("{#if fonduExclusif}<p class=\"zc-note\">{$t('zoneConfig.crossfadeExclusive')}</p>{/if}");
+    const fr = read('src/lib/locales/fr.ts');
+    expect(fr).toMatch(/"zoneConfig\.crossfadeExclusive": "Indisponible en mode exclusif/);
+  });
+
   it('le curseur va de 0 à 12 s', () => {
     expect(modal).toContain('const FONDU_MAX_S = 12;');
     expect(modal).toMatch(/type="range" min="0" max=\{FONDU_MAX_S\}/);

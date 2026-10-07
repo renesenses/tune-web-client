@@ -175,8 +175,10 @@
    * raccordé au serveur ; aucune autre sortie ne fond (la route y répond 501).
    * Le réglage n'est donc PROPOSÉ que sur une zone locale. La valeur affichée
    * est celle du serveur, relue à l'ouverture ; un échec remet le curseur où
-   * il était. `exclusif` : le serveur a dit que la sortie vivante joue par un
-   * bras exclusif, qui enchaîne sans blanc mais ne fond pas.
+   * il était. `fonduExclusif` : la sortie vivante joue en mode exclusif
+   * (WASAPI exclusif, ASIO, CoreAudio exclusif). Le serveur refuse alors le
+   * réglage (501 `crossfade_unavailable_exclusive`, décision du 07/10) : le
+   * curseur est grisé et l'écran dit pourquoi.
    */
   const FONDU_MAX_S = 12;
   let fondu = $state(0);
@@ -189,7 +191,10 @@
     if (!zoneLocale || zone.id === null || fonduCharge) return;
     const id = zone.id;
     api.getZoneCrossfade(id)
-      .then((r) => { if (r?.available) fondu = r.duration ?? 0; })
+      .then((r) => {
+        fonduExclusif = r?.exclusive === true;
+        if (r?.available) fondu = r.duration ?? 0;
+      })
       .catch(() => { /* le curseur reste à 0 : désactivé */ })
       .finally(() => { fonduCharge = true; });
   });
@@ -203,7 +208,6 @@
     try {
       const maj = await api.setZoneCrossfade(zone.id, secondes);
       fondu = maj?.crossfade_duration ?? secondes;
-      fonduExclusif = maj?.applies_on_this_output === false && fondu > 0;
     } catch (e: any) {
       fondu = avant;
       fonduError = e?.message || get(t)('common.error');
@@ -648,7 +652,7 @@
           <label class="zc-label" for="zc-fondu-{zone.id}">{$t('zoneConfig.crossfadeLabel')}</label>
           <input id="zc-fondu-{zone.id}" type="range" min="0" max={FONDU_MAX_S} step="0.5"
             value={fondu}
-            disabled={fonduSaving || !fonduCharge || zone.id === null}
+            disabled={fonduSaving || !fonduCharge || fonduExclusif || zone.id === null}
             onchange={(e) => setFondu(Number((e.target as HTMLInputElement).value))} />
           <span class="zc-valeur">
             {fondu > 0

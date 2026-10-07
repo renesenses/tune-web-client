@@ -935,6 +935,9 @@ export interface CrossfadeSetting {
   zone_id: number;
   available: boolean;
   output_type?: string;
+  /** Zone locale en mode exclusif : réglage refusé (501
+   *  `crossfade_unavailable_exclusive`), curseur grisé. */
+  exclusive?: boolean;
   enabled: boolean;
   duration: number;
   max_duration?: number;
@@ -945,8 +948,8 @@ export interface CrossfadeUpdate {
   available: boolean;
   crossfade_enabled: boolean;
   crossfade_duration: number;
-  /** `null` : aucune sortie locale vivante ; `false` : bras exclusif, qui
-   *  enchaîne sans blanc mais ne fond pas. */
+  /** `null` : aucune sortie locale vivante (la prochaine lecture posera la
+   *  valeur). Un bras exclusif est refusé avant d'arriver ici. */
   applies_on_this_output: boolean | null;
 }
 
