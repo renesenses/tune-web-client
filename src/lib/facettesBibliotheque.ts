@@ -276,3 +276,34 @@ export function comptesProfondeur(
   }
   return [...m.entries()].sort((x, z) => x[0] - z[0]);
 }
+
+/**
+ * #4319 — hors répertoire, la recherche serveur attend au moins
+ * `SEUIL_RECHERCHE_SERVEUR` caractères (décision de Bertrand du 07/10).
+ *
+ * Mesuré sur une copie de 95 925 pistes : une seule lettre trouve presque
+ * tous les albums, soit jusqu'à cinq pages de 2 000, et chaque page refait un
+ * parcours complet des pistes. En dessous du seuil, seule la comparaison
+ * locale joue.
+ *
+ * Dans un répertoire, PAS de seuil : la portée borne déjà le parcours, et une
+ * recherche courte y reste utile (un dossier « CD1 », une initiale).
+ */
+export const SEUIL_RECHERCHE_SERVEUR = 3;
+
+/**
+ * Les paramètres de la recherche serveur pour la saisie, ou `null` quand il ne
+ * faut PAS interroger le serveur : saisie vide, ou trop courte hors
+ * répertoire. Doubles guillemets ôtés et espaces de bord retirés, comme le
+ * serveur (`motif_like`) : ils ne comptent pas dans le seuil.
+ */
+export function filtresDeRechercheServeur(
+  saisie: string,
+  dossier: string | null | undefined,
+): Record<string, string> | null {
+  const q = saisie.replace(/"/g, '').trim();
+  if (!q) return null;
+  if (dossier) return { folder: dossier, q };
+  if ([...q].length < SEUIL_RECHERCHE_SERVEUR) return null;
+  return { q };
+}

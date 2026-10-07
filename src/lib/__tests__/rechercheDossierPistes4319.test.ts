@@ -17,7 +17,11 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { correspond, repondALaRecherche, type FiltresBibliotheque, type Outils } from '../facettesBibliotheque';
+import {
+  correspond, repondALaRecherche, filtresDeRechercheServeur, SEUIL_RECHERCHE_SERVEUR,
+  type FiltresBibliotheque, type Outils,
+} from '../facettesBibliotheque';
+import { idsAlbumsDeLaPortee } from '../porteeDossierAlbums';
 import { fold } from '../utils';
 import type { Album } from '../types';
 
@@ -78,15 +82,10 @@ describe('recherche dans une portée de répertoire (#4319)', () => {
 describe('LibraryV2 branche la recherche serveur de la portée (#4319)', () => {
   const v2 = readFileSync(resolve(process.cwd(), 'src/components/v2/LibraryV2.svelte'), 'utf-8');
 
-  it('demande au serveur les albums qui répondent au texte, dossier compris dans une portée', () => {
-    expect(v2).toMatch(/const filtres: Record<string, string> = d \? \{ folder: d, q: saisie \} : \{ q: saisie \};/);
+  it('les paramètres serveur viennent de `filtresDeRechercheServeur`, dépôt distant exclu', () => {
+    expect(v2).toMatch(/const filtres = filtresDeRechercheServeur\(q, dossierPortee\);/);
+    expect(v2).toMatch(/if \(depot \|\| !filtres\) return;/);
     expect(v2).toMatch(/return api\.getAlbumsDetailed\(filtres, limite, rang\);/);
-  });
-
-  it('hors portée aussi (décision du 07/10) : seuls un dépôt distant et une saisie vide s’abstiennent', () => {
-    // Avant, `if (!d || !saisie) return;` : rien hors d'un répertoire.
-    expect(v2).toMatch(/if \(depot \|\| !saisie\) return;/);
-    expect(v2).not.toMatch(/if \(!d \|\| !saisie\) return;/);
   });
 
   it('une saisie périmée arrête la pagination en cours', () => {
@@ -103,7 +102,7 @@ describe('LibraryV2 branche la recherche serveur de la portée (#4319)', () => {
 
 describe('la pagination s’arrête quand la page refuse (#4319)', () => {
   it('une page rejetée interrompt la boucle : aucune page suivante', async () => {
-    const { idsAlbumsDeLaPortee, PAGE_PORTEE } = await import('../porteeDossierAlbums');
+    const { PAGE_PORTEE } = await import('../porteeDossierAlbums');
     let appels = 0;
     let perime = false;
     const pleine = Array.from({ length: PAGE_PORTEE }, (_, i) => ({ album_id: i }));
@@ -115,5 +114,48 @@ describe('la pagination s’arrête quand la page refuse (#4319)', () => {
     });
     await expect(r).rejects.toThrow('périmée');
     expect(appels).toBe(1);
+  });
+});
+
+describe('seuil de 3 caractères hors répertoire (#4319, décision du 07/10)', () => {
+  /** Ce que fait l'effet de `LibraryV2` : un appel serveur seulement si des
+   *  paramètres sortent de `filtresDeRechercheServeur`. */
+  async function appelsPour(saisie: string, dossier: string | null): Promise<Record<string, string>[]> {
+    const appels: Record<string, string>[] = [];
+    const filtres = filtresDeRechercheServeur(saisie, dossier);
+    if (filtres) {
+      await idsAlbumsDeLaPortee(async () => {
+        appels.push(filtres);
+        return { items: [], total: 0 };
+      });
+    }
+    return appels;
+  }
+
+  it('le seuil vaut 3', () => {
+    expect(SEUIL_RECHERCHE_SERVEUR).toBe(3);
+  });
+
+  it('deux lettres hors répertoire : aucun appel serveur', async () => {
+    expect(await appelsPour('ma', null)).toEqual([]);
+  });
+
+  it('trois lettres hors répertoire : un appel serveur', async () => {
+    expect(await appelsPour('meh', null)).toEqual([{ q: 'meh' }]);
+  });
+
+  it('les espaces de bord et les guillemets ne comptent pas', async () => {
+    expect(await appelsPour('  ma  ', null)).toEqual([]);
+    expect(await appelsPour('"ma"', null)).toEqual([]);
+    expect(await appelsPour('  meh ', null)).toEqual([{ q: 'meh' }]);
+  });
+
+  it('dans un répertoire, pas de seuil : une lettre suffit', async () => {
+    expect(await appelsPour('m', '/m/Mahler')).toEqual([{ folder: '/m/Mahler', q: 'm' }]);
+  });
+
+  it('saisie vide : aucun appel, répertoire ou non', async () => {
+    expect(await appelsPour('   ', null)).toEqual([]);
+    expect(await appelsPour('', '/m/Mahler')).toEqual([]);
   });
 });

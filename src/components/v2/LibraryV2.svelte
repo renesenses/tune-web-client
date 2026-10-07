@@ -82,7 +82,7 @@
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
-    comptesCompilation, comptesProvenance, repondALaRecherche,
+    comptesCompilation, comptesProvenance, repondALaRecherche, filtresDeRechercheServeur,
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
@@ -234,12 +234,11 @@
    */
   let idsTexteServeur = $state<Set<number> | null>(null);
   $effect(() => {
-    const d = dossierPortee;
-    const saisie = q.replace(/"/g, '').trim();
+    // Hors répertoire, 3 caractères au moins (`SEUIL_RECHERCHE_SERVEUR`).
+    const filtres = filtresDeRechercheServeur(q, dossierPortee);
     idsTexteServeur = null;
-    if (depot || !saisie) return;
+    if (depot || !filtres) return;
     let perime = false;
-    const filtres: Record<string, string> = d ? { folder: d, q: saisie } : { q: saisie };
     const minuterie = setTimeout(() => {
       idsAlbumsDeLaPortee((limite, rang) => {
         if (perime) return Promise.reject(new Error());
