@@ -2596,6 +2596,8 @@ export default {
   "settings.noFolderDeclared": "Niciun dosar declarat — biblioteca va rămâne goală.",
   "settings.noFolderShareMounted": "Mai jos este montat un partaj de rețea: „Adaugă la bibliotecă” îl face citit de Tune.",
   "settings.scanScheduleHint": "O trecere rapidă, în fiecare zi, la ora aleasă.",
+  "settings.scanOnStartup": "Analizează biblioteca la pornire",
+  "settings.scanOnStartupHint": "Intră în vigoare la următoarea pornire a serverului. O analiză recitește doar fișierele modificate.",
   "settings.noScanScheduled": "Nicio analiză automată programată.",
   "settings.releaseLicenseHint": "Necesar înainte de a o activa pe alt server.",
   "settings.licenceKeyByEmail": "Cheia v-a fost trimisă prin e-mail la cumpărare.",

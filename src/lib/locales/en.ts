@@ -1633,6 +1633,8 @@ export default {
   "settings.noFolderDeclared": "No folder declared — the library will stay empty.",
   "settings.noFolderShareMounted": "A network share is mounted below: “Add to library” makes Tune read it.",
   "settings.scanScheduleHint": "A quick pass, every day, at the chosen time.",
+  "settings.scanOnStartup": "Scan the library on startup",
+  "settings.scanOnStartupHint": "Takes effect at the next server start. A scan only rereads changed files.",
   "settings.noScanScheduled": "No automatic scan is scheduled.",
   "settings.releaseLicenseHint": "Required before activating it on another server.",
   "settings.licenceKeyByEmail": "The key was emailed to you at purchase.",

@@ -2596,6 +2596,8 @@ export default {
   "settings.noFolderDeclared": "Nessuna cartella dichiarata — la libreria resterà vuota.",
   "settings.noFolderShareMounted": "Qui sotto è montata una condivisione di rete: «Aggiungi alla libreria» la fa leggere a Tune.",
   "settings.scanScheduleHint": "Una passata rapida, ogni giorno, all'ora scelta.",
+  "settings.scanOnStartup": "Analizza la libreria all'avvio",
+  "settings.scanOnStartupHint": "Ha effetto al prossimo avvio del server. Un'analisi rilegge solo i file modificati.",
   "settings.noScanScheduled": "Nessuna analisi automatica programmata.",
   "settings.releaseLicenseHint": "Necessario prima di attivarla su un altro server.",
   "settings.licenceKeyByEmail": "La chiave ti è stata inviata per e-mail all'acquisto.",

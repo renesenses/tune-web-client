@@ -2595,6 +2595,8 @@ export default {
   "settings.noFolderDeclared": "Ingen mapp angiven — biblioteket förblir tomt.",
   "settings.noFolderShareMounted": "En nätverksresurs är monterad nedan: ”Lägg till i biblioteket” låter Tune läsa den.",
   "settings.scanScheduleHint": "Ett snabbt pass, varje dag, vid vald tid.",
+  "settings.scanOnStartup": "Genomsök biblioteket vid start",
+  "settings.scanOnStartupHint": "Gäller från nästa serverstart. En genomsökning läser bara om ändrade filer.",
   "settings.noScanScheduled": "Ingen automatisk genomsökning är schemalagd.",
   "settings.releaseLicenseHint": "Krävs innan den aktiveras på en annan server.",
   "settings.licenceKeyByEmail": "Nyckeln skickades till dig via e-post vid köpet.",

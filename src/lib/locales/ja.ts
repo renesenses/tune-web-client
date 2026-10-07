@@ -2596,6 +2596,8 @@ export default {
   "settings.noFolderDeclared": "フォルダが指定されていません — ライブラリは空のままです。",
   "settings.noFolderShareMounted": "下にネットワーク共有がマウントされています。「ライブラリに追加」で Tune が読み込みます。",
   "settings.scanScheduleHint": "毎日、指定した時刻に軽いスキャンを行います。",
+  "settings.scanOnStartup": "起動時にライブラリをスキャン",
+  "settings.scanOnStartupHint": "次回のサーバー起動時に反映されます。スキャンでは変更されたファイルだけを読み直します。",
   "settings.noScanScheduled": "自動スキャンは予定されていません。",
   "settings.releaseLicenseHint": "別のサーバーで有効化する前に必要です。",
   "settings.licenceKeyByEmail": "キーは購入時にメールで送信されました。",

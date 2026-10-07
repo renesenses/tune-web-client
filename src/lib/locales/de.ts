@@ -2596,6 +2596,8 @@ export default {
   "settings.noFolderDeclared": "Kein Ordner angegeben — die Bibliothek bleibt leer.",
   "settings.noFolderShareMounted": "Unten ist eine Netzwerkfreigabe eingebunden: „Zur Bibliothek hinzufügen“ lässt Tune sie lesen.",
   "settings.scanScheduleHint": "Ein schneller Durchlauf, täglich, zur gewählten Uhrzeit.",
+  "settings.scanOnStartup": "Bibliothek beim Start analysieren",
+  "settings.scanOnStartupHint": "Wirkt ab dem nächsten Serverstart. Eine Analyse liest nur geänderte Dateien neu.",
   "settings.noScanScheduled": "Keine automatische Analyse geplant.",
   "settings.releaseLicenseHint": "Erforderlich, bevor sie auf einem anderen Server aktiviert wird.",
   "settings.licenceKeyByEmail": "Der Schlüssel wurde Ihnen beim Kauf per E-Mail zugesandt.",

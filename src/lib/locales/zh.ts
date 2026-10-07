@@ -2596,6 +2596,8 @@ export default {
   "settings.noFolderDeclared": "未指定文件夹 — 音乐库将保持为空。",
   "settings.noFolderShareMounted": "下方已挂载一个网络共享：点击“添加到音乐库”即可让 Tune 读取它。",
   "settings.scanScheduleHint": "每天在所选时间进行一次快速扫描。",
+  "settings.scanOnStartup": "启动时扫描音乐库",
+  "settings.scanOnStartupHint": "在服务器下次启动时生效。扫描只会重新读取已修改的文件。",
   "settings.noScanScheduled": "没有安排自动扫描。",
   "settings.releaseLicenseHint": "在另一台服务器上激活之前需要先释放。",
   "settings.licenceKeyByEmail": "密钥已在购买时通过电子邮件发送给您。",

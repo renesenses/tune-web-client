@@ -1636,6 +1636,8 @@ export default {
   "settings.noFolderDeclared": "Aucun dossier déclaré — la bibliothèque restera vide.",
   "settings.noFolderShareMounted": "Un partage réseau est monté ci-dessous : « Ajouter à la bibliothèque » le fait lire.",
   "settings.scanScheduleHint": "Une passe rapide, chaque jour, à l'heure choisie.",
+  "settings.scanOnStartup": "Analyser la bibliothèque au démarrage",
+  "settings.scanOnStartupHint": "Prend effet au prochain démarrage du serveur. Une analyse ne relit que les fichiers modifiés.",
   "settings.noScanScheduled": "Aucune analyse automatique n'est programmée.",
   "settings.releaseLicenseHint": "Nécessaire avant de l'activer sur un autre serveur.",
   "settings.licenceKeyByEmail": "La clé vous a été envoyée par courriel à l'achat.",
