@@ -1089,6 +1089,7 @@ export default {
   "profiles.versionRule.title": "Versión reproducida por defecto",
   "profiles.versionRule.hint": "Cuando una misma grabación existe en varias copias (biblioteca, servicios), se reproduce la que elige esta regla, para el perfil activo.",
   "profiles.versionRule.inherit": "Predeterminado del servidor ({rule})",
+  "profiles.versionRule.none": "Ninguna (reproducir lo que se lanza)",
   "profiles.versionRule.local": "Biblioteca primero",
   "profiles.versionRule.quality": "Mejor calidad",
   "profiles.versionRule.service": "{service} primero",

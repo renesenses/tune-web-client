@@ -1158,6 +1158,7 @@ export default {
   "profiles.versionRule.title": "Alapértelmezetten lejátszott verzió",
   "profiles.versionRule.hint": "Ha ugyanaz a felvétel több példányban létezik (könyvtár, szolgáltatások), az aktív profilnál a szabály által választott szól.",
   "profiles.versionRule.inherit": "Szerver alapértelmezése ({rule})",
+  "profiles.versionRule.none": "Nincs (az elindítottat játssza)",
   "profiles.versionRule.local": "Először a könyvtár",
   "profiles.versionRule.quality": "Legjobb minőség",
   "profiles.versionRule.service": "Először {service}",

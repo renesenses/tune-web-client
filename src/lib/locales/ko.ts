@@ -1073,6 +1073,7 @@ export default {
   "profiles.versionRule.title": "기본 재생 버전",
   "profiles.versionRule.hint": "같은 녹음이 여러 곳(라이브러리, 서비스)에 있을 때, 활성 프로필에서는 이 규칙이 고른 것을 재생합니다.",
   "profiles.versionRule.inherit": "서버 기본값({rule})",
+  "profiles.versionRule.none": "없음 (실행한 것을 재생)",
   "profiles.versionRule.local": "라이브러리 우선",
   "profiles.versionRule.quality": "최고 음질",
   "profiles.versionRule.service": "{service} 우선",

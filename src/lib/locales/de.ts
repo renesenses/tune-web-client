@@ -1089,6 +1089,7 @@ export default {
   "profiles.versionRule.title": "Standardmäßig gespielte Version",
   "profiles.versionRule.hint": "Wenn dieselbe Aufnahme in mehreren Exemplaren vorliegt (Bibliothek, Dienste), spielt die Wiedergabe für das aktive Profil das von dieser Regel gewählte.",
   "profiles.versionRule.inherit": "Serverstandard ({rule})",
+  "profiles.versionRule.none": "Keine (das Gestartete abspielen)",
   "profiles.versionRule.local": "Bibliothek zuerst",
   "profiles.versionRule.quality": "Beste Qualität",
   "profiles.versionRule.service": "{service} zuerst",

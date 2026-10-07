@@ -1053,6 +1053,7 @@ export default {
   "profiles.versionRule.title": "Version som spelas som standard",
   "profiles.versionRule.hint": "När samma inspelning finns i flera exemplar (bibliotek, tjänster) spelas den som regeln väljer, för den aktiva profilen.",
   "profiles.versionRule.inherit": "Serverns standard ({rule})",
+  "profiles.versionRule.none": "Ingen (spela det som startas)",
   "profiles.versionRule.local": "Biblioteket först",
   "profiles.versionRule.quality": "Bästa kvalitet",
   "profiles.versionRule.service": "{service} först",

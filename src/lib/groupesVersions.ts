@@ -57,7 +57,7 @@ export interface GroupesVersions {
   track_id: number;
   title: string;
   artist_name: string;
-  /** `local`, `quality` ou `service:<nom>`. */
+  /** `none` (aucune substitution, le défaut), `local`, `quality` ou `service:<nom>`. */
   rule: string;
   /** `profile` : la règle du profil de la requête ; `setting` : le défaut global. */
   rule_origin: 'query' | 'profile' | 'setting' | 'default';
@@ -134,7 +134,7 @@ export function groupeVide(g: GroupeVersions): boolean {
 // ─── La règle, par profil (tune-server-rust#2264, décision 3 du 07/10) ───
 
 /** Les règles qu'on propose. Les services sont ceux qu'interroge « Autres versions ». */
-export const REGLES_VERSION = ['local', 'quality', 'service:qobuz', 'service:tidal', 'service:deezer', 'service:spotify'] as const;
+export const REGLES_VERSION = ['none', 'local', 'quality', 'service:qobuz', 'service:tidal', 'service:deezer', 'service:spotify'] as const;
 
 export interface RegleVersion {
   /** `local`, `quality` ou `service:<nom>`. */
@@ -171,6 +171,7 @@ export function regleLisible(r: unknown): r is RegleVersion {
 /** Le libellé d'une règle. `t` : la fonction de traduction courante. */
 export function libelleRegle(rule: string, t: (k: string) => string): string {
   if (typeof rule !== 'string') return '';
+  if (rule === 'none') return t('profiles.versionRule.none');
   if (rule === 'local') return t('profiles.versionRule.local');
   if (rule === 'quality') return t('profiles.versionRule.quality');
   const service = rule.startsWith('service:') ? rule.slice('service:'.length) : rule;

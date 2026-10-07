@@ -13,12 +13,14 @@
   import { REGLES_VERSION, getVersionRule, libelleRegle, regleLisible, setVersionRule, type RegleVersion } from '../../lib/groupesVersions';
 
   const HERITEE = '';
+  /** Aucune substitution : on joue ce qui est lancé (décision du 07/10/2026). */
+  const AUCUNE = 'none';
 
   let regle = $state<RegleVersion | null>(null);
   let erreur = $state(false);
   let enCours = $state(false);
   /** Le défaut que suit le profil quand il n'a pas de règle à lui. */
-  let defautServeur = $state<string>('local');
+  let defautServeur = $state<string>(AUCUNE);
 
   async function charger() {
     erreur = false;
@@ -28,7 +30,7 @@
       const r = await getVersionRule();
       if (!regleLisible(r)) { regle = null; return; }
       const globale = r.origin === 'profile' ? await getVersionRule('global').catch(() => null) : r;
-      defautServeur = regleLisible(globale) ? globale.rule : 'local';
+      defautServeur = regleLisible(globale) ? globale.rule : AUCUNE;
       regle = r;
     } catch {
       regle = null;
@@ -45,7 +47,10 @@
     enCours = true;
     erreur = false;
     try {
-      const r = await setVersionRule(valeur === HERITEE ? null : valeur);
+      // « Aucune » quand le serveur ne remplace rien non plus : le profil
+      // n'a pas besoin d'une règle à lui.
+      const sansRegle = valeur === HERITEE || (valeur === AUCUNE && defautServeur === AUCUNE);
+      const r = await setVersionRule(sansRegle ? null : valeur);
       if (!regleLisible(r)) { erreur = true; await charger(); return; }
       regle = r;
     } catch {
@@ -56,7 +61,8 @@
     }
   }
 
-  let valeur = $derived(regle?.origin === 'profile' ? regle.rule : HERITEE);
+  // Rien de réglé nulle part : « Aucune (jouer ce qui est lancé) ».
+  let valeur = $derived(regle?.origin === 'profile' ? regle.rule : (defautServeur === AUCUNE ? AUCUNE : HERITEE));
   const tr = (k: string) => $t(k as any);
 </script>
 
@@ -68,7 +74,9 @@
     </div>
     <select class="sel" value={valeur} disabled={enCours}
       onchange={(e) => choisir((e.currentTarget as HTMLSelectElement).value)}>
-      <option value={HERITEE}>{tr('profiles.versionRule.inherit').replace('{rule}', libelleRegle(defautServeur, tr))}</option>
+      {#if defautServeur !== AUCUNE}
+        <option value={HERITEE}>{tr('profiles.versionRule.inherit').replace('{rule}', libelleRegle(defautServeur, tr))}</option>
+      {/if}
       {#each REGLES_VERSION as r (r)}
         <option value={r}>{libelleRegle(r, tr)}</option>
       {/each}

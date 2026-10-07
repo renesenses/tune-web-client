@@ -1095,6 +1095,7 @@ export default {
   "profiles.versionRule.title": "Versiunea redată implicit",
   "profiles.versionRule.hint": "Când aceeași înregistrare există în mai multe exemplare (bibliotecă, servicii), se redă cea aleasă de această regulă, pentru profilul activ.",
   "profiles.versionRule.inherit": "Implicit server ({rule})",
+  "profiles.versionRule.none": "Niciuna (redă ce este lansat)",
   "profiles.versionRule.local": "Mai întâi biblioteca",
   "profiles.versionRule.quality": "Cea mai bună calitate",
   "profiles.versionRule.service": "Mai întâi {service}",

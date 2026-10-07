@@ -1210,6 +1210,7 @@ export default {
   "profiles.versionRule.title": "Default playing version",
   "profiles.versionRule.hint": "When the same recording exists in several copies (library, services), playback plays the one this rule picks, for the active profile.",
   "profiles.versionRule.inherit": "Server default ({rule})",
+  "profiles.versionRule.none": "None (play what is launched)",
   "profiles.versionRule.local": "Library first",
   "profiles.versionRule.quality": "Best quality",
   "profiles.versionRule.service": "{service} first",

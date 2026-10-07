@@ -1089,6 +1089,7 @@ export default {
   "profiles.versionRule.title": "Versione riprodotta predefinita",
   "profiles.versionRule.hint": "Quando la stessa registrazione esiste in più copie (libreria, servizi), viene riprodotta quella scelta da questa regola, per il profilo attivo.",
   "profiles.versionRule.inherit": "Predefinito del server ({rule})",
+  "profiles.versionRule.none": "Nessuna (riproduci ciò che viene avviato)",
   "profiles.versionRule.local": "Prima la libreria",
   "profiles.versionRule.quality": "Migliore qualità",
   "profiles.versionRule.service": "Prima {service}",

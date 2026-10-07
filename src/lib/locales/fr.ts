@@ -1213,6 +1213,7 @@ export default {
   "profiles.versionRule.title": "Version jouée par défaut",
   "profiles.versionRule.hint": "Quand un même enregistrement existe en plusieurs exemplaires (bibliothèque, services), la lecture joue celui que désigne cette règle, pour le profil actif.",
   "profiles.versionRule.inherit": "Défaut du serveur ({rule})",
+  "profiles.versionRule.none": "Aucune (jouer ce qui est lancé)",
   "profiles.versionRule.local": "Bibliothèque d'abord",
   "profiles.versionRule.quality": "Meilleure qualité",
   "profiles.versionRule.service": "{service} d'abord",

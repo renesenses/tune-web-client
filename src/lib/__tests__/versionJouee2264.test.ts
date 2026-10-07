@@ -134,10 +134,12 @@ describe('#2264 — la règle se règle pour le profil actif', () => {
   type Appel = { url: string; method: string; body: unknown };
   let appels: Appel[];
   let regleProfil: string | null;
+  let regleGlobale: string;
 
   beforeEach(() => {
     appels = [];
     regleProfil = null;
+    regleGlobale = 'quality';
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input.toString();
       const method = init?.method ?? 'GET';
@@ -145,10 +147,13 @@ describe('#2264 — la règle se règle pour le profil actif', () => {
       appels.push({ url, method, body });
       if (url.includes('/library/versions/rule')) {
         if (method === 'PUT') regleProfil = (body as { rule: string | null }).rule;
-        if (url.includes('scope=global')) return reponse(200, { rule: 'quality', origin: 'setting', scope: 'global', profile_id: null });
+        const globale = regleGlobale === 'none'
+          ? { rule: 'none', origin: 'default', scope: 'global', profile_id: null }
+          : { rule: regleGlobale, origin: 'setting', scope: 'global', profile_id: null };
+        if (url.includes('scope=global')) return reponse(200, globale);
         return reponse(200, regleProfil
           ? { rule: regleProfil, origin: 'profile', scope: 'profile', profile_id: 1 }
-          : { rule: 'quality', origin: 'setting', scope: 'profile', profile_id: 1 });
+          : { ...globale, scope: 'profile', profile_id: 1 });
       }
       return reponse(200, {});
     }));
@@ -161,7 +166,7 @@ describe('#2264 — la règle se règle pour le profil actif', () => {
     expect(sel).toBeTruthy();
     expect(sel.value).toBe('');
     expect(texte(sel.options[0])).toBe('Défaut du serveur (Meilleure qualité)');
-    expect([...sel.options].map((o) => o.value)).toEqual(['', 'local', 'quality', 'service:qobuz', 'service:tidal', 'service:deezer', 'service:spotify']);
+    expect([...sel.options].map((o) => o.value)).toEqual(['', 'none', 'local', 'quality', 'service:qobuz', 'service:tidal', 'service:deezer', 'service:spotify']);
 
     sel.value = 'service:qobuz';
     sel.dispatchEvent(new Event('change', { bubbles: true }));
@@ -175,6 +180,24 @@ describe('#2264 — la règle se règle pour le profil actif', () => {
     await souffler();
     expect(appels.filter((a) => a.method === 'PUT').at(-1)?.body).toEqual({ rule: null });
     expect(sel.value).toBe('');
+  });
+});
+
+describe('#2264 — sans règle réglée nulle part (décision du 07/10)', () => {
+  it('le réglage affiche « Aucune (jouer ce qui est lancé) », sans option « Défaut du serveur »', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.includes('/library/versions/rule') && (init?.method ?? 'GET') === 'GET') {
+        return reponse(200, { rule: 'none', origin: 'default', scope: url.includes('scope=global') ? 'global' : 'profile', profile_id: 1 });
+      }
+      return reponse(200, {});
+    }));
+    monter(ReglageVersionJouee, {});
+    await souffler();
+    const sel = document.querySelector('[data-reglage="version-jouee"] select') as HTMLSelectElement;
+    expect(sel.value).toBe('none');
+    expect(texte(sel.selectedOptions[0])).toBe('Aucune (jouer ce qui est lancé)');
+    expect([...sel.options].map((o) => o.value)).not.toContain('');
   });
 });
 
@@ -194,6 +217,7 @@ describe('#2264 — aides et libellés', () => {
   });
 
   it('chaque règle a son libellé', () => {
+    expect(libelleRegle('none', tFr)).toBe('Aucune (jouer ce qui est lancé)');
     expect(libelleRegle('local', tFr)).toBe('Bibliothèque d\'abord');
     expect(libelleRegle('quality', tFr)).toBe('Meilleure qualité');
     expect(libelleRegle('service:tidal', tFr)).toBe('Tidal d\'abord');
@@ -204,7 +228,7 @@ describe('#2264 — aides et libellés', () => {
       'nowplaying.version.played', 'nowplaying.version.library', 'nowplaying.version.fallback',
       'nowplaying.version.fallbackTip', 'nowplaying.version.ruleTip', 'nowplaying.version.explicit',
       'profiles.versionRule.title', 'profiles.versionRule.hint', 'profiles.versionRule.inherit',
-      'profiles.versionRule.local', 'profiles.versionRule.quality', 'profiles.versionRule.service',
+      'profiles.versionRule.none', 'profiles.versionRule.local', 'profiles.versionRule.quality', 'profiles.versionRule.service',
       'profiles.versionRule.error',
     ];
     for (const dict of [fr, en, de, es, it_, ja, ko, ro, sv, zh, hu] as Record<string, string | undefined>[]) {

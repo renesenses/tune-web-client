@@ -1089,6 +1089,7 @@ export default {
   "profiles.versionRule.title": "默认播放版本",
   "profiles.versionRule.hint": "当同一录音有多个副本（资料库、服务）时，当前配置文件将播放此规则选择的那一个。",
   "profiles.versionRule.inherit": "服务器默认（{rule}）",
+  "profiles.versionRule.none": "无（播放所启动的内容）",
   "profiles.versionRule.local": "资料库优先",
   "profiles.versionRule.quality": "最佳音质",
   "profiles.versionRule.service": "{service}优先",

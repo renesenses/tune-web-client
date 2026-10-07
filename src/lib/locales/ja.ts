@@ -1089,6 +1089,7 @@ export default {
   "profiles.versionRule.title": "既定で再生するバージョン",
   "profiles.versionRule.hint": "同じ録音が複数（ライブラリ、サービス）にある場合、アクティブなプロファイルではこのルールで選ばれたものを再生します。",
   "profiles.versionRule.inherit": "サーバーの既定（{rule}）",
+  "profiles.versionRule.none": "なし（起動したものを再生）",
   "profiles.versionRule.local": "ライブラリ優先",
   "profiles.versionRule.quality": "最高音質",
   "profiles.versionRule.service": "{service}優先",
