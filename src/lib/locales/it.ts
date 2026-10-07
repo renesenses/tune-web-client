@@ -1097,6 +1097,7 @@ export default {
   "settings.licenseOfflineRule": "Senza connessione a internet, il tuo Premium resta attivo {days} giorni. Il contatore riparte da zero a ogni verifica riuscita.",
   "settings.restartServerNeeded": "Riavvia il server.",
   "settings.audioBackend": "Backend audio",
+  "settings.audioBackendNoLocalOutput": "Questo server non ha un’uscita audio locale: non c’è alcun backend da scegliere. Il suono passa dalle uscite di rete.",
   "settings.wasapiMode": "Modalità WASAPI",
   "tip.oxygenTrackRow": "Fai clic per i dettagli, doppio clic per avviare la riproduzione.",
   "tip.writeTags": "Salva e poi scrive queste informazioni nei file audio stessi, sul disco.",

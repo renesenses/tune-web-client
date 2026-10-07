@@ -1061,6 +1061,7 @@ export default {
   "settings.licenseOfflineRule": "Utan internetanslutning är ditt Premium aktivt i {days} dagar. Räknaren börjar om vid varje lyckad kontroll.",
   "settings.restartServerNeeded": "Starta om servern.",
   "settings.audioBackend": "Ljud-backend",
+  "settings.audioBackendNoLocalOutput": "Den här servern har ingen lokal ljudutgång, så det finns ingen backend att välja. Ljudet går via nätverksutgångar.",
   "settings.wasapiMode": "WASAPI-läge",
   "tip.oxygenTrackRow": "Klicka för detaljer, dubbelklicka för att spela upp.",
   "tip.writeTags": "Sparar och skriver sedan in uppgifterna i själva ljudfilerna, på disken.",

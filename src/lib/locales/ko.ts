@@ -1081,6 +1081,7 @@ export default {
   "settings.licenseOfflineRule": "인터넷 연결이 없어도 Premium은 {days}일 동안 유지됩니다. 확인에 성공할 때마다 기간이 다시 시작됩니다.",
   "settings.restartServerNeeded": "서버를 다시 시작하세요.",
   "settings.audioBackend": "오디오 백엔드",
+  "settings.audioBackendNoLocalOutput": "이 서버에는 로컬 오디오 출력이 없어 선택할 백엔드가 없습니다. 소리는 네트워크 출력으로 재생됩니다.",
   "settings.wasapiMode": "WASAPI 모드",
   "tip.oxygenTrackRow": "클릭하면 상세 정보, 두 번 클릭하면 재생을 시작합니다.",
   "tip.writeTags": "저장한 뒤, 이 정보를 디스크의 오디오 파일 자체에 기록합니다.",

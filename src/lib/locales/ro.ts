@@ -1103,6 +1103,7 @@ export default {
   "settings.licenseOfflineRule": "Fără conexiune la internet, Premium rămâne activ {days} zile. Contorul repornește la fiecare verificare reușită.",
   "settings.restartServerNeeded": "Repornește serverul.",
   "settings.audioBackend": "Backend audio",
+  "settings.audioBackendNoLocalOutput": "Acest server nu are ieșire audio locală, deci nu există niciun backend de ales. Sunetul trece prin ieșirile de rețea.",
   "settings.wasapiMode": "Mod WASAPI",
   "tip.oxygenTrackRow": "Clic pentru detalii, dublu clic pentru a porni redarea.",
   "tip.writeTags": "Salvează, apoi scrie aceste informații chiar în fișierele audio, pe disc.",
