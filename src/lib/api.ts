@@ -7607,7 +7607,11 @@ export interface MergedPlugin {
   display_name: string;
   description: string;
   version: string;
-  category: string;
+  /** Absents de `GET /plugins` (tune-server-rust#1897) : `category` et
+   *  `update_available` viennent du catalogue, `status` n'est émis que pour
+   *  une fiche en erreur (`status: 'error'`, #5403). L'écran les lit déjà en
+   *  facultatifs. */
+  category?: string;
   author?: string;
   icon?: string;
   install_count?: number;
@@ -7617,8 +7621,8 @@ export interface MergedPlugin {
   /** Server may send enabled instead of status for built-in plugins */
   enabled?: boolean;
   installed_version?: string | null;
-  update_available: boolean;
-  status: 'available' | 'active' | 'disabled' | 'error';
+  update_available?: boolean;
+  status?: 'available' | 'active' | 'disabled' | 'error';
   error_message?: string | null;
   /**
    * Greffon compilé resté en erreur (tune-server-rust#5403) : `setup_timeout`
