@@ -52,6 +52,7 @@ import { corpsDeFileListe, corpsDeLecture, estPisteLocale } from './pisteFile';
 import { FILE_ALEATOIRE_DEFAUT, plafondFileAleatoire } from './fileAleatoire';
 import { tirageAleatoire } from './porteeAleatoire';
 import type { Track } from './types';
+import { bornerPrecedents, enfilerDansLOrdre, remettreLesPrecedents } from './precedentsEnTete';
 /** Les portées que `POST /playback/shuffle-all` sait tirer lui-même. */
 export interface PorteeServeur {
   album_id?: number;
@@ -147,15 +148,71 @@ export async function lireListeAleatoire(liste: readonly Track[], g: GestesLectu
   return executer(planAleatoire(liste, plafond), g);
 }
 /**
- * « Lire à partir d'ici » : la liste depuis `index`, dans son ordre.
+ * « Lire à partir d'ici » : la liste ENTIÈRE dans la file, la lecture au rang
+ * `index`.
  *
  * Fabien, fil 1780 (16/09/2026), point 9 : « il manque une action "Lire à
  * partir d'ici" qui lance le titre sélectionné suivi des titres qui suivent
  * dans la liste affichée à l'écran — je la vois dans mes playlists, pas dans
- * mes favoris Qobuz. Il faudrait la généraliser. » Les playlists passent par
- * `start_index` côté serveur ; une liste quelconque (favoris, résultats) n'a
- * pas de « playlist » derrière : c'est le même plan tête-et-reste, tronqué.
+ * mes favoris Qobuz. Il faudrait la généraliser. »
+ *
+ * #5770 — la première version ne jouait que `liste.slice(index)` : les titres
+ * d'avant n'entraient jamais dans la file, et un second « Précédent » rejouait
+ * le titre cliqué au lieu de reculer, même sur une liste 100 % locale.
+ *
+ *   - Liste 100 % LOCALE : `POST /play` prend toute la liste en `track_ids` et
+ *     part de `start_index` (la route le borne à la file écrite), en un appel.
+ *     C'est ce que font les playlists. `start_index` sur `track_ids` existe
+ *     côté serveur depuis longtemps (déjà à v0.9.100) : aucun serveur ancien
+ *     ne le refuse.
+ *   - Liste de service ou mixte : `/play` ne prend qu'une piste de service.
+ *     On lance le titre cliqué, on enfile la suite, puis on remet ce qui
+ *     précède en tête (`position: 0`) — le procédé de `playFromHere`, par le
+ *     même module `precedentsEnTete`, sous la même garde : seulement si le
+ *     serveur a annoncé `queue_position`. Sinon, comme avant : la suite seule.
+ *
+ * #5758, point 1 — trois précisions :
+ *
+ *   - BORNE : seuls les `PRECEDENTS_MAX` (200) titres qui précèdent le titre
+ *     cliqué entrent dans la file ; la suite n'est pas bornée, comme avant.
+ *   - ORDRE : la suite et les précédents partent par segments homogènes
+ *     (`segmentsHomogenes`), parce qu'une requête mixte range les pistes
+ *     locales après les pistes de service.
+ *   - Titre cliqué LOCAL dans une liste mixte : `{ track_id, start_index: 0 }`
+ *     et non `{ track_id }` seul. Le serveur prend `{ track_id }` seul pour la
+ *     relance de la barre de transport (« demande nue », #2876 / #4298) et
+ *     GARDE alors la file existante si le titre y figure : la suite se serait
+ *     enfilée derrière l'ancienne file. `start_index` en fait un nouveau geste
+ *     d'écoute, qui remplace la file.
+ *
+ * Mode ALÉATOIRE de la zone : le client n'y touche pas (jamais `setShuffle`).
+ * Si la zone est en aléatoire, le serveur retire l'ordre de tirage autour du
+ * titre cliqué (`update_queue_info` → `generate_shuffle_order`) : il joue en
+ * premier, puis le tirage porte sur TOUTE la file, précédents compris — comme
+ * pour une playlist lancée par `start_index`. Avant ce correctif, le tirage ne
+ * portait que sur la suite.
+ *
+ * Rend le nombre de pistes envoyées.
  */
-export function lireListeDepuis(liste: readonly Track[], index: number, g: GestesLecture): Promise<number> {
-  return executer(planDeLecture(liste.slice(Math.max(0, index))), g);
+export async function lireListeDepuis(
+  liste: readonly Track[],
+  index: number,
+  g: GestesLecture,
+): Promise<number> {
+  const rang = Math.max(0, index);
+  const avant = bornerPrecedents(pistesJouables(liste.slice(0, rang)));
+  const depuis = pistesJouables(liste.slice(rang));
+  if (!depuis.length) return 0;
+
+  if (avant.every((t) => estPisteLocale(t)) && depuis.every((t) => estPisteLocale(t))) {
+    const ids = [...avant, ...depuis].map((t) => t.id!);
+    await g.lire(avant.length ? { track_ids: ids, start_index: avant.length } : { track_ids: ids });
+    return ids.length;
+  }
+
+  const tete = depuis[0];
+  await g.lire(estPisteLocale(tete) ? { track_id: tete.id!, start_index: 0 } : corpsDeLecture(tete)!);
+  await enfilerDansLOrdre(depuis.slice(1), g.enfiler);
+  const remis = await remettreLesPrecedents(avant, g.enfiler);
+  return depuis.length + (remis ? avant.length : 0);
 }
