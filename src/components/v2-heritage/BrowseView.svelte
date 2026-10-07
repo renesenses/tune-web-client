@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { get } from 'svelte/store';
   import { tip } from '../../lib/tooltip';
@@ -376,7 +377,7 @@
               {crumb.name}
             </button>
           {:else}
-            <span class="breadcrumb-current">{crumb.name}</span>
+            <span class="breadcrumb-current" use:bulleTexte>{crumb.name}</span>
           {/if}
         {/each}
       </nav>
@@ -450,9 +451,9 @@
             <div class="track-item" onclick={() => t.id && playFromTrack(index)}>
               <span class="track-num">{t.track_number ?? index + 1}</span>
               <div class="track-info">
-                <span class="track-title truncate">{t.title}</span>
+                <span class="track-title truncate" use:bulleTexte>{t.title}</span>
                 {#if t.artist_name}
-                  <span class="track-artist truncate">{t.artist_name}</span>
+                  <span class="track-artist truncate" use:bulleTexte>{t.artist_name}</span>
                 {/if}
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
@@ -510,7 +511,7 @@
             </svg>
             <div class="root-info">
               <span class="root-name">{root.name}</span>
-              <span class="root-path truncate">{root.path}</span>
+              <span class="root-path truncate" use:bulleTexte>{root.path}</span>
               {#if missing}
                 <span class="root-warning">{$tr('browse.rootMissing')}</span>
               {:else if empty}
