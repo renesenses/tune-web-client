@@ -4580,6 +4580,20 @@ export function getDynamicRangeProgress() {
   );
 }
 
+/**
+ * Lance tout de suite un passage de mesure de la plage dynamique — #1751,
+ * tune-server-rust#4185. 202 `started`, 200 `nothing_to_do`, et 409
+ * `already_running`, accepté ici : un passage qui court déjà n'est pas une
+ * erreur à crier, c'est une réponse à dire.
+ */
+export function lancerPlageDynamique() {
+  return fetchJSON<{ status?: string; total?: number }>(
+    `${BASE}/system/dynamic-range/analyze`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
+}
+
 export function getReplayGainProgress() {
   return fetchJSON<import('./santeReplayGain').AvancementReplayGain>(
     `${BASE}/system/replaygain/progress`,
