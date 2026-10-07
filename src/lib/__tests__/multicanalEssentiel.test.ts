@@ -148,7 +148,7 @@ describe('l’écran Réglages au niveau DÉBUTANT — le sélecteur est là', (
       ['', fr['zoneConfig.channelsFollow']],
       ['stereo', 'Stéréo'],
       ['surround51', '5.1'],
-      ['surround714', '7.1.4 (Atmos)'],
+      ['surround714', '7.1.4 (Atmos / Auro-3D)'],
     ]);
   });
 

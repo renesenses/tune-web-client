@@ -4580,6 +4580,20 @@ export function getDynamicRangeProgress() {
   );
 }
 
+/**
+ * Lance tout de suite un passage de mesure de la plage dynamique — #1751,
+ * tune-server-rust#4185. 202 `started`, 200 `nothing_to_do`, et 409
+ * `already_running`, accepté ici : un passage qui court déjà n'est pas une
+ * erreur à crier, c'est une réponse à dire.
+ */
+export function lancerPlageDynamique() {
+  return fetchJSON<{ status?: string; total?: number }>(
+    `${BASE}/system/dynamic-range/analyze`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
+}
+
 export function getReplayGainProgress() {
   return fetchJSON<import('./santeReplayGain').AvancementReplayGain>(
     `${BASE}/system/replaygain/progress`,
@@ -7057,6 +7071,23 @@ export async function previewImportConfig(data: any): Promise<unknown> {
 
 // --- MusicBrainz Batch Enrichment ---
 
+/**
+ * #1875 — ouvrir le dossier d'un album dans le gestionnaire de fichiers de la
+ * machine du SERVEUR. Admin, et seulement depuis un navigateur de cette même
+ * machine : voir `lib/revelerDossier`.
+ */
+export function getRevelationDisponible() {
+  return fetchJSON<{ available: boolean; reason?: string }>(
+    `${BASE}/library/reveal/available`, undefined, undefined, true,
+  );
+}
+
+export function revelerDossierAlbum(albumId: number) {
+  return fetchJSON<{ status: string; path?: string }>(
+    `${BASE}/library/albums/${albumId}/reveal`, { method: 'POST' }, undefined, true,
+  );
+}
+
 export function startBatchEnrich() {
   return fetchJSON<{ status: string }>(`${BASE}/library/enrich-all`, { method: 'POST' });
 }
@@ -9480,13 +9511,14 @@ export interface LocalisationConcerts {
 /** Sans `offset`, la première page, de la taille que le nuage choisit. Un
  *  serveur ancien ignore `offset` et rend toujours la même liste : l'écran ne
  *  le demande donc que si la réponse a dit `has_more`. */
-export function getConcertsAVenir(page: { offset?: number } = {}) {
+export function getConcertsAVenir(page: { offset?: number } = {}, signal?: AbortSignal) {
   // Suffixe de requête écrit EN LIGNE, sous la forme que lit le cartographe
   // du contrat (`scripts/web-contract-map.py`, dépôt serveur) : une variable
   // interpolée rendrait la route « non résolue » dans la carte.
+  // #1752 — `signal` : l'écran Concerts sait ARRÊTER la recherche.
   return fetchJSON<ConcertsAVenir>(
     `${BASE}/ext/concerts/upcoming${page.offset ? `?offset=${page.offset}` : ''}`,
-    undefined,
+    signal ? { signal } : undefined,
     undefined,
     true,
   );
@@ -9511,10 +9543,11 @@ export function setLocalisationConcerts(demande: {
   country: string;
   scope: PerimetreConcerts;
   radius_km?: number;
-}) {
+}, signal?: AbortSignal) {
   return fetchJSON<LocalisationConcerts>(`${BASE}/ext/concerts/location`, {
     method: 'POST',
     body: JSON.stringify(demande),
+    ...(signal ? { signal } : {}),
   }, undefined, true);
 }
 
