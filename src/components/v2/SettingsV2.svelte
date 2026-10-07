@@ -29,6 +29,7 @@
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { poserPhotoAppareil } from '../../lib/photoAppareil';
   import { emphaseParts } from '../../lib/i18nEmphase';
   import { preferences, estDispositionFile, DISPOSITION_FILE_DEFAUT } from '../../lib/stores/preferences';
   import { typesSourcesBarre } from '../../lib/sources';
@@ -281,7 +282,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     zonePhotoCible = null;
     if (!fichier || zid == null) return;
     try {
-      const r = await api.uploadZoneImage(zid, fichier);
+      // #1394 — rien ne part avant que l'utilisateur ait lu où va la photo.
+      const r = await poserPhotoAppareil(zid, fichier, {
+        confirmer: (m) => dialogs.confirm(m),
+        traduire: (k) => get(t)(k as any),
+      });
+      if (!r) return;
       zones.update((l) => l.map((x) => (x.id === zid ? { ...x, image_path: r.image_path } : x)));
     } catch (err: any) {
       notifications.error(err?.message ?? $t('v2.home.widgetFailed' as any));

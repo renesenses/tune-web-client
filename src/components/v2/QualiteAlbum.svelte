@@ -24,7 +24,7 @@
    */
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
-  import { getQualityTier } from '../../lib/utils';
+  import { qualiteCompacte } from '../../lib/typeDeFichier';
 
   interface Props {
     /** Album ou piste : tout objet portant format, fréquence et profondeur. */
@@ -51,19 +51,9 @@
    * Compacte, et non « FLAC · 192 kHz · 24-bit » : sur une vignette de 150 px,
    * la forme longue déborde et se fait élider — donc masquer, à nouveau.
    */
-  const qualite = $derived.by(() => {
-    if (!objet) return null;
-    if (getQualityTier(objet) === 'dsd') {
-      return (objet.sample_rate ?? 0) >= 5_000_000 ? 'DSD128' : 'DSD64';
-    }
-    const fmt = objet.format ? String(objet.format).toUpperCase() : null;
-    const khz = objet.sample_rate ? Math.round(objet.sample_rate / 100) / 10 : null;
-    const bits = objet.bit_depth ?? null;
-    // Un disque sans fréquence connue n'affiche que son format : mieux vaut
-    // « FLAC » seul qu'un « FLAC /  » bancal.
-    const chiffres = khz ? `${khz}${bits ? '/' + bits : ''}` : null;
-    return [fmt, chiffres].filter(Boolean).join(' ') || null;
-  });
+  // #1901 — la règle vit dans `lib/typeDeFichier`, où elle est éprouvée :
+  // le DSD y dit son vrai multiple (DSD256, DSD512) et son conteneur (DSF).
+  const qualite = $derived(qualiteCompacte(objet));
 </script>
 
 {#if source || qualite}

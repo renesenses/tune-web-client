@@ -76,7 +76,7 @@ export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year'
 const OXYGEN_FACETS_REMOVED: string[] = [];
 /** Révision courante de la liste de facettes livrée. À incrémenter en même
  *  temps qu'on ajoute une entrée à ADDED_BY_REV ci-dessous. */
-const OXYGEN_FACETS_REV = 5;
+const OXYGEN_FACETS_REV = 6;
 /** Facettes apparues à chaque révision : elles sont ajoutées une fois aux
  *  préférences déjà enregistrées, puis le choix de l'utilisateur fait foi. */
 const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
@@ -97,6 +97,12 @@ const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
   // pour eux — ce sont précisément les testeurs qui l'ont réclamée.
   4: ['dr'],
   // Révision 5 : rien d'inconditionnel. Voir OXYGEN_FACETS_DEFAUTS_REV4.
+  // #1640 — la facette RÉPERTOIRE (drill-down `/library/folder-facet`) était
+  // servie des deux côtés, mais AUCUN chemin ne l'activait : absente des
+  // défauts et de toute révision, elle ne s'obtenait qu'en la cochant à la
+  // main, au niveau Expert. Activée une fois chez ceux qui ont déjà des
+  // préférences, comme `dr` à la révision 4 ; décochée ensuite, elle le reste.
+  6: ['folder'],
 };
 /**
  * #1636 — les défauts livrés jusqu'à la révision 4, qui oubliaient `dr`.
@@ -435,7 +441,8 @@ const defaults: Preferences = {
   oxygenEnabled: false,
   oxygenView: 'detail',
   // `dr` en fait partie depuis #1636 : sans lui, un Oxygen neuf n'a pas de DR.
-  oxygenFacets: ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country'],
+  // #1640 — `folder` (Répertoire) : « circonscrire la recherche » à un dossier.
+  oxygenFacets: ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'folder'],
   oxygenFacetLimit: 200,
   oxygenFacetsRev: OXYGEN_FACETS_REV,
   albumSort: 'title',
