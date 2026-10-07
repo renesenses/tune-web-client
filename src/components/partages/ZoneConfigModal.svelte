@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import type { Zone, ZoneGroupResponse } from '../../lib/types';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
@@ -418,7 +419,7 @@
                 onchange={() => otherZone.id !== null && toggleZone(otherZone.id)}
                 disabled={loading}
               />
-              <span class="check-zone-name">{otherZone.name}</span>
+              <span class="check-zone-name" use:bulleTexte>{otherZone.name}</span>
               {#if otherZone.output_type && otherZone.output_type !== 'local'}
                 <span class="check-zone-badge">{deviceTypeLabel(otherZone)}</span>
               {/if}
@@ -488,7 +489,7 @@
             {#each pins as pin}
               <div class="pin-item">
                 <span class="pin-index">#{pin.index ?? '?'}</span>
-                <span class="pin-title">{pin.title || pin.uri || '(empty)'}</span>
+                <span class="pin-title" use:bulleTexte>{pin.title || pin.uri || '(empty)'}</span>
                 {#if pin.type}
                   <span class="pin-type-badge">{pin.type}</span>
                 {/if}
