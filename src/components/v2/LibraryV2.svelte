@@ -242,7 +242,7 @@
     const filtres: Record<string, string> = d ? { folder: d, q: saisie } : { q: saisie };
     const minuterie = setTimeout(() => {
       idsAlbumsDeLaPortee((limite, rang) => {
-        if (perime) return Promise.reject(new Error('saisie périmée'));
+        if (perime) return Promise.reject(new Error());
         return api.getAlbumsDetailed(filtres, limite, rang);
       })
         .then((ids) => { if (!perime) idsTexteServeur = ids; })
