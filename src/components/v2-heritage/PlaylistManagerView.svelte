@@ -576,8 +576,13 @@
   // de la rangée du haut (`viewTab`). FabienM, fil 1829 point 2 (web#1111) :
   // les deux rangées montaient le MÊME `SmartAIView` sous le MÊME libellé.
   /**
-   * Les quatre onglets avancés — Transferts, Synchro, Sauvegarde,
-   * Collaboratives — sont MASQUÉS.
+   * Les onglets avancés — Transferts et Collaboratives — sont MASQUÉS.
+   *
+   * Synchro et Sauvegarde ont été RETIRÉS après la rc3 (tune-server-rust
+   * #4741) : ils doublonnaient les liens et les snapshots du greffon
+   * « Playlists converter », dont les onglets ci-dessous font le même travail,
+   * et leurs routes `/playlist-manager/links*` et `/backup(s)*` ne sont plus
+   * que des alias dépréciés côté serveur.
    *
    * Bertrand, 22/09/2026 : « Masque tout cela en attendant Tune Circle et que
    * je réfléchisse ». Ils fonctionnent pourtant (routes mesurées sur le .18 :
@@ -605,7 +610,7 @@
    * ce greffon (Tune Circle pour les secondes).
    */
   type OngletConvertisseur = 'conv-transferts' | 'conv-snapshots' | 'conv-synchro';
-  let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab' | OngletConvertisseur>('playlists');
+  let managerTab = $state<'playlists' | 'transfers' | 'collab' | OngletConvertisseur>('playlists');
 
   /**
    * FabienM (fil 2057), go de Bertrand du 30/09/2026 : la bascule de
@@ -633,19 +638,6 @@
   // Transfer history
   let transferHistory = $state<any[]>([]);
   let historyLoading = $state(false);
-
-  // Sync links
-  let syncLinks = $state<any[]>([]);
-  let syncLoading = $state(false);
-  let syncing = $state<Set<number>>(new Set());
-
-  // Backup
-  let backingUp = $state(false);
-  let backupResult = $state<any>(null);
-  let snapshots = $state<api.PlaylistSnapshot[]>([]);
-  let snapshotsLoading = $state(false);
-  let restoringSnapshotId = $state<number | null>(null);
-  let restoreMessage = $state('');
 
   // Service capabilities
   let serviceCapabilities = $state<
@@ -987,95 +979,9 @@
       historyLoading = true;
       try { transferHistory = await api.getTransferHistory(); } catch {}
       historyLoading = false;
-    } else if (managerTab === 'sync') {
-      syncLoading = true;
-      try {
-        syncLinks = await api.getPlaylistLinks();
-        serviceCapabilities = await api.getPlaylistManagerServices();
-      } catch {}
-      syncLoading = false;
-    } else if (managerTab === 'backup') {
-      await loadSnapshots();
     } else if (managerTab === 'collab') {
       await loadCollabPlaylists();
     }
-  }
-
-  async function loadSnapshots() {
-    snapshotsLoading = true;
-    try { snapshots = await api.listPlaylistSnapshots(); } catch {}
-    snapshotsLoading = false;
-  }
-
-  async function restoreSnapshot(snap: api.PlaylistSnapshot) {
-    const name = await dialogs.prompt($tr('playlistManager.restorePrompt').replaceAll('{name}', snap.playlist_name), snap.playlist_name);
-    if (name === null) return;
-    restoringSnapshotId = snap.id;
-    restoreMessage = '';
-    try {
-      const result = await api.restorePlaylistSnapshot(snap.id, {
-        target_name: name || undefined,
-      });
-      restoreMessage = $tr('playlistManager.restoreSuccess')
-        .replace('{name}', result.name)
-        .replace('{matched}', String(result.tracks_matched))
-        .replace('{notFound}', String(result.tracks_not_found));
-    } catch (err: any) {
-      // If conflict, ask user about overwrite
-      if (err?.message?.includes('already exists') || err?.status === 409) {
-        if (await dialogs.confirm($tr('playlistManager.confirmOverwrite').replace('{name}', name || snap.playlist_name), { danger: true })) {
-          try {
-            const result = await api.restorePlaylistSnapshot(snap.id, {
-              target_name: name || undefined,
-              overwrite_existing: true,
-            });
-            restoreMessage = $tr('playlistManager.overwriteSuccess')
-              .replace('{name}', result.name)
-              .replace('{matched}', String(result.tracks_matched))
-              .replace('{notFound}', String(result.tracks_not_found));
-          } catch (err2: any) {
-            restoreMessage = $tr('playlistManager.errorGeneric').replace('{error}', String(err2.message || err2));
-          }
-        }
-      } else {
-        restoreMessage = $tr('playlistManager.errorGeneric').replace('{error}', String(err.message || err));
-      }
-    }
-    restoringSnapshotId = null;
-  }
-
-  async function deleteSnapshot(snap: api.PlaylistSnapshot) {
-    if (!(await dialogs.confirm($tr('playlistManager.confirmDeleteSnapshot').replace('{name}', snap.playlist_name), { danger: true }))) return;
-    try {
-      await api.deletePlaylistSnapshot(snap.id);
-      snapshots = snapshots.filter(s => s.id !== snap.id);
-    } catch (err: any) {
-      notifications.error($tr('playlistManager.errorGeneric').replace('{error}', errText(err) ?? $tr('common.serverUnreachable')));
-    }
-  }
-
-  async function triggerSync(linkId: number) {
-    syncing = new Set([...syncing, linkId]);
-    try {
-      await api.triggerPlaylistSync(linkId);
-      syncLinks = await api.getPlaylistLinks();
-    } catch {}
-    syncing.delete(linkId);
-    syncing = new Set(syncing);
-  }
-
-  async function deleteLink(linkId: number) {
-    try {
-      await api.deletePlaylistLink(linkId);
-      syncLinks = syncLinks.filter(l => l.id !== linkId);
-    } catch {}
-  }
-
-  async function doBackup() {
-    backingUp = true;
-    try { backupResult = await api.backupPlaylists(); } catch {}
-    backingUp = false;
-    await loadSnapshots();
   }
 
   // Available filter chips
@@ -2068,8 +1974,6 @@
         <button class="pm-tab" class:active={managerTab === 'playlists'} onclick={() => managerTab = 'playlists'}>{$tr('playlistManager.tabPlaylists')}</button>
         {#if ONGLETS_AVANCES}
           <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>{$tr('playlistManager.tabTransfers')}</button>
-          <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>{$tr('playlistManager.tabSync')}</button>
-          <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>{$tr('playlistManager.tabBackup')}</button>
           <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>{$tr('playlistManager.tabCollab')}</button>
         {/if}
         {#if $convertisseurCharge}
@@ -2300,105 +2204,6 @@
           <p class="pm-premium">{$tr('playlistManager.premiumTransfers' as any)}</p>
         </div>
       {/if}
-    {:else if managerTab === 'sync'}
-      {#if $isPremium}
-        <!-- Sync Links Tab -->
-        <div class="pm-tab-content">
-          <div class="tab-actions">
-            <h3>{$tr('playlistManager.syncLinks')}</h3>
-          </div>
-          {#if syncLoading}
-            <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
-          {:else if syncLinks.length === 0}
-            <div class="empty">{$tr('playlistManager.noSyncLinks')}</div>
-          {:else}
-            {#each syncLinks as link}
-              <div class="sync-row">
-                <div class="sync-info">
-                  <span>Playlist #{link.local_playlist_id}</span>
-                  <span class="sync-arrow">↔ {link.service} / {link.service_playlist_id}</span>
-                  <span class="sync-dir">{link.sync_direction}</span>
-                </div>
-                <div class="sync-actions">
-                  <button class="btn-sm" onclick={() => triggerSync(link.id)} disabled={syncing.has(link.id)}>
-                    {syncing.has(link.id) ? 'Sync...' : 'Sync'}
-                  </button>
-                  <button class="btn-sm danger" onclick={() => deleteLink(link.id)}>✕</button>
-                </div>
-                {#if link.last_synced_at}
-                  <span class="sync-date">{$tr('playlistManager.last')}: {link.last_synced_at.substring(0, 16)}</span>
-                {/if}
-              </div>
-            {/each}
-          {/if}
-        </div>
-
-      {:else}
-        <!-- Coupure nette, comme le crossfeed et le convertisseur : on ne grise
-             pas, on DIT pourquoi. La fonction rejoint le greffon premium
-             « Playlists converter » (Bertrand, 21/09/2026). -->
-        <div class="pm-tab-content">
-          <p class="pm-premium">{$tr('playlistManager.premiumSync' as any)}</p>
-        </div>
-      {/if}
-    {:else if managerTab === 'backup'}
-      <!-- Backup Tab -->
-      <div class="pm-tab-content">
-        <div class="tab-actions">
-          <h3>{$tr('playlistManager.backupExport')}</h3>
-          <div class="tab-btns">
-            <button class="btn-action" onclick={doBackup} disabled={backingUp}>
-              {backingUp ? $tr('playlistManager.backingUp') : $tr('playlistManager.backupAll')}
-            </button>
-          </div>
-        </div>
-        {#if backupResult}
-          <div class="backup-result">
-            <span class="stat-ok">{$tr('v2.pl.playlistCount' as any).replace('{n}', String(backupResult.playlists_backed_up))}</span>
-            <span class="stat-ok">{$tr('playlistManager.tracksSnapshotted').replace('{count}', String(backupResult.total_tracks_snapshot))}</span>
-          </div>
-        {/if}
-
-        <h4 style="margin-top: 24px;">{$tr('playlistManager.savedSnapshots')}</h4>
-        {#if restoreMessage}
-          <div class="backup-result" style="margin-bottom: 8px;">
-            <span>{restoreMessage}</span>
-          </div>
-        {/if}
-        {#if snapshotsLoading}
-          <p class="muted">{$tr('common.loading')}</p>
-        {:else if snapshots.length === 0}
-          <p class="muted">{$tr('playlistManager.noSnapshots')}</p>
-        {:else}
-          <div class="snapshots-list">
-            {#each snapshots as snap (snap.id)}
-              <div class="snapshot-row">
-                <div class="snapshot-info">
-                  <span class="snapshot-name">{snap.playlist_name}</span>
-                  <span class="snapshot-meta">
-                    {snap.source_service} · {snap.track_count} {$tr('common.tracks')}
-                    {#if snap.created_at}· {new Date(snap.created_at).toLocaleString()}{/if}
-                  </span>
-                </div>
-                <div class="snapshot-actions">
-                  <button
-                    class="btn-action"
-                    onclick={() => restoreSnapshot(snap)}
-                    disabled={restoringSnapshotId === snap.id}
-                  >
-                    {restoringSnapshotId === snap.id ? $tr('playlistManager.restoring') : $tr('playlistManager.restore')}
-                  </button>
-                  <button class="btn-action btn-danger" onclick={() => deleteSnapshot(snap)}>
-                    {$tr('common.delete')}
-                  </button>
-                </div>
-              </div>
-            {/each}
-          </div>
-        {/if}
-
-      </div>
-
     {:else if managerTab === 'collab'}
       <!-- Collaborative Playlists Tab -->
       <div class="pm-tab-content">
