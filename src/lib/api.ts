@@ -919,6 +919,48 @@ export function updateZoneChannelLayout(id: number, layout: string) {
   });
 }
 
+/**
+ * FONDU ENCHAÎNÉ d'une zone — #2211 (serveur `renesenses/tune-server-rust`).
+ *
+ * Le serveur superpose désormais deux pistes décodées sur la sortie LOCALE
+ * (carte son ou DAC raccordé au serveur) : la fin de l'une, le début de la
+ * suivante, sous une enveloppe à puissance constante. Une durée de 0 à 12 s,
+ * `0` = désactivé (défaut).
+ *
+ * `available` est faux pour une zone réseau : la route y refuse l'activation
+ * (501 `crossfade_unavailable_for_output`) et l'écran ne propose pas le
+ * réglage. La durée vaut à la frontière SUIVANTE entre deux pistes.
+ */
+export interface CrossfadeSetting {
+  zone_id: number;
+  available: boolean;
+  output_type?: string;
+  enabled: boolean;
+  duration: number;
+  max_duration?: number;
+}
+
+export interface CrossfadeUpdate {
+  zone_id: number;
+  available: boolean;
+  crossfade_enabled: boolean;
+  crossfade_duration: number;
+  /** `null` : aucune sortie locale vivante ; `false` : bras exclusif, qui
+   *  enchaîne sans blanc mais ne fond pas. */
+  applies_on_this_output: boolean | null;
+}
+
+export function getZoneCrossfade(zoneId: number) {
+  return fetchJSON<CrossfadeSetting>(`${BASE}/zones/${zoneId}/crossfade`);
+}
+
+export function setZoneCrossfade(zoneId: number, durationSeconds: number) {
+  return fetchJSON<CrossfadeUpdate>(`${BASE}/zones/${zoneId}/crossfade`, {
+    method: 'POST',
+    body: JSON.stringify({ duration: durationSeconds }),
+  });
+}
+
 export function updateZoneMonoDownmix(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
