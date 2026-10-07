@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Le menu « … » d'un OBJET — album, artiste, playlist, playlist intelligente,
    * collection, collection intelligente, label.
@@ -247,7 +248,7 @@
             <button role="menuitem" title={l.libelle} style={`padding-left:${10 + 12 * (l.profondeur ?? 0)}px`}
               onclick={(ev) => choisirSous(ev, l)}>{l.libelle}</button>
           {:else}
-            <div class="mo-intertitre" style={`padding-left:${10 + 12 * (l.profondeur ?? 0)}px`}>{l.libelle}</div>
+            <div class="mo-intertitre" style={`padding-left:${10 + 12 * (l.profondeur ?? 0)}px`} use:bulleTexte>{l.libelle}</div>
           {/if}
         {/each}
       {:else}
