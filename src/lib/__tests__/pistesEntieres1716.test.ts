@@ -102,7 +102,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const pistesDemandees = () => urls.filter((u) => /\/library\/tracks\?limit=/.test(u));
+// Les pages de la liste ENTIÈRE. Celle que l'onglet Titres demande d'abord
+// pour savoir si le serveur pagine (#1716, `order=`) n'en est pas une.
+const pistesDemandees = () => urls.filter((u) => /\/library\/tracks\?limit=\d+&offset=\d+$/.test(u));
 const offsets = () => pistesDemandees().map((u) => Number(/offset=(\d+)/.exec(u)![1]));
 
 describe('#1716 — api.getAllTracks : grandes pages, deux à la fois, rien de perdu', () => {

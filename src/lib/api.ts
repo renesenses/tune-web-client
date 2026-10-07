@@ -2716,6 +2716,59 @@ export async function getAllTracks(
   return all;
 }
 
+/**
+ * Une page TRIÉE de l'onglet Titres, servie par le serveur — #1716.
+ *
+ * `GET /library/tracks?sort=…&order=…&search=…&provenance=…&counts=sources` :
+ * le serveur trie, cherche (titre ou artiste), filtre par provenance et compte
+ * par provenance. Rend `null` face à un serveur qui ne sait pas le faire : il
+ * ignore ces paramètres et rend une page de l'ordre par défaut, sans `order`.
+ * L'appelant retombe alors sur la liste entière (`demanderToutesLesPistes`).
+ */
+export interface PagePistesServeur {
+  items: Track[];
+  total: number;
+  /** Comptes par provenance (`counts=sources`), agrégat `upnp` compris. */
+  comptes: Map<string, number> | null;
+  /** « Toutes les sources » : chaque piste une fois. */
+  totalToutesSources: number | null;
+}
+
+export async function getPagePistes(opts: {
+  search?: string;
+  provenance?: string | null;
+  sort?: string | null;
+  order?: 'asc' | 'desc';
+  folder?: string | null;
+  limit: number;
+  offset: number;
+  counts?: boolean;
+  signal?: AbortSignal;
+}): Promise<PagePistesServeur | null> {
+  const params = new URLSearchParams();
+  params.set('limit', String(opts.limit));
+  params.set('offset', String(opts.offset));
+  // `order` part TOUJOURS : c'est lui qui ouvre la page triée côté serveur,
+  // et sa présence dans la réponse qui dit que le serveur l'a comprise.
+  params.set('order', opts.order ?? 'asc');
+  if (opts.sort) params.set('sort', opts.sort);
+  if (opts.search?.trim()) params.set('search', opts.search.trim());
+  if (opts.provenance) params.set('provenance', opts.provenance);
+  if (opts.folder) params.set('folder', opts.folder);
+  if (opts.counts) params.set('counts', 'sources');
+  const raw = await fetchJSON<any>(`${BASE}/library/tracks?${params}`, opts.signal ? { signal: opts.signal } : undefined);
+  if (raw == null || Array.isArray(raw) || typeof raw.order !== 'string' || typeof raw.total !== 'number') return null;
+  const comptes = raw.source_counts && typeof raw.source_counts === 'object'
+    ? new Map(Object.entries(raw.source_counts).filter(([, n]) => typeof n === 'number') as [string, number][])
+    : null;
+  return {
+    items: Array.isArray(raw.items) ? raw.items : [],
+    total: raw.total,
+    comptes,
+    totalToutesSources: typeof raw.total_all_sources === 'number' ? raw.total_all_sources : null,
+  };
+}
+
 export function searchLibrary(q: string, limit = 50, offset = 0) {
   // #4663 — `offset` n'est envoyé que s'il porte une valeur : la première page
   // reste l'URL d'avant, octet pour octet.
