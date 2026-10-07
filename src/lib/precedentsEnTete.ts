@@ -52,35 +52,116 @@ export function oublierCapaciteCurseur(): void {
 }
 
 /**
- * Les requêtes qui remettent `avant` en tête, dans l'ordre.
+ * Combien de titres PRÉCÉDENTS « Lire à partir d'ici » remet dans la file
+ * (#5758, point 1).
  *
- * Une liste homogène part en un appel. Une liste mixte part ligne par ligne,
- * aux rangs 0, 1, 2… : dans une même requête, le serveur range les pistes
- * locales APRÈS les pistes de service, ce qui briserait l'ordre.
+ * La file reçoit la liste entière pour que « Précédent » remonte la liste.
+ * Mais une liste peut être très longue (les Titres d'une grande bibliothèque,
+ * des milliers de favoris) : cliquer le 4 000ᵉ titre enverrait 3 999 titres
+ * que personne ne remontera un par un, et, sur une liste mixte, autant de
+ * segments à insérer. On garde donc les `PRECEDENTS_MAX` titres qui précèdent
+ * IMMÉDIATEMENT le titre cliqué ; au-delà, la file commence plus bas dans la
+ * liste. La SUITE n'est pas bornée : c'était déjà le cas avant ce correctif,
+ * et la borner retirerait des titres qu'on entendait jusqu'ici.
+ *
+ * 200 : vingt fois plus que les « Précédent » d'une écoute ordinaire, et une
+ * requête qui reste petite (200 identifiants).
+ */
+export const PRECEDENTS_MAX = 200;
+
+/** Les `PRECEDENTS_MAX` derniers éléments de `avant`, dans leur ordre. */
+export function bornerPrecedents<T>(avant: readonly T[]): T[] {
+  return avant.slice(Math.max(0, avant.length - PRECEDENTS_MAX));
+}
+
+/**
+ * Découpe une liste en segments CONSÉCUTIFS homogènes (tout local, ou tout
+ * service), dans l'ordre.
+ *
+ * Dans une même requête `queue/add`, le serveur range les pistes locales APRÈS
+ * les pistes de service : une liste mixte envoyée d'un bloc perdrait son ordre.
+ * Un segment homogène, lui, le garde. Une liste qui alterne (local, service,
+ * local) fait autant de segments que de changements, jamais plus.
+ */
+export function segmentsHomogenes(liste: readonly Track[]): Track[][] {
+  const segments: Track[][] = [];
+  let courant: Track[] = [];
+  let local: boolean | null = null;
+  for (const t of liste) {
+    const l = estPisteLocale(t);
+    if (local !== null && l !== local) {
+      segments.push(courant);
+      courant = [];
+    }
+    courant.push(t);
+    local = l;
+  }
+  if (courant.length) segments.push(courant);
+  return segments;
+}
+
+/** Le corps d'ajout d'un segment homogène, au rang donné. */
+function corpsDuSegment(segment: readonly Track[], position?: number): AddToQueueRequest | null {
+  return segment.length === 1 ? corpsDeFile(segment[0], position) : corpsDeFileListe([...segment], position);
+}
+
+/**
+ * Les requêtes qui remettent `avant` en tête, dans l'ordre : un appel par
+ * segment homogène, aux rangs 0, n₁, n₁ + n₂… (rangs NOMINAUX : à
+ * l'exécution, `remettreLesPrecedents` les recale sur ce que le serveur a
+ * réellement inséré).
  */
 export function corpsDesPrecedents(avant: readonly Track[]): AddToQueueRequest[] {
-  if (!avant.length) return [];
-  const locales = avant.filter((t) => estPisteLocale(t));
-  if (locales.length === avant.length || locales.length === 0) {
-    const corps = corpsDeFileListe([...avant], 0);
-    return corps ? [corps] : [];
+  const corps: AddToQueueRequest[] = [];
+  let rang = 0;
+  for (const segment of segmentsHomogenes(avant)) {
+    const c = corpsDuSegment(segment, rang);
+    if (c) corps.push(c);
+    rang += segment.length;
   }
-  return avant
-    .map((t, i) => corpsDeFile(t, i))
-    .filter((c): c is AddToQueueRequest => c != null);
+  return corps;
+}
+
+/** Ce que la réponse de `queue/add` dit avoir inséré, si elle le dit. */
+function insere(rep: unknown, defaut: number): number {
+  const n = rep && typeof rep === 'object' ? (rep as { added?: unknown }).added : undefined;
+  return typeof n === 'number' && n >= 0 ? n : defaut;
+}
+
+/**
+ * Enfiler `liste` à la FIN de la file, segment par segment, dans l'ordre.
+ * Chaque réponse est relevée par `noterReponseAjout`.
+ */
+export async function enfilerDansLOrdre(
+  liste: readonly Track[],
+  enfiler: (corps: AddToQueueRequest) => Promise<unknown>,
+): Promise<void> {
+  for (const segment of segmentsHomogenes(liste)) {
+    const c = corpsDuSegment(segment);
+    if (c) noterReponseAjout(await enfiler(c));
+  }
 }
 
 /**
  * Insérer `avant` en tête si le serveur garde la piste en cours sous le
  * curseur. Rend `true` si l'insertion a été envoyée.
+ *
+ * Le rang du segment suivant est celui que le serveur a RÉELLEMENT atteint
+ * (`added` de la réponse) : une piste locale disparue de la bibliothèque
+ * n'est pas insérée, et un rang nominal glisserait alors d'une ligne.
  */
 export async function remettreLesPrecedents(
   avant: readonly Track[],
   enfiler: (corps: AddToQueueRequest) => Promise<unknown>,
 ): Promise<boolean> {
   if (!avant.length || !peutRemettreEnTete()) return false;
-  const corps = corpsDesPrecedents(avant);
-  if (!corps.length) return false;
-  for (const c of corps) await enfiler(c);
-  return true;
+  let rang = 0;
+  let envoye = false;
+  for (const segment of segmentsHomogenes(avant)) {
+    const c = corpsDuSegment(segment, rang);
+    if (!c) continue;
+    rang += insere(await enfiler(c), segment.length);
+    envoye = true;
+  }
+  return envoye;
 }

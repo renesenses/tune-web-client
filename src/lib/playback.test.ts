@@ -202,6 +202,32 @@ describe('playFromHere — les titres précédents (#5770)', () => {
     expect(addToQueue.mock.calls[0][1]).toMatchObject({ position: 0 });
   });
 
+  // #5758 — au plus 200 titres avant le titre cliqué, et un titre local
+  // cliqué dans une liste mixte n'est pas une « demande nue ».
+  it('liste locale très longue : au plus 200 titres avant le titre cliqué', async () => {
+    const liste = Array.from({ length: 1000 }, (_, i) => local(i + 1));
+    await playFromHere(liste, 600);
+    const corps = playAndSync.mock.calls[0][1];
+    expect(corps.track_ids[0]).toBe(401);
+    expect(corps.track_ids).toHaveLength(600);
+    expect(corps.track_ids[corps.start_index]).toBe(601);
+  });
+
+  it('liste de service très longue : 200 précédents en tête', async () => {
+    addToQueue.mockImplementation(serveurNeuf);
+    const liste = Array.from({ length: 300 }, (_, i) => flux(`s${i}`));
+    await playFromHere(liste, 250);
+    const tete = addToQueue.mock.calls.map((c) => c[1]).find((c: any) => c.position === 0);
+    expect(tete.tracks).toHaveLength(200);
+    expect(tete.tracks[0].source_id).toBe('s50');
+  });
+
+  it('titre local cliqué dans une liste mixte : `start_index`, pas `{ track_id }` seul', async () => {
+    addToQueue.mockImplementation(serveurNeuf);
+    await playFromHere([flux('a'), local(7), flux('b')], 1);
+    expect(playAndSync.mock.calls[0][1]).toEqual({ track_id: 7, start_index: 0 });
+  });
+
   it('le lancement reste `playAndSync` (contexte de lecture, boucle par défaut)', async () => {
     addToQueue.mockImplementation(serveurNeuf);
     await playFromHere([flux('x'), flux('y'), flux('z')], 1);

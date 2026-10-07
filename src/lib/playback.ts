@@ -5,7 +5,7 @@ import { notifications } from './stores/notifications';
 import { queueTracks, queuePosition } from './stores/queue';
 import { t } from './i18n';
 import { champAlbumBandcamp } from './albumBandcampDuTitre';
-import { noterReponseAjout, remettreLesPrecedents } from './precedentsEnTete';
+import { PRECEDENTS_MAX, bornerPrecedents, noterReponseAjout, remettreLesPrecedents } from './precedentsEnTete';
 import type { Track } from './types';
 
 /**
@@ -47,7 +47,10 @@ async function lireUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
       ...champAlbumBandcamp(t),
     } as any);
   } else {
-    await playAndSync(zoneId, { track_id: t.id as number });
+    // #5758 — `start_index` : sans lui, `{ track_id }` seul est la « demande
+    // nue » de la barre de transport (#2876 / #4298), et le serveur GARDE la
+    // file existante si le titre y figure ; la suite s'enfilerait derrière.
+    await playAndSync(zoneId, { track_id: t.id as number, start_index: 0 });
   }
 }
 
@@ -138,9 +141,11 @@ export async function playFromHere(
 
   try {
     // All-local: one call, start_index — unchanged behaviour.
+    // #5758 — au plus `PRECEDENTS_MAX` titres avant le titre cliqué.
     if (liste.every(t => typeof t?.id === 'number')) {
-      const ids = liste.map(t => t.id as number);
-      await playAndSync(zoneId, { track_ids: ids, start_index: Math.max(0, index) });
+      const debut = Math.max(0, index - PRECEDENTS_MAX);
+      const ids = liste.slice(debut).map(t => t.id as number);
+      await playAndSync(zoneId, { track_ids: ids, start_index: Math.max(0, index - debut) });
       return;
     }
 
@@ -156,7 +161,7 @@ export async function playFromHere(
     }
     // #5770 — puis ce qui précède, en tête, si le serveur sait garder la
     // piste en cours sous le curseur. Sinon, comme avant : la suite seule.
-    const avant = liste.slice(0, index).filter(jouable);
+    const avant = bornerPrecedents(liste.slice(0, index).filter(jouable));
     await remettreLesPrecedents(avant as Track[], (c) => api.addToQueue(zoneId, c));
     // The queue view follows `POST /play`'s zone, not our appends: re-read it,
     // otherwise "up next" stays empty until the next WebSocket event.
