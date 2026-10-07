@@ -119,9 +119,12 @@ describe('le catalogue', () => {
     // 07/09/2026) : format, fréquence et profondeur sont descendues d'Expert.
     // La pastille Qualité les résume déjà en Essentiel ; ces colonnes servent
     // à TRIER, ce qui n'est pas un geste d'expert.
+    // #1901 : « Format » est descendue à TOUS les niveaux — le type de
+    // fichier, demandé en colonne dès l'Essentiel.
     expect(par('intermediate')).toEqual(
-      ['album', 'albumArtist', 'bitDepth', 'disc', 'format', 'label', 'sampleRate'].sort(),
+      ['album', 'albumArtist', 'bitDepth', 'disc', 'label', 'sampleRate'].sort(),
     );
+    expect(PAR_CLE.format.min).toBeUndefined();
     // Expert ne garde que ce qui décrit le FICHIER plutôt que la musique.
     expect(par('expert')).toEqual(
       ['comments', 'discSubtitle', 'dr', 'hash', 'isrc', 'mbid', 'modified', 'path', 'size', 'source'].sort(),
