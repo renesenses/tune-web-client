@@ -367,6 +367,8 @@ export default {
   'playlist.importError': 'Importul a eșuat',
   'playlist.filterAll': 'Toate',
   'playlist.transfer': 'Transferă',
+  "playlist.transferPremium": "Transferul unei liste între servicii, sau dintr-un serviciu în bibliotecă, face parte din Tune Premium. Duplicarea unei liste din bibliotecă rămâne gratuită.",
+  "playlist.transferPremiumLink": "Descoperă Tune Premium",
   'playlist.transferTo': 'Transferă către...',
   'playlist.transferring': 'Se transferă...',
   'playlist.transferComplete': 'Transfer finalizat',

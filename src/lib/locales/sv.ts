@@ -332,6 +332,8 @@ export default {
   'playlist.importError': 'Importen misslyckades',
   'playlist.filterAll': 'Alla',
   'playlist.transfer': 'Överför',
+  "playlist.transferPremium": "Att överföra en spellista mellan tjänster, eller från en tjänst till biblioteket, ingår i Tune Premium. Att duplicera en spellista i biblioteket är fortfarande gratis.",
+  "playlist.transferPremiumLink": "Upptäck Tune Premium",
   'playlist.transferTo': 'Överför till...',
   'playlist.transferring': 'Överför...',
   'playlist.transferComplete': 'Överföring klar',

@@ -361,6 +361,8 @@ export default {
   'playlist.importError': 'インポートに失敗しました',
   'playlist.filterAll': 'すべて',
   'playlist.transfer': '転送',
+  "playlist.transferPremium": "サービス間、またはサービスからライブラリへのプレイリスト転送は Tune Premium の機能です。ライブラリのプレイリストの複製は引き続き無料です。",
+  "playlist.transferPremiumLink": "Tune Premium を見る",
   'playlist.transferTo': '転送先...',
   'playlist.transferring': '転送中...',
   'playlist.transferComplete': '転送が完了しました',

@@ -54,6 +54,7 @@
   import { convertisseurCharge, rafraichirConvertisseur } from '../../lib/stores/convertisseurPlaylists';
   // #4741 — la raison d'un titre introuvable, dans les mots de l'onglet du greffon.
   import { cleRaison } from '../../lib/convertisseurPlaylists';
+  import { estRefusPremium } from '../../lib/premiumRefus';
   import TransfertsConvertisseur from './convertisseur/TransfertsConvertisseur.svelte';
   import SnapshotsConvertisseur from './convertisseur/SnapshotsConvertisseur.svelte';
   import LiensConvertisseur from './convertisseur/LiensConvertisseur.svelte';
@@ -842,6 +843,7 @@
     if (!qtSourcePlaylistId || !qtSourceService) return;
     qtTransferring = true;
     qtResult = null;
+    refusTransfert = null;
     qtExpandedAlternatives = new Set();
     try {
       const v2Result = await api.transferPlaylistV2({
@@ -880,7 +882,7 @@
       playlistsStore.set(list);
     } catch (e: any) {
       console.error('Quick transfer error:', e);
-      notifications.error(e.message || 'Transfer failed');
+      if (!noterRefusTransfert(e)) notifications.error(e.message || 'Transfer failed');
     }
     qtTransferring = false;
   }
@@ -1364,7 +1366,24 @@
   }
 
   // Import flow
+  /**
+   * Bertrand, 07/10/2026 : transférer une playlist entre services (ou d'un
+   * service vers la bibliothèque) est Premium. Un compte gratuit reçoit un 402
+   * `premium_required` (tune-server-rust#5954) : on l'EXPLIQUE, avec le lien
+   * vers l'offre que le serveur donne (`upgrade_url`), au lieu de l'ancien échec
+   * muet. « Dupliquer » dans la bibliothèque reste gratuit et n'arrive pas ici.
+   */
+  let refusTransfert = $state<{ url: string | null } | null>(null);
+
+  function noterRefusTransfert(e: unknown): boolean {
+    if (!estRefusPremium(e)) return false;
+    const url = (e as { corps?: { upgrade_url?: unknown } }).corps?.upgrade_url;
+    refusTransfert = { url: typeof url === 'string' && /^https?:\/\//.test(url) ? url : null };
+    return true;
+  }
+
   function openImport(service: string, pl: StreamingPlaylist) {
+    refusTransfert = null;
     importTarget = { service, playlist: pl };
     importName = pl.name;
     importResult = null;
@@ -1403,7 +1422,7 @@
       playlistsStore.set(list);
     } catch (e) {
       console.error('Import playlist error:', e);
-      importResult = { name: importName, count: -1, total: 0 };
+      if (!noterRefusTransfert(e)) importResult = { name: importName, count: -1, total: 0 };
     }
     importing = false;
   }
@@ -1577,6 +1596,7 @@
     transferTargetService = 'local';
     transferResult = null;
     transferring = false;
+    refusTransfert = null;
     showTransfer = true;
   }
 
@@ -1710,6 +1730,7 @@
       playlistsStore.set(list);
     } catch (e) {
       console.error('Transfer playlist error:', e);
+      noterRefusTransfert(e);
     }
     transferring = false;
   }
@@ -2231,6 +2252,14 @@
                     {/if}
                   </button>
                 </div>
+                {#if refusTransfert}
+                  <div class="refus-premium-transfert" role="alert">
+                    <p>{$tr('playlist.transferPremium')}</p>
+                    {#if refusTransfert.url}
+                      <a href={refusTransfert.url} target="_blank" rel="noopener noreferrer">{$tr('playlist.transferPremiumLink')}</a>
+                    {/if}
+                  </div>
+                {/if}
               </div>
             {/if}
           </div>
@@ -2789,6 +2818,14 @@
 {#if importTarget}
   <div class="modal-overlay" onclick={closeImport}>
     <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      {#if refusTransfert}
+        <div class="refus-premium-transfert" role="alert">
+          <p>{$tr('playlist.transferPremium')}</p>
+          {#if refusTransfert.url}
+            <a href={refusTransfert.url} target="_blank" rel="noopener noreferrer">{$tr('playlist.transferPremiumLink')}</a>
+          {/if}
+        </div>
+      {/if}
       {#if importResult}
         {#if importResult.count > 0}
           <div class="import-done">
@@ -2837,6 +2874,14 @@
 {#if showTransfer}
   <div class="modal-overlay" onclick={closeTransfer}>
     <div class="modal-content modal-wide" onclick={(e) => e.stopPropagation()}>
+      {#if refusTransfert}
+        <div class="refus-premium-transfert" role="alert">
+          <p>{$tr('playlist.transferPremium')}</p>
+          {#if refusTransfert.url}
+            <a href={refusTransfert.url} target="_blank" rel="noopener noreferrer">{$tr('playlist.transferPremiumLink')}</a>
+          {/if}
+        </div>
+      {/if}
       {#if transferResult}
         <div class="transfer-report">
           <h3>{$tr('playlist.transferComplete')}</h3>
@@ -3250,6 +3295,9 @@
   .merge-check { margin-right: 8px; cursor: pointer; accent-color: var(--tune-accent); width: 18px; height: 18px; }
   .merge-selected { background: var(--tune-accent)11; }
   .transfer-raison { color: var(--tune-text-muted); }
+  .refus-premium-transfert { margin-bottom: 16px; padding: 12px 14px; border: 1px solid var(--tune-border); border-radius: 8px; background: var(--tune-surface); }
+  .refus-premium-transfert p { margin: 0 0 8px; }
+  .refus-premium-transfert a { color: var(--tune-accent); }
 
   .pm-header {
     display: flex;

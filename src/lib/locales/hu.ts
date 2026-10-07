@@ -426,6 +426,8 @@ export default {
   "playlist.importError": "Az importálás nem sikerült",
   "playlist.filterAll": "Összes",
   "playlist.transfer": "Átvitel",
+  "playlist.transferPremium": "Lejátszási lista átvitele szolgáltatások között, vagy szolgáltatásból a könyvtárba, a Tune Premium része. A könyvtár lejátszási listáinak másolása továbbra is ingyenes.",
+  "playlist.transferPremiumLink": "A Tune Premium megismerése",
   "playlist.transferTo": "Átvitel ide...",
   "playlist.transferring": "Átvitel...",
   "playlist.transferComplete": "Az átvitel kész",

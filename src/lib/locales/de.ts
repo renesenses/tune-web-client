@@ -361,6 +361,8 @@ export default {
   'playlist.importError': 'Fehler beim Importieren',
   'playlist.filterAll': 'Alle',
   'playlist.transfer': 'Übertragen',
+  "playlist.transferPremium": "Eine Playlist zwischen Diensten oder von einem Dienst in die Bibliothek zu übertragen, gehört zu Tune Premium. Eine Playlist der Bibliothek zu duplizieren bleibt kostenlos.",
+  "playlist.transferPremiumLink": "Tune Premium entdecken",
   'playlist.transferTo': 'Übertragen nach...',
   'playlist.transferring': 'Wird übertragen...',
   'playlist.transferComplete': 'Übertragung abgeschlossen',

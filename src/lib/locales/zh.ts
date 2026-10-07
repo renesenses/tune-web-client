@@ -361,6 +361,8 @@ export default {
   'playlist.importError': '导入失败',
   'playlist.filterAll': '全部',
   'playlist.transfer': '转移',
+  "playlist.transferPremium": "在服务之间、或从服务向资料库转移播放列表属于 Tune Premium 功能。复制资料库中的播放列表仍然免费。",
+  "playlist.transferPremiumLink": "了解 Tune Premium",
   'playlist.transferTo': '转移到...',
   'playlist.transferring': '转移中...',
   'playlist.transferComplete': '转移完成',

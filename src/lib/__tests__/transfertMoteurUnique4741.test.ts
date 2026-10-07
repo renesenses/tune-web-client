@@ -85,3 +85,56 @@ describe("#4741 — la raison d'un titre introuvable arrive à l'écran", () => 
     expect(cleRaison('code_venu_d_ailleurs')).toBe('plconv.raison.autre');
   });
 });
+
+// Bertrand, 07/10/2026 : le transfert entre services est Premium. Un compte
+// gratuit reçoit `402 premium_required` (tune-server-rust#5954) ; l'écran
+// l'explique, avec le lien vers l'offre, au lieu de l'ancien échec muet.
+describe('#4741 — un compte gratuit voit pourquoi le transfert est refusé', () => {
+  const vue = source('../../components/v2-heritage/PlaylistManagerView.svelte');
+
+  it("le refus 402 arrive à l'écran avec son code et le lien vers l'offre", async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            error: 'premium_required',
+            code: 'playlist_transfer',
+            upgrade_url: 'https://mozaiklabs.fr/pricing',
+            raison: 'réservé à Tune Premium',
+          }),
+          { status: 402, headers: { 'content-type': 'application/json' } },
+        ),
+      ),
+    );
+    const err = await api
+      .transferPlaylistV2({ source_service: 'qobuz', source_playlist_id: 'pl-1', target_service: 'local' })
+      .then(() => null, (e) => e);
+    expect(err?.status).toBe(402);
+    expect(err?.code).toBe('premium_required');
+    expect(err?.corps?.upgrade_url).toBe('https://mozaiklabs.fr/pricing');
+  });
+
+  it('les trois chemins de transfert (Importer, Transférer, transfert rapide) notent le refus', () => {
+    const appels = vue.match(/noterRefusTransfert\(e\)/g) ?? [];
+    expect(appels).toHaveLength(3);
+    // Le refus ne devient plus « échec » ni bandeau d'erreur générique.
+    expect(vue).toContain('if (!noterRefusTransfert(e)) importResult = { name: importName, count: -1, total: 0 };');
+    expect(vue).toContain("if (!noterRefusTransfert(e)) notifications.error(e.message || 'Transfer failed');");
+  });
+
+  it("l'explication et le lien de l'offre sont peints là où le refus arrive", () => {
+    const blocs = vue.match(/\{\$tr\('playlist\.transferPremium'\)\}/g) ?? [];
+    expect(blocs).toHaveLength(3);
+    const liens = vue.match(/<a href=\{refusTransfert\.url\}[^>]*>\{\$tr\('playlist\.transferPremiumLink'\)\}<\/a>/g) ?? [];
+    expect(liens).toHaveLength(3);
+  });
+
+  it('les deux libellés existent dans les onze langues', () => {
+    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh']) {
+      const fichier = source(`../locales/${langue}.ts`);
+      expect(fichier, langue).toContain('"playlist.transferPremium":');
+      expect(fichier, langue).toContain('"playlist.transferPremiumLink":');
+    }
+  });
+});

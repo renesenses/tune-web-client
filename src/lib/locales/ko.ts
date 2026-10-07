@@ -361,6 +361,8 @@ export default {
   'playlist.importError': '가져오기 실패',
   'playlist.filterAll': '전체',
   'playlist.transfer': '전송',
+  "playlist.transferPremium": "서비스 간 또는 서비스에서 라이브러리로 플레이리스트를 전송하는 기능은 Tune Premium에 포함됩니다. 라이브러리 플레이리스트 복제는 계속 무료입니다.",
+  "playlist.transferPremiumLink": "Tune Premium 알아보기",
   'playlist.transferTo': '전송할 서비스...',
   'playlist.transferring': '전송 중...',
   'playlist.transferComplete': '전송 완료',
