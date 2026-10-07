@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Page à widgets CONFIGURABLE — l'accueil, et les écrans éditoriaux.
    *
@@ -1437,8 +1438,8 @@
                               <span class="rang">{rang + 1}</span>
                               <span class="vign"><AlbumArt coverPath={el.cover ?? null} size={40} vignette alt="" /></span>
                               <span class="txt">
-                                <span class="t">{el.titre}</span>
-                                {#if el.sous}<span class="s">{el.sous}</span>{/if}
+                                <span class="t" use:bulleTexte>{el.titre}</span>
+                                {#if el.sous}<span class="s" use:bulleTexte>{el.sous}</span>{/if}
                               </span>
                             </button>
                             {#if el.ouvrir && el.jouer}
