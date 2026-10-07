@@ -84,25 +84,37 @@
  * Ici la bulle porte une DONNÉE — le titre qu'on essaie de lire — et couper
  * les bulles d'aide ne doit pas rendre un texte illisible.
  */
+/*
+ * ## Le coût sur une grande liste — chantier `tune-web-client#914`
+ *
+ * La première écriture posait, PAR TEXTE coupé, un `ResizeObserver`, un
+ * `MutationObserver`, et trois écouteurs sur la ligne. Sur une bibliothèque de
+ * quatre mille albums à deux textes par vignette, cela faisait huit mille
+ * observateurs de chaque sorte. La mesure, elle, lisait `scrollWidth` au
+ * montage, élément par élément, entre deux écritures d'attribut : autant de
+ * mises en page forcées que de lignes.
+ *
+ * Désormais :
+ *
+ * - **UN `ResizeObserver` pour tout le document.** Il reçoit tous les éléments
+ *   inscrits, et son rappel traite le lot entier en deux passes : toutes les
+ *   lectures (`scrollWidth`, `clientWidth`), PUIS toutes les écritures
+ *   (`title`). Une seule mise en page par lot, quel que soit le nombre de
+ *   lignes.
+ * - **Au montage, on ne mesure pas.** On pose la bulle d'office, sans rien
+ *   lire, et c'est le premier rappel de l'observateur — qui arrive après la
+ *   mise en page, avant la peinture — qui la retire si le texte tient. Sans
+ *   `ResizeObserver` (jsdom, très vieux navigateur), on mesure sur-le-champ.
+ * - **UN `MutationObserver`** pour tous les textes ; un changement de texte
+ *   remonte jusqu'à l'élément inscrit, et la remesure passe par le même lot.
+ * - **Les gestes du clavier sont délégués au document** : trois écouteurs en
+ *   tout, qui retrouvent la ligne focalisée en remontant ses ancêtres. Aucun
+ *   écouteur n'est posé sur une ligne.
+ */
 
 /** Le dernier geste était-il un geste de pointeur ? Voir plus haut. */
 let gestePointeur = false;
 let ecouteursPoses = false;
-
-function poserLesEcouteursDeGeste() {
-  if (ecouteursPoses || typeof document === 'undefined') return;
-  ecouteursPoses = true;
-  const pointeur = () => {
-    gestePointeur = true;
-  };
-  const clavier = () => {
-    gestePointeur = false;
-  };
-  document.addEventListener('pointerdown', pointeur, true);
-  document.addEventListener('mousedown', pointeur, true);
-  document.addEventListener('touchstart', pointeur, true);
-  document.addEventListener('keydown', clavier, true);
-}
 
 /** Pour les témoins : remettre le geste à « clavier ». */
 export function reinitialiserLeGeste() {
@@ -153,6 +165,12 @@ function ouvrirLaBulle(ancre: HTMLElement, texte: string): HTMLElement {
   return bulle;
 }
 
+/** Un texte inscrit : l'élément, et ce que sa bulle doit dire. */
+type Inscrit = { node: HTMLElement; texte: () => string };
+
+/** Tous les textes inscrits, par élément. */
+const inscrits = new Map<Element, Inscrit>();
+
 /**
  * Ce qu'une ligne focalisable contient de textes coupés.
  *
@@ -162,17 +180,13 @@ function ouvrirLaBulle(ancre: HTMLElement, texte: string): HTMLElement {
  * celui qu'on cherchait à lire, resterait invisible. Un seul geste, une seule
  * bulle, et elle dit la ligne entière.
  */
-type Inscrit = { node: HTMLElement; texte: () => string };
-type Groupe = { inscrits: Set<Inscrit>; detacher: () => void };
-const parAncetre = new WeakMap<HTMLElement, Groupe>();
+const parAncetre = new WeakMap<Element, Set<Inscrit>>();
 
 /** Les textes réellement coupés de cette ligne, dans l'ordre du balisage. */
-function morceauxDe(focalisable: HTMLElement): string[] {
-  const groupe = parAncetre.get(focalisable);
-  if (!groupe) return [];
+function morceauxDe(groupe: Set<Inscrit>): string[] {
   const vus = new Set<string>();
   const morceaux: string[] = [];
-  for (const i of groupe.inscrits) {
+  for (const i of groupe) {
     if (!texteDeborde(i.node)) continue;
     const v = i.texte();
     // Le même texte deux fois dans la ligne ne se dit qu'une.
@@ -183,82 +197,183 @@ function morceauxDe(focalisable: HTMLElement): string[] {
   return morceaux;
 }
 
-export function bulleTexte(node: HTMLElement, texte?: string) {
-  poserLesEcouteursDeGeste();
-
-  let explicite = texte;
-  const texteVoulu = () => (explicite ?? node.textContent ?? '').trim();
-
-  function appliquer() {
-    const valeur = texteVoulu();
-    if (valeur && texteDeborde(node)) node.setAttribute('title', valeur);
-    else node.removeAttribute('title');
+/** La ligne inscrite la plus proche de l'élément qui vient de recevoir le focus. */
+function ligneDe(cible: EventTarget | null): { ligne: Element; groupe: Set<Inscrit> } | null {
+  for (let n = cible instanceof Element ? cible : null; n; n = n.parentElement) {
+    const groupe = parAncetre.get(n);
+    if (groupe) return { ligne: n, groupe };
   }
+  return null;
+}
 
-  appliquer();
+function poserLesEcouteursDuDocument() {
+  if (ecouteursPoses || typeof document === 'undefined') return;
+  ecouteursPoses = true;
+  const pointeur = () => {
+    gestePointeur = true;
+  };
+  document.addEventListener('pointerdown', pointeur, true);
+  document.addEventListener('mousedown', pointeur, true);
+  document.addEventListener('touchstart', pointeur, true);
+  document.addEventListener(
+    'keydown',
+    (e) => {
+      gestePointeur = false;
+      if (
+        e.key === 'Escape'
+        && bulleOuvertePour
+        && e.target instanceof Node
+        && bulleOuvertePour.contains(e.target)
+      ) {
+        fermerLaBulle();
+      }
+    },
+    true,
+  );
+  document.addEventListener('focusin', (e) => {
+    if (gestePointeur) return;
+    const trouvee = ligneDe(e.target);
+    if (!trouvee) return;
+    const morceaux = morceauxDe(trouvee.groupe);
+    if (morceaux.length === 0) return;
+    ouvrirLaBulle(trouvee.ligne as HTMLElement, morceaux.join('\n'));
+  });
+  document.addEventListener('focusout', (e) => {
+    if (bulleOuvertePour && e.target instanceof Node && bulleOuvertePour.contains(e.target)) {
+      fermerLaBulle();
+    }
+  });
+}
 
-  // La largeur de la boîte change le verdict : un panneau qu'on élargit peut
-  // faire tenir un titre qui ne tenait pas.
-  const ro =
-    typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => appliquer());
-  ro?.observe(node);
+/**
+ * Mesurer puis écrire, pour tout un lot : TOUTES les lectures d'abord, TOUTES
+ * les écritures ensuite. Entrelacées, chaque lecture forcerait une nouvelle
+ * mise en page après l'écriture précédente.
+ */
+function appliquerLot(nodes: Iterable<Element>) {
+  const verdicts: [HTMLElement, string, boolean][] = [];
+  for (const n of nodes) {
+    const i = inscrits.get(n);
+    if (!i) continue;
+    const valeur = i.texte();
+    verdicts.push([i.node, valeur, !!valeur && texteDeborde(i.node)]);
+  }
+  for (const [node, valeur, coupe] of verdicts) {
+    if (coupe) {
+      if (node.getAttribute('title') !== valeur) node.setAttribute('title', valeur);
+    } else if (node.hasAttribute('title')) {
+      node.removeAttribute('title');
+    }
+  }
+}
+
+/** Les remesures demandées hors observateur de taille, traitées en un lot. */
+const enAttente = new Set<Element>();
+let lotPrevu = false;
+
+function planifier(node: Element) {
+  enAttente.add(node);
+  if (lotPrevu) return;
+  lotPrevu = true;
+  queueMicrotask(() => {
+    lotPrevu = false;
+    const lot = [...enAttente];
+    enAttente.clear();
+    appliquerLot(lot);
+  });
+}
+
+let observateurDeTaille: ResizeObserver | null = null;
+let observateurDeTexte: MutationObserver | null = null;
+
+function taille(): ResizeObserver | null {
+  if (!observateurDeTaille && typeof ResizeObserver !== 'undefined') {
+    observateurDeTaille = new ResizeObserver((entrees) => appliquerLot(entrees.map((e) => e.target)));
+  }
+  return observateurDeTaille;
+}
+
+function texte(): MutationObserver | null {
+  if (!observateurDeTexte && typeof MutationObserver !== 'undefined') {
+    observateurDeTexte = new MutationObserver((enregistrements) => {
+      const touches = new Set<Element>();
+      for (const r of enregistrements) {
+        // Le texte a changé quelque part SOUS l'élément inscrit : on remonte.
+        for (
+          let n: Node | null = r.target;
+          n;
+          n = n.parentNode
+        ) {
+          if (n instanceof Element && inscrits.has(n)) {
+            touches.add(n);
+            break;
+          }
+        }
+      }
+      if (touches.size) appliquerLot(touches);
+    });
+  }
+  return observateurDeTexte;
+}
+
+export function bulleTexte(node: HTMLElement, texteInitial?: string) {
+  poserLesEcouteursDuDocument();
+
+  let explicite = texteInitial;
+  const texteVoulu = () => (explicite ?? node.textContent ?? '').trim();
+  const inscrit: Inscrit = { node, texte: texteVoulu };
+  inscrits.set(node, inscrit);
+
+  const ro = taille();
+  if (ro) {
+    // Rien à lire au montage : la bulle est posée d'office, et le premier
+    // rappel de l'observateur — après la mise en page — la retire si le texte
+    // tient. Une liste de mille lignes ne force ainsi aucune mise en page.
+    const valeur = texteVoulu();
+    if (valeur) node.setAttribute('title', valeur);
+    ro.observe(node);
+  } else {
+    appliquerLot([node]);
+  }
 
   // Le texte change sans que l'élément soit recréé (on passe d'une piste à la
   // suivante dans une liste clefée) : la bulle doit suivre.
-  const mo =
-    typeof MutationObserver === 'undefined'
-      ? null
-      : new MutationObserver(() => appliquer());
-  mo?.observe(node, { childList: true, characterData: true, subtree: true });
+  texte()?.observe(node, { childList: true, characterData: true, subtree: true });
 
   // Le geste clavier. Aucun ancêtre focalisable ⇒ rien à ouvrir : ce texte
   // n'est de toute façon pas atteignable au clavier.
   const focalisable = node.closest<HTMLElement>(FOCALISABLES);
-  const inscrit: Inscrit = { node, texte: texteVoulu };
-
   if (focalisable) {
     let groupe = parAncetre.get(focalisable);
     if (!groupe) {
-      // Les écouteurs sont posés UNE fois par ligne, pas une fois par texte.
-      const surFocus = () => {
-        if (gestePointeur) return;
-        const morceaux = morceauxDe(focalisable);
-        if (morceaux.length === 0) return;
-        ouvrirLaBulle(focalisable, morceaux.join('\n'));
-      };
-      const surPerte = () => fermerLaBulle();
-      const surEchap = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') fermerLaBulle();
-      };
-      focalisable.addEventListener('focusin', surFocus);
-      focalisable.addEventListener('focusout', surPerte);
-      focalisable.addEventListener('keydown', surEchap);
-      groupe = {
-        inscrits: new Set<Inscrit>(),
-        detacher() {
-          focalisable.removeEventListener('focusin', surFocus);
-          focalisable.removeEventListener('focusout', surPerte);
-          focalisable.removeEventListener('keydown', surEchap);
-        },
-      };
+      groupe = new Set<Inscrit>();
       parAncetre.set(focalisable, groupe);
     }
-    groupe.inscrits.add(inscrit);
+    groupe.add(inscrit);
   }
 
   return {
     update(suivant?: string) {
+      if (suivant === explicite) return;
       explicite = suivant;
-      appliquer();
+      planifier(node);
     },
     destroy() {
-      ro?.disconnect();
-      mo?.disconnect();
+      inscrits.delete(node);
+      enAttente.delete(node);
+      observateurDeTaille?.unobserve(node);
+      if (inscrits.size === 0) {
+        // Un `MutationObserver` ne sait pas oublier UN élément : on le rend
+        // quand plus personne n'est inscrit, et le suivant en recrée un.
+        observateurDeTexte?.disconnect();
+        observateurDeTexte = null;
+        observateurDeTaille?.disconnect();
+        observateurDeTaille = null;
+      }
       if (focalisable) {
         const groupe = parAncetre.get(focalisable);
-        groupe?.inscrits.delete(inscrit);
-        if (groupe && groupe.inscrits.size === 0) {
-          groupe.detacher();
+        groupe?.delete(inscrit);
+        if (groupe && groupe.size === 0) {
           parAncetre.delete(focalisable);
           // Uniquement la sienne : démonter une ligne ne doit pas refermer la
           // bulle qu'une autre vient d'ouvrir.
