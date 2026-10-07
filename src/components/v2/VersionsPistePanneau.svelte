@@ -50,6 +50,15 @@
    * été obtenue. La piste d'origine en est exclue par le chargeur.
    */
   import { chargerVersionsParTitre, type CibleParTitre } from '../../lib/versionsParTitre';
+  /**
+   * ## Les versions REGROUPÉES par enregistrement — tune-server-rust#2264
+   *
+   * Pour une piste de la bibliothèque, le serveur dit lesquelles sont le même
+   * enregistrement (ISRC, MusicBrainz, ou titre + artiste + durée à ±2 s) et
+   * laquelle il joue par défaut selon la règle réglée. L'écran le dessine tel
+   * quel. Un serveur antérieur répond 404 : on retombe sur la liste plate.
+   */
+  import { cleLien, corpsMembre, getTrackVersionGroups, groupeVide, qualiteMembre, type GroupesVersions, type MembreGroupe } from '../../lib/groupesVersions';
 
   interface Props {
     /** La piste de la BIBLIOTHÈQUE. `null` : voir `parTitre`. */
@@ -62,6 +71,9 @@
   let { trackId = null, parTitre = null, titre = '', onClose }: Props = $props();
 
   let groupe = $state<api.OtherVersionGroup | null>(null);
+  /** La réponse regroupée ; `null` : liste plate (mode par titre, ou serveur antérieur). */
+  let groupes = $state<GroupesVersions | null>(null);
+  const groupesAffiches = $derived((groupes?.groups ?? []).filter((g) => !groupeVide(g)));
   /** Le mode approximatif : l'en-tête le dit. */
   const approximatif = $derived(trackId == null && parTitre != null);
   let chargement = $state(true);
@@ -80,19 +92,30 @@
    * quand la liste se complète — voir la règle, dans `versionsPiste.ts`.
    */
   const flux = $derived(ordonnerVersionsService(groupe?.streaming ?? [], $preferences.ordreAutresVersions));
-  const vide = $derived(!chargement && !erreur && locales.length === 0 && flux.length === 0);
+  const vide = $derived(!chargement && !erreur && (groupes
+    ? groupesAffiches.length === 0
+    : locales.length === 0 && flux.length === 0));
 
   $effect(() => {
     const id = trackId;
     const cible = parTitre;
     let vivant = true;
-    chargement = true; erreur = false;
+    chargement = true; erreur = false; groupes = null;
+    if (id != null) {
+      // #2264 — la réponse regroupée d'abord ; la liste plate seulement si
+      // le serveur ne connaît pas la route. Jamais les deux : chacune
+      // interroge les services.
+      getTrackVersionGroups(id)
+        .then((g) => { if (vivant) groupes = g; })
+        .catch(() => api.getTrackVersions(id).then((g) => { if (vivant) groupe = g; }))
+        .catch(() => { if (vivant) { erreur = true; groupe = null; } })
+        .finally(() => { if (vivant) chargement = false; });
+      return () => { vivant = false; };
+    }
     // Le chargeur suit le mode ; ce qui suit ne le connaît pas.
-    const charger: Promise<api.OtherVersionGroup> = id != null
-      ? api.getTrackVersions(id)
-      : cible != null
-        ? chargerVersionsParTitre(cible)
-        : Promise.reject(new Error('VersionsPistePanneau: ni trackId ni parTitre'));
+    const charger: Promise<api.OtherVersionGroup> = cible != null
+      ? chargerVersionsParTitre(cible)
+      : Promise.reject(new Error('VersionsPistePanneau: ni trackId ni parTitre'));
     charger
       .then((g) => { if (vivant) groupe = g; })
       .catch(() => { if (vivant) { erreur = true; groupe = null; } })
@@ -134,6 +157,16 @@
       .catch(() => notifications.error($t('v2.pa.playError' as any)));
   }
 
+  /** Un membre d'un groupe : la piste de bibliothèque, ou celle du service. */
+  function lireMembre(m: MembreGroupe) {
+    const zid = $currentZoneId;
+    const corps = corpsMembre(m);
+    if (zid == null || !corps || m.available === false) return;
+    playAndSync(zid, corps as any)
+      .then(onClose)
+      .catch(() => notifications.error($t('v2.pa.playError' as any)));
+  }
+
   function ouvrirAlbum(albumId: number | null) {
     if (albumId == null) return;
     pendingLibraryAlbum.set(albumId);
@@ -169,6 +202,40 @@
       <p class="etat">{$t('common.error' as any)}</p>
     {:else if vide}
       <p class="etat">{$t('library.noOtherVersions' as any)}</p>
+    {:else if groupes}
+      <div class="groupes">
+        {#each groupesAffiches as g, gi (gi)}
+          {@const lien = cleLien(g.identity)}
+          <section class="groupe" class:courant={g.contains_reference}>
+            <h3>
+              {$t((g.contains_reference ? 'library.versionGroups.same' : 'library.versionGroups.other') as any)}
+              {#if lien}<span class="lien">· {$t(lien as any)}</span>{/if}
+            </h3>
+            <ul>
+              {#each g.members as m, mi (m.source + ':' + (m.track_id ?? m.source_id ?? mi))}
+                {@const q = qualiteMembre(m)}
+                {@const jouable = corpsMembre(m) != null && m.available !== false}
+                <li class="membre" class:defaut={m.is_default} class:inerte={!jouable}>
+                  <button class="cv petit" onclick={() => lireMembre(m)} disabled={!jouable}
+                    title={$t('common.play' as any)}>
+                    <AlbumArt coverPath={m.cover_path} albumId={m.track_id != null && typeof m.album_id === 'number' ? m.album_id : null} size={40} alt={m.album_title} />
+                  </button>
+                  <span class="txt">
+                    <span class="ti plat" title={m.album_title || m.title}>{m.album_title || m.title}</span>
+                    <span class="sub">
+                      <ServiceBadge source={m.source} compact />
+                      {#if q}<span class="q">{q}</span>{/if}
+                      {#if m.duration_ms}<span>{formatTime(m.duration_ms)}</span>{/if}
+                      {#if m.is_reference}<span class="moi">{$t('library.versionGroups.thisTrack' as any)}</span>{/if}
+                    </span>
+                  </span>
+                  {#if m.is_default}<span class="par-defaut">{$t('library.versionGroups.default' as any)}</span>{/if}
+                </li>
+              {/each}
+            </ul>
+          </section>
+        {/each}
+      </div>
     {:else}
       <div class="tuiles">
         {#each locales as v, i (v.track_id ?? `l${i}`)}
@@ -244,4 +311,21 @@
   .sub{font:11.5px var(--v2-sans, inherit); color:var(--v2-txt3, inherit);
     display:flex; align-items:center; gap:5px; min-width:0}
   .interprete{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
+  .groupes{display:flex; flex-direction:column; gap:14px}
+  .groupe h3{font:600 12.5px var(--v2-sans, inherit); color:var(--v2-txt2, var(--tune-text-secondary, inherit));
+    margin-bottom:6px}
+  .groupe.courant h3{color:var(--v2-txt, var(--tune-text, inherit))}
+  .lien{font-weight:400; color:var(--v2-txt3, inherit)}
+  .groupe ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px}
+  .membre{display:flex; align-items:center; gap:10px; min-width:0; padding:4px 6px;
+    border:1px solid var(--v2-line, transparent); border-radius:8px}
+  .membre.defaut{border-color:var(--v2-acc1, var(--tune-accent, currentColor))}
+  .membre.inerte{opacity:.55}
+  .membre .txt{flex:1 1 auto}
+  .cv.petit{width:40px; height:40px}
+  .q{font-variant-numeric:tabular-nums}
+  .moi{font-style:italic}
+  .par-defaut{flex:0 0 auto; font:600 11px var(--v2-sans, inherit); padding:2px 7px; border-radius:999px;
+    color:var(--v2-acc1, var(--tune-accent, currentColor));
+    border:1px solid var(--v2-acc1, var(--tune-accent, currentColor))}
 </style>
