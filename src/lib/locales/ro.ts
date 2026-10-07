@@ -332,9 +332,6 @@ export default {
   'streaming.section.qobuzissimes': 'Qobuzissimes',
   'streaming.ytmCharts': 'Topuri',
   'streaming.ytmMoods': 'Stări & genuri',
-  'streaming.ytmTrending': 'În tendințe',
-  'streaming.ytmTopSongs': 'Top melodii',
-  'streaming.ytmTopVideos': 'Top videoclipuri',
 
   // Playlist
   'playlist.new': 'Playlist nou',

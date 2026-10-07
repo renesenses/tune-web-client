@@ -1,6 +1,7 @@
 <script lang="ts">
   import BandcampManquantsV2 from './BandcampManquantsV2.svelte';
   import YouTubeDecouverteV2 from './YouTubeDecouverteV2.svelte';
+  import type { YtElementRayon } from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { zoneRequise } from '../../lib/zoneRequise';
   /**
@@ -1332,7 +1333,7 @@
       <div class="state">{$t('v2.common.loading' as any)}</div>
 
     {:else if sub === 'ytmusic' && ongletYouTube}
-      <YouTubeDecouverteV2 />
+      <YouTubeDecouverteV2 tuile={tuileYouTube} />
 
     {:else if sub === 'editorial'}
       {#if isBc}
@@ -1590,6 +1591,33 @@
   incomplète ne fabrique AUCUNE route de service : il reste le nom, et la
   recherche exacte en bibliothèque — jamais la lecture à la place.
 -->
+<!--
+  tune-server-rust#5247 — un élément d'un rayon YouTube Music (Tendances,
+  Ambiances, Accueil) rendu par les vignettes de CET écran : pochette, cœur,
+  étiquettes, menu « … » et ouverture de la fiche, comme partout ailleurs. Une
+  playlist ou un album s'ouvre sur sa liste de titres (`ouvrirFiche`), un
+  artiste sur sa page, un titre se lit.
+-->
+{#snippet tuileYouTube(el: YtElementRayon)}
+  {#if el.kind === 'artist'}
+    {@render artiste({ id: el.id, source_id: el.id, source: 'youtube', name: el.title, image_path: el.cover_path })}
+  {:else}
+    {@const p = {
+      id: el.id, source_id: el.id, source: 'youtube',
+      title: el.title, name: el.kind === 'playlist' ? el.title : undefined,
+      // Le sous-titre d'un titre ou d'un album nomme l'artiste ; celui d'une
+      // playlist la décrit — `artisteDeVignetteService` le laisse inerte.
+      artist_name: el.subtitle || undefined,
+      cover_path: el.cover_path,
+    }}
+    {@render tile(
+      p,
+      () => (el.kind === 'track' ? playTrack(p) : el.kind === 'playlist' ? playPlaylist(p) : playAlbum(p)),
+      el.kind,
+    )}
+  {/if}
+{/snippet}
+
 {#snippet artiste(ar: any)}
   <!--
     #1194 — FabienM, fil 1839, point 9 : « les vignettes d'artiste ne sont pas

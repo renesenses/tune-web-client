@@ -297,9 +297,6 @@ export default {
   'streaming.section.qobuzissimes': 'Qobuzissimes',
   'streaming.ytmCharts': 'Listor',
   'streaming.ytmMoods': 'Stämningar & genrer',
-  'streaming.ytmTrending': 'Trendar',
-  'streaming.ytmTopSongs': 'Topplåtar',
-  'streaming.ytmTopVideos': 'Toppvideor',
 
   // Playlist
   'playlist.new': 'Ny spellista',

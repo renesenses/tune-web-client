@@ -326,9 +326,6 @@ export default {
   'streaming.section.qobuzissimes': 'Qobuzissimes',
   'streaming.ytmCharts': '排行榜',
   'streaming.ytmMoods': '心情与风格',
-  'streaming.ytmTrending': '热门趋势',
-  'streaming.ytmTopSongs': '热门歌曲',
-  'streaming.ytmTopVideos': '热门视频',
 
   // Playlist
   'playlist.new': '新建播放列表',

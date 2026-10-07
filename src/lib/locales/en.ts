@@ -406,9 +406,6 @@ export default {
   'streaming.section.qobuzissimes': 'Qobuzissimes',
   'streaming.ytmCharts': 'Charts',
   'streaming.ytmMoods': 'Moods & Genres',
-  'streaming.ytmTrending': 'Trending',
-  'streaming.ytmTopSongs': 'Top Songs',
-  'streaming.ytmTopVideos': 'Top Videos',
 
   // Playlist
   'playlist.new': 'New Playlist',

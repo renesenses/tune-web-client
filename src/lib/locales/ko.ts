@@ -326,9 +326,6 @@ export default {
   'streaming.section.qobuzissimes': 'Qobuzissimes',
   'streaming.ytmCharts': '차트',
   'streaming.ytmMoods': '분위기 및 장르',
-  'streaming.ytmTrending': '인기 급상승',
-  'streaming.ytmTopSongs': '인기 곡',
-  'streaming.ytmTopVideos': '인기 동영상',
 
   // Playlist
   'playlist.new': '새 재생목록',

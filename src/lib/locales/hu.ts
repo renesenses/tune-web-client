@@ -393,9 +393,6 @@ export default {
   "streaming.section.qobuzissimes": "Qobuzissimes",
   "streaming.ytmCharts": "Slágerlisták",
   "streaming.ytmMoods": "Hangulatok és műfajok",
-  "streaming.ytmTrending": "Felkapott",
-  "streaming.ytmTopSongs": "Top dalok",
-  "streaming.ytmTopVideos": "Top videók",
   // Lejátszási lista
   "playlist.new": "Új lejátszási lista",
   "playlist.name": "A lejátszási lista neve",
