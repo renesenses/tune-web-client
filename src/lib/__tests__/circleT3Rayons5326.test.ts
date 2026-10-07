@@ -417,7 +417,7 @@ describe('T3 — les rayons d’un contact', () => {
 
     await cliquer(el, 'button.onglet-tracks');
     expect(chemin(appels.at(-1)!)).toBe('/contacts/40/sets/501/tracks?page=1&per_page=50');
-    expect(noms(el, '.pistes-contact .tt')).toEqual(['So What']);
+    expect(noms(el, '.pistes-contact .titre .ttxt')).toEqual(['So What']);
     expect(el.querySelector('.pistes-contact .pactions')).toBeNull();
 
     await cliquer(el, 'button.onglet-streaming');

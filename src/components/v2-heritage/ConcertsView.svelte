@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { t, locale } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import * as api from '../../lib/api';
@@ -10,6 +10,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { grouperConcerts, normaliserTriConcerts, type TriConcerts } from '../../lib/concertsTri';
   import { PAYS_PAR_DEFAUT, codeDePays, optionsDePays } from '../../lib/concertsPays';
+  import { creerArret, estArret } from '../../lib/rechercheArretable';
 
   // L'écran répond à une question, une seule : « les artistes que j'écoute
   // jouent-ils près de chez moi ? » — demande de FabienM et Didier, fil 1540.
@@ -21,6 +22,10 @@
   // rien », pas « le filtre est trop serré ».
 
   let chargement = $state(false);
+  /** #1752 — la recherche en cours, qu'on peut arrêter ; et le fait qu'elle
+   *  l'ait été, pour le dire au lieu d'un « indisponible ». */
+  const arret = creerArret();
+  let arretee = $state(false);
   /** Refus d'offre : `premium` (module non possédé, 402) ou `compte` (compte
    *  Mozaiklabs non relié). Voir `lib/concertsRefus.ts`. */
   let refus = $state<RefusConcerts>(null);
@@ -142,11 +147,23 @@
     }
   }
 
+  /** #1752 — « Arrêter » : abandonne la requête en vol, rend la main tout de
+   *  suite. Quitter l'écran fait de même (`onDestroy`). */
+  function arreterRecherche() {
+    arret.arreter();
+    chargement = false;
+    enregistrement = false;
+    arretee = true;
+  }
+  onDestroy(() => { arret.arreter(); });
+
   async function charger() {
+    const signal = arret.nouveau();
     chargement = true;
+    arretee = false;
     anomalie = '';
     try {
-      const reponse = await api.getConcertsAVenir();
+      const reponse = await api.getConcertsAVenir({}, signal);
       concerts = reponse.concerts ?? [];
       lirePage(reponse);
       refus = null;
@@ -161,6 +178,9 @@
       // Un code d'anomalie est traduisible ; une phrase du serveur ne l'est pas.
       if (reponse.code) anomalie = reponse.code;
     } catch (e) {
+      // #1752 — arrêtée par l'utilisateur (ou remplacée par une recherche plus
+      // récente) : ce n'est pas une panne, rien à afficher en rouge.
+      if (estArret(e) || signal.aborted) return;
       // Un refus d'offre n'est pas une panne : l'écran se verrouille et dit ce
       // qu'il refuse, au lieu d'afficher une erreur rouge incompréhensible.
       const r = refusConcerts(e);
@@ -174,7 +194,9 @@
         ? 'concerts.rate_limited'
         : 'concerts.unavailable';
     } finally {
-      chargement = false;
+      // Une recherche abandonnée ne touche plus à l'écran : celle qui l'a
+      // remplacée, ou « Arrêter », en a déjà la charge.
+      if (!signal.aborted) chargement = false;
     }
   }
 
@@ -198,6 +220,8 @@
       return;
     }
     enregistrement = true;
+    arretee = false;
+    const signal = arret.nouveau();
     try {
       const reponse = await api.setLocalisationConcerts({
         city: commune.trim() || '—',
@@ -205,7 +229,7 @@
         country: pays.trim().toUpperCase(),
         scope: vise,
         radius_km: rayon,
-      });
+      }, signal);
       perimetre = reponse.scope;
       localisee = reponse.located ?? null;
       ambigue = reponse.ambiguous === true;
@@ -213,6 +237,7 @@
       refus = null;
       await charger();
     } catch (e) {
+      if (estArret(e) || signal.aborted) return;
       const r = refusConcerts(e);
       if (r) {
         refus = r;
@@ -392,8 +417,18 @@
     </section>
     {/if}
 
-    {#if chargement}
-      <p class="cc-muet">{$t('concerts.chargement')}</p>
+    {#if chargement || enregistrement}
+      <!-- #1752 — l'attente peut durer ~30 s (deux appels au nuage) : on peut
+           l'arrêter, et la sortie de l'écran l'arrête aussi. -->
+      <div class="cc-attente">
+        <p class="cc-muet">{$t('concerts.chargement')}</p>
+        <button class="cc-arreter" onclick={arreterRecherche}>{$t('concerts.arreter')}</button>
+      </div>
+    {:else if arretee}
+      <div class="cc-attente">
+        <p class="cc-muet cc-arretee">{$t('concerts.rechercheArretee')}</p>
+        <button class="cc-principal" onclick={() => void charger()}>{$t('concerts.relancer')}</button>
+      </div>
     {:else if anomalie === 'concerts.rate_limited'}
       <p class="cc-muet cc-trop">{$t('concerts.tropDeDemandes')}</p>
     {:else if anomalie === 'concerts.no_instance_id'}
@@ -483,6 +518,9 @@
   .cc-commune .cc-a-preciser { outline: 2px solid var(--warning, #d99a2b); }
   .cc-erreur { color: var(--danger, #e05252); }
   .cc-muet, .cc-vide { color: var(--tune-text-muted); }
+  .cc-attente { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .cc-attente .cc-principal { margin-top: 0; }
+  .cc-arreter { padding: 0.35rem 0.85rem; border-radius: 999px; }
   .cc-tri { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0 0 0.75rem; }
   .cc-tri button { padding: 0.35rem 0.85rem; border-radius: 999px; }
   .cc-tri button.actif { background: var(--accent, #2b7); color: #fff; }
