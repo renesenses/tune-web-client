@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { t } from '../../lib/i18n';
   /**
    * Extensions → Tune Circle — renesenses/tune-server-rust#5018 (étape T1,
@@ -534,7 +535,7 @@
           <ul>
             {#each connecte.received as inv (inv.id)}
               <li class="ligne invitation-recue">
-                <span class="nom">{inv.name_or_email}</span>
+                <span class="nom" use:bulleTexte>{inv.name_or_email}</span>
                 <span class="note">{$t('v2.circle.expires' as any).replace('{date}', $dateCourte(inv.expires_at))}</span>
                 <span class="gestes">
                   <button class="go accepter" disabled={occupe !== null}
@@ -560,7 +561,7 @@
           <ul>
             {#each contacts as c (c.user_id)}
               <li class="ligne contact">
-                <span class="nom">{c.name}</span>
+                <span class="nom" use:bulleTexte>{c.name}</span>
                 <span class="note">{$t('v2.circle.since' as any).replace('{date}', $dateCourte(c.since))}</span>
                 <span class="gestes">
                   <button class="lnk danger revoquer" disabled={occupe !== null}
@@ -640,7 +641,7 @@
                                 <label class="case-rayon">
                                   <input type="checkbox" class="coche-rayon" checked={x.shared}
                                     disabled={occupe !== null} onchange={(ev) => { (ev.currentTarget as HTMLInputElement).checked = x.shared; void basculerRayon(c, x); }} />
-                                  <span class="nom-rayon">{x.name}</span>
+                                  <span class="nom-rayon" use:bulleTexte>{x.name}</span>
                                   {#if x.count != null}<span class="note compte-rayon">{compteRayon(x)}</span>{/if}
                                 </label>
                               {/each}
@@ -658,7 +659,7 @@
                 <ul>
                   {#each c.member_ids as uid (uid)}
                     <li class="ligne membre-cercle">
-                      <span class="nom">{nomDe.get(uid) ?? ''}</span>
+                      <span class="nom" use:bulleTexte>{nomDe.get(uid) ?? ''}</span>
                       <span class="gestes">
                         <button class="lnk retirer-du-cercle" disabled={occupe !== null}
                           title={$t('v2.circle.removeFromCircleHint' as any)}
@@ -701,7 +702,7 @@
             <ul>
               {#each partages as p (p.user_id)}
                 <li class="ligne partage-recu">
-                  <span class="nom">{p.name}</span>
+                  <span class="nom" use:bulleTexte>{p.name}</span>
                   <span></span>
                   <span class="gestes">
                     <button class="lnk ouvrir-catalogue"
@@ -730,7 +731,7 @@
             <ul>
               {#each playlists as p (String(p.id))}
                 <li class="ligne playlist-cercle">
-                  <span class="nom">{p.name}</span>
+                  <span class="nom" use:bulleTexte>{p.name}</span>
                   <span class="note">
                     {$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}{#if !p.mine && p.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', p.owner.name)}{/if}
                   </span>
@@ -755,7 +756,7 @@
           <ul>
             {#each recuperables as r (String(r.id))}
               <li class="ligne recuperable">
-                <span class="nom">{r.name}</span>
+                <span class="nom" use:bulleTexte>{r.name}</span>
                 <span class="note">
                   {$t('v2.circle.pl.count' as any).replace('{n}', String(r.count))}{#if !r.mine && r.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', r.owner.name)}{/if}{#if r.expires_at} · <span class="echeance">{$t('v2.circle.pl.rec.until' as any).replace('{date}', $dateCourte(r.expires_at))}</span>{/if}
                 </span>
@@ -808,7 +809,7 @@
           <ul>
             {#each connecte.sent as inv (inv.id)}
               <li class="ligne invitation-envoyee">
-                <span class="nom">{inv.name_or_email}</span>
+                <span class="nom" use:bulleTexte>{inv.name_or_email}</span>
                 <span class="note">{$t('v2.circle.expires' as any).replace('{date}', $dateCourte(inv.expires_at))}</span>
                 <span class="gestes">
                   <button class="lnk annuler" disabled={occupe !== null}
