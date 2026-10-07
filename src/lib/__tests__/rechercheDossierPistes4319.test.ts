@@ -79,7 +79,7 @@ describe('LibraryV2 branche la recherche serveur de la portée (#4319)', () => {
   const v2 = readFileSync(resolve(process.cwd(), 'src/components/v2/LibraryV2.svelte'), 'utf-8');
 
   it('demande au serveur les albums qui répondent au texte, dossier compris dans une portée', () => {
-    expect(v2).toMatch(/const filtres = d \? \{ folder: d, q: saisie \} : \{ q: saisie \};/);
+    expect(v2).toMatch(/const filtres: Record<string, string> = d \? \{ folder: d, q: saisie \} : \{ q: saisie \};/);
     expect(v2).toMatch(/return api\.getAlbumsDetailed\(filtres, limite, rang\);/);
   });
 
