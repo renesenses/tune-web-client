@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Métadonnées — nouveau client (direction Levente). Niveau Expert.
    *
@@ -1106,7 +1107,7 @@
                   {$t('v2.meta.dArtistTracks' as any).replace('{count}', $formatNombre(g.pistes.length))}
                   <!-- Le chemin d'une piste du groupe : c'est lui qui justifie
                        le nom, et il doit se lire avant de cocher. -->
-                  <span class="chemin">{g.pistes[0]?.file_path ?? ''}</span>
+                  <span class="chemin" use:bulleTexte>{g.pistes[0]?.file_path ?? ''}</span>
                 </span>
               </span>
             </label>
