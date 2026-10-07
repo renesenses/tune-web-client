@@ -215,6 +215,7 @@
 </script>
 
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { concertsUtilisable, refreshConcertsPlugin } from '../../lib/stores/concerts';
   import { circleCharge, refreshCirclePlugin } from '../../lib/circle';
   import { healthStatus } from '../../lib/stores/health';
@@ -743,7 +744,7 @@
       <div class="name">Tune{#if $healthStatus !== 'ok'}<span class="sante" class:crit={$healthStatus === 'critical'}
         title="{$t('sidebar.serverStatus')} : {$healthStatus}" aria-label="{$t('sidebar.serverStatus')} : {$healthStatus}"></span>{/if}</div>
       <div class="sub">MOZAIKLABS</div>
-      {#if enrichissementEnCours}<div class="taches" aria-live="polite">{enrichissementEnCours}</div>{/if}
+      {#if enrichissementEnCours}<div class="taches" aria-live="polite" use:bulleTexte>{enrichissementEnCours}</div>{/if}
       {#if libelleAnalyse}
         <button class="analyse" onclick={ouvrirAnalyse} aria-live="polite"
           title={$t('v2.nav.scanRunningHint' as any)}>
