@@ -231,7 +231,8 @@ describe('🔴 `L` / `R` ne se traduisent pas — c’est un repère d’instrum
 describe('la disposition de canaux — ce que le SERVEUR en dit', () => {
   const t = (cle: string) => ({
     'zoneConfig.channels_surround51': '5.1',
-    'zoneConfig.channels_surround714': '7.1.4 (Atmos)',
+    'zoneConfig.channels_surround714': '7.1.4 (Atmos / Auro-3D)',
+    'zoneConfig.channels_surround916': '9.1.6 (Atmos / Auro-3D)',
     'zoneConfig.channels_immersive24': '24 canaux',
   } as Record<string, string>)[cle] ?? cle;
 
@@ -245,9 +246,15 @@ describe('la disposition de canaux — ce que le SERVEUR en dit', () => {
 
   it('le multicanal passe par le vocabulaire que le client possède déjà', () => {
     expect(libelleCanaux('5.1', t)).toBe('5.1');
-    // Le serveur écrit « 7.1.4 Atmos » ; le client dit « 7.1.4 (Atmos) » dans
-    // les onze langues du sélecteur de canaux. C'est cette forme qui gagne.
-    expect(libelleCanaux('7.1.4 Atmos', t)).toBe('7.1.4 (Atmos)');
+    // Le serveur écrit « 7.1.4 Atmos / Auro-3D » ; le client dit
+    // « 7.1.4 (Atmos / Auro-3D) » dans les onze langues du sélecteur de
+    // canaux. C'est cette forme qui gagne.
+    expect(libelleCanaux('7.1.4 Atmos / Auro-3D', t)).toBe('7.1.4 (Atmos / Auro-3D)');
+    expect(libelleCanaux('9.1.6 Atmos / Auro-3D', t)).toBe('9.1.6 (Atmos / Auro-3D)');
+    // Un serveur antérieur à tune-server-rust#5576 écrit encore « 7.1.4 Atmos »
+    // et « 9.1.6 Auro-3D » : même clé, donc le même libellé à deux formats.
+    expect(libelleCanaux('7.1.4 Atmos', t)).toBe('7.1.4 (Atmos / Auro-3D)');
+    expect(libelleCanaux('9.1.6 Auro-3D', t)).toBe('9.1.6 (Atmos / Auro-3D)');
     // Et surtout : « Immersive 24ch » n'est pas du français.
     expect(libelleCanaux('Immersive 24ch', t)).toBe('24 canaux');
   });
@@ -277,6 +284,9 @@ describe('la disposition de canaux — ce que le SERVEUR en dit', () => {
       for (const cle of cles) {
         expect(src, `${langue} n'a pas zoneConfig.${cle}`).toContain(`zoneConfig.${cle}`);
       }
+      // tune-server-rust#5576 — 7.1.4 et 9.1.6 nomment les DEUX formats.
+      expect(src, `${langue} : 7.1.4 ne nomme qu'un format`).toContain('"zoneConfig.channels_surround714": "7.1.4 (Atmos / Auro-3D)"');
+      expect(src, `${langue} : 9.1.6 ne nomme qu'un format`).toContain('"zoneConfig.channels_surround916": "9.1.6 (Atmos / Auro-3D)"');
     }
   });
 });
