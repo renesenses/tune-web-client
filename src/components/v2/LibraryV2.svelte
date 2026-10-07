@@ -82,7 +82,7 @@
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
-    comptesCompilation, comptesProvenance,
+    comptesCompilation, comptesProvenance, repondALaRecherche,
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
@@ -209,6 +209,36 @@
   function retirerPortee() {
     libraryFolderScope.set(null);
   }
+
+  /**
+   * renesenses/tune-server-rust#4319 (fil 1817) — la RECHERCHE dans une portée
+   * de répertoire regarde aussi les PISTES.
+   *
+   * L'album ne porte que son titre et son artiste d'album : « Mehta » ne
+   * trouvait pas un album rangé sous « Gustav Mahler » dont les pistes sont de
+   * « Zubin Mehta », ni un album sans étiquettes rangé par dossier. On demande
+   * au serveur les albums du dossier qui répondent au texte — même route
+   * paginée que la portée, avec `q` : le prédicat d'Oxygen (#5192), artiste de
+   * piste et nom de dossier compris, insensible à la casse et aux accents.
+   * Le résultat s'AJOUTE à la comparaison locale (`albumsDuTexte`), qui
+   * continue de répondre à la frappe ; la requête part 300 ms après la
+   * dernière touche, comme dans Oxygen. Un échec n'efface rien : on garde la
+   * comparaison locale seule.
+   */
+  let idsTexteServeur = $state<Set<number> | null>(null);
+  $effect(() => {
+    const d = dossierPortee;
+    const saisie = q.replace(/"/g, '').trim();
+    idsTexteServeur = null;
+    if (!d || !saisie) return;
+    let perime = false;
+    const minuterie = setTimeout(() => {
+      idsAlbumsDeLaPortee((limite, rang) => api.getAlbumsDetailed({ folder: d, q: saisie }, limite, rang))
+        .then((ids) => { if (!perime) idsTexteServeur = ids; })
+        .catch(() => { /* comparaison locale seule */ });
+    }, 300);
+    return () => { perime = true; clearTimeout(minuterie); };
+  });
 
   /** LA source d'albums de l'ecran. Tout le reste lit `src`, jamais `$albums`
    *  ni `albumsD` : c'est ce qui rend la vue identique des deux cotes.
@@ -464,7 +494,9 @@
     // serveur — jamais « on ne sait pas, laissons passer ».
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
     if (!dansSource(a, fProvenance)) return false;
-    if (q && !fold(a.title).includes(fold(q)) && !fold(a.artist_name).includes(fold(q))) return false;
+    // #4319 — même règle que les comptes : artiste de piste et dossier
+    // compris dans une portée de répertoire (`idsTexteServeur`).
+    if (!repondALaRecherche(a, q, { plier: fold, albumsDuTexte: idsTexteServeur })) return false;
     return true;
   }
 
@@ -620,6 +652,7 @@
   });
   const outilsFacettes = $derived<Outils>({
     qualiteDe: tierMatches, anneeDe: albumYear, plier: fold, provenanceDe,
+    albumsDuTexte: idsTexteServeur,
   });
 
   const formats = $derived(comptesFormat(src, filtresActifs, outilsFacettes));
