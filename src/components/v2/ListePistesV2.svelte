@@ -35,6 +35,7 @@
 </script>
 
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Une liste de pistes — en TABLEAU au mode Essentiel, en lignes ailleurs.
    *
@@ -666,7 +667,7 @@
       {#if selectionnable}<span class="th" role="columnheader"></span>{/if}
       {#each colonnes as c (c.cle)}
         <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-          role="columnheader">{$t(c.cleI18n as any)}</span>
+          role="columnheader" use:bulleTexte>{$t(c.cleI18n as any)}</span>
       {/each}
       <!-- La colonne d'actions n'a pas d'en-tête : son contenu se lit seul, et
            un libellé y serait répété sur chaque ligne pour rien. -->
@@ -699,7 +700,7 @@
         {#if selectionnable}<span class="td act" role="cell">{@render caseACocher(p, i)}</span>{/if}
         {#each colonnes as c (c.cle)}
           {#if c.cle === 'quality'}
-            <span class="td" role="cell">
+            <span class="td" role="cell" use:bulleTexte>
               <QualityBadge format={p.format} sampleRate={p.sample_rate}
                 bitDepth={p.bit_depth} source={p.source} ajuste />
             </span>
@@ -758,12 +759,12 @@
               ? null
               : (ouvertureAlbum?.(p, i) ?? ouvertureAlbumDePiste(p, $gestesNavigationService))}
             {#if artiste && v}
-              <span class="td" role="cell">
+              <span class="td" role="cell" use:bulleTexte>
                 <button class="lien-artiste" title={v}
                   onclick={(e) => { e.stopPropagation(); void ouvrirArtisteDepuis(artiste, $activeView); }}>{v}</button>
               </span>
             {:else if versAlbum}
-              <span class="td" role="cell">
+              <span class="td" role="cell" use:bulleTexte>
                 <button class="lien-artiste lien-album" title={v}
                   onclick={(e) => { e.stopPropagation(); versAlbum(); }}>{v}</button>
               </span>
