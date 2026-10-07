@@ -5283,6 +5283,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <p class="hint">{#each emphaseParts($t('settings.removeFolderHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {:else}
                 <p class="hint">{$t('settings.noFolderDeclared' as any)}</p>
+                <!-- Fil 2145 (web#1935) — l'écran disait « aucun dossier » et,
+                     plus bas, « Monté », sans relier les deux. -->
+                {#if Array.isArray(smbMounts) && smbMounts.some((m) => proposerAjout(m, musicDirs))}
+                  <p class="hint">{$t('settings.noFolderShareMounted' as any)}</p>
+                {/if}
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- Délai de relecture des partages réseau (#5792, fil 2148).
