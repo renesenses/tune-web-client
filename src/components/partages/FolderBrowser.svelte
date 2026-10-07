@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Sélecteur de dossier du SERVEUR (#1275, fil forum 2171).
    *
@@ -62,7 +63,7 @@
       <button class="close-btn" onclick={onClose} aria-label={$t('common.close' as any)}>&times;</button>
     </header>
 
-    <div class="breadcrumb">
+    <div class="breadcrumb" use:bulleTexte>
       <span class="current-path">{drives ? $t('folderBrowser.drives' as any) : currentPath}</span>
     </div>
 
@@ -74,7 +75,7 @@
       {#if parentPath !== null}
         <button class="dir-item parent" onclick={() => browse(parentPath!)} aria-label={$t('folderBrowser.parent' as any)}>
           <span class="icon">⬆</span>
-          <span class="name">..</span>
+          <span class="name" use:bulleTexte>..</span>
         </button>
       {/if}
 
@@ -90,7 +91,7 @@
               onkeydown={(e) => { if (e.key === 'ArrowRight') browse(dir.path); }}
             >
               <span class="icon">{drives ? '💽' : dir.has_children ? '📁' : '📂'}</span>
-              <span class="name">{dir.name}</span>
+              <span class="name" use:bulleTexte>{dir.name}</span>
             </button>
             {#if dir.has_children || drives}
               <button class="open" onclick={() => browse(dir.path)}
@@ -108,7 +109,7 @@
     <p class="hint">{$t('folderBrowser.hint' as any)}</p>
 
     <footer>
-      <span class="selected-path">{selected}</span>
+      <span class="selected-path" use:bulleTexte>{selected}</span>
       <div class="actions">
         <button class="cancel-btn" onclick={onClose}>{$t('common.cancel' as any)}</button>
         <button class="select-btn" onclick={select} disabled={!selected}>{$t('folderBrowser.select' as any)}</button>
