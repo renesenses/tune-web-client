@@ -102,6 +102,16 @@ import { estRefusEcriture, messageRefusEcriture, CODE_REFUS_ECRITURE } from './e
 import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
 import { messageRefusBitperfect } from './bitperfectStrict';
 import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
+import {
+  RefusSauvegarde,
+  codeDuRefus as codeDuRefusSauvegarde,
+  corpsRestauration,
+  type EtatSauvegardeCloud,
+  type InstantaneCloud,
+  type ListeInstantanes,
+  type ModeRestauration as ModeRestaurationCloud,
+  type ResultatRestauration,
+} from './sauvegardeCloud';
 
 /**
  * L'erreur d'un refus premium 402 — **seul** constructeur de cette forme dans
@@ -7195,6 +7205,77 @@ export async function previewImportConfig(data: any): Promise<unknown> {
     (statut) => statut === 404 || statut === 405,
     true,
   );
+}
+
+// --- Sauvegarde des personnalisations dans le nuage (#5654, #902) ---
+//
+// Contrat : routes `/system/config-backup/cloud/*` du serveur Tune. Les refus
+// que l'écran traite lui-même (400 secret_required / wrong_secret, 412
+// account_not_linked, 502 cloud_unreachable) sont acceptés sans bandeau et
+// relevés en `RefusSauvegarde`, avec leur code stable.
+//
+// 🔴 La phrase de passe et la clé de secours ne voyagent QUE dans le corps
+// d'un POST : jamais en paramètre d'URL (journaux d'accès, historique).
+
+const STATUTS_DE_REFUS_SAUVEGARDE = (s: number) => s === 400 || s === 409 || s === 412 || s === 502;
+
+async function appelSauvegarde<T>(chemin: string, init?: RequestInit, sansBandeau = true): Promise<T> {
+  const corps = await fetchJSON<any>(
+    `${BASE}/system/config-backup/cloud/${chemin}`,
+    init,
+    STATUTS_DE_REFUS_SAUVEGARDE,
+    sansBandeau,
+  );
+  if (corps && typeof corps === 'object' && typeof corps.error === 'string' && corps.success !== true) {
+    throw new RefusSauvegarde(codeDuRefusSauvegarde(corps), corps.error);
+  }
+  return corps as T;
+}
+
+/** État de la sauvegarde automatique. Pas de garde Premium côté serveur : l'écran doit pouvoir dire « Premium requis ». */
+export async function getCloudBackupStatus(sansBandeau = true): Promise<EtatSauvegardeCloud> {
+  return appelSauvegarde<EtatSauvegardeCloud>('status', undefined, sansBandeau);
+}
+
+/**
+ * Active la sauvegarde. À la PREMIÈRE activation, `passphrase` crée la clé et
+ * la réponse porte la clé de secours — rendue une seule fois.
+ */
+export async function enableCloudBackup(
+  passphrase?: string,
+): Promise<{ success: boolean; recovery_key?: string; key_id: string }> {
+  return appelSauvegarde('enable', {
+    method: 'POST',
+    body: JSON.stringify(passphrase ? { passphrase } : {}),
+  });
+}
+
+export async function disableCloudBackup(): Promise<{ success: boolean }> {
+  return appelSauvegarde('disable', { method: 'POST' });
+}
+
+export async function backupCloudNow(): Promise<{
+  success: boolean;
+  skipped_unchanged: boolean;
+  backup: Omit<InstantaneCloud, 'this_server' | 'local_key'> | null;
+}> {
+  return appelSauvegarde('backup-now', { method: 'POST' });
+}
+
+export async function listCloudBackups(sansBandeau = true): Promise<ListeInstantanes> {
+  return appelSauvegarde<ListeInstantanes>('snapshots', undefined, sansBandeau);
+}
+
+/** Restaure un instantané. `secret` = phrase de passe OU clé de secours, seulement quand la clé locale ne l'ouvre pas. */
+export async function restoreCloudBackup(
+  id: number,
+  mode: ModeRestaurationCloud,
+  secret?: string | null,
+): Promise<ResultatRestauration> {
+  return appelSauvegarde<ResultatRestauration>('restore', {
+    method: 'POST',
+    body: JSON.stringify(corpsRestauration(id, mode, secret)),
+  });
 }
 
 // --- MusicBrainz Batch Enrichment ---

@@ -11,6 +11,16 @@
   import { formatNombre } from '../../lib/formats';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import FolderBrowser from './FolderBrowser.svelte';
+  import {
+    offreDeReprise,
+    peutLister,
+    instantaneParDefaut,
+    RefusSauvegarde,
+    lignesDuBilan,
+    type InstantaneCloud,
+    type ResultatRestauration,
+  } from '../../lib/sauvegardeCloud';
+  import { dateEtHeure } from '../../lib/dates';
 
   let { onComplete }: { onComplete: () => void } = $props();
 
@@ -103,6 +113,70 @@
     rstBusy = false;
   }
 
+  /**
+   * « Reprendre vos personnalisations » (#902, tune-server-rust#5654).
+   *
+   * Un serveur neuf relié au compte mozaiklabs peut lire les instantanés que
+   * l'ANCIENNE machine a déposés (chiffrés, trois au plus). L'offre ne
+   * s'affiche que si les trois conditions de `offreDeReprise` tiennent :
+   * relié, Premium, au moins un instantané. Sinon, rien — pas même une
+   * erreur : l'assistant ne doit jamais attendre ni crier pour une offre.
+   *
+   * Mode `replace` : sur une machine neuve il n'y a rien à garder, la
+   * sauvegarde l'emporte. Rien n'est supprimé, et la bibliothèque n'est
+   * jamais touchée (dossiers de musique compris) : l'étape suivante reste
+   * celle des dossiers.
+   *
+   * 🔴 Le secret (phrase de passe ou clé de secours) ne quitte cet état que
+   * dans le corps du POST, puis il est vidé.
+   */
+  let cloudListe = $state<InstantaneCloud[]>([]);
+  let cloudOffre = $state(false);
+  let cloudChoix = $state<number | null>(null);
+  let cloudSecret = $state('');
+  let cloudBusy = $state(false);
+  let cloudErr = $state<string | null>(null);
+  let cloudBilan = $state<ResultatRestauration | null>(null);
+
+  async function chargerOffreCloud() {
+    try {
+      const etat = await api.getCloudBackupStatus(true);
+      if (!peutLister(etat)) return;
+      const liste = await api.listCloudBackups(true);
+      if (!offreDeReprise(etat, liste)) return;
+      cloudListe = liste.backups;
+      cloudChoix = instantaneParDefaut(liste.backups)?.id ?? null;
+      cloudOffre = true;
+    } catch {
+      // Serveur antérieur, nuage injoignable, compte non relié : pas d'offre.
+    }
+  }
+
+  async function reprendreDuCloud() {
+    if (cloudChoix == null) return;
+    const choisi = cloudListe.find((i) => i.id === cloudChoix);
+    cloudBusy = true;
+    cloudErr = null;
+    try {
+      cloudBilan = await api.restoreCloudBackup(
+        cloudChoix,
+        'replace',
+        choisi?.local_key ? null : cloudSecret,
+      );
+    } catch (err: any) {
+      if (err instanceof RefusSauvegarde && (err.code === 'wrong_secret' || err.code === 'secret_required')) {
+        cloudErr = get(t)('cloudBackup.wrongSecret');
+      } else if (err instanceof RefusSauvegarde && err.code === 'cloud_unreachable') {
+        cloudErr = get(t)('cloudBackup.cloudUnreachable');
+      } else {
+        cloudErr = get(t)('cloudBackup.error').replace('{error}', err?.message ?? String(err));
+      }
+    } finally {
+      cloudSecret = '';
+      cloudBusy = false;
+    }
+  }
+
   // Step 2: Music library
   let musicRoots = $state<BrowseRootEntry[]>([]);
   let newMusicDirPath = $state('');
@@ -155,6 +229,7 @@
   $effect(() => {
     loadMusicRoots();
     loadStreamingServices();
+    void chargerOffreCloud();
     const unsub = tuneWS.onEvent((event) => {
       if (event.type === 'library.scan.progress' && event.data) {
         scanStats = { ...scanStats, ...event.data };
@@ -512,17 +587,60 @@
           </div>
         </div>
 
+        {#if cloudOffre}
+          <div class="reprise reprise-cloud">
+            <h2>{$t('cloudBackup.onboardingTitle')}</h2>
+            <p class="reprise-desc">{$t('cloudBackup.onboardingDesc')}</p>
+            {#if cloudBilan}
+              <p class="reprise-ok">{$t('cloudBackup.onboardingDone')}</p>
+              <ul class="reprise-bilan">
+                {#each lignesDuBilan(cloudBilan.report) as l (l.cle)}
+                  <li>{$t(l.cle as any).replace('{n}', String(l.n))}</li>
+                {/each}
+              </ul>
+              {#if cloudBilan.report.warnings?.length}
+                <details class="reprise-limites">
+                  <summary>{$t('cloudBackup.reportWarnings')} ({cloudBilan.report.warnings.length})</summary>
+                  <ul>{#each cloudBilan.report.warnings as w}<li>{w}</li>{/each}</ul>
+                </details>
+              {/if}
+            {:else}
+              <label class="reprise-champ">
+                <span>{$t('cloudBackup.onboardingPick')}</span>
+                <select bind:value={cloudChoix} disabled={cloudBusy}>
+                  {#each cloudListe as i (i.id)}
+                    <option value={i.id}>{$dateEtHeure(i.created_at)}{i.server_label ? ` — ${i.server_label}` : ''}</option>
+                  {/each}
+                </select>
+              </label>
+              {#if !cloudListe.find((i) => i.id === cloudChoix)?.local_key}
+                <label class="reprise-champ">
+                  <span>{$t('cloudBackup.secretLabel')}</span>
+                  <input type="password" autocomplete="off" bind:value={cloudSecret} disabled={cloudBusy} />
+                </label>
+              {/if}
+              <p class="reprise-limites">{$t('cloudBackup.restoreSafety')}</p>
+              <div class="reprise-gestes">
+                <button class="btn-secondary" onclick={reprendreDuCloud}
+                  disabled={cloudBusy || cloudChoix == null || (!cloudListe.find((i) => i.id === cloudChoix)?.local_key && !cloudSecret.trim())}>
+                  {cloudBusy ? $t('common.loading') : $t('cloudBackup.onboardingRestore')}
+                </button>
+              </div>
+            {/if}
+            {#if cloudErr}<p class="reprise-err">{cloudErr}</p>{/if}
+          </div>
+        {/if}
+
         <div class="reprise">
           <h2>{$t('onboarding.restoreTitle')}</h2>
           <p class="reprise-desc">{$t('onboarding.restoreDesc')}</p>
           <p class="reprise-limites">{$t('onboarding.restoreLimits')}</p>
           <!-- #902 — DIRE où se trouve la reprise complète, à l'endroit exact
-               où l'utilisateur vient de lire qu'elle ne l'est pas. Le
-               mécanisme existe côté serveur (routes `system/config-backup`, dont
-               l'instantané porte zones, jetons scellés, playlists, favoris,
-               radios et alarmes) et il est adossé à la licence : le taire
-               laisserait croire que « reprendre sa machine » n'existe nulle
-               part. Constat, pas argumentaire. -->
+               où l'utilisateur vient de lire qu'elle ne l'est pas : la
+               sauvegarde automatique dans le cloud (tune-server-rust#5654),
+               Premium, dans Réglages › Système. Quand le serveur est déjà
+               relié et qu'un instantané existe, l'offre au-dessus la propose
+               directement. Constat, pas argumentaire. -->
           <p class="reprise-premium">{$t('onboarding.restorePremium')}</p>
 
           {#if rstFait}
@@ -964,6 +1082,9 @@
   .reprise-choix{display:inline-block; cursor:pointer}
   .reprise-choix input{display:none}
   .reprise-ok{font-size:13px; margin:0; color:var(--tune-accent)}
+  .reprise-champ{display:flex; flex-direction:column; gap:4px; font-size:12px; margin:0 0 8px}
+  .reprise-champ select, .reprise-champ input{padding:6px 8px; border-radius:6px; border:1px solid var(--tune-border, rgba(128,128,128,.3)); background:transparent; color:inherit}
+  .reprise-bilan{font-size:12px; margin:6px 0 0; padding-left:18px}
   .reprise-err{font-size:12px; margin:8px 0 0; color:var(--tune-danger, #d05353)}
   .step-desc {
     font-family: var(--font-body);
