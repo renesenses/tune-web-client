@@ -3197,10 +3197,6 @@ export function getArtistTimeline(artistId: number) {
   return fetchJSON<any[]>(`${BASE}/library/artists/${artistId}/timeline`);
 }
 
-export function getSimilarAlbums(albumId: number, limit = 10) {
-  return fetchJSON<import('./types').Album[]>(`${BASE}/library/albums/${albumId}/similar?limit=${limit}`);
-}
-
 /** Acoustically similar tracks ("Plus comme ça") — ranked by CLAP-embedding
  *  cosine distance to the seed. Empty `items` when the seed has no embedding. */
 export function getSimilarTracks(trackId: number, limit = 50) {
@@ -5343,10 +5339,6 @@ export function youtubeAuthStatus() {
 
 // --- YouTube Music browse (ytmusicapi) ---
 
-export function getYouTubeHome() {
-  return fetchJSON<{ sections: { id: string; name: string }[]; data: Record<string, Album[]> }>(`${BASE}/streaming/youtube/home`);
-}
-
 export function getYouTubeCharts(country = 'FR') {
   return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/youtube/charts?country=${encodeURIComponent(country)}`);
 }
@@ -5359,9 +5351,6 @@ export function getYouTubeMoodPlaylists(params: string) {
   return fetchJSON<{ title: string; playlistId: string; description: string; cover_path: string | null }[]>(`${BASE}/streaming/youtube/moods/${encodeURIComponent(params)}`);
 }
 
-export function getYouTubeLibrary(limit = 100) {
-  return fetchJSON<Track[]>(`${BASE}/streaming/youtube/library?limit=${limit}`);
-}
 
 // #3662 — `transferPlaylist` a été retirée : contrat MORT. Aucun appelant — les
 // sept sites de transfert du client passent tous par `transferPlaylistV2`
@@ -7583,12 +7572,22 @@ export async function importLinnPlaylist(file: File): Promise<LinnImportResult> 
 
 // --- Plugins ---
 
+/**
+ * Une ligne de `GET /plugins`, telle que le serveur la rend (tune-server-rust#1897).
+ *
+ * L'ancienne déclaration (`status: 'active' | 'disabled' | 'error'`) décrivait
+ * un contrat que le serveur n'émet plus : ses six appelants la contournaient
+ * tous par `as unknown as`. Seuls `name` et `enabled` sont garantis ; le reste
+ * dépend du type de greffon (natif, catalogue, WASM).
+ */
 export interface InstalledPlugin {
   name: string;
-  version: string;
-  status: 'active' | 'disabled' | 'error';
-  description: string;
-  error_message?: string;
+  enabled: boolean;
+  installed?: boolean;
+  version?: string;
+  display_name?: string;
+  description?: string;
+  restart_required?: boolean;
 }
 
 export interface StorePlugin {
@@ -7961,27 +7960,6 @@ export interface AdminHealth {
   disk_total_gb: number | null;
 }
 
-export interface AdminZone {
-  id: number;
-  name: string;
-  state: string;
-  output_type: string;
-  device_name: string;
-  online: boolean;
-  current_track: { title: string; artist_name: string; album_title: string; duration_ms: number } | null;
-  position_ms: number;
-  volume: number;
-  buffer: { size_kb: number; fill_percent: number } | null;
-  group_id: string | null;
-}
-
-export interface AdminError {
-  ts: string;
-  level: string;
-  event: string;
-  [key: string]: unknown;
-}
-
 export interface AdminConnections {
   websocket_connections: number;
   active_streams: number;
@@ -8002,14 +7980,6 @@ export interface AdminDiscovery {
 
 export function getAdminHealth() {
   return fetchJSON<AdminHealth>(`${BASE}/system/admin/health`);
-}
-
-export function getAdminZones() {
-  return fetchJSON<AdminZone[]>(`${BASE}/system/admin/zones`);
-}
-
-export function getAdminErrors() {
-  return fetchJSON<AdminError[]>(`${BASE}/system/admin/errors`);
 }
 
 export function getAdminConnections() {
@@ -8654,8 +8624,27 @@ export async function submitBugReport(
 
 // --- Audio Converter ---
 
-export function getConverterPresets(): Promise<{ id: string; label: string; format: string; quality: string; sample_rate: string; bit_depth: string; estimated_size_per_min: string }[]> {
-  return fetchJSON(`${BASE}/converter/presets`);
+/**
+ * Un préréglage de `GET /converter/presets`, tel que le serveur le rend
+ * (tune-server-rust#1897). `sample_rate` et `bit_depth` sont des nombres, nuls
+ * quand le préréglage garde ceux de la source ; `estimated_size_per_min`
+ * n'est rendu par aucun serveur à ce jour : l'écran ne l'affiche que s'il
+ * existe.
+ */
+export interface ConverterPreset {
+  id: string;
+  label: string;
+  format: string;
+  quality: string;
+  sample_rate: number | null;
+  bit_depth: number | null;
+  dsd_sample_rate?: number | null;
+  sample_rate_choices?: number[] | null;
+  estimated_size_per_min?: string;
+}
+
+export function getConverterPresets(): Promise<ConverterPreset[]> {
+  return fetchJSON<ConverterPreset[]>(`${BASE}/converter/presets`);
 }
 
 // Which formats THIS server can actually produce (#1524): flac/wav/opus are
