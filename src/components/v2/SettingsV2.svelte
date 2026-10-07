@@ -3967,6 +3967,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </label>
                   </div>
                 {/if}
+                <!-- #1892 — tous niveaux : les lignes de piste sont partout. -->
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.trackActionsReduced' as any)}</span>
+                    <span class="hint">{$t('settings.trackActionsReducedHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={$preferences.v2ActionsReduites}
+                      onchange={(e) => preferences.update((pr) => ({ ...pr, v2ActionsReduites: (e.currentTarget as HTMLInputElement).checked }))} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
                 <div class="row">
                   <div class="lbl">
                     <span>{$t('settings.tooltips' as any)}</span>

@@ -2550,6 +2550,8 @@ export default {
   "settings.tabExtensions": "Erweiterungen",
   "settings.albumTechLine": "Technische Zeile unter den Miniaturen",
   "settings.albumTechLineHint": "Format, Abtastrate und Bittiefe unter jedem Cover. Nur auf Experten-Ebene.",
+  "settings.trackActionsReduced": "Weniger Aktionssymbole",
+  "settings.trackActionsReducedHint": "Blendet „Als Nächstes abspielen“, „Zur Warteschlange“, „Zu Playlist hinzufügen“ und „Tags“ in Titelzeilen aus: Sie bleiben im Menü „…“. Abspielen, das Herz und das Menü bleiben sichtbar.",
   "library.noAlbumMatchesFilters": "Kein Album entspricht diesen Filtern.",
   "settings.restoreConfig": "Konfiguration wiederherstellen",
   "settings.restoreConfigWarning": "Diese Wiederherstellung *überschreibt* die Einstellungen und aktualisiert die Zonen aus der Datei. Keine Zone wird gelöscht. Sie ist *unwiderruflich*: exportieren Sie zuerst, wenn Sie zurückkehren möchten.",

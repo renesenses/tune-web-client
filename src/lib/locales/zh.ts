@@ -2550,6 +2550,8 @@ export default {
   "settings.tabExtensions": "扩展",
   "settings.albumTechLine": "缩略图下的技术信息行",
   "settings.albumTechLineHint": "在每张封面下显示格式、采样率与位深。仅限专家级别。",
+  "settings.trackActionsReduced": "精简操作图标",
+  "settings.trackActionsReducedHint": "在曲目行中隐藏“接着播放”“加入队列”“添加到播放列表”和“标签”：它们仍在“…”菜单中。播放、红心和菜单保持可见。",
   "library.noAlbumMatchesFilters": "没有专辑符合这些筛选条件。",
   "settings.restoreConfig": "恢复配置",
   "settings.restoreConfigWarning": "此次恢复会*覆盖*设置并更新文件中的区域。不会删除任何区域。这是*不可逆*的：如果想能够回退，请先导出。",

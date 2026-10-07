@@ -1590,6 +1590,8 @@ export default {
   "settings.tabExtensions": "Extensions",
   "settings.albumTechLine": "Ligne technique sous les vignettes",
   "settings.albumTechLineHint": "Format, fréquence et profondeur sous chaque pochette. Niveau Expert uniquement.",
+  "settings.trackActionsReduced": "Icônes d'action réduites",
+  "settings.trackActionsReducedHint": "Masque « Lire ensuite », « Ajouter à la file », « Ajouter à une playlist » et « Étiquettes » sur les lignes de piste : ils restent dans le menu « … ». Lire, le cœur et le menu restent visibles.",
   "library.noAlbumMatchesFilters": "Aucun album ne correspond à ces filtres.",
   "settings.restoreConfig": "Restaurer la configuration",
   "settings.restoreConfigWarning": "Cette restauration *écrase* les réglages et met à jour les zones du fichier. Aucune zone n'est supprimée. Elle est *irréversible* : exportez d'abord si vous voulez pouvoir revenir en arrière.",

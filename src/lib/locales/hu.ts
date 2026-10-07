@@ -2508,6 +2508,8 @@ export default {
   "settings.tabExtensions": "Bővítmények",
   "settings.albumTechLine": "Műszaki sor a bélyegképek alatt",
   "settings.albumTechLineHint": "Formátum, mintavételezés és bitmélység minden borító alatt. Csak Szakértő szinten.",
+  "settings.trackActionsReduced": "Kevesebb műveleti ikon",
+  "settings.trackActionsReducedHint": "Elrejti a „Lejátszás következőként”, „Hozzáadás a sorhoz”, „Hozzáadás lejátszási listához” és „Címkék” ikonokat a számok soraiban: a „…” menüben megmaradnak. A lejátszás, a szív és a menü látható marad.",
   "library.noAlbumMatchesFilters": "Egyetlen album sem felel meg ezeknek a szűrőknek.",
   "settings.restoreConfig": "Beállítások visszaállítása",
   "settings.restoreConfigWarning": "Ez a visszaállítás *felülírja* a beállításokat és frissíti a fájlban szereplő zónákat. Egyetlen zóna sem törlődik. *Visszafordíthatatlan*: előbb exportáljon, ha vissza akar térni.",

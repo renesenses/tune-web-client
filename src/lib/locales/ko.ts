@@ -2550,6 +2550,8 @@ export default {
   "settings.tabExtensions": "확장",
   "settings.albumTechLine": "섬네일 아래 기술 정보",
   "settings.albumTechLineHint": "각 커버 아래에 형식, 샘플링 주파수, 비트 심도를 표시합니다. 전문가 수준 전용.",
+  "settings.trackActionsReduced": "작업 아이콘 줄이기",
+  "settings.trackActionsReducedHint": "트랙 행에서 '다음에 재생', '대기열에 추가', '플레이리스트에 추가', '태그'를 숨깁니다. 이 항목은 '…' 메뉴에 남아 있습니다. 재생, 하트, 메뉴는 계속 표시됩니다.",
   "library.noAlbumMatchesFilters": "이 필터에 맞는 앨범이 없습니다.",
   "settings.restoreConfig": "설정 복원",
   "settings.restoreConfigWarning": "이 복원은 설정을 *덮어쓰고* 파일의 존을 업데이트합니다. 존은 삭제되지 않습니다. *되돌릴 수 없습니다*. 되돌리려면 먼저 내보내세요.",

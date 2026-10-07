@@ -2550,6 +2550,8 @@ export default {
   "settings.tabExtensions": "Estensioni",
   "settings.albumTechLine": "Riga tecnica sotto le miniature",
   "settings.albumTechLineHint": "Formato, frequenza e profondità sotto ogni copertina. Solo a livello Esperto.",
+  "settings.trackActionsReduced": "Meno icone di azione",
+  "settings.trackActionsReducedHint": "Nasconde «Riproduci dopo», «Aggiungi alla coda», «Aggiungi a una playlist» e «Etichette» sulle righe dei brani: restano nel menu «…». Riproduci, il cuore e il menu restano visibili.",
   "library.noAlbumMatchesFilters": "Nessun album corrisponde a questi filtri.",
   "settings.restoreConfig": "Ripristina la configurazione",
   "settings.restoreConfigWarning": "Questo ripristino *sovrascrive* le impostazioni e aggiorna le zone del file. Nessuna zona viene eliminata. È *irreversibile*: esporta prima se vuoi poter tornare indietro.",

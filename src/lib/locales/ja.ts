@@ -2550,6 +2550,8 @@ export default {
   "settings.tabExtensions": "拡張機能",
   "settings.albumTechLine": "サムネイル下の技術情報",
   "settings.albumTechLineHint": "各ジャケットの下に形式・サンプリング周波数・ビット深度を表示します。エキスパートレベルのみ。",
+  "settings.trackActionsReduced": "アクションアイコンを減らす",
+  "settings.trackActionsReducedHint": "トラック行の「次に再生」「キューに追加」「プレイリストに追加」「タグ」を隠します。これらは「…」メニューに残ります。再生、ハート、メニューは表示されたままです。",
   "library.noAlbumMatchesFilters": "これらの絞り込みに一致するアルバムはありません。",
   "settings.restoreConfig": "設定を復元",
   "settings.restoreConfigWarning": "この復元は設定を *上書き* し、ファイル内のゾーンを更新します。ゾーンは削除されません。*取り消せません*。元に戻せるようにするには先に書き出してください。",
