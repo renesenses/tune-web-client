@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
@@ -396,8 +397,8 @@
             </div>
             <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={40} alt={track.title} />
             <div class="track-info">
-              <span class="track-title truncate">{track.title}</span>
-              <span class="track-artist truncate">{track.artist_name ?? ''}</span>
+              <span class="track-title truncate" use:bulleTexte>{track.title}</span>
+              <span class="track-artist truncate" use:bulleTexte>{track.artist_name ?? ''}</span>
             </div>
             <span class="track-duration">{formatTime(track.duration_ms)}</span>
             <span class="track-heart" onclick={(e) => e.stopPropagation()}>
