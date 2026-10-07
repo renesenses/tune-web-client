@@ -17,7 +17,11 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { correspond, repondALaRecherche, type FiltresBibliotheque, type Outils } from '../facettesBibliotheque';
+import {
+  correspond, repondALaRecherche, filtresDeRechercheServeur, SEUIL_RECHERCHE_SERVEUR,
+  type FiltresBibliotheque, type Outils,
+} from '../facettesBibliotheque';
+import { idsAlbumsDeLaPortee } from '../porteeDossierAlbums';
 import { fold } from '../utils';
 import type { Album } from '../types';
 
@@ -78,10 +82,14 @@ describe('recherche dans une portée de répertoire (#4319)', () => {
 describe('LibraryV2 branche la recherche serveur de la portée (#4319)', () => {
   const v2 = readFileSync(resolve(process.cwd(), 'src/components/v2/LibraryV2.svelte'), 'utf-8');
 
-  it('demande au serveur les albums du dossier qui répondent au texte', () => {
-    expect(v2).toMatch(
-      /idsAlbumsDeLaPortee\(\(limite, rang\) => api\.getAlbumsDetailed\(\{ folder: d, q: saisie \}, limite, rang\)\)/,
-    );
+  it('les paramètres serveur viennent de `filtresDeRechercheServeur`, dépôt distant exclu', () => {
+    expect(v2).toMatch(/const filtres = filtresDeRechercheServeur\(q, dossierPortee\);/);
+    expect(v2).toMatch(/if \(depot \|\| !filtres\) return;/);
+    expect(v2).toMatch(/return api\.getAlbumsDetailed\(filtres, limite, rang\);/);
+  });
+
+  it('une saisie périmée arrête la pagination en cours', () => {
+    expect(v2).toMatch(/if \(perime\) return Promise\.reject\(/);
   });
 
   it('la grille et les comptes appliquent la MÊME règle', () => {
@@ -89,5 +97,65 @@ describe('LibraryV2 branche la recherche serveur de la portée (#4319)', () => {
     expect(v2).toMatch(/albumsDuTexte: idsTexteServeur,/);
     // L'ancienne comparaison en dur, titre + artiste d'album seulement.
     expect(v2).not.toMatch(/q && !fold\(a\.title\)\.includes\(fold\(q\)\)/);
+  });
+});
+
+describe('la pagination s’arrête quand la page refuse (#4319)', () => {
+  it('une page rejetée interrompt la boucle : aucune page suivante', async () => {
+    const { PAGE_PORTEE } = await import('../porteeDossierAlbums');
+    let appels = 0;
+    let perime = false;
+    const pleine = Array.from({ length: PAGE_PORTEE }, (_, i) => ({ album_id: i }));
+    const r = idsAlbumsDeLaPortee(async () => {
+      if (perime) throw new Error('saisie périmée');
+      appels++;
+      perime = true; // la saisie change pendant la première page
+      return { items: pleine as never, total: PAGE_PORTEE * 5 };
+    });
+    await expect(r).rejects.toThrow('périmée');
+    expect(appels).toBe(1);
+  });
+});
+
+describe('seuil de 3 caractères hors répertoire (#4319, décision du 07/10)', () => {
+  /** Ce que fait l'effet de `LibraryV2` : un appel serveur seulement si des
+   *  paramètres sortent de `filtresDeRechercheServeur`. */
+  async function appelsPour(saisie: string, dossier: string | null): Promise<Record<string, string>[]> {
+    const appels: Record<string, string>[] = [];
+    const filtres = filtresDeRechercheServeur(saisie, dossier);
+    if (filtres) {
+      await idsAlbumsDeLaPortee(async () => {
+        appels.push(filtres);
+        return { items: [], total: 0 };
+      });
+    }
+    return appels;
+  }
+
+  it('le seuil vaut 3', () => {
+    expect(SEUIL_RECHERCHE_SERVEUR).toBe(3);
+  });
+
+  it('deux lettres hors répertoire : aucun appel serveur', async () => {
+    expect(await appelsPour('ma', null)).toEqual([]);
+  });
+
+  it('trois lettres hors répertoire : un appel serveur', async () => {
+    expect(await appelsPour('meh', null)).toEqual([{ q: 'meh' }]);
+  });
+
+  it('les espaces de bord et les guillemets ne comptent pas', async () => {
+    expect(await appelsPour('  ma  ', null)).toEqual([]);
+    expect(await appelsPour('"ma"', null)).toEqual([]);
+    expect(await appelsPour('  meh ', null)).toEqual([{ q: 'meh' }]);
+  });
+
+  it('dans un répertoire, pas de seuil : une lettre suffit', async () => {
+    expect(await appelsPour('m', '/m/Mahler')).toEqual([{ folder: '/m/Mahler', q: 'm' }]);
+  });
+
+  it('saisie vide : aucun appel, répertoire ou non', async () => {
+    expect(await appelsPour('   ', null)).toEqual([]);
+    expect(await appelsPour('', '/m/Mahler')).toEqual([]);
   });
 });

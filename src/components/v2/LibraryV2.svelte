@@ -82,7 +82,7 @@
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
-    comptesCompilation, comptesProvenance, repondALaRecherche,
+    comptesCompilation, comptesProvenance, repondALaRecherche, filtresDeRechercheServeur,
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
@@ -211,29 +211,39 @@
   }
 
   /**
-   * renesenses/tune-server-rust#4319 (fil 1817) — la RECHERCHE dans une portée
-   * de répertoire regarde aussi les PISTES.
+   * renesenses/tune-server-rust#4319 (fil 1817) — la RECHERCHE de la
+   * Bibliothèque regarde aussi les PISTES, dans une portée de répertoire comme
+   * sur la bibliothèque entière (décision de Bertrand du 07/10).
    *
    * L'album ne porte que son titre et son artiste d'album : « Mehta » ne
    * trouvait pas un album rangé sous « Gustav Mahler » dont les pistes sont de
    * « Zubin Mehta », ni un album sans étiquettes rangé par dossier. On demande
-   * au serveur les albums du dossier qui répondent au texte — même route
-   * paginée que la portée, avec `q` : le prédicat d'Oxygen (#5192), artiste de
-   * piste et nom de dossier compris, insensible à la casse et aux accents.
+   * au serveur les albums qui répondent au texte — `/library/albums-detailed`,
+   * paginée comme la portée, avec `q` (et `folder` quand une portée est
+   * active) : le prédicat d'Oxygen (#5192), artiste de piste et nom de dossier
+   * compris, insensible à la casse et aux accents.
+   *
    * Le résultat s'AJOUTE à la comparaison locale (`albumsDuTexte`), qui
    * continue de répondre à la frappe ; la requête part 300 ms après la
    * dernière touche, comme dans Oxygen. Un échec n'efface rien : on garde la
-   * comparaison locale seule.
+   * comparaison locale seule. Une saisie qui change ARRÊTE la pagination en
+   * cours : chaque page refait un parcours complet des pistes côté serveur.
+   *
+   * Pas pour un dépôt distant : ses albums ne portent pas les identifiants de
+   * la bibliothèque locale, que la réponse désigne.
    */
   let idsTexteServeur = $state<Set<number> | null>(null);
   $effect(() => {
-    const d = dossierPortee;
-    const saisie = q.replace(/"/g, '').trim();
+    // Hors répertoire, 3 caractères au moins (`SEUIL_RECHERCHE_SERVEUR`).
+    const filtres = filtresDeRechercheServeur(q, dossierPortee);
     idsTexteServeur = null;
-    if (!d || !saisie) return;
+    if (depot || !filtres) return;
     let perime = false;
     const minuterie = setTimeout(() => {
-      idsAlbumsDeLaPortee((limite, rang) => api.getAlbumsDetailed({ folder: d, q: saisie }, limite, rang))
+      idsAlbumsDeLaPortee((limite, rang) => {
+        if (perime) return Promise.reject(new Error());
+        return api.getAlbumsDetailed(filtres, limite, rang);
+      })
         .then((ids) => { if (!perime) idsTexteServeur = ids; })
         .catch(() => { /* comparaison locale seule */ });
     }, 300);
@@ -495,7 +505,7 @@
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
     if (!dansSource(a, fProvenance)) return false;
     // #4319 — même règle que les comptes : artiste de piste et dossier
-    // compris dans une portée de répertoire (`idsTexteServeur`).
+    // compris, portée ou non (`idsTexteServeur`).
     if (!repondALaRecherche(a, q, { plier: fold, albumsDuTexte: idsTexteServeur })) return false;
     return true;
   }

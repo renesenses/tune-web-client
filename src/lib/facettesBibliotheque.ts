@@ -117,13 +117,15 @@ export interface Outils {
   provenanceDe: (a: Album) => string;
   /**
    * renesenses/tune-server-rust#4319 (fil 1817) — les albums que la RECHERCHE
-   * SERVEUR a trouvés pour le texte tapé, dans la portée de répertoire.
+   * SERVEUR a trouvés pour le texte tapé, dans la portée de répertoire ou dans
+   * la bibliothèque entière.
    *
    * L'album ne porte que son titre et son artiste d'album. L'artiste de PISTE
    * et le nom du dernier dossier vivent sur les pistes : « Mehta » ne trouvait
    * pas un album rangé sous « Gustav Mahler » dont les pistes sont de « Zubin
    * Mehta ». Plutôt qu'un nouveau champ, l'écran demande au serveur les albums
-   * du dossier qui répondent au texte (`/library/albums-detailed?folder=…&q=…`,
+   * qui répondent au texte (`/library/albums-detailed?q=…`, `&folder=…` dans
+   * une portée,
    * le même prédicat que `/library/tracks?q=` d'Oxygen, #5192 : titre et
    * artiste de piste, album, label, termes de chemin) et passe leurs
    * identifiants ici.
@@ -173,7 +175,7 @@ export function correspond(
 
 /**
  * L'album répond-il au texte tapé ? Titre ou artiste d'album, pliés — OU
- * album trouvé par la recherche serveur de la portée (#4319, voir
+ * album trouvé par la recherche serveur (#4319, voir
  * `Outils.albumsDuTexte`). Une saisie vide laisse tout passer.
  *
  * UNE règle pour la grille (`matches` de `LibraryV2`) et pour les comptes de
@@ -273,4 +275,35 @@ export function comptesProfondeur(
     if (d > 0) m.set(d, (m.get(d) ?? 0) + 1);
   }
   return [...m.entries()].sort((x, z) => x[0] - z[0]);
+}
+
+/**
+ * #4319 — hors répertoire, la recherche serveur attend au moins
+ * `SEUIL_RECHERCHE_SERVEUR` caractères (décision de Bertrand du 07/10).
+ *
+ * Mesuré sur une copie de 95 925 pistes : une seule lettre trouve presque
+ * tous les albums, soit jusqu'à cinq pages de 2 000, et chaque page refait un
+ * parcours complet des pistes. En dessous du seuil, seule la comparaison
+ * locale joue.
+ *
+ * Dans un répertoire, PAS de seuil : la portée borne déjà le parcours, et une
+ * recherche courte y reste utile (un dossier « CD1 », une initiale).
+ */
+export const SEUIL_RECHERCHE_SERVEUR = 3;
+
+/**
+ * Les paramètres de la recherche serveur pour la saisie, ou `null` quand il ne
+ * faut PAS interroger le serveur : saisie vide, ou trop courte hors
+ * répertoire. Doubles guillemets ôtés et espaces de bord retirés, comme le
+ * serveur (`motif_like`) : ils ne comptent pas dans le seuil.
+ */
+export function filtresDeRechercheServeur(
+  saisie: string,
+  dossier: string | null | undefined,
+): Record<string, string> | null {
+  const q = saisie.replace(/"/g, '').trim();
+  if (!q) return null;
+  if (dossier) return { folder: dossier, q };
+  if ([...q].length < SEUIL_RECHERCHE_SERVEUR) return null;
+  return { q };
 }
