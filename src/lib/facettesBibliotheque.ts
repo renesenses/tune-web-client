@@ -115,6 +115,24 @@ export interface Outils {
    * (convention posée par l'indexation, côté serveur).
    */
   provenanceDe: (a: Album) => string;
+  /**
+   * renesenses/tune-server-rust#4319 (fil 1817) — les albums que la RECHERCHE
+   * SERVEUR a trouvés pour le texte tapé, dans la portée de répertoire.
+   *
+   * L'album ne porte que son titre et son artiste d'album. L'artiste de PISTE
+   * et le nom du dernier dossier vivent sur les pistes : « Mehta » ne trouvait
+   * pas un album rangé sous « Gustav Mahler » dont les pistes sont de « Zubin
+   * Mehta ». Plutôt qu'un nouveau champ, l'écran demande au serveur les albums
+   * du dossier qui répondent au texte (`/library/albums-detailed?folder=…&q=…`,
+   * le même prédicat que `/library/tracks?q=` d'Oxygen, #5192 : titre et
+   * artiste de piste, album, label, termes de chemin) et passe leurs
+   * identifiants ici.
+   *
+   * C'est un OU avec la comparaison locale, jamais un remplacement : la
+   * comparaison locale répond à la frappe, la réponse serveur arrive après.
+   * Absent ou `null` : seule la comparaison locale compte.
+   */
+  albumsDuTexte?: ReadonlySet<number> | null;
 }
 
 /**
@@ -149,9 +167,28 @@ export function correspond(
   if (sauf !== 'provenance' && !sourceCorrespond(o.provenanceDe(a), f.provenance)) return false;
   // La RECHERCHE n'est pas une facette : elle ne s'exclut jamais. Compter les
   // formats d'albums qui ne correspondent pas au texte tapé n'aurait aucun sens.
-  if (f.recherche && !o.plier(a.title).includes(o.plier(f.recherche))
-      && !o.plier(a.artist_name).includes(o.plier(f.recherche))) return false;
+  if (!repondALaRecherche(a, f.recherche, o)) return false;
   return true;
+}
+
+/**
+ * L'album répond-il au texte tapé ? Titre ou artiste d'album, pliés — OU
+ * album trouvé par la recherche serveur de la portée (#4319, voir
+ * `Outils.albumsDuTexte`). Une saisie vide laisse tout passer.
+ *
+ * UNE règle pour la grille (`matches` de `LibraryV2`) et pour les comptes de
+ * facettes (`correspond`) : les deux ne doivent jamais diverger.
+ */
+export function repondALaRecherche(
+  a: Album,
+  recherche: string,
+  o: Pick<Outils, 'plier' | 'albumsDuTexte'>,
+): boolean {
+  if (!recherche) return true;
+  const aiguille = o.plier(recherche);
+  if (o.plier(a.title).includes(aiguille)) return true;
+  if (o.plier(a.artist_name).includes(aiguille)) return true;
+  return a.id != null && !!o.albumsDuTexte?.has(a.id);
 }
 
 /** Albums à considérer pour compter une facette donnée. */
