@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { etatSourceRadioFrance } from '../../lib/radioFranceSource';
   /**
    * Podcasts — nouveau client (direction Levente).
@@ -886,7 +887,7 @@
               <span class="ei">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
               </span>
-              <span class="et">{ep.title}
+              <span class="et" use:bulleTexte>{ep.title}
                 {#if showExpert}<em>{[epDate(ep), ep.duration_ms ? formatDuration(ep.duration_ms) : ''].filter(Boolean).join(' · ')}</em>{/if}
               </span>
               {#if !showExpert && ep.duration_ms}<span class="ed">{formatDuration(ep.duration_ms)}</span>{/if}
@@ -913,8 +914,8 @@
         <AlbumArt coverPath={cover(p)} albumId={null} size={0} alt={title(p)} fallbackInitials={title(p).slice(0,1)} />
       </PochetteActions>
     </span>
-    <span class="nm">{title(p)}</span>
-    {#if author(p)}<span class="au">{author(p)}</span>{/if}
+    <span class="nm" use:bulleTexte>{title(p)}</span>
+    {#if author(p)}<span class="au" use:bulleTexte>{author(p)}</span>{/if}
     <!-- Sans FLUX, il n'y a rien à quoi s'abonner : `toggleSub` sortait
          silencieusement, et le bouton mentait. Le palmarès rend `feed_url: ''`
          sur ses cinquante entrées — le même défaut rend l'abonnement inerte
