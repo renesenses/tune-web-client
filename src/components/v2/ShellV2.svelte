@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Coquille du nouveau client (direction Levente) : barre latérale à
    * niveaux + vue principale routée sur `activeView` + lecteur. Portée
@@ -644,7 +645,7 @@
       tout, y compris la grappe (`.avec-maj .av-tr`).
     -->
     <div class="maj">
-      <button class="maj-txt" onclick={ouvrirMaj}>
+      <button class="maj-txt" onclick={ouvrirMaj} use:bulleTexte>
         {$t('app.updateAvailable').replace('{version}', String($latestVersion ?? ''))}
       </button>
       <button class="maj-x" onclick={dismissUpdateBanner}
