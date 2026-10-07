@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { t } from '../../lib/i18n';
   /**
    * Extensions → Lecture CD — renesenses/tune-server-rust#4863.
@@ -232,7 +233,7 @@
         {#each disque.pistes as p (p.numero)}
           <li class="piste">
             <span class="num">{p.numero}</span>
-            <span class="titre">
+            <span class="titre" use:bulleTexte>
               {titrePisteCd(p, disque, pisteN)}
               {#if p.artiste && p.artiste !== disque.artiste}<small>{p.artiste}</small>{/if}
             </span>
