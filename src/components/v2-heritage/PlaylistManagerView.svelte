@@ -2756,7 +2756,7 @@
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M20 6L9 17l-5-5" /></svg>
                 </button>
-                <span class="pl-nom">{item.name}</span>
+                <span class="pl-nom" use:bulleTexte>{item.name}</span>
               </div>
               <span class="pl-compte">{item.trackCount} {$tr('common.tracks')}</span>
               <span class="pl-badge" style="border-color: {serviceColor(item.service)}; color: {serviceColor(item.service)}">
