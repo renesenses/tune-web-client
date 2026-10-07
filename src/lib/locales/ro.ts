@@ -2553,6 +2553,8 @@ export default {
   "settings.tabExtensions": "Extensii",
   "settings.albumTechLine": "Linie tehnică sub miniaturi",
   "settings.albumTechLineHint": "Format, frecvență și adâncime sub fiecare copertă. Doar la nivel Expert.",
+  "settings.trackActionsReduced": "Mai puține pictograme de acțiune",
+  "settings.trackActionsReducedHint": "Ascunde „Redă în continuare”, „Adaugă la coadă”, „Adaugă la o listă” și „Etichete” pe rândurile pieselor: rămân în meniul „…”. Redarea, inima și meniul rămân vizibile.",
   "library.noAlbumMatchesFilters": "Niciun album nu corespunde acestor filtre.",
   "settings.restoreConfig": "Restaurați configurația",
   "settings.restoreConfigWarning": "Această restaurare *suprascrie* setările și actualizează zonele din fișier. Nicio zonă nu este ștearsă. Este *ireversibilă*: exportați mai întâi dacă vreți să puteți reveni.",

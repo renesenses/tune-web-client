@@ -2552,6 +2552,8 @@ export default {
   "settings.tabExtensions": "Tillägg",
   "settings.albumTechLine": "Teknisk rad under miniatyrerna",
   "settings.albumTechLineHint": "Format, frekvens och bitdjup under varje omslag. Endast på Expertnivå.",
+  "settings.trackActionsReduced": "Färre åtgärdsikoner",
+  "settings.trackActionsReducedHint": "Döljer ”Spela härnäst”, ”Lägg till i kön”, ”Lägg till i spellista” och ”Taggar” på spårrader: de finns kvar i menyn ”…”. Spela, hjärtat och menyn syns fortfarande.",
   "library.noAlbumMatchesFilters": "Inget album matchar de här filtren.",
   "settings.restoreConfig": "Återställ konfigurationen",
   "settings.restoreConfigWarning": "Den här återställningen *skriver över* inställningarna och uppdaterar zonerna från filen. Ingen zon tas bort. Den är *oåterkallelig*: exportera först om du vill kunna gå tillbaka.",

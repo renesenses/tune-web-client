@@ -2553,6 +2553,8 @@ export default {
   "settings.tabExtensions": "Extensiones",
   "settings.albumTechLine": "Línea técnica bajo las miniaturas",
   "settings.albumTechLineHint": "Formato, frecuencia y profundidad bajo cada portada. Solo en nivel Experto.",
+  "settings.trackActionsReduced": "Menos iconos de acción",
+  "settings.trackActionsReducedHint": "Oculta «Reproducir a continuación», «Añadir a la cola», «Añadir a una lista» y «Etiquetas» en las filas de pistas: siguen en el menú «…». Reproducir, el corazón y el menú siguen visibles.",
   "library.noAlbumMatchesFilters": "Ningún álbum coincide con estos filtros.",
   "settings.restoreConfig": "Restaurar la configuración",
   "settings.restoreConfigWarning": "Esta restauración *sobrescribe* los ajustes y actualiza las zonas del archivo. No se elimina ninguna zona. Es *irreversible*: exporte primero si quiere poder volver atrás.",

@@ -1590,6 +1590,8 @@ export default {
   "settings.tabExtensions": "Extensions",
   "settings.albumTechLine": "Technical line under thumbnails",
   "settings.albumTechLineHint": "Format, sample rate and bit depth under each cover. Expert level only.",
+  "settings.trackActionsReduced": "Fewer action icons",
+  "settings.trackActionsReducedHint": "Hides “Play next”, “Add to queue”, “Add to playlist” and “Tags” on track rows: they stay in the “…” menu. Play, the heart and the menu remain visible.",
   "library.noAlbumMatchesFilters": "No album matches these filters.",
   "settings.restoreConfig": "Restore the configuration",
   "settings.restoreConfigWarning": "This restore *overwrites* the settings and updates the zones from the file. No zone is deleted. It is *irreversible*: export first if you want to be able to go back.",

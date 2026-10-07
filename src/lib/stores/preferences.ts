@@ -220,6 +220,11 @@ export interface Preferences {
    *  d'interface, donc imposée à tout utilisateur Expert. Or « Expert » dit
    *  ce qu'on sait faire, pas ce qu'on veut voir sous chaque vignette. */
   v2AlbumTechLine: boolean;
+  /** #1892 (Sandro, fil 2114) — masquer les icônes d'action rapide que le
+   *  menu « … » reprend (lire ensuite, file, playlist, étiquettes). Défaut
+   *  OFF : les icônes restent visibles, décision du 05/09/2026. Voir
+   *  `lib/actionsRapides`. */
+  v2ActionsReduites: boolean;
   /** Recherche EXACTE (Yves Corbat, point 8, 17/09/2026) : la saisie entière
    *  vaut une phrase entre guillemets — un artiste, un album ou un titre dont
    *  le nom contient ces mots, dans cet ordre. Désactivée par défaut. */
@@ -449,6 +454,7 @@ const defaults: Preferences = {
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
+  v2ActionsReduites: false,
   searchExact: false,
   v2CollectionsMosaique: true,
   // #1428 — DÉCOCHÉ, et c'est la décision de Bertrand du 22/09/2026, pas un
