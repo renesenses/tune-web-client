@@ -1460,6 +1460,12 @@ export interface TransferTrackResult {
   score?: number;
   match_method?: string;
   alternatives?: TransferAlternative[];
+  /**
+   * Pourquoi le titre n'a pas été transféré (tune-server-rust#4741) : le
+   * moteur unique du greffon « Playlists converter » rend sa raison
+   * (`{code, …}`, voir `RaisonConvertisseur`) pour chaque titre introuvable.
+   */
+  raison?: { code: string } | null;
 }
 
 export interface PlaylistTransferResponse {

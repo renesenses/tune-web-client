@@ -52,6 +52,8 @@
   import { untrack } from 'svelte';
   import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { convertisseurCharge, rafraichirConvertisseur } from '../../lib/stores/convertisseurPlaylists';
+  // #4741 — la raison d'un titre introuvable, dans les mots de l'onglet du greffon.
+  import { cleRaison } from '../../lib/convertisseurPlaylists';
   import TransfertsConvertisseur from './convertisseur/TransfertsConvertisseur.svelte';
   import SnapshotsConvertisseur from './convertisseur/SnapshotsConvertisseur.svelte';
   import LiensConvertisseur from './convertisseur/LiensConvertisseur.svelte';
@@ -644,12 +646,6 @@
   let restoringSnapshotId = $state<number | null>(null);
   let restoreMessage = $state('');
 
-  // Batch
-  let batchSource = $state('');
-  let batchTarget = $state('local');
-  let batching = $state(false);
-  let batchResult = $state<any>(null);
-
   // Service capabilities
   let serviceCapabilities = $state<
     Record<string, { authenticated: boolean; supports_write: boolean; supports_delete?: boolean }>
@@ -874,6 +870,7 @@
           score: t.score ?? 0,
           match_method: t.match_method ?? '',
           alternatives: t.alternatives ?? [],
+          raison: t.raison ?? null,
         })),
       };
       // Refresh history and playlists
@@ -1077,13 +1074,6 @@
     try { backupResult = await api.backupPlaylists(); } catch {}
     backingUp = false;
     await loadSnapshots();
-  }
-
-  async function doBatchTransfer() {
-    if (!batchSource) return;
-    batching = true;
-    try { batchResult = await api.batchTransfer({ source_service: batchSource, target_service: batchTarget }); } catch {}
-    batching = false;
   }
 
   // Available filter chips
@@ -1712,6 +1702,7 @@
           score: t.score ?? 0,
           match_method: t.match_method ?? '',
           alternatives: t.alternatives ?? [],
+          raison: t.raison ?? null,
         })),
       };
       await loadAll();
@@ -2131,7 +2122,7 @@
                               {#if track.match_method === 'manual'}
                                 {$tr('playlist.manualMatch')}
                               {:else}
-                                {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}
+                                {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}{#if track.status === 'not_found' && track.raison}<span class="transfer-raison"> — {$tr(cleRaison(track.raison.code))}</span>{/if}
                               {/if}
                             </span>
                           </div>
@@ -2377,30 +2368,6 @@
           </div>
         {/if}
 
-        <h4 style="margin-top: 24px;">{$tr('playlistManager.batchTransfer')}</h4>
-        <div class="batch-form">
-          <select bind:value={batchSource}>
-            <option value="">{$tr('playlistManager.pickSource')}</option>
-            {#each authenticatedServices as svc}
-              <option value={svc}>{svc}</option>
-            {/each}
-          </select>
-          <span>→</span>
-          <select bind:value={batchTarget}>
-            <option value="local">{$tr('playlist.local')}</option>
-            {#each authenticatedServices as svc}
-              <option value={svc}>{svc}</option>
-            {/each}
-          </select>
-          <button class="btn-action" onclick={doBatchTransfer} disabled={batching || !batchSource}>
-            {batching ? $tr('playlistManager.transferringShort') : $tr('playlistManager.transferAll')}
-          </button>
-        </div>
-        {#if batchResult}
-          <div class="backup-result">
-            <span>{$tr('playlistManager.playlistsProcessed').replace('{count}', String(batchResult.total_playlists))} — {batchResult.status}</span>
-          </div>
-        {/if}
       </div>
 
     {:else if managerTab === 'collab'}
@@ -2895,7 +2862,7 @@
                       {:else if track.match_method === 'confirmed'}
                         {$tr('playlist.matched')}
                       {:else}
-                        {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}
+                        {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}{#if track.status === 'not_found' && track.raison}<span class="transfer-raison"> — {$tr(cleRaison(track.raison.code))}</span>{/if}
                       {/if}
                     </span>
                   </div>
@@ -3282,8 +3249,7 @@
   .merge-dedup { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--tune-text-secondary); cursor: pointer; }
   .merge-check { margin-right: 8px; cursor: pointer; accent-color: var(--tune-accent); width: 18px; height: 18px; }
   .merge-selected { background: var(--tune-accent)11; }
-  .batch-form { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
-  .batch-form select { padding: 8px 12px; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 8px; color: var(--tune-text); font-size: 13px; }
+  .transfer-raison { color: var(--tune-text-muted); }
 
   .pm-header {
     display: flex;

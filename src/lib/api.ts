@@ -5444,19 +5444,28 @@ export function getPlaylistManagerServices() {
   );
 }
 
+/**
+ * `POST /playlist-manager/transfer` — depuis tune-server-rust#4741, cette route
+ * n'a plus de moteur à elle : elle passe la demande au greffon « Playlists
+ * converter » (aperçu, puis transfert avec accord sauf `dry_run`) et rend la
+ * forme d'avant, plus `lot_id`, `etat` et `tracks[]` — chaque titre
+ * introuvable avec sa `raison`. Appariement : ISRC, puis titre + artiste +
+ * durée à ±3 s, sans seuil réglable. 503 `greffon_requis` si le greffon n'est
+ * pas chargé. « local → local » reste une copie.
+ */
 export function transferPlaylistV2(body: {
   source_service: string; source_playlist_id: string; target_service: string;
-  target_name?: string; create_on_target?: boolean; match_threshold?: number;
-  include_approximate?: boolean; dry_run?: boolean;
+  target_name?: string; dry_run?: boolean;
+  /** Ignorés par le moteur unique (#4741), acceptés pour compatibilité. */
+  create_on_target?: boolean; match_threshold?: number; include_approximate?: boolean;
 }) {
   return fetchJSON<any>(`${BASE}/playlist-manager/transfer`, { method: 'POST', body: JSON.stringify(body) });
 }
 
-export function batchTransfer(body: {
-  source_service: string; target_service: string; playlist_ids?: string[] | null; match_threshold?: number;
-}) {
-  return fetchJSON<any>(`${BASE}/playlist-manager/batch-transfer`, { method: 'POST', body: JSON.stringify(body) });
-}
+// #4741 — l'ancienne fonction de transfert « par lot » du gestionnaire est
+// retirée avec sa route serveur, qui écrivait « started » dans l'historique et
+// ne transférait RIEN. Le transfert par lot est celui du greffon
+// (`convertisseurApercu` avec plusieurs playlists, puis `convertisseurTransferer`).
 
 export function mergePlaylists(body: {
   playlists: Array<{ service: string; playlist_id: string }>; target_name: string;
