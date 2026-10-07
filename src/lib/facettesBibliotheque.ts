@@ -117,13 +117,15 @@ export interface Outils {
   provenanceDe: (a: Album) => string;
   /**
    * renesenses/tune-server-rust#4319 (fil 1817) — les albums que la RECHERCHE
-   * SERVEUR a trouvés pour le texte tapé, dans la portée de répertoire.
+   * SERVEUR a trouvés pour le texte tapé, dans la portée de répertoire ou dans
+   * la bibliothèque entière.
    *
    * L'album ne porte que son titre et son artiste d'album. L'artiste de PISTE
    * et le nom du dernier dossier vivent sur les pistes : « Mehta » ne trouvait
    * pas un album rangé sous « Gustav Mahler » dont les pistes sont de « Zubin
    * Mehta ». Plutôt qu'un nouveau champ, l'écran demande au serveur les albums
-   * du dossier qui répondent au texte (`/library/albums-detailed?folder=…&q=…`,
+   * qui répondent au texte (`/library/albums-detailed?q=…`, `&folder=…` dans
+   * une portée,
    * le même prédicat que `/library/tracks?q=` d'Oxygen, #5192 : titre et
    * artiste de piste, album, label, termes de chemin) et passe leurs
    * identifiants ici.
@@ -173,7 +175,7 @@ export function correspond(
 
 /**
  * L'album répond-il au texte tapé ? Titre ou artiste d'album, pliés — OU
- * album trouvé par la recherche serveur de la portée (#4319, voir
+ * album trouvé par la recherche serveur (#4319, voir
  * `Outils.albumsDuTexte`). Une saisie vide laisse tout passer.
  *
  * UNE règle pour la grille (`matches` de `LibraryV2`) et pour les comptes de
