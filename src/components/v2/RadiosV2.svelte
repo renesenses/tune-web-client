@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Radio en direct — nouveau client (direction Levente).
    *
@@ -364,8 +365,8 @@
       </PochetteActions>
       {#if playingId === r.id}<span class="onair">{$t('v2.lbl.liveNow' as any)}</span>{/if}
     </span>
-    <span class="nm">{r.name}</span>
-    {#if radioGenreRayon(r)}<span class="gn">{libelle(radioGenreRayon(r)!)}</span>{/if}
+    <span class="nm" use:bulleTexte>{r.name}</span>
+    {#if radioGenreRayon(r)}<span class="gn" use:bulleTexte>{libelle(radioGenreRayon(r)!)}</span>{/if}
     <!-- #863 — Jean Valjean : « pouvoir voir le format d'émission ». Le codec
          existait, réservé à Expert ; il se lit dès Avancé, comme les filtres.
          Essentiel reste épuré. -->
