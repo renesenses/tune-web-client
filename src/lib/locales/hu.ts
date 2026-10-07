@@ -1166,6 +1166,7 @@ export default {
   "settings.licenseOfflineRule": "Internetkapcsolat nélkül a Premium {days} napig aktív marad. A számláló minden sikeres ellenőrzésnél újraindul.",
   "settings.restartServerNeeded": "Indítsd újra a szervert.",
   "settings.audioBackend": "Hangrendszer",
+  "settings.audioBackendNoLocalOutput": "Ennek a szervernek nincs helyi hangkimenete, így nincs választható hangrendszer. A hang a hálózati kimeneteken keresztül szól.",
   "settings.wasapiMode": "WASAPI mód",
   "tip.oxygenTrackRow": "Kattints a részletekért, dupla kattintással indul a lejátszás.",
   "tip.writeTags": "Ment, majd beírja ezeket az adatokat magukba a hangfájlokba, a lemezen.",

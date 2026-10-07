@@ -1097,6 +1097,7 @@ export default {
   "settings.licenseOfflineRule": "インターネット接続がなくても、Premium は {days} 日間有効です。確認に成功するたびにカウントはリセットされます。",
   "settings.restartServerNeeded": "サーバーを再起動してください。",
   "settings.audioBackend": "オーディオバックエンド",
+  "settings.audioBackendNoLocalOutput": "このサーバーにはローカル音声出力がないため、選択できるバックエンドはありません。音声はネットワーク出力から再生されます。",
   "settings.wasapiMode": "WASAPI モード",
   "tip.oxygenTrackRow": "クリックで詳細、ダブルクリックで再生を開始します。",
   "tip.writeTags": "保存したうえで、この情報を音声ファイル自体（ディスク上）に書き込みます。",

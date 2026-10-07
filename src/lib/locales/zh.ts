@@ -1097,6 +1097,7 @@ export default {
   "settings.licenseOfflineRule": "在没有互联网连接的情况下，您的 Premium 可继续使用 {days} 天。每次验证成功后计时重新开始。",
   "settings.restartServerNeeded": "请重启服务器。",
   "settings.audioBackend": "音频后端",
+  "settings.audioBackendNoLocalOutput": "此服务器没有本地音频输出，因此无需选择后端。声音通过网络输出播放。",
   "settings.wasapiMode": "WASAPI 模式",
   "tip.oxygenTrackRow": "单击查看详情，双击开始播放。",
   "tip.writeTags": "先保存，然后把这些信息写入磁盘上的音频文件本身。",
