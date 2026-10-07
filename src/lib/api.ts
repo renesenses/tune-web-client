@@ -1767,7 +1767,8 @@ export async function getAlbumsPage(limit = 100, offset = 0): Promise<{ items: A
   const r = await fetchJSON<{ items?: Album[]; total?: number } | Album[]>(
     `${BASE}/library/albums?limit=${limit}&offset=${offset}`,
   );
-  if (Array.isArray(r)) return { items: r, total: r.length };
+  if (Array.isArray(r)) { amorcerPochettes(r); return { items: r, total: r.length }; }
+  amorcerPochettes(r?.items);
   return { items: r?.items ?? [], total: r?.total ?? (r?.items?.length ?? 0) };
 }
 
@@ -1834,6 +1835,7 @@ export async function getAllAlbumsSeeded(pageSize = 2000, sort: string | null = 
     const offset = (page - 1) * limit;
     const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}${triq}${drq}${seedq(seed)}`);
     const albums: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
+    amorcerPochettes(albums);
     return { albums, seed: typeof raw?.seed === 'number' ? raw.seed : (seed ?? undefined) };
   }
   // Default: fetch all albums in batches
@@ -1847,6 +1849,7 @@ export async function getAllAlbumsSeeded(pageSize = 2000, sort: string | null = 
     const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}${triq}${drq}${seedq(graine)}`);
     if (graine == null && typeof raw?.seed === 'number') graine = raw.seed;
     const batch: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
+    amorcerPochettes(batch);
     all.push(...batch);
     if (batch.length < pageSize) break;
     offset += pageSize;
@@ -1898,6 +1901,7 @@ export async function getAlbumsPagines(d: DemandePageAlbums): Promise<PageAlbums
   }
   if (d.seed != null) p.set('seed', String(d.seed));
   const raw = await fetchJSON<any>(`${BASE}/library/albums?${p.toString()}`);
+  amorcerPochettes(Array.isArray(raw) ? raw : raw?.items);
   if (Array.isArray(raw)) return { items: raw, total: null };
   return {
     items: Array.isArray(raw?.items) ? raw.items : [],
@@ -2636,15 +2640,78 @@ export async function getFolderFacet(
   };
 }
 
-export async function getAllTracks(pageSize = 2000): Promise<Track[]> {
-  const all: Track[] = [];
-  let offset = 0;
-  while (true) {
-    const raw = await fetchJSON<any>(`${BASE}/library/tracks?limit=${pageSize}&offset=${offset}`);
-    const batch: Track[] = Array.isArray(raw) ? raw : (raw.items ?? []);
-    all.push(...batch);
-    if (batch.length < pageSize) break;
-    offset += pageSize;
+/**
+ * Toutes les pistes visibles, page par page — #1716.
+ *
+ * Mesuré sur une base de test de 42 000 pistes (37 700 visibles) : l'ancienne
+ * boucle demandait 19 pages de 2 000 L'UNE APRÈS L'AUTRE, soit 26,5 s et
+ * 30,6 Mo avant que l'onglet Titres ne montre une ligne. Chaque page coûte au
+ * serveur un tri complet de la vue (~0,6 s), quelle que soit sa taille : peu
+ * de grandes pages valent mieux que beaucoup de petites.
+ *
+ * - Pages de 5 000, et la PREMIÈRE dit le `total` : les suivantes partent
+ *   alors `parallele` par `parallele` (2 par défaut). Deux, pas plus : le
+ *   serveur n'a que trois connexions de lecture, la troisième reste libre
+ *   pour le reste de l'interface.
+ * - Un serveur qui borne `limit` en dessous de la page demandée se voit au
+ *   `total` : la taille de page suit ce qu'il a rendu, aucune piste n'est
+ *   perdue.
+ * - Sans `total` (serveur ancien, tableau nu), la boucle en série d'avant.
+ * - `signal` interrompt les pages qui restent.
+ */
+export async function getAllTracks(
+  pageSize = 5000,
+  opts: { signal?: AbortSignal; parallele?: number } = {},
+): Promise<Track[]> {
+  const { signal, parallele = 2 } = opts;
+  const page = async (taille: number, offset: number): Promise<{ items: Track[]; total: number | null }> => {
+    const raw = await fetchJSON<any>(
+      `${BASE}/library/tracks?limit=${taille}&offset=${offset}`,
+      signal ? { signal } : undefined,
+    );
+    if (Array.isArray(raw)) return { items: raw, total: null };
+    return { items: raw?.items ?? [], total: typeof raw?.total === 'number' ? raw.total : null };
+  };
+  const premiere = await page(pageSize, 0);
+  const all: Track[] = [...premiere.items];
+  // La taille de page RÉELLE : un serveur qui borne `limit` rend moins que
+  // demandé alors que le total annonce davantage.
+  const taille = premiere.total != null && premiere.items.length > 0 && premiere.items.length < pageSize
+    && premiere.total > premiere.items.length
+    ? premiere.items.length
+    : pageSize;
+  if (premiere.items.length < taille) return all;
+  let offset = taille;
+  let derniere = premiere.items.length;
+  if (premiere.total != null && premiere.total > taille) {
+    const offsets: number[] = [];
+    for (let o = taille; o < premiere.total; o += taille) offsets.push(o);
+    const pages: Track[][] = new Array(offsets.length);
+    let prochain = 0;
+    let echec = false;
+    const ouvrier = async () => {
+      while (!echec && prochain < offsets.length) {
+        const k = prochain++;
+        try {
+          pages[k] = (await page(taille, offsets[k])).items;
+        } catch (e) {
+          echec = true;
+          throw e;
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(parallele, offsets.length)) }, ouvrier));
+    for (const p of pages) all.push(...p);
+    offset = taille * (offsets.length + 1);
+    derniere = pages[pages.length - 1]?.length ?? 0;
+  }
+  // La bibliothèque a grandi pendant le chargement (ou le total manque) : on
+  // continue en série jusqu'à une page courte, comme avant.
+  while (derniere >= taille) {
+    const suite = await page(taille, offset);
+    all.push(...suite.items);
+    derniere = suite.items.length;
+    offset += taille;
   }
   return all;
 }
@@ -6132,6 +6199,25 @@ export function artworkSrc(coverPath: string | null | undefined, size?: number):
 
 const albumCoverCache = new Map<number, string | null>();
 const albumCoverPending = new Map<number, Promise<string | null>>();
+
+/**
+ * #1716 — une LISTE d'albums dit déjà la pochette de chacun : on la retient.
+ *
+ * `AlbumArt` demande la fiche entière (`GET /library/albums/{id}`) de chaque
+ * album affiché sans pochette, pour la chercher. Or la fiche lit la MÊME
+ * colonne que la liste (`albums.cover_path`, même `row_to_album` côté
+ * serveur) : la réponse ne pouvait rien apprendre de plus. Mesuré sur la
+ * base de test : 100 fiches au retour sur la grille, 528 pendant une
+ * recherche, jusqu'à 1,1 s chacune. Une liste qui ne porte pas la clé
+ * `cover_path` n'amorce rien.
+ */
+export function amorcerPochettes(liste: ReadonlyArray<Partial<Album>> | null | undefined): void {
+  if (!Array.isArray(liste)) return;
+  for (const a of liste) {
+    if (a?.id == null || !Object.prototype.hasOwnProperty.call(a, 'cover_path')) continue;
+    albumCoverCache.set(a.id, a.cover_path ?? null);
+  }
+}
 
 export async function getAlbumCoverPath(albumId: number): Promise<string | null> {
   if (albumCoverCache.has(albumId)) {

@@ -55,6 +55,10 @@
     listeEntierePerimee, mettreAJourAlbum, offsetDeLettre, rafraichirPagesPerimees, TAILLE_PAGE,
     type ClefDeListe,
   } from '../../lib/stores/albumsPagines';
+  // #1716 — la liste ENTIÈRE des pistes (onglets Titres et Artistes,
+  // aléatoire par provenance) : mémorisée jusqu'au prochain scan, chargée une
+  // seule fois pour tous, et abandonnée si plus personne ne l'attend.
+  import { demanderToutesLesPistes } from '../../lib/stores/pistesEntieres';
   // 🔴 `pendingLibraryFolder` n'existe PLUS : `main` l'a remplacé par le
   // magasin `libraryFolderScope` (voir `lib/porteeBibliotheque`) parce qu'un
   // dépôt consommé UNE fois dans l'initialiseur d'un `$state` n'était jamais
@@ -1687,6 +1691,14 @@
    */
   let jetonPistes = 0;
   /**
+   * #1716 — le chargement en cours des pistes, ANNULABLE : un nouveau
+   * chargement (portée changée) ou la sortie de l'écran l'abandonne. La liste
+   * entière, elle, reste mémorisée par `pistesEntieres` si un autre l'attend
+   * encore ou si elle est arrivée.
+   */
+  let annulationPistes: AbortController | null = null;
+  $effect(() => () => annulationPistes?.abort());
+  /**
    * Le nombre de pistes ANNONCÉ pendant que la liste charge.
    *
    * `/stats` le rend tout de suite ; `getAllTracks()` met plusieurs secondes
@@ -1709,6 +1721,8 @@
     // contient ne correspond plus à ce que la puce annonce. Un écran vide qui
     // le dit vaut mieux qu'une bibliothèque entière qui ment.
     const jeton = ++jetonPistes;
+    annulationPistes?.abort();
+    const annulation = (annulationPistes = new AbortController());
     tracks = [];
     nbPistesServeur = null;
     tracksLoading = true;
@@ -1723,10 +1737,10 @@
     if (!d && !portee) api.getLibraryStats().then((st) => { if (jeton === jetonPistes) nbPistesServeur = st?.tracks ?? null; }).catch(() => {});
     (d ? pistesDistantes(d)
        : portee ? api.getFilteredTracks({ folder: portee, limit: 5000 }).then((r) => r.items ?? [])
-       : api.getAllTracks())
+       : demanderToutesLesPistes(annulation.signal))
       .then((t) => { if (jeton === jetonPistes) tracks = t ?? []; })
       .catch((e) => {
-        if (jeton !== jetonPistes) return;
+        if (jeton !== jetonPistes || annulation.signal.aborted) return;
         tracks = [];
         tracksError = e?.message ?? $tr('common.error');
         // L'échec est DIT. Les trois `catch` de l'ancien client écrivaient en
@@ -2100,7 +2114,7 @@
     return plafondFileAleatoire(() => api.getConfig());
   }
   /** #5526 — d'où `pistesDesAlbums` tire les pistes d'une sélection d'albums. */
-  const chargeursDePistes = { parAlbums: api.getAlbumTracksBatch, toutes: () => api.getAllTracks() };
+  const chargeursDePistes = { parAlbums: api.getAlbumTracksBatch, toutes: () => demanderToutesLesPistes() };
   async function shuffleAll() {
     const zid = zoneRequise();
     if (zid == null) return;
@@ -2125,7 +2139,7 @@
         const [liste, plafond] = await Promise.all([
           dossierPortee
             ? api.getFilteredTracks({ folder: dossierPortee, limit: 5000 }).then((r) => r.items ?? [])
-            : api.getAllTracks(),
+            : demanderToutesLesPistes(),
           plafondAleatoire(),
         ]);
         const needle = fold(q);
