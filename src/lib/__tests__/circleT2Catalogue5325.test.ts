@@ -378,10 +378,10 @@ describe('T2 — parcourir le catalogue d’un contact', () => {
 
     await cliquer(el, 'button.album-contact');
     expect(lecturesCatalogue().at(-1)).toBe('/contacts/40/library/albums/11/tracks');
-    expect(noms(el, '.pistes-album .tt')).toEqual(['So What', 'Freddie Freeloader']);
+    expect(noms(el, '.pistes-album .titre .ttxt')).toEqual(['So What', 'Freddie Freeloader']);
     // Lecture seule : aucune barre d'actions, le titre ne lance rien.
     expect(el.querySelector('.pistes-album .pactions')).toBeNull();
-    const titre = el.querySelector('.pistes-album button.tclick') as HTMLButtonElement;
+    const titre = el.querySelector('.pistes-album button.titre') as HTMLButtonElement;
     expect(titre.disabled).toBe(true);
     expect(texte(el.querySelector('.lecture-seule')!)).toBe(fr['v2.circle.lib.readOnly']);
     sansFuite(el);
@@ -404,7 +404,7 @@ describe('T2 — parcourir le catalogue d’un contact', () => {
 
     await cliquer(el, 'button.onglet-tracks');
     expect(lecturesCatalogue().at(-1)).toBe('/contacts/40/library/tracks?page=1&per_page=50');
-    expect(noms(el, '.pistes-contact .tt')).toEqual(['So What', 'Freddie Freeloader']);
+    expect(noms(el, '.pistes-contact .titre .ttxt')).toEqual(['So What', 'Freddie Freeloader']);
     expect(el.querySelector('.pistes-contact .pactions')).toBeNull();
 
     const champ = el.querySelector('input.recherche') as HTMLInputElement;
@@ -413,7 +413,7 @@ describe('T2 — parcourir le catalogue d’un contact', () => {
     await vi.advanceTimersByTimeAsync(300);
     await laisserFaire();
     expect(lecturesCatalogue().at(-1)).toBe('/contacts/40/library/tracks?page=1&per_page=50&search=fred');
-    expect(noms(el, '.pistes-contact .tt')).toEqual(['Freddie Freeloader']);
+    expect(noms(el, '.pistes-contact .titre .ttxt')).toEqual(['Freddie Freeloader']);
     sansFuite(el);
   });
 
@@ -456,7 +456,7 @@ describe('T2 — contact révoqué, partage coupé : 404', () => {
     const el = await poser(CircleV2);
     await ouvrirElise(el);
     await cliquer(el, 'button.onglet-tracks');
-    expect(noms(el, '.pistes-contact .tt')).toHaveLength(2);
+    expect(noms(el, '.pistes-contact .titre .ttxt')).toHaveLength(2);
     elisePartage = false;
     await cliquer(el, 'button.onglet-artists');
     expect(el.querySelector('.catalogue-contact')).toBeNull();
@@ -608,13 +608,13 @@ describe('ListePistesV2 — lectureSeule', () => {
     expect(el.querySelector('.pactions')).not.toBeNull();
   });
 
-  it('mode lignes (Intermédiaire) : ni actions, titre désactivé', async () => {
+  it('mode Avancé (tableau depuis #1470) : ni actions, titre désactivé', async () => {
     preferences.update((p) => ({ ...p, settingsLevel: 'intermediate' }));
     const onLire = vi.fn();
     const el = await poser(ListePistesV2, { pistes, onLire, lectureSeule: true });
-    expect(el.querySelector('.trk')).not.toBeNull();
+    expect(el.querySelector('.tbl')).not.toBeNull();
     expect(el.querySelector('.pactions')).toBeNull();
-    const b = el.querySelector('button.tclick') as HTMLButtonElement;
+    const b = el.querySelector('button.titre') as HTMLButtonElement;
     expect(b.disabled).toBe(true);
   });
 });

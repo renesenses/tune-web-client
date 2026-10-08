@@ -77,6 +77,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration,  type QualityTier } from '../../lib/utils';
+  import { formatDeFichier } from '../../lib/typeDeFichier';
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
@@ -85,7 +86,7 @@
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
-    comptesCompilation, comptesProvenance,
+    comptesCompilation, comptesProvenance, repondALaRecherche, filtresDeRechercheServeur,
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
@@ -212,6 +213,46 @@
   function retirerPortee() {
     libraryFolderScope.set(null);
   }
+
+  /**
+   * renesenses/tune-server-rust#4319 (fil 1817) — la RECHERCHE de la
+   * Bibliothèque regarde aussi les PISTES, dans une portée de répertoire comme
+   * sur la bibliothèque entière (décision de Bertrand du 07/10).
+   *
+   * L'album ne porte que son titre et son artiste d'album : « Mehta » ne
+   * trouvait pas un album rangé sous « Gustav Mahler » dont les pistes sont de
+   * « Zubin Mehta », ni un album sans étiquettes rangé par dossier. On demande
+   * au serveur les albums qui répondent au texte — `/library/albums-detailed`,
+   * paginée comme la portée, avec `q` (et `folder` quand une portée est
+   * active) : le prédicat d'Oxygen (#5192), artiste de piste et nom de dossier
+   * compris, insensible à la casse et aux accents.
+   *
+   * Le résultat s'AJOUTE à la comparaison locale (`albumsDuTexte`), qui
+   * continue de répondre à la frappe ; la requête part 300 ms après la
+   * dernière touche, comme dans Oxygen. Un échec n'efface rien : on garde la
+   * comparaison locale seule. Une saisie qui change ARRÊTE la pagination en
+   * cours : chaque page refait un parcours complet des pistes côté serveur.
+   *
+   * Pas pour un dépôt distant : ses albums ne portent pas les identifiants de
+   * la bibliothèque locale, que la réponse désigne.
+   */
+  let idsTexteServeur = $state<Set<number> | null>(null);
+  $effect(() => {
+    // Hors répertoire, 3 caractères au moins (`SEUIL_RECHERCHE_SERVEUR`).
+    const filtres = filtresDeRechercheServeur(q, dossierPortee);
+    idsTexteServeur = null;
+    if (depot || !filtres) return;
+    let perime = false;
+    const minuterie = setTimeout(() => {
+      idsAlbumsDeLaPortee((limite, rang) => {
+        if (perime) return Promise.reject(new Error());
+        return api.getAlbumsDetailed(filtres, limite, rang);
+      })
+        .then((ids) => { if (!perime) idsTexteServeur = ids; })
+        .catch(() => { /* comparaison locale seule */ });
+    }, 300);
+    return () => { perime = true; clearTimeout(minuterie); };
+  });
 
   /** LA source d'albums de l'ecran. Tout le reste lit `src`, jamais `$albums`
    *  ni `albumsD` : c'est ce qui rend la vue identique des deux cotes.
@@ -467,7 +508,9 @@
     // serveur — jamais « on ne sait pas, laissons passer ».
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
     if (!dansSource(a, fProvenance)) return false;
-    if (q && !fold(a.title).includes(fold(q)) && !fold(a.artist_name).includes(fold(q))) return false;
+    // #4319 — même règle que les comptes : artiste de piste et dossier
+    // compris, portée ou non (`idsTexteServeur`).
+    if (!repondALaRecherche(a, q, { plier: fold, albumsDuTexte: idsTexteServeur })) return false;
     return true;
   }
 
@@ -623,6 +666,7 @@
   });
   const outilsFacettes = $derived<Outils>({
     qualiteDe: tierMatches, anneeDe: albumYear, plier: fold, provenanceDe,
+    albumsDuTexte: idsTexteServeur,
   });
 
   const formats = $derived(comptesFormat(src, filtresActifs, outilsFacettes));
@@ -1044,6 +1088,17 @@
     if (t === 'dsd') return 'DSD';
     if (t === 'hires' || t === 'hires_max') return RATES.find((r) => r.v === a.sample_rate)?.court ?? null;
     return null;
+  }
+  /**
+   * #1901 (Fredouille40, fil 2131) — la colonne de badge de la vue LISTE dit
+   * aussi le TYPE de fichier quand l'album n'est ni DSD ni hi-res : « FLAC »,
+   * « WAV », « MP3 ». La vue grille le dit déjà sous chaque pochette
+   * (`QualiteAlbum`) ; la liste, elle, n'avait rien pour un disque en 44,1/16.
+   * Le badge POSÉ SUR LA POCHETTE reste réservé au DSD et au hi-res : un
+   * « FLAC » sur chaque vignette serait du bruit.
+   */
+  function badgeListe(a: Album): string | null {
+    return badge(a) ?? formatDeFichier(a.format);
   }
 
   // ── Onglets de la bibliotheque (brouillon v3 : Albums, Artists, Tracks,
@@ -2867,7 +2922,7 @@
                     <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
                     <span class="la">{a.artist_name ?? ''}</span>
                     <span class="ly">{albumYear(a) ?? ''}</span>
-                    {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
+                    {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
                     {#if showTech}<span class="lq">{tech(a)}</span>{/if}
                   </button>
                   </div>
@@ -3079,7 +3134,7 @@
         a photographié le 05/09/2026 ; l'autre moitié est que chaque
         ligne était sa PROPRE grille (voir `--lcols` plus bas).
       -->
-      {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
+      {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
       {#if showTech}<span class="lq">{tech(a)}</span>{/if}
     </button>
     </div>

@@ -3264,10 +3264,6 @@ export function getArtistTimeline(artistId: number) {
   return fetchJSON<any[]>(`${BASE}/library/artists/${artistId}/timeline`);
 }
 
-export function getSimilarAlbums(albumId: number, limit = 10) {
-  return fetchJSON<import('./types').Album[]>(`${BASE}/library/albums/${albumId}/similar?limit=${limit}`);
-}
-
 /** Acoustically similar tracks ("Plus comme ça") — ranked by CLAP-embedding
  *  cosine distance to the seed. Empty `items` when the seed has no embedding. */
 export function getSimilarTracks(trackId: number, limit = 50) {
@@ -4647,6 +4643,20 @@ export function getDynamicRangeProgress() {
   );
 }
 
+/**
+ * Lance tout de suite un passage de mesure de la plage dynamique — #1751,
+ * tune-server-rust#4185. 202 `started`, 200 `nothing_to_do`, et 409
+ * `already_running`, accepté ici : un passage qui court déjà n'est pas une
+ * erreur à crier, c'est une réponse à dire.
+ */
+export function lancerPlageDynamique() {
+  return fetchJSON<{ status?: string; total?: number }>(
+    `${BASE}/system/dynamic-range/analyze`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
+}
+
 export function getReplayGainProgress() {
   return fetchJSON<import('./santeReplayGain').AvancementReplayGain>(
     `${BASE}/system/replaygain/progress`,
@@ -5396,10 +5406,6 @@ export function youtubeAuthStatus() {
 
 // --- YouTube Music browse (ytmusicapi) ---
 
-export function getYouTubeHome() {
-  return fetchJSON<{ sections: { id: string; name: string }[]; data: Record<string, Album[]> }>(`${BASE}/streaming/youtube/home`);
-}
-
 export function getYouTubeCharts(country = 'FR') {
   return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/youtube/charts?country=${encodeURIComponent(country)}`);
 }
@@ -5412,9 +5418,6 @@ export function getYouTubeMoodPlaylists(params: string) {
   return fetchJSON<{ title: string; playlistId: string; description: string; cover_path: string | null }[]>(`${BASE}/streaming/youtube/moods/${encodeURIComponent(params)}`);
 }
 
-export function getYouTubeLibrary(limit = 100) {
-  return fetchJSON<Track[]>(`${BASE}/streaming/youtube/library?limit=${limit}`);
-}
 
 // #3662 — `transferPlaylist` a été retirée : contrat MORT. Aucun appelant — les
 // sept sites de transfert du client passent tous par `transferPlaylistV2`
@@ -7143,6 +7146,23 @@ export async function previewImportConfig(data: any): Promise<unknown> {
 
 // --- MusicBrainz Batch Enrichment ---
 
+/**
+ * #1875 — ouvrir le dossier d'un album dans le gestionnaire de fichiers de la
+ * machine du SERVEUR. Admin, et seulement depuis un navigateur de cette même
+ * machine : voir `lib/revelerDossier`.
+ */
+export function getRevelationDisponible() {
+  return fetchJSON<{ available: boolean; reason?: string }>(
+    `${BASE}/library/reveal/available`, undefined, undefined, true,
+  );
+}
+
+export function revelerDossierAlbum(albumId: number) {
+  return fetchJSON<{ status: string; path?: string }>(
+    `${BASE}/library/albums/${albumId}/reveal`, { method: 'POST' }, undefined, true,
+  );
+}
+
 export function startBatchEnrich() {
   return fetchJSON<{ status: string }>(`${BASE}/library/enrich-all`, { method: 'POST' });
 }
@@ -7638,12 +7658,22 @@ export async function importLinnPlaylist(file: File): Promise<LinnImportResult> 
 
 // --- Plugins ---
 
+/**
+ * Une ligne de `GET /plugins`, telle que le serveur la rend (tune-server-rust#1897).
+ *
+ * L'ancienne déclaration (`status: 'active' | 'disabled' | 'error'`) décrivait
+ * un contrat que le serveur n'émet plus : ses six appelants la contournaient
+ * tous par `as unknown as`. Seuls `name` et `enabled` sont garantis ; le reste
+ * dépend du type de greffon (natif, catalogue, WASM).
+ */
 export interface InstalledPlugin {
   name: string;
-  version: string;
-  status: 'active' | 'disabled' | 'error';
-  description: string;
-  error_message?: string;
+  enabled: boolean;
+  installed?: boolean;
+  version?: string;
+  display_name?: string;
+  description?: string;
+  restart_required?: boolean;
 }
 
 export interface StorePlugin {
@@ -7663,7 +7693,11 @@ export interface MergedPlugin {
   display_name: string;
   description: string;
   version: string;
-  category: string;
+  /** Absents de `GET /plugins` (tune-server-rust#1897) : `category` et
+   *  `update_available` viennent du catalogue, `status` n'est émis que pour
+   *  une fiche en erreur (`status: 'error'`, #5403). L'écran les lit déjà en
+   *  facultatifs. */
+  category?: string;
   author?: string;
   icon?: string;
   install_count?: number;
@@ -7673,8 +7707,8 @@ export interface MergedPlugin {
   /** Server may send enabled instead of status for built-in plugins */
   enabled?: boolean;
   installed_version?: string | null;
-  update_available: boolean;
-  status: 'available' | 'active' | 'disabled' | 'error';
+  update_available?: boolean;
+  status?: 'available' | 'active' | 'disabled' | 'error';
   error_message?: string | null;
   /**
    * Greffon compilé resté en erreur (tune-server-rust#5403) : `setup_timeout`
@@ -8016,27 +8050,6 @@ export interface AdminHealth {
   disk_total_gb: number | null;
 }
 
-export interface AdminZone {
-  id: number;
-  name: string;
-  state: string;
-  output_type: string;
-  device_name: string;
-  online: boolean;
-  current_track: { title: string; artist_name: string; album_title: string; duration_ms: number } | null;
-  position_ms: number;
-  volume: number;
-  buffer: { size_kb: number; fill_percent: number } | null;
-  group_id: string | null;
-}
-
-export interface AdminError {
-  ts: string;
-  level: string;
-  event: string;
-  [key: string]: unknown;
-}
-
 export interface AdminConnections {
   websocket_connections: number;
   active_streams: number;
@@ -8057,14 +8070,6 @@ export interface AdminDiscovery {
 
 export function getAdminHealth() {
   return fetchJSON<AdminHealth>(`${BASE}/system/admin/health`);
-}
-
-export function getAdminZones() {
-  return fetchJSON<AdminZone[]>(`${BASE}/system/admin/zones`);
-}
-
-export function getAdminErrors() {
-  return fetchJSON<AdminError[]>(`${BASE}/system/admin/errors`);
 }
 
 export function getAdminConnections() {
@@ -8140,13 +8145,22 @@ export function getContinueListening(limit = 20) {
  * du fichier. Sans paramètre, l'URL est exactement celle d'avant : un serveur
  * plus ancien répond comme toujours.
  */
-export function getRecentlyAdded(days?: number, limit?: number) {
+export function getRecentlyAdded(days?: number, limit?: number, tri: TriAjoutsRecents = 'modification') {
   const p = new URLSearchParams();
   if (days != null) p.set('days', String(days));
   if (limit != null) p.set('limit', String(limit));
+  // #5402 — le tri par défaut n'envoie RIEN : l'URL reste celle d'avant.
+  if (tri === 'creation') p.set('tri', 'creation');
   const qs = p.toString();
   return fetchJSON<any[]>(`${BASE}/home/recently-added${qs ? `?${qs}` : ''}`);
 }
+
+/**
+ * Le tri des ajouts récents (#5402) : `modification`, le tri historique et le
+ * défaut, ou `creation`, la date de création du fichier quand le système la
+ * donne (sinon la date de modification).
+ */
+export type TriAjoutsRecents = 'modification' | 'creation';
 
 /** Ce que compte `/home/recently-added/summary`, sur la MÊME fenêtre. */
 export interface ResumeAjoutsRecents {
@@ -8155,6 +8169,13 @@ export interface ResumeAjoutsRecents {
   track_count: number;
   duration_ms: number;
   duration_seconds: number;
+  /**
+   * #5402 — le tri servi. ABSENT sur un serveur antérieur, qui ignore le
+   * paramètre : l'écran n'offre alors pas la bascule.
+   */
+  tri?: TriAjoutsRecents;
+  /** #5402 — pistes de la fenêtre sans date de création (tri par création). */
+  tracks_without_creation_date?: number;
 }
 
 /**
@@ -8164,9 +8185,12 @@ export interface ResumeAjoutsRecents {
  * Route séparée côté serveur, et non un champ de plus dans la réponse
  * ci-dessus : passer le tableau en objet aurait cassé tout client déployé.
  */
-export function getRecentlyAddedSummary(days?: number) {
-  const qs = days != null ? `?days=${days}` : '';
-  return fetchJSON<ResumeAjoutsRecents>(`${BASE}/home/recently-added/summary${qs}`);
+export function getRecentlyAddedSummary(days?: number, tri: TriAjoutsRecents = 'modification') {
+  const p = new URLSearchParams();
+  if (days != null) p.set('days', String(days));
+  if (tri === 'creation') p.set('tri', 'creation');
+  const qs = p.toString();
+  return fetchJSON<ResumeAjoutsRecents>(`${BASE}/home/recently-added/summary${qs ? `?${qs}` : ''}`);
 }
 
 export function getNewInLibrary() {
@@ -8709,8 +8733,27 @@ export async function submitBugReport(
 
 // --- Audio Converter ---
 
-export function getConverterPresets(): Promise<{ id: string; label: string; format: string; quality: string; sample_rate: string; bit_depth: string; estimated_size_per_min: string }[]> {
-  return fetchJSON(`${BASE}/converter/presets`);
+/**
+ * Un préréglage de `GET /converter/presets`, tel que le serveur le rend
+ * (tune-server-rust#1897). `sample_rate` et `bit_depth` sont des nombres, nuls
+ * quand le préréglage garde ceux de la source ; `estimated_size_per_min`
+ * n'est rendu par aucun serveur à ce jour : l'écran ne l'affiche que s'il
+ * existe.
+ */
+export interface ConverterPreset {
+  id: string;
+  label: string;
+  format: string;
+  quality: string;
+  sample_rate: number | null;
+  bit_depth: number | null;
+  dsd_sample_rate?: number | null;
+  sample_rate_choices?: number[] | null;
+  estimated_size_per_min?: string;
+}
+
+export function getConverterPresets(): Promise<ConverterPreset[]> {
+  return fetchJSON<ConverterPreset[]>(`${BASE}/converter/presets`);
 }
 
 // Which formats THIS server can actually produce (#1524): flac/wav/opus are
@@ -9547,13 +9590,14 @@ export interface LocalisationConcerts {
 /** Sans `offset`, la première page, de la taille que le nuage choisit. Un
  *  serveur ancien ignore `offset` et rend toujours la même liste : l'écran ne
  *  le demande donc que si la réponse a dit `has_more`. */
-export function getConcertsAVenir(page: { offset?: number } = {}) {
+export function getConcertsAVenir(page: { offset?: number } = {}, signal?: AbortSignal) {
   // Suffixe de requête écrit EN LIGNE, sous la forme que lit le cartographe
   // du contrat (`scripts/web-contract-map.py`, dépôt serveur) : une variable
   // interpolée rendrait la route « non résolue » dans la carte.
+  // #1752 — `signal` : l'écran Concerts sait ARRÊTER la recherche.
   return fetchJSON<ConcertsAVenir>(
     `${BASE}/ext/concerts/upcoming${page.offset ? `?offset=${page.offset}` : ''}`,
-    undefined,
+    signal ? { signal } : undefined,
     undefined,
     true,
   );
@@ -9578,10 +9622,11 @@ export function setLocalisationConcerts(demande: {
   country: string;
   scope: PerimetreConcerts;
   radius_km?: number;
-}) {
+}, signal?: AbortSignal) {
   return fetchJSON<LocalisationConcerts>(`${BASE}/ext/concerts/location`, {
     method: 'POST',
     body: JSON.stringify(demande),
+    ...(signal ? { signal } : {}),
   }, undefined, true);
 }
 
