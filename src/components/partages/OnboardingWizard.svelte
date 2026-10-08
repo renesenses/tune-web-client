@@ -17,6 +17,7 @@
     instantaneParDefaut,
     RefusSauvegarde,
     lignesDuBilan,
+    profilsSansMotDePasse,
     type InstantaneCloud,
     type ResultatRestauration,
   } from '../../lib/sauvegardeCloud';
@@ -117,7 +118,7 @@
    * « Reprendre vos personnalisations » (#902, tune-server-rust#5654).
    *
    * Un serveur neuf relié au compte mozaiklabs peut lire les instantanés que
-   * l'ANCIENNE machine a déposés (chiffrés, trois au plus). L'offre ne
+   * l'ANCIENNE machine a déposés (chiffrés, trois au plus par machine). L'offre ne
    * s'affiche que si les trois conditions de `offreDeReprise` tiennent :
    * relié, Premium, au moins un instantané. Sinon, rien — pas même une
    * erreur : l'assistant ne doit jamais attendre ni crier pour une offre.
@@ -125,7 +126,8 @@
    * Mode `replace` : sur une machine neuve il n'y a rien à garder, la
    * sauvegarde l'emporte. Rien n'est supprimé, et la bibliothèque n'est
    * jamais touchée (dossiers de musique compris) : l'étape suivante reste
-   * celle des dossiers.
+   * celle des dossiers. Les profils reviennent SANS leur mot de passe :
+   * l'offre le dit avant le geste, et le bilan nomme les profils concernés.
    *
    * 🔴 Le secret (phrase de passe ou clé de secours) ne quitte cet état que
    * dans le corps du POST, puis il est vidé.
@@ -598,6 +600,12 @@
                   <li>{$t(l.cle as any).replace('{n}', String(l.n))}</li>
                 {/each}
               </ul>
+              {#if profilsSansMotDePasse(cloudBilan.report).length}
+                <p class="reprise-alerte" role="note">
+                  {$t('cloudBackup.reportNoPassword').replace('{names}', profilsSansMotDePasse(cloudBilan.report).join(', '))}
+                </p>
+                <p class="reprise-limites">{$t('cloudBackup.passwordsWarning')}</p>
+              {/if}
               {#if cloudBilan.report.warnings?.length}
                 <details class="reprise-limites">
                   <summary>{$t('cloudBackup.reportWarnings')} ({cloudBilan.report.warnings.length})</summary>
@@ -620,6 +628,7 @@
                 </label>
               {/if}
               <p class="reprise-limites">{$t('cloudBackup.restoreSafety')}</p>
+              <p class="reprise-alerte" role="note">{$t('cloudBackup.passwordsWarning')}</p>
               <div class="reprise-gestes">
                 <button class="btn-secondary" onclick={reprendreDuCloud}
                   disabled={cloudBusy || cloudChoix == null || (!cloudListe.find((i) => i.id === cloudChoix)?.local_key && !cloudSecret.trim())}>
@@ -1086,6 +1095,7 @@
   .reprise-champ select, .reprise-champ input{padding:6px 8px; border-radius:6px; border:1px solid var(--tune-border, rgba(128,128,128,.3)); background:transparent; color:inherit}
   .reprise-bilan{font-size:12px; margin:6px 0 0; padding-left:18px}
   .reprise-err{font-size:12px; margin:8px 0 0; color:var(--tune-danger, #d05353)}
+  .reprise-alerte{font-size:12px; margin:0 0 8px; padding:4px 0 4px 10px; border-left:3px solid var(--tune-warning, #d0a053)}
   .step-desc {
     font-family: var(--font-body);
     font-size: 15px;

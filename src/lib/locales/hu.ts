@@ -4609,7 +4609,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID-kulcs eltávolítva.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Felhőmentés",
-  "cloudBackup.intro": "A Tune a mozaiklabsnál menti a testreszabásait, ezen a szerveren titkosítva egy olyan kulccsal, amelyet a mozaiklabs nem ismer: beállítások, zónák, profilok és preferenciák, ekvalizerek, kedvencek, lejátszási listák és rádiók. Soha nem a könyvtárát, sem a szolgáltatások jelszavait és tokenjeit. Az utolsó három pillanatkép marad meg.",
+  "cloudBackup.intro": "A Tune a mozaiklabsnál menti a testreszabásait, ezen a szerveren titkosítva egy olyan kulccsal, amelyet a mozaiklabs nem ismer: beállítások, zónák, profilok és preferenciák, ekvalizerek, kedvencek, lejátszási listák és rádiók. Soha nem a könyvtárát, sem a szolgáltatások jelszavait és tokenjeit. Gépenként legfeljebb három pillanatkép és fiókonként legfeljebb öt gép marad meg; a legrégebbiek törlődnek.",
   "cloudBackup.statePremium": "A felhőmentés a Tune Premium része.",
   "cloudBackup.stateNotLinked": "A mentés használatához kapcsolja ezt a szervert a mozaiklabs-fiókjához (a Cloud szakasz, közvetlenül fent).",
   "cloudBackup.stateDisabled": "Az automatikus mentés ki van kapcsolva.",
@@ -4642,6 +4642,8 @@ export default {
   "cloudBackup.modeReplace": "Csere",
   "cloudBackup.modeReplaceHint": "a mentés felülírja a jelenlegi beállításokat.",
   "cloudBackup.restoreSafety": "Semmi sem törlődik, és a könyvtárhoz soha nem nyúl.",
+  "cloudBackup.passwordsWarning": "A profilok a jelszavuk NÉLKÜL állnak vissza: a visszaállítás után adjon meg új jelszót minden olyan profilnak, amelynek volt.",
+  "cloudBackup.reportNoPassword": "Jelszó nélküli profilok: {names}",
   "cloudBackup.secretLabel": "Jelmondat vagy helyreállítási kulcs",
   "cloudBackup.secretNeeded": "Ez a mentés másik kulccsal készült: adja meg a jelmondatát vagy a helyreállítási kulcsát.",
   "cloudBackup.wrongSecret": "Ez a jelmondat vagy helyreállítási kulcs nem nyitja meg a mentést.",

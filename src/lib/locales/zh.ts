@@ -4651,7 +4651,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID 密钥已移除。",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "云备份",
-  "cloudBackup.intro": "Tune 会将您的个性化设置备份到 mozaiklabs，并在本服务器上用 mozaiklabs 不知道的密钥加密：设置、区域、个人资料与偏好、均衡器、收藏、播放列表和电台。绝不包含您的音乐库，也不包含各服务的密码和令牌。保留最近三个快照。",
+  "cloudBackup.intro": "Tune 会将您的个性化设置备份到 mozaiklabs，并在本服务器上用 mozaiklabs 不知道的密钥加密：设置、区域、个人资料与偏好、均衡器、收藏、播放列表和电台。绝不包含您的音乐库，也不包含各服务的密码和令牌。每台机器最多保留三个快照，每个账户最多保留五台机器；最旧的会被删除。",
   "cloudBackup.statePremium": "云备份属于 Tune Premium。",
   "cloudBackup.stateNotLinked": "请将本服务器关联到您的 mozaiklabs 账户（上方的 Cloud 部分）以使用备份。",
   "cloudBackup.stateDisabled": "自动备份已关闭。",
@@ -4684,6 +4684,8 @@ export default {
   "cloudBackup.modeReplace": "替换",
   "cloudBackup.modeReplaceHint": "以备份为准，覆盖当前设置。",
   "cloudBackup.restoreSafety": "不会删除任何内容，也绝不触及音乐库。",
+  "cloudBackup.passwordsWarning": "个人资料恢复时不包含密码：恢复后，请为每个原本设有密码的个人资料重新设置密码。",
+  "cloudBackup.reportNoPassword": "没有密码的个人资料：{names}",
   "cloudBackup.secretLabel": "密码短语或恢复密钥",
   "cloudBackup.secretNeeded": "此备份使用另一个密钥加密：请输入其密码短语或恢复密钥。",
   "cloudBackup.wrongSecret": "此密码短语或恢复密钥无法打开该备份。",

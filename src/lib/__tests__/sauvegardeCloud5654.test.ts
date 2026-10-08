@@ -3,9 +3,9 @@
 // Sauvegarde des personnalisations dans le cloud — suite web de
 // renesenses/tune-server-rust#5654 et de renesenses/tune-web-client#902.
 //
-// Le serveur Tune prend seul des instantanés chiffrés (trois gardés chez
-// mozaiklabs) et sait les restaurer. Ces témoins tiennent ce que l'écran
-// promet :
+// Le serveur Tune prend seul des instantanés chiffrés (trois par machine et
+// cinq machines par compte gardés chez mozaiklabs) et sait les restaurer.
+// Ces témoins tiennent ce que l'écran promet :
 //
 //  1. l'assistant de première installation ne propose « Reprendre vos
 //     personnalisations » que si le serveur est RELIÉ au compte, PREMIUM, et
@@ -14,14 +14,18 @@
 //     POST : ni dans une URL, ni dans le stockage du navigateur ;
 //  3. le mode envoyé est celui que l'utilisateur a choisi (Réglages), et
 //     `replace` dans l'assistant (machine neuve) ;
-//  4. les clés nouvelles existent dans les onze langues, placeholders compris.
+//  4. les clés nouvelles existent dans les onze langues, placeholders compris ;
+//  5. les profils reviennent SANS leur mot de passe : l'écran le dit AVANT la
+//     restauration, et le bilan nomme les profils concernés ;
+//  6. les anciennes routes cloud-push / cloud-pull / cloud-status ne sont
+//     appelées nulle part.
 //
 // 🔴 Les écrans sont MONTÉS avec un `fetch` simulé : on lit ce qui s'affiche
 // et les requêtes qui partent vraiment.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync, tick } from 'svelte';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 import OnboardingWizard from '../../components/partages/OnboardingWizard.svelte';
 import SauvegardeCloudV2 from '../../components/v2/SauvegardeCloudV2.svelte';
@@ -31,6 +35,7 @@ import {
   instantaneParDefaut,
   motifPhraseRefusee,
   corpsRestauration,
+  profilsSansMotDePasse,
   RefusSauvegarde,
   type EtatSauvegardeCloud,
   type InstantaneCloud,
@@ -48,6 +53,7 @@ let restauration: { status: number; corps: unknown };
 
 const RAPPORT = {
   settings_written: 12, zones_created: 2, zones_updated: 0, profiles_created: 1,
+  profiles_without_password: ['ana'],
   playlists_restored: 3, playlists_replaced: 0, favorites_restored: 40, radios_restored: 5,
   warnings: [],
 };
@@ -204,6 +210,10 @@ describe('assistant — « Reprendre vos personnalisations »', () => {
   it('reliée + Premium + instantanés : l’offre est là, et restaure en `replace`', async () => {
     const { c, cible } = await monterAssistant();
     expect(cible.textContent).toContain(TITRE);
+    expect(
+      cible.querySelector('.reprise-cloud .reprise-alerte')?.textContent,
+      'l’avertissement « sans mot de passe » est là AVANT le geste',
+    ).toContain(dictionnaire('fr')['cloudBackup.passwordsWarning']);
     const select = cible.querySelector('.reprise-cloud select') as HTMLSelectElement;
     expect(select.value, 'le plus récent par défaut').toBe('9');
     const champ = cible.querySelector('.reprise-cloud input[type="password"]') as HTMLInputElement;
@@ -216,6 +226,7 @@ describe('assistant — « Reprendre vos personnalisations »', () => {
     expect(JSON.parse(r.corps!)).toEqual({ id: 9, mode: 'replace', secret: SECRET });
     await attendre(() => (cible.textContent ?? '').includes(dictionnaire('fr')['cloudBackup.onboardingDone']));
     expect(cible.textContent).toContain(dictionnaire('fr')['cloudBackup.onboardingDone']);
+    expect(cible.textContent).toContain(dictionnaire('fr')['cloudBackup.reportNoPassword'].replace('{names}', 'ana'));
     aucunSecretHorsDuCorps();
     unmount(c);
   });
@@ -271,6 +282,10 @@ describe('Réglages — le mode envoyé est celui choisi', () => {
       flushSync();
       // Clé locale : aucun champ secret demandé.
       expect(cible.querySelector('.boite input[type="password"]')).toBeNull();
+      expect(
+        cible.querySelector('.boite .alerte')?.textContent,
+        'l’avertissement « sans mot de passe » est là AVANT le geste',
+      ).toContain(dictionnaire('fr')['cloudBackup.passwordsWarning']);
       const lancer = [...cible.querySelectorAll('button')].find(
         (b) => b.textContent?.trim() === dictionnaire('fr')['cloudBackup.confirmRestore'],
       )!;
@@ -278,6 +293,9 @@ describe('Réglages — le mode envoyé est celui choisi', () => {
       await attendre(() => requetes.some((r) => r.url.includes('/cloud/restore')));
       const r = requetes.find((q) => q.url.includes('/cloud/restore'))!;
       expect(JSON.parse(r.corps!)).toEqual({ id: 4, mode, secret: null });
+      const nomme = dictionnaire('fr')['cloudBackup.reportNoPassword'].replace('{names}', 'ana');
+      await attendre(() => (cible.textContent ?? '').includes(nomme));
+      expect(cible.textContent, 'le bilan nomme les profils sans mot de passe').toContain(nomme);
       unmount(c);
     });
   }
@@ -352,5 +370,38 @@ describe('i18n — les clés de la sauvegarde dans les onze langues', () => {
     expect(carte).toMatch(/id: 'backup',\s+titleKey: 'cloudBackup\.title'/);
     const reglages = readFileSync(resolve(process.cwd(), 'src/components/v2/SettingsV2.svelte'), 'utf-8');
     expect(reglages).toMatch(/s\.id === 'backup'\}\s*<SauvegardeCloudV2 \/>/);
+  });
+});
+
+// ── Mots de passe des profils ──────────────────────────────────────
+
+describe('profilsSansMotDePasse — le bilan nomme les profils à protéger', () => {
+  const bilan = (noms?: unknown) => ({ ...RAPPORT, profiles_without_password: noms as string[] | undefined });
+
+  it('triés, sans doublon ni nom vide', () => {
+    expect(profilsSansMotDePasse(bilan(['zoe', 'ana', 'zoe', ' ']))).toEqual(['ana', 'zoe']);
+  });
+  it('serveur antérieur (champ absent) ou bilan nul : liste vide', () => {
+    expect(profilsSansMotDePasse(bilan(undefined))).toEqual([]);
+    expect(profilsSansMotDePasse(null)).toEqual([]);
+  });
+});
+
+// ── Anciennes routes ───────────────────────────────────────────────
+
+describe('anciennes routes cloud-push / cloud-pull / cloud-status', () => {
+  it('aucune source du client ne les appelle', () => {
+    const fichiers: string[] = [];
+    const parcourir = (d: string) => {
+      for (const n of readdirSync(d)) {
+        const f = join(d, n);
+        if (statSync(f).isDirectory()) { if (n !== '__tests__') parcourir(f); }
+        else if (/\.(ts|svelte)$/.test(n)) fichiers.push(f);
+      }
+    };
+    parcourir(resolve(process.cwd(), 'src'));
+    expect(fichiers.length).toBeGreaterThan(100);
+    const trouvees = fichiers.filter((f) => /cloud-(push|pull|status)/.test(readFileSync(f, 'utf-8')));
+    expect(trouvees).toEqual([]);
   });
 });

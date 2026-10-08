@@ -4651,7 +4651,7 @@ export default {
   "acoustid.keyRemoved": "Cheia AcoustID a fost eliminată.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Copie de rezervă în cloud",
-  "cloudBackup.intro": "Tune salvează personalizările dvs. la mozaiklabs, criptate pe acest server cu o cheie pe care mozaiklabs nu o cunoaște: setări, zone, profiluri și preferințe, egalizatoare, favorite, liste de redare și radiouri. Niciodată biblioteca, nici parolele și jetoanele serviciilor. Sunt păstrate ultimele trei instantanee.",
+  "cloudBackup.intro": "Tune salvează personalizările dvs. la mozaiklabs, criptate pe acest server cu o cheie pe care mozaiklabs nu o cunoaște: setări, zone, profiluri și preferințe, egalizatoare, favorite, liste de redare și radiouri. Niciodată biblioteca, nici parolele și jetoanele serviciilor. Sunt păstrate cel mult trei instantanee pe mașină și cel mult cinci mașini pe cont; cele mai vechi sunt eliminate.",
   "cloudBackup.statePremium": "Copia de rezervă în cloud face parte din Tune Premium.",
   "cloudBackup.stateNotLinked": "Conectați acest server la contul mozaiklabs (secțiunea Cloud, chiar deasupra) pentru a folosi copia de rezervă.",
   "cloudBackup.stateDisabled": "Copia de rezervă automată este dezactivată.",
@@ -4684,6 +4684,8 @@ export default {
   "cloudBackup.modeReplace": "Înlocuiți",
   "cloudBackup.modeReplaceHint": "copia are prioritate față de setările actuale.",
   "cloudBackup.restoreSafety": "Nimic nu este șters, iar biblioteca nu este atinsă niciodată.",
+  "cloudBackup.passwordsWarning": "Profilurile sunt restaurate FĂRĂ parola lor: după restaurare, setați o parolă nouă pentru fiecare profil care avea una.",
+  "cloudBackup.reportNoPassword": "Profiluri fără parolă: {names}",
   "cloudBackup.secretLabel": "Frază de acces sau cheie de recuperare",
   "cloudBackup.secretNeeded": "Această copie a fost criptată cu altă cheie: introduceți fraza ei de acces sau cheia de recuperare.",
   "cloudBackup.wrongSecret": "Această frază de acces sau cheie de recuperare nu deschide copia.",

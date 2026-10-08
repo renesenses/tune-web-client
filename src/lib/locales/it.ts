@@ -4651,7 +4651,7 @@ export default {
   "acoustid.keyRemoved": "Chiave AcoustID rimossa.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Backup nel cloud",
-  "cloudBackup.intro": "Tune salva le tue personalizzazioni su mozaiklabs, cifrate su questo server con una chiave che mozaiklabs non conosce: impostazioni, zone, profili e preferenze, equalizzatori, preferiti, playlist e radio. Mai la tua libreria, né password e token dei servizi. Vengono conservate le ultime tre istantanee.",
+  "cloudBackup.intro": "Tune salva le tue personalizzazioni su mozaiklabs, cifrate su questo server con una chiave che mozaiklabs non conosce: impostazioni, zone, profili e preferenze, equalizzatori, preferiti, playlist e radio. Mai la tua libreria, né password e token dei servizi. Vengono conservate al massimo tre istantanee per macchina e cinque macchine per account; le più vecchie vengono eliminate.",
   "cloudBackup.statePremium": "Il backup nel cloud fa parte di Tune Premium.",
   "cloudBackup.stateNotLinked": "Collega questo server al tuo account mozaiklabs (sezione Cloud, qui sopra) per usare il backup.",
   "cloudBackup.stateDisabled": "Backup automatico disattivato.",
@@ -4684,6 +4684,8 @@ export default {
   "cloudBackup.modeReplace": "Sostituisci",
   "cloudBackup.modeReplaceHint": "il backup prevale sulle impostazioni attuali.",
   "cloudBackup.restoreSafety": "Nulla viene eliminato, e la libreria non viene mai toccata.",
+  "cloudBackup.passwordsWarning": "I profili vengono ripristinati SENZA la loro password: dopo il ripristino, imposta una nuova password per ogni profilo che ne aveva una.",
+  "cloudBackup.reportNoPassword": "Profili senza password: {names}",
   "cloudBackup.secretLabel": "Passphrase o chiave di recupero",
   "cloudBackup.secretNeeded": "Questo backup è stato cifrato con un'altra chiave: inserisci la sua passphrase o la sua chiave di recupero.",
   "cloudBackup.wrongSecret": "Questa passphrase o chiave di recupero non apre il backup.",

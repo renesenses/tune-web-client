@@ -4673,7 +4673,7 @@ export default {
   "acoustid.keyRemoved": "Clé AcoustID retirée.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Sauvegarde dans le cloud",
-  "cloudBackup.intro": "Tune sauvegarde vos personnalisations chez mozaiklabs, chiffrées sur ce serveur avec une clé que mozaiklabs ne connaît pas : réglages, zones, profils et préférences, égaliseurs, favoris, playlists et radios. Jamais votre bibliothèque, ni les mots de passe et jetons des services. Les trois derniers instantanés sont gardés.",
+  "cloudBackup.intro": "Tune sauvegarde vos personnalisations chez mozaiklabs, chiffrées sur ce serveur avec une clé que mozaiklabs ne connaît pas : réglages, zones, profils et préférences, égaliseurs, favoris, playlists et radios. Jamais votre bibliothèque, ni les mots de passe et jetons des services. Trois instantanés au plus par machine et cinq machines au plus par compte sont gardés ; les plus anciens sont élagués.",
   "cloudBackup.statePremium": "La sauvegarde dans le cloud fait partie de Tune Premium.",
   "cloudBackup.stateNotLinked": "Reliez ce serveur à votre compte mozaiklabs (section Cloud, juste au-dessus) pour utiliser la sauvegarde.",
   "cloudBackup.stateDisabled": "Sauvegarde automatique désactivée.",
@@ -4706,6 +4706,8 @@ export default {
   "cloudBackup.modeReplace": "Remplacer",
   "cloudBackup.modeReplaceHint": "la sauvegarde l'emporte sur vos réglages actuels.",
   "cloudBackup.restoreSafety": "Rien n'est supprimé, et la bibliothèque n'est jamais touchée.",
+  "cloudBackup.passwordsWarning": "Les profils sont restaurés SANS leur mot de passe : après la restauration, redéfinissez le mot de passe de chaque profil qui en avait un.",
+  "cloudBackup.reportNoPassword": "Profils sans mot de passe : {names}",
   "cloudBackup.secretLabel": "Phrase de passe ou clé de secours",
   "cloudBackup.secretNeeded": "Cette sauvegarde a été chiffrée avec une autre clé : saisissez sa phrase de passe ou sa clé de secours.",
   "cloudBackup.wrongSecret": "Cette phrase de passe ou cette clé de secours n'ouvre pas la sauvegarde.",

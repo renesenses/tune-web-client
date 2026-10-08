@@ -4,10 +4,12 @@
    * (renesenses/tune-server-rust#5654, renesenses/tune-web-client#902).
    *
    * Le serveur Tune prend seul ses instantanés (au plus un par jour, et après
-   * chaque changement passé un délai d'attente), les chiffre avec une clé
-   * que mozaiklabs ne connaît pas et en garde trois. Cet écran dit où en est
+   * chaque changement passé un délai d'attente) et les chiffre avec une clé
+   * que mozaiklabs ne connaît pas ; le site en garde trois par machine et
+   * cinq machines par compte. Réservé au Premium. Cet écran dit où en est
    * la sauvegarde, l'active (phrase de passe, puis clé de secours montrée UNE
-   * fois), et restaure un instantané en fusionnant ou en remplaçant.
+   * fois), et restaure un instantané en fusionnant ou en remplaçant — en
+   * avertissant que les profils reviennent SANS leur mot de passe.
    *
    * 🔴 La phrase de passe et la clé de secours ne vivent que dans l'état de
    * ce composant le temps du geste, puis sont vidées. Rien ne les écrit dans
@@ -25,6 +27,7 @@
     peutLister,
     tailleLisible,
     lignesDuBilan,
+    profilsSansMotDePasse,
     type EtatSauvegardeCloud,
     type InstantaneCloud,
     type ModeRestauration,
@@ -271,6 +274,7 @@
             <span><b>{tr('cloudBackup.modeReplace')}</b> — {tr('cloudBackup.modeReplaceHint')}</span>
           </label>
           <p class="hint">{tr('cloudBackup.restoreSafety')}</p>
+          <p class="alerte" role="note">{tr('cloudBackup.passwordsWarning')}</p>
           {#if secretDemande}
             <label class="champ">
               <span>{tr('cloudBackup.secretLabel')}</span>
@@ -296,6 +300,12 @@
               <li>{tr(l.cle).replace('{n}', String(l.n))}</li>
             {/each}
           </ul>
+          {#if profilsSansMotDePasse(bilan.report).length}
+            <p class="alerte" role="note">
+              {tr('cloudBackup.reportNoPassword').replace('{names}', profilsSansMotDePasse(bilan.report).join(', '))}
+            </p>
+            <p class="hint">{tr('cloudBackup.passwordsWarning')}</p>
+          {/if}
           {#if bilan.key_adopted}<p class="hint">{tr('cloudBackup.keyAdopted')}</p>{/if}
           {#if bilan.report.warnings?.length}
             <details class="details">
@@ -318,6 +328,10 @@
   .etat { margin: 0; font-size: 13px; color: var(--v2-txt); }
   .titre { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--v2-txt); }
   .errline { margin: 0; font-size: 12.5px; color: var(--v2-danger); }
+  .alerte {
+    margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--v2-txt);
+    border-left: 3px solid var(--v2-warn, var(--v2-danger)); padding: 4px 0 4px 10px;
+  }
   .mono { font-family: var(--v2-mono); }
   .cle { margin: 0; font-size: 15px; letter-spacing: 0.04em; color: var(--v2-txt); user-select: all; }
   .boite {

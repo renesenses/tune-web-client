@@ -4651,7 +4651,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID キーを削除しました。",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "クラウドバックアップ",
-  "cloudBackup.intro": "Tune はカスタマイズを mozaiklabs にバックアップします。mozaiklabs が知らない鍵でこのサーバー上で暗号化されます：設定、ゾーン、プロファイルと表示設定、イコライザー、お気に入り、プレイリスト、ラジオ。ライブラリ、サービスのパスワードやトークンは決して含まれません。最新の3つのスナップショットが保持されます。",
+  "cloudBackup.intro": "Tune はカスタマイズを mozaiklabs にバックアップします。mozaiklabs が知らない鍵でこのサーバー上で暗号化されます：設定、ゾーン、プロファイルと表示設定、イコライザー、お気に入り、プレイリスト、ラジオ。ライブラリ、サービスのパスワードやトークンは決して含まれません。1台のマシンにつき最大3つのスナップショット、1つのアカウントにつき最大5台のマシンが保持され、古いものから削除されます。",
   "cloudBackup.statePremium": "クラウドバックアップは Tune Premium に含まれます。",
   "cloudBackup.stateNotLinked": "バックアップを使うには、このサーバーを mozaiklabs アカウントに連携してください（すぐ上の Cloud セクション）。",
   "cloudBackup.stateDisabled": "自動バックアップはオフです。",
@@ -4684,6 +4684,8 @@ export default {
   "cloudBackup.modeReplace": "置き換え",
   "cloudBackup.modeReplaceHint": "バックアップが現在の設定より優先されます。",
   "cloudBackup.restoreSafety": "何も削除されず、ライブラリには一切触れません。",
+  "cloudBackup.passwordsWarning": "プロファイルはパスワードなしで復元されます。復元後、パスワードを設定していた各プロファイルに新しいパスワードを設定してください。",
+  "cloudBackup.reportNoPassword": "パスワードのないプロファイル：{names}",
   "cloudBackup.secretLabel": "パスフレーズまたはリカバリーキー",
   "cloudBackup.secretNeeded": "このバックアップは別の鍵で暗号化されています。そのパスフレーズまたはリカバリーキーを入力してください。",
   "cloudBackup.wrongSecret": "このパスフレーズまたはリカバリーキーではバックアップを開けません。",

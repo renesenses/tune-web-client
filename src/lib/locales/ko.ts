@@ -4651,7 +4651,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID 키를 삭제했습니다.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "클라우드 백업",
-  "cloudBackup.intro": "Tune은 사용자 설정을 mozaiklabs에 백업하며, mozaiklabs가 알지 못하는 키로 이 서버에서 암호화합니다: 설정, 존, 프로필과 환경설정, 이퀄라이저, 즐겨찾기, 재생목록, 라디오. 라이브러리와 서비스 비밀번호·토큰은 절대 포함되지 않습니다. 최근 스냅샷 3개가 보관됩니다.",
+  "cloudBackup.intro": "Tune은 사용자 설정을 mozaiklabs에 백업하며, mozaiklabs가 알지 못하는 키로 이 서버에서 암호화합니다: 설정, 존, 프로필과 환경설정, 이퀄라이저, 즐겨찾기, 재생목록, 라디오. 라이브러리와 서비스 비밀번호·토큰은 절대 포함되지 않습니다. 기기당 최대 3개의 스냅샷, 계정당 최대 5대의 기기가 보관되며 가장 오래된 것부터 삭제됩니다.",
   "cloudBackup.statePremium": "클라우드 백업은 Tune Premium에 포함됩니다.",
   "cloudBackup.stateNotLinked": "백업을 사용하려면 이 서버를 mozaiklabs 계정에 연결하세요(바로 위 Cloud 섹션).",
   "cloudBackup.stateDisabled": "자동 백업이 꺼져 있습니다.",
@@ -4684,6 +4684,8 @@ export default {
   "cloudBackup.modeReplace": "교체",
   "cloudBackup.modeReplaceHint": "백업이 현재 설정보다 우선합니다.",
   "cloudBackup.restoreSafety": "아무것도 삭제되지 않으며 라이브러리는 절대 건드리지 않습니다.",
+  "cloudBackup.passwordsWarning": "프로필은 비밀번호 없이 복원됩니다. 복원 후 비밀번호가 있던 각 프로필에 새 비밀번호를 설정하세요.",
+  "cloudBackup.reportNoPassword": "비밀번호가 없는 프로필: {names}",
   "cloudBackup.secretLabel": "암호 문구 또는 복구 키",
   "cloudBackup.secretNeeded": "이 백업은 다른 키로 암호화되었습니다: 해당 암호 문구 또는 복구 키를 입력하세요.",
   "cloudBackup.wrongSecret": "이 암호 문구 또는 복구 키로는 백업을 열 수 없습니다.",

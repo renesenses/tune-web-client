@@ -4651,7 +4651,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID-Schlüssel entfernt.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Cloud-Sicherung",
-  "cloudBackup.intro": "Tune sichert Ihre Anpassungen bei mozaiklabs, verschlüsselt auf diesem Server mit einem Schlüssel, den mozaiklabs nicht kennt: Einstellungen, Zonen, Profile und Vorlieben, Equalizer, Favoriten, Wiedergabelisten und Radios. Nie Ihre Bibliothek, nie Passwörter und Token der Dienste. Die letzten drei Sicherungen werden aufbewahrt.",
+  "cloudBackup.intro": "Tune sichert Ihre Anpassungen bei mozaiklabs, verschlüsselt auf diesem Server mit einem Schlüssel, den mozaiklabs nicht kennt: Einstellungen, Zonen, Profile und Vorlieben, Equalizer, Favoriten, Wiedergabelisten und Radios. Nie Ihre Bibliothek, nie Passwörter und Token der Dienste. Höchstens drei Sicherungen pro Gerät und fünf Geräte pro Konto werden aufbewahrt; die ältesten werden entfernt.",
   "cloudBackup.statePremium": "Die Cloud-Sicherung gehört zu Tune Premium.",
   "cloudBackup.stateNotLinked": "Verbinden Sie diesen Server mit Ihrem mozaiklabs-Konto (Abschnitt Cloud, direkt darüber), um die Sicherung zu nutzen.",
   "cloudBackup.stateDisabled": "Automatische Sicherung ist aus.",
@@ -4684,6 +4684,8 @@ export default {
   "cloudBackup.modeReplace": "Ersetzen",
   "cloudBackup.modeReplaceHint": "die Sicherung hat Vorrang vor Ihren aktuellen Einstellungen.",
   "cloudBackup.restoreSafety": "Nichts wird gelöscht, und die Bibliothek wird nie angetastet.",
+  "cloudBackup.passwordsWarning": "Profile werden OHNE ihr Passwort wiederhergestellt: Legen Sie nach der Wiederherstellung für jedes Profil, das eines hatte, ein neues Passwort fest.",
+  "cloudBackup.reportNoPassword": "Profile ohne Passwort: {names}",
   "cloudBackup.secretLabel": "Passphrase oder Wiederherstellungsschlüssel",
   "cloudBackup.secretNeeded": "Diese Sicherung wurde mit einem anderen Schlüssel verschlüsselt: Geben Sie ihre Passphrase oder ihren Wiederherstellungsschlüssel ein.",
   "cloudBackup.wrongSecret": "Diese Passphrase bzw. dieser Wiederherstellungsschlüssel öffnet die Sicherung nicht.",

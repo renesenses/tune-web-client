@@ -4650,7 +4650,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID-nyckeln har tagits bort.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Molnsäkerhetskopia",
-  "cloudBackup.intro": "Tune säkerhetskopierar dina anpassningar hos mozaiklabs, krypterade på den här servern med en nyckel som mozaiklabs inte känner till: inställningar, zoner, profiler och preferenser, equalizers, favoriter, spellistor och radiokanaler. Aldrig ditt bibliotek, aldrig tjänsternas lösenord och token. De tre senaste ögonblicksbilderna sparas.",
+  "cloudBackup.intro": "Tune säkerhetskopierar dina anpassningar hos mozaiklabs, krypterade på den här servern med en nyckel som mozaiklabs inte känner till: inställningar, zoner, profiler och preferenser, equalizers, favoriter, spellistor och radiokanaler. Aldrig ditt bibliotek, aldrig tjänsternas lösenord och token. Högst tre ögonblicksbilder per maskin och fem maskiner per konto sparas; de äldsta tas bort.",
   "cloudBackup.statePremium": "Molnsäkerhetskopian ingår i Tune Premium.",
   "cloudBackup.stateNotLinked": "Koppla den här servern till ditt mozaiklabs-konto (avsnittet Cloud, strax ovanför) för att använda säkerhetskopian.",
   "cloudBackup.stateDisabled": "Automatisk säkerhetskopiering är av.",
@@ -4683,6 +4683,8 @@ export default {
   "cloudBackup.modeReplace": "Ersätt",
   "cloudBackup.modeReplaceHint": "säkerhetskopian går före dina nuvarande inställningar.",
   "cloudBackup.restoreSafety": "Inget raderas, och biblioteket rörs aldrig.",
+  "cloudBackup.passwordsWarning": "Profiler återställs UTAN sitt lösenord: efter återställningen anger du ett nytt lösenord för varje profil som hade ett.",
+  "cloudBackup.reportNoPassword": "Profiler utan lösenord: {names}",
   "cloudBackup.secretLabel": "Lösenfras eller återställningsnyckel",
   "cloudBackup.secretNeeded": "Den här säkerhetskopian krypterades med en annan nyckel: ange dess lösenfras eller återställningsnyckel.",
   "cloudBackup.wrongSecret": "Den här lösenfrasen eller återställningsnyckeln öppnar inte säkerhetskopian.",

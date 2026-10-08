@@ -4,8 +4,16 @@
  *
  * Le serveur Tune prend tout seul des instantanés chiffrés de sa
  * configuration (au plus un par jour, et après chaque changement, passé un
- * délai d'attente), en garde trois chez mozaiklabs, et sait les restaurer —
- * sur la même machine ou sur une machine neuve reliée au même compte.
+ * délai d'attente) et sait les restaurer — sur la même machine ou sur une
+ * machine neuve reliée au même compte. Le site en garde trois au plus par
+ * machine et cinq machines au plus par compte, et élague les plus anciens.
+ *
+ * Réservée au Premium, toutes ses fonctions comprises : sans Premium, l'écran
+ * le dit et ne liste ni ne restaure rien (`peutLister`).
+ *
+ * Les profils sont restaurés SANS leur mot de passe (le hash ne voyage
+ * jamais) : l'écran l'annonce avant la restauration, et le bilan nomme les
+ * profils créés sans mot de passe (`profilsSansMotDePasse`).
  *
  * Ce module ne porte que les DÉCISIONS de l'écran, sans Svelte ni réseau :
  * quand proposer la reprise, quel instantané par défaut, quand demander la
@@ -27,7 +35,10 @@ export interface EtatSauvegardeCloud {
   last_error: string | null;
   pending_since: string | null;
   debounce_minutes: number;
+  /** Instantanés gardés par machine. */
   max_snapshots: number;
+  /** Machines gardées par compte (serveurs récents). */
+  max_machines?: number;
 }
 
 /** Un instantané tel que le serveur Tune le liste. */
@@ -47,7 +58,10 @@ export interface InstantaneCloud {
 
 export interface ListeInstantanes {
   backups: InstantaneCloud[];
+  /** Instantanés gardés par machine. */
   max: number;
+  max_per_server?: number;
+  max_machines?: number;
 }
 
 export type ModeRestauration = 'merge' | 'replace';
@@ -57,6 +71,8 @@ export interface BilanRestauration {
   zones_created: number;
   zones_updated: number;
   profiles_created: number;
+  /** Profils créés par la restauration, donc sans mot de passe (serveurs récents). */
+  profiles_without_password?: string[];
   playlists_restored: number;
   playlists_replaced: number;
   favorites_restored: number;
@@ -67,6 +83,8 @@ export interface BilanRestauration {
 export interface ResultatRestauration {
   success: boolean;
   key_adopted: boolean;
+  /** Toujours `false` : les mots de passe des profils ne voyagent jamais. */
+  passwords_restored?: boolean;
   report: BilanRestauration;
 }
 
@@ -189,4 +207,14 @@ export function lignesDuBilan(b: BilanRestauration): { cle: string; n: number }[
     ['cloudBackup.reportRadios', b.radios_restored],
   ];
   return lignes.filter(([, n]) => (n ?? 0) > 0).map(([cle, n]) => ({ cle, n }));
+}
+
+/**
+ * Les profils que la restauration a créés SANS mot de passe, triés et sans
+ * doublon. Vide si le serveur n'en a créé aucun (ou s'il est antérieur et ne
+ * le dit pas : l'avertissement général reste affiché avant la restauration).
+ */
+export function profilsSansMotDePasse(b: BilanRestauration | null | undefined): string[] {
+  const noms = (b?.profiles_without_password ?? []).filter((n) => typeof n === 'string' && n.trim());
+  return [...new Set(noms)].sort((a, c) => a.localeCompare(c));
 }
