@@ -68,11 +68,13 @@ describe('#919 — la file d’attente depuis la barre de lecture', () => {
   });
 });
 
-describe('#863 — le codec d’une radio se lit dès Avancé', () => {
-  it('🔴 `tech(r)` est conditionné par `showFilters` (intermediate), plus par `showExpert`', () => {
+describe('#863 puis #5716 — le codec d’une radio se lit dès Essentiel, le pays dès Avancé', () => {
+  it('🔴 la pastille n’est plus conditionnée par un niveau ; seul le pays suit `showFilters` (intermediate)', () => {
     const src = lire('src/components/v2/RadiosV2.svelte');
-    expect(src).toContain('{#if showFilters && tech(r)}');
-    expect(src).not.toContain('{#if showExpert && tech(r)}');
+    expect(src).toContain('{#if tech(r, showFilters)}');
+    expect(src).not.toContain('{#if showFilters && tech(r');
+    expect(src).not.toContain('{#if showExpert && tech(r');
+    expect(src).toContain('avecPays ? pays(r) : null');
     expect(src).toContain("const showFilters = $derived(atLeast(level, 'intermediate'));");
   });
 });
