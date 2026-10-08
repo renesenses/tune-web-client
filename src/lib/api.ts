@@ -8059,13 +8059,22 @@ export function getContinueListening(limit = 20) {
  * du fichier. Sans paramètre, l'URL est exactement celle d'avant : un serveur
  * plus ancien répond comme toujours.
  */
-export function getRecentlyAdded(days?: number, limit?: number) {
+export function getRecentlyAdded(days?: number, limit?: number, tri: TriAjoutsRecents = 'modification') {
   const p = new URLSearchParams();
   if (days != null) p.set('days', String(days));
   if (limit != null) p.set('limit', String(limit));
+  // #5402 — le tri par défaut n'envoie RIEN : l'URL reste celle d'avant.
+  if (tri === 'creation') p.set('tri', 'creation');
   const qs = p.toString();
   return fetchJSON<any[]>(`${BASE}/home/recently-added${qs ? `?${qs}` : ''}`);
 }
+
+/**
+ * Le tri des ajouts récents (#5402) : `modification`, le tri historique et le
+ * défaut, ou `creation`, la date de création du fichier quand le système la
+ * donne (sinon la date de modification).
+ */
+export type TriAjoutsRecents = 'modification' | 'creation';
 
 /** Ce que compte `/home/recently-added/summary`, sur la MÊME fenêtre. */
 export interface ResumeAjoutsRecents {
@@ -8074,6 +8083,13 @@ export interface ResumeAjoutsRecents {
   track_count: number;
   duration_ms: number;
   duration_seconds: number;
+  /**
+   * #5402 — le tri servi. ABSENT sur un serveur antérieur, qui ignore le
+   * paramètre : l'écran n'offre alors pas la bascule.
+   */
+  tri?: TriAjoutsRecents;
+  /** #5402 — pistes de la fenêtre sans date de création (tri par création). */
+  tracks_without_creation_date?: number;
 }
 
 /**
@@ -8083,9 +8099,12 @@ export interface ResumeAjoutsRecents {
  * Route séparée côté serveur, et non un champ de plus dans la réponse
  * ci-dessus : passer le tableau en objet aurait cassé tout client déployé.
  */
-export function getRecentlyAddedSummary(days?: number) {
-  const qs = days != null ? `?days=${days}` : '';
-  return fetchJSON<ResumeAjoutsRecents>(`${BASE}/home/recently-added/summary${qs}`);
+export function getRecentlyAddedSummary(days?: number, tri: TriAjoutsRecents = 'modification') {
+  const p = new URLSearchParams();
+  if (days != null) p.set('days', String(days));
+  if (tri === 'creation') p.set('tri', 'creation');
+  const qs = p.toString();
+  return fetchJSON<ResumeAjoutsRecents>(`${BASE}/home/recently-added/summary${qs ? `?${qs}` : ''}`);
 }
 
 export function getNewInLibrary() {
