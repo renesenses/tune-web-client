@@ -2248,7 +2248,7 @@ export default {
   "v2.pl.backupDone": "Mentés elkészült",
   "v2.pl.backupPremium": "A dátumozott másolatok és a lejátszási listák szinkronizálási hivatkozásai a Tune Premium részei.",
   "v2.pl.backupNoPlugin": "A Playlists converter bővítmény nincs betöltve ezen a szerveren.",
-  "v2.pl.backupRing": "Minden lejátszási lista utolsó tíz másolata megmarad; a legrégebbit felülírja az új. A „Visszaállítás” újra létrehozza a listát a szolgáltatásánál, a régihez nem nyúl.",
+  "v2.pl.backupRing": "Minden lejátszási lista utolsó tíz másolata megmarad; a legrégebbit felülírja az új. A „Visszaállítás” újra létrehozza a listát a Tune-ban, a régihez nem nyúl; szolgáltatásba küldéshez használja az átvitelt.",
   "v2.pl.backupPartial": "{ok} lejátszási lista mentve, {ko} sikertelen.",
   "v2.pl.backupPremiumLink": "A Tune Premium megismerése",
   "v2.pl.noBackup": "Még nincs mentés.",

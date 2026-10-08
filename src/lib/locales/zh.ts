@@ -2290,7 +2290,7 @@ export default {
   "v2.pl.backupDone": "备份已创建",
   "v2.pl.backupPremium": "带日期的副本和播放列表同步链接属于 Tune Premium。",
   "v2.pl.backupNoPlugin": "此服务器未加载 Playlists converter 插件。",
-  "v2.pl.backupRing": "每个播放列表保留最近十个副本，最旧的会被替换。“恢复”会在其原服务中重新创建播放列表，不会改动旧的。",
+  "v2.pl.backupRing": "每个播放列表保留最近十个副本，最旧的会被替换。“恢复”会在 Tune 中重新创建播放列表，不会改动旧的；如需发送到某个服务，请使用转移。",
   "v2.pl.backupPartial": "已备份 {ok} 个播放列表，{ko} 个失败。",
   "v2.pl.backupPremiumLink": "了解 Tune Premium",
   "v2.pl.noBackup": "暂无备份。",

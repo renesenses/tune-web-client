@@ -2289,7 +2289,7 @@ export default {
   "v2.pl.backupDone": "Säkerhetskopia skapad",
   "v2.pl.backupPremium": "Daterade kopior och synkroniseringslänkar för spellistor ingår i Tune Premium.",
   "v2.pl.backupNoPlugin": "Tillägget Playlists converter är inte inläst på den här servern.",
-  "v2.pl.backupRing": "De tio senaste kopiorna av varje spellista sparas; den äldsta ersätts. ”Återställ” återskapar spellistan hos dess tjänst utan att röra den gamla.",
+  "v2.pl.backupRing": "De tio senaste kopiorna av varje spellista sparas; den äldsta ersätts. ”Återställ” återskapar spellistan i Tune utan att röra den gamla; använd överföringen för att skicka den till en tjänst.",
   "v2.pl.backupPartial": "{ok} spellistor säkerhetskopierade, {ko} misslyckades.",
   "v2.pl.backupPremiumLink": "Upptäck Tune Premium",
   "v2.pl.noBackup": "Ingen säkerhetskopia ännu.",

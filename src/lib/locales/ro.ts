@@ -2290,7 +2290,7 @@ export default {
   "v2.pl.backupDone": "Copie creată",
   "v2.pl.backupPremium": "Copiile datate și legăturile de sincronizare ale playlisturilor fac parte din Tune Premium.",
   "v2.pl.backupNoPlugin": "Pluginul Playlists converter nu este încărcat pe acest server.",
-  "v2.pl.backupRing": "Se păstrează ultimele zece copii ale fiecărui playlist; cea mai veche este înlocuită. „Restaurează” recreează playlistul la serviciul său, fără a-l atinge pe cel vechi.",
+  "v2.pl.backupRing": "Se păstrează ultimele zece copii ale fiecărui playlist; cea mai veche este înlocuită. „Restaurează” recreează playlistul în Tune, fără a-l atinge pe cel vechi; pentru a-l trimite la un serviciu, folosiți transferul.",
   "v2.pl.backupPartial": "{ok} playlisturi salvate, {ko} eșuate.",
   "v2.pl.backupPremiumLink": "Descoperă Tune Premium",
   "v2.pl.noBackup": "Încă nicio copie de siguranță.",

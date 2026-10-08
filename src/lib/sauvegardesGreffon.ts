@@ -79,9 +79,10 @@ export async function copierTout(
 }
 
 /**
- * Recrée la playlist depuis sa copie la plus récente, chez son service
- * (mode `recreer` : l'ancienne n'est ni modifiée ni supprimée). Aperçu, puis
- * accord : le geste de l'utilisateur vaut accord.
+ * Recrée la playlist depuis sa copie la plus récente, DANS TUNE (mode
+ * `recreer` : décision de Bertrand du 08/10, tune-server-rust#5966 ; l'export
+ * vers un service reste le transfert, et l'ancienne n'est ni modifiée ni
+ * supprimée). Aperçu, puis accord : le geste de l'utilisateur vaut accord.
  */
 export async function recreerDepuisLaPlusRecente(service: string, playlistId: string) {
   const { snapshots } = await api.convertisseurSnapshots(service, playlistId);

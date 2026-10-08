@@ -191,6 +191,18 @@ describe('#4741 — un refus est expliqué, pas montré comme une panne', () => 
     expect(r).toEqual({ reussies: 0, echecs: 1, impossible: null });
   });
 
+  // Décision de Bertrand du 08/10 (tune-server-rust#5966) : une restauration
+  // recrée la playlist DANS TUNE, l'export vers un service reste le transfert.
+  it('« Restaurer » est annoncé comme une recréation dans Tune, dans les onze langues', () => {
+    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh']) {
+      const ligne = source(`../locales/${langue}.ts`)
+        .split('\n')
+        .find((l) => l.includes('"v2.pl.backupRing":'));
+      expect(ligne, `${langue} : v2.pl.backupRing`).toMatch(/Tune/);
+    }
+    expect(source('../locales/fr.ts')).not.toMatch(/"v2\.pl\.backupRing":[^\n]*chez son service/);
+  });
+
   it("l'écran peint l'explication et le lien, dans les onze langues", () => {
     const ecran = source('../../components/v2/PlaylistsV2.svelte');
     expect(ecran).toContain("$t('v2.pl.backupPremium' as any)");

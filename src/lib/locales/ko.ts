@@ -2290,7 +2290,7 @@ export default {
   "v2.pl.backupDone": "백업을 만들었습니다",
   "v2.pl.backupPremium": "날짜가 지정된 사본과 플레이리스트 동기화 링크는 Tune Premium 기능입니다.",
   "v2.pl.backupNoPlugin": "이 서버에 Playlists converter 플러그인이 로드되어 있지 않습니다.",
-  "v2.pl.backupRing": "각 플레이리스트의 최근 사본 10개가 보관되며 가장 오래된 사본이 교체됩니다. '복원'은 원래 서비스에 플레이리스트를 다시 만들며 기존 플레이리스트는 건드리지 않습니다.",
+  "v2.pl.backupRing": "각 플레이리스트의 최근 사본 10개가 보관되며 가장 오래된 사본이 교체됩니다. '복원'은 Tune 안에 플레이리스트를 다시 만들며 기존 플레이리스트는 건드리지 않습니다. 서비스로 보내려면 전송을 사용하세요.",
   "v2.pl.backupPartial": "플레이리스트 {ok}개 백업됨, {ko}개 실패.",
   "v2.pl.backupPremiumLink": "Tune Premium 알아보기",
   "v2.pl.noBackup": "아직 백업이 없습니다.",

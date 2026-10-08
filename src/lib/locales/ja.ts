@@ -2290,7 +2290,7 @@ export default {
   "v2.pl.backupDone": "バックアップを作成しました",
   "v2.pl.backupPremium": "日付付きコピーとプレイリスト同期リンクは Tune Premium の機能です。",
   "v2.pl.backupNoPlugin": "このサーバーでは Playlists converter プラグインが読み込まれていません。",
-  "v2.pl.backupRing": "各プレイリストの直近 10 件のコピーが保持され、最も古いものが置き換えられます。「復元」は元のサービスにプレイリストを再作成し、古いものには触れません。",
+  "v2.pl.backupRing": "各プレイリストの直近 10 件のコピーが保持され、最も古いものが置き換えられます。「復元」は Tune 内にプレイリストを再作成し、古いものには触れません。サービスへ送るには転送を使ってください。",
   "v2.pl.backupPartial": "{ok} 件のプレイリストをバックアップしました。{ko} 件は失敗しました。",
   "v2.pl.backupPremiumLink": "Tune Premium を見る",
   "v2.pl.noBackup": "まだバックアップがありません。",

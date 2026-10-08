@@ -1351,7 +1351,7 @@ export default {
   "v2.pl.backupDone": "Backup created",
   "v2.pl.backupPremium": "Dated copies and playlist sync links are part of Tune Premium.",
   "v2.pl.backupNoPlugin": "The Playlists converter plugin is not loaded on this server.",
-  "v2.pl.backupRing": "The last ten copies of each playlist are kept; the oldest one is replaced. “Restore” recreates the playlist on its service and leaves the old one untouched.",
+  "v2.pl.backupRing": "The last ten copies of each playlist are kept; the oldest one is replaced. “Restore” recreates the playlist in Tune and leaves the old one untouched; to send it to a service, use the transfer.",
   "v2.pl.backupPartial": "{ok} playlists backed up, {ko} failed.",
   "v2.pl.backupPremiumLink": "Discover Tune Premium",
   "v2.pl.noBackup": "No backup yet.",

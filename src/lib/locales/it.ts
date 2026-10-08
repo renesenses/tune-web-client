@@ -2290,7 +2290,7 @@ export default {
   "v2.pl.backupDone": "Backup creato",
   "v2.pl.backupPremium": "Le copie datate e i collegamenti di sincronizzazione delle playlist fanno parte di Tune Premium.",
   "v2.pl.backupNoPlugin": "Il plugin Playlists converter non è caricato su questo server.",
-  "v2.pl.backupRing": "Vengono conservate le ultime dieci copie di ogni playlist; la più vecchia viene sostituita. «Ripristina» ricrea la playlist sul suo servizio senza toccare quella precedente.",
+  "v2.pl.backupRing": "Vengono conservate le ultime dieci copie di ogni playlist; la più vecchia viene sostituita. «Ripristina» ricrea la playlist in Tune senza toccare quella precedente; per inviarla a un servizio, usa il trasferimento.",
   "v2.pl.backupPartial": "{ok} playlist salvate, {ko} non riuscite.",
   "v2.pl.backupPremiumLink": "Scopri Tune Premium",
   "v2.pl.noBackup": "Ancora nessun backup.",

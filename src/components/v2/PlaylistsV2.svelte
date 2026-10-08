@@ -582,7 +582,7 @@
     }
   }
 
-  /** Recrée la playlist depuis sa copie la plus récente, chez son service. */
+  /** Recrée la playlist depuis sa copie la plus récente, dans Tune (tune-server-rust#5966). */
   async function restaurer(snap: api.PlaylistSnapshotsConvertisseur) {
     if (restauration != null) return;
     restauration = cleInstantane(snap);

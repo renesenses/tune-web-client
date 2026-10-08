@@ -1354,7 +1354,7 @@ export default {
   "v2.pl.backupDone": "Sauvegarde effectuée",
   "v2.pl.backupPremium": "Les copies datées et les liens de synchronisation de playlists font partie de Tune Premium.",
   "v2.pl.backupNoPlugin": "Le greffon Playlists converter n'est pas chargé sur ce serveur.",
-  "v2.pl.backupRing": "Les dix dernières copies de chaque playlist sont gardées ; la plus ancienne est remplacée. « Restaurer » recrée la playlist chez son service, sans toucher à l'ancienne.",
+  "v2.pl.backupRing": "Les dix dernières copies de chaque playlist sont gardées ; la plus ancienne est remplacée. « Restaurer » recrée la playlist dans Tune, sans toucher à l'ancienne ; pour l'envoyer vers un service, utilisez le transfert.",
   "v2.pl.backupPartial": "{ok} playlists sauvegardées, {ko} en échec.",
   "v2.pl.backupPremiumLink": "Découvrir Tune Premium",
   "v2.pl.noBackup": "Aucune sauvegarde pour l’instant.",
