@@ -1150,6 +1150,19 @@ export function probeRendererCapabilities(id: number) {
   });
 }
 
+/**
+ * « Réinitialiser la compatibilité » (tune-server-rust#5962) : le serveur
+ * oublie le profil de commande `SetAVTransportURI` qu'il a appris pour le
+ * renderer DLNA de cette zone, en mémoire et en base. Rend le nombre de
+ * profils oubliés.
+ */
+export function reinitialiserCompatibiliteRenderer(id: number) {
+  return fetchJSON<{ zone_id: number; profils_oublies: number }>(
+    `${BASE}/zones/${id}/compatibilite-renderer`,
+    { method: 'DELETE' },
+  );
+}
+
 export function changeZoneOutput(id: number, outputType: string, outputDeviceId?: string | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
