@@ -679,6 +679,9 @@ export interface ClearLibraryResult {
   ok: boolean;
   deleted?: number;
   error?: string;
+  /** #5973 — chemin de la sauvegarde de la base faite juste avant le vidage
+   *  (SQLite) ; `null` quand il n'y en a pas (PostgreSQL). */
+  backup_path?: string | null;
 }
 
 export function clearLibrary(): Promise<ClearLibraryResult> {
