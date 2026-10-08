@@ -2164,7 +2164,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const r = await api.clearLibrary();
       if (r?.ok) {
-        clearMessage = get(t)('settings.libraryCleared');
+        // #5973 — le serveur sauvegarde la base juste avant de vider (SQLite)
+        // et rend le chemin de la copie : on le montre, c'est le seul moyen
+        // de retrouver le contenu des playlists, les notes et les favoris.
+        clearMessage = get(t)('settings.libraryCleared')
+          + (r.backup_path ? ` ${get(t)('settings.libraryClearedBackup').replace('{path}', r.backup_path)}` : '');
         scanReport = null;
         await refreshLibrary();
       } else {
