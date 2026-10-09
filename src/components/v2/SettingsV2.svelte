@@ -50,6 +50,7 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { chargerLienAcces, qrSvg } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
@@ -903,11 +904,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let brUrl = $state('');
   let brToken = $state('');
   let brBusy = $state(false);
+  // Lien d'accès à distance (`…/{server_id}/#token=…`) : il ne vient que de la
+  // route réservée à l'administrateur (`lienAccesDistant.ts`). Tout refus le
+  // laisse vide, et l'écran reste celui d'avant.
+  let brLien = $state<string | null>(null);
+  let brLienCopie = $state(false);
+  const brQr = $derived(brLien ? qrSvg(brLien) : '');
+  async function chargerLienPont() {
+    brLien = await chargerLienAcces((chemin) => api.apiFetch(chemin));
+    brLienCopie = false;
+  }
+  async function copierLienPont() {
+    if (brLien) brLienCopie = await copyText(brLien);
+  }
   $effect(() => {
     api.apiFetch('/cloud/bridge/status')
       .then((d: any) => {
         brEnabled = !!d?.enabled; brConnected = !!d?.connected;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = '';
+        if (brEnabled) chargerLienPont();
       })
       .catch(() => {});   // route absente sur un serveur anterieur
   });
@@ -916,11 +931,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       if (brEnabled) {
         await api.apiPost('/cloud/bridge/disable');
-        brEnabled = false; brConnected = false; brUrl = ''; brToken = '';
+        brEnabled = false; brConnected = false; brUrl = ''; brToken = ''; brLien = null;
       } else {
         const d: any = await api.apiPost('/cloud/bridge/enable');
         brEnabled = true;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = d?.bridge_token || '';
+        await chargerLienPont();
       }
     } catch (e: any) {
       notifications.error(e?.message ?? 'Erreur');
@@ -6101,6 +6117,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <a class="mono link" href={brUrl} target="_blank" rel="noopener">{brUrl}</a>
                   </div>
                 {/if}
+                {#if brLien}
+                  <div class="row">
+                    <div class="lbl">
+                      <span>{$t('settings.remoteLink' as any)}</span>
+                      <span class="hint">{$t('settings.remoteLinkHint' as any)}</span>
+                    </div>
+                    <button class="lnk" data-acces="copier" onclick={copierLienPont}>
+                      {$t((brLienCopie ? 'settings.remoteLinkCopied' : 'settings.remoteLinkCopy') as any)}
+                    </button>
+                  </div>
+                  <div class="brqr" data-acces="qr" aria-label={$t('settings.remoteLinkQr' as any)} role="img">
+                    {@html brQr}
+                  </div>
+                {/if}
                 {#if brToken}
                   <div class="tok">
                     <span class="tlab">{$t('v2.lbl.token' as any)}</span>
@@ -6856,6 +6886,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .mono{font:11.5px var(--v2-mono); color:var(--v2-txt2); word-break:break-all; text-align:right}
   a.link{color:var(--v2-acc-tint); text-decoration:none}
   a.link:hover{text-decoration:underline}
+  .brqr{width:184px; margin:10px 0 4px; padding:8px; background:#fff; border-radius:8px; line-height:0}
+  .brqr :global(svg){width:100%; height:auto; display:block}
   .tok{display:flex; flex-direction:column; gap:7px; margin-top:12px; padding:12px;
     border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .tok .tlab{font:10px var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}
