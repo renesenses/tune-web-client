@@ -3253,6 +3253,7 @@ export default {
   "streaming.allGenres": 'Alla genrer',
   "streaming.pickGenre": 'Välj en genre för att se dess album.',
   "streaming.genreNoAlbums": 'Inga album i den här genren.',
+  "streaming.genrePlaylists": 'Spellistor i den här genren',
   "streaming.genresEmpty": 'Den här tjänsten erbjuder inga genrer.',
   "v2.hist.eyebrow": "Vad du har lyssnat på",
   "v2.hist.replayError": "Kunde inte spela upp den här lyssningen igen",

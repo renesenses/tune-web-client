@@ -3254,6 +3254,7 @@ export default {
   "streaming.allGenres": '全部风格',
   "streaming.pickGenre": '选择一个风格以查看其专辑。',
   "streaming.genreNoAlbums": '该风格下没有专辑。',
+  "streaming.genrePlaylists": '该风格的歌单',
   "streaming.genresEmpty": '该服务未提供风格分类。',
   "v2.hist.eyebrow": "你听过的音乐",
   "v2.hist.replayError": "无法重新播放此记录",

@@ -3254,6 +3254,7 @@ export default {
   "streaming.allGenres": 'すべてのジャンル',
   "streaming.pickGenre": 'ジャンルを選ぶとアルバムが表示されます。',
   "streaming.genreNoAlbums": 'このジャンルにアルバムはありません。',
+  "streaming.genrePlaylists": 'このジャンルのプレイリスト',
   "streaming.genresEmpty": 'このサービスはジャンルを提供していません。',
   "v2.hist.eyebrow": "これまでに聴いた曲",
   "v2.hist.replayError": "この再生を再開できませんでした",

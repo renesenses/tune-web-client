@@ -33,6 +33,7 @@
     TAILLES_PAGE, chargerTaillePage, retenirTaillePage, type TaillePage,
   } from '../../lib/taillePageRecherche';
   import { chargerRubriquesGenre, type BandeRubrique } from '../../lib/rubriquesGenre';
+  import { chargerPlaylistsDuGenre } from '../../lib/playlistsDuGenre';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -267,6 +268,8 @@
    */
   let rubriques = $state<FeaturedSection[]>([]);
   let bandesGenre = $state<BandeRubrique[]>([]);
+  /** #5313 — les playlists éditoriales du genre ouvert (Qobuz). Vide ailleurs. */
+  let genrePlaylists = $state<StreamingPlaylist[]>([]);
 
   /** Liste des genres du service : UN seul appel par service, HORS de l'effet
    * du volet.
@@ -278,7 +281,7 @@
    */
   $effect(() => {
     const svc = active;
-    svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; rubriques = [];
+    svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genrePlaylists = []; rubriques = [];
     // Bandcamp ne passe pas par /streaming : l'interroger la serait un 404.
     if (!svc || svc === BANDCAMP) return;
     let vivant = true;
@@ -306,7 +309,7 @@
   async function ouvrirGenre(g: StreamingGenre) {
     const svc = active;
     if (!svc || svc === BANDCAMP) return;
-    genrePath = [g]; subGenres = []; genreAlbums = []; bandesGenre = [];
+    genrePath = [g]; subGenres = []; genreAlbums = []; bandesGenre = []; genrePlaylists = [];
     if (ouvertureGenre(g) === 'albums') { genreId = g.id; return; }
     genreId = '';
     const mien = ++sousSeq;
@@ -332,7 +335,7 @@
 
   function retourGenres() {
     sousSeq++;
-    genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genreLoading = false;
+    genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genrePlaylists = []; genreLoading = false;
   }
   // Genres Bandcamp : le serveur rend `genres` (libelle + sous-genres) ET
   // `tags` (liste plate) — on prend le premier, on retombe sur le second pour
@@ -705,8 +708,14 @@
     // Les genres ont QUITTE l'editorial : ils n'y sont plus une section de fin
     // de page (#709). L'y laisser aussi aurait fait deux chemins pour un seul
     // geste, et l'effet editorial rechargeait la liste a chaque puce.
-    if (!svc || svc === BANDCAMP || sub !== 'genres' || !gid) { genreAlbums = []; bandesGenre = []; return; }
+    if (!svc || svc === BANDCAMP || sub !== 'genres' || !gid) { genreAlbums = []; bandesGenre = []; genrePlaylists = []; return; }
     genreLoading = true;
+    // #5313 — les playlists du genre, en parallele des albums : leur echec ne
+    // touche pas aux bandes d'albums, et un service sans playlists editoriales
+    // rend une liste vide (pas de bande).
+    genrePlaylists = [];
+    chargerPlaylistsDuGenre(() => api.getStreamingGenrePlaylists(svc, gid))
+      .then((p) => { if (genreId === gid) genrePlaylists = p as StreamingPlaylist[]; });
     chargerRubriquesGenre(rubs, (section) =>
       api.getStreamingGenreAlbums(svc, gid, 40, section) as Promise<unknown[]>)
       .then((b) => {
@@ -1516,6 +1525,13 @@
           <div class="state">{$t('streaming.genreNoAlbums')}</div>
         {:else}
           <div class="state">{$t('streaming.pickGenre')}</div>
+        {/if}
+        {#if genreId && genrePlaylists.length}
+          <!-- #5313 — Cyrille Moutia, fil 1685 : les playlists Qobuz du genre. -->
+          <section class="sec">
+            <h2>{$t('streaming.genrePlaylists')}</h2>
+            <div class="grid">{#each genrePlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+          </section>
         {/if}
       {/if}
 

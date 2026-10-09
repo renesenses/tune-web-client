@@ -3254,6 +3254,7 @@ export default {
   "streaming.allGenres": 'Alle Genres',
   "streaming.pickGenre": 'Wählen Sie ein Genre, um dessen Alben zu sehen.',
   "streaming.genreNoAlbums": 'Keine Alben in diesem Genre.',
+  "streaming.genrePlaylists": 'Playlists dieses Genres',
   "streaming.genresEmpty": 'Dieser Dienst bietet keine Genres an.',
   "v2.hist.eyebrow": "Was Sie gehört haben",
   "v2.hist.replayError": "Diese Wiedergabe konnte nicht erneut gestartet werden",

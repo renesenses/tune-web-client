@@ -3254,6 +3254,7 @@ export default {
   "streaming.allGenres": 'Toate genurile',
   "streaming.pickGenre": 'Alege un gen pentru a-i vedea albumele.',
   "streaming.genreNoAlbums": 'Niciun album în acest gen.',
+  "streaming.genrePlaylists": 'Playlisturi din acest gen',
   "streaming.genresEmpty": 'Acest serviciu nu oferă genuri.',
   "v2.hist.eyebrow": "Ce ați ascultat",
   "v2.hist.replayError": "Nu s-a putut relua această ascultare",
