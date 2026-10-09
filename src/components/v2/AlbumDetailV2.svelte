@@ -33,6 +33,8 @@ import AlbumRating from '../partages/AlbumRating.svelte';
 import ReportButton from '../partages/ReportButton.svelte';
 import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import ClampedText from '../partages/ClampedText.svelte';
+  import AttributionBio from './AttributionBio.svelte';
+  import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
   import ListePistesV2 from './ListePistesV2.svelte';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
@@ -44,6 +46,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
+  import { cleEchecRevelation, revelationDisponible, revelerDossierAlbum } from '../../lib/revelerDossier';
+  import { fichiersInchanges } from '../../lib/ecritureFichiers';
   import { favoriteAlbumIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { favKeyOf, refFavoriDeFiche, toggleStreamingFavorite } from '../../lib/streamingFavorites';
@@ -57,6 +61,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import { currentShortcutTarget, setShortcutTarget, type ShortcutTarget } from '../../lib/stores/shortcuts';
+  import { cibleRaccourciAlbum } from '../../lib/raccourciAlbum';
   import { detailOuvert, fermerDetail } from '../../lib/historiqueCoquille';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
@@ -66,7 +72,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
   import { styleMenuAncre } from '../../lib/ancrageMenu';
   import { portail } from '../../lib/portail';
-  import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
+  import { estMarqueIa, marquageIaADemander } from '../../lib/contenuIa';
+import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
   import { dialogs } from '../../lib/stores/dialogs';
   import { origineDuCoffret, EVT_COFFRET_DEFAIT, type OrigineCoffret } from '../../lib/coffretAuto';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -136,7 +143,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 
   $effect(() => {
     const svc = service, sid = sidDistant;
-    const manque = !enTeteComplet(album);
+    // #5530 — un album Qobuz reçu sans son marquage IA le demande aussi.
+    const manque = !enTeteComplet(album) || marquageIaADemander(svc, album);
     detailService = null;
     if (!svc || !sid || !manque) return;
     let perime = false;
@@ -161,6 +169,10 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     const fusion: any = { ...(album as any) };
     for (const cle of ['cover_path', 'artist_name', 'artist_id', 'year', 'release_date', 'original_year', 'original_date']) {
       if (vide(fusion[cle])) fusion[cle] = (d as any)[cle] ?? null;
+    }
+    // #5530 — le marquage IA, seulement si l'appelant ne l'avait pas.
+    if (fusion.ai_generated === undefined && typeof (d as any).ai_generated === 'boolean') {
+      fusion.ai_generated = (d as any).ai_generated;
     }
     return fusion as Album;
   });
@@ -206,6 +218,37 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   );
   /** Le panneau partagé — celui des vignettes, pas une seconde copie. */
   let etiquettesOuvertes = $state(false);
+
+  /**
+   * LA FICHE SE DÉCLARE COMME CIBLE DE RACCOURCI — fil 2143, point 2.
+   *
+   * FabienM : « impossible de définir un raccourci sur […] un album ouvert ».
+   * Même mécanisme que la page d'artiste (#1501) et les listes de lecture
+   * (`setShortcutTarget`) ; la forme et la restitution vivent dans
+   * `lib/raccourciAlbum`.
+   *
+   * 🔴 La fiche est un CALQUE par-dessus un écran qui a pu publier SA cible
+   * (une collection, une étiquette, une page d'artiste) : on la retient en
+   * s'ouvrant et on la rend en se refermant — sans quoi, la fiche refermée,
+   * un raccourci posé sur la collection viserait encore l'album. On ne la
+   * rend que si la cible courante est toujours la nôtre : un écran qui a
+   * publié depuis garde la main.
+   */
+  const cibleRaccourci = $derived(cibleRaccourciAlbum({ album: albumAffiche, service, depot, bandcamp }));
+  let cibleDessous: ShortcutTarget | null | undefined = undefined;
+  let clePubliee: string | null = null;
+  $effect(() => {
+    const c = cibleRaccourci;
+    untrack(() => {
+      if (cibleDessous === undefined) cibleDessous = get(currentShortcutTarget);
+      if (!c) return;
+      setShortcutTarget(c);
+      clePubliee = c.key;
+    });
+  });
+  $effect(() => () => {
+    if (clePubliee != null && get(currentShortcutTarget)?.key === clePubliee) setShortcutTarget(cibleDessous ?? null);
+  });
 
   /**
    * « Crédits » — #1572 (FabienM, fil forum 1921 : « ajouter un bouton pour
@@ -442,6 +485,27 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     // Cette fiche décrit un album qui n'est plus ce qu'elle montre.
     onClose();
   }
+  /**
+   * #1875 — « Ouvrir dans l'explorateur » : le gestionnaire de fichiers de la
+   * machine du serveur, quand le navigateur est sur cette machine. Le serveur
+   * seul sait le dire ; tant qu'il n'a pas dit oui, le bouton est absent.
+   */
+  let revelable = $state(false);
+  $effect(() => {
+    if (!dossier || album.id == null) { revelable = false; return; }
+    let vivant = true;
+    void revelationDisponible().then((oui) => { if (vivant) revelable = oui; });
+    return () => { vivant = false; };
+  });
+  async function ouvrirDansLExplorateur() {
+    if (album.id == null) return;
+    try {
+      await revelerDossierAlbum(album.id);
+    } catch (e) {
+      notifications.error($tr(cleEchecRevelation((e as api.ApiError)?.code) as any));
+    }
+  }
+
   function localiser() {
     if (!dossier) return;
     /**
@@ -526,6 +590,11 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
           artist_name: t.artist ?? album.artist_name ?? null,
           album_title: album.title, duration_ms: (t.duration_s ?? 0) * 1000,
           source: 'bandcamp', source_id: t.stream_url,
+          // web#1923, #1924 : chaque piste garde la page de SON album. Lancée
+          // seule (aléatoire, file, menu de la ligne), elle l'emporte dans
+          // `album_ref` (`champAlbumBandcamp`), sans quoi un titre que Tune
+          // n'a jamais vu entrait en file sans album.
+          album_id_service: d2?.url ?? bc,
           cover_path: album.cover_path ?? null, format: 'MP3',
         })) as unknown as Track[])
       : svc && sid
@@ -772,6 +841,9 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     if (id == null || !champ || !ids.length || !v || groupeOccupe) return;
     groupeOccupe = true;
     let bilan: Bilan;
+    // Le serveur dit si le genre a atteint les fichiers (réglage « Écrire les
+    // modifications dans les fichiers audio », décoché par défaut).
+    let baseSeule = false;
     if (champ === 'artist') {
       const corps = corpsArtistePistes(ids, v);
       try {
@@ -781,7 +853,11 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
         bilan = { reussies: 0, echouees: ids.length };
       }
     } else {
-      bilan = await appliquerGenre(ids, v, (tid, c) => api.updateTrack(tid, c));
+      bilan = await appliquerGenre(ids, v, async (tid, c) => {
+        const r = await api.updateTrack(tid, c);
+        if (fichiersInchanges(r)) baseSeule = true;
+        return r;
+      });
     }
     groupeOccupe = false;
     if (album.id !== id) return;
@@ -793,7 +869,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
       notifications.error($tr('v2.selection.editPartial' as any)
         .replace('{ok}', String(bilan.reussies)).replace('{ko}', String(bilan.echouees)));
     } else {
-      notifications.success($tr('v2.selection.edited' as any).replace('{n}', String(bilan.reussies)));
+      const fait = $tr('v2.selection.edited' as any).replace('{n}', String(bilan.reussies));
+      notifications.success(baseSeule ? `${fait} ${$tr('fileWrites.savedInTuneOnly' as any)}` : fait);
     }
     champGroupe = null;
     valeurGroupe = '';
@@ -1109,6 +1186,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
    */
   let bioOuverte = $state(false);
   let bio = $state<string | null>(null);
+  /** Provenance de la notice (`bio_provenance`) — attribution CC BY-SA. */
+  let bioProvenance = $state<BioProvenance | null>(null);
   let bioChargement = $state(false);
   let bioErreur = $state(false);
   /** Album dont la bio est en mémoire — la fiche est réutilisée d'un album à
@@ -1121,6 +1200,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     bioAlbumId = id;
     bioOuverte = false;
     bio = null;
+    bioProvenance = null;
     bioErreur = false;
   });
 
@@ -1133,7 +1213,10 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     try {
       const r = await api.getAlbumBio(id);
       // Course : l'utilisateur a pu changer d'album pendant la requête.
-      if (album.id === id) bio = r.bio ?? '';
+      if (album.id === id) {
+        bio = r.bio ?? '';
+        bioProvenance = provenanceDe(r);
+      }
     } catch {
       if (album.id === id) bioErreur = true;
     }
@@ -1375,6 +1458,9 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
              « compilation ». -->
         {#if depuisCue}<div class="qbadge cue" title={$tr('v2.album.cueTip' as any)}>{$tr('v2.album.cue' as any)}</div>{/if}
         {#if mention}<div class="qbadge cue" title={$tr('v2.album.alsoOnTip' as any)}>{$tr(mention.cle as any).replace('{servers}', mention.serveurs.join(', '))}</div>{/if}
+        <!-- #5530 — le marquage « généré par IA » que le service pose sur
+             l'album (Qobuz). Rien quand il ne dit rien. -->
+        {#if estMarqueIa(albumAffiche)}<div class="qbadge cue ia" data-ia title={$tr('v2.str.aiGeneratedTip' as any)}>{$tr('v2.str.aiGenerated' as any)}</div>{/if}
       </div>
       <h1>{album.title}</h1>
       <!-- Un vrai BOUTON, pas un `<div onclick>` : le clavier doit l'atteindre.
@@ -1447,6 +1533,13 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             {$tr('v2.album.locate' as any)}
           </button>
+          {#if revelable}
+            <button class="ghost reveler" onclick={ouvrirDansLExplorateur}
+              title={$tr('v2.album.revealTip' as any)} aria-label={$tr('v2.album.reveal' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+              {$tr('v2.album.reveal' as any)}
+            </button>
+          {/if}
         {/if}
         {#if coffretDefaisable()}
           <button class="ghost defaire-coffret" onclick={defaireCoffret} disabled={defaireEnCours}
@@ -1550,6 +1643,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
           <ClampedText lines={4} resetKey={bio}>
             <p class="bio-text">{bio}</p>
           </ClampedText>
+          <AttributionBio provenance={bioProvenance} />
         {:else}
           <p class="bio-state">{$tr('library.noAlbumNote')}</p>
         {/if}

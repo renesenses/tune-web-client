@@ -294,7 +294,7 @@
         </div>
       {/if}
       {#if focusActif}
-        <button class="raz" onclick={toutAfficher}>{$t('v2.disco.reset' as any)}</button>
+        <button class="raz-focus" onclick={toutAfficher}>{$t('v2.disco.reset' as any)}</button>
       {/if}
     </div>
   {/if}
@@ -302,7 +302,7 @@
   {#if !filtrees.length && toutes.length}
     <div class="etat">{$t('v2.disco.noMatch' as any)}</div>
   {:else}
-    {#if !sectionsSortie.epSingles.length}
+    {#if !sectionsSortie.eps.length && !sectionsSortie.singles.length && !sectionsSortie.live.length}
       <div class="gr">
         {#each triees as e (e.cle)}
           {@render carte(e)}
@@ -319,14 +319,38 @@
           </div>
         </section>
       {/if}
-      <section class="connexes" data-section="ep-singles">
-        <h3 class="titre-connexes">{$t('v2.disco.epSingles' as any)} <span class="cpt">{sectionsSortie.epSingles.length}</span></h3>
-        <div class="gr">
-          {#each sectionsSortie.epSingles as e (e.cle)}
-            {@render carte(e)}
-          {/each}
-        </div>
-      </section>
+      <!-- #5616 — deux sections, « EP » puis « Singles » (Bertrand, 05/10). -->
+      {#if sectionsSortie.eps.length}
+        <section class="connexes" data-section="eps">
+          <h3 class="titre-connexes">{$t('v2.disco.eps' as any)} <span class="cpt">{sectionsSortie.eps.length}</span></h3>
+          <div class="gr">
+            {#each sectionsSortie.eps as e (e.cle)}
+              {@render carte(e)}
+            {/each}
+          </div>
+        </section>
+      {/if}
+      {#if sectionsSortie.singles.length}
+        <section class="connexes" data-section="singles">
+          <h3 class="titre-connexes">{$t('v2.disco.singles' as any)} <span class="cpt">{sectionsSortie.singles.length}</span></h3>
+          <div class="gr">
+            {#each sectionsSortie.singles as e (e.cle)}
+              {@render carte(e)}
+            {/each}
+          </div>
+        </section>
+      {/if}
+      <!-- Section « Live » (Bertrand, 05/10) : après Albums, EP et Singles. -->
+      {#if sectionsSortie.live.length}
+        <section class="connexes" data-section="live">
+          <h3 class="titre-connexes">{$t('v2.disco.live' as any)} <span class="cpt">{sectionsSortie.live.length}</span></h3>
+          <div class="gr">
+            {#each sectionsSortie.live as e (e.cle)}
+              {@render carte(e)}
+            {/each}
+          </div>
+        </section>
+      {/if}
     {/if}
     {#if servicesEnCharge}
       <div class="etat">{$t('common.loading' as any)}</div>
@@ -409,7 +433,7 @@
         <!-- `source` n'est PAS passé à `AlbumArt` : il y poserait sa
              propre puce, et la vignette en afficherait deux. -->
         <AlbumArt coverPath={al.cover_path ?? loc?.cover_path ?? null}
-          albumId={e.principal.source === BIBLIOTHEQUE ? al.id : null} size={0} alt={al.title}
+          albumId={e.principal.source === BIBLIOTHEQUE ? al.id : null} size={0} vignette alt={al.title}
           fallbackInitials={al.title?.slice(0, 1)} />
       </PochetteActions>
       <div class="pastilles">
@@ -473,7 +497,11 @@
   .case { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--v2-txt2); cursor: pointer; }
   .case span:first-of-type { text-transform: capitalize; }
   .case .n { font: 11px var(--v2-mono); color: var(--v2-txt3); }
-  .raz {
+  /* Le « Tout afficher » du panneau Focus. PAS `.raz` : ce nom est aussi celui
+     de la pastille « Toutes » (`.pill.raz`), et cette règle, de même poids que
+     `.pill` mais écrite après, lui ôtait bordure et marge et la posait en bas
+     de la rangée (#1873). */
+  .raz-focus {
     align-self: flex-end; border: 0; background: transparent; cursor: pointer; padding: 0;
     font: 600 12px var(--v2-sans); color: var(--v2-acc1);
   }

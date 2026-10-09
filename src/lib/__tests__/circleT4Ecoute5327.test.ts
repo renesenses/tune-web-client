@@ -181,17 +181,17 @@ describe('T4 — sans Premium : aucun bouton, aucun appel', () => {
     synchro = { ...synchro, premium: false };
     const el = await poser();
     await ouvrirTitresElise(el);
-    expect(el.querySelectorAll('.pistes-contact .tt')).toHaveLength(2);
+    expect(el.querySelectorAll('.pistes-contact .titre .ttxt')).toHaveLength(2);
     expect(el.querySelector('button.lire-piste')).toBeNull();
     expect(texte(el.querySelector('.ecoute-premium')!)).toContain(fr['v2.circle.listen.premiumOnly']);
     expect(texte(el.querySelector('.lecture-seule')!)).toBe(fr['v2.circle.lib.readOnly']);
     await cliquer(el, 'button.onglet-albums');
     await cliquer(el, 'button.album-contact');
-    expect(el.querySelectorAll('.pistes-album .tt')).toHaveLength(2);
+    expect(el.querySelectorAll('.pistes-album .titre .ttxt')).toHaveLength(2);
     expect(el.querySelector('button.lire-album')).toBeNull();
     expect(el.querySelector('button.lire-piste')).toBeNull();
     // Le titre ne lance toujours rien.
-    (el.querySelector('.pistes-album button.tclick') as HTMLButtonElement).click();
+    (el.querySelector('.pistes-album button.titre') as HTMLButtonElement).click();
     await laisserFaire();
     expect(ecoutes()).toEqual([]);
   });
@@ -260,7 +260,7 @@ describe('T4 — refus d’écoute', () => {
     await ouvrirTitresElise(el);
     await cliquer(el, 'button.lire-piste');
     expect(texte(el.querySelector('.refus-ecoute span')!)).toBe('Le serveur de Élise est éteint ou injoignable.');
-    expect(el.querySelectorAll('.pistes-contact .tt')).toHaveLength(2);
+    expect(el.querySelectorAll('.pistes-contact .titre .ttxt')).toHaveLength(2);
     // Pas de bandeau « Server error » global : l'écran le dit lui-même.
     expect(get(notifications).map((n) => n.message).join('|')).not.toMatch(/Server error/);
     // Réessayer une fois le serveur rallumé.
@@ -283,7 +283,7 @@ describe('T4 — refus d’écoute', () => {
     await cliquer(el, 'button.lire-piste');
     expect(texte(el.querySelector('.refus-ecoute span')!)).toBe(fr['v2.circle.listen.premiumRequired']);
     expect(bandeaux()).toBe('');
-    expect(el.querySelectorAll('.pistes-contact .tt')).toHaveLength(2);
+    expect(el.querySelectorAll('.pistes-contact .titre .ttxt')).toHaveLength(2);
   });
 
   it.each([
@@ -297,7 +297,7 @@ describe('T4 — refus d’écoute', () => {
     expect(texte(el.querySelector('.refus-ecoute span')!)).toBe(fr['v2.circle.listen.unavailable']);
     expect(bandeaux() + texte(el)).not.toMatch(/Premium|abonnement/);
     expect(el.innerHTML).not.toContain(fr['v2.circle.listen.premiumRequired']);
-    expect(el.querySelectorAll('.pistes-contact .tt')).toHaveLength(2);
+    expect(el.querySelectorAll('.pistes-contact .titre .ttxt')).toHaveLength(2);
   });
 
   it('404 à l’écoute (révoqué, retiré du cercle) : « ce titre n’est plus partagé », le catalogue reste', async () => {

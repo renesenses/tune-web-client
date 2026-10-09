@@ -48,6 +48,7 @@
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
   import { listResetNonce } from '../../lib/stores/navigation';
+  import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { untrack } from 'svelte';
   import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { convertisseurCharge, rafraichirConvertisseur } from '../../lib/stores/convertisseurPlaylists';
@@ -112,6 +113,7 @@
     $listResetNonce;
     selectedPlaylist = null;
     selectedStreamingPl = null;
+    untrack(() => clearShortcutTarget());
     // web#1790 — l'entrée d'historique ne doit plus porter la playlist refermée.
     untrack(() => {
       if (cleDetailEmpilee != null && get(detailOuvert) === cleDetailEmpilee) fermerDetail();
@@ -155,6 +157,42 @@
   $effect(() => () => {
     if (cleDetailEmpilee != null && get(detailOuvert) === cleDetailEmpilee) fermerDetail();
   });
+
+  /**
+   * 🔴 LA PLAYLIST OUVERTE EST UNE CIBLE DE RACCOURCI — fil 2143, point 2.
+   *
+   * FabienM : « impossible de définir un raccourci […] sur une playlist
+   * ouverte ». L'entrée « Playlists » de la barre latérale ouvre CET écran,
+   * pas `PlaylistsV2` (qui publiait déjà sa cible, `clePl`) : celui-ci ne
+   * publiait rien, et un raccourci posé sur une playlist ouverte ramenait à
+   * la liste.
+   *
+   * La clé ET la charge sont celles de `PlaylistsV2` (`playlists:12`,
+   * `streamingplaylists:qobuz:123`, `{ kind, pl }`) : un raccourci posé d'un
+   * écran se rouvre dans l'autre, et la déduplication (`shortcutKey`) les
+   * reconnaît pour le même.
+   */
+  function publierCible(cle: string, restore: unknown, nom: string | null | undefined) {
+    setShortcutTarget({ key: cle, restore, label: nom ?? undefined });
+  }
+  $effect(() => {
+    const auRetour = async (ev: Event) => {
+      const cible = (ev as CustomEvent).detail?.target;
+      const cle: string | undefined = cible?.key;
+      if (!cle || !/^(streaming)?playlists:/.test(cle)) return;
+      const r = cible.restore ?? {};
+      if (r.kind === 'streaming' && r.service && r.pl) { void selectStreaming(r.service, r.pl); return; }
+      const m = /^playlists:(\d+)$/.exec(cle);
+      if (!m) return;
+      const id = Number(m[1]);
+      const pl = r.pl ?? localPlaylists.find((x) => x.id === id) ?? (await api.getPlaylist(id).catch(() => null));
+      if (pl) void selectLocal(pl);
+    };
+    window.addEventListener('tune:shortcut-restore', auRetour);
+    return () => window.removeEventListener('tune:shortcut-restore', auRetour);
+  });
+  // Quitter l'écran oublie la cible.
+  $effect(() => () => clearShortcutTarget());
 
   // Import dialog
   let importTarget = $state<{ service: string; playlist: StreamingPlaylist } | null>(null);
@@ -1278,6 +1316,7 @@
     selectedStreamingPl = null;
     selectedService = 'local';
     empilerDetail(`playlists:${pl.id}`);
+    publierCible(`playlists:${pl.id}`, { kind: 'local', pl }, pl.name);
     detailLoading = true;
     try {
       detailTracks = await api.getPlaylistTracks(pl.id);
@@ -1292,6 +1331,7 @@
     selectedPlaylist = null;
     selectedService = service;
     empilerDetail(`streamingplaylists:${service}:${pl.source_id}`);
+    publierCible(`streamingplaylists:${service}:${pl.source_id}`, { kind: 'streaming', service, pl }, pl.name);
     detailLoading = true;
     try {
       detailTracks = await api.getStreamingPlaylistTracks(service, pl.source_id);
@@ -1315,6 +1355,7 @@
     detailTracks = [];
     selectedService = '';
     cleDetailEmpilee = null;
+    clearShortcutTarget();
   }
 
   /**
@@ -2668,7 +2709,7 @@
                          seule image — la règle du 01/09. -->
                     <MosaiquePochettes pochettes={item.covers} alt={item.name} />
                   {:else if item.coverPath}
-                    <AlbumArt coverPath={item.coverPath} size={0} alt={item.name} />
+                    <AlbumArt coverPath={item.coverPath} size={0} vignette alt={item.name} />
                   {:else if mosaiques[cle]}
                     <MosaiquePochettes pochettes={mosaiques[cle]} alt={item.name} />
                   {:else}

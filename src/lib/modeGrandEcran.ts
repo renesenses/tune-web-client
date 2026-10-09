@@ -184,3 +184,34 @@ export function surSortieDuPleinEcran(
   doc.addEventListener('fullscreenchange', surChangement);
   return arreter;
 }
+
+/**
+ * OÙ LE BOUTON « MODE GRAND ÉCRAN » EST RENDU — fil 2116 (JLuc Cassé).
+ *
+ * Par défaut, sur le seul écran « Lecture en cours » (#1141). Mais le réglage
+ * « Lecture en cours ouvre l'album ou la playlist » (`lienLectureVersSource`,
+ * web#1784, fil 2036) détourne les deux chemins vers cet écran — l'entrée de
+ * la barre latérale et la vignette de la barre de lecture — vers la fiche de
+ * ce qui joue. Réglage coché, le bouton devenait donc inatteignable (seule
+ * restait la pochette de Zones).
+ *
+ * Le geste retenu, le plus simple et le plus prévisible : réglage coché ET une
+ * piste en cours dans la zone courante → le bouton est rendu sur TOUS les
+ * écrans de la coquille, pas seulement sur la fiche de l'album ou de la
+ * playlist qui joue. Reconnaître « la fiche de ce qui joue » demanderait de
+ * rapprocher des identifiants bibliothèque, service et playlist — fragile, et
+ * un bouton qui apparaît sur une fiche mais pas sur la voisine ne se
+ * comprend pas. Ici la règle se dit en une phrase : « quand quelque chose
+ * joue, le Grand écran est en haut à droite ».
+ *
+ * Réglage décoché : le comportement d'origine, à l'identique.
+ */
+export function boutonGrandEcranVisible(
+  vue: string,
+  lienLectureVersSource: boolean | undefined,
+  pisteEnCours: unknown,
+): boolean {
+  if (vue === 'nowplaying') return true;
+  if (vue === 'tv') return false;
+  return lienLectureVersSource === true && pisteEnCours != null;
+}

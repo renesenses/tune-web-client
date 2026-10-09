@@ -4,6 +4,8 @@ import { libraryTab, libraryFolderScope } from './library';
 import { activeStreamingService, streamingGenreBreadcrumb, pendingStreamingAlbum, pendingStreamingArtist } from './streaming';
 import * as api from '../api';
 import { ouvrirArtisteDepuis } from '../ouvrirArtisteDepuis';
+import { ongletCourant } from '../historiqueCoquille';
+import { estCibleAlbum, ouvrirRaccourciAlbum, vueDeLaCibleAlbum } from '../raccourciAlbum';
 
 export interface Shortcut {
   id: string;
@@ -178,7 +180,26 @@ export function captureCurrentView(): Partial<Shortcut> {
   // smart collections, podcasts, radios, genres, favorites…) ---
   const target = get(currentShortcutTarget);
   if (target) {
+    // Fil 2143, point 2 — UNE FICHE D'ALBUM est un calque que douze écrans
+    // montent : le raccourci retient l'ALBUM, pas l'écran d'où on l'a posé
+    // (`lib/raccourciAlbum`). Rien de l'écran dessous ne le concerne.
+    if (estCibleAlbum(target.key)) {
+      return { view: vueDeLaCibleAlbum(target.key), state: { target: { key: target.key, restore: target.restore } } };
+    }
     state.target = { key: target.key, restore: target.restore };
+  }
+
+  // Fil 2143, point 2 — LE SOUS-MENU. L'onglet de la vue courante est déjà
+  // porté par `ongletCourant` (web#1790, l'entrée d'historique) : le
+  // raccourci le fige de la même façon, et `navigateToShortcut` le repose.
+  const onglet = get(ongletCourant);
+  if (onglet) state.onglet = onglet;
+
+  // Une playlist intelligente ouverte dans l'onglet « Intelligentes » de
+  // l'écran Playlists (`playlistmanager`) se rouvre dans SA vue : l'écran
+  // complet remonte sur l'onglet « Manuelles », où personne n'écoute sa clé.
+  if (view === 'playlistmanager' && target?.key.startsWith('smartplaylists:')) {
+    return { view: 'smartplaylists', state: { target: state.target } };
   }
 
   return { view, state };
@@ -208,8 +229,32 @@ function shortcutKey(view: string, state: Record<string, any>): string {
   return `${view}:${JSON.stringify(state || {})}`;
 }
 
-export async function addShortcut(name: string, icon: string) {
-  const captured = captureCurrentView();
+/**
+ * Un raccourci PROPOSÉ par un geste qui désigne déjà sa cible — l'entrée
+ * « Ajouter aux raccourcis » du menu « … » d'un objet (web#1922,
+ * `lib/raccourciObjet`). La coquille ouvre alors le MÊME formulaire que son
+ * signet, prérempli du nom de l'objet, et le raccourci retient cette cible au
+ * lieu de l'écran sous les yeux.
+ */
+export interface PropositionRaccourci {
+  view: View;
+  state: Record<string, any>;
+  label?: string;
+}
+export const raccourciPropose = writable<PropositionRaccourci | null>(null);
+
+/** Le geste du menu : demander à la coquille d'ouvrir son formulaire de pose. */
+export function proposerRaccourci(p: PropositionRaccourci | null) {
+  raccourciPropose.set(p);
+}
+
+/**
+ * `capture` : la vue et l'état à retenir. Absent, c'est l'écran courant
+ * (`captureCurrentView`) — le signet de la coquille ; fourni, c'est la cible
+ * d'une proposition (`raccourciPropose`).
+ */
+export async function addShortcut(name: string, icon: string, capture?: Pick<Shortcut, 'view' | 'state'>) {
+  const captured: Partial<Shortcut> = capture ?? captureCurrentView();
   const key = shortcutKey(captured.view!, captured.state || {});
   // Don't create a second shortcut to the same target (Elie).
   const existing = get(shortcuts).find(s => shortcutKey(s.view, s.state || {}) === key);
@@ -275,6 +320,11 @@ export function navigateToShortcut(shortcut: Shortcut) {
   // Le Retour de la page ramène d'où l'on a cliqué le raccourci, sauf si l'on
   // était déjà sur une page d'artiste : y revenir sans cible serait la même
   // page vide.
+  // Fil 2143, point 2 — une fiche d'album, par le chemin d'« Aller à l'album ».
+  {
+    const cible = targetFor(shortcut);
+    if (cible && estCibleAlbum(cible.key) && ouvrirRaccourciAlbum(cible.restore, get(activeView))) return;
+  }
   if (shortcut.view === 'streamingartist') {
     const cible = targetFor(shortcut);
     if (cible?.restore) {
@@ -309,6 +359,19 @@ export function navigateToShortcut(shortcut: Shortcut) {
     currentSearchCriteria.set(shortcut.state.search);
   }
   activeView.set(shortcut.view);
+
+  // Le SOUS-MENU (fil 2143, point 2). Reposé APRÈS le changement de vue, qui
+  // le remet à `null` (comme `revenirA`) : l'écran qui monte le lit alors à
+  // son montage. Et une seconde fois après le délai des autres
+  // restitutions : un écran DÉJÀ monté qui change de service en même temps
+  // (Streaming) repasse d'abord sur son onglet par défaut.
+  const onglet = typeof shortcut.state?.onglet === 'string' ? shortcut.state.onglet : null;
+  if (onglet) {
+    ongletCourant.set(onglet);
+    setTimeout(() => {
+      if (get(activeView) === shortcut.view) ongletCourant.set(onglet);
+    }, 150);
+  }
 
   if (shortcut.state?.genreBreadcrumb && shortcut.view === 'streaming') {
     setTimeout(() => {

@@ -119,3 +119,45 @@ export function stocksPlageDynamique(p: {
   const rattrapage = Math.min(p.rattrapage, p.restantes);
   return { rattrapage, parLeReplayGain: Math.max(0, p.restantes - rattrapage) };
 }
+
+/**
+ * La JAUGE de la carte : sur quoi elle se mesure.
+ *
+ * 🔴 tune-server-rust#5834 (fil 2157, « Analyse plage dynamique reste bloquée
+ * à 97 % ») : la jauge valait `with_dynamic_range / total_tracks`. Les pistes
+ * qu'aucune passe ne mesurera jamais restaient au dénominateur : écartées pour
+ * de bon (`dynamic_range_unavailable`), trop longues pour le budget de
+ * l'analyse (`dynamic_range_oversized`), sans fichier propre (images CUE,
+ * `dynamic_range_without_file`). Une seule suffisait pour que la jauge ne
+ * finisse jamais, et la carte ne disait pas pourquoi.
+ *
+ * Le dénominateur est donc ce qui PEUT se mesurer. Les pistes REPORTÉES
+ * (fichier qui ne répond pas, #4254) y restent : elles seront reprises, et la
+ * jauge qui n'atteint pas 100 % dit vrai tant qu'elles manquent.
+ *
+ * `fait` n'est jamais au-dessus du total : une piste peut porter un DR (tag,
+ * `foo_dr.txt`) ET une marque d'écart, et le serveur ne déduplique pas
+ * `dynamic_range_unavailable`.
+ */
+export interface JaugePlageDynamique {
+  fait: number;
+  total: number;
+  /** Pistes retirées du dénominateur, toutes causes confondues. */
+  exclues: number;
+}
+
+export function jaugePlageDynamique(p: {
+  total: number;
+  avec: number;
+  ecartees: number;
+  tropLongues: number;
+  sansFichier: number;
+  /** Fil 2157 — sans DR, dans une racine exclue des analyses (#5593). */
+  horsPerimetre?: number;
+}): JaugePlageDynamique {
+  const n = (v: number) => (Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
+  const total = n(p.total);
+  const avec = Math.min(n(p.avec), total);
+  const exclues = n(p.ecartees) + n(p.tropLongues) + n(p.sansFichier) + n(p.horsPerimetre ?? 0);
+  return { fait: avec, total: Math.max(avec, total - exclues), exclues };
+}

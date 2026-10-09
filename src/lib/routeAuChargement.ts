@@ -226,3 +226,26 @@ export function vueDepuisHash(hash: string): View | null {
   }
   return VUES[nom] ? nom : null;
 }
+
+/**
+ * LA VUE D'OUVERTURE : l'adresse d'abord, la vue de démarrage ensuite — fil
+ * 2166 du forum (v1.0.0-rc2).
+ *
+ * Réglages › Général enregistre `preferences.startupView`, et plus rien ne le
+ * lisait : la seule ligne qui le faisait vivait dans `App.svelte`, retiré avec
+ * l'ancienne interface (phase 5). Tune s'ouvrait donc toujours sur l'Accueil.
+ *
+ * Même arbitrage que l'ancienne coquille : un fragment est une demande
+ * EXPRESSE, faite à l'instant, et passe avant la préférence, qui dit seulement
+ * où aller quand on ne demande rien. Un fragment présent mais inconnu, ou
+ * `#tv`, garde le comportement de `vueDepuisHash` : la préférence ne vaut que
+ * pour une adresse SANS route.
+ *
+ * `vueDeDemarrage` vient du blob de préférences, donc aussi du serveur : une
+ * valeur qui n'est pas une destination restaurable ne pose rien.
+ */
+export function vueAuChargement(hash: string, vueDeDemarrage: unknown): View | null {
+  if (nomDeRoute(hash ?? '')) return vueDepuisHash(hash);
+  if (typeof vueDeDemarrage !== 'string' || !estNomDeVue(vueDeDemarrage)) return null;
+  return VUES[vueDeDemarrage] ? vueDeDemarrage : null;
+}

@@ -29,8 +29,11 @@
   import { jaugeReplayGain } from '../../lib/santeReplayGain';
   import {
     drActiveSelonServeur, etatCartePlageDynamique, etatServeurPlageDynamique, stockDuRattrapage,
-    stocksPlageDynamique,
+    stocksPlageDynamique, jaugePlageDynamique,
   } from '../../lib/santePlageDynamique';
+  // Décision du 06/10 — les jauges valent les pistes TRAITÉES (mesurées ou
+  // déclarées non gérables) sur le TOTAL, et nomment les non gérées.
+  import { jaugeTraiteesPlageDynamique, jaugeTraiteesReplayGain, ligneNonGerees } from '../../lib/santeJaugeTraitees';
   // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
   import { temperatureProcesseur } from '../../lib/temperatureProcesseur';
   // #1352 — la pause des traitements de fond. La lecture de l'instantané vit
@@ -44,6 +47,8 @@
     type PrioriteDr,
     type RattrapageRapportsDr,
   } from '../../lib/tachesDeFond';
+  // tune-server-rust#5868 — l'identification par empreinte AcoustID.
+  import { lireBlocAcoustid, carteAcoustid, type BlocAcoustid } from '../../lib/acoustid';
   import { heureSeule } from '../../lib/dates';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
@@ -51,6 +56,8 @@
   // #865 — le geste des journaux, PARTAGÉ avec `DiagnosticsView`. Voir
   // `lib/journaux.ts` : aucune copie de la route ni du nom de fichier ici.
   import { lireJournaux, telechargerJournaux } from '../../lib/journaux';
+  import { lireDiagnosticReseau, iconeVerdict, type EcouteReseau } from '../../lib/diagnosticReseau';
+  import { boutonLancer, CLE_ISSUE, estLancable, lancerTout, lancerTraitement, type CarteLancable } from '../../lib/lancerTraitement';
   import '../../styles/tune-v2.css';
 
   type Card = {
@@ -124,7 +131,11 @@
     prioriteDr = choixPrioriteDr(inst);
     rattrapageDr = inst?.dynamic_range_sidecar ?? null;
     etatServeurDr = etatServeurPlageDynamique(inst);
+    blocAcoustid = lireBlocAcoustid(inst);
   }
+  /** tune-server-rust#5868 — le bloc `acoustid` de l'instantané ; `null` face
+   *  à un serveur qui ne le publie pas : aucune carte. */
+  let blocAcoustid: BlocAcoustid | null = null;
 
   // ── tune-server-rust#5169 : la place de la plage dynamique ─────────────
   //
@@ -168,6 +179,50 @@
       notifications.error(errText(e) ?? $t('common.error' as any));
     } finally {
       bascule = null;
+    }
+  }
+
+  // ── #1751 : LANCER un traitement, pas seulement le suspendre ────────────
+  /** La carte dont le lancement est en vol ; `'*'` pour « Tout relancer ». */
+  let lancement = $state<string | null>(null);
+
+  async function lancer(id: CarteLancable) {
+    lancement = id;
+    try {
+      const issue = await lancerTraitement(id);
+      notifications[issue === 'lance' ? 'success' : 'info']($t(CLE_ISSUE[issue] as any));
+      void collect();
+    } catch (e) {
+      notifications.error(errText(e) ?? $t('common.error' as any));
+    } finally {
+      lancement = null;
+    }
+  }
+
+  /** Les traitements lançables qui tournent ou sont suspendus : « Tout
+   *  relancer » ne les touche pas (le second se REPREND, par son bouton). */
+  const lancablesOccupes = $derived(new Set(
+    cards
+      .filter((c) => estLancable(c.id) && (c.etat === 'running' || !!(c.traitement && pauses[c.traitement])))
+      .map((c) => c.id as CarteLancable),
+  ));
+  /** Au moins une carte lançable dont l'état est connu. */
+  const relancePossible = $derived(cards.some((c) => estLancable(c.id) && c.etat !== 'inconnu' && c.etat !== 'off'));
+
+  async function toutRelancer() {
+    lancement = '*';
+    try {
+      const r = await lancerTout(lancablesOccupes);
+      const issues = Object.values(r);
+      const lances = issues.filter((x) => x === 'lance').length;
+      const echecs = issues.filter((x) => x === 'erreur').length;
+      notifications[lances ? 'success' : 'info'](
+        $t('v2.health.launchAllDone' as any).replace('{n}', String(lances)),
+      );
+      if (echecs) notifications.error($t('v2.health.launchAllErrors' as any).replace('{n}', String(echecs)));
+      void collect();
+    } finally {
+      lancement = null;
     }
   }
 
@@ -232,6 +287,12 @@
   }
 
   let reseau = $state<Awaited<ReturnType<typeof api.getNetworkDiagnostics>> | null>(null);
+  const LIBELLE_ECOUTE: Record<EcouteReseau['cle'], string> = {
+    ssdp: 'diagnostics.netSsdp',
+    slimproto: 'diagnostics.netSlimproto',
+    slimproto_udp: 'diagnostics.netSlimprotoUdp',
+    lms_cli: 'diagnostics.netLmsCli',
+  };
   let reseauOuvert = $state(false);
   let reseauChargement = $state(false);
   async function lireReseau() {
@@ -359,13 +420,19 @@
       // relire la config une seconde fois.
       cfgDrActive = analysis;
       cfgRgArme = analysis && mode !== 'off';
-      const jauge = jaugeReplayGain(mode !== 'off', cfg[1].status === 'fulfilled' ? cfg[1].value : null);
+      const avRg = cfg[1].status === 'fulfilled' ? cfg[1].value : null;
+      const jauge = jaugeReplayGain(mode !== 'off', avRg);
+      // Décision du 06/10 — traitées sur le TOTAL, quand la jauge parle de la
+      // bibliothèque et que le serveur compte les traitées. Sinon, la jauge
+      // d'avant (analysées sur éligibles, ou la campagne).
+      const rgTraitees = jauge.bibliotheque ? jaugeTraiteesReplayGain(avRg) : null;
       out.push({
         id: 'rg', traitement: 'replaygain', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
         etat: jauge.etat,
         ligne: $t('v2.health.rgLine' as any).replace('{m}', modeLabel)
           .replace('{s}', analysis ? $t('v2.health.rgSourceBoth' as any) : $t('v2.health.rgSourceTags' as any)),
-        fait: jauge.fait, total: jauge.total,
+        fait: rgTraitees ? rgTraitees.fait : jauge.fait,
+        total: rgTraitees ? rgTraitees.total : jauge.total,
         // Le message d'absence ne s'affiche que quand l'absence est réelle.
         // Les reports (#4254) s'ajoutent au détail, quel qu'il soit : une
         // passe « à jour » sur un disque absent n'est pas à jour.
@@ -374,9 +441,20 @@
             ? undefined
             : jauge.sansJauge
               ? $t('v2.health.rgNoProgress' as any)
-              : $t('v2.health.rgProgress' as any)
-                  .replace('{n}', $formatNombre(jauge.fait ?? 0))
-                  .replace('{t}', $formatNombre(jauge.total ?? 0)),
+              : rgTraitees
+                ? $t('v2.health.rgProcessed' as any)
+                    .replace('{n}', $formatNombre(rgTraitees.fait))
+                    .replace('{t}', $formatNombre(rgTraitees.total))
+                : $t('v2.health.rgProgress' as any)
+                    .replace('{n}', $formatNombre(jauge.fait ?? 0))
+                    .replace('{t}', $formatNombre(jauge.total ?? 0)),
+          ligneNonGerees(rgTraitees, (k) => $t(k as any), (n) => $formatNombre(n)),
+          // tune-server-rust#5597 — la jauge parle de la bibliothèque ; la
+          // campagne en cours (qui repart de 0 à chaque démarrage) vient en
+          // second, seulement quand elle a traité quelque chose.
+          jauge.bibliotheque && jauge.faitCampagne
+            ? $t('v2.health.rgCampaign' as any).replace('{n}', $formatNombre(jauge.faitCampagne))
+            : undefined,
           jauge.reportees > 0
             ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(jauge.reportees))
             : undefined,
@@ -425,9 +503,29 @@
       // ni « en attente derrière ReplayGain » — en attente d'un disque.
       // Serveur ≥ 0.9.152 ; absent avant, donc 0.
       const reportees = typeof c.dynamic_range_deferred === 'number' ? c.dynamic_range_deferred : 0;
+      // tune-server-rust#5834 (fil 2157, « bloquée à 97 % ») — les pistes
+      // qu'aucune passe ne mesurera : trop longues pour le budget de
+      // l'analyse, ou sans fichier propre (CUE). Elles étaient comptées « en
+      // attente » pour toujours. Absentes d'un serveur plus ancien, donc 0.
+      const tropLongues = typeof c.dynamic_range_oversized === 'number' ? c.dynamic_range_oversized : 0;
+      const sansFichier = typeof c.dynamic_range_without_file === 'number' ? c.dynamic_range_without_file : 0;
+      // Fil 2157 — sans DR dans une racine exclue des analyses
+      // (tune-server-rust#5593) : aucune passe ne les prendra, la carte les
+      // attendait pour toujours. Absent d'un serveur plus ancien, donc 0.
+      const horsPerimetre = typeof c.dynamic_range_out_of_scope === 'number' ? c.dynamic_range_out_of_scope : 0;
       // `cfgDr` est la config déjà lue plus haut pour ReplayGain : le DR
       // dépend du MÊME réglage, on ne le relit pas.
-      const restantes = Math.max(0, total - avec - ecartees - reportees);
+      // Décision du 06/10 — la jauge vaut les pistes TRAITÉES (avec un DR, ou
+      // déclarées non gérables) sur le TOTAL. Le serveur les compte, une fois
+      // chacune ; une piste reportée n'en fait pas partie. `null` face à un
+      // serveur qui ne les compte pas : la carte garde alors le calcul d'avant.
+      const traitees = jaugeTraiteesPlageDynamique(c);
+      const restantes = traitees
+        ? Math.max(0, total - traitees.fait - reportees)
+        : Math.max(0, total - avec - ecartees - reportees - tropLongues - sansFichier - horsPerimetre);
+      // Serveur ancien : la jauge porte sur ce qui PEUT se mesurer (#5834).
+      const jaugeAvant = jaugePlageDynamique({ total, avec, ecartees, tropLongues, sansFichier, horsPerimetre });
+      const jauge = traitees ? { fait: traitees.fait, total: traitees.total, exclues: 0 } : jaugeAvant;
       // tune-web-client#1828 — le stock du RATTRAPAGE, le seul que l'ordre de
       // passage règle. Demandé seulement quand il y a deux stocks à séparer
       // (ReplayGain armé, pistes restantes), et au plus une fois par minute :
@@ -463,8 +561,8 @@
           .replace('{m}', $formatNombre(mesure))
           .replace('{g}', $formatNombre(tague))
           .replace('{s}', $formatNombre(rapporte ?? 0)),
-        fait: avec,
-        total: total || undefined,
+        fait: jauge.fait,
+        total: jauge.total || undefined,
         // Le détail porte la CAUSE, jamais un simple compteur.
         detail: !analyseActive
           ? $t('v2.health.drOffBecauseRg' as any)
@@ -475,9 +573,29 @@
                     : prioriteDr?.courante === 'before_fingerprints'
                       ? 'v2.health.drQueuedBeforeFingerprints'
                       : 'v2.health.drQueuedBehindRg') as any).replace('{n}', $formatNombre(enAttente))
-                : restantes === 0 && ecartees > 0
-                  ? $t('v2.health.drUnavailable' as any).replace('{n}', $formatNombre(ecartees))
-                  : undefined,
+                : undefined,
+              // #5834 — ce que la jauge ne compte pas, et pourquoi : dit à
+              // chaque fois, pas seulement une fois le reste fini. Sans ces
+              // lignes, une jauge à 97 % se lisait « bloquée ».
+              jauge.exclues > 0
+                ? $t('v2.health.drGaugeMeasurable' as any).replace('{n}', $formatNombre(jauge.total))
+                : undefined,
+              // Décision du 06/10 — UNE ligne : combien de pistes non gérées,
+              // et pourquoi. Les phrases par cause restent pour un serveur
+              // ancien, qui ne compte pas les traitées.
+              ligneNonGerees(traitees, (k) => $t(k as any), (n) => $formatNombre(n)),
+              !traitees && ecartees > 0
+                ? $t('v2.health.drUnavailable' as any).replace('{n}', $formatNombre(ecartees))
+                : undefined,
+              !traitees && tropLongues > 0
+                ? $t('v2.health.drOversized' as any).replace('{n}', $formatNombre(tropLongues))
+                : undefined,
+              !traitees && sansFichier > 0
+                ? $t('v2.health.drWithoutFile' as any).replace('{n}', $formatNombre(sansFichier))
+                : undefined,
+              !traitees && horsPerimetre > 0
+                ? $t('v2.health.drOutOfScope' as any).replace('{n}', $formatNombre(horsPerimetre))
+                : undefined,
               // #1828 — les pistes que le ReplayGain n'a pas encore vues : c'est
               // SA passe qui mesurera leur plage dynamique, l'ordre choisi n'y
               // change rien.
@@ -537,6 +655,27 @@
     } else {
       out.push({ id: 'covers', traitement: 'artist_images', titre: $t('v2.health.cardCovers' as any), sous: $t('v2.health.cardCoversSub' as any),
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any) });
+    }
+
+    // ── Empreinte acoustique AcoustID (tune-server-rust#5868) ─────────────
+    // Seulement si le serveur publie le bloc : un serveur plus ancien n'a ni
+    // la passe ni sa carte. L'avancement vient de l'état PARTAGÉ de la passe
+    // par lot ; `carteAcoustid` n'en lit que le mode `acoustid`.
+    if (blocAcoustid) {
+      const lot = await Promise.allSettled([api.getIdentifyAllStatus()]);
+      const ca = carteAcoustid(
+        blocAcoustid,
+        lot[0].status === 'fulfilled' ? lot[0].value : null,
+        (k) => $t(k as any),
+        (x) => $formatNombre(x),
+      );
+      if (ca) {
+        out.push({
+          id: 'acoustid', traitement: 'identification',
+          titre: $t('acoustid.title' as any), sous: $t('acoustid.subtitle' as any),
+          etat: ca.etat, ligne: ca.ligne, fait: ca.fait, total: ca.total || undefined,
+          detail: ca.motif ? $t('acoustid.reasonLabel' as any).replace('{code}', ca.motif) : undefined });
+      }
     }
 
     // ── Modules de sortie (#2392) ─────────────────────────────────────────
@@ -642,6 +781,13 @@
       <!-- #1352 — l'interrupteur général. En tête d'écran, à côté d'Actualiser :
            c'est le geste d'un soir d'écoute, il ne se cherche pas carte par
            carte. Absent tant que le serveur ne sait pas suspendre. -->
+      <!-- #1751 — le geste unique du fil 2043 : plage dynamique, métadonnées,
+           images d'artistes, en un clic. Ce qui tourne déjà n'est pas relancé. -->
+      {#if relancePossible}
+        <button class="lnk" onclick={toutRelancer} disabled={lancement !== null}>
+          {$t('v2.health.launchAll' as any)}
+        </button>
+      {/if}
       {#if pausePossible}
         <button
           class="lnk"
@@ -712,6 +858,14 @@
               </div>
             {/if}
 
+            {#if boutonLancer(c, enPause)}
+              <!-- #1751 — au repos ou terminée, la carte sait LANCER. -->
+              <div class="cactions">
+                <button class="lnk sm" onclick={() => lancer(c.id as CarteLancable)} disabled={lancement !== null}>
+                  {$t('v2.health.launch' as any)}
+                </button>
+              </div>
+            {/if}
             {#if boutonSurLaCarte(c)}
               <div class="cactions">
                 <button
@@ -764,16 +918,25 @@
           {#if reseauChargement}
             <div class="sub">{$t('common.loading' as any)}</div>
           {:else if reseau}
-            <ul class="reseau">
-              <li>{reseau.multicast_ssdp ? '✅' : '❌'} {$t('diagnostics.multicastSsdp' as any)}</li>
-              <li>{reseau.port_8888 ? '✅' : '❌'} {$t('diagnostics.port8888' as any)}</li>
-              <li>{reseau.internet ? '✅' : '❌'} {$t('diagnostics.internet' as any)}</li>
-              {#each Object.entries(reseau.dns_resolution ?? {}) as [domaine, ok] (domaine)}
-                <li class="ind">{ok ? '✅' : '❌'} {$t('diagnostics.dnsResolution' as any)} · <code>{domaine}</code></li>
+            {@const d = lireDiagnosticReseau(reseau)}
+            <!-- web#1867 — la forme RÉELLE de la réponse (`lib/diagnosticReseau`).
+                 Un champ absent se lit « inconnu » (❔), jamais en échec. -->
+            <ul class="reseau" data-diag="reseau">
+              {#each d.ecoutes as e (e.cle)}
+                <li data-ecoute={e.cle} data-verdict={e.verdict}>
+                  {iconeVerdict(e.verdict)} {$t(LIBELLE_ECOUTE[e.cle] as any)}
+                  {#if e.port !== null}<code>{$t('diagnostics.netPort' as any).replace('{port}', String(e.port))}</code>{/if}
+                  {#if e.verdict === 'inconnu'} · {$t('diagnostics.netUnknown' as any)}{/if}
+                  {#if e.reponsesMsearch !== null} · {$t('diagnostics.netMsearch' as any).replace('{n}', String(e.reponsesMsearch))}{/if}
+                  {#if e.message}<div class="ind">{e.message}</div>{/if}
+                </li>
               {/each}
-              {#each reseau.renderers ?? [] as rd (rd.host + rd.name)}
-                <li class="ind">{rd.available ? '✅' : '❌'} {rd.name} <code>{rd.host}</code></li>
+              <li data-compte="devices">{$t('diagnostics.netDevices' as any)} <b>{d.appareilsDecouverts ?? $t('diagnostics.netUnknown' as any)}</b></li>
+              {#each d.appareils as rd, i (rd.hote + rd.nom + i)}
+                <li class="ind">{rd.nom} <code>{rd.hote}</code>{#if rd.type} · {rd.type}{/if}</li>
               {/each}
+              <li data-compte="media_servers">{$t('diagnostics.netMediaServers' as any)} <b>{d.serveursDecouverts ?? $t('diagnostics.netUnknown' as any)}</b></li>
+              <li data-compte="outputs">{$t('diagnostics.netOutputs' as any)} <b>{d.sortiesEnregistrees ?? $t('diagnostics.netUnknown' as any)}</b></li>
             </ul>
           {:else}
             <div class="sub">{$t('diagnostics.networkUnavailable' as any)}</div>

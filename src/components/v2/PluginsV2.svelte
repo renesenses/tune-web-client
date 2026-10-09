@@ -25,6 +25,7 @@
   import { estRefusPremium } from '../../lib/premiumRefus';
   import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import { sonderCrossfeedPro } from '../../lib/stores/crossfeedPro';
+  import { NOMS_GREFFONS_SDK } from '../../lib/greffonEntreeAudio';
   import {
     greffonsNatifsTiers, etatDeChargement, ecranDuGreffon, NOMS_GREFFONS_NATIFS,
     greffonsAProposer, DESCRIPTIONS_GREFFONS_NATIFS, cleDuRefusDInstallation, CATALOGUE_GREFFONS_NATIFS,
@@ -274,7 +275,9 @@
           <article class="pl" class:err={p.status === 'error'}>
             <div class="pi">
               <div class="ph">
-                <h2>{p.name === 'concerts' ? $t('concerts.greffonNom' as any) : (p.display_name || p.name)}</h2>
+                <!-- tune-server-rust#5296 : un nom traduit pour les greffons dont
+                     l'identifiant ne se lit pas (« entree-audio »). -->
+                <h2>{NOMS_GREFFONS_SDK[p.name] ? $t(NOMS_GREFFONS_SDK[p.name] as any) : (p.display_name || p.name)}</h2>
                 <span class="ver">v{p.installed_version ?? p.version}</span>
                 {#if p.category}<span class="cat">{p.category}</span>{/if}
                 {#if p.update_available}<span class="upd">{$t('v2.plug.updateAvailable' as any)}</span>{/if}

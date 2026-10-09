@@ -24,10 +24,16 @@ export interface DialogRequest {
   danger: boolean;
   /** Initial input value (prompt only). */
   initial: string;
+  /** Une case à cocher sous le message (confirm seulement, fil 2145). Le
+   *  résultat est alors `{ coche }`, ou `null` si l'utilisateur annule. */
+  case?: { label: string; coche: boolean };
 }
 
+/** Réponse de `confirmAvecCase` : `null` = annulé. */
+export type ReponseAvecCase = { coche: boolean } | null;
+
 interface Pending extends DialogRequest {
-  resolve: (value: boolean | string | null) => void;
+  resolve: (value: boolean | string | null | { coche: boolean }) => void;
 }
 
 function createStore() {
@@ -43,7 +49,7 @@ function createStore() {
   }
 
   /** Container only: answer the request and pop it off the queue. */
-  function settle(id: number, value: boolean | string | null) {
+  function settle(id: number, value: boolean | string | null | { coche: boolean }) {
     let settled: Pending | undefined;
     update((list) => {
       settled = list.find((r) => r.id === id);
@@ -64,7 +70,25 @@ function createStore() {
           message,
           danger: opts.danger ?? false,
           initial: '',
-          resolve: resolve as (value: boolean | string | null) => void,
+          resolve: resolve as (value: boolean | string | null | { coche: boolean }) => void,
+        });
+      });
+    },
+    /** Une confirmation qui porte une case à cocher : `{ coche }` si validé,
+     *  `null` si annulé. */
+    confirmAvecCase(
+      message: string,
+      label: string,
+      opts: { danger?: boolean; coche?: boolean } = {},
+    ): Promise<ReponseAvecCase> {
+      return new Promise<ReponseAvecCase>((resolve) => {
+        push({
+          kind: 'confirm',
+          message,
+          danger: opts.danger ?? false,
+          initial: '',
+          case: { label, coche: opts.coche ?? true },
+          resolve: resolve as (value: boolean | string | null | { coche: boolean }) => void,
         });
       });
     },
@@ -76,7 +100,7 @@ function createStore() {
           message,
           danger: false,
           initial,
-          resolve: resolve as (value: boolean | string | null) => void,
+          resolve: resolve as (value: boolean | string | null | { coche: boolean }) => void,
         });
       });
     },

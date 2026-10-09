@@ -84,6 +84,8 @@ export interface Artist {
   musicbrainz_id?: string | null;
   discogs_id?: string | null;
   bio?: string | null;
+  /** Provenance de `bio` (source, URL, licence, langue) — absente sur un serveur ancien. */
+  bio_provenance?: import('./library/attributionBio').BioProvenance | null;
   image_path?: string | null;
   image_source?: string | null;
   source_id?: string | null;
@@ -161,6 +163,21 @@ export interface Album {
   is_compilation?: boolean;
   /** Type annoncé par MusicBrainz ou le service : absent quand il n'est pas connu. */
   release_type?: string | null;
+  /**
+   * Type DÉDUIT par le serveur (#5616) quand `release_type` est absent :
+   * `single` (1 à 3 pistes, moins de 15 min), `ep` (4 à 6 pistes, moins de
+   * 30 min) ou `album`. Jamais publié pour une compilation ni à côté d'un type
+   * explicite, qui gagne toujours. Absent sur un serveur antérieur.
+   */
+  inferred_release_type?: string | null;
+  /**
+   * Types SECONDAIRES MusicBrainz du disque (`live`, `compilation`,
+   * `soundtrack`, `remix`…), lus par le serveur dans la balise `RELEASETYPE`.
+   * `live` range le disque dans la section « Live » de la fiche artiste, quel
+   * que soit son type primaire. Absent quand rien n'est connu, ou devant un
+   * serveur antérieur.
+   */
+  release_secondary_types?: string[] | null;
   /** D'OÙ sort ce Dynamic Range (#1388, serveur v0.9.142) : `album_tag` quand
    *  une piste porte `ALBUM DYNAMIC RANGE`, `track_average` quand Tune l'a
    *  déduite de la moyenne arrondie des `DYNAMIC RANGE` des pistes. Apparaît
@@ -187,6 +204,13 @@ export interface Track {
   album_id_service?: string | null;
   album_title?: string | null;
   artist_id?: number | null;
+  /**
+   * L'artiste CHEZ SON SERVICE, quand l'appelant l'a appris ailleurs que dans
+   * `artist_id` — le jumeau d'`album_id_service`. Fil forum 2143 (#5758) :
+   * posé par `GET /zones/{id}/queue`, `null` quand rien n'est connu. Lu par
+   * `routageArtiste.destinationArtiste`.
+   */
+  artist_id_service?: string | null;
   artist_name?: string | null;
   album_artist?: string | null;
   disc_number?: number;
@@ -301,6 +325,8 @@ export interface SignalPathStep {
   detail?: string | null;
   /** Code stable de l'étape, ex. `rate_conversion` sur le `Resampler` (#3973). */
   code?: string;
+  /** tune-server-rust#5633 — étape `ReplayGain` : le gain appliqué, en dB. */
+  gain_db?: number;
 }
 
 export interface SignalPath {
@@ -327,6 +353,9 @@ export interface SignalPath {
   strict_bitperfect?: boolean;
   /** #3973 — la conversion de fréquence appliquée, ou `null`. */
   rate_conversion?: { from_hz: number; to_hz: number } | null;
+  /** tune-server-rust#5633 — sous PURE, le ReplayGain que la piste en cours
+   *  recevrait hors PURE. Absent hors PURE, sans gain, ou d'un vieux serveur. */
+  pure_replaygain_ignored?: { gain_db: number; granularity?: string } | null;
 }
 
 /** Le PÉRIPHÉRIQUE que la sortie locale a réellement ouvert, face à celui que
@@ -502,6 +531,15 @@ export interface Zone {
   is_default?: boolean;
   /** DSD playback mode: auto, native, dop, pcm */
   dsd_mode?: string;
+  /**
+   * #1876 — ce qu'une source DSD OBTIENDRA sur cette zone, déduit par le
+   * serveur de la sortie et de `dsd_mode` (`TransportDsd::as_str`, #2369) :
+   * `pcm`, `dop` ou `natif_servi_en_dop` (« natif » demandé sur une sortie
+   * locale, qui n'a aucun chemin natif : c'est du DoP qui part). Ce n'est pas
+   * `dop_active`, détecté sur les octets pendant la lecture. Absent des
+   * serveurs qui ne le publient pas : l'interface n'affirme alors rien.
+   */
+  dsd_transport?: string;
   /** Décalage des paroles synchronisées, en ms. Positif = paroles retardées,
    *  pour compenser la latence serveur → oreille propre à l'appareil (#1328). */
   lyrics_offset_ms?: number;
@@ -948,6 +986,14 @@ export interface SystemConfig {
    * lit des fichiers de playlist, l'autre déduit une playlist d'un dossier.
    */
   scan_import_playlists?: ConfigFlag;
+  /**
+   * « Analyser la bibliothèque au démarrage » : la valeur du PROCHAIN démarrage
+   * (réglage utilisateur, sinon `TUNE_AUTO_SCAN` / `tune.toml`, sinon non).
+   * Absente : serveur antérieur, l'interrupteur ne s'affiche pas.
+   */
+  library_scan_on_startup?: ConfigFlag;
+  /** Qui décide la valeur ci-dessus : l'utilisateur ou le déploiement. */
+  library_scan_on_startup_source?: 'user' | 'deployment';
   /** Paroles en ligne (LRCLIB, base communautaire) — désactivé par défaut. */
   lyrics_lrclib_enabled?: ConfigFlag;
   discogs_token_set: boolean;
@@ -1048,6 +1094,25 @@ export interface CompletenessStats {
   /** Pistes que la passe REPORTE (fichier qui ne répond pas, #1865) — ni
    *  faites, ni écartées. Serveur ≥ 0.9.152 (#4254). */
   dynamic_range_deferred?: number;
+  /** Pistes que la passe ReplayGain a refusé de décoder pour leur taille
+   *  estimée (`rg_skipped_oversized`), sans DR : aucune passe ne les mesurera.
+   *  tune-server-rust#5834 ; absent avant, donc 0. */
+  dynamic_range_oversized?: number;
+  /** Pistes sans fichier propre (images CUE), sans DR : hors de toute passe.
+   *  tune-server-rust#5834 ; absent avant, donc 0. */
+  dynamic_range_without_file?: number;
+  /** Pistes sans DR d'une racine EXCLUE des analyses (#5593) : aucune passe
+   *  ne les prendra tant que l'exclusion tient. Fil 2157 ; absent avant, donc 0. */
+  dynamic_range_out_of_scope?: number;
+  /** Décision du 06/10 — pistes TRAITÉES : avec un DR, ou déclarées non
+   *  gérables. Le numérateur de la jauge, `total_tracks` son dénominateur.
+   *  Une piste reportée n'en fait pas partie. Absent d'un serveur plus ancien. */
+  dynamic_range_processed?: number;
+  /** La part des traitées sans DR : non gérables, toutes causes confondues. */
+  dynamic_range_unmanageable?: number;
+  /** Sans DR, mesure impossible pour de bon (`dr_indisponible`), version
+   *  dédupliquée de `dynamic_range_unavailable`. */
+  dynamic_range_unmeasurable?: number;
   dynamic_range_pct?: number;
 }
 
@@ -1061,12 +1126,36 @@ export interface ArtworkRescanResult {
  *  Le `verdict` est délibérément explicite : « retomber sur le même pressage »
  *  n'est pas un échec mais ce n'est pas non plus une correction, et l'utilisateur
  *  doit pouvoir faire la différence — sans quoi il recommence indéfiniment. */
+/** Une édition candidate rendue par `ambiguous` (`MBReleaseMatch` du serveur). */
+export interface ReidentifyCandidate {
+  release_id: string;
+  title: string;
+  artist: string;
+  score: number;
+  year?: number | null;
+  country?: string | null;
+  label?: string | null;
+  track_count?: number | null;
+  media_format?: string | null;
+  disambiguation?: string | null;
+}
+
 export interface ReidentifyResult {
   album_id: number;
   /** `reidentified` : nouveau pressage. `unchanged` : le même qu'avant, la
    *  source en ligne confirme. `not_found` : rien trouvé, l'identification
-   *  précédente a été reposée. `no_tracks` : rien à ré-identifier. */
-  verdict: 'reidentified' | 'unchanged' | 'not_found' | 'no_tracks';
+   *  précédente a été reposée. `no_tracks` : rien à ré-identifier.
+   *  `ambiguous` (#4805 D) : plusieurs éditions se valent, RIEN n'a été écrit ;
+   *  `candidates` les liste, et `reidentifyAlbum(id, release_id)` impose
+   *  celle que l'utilisateur choisit. */
+  verdict: 'reidentified' | 'unchanged' | 'not_found' | 'ambiguous' | 'no_tracks';
+  /** Sur `ambiguous` : `albums_concurrents`, `pistes_incompatibles`… */
+  reason?: string | null;
+  /** Sur `ambiguous` : les éditions entre lesquelles rien n'a tranché. */
+  candidates?: ReidentifyCandidate[];
+  /** D'où vient le pressage posé : `balise_release`, `recherche`,
+   *  `choix_utilisateur`… */
+  source?: string | null;
   tracks_total: number;
   tracks_matched?: number;
   tracks_unmatched?: number;

@@ -24,7 +24,14 @@ export interface IngestSettings {
   effective_dest_root: string | null;
   music_dirs: string[];
   conflict_policy: IngestConflictPolicy;
+  /** Préférence de l'import ; faux par défaut depuis le 05/10/2026. */
   write_tags: boolean;
+  /**
+   * Le réglage général « Écrire les modifications dans les fichiers audio ».
+   * Faux : `write_tags` ne suffit pas, l'import n'écrit rien. Absent d'un
+   * serveur antérieur.
+   */
+  file_writes_enabled?: boolean;
 }
 
 export interface IngestAlbumSummary {

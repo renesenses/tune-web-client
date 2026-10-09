@@ -90,6 +90,8 @@
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { t } from '../../lib/i18n';
+  import { preferences } from '../../lib/stores/preferences';
+  import { actionsReduites, CASES_MASQUEES } from '../../lib/actionsRapides';
   import MenuPisteV2 from './MenuPisteV2.svelte';
   import { entreesMenuPiste } from '../../lib/menuPiste';
   import { serviceDePlaylist } from '../../lib/playlistService';
@@ -400,6 +402,7 @@
   const destination = $derived(destinationArtiste({
     source: local ? 'local' : (piste.source ?? null),
     artist_id: piste.artist_id as any,
+    artist_id_service: piste.artist_id_service ?? null,
     artist_name: piste.artist_name ?? null,
   }));
   const artisteDeService = $derived.by(() => {
@@ -516,9 +519,18 @@
     void chargerSas();
     ancreMenu = (e.currentTarget as HTMLElement).getBoundingClientRect();
   }
+  /** #1892 — l'option « icônes réduites » (Réglages › Affichage). */
+  const reduite = $derived(actionsReduites($preferences));
 </script>
 
-<span class="pactions" class:a-favori={coeurPlein}>
+<span class="pactions" class:a-favori={coeurPlein} class:reduite>
+  <!-- #1892 — icônes réduites : les quatre raccourcis que le menu « … »
+       reprend laissent leurs cases VIDES EN TÊTE. La barre garde ses huit
+       cases, et ce qui reste (lire, à partir d'ici, cœur, menu) reste calé à
+       droite, à la même place d'une ligne à l'autre. -->
+  {#if reduite}
+    {#each { length: CASES_MASQUEES } as _}<span class="pa vide" aria-hidden="true"></span>{/each}
+  {/if}
   <!-- 🔴 CHAQUE BOUTON GARDE SA CASE — fil forum 1906 (FabienM, v0.9.163).
 
        Un geste qui n'a pas lieu d'être était ABSENT, et tout ce qui le suivait
@@ -556,7 +568,9 @@
   {:else}
     <span class="pa vide" aria-hidden="true"></span>
   {/if}
-  {#if jouable}
+  {#if reduite}
+    <!-- #1892 — masqués : lire ensuite et ajouter à la file sont au menu. -->
+  {:else if jouable}
     <!-- Une LISTE dont la lecture entre en TETE : lucide `list-start`, tracé
          officiel. L'icone d'avant etait un dessin maison — une liste plus un
          triangle — qui se confondait avec celle de « lire a partir d'ici » une
@@ -590,7 +604,9 @@
        🔄 #4889 : le serveur ENREGISTRE désormais un titre de service dans une
        playlist Tune. La case vaut donc pour tout titre désignable
        (`rangeableEnPlaylist`) — Bandcamp et YouTube ne l'ont plus vide. -->
-  {#if jouable && rangeableEnPlaylist(piste)}
+  {#if reduite}
+    <!-- #1892 — masqué : « Ajouter à une playlist » est au menu. -->
+  {:else if jouable && rangeableEnPlaylist(piste)}
     <button class="pa" onclick={(e) => { stop(e); modalePlaylist = true; }}
             title={$t('v2.pa.playlist' as any)} aria-label={$t('v2.pa.playlist' as any)}>
       <!-- 🔴 Le glyphe des PLAYLISTS, celui de la barre laterale — pas une
@@ -607,6 +623,8 @@
   {:else}
     <span class="pa vide" aria-hidden="true"></span>
   {/if}
+  <!-- #1892 — réduite : « Étiquettes » est au menu, la case passe en tête. -->
+  {#if !reduite}
   {#if cibleEtiquettes}
     <button class="pa" class:on={panneauEtiquettes} aria-expanded={panneauEtiquettes}
             onclick={(e) => { e.stopPropagation(); panneauEtiquettes = !panneauEtiquettes; }}
@@ -619,6 +637,7 @@
     </button>
   {:else}
     <span class="pa vide" aria-hidden="true"></span>
+  {/if}
   {/if}
   {#if coeurAffiche}
     <button class="pa coeur" class:on={coeurPlein} onclick={cliquerCoeur}

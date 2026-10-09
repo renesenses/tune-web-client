@@ -60,6 +60,12 @@ export interface ContexteEcoute {
    * playlist supprimée, ou une écoute d'avant la .151.
    */
   nom?: string | null;
+  /**
+   * L'ESPACE DE NOMS de `id` — `local`, `qobuz`, `tidal`… — servi par
+   * `/library/history` (`context_source`). `null` sur une écoute que le
+   * serveur a enregistrée sans le savoir : on ne le devine pas (web#1895).
+   */
+  source?: string | null;
 }
 
 /** Le minimum qu'une entree d'historique doit offrir a ce module. */

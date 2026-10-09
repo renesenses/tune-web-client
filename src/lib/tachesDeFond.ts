@@ -85,6 +85,9 @@ export type InstantaneTachesDeFond = {
   dynamic_range_priority_choices?: string[];
   /** Serveur tune-server-rust#5168 : le rattrapage des `foo_dr.txt`. */
   dynamic_range_sidecar?: RattrapageRapportsDr;
+  /** Serveur tune-server-rust#5868 : l'identification par empreinte AcoustID
+   *  peut-elle tourner. Lu par `lib/acoustid.ts` (`lireBlocAcoustid`). */
+  acoustid?: import('./acoustid').BlocAcoustid;
 };
 
 /** Le relevé du rattrapage des rapports `foo_dr.txt` (#5168). */

@@ -20,7 +20,8 @@ import { albums, libraryLoading } from './library';
 import {
   _remiseAZeroPourTests, albumsPagines, albumsCharges, casesDeLaListe, clefDeListe,
   demanderBibliothequeEntiere, demanderPage, generationBibliotheque, invaliderBibliotheque,
-  mettreAJourAlbum, offsetDeLettre, rangLettre, TAILLE_PAGE, type ClefDeListe,
+  listeEntierePerimee, mettreAJourAlbum, offsetDeLettre, rafraichirPagesPerimees, rangLettre,
+  TAILLE_PAGE, type ClefDeListe,
   DELAI_APRES_ECHEC_MS, DELAI_APRES_ECHEC_MAX_MS,
 } from './albumsPagines';
 
@@ -153,10 +154,11 @@ describe('les pages', () => {
 });
 
 describe("l'invalidation (fin de scan)", () => {
-  it('fait tomber les pages et la liste entière, avance la génération, et ne recharge RIEN', async () => {
+  it('PÉRIME les pages et la liste entière sans les effacer, avance la génération, et ne recharge RIEN', async () => {
     await demanderPage(TITRE, 0);
     await demanderBibliothequeEntiere();
     expect(get(albums).length).toBe(TOTAL);
+    expect(get(listeEntierePerimee)).toBe(false);
     const avant = get(generationBibliotheque);
     const requetes = vi.mocked(api.getAlbumsPagines).mock.calls.length + vi.mocked(api.getAllAlbums).mock.calls.length;
 
@@ -164,10 +166,13 @@ describe("l'invalidation (fin de scan)", () => {
     await attendre();
 
     const e = get(albumsPagines);
-    expect(e.pages.size).toBe(0);
+    // Fil 2134 — ce qui est à l'écran y RESTE jusqu'à sa version neuve.
+    expect(e.pages.size, 'les pages restent affichées').toBe(1);
+    expect([...e.perimees]).toEqual([0]);
     expect(e.total, 'le total reste : la grille garde sa hauteur').toBe(TOTAL);
     expect(get(generationBibliotheque)).toBe(avant + 1);
-    expect(get(albums)).toEqual([]);
+    expect(get(albums).length, 'la liste entière reste affichée').toBe(TOTAL);
+    expect(get(listeEntierePerimee)).toBe(true);
     expect(
       vi.mocked(api.getAlbumsPagines).mock.calls.length + vi.mocked(api.getAllAlbums).mock.calls.length,
       "une invalidation ne recharge rien d'elle-même",
@@ -209,6 +214,22 @@ describe('la liste entière, à la demande', () => {
     await demanderBibliothequeEntiere();
     expect(api.getAllAlbums).toHaveBeenCalledTimes(2);
     expect(get(albums).length).toBe(TOTAL);
+    expect(get(listeEntierePerimee)).toBe(false);
+  });
+
+  it("fil 2134 — un RAFRAÎCHISSEMENT remplace la liste sans repasser par « Chargement… »", async () => {
+    await demanderBibliothequeEntiere();
+    invaliderBibliotheque();
+    let repondre: (l: Album[]) => void = () => {};
+    vi.mocked(api.getAllAlbums).mockImplementationOnce(() => new Promise((r) => { repondre = r; }));
+    const p = demanderBibliothequeEntiere();
+    expect(get(libraryLoading), "l'écran garde sa liste pendant qu'elle se refait").toBe(false);
+    expect(get(albums).length).toBe(TOTAL);
+    const neuve = ALBUMS.slice(0, 10).map((a) => ({ ...a, title: `${a.title}*` }));
+    repondre(neuve);
+    await p;
+    expect(get(albums)).toEqual(neuve);
+    expect(get(listeEntierePerimee)).toBe(false);
   });
 
   it("un échec n'est pas mémorisé", async () => {
@@ -280,5 +301,45 @@ describe('une fiche modifiée', () => {
     const avant = get(albumsPagines);
     mettreAJourAlbum({ id: null, title: 'Rien' });
     expect(get(albumsPagines)).toBe(avant);
+  });
+});
+
+describe('fil 2134 — rafraîchir les pages périmées', () => {
+  it("redemande celles EN VUE (affichées jusqu'à leur remplacement) et laisse tomber les autres", async () => {
+    await demanderPage(TITRE, 0);
+    await demanderPage(TITRE, 1);
+    await demanderPage(TITRE, 2);
+    vi.mocked(api.getAlbumsPagines).mockClear();
+    invaliderBibliotheque();
+    expect([...get(albumsPagines).perimees].sort()).toEqual([0, 1, 2]);
+
+    let repondre: (p: any) => void = () => {};
+    vi.mocked(api.getAlbumsPagines).mockImplementationOnce(() => new Promise((r) => { repondre = r; }));
+    rafraichirPagesPerimees(TITRE, new Set([1]));
+
+    const e = get(albumsPagines);
+    expect([...e.pages.keys()], 'seule la page en vue reste').toEqual([1]);
+    expect(e.pages.get(1)![0].title, 'toujours affichée pendant la demande').toBe(ALBUMS[100].title);
+    expect(api.getAlbumsPagines).toHaveBeenCalledTimes(1);
+    expect(api.getAlbumsPagines).toHaveBeenCalledWith(expect.objectContaining({ offset: 100 }));
+
+    const neuve = ALBUMS.slice(100, 200).map((a) => ({ ...a, title: `${a.title}*` }));
+    repondre({ items: neuve, total: TOTAL });
+    await attendre();
+    expect(get(albumsPagines).pages.get(1)![0].title).toBe(`${ALBUMS[100].title}*`);
+    expect(get(albumsPagines).perimees.size).toBe(0);
+    // Une page fraîche ne repart plus.
+    await demanderPage(TITRE, 1);
+    expect(api.getAlbumsPagines).toHaveBeenCalledTimes(1);
+  });
+
+  it("une page périmée se redemande comme une page absente", async () => {
+    await demanderPage(TITRE, 0);
+    invaliderBibliotheque();
+    vi.mocked(api.getAlbumsPagines).mockClear();
+    await demanderPage(TITRE, 0);
+    expect(api.getAlbumsPagines).toHaveBeenCalledTimes(1);
+    await demanderPage(TITRE, 0);
+    expect(api.getAlbumsPagines).toHaveBeenCalledTimes(1);
   });
 });

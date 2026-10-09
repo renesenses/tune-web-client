@@ -44,6 +44,25 @@ export interface AvancementReplayGain {
    *  vrai tant qu'une campagne est ouverte, y compris quand la plage dynamique
    *  « En premier » tient le créneau. Absent d'un serveur plus ancien. */
   working?: boolean;
+  /** #5597 — pistes de la BIBLIOTHÈQUE déjà analysées (témoin `rg_analyzed`
+   *  ou gain lu dans les tags), lues en base : elles survivent à un
+   *  redémarrage, contrairement à `processed`. `null` quand l'analyse est
+   *  coupée ; absent d'un serveur plus ancien. */
+  library_analyzed?: number | null;
+  /** #5597 — pistes de la bibliothèque que la passe peut analyser (celles qui
+   *  ont un fichier). Dénominateur de `library_analyzed`. */
+  library_eligible?: number | null;
+  /** Décision du 06/10 — toutes les pistes de la bibliothèque, et celles qui
+   *  sont TRAITÉES (un témoin, ou non gérables : sans fichier propre, racine
+   *  exclue). Une piste reportée n'est pas traitée. Absents d'un serveur plus
+   *  ancien : la carte garde alors analysées sur éligibles. */
+  library_total?: number | null;
+  library_processed?: number | null;
+  /** Les causes des non gérées. `library_failed` (mesure tentée, en échec)
+   *  est déjà parmi les traitées. */
+  library_without_file?: number | null;
+  library_out_of_scope?: number | null;
+  library_failed?: number | null;
 }
 
 export type EtatCarteReplayGain = 'inconnu' | 'idle' | 'running' | 'done' | 'off';
@@ -64,10 +83,41 @@ export interface JaugeReplayGain {
    * module ne comprend pas.
    */
   sansJauge: boolean;
+  /**
+   * #5597 — `fait` / `total` parlent de la BIBLIOTHÈQUE (couple lu en base) et
+   * non de la campagne en cours. La campagne repart de 0 à chaque démarrage du
+   * serveur : affichée seule, elle se lisait comme une perte de travail.
+   */
+  bibliotheque: boolean;
+  /** #5597 — pistes traitées par la campagne en cours, à dire EN SECOND quand
+   *  la jauge montre la bibliothèque. Absent sinon, ou quand elle n'a rien
+   *  traité. */
+  faitCampagne?: number;
 }
 
 function estUnNombre(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v);
+}
+
+/** Le couple de la bibliothèque (#5597), ou `null` s'il est absent ou
+ *  illisible — la carte retombe alors sur le compteur de campagne. */
+function coupleBibliotheque(a: AvancementReplayGain): { fait: number; total: number } | null {
+  if (!estUnNombre(a.library_analyzed) || !estUnNombre(a.library_eligible)) return null;
+  const total = Math.max(0, Math.trunc(a.library_eligible));
+  if (total === 0) return null;
+  return { fait: Math.min(total, Math.max(0, Math.trunc(a.library_analyzed))), total };
+}
+
+/**
+ * #5597 — remplace le couple de campagne par celui de la bibliothèque quand le
+ * serveur le donne. L'ÉTAT de la carte (en cours, au repos, terminé) reste
+ * décidé par la campagne : seule la jauge change de référence.
+ */
+function versLaBibliotheque(j: JaugeReplayGain, a: AvancementReplayGain): JaugeReplayGain {
+  const b = coupleBibliotheque(a);
+  if (!b) return j;
+  const faitCampagne = j.fait !== undefined && j.fait > 0 ? j.fait : undefined;
+  return { ...j, fait: b.fait, total: b.total, sansJauge: false, bibliotheque: true, faitCampagne };
 }
 
 /**
@@ -82,17 +132,31 @@ export function jaugeReplayGain(
   modeArme: boolean,
   avancement: AvancementReplayGain | null | undefined,
 ): JaugeReplayGain {
+  const j = jaugeDeCampagne(modeArme, avancement);
+  // Ni sans réponse lisible, ni analyse coupée : la carte garde alors son
+  // message, comme avant.
+  if (!avancement || j.etat === 'off' || j.etat === 'inconnu' || !estUnNombre(avancement.total)
+    || !estUnNombre(avancement.processed)) {
+    return j;
+  }
+  return versLaBibliotheque(j, avancement);
+}
+
+function jaugeDeCampagne(
+  modeArme: boolean,
+  avancement: AvancementReplayGain | null | undefined,
+): JaugeReplayGain {
   // ── Le repli, et il est délibérément large ──────────────────────────────
   // Pas de réponse, ou une réponse dont on ne sait pas lire le couple : on ne
   // sait pas, on le dit. Un serveur plus ancien passe exactement par ici.
   if (!avancement || !estUnNombre(avancement.total) || !estUnNombre(avancement.processed)) {
-    return { etat: modeArme ? 'idle' : 'off', sansJauge: true, reportees: 0, attendLesFichiers: false };
+    return { etat: modeArme ? 'idle' : 'off', sansJauge: true, reportees: 0, attendLesFichiers: false, bibliotheque: false };
   }
 
   // L'analyse est coupée côté serveur : la passe n'avancera pas, et une jauge
   // immobile se lirait comme une passe bloquée. On dit « désactivé ».
   if (avancement.enabled === false || !modeArme) {
-    return { etat: 'off', sansJauge: true, reportees: 0, attendLesFichiers: false };
+    return { etat: 'off', sansJauge: true, reportees: 0, attendLesFichiers: false, bibliotheque: false };
   }
 
   const total = Math.max(0, Math.trunc(avancement.total));
@@ -112,22 +176,22 @@ export function jaugeReplayGain(
   // n'est pas « fini », c'est « en attente d'un disque », et on le dit.
   if (total === 0) {
     return attendLesFichiers
-      ? { etat: 'idle', sansJauge: true, reportees, attendLesFichiers }
-      : { etat: 'done', sansJauge: true, reportees, attendLesFichiers: false };
+      ? { etat: 'idle', sansJauge: true, reportees, attendLesFichiers, bibliotheque: false }
+      : { etat: 'done', sansJauge: true, reportees, attendLesFichiers: false, bibliotheque: false };
   }
 
   // Campagne ouverte, mais un AUTRE rang décode (la plage dynamique « En
   // premier », tune-web-client#1828) : la jauge reste, la carte dit « au
   // repos » au lieu d'un « en cours » figé. Serveur sans `working` : comme avant.
   if (avancement.active && avancement.working !== false) {
-    return { etat: 'running', fait, total, sansJauge: false, reportees, attendLesFichiers: false };
+    return { etat: 'running', fait, total, sansJauge: false, reportees, attendLesFichiers: false, bibliotheque: false };
   }
   if (fait >= total) {
     return attendLesFichiers
-      ? { etat: 'idle', fait, total, sansJauge: false, reportees, attendLesFichiers }
-      : { etat: 'done', fait, total, sansJauge: false, reportees, attendLesFichiers: false };
+      ? { etat: 'idle', fait, total, sansJauge: false, reportees, attendLesFichiers, bibliotheque: false }
+      : { etat: 'done', fait, total, sansJauge: false, reportees, attendLesFichiers: false, bibliotheque: false };
   }
   // Du travail en attente, mais aucune campagne ouverte : la passe dort encore
   // (elle laisse passer deux minutes au démarrage) ou elle cède à la lecture.
-  return { etat: 'idle', fait, total, sansJauge: false, reportees, attendLesFichiers: false };
+  return { etat: 'idle', fait, total, sansJauge: false, reportees, attendLesFichiers: false, bibliotheque: false };
 }

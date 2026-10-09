@@ -60,6 +60,9 @@ export function greffonsAProposer(installes: Pick<GreffonAudioNatif, 'id'>[] | n
 const REFUS_CONNUS = new Set([
   'premium_required',
   'not_connected',
+  // #5601 — le site refuse le jeton du compte (412) : à reconnecter, ce
+  // n'est PAS un défaut de licence.
+  'account_token_rejected',
   'no_package_for_target',
   'plugin_not_in_catalog',
   'signature_invalid',

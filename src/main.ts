@@ -30,7 +30,7 @@ installerRechargementApresMiseAJour();
 // profil serveur en apporte une autre, `locale.set` chargera son chunk puis
 // basculera. Un chunk qui n'arrive pas ne bloque pas le montage : `preparerLocale`
 // se résout toujours.
-preparerLocale(get(preferences).language ?? 'fr').then(() => {
+preparerLocale(get(preferences).language ?? 'en').then(() => {
   mount(ShellV2, {
     target: document.getElementById('app')!,
   });

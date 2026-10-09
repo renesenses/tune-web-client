@@ -10,7 +10,8 @@
   import { displayFields } from '../../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../../lib/stores/preferences';
   import { get } from 'svelte/store';
-  import { activeView, focusMode, pendingOxygenFolder } from '../../lib/stores/navigation';
+  import { activeView, focusMode, pendingOxygenFolder, gestesNavigationService } from '../../lib/stores/navigation';
+  import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { notifications } from '../../lib/stores/notifications';
@@ -878,11 +879,18 @@
             </tr></thead>
             <tbody>
               {#each visible as t (t.id)}
+                {@const versAlbum = t.album_title ? ouvertureAlbumDePiste(t, $gestesNavigationService) : null}
                 <tr class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} use:tip={'tip.oxygenTrackRow'} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
                   <td class="n">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{t.track_number ?? ''}{/if}</td>
                   <td class="title">{t.title}</td>
                   <td class="dim">{t.artist_name ?? ''}</td>
-                  <td class="dim">{t.album_title ?? ''}</td>
+                  <!-- web#1871 — la colonne ALBUM mène à la fiche, par le geste
+                       d'« Aller à l'album » (`lib/lienAlbumDePiste`), comme le
+                       tableau partagé `ListePistesV2`. Le clic ne sélectionne
+                       pas la ligne. Sans album connu, le nom reste du texte. -->
+                  <td class="dim">{#if versAlbum}<button class="lien-album" title={t.album_title}
+                    onclick={(e) => { e.stopPropagation(); versAlbum(); }}
+                    ondblclick={(e) => e.stopPropagation()}>{t.album_title}</button>{:else}{t.album_title ?? ''}{/if}</td>
                   <td><QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} /></td>
                   {#each columns as c}<td class="mono">{COLUMN_DEFS[c].get(t)}</td>{/each}
                   <td class="r mono">{fmtDur(t.duration_ms)}</td>
@@ -1125,6 +1133,12 @@
   @media (prefers-reduced-motion: reduce) { .eqbars span { animation: none; } }
   td.title { font-weight: 500; max-width: 230px; overflow: hidden; text-overflow: ellipsis; }
   td.dim { color: var(--tune-text-secondary); max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
+  /* web#1871 — le lien d'album garde l'allure de la cellule ; le survol le
+     souligne, comme la colonne ALBUM de `ListePistesV2`. */
+  .lien-album { background: none; border: none; padding: 0; font: inherit; color: inherit; cursor: pointer;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+  .lien-album:hover { text-decoration: underline; color: var(--tune-text); }
+  .lien-album:focus-visible { outline: 2px solid var(--tune-accent); outline-offset: 2px; }
   td.mono { font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: var(--tune-text-secondary); }
 
   .inspector { border-left: 1px solid var(--tune-border); background: var(--tune-surface); padding: 18px; overflow-y: auto; min-height: 0; }
