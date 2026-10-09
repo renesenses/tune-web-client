@@ -24,6 +24,7 @@
  * fiche savent déjà suivre, et la pastille du service se dessine toute seule.
  */
 import * as api from './api';
+import { synchroniserCoeursMiroir } from './stores/profile';
 import { fusionnerPlaylistsFavorites, type PlaylistFavorite } from './streamingFavorites';
 import type { Album, Artist, Track } from './types';
 
@@ -91,9 +92,12 @@ export interface FavorisFusionnes {
 export async function chargerFavorisFusionnes(pid: number): Promise<FavorisFusionnes> {
   const [f, s] = await Promise.all([
     api.getFavorites(pid),
-    api.getProfileStreamingFavorites(pid).catch(() => [] as api.StreamingFavorite[]),
+    api.getProfileStreamingFavorites(pid).catch(() => null),
   ]);
   const services = Array.isArray(s) ? s : [];
+  // rc4 — la liste vient d'être rafraîchie depuis les services en miroir :
+  // les cœurs s'y alignent. Seulement si elle est VRAIMENT arrivée.
+  if (Array.isArray(s)) synchroniserCoeursMiroir(s);
   return {
     locaux: f,
     services,

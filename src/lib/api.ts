@@ -1,6 +1,7 @@
 // REST API client for tune-server
 
 import { notifications } from './stores/notifications';
+import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
 import { locale, t } from './i18n';
@@ -475,6 +476,8 @@ export async function fetchJSON<T>(
   options?: RequestInit,
   accepter?: (statut: number) => boolean,
   sansBandeau = false,
+  /** Lecteur d'en-têtes d'une réponse réussie (rc4, `X-Tune-Favoris-Miroir`). */
+  lireEntetes?: (h: Headers) => void,
 ): Promise<T> {
   let response: Response;
   try {
@@ -644,6 +647,9 @@ export async function fetchJSON<T>(
     }
     throw err;
   }
+  if (lireEntetes) {
+    try { lireEntetes(response.headers); } catch { /* un en-tête illisible ne casse pas la lecture */ }
+  }
   const text = await response.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
     throw new Error('Expected JSON but received HTML — check the endpoint URL');
@@ -687,6 +693,18 @@ export function withTimeout<T>(promise: Promise<T>, ms: number, label = 'request
 }
 
 async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
+  await fetchEcriture(url, options);
+}
+
+/**
+ * rc4 — `fetchVoid` qui RENDS le corps d'un succès, s'il est du JSON.
+ *
+ * `favorites/streaming/remove` passait par `fetchVoid` et sa réponse porte
+ * désormais `miroir` (`tune-server-rust#6011`). Mêmes erreurs, mêmes bandeaux
+ * que `fetchVoid` — notamment le 501 calme de #1148 — ; seul le succès change :
+ * un corps vide ou illisible rend `undefined`, sans lever.
+ */
+async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T | undefined> {
   let response: Response;
   try {
     const token = getToken();
@@ -748,6 +766,12 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
       notifications.error(`Server error: ${err.message}`);
     }
     throw err;
+  }
+  try {
+    const text = typeof response.text === 'function' ? await response.text() : '';
+    return text && text.trim() ? (JSON.parse(text) as T) : undefined;
+  } catch {
+    return undefined;
   }
 }
 
@@ -5367,6 +5391,30 @@ export interface StreamingFavorite {
    * celui de l'album). Absent quand il est inconnu.
    */
   ai_generated?: boolean;
+  /**
+   * rc4 (`tune-server-rust#6011`) — état du miroir pour Qobuz et Tidal :
+   * `synchro` (le service a confirmé) ou `ajout_en_attente`. Absent hors
+   * miroir, ou d'un serveur d'avant la rc4.
+   */
+  miroir_etat?: 'synchro' | 'ajout_en_attente' | null;
+  /** Dernier motif d'échec chez le service, s'il y en a un. */
+  miroir_erreur?: string | null;
+}
+
+/**
+ * rc4 — la réponse de `favorites/streaming/add|remove` pour un service en
+ * miroir. `statut: "en_attente"` (HTTP 202) : le service n'a pas suivi, le
+ * serveur réessaiera ; le cœur tient.
+ */
+export interface ReponseMiroirFavori {
+  service: string;
+  statut: 'propage' | 'en_attente' | string;
+  erreur?: string | null;
+}
+
+export interface ReponseEcritureFavoriService {
+  ok?: boolean;
+  miroir?: ReponseMiroirFavori;
 }
 
 export function getProfileStreamingFavorites(
@@ -5374,7 +5422,15 @@ export function getProfileStreamingFavorites(
   type?: StreamingItemType,
 ): Promise<StreamingFavorite[]> {
   const q = type ? `?item_type=${type}` : '';
-  return fetchJSON<StreamingFavorite[]>(`${BASE}/profiles/${profileId}/favorites/streaming${q}`);
+  // rc4 — l'en-tête `X-Tune-Favoris-Miroir` dit l'état du miroir (rafraîchi
+  // par le serveur à cette lecture même). Absent d'un serveur ancien : `null`.
+  return fetchJSON<StreamingFavorite[]>(
+    `${BASE}/profiles/${profileId}/favorites/streaming${q}`,
+    undefined,
+    undefined,
+    false,
+    (h) => etatMiroirFavoris.set(lireEtatMiroir(h?.get?.('X-Tune-Favoris-Miroir'))),
+  );
 }
 
 export function addProfileStreamingFavorite(
@@ -5391,17 +5447,22 @@ export function addProfileStreamingFavorite(
     ai_generated?: boolean;
   },
 ) {
-  return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites/streaming/add`, {
+  return fetchJSON<ReponseEcritureFavoriService | undefined>(`${BASE}/profiles/${profileId}/favorites/streaming/add`, {
     method: 'POST',
     body: JSON.stringify(fav),
   });
 }
 
+/**
+ * rc4 — `fetchEcriture` et non plus `fetchVoid` : la réponse porte désormais
+ * `miroir` (propagé, ou en attente avec son motif). Mêmes erreurs qu'avant ;
+ * un serveur ancien qui répond sans corps rend `undefined`.
+ */
 export function removeProfileStreamingFavorite(
   profileId: number,
   params: { item_type: StreamingItemType; service: string; service_id: string },
 ) {
-  return fetchVoid(`${BASE}/profiles/${profileId}/favorites/streaming/remove`, {
+  return fetchEcriture<ReponseEcritureFavoriService>(`${BASE}/profiles/${profileId}/favorites/streaming/remove`, {
     method: 'POST',
     body: JSON.stringify(params),
   });
