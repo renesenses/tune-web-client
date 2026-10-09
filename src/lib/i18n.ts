@@ -1,6 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { CHARGEURS, type Locale, type Dictionnaire } from './locales';
 export type { Locale, Dictionnaire } from './locales';
+import { langueDuNavigateur } from './langueParDefaut';
 export const localeNames: Record<Locale, string> = {
   fr: 'Français',
   en: 'English',
@@ -73,7 +74,9 @@ export function preparerLocale(l: Locale): Promise<void> {
   return Promise.all([chargerLocale(l), chargerLocale('en')]).then(() => undefined);
 }
 
-const langue = writable<Locale>('fr');
+// Avant que la coquille n'applique la préférence : la langue du navigateur,
+// la même que celle que `preferences` pose au premier lancement.
+const langue = writable<Locale>(langueDuNavigateur());
 let derniereDemande = 0;
 /**
  * Le magasin de la langue active. `set(l)` bascule TOUT DE SUITE si le

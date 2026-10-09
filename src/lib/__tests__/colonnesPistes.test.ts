@@ -119,9 +119,12 @@ describe('le catalogue', () => {
     // 07/09/2026) : format, fréquence et profondeur sont descendues d'Expert.
     // La pastille Qualité les résume déjà en Essentiel ; ces colonnes servent
     // à TRIER, ce qui n'est pas un geste d'expert.
+    // #1901 : « Format » est descendue à TOUS les niveaux — le type de
+    // fichier, demandé en colonne dès l'Essentiel.
     expect(par('intermediate')).toEqual(
-      ['album', 'albumArtist', 'bitDepth', 'disc', 'format', 'label', 'sampleRate'].sort(),
+      ['album', 'albumArtist', 'bitDepth', 'disc', 'label', 'sampleRate'].sort(),
     );
+    expect(PAR_CLE.format.min).toBeUndefined();
     // Expert ne garde que ce qui décrit le FICHIER plutôt que la musique.
     expect(par('expert')).toEqual(
       ['comments', 'discSubtitle', 'dr', 'hash', 'isrc', 'mbid', 'modified', 'path', 'size', 'source'].sort(),
@@ -325,12 +328,11 @@ describe('les défauts par mode', () => {
     expect(DEFAUTS.intermediate.length).toBeLessThan(DEFAUTS.expert.length);
   });
 
-  it('🔴 Essentiel ET Expert sont branchés ; Avancé ne l’est pas', () => {
+  it('🔴 les trois modes sont branchés, Avancé compris (#1470)', () => {
     // Arbitrage du 09/09/2026 : « on branche le tableau en mode Expert ».
-    // Avancé reste dehors — périmètre explicite, pas un oubli : la matrice
-    // des Réglages continue de le griser et de le dire.
-    expect(MODES_BRANCHES).toEqual(['beginner', 'expert']);
-    expect(MODES_BRANCHES).not.toContain('intermediate');
+    // Avancé l'a rejoint le 07/10/2026 (#1470) : sans tableau, ses colonnes
+    // « # écoutes » et « Dernière écoute » étaient inatteignables.
+    expect(MODES_BRANCHES).toEqual(['beginner', 'intermediate', 'expert']);
   });
 
   it('🔴 les modes branchés ouvrent sur des colonnes, jamais sur une grille NUE', () => {

@@ -31,7 +31,7 @@
  * client, c'est s'engager à suivre chaque évolution de cette table.
  *
  * Ce module ne fait donc qu'une chose : traduire le badge du serveur, qui est
- * un libellé d'écran anglophone pour ses valeurs hautes (`7.1.4 Atmos`,
+ * un libellé d'écran anglophone pour ses valeurs hautes (`7.1.4 Atmos / Auro-3D`,
  * `Immersive 24ch`), dans le vocabulaire que le client possède DÉJÀ en onze
  * langues — les clés `zoneConfig.channels_*` du sélecteur de canaux.
  */
@@ -47,6 +47,11 @@ const CLES_PAR_BADGE: Readonly<Record<string, string>> = {
   '5.1': 'zoneConfig.channels_surround51',
   '7.1': 'zoneConfig.channels_surround71',
   '5.1.4': 'zoneConfig.channels_surround514',
+  // tune-server-rust#5576 — 7.1.4 et 9.1.6 existent en Atmos comme en
+  // Auro-3D : le serveur nomme désormais les deux. L'ancien badge reste
+  // reconnu, pour un serveur antérieur.
+  '7.1.4 Atmos / Auro-3D': 'zoneConfig.channels_surround714',
+  '9.1.6 Atmos / Auro-3D': 'zoneConfig.channels_surround916',
   '7.1.4 Atmos': 'zoneConfig.channels_surround714',
   '9.1.6 Auro-3D': 'zoneConfig.channels_surround916',
   'Immersive 24ch': 'zoneConfig.channels_immersive24',

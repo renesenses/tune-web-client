@@ -993,6 +993,14 @@ export interface SystemConfig {
    * lit des fichiers de playlist, l'autre déduit une playlist d'un dossier.
    */
   scan_import_playlists?: ConfigFlag;
+  /**
+   * « Analyser la bibliothèque au démarrage » : la valeur du PROCHAIN démarrage
+   * (réglage utilisateur, sinon `TUNE_AUTO_SCAN` / `tune.toml`, sinon non).
+   * Absente : serveur antérieur, l'interrupteur ne s'affiche pas.
+   */
+  library_scan_on_startup?: ConfigFlag;
+  /** Qui décide la valeur ci-dessus : l'utilisateur ou le déploiement. */
+  library_scan_on_startup_source?: 'user' | 'deployment';
   /** Paroles en ligne (LRCLIB, base communautaire) — désactivé par défaut. */
   lyrics_lrclib_enabled?: ConfigFlag;
   discogs_token_set: boolean;
@@ -1100,6 +1108,18 @@ export interface CompletenessStats {
   /** Pistes sans fichier propre (images CUE), sans DR : hors de toute passe.
    *  tune-server-rust#5834 ; absent avant, donc 0. */
   dynamic_range_without_file?: number;
+  /** Pistes sans DR d'une racine EXCLUE des analyses (#5593) : aucune passe
+   *  ne les prendra tant que l'exclusion tient. Fil 2157 ; absent avant, donc 0. */
+  dynamic_range_out_of_scope?: number;
+  /** Décision du 06/10 — pistes TRAITÉES : avec un DR, ou déclarées non
+   *  gérables. Le numérateur de la jauge, `total_tracks` son dénominateur.
+   *  Une piste reportée n'en fait pas partie. Absent d'un serveur plus ancien. */
+  dynamic_range_processed?: number;
+  /** La part des traitées sans DR : non gérables, toutes causes confondues. */
+  dynamic_range_unmanageable?: number;
+  /** Sans DR, mesure impossible pour de bon (`dr_indisponible`), version
+   *  dédupliquée de `dynamic_range_unavailable`. */
+  dynamic_range_unmeasurable?: number;
   dynamic_range_pct?: number;
 }
 

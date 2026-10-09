@@ -29,6 +29,7 @@ import { ICONES } from '../../lib/menuPiste';
     CF_PRESETS, presetActif, reglagesCrossfeed, bornesCrossfeed, niveauEnPourcent,
     indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
   } from '../../lib/crossfeed';
+  import { crossfeedProTraiteLaZone } from '../../lib/stores/crossfeedPro';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import SeekBar from './SeekBar.svelte';
@@ -236,11 +237,22 @@ import { ICONES } from '../../lib/menuPiste';
   // Le bout des curseurs : celui du SERVEUR quand il le publie
   // (`crossfeed_limits`, tune-server-rust#4683), sinon `lib/crossfeed`.
   let cfBornes = $state(bornesCrossfeed(null));
+  // Crossfeed Pro traite la zone (greffon actif, case cochée) : le serveur
+  // éteint alors le crossfeed intégré, les deux ne s'additionnent jamais. Le
+  // bouton s'appelle « Crossfeed Pro » et le crossfeed intégré est verrouillé.
+  let cfProTraite = $state(false);
+  $effect(() => {
+    const zid = zone?.id;
+    cfProTraite = false;
+    void crossfeedProTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfProTraite = v; });
+  });
   let cfTimer: ReturnType<typeof setTimeout> | null = null;
 
   async function chargerCrossfeed() {
     if (zone?.id == null) return;
     try {
+      const zid = zone.id;
+      void crossfeedProTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfProTraite = v; });
       const dsp = await api.getDsp(zone.id);
       const cf = dsp?.crossfeed;
       cfStatut = dsp?.crossfeed_status ?? null;
@@ -1962,10 +1974,11 @@ import { ICONES } from '../../lib/menuPiste';
             <button
               class="np-credits-btn"
               class:active={cfEnabled}
+              class:cf-pro={cfProTraite}
               onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; if (showDspMenu) void chargerCrossfeed(); }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
-              {$t('dsp.crossfeedTitle')}
+              {cfProTraite ? $t('v2.nav.crossfeedPro' as any) : $t('dsp.crossfeedTitle')}
             </button>
             <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
@@ -2084,15 +2097,21 @@ import { ICONES } from '../../lib/menuPiste';
           {/if}
           {#if showDspMenu}
             <div class="np-crossfeed">
+              {#if cfProTraite}
+                <p class="cf-note cf-note-alerte" data-crossfeed-remplace>{$t('dsp.crossfeedReplacedByPro' as any)}</p>
+              {/if}
+              <!-- Crossfeed Pro traite la zone : tout le crossfeed intégré est
+                   verrouillé d'un bloc, le serveur l'a éteint. -->
+              <fieldset class="cf-verrou" disabled={cfProTraite} aria-disabled={cfProTraite}>
               <div class="cf-ligne">
                 <label class="cf-bascule">
                   <input
                     type="checkbox"
-                    bind:checked={cfEnabled}
-                    onchange={() => void enregistrerCrossfeed()}
+                    checked={cfEnabled && !cfProTraite}
+                    onchange={(e) => { cfEnabled = (e.currentTarget as HTMLInputElement).checked; void enregistrerCrossfeed(); }}
                     disabled={cfIndispo.indisponible}
                   />
-                  <span>{cfEnabled ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}</span>
+                  <span>{cfEnabled && !cfProTraite ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}</span>
                 </label>
                 <div class="cf-presets">
                   {#each CF_PRESETS as p (p.key)}
@@ -2134,6 +2153,7 @@ import { ICONES } from '../../lib/menuPiste';
                 <output>{cfDelay.toFixed(1)} ms</output>
               </label>
 
+              </fieldset>
               <p class="cf-note">{$t('dsp.crossfeedDesc')}</p>
               {#if cfIndispo.indisponible}
                 <!-- Le serveur (ou, a defaut, le type de sortie) dit que le
@@ -3763,6 +3783,17 @@ import { ICONES } from '../../lib/menuPiste';
   }
 
   /* Now Playing Credits */
+  .cf-verrou {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    display: contents;
+  }
+  .cf-verrou:disabled .cf-ligne,
+  .cf-verrou:disabled label {
+    opacity: 0.5;
+  }
   .np-crossfeed {
     margin: 10px 0 0;
     padding: 12px 14px;
@@ -3847,7 +3878,7 @@ import { ICONES } from '../../lib/menuPiste';
     margin-top: var(--space-xs);
   }
 
-  .np-credits-btn:hover, .np-credits-btn.active {
+  .np-credits-btn:hover, .np-credits-btn.active, .np-credits-btn.cf-pro {
     color: var(--tune-accent);
     border-color: var(--tune-accent);
   }

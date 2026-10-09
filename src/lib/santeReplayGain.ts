@@ -52,6 +52,17 @@ export interface AvancementReplayGain {
   /** #5597 — pistes de la bibliothèque que la passe peut analyser (celles qui
    *  ont un fichier). Dénominateur de `library_analyzed`. */
   library_eligible?: number | null;
+  /** Décision du 06/10 — toutes les pistes de la bibliothèque, et celles qui
+   *  sont TRAITÉES (un témoin, ou non gérables : sans fichier propre, racine
+   *  exclue). Une piste reportée n'est pas traitée. Absents d'un serveur plus
+   *  ancien : la carte garde alors analysées sur éligibles. */
+  library_total?: number | null;
+  library_processed?: number | null;
+  /** Les causes des non gérées. `library_failed` (mesure tentée, en échec)
+   *  est déjà parmi les traitées. */
+  library_without_file?: number | null;
+  library_out_of_scope?: number | null;
+  library_failed?: number | null;
 }
 
 export type EtatCarteReplayGain = 'inconnu' | 'idle' | 'running' | 'done' | 'off';

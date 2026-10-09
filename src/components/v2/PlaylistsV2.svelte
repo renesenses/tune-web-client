@@ -801,7 +801,7 @@
                   objet={objetPlaylist(pl, source)}
                   nom={pl.name}
                 >
-                  <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name} source={source} fallbackInitials={pl.name?.slice(0,1)} />
+                  <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} vignette alt={pl.name} source={source} fallbackInitials={pl.name?.slice(0,1)} />
                 </PochetteActions>
               </span>
               <!-- 🔴 Le titre d'une playlist de SERVICE n'a jamais été

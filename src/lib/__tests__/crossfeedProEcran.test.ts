@@ -230,11 +230,37 @@ describe('Crossfeed Pro — écritures', () => {
     q<HTMLButtonElement>(`[data-preset="${p.key}"]`)!.click();
     await jusqua(() => puts().length > 0);
     expect(puts()[0].corps).toMatchObject({
-      enabled: true, amount: p.amount, delay_ms: 0, head_shadow: true,
+      enabled: true, mode: 'classique', amount: p.amount, delay_ms: 0, head_shadow: true,
       head_shadow_hz: p.head_shadow_hz, head_shadow_slope_db_oct: p.head_shadow_slope_db_oct,
+      phase_guard: false, experimental_itd: false,
     });
     await jusqua(() => !!q(`[data-preset="${p.key}"].on`));
     expect(q(`[data-preset="${p.key}"]`)!.classList.contains('on')).toBe(true);
+    expect(q('[data-mode="classique"]')!.classList.contains('on')).toBe(true);
+  });
+
+  it('le choix du mode : Tune par défaut ; Classique part au PUT et ne montre que dosage et coupure', async () => {
+    await monter();
+    expect(q('[data-mode="tune"]')!.classList.contains('on')).toBe(true);
+    expect(q('[data-cfp="delay_ms"]')).toBeTruthy();
+    q<HTMLButtonElement>('[data-mode="classique"]')!.click();
+    await jusqua(() => puts().length > 0);
+    expect(puts()[0].corps.mode).toBe('classique');
+    await jusqua(() => !q('[data-cfp="delay_ms"]'));
+    expect(q('[data-cfp="amount"]')).toBeTruthy();
+    expect(q('[data-cfp="head_shadow_hz"]')).toBeTruthy();
+    for (const c of ['delay_ms', 'head_shadow', 'low_cut', 'phase_guard', 'experimental']) {
+      expect(q(`[data-cfp="${c}"]`), `${c} montré en mode classique`).toBeNull();
+    }
+  });
+
+  it('un réglage enregistré sans `mode` s’affiche en mode Tune', async () => {
+    const { mode: _sans, ...ancien } = DEFAUTS_CROSSFEED_PRO;
+    hote.lecture = { status: 200, corps: { plugin: 'crossfeed-pro', zone_id: ZONE, active: true,
+      settings: { ...ancien, enabled: true, amount: 0.37 } } };
+    await monter();
+    expect(q('[data-mode="tune"]')!.classList.contains('on')).toBe(true);
+    expect(q('[data-cfp="delay_ms"]')).toBeTruthy();
   });
 
   it('les réglages enregistrés de la zone sont relus et affichés', async () => {

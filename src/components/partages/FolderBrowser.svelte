@@ -1,85 +1,117 @@
 <script lang="ts">
+  /**
+   * Sélecteur de dossier du SERVEUR (#1275, fil forum 2171).
+   *
+   * Le dialogue natif est proscrit dans les webviews, et le dossier à
+   * désigner est de toute façon celui du serveur, pas du navigateur : c'est
+   * le serveur qui liste (`GET /system/browse-dirs`, admin et périmètre hors
+   * arbres système). Sous Windows, la racine est la liste des lecteurs.
+   *
+   * Passe par `api.browseServerDirs` et non par `fetch` nu : sans le jeton,
+   * la route — `RequireAdmin` — refusait tout dès que l'authentification
+   * était activée.
+   */
   import { t } from '../../lib/i18n';
+  import * as api from '../../lib/api';
+  import type { DossierServeur } from '../../lib/api';
 
-  let { onSelect, onClose }: { onSelect: (path: string) => void; onClose: () => void } = $props();
+  let { onSelect, onClose, initialPath = '' }: {
+    onSelect: (path: string) => void;
+    onClose: () => void;
+    initialPath?: string;
+  } = $props();
 
-  let currentPath = $state('/');
-  let dirs = $state<{ name: string; path: string; has_children: boolean }[]>([]);
+  let currentPath = $state('');
+  let selected = $state('');
+  let drives = $state(false);
+  let dirs = $state<DossierServeur[]>([]);
   let parentPath = $state<string | null>(null);
   let loading = $state(false);
   let error = $state('');
 
-  async function browse(path: string) {
+  async function browse(path?: string) {
     loading = true;
     error = '';
     try {
-      const resp = await fetch(`/api/v1/system/browse-dirs?path=${encodeURIComponent(path)}`);
-      const data = await resp.json();
-      dirs = data.dirs || [];
-      parentPath = data.parent || null;
-      currentPath = data.current || path;
-      if (data.error) error = data.error;
-    } catch (e) {
-      error = 'Failed to browse directory';
+      const data = await api.browseServerDirs(path);
+      dirs = Array.isArray(data?.dirs) ? data.dirs : [];
+      parentPath = data?.parent ?? null;
+      drives = data?.drives === true;
+      currentPath = data?.current || path || '';
+      selected = drives ? '' : currentPath;
+      if (data?.error) error = $t('folderBrowser.error' as any);
+    } catch {
+      error = $t('folderBrowser.error' as any);
     }
     loading = false;
   }
 
-  // Browse root on mount
-  $effect(() => { browse('/'); });
+  // Part du chemin déjà saisi s'il y en a un, sinon de la racine du serveur.
+  $effect(() => { browse(initialPath.trim() || undefined); });
 
   function select() {
-    onSelect(currentPath);
+    if (selected) onSelect(selected);
   }
 </script>
 
 <div class="folder-overlay" onclick={onClose} onkeydown={(e) => e.key === 'Escape' && onClose()} role="button" tabindex="-1">
-  <div class="folder-modal" onclick={(e) => e.stopPropagation()} role="dialog">
+  <div class="folder-modal" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}
+    role="dialog" aria-modal="true" aria-labelledby="folder-browser-title" tabindex="-1">
     <header>
-      <h3>{$t('ingest.selectFolder')}</h3>
-      <button class="close-btn" onclick={onClose}>&times;</button>
+      <h3 id="folder-browser-title">{$t('ingest.selectFolder')}</h3>
+      <button class="close-btn" onclick={onClose} aria-label={$t('common.close' as any)}>&times;</button>
     </header>
 
     <div class="breadcrumb">
-      <span class="current-path">{currentPath}</span>
+      <span class="current-path">{drives ? $t('folderBrowser.drives' as any) : currentPath}</span>
     </div>
 
     {#if error}
-      <div class="error">{error}</div>
+      <div class="error" role="alert">{error}</div>
     {/if}
 
     <div class="dir-list">
       {#if parentPath !== null}
-        <button class="dir-item parent" onclick={() => browse(parentPath!)}>
+        <button class="dir-item parent" onclick={() => browse(parentPath!)} aria-label={$t('folderBrowser.parent' as any)}>
           <span class="icon">⬆</span>
           <span class="name">..</span>
         </button>
       {/if}
 
       {#if loading}
-        <div class="loading">Loading...</div>
+        <div class="loading">{$t('folderBrowser.loading' as any)}</div>
       {:else}
-        {#each dirs as dir}
-          <button
-            class="dir-item"
-            ondblclick={() => browse(dir.path)}
-            onclick={() => { currentPath = dir.path; }}
-          >
-            <span class="icon">{dir.has_children ? '📁' : '📂'}</span>
-            <span class="name">{dir.name}</span>
-          </button>
+        {#each dirs as dir (dir.path)}
+          <div class="dir-row" class:selected={selected === dir.path}>
+            <button
+              class="dir-item"
+              ondblclick={() => browse(dir.path)}
+              onclick={() => { selected = dir.path; }}
+              onkeydown={(e) => { if (e.key === 'ArrowRight') browse(dir.path); }}
+            >
+              <span class="icon">{drives ? '💽' : dir.has_children ? '📁' : '📂'}</span>
+              <span class="name">{dir.name}</span>
+            </button>
+            {#if dir.has_children || drives}
+              <button class="open" onclick={() => browse(dir.path)}
+                aria-label={$t('folderBrowser.open' as any).replace('{name}', dir.name)}
+                title={$t('folderBrowser.open' as any).replace('{name}', dir.name)}>›</button>
+            {/if}
+          </div>
         {/each}
         {#if dirs.length === 0 && !error}
-          <div class="empty">No subdirectories</div>
+          <div class="empty">{$t('folderBrowser.empty' as any)}</div>
         {/if}
       {/if}
     </div>
 
+    <p class="hint">{$t('folderBrowser.hint' as any)}</p>
+
     <footer>
-      <span class="selected-path">{currentPath}</span>
+      <span class="selected-path">{selected}</span>
       <div class="actions">
-        <button class="cancel-btn" onclick={onClose}>Cancel</button>
-        <button class="select-btn" onclick={select}>Select this folder</button>
+        <button class="cancel-btn" onclick={onClose}>{$t('common.cancel' as any)}</button>
+        <button class="select-btn" onclick={select} disabled={!selected}>{$t('folderBrowser.select' as any)}</button>
       </div>
     </footer>
   </div>
@@ -157,6 +189,21 @@
     text-align: left;
   }
   .dir-item:hover { background: var(--tune-bg-hover, #2a2a2a); }
+  .dir-row { display: flex; align-items: center; border-radius: 6px; }
+  .dir-row .dir-item { flex: 1; width: auto; min-width: 0; }
+  .dir-row.selected { background: var(--tune-bg-hover, #2a2a2a); outline: 1px solid var(--tune-accent, #f59e0b); }
+  .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .open {
+    flex-shrink: 0;
+    padding: 4px 12px;
+    border: none;
+    background: transparent;
+    font-size: 1.3rem;
+    color: var(--tune-text-muted, #888);
+    cursor: pointer;
+  }
+  .open:hover { color: var(--tune-accent, #f59e0b); }
+  .hint { margin: 0; padding: 6px 20px; font-size: 0.8rem; color: var(--tune-text-muted, #888); }
   .dir-item.parent { color: var(--tune-accent, #f59e0b); }
   .icon { font-size: 1.1rem; flex-shrink: 0; }
   .loading, .empty, .error {
@@ -200,4 +247,5 @@
     cursor: pointer;
   }
   .select-btn:hover { opacity: 0.9; }
+  .select-btn:disabled { opacity: 0.5; cursor: default; }
 </style>

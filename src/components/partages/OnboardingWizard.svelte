@@ -7,6 +7,10 @@
   import { tuneWS } from '../../lib/websocket';
   import { notifications } from '../../lib/stores/notifications';
   import type { BrowseRootEntry } from '../../lib/types';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { formatNombre } from '../../lib/formats';
+  import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
+  import FolderBrowser from './FolderBrowser.svelte';
 
   let { onComplete }: { onComplete: () => void } = $props();
 
@@ -197,19 +201,37 @@
     addingMusicDir = true;
     musicDirError = null;
     try {
-      await api.addMusicDir(path);
-      newMusicDirPath = '';
-      await loadMusicRoots();
+      // Fil forum 2171 : confirmation chiffrée avant d'ajouter une racine de
+      // disque ou un très gros dossier.
+      const r = await ajouterUnDossier(path, {
+        estimer: api.estimateMusicDir,
+        ajouter: api.addMusicDir,
+        confirmer: (m) => dialogs.confirm(m),
+        tr: (k) => get(t)(k as any),
+        nombre: (n) => get(formatNombre)(n),
+      });
+      if (r) {
+        newMusicDirPath = '';
+        await loadMusicRoots();
+      }
     } catch (e: any) {
       musicDirError = e.message || String(e);
     }
     addingMusicDir = false;
   }
+  let showFolderBrowser = $state(false);
 
   async function handleRemoveMusicDir(path: string) {
     removingDir = path;
     try {
-      await api.removeMusicDir(path);
+      // Retirer le dossier ET, sur confirmation, ses pistes (#2149) : les
+      // fichiers ne sont pas touchés.
+      await retirerUnDossier(path, {
+        retirer: api.removeMusicDir,
+        confirmer: (m) => dialogs.confirm(m, { danger: true }),
+        annoncer: (v) => notifications[v.ton](v.message),
+        tr: (k) => get(t)(k as any),
+      });
       await loadMusicRoots();
     } catch (e: any) {
       notifications.error(e?.message || String(e));
@@ -557,7 +579,8 @@
                   class="btn-remove"
                   onclick={() => handleRemoveMusicDir(root.path)}
                   disabled={removingDir === root.path}
-                  title={$t('common.delete')}
+                  title={$t('settings.removeFolderButton' as any)}
+                  aria-label={$t('settings.removeFolderButton' as any)}
                 >
                   {#if removingDir === root.path}
                     <div class="spinner spinner-sm"></div>
@@ -581,6 +604,13 @@
             disabled={addingMusicDir}
             onkeydown={(e) => { if (e.key === 'Enter') handleAddMusicDir(); }}
           />
+          <button
+            class="btn-secondary"
+            onclick={() => (showFolderBrowser = true)}
+            disabled={addingMusicDir}
+          >
+            {$t('ingest.browse' as any)}
+          </button>
           <button
             class="btn-secondary"
             onclick={handleAddMusicDir}
@@ -839,6 +869,14 @@
     {/if}
   </div>
 </div>
+
+{#if showFolderBrowser}
+  <FolderBrowser
+    initialPath={newMusicDirPath}
+    onSelect={(p) => { newMusicDirPath = p; showFolderBrowser = false; }}
+    onClose={() => (showFolderBrowser = false)}
+  />
+{/if}
 
 <style>
   .onboarding-overlay {
