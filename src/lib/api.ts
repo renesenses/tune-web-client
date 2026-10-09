@@ -28,6 +28,10 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   // transcoder à 0 Hz. Sa phrase est technique et toujours en français ; la
   // clé dit la même chose dans la langue de l'interface.
   streaming_sample_rate_unknown: 'playback.errorSampleRateUnknown',
+  // #6018 — la lecture Spotify par librespot est une option EXPÉRIMENTALE,
+  // désactivée par défaut : le serveur refuse proprement (409) tant qu'elle
+  // ne l'est pas. Un état de réglage, pas une panne.
+  spotify_playback_disabled: 'playback.errorSpotifyDisabled',
 };
 
 /**
@@ -4923,6 +4927,8 @@ export interface SpotifyConnectStatus {
   active: boolean;
   reason?: string;
   error?: string;
+  /** #6018 — « Lecture Spotify (expérimental) » : désactivée par défaut. */
+  lecture_experimentale?: boolean;
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {
@@ -4960,6 +4966,14 @@ export function enableSpotifyConnect(zone_id: number, device_name?: string | nul
 
 export function disableSpotifyConnect() {
   return fetchJSON<SpotifyConnectStatus>(`${BASE}/spotify-connect/disable`, { method: 'POST' });
+}
+
+/** #6018 — active ou désactive la lecture Spotify par librespot (expérimental). */
+export function setSpotifyLectureExperimentale(enabled: boolean) {
+  return fetchJSON<SpotifyConnectStatus>(`${BASE}/spotify-connect/lecture-experimentale`, {
+    method: 'POST',
+    body: JSON.stringify({ enabled }),
+  });
 }
 
 export function rescanArtwork() {
