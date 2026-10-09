@@ -23,6 +23,12 @@
    * {@link RELECTURE_CD_MAX_MS} ms si le serveur ne répond plus. Le disque
    * (`/disque`, qui peut consulter MusicBrainz) n'est relu que lorsque la
    * présence CHANGE.
+   *
+   * Chargement en mémoire (tune-server-rust#6043, comme Daphile) : `/etat`
+   * porte `chargement`, que la même relecture affiche en petit indicateur sous
+   * le titre du disque ; la case « Charger le CD en mémoire » lit et règle
+   * `/memoire`. Un serveur qui ne sait pas charger n'a ni l'un ni l'autre :
+   * rien ne s'affiche.
    */
   import { onDestroy } from 'svelte';
   import * as api from '../../lib/api';
@@ -31,7 +37,8 @@
   import {
     cdCharge, cdPlugin, refreshCdPlugin, getEtatLecteurCd, getDisqueCd, jouerCd, ejecterCd,
     dureeCd, titrePisteCd, codeRefusCd, delaiRelectureCd,
-    type EtatLecteurCd, type DisqueCd,
+    getMemoireCd, reglerMemoireCd, vueChargementCd,
+    type EtatLecteurCd, type DisqueCd, type MemoireCd,
   } from '../../lib/lectureCd';
   import ExtractionCdV2 from './ExtractionCdV2.svelte';
   import '../../styles/tune-v2.css';
@@ -43,6 +50,10 @@
   let occupe = $state<number | 'disque' | null>(null);
   let ejection = $state(false);
   let erreurEjection = $state<string | null>(null);
+  /** #6043 — `null` : serveur sans chargement en mémoire (ou pas encore lu). */
+  let memoire = $state<MemoireCd | null>(null);
+  let reglageMemoire = $state(false);
+  const vueChargement = $derived(vueChargementCd(etat?.chargement, disque?.disc_id));
 
   let echecs = 0;
   let minuteur: ReturnType<typeof setTimeout> | null = null;
@@ -68,6 +79,7 @@
     try {
       disque = await getDisqueCd();
       erreur = null;
+      if (memoire === null) void lireMemoire();
       return true;
     } catch (e) {
       disque = null;
@@ -99,6 +111,26 @@
     } finally {
       enCours = false;
       planifier();
+    }
+  }
+
+  /** #6043 — le réglage ; un ancien serveur répond 404 : la case reste cachée. */
+  async function lireMemoire() {
+    try {
+      const m = await getMemoireCd();
+      if (!fini && m.disponible) memoire = m;
+    } catch { /* pas de chargement en mémoire sur ce serveur */ }
+  }
+
+  async function basculerMemoire(actif: boolean) {
+    if (reglageMemoire || !memoire) return;
+    reglageMemoire = true;
+    try {
+      memoire = await reglerMemoireCd(actif);
+    } catch {
+      memoire = { ...memoire };
+    } finally {
+      reglageMemoire = false;
     }
   }
 
@@ -216,6 +248,17 @@
           <h2 class="album">{disque.titre || $t('v2.cd.unknownAlbum' as any)}</h2>
           {#if disque.artiste}<div class="artiste">{disque.artiste}</div>{/if}
           {#if disque.metadonnees === 'repli'}<div class="note">{$t('v2.cd.noMetadata' as any)}</div>{/if}
+          {#if vueChargement}
+            <div class="chargement" class:fini={vueChargement.fini} role="status">
+              <span class="barre" aria-hidden="true"><span style="width:{vueChargement.pourcentage}%"></span></span>
+              <span class="libelle">
+                {vueChargement.fini
+                  ? $t('v2.cd.memLoaded' as any)
+                  : $t('v2.cd.memLoading' as any).replace('{pct}', String(vueChargement.pourcentage))}
+                {#if vueChargement.surDisque}<small>({$t('v2.cd.memOnDisk' as any)})</small>{/if}
+              </span>
+            </div>
+          {/if}
           <div class="actions">
             <button class="go lire-disque" disabled={$currentZoneId == null || occupe !== null} onclick={() => jouer()}>
               {occupe === 'disque' ? '…' : $t('v2.cd.playDisc' as any)}
@@ -228,6 +271,13 @@
             <!-- tune-server-rust#2466 : n'apparaît que si le serveur sait extraire. -->
             <ExtractionCdV2 {disque} />
           </div>
+          {#if memoire}
+            <label class="memoire note">
+              <input type="checkbox" checked={memoire.actif} disabled={reglageMemoire}
+                onchange={(ev) => basculerMemoire((ev.currentTarget as HTMLInputElement).checked)} />
+              {$t('v2.cd.memToggle' as any)}
+            </label>
+          {/if}
         </div>
       </div>
 
@@ -287,4 +337,10 @@
     font:600 12.5px var(--v2-sans); cursor:pointer}
   .ejecter svg{width:16px; height:16px}
   .ejecter:disabled{opacity:.35; cursor:not-allowed}
+  .chargement{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--v2-txt2)}
+  .chargement .barre{width:90px; height:4px; border-radius:2px; background:var(--v2-line); overflow:hidden; flex:none}
+  .chargement .barre span{display:block; height:100%; background:var(--v2-acc-tint); transition:width .4s}
+  .chargement.fini .barre span{background:var(--v2-acc2)}
+  .chargement small{margin-left:4px; color:var(--v2-txt3)}
+  .memoire{display:inline-flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px}
 </style>
