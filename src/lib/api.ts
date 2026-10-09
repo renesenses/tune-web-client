@@ -10,6 +10,7 @@ import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 import type { RetraitDossier } from './purgeOrphelines';
+import type { EstimationDossier } from './ajoutDossier';
 import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
 import type { CorpsEdition, EditionReponse, RapportBalises } from './editionAlbum';
@@ -1489,7 +1490,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string }) {
+export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1620,6 +1621,9 @@ export interface StreamingQueueItem {
   album_title?: string | null;
   cover_path?: string | null;
   duration_ms?: number;
+  /** La page de l'album d'un titre Bandcamp (web#1923, #1924). Ignorée par un
+   *  serveur antérieur, et par le serveur pour toute autre source. */
+  album_ref?: string;
 }
 
 export interface AddToQueueRequest {
@@ -1635,6 +1639,8 @@ export interface AddToQueueRequest {
   album_title?: string | null;
   cover_path?: string | null;
   duration_ms?: number;
+  /** La page de l'album d'un titre Bandcamp seul (web#1923, #1924). */
+  album_ref?: string;
   /** Ordered streaming rows, supported by QueueAddRequest on the server. */
   tracks?: StreamingQueueItem[];
 }
@@ -1653,7 +1659,9 @@ export interface AddToQueueRequest {
  * et faire reculer l'appelant serait faux.
  */
 export async function addToQueue(zoneId: number, body: AddToQueueRequest) {
-  const res = await fetchJSON<{ queue_length: number; unresolved?: PisteNonResolue[] }>(
+  // `queue_position` : le curseur APRÈS l'ajout, absent sur un serveur
+  // antérieur à tune-server-rust#5770 (voir `playback.ts`).
+  const res = await fetchJSON<{ queue_length: number; queue_position?: number; unresolved?: PisteNonResolue[] }>(
     `${BASE}/zones/${zoneId}/queue/add`,
     { method: 'POST', body: JSON.stringify(body) },
   );
@@ -1759,7 +1767,8 @@ export async function getAlbumsPage(limit = 100, offset = 0): Promise<{ items: A
   const r = await fetchJSON<{ items?: Album[]; total?: number } | Album[]>(
     `${BASE}/library/albums?limit=${limit}&offset=${offset}`,
   );
-  if (Array.isArray(r)) return { items: r, total: r.length };
+  if (Array.isArray(r)) { amorcerPochettes(r); return { items: r, total: r.length }; }
+  amorcerPochettes(r?.items);
   return { items: r?.items ?? [], total: r?.total ?? (r?.items?.length ?? 0) };
 }
 
@@ -1826,6 +1835,7 @@ export async function getAllAlbumsSeeded(pageSize = 2000, sort: string | null = 
     const offset = (page - 1) * limit;
     const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}${triq}${drq}${seedq(seed)}`);
     const albums: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
+    amorcerPochettes(albums);
     return { albums, seed: typeof raw?.seed === 'number' ? raw.seed : (seed ?? undefined) };
   }
   // Default: fetch all albums in batches
@@ -1839,6 +1849,7 @@ export async function getAllAlbumsSeeded(pageSize = 2000, sort: string | null = 
     const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}${triq}${drq}${seedq(graine)}`);
     if (graine == null && typeof raw?.seed === 'number') graine = raw.seed;
     const batch: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
+    amorcerPochettes(batch);
     all.push(...batch);
     if (batch.length < pageSize) break;
     offset += pageSize;
@@ -1890,6 +1901,7 @@ export async function getAlbumsPagines(d: DemandePageAlbums): Promise<PageAlbums
   }
   if (d.seed != null) p.set('seed', String(d.seed));
   const raw = await fetchJSON<any>(`${BASE}/library/albums?${p.toString()}`);
+  amorcerPochettes(Array.isArray(raw) ? raw : raw?.items);
   if (Array.isArray(raw)) return { items: raw, total: null };
   return {
     items: Array.isArray(raw?.items) ? raw.items : [],
@@ -2628,17 +2640,133 @@ export async function getFolderFacet(
   };
 }
 
-export async function getAllTracks(pageSize = 2000): Promise<Track[]> {
-  const all: Track[] = [];
-  let offset = 0;
-  while (true) {
-    const raw = await fetchJSON<any>(`${BASE}/library/tracks?limit=${pageSize}&offset=${offset}`);
-    const batch: Track[] = Array.isArray(raw) ? raw : (raw.items ?? []);
-    all.push(...batch);
-    if (batch.length < pageSize) break;
-    offset += pageSize;
+/**
+ * Toutes les pistes visibles, page par page — #1716.
+ *
+ * Mesuré sur une base de test de 42 000 pistes (37 700 visibles) : l'ancienne
+ * boucle demandait 19 pages de 2 000 L'UNE APRÈS L'AUTRE, soit 26,5 s et
+ * 30,6 Mo avant que l'onglet Titres ne montre une ligne. Chaque page coûte au
+ * serveur un tri complet de la vue (~0,6 s), quelle que soit sa taille : peu
+ * de grandes pages valent mieux que beaucoup de petites.
+ *
+ * - Pages de 5 000, et la PREMIÈRE dit le `total` : les suivantes partent
+ *   alors `parallele` par `parallele` (2 par défaut). Deux, pas plus : le
+ *   serveur n'a que trois connexions de lecture, la troisième reste libre
+ *   pour le reste de l'interface.
+ * - Un serveur qui borne `limit` en dessous de la page demandée se voit au
+ *   `total` : la taille de page suit ce qu'il a rendu, aucune piste n'est
+ *   perdue.
+ * - Sans `total` (serveur ancien, tableau nu), la boucle en série d'avant.
+ * - `signal` interrompt les pages qui restent.
+ */
+export async function getAllTracks(
+  pageSize = 5000,
+  opts: { signal?: AbortSignal; parallele?: number } = {},
+): Promise<Track[]> {
+  const { signal, parallele = 2 } = opts;
+  const page = async (taille: number, offset: number): Promise<{ items: Track[]; total: number | null }> => {
+    const raw = await fetchJSON<any>(
+      `${BASE}/library/tracks?limit=${taille}&offset=${offset}`,
+      signal ? { signal } : undefined,
+    );
+    if (Array.isArray(raw)) return { items: raw, total: null };
+    return { items: raw?.items ?? [], total: typeof raw?.total === 'number' ? raw.total : null };
+  };
+  const premiere = await page(pageSize, 0);
+  const all: Track[] = [...premiere.items];
+  // La taille de page RÉELLE : un serveur qui borne `limit` rend moins que
+  // demandé alors que le total annonce davantage.
+  const taille = premiere.total != null && premiere.items.length > 0 && premiere.items.length < pageSize
+    && premiere.total > premiere.items.length
+    ? premiere.items.length
+    : pageSize;
+  if (premiere.items.length < taille) return all;
+  let offset = taille;
+  let derniere = premiere.items.length;
+  if (premiere.total != null && premiere.total > taille) {
+    const offsets: number[] = [];
+    for (let o = taille; o < premiere.total; o += taille) offsets.push(o);
+    const pages: Track[][] = new Array(offsets.length);
+    let prochain = 0;
+    let echec = false;
+    const ouvrier = async () => {
+      while (!echec && prochain < offsets.length) {
+        const k = prochain++;
+        try {
+          pages[k] = (await page(taille, offsets[k])).items;
+        } catch (e) {
+          echec = true;
+          throw e;
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(parallele, offsets.length)) }, ouvrier));
+    for (const p of pages) all.push(...p);
+    offset = taille * (offsets.length + 1);
+    derniere = pages[pages.length - 1]?.length ?? 0;
+  }
+  // La bibliothèque a grandi pendant le chargement (ou le total manque) : on
+  // continue en série jusqu'à une page courte, comme avant.
+  while (derniere >= taille) {
+    const suite = await page(taille, offset);
+    all.push(...suite.items);
+    derniere = suite.items.length;
+    offset += taille;
   }
   return all;
+}
+
+/**
+ * Une page TRIÉE de l'onglet Titres, servie par le serveur — #1716.
+ *
+ * `GET /library/tracks?sort=…&order=…&search=…&provenance=…&counts=sources` :
+ * le serveur trie, cherche (titre ou artiste), filtre par provenance et compte
+ * par provenance. Rend `null` face à un serveur qui ne sait pas le faire : il
+ * ignore ces paramètres et rend une page de l'ordre par défaut, sans `order`.
+ * L'appelant retombe alors sur la liste entière (`demanderToutesLesPistes`).
+ */
+export interface PagePistesServeur {
+  items: Track[];
+  total: number;
+  /** Comptes par provenance (`counts=sources`), agrégat `upnp` compris. */
+  comptes: Map<string, number> | null;
+  /** « Toutes les sources » : chaque piste une fois. */
+  totalToutesSources: number | null;
+}
+
+export async function getPagePistes(opts: {
+  search?: string;
+  provenance?: string | null;
+  sort?: string | null;
+  order?: 'asc' | 'desc';
+  folder?: string | null;
+  limit: number;
+  offset: number;
+  counts?: boolean;
+  signal?: AbortSignal;
+}): Promise<PagePistesServeur | null> {
+  const params = new URLSearchParams();
+  params.set('limit', String(opts.limit));
+  params.set('offset', String(opts.offset));
+  // `order` part TOUJOURS : c'est lui qui ouvre la page triée côté serveur,
+  // et sa présence dans la réponse qui dit que le serveur l'a comprise.
+  params.set('order', opts.order ?? 'asc');
+  if (opts.sort) params.set('sort', opts.sort);
+  if (opts.search?.trim()) params.set('search', opts.search.trim());
+  if (opts.provenance) params.set('provenance', opts.provenance);
+  if (opts.folder) params.set('folder', opts.folder);
+  if (opts.counts) params.set('counts', 'sources');
+  const raw = await fetchJSON<any>(`${BASE}/library/tracks?${params}`, opts.signal ? { signal: opts.signal } : undefined);
+  if (raw == null || Array.isArray(raw) || typeof raw.order !== 'string' || typeof raw.total !== 'number') return null;
+  const comptes = raw.source_counts && typeof raw.source_counts === 'object'
+    ? new Map(Object.entries(raw.source_counts).filter(([, n]) => typeof n === 'number') as [string, number][])
+    : null;
+  return {
+    items: Array.isArray(raw.items) ? raw.items : [],
+    total: raw.total,
+    comptes,
+    totalToutesSources: typeof raw.total_all_sources === 'number' ? raw.total_all_sources : null,
+  };
 }
 
 export function searchLibrary(q: string, limit = 50, offset = 0) {
@@ -3187,10 +3315,6 @@ export function getArtistBio(artistId: number) {
 
 export function getArtistTimeline(artistId: number) {
   return fetchJSON<any[]>(`${BASE}/library/artists/${artistId}/timeline`);
-}
-
-export function getSimilarAlbums(albumId: number, limit = 10) {
-  return fetchJSON<import('./types').Album[]>(`${BASE}/library/albums/${albumId}/similar?limit=${limit}`);
 }
 
 /** Acoustically similar tracks ("Plus comme ça") — ranked by CLAP-embedding
@@ -4383,6 +4507,41 @@ export async function removeMusicDir(path: string, confirmPurge?: number) {
   return { ...r, music_dirs: listeDossiers(r) };
 }
 
+/** Une entrée de l'explorateur de dossiers du serveur. */
+export interface DossierServeur {
+  name: string;
+  path: string;
+  has_children: boolean;
+}
+
+/** Réponse de `GET /system/browse-dirs`. `drives` : liste des lecteurs Windows. */
+export interface ListeDossiersServeur {
+  dirs: DossierServeur[];
+  parent: string | null;
+  current: string;
+  drives?: boolean;
+  error?: string;
+}
+
+/**
+ * Explorateur de dossiers du SERVEUR (#1275, fil forum 2171). Sans `path`, le
+ * serveur part de sa racine : `/` sous Unix, la liste des lecteurs sous
+ * Windows. Un refus de périmètre (403) rend quand même un corps lisible.
+ */
+export async function browseServerDirs(path?: string): Promise<ListeDossiersServeur> {
+  const qs = path ? `?path=${encodeURIComponent(path)}` : '';
+  return fetchJSON<ListeDossiersServeur>(`${BASE}/system/browse-dirs${qs}`, undefined, (s) => s === 403);
+}
+
+/** Ce que l'ajout de ce dossier ferait analyser (comptage borné, fil 2171). */
+export function estimateMusicDir(path: string): Promise<EstimationDossier> {
+  return fetchJSON<EstimationDossier>(
+    `${BASE}/system/browse-dirs/estimate?path=${encodeURIComponent(path)}`,
+    undefined,
+    (s) => s === 403,
+  );
+}
+
 /** Effective reading order of configured music directories (#1688 / server #4907). */
 export interface MusicDirectoryOrder {
   ordre: string[];
@@ -4534,6 +4693,20 @@ export function getScanStatus() {
 export function getDynamicRangeProgress() {
   return fetchJSON<import('./santePlageDynamique').AvancementPlageDynamique>(
     `${BASE}/system/dynamic-range/progress`,
+  );
+}
+
+/**
+ * Lance tout de suite un passage de mesure de la plage dynamique — #1751,
+ * tune-server-rust#4185. 202 `started`, 200 `nothing_to_do`, et 409
+ * `already_running`, accepté ici : un passage qui court déjà n'est pas une
+ * erreur à crier, c'est une réponse à dire.
+ */
+export function lancerPlageDynamique() {
+  return fetchJSON<{ status?: string; total?: number }>(
+    `${BASE}/system/dynamic-range/analyze`,
+    { method: 'POST' },
+    (statut) => statut === 409,
   );
 }
 
@@ -5286,10 +5459,6 @@ export function youtubeAuthStatus() {
 
 // --- YouTube Music browse (ytmusicapi) ---
 
-export function getYouTubeHome() {
-  return fetchJSON<{ sections: { id: string; name: string }[]; data: Record<string, Album[]> }>(`${BASE}/streaming/youtube/home`);
-}
-
 export function getYouTubeCharts(country = 'FR') {
   return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/youtube/charts?country=${encodeURIComponent(country)}`);
 }
@@ -5302,9 +5471,6 @@ export function getYouTubeMoodPlaylists(params: string) {
   return fetchJSON<{ title: string; playlistId: string; description: string; cover_path: string | null }[]>(`${BASE}/streaming/youtube/moods/${encodeURIComponent(params)}`);
 }
 
-export function getYouTubeLibrary(limit = 100) {
-  return fetchJSON<Track[]>(`${BASE}/streaming/youtube/library?limit=${limit}`);
-}
 
 // #3662 — `transferPlaylist` a été retirée : contrat MORT. Aucun appelant — les
 // sept sites de transfert du client passent tous par `transferPlaylistV2`
@@ -6089,6 +6255,25 @@ export function artworkSrc(coverPath: string | null | undefined, size?: number):
 
 const albumCoverCache = new Map<number, string | null>();
 const albumCoverPending = new Map<number, Promise<string | null>>();
+
+/**
+ * #1716 — une LISTE d'albums dit déjà la pochette de chacun : on la retient.
+ *
+ * `AlbumArt` demande la fiche entière (`GET /library/albums/{id}`) de chaque
+ * album affiché sans pochette, pour la chercher. Or la fiche lit la MÊME
+ * colonne que la liste (`albums.cover_path`, même `row_to_album` côté
+ * serveur) : la réponse ne pouvait rien apprendre de plus. Mesuré sur la
+ * base de test : 100 fiches au retour sur la grille, 528 pendant une
+ * recherche, jusqu'à 1,1 s chacune. Une liste qui ne porte pas la clé
+ * `cover_path` n'amorce rien.
+ */
+export function amorcerPochettes(liste: ReadonlyArray<Partial<Album>> | null | undefined): void {
+  if (!Array.isArray(liste)) return;
+  for (const a of liste) {
+    if (a?.id == null || !Object.prototype.hasOwnProperty.call(a, 'cover_path')) continue;
+    albumCoverCache.set(a.id, a.cover_path ?? null);
+  }
+}
 
 export async function getAlbumCoverPath(albumId: number): Promise<string | null> {
   if (albumCoverCache.has(albumId)) {
@@ -7014,6 +7199,23 @@ export async function previewImportConfig(data: any): Promise<unknown> {
 
 // --- MusicBrainz Batch Enrichment ---
 
+/**
+ * #1875 — ouvrir le dossier d'un album dans le gestionnaire de fichiers de la
+ * machine du SERVEUR. Admin, et seulement depuis un navigateur de cette même
+ * machine : voir `lib/revelerDossier`.
+ */
+export function getRevelationDisponible() {
+  return fetchJSON<{ available: boolean; reason?: string }>(
+    `${BASE}/library/reveal/available`, undefined, undefined, true,
+  );
+}
+
+export function revelerDossierAlbum(albumId: number) {
+  return fetchJSON<{ status: string; path?: string }>(
+    `${BASE}/library/albums/${albumId}/reveal`, { method: 'POST' }, undefined, true,
+  );
+}
+
 export function startBatchEnrich() {
   return fetchJSON<{ status: string }>(`${BASE}/library/enrich-all`, { method: 'POST' });
 }
@@ -7509,12 +7711,22 @@ export async function importLinnPlaylist(file: File): Promise<LinnImportResult> 
 
 // --- Plugins ---
 
+/**
+ * Une ligne de `GET /plugins`, telle que le serveur la rend (tune-server-rust#1897).
+ *
+ * L'ancienne déclaration (`status: 'active' | 'disabled' | 'error'`) décrivait
+ * un contrat que le serveur n'émet plus : ses six appelants la contournaient
+ * tous par `as unknown as`. Seuls `name` et `enabled` sont garantis ; le reste
+ * dépend du type de greffon (natif, catalogue, WASM).
+ */
 export interface InstalledPlugin {
   name: string;
-  version: string;
-  status: 'active' | 'disabled' | 'error';
-  description: string;
-  error_message?: string;
+  enabled: boolean;
+  installed?: boolean;
+  version?: string;
+  display_name?: string;
+  description?: string;
+  restart_required?: boolean;
 }
 
 export interface StorePlugin {
@@ -7534,7 +7746,11 @@ export interface MergedPlugin {
   display_name: string;
   description: string;
   version: string;
-  category: string;
+  /** Absents de `GET /plugins` (tune-server-rust#1897) : `category` et
+   *  `update_available` viennent du catalogue, `status` n'est émis que pour
+   *  une fiche en erreur (`status: 'error'`, #5403). L'écran les lit déjà en
+   *  facultatifs. */
+  category?: string;
   author?: string;
   icon?: string;
   install_count?: number;
@@ -7544,8 +7760,8 @@ export interface MergedPlugin {
   /** Server may send enabled instead of status for built-in plugins */
   enabled?: boolean;
   installed_version?: string | null;
-  update_available: boolean;
-  status: 'available' | 'active' | 'disabled' | 'error';
+  update_available?: boolean;
+  status?: 'available' | 'active' | 'disabled' | 'error';
   error_message?: string | null;
   /**
    * Greffon compilé resté en erreur (tune-server-rust#5403) : `setup_timeout`
@@ -7887,27 +8103,6 @@ export interface AdminHealth {
   disk_total_gb: number | null;
 }
 
-export interface AdminZone {
-  id: number;
-  name: string;
-  state: string;
-  output_type: string;
-  device_name: string;
-  online: boolean;
-  current_track: { title: string; artist_name: string; album_title: string; duration_ms: number } | null;
-  position_ms: number;
-  volume: number;
-  buffer: { size_kb: number; fill_percent: number } | null;
-  group_id: string | null;
-}
-
-export interface AdminError {
-  ts: string;
-  level: string;
-  event: string;
-  [key: string]: unknown;
-}
-
 export interface AdminConnections {
   websocket_connections: number;
   active_streams: number;
@@ -7928,14 +8123,6 @@ export interface AdminDiscovery {
 
 export function getAdminHealth() {
   return fetchJSON<AdminHealth>(`${BASE}/system/admin/health`);
-}
-
-export function getAdminZones() {
-  return fetchJSON<AdminZone[]>(`${BASE}/system/admin/zones`);
-}
-
-export function getAdminErrors() {
-  return fetchJSON<AdminError[]>(`${BASE}/system/admin/errors`);
 }
 
 export function getAdminConnections() {
@@ -8011,13 +8198,22 @@ export function getContinueListening(limit = 20) {
  * du fichier. Sans paramètre, l'URL est exactement celle d'avant : un serveur
  * plus ancien répond comme toujours.
  */
-export function getRecentlyAdded(days?: number, limit?: number) {
+export function getRecentlyAdded(days?: number, limit?: number, tri: TriAjoutsRecents = 'modification') {
   const p = new URLSearchParams();
   if (days != null) p.set('days', String(days));
   if (limit != null) p.set('limit', String(limit));
+  // #5402 — le tri par défaut n'envoie RIEN : l'URL reste celle d'avant.
+  if (tri === 'creation') p.set('tri', 'creation');
   const qs = p.toString();
   return fetchJSON<any[]>(`${BASE}/home/recently-added${qs ? `?${qs}` : ''}`);
 }
+
+/**
+ * Le tri des ajouts récents (#5402) : `modification`, le tri historique et le
+ * défaut, ou `creation`, la date de création du fichier quand le système la
+ * donne (sinon la date de modification).
+ */
+export type TriAjoutsRecents = 'modification' | 'creation';
 
 /** Ce que compte `/home/recently-added/summary`, sur la MÊME fenêtre. */
 export interface ResumeAjoutsRecents {
@@ -8026,6 +8222,13 @@ export interface ResumeAjoutsRecents {
   track_count: number;
   duration_ms: number;
   duration_seconds: number;
+  /**
+   * #5402 — le tri servi. ABSENT sur un serveur antérieur, qui ignore le
+   * paramètre : l'écran n'offre alors pas la bascule.
+   */
+  tri?: TriAjoutsRecents;
+  /** #5402 — pistes de la fenêtre sans date de création (tri par création). */
+  tracks_without_creation_date?: number;
 }
 
 /**
@@ -8035,9 +8238,12 @@ export interface ResumeAjoutsRecents {
  * Route séparée côté serveur, et non un champ de plus dans la réponse
  * ci-dessus : passer le tableau en objet aurait cassé tout client déployé.
  */
-export function getRecentlyAddedSummary(days?: number) {
-  const qs = days != null ? `?days=${days}` : '';
-  return fetchJSON<ResumeAjoutsRecents>(`${BASE}/home/recently-added/summary${qs}`);
+export function getRecentlyAddedSummary(days?: number, tri: TriAjoutsRecents = 'modification') {
+  const p = new URLSearchParams();
+  if (days != null) p.set('days', String(days));
+  if (tri === 'creation') p.set('tri', 'creation');
+  const qs = p.toString();
+  return fetchJSON<ResumeAjoutsRecents>(`${BASE}/home/recently-added/summary${qs ? `?${qs}` : ''}`);
 }
 
 export function getNewInLibrary() {
@@ -8580,8 +8786,27 @@ export async function submitBugReport(
 
 // --- Audio Converter ---
 
-export function getConverterPresets(): Promise<{ id: string; label: string; format: string; quality: string; sample_rate: string; bit_depth: string; estimated_size_per_min: string }[]> {
-  return fetchJSON(`${BASE}/converter/presets`);
+/**
+ * Un préréglage de `GET /converter/presets`, tel que le serveur le rend
+ * (tune-server-rust#1897). `sample_rate` et `bit_depth` sont des nombres, nuls
+ * quand le préréglage garde ceux de la source ; `estimated_size_per_min`
+ * n'est rendu par aucun serveur à ce jour : l'écran ne l'affiche que s'il
+ * existe.
+ */
+export interface ConverterPreset {
+  id: string;
+  label: string;
+  format: string;
+  quality: string;
+  sample_rate: number | null;
+  bit_depth: number | null;
+  dsd_sample_rate?: number | null;
+  sample_rate_choices?: number[] | null;
+  estimated_size_per_min?: string;
+}
+
+export function getConverterPresets(): Promise<ConverterPreset[]> {
+  return fetchJSON<ConverterPreset[]>(`${BASE}/converter/presets`);
 }
 
 // Which formats THIS server can actually produce (#1524): flac/wav/opus are
@@ -9418,13 +9643,14 @@ export interface LocalisationConcerts {
 /** Sans `offset`, la première page, de la taille que le nuage choisit. Un
  *  serveur ancien ignore `offset` et rend toujours la même liste : l'écran ne
  *  le demande donc que si la réponse a dit `has_more`. */
-export function getConcertsAVenir(page: { offset?: number } = {}) {
+export function getConcertsAVenir(page: { offset?: number } = {}, signal?: AbortSignal) {
   // Suffixe de requête écrit EN LIGNE, sous la forme que lit le cartographe
   // du contrat (`scripts/web-contract-map.py`, dépôt serveur) : une variable
   // interpolée rendrait la route « non résolue » dans la carte.
+  // #1752 — `signal` : l'écran Concerts sait ARRÊTER la recherche.
   return fetchJSON<ConcertsAVenir>(
     `${BASE}/ext/concerts/upcoming${page.offset ? `?offset=${page.offset}` : ''}`,
-    undefined,
+    signal ? { signal } : undefined,
     undefined,
     true,
   );
@@ -9449,10 +9675,11 @@ export function setLocalisationConcerts(demande: {
   country: string;
   scope: PerimetreConcerts;
   radius_km?: number;
-}) {
+}, signal?: AbortSignal) {
   return fetchJSON<LocalisationConcerts>(`${BASE}/ext/concerts/location`, {
     method: 'POST',
     body: JSON.stringify(demande),
+    ...(signal ? { signal } : {}),
   }, undefined, true);
 }
 

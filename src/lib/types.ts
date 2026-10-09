@@ -986,6 +986,14 @@ export interface SystemConfig {
    * lit des fichiers de playlist, l'autre déduit une playlist d'un dossier.
    */
   scan_import_playlists?: ConfigFlag;
+  /**
+   * « Analyser la bibliothèque au démarrage » : la valeur du PROCHAIN démarrage
+   * (réglage utilisateur, sinon `TUNE_AUTO_SCAN` / `tune.toml`, sinon non).
+   * Absente : serveur antérieur, l'interrupteur ne s'affiche pas.
+   */
+  library_scan_on_startup?: ConfigFlag;
+  /** Qui décide la valeur ci-dessus : l'utilisateur ou le déploiement. */
+  library_scan_on_startup_source?: 'user' | 'deployment';
   /** Paroles en ligne (LRCLIB, base communautaire) — désactivé par défaut. */
   lyrics_lrclib_enabled?: ConfigFlag;
   discogs_token_set: boolean;

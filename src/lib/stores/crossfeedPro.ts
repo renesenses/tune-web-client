@@ -13,7 +13,7 @@
  */
 import { writable } from 'svelte/store';
 import * as api from '../api';
-import { CROSSFEED_PRO_ID, presenceDepuis, type PresenceCrossfeedPro } from '../crossfeedPro';
+import { CROSSFEED_PRO_ID, crossfeedProTraite, presenceDepuis, type PresenceCrossfeedPro } from '../crossfeedPro';
 
 export const presenceCrossfeedPro = writable<PresenceCrossfeedPro>('inconnue');
 
@@ -36,4 +36,16 @@ export function entreesAvecCrossfeedPro<T extends { view: string }>(
   presence: PresenceCrossfeedPro,
 ): T[] {
   return items.filter((it) => it.view !== 'crossfeedpro' || presence === 'actif');
+}
+
+/** Crossfeed Pro traite-t-il cette zone (voir `crossfeedProTraite`) ? Une
+ *  panne, un greffon absent ou aucune zone rendent `false` : le crossfeed
+ *  intégré reste alors réglable, comme avant. */
+export async function crossfeedProTraiteLaZone(zoneId: number | null | undefined): Promise<boolean> {
+  if (zoneId == null) return false;
+  try {
+    return crossfeedProTraite(await api.getReglageGreffonNatif(CROSSFEED_PRO_ID, zoneId));
+  } catch {
+    return false;
+  }
 }

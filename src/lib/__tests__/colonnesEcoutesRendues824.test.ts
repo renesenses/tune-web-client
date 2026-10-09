@@ -38,7 +38,7 @@
 // rallumées, le DR restait invisible — `dr` est `min: 'expert'` et le tableau
 // n'existait qu'en Essentiel. Arbitrage de Bertrand le 09/09/2026 : on branche
 // le tableau en Expert, la colonne garde son niveau. Ce fichier monte donc les
-// DEUX modes branchés, vérifie qu'Avancé garde son rendu en lignes, et rejoue
+// modes branchés (Avancé compris depuis #1470), et rejoue
 // le chargement réel des préférences pour un Expert d'avant le tableau.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -252,15 +252,23 @@ describe('🔴 #824 — le tableau EXPERT, et le Dynamic Range enfin rendu', () 
     expect(cellules(2)).toEqual(['Tiento III Primer Tono', '', '']);
   });
 
-  it('🔴 AVANCÉ garde le rendu en LIGNES — le périmètre est Expert seul', () => {
-    // `{#if !enTableau}` protège l'autre rendu. Brancher Expert ne doit pas
-    // l'emporter avec lui : Avancé reste hors du tableau, décision explicite.
-    poserAu('intermediate', ['plays', 'lastPlayed'], [JOUEE]);
-    expect(hote!.querySelector('.tbl'), 'Avancé est passé au tableau').toBeNull();
-    expect(hote!.querySelector('.thead')).toBeNull();
-    // Et il rend bien QUELQUE CHOSE : une absence de tableau doublée d'une
-    // absence de lignes serait un écran blanc, pas un mode non branché.
-    expect((hote!.textContent ?? '')).toContain('Lachrimae Antiquae');
+  it('🔴 #1470 — AVANCÉ rend le TABLEAU, et les écoutes s’y affichent', () => {
+    // Avancé restait en lignes : « # écoutes » et « Dernière écoute » y étaient
+    // inatteignables quel que soit le réglage (Steve Taylor, fil 1671). Go de
+    // Bertrand le 07/10/2026 : Avancé rejoint le tableau, mêmes contrats.
+    poserAu('intermediate', ['plays', 'lastPlayed'], [JOUEE, JAMAIS, MUETTE]);
+    expect(hote!.querySelector('.tbl'), 'Avancé est resté en lignes').toBeTruthy();
+    expect(entetes()).toContain(String(get(t)('v2.tcol.plays' as never)));
+    expect(entetes()).toContain(String(get(t)('v2.tcol.lastPlayed' as never)));
+    expect(cellules(0)).toEqual(['Lachrimae Antiquae', '4', '2026-09-06']);
+    expect(cellules(1)).toEqual(['Lachrimae Antiquae (2012)', '0', '']);
+    expect(cellules(2)).toEqual(['Tiento III Primer Tono', '', '']);
+  });
+
+  it('Avancé ne reçoit pas le Dynamic Range, réservé à Expert', () => {
+    poserAu('intermediate', ['dr', 'plays'], [{ ...JOUEE, dynamic_range: '0' }]);
+    expect(entetes()).not.toContain(String(get(t)('v2.tcol.dr' as never)));
+    expect(cellules(0)).toEqual(['Lachrimae Antiquae', '4']);
   });
 
   it('🔴 un réglage VIDE n’ouvre pas une grille nue : le titre reste', () => {
