@@ -195,6 +195,7 @@ export default {
   'zone.newZone': 'Neue Zone',
   'zone.selectDevice': '-- Gerät --',
   'zone.browserOutput': 'Dieser Browser',
+  'zone.thisDevice': 'Dieses Telefon',
   'zone.createZone': 'Zone erstellen',
   'zone.restoreDeletedZone': 'Zone wiederherstellen',
   'zone.zoneRestored': 'Zone wiederhergestellt',

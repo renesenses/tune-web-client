@@ -195,6 +195,7 @@ export default {
   'zone.newZone': '새 존',
   'zone.selectDevice': '-- 기기 --',
   'zone.browserOutput': '이 브라우저',
+  'zone.thisDevice': '이 휴대폰',
   'zone.createZone': '존 생성',
   'zone.restoreDeletedZone': '존 복원',
   'zone.zoneRestored': '존이 복원되었습니다',

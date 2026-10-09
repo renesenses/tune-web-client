@@ -195,6 +195,7 @@ export default {
   'zone.newZone': 'Nueva zona',
   'zone.selectDevice': '-- Dispositivo --',
   'zone.browserOutput': 'Este navegador',
+  'zone.thisDevice': 'Este teléfono',
   'zone.createZone': 'Crear zona',
   'zone.restoreDeletedZone': 'Restaurar zona',
   'zone.zoneRestored': 'Zona restaurada',

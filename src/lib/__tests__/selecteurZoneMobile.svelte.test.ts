@@ -114,6 +114,60 @@ describe('barre de lecture : le choix de zone sur téléphone', () => {
   });
 });
 
+describe('« Ce téléphone » en tête de la feuille', () => {
+  let posts: { url: string; corps: any }[] = [];
+  beforeEach(() => {
+    posts = [];
+    localStorage.clear();
+    let creee = false;
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if ((init?.method ?? 'GET') === 'POST' && /\/zones$/.test(String(url))) {
+        posts.push({ url: String(url), corps: JSON.parse(String(init!.body)) });
+        creee = true;
+        return reponse({ id: 42, name: 'Ce téléphone', output_type: 'browser' });
+      }
+      if (/\/zones(\?|$)/.test(String(url))) {
+        return reponse(creee ? [...ZONES, { id: 42, name: 'Ce téléphone', output_type: 'browser', state: 'stopped', online: true }] : ZONES);
+      }
+      return reponse({});
+    }));
+  });
+
+  const entree = (el: HTMLElement) =>
+    el.querySelector<HTMLButtonElement>('.zone-sheet .zone-popover-item.cet-appareil');
+
+  it('est la première ligne de la feuille', () => {
+    const el = monter(TransportBar);
+    el.querySelector<HTMLButtonElement>('.mobile-zone-wrapper button')!.click();
+    flushSync();
+    const premiere = el.querySelector('.zone-sheet .zone-popover-item');
+    expect(premiere?.textContent).toContain('Ce téléphone');
+  });
+
+  it('crée la zone navigateur de cet appareil, la retient et la pilote', async () => {
+    const el = monter(TransportBar);
+    el.querySelector<HTMLButtonElement>('.mobile-zone-wrapper button')!.click();
+    flushSync();
+    entree(el)!.click();
+    await vi.waitFor(() => expect(get(currentZoneId)).toBe(42));
+    expect(posts).toHaveLength(1);
+    expect(posts[0].corps).toMatchObject({ name: 'Ce téléphone', output_type: 'browser' });
+    expect(localStorage.getItem('tune.zoneNavigateur.cetAppareil')).toBe('42');
+    expect(get(zones).some((z: any) => z.id === 42)).toBe(true);
+    expect(get(selecteurZoneOuvert)).toBe(false);
+  });
+
+  it('la retrouve sans rien créer quand cet appareil la connaît déjà', async () => {
+    localStorage.setItem('tune.zoneNavigateur.cetAppareil', '15');
+    const el = monter(TransportBar);
+    el.querySelector<HTMLButtonElement>('.mobile-zone-wrapper button')!.click();
+    flushSync();
+    entree(el)!.click();
+    await vi.waitFor(() => expect(get(currentZoneId)).toBe(15));
+    expect(posts).toHaveLength(0);
+  });
+});
+
 describe('accueil : la puce de zone de la carte ouvre le sélecteur', () => {
   it('un appui sur la puce ouvre le choix de zone', async () => {
     const props = $state({ zone: { ...ZONES[0], position_ms: 0 } as unknown as Zone });

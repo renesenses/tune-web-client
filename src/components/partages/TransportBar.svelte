@@ -10,6 +10,7 @@
   import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../../lib/peakMetre';
   import { onMount, onDestroy } from 'svelte';
   import { selecteurZoneOuvert } from '../../lib/stores/selecteurZone';
+  import { zoneDeCetAppareil, idRetenu } from '../../lib/zoneDeCetAppareil';
   import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
   import { arretPossible } from '../../lib/arretTransport';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
@@ -445,6 +446,31 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
    * doubleraient chaque zone pour les lecteurs d'écran.
    */
   let petitEcran = $state(false);
+  /**
+   * « Ce téléphone », en tête de la feuille des zones : la zone navigateur de
+   * CET appareil, retrouvée ou créée en un appui, puis pilotée. Voir
+   * `lib/zoneDeCetAppareil.ts`.
+   */
+  let idCetAppareil = $state<number | null>(idRetenu());
+  let rattachement = $state(false);
+  async function choisirCetAppareil(e: Event) {
+    e.stopPropagation();
+    if (rattachement) return;
+    rattachement = true;
+    try {
+      const id = await zoneDeCetAppareil($zones, $t('zone.thisDevice' as any), (nom) =>
+        api.createZone(nom, 'browser'),
+      );
+      idCetAppareil = id;
+      if (!$zones.some((z) => z.id === id)) zones.set(await api.getZones());
+      currentZoneId.set(id);
+      $selecteurZoneOuvert = false;
+    } catch (err: any) {
+      notifications.error(err?.message || String(err));
+    } finally {
+      rattachement = false;
+    }
+  }
   $effect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
     const mq = window.matchMedia('(max-width: 768px)');
@@ -940,6 +966,22 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
             <span class="zone-popover-title">{$t('zone.zones')}</span>
             <span class="zone-popover-count">{zonesDuMenu.length}</span>
           </div>
+          {#if feuille}
+            <div class="zone-popover-row" class:active={idCetAppareil != null && $currentZoneId === idCetAppareil}>
+              <button
+                class="zone-popover-item cet-appareil"
+                class:active={idCetAppareil != null && $currentZoneId === idCetAppareil}
+                disabled={rattachement}
+                onclick={choisirCetAppareil}
+              >
+                <span class="zone-dot online"></span>
+                <span class="zone-popover-icon"><ZoneTypeIcon type="browser" size={16} /></span>
+                <span class="zone-popover-labels">
+                  <span class="zone-popover-name truncate" title={$t('zone.thisDevice' as any)}>{$t('zone.thisDevice' as any)}</span>
+                </span>
+              </button>
+            </div>
+          {/if}
           {#each zonesDuMenu as z (z.id)}
             <!--
               Une RANGÉE, et non un seul bouton : le transfert est une seconde

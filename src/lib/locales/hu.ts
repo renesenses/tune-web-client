@@ -262,6 +262,7 @@ export default {
   "zone.newZone": "Új zóna",
   "zone.selectDevice": "-- Eszköz --",
   "zone.browserOutput": "Ez a számítógép (böngésző)",
+  'zone.thisDevice': 'Ez a telefon',
   "zone.createZone": "Zóna létrehozása",
   "zone.restoreDeletedZone": "Zóna visszaállítása",
   "zone.zoneRestored": "Zóna visszaállítva",

@@ -195,6 +195,7 @@ export default {
   'zone.newZone': '新建区域',
   'zone.selectDevice': '-- 选择设备 --',
   'zone.browserOutput': '此浏览器',
+  'zone.thisDevice': '这部手机',
   'zone.createZone': '创建区域',
   'zone.restoreDeletedZone': '恢复区域',
   'zone.zoneRestored': '区域已恢复',
