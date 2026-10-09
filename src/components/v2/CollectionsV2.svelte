@@ -937,6 +937,22 @@
    * `smartcollections:` est la meme cle que l'ecran du client actuel : un
    * raccourci pose d'un cote se rouvre de l'autre.
    */
+  /** La fiche d'une collection connue par son seul raccourci (fil 2149). */
+  const entreeProvisoire = (sorte: Sorte, id: number, nom: unknown): Entree => ({
+    sorte,
+    id,
+    nom: typeof nom === 'string' ? nom : '',
+    description: null,
+    nomCle: null,
+    descriptionCle: null,
+    albums: null,
+    manquants: null,
+    manquantsDetail: [],
+    covers: [],
+    coversServies: false,
+    creee: null,
+  });
+
   const cleCible = (e: Entree) =>
     `${e.sorte === 'smart' ? 'smartcollections' : 'collections'}:${e.id}`;
 
@@ -951,9 +967,20 @@
       // L'onglet doit suivre, sinon on rouvrirait une fiche sous un onglet qui
       // ne la contient pas — et la fermer retomberait sur la mauvaise liste.
       onglet = smart ? 'smart' : 'manuelle';
-      let e = entrees.find((x) => x.id === id && (x.sorte === 'smart') === smart);
-      if (!e) { await charger(); e = entrees.find((x) => x.id === id && (x.sorte === 'smart') === smart); }
-      if (e) ouvrir(e);
+      const e = entrees.find((x) => x.id === id && (x.sorte === 'smart') === smart);
+      if (e) { ouvrir(e); return; }
+      // 🔴 Fil forum 2149 — « lenteur à l'ouverture d'un raccourci vers une
+      // smart collection ». Le raccourci arrive 150 ms après l'écran, quand
+      // la LISTE est encore en route : on relançait alors une seconde fois
+      // `charger()` — deux `GET /library/smart-collections`, chacun comptant
+      // TOUTES les collections sur toute la bibliothèque — et la collection
+      // visée n'ouvrait qu'après la seconde réponse. Elle s'ouvre désormais
+      // tout de suite, sur ce que le raccourci sait d'elle (son id, son nom
+      // stocké) : ses albums partent aussitôt, et la liste en cours, à son
+      // arrivée, remplace cette fiche provisoire par la vraie (`charger`
+      // retrouve `ouverte` par sorte et id, et la referme si elle a disparu).
+      ouvrir(entreeProvisoire(smart ? 'smart' : 'normale', id, cible.restore?.name));
+      if (!chargement) void charger();
     };
     window.addEventListener('tune:shortcut-restore', auRetour);
     return () => window.removeEventListener('tune:shortcut-restore', auRetour);
@@ -1209,7 +1236,7 @@
                 gestesMenu={gestesAlbum(a)}
                 nom={a.title}
               >
-                <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} fallbackInitials={a.title?.slice(0, 1)} />
+                <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} vignette alt={a.title} fallbackInitials={a.title?.slice(0, 1)} />
               </PochetteActions>
             </span>
             <button class="meta" onclick={() => { ouvrirCalqueAlbum(a); fiche = a; }}>
@@ -1347,7 +1374,7 @@
                 {#if $preferences.v2CollectionsMosaique}
                   <MosaiquePochettes pochettes={e.covers} initiales={libelleTradu(e).slice(0, 1)} alt={libelleTradu(e)} />
                 {:else}
-                  <AlbumArt coverPath={e.covers[0] ?? null} albumId={null} size={0} alt={libelleTradu(e)}
+                  <AlbumArt coverPath={e.covers[0] ?? null} albumId={null} size={0} vignette alt={libelleTradu(e)}
                     fallbackInitials={libelleTradu(e).slice(0, 1)} />
                 {/if}
               </PochetteActions>
@@ -1384,8 +1411,12 @@
   {#if manquantsOuverts}
     {@const dossier = manquantsOuverts}
     <!-- Les albums manquants, NOMMÉS quand le serveur a su garder leur nom.
-         Un identifiant seul n'est pas caché : c'est ce qu'on sait, et c'est
-         encore assez pour retrouver la trace d'un album dans un journal. -->
+         🔴 tune-server-rust#5615 (Lulu, fil 1891) — sans nom, on ne montre
+         PLUS l'identifiant : « Album n° 992 » a la forme de l'adresse d'une
+         fiche (`#library/album:992`), et Lulu l'a cherché dans la Bibliothèque.
+         Cet album n'existe plus en base : le numéro ne mène nulle part. Le
+         libellé dit donc ce qui est arrivé, et l'entrée n'est pas cliquable
+         (aucune fiche à ouvrir). -->
     <div
       class="mqf"
       role="presentation"
@@ -1407,7 +1438,7 @@
                   {#if m.artiste}<span class="mqa">{m.artiste}</span>{/if}
                 {:else}
                   <span class="mqt inc"
-                    >{$t('collections.missingUnknown' as any).replace('{id}', String(m.id))}</span>
+                    >{$t('collections.missingUnknown' as any)}</span>
                 {/if}
                 {#if m.reuniDans}
                   {@const r = m.reuniDans}

@@ -12,6 +12,7 @@
    * qu'on possède déjà. L'écran le dit, sinon on croit jeter l'information.
    */
   import * as api from '../../lib/api';
+  import { finDeDossier } from '../../lib/repereCoffret';
   import { formatNombre } from '../../lib/formats';
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   import type { GravureDrEtat, MetadataProposal, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon, AlbumDetailed } from '../../lib/api';
@@ -27,6 +28,7 @@
   import { grouperParArtisteDevine, type PisteDouteuse } from '../../lib/artisteDepuisChemin';
   import { t } from '../../lib/i18n';
   import { chargerLesDoublons, DELAI_DOUBLONS_MS, type EchecDoublons } from '../../lib/doublonsChargement';
+  import { titreDeCopie, titresDifferent } from '../../lib/doublonsCarte';
   import '../../styles/tune-v2.css';
 
   type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr' | 'compil' | 'coffret' | 'manquants';
@@ -211,6 +213,8 @@
       drMinuterie = setTimeout(chargerDr, 2000);
     }
   }
+  // Pistes déjà traitées par la passe (en cours ou interrompue).
+  const drFaites = $derived(dr ? (dr.written ?? 0) + (dr.already ?? 0) + (dr.skipped ?? 0) + (dr.errors ?? 0) : 0);
   async function graverDr() {
     if (drBusy) return;
     drBusy = true;
@@ -415,9 +419,12 @@
     // justement l'un de l'autre. Le tri par titre les met côte à côte.
     // 🔴 #1434 — par NOMBRE : « Disc 2 » avant « Disc 10 ». En texte, le
     // « CD 10 » d'un coffret Radio Nova passait avant le « CD 2 ».
+    // Fil 2094 — le DOSSIER aussi : « CD07 » se cherche, et deux titres
+    // identiques se rangent dans l'ordre de leurs dossiers (CD01 … CD27).
     return cpTous
-      .filter((a) => pliage(a.title ?? '').includes(q) || pliage(a.album_artist ?? '').includes(q))
-      .sort((x, y) => comparerAlphabetique(x.title, y.title))
+      .filter((a) => pliage(a.title ?? '').includes(q) || pliage(a.album_artist ?? '').includes(q)
+        || pliage(a.folder ?? '').includes(q))
+      .sort((x, y) => comparerAlphabetique(x.title, y.title) || comparerAlphabetique(x.folder ?? '', y.folder ?? ''))
       .slice(0, 300);
   });
 
@@ -866,7 +873,10 @@
                 <div class="pw">
                   <div class="pt">{p.a.title ?? '—'}{#if p.a.artist_name}<em>{p.a.artist_name}</em>{/if}</div>
                   <div class="pf">{libelleCritere(p.critere)}</div>
-                  <div class="sub">A · {nomCopie(p.a)} — B · {nomCopie(p.b)}</div>
+                  <!-- tune-server-rust#5976 : A ET B nommés, chacun sur sa ligne — « Garder A » retire B,
+                       l'utilisateur doit voir de quelle piste il s'agit. -->
+                  <div class="sub" title={p.a.file_path}>A · {titreDeCopie(p.a)} — {nomCopie(p.a)}</div>
+                  <div class="sub" class:ecart={titresDifferent(p.a, p.b)} title={p.b.file_path}>B · {titreDeCopie(p.b)} — {nomCopie(p.b)}</div>
                   {#if p.recommandation?.garder != null}
                     <div class="sub">{$t('v2.meta.recoKeep' as any).replace('{name}', p.recommandation.garder === p.a.id ? 'A' : 'B')}</div>
                   {/if}
@@ -919,8 +929,13 @@
             <span>{$t('v2.meta.drEngrave' as any)}</span>
             <span class="hint">{$t('v2.meta.drHint' as any)}</span>
           </div>
+          <!-- Fil 2137 : une passe morte en route rendait `running` à vie, et
+               le bouton restait grisé. Le serveur dit désormais `interrupted` :
+               le bouton redevient cliquable et dit où elle s'est arrêtée. -->
           <button class="go" disabled={drBusy || dr.status === 'running' || dr.a_graver === 0} onclick={graverDr}>
-            {dr.status === 'running' ? $t('v2.meta.drRunning' as any) : $t('v2.meta.drEngraveBtn' as any)}
+            {#if dr.status === 'running'}{$t('v2.meta.drRunning' as any)}
+            {:else if dr.status === 'interrupted'}{$t('v2.meta.drInterrupted' as any).replace('{done}', $formatNombre(drFaites)).replace('{total}', $formatNombre(dr.total ?? 0))}
+            {:else}{$t('v2.meta.drEngraveBtn' as any)}{/if}
           </button>
         </div>
         <div class="drgrid">
@@ -929,7 +944,7 @@
           <div class="drk"><b>{$formatNombre(dr.hors_format)}</b><span>{$t('v2.meta.drOtherFormats' as any)}</span></div>
         </div>
         {#if dr.status === 'running'}
-          <p class="note">{$t('v2.meta.drProgress' as any).replace('{done}', $formatNombre((dr.written ?? 0) + (dr.already ?? 0) + (dr.skipped ?? 0) + (dr.errors ?? 0))).replace('{total}', $formatNombre(dr.total ?? 0))}</p>
+          <p class="note">{$t('v2.meta.drProgress' as any).replace('{done}', $formatNombre(drFaites)).replace('{total}', $formatNombre(dr.total ?? 0))}</p>
         {:else if dr.status === 'done'}
           <p class="note">{$t('v2.meta.drDone' as any).replace('{written}', $formatNombre(dr.written ?? 0)).replace('{already}', $formatNombre(dr.already ?? 0)).replace('{skipped}', $formatNombre(dr.skipped ?? 0)).replace('{errors}', $formatNombre(dr.errors ?? 0))}</p>
         {:else if dr.a_graver === 0}
@@ -1040,6 +1055,14 @@
                 <span class="sub">
                   {a.album_artist ?? '—'} ·
                   {$t('v2.meta.compilTracks' as any).replace('{count}', $formatNombre(a.track_count))}
+                  <!-- Fil 2094 — le numéro de disque et le DOSSIER : vingt-sept
+                       « Arkhangelsk » identiques ne se distinguaient pas. -->
+                  {#if typeof a.disc_number === 'number' && a.disc_number > 0}
+                    · <span class="cfrepere">{$t('v2.meta.boxDisc' as any).replace('{n}', String(a.disc_number))}</span>
+                  {/if}
+                  {#if finDeDossier(a.folder)}
+                    · <span class="cfrepere" title={a.folder ?? ''}>{finDeDossier(a.folder)}</span>
+                  {/if}
                 </span>
               </span>
               <!-- Le RANG, visible : c'est le numéro de disque que l'album
@@ -1225,6 +1248,8 @@
   .dh{margin:18px 0 8px; font:9.5px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-txt3)}
   .dh span{margin-left:6px; opacity:.7}
   .sub{margin-top:4px; font-size:12px; color:var(--v2-txt3)}
+  /* tune-server-rust#5976 : B ne porte pas le même titre que A — à regarder avant de trancher. */
+  .sub.ecart{color:var(--v2-danger); font-weight:600}
   .grp .lnk.armed{font-weight:700}
   .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}

@@ -111,11 +111,20 @@
   --v2-glow:rgba(216,154,99,.22); --v2-glow-strong:rgba(216,154,99,.30); --v2-acc-soft:rgba(181,116,74,.12); --v2-focus:rgba(216,154,99,.20); --v2-scrim:rgba(23,17,13,.8); --v2-sh-sm:rgba(0,0,0,.45);
 }
 
+/* `--v2-txt3` (le texte ATTÉNUÉ, ponté en `--tune-text-muted` et
+   `--tune-text-dim`) des deux thèmes clairs était à 3,03:1 (Blanc) et
+   3,66:1 (Gris) sur la surface, moins encore sur la surface de choix.
+   Bertrand, 04/10/2026 : il fonce, même teinte, jusqu'à 4,5:1 au moins sur
+   fond, fond 2, surface, surface de choix et survol — dont la carte d'analyse
+   d'Ambiance, posée sur la surface. Il reste plus clair que `--v2-txt2` : la
+   hiérarchie texte / secondaire / atténué tient. Les thèmes sombres ne
+   bougent pas. Garde : `contrasteThemesClairs2136.test.ts`. */
+
 /* ── 5. Clair / Blanc ─────────────────────────────────────────────────── */
 :root[data-v2-theme="clear-white"] .tune-v2{
   --v2-bg:#FFFFFF; --v2-bg2:#F6F8FA; --v2-surface:#FFFFFF; --v2-surface2:#F1F4F7;
   --v2-line:#E4E9EE; --v2-line2:#D2DAE2;
-  --v2-txt:#0C1620; --v2-txt2:#56646F; --v2-txt3:#8896A3;
+  --v2-txt:#0C1620; --v2-txt2:#56646F; --v2-txt3:#646E78;
   --v2-acc1:#00A88A; --v2-acc2:#0093AE; --v2-acc-tint:#00695A; --v2-on-acc:#04201A;
   --v2-hover:#EDF1F5; --v2-active1:#E6F5F1; --v2-active2:#DEEFEB;
   --v2-player1:#FFFFFF; --v2-player2:#F3F6F9; --v2-knob:#0C1620;
@@ -144,7 +153,7 @@
 :root[data-v2-theme="clear-grey"] .tune-v2{
   --v2-bg:#EDEFF2; --v2-bg2:#E6E9ED; --v2-surface:#FFFFFF; --v2-surface2:#E2E6EB;
   --v2-line:#D6DBE1; --v2-line2:#C2C9D1;
-  --v2-txt:#141C24; --v2-txt2:#515C67; --v2-txt3:#7C8792;
+  --v2-txt:#141C24; --v2-txt2:#515C67; --v2-txt3:#5F6770;
   --v2-acc1:#37718E; --v2-acc2:#4A8CA8; --v2-acc-tint:#1F4A5C; --v2-on-acc:#FFFFFF;
   --v2-hover:#E4E8ED; --v2-active1:#DBE3EA; --v2-active2:#D3DCE4;
   --v2-player1:#F4F6F8; --v2-player2:#E9ECF0; --v2-knob:#141C24;
@@ -219,6 +228,17 @@
      le v2 modifierait un fichier v1 pour son propre confort. */
   --tune-accent-2: var(--v2-acc2);
   --tune-text-dim: var(--v2-txt3);
+}
+
+/* `--tune-grey2` (fond des puces, champs et vignettes des écrans repris du
+   client actuel) n'était pas ponté : il gardait le #2A2A2A sombre de
+   `tune-theme.css` dans les deux thèmes CLAIRS. Fil 2136 (Pierre, 04/10/2026),
+   écran Ambiance en « Clair / Gris » : puces gris foncé, texte à 2,1:1.
+   Il prend la surface de choix du thème — c'est exactement son rôle.
+   Limité aux thèmes clairs : sur les quatre thèmes sombres, rien ne change. */
+:root[data-v2-theme="clear-white"] .tune-v2,
+:root[data-v2-theme="clear-grey"] .tune-v2{
+  --tune-grey2: var(--v2-surface2);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

@@ -736,8 +736,8 @@
   }
 
   .acoustic-notice {
-    background: var(--surface, #1c1c22);
-    border: 1px solid var(--border, #33333a);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
     border-left: 3px solid var(--tune-accent, #6c5ce7);
     border-radius: 8px;
     padding: 1rem 1.25rem;
@@ -750,7 +750,7 @@
   .acoustic-notice-body {
     margin: 0;
     font-size: 0.9rem;
-    color: var(--text-muted, #a0a0a8);
+    color: var(--tune-text-secondary);
     max-width: 70ch;
   }
   .acoustic-notice-btn {

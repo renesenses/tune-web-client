@@ -30,6 +30,94 @@ export function isBrowserZone(zone: { output_type?: string } | null | undefined)
   return zone?.output_type === 'browser';
 }
 
+/**
+ * 🔴 #2108 — L'ÉLÉMENT AUDIO NE PARLE QUE POUR SA ZONE.
+ *
+ * Levente Toth, fil forum 2108 (1.0.0-rc1, Linux) : « If two zones are playing
+ * at the same time, Zone 1's play bar is jumping every second forward and
+ * back ». Zone 1 : sortie locale ; zone 2 : le navigateur.
+ *
+ * `seekPositionMs` est UN nombre pour toute l'application : la position de la
+ * zone AFFICHÉE (barre de transport, carte de la zone courante). Or cet élément
+ * y écrivait son `currentTime` à chaque `timeupdate` — quatre fois par
+ * seconde — quelle que soit la zone à l'écran. La zone 2 jouant dans ce
+ * navigateur pendant qu'on regardait la zone 1, la barre de la zone 1 prenait
+ * la position de la zone 2 ; le `playback.position` suivant de la zone 1,
+ * à plus de deux secondes de là, la ramenait à sa place (`v2Live`, seuil de
+ * dérive) ; puis le `timeupdate` suivant la renvoyait. Va-et-vient permanent,
+ * sans effet sur le son : c'est exactement le constat.
+ *
+ * Même défaut pour le minuteur : une pause de la zone navigateur arrêtait le
+ * minuteur de la zone locale affichée, et sa fin de morceau faisait passer la
+ * zone AFFICHÉE au titre suivant.
+ *
+ * La règle : l'élément ne pilote la barre que si la zone affichée est celle
+ * dont il joue la source. Propriétaire inconnu (appelant qui ne fournit pas
+ * l'identifiant, #1171) : on retombe sur l'ancien critère — la zone affichée
+ * sort-elle sur le navigateur ?
+ */
+function pilotLaBarreAffichee(): boolean {
+  const affichee = get(currentZone) as { id?: number; output_type?: string } | null;
+  if (sourceZoneId !== null) return affichee?.id === sourceZoneId;
+  return isBrowserZone(affichee);
+}
+
+/** La zone à qui appartient le média chargé — repli : la zone affichée si elle sort ici. */
+function zoneDeLaSource(): number | null {
+  if (sourceZoneId !== null) return sourceZoneId;
+  const affichee = get(currentZone) as { id?: number; output_type?: string } | null;
+  return isBrowserZone(affichee) && typeof affichee?.id === 'number' ? affichee.id : null;
+}
+
+/**
+ * 🔴 #5975 — UNE PISTE EN ÉCHEC NE DOIT PAS ARRÊTER LA FILE.
+ *
+ * Alex Campbell, fil forum 2178 (1.0.0-rc2 Docker, Safari 18.6, zone « This
+ * computer ») : « 'tttroys playlist' still fails to either player the first
+ * track or skip to the next available working track ». Le gestionnaire
+ * `error` journalisait, passait `browserAudioPlaying` à faux, et s'arrêtait :
+ * ni `api.next`, ni saut. Sur la zone navigateur, une piste illisible figeait
+ * donc toute la file, alors que les autres zones passent à la suivante.
+ *
+ * Garde-fou contre la boucle : si toutes les pistes échouent (file en
+ * répétition, format que le navigateur ne décode jamais…), on s'arrête après
+ * `MAX_ECHECS_CONSECUTIFS` sauts sans un seul `playing` entre eux. La fin de
+ * file, elle, s'arrête d'elle-même : le serveur répond `status: "stopped"`
+ * (`end_of_queue`) et on ne recharge rien.
+ */
+export const MAX_ECHECS_CONSECUTIFS = 5;
+let echecsConsecutifs = 0;
+let sautEnCours = false;
+
+async function sauterLaPisteEnErreur(zoneId: number | null): Promise<void> {
+  if (zoneId == null || sautEnCours) return;
+  echecsConsecutifs += 1;
+  if (echecsConsecutifs > MAX_ECHECS_CONSECUTIFS) {
+    console.warn(
+      `Browser audio: ${MAX_ECHECS_CONSECUTIFS} sauts sans une piste lisible, arrêt de la file (#5975)`,
+    );
+    // On rend la main : l'élément est vidé (et le compteur remis à zéro par
+    // `browserStop`), si bien qu'aucune erreur tardive ne relance la série,
+    // et qu'un prochain lancement repart d'un compteur neuf.
+    browserStop();
+    return;
+  }
+  sautEnCours = true;
+  try {
+    const res = await api.next(zoneId);
+    if (res?.status === 'stopped') return; // fin de file
+    const z = await api.getZone(zoneId);
+    syncZone(z);
+    if (isBrowserZone(z) && z.stream_url && z.state !== 'stopped') {
+      browserPlay(z.stream_url, true, z.id);
+    }
+  } catch {
+    /* non-fatal */
+  } finally {
+    sautEnCours = false;
+  }
+}
+
 /** Get or create the singleton audio element */
 function getAudio(): HTMLAudioElement {
   if (!audioElement) {
@@ -39,17 +127,21 @@ function getAudio(): HTMLAudioElement {
 
     audioElement.addEventListener('playing', () => {
       browserAudioPlaying.set(true);
-      startSeekTimer();
+      echecsConsecutifs = 0;
+      if (pilotLaBarreAffichee()) startSeekTimer();
     });
 
     audioElement.addEventListener('pause', () => {
       browserAudioPlaying.set(false);
-      stopSeekTimer();
+      if (pilotLaBarreAffichee()) stopSeekTimer();
     });
 
     audioElement.addEventListener('ended', async () => {
       browserAudioPlaying.set(false);
-      stopSeekTimer();
+      // La zone dont le morceau vient de finir — pas forcément celle qu'on
+      // regarde (#2108). Capturée AVANT le premier `await`.
+      const zoneId = zoneDeLaSource();
+      if (pilotLaBarreAffichee()) stopSeekTimer();
       // Auto-advance to next track.
       //
       // api.next() returns only { status, queue_position } — no zone, no
@@ -60,11 +152,10 @@ function getAudio(): HTMLAudioElement {
       // force:true, since the server serves the next track under the SAME
       // per-zone stream URL — without the forced reload the element replays the
       // just-ended buffer ("repeat instead of advance", Elie).
-      const zone = get(currentZone);
-      if (zone?.id != null) {
+      if (zoneId != null) {
         try {
-          await api.next(zone.id);
-          const z = await api.getZone(zone.id);
+          await api.next(zoneId);
+          const z = await api.getZone(zoneId);
           syncZone(z);
           if (isBrowserZone(z) && z.stream_url) {
             browserPlay(z.stream_url, true, z.id);
@@ -76,15 +167,21 @@ function getAudio(): HTMLAudioElement {
     });
 
     audioElement.addEventListener('timeupdate', () => {
-      if (audioElement) {
+      if (audioElement && pilotLaBarreAffichee()) {
         seekPositionMs.set(Math.floor(audioElement.currentTime * 1000));
       }
     });
 
-    audioElement.addEventListener('error', (e) => {
-      console.error('Browser audio error:', audioElement?.error);
+    audioElement.addEventListener('error', () => {
+      const erreur = audioElement?.error;
+      console.error('Browser audio error:', erreur);
       browserAudioPlaying.set(false);
-      stopSeekTimer();
+      if (pilotLaBarreAffichee()) stopSeekTimer();
+      // #5975 — une piste illisible ne doit pas arrêter la file : on passe à
+      // la suivante, comme les autres zones. Seulement pour une vraie erreur
+      // média sur une source chargée (un arrêt vide la source sans erreur).
+      if (!erreur || !audioElement?.src || get(browserStreamUrl) === null) return;
+      void sauterLaPisteEnErreur(zoneDeLaSource());
     });
   }
   return audioElement;
@@ -194,13 +291,17 @@ export function browserResume(streamUrl?: string | null, zoneId?: number | null)
 /** Stop browser audio and clear the source */
 export function browserStop() {
   const audio = getAudio();
+  // Décidé AVANT d'oublier le propriétaire : arrêter la zone navigateur ne doit
+  // pas figer la barre d'une autre zone affichée (#2108).
+  const pilote = pilotLaBarreAffichee();
   sourceZoneId = null;
+  echecsConsecutifs = 0;
   audio.pause();
   audio.removeAttribute('src');
   audio.load(); // reset
   browserStreamUrl.set(null);
   browserAudioPlaying.set(false);
-  stopSeekTimer();
+  if (pilote) stopSeekTimer();
 }
 
 /** Un arrêt serveur ne doit atteindre que le média de cette zone. */
@@ -208,6 +309,16 @@ export function browserStopForZone(zoneId: number): boolean {
   if (!audioElement || sourceZoneId === null || sourceZoneId !== zoneId) return false;
   browserStop();
   return true;
+}
+
+/**
+ * La position que joue l'élément, en ms, s'il joue la zone `zoneId` — sinon
+ * `null` (fil 1476 : seul l'onglet connaît la position d'une zone navigateur).
+ */
+export function browserPositionMsPour(zoneId: number): number | null {
+  if (!audioElement || sourceZoneId !== zoneId) return null;
+  const t = audioElement.currentTime;
+  return Number.isFinite(t) ? Math.floor(t * 1000) : null;
 }
 
 /** Seek to a position in milliseconds */
@@ -229,6 +340,8 @@ export function browserSetVolume(volume: number) {
 /** Clean up the audio element (call on app destroy) */
 export function browserAudioDestroy() {
   sourceZoneId = null;
+  echecsConsecutifs = 0;
+  sautEnCours = false;
   if (audioElement) {
     audioElement.pause();
     audioElement.removeAttribute('src');

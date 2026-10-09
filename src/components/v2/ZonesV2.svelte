@@ -18,6 +18,7 @@
    */
   import * as api from '../../lib/api';
   import { zones, currentZoneId } from '../../lib/stores/zones';
+  import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { chargerLesZones, etatDesZones, listeVraimentVide } from '../../lib/chargementDesZones';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -25,7 +26,7 @@
   import { t } from '../../lib/i18n';
   import { zonesAppairables, parametresPaire, voieDeLaZone } from '../../lib/pairesStereo';
   import '../../styles/tune-v2.css';
-  import { appareilDeLaZone, lireVueZones, ecrireVueZones, etatLectureDeZone, type VueZones } from '../../lib/vueZones';
+  import { appareilDeLaZone, lireVueZones, ecrireVueZones, etatLectureDeZone, vignetteDeZone, type VueZones } from '../../lib/vueZones';
   import EtatZone from './EtatZone.svelte';
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
@@ -38,6 +39,7 @@
   import MultiroomSettings from '../partages/MultiroomSettings.svelte';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { poserPhotoAppareil } from '../../lib/photoAppareil';
   import { devices } from '../../lib/stores/devices';
   import { sortiesProposees } from '../../lib/sortiesDeZone';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -361,6 +363,9 @@
     renaming = z.id; draft = z.name;
   }
   function commitRename(z: Zone) {
+    // Échap (ou un premier Entrée) a déjà refermé le champ : le `blur` que
+    // déclenche sa disparition ne doit ni renommer ni renommer deux fois.
+    if (renaming !== z.id) return;
     const name = draft.trim();
     renaming = null;
     if (!name || name === z.name || z.id == null) return;
@@ -390,17 +395,20 @@
     if (z.id == null) return;
     const question = $t('v2.zone.deleteExplain' as any).replace('{name}', z.name);
     if (!(await dialogs.confirm(question, { danger: true }))) return;
-    act(async () => {
-      await api.deleteZone(z.id as number);
-      // La zone active vient d'être supprimée : on ne laisse pas l'interface
-      // pointer sur un identifiant mort.
-      if ($currentZoneId === z.id) currentZoneId.set(null);
-    });
+    // Même geste que la barre de lecture (fil 2013, point 9) : un seul endroit.
+    act(() => supprimerZoneConfirmee(z.id as number));
   }
+  /** `v` est le POUR-CENT du curseur (0..100) ; la zone porte un volume
+   *  LINÉAIRE (0..1), comme `/zones` et `playback.volume`. Le pour-cent
+   *  était recopié tel quel dans le magasin : à 30, la zone valait 30, le
+   *  curseur redessiné `Math.round(30 * 100)` = 3000 se calait au maximum et
+   *  le chiffre affichait « 3000 » jusqu’à l’écho du serveur (trouvé en
+   *  instruisant le fil forum 2147). */
   function setVol(z: Zone, v: number) {
     if (z.id == null) return;
-    zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume: v } : x)));
-    api.setVolume(z.id, v / 100).catch(() => { error = $t('v2.zone.volumeRefused' as any); refresh(); });
+    const lineaire = v / 100;
+    zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume: lineaire } : x)));
+    api.setVolume(z.id, lineaire).catch(() => { error = $t('v2.zone.volumeRefused' as any); refresh(); });
   }
 
   const OUTPUTS: Record<string, string> = {
@@ -453,8 +461,12 @@
     input.value = '';
     zoneAImager = null;
     if (!fichier || !z || z.id == null) return;
+    // #1394 — rien ne part avant que l'utilisateur ait lu où va la photo.
     act(async () => {
-      await api.uploadZoneImage(z.id as number, fichier);
+      await poserPhotoAppareil(z.id as number, fichier, {
+        confirmer: (m) => dialogs.confirm(m),
+        traduire: (k) => $t(k as any),
+      });
     });
   }
 
@@ -578,9 +590,15 @@
         point), le NOM, l'APPAREIL, les BADGES (Tune tested, hors ligne,
         éteinte récemment, aucune sortie — en pastilles, la phrase en
         infobulle), ce qui joue, puis le volume et le lien vers les réglages
-        de la zone. Les gestes destructifs (renommer, supprimer, fusionner)
-        restent à la LISTE : une carte qu'on clique pour activer une zone ne
-        doit pas porter une corbeille à portée de pouce.
+        de la zone. Les gestes (renommer, supprimer, fusionner…) passent par
+        le MENU de la carte (#1392), jamais par une corbeille à portée de
+        pouce.
+
+        Fil 2132 — « Renommer » posait `renaming` mais seule la LISTE lisait
+        cet état : en grille, le clic ne montrait rien. La carte dessine
+        maintenant le même champ, à la place du nom. Il est le FRÈRE de
+        `.cpick` : un champ de saisie DANS un bouton est du balisage
+        invalide (#1006).
 
         🔴 #1006 — la carte n'est PLUS un seul <button> : une pochette
         cliquable et un lien dans un bouton, c'est du balisage invalide que
@@ -597,6 +615,7 @@
           {@const r = reach(z)}
           {@const teste = tuneTestedDe(z)}
           {@const np = z.current_track}
+          {@const vignette = vignetteDeZone(z)}
           <div class="carte" class:active={z.id === $currentZoneId} class:offline={z.online === false}>
             <div class="ctete">
 <!--
@@ -614,16 +633,19 @@
                 cours (#1006), l'icône n'a aucune lecture à ouvrir et se
                 contente d'activer la zone, comme le reste de la carte.
               -->
-              {#if np?.cover_path || np?.album_id}
+              <!-- web#1865 : la pochette suit l'ÉTAT de lecture, pas la seule
+                   présence d'une piste courante — arrêtée, la zone montre la
+                   photo de son appareil (`vignetteDeZone`, lib/vueZones). -->
+              {#if vignette === 'pochette'}
                 <button class="cpoch" onclick={() => ouvrirLecture(z)}
                   title={$t('v2.zone.openNowPlaying' as any)} aria-label={$t('v2.zone.openNowPlaying' as any)}>
                   <AlbumArt coverPath={np?.cover_path ?? null} albumId={np?.album_id ?? null} size={64} alt={np?.title ?? ''} />
                 </button>
-              {:else if z.image_path}
+              {:else if vignette === 'photo'}
                 <!-- Maillon 2 : la PHOTO de l'appareil (#1394). Rien ne joue,
                      mais la zone reste reconnaissable. -->
                 <button class="cpoch crepli" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
-                  <AlbumArt coverPath={z.image_path} albumId={null} size={64} alt={z.name} />
+                  <AlbumArt coverPath={z.image_path ?? null} albumId={null} size={64} alt={z.name} />
                 </button>
               {:else}
                 <button class="cpoch crepli" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
@@ -640,7 +662,7 @@
                   {#if sortieSecondaire(z)}<span class="cot">{sortieSecondaire(z)}</span>{/if}
                   {#if z.is_default}<span class="cdef">{$t('v2.zone.default' as any)}</span>{/if}
                 </span>
-                <span class="cnom">{z.name}</span>
+                {#if renaming !== z.id}<span class="cnom">{z.name}</span>{/if}
                 <span class="cappareil" class:muet={!appareilDeLaZone(z)}>{appareilOuSortie(z)}</span>
                 <span class="cbadges">
                   {#if teste}<BadgeTuneTested taille="sm" />{/if}
@@ -654,6 +676,15 @@
                 {/if}
               </button>
             </div>
+            {#if renaming === z.id}
+              <div class="crn">
+                <!-- svelte-ignore a11y_autofocus -->
+                <input class="rn" bind:value={draft} autofocus
+                  aria-label={$t('zone.rename' as any)}
+                  onblur={() => commitRename(z)}
+                  onkeydown={(e) => { if (e.key === 'Enter') commitRename(z); if (e.key === 'Escape') renaming = null; }} />
+              </div>
+            {/if}
             <div class="cvol">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
               <input type="range" min="0" max="100" step="1" value={Math.round((z.volume ?? 0) * 100)}
@@ -915,6 +946,8 @@
   .cnp{margin-top:10px; font:12px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%}
   .cna{color:var(--v2-txt3)}
 
+  .crn{padding:0 16px 4px}
+  .crn .rn{width:100%; box-sizing:border-box}
   .cvol{display:flex; align-items:center; gap:10px; padding:10px 16px 13px;
     border-top:1px solid var(--v2-line)}
   .cvol svg{width:15px; height:15px; color:var(--v2-txt3); flex:0 0 auto}

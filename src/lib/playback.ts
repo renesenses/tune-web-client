@@ -4,6 +4,9 @@ import * as api from './api';
 import { notifications } from './stores/notifications';
 import { queueTracks, queuePosition } from './stores/queue';
 import { t } from './i18n';
+import { champAlbumBandcamp } from './albumBandcampDuTitre';
+import { PRECEDENTS_MAX, bornerPrecedents, noterReponseAjout, remettreLesPrecedents } from './precedentsEnTete';
+import type { Track } from './types';
 
 /**
  * A row a list can offer to "play from here": local (numeric `id`) or streaming
@@ -26,6 +29,8 @@ export type PlayableRow = {
   album_title?: string | null;
   cover_path?: string | null;
   duration_ms?: number;
+  /** La page de l'album d'un titre Bandcamp (web#1923), quand elle est connue. */
+  album_id_service?: string | null;
 };
 
 function estStreaming(t?: PlayableRow | null): boolean {
@@ -39,16 +44,28 @@ async function lireUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
       source: t.source as any, source_id: t.source_id as string,
       title: t.title, artist_name: t.artist_name,
       album_title: t.album_title, cover_path: t.cover_path,
+      ...champAlbumBandcamp(t),
     } as any);
   } else {
-    await playAndSync(zoneId, { track_id: t.id as number });
+    // #5758 — `start_index` : sans lui, `{ track_id }` seul est la « demande
+    // nue » de la barre de transport (#2876 / #4298), et le serveur GARDE la
+    // file existante si le titre y figure ; la suite s'enfilerait derrière.
+    await playAndSync(zoneId, { track_id: t.id as number, start_index: 0 });
   }
 }
 
+/** Ce que rend `POST /zones/{id}/queue/add`, réduit à ce qu'on en lit ici. */
+type ReponseAjout = { queue_position?: unknown } | null | undefined;
+
+// #5770 — la garde « le serveur suit-il le curseur ? » et l'insertion des
+// titres précédents vivent dans `precedentsEnTete`, partagé avec
+// `lectureEnMasse.lireListeDepuis` (écrans V2).
+export { oublierCapaciteCurseur } from './precedentsEnTete';
+
 /** Append one row to the queue, whichever kind it is. */
-async function enfilerUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
+async function enfilerUneLigne(zoneId: number, t: PlayableRow): Promise<ReponseAjout> {
   if (estStreaming(t)) {
-    await api.addToQueue(zoneId, {
+    return api.addToQueue(zoneId, {
       source: t.source as any, source_id: t.source_id as string,
       // `?? undefined` et non le `null` brut : `JSON.stringify` supprime une
       // clé `undefined` mais transmet `null`. Une ligne sans artiste connu doit
@@ -57,10 +74,24 @@ async function enfilerUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
       title: t.title, artist_name: t.artist_name ?? undefined,
       album_title: t.album_title ?? undefined,
       cover_path: t.cover_path, duration_ms: t.duration_ms,
+      ...champAlbumBandcamp(t),
     });
-  } else {
-    await api.addToQueue(zoneId, { track_id: t.id as number });
   }
+  return api.addToQueue(zoneId, { track_id: t.id as number });
+}
+
+/** Le corps d'une ligne de service dans `tracks[]`. */
+function ligneDeService(track: PlayableRow) {
+  return {
+    source: track.source as any,
+    source_id: track.source_id as string,
+    title: track.title,
+    artist_name: track.artist_name,
+    album_title: track.album_title,
+    cover_path: track.cover_path,
+    duration_ms: track.duration_ms,
+    ...champAlbumBandcamp(track),
+  };
 }
 
 /**
@@ -76,6 +107,11 @@ async function enfilerUneLigne(zoneId: number, t: PlayableRow): Promise<void> {
  * with no local row at all returned in silence. Here we start the clicked row
  * and enqueue what follows it, the same compromise `playAllTracks` already
  * makes in FavoritesView.
+ *
+ * #5770 — then the rows BEFORE it go back in front (`position: 0`), so that
+ * « Précédent » steps back through the list instead of replaying the clicked
+ * row. Only on a server that keeps the playing track under the cursor across
+ * such an insertion (see `precedentsEnTete`).
  */
 export async function playFromHere(
   tracks: PlayableRow[],
@@ -105,9 +141,11 @@ export async function playFromHere(
 
   try {
     // All-local: one call, start_index — unchanged behaviour.
+    // #5758 — au plus `PRECEDENTS_MAX` titres avant le titre cliqué.
     if (liste.every(t => typeof t?.id === 'number')) {
-      const ids = liste.map(t => t.id as number);
-      await playAndSync(zoneId, { track_ids: ids, start_index: Math.max(0, index) });
+      const debut = Math.max(0, index - PRECEDENTS_MAX);
+      const ids = liste.slice(debut).map(t => t.id as number);
+      await playAndSync(zoneId, { track_ids: ids, start_index: Math.max(0, index - debut) });
       return;
     }
 
@@ -117,20 +155,14 @@ export async function playFromHere(
     if (suite.length > 0 && suite.every(estStreaming)) {
       // Une liste de favoris est 100 % streaming : un seul appel conserve
       // l'ordre et évite une requête HTTP par piste (#2140).
-      await api.addToQueue(zoneId, {
-        tracks: suite.map((track) => ({
-          source: track.source as any,
-          source_id: track.source_id as string,
-          title: track.title,
-          artist_name: track.artist_name,
-          album_title: track.album_title,
-          cover_path: track.cover_path,
-          duration_ms: track.duration_ms,
-        })),
-      });
+      noterReponseAjout(await api.addToQueue(zoneId, { tracks: suite.map(ligneDeService) }));
     } else {
-      for (const track of suite) await enfilerUneLigne(zoneId, track);
+      for (const track of suite) noterReponseAjout(await enfilerUneLigne(zoneId, track));
     }
+    // #5770 — puis ce qui précède, en tête, si le serveur sait garder la
+    // piste en cours sous le curseur. Sinon, comme avant : la suite seule.
+    const avant = bornerPrecedents(liste.slice(0, index).filter(jouable));
+    await remettreLesPrecedents(avant as Track[], (c) => api.addToQueue(zoneId, c));
     // The queue view follows `POST /play`'s zone, not our appends: re-read it,
     // otherwise "up next" stays empty until the next WebSocket event.
     try {

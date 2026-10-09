@@ -11,10 +11,12 @@
    * barre de progression figée à zéro.
    */
   import * as api from '../../lib/api';
+  import { onDestroy } from 'svelte';
+  import { libererUrlObjet, libererApresTelechargement } from '../../lib/urlObjet';
   import { formatNombre } from '../../lib/formats';
   import type { DeclickOptions } from '../../lib/api';
   import { albums } from '../../lib/stores/library';
-  import { demanderBibliothequeEntiere } from '../../lib/stores/albumsPagines';
+  import { demanderBibliothequeEntiere, listeEntierePerimee } from '../../lib/stores/albumsPagines';
   import { fold } from '../../lib/utils';
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -38,11 +40,28 @@
   let job = $state<Awaited<ReturnType<typeof api.getDeclickStatus>> | null>(null);
   let downloadUrl = $state<string | null>(null);
 
+  // Fil 2167 — `downloadUrl` est une URL d'objet qui épingle toute l'archive
+  // en mémoire. On la libère quand une autre la remplace, quand la tâche est
+  // annulée ou relancée, une fois le téléchargement parti, et au démontage.
+  let detruit = false;
+  function remplacerLien(url: string | null) {
+    if (downloadUrl !== url) libererUrlObjet(downloadUrl);
+    downloadUrl = url;
+  }
+  onDestroy(() => {
+    detruit = true;
+    libererUrlObjet(downloadUrl);
+  });
+  function telechargementParti(url: string) {
+    libererApresTelechargement(url, () => { if (!detruit && downloadUrl === url) downloadUrl = null; });
+  }
+
   // #4800 — la coquille ne charge plus la bibliothèque au démarrage : cet
   // écran, qui choisit parmi TOUS les albums, la demande lui-même à son
-  // montage, et la redemande si un scan l'a vidée (`$albums` retombe à `[]`).
+  // montage, et la redemande si un scan l'a vidée (fil 2134 : la liste périmée reste
+  // affichée, `listeEntierePerimee` passe à `true`, la neuve la remplace).
   $effect(() => {
-    if ($albums.length) return;
+    if ($albums.length && !$listeEntierePerimee) return;
     void demanderBibliothequeEntiere().catch(() => { /* le bandeau d'`api` a parlé */ });
   });
   const shown = $derived(
@@ -58,7 +77,7 @@
 
   async function start() {
     if (!picked.size || starting) return;
-    starting = true; error = null; downloadUrl = null;
+    starting = true; error = null; remplacerLien(null);
     const options: DeclickOptions = {
       threshold_db: thresholdDb, trim_lead: trimLead, trim_tail: trimTail,
       zero_cross: zeroCross, output_format: outputFormat };
@@ -91,13 +110,18 @@
 
   async function download() {
     if (!jobId) return;
-    try { downloadUrl = await api.downloadDeclick(jobId); }
+    try {
+      const url = await api.downloadDeclick(jobId);
+      // L'écran a disparu pendant la requête : personne ne cliquera ce lien.
+      if (detruit) { libererUrlObjet(url); return; }
+      remplacerLien(url);
+    }
     catch { error = $t('v2.tool.errDownload' as any); }
   }
   async function cancel() {
     if (!jobId) return;
     try { await api.cancelDeclick(jobId); } catch { /* déjà finie */ }
-    jobId = null; job = null;
+    jobId = null; job = null; remplacerLien(null);
   }
 </script>
 
@@ -165,7 +189,7 @@
             <div class="done">
               {$t('v2.tool.done' as any)}
               {#if downloadUrl}
-                <a class="lnk" href={downloadUrl} download>{$t('v2.tool.saveFile' as any)}</a>
+                <a class="lnk" href={downloadUrl} download onclick={() => telechargementParti(downloadUrl!)}>{$t('v2.tool.saveFile' as any)}</a>
               {:else}
                 <button class="lnk" onclick={download}>{$t('v2.tool.prepareDownload' as any)}</button>
               {/if}

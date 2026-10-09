@@ -143,16 +143,16 @@
     justify-content: center;
     width: 28px;
     height: 28px;
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--tune-border);
     border-radius: 6px;
     background: transparent;
-    color: var(--text-dim, #9aa);
+    color: var(--tune-text-secondary);
     cursor: pointer;
   }
   .browse:hover,
   .browse.on {
-    color: var(--accent, #4ec9b0);
-    border-color: var(--accent, #4ec9b0);
+    color: var(--tune-accent);
+    border-color: var(--tune-accent);
   }
   .panneau {
     position: absolute;
@@ -163,15 +163,15 @@
     max-height: 320px;
     overflow: auto;
     padding: 8px;
-    border: 1px solid var(--border, #333);
+    border: 1px solid var(--tune-border);
     border-radius: 8px;
-    background: var(--bg-elev, #1b1b1b);
+    background: var(--tune-surface);
     box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
   }
   .err {
     margin: 0;
     padding: 6px;
     font-size: 12px;
-    color: var(--text-dim, #9aa);
+    color: var(--tune-text-secondary);
   }
 </style>

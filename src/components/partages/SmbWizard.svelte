@@ -66,6 +66,11 @@
   let mountError = $state<string | null>(null);
   let addingToLibrary = $state(false);
   let addedToLibrary = $state(false);
+  // Fil 2145 (Daniel Levy) : la racine n'était déclarée qu'à une étape
+  // SÉPARÉE, après le montage. Un assistant interrompu entre les deux laissait
+  // un partage monté à chaque démarrage, jamais lu, sans rien qui le signale.
+  // La déclaration suit désormais le montage, sauf si l'utilisateur décoche.
+  let ajouterApresMontage = $state(true);
   let scanningLibrary = $state(false);
   let scanStarted = $state(false);
 
@@ -239,6 +244,7 @@
       mountError = e?.message || $t('smb.mountError');
     }
     mounting = false;
+    if (mountResult && ajouterApresMontage) await addToLibrary();
   }
 
   async function addToLibrary() {
@@ -507,6 +513,11 @@
               <span class="mount-value">{username || 'guest'}</span>
             </div>
           </div>
+
+          <label class="add-after-mount">
+            <input type="checkbox" bind:checked={ajouterApresMontage} disabled={mounting} />
+            {$t('smb.addToLibrary')}
+          </label>
 
           <button class="scan-btn" onclick={mountShare} disabled={mounting}>
             {#if mounting}
@@ -977,6 +988,16 @@
   .mount-value {
     color: var(--tune-text);
     font-weight: 500;
+  }
+
+  .add-after-mount {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text);
+    cursor: pointer;
   }
 
   .mount-path {

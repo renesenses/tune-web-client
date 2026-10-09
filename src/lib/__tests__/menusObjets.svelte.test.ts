@@ -164,29 +164,31 @@ const LIRE = ['common.play', 'library.shuffle', 'v2.pa.next', 'queue.addToQueue'
 // intelligente s'étiquettent tout aussi bien et ne l'ont PAS — l'écran du sas
 // ne relit que ces trois familles, et offrir un dépôt qu'on ne relit pas
 // donnerait un objet rangé qui n'apparaît nulle part.
+// web#1922 — « Ajouter aux raccourcis » suit « Aller » : tout objet qui se
+// DÉSIGNE l'a (album, artiste, playlist, collection) ; le label, non.
 describe('1. Les entrées de chaque type, selon ce que l’objet permet', () => {
   it('album de la BIBLIOTHÈQUE : lecture, fiche, artiste, ranger, corriger', () => {
     expect(ouvrirLigne(ALBUM_LOCAL)).toEqual([
-      ...LIRE, 'common.open', 'library.goToArtist', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags',
+      ...LIRE, 'common.open', 'library.goToArtist', 'menuObjet.addShortcut', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags',
       'v2.album.addToCollection', 'credits.see', 'v2.cover.edit', 'library.reidentify', 'v2.album.locate',
     ]);
   });
 
   it('album de SERVICE (Qobuz) : rien de ce qui prend un `i64`, les crédits parce que Qobuz en rend', () => {
     expect(ouvrirLigne(ALBUM_QOBUZ)).toEqual([
-      ...LIRE, 'common.open', 'library.goToArtist', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags', 'credits.see',
+      ...LIRE, 'common.open', 'library.goToArtist', 'menuObjet.addShortcut', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags', 'credits.see',
     ]);
   });
 
   it('artiste : « Concerts » avec le greffon, absent sans lui', () => {
-    expect(ouvrirLigne(ARTISTE)).toEqual([...LIRE, 'common.open', 'v2.cover.favorite', 'v2.cover.tags', 'nav.concerts']);
+    expect(ouvrirLigne(ARTISTE)).toEqual([...LIRE, 'common.open', 'menuObjet.addShortcut', 'v2.cover.favorite', 'v2.cover.tags', 'nav.concerts']);
     concertsPlugin.set('absent');
     expect(ouvrirLigne(ARTISTE)).not.toContain('nav.concerts');
   });
 
   it('playlist LOCALE : organiser, partager, supprimer — et « Transférer » avec le greffon seulement', () => {
     expect(ouvrirLigne(PLAYLIST)).toEqual([
-      ...LIRE, 'common.open', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags', 'v2.pl.rename', 'menuObjet.duplicate',
+      ...LIRE, 'common.open', 'menuObjet.addShortcut', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags', 'v2.pl.rename', 'menuObjet.duplicate',
       'v2.pl.export', 'menuObjet.transfer', 'v2.pl.share', 'common.delete',
     ]);
     convertisseurGreffon.set('absent');
@@ -195,22 +197,22 @@ describe('1. Les entrées de chaque type, selon ce que l’objet permet', () => 
 
   it('playlist de SERVICE : ni renommer, ni supprimer, ni partager', () => {
     expect(ouvrirLigne(PLAYLIST_QOBUZ, { ouvrir: () => {} })).toEqual([
-      ...LIRE, 'common.open', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags',
+      ...LIRE, 'common.open', 'menuObjet.addShortcut', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags',
     ]);
   });
 
   it('playlist INTELLIGENTE : ses règles, pas de renommage à part', () => {
     expect(ouvrirLigne(SMART_PLAYLIST)).toEqual([
-      ...LIRE, 'common.open', 'v2.cover.favorite', 'v2.cover.tags', 'menuObjet.editRules', 'common.delete',
+      ...LIRE, 'common.open', 'menuObjet.addShortcut', 'v2.cover.favorite', 'v2.cover.tags', 'menuObjet.editRules', 'common.delete',
     ]);
   });
 
   it('collection SIMPLE et INTELLIGENTE : renommer l’une, les règles de l’autre, les rayons pour les deux', () => {
     expect(ouvrirLigne(COLLECTION)).toEqual([
-      ...LIRE, 'common.open', 'v2.cover.favorite', 'v2.cover.tags', 'v2.pl.rename', 'v2.rayons.move', 'common.delete',
+      ...LIRE, 'common.open', 'menuObjet.addShortcut', 'v2.cover.favorite', 'v2.cover.tags', 'v2.pl.rename', 'v2.rayons.move', 'common.delete',
     ]);
     expect(ouvrirLigne(SMART_COLLECTION)).toEqual([
-      ...LIRE, 'common.open', 'v2.cover.favorite', 'v2.cover.tags', 'menuObjet.editRules', 'v2.rayons.move', 'common.delete',
+      ...LIRE, 'common.open', 'menuObjet.addShortcut', 'v2.cover.favorite', 'v2.cover.tags', 'menuObjet.editRules', 'v2.rayons.move', 'common.delete',
     ]);
   });
 

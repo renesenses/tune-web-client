@@ -30,7 +30,9 @@
 
 {#if hasData && label}
   <span class="quality-badge tier-{colorClass}" class:ajuste title={tooltip}>
-    <span class="qb-tier">{tierLabel}</span>
+    {#if tierLabel}
+      <span class="qb-tier">{tierLabel}</span>
+    {/if}
     {#if tier === 'hires_max'}
       <span class="qb-star">✦</span>
     {/if}
@@ -125,6 +127,13 @@
   }
   .quality-badge.tier-green .qb-tier {
     color: #6ee7b7;
+  }
+
+  /* Aucun palier (format au codec non déterminé, fil 2126) : neutre. */
+  .quality-badge.tier-neutre {
+    color: var(--text-secondary, #9ca3af);
+    background: rgba(156, 163, 175, 0.08);
+    border: 1px solid rgba(156, 163, 175, 0.25);
   }
 
   /* Gray tier (Lossy) */

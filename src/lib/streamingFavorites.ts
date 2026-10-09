@@ -50,6 +50,12 @@ export interface StreamingRef {
   artist?: string;
   album?: string;
   coverUrl?: string;
+  /**
+   * tune-server-rust#5530 — le marquage « généré par IA » que le service a
+   * rendu avec l'objet (Qobuz : `ai_generated` de l'album). Envoyé avec le
+   * favori pour qu'une playlist intelligente puisse l'écarter.
+   */
+  aiGenerated?: boolean;
 }
 
 /**
@@ -413,6 +419,7 @@ export async function toggleStreamingFavorite(ref: StreamingRef): Promise<boolea
         artist: ref.artist,
         album: ref.album,
         cover_url: ref.coverUrl,
+        ...(typeof ref.aiGenerated === 'boolean' ? { ai_generated: ref.aiGenerated } : {}),
       });
     }
   } catch (e) {

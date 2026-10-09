@@ -128,12 +128,11 @@ describe('#863 — le choix de vue se retient, et ne casse rien s’il ne peut p
 });
 
 describe('#863 · 2 — ⚠️ le « format d’émission » n’est PAS traité', () => {
-  it('le codec reste au niveau Expert, comme avant', () => {
+  it('le codec est affiché par la pastille technique (dès Essentiel depuis #5716)', () => {
     // S'il veut le codec, il est déjà là ; s'il veut le débit, la donnée
     // n'existe pas. Sans sa réponse, toucher à ça serait parier.
     const s = ecran();
-    expect(s).toContain('showExpert');
-    expect(s).toContain('tech(r)');
+    expect(s).toContain('tech(r, showFilters)');
   });
 
   it('aucun débit n’a été inventé', () => {

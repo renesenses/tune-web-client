@@ -28,6 +28,7 @@ import { playAndSync } from './stores/zones';
 // `cleFavoriRadio` plus bas. Le module ne touche au stockage que dans ses
 // fonctions : l'importer ne lit rien.
 import { radioFavListenKey } from './radioFavListenAt';
+import { champAlbumBandcamp } from './albumBandcampDuTitre';
 
 /** Nombre d'entrées rendues par la fusion — au-delà, la liste n'est plus lue. */
 const PLAFOND = 200;
@@ -86,6 +87,9 @@ export function entreesDepuisServeur(items: readonly any[]): HistoryEntry[] {
       position: e.context_position ?? null,
       // #988 — servi depuis la v0.9.151 ; absent d'un serveur plus ancien.
       nom: e.context_name ?? null,
+      // web#1895 — chez qui chercher `id` : seule source sûre pour ouvrir la
+      // playlist (un identifiant Qobuz est un entier, comme un local).
+      source: e.context_source ?? null,
     },
   }));
 }
@@ -349,6 +353,8 @@ function metaDeRejeu(track: Track) {
     ...(track.album_title ? { album_title: track.album_title } : {}),
     ...(track.cover_path ? { cover_path: track.cover_path } : {}),
     ...(track.duration_ms ? { duration_ms: track.duration_ms } : {}),
+    // web#1923 : la page de l'album d'une écoute Bandcamp, si le contexte la dit.
+    ...champAlbumBandcamp(track),
   };
 }
 

@@ -71,6 +71,7 @@
   import { initialesArtiste } from '../../lib/initialesArtiste';
   import DiscographieCommune from './DiscographieCommune.svelte';
   import BioEtTitresPhares from './BioEtTitresPhares.svelte';
+  import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
   import { currentZoneId, playAndSync, radioArtisteAndSync } from '../../lib/stores/zones';
   import { corpsRadioArtiste, lancerRadioArtiste, type IssueRadio } from '../../lib/radioArtiste';
   import { signalerEchecLecture } from '../../lib/echecLecture';
@@ -185,6 +186,13 @@
    */
   let bio = $state<string | null>(null);
   /**
+   * D'où vient `bio` (`bio_provenance` du serveur) — la ligne d'attribution
+   * sous la biographie (CC BY-SA des extraits Wikipédia, site-mozaiklabs#278).
+   * Toujours posée AVEC `bio` : une provenance qui survivrait à son texte
+   * attribuerait à Wikipédia une bio qui n'en vient pas.
+   */
+  let bioProvenance = $state<BioProvenance | null>(null);
+  /**
    * Le compte de l'en-tête : les vignettes de la DISCOGRAPHIE COMMUNE, et non
    * les seuls albums de la bibliothèque — « 1 albums » pour a-ha, 44 à
    * l'écran. Repris tel quel de la fiche de bibliothèque, qui l'avait mesuré.
@@ -244,7 +252,11 @@
       metaFiche = { ...(metaFiche ?? {}), ...m } as ArtistMetadata;
       // La bio rapportée remplace l'absence de bio, jamais une bio éditée.
       const rapportee = bioDans(m, $langueCourante);
-      if (rapportee && !a.bio?.trim()) bio = rapportee;
+      if (rapportee && !a.bio?.trim()) {
+        bio = rapportee;
+        bioProvenance = null;
+        void provenanceApresEnrichissement(a.id, rapportee);
+      }
       const cle = bilanEnrichissement(m);
       if (cle === 'library.noInfoFound') notifications.info($tr(cle as any));
       else notifications.success($tr(cle as any));
@@ -343,6 +355,7 @@
     titresEnEchec = false;
     albums = [];
     bio = null;
+    bioProvenance = null;
     compilations = [];
     apparitions = [];
     collaborations = [];
@@ -397,6 +410,7 @@
       albums = (al.value ?? []).map((x) => ({ ...x, source: (x.source ?? service) as Album['source'] }));
     }
     bio = artiste?.bio ?? null;
+    bioProvenance = provenanceDe(artiste);
     chargement = false;
     void chargerComplements(mien, service, artiste?.name || cible?.nom || '');
   }
@@ -425,6 +439,7 @@
     titresEnEchec = false;
     albums = [];
     bio = null;
+    bioProvenance = null;
     locaux = [];
     compilations = [];
     apparitions = [];
@@ -452,7 +467,10 @@
       artisteLocal = a.value;
     }
     if (d.status === 'fulfilled') {
-      locaux = (d.value?.albums ?? []) as Album[];
+      // Section « Live » : le serveur sert les lives À PART ; ils rejoignent
+      // la grille, qui les fusionne avec les services puis les range sous
+      // « Live » d'après `release_secondary_types` (`partagerParTypeDeSortie`).
+      locaux = [...(d.value?.albums ?? []), ...(d.value?.live ?? [])] as Album[];
       // Clé ABSENTE = section vide : le serveur ne rend jamais un tableau
       // vide, et `?? []` dit ici la même chose que lui.
       compilations = (d.value?.compilations ?? []) as Album[];
@@ -461,7 +479,7 @@
       reprises = (d.value?.covers ?? []) as Album[];
     }
     chargement = false;
-    void chargerBioLocale(mien, id, artiste?.bio ?? null);
+    void chargerBioLocale(mien, id, artiste?.bio ?? null, provenanceDe(artiste));
     void chargerComplements(mien, null, artiste?.name || cible?.nom || '', true);
   }
 
@@ -470,15 +488,39 @@
    * le serveur sait rendre ensuite. Même ordre que la fiche de bibliothèque —
    * une bio éditée ne doit jamais être recouverte par une bio rapportée.
    */
-  async function chargerBioLocale(mien: number, id: number, bioEditee: string | null) {
+  async function chargerBioLocale(
+    mien: number,
+    id: number,
+    bioEditee: string | null,
+    provenanceEditee: BioProvenance | null = null,
+  ) {
     const editee = bioEditee?.trim() || null;
     bio = editee;
+    // `GET /library/artists/{id}` porte la provenance de SA bio, à côté d'elle.
+    bioProvenance = editee ? provenanceEditee : null;
     if (editee) return;
     try {
       const r = await api.getArtistBio(id);
-      if (mien === jeton) bio = r?.bio?.trim() || null;
+      if (mien === jeton) {
+        bio = r?.bio?.trim() || null;
+        bioProvenance = bio ? provenanceDe(r) : null;
+      }
     } catch {
       /* pas de biographie : le bloc ne s'affiche pas */
+    }
+  }
+
+  /**
+   * L'enrichissement écrit la bio ET sa provenance en base, mais sa réponse ne
+   * rend que le texte. On relit la fiche (lecture locale) et on ne reprend sa
+   * provenance que si elle accompagne EXACTEMENT le texte affiché.
+   */
+  async function provenanceApresEnrichissement(id: number, texte: string) {
+    try {
+      const a = await api.getArtist(id);
+      if (bio === texte && a?.bio?.trim() === texte.trim()) bioProvenance = provenanceDe(a);
+    } catch {
+      /* sans relecture, pas d'attribution — jamais une attribution fausse */
     }
   }
 
@@ -908,7 +950,7 @@
   {:else}
     <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
-    <BioEtTitresPhares bio={bio} titres={titres} cle={cible?.id}
+    <BioEtTitresPhares bio={bio} provenance={bioProvenance} titres={titres} cle={cible?.id}
       actionsBio={artisteEditable ? enrichirBio : undefined} />
 
     <!-- 🔴 « À propos » ne s'ouvre QUE si elle a quelque chose à dire (#1356).
@@ -972,7 +1014,10 @@
       // rendrait rien de plus.
       artiste = maj;
       artisteLocal = maj;
-      bio = maj.bio?.trim() || bio;
+      const nouvelle = maj.bio?.trim() || null;
+      // Un texte réécrit à la main n'est plus l'extrait de personne.
+      if (nouvelle && nouvelle !== bio?.trim()) bioProvenance = null;
+      bio = nouvelle || bio;
       editionComplete = null;
     }}
   />

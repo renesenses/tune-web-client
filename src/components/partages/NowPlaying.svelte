@@ -1,6 +1,6 @@
 <script lang="ts">
   import { atteintLeSon } from '../../lib/porteeReglage';
-  import { descriptionDEtape, etatSansPerte } from '../../lib/formatInconnu';
+  import { descriptionDEtape, etapeIntacte, etatSansPerte, traitIntact } from '../../lib/formatInconnu';
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
   import { pisteDeFile } from '../../lib/pisteDeFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
@@ -29,6 +29,7 @@ import { ICONES } from '../../lib/menuPiste';
     CF_PRESETS, presetActif, reglagesCrossfeed, bornesCrossfeed, niveauEnPourcent,
     indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
   } from '../../lib/crossfeed';
+  import { crossfeedProTraiteLaZone } from '../../lib/stores/crossfeedPro';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import SeekBar from './SeekBar.svelte';
@@ -41,6 +42,8 @@ import { ICONES } from '../../lib/menuPiste';
   import { afficherDynamicRange, type AffichageDynamicRange } from '../../lib/dynamicRange';
   import { t, locale } from '../../lib/i18n';
   import { libelleConversion } from '../../lib/bitperfectStrict';
+  import { gainIgnoreParPure } from '../../lib/pureReplayGain';
+  import { dbSigne } from '../../lib/compensationNiveau';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab, yearFilter } from '../../lib/stores/library';
@@ -232,11 +235,22 @@ import { ICONES } from '../../lib/menuPiste';
   // Le bout des curseurs : celui du SERVEUR quand il le publie
   // (`crossfeed_limits`, tune-server-rust#4683), sinon `lib/crossfeed`.
   let cfBornes = $state(bornesCrossfeed(null));
+  // Crossfeed Pro traite la zone (greffon actif, case cochée) : le serveur
+  // éteint alors le crossfeed intégré, les deux ne s'additionnent jamais. Le
+  // bouton s'appelle « Crossfeed Pro » et le crossfeed intégré est verrouillé.
+  let cfProTraite = $state(false);
+  $effect(() => {
+    const zid = zone?.id;
+    cfProTraite = false;
+    void crossfeedProTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfProTraite = v; });
+  });
   let cfTimer: ReturnType<typeof setTimeout> | null = null;
 
   async function chargerCrossfeed() {
     if (zone?.id == null) return;
     try {
+      const zid = zone.id;
+      void crossfeedProTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfProTraite = v; });
       const dsp = await api.getDsp(zone.id);
       const cf = dsp?.crossfeed;
       cfStatut = dsp?.crossfeed_status ?? null;
@@ -874,33 +888,8 @@ import { ICONES } from '../../lib/menuPiste';
     return text;
   }
 
-  /**
-   * Cette étape-là laisse-t-elle le signal intact ?
-   *
-   * Le serveur calcule ce drapeau POUR CHAQUE étape (`zones.rs`,
-   * `build_signal_path` : source, transcodage, volume, DSP, transport…) et le
-   * sérialise dans `steps[].bit_perfect`. Le champ était typé dans
-   * `SignalPathStep`… et lu nulle part : les trois pastilles — icône, trait,
-   * point — étaient toutes liées au verdict GLOBAL. La conséquence est double,
-   * et fausse dans les deux sens :
-   *
-   *   - un seul maillon altéré (une atténuation de volume, un égaliseur) fait
-   *     virer au gris TOUTE la chaîne, y compris la source et le transport, qui
-   *     n'ont rien fait ;
-   *   - un verdict vert peint en vert un maillon que le serveur a marqué faux.
-   *
-   * Le panneau n'existe que pour répondre « où mon signal a-t-il été touché ? ».
-   * Répéter six fois la réponse d'ensemble ne répond jamais à cette question
-   * (Jean Valjean, #1985 : « tout est en vert donc en théorie pas de
-   * modification »).
-   *
-   * Le repli sur le verdict global n'est pas décoratif : `bit_perfect` est
-   * optionnel dans `SignalPathStep` et les serveurs qui ne l'envoient pas
-   * doivent garder l'affichage d'avant, pas une chaîne entièrement grise.
-   */
-  function etapeIntacte(step: { bit_perfect?: boolean }, verdict: boolean): boolean {
-    return step.bit_perfect ?? verdict;
-  }
+  // `etapeIntacte` et `traitIntact` vivent dans `lib/formatInconnu` : les deux
+  // panneaux du chemin du signal lisent la même règle (fil 1825).
 
   $effect(() => {
     const tr = normalizedTrack;
@@ -1121,11 +1110,23 @@ import { ICONES } from '../../lib/menuPiste';
   // Play count for the current local track (Progman, #1056). Fetched on demand;
   // guarded to the exact track id so a race doesn't show a stale count.
   let trackPlays = $state<number | null>(null);
+  /**
+   * 🔴 Fil forum 2129 — L'IDENTITÉ de la piste locale, pas l'objet.
+   *
+   * Chaque relecture de `/zones` rend un `current_track` NEUF, même quand rien
+   * n'a changé (un pas de volume en provoquait une douzaine par seconde). Les
+   * deux effets ci-dessous lisaient `normalizedTrack` lui-même : ils vidaient
+   * donc écoutes, puce DR et canaux puis les redemandaient à chaque fois, et la
+   * colonne titre sautait. Un `$derived` primitif ne notifie que si la VALEUR
+   * change : les effets ne se relancent plus qu'au vrai changement de piste.
+   */
+  let idPisteLocale = $derived(
+    normalizedTrack?.source === 'local' ? (normalizedTrack?.id ?? null) : null,
+  );
   $effect(() => {
-    const dt = normalizedTrack;
-    const id = dt?.id ?? null;
+    const id = idPisteLocale;
     trackPlays = null;
-    if (id != null && dt?.source === 'local') {
+    if (id != null) {
       api.getTrackPlays(id)
         .then((r) => { if (normalizedTrack?.id === id) trackPlays = r.plays; })
         .catch(() => {});
@@ -1160,11 +1161,10 @@ import { ICONES } from '../../lib/menuPiste';
    */
   let badgeCanaux = $state<string | null>(null);
   $effect(() => {
-    const dt = normalizedTrack;
-    const id = dt?.id ?? null;
+    const id = idPisteLocale;
     trackDr = null;
     badgeCanaux = null;
-    if (id != null && dt?.source === 'local') {
+    if (id != null) {
       api.getTrack(id)
         .then((t) => {
           // La garde d'identifiant vaut pour les deux : une réponse tardive ne
@@ -1774,7 +1774,10 @@ import { ICONES } from '../../lib/menuPiste';
       <div class="info-column">
         <div class="np-badges-row">
           <ServiceBadge source={displayTrack.source} />
-          {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth}
+          <!-- Fil 2126 : ce badge ne porte QUE le palier ; sans palier (format au
+               codec non déterminé, « M4A »), il n'a rien à dire et ne s'affiche
+               pas. Le format reste lisible dans les puces juste en dessous. -->
+          {#if (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth) && getQualityTier(displayTrack) !== 'inconnu'}
             {@const tier = getQualityTier(displayTrack)}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1969,10 +1972,11 @@ import { ICONES } from '../../lib/menuPiste';
             <button
               class="np-credits-btn"
               class:active={cfEnabled}
+              class:cf-pro={cfProTraite}
               onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; if (showDspMenu) void chargerCrossfeed(); }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
-              {$t('dsp.crossfeedTitle')}
+              {cfProTraite ? $t('v2.nav.crossfeedPro' as any) : $t('dsp.crossfeedTitle')}
             </button>
             <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
@@ -2091,15 +2095,21 @@ import { ICONES } from '../../lib/menuPiste';
           {/if}
           {#if showDspMenu}
             <div class="np-crossfeed">
+              {#if cfProTraite}
+                <p class="cf-note cf-note-alerte" data-crossfeed-remplace>{$t('dsp.crossfeedReplacedByPro' as any)}</p>
+              {/if}
+              <!-- Crossfeed Pro traite la zone : tout le crossfeed intégré est
+                   verrouillé d'un bloc, le serveur l'a éteint. -->
+              <fieldset class="cf-verrou" disabled={cfProTraite} aria-disabled={cfProTraite}>
               <div class="cf-ligne">
                 <label class="cf-bascule">
                   <input
                     type="checkbox"
-                    bind:checked={cfEnabled}
-                    onchange={() => void enregistrerCrossfeed()}
+                    checked={cfEnabled && !cfProTraite}
+                    onchange={(e) => { cfEnabled = (e.currentTarget as HTMLInputElement).checked; void enregistrerCrossfeed(); }}
                     disabled={cfIndispo.indisponible}
                   />
-                  <span>{cfEnabled ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}</span>
+                  <span>{cfEnabled && !cfProTraite ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}</span>
                 </label>
                 <div class="cf-presets">
                   {#each CF_PRESETS as p (p.key)}
@@ -2141,6 +2151,7 @@ import { ICONES } from '../../lib/menuPiste';
                 <output>{cfDelay.toFixed(1)} ms</output>
               </label>
 
+              </fieldset>
               <p class="cf-note">{$t('dsp.crossfeedDesc')}</p>
               {#if cfIndispo.indisponible}
                 <!-- Le serveur (ou, a defaut, le type de sortie) dit que le
@@ -2168,6 +2179,12 @@ import { ICONES } from '../../lib/menuPiste';
             {@const conversion = libelleConversion(zone.signal_path, $t, $locale)}
             {#if conversion}
               <p class="sp-conversion" class:degrade={zone.signal_path.pure_degraded}>{conversion}</p>
+            {/if}
+            <!-- tune-server-rust#5633 — sous PURE, le ReplayGain de la piste
+                 n'est pas appliqué : on le dit quand le serveur publie le gain. -->
+            {@const rgIgnoreDb = gainIgnoreParPure(zone.signal_path)}
+            {#if rgIgnoreDb != null}
+              <p class="sp-conversion sp-pure-rg">{$t('signal.pureRgIgnoredDb' as any).replace('{db}', dbSigne(rgIgnoreDb))}</p>
             {/if}
             {#if showSignalDetail}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -2207,7 +2224,7 @@ import { ICONES } from '../../lib/menuPiste';
                                  si ses DEUX extrémités le sont. Le peindre
                                  d'après la seule étape amont ferait descendre du
                                  vert dans un maillon altéré. -->
-                            <div class="sp-step-line" class:bit-perfect={etapeIntacte(step, zone.signal_path.bit_perfect) && etapeIntacte(zone.signal_path.steps[i + 1], zone.signal_path.bit_perfect)}></div>
+                            <div class="sp-step-line" class:bit-perfect={traitIntact(zone.signal_path.steps, i, zone.signal_path.bit_perfect)}></div>
                           {/if}
                         </div>
                         <div class="sp-step-info">
@@ -3754,6 +3771,17 @@ import { ICONES } from '../../lib/menuPiste';
   }
 
   /* Now Playing Credits */
+  .cf-verrou {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    display: contents;
+  }
+  .cf-verrou:disabled .cf-ligne,
+  .cf-verrou:disabled label {
+    opacity: 0.5;
+  }
   .np-crossfeed {
     margin: 10px 0 0;
     padding: 12px 14px;
@@ -3838,7 +3866,7 @@ import { ICONES } from '../../lib/menuPiste';
     margin-top: var(--space-xs);
   }
 
-  .np-credits-btn:hover, .np-credits-btn.active {
+  .np-credits-btn:hover, .np-credits-btn.active, .np-credits-btn.cf-pro {
     color: var(--tune-accent);
     border-color: var(--tune-accent);
   }

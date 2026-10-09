@@ -103,8 +103,9 @@ describe('le bouton est sur CHAQUE ligne, sans que l’écran ait à le demander
     await Promise.resolve();
     expect(espions.zones, 'la zone courante n’a pas été consultée').toContain(7);
     expect(espions.lire).toHaveBeenCalledTimes(1);
-    // La SUITE, pas la liste entière : 12 et 13, jamais 11.
-    expect(espions.lire.mock.calls[0][0]).toEqual({ track_ids: [12, 13] });
+    // #5770 — la liste ENTIÈRE, la lecture au rang cliqué : 11 reste dans la
+    // file, derrière, pour que « Précédent » y revienne.
+    expect(espions.lire.mock.calls[0][0]).toEqual({ track_ids: [11, 12, 13], start_index: 1 });
   });
 
   it('l’écran garde la main quand sa suite n’est pas la liste rendue', async () => {
@@ -131,12 +132,12 @@ describe('le bouton est sur CHAQUE ligne, sans que l’écran ait à le demander
     expect(espions.lire).not.toHaveBeenCalled();
   });
 
-  it('le rendu en LIGNES le porte aussi (mode Avancé)', () => {
-    // `intermediate` = « Avancé » : le seul niveau qui rende encore des
-    // LIGNES, Expert étant passé au tableau le 09/09/2026.
+  it('le mode Avancé le porte aussi (tableau depuis #1470)', () => {
+    // `intermediate` = « Avancé » : il rendait des LIGNES jusqu'au 07/10/2026 ;
+    // il rend désormais le tableau, comme Essentiel et Expert (#1470).
     preferences.update((p) => ({ ...p, settingsLevel: 'intermediate' }));
     const el = poser({ pistes: PISTES, onLire: () => {} });
-    expect(el.querySelector('.tbl'), 'ce mode devrait rendre des lignes, pas le tableau').toBeNull();
+    expect(el.querySelector('.tbl'), 'Avancé devrait rendre le tableau').not.toBeNull();
     expect(el.querySelectorAll('button[data-depuis]').length).toBe(3);
   });
 });

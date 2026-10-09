@@ -214,8 +214,13 @@ describe('#1352 — suspendre un traitement de fond depuis « État du serveur �
     connaitLaPause = false;
     await monterLEcran();
 
+    // #1751 : une carte au repos porte désormais « Lancer » (routes bien
+    // plus anciennes que la pause) ; ce témoin ne compte que Pause/Reprendre.
+    const pauseOuReprise = Array.from(hote!.querySelectorAll('.cactions button')).filter((b) =>
+      ([lFr['v2.health.pause'], lFr['v2.health.resume']] as string[]).includes(b.textContent?.trim() ?? ''),
+    );
     expect(
-      hote!.querySelectorAll('.cactions button').length,
+      pauseOuReprise.length,
       'un serveur antérieur à 0.9.159 ne connaît pas ces routes : un bouton ' +
         'affiché ici rendrait 404 sous le doigt du testeur',
     ).toBe(0);

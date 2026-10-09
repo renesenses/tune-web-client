@@ -12,7 +12,12 @@
    * Il n'existe que si le greffon tourne (`cdCharge`) : sans lui, ses routes ne
    * sont pas montées et l'écran le dit au lieu d'interroger dans le vide.
    *
-   * Insertion et éjection : le greffon ne publie rien sur le bus. On relit donc
+   * « Éjecter » (forum, fil 2135 : un Apple SuperDrive n'a pas de bouton) :
+   * visible tant qu'un disque est présent. Si une zone le joue, le serveur
+   * refuse (`lecture_en_cours`) : on demande confirmation, puis on rappelle
+   * avec `forcer`, qui arrête la lecture avant d'éjecter.
+   *
+   * Insertion et éjection : on relit
    * `/etat` toutes les {@link RELECTURE_CD_MS} ms TANT QUE L'ÉCRAN EST MONTÉ,
    * jamais onglet masqué, un appel à la fois, et en ralentissant jusqu'à
    * {@link RELECTURE_CD_MAX_MS} ms si le serveur ne répond plus. Le disque
@@ -22,11 +27,13 @@
   import { onDestroy } from 'svelte';
   import * as api from '../../lib/api';
   import { currentZoneId, currentZone, syncZone } from '../../lib/stores/zones';
+  import { dialogs } from '../../lib/stores/dialogs';
   import {
-    cdCharge, cdPlugin, refreshCdPlugin, getEtatLecteurCd, getDisqueCd, jouerCd,
+    cdCharge, cdPlugin, refreshCdPlugin, getEtatLecteurCd, getDisqueCd, jouerCd, ejecterCd,
     dureeCd, titrePisteCd, codeRefusCd, delaiRelectureCd,
     type EtatLecteurCd, type DisqueCd,
   } from '../../lib/lectureCd';
+  import ExtractionCdV2 from './ExtractionCdV2.svelte';
   import '../../styles/tune-v2.css';
 
   let etat = $state<EtatLecteurCd | null>(null);
@@ -34,6 +41,8 @@
   let erreur = $state<string | null>(null);
   let erreurLecture = $state<string | null>(null);
   let occupe = $state<number | 'disque' | null>(null);
+  let ejection = $state(false);
+  let erreurEjection = $state<string | null>(null);
 
   let echecs = 0;
   let minuteur: ReturnType<typeof setTimeout> | null = null;
@@ -49,6 +58,8 @@
     if (code === 'lecture_toc') return $t('v2.cd.unreadable' as any);
     if (code === 'piste_inconnue') return $t('v2.cd.unknownTrack' as any);
     if (code === 'lecture') return $t('v2.cd.playFailed' as any);
+    // tune-server-rust#2466 : pendant une extraction, ni lecture ni éjection.
+    if (code === 'extraction_en_cours') return $t('v2.cd.busyRipping' as any);
     return $t('v2.cd.unavailable' as any);
   }
 
@@ -120,6 +131,40 @@
     occupe = null;
   }
 
+  /** Le disque est sorti : l'écran passe à « vide » sans attendre `/etat`. */
+  function disqueSorti() {
+    if (etat) etat = { ...etat, presence: 'vide' };
+    presenceVue = 'vide';
+    disque = null;
+    erreur = null;
+    erreurLecture = null;
+  }
+
+  async function ejecter() {
+    if (ejection) return;
+    ejection = true;
+    erreurEjection = null;
+    try {
+      try {
+        await ejecterCd();
+      } catch (e) {
+        if (codeRefusCd(e) !== 'lecture_en_cours') throw e;
+        // Une zone joue le disque : confirmer avant de couper la musique.
+        if (!(await dialogs.confirm($t('v2.cd.ejectConfirm' as any), { danger: true }))) return;
+        await ejecterCd(true);
+      }
+      disqueSorti();
+    } catch (e) {
+      const code = codeRefusCd(e);
+      if (code === 'aucun_disque') disqueSorti();
+      else if (code === 'ejection_non_prise_en_charge') erreurEjection = $t('v2.cd.ejectUnsupported' as any);
+      else if (code === 'ejection') erreurEjection = $t('v2.cd.ejectFailed' as any);
+      else erreurEjection = phrase(e);
+    } finally {
+      ejection = false;
+    }
+  }
+
   const pisteN = $derived($t('v2.cd.trackN' as any));
 </script>
 
@@ -129,9 +174,17 @@
       <div class="v2-eyebrow">{$t('v2.nav.plugins' as any)}</div>
       <h1>{$t('v2.cd.title' as any)}</h1>
     </div>
+    {#if $cdCharge && etat?.presence === 'disque'}
+      <button class="ejecter" disabled={ejection} onclick={ejecter}
+        aria-label={$t('v2.cd.eject' as any)} title={$t('v2.cd.eject' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 15h14L12 6z"/><path d="M5 19h14"/></svg>
+        <span>{ejection ? '…' : $t('v2.cd.eject' as any)}</span>
+      </button>
+    {/if}
   </header>
 
   <div class="scroll">
+    {#if erreurEjection}<div class="err err-ejection" role="alert">{erreurEjection}</div>{/if}
     {#if $cdPlugin === null}
       <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else if !$cdCharge}
@@ -172,6 +225,8 @@
             {:else if $currentZone?.name}
               <span class="note">{$t('v2.cd.toZone' as any).replace('{zone}', $currentZone.name)}</span>
             {/if}
+            <!-- tune-server-rust#2466 : n'apparaît que si le serveur sait extraire. -->
+            <ExtractionCdV2 {disque} />
           </div>
         </div>
       </div>
@@ -227,4 +282,9 @@
   .duree{font:11.5px var(--v2-mono); color:var(--v2-txt2)}
   .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:13px}
   .lnk:disabled{opacity:.35; cursor:not-allowed}
+  .ejecter{margin-left:auto; display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 16px;
+    border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
+    font:600 12.5px var(--v2-sans); cursor:pointer}
+  .ejecter svg{width:16px; height:16px}
+  .ejecter:disabled{opacity:.35; cursor:not-allowed}
 </style>

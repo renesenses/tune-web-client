@@ -679,6 +679,9 @@ export interface ClearLibraryResult {
   ok: boolean;
   deleted?: number;
   error?: string;
+  /** #5973 — chemin de la sauvegarde de la base faite juste avant le vidage
+   *  (SQLite) ; `null` quand il n'y en a pas (PostgreSQL). */
+  backup_path?: string | null;
 }
 
 export function clearLibrary(): Promise<ClearLibraryResult> {
@@ -746,6 +749,20 @@ export interface MetadataFieldsResponse {
 /** Fetch the user's metadata-fields configuration (which extended fields are visible). */
 export function getMetadataFieldSettings(): Promise<MetadataFieldsResponse> {
   return fetchJSON(`${BASE}/system/settings/metadata-fields`);
+}
+
+/**
+ * Les champs de la piste corrigés à la main dans Tune, que les analyses ne
+ * défont plus (serveur : `tune_core::db::champs_tenus`, 05/10/2026). Un
+ * serveur antérieur n'a pas la route : l'appelant traite l'échec comme « aucun ».
+ */
+export function getTrackHeldFields(trackId: number) {
+  return fetchJSON<{ track_id: number; fields: string[] }>(`${BASE}/library/tracks/${trackId}/tenues`);
+}
+
+/** « Rétablir depuis le fichier » : oublie les champs tenus et relit les balises. */
+export function restoreTrackFromFile(trackId: number) {
+  return fetchJSON<Record<string, unknown>>(`${BASE}/library/tracks/${trackId}/tenues`, { method: 'DELETE' });
 }
 
 /** Get all extended metadata key-value pairs for a track. */

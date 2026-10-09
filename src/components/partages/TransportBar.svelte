@@ -1,6 +1,6 @@
 <script lang="ts">
   import { preferences } from '../../lib/stores/preferences';
-  import { descriptionDEtape, etatSansPerte } from '../../lib/formatInconnu';
+  import { descriptionDEtape, etapeIntacte, etatSansPerte, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
   // La barre à VU-mètres (Bertrand, 27/09/2026, maquette de Levente). Le
   // cadran est celui du Grand écran, par `lib/dessinVuMetre` : une seconde
@@ -18,7 +18,10 @@
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { atteintLeSon } from '../../lib/porteeReglage';
+  import { gainIgnoreParPure, gainReplayGainApplique, replayGainActif } from '../../lib/pureReplayGain';
+  import { dbSigne } from '../../lib/compensationNiveau';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import * as controls from '../../lib/playback-controls';
   import { suivantDesactive } from '../../lib/boutonSuivant';
@@ -43,6 +46,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { dialogs } from '../../lib/stores/dialogs';
   import { fullVolumeConfirmationRequired } from '../../lib/audiophileSafety';
   import { zonesDuSelecteur } from '../../lib/zonesSelecteur';
+  import { creerLimiteurVolume } from '../../lib/limiteurVolume';
   import {
     audiophileEnabled,
     audiophileGlobalLockVolume,
@@ -76,13 +80,18 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     if (isBrowserZone(z)) browserSetVolume(val);
   }
 
-  async function handleMobileVolume(e: Event) {
+  // Fil forum 2129 : même limitation que le curseur principal (`VolumeControl`).
+  // Sans elle, chaque événement `input` partait en `PUT /zones/{id}/volume`.
+  const limiterEnvoiMobile = creerLimiteurVolume();
+
+  function handleMobileVolume(e: Event) {
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
     const val = Number((e.target as HTMLInputElement).value);
     if (val > 0) mutedVolume.set(null);
     applyMobileVolume(z, val);
-    await api.setVolume(z.id, val);
+    const zoneId = z.id;
+    limiterEnvoiMobile(() => { void api.setVolume(zoneId, val); });
   }
 
   async function mobileVolumeStep(delta: number) {
@@ -645,12 +654,6 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   let showSignalPath = $state(false);
 
-  // #1097 — même lecture par étape que dans NowPlaying. Le verdict global
-  // reste le repli des serveurs anciens qui ne renseignent pas ce drapeau.
-  function etapeIntacte(step: { bit_perfect?: boolean }, verdict: boolean): boolean {
-    return step.bit_perfect ?? verdict;
-  }
-
   // Audiophile mode — l'état vit dans un store partagé : VolumeControl doit
   // lire le même (griser le curseur quand le verrou est armé).
   let audiophileLoading = $state(false);
@@ -683,11 +686,21 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         return;
       }
     }
+    // tune-server-rust#5633 — PURE ignore le ReplayGain (bit-perfect) : le
+    // niveau de la piste change d'autant. On le lit AVANT la bascule, sur
+    // l'étape ReplayGain que le chemin du signal publie hors PURE. Messages
+    // résolus avant l'attente.
+    const rgIgnore = enabled && replayGainActif(z.signal_path);
+    const rgGain = gainReplayGainApplique(z.signal_path);
+    const msgRgIgnore = rgGain == null
+      ? $t('audiophile.rgIgnored' as any)
+      : $t('audiophile.rgIgnoredDb' as any).replace('{db}', dbSigne(rgGain));
     try {
       // Le témoin n'est envoyé qu'après l'accord : le serveur refuse sinon
       // avant d'écrire PURE ou de toucher au volume (#2445).
       const res = await api.setAudiophileMode(z.id, enabled, fullVolumeConfirmed);
       audiophileEnabled.set(res.enabled);
+      if (res.enabled && rgIgnore) notifications.info(msgRgIgnore);
       // Le serveur remonte le volume lui-même quand le verrou est armé ;
       // on reflète tout de suite, sans attendre un événement.
       if (res.enabled && $audiophileLockVolume) {
@@ -1561,6 +1574,16 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         </select>
       </div>
 
+      <!-- tune-server-rust#5633 — PURE ignore le ReplayGain, et le DIT : avec
+           le gain que la piste en cours recevrait hors PURE, quand le serveur
+           le publie. -->
+      {#if $audiophileEnabled}
+        {@const rgIgnoreDb = gainIgnoreParPure(zone?.signal_path)}
+        <p class="sp-pure-rg">{rgIgnoreDb == null
+          ? $t('signal.pureRgIgnored' as any)
+          : $t('signal.pureRgIgnoredDb' as any).replace('{db}', dbSigne(rgIgnoreDb))}</p>
+      {/if}
+
       {#if zone?.signal_path}
       <div class="sp-body">
         {#each zone.signal_path.steps as step, i}
@@ -1576,7 +1599,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                 {/if}
               </div>
               {#if i < zone.signal_path.steps.length - 1}
-                <div class="sp-line" class:bp={etapeIntacte(step, zone.signal_path.bit_perfect)}></div>
+                <!-- Fil 1825 : même règle que Lecture en cours (`traitIntact`). -->
+                <div class="sp-line" class:bp={traitIntact(zone.signal_path.steps, i, zone.signal_path.bit_perfect)}></div>
               {/if}
             </div>
             <div class="sp-info">
@@ -1628,7 +1652,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     allZones={$zones}
     groups={[]}
     onClose={() => configZone = null}
-    onDelete={() => { configZone = null; }}
+    onDelete={async (id) => { await supprimerZoneConfirmee(id); configZone = null; }}
     onGroupChanged={() => {}}
     onRenamed={() => {}}
   />
@@ -2883,6 +2907,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
   /* Rangée secondaire : elle qualifie le mode juste au-dessus, elle doit
      donc s'y rattacher visuellement au lieu de flotter comme un pair. */
+  .sp-pure-rg {
+    margin: 0 0 12px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--tune-text-secondary, var(--tune-text));
+  }
+
   .sp-ap-sub-row {
     margin-top: -6px;
     background: transparent;

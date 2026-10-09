@@ -23,6 +23,7 @@
     type EtatCompte,
   } from '../../lib/proprietaireAvatar';
   import { notifications } from '../../lib/stores/notifications';
+  import { dialogs } from '../../lib/stores/dialogs';
   import { avatarDepuisFichier, AvatarRefuse, CLE_MESSAGE } from '../../lib/avatarLocal';
   import { visibleProfiles, currentProfileId, type Profile } from '../../lib/stores/profile';
   import { basculerVers } from '../../lib/basculeDeProfil';
@@ -103,6 +104,11 @@
   }
 
   async function signOut() {
+    // Se déconnecter DÉLIE ce serveur du compte : sa copie de bibliothèque en
+    // ligne et ses partages de cercle sont effacés chez le cloud, le premium
+    // du compte tombe. Un clic égaré ne doit pas suffire : on demande, et la
+    // question dit ce qui sera perdu.
+    if (!(await dialogs.confirm(get(t)('settings.signOutConfirm'), { danger: true }))) return;
     signingOut = true;
     try {
       await api.ssoDisconnect();
