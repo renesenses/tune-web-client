@@ -33,6 +33,7 @@
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
   import VoilePur from './VoilePur.svelte';
   import { audiophileEnabled } from '../../lib/stores/audiophile';
+  import { crossfeedProTraiteLaZone } from '../../lib/stores/crossfeedPro';
   import '../../styles/tune-v2.css';
 
   /** web#1674 — la zone courante est en PURE : le crossfeed n'y agit pas.
@@ -66,6 +67,14 @@
    *  chemin de code (tune-server-rust#2742). */
   let status = $state<api.CrossfeedStatus | null>(null);
   const indispo = $derived(indisponibiliteCrossfeed(status, $currentZone?.output_type));
+  /** Crossfeed Pro traite la zone : le serveur éteint le crossfeed intégré
+   *  (les deux ne s'additionnent jamais). L'écran le dit et se verrouille. */
+  let proTraite = $state(false);
+  $effect(() => {
+    const zid = $currentZoneId;
+    proTraite = false;
+    void crossfeedProTraiteLaZone(zid).then((v) => { if ($currentZoneId === zid) proTraite = v; });
+  });
 
   $effect(() => {
     const zid = $currentZoneId;
@@ -280,7 +289,13 @@
         </div>
       {/if}
 
-      <fieldset class="reglages" class:voile={pur} disabled={pur} aria-disabled={pur}>
+      {#if proTraite && !pur}
+        <div class="warn" data-crossfeed-remplace>
+          {#if zoneName}<b>{zoneName}</b> — {/if}{$t('dsp.crossfeedReplacedByPro' as any)}
+        </div>
+      {/if}
+
+      <fieldset class="reglages" class:voile={pur || proTraite} disabled={pur || proTraite} aria-disabled={pur || proTraite}>
       <div class="card">
         <div class="row">
           <div class="lbl">

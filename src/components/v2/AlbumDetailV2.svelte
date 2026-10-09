@@ -46,6 +46,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
+  import { cleEchecRevelation, revelationDisponible, revelerDossierAlbum } from '../../lib/revelerDossier';
   import { fichiersInchanges } from '../../lib/ecritureFichiers';
   import { favoriteAlbumIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
@@ -484,6 +485,27 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     // Cette fiche décrit un album qui n'est plus ce qu'elle montre.
     onClose();
   }
+  /**
+   * #1875 — « Ouvrir dans l'explorateur » : le gestionnaire de fichiers de la
+   * machine du serveur, quand le navigateur est sur cette machine. Le serveur
+   * seul sait le dire ; tant qu'il n'a pas dit oui, le bouton est absent.
+   */
+  let revelable = $state(false);
+  $effect(() => {
+    if (!dossier || album.id == null) { revelable = false; return; }
+    let vivant = true;
+    void revelationDisponible().then((oui) => { if (vivant) revelable = oui; });
+    return () => { vivant = false; };
+  });
+  async function ouvrirDansLExplorateur() {
+    if (album.id == null) return;
+    try {
+      await revelerDossierAlbum(album.id);
+    } catch (e) {
+      notifications.error($tr(cleEchecRevelation((e as api.ApiError)?.code) as any));
+    }
+  }
+
   function localiser() {
     if (!dossier) return;
     /**
@@ -568,6 +590,11 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
           artist_name: t.artist ?? album.artist_name ?? null,
           album_title: album.title, duration_ms: (t.duration_s ?? 0) * 1000,
           source: 'bandcamp', source_id: t.stream_url,
+          // web#1923, #1924 : chaque piste garde la page de SON album. Lancée
+          // seule (aléatoire, file, menu de la ligne), elle l'emporte dans
+          // `album_ref` (`champAlbumBandcamp`), sans quoi un titre que Tune
+          // n'a jamais vu entrait en file sans album.
+          album_id_service: d2?.url ?? bc,
           cover_path: album.cover_path ?? null, format: 'MP3',
         })) as unknown as Track[])
       : svc && sid
@@ -1506,6 +1533,13 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             {$tr('v2.album.locate' as any)}
           </button>
+          {#if revelable}
+            <button class="ghost reveler" onclick={ouvrirDansLExplorateur}
+              title={$tr('v2.album.revealTip' as any)} aria-label={$tr('v2.album.reveal' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+              {$tr('v2.album.reveal' as any)}
+            </button>
+          {/if}
         {/if}
         {#if coffretDefaisable()}
           <button class="ghost defaire-coffret" onclick={defaireCoffret} disabled={defaireEnCours}

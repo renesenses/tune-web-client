@@ -28,6 +28,7 @@
   import { grouperParArtisteDevine, type PisteDouteuse } from '../../lib/artisteDepuisChemin';
   import { t } from '../../lib/i18n';
   import { chargerLesDoublons, DELAI_DOUBLONS_MS, type EchecDoublons } from '../../lib/doublonsChargement';
+  import { titreDeCopie, titresDifferent } from '../../lib/doublonsCarte';
   import '../../styles/tune-v2.css';
 
   type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr' | 'compil' | 'coffret' | 'manquants';
@@ -872,7 +873,10 @@
                 <div class="pw">
                   <div class="pt">{p.a.title ?? '—'}{#if p.a.artist_name}<em>{p.a.artist_name}</em>{/if}</div>
                   <div class="pf">{libelleCritere(p.critere)}</div>
-                  <div class="sub">A · {nomCopie(p.a)} — B · {nomCopie(p.b)}</div>
+                  <!-- tune-server-rust#5976 : A ET B nommés, chacun sur sa ligne — « Garder A » retire B,
+                       l'utilisateur doit voir de quelle piste il s'agit. -->
+                  <div class="sub" title={p.a.file_path}>A · {titreDeCopie(p.a)} — {nomCopie(p.a)}</div>
+                  <div class="sub" class:ecart={titresDifferent(p.a, p.b)} title={p.b.file_path}>B · {titreDeCopie(p.b)} — {nomCopie(p.b)}</div>
                   {#if p.recommandation?.garder != null}
                     <div class="sub">{$t('v2.meta.recoKeep' as any).replace('{name}', p.recommandation.garder === p.a.id ? 'A' : 'B')}</div>
                   {/if}
@@ -1244,6 +1248,8 @@
   .dh{margin:18px 0 8px; font:9.5px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-txt3)}
   .dh span{margin-left:6px; opacity:.7}
   .sub{margin-top:4px; font-size:12px; color:var(--v2-txt3)}
+  /* tune-server-rust#5976 : B ne porte pas le même titre que A — à regarder avant de trancher. */
+  .sub.ecart{color:var(--v2-danger); font-weight:600}
   .grp .lnk.armed{font-weight:700}
   .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
