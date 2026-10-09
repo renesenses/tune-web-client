@@ -231,25 +231,20 @@ describe('ListePistesV2 — le réordonnancement est OPT-IN', () => {
     expect(el.querySelectorAll('.thead .th').length).toBe(el.querySelector('.trow')!.children.length);
   });
 
-  it('en mode LIGNES aussi : sans la prop rien, avec la prop une poignée par ligne', async () => {
+  it('en mode Avancé aussi (tableau depuis #1470) : sans la prop rien, avec la prop une poignée par ligne', async () => {
     preferences.update((p) => ({ ...p, settingsLevel: 'intermediate' }));
     const nu = await monter(ListePistesV2, props);
-    expect(nu.querySelectorAll('.trk').length).toBe(PISTES.length);
+    expect(nu.querySelector('.tbl')).not.toBeNull();
+    expect(nu.querySelectorAll('.trow').length).toBe(PISTES.length);
     expect(poignees(nu).length).toBe(0);
     expect(nu.querySelector('[draggable]')).toBeNull();
-    expect(nu.querySelector('.avecSuffixe')).toBeNull();
     unmount(monte!);
     monte = null;
     hote!.remove();
 
-    const de: [number, number][] = [];
-    const el = await monter(ListePistesV2, { ...props, reordonnable: true, onReordonner: (a: number, b: number) => { de.push([a, b]); } });
+    const el = await monter(ListePistesV2, { ...props, reordonnable: true, onReordonner: () => {} });
     expect(poignees(el).length).toBe(PISTES.length);
-    const enveloppes = Array.from(el.querySelectorAll<HTMLElement>('.avecSuffixe.avecPoignee[draggable="true"]'));
-    expect(enveloppes.length).toBe(PISTES.length);
-    enveloppes[2].dispatchEvent(new Event('dragstart'));
-    enveloppes[0].dispatchEvent(new Event('drop', { cancelable: true }));
-    expect(de).toEqual([[2, 0]]);
+    expect(el.querySelectorAll('.trow[draggable="true"]').length).toBe(PISTES.length);
   });
 });
 

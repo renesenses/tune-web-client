@@ -936,7 +936,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                   objet={objetAlbum(a)}
                   nom={a.title}
                 >
-                  <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                  <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                 </PochetteActions>
               </span>
               <span class="ct" title={a.title}>{a.title}</span>
@@ -996,7 +996,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                   objet={objetArtiste(a)}
                   nom={a.name}
                 >
-                  <AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name}
+                  <AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} vignette alt={a.name}
                     source={(a as any).source} fallbackInitials={a.name?.slice(0,1)} />
                 </PochetteActions>
               </span>
@@ -1061,7 +1061,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                     <!-- Une playlist de SERVICE porte SON image, entière : ce
                          n'est pas un assemblage d'albums, on ne la coupe donc
                          pas en quatre. -->
-                    <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name}
+                    <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} vignette alt={pl.name}
                               source={pl.source} fallbackInitials={pl.name?.slice(0, 1)} />
                   {:else}
                     <!-- Tant que les pochettes ne sont pas revenues — ou si la
@@ -1242,7 +1242,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                      `RadiosV2` (même objet, même champ `logo_url`), initiale
                      à défaut. Il reste hors du bouton de lecture pour ne pas
                      changer la cible du clic ni la place du cœur. -->
-                <span class="stlogo"><AlbumArt coverPath={r.logo_url ?? null} albumId={null} size={0} alt={r.name} fallbackInitials={r.name?.slice(0,1)} /></span>
+                <span class="stlogo"><AlbumArt coverPath={r.logo_url ?? null} albumId={null} size={0} vignette alt={r.name} fallbackInitials={r.name?.slice(0,1)} /></span>
                 <button class="stlire" onclick={() => lireStation(r)} title={r.name}>
                   <span class="stnom">{r.name}</span>
                   {#if r.genre}<span class="stgenre">{r.genre}</span>{/if}
@@ -1291,7 +1291,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           <div class="rows">
             {#each vRadio as f (f.id)}
               <div class="lrow">
-                <span class="lcv"><AlbumArt coverPath={f.cover_url ?? null} albumId={null} size={0} alt={f.title} fallbackInitials={f.title?.slice(0,1)} /></span>
+                <span class="lcv"><AlbumArt coverPath={f.cover_url ?? null} albumId={null} size={0} vignette alt={f.title} fallbackInitials={f.title?.slice(0,1)} /></span>
                 <span class="lt">{f.title}</span>
                 <span class="la">{f.artist ?? ''}</span>
                 <span class="lst">{f.station ?? ''}</span>

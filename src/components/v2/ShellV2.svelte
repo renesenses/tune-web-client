@@ -190,6 +190,7 @@
   import { addShortcut, currentShortcutTarget, raccourciPropose, type PropositionRaccourci } from '../../lib/stores/shortcuts';
   import { notifications } from '../../lib/stores/notifications';
   import { t, locale } from '../../lib/i18n';
+  import { get } from 'svelte/store';
   import { preferences } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
   import {
@@ -303,7 +304,7 @@
    * ⚠️ Pas de boucle : `locale` n'écrit jamais dans `preferences`. Le seul
    * autre écrivain est le sélecteur des Réglages, qui met les deux à jour.
    */
-  $effect(() => { locale.set($preferences.language ?? 'fr'); });
+  $effect(() => { locale.set($preferences.language ?? 'en'); });
 
   // Les stores partagés sont alimentés par App.svelte, que `?v2` ne monte
   // jamais : sans cet appel, zones/albums/appareils restent vides et toute
@@ -366,7 +367,10 @@
    * laisserait un second écrivain derrière elle et chaque changement de vue
    * empilerait deux entrées.
    */
-  $effect(() => brancherHistoriqueCoquille());
+  // Fil 2166 — la vue de démarrage (Réglages › Général) est lue UNE fois, par
+  // `get` : lue par `$preferences`, l'effet se rebrancherait à chaque réglage
+  // touché et ramènerait l'écran sur la vue de démarrage en pleine session.
+  $effect(() => brancherHistoriqueCoquille({ vueDeDemarrage: get(preferences).startupView }));
 
   /** La bannière n'occupe la place que si elle a quelque chose à dire. */
   const annonceMaj = $derived($updateAvailable && !$updateBannerDismissed);

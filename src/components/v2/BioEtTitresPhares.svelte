@@ -25,9 +25,13 @@
   import * as api from '../../lib/api';
   import ClampedText from '../partages/ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import AttributionBio from './AttributionBio.svelte';
+  import type { BioProvenance } from '../../lib/library/attributionBio';
 
   interface Props {
     bio?: string | null;
+    /** D'où vient la biographie (`bio_provenance`) — la ligne d'attribution. */
+    provenance?: BioProvenance | null;
     titres?: Track[];
     /** Change à chaque artiste : remet la biographie repliée. */
     cle?: unknown;
@@ -44,7 +48,7 @@
      */
     actionsBio?: Snippet;
   }
-  let { bio = null, titres = [], cle = undefined, actionsBio = undefined }: Props = $props();
+  let { bio = null, provenance = null, titres = [], cle = undefined, actionsBio = undefined }: Props = $props();
 
   const bioPropre = $derived((bio ?? '').trim());
 
@@ -66,6 +70,7 @@
         moreLabel={$t('v2.art.bioReadMore' as any)} lessLabel={$t('v2.art.bioReadLess' as any)}>
         <p class="bio">{bioPropre}</p>
       </ClampedText>
+      <AttributionBio {provenance} />
     {/if}
     {#if actionsBio}
       <div class="bio-actions">{@render actionsBio()}</div>

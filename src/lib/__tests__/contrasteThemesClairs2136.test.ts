@@ -114,6 +114,19 @@ describe('Fil 2136 — contraste des thèmes v2 clairs', () => {
     }
   });
 
+  it('Concerts : le texte atténué suit le thème, plus de gris #888 codé en dur', () => {
+    // `--text-muted` n'est définie nulle part : seul le repli #888 / #aaa
+    // s'appliquait, à environ 3:1 sur le fond des thèmes clairs.
+    const src = sansCommentaires(lire('src/components/v2-heritage/ConcertsView.svelte'));
+    expect(src).not.toMatch(/var\(--text-muted,/);
+    expect(src).toMatch(/\.cc-lieu\s*\{[^}]*color: var\(--tune-text-muted\)/);
+    for (const t of THEMES_CLAIRS) {
+      const fond = resoudre(t, '--v2-bg');
+      const c = contraste(fond, resoudre(t, '--tune-text-muted'));
+      expect(c, `${t} : --tune-text-muted sur --v2-bg (${fond}) = ${c.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it('les thèmes sombres gardent leur --tune-grey2 (rien ne change pour eux)', () => {
     for (const t of ['black-green', 'black-blue', 'midnight-orange', 'brown']) {
       expect(resoudre(t, '--tune-grey2'), t).toBe('#2A2A2A');

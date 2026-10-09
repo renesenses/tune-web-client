@@ -433,7 +433,7 @@
         <!-- `source` n'est PAS passé à `AlbumArt` : il y poserait sa
              propre puce, et la vignette en afficherait deux. -->
         <AlbumArt coverPath={al.cover_path ?? loc?.cover_path ?? null}
-          albumId={e.principal.source === BIBLIOTHEQUE ? al.id : null} size={0} alt={al.title}
+          albumId={e.principal.source === BIBLIOTHEQUE ? al.id : null} size={0} vignette alt={al.title}
           fallbackInitials={al.title?.slice(0, 1)} />
       </PochetteActions>
       <div class="pastilles">

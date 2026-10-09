@@ -84,6 +84,8 @@ export interface Artist {
   musicbrainz_id?: string | null;
   discogs_id?: string | null;
   bio?: string | null;
+  /** Provenance de `bio` (source, URL, licence, langue) — absente sur un serveur ancien. */
+  bio_provenance?: import('./library/attributionBio').BioProvenance | null;
   image_path?: string | null;
   image_source?: string | null;
   source_id?: string | null;
@@ -984,6 +986,14 @@ export interface SystemConfig {
    * lit des fichiers de playlist, l'autre déduit une playlist d'un dossier.
    */
   scan_import_playlists?: ConfigFlag;
+  /**
+   * « Analyser la bibliothèque au démarrage » : la valeur du PROCHAIN démarrage
+   * (réglage utilisateur, sinon `TUNE_AUTO_SCAN` / `tune.toml`, sinon non).
+   * Absente : serveur antérieur, l'interrupteur ne s'affiche pas.
+   */
+  library_scan_on_startup?: ConfigFlag;
+  /** Qui décide la valeur ci-dessus : l'utilisateur ou le déploiement. */
+  library_scan_on_startup_source?: 'user' | 'deployment';
   /** Paroles en ligne (LRCLIB, base communautaire) — désactivé par défaut. */
   lyrics_lrclib_enabled?: ConfigFlag;
   discogs_token_set: boolean;
@@ -1091,6 +1101,18 @@ export interface CompletenessStats {
   /** Pistes sans fichier propre (images CUE), sans DR : hors de toute passe.
    *  tune-server-rust#5834 ; absent avant, donc 0. */
   dynamic_range_without_file?: number;
+  /** Pistes sans DR d'une racine EXCLUE des analyses (#5593) : aucune passe
+   *  ne les prendra tant que l'exclusion tient. Fil 2157 ; absent avant, donc 0. */
+  dynamic_range_out_of_scope?: number;
+  /** Décision du 06/10 — pistes TRAITÉES : avec un DR, ou déclarées non
+   *  gérables. Le numérateur de la jauge, `total_tracks` son dénominateur.
+   *  Une piste reportée n'en fait pas partie. Absent d'un serveur plus ancien. */
+  dynamic_range_processed?: number;
+  /** La part des traitées sans DR : non gérables, toutes causes confondues. */
+  dynamic_range_unmanageable?: number;
+  /** Sans DR, mesure impossible pour de bon (`dr_indisponible`), version
+   *  dédupliquée de `dynamic_range_unavailable`. */
+  dynamic_range_unmeasurable?: number;
   dynamic_range_pct?: number;
 }
 
@@ -1104,12 +1126,36 @@ export interface ArtworkRescanResult {
  *  Le `verdict` est délibérément explicite : « retomber sur le même pressage »
  *  n'est pas un échec mais ce n'est pas non plus une correction, et l'utilisateur
  *  doit pouvoir faire la différence — sans quoi il recommence indéfiniment. */
+/** Une édition candidate rendue par `ambiguous` (`MBReleaseMatch` du serveur). */
+export interface ReidentifyCandidate {
+  release_id: string;
+  title: string;
+  artist: string;
+  score: number;
+  year?: number | null;
+  country?: string | null;
+  label?: string | null;
+  track_count?: number | null;
+  media_format?: string | null;
+  disambiguation?: string | null;
+}
+
 export interface ReidentifyResult {
   album_id: number;
   /** `reidentified` : nouveau pressage. `unchanged` : le même qu'avant, la
    *  source en ligne confirme. `not_found` : rien trouvé, l'identification
-   *  précédente a été reposée. `no_tracks` : rien à ré-identifier. */
-  verdict: 'reidentified' | 'unchanged' | 'not_found' | 'no_tracks';
+   *  précédente a été reposée. `no_tracks` : rien à ré-identifier.
+   *  `ambiguous` (#4805 D) : plusieurs éditions se valent, RIEN n'a été écrit ;
+   *  `candidates` les liste, et `reidentifyAlbum(id, release_id)` impose
+   *  celle que l'utilisateur choisit. */
+  verdict: 'reidentified' | 'unchanged' | 'not_found' | 'ambiguous' | 'no_tracks';
+  /** Sur `ambiguous` : `albums_concurrents`, `pistes_incompatibles`… */
+  reason?: string | null;
+  /** Sur `ambiguous` : les éditions entre lesquelles rien n'a tranché. */
+  candidates?: ReidentifyCandidate[];
+  /** D'où vient le pressage posé : `balise_release`, `recherche`,
+   *  `choix_utilisateur`… */
+  source?: string | null;
   tracks_total: number;
   tracks_matched?: number;
   tracks_unmatched?: number;

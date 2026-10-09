@@ -1236,7 +1236,7 @@
                 gestesMenu={gestesAlbum(a)}
                 nom={a.title}
               >
-                <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} fallbackInitials={a.title?.slice(0, 1)} />
+                <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} vignette alt={a.title} fallbackInitials={a.title?.slice(0, 1)} />
               </PochetteActions>
             </span>
             <button class="meta" onclick={() => { ouvrirCalqueAlbum(a); fiche = a; }}>
@@ -1374,7 +1374,7 @@
                 {#if $preferences.v2CollectionsMosaique}
                   <MosaiquePochettes pochettes={e.covers} initiales={libelleTradu(e).slice(0, 1)} alt={libelleTradu(e)} />
                 {:else}
-                  <AlbumArt coverPath={e.covers[0] ?? null} albumId={null} size={0} alt={libelleTradu(e)}
+                  <AlbumArt coverPath={e.covers[0] ?? null} albumId={null} size={0} vignette alt={libelleTradu(e)}
                     fallbackInitials={libelleTradu(e).slice(0, 1)} />
                 {/if}
               </PochetteActions>

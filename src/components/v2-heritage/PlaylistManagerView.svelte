@@ -2709,7 +2709,7 @@
                          seule image — la règle du 01/09. -->
                     <MosaiquePochettes pochettes={item.covers} alt={item.name} />
                   {:else if item.coverPath}
-                    <AlbumArt coverPath={item.coverPath} size={0} alt={item.name} />
+                    <AlbumArt coverPath={item.coverPath} size={0} vignette alt={item.name} />
                   {:else if mosaiques[cle]}
                     <MosaiquePochettes pochettes={mosaiques[cle]} alt={item.name} />
                   {:else}

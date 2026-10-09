@@ -73,10 +73,10 @@ describe('onglet « Ajouts récents » (#3039) porté dans la Bibliothèque v2',
     // l'écran monté, par `carrouselAlbums929.test.ts`.
     expect(balise).toMatch(/vue=\{[^}]*\bdisplay\b/);
   });
-  it('🔴 liste et décompte portent sur la MÊME fenêtre, et un résultat périmé est jeté', () => {
-    expect(R).toContain('api.getRecentlyAdded(fenetre, PLAFOND)');
-    expect(R).toContain('api.getRecentlyAddedSummary(fenetre)');
-    expect(R.match(/if \(jours !== fenetre\) return;/g)?.length).toBe(2);
+  it('🔴 liste et décompte portent sur la MÊME fenêtre (et le même tri, #5402), et un résultat périmé est jeté', () => {
+    expect(R).toContain('api.getRecentlyAdded(fenetre, PLAFOND, ordre)');
+    expect(R).toContain('api.getRecentlyAddedSummary(fenetre, ordre)');
+    expect(R.match(/if \(jours !== fenetre \|\| tri !== ordre\) return;/g)?.length).toBe(2);
   });
   it('un échec vide la liste et le dit', () => {
     expect(R).toContain("notifications.error($tr('library.recentLoadError'");
