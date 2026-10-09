@@ -96,7 +96,7 @@ import type {
   OutputType,
 } from './types';
 
-import { baseApi, entetesRelais } from './bridge';
+import { baseApi, entetesRelais, urlNavigateur } from './bridge';
 import { messageRefusPremium, type CorpsRefusPremium } from './premiumRefus';
 import { estRefusEcriture, messageRefusEcriture, CODE_REFUS_ECRITURE } from './ecritureFichiers';
 import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
@@ -4850,7 +4850,8 @@ export function restoreBackup(filename: string) {
 }
 
 export function exportDatabaseUrl(): string {
-  return `${BASE}/system/database/export`;
+  // Navigation (`window.location.href`) : jeton du pont en `?token=`.
+  return urlNavigateur(`${BASE}/system/database/export`);
 }
 
 export async function importDatabase(file: File) {
@@ -5762,7 +5763,8 @@ export async function importRadios(file: File): Promise<import('./types').RadioI
 }
 
 export function exportRadiosUrl(): string {
-  return `${BASE}/radios/export.m3u`;
+  // Lien `<a href download>` : jeton du pont en `?token=`.
+  return urlNavigateur(`${BASE}/radios/export.m3u`);
 }
 
 
@@ -6168,6 +6170,12 @@ function pochetteDUnAutreServeurTune(url: string): boolean {
 }
 
 export function artworkUrl(coverPath: string | null | undefined, size?: number): string {
+  // Par le pont, une `<img>` ne peut pas porter `X-Bridge-Token` : le jeton
+  // part en `?token=` (voir `urlNavigateur`). Sans effet hors relais.
+  return urlNavigateur(adresseDePochette(coverPath, size));
+}
+
+function adresseDePochette(coverPath: string | null | undefined, size?: number): string {
   if (!coverPath) return '';
   // Server already returns usable relative URLs for cover_path
   // (e.g. /api/v1/library/artwork/abc.jpg or /api/v1/library/artwork/proxy?url=...).

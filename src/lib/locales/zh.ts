@@ -2103,6 +2103,7 @@ export default {
   "library.shuffleArtist": "随机播放",
   "library.similarError": "无法获取相似曲目。",
   "login.createAccount": "创建账户",
+  "login.ssoIndisponibleRelais": "通过远程访问无法使用 mozaiklabs.fr 登录：请在本地网络中打开 Tune 以关联您的账户。",
   "lyrics.karaoke": "卡拉OK",
   "lyrics.source.lrc": "来源：.lrc 文件",
   "lyrics.source.tag": "来源：文件标签",

@@ -2106,6 +2106,7 @@ export default {
   "library.shuffleArtist": "Redare aleatorie",
   "library.similarError": "Nu s-au putut prelua piesele similare.",
   "login.createAccount": "Creează un cont",
+  "login.ssoIndisponibleRelais": "Conectarea cu mozaiklabs.fr nu funcționează prin accesul de la distanță: deschide Tune în rețeaua locală pentru a-ți lega contul.",
   "lyrics.karaoke": "Karaoke",
   "lyrics.source.lrc": "Sursă: fișier .lrc",
   "lyrics.source.tag": "Sursă: etichetă din fișier",

@@ -2085,6 +2085,7 @@ export default {
   "library.shuffleArtist": "Slumpmässig uppspelning",
   "library.similarError": "Det gick inte att hämta liknande spår.",
   "login.createAccount": "Skapa ett konto",
+  "login.ssoIndisponibleRelais": "Inloggning med mozaiklabs.fr fungerar inte via fjärråtkomst: öppna Tune i ditt lokala nätverk för att koppla ditt konto.",
   "lyrics.karaoke": "Karaoke",
   "lyrics.source.lrc": "Källa: .lrc-fil",
   "lyrics.source.tag": "Källa: filtagg",

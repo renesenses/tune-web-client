@@ -2677,6 +2677,7 @@ export default {
   "smartai.nameTempoMix": "{bpm} BPM mix",
   "search.topArtists": "Most played artists",
   "login.createAccount": "Create an account",
+  "login.ssoIndisponibleRelais": "Signing in with mozaiklabs.fr does not work through remote access: open Tune on your local network to link your account.",
   "tv.stereoVuMeters": "Stereo VU meters",
   "oxygen.settingsTitle": "Oxygen view · advanced library",
   "queue.resizePanel": "Drag to resize · double-click to reset",

@@ -2,7 +2,7 @@
   import { setToken } from '../../lib/auth';
   import { t } from '../../lib/i18n';
   import { activeView } from '../../lib/stores/navigation';
-  import { baseApi, entetesRelais, urlRessourcePublique } from '../../lib/bridge';
+  import { baseApi, entetesRelais, ssoDisponible, urlRessourcePublique } from '../../lib/bridge';
 
   /**
    * `true` quand l'écran est monté EN CALQUE par-dessus l'interface
@@ -22,6 +22,9 @@
   // le pont répond 405 (« Erreur 405 », essai en 5G du 09/10/2026).
   const BASE = baseApi();
   const LOGO = urlRessourcePublique('tune-logo.png');
+  // Par le pont, le parcours SSO ne peut pas aboutir (redirections suivies
+  // côté serveur, adresse de rappel en 127.0.0.1) : voir `ssoDisponible`.
+  const SSO = ssoDisponible();
 
   // Mode: 'login' or 'register'
   let mode = $state<'login' | 'register'>('login');
@@ -150,6 +153,9 @@
         <span>ou</span>
       </div>
 
+      {#if !SSO}
+        <p class="login-sso-indisponible">{$t('login.ssoIndisponibleRelais' as any)}</p>
+      {:else}
       <button class="login-sso-btn" onclick={handleSSO}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
           <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
@@ -158,6 +164,7 @@
         </svg>
         Connexion avec mozaiklabs.fr
       </button>
+      {/if}
 
       <p class="login-switch">
         Pas encore de compte ?
@@ -322,6 +329,14 @@
     flex: 1;
     height: 1px;
     background: var(--tune-border);
+  }
+
+  .login-sso-indisponible {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--tune-text-secondary, #888);
+    text-align: center;
   }
 
   .login-sso-btn {

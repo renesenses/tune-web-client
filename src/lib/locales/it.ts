@@ -2103,6 +2103,7 @@ export default {
   "library.shuffleArtist": "Riproduzione casuale",
   "library.similarError": "Impossibile recuperare i brani simili.",
   "login.createAccount": "Crea un account",
+  "login.ssoIndisponibleRelais": "L’accesso con mozaiklabs.fr non funziona tramite l’accesso remoto: apri Tune nella tua rete locale per collegare il tuo account.",
   "lyrics.karaoke": "Karaoke",
   "lyrics.source.lrc": "Origine: file .lrc",
   "lyrics.source.tag": "Origine: tag del file",

@@ -2097,6 +2097,7 @@ export default {
   "library.shuffleArtist": "셔플 재생",
   "library.similarError": "유사한 곡을 가져오지 못했습니다.",
   "login.createAccount": "계정 만들기",
+  "login.ssoIndisponibleRelais": "mozaiklabs.fr 로그인은 원격 접속으로는 작동하지 않습니다. 계정을 연결하려면 로컬 네트워크에서 Tune을 여세요.",
   "lyrics.karaoke": "노래방",
   "lyrics.source.lrc": "출처: .lrc 파일",
   "lyrics.source.tag": "출처: 파일 태그",
