@@ -7371,6 +7371,30 @@ export function enrichArtistImagesStatus() {
   }>(`${BASE}/library/artwork/enrich-artists/status`);
 }
 
+/** Un artiste sans portrait visible, nommé par le serveur (tune-server-rust#4692). */
+export interface ArtisteSansPortrait {
+  id: number;
+  name: string;
+  musicbrainz_id: string | null;
+  /** Chemin annoncé par la base alors que le fichier de cache a disparu. */
+  image_path: string | null;
+  /** `sans_image_avec_mbid` | `cache_perdu_avec_mbid` | `sans_image_sans_mbid` | `cache_perdu_sans_mbid`. */
+  nature: string;
+}
+
+/** Les artistes que compte `artists_without_image`, NOMMÉS — même fonction
+ *  serveur que le nombre de la carte « Pochettes d'artistes » (#4692, Bilou).
+ *  `total` est celui de la sélection, pour annoncer ce que la page ne montre pas. */
+export function getArtistsWithoutImage(limit = 200, offset = 0) {
+  return fetchJSON<{
+    artists: ArtisteSansPortrait[];
+    total: number;
+    artists_without_image: number;
+    limit: number;
+    offset: number;
+  }>(`${BASE}/library/artwork/artists-without-image?limit=${limit}&offset=${offset}`);
+}
+
 // YouTube playback: managed yt-dlp helper (opt-in). YouTube blocked Tune's
 // native extraction server-side, so playback goes through yt-dlp.
 export function getYoutubeStatus() {
