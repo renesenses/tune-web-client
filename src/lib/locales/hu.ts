@@ -57,6 +57,7 @@ export default {
   "podcasts.noEpisodesFound": "Nem található műsor",
   'player.showWaveform': 'Hullámforma megjelenítése',
   'player.showSpectrum': 'Spektrum megjelenítése',
+  'player.channelLevels': 'Szint csatornánként',
   'player.showRemainingTime': 'Hátralévő idő megjelenítése',
   'player.showTotalTime': 'Teljes hossz megjelenítése',
   "queue.upNextSummary": "{count} következik · {time}",

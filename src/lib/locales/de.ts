@@ -2158,6 +2158,7 @@ export default {
   "queue.resizePanel": "Ziehen zum Ändern der Größe · Doppelklick zum Zurücksetzen",
   'player.showWaveform': 'Wellenform anzeigen',
   'player.showSpectrum': 'Spektrum anzeigen',
+  'player.channelLevels': 'Pegel pro Kanal',
   'player.showRemainingTime': 'Verbleibende Zeit anzeigen',
   'player.showTotalTime': 'Gesamtdauer anzeigen',
   "queue.upNextSummary": "{count} als Nächstes · {time}",

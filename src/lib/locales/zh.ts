@@ -2158,6 +2158,7 @@ export default {
   "queue.resizePanel": "拖动调整大小 · 双击恢复",
   'player.showWaveform': '显示波形',
   'player.showSpectrum': '显示频谱',
+  'player.channelLevels': '各声道电平',
   'player.showRemainingTime': '显示剩余时间',
   'player.showTotalTime': '显示总时长',
   "queue.upNextSummary": "接下来 {count} 首 · {time}",
