@@ -35,6 +35,35 @@ export interface EtatLecteurCd {
   plateforme_prise_en_charge: boolean;
   lecteur: string | null;
   presence: PresenceCd;
+  /**
+   * tune-server-rust#6043 — le disque chargé en mémoire : `null` sans
+   * chargement, absent d'un serveur qui ne sait pas charger.
+   */
+  chargement?: ChargementCd | null;
+}
+
+/** tune-server-rust#6043 — progression du chargement du CD en mémoire. */
+export interface ChargementCd {
+  disc_id: string;
+  secteurs_charges: number;
+  secteurs_total: number;
+  pourcentage: number;
+  pistes_chargees: number[];
+  piste_en_cours: number | null;
+  octets_ram: number;
+  octets_fichier: number;
+  secteurs_perdus: number;
+  /** `null` tant que le chargement avance. */
+  fin: 'termine' | 'ejecte' | 'libere' | null;
+}
+
+/** tune-server-rust#6043 — `GET /ext/cd/memoire`. */
+export interface MemoireCd {
+  disponible: boolean;
+  actif: boolean;
+  plafond_mio?: number;
+  ram_disponible_mio?: number | null;
+  chargement: ChargementCd | null;
 }
 
 export interface PisteCd {
@@ -98,6 +127,36 @@ export function ejecterCd(forcer = false): Promise<EjectionCd> {
     undefined,
     true,
   );
+}
+
+/** tune-server-rust#6043 — le réglage « Charger le CD en mémoire ». */
+export function getMemoireCd(): Promise<MemoireCd> {
+  return fetchJSON<MemoireCd>(`${BASE}/ext/cd/memoire`, undefined, undefined, true);
+}
+
+export function reglerMemoireCd(actif: boolean): Promise<MemoireCd> {
+  return fetchJSON<MemoireCd>(
+    `${BASE}/ext/cd/memoire`,
+    { method: 'POST', body: JSON.stringify({ actif }) },
+    undefined,
+    true,
+  );
+}
+
+/**
+ * Ce que l'indicateur affiche du chargement : rien s'il ne porte pas sur le
+ * disque affiché ou s'il s'est arrêté (éjection, réglage), sinon le
+ * pourcentage et « fini ».
+ */
+export function vueChargementCd(
+  c: ChargementCd | null | undefined,
+  discId: string | null | undefined,
+): { pourcentage: number; fini: boolean; surDisque: boolean } | null {
+  if (!c || !discId || c.disc_id !== discId) return null;
+  if (c.fin === 'ejecte' || c.fin === 'libere') return null;
+  const fini = c.fin === 'termine';
+  const pourcentage = fini ? 100 : Math.max(0, Math.min(99, Math.floor(c.pourcentage)));
+  return { pourcentage, fini, surDisque: c.octets_fichier > 0 };
 }
 
 // ─── Le greffon est-il là ? ─────────────────────────────────────────────────

@@ -48,12 +48,14 @@ const DISQUE = {
 type Appel = { url: string; method: string; body: unknown };
 let appels: Appel[] = [];
 let greffon: unknown[] = [];
-let etat: { plateforme_prise_en_charge: boolean; lecteur: string | null; presence: string } = {
+let etat: { plateforme_prise_en_charge: boolean; lecteur: string | null; presence: string; chargement?: unknown } = {
   plateforme_prise_en_charge: true, lecteur: '/dev/sr0', presence: 'disque',
 };
 let disque: unknown = DISQUE;
 let refusDisque: { status: number; corps: unknown } | null = null;
 let refusJouer: { status: number; corps: unknown } | null = null;
+/** tune-server-rust#6043 — `GET /ext/cd/memoire` ; `null` = 404 (ancien serveur). */
+let memoireSrv: { disponible: boolean; actif: boolean; plafond_mio: number; chargement: unknown } | null = null;
 /** Réponses successives de `POST /ext/cd/ejecter` ; vide = 200. */
 let reponsesEjecter: { status: number; corps: unknown }[] = [];
 
@@ -79,6 +81,7 @@ beforeEach(() => {
   refusDisque = null;
   refusJouer = null;
   reponsesEjecter = [];
+  memoireSrv = null;
   cdPlugin.set(null);
   currentZoneId.set(3);
   vi.stubGlobal(
@@ -93,6 +96,11 @@ beforeEach(() => {
         if (refusJouer) return reponse(refusJouer.status, refusJouer.corps);
         const b = JSON.parse(String(init?.body));
         return reponse(200, { zone_id: b.zone_id, disc_id: DISQUE.disc_id, piste: b.piste ?? 1, file: 3 });
+      }
+      if (u.includes('/ext/cd/memoire')) {
+        if (!memoireSrv) return reponse(404, { error: 'not_found' });
+        if (method === 'POST') memoireSrv = { ...memoireSrv, ...JSON.parse(String(init?.body)) };
+        return reponse(200, memoireSrv);
       }
       if (u.includes('/ext/cd/ejecter')) {
         const r = reponsesEjecter.shift();
@@ -380,6 +388,69 @@ describe('Lecture CD — masquée sans le greffon', () => {
     expect(ouvrir).not.toBeNull();
     ouvrir!.click();
     expect(get(activeView)).toBe('lecturecd');
+  });
+});
+
+const CHARGEMENT = {
+  disc_id: DISQUE.disc_id, secteurs_charges: 63_000, secteurs_total: 150_000, pourcentage: 42,
+  pistes_chargees: [1], piste_en_cours: 2, octets_ram: 148_176_000, octets_fichier: 0,
+  secteurs_perdus: 0, fin: null,
+};
+
+describe('Lecture CD — chargement en mémoire (tune-server-rust#6043)', () => {
+  it('pendant le chargement : un indicateur dit le pourcentage', async () => {
+    etat = { ...etat, chargement: CHARGEMENT };
+    const el = await poser(LectureCdV2);
+    const ind = el.querySelector('.chargement') as HTMLElement | null;
+    expect(ind, 'indicateur absent').not.toBeNull();
+    expect(texte(ind!)).toContain(fr['v2.cd.memLoading'].replace('{pct}', '42'));
+    expect((ind!.querySelector('.barre span') as HTMLElement).style.width).toBe('42%');
+  });
+
+  it('la relecture de /etat fait avancer l’indicateur, jusqu’à « chargé »', async () => {
+    etat = { ...etat, chargement: CHARGEMENT };
+    const el = await poser(LectureCdV2);
+    etat = { ...etat, chargement: { ...CHARGEMENT, secteurs_charges: 150_000, pourcentage: 100, fin: 'termine' } };
+    await vi.advanceTimersByTimeAsync(RELECTURE_CD_MS);
+    await laisserFaire();
+    const ind = el.querySelector('.chargement') as HTMLElement;
+    expect(ind.classList.contains('fini')).toBe(true);
+    expect(texte(ind)).toContain(fr['v2.cd.memLoaded']);
+  });
+
+  it('repli disque : la mention « en partie sur disque » apparaît', async () => {
+    etat = { ...etat, chargement: { ...CHARGEMENT, octets_fichier: 100 } };
+    const el = await poser(LectureCdV2);
+    expect(texte(el.querySelector('.chargement') as HTMLElement)).toContain(fr['v2.cd.memOnDisk']);
+  });
+
+  it('sans chargement, éjecté, ou pour un AUTRE disque : pas d’indicateur', async () => {
+    for (const c of [null, { ...CHARGEMENT, fin: 'ejecte' }, { ...CHARGEMENT, disc_id: 'autre' }]) {
+      etat = { ...etat, chargement: c };
+      const el = await poser(LectureCdV2);
+      expect(el.querySelector('.chargement'), JSON.stringify(c)).toBeNull();
+      unmount(monte!); monte = null; hote?.remove();
+    }
+  });
+
+  it('la case « Charger le CD en mémoire » lit et règle /memoire', async () => {
+    memoireSrv = { disponible: true, actif: true, plafond_mio: 800, chargement: null };
+    const el = await poser(LectureCdV2);
+    const caseMemoire = el.querySelector('.memoire input') as HTMLInputElement | null;
+    expect(caseMemoire, 'case absente').not.toBeNull();
+    expect(texte(el.querySelector('.memoire') as HTMLElement)).toContain(fr['v2.cd.memToggle']);
+    expect(caseMemoire!.checked).toBe(true);
+    caseMemoire!.click();
+    await laisserFaire();
+    const post = appels.filter((a) => a.url.includes('/ext/cd/memoire') && a.method === 'POST');
+    expect(post.map((a) => a.body)).toEqual([{ actif: false }]);
+    expect((el.querySelector('.memoire input') as HTMLInputElement).checked).toBe(false);
+  });
+
+  it('ancien serveur (404 sur /memoire) : ni case ni erreur', async () => {
+    const el = await poser(LectureCdV2);
+    expect(el.querySelector('.memoire')).toBeNull();
+    expect(el.querySelector('.err')).toBeNull();
   });
 });
 
