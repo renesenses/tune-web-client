@@ -81,6 +81,7 @@
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
+import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration,  type QualityTier } from '../../lib/utils';
   import { formatDeFichier } from '../../lib/typeDeFichier';
@@ -833,6 +834,30 @@
    * panne, pas comme une bibliothèque non taguée.
    */
   const hasDr = $derived(src.some((a) => drNombre(a) != null));
+  /**
+   * web#2036 — Cyrille, fil 2196 : « DR n'est pas sélectionné dans affichage,
+   * il est pourtant visible sur la bibliothèque ». La case « DR » de Réglages >
+   * Affichage gouvernait la colonne des listes de pistes, pas ce filtre.
+   * Décision de Bertrand (09/10/2026) : DR non affiché ⇒ pas de filtre DR.
+   *
+   * On lit la MÊME réponse que la liste de pistes (`colonnesRetenues` sur le
+   * mode courant) : la colonne DR n'est offerte qu'en Avancé, donc le filtre
+   * suit — il n'existe que là où la colonne peut exister et est cochée.
+   */
+  const drAffiche = $derived(
+    colonnesRetenues($preferences.v2Colonnes?.[level] ?? [], level).some((c) => c.cle === 'dr'),
+  );
+  /**
+   * Un filtre DR actif ne survit pas à son masquage : la grille resterait
+   * filtrée par une commande que l'utilisateur ne voit plus. On ne décide que
+   * sur la PRÉFÉRENCE, jamais sur `src` (une liste vide ne décide de rien, #899).
+   */
+  $effect(() => {
+    if (!drAffiche && (untrack(() => fDrMin) != null || untrack(() => fDrMax) != null)) {
+      fDrMin = null;
+      fDrMax = null;
+    }
+  });
   /** Les DR réellement présents, croissants — pas une échelle inventée. */
   const valeursDr = $derived([...new Set(src.map(drNombre).filter((v): v is number => v != null))].sort((x, y) => x - y));
   const availableSorts = $derived(
@@ -2678,7 +2703,7 @@
            place aussi au premier niveau. -->
       <!-- Tranche DR (#2144) : dessinée SEULEMENT si des albums portent un
            DR — ailleurs, une commande qui ne filtre rien. -->
-      {#if hasDr}
+      {#if hasDr && drAffiche}
         <span class="chip dr" class:active={fDrMin != null || fDrMax != null}>
           <span>{$tr('library.drRange' as any)}</span>
           <select aria-label={$tr('library.drMin' as any)} value={fDrMin == null ? '' : String(fDrMin)}
