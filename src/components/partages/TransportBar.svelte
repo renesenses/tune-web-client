@@ -9,6 +9,7 @@
   import { vuMetresVisibles } from '../../lib/barreVuMetres';
   import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../../lib/peakMetre';
   import { onMount, onDestroy } from 'svelte';
+  import { selecteurZoneOuvert } from '../../lib/stores/selecteurZone';
   import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
   import { arretPossible } from '../../lib/arretTransport';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
@@ -244,7 +245,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   function handleGlobalKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
-      if (showZoneDropdown) { showZoneDropdown = false; e.stopPropagation(); }
+      if ($selecteurZoneOuvert) { $selecteurZoneOuvert = false; e.stopPropagation(); }
       if (showTransferDropdown) { showTransferDropdown = false; e.stopPropagation(); }
       if (sleepDropdownOpen) { sleepDropdownOpen = false; e.stopPropagation(); }
       if (mobileVolumeOpen) { mobileVolumeOpen = false; e.stopPropagation(); }
@@ -430,15 +431,30 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     if ((e.target as HTMLElement).closest('.transfer-selector')) return;
     if ((e.target as HTMLElement).closest('.zone-popover')) return;
     if ((e.target as HTMLElement).closest('.mobile-volume-wrapper')) return;
+    if ((e.target as HTMLElement).closest('.mobile-zone-wrapper')) return;
     if (window.innerWidth <= 768) {
       mobileNowPlayingOpen.set(true);
     }
   }
 
   let zone = $derived($currentZone);
+  /**
+   * Petit écran : la liste des zones s'ouvre en feuille depuis le bouton de
+   * zone mobile, sinon en menu depuis la pastille de `.transport-right`. UNE
+   * seule des deux est rendue — deux copies de la liste dans le DOM
+   * doubleraient chaque zone pour les lecteurs d'écran.
+   */
+  let petitEcran = $state(false);
+  $effect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 768px)');
+    petitEcran = mq.matches;
+    const suivre = (e: MediaQueryListEvent) => { petitEcran = e.matches; };
+    mq.addEventListener?.('change', suivre);
+    return () => mq.removeEventListener?.('change', suivre);
+  });
   let track = $derived($currentTrack);
   let playState = $derived($playbackState);
-  let showZoneDropdown = $state(false);
   let configZone = $state<typeof zone | null>(null);
 
   /* ------------------------------------------------------------------ */
@@ -502,7 +518,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       // continuerait de piloter une zone devenue silencieuse.
       await switchZone(cibleId);
       zones.set(await api.getZones());
-      showZoneDropdown = false;
+      $selecteurZoneOuvert = false;
       showTransferDropdown = false;
     } catch (err: any) {
       notifications.error(err?.message || String(err));
@@ -917,6 +933,66 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
 </script>
 
+{#snippet listeDesZones(feuille: boolean)}
+        <div class="zone-popover-backdrop" onclick={() => $selecteurZoneOuvert = false} onkeydown={(e) => { if (e.key === 'Escape') $selecteurZoneOuvert = false; }} role="button" tabindex={0} aria-label="Close zone selector"></div>
+        <div class="zone-popover" class:zone-sheet={feuille} role="dialog" aria-label={$t('zone.zones')}>
+          <div class="zone-popover-header">
+            <span class="zone-popover-title">{$t('zone.zones')}</span>
+            <span class="zone-popover-count">{zonesDuMenu.length}</span>
+          </div>
+          {#each zonesDuMenu as z (z.id)}
+            <!--
+              Une RANGÉE, et non un seul bouton : le transfert est une seconde
+              action sur la même zone, et un bouton ne s'imbrique pas dans un
+              bouton. La rangée porte le fond au survol, les deux boutons
+              restent distincts au clavier comme à la souris.
+            -->
+            <div class="zone-popover-row" class:active={z.id === $currentZoneId}>
+            <button
+              class="zone-popover-item"
+              class:active={z.id === $currentZoneId}
+              onclick={() => { if (z.id !== null) currentZoneId.set(z.id); $selecteurZoneOuvert = false; }}
+            >
+              <span class="zone-dot" class:online={z.online !== false && z.recovery_started_at == null} class:recovering={z.recovery_started_at != null}></span>
+              <span class="zone-popover-icon"><ZoneTypeIcon type={z.output_type} size={16} /></span>
+              <!-- Nom de zone au-dessus, appareil en dessous : deux zones
+                   nommées « Salon » et « Chambre » ne disent pas SUR QUOI
+                   elles jouent, et c'est la question posée. La seconde ligne
+                   ne s'affiche que si elle apporte autre chose que le nom. -->
+              <span class="zone-popover-labels">
+                <span class="zone-popover-name truncate" title={z.name}>{z.name}</span>
+                {#if zoneDeviceName(z) && zoneDeviceName(z) !== z.name}
+                  <span class="zone-popover-device truncate" title={zoneDeviceName(z)}>{zoneDeviceName(z)}</span>
+                {/if}
+              </span>
+              <span class="zone-popover-meta">
+                {#if deviceTypeLabel(z.output_type)}
+                  <span class="zone-popover-badge">{deviceTypeLabel(z.output_type)}</span>
+                {/if}
+                {#if z.recovery_started_at != null}
+                  <span class="zone-popover-badge recovering">{$t('zone.recovering')}</span>
+                {:else if z.online === false}
+                  <span class="zone-popover-badge offline">{$t('zone.offline')}</span>
+                {:else if z.state === 'playing'}
+                  <span class="zone-playing-indicator">
+                    <svg viewBox="0 0 10 12" fill="currentColor" width="8" height="10"><polygon points="0,0 10,6 0,12" /></svg>
+                  </span>
+                {/if}
+              </span>
+            </button>
+            <!--
+              #1192 — la flèche par zone a été RETIRÉE (FabienM, fil 1839,
+              point 1). Elle et le bouton dédié « Transférer la lecture vers… »
+              faisaient le même geste à deux endroits, et le sélecteur de zones
+              en portait alors deux qui se ressemblent : commuter la zone
+              pilotée, et déplacer la lecture. C'est exactement la confusion
+              que le bouton dédié était censé lever.
+            -->
+            </div>
+          {/each}
+        </div>
+{/snippet}
+
 <div class="transport-bar" class:compact class:vu={vuActif} bind:this={barreEl} style="--compact-progress: {progressPercent}%" onclick={handleBarClick} role="button" tabindex={0} aria-label="Transport bar">
   {#if enAttente}
     <div class="tb-attente" role="status" aria-live="polite">
@@ -1263,6 +1339,24 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     {/if}
   </div>
 
+  <!-- Le choix de la zone sur TÉLÉPHONE (essai en 5G du 09/10/2026) : la
+       pastille de zone vit dans `.transport-right`, masquée sous 768 px.
+       Celle-ci la remplace sur petit écran et ouvre le même sélecteur, en
+       feuille au-dessus de la barre. -->
+  <div class="mobile-zone-wrapper">
+    <button
+      class="control-btn mobile-zone-btn"
+      onclick={(e) => { e.stopPropagation(); $selecteurZoneOuvert = !$selecteurZoneOuvert; }}
+      title={zone ? `${zoneFullLabel(zone)} — ${$t('zone.switchZone')}` : $t('zone.switchZone')}
+      aria-label={zone ? `${zoneFullLabel(zone)} — ${$t('zone.switchZone')}` : $t('zone.switchZone')}
+      aria-haspopup="dialog"
+      aria-expanded={$selecteurZoneOuvert}
+    >
+      <ZoneTypeIcon type={zone?.output_type} size={20} />
+    </button>
+    {#if $selecteurZoneOuvert && petitEcran}{@render listeDesZones(true)}{/if}
+  </div>
+
   <div class="transport-right">
     <!-- Le cadran DROIT, en tête de la colonne des réglages. -->
     {#if vuActif}<VuMetreCanal canal="droite" joue={isPlaying} />{/if}
@@ -1338,7 +1432,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         class:zone-recovering={zone?.recovery_started_at != null}
         class:zone-offline={zone?.online === false && zone?.recovery_started_at == null}
         class:zone-online={zone?.online !== false && zone?.recovery_started_at == null}
-        onclick={(e) => { e.stopPropagation(); showZoneDropdown = !showZoneDropdown; }}
+        onclick={(e) => { e.stopPropagation(); $selecteurZoneOuvert = !$selecteurZoneOuvert; }}
         oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); if (zone) configZone = zone; }}
         title={zone ? `${zoneFullLabel(zone)} — ${$t('zone.switchZone')}` : $t('zone.switchZone')}
         aria-label={zone ? zoneFullLabel(zone) : $t('zone.switchZone')}
@@ -1361,65 +1455,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
              dépouille. -->
         <span class="truncate zone-chip-label">{zoneChipLabel(zone)}</span>
       </button>
-      {#if showZoneDropdown}
-        <div class="zone-popover-backdrop" onclick={() => showZoneDropdown = false} onkeydown={(e) => { if (e.key === 'Escape') showZoneDropdown = false; }} role="button" tabindex={0} aria-label="Close zone selector"></div>
-        <div class="zone-popover">
-          <div class="zone-popover-header">
-            <span class="zone-popover-title">{$t('zone.zones')}</span>
-            <span class="zone-popover-count">{zonesDuMenu.length}</span>
-          </div>
-          {#each zonesDuMenu as z (z.id)}
-            <!--
-              Une RANGÉE, et non un seul bouton : le transfert est une seconde
-              action sur la même zone, et un bouton ne s'imbrique pas dans un
-              bouton. La rangée porte le fond au survol, les deux boutons
-              restent distincts au clavier comme à la souris.
-            -->
-            <div class="zone-popover-row" class:active={z.id === $currentZoneId}>
-            <button
-              class="zone-popover-item"
-              class:active={z.id === $currentZoneId}
-              onclick={() => { if (z.id !== null) currentZoneId.set(z.id); showZoneDropdown = false; }}
-            >
-              <span class="zone-dot" class:online={z.online !== false && z.recovery_started_at == null} class:recovering={z.recovery_started_at != null}></span>
-              <span class="zone-popover-icon"><ZoneTypeIcon type={z.output_type} size={16} /></span>
-              <!-- Nom de zone au-dessus, appareil en dessous : deux zones
-                   nommées « Salon » et « Chambre » ne disent pas SUR QUOI
-                   elles jouent, et c'est la question posée. La seconde ligne
-                   ne s'affiche que si elle apporte autre chose que le nom. -->
-              <span class="zone-popover-labels">
-                <span class="zone-popover-name truncate" title={z.name}>{z.name}</span>
-                {#if zoneDeviceName(z) && zoneDeviceName(z) !== z.name}
-                  <span class="zone-popover-device truncate" title={zoneDeviceName(z)}>{zoneDeviceName(z)}</span>
-                {/if}
-              </span>
-              <span class="zone-popover-meta">
-                {#if deviceTypeLabel(z.output_type)}
-                  <span class="zone-popover-badge">{deviceTypeLabel(z.output_type)}</span>
-                {/if}
-                {#if z.recovery_started_at != null}
-                  <span class="zone-popover-badge recovering">{$t('zone.recovering')}</span>
-                {:else if z.online === false}
-                  <span class="zone-popover-badge offline">{$t('zone.offline')}</span>
-                {:else if z.state === 'playing'}
-                  <span class="zone-playing-indicator">
-                    <svg viewBox="0 0 10 12" fill="currentColor" width="8" height="10"><polygon points="0,0 10,6 0,12" /></svg>
-                  </span>
-                {/if}
-              </span>
-            </button>
-            <!--
-              #1192 — la flèche par zone a été RETIRÉE (FabienM, fil 1839,
-              point 1). Elle et le bouton dédié « Transférer la lecture vers… »
-              faisaient le même geste à deux endroits, et le sélecteur de zones
-              en portait alors deux qui se ressemblent : commuter la zone
-              pilotée, et déplacer la lecture. C'est exactement la confusion
-              que le bouton dédié était censé lever.
-            -->
-            </div>
-          {/each}
-        </div>
-      {/if}
+      {#if $selecteurZoneOuvert && !petitEcran}{@render listeDesZones(false)}{/if}
     </div>
 
     <!-- Transférer la lecture : un geste à part entière, à l'extrême droite
@@ -1432,7 +1468,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         <button
           class="control-btn transfer-bar-btn"
           class:active={showTransferDropdown}
-          onclick={(e) => { e.stopPropagation(); showZoneDropdown = false; showTransferDropdown = !showTransferDropdown; }}
+          onclick={(e) => { e.stopPropagation(); $selecteurZoneOuvert = false; showTransferDropdown = !showTransferDropdown; }}
           title={$t('zone.transferTo')}
           aria-label={$t('zone.transferTo')}
           aria-haspopup="menu"
@@ -3203,6 +3239,41 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       display: flex;
       align-items: center;
     }
+
+    /* Préfixé par `.transport-bar` : la règle de base `display: none`,
+       écrite PLUS BAS dans la feuille, l'emporterait sinon à spécificité
+       égale — c'est ce qui garde `.mobile-volume-wrapper` invisible sur
+       téléphone malgré la règle ci-dessus. */
+    .transport-bar .mobile-zone-wrapper {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Feuille au-dessus de la barre, pleine largeur : un menu ancré à droite
+       de 220 px déborderait d'un écran de 390. */
+    .zone-popover.zone-sheet {
+      position: fixed;
+      left: 8px;
+      right: 8px;
+      bottom: calc(var(--mini-player-height, 64px) + var(--tab-bar-height, 0px) + 8px + env(safe-area-inset-bottom, 0px));
+      max-width: none;
+      min-width: 0;
+      max-height: min(70vh, 560px);
+    }
+  }
+
+  .mobile-zone-wrapper {
+    display: none;
+    position: relative;
+  }
+
+  .mobile-zone-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tune-text-secondary);
   }
 
   /* --- Mobile Volume Popup --- */

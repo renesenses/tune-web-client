@@ -8,6 +8,7 @@ import { currentZone, syncZone } from './zones';
 import { seekPositionMs, startSeekTimer, stopSeekTimer } from './nowPlaying';
 import * as api from '../api';
 import { sourceDuLecteur } from '../urlDeFluxNavigateur';
+import { fluxParLeRelais } from '../bridge';
 
 // The singleton <audio> element used for browser playback
 let audioElement: HTMLAudioElement | null = null;
@@ -126,17 +127,20 @@ function getAudio(): HTMLAudioElement {
     audioElement.preload = 'none';
 
     audioElement.addEventListener('playing', () => {
+      if (deverrouillageEnCours) return;
       browserAudioPlaying.set(true);
       echecsConsecutifs = 0;
       if (pilotLaBarreAffichee()) startSeekTimer();
     });
 
     audioElement.addEventListener('pause', () => {
+      if (deverrouillageEnCours) return;
       browserAudioPlaying.set(false);
       if (pilotLaBarreAffichee()) stopSeekTimer();
     });
 
     audioElement.addEventListener('ended', async () => {
+      if (deverrouillageEnCours) return;
       browserAudioPlaying.set(false);
       // La zone dont le morceau vient de finir — pas forcément celle qu'on
       // regarde (#2108). Capturée AVANT le premier `await`.
@@ -173,6 +177,7 @@ function getAudio(): HTMLAudioElement {
     });
 
     audioElement.addEventListener('error', () => {
+      if (deverrouillageEnCours) return;
       const erreur = audioElement?.error;
       console.error('Browser audio error:', erreur);
       browserAudioPlaying.set(false);
@@ -206,11 +211,17 @@ export function browserPlay(streamUrl: string, force = false, zoneId?: number | 
   // son repli SPA — `200 text/html`, « Failed to init decoder » (#2076).
   // La règle exacte, et les lignes du serveur qui la fondent, vivent dans
   // `urlDeFluxNavigateur.ts` : elle est pure, donc éprouvable sans DOM.
-  const relativeUrl = sourceDuLecteur(
-    streamUrl,
-    typeof location !== 'undefined' ? location.origin : null,
-  );
+  //
+  // Par le pont, l'adresse du réseau local ne mène nulle part : elle devient
+  // la route de flux du relais, jeton compris (essai en 5G du 09/10/2026).
+  const relativeUrl =
+    fluxParLeRelais(streamUrl) ??
+    sourceDuLecteur(streamUrl, typeof location !== 'undefined' ? location.origin : null);
   if (force || currentUrl !== relativeUrl) {
+    // Une vraie source remplace le silence du déverrouillage iOS : ses
+    // événements comptent de nouveau, et le son ne reste pas en sourdine.
+    deverrouillageEnCours = false;
+    audio.muted = false;
     // Cache-bust when the URL is unchanged so the element fetches the new
     // track instead of replaying its buffered contents.
     audio.src =
@@ -225,6 +236,55 @@ export function browserPlay(streamUrl: string, force = false, zoneId?: number | 
   audio.play().catch((e) => {
     console.warn('Browser audio play failed (may need user gesture):', e);
   });
+}
+
+/**
+ * iOS Safari : l'élément audio ne joue qu'après un `play()` né d'un geste.
+ *
+ * Par le pont, entre l'appui sur Lecture et le `browserPlay` qui suit, il y a
+ * l'aller-retour `POST /zones/{id}/play` par le relais : plus d'une seconde
+ * en 5G. Safari a alors oublié le geste et refuse `play()`
+ * (`NotAllowedError`) — la zone « joue » sur le serveur, le téléphone se tait.
+ *
+ * Au PREMIER geste sur la page, on fait jouer à l'élément un silence de
+ * quelques octets, en sourdine, puis on le rend vide : WebKit lève la
+ * restriction pour cet élément, et les `play()` suivants passent, geste ou
+ * non. Rien n'est fait si l'élément a déjà une source.
+ */
+const SILENCE_WAV =
+  // Un dixième de seconde de silence (WAV 8 bits, 8 kHz, mono).
+  'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+let deverrouillageEnCours = false;
+
+export function deverrouillerAuPremierGeste(cible: EventTarget = document): void {
+  const gestes = ['touchend', 'pointerup', 'click', 'keydown'];
+  const unFois = () => {
+    for (const g of gestes) cible.removeEventListener(g, unFois, true);
+    const audio = getAudio();
+    if (audio.src || get(browserStreamUrl) !== null) return;
+    deverrouillageEnCours = true;
+    audio.muted = true;
+    audio.src = SILENCE_WAV;
+    const fin = () => {
+      deverrouillageEnCours = false;
+      audio.muted = false;
+      // 🔴 Le geste qui déverrouille est souvent CELUI qui lance la lecture :
+      // le `browserPlay` du bouton peut avoir posé la vraie source avant que
+      // ce silence ait fini de démarrer. On ne vide alors RIEN — sinon on
+      // couperait le flux qu'on vient d'ouvrir.
+      if (audio.src !== SILENCE_WAV) return;
+      audio.pause();
+      audio.removeAttribute('src');
+    };
+    try {
+      const p = audio.play();
+      if (p && typeof p.then === 'function') p.then(fin, fin);
+      else fin();
+    } catch {
+      fin();
+    }
+  };
+  for (const g of gestes) cible.addEventListener(g, unFois, true);
 }
 
 /** Pause browser audio */

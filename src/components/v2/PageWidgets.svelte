@@ -43,6 +43,15 @@
   import { trace } from '../../lib/iconesChiffres';
   import { albums } from '../../lib/stores/library';
   import { currentZoneId, zones, switchZone } from '../../lib/stores/zones';
+  import { ouvrirSelecteurZone } from '../../lib/stores/selecteurZone';
+  // La puce de zone ouvre le SÉLECTEUR de zone (essai en 5G du 09/10/2026) :
+  // elle ne faisait que commuter vers sa propre zone, et un téléphone n'avait
+  // alors aucun moyen de passer sur « Cet ordinateur ». La zone de la carte
+  // devient d'abord la zone pilotée, pour être en tête du choix.
+  async function ouvrirLeChoixDeZone(id: number | null | undefined) {
+    if (id != null) await switchZone(id);
+    ouvrirSelecteurZone();
+  }
   // Les vignettes de l'accueil jouent par `el.jouer`, qui appelle `api.play`
   // directement. Son echec finissait dans un `.catch(() => {})` : le clic ne
   // faisait rien, sans message (#3732).
@@ -1495,7 +1504,7 @@
 
                         <!-- Le nom de la ZONE. Il manquait sur la maquette, et
                              c'est pourtant ce qui distingue deux cartes. -->
-                        <button class="zzone" onclick={() => z.id != null && switchZone(z.id)}
+                        <button class="zzone" onclick={() => ouvrirLeChoixDeZone(z.id)}
                           title={$t('v2.home.zoneOf' as any).replace('{z}', z.name ?? '')}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                                stroke-linecap="round"><path d="M4 10a8 8 0 0 1 16 0M7.5 13a4.5 4.5 0 0 1 9 0"/><circle cx="12" cy="18" r="1.6"/></svg>
