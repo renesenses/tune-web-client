@@ -59,6 +59,20 @@ export interface AudioLevels {
    */
   sample_rate: number | null;
   /**
+   * tune-server-rust#4384 — le gain que la sortie applique en aval du point
+   * de mesure, en dB, déjà compris dans les niveaux ci-dessus. `null` =
+   * serveur qui ne le publie pas. Vaut 0 sur un rendu réseau.
+   */
+  output_gain_db: number | null;
+  /**
+   * tune-server-rust#4384 — sortie locale hors DoP seulement : volume ×
+   * ReplayGain (préampli compris) DEMANDÉ avant le rabot à l'unité, en dB.
+   * `null` ailleurs, et d'un serveur qui ne le publie pas.
+   */
+  output_gain_requested_db: number | null;
+  /** tune-server-rust#4384 — le rabot à l'unité a mordu. `null` si non publié. */
+  output_gain_limited: boolean | null;
+  /**
    * tune-server-rust#4969 — le niveau de CHAQUE canal, dans l'ordre du flux,
    * publié par le serveur (rc3, #5937) seulement à partir de trois canaux.
    * Vide en stéréo, ou sur un serveur qui ne le publie pas.
@@ -105,6 +119,9 @@ const defaultLevels: AudioLevels = {
   spectrum_resolution_hz: null,
   spectrum_resolved: [],
   sample_rate: null,
+  output_gain_db: null,
+  output_gain_requested_db: null,
+  output_gain_limited: null,
   channel_levels: [],
   channel_names: null,
 };
@@ -195,6 +212,11 @@ export function handleAudioLevelsEvent(data: any) {
     spectrum_resolved: Array.isArray(data.spectrum_resolved) ? data.spectrum_resolved : [],
     sample_rate:
       typeof data.sample_rate === 'number' && data.sample_rate > 0 ? data.sample_rate : null,
+    output_gain_db: typeof data.output_gain_db === 'number' ? data.output_gain_db : null,
+    output_gain_requested_db:
+      typeof data.output_gain_requested_db === 'number' ? data.output_gain_requested_db : null,
+    output_gain_limited:
+      typeof data.output_gain_limited === 'boolean' ? data.output_gain_limited : null,
     channel_levels: lireNiveauxParCanal(data.channel_levels),
     channel_names:
       Array.isArray(data.channel_names) && data.channel_names.every((n: unknown) => typeof n === 'string')
