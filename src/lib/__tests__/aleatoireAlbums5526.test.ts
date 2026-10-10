@@ -124,7 +124,7 @@ describe('#5526 — la Bibliothèque V2 branche bien le chargement par album', (
 
   it('les chargeurs sont ceux de l’API : fiche par fiche avec reprise, et la liste entière', () => {
     expect(src).toMatch(
-      /const chargeursDePistes = \{ parAlbums: api\.getAlbumTracksBatch, toutes: \(\) => api\.getAllTracks\(\) \};/,
+      /const chargeursDePistes = \{ parAlbums: api\.getAlbumTracksBatch, toutes: \(\) => demanderToutesLesPistes\(\) \};/,
     );
   });
 });
