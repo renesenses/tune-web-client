@@ -24,7 +24,9 @@ import {
   browserPause,
   browserAudioDestroy,
   browserAudioPlaying,
+  deverrouillerAuPremierGeste,
 } from '../stores/browserAudio';
+import * as moduleAudio from '../stores/browserAudio';
 
 let gesteEnCours = false;
 
@@ -72,6 +74,8 @@ beforeEach(() => {
   AudioSafari.instances = [];
   zones.set([{ id: 12, name: 'This computer', output_type: 'browser', state: 'playing', stream_url: RADIO }] as any);
   currentZoneId.set(12);
+  // Ce que fait `main.ts` au démarrage : le SEUL déverrouillage (10/10/2026).
+  deverrouillerAuPremierGeste(document);
   vi.spyOn(console, 'warn').mockImplementation(() => {});
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -116,14 +120,6 @@ describe('#5975 — Safari : la lecture lancée après une réponse du serveur',
     expect(audio().lectures).toBe(lectures);
   });
 
-  it('sur une autre zone, un clic ne crée aucun élément audio', async () => {
-    zones.set([{ id: 13, name: 'Salon', output_type: 'dlna', state: 'stopped' }] as any);
-    currentZoneId.set(13);
-    cliquer();
-    await vider();
-    expect(AudioSafari.instances.length).toBe(0);
-  });
-
   it('un clic après une pause de l’utilisateur ne relance pas la lecture', async () => {
     cliquer();
     browserPlay(RADIO, false, 12);
@@ -134,5 +130,33 @@ describe('#5975 — Safari : la lecture lancée après une réponse du serveur',
     await vider();
     expect(audio().paused).toBe(true);
     expect(audio().lectures).toBe(lectures);
+  });
+});
+
+describe('un seul déverrouillage au geste (décision du 10/10/2026 : celui du pont)', () => {
+  it('le premier geste déverrouille une fois, par le silence du pont, et le second ne fait rien', async () => {
+    cliquer();
+    await vider();
+    const a = audio();
+    // Un seul play() — le silence en sourdine — et aucun load() à vide :
+    // l'ancien déverrouillage de #2026 (load() sur document) n'existe plus.
+    expect(a.lectures).toBe(1);
+    expect(a.chargements).toBe(0);
+    expect(a.src).toBe('');
+    expect(get(browserAudioPlaying)).toBe(false);
+    cliquer();
+    cliquer();
+    await vider();
+    expect(a.lectures).toBe(1);
+    expect(a.chargements).toBe(0);
+    // Et l'élément reste déverrouillé : la lecture différée passe.
+    browserPlay(RADIO, false, 12);
+    await vider();
+    expect(a.paused).toBe(false);
+    expect(get(browserAudioPlaying)).toBe(true);
+  });
+
+  it('le module n’exporte plus le déverrouillage en double', () => {
+    expect('deverrouillerAuGeste' in moduleAudio).toBe(false);
   });
 });
