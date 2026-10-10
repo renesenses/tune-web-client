@@ -19,8 +19,13 @@ import type { Track } from './types';
  * sur chaque piste : le client ne redécoupe pas `file_path`, il n'y a qu'une
  * définition (`full_text_search::termes_de_chemin`). Un serveur plus ancien ne
  * le sert pas : le champ manque, et il ne correspond à rien.
+ *
+ * `composer` (fil 1684, 10/10/2026) — « Ravel » trouve le Boléro joué par un
+ * orchestre. Le serveur le compare aussi (jumelle rc4 de `facet_filter.rs`),
+ * et c'est ce même prédicat qui rend les albums de la recherche de la
+ * Bibliothèque (`/library/albums-detailed?q=`, `LibraryV2`).
  */
-export const CHAMPS_DU_TEXTE_LIBRE = ['title', 'artist_name', 'album_title', 'label', 'path_terms'] as const;
+export const CHAMPS_DU_TEXTE_LIBRE = ['title', 'artist_name', 'album_title', 'label', 'path_terms', 'composer'] as const;
 
 /** La saisie telle que les DEUX côtés la comparent : doubles guillemets ôtés,
  *  espaces de bord retirés (`motif_like` côté serveur), puis casse et accents

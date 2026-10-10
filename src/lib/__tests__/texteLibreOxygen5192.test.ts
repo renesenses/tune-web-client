@@ -32,12 +32,12 @@ describe('texte libre d\'Oxygen (#5192)', () => {
     expect(pisteRepondAuTexteLibre(p, 'Kondrashin')).toBe(false);
   });
 
-  it('compare, comme le serveur, titre, artiste, album, label et termes de chemin', () => {
+  it('compare, comme le serveur, titre, artiste, album, label, termes de chemin et compositeur', () => {
     // Jumeau de `CHAMPS_DU_TEXTE_LIBRE` dans tune-core/src/db/facet_filter.rs.
-    expect([...CHAMPS_DU_TEXTE_LIBRE]).toEqual(['title', 'artist_name', 'album_title', 'label', 'path_terms']);
+    expect([...CHAMPS_DU_TEXTE_LIBRE]).toEqual(['title', 'artist_name', 'album_title', 'label', 'path_terms', 'composer']);
     for (const [champ, valeur] of [
       ['title', 'Titan'], ['artist_name', 'Kondrashin'], ['album_title', 'Symphonie Titan'],
-      ['label', 'Melodiya'], ['path_terms', 'Mahler Kondrashin 01'],
+      ['label', 'Melodiya'], ['path_terms', 'Mahler Kondrashin 01'], ['composer', 'Maurice Ravel'],
     ] as const) {
       const p = { id: 1, title: '', [champ]: valeur } as Track;
       expect(pisteRepondAuTexteLibre(p, valeur), champ).toBe(true);
