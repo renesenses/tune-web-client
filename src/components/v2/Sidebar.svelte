@@ -242,7 +242,7 @@
   import { activeView, requestListReset } from '../../lib/stores/navigation';
   import { fermerDetail } from '../../lib/historiqueCoquille';
   import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
-  import { updateAvailable, latestVersion, currentVersion } from '../../lib/stores/updates';
+  import { updateAvailable, latestVersion, currentVersion, updateInstallable, updateInstallHint } from '../../lib/stores/updates';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { preferences } from '../../lib/stores/preferences';
   import { estMasquee, ordonnerEntrees, ordreModifie } from '../../lib/ordreBarreLaterale';
@@ -752,7 +752,12 @@
           <span class="pt"></span>{libelleAnalyse}
         </button>
       {/if}
-      {#if $updateAvailable}
+      {#if $updateAvailable && !$updateInstallable}
+        <!-- tune-server-rust#6068 — le serveur ne peut pas installer
+             (.no-auto-update, Homebrew) : pastille neutre, sans geste
+             d'installation, le motif du serveur en infobulle. -->
+        <div class="maj-info" title={$updateInstallHint ?? ''}>v{versionCourante} → v{$latestVersion}</div>
+      {:else if $updateAvailable}
         <button class="maj-lien" onclick={ouvrirMaj}
           title={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}>
           <span class="pt"></span>v{versionCourante} → v{$latestVersion}
@@ -768,10 +773,18 @@
     {/if}
     {#if enIcones && $updateAvailable}
       <!-- Repliée, `.txt` est masqué : sans ce point, l'annonce disparaîtrait
-           entièrement dès qu'on replie la barre. -->
-      <button class="maj-point" onclick={ouvrirMaj}
-        aria-label={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}
-        title={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}></button>
+           entièrement dès qu'on replie la barre. Non installable
+           (tune-server-rust#6068) : un point neutre, sans geste, le motif en
+           infobulle. -->
+      {#if $updateInstallable}
+        <button class="maj-point" onclick={ouvrirMaj}
+          aria-label={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}
+          title={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}></button>
+      {:else}
+        <span class="maj-point neutre" role="img"
+          aria-label={$updateInstallHint ?? $t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}
+          title={$updateInstallHint ?? ''}></span>
+      {/if}
     {/if}
     <!-- ⚙ LES RÉGLAGES, EN HAUT À GAUCHE — #1433 (recette v0.9.161 de
          Bertrand, 21/09/2026). Le seul chemin vers l'écran Réglages passait
@@ -1083,6 +1096,7 @@
      logo comme dans le client actuel, et NE se ferme pas : fermer le bandeau
      met de côté une annonce, pas le moyen de mettre à jour. */
   .brand .ver{font:9.5px var(--v2-mono); color:var(--v2-txt3); margin-top:4px}
+  .brand .maj-info{font:9.5px var(--v2-mono); color:var(--v2-txt2); margin-top:4px; cursor:help}
   .maj-lien{display:inline-flex; align-items:center; gap:5px; margin-top:4px; padding:2px 7px;
     border-radius:var(--v2-r-pill); cursor:pointer; font:9.5px var(--v2-mono);
     color:var(--v2-acc1); background:var(--v2-acc-soft);
@@ -1095,6 +1109,7 @@
     border-radius:50%; border:2px solid var(--v2-bg); cursor:pointer;
     background:var(--v2-acc1)}
   .maj-point:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .maj-point.neutre{cursor:help; background:var(--v2-txt3)}
   /* #1577 — l'analyse de la bibliothèque, tant qu'elle tourne. Discret, sous
      « MOZAIKLABS », et cliquable vers Réglages › Bibliothèque. */
   .analyse{display:flex; align-items:center; gap:5px; max-width:100%; margin-top:4px; padding:0;
