@@ -717,7 +717,7 @@
           {@const sens = tri?.cle === c.cle ? tri.sens : null}
           <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
             role="columnheader" use:bulleTexte aria-sort={sens === 'asc' ? 'ascending' : sens === 'desc' ? 'descending' : 'none'}>
-            <button class="trier" class:actif={sens != null} type="button" data-tri={c.cle}
+            <button class="trier" class:actif={sens != null} type="button" data-tri={c.cle} use:bulleTexte
               onclick={() => onTrier?.(c.cle)}>{$t(c.cleI18n as any)}{#if sens}<span class="fleche" aria-hidden="true">{sens === 'asc' ? '▲' : '▼'}</span>{/if}</button>
           </span>
         {:else}

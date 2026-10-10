@@ -28,6 +28,7 @@
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { titrePisteCd, type DisqueCd } from '../../lib/lectureCd';
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import {
     getReglagesExtraction, putReglagesExtraction, lancerExtraction, getExtractions, getExtraction,
     annulerExtraction, extractionDisponible, motifRefus, cleRefus, corpsLancement,
@@ -290,7 +291,7 @@
       {#each suivi.pistes as p (p.numero)}
         <li class="piste-suivi" data-statut={p.statut} class:courante={suivi.piste_courante === p.numero}>
           <span class="num">{p.numero}</span>
-          <span class="titre">{p.titre}</span>
+          <span class="titre" use:bulleTexte>{p.titre}</span>
           <span class="etat">{$t(`v2.cd.rip.st.${p.statut}` as any)}</span>
           <span class="pc">{pct(p.pourcentage)}</span>
           {#if p.secteurs_illisibles > 0}
