@@ -32,7 +32,8 @@ function corpsPour(url: string): unknown {
   }
   if (url.includes('/home/recently-added')) return [ALBUM];
   if (url.includes('/streaming/youtube/charts')) {
-    return { trending: [{ title: 'So What', artist_name: 'Miles Davis', source_id: 'yt1', duration_ms: 545000 }], songs: [], videos: [] };
+    // tune-server-rust#5247 — la forme réelle : des rayons, chacun ses éléments.
+    return { country: 'FR', sections: [{ title: 'Video charts', items: [{ kind: 'track', id: 'yt1', title: 'So What', subtitle: 'Miles Davis', cover_path: null }] }] };
   }
   if (url.includes('/streaming/youtube/moods')) return [{ title: 'Ambiances', items: [{ title: 'Calme', params: 'p1' }] }];
   if (url.includes('/ext/bandcamp/collection')) {
