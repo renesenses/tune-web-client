@@ -14,6 +14,7 @@ import {
   browserPlay, browserStop, browserAudioDestroy, browserStopForZone,
   browserStreamUrl, browserAudioPlaying,
 } from '../stores/browserAudio';
+import { retenirZoneDeCetAppareil } from '../zoneNavigateurProprietaire';
 
 vi.mock('../api', async (original) => ({
   ...await original<typeof import('../api')>(),
@@ -64,6 +65,8 @@ beforeEach(() => {
   vi.stubGlobal('WebSocket', SocketTemoin);
   AudioTemoin.instances = []; SocketTemoin.instances = [];
   zones.set([A, B, DLNA] as any); currentZoneId.set(A.id); seekPositionMs.set(0);
+  // A et B sont les zones de CET onglet (rc4 : seules celles-là se jouent ici).
+  localStorage.clear(); retenirZoneDeCetAppareil(A.id); retenirZoneDeCetAppareil(B.id);
   // L'arrêt ne doit dépendre ni du succès ni de la fin d'une relecture HTTP.
   vi.mocked(api.getZones).mockRejectedValue(new Error('relecture indisponible'));
   vi.mocked(api.getQueue).mockResolvedValue({ tracks: [], position: 0, length: 0 } as any);

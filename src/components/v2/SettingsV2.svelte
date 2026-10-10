@@ -119,6 +119,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { zoneAProposer, propositionRetenue, resumeProposition } from '../../lib/reglagesProposes';
   import type { DevicePreset } from '../../lib/api';
   import { zoneNavigateurExistante, zonesNavigateurEnDouble } from '../../lib/zoneNavigateur';
+  import { estZoneDeCetAppareil, retenirZoneDeCetAppareil } from '../../lib/zoneNavigateurProprietaire';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
   import { licenseState, loadLicense, offlineGrace } from '../../lib/stores/license';
@@ -553,9 +554,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function createBrowserZoneHere() {
     creatingBrowserZone = true;
     try {
-      const deja = zoneNavigateurExistante($zones);
+      // rc4 : seulement parmi les zones de CET appareil — la zone d'un
+      // téléphone ou d'un autre navigateur n'est pas « cet ordinateur ».
+      const deja = zoneNavigateurExistante($zones.filter(estZoneDeCetAppareil));
       if (deja?.id != null) {
         // On ne crée pas : on SÉLECTIONNE celle qui existe, et on le dit.
+        retenirZoneDeCetAppareil(deja.id);
         currentZoneId.set(deja.id);
         notifications.info(
           $t('v2.set.browserZoneExists' as any).replace('{nom}', deja.name ?? ''),
@@ -563,7 +567,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         return;
       }
       const zone: any = await api.createZone($t('settings.thisComputer' as any), 'browser');
-      if (zone?.id != null) currentZoneId.set(zone.id);
+      if (zone?.id != null) { retenirZoneDeCetAppareil(zone.id); currentZoneId.set(zone.id); }
       // La liste des zones doit suivre : sans cela l'écran reste identique et
       // le bouton semble n'avoir rien fait.
       try { zones.set(await api.getZones()); } catch { /* l'essentiel est créé */ }
