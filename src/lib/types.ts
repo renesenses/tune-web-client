@@ -928,6 +928,15 @@ export interface StreamingServiceStatus {
    * `lib/streamingFavorites`, qui porte cette lecture — une seule fois.
    */
   favoris_ecrivables?: boolean;
+  /**
+   * rc4 — les favoris de ce service sont-ils un MIROIR du service ?
+   * — `renesenses/tune-server-rust#6011`.
+   *
+   * `true` (Qobuz, Tidal) : le serveur propage lui-même le cœur chez le
+   * service ; le client ne recopie plus. `undefined` = serveur d'avant la rc4 :
+   * comportement d'avant, recopie comprise. Lu par `favorisEnMiroirChez`.
+   */
+  favoris_miroir?: boolean;
 }
 
 export interface StreamingAuthResponse {
