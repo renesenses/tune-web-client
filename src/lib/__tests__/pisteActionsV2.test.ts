@@ -85,46 +85,25 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
   });
 
   it('les quatre listes de titres passent par un rendu PARTAGE', () => {
-    // 🔴 REORIENTEE le 07/09/2026. La garde exigeait un import direct de
-    // `LignePisteV2`. Le chantier du tableau (maquette Levente) introduit
-    // `ListePistesV2`, un CONTENEUR qui rend soit le tableau du mode
-    // Essentiel, soit ces memes lignes aux deux autres modes — il fallait un
-    // conteneur parce qu'un tableau a un en-tete et un gabarit de grille que
-    // la ligne ne peut pas porter seule.
+    // 🔴 REORIENTEE le 07/09/2026, puis le 07/10/2026 (#1470). La garde
+    // exigeait un import direct de l'ancienne ligne. Le chantier du tableau
+    // (maquette Levente) introduit `ListePistesV2`, un CONTENEUR qui rend le
+    // tableau — à tous les modes depuis #1470, l'ancienne ligne est retirée.
     //
     // Ce que la garde protege ne change pas, et se renforce meme : aucun ecran
     // ne roule sa propre ligne ni sa propre barre d'actions. Quatre copies
     // auraient diverge — c'est toute la raison de cette garde.
     for (const f of ['AlbumDetailV2', 'PlaylistDetailV2', 'LibraryV2', 'SearchV2']) {
       const ecran = sansCommentaires(lire(`src/components/v2/${f}.svelte`));
-      const parLaLigne = ecran.includes('<LignePisteV2 piste=');
-      const parLaListe = ecran.includes('<ListePistesV2');
-      expect(parLaLigne || parLaListe, `${f} ne delegue a aucun rendu partage`).toBe(true);
+      expect(ecran.includes('<ListePistesV2'), `${f} ne delegue a aucun rendu partage`).toBe(true);
       expect(ecran, f).not.toContain('<button class="trk"');
       expect(ecran, f).not.toContain('<PisteActions piste=');
     }
   });
 
-  it('le conteneur partage delegue lui-meme, il ne recopie rien', () => {
-    // `ListePistesV2` est le seul endroit ou les deux formes coexistent : aux
-    // modes Avance et Expert il rend `LignePisteV2` tel quel — « pour le
-    // moment les deux autres modes restent inchanges » (Bertrand, 07/09/2026).
+  it('le conteneur partage delegue sa barre, il ne la recopie pas', () => {
     const liste = sansCommentaires(lire('src/components/v2/ListePistesV2.svelte'));
-    expect(liste).toContain("import LignePisteV2 from './LignePisteV2.svelte'");
-    expect(liste).toContain('<LignePisteV2');
     expect(liste).toContain("import PisteActions from './PisteActions.svelte'");
-  });
-
-  it('la ligne partagee porte la richesse du client actuel', () => {
-    const ligne = sansCommentaires(lire('src/components/v2/LignePisteV2.svelte'));
-    // Ce que Bertrand a demande le 05/09/2026 : la v0 PLUS le survol.
-    expect(ligne).toContain("import AlbumArt from '../partages/AlbumArt.svelte'");
-    expect(ligne).toContain("import MetadataChips from '../partages/MetadataChips.svelte'");
-    expect(ligne).toContain("import QualityBadge from '../partages/QualityBadge.svelte'");
-    expect(ligne).toContain("import PisteActions from './PisteActions.svelte'");
-    // Les puces suivent le REGLAGE du profil, la ligne n'en decide pas.
-    expect(ligne).toContain('$displayFields');
-    expect(ligne).toContain('<button class="tclick"');
   });
 
   it('une piste locale se désigne par son identifiant, et rien de plus', () => {

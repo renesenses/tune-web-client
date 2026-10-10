@@ -41,8 +41,8 @@ export interface EstimationDossier {
 }
 
 /**
- * Au-delà de ce nombre de fichiers audio, l'ajout demande confirmation même
- * s'il ne vise pas une racine de disque. Une grosse bibliothèque légitime le
+ * Au-delà de ce nombre de fichiers audio, la question prend le ton d'alerte
+ * même si l'ajout ne vise pas une racine de disque. Une grosse bibliothèque légitime le
  * dépasse : la question ne coûte alors qu'un clic.
  */
 export const SEUIL_FICHIERS_AUDIO = 20_000;
@@ -80,8 +80,16 @@ function interpoler(modele: string, vars: Record<string, string>): string {
   return s;
 }
 
-/** L'ajout de `chemin` doit-il être confirmé ? */
-export function faitConfirmer(chemin: string, est: EstimationDossier | null): boolean {
+/**
+ * L'ajout de `chemin` mérite-t-il la question d'ALERTE (disque entier, très
+ * gros dossier, comptage inachevé) plutôt que la question ordinaire ?
+ *
+ * 🔴 Depuis le 10/10/2026, TOUT ajout est confirmé, nombre de fichiers audio à
+ * l'appui (Bertrand, fil 2171 : « le comptage des fichiers audio et la
+ * confirmation avant d'ajouter »). Cette fonction ne décide plus SI l'on
+ * demande, seulement SUR QUEL TON.
+ */
+export function alerteAvantAjout(chemin: string, est: EstimationDossier | null): boolean {
   if (estUneRacineDeVolume(chemin) || est?.drive_root === true) return true;
   if (!est || est.error) return false;
   if (est.complete === false) return true;
@@ -99,14 +107,18 @@ export function questionAvantAjout(
   nombre: (n: number) => string = String,
 ): string {
   const racine = estUneRacineDeVolume(chemin) || est?.drive_root === true;
-  const phrases = [
-    interpoler(tr(racine ? 'settings.addFolderDriveRoot' : 'settings.addFolderLarge'), { path: chemin }),
-  ];
+  const tete = racine
+    ? 'settings.addFolderDriveRoot'
+    : alerteAvantAjout(chemin, est) ? 'settings.addFolderLarge' : 'settings.addFolderOrdinary';
+  const phrases = [interpoler(tr(tete), { path: chemin })];
   if (est && !est.error && typeof est.audio_files === 'number') {
     const vars = { count: nombre(entier(est.audio_files)), folders: nombre(entier(est.folders)) };
-    phrases.push(
-      interpoler(tr(est.complete === false ? 'settings.addFolderCountAtLeast' : 'settings.addFolderCount'), vars),
-    );
+    // Zéro fichier audio : le dire en clair, c'est l'erreur de dossier la plus
+    // fréquente (un niveau trop haut ou trop bas), et elle se voit AVANT l'ajout.
+    const cle = est.complete === false
+      ? 'settings.addFolderCountAtLeast'
+      : entier(est.audio_files) === 0 ? 'settings.addFolderNoAudio' : 'settings.addFolderCount';
+    phrases.push(interpoler(tr(cle), vars));
   }
   phrases.push(tr('settings.addFolderConfirm'));
   return phrases.join(' ');
@@ -121,9 +133,11 @@ export interface DependancesAjout {
 }
 
 /**
- * Ajoute `chemin` après la confirmation qu'il mérite. Rend `null` si
+ * Ajoute `chemin` après confirmation — toujours demandée, avec le nombre de
+ * fichiers audio quand le serveur a pu le mesurer. Rend `null` si
  * l'utilisateur renonce. Un serveur sans route de comptage (antérieur) ou un
- * comptage refusé n'empêche rien : la racine de disque reste détectée ici.
+ * comptage refusé n'empêche rien : la question est posée sans nombre, et la
+ * racine de disque reste détectée ici.
  */
 export async function ajouterUnDossier(
   chemin: string,
@@ -135,9 +149,7 @@ export async function ajouterUnDossier(
   } catch {
     est = null;
   }
-  if (faitConfirmer(chemin, est) && !(await d.confirmer(questionAvantAjout(chemin, est, d.tr, d.nombre)))) {
-    return null;
-  }
+  if (!(await d.confirmer(questionAvantAjout(chemin, est, d.tr, d.nombre)))) return null;
   return d.ajouter(chemin);
 }
 
