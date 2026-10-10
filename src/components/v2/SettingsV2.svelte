@@ -106,7 +106,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
-  import FolderBrowser from '../partages/FolderBrowser.svelte';
+  import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
   import {
@@ -2082,9 +2082,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // qu'une analyse tourne : le badge doit le dire.
   $effect(() => { if (aDesChiffres($avancementAnalyse)) scanning = true; });
 
-  /** Fil forum 2171 — le sélecteur de dossier du serveur, perdu avec l'ancienne
-   *  interface (`FolderWizard`). La saisie à la main reste possible. */
-  let showFolderBrowser = $state(false);
   /** Fil forum 2171 — une racine de disque ou un très gros dossier demande une
    *  confirmation chiffrée AVANT l'ajout, qui lance l'analyse sur-le-champ. */
   async function addDir() {
@@ -5292,15 +5289,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if libErr}<div class="errline">{libErr}</div>{/if}
 
             {:else if s.id === 'musicDirs'}
+              <!-- Fil 2171 — le sélecteur est LE geste d'ajout : un vrai bouton,
+                   qui va jusqu'à l'ajout (comptage et confirmation compris).
+                   En rc3 il n'était qu'un lien « Parcourir… » qui remplissait
+                   le champ, et il restait à cliquer « Ajouter ». -->
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.addFolder' as any)}</span>
                   <span class="hint">{$t('settings.serverPathHint' as any)}</span>
                 </div>
+                <BoutonAjouterDossier disabled={dirBusy}
+                  onAjoute={async (dirs) => { musicDirs = dirs.length ? dirs : musicDirs; await refreshDirectoryOrder(); }} />
+              </div>
+              <div class="row">
+                <div class="lbl"><span class="hint">{$t('settings.addFolderManualHint' as any)}</span></div>
                 <div class="inline">
                   <input class="txt wide" type="text" placeholder="/Volumes/Musique" bind:value={newDir}
                     disabled={dirBusy} onkeydown={(e) => { if (e.key === 'Enter') addDir(); }} />
-                  <button class="lnk" disabled={dirBusy} onclick={() => (showFolderBrowser = true)}>{$t('ingest.browse' as any)}</button>
                   <button class="lnk" disabled={dirBusy || !newDir.trim()} onclick={addDir}>{$t('v2.tags.add' as any)}</button>
                 </div>
               </div>
@@ -6641,14 +6646,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     </div>
   </div>
 </section>
-
-{#if showFolderBrowser}
-  <FolderBrowser
-    initialPath={newDir}
-    onSelect={(p) => { newDir = p; showFolderBrowser = false; }}
-    onClose={() => (showFolderBrowser = false)}
-  />
-{/if}
 
 {#if showSmbWizard}
   <SmbWizard
