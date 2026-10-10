@@ -3122,6 +3122,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch (e: any) { spcErr = e?.message ?? get(t)('settings.errActionFailed'); }
     spcBusy = false;
   }
+  // #6018 — « Lecture Spotify (expérimental) », désactivée par défaut.
+  async function toggleSpotifyLecture(on: boolean) {
+    spcBusy = true; spcErr = null;
+    try {
+      spc = await api.setSpotifyLectureExperimentale(on);
+    } catch (e: any) { spcErr = e?.message ?? get(t)('settings.errActionFailed'); }
+    spcBusy = false;
+  }
 
   // ── Base de donnees / exports ─────────────────────────────────────────
   let dbEngine = $state<string | null>(null);
@@ -4825,6 +4833,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <input class="txt" type="text" placeholder="Tune — Salon" bind:value={spcName} />
                   </div>
                 {/if}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('v2.set.spotifyPlaybackExperimental' as any)}</span>
+                    <span class="hint">{$t('v2.set.spotifyPlaybackWarning' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={!!spc?.lecture_experimentale} disabled={spcBusy}
+                      onchange={(e) => toggleSpotifyLecture((e.currentTarget as HTMLInputElement).checked)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
                 {#if spcErr}<div class="errline">{spcErr}</div>{/if}
               {/if}
 
