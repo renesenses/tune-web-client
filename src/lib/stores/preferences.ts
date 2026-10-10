@@ -822,7 +822,30 @@ export const preferences = createPreferences();
 // the theme is also applied as soon as JS modules are evaluated.
 applyTheme(loadPrefs().theme);
 
+const VUES_DE_DEMARRAGE: readonly StartupView[] = ['home', 'nowplaying', 'library', 'queue', 'playlists', 'search', 'settings'];
+
+/** Une vue de démarrage que ce client sait ouvrir (la valeur vient du serveur). */
+function estVueDeDemarrage(v: unknown): v is StartupView {
+  return typeof v === 'string' && (VUES_DE_DEMARRAGE as readonly string[]).includes(v);
+}
+
+let signalerRelecture: () => void = () => {};
+/**
+ * Résolue quand la relecture du serveur est faite (réussie ou non) — fil 2166.
+ * La coquille lit la vue de démarrage à son montage, AVANT la réponse du
+ * serveur : elle attend ceci pour suivre celle du profil.
+ */
+export const preferencesRelues: Promise<void> = new Promise((r) => { signalerRelecture = r; });
+
 export async function syncPreferencesFromServer() {
+  try {
+    await relireDuServeur();
+  } finally {
+    signalerRelecture();
+  }
+}
+
+async function relireDuServeur() {
   try {
     const res = await fetch('/api/v1/system/config', { headers: profileHeader() });
     if (!res.ok) return;
@@ -907,6 +930,12 @@ export async function syncPreferencesFromServer() {
             // profil, sinon le navigateur. Un `language: 'fr'` qui n'était que
             // le défaut, d'un côté ou de l'autre, ne compte pas.
             ...resoudreLangue([local, server]),
+            // Fils 2166 et 2168 (Bilou, rc3) — la vue de démarrage est un
+            // réglage du PROFIL : le serveur la tient, chaque geste l'y écrit.
+            // Le blob local la porte dès la première émission, défaut compris
+            // (`'home'`, jamais choisi) : `...local` la recouvrait donc à
+            // chaque ouverture d'un navigateur dont la copie est ancienne.
+            ...(estVueDeDemarrage(server.startupView) ? { startupView: server.startupView } : {}),
           };
         });
         if (reparationBarre) ecrireAuServeur(JSON.stringify(reparationBarre));
