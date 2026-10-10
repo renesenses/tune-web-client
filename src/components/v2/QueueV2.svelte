@@ -38,6 +38,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { fenetreListe } from '../../lib/fenetreListe';
   import { pisteDeFile } from '../../lib/pisteDeFile';
+  import { gesteVider, executerVider } from '../../lib/viderFile';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -271,7 +272,18 @@
    * cours continue, ce qui la suit est retiré. Arrêter se fait par le bouton
    * de transport (double-clic, ou la touche `S`) — le geste qui le nomme.
    */
-  const clear = () => act(() => api.clearQueue($currentZoneId!));
+  /*
+   * 🔵 web#1857 (Didier, fil 2067) — le SECOND appui. Quand plus rien ne suit
+   * le morceau en cours, le même bouton devient « Arrêter et vider » : il
+   * arrête la lecture et retire le morceau. La règle (sur l'état, pas sur un
+   * délai) est écrite dans `lib/viderFile`.
+   */
+  const gesteDeVidage = $derived(gesteVider(tracks.length, pos));
+  const clear = () => {
+    const g = gesteDeVidage;
+    if (!g) return;
+    return act(() => executerVider($currentZoneId!, g));
+  };
 
   function tech(t: Track): string {
     if (getQualityTier(t) === 'dsd') return 'DSD';
@@ -312,7 +324,8 @@
       </button>
       {#if tracks.length}
         <button class="v2-btn danger" onclick={clear} disabled={busy}
-                title={$tr('queue.clearTip' as any)}>{$tr('v2.queue.clear' as any)}</button>
+                title={$tr((gesteDeVidage === 'tout' ? 'queue.clearAllTip' : 'queue.clearTip') as any)}
+                >{$tr((gesteDeVidage === 'tout' ? 'queue.clearAllLabel' : 'v2.queue.clear') as any)}</button>
       {/if}
     </div>
   </header>

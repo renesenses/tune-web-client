@@ -165,6 +165,12 @@ export interface CapacitesPochette {
   /** Le greffon Playlists converter est chargé (`convertisseurCharge`). */
   greffonConvertisseur?: boolean;
   /**
+   * Le greffon des playlists de cercle tourne (`circleCharge`) : un album ou
+   * une playlist entière peut rejoindre une playlist de cercle, et une
+   * playlist peut être partagée avec un cercle.
+   */
+  greffonCercle?: boolean;
+  /**
    * L'objet est montré DANS une collection MANUELLE ouverte, d'où on peut le
    * retirer — la grille de `CollectionsV2`, et elle seule.
    */
@@ -196,6 +202,10 @@ export interface GestesPochette {
   basculerEcouterPlusTard?: () => void;
   /** Sous-menu des collections manuelles, rangées par rayons (web#1591). */
   ajouterACollection?: () => Promise<SousEntreePochette[]>;
+  /** Toutes les pistes de l'objet rejoignent une playlist de cercle existante. */
+  ajouterAPlaylistDeCercle?: () => void;
+  /** Une playlist de cercle NEUVE, copie par références de cette playlist. */
+  partagerAvecUnCercle?: () => void;
   /** Ouvre le tiroir des crédits — fourni par le composant. */
   credits?: () => void;
   /** Le mode « Modifier » de la fiche album (web#1599). */
@@ -329,6 +339,14 @@ export function entreesPochette(
    * Bibliothèque savait composer.
    */
   sousMenu(albumLocal, 'v2.album.addToCollection', g.ajouterACollection);
+  /**
+   * « Ajouter à une playlist de cercle » — l'album ou la playlist ENTIÈRE,
+   * par références (`bulk-items`). Le même libellé que l'entrée du menu de
+   * piste : c'est le même geste, sur plusieurs titres.
+   */
+  const designe = deLaBibliotheque || deService;
+  const listeDePistes = album || c.type === 'playlist' || c.type === 'playlistIntelligente';
+  pousser(!!c.greffonCercle && designe && listeDePistes, 'v2.circle.pl.addToCircle', g.ajouterAPlaylistDeCercle);
 
   // ── Consulter, corriger (album) ─────────────────────────────────────────
   pousser(albumLocal || (album && !!c.creditsDeService), 'credits.see', g.credits);
@@ -360,6 +378,16 @@ export function entreesPochette(
   );
   pousser(playlistLocale && !!c.greffonConvertisseur, 'menuObjet.transfer', g.transferer);
   pousser(playlistLocale, 'v2.pl.share', g.partager, true);
+  /**
+   * « Partager avec un cercle » — une playlist locale, intelligente ou de
+   * service devient une playlist de cercle NEUVE, copie par références dans le
+   * même ordre. L'original ne bouge pas : rien n'est écrit chez un service.
+   */
+  pousser(
+    !!c.greffonCercle && designe && (c.type === 'playlist' || c.type === 'playlistIntelligente'),
+    'v2.circle.pl.shareWithCircle',
+    g.partagerAvecUnCercle,
+  );
 
   // ── Ce qui ne revient pas ───────────────────────────────────────────────
   pousser(

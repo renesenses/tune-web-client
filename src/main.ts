@@ -1,3 +1,5 @@
+// Avant tout autre module : voir `lib/intercepteurRelais.ts`.
+import './lib/intercepteurRelais';
 import './styles/tune-theme.css';
 import ShellV2 from './components/v2/ShellV2.svelte';
 import { mount } from 'svelte';
