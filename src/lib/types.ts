@@ -327,6 +327,10 @@ export interface SignalPathStep {
   code?: string;
   /** tune-server-rust#5633 — étape `ReplayGain` : le gain appliqué, en dB. */
   gain_db?: number;
+  /** tune-server-rust#4384 — étape `ReplayGain` : où le gain s'applique.
+   *  `local_output` : composé avec le volume puis raboté à l'unité ;
+   *  `stream` : cuit dans le flux envoyé au rendu réseau. */
+  applied_in?: 'local_output' | 'stream';
 }
 
 export interface SignalPath {
@@ -356,6 +360,9 @@ export interface SignalPath {
   /** tune-server-rust#5633 — sous PURE, le ReplayGain que la piste en cours
    *  recevrait hors PURE. Absent hors PURE, sans gain, ou d'un vieux serveur. */
   pure_replaygain_ignored?: { gain_db: number; granularity?: string } | null;
+  /** tune-server-rust#4384 — ReplayGain armé, piste sans gain stocké : le
+   *  préampli n'est pas appliqué. Absent sinon, sous PURE, ou d'un vieux serveur. */
+  replaygain_untagged?: { mode?: string; preamp_db?: number } | null;
 }
 
 /** Le PÉRIPHÉRIQUE que la sortie locale a réellement ouvert, face à celui que

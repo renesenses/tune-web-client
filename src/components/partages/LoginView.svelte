@@ -2,6 +2,7 @@
   import { setToken } from '../../lib/auth';
   import { t } from '../../lib/i18n';
   import { activeView } from '../../lib/stores/navigation';
+  import { baseApi, entetesRelais, urlRessourcePublique } from '../../lib/bridge';
 
   /**
    * `true` quand l'écran est monté EN CALQUE par-dessus l'interface
@@ -16,7 +17,11 @@
    */
   let { surCouche = false }: { surCouche?: boolean } = $props();
 
-  const BASE = '/api/v1';
+  // 🔴 PAS `'/api/v1'` en dur : servie par le relais (`/{server_id}/`), la
+  // connexion doit passer par `/api/relay/{id}` avec `X-Bridge-Token`, sinon
+  // le pont répond 405 (« Erreur 405 », essai en 5G du 09/10/2026).
+  const BASE = baseApi();
+  const LOGO = urlRessourcePublique('tune-logo.png');
 
   // Mode: 'login' or 'register'
   let mode = $state<'login' | 'register'>('login');
@@ -43,7 +48,7 @@
     try {
       const resp = await fetch(`${BASE}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...entetesRelais() },
         body: JSON.stringify({ username: loginEmail.trim(), password: loginPassword }),
       });
       if (!resp.ok) {
@@ -75,7 +80,7 @@
     try {
       const resp = await fetch(`${BASE}/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...entetesRelais() },
         body: JSON.stringify({
           username: regUsername.trim(),
           email: regEmail.trim(),
@@ -113,7 +118,7 @@
 <div class="login-view">
   <div class="login-card">
     <div class="login-logo">
-      <img src="/tune-logo.png" alt="Tune" class="login-logo-img" />
+      <img src={LOGO} alt="Tune" class="login-logo-img" />
     </div>
 
     {#if mode === 'login'}
