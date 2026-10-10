@@ -86,7 +86,7 @@
   } from '../../lib/miseAJourHomebrew';
   import { LEVEL_LABEL_KEYS } from '../../lib/uiLevel';
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
-  import { COLONNES, MODES_BRANCHES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
+  import { COLONNES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { notifications } from '../../lib/stores/notifications';
   import { streamingServices } from '../../lib/stores/streaming';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
@@ -1305,12 +1305,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * tableau avec sur la première ligne les modes et sur la première colonne
    * les metadatas ».
    *
-   * ⚠️ Option A, retenue par lui : les trois modes sont montrés, mais seuls
-   * ceux de `MODES_BRANCHES` changent réellement l'écran. Les autres sont
-   * grisés ET le disent. Les afficher actifs sans effet serait exactement le
-   * défaut que ce client passe son temps à corriger.
+   * Les trois modes rendent le tableau depuis #1470 : aucune colonne de la
+   * matrice n'est plus grisée au titre d'un mode « non branché ».
    */
-  const modeBranche = (m: SettingsLevel) => MODES_BRANCHES.includes(m);
   const colonneCochee = (m: SettingsLevel, c: CleColonne) =>
     ($preferences.v2Colonnes?.[m] ?? []).includes(c);
 
@@ -3677,8 +3674,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="mrow mhead" role="row">
                   <span class="mcell mnom" role="columnheader"></span>
                   {#each SETTINGS_LEVELS as m (m)}
-                    <span class="mcell" role="columnheader" class:inerte={!modeBranche(m)}
-                      title={modeBranche(m) ? undefined : $t('settings.colModeNotWired' as any)}>
+                    <span class="mcell" role="columnheader">
                       {$t(LEVEL_LABEL_KEYS[m] as any)}
                     </span>
                   {/each}
@@ -3709,7 +3705,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                              de pistes sans titre n'est plus une liste. -->
                         <input type="checkbox"
                           checked={offerte && (c.verrouillee || colonneCochee(m, c.cle))}
-                          disabled={c.verrouillee || sansDonnee || !offerte || !modeBranche(m)}
+                          disabled={c.verrouillee || sansDonnee || !offerte}
                           aria-label={`${$t(c.cleI18n as any)} — ${$t(LEVEL_LABEL_KEYS[m] as any)}`}
                           onchange={() => basculerColonne(m, c.cle)} />
                       </span>
@@ -3717,9 +3713,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </div>
                 {/each}
               </div>
-              {#if SETTINGS_LEVELS.some((m) => !modeBranche(m))}
-                <p class="hint">{$t('settings.colModeNotWired' as any)}</p>
-              {/if}
 
               <!-- Premier pensionnaire de l'onglet Affichage : un GOÛT, donc
                    un interrupteur, et un défaut qui ne bouge pas. « Les 4

@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import ListePistesV2 from '../../components/v2/ListePistesV2.svelte';
 import { preferences } from '../stores/preferences';
-import { PAR_CLE, modeEnTableau, type Colonne } from '../colonnesPistes';
+import { PAR_CLE, type Colonne } from '../colonnesPistes';
 import { formatCompactQuality, getQualityTier, getQualityTierLabel } from '../utils';
 
 /** Plancher en px d'une largeur de colonne (`196px` ou `minmax(196px,…)`). */
@@ -94,10 +94,6 @@ describe('web#1683 point 2 — au-delà, la pastille s’abrège au lieu d’êt
     flushSync();
     return hote;
   }
-
-  it('le niveau mesuré rend bien le tableau — sinon le témoin ne mesure rien', () => {
-    expect(modeEnTableau('beginner')).toBe(true);
-  });
 
   it('🔴 la pastille du tableau est bornée par sa cellule, infobulle comprise', () => {
     const el = poser({

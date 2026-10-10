@@ -25,10 +25,10 @@ describe('Favoris — la ligne de piste est la ligne PARTAGÉE', () => {
 
   it('utilise le rendu PARTAGÉ au lieu de sa ligne maison', () => {
     // 🔴 RÉORIENTÉE le 07/09/2026 : les écrans délèguent désormais à
-    // `ListePistesV2`, qui rend le TABLEAU du mode Essentiel ou ces mêmes
-    // lignes au-dessus. Ce que la garde protège ne bouge pas — aucun écran
-    // ne roule sa propre ligne — et le conteneur le renforce.
-    expect(src.includes('LignePisteV2') || src.includes('ListePistesV2')).toBe(true);
+    // `ListePistesV2`, qui rend le TABLEAU à tous les modes depuis #1470.
+    // Ce que la garde protège ne bouge pas — aucun écran ne roule sa propre
+    // ligne — et le conteneur le renforce.
+    expect(src.includes('ListePistesV2')).toBe(true);
     // La fonction qui omettait la profondeur ne doit pas revenir.
     expect(src).not.toContain('function tech(');
   });
@@ -41,8 +41,8 @@ describe('Favoris — la ligne de piste est la ligne PARTAGÉE', () => {
   });
 
   it('la profondeur passe par le badge, qui la porte', () => {
-    const ligne = sansCommentaires(lire('src/components/v2/LignePisteV2.svelte'));
-    expect(ligne).toContain('bitDepth={piste.bit_depth}');
+    const liste = sansCommentaires(lire('src/components/v2/ListePistesV2.svelte'));
+    expect(liste).toContain('bitDepth={p.bit_depth}');
   });
 });
 

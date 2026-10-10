@@ -1332,7 +1332,7 @@
         {#if results.tracks?.length}
           <section class="sec"><h2>{$t('v2.rech.tracks' as any)}</h2>
             <div class="liste">
-              <ListePistesV2 pistes={results.tracks as any} numerotation="aucune" avecAlbum
+              <ListePistesV2 pistes={results.tracks as any} numerotation="aucune"
                 onLire={(pi) => playTrack(pi as any)}
                 clef={(pi, i) => cleItem(pi as any, i)} />
             </div>
@@ -1633,7 +1633,7 @@
              cliqué, puis ceux qui suivent dans la liste affichée. -->
         <section class="sec" id="fav-titres"><h2>{$t('v2.rech.tracks' as any)}</h2>
           <div class="liste">
-            <ListePistesV2 pistes={favTracksVus as any} numerotation="aucune" avecAlbum pochetteEnTableau
+            <ListePistesV2 pistes={favTracksVus as any} numerotation="aucune" pochetteEnTableau
               onLire={(_pi, i) => lireFavorisDepuis(i)}
               clef={(pi, i) => cleItem(pi as any, i)} />
           </div>
