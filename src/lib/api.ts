@@ -4727,6 +4727,34 @@ export function getReplayGainProgress() {
   );
 }
 
+/**
+ * La remesure des crêtes (serveur, `GET|POST /system/replaygain/reanalyze`).
+ * Le serveur a corrigé une mesure de true-peak fausse aux jonctions de
+ * segments ; les mesures prises avant restent en base. `stale` dit combien,
+ * `running` qu'une campagne les rend à la passe ReplayGain, par lots.
+ */
+export interface RemesureReplayGain {
+  stale: number | null;
+  running: boolean;
+  algo?: string;
+  enabled?: boolean;
+  /** POST seulement : `started`, `nothing_to_do`, `already_running`, `analysis_disabled`. */
+  status?: string;
+}
+
+export function getReplayGainReanalyze() {
+  return fetchJSON<RemesureReplayGain>(`${BASE}/system/replaygain/reanalyze`);
+}
+
+/** Lance la remesure. Le 409 est un refus documenté, rendu avec son `status`. */
+export function reanalyzeReplayGain() {
+  return fetchJSON<RemesureReplayGain>(
+    `${BASE}/system/replaygain/reanalyze`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
+}
+
 /** Last scan report (persisted server-side, survives restarts). */
 export interface ScanReport {
   total_files?: number;
