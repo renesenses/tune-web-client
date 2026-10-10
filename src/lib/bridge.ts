@@ -193,3 +193,100 @@ export function urlFlux(
   }
   return streamUrl ?? null;
 }
+
+/**
+ * Adresse d'un fichier de `public/` (logo, icônes), valable dans les DEUX modes.
+ *
+ * 🔴 Un chemin absolu (`/tune-logo.png`) vise la RACINE du domaine. Servie par
+ * le relais, la page vit sous `/{server_id}/` : la racine de
+ * `bridge.mozaiklabs.fr` n'a pas de logo, l'image restait cassée (09/10/2026,
+ * essai en 5G). Un chemin relatif simple ne suffit pas non plus : la coquille
+ * navigue par `pushState`, et `tune-logo.png` se résoudrait contre l'écran
+ * courant. On ancre donc sur `/{server_id}/` par le relais, sur la base Vite
+ * sinon.
+ */
+export function urlRessourcePublique(nom: string): string {
+  const propre = nom.replace(/^\/+/, '');
+  const sid = serverIdDepuisUrl();
+  if (sid) return `/${sid}/${propre}`;
+  const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';
+  return `${base.endsWith('/') ? base : `${base}/`}${propre}`;
+}
+
+/**
+ * Adresse par le relais d'un appel d'API écrit en dur (`/api/v1/…`), ou `null`
+ * quand l'appel ne concerne pas le relais (autre domaine, autre chemin).
+ *
+ * Une adresse qui vise DÉJÀ le relais est rendue telle quelle, en absolu : il
+ * lui manque peut-être seulement l'en-tête, que l'intercepteur ajoute.
+ */
+export function versLeRelais(url: string): string | null {
+  if (!viaRelais()) return null;
+  const origine = window.location.origin;
+  let chemin = url;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(url)) {
+    let u: URL;
+    try {
+      u = new URL(url);
+    } catch {
+      return null;
+    }
+    if (u.origin !== origine) return null;
+    chemin = u.pathname + u.search + u.hash;
+  }
+  if (chemin === '/api/v1' || chemin.startsWith('/api/v1/') || chemin.startsWith('/api/v1?')) {
+    return `${baseApi()}${chemin.slice('/api/v1'.length)}`;
+  }
+  const prefixeRelais = `/api/relay/${resoudre().serverId}`;
+  if (chemin === prefixeRelais || chemin.startsWith(`${prefixeRelais}/`) || chemin.startsWith(`${prefixeRelais}?`)) {
+    return `${origine}${chemin}`;
+  }
+  return null;
+}
+
+/**
+ * Filet pour TOUT `fetch` vers l'API, par le relais.
+ *
+ * `baseApi()` et `entetesRelais()` couvrent les appels qui passent par
+ * `api.ts`. Mais des dizaines d'autres s'écrivent en dur — `'/api/v1'` dans
+ * `LoginView`, `api/_client.ts`, `preferences.ts`, `displayFields.ts` — ou
+ * posent leurs propres en-têtes sans le jeton du pont (`installUpdate`,
+ * téléchargements…). Par le relais, les premiers frappent la racine de
+ * `bridge.mozaiklabs.fr` (405 sur un POST : « Erreur 405 » à la connexion),
+ * les seconds se font refuser en 401 par le pont, ce que l'application lit
+ * comme « Session expirée ».
+ *
+ * Plutôt que de compter sur chaque appelant, l'intercepteur réécrit
+ * `/api/v1/…` vers `/api/relay/{id}/…` et ajoute `X-Bridge-Token` à tout ce
+ * qui vise le relais. Servie normalement, la page n'est PAS touchée : rien ne
+ * s'installe hors relais.
+ *
+ * Ne couvre pas ce qui ne passe pas par `fetch` : `<img src>`, `<a href>`,
+ * `<audio src>`, `window.location` — un navigateur n'y pose aucun en-tête.
+ */
+export function installerIntercepteurRelais(): boolean {
+  if (typeof window === 'undefined' || typeof window.fetch !== 'function') return false;
+  if (!viaRelais()) return false;
+  const w = window as typeof window & { __tuneIntercepteurRelais?: boolean };
+  if (w.__tuneIntercepteurRelais) return true;
+  const fetchOrigine = window.fetch.bind(window);
+  const jeton = entetesRelais()['X-Bridge-Token'];
+  const relaye = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    if (typeof Request !== 'undefined' && input instanceof Request) {
+      const cible = versLeRelais(input.url);
+      if (cible === null) return fetchOrigine(input, init);
+      const req = new Request(cible, input);
+      if (!req.headers.has('X-Bridge-Token')) req.headers.set('X-Bridge-Token', jeton);
+      return fetchOrigine(req, init);
+    }
+    const url = input instanceof URL ? input.href : String(input);
+    const cible = versLeRelais(url);
+    if (cible === null) return fetchOrigine(input, init);
+    const headers = new Headers(init?.headers ?? undefined);
+    if (!headers.has('X-Bridge-Token')) headers.set('X-Bridge-Token', jeton);
+    return fetchOrigine(cible, { ...init, headers });
+  };
+  window.fetch = relaye as typeof window.fetch;
+  w.__tuneIntercepteurRelais = true;
+  return true;
+}
