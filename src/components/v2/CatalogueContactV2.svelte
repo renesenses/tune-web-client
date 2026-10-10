@@ -66,11 +66,17 @@
     onFermer: (plusPartage: boolean) => void;
     /** T4 — le `premium` de `/library-sync`, s'il a répondu. Sinon : la licence. */
     premium?: boolean | null;
+    /**
+     * T4 — l'écoute chez un contact est-elle ouverte sur ce serveur
+     * (`ecouteOuverte`) ? Fermée par défaut (décision produit du 10/10/2026) :
+     * rien de l'écoute ne s'affiche, ni bouton ni cadenas.
+     */
+    ouverte?: boolean;
   }
-  let { contact, onFermer, premium = null }: Props = $props();
+  let { contact, onFermer, premium = null, ouverte = false }: Props = $props();
 
-  /** Le bouton Lire n'existe que pour un auditeur Premium : aucun appel sinon. */
-  const ecoute = $derived(ecoutePermise(premium, { loaded: $licenseState.loaded, premium: $isPremium }));
+  /** Le bouton Lire n'existe que fonction ouverte ET auditeur Premium : aucun appel sinon. */
+  const ecoute = $derived(ouverte && ecoutePermise(premium, { loaded: $licenseState.loaded, premium: $isPremium }));
 
   type Onglet = 'albums' | 'artists' | 'tracks' | 'streaming';
   const ONGLETS: { id: Onglet; cle: string }[] = [
@@ -334,7 +340,9 @@
       <p class="note ecoute-note">{$t('v2.circle.listen.hint' as any)}</p>
     {:else}
       <p class="note lecture-seule">{$t('v2.circle.lib.readOnly' as any)}</p>
-      <p class="note ecoute-premium"><span aria-hidden="true">🔒</span> {$t('v2.circle.listen.premiumOnly' as any)}</p>
+      {#if ouverte}
+        <p class="note ecoute-premium"><span aria-hidden="true">🔒</span> {$t('v2.circle.listen.premiumOnly' as any)}</p>
+      {/if}
     {/if}
     {#if refusEcoute}
       <div class="err refus-ecoute" role="alert"><span>{refusEcoute}</span>

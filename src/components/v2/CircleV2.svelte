@@ -56,7 +56,7 @@
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import {
-    circleCharge, circlePlugin, refreshCirclePlugin, getCercle, estConnecte,
+    circleCharge, circlePlugin, refreshCirclePlugin, getCercle, estConnecte, ecouteOuverte,
     inviterAuCercle, accepterInvitation, refuserInvitation, annulerInvitation,
     revoquerContact, creerCercle, renommerCercle, supprimerCercle,
     rangerDansCercle, retirerDuCercle, motifCercle, nomCercleValide,
@@ -511,7 +511,7 @@
       {/key}
     {:else if contactOuvert}
       {#key contactOuvert.user_id}
-        <CatalogueContactV2 contact={contactOuvert} onFermer={fermerCatalogue} premium={synchro?.premium ?? null} />
+        <CatalogueContactV2 contact={contactOuvert} onFermer={fermerCatalogue} premium={synchro?.premium ?? null} ouverte={ecouteOuverte(synchro)} />
       {/key}
     {:else}
       <p class="intro">{$t('v2.circle.intro' as any)}</p>
