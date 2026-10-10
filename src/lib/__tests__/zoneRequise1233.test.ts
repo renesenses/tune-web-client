@@ -70,7 +70,7 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     expect(coupables, `gestes encore muets : ${coupables.join(', ')}`).toEqual([]);
   });
 
-  it('et les vingt-et-un écrans passent par le helper', () => {
+  it('et les vingt-deux écrans passent par le helper', () => {
     const avec = fichiersV2.filter((f) => lire(f).includes("from '../../lib/zoneRequise'"));
     // Quinze depuis la phase 5, lot 4 : `YouTubeDecouverteV2` (tendances et
     // ambiances YouTube Music) lance la lecture, donc passe par le helper.
@@ -88,7 +88,10 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // VINGT-ET-UN depuis web#1653 : `EcouterPlusTardV2` lance « Lire à partir
     // d'ici » sur les pistes du sas, et réclame la zone comme les autres. Trois
     // écrans nés en parallèle — le compte est leur SOMME, jamais l'un des trois.
-    expect(avec.length).toBe(21);
+    // VINGT-DEUX depuis tune-server-rust#6044 : `ReaffectationCanauxV2` écrit
+    // un réglage DE ZONE (la matrice de réaffectation des canaux).
+    expect(avec.length).toBe(22);
+    expect(avec).toContain('ReaffectationCanauxV2.svelte');
     expect(avec).toContain('CrossfeedProV2.svelte');
     expect(avec).toContain('PlaylistCercleV2.svelte');
     expect(avec).toContain('EcouterPlusTardV2.svelte');

@@ -72,6 +72,35 @@ export interface AudioLevels {
   output_gain_requested_db: number | null;
   /** tune-server-rust#4384 — le rabot à l'unité a mordu. `null` si non publié. */
   output_gain_limited: boolean | null;
+  /**
+   * tune-server-rust#4969 — le niveau de CHAQUE canal, dans l'ordre du flux,
+   * publié par le serveur (rc3, #5937) seulement à partir de trois canaux.
+   * Vide en stéréo, ou sur un serveur qui ne le publie pas.
+   */
+  channel_levels: NiveauDeCanal[];
+  /**
+   * Le nom de chaque canal dans l'ordre par défaut FLAC/WAV (`FL`, `FR`,
+   * `FC`, `LFE`…), quand le serveur en connaît un (3 à 8 canaux). `null`
+   * sinon : l'écran affiche alors le numéro du canal.
+   */
+  channel_names: string[] | null;
+}
+
+/** Niveau d'un canal, tel que `playback.audio_levels` le publie (#4969). */
+export interface NiveauDeCanal {
+  rms_db: number;
+  peak_db: number;
+  over: boolean;
+}
+
+/** Lit `channel_levels` sans faire confiance à sa forme. */
+function lireNiveauxParCanal(brut: unknown): NiveauDeCanal[] {
+  if (!Array.isArray(brut)) return [];
+  return brut.map((c: any) => ({
+    rms_db: typeof c?.rms_db === 'number' ? c.rms_db : -96,
+    peak_db: typeof c?.peak_db === 'number' ? c.peak_db : -96,
+    over: c?.over === true,
+  }));
 }
 
 const defaultLevels: AudioLevels = {
@@ -93,6 +122,8 @@ const defaultLevels: AudioLevels = {
   output_gain_db: null,
   output_gain_requested_db: null,
   output_gain_limited: null,
+  channel_levels: [],
+  channel_names: null,
 };
 
 /**
@@ -186,6 +217,11 @@ export function handleAudioLevelsEvent(data: any) {
       typeof data.output_gain_requested_db === 'number' ? data.output_gain_requested_db : null,
     output_gain_limited:
       typeof data.output_gain_limited === 'boolean' ? data.output_gain_limited : null,
+    channel_levels: lireNiveauxParCanal(data.channel_levels),
+    channel_names:
+      Array.isArray(data.channel_names) && data.channel_names.every((n: unknown) => typeof n === 'string')
+        ? data.channel_names
+        : null,
   };
   levelsByZone.update((m) => ({ ...m, [zoneId]: levels }));
 }

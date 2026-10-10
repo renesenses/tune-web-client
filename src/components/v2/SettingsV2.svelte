@@ -16,6 +16,7 @@
    * absent.
    */
   import { t } from '../../lib/i18n';
+  import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
@@ -107,7 +108,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
-  import FolderBrowser from '../partages/FolderBrowser.svelte';
+  import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
   import {
@@ -142,6 +143,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     CLE_I18N_CRAN, CRANS_CADENCE, cranOuDefaut, estCranCadence,
   } from '../../lib/cadenceAnimations';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  import SauvegardeCloudV2 from './SauvegardeCloudV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -1996,6 +1998,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     return () => { if (ytPoll) { clearInterval(ytPoll); ytPoll = null; } };
   });
 
+  /* --- Pays des Tendances YouTube Music (tune-server-rust#5247) ----------
+   *
+   * Réglage serveur `youtube_charts_country` : vide = automatique (la langue
+   * du navigateur, envoyée par l'écran Découvrir), `ZZ` = monde, sinon un
+   * pays. Le serveur le fait passer AVANT la langue du navigateur.
+   */
+  let paysTendancesYt = $state<string | null>(null);
+  $effect(() => {
+    api.getConfig()
+      .then((c: any) => { paysTendancesYt = paysTendancesDuReglage(c); })
+      .catch(() => { paysTendancesYt = null; });
+  });
+  async function choisirPaysTendancesYt(v: string) {
+    const avant = paysTendancesYt;
+    paysTendancesYt = v;
+    try { await api.updateConfig({ [CLE_PAYS_TENDANCES_YOUTUBE]: v }); }
+    catch { paysTendancesYt = avant; }   // pas d'état menteur si le serveur refuse
+  }
+
   async function enableYoutubePlayback() {
     ytBusy = true;
     try {
@@ -2099,9 +2120,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // qu'une analyse tourne : le badge doit le dire.
   $effect(() => { if (aDesChiffres($avancementAnalyse)) scanning = true; });
 
-  /** Fil forum 2171 — le sélecteur de dossier du serveur, perdu avec l'ancienne
-   *  interface (`FolderWizard`). La saisie à la main reste possible. */
-  let showFolderBrowser = $state(false);
   /** Fil forum 2171 — une racine de disque ou un très gros dossier demande une
    *  confirmation chiffrée AVANT l'ajout, qui lance l'analyse sur-le-champ. */
   async function addDir() {
@@ -4578,6 +4596,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
               {#if sysErr}<div class="errline">{sysErr}</div>{/if}
 
+            {:else if s.id === 'backup'}
+              <SauvegardeCloudV2 />
+
             {:else if s.id === 'config'}
               <p class="hint">{#each emphaseParts($t('settings.configBackupHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               <!-- #902 — Cette sauvegarde-ci ne porte pas les jetons de
@@ -5305,15 +5326,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if libErr}<div class="errline">{libErr}</div>{/if}
 
             {:else if s.id === 'musicDirs'}
+              <!-- Fil 2171 — le sélecteur est LE geste d'ajout : un vrai bouton,
+                   qui va jusqu'à l'ajout (comptage et confirmation compris).
+                   En rc3 il n'était qu'un lien « Parcourir… » qui remplissait
+                   le champ, et il restait à cliquer « Ajouter ». -->
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.addFolder' as any)}</span>
                   <span class="hint">{$t('settings.serverPathHint' as any)}</span>
                 </div>
+                <BoutonAjouterDossier disabled={dirBusy}
+                  onAjoute={async (dirs) => { musicDirs = dirs.length ? dirs : musicDirs; await refreshDirectoryOrder(); }} />
+              </div>
+              <div class="row">
+                <div class="lbl"><span class="hint">{$t('settings.addFolderManualHint' as any)}</span></div>
                 <div class="inline">
                   <input class="txt wide" type="text" placeholder="/Volumes/Musique" bind:value={newDir}
                     disabled={dirBusy} onkeydown={(e) => { if (e.key === 'Enter') addDir(); }} />
-                  <button class="lnk" disabled={dirBusy} onclick={() => (showFolderBrowser = true)}>{$t('ingest.browse' as any)}</button>
                   <button class="lnk" disabled={dirBusy || !newDir.trim()} onclick={addDir}>{$t('v2.tags.add' as any)}</button>
                 </div>
               </div>
@@ -6079,6 +6108,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
               {#if ytStatus.startsWith('failed')}<div class="errline">{ytStatus}</div>{/if}
 
+              <!-- tune-server-rust#5247 — pays des Tendances de l'onglet Découvrir. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.youtubeChartsCountryTitle' as any)}</span>
+                  <span class="hint">{$t('settings.youtubeChartsCountryHelp' as any)}</span>
+                </div>
+                <select class="sel" data-pays-tendances-youtube value={paysTendancesYt ?? ''} disabled={paysTendancesYt === null}
+                  onchange={(e) => choisirPaysTendancesYt((e.currentTarget as HTMLSelectElement).value)}>
+                  <option value="">{$t('settings.youtubeChartsCountryAuto' as any)}</option>
+                  <option value="ZZ">{$t('settings.youtubeChartsCountryWorld' as any)}</option>
+                  {#each optionsPaysTendances($locale) as o (o.code)}<option value={o.code}>{o.nom}</option>{/each}
+                </select>
+              </div>
+
             {:else if s.id === 'wifi'}
               {#if isAppliance === false}
                 <p class="hint">{$t('settings.wifiApplianceOnly' as any)}</p>
@@ -6668,14 +6711,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     </div>
   </div>
 </section>
-
-{#if showFolderBrowser}
-  <FolderBrowser
-    initialPath={newDir}
-    onSelect={(p) => { newDir = p; showFolderBrowser = false; }}
-    onClose={() => (showFolderBrowser = false)}
-  />
-{/if}
 
 {#if showSmbWizard}
   <SmbWizard
