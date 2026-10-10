@@ -2331,7 +2331,18 @@ export interface DashboardData {
   // (tune-core db/history_repo.rs — TopArtistEntry, TopTrackEntry,
   // DashboardData.top_radios) et la vue les lit. Les champs marqués
   // `skip_serializing_if` côté serveur sont optionnels ici.
-  top_artists: { artist_name: string; plays: number; listening_ms: number; cover_path?: string | null }[];
+  /**
+   * `source` — #1696 : le service où l'artiste est le plus écouté (`qobuz`,
+   * `tidal`…), absent s'il ne l'a été que depuis la bibliothèque, ou si le
+   * serveur est antérieur à ce champ.
+   */
+  top_artists: {
+    artist_name: string;
+    plays: number;
+    listening_ms: number;
+    cover_path?: string | null;
+    source?: string | null;
+  }[];
   top_albums: { album_title: string; artist_name: string; cover_path: string | null; plays: number; album_id?: number | null; source?: string | null; source_id?: string | null }[];
   top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number; cover_path?: string | null; source?: string | null; source_id?: string | null }[];
   /** Absent de la réponse quand la liste est vide (skip_serializing_if). */
