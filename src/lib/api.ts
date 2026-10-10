@@ -102,6 +102,16 @@ import { estRefusEcriture, messageRefusEcriture, CODE_REFUS_ECRITURE } from './e
 import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
 import { messageRefusBitperfect } from './bitperfectStrict';
 import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
+import {
+  RefusSauvegarde,
+  codeDuRefus as codeDuRefusSauvegarde,
+  corpsRestauration,
+  type EtatSauvegardeCloud,
+  type InstantaneCloud,
+  type ListeInstantanes,
+  type ModeRestauration as ModeRestaurationCloud,
+  type ResultatRestauration,
+} from './sauvegardeCloud';
 
 /**
  * L'erreur d'un refus premium 402 — **seul** constructeur de cette forme dans
@@ -1148,6 +1158,19 @@ export function probeRendererCapabilities(id: number) {
   return fetchJSON<import('./types').RendererCapabilities>(`${BASE}/zones/${id}/renderer-capabilities`, {
     method: 'POST',
   });
+}
+
+/**
+ * « Réinitialiser la compatibilité » (tune-server-rust#5962) : le serveur
+ * oublie le profil de commande `SetAVTransportURI` qu'il a appris pour le
+ * renderer DLNA de cette zone, en mémoire et en base. Rend le nombre de
+ * profils oubliés.
+ */
+export function reinitialiserCompatibiliteRenderer(id: number) {
+  return fetchJSON<{ zone_id: number; profils_oublies: number }>(
+    `${BASE}/zones/${id}/compatibilite-renderer`,
+    { method: 'DELETE' },
+  );
 }
 
 export function changeZoneOutput(id: number, outputType: string, outputDeviceId?: string | null) {
@@ -2331,7 +2354,18 @@ export interface DashboardData {
   // (tune-core db/history_repo.rs — TopArtistEntry, TopTrackEntry,
   // DashboardData.top_radios) et la vue les lit. Les champs marqués
   // `skip_serializing_if` côté serveur sont optionnels ici.
-  top_artists: { artist_name: string; plays: number; listening_ms: number; cover_path?: string | null }[];
+  /**
+   * `source` — #1696 : le service où l'artiste est le plus écouté (`qobuz`,
+   * `tidal`…), absent s'il ne l'a été que depuis la bibliothèque, ou si le
+   * serveur est antérieur à ce champ.
+   */
+  top_artists: {
+    artist_name: string;
+    plays: number;
+    listening_ms: number;
+    cover_path?: string | null;
+    source?: string | null;
+  }[];
   top_albums: { album_title: string; artist_name: string; cover_path: string | null; plays: number; album_id?: number | null; source?: string | null; source_id?: string | null }[];
   top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number; cover_path?: string | null; source?: string | null; source_id?: string | null }[];
   /** Absent de la réponse quand la liste est vide (skip_serializing_if). */
@@ -4716,6 +4750,34 @@ export function getReplayGainProgress() {
   );
 }
 
+/**
+ * La remesure des crêtes (serveur, `GET|POST /system/replaygain/reanalyze`).
+ * Le serveur a corrigé une mesure de true-peak fausse aux jonctions de
+ * segments ; les mesures prises avant restent en base. `stale` dit combien,
+ * `running` qu'une campagne les rend à la passe ReplayGain, par lots.
+ */
+export interface RemesureReplayGain {
+  stale: number | null;
+  running: boolean;
+  algo?: string;
+  enabled?: boolean;
+  /** POST seulement : `started`, `nothing_to_do`, `already_running`, `analysis_disabled`. */
+  status?: string;
+}
+
+export function getReplayGainReanalyze() {
+  return fetchJSON<RemesureReplayGain>(`${BASE}/system/replaygain/reanalyze`);
+}
+
+/** Lance la remesure. Le 409 est un refus documenté, rendu avec son `status`. */
+export function reanalyzeReplayGain() {
+  return fetchJSON<RemesureReplayGain>(
+    `${BASE}/system/replaygain/reanalyze`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
+}
+
 /** Last scan report (persisted server-side, survives restarts). */
 export interface ScanReport {
   total_files?: number;
@@ -5239,6 +5301,15 @@ export function getStreamingFeaturedPlaylistsByTag(service: string, genre?: stri
   return fetchJSON<PlaylistTagGroup[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured-playlists/by-tag${params}`, undefined, undefined, true);
 }
 
+/** Les playlists éditoriales d'un GENRE (tune-server-rust#5313) : la route
+ *  `featured-playlists` lit `genre` et le transmet au service (Qobuz :
+ *  `genre_ids`). Les services sans playlists éditoriales rendent `[]`.
+ *  `sansBandeau` : la bande est un complément de la vue du genre, son échec
+ *  ne mérite pas le bandeau global. */
+export function getStreamingGenrePlaylists(service: string, genreId: string) {
+  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured-playlists?genre=${encodeURIComponent(genreId)}`, undefined, undefined, true);
+}
+
 export function getStreamingGenres(service: string, parentId?: string) {
   const params = parentId ? `?parent_id=${encodeURIComponent(parentId)}` : '';
   return fetchJSON<import('./types').StreamingGenre[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres${params}`);
@@ -5575,19 +5646,28 @@ export function getPlaylistManagerServices() {
   );
 }
 
+/**
+ * `POST /playlist-manager/transfer` — depuis tune-server-rust#4741, cette route
+ * n'a plus de moteur à elle : elle passe la demande au greffon « Playlists
+ * converter » (aperçu, puis transfert avec accord sauf `dry_run`) et rend la
+ * forme d'avant, plus `lot_id`, `etat` et `tracks[]` — chaque titre
+ * introuvable avec sa `raison`. Appariement : ISRC, puis titre + artiste +
+ * durée à ±3 s, sans seuil réglable. 503 `greffon_requis` si le greffon n'est
+ * pas chargé. « local → local » reste une copie.
+ */
 export function transferPlaylistV2(body: {
   source_service: string; source_playlist_id: string; target_service: string;
-  target_name?: string; create_on_target?: boolean; match_threshold?: number;
-  include_approximate?: boolean; dry_run?: boolean;
+  target_name?: string; dry_run?: boolean;
+  /** Ignorés par le moteur unique (#4741), acceptés pour compatibilité. */
+  create_on_target?: boolean; match_threshold?: number; include_approximate?: boolean;
 }) {
   return fetchJSON<any>(`${BASE}/playlist-manager/transfer`, { method: 'POST', body: JSON.stringify(body) });
 }
 
-export function batchTransfer(body: {
-  source_service: string; target_service: string; playlist_ids?: string[] | null; match_threshold?: number;
-}) {
-  return fetchJSON<any>(`${BASE}/playlist-manager/batch-transfer`, { method: 'POST', body: JSON.stringify(body) });
-}
+// #4741 — l'ancienne fonction de transfert « par lot » du gestionnaire est
+// retirée avec sa route serveur, qui écrivait « started » dans l'historique et
+// ne transférait RIEN. Le transfert par lot est celui du greffon
+// (`convertisseurApercu` avec plusieurs playlists, puis `convertisseurTransferer`).
 
 export function mergePlaylists(body: {
   playlists: Array<{ service: string; playlist_id: string }>; target_name: string;
@@ -7219,6 +7299,77 @@ export async function previewImportConfig(data: any): Promise<unknown> {
   );
 }
 
+// --- Sauvegarde des personnalisations dans le nuage (#5654, #902) ---
+//
+// Contrat : routes `/system/config-backup/cloud/*` du serveur Tune. Les refus
+// que l'écran traite lui-même (400 secret_required / wrong_secret, 412
+// account_not_linked, 502 cloud_unreachable) sont acceptés sans bandeau et
+// relevés en `RefusSauvegarde`, avec leur code stable.
+//
+// 🔴 La phrase de passe et la clé de secours ne voyagent QUE dans le corps
+// d'un POST : jamais en paramètre d'URL (journaux d'accès, historique).
+
+const STATUTS_DE_REFUS_SAUVEGARDE = (s: number) => s === 400 || s === 409 || s === 412 || s === 502;
+
+async function appelSauvegarde<T>(chemin: string, init?: RequestInit, sansBandeau = true): Promise<T> {
+  const corps = await fetchJSON<any>(
+    `${BASE}/system/config-backup/cloud/${chemin}`,
+    init,
+    STATUTS_DE_REFUS_SAUVEGARDE,
+    sansBandeau,
+  );
+  if (corps && typeof corps === 'object' && typeof corps.error === 'string' && corps.success !== true) {
+    throw new RefusSauvegarde(codeDuRefusSauvegarde(corps), corps.error);
+  }
+  return corps as T;
+}
+
+/** État de la sauvegarde automatique. Pas de garde Premium côté serveur : l'écran doit pouvoir dire « Premium requis ». */
+export async function getCloudBackupStatus(sansBandeau = true): Promise<EtatSauvegardeCloud> {
+  return appelSauvegarde<EtatSauvegardeCloud>('status', undefined, sansBandeau);
+}
+
+/**
+ * Active la sauvegarde. À la PREMIÈRE activation, `passphrase` crée la clé et
+ * la réponse porte la clé de secours — rendue une seule fois.
+ */
+export async function enableCloudBackup(
+  passphrase?: string,
+): Promise<{ success: boolean; recovery_key?: string; key_id: string }> {
+  return appelSauvegarde('enable', {
+    method: 'POST',
+    body: JSON.stringify(passphrase ? { passphrase } : {}),
+  });
+}
+
+export async function disableCloudBackup(): Promise<{ success: boolean }> {
+  return appelSauvegarde('disable', { method: 'POST' });
+}
+
+export async function backupCloudNow(): Promise<{
+  success: boolean;
+  skipped_unchanged: boolean;
+  backup: Omit<InstantaneCloud, 'this_server' | 'local_key'> | null;
+}> {
+  return appelSauvegarde('backup-now', { method: 'POST' });
+}
+
+export async function listCloudBackups(sansBandeau = true): Promise<ListeInstantanes> {
+  return appelSauvegarde<ListeInstantanes>('snapshots', undefined, sansBandeau);
+}
+
+/** Restaure un instantané. `secret` = phrase de passe OU clé de secours, seulement quand la clé locale ne l'ouvre pas. */
+export async function restoreCloudBackup(
+  id: number,
+  mode: ModeRestaurationCloud,
+  secret?: string | null,
+): Promise<ResultatRestauration> {
+  return appelSauvegarde<ResultatRestauration>('restore', {
+    method: 'POST',
+    body: JSON.stringify(corpsRestauration(id, mode, secret)),
+  });
+}
+
 // --- MusicBrainz Batch Enrichment ---
 
 /**
@@ -7391,6 +7542,30 @@ export function enrichArtistImagesStatus() {
     result: { phase?: string; total?: number; processed?: number; enriched?: number } | null;
     artists_without_image: number;
   }>(`${BASE}/library/artwork/enrich-artists/status`);
+}
+
+/** Un artiste sans portrait visible, nommé par le serveur (tune-server-rust#4692). */
+export interface ArtisteSansPortrait {
+  id: number;
+  name: string;
+  musicbrainz_id: string | null;
+  /** Chemin annoncé par la base alors que le fichier de cache a disparu. */
+  image_path: string | null;
+  /** `sans_image_avec_mbid` | `cache_perdu_avec_mbid` | `sans_image_sans_mbid` | `cache_perdu_sans_mbid`. */
+  nature: string;
+}
+
+/** Les artistes que compte `artists_without_image`, NOMMÉS — même fonction
+ *  serveur que le nombre de la carte « Pochettes d'artistes » (#4692, Bilou).
+ *  `total` est celui de la sélection, pour annoncer ce que la page ne montre pas. */
+export function getArtistsWithoutImage(limit = 200, offset = 0) {
+  return fetchJSON<{
+    artists: ArtisteSansPortrait[];
+    total: number;
+    artists_without_image: number;
+    limit: number;
+    offset: number;
+  }>(`${BASE}/library/artwork/artists-without-image?limit=${limit}&offset=${offset}`);
 }
 
 // YouTube playback: managed yt-dlp helper (opt-in). YouTube blocked Tune's
