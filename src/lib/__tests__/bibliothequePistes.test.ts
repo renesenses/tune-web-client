@@ -41,8 +41,10 @@ describe('le compteur de pistes', () => {
   it("le total du serveur ne sert QUE pendant le chargement", () => {
     // Une fois la liste là, c'est elle qui fait foi : un total et une liste
     // qui ne coïncident pas seraient pires que l'attente.
+    // #1716 — paginé, c'est le total de la page servie (`totalPagine`) :
+    // il porte la recherche et la provenance, comme la liste qu'il annonce.
     expect(src).toMatch(
-      /nbPistesAnnonce = \$derived\(\s*tracksLoading && !q && !fProvenance && nbPistesServeur != null \? nbPistesServeur : pistesFiltrees\.length,?\s*\)/,
+      /nbPistesAnnonce = \$derived\(\s*pagine \? totalPagine\s*: tracksLoading && !q && !fProvenance && nbPistesServeur != null \? nbPistesServeur : pistesFiltrees\.length,?\s*\)/,
     );
   });
 

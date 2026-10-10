@@ -315,6 +315,42 @@
      */
     selection?: ReadonlySet<number> | null;
     onCocher?: ((piste: Track, index: number, etendre: boolean) => void) | null;
+    /**
+     * 🔴 LE DÉFILEMENT VIRTUEL — tune-web-client#1716 — OPT-IN.
+     *
+     * L'onglet Titres ne rend plus que la FENÊTRE visible d'une liste de
+     * dizaines de milliers de pistes servie par pages. `pistes` est alors
+     * cette fenêtre ; `rangDepart` est le rang de sa première ligne dans la
+     * liste entière (la numérotation `rang` en tient compte), et
+     * `espaceAvant` / `espaceApres` (px) la hauteur des lignes non rendues,
+     * posée par deux intercalaires vides — sous l'en-tête et après la
+     * dernière ligne — pour que l'ascenseur mesure la liste entière.
+     *
+     * Les rangs passés aux rappels (`onLire`, `onLireDepuis`…) restent ceux
+     * de `pistes` : l'écran ajoute lui-même `rangDepart`. `virtuel` pose les
+     * deux intercalaires (`data-espace`), même vides : l'écran mesure entre
+     * eux la hauteur d'une ligne.
+     *
+     * `virtuel` absent, RIEN ne change : ni intercalaire, ni décalage.
+     */
+    virtuel?: boolean;
+    rangDepart?: number;
+    espaceAvant?: number;
+    espaceApres?: number;
+    /**
+     * 🔴 LE TRI PAR L'EN-TÊTE — tune-web-client#1716 — OPT-IN.
+     *
+     * `onTrier` non nul : l'en-tête d'une colonne de `triables` devient un
+     * bouton ; un clic DIT `onTrier(cle)`, et l'écran — seul à savoir s'il
+     * trie lui-même ou s'il demande au serveur — décide du sens. `tri` est
+     * l'ordre appliqué, que l'en-tête montre (flèche et `aria-sort`).
+     * Au mode tableau seulement : le rendu en lignes n'a pas d'en-tête.
+     *
+     * Absentes, RIEN ne change : l'en-tête reste du texte.
+     */
+    tri?: { cle: CleColonne; sens: 'asc' | 'desc' } | null;
+    triables?: ReadonlySet<CleColonne> | null;
+    onTrier?: ((cle: CleColonne) => void) | null;
   }
   let {
     pistes, onLire, onLireDepuis = null, numerotation = 'rang',
@@ -327,7 +363,10 @@
     etiquetteIndispo = 'v2.str.coming',
     lectureSeule = false,
     selection = null, onCocher = null,
+    virtuel = false, rangDepart = 0, espaceAvant = 0, espaceApres = 0,
+    tri = null, triables = null, onTrier = null,
   }: Props = $props();
+  const triable = (cle: CleColonne) => onTrier != null && !!triables?.has(cle);
   const selectionnable = $derived(selection != null);
   /** La largeur de la colonne des cases : celle de la poignée. */
   const LARGEUR_CASE_PX = LARGEUR_POIGNEE_PX;
@@ -517,8 +556,8 @@
 
   function numero(p: Track, i: number): string | null {
     if (numerotation === 'aucune') return null;
-    if (numerotation === 'rang') return String(i + 1);
-    return String(p.track_number || i + 1);
+    if (numerotation === 'rang') return String(rangDepart + i + 1);
+    return String(p.track_number || rangDepart + i + 1);
   }
 
   /** La valeur d'une cellule. Le numéro est le seul cas que le modèle ne peut
@@ -565,6 +604,12 @@
     aria-label={$t('v2.selection.toggleTrack' as any).replace('{title}', p.title ?? '')}
     onclick={(e) => { e.stopPropagation(); onCocher?.(p, i, e.shiftKey); }} />
 {/snippet}
+{#snippet intercalaire(hauteur: number, ou: 'avant' | 'apres')}
+  <!-- #1716 — la hauteur des lignes que la fenêtre ne rend pas. -->
+  {#if virtuel}
+    <div class="intercalaire" data-espace={ou} style="height:{hauteur}px" aria-hidden="true"></div>
+  {/if}
+{/snippet}
   <!-- 🔴 #853 — `--tmin` est la largeur en deçà de laquelle le tableau DÉFILE
        au lieu de comprimer. Sans elle, les planchers des colonnes de texte
        seraient simplement ignorés par la grille, qui redescendrait sous eux. -->
@@ -575,14 +620,24 @@
       {#if reordonnable}<span class="th" role="columnheader"></span>{/if}
       {#if selectionnable}<span class="th" role="columnheader"></span>{/if}
       {#each colonnes as c (c.cle)}
-        <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-          role="columnheader">{$t(c.cleI18n as any)}</span>
+        {#if triable(c.cle)}
+          {@const sens = tri?.cle === c.cle ? tri.sens : null}
+          <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
+            role="columnheader" aria-sort={sens === 'asc' ? 'ascending' : sens === 'desc' ? 'descending' : 'none'}>
+            <button class="trier" class:actif={sens != null} type="button" data-tri={c.cle}
+              onclick={() => onTrier?.(c.cle)}>{$t(c.cleI18n as any)}{#if sens}<span class="fleche" aria-hidden="true">{sens === 'asc' ? '▲' : '▼'}</span>{/if}</button>
+          </span>
+        {:else}
+          <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
+            role="columnheader">{$t(c.cleI18n as any)}</span>
+        {/if}
       {/each}
       <!-- La colonne d'actions n'a pas d'en-tête : son contenu se lit seul, et
            un libellé y serait répété sur chaque ligne pour rien. -->
       {#if !lectureSeule}<span class="th" role="columnheader" aria-label={$t('v2.tcol.actions' as any)}></span>{/if}
       {#if apres}<span class="th" role="columnheader"></span>{/if}
     </div>
+    {@render intercalaire(espaceAvant, 'avant')}
 
     {#each pistes as p, i (clef(p, i))}
       {@const etat = etatDe(p)}
@@ -688,6 +743,7 @@
         {#if apres}<span class="td act" role="cell">{@render apres(p, i)}</span>{/if}
       </div>
     {/each}
+    {@render intercalaire(espaceApres, 'apres')}
   </div>
 
 <style>
@@ -738,6 +794,14 @@
   /* Les colonnes de chiffres s'alignent à droite, en chiffres tabulaires :
      sans quoi la durée saute d'un pixel d'une ligne à l'autre. */
   .th.d, .td.d{text-align:right; font-variant-numeric:tabular-nums}
+  /* #1716 — l'en-tête qui trie : le libellé reste celui d’un `.th`. */
+  .trier{all:unset; cursor:pointer; display:inline-flex; align-items:center; gap:4px;
+    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .trier:hover, .trier.actif{color:var(--v2-txt)}
+  .trier:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px; border-radius:3px}
+  .th.d .trier{justify-content:flex-end}
+  .fleche{font-size:8px}
+  .intercalaire{flex:none}
   .th.c, .td.c{text-align:center}
 
   .titre{display:flex; align-items:center; gap:7px;
