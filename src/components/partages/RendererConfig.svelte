@@ -11,6 +11,7 @@
     ecarts, corpsPatch, type ValeursEcran,
   } from '../../lib/reglagesRendererEnregistres';
   import type { Zone, RendererCapabilities } from '../../lib/types';
+  import { compatibiliteReinitialisable, messageReinitialisation } from '../../lib/compatibiliteRenderer';
 
   // Coherent per-renderer output config for a DLNA/OpenHome zone: a discovery
   // check (GetProtocolInfo) plus overrides that respect the server's precedence
@@ -293,6 +294,24 @@
     }));
   }
 
+  /* « Réinitialiser la compatibilité » (tune-server-rust#5962) : le serveur
+   * oublie la forme de commande qu'il a apprise pour ce renderer après un
+   * refus. Rien à confirmer : au pire, le refus revient une fois et le
+   * serveur réapprend. */
+  let reinitialisation = $state(false);
+  async function reinitialiserCompat() {
+    if (zone.id == null) return;
+    reinitialisation = true;
+    try {
+      const r = await api.reinitialiserCompatibiliteRenderer(zone.id);
+      notifications.success(messageReinitialisation($t, r?.profils_oublies));
+    } catch {
+      notifications.error($t('renderer.resetCompatError'));
+    } finally {
+      reinitialisation = false;
+    }
+  }
+
   const libelle = (v: boolean | number): string =>
     typeof v === 'boolean' ? (v ? 'on' : 'off') : String(v);
 </script>
@@ -372,6 +391,19 @@
       </div>
     </div>
   </div>
+
+  {#if compatibiliteReinitialisable(zone.output_type)}
+    <div class="rc-compat">
+      <button
+        class="rc-check"
+        disabled={reinitialisation || zone.id == null}
+        onclick={reinitialiserCompat}
+      >
+        {$t('renderer.resetCompat')}
+      </button>
+      <p class="rc-hint">{$t('renderer.resetCompatHint')}</p>
+    </div>
+  {/if}
 
   <!-- La configuration enregistrée. Le texte d'aide dit d'abord que tout est
        déjà appliqué : sans cela, le bouton laisserait croire le contraire, et
@@ -567,6 +599,14 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--tune-border);
+  }
+  .rc-compat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
     padding-top: 12px;
     border-top: 1px solid var(--tune-border);
   }

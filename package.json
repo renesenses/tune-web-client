@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "marked": "^18.0.3",
-    "mermaid": "^11.17.2"
+    "mermaid": "^11.17.2",
+    "qrcode-generator": "2.0.4"
   }
 }
