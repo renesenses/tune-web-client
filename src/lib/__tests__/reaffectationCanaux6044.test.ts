@@ -110,7 +110,9 @@ describe('câblage de l’écran', () => {
     expect(lire('src/components/v2/ShellV2.svelte')).toMatch(
       /\$activeView === 'reaffectation'\}\s*<ReaffectationCanauxV2 \/>/,
     );
-    expect(lire('src/components/v2/PluginsV2.svelte')).toContain("activeView.set('reaffectation')");
+    const plugins = lire('src/components/v2/PluginsV2.svelte');
+    expect(plugins).toContain("p.name === 'channel-remap' && isActive(p)");
+    expect(plugins).toContain("activeView.set('reaffectation')");
   });
 
   it('l’écran dit que la réaffectation casse le bit-perfect', () => {

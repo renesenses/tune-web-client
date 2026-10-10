@@ -24,7 +24,6 @@
   import { refreshCirclePlugin } from '../../lib/circle';
   import { estRefusPremium } from '../../lib/premiumRefus';
   import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
-  import { getPrereglagesReaffectation } from '../../lib/reaffectationCanaux';
   import { sonderCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { NOMS_GREFFONS_SDK } from '../../lib/greffonEntreeAudio';
   import {
@@ -51,18 +50,6 @@
    * (403) ou une panne laisse simplement la section vide.
    */
   let natifs = $state<api.GreffonAudioNatif[]>([]);
-  /**
-   * tune-server-rust#6044 — le greffon « Réaffectation des canaux » est servi
-   * par le serveur lui-même (`/channel-remap`), hors de `GET /plugins`. Sa
-   * carte n'apparaît que si le serveur répond : un serveur antérieur n'a rien
-   * à régler.
-   */
-  let reaffectationDisponible = $state(false);
-  $effect(() => {
-    getPrereglagesReaffectation()
-      .then(() => { reaffectationDisponible = true; })
-      .catch(() => { reaffectationDisponible = false; });
-  });
   async function relireNatifs() {
     try { natifs = greffonsNatifsTiers((await api.getGreffonsAudioNatifs()).plugins); natifsLus = true; }
     catch { natifs = []; }
@@ -333,6 +320,11 @@
                 {#if p.name === 'concerts' && isActive(p)}
                   <button class="lnk ouvrir-concerts" onclick={() => activeView.set('concerts')}>{$t('common.open' as any)}</button>
                 {/if}
+                <!-- tune-server-rust#6044 — greffon gratuit et facultatif, comme
+                     l'égaliseur : ses réglages s'ouvrent depuis sa carte. -->
+                {#if p.name === 'channel-remap' && isActive(p)}
+                  <button class="lnk ouvrir-reaffectation" onclick={() => activeView.set('reaffectation')}>{$t('v2.plug.nativeSettings' as any)}</button>
+                {/if}
                 {#if p.name === 'circle' && isActive(p)}
                   <button class="lnk ouvrir-circle" onclick={() => activeView.set('circle')}>{$t('common.open' as any)}</button>
                 {/if}
@@ -353,25 +345,6 @@
             </div>
           </article>
         {/each}
-      </div>
-    {/if}
-
-    {#if !loading && reaffectationDisponible}
-      <!-- tune-server-rust#6044 — greffon audio de l'hôte, réglé par zone. -->
-      <h3 class="sect" data-integres>{$t('v2.cr.pluginsSection' as any)}</h3>
-      <div class="list">
-        <article class="pl" data-greffon="channel-remap">
-          <div class="pi">
-            <div class="ph">
-              <h2>{$t('v2.cr.title' as any)}</h2>
-              <span class="cat">{$t('v2.cr.badge' as any)}</span>
-            </div>
-            <p class="pd">{$t('v2.cr.pluginDesc' as any)}</p>
-          </div>
-          <div class="pact">
-            <button class="lnk ouvrir-reaffectation" onclick={() => activeView.set('reaffectation')}>{$t('v2.plug.nativeSettings' as any)}</button>
-          </div>
-        </article>
       </div>
     {/if}
 
