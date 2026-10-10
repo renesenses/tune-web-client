@@ -300,9 +300,6 @@ export default {
   'streaming.section.qobuzissimes': 'Qobuzissimes',
   'streaming.ytmCharts': 'Listor',
   'streaming.ytmMoods': 'Stämningar & genrer',
-  'streaming.ytmTrending': 'Trendar',
-  'streaming.ytmTopSongs': 'Topplåtar',
-  'streaming.ytmTopVideos': 'Toppvideor',
 
   // Playlist
   'playlist.new': 'Ny spellista',
@@ -448,6 +445,10 @@ export default {
   'settings.youtubePlaybackHelp': 'YouTube har nyligen blockerat direktuppspelning på serversidan. Genom att aktivera detta laddas hjälpprogrammet yt-dlp ned (en enda fristående binärfil, ~30 MB – ingen Python krävs) som återställer YouTube-uppspelning. Tune fungerar fullt ut utan det.',
   'settings.youtubePlaybackEnable': 'Aktivera YouTube-uppspelning',
   'settings.youtubePlaybackDownloading': 'Laddar ned yt-dlp…',
+  'settings.youtubeChartsCountryTitle': 'Land för listorna',
+  'settings.youtubeChartsCountryHelp': 'YouTube Music-listor på fliken Upptäck. Automatiskt: webbläsarens språk.',
+  'settings.youtubeChartsCountryAuto': 'Automatiskt',
+  'settings.youtubeChartsCountryWorld': 'Hela världen',
   'settings.youtubeLink': 'Gå till länken nedan och ange koden:',
   'settings.youtubeOpenAuth': 'Öppna Google-auktorisering',
   'settings.youtubeWaiting': 'Väntar på bekräftelse från Google...',

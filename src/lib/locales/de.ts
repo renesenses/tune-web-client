@@ -329,9 +329,6 @@ export default {
   'streaming.section.qobuzissimes': 'Qobuzissimes',
   'streaming.ytmCharts': 'Charts',
   'streaming.ytmMoods': 'Stimmungen & Genres',
-  'streaming.ytmTrending': 'Trends',
-  'streaming.ytmTopSongs': 'Top-Songs',
-  'streaming.ytmTopVideos': 'Top-Videos',
 
   // Playlist
   'playlist.new': 'Neue Playlist',
@@ -2236,6 +2233,10 @@ export default {
   "settings.tabProfiles": "Profile",
   "settings.thisComputer": "Dieser Computer",
   "settings.youtubePlaybackDownloading": "yt-dlp wird heruntergeladen…",
+  "settings.youtubeChartsCountryTitle": "Land der Charts",
+  "settings.youtubeChartsCountryHelp": "YouTube-Music-Charts im Tab Entdecken. Automatisch: die Sprache Ihres Browsers.",
+  "settings.youtubeChartsCountryAuto": "Automatisch",
+  "settings.youtubeChartsCountryWorld": "Weltweit",
   "settings.youtubePlaybackEnable": "YouTube-Wiedergabe aktivieren",
   "settings.youtubePlaybackHelp": "YouTube hat die direkte serverseitige Wiedergabe kürzlich blockiert. Beim Aktivieren wird das Hilfsprogramm yt-dlp heruntergeladen (eine eigenständige Binärdatei, ~30 MB — kein Python nötig), das die YouTube-Wiedergabe wiederherstellt. Tune funktioniert auch ohne einwandfrei.",
   "settings.youtubePlaybackReady": "Aktiviert",

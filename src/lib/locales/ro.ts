@@ -335,9 +335,6 @@ export default {
   'streaming.section.qobuzissimes': 'Qobuzissimes',
   'streaming.ytmCharts': 'Topuri',
   'streaming.ytmMoods': 'Stări & genuri',
-  'streaming.ytmTrending': 'În tendințe',
-  'streaming.ytmTopSongs': 'Top melodii',
-  'streaming.ytmTopVideos': 'Top videoclipuri',
 
   // Playlist
   'playlist.new': 'Playlist nou',
@@ -2239,6 +2236,10 @@ export default {
   "settings.tabProfiles": "Profiluri",
   "settings.thisComputer": "Acest computer",
   "settings.youtubePlaybackDownloading": "Se descarcă yt-dlp…",
+  "settings.youtubeChartsCountryTitle": "Țara topurilor",
+  "settings.youtubeChartsCountryHelp": "Topurile YouTube Music din fila Descoperă. Automat: limba browserului.",
+  "settings.youtubeChartsCountryAuto": "Automat",
+  "settings.youtubeChartsCountryWorld": "Mondial",
   "settings.youtubePlaybackEnable": "Activează redarea YouTube",
   "settings.youtubePlaybackHelp": "YouTube a blocat recent redarea directă din partea serverului. Activarea descarcă utilitarul yt-dlp (un binar autonom, ~30 MB — fără Python) care restabilește redarea YouTube. Tune funcționează perfect și fără el.",
   "settings.youtubePlaybackReady": "Activată",

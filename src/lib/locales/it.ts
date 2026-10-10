@@ -329,9 +329,6 @@ export default {
   'streaming.section.qobuzissimes': 'Qobuzissimes',
   'streaming.ytmCharts': 'Classifiche',
   'streaming.ytmMoods': 'Mood e generi',
-  'streaming.ytmTrending': 'Tendenze',
-  'streaming.ytmTopSongs': 'Top brani',
-  'streaming.ytmTopVideos': 'Top video',
 
   // Playlist
   'playlist.new': 'Nuova playlist',
@@ -2236,6 +2233,10 @@ export default {
   "settings.tabProfiles": "Profili",
   "settings.thisComputer": "Questo computer",
   "settings.youtubePlaybackDownloading": "Download di yt-dlp…",
+  "settings.youtubeChartsCountryTitle": "Paese delle tendenze",
+  "settings.youtubeChartsCountryHelp": "Classifiche YouTube Music della scheda Scopri. Automatico: la lingua del browser.",
+  "settings.youtubeChartsCountryAuto": "Automatico",
+  "settings.youtubeChartsCountryWorld": "Mondo",
   "settings.youtubePlaybackEnable": "Attiva la riproduzione YouTube",
   "settings.youtubePlaybackHelp": "YouTube ha recentemente bloccato la riproduzione diretta lato server. Attivandolo si scarica lo strumento yt-dlp (un binario autonomo, ~30 MB — nessun Python richiesto) che ripristina la riproduzione YouTube. Tune funziona benissimo anche senza.",
   "settings.youtubePlaybackReady": "Attivata",

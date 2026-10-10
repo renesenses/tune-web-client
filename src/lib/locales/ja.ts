@@ -329,9 +329,6 @@ export default {
   'streaming.section.qobuzissimes': 'Qobuzissimes',
   'streaming.ytmCharts': 'チャート',
   'streaming.ytmMoods': 'ムード＆ジャンル',
-  'streaming.ytmTrending': 'トレンド',
-  'streaming.ytmTopSongs': 'トップソング',
-  'streaming.ytmTopVideos': 'トップビデオ',
 
   // Playlist
   'playlist.new': '新しいプレイリスト',
@@ -2236,6 +2233,10 @@ export default {
   "settings.tabProfiles": "プロフィール",
   "settings.thisComputer": "このコンピューター",
   "settings.youtubePlaybackDownloading": "yt-dlp をダウンロード中…",
+  "settings.youtubeChartsCountryTitle": "チャートの国",
+  "settings.youtubeChartsCountryHelp": "「見つける」タブの YouTube Music チャート。自動：ブラウザの言語。",
+  "settings.youtubeChartsCountryAuto": "自動",
+  "settings.youtubeChartsCountryWorld": "世界",
   "settings.youtubePlaybackEnable": "YouTube 再生を有効にする",
   "settings.youtubePlaybackHelp": "YouTube は最近、サーバー側での直接再生をブロックしました。有効にすると yt-dlp（単体で動作する約 30 MB のバイナリ、Python 不要）をダウンロードし、YouTube 再生を復旧します。なくても Tune は問題なく動作します。",
   "settings.youtubePlaybackReady": "有効",

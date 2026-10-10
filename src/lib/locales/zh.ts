@@ -329,9 +329,6 @@ export default {
   'streaming.section.qobuzissimes': 'Qobuzissimes',
   'streaming.ytmCharts': '排行榜',
   'streaming.ytmMoods': '心情与风格',
-  'streaming.ytmTrending': '热门趋势',
-  'streaming.ytmTopSongs': '热门歌曲',
-  'streaming.ytmTopVideos': '热门视频',
 
   // Playlist
   'playlist.new': '新建播放列表',
@@ -2236,6 +2233,10 @@ export default {
   "settings.tabProfiles": "配置文件",
   "settings.thisComputer": "本机",
   "settings.youtubePlaybackDownloading": "正在下载 yt-dlp…",
+  "settings.youtubeChartsCountryTitle": "排行榜国家",
+  "settings.youtubeChartsCountryHelp": "“发现”标签页中的 YouTube Music 排行榜。自动：浏览器语言。",
+  "settings.youtubeChartsCountryAuto": "自动",
+  "settings.youtubeChartsCountryWorld": "全球",
   "settings.youtubePlaybackEnable": "启用 YouTube 播放",
   "settings.youtubePlaybackHelp": "YouTube 近期封锁了服务端直接播放。启用后将下载 yt-dlp 工具（约 30 MB 的独立可执行文件，无需 Python），以恢复 YouTube 播放。没有它，Tune 也完全可用。",
   "settings.youtubePlaybackReady": "已启用",

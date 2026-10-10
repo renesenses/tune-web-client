@@ -24,7 +24,7 @@ describe('YouTube Music : l’onglet Ambiances', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    vi.spyOn(api, 'getYouTubeCharts').mockResolvedValue({});
+    vi.spyOn(api, 'getYouTubeCharts').mockResolvedValue({ country: 'FR', sections: [] });
     cible = document.createElement('div');
     document.body.appendChild(cible);
   });

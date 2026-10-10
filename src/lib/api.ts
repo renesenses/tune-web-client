@@ -5528,18 +5528,40 @@ export function youtubeAuthStatus() {
   );
 }
 
-// --- YouTube Music browse (ytmusicapi) ---
+// --- YouTube Music : découverte (InnerTube côté serveur, tune-server-rust#5247) ---
 
+/**
+ * Un élément d'un rayon YouTube Music (tune-server-rust#5247). `kind` dit ce
+ * qu'il ouvre ; `id` est l'identifiant YouTube (`VL…` playlist, `MPRE…`
+ * album, `UC…` artiste, identifiant de vidéo pour un titre).
+ */
+export interface YtElementRayon {
+  kind: 'playlist' | 'album' | 'artist' | 'track';
+  id: string;
+  title: string;
+  subtitle: string;
+  cover_path: string | null;
+}
+export interface YtRayon { title: string; items: YtElementRayon[] }
+export interface YtCategorieAmbiances { title: string; items: { title: string; params: string }[] }
+
+/** Les rayons de l'accueil de YouTube Music. */
+export function getYouTubeHome() {
+  return fetchJSON<{ sections: YtRayon[] }>(`${BASE}/streaming/youtube/home`);
+}
+
+/** Les tendances d'un pays : classements (playlists) et artistes. */
 export function getYouTubeCharts(country = 'FR') {
-  return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/youtube/charts?country=${encodeURIComponent(country)}`);
+  return fetchJSON<{ country: string; sections: YtRayon[] }>(`${BASE}/streaming/youtube/charts?country=${encodeURIComponent(country)}`);
 }
 
 export function getYouTubeMoods() {
-  return fetchJSON<{ title: string; items: { title: string; params: string }[] }[]>(`${BASE}/streaming/youtube/moods`);
+  return fetchJSON<YtCategorieAmbiances[]>(`${BASE}/streaming/youtube/moods`);
 }
 
-export function getYouTubeMoodPlaylists(params: string) {
-  return fetchJSON<{ title: string; playlistId: string; description: string; cover_path: string | null }[]>(`${BASE}/streaming/youtube/moods/${encodeURIComponent(params)}`);
+/** Le contenu d'une ambiance ou d'un genre : ses rayons de playlists. */
+export function getYouTubeMoodSections(params: string) {
+  return fetchJSON<{ sections: YtRayon[] }>(`${BASE}/streaming/youtube/moods/${encodeURIComponent(params)}`);
 }
 
 

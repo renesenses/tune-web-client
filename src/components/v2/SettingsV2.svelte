@@ -16,6 +16,7 @@
    * absent.
    */
   import { t } from '../../lib/i18n';
+  import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
@@ -1999,6 +2000,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     void refreshYoutubePlayback();
     return () => { if (ytPoll) { clearInterval(ytPoll); ytPoll = null; } };
   });
+
+  /* --- Pays des Tendances YouTube Music (tune-server-rust#5247) ----------
+   *
+   * Réglage serveur `youtube_charts_country` : vide = automatique (la langue
+   * du navigateur, envoyée par l'écran Découvrir), `ZZ` = monde, sinon un
+   * pays. Le serveur le fait passer AVANT la langue du navigateur.
+   */
+  let paysTendancesYt = $state<string | null>(null);
+  $effect(() => {
+    api.getConfig()
+      .then((c: any) => { paysTendancesYt = paysTendancesDuReglage(c); })
+      .catch(() => { paysTendancesYt = null; });
+  });
+  async function choisirPaysTendancesYt(v: string) {
+    const avant = paysTendancesYt;
+    paysTendancesYt = v;
+    try { await api.updateConfig({ [CLE_PAYS_TENDANCES_YOUTUBE]: v }); }
+    catch { paysTendancesYt = avant; }   // pas d'état menteur si le serveur refuse
+  }
 
   async function enableYoutubePlayback() {
     ytBusy = true;
@@ -6089,6 +6109,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
               </div>
               {#if ytStatus.startsWith('failed')}<div class="errline">{ytStatus}</div>{/if}
+
+              <!-- tune-server-rust#5247 — pays des Tendances de l'onglet Découvrir. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.youtubeChartsCountryTitle' as any)}</span>
+                  <span class="hint">{$t('settings.youtubeChartsCountryHelp' as any)}</span>
+                </div>
+                <select class="sel" data-pays-tendances-youtube value={paysTendancesYt ?? ''} disabled={paysTendancesYt === null}
+                  onchange={(e) => choisirPaysTendancesYt((e.currentTarget as HTMLSelectElement).value)}>
+                  <option value="">{$t('settings.youtubeChartsCountryAuto' as any)}</option>
+                  <option value="ZZ">{$t('settings.youtubeChartsCountryWorld' as any)}</option>
+                  {#each optionsPaysTendances($locale) as o (o.code)}<option value={o.code}>{o.nom}</option>{/each}
+                </select>
+              </div>
 
             {:else if s.id === 'wifi'}
               {#if isAppliance === false}

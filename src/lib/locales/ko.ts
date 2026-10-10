@@ -329,9 +329,6 @@ export default {
   'streaming.section.qobuzissimes': 'Qobuzissimes',
   'streaming.ytmCharts': '차트',
   'streaming.ytmMoods': '분위기 및 장르',
-  'streaming.ytmTrending': '인기 급상승',
-  'streaming.ytmTopSongs': '인기 곡',
-  'streaming.ytmTopVideos': '인기 동영상',
 
   // Playlist
   'playlist.new': '새 재생목록',
@@ -2236,6 +2233,10 @@ export default {
   "settings.tabProfiles": "프로필",
   "settings.thisComputer": "이 컴퓨터",
   "settings.youtubePlaybackDownloading": "yt-dlp 다운로드 중…",
+  "settings.youtubeChartsCountryTitle": "차트 국가",
+  "settings.youtubeChartsCountryHelp": "탐색 탭의 YouTube Music 차트입니다. 자동: 브라우저 언어.",
+  "settings.youtubeChartsCountryAuto": "자동",
+  "settings.youtubeChartsCountryWorld": "전 세계",
   "settings.youtubePlaybackEnable": "YouTube 재생 사용",
   "settings.youtubePlaybackHelp": "YouTube가 최근 서버 측 직접 재생을 차단했습니다. 이 기능을 켜면 yt-dlp(파이썬이 필요 없는 약 30 MB의 독립 실행 파일)를 내려받아 YouTube 재생을 복구합니다. 없어도 Tune은 문제없이 작동합니다.",
   "settings.youtubePlaybackReady": "사용 중",
