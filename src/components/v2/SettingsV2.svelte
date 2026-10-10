@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Réglages du nouveau client (direction Levente).
    *
@@ -4427,7 +4428,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <div class="devlist">
                 {#each backups as b (b.filename)}
                   <div class="dev ign">
-                    <span class="dn mono">{b.filename}</span>
+                    <span class="dn mono" use:bulleTexte>{b.filename}</span>
                     <span class="dt">{tailleMo(b.size)} MB</span>
                     <span class="dh">{new Date(b.created_at).toLocaleString()}</span>
                     <button class="lnk danger" disabled={restoring !== null} onclick={() => restoreBackup(b.filename)}>
@@ -4510,7 +4511,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="devlist">
                     {#each dataVolumes as vol (vol.device)}
                       <div class="dev ign">
-                        <span class="dn">{vol.label || vol.device}</span>
+                        <span class="dn" use:bulleTexte>{vol.label || vol.device}</span>
                         <span class="dt">{vol.fs}</span>
                         <span class="dh">
                           {$t('settings.dataFree' as any).replace('{free}', octetsLisibles(vol.free_bytes)).replace('{size}', octetsLisibles(vol.size_bytes))}
@@ -4532,7 +4533,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="devlist">
                     {#each dataUnmounted as part (part.uuid)}
                       <div class="dev ign">
-                        <span class="dn">{part.label || part.name}</span>
+                        <span class="dn" use:bulleTexte>{part.label || part.name}</span>
                         <span class="dt">{part.fstype}</span>
                         <span class="dh">{part.disk_model || part.disk}{part.tran === 'usb' ? ' · USB' : ''} · {part.size}</span>
                         <button class="lnk" disabled={!!musicMountBusy} onclick={() => useAsMusicSource(part)}>
@@ -4556,7 +4557,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <div class="devlist">
                         {#each dataDisks.filter((d) => !d.is_boot && d.tran !== 'usb') as disk (disk.name)}
                           <div class="dev ign">
-                            <span class="dn">{disk.name}</span>
+                            <span class="dn" use:bulleTexte>{disk.name}</span>
                             <span class="dt">{disk.model}</span>
                             <span class="dh">{disk.size}</span>
                             <button class="lnk danger" onclick={() => installToDisk(disk)}>{$t('settings.installButton' as any)}</button>
@@ -4669,7 +4670,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="urls">
                   {#each serverUrls as u (u)}
                     <div class="url">
-                      <span class="up">{u}</span>
+                      <span class="up" use:bulleTexte>{u}</span>
                       <button class="lnk" onclick={() => copyUrl(u)}>{$t((copied === u ? 'v2.set.copied' : 'v2.set.copy') as any)}</button>
                     </div>
                   {/each}
@@ -5226,7 +5227,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <div class="inline">
                   {#if scanning}
-                    <span class="badge up">{$t('v2.lbl.analysisRunning' as any)}</span>
+                    <span class="badge up" use:bulleTexte>{$t('v2.lbl.analysisRunning' as any)}</span>
                     <button class="lnk danger" onclick={stopScan}>{$t('common.stop' as any)}</button>
                   {:else}
                     <button class="lnk" onclick={() => scan(false)}>{$t('v2.lbl.quickAnalysis' as any)}</button>
@@ -5336,7 +5337,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <div class="dir" class:ordered={directoryOrder !== null && displayedMusicDirs.length > 1}
                       class:avec-analyse={analysisExcluded !== null}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                      <span class="dp">{d}</span>
+                      <span class="dp" use:bulleTexte>{d}</span>
                       {#if directoryOrder !== null && displayedMusicDirs.length > 1}
                         <div class="dir-order">
                           <button class="lnk" disabled={dirBusy || orderBusy || index === 0}
@@ -5423,7 +5424,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {#each smbMounts as m (m.server + '/' + m.share)}
                     {@const e = etatPartage(m)}
                     <div class="dev ign" class:ko={e.enEchec}>
-                      <span class="dn">\\{m.server}\{m.share}</span>
+                      <span class="dn" use:bulleTexte>\\{m.server}\{m.share}</span>
                       <span class="dt">{e.enEchec ? $t('settings.smbNotMounted' as any) : $t('settings.smbMounted' as any)}</span>
                       <!-- SMB 1 est obsolète et non chiffré : y retomber peut être
                            la seule façon de lire un streamer, mais pas en silence. -->
@@ -6111,10 +6112,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#each wifiNets as net (net.ssid)}
                       <div class="wifi" class:sel={wifiSel === net.ssid}>
                         <button class="wrow" onclick={() => selectWifi(net.ssid)}>
-                          <span class="dn">{net.ssid}</span>
+                          <span class="dn" use:bulleTexte>{net.ssid}</span>
                           {#if net.security}<span class="dt">{net.security}</span>{/if}
                           <span class="dh">{net.signal}%</span>
-                          {#if net.in_use}<span class="badge up">{$t('settings.wifiInUse' as any)}</span>{/if}
+                          {#if net.in_use}<span class="badge up" use:bulleTexte>{$t('settings.wifiInUse' as any)}</span>{/if}
                         </button>
                         {#if net.in_use}
                           <button class="lnk danger" onclick={() => forgetWifi(net.ssid)}>{$t('settings.wifiForget' as any)}</button>
@@ -6200,7 +6201,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="devlist">
                   {#each peers as pr (pr.host + ':' + pr.port)}
                     <div class="dev net">
-                      <span class="dn">{pr.name}</span>
+                      <span class="dn" use:bulleTexte>{pr.name}</span>
                       <span class="dh">{pr.host}:{pr.port} — v{pr.version}</span>
                       <span class="dt">{pr.tracks} {$t('common.tracks' as any)} · {$t('settings.peerZones' as any).replace('{n}', String(pr.zones))}</span>
                       <button class="lnk" onclick={() => window.open(`http://${pr.host}:${pr.port}`, '_blank')}>{$t('settings.browse' as any)}</button>
@@ -6286,7 +6287,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#each sbStatus.players as pl (pl.id)}
                       <div class="dev net">
                         <span class="badge" class:up={pl.connected}>{pl.connected ? $t('settings.squeezeboxConnected' as any) : $t('settings.squeezeboxDisconnected' as any)}</span>
-                        <span class="dn">{pl.name}</span>
+                        <span class="dn" use:bulleTexte>{pl.name}</span>
                         <span class="dh">{pl.model} — {pl.ip}</span>
                         <button class="lnk" onclick={() => zoneFromPlayer(pl)} disabled={sbCreating === pl.id || !pl.connected}>
                           {sbCreating === pl.id ? $t('settings.squeezeboxCreatingZone' as any) : $t('settings.squeezeboxCreateZone' as any)}
@@ -6345,7 +6346,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#if hqChecking}
                       <span class="badge">…</span>
                     {:else if hqReachable === true}
-                      <span class="badge up">{$t('settings.connected' as any)}</span>
+                      <span class="badge up" use:bulleTexte>{$t('settings.connected' as any)}</span>
                     {:else if hqReachable === false}
                       <span class="badge">{$t('settings.unreachable' as any)}</span>
                     {:else}
@@ -6433,7 +6434,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="dev net">
                     <input type="checkbox" checked={!$preferences.hiddenDeviceIds.includes(pid)}
                       onchange={() => toggleDevice(pid)} aria-label={`Afficher ${d.name}`} />
-                    <span class="dn">{d.name}</span>
+                    <span class="dn" use:bulleTexte>{d.name}</span>
                     <span class="dt">{netLabel(d.type)}</span>
                     {#if d.host}<span class="dh">{d.host}</span>{/if}
                     {#if isAir}
@@ -6470,7 +6471,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <div class="devlist">
                 {#each ignoredDevices as d (d.device_id)}
                   <div class="dev ign">
-                    <span class="dn">{libelleAppareilIgnore(d)}</span>
+                    <span class="dn" use:bulleTexte>{libelleAppareilIgnore(d)}</span>
                     <span class="dt">{transportAppareilIgnore(d)}</span>
                     <span class="dh">{detailAppareilIgnore(d)}</span>
                     <button class="lnk" disabled={ignoreBusy} onclick={() => unignoreDevice(d)}>
@@ -6598,7 +6599,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {@const pid = `audio:${d.id}`}
                   <label class="dev">
                     <input type="checkbox" checked={!$preferences.hiddenDeviceIds.includes(pid)} onchange={() => toggleDevice(pid)} />
-                    <span class="dn">{d.name}</span>
+                    <span class="dn" use:bulleTexte>{d.name}</span>
                     <span class="dt">{etiquetteCaracteristiques(d)}</span>
                   </label>
                 {:else}

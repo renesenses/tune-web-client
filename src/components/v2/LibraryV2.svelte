@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import AjoutsRecentsV2 from './AjoutsRecentsV2.svelte';
   import CoffretsV2 from './CoffretsV2.svelte';
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
@@ -3114,7 +3115,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                 {@const fav = g.reel && facetteCourante ? estFacetteFavorite(g.key) : false}
                 <div class="fl">
                   <button class="flnom" onclick={() => (facetteOuverte = g.key)}>
-                    <span class="fk">{g.key}</span>
+                    <span class="fk" use:bulleTexte>{g.key}</span>
                     <span class="fc">{g.albums.length}</span>
                   </button>
                   <!-- Le menu « … » d'un LABEL (menus d'objets, 26/09/2026) :
@@ -3149,7 +3150,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           {#each [groupeOuvert] as g (g.key)}
             <section class="facet" data-facette={g.key}>
               <h2>
-                <span class="fk">{g.key}</span><span class="fc">{g.albums.length}</span>
+                <span class="fk" use:bulleTexte>{g.key}</span><span class="fc">{g.albums.length}</span>
                 {#if tab === 'labels' && !depot && g.reel}
                   <MenuObjetV2 objet={objetLabel(g.key)} nom={g.key} />
                 {/if}
@@ -3195,11 +3196,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                   <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
                   <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
                     <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
-                    <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
-                    <span class="la">{a.artist_name ?? ''}</span>
+                    <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
+                    <span class="la" use:bulleTexte>{a.artist_name ?? ''}</span>
                     <span class="ly">{albumYear(a) ?? ''}</span>
                     {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
-                    {#if showTech}<span class="lq">{tech(a)}</span>{/if}
+                    {#if showTech}<span class="lq" use:bulleTexte>{tech(a)}</span>{/if}
                   </button>
                   </div>
                 {/each}
@@ -3380,7 +3381,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         <div class="ct" title={a.title}>{a.title}</div>
         <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
-        {#if showTech}<div class="cq">{tech(a)}</div>{/if}
+        {#if showTech}<div class="cq" use:bulleTexte>{tech(a)}</div>{/if}
       </button>
     </div>
   {/snippet}
@@ -3397,8 +3398,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <!-- La pastille reste DANS la cellule du titre : une septieme
            colonne decalerait toutes les autres, et seule une poignee de
            lignes la porte (#1957, et la lecon d'alignement du 05/09). -->
-      <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
-      <span class="la">{a.artist_name ?? ''}</span>
+      <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
+      <span class="la" use:bulleTexte>{a.artist_name ?? ''}</span>
       <span class="ly">{albumYear(a) ?? ''}</span>
       <!--
         🔴 Ces deux cellules sont TOUJOURS présentes quand leur mode
@@ -3411,7 +3412,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         ligne était sa PROPRE grille (voir `--lcols` plus bas).
       -->
       {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
-      {#if showTech}<span class="lq">{tech(a)}</span>{/if}
+      {#if showTech}<span class="lq" use:bulleTexte>{tech(a)}</span>{/if}
     </button>
     </div>
   {/snippet}
@@ -3436,7 +3437,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         <div class="ct" title={a.title}>{a.title}</div>
         <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
-        {#if showTech}<div class="cq">{tech(a)}</div>{/if}
+        {#if showTech}<div class="cq" use:bulleTexte>{tech(a)}</div>{/if}
       </button>
     </div>
   {/snippet}

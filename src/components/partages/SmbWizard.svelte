@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import * as api from '../../lib/api';
   import { tip } from '../../lib/tooltip';
   import { t } from '../../lib/i18n';
@@ -401,7 +402,7 @@
                   <rect x="2" y="2" width="20" height="8" rx="2" ry="2" /><line x1="6" y1="6" x2="6.01" y2="6" />
                 </svg>
                 <div class="share-info">
-                  <span class="share-name">{share.name}</span>
+                  <span class="share-name" use:bulleTexte>{share.name}</span>
                   <span class="share-host">{share.host}</span>
                 </div>
                 {#if (share.shares?.length ?? 0) > 0}
@@ -593,26 +594,26 @@
         <div class="summary">
           <div class="summary-row">
             <span class="summary-label">{$t('smb.server')}</span>
-            <span class="summary-value">{selectedHost?.host}</span>
+            <span class="summary-value" use:bulleTexte>{selectedHost?.host}</span>
           </div>
           <div class="summary-row">
             <span class="summary-label">{$t('smb.share')}</span>
-            <span class="summary-value">{selectedShare}</span>
+            <span class="summary-value" use:bulleTexte>{selectedShare}</span>
           </div>
           {#if summaryPath}
             <div class="summary-row">
               <span class="summary-label">{$t('smb.mountPoint')}</span>
-              <span class="summary-value mono">{summaryPath}</span>
+              <span class="summary-value mono" use:bulleTexte>{summaryPath}</span>
             </div>
           {/if}
           <div class="summary-row">
             <span class="summary-label">{$t('smb.library')}</span>
-            <span class="summary-value">{addedToLibrary ? $t('smb.added') : $t('smb.notAdded')}</span>
+            <span class="summary-value" use:bulleTexte>{addedToLibrary ? $t('smb.added') : $t('smb.notAdded')}</span>
           </div>
           {#if scanStarted}
             <div class="summary-row">
               <span class="summary-label">{$t('smb.scanLabel')}</span>
-              <span class="summary-value">{$t('smb.inProgress')}</span>
+              <span class="summary-value" use:bulleTexte>{$t('smb.inProgress')}</span>
             </div>
           {/if}
         </div>

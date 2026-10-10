@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { playFromHere } from '../../lib/playback';
   import * as api from '../../lib/api';
@@ -763,8 +764,8 @@
               <span class="sp-track-num">{i + 1}</span>
               <div class="sp-track-art"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={40} vignette alt={t.title} /></div>
               <div class="sp-track-info">
-                <span class="sp-track-title truncate">{t.title}</span>
-                <span class="sp-track-artist truncate">{t.artist_name ?? ''}</span>
+                <span class="sp-track-title truncate" use:bulleTexte>{t.title}</span>
+                <span class="sp-track-artist truncate" use:bulleTexte>{t.artist_name ?? ''}</span>
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="sp-track-duration">{formatTime(t.duration_ms)}</span>

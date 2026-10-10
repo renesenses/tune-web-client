@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * YouTube Music — Tendances et Ambiances, portées de l'ancien écran
    * Streaming, seul à les offrir. Onglet « Découvrir » de YouTube dans
@@ -89,8 +90,8 @@
           {#each tendances[cle] as p, i (i)}
             <li><button onclick={() => jouerPiste(p)}>
               <span class="n">{i + 1}</span>
-              <span class="ti">{p.title}</span>
-              <span class="ar">{p.artist_name ?? ''}</span>
+              <span class="ti" use:bulleTexte>{p.title}</span>
+              <span class="ar" use:bulleTexte>{p.artist_name ?? ''}</span>
             </button></li>
           {/each}
         </ol>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   // Assistant d'ajout de contenu : dossier récupéré → bibliothèque rangée.
   //
   // Quatre étapes, dans cet ordre pour qu'aucun fichier ne bouge avant que
@@ -608,11 +609,11 @@
                   {#each changedProposals as p}
                     <li>
                       <span class="num">{p.proposed_track_number ?? '—'}</span>
-                      <span class="was">
+                      <span class="was" use:bulleTexte>
                         {p.current_title ?? p.source_path.split('/').pop()}
                       </span>
                       <span class="arrow">→</span>
-                      <span class="now">{p.proposed_title}</span>
+                      <span class="now" use:bulleTexte>{p.proposed_title}</span>
                       {#if p.method === 'order'}
                         <span class="badge">{$t('ingest.matchedByOrder')}</span>
                       {/if}
@@ -638,7 +639,7 @@
             {#each analysis.tracks as tr}
               <li>
                 <span class="num">{tr.track_number ?? '—'}</span>
-                <span class="ti">{tr.title ?? tr.source_path.split('/').pop()}</span>
+                <span class="ti" use:bulleTexte>{tr.title ?? tr.source_path.split('/').pop()}</span>
                 <span class="muted">{(tr.format ?? tr.ext).toUpperCase()}</span>
               </li>
             {/each}
@@ -758,7 +759,7 @@
                 <span class="kind" class:extra={e.kind === 'extra'}>
                   {e.kind === 'extra' ? '📄' : '♪'}
                 </span>
-                <span class="path">{e.relative_path}</span>
+                <span class="path" use:bulleTexte>{e.relative_path}</span>
                 {#if e.conflict}
                   <span class="badge">{conflictLabel(e.conflict)}</span>
                 {/if}

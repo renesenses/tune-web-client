@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
@@ -570,7 +571,7 @@
                 </svg>
                 <div class="music-dir-info">
                   <span class="music-dir-name">{root.name}</span>
-                  <span class="music-dir-path">{root.path}</span>
+                  <span class="music-dir-path" use:bulleTexte>{root.path}</span>
                 </div>
                 {#if root.track_count > 0}
                   <span class="music-dir-count">{root.track_count} {$t('common.tracks')}</span>

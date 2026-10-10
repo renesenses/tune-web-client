@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Recherche du nouveau client (direction Levente). Cœur de nav : présente à
    * tous les niveaux. Densité par niveau :
@@ -1226,8 +1227,8 @@
                 -->
                 <button class="bcard" onclick={() => ouvrirArtiste(a)}>
                   <span class="bcv rond"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} vignette alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
-                  <span class="bt">{a.name}</span>
-                  <span class="bk">{$t('v2.rech.kindArtist' as any)}</span>
+                  <span class="bt" use:bulleTexte>{a.name}</span>
+                  <span class="bk" use:bulleTexte>{$t('v2.rech.kindArtist' as any)}</span>
                 </button>
                 <div class="bsrc">
                   {#each provenances(a) as s (s.source)}
@@ -1244,15 +1245,15 @@
                      différents sous une carte identique. -->
                 <button class="bcard" onclick={() => ouvrirFiche(a)}>
                   <span class="bcv"><AlbumArt coverPath={a.cover_path} albumId={estLocal(a) ? a.id : null} size={0} vignette alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} /></span>
-                  <span class="bt">{a.title}</span>
-                  <span class="bk">{$t('v2.rech.kindAlbum' as any)} · {a.artist_name ?? ''}</span>
+                  <span class="bt" use:bulleTexte>{a.title}</span>
+                  <span class="bk" use:bulleTexte>{$t('v2.rech.kindAlbum' as any)} · {a.artist_name ?? ''}</span>
                 </button>
               {:else}
                 {@const pi = meilleur.piste}
                 <button class="bcard" onclick={() => lirePiste(pi)}>
                   <span class="bcv"><AlbumArt coverPath={pi.cover_path} albumId={estLocal(pi) ? (pi.album_id ?? null) : null} size={0} vignette alt={pi.title} source={pi.source as any} fallbackInitials={pi.title?.slice(0,1)} /></span>
-                  <span class="bt">{pi.title}</span>
-                  <span class="bk">{$t('v2.rech.kindTrack' as any)} · {pi.artist_name ?? ''}</span>
+                  <span class="bt" use:bulleTexte>{pi.title}</span>
+                  <span class="bk" use:bulleTexte>{$t('v2.rech.kindTrack' as any)} · {pi.artist_name ?? ''}</span>
                 </button>
               {/if}
             </div>
@@ -1513,7 +1514,7 @@
                 <span class="plg" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h11M4 12h11M4 17h7M18 15V8l3 .6"/></svg>
                 </span>
-                <span class="ti">{pl.nom}<em>{pl.source}</em></span>
+                <span class="ti" use:bulleTexte>{pl.nom}<em>{pl.source}</em></span>
                 <span class="dur">{String(pl.pistes)}</span>
               </button>
               </div>

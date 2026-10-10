@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount, untrack } from 'svelte';
   import * as api from '../../lib/api';
   import type { TrackAllTags } from '../../lib/api';
@@ -195,7 +196,7 @@
             <div class="kv">
               {#each groupe.champs as field}
                 <div class="row">
-                  <span class="key">{field}</span>
+                  <span class="key" use:bulleTexte>{field}</span>
                   <span class="val val-readonly">{formatTagVals(champsService[field])}</span>
                 </div>
               {/each}
@@ -227,7 +228,7 @@
             <div class="kv">
               {#each groupe.champs as field}
                 <div class="row">
-                  <span class="key">{field}</span>
+                  <span class="key" use:bulleTexte>{field}</span>
                   {#if isWritable(field) && (field === 'year' || field === 'track_number' || field === 'disc_number' || field === 'album_id')}
                     <input type="number" class="val val-num" bind:value={dbEdits[field]} />
                   {:else if isWritable(field)}
@@ -248,7 +249,7 @@
             <div class="kv">
               {#each data.db_credits as c}
                 <div class="row">
-                  <span class="key">{c.role ?? 'performer'}{c.instrument ? ` (${c.instrument})` : ''}</span>
+                  <span class="key" use:bulleTexte>{c.role ?? 'performer'}{c.instrument ? ` (${c.instrument})` : ''}</span>
                   <span class="val val-readonly">{c.artist_name ?? '?'}</span>
                 </div>
               {/each}
@@ -263,7 +264,7 @@
             <div class="kv">
               {#each Object.entries(data.audio_info) as [k, v]}
                 <div class="row">
-                  <span class="key">{k}</span>
+                  <span class="key" use:bulleTexte>{k}</span>
                   <span class="val val-readonly">{v}</span>
                 </div>
               {/each}
@@ -283,7 +284,7 @@
             <div class="kv">
               {#each Object.entries(data.file_tags) as [k, vals]}
                 <div class="row">
-                  <span class="key key-tag">{k}</span>
+                  <span class="key key-tag" use:bulleTexte>{k}</span>
                   <span class="val val-readonly">{formatTagVals(vals)}</span>
                 </div>
               {/each}

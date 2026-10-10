@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * « Ajouts récents » — onglet de la Bibliothèque (#3039), porté de
    * l'ancienne interface, seule à l'offrir.
@@ -119,8 +120,8 @@
       {#each albums as a (a.id)}
         <button class="ligne" onclick={() => onOuvrir(a as Album)}>
           <span class="vign"><AlbumArt coverPath={a.cover_path ?? null} albumId={a.id ?? null} size={0} alt={a.title ?? ''} /></span>
-          <span class="ltitre">{a.title ?? ''}</span>
-          <span class="lartiste">{a.artist_name ?? ''}</span>
+          <span class="ltitre" use:bulleTexte>{a.title ?? ''}</span>
+          <span class="lartiste" use:bulleTexte>{a.artist_name ?? ''}</span>
         </button>
       {/each}
     </div>
@@ -129,8 +130,8 @@
       {#each albums as a (a.id)}
         <button class="carte" onclick={() => onOuvrir(a as Album)}>
           <AlbumArt coverPath={a.cover_path ?? null} albumId={a.id ?? null} size={0} alt={a.title ?? ''} />
-          <span class="titre">{a.title ?? ''}</span>
-          {#if a.artist_name}<span class="artiste">{a.artist_name}</span>{/if}
+          <span class="titre" use:bulleTexte>{a.title ?? ''}</span>
+          {#if a.artist_name}<span class="artiste" use:bulleTexte>{a.artist_name}</span>{/if}
         </button>
       {/each}
     </div>

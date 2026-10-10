@@ -35,6 +35,7 @@
 </script>
 
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Une liste de pistes — en TABLEAU au mode Essentiel, en lignes ailleurs.
    *
@@ -715,13 +716,13 @@
         {#if triable(c.cle)}
           {@const sens = tri?.cle === c.cle ? tri.sens : null}
           <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-            role="columnheader" aria-sort={sens === 'asc' ? 'ascending' : sens === 'desc' ? 'descending' : 'none'}>
-            <button class="trier" class:actif={sens != null} type="button" data-tri={c.cle}
+            role="columnheader" use:bulleTexte aria-sort={sens === 'asc' ? 'ascending' : sens === 'desc' ? 'descending' : 'none'}>
+            <button class="trier" class:actif={sens != null} type="button" data-tri={c.cle} use:bulleTexte
               onclick={() => onTrier?.(c.cle)}>{$t(c.cleI18n as any)}{#if sens}<span class="fleche" aria-hidden="true">{sens === 'asc' ? '▲' : '▼'}</span>{/if}</button>
           </span>
         {:else}
           <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-            role="columnheader">{$t(c.cleI18n as any)}</span>
+            role="columnheader" use:bulleTexte>{$t(c.cleI18n as any)}</span>
         {/if}
       {/each}
       <!-- La colonne d'actions n'a pas d'en-tête : son contenu se lit seul, et
@@ -756,7 +757,7 @@
         {#if selectionnable}<span class="td act" role="cell">{@render caseACocher(p, i)}</span>{/if}
         {#each colonnes as c (c.cle)}
           {#if c.cle === 'quality'}
-            <span class="td" role="cell">
+            <span class="td" role="cell" use:bulleTexte>
               <QualityBadge format={p.format} sampleRate={p.sample_rate}
                 bitDepth={p.bit_depth} source={p.source} ajuste />
             </span>
@@ -815,12 +816,12 @@
               ? null
               : (ouvertureAlbum?.(p, i) ?? ouvertureAlbumDePiste(p, $gestesNavigationService))}
             {#if artiste && v}
-              <span class="td" role="cell">
+              <span class="td" role="cell" use:bulleTexte>
                 <button class="lien-artiste" title={v}
                   onclick={(e) => { e.stopPropagation(); void ouvrirArtisteDepuis(artiste, $activeView); }}>{v}</button>
               </span>
             {:else if versAlbum}
-              <span class="td" role="cell">
+              <span class="td" role="cell" use:bulleTexte>
                 <button class="lien-artiste lien-album" title={v}
                   onclick={(e) => { e.stopPropagation(); versAlbum(); }}>{v}</button>
               </span>

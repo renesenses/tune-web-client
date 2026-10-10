@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Collections — nouveau client.
    *
@@ -1425,7 +1426,7 @@
       <div class="mqp" role="dialog" aria-modal="true" aria-label={$t('collections.missingListTitle' as any)}>
         <header>
           <strong>{$t('collections.missingListTitle' as any)}</strong>
-          <span class="mqs">{libelleTradu(dossier)}</span>
+          <span class="mqs" use:bulleTexte>{libelleTradu(dossier)}</span>
           <button class="mqx" onclick={() => (manquantsOuverts = null)} aria-label={$t('common.close' as any)}>×</button>
         </header>
         <p class="mqh">{$t('collections.missingHint' as any)}</p>
@@ -1449,7 +1450,7 @@
                   {#if m.reuniDans}
                     {@const r = m.reuniDans}
                     <button class="mqb" disabled={manquantEnCours != null}
-                      onclick={() => resoudre(dossier, m.id, r.id)}
+                      onclick={() => resoudre(dossier, m.id, r.id)} use:bulleTexte
                       >{$t('collections.missingReplace' as any)}</button>
                   {/if}
                   {#each remplacantsAOffrir(resolutions[m.id], m.reuniDans) as c (c.id)}

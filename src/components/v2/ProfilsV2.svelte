@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * La gestion des profils, dans les Réglages de la coquille v2.
    *
@@ -158,7 +159,7 @@
           {:else}
             <span class="rond" style="background:{past.fond}">{past.initiale}</span>
           {/if}
-          <span class="nom">{nomDuProfil(p)}</span>
+          <span class="nom" use:bulleTexte>{nomDuProfil(p)}</span>
           {#if p.id === $currentProfileId}<span class="badge">{$t('profiles.active')}</span>{/if}
         </button>
         <button class="lnk" onclick={() => editer(p)}>{$t('common.edit')}</button>

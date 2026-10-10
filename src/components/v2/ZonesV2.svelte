@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Zones — nouveau client (direction Levente).
    *
@@ -711,12 +712,12 @@
                     onblur={() => commitRename(z)}
                     onkeydown={(e) => { if (e.key === 'Enter') commitRename(z); if (e.key === 'Escape') renaming = null; }} />
                 {:else}
-                  <span class="zn">{z.name}{#if z.is_default}<em>{$t('v2.zone.default' as any)}</em>{/if}</span>
+                  <span class="zn" use:bulleTexte>{z.name}{#if z.is_default}<em>{$t('v2.zone.default' as any)}</em>{/if}</span>
                 {/if}
                 <span class="zi">
                   <EtatZone etat={etatLectureDeZone(z)} />
                   {#if showExpert}<span class="ot">{OUTPUTS[z.output_type ?? 'local'] ?? z.output_type}</span>{/if}
-                  {#if z.current_track?.title}<span class="np">♪ {z.current_track.title}</span>{/if}
+                  {#if z.current_track?.title}<span class="np" use:bulleTexte>♪ {z.current_track.title}</span>{/if}
                   {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
                   {#if r}<span class="rc {r.cls}">{r.txt}</span>{/if}
                   {#if presenceTxt(z)}<span class="rc warn">{presenceTxt(z)}</span>{/if}

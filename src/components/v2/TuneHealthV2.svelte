@@ -877,7 +877,7 @@
                   <ul class="sansportrait">
                     {#each listePortraits.artistes as a (a.id)}
                       <li>
-                        <button class="nomartiste" onclick={() => ouvrirFicheArtisteLocale(a.id, a.name, 'diagnostics')}>{a.name}</button>
+                        <button class="nomartiste" title={a.name} onclick={() => ouvrirFicheArtisteLocale(a.id, a.name, 'diagnostics')}>{a.name}</button>
                         <span class="nature">{$t(`v2.health.coversNature.${a.nature}` as any)}</span>
                       </li>
                     {/each}
