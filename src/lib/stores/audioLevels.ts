@@ -70,6 +70,13 @@ export interface AudioLevels {
    * sinon : l'écran affiche alors le numéro du canal.
    */
   channel_names: string[] | null;
+  /**
+   * tune-server-rust#4969 (rc4) — présent quand `channel_levels` décrit les
+   * voies de SORTIE d'une sortie locale (après réaffectation des canaux et
+   * routage par la disposition déclarée) : leur nombre. `null` quand les
+   * niveaux suivent l'ordre de la source, ou sur un serveur plus ancien.
+   */
+  output_channels: number | null;
 }
 
 /** Niveau d'un canal, tel que `playback.audio_levels` le publie (#4969). */
@@ -107,6 +114,7 @@ const defaultLevels: AudioLevels = {
   sample_rate: null,
   channel_levels: [],
   channel_names: null,
+  output_channels: null,
 };
 
 /**
@@ -200,6 +208,8 @@ export function handleAudioLevelsEvent(data: any) {
       Array.isArray(data.channel_names) && data.channel_names.every((n: unknown) => typeof n === 'string')
         ? data.channel_names
         : null,
+    output_channels:
+      typeof data.output_channels === 'number' && data.output_channels > 0 ? data.output_channels : null,
   };
   levelsByZone.update((m) => ({ ...m, [zoneId]: levels }));
 }

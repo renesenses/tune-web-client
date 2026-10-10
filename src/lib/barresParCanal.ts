@@ -9,7 +9,14 @@
  * hauteurs : 🔴 affichage seulement, rien ici ne touche à l'audio.
  *
  * Les repères (`FL`, `FR`, `FC`, `LFE`…) viennent du serveur et ne se
- * traduisent PAS : ce sont des noms d'instrument, comme L / R / dB.
+ * traduisent PAS : ce sont des noms d'instrument, comme L / R / dB. Leur nom
+ * en toutes lettres (« Avant gauche », « Caisson de basses (LFE) »), lui, est
+ * du texte d'interface : il se traduit, dans l'infobulle et le libellé
+ * d'accessibilité de chaque barre.
+ *
+ * Depuis le serveur de la rc4, sur une sortie locale, ces canaux sont ceux qui
+ * SORTENT (après la réaffectation des canaux et le routage par la disposition
+ * déclarée par le fichier) et `output_channels` en donne le nombre.
  */
 import type { AudioLevels } from './stores/audioLevels';
 
@@ -24,9 +31,27 @@ export const PLANCHER_DB = -60;
  */
 export const SEUIL_MUET_DB = -90;
 
+/**
+ * Clé i18n du nom en toutes lettres de chaque repère que publie le serveur
+ * (ordre par défaut FLAC / WAVE_FORMAT_EXTENSIBLE, 3 à 8 canaux).
+ */
+const CLES_DES_CANAUX: Record<string, string> = {
+  FL: 'player.channelName.FL',
+  FR: 'player.channelName.FR',
+  FC: 'player.channelName.FC',
+  LFE: 'player.channelName.LFE',
+  BL: 'player.channelName.BL',
+  BR: 'player.channelName.BR',
+  BC: 'player.channelName.BC',
+  SL: 'player.channelName.SL',
+  SR: 'player.channelName.SR',
+};
+
 export interface BarreDeCanal {
   /** Nom du canal (`FL`, `LFE`…) ou, à défaut, son numéro à partir de 1. */
   nom: string;
+  /** Clé i18n de son nom en toutes lettres ; `null` pour un numéro. */
+  cle: string | null;
   /** Hauteur de la barre RMS, de 0 à 1. */
   hauteur: number;
   /** Position du repère de crête, de 0 à 1. */
@@ -54,6 +79,7 @@ export function barresParCanal(niv: Pick<AudioLevels, 'channel_levels' | 'channe
   const noms = niv?.channel_names && niv.channel_names.length === canaux.length ? niv.channel_names : null;
   return canaux.map((c, i) => ({
     nom: noms ? noms[i] : String(i + 1),
+    cle: noms ? (CLES_DES_CANAUX[noms[i]] ?? null) : null,
     hauteur: hauteurDb(c.rms_db),
     crete: hauteurDb(c.peak_db),
     over: c.over,
