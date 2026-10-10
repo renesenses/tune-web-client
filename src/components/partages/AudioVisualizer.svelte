@@ -2,7 +2,9 @@
   import { estDuDSD } from '../../lib/utils';
   import { onMount, untrack } from 'svelte';
   import { boucleImages } from '../../lib/boucleImages';
-  import { audioLevels, levelsForZone, trameFraiche, type AudioLevels } from '../../lib/stores/audioLevels';
+  import { audioLevels, FRAICHEUR_TRAME_MS, levelsForZone, trameFraiche, type AudioLevels } from '../../lib/stores/audioLevels';
+  import { barresParCanal, type BarreDeCanal } from '../../lib/barresParCanal';
+  import BarresParCanal from './BarresParCanal.svelte';
   import { freqLabel, spectrumGravesTicks, spectrumIsoTicks, type AnnonceSpectre } from '../../lib/spectrumScale';
   import { cleFormat, capaciteMaintenue, CAPACITE_VIDE, type CapaciteSpectre } from '../../lib/axeSpectre';
   import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../../lib/waveformHistory';
@@ -160,7 +162,24 @@
   // plusieurs fois et le tracé avancerait plus vite que le son.
   let lastPushed: AudioLevels | null = null;
   let historyZone: number | null = null;
+  // tune-server-rust#4969 — en multicanal (≥ 3 canaux), une barre par canal
+  // À LA PLACE du spectre, comme le demandait le testeur (fil 1929). Vide en
+  // stéréo : l'analyseur reste ce qu'il était. Une trame qui n'arrive plus
+  // éteint les barres après le même délai que le spectre (#1791).
+  let barres: BarreDeCanal[] = $state([]);
+  let barresDeSortie = $state(false);
+  let extinctionBarres: ReturnType<typeof setTimeout> | null = null;
+  function suivreBarres(l: AudioLevels) {
+    const b = barresParCanal(l);
+    barres = b;
+    barresDeSortie = b.length > 0 && l.output_channels !== null;
+    if (extinctionBarres) clearTimeout(extinctionBarres);
+    extinctionBarres = b.length > 0 ? setTimeout(() => { barres = []; }, FRAICHEUR_TRAME_MS) : null;
+  }
+  let voirBarres = $derived(!mini && mode === 'spectrum' && barres.length > 0);
+
   const unsub = source.subscribe((l) => {
+    suivreBarres(l);
     if (l.rms_left_db > -90 || l.rms_right_db > -90) {
       realLevels = l;
       lastRealUpdate = performance.now();
@@ -729,7 +748,7 @@
   onMount(() => {
     const observer = new ResizeObserver(() => resizeCanvas());
     if (canvas) observer.observe(canvas);
-    return () => { observer.disconnect(); unsub(); };
+    return () => { observer.disconnect(); unsub(); if (extinctionBarres) clearTimeout(extinctionBarres); };
   });
 </script>
 
@@ -740,7 +759,10 @@
   class:playing
   style="height: {height}px"
 >
-  <canvas bind:this={canvas} class="visualizer-canvas"></canvas>
+  <canvas bind:this={canvas} class="visualizer-canvas" class:masque={voirBarres}></canvas>
+  {#if voirBarres}
+    <BarresParCanal {barres} sortie={barresDeSortie} />
+  {/if}
 </div>
 
 <style>
@@ -769,5 +791,9 @@
     display: block;
     width: 100%;
     height: 100%;
+  }
+
+  .visualizer-canvas.masque {
+    display: none;
   }
 </style>
