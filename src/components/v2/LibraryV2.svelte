@@ -2259,6 +2259,46 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
 
   /**
+   * 🔴 LE SUIVANT DU NAVIGATEUR ROUVRE LA FICHE — pendant de l'effet qui la
+   * referme au Précédent (plus haut, « Le Précédent du navigateur a dépilé
+   * notre entrée »).
+   *
+   * Précédent puis Suivant : l'adresse revenait à `#library/album:55`, la
+   * coquille reposait bien `album:55` dans `detailOuvert`, et rien ne rouvrait
+   * le calque — l'écran savait refermer sur la clé, jamais rouvrir.
+   *
+   * On ROUVRE sans passer par `ouvrirDetail` : l'entrée atteinte porte déjà la
+   * clé, empiler en ferait une de trop. Seules les clés d'album LOCAL
+   * (`album:<id>`) se rouvrent ici ; une clé de service (`album:qobuz:…`) ne
+   * désigne pas un album de cette bibliothèque. Sous un dépôt distant, rien :
+   * ses identifiants ne sont pas les nôtres.
+   *
+   * ⚠️ Déclaré APRÈS l'effet de `$listResetNonce` : au montage (retour depuis
+   * une autre vue sur une entrée `#library/album:N`), celui-là referme d'abord
+   * le calque, celui-ci le rouvre ensuite.
+   */
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      if (depot || voulu == null) return;
+      const m = /^album:(\d+)$/.exec(voulu);
+      if (!m) return;
+      if (opened && cleCalqueEmpilee === voulu) return;
+      const id = Number(m[1]);
+      // L'asynchrone peut arriver après un nouveau Précédent : on ne rouvre
+      // que si la clé est toujours celle de l'entrée courante.
+      const rouvrir = (a: Album) => {
+        if ($detailOuvert !== voulu) return;
+        opened = a;
+        cleCalqueEmpilee = voulu;
+      };
+      const connu = $albums.find((a) => a.id === id);
+      if (connu) { rouvrir(connu); return; }
+      api.getAlbum(id).then((a) => { if (a) rouvrir(a); }).catch(() => {});
+    });
+  });
+
+  /**
    * L'ANNÉE demandée de l'extérieur — troisième de la même famille.
    *
    * `NowPlaying` pose `yearFilter` depuis toujours, et `yearFilter` n'est lu
