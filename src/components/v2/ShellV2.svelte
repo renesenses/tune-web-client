@@ -192,7 +192,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { t, locale } from '../../lib/i18n';
   import { get } from 'svelte/store';
-  import { preferences } from '../../lib/stores/preferences';
+  import { preferences, preferencesRelues } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
   import {
     startUpdatePolling, stopUpdatePolling,
@@ -371,7 +371,12 @@
   // Fil 2166 — la vue de démarrage (Réglages › Général) est lue UNE fois, par
   // `get` : lue par `$preferences`, l'effet se rebrancherait à chaque réglage
   // touché et ramènerait l'écran sur la vue de démarrage en pleine session.
-  $effect(() => brancherHistoriqueCoquille({ vueDeDemarrage: get(preferences).startupView }));
+  // Fils 2166 et 2168 (rc3) — puis celle du PROFIL, quand le serveur a
+  // répondu : la copie locale d'un autre navigateur ne fait plus foi.
+  $effect(() => brancherHistoriqueCoquille({
+    vueDeDemarrage: get(preferences).startupView,
+    vueDeDemarrageRelue: preferencesRelues.then(() => get(preferences).startupView),
+  }));
 
   /** La bannière n'occupe la place que si elle a quelque chose à dire. */
   const annonceMaj = $derived($updateAvailable && !$updateBannerDismissed);
