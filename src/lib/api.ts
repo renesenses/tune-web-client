@@ -2331,7 +2331,18 @@ export interface DashboardData {
   // (tune-core db/history_repo.rs — TopArtistEntry, TopTrackEntry,
   // DashboardData.top_radios) et la vue les lit. Les champs marqués
   // `skip_serializing_if` côté serveur sont optionnels ici.
-  top_artists: { artist_name: string; plays: number; listening_ms: number; cover_path?: string | null }[];
+  /**
+   * `source` — #1696 : le service où l'artiste est le plus écouté (`qobuz`,
+   * `tidal`…), absent s'il ne l'a été que depuis la bibliothèque, ou si le
+   * serveur est antérieur à ce champ.
+   */
+  top_artists: {
+    artist_name: string;
+    plays: number;
+    listening_ms: number;
+    cover_path?: string | null;
+    source?: string | null;
+  }[];
   top_albums: { album_title: string; artist_name: string; cover_path: string | null; plays: number; album_id?: number | null; source?: string | null; source_id?: string | null }[];
   top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number; cover_path?: string | null; source?: string | null; source_id?: string | null }[];
   /** Absent de la réponse quand la liste est vide (skip_serializing_if). */
@@ -4716,6 +4727,34 @@ export function getReplayGainProgress() {
   );
 }
 
+/**
+ * La remesure des crêtes (serveur, `GET|POST /system/replaygain/reanalyze`).
+ * Le serveur a corrigé une mesure de true-peak fausse aux jonctions de
+ * segments ; les mesures prises avant restent en base. `stale` dit combien,
+ * `running` qu'une campagne les rend à la passe ReplayGain, par lots.
+ */
+export interface RemesureReplayGain {
+  stale: number | null;
+  running: boolean;
+  algo?: string;
+  enabled?: boolean;
+  /** POST seulement : `started`, `nothing_to_do`, `already_running`, `analysis_disabled`. */
+  status?: string;
+}
+
+export function getReplayGainReanalyze() {
+  return fetchJSON<RemesureReplayGain>(`${BASE}/system/replaygain/reanalyze`);
+}
+
+/** Lance la remesure. Le 409 est un refus documenté, rendu avec son `status`. */
+export function reanalyzeReplayGain() {
+  return fetchJSON<RemesureReplayGain>(
+    `${BASE}/system/replaygain/reanalyze`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
+}
+
 /** Last scan report (persisted server-side, survives restarts). */
 export interface ScanReport {
   total_files?: number;
@@ -5237,6 +5276,15 @@ export function getStreamingFeaturedPlaylistsByTag(service: string, genre?: stri
   // et `catalogueService`) rattrapent déjà l'échec par un `.catch(() => [])` —
   // le bandeau global était une seconde annonce du même échec, en plus brutale.
   return fetchJSON<PlaylistTagGroup[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured-playlists/by-tag${params}`, undefined, undefined, true);
+}
+
+/** Les playlists éditoriales d'un GENRE (tune-server-rust#5313) : la route
+ *  `featured-playlists` lit `genre` et le transmet au service (Qobuz :
+ *  `genre_ids`). Les services sans playlists éditoriales rendent `[]`.
+ *  `sansBandeau` : la bande est un complément de la vue du genre, son échec
+ *  ne mérite pas le bandeau global. */
+export function getStreamingGenrePlaylists(service: string, genreId: string) {
+  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured-playlists?genre=${encodeURIComponent(genreId)}`, undefined, undefined, true);
 }
 
 export function getStreamingGenres(service: string, parentId?: string) {
@@ -7369,6 +7417,30 @@ export function enrichArtistImagesStatus() {
     result: { phase?: string; total?: number; processed?: number; enriched?: number } | null;
     artists_without_image: number;
   }>(`${BASE}/library/artwork/enrich-artists/status`);
+}
+
+/** Un artiste sans portrait visible, nommé par le serveur (tune-server-rust#4692). */
+export interface ArtisteSansPortrait {
+  id: number;
+  name: string;
+  musicbrainz_id: string | null;
+  /** Chemin annoncé par la base alors que le fichier de cache a disparu. */
+  image_path: string | null;
+  /** `sans_image_avec_mbid` | `cache_perdu_avec_mbid` | `sans_image_sans_mbid` | `cache_perdu_sans_mbid`. */
+  nature: string;
+}
+
+/** Les artistes que compte `artists_without_image`, NOMMÉS — même fonction
+ *  serveur que le nombre de la carte « Pochettes d'artistes » (#4692, Bilou).
+ *  `total` est celui de la sélection, pour annoncer ce que la page ne montre pas. */
+export function getArtistsWithoutImage(limit = 200, offset = 0) {
+  return fetchJSON<{
+    artists: ArtisteSansPortrait[];
+    total: number;
+    artists_without_image: number;
+    limit: number;
+    offset: number;
+  }>(`${BASE}/library/artwork/artists-without-image?limit=${limit}&offset=${offset}`);
 }
 
 // YouTube playback: managed yt-dlp helper (opt-in). YouTube blocked Tune's
