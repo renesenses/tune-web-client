@@ -394,12 +394,27 @@
    * composant partagé `NowPlaying` reçoit le geste, il ne le devine pas.
    * `vueDeRetour` porte le chemin du retour, comme pour la fiche artiste —
    * un seul mécanisme de retour dans cette coquille, pas deux.
+   *
+   * 🔴 #2053 — FabienM, fil 2199 point 4 : « je sélectionne un artiste, puis
+   * sur un titre je clique sur "aller vers l'album" […] ça me renvoie à la
+   * lecture en cours, pas à la page de l'artiste ». Le retour valait
+   * `'nowplaying'` EN DUR : juste pour le premier appelant (Lecture en cours),
+   * faux pour tous les autres — titres phares de la page artiste, file
+   * d'attente, historique… Le retour est désormais l'écran d'où part le geste.
+   * Depuis la fiche elle-même (une autre version de l'album), on garde le
+   * retour qu'elle avait déjà.
    */
   function ouvrirAlbumService(c: {
     service: string; albumId: string; titre: string; pochette?: string | null;
     artiste?: string | null; artisteId?: string | null;
   }) {
-    vueDeRetour.set('nowplaying');
+    const depuis = get(activeView);
+    if (depuis !== 'streamingalbum') {
+      // Le retour PROPRE à l'écran qu'on quitte (la page artiste a le sien) :
+      // `vueDeRetour` n'a qu'une case, et la fiche va l'occuper.
+      retourSousLaFiche = { vue: depuis, retour: get(vueDeRetour) };
+      vueDeRetour.set(depuis);
+    }
     ficheAlbumService.set({
       service: c.service as any,
       id: c.albumId,
@@ -447,6 +462,28 @@
       ouvrirArtiste: ouvrirArtisteServiceParNom,
     });
     return () => gestesNavigationService.set(null);
+  });
+
+  /**
+   * #2053 — l'écran SOUS la fiche album de service, et SON propre retour.
+   *
+   * Quand on revient sur cet écran — par le Retour de la fiche OU par le
+   * Précédent du navigateur, qui ne passe pas par `fermerAlbumService` — son
+   * retour lui est rendu : sans cela, le « < » de la page artiste revenue
+   * aurait lu celui de la fiche (`streamingartist`, lui-même) et ne serait
+   * allé nulle part.
+   */
+  let retourSousLaFiche: { vue: View; retour: View | null } | null = null;
+  $effect(() => {
+    let precedente = get(activeView);
+    return activeView.subscribe((vue) => {
+      if (precedente === 'streamingalbum' && vue !== 'streamingalbum') {
+        const r = retourSousLaFiche;
+        retourSousLaFiche = null;
+        if (r && r.vue === vue) vueDeRetour.set(r.retour);
+      }
+      precedente = vue;
+    });
   });
 
   /** Le retour de la fiche album : le dépôt est consommé UNE fois. */
