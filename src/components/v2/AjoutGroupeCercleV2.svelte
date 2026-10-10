@@ -195,7 +195,7 @@
             {#each playlists as p (String(p.id))}
               <li>
                 <button class="ligne choix-playlist" disabled={occupe} onclick={() => void ajouterA(p)}>
-                  <span class="nom">{p.name}</span>
+                  <span class="nom" title={p.name}>{p.name}</span>
                   <span class="note">{$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}</span>
                 </button>
               </li>
