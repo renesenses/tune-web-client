@@ -21,6 +21,7 @@
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { atteintLeSon } from '../../lib/porteeReglage';
   import { gainIgnoreParPure, gainReplayGainApplique, replayGainActif } from '../../lib/pureReplayGain';
+  import GainDeSortieNotes from './GainDeSortieNotes.svelte';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import * as controls from '../../lib/playback-controls';
@@ -1612,6 +1613,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           </div>
         {/each}
       </div>
+
+      <!-- tune-server-rust#4384 — ce que devient le gain en sortie. -->
+      <GainDeSortieNotes signalPath={zone.signal_path} />
 
       {#if zone.signal_path.checksum}
         <div class="sp-checksum">
