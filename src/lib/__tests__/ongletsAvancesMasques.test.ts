@@ -22,10 +22,12 @@ describe('Gestionnaire de playlists : les onglets avancés sont masqués', () =>
     expect(vue).toMatch(/const ONGLETS_AVANCES = false;/);
   });
 
-  it('les quatre boutons vivent derrière cet interrupteur', () => {
+  it('les boutons restants vivent derrière cet interrupteur', () => {
     const barre = vue.slice(vue.indexOf('<div class="pm-tabs">'), vue.indexOf('<div class="pm-header-right">'));
     expect(barre).toContain('{#if ONGLETS_AVANCES}');
-    for (const cle of ['tabTransfers', 'tabSync', 'tabBackup', 'tabCollab']) {
+    // Synchro et Sauvegarde ont été retirés après la rc3 (tune-server-rust
+    // #4741) : doublons des onglets du greffon « Playlists converter ».
+    for (const cle of ['tabTransfers', 'tabCollab']) {
       const i = barre.indexOf(cle);
       expect(i, `${cle} introuvable dans la barre d'onglets`).toBeGreaterThan(-1);
       expect(i, `${cle} est hors du bloc masqué`).toBeGreaterThan(barre.indexOf('{#if ONGLETS_AVANCES}'));
@@ -35,7 +37,7 @@ describe('Gestionnaire de playlists : les onglets avancés sont masqués', () =>
   });
 
   it('rien n’est supprimé : le contenu des onglets et leurs appels restent', () => {
-    for (const appel of ['getTransferHistory(', 'getPlaylistLinks(', 'listPlaylistSnapshots(', 'loadCollabPlaylists(']) {
+    for (const appel of ['getTransferHistory(', 'loadCollabPlaylists(']) {
       expect(vue, `${appel} a été supprimé au lieu d'être masqué`).toContain(appel);
     }
   });

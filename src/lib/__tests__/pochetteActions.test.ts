@@ -637,8 +637,10 @@ describe('Playlists — l’écran simplifié', () => {
     // Décision explicite de Bertrand : c'est ici qu'on risque de perdre une
     // playlist, donc ici que le filet doit se voir.
     const src = ecran();
-    expect(src.includes('api.backupPlaylists()'), 'la sauvegarde a disparu').toBe(true);
-    expect(src.includes('api.restorePlaylistSnapshot('), 'la restauration a disparu').toBe(true);
+    // Depuis tune-server-rust#4741 (après la rc3), par le greffon « Playlists
+    // converter » (`lib/sauvegardesGreffon`).
+    expect(src.includes('copierTout('), 'la sauvegarde a disparu').toBe(true);
+    expect(src.includes('recreerDepuisLaPlusRecente('), 'la restauration a disparu').toBe(true);
   });
 
   it('l’import vise la route qui lit vraiment un fichier', () => {

@@ -376,7 +376,9 @@ describe('#playlists — fusionner sans mode', () => {
     // Dans `loadAll`, donc à chaque ouverture de l'écran — et plus seulement
     // dans `loadManagerData`, derrière l'onglet Sync.
     expect(corps.slice(0, 500)).toContain('.getPlaylistManagerServices()');
-    expect((sansCommentaires.match(/getPlaylistManagerServices\(\)/g) ?? []).length).toBeGreaterThan(1);
+    // L'onglet Sync, second appelant, a été retiré après la rc3
+    // (tune-server-rust#4741) : `loadAll` est désormais le seul, et il suffit.
+    expect((sansCommentaires.match(/getPlaylistManagerServices\(\)/g) ?? []).length).toBeGreaterThan(0);
   });
 
   it('la barre de sélection porte le bouton de suppression', () => {

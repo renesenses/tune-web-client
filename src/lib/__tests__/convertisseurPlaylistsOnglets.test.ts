@@ -192,8 +192,9 @@ describe('Gestionnaire de playlists : les onglets du greffon Playlists converter
     expect(libelles).toContain(F['plconv.ongletTransferts']);
     expect(libelles).toContain(F['plconv.ongletSnapshots']);
     expect(libelles).toContain(F['plconv.ongletSynchro']);
-    // Sauvegarde et Collaboratives ne reviennent PAS avec le greffon.
-    expect(libelles).not.toContain(F['playlistManager.tabBackup']);
+    // Collaboratives ne revient PAS avec le greffon. (L'ancien onglet
+    // Sauvegarde, lui, n'existe plus : retiré après la rc3, tune-server-rust
+    // #4741.)
     expect(libelles).not.toContain(F['playlistManager.tabCollab']);
     // Et l'onglet ouvre bien le panneau du greffon.
     el.querySelector<HTMLButtonElement>('button.pm-tab[data-onglet="conv-synchro"]')!.click();

@@ -52,6 +52,9 @@
   import { untrack } from 'svelte';
   import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { convertisseurCharge, rafraichirConvertisseur } from '../../lib/stores/convertisseurPlaylists';
+  // #4741 — la raison d'un titre introuvable, dans les mots de l'onglet du greffon.
+  import { cleRaison } from '../../lib/convertisseurPlaylists';
+  import { estRefusPremium } from '../../lib/premiumRefus';
   import TransfertsConvertisseur from './convertisseur/TransfertsConvertisseur.svelte';
   import SnapshotsConvertisseur from './convertisseur/SnapshotsConvertisseur.svelte';
   import LiensConvertisseur from './convertisseur/LiensConvertisseur.svelte';
@@ -573,8 +576,13 @@
   // de la rangée du haut (`viewTab`). FabienM, fil 1829 point 2 (web#1111) :
   // les deux rangées montaient le MÊME `SmartAIView` sous le MÊME libellé.
   /**
-   * Les quatre onglets avancés — Transferts, Synchro, Sauvegarde,
-   * Collaboratives — sont MASQUÉS.
+   * Les onglets avancés — Transferts et Collaboratives — sont MASQUÉS.
+   *
+   * Synchro et Sauvegarde ont été RETIRÉS après la rc3 (tune-server-rust
+   * #4741) : ils doublonnaient les liens et les snapshots du greffon
+   * « Playlists converter », dont les onglets ci-dessous font le même travail,
+   * et leurs routes `/playlist-manager/links*` et `/backup(s)*` ne sont plus
+   * que des alias dépréciés côté serveur.
    *
    * Bertrand, 22/09/2026 : « Masque tout cela en attendant Tune Circle et que
    * je réfléchisse ». Ils fonctionnent pourtant (routes mesurées sur le .18 :
@@ -602,7 +610,7 @@
    * ce greffon (Tune Circle pour les secondes).
    */
   type OngletConvertisseur = 'conv-transferts' | 'conv-snapshots' | 'conv-synchro';
-  let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab' | OngletConvertisseur>('playlists');
+  let managerTab = $state<'playlists' | 'transfers' | 'collab' | OngletConvertisseur>('playlists');
 
   /**
    * FabienM (fil 2057), go de Bertrand du 30/09/2026 : la bascule de
@@ -630,25 +638,6 @@
   // Transfer history
   let transferHistory = $state<any[]>([]);
   let historyLoading = $state(false);
-
-  // Sync links
-  let syncLinks = $state<any[]>([]);
-  let syncLoading = $state(false);
-  let syncing = $state<Set<number>>(new Set());
-
-  // Backup
-  let backingUp = $state(false);
-  let backupResult = $state<any>(null);
-  let snapshots = $state<api.PlaylistSnapshot[]>([]);
-  let snapshotsLoading = $state(false);
-  let restoringSnapshotId = $state<number | null>(null);
-  let restoreMessage = $state('');
-
-  // Batch
-  let batchSource = $state('');
-  let batchTarget = $state('local');
-  let batching = $state(false);
-  let batchResult = $state<any>(null);
 
   // Service capabilities
   let serviceCapabilities = $state<
@@ -846,6 +835,7 @@
     if (!qtSourcePlaylistId || !qtSourceService) return;
     qtTransferring = true;
     qtResult = null;
+    refusTransfert = null;
     qtExpandedAlternatives = new Set();
     try {
       const v2Result = await api.transferPlaylistV2({
@@ -874,6 +864,7 @@
           score: t.score ?? 0,
           match_method: t.match_method ?? '',
           alternatives: t.alternatives ?? [],
+          raison: t.raison ?? null,
         })),
       };
       // Refresh history and playlists
@@ -883,7 +874,7 @@
       playlistsStore.set(list);
     } catch (e: any) {
       console.error('Quick transfer error:', e);
-      notifications.error(e.message || 'Transfer failed');
+      if (!noterRefusTransfert(e)) notifications.error(e.message || 'Transfer failed');
     }
     qtTransferring = false;
   }
@@ -988,102 +979,9 @@
       historyLoading = true;
       try { transferHistory = await api.getTransferHistory(); } catch {}
       historyLoading = false;
-    } else if (managerTab === 'sync') {
-      syncLoading = true;
-      try {
-        syncLinks = await api.getPlaylistLinks();
-        serviceCapabilities = await api.getPlaylistManagerServices();
-      } catch {}
-      syncLoading = false;
-    } else if (managerTab === 'backup') {
-      await loadSnapshots();
     } else if (managerTab === 'collab') {
       await loadCollabPlaylists();
     }
-  }
-
-  async function loadSnapshots() {
-    snapshotsLoading = true;
-    try { snapshots = await api.listPlaylistSnapshots(); } catch {}
-    snapshotsLoading = false;
-  }
-
-  async function restoreSnapshot(snap: api.PlaylistSnapshot) {
-    const name = await dialogs.prompt($tr('playlistManager.restorePrompt').replaceAll('{name}', snap.playlist_name), snap.playlist_name);
-    if (name === null) return;
-    restoringSnapshotId = snap.id;
-    restoreMessage = '';
-    try {
-      const result = await api.restorePlaylistSnapshot(snap.id, {
-        target_name: name || undefined,
-      });
-      restoreMessage = $tr('playlistManager.restoreSuccess')
-        .replace('{name}', result.name)
-        .replace('{matched}', String(result.tracks_matched))
-        .replace('{notFound}', String(result.tracks_not_found));
-    } catch (err: any) {
-      // If conflict, ask user about overwrite
-      if (err?.message?.includes('already exists') || err?.status === 409) {
-        if (await dialogs.confirm($tr('playlistManager.confirmOverwrite').replace('{name}', name || snap.playlist_name), { danger: true })) {
-          try {
-            const result = await api.restorePlaylistSnapshot(snap.id, {
-              target_name: name || undefined,
-              overwrite_existing: true,
-            });
-            restoreMessage = $tr('playlistManager.overwriteSuccess')
-              .replace('{name}', result.name)
-              .replace('{matched}', String(result.tracks_matched))
-              .replace('{notFound}', String(result.tracks_not_found));
-          } catch (err2: any) {
-            restoreMessage = $tr('playlistManager.errorGeneric').replace('{error}', String(err2.message || err2));
-          }
-        }
-      } else {
-        restoreMessage = $tr('playlistManager.errorGeneric').replace('{error}', String(err.message || err));
-      }
-    }
-    restoringSnapshotId = null;
-  }
-
-  async function deleteSnapshot(snap: api.PlaylistSnapshot) {
-    if (!(await dialogs.confirm($tr('playlistManager.confirmDeleteSnapshot').replace('{name}', snap.playlist_name), { danger: true }))) return;
-    try {
-      await api.deletePlaylistSnapshot(snap.id);
-      snapshots = snapshots.filter(s => s.id !== snap.id);
-    } catch (err: any) {
-      notifications.error($tr('playlistManager.errorGeneric').replace('{error}', errText(err) ?? $tr('common.serverUnreachable')));
-    }
-  }
-
-  async function triggerSync(linkId: number) {
-    syncing = new Set([...syncing, linkId]);
-    try {
-      await api.triggerPlaylistSync(linkId);
-      syncLinks = await api.getPlaylistLinks();
-    } catch {}
-    syncing.delete(linkId);
-    syncing = new Set(syncing);
-  }
-
-  async function deleteLink(linkId: number) {
-    try {
-      await api.deletePlaylistLink(linkId);
-      syncLinks = syncLinks.filter(l => l.id !== linkId);
-    } catch {}
-  }
-
-  async function doBackup() {
-    backingUp = true;
-    try { backupResult = await api.backupPlaylists(); } catch {}
-    backingUp = false;
-    await loadSnapshots();
-  }
-
-  async function doBatchTransfer() {
-    if (!batchSource) return;
-    batching = true;
-    try { batchResult = await api.batchTransfer({ source_service: batchSource, target_service: batchTarget }); } catch {}
-    batching = false;
   }
 
   // Available filter chips
@@ -1374,7 +1272,24 @@
   }
 
   // Import flow
+  /**
+   * Bertrand, 07/10/2026 : transférer une playlist entre services (ou d'un
+   * service vers la bibliothèque) est Premium. Un compte gratuit reçoit un 402
+   * `premium_required` (tune-server-rust#5954) : on l'EXPLIQUE, avec le lien
+   * vers l'offre que le serveur donne (`upgrade_url`), au lieu de l'ancien échec
+   * muet. « Dupliquer » dans la bibliothèque reste gratuit et n'arrive pas ici.
+   */
+  let refusTransfert = $state<{ url: string | null } | null>(null);
+
+  function noterRefusTransfert(e: unknown): boolean {
+    if (!estRefusPremium(e)) return false;
+    const url = (e as { corps?: { upgrade_url?: unknown } }).corps?.upgrade_url;
+    refusTransfert = { url: typeof url === 'string' && /^https?:\/\//.test(url) ? url : null };
+    return true;
+  }
+
   function openImport(service: string, pl: StreamingPlaylist) {
+    refusTransfert = null;
     importTarget = { service, playlist: pl };
     importName = pl.name;
     importResult = null;
@@ -1413,7 +1328,7 @@
       playlistsStore.set(list);
     } catch (e) {
       console.error('Import playlist error:', e);
-      importResult = { name: importName, count: -1, total: 0 };
+      if (!noterRefusTransfert(e)) importResult = { name: importName, count: -1, total: 0 };
     }
     importing = false;
   }
@@ -1587,6 +1502,7 @@
     transferTargetService = 'local';
     transferResult = null;
     transferring = false;
+    refusTransfert = null;
     showTransfer = true;
   }
 
@@ -1712,6 +1628,7 @@
           score: t.score ?? 0,
           match_method: t.match_method ?? '',
           alternatives: t.alternatives ?? [],
+          raison: t.raison ?? null,
         })),
       };
       await loadAll();
@@ -1719,6 +1636,7 @@
       playlistsStore.set(list);
     } catch (e) {
       console.error('Transfer playlist error:', e);
+      noterRefusTransfert(e);
     }
     transferring = false;
   }
@@ -2056,8 +1974,6 @@
         <button class="pm-tab" class:active={managerTab === 'playlists'} onclick={() => managerTab = 'playlists'}>{$tr('playlistManager.tabPlaylists')}</button>
         {#if ONGLETS_AVANCES}
           <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>{$tr('playlistManager.tabTransfers')}</button>
-          <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>{$tr('playlistManager.tabSync')}</button>
-          <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>{$tr('playlistManager.tabBackup')}</button>
           <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>{$tr('playlistManager.tabCollab')}</button>
         {/if}
         {#if $convertisseurCharge}
@@ -2131,7 +2047,7 @@
                               {#if track.match_method === 'manual'}
                                 {$tr('playlist.manualMatch')}
                               {:else}
-                                {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}
+                                {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}{#if track.status === 'not_found' && track.raison}<span class="transfer-raison"> — {$tr(cleRaison(track.raison.code))}</span>{/if}
                               {/if}
                             </span>
                           </div>
@@ -2240,6 +2156,14 @@
                     {/if}
                   </button>
                 </div>
+                {#if refusTransfert}
+                  <div class="refus-premium-transfert" role="alert">
+                    <p>{$tr('playlist.transferPremium')}</p>
+                    {#if refusTransfert.url}
+                      <a href={refusTransfert.url} target="_blank" rel="noopener noreferrer">{$tr('playlist.transferPremiumLink')}</a>
+                    {/if}
+                  </div>
+                {/if}
               </div>
             {/if}
           </div>
@@ -2280,129 +2204,6 @@
           <p class="pm-premium">{$tr('playlistManager.premiumTransfers' as any)}</p>
         </div>
       {/if}
-    {:else if managerTab === 'sync'}
-      {#if $isPremium}
-        <!-- Sync Links Tab -->
-        <div class="pm-tab-content">
-          <div class="tab-actions">
-            <h3>{$tr('playlistManager.syncLinks')}</h3>
-          </div>
-          {#if syncLoading}
-            <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
-          {:else if syncLinks.length === 0}
-            <div class="empty">{$tr('playlistManager.noSyncLinks')}</div>
-          {:else}
-            {#each syncLinks as link}
-              <div class="sync-row">
-                <div class="sync-info">
-                  <span>Playlist #{link.local_playlist_id}</span>
-                  <span class="sync-arrow">↔ {link.service} / {link.service_playlist_id}</span>
-                  <span class="sync-dir">{link.sync_direction}</span>
-                </div>
-                <div class="sync-actions">
-                  <button class="btn-sm" onclick={() => triggerSync(link.id)} disabled={syncing.has(link.id)}>
-                    {syncing.has(link.id) ? 'Sync...' : 'Sync'}
-                  </button>
-                  <button class="btn-sm danger" onclick={() => deleteLink(link.id)}>✕</button>
-                </div>
-                {#if link.last_synced_at}
-                  <span class="sync-date">{$tr('playlistManager.last')}: {link.last_synced_at.substring(0, 16)}</span>
-                {/if}
-              </div>
-            {/each}
-          {/if}
-        </div>
-
-      {:else}
-        <!-- Coupure nette, comme le crossfeed et le convertisseur : on ne grise
-             pas, on DIT pourquoi. La fonction rejoint le greffon premium
-             « Playlists converter » (Bertrand, 21/09/2026). -->
-        <div class="pm-tab-content">
-          <p class="pm-premium">{$tr('playlistManager.premiumSync' as any)}</p>
-        </div>
-      {/if}
-    {:else if managerTab === 'backup'}
-      <!-- Backup Tab -->
-      <div class="pm-tab-content">
-        <div class="tab-actions">
-          <h3>{$tr('playlistManager.backupExport')}</h3>
-          <div class="tab-btns">
-            <button class="btn-action" onclick={doBackup} disabled={backingUp}>
-              {backingUp ? $tr('playlistManager.backingUp') : $tr('playlistManager.backupAll')}
-            </button>
-          </div>
-        </div>
-        {#if backupResult}
-          <div class="backup-result">
-            <span class="stat-ok">{$tr('v2.pl.playlistCount' as any).replace('{n}', String(backupResult.playlists_backed_up))}</span>
-            <span class="stat-ok">{$tr('playlistManager.tracksSnapshotted').replace('{count}', String(backupResult.total_tracks_snapshot))}</span>
-          </div>
-        {/if}
-
-        <h4 style="margin-top: 24px;">{$tr('playlistManager.savedSnapshots')}</h4>
-        {#if restoreMessage}
-          <div class="backup-result" style="margin-bottom: 8px;">
-            <span>{restoreMessage}</span>
-          </div>
-        {/if}
-        {#if snapshotsLoading}
-          <p class="muted">{$tr('common.loading')}</p>
-        {:else if snapshots.length === 0}
-          <p class="muted">{$tr('playlistManager.noSnapshots')}</p>
-        {:else}
-          <div class="snapshots-list">
-            {#each snapshots as snap (snap.id)}
-              <div class="snapshot-row">
-                <div class="snapshot-info">
-                  <span class="snapshot-name">{snap.playlist_name}</span>
-                  <span class="snapshot-meta">
-                    {snap.source_service} · {snap.track_count} {$tr('common.tracks')}
-                    {#if snap.created_at}· {new Date(snap.created_at).toLocaleString()}{/if}
-                  </span>
-                </div>
-                <div class="snapshot-actions">
-                  <button
-                    class="btn-action"
-                    onclick={() => restoreSnapshot(snap)}
-                    disabled={restoringSnapshotId === snap.id}
-                  >
-                    {restoringSnapshotId === snap.id ? $tr('playlistManager.restoring') : $tr('playlistManager.restore')}
-                  </button>
-                  <button class="btn-action btn-danger" onclick={() => deleteSnapshot(snap)}>
-                    {$tr('common.delete')}
-                  </button>
-                </div>
-              </div>
-            {/each}
-          </div>
-        {/if}
-
-        <h4 style="margin-top: 24px;">{$tr('playlistManager.batchTransfer')}</h4>
-        <div class="batch-form">
-          <select bind:value={batchSource}>
-            <option value="">{$tr('playlistManager.pickSource')}</option>
-            {#each authenticatedServices as svc}
-              <option value={svc}>{svc}</option>
-            {/each}
-          </select>
-          <span>→</span>
-          <select bind:value={batchTarget}>
-            <option value="local">{$tr('playlist.local')}</option>
-            {#each authenticatedServices as svc}
-              <option value={svc}>{svc}</option>
-            {/each}
-          </select>
-          <button class="btn-action" onclick={doBatchTransfer} disabled={batching || !batchSource}>
-            {batching ? $tr('playlistManager.transferringShort') : $tr('playlistManager.transferAll')}
-          </button>
-        </div>
-        {#if batchResult}
-          <div class="backup-result">
-            <span>{$tr('playlistManager.playlistsProcessed').replace('{count}', String(batchResult.total_playlists))} — {batchResult.status}</span>
-          </div>
-        {/if}
-      </div>
-
     {:else if managerTab === 'collab'}
       <!-- Collaborative Playlists Tab -->
       <div class="pm-tab-content">
@@ -2822,6 +2623,14 @@
 {#if importTarget}
   <div class="modal-overlay" onclick={closeImport}>
     <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      {#if refusTransfert}
+        <div class="refus-premium-transfert" role="alert">
+          <p>{$tr('playlist.transferPremium')}</p>
+          {#if refusTransfert.url}
+            <a href={refusTransfert.url} target="_blank" rel="noopener noreferrer">{$tr('playlist.transferPremiumLink')}</a>
+          {/if}
+        </div>
+      {/if}
       {#if importResult}
         {#if importResult.count > 0}
           <div class="import-done">
@@ -2870,6 +2679,14 @@
 {#if showTransfer}
   <div class="modal-overlay" onclick={closeTransfer}>
     <div class="modal-content modal-wide" onclick={(e) => e.stopPropagation()}>
+      {#if refusTransfert}
+        <div class="refus-premium-transfert" role="alert">
+          <p>{$tr('playlist.transferPremium')}</p>
+          {#if refusTransfert.url}
+            <a href={refusTransfert.url} target="_blank" rel="noopener noreferrer">{$tr('playlist.transferPremiumLink')}</a>
+          {/if}
+        </div>
+      {/if}
       {#if transferResult}
         <div class="transfer-report">
           <h3>{$tr('playlist.transferComplete')}</h3>
@@ -2895,7 +2712,7 @@
                       {:else if track.match_method === 'confirmed'}
                         {$tr('playlist.matched')}
                       {:else}
-                        {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}
+                        {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}{#if track.status === 'not_found' && track.raison}<span class="transfer-raison"> — {$tr(cleRaison(track.raison.code))}</span>{/if}
                       {/if}
                     </span>
                   </div>
@@ -3282,8 +3099,10 @@
   .merge-dedup { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--tune-text-secondary); cursor: pointer; }
   .merge-check { margin-right: 8px; cursor: pointer; accent-color: var(--tune-accent); width: 18px; height: 18px; }
   .merge-selected { background: var(--tune-accent)11; }
-  .batch-form { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
-  .batch-form select { padding: 8px 12px; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 8px; color: var(--tune-text); font-size: 13px; }
+  .transfer-raison { color: var(--tune-text-muted); }
+  .refus-premium-transfert { margin-bottom: 16px; padding: 12px 14px; border: 1px solid var(--tune-border); border-radius: 8px; background: var(--tune-surface); }
+  .refus-premium-transfert p { margin: 0 0 8px; }
+  .refus-premium-transfert a { color: var(--tune-accent); }
 
   .pm-header {
     display: flex;
