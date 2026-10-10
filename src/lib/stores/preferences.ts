@@ -738,6 +738,15 @@ function blobAEcrire(precedent: Preferences | null, v: Preferences): Record<stri
   return blob;
 }
 
+/** L'UNIQUE écriture de `ui_preferences` au serveur. */
+function ecrireAuServeur(texte: string): void {
+  fetch('/api/v1/system/config', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...profileHeader() },
+    body: JSON.stringify({ ui_preferences: texte }),
+  }).catch(() => {});
+}
+
 function createPreferences() {
   const { subscribe, set, update } = writable<Preferences>(loadPrefs());
   let initialized = false;
@@ -747,6 +756,10 @@ function createPreferences() {
   /** Une valeur posée d'APRÈS le stockage (autre onglet) : à adopter sans la
    *  réécrire ni la renvoyer au serveur — l'onglet qui l'a écrite l'a fait. */
   let venueDuStockage: Preferences | null = null;
+  /** Vrai le temps d'une adoption SANS écriture serveur (voir
+   *  `adopterSansEcrire`) : l'abonné range en `localStorage`, mais n'envoie
+   *  pas de `PATCH`. */
+  let sansEcritureServeur = false;
 
   const adopter = (blob: string) => {
     const p = lirePrefs(blob);
@@ -766,14 +779,10 @@ function createPreferences() {
     try {
       localStorage.setItem(STORAGE_KEY, texte);
     } catch { /* ignore */ }
-    if (initialized) {
+    if (initialized && !sansEcritureServeur) {
       // Le blob FUSIONNÉ, pas celui de la mémoire : le serveur le rend tel
       // quel au prochain onglet ouvert, il ne doit pas être périmé.
-      fetch('/api/v1/system/config', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...profileHeader() },
-        body: JSON.stringify({ ui_preferences: texte }),
-      }).catch(() => {});
+      ecrireAuServeur(texte);
     }
     // Un autre onglet avait écrit des réglages que celui-ci n'avait pas
     // encore vus (évènement `storage` perdu) : les adopter aussi en mémoire.
@@ -795,7 +804,28 @@ function createPreferences() {
     });
   } catch { /* ignore */ }
 
-  return { subscribe, set, update };
+  /**
+   * Adopter une valeur que le client a RELUE ou DÉDUITE lui-même — blob du
+   * serveur au démarrage, zone par défaut, défaut figé — sans la renvoyer au
+   * serveur.
+   *
+   * 🔴 09/10/2026, essai par le pont : chaque chargement de page envoyait des
+   * `PATCH /system/config` sans aucun geste. `syncPreferencesFromServer`
+   * passait par `update`, et l'abonné réécrivait le blob FUSIONNÉ — où le
+   * local gagne — au serveur : un navigateur à la copie ancienne effaçait, à
+   * chaque ouverture, ce qui avait été réglé ailleurs. Une écriture serveur
+   * part d'un GESTE, jamais d'une relecture.
+   */
+  function adopterSansEcrire(fn: (p: Preferences) => Preferences): void {
+    sansEcritureServeur = true;
+    try {
+      update(fn);
+    } finally {
+      sansEcritureServeur = false;
+    }
+  }
+
+  return { subscribe, set, update, adopterSansEcrire };
 }
 
 export const preferences = createPreferences();
@@ -814,6 +844,9 @@ export async function syncPreferencesFromServer() {
       const server: Partial<Preferences> = typeof config.ui_preferences === 'string'
         ? JSON.parse(config.ui_preferences)
         : config.ui_preferences;
+      // Le blob serveur TEL QU'IL EST, avant tout filtrage : la seule base
+      // admise pour la réparation ciblée de la barre (fil 2109, plus bas).
+      const blobServeur: Record<string, unknown> = { ...(server as Record<string, unknown>) };
       // 🔴 Le MÊME filtre que `loadPrefs`, et il doit être ici aussi : sur un
       // navigateur sans préférences locales, la branche ci-dessous adopte le
       // blob serveur TEL QUEL, sans repasser par `loadPrefs`. C'est le chemin
@@ -840,45 +873,58 @@ export async function syncPreferencesFromServer() {
       }
       server.barreLateraleMaj = horodatageBarre(server.barreLateraleMaj);
       if (hadLocalPrefs) {
-        // #5065 — un `sourcesBarre` local encore indécis (`null`) ne doit pas
-        // effacer le choix que le serveur porte, fait sur un autre poste.
-        preferences.update((local) => ({
-          ...defaults, ...server, ...local,
-          sourcesBarre: { ...(normaliserTypesBarre(server.sourcesBarre) ?? {}), ...(local.sourcesBarre ?? {}) },
-          // #1673 — même piège, et il a mordu la photo d'avatar.
-          //
-          // `...local` gagne clé par clé, et `createPreferences` sérialise le
-          // blob ENTIER dès la première émission : toute machine ayant affiché
-          // Tune une seule fois porte déjà `avatarImage: ''` en localStorage.
-          // Ce `''` n'est pas un choix, c'est le défaut — et il écrasait, à
-          // chaque chargement, la photo que le serveur porte pour ce profil.
-          // Levente Toth la voyait sur la machine A et sur aucune autre, alors
-          // que le transport, lui, marche : mesuré sur le serveur d'essai, un
-          // `PATCH` de 12 023 octets de donnée URL est relu INTACT, et reste
-          // invisible du profil voisin.
-          //
-          // On n'adopte donc que sur une ABSENCE locale : une photo choisie
-          // ici garde la main. `avatarCompte` voyage AVEC l'image et jamais
-          // sans — `photoAAfficher` refuse d'afficher une photo dont le
-          // propriétaire ne correspond pas au compte ouvert, et une image
-          // adoptée sans son propriétaire serait reçue puis jamais montrée.
-          ...(!local.avatarImage && server.avatarImage
-            ? { avatarImage: server.avatarImage, avatarCompte: server.avatarCompte ?? '' }
-            : {}),
-          // Fil 2109 (Levente Toth) — la barre latérale suit le PROFIL : le
-          // geste le plus récent gagne, d'où qu'il vienne. `...local` seul la
-          // gardait au navigateur, comme la photo avant #1673.
-          ...arbitrerBarre(
+        // Fil 2109 — un geste de barre fait ICI, plus récent que celui du
+        // serveur, et que son `PATCH` n'a jamais atteint. C'est la SEULE
+        // écriture que le chargement s'autorise, et elle ne porte que la
+        // barre : le reste du blob part tel que le serveur l'a rendu. Le blob
+        // local, lui, n'est plus jamais repoussé au chargement.
+        let reparationBarre: Record<string, unknown> | null = null;
+        preferences.adopterSansEcrire((local) => {
+          const barre = arbitrerBarre(
             { barreLaterale: local.barreLaterale ?? null, barreLateraleMaj: horodatageBarre(local.barreLateraleMaj) },
             server,
-          ),
-          // La langue : un CHOIX local d'abord, puis un choix porté par le
-          // profil, sinon le navigateur. Un `language: 'fr'` qui n'était que
-          // le défaut, d'un côté ou de l'autre, ne compte pas.
-          ...resoudreLangue([local, server]),
-        }));
+          );
+          if ('barreLaterale' in server && barre.barreLateraleMaj > (server.barreLateraleMaj ?? 0)) {
+            reparationBarre = { ...blobServeur, barreLaterale: barre.barreLaterale, barreLateraleMaj: barre.barreLateraleMaj };
+          }
+          return {
+            ...defaults, ...server, ...local,
+            // #5065 — un `sourcesBarre` local encore indécis (`null`) ne doit pas
+            // effacer le choix que le serveur porte, fait sur un autre poste.
+            sourcesBarre: { ...(normaliserTypesBarre(server.sourcesBarre) ?? {}), ...(local.sourcesBarre ?? {}) },
+            // #1673 — même piège, et il a mordu la photo d'avatar.
+            //
+            // `...local` gagne clé par clé, et `createPreferences` sérialise le
+            // blob ENTIER dès la première émission : toute machine ayant affiché
+            // Tune une seule fois porte déjà `avatarImage: ''` en localStorage.
+            // Ce `''` n'est pas un choix, c'est le défaut — et il écrasait, à
+            // chaque chargement, la photo que le serveur porte pour ce profil.
+            // Levente Toth la voyait sur la machine A et sur aucune autre, alors
+            // que le transport, lui, marche : mesuré sur le serveur d'essai, un
+            // `PATCH` de 12 023 octets de donnée URL est relu INTACT, et reste
+            // invisible du profil voisin.
+            //
+            // On n'adopte donc que sur une ABSENCE locale : une photo choisie
+            // ici garde la main. `avatarCompte` voyage AVEC l'image et jamais
+            // sans — `photoAAfficher` refuse d'afficher une photo dont le
+            // propriétaire ne correspond pas au compte ouvert, et une image
+            // adoptée sans son propriétaire serait reçue puis jamais montrée.
+            ...(!local.avatarImage && server.avatarImage
+              ? { avatarImage: server.avatarImage, avatarCompte: server.avatarCompte ?? '' }
+              : {}),
+            // Fil 2109 (Levente Toth) — la barre latérale suit le PROFIL : le
+            // geste le plus récent gagne, d'où qu'il vienne. `...local` seul la
+            // gardait au navigateur, comme la photo avant #1673.
+            ...barre,
+            // La langue : un CHOIX local d'abord, puis un choix porté par le
+            // profil, sinon le navigateur. Un `language: 'fr'` qui n'était que
+            // le défaut, d'un côté ou de l'autre, ne compte pas.
+            ...resoudreLangue([local, server]),
+          };
+        });
+        if (reparationBarre) ecrireAuServeur(JSON.stringify(reparationBarre));
       } else {
-        preferences.update(() => ({ ...defaults, ...server, ...resoudreLangue([server]) }));
+        preferences.adopterSansEcrire(() => ({ ...defaults, ...server, ...resoudreLangue([server]) }));
       }
     }
   } catch { /* ignore */ }
@@ -888,7 +934,7 @@ export async function syncPreferencesFromServer() {
     if (res.ok) {
       const data = await res.json();
       if (data.zone_id != null) {
-        preferences.update((p) => ({ ...p, defaultZoneId: data.zone_id }));
+        preferences.adopterSansEcrire((p) => ({ ...p, defaultZoneId: data.zone_id }));
       }
     }
   } catch { /* ignore */ }
