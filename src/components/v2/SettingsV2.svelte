@@ -533,6 +533,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const before = rgAnalysis; rgAnalysis = v;
     patch({ replaygain_analysis_enabled: v }, () => { rgAnalysis = before; });
   }
+  // Remesure des crêtes (true-peak) : bouton FACULTATIF. Le serveur rend à la
+  // passe ReplayGain les mesures prises avant son correctif des jonctions de
+  // segments ; rien n'est écrit dans les fichiers audio.
+  let remesure = $state<api.RemesureReplayGain | null>(null);
+  let remesureEnvoi = $state(false);
+  $effect(() => {
+    api.getReplayGainReanalyze()
+      .then((r) => { remesure = r; })
+      .catch(() => { remesure = null; });
+  });
+  async function lancerRemesure() {
+    const n = remesure?.stale ?? 0;
+    if (!(await dialogs.confirm($t('settings.rgReanalyzeConfirm' as any).replace('{n}', String(n))))) return;
+    remesureEnvoi = true;
+    try {
+      const r = await api.reanalyzeReplayGain();
+      remesure = r;
+      if (r.status === 'started') notifications.success($t('settings.rgReanalyzeStarted' as any).replace('{n}', String(r.stale ?? n)));
+      else if (r.status === 'nothing_to_do') notifications.success($t('settings.rgReanalyzeNothing' as any));
+      else if (r.status === 'already_running') notifications.success($t('settings.rgReanalyzeRunning' as any));
+      else if (r.status === 'analysis_disabled') notifications.error($t('settings.rgReanalyzeDisabled' as any));
+    } catch {
+      notifications.error($t('settings.rgReanalyzeError' as any));
+    } finally {
+      remesureEnvoi = false;
+    }
+  }
   function toggleDevice(prefixedId: string) {
     preferences.update((pr) => {
       const ids = pr.hiddenDeviceIds;
@@ -6511,6 +6538,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <button class:on={bgSpeed === 'normal'} onclick={() => setBgSpeed('normal')}>{libelleVitesse('normal', 'settings.analysisSpeedNormal')}</button>
                       <button class:on={bgSpeed === 'fast'} onclick={() => setBgSpeed('fast')}>{libelleVitesse('fast', 'settings.analysisSpeedFast')}</button>
                     </div>
+                  </div>
+                {/if}
+                {#if remesure}
+                  <div class="row" data-remesure="lancer">
+                    <div class="lbl">
+                      <span>{$t('settings.rgReanalyze' as any)}</span>
+                      <span class="hint">{$t('settings.rgReanalyzeHint' as any)}</span>
+                      {#if remesure.running}
+                        <span class="hint">{$t('settings.rgReanalyzeRunning' as any)}</span>
+                      {:else if typeof remesure.stale === 'number'}
+                        <span class="hint">{$t('settings.rgReanalyzeCount' as any).replace('{n}', String(remesure.stale))}</span>
+                      {/if}
+                    </div>
+                    <button class="lnk" onclick={lancerRemesure}
+                      disabled={remesureEnvoi || remesure.running || !rgAnalysis || remesure.stale === 0}>
+                      {$t('settings.rgReanalyzeButton' as any)}
+                    </button>
                   </div>
                 {/if}
               {/if}
