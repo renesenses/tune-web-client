@@ -27,6 +27,7 @@
   import { suivantDesactive } from '../../lib/boutonSuivant';
 import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
+  import { minutesLibres, boutonMinuteurVisible, MINUTES_LIBRES_MAX } from '../../lib/minuteurSommeil';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
@@ -127,6 +128,21 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   let sleepFading = $state(false);
   let sleepPollInterval: ReturnType<typeof setInterval> | null = null;
   let sleepCountdownInterval: ReturnType<typeof setInterval> | null = null;
+
+  // web#1861 — durée libre, en minutes entières (voir `lib/minuteurSommeil`).
+  let sleepSaisie = $state<string | number | null>('');
+  let sleepSaisieInvalide = $state(false);
+  function lancerSleepLibre() {
+    const m = minutesLibres(sleepSaisie);
+    if (m == null) { sleepSaisieInvalide = true; return; }
+    sleepSaisieInvalide = false;
+    sleepSaisie = '';
+    void setSleep(m);
+  }
+  // web#1861 — le bouton lune se masque par réglage, mais revient tant
+  // qu'une minuterie tourne (sinon on perdrait le compte à rebours et
+  // l'annulation).
+  let minuteurVisible = $derived(boutonMinuteurVisible($preferences.afficherMinuteurSommeil, sleepActive));
 
   function formatSleepTime(totalSeconds: number): string {
     const m = Math.floor(totalSeconds / 60);
@@ -1273,7 +1289,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
          poser le cadran à gauche d'elle. -->
     <div class="tb-pile">
     <div class="transport-right-top">
-    <!-- Sleep Timer -->
+    <!-- Sleep Timer — masquable par réglage (web#1861) -->
+    {#if minuteurVisible}
     <div class="sleep-timer-wrapper">
       <button
         class="control-btn sleep-btn"
@@ -1299,12 +1316,31 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           <button class="sleep-option" onclick={() => setSleep(45)}>{$t('sleep.45min' as any)}</button>
           <button class="sleep-option" onclick={() => setSleep(60)}>{$t('sleep.1h' as any)}</button>
           <button class="sleep-option" onclick={() => setSleep(120)}>{$t('sleep.2h' as any)}</button>
+          <!-- web#1861 — durée libre, en minutes entières : le serveur prend
+               n'importe quel entier (`SleepRequest { minutes: u64 }`).
+               `novalidate` : c'est `minutesLibres` qui juge, et notre message
+               (traduit) qui le dit, plutôt que la bulle du navigateur. -->
+          <form class="sleep-custom" novalidate onsubmit={(e) => { e.preventDefault(); lancerSleepLibre(); }}>
+            <input class="sleep-custom-input" type="number" inputmode="numeric"
+                   min="1" max={MINUTES_LIBRES_MAX} step="1"
+                   bind:value={sleepSaisie}
+                   oninput={() => (sleepSaisieInvalide = false)}
+                   placeholder={$t('sleep.customPlaceholder' as any)}
+                   aria-label={$t('sleep.customLabel' as any)}
+                   aria-invalid={sleepSaisieInvalide}
+                   title={sleepSaisieInvalide ? $t('sleep.customInvalid' as any) : $t('sleep.customLabel' as any)} />
+            <button type="submit" class="sleep-custom-ok">{$t('sleep.customStart' as any)}</button>
+          </form>
+          {#if sleepSaisieInvalide}
+            <div class="sleep-custom-err" role="alert">{$t('sleep.customInvalid' as any)}</div>
+          {/if}
           {#if sleepActive}
             <button class="sleep-option cancel" onclick={cancelSleep}>{$t('sleep.cancel' as any)}</button>
           {/if}
         </div>
       {/if}
     </div>
+    {/if}
 
     {#if zone?.state === 'playing' && zone?.signal_path}
       <button
@@ -3027,6 +3063,52 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   .sleep-option:hover {
     background: var(--tune-surface-hover);
     color: var(--tune-text);
+  }
+
+  .sleep-custom {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 6px 10px;
+    border-top: 1px solid var(--tune-border);
+    margin-top: 2px;
+  }
+
+  .sleep-custom-input {
+    width: 64px;
+    padding: 4px 6px;
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm, 4px);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 13px;
+  }
+
+  .sleep-custom-input[aria-invalid='true'] {
+    border-color: var(--tune-warning);
+  }
+
+  .sleep-custom-ok {
+    padding: 4px 10px;
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm, 4px);
+    color: var(--tune-text-secondary);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .sleep-custom-ok:hover {
+    background: var(--tune-surface-hover);
+    color: var(--tune-text);
+  }
+
+  .sleep-custom-err {
+    padding: 0 10px 6px;
+    color: var(--tune-warning);
+    font-size: 12px;
   }
 
   .sleep-option.cancel {
