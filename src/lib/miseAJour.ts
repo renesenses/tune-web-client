@@ -32,6 +32,14 @@ export interface VerificationMaj {
   update_available: boolean;
   latest_version: string | null;
   current_version: string | null;
+  /**
+   * Ce serveur saura-t-il installer la mise à jour lui-même ? `false` sur une
+   * installation Homebrew ou un build portant `.no-auto-update` (#6068 du
+   * serveur) : le motif est alors dans `install_hint`. Absent (serveur plus
+   * ancien) vaut `true`, comme avant.
+   */
+  installable: boolean;
+  install_hint: string | null;
   /** Les champs bruts du serveur restent accessibles (release_notes, etc.). */
   [k: string]: unknown;
 }
@@ -53,5 +61,7 @@ export function normaliserVerificationMaj(d: any): VerificationMaj | null {
     update_available: d.update_available === true,
     latest_version: d.latest_version ?? d.latest ?? null,
     current_version: d.current_version ?? d.current ?? null,
+    installable: d.installable !== false,
+    install_hint: typeof d.install_hint === 'string' && d.install_hint ? d.install_hint : null,
   };
 }
