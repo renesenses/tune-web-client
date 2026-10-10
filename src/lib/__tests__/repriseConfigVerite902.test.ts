@@ -208,11 +208,13 @@ describe('#902 — la reprise ne promet que ce que le dump de `settings` emporte
   });
 
   it('🔴 ils disent OÙ la trouver — sinon le constat est un cul-de-sac', () => {
-    // L'onglet existe : `v2Settings.ts` déclare `id: 'license'`, libellé
-    // `settings.tunePremiumLicense`. La phrase y renvoie, dans chaque langue,
-    // par le libellé DE CETTE LANGUE.
+    // tune-server-rust#5654 : la reprise complète a désormais son écran,
+    // Réglages › Système › section `backup` (`v2Settings.ts`, titre
+    // `cloudBackup.title`). Elle renvoyait vers la Licence, où aucun bouton de
+    // restauration n'existait (constat de Levente, fil 2110). La phrase y
+    // renvoie, dans chaque langue, par le titre DE CETTE LANGUE.
     const muets = LANGUES.filter((l) => {
-      const onglet = MOTS[l].dict['settings.tunePremiumLicense'];
+      const onglet = MOTS[l].dict['cloudBackup.title'];
       return (
         !bas(MOTS[l].dict[PREMIUM_ASSISTANT]).includes(bas(onglet)) ||
         !bas(MOTS[l].dict[PREMIUM_REGLAGES]).includes(bas(onglet))

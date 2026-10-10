@@ -42,10 +42,10 @@ describe('YouTube Music : tendances et ambiances', () => {
   it('l’onglet n’existe que pour YouTube', () => {
     expect(S).toContain("const ongletYouTube = $derived(active === 'youtube');");
     expect(S).toContain("...(ongletYouTube ? [{ id: 'ytmusic' as Sub,");
-    expect(S).toMatch(/\{:else if sub === 'ytmusic' && ongletYouTube\}\s*<YouTubeDecouverteV2 \/>/);
+    expect(S).toMatch(/\{:else if sub === 'ytmusic' && ongletYouTube\}\s*<YouTubeDecouverteV2 tuile=\{tuileYouTube\} \/>/);
   });
-  it('les trois routes sont appelées, et la lecture passe par YouTube', () => {
-    for (const f of ['getYouTubeCharts(', 'getYouTubeMoods()', 'getYouTubeMoodPlaylists(']) expect(Y).toContain(f);
+  it('les quatre routes sont appelées, et la lecture passe par YouTube', () => {
+    for (const f of ['getYouTubeCharts(', 'getYouTubeMoods()', 'getYouTubeMoodSections(', 'getYouTubeHome()']) expect(Y).toContain(f);
     expect(Y).toContain("source: 'youtube' as any, source_id: String(sid)");
     expect(Y).toContain("streaming_playlist_id: id, source: 'youtube' as any");
   });
