@@ -449,6 +449,9 @@ export interface NowPlaying {
   /** Âge de cette métadonnée au moment de la réponse, calculé côté serveur
    *  (indépendant de l'horloge du client). */
   metadata_age_ms?: number;
+  /** tune-server-rust#2264 — quelle version joue et pourquoi (règle du
+   *  profil, choix explicite, repli). Absent d'un serveur antérieur. */
+  version?: import('./versionJouee').VersionJoueeServeur | null;
 }
 
 export interface Zone {
@@ -1467,6 +1470,12 @@ export interface TransferTrackResult {
   score?: number;
   match_method?: string;
   alternatives?: TransferAlternative[];
+  /**
+   * Pourquoi le titre n'a pas été transféré (tune-server-rust#4741) : le
+   * moteur unique du greffon « Playlists converter » rend sa raison
+   * (`{code, …}`, voir `RaisonConvertisseur`) pour chaque titre introuvable.
+   */
+  raison?: { code: string } | null;
 }
 
 export interface PlaylistTransferResponse {

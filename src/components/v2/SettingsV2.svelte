@@ -16,6 +16,7 @@
    * absent.
    */
   import { t } from '../../lib/i18n';
+  import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
@@ -50,6 +51,7 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { chargerLienAcces, qrSvg } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
@@ -119,6 +121,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { zoneAProposer, propositionRetenue, resumeProposition } from '../../lib/reglagesProposes';
   import type { DevicePreset } from '../../lib/api';
   import { zoneNavigateurExistante, zonesNavigateurEnDouble } from '../../lib/zoneNavigateur';
+  import { estZoneDeCetAppareil, retenirZoneDeCetAppareil } from '../../lib/zoneNavigateurProprietaire';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
   import { licenseState, loadLicense, offlineGrace } from '../../lib/stores/license';
@@ -140,6 +143,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     CLE_I18N_CRAN, CRANS_CADENCE, cranOuDefaut, estCranCadence,
   } from '../../lib/cadenceAnimations';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  import SauvegardeCloudV2 from './SauvegardeCloudV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -580,9 +584,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function createBrowserZoneHere() {
     creatingBrowserZone = true;
     try {
-      const deja = zoneNavigateurExistante($zones);
+      // rc4 : seulement parmi les zones de CET appareil — la zone d'un
+      // téléphone ou d'un autre navigateur n'est pas « cet ordinateur ».
+      const deja = zoneNavigateurExistante($zones.filter(estZoneDeCetAppareil));
       if (deja?.id != null) {
         // On ne crée pas : on SÉLECTIONNE celle qui existe, et on le dit.
+        retenirZoneDeCetAppareil(deja.id);
         currentZoneId.set(deja.id);
         notifications.info(
           $t('v2.set.browserZoneExists' as any).replace('{nom}', deja.name ?? ''),
@@ -590,7 +597,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         return;
       }
       const zone: any = await api.createZone($t('settings.thisComputer' as any), 'browser');
-      if (zone?.id != null) currentZoneId.set(zone.id);
+      if (zone?.id != null) { retenirZoneDeCetAppareil(zone.id); currentZoneId.set(zone.id); }
       // La liste des zones doit suivre : sans cela l'écran reste identique et
       // le bouton semble n'avoir rien fait.
       try { zones.set(await api.getZones()); } catch { /* l'essentiel est créé */ }
@@ -930,11 +937,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let brUrl = $state('');
   let brToken = $state('');
   let brBusy = $state(false);
+  // Lien d'accès à distance (`…/{server_id}/#token=…`) : il ne vient que de la
+  // route réservée à l'administrateur (`lienAccesDistant.ts`). Tout refus le
+  // laisse vide, et l'écran reste celui d'avant.
+  let brLien = $state<string | null>(null);
+  let brLienCopie = $state(false);
+  const brQr = $derived(brLien ? qrSvg(brLien) : '');
+  async function chargerLienPont() {
+    brLien = await chargerLienAcces((chemin) => api.apiFetch(chemin));
+    brLienCopie = false;
+  }
+  async function copierLienPont() {
+    if (brLien) brLienCopie = await copyText(brLien);
+  }
   $effect(() => {
     api.apiFetch('/cloud/bridge/status')
       .then((d: any) => {
         brEnabled = !!d?.enabled; brConnected = !!d?.connected;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = '';
+        if (brEnabled) chargerLienPont();
       })
       .catch(() => {});   // route absente sur un serveur anterieur
   });
@@ -943,11 +964,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       if (brEnabled) {
         await api.apiPost('/cloud/bridge/disable');
-        brEnabled = false; brConnected = false; brUrl = ''; brToken = '';
+        brEnabled = false; brConnected = false; brUrl = ''; brToken = ''; brLien = null;
       } else {
         const d: any = await api.apiPost('/cloud/bridge/enable');
         brEnabled = true;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = d?.bridge_token || '';
+        await chargerLienPont();
       }
     } catch (e: any) {
       notifications.error(e?.message ?? 'Erreur');
@@ -1978,6 +2000,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     void refreshYoutubePlayback();
     return () => { if (ytPoll) { clearInterval(ytPoll); ytPoll = null; } };
   });
+
+  /* --- Pays des Tendances YouTube Music (tune-server-rust#5247) ----------
+   *
+   * Réglage serveur `youtube_charts_country` : vide = automatique (la langue
+   * du navigateur, envoyée par l'écran Découvrir), `ZZ` = monde, sinon un
+   * pays. Le serveur le fait passer AVANT la langue du navigateur.
+   */
+  let paysTendancesYt = $state<string | null>(null);
+  $effect(() => {
+    api.getConfig()
+      .then((c: any) => { paysTendancesYt = paysTendancesDuReglage(c); })
+      .catch(() => { paysTendancesYt = null; });
+  });
+  async function choisirPaysTendancesYt(v: string) {
+    const avant = paysTendancesYt;
+    paysTendancesYt = v;
+    try { await api.updateConfig({ [CLE_PAYS_TENDANCES_YOUTUBE]: v }); }
+    catch { paysTendancesYt = avant; }   // pas d'état menteur si le serveur refuse
+  }
 
   async function enableYoutubePlayback() {
     ytBusy = true;
@@ -4562,6 +4603,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
               {#if sysErr}<div class="errline">{sysErr}</div>{/if}
 
+            {:else if s.id === 'backup'}
+              <SauvegardeCloudV2 />
+
             {:else if s.id === 'config'}
               <p class="hint">{#each emphaseParts($t('settings.configBackupHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               <!-- #902 — Cette sauvegarde-ci ne porte pas les jetons de
@@ -6071,6 +6115,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
               {#if ytStatus.startsWith('failed')}<div class="errline">{ytStatus}</div>{/if}
 
+              <!-- tune-server-rust#5247 — pays des Tendances de l'onglet Découvrir. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.youtubeChartsCountryTitle' as any)}</span>
+                  <span class="hint">{$t('settings.youtubeChartsCountryHelp' as any)}</span>
+                </div>
+                <select class="sel" data-pays-tendances-youtube value={paysTendancesYt ?? ''} disabled={paysTendancesYt === null}
+                  onchange={(e) => choisirPaysTendancesYt((e.currentTarget as HTMLSelectElement).value)}>
+                  <option value="">{$t('settings.youtubeChartsCountryAuto' as any)}</option>
+                  <option value="ZZ">{$t('settings.youtubeChartsCountryWorld' as any)}</option>
+                  {#each optionsPaysTendances($locale) as o (o.code)}<option value={o.code}>{o.nom}</option>{/each}
+                </select>
+              </div>
+
             {:else if s.id === 'wifi'}
               {#if isAppliance === false}
                 <p class="hint">{$t('settings.wifiApplianceOnly' as any)}</p>
@@ -6148,6 +6206,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="row">
                     <div class="lbl"><span>{$t('settings.accessAddress' as any)}</span></div>
                     <a class="mono link" href={brUrl} target="_blank" rel="noopener">{brUrl}</a>
+                  </div>
+                {/if}
+                {#if brLien}
+                  <div class="row">
+                    <div class="lbl">
+                      <span>{$t('settings.remoteLink' as any)}</span>
+                      <span class="hint">{$t('settings.remoteLinkHint' as any)}</span>
+                    </div>
+                    <button class="lnk" data-acces="copier" onclick={copierLienPont}>
+                      {$t((brLienCopie ? 'settings.remoteLinkCopied' : 'settings.remoteLinkCopy') as any)}
+                    </button>
+                  </div>
+                  <div class="brqr" data-acces="qr" aria-label={$t('settings.remoteLinkQr' as any)} role="img">
+                    {@html brQr}
                   </div>
                 {/if}
                 {#if brToken}
@@ -6914,6 +6986,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .mono{font:11.5px var(--v2-mono); color:var(--v2-txt2); word-break:break-all; text-align:right}
   a.link{color:var(--v2-acc-tint); text-decoration:none}
   a.link:hover{text-decoration:underline}
+  .brqr{width:184px; margin:10px 0 4px; padding:8px; background:#fff; border-radius:8px; line-height:0}
+  .brqr :global(svg){width:100%; height:auto; display:block}
   .tok{display:flex; flex-direction:column; gap:7px; margin-top:12px; padding:12px;
     border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .tok .tlab{font:10px var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}
