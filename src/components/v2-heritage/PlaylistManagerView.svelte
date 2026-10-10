@@ -1310,8 +1310,15 @@
     if (propose && propose !== mergeName) mergeName = propose;
   });
 
+  /**
+   * #2049 — le détail d'une playlist ne se dessine que sous l'onglet
+   * « Playlists » : un raccourci cliqué alors que l'écran est sur « Smart
+   * Playlists » ou « Smart AI » la sélectionnait (cible, entrée d'historique)
+   * sans rien montrer. Ouvrir une playlist ramène donc sur cet onglet.
+   */
   async function selectLocal(pl: Playlist) {
     if (!pl.id) return;
+    viewTab = 'manual';
     selectedPlaylist = pl;
     selectedStreamingPl = null;
     selectedService = 'local';
@@ -1327,6 +1334,7 @@
   }
 
   async function selectStreaming(service: string, pl: StreamingPlaylist) {
+    viewTab = 'manual';
     selectedStreamingPl = pl;
     selectedPlaylist = null;
     selectedService = service;
