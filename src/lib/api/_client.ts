@@ -6,8 +6,10 @@ import { getToken, clearToken } from '../auth';
 import { profileHeader } from '../profileHeader';
 import { messageRefusPremium, type CorpsRefusPremium } from '../premiumRefus';
 import { estRefusEcriture, messageRefusEcriture } from '../ecritureFichiers';
+import { baseApi, entetesRelais } from '../bridge';
 
-export const BASE = '/api/v1';
+// Même base que `api.ts` : `/api/v1` en local, `/api/relay/{id}` par le pont.
+export const BASE = baseApi();
 
 let _lastNetworkError = 0;
 function showNetworkError() {
@@ -46,6 +48,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       // `Option<Json<...>>` du serveur en 400 « EOF while parsing a value ».
       ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
+      ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     response = await fetch(url, {
