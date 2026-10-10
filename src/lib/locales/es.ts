@@ -2199,6 +2199,7 @@ export default {
   "queue.resizePanel": "Arrastra para redimensionar · doble clic para restablecer",
   'player.showWaveform': 'Mostrar forma de onda',
   'player.showSpectrum': 'Mostrar espectro',
+  'player.channelLevels': 'Nivel por canal',
   'player.showRemainingTime': 'Mostrar tiempo restante',
   'player.showTotalTime': 'Mostrar duración total',
   "queue.upNextSummary": "{count} a continuación · {time}",

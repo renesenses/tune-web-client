@@ -2197,6 +2197,7 @@ export default {
   "queue.resizePanel": "ドラッグでサイズ変更 · ダブルクリックで元に戻す",
   'player.showWaveform': '波形を表示',
   'player.showSpectrum': 'スペクトラムを表示',
+  'player.channelLevels': 'チャンネルごとのレベル',
   'player.showRemainingTime': '残り時間を表示',
   'player.showTotalTime': '総再生時間を表示',
   "queue.upNextSummary": "次に {count} 曲 · {time}",

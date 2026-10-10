@@ -56,6 +56,7 @@ export default {
   'podcasts.noEpisodesFound': 'No show found',
   'player.showWaveform': 'Show waveform',
   'player.showSpectrum': 'Show spectrum',
+  'player.channelLevels': 'Level per channel',
   'player.showRemainingTime': 'Show remaining time',
   'player.showTotalTime': 'Show total duration',
   'queue.upNextSummary': '{count} up next · {time}',

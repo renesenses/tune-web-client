@@ -56,6 +56,7 @@ export default {
   'podcasts.noEpisodesFound': 'Aucune émission trouvée',
   'player.showWaveform': 'Afficher la forme d\'onde',
   'player.showSpectrum': 'Afficher le spectre',
+  'player.channelLevels': 'Niveau par canal',
   'player.showRemainingTime': 'Afficher le temps restant',
   'player.showTotalTime': 'Afficher la durée totale',
   'queue.upNextSummary': '{count} à suivre · {time}',
