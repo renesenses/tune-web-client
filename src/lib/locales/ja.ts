@@ -195,6 +195,7 @@ export default {
   'zone.newZone': '新しいゾーン',
   'zone.selectDevice': '-- デバイス --',
   'zone.browserOutput': 'このブラウザ',
+  'zone.thisDevice': 'このスマートフォン',
   'zone.createZone': 'ゾーンを作成',
   'zone.restoreDeletedZone': 'ゾーンを復元',
   'zone.zoneRestored': 'ゾーンを復元しました',

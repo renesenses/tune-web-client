@@ -7,6 +7,14 @@ import { get } from 'svelte/store';
 import { preferences } from './lib/stores/preferences';
 import { preparerLocale } from './lib/i18n';
 import { installerRechargementApresMiseAJour } from './lib/rechargementApresMiseAJour';
+import { viaRelais } from './lib/bridge';
+
+// Par le pont (téléphone hors du réseau local), Safari oublie le geste pendant
+// l'aller-retour de `POST /play` et refuse ensuite de lancer le son de la zone
+// navigateur : on déverrouille l'élément audio au premier appui.
+if (viaRelais()) {
+  void import('./lib/stores/browserAudio').then((m) => m.deverrouillerAuPremierGeste());
+}
 
 // Avant le montage : un onglet ouvert sur l'ancienne version doit pouvoir
 // se rattraper dès le premier morceau introuvable (tune-server-rust#4847).

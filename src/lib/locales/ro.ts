@@ -196,6 +196,7 @@ export default {
   'zone.newZone': 'Zonă nouă',
   'zone.selectDevice': '-- Dispozitiv --',
   'zone.browserOutput': 'Acest browser',
+  'zone.thisDevice': 'Acest telefon',
   'zone.createZone': 'Creează zonă',
   'zone.restoreDeletedZone': 'Restaurează zona',
   'zone.zoneRestored': 'Zonă restaurată',

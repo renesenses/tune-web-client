@@ -167,6 +167,7 @@ export default {
   'zone.newZone': 'Ny zon',
   'zone.selectDevice': '-- Enhet --',
   'zone.browserOutput': 'Den här datorn (webbläsare)',
+  'zone.thisDevice': 'Den här telefonen',
   'zone.createZone': 'Skapa zon',
   'zone.restoreDeletedZone': 'Återställ zon',
   'zone.zoneRestored': 'Zonen har återställts',

@@ -8520,7 +8520,11 @@ export interface OtherVersionGroup {
  * l'ecran n'a qu'a dessiner.
  */
 export function getOtherVersions(limit = 20) {
-  return fetchJSON<OtherVersionGroup[]>(`${BASE}/home/other-versions?limit=${limit}`);
+  // `sansBandeau` — essai en 5G du 09/10/2026 : par le pont, cette route
+  // dépasse les 30 s du relais (requête `CROSS JOIN tracks` de ~30 s sur le
+  // .18) et rend 504. Son seul appelant, la rangée de l'accueil, porte déjà
+  // son état d'échec et son « réessayer » : pas de bandeau global en plus.
+  return fetchJSON<OtherVersionGroup[]>(`${BASE}/home/other-versions?limit=${limit}`, undefined, undefined, true);
 }
 
 /**
