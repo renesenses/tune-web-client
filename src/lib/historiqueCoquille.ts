@@ -574,10 +574,9 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
 /**
  * ⚠️ CE QUE CE MODULE NE FAIT PAS, ET QUI SE VERRAIT.
  *
- * Revenir sur une entrée qui portait un détail (`#library/album:12`) repose
- * la VUE et la clé, mais ne ROUVRE pas la fiche : il faudrait recharger
- * l'artiste par l'API, comme `rechercherFicheDepuisHistorique` le fait dans
- * l'ancienne coquille. Concrètement, « suivant » après un retour rend la
- * liste, pas la fiche. Le cas qui gêne les testeurs — le Précédent qui QUITTE
- * Tune — est couvert ; celui-ci reste ouvert et n'est pas maquillé.
+ * Revenir sur une entrée qui portait un détail repose la VUE et la clé ; ce
+ * module ne ROUVRE rien lui-même. C'est à l'écran de lire la clé : la
+ * Bibliothèque rouvre désormais sa fiche d'album LOCAL (`#library/album:12`)
+ * au Suivant (`LibraryV2`, `suivantRouvreFicheAlbum.test.ts`). Un écran qui ne
+ * lit pas sa clé rend encore la liste, pas la fiche.
  */

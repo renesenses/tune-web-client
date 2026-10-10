@@ -125,6 +125,7 @@
    * changé à l'écran.
    */
   import ToastContainer from '../partages/ToastContainer.svelte';
+  import { demandeCercle } from '../../lib/circlePlaylists';
   // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
   // « TV » juste au-dessus. Signale manquant par Bertrand le 05/09/2026 :
   // « Il manque Oxygen dans la v2 !! ». Il pese 1 400 lignes avec son rail de
@@ -844,6 +845,15 @@
        `notifications.error()` écrit dans un magasin que personne ne rend, et
        un échec de lecture ne produit rigoureusement rien (#3732). -->
   <ToastContainer />
+
+  <!-- Playlists de cercle : l'ajout groupé et le partage d'une playlist,
+       demandés depuis n'importe quel menu (`demandeCercle`). Chargée à la
+       demande, comme la fenêtre d'ajout d'un seul titre. -->
+  {#if $demandeCercle}
+    {#await import('./AjoutGroupeCercleV2.svelte') then m}
+      <m.default demande={$demandeCercle} onClose={() => demandeCercle.set(null)} />
+    {/await}
+  {/if}
 
   <!-- Voie MOBILE : la barre pose ce drapeau au lieu de changer de vue.
        Personne ne l'écoutait ici. -->

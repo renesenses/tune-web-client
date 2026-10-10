@@ -14,9 +14,9 @@ const src = readFileSync(resolve(process.cwd(), 'src/components/v2/StreamingV2.s
 
 describe('#1042 — le sommaire des favoris de service', () => {
   it('🔴 une pastille par nature PRÉSENTE, avec son compte, et rien à une seule nature', () => {
-    expect(src).toContain("{ id: 'fav-albums', cle: 'v2.rech.albums', n: favAlbums.length }");
-    expect(src).toContain("{ id: 'fav-artistes', cle: 'v2.rech.artists', n: favArtists.length }");
-    expect(src).toContain("{ id: 'fav-titres', cle: 'v2.rech.tracks', n: favTracks.length }");
+    expect(src).toContain("{ id: 'fav-albums', cle: 'v2.rech.albums', n: favAlbumsVus.length }");
+    expect(src).toContain("{ id: 'fav-artistes', cle: 'v2.rech.artists', n: favArtistsVus.length }");
+    expect(src).toContain("{ id: 'fav-titres', cle: 'v2.rech.tracks', n: favTracksVus.length }");
     expect(src).toContain('].filter((x) => x.n > 0)}');
     expect(src).toContain('{#if natures.length > 1}');
     expect(src).toContain('<span class="n">{x.n}</span>');

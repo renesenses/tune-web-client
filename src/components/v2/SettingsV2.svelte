@@ -119,6 +119,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { zoneAProposer, propositionRetenue, resumeProposition } from '../../lib/reglagesProposes';
   import type { DevicePreset } from '../../lib/api';
   import { zoneNavigateurExistante, zonesNavigateurEnDouble } from '../../lib/zoneNavigateur';
+  import { estZoneDeCetAppareil, retenirZoneDeCetAppareil } from '../../lib/zoneNavigateurProprietaire';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
   import { licenseState, loadLicense, offlineGrace } from '../../lib/stores/license';
@@ -533,6 +534,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const before = rgAnalysis; rgAnalysis = v;
     patch({ replaygain_analysis_enabled: v }, () => { rgAnalysis = before; });
   }
+  // Remesure des crêtes (true-peak) : bouton FACULTATIF. Le serveur rend à la
+  // passe ReplayGain les mesures prises avant son correctif des jonctions de
+  // segments ; rien n'est écrit dans les fichiers audio.
+  let remesure = $state<api.RemesureReplayGain | null>(null);
+  let remesureEnvoi = $state(false);
+  $effect(() => {
+    api.getReplayGainReanalyze()
+      .then((r) => { remesure = r; })
+      .catch(() => { remesure = null; });
+  });
+  async function lancerRemesure() {
+    const n = remesure?.stale ?? 0;
+    if (!(await dialogs.confirm($t('settings.rgReanalyzeConfirm' as any).replace('{n}', String(n))))) return;
+    remesureEnvoi = true;
+    try {
+      const r = await api.reanalyzeReplayGain();
+      remesure = r;
+      if (r.status === 'started') notifications.success($t('settings.rgReanalyzeStarted' as any).replace('{n}', String(r.stale ?? n)));
+      else if (r.status === 'nothing_to_do') notifications.success($t('settings.rgReanalyzeNothing' as any));
+      else if (r.status === 'already_running') notifications.success($t('settings.rgReanalyzeRunning' as any));
+      else if (r.status === 'analysis_disabled') notifications.error($t('settings.rgReanalyzeDisabled' as any));
+    } catch {
+      notifications.error($t('settings.rgReanalyzeError' as any));
+    } finally {
+      remesureEnvoi = false;
+    }
+  }
   function toggleDevice(prefixedId: string) {
     preferences.update((pr) => {
       const ids = pr.hiddenDeviceIds;
@@ -553,9 +581,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function createBrowserZoneHere() {
     creatingBrowserZone = true;
     try {
-      const deja = zoneNavigateurExistante($zones);
+      // rc4 : seulement parmi les zones de CET appareil — la zone d'un
+      // téléphone ou d'un autre navigateur n'est pas « cet ordinateur ».
+      const deja = zoneNavigateurExistante($zones.filter(estZoneDeCetAppareil));
       if (deja?.id != null) {
         // On ne crée pas : on SÉLECTIONNE celle qui existe, et on le dit.
+        retenirZoneDeCetAppareil(deja.id);
         currentZoneId.set(deja.id);
         notifications.info(
           $t('v2.set.browserZoneExists' as any).replace('{nom}', deja.name ?? ''),
@@ -563,7 +594,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         return;
       }
       const zone: any = await api.createZone($t('settings.thisComputer' as any), 'browser');
-      if (zone?.id != null) currentZoneId.set(zone.id);
+      if (zone?.id != null) { retenirZoneDeCetAppareil(zone.id); currentZoneId.set(zone.id); }
       // La liste des zones doit suivre : sans cela l'écran reste identique et
       // le bouton semble n'avoir rien fait.
       try { zones.set(await api.getZones()); } catch { /* l'essentiel est créé */ }
@@ -3696,6 +3727,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- web#1861 — Levente Toth (fil 2068) : pouvoir masquer le
+                   bouton lune de la barre de transport, « comme les
+                   VU-mètres ». Coché par défaut : le bouton est là aujourd'hui. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.showSleepTimer' as any)}</span>
+                  <span class="hint">{$t('settings.showSleepTimerHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.afficherMinuteurSommeil}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, afficherMinuteurSommeil: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <!-- tune-server-rust#5065, étape 3 — Bertrand, 27/09/2026 :
                    toutes les sources connues dans la barre, grisées quand
                    elles sont indisponibles, et une case par TYPE. Par défaut,
@@ -6494,6 +6542,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <button class:on={bgSpeed === 'normal'} onclick={() => setBgSpeed('normal')}>{libelleVitesse('normal', 'settings.analysisSpeedNormal')}</button>
                       <button class:on={bgSpeed === 'fast'} onclick={() => setBgSpeed('fast')}>{libelleVitesse('fast', 'settings.analysisSpeedFast')}</button>
                     </div>
+                  </div>
+                {/if}
+                {#if remesure}
+                  <div class="row" data-remesure="lancer">
+                    <div class="lbl">
+                      <span>{$t('settings.rgReanalyze' as any)}</span>
+                      <span class="hint">{$t('settings.rgReanalyzeHint' as any)}</span>
+                      {#if remesure.running}
+                        <span class="hint">{$t('settings.rgReanalyzeRunning' as any)}</span>
+                      {:else if typeof remesure.stale === 'number'}
+                        <span class="hint">{$t('settings.rgReanalyzeCount' as any).replace('{n}', String(remesure.stale))}</span>
+                      {/if}
+                    </div>
+                    <button class="lnk" onclick={lancerRemesure}
+                      disabled={remesureEnvoi || remesure.running || !rgAnalysis || remesure.stale === 0}>
+                      {$t('settings.rgReanalyzeButton' as any)}
+                    </button>
                   </div>
                 {/if}
               {/if}
