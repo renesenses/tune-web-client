@@ -52,6 +52,9 @@
   import { untrack } from 'svelte';
   import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { convertisseurCharge, rafraichirConvertisseur } from '../../lib/stores/convertisseurPlaylists';
+  // #4741 — la raison d'un titre introuvable, dans les mots de l'onglet du greffon.
+  import { cleRaison } from '../../lib/convertisseurPlaylists';
+  import { estRefusPremium } from '../../lib/premiumRefus';
   import TransfertsConvertisseur from './convertisseur/TransfertsConvertisseur.svelte';
   import SnapshotsConvertisseur from './convertisseur/SnapshotsConvertisseur.svelte';
   import LiensConvertisseur from './convertisseur/LiensConvertisseur.svelte';
@@ -644,12 +647,6 @@
   let restoringSnapshotId = $state<number | null>(null);
   let restoreMessage = $state('');
 
-  // Batch
-  let batchSource = $state('');
-  let batchTarget = $state('local');
-  let batching = $state(false);
-  let batchResult = $state<any>(null);
-
   // Service capabilities
   let serviceCapabilities = $state<
     Record<string, { authenticated: boolean; supports_write: boolean; supports_delete?: boolean }>
@@ -846,6 +843,7 @@
     if (!qtSourcePlaylistId || !qtSourceService) return;
     qtTransferring = true;
     qtResult = null;
+    refusTransfert = null;
     qtExpandedAlternatives = new Set();
     try {
       const v2Result = await api.transferPlaylistV2({
@@ -874,6 +872,7 @@
           score: t.score ?? 0,
           match_method: t.match_method ?? '',
           alternatives: t.alternatives ?? [],
+          raison: t.raison ?? null,
         })),
       };
       // Refresh history and playlists
@@ -883,7 +882,7 @@
       playlistsStore.set(list);
     } catch (e: any) {
       console.error('Quick transfer error:', e);
-      notifications.error(e.message || 'Transfer failed');
+      if (!noterRefusTransfert(e)) notifications.error(e.message || 'Transfer failed');
     }
     qtTransferring = false;
   }
@@ -1077,13 +1076,6 @@
     try { backupResult = await api.backupPlaylists(); } catch {}
     backingUp = false;
     await loadSnapshots();
-  }
-
-  async function doBatchTransfer() {
-    if (!batchSource) return;
-    batching = true;
-    try { batchResult = await api.batchTransfer({ source_service: batchSource, target_service: batchTarget }); } catch {}
-    batching = false;
   }
 
   // Available filter chips
@@ -1310,8 +1302,15 @@
     if (propose && propose !== mergeName) mergeName = propose;
   });
 
+  /**
+   * #2049 — le détail d'une playlist ne se dessine que sous l'onglet
+   * « Playlists » : un raccourci cliqué alors que l'écran est sur « Smart
+   * Playlists » ou « Smart AI » la sélectionnait (cible, entrée d'historique)
+   * sans rien montrer. Ouvrir une playlist ramène donc sur cet onglet.
+   */
   async function selectLocal(pl: Playlist) {
     if (!pl.id) return;
+    viewTab = 'manual';
     selectedPlaylist = pl;
     selectedStreamingPl = null;
     selectedService = 'local';
@@ -1327,6 +1326,7 @@
   }
 
   async function selectStreaming(service: string, pl: StreamingPlaylist) {
+    viewTab = 'manual';
     selectedStreamingPl = pl;
     selectedPlaylist = null;
     selectedService = service;
@@ -1374,7 +1374,24 @@
   }
 
   // Import flow
+  /**
+   * Bertrand, 07/10/2026 : transférer une playlist entre services (ou d'un
+   * service vers la bibliothèque) est Premium. Un compte gratuit reçoit un 402
+   * `premium_required` (tune-server-rust#5954) : on l'EXPLIQUE, avec le lien
+   * vers l'offre que le serveur donne (`upgrade_url`), au lieu de l'ancien échec
+   * muet. « Dupliquer » dans la bibliothèque reste gratuit et n'arrive pas ici.
+   */
+  let refusTransfert = $state<{ url: string | null } | null>(null);
+
+  function noterRefusTransfert(e: unknown): boolean {
+    if (!estRefusPremium(e)) return false;
+    const url = (e as { corps?: { upgrade_url?: unknown } }).corps?.upgrade_url;
+    refusTransfert = { url: typeof url === 'string' && /^https?:\/\//.test(url) ? url : null };
+    return true;
+  }
+
   function openImport(service: string, pl: StreamingPlaylist) {
+    refusTransfert = null;
     importTarget = { service, playlist: pl };
     importName = pl.name;
     importResult = null;
@@ -1413,7 +1430,7 @@
       playlistsStore.set(list);
     } catch (e) {
       console.error('Import playlist error:', e);
-      importResult = { name: importName, count: -1, total: 0 };
+      if (!noterRefusTransfert(e)) importResult = { name: importName, count: -1, total: 0 };
     }
     importing = false;
   }
@@ -1587,6 +1604,7 @@
     transferTargetService = 'local';
     transferResult = null;
     transferring = false;
+    refusTransfert = null;
     showTransfer = true;
   }
 
@@ -1712,6 +1730,7 @@
           score: t.score ?? 0,
           match_method: t.match_method ?? '',
           alternatives: t.alternatives ?? [],
+          raison: t.raison ?? null,
         })),
       };
       await loadAll();
@@ -1719,6 +1738,7 @@
       playlistsStore.set(list);
     } catch (e) {
       console.error('Transfer playlist error:', e);
+      noterRefusTransfert(e);
     }
     transferring = false;
   }
@@ -2131,7 +2151,7 @@
                               {#if track.match_method === 'manual'}
                                 {$tr('playlist.manualMatch')}
                               {:else}
-                                {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}
+                                {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}{#if track.status === 'not_found' && track.raison}<span class="transfer-raison"> — {$tr(cleRaison(track.raison.code))}</span>{/if}
                               {/if}
                             </span>
                           </div>
@@ -2240,6 +2260,14 @@
                     {/if}
                   </button>
                 </div>
+                {#if refusTransfert}
+                  <div class="refus-premium-transfert" role="alert">
+                    <p>{$tr('playlist.transferPremium')}</p>
+                    {#if refusTransfert.url}
+                      <a href={refusTransfert.url} target="_blank" rel="noopener noreferrer">{$tr('playlist.transferPremiumLink')}</a>
+                    {/if}
+                  </div>
+                {/if}
               </div>
             {/if}
           </div>
@@ -2377,30 +2405,6 @@
           </div>
         {/if}
 
-        <h4 style="margin-top: 24px;">{$tr('playlistManager.batchTransfer')}</h4>
-        <div class="batch-form">
-          <select bind:value={batchSource}>
-            <option value="">{$tr('playlistManager.pickSource')}</option>
-            {#each authenticatedServices as svc}
-              <option value={svc}>{svc}</option>
-            {/each}
-          </select>
-          <span>→</span>
-          <select bind:value={batchTarget}>
-            <option value="local">{$tr('playlist.local')}</option>
-            {#each authenticatedServices as svc}
-              <option value={svc}>{svc}</option>
-            {/each}
-          </select>
-          <button class="btn-action" onclick={doBatchTransfer} disabled={batching || !batchSource}>
-            {batching ? $tr('playlistManager.transferringShort') : $tr('playlistManager.transferAll')}
-          </button>
-        </div>
-        {#if batchResult}
-          <div class="backup-result">
-            <span>{$tr('playlistManager.playlistsProcessed').replace('{count}', String(batchResult.total_playlists))} — {batchResult.status}</span>
-          </div>
-        {/if}
       </div>
 
     {:else if managerTab === 'collab'}
@@ -2822,6 +2826,14 @@
 {#if importTarget}
   <div class="modal-overlay" onclick={closeImport}>
     <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      {#if refusTransfert}
+        <div class="refus-premium-transfert" role="alert">
+          <p>{$tr('playlist.transferPremium')}</p>
+          {#if refusTransfert.url}
+            <a href={refusTransfert.url} target="_blank" rel="noopener noreferrer">{$tr('playlist.transferPremiumLink')}</a>
+          {/if}
+        </div>
+      {/if}
       {#if importResult}
         {#if importResult.count > 0}
           <div class="import-done">
@@ -2870,6 +2882,14 @@
 {#if showTransfer}
   <div class="modal-overlay" onclick={closeTransfer}>
     <div class="modal-content modal-wide" onclick={(e) => e.stopPropagation()}>
+      {#if refusTransfert}
+        <div class="refus-premium-transfert" role="alert">
+          <p>{$tr('playlist.transferPremium')}</p>
+          {#if refusTransfert.url}
+            <a href={refusTransfert.url} target="_blank" rel="noopener noreferrer">{$tr('playlist.transferPremiumLink')}</a>
+          {/if}
+        </div>
+      {/if}
       {#if transferResult}
         <div class="transfer-report">
           <h3>{$tr('playlist.transferComplete')}</h3>
@@ -2895,7 +2915,7 @@
                       {:else if track.match_method === 'confirmed'}
                         {$tr('playlist.matched')}
                       {:else}
-                        {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}
+                        {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}{#if track.status === 'not_found' && track.raison}<span class="transfer-raison"> — {$tr(cleRaison(track.raison.code))}</span>{/if}
                       {/if}
                     </span>
                   </div>
@@ -3282,8 +3302,10 @@
   .merge-dedup { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--tune-text-secondary); cursor: pointer; }
   .merge-check { margin-right: 8px; cursor: pointer; accent-color: var(--tune-accent); width: 18px; height: 18px; }
   .merge-selected { background: var(--tune-accent)11; }
-  .batch-form { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
-  .batch-form select { padding: 8px 12px; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 8px; color: var(--tune-text); font-size: 13px; }
+  .transfer-raison { color: var(--tune-text-muted); }
+  .refus-premium-transfert { margin-bottom: 16px; padding: 12px 14px; border: 1px solid var(--tune-border); border-radius: 8px; background: var(--tune-surface); }
+  .refus-premium-transfert p { margin: 0 0 8px; }
+  .refus-premium-transfert a { color: var(--tune-accent); }
 
   .pm-header {
     display: flex;
@@ -3760,7 +3782,6 @@
     align-items: center;
   }
   :global(.track-list .trow:hover) .remove-btn,
-  :global(.track-list .avecSuffixe:hover) .remove-btn,
   .remove-btn:focus-visible {
     opacity: 1;
   }
