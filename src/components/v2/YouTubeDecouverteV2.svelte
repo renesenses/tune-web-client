@@ -28,9 +28,20 @@
     try { tendances = (await api.getYouTubeCharts('FR')) ?? {}; } catch { tendances = {}; }
     chargement = false;
   }
+  // tune-server-rust#1897 — l'effet ci-dessous rechargeait les ambiances tant
+  // que `categories.length` valait zéro. Or chaque chargement RÉASSIGNE
+  // `categories` : sur une réponse vide (le talon serveur n'en rend aucune), ou
+  // sur l'ancien objet `{moods, message}` dont `length` n'existe pas, l'effet
+  // se relançait sans fin et martelait `GET /streaming/youtube/moods`. Le
+  // drapeau n'est pas réactif : il dit « déjà demandé », pas « non vide ».
+  let ambiancesDemandees = false;
   async function chargerAmbiances() {
+    ambiancesDemandees = true;
     chargement = true;
-    try { categories = (await api.getYouTubeMoods()) ?? []; } catch { categories = []; }
+    try {
+      const reponse = await api.getYouTubeMoods();
+      categories = Array.isArray(reponse) ? reponse : [];
+    } catch { categories = []; }
     chargement = false;
   }
   async function ouvrirAmbiance(item: { title: string; params: string }) {
@@ -41,7 +52,7 @@
   }
   $effect(() => {
     if (onglet === 'charts') void chargerTendances();
-    else if (!categories.length) void chargerAmbiances();
+    else if (!ambiancesDemandees) void chargerAmbiances();
   });
 
   function jouerPiste(p: any) {
@@ -104,6 +115,8 @@
       <div class="puces">
         {#each c.items as it (it.params)}<button onclick={() => ouvrirAmbiance(it)}>{it.title}</button>{/each}
       </div>
+    {:else}
+      <div class="etat">—</div>
     {/each}
   {/if}
 </div>

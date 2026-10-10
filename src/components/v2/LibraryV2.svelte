@@ -54,8 +54,18 @@
   import {
     albumsPagines, albumsCharges, casesDeLaListe, demanderPage, demanderBibliothequeEntiere,
     listeEntierePerimee, mettreAJourAlbum, offsetDeLettre, rafraichirPagesPerimees, TAILLE_PAGE,
-    type ClefDeListe,
+    type ClefDeListe, generationBibliotheque,
   } from '../../lib/stores/albumsPagines';
+  // #1716 — la liste ENTIÈRE des pistes (onglets Titres et Artistes,
+  // aléatoire par provenance) : mémorisée jusqu'au prochain scan, chargée une
+  // seule fois pour tous, et abandonnée si plus personne ne l'attend.
+  import { demanderToutesLesPistes } from '../../lib/stores/pistesEntieres';
+  // #1716, suite — l'onglet Titres PAR PAGES : tri, recherche, provenance et
+  // comptes servis par le serveur ; repli sur la liste entière face à un
+  // serveur ancien.
+  import {
+    FenetrePistes, chargeurServeur, COLONNES_TRIABLES, capaciteDuServeur, triSuivant, trierPistes, type Tri,
+  } from '../../lib/pistesPaginees';
   // 🔴 `pendingLibraryFolder` n'existe PLUS : `main` l'a remplacé par le
   // magasin `libraryFolderScope` (voir `lib/porteeBibliotheque`) parce qu'un
   // dépôt consommé UNE fois dans l'initialiseur d'un `$state` n'était jamais
@@ -74,6 +84,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration,  type QualityTier } from '../../lib/utils';
+  import { formatDeFichier } from '../../lib/typeDeFichier';
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
@@ -82,7 +93,7 @@
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
-    comptesCompilation, comptesProvenance,
+    comptesCompilation, comptesProvenance, repondALaRecherche, filtresDeRechercheServeur,
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
@@ -209,6 +220,46 @@
   function retirerPortee() {
     libraryFolderScope.set(null);
   }
+
+  /**
+   * renesenses/tune-server-rust#4319 (fil 1817) — la RECHERCHE de la
+   * Bibliothèque regarde aussi les PISTES, dans une portée de répertoire comme
+   * sur la bibliothèque entière (décision de Bertrand du 07/10).
+   *
+   * L'album ne porte que son titre et son artiste d'album : « Mehta » ne
+   * trouvait pas un album rangé sous « Gustav Mahler » dont les pistes sont de
+   * « Zubin Mehta », ni un album sans étiquettes rangé par dossier. On demande
+   * au serveur les albums qui répondent au texte — `/library/albums-detailed`,
+   * paginée comme la portée, avec `q` (et `folder` quand une portée est
+   * active) : le prédicat d'Oxygen (#5192), artiste de piste et nom de dossier
+   * compris, insensible à la casse et aux accents.
+   *
+   * Le résultat s'AJOUTE à la comparaison locale (`albumsDuTexte`), qui
+   * continue de répondre à la frappe ; la requête part 300 ms après la
+   * dernière touche, comme dans Oxygen. Un échec n'efface rien : on garde la
+   * comparaison locale seule. Une saisie qui change ARRÊTE la pagination en
+   * cours : chaque page refait un parcours complet des pistes côté serveur.
+   *
+   * Pas pour un dépôt distant : ses albums ne portent pas les identifiants de
+   * la bibliothèque locale, que la réponse désigne.
+   */
+  let idsTexteServeur = $state<Set<number> | null>(null);
+  $effect(() => {
+    // Hors répertoire, 3 caractères au moins (`SEUIL_RECHERCHE_SERVEUR`).
+    const filtres = filtresDeRechercheServeur(q, dossierPortee);
+    idsTexteServeur = null;
+    if (depot || !filtres) return;
+    let perime = false;
+    const minuterie = setTimeout(() => {
+      idsAlbumsDeLaPortee((limite, rang) => {
+        if (perime) return Promise.reject(new Error());
+        return api.getAlbumsDetailed(filtres, limite, rang);
+      })
+        .then((ids) => { if (!perime) idsTexteServeur = ids; })
+        .catch(() => { /* comparaison locale seule */ });
+    }, 300);
+    return () => { perime = true; clearTimeout(minuterie); };
+  });
 
   /** LA source d'albums de l'ecran. Tout le reste lit `src`, jamais `$albums`
    *  ni `albumsD` : c'est ce qui rend la vue identique des deux cotes.
@@ -464,7 +515,9 @@
     // serveur — jamais « on ne sait pas, laissons passer ».
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
     if (!dansSource(a, fProvenance)) return false;
-    if (q && !fold(a.title).includes(fold(q)) && !fold(a.artist_name).includes(fold(q))) return false;
+    // #4319 — même règle que les comptes : artiste de piste et dossier
+    // compris, portée ou non (`idsTexteServeur`).
+    if (!repondALaRecherche(a, q, { plier: fold, albumsDuTexte: idsTexteServeur })) return false;
     return true;
   }
 
@@ -620,6 +673,7 @@
   });
   const outilsFacettes = $derived<Outils>({
     qualiteDe: tierMatches, anneeDe: albumYear, plier: fold, provenanceDe,
+    albumsDuTexte: idsTexteServeur,
   });
 
   const formats = $derived(comptesFormat(src, filtresActifs, outilsFacettes));
@@ -1041,6 +1095,17 @@
     if (t === 'dsd') return 'DSD';
     if (t === 'hires' || t === 'hires_max') return RATES.find((r) => r.v === a.sample_rate)?.court ?? null;
     return null;
+  }
+  /**
+   * #1901 (Fredouille40, fil 2131) — la colonne de badge de la vue LISTE dit
+   * aussi le TYPE de fichier quand l'album n'est ni DSD ni hi-res : « FLAC »,
+   * « WAV », « MP3 ». La vue grille le dit déjà sous chaque pochette
+   * (`QualiteAlbum`) ; la liste, elle, n'avait rien pour un disque en 44,1/16.
+   * Le badge POSÉ SUR LA POCHETTE reste réservé au DSD et au hi-res : un
+   * « FLAC » sur chaque vignette serait du bruit.
+   */
+  function badgeListe(a: Album): string | null {
+    return badge(a) ?? formatDeFichier(a.format);
   }
 
   // ── Onglets de la bibliotheque (brouillon v3 : Albums, Artists, Tracks,
@@ -1662,7 +1727,11 @@
   );
 
   // Pistes et appartenances des artistes : un chargement partagé par portée.
-  let tracks = $state<Track[]>([]);
+  // #1716 — `$state.raw` : la liste n'est jamais modifiée sur place, seulement
+  // REMPLACÉE. Un `$state` profond enveloppait chacune des dizaines de
+  // milliers de pistes dans un proxy au premier filtrage, et la liste
+  // mémorisée (`pistesEntieres`) est partagée entre les écrans.
+  let tracks = $state.raw<Track[]>([]);
   let tracksLoading = $state(false);
   let tracksError = $state<string | null>(null);
   /**
@@ -1688,6 +1757,14 @@
    */
   let jetonPistes = 0;
   /**
+   * #1716 — le chargement en cours des pistes, ANNULABLE : un nouveau
+   * chargement (portée changée) ou la sortie de l'écran l'abandonne. La liste
+   * entière, elle, reste mémorisée par `pistesEntieres` si un autre l'attend
+   * encore ou si elle est arrivée.
+   */
+  let annulationPistes: AbortController | null = null;
+  $effect(() => () => annulationPistes?.abort());
+  /**
    * Le nombre de pistes ANNONCÉ pendant que la liste charge.
    *
    * `/stats` le rend tout de suite ; `getAllTracks()` met plusieurs secondes
@@ -1701,15 +1778,170 @@
    * seraient pires que l'attente.
    */
   let nbPistesServeur = $state<number | null>(null);
+
+  // ── #1716 — L'ONGLET TITRES PAR PAGES ─────────────────────────────────────
+  //
+  // Le serveur trie, cherche (titre ou artiste), filtre par provenance et
+  // compte par provenance (`lib/pistesPaginees`). L'écran ne rend que la
+  // FENÊTRE visible, plus un débord : les dizaines de milliers d'autres lignes
+  // ne sont que la hauteur de deux intercalaires.
+  //
+  // `modePistes` : `inconnu` tant que le serveur n'a pas répondu, `serveur`
+  // s'il sait paginer, `entier` sinon — et alors c'est la liste entière de
+  // web#2001, chargée par l'effet plus bas, qui sert l'onglet comme avant.
+  let modePistes = $state<'inconnu' | 'serveur' | 'entier'>(capaciteDuServeur() === 'ancien' ? 'entier' : 'inconnu');
+  /** L'ordre choisi par l'en-tête ; `null` = l'ordre par défaut. */
+  let triPistes = $state<Tri | null>(null);
+  /** La recherche envoyée au serveur : `q` après 250 ms de repos. */
+  let qPistes = $state('');
+  $effect(() => {
+    const v = q;
+    if (v === untrack(() => qPistes)) return;
+    const h = setTimeout(() => (qPistes = v), 250);
+    return () => clearTimeout(h);
+  });
+  const pagine = $derived(tab === 'tracks' && !depot && modePistes !== 'entier');
+  /** La fenêtre AFFICHÉE : la précédente reste à l'écran tant que la
+   *  nouvelle (tri, recherche…) n'a pas rendu sa première page. */
+  let fenetrePistes = $state.raw<FenetrePistes | null>(null);
+  let fenetreEnCharge = $state(false);
+  /** La dernière fenêtre DEMANDÉE — une réponse d'une autre arrive trop tard. */
+  let fenetreDemandee: FenetrePistes | null = null;
+  /** De quoi dépendent les comptes de la fenêtre affichée. */
+  let cleComptesAffiches = '';
+  let versionFenetre = $state(0);
+  $effect(() => {
+    if (!pagine) return;
+    const req = { recherche: qPistes, provenance: fProvenance, tri: triPistes, dossier: dossierPortee ?? null };
+    const generation = $generationBibliotheque;
+    // Les comptes ne dépendent que de la recherche, de la portée et de la
+    // génération : un tri ou un choix de provenance les reprend tels quels.
+    const cleComptes = `${generation}|${req.dossier ?? ''}|${req.recherche.trim()}`;
+    const precedente = untrack(() => fenetrePistes);
+    const connus = precedente && cleComptesAffiches === cleComptes && precedente.comptes != null
+      ? { comptes: precedente.comptes, totalToutesSources: precedente.totalToutesSources }
+      : null;
+    const f = new FenetrePistes(chargeurServeur(req, api.getPagePistes), () => versionFenetre++, undefined, undefined, connus);
+    fenetreDemandee = f;
+    fenetreEnCharge = true;
+    f.demarrer()
+      .then((m) => {
+        if (fenetreDemandee !== f) return;
+        if (m === 'ancien') { modePistes = 'entier'; return; }
+        modePistes = 'serveur';
+        const remonter = untrack(() => fenetrePistes) != null;
+        fenetrePistes = f;
+        cleComptesAffiches = cleComptes;
+        if (remonter) remonterEnTeteDesPistes();
+      })
+      // L'échec est DIT : la fenêtre en erreur devient celle qu'on affiche.
+      .catch((e) => { if (fenetreDemandee === f && e?.name !== 'AbortError') fenetrePistes = f; })
+      .finally(() => { if (fenetreDemandee === f) fenetreEnCharge = false; });
+    return () => f.abandonner();
+  });
+  const totalPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.total ?? null; });
+  const erreurPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.erreur ?? null; });
+  /** La fenêtre de rangs voulue — débord compris — et la hauteur d'une
+   *  ligne, MESURÉE entre les deux intercalaires (le mode Avancé rend des
+   *  lignes plus hautes que le tableau). */
+  let debutVisible = $state(0);
+  let finVisible = $state(80);
+  let hauteurLigne = $state(46);
+  const DEBORD_LIGNES = 40;
+  const lignesPagine = $derived.by(() => {
+    void versionFenetre;
+    return fenetrePistes ? fenetrePistes.contigues(debutVisible, finVisible) : [];
+  });
+  $effect(() => { void versionFenetre; fenetrePistes?.assurer(debutVisible, finVisible); });
+  let elPistes = $state<HTMLElement | null>(null);
+  /** Le conteneur qui défile, en remontant depuis `el` : au mode tableau
+   *  c'est `.tbl` (son `overflow-x:auto` le rend défilant dans les deux
+   *  axes, et l'en-tête y est collant), au mode lignes `.tracklist`. */
+  function parentDefilant(el: HTMLElement): HTMLElement | null {
+    for (let n: HTMLElement | null = el; n; n = n.parentElement) {
+      const oy = getComputedStyle(n).overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && n.scrollHeight > n.clientHeight) return n;
+    }
+    return null;
+  }
+  function recalculerFenetre() {
+    const el = elPistes;
+    const total = totalPagine;
+    if (!el || total == null) return;
+    const avant = el.querySelector<HTMLElement>('[data-espace="avant"]');
+    const apres = el.querySelector<HTMLElement>('[data-espace="apres"]');
+    if (!avant) return;
+    const n = lignesPagine.length;
+    if (n > 0 && apres) {
+      const h = (apres.getBoundingClientRect().top - avant.getBoundingClientRect().bottom) / n;
+      if (h > 8 && Math.abs(h - hauteurLigne) > 0.5) hauteurLigne = h;
+    }
+    const sc = parentDefilant(avant);
+    const haut = sc ? sc.getBoundingClientRect().top : 0;
+    const bas = sc ? haut + sc.clientHeight : window.innerHeight;
+    // L'intercalaire du haut commence là où commencerait la ligne 0.
+    const y0 = avant.getBoundingClientRect().top;
+    const premier = Math.max(0, Math.min(total, Math.floor((haut - y0) / hauteurLigne) - DEBORD_LIGNES));
+    const dernier = Math.max(premier, Math.min(total, Math.ceil((bas - y0) / hauteurLigne) + DEBORD_LIGNES));
+    if (premier !== debutVisible) debutVisible = premier;
+    if (dernier !== finVisible) finVisible = dernier;
+  }
+  /** Après un tri ou une recherche, la liste repart de sa tête. */
+  function remonterEnTeteDesPistes() {
+    const avant = elPistes?.querySelector<HTMLElement>('[data-espace="avant"]');
+    const sc = avant ? parentDefilant(avant) : null;
+    if (sc) sc.scrollTop = 0;
+    debutVisible = 0;
+    finVisible = 80;
+  }
+  $effect(() => {
+    if (!elPistes) return;
+    let image = 0;
+    const planifier = () => {
+      if (image) return;
+      image = requestAnimationFrame(() => { image = 0; recalculerFenetre(); });
+    };
+    // En phase de CAPTURE sur le document : le conteneur qui défile dépend
+    // de la mise en page, et la capture les entend tous.
+    document.addEventListener('scroll', planifier, { capture: true, passive: true });
+    window.addEventListener('resize', planifier, { passive: true });
+    planifier();
+    return () => {
+      document.removeEventListener('scroll', planifier, { capture: true } as any);
+      window.removeEventListener('resize', planifier);
+      if (image) cancelAnimationFrame(image);
+    };
+  });
+  // Chaque rendu de la fenêtre peut changer la hauteur mesurée.
+  $effect(() => {
+    void lignesPagine; void totalPagine;
+    if (!elPistes) return;
+    const id = requestAnimationFrame(recalculerFenetre);
+    return () => cancelAnimationFrame(id);
+  });
+  /** « Lire à partir d'ici », paginé : la suite CHARGÉE à partir de ce rang,
+   *  500 pistes au plus — le plafond de l'affichage d'avant. */
+  function lireLesTitresPaginesDepuis(rang: number) {
+    const zid = zoneRequise();
+    const f = fenetrePistes;
+    if (zid == null || !f) return;
+    lireListeDepuis(f.aPartirDe(rang, 500) as any, 0, gestesDeZone(zid)).catch(signalerEchecLecture);
+  }
+
   $effect(() => {
     const d = depot;
     const portee = dossierPortee;
-    if ((tab !== 'tracks' && tab !== 'artists') || porteePistes === portee) return;
+    // #1716 — l'onglet Titres ne demande la liste ENTIÈRE qu'à un dépôt
+    // distant ou à un serveur qui ne sait pas paginer (`modePistes`).
+    const veutLaListe = tab === 'artists' || (tab === 'tracks' && (d != null || modePistes === 'entier'));
+    if (!veutLaListe || porteePistes === portee) return;
     porteePistes = portee;
     // 🔴 La liste repart VIDE : la portée vient de changer, ce qu'elle
     // contient ne correspond plus à ce que la puce annonce. Un écran vide qui
     // le dit vaut mieux qu'une bibliothèque entière qui ment.
     const jeton = ++jetonPistes;
+    annulationPistes?.abort();
+    const annulation = (annulationPistes = new AbortController());
     tracks = [];
     nbPistesServeur = null;
     tracksLoading = true;
@@ -1724,10 +1956,10 @@
     if (!d && !portee) api.getLibraryStats().then((st) => { if (jeton === jetonPistes) nbPistesServeur = st?.tracks ?? null; }).catch(() => {});
     (d ? pistesDistantes(d)
        : portee ? api.getFilteredTracks({ folder: portee, limit: 5000 }).then((r) => r.items ?? [])
-       : api.getAllTracks())
+       : demanderToutesLesPistes(annulation.signal))
       .then((t) => { if (jeton === jetonPistes) tracks = t ?? []; })
       .catch((e) => {
-        if (jeton !== jetonPistes) return;
+        if (jeton !== jetonPistes || annulation.signal.aborted) return;
         tracks = [];
         tracksError = e?.message ?? $tr('common.error');
         // L'échec est DIT. Les trois `catch` de l'ancien client écrivaient en
@@ -1756,14 +1988,20 @@
     const needle = fold(q);
     return tracks.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
   });
-  const pistesFiltrees = $derived(pistesRecherche.filter(t => dansSource(t, fProvenance)));
+  // #1716 — au REPLI (serveur ancien, dépôt distant), l'en-tête trie aussi,
+  // dans le navigateur et avec la règle du serveur (`trierPistes`).
+  const pistesFiltrees = $derived(trierPistes(pistesRecherche.filter(t => dansSource(t, fProvenance)), triPistes));
   const visibleTracks = $derived(pistesFiltrees.slice(0, 500));
   // #1501 — l'onglet Artistes n'a plus de fiche : ce sont TOUJOURS les comptes
   // de la grille. Ceux d'une discographie commune (#4330) se lisent désormais
   // sur la page commune, qui porte son propre compte dans son en-tête.
   let comptesArtistes = $state<ComptesArtistesSources>({ comptes: new Map(), total: 0 });
   const comptesAlbums = $derived(comptesProvenance(src, filtresActifs, outilsFacettes));
-  const comptesPistes = $derived(compterSources(pistesRecherche.map(t => [provenanceDe(t)])));
+  const comptesPistes = $derived.by(() => {
+    // #1716 — paginé, les comptes viennent du serveur, sous la recherche.
+    if (pagine) { void versionFenetre; return fenetrePistes?.comptes ?? new Map<string, number>(); }
+    return compterSources(pistesRecherche.map(t => [provenanceDe(t)]));
+  });
   const provenances = $derived.by(() => {
     const counts = new Map(tab === 'artists' ? comptesArtistes.comptes
       : tab === 'tracks' ? comptesPistes : comptesAlbums);
@@ -1781,8 +2019,11 @@
   });
   // Les artistes peuvent appartenir à plusieurs sources : ne pas sommer leurs comptes.
   const matchCountToutesSources = $derived(tab === 'artists' ? comptesArtistes.total
-    : tab === 'tracks' ? pistesRecherche.length : comptesAlbums.reduce((n, [, c]) => n + c, 0));
-  const comptesSourcesEnCharge = $derived((tab === 'tracks' || tab === 'artists') && (tracksLoading || tracksError != null));
+    : tab === 'tracks' ? (pagine ? (fenetrePistes?.totalToutesSources ?? 0) : pistesRecherche.length)
+    : comptesAlbums.reduce((n, [, c]) => n + c, 0));
+  const comptesSourcesEnCharge = $derived(
+    tab === 'tracks' && pagine ? (fenetrePistes == null || fenetreEnCharge || erreurPagine != null)
+      : (tab === 'tracks' || tab === 'artists') && (tracksLoading || tracksError != null));
   const appartenancesArtistes = $derived(sourcesParArtiste(src, tracks));
 
   // La portée dossier inclut aussi les artistes de pistes de compilation.
@@ -1791,7 +2032,8 @@
     !porteeActive || depot ? null : new Set(appartenancesArtistes.keys()),
   );
   const nbPistesAnnonce = $derived(
-    tracksLoading && !q && !fProvenance && nbPistesServeur != null ? nbPistesServeur : pistesFiltrees.length,
+    pagine ? totalPagine
+      : tracksLoading && !q && !fProvenance && nbPistesServeur != null ? nbPistesServeur : pistesFiltrees.length,
   );
   /**
    * « Lire à partir d'ici » sur l'onglet Titres — #1061, point 9 de FabienM.
@@ -2101,7 +2343,7 @@
     return plafondFileAleatoire(() => api.getConfig());
   }
   /** #5526 — d'où `pistesDesAlbums` tire les pistes d'une sélection d'albums. */
-  const chargeursDePistes = { parAlbums: api.getAlbumTracksBatch, toutes: () => api.getAllTracks() };
+  const chargeursDePistes = { parAlbums: api.getAlbumTracksBatch, toutes: () => demanderToutesLesPistes() };
   async function shuffleAll() {
     const zid = zoneRequise();
     if (zid == null) return;
@@ -2126,7 +2368,7 @@
         const [liste, plafond] = await Promise.all([
           dossierPortee
             ? api.getFilteredTracks({ folder: dossierPortee, limit: 5000 }).then((r) => r.items ?? [])
-            : api.getAllTracks(),
+            : demanderToutesLesPistes(),
           plafondAleatoire(),
         ]);
         const needle = fold(q);
@@ -2172,10 +2414,10 @@
   );
   /** Rien à lire : bouton grisé. Pendant un chargement, on ne conclut pas. */
   const selectionVide = $derived(
-    tab === 'tracks' ? !tracksLoading && pistesFiltrees.length === 0
+    tab === 'tracks' ? (pagine ? totalPagine === 0 : !tracksLoading && pistesFiltrees.length === 0)
       : !enCharge && albumsDansLOrdre.length === 0,
   );
-  const lireEnCharge = $derived(tab === 'tracks' ? tracksLoading : enCharge);
+  const lireEnCharge = $derived(tab === 'tracks' ? (pagine ? totalPagine == null : tracksLoading) : enCharge);
   async function lireDansLOrdre() {
     const zid = zoneRequise();
     if (zid == null || depot || lireEnCharge || selectionVide) return;
@@ -2183,9 +2425,19 @@
     try {
       let ids: number[];
       if (tab === 'tracks') {
+        if (pagine) {
+          // #1716 — paginé : la liste qu'on voit, dans son ordre, demandée au
+          // serveur jusqu'au plafond (`shuffle_max_tracks`).
+          const req = { search: qPistes, provenance: fProvenance, folder: dossierPortee ?? null,
+            sort: triPistes?.cle ?? null, order: triPistes?.sens ?? 'asc' } as const;
+          const plafond = await plafondAleatoire();
+          const page = await api.getPagePistes({ ...req, limit: plafond, offset: 0 });
+          ids = bornee((page?.items ?? []).flatMap((p) => (p.id == null ? [] : [p.id])), plafond);
+        } else {
         // Figée AVANT l'attente : la liste qu'on voit, pas celle d'après.
         const listees = pistesFiltrees.flatMap((p) => (p.id == null ? [] : [p.id]));
         ids = bornee(listees, await plafondAleatoire());
+        }
       } else {
         // En mode paginé, la grille n'est qu'une page : on demande la liste
         // entière avant d'en lire l'ordre.
@@ -2341,7 +2593,7 @@
   <div class="filters">
     {#if tab === 'tracks'}
       <!-- Nombre de pistes après recherche et source, avant la limite d’affichage. -->
-      <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(nbPistesAnnonce))}</span>
+      <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', nbPistesAnnonce == null ? '…' : $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
       <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
@@ -2724,7 +2976,36 @@
       {#if navMode === 'alpha' && tab === 'albums'}
         {@render railAZ()}
       {/if}
-      {#if tab === 'tracks'}
+      {#if tab === 'tracks' && pagine}
+        <!-- #1716 — la FENÊTRE d'une liste servie par pages : deux
+             intercalaires portent la hauteur des lignes non rendues. -->
+        <div class="tracklist" bind:this={elPistes} aria-busy={fenetreEnCharge}>
+          {#if fenetrePistes == null || totalPagine == null}
+            {#if erreurPagine}<div class="state">{erreurPagine}</div>
+            {:else}<div class="state">{$tr('v2.lib.loadingTracks' as any)}</div>{/if}
+          {:else if totalPagine === 0}
+            <div class="state">{qPistes.trim() || fProvenance || porteeActive ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
+          {:else}
+            <ListePistesV2
+              virtuel
+              pistes={lignesPagine}
+              rangDepart={debutVisible}
+              espaceAvant={debutVisible * hauteurLigne}
+              espaceApres={Math.max(0, totalPagine - debutVisible - lignesPagine.length) * hauteurLigne}
+              tri={triPistes}
+              triables={COLONNES_TRIABLES}
+              onTrier={(cle) => (triPistes = triSuivant(triPistes, cle))}
+              onLire={(p) => playTrack(p)}
+              onLireDepuis={(_p, i) => lireLesTitresPaginesDepuis(debutVisible + i)}
+              ouvertureAlbum={(p) => {
+                const alb = albumDeLaPiste(p);
+                return alb ? () => ouvrirCalqueAlbum(alb) : null;
+              }}
+            />
+            {#if erreurPagine}<div class="state">{erreurPagine}</div>{/if}
+          {/if}
+        </div>
+      {:else if tab === 'tracks'}
         <div class="tracklist">
           {#if tracksLoading}
             <div class="state">{$tr('v2.lib.loadingTracks' as any)}</div>
@@ -2739,6 +3020,9 @@
                  celles qu'elle ne peut pas ouvrir. -->
             <ListePistesV2
               pistes={visibleTracks}
+              tri={triPistes}
+              triables={COLONNES_TRIABLES}
+              onTrier={(cle) => (triPistes = triSuivant(triPistes, cle))}
               onLire={(p) => playTrack(p)}
               onLireDepuis={(_p, i) => lireLesTitresDepuis(i)}
               ouvertureAlbum={(p) => {
@@ -2850,7 +3134,7 @@
                     <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
                     <span class="la" use:bulleTexte>{a.artist_name ?? ''}</span>
                     <span class="ly">{albumYear(a) ?? ''}</span>
-                    {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
+                    {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
                     {#if showTech}<span class="lq" use:bulleTexte>{tech(a)}</span>{/if}
                   </button>
                   </div>
@@ -3062,7 +3346,7 @@
         a photographié le 05/09/2026 ; l'autre moitié est que chaque
         ligne était sa PROPRE grille (voir `--lcols` plus bas).
       -->
-      {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
+      {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
       {#if showTech}<span class="lq" use:bulleTexte>{tech(a)}</span>{/if}
     </button>
     </div>

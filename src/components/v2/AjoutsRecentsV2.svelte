@@ -7,6 +7,13 @@
    * La règle est ÉNONCÉE (« ajoutés depuis N jours »), et le décompte porte sur
    * la MÊME fenêtre que la liste : le serveur les calcule ensemble. Deux
    * fenêtres, 15 et 30 jours, exactement ce que le testeur demandait.
+   *
+   * #5402 — une bascule trie par date de modification (le tri historique, par
+   * défaut) ou par date de création. Elle n'apparaît que si le serveur dit
+   * connaître le paramètre (`tri` dans le résumé) : un serveur antérieur
+   * l'ignorerait et servirait le tri historique sous l'étiquette « création ».
+   * Les pistes sans date de création (NFS, SMB, Docker) sont rangées par leur
+   * date de modification, et l'écran le dit.
    */
   import * as api from '../../lib/api';
   import { t as tr } from '../../lib/i18n';
@@ -30,24 +37,40 @@
   /** Au-delà, c'est une bibliothèque, pas un « récent ». */
   const PLAFOND = 500;
 
+  const TRIS: { id: api.TriAjoutsRecents; cle: string }[] = [
+    { id: 'modification', cle: 'library.recentSortModified' },
+    { id: 'creation', cle: 'library.recentSortCreated' },
+  ];
+
   let jours = $state(FENETRES[0]);
+  let tri = $state<api.TriAjoutsRecents>('modification');
+  /** Le serveur connaît `tri` : il l'a rendu dans un résumé (#5402). */
+  let triConnu = $state(false);
   let albums = $state<any[]>([]);
   let resume = $state<api.ResumeAjoutsRecents | null>(null);
   let charge = $state(false);
 
-  async function charger(fenetre: number) {
+  /** Les pistes rangées par leur date de modification faute de création. */
+  const sansCreation = $derived(
+    tri === 'creation' && resume?.tri === 'creation'
+      ? (resume.tracks_without_creation_date ?? 0) : 0,
+  );
+
+  async function charger(fenetre: number, ordre: api.TriAjoutsRecents) {
     charge = false;
     try {
       const [items, r] = await Promise.all([
-        api.getRecentlyAdded(fenetre, PLAFOND),
-        api.getRecentlyAddedSummary(fenetre),
+        api.getRecentlyAdded(fenetre, PLAFOND, ordre),
+        api.getRecentlyAddedSummary(fenetre, ordre),
       ]);
-      // La fenêtre a changé pendant la requête : ce résultat ne la décrit plus.
-      if (jours !== fenetre) return;
+      // La fenêtre ou le tri a changé pendant la requête : ce résultat ne les
+      // décrit plus.
+      if (jours !== fenetre || tri !== ordre) return;
       albums = items ?? [];
       resume = r ?? null;
+      if (r?.tri) triConnu = true;
     } catch {
-      if (jours !== fenetre) return;
+      if (jours !== fenetre || tri !== ordre) return;
       // Vide et DIT, plutôt qu'une liste d'une autre fenêtre laissée à l'écran.
       albums = [];
       resume = null;
@@ -55,7 +78,7 @@
     }
     charge = true;
   }
-  $effect(() => { void charger(jours); });
+  $effect(() => { void charger(jours, tri); });
 </script>
 
 <div class="recents">
@@ -68,11 +91,23 @@
         </button>
       {/each}
     </div>
+    {#if triConnu}
+      <div class="fenetres tris" role="group" aria-label={$tr('v2.fav.sortBy' as any)}>
+        {#each TRIS as o (o.id)}
+          <button class:on={tri === o.id} aria-pressed={tri === o.id} onclick={() => (tri = o.id)}>
+            {$tr(o.cle as any)}
+          </button>
+        {/each}
+      </div>
+    {/if}
     {#if resume}
       <span class="compte">{$tr('library.recentCounts' as any)
         .replace('{a}', String(resume.album_count))
         .replace('{t}', String(resume.track_count))
         .replace('{h}', formatDuration(resume.duration_ms))}</span>
+    {/if}
+    {#if sansCreation > 0}
+      <p class="repli">{$tr('library.recentCreationFallback' as any).replace('{n}', String(sansCreation))}</p>
     {/if}
   </div>
 
@@ -127,6 +162,7 @@
     color:var(--v2-txt2); font:12px var(--v2-sans); cursor:pointer}
   .fenetres button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); border-color:transparent}
   .compte{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .repli{flex-basis:100%; margin:0; font-size:12px; color:var(--v2-txt3)}
   .etat{padding:24px 0; color:var(--v2-txt3); font-size:13px}
   .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:16px}
   .carte{display:flex; flex-direction:column; gap:6px; padding:0; border:0; background:transparent; text-align:left; cursor:pointer; color:inherit}

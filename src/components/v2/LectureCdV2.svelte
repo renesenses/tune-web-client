@@ -34,6 +34,7 @@
     dureeCd, titrePisteCd, codeRefusCd, delaiRelectureCd,
     type EtatLecteurCd, type DisqueCd,
   } from '../../lib/lectureCd';
+  import ExtractionCdV2 from './ExtractionCdV2.svelte';
   import '../../styles/tune-v2.css';
 
   let etat = $state<EtatLecteurCd | null>(null);
@@ -58,6 +59,8 @@
     if (code === 'lecture_toc') return $t('v2.cd.unreadable' as any);
     if (code === 'piste_inconnue') return $t('v2.cd.unknownTrack' as any);
     if (code === 'lecture') return $t('v2.cd.playFailed' as any);
+    // tune-server-rust#2466 : pendant une extraction, ni lecture ni éjection.
+    if (code === 'extraction_en_cours') return $t('v2.cd.busyRipping' as any);
     return $t('v2.cd.unavailable' as any);
   }
 
@@ -223,6 +226,8 @@
             {:else if $currentZone?.name}
               <span class="note">{$t('v2.cd.toZone' as any).replace('{zone}', $currentZone.name)}</span>
             {/if}
+            <!-- tune-server-rust#2466 : n'apparaît que si le serveur sait extraire. -->
+            <ExtractionCdV2 {disque} />
           </div>
         </div>
       </div>

@@ -7,7 +7,8 @@
    * Densité par niveau :
    *   Essentiel → favoris en tête, puis toutes les stations. Lecture, favori.
    *   Avancé    → filtres par genre + recherche.
-   *   Avancé+   → codec et pays affichés sur la vignette (#863 : Expert seul avant).
+   *   Avancé+   → pays affiché sur la vignette (#863 : Expert seul avant).
+   *   Le codec, lui, se lit dès Essentiel (#5716).
    *
    * Subtilité reprise de l'écran actuel, à ne pas perdre : sur une zone
    * NAVIGATEUR, le serveur ne peut pas sortir le son — il renvoie l'URL du
@@ -225,8 +226,10 @@
     } catch { /* le serveur signale déjà l'échec */ }
   }
 
-  function tech(r: RadioStation): string {
-    return [r.codec?.toUpperCase(), pays(r)].filter(Boolean).join(' · ');
+  /** La pastille technique : le codec à tous les niveaux (#5716), le pays
+   *  dès Avancé (#863). */
+  function tech(r: RadioStation, avecPays: boolean): string {
+    return [r.codec?.toUpperCase(), avecPays ? pays(r) : null].filter(Boolean).join(' · ');
   }
 </script>
 
@@ -368,9 +371,10 @@
     <span class="nm" use:bulleTexte>{r.name}</span>
     {#if radioGenreRayon(r)}<span class="gn" use:bulleTexte>{libelle(radioGenreRayon(r)!)}</span>{/if}
     <!-- #863 — Jean Valjean : « pouvoir voir le format d'émission ». Le codec
-         existait, réservé à Expert ; il se lit dès Avancé, comme les filtres.
-         Essentiel reste épuré. -->
-    {#if showFilters && tech(r)}<span class="tk">{tech(r)}</span>{/if}
+         existait, réservé à Expert ; il s'est lu dès Avancé, comme les filtres.
+         #5716 (décision du 07/10) : il se lit dès Essentiel. Le pays reste
+         réservé à Avancé. -->
+    {#if tech(r, showFilters)}<span class="tk">{tech(r, showFilters)}</span>{/if}
   </div>
 {/snippet}
 

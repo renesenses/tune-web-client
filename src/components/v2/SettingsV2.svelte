@@ -30,6 +30,7 @@
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { poserPhotoAppareil } from '../../lib/photoAppareil';
   import { emphaseParts } from '../../lib/i18nEmphase';
   import { preferences, estDispositionFile, DISPOSITION_FILE_DEFAUT } from '../../lib/stores/preferences';
   import { typesSourcesBarre } from '../../lib/sources';
@@ -68,6 +69,7 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import { amenerSousEntete } from '../../lib/amenerSousEntete';
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
@@ -282,7 +284,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     zonePhotoCible = null;
     if (!fichier || zid == null) return;
     try {
-      const r = await api.uploadZoneImage(zid, fichier);
+      // #1394 — rien ne part avant que l'utilisateur ait lu où va la photo.
+      const r = await poserPhotoAppareil(zid, fichier, {
+        confirmer: (m) => dialogs.confirm(m),
+        traduire: (k) => get(t)(k as any),
+      });
+      if (!r) return;
       zones.update((l) => l.map((x) => (x.id === zid ? { ...x, image_path: r.image_path } : x)));
     } catch (err: any) {
       notifications.error(err?.message ?? $t('v2.home.widgetFailed' as any));
@@ -311,12 +318,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     cibleZone = target.zone ?? null;
     v2SettingsTarget.set(null);
     if (target.zone != null) {
-      tick().then(() => document.getElementById(`zc-${target.zone}`)?.scrollIntoView({ block: 'center' }));
+      tick().then(() => amenerSousEntete(document.getElementById(`zc-${target.zone}`)));
     } else if (target.section) {
       // #1670 — la carte visée est mise en avant ET amenée à l'écran : une
       // carte surlignée hors du cadre ne se voit pas plus qu'une carte muette.
       const section = target.section;
-      tick().then(() => document.querySelector(`[data-section="${section}"]`)?.scrollIntoView?.({ block: 'start' }));
+      tick().then(() => amenerSousEntete(document.querySelector(`[data-section="${section}"]`)));
     }
   });
 
@@ -2158,7 +2165,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const r = await api.clearLibrary();
       if (r?.ok) {
-        clearMessage = get(t)('settings.libraryCleared');
+        // #5973 — le serveur sauvegarde la base juste avant de vider (SQLite)
+        // et rend le chemin de la copie : on le montre, c'est le seul moyen
+        // de retrouver le contenu des playlists, les notes et les favoris.
+        clearMessage = get(t)('settings.libraryCleared')
+          + (r.backup_path ? ` ${get(t)('settings.libraryClearedBackup').replace('{path}', r.backup_path)}` : '');
         scanReport = null;
         await refreshLibrary();
       } else {
@@ -3968,6 +3979,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </label>
                   </div>
                 {/if}
+                <!-- #1892 — tous niveaux : les lignes de piste sont partout. -->
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.trackActionsReduced' as any)}</span>
+                    <span class="hint">{$t('settings.trackActionsReducedHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={$preferences.v2ActionsReduites}
+                      onchange={(e) => preferences.update((pr) => ({ ...pr, v2ActionsReduites: (e.currentTarget as HTMLInputElement).checked }))} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
                 <div class="row">
                   <div class="lbl">
                     <span>{$t('settings.tooltips' as any)}</span>
