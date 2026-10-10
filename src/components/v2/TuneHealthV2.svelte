@@ -21,6 +21,7 @@
   import { tableauFournisseurs, type TableauFournisseurs } from '../../lib/refusModuleSortie';
   import { formatNombre } from '../../lib/formats';
   import { activeView } from '../../lib/stores/navigation';
+  import { ouvrirFicheArtisteLocale } from '../../lib/ouvrirArtisteDepuis';
   import { errText } from '../../lib/utils';
   import { tuneWS } from '../../lib/websocket';
   import { avancementAnalyse, pourcentAnalyse, abonnerAvancementAnalyse } from '../../lib/analyseBibliotheque';
@@ -97,6 +98,26 @@
   let etatServeurDr = $state<string | undefined>(undefined);
 
   let cards = $state<Card[]>([]);
+  // tune-server-rust#4692 (Bilou, fil 1887) — « 12 artistes encore sans
+  // portrait » : lesquels ? Le serveur les nomme ; la liste se charge au geste,
+  // jamais au sondage de l'écran.
+  let manquantesPortrait = $state(0);
+  let listePortraitsOuverte = $state(false);
+  let listePortraits = $state<{ artistes: api.ArtisteSansPortrait[]; total: number } | null>(null);
+  let listePortraitsErreur = $state(false);
+
+  async function basculerListePortraits() {
+    listePortraitsOuverte = !listePortraitsOuverte;
+    if (!listePortraitsOuverte) return;
+    listePortraitsErreur = false;
+    try {
+      const r = await api.getArtistsWithoutImage();
+      listePortraits = { artistes: r?.artists ?? [], total: r?.total ?? 0 };
+    } catch {
+      listePortraits = null;
+      listePortraitsErreur = true;
+    }
+  }
   let loading = $state(true);
   let lastAt = $state<string | null>(null);
   let refreshing = $state(false);
@@ -643,6 +664,7 @@
       const s = ar[0].value;
       const r = s?.result;
       const manquantes = s?.artists_without_image ?? 0;
+      manquantesPortrait = manquantes;
       out.push({
         id: 'covers', traitement: 'artist_images', titre: $t('v2.health.cardCovers' as any), sous: $t('v2.health.cardCoversSub' as any),
         etat: r?.phase && r.phase !== 'done' ? 'running' : r ? 'done' : 'idle',
@@ -838,6 +860,35 @@
 
             {#if c.detail}<div class="detail">{c.detail}</div>{/if}
 
+            {#if c.id === 'covers' && manquantesPortrait > 0}
+              <!-- tune-server-rust#4692 — le nombre, NOMMÉ. Un nom ouvre la
+                   fiche de l'artiste, qui se referme vers cet écran. -->
+              <div class="cactions">
+                <button class="lnk sm" aria-expanded={listePortraitsOuverte} onclick={basculerListePortraits}>
+                  {listePortraitsOuverte ? $t('v2.health.coversHideList' as any) : $t('v2.health.coversShowList' as any)}
+                </button>
+              </div>
+              {#if listePortraitsOuverte}
+                {#if listePortraitsErreur}
+                  <div class="detail">{$t('v2.health.coversListError' as any)}</div>
+                {:else if !listePortraits}
+                  <div class="detail">{$t('v2.health.loading' as any)}</div>
+                {:else}
+                  <ul class="sansportrait">
+                    {#each listePortraits.artistes as a (a.id)}
+                      <li>
+                        <button class="nomartiste" onclick={() => ouvrirFicheArtisteLocale(a.id, a.name, 'diagnostics')}>{a.name}</button>
+                        <span class="nature">{$t(`v2.health.coversNature.${a.nature}` as any)}</span>
+                      </li>
+                    {/each}
+                  </ul>
+                  {#if listePortraits.total > listePortraits.artistes.length}
+                    <div class="detail">{$t('v2.health.coversListMore' as any).replace('{n}', $formatNombre(listePortraits.total - listePortraits.artistes.length))}</div>
+                  {/if}
+                {/if}
+              {/if}
+            {/if}
+
             <!-- tune-server-rust#5169 — l'ordre de passage de la plage
                  dynamique. Absent tant que le serveur ne l'annonce pas. -->
             {#if c.id === 'dr' && prioriteDr}
@@ -1020,6 +1071,11 @@
   .pct{margin-top:6px; font:10.5px var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .nogauge{margin-top:11px; font:10.5px var(--v2-mono); color:var(--v2-txt3); font-style:italic}
   .detail{margin-top:9px; font-size:11.5px; color:var(--v2-txt3)}
+  .sansportrait{list-style:none; margin:8px 0 0; padding:0; max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; font-size:12.5px}
+  .sansportrait li{display:flex; align-items:baseline; justify-content:space-between; gap:10px; min-width:0}
+  .nomartiste{border:0; background:transparent; padding:2px 0; color:var(--v2-txt2); cursor:pointer; text-align:left; font:inherit; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
+  .nomartiste:hover{color:var(--v2-acc-tint); text-decoration:underline}
+  .sansportrait .nature{flex:none; font-size:11px; color:var(--v2-txt3)}
   .foot{margin-top:22px; font-size:12.5px; color:var(--v2-txt3)}
   .reseau{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:4px; font-size:13px; color:var(--v2-txt2)}
   .reseau .ind{padding-left:18px}

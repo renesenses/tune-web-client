@@ -966,7 +966,12 @@
     if (e.ouvrir === 'artiste') {
       // Un artiste FAVORI porte l'objet entier ; un classement n'a que son NOM.
       if (e.artisteObjet) void ouvrirArtisteDepuis(e.artisteObjet, $activeView);
-      else if (e.artiste) void ouvrirArtisteDepuis({ name: e.artiste }, $activeView);
+      else if (e.artiste) {
+        void ouvrirArtisteDepuis(
+          e.artisteService ? { name: e.artiste, service_ecoute: e.artisteService } : { name: e.artiste },
+          $activeView,
+        );
+      }
       return;
     }
     // Widgets de favoris par type (25/09/2026) : une piste se JOUE, et une

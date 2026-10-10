@@ -126,6 +126,7 @@
    * changé à l'écran.
    */
   import ToastContainer from '../partages/ToastContainer.svelte';
+  import { demandeCercle } from '../../lib/circlePlaylists';
   // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
   // « TV » juste au-dessus. Signale manquant par Bertrand le 05/09/2026 :
   // « Il manque Oxygen dans la v2 !! ». Il pese 1 400 lignes avec son rail de
@@ -192,7 +193,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { t, locale } from '../../lib/i18n';
   import { get } from 'svelte/store';
-  import { preferences } from '../../lib/stores/preferences';
+  import { preferences, preferencesRelues } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
   import {
     startUpdatePolling, stopUpdatePolling,
@@ -371,7 +372,12 @@
   // Fil 2166 — la vue de démarrage (Réglages › Général) est lue UNE fois, par
   // `get` : lue par `$preferences`, l'effet se rebrancherait à chaque réglage
   // touché et ramènerait l'écran sur la vue de démarrage en pleine session.
-  $effect(() => brancherHistoriqueCoquille({ vueDeDemarrage: get(preferences).startupView }));
+  // Fils 2166 et 2168 (rc3) — puis celle du PROFIL, quand le serveur a
+  // répondu : la copie locale d'un autre navigateur ne fait plus foi.
+  $effect(() => brancherHistoriqueCoquille({
+    vueDeDemarrage: get(preferences).startupView,
+    vueDeDemarrageRelue: preferencesRelues.then(() => get(preferences).startupView),
+  }));
 
   /** La bannière n'occupe la place que si elle a quelque chose à dire. */
   const annonceMaj = $derived($updateAvailable && !$updateBannerDismissed);
@@ -840,6 +846,15 @@
        `notifications.error()` écrit dans un magasin que personne ne rend, et
        un échec de lecture ne produit rigoureusement rien (#3732). -->
   <ToastContainer />
+
+  <!-- Playlists de cercle : l'ajout groupé et le partage d'une playlist,
+       demandés depuis n'importe quel menu (`demandeCercle`). Chargée à la
+       demande, comme la fenêtre d'ajout d'un seul titre. -->
+  {#if $demandeCercle}
+    {#await import('./AjoutGroupeCercleV2.svelte') then m}
+      <m.default demande={$demandeCercle} onClose={() => demandeCercle.set(null)} />
+    {/await}
+  {/if}
 
   <!-- Voie MOBILE : la barre pose ce drapeau au lieu de changer de vue.
        Personne ne l'écoutait ici. -->
