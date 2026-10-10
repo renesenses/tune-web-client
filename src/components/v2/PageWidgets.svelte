@@ -35,6 +35,7 @@
   import { onMount, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
+  import AccueilBibliothequeVide from '../partages/AccueilBibliothequeVide.svelte';
   import { remplacerAliasWidgets } from '../../lib/widgetsService';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { molettePortee } from '../../lib/molettePortee';
@@ -1207,6 +1208,10 @@
   {/if}
 
   <div class="scroll" bind:this={zoneDefilante}>
+    <!-- Fil 2171 — sur l'ACCUEIL (la seule instance qui salue), une
+         bibliothèque vide propose son premier dossier, en tête de page :
+         l'assistant de première installation, lui, ne revient jamais. -->
+    {#if salut}<AccueilBibliothequeVide />{/if}
     {#if !charge}
       <div class="state">{$t('common.loading' as any)}</div>
     {:else if !disposition.length}

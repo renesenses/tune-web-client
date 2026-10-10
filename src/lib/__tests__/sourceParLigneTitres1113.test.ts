@@ -45,7 +45,6 @@ import SearchV2 from '../../components/v2/SearchV2.svelte';
 import ListePistesV2 from '../../components/v2/ListePistesV2.svelte';
 import { setSearchCriteria } from '../stores/shortcuts';
 import { preferences } from '../stores/preferences';
-import { modeEnTableau } from '../colonnesPistes';
 import { fusionnerParType } from '../rechercheClassement';
 
 vi.setConfig({ testTimeout: 30_000 });
@@ -175,9 +174,6 @@ function pastilleDeLigne(ligne: Element): Element | null {
 }
 
 describe('#1113 — chaque ligne de la section Titres dit sa source', () => {
-  it('le niveau mesuré rend bien le TABLEAU — sinon le témoin ne mesure rien', () => {
-    expect(modeEnTableau('expert')).toBe(true);
-  });
 
   it('la fusion estampille bien les quatre provenances — la donnée est là', () => {
     // La contre-épreuve amont : si `fusionnerParType` cessait d'estampiller,

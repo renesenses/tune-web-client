@@ -102,6 +102,16 @@ import { estRefusEcriture, messageRefusEcriture, CODE_REFUS_ECRITURE } from './e
 import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
 import { messageRefusBitperfect } from './bitperfectStrict';
 import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
+import {
+  RefusSauvegarde,
+  codeDuRefus as codeDuRefusSauvegarde,
+  corpsRestauration,
+  type EtatSauvegardeCloud,
+  type InstantaneCloud,
+  type ListeInstantanes,
+  type ModeRestauration as ModeRestaurationCloud,
+  type ResultatRestauration,
+} from './sauvegardeCloud';
 
 /**
  * L'erreur d'un refus premium 402 — **seul** constructeur de cette forme dans
@@ -1148,6 +1158,19 @@ export function probeRendererCapabilities(id: number) {
   return fetchJSON<import('./types').RendererCapabilities>(`${BASE}/zones/${id}/renderer-capabilities`, {
     method: 'POST',
   });
+}
+
+/**
+ * « Réinitialiser la compatibilité » (tune-server-rust#5962) : le serveur
+ * oublie le profil de commande `SetAVTransportURI` qu'il a appris pour le
+ * renderer DLNA de cette zone, en mémoire et en base. Rend le nombre de
+ * profils oubliés.
+ */
+export function reinitialiserCompatibiliteRenderer(id: number) {
+  return fetchJSON<{ zone_id: number; profils_oublies: number }>(
+    `${BASE}/zones/${id}/compatibilite-renderer`,
+    { method: 'DELETE' },
+  );
 }
 
 export function changeZoneOutput(id: number, outputType: string, outputDeviceId?: string | null) {
@@ -5505,18 +5528,40 @@ export function youtubeAuthStatus() {
   );
 }
 
-// --- YouTube Music browse (ytmusicapi) ---
+// --- YouTube Music : découverte (InnerTube côté serveur, tune-server-rust#5247) ---
 
+/**
+ * Un élément d'un rayon YouTube Music (tune-server-rust#5247). `kind` dit ce
+ * qu'il ouvre ; `id` est l'identifiant YouTube (`VL…` playlist, `MPRE…`
+ * album, `UC…` artiste, identifiant de vidéo pour un titre).
+ */
+export interface YtElementRayon {
+  kind: 'playlist' | 'album' | 'artist' | 'track';
+  id: string;
+  title: string;
+  subtitle: string;
+  cover_path: string | null;
+}
+export interface YtRayon { title: string; items: YtElementRayon[] }
+export interface YtCategorieAmbiances { title: string; items: { title: string; params: string }[] }
+
+/** Les rayons de l'accueil de YouTube Music. */
+export function getYouTubeHome() {
+  return fetchJSON<{ sections: YtRayon[] }>(`${BASE}/streaming/youtube/home`);
+}
+
+/** Les tendances d'un pays : classements (playlists) et artistes. */
 export function getYouTubeCharts(country = 'FR') {
-  return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/youtube/charts?country=${encodeURIComponent(country)}`);
+  return fetchJSON<{ country: string; sections: YtRayon[] }>(`${BASE}/streaming/youtube/charts?country=${encodeURIComponent(country)}`);
 }
 
 export function getYouTubeMoods() {
-  return fetchJSON<{ title: string; items: { title: string; params: string }[] }[]>(`${BASE}/streaming/youtube/moods`);
+  return fetchJSON<YtCategorieAmbiances[]>(`${BASE}/streaming/youtube/moods`);
 }
 
-export function getYouTubeMoodPlaylists(params: string) {
-  return fetchJSON<{ title: string; playlistId: string; description: string; cover_path: string | null }[]>(`${BASE}/streaming/youtube/moods/${encodeURIComponent(params)}`);
+/** Le contenu d'une ambiance ou d'un genre : ses rayons de playlists. */
+export function getYouTubeMoodSections(params: string) {
+  return fetchJSON<{ sections: YtRayon[] }>(`${BASE}/streaming/youtube/moods/${encodeURIComponent(params)}`);
 }
 
 
@@ -5601,19 +5646,28 @@ export function getPlaylistManagerServices() {
   );
 }
 
+/**
+ * `POST /playlist-manager/transfer` — depuis tune-server-rust#4741, cette route
+ * n'a plus de moteur à elle : elle passe la demande au greffon « Playlists
+ * converter » (aperçu, puis transfert avec accord sauf `dry_run`) et rend la
+ * forme d'avant, plus `lot_id`, `etat` et `tracks[]` — chaque titre
+ * introuvable avec sa `raison`. Appariement : ISRC, puis titre + artiste +
+ * durée à ±3 s, sans seuil réglable. 503 `greffon_requis` si le greffon n'est
+ * pas chargé. « local → local » reste une copie.
+ */
 export function transferPlaylistV2(body: {
   source_service: string; source_playlist_id: string; target_service: string;
-  target_name?: string; create_on_target?: boolean; match_threshold?: number;
-  include_approximate?: boolean; dry_run?: boolean;
+  target_name?: string; dry_run?: boolean;
+  /** Ignorés par le moteur unique (#4741), acceptés pour compatibilité. */
+  create_on_target?: boolean; match_threshold?: number; include_approximate?: boolean;
 }) {
   return fetchJSON<any>(`${BASE}/playlist-manager/transfer`, { method: 'POST', body: JSON.stringify(body) });
 }
 
-export function batchTransfer(body: {
-  source_service: string; target_service: string; playlist_ids?: string[] | null; match_threshold?: number;
-}) {
-  return fetchJSON<any>(`${BASE}/playlist-manager/batch-transfer`, { method: 'POST', body: JSON.stringify(body) });
-}
+// #4741 — l'ancienne fonction de transfert « par lot » du gestionnaire est
+// retirée avec sa route serveur, qui écrivait « started » dans l'historique et
+// ne transférait RIEN. Le transfert par lot est celui du greffon
+// (`convertisseurApercu` avec plusieurs playlists, puis `convertisseurTransferer`).
 
 export function mergePlaylists(body: {
   playlists: Array<{ service: string; playlist_id: string }>; target_name: string;
@@ -7243,6 +7297,77 @@ export async function previewImportConfig(data: any): Promise<unknown> {
     (statut) => statut === 404 || statut === 405,
     true,
   );
+}
+
+// --- Sauvegarde des personnalisations dans le nuage (#5654, #902) ---
+//
+// Contrat : routes `/system/config-backup/cloud/*` du serveur Tune. Les refus
+// que l'écran traite lui-même (400 secret_required / wrong_secret, 412
+// account_not_linked, 502 cloud_unreachable) sont acceptés sans bandeau et
+// relevés en `RefusSauvegarde`, avec leur code stable.
+//
+// 🔴 La phrase de passe et la clé de secours ne voyagent QUE dans le corps
+// d'un POST : jamais en paramètre d'URL (journaux d'accès, historique).
+
+const STATUTS_DE_REFUS_SAUVEGARDE = (s: number) => s === 400 || s === 409 || s === 412 || s === 502;
+
+async function appelSauvegarde<T>(chemin: string, init?: RequestInit, sansBandeau = true): Promise<T> {
+  const corps = await fetchJSON<any>(
+    `${BASE}/system/config-backup/cloud/${chemin}`,
+    init,
+    STATUTS_DE_REFUS_SAUVEGARDE,
+    sansBandeau,
+  );
+  if (corps && typeof corps === 'object' && typeof corps.error === 'string' && corps.success !== true) {
+    throw new RefusSauvegarde(codeDuRefusSauvegarde(corps), corps.error);
+  }
+  return corps as T;
+}
+
+/** État de la sauvegarde automatique. Pas de garde Premium côté serveur : l'écran doit pouvoir dire « Premium requis ». */
+export async function getCloudBackupStatus(sansBandeau = true): Promise<EtatSauvegardeCloud> {
+  return appelSauvegarde<EtatSauvegardeCloud>('status', undefined, sansBandeau);
+}
+
+/**
+ * Active la sauvegarde. À la PREMIÈRE activation, `passphrase` crée la clé et
+ * la réponse porte la clé de secours — rendue une seule fois.
+ */
+export async function enableCloudBackup(
+  passphrase?: string,
+): Promise<{ success: boolean; recovery_key?: string; key_id: string }> {
+  return appelSauvegarde('enable', {
+    method: 'POST',
+    body: JSON.stringify(passphrase ? { passphrase } : {}),
+  });
+}
+
+export async function disableCloudBackup(): Promise<{ success: boolean }> {
+  return appelSauvegarde('disable', { method: 'POST' });
+}
+
+export async function backupCloudNow(): Promise<{
+  success: boolean;
+  skipped_unchanged: boolean;
+  backup: Omit<InstantaneCloud, 'this_server' | 'local_key'> | null;
+}> {
+  return appelSauvegarde('backup-now', { method: 'POST' });
+}
+
+export async function listCloudBackups(sansBandeau = true): Promise<ListeInstantanes> {
+  return appelSauvegarde<ListeInstantanes>('snapshots', undefined, sansBandeau);
+}
+
+/** Restaure un instantané. `secret` = phrase de passe OU clé de secours, seulement quand la clé locale ne l'ouvre pas. */
+export async function restoreCloudBackup(
+  id: number,
+  mode: ModeRestaurationCloud,
+  secret?: string | null,
+): Promise<ResultatRestauration> {
+  return appelSauvegarde<ResultatRestauration>('restore', {
+    method: 'POST',
+    body: JSON.stringify(corpsRestauration(id, mode, secret)),
+  });
 }
 
 // --- MusicBrainz Batch Enrichment ---
