@@ -33,6 +33,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { crossfeedProTraiteLaZone } from '../../lib/stores/crossfeedPro';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
+  import VersionJoueePastille from './VersionJoueePastille.svelte';
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
@@ -1784,6 +1785,8 @@ import { ICONES } from '../../lib/menuPiste';
       <div class="info-column">
         <div class="np-badges-row">
           <ServiceBadge source={displayTrack.source} />
+          <!-- tune-server-rust#2264 : la version réellement jouée, et le repli. -->
+          <VersionJoueePastille piste={displayTrack} />
           <!-- Fil 2126 : ce badge ne porte QUE le palier ; sans palier (format au
                codec non déterminé, « M4A »), il n'a rien à dire et ne s'affiche
                pas. Le format reste lisible dans les puces juste en dessous. -->

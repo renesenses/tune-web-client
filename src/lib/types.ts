@@ -449,6 +449,9 @@ export interface NowPlaying {
   /** Âge de cette métadonnée au moment de la réponse, calculé côté serveur
    *  (indépendant de l'horloge du client). */
   metadata_age_ms?: number;
+  /** tune-server-rust#2264 — quelle version joue et pourquoi (règle du
+   *  profil, choix explicite, repli). Absent d'un serveur antérieur. */
+  version?: import('./versionJouee').VersionJoueeServeur | null;
 }
 
 export interface Zone {
