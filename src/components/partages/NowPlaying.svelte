@@ -18,6 +18,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../../lib/npWheelGesture';
   import { largeurReserveeFileAttente } from '../../lib/fileAttenteReserve';
   import * as api from '../../lib/api';
+  import { gesteVider, executerVider } from '../../lib/viderFile';
   import { lireOuAjouter } from '../../lib/playback';
   import CreteMetre from './CreteMetre.svelte';
   import { libelleCanaux } from '../../lib/canauxPiste';
@@ -32,6 +33,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { crossfeedProTraiteLaZone } from '../../lib/stores/crossfeedPro';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
+  import VersionJoueePastille from './VersionJoueePastille.svelte';
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
@@ -43,6 +45,8 @@ import { ICONES } from '../../lib/menuPiste';
   import { t, locale } from '../../lib/i18n';
   import { libelleConversion } from '../../lib/bitperfectStrict';
   import { gainIgnoreParPure } from '../../lib/pureReplayGain';
+  import { gainDeSortieCourant, libelleRabot } from '../../lib/gainDeSortie';
+  import GainDeSortieNotes from './GainDeSortieNotes.svelte';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
@@ -1634,9 +1638,14 @@ import { ICONES } from '../../lib/menuPiste';
   async function qsHandleClearQueue() {
     if (zone?.id == null) return;
     if (!zone?.id || $queueTracks.length === 0) return;
+    // web#1857 — même règle en deux temps que l'écran File d'attente
+    // (`lib/viderFile`) : tant que quelque chose suit, on garde le morceau en
+    // cours ; quand plus rien ne suit, le second appui arrête et le retire.
+    const geste = gesteVider($queueTracks.length, $queuePosition);
+    if (!geste) return;
     qsClearingQueue = true;
     try {
-      await api.clearQueue(zone.id);
+      await executerVider(zone.id, geste);
       const qs = await api.getQueue(zone.id);
       queueTracks.set(qs.tracks);
       queuePosition.set(qs.position);
@@ -1646,6 +1655,8 @@ import { ICONES } from '../../lib/menuPiste';
     }
     qsClearingQueue = false;
   }
+
+  const qsGesteVider = $derived(gesteVider($queueTracks.length, $queuePosition));
 
   let qsSavingQueue = $state(false);
 
@@ -1774,6 +1785,8 @@ import { ICONES } from '../../lib/menuPiste';
       <div class="info-column">
         <div class="np-badges-row">
           <ServiceBadge source={displayTrack.source} />
+          <!-- tune-server-rust#2264 : la version réellement jouée, et le repli. -->
+          <VersionJoueePastille piste={displayTrack} />
           <!-- Fil 2126 : ce badge ne porte QUE le palier ; sans palier (format au
                codec non déterminé, « M4A »), il n'a rien à dire et ne s'affiche
                pas. Le format reste lisible dans les puces juste en dessous. -->
@@ -2186,6 +2199,13 @@ import { ICONES } from '../../lib/menuPiste';
             {#if rgIgnoreDb != null}
               <p class="sp-conversion sp-pure-rg">{$t('signal.pureRgIgnoredDb' as any).replace('{db}', dbSigne(rgIgnoreDb))}</p>
             {/if}
+            <!-- tune-server-rust#4384 — le rabot à l'unité se DIT : « +6 dB de
+                 préampli à volume plein » ne change rien, et voici pourquoi.
+                 Rien d'un serveur qui ne publie pas le gain demandé. -->
+            {@const rabot = libelleRabot($gainDeSortieCourant, $t as any)}
+            {#if rabot}
+              <p class="sp-conversion sp-gain-rabot">{rabot}</p>
+            {/if}
             {#if showSignalDetail}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -2236,6 +2256,8 @@ import { ICONES } from '../../lib/menuPiste';
                       </div>
                     {/each}
                   </div>
+                  <!-- tune-server-rust#4384 — ce que devient le gain en sortie. -->
+                  <GainDeSortieNotes signalPath={zone.signal_path} />
                 </div>
               </div>
             {/if}
@@ -2576,7 +2598,7 @@ import { ICONES } from '../../lib/menuPiste';
           <button class="qs-action-btn" onclick={qsHandleSaveAsPlaylist} disabled={qsSavingQueue} title={$t('nowplaying.saveAsPlaylist')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
           </button>
-          <button class="qs-action-btn qs-clear-btn" onclick={qsHandleClearQueue} disabled={qsClearingQueue} title={`${$t('nowplaying.clearQueue')} — ${$t('queue.clearTip')}`}>
+          <button class="qs-action-btn qs-clear-btn" onclick={qsHandleClearQueue} disabled={qsClearingQueue} title={qsGesteVider === 'tout' ? `${$t('queue.clearAllLabel')} — ${$t('queue.clearAllTip')}` : `${$t('nowplaying.clearQueue')} — ${$t('queue.clearTip')}`}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
           </button>
         {/if}
@@ -3276,6 +3298,7 @@ import { ICONES } from '../../lib/menuPiste';
   }
 
   .sp-conversion.degrade { color: var(--tune-text); font-weight: 600; }
+  .sp-gain-rabot { color: var(--tune-text); }
 
   .signal-path-overlay {
     position: fixed;
