@@ -69,6 +69,7 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import { amenerSousEntete } from '../../lib/amenerSousEntete';
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
@@ -317,12 +318,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     cibleZone = target.zone ?? null;
     v2SettingsTarget.set(null);
     if (target.zone != null) {
-      tick().then(() => document.getElementById(`zc-${target.zone}`)?.scrollIntoView({ block: 'center' }));
+      tick().then(() => amenerSousEntete(document.getElementById(`zc-${target.zone}`)));
     } else if (target.section) {
       // #1670 — la carte visée est mise en avant ET amenée à l'écran : une
       // carte surlignée hors du cadre ne se voit pas plus qu'une carte muette.
       const section = target.section;
-      tick().then(() => document.querySelector(`[data-section="${section}"]`)?.scrollIntoView?.({ block: 'start' }));
+      tick().then(() => amenerSousEntete(document.querySelector(`[data-section="${section}"]`)));
     }
   });
 
@@ -2183,7 +2184,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const r = await api.clearLibrary();
       if (r?.ok) {
-        clearMessage = get(t)('settings.libraryCleared');
+        // #5973 — le serveur sauvegarde la base juste avant de vider (SQLite)
+        // et rend le chemin de la copie : on le montre, c'est le seul moyen
+        // de retrouver le contenu des playlists, les notes et les favoris.
+        clearMessage = get(t)('settings.libraryCleared')
+          + (r.backup_path ? ` ${get(t)('settings.libraryClearedBackup').replace('{path}', r.backup_path)}` : '');
         scanReport = null;
         await refreshLibrary();
       } else {

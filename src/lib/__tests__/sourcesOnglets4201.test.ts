@@ -9,6 +9,9 @@ import { activeView } from '../stores/navigation';
 import { ficheArtisteService } from '../stores/streaming';
 import { currentZoneId } from '../stores/zones';
 import type { Album, Track } from '../types';
+// #1716 — la liste entière des pistes est mémorisée pour la session : chaque
+// témoin part de zéro, sans la liste du précédent.
+import { _remiseAZeroPourTests as oublierLesPistes } from '../stores/pistesEntieres';
 
 vi.setConfig({ testTimeout: 30_000 });
 const catalogue: Album[] = [
@@ -46,6 +49,7 @@ beforeEach(async () => {
   presenceAsset = 'present'; registreEnEchec = false; appelsRegistre = 0;
   localStorage.clear(); libraryFolderScope.set(null); activeView.set('library'); currentZoneId.set(1);
   pistes = [...morceaux]; lectures = [];
+  oublierLesPistes();
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
   vi.stubGlobal('fetch', vi.fn(async (url: any, init?: RequestInit) => {
     const path = String(url);
