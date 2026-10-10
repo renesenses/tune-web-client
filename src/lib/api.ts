@@ -1220,6 +1220,23 @@ export function unignoreDevice(deviceId: string) {
   );
 }
 
+/** `GET /devices/sendspin` — les enceintes Sendspin vues (mDNS et protocole),
+ *  avec leur état d'exclusion (#3326). */
+export function listSendspinDevices() {
+  return fetchJSON<import('./sendspinExclusions').ReponseSendspin>(`${BASE}/devices/sendspin`);
+}
+
+/** `PUT /devices/sendspin/exclusions/{id}` — Tune ne contacte plus (ou de
+ *  nouveau) cette enceinte. `id` : `client_id`, ou identifiant d'annonce. */
+export function setSendspinExclusion(id: string, excluded: boolean) {
+  return fetchJSON<{ id: string; excluded: boolean; list: string[] }>(
+    `${BASE}/devices/sendspin/exclusions/${encodeURIComponent(id)}`,
+    // Pas d'en-têtes ici : `options` remplacerait ceux de fetchJSON (jeton
+    // compris) ; le Content-Type suit le corps.
+    { method: 'PUT', body: JSON.stringify({ excluded }) },
+  );
+}
+
 /** `GET /devices/ignored` — la liste de révision. C'est la SEULE vue depuis
  *  laquelle un appareil ignoré peut être débloqué : il n'est plus annoncé
  *  ailleurs. */

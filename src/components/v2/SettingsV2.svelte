@@ -50,6 +50,7 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
@@ -634,6 +635,40 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }
   }
   $effect(() => { void loadIgnoredDevices(); });
+
+  /**
+   * Sendspin — liste d'exclusion (#3326, serveur rc4). Une enceinte qui
+   * appartient à un autre serveur (Music Assistant…) : Tune ne la contacte
+   * plus et refuse qu'elle se connecte. Chargée quand la section est visible.
+   */
+  let enceintesSs = $state<EnceinteSendspin[]>([]);
+  let ssOccupe = $state(false);
+  let ssErreur = $state(false);
+  async function chargerSendspin() {
+    try {
+      enceintesSs = enceintesSendspin(await api.listSendspinDevices());
+    } catch {
+      // Serveur sans la route : la section reste vide.
+      enceintesSs = [];
+    }
+  }
+  $effect(() => {
+    if (sections.some((x) => x.id === 'sendspin')) void chargerSendspin();
+  });
+  async function basculerExclusionSs(e: EnceinteSendspin, ev: Event) {
+    const exclue = (ev.currentTarget as HTMLInputElement).checked;
+    ssOccupe = true;
+    ssErreur = false;
+    try {
+      await api.setSendspinExclusion(e.cle, exclue);
+      await chargerSendspin();
+    } catch {
+      ssErreur = true;
+      await chargerSendspin();
+    } finally {
+      ssOccupe = false;
+    }
+  }
 
   async function ignoreDevice(deviceId: string, name: string) {
     ignoreBusy = true;
@@ -6386,6 +6421,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </p>
                 {/each}
               </div>
+
+            {:else if s.id === 'sendspin'}
+              <p class="hint">{$t('settings.sendspinIntro' as any)}</p>
+              <div class="devlist">
+                {#each enceintesSs as e (e.cle)}
+                  <div class="dev ign">
+                    <span class="dn">{e.nom}</span>
+                    <span class="dh">{e.adresse ?? ''}</span>
+                    <label class="lnk">
+                      <input type="checkbox" checked={e.exclue} disabled={ssOccupe}
+                        onchange={(ev) => basculerExclusionSs(e, ev)} />
+                      {$t('settings.sendspinDoNotConnect' as any)}
+                    </label>
+                  </div>
+                {:else}
+                  <p class="hint">{$t('settings.sendspinNone' as any)}</p>
+                {/each}
+              </div>
+              {#if ssErreur}<p class="hint">{$t('settings.sendspinSaveFailed' as any)}</p>{/if}
 
             {:else if s.id === 'ignoredDevices'}
               <p class="hint">{$t('settings.ignoredDevicesIntro' as any)}</p>
