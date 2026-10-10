@@ -33,6 +33,7 @@
   import MediaServersV2 from './MediaServersV2.svelte';
   import StreamingV2 from './StreamingV2.svelte';
   import CrossfeedV2 from './CrossfeedV2.svelte';
+  import ReaffectationCanauxV2 from './ReaffectationCanauxV2.svelte';
   import CrossfeedProV2 from './CrossfeedProV2.svelte';
   import EqualizerV2 from './EqualizerV2.svelte';
   import TuneHealthV2 from './TuneHealthV2.svelte';
@@ -739,6 +740,8 @@
         <CrossfeedV2 />
       {:else if $activeView === 'crossfeedpro'}
         <CrossfeedProV2 />
+      {:else if $activeView === 'reaffectation'}
+        <ReaffectationCanauxV2 />
       {:else if $activeView === 'equalizer'}
         <EqualizerV2 />
       {:else if $activeView === 'diagnostics'}
