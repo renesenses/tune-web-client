@@ -69,6 +69,55 @@ function zoneDeLaSource(): number | null {
   return isBrowserZone(affichee) && typeof affichee?.id === 'number' ? affichee.id : null;
 }
 
+/**
+ * 🔴 #5975 — UNE PISTE EN ÉCHEC NE DOIT PAS ARRÊTER LA FILE.
+ *
+ * Alex Campbell, fil forum 2178 (1.0.0-rc2 Docker, Safari 18.6, zone « This
+ * computer ») : « 'tttroys playlist' still fails to either player the first
+ * track or skip to the next available working track ». Le gestionnaire
+ * `error` journalisait, passait `browserAudioPlaying` à faux, et s'arrêtait :
+ * ni `api.next`, ni saut. Sur la zone navigateur, une piste illisible figeait
+ * donc toute la file, alors que les autres zones passent à la suivante.
+ *
+ * Garde-fou contre la boucle : si toutes les pistes échouent (file en
+ * répétition, format que le navigateur ne décode jamais…), on s'arrête après
+ * `MAX_ECHECS_CONSECUTIFS` sauts sans un seul `playing` entre eux. La fin de
+ * file, elle, s'arrête d'elle-même : le serveur répond `status: "stopped"`
+ * (`end_of_queue`) et on ne recharge rien.
+ */
+export const MAX_ECHECS_CONSECUTIFS = 5;
+let echecsConsecutifs = 0;
+let sautEnCours = false;
+
+async function sauterLaPisteEnErreur(zoneId: number | null): Promise<void> {
+  if (zoneId == null || sautEnCours) return;
+  echecsConsecutifs += 1;
+  if (echecsConsecutifs > MAX_ECHECS_CONSECUTIFS) {
+    console.warn(
+      `Browser audio: ${MAX_ECHECS_CONSECUTIFS} sauts sans une piste lisible, arrêt de la file (#5975)`,
+    );
+    // On rend la main : l'élément est vidé (et le compteur remis à zéro par
+    // `browserStop`), si bien qu'aucune erreur tardive ne relance la série,
+    // et qu'un prochain lancement repart d'un compteur neuf.
+    browserStop();
+    return;
+  }
+  sautEnCours = true;
+  try {
+    const res = await api.next(zoneId);
+    if (res?.status === 'stopped') return; // fin de file
+    const z = await api.getZone(zoneId);
+    syncZone(z);
+    if (isBrowserZone(z) && z.stream_url && z.state !== 'stopped') {
+      browserPlay(z.stream_url, true, z.id);
+    }
+  } catch {
+    /* non-fatal */
+  } finally {
+    sautEnCours = false;
+  }
+}
+
 /** Get or create the singleton audio element */
 function getAudio(): HTMLAudioElement {
   if (!audioElement) {
@@ -78,6 +127,7 @@ function getAudio(): HTMLAudioElement {
 
     audioElement.addEventListener('playing', () => {
       browserAudioPlaying.set(true);
+      echecsConsecutifs = 0;
       if (pilotLaBarreAffichee()) startSeekTimer();
     });
 
@@ -122,10 +172,16 @@ function getAudio(): HTMLAudioElement {
       }
     });
 
-    audioElement.addEventListener('error', (e) => {
-      console.error('Browser audio error:', audioElement?.error);
+    audioElement.addEventListener('error', () => {
+      const erreur = audioElement?.error;
+      console.error('Browser audio error:', erreur);
       browserAudioPlaying.set(false);
       if (pilotLaBarreAffichee()) stopSeekTimer();
+      // #5975 — une piste illisible ne doit pas arrêter la file : on passe à
+      // la suivante, comme les autres zones. Seulement pour une vraie erreur
+      // média sur une source chargée (un arrêt vide la source sans erreur).
+      if (!erreur || !audioElement?.src || get(browserStreamUrl) === null) return;
+      void sauterLaPisteEnErreur(zoneDeLaSource());
     });
   }
   return audioElement;
@@ -239,6 +295,7 @@ export function browserStop() {
   // pas figer la barre d'une autre zone affichée (#2108).
   const pilote = pilotLaBarreAffichee();
   sourceZoneId = null;
+  echecsConsecutifs = 0;
   audio.pause();
   audio.removeAttribute('src');
   audio.load(); // reset
@@ -283,6 +340,8 @@ export function browserSetVolume(volume: number) {
 /** Clean up the audio element (call on app destroy) */
 export function browserAudioDestroy() {
   sourceZoneId = null;
+  echecsConsecutifs = 0;
+  sautEnCours = false;
   if (audioElement) {
     audioElement.pause();
     audioElement.removeAttribute('src');
