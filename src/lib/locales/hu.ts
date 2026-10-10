@@ -2213,6 +2213,7 @@ export default {
   "smartai.nameTempoMix": "{bpm} BPM mix",
   "search.topArtists": "Legtöbbet játszott előadók",
   "login.createAccount": "Fiók létrehozása",
+  "login.ssoIndisponibleRelais": "A mozaiklabs.fr bejelentkezés távoli hozzáféréssel nem működik: a fiók összekapcsolásához nyisd meg a Tune-t a helyi hálózaton.",
   "tv.stereoVuMeters": "Sztereó VU-mérők",
   "oxygen.settingsTitle": "Oxygen nézet · haladó gyűjtemény",
   "queue.resizePanel": "Húzd az átméretezéshez · dupla kattintás az alaphelyzethez",

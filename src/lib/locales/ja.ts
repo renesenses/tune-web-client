@@ -2154,6 +2154,7 @@ export default {
   "library.shuffleArtist": "シャッフル再生",
   "library.similarError": "類似曲を取得できませんでした。",
   "login.createAccount": "アカウントを作成",
+  "login.ssoIndisponibleRelais": "mozaiklabs.fr でのサインインはリモートアクセス経由では使えません。アカウントを連携するには、ローカルネットワークで Tune を開いてください。",
   "lyrics.karaoke": "カラオケ",
   "lyrics.source.lrc": "ソース：.lrc ファイル",
   "lyrics.source.tag": "ソース：ファイルのタグ",

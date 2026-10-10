@@ -18,6 +18,7 @@
   import { searchSettings, tabLabel, type V2SettingsHit } from '../../lib/v2Settings';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import * as api from '../../lib/api';
+  import { ssoDisponible } from '../../lib/bridge';
   import {
     peutChoisirPhoto, photoAAfficher, proprietairePourNouvellePhoto,
     type EtatCompte,
@@ -467,10 +468,15 @@
         {$t('settings.titleV2' as any)}
       </button>
       {#if !ssoConnected && ssoConfigured}
-        <button class="item" onclick={signIn}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3M11 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-8" /></svg>
-          {$t('settings.signIn')}
-        </button>
+        <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
+        {#if ssoDisponible()}
+          <button class="item" onclick={signIn}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3M11 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-8" /></svg>
+            {$t('settings.signIn')}
+          </button>
+        {:else}
+          <div class="hint">{$t('login.ssoIndisponibleRelais' as any)}</div>
+        {/if}
       {:else if !ssoConnected}
         <div class="hint">{$t('settings.cloudComingSoon')}</div>
       {/if}

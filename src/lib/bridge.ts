@@ -293,6 +293,49 @@ export function versLeRelais(url: string): string | null {
 }
 
 /**
+ * Adresse d'API pour ce que le NAVIGATEUR va chercher seul : `<img src>`,
+ * `<a href>` de téléchargement, `window.location.href`.
+ *
+ * Ces chemins-là ne passent pas par `fetch` : ni l'intercepteur ni
+ * `entetesRelais()` ne peuvent y poser `X-Bridge-Token`. Le pont accepte donc
+ * le jeton en `?token=` pour les LECTURES relayées (GET/HEAD — jamais pour
+ * une écriture), le retire avant de relayer et le masque dans ses traces.
+ *
+ * Hors relais, ou pour une adresse qui ne vise pas l'API (autre domaine,
+ * `blob:`, `data:`), l'adresse est rendue telle quelle.
+ */
+export function urlNavigateur(url: string): string {
+  if (!url) return url;
+  const cible = versLeRelais(url);
+  if (cible === null) return url;
+  const jeton = resoudre().jeton as string;
+  const diese = cible.indexOf('#');
+  const avant = diese < 0 ? cible : cible.slice(0, diese);
+  const fragment = diese < 0 ? '' : cible.slice(diese);
+  const sep = avant.includes('?') ? '&' : '?';
+  return `${avant}${sep}token=${encodeURIComponent(jeton)}${fragment}`;
+}
+
+/**
+ * La connexion au compte mozaiklabs.fr (SSO) est-elle possible d'ici ?
+ *
+ * PAS par le pont. Le parcours OAuth est une suite de NAVIGATIONS : le
+ * serveur répond par une redirection vers mozaiklabs.fr, puis mozaiklabs.fr
+ * renvoie le navigateur sur l'adresse de rappel du serveur. Or :
+ *   - le pont rejoue la requête depuis le serveur lui-même (127.0.0.1) : la
+ *     redirection est suivie CÔTÉ SERVEUR, jamais rendue au navigateur, et
+ *     l'en-tête `Location` n'est pas relayé ;
+ *   - l'adresse de rappel est construite sur l'hôte vu par le serveur, soit
+ *     `http://127.0.0.1:8888/api/v1/cloud/sso/callback` — injoignable depuis
+ *     un téléphone en 4G/5G, et non déclarée chez mozaiklabs.fr.
+ * Le compte se relie une fois, sur le réseau local ; l'accès à distance n'en
+ * a pas besoin (jeton du pont, puis compte Tune si le serveur l'exige).
+ */
+export function ssoDisponible(): boolean {
+  return serverIdDepuisUrl() === null;
+}
+
+/**
  * Filet pour TOUT `fetch` vers l'API, par le relais.
  *
  * `baseApi()` et `entetesRelais()` couvrent les appels qui passent par

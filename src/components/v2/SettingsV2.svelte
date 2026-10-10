@@ -51,6 +51,7 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { ssoDisponible } from '../../lib/bridge';
   import { chargerLienAcces, qrSvg } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
@@ -4329,7 +4330,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if ssoConnecte}
                   <button class="lnk" disabled={ssoQuitte} onclick={delierCompteCloud}
                     >{ssoQuitte ? $t('common.loading' as any) : $t('settings.signOut' as any)}</button>
-                {:else if ssoConfigure}
+                {:else if ssoConfigure && ssoDisponible()}
+                  <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
                   <button class="lnk" onclick={relierCompteCloud}
                     >{$t('settings.signIn' as any)}</button>
                 {/if}

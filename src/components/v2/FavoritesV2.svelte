@@ -12,6 +12,7 @@
    *   Expert → ligne technique sur les titres.
    */
   import * as api from '../../lib/api';
+  import { urlNavigateur } from '../../lib/bridge';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -1285,7 +1286,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           </button>
           <!-- Un lien, pas un bouton : c'est le navigateur qui télécharge, et
                le serveur rend déjà le CSV tout fait. -->
-          <a class="rf-btn" href="/api/v1/radio-favorites/export" download="radio_favorites.csv">
+          <a class="rf-btn" href={urlNavigateur('/api/v1/radio-favorites/export')} download="radio_favorites.csv">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             {$t('v2.fav.radioExport' as any)}
           </a>

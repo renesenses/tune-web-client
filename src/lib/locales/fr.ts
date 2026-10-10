@@ -2751,6 +2751,7 @@ export default {
   "smartai.nameTempoMix": "Mix {bpm} BPM",
   "search.topArtists": "Artistes les plus ecoutes",
   "login.createAccount": "Creer un compte",
+  "login.ssoIndisponibleRelais": "La connexion avec mozaiklabs.fr ne passe pas par l’accès à distance : ouvrez Tune sur votre réseau local pour relier votre compte.",
   "tv.stereoVuMeters": "VU-mètres stéréo",
   "oxygen.settingsTitle": "Vue Oxygen · bibliothèque avancée",
   "queue.resizePanel": "Glisser pour redimensionner · double-clic pour rétablir",
