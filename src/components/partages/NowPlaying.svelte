@@ -44,6 +44,8 @@ import { ICONES } from '../../lib/menuPiste';
   import { t, locale } from '../../lib/i18n';
   import { libelleConversion } from '../../lib/bitperfectStrict';
   import { gainIgnoreParPure } from '../../lib/pureReplayGain';
+  import { gainDeSortieCourant, libelleRabot } from '../../lib/gainDeSortie';
+  import GainDeSortieNotes from './GainDeSortieNotes.svelte';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
@@ -2194,6 +2196,13 @@ import { ICONES } from '../../lib/menuPiste';
             {#if rgIgnoreDb != null}
               <p class="sp-conversion sp-pure-rg">{$t('signal.pureRgIgnoredDb' as any).replace('{db}', dbSigne(rgIgnoreDb))}</p>
             {/if}
+            <!-- tune-server-rust#4384 — le rabot à l'unité se DIT : « +6 dB de
+                 préampli à volume plein » ne change rien, et voici pourquoi.
+                 Rien d'un serveur qui ne publie pas le gain demandé. -->
+            {@const rabot = libelleRabot($gainDeSortieCourant, $t as any)}
+            {#if rabot}
+              <p class="sp-conversion sp-gain-rabot">{rabot}</p>
+            {/if}
             {#if showSignalDetail}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -2244,6 +2253,8 @@ import { ICONES } from '../../lib/menuPiste';
                       </div>
                     {/each}
                   </div>
+                  <!-- tune-server-rust#4384 — ce que devient le gain en sortie. -->
+                  <GainDeSortieNotes signalPath={zone.signal_path} />
                 </div>
               </div>
             {/if}
@@ -3284,6 +3295,7 @@ import { ICONES } from '../../lib/menuPiste';
   }
 
   .sp-conversion.degrade { color: var(--tune-text); font-weight: 600; }
+  .sp-gain-rabot { color: var(--tune-text); }
 
   .signal-path-overlay {
     position: fixed;
