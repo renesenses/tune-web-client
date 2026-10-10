@@ -3297,6 +3297,7 @@ export default {
   "streaming.allGenres": 'Tous les genres',
   "streaming.pickGenre": 'Choisissez un genre pour voir ses albums.',
   "streaming.genreNoAlbums": 'Aucun album dans ce genre.',
+  "streaming.genrePlaylists": 'Playlists du genre',
   "streaming.genresEmpty": 'Ce service ne propose aucun genre.',
   "v2.hist.eyebrow": "Ce que vous avez écouté",
   "v2.hist.replayError": "Impossible de relancer cette écoute",

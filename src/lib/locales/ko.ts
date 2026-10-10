@@ -3275,6 +3275,7 @@ export default {
   "streaming.allGenres": '모든 장르',
   "streaming.pickGenre": '장르를 선택하면 해당 앨범이 표시됩니다.',
   "streaming.genreNoAlbums": '이 장르에는 앨범이 없습니다.',
+  "streaming.genrePlaylists": '이 장르의 플레이리스트',
   "streaming.genresEmpty": '이 서비스는 장르를 제공하지 않습니다.',
   "v2.hist.eyebrow": "지금까지 들은 음악",
   "v2.hist.replayError": "이 재생을 다시 시작할 수 없습니다",

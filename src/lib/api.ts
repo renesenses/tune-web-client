@@ -5278,6 +5278,15 @@ export function getStreamingFeaturedPlaylistsByTag(service: string, genre?: stri
   return fetchJSON<PlaylistTagGroup[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured-playlists/by-tag${params}`, undefined, undefined, true);
 }
 
+/** Les playlists éditoriales d'un GENRE (tune-server-rust#5313) : la route
+ *  `featured-playlists` lit `genre` et le transmet au service (Qobuz :
+ *  `genre_ids`). Les services sans playlists éditoriales rendent `[]`.
+ *  `sansBandeau` : la bande est un complément de la vue du genre, son échec
+ *  ne mérite pas le bandeau global. */
+export function getStreamingGenrePlaylists(service: string, genreId: string) {
+  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured-playlists?genre=${encodeURIComponent(genreId)}`, undefined, undefined, true);
+}
+
 export function getStreamingGenres(service: string, parentId?: string) {
   const params = parentId ? `?parent_id=${encodeURIComponent(parentId)}` : '';
   return fetchJSON<import('./types').StreamingGenre[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres${params}`);
