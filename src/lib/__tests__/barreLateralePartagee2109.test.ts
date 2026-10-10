@@ -84,11 +84,17 @@ describe('fil 2109 — la barre latérale suit le profil, pas le navigateur', ()
   it('un geste fait ICI, plus récent, garde la main — et répare le serveur', async () => {
     // Un onglet resté ouvert ailleurs a renvoyé une copie plus ancienne.
     localStorage.setItem(STORAGE_KEY, blobLocal({ barreLaterale: CHOIX_A, barreLateraleMaj: 3_000 }));
-    const p = await magasinApresSynchro({ barreLaterale: CHOIX_B, barreLateraleMaj: 2_000 });
+    const p = await magasinApresSynchro({ theme: 'dark', barreLaterale: CHOIX_B, barreLateraleMaj: 2_000 });
     expect(p.barreLaterale).toEqual(CHOIX_A);
     const dernier = JSON.parse(JSON.parse(patchs[patchs.length - 1]).ui_preferences);
     expect(dernier.barreLaterale, 'la fusion doit réécrire le geste le plus frais au serveur').toEqual(CHOIX_A);
     expect(dernier.barreLateraleMaj).toBe(3_000);
+    // Aucune écriture de configuration au chargement : cette réparation est la
+    // seule admise, et elle ne repousse QUE la barre. Le reste part tel que le
+    // serveur l'a rendu — jamais le blob local (ici `language: 'en'`).
+    expect(patchs, 'une seule écriture, la réparation de la barre').toHaveLength(1);
+    expect(dernier.theme).toBe('dark');
+    expect(dernier.language).toBeUndefined();
   });
 
   it('un blob serveur antérieur à la barre réglable ne touche pas au choix local', async () => {

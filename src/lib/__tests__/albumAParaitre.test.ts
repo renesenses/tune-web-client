@@ -66,7 +66,7 @@ describe('point 10 — les albums à paraître sont grisés et injouables', () =
     for (const f of ['src/components/v2/PageWidgets.svelte', 'src/components/v2/StreamingV2.svelte']) {
       expect(readFileSync(f, 'utf8'), f).toContain('v2.str.comingOn');
     }
-    for (const f of ['src/components/v2/ListePistesV2.svelte', 'src/components/v2/LignePisteV2.svelte']) {
+    for (const f of ['src/components/v2/ListePistesV2.svelte']) {
       const src = readFileSync(f, 'utf8');
       expect(src, f).toContain('pisteIndisponible');
       expect(src, f).toContain('disabled={indispo}');

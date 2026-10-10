@@ -81,6 +81,7 @@
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
+import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration,  type QualityTier } from '../../lib/utils';
   import { formatDeFichier } from '../../lib/typeDeFichier';
@@ -118,6 +119,7 @@
   } from '../../lib/centreCarrousel';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import MenuObjetV2 from './MenuObjetV2.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
@@ -833,6 +835,30 @@
    * panne, pas comme une bibliothèque non taguée.
    */
   const hasDr = $derived(src.some((a) => drNombre(a) != null));
+  /**
+   * web#2036 — Cyrille, fil 2196 : « DR n'est pas sélectionné dans affichage,
+   * il est pourtant visible sur la bibliothèque ». La case « DR » de Réglages >
+   * Affichage gouvernait la colonne des listes de pistes, pas ce filtre.
+   * Décision de Bertrand (09/10/2026) : DR non affiché ⇒ pas de filtre DR.
+   *
+   * On lit la MÊME réponse que la liste de pistes (`colonnesRetenues` sur le
+   * mode courant) : la colonne DR n'est offerte qu'en Avancé, donc le filtre
+   * suit — il n'existe que là où la colonne peut exister et est cochée.
+   */
+  const drAffiche = $derived(
+    colonnesRetenues($preferences.v2Colonnes?.[level] ?? [], level).some((c) => c.cle === 'dr'),
+  );
+  /**
+   * Un filtre DR actif ne survit pas à son masquage : la grille resterait
+   * filtrée par une commande que l'utilisateur ne voit plus. On ne décide que
+   * sur la PRÉFÉRENCE, jamais sur `src` (une liste vide ne décide de rien, #899).
+   */
+  $effect(() => {
+    if (!drAffiche && (untrack(() => fDrMin) != null || untrack(() => fDrMax) != null)) {
+      fDrMin = null;
+      fDrMax = null;
+    }
+  });
   /** Les DR réellement présents, croissants — pas une échelle inventée. */
   const valeursDr = $derived([...new Set(src.map(drNombre).filter((v): v is number => v != null))].sort((x, y) => x - y));
   const availableSorts = $derived(
@@ -2234,6 +2260,46 @@
   });
 
   /**
+   * 🔴 LE SUIVANT DU NAVIGATEUR ROUVRE LA FICHE — pendant de l'effet qui la
+   * referme au Précédent (plus haut, « Le Précédent du navigateur a dépilé
+   * notre entrée »).
+   *
+   * Précédent puis Suivant : l'adresse revenait à `#library/album:55`, la
+   * coquille reposait bien `album:55` dans `detailOuvert`, et rien ne rouvrait
+   * le calque — l'écran savait refermer sur la clé, jamais rouvrir.
+   *
+   * On ROUVRE sans passer par `ouvrirDetail` : l'entrée atteinte porte déjà la
+   * clé, empiler en ferait une de trop. Seules les clés d'album LOCAL
+   * (`album:<id>`) se rouvrent ici ; une clé de service (`album:qobuz:…`) ne
+   * désigne pas un album de cette bibliothèque. Sous un dépôt distant, rien :
+   * ses identifiants ne sont pas les nôtres.
+   *
+   * ⚠️ Déclaré APRÈS l'effet de `$listResetNonce` : au montage (retour depuis
+   * une autre vue sur une entrée `#library/album:N`), celui-là referme d'abord
+   * le calque, celui-ci le rouvre ensuite.
+   */
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      if (depot || voulu == null) return;
+      const m = /^album:(\d+)$/.exec(voulu);
+      if (!m) return;
+      if (opened && cleCalqueEmpilee === voulu) return;
+      const id = Number(m[1]);
+      // L'asynchrone peut arriver après un nouveau Précédent : on ne rouvre
+      // que si la clé est toujours celle de l'entrée courante.
+      const rouvrir = (a: Album) => {
+        if ($detailOuvert !== voulu) return;
+        opened = a;
+        cleCalqueEmpilee = voulu;
+      };
+      const connu = $albums.find((a) => a.id === id);
+      if (connu) { rouvrir(connu); return; }
+      api.getAlbum(id).then((a) => { if (a) rouvrir(a); }).catch(() => {});
+    });
+  });
+
+  /**
    * L'ANNÉE demandée de l'extérieur — troisième de la même famille.
    *
    * `NowPlaying` pose `yearFilter` depuis toujours, et `yearFilter` n'est lu
@@ -2678,7 +2744,7 @@
            place aussi au premier niveau. -->
       <!-- Tranche DR (#2144) : dessinée SEULEMENT si des albums portent un
            DR — ailleurs, une commande qui ne filtre rien. -->
-      {#if hasDr}
+      {#if hasDr && drAffiche}
         <span class="chip dr" class:active={fDrMin != null || fDrMax != null}>
           <span>{$tr('library.drRange' as any)}</span>
           <select aria-label={$tr('library.drMin' as any)} value={fDrMin == null ? '' : String(fDrMin)}
@@ -2965,7 +3031,16 @@
           <span class="cause-vide">{causeVide.cause === 'partageNonDeclare'
             ? $tr('v2.lib.emptyShareNotDeclared' as any).replace('{partages}', causeVide.partages.join(', '))
             : $tr('v2.lib.emptyNoFolder' as any)}</span>
-          <button class="chip" onclick={addContent}>{$tr('v2.lib.emptyOpenFolders' as any)}</button>
+        {/if}
+        <!-- Fil 2171 — le geste d'ajout est proposé sur TOUTE bibliothèque
+             locale vide, pas seulement quand aucun dossier n'est déclaré : une
+             installation neuve en déclare un d'office (`~/Music`), et la page
+             ne proposait alors plus rien. -->
+        {#if !depot}
+          <span class="gestes-vide">
+            <BoutonAjouterDossier onAjoute={() => void lireCauseVide()} />
+            <button class="chip" onclick={addContent}>{$tr('v2.lib.emptyOpenFolders' as any)}</button>
+          </span>
         {/if}</div>
     {:else}
       <!-- Le rail reste sur TOUS les tris (Bertrand, 25/09/2026) : sur un tri
@@ -3504,7 +3579,8 @@
   */
   .body.encarrousel{flex-direction:column-reverse}
   .state{flex:1; display:grid; place-items:center; color:var(--v2-txt3); font-size:15px}
-  .state:has(.cause-vide){align-content:center; gap:10px}
+  .state:has(.cause-vide), .state:has(.gestes-vide){align-content:center; gap:10px}
+  .state .gestes-vide{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center}
   .state .cause-vide{max-width:46ch; text-align:center; font-size:13px; line-height:1.5}
   /* Rail A-Z : c'est un REPERE, il doit se lire d'un coup d'oeil et se viser
      au doigt. Auparavant 11 px colles a 1 px d'intervalle contre la grille —

@@ -58,6 +58,49 @@ export interface AudioLevels {
    * serveur qui ne l'annonce pas.
    */
   sample_rate: number | null;
+  /**
+   * tune-server-rust#4384 — le gain que la sortie applique en aval du point
+   * de mesure, en dB, déjà compris dans les niveaux ci-dessus. `null` =
+   * serveur qui ne le publie pas. Vaut 0 sur un rendu réseau.
+   */
+  output_gain_db: number | null;
+  /**
+   * tune-server-rust#4384 — sortie locale hors DoP seulement : volume ×
+   * ReplayGain (préampli compris) DEMANDÉ avant le rabot à l'unité, en dB.
+   * `null` ailleurs, et d'un serveur qui ne le publie pas.
+   */
+  output_gain_requested_db: number | null;
+  /** tune-server-rust#4384 — le rabot à l'unité a mordu. `null` si non publié. */
+  output_gain_limited: boolean | null;
+  /**
+   * tune-server-rust#4969 — le niveau de CHAQUE canal, dans l'ordre du flux,
+   * publié par le serveur (rc3, #5937) seulement à partir de trois canaux.
+   * Vide en stéréo, ou sur un serveur qui ne le publie pas.
+   */
+  channel_levels: NiveauDeCanal[];
+  /**
+   * Le nom de chaque canal dans l'ordre par défaut FLAC/WAV (`FL`, `FR`,
+   * `FC`, `LFE`…), quand le serveur en connaît un (3 à 8 canaux). `null`
+   * sinon : l'écran affiche alors le numéro du canal.
+   */
+  channel_names: string[] | null;
+}
+
+/** Niveau d'un canal, tel que `playback.audio_levels` le publie (#4969). */
+export interface NiveauDeCanal {
+  rms_db: number;
+  peak_db: number;
+  over: boolean;
+}
+
+/** Lit `channel_levels` sans faire confiance à sa forme. */
+function lireNiveauxParCanal(brut: unknown): NiveauDeCanal[] {
+  if (!Array.isArray(brut)) return [];
+  return brut.map((c: any) => ({
+    rms_db: typeof c?.rms_db === 'number' ? c.rms_db : -96,
+    peak_db: typeof c?.peak_db === 'number' ? c.peak_db : -96,
+    over: c?.over === true,
+  }));
 }
 
 const defaultLevels: AudioLevels = {
@@ -76,6 +119,11 @@ const defaultLevels: AudioLevels = {
   spectrum_resolution_hz: null,
   spectrum_resolved: [],
   sample_rate: null,
+  output_gain_db: null,
+  output_gain_requested_db: null,
+  output_gain_limited: null,
+  channel_levels: [],
+  channel_names: null,
 };
 
 /**
@@ -164,6 +212,16 @@ export function handleAudioLevelsEvent(data: any) {
     spectrum_resolved: Array.isArray(data.spectrum_resolved) ? data.spectrum_resolved : [],
     sample_rate:
       typeof data.sample_rate === 'number' && data.sample_rate > 0 ? data.sample_rate : null,
+    output_gain_db: typeof data.output_gain_db === 'number' ? data.output_gain_db : null,
+    output_gain_requested_db:
+      typeof data.output_gain_requested_db === 'number' ? data.output_gain_requested_db : null,
+    output_gain_limited:
+      typeof data.output_gain_limited === 'boolean' ? data.output_gain_limited : null,
+    channel_levels: lireNiveauxParCanal(data.channel_levels),
+    channel_names:
+      Array.isArray(data.channel_names) && data.channel_names.every((n: unknown) => typeof n === 'string')
+        ? data.channel_names
+        : null,
   };
   levelsByZone.update((m) => ({ ...m, [zoneId]: levels }));
 }

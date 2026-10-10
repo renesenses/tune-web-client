@@ -97,8 +97,8 @@ beforeEach(() => {
   appels = [];
   localStorage.clear();
   locale.set('fr');
-  // Expert rend le TABLEAU (`MODES_BRANCHES`) : c'est la forme qu'ont les
-  // fiches de playlist ; le mode lignes est éprouvé à part, plus bas.
+  // Tous les modes rendent le TABLEAU depuis #1470 : c'est la forme qu'ont
+  // les fiches de playlist.
   preferences.update((p) => ({ ...p, settingsLevel: 'expert' }));
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
   vi.stubGlobal('WebSocket', class {

@@ -17,6 +17,10 @@
  * La garde ne mesure pas des pixels — elle tient l'INVARIANT qui les cause :
  * le suffixe est enveloppé, donc la grille reçoit exactement deux enfants quoi
  * que l'appelant écrive dans son extrait.
+ *
+ * Depuis #1470 il n'y a plus de rendu en lignes : `.avecSuffixe` et son
+ * enveloppe `.suffixe` sont retirés. Le tableau enveloppe le suffixe dans sa
+ * cellule `.td act`, et c'est ce que la garde tient désormais.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -56,29 +60,15 @@ function racinesDuSnippet(source: string, nom: string): number {
 
 describe('l’enveloppe du suffixe', () => {
   it('🔴 le rendu du suffixe est enveloppé dans un seul élément', () => {
-    expect(liste).toContain('<span class="suffixe">{@render apres(p, i)}</span>');
-    // 🔴 CHAQUE rendu du suffixe est enveloppé, pas seulement celui-là. Le mode
-    // TABLEAU l'enveloppait déjà (`<span class="td act">`) et n'a jamais souffert
-    // du défaut : c'est le mode LIGNES qui rendait l'extrait nu. La garde
-    // vérifie donc les deux, sans quoi corriger l'un laisserait l'autre.
+    // 🔴 CHAQUE rendu du suffixe est enveloppé. Le TABLEAU l'enveloppe dans
+    // `<span class="td act">` ; c'est l'ancien mode LIGNES, retiré depuis
+    // (#1470), qui rendait l'extrait nu.
+    expect(liste).toContain('{@render apres(p, i)}');
     const nus = liste
       .split('{@render apres(p, i)}')
       .slice(0, -1)
-      .filter((avant) => !/<span class="(suffixe|td act)"[^>]*>$/.test(avant.trimEnd()));
+      .filter((avant) => !/<span class="td act"[^>]*>$/.test(avant.trimEnd()));
     expect(nus, 'un rendu du suffixe est posé nu dans sa grille').toEqual([]);
-  });
-
-  it('l’enveloppe range ses enfants côte à côte, jamais en pile', () => {
-    const css = liste.slice(liste.lastIndexOf('<style')).replace(/\/\*[\s\S]*?\*\//g, ' ');
-    const regle = /\.suffixe\{([^}]*)\}/.exec(css)?.[1] ?? '';
-    expect(regle).toContain('display:flex');
-    expect(regle).toContain('align-items:center');
-    expect(regle, 'une pile recréerait la ligne qu’on vient de retirer').not.toContain('column');
-  });
-
-  it('la grille reste à deux colonnes — c’est elle qui impose l’invariant', () => {
-    const css = liste.slice(liste.lastIndexOf('<style')).replace(/\/\*[\s\S]*?\*\//g, ' ');
-    expect(css).toMatch(/\.avecSuffixe\{[^}]*grid-template-columns:minmax\(0,1fr\) auto/);
   });
 });
 
