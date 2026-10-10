@@ -32,6 +32,7 @@
   import {
     TAILLES_PAGE, chargerTaillePage, retenirTaillePage, type TaillePage,
   } from '../../lib/taillePageRecherche';
+  import { filtrerParSaisie } from '../../lib/filtreSaisieOnglet';
   import { chargerRubriquesGenre, type BandeRubrique } from '../../lib/rubriquesGenre';
   import { chargerPlaylistsDuGenre } from '../../lib/playlistsDuGenre';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
@@ -544,28 +545,46 @@
   }
 
   /**
-   * 🔴 Fil forum 2128 (Didier, 03/10/2026) — « après une recherche, les choix
-   * Éditorial, Playlists, Favoris, Genres ne sont plus actifs ».
+   * 🔴 #2030 — fil forum 2128 (Didier, 09/10/2026, 1.0.0-rc2) : cliquer sur
+   * un onglet (Éditorial, Playlists, Favoris, Genres) EFFAÇAIT la recherche.
    *
-   * Pendant une recherche, la zone de contenu montre les RÉSULTATS avant de
-   * regarder le sous-onglet (`{:else if results || bcSearch}`). Le clic ne
-   * faisait que changer `sub`, sans rien de visible, et l'onglet restait
-   * allumé au-dessus de résultats qui n'étaient pas les siens.
+   * Décision de Bertrand (09/10, rc4) : la saisie est GARDÉE au changement
+   * d'onglet et s'APPLIQUE au nouvel onglet. Elle remplace le choix du
+   * 03/10 (le clic sortait de la recherche en vidant le champ).
    *
-   * Choix : le clic SORT de la recherche et ouvre l'onglet — le même geste que
-   * changer de service (`ouvrirOnglet` vide déjà la recherche). Griser aurait
-   * laissé l'utilisateur chercher comment revenir à l'onglet ; ici, il obtient
-   * ce qu'il vient de demander. Et pendant la recherche, aucun sous-onglet
-   * n'est allumé : aucun ne décrit ce qui est affiché.
+   * - Éditorial (et « Découvrir » de YouTube) : la saisie cherche dans le
+   *   CATALOGUE du service — les résultats sont le contenu de l'onglet, qui
+   *   reste donc allumé au-dessus d'eux.
+   * - Playlists, Favoris, Genres (et la collection Bandcamp) : la saisie
+   *   FILTRE ce que l'onglet montre (`lib/filtreSaisieOnglet`). Les puces de
+   *   genres, elles, ne sont pas filtrées : ce sont la navigation de
+   *   l'onglet, les masquer laisserait l'utilisateur sans issue.
+   *
+   * Changer de SERVICE vide toujours la saisie (`ouvrirOnglet`) : elle
+   * visait un autre catalogue.
    */
-  let rechercheAffichee = $derived(q.trim().length >= 2 || results !== null || bcSearch !== null);
+  const ongletCatalogue = $derived(sub === 'editorial' || sub === 'ytmusic');
+  let rechercheAffichee = $derived(
+    ongletCatalogue && (q.trim().length >= 2 || results !== null || bcSearch !== null),
+  );
 
   function ouvrirSousOnglet(id: Sub) {
     sub = id;
-    q = '';
-    results = null;
-    bcSearch = null;
   }
+
+  // Ce que montrent les onglets FILTRÉS par la saisie (#2030).
+  const playlistsVues = $derived(filtrerParSaisie(myPlaylists, q));
+  const favAlbumsVus = $derived(filtrerParSaisie(favAlbums, q));
+  const favArtistsVus = $derived(filtrerParSaisie(favArtists, q));
+  const favTracksVus = $derived(filtrerParSaisie(favTracks, q));
+  const genreAlbumsVus = $derived(filtrerParSaisie(genreAlbums, q));
+  const bandesGenreVues = $derived(
+    bandesGenre
+      .map((b) => ({ ...b, albums: filtrerParSaisie(b.albums as any[], q) as typeof b.albums }))
+      .filter((b) => b.albums.length > 0),
+  );
+  const bcCollectionVue = $derived(filtrerParSaisie(bcCollection, q));
+  const bcItemsVus = $derived(filtrerParSaisie(bcItems, q));
 
   // Un raccourci (ou un Précédent) qui repose le sous-onglet, écran monté.
   $effect(() => {
@@ -732,7 +751,8 @@
   // Recherche dans le service courant.
   $effect(() => {
     const svc = active, needle = q.trim();
-    if (!svc || needle.length < 2) { results = null; bcSearch = null; searching = false; rechOffset = 0; rechSuite = false; return; }
+    // #2030 — hors Éditorial, la saisie filtre l'onglet : rien ne part au catalogue.
+    if (!svc || needle.length < 2 || !ongletCatalogue) { results = null; bcSearch = null; searching = false; rechOffset = 0; rechSuite = false; return; }
     const mine = ++seq;
     searching = true;
     rechOffset = 0; rechSuite = false;
@@ -959,7 +979,7 @@
   function lireFavorisDepuis(i: number) {
     const zid = zoneRequise();
     if (zid == null) return;
-    lireListeDepuis(favTracks as any, i, gestesDeZone(zid)).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
+    lireListeDepuis(favTracksVus as any, i, gestesDeZone(zid)).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
   function playTrack(piste: any) {
     const zid = $currentZoneId;
@@ -1189,7 +1209,7 @@
     {#if active}
       <nav class="subs" use:molettePortee={() => zoneDefilante}>
         {#each SUBS as sb (sb.id)}
-          <button class:on={sub === sb.id && !rechercheAffichee} onclick={() => ouvrirSousOnglet(sb.id)}>{sb.label}</button>
+          <button class:on={sub === sb.id} onclick={() => ouvrirSousOnglet(sb.id)}>{sb.label}</button>
         {/each}
       </nav>
     {/if}
@@ -1413,7 +1433,10 @@
           onSessionChangee={() => { void rechargerCollection().catch(() => {}); }} />
         {#if bcCollection.length}
           <BandcampManquantsV2 />
-          <div class="grid">{#each bcCollection as it, i (it.url ?? i)}
+          {#if !bcCollectionVue.length}
+            <div class="state">{$t('v2.common.noResult' as any)}</div>
+          {/if}
+          <div class="grid">{#each bcCollectionVue as it, i (it.url ?? i)}
             {@const cle = cleTelechargeable(it)}
             {@const dl = telechargementDe(bcTelechargements, cle)}
             {@const loc = copieDe(it)}
@@ -1470,8 +1493,10 @@
         {/if}
         {#if paneLoading}
           <div class="state">{$t('common.loading' as any)}</div>
+        {:else if bcItemsVus.length}
+          <div class="grid">{#each bcItemsVus as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
         {:else if bcItems.length}
-          <div class="grid">{#each bcItems as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
+          <div class="state">{$t('v2.common.noResult' as any)}</div>
         {:else}
           <div class="state">{$t('v2.stream.nothingForGenre' as any)}</div>
         {/if}
@@ -1506,21 +1531,23 @@
         {/if}
         {#if genreLoading}
           <div class="state">{$t('common.loading' as any)}</div>
-        {:else if genreAlbums.length}
+        {:else if genreAlbumsVus.length}
           <!-- La grille NUE : un serveur qui ignore `?section=` (0.9.156 et
                avant) n'a qu'une liste a donner, et l'ecran reste celui d'avant
                #1300 — pas de titre invente, pas de bande en double. -->
-          <div class="grid">{#each genreAlbums as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
-        {:else if bandesGenre.length}
+          <div class="grid">{#each genreAlbumsVus as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+        {:else if bandesGenreVues.length}
           <!-- #1300 — une bande par RUBRIQUE du genre. Les sept libelles
                existaient deja dans les onze langues ; seule l'ancienne
                coquille s'en servait. -->
-          {#each bandesGenre as b (b.id)}
+          {#each bandesGenreVues as b (b.id)}
             <section class="sec">
               <h2>{b.cle ? $t(b.cle as any) : b.nom}</h2>
               <div class="grid">{#each b.albums as a, i (((a as any).source_id ?? (a as any).id ?? i))}{@render tile(a as any, () => playAlbum(a as any))}{/each}</div>
             </section>
           {/each}
+        {:else if genreAlbums.length || bandesGenre.length}
+          <div class="state">{$t('v2.common.noResult' as any)}</div>
         {:else if genreId}
           <div class="state">{$t('streaming.genreNoAlbums')}</div>
         {:else}
@@ -1536,8 +1563,10 @@
       {/if}
 
     {:else if sub === 'playlists'}
-      {#if myPlaylists.length}
-        <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+      {#if playlistsVues.length}
+        <div class="grid">{#each playlistsVues as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+      {:else if myPlaylists.length}
+        <div class="state">{$t('v2.common.noResult' as any)}</div>
       {:else}
         <div class="state">{$t('v2.str.noPlaylistsInAccount' as any).replace('{s}', label(active ?? ''))}</div>
       {/if}
@@ -1550,9 +1579,9 @@
            n'apparaît qu'à partir de DEUX natures — à une seule, il n'y a rien
            à sauter. -->
       {@const natures = [
-        { id: 'fav-albums', cle: 'v2.rech.albums', n: favAlbums.length },
-        { id: 'fav-artistes', cle: 'v2.rech.artists', n: favArtists.length },
-        { id: 'fav-titres', cle: 'v2.rech.tracks', n: favTracks.length },
+        { id: 'fav-albums', cle: 'v2.rech.albums', n: favAlbumsVus.length },
+        { id: 'fav-artistes', cle: 'v2.rech.artists', n: favArtistsVus.length },
+        { id: 'fav-titres', cle: 'v2.rech.tracks', n: favTracksVus.length },
       ].filter((x) => x.n > 0)}
       {#if natures.length > 1}
         <nav class="sommaire" aria-label={$t('v2.stream.favIndex' as any)}>
@@ -1561,21 +1590,21 @@
           {/each}
         </nav>
       {/if}
-      {#if favAlbums.length}
+      {#if favAlbumsVus.length}
         <section class="sec" id="fav-albums"><h2>{$t('v2.rech.albums' as any)}</h2>
-          <div class="grid">{#each favAlbums as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+          <div class="grid">{#each favAlbumsVus as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
         </section>
       {/if}
-      {#if favArtists.length}
+      {#if favArtistsVus.length}
         <section class="sec" id="fav-artistes"><h2>{$t('v2.rech.artists' as any)}</h2>
           <div class="arow">
-            {#each favArtists as ar, i ((ar.source_id ?? ar.name ?? i))}
+            {#each favArtistsVus as ar, i ((ar.source_id ?? ar.name ?? i))}
               {@render artiste(ar)}
             {/each}
           </div>
         </section>
       {/if}
-      {#if favTracks.length}
+      {#if favTracksVus.length}
         <!-- Fabien, fil 1780 (point 10, issue #1062) : « afficher les titres
              favoris sous forme de liste avec des actions » — la MÊME liste que
              les résultats de recherche juste au-dessus, avec ses cinq gestes,
@@ -1583,7 +1612,7 @@
              cliqué, puis ceux qui suivent dans la liste affichée. -->
         <section class="sec" id="fav-titres"><h2>{$t('v2.rech.tracks' as any)}</h2>
           <div class="liste">
-            <ListePistesV2 pistes={favTracks as any} numerotation="aucune" avecAlbum pochetteEnTableau
+            <ListePistesV2 pistes={favTracksVus as any} numerotation="aucune" avecAlbum pochetteEnTableau
               onLire={(_pi, i) => lireFavorisDepuis(i)}
               clef={(pi, i) => cleItem(pi as any, i)} />
           </div>
@@ -1591,6 +1620,8 @@
       {/if}
       {#if !favAlbums.length && !favArtists.length && !favTracks.length}
         <div class="state">{$t('v2.str.noFavoritesInAccount' as any).replace('{s}', label(active ?? ''))}</div>
+      {:else if !favAlbumsVus.length && !favArtistsVus.length && !favTracksVus.length}
+        <div class="state">{$t('v2.common.noResult' as any)}</div>
       {/if}
     {/if}
   </div>
