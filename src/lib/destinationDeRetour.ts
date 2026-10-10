@@ -86,6 +86,8 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   equalizer: 'destination',
   crossfeed: 'destination',
   crossfeedpro: 'destination',
+  // tune-server-rust#6044 — les réglages du greffon « Réaffectation des canaux ».
+  reaffectation: 'destination',
   plugins: 'destination',
   alarms: 'destination',
   converter: 'destination',
