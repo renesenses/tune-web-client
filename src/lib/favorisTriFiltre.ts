@@ -48,11 +48,16 @@
  * ## Ce que « date » veut dire n'est pas la même chose des deux côtés
  *
  * Pour un favori de service, `created_at` est le moment où on a posé le cœur.
- * Pour un album de la bibliothèque, `added_at` est le moment où il est entré
- * dans la bibliothèque : `getFavorites` rend les objets développés, pas les
- * lignes de favoris, donc la date du cœur n'existe pas de ce côté. Les deux
- * répondent à « quand est-ce arrivé chez moi », ce qui est le sens du tri —
- * mais ce n'est pas la même mesure, et le savoir évite de conclure à un bogue.
+ * Pour un objet de la bibliothèque, `added_at` est le moment où il est entré
+ * dans la bibliothèque — PAS celui du cœur.
+ *
+ * 🔴 web#2052 (FabienM, fil 2199, 1.0.0-rc3) : « j'ai mis un favori depuis
+ * l'historique, il s'est mis à la fin ». `getFavorites` reporte pourtant la
+ * date du cœur (`favorites.created_at`) sous `favorite_added_at` sur chaque
+ * objet local ; `dateDe` ne la lisait pas, et une piste entrée en bibliothèque
+ * il y a des années, aimée à l'instant, partait en fin de « Ajout récent ».
+ * `favorite_added_at` passe donc en tête ; `added_at` ne reste qu'un repli
+ * pour un serveur qui ne la rendrait pas.
  *
  * ## Le JUMELAGE compte comme bibliothèque (#1081, décision du 20/09/2026)
  *
@@ -90,6 +95,8 @@ interface Favori {
   created_at?: string | null;
   /** Date de PREMIÈRE VUE par Tune, ISO — absente d'un serveur d'avant #1060. */
   first_seen_at?: string | null;
+  /** Date du CŒUR d'un favori LOCAL, ISO — reportée par `getFavorites` (#2052). */
+  favorite_added_at?: string | null;
   added_at?: number | null;
 }
 
@@ -154,7 +161,9 @@ export function dateDe(o: Favori): number | null {
   // refaire (#1060). Une chaîne illisible ne compte pas pour une date — on
   // passe à la suivante au lieu de rendre `null` et de reléguer le favori en
   // fin de liste.
-  for (const iso of [o?.first_seen_at, o?.created_at]) {
+  // `favorite_added_at` en premier : sur un objet LOCAL, c'est la date du cœur,
+  // et `created_at` y serait celle de l'objet lui-même (#2052).
+  for (const iso of [o?.favorite_added_at, o?.first_seen_at, o?.created_at]) {
     if (typeof iso === 'string' && iso) {
       const t = Date.parse(iso);
       if (!Number.isNaN(t)) return t;
