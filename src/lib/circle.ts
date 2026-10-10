@@ -184,6 +184,12 @@ export interface EtatSynchroBibliotheque {
   pending?: number;
   /** Le `server_id` de CE serveur (décision du 28/09/2026). Absent = inconnu. */
   server_id?: string | null;
+  /**
+   * T4 — l'écoute chez un contact est-elle ouverte sur ce serveur ? Réglage
+   * local FERMÉ par défaut (décision produit du 10/10/2026). Absent (serveur
+   * plus ancien) = fermé.
+   */
+  listen_enabled?: boolean;
 }
 
 /**
@@ -725,6 +731,17 @@ export const RELECTURE_CERCLE_MS = 60_000;
  * lecture en échec), l'état de licence du serveur. Tant que ni l'un ni l'autre
  * n'a répondu : NON — aucun bouton ne s'affiche sur une supposition.
  */
+/**
+ * L'écoute chez un contact est-elle OUVERTE sur ce serveur ? Décision produit
+ * du 10/10/2026 : fermée par défaut, partout. Seul un `listen_enabled: true`
+ * explicite de `/library-sync` l'ouvre ; absent, faux ou pas de réponse :
+ * fermée, et l'écran ne montre RIEN de l'écoute (ni bouton, ni cadenas). Le
+ * partage de playlists du Cercle n'en dépend pas.
+ */
+export function ecouteOuverte(synchro: EtatSynchroBibliotheque | null | undefined): boolean {
+  return synchro?.listen_enabled === true;
+}
+
 export function ecoutePermise(
   premiumSynchro: boolean | null | undefined,
   licence: { loaded: boolean; premium: boolean },
