@@ -230,7 +230,7 @@
    * « Zubin Mehta », ni un album sans étiquettes rangé par dossier. On demande
    * au serveur les albums qui répondent au texte — `/library/albums-detailed`,
    * paginée comme la portée, avec `q` (et `folder` quand une portée est
-   * active) : le prédicat d'Oxygen (#5192), artiste de piste et nom de dossier
+   * active) : le prédicat d’Oxygen (#5192), artiste de piste, compositeur (fil 1684) et nom de dossier
    * compris, insensible à la casse et aux accents.
    *
    * Le résultat s'AJOUTE à la comparaison locale (`albumsDuTexte`), qui
