@@ -44,7 +44,15 @@
  * stéréo n'a pas de pastille à porter.
  */
 const CLES_PAR_BADGE: Readonly<Record<string, string>> = {
+  // tune-server-rust — le badge suit désormais la disposition DÉCLARÉE par le
+  // fichier, ou à défaut l'ordre par défaut de FLAC/WAV : un FLAC 4.0 (quad)
+  // n'est plus badgé « 5.1 ». Une disposition plus rare (6.0, 5.1.2…) reste
+  // rendue telle quelle, comme tout badge inconnu.
+  '3.0': 'zoneConfig.channels_surround30',
+  '4.0': 'zoneConfig.channels_surround40',
+  '5.0': 'zoneConfig.channels_surround50',
   '5.1': 'zoneConfig.channels_surround51',
+  '6.1': 'zoneConfig.channels_surround61',
   '7.1': 'zoneConfig.channels_surround71',
   '5.1.4': 'zoneConfig.channels_surround514',
   // tune-server-rust#5576 — 7.1.4 et 9.1.6 existent en Atmos comme en
