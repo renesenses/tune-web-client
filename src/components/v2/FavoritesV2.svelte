@@ -973,7 +973,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           Elle portait aussi DEUX cœurs : celui de `PisteActions` et un bouton
           de retrait dessiné à côté, tous deux sur la même piste.
 
-          `LignePisteV2` porte le badge de qualité complet (format, fréquence
+          La liste commune (`ListePistesV2`) porte le badge de qualité complet (format, fréquence
           ET profondeur), les cinq gestes, et un seul cœur qui bascule dans les
           deux sens. Le retrait passe par lui : il sait déjà distinguer une
           piste de la bibliothèque d'une piste de service.

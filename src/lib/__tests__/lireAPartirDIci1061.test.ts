@@ -59,18 +59,13 @@ describe('#1061 — la liste passe le RANG, pas la liste', () => {
     expect(liste).not.toContain('onLireDepuis ? () => onLireDepuis(p, i) : null');
   });
 
-  it('les DEUX rendus le portent — tableau et lignes', () => {
+  it('le tableau le porte dans sa cellule d’actions', () => {
     const n = (liste.match(/onLireDepuis=\{\(\) => lireDepuis\(p, i\)\}/g) ?? []).length;
-    // Une fois dans la cellule d'actions du tableau, deux fois dans le rendu
-    // en lignes (avec suffixe et sans).
-    expect(n).toBe(3);
+    // Une fois, dans la cellule d'actions du tableau : l'ancien rendu en
+    // lignes, qui le posait deux fois de plus, est retiré (#1470).
+    expect(n).toBe(1);
   });
 
-  it('la ligne la transmet à la barre', () => {
-    const ligne = lire('src/components/v2/LignePisteV2.svelte');
-    // #1771 — la ligne transmet aussi le cœur fourni par l'écran.
-    expect(ligne).toContain('<PisteActions {piste} {onLireDepuis} {coeur} />');
-  });
 });
 
 describe('#1061 — les écrans qui ont une liste ordonnée', () => {
