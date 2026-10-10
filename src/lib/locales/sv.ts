@@ -856,6 +856,10 @@ export default {
   'sleep.2h': '2 timmar',
   'sleep.cancel': 'Avbryt timer',
   'sleep.fading': 'Tonar ut...',
+  "sleep.customLabel": "Egen tid, i minuter",
+  "sleep.customPlaceholder": "min",
+  "sleep.customStart": "Starta",
+  "sleep.customInvalid": "Ange ett heltal minuter, från 1 till 1440.",
 
   // Scan Schedule
   'settings.scanSchedule': 'Schemalagd skanning',
@@ -3684,6 +3688,8 @@ export default {
   "settings.collectionsMosaicHint": "Fyra omslag per samling. Avmarkera för ett enda omslag, som i den tidigare klienten.",
   "settings.showStopButton": "Visa Stoppa-knappen",
   "settings.showStopButtonHint": "Tar tillbaka Stoppa-knappen till transportfältet. Båda gesterna finns redan och ändras inte: dubbelklick på Spela upp och tangenten S.",
+  "settings.showSleepTimer": "Visa knappen Sovtimer",
+  "settings.showSleepTimerHint": "Månknappen i uppspelningsfältet. Dold visas den igen medan en timer är igång, så att du kan följa och avbryta den.",
   "settings.sidebarSources": "Källor i sidofältet",
   "settings.sidebarSourcesHint": "En brytare per typ: en markerad typ visas alltid, nedtonad när den inte är tillgänglig. Som standard är bara de typer som finns på datorn markerade.",
   "settings.animationRate": "Animationernas mjukhet",

@@ -1016,6 +1016,10 @@ export default {
   'sleep.2h': '2 heures',
   'sleep.cancel': 'Annuler la minuterie',
   'sleep.fading': 'Fondu en cours...',
+  "sleep.customLabel": "Durée libre, en minutes",
+  "sleep.customPlaceholder": "min",
+  "sleep.customStart": "Lancer",
+  "sleep.customInvalid": "Entrez un nombre entier de minutes, de 1 à 1440.",
 
   // Scan Schedule
   'settings.scanSchedule': 'Scan programme',
@@ -3707,6 +3711,8 @@ export default {
   "settings.collectionsMosaicHint": "Quatre pochettes assemblées par collection. Décochez pour une pochette unique, comme l’écran de l’ancien client.",
   "settings.showStopButton": "Afficher le bouton Stop",
   "settings.showStopButtonHint": "Ramène le bouton Stop dans la barre de transport. Les deux gestes existent déjà et ne changent pas : double-clic sur Lecture, et la touche S.",
+  "settings.showSleepTimer": "Afficher le bouton Minuterie",
+  "settings.showSleepTimerHint": "Le bouton lune de la barre de lecture. Masqué, il réapparaît tant qu'une minuterie tourne, pour la suivre et l'annuler.",
   "settings.sidebarSources": "Sources dans la barre latérale",
   "settings.sidebarSourcesHint": "Une case par type : un type coché apparaît toujours, grisé quand il est indisponible. Par défaut, seuls les types présents sur la machine sont cochés.",
   "settings.animationRate": "Fluidité des animations",

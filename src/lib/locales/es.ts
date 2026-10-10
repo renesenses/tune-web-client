@@ -892,6 +892,10 @@ export default {
   'sleep.2h': '2 horas',
   'sleep.cancel': 'Cancelar temporizador',
   'sleep.fading': 'Desvanecimiento...',
+  "sleep.customLabel": "Duración libre, en minutos",
+  "sleep.customPlaceholder": "min",
+  "sleep.customStart": "Iniciar",
+  "sleep.customInvalid": "Introduzca un número entero de minutos, de 1 a 1440.",
 
   // Scan Schedule
   'settings.scanSchedule': 'Escaneo programado',
@@ -3685,6 +3689,8 @@ export default {
   "settings.collectionsMosaicHint": "Cuatro portadas por colección. Desmarca para una sola portada, como en el cliente anterior.",
   "settings.showStopButton": "Mostrar el botón Detener",
   "settings.showStopButtonHint": "Devuelve el botón Detener a la barra de transporte. Los dos gestos ya existen y no cambian: doble clic en Reproducir y la tecla S.",
+  "settings.showSleepTimer": "Mostrar el botón Temporizador",
+  "settings.showSleepTimerHint": "El botón de la luna en la barra de reproducción. Oculto, reaparece mientras haya un temporizador en marcha, para seguirlo y cancelarlo.",
   "settings.sidebarSources": "Fuentes en la barra lateral",
   "settings.sidebarSourcesHint": "Un interruptor por tipo: un tipo marcado aparece siempre, atenuado cuando no está disponible. Por defecto, solo se marcan los tipos presentes en el equipo.",
   "settings.animationRate": "Fluidez de las animaciones",

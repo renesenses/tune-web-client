@@ -892,6 +892,10 @@ export default {
   'sleep.2h': '2 Stunden',
   'sleep.cancel': 'Timer abbrechen',
   'sleep.fading': 'Ausblenden...',
+  "sleep.customLabel": "Eigene Dauer, in Minuten",
+  "sleep.customPlaceholder": "Min.",
+  "sleep.customStart": "Starten",
+  "sleep.customInvalid": "Geben Sie eine ganze Zahl von Minuten zwischen 1 und 1440 ein.",
 
   // Scan Schedule
   'settings.scanSchedule': 'Geplanter Scan',
@@ -3685,6 +3689,8 @@ export default {
   "settings.collectionsMosaicHint": "Vier Cover je Sammlung. Abwählen für ein einzelnes Cover, wie im bisherigen Client.",
   "settings.showStopButton": "Stopp-Schaltfläche anzeigen",
   "settings.showStopButtonHint": "Holt die Stopp-Schaltfläche zurück in die Transportleiste. Beide Gesten gibt es bereits und sie bleiben: Doppelklick auf Wiedergabe und die Taste S.",
+  "settings.showSleepTimer": "Schaltfläche „Sleep-Timer“ anzeigen",
+  "settings.showSleepTimerHint": "Die Mond-Schaltfläche in der Transportleiste. Ausgeblendet erscheint sie wieder, solange ein Timer läuft, damit Sie ihn verfolgen und abbrechen können.",
   "settings.sidebarSources": "Quellen in der Seitenleiste",
   "settings.sidebarSourcesHint": "Ein Schalter pro Typ: Ein aktivierter Typ erscheint immer, ausgegraut, wenn er nicht verfügbar ist. Standardmäßig sind nur die auf dem Rechner vorhandenen Typen aktiviert.",
   "settings.animationRate": "Flüssigkeit der Animationen",

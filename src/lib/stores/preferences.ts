@@ -264,6 +264,17 @@ export interface Preferences {
    */
   afficherBoutonStop: boolean;
   /**
+   * Bouton lune (minuteur de sommeil) dans la barre de transport — web#1861,
+   * Levente Toth (fil 2068), go de Bertrand du 01/10/2026. Sur le modèle de
+   * `barreVuMetres` : un interrupteur dans les réglages.
+   *
+   * COCHÉ par défaut, parce que le bouton est là aujourd'hui : l'écran de qui
+   * n'a rien demandé ne bouge pas (la règle de #1428, dans l'autre sens).
+   * Décoché, le bouton revient tant qu'une minuterie tourne
+   * (`lib/minuteurSommeil`, `boutonMinuteurVisible`).
+   */
+  afficherMinuteurSommeil: boolean;
+  /**
    * Les COLONNES du tableau de pistes, par mode d'interface.
    *
    * Chantier du 07/09/2026 (maquette Levente) : en mode Essentiel, une liste
@@ -460,6 +471,8 @@ const defaults: Preferences = {
   // #1428 — DÉCOCHÉ, et c'est la décision de Bertrand du 22/09/2026, pas un
   // oubli : l'écran de qui n'a rien demandé ne bouge pas d'un pixel.
   afficherBoutonStop: false,
+  // web#1861 — COCHÉ : le bouton lune est affiché aujourd'hui, on ne l'ôte à personne.
+  afficherMinuteurSommeil: true,
   peakMeterStyle: STYLE_CRETE_DEFAUT,
   barreVuMetres: false,
   v2Colonnes: { ...DEFAUTS_COLONNES },

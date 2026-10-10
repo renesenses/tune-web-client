@@ -892,6 +892,10 @@ export default {
   'sleep.2h': '2 小时',
   'sleep.cancel': '取消定时器',
   'sleep.fading': '渐弱中...',
+  "sleep.customLabel": "自定义时长（分钟）",
+  "sleep.customPlaceholder": "分钟",
+  "sleep.customStart": "开始",
+  "sleep.customInvalid": "请输入 1 到 1440 之间的整数分钟。",
 
   // Scan Schedule
   'settings.scanSchedule': '定时扫描',
@@ -3685,6 +3689,8 @@ export default {
   "settings.collectionsMosaicHint": "每个合辑显示四张封面。取消勾选可只显示一张封面，与旧客户端一致。",
   "settings.showStopButton": "显示停止按钮",
   "settings.showStopButtonHint": "在播放控制栏中重新显示停止按钮。两种操作本来就存在，且保持不变：双击播放按钮，以及 S 键。",
+  "settings.showSleepTimer": "显示睡眠定时器按钮",
+  "settings.showSleepTimerHint": "播放栏中的月亮按钮。隐藏后，定时器运行期间仍会重新出现，以便查看和取消。",
   "settings.sidebarSources": "侧边栏中的来源",
   "settings.sidebarSourcesHint": "每种类型一个开关：勾选的类型始终显示，不可用时显示为灰色。默认只勾选机器上存在的类型。",
   "settings.animationRate": "动画流畅度",
