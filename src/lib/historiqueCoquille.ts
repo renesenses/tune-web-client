@@ -57,7 +57,7 @@ import {
   opPourFiche,
   reculerAvecIntention,
 } from './historiqueNavigation';
-import { vueAuChargement } from './routeAuChargement';
+import { nomDeRoute, vueAuChargement } from './routeAuChargement';
 
 /**
  * Ce qu'une entrée d'historique de la coquille v2 transporte.
@@ -391,6 +391,14 @@ export interface OptionsBranchement {
    * comme avant.
    */
   vueDeDemarrage?: unknown;
+  /**
+   * La vue de démarrage telle que la rend la RELECTURE du serveur — fils 2166
+   * et 2168 (Bilou, rc3). `vueDeDemarrage` est lue au montage, dans la copie
+   * locale ; celle-ci est la vue du PROFIL, qui arrive après. Elle ne remplace
+   * l'écran que si personne n'a encore bougé et que l'adresse ne demandait
+   * rien.
+   */
+  vueDeDemarrageRelue?: PromiseLike<unknown>;
 }
 
 /**
@@ -445,11 +453,20 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
   // les Réglages : elle n'avait plus de lecteur depuis le retrait d'`App.svelte`.
   // Elle remplace la vue de NAISSANCE (`'home'`), jamais une vue qu'un
   // écrivain a déjà posée avant le montage de la coquille.
+  // Une vue posée par un écrivain AVANT le montage n'est jamais recouverte,
+  // ni maintenant ni par la relecture tardive du profil.
+  const vueDeNaissance = get(activeView) === 'home';
   const vueDemandee = vueAuChargement(
     fenetre.location?.hash ?? '',
     get(activeView) === 'home' ? options.vueDeDemarrage : null,
   );
   if (vueDemandee && vueDemandee !== get(activeView)) activeView.set(vueDemandee);
+  const adresseDemandait = nomDeRoute(fenetre.location?.hash ?? '') !== '';
+  const vueDuMontage = get(activeView);
+  /** Vrai dès que l'écran a changé APRÈS le montage : la relecture tardive
+   *  de la vue de démarrage ne déplace alors plus rien. */
+  let aBouge = false;
+  let debranche = false;
 
   // L'entrée COURANTE est ancrée, pas empilée : au chargement, la page a déjà
   // son entrée. En empiler une ici ferait qu'un premier Précédent ne bougerait
@@ -468,6 +485,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
   const arretVue = activeView.subscribe((vue) => {
     if (premiereVue) { premiereVue = false; return; }
     if (enRestauration) return;
+    aBouge = true;
     // Changer de vue quitte le niveau de détail de la vue qu'on laisse : la
     // nouvelle entrée est une racine. Le magasin est remis à `null` EN
     // SILENCE, sinon son abonnement réécrirait l'entrée qu'on vient d'empiler.
@@ -526,7 +544,25 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
   };
   fenetre.addEventListener('popstate', surRetour as EventListener);
 
+  // Fils 2166 et 2168 — la vue du PROFIL, une fois relue du serveur. Posée
+  // comme l'ancrage du montage : l'entrée courante est RÉÉCRITE, rien n'est
+  // empilé, et le premier Précédent garde son sens.
+  options.vueDeDemarrageRelue?.then((relue) => {
+    if (debranche || aBouge || adresseDemandait || !vueDeNaissance) return;
+    if (get(activeView) !== vueDuMontage || get(detailOuvert) !== null) return;
+    const vue = vueAuChargement('', relue);
+    if (!vue || vue === vueDuMontage) return;
+    enRestauration = true;
+    try {
+      activeView.set(vue);
+    } finally {
+      enRestauration = false;
+    }
+    ecrire(false, vue, null);
+  }, () => {});
+
   return () => {
+    debranche = true;
     arretVue();
     arretDetail();
     arretOnglet();

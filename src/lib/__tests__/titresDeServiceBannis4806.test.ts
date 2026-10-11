@@ -20,7 +20,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import PisteActions from '../../components/v2/PisteActions.svelte';
-import LignePisteV2 from '../../components/v2/LignePisteV2.svelte';
+import ListePistesV2 from '../../components/v2/ListePistesV2.svelte';
 import TitresBannisV2 from '../../components/v2/TitresBannisV2.svelte';
 import { locale } from '../i18n';
 import { oublierBannisDeService, surchargesBannissement } from '../titreBanni';
@@ -130,32 +130,32 @@ describe('#4806 suite — la LIGNE d’un album de service se grise', () => {
       { track_id: null, source: 'qobuz', source_id: '4791523', title: 'Lovely Day', artist: 'Bill Withers',
         album_id: null, album_title: 'Menagerie', banned_at: null, resolved: true },
     ] }]];
-    monte = mount(LignePisteV2, { target: hote!, props: { piste: QOBUZ, onLire: () => {} } });
+    monte = mount(ListePistesV2, { target: hote!, props: { pistes: [QOBUZ], onLire: () => {} } });
     await souffler(20);
     expect(requetes.some((r) => r.method === 'GET' && /\/library\/tracks\/banned$/.test(r.url)),
       'la liste des bannis n’a pas été lue').toBe(true);
-    expect(hote!.querySelector('.trk')?.classList.contains('bannie')).toBe(true);
-    expect(hote!.querySelector('.tt')?.textContent, 'visible, pas caché').toBe('Lovely Day');
+    expect(hote!.querySelector('.trow')?.classList.contains('bannie')).toBe(true);
+    expect(hote!.querySelector('.ttxt')?.textContent, 'visible, pas caché').toBe('Lovely Day');
   });
   it('le titre Qobuz « 12 » banni ne grise pas la piste LOCALE 12, ni l’inverse', async () => {
     reponses = [['/library/tracks/banned', { total: 1, items: [
       { track_id: null, source: 'qobuz', source_id: '12', title: 'Homonyme', artist: null,
         album_id: null, album_title: null, banned_at: null, resolved: true },
     ] }]];
-    monte = mount(LignePisteV2, { target: hote!, props: { piste: QOBUZ_12, onLire: () => {} } });
+    monte = mount(ListePistesV2, { target: hote!, props: { pistes: [QOBUZ_12], onLire: () => {} } });
     await souffler(20);
-    expect(hote!.querySelector('.trk')?.classList.contains('bannie'), 'témoin : le titre Qobuz').toBe(true);
+    expect(hote!.querySelector('.trow')?.classList.contains('bannie'), 'témoin : le titre Qobuz').toBe(true);
     unmount(monte); monte = null;
-    monte = mount(LignePisteV2, { target: hote!, props: { piste: LOCALE_12, onLire: () => {} } });
+    monte = mount(ListePistesV2, { target: hote!, props: { pistes: [LOCALE_12], onLire: () => {} } });
     await souffler(20);
-    expect(hote!.querySelector('.trk')?.classList.contains('bannie')).toBe(false);
+    expect(hote!.querySelector('.trow')?.classList.contains('bannie')).toBe(false);
   });
   it('un clic délibéré sur un titre de service banni demande confirmation', async () => {
     surchargesBannissement.set(new Map([['s:qobuz:4791523', true]]));
     const lu = vi.fn();
-    monte = mount(LignePisteV2, { target: hote!, props: { piste: QOBUZ, onLire: lu } });
+    monte = mount(ListePistesV2, { target: hote!, props: { pistes: [QOBUZ], onLire: lu } });
     await souffler();
-    hote!.querySelector<HTMLButtonElement>('.tclick')!.click();
+    hote!.querySelector<HTMLButtonElement>('.titre')!.click();
     await souffler();
     const attente = get(dialogs);
     expect(attente.length, 'aucune confirmation demandée').toBe(1);

@@ -87,9 +87,9 @@ async function monter(niveau: SettingsLevel) {
   return hote;
 }
 
-/** La ligne (tableau `.trow`, ou ligne `.avecSuffixe`) qui porte ce titre. */
+/** La ligne du tableau (`.trow`) qui porte ce titre. */
 function ligne(racine: HTMLElement, titre: string): HTMLElement {
-  const lignes = Array.from(racine.querySelectorAll<HTMLElement>('.trow, .avecSuffixe'));
+  const lignes = Array.from(racine.querySelectorAll<HTMLElement>('.trow'));
   const l = lignes.find((x) => x.querySelector('.pactions') && x.textContent?.includes(titre));
   expect(l, `la ligne « ${titre} » n’est pas rendue`).toBeTruthy();
   return l!;

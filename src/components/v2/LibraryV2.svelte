@@ -119,6 +119,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   } from '../../lib/centreCarrousel';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import MenuObjetV2 from './MenuObjetV2.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
@@ -3030,7 +3031,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           <span class="cause-vide">{causeVide.cause === 'partageNonDeclare'
             ? $tr('v2.lib.emptyShareNotDeclared' as any).replace('{partages}', causeVide.partages.join(', '))
             : $tr('v2.lib.emptyNoFolder' as any)}</span>
-          <button class="chip" onclick={addContent}>{$tr('v2.lib.emptyOpenFolders' as any)}</button>
+        {/if}
+        <!-- Fil 2171 — le geste d'ajout est proposé sur TOUTE bibliothèque
+             locale vide, pas seulement quand aucun dossier n'est déclaré : une
+             installation neuve en déclare un d'office (`~/Music`), et la page
+             ne proposait alors plus rien. -->
+        {#if !depot}
+          <span class="gestes-vide">
+            <BoutonAjouterDossier onAjoute={() => void lireCauseVide()} />
+            <button class="chip" onclick={addContent}>{$tr('v2.lib.emptyOpenFolders' as any)}</button>
+          </span>
         {/if}</div>
     {:else}
       <!-- Le rail reste sur TOUS les tris (Bertrand, 25/09/2026) : sur un tri
@@ -3569,7 +3579,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   */
   .body.encarrousel{flex-direction:column-reverse}
   .state{flex:1; display:grid; place-items:center; color:var(--v2-txt3); font-size:15px}
-  .state:has(.cause-vide){align-content:center; gap:10px}
+  .state:has(.cause-vide), .state:has(.gestes-vide){align-content:center; gap:10px}
+  .state .gestes-vide{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center}
   .state .cause-vide{max-width:46ch; text-align:center; font-size:13px; line-height:1.5}
   /* Rail A-Z : c'est un REPERE, il doit se lire d'un coup d'oeil et se viser
      au doigt. Auparavant 11 px colles a 1 px d'intervalle contre la grille —

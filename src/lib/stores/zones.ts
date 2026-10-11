@@ -3,10 +3,8 @@ import type { Zone } from '../types';
 import * as api from '../api';
 import { notifications } from './notifications';
 import { loopByDefault } from './loopByDefault';
+import { estZoneJouableIci } from '../zoneNavigateurProprietaire';
 // Lazy import to avoid circular dependency (browserAudio imports zones)
-function isBrowserZone(zone: { output_type?: string } | null | undefined): boolean {
-  return zone?.output_type === 'browser';
-}
 async function getBrowserAudio() {
   return await import('./browserAudio');
 }
@@ -176,7 +174,9 @@ function checkPlayError(zone: Zone) {
 
 /** After a play/next/previous, start browser audio if this is a browser zone */
 async function handleBrowserPlayback(zone: Zone) {
-  if (isBrowserZone(zone) && zone.stream_url) {
+  // rc4 : la zone navigateur d'un autre appareil (téléphone, autre navigateur)
+  // se pilote d'ici sans être lue ici — le flux est à consommateur unique.
+  if (estZoneJouableIci(zone) && zone.stream_url) {
     const { browserPlay } = await getBrowserAudio();
     browserPlay(zone.stream_url, false, zone.id);
   }
@@ -313,7 +313,7 @@ export async function resumeAndSync(zoneId: number): Promise<Zone> {
   // `audio.play()` ne rendait alors ni son ni erreur — « No sound » d'Alex.
   // Le chemin événementiel (App.svelte, `playback.resumed`) re-pointait déjà
   // l'élément sur `stream_url` ; le bouton Lecture, lui, ne le faisait pas.
-  if (isBrowserZone(zone)) {
+  if (estZoneJouableIci(zone)) {
     const { browserResume } = await getBrowserAudio();
     browserResume(zone.stream_url, zone.id);
   }

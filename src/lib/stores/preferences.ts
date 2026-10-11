@@ -264,6 +264,17 @@ export interface Preferences {
    */
   afficherBoutonStop: boolean;
   /**
+   * Bouton lune (minuteur de sommeil) dans la barre de transport — web#1861,
+   * Levente Toth (fil 2068), go de Bertrand du 01/10/2026. Sur le modèle de
+   * `barreVuMetres` : un interrupteur dans les réglages.
+   *
+   * COCHÉ par défaut, parce que le bouton est là aujourd'hui : l'écran de qui
+   * n'a rien demandé ne bouge pas (la règle de #1428, dans l'autre sens).
+   * Décoché, le bouton revient tant qu'une minuterie tourne
+   * (`lib/minuteurSommeil`, `boutonMinuteurVisible`).
+   */
+  afficherMinuteurSommeil: boolean;
+  /**
    * Les COLONNES du tableau de pistes, par mode d'interface.
    *
    * Chantier du 07/09/2026 (maquette Levente) : en mode Essentiel, une liste
@@ -460,6 +471,8 @@ const defaults: Preferences = {
   // #1428 — DÉCOCHÉ, et c'est la décision de Bertrand du 22/09/2026, pas un
   // oubli : l'écran de qui n'a rien demandé ne bouge pas d'un pixel.
   afficherBoutonStop: false,
+  // web#1861 — COCHÉ : le bouton lune est affiché aujourd'hui, on ne l'ôte à personne.
+  afficherMinuteurSommeil: true,
   peakMeterStyle: STYLE_CRETE_DEFAUT,
   barreVuMetres: false,
   v2Colonnes: { ...DEFAUTS_COLONNES },
@@ -822,7 +835,30 @@ export const preferences = createPreferences();
 // the theme is also applied as soon as JS modules are evaluated.
 applyTheme(loadPrefs().theme);
 
+const VUES_DE_DEMARRAGE: readonly StartupView[] = ['home', 'nowplaying', 'library', 'queue', 'playlists', 'search', 'settings'];
+
+/** Une vue de démarrage que ce client sait ouvrir (la valeur vient du serveur). */
+function estVueDeDemarrage(v: unknown): v is StartupView {
+  return typeof v === 'string' && (VUES_DE_DEMARRAGE as readonly string[]).includes(v);
+}
+
+let signalerRelecture: () => void = () => {};
+/**
+ * Résolue quand la relecture du serveur est faite (réussie ou non) — fil 2166.
+ * La coquille lit la vue de démarrage à son montage, AVANT la réponse du
+ * serveur : elle attend ceci pour suivre celle du profil.
+ */
+export const preferencesRelues: Promise<void> = new Promise((r) => { signalerRelecture = r; });
+
 export async function syncPreferencesFromServer() {
+  try {
+    await relireDuServeur();
+  } finally {
+    signalerRelecture();
+  }
+}
+
+async function relireDuServeur() {
   try {
     const res = await fetch('/api/v1/system/config', { headers: profileHeader() });
     if (!res.ok) return;
@@ -907,6 +943,12 @@ export async function syncPreferencesFromServer() {
             // profil, sinon le navigateur. Un `language: 'fr'` qui n'était que
             // le défaut, d'un côté ou de l'autre, ne compte pas.
             ...resoudreLangue([local, server]),
+            // Fils 2166 et 2168 (Bilou, rc3) — la vue de démarrage est un
+            // réglage du PROFIL : le serveur la tient, chaque geste l'y écrit.
+            // Le blob local la porte dès la première émission, défaut compris
+            // (`'home'`, jamais choisi) : `...local` la recouvrait donc à
+            // chaque ouverture d'un navigateur dont la copie est ancienne.
+            ...(estVueDeDemarrage(server.startupView) ? { startupView: server.startupView } : {}),
           };
         });
         if (reparationBarre) ecrireAuServeur(JSON.stringify(reparationBarre));
