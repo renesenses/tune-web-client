@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * YouTube Music — Tendances, Ambiances et Accueil. Onglet « Découvrir » de
    * YouTube dans `StreamingV2`.
@@ -174,8 +175,8 @@
               {:else}
                 <button class="carte" data-kind={el.kind} onclick={() => jouerElement(el)} title={el.subtitle}>
                   <AlbumArt coverPath={el.cover_path} albumId={null} size={0} alt={el.title} />
-                  <span class="ti">{el.title}</span>
-                  {#if el.subtitle}<span class="ar">{el.subtitle}</span>{/if}
+                  <span class="ti" use:bulleTexte>{el.title}</span>
+                  {#if el.subtitle}<span class="ar" use:bulleTexte>{el.subtitle}</span>{/if}
                 </button>
               {/if}
             {/each}

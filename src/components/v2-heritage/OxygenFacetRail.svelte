@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import type { Track } from '../../lib/types';
   import type { FacetValue, FolderChild, FolderCrumb } from '../../lib/api';
   import { get } from 'svelte/store';
@@ -267,7 +268,7 @@
         <div class="ghead">
           <button class="ghtitle" onclick={() => toggle(f)}>
             <svg class="chev" class:closed={!isOpen(f)} viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
-            <span class="ghlabel">{$t('oxygen.facet.' + f)}</span>
+            <span class="ghlabel" use:bulleTexte>{$t('oxygen.facet.' + f)}</span>
           </button>
           <span class="gn">{folderChildren.length}</span>
         </div>

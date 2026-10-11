@@ -53,14 +53,30 @@ export function classesTronquees(css: string): Set<string> {
   const sansCommentaires = css.replace(/\/\*[\s\S]*?\*\//g, '');
   const classes = new Set<string>();
   for (const regle of sansCommentaires.split('}')) {
-    const accolade = regle.indexOf('{');
+    // La DERNIÈRE accolade ouvre le corps : un `@media (…) {` qui précède
+    // n'est pas un sélecteur.
+    const accolade = regle.lastIndexOf('{');
     if (accolade === -1) continue;
-    const selecteur = regle.slice(0, accolade);
+    const avant = regle.slice(0, accolade);
+    const selecteur = avant.slice(avant.lastIndexOf('{') + 1);
     const corps = regle.slice(accolade + 1);
     const tronque =
       /text-overflow\s*:\s*ellipsis/.test(corps) || /line-clamp\s*:/.test(corps);
     if (!tronque) continue;
-    for (const [, nom] of selecteur.matchAll(/\.([\w-]+)/g)) classes.add(nom);
+    // Seul le SUJET du sélecteur est tronqué (`#914`) : dans `.facet .nom`,
+    // c'est `.nom` qui coupe, pas la section `.facet` qui le contient. Compter
+    // les ancêtres réclamait une bulle sur des `<section>` et des `<ul>`.
+    for (const morceau of selecteur.split(',')) {
+      const sujet =
+        morceau
+          .replace(/:global\(([^)]*)\)/g, '$1')
+          .replace(/:(?:not|has|is|where)\([^)]*\)/g, '')
+          .trim()
+          .split(/\s*[>+~]\s*|\s+/)
+          .filter(Boolean)
+          .pop() ?? '';
+      for (const [, nom] of sujet.matchAll(/\.([\w-]+)/g)) classes.add(nom);
+    }
   }
   return classes;
 }
@@ -78,6 +94,14 @@ const AUTOFERMANTES = new Set([
 
 export type Balise = {
   ligne: number;
+  /** Position du `<` dans le marquage. */
+  debut: number;
+  /**
+   * L'élément est-il VIDE (rien, des blancs ou `&nbsp;` avant sa fermeture) ?
+   * Une case d'en-tête sans libellé, un squelette de chargement : il n'y a
+   * aucun texte à couper, donc aucune bulle à réclamer (`#914`).
+   */
+  vide: boolean;
   tag: string;
   attrs: string;
   /** Un ancêtre porte-t-il déjà un `title=` ? */
@@ -157,6 +181,8 @@ export function balisesOuvrantes(markup: string): Balise[] {
 
     sorties.push({
       ligne: markup.slice(0, lt).split('\n').length,
+      debut: lt,
+      vide: new RegExp(`^(?:\\s|&nbsp;)*</${tag}\\s*>`).test(markup.slice(j + 1, j + 400)),
       tag,
       attrs,
       titreHerite: titreAncetre !== null,
@@ -273,7 +299,7 @@ export function sansInfobulle(analyses: Analyse[]): string[] {
   for (const a of analyses) {
     for (const { b, classes } of a.coupables) {
       if (expressionTitre(b.attrs) !== null || b.titreHerite) continue;
-      if (porteLActionBulle(b.attrs)) continue;
+      if (porteLActionBulle(b.attrs) || b.vide) continue;
       nus.push(`${a.nom}.svelte:${b.ligne} — <${b.tag} class="${classes.join(' ')}"> sans title=`);
     }
   }
@@ -303,7 +329,7 @@ export function infobullesCreuses(analyses: Analyse[]): string[] {
   const creux: string[] = [];
   for (const a of analyses) {
     for (const { b, classes } of a.coupables) {
-      if (porteLActionBulle(b.attrs)) continue;
+      if (porteLActionBulle(b.attrs) || b.vide) continue;
       const propre = expressionTitre(b.attrs);
       const expr = propre ?? b.titreAncetre;
       if (expr === null || !estCreuse(expr)) continue;

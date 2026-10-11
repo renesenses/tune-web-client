@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Historique d'écoute — écran du nouveau client.
    *
@@ -461,10 +462,10 @@
                         onclick={(e) => { e.stopPropagation(); versPlaylist(); }}
                         onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); versPlaylist(); } }}>{fiche?.nom ?? nom}</span>
                     {:else}
-                      <span class="otitre">{fiche?.nom ?? nom ?? (indisponibles.has(tranche.cle) ? $tr('playlist.unavailable') : $tr('v2.hist.ctx.sansNom' as any))}</span>
+                      <span class="otitre" use:bulleTexte>{fiche?.nom ?? nom ?? (indisponibles.has(tranche.cle) ? $tr('playlist.unavailable') : $tr('v2.hist.ctx.sansNom' as any))}</span>
                     {/if}
                     <!-- #988, point 11 — l'artiste de l'album joué. -->
-                    {#if artiste}<span class="oart">{artiste}</span>{/if}
+                    {#if artiste}<span class="oart" use:bulleTexte>{artiste}</span>{/if}
                   </span>
                 </span>
               </span>

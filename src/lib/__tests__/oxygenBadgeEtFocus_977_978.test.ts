@@ -72,8 +72,8 @@ describe('#977 — la qualité quitte la pochette dans la grille Oxygen', () => 
 
   it('le badge est rendu APRÈS le titre et l’artiste, sur sa propre ligne', () => {
     const t = oxy();
-    const iTitre = t.indexOf('<div class="ct">');
-    const iArtiste = t.indexOf('<div class="ca">', iTitre);
+    const iTitre = t.indexOf('<div class="ct"');
+    const iArtiste = t.indexOf('<div class="ca"', iTitre);
     const iQualite = t.indexOf('<div class="cq">', iArtiste);
     expect(iTitre).toBeGreaterThan(-1);
     expect(iArtiste).toBeGreaterThan(iTitre);

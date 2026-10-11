@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * File d'attente — nouveau client (direction Levente).
    *
@@ -346,8 +347,8 @@
           <div class="now" aria-current={etatCourant ? 'true' : undefined}>
             <span class="ncv"><AlbumArt coverPath={current.cover_path} albumId={current.album_id ?? null} size={0} vignette alt={current.title} source={current.source} fallbackInitials={current.title?.slice(0,1)} /></span>
             <div class="nmeta">
-              <div class="nt"><IndicateurLecture etat={etatCourant} />{current.title}</div>
-              <div class="na">{current.artist_name ?? ''}{current.album_title ? ' · ' + current.album_title : ''}</div>
+              <div class="nt" use:bulleTexte><IndicateurLecture etat={etatCourant} />{current.title}</div>
+              <div class="na" use:bulleTexte>{current.artist_name ?? ''}{current.album_title ? ' · ' + current.album_title : ''}</div>
               {#if showExpert && tech(current)}<div class="ntk">{tech(current)}</div>{/if}
             </div>
             <span class="ndur">{formatTime(current.duration_ms ?? 0)}</span>
@@ -380,7 +381,7 @@
               <button class="play" onclick={() => void sauterDelibere(t, idx)} disabled={busy} aria-label={$tr('v2.queue.playTrack' as any).replace('{t}', t.title ?? '')}>
                 <span class="n">{i + 1}</span>
                 <span class="cv"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} vignette alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
-                <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
+                <span class="ti" use:bulleTexte>{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
               </button>
               {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}
               <span class="dur">{formatTime(t.duration_ms ?? 0)}</span>

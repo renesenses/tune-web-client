@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   // Mode « Grand écran » façon tvOS : afficheur plein viewport (pochette géante,
   // typo XXL lisible à 3 m, paroles synchronisées), aucun contrôle visible —
   // on pilote depuis un autre appareil ou au clavier/télécommande : ↑/↓ volume,
@@ -395,12 +396,12 @@
           <AlbumArt coverPath={track.cover_path} size={0} alt={track.title} />
         </div>
         <div class="tv-meta">
-          <h1 class="tv-title">{track.title}</h1>
+          <h1 class="tv-title" use:bulleTexte>{track.title}</h1>
           {#if track.artist_name}
-            <p class="tv-artist">{track.artist_name}</p>
+            <p class="tv-artist" use:bulleTexte>{track.artist_name}</p>
           {/if}
           {#if track.album_title && track.album_title !== track.artist_name}
-            <p class="tv-album">{track.album_title}</p>
+            <p class="tv-album" use:bulleTexte>{track.album_title}</p>
           {/if}
           {#if track.format || track.sample_rate || track.bit_depth}
             <div class="tv-quality">
