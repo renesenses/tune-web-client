@@ -68,7 +68,7 @@
   import { manqueUneCible } from '../../lib/regleSourceAide';
   import { errText } from '../../lib/utils';
   import type { UserTag } from '../../lib/types';
-  import { champsSaisissables, sansValeur, valeurInitiale } from '../../lib/smartRegles';
+  import { champsSaisissables, sansValeur, valeurInitiale, saisieEnJours } from '../../lib/smartRegles';
   import {
     operateursDe,
     operateursPour,
@@ -303,6 +303,14 @@
 
           {#if sansValeur(r.operator)}
             <span class="rien">—</span>
+          {:else if saisieEnJours(r.operator)}
+            <!-- tune-server-rust#6122 — « dans les N derniers jours » : N,
+                 un entier ; le serveur calcule la date à chaque requête. -->
+            <span class="paire">
+              <input class="txt" type="number" min="1" step="1" value={r.value ?? ''}
+                oninput={(e) => changerValeur(i, Number(e.currentTarget.value))} />
+              <em>{$t('smartCollection.unitDays' as any)}</em>
+            </span>
           {:else if r.operator === 'between'}
             <span class="paire">
               <input class="txt" type={type === 'timestamp' ? 'date' : 'number'}
