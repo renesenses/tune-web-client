@@ -12,6 +12,7 @@
    *   Expert → ligne technique sur les titres.
    */
   import * as api from '../../lib/api';
+  import { urlNavigateur } from '../../lib/bridge';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -27,6 +28,7 @@
     favoriteFacetKeys, facetFavKey,
   } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
+  import { etatMiroirFavoris } from '../../lib/stores/favorisMiroir';
   import {
     chargerFavorisFusionnes,
     collectionsFavorites,
@@ -893,6 +895,15 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
 
+  <!-- rc4 (tune-server-rust#6011) — état du miroir des favoris de service,
+       d'après l'en-tête X-Tune-Favoris-Miroir. Discret : le cœur tient, le
+       serveur réessaiera. Rien pour ok, aucun, ou un serveur ancien. -->
+  {#if $etatMiroirFavoris === 'en_attente' || $etatMiroirFavoris === 'echec'}
+    <p class="miroir-etat" role="status" data-testid="miroir-favoris-etat">
+      {$etatMiroirFavoris === 'en_attente' ? $t('v2.fav.miroirEnAttente' as any) : $t('v2.fav.miroirEchec' as any)}
+    </p>
+  {/if}
+
   <div class="scroll">
     {#if $currentProfileId == null}
       <div class="state">{$t('v2.fav.noProfile' as any)}</div>
@@ -963,7 +974,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           Elle portait aussi DEUX cœurs : celui de `PisteActions` et un bouton
           de retrait dessiné à côté, tous deux sur la même piste.
 
-          `LignePisteV2` porte le badge de qualité complet (format, fréquence
+          La liste commune (`ListePistesV2`) porte le badge de qualité complet (format, fréquence
           ET profondeur), les cinq gestes, et un seul cœur qui bascule dans les
           deux sens. Le retrait passe par lui : il sait déjà distinguer une
           piste de la bibliothèque d'une piste de service.
@@ -1275,7 +1286,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           </button>
           <!-- Un lien, pas un bouton : c'est le navigateur qui télécharge, et
                le serveur rend déjà le CSV tout fait. -->
-          <a class="rf-btn" href="/api/v1/radio-favorites/export" download="radio_favorites.csv">
+          <a class="rf-btn" href={urlNavigateur('/api/v1/radio-favorites/export')} download="radio_favorites.csv">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             {$t('v2.fav.radioExport' as any)}
           </a>
@@ -1470,6 +1481,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     font-size:12.5px; border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
   .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
 
+  .miroir-etat{margin:0 30px 8px; font-size:12px; color:var(--v2-txt3)}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}

@@ -54,6 +54,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { dateCourte } from '../../lib/dates';
   import { activeView } from '../../lib/stores/navigation';
+  import { ssoDisponible } from '../../lib/bridge';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import {
     circleCharge, circlePlugin, refreshCirclePlugin, getCercle, estConnecte,
@@ -503,7 +504,12 @@
     {:else if !connecte}
       <div class="state deconnecte">
         <p>{$t('v2.circle.notConnected' as any)}</p>
-        <button class="go se-connecter" onclick={seConnecterAMozaiklabs}>{$t('v2.circle.signIn' as any)}</button>
+        <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
+        {#if ssoDisponible()}
+          <button class="go se-connecter" onclick={seConnecterAMozaiklabs}>{$t('v2.circle.signIn' as any)}</button>
+        {:else}
+          <p class="hint">{$t('login.ssoIndisponibleRelais' as any)}</p>
+        {/if}
       </div>
     {:else if playlistOuverte != null}
       {#key String(playlistOuverte)}

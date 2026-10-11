@@ -320,6 +320,11 @@
                 {#if p.name === 'concerts' && isActive(p)}
                   <button class="lnk ouvrir-concerts" onclick={() => activeView.set('concerts')}>{$t('common.open' as any)}</button>
                 {/if}
+                <!-- tune-server-rust#6044 — greffon gratuit et facultatif, comme
+                     l'égaliseur : ses réglages s'ouvrent depuis sa carte. -->
+                {#if p.name === 'channel-remap' && isActive(p)}
+                  <button class="lnk ouvrir-reaffectation" onclick={() => activeView.set('reaffectation')}>{$t('v2.plug.nativeSettings' as any)}</button>
+                {/if}
                 {#if p.name === 'circle' && isActive(p)}
                   <button class="lnk ouvrir-circle" onclick={() => activeView.set('circle')}>{$t('common.open' as any)}</button>
                 {/if}
