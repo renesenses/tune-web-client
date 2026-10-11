@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Tune Circle T5 — UNE playlist collaborative de cercle
    * (renesenses/tune-server-rust#5328, décisions de Bertrand du 28/09/2026).
@@ -270,8 +271,8 @@
             data-item={String(m.item_id)}>
             <span class="rang">{i + 1}</span>
             <span class="infos">
-              <span class="titre-morceau">{m.title}</span>
-              {#if sousTitre(m)}<span class="note sous-titre">{sousTitre(m)}</span>{/if}
+              <span class="titre-morceau" use:bulleTexte>{m.title}</span>
+              {#if sousTitre(m)}<span class="note sous-titre" use:bulleTexte>{sousTitre(m)}</span>{/if}
               <span class="note auteur">{auteur(m)}</span>
             </span>
             <span class="note duree">{m.duration_ms ? formatTime(m.duration_ms) : ''}</span>

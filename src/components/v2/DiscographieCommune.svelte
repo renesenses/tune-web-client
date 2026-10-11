@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * LA GRILLE DE LA PAGE ARTISTE COMMUNE — renesenses/tune-server-rust#4330.
    *
@@ -450,7 +451,7 @@
     </div>
     <button class="meta" onclick={() => onOuvrir(e.principal, origine)}>
       <span class="ct" title={al.title}>{al.title}</span>
-      <span class="ca">{al.year ?? e.exemplaires.find((x) => x.album.year)?.album.year ?? ''}</span>
+      <span class="ca" use:bulleTexte>{al.year ?? e.exemplaires.find((x) => x.album.year)?.album.year ?? ''}</span>
       {#if origine && al.credit_roles?.length}
         <!-- Ce que l'artiste fait sur ce disque, tel que MusicBrainz le nomme
              (`guitar`, `vocals`, `composer`…) — comme le tiroir des crédits

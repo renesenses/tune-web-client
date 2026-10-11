@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Réglages › Interface — l'ordre de la barre latérale — web#1827.
    *
@@ -121,7 +122,7 @@
         ondragend={finGlisse}>
         <span class="poignee" aria-hidden="true" title={avec('settings.sidebarDrag', it)}>⋮⋮</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={it.icon} /></svg>
-        <span class="nom">{libelle(it)}</span>
+        <span class="nom" use:bulleTexte>{libelle(it)}</span>
         {#if niveau}<span class="niveau" data-niveau={niveau}>{$t(PASTILLE_NIVEAU[niveau] as any)}</span>{/if}
         <button class="fl" data-sens="haut" disabled={i === 0}
           aria-label={avec('settings.sidebarMoveUp', it)} title={avec('settings.sidebarMoveUp', it)}

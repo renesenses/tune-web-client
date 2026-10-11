@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount } from 'svelte';
   import { shuffleAll } from '../../lib/api';
   import { tip } from '../../lib/tooltip';
@@ -760,8 +761,8 @@
                   {#if a.cover_path}<img src={artworkSrc(a.cover_path)} alt="" loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />{:else}<div class="ph">♪</div>{/if}
                 </div>
                 <div class="ainfo">
-                  <div class="aartist">{a.album_artist ?? ''}</div>
-                  <div class="atitle">{a.title ?? ''}</div>
+                  <div class="aartist" use:bulleTexte>{a.album_artist ?? ''}</div>
+                  <div class="atitle" use:bulleTexte>{a.title ?? ''}</div>
                   <dl class="ameta">
                     {#if a.label}<dt>{$t('oxygen.card.label')}</dt><dd>{a.label}</dd>{/if}
                     {#if a.year}<dt>{$t('oxygen.card.year')}</dt><dd>{a.year}</dd>{/if}
@@ -804,8 +805,8 @@
                   <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
                 </button>
               </div>
-              <div class="ct">{g.title}</div>
-              <div class="ca">{g.artist}</div>
+              <div class="ct" use:bulleTexte>{g.title}</div>
+              <div class="ca" use:bulleTexte>{g.artist}</div>
               <!-- 🔴 LA QUALITÉ SUR UNE TROISIÈME LIGNE, PLUS SUR LA POCHETTE.
                    #977 — Alex Campbell, 12/09/2026, capture à l'appui : « the encoding
                    title covering the album art in Oxygen has to go! You can see
@@ -853,7 +854,7 @@
                       <div class="trkrow">
                         <button class="trk" class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} use:tip={'tip.oxygenTrackRow'} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
                           <span class="tn">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{t.track_number ?? ''}{/if}</span>
-                          <span class="tt">{t.title}</span>
+                          <span class="tt" use:bulleTexte>{t.title}</span>
                           <span class="td">{fmtDur(t.duration_ms)}</span>
                         </button>
                         <span class="trkacts">
@@ -882,13 +883,13 @@
                 {@const versAlbum = t.album_title ? ouvertureAlbumDePiste(t, $gestesNavigationService) : null}
                 <tr class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} use:tip={'tip.oxygenTrackRow'} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
                   <td class="n">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{t.track_number ?? ''}{/if}</td>
-                  <td class="title">{t.title}</td>
-                  <td class="dim">{t.artist_name ?? ''}</td>
+                  <td class="title" use:bulleTexte>{t.title}</td>
+                  <td class="dim" use:bulleTexte>{t.artist_name ?? ''}</td>
                   <!-- web#1871 — la colonne ALBUM mène à la fiche, par le geste
                        d'« Aller à l'album » (`lib/lienAlbumDePiste`), comme le
                        tableau partagé `ListePistesV2`. Le clic ne sélectionne
                        pas la ligne. Sans album connu, le nom reste du texte. -->
-                  <td class="dim">{#if versAlbum}<button class="lien-album" title={t.album_title}
+                  <td class="dim" use:bulleTexte>{#if versAlbum}<button class="lien-album" title={t.album_title}
                     onclick={(e) => { e.stopPropagation(); versAlbum(); }}
                     ondblclick={(e) => e.stopPropagation()}>{t.album_title}</button>{:else}{t.album_title ?? ''}{/if}</td>
                   <td><QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} /></td>

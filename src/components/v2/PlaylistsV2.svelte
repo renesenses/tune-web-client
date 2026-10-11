@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Playlists du nouveau client (direction Levente). Cœur de nav, présent à
    * tous les niveaux. Densité par niveau :
@@ -775,7 +776,7 @@
         <ul class="sauv-liste">
           {#each instantanes.filter((snap) => correspond(snap?.nom)) as snap (cleInstantane(snap))}
             <li>
-              <span class="sn">{snap.nom || snap.playlist_id}</span>
+              <span class="sn" use:bulleTexte>{snap.nom || snap.playlist_id}</span>
               <span class="sd">{snap.service === 'local' ? $t('v2.pl.here' as any) : snap.service} · {new Date(snap.dernier_le_ms).toLocaleString()}</span>
               <button class="ghost sm" disabled={restauration != null} onclick={() => restaurer(snap)}>
                 {restauration === cleInstantane(snap) ? $t('common.loading' as any) : $t('v2.pl.restore' as any)}

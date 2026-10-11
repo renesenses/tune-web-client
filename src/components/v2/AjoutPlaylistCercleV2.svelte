@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Tune Circle T5 — « Ajouter à une playlist de cercle », depuis le menu
    * « … » d'un titre (renesenses/tune-server-rust#5328).
@@ -100,7 +101,7 @@
         {#each playlists as p (String(p.id))}
           <li>
             <button class="ligne choix-playlist" disabled={occupe !== null} onclick={() => void choisir(p)}>
-              <span class="nom">{p.name}</span>
+              <span class="nom" use:bulleTexte>{p.name}</span>
               <span class="note">{$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}</span>
             </button>
           </li>

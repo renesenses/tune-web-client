@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Onglet « Manquants » de Métadonnées — voir `lib/manquantsMetadonnees`.
    * Trois compteurs (pochettes, genres, années, sur le total d'albums) et deux
@@ -290,7 +291,7 @@
               {/if}
               <span class="vign"><AlbumArt coverPath={a.cover_path} albumId={a.id ?? 0} size={0} alt={a.title} fallbackInitials={a.title?.slice(0, 1)} /></span>
               <span class="txt">
-                <span class="titre">{a.title}</span>
+                <span class="titre" use:bulleTexte>{a.title}</span>
                 <span class="meta">{a.artist_name ?? '—'} · {libelle('v2.miss.tracks', { count: a.track_count ?? 0 })}</span>
                 {#if a.id != null && propositions.has(a.id)}
                   <!-- Ce qui SERAIT posé, dit avant de l'être. -->

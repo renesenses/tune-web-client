@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { get } from 'svelte/store';
   import { activeView, pendingSearchQuery } from '../../lib/stores/navigation';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
@@ -183,8 +184,8 @@
             <button class="dropdown-item" onclick={() => playTrack(track)}>
               <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={32} alt={track.title} />
               <div class="dropdown-item-info">
-                <span class="dropdown-item-title">{track.title}</span>
-                <span class="dropdown-item-sub">{track.artist_name ?? ''}</span>
+                <span class="dropdown-item-title" use:bulleTexte>{track.title}</span>
+                <span class="dropdown-item-sub" use:bulleTexte>{track.artist_name ?? ''}</span>
               </div>
             </button>
           {/each}
@@ -196,8 +197,8 @@
             <button class="dropdown-item" onclick={() => { pendingSearchQuery.set(query.trim()); activeView.set('search'); closeSearch(); }}>
               <AlbumArt coverPath={album.cover_path} size={32} alt={album.title} />
               <div class="dropdown-item-info">
-                <span class="dropdown-item-title">{album.title}</span>
-                <span class="dropdown-item-sub">{album.artist_name ?? ''}</span>
+                <span class="dropdown-item-title" use:bulleTexte>{album.title}</span>
+                <span class="dropdown-item-sub" use:bulleTexte>{album.artist_name ?? ''}</span>
               </div>
             </button>
           {/each}

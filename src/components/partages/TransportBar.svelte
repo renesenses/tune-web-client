@@ -2537,6 +2537,28 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     animation: popover-in 0.15s ease-out;
   }
 
+  /* 🔴 #1664 — Patatorz, fil 1860 : sa zone Diretta « dCS Vivaldi Upsampler
+     Plus USB » était sur la page Zones et absente de ce menu. Ce n'était
+     aucun filtre : le menu est une colonne flex à hauteur bornée, et ses
+     lignes gardaient `flex-shrink: 1`. Quand la liste dépasse `max-height`, le
+     navigateur RÉTRÉCIT les lignes au lieu de faire défiler. Une ligne garde
+     d'ordinaire sa hauteur de contenu (hauteur minimale `auto`), sauf la
+     DERNIÈRE : elle porte `overflow: hidden` (coins arrondis), ce qui ramène
+     sa hauteur minimale à 0. Elle était donc écrasée à 0 px, sans barre de
+     défilement pour aller la chercher. C'est aussi l'énigme de #876 (aucune
+     barre peinte, zone tranchée par le bas du panneau).
+
+     La dernière ligne, c'est la zone triée en dernier, et le serveur trie par
+     nom en ordre binaire (`ORDER BY name`) : un nom qui commence par une
+     minuscule, comme « dCS… », passe après toutes les majuscules.
+
+     Mesuré dans Chromium (Shrek), 12 lignes à 720 px de haut : dernière ligne
+     0 px avant, 36 px après. Aucune ligne du menu ne rétrécit plus : c'est le
+     défilement qui absorbe le surplus, comme prévu par #876. */
+  .zone-popover > * {
+    flex-shrink: 0;
+  }
+
   @keyframes popover-in {
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }

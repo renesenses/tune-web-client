@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * La session d'achat Bandcamp et les téléchargements FLAC — le volet qui
    * coiffe « Ma collection » (lot 3, Yves 16/09/2026).
@@ -97,7 +98,7 @@
     <ul>
       {#each telechargements as d (d.sale_item)}
         <li>
-          <span class="qui"><b>{d.artist}</b> — {d.title}</span>
+          <span class="qui" use:bulleTexte><b>{d.artist}</b> — {d.title}</span>
           {#if d.state === 'page'}<span class="et">{$t('v2.stream.bcDlPage')}</span>
           {:else if d.state === 'telechargement'}<span class="et">{$t('v2.stream.bcDlProgress').replace('{n}', enMo(d.octets))}</span>
           {:else if d.state === 'extraction'}<span class="et">{$t('v2.stream.bcDlUnzip')}</span>
