@@ -6349,9 +6349,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="devlist">
                   {#each agentsAppaires as a (a.agent_id)}
                     <div class="dev ign">
-                      <span class="dn">{a.nom}</span>
+                      <span class="dn" use:bulleTexte>{a.nom}</span>
                       <span class="dt">{$t('settings.agentOutputsCount' as any).replace('{n}', String(a.sorties_inscrites))}</span>
-                      <span class="badge up">{$t('settings.agentPaired' as any)}</span>
+                      <span class="badge up" use:bulleTexte>{$t('settings.agentPaired' as any)}</span>
                       <button class="lnk danger" onclick={() => oublierAgent(a)}>{$t('settings.agentForget' as any)}</button>
                     </div>
                   {/each}
@@ -6406,7 +6406,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="devlist">
                     {#each agentEtat.maitres as m (m.maitre_id)}
                       <div class="dev ign">
-                        <span class="dn">{m.nom}</span>
+                        <span class="dn" use:bulleTexte>{m.nom}</span>
                         <span class="dt">{$t('settings.agentMaster' as any)}</span>
                         <span></span>
                         <button class="lnk danger" onclick={() => revoquerMaitreAgent(m)}>{$t('settings.agentRevoke' as any)}</button>
