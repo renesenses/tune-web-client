@@ -2445,6 +2445,8 @@ export default {
   "v2.home.done": "완료",
   "v2.home.add": "위젯 추가",
   "v2.home.remove": "이 위젯 제거",
+  "v2.home.seeAll": "모두 보기",
+  "v2.home.seeAllCount": "{n}개 항목",
   "v2.home.move": "이 위젯 이동",
   "v2.home.editTip": "위젯 추가, 제거 또는 순서 변경",
   "v2.home.editHint": "핸들을 끌어 위젯 순서를 바꾸거나, ×를 클릭해 제거하세요.",

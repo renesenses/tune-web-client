@@ -2445,6 +2445,8 @@ export default {
   "v2.home.done": "完成",
   "v2.home.add": "添加小组件",
   "v2.home.remove": "移除此小组件",
+  "v2.home.seeAll": "查看全部",
+  "v2.home.seeAllCount": "{n} 项",
   "v2.home.move": "移动此小组件",
   "v2.home.editTip": "添加、移除或重新排列小组件",
   "v2.home.editHint": "拖动手柄可重新排列小组件，点击叉号可将其移除。",

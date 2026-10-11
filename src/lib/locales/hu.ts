@@ -2403,6 +2403,8 @@ export default {
   "v2.home.done": "Kész",
   "v2.home.add": "Widget hozzáadása",
   "v2.home.remove": "Widget eltávolítása",
+  "v2.home.seeAll": "Összes megtekintése",
+  "v2.home.seeAllCount": "{n} elem",
   "v2.home.move": "Widget áthelyezése",
   "v2.home.editTip": "Widgetek hozzáadása, eltávolítása vagy átrendezése",
   "v2.home.editHint": "Húzza a fogantyút a widget átrendezéséhez, vagy kattintson a keresztre az eltávolításhoz.",
