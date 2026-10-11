@@ -1517,6 +1517,8 @@ export default {
   "smartCollection.opAfter": "より後",
   "smartCollection.opBefore": "より前",
   "smartCollection.opNever": "なし",
+  "smartCollection.opInLast": "過去",
+  "smartCollection.unitDays": "日間",
   "smartCollection.fieldInCollection": "コレクション",
   "smartCollection.fieldInPlaylist": "プレイリスト",
   "smartCollection.fieldFavorite": "お気に入り",

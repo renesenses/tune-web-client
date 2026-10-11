@@ -2161,6 +2161,8 @@ export default {
   "smartCollection.opAfter": "after",
   "smartCollection.opBefore": "before",
   "smartCollection.opNever": "never",
+  "smartCollection.opInLast": "in the last",
+  "smartCollection.unitDays": "days",
   "smartCollection.fieldInCollection": "Collection",
   "smartCollection.fieldInPlaylist": "Playlist",
   "smartCollection.fieldFavorite": "Favorite",

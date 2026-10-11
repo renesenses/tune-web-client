@@ -1620,6 +1620,8 @@ export default {
   "smartCollection.opAfter": "ez után",
   "smartCollection.opBefore": "ez előtt",
   "smartCollection.opNever": "soha",
+  "smartCollection.opInLast": "az elmúlt",
+  "smartCollection.unitDays": "napban",
   "smartCollection.fieldInCollection": "Gyűjtemény",
   "smartCollection.fieldInPlaylist": "Lejátszási lista",
   "smartCollection.fieldFavorite": "Kedvenc",

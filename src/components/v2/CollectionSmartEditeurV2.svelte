@@ -53,6 +53,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import {
     champsSaisissables, operateursDe, typeDuChamp, sansValeur, regleComplete, valeurInitiale,
+    saisieEnJours,
   } from '../../lib/smartRegles';
   import SmartFolderPicker from '../partages/SmartFolderPicker.svelte';
   import { comptesDesEtiquettes, libelleEtiquette } from '../../lib/compteEtiquetteCollection';
@@ -342,6 +343,14 @@
 
           {#if sansValeur(r.op)}
             <span class="rien">—</span>
+          {:else if saisieEnJours(r.op)}
+            <!-- tune-server-rust#6122 — « dans les N derniers jours » : N,
+                 un entier ; le serveur calcule la date à chaque requête. -->
+            <span class="paire">
+              <input class="txt" type="number" min="1" step="1" value={r.value ?? ''}
+                oninput={(e) => changerValeur(i, Number(e.currentTarget.value))} />
+              <em>{$t('smartCollection.unitDays' as any)}</em>
+            </span>
           {:else if r.op === 'between'}
             <span class="paire">
               <input class="txt" type={type === 'timestamp' ? 'date' : 'number'}

@@ -1525,6 +1525,8 @@ export default {
   "smartCollection.opAfter": "după",
   "smartCollection.opBefore": "înainte de",
   "smartCollection.opNever": "niciodată",
+  "smartCollection.opInLast": "în ultimele",
+  "smartCollection.unitDays": "zile",
   "smartCollection.fieldInCollection": "Colecție",
   "smartCollection.fieldInPlaylist": "Playlist",
   "smartCollection.fieldFavorite": "Favorit",

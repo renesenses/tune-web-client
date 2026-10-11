@@ -1503,6 +1503,8 @@ export default {
   "smartCollection.opAfter": "이후",
   "smartCollection.opBefore": "이전",
   "smartCollection.opNever": "안 함",
+  "smartCollection.opInLast": "최근",
+  "smartCollection.unitDays": "일",
   "smartCollection.fieldInCollection": "컬렉션",
   "smartCollection.fieldInPlaylist": "재생목록",
   "smartCollection.fieldFavorite": "즐겨찾기",
