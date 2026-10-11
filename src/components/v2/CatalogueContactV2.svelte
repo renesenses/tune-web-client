@@ -404,7 +404,7 @@
       {:else}
         <div class="pistes-album">
           <ListePistesV2 pistes={pistesAlbum} onLire={rienNeBouge} numerotation="piste"
-            avecAlbum={false} pochette={false} enTetesDisque lectureSeule
+            enTetesDisque lectureSeule
             apres={ecoute ? boutonLire : undefined} largeurApres="84px" />
         </div>
       {/if}
@@ -484,7 +484,7 @@
         <p class="note vide">{$t('v2.circle.lib.empty' as any)}</p>
       {:else}
         <div class="pistes-contact">
-          <ListePistesV2 {pistes} onLire={rienNeBouge} pochette={false} lectureSeule
+          <ListePistesV2 {pistes} onLire={rienNeBouge} lectureSeule
             apres={ecoute ? boutonLire : undefined} largeurApres="84px" />
         </div>
       {/if}

@@ -24,6 +24,7 @@
    */
   import { profiles, visibleProfiles, profilSupprimable, currentProfileId, createProfile, deleteProfile, updateProfile, selectProfile, type MotifEchecCreation, type Profile } from '../../lib/stores/profile';
   import { dialogs } from '../../lib/stores/dialogs';
+  import ReglageVersionJouee from './ReglageVersionJouee.svelte';
   import { isPremium } from '../../lib/stores/license';
   import { t } from '../../lib/i18n';
   import { pastilleDe, initialeDe } from '../../lib/pastilleProfil';
@@ -189,6 +190,9 @@
     <p class="premium">{$t('profiles.premiumRequired')}</p>
   {/if}
 </div>
+
+<!-- tune-server-rust#2264 : la version jouée, réglée pour le profil actif. -->
+<ReglageVersionJouee />
 
 <style>
   .hint{margin:4px 0 12px; font-size:12.5px; line-height:1.5; color:var(--v2-txt3)}

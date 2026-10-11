@@ -21,7 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import PisteActions from '../../components/v2/PisteActions.svelte';
-import LignePisteV2 from '../../components/v2/LignePisteV2.svelte';
+import ListePistesV2 from '../../components/v2/ListePistesV2.svelte';
 import TitresBannisV2 from '../../components/v2/TitresBannisV2.svelte';
 import { locale } from '../i18n';
 import { entreesMenuPiste } from '../menuPiste';
@@ -201,24 +201,24 @@ describe('#4806 — le menu « … » MONTÉ : la requête réellement émise', 
 
 describe('#4806 — la LIGNE : grisée, barrée, visible ; le clic délibéré demande confirmation', () => {
   it('🔴 une piste bannie porte la classe `bannie` et son badge ; une piste normale, non', async () => {
-    monte = mount(LignePisteV2, { target: hote!, props: { piste: BANNIE, onLire: () => {} } });
+    monte = mount(ListePistesV2, { target: hote!, props: { pistes: [BANNIE], onLire: () => {} } });
     await souffler();
-    const ligne = hote!.querySelector('.trk');
+    const ligne = hote!.querySelector('.trow');
     expect(ligne?.classList.contains('bannie')).toBe(true);
     expect(hote!.querySelector('.bannie-etiq')?.textContent).toBe(fr['ban.badge']);
     // Visible : le titre est là, rien n'est caché.
-    expect(hote!.querySelector('.tt')?.textContent).toBe('Lovely Day');
+    expect(hote!.querySelector('.ttxt')?.textContent).toBe('Lovely Day');
     unmount(monte); monte = null;
-    monte = mount(LignePisteV2, { target: hote!, props: { piste: LOCALE, onLire: () => {} } });
+    monte = mount(ListePistesV2, { target: hote!, props: { pistes: [LOCALE], onLire: () => {} } });
     await souffler();
-    expect(hote!.querySelector('.trk')?.classList.contains('bannie')).toBe(false);
+    expect(hote!.querySelector('.trow')?.classList.contains('bannie')).toBe(false);
     expect(hote!.querySelector('.bannie-etiq')).toBeNull();
   });
   it('🔴 le clic sur une piste bannie ouvre le dialogue du projet ; « OK » lit, « Annuler » ne lit pas', async () => {
     const lu = vi.fn();
-    monte = mount(LignePisteV2, { target: hote!, props: { piste: BANNIE, onLire: lu } });
+    monte = mount(ListePistesV2, { target: hote!, props: { pistes: [BANNIE], onLire: lu } });
     await souffler();
-    hote!.querySelector<HTMLButtonElement>('.tclick')!.click();
+    hote!.querySelector<HTMLButtonElement>('.titre')!.click();
     await souffler();
     let attente = get(dialogs);
     expect(attente.length, 'aucune confirmation demandée').toBe(1);
@@ -229,7 +229,7 @@ describe('#4806 — la LIGNE : grisée, barrée, visible ; le clic délibéré d
     await souffler();
     expect(lu).toHaveBeenCalledTimes(1);
     // Annuler : rien ne part.
-    hote!.querySelector<HTMLButtonElement>('.tclick')!.click();
+    hote!.querySelector<HTMLButtonElement>('.titre')!.click();
     await souffler();
     attente = get(dialogs);
     expect(attente.length).toBe(1);
@@ -239,20 +239,20 @@ describe('#4806 — la LIGNE : grisée, barrée, visible ; le clic délibéré d
   });
   it('une piste non bannie se lit SANS dialogue — le chemin d’avant, intact', async () => {
     const lu = vi.fn();
-    monte = mount(LignePisteV2, { target: hote!, props: { piste: LOCALE, onLire: lu } });
+    monte = mount(ListePistesV2, { target: hote!, props: { pistes: [LOCALE], onLire: lu } });
     await souffler();
-    hote!.querySelector<HTMLButtonElement>('.tclick')!.click();
+    hote!.querySelector<HTMLButtonElement>('.titre')!.click();
     await souffler();
     expect(get(dialogs).length).toBe(0);
     expect(lu).toHaveBeenCalledTimes(1);
   });
   it('la ligne se grise dès que le menu a banni, sans recharger la liste', async () => {
-    monte = mount(LignePisteV2, { target: hote!, props: { piste: LOCALE, onLire: () => {} } });
+    monte = mount(ListePistesV2, { target: hote!, props: { pistes: [LOCALE], onLire: () => {} } });
     await souffler();
-    expect(hote!.querySelector('.trk')?.classList.contains('bannie')).toBe(false);
+    expect(hote!.querySelector('.trow')?.classList.contains('bannie')).toBe(false);
     surchargesBannissement.set(new Map([['l:12', true]]));
     await souffler();
-    expect(hote!.querySelector('.trk')?.classList.contains('bannie')).toBe(true);
+    expect(hote!.querySelector('.trow')?.classList.contains('bannie')).toBe(true);
   });
 });
 

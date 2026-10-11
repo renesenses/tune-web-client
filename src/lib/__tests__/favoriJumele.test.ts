@@ -88,7 +88,9 @@ describe('Reprise des favoris posés CHEZ les services', () => {
 
   it('un service en échec ne prive pas des autres', () => {
     expect(store).toContain('Promise.allSettled(');
-    expect(store).toContain('.filter(([, st]: [string, any]) => st?.authenticated)');
+    // rc4 (`tune-server-rust#6011`) : un service en miroir n'est plus relu
+    // en direct — sa liste vient du serveur.
+    expect(store).toContain('.filter(([, st]: [string, any]) => st?.authenticated && st?.favoris_miroir !== true)');
   });
 
   it('les ensembles sont RECOPIÉS, jamais mutés en place', () => {

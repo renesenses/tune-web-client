@@ -30,7 +30,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import {
     cdCharge, cdPlugin, refreshCdPlugin, getEtatLecteurCd, getDisqueCd, jouerCd, ejecterCd,
-    dureeCd, titrePisteCd, codeRefusCd, delaiRelectureCd,
+    dureeCd, titrePisteCd, codeRefusCd, delaiRelectureCd, numeroPisteCdEnCours,
     type EtatLecteurCd, type DisqueCd,
   } from '../../lib/lectureCd';
   import ExtractionCdV2 from './ExtractionCdV2.svelte';
@@ -166,6 +166,13 @@
   }
 
   const pisteN = $derived($t('v2.cd.trackN' as any));
+  /** La piste du disque affiché que joue la zone courante (fil 2204) ; rien
+   *  quand la zone est arrêtée ou joue autre chose. */
+  const pisteEnCours = $derived(
+    disque && $currentZone && $currentZone.state !== 'stopped'
+      ? numeroPisteCdEnCours($currentZone.current_track, disque.disc_id)
+      : null,
+  );
 </script>
 
 <section class="v2-cd tune-v2">
@@ -235,8 +242,13 @@
 
       <ol class="pistes">
         {#each disque.pistes as p (p.numero)}
-          <li class="piste">
-            <span class="num">{p.numero}</span>
+          <li class="piste" class:en-cours={pisteEnCours === p.numero}
+            aria-current={pisteEnCours === p.numero ? 'true' : undefined}>
+            <span class="num">
+              {#if pisteEnCours === p.numero}
+                <svg class="egaliseur" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="4" width="2" height="7"/><rect x="5" y="1" width="2" height="10"/><rect x="9" y="6" width="2" height="5"/></svg>
+              {:else}{p.numero}{/if}
+            </span>
             <span class="titre">
               {titrePisteCd(p, disque, pisteN)}
               {#if p.artiste && p.artiste !== disque.artiste}<small>{p.artiste}</small>{/if}
@@ -277,6 +289,8 @@
   .piste{display:grid; grid-template-columns:32px minmax(0,1fr) auto 36px; align-items:center; gap:10px;
     padding:8px 6px; border-bottom:1px solid var(--v2-line); font-size:13px}
   .num{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .piste.en-cours .titre,.piste.en-cours .duree{color:var(--v2-acc-tint); font-weight:600}
+  .egaliseur{width:12px; height:12px; fill:var(--v2-acc-tint); vertical-align:middle}
   .titre{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .titre small{margin-left:8px; color:var(--v2-txt3)}
   .duree{font:11.5px var(--v2-mono); color:var(--v2-txt2)}

@@ -403,15 +403,16 @@ export async function toggleStreamingFavorite(ref: StreamingRef): Promise<boolea
   const wasFav = get(favoriteStreamingKeys).has(key);
   favoriteStreamingKeys.update((s) => { wasFav ? s.delete(key) : s.add(key); return s; });
 
+  let reponse: api.ReponseEcritureFavoriService | undefined;
   try {
     if (wasFav) {
-      await api.removeProfileStreamingFavorite(pid, {
+      reponse = await api.removeProfileStreamingFavorite(pid, {
         item_type: ref.itemType,
         service: ref.service,
         service_id: ref.serviceId,
       });
     } else {
-      await api.addProfileStreamingFavorite(pid, {
+      reponse = await api.addProfileStreamingFavorite(pid, {
         item_type: ref.itemType,
         service: ref.service,
         service_id: ref.serviceId,
@@ -427,6 +428,18 @@ export async function toggleStreamingFavorite(ref: StreamingRef): Promise<boolea
     console.error('Toggle streaming favorite error:', e);
     return wasFav;
   }
+
+  // rc4 (`tune-server-rust#6011`) — un service en MIROIR : le serveur a déjà
+  // propagé le cœur chez lui. Recopier ferait partir le retrait deux fois, et
+  // le second `/favorite/delete` sur un favori absent afficherait à tort
+  // « le service n'a pas suivi ». Deux signaux, l'un suffit : le champ
+  // `favoris_miroir` du magasin, ou la réponse qui porte `miroir`.
+  const miroir = reponse && typeof reponse === 'object' ? reponse.miroir : undefined;
+  if (miroir) {
+    if (miroir.statut === 'en_attente') signalerMiroirEnAttente(miroir.service || ref.service, miroir.erreur);
+    return !wasFav;
+  }
+  if (favorisEnMiroirChez(ref.service)) return !wasFav;
 
   // 🔴 #4577 point 3 — on n'écrit plus chez un service qui a DIT qu'il
   // refuserait. Le cœur de Tune, lui, vient d'être posé : il vit dans
@@ -467,6 +480,33 @@ export function favorisRecopiablesVers(service: string | null | undefined): bool
   const nom = (service ?? '').trim();
   if (!nom) return true;
   return get(streamingServices)[nom]?.favoris_ecrivables !== false;
+}
+
+/**
+ * rc4 — les favoris de ce service sont-ils un miroir du service
+ * (`favoris_miroir`, `tune-server-rust#6011`) ?
+ *
+ * 🔴 Seul `true` compte. L'absence — serveur d'avant la rc4, magasin pas encore
+ * rempli — garde le comportement d'avant : on recopie.
+ */
+export function favorisEnMiroirChez(service: string | null | undefined): boolean {
+  const nom = (service ?? '').trim();
+  if (!nom) return false;
+  return get(streamingServices)[nom]?.favoris_miroir === true;
+}
+
+/**
+ * rc4 — le service n'a pas encore suivi (réponse 202, `statut: "en_attente"`).
+ *
+ * Ce n'est pas un échec : le cœur tient dans Tune et le serveur réessaiera au
+ * prochain rafraîchissement. D'où une INFO, discrète, et non une erreur.
+ */
+export function signalerMiroirEnAttente(service: string, motif: string | null | undefined): void {
+  const m = (motif ?? '').trim() || '—';
+  notifications.info(
+    get(t)('favorites.miroirEnAttente').replace('{service}', service).replace('{motif}', m),
+    5000,
+  );
 }
 
 /**

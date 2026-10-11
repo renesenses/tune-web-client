@@ -11,16 +11,15 @@ import { pisteIndisponible } from '../albumAParaitre';
  * 186 des 1 454 pistes de cette playlist valent `false` — dont la PREMIÈRE,
  * qui s'affichait exactement comme les autres.
  *
- * 🔴 Le mécanisme existait depuis le 17/09 dans `ListePistesV2` et
- * `LignePisteV2`. Le gestionnaire avait alors sa PROPRE liste de pistes :
- * troisième rendu, troisième oubli. Depuis le 23/09/2026 il rend la liste
- * commune (Bertrand) : il n'y a plus que DEUX rendus à garder — et l'écran
+ * 🔴 Le mécanisme existait depuis le 17/09 dans `ListePistesV2` et dans
+ * l'ancien rendu en lignes. Le gestionnaire avait alors sa PROPRE liste de
+ * pistes : troisième rendu, troisième oubli. Depuis le 23/09/2026 il rend la
+ * liste commune (Bertrand), et depuis #1470 il n'y a plus qu'UN rendu — et l'écran
  * doit toujours nommer la chose avec le bon mot, par la prop prévue pour ça.
  */
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf8');
 const ECRANS = {
   liste: 'src/components/v2/ListePistesV2.svelte',
-  ligne: 'src/components/v2/LignePisteV2.svelte',
 };
 const GESTIONNAIRE = 'src/components/v2-heritage/PlaylistManagerView.svelte';
 
@@ -34,7 +33,7 @@ describe('pistes indisponibles', () => {
     expect(pisteIndisponible(null)).toBe(false);
   });
 
-  it('🔴 les DEUX rendus de piste la grisent', () => {
+  it('🔴 le rendu de piste la grise', () => {
     for (const [nom, chemin] of Object.entries(ECRANS)) {
       const src = lire(chemin);
       expect(src, `${nom} n'importe pas le prédicat`).toContain('pisteIndisponible');
@@ -44,15 +43,12 @@ describe('pistes indisponibles', () => {
 
   it('et ne la lancent pas : la lire rendrait « no url »', () => {
     // #4806 — le clic passe par `lireDelibere` (confirmation d'un titre
-    // banni) dans les DEUX rendus ; la garde d'indisponibilité y est la
+    // banni) ; la garde d'indisponibilité y est la
     // première ligne, avant toute confirmation.
     const liste = lire(ECRANS.liste);
     expect(liste).toContain('onclick={() => void lireDelibere(p, i)}');
     expect(liste).toMatch(/async function lireDelibere\(p: Track, i: number\) \{\n\s*if \(pisteIndisponible\(p\)\) return;/);
     expect(liste).toContain('disabled={indispo}');
-    const ligne = lire(ECRANS.ligne);
-    expect(ligne).toMatch(/async function lireDelibere\(\) \{\n\s*if \(indispo\) return;/);
-    expect(ligne).toContain('disabled={indispo}');
   });
 
   it('🔴 le gestionnaire ne rend plus de piste lui-même : il passe par la liste commune', () => {

@@ -4,7 +4,8 @@ import { libraryTab, libraryFolderScope } from './library';
 import { activeStreamingService, streamingGenreBreadcrumb, pendingStreamingAlbum, pendingStreamingArtist } from './streaming';
 import * as api from '../api';
 import { ouvrirArtisteDepuis } from '../ouvrirArtisteDepuis';
-import { ongletCourant } from '../historiqueCoquille';
+import { ongletCourant, ouvrirDetail } from '../historiqueCoquille';
+import { cheminDeCleDossier, cleDossier, ouvrirLeRepertoire } from './repertoireCible';
 import { estCibleAlbum, ouvrirRaccourciAlbum, vueDeLaCibleAlbum } from '../raccourciAlbum';
 
 export interface Shortcut {
@@ -330,6 +331,18 @@ export function navigateToShortcut(shortcut: Shortcut) {
     if (cible?.restore) {
       const depuis = get(activeView);
       void ouvrirArtisteDepuis(cible.restore, depuis === 'streamingartist' ? 'home' : depuis);
+      return;
+    }
+  }
+  // #2050 — un SOUS-RÉPERTOIRE (fil 2199 point 9) : le dossier est rouvert
+  // comme par « Localiser sur le disque », en UNE entrée d'historique
+  // `#browse/dossier:…`. Déjà dans les Répertoires, la vue ne change pas :
+  // c'est l'ouverture d'un dossier, que l'écran suit par `detailOuvert`.
+  {
+    const chemin = shortcut.view === 'browse' ? cheminDeCleDossier(targetFor(shortcut)?.key) : null;
+    if (chemin) {
+      if (get(activeView) === 'browse') ouvrirDetail(cleDossier(chemin));
+      else { ouvrirLeRepertoire(chemin); activeView.set('browse'); }
       return;
     }
   }
