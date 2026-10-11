@@ -1467,6 +1467,7 @@ export default {
   "trackTags.writeTags": "태그 쓰기",
   "trackTags.savingProgress": "저장 중…",
   "smartCollection.fieldArtist": "아티스트",
+  "smartCollection.fieldAlbumArtist": "앨범 아티스트",
   "smartCollection.fieldAlbumTitle": "앨범 제목",
   "smartCollection.fieldGenre": "장르",
   "smartCollection.fieldComposer": "작곡가",

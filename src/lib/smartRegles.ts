@@ -53,6 +53,11 @@ export interface Champ {
 
 export const CHAMPS: readonly Champ[] = [
   { value: 'artist_name',    labelKey: 'smartCollection.fieldArtist',      type: 'text', piste: 'artist' },
+  // tune-server-rust#6121 (forum 2218) — la balise ALBUMARTIST, et à défaut
+  // l'artiste de l'album. Même nom aux deux niveaux. Dans une collection,
+  // « Artiste » lit déjà l'artiste de l'album ; dans une playlist, c'est
+  // l'interprète de la PISTE, et les deux critères diffèrent.
+  { value: 'album_artist',   labelKey: 'smartCollection.fieldAlbumArtist', type: 'text' },
   { value: 'title',          labelKey: 'smartCollection.fieldAlbumTitle',  type: 'text', piste: 'album' },
   { value: 'genre',          labelKey: 'smartCollection.fieldGenre',       type: 'text' },
   { value: 'composer',       labelKey: 'smartCollection.fieldComposer',    type: 'text' },

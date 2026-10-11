@@ -1483,6 +1483,7 @@ export default {
   "trackTags.writeTags": "Escribir etiquetas",
   "trackTags.savingProgress": "Guardando…",
   "smartCollection.fieldArtist": "Artista",
+  "smartCollection.fieldAlbumArtist": "Artista del álbum",
   "smartCollection.fieldAlbumTitle": "Título del álbum",
   "smartCollection.fieldGenre": "Género",
   "smartCollection.fieldComposer": "Compositor",
