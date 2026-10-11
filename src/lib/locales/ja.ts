@@ -2445,6 +2445,8 @@ export default {
   "v2.home.done": "完了",
   "v2.home.add": "ウィジェットを追加",
   "v2.home.remove": "このウィジェットを削除",
+  "v2.home.seeAll": "すべて表示",
+  "v2.home.seeAllCount": "{n} 件",
   "v2.home.move": "このウィジェットを移動",
   "v2.home.editTip": "ウィジェットの追加・削除・並べ替え",
   "v2.home.editHint": "ハンドルをドラッグするとウィジェットを並べ替えられます。×をクリックすると削除できます。",

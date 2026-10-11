@@ -1483,6 +1483,8 @@ export default {
   "v2.home.done": "Terminé",
   "v2.home.add": "Ajouter un widget",
   "v2.home.remove": "Retirer ce widget",
+  "v2.home.seeAll": "Voir tout",
+  "v2.home.seeAllCount": "{n} éléments",
   "v2.home.move": "Déplacer ce widget",
   "v2.home.editTip": "Ajouter, retirer ou réordonner les widgets",
   "v2.home.editHint": "Glissez la poignée pour réordonner un widget, ou cliquez la croix pour le retirer.",
