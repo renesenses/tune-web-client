@@ -1489,6 +1489,7 @@ export default {
   "trackTags.writeTags": "Scrie etichete",
   "trackTags.savingProgress": "Se salvează…",
   "smartCollection.fieldArtist": "Artist",
+  "smartCollection.fieldAlbumArtist": "Artistul albumului",
   "smartCollection.fieldAlbumTitle": "Titlu album",
   "smartCollection.fieldGenre": "Gen",
   "smartCollection.fieldComposer": "Compozitor",
