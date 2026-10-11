@@ -20,6 +20,7 @@
   import { untrack } from 'svelte';
   import { detailOuvert, ouvrirDetail, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { reculerAvecIntention } from '../../lib/historiqueNavigation';
+  import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
@@ -33,6 +34,27 @@
   let roots = $state<BrowseRootEntry[]>([]);
   let browseResult = $state<BrowseResult | null>(null);
   let currentPath = $state<string | null>(null);
+
+  /**
+   * 🔴 LE DOSSIER OUVERT EST UNE CIBLE DE RACCOURCI — #2050.
+   *
+   * FabienM, fil 2199 point 9 (1.0.0-rc3) : « Raccourci sur un sous répertoire
+   * ne fonctionne pas ». Cet écran ne publiait rien : le signet de la coquille
+   * ne retenait que la vue `browse`, et le raccourci rouvrait la liste des
+   * emplacements. La clé est celle de l'historique (`dossier:<chemin>`) ;
+   * `navigateToShortcut` rouvre le dossier par le chemin de « Localiser sur le
+   * disque » (`ouvrirLeRepertoire`). À la liste des emplacements, aucune cible.
+   */
+  $effect(() => {
+    const chemin = currentPath;
+    untrack(() => {
+      if (!chemin) { clearShortcutTarget(); return; }
+      const nom = chemin.split('/').filter(Boolean).pop() ?? chemin;
+      setShortcutTarget({ key: cleDossier(chemin), restore: { path: chemin }, label: nom });
+    });
+  });
+  // Quitter l'écran oublie la cible (même geste que les playlists).
+  $effect(() => () => clearShortcutTarget());
   // « + Ajouter » : ouvre l'assistant d'import avec CE dossier comme
   // destination, pour poser un album dans le dossier d'un artiste qu'on
   // possède déjà au lieu de laisser le gabarit décider (demande de Yacine).

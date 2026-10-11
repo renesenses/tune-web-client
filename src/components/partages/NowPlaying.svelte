@@ -33,6 +33,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { crossfeedProTraiteLaZone } from '../../lib/stores/crossfeedPro';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
+  import VersionJoueePastille from './VersionJoueePastille.svelte';
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
@@ -1784,6 +1785,8 @@ import { ICONES } from '../../lib/menuPiste';
       <div class="info-column">
         <div class="np-badges-row">
           <ServiceBadge source={displayTrack.source} />
+          <!-- tune-server-rust#2264 : la version réellement jouée, et le repli. -->
+          <VersionJoueePastille piste={displayTrack} />
           <!-- Fil 2126 : ce badge ne porte QUE le palier ; sans palier (format au
                codec non déterminé, « M4A »), il n'a rien à dire et ne s'affiche
                pas. Le format reste lisible dans les puces juste en dessous. -->
@@ -3884,6 +3887,14 @@ import { ICONES } from '../../lib/menuPiste';
     cursor: pointer;
     transition: all 0.12s ease-out;
     margin-top: var(--space-xs);
+    /* web#2019 (Alex Campbell, fil 2178) : « Ban this track looks squished ».
+       Dans une rangée trop étroite, `flex-shrink: 1` ramenait chaque bouton à
+       sa largeur min-content : les libellés de plusieurs mots se cassaient sur
+       plusieurs lignes, et « Ban this track » s'écrasait à côté de
+       « Crossfeed ». Le libellé tient sur une ligne, et c'est la RANGÉE qui
+       passe à la ligne (`.np-extra-btns`). Garde : boutonBannirEcrase2019.test.ts */
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .np-credits-btn:hover, .np-credits-btn.active, .np-credits-btn.cf-pro {
@@ -3991,6 +4002,7 @@ import { ICONES } from '../../lib/menuPiste';
 
   .np-extra-btns {
     display: flex;
+    flex-wrap: wrap; /* web#2019 — voir `.np-credits-btn` */
     gap: var(--space-sm);
     margin-top: var(--space-xs);
   }

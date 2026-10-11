@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as api from '../../lib/api';
+  import { urlNavigateur } from '../../lib/bridge';
   import type { DashboardData, DashboardPeriod, SlotTrack } from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { activeView } from '../../lib/stores/navigation';
@@ -320,7 +321,7 @@
         class="chip export-chip"
         onclick={() => {
           const a = document.createElement('a');
-          a.href = `/api/v1/history/export?limit=10000`;
+          a.href = urlNavigateur(`/api/v1/history/export?limit=10000`);
           a.download = 'tune-history.csv';
           a.click();
         }}

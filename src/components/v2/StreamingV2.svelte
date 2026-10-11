@@ -1,6 +1,7 @@
 <script lang="ts">
   import BandcampManquantsV2 from './BandcampManquantsV2.svelte';
   import YouTubeDecouverteV2 from './YouTubeDecouverteV2.svelte';
+  import type { YtElementRayon } from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { zoneRequise } from '../../lib/zoneRequise';
   /**
@@ -34,6 +35,7 @@
   } from '../../lib/taillePageRecherche';
   import { filtrerParSaisie } from '../../lib/filtreSaisieOnglet';
   import { chargerRubriquesGenre, type BandeRubrique } from '../../lib/rubriquesGenre';
+  import { chargerPlaylistsDuGenre } from '../../lib/playlistsDuGenre';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -268,6 +270,8 @@
    */
   let rubriques = $state<FeaturedSection[]>([]);
   let bandesGenre = $state<BandeRubrique[]>([]);
+  /** #5313 — les playlists éditoriales du genre ouvert (Qobuz). Vide ailleurs. */
+  let genrePlaylists = $state<StreamingPlaylist[]>([]);
 
   /** Liste des genres du service : UN seul appel par service, HORS de l'effet
    * du volet.
@@ -279,7 +283,7 @@
    */
   $effect(() => {
     const svc = active;
-    svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; rubriques = [];
+    svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genrePlaylists = []; rubriques = [];
     // Bandcamp ne passe pas par /streaming : l'interroger la serait un 404.
     if (!svc || svc === BANDCAMP) return;
     let vivant = true;
@@ -307,7 +311,7 @@
   async function ouvrirGenre(g: StreamingGenre) {
     const svc = active;
     if (!svc || svc === BANDCAMP) return;
-    genrePath = [g]; subGenres = []; genreAlbums = []; bandesGenre = [];
+    genrePath = [g]; subGenres = []; genreAlbums = []; bandesGenre = []; genrePlaylists = [];
     if (ouvertureGenre(g) === 'albums') { genreId = g.id; return; }
     genreId = '';
     const mien = ++sousSeq;
@@ -333,7 +337,7 @@
 
   function retourGenres() {
     sousSeq++;
-    genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genreLoading = false;
+    genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genrePlaylists = []; genreLoading = false;
   }
   // Genres Bandcamp : le serveur rend `genres` (libelle + sous-genres) ET
   // `tags` (liste plate) — on prend le premier, on retombe sur le second pour
@@ -533,6 +537,16 @@
    * chemin vers un service ouvrait le bon onglet en gardant la recherche du
    * precedent sous les yeux.
    */
+  /** Fil 2208 — la croix (ou Échap) : on quitte la recherche, le curseur reste
+   *  dans le champ pour en taper une autre. */
+  let champRecherche = $state<HTMLInputElement | null>(null);
+  function viderRecherche() {
+    q = '';
+    results = null;
+    bcSearch = null;
+    champRecherche?.focus();
+  }
+
   function ouvrirOnglet(name: string) {
     active = name;
     sub = 'editorial';
@@ -724,8 +738,14 @@
     // Les genres ont QUITTE l'editorial : ils n'y sont plus une section de fin
     // de page (#709). L'y laisser aussi aurait fait deux chemins pour un seul
     // geste, et l'effet editorial rechargeait la liste a chaque puce.
-    if (!svc || svc === BANDCAMP || sub !== 'genres' || !gid) { genreAlbums = []; bandesGenre = []; return; }
+    if (!svc || svc === BANDCAMP || sub !== 'genres' || !gid) { genreAlbums = []; bandesGenre = []; genrePlaylists = []; return; }
     genreLoading = true;
+    // #5313 — les playlists du genre, en parallele des albums : leur echec ne
+    // touche pas aux bandes d'albums, et un service sans playlists editoriales
+    // rend une liste vide (pas de bande).
+    genrePlaylists = [];
+    chargerPlaylistsDuGenre(() => api.getStreamingGenrePlaylists(svc, gid))
+      .then((p) => { if (genreId === gid) genrePlaylists = p as StreamingPlaylist[]; });
     chargerRubriquesGenre(rubs, (section) =>
       api.getStreamingGenreAlbums(svc, gid, 40, section) as Promise<unknown[]>)
       .then((b) => {
@@ -1174,8 +1194,18 @@
     {#if active}
       <div class="v2-rech">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={$t('v2.stream.searchIn' as any).replace('{service}', label(active))} bind:value={q} />
-        {#if searching}<span class="spin" aria-hidden="true"></span>{/if}
+        <input bind:this={champRecherche} placeholder={$t('v2.stream.searchIn' as any).replace('{service}', label(active))}
+               aria-label={$t('v2.stream.searchIn' as any).replace('{service}', label(active))} bind:value={q}
+               onkeydown={(e) => { if (e.key === 'Escape' && q) { e.preventDefault(); viderRecherche(); } }} />
+        <!-- Fil 2208 (Didier) — la croix de la Bibliothèque, ici aussi : sans
+             elle, il fallait sélectionner tout le texte pour sortir de la
+             recherche. Même place que le témoin d'attente, qu'elle remplace. -->
+        {#if searching}<span class="spin" aria-hidden="true"></span>
+        {:else if q}
+          <button class="clr" onclick={viderRecherche} aria-label={$t('common.clear' as any)} title={$t('common.clear' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        {/if}
       </div>
     {/if}
     </div>
@@ -1302,7 +1332,7 @@
         {#if results.tracks?.length}
           <section class="sec"><h2>{$t('v2.rech.tracks' as any)}</h2>
             <div class="liste">
-              <ListePistesV2 pistes={results.tracks as any} numerotation="aucune" avecAlbum
+              <ListePistesV2 pistes={results.tracks as any} numerotation="aucune"
                 onLire={(pi) => playTrack(pi as any)}
                 clef={(pi, i) => cleItem(pi as any, i)} />
             </div>
@@ -1352,7 +1382,7 @@
       <div class="state">{$t('v2.common.loading' as any)}</div>
 
     {:else if sub === 'ytmusic' && ongletYouTube}
-      <YouTubeDecouverteV2 />
+      <YouTubeDecouverteV2 tuile={tuileYouTube} />
 
     {:else if sub === 'editorial'}
       {#if isBc}
@@ -1544,6 +1574,13 @@
         {:else}
           <div class="state">{$t('streaming.pickGenre')}</div>
         {/if}
+        {#if genreId && genrePlaylists.length}
+          <!-- #5313 — Cyrille Moutia, fil 1685 : les playlists Qobuz du genre. -->
+          <section class="sec">
+            <h2>{$t('streaming.genrePlaylists')}</h2>
+            <div class="grid">{#each genrePlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+          </section>
+        {/if}
       {/if}
 
     {:else if sub === 'playlists'}
@@ -1596,7 +1633,7 @@
              cliqué, puis ceux qui suivent dans la liste affichée. -->
         <section class="sec" id="fav-titres"><h2>{$t('v2.rech.tracks' as any)}</h2>
           <div class="liste">
-            <ListePistesV2 pistes={favTracksVus as any} numerotation="aucune" avecAlbum pochetteEnTableau
+            <ListePistesV2 pistes={favTracksVus as any} numerotation="aucune" pochetteEnTableau
               onLire={(_pi, i) => lireFavorisDepuis(i)}
               clef={(pi, i) => cleItem(pi as any, i)} />
           </div>
@@ -1621,6 +1658,33 @@
   incomplète ne fabrique AUCUNE route de service : il reste le nom, et la
   recherche exacte en bibliothèque — jamais la lecture à la place.
 -->
+<!--
+  tune-server-rust#5247 — un élément d'un rayon YouTube Music (Tendances,
+  Ambiances, Accueil) rendu par les vignettes de CET écran : pochette, cœur,
+  étiquettes, menu « … » et ouverture de la fiche, comme partout ailleurs. Une
+  playlist ou un album s'ouvre sur sa liste de titres (`ouvrirFiche`), un
+  artiste sur sa page, un titre se lit.
+-->
+{#snippet tuileYouTube(el: YtElementRayon)}
+  {#if el.kind === 'artist'}
+    {@render artiste({ id: el.id, source_id: el.id, source: 'youtube', name: el.title, image_path: el.cover_path })}
+  {:else}
+    {@const p = {
+      id: el.id, source_id: el.id, source: 'youtube',
+      title: el.title, name: el.kind === 'playlist' ? el.title : undefined,
+      // Le sous-titre d'un titre ou d'un album nomme l'artiste ; celui d'une
+      // playlist la décrit — `artisteDeVignetteService` le laisse inerte.
+      artist_name: el.subtitle || undefined,
+      cover_path: el.cover_path,
+    }}
+    {@render tile(
+      p,
+      () => (el.kind === 'track' ? playTrack(p) : el.kind === 'playlist' ? playPlaylist(p) : playAlbum(p)),
+      el.kind,
+    )}
+  {/if}
+{/snippet}
+
 {#snippet artiste(ar: any)}
   <!--
     #1194 — FabienM, fil 1839, point 9 : « les vignettes d'artiste ne sont pas

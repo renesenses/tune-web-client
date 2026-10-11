@@ -16,7 +16,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   ajouterUnDossier,
   estUneRacineDeVolume,
-  faitConfirmer,
+  alerteAvantAjout,
   questionAvantAjout,
   retirerUnDossier,
   SEUIL_FICHIERS_AUDIO,
@@ -38,17 +38,17 @@ describe('racine de volume', () => {
   );
 });
 
-describe('quand confirmer', () => {
+describe("quand prendre le ton d'alerte", () => {
   it('une racine de disque, même sans comptage', () => {
-    expect(faitConfirmer('D:\\', null)).toBe(true);
+    expect(alerteAvantAjout('D:\\', null)).toBe(true);
   });
   it('un très gros dossier, ou un comptage inachevé', () => {
-    expect(faitConfirmer('/data/a', { audio_files: SEUIL_FICHIERS_AUDIO, complete: true })).toBe(true);
-    expect(faitConfirmer('/data/a', { audio_files: 10, complete: false })).toBe(true);
+    expect(alerteAvantAjout('/data/a', { audio_files: SEUIL_FICHIERS_AUDIO, complete: true })).toBe(true);
+    expect(alerteAvantAjout('/data/a', { audio_files: 10, complete: false })).toBe(true);
   });
-  it('un dossier ordinaire passe sans question', () => {
-    expect(faitConfirmer('/data/a', { audio_files: 1200, complete: true })).toBe(false);
-    expect(faitConfirmer('/data/a', null)).toBe(false);
+  it('un dossier ordinaire reçoit la question ordinaire', () => {
+    expect(alerteAvantAjout('/data/a', { audio_files: 1200, complete: true })).toBe(false);
+    expect(alerteAvantAjout('/data/a', null)).toBe(false);
   });
 });
 
@@ -64,6 +64,18 @@ describe('la question dit ce qui va être analysé', () => {
     expect(questionAvantAjout('/data/a', { audio_files: 90000, folders: 4000, complete: false }, trFr)).toContain(
       'au moins 90000 fichiers audio',
     );
+  });
+  it('dossier ordinaire : la question nomme le dossier et le nombre (10/10)', () => {
+    expect(questionAvantAjout('D:\\Musique', { audio_files: 1200, folders: 85, complete: true }, trFr)).toBe(
+      '« D:\\Musique » sera analysé et ajouté à la bibliothèque. '
+        + 'Tune y a trouvé 1200 fichiers audio dans 85 dossiers. '
+        + 'Ajouter ce dossier ? Vous pourrez le retirer ensuite sans toucher aux fichiers.',
+    );
+  });
+  it('aucun fichier audio : on le dit avant l’ajout', () => {
+    const q = questionAvantAjout('/home/moi', { audio_files: 0, folders: 12, complete: true }, trFr);
+    expect(q).toContain(fr['settings.addFolderNoAudio']);
+    expect(q).not.toContain('Tune y a trouvé 0');
   });
   it('sans comptage, la phrase tient debout', () => {
     const q = questionAvantAjout('/', { error: 'path is outside the browsable perimeter' }, trFr);
@@ -84,8 +96,22 @@ describe('ajouterUnDossier', () => {
     expect(r).toBeNull();
     expect(ajouter).not.toHaveBeenCalled();
   });
-  it('un serveur sans route de comptage ne bloque pas un dossier ordinaire', async () => {
-    const confirmer = vi.fn();
+  it('un dossier ordinaire est AUSSI confirmé, nombre à l’appui (10/10)', async () => {
+    const confirmer = vi.fn(async (_m: string) => true);
+    const ajouter = vi.fn(async () => ({ music_dirs: ['/data/musique'] }));
+    const r = await ajouterUnDossier('/data/musique', {
+      estimer: async () => ({ audio_files: 1200, folders: 85, complete: true, drive_root: false }),
+      ajouter,
+      confirmer,
+      tr: trFr,
+    });
+    expect(confirmer).toHaveBeenCalledTimes(1);
+    expect(confirmer.mock.calls[0][0]).toContain('1200 fichiers audio');
+    expect(ajouter).toHaveBeenCalledWith('/data/musique');
+    expect(r?.music_dirs).toEqual(['/data/musique']);
+  });
+  it('un serveur sans route de comptage ne bloque pas : la question part sans nombre', async () => {
+    const confirmer = vi.fn(async (_m: string) => true);
     const r = await ajouterUnDossier('/data/musique', {
       estimer: async () => { throw new Error('404'); },
       ajouter: async () => ({ music_dirs: ['/data/musique'] }),
@@ -93,7 +119,8 @@ describe('ajouterUnDossier', () => {
       tr: trFr,
     });
     expect(r?.music_dirs).toEqual(['/data/musique']);
-    expect(confirmer).not.toHaveBeenCalled();
+    expect(confirmer).toHaveBeenCalledTimes(1);
+    expect(confirmer.mock.calls[0][0]).not.toContain('Tune y a trouvé');
   });
 });
 
@@ -120,7 +147,7 @@ describe('les écrans branchent les gestes', () => {
   const lire = (p: string) => readFileSync(resolve(__dirname, p), 'utf-8');
   it.each(['../../components/v2/SettingsV2.svelte', '../../components/partages/OnboardingWizard.svelte'])('%s', (p) => {
     const src = lire(p);
-    expect(src).toContain('<FolderBrowser');
+    expect(src).toMatch(/<FolderBrowser|<BoutonAjouterDossier/);
     expect(src).toContain('ajouterUnDossier(');
     expect(src).toContain('retirerUnDossier(');
   });
@@ -137,11 +164,15 @@ describe('i18n dans les onze langues', () => {
     'folderBrowser.select', 'folderBrowser.parent', 'folderBrowser.open', 'folderBrowser.hint',
     'settings.addFolderDriveRoot', 'settings.addFolderLarge', 'settings.addFolderCount',
     'settings.addFolderCountAtLeast', 'settings.addFolderConfirm', 'settings.removeFolderButton',
+    'settings.addFolderOrdinary', 'settings.addFolderNoAudio', 'settings.addFolderButton',
+    'settings.addFolderManualHint', 'v2.accueilVide.title', 'v2.accueilVide.text',
+    'v2.accueilVide.added', 'v2.accueilVide.settings',
   ];
   it.each([...ONZE_LANGUES])('%s', (l) => {
     const d = (dicos as Record<string, unknown>)[l] as Record<string, string>;
     for (const k of cles) expect(d[k], `${l} ${k}`).toBeTruthy();
     expect(d['settings.addFolderCount']).toContain('{count}');
     expect(d['settings.addFolderDriveRoot']).toContain('{path}');
+    expect(d['settings.addFolderOrdinary']).toContain('{path}');
   });
 });

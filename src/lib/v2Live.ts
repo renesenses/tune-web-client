@@ -72,7 +72,8 @@ import { estEcouteRevoquee } from './circle';
 import { playbackHistory } from './stores/history';
 import { noterSiDebutDEcoute } from './historiqueEcoutes';
 import { appliquerEvenementAudioNavigateur } from './audioNavigateurSync';
-import { isBrowserZone, browserPlay, browserPause, browserResume, browserStop } from './stores/browserAudio';
+import { estZoneJouableIci } from './zoneNavigateurProprietaire';
+import { browserPlay, browserPause, browserResume, browserStop } from './stores/browserAudio';
 import { urlFlux } from './bridge';
 import {
   seekPositionMs,
@@ -625,7 +626,9 @@ export function demarrerTransportV2(): () => void {
         appliquerEvenementAudioNavigateur(
           type,
           emettrice,
-          (zz) => isBrowserZone(zz as any),
+          // rc4 : seule une zone navigateur de CET appareil se joue ici ; celle
+          // d'un téléphone ou d'un autre navigateur se pilote sans être lue.
+          (zz) => estZoneJouableIci(zz),
           (zz) => urlFlux((zz as any)?.stream_url, (zz as any)?.stream_url_remote) ?? undefined,
           {
             jouer: (src, forcer) => browserPlay(src, forcer),

@@ -251,6 +251,11 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        * connexion y vit désormais : il doit être atteignable à tous les
        * niveaux. Les mots-clés doivent le trouver (« compte », « relier »). */
       { id: 'cloud',      title: 'Cloud',                         from: 'system', min: 'beginner', keywords: ['compte', 'relier', 'mozaiklabs', 'connexion', 'se connecter', 'account', 'sauvegarde', 'relais', 'télémétrie', 'telemetry', 'statistiques', 'consentement', 'vie privée', 'partage', 'communauté', 'communautaire', 'community', 'sharing'] },
+      /* #5654 / web#902 — la sauvegarde automatique et chiffrée des
+       * personnalisations chez mozaiklabs, et sa restauration. Juste après
+       * « Cloud », où l'on relie le compte qu'elle exige. 'beginner' : perdre
+       * ses réglages n'est pas un risque d'expert. */
+      { id: 'backup',     titleKey: 'cloudBackup.title',          from: 'system', min: 'beginner', keywords: ['sauvegarde', 'restaurer', 'restauration', 'backup', 'restore', 'instantané', 'snapshot', 'nouvelle machine', 'personnalisations', 'reprendre'] },
       { id: 'database',   titleKey: 'settings.database',          from: 'system', min: 'expert', keywords: ['base', 'sqlite', 'postgres'] },
       { id: 'dataLoc',    titleKey: 'settings.dataLocation',      from: 'system', min: 'expert', keywords: ['emplacement', 'données'] },
       { id: 'import',     titleKey: 'import.title',               from: 'system', min: 'expert', keywords: ['import', 'roon', 'plex', 'migrer', 'autre lecteur'] },
