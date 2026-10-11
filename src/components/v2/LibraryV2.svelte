@@ -134,6 +134,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import { cleGenre, grouperParGenre } from '../../lib/genresBibliotheque';
   import {
     detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, ongletCourant,
   } from '../../lib/historiqueCoquille';
@@ -233,7 +234,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * « Zubin Mehta », ni un album sans étiquettes rangé par dossier. On demande
    * au serveur les albums qui répondent au texte — `/library/albums-detailed`,
    * paginée comme la portée, avec `q` (et `folder` quand une portée est
-   * active) : le prédicat d'Oxygen (#5192), artiste de piste et nom de dossier
+   * active) : le prédicat d’Oxygen (#5192), artiste de piste, compositeur (fil 1684) et nom de dossier
    * compris, insensible à la casse et aux accents.
    *
    * Le résultat s'AJOUTE à la comparaison locale (`albumsDuTexte`), qui
@@ -1682,7 +1683,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         })
         .then(() => {
           const cible = [...document.querySelectorAll<HTMLElement>('.facet[data-facette]')]
-            .find((el) => el.dataset.facette === valeur);
+            .find((el) => memeFacette(el.dataset.facette ?? '', valeur));
           cible?.scrollIntoView({ block: 'start', behavior: 'smooth' });
         });
     };
@@ -1706,14 +1707,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // « Annee inconnue » en favori ecrirait une facette que le serveur ne
     // saurait pas selectionner.
     const reels = new Set<string>();
-    for (const a of sorted) {
+    // #1722 — les genres se groupent comme le serveur les compte (découpe des
+    // valeurs multiples, clé canonique) : c'est le libellé du serveur que le
+    // panneau Genres et les Favoris envoient. Voir `lib/genresBibliotheque`.
+    const parGenre = tab === 'genres' ? grouperParGenre(sorted.filter(matches), FACET_EMPTY.genres) : null;
+    for (const a of parGenre ? [] : sorted) {
       if (!matches(a)) continue;
       const brut = facetOf(a, tab);
       const k = brut ?? FACET_EMPTY[tab];
       if (brut != null) reels.add(k);
       const arr = m.get(k); if (arr) arr.push(a); else m.set(k, [a]);
     }
-    const out = [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
+    const out = parGenre ?? [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
     if (tab === 'years') {
       out.sort((x, z) => {
         // « Annee inconnue » n'est pas un nombre : il part en dernier quel que
@@ -1747,9 +1752,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * nouvelle famille — un écran vide sans explication.
    */
   let facetteOuverte = $state<string | null>(null);
+  /** #1722 — un genre se retrouve par sa clé canonique (« Trip Hop » ouvre
+   *  « Trip-Hop »), les autres facettes par égalité exacte. */
+  function memeFacette(cle: string, valeur: string): boolean {
+    return tab === 'genres' ? cleGenre(cle) === cleGenre(valeur) : cle === valeur;
+  }
   $effect(() => { void tab; void q; facetteOuverte = null; });
   const groupeOuvert = $derived(
-    facetteOuverte == null ? null : (groups.find((g) => g.key === facetteOuverte) ?? null),
+    facetteOuverte == null ? null : (groups.find((g) => memeFacette(g.key, facetteOuverte!)) ?? null),
   );
 
   // Pistes et appartenances des artistes : un chargement partagé par portée.

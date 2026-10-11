@@ -192,8 +192,9 @@ describe('Gestionnaire de playlists : les onglets du greffon Playlists converter
     expect(libelles).toContain(F['plconv.ongletTransferts']);
     expect(libelles).toContain(F['plconv.ongletSnapshots']);
     expect(libelles).toContain(F['plconv.ongletSynchro']);
-    // Sauvegarde et Collaboratives ne reviennent PAS avec le greffon.
-    expect(libelles).not.toContain(F['playlistManager.tabBackup']);
+    // Collaboratives ne revient PAS avec le greffon. (L'ancien onglet
+    // Sauvegarde, lui, n'existe plus : retiré après la rc3, tune-server-rust
+    // #4741.)
     expect(libelles).not.toContain(F['playlistManager.tabCollab']);
     // Et l'onglet ouvre bien le panneau du greffon.
     el.querySelector<HTMLButtonElement>('button.pm-tab[data-onglet="conv-synchro"]')!.click();
@@ -493,5 +494,44 @@ describe('codeConvertisseur : le code est le préfixe de la phrase du greffon', 
     expect(codeConvertisseur(new Error('accord_requis : rien n’est écrit'))).toBe('accord_requis');
     expect(codeConvertisseur(new Error('Server error'))).toBeNull();
     expect(codeConvertisseur(null)).toBeNull();
+  });
+});
+
+// Décision de Bertrand (11/10/2026, rc4) : l'onglet des snapshots s'ouvre à
+// tous, comme côté serveur depuis le 08/10 (tune-server-rust#5966, routes
+// `/snapshot*` exemptées de la garde Premium). Les autres onglets du greffon
+// restent Premium.
+describe('Snapshots : ouvert sans Premium', () => {
+  const GARDEES = {
+    count: 1,
+    playlists: [{ service: 'qobuz', playlist_id: 'q-1', nom: 'Jazz du soir', snapshots: 1, dernier_le_ms: 1 }],
+    retention_par_playlist: 10,
+  };
+
+  it('🔴 un compte gratuit voit l’onglet, ses copies, et peut en prendre une', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'free' }));
+    routeur = (url, methode) => {
+      if (url.endsWith(`${PREFIXE}/snapshots`)) return [200, GARDEES];
+      if (url.endsWith(`${PREFIXE}/snapshot`) && methode === 'POST') return [200, { snapshot: { snapshot_id: 'snap-1-2' } }];
+      return undefined;
+    };
+    const el = await monter(SnapshotsConvertisseur, PROPS);
+    expect(el.querySelector('.conv-premium'), 'message Premium affiché à un compte gratuit').toBeNull();
+    expect(el.textContent).toContain(F['plconv.snapshots.titre']);
+    expect(appelsDuGreffon('/snapshots').length, 'les copies ne sont pas lues').toBeGreaterThan(0);
+    expect(el.querySelector('.conv-lien-playlist')?.textContent).toContain('Jazz du soir');
+
+    choisir(el, 'select.conv-prendre-service', 'qobuz');
+    choisir(el, 'select.conv-prendre-playlist', 'q-1');
+    el.querySelector<HTMLButtonElement>('.conv-prendre')!.click();
+    await souffler();
+    expect(appels.some((a) => a.methode === 'POST' && a.url.endsWith(`${PREFIXE}/snapshot`))).toBe(true);
+  });
+
+  it('témoin : la Synchro du greffon reste Premium', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'free' }));
+    const el = await monter(LiensConvertisseur, PROPS);
+    expect(el.textContent).toContain(F['plconv.premium']);
+    expect(appelsDuGreffon('/liens')).toHaveLength(0);
   });
 });

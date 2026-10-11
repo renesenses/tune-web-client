@@ -29,6 +29,10 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   // transcoder à 0 Hz. Sa phrase est technique et toujours en français ; la
   // clé dit la même chose dans la langue de l'interface.
   streaming_sample_rate_unknown: 'playback.errorSampleRateUnknown',
+  // #6018 — la lecture Spotify par librespot est une option EXPÉRIMENTALE,
+  // désactivée par défaut : le serveur refuse proprement (409) tant qu'elle
+  // ne l'est pas. Un état de réglage, pas une panne.
+  spotify_playback_disabled: 'playback.errorSpotifyDisabled',
 };
 
 /**
@@ -5055,6 +5059,8 @@ export interface SpotifyConnectStatus {
   active: boolean;
   reason?: string;
   error?: string;
+  /** #6018 — « Lecture Spotify (expérimental) » : désactivée par défaut. */
+  lecture_experimentale?: boolean;
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {
@@ -5092,6 +5098,14 @@ export function enableSpotifyConnect(zone_id: number, device_name?: string | nul
 
 export function disableSpotifyConnect() {
   return fetchJSON<SpotifyConnectStatus>(`${BASE}/spotify-connect/disable`, { method: 'POST' });
+}
+
+/** #6018 — active ou désactive la lecture Spotify par librespot (expérimental). */
+export function setSpotifyLectureExperimentale(enabled: boolean) {
+  return fetchJSON<SpotifyConnectStatus>(`${BASE}/spotify-connect/lecture-experimentale`, {
+    method: 'POST',
+    body: JSON.stringify({ enabled }),
+  });
 }
 
 export function rescanArtwork() {
@@ -5783,47 +5797,12 @@ export function mergePlaylists(body: {
   return fetchJSON<any>(`${BASE}/playlist-manager/merge`, { method: 'POST', body: JSON.stringify(body) });
 }
 
-export function backupPlaylists(services?: string[]) {
-  return fetchJSON<any>(`${BASE}/playlist-manager/backup`, {
-    method: 'POST', body: JSON.stringify({ services, include_tracks: true }),
-  });
-}
-
-export interface PlaylistSnapshot {
-  id: number;
-  source_service: string;
-  source_playlist_id: string;
-  playlist_name: string;
-  track_count: number;
-  created_at?: string | null;
-  added_at?: number | null;
-}
-
-export interface SnapshotDetail extends PlaylistSnapshot {
-  tracks: Array<{ title?: string; artist_name?: string; album_title?: string; duration_ms?: number; source_id?: string; isrc?: string }>;
-}
-
-export function listPlaylistSnapshots(service?: string) {
-  const url = service
-    ? `${BASE}/playlist-manager/backups?service=${encodeURIComponent(service)}`
-    : `${BASE}/playlist-manager/backups`;
-  return fetchJSON<PlaylistSnapshot[]>(url);
-}
-
-export function getPlaylistSnapshot(id: number) {
-  return fetchJSON<SnapshotDetail>(`${BASE}/playlist-manager/backups/${id}`);
-}
-
-export function deletePlaylistSnapshot(id: number) {
-  return fetchJSON<{ deleted: boolean; id: number }>(`${BASE}/playlist-manager/backups/${id}`, { method: 'DELETE' });
-}
-
-export function restorePlaylistSnapshot(id: number, body?: { target_name?: string; overwrite_existing?: boolean }) {
-  return fetchJSON<{ local_playlist_id: number; name: string; tracks_restored: number; tracks_matched: number; tracks_not_found: number }>(
-    `${BASE}/playlist-manager/backups/${id}/restore`,
-    { method: 'POST', body: JSON.stringify(body ?? {}) },
-  );
-}
+// Liens et sauvegardes : plus de fonction vers `/playlist-manager/links*` ni
+// `/playlist-manager/backup(s)*`. Ces routes doublonnaient le greffon
+// « Playlists converter » et ne sont plus, côté serveur, que des alias
+// dépréciés (en-tête `Deprecation`) pour les anciens clients
+// (tune-server-rust#4741). Le client passe par `convertisseurLiens`,
+// `convertisseurPrendreSnapshot`, `convertisseurRestaurer`… plus bas.
 
 export function exportPlaylistFile(service: string, playlistId: string, format: string) {
   return fetch(`${BASE}/playlist-manager/export`, {
@@ -5864,25 +5843,6 @@ export async function importPlaylistFile(file: File, name?: string) {
   return resp.json() as Promise<{ playlist_id?: number; matched?: number; missing?: number }>;
 }
 
-export function getPlaylistLinks() {
-  return fetchJSON<any[]>(`${BASE}/playlist-manager/links`);
-}
-
-export function createPlaylistLink(body: {
-  local_playlist_id: number; service: string; service_playlist_id: string;
-  sync_direction?: string; sync_interval_minutes?: number;
-}) {
-  return fetchJSON<any>(`${BASE}/playlist-manager/links`, { method: 'POST', body: JSON.stringify(body) });
-}
-
-export function triggerPlaylistSync(linkId: number) {
-  return fetchJSON<any>(`${BASE}/playlist-manager/links/${linkId}/sync`, { method: 'POST' });
-}
-
-export function deletePlaylistLink(linkId: number) {
-  return fetchJSON<any>(`${BASE}/playlist-manager/links/${linkId}`, { method: 'DELETE' });
-}
-
 export function getTransferHistory(limit = 50, offset = 0) {
   return fetchJSON<any[]>(`${BASE}/playlist-manager/history?limit=${limit}&offset=${offset}`);
 }
@@ -5900,6 +5860,9 @@ export * from './api/metadata';
 export * from './api/ingest';
 // Voir lib/api/bandcampAchats.ts.
 export * from './api/bandcampAchats';
+// Rôle maître / agent entre serveurs Tune (tune-server-rust#4626).
+// Voir lib/api/agentTune.ts.
+export * from './api/agentTune';
 
 // --- Radios ---
 
