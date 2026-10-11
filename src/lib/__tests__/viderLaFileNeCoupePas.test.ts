@@ -154,7 +154,8 @@ describe('QueueV2 — le vrai écran, le vrai clic', () => {
     expect(b).toHaveLength(1);
     expect(b[0].textContent?.trim()).toBe('Vider la file');
     // Et il DIT ce qu'il fait, dans la langue de l'utilisateur.
-    expect(b[0].title).toBe('Retire ce qui suit sans arrêter la piste en cours.');
+    // web#1857 : l'infobulle annonce aussi le second temps.
+    expect(b[0].title).toMatch(/^Retire ce qui suit sans arrêter la piste en cours\./);
   });
 
   it('🔴 le cliquer envoie keep_current: true — la lecture n\'est pas coupée', { timeout: DELAI_MONTAGE }, async () => {
@@ -182,8 +183,11 @@ describe('NowPlaying — le même geste, la même règle', () => {
     src.indexOf('let qsSavingQueue'),
   );
 
-  it('le panneau de file appelle le geste sans forcer la coupure', () => {
-    expect(bloc).toContain('await api.clearQueue(zone.id);');
+  it('le panneau de file passe par la règle en deux temps, jamais par une coupure forcée', () => {
+    // web#1857 : le choix entre « suite » et « tout » vit dans `lib/viderFile`
+    // (`gesteVider` sur l'ÉTAT de la file), témoigné par `viderEnDeuxTemps1857`.
+    expect(bloc).toContain('gesteVider($queueTracks.length, $queuePosition)');
+    expect(bloc).toContain('await executerVider(zone.id, geste)');
     expect(bloc).not.toContain('clearQueue(zone.id, false)');
   });
 

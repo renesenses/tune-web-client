@@ -8,9 +8,8 @@
 //
 // L'écran de l'ANCIEN client porte cette vignette depuis toujours et à tous les
 // niveaux — `HistoryView.svelte:142`, un `AlbumArt` de 44 px. Le portage vers la
-// liste partagée l'a perdue aux niveaux Essentiel et Expert, les deux qui
-// rendent le TABLEAU (`MODES_BRANCHES`) ; seul le rendu en lignes (Avancé) l'a
-// gardée. Le niveau par défaut est `expert` : la plupart des testeurs voient
+// liste partagée l'a perdue aux niveaux qui rendent le TABLEAU — tous, depuis
+// #1470. Le niveau par défaut est `expert` : la plupart des testeurs voient
 // donc le tableau, et c'est ce que montrent les deux captures.
 //
 // 🔴 CE TÉMOIN MONTE ET REGARDE, IL NE LIT PAS DE SOURCE. Une garde qui
@@ -23,7 +22,6 @@ import { mount, unmount, flushSync } from 'svelte';
 import HistoriqueV2 from '../../components/v2/HistoriqueV2.svelte';
 import ListePistesV2 from '../../components/v2/ListePistesV2.svelte';
 import { preferences } from '../stores/preferences';
-import { modeEnTableau } from '../colonnesPistes';
 
 /** Une écoute telle que `/library/history` la rend (cf. `entreesDepuisServeur`). */
 const ECOUTE = {
@@ -92,12 +90,6 @@ afterEach(() => {
 });
 
 describe('#3823 — la vignette revient en tête de ligne, au mode TABLEAU', () => {
-  it('le niveau mesuré rend bien le tableau — sinon le témoin ne mesure rien', () => {
-    // La contre-épreuve de la contre-épreuve : si `expert` cessait de rendre le
-    // tableau, tout ce fichier deviendrait vert contre le rendu en LIGNES, qui
-    // a toujours eu sa pochette.
-    expect(modeEnTableau('expert')).toBe(true);
-  });
 
   it('🔴 l’Historique montre la vignette dans la cellule du titre', async () => {
     const el = poser(HistoriqueV2);
