@@ -32,7 +32,7 @@
    * la carte entière : rendre toute la bande déplaçable empêcherait de la faire
    * défiler à la souris, qui est son geste principal.
    */
-  import { onMount, untrack } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import AccueilBibliothequeVide from '../partages/AccueilBibliothequeVide.svelte';
@@ -68,11 +68,14 @@
   import {
     WIDGETS,
     DISPOSITION_DEFAUT,
+    LIMITE_VOIR_TOUT,
     type Element,
     type Widget,
     type ChiffreAffiche,
   } from '../../lib/accueilWidgets';
   import { repartirWidgets } from '../../lib/ajoutWidgets';
+  import { GRILLE_OU_LISTE, LIBELLE_AFFICHAGE } from '../../lib/affichage';
+  import { ecrireChoix, lireChoix } from '../../lib/preferencesEcran';
   import { migrationPremiereLigne } from '../../lib/migrationPremiereLigne';
   import { creneauxParalleles } from '../../lib/creneauxParalleles';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -1151,7 +1154,136 @@
    * porte. Voir `lib/molettePortee`.
    */
   let zoneDefilante = $state<HTMLDivElement | null>(null);
+
+  // ── « Voir tout » — renesenses/tune-remote-flutter#51 ─────────────────────
+  /**
+   * La page « Voir tout » d'une bande : TOUT le contenu du widget, en grille
+   * ou en liste. Fabien (11/10/2026) l'a demandée sur Android ; Bertrand l'a
+   * voulue sur les trois clients.
+   *
+   * Elle prend la place de la pile, dans CETTE page : les gestes des cartes
+   * (ouvrir, lire, cœur, étiquettes, édition) et les calques qu'ils ouvrent
+   * sont ceux de la bande, au caractère près — la carte est un seul
+   * `{#snippet}` rendu aux deux endroits.
+   *
+   * 🔴 Le widget est RECHARGÉ avec `LIMITE_VOIR_TOUT` : la bande n'en tient
+   * que cinquante, et « tout » ne serait sinon que ce qu'elle montre déjà. En
+   * attendant la réponse, la page montre ce que la bande avait.
+   */
+  interface VoirTout {
+    id: string;
+    phase: 'attente' | 'charge' | 'echec';
+    elements: Element[];
+  }
+  let voirTout = $state<VoirTout | null>(null);
+  /** Où en était la page avant d'ouvrir « Voir tout » — on l'y ramène. */
+  let defilementAvant = 0;
+
+  /**
+   * Grille ou liste, retenu d'une visite à l'autre comme la Bibliothèque et
+   * les Favoris (`lib/preferencesEcran`) : un seul choix pour toutes les
+   * pages « Voir tout ».
+   */
+  const CLE_VUE_VOIR_TOUT = 'voir_tout_vue';
+  let vueVoirTout = $state(lireChoix(CLE_VUE_VOIR_TOUT, GRILLE_OU_LISTE, 'grid'));
+  function choisirVue(v: (typeof GRILLE_OU_LISTE)[number]) {
+    vueVoirTout = v;
+    ecrireChoix(CLE_VUE_VOIR_TOUT, v);
+  }
+
+  function ouvrirVoirTout(id: string) {
+    const w = parId(id);
+    if (!w) return;
+    defilementAvant = zoneDefilante?.scrollTop ?? 0;
+    voirTout = { id, phase: 'attente', elements: [...(etatDe(id)?.elements ?? [])] };
+    try { zoneDefilante?.scrollTo?.({ top: 0 }); } catch { /* jsdom, vieux moteur */ }
+    const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones),
+                  chiffresChoisis: chiffres, langue: get(locale), limite: LIMITE_VOIR_TOUT };
+    Promise.resolve(w.charger(ctx))
+      .then((r) => {
+        if (demonte || voirTout?.id !== id) return;
+        voirTout = { id, phase: 'charge', elements: r ?? [] };
+      })
+      .catch(() => {
+        if (demonte || voirTout?.id !== id) return;
+        // Ce que la bande montrait reste à l'écran : un échec du rechargement
+        // ne doit pas vider une page qui avait déjà de quoi se lire.
+        voirTout = { ...voirTout, phase: voirTout.elements.length ? 'charge' : 'echec' };
+      });
+  }
+
+  function fermerVoirTout() {
+    voirTout = null;
+    const y = defilementAvant;
+    void tick().then(() => { if (zoneDefilante) zoneDefilante.scrollTop = y; });
+  }
 </script>
+
+{#snippet carte(el: Element)}
+  {@const idLocal = el.fiche?.id ?? null}
+  {@const sidDistant =
+    idLocal == null
+      ? (el.fiche?.source_id ?? el.favoriDistant?.serviceId ?? null)
+      : null}
+  {@const typeFavori = el.favoriDistant?.itemType ?? 'album'}
+  <!-- Point 10 (17/09/2026) : un album ANNONCÉ porte sa date.
+       Il garde sa lecture : ses singles déjà sortis
+       s'écoutent, et c'est la PISTE qui dit l'indisponible. -->
+  <div class="carte">
+    <div class="pochette">
+      <PochetteActions
+        favori={el.favoriLocal ?? (idLocal != null ? { albumId: idLocal } : null)}
+        favoriExterne={sidDistant
+          ? favoriExterneService($favoriteStreamingKeys, {
+              itemType: typeFavori,
+              service: el.fiche?.source ?? el.source ?? '',
+              serviceId: String(sidDistant),
+              title: el.titre,
+              artist: el.sous ?? undefined,
+              coverUrl: el.cover ?? undefined,
+            })
+          : null}
+        etiquettes={el.etiquette !== undefined
+          ? el.etiquette
+          : el.ouvrir === 'playlist'
+          ? cibleEtiquettePlaylist(el.playlist, el.source)
+          : cibleEtiquetteAlbum(el.fiche, el.source)}
+        onEditer={idLocal != null ? () => (enEdition = el.fiche) : null}
+        onLire={el.jouer ? () => jouer(el) : null}
+        onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
+        objet={objetElement(el)}
+        nom={el.titre}
+      >
+        {#if el.pochettes || el.mosaique}
+          <!-- Playlist ou collection : la MOSAÏQUE de son
+               écran (`MosaiquePochettes`), pas une pochette. -->
+          <MosaiqueDifferee pochettes={el.pochettes ?? []} charger={el.mosaique ?? null}
+            initiales={el.titre?.slice(0, 1)} alt={el.titre} />
+        {:else}
+          <AlbumArt coverPath={el.cover} albumId={null} size={0} vignette alt={el.titre}
+            source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
+        {/if}
+      </PochetteActions>
+    </div>
+    <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
+      <span class="ct" title={el.titre}>{el.titre}</span>
+      {#if el.sous}<span class="ca" title={el.sous}>{el.sous}</span>{/if}
+      {#if el.aParaitre}
+        {@const d = dateDeParution({ released_at: el.parution })}
+        <span class="cp">{d
+          ? $t('v2.str.comingOn' as any).replace('{d}', d)
+          : $t('v2.str.coming' as any)}</span>
+      {/if}
+    </button>
+    {#if el.zoneId != null}
+      <!-- Le mini-analyseur de la version actuelle, sous la
+           zone. `zoneId` nomme la zone A SUIVRE : la bande en
+           montre plusieurs, et sans lui elles porteraient
+           toutes le meme trace. -->
+      <div class="viz"><AudioVisualizer playing={!!el.enLecture} mode="spectrum" height={20} mini zoneId={el.zoneId} /></div>
+    {/if}
+  </div>
+{/snippet}
 
 <section class="v2-home tune-v2">
   <!-- C'est l'en-tête de l'ACCUEIL et de l'HISTORIQUE : celui dont Bertrand a
@@ -1175,7 +1307,7 @@
            qu'il révèle n'existent qu'une fois franchie. Le `title` nomme les
            trois gestes ; le bandeau ci-dessous les redit une fois dedans. -->
       <button class="v2-btn" class:on={edition} title={$t('v2.home.editTip' as any)}
-              onclick={() => { edition = !edition; ajoutOuvert = false; }}>
+              onclick={() => { edition = !edition; ajoutOuvert = false; voirTout = null; }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l4 4"/></svg>
         {edition ? $t('v2.home.done' as any) : $t('v2.home.edit' as any)}
       </button>
@@ -1218,6 +1350,53 @@
       <!-- Page vidée par l'utilisateur : on le DIT et on montre le chemin,
            sinon elle se lit comme une panne. -->
       <div class="state">{$t('v2.home.emptyHint' as any)}</div>
+    {:else if voirTout}
+      {@const w = parId(voirTout.id)}
+      <!-- #51 — la page « Voir tout ». Elle remplace la pile ; « Retour » la
+           rend, à l'endroit où on l'avait laissée. -->
+      <section class="voir-tout-page" aria-label={w ? $t(w.cleTitre as any) : ''}>
+        <div class="vt-tete">
+          <button class="retour" onclick={fermerVoirTout}
+                  title={$t('common.back' as any)} aria-label={$t('common.back' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <h2>{w ? $t(w.cleTitre as any) : voirTout.id}</h2>
+          {#if voirTout.phase === 'charge'}
+            <span class="vt-compte">{$t('v2.home.seeAllCount' as any).replace('{n}', String(voirTout.elements.length))}</span>
+          {/if}
+          <!-- Deux boutons, le mode courant enfoncé — et non la bascule
+               tournante de la Bibliothèque : Fabien a demandé deux boutons. -->
+          <div class="vt-modes" role="group">
+            {#each GRILLE_OU_LISTE as m (m)}
+              <button data-mode={m} class:on={vueVoirTout === m}
+                      aria-pressed={vueVoirTout === m ? 'true' : 'false'}
+                      title={$t(LIBELLE_AFFICHAGE[m] as any)} aria-label={$t(LIBELLE_AFFICHAGE[m] as any)}
+                      onclick={() => choisirVue(m)}>
+                {#if m === 'grid'}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                {:else}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        </div>
+        {#if voirTout.phase === 'echec'}
+          <div class="state mince err">
+            <span>{$t('v2.home.widgetFailed' as any)}</span>
+            <button class="relancer" onclick={() => voirTout && ouvrirVoirTout(voirTout.id)}>{$t('v2.pod.retry' as any)}</button>
+          </div>
+        {:else if !voirTout.elements.length}
+          <div class="state mince">{$t('common.loading' as any)}</div>
+        {:else}
+          <div class="contenu" class:grille={vueVoirTout === 'grid'} class:liste={vueVoirTout === 'list'}
+               aria-busy={voirTout.phase === 'attente' ? 'true' : undefined}>
+            {#each voirTout.elements as el (el.id)}
+              {@render carte(el)}
+            {/each}
+          </div>
+        {/if}
+      </section>
     {:else}
       <!-- #1671 — la pile, ou la GRILLE des maquettes de Levente. Le
            conteneur existe dans les deux cas : c'est lui, et non `.scroll`,
@@ -1263,6 +1442,17 @@
                 </span>
               {/if}
               <h2>{$t(w.cleTitre as any)}</h2>
+              {#if !edition && w.forme === 'bande' && et?.phase === 'charge' && et.elements.length}
+                <!-- #51 — « Voir tout » : un chevron sobre, à côté du titre.
+                     Hors du mode « Modifier », où la croix tient déjà la
+                     place et où l'on range plutôt qu'on ne parcourt. -->
+                <button class="voir-tout" onclick={() => ouvrirVoirTout(id)}
+                        title={$t('v2.home.seeAll' as any)}
+                        aria-label={`${$t('v2.home.seeAll' as any)} — ${$t(w.cleTitre as any)}`}>
+                  <span>{$t('v2.home.seeAll' as any)}</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                </button>
+              {/if}
               {#if edition}
                 <!-- #880 — le libellé vivait dans le seul `aria-label` : lu par un lecteur
                      d'écran, JAMAIS affiché à la souris. Sandro (fil 1679) a traversé
@@ -1608,69 +1798,7 @@
                     bandes n'avaient aucun coin. La source retombe sur celle
                     de l'element, comme pour le coeur.
                   -->
-                  {@const idLocal = el.fiche?.id ?? null}
-                  {@const sidDistant =
-                    idLocal == null
-                      ? (el.fiche?.source_id ?? el.favoriDistant?.serviceId ?? null)
-                      : null}
-                  {@const typeFavori = el.favoriDistant?.itemType ?? 'album'}
-                  <!-- Point 10 (17/09/2026) : un album ANNONCÉ porte sa date.
-                       Il garde sa lecture : ses singles déjà sortis
-                       s'écoutent, et c'est la PISTE qui dit l'indisponible. -->
-                  <div class="carte">
-                    <div class="pochette">
-                      <PochetteActions
-                        favori={el.favoriLocal ?? (idLocal != null ? { albumId: idLocal } : null)}
-                        favoriExterne={sidDistant
-                          ? favoriExterneService($favoriteStreamingKeys, {
-                              itemType: typeFavori,
-                              service: el.fiche?.source ?? el.source ?? '',
-                              serviceId: String(sidDistant),
-                              title: el.titre,
-                              artist: el.sous ?? undefined,
-                              coverUrl: el.cover ?? undefined,
-                            })
-                          : null}
-                        etiquettes={el.etiquette !== undefined
-                          ? el.etiquette
-                          : el.ouvrir === 'playlist'
-                          ? cibleEtiquettePlaylist(el.playlist, el.source)
-                          : cibleEtiquetteAlbum(el.fiche, el.source)}
-                        onEditer={idLocal != null ? () => (enEdition = el.fiche) : null}
-                        onLire={el.jouer ? () => jouer(el) : null}
-                        onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
-                        objet={objetElement(el)}
-                        nom={el.titre}
-                      >
-                        {#if el.pochettes || el.mosaique}
-                          <!-- Playlist ou collection : la MOSAÏQUE de son
-                               écran (`MosaiquePochettes`), pas une pochette. -->
-                          <MosaiqueDifferee pochettes={el.pochettes ?? []} charger={el.mosaique ?? null}
-                            initiales={el.titre?.slice(0, 1)} alt={el.titre} />
-                        {:else}
-                          <AlbumArt coverPath={el.cover} albumId={null} size={0} vignette alt={el.titre}
-                            source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
-                        {/if}
-                      </PochetteActions>
-                    </div>
-                    <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
-                      <span class="ct" title={el.titre}>{el.titre}</span>
-                      {#if el.sous}<span class="ca" title={el.sous}>{el.sous}</span>{/if}
-                      {#if el.aParaitre}
-                        {@const d = dateDeParution({ released_at: el.parution })}
-                        <span class="cp">{d
-                          ? $t('v2.str.comingOn' as any).replace('{d}', d)
-                          : $t('v2.str.coming' as any)}</span>
-                      {/if}
-                    </button>
-                    {#if el.zoneId != null}
-                      <!-- Le mini-analyseur de la version actuelle, sous la
-                           zone. `zoneId` nomme la zone A SUIVRE : la bande en
-                           montre plusieurs, et sans lui elles porteraient
-                           toutes le meme trace. -->
-                      <div class="viz"><AudioVisualizer playing={!!el.enLecture} mode="spectrum" height={20} mini zoneId={el.zoneId} /></div>
-                    {/if}
-                  </div>
+                  {@render carte(el)}
                 {/each}
               </div>
             {/if}
@@ -2027,5 +2155,42 @@
   @container (max-width: 720px){
     .mosaique{grid-template-columns:minmax(0,1fr); padding:6px 16px 0}
     .mosaique > .bloc, .mosaique > .bloc.large{grid-column:auto; max-width:none}
+  }
+  /* ── #51 — « Voir tout » ───────────────────────────────────────────────── */
+  .voir-tout{display:inline-flex; align-items:center; gap:2px; border:0; background:transparent;
+    color:var(--v2-txt3); font:inherit; font-size:12.5px; padding:3px 4px 3px 8px; border-radius:7px; cursor:pointer}
+  .voir-tout:hover{color:var(--v2-acc1); background:var(--v2-hover)}
+  .voir-tout:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .voir-tout svg{width:16px; height:16px}
+  .voir-tout-page{padding:10px 0 6px}
+  .vt-tete{display:flex; align-items:center; gap:10px; padding:0 30px 14px}
+  .vt-tete h2{font-size:17px; font-weight:700; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .vt-compte{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
+  .retour{display:grid; place-items:center; width:30px; height:30px; border:0; border-radius:8px;
+    background:var(--v2-surface2); color:var(--v2-txt); cursor:pointer}
+  .retour:hover{background:var(--v2-hover)}
+  .retour svg{width:18px; height:18px}
+  .vt-modes{display:inline-flex; gap:2px; padding:2px; border-radius:9px; background:var(--v2-surface2)}
+  .vt-modes button{display:grid; place-items:center; width:30px; height:28px; border:0; border-radius:7px;
+    background:transparent; color:var(--v2-txt3); cursor:pointer}
+  .vt-modes button.on{background:var(--v2-hover); color:var(--v2-acc1)}
+  .vt-modes button:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:1px}
+  .vt-modes svg{width:16px; height:16px}
+  .contenu{padding:0 30px 16px}
+  .contenu.grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(148px, 1fr)); gap:18px 16px}
+  /* La base flex de la bande (148 px) deviendrait une HAUTEUR dans la liste,
+     qui est une colonne : on la lève ici. */
+  .contenu .carte{flex:none}
+  .contenu.grille .carte{max-width:none}
+  .contenu.liste{display:flex; flex-direction:column; gap:6px}
+  .contenu.liste .carte{flex-direction:row; align-items:center; gap:14px; max-width:none;
+    padding:4px 0; border-bottom:1px solid var(--v2-line2); contain-intrinsic-size:auto 64px}
+  .contenu.liste .pochette{flex:0 0 56px; width:56px}
+  .contenu.liste .meta{flex:1}
+  .contenu.liste .viz{flex:0 0 80px}
+  @media (max-width: 1024px){ .vt-tete, .contenu{padding-left:22px; padding-right:22px} }
+  @media (max-width: 640px){
+    .vt-tete, .contenu{padding-left:16px; padding-right:16px}
+    .contenu.grille{grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:14px 12px}
   }
 </style>
