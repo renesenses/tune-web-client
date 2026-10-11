@@ -154,6 +154,27 @@ export function titrePisteCd(p: PisteCd, disque: DisqueCd, pisteN: string): stri
 }
 
 /**
+ * Le numéro de la piste de CD que joue la zone, ou `null` (fil 2204,
+ * tune-web-client#2061 : l'écran ne distinguait aucune piste).
+ *
+ * Une piste de CD en lecture porte `source = "cd"` et
+ * `source_id = "<disc_id>/<numéro>"` (greffon `cd`, `fournisseur.rs`). Le
+ * `disc_id` doit être celui du disque AFFICHÉ : la zone peut jouer encore la
+ * file d'un disque éjecté entre-temps, dont la piste 3 n'est pas la nôtre.
+ */
+export function numeroPisteCdEnCours(
+  enLecture: { source?: string | null; source_id?: string | null } | null | undefined,
+  discId: string,
+): number | null {
+  if (!enLecture || enLecture.source !== 'cd' || !enLecture.source_id) return null;
+  const i = enLecture.source_id.lastIndexOf('/');
+  if (i < 0 || enLecture.source_id.slice(0, i) !== discId) return null;
+  const queue = enLecture.source_id.slice(i + 1);
+  if (!/^\d+$/.test(queue)) return null;
+  return Number(queue);
+}
+
+/**
  * Le code d'un refus du greffon (`aucun_disque`, `lecture_toc`…), ou `null`
  * pour une panne sans code (réseau, route démontée).
  */

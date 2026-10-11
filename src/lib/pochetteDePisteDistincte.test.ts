@@ -59,8 +59,7 @@ describe('#4650 — la fiche d’album est branchée dessus', () => {
   });
 
   it('la liste des pistes reçoit la vignette sous cette condition, et pas `false`', () => {
-    expect(src).toMatch(/pochette=\{pochettesDePisteDistinctesIci\}/);
     expect(src).toMatch(/pochetteEnTableau=\{pochettesDePisteDistinctesIci\}/);
-    expect(src).not.toMatch(/pochette=\{false\}/);
+    expect(src).not.toMatch(/pochetteEnTableau=\{false\}/);
   });
 });

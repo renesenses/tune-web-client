@@ -168,6 +168,54 @@
 
   const zoneLocale = $derived((zone.output_type ?? '') === 'local');
 
+  /**
+   * FONDU ENCHAÎNÉ (#2211) — sortie LOCALE seulement.
+   *
+   * Le serveur superpose deux pistes décodées sur la carte son ou le DAC
+   * raccordé au serveur ; aucune autre sortie ne fond (la route y répond 501).
+   * Le réglage n'est donc PROPOSÉ que sur une zone locale. La valeur affichée
+   * est celle du serveur, relue à l'ouverture ; un échec remet le curseur où
+   * il était. `fonduExclusif` : la sortie vivante joue en mode exclusif
+   * (WASAPI exclusif, ASIO, CoreAudio exclusif). Le serveur refuse alors le
+   * réglage (501 `crossfade_unavailable_exclusive`, décision du 07/10) : le
+   * curseur est grisé et l'écran dit pourquoi.
+   */
+  const FONDU_MAX_S = 12;
+  let fondu = $state(0);
+  let fonduCharge = $state(false);
+  let fonduSaving = $state(false);
+  let fonduError = $state('');
+  let fonduExclusif = $state(false);
+
+  $effect(() => {
+    if (!zoneLocale || zone.id === null || fonduCharge) return;
+    const id = zone.id;
+    api.getZoneCrossfade(id)
+      .then((r) => {
+        fonduExclusif = r?.exclusive === true;
+        if (r?.available) fondu = r.duration ?? 0;
+      })
+      .catch(() => { /* le curseur reste à 0 : désactivé */ })
+      .finally(() => { fonduCharge = true; });
+  });
+
+  async function setFondu(secondes: number) {
+    if (zone.id === null) return;
+    const avant = fondu;
+    fondu = secondes;
+    fonduSaving = true;
+    fonduError = '';
+    try {
+      const maj = await api.setZoneCrossfade(zone.id, secondes);
+      fondu = maj?.crossfade_duration ?? secondes;
+    } catch (e: any) {
+      fondu = avant;
+      fonduError = e?.message || get(t)('common.error');
+    } finally {
+      fonduSaving = false;
+    }
+  }
+
   async function setMonoDownmix(enabled: boolean) {
     if (zone.id === null) return;
     const avant = monoDownmix;
@@ -598,6 +646,23 @@
           <span>{$t('settings.fixedVolume')}</span>
         </label>
         {#if volumeError}<div class="ir-message ir-error">{volumeError}</div>{/if}
+
+        <!-- Fondu enchaîné (#2211) : sortie locale seulement, voir `setFondu`. -->
+        <div class="zc-ligne zc-fondu">
+          <label class="zc-label" for="zc-fondu-{zone.id}">{$t('zoneConfig.crossfadeLabel')}</label>
+          <input id="zc-fondu-{zone.id}" type="range" min="0" max={FONDU_MAX_S} step="0.5"
+            value={fondu}
+            disabled={fonduSaving || !fonduCharge || fonduExclusif || zone.id === null}
+            onchange={(e) => setFondu(Number((e.target as HTMLInputElement).value))} />
+          <span class="zc-valeur">
+            {fondu > 0
+              ? $t('zoneConfig.crossfadeSeconds').replace('{n}', String(fondu))
+              : $t('zoneConfig.crossfadeOff')}
+          </span>
+        </div>
+        <p class="zc-note">{$t('zoneConfig.crossfadeHint')}</p>
+        {#if fonduExclusif}<p class="zc-note">{$t('zoneConfig.crossfadeExclusive')}</p>{/if}
+        {#if fonduError}<div class="ir-message ir-error">{fonduError}</div>{/if}
       {:else}
         <p class="zc-note">{$t('zoneConfig.fixedVolumeNetElsewhere')}</p>
       {/if}
@@ -1005,6 +1070,11 @@
     border: 1px solid var(--tune-border); border-radius: 8px; padding: 5px 9px; cursor: pointer; }
   .zc-select:hover { border-color: var(--tune-accent); }
   .zc-select:disabled { opacity: .5; cursor: default; }
+
+  /* #2211 — le curseur du fondu enchaîné, sa valeur lisible à droite. */
+  .zc-fondu input[type='range'] { flex: 1; accent-color: var(--tune-accent); }
+  .zc-valeur { min-width: 5.5em; text-align: right; font-size: 0.88rem;
+    color: var(--tune-text); font-variant-numeric: tabular-nums; }
 
   .mono-toggle {
     display: flex; align-items: flex-start; gap: 8px;
