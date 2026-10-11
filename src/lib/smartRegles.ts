@@ -204,10 +204,14 @@ export const OPERATEURS: Record<TypeChamp, readonly Operateur[]> = {
     { value: 'is_null', labelKey: 'smartCollection.opIsEmpty' },
     { value: 'is_not_null', labelKey: 'smartCollection.opIsNotEmpty' },
   ],
+  // tune-server-rust#6122 — « dans les N derniers jours » (`in_last`) : une
+  // durée GLISSANTE, la valeur est N. Le serveur calcule « il y a N jours » à
+  // chaque requête ; « après » garde sa date fixe.
   timestamp: [
     { value: '>', labelKey: 'smartCollection.opAfter' },
     { value: '<', labelKey: 'smartCollection.opBefore' },
     { value: 'between', labelKey: 'smartCollection.opBetween' },
+    { value: 'in_last', labelKey: 'smartCollection.opInLast' },
     { value: 'is_null', labelKey: 'smartCollection.opNever' },
   ],
   credit: [{ value: 'has', labelKey: 'smartCollection.opContains' }],
@@ -268,6 +272,18 @@ export function sansValeur(op: string): boolean {
 }
 
 /**
+ * Un opérateur dont la valeur est un NOMBRE DE JOURS — « dans les N derniers
+ * jours » (tune-server-rust#6122). L'éditeur saisit alors un entier, suivi de
+ * l'unité, et non une date.
+ */
+export function saisieEnJours(op: string): boolean {
+  return op === 'in_last';
+}
+
+/** Le nombre de jours proposé par défaut. */
+export const JOURS_PAR_DEFAUT = 30;
+
+/**
  * Une règle est-elle complète ?
  *
  * Le serveur refuse une règle sans valeur là où il en attend une, et l'erreur
@@ -277,6 +293,11 @@ export function sansValeur(op: string): boolean {
 export function regleComplete(r: { field: string; op: string; value: any }): boolean {
   if (!r.field || !r.op) return false;
   if (sansValeur(r.op)) return true;
+  // Un entier strictement positif : le serveur refuse (FAUX) zéro ou un texte.
+  if (saisieEnJours(r.op)) {
+    const n = Number(r.value);
+    return r.value !== '' && r.value != null && Number.isInteger(n) && n >= 1;
+  }
   if (r.op === 'between') return Array.isArray(r.value) && r.value.length === 2
     && r.value.every((v) => v !== '' && v != null);
   return r.value !== '' && r.value != null;
@@ -285,6 +306,7 @@ export function regleComplete(r: { field: string; op: string; value: any }): boo
 /** La valeur de départ d'une règle, selon son opérateur. */
 export function valeurInitiale(op: string, type: TypeChamp): any {
   if (sansValeur(op)) return null;
+  if (saisieEnJours(op)) return JOURS_PAR_DEFAUT;
   if (op === 'between') return type === 'timestamp' ? ['', ''] : [0, 0];
   if (type === 'int' || type === 'count') return 0;
   // 🔴 Un FAVORI se qualifie par sa SORTE — `track`, `album`, `artist` — et non
