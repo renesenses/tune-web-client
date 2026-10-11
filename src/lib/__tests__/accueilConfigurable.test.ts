@@ -126,7 +126,7 @@ describe('Accueil — le registre', () => {
     const src = lire('../accueilWidgets.ts');
     const i = src.indexOf("id: 'hasard'");
     const bloc = src.slice(i, src.indexOf('},\n  {', i));
-    expect(bloc.includes("api.getAlbumsPagines({ limit: LIMITE, offset: 0, sort: 'random' })"), '« au hasard » ne demande plus une page aléatoire au serveur').toBe(true);
+    expect(bloc.includes("api.getAlbumsPagines({ limit: limiteDe(ctx), offset: 0, sort: 'random' })"), '« au hasard » ne demande plus une page aléatoire au serveur').toBe(true);
     expect(/getAllAlbums|demanderBibliothequeEntiere/.test(bloc), '« au hasard » charge la bibliothèque entière').toBe(false);
     // Et le tirage local reste un vrai tirage sans remise : `sort(() =>
     // Math.random() - .5)` n'est pas un mélange, il biaise selon l'algorithme

@@ -2450,6 +2450,8 @@ export default {
   "v2.home.done": "Gata",
   "v2.home.add": "Adaugă un widget",
   "v2.home.remove": "Elimină acest widget",
+  "v2.home.seeAll": "Vezi tot",
+  "v2.home.seeAllCount": "{n} elemente",
   "v2.home.move": "Mută acest widget",
   "v2.home.editTip": "Adăugați, eliminați sau reordonați widgeturile",
   "v2.home.editHint": "Trageți de mâner pentru a reordona un widget sau faceți clic pe cruce pentru a-l elimina.",
