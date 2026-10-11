@@ -63,4 +63,6 @@ export function propositionEntreeAudioVisible(
 export const NOMS_GREFFONS_SDK: Record<string, string> = {
   concerts: 'concerts.greffonNom',
   [ID_GREFFON_ENTREE_AUDIO]: 'v2.plug.entreeAudioNom',
+  // tune-server-rust#6044 — la réaffectation des canaux.
+  'channel-remap': 'v2.cr.title',
 };

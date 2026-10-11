@@ -9,8 +9,14 @@
  * sous-onglet ; le clic changeait `sub` sans rien de visible, et l'onglet
  * restait allumé.
  *
- * Correctif retenu : un clic sur un sous-onglet sort de la recherche et ouvre
- * l'onglet ; pendant la recherche, aucun sous-onglet n'est allumé.
+ * Correctif du 03/10 : un clic sur un sous-onglet sortait de la recherche en
+ * VIDANT le champ. Remplacé le 09/10 (#2030, décision de Bertrand pour la
+ * rc4) : la saisie est GARDÉE et s'applique au nouvel onglet. Ce qui reste
+ * acquis de 2128 : le clic ouvre bien l'onglet, les résultats du catalogue ne
+ * le masquent plus, et l'onglet allumé est celui dont on voit le contenu —
+ * Éditorial, puisque ses résultats sont la recherche dans le catalogue.
+ * Le comportement de #2030 lui-même est tenu par
+ * `rechercheGardeeEntreOnglets2030.test.ts`.
  *
  * Témoin COMPORTEMENTAL : vrai écran monté, `fetch` simulé, on tape, on clique.
  */
@@ -95,12 +101,13 @@ afterEach(() => {
 });
 
 describe('fil 2128 — les sous-onglets pendant une recherche', () => {
-  it('aucun sous-onglet n’est allumé au-dessus des résultats', async () => {
+  it('au-dessus des résultats du catalogue, seul Éditorial est allumé', async () => {
     await monterEtChercher();
-    expect(sousOngletAllume(), 'un sous-onglet reste allumé au-dessus des résultats').toBeNull();
+    expect(sousOngletAllume(), 'l’onglet allumé ne décrit pas les résultats affichés')
+      .toBe(sousOnglets()[0].textContent?.trim());
   });
 
-  it('un clic sur un sous-onglet efface la recherche et ouvre l’onglet', async () => {
+  it('un clic sur un sous-onglet ouvre l’onglet sans effacer la saisie (#2030)', async () => {
     await monterEtChercher();
     const cible = sousOnglets().at(-1)!;
     const libelle = cible.textContent?.trim();
@@ -108,7 +115,7 @@ describe('fil 2128 — les sous-onglets pendant une recherche', () => {
     flushSync();
     await laisserTourner(10);
     expect(avalonAffiche(), 'les résultats masquent toujours l’onglet cliqué').toBe(false);
-    expect(champ()!.value, 'la recherche n’a pas été effacée').toBe('');
+    expect(champ()!.value, 'la saisie a été effacée (#2030)').toBe('Roxy Music');
     expect(sousOngletAllume()).toBe(libelle);
   });
 

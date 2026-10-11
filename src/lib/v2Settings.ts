@@ -83,7 +83,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     id: 'audio', labelKey: 'settings.tabAudio', min: 'beginner',
     icon: 'M4 15a8 8 0 0 1 16 0M7.5 15a4.5 4.5 0 0 1 9 0',
     sections: [
-      { id: 'localAudio',    titleKey: 'settings.localAudio',          from: 'network', min: 'beginner', keywords: ['sortie', 'carte son', 'dac'] },
+      { id: 'localAudio',    titleKey: 'settings.localAudio',          from: 'network', min: 'beginner', keywords: ['sortie', 'carte son', 'dac', 'replaygain', 'true-peak', 'crêtes'] },
       { id: 'netDevices',    titleKey: 'settings.networkDevices',      from: 'network', min: 'intermediate', keywords: ['dlna', 'upnp', 'chromecast'] },
       { id: 'ignoredDevices', titleKey: 'settings.ignoredDevices',     from: 'network', min: 'intermediate', keywords: ['ignoré', 'réapparaît', 'rétablir', 'masqué'] },
       { id: 'squeezebox',    titleKey: 'settings.squeezebox',          from: 'services', min: 'intermediate', keywords: ['lyrion', 'lms', 'slimproto'] },
@@ -251,6 +251,11 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        * connexion y vit désormais : il doit être atteignable à tous les
        * niveaux. Les mots-clés doivent le trouver (« compte », « relier »). */
       { id: 'cloud',      title: 'Cloud',                         from: 'system', min: 'beginner', keywords: ['compte', 'relier', 'mozaiklabs', 'connexion', 'se connecter', 'account', 'sauvegarde', 'relais', 'télémétrie', 'telemetry', 'statistiques', 'consentement', 'vie privée', 'partage', 'communauté', 'communautaire', 'community', 'sharing'] },
+      /* #5654 / web#902 — la sauvegarde automatique et chiffrée des
+       * personnalisations chez mozaiklabs, et sa restauration. Juste après
+       * « Cloud », où l'on relie le compte qu'elle exige. 'beginner' : perdre
+       * ses réglages n'est pas un risque d'expert. */
+      { id: 'backup',     titleKey: 'cloudBackup.title',          from: 'system', min: 'beginner', keywords: ['sauvegarde', 'restaurer', 'restauration', 'backup', 'restore', 'instantané', 'snapshot', 'nouvelle machine', 'personnalisations', 'reprendre'] },
       { id: 'database',   titleKey: 'settings.database',          from: 'system', min: 'expert', keywords: ['base', 'sqlite', 'postgres'] },
       { id: 'dataLoc',    titleKey: 'settings.dataLocation',      from: 'system', min: 'expert', keywords: ['emplacement', 'données'] },
       { id: 'import',     titleKey: 'import.title',               from: 'system', min: 'expert', keywords: ['import', 'roon', 'plex', 'migrer', 'autre lecteur'] },

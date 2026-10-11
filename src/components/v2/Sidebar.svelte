@@ -684,9 +684,11 @@
   // inutilisable est grisée, un type coché sans source a sa place grisée.
   const sourcesBarre = $derived(partagerSources(sourcesDeLaBarre($sources ?? [], $typesSourcesBarre)));
   // Le défaut (types présents) se fige à la première lecture qui en trouve un.
+  // Figé ICI, sans écriture serveur : c'est une déduction du client au
+  // chargement, pas un geste (aucune écriture de configuration au chargement).
   $effect(() => {
     const fige = figerTypesParDefaut($preferences.sourcesBarre, $sources);
-    if (fige) preferences.update((p) => ({ ...p, sourcesBarre: fige }));
+    if (fige) preferences.adopterSansEcrire((p) => ({ ...p, sourcesBarre: fige }));
   });
   /** Nom montré : une place réservée porte le nom de son type. */
   function nomDansLaBarre(s: Source): string {
