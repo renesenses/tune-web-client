@@ -18,7 +18,8 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import { t, locale } from '../../lib/i18n';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
-  import { isBrowserZone, browserPlay } from '../../lib/stores/browserAudio';
+  import { browserPlay } from '../../lib/stores/browserAudio';
+  import { estZoneJouableIci } from '../../lib/zoneNavigateurProprietaire';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { fold } from '../../lib/utils';
@@ -210,7 +211,8 @@
       const res: any = await api.playRadio(r.id, zid);
       // Zone navigateur : le serveur n'a pas de sortie audio, c'est la page
       // qui doit lire le flux qu'il renvoie.
-      if (isBrowserZone($currentZone) && res?.stream_url) browserPlay(res.stream_url, false, zid);
+      // rc4 : seulement si c'est la zone de CET appareil (pas celle d'un téléphone).
+      if (estZoneJouableIci($currentZone) && res?.stream_url) browserPlay(res.stream_url, false, zid);
     } catch {
       error = `Lecture impossible : ${r.name}`;
     }

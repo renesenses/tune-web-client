@@ -291,8 +291,13 @@ async function reprendreFavorisDesServices(): Promise<void> {
   // détecter une session expirée, et écrire `{}` ferait du prochain chargement
   // un « premier », donc muet sur une expiration réelle.
   if (Object.keys(services).length) streamingServices.set(services);
+  // rc4 (`tune-server-rust#6011`) — un service en MIROIR (`favoris_miroir:
+  // true`) a déjà ses favoris dans la liste du serveur, rafraîchie depuis le
+  // service. Les relire ici en direct ferait revenir un cœur retiré dans Tune
+  // que le service n'a pas encore suivi (le serveur le masque), ou un favori
+  // que le cache de 2 min du menu sert encore. La liste du serveur fait foi.
   const connectes = Object.entries(services)
-    .filter(([, st]: [string, any]) => st?.authenticated)
+    .filter(([, st]: [string, any]) => st?.authenticated && st?.favoris_miroir !== true)
     .map(([nom]) => nom);
   if (!connectes.length) return;
 
@@ -326,6 +331,40 @@ async function reprendreFavorisDesServices(): Promise<void> {
       }
     }),
   );
+}
+
+/**
+ * rc4 (`tune-server-rust#6011`) — remet les cœurs des services en MIROIR à la
+ * liste que le serveur vient de rendre.
+ *
+ * La liste est rafraîchie depuis le service à chaque ouverture des Favoris :
+ * un favori retiré dans l'app Qobuz n'y est plus. Sans ceci, son cœur restait
+ * plein partout ailleurs dans Tune jusqu'au prochain changement de profil.
+ *
+ * Seuls les services qui annoncent `favoris_miroir: true` sont touchés : les
+ * autres (Deezer, Bandcamp…) gardent leurs clés, et un serveur ancien qui ne
+ * publie pas le champ ne voit rien changer.
+ *
+ * ⚠️ À n'appeler qu'avec une liste RÉELLEMENT reçue : une liste vide faute de
+ * réponse viderait les cœurs.
+ */
+export function synchroniserCoeursMiroir(
+  sfavs: ReadonlyArray<{ item_type: string; service: string; service_id: string }>,
+): void {
+  const services = get(streamingServices) as Record<string, { favoris_miroir?: boolean } | undefined>;
+  const enMiroir = (svc: string) => services[svc]?.favoris_miroir === true;
+  if (!Object.keys(services).some(enMiroir)) return;
+  favoriteStreamingKeys.update((avant) => {
+    const apres = new Set<string>();
+    for (const k of avant) {
+      // Clé `type:service:id` — l'id peut contenir `:` (URL Bandcamp), pas le service.
+      if (!enMiroir(k.split(':')[1] ?? '')) apres.add(k);
+    }
+    for (const f of sfavs) {
+      if (enMiroir(f.service)) apres.add(streamingFavKey(f.item_type as StreamingItemType, f.service, String(f.service_id)));
+    }
+    return apres;
+  });
 }
 
 // Reload favorites whenever the active profile changes.

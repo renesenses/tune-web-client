@@ -71,6 +71,24 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View, options: Options
     ouvrirFicheArtisteLocale(trouve.id, trouve.nom, depuis, options.provenance);
     return;
   }
+  /**
+   * 🔴 #1696 — L'ARTISTE ÉCOUTÉ EN STREAMING SEULEMENT. Daniel LEVY, fil 2005
+   * (28/09/2026) : ses artistes du classement sont « effectivement écoutés sur
+   * Qobuz ». Aucune fiche locale : le clic rouvrait la Bibliothèque dans son
+   * dernier état. Le serveur dit désormais OÙ l'artiste est écouté
+   * (`top_artists[].source`) ; la fiche est cherchée chez ce service, par le
+   * même chemin que la vignette d'un album de service (#956) — et si elle n'y
+   * est pas, le repli PARLE et ouvre la recherche de ce service.
+   *
+   * `service_ecoute` et non `source` : une `source` sans `source_id` circule
+   * déjà dans d'autres écrans avec un autre sens, et ne doit pas changer de
+   * chemin.
+   */
+  const service = typeof a.service_ecoute === 'string' ? a.service_ecoute.trim() : '';
+  if (service) {
+    await ouvrirArtisteDeServiceParNom({ service, nom: a.name }, depuis);
+    return;
+  }
   vueDeRetour.set(depuis);
   ficheAlbumDeRetour.set(null);
   activeView.set('library');

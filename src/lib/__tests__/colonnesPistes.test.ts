@@ -11,9 +11,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  COLONNES, DEFAUTS, MODES_BRANCHES, PAR_CLE,
+  COLONNES, DEFAUTS, PAR_CLE,
   colonnesRetenues, gabaritGrille, offerteAu, valeurColonne, type CleColonne,
 } from '../colonnesPistes';
+import { SETTINGS_LEVELS } from '../settingLevels';
 import type { Track } from '../types';
 
 /** Une piste telle que `/library/albums/{id}/tracks` la rend, mesurée le 07/09. */
@@ -287,19 +288,18 @@ describe('les valeurs', () => {
 
     it('🔴 `dr` reste EXPERT, et c’est l’ÉCRAN qui descend vers elle', () => {
       // Arbitrage de Bertrand, 09/09/2026. La version précédente de ce témoin
-      // disait l'inverse — `MODES_BRANCHES` ne citait pas 'expert', et le DR
+      // disait l'inverse — le tableau n'existait pas en Expert, et le DR
       // n'était rendu nulle part. Le niveau de la colonne n'a pas bougé : le
-      // tableau, lui, existe maintenant aussi en Expert.
+      // tableau, lui, existe maintenant à tous les modes (#1470).
       expect(PAR_CLE.dr.min).toBe('expert');
-      expect(MODES_BRANCHES).toContain('expert');
       // Elle reste hors de portée d'Essentiel : brancher un mode ne déplace
       // aucune colonne.
       expect(colonnesRetenues(['dr'], 'beginner').map((c) => c.cle)).toEqual(['title']);
       expect(colonnesRetenues(['dr'], 'expert').map((c) => c.cle)).toEqual(['title', 'dr']);
-      // Les écoutes n'ont AUCUN `min` : les deux modes en tableau les portent.
+      // Les écoutes n'ont AUCUN `min` : tous les modes les portent.
       expect(PAR_CLE.plays.min).toBeUndefined();
       expect(PAR_CLE.lastPlayed.min).toBeUndefined();
-      for (const m of MODES_BRANCHES) {
+      for (const m of SETTINGS_LEVELS) {
         expect(colonnesRetenues(['plays', 'lastPlayed'], m).map((c) => c.cle), m)
           .toEqual(['title', 'plays', 'lastPlayed']);
       }
@@ -328,21 +328,14 @@ describe('les défauts par mode', () => {
     expect(DEFAUTS.intermediate.length).toBeLessThan(DEFAUTS.expert.length);
   });
 
-  it('🔴 les trois modes sont branchés, Avancé compris (#1470)', () => {
-    // Arbitrage du 09/09/2026 : « on branche le tableau en mode Expert ».
-    // Avancé l'a rejoint le 07/10/2026 (#1470) : sans tableau, ses colonnes
-    // « # écoutes » et « Dernière écoute » étaient inatteignables.
-    expect(MODES_BRANCHES).toEqual(['beginner', 'intermediate', 'expert']);
-  });
-
-  it('🔴 les modes branchés ouvrent sur des colonnes, jamais sur une grille NUE', () => {
+  it('🔴 chaque mode ouvre sur des colonnes, jamais sur une grille NUE', () => {
     // Ce qui se passe pour quelqu'un dont les préférences ont été écrites
     // quand Expert ne portait pas le tableau : le magasin refusionne mode par
     // mode sur `DEFAUTS`, donc il retombe sur cette liste-ci. Elle a cessé
     // d'être théorique le jour où Expert est passé au tableau — et
     // `settingsLevel` vaut `'expert'` par DÉFAUT depuis le 27/08, donc c'est
     // aussi ce que voit une installation neuve.
-    for (const m of MODES_BRANCHES) {
+    for (const m of SETTINGS_LEVELS) {
       expect(DEFAUTS[m].length, `${m} : défaut vide`).toBeGreaterThan(0);
       const rendues = colonnesRetenues(DEFAUTS[m], m).map((c) => c.cle);
       expect(rendues.length, `${m} : aucune colonne rendue`).toBeGreaterThan(1);
@@ -354,7 +347,7 @@ describe('les défauts par mode', () => {
     // « Une liste VIDE est un choix : on ne la remplace pas par le défaut »
     // (magasin de préférences). Ce choix ne doit pas produire un tableau sans
     // une seule cellule cliquable : le titre est verrouillé, il reste.
-    for (const m of MODES_BRANCHES) {
+    for (const m of SETTINGS_LEVELS) {
       expect(colonnesRetenues([], m).map((c) => c.cle), m).toEqual(['title']);
     }
   });
@@ -384,13 +377,13 @@ describe('la matrice des Réglages', () => {
     expect(src()).toContain('LEVEL_LABEL_KEYS[m] as any');
   });
 
-  it('🔴 un mode NON BRANCHÉ est désactivé ET annoncé', () => {
-    // Option A. Une case cochable sans effet serait précisément le défaut que
-    // ce client passe son temps à corriger.
+  it('🔴 aucun mode n’est plus grisé comme « non branché » (#1470)', () => {
+    // L'option A grisait les modes sans tableau. Les trois le rendent depuis
+    // #1470 : seules la colonne verrouillée, sans donnée ou non offerte au
+    // mode restent désactivées.
     const s = src();
-    expect(s).toMatch(/disabled=\{c\.verrouillee \|\| sansDonnee \|\| !offerte \|\| !modeBranche\(m\)\}/);
-    expect(s).toContain("$t('settings.colModeNotWired' as any)");
-    expect(s).toMatch(/class:inerte=\{!modeBranche\(m\)\}/);
+    expect(s).toMatch(/disabled=\{c\.verrouillee \|\| sansDonnee \|\| !offerte\}/);
+    expect(s).not.toContain('modeBranche');
   });
 
   it('🔴 une colonne SANS DONNÉE est désactivée ET le motif est écrit', () => {
@@ -436,13 +429,10 @@ describe('les huit listes passent par le rendu partagé', () => {
   ];
 
   it('🔴 aucun écran n’appelle plus la ligne directement', () => {
-    // Le conteneur est le seul endroit où les deux formes coexistent. Un écran
-    // qui court-circuiterait vers `LignePisteV2` garderait ses lignes au mode
-    // Essentiel, et le tableau serait absent d'un écran sur huit sans que rien
-    // ne le dise.
+    // Le conteneur est le seul rendu de piste partagé. L'ancienne ligne est
+    // retirée (#1470) ; sa garde est `ancienRenduEnLignesRetire1470.test.ts`.
     for (const f of ECRANS) {
       const src = lire2(`src/components/v2/${f}.svelte`);
-      expect(src, `${f} appelle encore LignePisteV2 en direct`).not.toContain('<LignePisteV2');
       expect(src, `${f} ne délègue pas`).toContain('<ListePistesV2');
     }
   });
@@ -531,39 +521,5 @@ describe('🔴 l’alignement de l’en-tête et des lignes', () => {
     // Sinon, sur une piste sans playlist ni étiquettes, les quatre icônes
     // restantes glissent à gauche et les cœurs ne sont plus l'un sous l'autre.
     expect(liste()).toMatch(/\.act\{[^}]*justify-content:flex-end/);
-  });
-});
-
-describe('🔴 UNE seule source de vérité pour « ce mode rend-il un tableau ? »', () => {
-  const composant = () =>
-    readFileSync(resolve(process.cwd(), 'src/components/v2/ListePistesV2.svelte'), 'utf-8');
-  const sansCommentaires2 = (src: string) =>
-    src.replace(/<!--[\s\S]*?-->/g, '')
-       .replace(/\/\*[\s\S]*?\*\//g, '')
-       .replace(/(^|[^:])\/\/.*$/gm, '$1');
-
-  it('le composant CONSULTE `MODES_BRANCHES` au lieu de retrancher la question', () => {
-    // Avant le 09/09/2026 il décidait tout seul : `enTableau = mode ===
-    // 'beginner'`, pendant que l'écran des Réglages consultait
-    // `MODES_BRANCHES`. Deux réponses à une question — brancher Expert dans la
-    // constante n'aurait rien changé à l'affichage, et la matrice aurait
-    // annoncé cochable un mode que le tableau ignorait.
-    expect(sansCommentaires2(composant())).toMatch(/const enTableau = \$derived\(modeEnTableau\(mode\)\)/);
-  });
-
-  it('🔴 AUCUN nom de mode écrit en dur dans la décision du tableau', () => {
-    // C'est exactement la ligne qu'un correctif futur réintroduit sans y
-    // penser — « il suffit de tester le mode ici ». Elle repasserait au vert
-    // sur tous les autres témoins, et Expert reperdrait son tableau en
-    // silence.
-    //
-    // 🔴 Aiguilles ASSEMBLÉES à l'exécution : écrites en clair, elles
-    // figureraient dans CE fichier, et ce témoin se trouverait lui-même.
-    const src = sansCommentaires2(composant());
-    const ligne = src.split('\n').find((l) => l.includes('const enTableau')) ?? '';
-    expect(ligne, 'la ligne `enTableau` a disparu').not.toBe('');
-    for (const mode of ['beg' + 'inner', 'interme' + 'diate', 'exp' + 'ert']) {
-      expect(ligne.includes(mode), `« ${mode} » est écrit en dur dans enTableau`).toBe(false);
-    }
   });
 });

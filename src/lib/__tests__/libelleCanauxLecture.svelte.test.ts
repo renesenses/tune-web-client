@@ -259,6 +259,17 @@ describe('la disposition de canaux — ce que le SERVEUR en dit', () => {
     expect(libelleCanaux('Immersive 24ch', t)).toBe('24 canaux');
   });
 
+  it('🔴 un 4.0 (quad) n’est PAS un 5.1 — et 3.0, 5.0, 6.1 ont leur clé', () => {
+    // tune-server-rust — « Catherine of Aragon » (Rick Wakeman), FLAC 4.0,
+    // masque 0x0033 : le serveur badgeait « 5.1 ». Il écrit désormais la
+    // disposition déclarée par le fichier ; le client la traduit.
+    const marque = (cle: string) => `<${cle}>`;
+    expect(libelleCanaux('3.0', marque)).toBe('<zoneConfig.channels_surround30>');
+    expect(libelleCanaux('4.0', marque)).toBe('<zoneConfig.channels_surround40>');
+    expect(libelleCanaux('5.0', marque)).toBe('<zoneConfig.channels_surround50>');
+    expect(libelleCanaux('6.1', marque)).toBe('<zoneConfig.channels_surround61>');
+  });
+
   it('un badge INCONNU est rendu tel quel, jamais avalé', () => {
     // Serveur plus récent que ce client : mieux vaut un libellé anglais
     // qu'aucun libellé. C'est déjà le parti pris de « Sortie réelle » dans les
@@ -272,8 +283,10 @@ describe('la disposition de canaux — ce que le SERVEUR en dit', () => {
     expect(libelleCanaux('7.1', (cle) => cle)).toBe('7.1');
   });
 
-  it('🔴 les sept clés existent dans les ONZE langues', () => {
+  it('🔴 les onze clés existent dans les ONZE langues', () => {
     const cles = [
+      'channels_surround30', 'channels_surround40', 'channels_surround50',
+      'channels_surround61',
       'channels_surround51', 'channels_surround71', 'channels_surround514',
       'channels_surround714', 'channels_surround916',
       'channels_immersive24', 'channels_immersive32',

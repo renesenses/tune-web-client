@@ -82,6 +82,12 @@ export interface Element {
    * ouvre la FICHE (23/09/2026 : il ouvrait la grille de la Bibliothèque).
    */
   artiste?: string;
+  /**
+   * Le service où l'artiste du classement est écouté, quand le serveur le dit
+   * (`top_artists[].source`) — #1696. Sans fiche locale, c'est chez lui que la
+   * fiche est cherchée, au lieu de rouvrir la Bibliothèque.
+   */
+  artisteService?: string | null;
   /** Album normalisé pour la fiche, quand `ouvrir` vaut `album`. */
   fiche?: any;
   /**
@@ -1016,8 +1022,13 @@ function lectures(n: number, langue: string): string {
  *  - un TITRE se joue : `track_id` local d'abord, sinon la paire service +
  *    identifiant de piste.
  */
-function gesteArtisteTop(nom: string | null | undefined): Pick<Element, 'ouvrir' | 'artiste'> {
-  return nom ? { ouvrir: 'artiste', artiste: nom } : {};
+function gesteArtisteTop(
+  nom: string | null | undefined,
+  service?: string | null,
+): Pick<Element, 'ouvrir' | 'artiste' | 'artisteService'> {
+  if (!nom) return {};
+  const svc = typeof service === 'string' && service.trim() ? service.trim() : null;
+  return svc ? { ouvrir: 'artiste', artiste: nom, artisteService: svc } : { ouvrir: 'artiste', artiste: nom };
 }
 
 function gestesAlbumTop(a: api.DashboardData['top_albums'][number]): Partial<Element> {
@@ -1780,7 +1791,7 @@ export const WIDGETS: Widget[] = [
           titre: a.artist_name,
           sous: lectures(a.plays, ctx.langue ?? 'fr'),
           cover: coverArtisteTop(a, portraits),
-          ...gesteArtisteTop(a.artist_name),
+          ...gesteArtisteTop(a.artist_name, a.source),
         })),
       );
     },
@@ -1868,7 +1879,7 @@ export const WIDGETS: Widget[] = [
         sous: n(a.plays),
         cover: coverArtisteTop(a, portraits),
         colonne: 'artistes' as const,
-        ...gesteArtisteTop(a.artist_name),
+        ...gesteArtisteTop(a.artist_name, a.source),
       }));
       const albums: Element[] = d.top_albums.slice(0, RANG_TOPS).map((a, i) => ({
         id: `tops-alb-${i}-${a.album_title}`,
