@@ -64,6 +64,13 @@ export const CHAMPS: readonly Champ[] = [
   // est une navigation, pas une frappe.
   { value: 'folder',         labelKey: 'smartCollection.fieldFolder',      type: 'folder' },
   { value: 'year',           labelKey: 'smartCollection.fieldYear',        type: 'int' },
+  // tune-server-rust#6124 — l'année de sortie ORIGINALE (balises
+  // ORIGINALDATE / ORIGINALRELEASEDATE / ORIGINALYEAR / TDOR, ou MusicBrainz),
+  // donnée d'album ; et la VERSION de la piste (balise VERSION : original,
+  // réédition, remaster…). Dans une collection, l'album passe si l'une de ses
+  // pistes porte la version.
+  { value: 'original_year',  labelKey: 'smartCollection.fieldOriginalYear', type: 'int' },
+  { value: 'version',        labelKey: 'smartCollection.fieldVersion',      type: 'text' },
   { value: 'sample_rate',    labelKey: 'smartCollection.fieldSampleRate',  type: 'int' },
   { value: 'bit_depth',      labelKey: 'smartCollection.fieldBitDepth',    type: 'int' },
   { value: 'track_count',    labelKey: 'smartCollection.fieldTrackCount',  type: 'int' },
