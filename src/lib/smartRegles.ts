@@ -75,6 +75,11 @@ export const CHAMPS: readonly Champ[] = [
   // dans une playlist, celle de l'album de chaque piste. Un album sans note ne
   // passe aucune comparaison (décision de Bertrand, 30/09/2026, #5547).
   { value: 'rating',         labelKey: 'smartCollection.fieldRating',      type: 'int' },
+  // « Note de la piste » (tune-server-rust#6123) : la note lue dans les
+  // balises du fichier (`tracks.rating`, 0 à 5, sans profil). Dans une
+  // collection, un album passe dès qu'UNE de ses pistes passe. `rating` garde
+  // son sens : les règles enregistrées restent des notes d'album.
+  { value: 'track_rating',   labelKey: 'smartCollection.fieldTrackRating', type: 'int' },
   { value: 'cover_path',     labelKey: 'smartCollection.fieldCover',       type: 'nullable' },
   { value: 'added_at',       labelKey: 'smartCollection.fieldAddedAt',     type: 'timestamp' },
   { value: 'credit',         labelKey: 'smartCollection.fieldCredit',      type: 'credit' },

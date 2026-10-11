@@ -167,10 +167,12 @@
   // stéréo : l'analyseur reste ce qu'il était. Une trame qui n'arrive plus
   // éteint les barres après le même délai que le spectre (#1791).
   let barres: BarreDeCanal[] = $state([]);
+  let barresDeSortie = $state(false);
   let extinctionBarres: ReturnType<typeof setTimeout> | null = null;
   function suivreBarres(l: AudioLevels) {
     const b = barresParCanal(l);
     barres = b;
+    barresDeSortie = b.length > 0 && l.output_channels !== null;
     if (extinctionBarres) clearTimeout(extinctionBarres);
     extinctionBarres = b.length > 0 ? setTimeout(() => { barres = []; }, FRAICHEUR_TRAME_MS) : null;
   }
@@ -759,7 +761,7 @@
 >
   <canvas bind:this={canvas} class="visualizer-canvas" class:masque={voirBarres}></canvas>
   {#if voirBarres}
-    <BarresParCanal {barres} />
+    <BarresParCanal {barres} sortie={barresDeSortie} />
   {/if}
 </div>
 
