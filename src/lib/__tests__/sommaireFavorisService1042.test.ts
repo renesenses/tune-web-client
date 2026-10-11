@@ -29,7 +29,8 @@ describe('#1042 — le sommaire des favoris de service', () => {
     expect(src).toContain("document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });");
   });
   it('collé en haut du défilement', () => {
-    expect(src).toMatch(/\.sommaire\{position:sticky; top:0;/);
+    // web#2072 : `top` négatif, égal au retrait de `.scroll` (garde : bandeSommaireFavoris2072).
+    expect(src).toMatch(/\.sommaire\{position:sticky; top:-?\d+px;/);
   });
   it('le libellé accessible existe dans les onze langues', async () => {
     for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh']) {

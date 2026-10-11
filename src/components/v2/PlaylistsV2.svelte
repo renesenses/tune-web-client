@@ -21,6 +21,13 @@
   import { atLeast } from '../../lib/uiLevel';
   import { activeView } from '../../lib/stores/navigation';
   import { formatDuration, fold, errText } from '../../lib/utils';
+  import {
+    copierTout,
+    motifSauvegardeImpossible,
+    playlistsACopier,
+    recreerDepuisLaPlusRecente,
+    type SauvegardeImpossible,
+  } from '../../lib/sauvegardesGreffon';
   import type { Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
@@ -520,77 +527,75 @@
   //
   // Bertrand les garde SUR cet écran (02/09/2026) : c'est ici qu'on risque de
   // perdre une playlist, donc ici que le filet doit se voir.
+  //
+  // Depuis le retrait des doublons de `/playlist-manager` (tune-server-rust
+  // #4741, après la rc3), ce filet est celui du greffon « Playlists
+  // converter » : des copies datées (snapshots), gardées par playlist. Les
+  // routes `/playlist-manager/backup(s)` ne sont plus que des alias dépréciés
+  // pour les anciens clients.
+  //
+  // Ce qui change pour l'utilisateur :
+  // - une copie par playlist, prise chez son service (ou dans la bibliothèque),
+  //   et non plus une seule sauvegarde globale ;
+  // - « Restaurer » RECRÉE la playlist chez son service d'origine, sans toucher
+  //   à l'ancienne (mode `recreer`) ;
+  // - le greffon garde les dix dernières copies de chaque playlist et remplace
+  //   la plus ancienne : il n'y a plus rien à supprimer à la main ;
+  // - c'est une fonction Premium : un compte gratuit reçoit un 402, qu'on
+  //   EXPLIQUE au lieu de l'afficher comme une panne.
   let panneauSauvegardes = $state(false);
-  let instantanes = $state<any[]>([]);
+  let instantanes = $state<api.PlaylistSnapshotsConvertisseur[]>([]);
   let sauvegardeEnCours = $state(false);
-  let restauration = $state<number | null>(null);
+  let restauration = $state<string | null>(null);
+  /** Le panneau ne peut rien faire, et dit pourquoi. */
+  let sauvegardeImpossible = $state<SauvegardeImpossible | null>(null);
+
+  const cleInstantane = (snap: api.PlaylistSnapshotsConvertisseur) => `${snap.service}/${snap.playlist_id}`;
 
   async function chargerInstantanes() {
+    sauvegardeImpossible = null;
     try {
-      instantanes = (await api.listPlaylistSnapshots()) ?? [];
-    } catch {
+      instantanes = (await api.convertisseurPlaylistsGardees())?.playlists ?? [];
+    } catch (e) {
       instantanes = [];
+      sauvegardeImpossible = motifSauvegardeImpossible(e);
     }
   }
 
   async function sauvegarder() {
     if (sauvegardeEnCours) return;
     sauvegardeEnCours = true;
-    try {
-      await api.backupPlaylists();
-      await chargerInstantanes();
-      notifications.success($t('v2.pl.backupDone' as any));
-    } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
-    }
+    sauvegardeImpossible = null;
+    const { reussies, echecs, impossible } = await copierTout(playlistsACopier(local, services));
     sauvegardeEnCours = false;
+    if (impossible) {
+      sauvegardeImpossible = impossible;
+      return;
+    }
+    await chargerInstantanes();
+    if (echecs) {
+      notifications.error(
+        $t('v2.pl.backupPartial' as any).replace('{ok}', String(reussies)).replace('{ko}', String(echecs)),
+      );
+    } else {
+      notifications.success($t('v2.pl.backupDone' as any));
+    }
   }
 
-  async function restaurer(snap: any) {
+  /** Recrée la playlist depuis sa copie la plus récente, dans Tune (tune-server-rust#5966). */
+  async function restaurer(snap: api.PlaylistSnapshotsConvertisseur) {
     if (restauration != null) return;
-    restauration = snap.id;
+    restauration = cleInstantane(snap);
     try {
-      await api.restorePlaylistSnapshot(snap.id);
+      await recreerDepuisLaPlusRecente(snap.service, snap.playlist_id);
       notifications.success($t('v2.pl.restoreDone' as any));
       load();
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      const impossible = motifSauvegardeImpossible(e);
+      if (impossible) sauvegardeImpossible = impossible;
+      else notifications.error(errText(e) ?? $t('common.error' as any));
     }
     restauration = null;
-  }
-
-  /** Sauvegarde en cours de suppression, ou `null`. */
-  let suppression = $state<number | null>(null);
-
-  /**
-   * Supprime une sauvegarde.
-   *
-   * 🔴 La v2 savait CRÉER et RESTAURER une sauvegarde, jamais en effacer une :
-   * la liste ne pouvait que grossir, et la plus ancienne finissait par noyer
-   * les autres. `DELETE /playlist-manager/backups/{id}` existait depuis
-   * toujours côté serveur.
-   *
-   * Confirmation obligatoire, et `danger` : c'est un filet qu'on retire, et
-   * rien ne le reconstitue. Le même défaut avait été relevé sur les alarmes,
-   * qui supprimaient sans rien demander.
-   */
-  async function supprimerInstantane(snap: any) {
-    if (suppression != null) return;
-    const nom = snap.name ?? snap.playlist_name ?? `#${snap.id}`;
-    const ok = await dialogs.confirm(
-      $t('v2.pl.backupDeleteAsk' as any).replace('{name}', String(nom)),
-      { danger: true },
-    );
-    if (!ok) return;
-    suppression = snap.id;
-    try {
-      await api.deletePlaylistSnapshot(snap.id);
-      await chargerInstantanes();
-      notifications.success($t('v2.pl.backupDeleted' as any));
-    } catch (e: any) {
-      notifications.error(errText(e) ?? $t('common.error' as any));
-    }
-    suppression = null;
   }
 
   // ── Import M3U ───────────────────────────────────────────────────────────
@@ -754,21 +759,26 @@
           {sauvegardeEnCours ? $t('common.loading' as any) : $t('v2.pl.backupNow' as any)}
         </button>
       </div>
-      {#if !instantanes.length}
+      {#if sauvegardeImpossible}
+        <p class="sauv-vide" role="status">
+          {sauvegardeImpossible.motif === 'premium'
+            ? $t('v2.pl.backupPremium' as any)
+            : $t('v2.pl.backupNoPlugin' as any)}
+          {#if sauvegardeImpossible.url}
+            <a href={sauvegardeImpossible.url} target="_blank" rel="noopener noreferrer">{$t('v2.pl.backupPremiumLink' as any)}</a>
+          {/if}
+        </p>
+      {:else if !instantanes.length}
         <p class="sauv-vide">{$t('v2.pl.noBackup' as any)}</p>
       {:else}
+        <p class="sauv-vide">{$t('v2.pl.backupRing' as any)}</p>
         <ul class="sauv-liste">
-          {#each instantanes.filter((snap) => correspond(snap?.name ?? snap?.playlist_name)) as snap (snap.id)}
+          {#each instantanes.filter((snap) => correspond(snap?.nom)) as snap (cleInstantane(snap))}
             <li>
-              <span class="sn">{snap.name ?? snap.playlist_name ?? `#${snap.id}`}</span>
-              <span class="sd">{snap.created_at ?? ''}</span>
+              <span class="sn">{snap.nom || snap.playlist_id}</span>
+              <span class="sd">{snap.service === 'local' ? $t('v2.pl.here' as any) : snap.service} · {new Date(snap.dernier_le_ms).toLocaleString()}</span>
               <button class="ghost sm" disabled={restauration != null} onclick={() => restaurer(snap)}>
-                {restauration === snap.id ? $t('common.loading' as any) : $t('v2.pl.restore' as any)}
-              </button>
-              <button class="ghost sm danger" disabled={suppression != null || restauration != null}
-                onclick={() => supprimerInstantane(snap)}
-                aria-label={$t('common.delete' as any)}>
-                {suppression === snap.id ? $t('common.loading' as any) : $t('common.delete' as any)}
+                {restauration === cleInstantane(snap) ? $t('common.loading' as any) : $t('v2.pl.restore' as any)}
               </button>
             </li>
           {/each}
@@ -1034,8 +1044,6 @@
   /* Le bouton qui retire un filet se distingue de celui qui le pose. La
      couleur ne porte pas l'information seule : le libellé dit « Supprimer »,
      et une confirmation `danger` s'interpose. */
-  .ghost.sm.danger{color:var(--v2-err, #d64545)}
-  .ghost.sm.danger:hover:not(:disabled){border-color:var(--v2-err, #d64545)}
   .sauv-liste{margin-top:10px; list-style:none; display:flex; flex-direction:column; gap:6px}
   .sauv-liste li{display:flex; align-items:center; gap:10px; font-size:13px}
   .sn{font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
