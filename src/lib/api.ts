@@ -10188,6 +10188,21 @@ export function convertisseurRestaurer(planId: string): Promise<{
   });
 }
 
+/**
+ * `POST /snapshot/supprimer` — supprime UNE copie datée (décision de Bertrand
+ * du 08/10/2026, tune-server-rust#5966). Ni la playlist ni les autres copies
+ * ne sont touchées. Un POST, comme `/lien/supprimer` : l'hôte ne route vers
+ * un greffon que GET et POST.
+ */
+export function convertisseurSupprimerSnapshot(
+  snapshotId: string,
+): Promise<{ snapshot_id: string; supprime: boolean; playlists_touchees: boolean }> {
+  return fetchJSON(`${CONVERTISSEUR}/snapshot/supprimer`, {
+    method: 'POST',
+    body: JSON.stringify({ snapshot_id: snapshotId }),
+  });
+}
+
 /** Une extrémité de lien (#4719). `service: "local"` = la bibliothèque, identifiant entier en texte. */
 export interface ExtremiteLienConvertisseur {
   service: string;
