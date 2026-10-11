@@ -29,6 +29,15 @@
   import { t } from '../../../lib/i18n';
   import { formatTime } from '../../../lib/utils';
   import { switchZone } from '../../../lib/stores/zones';
+  import { ouvrirSelecteurZone } from '../../../lib/stores/selecteurZone';
+  // La puce de zone ouvre le SÉLECTEUR de zone (essai en 5G du 09/10/2026) :
+  // elle ne faisait que commuter vers sa propre zone, et un téléphone n'avait
+  // alors aucun moyen de passer sur « Cet ordinateur ». La zone de la carte
+  // devient d'abord la zone pilotée, pour être en tête du choix.
+  async function ouvrirLeChoixDeZone(id: number | null | undefined) {
+    if (id != null) await switchZone(id);
+    ouvrirSelecteurZone();
+  }
   import { togglePlayPause } from '../../../lib/playback-controls';
   import { positionsZones } from '../../../lib/positionsZones';
   import { transportOf } from '../../../lib/transportSync';
@@ -169,7 +178,7 @@
       <!-- Le nom de la ZONE, et non l'appareil : c'est lui qui distingue deux
            cartes, et Bertrand l'avait demandé le 06/09 sur l'autre carte (« le
            nom de la zone n'apparait pas »). Un clic bascule sur cette zone. -->
-      <button class="zone" onclick={() => zone?.id != null && switchZone(zone.id)}
+      <button class="zone" onclick={() => ouvrirLeChoixDeZone(zone?.id)}
         title={$t('v2.home.zoneOf' as any).replace('{z}', zone?.name ?? '')}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
              stroke-linecap="round" aria-hidden="true"><path d="M4 10a8 8 0 0 1 16 0M7.5 13a4.5 4.5 0 0 1 9 0"/><circle cx="12" cy="18" r="1.6"/></svg>

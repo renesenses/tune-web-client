@@ -332,7 +332,6 @@ describe('#1848 — les surfaces qui n’avaient aucun menu en montent un', () =
    */
   const SURFACES_V2: [string, RegExp][] = [
     ['v2/ListePistesV2', /<PisteActions /],
-    ['v2/LignePisteV2', /<PisteActions /],
     ['v2/QueueV2', /<PisteActions /],
     ['v2/SearchV2', /<ListePistesV2 /],
     ['v2/StreamingV2', /<ListePistesV2 /],

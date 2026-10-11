@@ -323,8 +323,8 @@ describe('Lire une PISTE de service (#720)', () => {
     // dont le corps d'une piste de service est la paire {source, source_id}.
     // Ce qui ne doit JAMAIS revenir : `playAlbum` sur une piste.
     const src = streaming();
-    const bloc = src.slice(src.indexOf('{#if favTracks.length}'), src.indexOf('{#if !favAlbums.length'));
-    expect(bloc.includes('<ListePistesV2 pistes={favTracks as any}'), 'les titres favoris sont une liste').toBe(true);
+    const bloc = src.slice(src.indexOf('{#if favTracksVus.length}'), src.indexOf('{#if !favAlbums.length'));
+    expect(bloc.includes('<ListePistesV2 pistes={favTracksVus as any}'), 'les titres favoris sont une liste').toBe(true);
     expect(bloc.includes('lireFavorisDepuis(i)'), 'et partent par la lecture de liste').toBe(true);
     expect(bloc.includes('playAlbum'), 'une piste favorite repasse par playAlbum : elle partirait en streaming_album_id').toBe(false);
   });

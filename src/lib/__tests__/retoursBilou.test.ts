@@ -68,9 +68,9 @@ describe('Retours de Bilou sur le forum (05/09/2026)', () => {
       const titrees = (src.match(/class="c[ta]" title=/g) ?? []).length;
       expect(titrees, `${f} : ${titrees}/${elidees} étiquettes portent un title`).toBe(elidees);
     }
-    const ligne = lire('src/components/v2/LignePisteV2.svelte');
-    expect(ligne).toContain('<span class="tt" title={piste.title}>');
-    expect(ligne).toContain('<em title={sousTitre}>');
+    // Les listes de pistes : le titre de la ligne du tableau porte son infobulle.
+    const liste = lire('src/components/v2/ListePistesV2.svelte');
+    expect(liste).toContain('title={indispo ? $t(etiquetteIndispo as any) : p.title}');
   });
 
   it('« Derniers ajouts » est une pastille, pas une ligne de menu', () => {

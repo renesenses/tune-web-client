@@ -105,9 +105,9 @@ afterEach(() => {
  * Monte la liste dans un MODE donné, avec ces colonnes cochées.
  *
  * Le mode est un paramètre depuis le 09/09/2026 : le tableau existe désormais
- * en Essentiel ET en Expert (`MODES_BRANCHES`). Il fallait bien qu'il le
+ * en Essentiel ET en Expert, puis en Avancé (#1470). Il fallait bien qu'il le
  * devienne — un test qui monte toujours le même mode ne verrait jamais
- * qu'Expert a reperdu son tableau.
+ * qu'un mode a reperdu son tableau.
  */
 function poserAu(mode: string, colonnes: string[], pistes: Partial<Track>[]) {
   preferences.update((p) => ({

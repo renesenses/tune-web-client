@@ -2,6 +2,7 @@
   import { setToken } from '../../lib/auth';
   import { t } from '../../lib/i18n';
   import { activeView } from '../../lib/stores/navigation';
+  import { baseApi, entetesRelais, ssoDisponible, urlRessourcePublique } from '../../lib/bridge';
 
   /**
    * `true` quand l'écran est monté EN CALQUE par-dessus l'interface
@@ -16,7 +17,14 @@
    */
   let { surCouche = false }: { surCouche?: boolean } = $props();
 
-  const BASE = '/api/v1';
+  // 🔴 PAS `'/api/v1'` en dur : servie par le relais (`/{server_id}/`), la
+  // connexion doit passer par `/api/relay/{id}` avec `X-Bridge-Token`, sinon
+  // le pont répond 405 (« Erreur 405 », essai en 5G du 09/10/2026).
+  const BASE = baseApi();
+  const LOGO = urlRessourcePublique('tune-logo.png');
+  // Par le pont, le parcours SSO ne peut pas aboutir (redirections suivies
+  // côté serveur, adresse de rappel en 127.0.0.1) : voir `ssoDisponible`.
+  const SSO = ssoDisponible();
 
   // Mode: 'login' or 'register'
   let mode = $state<'login' | 'register'>('login');
@@ -43,7 +51,7 @@
     try {
       const resp = await fetch(`${BASE}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...entetesRelais() },
         body: JSON.stringify({ username: loginEmail.trim(), password: loginPassword }),
       });
       if (!resp.ok) {
@@ -75,7 +83,7 @@
     try {
       const resp = await fetch(`${BASE}/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...entetesRelais() },
         body: JSON.stringify({
           username: regUsername.trim(),
           email: regEmail.trim(),
@@ -113,7 +121,7 @@
 <div class="login-view">
   <div class="login-card">
     <div class="login-logo">
-      <img src="/tune-logo.png" alt="Tune" class="login-logo-img" />
+      <img src={LOGO} alt="Tune" class="login-logo-img" />
     </div>
 
     {#if mode === 'login'}
@@ -145,6 +153,9 @@
         <span>ou</span>
       </div>
 
+      {#if !SSO}
+        <p class="login-sso-indisponible">{$t('login.ssoIndisponibleRelais' as any)}</p>
+      {:else}
       <button class="login-sso-btn" onclick={handleSSO}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
           <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
@@ -153,6 +164,7 @@
         </svg>
         Connexion avec mozaiklabs.fr
       </button>
+      {/if}
 
       <p class="login-switch">
         Pas encore de compte ?
@@ -317,6 +329,14 @@
     flex: 1;
     height: 1px;
     background: var(--tune-border);
+  }
+
+  .login-sso-indisponible {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--tune-text-secondary, #888);
+    text-align: center;
   }
 
   .login-sso-btn {
