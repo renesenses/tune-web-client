@@ -37,7 +37,7 @@ export const TAILLE_PAGE = 200;
  *  (`tune_core::db::track_repo`). Ni `plays`, ni `lastPlayed`, ni `dr`, ni
  *  `quality`, ni `num` (le rang, sur cet onglet). */
 export const COLONNES_TRIABLES: ReadonlySet<CleColonne> = new Set<CleColonne>([
-  'title', 'artist', 'composer', 'time', 'year', 'channels', 'bpm', 'genre',
+  'title', 'artist', 'composer', 'time', 'year', 'channels', 'bpm', 'rating', 'genre',
   'album', 'albumArtist', 'disc', 'label', 'format', 'sampleRate', 'bitDepth',
   'size', 'path', 'isrc', 'mbid', 'comments', 'discSubtitle', 'source',
   'modified', 'hash',
@@ -287,6 +287,7 @@ function cleDeTri(cle: CleColonne): (p: Track) => string | number | null {
     case 'bitDepth': return nombre((p) => p.bit_depth, true);
     case 'channels': return nombre((p) => a(p).channels);
     case 'bpm': return nombre((p) => a(p).bpm);
+    case 'rating': return nombre((p) => a(p).rating);
     case 'disc': return nombre((p) => a(p).disc_number);
     case 'size': return nombre((p) => a(p).file_size);
     case 'modified': return nombre((p) => a(p).file_mtime);
