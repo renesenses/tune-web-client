@@ -4179,6 +4179,8 @@ export default {
   "plconv.snapshots.compte": "{n} instantánea(s), la última el {date}",
   "plconv.snapshots.consulter": "Consultar",
   "plconv.snapshots.revenir": "Volver a esta versión",
+  "plconv.snapshots.supprimer": "Eliminar",
+  "plconv.snapshots.confirmerSuppression": "¿Eliminar la instantánea del {date}? Solo desaparece esta instantánea: la lista no se modifica y las demás instantáneas se conservan.",
   "plconv.snapshots.contenu": "Contenido de la instantánea del {date}",
   "plconv.snapshots.revenirTitre": "Volver a la instantánea del {date}",
   "plconv.snapshots.modeCompleter": "Completar: volver a añadir las pistas que faltan (las sobrantes se le listan para que las quite usted)",

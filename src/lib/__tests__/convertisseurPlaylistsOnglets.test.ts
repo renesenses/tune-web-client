@@ -495,3 +495,105 @@ describe('codeConvertisseur : le code est le préfixe de la phrase du greffon', 
     expect(codeConvertisseur(null)).toBeNull();
   });
 });
+
+// Supprimer une copie datée depuis le greffon (décision de Bertrand du
+// 08/10/2026, tune-server-rust#5966) : une copie à la fois, après la boîte de
+// confirmation de l'application (`dialogs`, jamais `confirm()` natif).
+describe('Snapshots : supprimer une copie', () => {
+  const COPIE = (id: string, pris: number) => ({
+    snapshot_id: id, service: 'qobuz', playlist_id: 'q-1', nom: 'Jazz du soir',
+    pris_le_ms: pris, motif: 'manuel', total: 2, pages: 1, empreinte: id,
+  });
+  let copies: ReturnType<typeof COPIE>[] = [];
+  const serveur = (url: string, methode: string, corps: unknown): [number, unknown] | undefined => {
+    if (url.includes(`${PREFIXE}/snapshots?service=qobuz&playlist_id=q-1`)) {
+      return [200, { count: copies.length, snapshots: copies, retention_par_playlist: 10 }];
+    }
+    if (url.endsWith(`${PREFIXE}/snapshots`)) {
+      const playlists = copies.length
+        ? [{ service: 'qobuz', playlist_id: 'q-1', nom: 'Jazz du soir', snapshots: copies.length, dernier_le_ms: copies[0].pris_le_ms }]
+        : [];
+      return [200, { count: playlists.length, playlists, retention_par_playlist: 10 }];
+    }
+    if (url.includes(`${PREFIXE}/snapshot/supprimer`) && methode === 'POST') {
+      const id = (corps as { snapshot_id: string }).snapshot_id;
+      copies = copies.filter((c) => c.snapshot_id !== id);
+      return [200, { snapshot_id: id, supprime: true, playlists_touchees: false }];
+    }
+    return undefined;
+  };
+  const nativeConfirm = () => vi.fn(() => true);
+
+  beforeEach(() => {
+    copies = [COPIE('snap-1-2', 1_758_000_100_000), COPIE('snap-1-1', 1_758_000_000_000)];
+    routeur = serveur;
+  });
+
+  it('🔴 la confirmation de l’application nomme la copie ; seule la route du greffon part, avec son identifiant', async () => {
+    const natif = nativeConfirm();
+    vi.stubGlobal('confirm', natif);
+    const confirmer = vi.spyOn(dialogs, 'confirm').mockResolvedValue(true);
+    const el = await monter(SnapshotsConvertisseur, PROPS);
+    el.querySelector<HTMLButtonElement>('.conv-lien-playlist')!.click();
+    await souffler();
+    const bouton = el.querySelector<HTMLButtonElement>('[data-snapshot="snap-1-2"] .conv-supprimer-snapshot');
+    expect(bouton, 'pas de bouton Supprimer sur la copie').not.toBeNull();
+    expect(bouton!.textContent?.trim()).toBe(F['plconv.snapshots.supprimer']);
+
+    const avant = appels.length;
+    bouton!.click();
+    await souffler(6);
+
+    expect(natif, 'dialogue natif ouvert').not.toHaveBeenCalled();
+    expect(confirmer).toHaveBeenCalledTimes(1);
+    const [message, options] = confirmer.mock.calls[0];
+    expect(message).toContain(F['plconv.snapshots.confirmerSuppression'].split('{date}')[0]);
+    expect(message).not.toContain('{date}');
+    expect(options).toEqual({ danger: true });
+
+    const partis = appels.slice(avant).filter((a) => a.methode !== 'GET');
+    expect(partis.map((a) => `${a.methode} ${a.url}`)).toEqual([`POST /api/v1${PREFIXE}/snapshot/supprimer`]);
+    expect(partis[0].corps).toEqual({ snapshot_id: 'snap-1-2' });
+    expect(appels.slice(avant).some((a) => a.methode === 'DELETE' || /\/playlists\//.test(a.url))).toBe(false);
+
+    expect(el.querySelector('[data-snapshot="snap-1-2"]'), 'la copie supprimée reste affichée').toBeNull();
+    expect(el.querySelector('[data-snapshot="snap-1-1"]'), 'l’autre copie a disparu').not.toBeNull();
+  });
+
+  it('refuser la confirmation ne supprime rien', async () => {
+    vi.spyOn(dialogs, 'confirm').mockResolvedValue(false);
+    const el = await monter(SnapshotsConvertisseur, PROPS);
+    el.querySelector<HTMLButtonElement>('.conv-lien-playlist')!.click();
+    await souffler();
+    el.querySelector<HTMLButtonElement>('[data-snapshot="snap-1-2"] .conv-supprimer-snapshot')!.click();
+    await souffler();
+    expect(appelsDuGreffon('/snapshot/supprimer')).toHaveLength(0);
+    expect(el.querySelector('[data-snapshot="snap-1-2"]')).not.toBeNull();
+  });
+
+  it('la dernière copie supprimée, la playlist sort de la liste', async () => {
+    copies = [COPIE('snap-1-1', 1_758_000_000_000)];
+    vi.spyOn(dialogs, 'confirm').mockResolvedValue(true);
+    const el = await monter(SnapshotsConvertisseur, PROPS);
+    el.querySelector<HTMLButtonElement>('.conv-lien-playlist')!.click();
+    await souffler();
+    el.querySelector<HTMLButtonElement>('[data-snapshot="snap-1-1"] .conv-supprimer-snapshot')!.click();
+    await souffler(6);
+    expect(el.querySelector('.conv-lien-playlist')).toBeNull();
+    expect(el.querySelector('.conv-snapshots-liste')).toBeNull();
+    expect(el.textContent).toContain(F['plconv.snapshots.aucun']);
+  });
+
+  it('un refus du serveur est montré, et la copie reste', async () => {
+    routeur = (url, methode, corps) =>
+      url.includes(`${PREFIXE}/snapshot/supprimer`) ? [404, { error: 'snapshot_expire : snap-1-2' }] : serveur(url, methode, corps);
+    vi.spyOn(dialogs, 'confirm').mockResolvedValue(true);
+    const el = await monter(SnapshotsConvertisseur, PROPS);
+    el.querySelector<HTMLButtonElement>('.conv-lien-playlist')!.click();
+    await souffler();
+    el.querySelector<HTMLButtonElement>('[data-snapshot="snap-1-2"] .conv-supprimer-snapshot')!.click();
+    await souffler(6);
+    expect(el.querySelector('.conv-erreur[role="alert"]')).not.toBeNull();
+    expect(el.querySelector('[data-snapshot="snap-1-2"]')).not.toBeNull();
+  });
+});

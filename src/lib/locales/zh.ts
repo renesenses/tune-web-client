@@ -4179,6 +4179,8 @@ export default {
   "plconv.snapshots.compte": "{n} 个快照，最近一次 {date}",
   "plconv.snapshots.consulter": "查看",
   "plconv.snapshots.revenir": "回退到此版本",
+  "plconv.snapshots.supprimer": "删除",
+  "plconv.snapshots.confirmerSuppression": "删除 {date} 的快照？只会删除这个快照：播放列表不会被改动，其他快照仍会保留。",
   "plconv.snapshots.contenu": "{date} 快照的内容",
   "plconv.snapshots.revenirTitre": "回退到 {date} 的快照",
   "plconv.snapshots.modeCompleter": "补全：重新添加缺失的曲目（多出的曲目会列出，需您自行移除）",

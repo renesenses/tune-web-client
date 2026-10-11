@@ -4199,6 +4199,8 @@ export default {
   "plconv.snapshots.compte": "{n} snapshot(s), latest on {date}",
   "plconv.snapshots.consulter": "View",
   "plconv.snapshots.revenir": "Go back to this version",
+  "plconv.snapshots.supprimer": "Delete",
+  "plconv.snapshots.confirmerSuppression": "Delete the snapshot from {date}? Only this snapshot goes away: the playlist is not touched, and the other snapshots stay.",
   "plconv.snapshots.contenu": "Snapshot content from {date}",
   "plconv.snapshots.revenirTitre": "Go back to the snapshot from {date}",
   "plconv.snapshots.modeCompleter": "Complete: add back missing tracks (extra ones are listed for you to remove yourself)",

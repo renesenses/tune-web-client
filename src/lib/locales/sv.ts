@@ -4178,6 +4178,8 @@ export default {
   "plconv.snapshots.compte": "{n} ögonblicksbild(er), senast {date}",
   "plconv.snapshots.consulter": "Visa",
   "plconv.snapshots.revenir": "Gå tillbaka till den här versionen",
+  "plconv.snapshots.supprimer": "Ta bort",
+  "plconv.snapshots.confirmerSuppression": "Ta bort ögonblicksbilden från {date}? Bara den här ögonblicksbilden försvinner: spellistan rörs inte, och de andra ögonblicksbilderna finns kvar.",
   "plconv.snapshots.contenu": "Innehåll i ögonblicksbilden från {date}",
   "plconv.snapshots.revenirTitre": "Gå tillbaka till ögonblicksbilden från {date}",
   "plconv.snapshots.modeCompleter": "Komplettera: lägg tillbaka saknade spår (överflödiga listas så att du kan ta bort dem själv)",

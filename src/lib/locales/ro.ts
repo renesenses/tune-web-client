@@ -4179,6 +4179,8 @@ export default {
   "plconv.snapshots.compte": "{n} instantanee, ultima la {date}",
   "plconv.snapshots.consulter": "Consultă",
   "plconv.snapshots.revenir": "Revino la această versiune",
+  "plconv.snapshots.supprimer": "Șterge",
+  "plconv.snapshots.confirmerSuppression": "Ștergeți instantaneul din {date}? Dispare doar acest instantaneu: lista nu este atinsă, iar celelalte instantanee rămân.",
   "plconv.snapshots.contenu": "Conținutul instantaneei din {date}",
   "plconv.snapshots.revenirTitre": "Revino la instantaneea din {date}",
   "plconv.snapshots.modeCompleter": "Completează: readaugă piesele lipsă (cele în plus vă sunt listate, de eliminat singur)",

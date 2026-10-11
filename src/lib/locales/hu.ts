@@ -4137,6 +4137,8 @@ export default {
   "plconv.snapshots.compte": "{n} pillanatkép, a legutóbbi: {date}",
   "plconv.snapshots.consulter": "Megtekintés",
   "plconv.snapshots.revenir": "Visszatérés ehhez a változathoz",
+  "plconv.snapshots.supprimer": "Törlés",
+  "plconv.snapshots.confirmerSuppression": "Törli a(z) {date} pillanatképet? Csak ez a pillanatkép szűnik meg: a lejátszási lista nem változik, a többi pillanatkép megmarad.",
   "plconv.snapshots.contenu": "A(z) {date} pillanatkép tartalma",
   "plconv.snapshots.revenirTitre": "Visszatérés a(z) {date} pillanatképhez",
   "plconv.snapshots.modeCompleter": "Kiegészítés: a hiányzó számok visszaadása (a fölöslegeseket listázzuk, ezeket Önnek kell eltávolítania)",

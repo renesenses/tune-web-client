@@ -4179,6 +4179,8 @@ export default {
   "plconv.snapshots.compte": "{n} istantanea/e, l’ultima il {date}",
   "plconv.snapshots.consulter": "Consulta",
   "plconv.snapshots.revenir": "Torna a questa versione",
+  "plconv.snapshots.supprimer": "Elimina",
+  "plconv.snapshots.confirmerSuppression": "Eliminare l’istantanea del {date}? Sparisce solo questa istantanea: la playlist non viene toccata e le altre istantanee restano.",
   "plconv.snapshots.contenu": "Contenuto dell’istantanea del {date}",
   "plconv.snapshots.revenirTitre": "Torna all’istantanea del {date}",
   "plconv.snapshots.modeCompleter": "Completa: riaggiungi i brani mancanti (quelli in più ti vengono elencati, da togliere tu)",

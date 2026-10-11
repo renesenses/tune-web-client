@@ -4179,6 +4179,8 @@ export default {
   "plconv.snapshots.compte": "{n} 件、最新 {date}",
   "plconv.snapshots.consulter": "表示",
   "plconv.snapshots.revenir": "このバージョンに戻す",
+  "plconv.snapshots.supprimer": "削除",
+  "plconv.snapshots.confirmerSuppression": "{date} のスナップショットを削除しますか？削除されるのはこのスナップショットだけで、プレイリストには手を加えず、ほかのスナップショットは残ります。",
   "plconv.snapshots.contenu": "{date} のスナップショットの内容",
   "plconv.snapshots.revenirTitre": "{date} のスナップショットに戻す",
   "plconv.snapshots.modeCompleter": "補完：消えた曲を追加し直す（余分な曲は一覧表示されるので、ご自身で削除してください）",

@@ -4179,6 +4179,8 @@ export default {
   "plconv.snapshots.compte": "{n} Schnappschuss/-schüsse, letzter am {date}",
   "plconv.snapshots.consulter": "Ansehen",
   "plconv.snapshots.revenir": "Zu dieser Version zurückkehren",
+  "plconv.snapshots.supprimer": "Löschen",
+  "plconv.snapshots.confirmerSuppression": "Den Schnappschuss vom {date} löschen? Nur dieser Schnappschuss verschwindet: Die Playlist bleibt unberührt, die anderen Schnappschüsse bleiben erhalten.",
   "plconv.snapshots.contenu": "Inhalt des Schnappschusses vom {date}",
   "plconv.snapshots.revenirTitre": "Zum Schnappschuss vom {date} zurückkehren",
   "plconv.snapshots.modeCompleter": "Ergänzen: fehlende Titel wieder hinzufügen (überzählige werden aufgelistet, zum selbst Entfernen)",

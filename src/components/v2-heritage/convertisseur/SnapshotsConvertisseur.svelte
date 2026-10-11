@@ -13,11 +13,17 @@
    *   - `recreer` crée une NOUVELLE playlist, l'ancienne reste intacte.
    * Il se fait toujours en deux temps, aperçu puis accord, et l'`avertissement`
    * du greffon est affiché tel qu'il le rend.
+   *
+   * Supprimer une copie (décision de Bertrand du 08/10/2026,
+   * tune-server-rust#5966) : une seule à la fois, après confirmation
+   * (`dialogs`, jamais `confirm()` natif). Ni la playlist ni les autres copies
+   * ne sont touchées.
    */
   import * as api from '../../../lib/api';
   import type { Playlist, StreamingPlaylist } from '../../../lib/types';
   import { t as tr } from '../../../lib/i18n';
   import { isPremium } from '../../../lib/stores/license';
+  import { dialogs } from '../../../lib/stores/dialogs';
   import { errText } from '../../../lib/utils';
   import { dateConvertisseur, nomService, playlistsDuService } from '../../../lib/convertisseurPlaylists';
 
@@ -154,6 +160,29 @@
     enCours = false;
   }
 
+  /** Supprime UNE copie, après confirmation ; la playlist n'est pas touchée. */
+  async function supprimer(s: api.EnTeteSnapshotConvertisseur) {
+    const ok = await dialogs.confirm(
+      $tr('plconv.snapshots.confirmerSuppression').replace('{date}', dateConvertisseur(s.pris_le_ms)),
+      { danger: true },
+    );
+    if (!ok) return;
+    enCours = true;
+    erreur = null;
+    try {
+      await api.convertisseurSupprimerSnapshot(s.snapshot_id);
+      snapshots = snapshots.filter((x) => x.snapshot_id !== s.snapshot_id);
+      if (consulte?.snapshot_id === s.snapshot_id) consulte = null;
+      if (aRestaurer?.snapshot_id === s.snapshot_id) fermerRestauration();
+      // Le compte de la playlist change, et elle sort de la liste sans copie.
+      await chargerGardees();
+      if (snapshots.length === 0) ouverte = null;
+    } catch (e) {
+      retenir(e);
+    }
+    enCours = false;
+  }
+
   async function prendre() {
     if (!prendreService || !prendrePlaylist) return;
     const nom = candidates.find((p) => p.id === prendrePlaylist)?.nom;
@@ -250,6 +279,7 @@
             <span class="conv-discret">{$tr('plconv.pistes').replace('{n}', String(s.total))}</span>
             <button class="conv-btn conv-consulter" onclick={() => consulter(s)}>{$tr('plconv.snapshots.consulter')}</button>
             <button class="conv-btn conv-revenir" onclick={() => preparerRestauration(s)}>{$tr('plconv.snapshots.revenir')}</button>
+            <button class="conv-btn conv-supprimer-snapshot" disabled={enCours} onclick={() => supprimer(s)}>{$tr('plconv.snapshots.supprimer')}</button>
           </div>
         {/each}
       </div>

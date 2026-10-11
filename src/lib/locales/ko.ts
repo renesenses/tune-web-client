@@ -4179,6 +4179,8 @@ export default {
   "plconv.snapshots.compte": "스냅샷 {n}개, 최근 {date}",
   "plconv.snapshots.consulter": "보기",
   "plconv.snapshots.revenir": "이 버전으로 되돌리기",
+  "plconv.snapshots.supprimer": "삭제",
+  "plconv.snapshots.confirmerSuppression": "{date} 스냅샷을 삭제할까요? 이 스냅샷만 사라지며 플레이리스트는 건드리지 않고 다른 스냅샷은 그대로 남습니다.",
   "plconv.snapshots.contenu": "{date} 스냅샷 내용",
   "plconv.snapshots.revenirTitre": "{date} 스냅샷으로 되돌리기",
   "plconv.snapshots.modeCompleter": "보완: 사라진 곡을 다시 추가(남는 곡은 목록으로 보여 드리니 직접 제거하세요)",
