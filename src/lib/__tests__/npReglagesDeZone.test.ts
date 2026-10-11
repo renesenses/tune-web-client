@@ -56,7 +56,7 @@ function corpsDeFonction(nom: string): string {
 
 const REPERES: Record<string, string> = {
   Sleep: 'class="np-sleep-wrapper"',
-  DSP: 'class:active={cfEnabled}',
+  DSP: 'class:active={cfBouton.actif}',
   'Réveil': 'class:active={alarmActive || showAlarm}',
 };
 
