@@ -1942,7 +1942,11 @@
      parcourt ; le nuage de tous les genres, lui, peut faire plusieurs
      rangées et mangerait l'écran. Fond opaque, sinon la grille défilerait en
      transparence dessous. `BandcampView` fait de même depuis 2fb1ce0b. */
-  .chips.sous{padding-top:0; margin-top:-8px; position:sticky; top:0; z-index:3; background:var(--v2-bg); padding-top:8px}
+  /* web#2072 (fil 2210) — `.scroll` a 8px de retrait en haut, et un en-tête
+     `sticky; top:0` se colle au bord de ce retrait : la grille défilait
+     visible dans la bande. `top:-8px` le remonte au bord du conteneur, et
+     4px de fond en plus (repris par le `margin-top`) couvrent la bande. */
+  .chips.sous{margin-top:-12px; position:sticky; top:-8px; z-index:3; background:var(--v2-bg); padding-top:12px}
   .chips.sous .chip{font-size:11px; padding:5px 11px; opacity:.9}
   .inline{display:flex; align-items:center; gap:9px; flex-wrap:wrap}
   .txt{height:38px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:var(--v2-bg);
@@ -1951,9 +1955,11 @@
   .notice code{font:11.5px var(--v2-mono); color:var(--v2-acc2)}
 
   .sec{padding:4px 0 22px}
-  /* #1042 — le sommaire des favoris : collé en haut du défilement. */
-  .sommaire{position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:8px;
-    padding:6px 0 10px; margin-bottom:6px; background:var(--v2-bg)}
+  /* #1042 — le sommaire des favoris : collé en haut du défilement.
+     web#2072 — `top:-8px` + 8px de fond en plus (repris par le `margin-top`) :
+     le retrait de `.scroll` ne laisse plus passer de pochettes au-dessus. */
+  .sommaire{position:sticky; top:-8px; z-index:2; display:flex; flex-wrap:wrap; gap:8px;
+    padding:14px 0 10px; margin-top:-8px; margin-bottom:6px; background:var(--v2-bg)}
   .sommaire .chip{display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:999px;
     border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2);
     font:600 12px var(--v2-sans); cursor:pointer}

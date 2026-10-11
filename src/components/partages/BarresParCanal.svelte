@@ -11,14 +11,28 @@
 
   interface Props {
     barres: BarreDeCanal[];
+    /** Les barres décrivent les voies de SORTIE (le serveur l'a dit). */
+    sortie?: boolean;
   }
 
-  let { barres }: Props = $props();
+  let { barres, sortie = false }: Props = $props();
 </script>
 
-<div class="barres-canaux" role="group" aria-label={$t('player.channelLevels')} data-testid="barres-par-canal">
+<div
+  class="barres-canaux"
+  role="group"
+  aria-label={sortie ? $t('player.channelLevelsOutput') : $t('player.channelLevels')}
+  data-testid="barres-par-canal"
+>
   {#each barres as b, i (i)}
-    <div class="canal" class:muet={b.muet} class:over={b.over} data-canal={b.nom}>
+    <div
+      class="canal"
+      class:muet={b.muet}
+      class:over={b.over}
+      data-canal={b.nom}
+      title={b.cle ? $t(b.cle) : b.nom}
+      aria-label={b.cle ? $t(b.cle) : b.nom}
+    >
       <div class="piste">
         <div class="niveau" style="height: {(b.hauteur * 100).toFixed(1)}%"></div>
         {#if !b.muet}
