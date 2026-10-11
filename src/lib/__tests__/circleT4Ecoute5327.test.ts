@@ -12,7 +12,7 @@ import { dialogs } from '../stores/dialogs';
 import { notifications } from '../stores/notifications';
 import { zones, currentZoneId } from '../stores/zones';
 import { licenseState } from '../stores/license';
-import { circlePlugin, ecoutePermise, motifEcoute, estEcouteRevoquee } from '../circle';
+import { circlePlugin, ecoutePermise, ecouteOuverte, motifEcoute, estEcouteRevoquee } from '../circle';
 import fr from '../locales/fr';
 
 /**
@@ -101,7 +101,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   appels = [];
   partagesRecus = [{ user_id: 40, name: 'Élise', library: true }];
-  synchro = { premium: true, active: true, last_sync: '2026-09-27T08:00:00Z', pending: 0 };
+  synchro = { premium: true, active: true, last_sync: '2026-09-27T08:00:00Z', pending: 0, listen_enabled: true };
   elisePartage = true;
   refusEcoute = null;
   circlePlugin.set(null);
@@ -203,6 +203,37 @@ describe('T4 — sans Premium : aucun bouton, aucun appel', () => {
     // Le `premium` du greffon prime sur la licence, dans les deux sens.
     expect(ecoutePermise(false, { loaded: true, premium: true })).toBe(false);
     expect(ecoutePermise(true, { loaded: false, premium: false })).toBe(true);
+  });
+});
+
+describe('T4 — fonction fermée (décision produit du 10/10) : rien de l’écoute', () => {
+  for (const [cas, etat] of [
+    ['listen_enabled: false', { listen_enabled: false }],
+    ['serveur qui ne dit rien', { listen_enabled: undefined }],
+  ] as const) {
+    it(`${cas} : ni bouton, ni cadenas, ni appel — même Premium`, async () => {
+      synchro = { ...synchro, ...etat };
+      const el = await poser();
+      await ouvrirTitresElise(el);
+      expect(el.querySelectorAll('.pistes-contact .titre .ttxt')).toHaveLength(2);
+      expect(el.querySelector('button.lire-piste')).toBeNull();
+      expect(el.querySelector('.ecoute-note')).toBeNull();
+      expect(el.querySelector('.ecoute-premium')).toBeNull();
+      expect(texte(el.querySelector('.lecture-seule')!)).toBe(fr['v2.circle.lib.readOnly']);
+      await cliquer(el, 'button.onglet-albums');
+      await cliquer(el, 'button.album-contact');
+      expect(el.querySelector('button.lire-album')).toBeNull();
+      expect(el.querySelector('button.lire-piste')).toBeNull();
+      expect(ecoutes()).toEqual([]);
+    });
+  }
+
+  it('seul `listen_enabled: true` ouvre', () => {
+    expect(ecouteOuverte(null)).toBe(false);
+    expect(ecouteOuverte({})).toBe(false);
+    expect(ecouteOuverte({ listen_enabled: false })).toBe(false);
+    expect(ecouteOuverte({ listen_enabled: 'true' as never })).toBe(false);
+    expect(ecouteOuverte({ listen_enabled: true })).toBe(true);
   });
 });
 
