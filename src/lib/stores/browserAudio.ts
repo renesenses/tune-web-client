@@ -8,6 +8,7 @@ import { currentZone, syncZone } from './zones';
 import { seekPositionMs, startSeekTimer, stopSeekTimer } from './nowPlaying';
 import * as api from '../api';
 import { sourceDuLecteur } from '../urlDeFluxNavigateur';
+import { fluxParLeRelais } from '../bridge';
 
 // The singleton <audio> element used for browser playback
 let audioElement: HTMLAudioElement | null = null;
@@ -119,58 +120,11 @@ async function sauterLaPisteEnErreur(zoneId: number | null): Promise<void> {
 }
 
 /**
- * 🔴 #5975 — SAFARI REFUSE `play()` HORS DU GESTE.
- *
- * Alex Campbell, fil forum 2178 (1.0.0-rc2, Safari 18.6, zone « This
- * computer ») : radios muettes, « Tourist » et la première piste d'une
- * playlist qui ne jouent pas, quand des FLAC locaux jouent.
- *
- * Tous les chemins de lecture de cette zone appellent `audio.play()` APRÈS
- * une requête au serveur (`api.playRadio`, `api.play`, un évènement
- * WebSocket), donc hors du geste de l'utilisateur. WebKit refuse alors
- * `play()` (`NotAllowedError`) tant que l'élément n'a jamais été chargé ni
- * lancé PENDANT un geste — sauf si la réponse arrive assez vite pour que le
- * geste compte encore. Une radio ou une piste Qobuz, plus lentes à résoudre
- * qu'un FLAC local, restaient donc muettes. Chrome retient l'activation de la
- * page et ne montre rien de tel.
- *
- * La règle : au premier geste dans la page, l'élément unique est chargé à vide
- * (`load()` sur un élément sans source ne joue rien) — WebKit lève alors sa
- * restriction pour cet élément, et les `play()` différés passent. Une lecture
- * déjà refusée (`lectureRefusee`) démarre au geste suivant, puisque c'est ce
- * que l'utilisateur avait demandé. Un élément qui joue, ou que l'utilisateur
- * a mis en pause, n'est jamais touché.
+ * #5975 — une lecture refusée hors geste (`NotAllowedError`, Safari) : elle
+ * démarre au premier geste, dans `deverrouillerAuPremierGeste`, le SEUL
+ * déverrouillage de l'élément (décision du 10/10/2026 : celui du pont).
  */
-let deverrouille = false;
 let lectureRefusee = false;
-
-export function deverrouillerAuGeste(): void {
-  if (deverrouille) return;
-  // Seulement quand on regarde une zone qui sort ici : ailleurs, aucun
-  // élément audio n'a à exister.
-  if (!audioElement && !isBrowserZone(get(currentZone) as { output_type?: string } | null)) return;
-  const audio = getAudio();
-  if (lectureRefusee && audio.src) {
-    lectureRefusee = false;
-    deverrouille = true;
-    audio.play().catch((e) => {
-      console.warn('Browser audio play failed after user gesture:', e);
-    });
-    return;
-  }
-  if (!audio.src) {
-    audio.load();
-    deverrouille = true;
-    return;
-  }
-  if (!audio.paused) deverrouille = true;
-}
-
-if (typeof document !== 'undefined') {
-  for (const type of ['click', 'keydown', 'touchend'] as const) {
-    document.addEventListener(type, deverrouillerAuGeste, { capture: true, passive: true });
-  }
-}
 
 /** Get or create the singleton audio element */
 function getAudio(): HTMLAudioElement {
@@ -180,20 +134,21 @@ function getAudio(): HTMLAudioElement {
     audioElement.preload = 'none';
 
     audioElement.addEventListener('playing', () => {
+      if (deverrouillageEnCours) return;
       browserAudioPlaying.set(true);
       echecsConsecutifs = 0;
-      // Un élément qui a joué est permis pour la suite (#5975).
-      deverrouille = true;
       lectureRefusee = false;
       if (pilotLaBarreAffichee()) startSeekTimer();
     });
 
     audioElement.addEventListener('pause', () => {
+      if (deverrouillageEnCours) return;
       browserAudioPlaying.set(false);
       if (pilotLaBarreAffichee()) stopSeekTimer();
     });
 
     audioElement.addEventListener('ended', async () => {
+      if (deverrouillageEnCours) return;
       browserAudioPlaying.set(false);
       // La zone dont le morceau vient de finir — pas forcément celle qu'on
       // regarde (#2108). Capturée AVANT le premier `await`.
@@ -230,6 +185,7 @@ function getAudio(): HTMLAudioElement {
     });
 
     audioElement.addEventListener('error', () => {
+      if (deverrouillageEnCours) return;
       const erreur = audioElement?.error;
       console.error('Browser audio error:', erreur);
       browserAudioPlaying.set(false);
@@ -263,11 +219,17 @@ export function browserPlay(streamUrl: string, force = false, zoneId?: number | 
   // son repli SPA — `200 text/html`, « Failed to init decoder » (#2076).
   // La règle exacte, et les lignes du serveur qui la fondent, vivent dans
   // `urlDeFluxNavigateur.ts` : elle est pure, donc éprouvable sans DOM.
-  const relativeUrl = sourceDuLecteur(
-    streamUrl,
-    typeof location !== 'undefined' ? location.origin : null,
-  );
+  //
+  // Par le pont, l'adresse du réseau local ne mène nulle part : elle devient
+  // la route de flux du relais, jeton compris (essai en 5G du 09/10/2026).
+  const relativeUrl =
+    fluxParLeRelais(streamUrl) ??
+    sourceDuLecteur(streamUrl, typeof location !== 'undefined' ? location.origin : null);
   if (force || currentUrl !== relativeUrl) {
+    // Une vraie source remplace le silence du déverrouillage iOS : ses
+    // événements comptent de nouveau, et le son ne reste pas en sourdine.
+    deverrouillageEnCours = false;
+    audio.muted = false;
     // Cache-bust when the URL is unchanged so the element fetches the new
     // track instead of replaying its buffered contents.
     audio.src =
@@ -285,6 +247,65 @@ export function browserPlay(streamUrl: string, force = false, zoneId?: number | 
     if ((e as { name?: string } | null)?.name === 'NotAllowedError') lectureRefusee = true;
     console.warn('Browser audio play failed (may need user gesture):', e);
   });
+}
+
+/**
+ * iOS Safari : l'élément audio ne joue qu'après un `play()` né d'un geste.
+ *
+ * Par le pont, entre l'appui sur Lecture et le `browserPlay` qui suit, il y a
+ * l'aller-retour `POST /zones/{id}/play` par le relais : plus d'une seconde
+ * en 5G. Safari a alors oublié le geste et refuse `play()`
+ * (`NotAllowedError`) — la zone « joue » sur le serveur, le téléphone se tait.
+ *
+ * Au PREMIER geste sur la page, on fait jouer à l'élément un silence de
+ * quelques octets, en sourdine, puis on le rend vide : WebKit lève la
+ * restriction pour cet élément, et les `play()` suivants passent, geste ou
+ * non. Rien n'est fait si l'élément a déjà une source, sauf relancer une
+ * lecture refusée (#5975). C'est le SEUL déverrouillage de l'élément.
+ */
+const SILENCE_WAV =
+  // Un dixième de seconde de silence (WAV 8 bits, 8 kHz, mono).
+  'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+let deverrouillageEnCours = false;
+
+export function deverrouillerAuPremierGeste(cible: EventTarget = document): void {
+  const gestes = ['touchend', 'pointerup', 'click', 'keydown'];
+  const unFois = () => {
+    for (const g of gestes) cible.removeEventListener(g, unFois, true);
+    const audio = getAudio();
+    // #5975 — une lecture déjà refusée hors geste démarre maintenant : un
+    // `play()` pendant le geste lève aussi la restriction de WebKit.
+    if (lectureRefusee && audio.src) {
+      lectureRefusee = false;
+      audio.play().catch((e) => {
+        console.warn('Browser audio play failed after user gesture:', e);
+      });
+      return;
+    }
+    if (audio.src || get(browserStreamUrl) !== null) return;
+    deverrouillageEnCours = true;
+    audio.muted = true;
+    audio.src = SILENCE_WAV;
+    const fin = () => {
+      deverrouillageEnCours = false;
+      audio.muted = false;
+      // 🔴 Le geste qui déverrouille est souvent CELUI qui lance la lecture :
+      // le `browserPlay` du bouton peut avoir posé la vraie source avant que
+      // ce silence ait fini de démarrer. On ne vide alors RIEN — sinon on
+      // couperait le flux qu'on vient d'ouvrir.
+      if (audio.src !== SILENCE_WAV) return;
+      audio.pause();
+      audio.removeAttribute('src');
+    };
+    try {
+      const p = audio.play();
+      if (p && typeof p.then === 'function') p.then(fin, fin);
+      else fin();
+    } catch {
+      fin();
+    }
+  };
+  for (const g of gestes) cible.addEventListener(g, unFois, true);
 }
 
 /** Pause browser audio */
@@ -404,7 +425,6 @@ export function browserAudioDestroy() {
   echecsConsecutifs = 0;
   sautEnCours = false;
   // Un élément neuf devra être déverrouillé à son tour (#5975).
-  deverrouille = false;
   lectureRefusee = false;
   if (audioElement) {
     audioElement.pause();

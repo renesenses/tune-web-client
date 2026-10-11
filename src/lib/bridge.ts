@@ -195,6 +195,54 @@ export function urlFlux(
 }
 
 /**
+ * Adresse PAR LE PONT du flux d'une zone navigateur, ou `null` hors relais.
+ *
+ * 🔴 Essai en 5G du 09/10/2026 : la zone « Cet ordinateur » jouait sur le
+ * serveur et restait muette dans Safari. Seul le chemin des événements
+ * WebSocket passait par `urlFlux()` ; les boutons Lecture, Suivant,
+ * Précédent, la reprise, l'enchaînement de fin de piste et le saut sur
+ * erreur posaient `zone.stream_url` — l'IP du réseau local
+ * (`http://192.168.1.18:8888/stream/<id>.flac`). `sourceDuLecteur` la
+ * ramenait en relatif, donc sur `bridge.mozaiklabs.fr/stream/<id>.flac`,
+ * une route que le pont ne sert pas.
+ *
+ * La règle vit donc à l'endroit où TOUTES ces adresses passent, `browserPlay` :
+ * une adresse de Tune (`/stream/<un-seul-segment>`) devient la route de flux
+ * du pont, `/stream/relay/{server_id}/<id>?token=…` — la forme exacte que le
+ * serveur annonce dans `stream_url_remote`
+ * (`tune-stream-http`, `stream_url_distant`). Le jeton part en paramètre :
+ * une balise `<audio>` ne pose aucun en-tête, et le pont l'accepte ainsi
+ * (`tune-bridge/src/stream_proxy.rs`).
+ *
+ * Une adresse qui vise DÉJÀ le pont (`stream_url_remote`) reçoit le jeton
+ * s'il lui manque. Une adresse tierce n'est pas touchée.
+ */
+export function fluxParLeRelais(url: string): string | null {
+  if (!viaRelais()) return null;
+  const e = resoudre();
+  const origine = window.location.origin;
+  let u: URL;
+  try {
+    u = new URL(url, origine);
+  } catch {
+    return null;
+  }
+  const avecJeton = (chemin: string, params: URLSearchParams) => {
+    if (!params.has('token')) params.set('token', e.jeton as string);
+    return `${origine}${chemin}?${params.toString()}`;
+  };
+  const prefixeRelais = `/stream/relay/${e.serverId}/`;
+  if (u.origin === origine && u.pathname.startsWith(prefixeRelais)) {
+    return avecJeton(u.pathname, u.searchParams);
+  }
+  const tune = /^\/stream\/([^/]+)$/.exec(u.pathname);
+  if (tune) {
+    return avecJeton(`${prefixeRelais}${tune[1]}`, u.searchParams);
+  }
+  return null;
+}
+
+/**
  * Adresse d'un fichier de `public/` (logo, icônes), valable dans les DEUX modes.
  *
  * 🔴 Un chemin absolu (`/tune-logo.png`) vise la RACINE du domaine. Servie par
@@ -242,6 +290,49 @@ export function versLeRelais(url: string): string | null {
     return `${origine}${chemin}`;
   }
   return null;
+}
+
+/**
+ * Adresse d'API pour ce que le NAVIGATEUR va chercher seul : `<img src>`,
+ * `<a href>` de téléchargement, `window.location.href`.
+ *
+ * Ces chemins-là ne passent pas par `fetch` : ni l'intercepteur ni
+ * `entetesRelais()` ne peuvent y poser `X-Bridge-Token`. Le pont accepte donc
+ * le jeton en `?token=` pour les LECTURES relayées (GET/HEAD — jamais pour
+ * une écriture), le retire avant de relayer et le masque dans ses traces.
+ *
+ * Hors relais, ou pour une adresse qui ne vise pas l'API (autre domaine,
+ * `blob:`, `data:`), l'adresse est rendue telle quelle.
+ */
+export function urlNavigateur(url: string): string {
+  if (!url) return url;
+  const cible = versLeRelais(url);
+  if (cible === null) return url;
+  const jeton = resoudre().jeton as string;
+  const diese = cible.indexOf('#');
+  const avant = diese < 0 ? cible : cible.slice(0, diese);
+  const fragment = diese < 0 ? '' : cible.slice(diese);
+  const sep = avant.includes('?') ? '&' : '?';
+  return `${avant}${sep}token=${encodeURIComponent(jeton)}${fragment}`;
+}
+
+/**
+ * La connexion au compte mozaiklabs.fr (SSO) est-elle possible d'ici ?
+ *
+ * PAS par le pont. Le parcours OAuth est une suite de NAVIGATIONS : le
+ * serveur répond par une redirection vers mozaiklabs.fr, puis mozaiklabs.fr
+ * renvoie le navigateur sur l'adresse de rappel du serveur. Or :
+ *   - le pont rejoue la requête depuis le serveur lui-même (127.0.0.1) : la
+ *     redirection est suivie CÔTÉ SERVEUR, jamais rendue au navigateur, et
+ *     l'en-tête `Location` n'est pas relayé ;
+ *   - l'adresse de rappel est construite sur l'hôte vu par le serveur, soit
+ *     `http://127.0.0.1:8888/api/v1/cloud/sso/callback` — injoignable depuis
+ *     un téléphone en 4G/5G, et non déclarée chez mozaiklabs.fr.
+ * Le compte se relie une fois, sur le réseau local ; l'accès à distance n'en
+ * a pas besoin (jeton du pont, puis compte Tune si le serveur l'exige).
+ */
+export function ssoDisponible(): boolean {
+  return serverIdDepuisUrl() === null;
 }
 
 /**

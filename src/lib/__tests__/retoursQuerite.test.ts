@@ -18,13 +18,13 @@ describe('Retours de Querite (forum, 05/09/2026)', () => {
     expect(formatTime(50000)).toBe('0:50');
     expect(formatDuration(50000)).toBe('0min');
 
-    for (const f of ['LignePisteV2', 'QueueV2', 'FavoritesV2', 'MediaServersV2']) {
+    for (const f of ['QueueV2', 'FavoritesV2', 'MediaServersV2']) {
       const src = sansCommentaires(lire(`src/components/v2/${f}.svelte`));
       const lignes = src.split('\n').filter((l) => /class="(dur|ndur|td)"/.test(l));
 
       /*
        * Un écran tient la promesse de DEUX façons : il dessine sa propre
-       * colonne de durée, ou il délègue à `LignePisteV2`, qui la dessine pour
+       * colonne de durée, ou il délègue à `ListePistesV2`, qui la dessine pour
        * lui. Le 05/09/2026 `FavoritesV2` est passé du premier cas au second —
        * sa ligne maison affichait « FLAC · 88.2 kHz » sans la profondeur et
        * portait deux cœurs. La garde suit la délégation plutôt que de perdre
@@ -32,11 +32,11 @@ describe('Retours de Querite (forum, 05/09/2026)', () => {
        */
       if (!lignes.length) {
         // 🔴 RÉORIENTÉE le 07/09/2026 : les écrans délèguent désormais à
-    // `ListePistesV2`, qui rend le TABLEAU du mode Essentiel ou ces mêmes
-    // lignes au-dessus. Ce que la garde protège ne bouge pas — aucun écran
-    // ne roule sa propre ligne — et le conteneur le renforce.
+    // `ListePistesV2`, qui rend le TABLEAU à tous les modes depuis #1470.
+    // Ce que la garde protège ne bouge pas — aucun écran ne roule sa propre
+    // ligne — et le conteneur le renforce.
     expect(
-          src.includes('LignePisteV2') || src.includes('ListePistesV2'),
+          src.includes('ListePistesV2'),
           `${f} : ni colonne de durée, ni délégation au rendu partagé`,
         ).toBe(true);
         continue;
