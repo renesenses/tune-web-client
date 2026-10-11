@@ -255,6 +255,8 @@ export interface Track {
   composer?: string | null;
   isrc?: string | null;
   bpm?: number | null;
+  /** Note de la piste lue dans ses balises, 0 à 5 (tune-server-rust#6123). */
+  rating?: number | null;
   comments?: string | null;
   musicbrainz_recording_id?: string | null;
   /**
