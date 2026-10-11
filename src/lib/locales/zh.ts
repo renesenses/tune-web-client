@@ -1518,6 +1518,8 @@ export default {
   "smartCollection.opAfter": "晚于",
   "smartCollection.opBefore": "早于",
   "smartCollection.opNever": "从不",
+  "smartCollection.opInLast": "最近",
+  "smartCollection.unitDays": "天",
   "smartCollection.fieldInCollection": "合集",
   "smartCollection.fieldInPlaylist": "播放列表",
   "smartCollection.fieldFavorite": "收藏",

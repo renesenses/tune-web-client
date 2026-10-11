@@ -1495,6 +1495,8 @@ export default {
   "smartCollection.opAfter": "efter",
   "smartCollection.opBefore": "före",
   "smartCollection.opNever": "aldrig",
+  "smartCollection.opInLast": "de senaste",
+  "smartCollection.unitDays": "dagarna",
   "smartCollection.fieldInCollection": "Samling",
   "smartCollection.fieldInPlaylist": "Spellista",
   "smartCollection.fieldFavorite": "Favorit",

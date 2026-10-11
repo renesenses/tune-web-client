@@ -1518,6 +1518,8 @@ export default {
   "smartCollection.opAfter": "después de",
   "smartCollection.opBefore": "antes de",
   "smartCollection.opNever": "nunca",
+  "smartCollection.opInLast": "en los últimos",
+  "smartCollection.unitDays": "días",
   "smartCollection.fieldInCollection": "Colección",
   "smartCollection.fieldInPlaylist": "Lista de reproducción",
   "smartCollection.fieldFavorite": "Favorito",
