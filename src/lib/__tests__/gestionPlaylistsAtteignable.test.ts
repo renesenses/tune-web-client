@@ -105,13 +105,14 @@ describe('la gestion complète des playlists est atteignable en v2', () => {
       'diffPlaylists',
       'recoverPlaylist',
       'reorderPlaylistTracks',
-      'triggerPlaylistSync',
-      'getPlaylistLinks',
-      'deletePlaylistLink',
-      'deletePlaylistSnapshot',
+      // `triggerPlaylistSync`, `getPlaylistLinks`, `deletePlaylistLink`,
+      // `deletePlaylistSnapshot` : retirés après la rc3 (tune-server-rust
+      // #4741), doublons des liens et des snapshots du greffon « Playlists
+      // converter », dont les onglets vivent dans ce même écran.
       'getPlaylistManagerServices',
     ];
-    const perdus = ABSENTS_AILLEURS.filter((a) => !new RegExp(`api\\.${a}\\s*\\(`).test(gestion));
+    // `api` et l'appel peuvent être sur deux lignes (`api\n  .getPlaylistManagerServices()`).
+    const perdus = ABSENTS_AILLEURS.filter((a) => !new RegExp(`api\\s*\\.${a}\\s*\\(`).test(gestion));
     expect(perdus, `appels disparus de l’écran de gestion : ${perdus.join(', ')}`).toEqual([]);
   });
 });
