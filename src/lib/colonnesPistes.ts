@@ -82,6 +82,8 @@ import { afficherDynamicRange } from './dynamicRange';
 export type CleColonne =
   | 'num' | 'title' | 'artist' | 'composer' | 'time' | 'year'
   | 'plays' | 'lastPlayed' | 'channels' | 'bpm' | 'genre' | 'quality'
+  // La note de la piste lue dans ses balises (tune-server-rust#6123).
+  | 'rating'
   // Ajoutées le 07/09/2026 : « je voudrai ajouter des metadata pour Advanced
   // et Expert, et donc grisé en Essential » (Bertrand).
   | 'album' | 'albumArtist' | 'disc' | 'label'
@@ -186,6 +188,14 @@ export const COLONNES: Colonne[] = [
    * tient ce plancher.
    */
   { cle: 'quality',    cleI18n: 'v2.tcol.quality',    largeur: '196px' },
+  /**
+   * Note — tune-server-rust#6123 (forum-hifi #792) : la note que le FICHIER
+   * porte (Vorbis `RATING`, ID3 `POPM`, MP4 `rate`…), ramenée par le serveur
+   * sur 0 à 5. En étoiles ; une piste sans note laisse la cellule vide, et
+   * zéro étoile s'affiche (c'est une note). Placée APRÈS les douze de la
+   * maquette, qu'elle ne dérange pas ; offerte dès Essentiel.
+   */
+  { cle: 'rating',     cleI18n: 'v2.tcol.rating',     largeur: '84px',  align: 'centre' },
 
   // ── À partir d'AVANCÉ ────────────────────────────────────────────────────
   //
@@ -377,6 +387,12 @@ function dateFichier(secondes: unknown): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
 
+/** Une note 0–5 en étoiles : « ★★★☆☆ ». Hors bornes ou absente : `null`. */
+export function etoiles(note: unknown): string | null {
+  if (typeof note !== 'number' || !Number.isInteger(note) || note < 0 || note > 5) return null;
+  return '★'.repeat(note) + '☆'.repeat(5 - note);
+}
+
 /** Une taille de fichier lisible. `0` reste `0 o` : c'est une information. */
 function tailleFichier(octets: unknown): string | null {
   if (typeof octets !== 'number' || !Number.isFinite(octets) || octets < 0) return null;
@@ -399,6 +415,7 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
     case 'year':     return t.year != null ? String(t.year) : null;
     case 'channels': return (t as any).channels != null ? String((t as any).channels) : null;
     case 'bpm':      return (t as any).bpm != null ? String(Math.round((t as any).bpm)) : null;
+    case 'rating':   return etoiles(t.rating);
     case 'genre':    return texte((t as any).genre);
     // Métadonnées de catalogue, toutes présentes sur la route des pistes :
     // `texte()` rend `null` sur ce qui manque, et la cellule reste vide.
