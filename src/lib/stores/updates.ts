@@ -7,6 +7,14 @@ export const updateAvailable = writable(false);
 export const latestVersion = writable<string | null>(null);
 export const currentVersion = writable<string | null>(null);
 export const updateBannerDismissed = writable(false);
+/**
+ * tune-server-rust#6068 — le serveur sait-il installer lui-même ? Faux sur un
+ * build `.no-auto-update` ou une installation Homebrew : la pastille de la
+ * barre latérale ne propose alors plus le geste d'installation, elle montre
+ * `updateInstallHint` en infobulle (même règle que Réglages).
+ */
+export const updateInstallable = writable(true);
+export const updateInstallHint = writable<string | null>(null);
 
 const DISMISSED_KEY = 'tune_update_dismissed_version';
 
@@ -35,6 +43,8 @@ async function poll() {
     if (lat) latestVersion.set(lat);
     const hasUpdate = !!info?.update_available || (cur && lat && isNewer(cur, lat));
     updateAvailable.set(!!hasUpdate);
+    updateInstallable.set(info ? info.installable : true);
+    updateInstallHint.set(info ? info.install_hint : null);
     checkDismissed(lat);
     return;
   } catch {
