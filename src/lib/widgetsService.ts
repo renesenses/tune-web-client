@@ -28,10 +28,13 @@
  * l'écran.
  */
 import * as api from './api';
-import { playlistOuvrable, type Element, type Widget } from './accueilWidgets';
+import { limiteDe, playlistOuvrable, type Element, type Widget } from './accueilWidgets';
 
-/** Combien d'éléments par bande. Voir `accueilWidgets` : on ne borne pas. */
-const LIMITE = 50;
+/*
+ * Combien d'éléments par bande : `limiteDe(ctx)`, la même règle que
+ * l'accueil — cinquante dans la bande, davantage dans la page « Voir tout »
+ * (#51). Voir `accueilWidgets`.
+ */
 
 const liste = (r: any): any[] =>
   Array.isArray(r) ? r : (r?.items ?? r?.albums ?? r?.playlists ?? r?.results ?? []);
@@ -296,9 +299,9 @@ export async function catalogueService(service: string): Promise<Widget[]> {
       id: `${service}-sec-${sid}`,
       cleTitre: cleSectionEditoriale(sid) ?? texte(s, 'name') ?? sid,
       forme: 'bande',
-      charger: async () =>
+      charger: async (ctx) =>
         utiles(
-          liste(await api.getStreamingFeatured(service, sid, LIMITE)).map((o, i) =>
+          liste(await api.getStreamingFeatured(service, sid, limiteDe(ctx))).map((o, i) =>
             albumDistant(o, i, `${service}${sid}`, service),
           ),
         ),
@@ -310,10 +313,10 @@ export async function catalogueService(service: string): Promise<Widget[]> {
     id: `${service}-playlists-editoriales`,
     cleTitre: 'v2.svc.wFeatured',
     forme: 'bande',
-    charger: async () =>
+    charger: async (ctx) =>
       utiles(
         liste(await api.getStreamingFeaturedPlaylists(service))
-          .slice(0, LIMITE)
+          .slice(0, limiteDe(ctx))
           .map((o, i) => playlistDistante(o, i, `${service}fp`, service)),
       ),
   });
@@ -362,10 +365,10 @@ export async function catalogueService(service: string): Promise<Widget[]> {
     cleTitre: 'v2.svc.wFavAlbums',
     forme: 'bande',
     categorie: 'a-moi',
-    charger: async () =>
+    charger: async (ctx) =>
       utiles(
         liste(await api.getStreamingFavorites(service, 'albums'))
-          .slice(0, LIMITE)
+          .slice(0, limiteDe(ctx))
           .map((o, i) => albumDistant(o, i, `${service}fa`, service)),
       ),
   });
@@ -376,10 +379,10 @@ export async function catalogueService(service: string): Promise<Widget[]> {
     categorie: 'a-moi',
     cleTitre: 'v2.svc.wMine',
     forme: 'bande',
-    charger: async () =>
+    charger: async (ctx) =>
       utiles(
         liste(await api.getStreamingPlaylists(service))
-          .slice(0, LIMITE)
+          .slice(0, limiteDe(ctx))
           .map((o, i) => playlistDistante(o, i, `${service}mp`, service)),
       ),
   });
@@ -394,9 +397,9 @@ export async function catalogueService(service: string): Promise<Widget[]> {
       id: `${service}-genre-${gid}`,
       cleTitre: label,
       forme: 'bande',
-      charger: async () =>
+      charger: async (ctx) =>
         utiles(
-          liste(await api.getStreamingGenreAlbums(service, gid, LIMITE)).map((o, i) =>
+          liste(await api.getStreamingGenreAlbums(service, gid, limiteDe(ctx))).map((o, i) =>
             albumDistant(o, i, `${service}g${gid}`, service),
           ),
         ),
@@ -506,10 +509,10 @@ export function widgetsCategoriesPlaylists(service: string, groupesPlaylists: an
       cleTitre: label,
       forme: 'bande',
       categorie: 'playlists-editoriales',
-      charger: async () =>
+      charger: async (ctx) =>
         utiles(
           contenu
-            .slice(0, LIMITE)
+            .slice(0, limiteDe(ctx))
             .map((o, i) => playlistDistante(o, i, `${service}t${gid}`, service)),
         ),
     });

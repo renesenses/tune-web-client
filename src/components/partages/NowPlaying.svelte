@@ -31,6 +31,9 @@ import { ICONES } from '../../lib/menuPiste';
     indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
   } from '../../lib/crossfeed';
   import { crossfeedProTraiteLaZone } from '../../lib/stores/crossfeedPro';
+  import { audiophileEnabled } from '../../lib/stores/audiophile';
+  import { etatBoutonCrossfeed } from '../../lib/boutonCrossfeed';
+  import VoilePur from '../v2/VoilePur.svelte';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import VersionJoueePastille from './VersionJoueePastille.svelte';
@@ -248,6 +251,11 @@ import { ICONES } from '../../lib/menuPiste';
     cfProTraite = false;
     void crossfeedProTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfProTraite = v; });
   });
+  // web#2073 (fil 2214) — en PURE, rien ne traite le signal : le bouton ne
+  // s'allume plus, ni pour le greffon ni pour le crossfeed intégré, et le
+  // panneau porte le voile des écrans dédiés. L'état PURE est celui du bouton
+  // PURE de la barre de lecture (`audiophileEnabled`), pas une relecture.
+  const cfBouton = $derived(etatBoutonCrossfeed({ cfEnabled, cfProTraite, pur: $audiophileEnabled }));
   let cfTimer: ReturnType<typeof setTimeout> | null = null;
 
   async function chargerCrossfeed() {
@@ -1984,8 +1992,9 @@ import { ICONES } from '../../lib/menuPiste';
             </div>
             <button
               class="np-credits-btn"
-              class:active={cfEnabled}
-              class:cf-pro={cfProTraite}
+              class:active={cfBouton.actif}
+              class:cf-pro={cfBouton.pro}
+              title={cfBouton.voile && (cfEnabled || cfProTraite) ? $t(cfBouton.voile as any) : undefined}
               onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; if (showDspMenu) void chargerCrossfeed(); }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
@@ -2108,6 +2117,7 @@ import { ICONES } from '../../lib/menuPiste';
           {/if}
           {#if showDspMenu}
             <div class="np-crossfeed">
+              {#if cfBouton.voile}<VoilePur cle={cfBouton.voile} />{/if}
               {#if cfProTraite}
                 <p class="cf-note cf-note-alerte" data-crossfeed-remplace>{$t('dsp.crossfeedReplacedByPro' as any)}</p>
               {/if}

@@ -13,11 +13,15 @@
    *   - `recreer` crée une NOUVELLE playlist, l'ancienne reste intacte.
    * Il se fait toujours en deux temps, aperçu puis accord, et l'`avertissement`
    * du greffon est affiché tel qu'il le rend.
+   *
+   * Ouvert à tous, Premium ou non (décision de Bertrand du 11/10/2026, rc4) :
+   * le serveur exempte les routes `/snapshot*` de sa garde Premium depuis le
+   * 08/10 (tune-server-rust#5966). Un serveur plus ancien répond encore 402,
+   * et `retenir` le dit avec le message Premium.
    */
   import * as api from '../../../lib/api';
   import type { Playlist, StreamingPlaylist } from '../../../lib/types';
   import { t as tr } from '../../../lib/i18n';
-  import { isPremium } from '../../../lib/stores/license';
   import { errText } from '../../../lib/utils';
   import { dateConvertisseur, nomService, playlistsDuService } from '../../../lib/convertisseurPlaylists';
 
@@ -169,14 +173,11 @@
   }
 
   $effect(() => {
-    if ($isPremium) void chargerGardees();
+    void chargerGardees();
   });
 </script>
 
 <section class="conv" data-onglet="conv-snapshots">
-  {#if !$isPremium}
-    <p class="conv-premium">{$tr('plconv.premium')}</p>
-  {:else}
     <h3 class="conv-titre">{$tr('plconv.snapshots.titre')}</h3>
     <p class="conv-aide">{$tr('plconv.snapshots.aide').replace('{n}', String(retention))}</p>
 
@@ -336,7 +337,6 @@
         <button class="conv-btn" onclick={fermerRestauration}>{$tr('plconv.fermer')}</button>
       </div>
     {/if}
-  {/if}
 </section>
 
 <style>
