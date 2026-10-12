@@ -509,6 +509,10 @@ export interface Zone {
    *  zone WASAPI quand ASIO est choisi). La zone reste jouable ; elle est
    *  signalée. */
   hors_backend_choisi?: boolean;
+  /** tune-server-rust#6120 — zone locale dont la sortie n'est pas
+   *  enregistrée (pilote disparu, renommé) : elle peut être rattachée à la
+   *  main à une sortie ASIO présente. Absent d'un serveur antérieur. */
+  sortie_absente?: boolean;
   /** DUP-1 phase 2 : à côté de `online`, DEPUIS QUAND l'appareil ne répond
    *  plus. `absente_depuis` s'accompagne de `jours_absente`. */
   presence?: 'en_ligne' | 'eteinte_recemment' | 'absente_depuis' | 'jamais_vue';
