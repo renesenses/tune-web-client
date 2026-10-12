@@ -3756,6 +3756,8 @@ export default {
   "v2.health.readAt": "citit la {h}",
   "v2.health.cpuTemp": "Temperatura procesorului",
   "v2.health.cpuTempUnavailable": "indisponibilă",
+  "v2.health.analysesBrideesIllisible": "Temperatura nu poate fi citită pe acest calculator: analize în fundal limitate (câte un fișier).",
+  "v2.health.analysesBrideesFigee": "Senzorul de temperatură dă o valoare fixă: analize în fundal limitate (câte un fișier).",
   "v2.health.autoFollow": "urmărire automată",
   "v2.health.refreshing": "Se citește…",
   "v2.health.refresh": "Actualizează",
