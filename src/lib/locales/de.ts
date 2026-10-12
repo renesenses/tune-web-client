@@ -1094,6 +1094,8 @@ export default {
   "library.versionGroups.byTitle": "Titel, Interpret und Dauer",
   "library.versionGroups.default": "Standardmäßig gespielt",
   "library.versionGroups.thisTrack": "dieser Titel",
+  "library.versionGroups.menu": "Aktionen für diese Version",
+  "library.versionGroups.defaultHint": "Standardmäßig gespielt: das Exemplar, das Tune abspielt, wenn dieser Titel ohne Versionswahl gespielt wird, gemäß der Profilregel „Standardmäßig gespielte Version“ ({rule}).",
   "nowplaying.version.played": "Gespielte Version",
   "nowplaying.version.library": "Bibliothek",
   "nowplaying.version.fallback": "Ersatzversion",

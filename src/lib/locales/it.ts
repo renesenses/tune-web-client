@@ -1094,6 +1094,8 @@ export default {
   "library.versionGroups.byTitle": "titolo, artista e durata",
   "library.versionGroups.default": "Riprodotta per impostazione predefinita",
   "library.versionGroups.thisTrack": "questo brano",
+  "library.versionGroups.menu": "Azioni per questa versione",
+  "library.versionGroups.defaultHint": "Riprodotta per impostazione predefinita: la copia che Tune riproduce quando il brano è avviato senza scegliere una versione, secondo la regola «Versione riprodotta predefinita» del profilo ({rule}).",
   "nowplaying.version.played": "Versione riprodotta",
   "nowplaying.version.library": "Libreria",
   "nowplaying.version.fallback": "versione di riserva",

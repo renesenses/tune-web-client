@@ -1078,6 +1078,8 @@ export default {
   "library.versionGroups.byTitle": "제목, 아티스트, 길이",
   "library.versionGroups.default": "기본 재생",
   "library.versionGroups.thisTrack": "이 트랙",
+  "library.versionGroups.menu": "이 버전의 작업",
+  "library.versionGroups.defaultHint": "기본 재생: 버전을 고르지 않고 이 트랙을 재생할 때 Tune이 재생하는 사본이며, 프로필의 ‘기본 재생 버전’ 규칙({rule})을 따릅니다.",
   "nowplaying.version.played": "재생 중인 버전",
   "nowplaying.version.library": "라이브러리",
   "nowplaying.version.fallback": "대체 버전",

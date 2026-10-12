@@ -1094,6 +1094,8 @@ export default {
   "library.versionGroups.byTitle": "标题、艺人和时长",
   "library.versionGroups.default": "默认播放",
   "library.versionGroups.thisTrack": "此曲目",
+  "library.versionGroups.menu": "此版本的操作",
+  "library.versionGroups.defaultHint": "默认播放：未选择版本而播放此曲目时 Tune 播放的副本，依据个人资料的“默认播放版本”规则（{rule}）。",
   "nowplaying.version.played": "正在播放的版本",
   "nowplaying.version.library": "资料库",
   "nowplaying.version.fallback": "备用版本",

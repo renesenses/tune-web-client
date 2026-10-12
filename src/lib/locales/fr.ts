@@ -1234,6 +1234,8 @@ export default {
   "library.versionGroups.byTitle": "titre, artiste et durée",
   "library.versionGroups.default": "Jouée par défaut",
   "library.versionGroups.thisTrack": "cette piste",
+  "library.versionGroups.menu": "Actions de cette version",
+  "library.versionGroups.defaultHint": "Jouée par défaut : l'exemplaire que Tune lance quand ce titre est joué sans choisir de version, selon la règle « Version jouée par défaut » du profil ({rule}).",
   "nowplaying.version.played": "Version jouée",
   "nowplaying.version.library": "Bibliothèque",
   "nowplaying.version.fallback": "version de repli",

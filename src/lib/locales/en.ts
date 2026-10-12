@@ -1231,6 +1231,8 @@ export default {
   "library.versionGroups.byTitle": "title, artist and duration",
   "library.versionGroups.default": "Played by default",
   "library.versionGroups.thisTrack": "this track",
+  "library.versionGroups.menu": "Actions for this version",
+  "library.versionGroups.defaultHint": "Played by default: the copy Tune plays when this track is played without choosing a version, following the profile's “Default playing version” rule ({rule}).",
   "nowplaying.version.played": "Playing version",
   "nowplaying.version.library": "Library",
   "nowplaying.version.fallback": "fallback version",

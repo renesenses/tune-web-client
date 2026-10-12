@@ -1100,6 +1100,8 @@ export default {
   "library.versionGroups.byTitle": "titlu, artist și durată",
   "library.versionGroups.default": "Redată implicit",
   "library.versionGroups.thisTrack": "această piesă",
+  "library.versionGroups.menu": "Acțiuni pentru această versiune",
+  "library.versionGroups.defaultHint": "Redată implicit: exemplarul pe care Tune îl redă când piesa este pornită fără a alege o versiune, conform regulii „Versiunea redată implicit” a profilului ({rule}).",
   "nowplaying.version.played": "Versiunea redată",
   "nowplaying.version.library": "Bibliotecă",
   "nowplaying.version.fallback": "versiune de rezervă",
