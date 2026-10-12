@@ -52,6 +52,7 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
   import { chargerLienAcces, qrSvg } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
@@ -670,6 +671,40 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }
   }
   $effect(() => { void loadIgnoredDevices(); });
+
+  /**
+   * Sendspin — liste d'exclusion (#3326, serveur rc4). Une enceinte qui
+   * appartient à un autre serveur (Music Assistant…) : Tune ne la contacte
+   * plus et refuse qu'elle se connecte. Chargée quand la section est visible.
+   */
+  let enceintesSs = $state<EnceinteSendspin[]>([]);
+  let ssOccupe = $state(false);
+  let ssErreur = $state(false);
+  async function chargerSendspin() {
+    try {
+      enceintesSs = enceintesSendspin(await api.listSendspinDevices());
+    } catch {
+      // Serveur sans la route : la section reste vide.
+      enceintesSs = [];
+    }
+  }
+  $effect(() => {
+    if (sections.some((x) => x.id === 'sendspin')) void chargerSendspin();
+  });
+  async function basculerExclusionSs(e: EnceinteSendspin, ev: Event) {
+    const exclue = (ev.currentTarget as HTMLInputElement).checked;
+    ssOccupe = true;
+    ssErreur = false;
+    try {
+      await api.setSendspinExclusion(e.cle, exclue);
+      await chargerSendspin();
+    } catch {
+      ssErreur = true;
+      await chargerSendspin();
+    } finally {
+      ssOccupe = false;
+    }
+  }
 
   async function ignoreDevice(deviceId: string, name: string) {
     ignoreBusy = true;
@@ -5097,6 +5132,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <p class="monote">{$t('bitperfect.strictHelp' as any)}</p>
                         </div>
                       {/if}
+
+                      <!--
+                        TITRE RADIO PAR DLNA — renesenses/tune-server-rust#2991.
+                        Pour les lecteurs qui ignorent l'ICY (Hifi Rose RS250A,
+                        fil 1529) : réémettre le DIDL du morceau en cours.
+                        Désactivé par défaut : l'ICY suffit à la plupart des
+                        lecteurs, et cette option ajoute une commande réseau à
+                        chaque morceau. Proposé seulement sur une zone DLNA et
+                        si le serveur publie le champ.
+                      -->
+                      {#if typeof z.dlna_radio_title === 'string' && z.output_type === 'dlna'}
+                        <div class="radio-didl-bloc">
+                          <label class="zf radio-didl">
+                            <span>{$t('radioDidl.label' as any)}</span>
+                            <select value={z.dlna_radio_title}
+                              onchange={(e) => setZoneField(z, () => api.updateZoneDlnaRadioTitle(z.id as number, (e.currentTarget as HTMLSelectElement).value as 'off' | 'next' | 'reload'))}>
+                              <option value="off">{$t('radioDidl.off' as any)}</option>
+                              <option value="next">{$t('radioDidl.next' as any)}</option>
+                              <option value="reload">{$t('radioDidl.reload' as any)}</option>
+                            </select>
+                          </label>
+                          <p class="monote">{$t('radioDidl.help' as any)}</p>
+                        </div>
+                      {/if}
                       {/if}
 
                       <!--
@@ -6654,6 +6713,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </p>
                 {/each}
               </div>
+
+            {:else if s.id === 'sendspin'}
+              <p class="hint">{$t('settings.sendspinIntro' as any)}</p>
+              <div class="devlist">
+                {#each enceintesSs as e (e.cle)}
+                  <div class="dev ign">
+                    <span class="dn" use:bulleTexte>{e.nom}</span>
+                    <span class="dh">{e.adresse ?? ''}</span>
+                    <label class="lnk">
+                      <input type="checkbox" checked={e.exclue} disabled={ssOccupe}
+                        onchange={(ev) => basculerExclusionSs(e, ev)} />
+                      {$t('settings.sendspinDoNotConnect' as any)}
+                    </label>
+                  </div>
+                {:else}
+                  <p class="hint">{$t('settings.sendspinNone' as any)}</p>
+                {/each}
+              </div>
+              {#if ssErreur}<p class="hint">{$t('settings.sendspinSaveFailed' as any)}</p>{/if}
 
             {:else if s.id === 'ignoredDevices'}
               <p class="hint">{$t('settings.ignoredDevicesIntro' as any)}</p>
