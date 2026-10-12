@@ -3415,6 +3415,7 @@ export default {
   "streaming.genrePlaylists": 'Playlists du genre',
   "streaming.genresEmpty": 'Ce service ne propose aucun genre.',
   "v2.hist.eyebrow": "Ce que vous avez écouté",
+  "v2.hist.regleEcoute": "Une écoute compte dès que le son part vers la sortie, au début du titre : un titre passé au bout de quelques secondes compte aussi. Les radios n’y entrent pas. L’envoi à Last.fm attend, lui, la moitié du titre ou 4 minutes (titres de plus de 30 s).",
   "v2.hist.replayError": "Impossible de relancer cette écoute",
   "v2.hist.ctx.album": "Album",
   "v2.hist.ctx.playlist": "Playlist",

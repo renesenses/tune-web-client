@@ -3393,6 +3393,7 @@ export default {
   "streaming.genrePlaylists": '该风格的歌单',
   "streaming.genresEmpty": '该服务未提供风格分类。',
   "v2.hist.eyebrow": "你听过的音乐",
+  "v2.hist.regleEcoute": "音频一送到输出端（即曲目开始时）就记为一次播放：几秒后跳过的曲目也会计入。电台不计入。向 Last.fm 的 scrobble 则要等到播放一半或 4 分钟（仅限超过 30 秒的曲目）。",
   "v2.hist.replayError": "无法重新播放此记录",
   "v2.hist.ctx.album": "专辑",
   "v2.hist.ctx.playlist": "播放列表",
