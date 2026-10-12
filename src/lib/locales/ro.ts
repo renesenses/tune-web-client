@@ -1727,6 +1727,8 @@ export default {
   "smartPlaylists.joinAny": "SAU",
   "collections.title": "Colecții",
   "v2.pl.remove": "Elimină",
+  "v2.pl.missingTrack": "Negăsită",
+  "v2.pl.missingTrackHint": "Piesa nu mai este în bibliotecă (fișier mutat sau șters). Revine singură când fișierul reapare; „Elimină” o șterge din playlist.",
   "playlist.target": "Destinație",
   "playlistManager.tabPlaylists": "Playlisturi",
   "playlistManager.transferHint": "Transferă o playlistă de la un serviciu la altul.",

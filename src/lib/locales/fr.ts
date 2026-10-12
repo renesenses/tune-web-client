@@ -2370,6 +2370,8 @@ export default {
   "smartPlaylists.joinAny": "OU",
   "collections.title": "Collections",
   "v2.pl.remove": "Retirer",
+  "v2.pl.missingTrack": "Introuvable",
+  "v2.pl.missingTrackHint": "Piste absente de la bibliothèque (fichier déplacé ou supprimé). Elle revient d’elle-même quand le fichier réapparaît ; « Retirer » l’efface de la playlist.",
   "playlist.target": "Cible",
   "playlistManager.tabPlaylists": "Playlists",
   "playlistManager.transferHint": "Transférer une playlist d'un service vers un autre.",

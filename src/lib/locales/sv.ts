@@ -1698,6 +1698,8 @@ export default {
   "smartPlaylists.joinAny": "ELLER",
   "collections.title": "Samlingar",
   "v2.pl.remove": "Ta bort",
+  "v2.pl.missingTrack": "Saknas",
+  "v2.pl.missingTrackHint": "Spåret finns inte längre i biblioteket (filen flyttad eller borttagen). Det kommer tillbaka av sig självt när filen dyker upp igen; ”Ta bort” tar bort det från spellistan.",
   "playlist.target": "Mål",
   "playlistManager.tabPlaylists": "Spellistor",
   "playlistManager.transferHint": "Överför en spellista från en tjänst till en annan.",

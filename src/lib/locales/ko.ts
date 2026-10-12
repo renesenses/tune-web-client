@@ -1705,6 +1705,8 @@ export default {
   "smartPlaylists.joinAny": "또는",
   "collections.title": "컬렉션",
   "v2.pl.remove": "제거",
+  "v2.pl.missingTrack": "찾을 수 없음",
+  "v2.pl.missingTrackHint": "이 곡은 더 이상 라이브러리에 없습니다(파일이 이동되었거나 삭제됨). 파일이 다시 나타나면 자동으로 복원됩니다. ‘제거’를 누르면 재생목록에서 지워집니다.",
   "playlist.target": "대상",
   "playlistManager.tabPlaylists": "재생목록",
   "playlistManager.transferHint": "재생목록을 다른 서비스로 전송합니다.",
