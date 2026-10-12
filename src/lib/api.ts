@@ -844,6 +844,25 @@ export function getZonesDoublons() {
 export function mergeZoneInto(doublon: number, cible: number) {
   return fetchJSON<unknown>(`${BASE}/zones/${doublon}/fusionner-dans/${cible}`, { method: 'POST' });
 }
+/** tune-server-rust#6120 — une sortie ASIO à laquelle rattacher une zone
+ *  orpheline. */
+export interface CandidatRattachement {
+  device_id: string;
+  name: string;
+  backend: string;
+}
+/** Les sorties ASIO présentes qu'aucune autre zone ne porte. */
+export function getRattachementCandidats(id: number) {
+  return fetchJSON<{ zone_id: number; candidats: CandidatRattachement[] }>(`${BASE}/zones/${id}/rattacher`);
+}
+/** Rattache la zone orpheline `id` à la sortie `deviceId` (`local:<pilote>`).
+ *  Le serveur refuse (409) une sortie absente, non ASIO, ou déjà portée. */
+export function rattacherZone(id: number, deviceId: string) {
+  return fetchJSON<unknown>(`${BASE}/zones/${id}/rattacher`, {
+    method: 'POST',
+    body: JSON.stringify({ device_id: deviceId }),
+  });
+}
 export function renameZone(id: number, name: string) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
@@ -1322,6 +1341,23 @@ export function unignoreDevice(deviceId: string) {
   return fetchJSON<{ released: string[] }>(
     `${BASE}/devices/${encodeURIComponent(deviceId)}/ignore`,
     { method: 'DELETE' },
+  );
+}
+
+/** `GET /devices/sendspin` — les enceintes Sendspin vues (mDNS et protocole),
+ *  avec leur état d'exclusion (#3326). */
+export function listSendspinDevices() {
+  return fetchJSON<import('./sendspinExclusions').ReponseSendspin>(`${BASE}/devices/sendspin`);
+}
+
+/** `PUT /devices/sendspin/exclusions/{id}` — Tune ne contacte plus (ou de
+ *  nouveau) cette enceinte. `id` : `client_id`, ou identifiant d'annonce. */
+export function setSendspinExclusion(id: string, excluded: boolean) {
+  return fetchJSON<{ id: string; excluded: boolean; list: string[] }>(
+    `${BASE}/devices/sendspin/exclusions/${encodeURIComponent(id)}`,
+    // Pas d'en-têtes ici : `options` remplacerait ceux de fetchJSON (jeton
+    // compris) ; le Content-Type suit le corps.
+    { method: 'PUT', body: JSON.stringify({ excluded }) },
   );
 }
 
@@ -5954,6 +5990,32 @@ export function getProfiles() {
   return fetchJSON<any[]>(`${BASE}/profiles`);
 }
 
+/**
+ * tune-server-rust#5916 — le dernier profil choisi sur CET appareil, gardé par
+ * le serveur (clé : l'adresse de l'appareil), ou à défaut le dernier choisi
+ * tous appareils confondus (`source: 'tous_appareils'`).
+ */
+export interface DernierProfilChoisi {
+  profile_id: number | null;
+  source: 'appareil' | 'tous_appareils' | null;
+}
+
+export function getDernierProfilChoisi() {
+  return fetchJSON<DernierProfilChoisi>(`${BASE}/profiles/dernier-choisi`);
+}
+
+/**
+ * tune-server-rust#5916 — retient le profil choisi. `keepalive` : la bascule
+ * recharge la page juste après, et la requête doit lui survivre.
+ */
+export function setDernierProfilChoisi(profileId: number) {
+  return fetchVoid(`${BASE}/profiles/dernier-choisi`, {
+    method: 'PUT',
+    body: JSON.stringify({ profile_id: profileId }),
+    keepalive: true,
+  });
+}
+
 export function createProfile(data: { name: string; avatar_color: string }) {
   return fetchJSON<any>(`${BASE}/profiles`, {
     method: 'POST',
@@ -7749,6 +7811,11 @@ export function getServerDiagnostics() {
     // capteur lisible (macOS, Windows, conteneur, VM). Optionnel : un serveur
     // antérieur n'envoie pas le champ. Lu par `lib/temperatureProcesseur.ts`.
     cpu_temp_c?: number | null;
+    // tune-server-rust#5410 — `null` si la garde thermique mesure, sinon le
+    // motif du bridage des analyses de fond (`temperature_illisible`,
+    // `temperature_figee`). Absent chez un serveur antérieur.
+    analyses_bridees?: string | null;
+    analyses_bridees_largeur?: number | null;
     // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
     // compatible with older servers during rolling client/server updates.
     asio_warm_scan?: AsioWarmScanStatus;
