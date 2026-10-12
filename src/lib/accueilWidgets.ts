@@ -45,6 +45,7 @@ import { quatreDistinctes } from './mosaique';
 import { lireListe } from './lectureEnMasse';
 import { cibleSmartPlaylist, type CibleEtiquette } from './cibleEtiquette';
 import type { RefLocale } from './favorisLocaux';
+import type { RaisonSuggestion } from './raisonSuggestion';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
 export interface Element {
@@ -52,6 +53,21 @@ export interface Element {
   id: string;
   titre: string;
   sous?: string;
+  /**
+   * POURQUOI le serveur propose cet élément (web#916) — la `raison` structurée
+   * de `/home/*`, mise en phrase par `lib/raisonSuggestion`. Absente quand la
+   * rangée ne sait pas le dire : jamais inventée ici.
+   */
+  raison?: RaisonSuggestion | null;
+  /**
+   * L'élément est une SUGGESTION (web#916) : son menu « … » offre « Pas pour
+   * moi », et l'accueil le retire dès qu'il est écarté pour ce profil. Posé
+   * par les seules rangées de recommandation — jamais sur un favori, une
+   * reprise d'écoute ou un ajout récent, qu'on ne « refuse » pas.
+   */
+  suggestion?: boolean;
+  /** L'artiste qu'un « Pas pour moi : cet artiste » écarterait. */
+  artisteSuggere?: string | null;
   cover?: string | null;
   /** Ce que fait un clic. Absent = l'élément n'est pas actionnable. */
   jouer?: (zoneId: number) => Promise<unknown> | void;
@@ -485,6 +501,21 @@ export interface OptsElement {
 
 /** Exporté pour les tests : c'est ici que se décide ce qu'une vignette
  *  porte, et notamment si elle est jouable (point 10). */
+/**
+ * La raison STRUCTURÉE d'un objet de `/home/*` (web#916), telle quelle — ou
+ * rien. La phrase se fait au rendu (`lib/raisonSuggestion`), dans la langue
+ * de l'interface ; un objet sans `type` n'est pas une raison.
+ */
+function raisonDe(o: any): RaisonSuggestion | null {
+  const r = o?.raison;
+  return r && typeof r === 'object' && typeof r.type === 'string' ? (r as RaisonSuggestion) : null;
+}
+
+/** Un élément de rangée de RECOMMANDATION : sa raison, « Pas pour moi », son artiste. */
+function suggere(el: Element, o: any, artiste?: string | null): Element {
+  return { ...el, raison: raisonDe(o), suggestion: true, artisteSuggere: artiste ?? null };
+}
+
 export function versElement(o: any, i: number, prefixe: string, opts: OptsElement = {}): Element {
   const id = champ(o, 'id', 'album_id', 'track_id', 'source_id', 'feed_url', 'uri') ?? '';
   const aParaitre = estAParaitre(o);
@@ -1546,6 +1577,11 @@ export const WIDGETS: Widget[] = [
             source: champ(r, 'service') ?? null,
             jouer: geste(r, champ(r, 'service') ?? null, 'album'),
             ...ficheDe(r, champ(r, 'service') ?? null, 'album'),
+            // web#916 — « Parce que vous aimez X » / « X : N albums dans votre
+            // bibliothèque » : l'annotation du groupe, dite pour la parution.
+            raison: raisonDe(r),
+            suggestion: true,
+            artisteSuggere: champ(a, 'artist_name') ?? null,
           });
         }
       }
@@ -1556,8 +1592,14 @@ export const WIDGETS: Widget[] = [
     id: 'nouveau-bibliotheque',
     cleTitre: 'v2.home.wNewInLibrary',
     forme: 'bande',
+    // web#916 — « Ajouté le 12 oct. 2026 » : la raison est factuelle, la
+    // rangée n'est pas une suggestion — pas de « Pas pour moi » ici.
     charger: async (ctx) =>
-      utiles(liste(await api.getNewInLibrary()).slice(0, limiteDe(ctx)).map((o, i) => versElement(o, i, 'alb'))),
+      utiles(
+        liste(await api.getNewInLibrary())
+          .slice(0, limiteDe(ctx))
+          .map((o, i) => ({ ...versElement(o, i, 'alb'), raison: raisonDe(o) })),
+      ),
   },
   {
     id: 'autres-versions',
@@ -1580,6 +1622,19 @@ export const WIDGETS: Widget[] = [
             sous: champ(o, 'artist_name'),
             cover: champ(v, 'cover_path') ?? null,
             jouer: v?.album_id != null ? (z: number) => api.play(z, { album_id: v.album_id }) : undefined,
+            // web#916 — l'album de la version s'ouvre et porte son menu : c'est
+            // là que vit « Pas pour moi ». « Autre version de X, écouté
+            // récemment » vient du serveur (`raison: autre_version`).
+            ...(idLocalValide(v?.album_id) != null
+              ? ficheDe(
+                  { album_id: v.album_id, title: champ(v, 'album_title'), artist_name: champ(o, 'artist_name'), cover_path: champ(v, 'cover_path') },
+                  null,
+                  'album',
+                )
+              : {}),
+            raison: raisonDe(o),
+            suggestion: true,
+            artisteSuggere: champ(o, 'artist_name') ?? null,
           };
         }),
       ),
@@ -1674,8 +1729,14 @@ export const WIDGETS: Widget[] = [
     id: 'recommandations',
     cleTitre: 'v2.home.wRecommendations',
     forme: 'bande',
+    // web#916 — chaque album dit pourquoi (`raison`, un des genres les plus
+    // écoutés) quand le serveur le sait, et s'écarte par « Pas pour moi ».
     charger: async (ctx) =>
-      utiles(liste(await api.getHomeRecommendations()).slice(0, limiteDe(ctx)).map((o, i) => versElement(o, i, 'rec'))),
+      utiles(
+        liste(await api.getHomeRecommendations())
+          .slice(0, limiteDe(ctx))
+          .map((o, i) => suggere(versElement(o, i, 'rec'), o, champ(o, 'artist_name'))),
+      ),
   },
   {
     id: 'radios-artistes',
@@ -1709,7 +1770,9 @@ export const WIDGETS: Widget[] = [
     cleTitre: 'v2.home.wQobuz',
     forme: 'bande',
     charger: async (ctx) =>
-      utiles(liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, limiteDe(ctx)).map((o, i) => versElement(o, i, 'qob', { service: 'qobuz', genre: 'playlist' }))),
+      // web#916 — une playlist ÉDITORIALE s'écarte (« Pas pour moi ») ; sans
+      // raison : c'est le choix de la rédaction du service, pas celui de Tune.
+      utiles(liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, limiteDe(ctx)).map((o, i) => ({ ...versElement(o, i, 'qob', { service: 'qobuz', genre: 'playlist' }), suggestion: true }))),
   },
   // ── ÉDITORIAL QOBUZ ──────────────────────────────────────────────────────
   //
@@ -1737,9 +1800,13 @@ export const WIDGETS: Widget[] = [
     forme: 'bande',
     charger: async (ctx) =>
       utiles(
-        liste(await api.getStreamingFeatured('qobuz', section, limiteDe(ctx))).map((o, i) =>
-          versElement(o, i, id, { service: 'qobuz' }),
-        ),
+        liste(await api.getStreamingFeatured('qobuz', section, limiteDe(ctx))).map((o, i) => ({
+          ...versElement(o, i, id, { service: 'qobuz' }),
+          // web#916 — même règle que la sélection de playlists : écartable, sans
+          // raison inventée.
+          suggestion: true,
+          artisteSuggere: champ(o, 'artist_name') ?? null,
+        })),
       ),
   })),
 

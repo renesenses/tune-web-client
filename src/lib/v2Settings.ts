@@ -210,6 +210,11 @@ export const V2_SETTINGS: V2SettingsTab[] = [
           // #1428 : le réglage se cherche par le nom du BOUTON — « stop »,
           // « arrêt » — et par l'endroit où il manque, la barre de transport.
           'stop', 'bouton stop', 'arrêt', 'arrêter', 'transport', 'barre de transport', 'lecture'] },
+      // web#916 — le revers de « Pas pour moi » : revoir et rétablir, par
+      // profil, ce qu'on a écarté des suggestions de l'accueil.
+      { id: 'dismissedSuggestions', titleKey: 'v2.dismiss.settingsTitle', from: 'general', min: 'beginner',
+        keywords: ['accueil', 'suggestions', 'pas pour moi', 'écartées', 'écarter', 'recommandations',
+          'rétablir', 'home', 'not for me', 'dismissed'] },
     ],
   },
   {

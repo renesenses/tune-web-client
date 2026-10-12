@@ -8643,6 +8643,51 @@ export function getRadioPicks() {
   return fetchJSON<any[]>(`${BASE}/home/radio-picks`);
 }
 
+/**
+ * Une suggestion d'accueil écartée par « Pas pour moi » (web#916), telle que
+ * le serveur la range (`tune-core/src/db/suggestions_ecartees.rs`).
+ *
+ * - `album` : `source: 'local'` + l'id de la bibliothèque, ou un service + son
+ *   `source_id` ;
+ * - `playlist` : une playlist de SERVICE ;
+ * - `artist` : `source: 'nom'`, `item_id` = le nom en minuscules, espaces
+ *   réduits — écarté chez tous les services à la fois.
+ */
+export interface SuggestionEcartee {
+  item_type: 'album' | 'artist' | 'playlist';
+  source: string;
+  item_id: string;
+  title?: string | null;
+  subtitle?: string | null;
+  cover_url?: string | null;
+  created_at?: string | null;
+}
+
+/** `GET /home/dismissed-suggestions` — par profil (`X-Profile-Id`). */
+export function getSuggestionsEcartees() {
+  return fetchJSON<{ profile_id: number; total: number; items: SuggestionEcartee[] }>(
+    `${BASE}/home/dismissed-suggestions`,
+  );
+}
+
+/** `POST /home/dismissed-suggestions` — « Pas pour moi ». 400 si rien n'est désigné. */
+export function ecarterSuggestion(s: SuggestionEcartee) {
+  return apiPost('/home/dismissed-suggestions', s) as Promise<{
+    profile_id: number;
+    dismissed: boolean;
+    item: SuggestionEcartee;
+  }>;
+}
+
+/** `POST /home/dismissed-suggestions/restore` — « Annuler » / « Rétablir ». Idempotent. */
+export function retablirSuggestion(s: Pick<SuggestionEcartee, 'item_type' | 'source' | 'item_id'>) {
+  return apiPost('/home/dismissed-suggestions/restore', {
+    item_type: s.item_type,
+    source: s.source,
+    item_id: s.item_id,
+  }) as Promise<{ profile_id: number; restored: boolean }>;
+}
+
 // --- Onboarding ---
 export function getOnboardingStatus() {
   return fetchJSON<{ complete: boolean; current_step: number }>(`${BASE}/onboarding/status`);

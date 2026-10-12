@@ -113,6 +113,18 @@
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { dateDeParution } from '../../lib/albumAParaitre';
+  // web#916 — POURQUOI une suggestion est là, et « Pas pour moi ».
+  import { texteRaison } from '../../lib/raisonSuggestion';
+  import {
+    chargerSuggestionsEcartees,
+    cibleArtiste,
+    cibleDeSuggestion,
+    clesEcartees,
+    ecarter,
+    estEcartee,
+    retablir,
+    type SuggestionEcartee,
+  } from '../../lib/suggestionsEcartees';
   import '../../styles/tune-v2.css';
 
   /**
@@ -938,6 +950,50 @@
    * `{ album_id }` — une erreur SILENCIEUSE côté serveur. Une zone et une piste
    * n'ont pas de menu d'objet.
    */
+  /**
+   * web#916 — la liste des suggestions écartées suit le PROFIL : chacun ses
+   * « Pas pour moi ». Relue à chaque changement de profil.
+   */
+  $effect(() => {
+    void $currentProfileId;
+    void chargerSuggestionsEcartees();
+  });
+
+  /**
+   * « Pas pour moi » : la vignette disparaît tout de suite, et le message
+   * offre « Annuler ». Un refus du serveur la fait revenir, et le dit.
+   */
+  async function pasPourMoi(cible: SuggestionEcartee) {
+    try {
+      const range = await ecarter(cible);
+      const nom = cible.title || cible.item_id;
+      notifications.withAction(
+        $t('v2.dismiss.done' as any).replace('{nom}', nom),
+        $t('v2.dismiss.undo' as any),
+        () => {
+          void retablir(range).catch(() => notifications.error($t('v2.dismiss.failed' as any)));
+        },
+      );
+    } catch {
+      notifications.error($t('v2.dismiss.failed' as any));
+    }
+  }
+
+  /** Les deux gestes du menu « … » d'une suggestion — rien hors des suggestions. */
+  function gestesSuggestion(e: Element) {
+    const c = cibleDeSuggestion(e);
+    const a = cibleArtiste(e);
+    return {
+      pasPourMoi: c ? () => void pasPourMoi(c) : undefined,
+      pasPourMoiArtiste: a ? () => void pasPourMoi(a) : undefined,
+    };
+  }
+
+  /** Les éléments que le profil n'a pas écartés. */
+  function visibles(els: Element[], cles: Set<string>): Element[] {
+    return cles.size ? els.filter((e) => !estEcartee(e, cles)) : els;
+  }
+
   function objetElement(e: Element): ObjetMenu | null {
     if (!e || e.ouvrir === 'zone' || e.ouvrir === 'lire') return null;
     if (e.ouvrir === 'cible' && e.cible) {
@@ -1253,6 +1309,7 @@
         onLire={el.jouer ? () => jouer(el) : null}
         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
         objet={objetElement(el)}
+        gestesMenu={el.suggestion ? gestesSuggestion(el) : {}}
         nom={el.titre}
       >
         {#if el.pochettes || el.mosaique}
@@ -1269,6 +1326,11 @@
     <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
       <span class="ct" title={el.titre}>{el.titre}</span>
       {#if el.sous}<span class="ca" title={el.sous}>{el.sous}</span>{/if}
+      <!-- web#916 — POURQUOI elle est là, en petit, quand le serveur le sait. -->
+      {#if el.raison}
+        {@const pourquoi = texteRaison(el.raison, $t as any, $locale)}
+        {#if pourquoi}<span class="cw" title={pourquoi}>{pourquoi}</span>{/if}
+      {/if}
       {#if el.aParaitre}
         {@const d = dateDeParution({ released_at: el.parution })}
         <span class="cp">{d
@@ -1392,7 +1454,7 @@
         {:else}
           <div class="contenu" class:grille={vueVoirTout === 'grid'} class:liste={vueVoirTout === 'list'}
                aria-busy={voirTout.phase === 'attente' ? 'true' : undefined}>
-            {#each voirTout.elements as el (el.id)}
+            {#each visibles(voirTout.elements, $clesEcartees) as el (el.id)}
               {@render carte(el)}
             {/each}
           </div>
@@ -1744,7 +1806,7 @@
                    qu'on survole une rangée. -->
               <div class="bande" use:defilementHorizontal
                    role="group" aria-label={$t(w.cleTitre as any)}>
-                {#each et.elements as el (el.id)}
+                {#each visibles(et.elements, $clesEcartees) as el (el.id)}
                   <!--
                     La carte n'est PLUS un seul bouton.
 
@@ -2039,6 +2101,9 @@
   .viz{height:20px; opacity:.85}
   .ct{font:600 12.5px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  /* web#916 — la justification : plus petite et plus pâle que l'artiste, sur
+     UNE ligne — elle accompagne la vignette, elle ne l'allonge pas. */
+  .cw{font:italic 10.5px var(--v2-sans); color:var(--v2-txt3); opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
   /* La ligne de chiffres — maquette `stats-bar-redesign` de Levente, relevée
      dans Figma le 19/09/2026. Ses cotes y sont à l'échelle 1,372 (21,96 px

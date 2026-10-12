@@ -224,6 +224,14 @@ export interface GestesPochette {
   deplacerVersRayon?: () => Promise<SousEntreePochette[]>;
   retirerDeCollection?: () => void;
   supprimer?: () => void;
+  /**
+   * « Pas pour moi » (web#916) — écarte la SUGGESTION de l'accueil pour le
+   * profil actif. Fourni par l'accueil, sur ses seules rangées de suggestion :
+   * ailleurs (Bibliothèque, Favoris), l'entrée n'existe pas.
+   */
+  pasPourMoi?: () => void;
+  /** « Ne plus me proposer cet artiste » — l'artiste de la suggestion. */
+  pasPourMoiArtiste?: () => void;
 }
 
 const LISTES: readonly TypePochette[] = [
@@ -397,5 +405,9 @@ export function entreesPochette(
     true,
   );
   pousser(liste && deLaBibliotheque, 'common.delete', g.supprimer, true);
+  // web#916 — en DERNIER : un refus se lit après ce qu'on peut faire de
+  // l'objet, et il ne se teinte pas en danger — il se défait (« Annuler »).
+  pousser(true, 'v2.dismiss.notForMe', g.pasPourMoi);
+  pousser(true, 'v2.dismiss.notForMeArtist', g.pasPourMoiArtiste);
   return sortie;
 }
