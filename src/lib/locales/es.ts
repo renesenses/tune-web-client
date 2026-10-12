@@ -1721,6 +1721,8 @@ export default {
   "smartPlaylists.joinAny": "O",
   "collections.title": "Colecciones",
   "v2.pl.remove": "Quitar",
+  "v2.pl.missingTrack": "No encontrada",
+  "v2.pl.missingTrackHint": "La pista ya no está en la biblioteca (archivo movido o eliminado). Vuelve sola cuando reaparece el archivo; «Quitar» la borra de la playlist.",
   "playlist.target": "Destino",
   "playlistManager.tabPlaylists": "Playlists",
   "playlistManager.transferHint": "Transferir una playlist de un servicio a otro.",
