@@ -6695,7 +6695,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <div class="devlist">
                 {#each enceintesSs as e (e.cle)}
                   <div class="dev ign">
-                    <span class="dn">{e.nom}</span>
+                    <span class="dn" use:bulleTexte>{e.nom}</span>
                     <span class="dh">{e.adresse ?? ''}</span>
                     <label class="lnk">
                       <input type="checkbox" checked={e.exclue} disabled={ssOccupe}
