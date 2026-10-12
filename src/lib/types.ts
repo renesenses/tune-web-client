@@ -295,6 +295,18 @@ export interface Track {
    * Passer par `lib/titreBanni.ts` (`estBannie`) plutôt que lire la clé.
    */
   banned?: boolean;
+  /**
+   * Ligne de playlist INTROUVABLE (serveur #6179) : la piste de la
+   * bibliothèque qu'elle désignait a disparu (fichier supprimé, déplacé,
+   * re-balisé). `id` est nul, `source` vaut `local`, et la ligne porte le
+   * titre, l'artiste, l'album, la durée et le chemin de la piste disparue.
+   * Elle reste à son rang, grisée, ne se joue pas, et revient d'elle-même
+   * quand le serveur retrouve la piste. Seul « Retirer » l'efface. Passer par
+   * `lib/pisteIntrouvable.ts` (`estIntrouvable`).
+   */
+  missing?: boolean;
+  /** Secondes Unix : quand la piste a disparu (#6179). */
+  missing_since?: number | null;
 }
 
 export interface Playlist {
@@ -509,6 +521,10 @@ export interface Zone {
    *  zone WASAPI quand ASIO est choisi). La zone reste jouable ; elle est
    *  signalée. */
   hors_backend_choisi?: boolean;
+  /** tune-server-rust#6120 — zone locale dont la sortie n'est pas
+   *  enregistrée (pilote disparu, renommé) : elle peut être rattachée à la
+   *  main à une sortie ASIO présente. Absent d'un serveur antérieur. */
+  sortie_absente?: boolean;
   /** DUP-1 phase 2 : à côté de `online`, DEPUIS QUAND l'appareil ne répond
    *  plus. `absente_depuis` s'accompagne de `jours_absente`. */
   presence?: 'en_ligne' | 'eteinte_recemment' | 'absente_depuis' | 'jamais_vue';
