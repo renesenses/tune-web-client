@@ -1018,6 +1018,15 @@ export function updateZoneStrictBitperfect(id: number, enabled: boolean) {
   });
 }
 
+/** tune-server-rust#2991 — titre radio réémis par DIDL vers un lecteur DLNA
+ *  qui ignore l'ICY : `off`, `next` (sans coupure) ou `reload`. */
+export function updateZoneDlnaRadioTitle(id: number, mode: 'off' | 'next' | 'reload') {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dlna_radio_title: mode }),
+  });
+}
+
 export function updateZoneSyncDelay(id: number, syncDelayMs: number) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
@@ -1313,6 +1322,23 @@ export function unignoreDevice(deviceId: string) {
   return fetchJSON<{ released: string[] }>(
     `${BASE}/devices/${encodeURIComponent(deviceId)}/ignore`,
     { method: 'DELETE' },
+  );
+}
+
+/** `GET /devices/sendspin` — les enceintes Sendspin vues (mDNS et protocole),
+ *  avec leur état d'exclusion (#3326). */
+export function listSendspinDevices() {
+  return fetchJSON<import('./sendspinExclusions').ReponseSendspin>(`${BASE}/devices/sendspin`);
+}
+
+/** `PUT /devices/sendspin/exclusions/{id}` — Tune ne contacte plus (ou de
+ *  nouveau) cette enceinte. `id` : `client_id`, ou identifiant d'annonce. */
+export function setSendspinExclusion(id: string, excluded: boolean) {
+  return fetchJSON<{ id: string; excluded: boolean; list: string[] }>(
+    `${BASE}/devices/sendspin/exclusions/${encodeURIComponent(id)}`,
+    // Pas d'en-têtes ici : `options` remplacerait ceux de fetchJSON (jeton
+    // compris) ; le Content-Type suit le corps.
+    { method: 'PUT', body: JSON.stringify({ excluded }) },
   );
 }
 

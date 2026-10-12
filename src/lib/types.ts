@@ -615,6 +615,14 @@ export interface Zone {
    */
   strict_bitperfect?: boolean;
   /**
+   * tune-server-rust#2991 — « Envoyer le titre radio par DLNA » : réémettre le
+   * DIDL (titre, artiste, pochette) à chaque morceau, pour les lecteurs qui
+   * ignorent l'ICY. `off` par défaut ; `next` = SetNextAVTransportURI (sans
+   * coupure), `reload` = SetAVTransportURI sur la même URI (coupure probable).
+   * Absent sur un vieux serveur ⇒ le sélecteur n'est pas proposé.
+   */
+  dlna_radio_title?: 'off' | 'next' | 'reload';
+  /**
    * La DISPOSITION DE CANAUX déclarée pour l'appareil — chantier
    * « multicanal ». Le nom stable d'une disposition, ou `null` quand on suit
    * l'appareil.
