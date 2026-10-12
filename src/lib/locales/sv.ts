@@ -824,6 +824,7 @@ export default {
   "signal.rgInStream": "ReplayGain-förstärkningen ingår i strömmen som skickas till enheten",
   'audiophile.disabled': 'Audiofilläge inaktivt',
   'audiophile.pure': 'PURE',
+  'audiophile.pureNothingToBypass': 'PURE på: ingen bearbetning är aktiv i den här zonen, inget att kringgå. Signalen var redan orörd.',
   'audiophile.lockVolume': "Full volym när Audiofilt läge slås på (standard för alla zoner)",
   'audiophile.lockVolumeHelp': "Verkar bara i det ögonblick Audiofilt läge slås på, för alla zoner utan egen inställning: volymen låses vid 100 % och reglaget fryses. Saknar samband med en enhets ”permanenta fasta volym” (Inställningar > Tjänster), som alltid verkar på just den enheten.",
   'audiophile.lockVolumeZone': "Full volym i Audiofilt läge för den här zonen",

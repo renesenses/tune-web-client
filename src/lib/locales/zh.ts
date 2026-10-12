@@ -856,6 +856,7 @@ export default {
   "signal.rgInStream": "ReplayGain 增益已包含在发送到设备的音频流中",
   'audiophile.disabled': '发烧友模式未启用',
   'audiophile.pure': 'PURE',
+  'audiophile.pureNothingToBypass': 'PURE 已开启：此区域未启用任何处理，无需绕过。信号本已完好无损。',
   'audiophile.lockVolume': "开启发烧模式时音量固定为 100 %（所有区域的默认值）",
   'audiophile.lockVolumeHelp': "仅在开启发烧模式的那一刻生效，作用于所有未单独设置的区域：将音量固定为 100 % 并锁定滑块。与某台设备的「永久固定音量」（设置 > 服务）无关，后者始终只作用于该设备。",
   'audiophile.lockVolumeZone': "此区域在发烧模式下音量固定为 100 %",

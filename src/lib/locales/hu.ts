@@ -957,6 +957,7 @@ export default {
   "signal.rgInStream": "A ReplayGain-erősítés benne van az eszközre küldött adatfolyamban",
   "audiophile.disabled": "Az audiofil mód inaktív",
   "audiophile.pure": "PURE",
+  "audiophile.pureNothingToBypass": "PURE bekapcsolva: ebben a zónában nincs bekapcsolt feldolgozás, nincs mit megkerülni. A jel már eddig is érintetlen volt.",
   "audiophile.lockVolume": "Teljes hangerő az audiofil mód bekapcsolásakor (minden zóna alapértéke)",
   "audiophile.lockVolumeHelp": "Csak az audiofil mód bekapcsolásának pillanatában hat, minden egyedi beállítás nélküli zónára: a hangerő 100%-on rögzül, a csúszka zárolva. Semmi köze egy eszköz „állandó rögzített hangerejéhez” (Beállítások > Szolgáltatások), amely folyamatosan, csak arra az eszközre hat.",
   "audiophile.lockVolumeZone": "Teljes hangerő audiofil módban ebben a zónában",

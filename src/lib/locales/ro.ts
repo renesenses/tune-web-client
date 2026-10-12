@@ -862,6 +862,7 @@ export default {
   "signal.rgInStream": "Câștigul ReplayGain este inclus în fluxul trimis către dispozitiv",
   'audiophile.disabled': 'Mod audiofil inactiv',
   'audiophile.pure': 'PUR',
+  'audiophile.pureNothingToBypass': 'PURE activ: nicio procesare activată în această zonă, nimic de ocolit. Semnalul era deja intact.',
   'audiophile.lockVolume': "Volum la 100 % la activarea modului Audiofil (implicit pentru toate zonele)",
   'audiophile.lockVolumeHelp': "Acţionează doar în momentul activării modului Audiofil, în toate zonele fără setare proprie: fixează volumul la 100 % şi blochează cursorul. Fără legătură cu „volumul fix permanent” al unui dispozitiv (Setări > Servicii), care acţionează permanent pe acel singur dispozitiv.",
   'audiophile.lockVolumeZone': "Volum la 100 % în modul Audiofil pentru această zonă",

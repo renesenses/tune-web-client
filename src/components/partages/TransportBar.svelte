@@ -23,6 +23,7 @@
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { atteintLeSon } from '../../lib/porteeReglage';
   import { gainIgnoreParPure, gainReplayGainApplique, replayGainActif } from '../../lib/pureReplayGain';
+  import { pureSansObjet } from '../../lib/pureSansObjet';
   import GainDeSortieNotes from './GainDeSortieNotes.svelte';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
@@ -456,6 +457,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
 
   let zone = $derived($currentZone);
+  /** tune-server-rust#4176 — PURE armé, mais le chemin du signal dit qu'il
+   *  n'y a rien à contourner sur cette zone. */
+  const pureRienAContourner = $derived($audiophileEnabled && pureSansObjet(zone?.signal_path));
   /**
    * Petit écran : la liste des zones s'ouvre en feuille depuis le bouton de
    * zone mobile, sinon en menu depuis la pastille de `.transport-right`. UNE
@@ -1489,15 +1493,21 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       ></button>
     {/if}
 
+    <!-- tune-server-rust#4176 — PURE allumé sans rien à contourner : la
+         pastille le DIT (bouclier creux, info-bulle), au lieu de s'allumer
+         comme si elle changeait le son. Lu sur le chemin du signal. -->
     <button
       class="audiophile-btn signal-shield-btn"
       class:active={$audiophileEnabled}
+      class:sans-objet={pureRienAContourner}
       class:bit-perfect={zone?.signal_path?.bit_perfect || $audiophileEnabled}
       class:lossy={zone?.signal_path && zone.state === 'playing' && !zone.signal_path.bit_perfect && !$audiophileEnabled}
       onclick={(e) => { e.stopPropagation(); toggleAudiophile(); }}
-      title={$audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}
+      title={pureRienAContourner
+        ? $t('audiophile.pureNothingToBypass' as any)
+        : $audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}
     >
-      <svg viewBox="0 0 24 26" fill={$audiophileEnabled ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
+      <svg viewBox="0 0 24 26" fill={$audiophileEnabled && !pureRienAContourner ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
         <path d="M12 2L4 8v7c0 4.5 3.5 8.5 8 9.5c4.5-1 8-5 8-9.5V8l-8-6z" />
       </svg>
       {#if $audiophileEnabled}
@@ -2995,6 +3005,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   .audiophile-label {
     color: inherit;
     pointer-events: none;
+  }
+  /* tune-server-rust#4176 — PURE armé, rien à contourner : bouclier creux et
+     libellé atténué, le signal était déjà intact. */
+  .signal-shield-btn.sans-objet .audiophile-label {
+    opacity: 0.7;
   }
 
   /* Audiophile toggle row inside the signal-path panel. */
