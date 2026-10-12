@@ -87,6 +87,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'netDevices',    titleKey: 'settings.networkDevices',      from: 'network', min: 'intermediate', keywords: ['dlna', 'upnp', 'chromecast'] },
       { id: 'ignoredDevices', titleKey: 'settings.ignoredDevices',     from: 'network', min: 'intermediate', keywords: ['ignoré', 'réapparaît', 'rétablir', 'masqué'] },
       { id: 'squeezebox',    titleKey: 'settings.squeezebox',          from: 'services', min: 'intermediate', keywords: ['lyrion', 'lms', 'slimproto'] },
+      { id: 'sendspin',      title: 'Sendspin',                        from: 'services', min: 'intermediate', keywords: ['sendspin', 'enceinte', 'music assistant', 'voice pe', 'esphome', 'exclure', 'ne pas se connecter'] },
       { id: 'hqplayer',      title: 'HQPlayer',                        from: 'services', min: 'expert',   keywords: ['upsampling', 'naa'] },
       { id: 'bridge',        title: 'Tune Bridge',                     from: 'network', min: 'expert',   keywords: ['pont', 'relais'] },
       { id: 'dsd',           titleKey: 'settings.dsdNetworkTitle',     from: 'network', min: 'expert',   keywords: ['dsd', 'dop', 'sacd'] },

@@ -63,6 +63,7 @@ export const ICONES_ZONE = {
   correction: 'M2 12c2-6 4-6 6 0s4 6 6 0 4-6 6 0M2 20h20',
   appairage: 'M3 11h18v11H3zM7 11V7a5 5 0 0 1 10 0v4',
   fusion: 'M5 4v7a4 4 0 0 0 4 4h10M15 11l4 4-4 4',
+  rattacher: 'M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1',
   supprimer: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14',
 } as const;
 
@@ -74,6 +75,9 @@ export interface CapacitesZone {
   appairable: boolean;
   /** Le NOM de la zone jumelle à absorber, `null` s'il n'y en a pas. */
   jumelle: string | null;
+  /** tune-server-rust#6120 — la sortie de la zone locale est absente
+   *  (`sortie_absente`) : elle peut être rattachée à la main. */
+  rattachable?: boolean;
 }
 
 /** Les gestes, déjà liés à leur zone par l'écran. */
@@ -101,6 +105,8 @@ export interface GestesZone {
   latence: () => void;
   appairer: () => void;
   fusionner: () => void;
+  /** tune-server-rust#6120 — rattacher la zone orpheline à une sortie ASIO. */
+  rattacher?: () => void;
   supprimer: () => void;
 }
 
@@ -124,6 +130,9 @@ export function entreesMenuZone(c: CapacitesZone, g: GestesZone): EntreeMenuZone
   }
   if (c.jumelle) {
     out.push({ cle: 'v2.zone.mergeInto', nom: c.jumelle, icone: ICONES_ZONE.fusion, faire: g.fusionner });
+  }
+  if (c.rattachable && g.rattacher) {
+    out.push({ cle: 'v2.zone.reattach', icone: ICONES_ZONE.rattacher, faire: g.rattacher });
   }
   out.push({ cle: 'zone.deleteZone', icone: ICONES_ZONE.supprimer, faire: g.supprimer, danger: true });
   return out;
