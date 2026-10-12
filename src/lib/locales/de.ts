@@ -4845,7 +4845,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID-Schlüssel entfernt.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Cloud-Sicherung",
-  "cloudBackup.intro": "Tune sichert Ihre Anpassungen bei mozaiklabs, verschlüsselt auf diesem Server mit einem Schlüssel, den mozaiklabs nicht kennt: Einstellungen, Zonen, Profile und Vorlieben, Equalizer, Favoriten, Wiedergabelisten und Radios. Nie Ihre Bibliothek, nie Passwörter und Token der Dienste. Höchstens drei Sicherungen pro Gerät und fünf Geräte pro Konto werden aufbewahrt; die ältesten werden entfernt.",
+  "cloudBackup.intro": "Tune sichert Ihre Anpassungen bei mozaiklabs, verschlüsselt auf diesem Server mit einem Schlüssel, den mozaiklabs nicht kennt: Einstellungen, Zonen, Profile und Vorlieben, Equalizer, Favoriten, Wiedergabelisten und Radios. Nie Ihre Bibliothek, nie Passwörter und Token der Dienste – mit einer Ausnahme: das Discogs-Token, das verschlüsselt mit dem Rest übertragen wird. Höchstens drei Sicherungen pro Gerät und fünf Geräte pro Konto werden aufbewahrt; die ältesten werden entfernt.",
   "cloudBackup.statePremium": "Die Cloud-Sicherung gehört zu Tune Premium.",
   "cloudBackup.stateNotLinked": "Verbinden Sie diesen Server mit Ihrem mozaiklabs-Konto (Abschnitt Cloud, direkt darüber), um die Sicherung zu nutzen.",
   "cloudBackup.stateDisabled": "Automatische Sicherung ist aus.",
@@ -4895,6 +4895,7 @@ export default {
   "cloudBackup.reportPlaylistsReplaced": "Ersetzte Wiedergabelisten: {n}",
   "cloudBackup.reportFavorites": "Wiederhergestellte Favoriten: {n}",
   "cloudBackup.reportRadios": "Wiederhergestellte Radios: {n}",
+  "cloudBackup.reportDiscogs": "Discogs-Token wiederhergestellt",
   "cloudBackup.cloudUnreachable": "mozaiklabs antwortet nicht. Versuchen Sie es später erneut.",
   "cloudBackup.error": "Die Sicherung ist fehlgeschlagen: {error}",
   "cloudBackup.onboardingTitle": "Ihre Anpassungen übernehmen",
