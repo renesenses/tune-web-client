@@ -1719,6 +1719,8 @@ export default {
   "smartPlaylists.joinAny": "または",
   "collections.title": "コレクション",
   "v2.pl.remove": "削除",
+  "v2.pl.missingTrack": "見つかりません",
+  "v2.pl.missingTrackHint": "この曲はライブラリにありません（ファイルが移動または削除されました）。ファイルが戻ると自動的に復帰します。「削除」でプレイリストから消せます。",
   "playlist.target": "転送先",
   "playlistManager.tabPlaylists": "プレイリスト",
   "playlistManager.transferHint": "プレイリストを別のサービスへ転送します。",

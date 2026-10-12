@@ -295,6 +295,18 @@ export interface Track {
    * Passer par `lib/titreBanni.ts` (`estBannie`) plutôt que lire la clé.
    */
   banned?: boolean;
+  /**
+   * Ligne de playlist INTROUVABLE (serveur #6179) : la piste de la
+   * bibliothèque qu'elle désignait a disparu (fichier supprimé, déplacé,
+   * re-balisé). `id` est nul, `source` vaut `local`, et la ligne porte le
+   * titre, l'artiste, l'album, la durée et le chemin de la piste disparue.
+   * Elle reste à son rang, grisée, ne se joue pas, et revient d'elle-même
+   * quand le serveur retrouve la piste. Seul « Retirer » l'efface. Passer par
+   * `lib/pisteIntrouvable.ts` (`estIntrouvable`).
+   */
+  missing?: boolean;
+  /** Secondes Unix : quand la piste a disparu (#6179). */
+  missing_since?: number | null;
 }
 
 export interface Playlist {
