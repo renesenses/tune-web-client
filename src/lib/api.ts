@@ -5945,6 +5945,32 @@ export function getProfiles() {
   return fetchJSON<any[]>(`${BASE}/profiles`);
 }
 
+/**
+ * tune-server-rust#5916 — le dernier profil choisi sur CET appareil, gardé par
+ * le serveur (clé : l'adresse de l'appareil), ou à défaut le dernier choisi
+ * tous appareils confondus (`source: 'tous_appareils'`).
+ */
+export interface DernierProfilChoisi {
+  profile_id: number | null;
+  source: 'appareil' | 'tous_appareils' | null;
+}
+
+export function getDernierProfilChoisi() {
+  return fetchJSON<DernierProfilChoisi>(`${BASE}/profiles/dernier-choisi`);
+}
+
+/**
+ * tune-server-rust#5916 — retient le profil choisi. `keepalive` : la bascule
+ * recharge la page juste après, et la requête doit lui survivre.
+ */
+export function setDernierProfilChoisi(profileId: number) {
+  return fetchVoid(`${BASE}/profiles/dernier-choisi`, {
+    method: 'PUT',
+    body: JSON.stringify({ profile_id: profileId }),
+    keepalive: true,
+  });
+}
+
 export function createProfile(data: { name: string; avatar_color: string }) {
   return fetchJSON<any>(`${BASE}/profiles`, {
     method: 'POST',
