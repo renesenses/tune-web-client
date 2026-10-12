@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import AjoutsRecentsV2 from './AjoutsRecentsV2.svelte';
   import CoffretsV2 from './CoffretsV2.svelte';
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
@@ -133,6 +134,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import { cleGenre, grouperParGenre } from '../../lib/genresBibliotheque';
   import {
     detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, ongletCourant,
   } from '../../lib/historiqueCoquille';
@@ -1681,7 +1683,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         })
         .then(() => {
           const cible = [...document.querySelectorAll<HTMLElement>('.facet[data-facette]')]
-            .find((el) => el.dataset.facette === valeur);
+            .find((el) => memeFacette(el.dataset.facette ?? '', valeur));
           cible?.scrollIntoView({ block: 'start', behavior: 'smooth' });
         });
     };
@@ -1705,14 +1707,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // « Annee inconnue » en favori ecrirait une facette que le serveur ne
     // saurait pas selectionner.
     const reels = new Set<string>();
-    for (const a of sorted) {
+    // #1722 — les genres se groupent comme le serveur les compte (découpe des
+    // valeurs multiples, clé canonique) : c'est le libellé du serveur que le
+    // panneau Genres et les Favoris envoient. Voir `lib/genresBibliotheque`.
+    const parGenre = tab === 'genres' ? grouperParGenre(sorted.filter(matches), FACET_EMPTY.genres) : null;
+    for (const a of parGenre ? [] : sorted) {
       if (!matches(a)) continue;
       const brut = facetOf(a, tab);
       const k = brut ?? FACET_EMPTY[tab];
       if (brut != null) reels.add(k);
       const arr = m.get(k); if (arr) arr.push(a); else m.set(k, [a]);
     }
-    const out = [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
+    const out = parGenre ?? [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
     if (tab === 'years') {
       out.sort((x, z) => {
         // « Annee inconnue » n'est pas un nombre : il part en dernier quel que
@@ -1746,9 +1752,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * nouvelle famille — un écran vide sans explication.
    */
   let facetteOuverte = $state<string | null>(null);
+  /** #1722 — un genre se retrouve par sa clé canonique (« Trip Hop » ouvre
+   *  « Trip-Hop »), les autres facettes par égalité exacte. */
+  function memeFacette(cle: string, valeur: string): boolean {
+    return tab === 'genres' ? cleGenre(cle) === cleGenre(valeur) : cle === valeur;
+  }
   $effect(() => { void tab; void q; facetteOuverte = null; });
   const groupeOuvert = $derived(
-    facetteOuverte == null ? null : (groups.find((g) => g.key === facetteOuverte) ?? null),
+    facetteOuverte == null ? null : (groups.find((g) => memeFacette(g.key, facetteOuverte!)) ?? null),
   );
 
   // Pistes et appartenances des artistes : un chargement partagé par portée.
@@ -3124,7 +3135,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                 {@const fav = g.reel && facetteCourante ? estFacetteFavorite(g.key) : false}
                 <div class="fl">
                   <button class="flnom" onclick={() => (facetteOuverte = g.key)}>
-                    <span class="fk">{g.key}</span>
+                    <span class="fk" use:bulleTexte>{g.key}</span>
                     <span class="fc">{g.albums.length}</span>
                   </button>
                   <!-- Le menu « … » d'un LABEL (menus d'objets, 26/09/2026) :
@@ -3159,7 +3170,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           {#each [groupeOuvert] as g (g.key)}
             <section class="facet" data-facette={g.key}>
               <h2>
-                <span class="fk">{g.key}</span><span class="fc">{g.albums.length}</span>
+                <span class="fk" use:bulleTexte>{g.key}</span><span class="fc">{g.albums.length}</span>
                 {#if tab === 'labels' && !depot && g.reel}
                   <MenuObjetV2 objet={objetLabel(g.key)} nom={g.key} />
                 {/if}
@@ -3205,11 +3216,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                   <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
                   <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
                     <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
-                    <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
-                    <span class="la">{a.artist_name ?? ''}</span>
+                    <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
+                    <span class="la" use:bulleTexte>{a.artist_name ?? ''}</span>
                     <span class="ly">{albumYear(a) ?? ''}</span>
                     {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
-                    {#if showTech}<span class="lq">{tech(a)}</span>{/if}
+                    {#if showTech}<span class="lq" use:bulleTexte>{tech(a)}</span>{/if}
                   </button>
                   </div>
                 {/each}
@@ -3390,7 +3401,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         <div class="ct" title={a.title}>{a.title}</div>
         <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
-        {#if showTech}<div class="cq">{tech(a)}</div>{/if}
+        {#if showTech}<div class="cq" use:bulleTexte>{tech(a)}</div>{/if}
       </button>
     </div>
   {/snippet}
@@ -3407,8 +3418,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <!-- La pastille reste DANS la cellule du titre : une septieme
            colonne decalerait toutes les autres, et seule une poignee de
            lignes la porte (#1957, et la lecon d'alignement du 05/09). -->
-      <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
-      <span class="la">{a.artist_name ?? ''}</span>
+      <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
+      <span class="la" use:bulleTexte>{a.artist_name ?? ''}</span>
       <span class="ly">{albumYear(a) ?? ''}</span>
       <!--
         🔴 Ces deux cellules sont TOUJOURS présentes quand leur mode
@@ -3421,7 +3432,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         ligne était sa PROPRE grille (voir `--lcols` plus bas).
       -->
       {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
-      {#if showTech}<span class="lq">{tech(a)}</span>{/if}
+      {#if showTech}<span class="lq" use:bulleTexte>{tech(a)}</span>{/if}
     </button>
     </div>
   {/snippet}
@@ -3446,7 +3457,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         <div class="ct" title={a.title}>{a.title}</div>
         <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
-        {#if showTech}<div class="cq">{tech(a)}</div>{/if}
+        {#if showTech}<div class="cq" use:bulleTexte>{tech(a)}</div>{/if}
       </button>
     </div>
   {/snippet}

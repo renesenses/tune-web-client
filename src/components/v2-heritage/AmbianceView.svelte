@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount } from 'svelte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
@@ -478,8 +479,8 @@
             </div>
             <AlbumArt coverPath={track.cover_path} albumId={track.album_id} size={40} alt={track.title} />
             <div class="track-info">
-              <span class="track-title truncate">{track.title}</span>
-              <span class="track-artist truncate">{track.artist_name ?? ''}</span>
+              <span class="track-title truncate" use:bulleTexte>{track.title}</span>
+              <span class="track-artist truncate" use:bulleTexte>{track.artist_name ?? ''}</span>
             </div>
             {#if track.similarity != null}
               <span class="match-badge" title="Similarité acoustique">{track.similarity.toFixed(2)}</span>

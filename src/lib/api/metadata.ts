@@ -544,6 +544,43 @@ export async function getTrackAllTags(trackId: number): Promise<TrackAllTags> {
   return normalizeTrackAllTags(raw, trackId);
 }
 
+// --- Balises réellement présentes dans le fichier (tune-server-rust#6124) ---
+
+/** Une balise telle que le fichier la porte : bloc (`vorbis`, `id3v2`,
+ *  `mp4`, `ape`, `id3v1`, `riff`), clé d'origine (`ORIGINALDATE`, `TDOR`,
+ *  `TXXX:VERSION`, `----:com.apple.iTunes:VERSION`…), valeur. */
+export interface BaliseDuFichier {
+  block: string;
+  key: string;
+  value: string;
+  /** La valeur a été coupée par le serveur. */
+  truncated?: boolean;
+}
+
+export interface BalisesDuFichier {
+  track_id: number;
+  /** `false` : pas de fichier local (piste de service) ou fichier illisible. */
+  available: boolean;
+  reason?: 'no_local_file' | 'unreadable' | string;
+  format?: string | null;
+  tags: BaliseDuFichier[];
+  /** La liste a été coupée par le serveur. */
+  truncated?: boolean;
+}
+
+/** `GET /library/tracks/{id}/file-tags` — relu à la demande, lecture seule,
+ *  plafonné, sans image. Un serveur antérieur (404) rend `null` : le tiroir
+ *  retombe alors sur les balises de `/all-tags`. */
+export async function getTrackFileTags(trackId: number): Promise<BalisesDuFichier | null> {
+  try {
+    const r = await fetchJSON<BalisesDuFichier>(`${BASE}/library/tracks/${trackId}/file-tags`);
+    if (!r || typeof r !== 'object' || !Array.isArray(r.tags)) return null;
+    return r;
+  } catch {
+    return null;
+  }
+}
+
 // --- Service tokens (Discogs/Last.fm/etc.) ---
 
 export interface ServiceTokenInfo {

@@ -23,8 +23,12 @@ describe('Grammaire des règles : une seule, partagée', () => {
     // niveaux. Les collections en voient 27.
     // 30 depuis tune-server-rust#6123 : « Note de la piste » à côté de « Note
     // de l'album », aux deux niveaux. Les collections en voient 28.
-    expect(CHAMPS.length).toBe(30);
-    expect(champsDe('collection').length).toBe(28);
+    // 31 depuis tune-server-rust#6121 : « Artiste de l'album », aux deux
+    // niveaux. Les collections en voient 29 (même compte que `criteres.rs`).
+    // 33 depuis tune-server-rust#6124 : « Année de sortie originale » et
+    // « Version », aux deux niveaux. Les collections en voient 31.
+    expect(CHAMPS.length).toBe(33);
+    expect(champsDe('collection').length).toBe(31);
     for (const c of CHAMPS) {
       expect(OPERATEURS[c.type], `${c.value} : type sans opérateurs`).toBeTruthy();
       expect(OPERATEURS[c.type].length).toBeGreaterThan(0);

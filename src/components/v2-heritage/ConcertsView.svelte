@@ -495,7 +495,11 @@
 </div>
 
 <style>
-  .cc { padding: 1rem; max-width: 60rem; margin: 0 auto; }
+  /* #6138 : `body` porte la couleur du thème HÉRITÉ, déjà calculée ; le pont
+     `--tune-text: var(--v2-txt)` de `.tune-v2` ne la repeint pas. Sans cette
+     ligne, artistes, dates et titre s'affichaient en quasi-noir sur le fond
+     sombre du thème v2 (forum 2219). */
+  .cc { padding: 1rem; max-width: 60rem; margin: 0 auto; color: var(--tune-text); }
   .cc-tete h2 { margin: 0 0 0.25rem; }
   .cc-sous { color: var(--tune-text-muted); margin: 0 0 1.5rem; }
   .cc-encart { background: var(--tune-surface); padding: 1rem; border-radius: 8px; }
@@ -534,6 +538,7 @@
   .cc-dates li { display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 0.15rem 0; }
   .cc-date { font-variant-numeric: tabular-nums; min-width: 6.5rem; }
   .cc-lieu { color: var(--tune-text-muted); }
+  .cc-dates a { color: var(--tune-accent, #2b7); }
   /* Monté DANS la coquille v2 (phase 5, lot 4) : la grappe de lecture est en
      position absolue au-dessus des écrans ; sans cette réserve, la barre
      d'outils de l'écran passerait dessous (garde `gouttiereGrappe`). */

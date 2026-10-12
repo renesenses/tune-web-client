@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Coquille du nouveau client (direction Levente) : barre latérale à
    * niveaux + vue principale routée sur `activeView` + lecteur. Portée
@@ -688,7 +689,7 @@
       tout, y compris la grappe (`.avec-maj .av-tr`).
     -->
     <div class="maj">
-      <button class="maj-txt" onclick={ouvrirMaj}>
+      <button class="maj-txt" onclick={ouvrirMaj} use:bulleTexte>
         {$t('app.updateAvailable').replace('{version}', String($latestVersion ?? ''))}
       </button>
       <button class="maj-x" onclick={dismissUpdateBanner}
@@ -922,7 +923,14 @@
      qui l'emploient. Un jeton absent n'échoue pas — la déclaration est ignorée
      en silence — c'est-à-dire exactement la panne qu'on vient de corriger, et
      que la porte savait annoncer. */
-  .v2-shell{--maj-h:42px; position:relative; display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
+  /* web#2076 (fil 2206, Safari iPad Pro 11) — `100vh` y vaut le GRAND
+     viewport, barres d'outils repliées : la barre de lecture, dernier enfant
+     d'une coquille en `overflow:hidden`, passait sous le bord visible. `dvh`
+     suit le viewport réel (`vh` reste en repli pour qui ignore `dvh`), et le
+     retrait du haut que `body` réserve déjà (`tune-theme.css`) est soustrait. */
+  .v2-shell{--maj-h:42px; position:relative; display:flex; flex-direction:column;
+    height:calc(100vh - env(safe-area-inset-top, 0px)); height:calc(100dvh - env(safe-area-inset-top, 0px));
+    background:var(--v2-bg); overflow:hidden}
   /* Avatar unique de l'application : pincé en haut à droite de l'écran, au-dessus
      de toutes les vues (y compris les overlays de fiche). */
   .av-tr{position:absolute; top:20px; right:30px; z-index:80; display:flex; align-items:center; gap:10px}

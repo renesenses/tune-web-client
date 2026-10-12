@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { playFromHere } from '../../lib/playback';
   import * as api from '../../lib/api';
@@ -34,7 +35,7 @@
   // tune-server-rust#5547 — et depuis le 30/09/2026 cette grammaire est
   // celle des COLLECTIONS (`lib/smartRegles`, niveau `'playlist'`) : mêmes
   // critères, mêmes opérateurs, mêmes libellés, étiquettes comprises.
-  import { champsSaisissables, sansValeur, valeurInitiale } from '../../lib/smartRegles';
+  import { champsSaisissables, sansValeur, valeurInitiale, saisieEnJours } from '../../lib/smartRegles';
   import type { UserTag } from '../../lib/types';
   import {
     CHAMPS as FIELDS,
@@ -149,6 +150,8 @@
     const option = optionOperateur(r.field, r.operator);
     const opLabel = option ? (option.key ? $tr(option.key as any) : option.label) : r.operator;
     if (sansValeur(r.operator)) return `${fieldLabel} ${opLabel}`;
+    // tune-server-rust#6122 — « dans les derniers 30 jours ».
+    if (saisieEnJours(r.operator)) return `${fieldLabel} ${opLabel} ${r.value} ${$tr('smartCollection.unitDays' as any)}`;
     const valeur = Array.isArray(r.value)
       ? r.value.join(` ${$tr('v2.smart.and' as any)} `)
       : typeof r.value === 'object' && r.value != null
@@ -763,8 +766,8 @@
               <span class="sp-track-num">{i + 1}</span>
               <div class="sp-track-art"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={40} vignette alt={t.title} /></div>
               <div class="sp-track-info">
-                <span class="sp-track-title truncate">{t.title}</span>
-                <span class="sp-track-artist truncate">{t.artist_name ?? ''}</span>
+                <span class="sp-track-title truncate" use:bulleTexte>{t.title}</span>
+                <span class="sp-track-artist truncate" use:bulleTexte>{t.artist_name ?? ''}</span>
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="sp-track-duration">{formatTime(t.duration_ms)}</span>
@@ -823,6 +826,12 @@
               </select>
               {#if sansValeur(rule.operator)}
                 <span class="sp-input-sm">—</span>
+              {:else if saisieEnJours(rule.operator)}
+                <!-- tune-server-rust#6122 — « dans les N derniers jours ». -->
+                <input type="number" min="1" step="1" class="sp-input sp-input-sm"
+                  value={rule.value ?? ''}
+                  oninput={(e) => { const v = Number((e.target as HTMLInputElement).value); newRules = newRules.map((r, idx) => idx === i ? { ...r, value: v } : r); }} />
+                <span class="sp-input-sm">{$tr('smartCollection.unitDays' as any)}</span>
               {:else if rule.operator === 'between'}
                 <input type={typeDuChamp(rule.field) === 'timestamp' ? 'date' : 'number'} class="sp-input sp-input-sm"
                   value={Array.isArray(rule.value) ? rule.value[0] : ''}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * L'écran du sas « Écouter plus tard » — web#1653, FabienM, fil 1986.
    *
@@ -376,7 +377,7 @@
                Une playlist de service n'a pas d'écran : ligne inerte. -->
           {#snippet texteLigne()}
             <span class="ct" title={e.titre}>{e.titre}</span>
-            <span class="ca">
+            <span class="ca" use:bulleTexte>
               <span class="genre">{$t(LIBELLE_GENRE_SAS[e.genre] as any)}</span>
               {#if e.artiste}<span title={e.artiste}> · {e.artiste}</span>{/if}
             </span>

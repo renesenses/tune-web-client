@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { formatTime } from '../../lib/utils';
   import type { Track } from '../../lib/types';
 
@@ -63,10 +64,10 @@
 </script>
 
 {#if chips.length > 0}
-  <div class="metadata-chips">
+  <div class="metadata-chips" use:bulleTexte>
     {#each chips as chip, i}
       {#if i > 0}<span class="sep">·</span>{/if}
-      <span class="chip">{chip}</span>
+      <span class="chip" use:bulleTexte>{chip}</span>
     {/each}
   </div>
 {/if}
