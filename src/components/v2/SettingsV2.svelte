@@ -40,6 +40,10 @@
     ID_GREFFON_ENTREE_AUDIO, etatGreffonEntreeAudio, propositionEntreeAudioVisible,
     type EtatGreffonEntreeAudio, type FicheGreffon,
   } from '../../lib/greffonEntreeAudio';
+  import {
+    ID_GREFFON_BANDCAMP, etatGreffonBandcamp, greffonBandcampAProposer, ressembleAUnEmail,
+    type EtatGreffonBandcamp, type FicheGreffonBandcamp,
+  } from '../../lib/greffonBandcamp';
   import { atLeast } from '../../lib/uiLevel';
   import {
     backendSelectionne,
@@ -1425,6 +1429,46 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * sondage. Voir `lib/identifiantsService`.
    */
   const formeSvc = formeDesIdentifiants;
+
+  /**
+   * #2095 — le greffon Bandcamp. La liaison du pseudo marche sans lui, mais la
+   * collection (albums favoris, liste d'envies, tags) passe par ses routes
+   * `/ext/bandcamp/*`, muettes tant qu'il dort. On le DIT dans le bloc
+   * Bandcamp, avec le geste de Réglages › Extensions.
+   */
+  let greffonBandcamp = $state<EtatGreffonBandcamp>('inconnu');
+  let activationBandcamp = $state(false);
+  let erreurGreffonBandcamp = $state<string | null>(null);
+  const bandcampListe = $derived(!!svcs?.bandcamp);
+  $effect(() => {
+    if (!bandcampListe) return;
+    api.getInstalledPlugins()
+      .then((liste) => { greffonBandcamp = etatGreffonBandcamp(liste as unknown as FicheGreffonBandcamp[]); })
+      // Indéterminé : on ne propose rien sur une erreur réseau.
+      .catch(() => {});
+  });
+  async function activerGreffonBandcamp() {
+    if (activationBandcamp) return;
+    activationBandcamp = true;
+    erreurGreffonBandcamp = null;
+    // Résolue AVANT l'attente : un `$t()` dans un `catch` est invisible au build.
+    const msgKo = get(t)('settings.bandcampGreffonErreur' as any);
+    try {
+      let redemarrer = false;
+      if (greffonBandcamp === 'a_installer') {
+        const inst = await api.installPlugin(ID_GREFFON_BANDCAMP);
+        if (inst?.restart_required) redemarrer = true;
+      }
+      const act = await api.enablePlugin(ID_GREFFON_BANDCAMP);
+      if (act?.restart_required) redemarrer = true;
+      greffonBandcamp = redemarrer ? 'a_redemarrer' : 'actif';
+    } catch {
+      erreurGreffonBandcamp = msgKo;
+      notifications.error(msgKo);
+    } finally {
+      activationBandcamp = false;
+    }
+  }
   function usesPassword(name: string): boolean {
     return formeDesIdentifiants(name) === 'pseudo_motdepasse';
   }
@@ -6088,7 +6132,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <button class="lnk" disabled={svcBusy === name || !st.enabled || !identifiantsComplets(name, cred[name])}
                             onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
                         </div>
-                        <p class="hint">{$t('settings.usernameOnlyHint' as any)}</p>
+                        {#if ressembleAUnEmail(cred[name].user)}
+                          <p class="hint err bandcamp-email">{$t('settings.bandcampEmailRefused' as any)}</p>
+                        {:else}
+                          <p class="hint">{$t('settings.usernameOnlyHint' as any)}</p>
+                        {/if}
+                        {#if name === ID_GREFFON_BANDCAMP && greffonBandcampAProposer(greffonBandcamp)}
+                          <div class="inline greffon-bandcamp" data-greffon-bandcamp={greffonBandcamp}>
+                            <p class="hint">{greffonBandcamp === 'a_redemarrer'
+                              ? $t('settings.bandcampGreffonRedemarrer' as any)
+                              : $t('settings.bandcampGreffonManque' as any)}</p>
+                            {#if greffonBandcamp !== 'a_redemarrer'}
+                              <button class="lnk activer-greffon-bandcamp" disabled={activationBandcamp}
+                                onclick={activerGreffonBandcamp}>{activationBandcamp ? '…' : $t('settings.bandcampGreffonActiver' as any)}</button>
+                            {/if}
+                          </div>
+                          {#if erreurGreffonBandcamp}<p class="hint err">{erreurGreffonBandcamp}</p>{/if}
+                        {/if}
 
                       {:else if usesPassword(name) && cred[name]}
                         <div class="inline">
@@ -6969,6 +7029,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .zt.proto{border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; color:var(--v2-txt2)}
   .hint.jumelle{margin:4px 0 0}
+  .hint.err{color:var(--v2-danger)}
   /* Badge « Tune tested » : discret. Une zone sur quatorze le porte, et il
      dit une validation, pas une alerte. */
   .creterow{display:flex; align-items:center; gap:14px}
