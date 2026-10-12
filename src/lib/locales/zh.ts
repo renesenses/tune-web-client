@@ -4073,6 +4073,11 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "当输出设备无法播放音源的采样率时，拒绝播放而不是转换采样率。",
+  "radioDidl.label": "通过 DLNA 发送电台曲目标题（适用于忽略 ICY 的播放器）",
+  "radioDidl.off": "关闭",
+  "radioDidl.next": "是，不中断播放",
+  "radioDidl.reload": "是，重新加载音频流（每首曲目会短暂中断）",
+  "radioDidl.help": "每次切换曲目时重新发送当前曲目的标题、艺术家和封面。仅当电台播放时播放器屏幕不更新时才启用。",
   "bitperfect.refused": "严格 bit-perfect：已拒绝播放 — 输出设备无法在不转换的情况下播放 {requested} kHz（其运行于 {device} kHz）。请在区域设置中关闭“Bit-perfect strict”以进行转换播放。",
   "bitperfect.refusedDepth": "严格 bit-perfect：已拒绝播放 — 此播放路径会将音源从 {requested} 位降低到 {device} 位。请在区域设置中关闭“Bit-perfect strict”以进行转换播放。",
   "bitperfect.pureDegraded": "PURE 降级 — {from} → {to} kHz，非 bit-perfect",

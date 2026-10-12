@@ -4093,6 +4093,11 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Refuse playback rather than convert the sample rate when the output cannot play the source's rate.",
+  "radioDidl.label": "Send the radio title over DLNA (for players that ignore ICY)",
+  "radioDidl.off": "Off",
+  "radioDidl.next": "Yes, without interrupting playback",
+  "radioDidl.reload": "Yes, by reloading the stream (short dropout on each track)",
+  "radioDidl.help": "Re-sends the current track's title, artist and cover art on every change. Only turn this on if the player's screen stays frozen during a radio stream.",
   "bitperfect.refused": "Strict bit-perfect: playback refused — the output cannot play {requested} kHz without conversion (it runs at {device} kHz). Turn off “Bit-perfect strict” in the zone settings to play with conversion.",
   "bitperfect.refusedDepth": "Strict bit-perfect: playback refused — this playback path reduces the source from {requested} bits to {device} bits. Turn off “Bit-perfect strict” in the zone settings to play with conversion.",
   "bitperfect.pureDegraded": "PURE degraded — {from} → {to} kHz, not bit-perfect",

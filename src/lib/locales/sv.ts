@@ -4072,6 +4072,11 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Vägra uppspelning i stället för att konvertera samplingsfrekvensen när utgången inte kan spela källans frekvens.",
+  "radioDidl.label": "Skicka radiotiteln via DLNA (för spelare som ignorerar ICY)",
+  "radioDidl.off": "Av",
+  "radioDidl.next": "Ja, utan avbrott",
+  "radioDidl.reload": "Ja, genom att ladda om strömmen (kort avbrott vid varje spår)",
+  "radioDidl.help": "Skickar om titel, artist och omslag för det aktuella spåret vid varje byte. Aktivera bara om spelarens skärm står still under en radiosändning.",
   "bitperfect.refused": "Strikt bit-perfect: uppspelning nekad — utgången kan inte spela {requested} kHz utan konvertering (den körs i {device} kHz). Stäng av ”Bit-perfect strict” i zonens inställningar för att spela med konvertering.",
   "bitperfect.refusedDepth": "Strikt bit-perfect: uppspelning nekad — den här uppspelningsvägen minskar källan från {requested} bitar till {device} bitar. Stäng av ”Bit-perfect strict” i zonens inställningar för att spela med konvertering.",
   "bitperfect.pureDegraded": "PURE försämrad — {from} → {to} kHz, inte bit-perfect",

@@ -4073,6 +4073,11 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Refuză redarea în loc să convertească frecvența atunci când ieșirea nu redă frecvența sursei.",
+  "radioDidl.label": "Trimite titlul radio prin DLNA (pentru playerele care ignoră ICY)",
+  "radioDidl.off": "Dezactivat",
+  "radioDidl.next": "Da, fără întreruperea sunetului",
+  "radioDidl.reload": "Da, prin reîncărcarea fluxului (scurtă întrerupere la fiecare piesă)",
+  "radioDidl.help": "Retrimite titlul, artistul și coperta piesei curente la fiecare schimbare. Activați doar dacă ecranul playerului rămâne blocat în timpul unui post de radio.",
   "bitperfect.refused": "Bit-perfect strict: redare refuzată — ieșirea nu redă {requested} kHz fără conversie (funcționează la {device} kHz). Dezactivează „Bit-perfect strict” în setările zonei pentru a reda cu conversie.",
   "bitperfect.refusedDepth": "Bit-perfect strict: redare refuzată — această cale de redare reduce sursa de la {requested} biți la {device} biți. Dezactivează „Bit-perfect strict” în setările zonei pentru a reda cu conversie.",
   "bitperfect.pureDegraded": "PURE degradat — {from} → {to} kHz, nu este bit-perfect",

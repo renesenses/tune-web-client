@@ -4073,6 +4073,11 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "출력 장치가 소스의 샘플레이트를 재생할 수 없을 때 변환하지 않고 재생을 거부합니다.",
+  "radioDidl.label": "라디오 제목을 DLNA로 전송 (ICY를 무시하는 플레이어용)",
+  "radioDidl.off": "끔",
+  "radioDidl.next": "예, 재생 중단 없이",
+  "radioDidl.reload": "예, 스트림을 다시 불러와서 (곡마다 짧은 끊김)",
+  "radioDidl.help": "곡이 바뀔 때마다 현재 곡의 제목, 아티스트, 앨범 아트를 다시 보냅니다. 라디오 재생 중 플레이어 화면이 멈춰 있을 때만 켜세요.",
   "bitperfect.refused": "엄격한 bit-perfect: 재생 거부됨 — 출력 장치가 {requested} kHz를 변환 없이 재생할 수 없습니다({device} kHz로 동작 중). 변환하여 재생하려면 존 설정에서 “Bit-perfect strict”를 끄세요.",
   "bitperfect.refusedDepth": "엄격한 bit-perfect: 재생 거부됨 — 이 재생 경로는 소스를 {requested}비트에서 {device}비트로 줄입니다. 변환하여 재생하려면 존 설정에서 “Bit-perfect strict”를 끄세요.",
   "bitperfect.pureDegraded": "PURE 저하 — {from} → {to} kHz, bit-perfect 아님",

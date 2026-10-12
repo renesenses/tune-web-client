@@ -4031,6 +4031,11 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "A lejátszás megtagadása a mintavételi frekvencia átalakítása helyett, ha a kimenet nem tudja lejátszani a forrás frekvenciáját.",
+  "radioDidl.label": "Rádiócím küldése DLNA-n (az ICY-t figyelmen kívül hagyó lejátszókhoz)",
+  "radioDidl.off": "Ki",
+  "radioDidl.next": "Igen, megszakítás nélkül",
+  "radioDidl.reload": "Igen, a stream újratöltésével (rövid kiesés minden számnál)",
+  "radioDidl.help": "Minden váltáskor újraküldi az aktuális szám címét, előadóját és borítóját. Csak akkor kapcsolja be, ha a lejátszó kijelzője rádió közben nem frissül.",
   "bitperfect.refused": "Szigorú bit-perfect: a lejátszás megtagadva — a kimenet nem tudja átalakítás nélkül lejátszani a(z) {requested} kHz-et (jelenleg {device} kHz-en fut). Az átalakítással történő lejátszáshoz kapcsold ki a „Bit-perfect strict” beállítást a zóna beállításaiban.",
   "bitperfect.refusedDepth": "Szigorú bit-perfect: a lejátszás megtagadva — ez a lejátszási útvonal {requested} bitről {device} bitre csökkentené a forrást. Az átalakítással történő lejátszáshoz kapcsold ki a „Bit-perfect strict” beállítást a zóna beállításaiban.",
   "bitperfect.pureDegraded": "PURE korlátozott — {from} → {to} kHz, nem bit-perfect",

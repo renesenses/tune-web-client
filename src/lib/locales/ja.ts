@@ -4073,6 +4073,11 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "出力がソースのサンプルレートを再生できない場合、変換せずに再生を拒否します。",
+  "radioDidl.label": "ラジオのタイトルをDLNAで送信（ICYを無視するプレーヤー向け）",
+  "radioDidl.off": "オフ",
+  "radioDidl.next": "はい、再生を途切れさせずに",
+  "radioDidl.reload": "はい、ストリームを再読み込みして（曲ごとに短い途切れ）",
+  "radioDidl.help": "曲が変わるたびに、再生中の曲のタイトル・アーティスト・ジャケットを再送信します。ラジオ再生中にプレーヤーの画面が更新されない場合にのみ有効にしてください。",
   "bitperfect.refused": "厳格な bit-perfect：再生を拒否しました — 出力は {requested} kHz を変換なしで再生できません（{device} kHz で動作中）。変換して再生するには、ゾーン設定で「Bit-perfect strict」をオフにしてください。",
   "bitperfect.refusedDepth": "厳格な bit-perfect：再生を拒否しました — この再生経路ではソースが {requested} ビットから {device} ビットに削減されます。変換して再生するには、ゾーン設定で「Bit-perfect strict」をオフにしてください。",
   "bitperfect.pureDegraded": "PURE 劣化 — {from} → {to} kHz、bit-perfect ではありません",

@@ -4073,6 +4073,11 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Wiedergabe verweigern, statt die Abtastrate umzurechnen, wenn der Ausgang die Rate der Quelle nicht abspielt.",
+  "radioDidl.label": "Radiotitel per DLNA senden (für Player, die ICY ignorieren)",
+  "radioDidl.off": "Aus",
+  "radioDidl.next": "Ja, ohne Unterbrechung",
+  "radioDidl.reload": "Ja, durch Neuladen des Streams (kurze Unterbrechung bei jedem Titel)",
+  "radioDidl.help": "Sendet Titel, Interpret und Cover des laufenden Stücks bei jedem Wechsel erneut. Nur aktivieren, wenn die Anzeige des Players während einer Radiosendung stehen bleibt.",
   "bitperfect.refused": "Strikt bit-perfect: Wiedergabe verweigert — der Ausgang spielt {requested} kHz nicht ohne Umrechnung ab (er läuft mit {device} kHz). Deaktivieren Sie „Bit-perfect strict“ in den Zoneneinstellungen, um mit Umrechnung abzuspielen.",
   "bitperfect.refusedDepth": "Strikt bit-perfect: Wiedergabe verweigert — dieser Wiedergabeweg reduziert die Quelle von {requested} Bit auf {device} Bit. Deaktivieren Sie „Bit-perfect strict“ in den Zoneneinstellungen, um mit Umrechnung abzuspielen.",
   "bitperfect.pureDegraded": "PURE eingeschränkt — {from} → {to} kHz, nicht bit-perfect",

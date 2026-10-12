@@ -1018,6 +1018,15 @@ export function updateZoneStrictBitperfect(id: number, enabled: boolean) {
   });
 }
 
+/** tune-server-rust#2991 — titre radio réémis par DIDL vers un lecteur DLNA
+ *  qui ignore l'ICY : `off`, `next` (sans coupure) ou `reload`. */
+export function updateZoneDlnaRadioTitle(id: number, mode: 'off' | 'next' | 'reload') {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dlna_radio_title: mode }),
+  });
+}
+
 export function updateZoneSyncDelay(id: number, syncDelayMs: number) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',

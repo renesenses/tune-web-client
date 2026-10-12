@@ -4073,6 +4073,11 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Rifiuta la riproduzione invece di convertire la frequenza quando l'uscita non supporta quella della sorgente.",
+  "radioDidl.label": "Invia il titolo della radio via DLNA (per i lettori che ignorano ICY)",
+  "radioDidl.off": "Disattivato",
+  "radioDidl.next": "Sì, senza interrompere l'audio",
+  "radioDidl.reload": "Sì, ricaricando il flusso (breve interruzione a ogni brano)",
+  "radioDidl.help": "Reinvia titolo, artista e copertina del brano in corso a ogni cambio. Attivalo solo se lo schermo del lettore resta bloccato durante una radio.",
   "bitperfect.refused": "Bit-perfect rigoroso: riproduzione rifiutata — l'uscita non riproduce {requested} kHz senza conversione (funziona a {device} kHz). Disattiva «Bit-perfect strict» nelle impostazioni della zona per riprodurre con conversione.",
   "bitperfect.refusedDepth": "Bit-perfect rigoroso: riproduzione rifiutata — questo percorso di riproduzione riduce la sorgente da {requested} bit a {device} bit. Disattiva «Bit-perfect strict» nelle impostazioni della zona per riprodurre con conversione.",
   "bitperfect.pureDegraded": "PURE degradato — {from} → {to} kHz, non bit-perfect",
