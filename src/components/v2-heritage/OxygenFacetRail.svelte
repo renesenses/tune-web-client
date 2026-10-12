@@ -8,6 +8,7 @@
   import { chainesUniques, sansDoublons } from '../../lib/clesUniques';
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   import OxygenFolderFacet from '../partages/OxygenFolderFacet.svelte';
+  import { operateurProposable } from '../../lib/facettesEtOu';
 
   interface Props {
     tracks: Track[];                                  // loaded window (client fallback)
@@ -24,6 +25,10 @@
     onSelect: (field: string, value: string) => void;
     /** Décoche toute une facette d'un geste. */
     onClearFacet?: (field: string) => void;
+    /** #2108 — les facettes dont les valeurs cochées se combinent en « Et ».
+     *  Le rail ne fait que montrer l'opérateur et signaler le geste. */
+    enEt?: string[];
+    onBasculerOperateur?: (field: string) => void;
     /** Facettes dont le plafond de valeurs a été levé pour cette session
      *  (#2131). Le rail ne décide pas : il signale le geste, le parent
      *  redemande la facette entière au serveur. */
@@ -38,6 +43,7 @@
   }
   let {
     tracks, serverFacets, facets, limit = 200, selected, onSelect, onClearFacet = () => {},
+    enEt = [], onBasculerOperateur = () => {},
     sansPlafond = [], onToutAfficher = () => {},
     folderCrumbs = [], folderChildren = [], folderLoading = false, onFolderDrill = () => {},
   }: Props = $props();
@@ -300,6 +306,19 @@
           {#if nbCochees(f)}
             <button class="clearbtn" title={$t('oxygen.facetClear')} aria-label={$t('oxygen.facetClear')} onclick={() => onClearFacet(f)}>{nbCochees(f)} <span class="x">×</span></button>
           {/if}
+          <!-- #2108 — « Ou » / « Et » entre les valeurs cochées. N'apparaît
+               qu'à partir de deux valeurs, et seulement sur une facette dont
+               une piste peut porter plusieurs valeurs (deux genres, deux
+               compositeurs…) : ailleurs, « Et » ne rendrait jamais rien. Le
+               bouton dit l'opérateur EN VIGUEUR ; l'infobulle, l'effet du clic. -->
+          {#if operateurProposable(f, nbCochees(f))}
+            {@const et = enEt.includes(f)}
+            <button class="opbtn" class:et data-operateur={et ? 'et' : 'ou'}
+                    title={et ? $t('oxygen.facetOpAndHelp') : $t('oxygen.facetOpOrHelp')}
+                    aria-label={et ? $t('oxygen.facetOpAndHelp') : $t('oxygen.facetOpOrHelp')}
+                    aria-pressed={et}
+                    onclick={() => onBasculerOperateur(f)}>{et ? $t('oxygen.facetOpAnd') : $t('oxygen.facetOpOr')}</button>
+          {/if}
           <!-- La facette bute sur le plafond : il manque des valeurs, et
                jusqu'ici seul un détour par les Réglages permettait de les
                voir (#2131). Le bouton n'apparaît QUE dans ce cas — sur une
@@ -376,6 +395,11 @@
   .clearbtn { display: flex; align-items: center; gap: 3px; background: var(--tune-accent); border: 0; color: #1a1206; font: inherit; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 8px; cursor: pointer; flex: none; }
   .clearbtn:hover { filter: brightness(1.12); }
   .clearbtn .x { font-size: 11px; line-height: 1; }
+  /* #2108 — l'opérateur entre valeurs cochées : discret en « Ou » (défaut),
+     plein en « Et » pour que le filtre plus strict se voie. */
+  .opbtn { background: none; border: 1px solid var(--tune-accent); color: var(--tune-accent); font: inherit; font-size: 10px; font-weight: 700; padding: 0 5px; border-radius: 8px; cursor: pointer; flex: none; text-transform: uppercase; }
+  .opbtn.et { background: var(--tune-accent); color: #1a1206; }
+  .opbtn:hover { filter: brightness(1.12); }
   /* La case à cocher d'une valeur de facette. */
   .box { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border: 1.5px solid var(--tune-border); border-radius: 3px; color: #1a1206; }
   .box.on { background: var(--tune-accent); border-color: var(--tune-accent); }
