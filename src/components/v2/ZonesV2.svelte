@@ -489,6 +489,7 @@
         renommer: () => startRename(z),
         image: () => choisirImage(z),
         reglages: () => reglagesDeLaZone(z),
+        correction: () => correctionDeLaZone(z),
         latence: () => { void mesurerLatence(z); },
         appairer: () => ouvrirAppairage(z),
         fusionner: () => { if (j) void fusionner(z, j); },
@@ -500,6 +501,12 @@
   /** #1006 — le lien vers les réglages DE CETTE zone (Réglages → Appareils → Par zone). */
   function reglagesDeLaZone(z: Zone) {
     v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: z.id ?? undefined });
+    activeView.set('settings');
+  }
+
+  /** #1427 — droit au bloc de correction de pièce (FIR) de CETTE zone. */
+  function correctionDeLaZone(z: Zone) {
+    v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: z.id ?? undefined, bloc: 'fir' });
     activeView.set('settings');
   }
 </script>

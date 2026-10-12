@@ -3055,6 +3055,7 @@ export default {
   "v2.zone.horsBackendAsio": "ASIO is selected: use the ASIO zone",
   "v2.zone.openNowPlaying": "Open Now Playing on this zone",
   "v2.zone.openSettings": "Settings for this zone",
+  "v2.zone.roomCorrection": "Room correction",
   "v2.zone.presenceAbsent": "Absent for {days} d",
   "v2.zone.presenceNever": "Never seen since the update",
   "v2.zone.stereoPairs": "Stereo pairs",

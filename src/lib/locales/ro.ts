@@ -3039,6 +3039,7 @@ export default {
   "v2.zone.horsBackendAsio": "ASIO este selectat: folosiți zona ASIO",
   "v2.zone.openNowPlaying": "Deschide redarea curentă pe această zonă",
   "v2.zone.openSettings": "Setările acestei zone",
+  "v2.zone.roomCorrection": "Corecție de cameră",
   "v2.zone.presenceAbsent": "Absentă de {days} z",
   "v2.zone.presenceNever": "Nevăzută de la actualizare",
   "v2.zone.stereoPairs": "Perechi stereo",

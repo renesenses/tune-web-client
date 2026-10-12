@@ -3038,6 +3038,7 @@ export default {
   "v2.zone.horsBackendAsio": "ASIO är valt: använd ASIO-zonen",
   "v2.zone.openNowPlaying": "Öppna Spelas nu för den här zonen",
   "v2.zone.openSettings": "Inställningar för den här zonen",
+  "v2.zone.roomCorrection": "Rumskorrigering",
   "v2.zone.presenceAbsent": "Borta i {days} d",
   "v2.zone.presenceNever": "Aldrig sedd sedan uppdateringen",
   "v2.zone.stereoPairs": "Stereopar",

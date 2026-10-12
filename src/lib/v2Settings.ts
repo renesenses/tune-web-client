@@ -171,7 +171,9 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     icon: 'M4 2h16v20H4zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
     sections: [
       { id: 'devices',    titleKey: 'settings.tabDevices',       from: 'devices',  min: 'intermediate' },
-      { id: 'perZone',    titleKey: 'settings.perZoneSettings',  from: 'services', min: 'beginner', keywords: ['par zone', 'gapless', 'volume fixe', 'canaux', 'multicanal', '5.1', 'stéréo'] },
+      { id: 'perZone',    titleKey: 'settings.perZoneSettings',  from: 'services', min: 'beginner', keywords: ['par zone', 'gapless', 'volume fixe', 'canaux', 'multicanal', '5.1', 'stéréo',
+        // #1427 — la correction de pièce (FIR) vit ICI : on la cherche par son nom.
+        'correction de pièce', 'correction acoustique', 'correction numérique', 'room correction', 'fir', 'convolution', 'réponse impulsionnelle', 'impulse response'] },
       /**
        * Sauvegarde et récupération des réglages d'appareil — Bertrand,
        * 08/09/2026 : « Et je veux un bouton sur l'UI de Tune sauvegarder mes
