@@ -1085,6 +1085,7 @@ export default {
   "nowplaying.version.ruleTip": "프로필의 버전 규칙({rule})으로 선택되었습니다.",
   "nowplaying.version.explicit": "직접 선택함",
   "profiles.versionRule.title": "기본 재생 버전",
+  "profiles.fallbackNotice": "프로필: {name}. 이 브라우저가 프로필을 기억하지 못했습니다(캐시를 지웠나요?). 올바른 프로필이 아니면 프로필 메뉴에서 바꾸세요. 재생목록과 즐겨찾기는 프로필별로 저장됩니다.",
   "profiles.versionRule.hint": "같은 녹음이 여러 곳(라이브러리, 서비스)에 있을 때, 활성 프로필에서는 이 규칙이 고른 것을 재생합니다.",
   "profiles.versionRule.inherit": "서버 기본값({rule})",
   "profiles.versionRule.none": "없음 (실행한 것을 재생)",

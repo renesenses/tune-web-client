@@ -1107,6 +1107,7 @@ export default {
   "nowplaying.version.ruleTip": "Aleasă de regula de versiune a profilului ({rule}).",
   "nowplaying.version.explicit": "aleasă manual",
   "profiles.versionRule.title": "Versiunea redată implicit",
+  "profiles.fallbackNotice": "Profil: {name}. Acest browser nu își mai amintea profilul (cache golit?). Dacă nu este cel corect, schimbați-l din meniul de profiluri: playlisturile și favoritele sunt păstrate pe profil.",
   "profiles.versionRule.hint": "Când aceeași înregistrare există în mai multe exemplare (bibliotecă, servicii), se redă cea aleasă de această regulă, pentru profilul activ.",
   "profiles.versionRule.inherit": "Implicit server ({rule})",
   "profiles.versionRule.none": "Niciuna (redă ce este lansat)",

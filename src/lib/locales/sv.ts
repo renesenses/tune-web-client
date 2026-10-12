@@ -1069,6 +1069,7 @@ export default {
   "nowplaying.version.ruleTip": "Vald av profilens versionsregel ({rule}).",
   "nowplaying.version.explicit": "manuellt vald",
   "profiles.versionRule.title": "Version som spelas som standard",
+  "profiles.fallbackNotice": "Profil: {name}. Den här webbläsaren mindes inte längre sin profil (rensad cache?). Om det inte är rätt, byt i profilmenyn: spellistor och favoriter sparas per profil.",
   "profiles.versionRule.hint": "När samma inspelning finns i flera exemplar (bibliotek, tjänster) spelas den som regeln väljer, för den aktiva profilen.",
   "profiles.versionRule.inherit": "Serverns standard ({rule})",
   "profiles.versionRule.none": "Ingen (spela det som startas)",

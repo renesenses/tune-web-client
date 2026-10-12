@@ -1101,6 +1101,7 @@ export default {
   "nowplaying.version.ruleTip": "由配置文件的版本规则（{rule}）选择。",
   "nowplaying.version.explicit": "手动选择",
   "profiles.versionRule.title": "默认播放版本",
+  "profiles.fallbackNotice": "个人资料：{name}。此浏览器已不记得其个人资料（是否清除了缓存？）。如果不对，请从个人资料菜单切换：播放列表和收藏按个人资料保存。",
   "profiles.versionRule.hint": "当同一录音有多个副本（资料库、服务）时，当前配置文件将播放此规则选择的那一个。",
   "profiles.versionRule.inherit": "服务器默认（{rule}）",
   "profiles.versionRule.none": "无（播放所启动的内容）",

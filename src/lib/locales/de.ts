@@ -1101,6 +1101,7 @@ export default {
   "nowplaying.version.ruleTip": "Von der Versionsregel des Profils gewählt ({rule}).",
   "nowplaying.version.explicit": "manuell gewählt",
   "profiles.versionRule.title": "Standardmäßig gespielte Version",
+  "profiles.fallbackNotice": "Profil: {name}. Dieser Browser hatte sein Profil vergessen (Cache geleert?). Falls es nicht das richtige ist, wechseln Sie es im Profilmenü: Playlists und Favoriten werden pro Profil gespeichert.",
   "profiles.versionRule.hint": "Wenn dieselbe Aufnahme in mehreren Exemplaren vorliegt (Bibliothek, Dienste), spielt die Wiedergabe für das aktive Profil das von dieser Regel gewählte.",
   "profiles.versionRule.inherit": "Serverstandard ({rule})",
   "profiles.versionRule.none": "Keine (das Gestartete abspielen)",

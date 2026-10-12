@@ -1241,6 +1241,7 @@ export default {
   "nowplaying.version.ruleTip": "Choisie par la règle de version du profil ({rule}).",
   "nowplaying.version.explicit": "choisie à la main",
   "profiles.versionRule.title": "Version jouée par défaut",
+  "profiles.fallbackNotice": "Profil : {name}. Ce navigateur ne se souvenait plus de son profil (cache vidé ?). Si ce n'est pas le bon, changez-le depuis le menu des profils : vos playlists et favoris sont rangés par profil.",
   "profiles.versionRule.hint": "Quand un même enregistrement existe en plusieurs exemplaires (bibliothèque, services), la lecture joue celui que désigne cette règle, pour le profil actif.",
   "profiles.versionRule.inherit": "Défaut du serveur ({rule})",
   "profiles.versionRule.none": "Aucune (jouer ce qui est lancé)",
