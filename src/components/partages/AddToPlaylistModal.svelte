@@ -5,6 +5,7 @@
   import { t } from '../../lib/i18n';
   import { serviceDePlaylist } from '../../lib/playlistService';
   import { estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
+  import { playlistsModifiables } from '../../lib/playlistsModifiables';
 
   interface Props {
     track: Track;
@@ -76,9 +77,12 @@
               .map((p): Cible => ({ ou: 'tune', cle: String(p.id), nom: p.name, n: p.track_count ?? 0 })))
             .catch((e) => { console.error('Load playlists error:', e); return [] as Cible[]; })
         : Promise.resolve([] as Cible[]),
+      // #2097 — seulement les playlists que l'utilisateur peut modifier :
+      // Qobuz mêle à « ses » playlists celles qu'il suit, et refuse l'ajout
+      // à ces dernières (401).
       service
         ? api.getStreamingPlaylists(service)
-            .then((l) => (l ?? []).map((p): Cible => ({ ou: 'service', cle: String(p.source_id), nom: p.name, n: p.track_count ?? 0 })))
+            .then((l) => playlistsModifiables(l).map((p): Cible => ({ ou: 'service', cle: String(p.source_id), nom: p.name, n: p.track_count ?? 0 })))
             .catch((e) => { console.error('Load service playlists error:', e); return [] as Cible[]; })
         : Promise.resolve([] as Cible[]),
     ]);
