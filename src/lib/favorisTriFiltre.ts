@@ -36,7 +36,9 @@
  *    posée une fois et jamais réécrite par une resynchronisation
  *    (renesenses/tune-server-rust, lot `batch/favoris-date-locale-20260920`).
  *
- * `dateDe` préfère la seconde et retombe sur la première. C'est tout le
+ * `dateDe` garde la PLUS ANCIENNE des deux (web#2093) : après une recopie,
+ * c'est `first_seen_at` ; après une base neuve, où la reprise date tout au
+ * même instant, c'est la date du service. Une seule présente : celle-là. C'est tout le
  * correctif de #1060 côté client : le tri marchait déjà, il triait une donnée
  * qui ne voulait rien dire, et des dates égales retombaient sur le titre — le
  * « c'est l'ordre alphabétique » que Fabien décrit depuis la 0.9.151.
@@ -163,17 +165,32 @@ export function dateDe(o: Favori): number | null {
   // fin de liste.
   // `favorite_added_at` en premier : sur un objet LOCAL, c'est la date du cœur,
   // et `created_at` y serait celle de l'objet lui-même (#2052).
-  for (const iso of [o?.favorite_added_at, o?.first_seen_at, o?.created_at]) {
-    if (typeof iso === 'string' && iso) {
-      const t = Date.parse(iso);
-      if (!Number.isNaN(t)) return t;
-    }
-  }
+  const coeur = lireIso(o?.favorite_added_at);
+  if (coeur != null) return coeur;
+  // web#2093 (FabienM, fil 2236, rc4) — entre la date de Tune (`first_seen_at`)
+  // et celle du service (`created_at`, le `favorited_at` de Qobuz), on garde la
+  // PLUS ANCIENNE : c'est la première preuve que le favori existait.
+  //  - Base neuve : la reprise date TOUS les favoris au même instant en
+  //    `first_seen_at` ; seule la date du service les distingue, et elle est
+  //    antérieure. Préférer `first_seen_at` rangeait tout par titre.
+  //  - Recopie chez le service (#1060) : le service redate en bloc, après
+  //    que Tune a vu le favori ; `first_seen_at` est alors la plus ancienne.
+  const vue = lireIso(o?.first_seen_at);
+  const service = lireIso(o?.created_at);
+  if (vue != null && service != null) return Math.min(vue, service);
+  if (vue != null) return vue;
+  if (service != null) return service;
   const n = o?.added_at;
   if (typeof n === 'number' && Number.isFinite(n) && n > 0) {
     return n < 1e11 ? n * 1000 : n;
   }
   return null;
+}
+
+function lireIso(iso: unknown): number | null {
+  if (typeof iso !== 'string' || !iso) return null;
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? null : t;
 }
 
 /** Le libellé qui sert au tri : `title` pour un album ou un titre, `name` pour un artiste. */
