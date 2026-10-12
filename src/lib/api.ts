@@ -5685,6 +5685,15 @@ export function getYouTubeMoodSections(params: string) {
   return fetchJSON<{ sections: YtRayon[] }>(`${BASE}/streaming/youtube/moods/${encodeURIComponent(params)}`);
 }
 
+/**
+ * tune-server-rust#5247 — la bibliothèque du COMPTE YouTube :
+ * `GET /streaming/youtube/library` → `{ playlists, tracks }` (PR serveur
+ * #5958), ou une erreur franche (502) quand Google refuse la lecture.
+ */
+export function getYouTubeLibrary() {
+  return fetchJSON<{ playlists?: unknown[]; tracks?: unknown[] }>(`${BASE}/streaming/youtube/library`);
+}
+
 
 // #3662 — `transferPlaylist` a été retirée : contrat MORT. Aucun appelant — les
 // sept sites de transfert du client passent tous par `transferPlaylistV2`
