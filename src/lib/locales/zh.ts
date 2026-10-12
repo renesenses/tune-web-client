@@ -1721,6 +1721,8 @@ export default {
   "smartPlaylists.joinAny": "或",
   "collections.title": "合集",
   "v2.pl.remove": "移除",
+  "v2.pl.missingTrack": "找不到",
+  "v2.pl.missingTrackHint": "此曲目已不在资料库中（文件已移动或删除）。文件重新出现时会自动恢复；“移除”可将其从播放列表中删除。",
   "playlist.target": "目标",
   "playlistManager.tabPlaylists": "播放列表",
   "playlistManager.transferHint": "将播放列表从一个服务转移到另一个服务。",

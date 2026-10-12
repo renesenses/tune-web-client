@@ -1721,6 +1721,8 @@ export default {
   "smartPlaylists.joinAny": "ODER",
   "collections.title": "Sammlungen",
   "v2.pl.remove": "Entfernen",
+  "v2.pl.missingTrack": "Nicht gefunden",
+  "v2.pl.missingTrackHint": "Titel nicht mehr in der Bibliothek (Datei verschoben oder gelöscht). Er kehrt von selbst zurück, sobald die Datei wieder da ist; „Entfernen“ löscht ihn aus der Playlist.",
   "playlist.target": "Ziel",
   "playlistManager.tabPlaylists": "Playlists",
   "playlistManager.transferHint": "Eine Playlist von einem Dienst zu einem anderen übertragen.",

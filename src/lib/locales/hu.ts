@@ -1822,6 +1822,8 @@ export default {
   "smartPlaylists.joinAny": "VAGY",
   "collections.title": "Gyűjtemények",
   "v2.pl.remove": "Eltávolítás",
+  "v2.pl.missingTrack": "Nem található",
+  "v2.pl.missingTrackHint": "A szám már nincs a könyvtárban (a fájlt áthelyezték vagy törölték). Magától visszatér, ha a fájl újra megjelenik; az „Eltávolítás” törli a lejátszási listából.",
   "playlist.target": "Cél",
   "playlistManager.tabPlaylists": "Lejátszási listák",
   "playlistManager.transferHint": "Lejátszási lista átvitele egyik szolgáltatásból a másikba.",
