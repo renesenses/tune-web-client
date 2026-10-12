@@ -844,6 +844,25 @@ export function getZonesDoublons() {
 export function mergeZoneInto(doublon: number, cible: number) {
   return fetchJSON<unknown>(`${BASE}/zones/${doublon}/fusionner-dans/${cible}`, { method: 'POST' });
 }
+/** tune-server-rust#6120 — une sortie ASIO à laquelle rattacher une zone
+ *  orpheline. */
+export interface CandidatRattachement {
+  device_id: string;
+  name: string;
+  backend: string;
+}
+/** Les sorties ASIO présentes qu'aucune autre zone ne porte. */
+export function getRattachementCandidats(id: number) {
+  return fetchJSON<{ zone_id: number; candidats: CandidatRattachement[] }>(`${BASE}/zones/${id}/rattacher`);
+}
+/** Rattache la zone orpheline `id` à la sortie `deviceId` (`local:<pilote>`).
+ *  Le serveur refuse (409) une sortie absente, non ASIO, ou déjà portée. */
+export function rattacherZone(id: number, deviceId: string) {
+  return fetchJSON<unknown>(`${BASE}/zones/${id}/rattacher`, {
+    method: 'POST',
+    body: JSON.stringify({ device_id: deviceId }),
+  });
+}
 export function renameZone(id: number, name: string) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
