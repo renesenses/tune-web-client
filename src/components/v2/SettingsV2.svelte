@@ -5097,6 +5097,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <p class="monote">{$t('bitperfect.strictHelp' as any)}</p>
                         </div>
                       {/if}
+
+                      <!--
+                        TITRE RADIO PAR DLNA — renesenses/tune-server-rust#2991.
+                        Pour les lecteurs qui ignorent l'ICY (Hifi Rose RS250A,
+                        fil 1529) : réémettre le DIDL du morceau en cours.
+                        Désactivé par défaut : l'ICY suffit à la plupart des
+                        lecteurs, et cette option ajoute une commande réseau à
+                        chaque morceau. Proposé seulement sur une zone DLNA et
+                        si le serveur publie le champ.
+                      -->
+                      {#if typeof z.dlna_radio_title === 'string' && z.output_type === 'dlna'}
+                        <div class="radio-didl-bloc">
+                          <label class="zf radio-didl">
+                            <span>{$t('radioDidl.label' as any)}</span>
+                            <select value={z.dlna_radio_title}
+                              onchange={(e) => setZoneField(z, () => api.updateZoneDlnaRadioTitle(z.id as number, (e.currentTarget as HTMLSelectElement).value as 'off' | 'next' | 'reload'))}>
+                              <option value="off">{$t('radioDidl.off' as any)}</option>
+                              <option value="next">{$t('radioDidl.next' as any)}</option>
+                              <option value="reload">{$t('radioDidl.reload' as any)}</option>
+                            </select>
+                          </label>
+                          <p class="monote">{$t('radioDidl.help' as any)}</p>
+                        </div>
+                      {/if}
                       {/if}
 
                       <!--
