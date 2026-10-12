@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Menu avatar (coin haut-droit) du nouveau client.
    *
@@ -18,6 +19,7 @@
   import { searchSettings, tabLabel, type V2SettingsHit } from '../../lib/v2Settings';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import * as api from '../../lib/api';
+  import { ssoDisponible } from '../../lib/bridge';
   import {
     peutChoisirPhoto, photoAAfficher, proprietairePourNouvellePhoto,
     type EtatCompte,
@@ -334,10 +336,10 @@
         </button>
         <div class="avid">
           {#if ssoConnected}
-            <div class="avname">{ssoName}</div>
-            {#if ssoEmail && ssoEmail !== ssoName}<div class="avmail">{ssoEmail}</div>{/if}
+            <div class="avname" use:bulleTexte>{ssoName}</div>
+            {#if ssoEmail && ssoEmail !== ssoName}<div class="avmail" use:bulleTexte>{ssoEmail}</div>{/if}
           {:else}
-            <div class="avname">{$t('settings.notConnected')}</div>
+            <div class="avname" use:bulleTexte>{$t('settings.notConnected')}</div>
           {/if}
         </div>
       </div>
@@ -380,7 +382,7 @@
               <span class="pastille" style="background:{p.avatar_color || 'var(--v2-line2)'}"
                 >{nomDuProfil(p).charAt(0).toUpperCase()}</span
               >
-              <span class="pnom">{nomDuProfil(p)}</span>
+              <span class="pnom" use:bulleTexte>{nomDuProfil(p)}</span>
             </button>
           {/each}
         </div>
@@ -404,7 +406,7 @@
           {#if hits.length}
             {#each hits as h (h.tab.id + '/' + h.section.id)}
               <button class="hit" onclick={() => openSetting(h)}>
-                <span class="hl">{h.label}</span>
+                <span class="hl" use:bulleTexte>{h.label}</span>
                 <span class="ht">{tabLabel(h.tab, (k) => $t(k as any))}</span>
               </button>
             {/each}
@@ -467,10 +469,15 @@
         {$t('settings.titleV2' as any)}
       </button>
       {#if !ssoConnected && ssoConfigured}
-        <button class="item" onclick={signIn}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3M11 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-8" /></svg>
-          {$t('settings.signIn')}
-        </button>
+        <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
+        {#if ssoDisponible()}
+          <button class="item" onclick={signIn}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3M11 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-8" /></svg>
+            {$t('settings.signIn')}
+          </button>
+        {:else}
+          <div class="hint">{$t('login.ssoIndisponibleRelais' as any)}</div>
+        {/if}
       {:else if !ssoConnected}
         <div class="hint">{$t('settings.cloudComingSoon')}</div>
       {/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import AjoutsRecentsV2 from './AjoutsRecentsV2.svelte';
   import CoffretsV2 from './CoffretsV2.svelte';
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
@@ -81,6 +82,7 @@
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
+import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration,  type QualityTier } from '../../lib/utils';
   import { formatDeFichier } from '../../lib/typeDeFichier';
@@ -118,6 +120,7 @@
   } from '../../lib/centreCarrousel';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import MenuObjetV2 from './MenuObjetV2.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
@@ -131,6 +134,7 @@
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import { cleGenre, grouperParGenre } from '../../lib/genresBibliotheque';
   import {
     detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, ongletCourant,
   } from '../../lib/historiqueCoquille';
@@ -230,7 +234,7 @@
    * « Zubin Mehta », ni un album sans étiquettes rangé par dossier. On demande
    * au serveur les albums qui répondent au texte — `/library/albums-detailed`,
    * paginée comme la portée, avec `q` (et `folder` quand une portée est
-   * active) : le prédicat d'Oxygen (#5192), artiste de piste et nom de dossier
+   * active) : le prédicat d’Oxygen (#5192), artiste de piste, compositeur (fil 1684) et nom de dossier
    * compris, insensible à la casse et aux accents.
    *
    * Le résultat s'AJOUTE à la comparaison locale (`albumsDuTexte`), qui
@@ -833,6 +837,30 @@
    * panne, pas comme une bibliothèque non taguée.
    */
   const hasDr = $derived(src.some((a) => drNombre(a) != null));
+  /**
+   * web#2036 — Cyrille, fil 2196 : « DR n'est pas sélectionné dans affichage,
+   * il est pourtant visible sur la bibliothèque ». La case « DR » de Réglages >
+   * Affichage gouvernait la colonne des listes de pistes, pas ce filtre.
+   * Décision de Bertrand (09/10/2026) : DR non affiché ⇒ pas de filtre DR.
+   *
+   * On lit la MÊME réponse que la liste de pistes (`colonnesRetenues` sur le
+   * mode courant) : la colonne DR n'est offerte qu'en Avancé, donc le filtre
+   * suit — il n'existe que là où la colonne peut exister et est cochée.
+   */
+  const drAffiche = $derived(
+    colonnesRetenues($preferences.v2Colonnes?.[level] ?? [], level).some((c) => c.cle === 'dr'),
+  );
+  /**
+   * Un filtre DR actif ne survit pas à son masquage : la grille resterait
+   * filtrée par une commande que l'utilisateur ne voit plus. On ne décide que
+   * sur la PRÉFÉRENCE, jamais sur `src` (une liste vide ne décide de rien, #899).
+   */
+  $effect(() => {
+    if (!drAffiche && (untrack(() => fDrMin) != null || untrack(() => fDrMax) != null)) {
+      fDrMin = null;
+      fDrMax = null;
+    }
+  });
   /** Les DR réellement présents, croissants — pas une échelle inventée. */
   const valeursDr = $derived([...new Set(src.map(drNombre).filter((v): v is number => v != null))].sort((x, y) => x - y));
   const availableSorts = $derived(
@@ -1655,7 +1683,7 @@
         })
         .then(() => {
           const cible = [...document.querySelectorAll<HTMLElement>('.facet[data-facette]')]
-            .find((el) => el.dataset.facette === valeur);
+            .find((el) => memeFacette(el.dataset.facette ?? '', valeur));
           cible?.scrollIntoView({ block: 'start', behavior: 'smooth' });
         });
     };
@@ -1679,14 +1707,18 @@
     // « Annee inconnue » en favori ecrirait une facette que le serveur ne
     // saurait pas selectionner.
     const reels = new Set<string>();
-    for (const a of sorted) {
+    // #1722 — les genres se groupent comme le serveur les compte (découpe des
+    // valeurs multiples, clé canonique) : c'est le libellé du serveur que le
+    // panneau Genres et les Favoris envoient. Voir `lib/genresBibliotheque`.
+    const parGenre = tab === 'genres' ? grouperParGenre(sorted.filter(matches), FACET_EMPTY.genres) : null;
+    for (const a of parGenre ? [] : sorted) {
       if (!matches(a)) continue;
       const brut = facetOf(a, tab);
       const k = brut ?? FACET_EMPTY[tab];
       if (brut != null) reels.add(k);
       const arr = m.get(k); if (arr) arr.push(a); else m.set(k, [a]);
     }
-    const out = [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
+    const out = parGenre ?? [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
     if (tab === 'years') {
       out.sort((x, z) => {
         // « Annee inconnue » n'est pas un nombre : il part en dernier quel que
@@ -1720,9 +1752,14 @@
    * nouvelle famille — un écran vide sans explication.
    */
   let facetteOuverte = $state<string | null>(null);
+  /** #1722 — un genre se retrouve par sa clé canonique (« Trip Hop » ouvre
+   *  « Trip-Hop »), les autres facettes par égalité exacte. */
+  function memeFacette(cle: string, valeur: string): boolean {
+    return tab === 'genres' ? cleGenre(cle) === cleGenre(valeur) : cle === valeur;
+  }
   $effect(() => { void tab; void q; facetteOuverte = null; });
   const groupeOuvert = $derived(
-    facetteOuverte == null ? null : (groups.find((g) => g.key === facetteOuverte) ?? null),
+    facetteOuverte == null ? null : (groups.find((g) => memeFacette(g.key, facetteOuverte!)) ?? null),
   );
 
   // Pistes et appartenances des artistes : un chargement partagé par portée.
@@ -2234,6 +2271,46 @@
   });
 
   /**
+   * 🔴 LE SUIVANT DU NAVIGATEUR ROUVRE LA FICHE — pendant de l'effet qui la
+   * referme au Précédent (plus haut, « Le Précédent du navigateur a dépilé
+   * notre entrée »).
+   *
+   * Précédent puis Suivant : l'adresse revenait à `#library/album:55`, la
+   * coquille reposait bien `album:55` dans `detailOuvert`, et rien ne rouvrait
+   * le calque — l'écran savait refermer sur la clé, jamais rouvrir.
+   *
+   * On ROUVRE sans passer par `ouvrirDetail` : l'entrée atteinte porte déjà la
+   * clé, empiler en ferait une de trop. Seules les clés d'album LOCAL
+   * (`album:<id>`) se rouvrent ici ; une clé de service (`album:qobuz:…`) ne
+   * désigne pas un album de cette bibliothèque. Sous un dépôt distant, rien :
+   * ses identifiants ne sont pas les nôtres.
+   *
+   * ⚠️ Déclaré APRÈS l'effet de `$listResetNonce` : au montage (retour depuis
+   * une autre vue sur une entrée `#library/album:N`), celui-là referme d'abord
+   * le calque, celui-ci le rouvre ensuite.
+   */
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      if (depot || voulu == null) return;
+      const m = /^album:(\d+)$/.exec(voulu);
+      if (!m) return;
+      if (opened && cleCalqueEmpilee === voulu) return;
+      const id = Number(m[1]);
+      // L'asynchrone peut arriver après un nouveau Précédent : on ne rouvre
+      // que si la clé est toujours celle de l'entrée courante.
+      const rouvrir = (a: Album) => {
+        if ($detailOuvert !== voulu) return;
+        opened = a;
+        cleCalqueEmpilee = voulu;
+      };
+      const connu = $albums.find((a) => a.id === id);
+      if (connu) { rouvrir(connu); return; }
+      api.getAlbum(id).then((a) => { if (a) rouvrir(a); }).catch(() => {});
+    });
+  });
+
+  /**
    * L'ANNÉE demandée de l'extérieur — troisième de la même famille.
    *
    * `NowPlaying` pose `yearFilter` depuis toujours, et `yearFilter` n'est lu
@@ -2678,7 +2755,7 @@
            place aussi au premier niveau. -->
       <!-- Tranche DR (#2144) : dessinée SEULEMENT si des albums portent un
            DR — ailleurs, une commande qui ne filtre rien. -->
-      {#if hasDr}
+      {#if hasDr && drAffiche}
         <span class="chip dr" class:active={fDrMin != null || fDrMax != null}>
           <span>{$tr('library.drRange' as any)}</span>
           <select aria-label={$tr('library.drMin' as any)} value={fDrMin == null ? '' : String(fDrMin)}
@@ -2965,7 +3042,16 @@
           <span class="cause-vide">{causeVide.cause === 'partageNonDeclare'
             ? $tr('v2.lib.emptyShareNotDeclared' as any).replace('{partages}', causeVide.partages.join(', '))
             : $tr('v2.lib.emptyNoFolder' as any)}</span>
-          <button class="chip" onclick={addContent}>{$tr('v2.lib.emptyOpenFolders' as any)}</button>
+        {/if}
+        <!-- Fil 2171 — le geste d'ajout est proposé sur TOUTE bibliothèque
+             locale vide, pas seulement quand aucun dossier n'est déclaré : une
+             installation neuve en déclare un d'office (`~/Music`), et la page
+             ne proposait alors plus rien. -->
+        {#if !depot}
+          <span class="gestes-vide">
+            <BoutonAjouterDossier onAjoute={() => void lireCauseVide()} />
+            <button class="chip" onclick={addContent}>{$tr('v2.lib.emptyOpenFolders' as any)}</button>
+          </span>
         {/if}</div>
     {:else}
       <!-- Le rail reste sur TOUS les tris (Bertrand, 25/09/2026) : sur un tri
@@ -3049,7 +3135,7 @@
                 {@const fav = g.reel && facetteCourante ? estFacetteFavorite(g.key) : false}
                 <div class="fl">
                   <button class="flnom" onclick={() => (facetteOuverte = g.key)}>
-                    <span class="fk">{g.key}</span>
+                    <span class="fk" use:bulleTexte>{g.key}</span>
                     <span class="fc">{g.albums.length}</span>
                   </button>
                   <!-- Le menu « … » d'un LABEL (menus d'objets, 26/09/2026) :
@@ -3084,7 +3170,7 @@
           {#each [groupeOuvert] as g (g.key)}
             <section class="facet" data-facette={g.key}>
               <h2>
-                <span class="fk">{g.key}</span><span class="fc">{g.albums.length}</span>
+                <span class="fk" use:bulleTexte>{g.key}</span><span class="fc">{g.albums.length}</span>
                 {#if tab === 'labels' && !depot && g.reel}
                   <MenuObjetV2 objet={objetLabel(g.key)} nom={g.key} />
                 {/if}
@@ -3130,11 +3216,11 @@
                   <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
                   <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
                     <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
-                    <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
-                    <span class="la">{a.artist_name ?? ''}</span>
+                    <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
+                    <span class="la" use:bulleTexte>{a.artist_name ?? ''}</span>
                     <span class="ly">{albumYear(a) ?? ''}</span>
                     {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
-                    {#if showTech}<span class="lq">{tech(a)}</span>{/if}
+                    {#if showTech}<span class="lq" use:bulleTexte>{tech(a)}</span>{/if}
                   </button>
                   </div>
                 {/each}
@@ -3315,7 +3401,7 @@
         <div class="ct" title={a.title}>{a.title}</div>
         <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
-        {#if showTech}<div class="cq">{tech(a)}</div>{/if}
+        {#if showTech}<div class="cq" use:bulleTexte>{tech(a)}</div>{/if}
       </button>
     </div>
   {/snippet}
@@ -3332,8 +3418,8 @@
       <!-- La pastille reste DANS la cellule du titre : une septieme
            colonne decalerait toutes les autres, et seule une poignee de
            lignes la porte (#1957, et la lecon d'alignement du 05/09). -->
-      <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
-      <span class="la">{a.artist_name ?? ''}</span>
+      <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
+      <span class="la" use:bulleTexte>{a.artist_name ?? ''}</span>
       <span class="ly">{albumYear(a) ?? ''}</span>
       <!--
         🔴 Ces deux cellules sont TOUJOURS présentes quand leur mode
@@ -3346,7 +3432,7 @@
         ligne était sa PROPRE grille (voir `--lcols` plus bas).
       -->
       {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
-      {#if showTech}<span class="lq">{tech(a)}</span>{/if}
+      {#if showTech}<span class="lq" use:bulleTexte>{tech(a)}</span>{/if}
     </button>
     </div>
   {/snippet}
@@ -3371,7 +3457,7 @@
         <div class="ct" title={a.title}>{a.title}</div>
         <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
-        {#if showTech}<div class="cq">{tech(a)}</div>{/if}
+        {#if showTech}<div class="cq" use:bulleTexte>{tech(a)}</div>{/if}
       </button>
     </div>
   {/snippet}
@@ -3504,7 +3590,8 @@
   */
   .body.encarrousel{flex-direction:column-reverse}
   .state{flex:1; display:grid; place-items:center; color:var(--v2-txt3); font-size:15px}
-  .state:has(.cause-vide){align-content:center; gap:10px}
+  .state:has(.cause-vide), .state:has(.gestes-vide){align-content:center; gap:10px}
+  .state .gestes-vide{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center}
   .state .cause-vide{max-width:46ch; text-align:center; font-size:13px; line-height:1.5}
   /* Rail A-Z : c'est un REPERE, il doit se lire d'un coup d'oeil et se viser
      au doigt. Auparavant 11 px colles a 1 px d'intervalle contre la grille —

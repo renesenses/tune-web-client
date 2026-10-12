@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Arbre des RAYONS de collections — tune-server-rust#4853.
    *
@@ -167,7 +168,7 @@
         aria-label={replie ? $t('v2.rayons.expand' as any) : $t('v2.rayons.collapse' as any)}>
         <svg viewBox="0 0 24 24" class:ferme={replie}><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" /></svg>
       </button>
-      <button class="nomrayon" onclick={() => basculer(f.id)}>{f.name}</button>
+      <button class="nomrayon" onclick={() => basculer(f.id)} use:bulleTexte>{f.name}</button>
       <span class="compte">{f.collections.length}</span>
       {#if !compact}
         <button class="geste" aria-label={$t('v2.rayons.actions' as any)} title={$t('v2.rayons.actions' as any)}

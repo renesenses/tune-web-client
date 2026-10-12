@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount, untrack } from 'svelte';
   import * as api from '../../lib/api';
   import type { TrackAllTags } from '../../lib/api';
@@ -61,6 +62,17 @@
   }
 
   let data = $state<TrackAllTags | null>(null);
+  /**
+   * tune-server-rust#6124 — les balises RÉELLEMENT présentes dans le fichier,
+   * sous leur clé d'origine (`ORIGINALRELEASEDATE`, `TXXX:VERSION`…). `null`
+   * sur un serveur qui n'a pas la route : la section retombe sur
+   * `data.file_tags`, la lecture générique de `/all-tags`.
+   */
+  let balisesFichier = $state<api.BalisesDuFichier | null>(null);
+  async function chargerBalisesFichier() {
+    balisesFichier = await api.withTimeout(api.getTrackFileTags(trackId!), 12000, 'track-file-tags')
+      .catch(() => null);
+  }
   let loading = $state(true);
   let saving = $state(false);
 
@@ -92,6 +104,7 @@
   async function load() {
     loading = true;
     void chargerChampsTenus();
+    void chargerBalisesFichier();
     try {
       // Bound: a hung lofty read of a NAS file used to leave this drawer on
       // "Chargement…" until F5 (same family as TrackEditModal #1079).
@@ -195,7 +208,7 @@
             <div class="kv">
               {#each groupe.champs as field}
                 <div class="row">
-                  <span class="key">{field}</span>
+                  <span class="key" use:bulleTexte>{field}</span>
                   <span class="val val-readonly">{formatTagVals(champsService[field])}</span>
                 </div>
               {/each}
@@ -227,7 +240,7 @@
             <div class="kv">
               {#each groupe.champs as field}
                 <div class="row">
-                  <span class="key">{field}</span>
+                  <span class="key" use:bulleTexte>{field}</span>
                   {#if isWritable(field) && (field === 'year' || field === 'track_number' || field === 'disc_number' || field === 'album_id')}
                     <input type="number" class="val val-num" bind:value={dbEdits[field]} />
                   {:else if isWritable(field)}
@@ -248,7 +261,7 @@
             <div class="kv">
               {#each data.db_credits as c}
                 <div class="row">
-                  <span class="key">{c.role ?? 'performer'}{c.instrument ? ` (${c.instrument})` : ''}</span>
+                  <span class="key" use:bulleTexte>{c.role ?? 'performer'}{c.instrument ? ` (${c.instrument})` : ''}</span>
                   <span class="val val-readonly">{c.artist_name ?? '?'}</span>
                 </div>
               {/each}
@@ -263,7 +276,7 @@
             <div class="kv">
               {#each Object.entries(data.audio_info) as [k, v]}
                 <div class="row">
-                  <span class="key">{k}</span>
+                  <span class="key" use:bulleTexte>{k}</span>
                   <span class="val val-readonly">{v}</span>
                 </div>
               {/each}
@@ -271,7 +284,39 @@
           </div>
         {/if}
 
-        <!-- Raw file tags -->
+        <!-- Raw file tags — tune-server-rust#6124 : la liste RÉELLE du
+             fichier quand le serveur la sert, la lecture générique sinon. -->
+        {#if balisesFichier}
+          <div class="group" data-balises-fichier>
+            <h4>
+              {$t('trackTags.rawFileTags')} ({balisesFichier.tags.length}){#if balisesFichier.format} · {balisesFichier.format}{/if}
+              {#if !data.file_exists}<span class="badge-warn">{$t('trackTags.fileMissing')}</span>{/if}
+            </h4>
+            {#if !balisesFichier.available}
+              <div class="state-small">
+                {balisesFichier.reason === 'no_local_file'
+                  ? $t('trackTags.noLocalFile' as any)
+                  : $t('trackTags.fileUnreadable' as any)}
+              </div>
+            {:else if balisesFichier.tags.length === 0}
+              <div class="state-small">{$t('trackTags.noReadableTags')}</div>
+            {:else}
+              <div class="kv">
+                {#each balisesFichier.tags as b, i (i)}
+                  <div class="row" title={b.block}>
+                    <span class="key key-tag">{b.key}</span>
+                    <span class="val val-readonly">{b.value}{#if b.truncated} <em class="coupe">({$t('trackTags.valueTruncated' as any)})</em>{/if}</span>
+                  </div>
+                {/each}
+              </div>
+              {#if balisesFichier.truncated}
+                <div class="state-small">
+                  {$t('trackTags.fileTagsTruncated' as any).replace('{count}', String(balisesFichier.tags.length))}
+                </div>
+              {/if}
+            {/if}
+          </div>
+        {:else}
         <div class="group">
           <h4>
             {$t('trackTags.rawFileTags')} ({Object.keys(data.file_tags ?? {}).length})
@@ -283,13 +328,14 @@
             <div class="kv">
               {#each Object.entries(data.file_tags) as [k, vals]}
                 <div class="row">
-                  <span class="key key-tag">{k}</span>
+                  <span class="key key-tag" use:bulleTexte>{k}</span>
                   <span class="val val-readonly">{formatTagVals(vals)}</span>
                 </div>
               {/each}
             </div>
           {/if}
         </div>
+        {/if}
       </div>
 
       <div class="drawer-footer">
@@ -397,4 +443,5 @@
     font-size: 13px; text-align: center;
   }
   .state.err { color: #ef4444; }
+  .coupe { color: var(--tune-text-muted); font-size: 11px; }
 </style>

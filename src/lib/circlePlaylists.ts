@@ -18,6 +18,11 @@
  *   DELETE /playlists/{id}                  → { ok: true } (propriétaire seul)
  *   POST   /playlists/{id}/items {track_ids?|service_tracks?|items?, position?, version}
  *                                            → la playlist (tout membre ; greffon #5345)
+ *   POST   /playlists/{id}/bulk-items {entries}
+ *                                            → { playlist, added, unreferenceable, over_limit,
+ *                                                not_sent, interrupted, max_items } — ajout
+ *                                                GROUPÉ en fin de liste : album, sélection,
+ *                                                playlist entière (voir `ajouterPistesEnLot`)
  *   DELETE /playlists/{id}/items/{item_id}?version= → la playlist (tout membre)
  *   PUT    /playlists/{id}/order {item_ids, version} → la playlist (permutation EXACTE)
  *   POST   /playlists/{id}/resolve          → [{ item_id, status: matched|not_found, source, source_id, method, track_id? }]
@@ -52,6 +57,7 @@
  * une piste de service devient une référence en liste blanche, une piste
  * locale part par son seul `track_id`, que le greffon traduit sans chemin.
  */
+import { writable } from 'svelte/store';
 import { BASE, fetchJSON, type ApiError } from './api';
 import { estPisteLocale } from './pisteFile';
 import type { Track } from './types';
@@ -526,3 +532,167 @@ export function nomPlaylistValide(brut: string): string | null {
   const n = brut.trim();
   return n.length >= 1 && [...n].length <= NOM_PLAYLIST_MAX ? n : null;
 }
+
+// ─── Ajout groupé et partage d'une playlist ─────────────────────────────────
+
+/**
+ * Plafonds du cloud (site-mozaiklabs#236, `CirclePlaylist::MAX_ITEMS`) et du
+ * greffon (`bulk-items`) : une playlist de cercle compte 2 000 morceaux au
+ * plus ; un ajout groupé lit 10 000 entrées au plus.
+ */
+export const MORCEAUX_MAX = 2000;
+export const ENTREES_MAX = 10_000;
+
+/**
+ * Une entrée de `POST /playlists/{id}/bulk-items` :
+ * - une piste de la BIBLIOTHÈQUE par son seul `track_id` (le greffon bâtit la
+ *   référence, sans chemin) ;
+ * - un titre de SERVICE par sa paire, avec ce que l'écran en sait déjà
+ *   (titre, artiste, album, durée, ISRC) : le greffon n'a pas à relire chez
+ *   le service les 2 000 titres d'une playlist. Il les passe à la même liste
+ *   blanche qu'un `items` brut ; ni pochette, ni adresse ne partent d'ici.
+ */
+export type EntreeLot =
+  | { track_id: number }
+  | {
+    source: string;
+    source_id: string;
+    title: string;
+    artist_name?: string;
+    album_title?: string;
+    duration_ms?: number;
+    isrc?: string;
+  };
+
+/** L'entrée d'une piste, ou `null` si elle ne se référence pas (radio, Bandcamp…). */
+export function entreeDePiste(t: Track): EntreeLot | null {
+  if (estPisteLocale(t) && typeof t.id === 'number') return { track_id: t.id };
+  const p = pisteDeServiceCercle(t);
+  if (!p) return null;
+  const e: EntreeLot = { ...p, title: texte(t.title)! };
+  const artiste = texte(t.artist_name ?? (t as any).artist);
+  const album = texte(t.album_title ?? (t as any).album);
+  const duree = entier(t.duration_ms);
+  const isrc = isrcNormalise((t as any).isrc);
+  if (artiste) e.artist_name = artiste;
+  if (album) e.album_title = album;
+  if (duree != null && duree > 0) e.duration_ms = duree;
+  if (isrc) e.isrc = isrc;
+  return e;
+}
+
+/** Les entrées, DANS L'ORDRE des pistes, et le compte de celles qui ne se référencent pas. */
+export function entreesDePistes(pistes: readonly Track[]): { entrees: EntreeLot[]; nonReferencables: number } {
+  const entrees: EntreeLot[] = [];
+  let nonReferencables = 0;
+  for (const p of pistes) {
+    const e = entreeDePiste(p);
+    if (e) entrees.push(e); else nonReferencables += 1;
+  }
+  return { entrees, nonReferencables };
+}
+
+/** Ce que l'ajout groupé a fait, tel que l'écran le dit. */
+export interface BilanAjoutGroupe {
+  ajoutes: number;
+  /** Écartés : ni identifiant de bibliothèque, ni référence de service. */
+  nonReferencables: number;
+  /** Non ajoutés : la playlist atteignait {@link MORCEAUX_MAX}. */
+  horsPlafond: number;
+  /** Prêts mais non envoyés : un refus a interrompu l'ajout. */
+  nonEnvoyes: number;
+  interrompu: boolean;
+  maxMorceaux: number;
+  playlist: PlaylistCercle | null;
+}
+
+/** Le bilan du greffon, plus ce que l'écran a déjà écarté de son côté. */
+export function bilanAjoutGroupe(b: any, ecartesIci = 0): BilanAjoutGroupe {
+  const n = (v: unknown) => Math.max(0, entier(v) ?? 0);
+  return {
+    ajoutes: n(b?.added),
+    nonReferencables: n(b?.unreferenceable) + ecartesIci,
+    horsPlafond: n(b?.over_limit),
+    nonEnvoyes: n(b?.not_sent),
+    interrompu: b?.interrupted != null && b?.interrupted !== false,
+    maxMorceaux: entier(b?.max_items) ?? MORCEAUX_MAX,
+    playlist: playlistCercle(b?.playlist ?? null),
+  };
+}
+
+/** Le refus que le greffon rendrait à une suite sans rien de référençable. */
+export function refusRienAReferencer(nonReferencables: number): ApiError {
+  return Object.assign(new Error('nothing referenceable'), {
+    status: 422, code: 'circle.nothing_referenceable', corps: { unreferenceable: nonReferencables },
+  }) as ApiError;
+}
+
+/**
+ * Ajoute d'un coup les pistes à une playlist de cercle, en fin de liste et
+ * dans leur ordre (`bulk-items`). Le greffon relit la version, découpe par
+ * lots de 100, s'arrête au plafond et COMPTE ce qui ne se référence pas.
+ *
+ * Sans aucune entrée référençable, rien ne part : un refus
+ * `circle.nothing_referenceable` est levé ici, comme le ferait le greffon.
+ */
+export async function ajouterPistesEnLot(id: IdOpaque, pistes: readonly Track[]): Promise<BilanAjoutGroupe> {
+  const { entrees, nonReferencables } = entreesDePistes(pistes.slice(0, ENTREES_MAX));
+  const auDela = Math.max(0, pistes.length - ENTREES_MAX);
+  if (!entrees.length) throw refusRienAReferencer(nonReferencables);
+  const b = await envoyer<unknown>(`${racine}/${seg(id)}/bulk-items`, 'POST', { entries: entrees });
+  const bilan = bilanAjoutGroupe(b, nonReferencables);
+  bilan.horsPlafond += auDela;
+  return bilan;
+}
+
+/** L'identifiant de la playlist que `POST /playlists` vient de créer, ou `null`. */
+export function idCree(b: any): IdOpaque | null {
+  return idOpaque(b?.id ?? b?.playlist?.id);
+}
+
+/**
+ * Les phrases d'un bilan, la première dit ce qui a été fait, les suivantes
+ * ce qui ne l'a pas été — chacune avec son compte.
+ */
+export function phrasesBilan(
+  b: BilanAjoutGroupe, nom: string, traduire: (cle: string) => string, partage = false,
+): { texte: string; alerte: boolean }[] {
+  const r = (cle: string, n: number) =>
+    traduire(cle).replace('{n}', String(n)).replace('{name}', nom).replace('{max}', String(b.maxMorceaux));
+  const sortie = [{ texte: r(partage ? 'v2.circle.pl.bulkShared' : 'v2.circle.pl.bulkAdded', b.ajoutes), alerte: false }];
+  if (b.horsPlafond) sortie.push({ texte: r('v2.circle.pl.bulkLimit', b.horsPlafond), alerte: true });
+  if (b.nonReferencables) sortie.push({ texte: r('v2.circle.pl.bulkUnref', b.nonReferencables), alerte: true });
+  if (b.interrompu) sortie.push({ texte: r('v2.circle.pl.bulkInterrupted', b.nonEnvoyes), alerte: true });
+  return sortie;
+}
+
+/** Refus propres à l'ajout groupé, en clés i18n ; le reste suit `codeT5` puis `motifCercle`. */
+export function codeAjoutGroupe(e: unknown): string | null {
+  const code = (e as ApiError | null)?.code;
+  switch (code) {
+    case 'circle.playlist_full':
+    case 'playlist_too_large': return 'v2.circle.pl.err.full';
+    case 'circle.nothing_referenceable': return 'v2.circle.pl.err.nothingReferenceable';
+  }
+  return codeT5(e);
+}
+
+/**
+ * Ce qu'on demande à la fenêtre de cercle, depuis n'importe quel menu :
+ * - `ajout`   : ajouter les pistes à une playlist de cercle EXISTANTE ;
+ * - `partage` : créer dans un de MES cercles une playlist qui est une COPIE
+ *               par références, dans le même ordre. L'original ne change
+ *               pas et n'y est pas lié (décision du 28/09 : aucune écriture
+ *               chez un service).
+ *
+ * `pistes` n'est lu qu'au geste : ouvrir le menu d'une playlist de 2 000
+ * titres ne la charge pas.
+ */
+export interface DemandeCercle {
+  mode: 'ajout' | 'partage';
+  nom: string;
+  pistes: () => Promise<Track[]>;
+}
+
+/** La demande en cours ; `ShellV2` monte la fenêtre tant qu'elle n'est pas `null`. */
+export const demandeCercle = writable<DemandeCercle | null>(null);

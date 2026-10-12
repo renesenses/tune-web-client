@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Fiche album du nouveau client (direction Levente). Ouvre par-dessus la
    * grille : pochette + métadonnées + liste de pistes jouables. Détail
@@ -42,6 +43,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     SELECTION_VIDE, appliquerGenre, basculer, choisiesDansLOrdre, corpsArtistePistes,
     idsSelectionnables, restreindre, toutEstChoisi, toutOuRien, type Bilan, type EtatSelection,
   } from '../../lib/selectionPistes';
+  import { circleCharge } from '../../lib/circle';
+  import { demandeCercle } from '../../lib/circlePlaylists';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
@@ -824,6 +827,17 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   const pistesChoisies = $derived(
     choisies.map((id) => tracks.find((t) => t.id === id)).filter((t): t is Track => t != null),
   );
+  function ajouterSelectionAuCercle() {
+    const lot = [...pistesChoisies];
+    if (!lot.length) return;
+    const n = lot.length;
+    demandeCercle.set({
+      mode: 'ajout',
+      nom: [album.title, $tr((n === 1 ? 'v2.selection.countOne' : 'v2.selection.countMany') as any).replace('{n}', String(n))]
+        .filter(Boolean).join(' · '),
+      pistes: async () => lot,
+    });
+  }
   function ouvrirChamp(champ: 'artist' | 'genre') {
     champGroupe = champGroupe === champ ? null : champ;
     valeurGroupe = '';
@@ -1706,6 +1720,12 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
             onclick={() => enfilerSelection(undefined, 'v2.selection.queued')}>{$tr('v2.album.addQueue' as any)}</button>
           <button class="sel-btn" data-sel-playlist disabled={!pistesChoisies.length}
             onclick={() => (playlistSelection = true)}>{$tr('playlist.addToPlaylist')}</button>
+          {#if $circleCharge}
+            <!-- Les pistes choisies rejoignent une playlist de cercle, en une
+                 fois et dans l'ordre de l'album (`bulk-items`). -->
+            <button class="sel-btn" data-sel-cercle disabled={!pistesChoisies.length}
+              onclick={ajouterSelectionAuCercle}>{$tr('v2.circle.pl.addToCircle' as any)}</button>
+          {/if}
           {#if edition}
             <button class="sel-btn" data-sel-artiste disabled={!choisies.length} aria-pressed={champGroupe === 'artist'}
               onclick={() => ouvrirChamp('artist')}>{$tr('v2.selection.setArtist' as any)}</button>
@@ -1729,9 +1749,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         onCocher={cocher}
         pistes={pistesVisibles}
         numerotation="piste"
-        pochette={pochettesDePisteDistinctesIci}
         pochetteEnTableau={pochettesDePisteDistinctesIci}
-        avecAlbum={false}
         enTetesDisque
         onLire={(_p, i) => playAlbum(i)}
         onLireDepuis={(_p, i) => playAlbum(i)}
@@ -1780,17 +1798,17 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     {#if entreesCollection.length}
       {#each lignesCollection as l (l.cle)}
         {#if l.sorte === 'rayon'}
-          <p class="coll-rayon" role="presentation" style:padding-left="{10 + l.profondeur * 14}px">{l.nom}</p>
+          <p class="coll-rayon" role="presentation" style:padding-left="{10 + l.profondeur * 14}px" use:bulleTexte>{l.nom}</p>
         {:else}
         {@const e = l.entree}
         <button type="button" role="menuitem" class="coll-item" class:deja={e.deja}
           style:padding-left="{10 + l.profondeur * 14}px"
-          onclick={(ev) => choisirCollection(ev, e.faire)}>{e.libelle}</button>
+          onclick={(ev) => choisirCollection(ev, e.faire)} use:bulleTexte>{e.libelle}</button>
         {/if}
       {/each}
     {:else}
       <p class="coll-vide">{$tr('v2.album.noCollection' as any)}</p>
-      <button type="button" role="menuitem" class="coll-item coll-lien" onclick={allerCollections}>
+      <button type="button" role="menuitem" class="coll-item coll-lien" onclick={allerCollections} use:bulleTexte>
         {$tr('v2.nav.collections' as any)}
       </button>
     {/if}

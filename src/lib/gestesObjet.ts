@@ -49,6 +49,8 @@ import {
 import { pendingPlaylistId } from './stores/playlists';
 import { concertsCharge } from './stores/concerts';
 import { convertisseurCharge } from './stores/convertisseurPlaylists';
+import { circleCharge } from './circle';
+import { demandeCercle } from './circlePlaylists';
 import { ouvrirLeRepertoire } from './stores/repertoireCible';
 import { zoneRequise } from './zoneRequise';
 import { signalerEchecLecture } from './echecLecture';
@@ -304,6 +306,7 @@ export function capacitesObjet(o: ObjetMenu, options: { dansCollectionManuelle?:
   }
   if (o.type === 'artiste') c.greffonConcerts = get(concertsCharge);
   if (o.type === 'playlist') c.greffonConvertisseur = get(convertisseurCharge);
+  if (TYPES_DE_CERCLE.has(o.type)) c.greffonCercle = get(circleCharge);
   if (options.dansCollectionManuelle) c.dansCollectionManuelle = true;
   return c;
 }
@@ -356,6 +359,22 @@ export async function pistesDe(o: ObjetMenu): Promise<Track[]> {
     default:
       return [];
   }
+}
+
+/** Les objets dont les pistes peuvent rejoindre une playlist de cercle. */
+const TYPES_DE_CERCLE: ReadonlySet<TypePochette> = new Set(['album', 'playlist', 'playlistIntelligente']);
+
+/**
+ * Les pistes d'un objet pour une playlist de cercle : celles de `pistesDe`,
+ * sauf la playlist intelligente, lue ENTIÈRE (le greffon et le cloud ont leur
+ * propre plafond, `MORCEAUX_MAX`), là où la lecture en masse s'arrête à 500.
+ */
+export async function pistesPourCercle(o: ObjetMenu): Promise<Track[]> {
+  if (o.type === 'playlistIntelligente' && o.id != null) {
+    const v = await api.getSmartPlaylistTracks(o.id);
+    return Array.isArray(v) ? (v as Track[]) : [];
+  }
+  return pistesDe(o);
 }
 
 const gestesDeLecture = (zid: number) => ({
@@ -827,6 +846,13 @@ export function gestesObjet(o: ObjetMenu, options: OptionsMenuObjet = {}): Geste
     if (ouvrir) g.modifier = () => { pendingModeModifier.set(id); ouvrir(); };
   }
   if (o.type === 'artiste') g.concerts = () => activeView.set('concerts');
+  if (TYPES_DE_CERCLE.has(o.type) && (o.id != null || deService(o))) {
+    const nom = o.nom ?? '';
+    g.ajouterAPlaylistDeCercle = () => demandeCercle.set({ mode: 'ajout', nom, pistes: () => pistesPourCercle(o) });
+    if (o.type !== 'album') {
+      g.partagerAvecUnCercle = () => demandeCercle.set({ mode: 'partage', nom, pistes: () => pistesPourCercle(o) });
+    }
+  }
   if (o.type === 'playlist' && o.id != null) {
     const id = o.id;
     g.renommer = () => void renommer(o, apres);

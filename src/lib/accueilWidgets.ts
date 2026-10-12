@@ -82,6 +82,12 @@ export interface Element {
    * ouvre la FICHE (23/09/2026 : il ouvrait la grille de la Bibliothèque).
    */
   artiste?: string;
+  /**
+   * Le service où l'artiste du classement est écouté, quand le serveur le dit
+   * (`top_artists[].source`) — #1696. Sans fiche locale, c'est chez lui que la
+   * fiche est cherchée, au lieu de rouvrir la Bibliothèque.
+   */
+  artisteService?: string | null;
   /** Album normalisé pour la fiche, quand `ouvrir` vaut `album`. */
   fiche?: any;
   /**
@@ -369,6 +375,15 @@ export interface Contexte {
    * garder leur socket jusqu'à la réponse.
    */
   signal?: AbortSignal;
+  /**
+   * #51 (tune-remote-flutter, Fabien, 11/10/2026) — combien d'éléments
+   * demander. Absent : [`LIMITE`], la bande de l'accueil. La page « Voir
+   * tout » passe [`LIMITE_VOIR_TOUT`] pour montrer TOUT le contenu du widget.
+   *
+   * Seules les BANDES la lisent : un bloc ou une ligne de chiffres n'a pas
+   * de page « Voir tout ».
+   */
+  limite?: number;
 }
 
 /**
@@ -384,7 +399,21 @@ export interface Contexte {
  * (500 playlists Qobuz) restent bornées, mais par le bon sens et non par une
  * règle d'affichage.
  */
-const LIMITE = 50;
+export const LIMITE = 50;
+
+/**
+ * #51 — ce que demande la page « Voir tout ». Deux cents : au-delà, le
+ * serveur borne de lui-même (`/home/other-versions` et `/home/artist-releases`
+ * plafonnent à cent sans erreur), et une page plus longue se lit mieux dans
+ * l'écran dédié (Bibliothèque, Favoris) que dans une vue d'accueil.
+ */
+export const LIMITE_VOIR_TOUT = 200;
+
+/** La limite d'un chargement : celle du contexte, la bande sinon. */
+export function limiteDe(ctx: Pick<Contexte, 'limite'> | undefined): number {
+  const l = ctx?.limite;
+  return typeof l === 'number' && l > 0 ? Math.floor(l) : LIMITE;
+}
 
 /** Première valeur non vide parmi les noms donnés. */
 function champ(o: any, ...noms: string[]): string | undefined {
@@ -1016,8 +1045,13 @@ function lectures(n: number, langue: string): string {
  *  - un TITRE se joue : `track_id` local d'abord, sinon la paire service +
  *    identifiant de piste.
  */
-function gesteArtisteTop(nom: string | null | undefined): Pick<Element, 'ouvrir' | 'artiste'> {
-  return nom ? { ouvrir: 'artiste', artiste: nom } : {};
+function gesteArtisteTop(
+  nom: string | null | undefined,
+  service?: string | null,
+): Pick<Element, 'ouvrir' | 'artiste' | 'artisteService'> {
+  if (!nom) return {};
+  const svc = typeof service === 'string' && service.trim() ? service.trim() : null;
+  return svc ? { ouvrir: 'artiste', artiste: nom, artisteService: svc } : { ouvrir: 'artiste', artiste: nom };
 }
 
 function gestesAlbumTop(a: api.DashboardData['top_albums'][number]): Partial<Element> {
@@ -1127,10 +1161,10 @@ function enFileMosaique<T>(faire: () => Promise<T>): Promise<T> {
 }
 
 /** Un chargeur de favoris par seau : sans profil, rien — et aucun appel. */
-function parSeau(extraire: (f: FavorisFusionnes) => Promise<Element[]> | Element[]) {
+function parSeau(extraire: (f: FavorisFusionnes, ctx: Contexte) => Promise<Element[]> | Element[]) {
   return async (ctx: Contexte): Promise<Element[]> => {
     if (ctx.profileId == null) return [];
-    return extraire(await chargerFavorisFusionnes(ctx.profileId));
+    return extraire(await chargerFavorisFusionnes(ctx.profileId), ctx);
   };
 }
 
@@ -1424,9 +1458,9 @@ export const WIDGETS: Widget[] = [
      * (Alex Campbell, 08/09/2026). La règle vit dans `lib/reprendreEcoute`,
      * pour qu'un test l'APPELLE au lieu de relire ce fichier.
      */
-    charger: async () =>
+    charger: async (ctx) =>
       utiles(
-        reprisesUtiles(liste(await api.getContinueListening(LIMITE))).map((o, i) => {
+        reprisesUtiles(liste(await api.getContinueListening(limiteDe(ctx)))).map((o, i) => {
           const el = versElement(o, i, 'rep');
           return { ...el, sous: sousTitreReprise(o) || el.sous };
         }),
@@ -1436,15 +1470,15 @@ export const WIDGETS: Widget[] = [
     id: 'recemment-ajoutes',
     cleTitre: 'v2.home.wRecentlyAdded',
     forme: 'bande',
-    charger: async () =>
-      utiles(liste(await api.getRecentAlbums(LIMITE)).map((o, i) => versElement(o, i, 'alb'))),
+    charger: async (ctx) =>
+      utiles(liste(await api.getRecentAlbums(limiteDe(ctx))).map((o, i) => versElement(o, i, 'alb'))),
   },
   {
     id: 'recemment-ecoutes',
     cleTitre: 'v2.home.wRecentlyPlayed',
     forme: 'bande',
-    charger: async () =>
-      utiles(liste(await api.getPlaybackHistory(LIMITE)).map((o, i) => versElement(o, i, 'hist', { historique: true }))),
+    charger: async (ctx) =>
+      utiles(liste(await api.getPlaybackHistory(limiteDe(ctx))).map((o, i) => versElement(o, i, 'hist', { historique: true }))),
   },
   {
     id: 'hasard',
@@ -1465,12 +1499,12 @@ export const WIDGETS: Widget[] = [
         const tire: any[] = [];
         // Tirage sans remise : `sort(() => Math.random() - .5)` n'est pas un
         // mélange — il biaise selon l'algorithme de tri du moteur.
-        for (let n = 0; n < LIMITE && src.length; n++) {
+        for (let n = 0; n < limiteDe(ctx) && src.length; n++) {
           tire.push(src.splice(Math.floor(Math.random() * src.length), 1)[0]);
         }
         return utiles(tire.map((o, i) => versElement(o, i, 'alb')));
       }
-      const page = await api.getAlbumsPagines({ limit: LIMITE, offset: 0, sort: 'random' });
+      const page = await api.getAlbumsPagines({ limit: limiteDe(ctx), offset: 0, sort: 'random' });
       return utiles(page.items.map((o, i) => versElement(o, i, 'alb')));
     },
   },
@@ -1494,12 +1528,12 @@ export const WIDGETS: Widget[] = [
      * On DÉPLIE donc, et l'artiste devient le sous-titre — c'est lui qui donne
      * son sens à la nouveauté.
      */
-    charger: async () => {
-      const artistes = liste(await api.getArtistReleases(LIMITE));
+    charger: async (ctx) => {
+      const artistes = liste(await api.getArtistReleases(limiteDe(ctx)));
       const out: Element[] = [];
       for (const a of artistes) {
         for (const r of a?.releases ?? []) {
-          if (out.length >= LIMITE) break;
+          if (out.length >= limiteDe(ctx)) break;
           out.push({
             id: `nar${out.length}-${r?.source_id ?? ''}`,
             titre: champ(r, 'title') ?? '—',
@@ -1522,8 +1556,8 @@ export const WIDGETS: Widget[] = [
     id: 'nouveau-bibliotheque',
     cleTitre: 'v2.home.wNewInLibrary',
     forme: 'bande',
-    charger: async () =>
-      utiles(liste(await api.getNewInLibrary()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'alb'))),
+    charger: async (ctx) =>
+      utiles(liste(await api.getNewInLibrary()).slice(0, limiteDe(ctx)).map((o, i) => versElement(o, i, 'alb'))),
   },
   {
     id: 'autres-versions',
@@ -1536,9 +1570,9 @@ export const WIDGETS: Widget[] = [
      * chaque version `{album_id, album_title, cover_path, track_id}`. Sans
      * descendre d'un cran, la bande s'affichait sans aucune image.
      */
-    charger: async () =>
+    charger: async (ctx) =>
       utiles(
-        liste(await api.getOtherVersions(LIMITE)).map((o: any, i: number) => {
+        liste(await api.getOtherVersions(limiteDe(ctx))).map((o: any, i: number) => {
           const v = (o?.versions ?? [])[0] ?? {};
           return {
             id: `ver${i}-${v?.album_id ?? ''}`,
@@ -1572,45 +1606,45 @@ export const WIDGETS: Widget[] = [
     charger: async (ctx) => {
       if (ctx.profileId == null) return [];
       const f = await chargerFavorisFusionnes(ctx.profileId);
-      const albums = utiles(f.albums.slice(0, LIMITE).map((o: any, i: number) => versElement(o, i, 'alb')));
+      const albums = utiles(f.albums.slice(0, limiteDe(ctx)).map((o: any, i: number) => versElement(o, i, 'alb')));
       if (albums.length) return albums;
-      const artistes = utiles(f.artists.slice(0, LIMITE).map((o: any, i: number) => elementArtisteFavori(o, i)));
+      const artistes = utiles(f.artists.slice(0, limiteDe(ctx)).map((o: any, i: number) => elementArtisteFavori(o, i)));
       if (artistes.length) return artistes;
-      return utiles(f.tracks.slice(0, LIMITE).map((o: any, i: number) => elementPisteFavorite(o, i)));
+      return utiles(f.tracks.slice(0, limiteDe(ctx)).map((o: any, i: number) => elementPisteFavorite(o, i)));
     },
   },
   {
     id: 'favoris-artistes',
     cleTitre: 'v2.home.wFavArtists',
     forme: 'bande',
-    charger: parSeau((f) =>
-      utiles(f.artists.slice(0, LIMITE).map((o: any, i: number) => elementArtisteDuSeau(o, i))),
+    charger: parSeau((f, ctx) =>
+      utiles(f.artists.slice(0, limiteDe(ctx)).map((o: any, i: number) => elementArtisteDuSeau(o, i))),
     ),
   },
   {
     id: 'favoris-pistes',
     cleTitre: 'v2.home.wFavTracks',
     forme: 'bande',
-    charger: parSeau((f) =>
-      utiles(f.tracks.slice(0, LIMITE).map((o: any, i: number) => elementPisteDuSeau(o, i))),
+    charger: parSeau((f, ctx) =>
+      utiles(f.tracks.slice(0, limiteDe(ctx)).map((o: any, i: number) => elementPisteDuSeau(o, i))),
     ),
   },
   {
     id: 'favoris-playlists',
     cleTitre: 'v2.home.wFavPlaylists',
     forme: 'bande',
-    charger: parSeau((f) =>
-      utiles(playlistsFavorites(f).slice(0, LIMITE).map((o: any, i: number) => elementPlaylistDuSeau(o, i))),
+    charger: parSeau((f, ctx) =>
+      utiles(playlistsFavorites(f).slice(0, limiteDe(ctx)).map((o: any, i: number) => elementPlaylistDuSeau(o, i))),
     ),
   },
   {
     id: 'favoris-smart-playlists',
     cleTitre: 'v2.home.wFavSmartPlaylists',
     forme: 'bande',
-    charger: parSeau(async (f) =>
+    charger: parSeau(async (f, ctx) =>
       (await smartPlaylistsFavorites(f))
         .filter((sp: any) => idLocalValide(sp?.id) != null)
-        .slice(0, LIMITE)
+        .slice(0, limiteDe(ctx))
         .map((sp: any, i: number) => elementSmartPlaylistDuSeau(sp, i)),
     ),
   },
@@ -1618,10 +1652,10 @@ export const WIDGETS: Widget[] = [
     id: 'favoris-collections',
     cleTitre: 'v2.home.wFavCollections',
     forme: 'bande',
-    charger: parSeau(async (f) =>
+    charger: parSeau(async (f, ctx) =>
       (await collectionsFavorites(f)).collections
         .filter((c: any) => idLocalValide(c?.id) != null)
-        .slice(0, LIMITE)
+        .slice(0, limiteDe(ctx))
         .map((c: any, i: number) => elementCollectionDuSeau(c, i, false)),
     ),
   },
@@ -1629,10 +1663,10 @@ export const WIDGETS: Widget[] = [
     id: 'favoris-smart-collections',
     cleTitre: 'v2.home.wFavSmartCollections',
     forme: 'bande',
-    charger: parSeau(async (f) =>
+    charger: parSeau(async (f, ctx) =>
       (await collectionsFavorites(f)).smartCollections
         .filter((c: any) => idLocalValide(c?.id) != null)
-        .slice(0, LIMITE)
+        .slice(0, limiteDe(ctx))
         .map((c: any, i: number) => elementCollectionDuSeau(c, i, true)),
     ),
   },
@@ -1640,17 +1674,17 @@ export const WIDGETS: Widget[] = [
     id: 'recommandations',
     cleTitre: 'v2.home.wRecommendations',
     forme: 'bande',
-    charger: async () =>
-      utiles(liste(await api.getHomeRecommendations()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'rec'))),
+    charger: async (ctx) =>
+      utiles(liste(await api.getHomeRecommendations()).slice(0, limiteDe(ctx)).map((o, i) => versElement(o, i, 'rec'))),
   },
   {
     id: 'radios-artistes',
     cleTitre: 'v2.home.wArtistRadios',
     forme: 'bande',
-    charger: async () =>
+    charger: async (ctx) =>
       utiles(
         liste(await api.getRadioPicks())
-          .slice(0, LIMITE)
+          .slice(0, limiteDe(ctx))
           .map((o, i) => {
             // Une station n'est ni un album ni une playlist : son `id` designe
             // une RADIO, et la lecture passe par sa propre route. Passe au
@@ -1667,15 +1701,15 @@ export const WIDGETS: Widget[] = [
     id: 'podcasts-abonnements',
     cleTitre: 'v2.home.wPodcasts',
     forme: 'bande',
-    charger: async () =>
-      utiles(liste(await api.getPodcastSubscriptions()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'pod', { genre: 'aucun' }))),
+    charger: async (ctx) =>
+      utiles(liste(await api.getPodcastSubscriptions()).slice(0, limiteDe(ctx)).map((o, i) => versElement(o, i, 'pod', { genre: 'aucun' }))),
   },
   {
     id: 'qobuz-selection',
     cleTitre: 'v2.home.wQobuz',
     forme: 'bande',
-    charger: async () =>
-      utiles(liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, LIMITE).map((o, i) => versElement(o, i, 'qob', { service: 'qobuz', genre: 'playlist' }))),
+    charger: async (ctx) =>
+      utiles(liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, limiteDe(ctx)).map((o, i) => versElement(o, i, 'qob', { service: 'qobuz', genre: 'playlist' }))),
   },
   // ── ÉDITORIAL QOBUZ ──────────────────────────────────────────────────────
   //
@@ -1701,9 +1735,9 @@ export const WIDGETS: Widget[] = [
     id,
     cleTitre,
     forme: 'bande',
-    charger: async () =>
+    charger: async (ctx) =>
       utiles(
-        liste(await api.getStreamingFeatured('qobuz', section, LIMITE)).map((o, i) =>
+        liste(await api.getStreamingFeatured('qobuz', section, limiteDe(ctx))).map((o, i) =>
           versElement(o, i, id, { service: 'qobuz' }),
         ),
       ),
@@ -1716,7 +1750,7 @@ export const WIDGETS: Widget[] = [
     /** #1426 — le SEUL widget qui lise `ctx.chiffresChoisis` : le seul à
      *  offrir le sélecteur de #4527. */
     chiffresComposables: true,
-    charger: async () => [],
+    charger: async (ctx) => [],
     /**
      * LA LIGNE DE CHIFFRES, d'après la maquette de Levente et les arbitrages
      * de Bertrand du 19/09/2026 (tune-server-rust#4527).
@@ -1780,7 +1814,7 @@ export const WIDGETS: Widget[] = [
           titre: a.artist_name,
           sous: lectures(a.plays, ctx.langue ?? 'fr'),
           cover: coverArtisteTop(a, portraits),
-          ...gesteArtisteTop(a.artist_name),
+          ...gesteArtisteTop(a.artist_name, a.source),
         })),
       );
     },
@@ -1868,7 +1902,7 @@ export const WIDGETS: Widget[] = [
         sous: n(a.plays),
         cover: coverArtisteTop(a, portraits),
         colonne: 'artistes' as const,
-        ...gesteArtisteTop(a.artist_name),
+        ...gesteArtisteTop(a.artist_name, a.source),
       }));
       const albums: Element[] = d.top_albums.slice(0, RANG_TOPS).map((a, i) => ({
         id: `tops-alb-${i}-${a.album_title}`,

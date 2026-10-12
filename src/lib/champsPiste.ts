@@ -87,7 +87,7 @@ export const GROUPES_CHAMPS_PISTE: readonly GroupeChamps[] = [
   {
     nom: 'Classique / crédits',
     cleI18n: 'trackTags.groupClassical',
-    champs: ['composer', 'genre', 'genres', 'year', 'label', 'comment', 'bpm', 'isrc'],
+    champs: ['composer', 'genre', 'genres', 'year', 'original_date', 'version', 'label', 'comment', 'bpm', 'isrc'],
   },
   {
     nom: 'Audio',

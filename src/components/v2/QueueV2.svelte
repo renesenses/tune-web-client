@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * File d'attente — nouveau client (direction Levente).
    *
@@ -38,6 +39,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { fenetreListe } from '../../lib/fenetreListe';
   import { pisteDeFile } from '../../lib/pisteDeFile';
+  import { gesteVider, executerVider } from '../../lib/viderFile';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -271,7 +273,18 @@
    * cours continue, ce qui la suit est retiré. Arrêter se fait par le bouton
    * de transport (double-clic, ou la touche `S`) — le geste qui le nomme.
    */
-  const clear = () => act(() => api.clearQueue($currentZoneId!));
+  /*
+   * 🔵 web#1857 (Didier, fil 2067) — le SECOND appui. Quand plus rien ne suit
+   * le morceau en cours, le même bouton devient « Arrêter et vider » : il
+   * arrête la lecture et retire le morceau. La règle (sur l'état, pas sur un
+   * délai) est écrite dans `lib/viderFile`.
+   */
+  const gesteDeVidage = $derived(gesteVider(tracks.length, pos));
+  const clear = () => {
+    const g = gesteDeVidage;
+    if (!g) return;
+    return act(() => executerVider($currentZoneId!, g));
+  };
 
   function tech(t: Track): string {
     if (getQualityTier(t) === 'dsd') return 'DSD';
@@ -312,7 +325,8 @@
       </button>
       {#if tracks.length}
         <button class="v2-btn danger" onclick={clear} disabled={busy}
-                title={$tr('queue.clearTip' as any)}>{$tr('v2.queue.clear' as any)}</button>
+                title={$tr((gesteDeVidage === 'tout' ? 'queue.clearAllTip' : 'queue.clearTip') as any)}
+                >{$tr((gesteDeVidage === 'tout' ? 'queue.clearAllLabel' : 'v2.queue.clear') as any)}</button>
       {/if}
     </div>
   </header>
@@ -333,8 +347,8 @@
           <div class="now" aria-current={etatCourant ? 'true' : undefined}>
             <span class="ncv"><AlbumArt coverPath={current.cover_path} albumId={current.album_id ?? null} size={0} vignette alt={current.title} source={current.source} fallbackInitials={current.title?.slice(0,1)} /></span>
             <div class="nmeta">
-              <div class="nt"><IndicateurLecture etat={etatCourant} />{current.title}</div>
-              <div class="na">{current.artist_name ?? ''}{current.album_title ? ' · ' + current.album_title : ''}</div>
+              <div class="nt" use:bulleTexte><IndicateurLecture etat={etatCourant} />{current.title}</div>
+              <div class="na" use:bulleTexte>{current.artist_name ?? ''}{current.album_title ? ' · ' + current.album_title : ''}</div>
               {#if showExpert && tech(current)}<div class="ntk">{tech(current)}</div>{/if}
             </div>
             <span class="ndur">{formatTime(current.duration_ms ?? 0)}</span>
@@ -367,7 +381,7 @@
               <button class="play" onclick={() => void sauterDelibere(t, idx)} disabled={busy} aria-label={$tr('v2.queue.playTrack' as any).replace('{t}', t.title ?? '')}>
                 <span class="n">{i + 1}</span>
                 <span class="cv"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} vignette alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
-                <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
+                <span class="ti" use:bulleTexte>{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
               </button>
               {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}
               <span class="dur">{formatTime(t.duration_ms ?? 0)}</span>

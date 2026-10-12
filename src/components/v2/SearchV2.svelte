@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Recherche du nouveau client (direction Levente). Cœur de nav : présente à
    * tous les niveaux. Densité par niveau :
@@ -36,7 +37,8 @@
   import { activeView, pendingSearchQuery } from '../../lib/stores/navigation';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
-  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
+  import { ouvrirArtisteDepuis, ouvrirArtisteDeServiceParNom } from '../../lib/ouvrirArtisteDepuis';
+  import { artisteDeCarteAlbum, type ArtisteDeCarte } from '../../lib/artisteCarteAlbum';
   import { requeteAuMontage } from '../../lib/rechercheContexte';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -835,6 +837,15 @@
    * identifiant — un service qu'on ne sait pas interroger n'a pas de fiche à
    * ouvrir, et affiner la recherche sur son nom est le seul geste honnête.
    */
+  /**
+   * #2075, volet 3 — le NOM d'artiste sous la pochette d'un album de service.
+   * Même chemin que le lien de la fiche album (#956) : l'identifiant du
+   * service s'il est là, sinon la résolution par le nom, dont le repli parle.
+   */
+  function ouvrirArtisteDeCarte(c: ArtisteDeCarte) {
+    void ouvrirArtisteDeServiceParNom(c, 'search');
+  }
+
   function ouvrirArtiste(ar: any) {
     if (!estLocal(ar) && (!ar?.source || !ar?.source_id)) { q = ar.name; return; }
     void ouvrirArtisteDepuis(ar, 'search');
@@ -1187,7 +1198,7 @@
                  seule colonne que la liste partagee ne connait pas, et elle
                  passe donc par le suffixe. -->
             <ListePistesV2 pistes={acoustic.tracks as any} numerotation="aucune" pochetteEnTableau
-              avecAlbum={false} onLire={(p) => playTrack(p as any)} apres={proximite} largeurApres="52px" />
+              onLire={(p) => playTrack(p as any)} apres={proximite} largeurApres="52px" />
             {#snippet proximite(p: any)}
               {#if p.similarity != null}<span class="sim">{Math.round(p.similarity * 100)}%</span>{/if}
             {/snippet}
@@ -1226,8 +1237,8 @@
                 -->
                 <button class="bcard" onclick={() => ouvrirArtiste(a)}>
                   <span class="bcv rond"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} vignette alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
-                  <span class="bt">{a.name}</span>
-                  <span class="bk">{$t('v2.rech.kindArtist' as any)}</span>
+                  <span class="bt" use:bulleTexte>{a.name}</span>
+                  <span class="bk" use:bulleTexte>{$t('v2.rech.kindArtist' as any)}</span>
                 </button>
                 <div class="bsrc">
                   {#each provenances(a) as s (s.source)}
@@ -1244,15 +1255,15 @@
                      différents sous une carte identique. -->
                 <button class="bcard" onclick={() => ouvrirFiche(a)}>
                   <span class="bcv"><AlbumArt coverPath={a.cover_path} albumId={estLocal(a) ? a.id : null} size={0} vignette alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} /></span>
-                  <span class="bt">{a.title}</span>
-                  <span class="bk">{$t('v2.rech.kindAlbum' as any)} · {a.artist_name ?? ''}</span>
+                  <span class="bt" use:bulleTexte>{a.title}</span>
+                  <span class="bk" use:bulleTexte>{$t('v2.rech.kindAlbum' as any)} · {a.artist_name ?? ''}</span>
                 </button>
               {:else}
                 {@const pi = meilleur.piste}
                 <button class="bcard" onclick={() => lirePiste(pi)}>
                   <span class="bcv"><AlbumArt coverPath={pi.cover_path} albumId={estLocal(pi) ? (pi.album_id ?? null) : null} size={0} vignette alt={pi.title} source={pi.source as any} fallbackInitials={pi.title?.slice(0,1)} /></span>
-                  <span class="bt">{pi.title}</span>
-                  <span class="bk">{$t('v2.rech.kindTrack' as any)} · {pi.artist_name ?? ''}</span>
+                  <span class="bt" use:bulleTexte>{pi.title}</span>
+                  <span class="bk" use:bulleTexte>{$t('v2.rech.kindTrack' as any)} · {pi.artist_name ?? ''}</span>
                 </button>
               {/if}
             </div>
@@ -1360,6 +1371,7 @@
           <div class="grid">
             {#each vusAlbums as a, i (String(a.source ?? 'local') + ':' + String(a.id ?? a.source_id ?? i))}
               {@const local_ = estLocal(a)}
+              {@const artisteCarte = local_ ? null : artisteDeCarteAlbum(a)}
               <div class="card" class:static={!local_}>
                 <span class="cv">
                   <!-- 🔴 PARITÉ local / service, sauf l'édition.
@@ -1409,15 +1421,31 @@
                      mais on ne peut pas accéder à la page d'un album Qobuz ».
                      La source reste nommée sur la troisième ligne, avec la
                      qualité, de la même façon qu'un album local. -->
-                {#if local_ || (a.source && a.source_id)}
+                <!-- #2075, volet 3 — Sandro, Qobuz, « Leprous » : le NOM
+                     d'artiste d'un album de service était pris dans le bouton
+                     de l'album, inerte pour l'artiste. Il devient son propre
+                     bouton (un bouton dans un bouton est invalide) et ouvre la
+                     fiche de l'artiste chez le service. -->
+                {#if (local_ || (a.source && a.source_id)) && !artisteCarte}
                   <button class="meta" onclick={() => ouvrirFiche(a)}>
                     <span class="ct" title={a.title}>{a.title}</span>
                     <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
                     <QualiteAlbum objet={a} />
                   </button>
                 {:else}
-                  <span class="ct" title={a.title}>{a.title}</span>
-                  <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                  {#if local_ || (a.source && a.source_id)}
+                    <button class="meta" onclick={() => ouvrirFiche(a)}>
+                      <span class="ct" title={a.title}>{a.title}</span>
+                    </button>
+                  {:else}
+                    <span class="ct" title={a.title}>{a.title}</span>
+                  {/if}
+                  {#if artisteCarte}
+                    <button class="ca lienart" data-artiste-carte title={a.artist_name ?? ''}
+                      onclick={() => ouvrirArtisteDeCarte(artisteCarte)}>{a.artist_name ?? ''}</button>
+                  {:else}
+                    <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                  {/if}
                   <QualiteAlbum objet={a} />
                 {/if}
               </div>
@@ -1513,7 +1541,7 @@
                 <span class="plg" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h11M4 12h11M4 17h7M18 15V8l3 .6"/></svg>
                 </span>
-                <span class="ti">{pl.nom}<em>{pl.source}</em></span>
+                <span class="ti" use:bulleTexte>{pl.nom}<em>{pl.source}</em></span>
                 <span class="dur">{String(pl.pistes)}</span>
               </button>
               </div>
@@ -1693,6 +1721,9 @@
   .card:not(.static):hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
   .ct{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  /* #2075 — le nom d'artiste d'un album de service, bouton à part entière. */
+  .lienart{border:0; background:transparent; padding:0; cursor:pointer; text-align:inherit; align-self:flex-start; max-width:100%}
+  .lienart:hover{text-decoration:underline; color:var(--v2-txt)}
 
   /* Pastilles de filtre par type — elles ECARTENT, elles ne revelent pas :
      tout est allume au depart. */

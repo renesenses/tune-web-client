@@ -85,7 +85,12 @@ describe('🔴 Le câblage — la règle ne sert à rien si l’écran ne l’ap
   );
 
   it('le bouton consulte les zones AVANT de créer', () => {
-    expect(bloc).toContain('zoneNavigateurExistante($zones)');
+    expect(bloc).toContain('zoneNavigateurExistante($zones.filter(estZoneDeCetAppareil))');
+  });
+
+  it('rc4 — la zone trouvée ou créée est retenue comme celle de CET appareil', () => {
+    expect(bloc).toMatch(/if \(deja\?\.id != null\)[\s\S]{0,200}retenirZoneDeCetAppareil\(deja\.id\)/);
+    expect(bloc).toContain('retenirZoneDeCetAppareil(zone.id)');
   });
 
   it('🔴 et il ne crée PAS quand il en trouve une', () => {

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * TROISIÈME LIGNE d'une vignette : d'où vient le disque, et en quelle qualité.
    *
@@ -60,7 +61,7 @@
   <span class="qa">
     {#if source}<ServiceBadge {source} compact />{/if}
     {#if source === 'upnp'}<DisponibiliteUpnp sourceId={objet?.source_id} />{/if}
-    {#if qualite}<span class="q">{qualite}</span>{/if}
+    {#if qualite}<span class="q" use:bulleTexte>{qualite}</span>{/if}
   </span>
 {/if}
 

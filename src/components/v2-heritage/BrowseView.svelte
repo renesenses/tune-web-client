@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { get } from 'svelte/store';
   import { tip } from '../../lib/tooltip';
@@ -20,6 +21,7 @@
   import { untrack } from 'svelte';
   import { detailOuvert, ouvrirDetail, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { reculerAvecIntention } from '../../lib/historiqueNavigation';
+  import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
@@ -33,6 +35,27 @@
   let roots = $state<BrowseRootEntry[]>([]);
   let browseResult = $state<BrowseResult | null>(null);
   let currentPath = $state<string | null>(null);
+
+  /**
+   * 🔴 LE DOSSIER OUVERT EST UNE CIBLE DE RACCOURCI — #2050.
+   *
+   * FabienM, fil 2199 point 9 (1.0.0-rc3) : « Raccourci sur un sous répertoire
+   * ne fonctionne pas ». Cet écran ne publiait rien : le signet de la coquille
+   * ne retenait que la vue `browse`, et le raccourci rouvrait la liste des
+   * emplacements. La clé est celle de l'historique (`dossier:<chemin>`) ;
+   * `navigateToShortcut` rouvre le dossier par le chemin de « Localiser sur le
+   * disque » (`ouvrirLeRepertoire`). À la liste des emplacements, aucune cible.
+   */
+  $effect(() => {
+    const chemin = currentPath;
+    untrack(() => {
+      if (!chemin) { clearShortcutTarget(); return; }
+      const nom = chemin.split('/').filter(Boolean).pop() ?? chemin;
+      setShortcutTarget({ key: cleDossier(chemin), restore: { path: chemin }, label: nom });
+    });
+  });
+  // Quitter l'écran oublie la cible (même geste que les playlists).
+  $effect(() => () => clearShortcutTarget());
   // « + Ajouter » : ouvre l'assistant d'import avec CE dossier comme
   // destination, pour poser un album dans le dossier d'un artiste qu'on
   // possède déjà au lieu de laisser le gabarit décider (demande de Yacine).
@@ -376,7 +399,7 @@
               {crumb.name}
             </button>
           {:else}
-            <span class="breadcrumb-current">{crumb.name}</span>
+            <span class="breadcrumb-current" use:bulleTexte>{crumb.name}</span>
           {/if}
         {/each}
       </nav>
@@ -450,9 +473,9 @@
             <div class="track-item" onclick={() => t.id && playFromTrack(index)}>
               <span class="track-num">{t.track_number ?? index + 1}</span>
               <div class="track-info">
-                <span class="track-title truncate">{t.title}</span>
+                <span class="track-title truncate" use:bulleTexte>{t.title}</span>
                 {#if t.artist_name}
-                  <span class="track-artist truncate">{t.artist_name}</span>
+                  <span class="track-artist truncate" use:bulleTexte>{t.artist_name}</span>
                 {/if}
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
@@ -510,7 +533,7 @@
             </svg>
             <div class="root-info">
               <span class="root-name">{root.name}</span>
-              <span class="root-path truncate">{root.path}</span>
+              <span class="root-path truncate" use:bulleTexte>{root.path}</span>
               {#if missing}
                 <span class="root-warning">{$tr('browse.rootMissing')}</span>
               {:else if empty}

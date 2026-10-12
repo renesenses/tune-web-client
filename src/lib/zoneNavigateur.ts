@@ -20,6 +20,11 @@
  * donc pas distinguer celle de l'ordinateur d'Alex de celle de sa tablette —
  * n'importe quel navigateur s'y rattache. Six zones identiques ne donnent pas
  * six destinations : elles donnent six façons de se tromper.
+ *
+ * ⚠️ rc4 : le serveur ne marque toujours aucun propriétaire, mais le
+ * navigateur retient désormais les zones qu'il a créées
+ * (`zoneNavigateurProprietaire.ts`) : le bouton ne cherche plus que parmi
+ * celles-là, pour ne pas prendre la zone d'un téléphone pour la sienne.
  */
 
 export interface ZoneCandidate {

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Coquille du nouveau client (direction Levente) : barre latérale à
    * niveaux + vue principale routée sur `activeView` + lecteur. Portée
@@ -33,6 +34,7 @@
   import MediaServersV2 from './MediaServersV2.svelte';
   import StreamingV2 from './StreamingV2.svelte';
   import CrossfeedV2 from './CrossfeedV2.svelte';
+  import ReaffectationCanauxV2 from './ReaffectationCanauxV2.svelte';
   import CrossfeedProV2 from './CrossfeedProV2.svelte';
   import EqualizerV2 from './EqualizerV2.svelte';
   import TuneHealthV2 from './TuneHealthV2.svelte';
@@ -125,6 +127,7 @@
    * changé à l'écran.
    */
   import ToastContainer from '../partages/ToastContainer.svelte';
+  import { demandeCercle } from '../../lib/circlePlaylists';
   // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
   // « TV » juste au-dessus. Signale manquant par Bertrand le 05/09/2026 :
   // « Il manque Oxygen dans la v2 !! ». Il pese 1 400 lignes avec son rail de
@@ -191,7 +194,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { t, locale } from '../../lib/i18n';
   import { get } from 'svelte/store';
-  import { preferences } from '../../lib/stores/preferences';
+  import { preferences, preferencesRelues } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
   import {
     startUpdatePolling, stopUpdatePolling,
@@ -370,7 +373,12 @@
   // Fil 2166 — la vue de démarrage (Réglages › Général) est lue UNE fois, par
   // `get` : lue par `$preferences`, l'effet se rebrancherait à chaque réglage
   // touché et ramènerait l'écran sur la vue de démarrage en pleine session.
-  $effect(() => brancherHistoriqueCoquille({ vueDeDemarrage: get(preferences).startupView }));
+  // Fils 2166 et 2168 (rc3) — puis celle du PROFIL, quand le serveur a
+  // répondu : la copie locale d'un autre navigateur ne fait plus foi.
+  $effect(() => brancherHistoriqueCoquille({
+    vueDeDemarrage: get(preferences).startupView,
+    vueDeDemarrageRelue: preferencesRelues.then(() => get(preferences).startupView),
+  }));
 
   /** La bannière n'occupe la place que si elle a quelque chose à dire. */
   const annonceMaj = $derived($updateAvailable && !$updateBannerDismissed);
@@ -394,12 +402,27 @@
    * composant partagé `NowPlaying` reçoit le geste, il ne le devine pas.
    * `vueDeRetour` porte le chemin du retour, comme pour la fiche artiste —
    * un seul mécanisme de retour dans cette coquille, pas deux.
+   *
+   * 🔴 #2053 — FabienM, fil 2199 point 4 : « je sélectionne un artiste, puis
+   * sur un titre je clique sur "aller vers l'album" […] ça me renvoie à la
+   * lecture en cours, pas à la page de l'artiste ». Le retour valait
+   * `'nowplaying'` EN DUR : juste pour le premier appelant (Lecture en cours),
+   * faux pour tous les autres — titres phares de la page artiste, file
+   * d'attente, historique… Le retour est désormais l'écran d'où part le geste.
+   * Depuis la fiche elle-même (une autre version de l'album), on garde le
+   * retour qu'elle avait déjà.
    */
   function ouvrirAlbumService(c: {
     service: string; albumId: string; titre: string; pochette?: string | null;
     artiste?: string | null; artisteId?: string | null;
   }) {
-    vueDeRetour.set('nowplaying');
+    const depuis = get(activeView);
+    if (depuis !== 'streamingalbum') {
+      // Le retour PROPRE à l'écran qu'on quitte (la page artiste a le sien) :
+      // `vueDeRetour` n'a qu'une case, et la fiche va l'occuper.
+      retourSousLaFiche = { vue: depuis, retour: get(vueDeRetour) };
+      vueDeRetour.set(depuis);
+    }
     ficheAlbumService.set({
       service: c.service as any,
       id: c.albumId,
@@ -447,6 +470,28 @@
       ouvrirArtiste: ouvrirArtisteServiceParNom,
     });
     return () => gestesNavigationService.set(null);
+  });
+
+  /**
+   * #2053 — l'écran SOUS la fiche album de service, et SON propre retour.
+   *
+   * Quand on revient sur cet écran — par le Retour de la fiche OU par le
+   * Précédent du navigateur, qui ne passe pas par `fermerAlbumService` — son
+   * retour lui est rendu : sans cela, le « < » de la page artiste revenue
+   * aurait lu celui de la fiche (`streamingartist`, lui-même) et ne serait
+   * allé nulle part.
+   */
+  let retourSousLaFiche: { vue: View; retour: View | null } | null = null;
+  $effect(() => {
+    let precedente = get(activeView);
+    return activeView.subscribe((vue) => {
+      if (precedente === 'streamingalbum' && vue !== 'streamingalbum') {
+        const r = retourSousLaFiche;
+        retourSousLaFiche = null;
+        if (r && r.vue === vue) vueDeRetour.set(r.retour);
+      }
+      precedente = vue;
+    });
   });
 
   /** Le retour de la fiche album : le dépôt est consommé UNE fois. */
@@ -644,7 +689,7 @@
       tout, y compris la grappe (`.avec-maj .av-tr`).
     -->
     <div class="maj">
-      <button class="maj-txt" onclick={ouvrirMaj}>
+      <button class="maj-txt" onclick={ouvrirMaj} use:bulleTexte>
         {$t('app.updateAvailable').replace('{version}', String($latestVersion ?? ''))}
       </button>
       <button class="maj-x" onclick={dismissUpdateBanner}
@@ -733,6 +778,8 @@
         <CrossfeedV2 />
       {:else if $activeView === 'crossfeedpro'}
         <CrossfeedProV2 />
+      {:else if $activeView === 'reaffectation'}
+        <ReaffectationCanauxV2 />
       {:else if $activeView === 'equalizer'}
         <EqualizerV2 />
       {:else if $activeView === 'diagnostics'}
@@ -840,6 +887,15 @@
        un échec de lecture ne produit rigoureusement rien (#3732). -->
   <ToastContainer />
 
+  <!-- Playlists de cercle : l'ajout groupé et le partage d'une playlist,
+       demandés depuis n'importe quel menu (`demandeCercle`). Chargée à la
+       demande, comme la fenêtre d'ajout d'un seul titre. -->
+  {#if $demandeCercle}
+    {#await import('./AjoutGroupeCercleV2.svelte') then m}
+      <m.default demande={$demandeCercle} onClose={() => demandeCercle.set(null)} />
+    {/await}
+  {/if}
+
   <!-- Voie MOBILE : la barre pose ce drapeau au lieu de changer de vue.
        Personne ne l'écoutait ici. -->
   {#if $mobileNowPlayingOpen}
@@ -867,7 +923,14 @@
      qui l'emploient. Un jeton absent n'échoue pas — la déclaration est ignorée
      en silence — c'est-à-dire exactement la panne qu'on vient de corriger, et
      que la porte savait annoncer. */
-  .v2-shell{--maj-h:42px; position:relative; display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
+  /* web#2076 (fil 2206, Safari iPad Pro 11) — `100vh` y vaut le GRAND
+     viewport, barres d'outils repliées : la barre de lecture, dernier enfant
+     d'une coquille en `overflow:hidden`, passait sous le bord visible. `dvh`
+     suit le viewport réel (`vh` reste en repli pour qui ignore `dvh`), et le
+     retrait du haut que `body` réserve déjà (`tune-theme.css`) est soustrait. */
+  .v2-shell{--maj-h:42px; position:relative; display:flex; flex-direction:column;
+    height:calc(100vh - env(safe-area-inset-top, 0px)); height:calc(100dvh - env(safe-area-inset-top, 0px));
+    background:var(--v2-bg); overflow:hidden}
   /* Avatar unique de l'application : pincé en haut à droite de l'écran, au-dessus
      de toutes les vues (y compris les overlays de fiche). */
   .av-tr{position:absolute; top:20px; right:30px; z-index:80; display:flex; align-items:center; gap:10px}

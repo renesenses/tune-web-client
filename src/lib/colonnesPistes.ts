@@ -70,9 +70,9 @@
  * de Bertrand, 09/09/2026 : **on branche le tableau en mode Expert**, et `dr`
  * garde son niveau. C'est l'écran qui descend vers la colonne, pas l'inverse.
  *
- * `MODES_BRANCHES` cite donc `beginner` ET `expert`. Avancé est resté hors du
- * tableau jusqu'au 07/10/2026 (#1470) : il y est entré par cette liste, et
- * par elle seule.
+ * Avancé est resté hors du tableau jusqu'au 07/10/2026 (#1470). Depuis, les
+ * trois modes rendent le tableau : la liste `MODES_BRANCHES` qui tranchait
+ * entre tableau et lignes est retirée avec l'ancien rendu en lignes.
  */
 import { levelRank, type SettingsLevel } from './uiLevel';
 import type { Track } from './types';
@@ -82,6 +82,8 @@ import { afficherDynamicRange } from './dynamicRange';
 export type CleColonne =
   | 'num' | 'title' | 'artist' | 'composer' | 'time' | 'year'
   | 'plays' | 'lastPlayed' | 'channels' | 'bpm' | 'genre' | 'quality'
+  // La note de la piste lue dans ses balises (tune-server-rust#6123).
+  | 'rating'
   // Ajoutées le 07/09/2026 : « je voudrai ajouter des metadata pour Advanced
   // et Expert, et donc grisé en Essential » (Bertrand).
   | 'album' | 'albumArtist' | 'disc' | 'label'
@@ -186,6 +188,14 @@ export const COLONNES: Colonne[] = [
    * tient ce plancher.
    */
   { cle: 'quality',    cleI18n: 'v2.tcol.quality',    largeur: '196px' },
+  /**
+   * Note — tune-server-rust#6123 (forum-hifi #792) : la note que le FICHIER
+   * porte (Vorbis `RATING`, ID3 `POPM`, MP4 `rate`…), ramenée par le serveur
+   * sur 0 à 5. En étoiles ; une piste sans note laisse la cellule vide, et
+   * zéro étoile s'affiche (c'est une note). Placée APRÈS les douze de la
+   * maquette, qu'elle ne dérange pas ; offerte dès Essentiel.
+   */
+  { cle: 'rating',     cleI18n: 'v2.tcol.rating',     largeur: '84px',  align: 'centre' },
 
   // ── À partir d'AVANCÉ ────────────────────────────────────────────────────
   //
@@ -255,7 +265,7 @@ export const COLONNES: Colonne[] = [
    * fiches (`AlbumDetailV2`, `LibraryView`) — quand il existe.
    *
    * Elle reste `min: 'expert'`, et depuis le 09/09/2026 le tableau existe
-   * aussi dans ce mode (`MODES_BRANCHES`) : c'est l'écran qui est descendu
+   * aussi dans ce mode : c'est l'écran qui est descendu
    * vers la colonne, pas la colonne qui a changé de niveau.
    */
   { cle: 'dr',          cleI18n: 'v2.tcol.dr',          largeur: '64px',  align: 'droite',
@@ -286,7 +296,7 @@ export const PAR_CLE: Record<CleColonne, Colonne> = Object.fromEntries(
  * toutes PROPOSÉES, pas toutes cochées — mais on sait maintenant ce qu'elle
  * coûte, et une liste vide ici ouvrirait une grille nue.
  *
- * Avancé porte le tableau depuis #1470 : voir `MODES_BRANCHES`.
+ * Avancé porte le tableau depuis #1470.
  */
 export const DEFAUTS: Record<SettingsLevel, CleColonne[]> = {
   beginner:     ['num', 'title', 'artist', 'time', 'quality'],
@@ -296,37 +306,6 @@ export const DEFAUTS: Record<SettingsLevel, CleColonne[]> = {
   // colonnes à l'ouverture seraient illisibles. Elles sont à un clic.
   expert:       ['num', 'title', 'artist', 'composer', 'time', 'year', 'channels', 'bpm', 'genre', 'quality'],
 };
-
-/**
- * Les modes dont le TABLEAU est réellement branché.
- *
- * 🔴 SOURCE UNIQUE. `ListePistesV2` décidait la même chose de son côté, en
- * dur : `enTableau = mode === 'beginner'`. Deux réponses à une seule question,
- * dont une seule — celle de l'écran des Réglages — consultait cette liste.
- * L'ajout d'`expert` ici n'aurait donc rien changé à l'affichage, et la
- * matrice aurait annoncé un mode branché que le tableau ignorait. Le
- * composant lit maintenant cette constante, et elle seule.
- *
- * Avancé n'y était pas (arbitrage du 09/09/2026). #1470 (Steve Taylor, fil
- * 1671) en a mesuré le coût : en Avancé, la liste de pistes était rendue en
- * LIGNES, et les colonnes « # écoutes » et « Dernière écoute » — livrées en
- * v0.9.147 — y étaient inatteignables quel que soit le réglage, sur les dix
- * écrans qui montent `ListePistesV2`. Go de Bertrand le 07/10/2026 : Avancé
- * rejoint le tableau. Comme annoncé, l'ajouter ICI a suffi.
- */
-export const MODES_BRANCHES: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
-
-/**
- * Ce mode rend-il un TABLEAU, ou des lignes ?
- *
- * La question de `ListePistesV2`, posée ici pour qu'il n'ait pas à la
- * retrancher. Un `includes` sur la constante exportée reste lisible chez lui,
- * mais une fonction nommée dit ce qu'on demande, et c'est elle qu'on cherche
- * quand on se demande où ça se décide.
- */
-export function modeEnTableau(mode: SettingsLevel): boolean {
-  return MODES_BRANCHES.includes(mode);
-}
 
 /** Cette colonne est-elle offerte à ce mode ? */
 export function offerteAu(c: Colonne, mode: SettingsLevel): boolean {
@@ -408,6 +387,12 @@ function dateFichier(secondes: unknown): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
 
+/** Une note 0–5 en étoiles : « ★★★☆☆ ». Hors bornes ou absente : `null`. */
+export function etoiles(note: unknown): string | null {
+  if (typeof note !== 'number' || !Number.isInteger(note) || note < 0 || note > 5) return null;
+  return '★'.repeat(note) + '☆'.repeat(5 - note);
+}
+
 /** Une taille de fichier lisible. `0` reste `0 o` : c'est une information. */
 function tailleFichier(octets: unknown): string | null {
   if (typeof octets !== 'number' || !Number.isFinite(octets) || octets < 0) return null;
@@ -430,6 +415,7 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
     case 'year':     return t.year != null ? String(t.year) : null;
     case 'channels': return (t as any).channels != null ? String((t as any).channels) : null;
     case 'bpm':      return (t as any).bpm != null ? String(Math.round((t as any).bpm)) : null;
+    case 'rating':   return etoiles(t.rating);
     case 'genre':    return texte((t as any).genre);
     // Métadonnées de catalogue, toutes présentes sur la route des pistes :
     // `texte()` rend `null` sur ce qui manque, et la cellule reste vide.

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Tune Circle T2 — le catalogue d'un CONTACT, en lecture
    * (renesenses/tune-server-rust#5325, décisions de Bertrand du 28/09/2026).
@@ -66,11 +67,17 @@
     onFermer: (plusPartage: boolean) => void;
     /** T4 — le `premium` de `/library-sync`, s'il a répondu. Sinon : la licence. */
     premium?: boolean | null;
+    /**
+     * T4 — l'écoute chez un contact est-elle ouverte sur ce serveur
+     * (`ecouteOuverte`) ? Fermée par défaut (décision produit du 10/10/2026) :
+     * rien de l'écoute ne s'affiche, ni bouton ni cadenas.
+     */
+    ouverte?: boolean;
   }
-  let { contact, onFermer, premium = null }: Props = $props();
+  let { contact, onFermer, premium = null, ouverte = false }: Props = $props();
 
-  /** Le bouton Lire n'existe que pour un auditeur Premium : aucun appel sinon. */
-  const ecoute = $derived(ecoutePermise(premium, { loaded: $licenseState.loaded, premium: $isPremium }));
+  /** Le bouton Lire n'existe que fonction ouverte ET auditeur Premium : aucun appel sinon. */
+  const ecoute = $derived(ouverte && ecoutePermise(premium, { loaded: $licenseState.loaded, premium: $isPremium }));
 
   type Onglet = 'albums' | 'artists' | 'tracks' | 'streaming';
   const ONGLETS: { id: Onglet; cle: string }[] = [
@@ -328,13 +335,15 @@
     <button class="lnk retour-liste" onclick={() => onFermer(false)}>← {$t('v2.circle.lib.back' as any)}</button>
     <h2 class="titre-catalogue">{$t('v2.circle.lib.title' as any).replace('{name}', contact.name)}</h2>
     {#if stats}
-      <p class="note stats">{ligneStats}{#if stats.last_sync} · {$t('v2.circle.lib.updated' as any).replace('{date}', $dateCourte(stats.last_sync))}{/if}</p>
+      <p class="note stats" use:bulleTexte>{ligneStats}{#if stats.last_sync} · {$t('v2.circle.lib.updated' as any).replace('{date}', $dateCourte(stats.last_sync))}{/if}</p>
     {/if}
     {#if ecoute}
-      <p class="note ecoute-note">{$t('v2.circle.listen.hint' as any)}</p>
+      <p class="note ecoute-note" use:bulleTexte>{$t('v2.circle.listen.hint' as any)}</p>
     {:else}
-      <p class="note lecture-seule">{$t('v2.circle.lib.readOnly' as any)}</p>
-      <p class="note ecoute-premium"><span aria-hidden="true">🔒</span> {$t('v2.circle.listen.premiumOnly' as any)}</p>
+      <p class="note lecture-seule" use:bulleTexte>{$t('v2.circle.lib.readOnly' as any)}</p>
+      {#if ouverte}
+        <p class="note ecoute-premium" use:bulleTexte><span aria-hidden="true">🔒</span> {$t('v2.circle.listen.premiumOnly' as any)}</p>
+      {/if}
     {/if}
     {#if refusEcoute}
       <div class="err refus-ecoute" role="alert"><span>{refusEcoute}</span>
@@ -350,7 +359,7 @@
     <div class="rayon-tete">
       <button class="lnk retour-catalogue" onclick={() => fermerRayon(false)}>← {$t('v2.circle.sel.backToLibrary' as any)}</button>
       <h3 class="titre-rayon">{rayon.name}</h3>
-      {#if rayon.count != null}<p class="note">{compteRayon(rayon)}</p>{/if}
+      {#if rayon.count != null}<p class="note" use:bulleTexte>{compteRayon(rayon)}</p>{/if}
     </div>
   {:else if !rayon && !album && rayonsListe.length > 0}
     <section class="rayons-contact" aria-labelledby="circle-rayons-contact">
@@ -359,8 +368,8 @@
         {#each rayonsListe as r (r.id)}
           <li>
             <button class="rayon-contact" onclick={() => ouvrirRayon(r)}>
-              <span class="nom-rayon">{r.name}</span>
-              {#if r.count != null}<span class="note">{compteRayon(r)}</span>{/if}
+              <span class="nom-rayon" use:bulleTexte>{r.name}</span>
+              {#if r.count != null}<span class="note" use:bulleTexte>{compteRayon(r)}</span>{/if}
             </button>
           </li>
         {/each}
@@ -381,7 +390,7 @@
         <span class="pochette"><AlbumArt coverPath={pochetteAlbumContact(album)} albumId={null} size={0} alt={album.title} /></span>
         <div class="album-infos">
           <h3 class="album-titre">{album.title}</h3>
-          <p class="note">{detailsAlbum(album)}{#if album.genre} · {album.genre}{/if}</p>
+          <p class="note" use:bulleTexte>{detailsAlbum(album)}{#if album.genre} · {album.genre}{/if}</p>
           {#if ecoute && sourcesAlbum.length > 0}
             <button class="lire-album" disabled={ecouteEnCours != null}
               onclick={() => void lancerEcoute(sourcesAlbum[0], sourcesAlbum)}>▶ {$t('v2.circle.listen.playAlbum' as any)}</button>
@@ -396,7 +405,7 @@
       {:else}
         <div class="pistes-album">
           <ListePistesV2 pistes={pistesAlbum} onLire={rienNeBouge} numerotation="piste"
-            avecAlbum={false} pochette={false} enTetesDisque lectureSeule
+            enTetesDisque lectureSeule
             apres={ecoute ? boutonLire : undefined} largeurApres="84px" />
         </div>
       {/if}
@@ -425,7 +434,7 @@
 
     {#if onglet === 'albums'}
       {#if albums.length === 0 && !chargement && !erreur}
-        <p class="note vide">{$t('v2.circle.lib.empty' as any)}</p>
+        <p class="note vide" use:bulleTexte>{$t('v2.circle.lib.empty' as any)}</p>
       {:else}
         <ul class="albums">
           {#each albums as a (a.id)}
@@ -441,7 +450,7 @@
       {/if}
     {:else if onglet === 'artists'}
       {#if artistes.length === 0 && !chargement && !erreur}
-        <p class="note vide">{$t('v2.circle.lib.empty' as any)}</p>
+        <p class="note vide" use:bulleTexte>{$t('v2.circle.lib.empty' as any)}</p>
       {:else}
         <ul class="artistes">
           {#each artistes as a (a.id)}
@@ -451,16 +460,16 @@
         </ul>
       {/if}
     {:else if onglet === 'streaming'}
-      <p class="note references-quoi">{$t('v2.circle.sel.streamingHint' as any)}</p>
+      <p class="note references-quoi" use:bulleTexte>{$t('v2.circle.sel.streamingHint' as any)}</p>
       {#if references.length === 0 && !chargement && !erreur}
-        <p class="note vide">{$t('v2.circle.lib.empty' as any)}</p>
+        <p class="note vide" use:bulleTexte>{$t('v2.circle.lib.empty' as any)}</p>
       {:else}
         <ul class="references">
           {#each references as r, i (i)}
             <li class="ligne reference reference-{r.type}">
               <span class="ref-texte">
-                <span class="ref-titre">{r.title}</span>
-                <span class="note">{detailsReference(r)}</span>
+                <span class="ref-titre" use:bulleTexte>{r.title}</span>
+                <span class="note" use:bulleTexte>{detailsReference(r)}</span>
               </span>
               <span class="services">
                 {#each servicesReference(r) as sv (sv)}
@@ -473,10 +482,10 @@
       {/if}
     {:else}
       {#if pistes.length === 0 && !chargement && !erreur}
-        <p class="note vide">{$t('v2.circle.lib.empty' as any)}</p>
+        <p class="note vide" use:bulleTexte>{$t('v2.circle.lib.empty' as any)}</p>
       {:else}
         <div class="pistes-contact">
-          <ListePistesV2 {pistes} onLire={rienNeBouge} pochette={false} lectureSeule
+          <ListePistesV2 {pistes} onLire={rienNeBouge} lectureSeule
             apres={ecoute ? boutonLire : undefined} largeurApres="84px" />
         </div>
       {/if}

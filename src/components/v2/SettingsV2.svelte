@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Réglages du nouveau client (direction Levente).
    *
@@ -16,6 +17,7 @@
    * absent.
    */
   import { t } from '../../lib/i18n';
+  import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
@@ -50,6 +52,8 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { ssoDisponible } from '../../lib/bridge';
+  import { chargerLienAcces, qrSvg } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
@@ -84,7 +88,7 @@
   } from '../../lib/miseAJourHomebrew';
   import { LEVEL_LABEL_KEYS } from '../../lib/uiLevel';
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
-  import { COLONNES, MODES_BRANCHES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
+  import { COLONNES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { notifications } from '../../lib/stores/notifications';
   import { streamingServices } from '../../lib/stores/streaming';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
@@ -106,7 +110,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
-  import FolderBrowser from '../partages/FolderBrowser.svelte';
+  import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
   import {
@@ -119,6 +123,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { zoneAProposer, propositionRetenue, resumeProposition } from '../../lib/reglagesProposes';
   import type { DevicePreset } from '../../lib/api';
   import { zoneNavigateurExistante, zonesNavigateurEnDouble } from '../../lib/zoneNavigateur';
+  import { estZoneDeCetAppareil, retenirZoneDeCetAppareil } from '../../lib/zoneNavigateurProprietaire';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
   import { licenseState, loadLicense, offlineGrace } from '../../lib/stores/license';
@@ -140,6 +145,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     CLE_I18N_CRAN, CRANS_CADENCE, cranOuDefaut, estCranCadence,
   } from '../../lib/cadenceAnimations';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  import SauvegardeCloudV2 from './SauvegardeCloudV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -533,6 +539,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const before = rgAnalysis; rgAnalysis = v;
     patch({ replaygain_analysis_enabled: v }, () => { rgAnalysis = before; });
   }
+  // Remesure des crêtes (true-peak) : bouton FACULTATIF. Le serveur rend à la
+  // passe ReplayGain les mesures prises avant son correctif des jonctions de
+  // segments ; rien n'est écrit dans les fichiers audio.
+  let remesure = $state<api.RemesureReplayGain | null>(null);
+  let remesureEnvoi = $state(false);
+  $effect(() => {
+    api.getReplayGainReanalyze()
+      .then((r) => { remesure = r; })
+      .catch(() => { remesure = null; });
+  });
+  async function lancerRemesure() {
+    const n = remesure?.stale ?? 0;
+    if (!(await dialogs.confirm($t('settings.rgReanalyzeConfirm' as any).replace('{n}', String(n))))) return;
+    remesureEnvoi = true;
+    try {
+      const r = await api.reanalyzeReplayGain();
+      remesure = r;
+      if (r.status === 'started') notifications.success($t('settings.rgReanalyzeStarted' as any).replace('{n}', String(r.stale ?? n)));
+      else if (r.status === 'nothing_to_do') notifications.success($t('settings.rgReanalyzeNothing' as any));
+      else if (r.status === 'already_running') notifications.success($t('settings.rgReanalyzeRunning' as any));
+      else if (r.status === 'analysis_disabled') notifications.error($t('settings.rgReanalyzeDisabled' as any));
+    } catch {
+      notifications.error($t('settings.rgReanalyzeError' as any));
+    } finally {
+      remesureEnvoi = false;
+    }
+  }
   function toggleDevice(prefixedId: string) {
     preferences.update((pr) => {
       const ids = pr.hiddenDeviceIds;
@@ -553,9 +586,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function createBrowserZoneHere() {
     creatingBrowserZone = true;
     try {
-      const deja = zoneNavigateurExistante($zones);
+      // rc4 : seulement parmi les zones de CET appareil — la zone d'un
+      // téléphone ou d'un autre navigateur n'est pas « cet ordinateur ».
+      const deja = zoneNavigateurExistante($zones.filter(estZoneDeCetAppareil));
       if (deja?.id != null) {
         // On ne crée pas : on SÉLECTIONNE celle qui existe, et on le dit.
+        retenirZoneDeCetAppareil(deja.id);
         currentZoneId.set(deja.id);
         notifications.info(
           $t('v2.set.browserZoneExists' as any).replace('{nom}', deja.name ?? ''),
@@ -563,7 +599,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         return;
       }
       const zone: any = await api.createZone($t('settings.thisComputer' as any), 'browser');
-      if (zone?.id != null) currentZoneId.set(zone.id);
+      if (zone?.id != null) { retenirZoneDeCetAppareil(zone.id); currentZoneId.set(zone.id); }
       // La liste des zones doit suivre : sans cela l'écran reste identique et
       // le bouton semble n'avoir rien fait.
       try { zones.set(await api.getZones()); } catch { /* l'essentiel est créé */ }
@@ -903,11 +939,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let brUrl = $state('');
   let brToken = $state('');
   let brBusy = $state(false);
+  // Lien d'accès à distance (`…/{server_id}/#token=…`) : il ne vient que de la
+  // route réservée à l'administrateur (`lienAccesDistant.ts`). Tout refus le
+  // laisse vide, et l'écran reste celui d'avant.
+  let brLien = $state<string | null>(null);
+  let brLienCopie = $state(false);
+  const brQr = $derived(brLien ? qrSvg(brLien) : '');
+  async function chargerLienPont() {
+    brLien = await chargerLienAcces((chemin) => api.apiFetch(chemin));
+    brLienCopie = false;
+  }
+  async function copierLienPont() {
+    if (brLien) brLienCopie = await copyText(brLien);
+  }
   $effect(() => {
     api.apiFetch('/cloud/bridge/status')
       .then((d: any) => {
         brEnabled = !!d?.enabled; brConnected = !!d?.connected;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = '';
+        if (brEnabled) chargerLienPont();
       })
       .catch(() => {});   // route absente sur un serveur anterieur
   });
@@ -916,11 +966,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       if (brEnabled) {
         await api.apiPost('/cloud/bridge/disable');
-        brEnabled = false; brConnected = false; brUrl = ''; brToken = '';
+        brEnabled = false; brConnected = false; brUrl = ''; brToken = ''; brLien = null;
       } else {
         const d: any = await api.apiPost('/cloud/bridge/enable');
         brEnabled = true;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = d?.bridge_token || '';
+        await chargerLienPont();
       }
     } catch (e: any) {
       notifications.error(e?.message ?? 'Erreur');
@@ -1123,6 +1174,60 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
   }
 
+  // ── Maître / agent (tune-server-rust#4626) ────────────────────────────
+  // Côté AGENT : ce serveur prête ses sorties locales ; le code d'appairage
+  // s'affiche ici et se saisit sur le maître. Côté MAÎTRE : les serveurs du
+  // réseau qui savent être agents, et ceux déjà appairés.
+  let agentEtat = $state<api.EtatAgentTune | null>(null);
+  let agentCode = $state<{ code: string; emisA: number; duree: number } | null>(null);
+  let agentHorloge = $state(Date.now());
+  let agentsAppaires = $state<api.AgentAppaire[]>([]);
+  let agentsCandidats = $state<api.CandidatAgent[]>([]);
+  let agentSaisies = $state<Record<string, string>>({});
+  let agentOccupe = $state(false);
+  async function chargerAgentTune() {
+    // Un serveur ancien n'a pas ces routes : la section reste vide, sans erreur.
+    try { agentEtat = api.etatAgentTuneLisible(await api.withTimeout(api.etatAgentTune(), 8_000, '/agent-tune/agent')); } catch { agentEtat = null; }
+    try {
+      const r = await api.withTimeout(api.listerAgentsTune(), 15_000, '/agent-tune/agents');
+      agentsAppaires = Array.isArray(r?.agents) ? r.agents : [];
+      agentsCandidats = Array.isArray(r?.candidats) ? r.candidats : [];
+    } catch { /* la découverte peut échouer sans que ce soit une panne */ }
+  }
+  $effect(() => { chargerAgentTune(); });
+  $effect(() => {
+    if (!agentCode) return;
+    const id = setInterval(() => { agentHorloge = Date.now(); }, 1000);
+    return () => clearInterval(id);
+  });
+  let agentRestant = $derived(agentCode ? api.secondesRestantesCode(agentCode.emisA, agentCode.duree, agentHorloge) : 0);
+  async function afficherCodeAgent() {
+    try {
+      const r = await api.emettreCodeAgent();
+      agentCode = { code: r.code, emisA: Date.now(), duree: r.expire_dans_s };
+      agentHorloge = Date.now();
+    } catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+  }
+  async function revoquerMaitreAgent(m: api.MaitreAppaire) {
+    try { await api.revoquerMaitre(m.maitre_id); await chargerAgentTune(); }
+    catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+  }
+  async function appairerCandidat(c: api.CandidatAgent) {
+    const saisie = agentSaisies[c.agent_id] ?? '';
+    if (!api.codeAgentRecevable(saisie)) return;
+    agentOccupe = true;
+    try {
+      const r = await api.appairerAgentTune(c.host, c.port, api.codeAgentNormalise(saisie));
+      notifications.success($t('settings.agentPairedOk' as any).replace('{n}', String(r.zones.length)));
+      agentSaisies = { ...agentSaisies, [c.agent_id]: '' };
+      await chargerAgentTune();
+    } catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+    agentOccupe = false;
+  }
+  async function oublierAgent(a: api.AgentAppaire) {
+    try { await api.oublierAgentTune(a.agent_id); await chargerAgentTune(); }
+    catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+  }
   // ── Wi-Fi de l'appliance (Tune OS) ─────────────────────────────────────
   // N'a de sens QUE sur une appliance : ailleurs, le reseau est gere par le
   // systeme hote. La section se declare donc indisponible plutot que
@@ -1256,12 +1361,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * tableau avec sur la première ligne les modes et sur la première colonne
    * les metadatas ».
    *
-   * ⚠️ Option A, retenue par lui : les trois modes sont montrés, mais seuls
-   * ceux de `MODES_BRANCHES` changent réellement l'écran. Les autres sont
-   * grisés ET le disent. Les afficher actifs sans effet serait exactement le
-   * défaut que ce client passe son temps à corriger.
+   * Les trois modes rendent le tableau depuis #1470 : aucune colonne de la
+   * matrice n'est plus grisée au titre d'un mode « non branché ».
    */
-  const modeBranche = (m: SettingsLevel) => MODES_BRANCHES.includes(m);
   const colonneCochee = (m: SettingsLevel, c: CleColonne) =>
     ($preferences.v2Colonnes?.[m] ?? []).includes(c);
 
@@ -1952,6 +2054,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     return () => { if (ytPoll) { clearInterval(ytPoll); ytPoll = null; } };
   });
 
+  /* --- Pays des Tendances YouTube Music (tune-server-rust#5247) ----------
+   *
+   * Réglage serveur `youtube_charts_country` : vide = automatique (la langue
+   * du navigateur, envoyée par l'écran Découvrir), `ZZ` = monde, sinon un
+   * pays. Le serveur le fait passer AVANT la langue du navigateur.
+   */
+  let paysTendancesYt = $state<string | null>(null);
+  $effect(() => {
+    api.getConfig()
+      .then((c: any) => { paysTendancesYt = paysTendancesDuReglage(c); })
+      .catch(() => { paysTendancesYt = null; });
+  });
+  async function choisirPaysTendancesYt(v: string) {
+    const avant = paysTendancesYt;
+    paysTendancesYt = v;
+    try { await api.updateConfig({ [CLE_PAYS_TENDANCES_YOUTUBE]: v }); }
+    catch { paysTendancesYt = avant; }   // pas d'état menteur si le serveur refuse
+  }
+
   async function enableYoutubePlayback() {
     ytBusy = true;
     try {
@@ -2055,9 +2176,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // qu'une analyse tourne : le badge doit le dire.
   $effect(() => { if (aDesChiffres($avancementAnalyse)) scanning = true; });
 
-  /** Fil forum 2171 — le sélecteur de dossier du serveur, perdu avec l'ancienne
-   *  interface (`FolderWizard`). La saisie à la main reste possible. */
-  let showFolderBrowser = $state(false);
   /** Fil forum 2171 — une racine de disque ou un très gros dossier demande une
    *  confirmation chiffrée AVANT l'ajout, qui lance l'analyse sur-le-champ. */
   async function addDir() {
@@ -3075,6 +3193,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch (e: any) { spcErr = e?.message ?? get(t)('settings.errActionFailed'); }
     spcBusy = false;
   }
+  // #6018 — « Lecture Spotify (expérimental) », désactivée par défaut.
+  async function toggleSpotifyLecture(on: boolean) {
+    spcBusy = true; spcErr = null;
+    try {
+      spc = await api.setSpotifyLectureExperimentale(on);
+    } catch (e: any) { spcErr = e?.message ?? get(t)('settings.errActionFailed'); }
+    spcBusy = false;
+  }
 
   // ── Base de donnees / exports ─────────────────────────────────────────
   let dbEngine = $state<string | null>(null);
@@ -3612,8 +3738,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="mrow mhead" role="row">
                   <span class="mcell mnom" role="columnheader"></span>
                   {#each SETTINGS_LEVELS as m (m)}
-                    <span class="mcell" role="columnheader" class:inerte={!modeBranche(m)}
-                      title={modeBranche(m) ? undefined : $t('settings.colModeNotWired' as any)}>
+                    <span class="mcell" role="columnheader">
                       {$t(LEVEL_LABEL_KEYS[m] as any)}
                     </span>
                   {/each}
@@ -3644,7 +3769,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                              de pistes sans titre n'est plus une liste. -->
                         <input type="checkbox"
                           checked={offerte && (c.verrouillee || colonneCochee(m, c.cle))}
-                          disabled={c.verrouillee || sansDonnee || !offerte || !modeBranche(m)}
+                          disabled={c.verrouillee || sansDonnee || !offerte}
                           aria-label={`${$t(c.cleI18n as any)} — ${$t(LEVEL_LABEL_KEYS[m] as any)}`}
                           onchange={() => basculerColonne(m, c.cle)} />
                       </span>
@@ -3652,9 +3777,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </div>
                 {/each}
               </div>
-              {#if SETTINGS_LEVELS.some((m) => !modeBranche(m))}
-                <p class="hint">{$t('settings.colModeNotWired' as any)}</p>
-              {/if}
 
               <!-- Premier pensionnaire de l'onglet Affichage : un GOÛT, donc
                    un interrupteur, et un défaut qui ne bouge pas. « Les 4
@@ -3691,6 +3813,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <input type="checkbox" checked={$preferences.afficherBoutonStop}
                     onchange={(e) => preferences.update((pr) => ({
                       ...pr, afficherBoutonStop: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- web#1861 — Levente Toth (fil 2068) : pouvoir masquer le
+                   bouton lune de la barre de transport, « comme les
+                   VU-mètres ». Coché par défaut : le bouton est là aujourd'hui. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.showSleepTimer' as any)}</span>
+                  <span class="hint">{$t('settings.showSleepTimerHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.afficherMinuteurSommeil}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, afficherMinuteurSommeil: (e.currentTarget as HTMLInputElement).checked,
                     }))} />
                   <span class="slider"></span>
                 </label>
@@ -4254,7 +4393,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if ssoConnecte}
                   <button class="lnk" disabled={ssoQuitte} onclick={delierCompteCloud}
                     >{ssoQuitte ? $t('common.loading' as any) : $t('settings.signOut' as any)}</button>
-                {:else if ssoConfigure}
+                {:else if ssoConfigure && ssoDisponible()}
+                  <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
                   <button class="lnk" onclick={relierCompteCloud}
                     >{$t('settings.signIn' as any)}</button>
                 {/if}
@@ -4363,7 +4503,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <div class="devlist">
                 {#each backups as b (b.filename)}
                   <div class="dev ign">
-                    <span class="dn mono">{b.filename}</span>
+                    <span class="dn mono" use:bulleTexte>{b.filename}</span>
                     <span class="dt">{tailleMo(b.size)} MB</span>
                     <span class="dh">{new Date(b.created_at).toLocaleString()}</span>
                     <button class="lnk danger" disabled={restoring !== null} onclick={() => restoreBackup(b.filename)}>
@@ -4446,7 +4586,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="devlist">
                     {#each dataVolumes as vol (vol.device)}
                       <div class="dev ign">
-                        <span class="dn">{vol.label || vol.device}</span>
+                        <span class="dn" use:bulleTexte>{vol.label || vol.device}</span>
                         <span class="dt">{vol.fs}</span>
                         <span class="dh">
                           {$t('settings.dataFree' as any).replace('{free}', octetsLisibles(vol.free_bytes)).replace('{size}', octetsLisibles(vol.size_bytes))}
@@ -4468,7 +4608,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="devlist">
                     {#each dataUnmounted as part (part.uuid)}
                       <div class="dev ign">
-                        <span class="dn">{part.label || part.name}</span>
+                        <span class="dn" use:bulleTexte>{part.label || part.name}</span>
                         <span class="dt">{part.fstype}</span>
                         <span class="dh">{part.disk_model || part.disk}{part.tran === 'usb' ? ' · USB' : ''} · {part.size}</span>
                         <button class="lnk" disabled={!!musicMountBusy} onclick={() => useAsMusicSource(part)}>
@@ -4492,7 +4632,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <div class="devlist">
                         {#each dataDisks.filter((d) => !d.is_boot && d.tran !== 'usb') as disk (disk.name)}
                           <div class="dev ign">
-                            <span class="dn">{disk.name}</span>
+                            <span class="dn" use:bulleTexte>{disk.name}</span>
                             <span class="dt">{disk.model}</span>
                             <span class="dh">{disk.size}</span>
                             <button class="lnk danger" onclick={() => installToDisk(disk)}>{$t('settings.installButton' as any)}</button>
@@ -4520,6 +4660,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </button>
               </div>
               {#if sysErr}<div class="errline">{sysErr}</div>{/if}
+
+            {:else if s.id === 'backup'}
+              <SauvegardeCloudV2 />
 
             {:else if s.id === 'config'}
               <p class="hint">{#each emphaseParts($t('settings.configBackupHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
@@ -4605,7 +4748,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="urls">
                   {#each serverUrls as u (u)}
                     <div class="url">
-                      <span class="up">{u}</span>
+                      <span class="up" use:bulleTexte>{u}</span>
                       <button class="lnk" onclick={() => copyUrl(u)}>{$t((copied === u ? 'v2.set.copied' : 'v2.set.copy') as any)}</button>
                     </div>
                   {/each}
@@ -4761,6 +4904,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <input class="txt" type="text" placeholder="Tune — Salon" bind:value={spcName} />
                   </div>
                 {/if}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('v2.set.spotifyPlaybackExperimental' as any)}</span>
+                    <span class="hint">{$t('v2.set.spotifyPlaybackWarning' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={!!spc?.lecture_experimentale} disabled={spcBusy}
+                      onchange={(e) => toggleSpotifyLecture((e.currentTarget as HTMLInputElement).checked)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
                 {#if spcErr}<div class="errline">{spcErr}</div>{/if}
               {/if}
 
@@ -5162,7 +5316,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <div class="inline">
                   {#if scanning}
-                    <span class="badge up">{$t('v2.lbl.analysisRunning' as any)}</span>
+                    <span class="badge up" use:bulleTexte>{$t('v2.lbl.analysisRunning' as any)}</span>
                     <button class="lnk danger" onclick={stopScan}>{$t('common.stop' as any)}</button>
                   {:else}
                     <button class="lnk" onclick={() => scan(false)}>{$t('v2.lbl.quickAnalysis' as any)}</button>
@@ -5248,15 +5402,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if libErr}<div class="errline">{libErr}</div>{/if}
 
             {:else if s.id === 'musicDirs'}
+              <!-- Fil 2171 — le sélecteur est LE geste d'ajout : un vrai bouton,
+                   qui va jusqu'à l'ajout (comptage et confirmation compris).
+                   En rc3 il n'était qu'un lien « Parcourir… » qui remplissait
+                   le champ, et il restait à cliquer « Ajouter ». -->
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.addFolder' as any)}</span>
                   <span class="hint">{$t('settings.serverPathHint' as any)}</span>
                 </div>
+                <BoutonAjouterDossier disabled={dirBusy}
+                  onAjoute={async (dirs) => { musicDirs = dirs.length ? dirs : musicDirs; await refreshDirectoryOrder(); }} />
+              </div>
+              <div class="row">
+                <div class="lbl"><span class="hint">{$t('settings.addFolderManualHint' as any)}</span></div>
                 <div class="inline">
                   <input class="txt wide" type="text" placeholder="/Volumes/Musique" bind:value={newDir}
                     disabled={dirBusy} onkeydown={(e) => { if (e.key === 'Enter') addDir(); }} />
-                  <button class="lnk" disabled={dirBusy} onclick={() => (showFolderBrowser = true)}>{$t('ingest.browse' as any)}</button>
                   <button class="lnk" disabled={dirBusy || !newDir.trim()} onclick={addDir}>{$t('v2.tags.add' as any)}</button>
                 </div>
               </div>
@@ -5272,7 +5434,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <div class="dir" class:ordered={directoryOrder !== null && displayedMusicDirs.length > 1}
                       class:avec-analyse={analysisExcluded !== null}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                      <span class="dp">{d}</span>
+                      <span class="dp" use:bulleTexte>{d}</span>
                       {#if directoryOrder !== null && displayedMusicDirs.length > 1}
                         <div class="dir-order">
                           <button class="lnk" disabled={dirBusy || orderBusy || index === 0}
@@ -5359,7 +5521,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {#each smbMounts as m (m.server + '/' + m.share)}
                     {@const e = etatPartage(m)}
                     <div class="dev ign" class:ko={e.enEchec}>
-                      <span class="dn">\\{m.server}\{m.share}</span>
+                      <span class="dn" use:bulleTexte>\\{m.server}\{m.share}</span>
                       <span class="dt">{e.enEchec ? $t('settings.smbNotMounted' as any) : $t('settings.smbMounted' as any)}</span>
                       <!-- SMB 1 est obsolète et non chiffré : y retomber peut être
                            la seule façon de lire un streamer, mais pas en silence. -->
@@ -6022,6 +6184,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
               {#if ytStatus.startsWith('failed')}<div class="errline">{ytStatus}</div>{/if}
 
+              <!-- tune-server-rust#5247 — pays des Tendances de l'onglet Découvrir. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.youtubeChartsCountryTitle' as any)}</span>
+                  <span class="hint">{$t('settings.youtubeChartsCountryHelp' as any)}</span>
+                </div>
+                <select class="sel" data-pays-tendances-youtube value={paysTendancesYt ?? ''} disabled={paysTendancesYt === null}
+                  onchange={(e) => choisirPaysTendancesYt((e.currentTarget as HTMLSelectElement).value)}>
+                  <option value="">{$t('settings.youtubeChartsCountryAuto' as any)}</option>
+                  <option value="ZZ">{$t('settings.youtubeChartsCountryWorld' as any)}</option>
+                  {#each optionsPaysTendances($locale) as o (o.code)}<option value={o.code}>{o.nom}</option>{/each}
+                </select>
+              </div>
+
             {:else if s.id === 'wifi'}
               {#if isAppliance === false}
                 <p class="hint">{$t('settings.wifiApplianceOnly' as any)}</p>
@@ -6047,10 +6223,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#each wifiNets as net (net.ssid)}
                       <div class="wifi" class:sel={wifiSel === net.ssid}>
                         <button class="wrow" onclick={() => selectWifi(net.ssid)}>
-                          <span class="dn">{net.ssid}</span>
+                          <span class="dn" use:bulleTexte>{net.ssid}</span>
                           {#if net.security}<span class="dt">{net.security}</span>{/if}
                           <span class="dh">{net.signal}%</span>
-                          {#if net.in_use}<span class="badge up">{$t('settings.wifiInUse' as any)}</span>{/if}
+                          {#if net.in_use}<span class="badge up" use:bulleTexte>{$t('settings.wifiInUse' as any)}</span>{/if}
                         </button>
                         {#if net.in_use}
                           <button class="lnk danger" onclick={() => forgetWifi(net.ssid)}>{$t('settings.wifiForget' as any)}</button>
@@ -6101,6 +6277,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <a class="mono link" href={brUrl} target="_blank" rel="noopener">{brUrl}</a>
                   </div>
                 {/if}
+                {#if brLien}
+                  <div class="row">
+                    <div class="lbl">
+                      <span>{$t('settings.remoteLink' as any)}</span>
+                      <span class="hint">{$t('settings.remoteLinkHint' as any)}</span>
+                    </div>
+                    <button class="lnk" data-acces="copier" onclick={copierLienPont}>
+                      {$t((brLienCopie ? 'settings.remoteLinkCopied' : 'settings.remoteLinkCopy') as any)}
+                    </button>
+                  </div>
+                  <div class="brqr" data-acces="qr" aria-label={$t('settings.remoteLinkQr' as any)} role="img">
+                    {@html brQr}
+                  </div>
+                {/if}
                 {#if brToken}
                   <div class="tok">
                     <span class="tlab">{$t('v2.lbl.token' as any)}</span>
@@ -6122,7 +6312,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="devlist">
                   {#each peers as pr (pr.host + ':' + pr.port)}
                     <div class="dev net">
-                      <span class="dn">{pr.name}</span>
+                      <span class="dn" use:bulleTexte>{pr.name}</span>
                       <span class="dh">{pr.host}:{pr.port} — v{pr.version}</span>
                       <span class="dt">{pr.tracks} {$t('common.tracks' as any)} · {$t('settings.peerZones' as any).replace('{n}', String(pr.zones))}</span>
                       <button class="lnk" onclick={() => window.open(`http://${pr.host}:${pr.port}`, '_blank')}>{$t('settings.browse' as any)}</button>
@@ -6147,6 +6337,84 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <button class="lnk" onclick={fetchPeers} disabled={peersBusy}>{$t('settings.refresh' as any)}</button>
                 </div>
               </div>
+
+              <!-- tune-server-rust#4626 — jouer sur les sorties d'un autre
+                   serveur Tune (ce serveur est le MAÎTRE). -->
+              <div class="subhead">
+                <span>{$t('settings.agentUseTitle' as any)}</span>
+                <button class="lnk" onclick={chargerAgentTune}>{$t('settings.refresh' as any)}</button>
+              </div>
+              <p class="hint">{$t('settings.agentUseHint' as any)}</p>
+              {#if agentsAppaires.length}
+                <div class="devlist">
+                  {#each agentsAppaires as a (a.agent_id)}
+                    <div class="dev ign">
+                      <span class="dn" use:bulleTexte>{a.nom}</span>
+                      <span class="dt">{$t('settings.agentOutputsCount' as any).replace('{n}', String(a.sorties_inscrites))}</span>
+                      <span class="badge up" use:bulleTexte>{$t('settings.agentPaired' as any)}</span>
+                      <button class="lnk danger" onclick={() => oublierAgent(a)}>{$t('settings.agentForget' as any)}</button>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+              {#if agentsCandidats.filter((c) => !c.appaire).length}
+                <div class="devlist">
+                  {#each agentsCandidats.filter((c) => !c.appaire) as c (c.agent_id)}
+                    <div class="row">
+                      <div class="lbl">
+                        <span>{c.nom ?? c.host}</span>
+                        <span class="hint">{c.host}:{c.port}</span>
+                      </div>
+                      <div class="inline">
+                        <input class="txt num" type="text" inputmode="numeric" maxlength="7"
+                          placeholder={$t('settings.agentCodePlaceholder' as any)}
+                          aria-label={$t('settings.agentCodePlaceholder' as any)}
+                          value={agentSaisies[c.agent_id] ?? ''}
+                          oninput={(e) => { agentSaisies = { ...agentSaisies, [c.agent_id]: (e.currentTarget as HTMLInputElement).value }; }}
+                          onkeydown={(e) => { if (e.key === 'Enter') appairerCandidat(c); }} />
+                        <button class="lnk" onclick={() => appairerCandidat(c)}
+                          disabled={agentOccupe || !api.codeAgentRecevable(agentSaisies[c.agent_id] ?? '')}>{$t('settings.agentPair' as any)}</button>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              {:else if !agentsAppaires.length}
+                <p class="hint">{$t('settings.agentNoCandidate' as any)}</p>
+              {/if}
+
+              <!-- tune-server-rust#4626 — prêter les sorties de CE serveur
+                   (ce serveur est l'AGENT). -->
+              <div class="subhead">
+                <span>{$t('settings.agentLendTitle' as any)}</span>
+                <button class="lnk" onclick={afficherCodeAgent}>{$t('settings.agentShowCode' as any)}</button>
+              </div>
+              <p class="hint">{$t('settings.agentLendHint' as any)}</p>
+              {#if agentCode && agentRestant > 0}
+                <div class="tok">
+                  <span class="tlab">{$t('settings.agentCodeLabel' as any)}</span>
+                  <code>{api.codeAgentAffiche(agentCode.code)}</code>
+                  <span class="warnline">{$t('settings.agentCodeExpires' as any).replace('{s}', String(agentRestant))}</span>
+                </div>
+              {/if}
+              {#if agentEtat}
+                {#if agentEtat.sorties.length}
+                  <p class="hint">{$t('settings.agentLentOutputs' as any).replace('{list}', agentEtat.sorties.map((s) => s.nom).join(', '))}</p>
+                {:else}
+                  <p class="hint">{$t('settings.agentNoLocalOutput' as any)}</p>
+                {/if}
+                {#if agentEtat.maitres.length}
+                  <div class="devlist">
+                    {#each agentEtat.maitres as m (m.maitre_id)}
+                      <div class="dev ign">
+                        <span class="dn" use:bulleTexte>{m.nom}</span>
+                        <span class="dt">{$t('settings.agentMaster' as any)}</span>
+                        <span></span>
+                        <button class="lnk danger" onclick={() => revoquerMaitreAgent(m)}>{$t('settings.agentRevoke' as any)}</button>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              {/if}
 
             {:else if s.id === 'squeezebox'}
               <div class="row">
@@ -6208,7 +6476,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#each sbStatus.players as pl (pl.id)}
                       <div class="dev net">
                         <span class="badge" class:up={pl.connected}>{pl.connected ? $t('settings.squeezeboxConnected' as any) : $t('settings.squeezeboxDisconnected' as any)}</span>
-                        <span class="dn">{pl.name}</span>
+                        <span class="dn" use:bulleTexte>{pl.name}</span>
                         <span class="dh">{pl.model} — {pl.ip}</span>
                         <button class="lnk" onclick={() => zoneFromPlayer(pl)} disabled={sbCreating === pl.id || !pl.connected}>
                           {sbCreating === pl.id ? $t('settings.squeezeboxCreatingZone' as any) : $t('settings.squeezeboxCreateZone' as any)}
@@ -6267,7 +6535,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#if hqChecking}
                       <span class="badge">…</span>
                     {:else if hqReachable === true}
-                      <span class="badge up">{$t('settings.connected' as any)}</span>
+                      <span class="badge up" use:bulleTexte>{$t('settings.connected' as any)}</span>
                     {:else if hqReachable === false}
                       <span class="badge">{$t('settings.unreachable' as any)}</span>
                     {:else}
@@ -6355,7 +6623,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="dev net">
                     <input type="checkbox" checked={!$preferences.hiddenDeviceIds.includes(pid)}
                       onchange={() => toggleDevice(pid)} aria-label={`Afficher ${d.name}`} />
-                    <span class="dn">{d.name}</span>
+                    <span class="dn" use:bulleTexte>{d.name}</span>
                     <span class="dt">{netLabel(d.type)}</span>
                     {#if d.host}<span class="dh">{d.host}</span>{/if}
                     {#if isAir}
@@ -6392,7 +6660,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <div class="devlist">
                 {#each ignoredDevices as d (d.device_id)}
                   <div class="dev ign">
-                    <span class="dn">{libelleAppareilIgnore(d)}</span>
+                    <span class="dn" use:bulleTexte>{libelleAppareilIgnore(d)}</span>
                     <span class="dt">{transportAppareilIgnore(d)}</span>
                     <span class="dh">{detailAppareilIgnore(d)}</span>
                     <button class="lnk" disabled={ignoreBusy} onclick={() => unignoreDevice(d)}>
@@ -6496,6 +6764,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </div>
                   </div>
                 {/if}
+                {#if remesure}
+                  <div class="row" data-remesure="lancer">
+                    <div class="lbl">
+                      <span>{$t('settings.rgReanalyze' as any)}</span>
+                      <span class="hint">{$t('settings.rgReanalyzeHint' as any)}</span>
+                      {#if remesure.running}
+                        <span class="hint">{$t('settings.rgReanalyzeRunning' as any)}</span>
+                      {:else if typeof remesure.stale === 'number'}
+                        <span class="hint">{$t('settings.rgReanalyzeCount' as any).replace('{n}', String(remesure.stale))}</span>
+                      {/if}
+                    </div>
+                    <button class="lnk" onclick={lancerRemesure}
+                      disabled={remesureEnvoi || remesure.running || !rgAnalysis || remesure.stale === 0}>
+                      {$t('settings.rgReanalyzeButton' as any)}
+                    </button>
+                  </div>
+                {/if}
               {/if}
 
               <div class="devlist">
@@ -6503,7 +6788,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {@const pid = `audio:${d.id}`}
                   <label class="dev">
                     <input type="checkbox" checked={!$preferences.hiddenDeviceIds.includes(pid)} onchange={() => toggleDevice(pid)} />
-                    <span class="dn">{d.name}</span>
+                    <span class="dn" use:bulleTexte>{d.name}</span>
                     <span class="dt">{etiquetteCaracteristiques(d)}</span>
                   </label>
                 {:else}
@@ -6580,14 +6865,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     </div>
   </div>
 </section>
-
-{#if showFolderBrowser}
-  <FolderBrowser
-    initialPath={newDir}
-    onSelect={(p) => { newDir = p; showFolderBrowser = false; }}
-    onClose={() => (showFolderBrowser = false)}
-  />
-{/if}
 
 {#if showSmbWizard}
   <SmbWizard
@@ -6856,6 +7133,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .mono{font:11.5px var(--v2-mono); color:var(--v2-txt2); word-break:break-all; text-align:right}
   a.link{color:var(--v2-acc-tint); text-decoration:none}
   a.link:hover{text-decoration:underline}
+  .brqr{width:184px; margin:10px 0 4px; padding:8px; background:#fff; border-radius:8px; line-height:0}
+  .brqr :global(svg){width:100%; height:auto; display:block}
   .tok{display:flex; flex-direction:column; gap:7px; margin-top:12px; padding:12px;
     border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .tok .tlab{font:10px var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}

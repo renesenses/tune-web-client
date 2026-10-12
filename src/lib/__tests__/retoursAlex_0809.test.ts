@@ -74,7 +74,7 @@ describe('7. « Reprendre l’écoute » dit ce qu’il propose de reprendre', (
 
   it('le widget d’accueil APPELLE la règle', () => {
     expect(widgets).toContain("from './reprendreEcoute'");
-    expect(widgets).toContain('reprisesUtiles(liste(await api.getContinueListening(LIMITE)))');
+    expect(widgets).toContain('reprisesUtiles(liste(await api.getContinueListening(limiteDe(ctx))))');
     expect(widgets).toContain('sousTitreReprise(o)');
   });
 });

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Écran des raccourcis, au thème du nouveau client.
    *
@@ -169,7 +170,7 @@
             {:else}
               <button class="ouvrir" onclick={() => navigateToShortcut(sc)}>
                 <span class="emo">{sc.icon}</span>
-                <span class="nm">{sc.name}</span>
+                <span class="nm" use:bulleTexte>{sc.name}</span>
                 {#if sc.pinned !== false}<span class="tag">{$t('v2.sc.pinned' as any)}</span>{/if}
               </button>
 
