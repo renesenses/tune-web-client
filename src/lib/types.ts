@@ -664,6 +664,12 @@ export interface Zone {
    * rien ne joue : voir la chaîne de repli dans `lib/vueZones`.
    */
   image_path?: string | null;
+  /**
+   * #2109 — la photo affichée a-t-elle été PROPOSÉE au catalogue ?
+   * `'pending'` = en attente de relecture ; `null` = locale. ABSENT = serveur
+   * d'avant #2109, qui ne sait pas proposer : le bouton ne s'affiche pas.
+   */
+  image_share_status?: 'pending' | null;
   /** Marque détectée en UPnP pour le device assigné (pré-remplissage). */
   /** Le serveur cherche encore une URL jouable (extraction YouTube longue). */
   resolving?: boolean;
