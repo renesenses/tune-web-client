@@ -7,14 +7,20 @@
    * ont écarté (donnée MusicBrainz, champ modifié à la main) est montré à
    * part, avec sa raison, et ne peut pas être appliqué. Une application se
    * défait par « Annuler la dernière application ».
+   *
+   * Étape 2 : un genre accepté vaut aussi pour les pistes (le serveur le
+   * recopie, comme l'édition manuelle) ; « Suggestions sur les pistes »
+   * propose l'œuvre et le mouvement de chaque piste — l'assistant n'y remplit
+   * que des vides.
    */
   import { onMount } from 'svelte';
   import { t } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
   import {
     suggestionsAlbumIa, appliquerSuggestionsIa, annulerSuggestionsIa,
-    estEchec, cleDEchec, cleDeRaison, cleDeChamp, cocheesParDefaut, pourcent,
-    type SuggestionIa, type EcarteeIa, type RapportIa,
+    suggestionsPistesIa, appliquerPistesIa,
+    estEchec, cleDEchec, cleDeRaison, cleDeChamp, cocheesParDefaut, pourcent, messageDeRapport,
+    type SuggestionIa, type EcarteeIa, type RapportIa, type SuggestionPisteIa, type EcarteePisteIa,
   } from '../../lib/assistantIa';
 
   interface Props {
@@ -36,6 +42,21 @@
   let rapport = $state<RapportIa | null>(null);
   let annulable = $state(false);
   let message = $state<string | null>(null);
+  // Étape 2 : les pistes.
+  let pistesDemandees = $state(false);
+  let pistes = $state<SuggestionPisteIa[]>([]);
+  let pistesEcartees = $state<EcarteePisteIa[]>([]);
+  let cocheesPistes = $state<Set<string>>(new Set());
+  const clePiste = (s: { piste_id: number; champ: string }) => `${s.piste_id}:${s.champ}`;
+
+  /** Le message d'un rapport, avec ce que le serveur a fait des pistes. */
+  function dire(cle: string, r: RapportIa, n: number): string {
+    return messageDeRapport(
+      $t(cle as any).replace('{n}', String(n)),
+      r,
+      (k) => $t(k as any),
+    );
+  }
 
   onMount(async () => {
     try {
@@ -68,7 +89,7 @@
       const faits = new Set(r.rapport.appliquees.map((l) => l.champ));
       suggestions = suggestions.filter((s) => !faits.has(s.champ));
       cochees = new Set([...cochees].filter((c) => !faits.has(c)));
-      message = $t('assistantIa.album.applied' as any).replace('{n}', String(faits.size));
+      message = dire('assistantIa.album.applied', r.rapport, faits.size);
       if (faits.size) onChange();
     } catch (e) {
       erreur = (e as Error)?.message ?? $t('assistantIa.err.generique' as any);
@@ -82,8 +103,48 @@
       if (estEchec(r)) { erreur = $t(cleDEchec(r.error) as any); return; }
       annulable = false;
       rapport = r.rapport;
-      message = $t('assistantIa.album.undone' as any).replace('{n}', String(r.rapport.appliquees.length));
+      message = dire('assistantIa.album.undone', r.rapport, r.rapport.appliquees.length);
       onChange();
+    } catch (e) {
+      erreur = (e as Error)?.message ?? $t('assistantIa.err.generique' as any);
+    } finally { occupe = false; }
+  }
+
+  async function demanderPistes() {
+    occupe = true; erreur = null; message = null; pistesDemandees = true;
+    try {
+      const r = await suggestionsPistesIa(albumId);
+      if (estEchec(r)) { erreur = $t(cleDEchec(r.error) as any); return; }
+      pistes = r.suggestions;
+      pistesEcartees = r.ecartees;
+      cocheesPistes = new Set(r.suggestions.filter((x) => x.confiance >= 0.7).map(clePiste));
+      depuisCache = r.depuis_cache;
+      cout = r.cout_eur;
+    } catch (e) {
+      erreur = (e as Error)?.message ?? $t('assistantIa.err.generique' as any);
+    } finally { occupe = false; }
+  }
+
+  function basculerPiste(k: string) {
+    const n = new Set(cocheesPistes);
+    if (n.has(k)) n.delete(k); else n.add(k);
+    cocheesPistes = n;
+  }
+
+  async function appliquerPistes() {
+    const lesquelles = pistes.filter((x) => cocheesPistes.has(clePiste(x)));
+    if (!lesquelles.length) return;
+    occupe = true; erreur = null; message = null;
+    try {
+      const r = await appliquerPistesIa(albumId, lesquelles.map((x) => ({ piste_id: x.piste_id, champ: x.champ, valeur: x.apres })));
+      if (estEchec(r)) { erreur = $t(cleDEchec(r.error) as any); return; }
+      rapport = r.rapport;
+      annulable = r.rapport.appliquees.length > 0;
+      const faits = new Set(r.rapport.appliquees.map((l) => `${l.piste_id}:${l.champ}`));
+      pistes = pistes.filter((x) => !faits.has(clePiste(x)));
+      cocheesPistes = new Set([...cocheesPistes].filter((c) => !faits.has(c)));
+      message = dire('assistantIa.album.applied', r.rapport, faits.size);
+      if (faits.size) onChange();
     } catch (e) {
       erreur = (e as Error)?.message ?? $t('assistantIa.err.generique' as any);
     } finally { occupe = false; }
@@ -163,6 +224,54 @@
         </div>
       {/if}
 
+      <h3>{$t('assistantIa.tracks.title' as any)}</h3>
+      {#if !pistesDemandees}
+        <div class="pied gauche">
+          <button class="sec" disabled={occupe} onclick={demanderPistes} data-ia-pistes>{$t('assistantIa.tracks.ask' as any)}</button>
+        </div>
+        <p class="note">{$t('assistantIa.tracks.hint' as any)}</p>
+      {:else if pistes.length}
+        <table class="ecart" data-ia-pistes-ecart>
+          <thead>
+            <tr>
+              <th></th>
+              <th>{$t('assistantIa.tracks.track' as any)}</th>
+              <th>{$t('assistantIa.album.field' as any)}</th>
+              <th>{$t('assistantIa.album.before' as any)}</th>
+              <th>{$t('assistantIa.album.after' as any)}</th>
+              <th>{$t('assistantIa.album.confidence' as any)}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each pistes as s (clePiste(s))}
+              <tr>
+                <td><input type="checkbox" checked={cocheesPistes.has(clePiste(s))} onchange={() => basculerPiste(clePiste(s))}
+                  aria-label={`${s.titre} — ${$t(cleDeChamp(s.champ) as any)}`} /></td>
+                <td>{s.titre}</td>
+                <td>{$t(cleDeChamp(s.champ) as any)}</td>
+                <td class="avant">{s.avant ?? $t('assistantIa.album.empty' as any)}</td>
+                <td class="apres" title={s.raison ?? ''}>{s.apres}</td>
+                <td class="conf">{pourcent(s.confiance)} %</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+        <div class="pied">
+          <button class="pri" disabled={occupe || !cocheesPistes.size} onclick={appliquerPistes} data-ia-pistes-appliquer>
+            {$t('assistantIa.album.applySelected' as any)}
+          </button>
+        </div>
+      {:else if !occupe}
+        <p class="note">{$t('assistantIa.tracks.none' as any)}</p>
+      {/if}
+      {#if pistesEcartees.length}
+        <ul class="liste" data-ia-pistes-ecartees>
+          {#each pistesEcartees as e, i (i)}
+            <li>{$t(cleDeChamp(e.champ) as any)}{e.valeur ? ` (${e.valeur})` : ''} — {$t(cleDeRaison(e.raison) as any)}</li>
+          {/each}
+        </ul>
+      {/if}
+
       {#if ecartees.length}
         <h3>{$t('assistantIa.album.excluded' as any)}</h3>
         <ul class="liste" data-ia-ecartees>
@@ -206,6 +315,7 @@
   .apres { color: var(--v2-txt); font-weight: 600; }
   .conf { font-family: var(--v2-mono); color: var(--v2-txt2); white-space: nowrap; }
   .pied { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .pied.gauche { justify-content: flex-start; }
   .pri, .sec {
     border-radius: 8px; padding: 7px 14px; font-size: 13px; cursor: pointer;
     border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt);
