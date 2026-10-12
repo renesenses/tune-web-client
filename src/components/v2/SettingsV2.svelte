@@ -145,6 +145,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     CLE_I18N_CRAN, CRANS_CADENCE, cranOuDefaut, estCranCadence,
   } from '../../lib/cadenceAnimations';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  // web#916 — « Accueil : suggestions écartées », le revers de « Pas pour moi ».
+  import SuggestionsEcarteesV2 from './SuggestionsEcarteesV2.svelte';
   import SauvegardeCloudV2 from './SauvegardeCloudV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
@@ -3724,6 +3726,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+
+            {:else if s.id === 'dismissedSuggestions'}
+              <SuggestionsEcarteesV2 />
 
             {:else if s.id === 'displayPrefs'}
               <!-- LA MATRICE. Première ligne : les modes. Première colonne :
