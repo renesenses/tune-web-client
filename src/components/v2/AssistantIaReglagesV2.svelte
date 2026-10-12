@@ -1,7 +1,11 @@
 <script lang="ts">
   /**
    * Réglages ▸ Assistant IA (tune-server-rust, chantier « assistant-ia »,
-   * étape 1).
+   * étapes 1 et 2).
+   *
+   * Étape 2 : les réglages sont réservés aux administrateurs. Le serveur le
+   * dit (`modifiable`) et refuse de toute façon (`403 admin_requis`) ; un
+   * profil ordinaire ne voit ici que l'état et la consommation du mois.
    *
    * La clé se SAISIT ici et ne revient jamais : le serveur la scelle et ne
    * rend que ses quatre derniers caractères. Le champ reste vide après
@@ -10,7 +14,7 @@
   import { onMount } from 'svelte';
   import { t } from '../../lib/i18n';
   import {
-    lireReglagesIa, changerReglagesIa, testerCleIa, estEchec, estReglages, cleDEchec,
+    lireReglagesIa, changerReglagesIa, testerCleIa, estEchec, estReglages, cleDEchec, peutModifier,
     type ReglagesIa, type FournisseurIa, type ModificationIa,
   } from '../../lib/assistantIa';
 
@@ -122,6 +126,11 @@
   <p class="hint">{$t('assistantIa.intro' as any)}</p>
   <p class="hint">{$t('assistantIa.privacy' as any)}</p>
 
+  {#if r && !peutModifier(r)}
+    <p class="hint" data-ia-admin-requis>{$t('assistantIa.adminOnly' as any)}</p>
+    <p class="hint">{r.fournisseur ? $t('assistantIa.configured' as any).replace('{fournisseur}', $t(`assistantIa.provider.${r.fournisseur}` as any)) : $t('assistantIa.err.non_configure' as any)}</p>
+  {:else}
+
   <label class="champ">
     <span>{$t('assistantIa.provider' as any)}</span>
     <select bind:value={fournisseur} onchange={() => { url = ''; modele = ''; }} data-ia-fournisseur>
@@ -213,6 +222,8 @@
       <button class="lnk" disabled={occupe} onclick={effacerCle}>{$t('assistantIa.keyDelete' as any)}</button>
     {/if}
   </div>
+
+  {/if}
 
   {#if message}<p class="ok" role="status">{message}</p>{/if}
   {#if erreur}<p class="errline" role="alert">{erreur}</p>{/if}

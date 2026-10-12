@@ -1,6 +1,10 @@
 /**
- * Assistant IA, étape 1 (tune-server-rust, chantier « assistant-ia ») —
+ * Assistant IA, étapes 1 et 2 (tune-server-rust, chantier « assistant-ia ») —
  * le client du greffon monté sous `/api/v1/ext/assistant-ia`.
+ *
+ * Étape 2 : suggestions sur un LOT d'albums (arrêt net au plafond) et sur les
+ * PISTES (œuvre, mouvement) ; le genre accepté est recopié sur les pistes ;
+ * les réglages ne se modifient qu'en administrateur (`modifiable`).
  *
  * La clé de l'utilisateur ne revient JAMAIS ici : le serveur ne rend que
  * `cle_definie` et ses quatre derniers caractères (`cle_fin`).
@@ -37,6 +41,8 @@ export interface ReglagesIa {
   modele_anthropic_classique: string;
   modeles_gemini?: string[];
   modele_gemini_par_defaut?: string;
+  /** Étape 2 : faux pour un profil non administrateur quand l'authentification est active. */
+  modifiable?: boolean;
   consommation: {
     mois: string;
     cout_eur: number;
@@ -102,12 +108,47 @@ export interface LigneJournalIa {
   champ: string;
   avant: string | null;
   apres: string;
+  /** Étape 2 : la ligne porte sur une piste. */
+  piste_id?: number;
 }
 
 export interface RapportIa {
   appliquees: LigneJournalIa[];
   refusees: EcarteeIa[];
   operation_id: string | null;
+  /** Étape 2 : pistes dont le genre a été recopié (ou rendu à l'annulation). */
+  pistes_genre?: number;
+  compilation_epargnee?: boolean;
+  pistes_modifiees_depuis?: number;
+}
+
+/** Étape 2 : une suggestion sur une piste (œuvre, mouvement). */
+export interface SuggestionPisteIa {
+  piste_id: number;
+  titre: string;
+  champ: string;
+  avant: string | null;
+  apres: string;
+  confiance: number;
+  raison: string | null;
+}
+
+export interface EcarteePisteIa extends EcarteeIa {
+  piste_id?: number | null;
+}
+
+/** Le résultat d'un album dans un lot. */
+export type ResultatLotIa =
+  | { ok: true; album_id: number; titre: string | null; suggestions: SuggestionIa[]; ecartees: EcarteeIa[]; depuis_cache: boolean; cout_eur: number }
+  | { ok: false; album_id: number; error: string; message: string };
+
+export interface LotIa {
+  ok: true;
+  resultats: ResultatLotIa[];
+  /** Pourquoi le lot s'est arrêté avant la fin, ou `null`. */
+  arret: { error: string; message: string } | null;
+  non_traites: number[];
+  cout_eur: number;
 }
 
 const accepter = (s: number) => s !== 401;
@@ -174,11 +215,65 @@ export function annulerSuggestionsIa(
   );
 }
 
+export function suggestionsPistesIa(
+  albumId: number,
+): Promise<{ ok: true; suggestions: SuggestionPisteIa[]; ecartees: EcarteePisteIa[]; depuis_cache: boolean; cout_eur: number } | EchecIa> {
+  return fetchJSON(`${RACINE}/albums/${albumId}/pistes/suggestions`, { method: 'POST' }, accepter);
+}
+
+export function appliquerPistesIa(
+  albumId: number,
+  lignes: { piste_id: number; champ: string; valeur: string }[],
+): Promise<{ ok: true; rapport: RapportIa } | EchecIa> {
+  return fetchJSON(
+    `${RACINE}/albums/${albumId}/pistes/appliquer`,
+    { method: 'POST', body: JSON.stringify({ lignes }) },
+    accepter,
+  );
+}
+
+/** Albums d'un lot de suggestions, au plus (borne du serveur). */
+export const LOT_MAX = 50;
+
+/** Les identifiants d'un lot : uniques, dans l'ordre, bornés à `LOT_MAX`. */
+export function idsDuLot(ids: readonly (number | null | undefined)[], max = LOT_MAX): number[] {
+  const vus = new Set<number>();
+  for (const id of ids) {
+    if (typeof id === 'number' && Number.isFinite(id) && !vus.has(id)) vus.add(id);
+    if (vus.size >= max) break;
+  }
+  return [...vus];
+}
+
+export function lotSuggestionsIa(albumIds: number[], budgetEur?: string): Promise<LotIa | EchecIa> {
+  const corps: Record<string, unknown> = { album_ids: albumIds };
+  if (budgetEur && budgetEur.trim()) corps.budget_eur = budgetEur.trim();
+  return fetchJSON(`${RACINE}/lot/suggestions`, { method: 'POST', body: JSON.stringify(corps) }, accepter);
+}
+
+export function lotAppliquerIa(
+  albums: { album_id: number; lignes: { champ: string; valeur: string }[] }[],
+): Promise<{ ok: true; rapports: ({ ok: true; album_id: number; rapport: RapportIa } | { ok: false; album_id: number; error: string })[] } | EchecIa> {
+  return fetchJSON(`${RACINE}/lot/appliquer`, { method: 'POST', body: JSON.stringify({ albums }) }, accepter);
+}
+
+export function lotAnnulerIa(
+  operations: { album_id: number; operation_id: string | null }[],
+): Promise<{ ok: true; rapports: unknown[] } | EchecIa> {
+  return fetchJSON(`${RACINE}/lot/annuler`, { method: 'POST', body: JSON.stringify({ operations }) }, accepter);
+}
+
+/** L'écran peut-il modifier les réglages ? Un serveur de l'étape 1 ne dit rien : oui. */
+export function peutModifier(r: ReglagesIa | null | undefined): boolean {
+  return !!r && r.modifiable !== false;
+}
+
 /** Les codes d'échec que l'écran sait dire ; un autre retombe sur le générique. */
 export const CODES_ECHEC = [
   'non_configure', 'cle_illisible', 'tarif_inconnu', 'plafond_atteint',
   'cle_refusee', 'quota', 'surcharge', 'modele_inconnu', 'reseau', 'refus',
   'reponse_invalide', 'phrase_invalide', 'album_introuvable', 'reglage_invalide',
+  'admin_requis', 'lot_invalide', 'budget_du_lot_atteint',
 ] as const;
 
 /** La clé i18n du message d'un échec. */
@@ -193,6 +288,7 @@ export const RAISONS = [
   'musicbrainz', 'edition_manuelle', 'identique', 'champ_inconnu', 'valeur_invalide',
   'renommer_l_artiste', 'doublon', 'modifie_depuis',
   'critere_inconnu', 'operateur_inconnu',
+  'deja_rempli', 'piste_inconnue', 'reference_inconnue', 'reference_ambigue',
 ] as const;
 
 export function cleDeRaison(raison: string): string {
@@ -228,4 +324,38 @@ export function cocheesParDefaut(s: SuggestionIa[], seuil = 0.7): Set<string> {
 /** La confiance en pourcentage entier. */
 export function pourcent(c: number): number {
   return Math.round(Math.max(0, Math.min(1, c)) * 100);
+}
+
+/**
+ * Le message d'une application ou d'une annulation, complété de ce que le
+ * serveur a fait des PISTES (étape 2) : genre recopié, compilation épargnée,
+ * pistes retouchées depuis et laissées telles quelles.
+ */
+export function messageDeRapport(base: string, r: RapportIa, t: (cle: string) => string): string {
+  const morceaux = [base];
+  if (r.pistes_genre) morceaux.push(t('assistantIa.album.genreTracks').replace('{n}', String(r.pistes_genre)));
+  if (r.compilation_epargnee) morceaux.push(t('assistantIa.album.compilationSpared'));
+  if (r.pistes_modifiees_depuis) {
+    morceaux.push(t('assistantIa.album.tracksKept').replace('{n}', String(r.pistes_modifiees_depuis)));
+  }
+  return morceaux.join(' ');
+}
+
+/** La clé d'une ligne d'un lot : un album, un champ. */
+export const cleDeLigneDuLot = (albumId: number, champ: string) => `${albumId}:${champ}`;
+
+/** Les lignes cochées d'un lot, regroupées par album, prêtes pour `/lot/appliquer`. */
+export function lignesDuLot(
+  resultats: readonly ResultatLotIa[],
+  cochees: ReadonlySet<string>,
+): { album_id: number; lignes: { champ: string; valeur: string }[] }[] {
+  const albums: { album_id: number; lignes: { champ: string; valeur: string }[] }[] = [];
+  for (const r of resultats) {
+    if (!r.ok) continue;
+    const lignes = r.suggestions
+      .filter((s) => cochees.has(cleDeLigneDuLot(r.album_id, s.champ)))
+      .map((s) => ({ champ: s.champ, valeur: s.apres }));
+    if (lignes.length) albums.push({ album_id: r.album_id, lignes });
+  }
+  return albums;
 }
