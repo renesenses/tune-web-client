@@ -282,15 +282,18 @@ export const PAR_CLE: Record<CleColonne, Colonne> = Object.fromEntries(
 /**
  * Le choix par DÉFAUT de chaque mode.
  *
- * Essentiel reprend la maquette, moins « # Plays » et « Last Played ». Elles
- * sont désormais SERVIES (#824) mais restent décochées d'office : « oui,
- * # plays et last played voulues SI CHOISIES par l'utilisateur » (Bertrand,
- * 07/09/2026). Le défaut est un choix produit, pas un aveu d'absence — les
- * ajouter ici serait décider à sa place.
+ * #1470 — « # écoutes » et « Dernière écoute » sont COCHÉES D'OFFICE dans
+ * les trois modes (go de Bertrand du 12/10/2026, qui remplace l'arbitrage du
+ * 07/09 « voulues SI CHOISIES ») : un testeur les a redemandées cinq versions
+ * après leur livraison (#824), faute de les rencontrer.
+ *
+ * Ce défaut ne vaut que pour un navigateur ou un profil NEUF. Une liste déjà
+ * enregistrée pour un mode est gardée telle quelle par la fusion mode par
+ * mode de `stores/preferences.ts` : on n'écrase pas le choix de quelqu'un.
  *
  * 🔴 LA LISTE D'EXPERT N'EST PLUS THÉORIQUE (09/09/2026). Elle servait de
  * réserve tant que ce mode ne portait pas le tableau ; il le porte désormais,
- * et `settingsLevel` vaut `'expert'` PAR DÉFAUT depuis le 27/08. Ces dix
+ * et `settingsLevel` vaut `'expert'` PAR DÉFAUT depuis le 27/08. Ces douze
  * colonnes sont donc ce qu'un utilisateur voit à l'ouverture d'une
  * installation neuve. On n'y touche pas — « il les faut toutes » veut dire
  * toutes PROPOSÉES, pas toutes cochées — mais on sait maintenant ce qu'elle
@@ -299,12 +302,12 @@ export const PAR_CLE: Record<CleColonne, Colonne> = Object.fromEntries(
  * Avancé porte le tableau depuis #1470.
  */
 export const DEFAUTS: Record<SettingsLevel, CleColonne[]> = {
-  beginner:     ['num', 'title', 'artist', 'time', 'quality'],
-  intermediate: ['num', 'title', 'artist', 'time', 'year', 'genre', 'quality'],
+  beginner:     ['num', 'title', 'artist', 'time', 'plays', 'lastPlayed', 'quality'],
+  intermediate: ['num', 'title', 'artist', 'time', 'year', 'genre', 'plays', 'lastPlayed', 'quality'],
   // Expert reste RAISONNABLE par défaut : « il les faut toutes » veut dire
   // qu'elles sont toutes PROPOSÉES, pas toutes cochées d'office — vingt-deux
   // colonnes à l'ouverture seraient illisibles. Elles sont à un clic.
-  expert:       ['num', 'title', 'artist', 'composer', 'time', 'year', 'channels', 'bpm', 'genre', 'quality'],
+  expert:       ['num', 'title', 'artist', 'composer', 'time', 'year', 'channels', 'bpm', 'genre', 'plays', 'lastPlayed', 'quality'],
 };
 
 /** Cette colonne est-elle offerte à ce mode ? */

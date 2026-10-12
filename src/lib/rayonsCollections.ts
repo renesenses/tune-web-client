@@ -210,3 +210,43 @@ export function ecrireArbreBarreReplie(replie: boolean): void {
     /* stockage indisponible : le repli vaut pour la session */
   }
 }
+
+/* ------------------------------------------------------------------------- */
+/*  web#1579 — créer une collection intelligente DANS un rayon (Didier, fil   */
+/*  1907) : « Ne serait-il pas possible de créer l'équivalent d'une Smart     */
+/*  Collection directement dans la zone Rayon ? Cela éviterait d'encombrer la */
+/*  page Smart Collection. » Go de Bertrand du 12/10/2026.                    */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Les collections rangées dans un rayon, quelle que soit la profondeur, sous la
+ * forme `sorte:id` — les deux espaces d'identifiants se recouvrent, l'id seul
+ * ne suffit pas.
+ */
+export function clesRangees(arbre: ArbreCollections): Set<string> {
+  const s = new Set<string>();
+  for (const f of tousLesRayons(arbre.folders)) {
+    for (const c of f.collections ?? []) s.add(`${c.kind}:${c.id}`);
+  }
+  return s;
+}
+
+/**
+ * Après l'enregistrement d'une collection intelligente CRÉÉE depuis le menu
+ * d'un rayon : la ranger dans ce rayon. Deux routes existantes (création, puis
+ * `POST /library/collection-folders/items/smart/{id}`), pas de route nouvelle.
+ *
+ * Rend vrai si la collection a été rangée. Sans rayon (création depuis
+ * l'onglet Smart), ou sans identifiant rendu par le serveur, rien ne part.
+ */
+export async function rangerLaNouvelle(
+  rayonId: number | null | undefined,
+  creee: { id?: unknown } | null | undefined,
+  placer: (kind: SorteCollectionRangee, id: number, folderId: number | null) => Promise<unknown>,
+): Promise<boolean> {
+  if (rayonId == null) return false;
+  const id = creee?.id;
+  if (typeof id !== 'number' || !Number.isFinite(id)) return false;
+  await placer('smart', id, rayonId);
+  return true;
+}
