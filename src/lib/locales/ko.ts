@@ -840,6 +840,7 @@ export default {
   "signal.rgInStream": "ReplayGain 게인이 장치로 보내는 스트림에 포함되어 있습니다",
   'audiophile.disabled': '오디오파일 모드 비활성',
   'audiophile.pure': 'PURE',
+  'audiophile.pureNothingToBypass': 'PURE 켜짐: 이 존에는 활성화된 처리가 없어 우회할 것이 없습니다. 신호는 이미 원본 그대로였습니다.',
   'audiophile.lockVolume': "오디오파일 모드가 켜질 때 볼륨 100 % 고정(모든 구역의 기본값)",
   'audiophile.lockVolumeHelp': "오디오파일 모드가 켜지는 순간에만, 개별 설정이 없는 모든 구역에 작동합니다. 볼륨을 100 %로 고정하고 슬라이더를 잠급니다. 기기별 「상시 고정 볼륨」(설정 > 서비스)과는 무관하며, 그쪽은 해당 기기에만 항상 작동합니다.",
   'audiophile.lockVolumeZone': "이 구역을 오디오파일 모드에서 100 %로 고정",

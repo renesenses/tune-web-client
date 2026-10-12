@@ -992,6 +992,7 @@ export default {
   "signal.rgInStream": "ReplayGain gain built into the stream sent to the device",
   'audiophile.disabled': 'Audiophile mode inactive',
   'audiophile.pure': 'PURE',
+  'audiophile.pureNothingToBypass': 'PURE on: no processing is armed on this zone, nothing to bypass. The signal was already untouched.',
   'audiophile.lockVolume': "Full volume when Audiophile mode turns on (default for every zone)",
   'audiophile.lockVolumeHelp': "Only acts when Audiophile mode turns on, on every zone without its own setting: volume is pinned at 100% and the slider frozen. Unrelated to a device's “Permanent fixed volume” (Settings > Services), which acts at all times on that one device.",
   'audiophile.lockVolumeZone': "Full volume in Audiophile mode for this zone",

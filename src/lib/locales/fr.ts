@@ -996,6 +996,7 @@ export default {
   "signal.rgInStream": "Gain ReplayGain intégré au flux envoyé à l'appareil",
   'audiophile.disabled': 'Mode audiophile inactif',
   'audiophile.pure': 'PURE',
+  'audiophile.pureNothingToBypass': 'PURE actif : aucun traitement armé sur cette zone, rien à contourner. Le signal était déjà intact.',
   'audiophile.lockVolume': "Volume à 100 % quand le mode Audiophile s'active (défaut de toutes les zones)",
   'audiophile.lockVolumeHelp': "N'agit qu'au moment où le mode Audiophile s'active, sur toutes les zones sans réglage propre : le volume est figé à 100 % et le curseur gelé. Sans rapport avec « Volume fixe permanent » d'un appareil (Réglages > Services), qui agit en permanence sur ce seul appareil.",
   'audiophile.lockVolumeZone': "Volume à 100 % en mode Audiophile pour cette zone",

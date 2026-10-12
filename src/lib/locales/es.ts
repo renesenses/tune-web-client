@@ -856,6 +856,7 @@ export default {
   "signal.rgInStream": "Ganancia ReplayGain integrada en el flujo enviado al dispositivo",
   'audiophile.disabled': 'Modo audiófilo inactivo',
   'audiophile.pure': 'PURE',
+  'audiophile.pureNothingToBypass': 'PURE activo: ningún procesamiento activado en esta zona, nada que omitir. La señal ya estaba intacta.',
   'audiophile.lockVolume': "Volumen al 100 % al activarse el modo Audiófilo (predeterminado de todas las zonas)",
   'audiophile.lockVolumeHelp': "Solo actúa en el momento en que se activa el modo Audiófilo, en todas las zonas sin ajuste propio: fija el volumen al 100 % y bloquea el control. Sin relación con el «volumen fijo permanente» de un dispositivo (Ajustes > Servicios), que actúa de forma permanente en ese único dispositivo.",
   'audiophile.lockVolumeZone': "Volumen al 100 % en modo Audiófilo para esta zona",

@@ -856,6 +856,7 @@ export default {
   "signal.rgInStream": "ReplayGain-Verstärkung ist im an das Gerät gesendeten Stream enthalten",
   'audiophile.disabled': 'Audiophiler Modus inaktiv',
   'audiophile.pure': 'PURE',
+  'audiophile.pureNothingToBypass': 'PURE aktiv: In dieser Zone ist keine Verarbeitung aktiv, nichts zu umgehen. Das Signal war bereits unverändert.',
   'audiophile.lockVolume': "Volle Lautstärke beim Einschalten des Audiophil-Modus (Standard aller Zonen)",
   'audiophile.lockVolumeHelp': "Wirkt nur im Moment, in dem der Audiophil-Modus eingeschaltet wird, auf allen Zonen ohne eigene Einstellung: Lautstärke auf 100 % gesetzt, Regler gesperrt. Nichts zu tun mit der „dauerhaft festen Lautstärke“ eines Geräts (Einstellungen > Dienste), die dauerhaft auf dieses eine Gerät wirkt.",
   'audiophile.lockVolumeZone': "Volle Lautstärke im Audiophil-Modus für diese Zone",

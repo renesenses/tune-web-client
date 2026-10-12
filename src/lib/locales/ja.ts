@@ -856,6 +856,7 @@ export default {
   "signal.rgInStream": "ReplayGain ゲインはデバイスに送るストリームに組み込まれています",
   'audiophile.disabled': 'オーディオファイルモード無効',
   'audiophile.pure': 'PURE',
+  'audiophile.pureNothingToBypass': 'PURE オン：このゾーンでは処理が有効になっていないため、バイパスするものはありません。信号は元から無加工です。',
   'audiophile.lockVolume': "オーディオファイルモードの開始時に音量を 100 % に固定（全ゾーンの既定）",
   'audiophile.lockVolumeHelp': "オーディオファイルモードに切り替えた瞬間にのみ、個別設定のないすべてのゾーンに働きます。音量を 100 % に固定し、スライダーをロックします。機器ごとの「常時固定音量」（設定 > サービス）とは無関係です。そちらはその機器だけに常時働きます。",
   'audiophile.lockVolumeZone': "このゾーンをオーディオファイルモードで 100 % に固定",
