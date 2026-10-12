@@ -3756,6 +3756,8 @@ export default {
   "v2.health.readAt": "{h} 采集",
   "v2.health.cpuTemp": "处理器温度",
   "v2.health.cpuTempUnavailable": "不可用",
+  "v2.health.analysesBrideesIllisible": "此机器无法读取温度：后台分析已限速（一次一个文件）。",
+  "v2.health.analysesBrideesFigee": "温度传感器返回固定值：后台分析已限速（一次一个文件）。",
   "v2.health.autoFollow": "自动刷新",
   "v2.health.refreshing": "采集中…",
   "v2.health.refresh": "刷新",
