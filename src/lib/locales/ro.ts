@@ -4833,7 +4833,7 @@ export default {
   "acoustid.keyRemoved": "Cheia AcoustID a fost eliminată.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Copie de rezervă în cloud",
-  "cloudBackup.intro": "Tune salvează personalizările dvs. la mozaiklabs, criptate pe acest server cu o cheie pe care mozaiklabs nu o cunoaște: setări, zone, profiluri și preferințe, egalizatoare, favorite, liste de redare și radiouri. Niciodată biblioteca, nici parolele și jetoanele serviciilor. Sunt păstrate cel mult trei instantanee pe mașină și cel mult cinci mașini pe cont; cele mai vechi sunt eliminate.",
+  "cloudBackup.intro": "Tune salvează personalizările dvs. la mozaiklabs, criptate pe acest server cu o cheie pe care mozaiklabs nu o cunoaște: setări, zone, profiluri și preferințe, egalizatoare, favorite, liste de redare și radiouri. Niciodată biblioteca, nici parolele și jetoanele serviciilor, cu o excepție: jetonul Discogs, care călătorește criptat împreună cu restul. Sunt păstrate cel mult trei instantanee pe mașină și cel mult cinci mașini pe cont; cele mai vechi sunt eliminate.",
   "cloudBackup.statePremium": "Copia de rezervă în cloud face parte din Tune Premium.",
   "cloudBackup.stateNotLinked": "Conectați acest server la contul mozaiklabs (secțiunea Cloud, chiar deasupra) pentru a folosi copia de rezervă.",
   "cloudBackup.stateDisabled": "Copia de rezervă automată este dezactivată.",
@@ -4883,6 +4883,7 @@ export default {
   "cloudBackup.reportPlaylistsReplaced": "Liste de redare înlocuite: {n}",
   "cloudBackup.reportFavorites": "Favorite restaurate: {n}",
   "cloudBackup.reportRadios": "Radiouri restaurate: {n}",
+  "cloudBackup.reportDiscogs": "Jeton Discogs restaurat",
   "cloudBackup.cloudUnreachable": "mozaiklabs nu răspunde. Încercați mai târziu.",
   "cloudBackup.error": "Copia de rezervă a eșuat: {error}",
   "cloudBackup.onboardingTitle": "Reluați personalizările",

@@ -4833,7 +4833,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID 키를 삭제했습니다.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "클라우드 백업",
-  "cloudBackup.intro": "Tune은 사용자 설정을 mozaiklabs에 백업하며, mozaiklabs가 알지 못하는 키로 이 서버에서 암호화합니다: 설정, 존, 프로필과 환경설정, 이퀄라이저, 즐겨찾기, 재생목록, 라디오. 라이브러리와 서비스 비밀번호·토큰은 절대 포함되지 않습니다. 기기당 최대 3개의 스냅샷, 계정당 최대 5대의 기기가 보관되며 가장 오래된 것부터 삭제됩니다.",
+  "cloudBackup.intro": "Tune은 사용자 설정을 mozaiklabs에 백업하며, mozaiklabs가 알지 못하는 키로 이 서버에서 암호화합니다: 설정, 존, 프로필과 환경설정, 이퀄라이저, 즐겨찾기, 재생목록, 라디오. 라이브러리와 서비스 비밀번호·토큰은 절대 포함되지 않습니다. 단, Discogs 토큰만은 예외로 나머지와 함께 암호화되어 옮겨집니다. 기기당 최대 3개의 스냅샷, 계정당 최대 5대의 기기가 보관되며 가장 오래된 것부터 삭제됩니다.",
   "cloudBackup.statePremium": "클라우드 백업은 Tune Premium에 포함됩니다.",
   "cloudBackup.stateNotLinked": "백업을 사용하려면 이 서버를 mozaiklabs 계정에 연결하세요(바로 위 Cloud 섹션).",
   "cloudBackup.stateDisabled": "자동 백업이 꺼져 있습니다.",
@@ -4883,6 +4883,7 @@ export default {
   "cloudBackup.reportPlaylistsReplaced": "교체된 재생목록: {n}",
   "cloudBackup.reportFavorites": "복원된 즐겨찾기: {n}",
   "cloudBackup.reportRadios": "복원된 라디오: {n}",
+  "cloudBackup.reportDiscogs": "Discogs 토큰 복원됨",
   "cloudBackup.cloudUnreachable": "mozaiklabs가 응답하지 않습니다. 나중에 다시 시도하세요.",
   "cloudBackup.error": "백업에 실패했습니다: {error}",
   "cloudBackup.onboardingTitle": "사용자 설정 가져오기",
