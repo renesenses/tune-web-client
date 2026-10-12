@@ -27,8 +27,9 @@
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import { avatarDepuisFichier, AvatarRefuse, CLE_MESSAGE } from '../../lib/avatarLocal';
-  import { visibleProfiles, currentProfileId, type Profile } from '../../lib/stores/profile';
+  import { visibleProfiles, currentProfileId, retenirCoteServeur, type Profile } from '../../lib/stores/profile';
   import { basculerVers } from '../../lib/basculeDeProfil';
+  import { basculeNecessaire } from '../../lib/basculeDeProfil';
 
   const LEVELS: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
   let open = $state(false);
@@ -255,6 +256,9 @@
    * On ne ferme donc pas le panneau : il n'y en aura plus.
    */
   function basculer(id: number) {
+    // tune-server-rust#5916 — le serveur retient le choix de cet appareil :
+    // un navigateur qui efface son stockage le retrouve au prochain chargement.
+    if (basculeNecessaire(get(currentProfileId), id)) retenirCoteServeur(id);
     basculerVers(get(currentProfileId), id);
   }
 

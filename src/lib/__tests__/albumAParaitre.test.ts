@@ -69,7 +69,8 @@ describe('point 10 — les albums à paraître sont grisés et injouables', () =
     for (const f of ['src/components/v2/ListePistesV2.svelte']) {
       const src = readFileSync(f, 'utf8');
       expect(src, f).toContain('pisteIndisponible');
-      expect(src, f).toContain('disabled={indispo}');
+      // #6179 — la ligne de playlist introuvable est désactivée de même.
+      expect(src, f).toMatch(/disabled=\{indispo( \|\| introuvable)?\}/);
     }
   });
 });
