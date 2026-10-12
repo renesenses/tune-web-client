@@ -2292,6 +2292,102 @@ export function getAlbumCredits(albumId: number) {
   );
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   #4805 lot 1 — enrichissement d'après MetaRust, de Xavier Joly :
+   complétude, propositions Discogs, BPM, clés d'API personnelles. Les
+   formes vivent dans `lib/enrichissementAlbum`.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/** `GET /library/albums/{id}/completeness/musicbrainz` — hors réseau, sans bandeau. */
+export function getAlbumCompleteness(albumId: number) {
+  return fetchJSON<import('./enrichissementAlbum').Completude>(
+    `${BASE}/library/albums/${albumId}/completeness/musicbrainz`, undefined, undefined, true,
+  );
+}
+
+/** `GET /library/albums/incomplete` — les albums à qui il manque des pistes. */
+export function getIncompleteAlbumIds() {
+  return fetchJSON<{ total: number; ids: number[] }>(
+    `${BASE}/library/albums/incomplete`, undefined, undefined, true,
+  );
+}
+
+/** `POST /library/albums/{id}/instruments` — instruments Wikidata du disque. */
+export function enrichAlbumInstruments(albumId: number) {
+  return fetchJSON<{ album_id: number; result: Record<string, number> }>(
+    `${BASE}/library/albums/${albumId}/instruments`, { method: 'POST' },
+  );
+}
+
+export function getAlbumDiscogsProposals(albumId: number) {
+  return fetchJSON<{ album_id: number; proposals: import('./enrichissementAlbum').PropositionGardee[] }>(
+    `${BASE}/library/albums/${albumId}/discogs`, undefined, undefined, true,
+  );
+}
+
+/** Cherche sur Discogs (code-barres, puis n° de catalogue). N'écrit rien. */
+export function searchAlbumDiscogs(albumId: number) {
+  return fetchJSON<{ album_id: number; proposal: import('./enrichissementAlbum').PropositionDiscogs | null }>(
+    `${BASE}/library/albums/${albumId}/discogs/search`, { method: 'POST' }, undefined, true,
+  );
+}
+
+/** Accepte une proposition : remplit les champs VIDES seulement. */
+export function acceptDiscogsProposal(albumId: number, discogsId: number, credits: boolean) {
+  return fetchJSON<{ accepted: boolean; result: { champs_poses: string[]; champs_gardes: string[]; pistes_creditees: number } }>(
+    `${BASE}/library/albums/${albumId}/discogs/${discogsId}/accept`,
+    { method: 'POST', body: JSON.stringify({ credits }) },
+  );
+}
+
+export function rejectDiscogsProposal(albumId: number, discogsId: number) {
+  return fetchJSON<{ rejected: boolean }>(
+    `${BASE}/library/albums/${albumId}/discogs/${discogsId}/reject`, { method: 'POST' },
+  );
+}
+
+export function getAlbumBpm(albumId: number) {
+  return fetchJSON<{ album_id: number; tracks: import('./enrichissementAlbum').BpmPiste[] }>(
+    `${BASE}/library/albums/${albumId}/bpm`, undefined, undefined, true,
+  );
+}
+
+/** Wikidata d'abord, puis une estimation sur le signal. N'écrit pas les fichiers. */
+export function estimateAlbumBpm(albumId: number, redo = false) {
+  return fetchJSON<{ album_id: number; tracks: import('./enrichissementAlbum').BpmPiste[] }>(
+    `${BASE}/library/albums/${albumId}/bpm/estimate`,
+    { method: 'POST', body: JSON.stringify({ redo }) },
+  );
+}
+
+/** `GET /system/api-keys` — l'état des clés, jamais leur valeur. */
+export function getApiKeys() {
+  return fetchJSON<{ keys: import('./enrichissementAlbum').EtatCleApi[] }>(`${BASE}/system/api-keys`);
+}
+
+export function setApiKey(service: string, value: string) {
+  return fetchJSON<import('./enrichissementAlbum').EtatCleApi>(
+    `${BASE}/system/api-keys/${encodeURIComponent(service)}`,
+    { method: 'PUT', body: JSON.stringify({ value }) },
+  );
+}
+
+export function deleteApiKey(service: string) {
+  return fetchJSON<import('./enrichissementAlbum').EtatCleApi>(
+    `${BASE}/system/api-keys/${encodeURIComponent(service)}`, { method: 'DELETE' },
+  );
+}
+
+/** « Tester » : la saisie si elle est donnée, sinon la clé en service. */
+export function testApiKey(service: string, value?: string) {
+  return fetchJSON<{ service: string; tested: string; verdict: 'valide' | 'refusee' | 'indetermine' }>(
+    `${BASE}/system/api-keys/${encodeURIComponent(service)}/test`,
+    { method: 'POST', body: JSON.stringify(value ? { value } : {}) },
+    undefined,
+    true,
+  );
+}
+
 /**
  * Crédits d'un titre de SERVICE — tune-server-rust#4993 (srv#5041). Même
  * forme que `getTrackCredits`, `id` et `artist_id` nuls, `track_id` en

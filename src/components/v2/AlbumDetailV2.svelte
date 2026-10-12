@@ -1665,6 +1665,15 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     </div>
   {/if}
 
+  <!-- #4805 lot 1 (d'après MetaRust, de Xavier Joly) : complétude, BPM,
+       instruments Wikidata, propositions Discogs. Album de la BIBLIOTHÈQUE
+       seulement — la même garde que les crédits. -->
+  {#if creditsPossibles && album.id != null}
+    {#await import('./EnrichissementAlbumV2.svelte') then m}
+      <m.default albumId={album.id} pistes={tracks} />
+    {/await}
+  {/if}
+
   <div class="tracks">
     {#if enEdition && edition && album.id != null}
       <EditionAlbumV2 albumId={album.id} donnees={edition}
