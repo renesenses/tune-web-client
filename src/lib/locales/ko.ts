@@ -3758,6 +3758,8 @@ export default {
   "v2.health.readAt": "{h} 기준",
   "v2.health.cpuTemp": "CPU 온도",
   "v2.health.cpuTempUnavailable": "사용할 수 없음",
+  "v2.health.analysesBrideesIllisible": "이 컴퓨터에서 온도를 읽을 수 없음: 백그라운드 분석 제한(한 번에 파일 하나).",
+  "v2.health.analysesBrideesFigee": "온도 센서가 고정된 값을 반환함: 백그라운드 분석 제한(한 번에 파일 하나).",
   "v2.health.autoFollow": "자동 갱신",
   "v2.health.refreshing": "읽는 중…",
   "v2.health.refresh": "새로 고침",

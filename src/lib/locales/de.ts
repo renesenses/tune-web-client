@@ -3758,6 +3758,8 @@ export default {
   "v2.health.readAt": "erfasst um {h}",
   "v2.health.cpuTemp": "Prozessortemperatur",
   "v2.health.cpuTempUnavailable": "nicht verfügbar",
+  "v2.health.analysesBrideesIllisible": "Temperatur auf diesem Rechner nicht lesbar: Hintergrundanalysen gedrosselt (eine Datei nach der anderen).",
+  "v2.health.analysesBrideesFigee": "Temperatursensor liefert einen festen Wert: Hintergrundanalysen gedrosselt (eine Datei nach der anderen).",
   "v2.health.autoFollow": "automatische Aktualisierung",
   "v2.health.refreshing": "Wird gelesen…",
   "v2.health.refresh": "Aktualisieren",

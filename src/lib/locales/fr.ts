@@ -3780,6 +3780,8 @@ export default {
   "v2.health.readAt": "relevé à {h}",
   "v2.health.cpuTemp": "Température du processeur",
   "v2.health.cpuTempUnavailable": "indisponible",
+  "v2.health.analysesBrideesIllisible": "Température non lisible sur cette machine : analyses bridées (un fichier à la fois).",
+  "v2.health.analysesBrideesFigee": "Le capteur de température rend une valeur figée : analyses bridées (un fichier à la fois).",
   "v2.health.autoFollow": "suivi automatique",
   "v2.health.refreshing": "Relevé…",
   "v2.health.refresh": "Actualiser",

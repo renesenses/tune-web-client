@@ -3778,6 +3778,8 @@ export default {
   "v2.health.readAt": "read at {h}",
   "v2.health.cpuTemp": "CPU temperature",
   "v2.health.cpuTempUnavailable": "unavailable",
+  "v2.health.analysesBrideesIllisible": "Temperature not readable on this machine: background analyses throttled (one file at a time).",
+  "v2.health.analysesBrideesFigee": "The temperature sensor reports a fixed value: background analyses throttled (one file at a time).",
   "v2.health.autoFollow": "auto-refresh",
   "v2.health.refreshing": "Reading…",
   "v2.health.refresh": "Refresh",

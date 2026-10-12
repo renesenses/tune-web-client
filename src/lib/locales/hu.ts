@@ -3716,6 +3716,8 @@ export default {
   "v2.health.readAt": "leolvasva: {h}",
   "v2.health.cpuTemp": "Processzor hőmérséklete",
   "v2.health.cpuTempUnavailable": "nem elérhető",
+  "v2.health.analysesBrideesIllisible": "A hőmérséklet nem olvasható ezen a gépen: a háttérelemzések korlátozva (egyszerre egy fájl).",
+  "v2.health.analysesBrideesFigee": "A hőmérséklet-érzékelő állandó értéket ad: a háttérelemzések korlátozva (egyszerre egy fájl).",
   "v2.health.autoFollow": "automatikus követés",
   "v2.health.refreshing": "Leolvasás…",
   "v2.health.refresh": "Frissítés",

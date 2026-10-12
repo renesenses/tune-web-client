@@ -3758,6 +3758,8 @@ export default {
   "v2.health.readAt": "{h} 時点",
   "v2.health.cpuTemp": "CPU 温度",
   "v2.health.cpuTempUnavailable": "取得できません",
+  "v2.health.analysesBrideesIllisible": "このマシンでは温度を読み取れません：バックグラウンド解析を制限中（1ファイルずつ）。",
+  "v2.health.analysesBrideesFigee": "温度センサーが固定値を返しています：バックグラウンド解析を制限中（1ファイルずつ）。",
   "v2.health.autoFollow": "自動更新",
   "v2.health.refreshing": "取得中…",
   "v2.health.refresh": "更新",

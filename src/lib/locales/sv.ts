@@ -3757,6 +3757,8 @@ export default {
   "v2.health.readAt": "avläst {h}",
   "v2.health.cpuTemp": "Processortemperatur",
   "v2.health.cpuTempUnavailable": "inte tillgänglig",
+  "v2.health.analysesBrideesIllisible": "Temperaturen kan inte läsas på den här datorn: bakgrundsanalyser begränsade (en fil i taget).",
+  "v2.health.analysesBrideesFigee": "Temperatursensorn ger ett fast värde: bakgrundsanalyser begränsade (en fil i taget).",
   "v2.health.autoFollow": "automatisk uppdatering",
   "v2.health.refreshing": "Läser…",
   "v2.health.refresh": "Uppdatera",
