@@ -48,7 +48,8 @@ describe('pistes indisponibles', () => {
     const liste = lire(ECRANS.liste);
     expect(liste).toContain('onclick={() => void lireDelibere(p, i)}');
     expect(liste).toMatch(/async function lireDelibere\(p: Track, i: number\) \{\n\s*if \(pisteIndisponible\(p\)\) return;/);
-    expect(liste).toContain('disabled={indispo}');
+    // #6179 — la ligne de playlist introuvable est désactivée de même.
+    expect(liste).toMatch(/disabled=\{indispo( \|\| introuvable)?\}/);
   });
 
   it('🔴 le gestionnaire ne rend plus de piste lui-même : il passe par la liste commune', () => {
