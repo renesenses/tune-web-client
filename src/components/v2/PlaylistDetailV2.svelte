@@ -105,6 +105,16 @@
     exportEnCours = false;
   }
   const isLocal = $derived(item.kind === 'local');
+  /**
+   * web#2098 (FabienM, fil 2236, point 10) — une playlist DE SERVICE dont
+   * l'utilisateur est propriétaire : on peut en retirer un titre. Seulement
+   * quand le serveur l'affirme (`editable: true`, web#2097) ; absent ou faux
+   * (playlist suivie, éditoriale, serveur plus ancien) : lecture seule.
+   */
+  const aMoiChezLeService = $derived(
+    item.kind === 'streaming' && (item.pl as StreamingPlaylist & { editable?: boolean | null }).editable === true,
+  );
+  const editable = $derived(isLocal || aMoiChezLeService);
   const title = $derived(item.pl.name);
 
   /**
@@ -263,6 +273,24 @@
       .catch(() => {});
   }
 
+  /** Retire un titre de la playlist du service (#2098) — toutes ses occurrences. */
+  let retraitService = $state(false);
+  async function retirerDuService(t: Track) {
+    if (item.kind !== 'streaming' || !aMoiChezLeService || retraitService || t.source_id == null) return;
+    const service = item.service;
+    const sid = String(t.source_id);
+    retraitService = true;
+    try {
+      await api.removeStreamingPlaylistTracks(service, String(item.pl.source_id), [sid]);
+      tracks = tracks.filter((x) => String(x.source_id) !== sid);
+      onChanged?.();
+    } catch {
+      notifications.error($tr('v2.pl.removeFromServiceError' as any).replace('{service}', service));
+    } finally {
+      retraitService = false;
+    }
+  }
+
   /** Un déplacement est en cours : on n'en accepte pas un second par-dessus. */
   let deplacement = $state(false);
 
@@ -384,9 +412,10 @@
           </button>
         {/if}
 
-        <!-- Une playlist de SERVICE ne s'édite pas : elle vit chez Qobuz ou
-             Tidal, et nos routes d'écriture ne la connaissent pas. -->
-        {#if isLocal}
+        <!-- Une playlist de SERVICE ne s'édite pas, sauf celle dont
+             l'utilisateur est propriétaire (#2098) : on peut alors en retirer
+             des titres — ni renommer, ni supprimer, ni réordonner. -->
+        {#if editable}
           <button class="ghost sm" class:on={edition} onclick={() => { edition = !edition; renaming = false; }}
             aria-pressed={edition}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
@@ -403,7 +432,7 @@
              `/import/m3u`, `/import/m3u-url` et `/import/linn`. Personne ne
              l'appelle. Proposer « Importer » serait un bouton mort. -->
         {#if !isLocal}
-          <span class="chez">{$tr('v2.pl.remoteHint' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}</span>
+          <span class="chez">{$tr((aMoiChezLeService ? 'v2.pl.remoteOwnedHint' : 'v2.pl.remoteHint') as any).replaceAll('{service}', item.kind === 'streaming' ? item.service : '')}</span>
         {/if}
       </div>
     </div>
@@ -464,6 +493,12 @@
           </button>
           <button class="rm" onclick={() => removeAt(rangReel(_t))} aria-label={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+          </button>
+        {:else if edition && aMoiChezLeService}
+          <button class="rm retrait-service" onclick={() => retirerDuService(_t)} disabled={retraitService}
+            aria-label={$tr('v2.pl.removeFromService' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}
+            title={$tr('v2.pl.removeFromService' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         {/if}
       {/snippet}
