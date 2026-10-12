@@ -3756,6 +3756,8 @@ export default {
   "v2.health.readAt": "leído a las {h}",
   "v2.health.cpuTemp": "Temperatura del procesador",
   "v2.health.cpuTempUnavailable": "no disponible",
+  "v2.health.analysesBrideesIllisible": "Temperatura no legible en esta máquina: análisis en segundo plano limitados (un archivo a la vez).",
+  "v2.health.analysesBrideesFigee": "El sensor de temperatura da un valor fijo: análisis en segundo plano limitados (un archivo a la vez).",
   "v2.health.autoFollow": "seguimiento automático",
   "v2.health.refreshing": "Leyendo…",
   "v2.health.refresh": "Actualizar",
