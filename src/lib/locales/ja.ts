@@ -4844,7 +4844,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID キーを削除しました。",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "クラウドバックアップ",
-  "cloudBackup.intro": "Tune はカスタマイズを mozaiklabs にバックアップします。mozaiklabs が知らない鍵でこのサーバー上で暗号化されます：設定、ゾーン、プロファイルと表示設定、イコライザー、お気に入り、プレイリスト、ラジオ。ライブラリ、サービスのパスワードやトークンは決して含まれません。1台のマシンにつき最大3つのスナップショット、1つのアカウントにつき最大5台のマシンが保持され、古いものから削除されます。",
+  "cloudBackup.intro": "Tune はカスタマイズを mozaiklabs にバックアップします。mozaiklabs が知らない鍵でこのサーバー上で暗号化されます：設定、ゾーン、プロファイルと表示設定、イコライザー、お気に入り、プレイリスト、ラジオ。ライブラリ、サービスのパスワードやトークンは決して含まれません。ただし Discogs トークンだけは例外で、他のデータと一緒に暗号化されて引き継がれます。1台のマシンにつき最大3つのスナップショット、1つのアカウントにつき最大5台のマシンが保持され、古いものから削除されます。",
   "cloudBackup.statePremium": "クラウドバックアップは Tune Premium に含まれます。",
   "cloudBackup.stateNotLinked": "バックアップを使うには、このサーバーを mozaiklabs アカウントに連携してください（すぐ上の Cloud セクション）。",
   "cloudBackup.stateDisabled": "自動バックアップはオフです。",
@@ -4894,6 +4894,7 @@ export default {
   "cloudBackup.reportPlaylistsReplaced": "置き換えられたプレイリスト：{n}",
   "cloudBackup.reportFavorites": "復元されたお気に入り：{n}",
   "cloudBackup.reportRadios": "復元されたラジオ：{n}",
+  "cloudBackup.reportDiscogs": "Discogs トークンを復元しました",
   "cloudBackup.cloudUnreachable": "mozaiklabs が応答しません。後でもう一度お試しください。",
   "cloudBackup.error": "バックアップに失敗しました：{error}",
   "cloudBackup.onboardingTitle": "カスタマイズを引き継ぐ",

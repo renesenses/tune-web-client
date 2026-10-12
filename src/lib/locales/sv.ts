@@ -4843,7 +4843,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID-nyckeln har tagits bort.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Molnsäkerhetskopia",
-  "cloudBackup.intro": "Tune säkerhetskopierar dina anpassningar hos mozaiklabs, krypterade på den här servern med en nyckel som mozaiklabs inte känner till: inställningar, zoner, profiler och preferenser, equalizers, favoriter, spellistor och radiokanaler. Aldrig ditt bibliotek, aldrig tjänsternas lösenord och token. Högst tre ögonblicksbilder per maskin och fem maskiner per konto sparas; de äldsta tas bort.",
+  "cloudBackup.intro": "Tune säkerhetskopierar dina anpassningar hos mozaiklabs, krypterade på den här servern med en nyckel som mozaiklabs inte känner till: inställningar, zoner, profiler och preferenser, equalizers, favoriter, spellistor och radiokanaler. Aldrig ditt bibliotek, aldrig tjänsternas lösenord och token, med ett undantag: Discogs-token, som följer med krypterad tillsammans med resten. Högst tre ögonblicksbilder per maskin och fem maskiner per konto sparas; de äldsta tas bort.",
   "cloudBackup.statePremium": "Molnsäkerhetskopian ingår i Tune Premium.",
   "cloudBackup.stateNotLinked": "Koppla den här servern till ditt mozaiklabs-konto (avsnittet Cloud, strax ovanför) för att använda säkerhetskopian.",
   "cloudBackup.stateDisabled": "Automatisk säkerhetskopiering är av.",
@@ -4893,6 +4893,7 @@ export default {
   "cloudBackup.reportPlaylistsReplaced": "Ersatta spellistor: {n}",
   "cloudBackup.reportFavorites": "Återställda favoriter: {n}",
   "cloudBackup.reportRadios": "Återställda radiokanaler: {n}",
+  "cloudBackup.reportDiscogs": "Discogs-token återställd",
   "cloudBackup.cloudUnreachable": "mozaiklabs svarar inte. Försök igen senare.",
   "cloudBackup.error": "Säkerhetskopieringen misslyckades: {error}",
   "cloudBackup.onboardingTitle": "Återta dina anpassningar",

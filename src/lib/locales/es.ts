@@ -4844,7 +4844,7 @@ export default {
   "acoustid.keyRemoved": "Clave AcoustID eliminada.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Copia en la nube",
-  "cloudBackup.intro": "Tune guarda sus personalizaciones en mozaiklabs, cifradas en este servidor con una clave que mozaiklabs no conoce: ajustes, zonas, perfiles y preferencias, ecualizadores, favoritos, listas y radios. Nunca su biblioteca, ni las contraseñas y credenciales de los servicios. Se conservan como máximo tres copias por máquina y cinco máquinas por cuenta; las más antiguas se eliminan.",
+  "cloudBackup.intro": "Tune guarda sus personalizaciones en mozaiklabs, cifradas en este servidor con una clave que mozaiklabs no conoce: ajustes, zonas, perfiles y preferencias, ecualizadores, favoritos, listas y radios. Nunca su biblioteca, ni las contraseñas y credenciales de los servicios, con una excepción: el token de Discogs, que viaja cifrado con el resto. Se conservan como máximo tres copias por máquina y cinco máquinas por cuenta; las más antiguas se eliminan.",
   "cloudBackup.statePremium": "La copia en la nube forma parte de Tune Premium.",
   "cloudBackup.stateNotLinked": "Vincule este servidor a su cuenta mozaiklabs (sección Cloud, justo encima) para usar la copia.",
   "cloudBackup.stateDisabled": "Copia automática desactivada.",
@@ -4894,6 +4894,7 @@ export default {
   "cloudBackup.reportPlaylistsReplaced": "Listas reemplazadas: {n}",
   "cloudBackup.reportFavorites": "Favoritos restaurados: {n}",
   "cloudBackup.reportRadios": "Radios restauradas: {n}",
+  "cloudBackup.reportDiscogs": "Token de Discogs restaurado",
   "cloudBackup.cloudUnreachable": "mozaiklabs no responde. Inténtelo más tarde.",
   "cloudBackup.error": "La copia ha fallado: {error}",
   "cloudBackup.onboardingTitle": "Recuperar sus personalizaciones",
