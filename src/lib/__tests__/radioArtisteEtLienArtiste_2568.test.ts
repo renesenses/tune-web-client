@@ -97,7 +97,9 @@ describe("#2568 — la fiche porte les DEUX gestes que Sandro demande", () => {
     await new Promise((r) => setTimeout(r, 80));
     flushSync();
 
-    const boutons = Array.from(hote.querySelectorAll<HTMLButtonElement>('.v2-fas .gestes button'));
+    // web#2094 — le cœur de l'artiste de service vit dans la même barre : il
+    // n'est pas un geste de LECTURE, on ne le compte pas ici.
+    const boutons = Array.from(hote.querySelectorAll<HTMLButtonElement>('.v2-fas .gestes button:not(.coeur-artiste)'));
     expect(boutons.length, 'deux gestes, pas un — le best of ET le mix').toBe(2);
 
     corpsEnvoyes = [];
