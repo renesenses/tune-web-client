@@ -127,6 +127,8 @@ export default {
   'concerts.codePostalPlaceholder': '우편번호',
   'concerts.rayon': '반경',
   'concerts.appliquer': '적용',
+  "concerts.questionLieu": "어디에 사시나요? 콘서트를 위해 얼마나 멀리 가실 수 있나요?",
+  "concerts.pasMaintenant": "나중에",
   'concerts.communeSaisieNote': '거주 도시를 추측하지 않습니다. 도시 단위로 거리를 계산하는 데에만 사용합니다.',
   'concerts.communeIntrouvable': '도시를 찾을 수 없어 전국의 공연을 표시합니다.',
   'concerts.nSurTotal': '공연 {total}개 중 {n}개',

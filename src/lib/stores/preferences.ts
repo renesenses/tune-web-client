@@ -20,6 +20,7 @@ import {
   normaliserChoixBarre, horodatageBarre, arbitrerBarre, type ChoixBarre,
 } from '../ordreBarreLaterale';
 import type { TriConcerts } from '../concertsTri';
+import type { ChoixLieuConcerts } from '../concertsLieu';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
  *
@@ -167,6 +168,13 @@ export interface Preferences {
    *  n'atteindrait plus personne. Seul le clic sur la bascule y écrit ; le
    *  défaut (`TRI_CONCERTS_DEFAUT`, « Par date ») s'applique à l'affichage. */
   concertsTri: TriConcerts | null;
+  /**
+   * web#1755 — la commune et le rayon (ou le périmètre) de CE profil pour
+   * l'écran Concerts. `null` = rien dit : l'écran pose la question ;
+   * `'plus-tard'` = « Pas maintenant ». Voir `lib/concertsLieu.ts` ; relu par
+   * `normaliserChoixLieu`.
+   */
+  concertsLieu: ChoixLieuConcerts | null;
   /**
    * Le crête-mètre affiché — #452, spécifié par Xavijol.
    *
@@ -468,6 +476,7 @@ const defaults: Preferences = {
   // web#1718 : `null`, pas le défaut — voir le type. L'écran lit
   // `normaliserTriConcerts(null)`, donc « Par date ».
   concertsTri: null,
+  concertsLieu: null,
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
