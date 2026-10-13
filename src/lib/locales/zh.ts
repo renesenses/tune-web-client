@@ -1555,6 +1555,7 @@ export default {
   "smartCollection.opBetween": "介于",
   "smartCollection.opContains": "包含",
   "smartCollection.opStartsWith": "开头为",
+  "smartCollection.opNotContains": "不包含",
   "smartCollection.opIn": "属于",
   "smartCollection.opIsEmpty": "为空",
   "smartCollection.opIsNotEmpty": "不为空",

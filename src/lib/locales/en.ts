@@ -2207,6 +2207,7 @@ export default {
   "smartCollection.opBetween": "between",
   "smartCollection.opContains": "contains",
   "smartCollection.opStartsWith": "starts with",
+  "smartCollection.opNotContains": "does not contain",
   "smartCollection.opIn": "among",
   "smartCollection.opIsEmpty": "is empty",
   "smartCollection.opIsNotEmpty": "is not empty",

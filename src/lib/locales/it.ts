@@ -1555,6 +1555,7 @@ export default {
   "smartCollection.opBetween": "tra",
   "smartCollection.opContains": "contiene",
   "smartCollection.opStartsWith": "inizia con",
+  "smartCollection.opNotContains": "non contiene",
   "smartCollection.opIn": "tra",
   "smartCollection.opIsEmpty": "è vuoto",
   "smartCollection.opIsNotEmpty": "non è vuoto",

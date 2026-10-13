@@ -1539,6 +1539,7 @@ export default {
   "smartCollection.opBetween": "사이",
   "smartCollection.opContains": "포함",
   "smartCollection.opStartsWith": "다음으로 시작",
+  "smartCollection.opNotContains": "포함하지 않음",
   "smartCollection.opIn": "다음 중",
   "smartCollection.opIsEmpty": "비어 있음",
   "smartCollection.opIsNotEmpty": "비어 있지 않음",

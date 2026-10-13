@@ -1553,6 +1553,7 @@ export default {
   "smartCollection.opBetween": "範囲",
   "smartCollection.opContains": "を含む",
   "smartCollection.opStartsWith": "で始まる",
+  "smartCollection.opNotContains": "を含まない",
   "smartCollection.opIn": "のいずれか",
   "smartCollection.opIsEmpty": "が空",
   "smartCollection.opIsNotEmpty": "が空でない",
