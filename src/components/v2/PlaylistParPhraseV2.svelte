@@ -13,6 +13,8 @@
     proposerPlaylistIa, estEchec, cleDEchec, cleDeRaison, valeurLisible,
     type PropositionIa,
   } from '../../lib/assistantIa';
+  import type { EtatPlafondIa } from '../../lib/assistantIa';
+  import AlertePlafondIaV2 from './AlertePlafondIaV2.svelte';
 
   interface Props {
     onClose: () => void;
@@ -26,6 +28,7 @@
   let proposition = $state<PropositionIa | null>(null);
   let depuisCache = $state(false);
   let cout = $state(0);
+  let plafond = $state<EtatPlafondIa | null>(null);
 
   async function proposer(e?: Event) {
     e?.preventDefault();
@@ -37,6 +40,7 @@
       proposition = r.proposition;
       depuisCache = r.depuis_cache;
       cout = r.cout_eur;
+      plafond = r.plafond ?? null;
     } catch (err) {
       erreur = (err as Error)?.message ?? $t('assistantIa.err.generique' as any);
     } finally { occupe = false; }
@@ -103,6 +107,7 @@
         <p class="note">
           {depuisCache ? $t('assistantIa.fromCache' as any) : $t('assistantIa.cost' as any).replace('{cout}', cout.toFixed(4))}
         </p>
+        <AlertePlafondIaV2 {plafond} />
         <p class="note">{$t('assistantIa.playlist.nothingCreated' as any)}</p>
         <div class="pied">
           <button type="button" class="sec" onclick={onClose}>{$t('assistantIa.cancel' as any)}</button>

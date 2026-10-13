@@ -51,7 +51,45 @@ export interface ReglagesIa {
     jetons_sortie: number;
     depuis_cache: number;
     plafond_atteint: boolean;
+    /** Étape 3 : au moins 80 % du plafond dépensé (plafond atteint compris). */
+    alerte?: boolean;
+    part_du_plafond?: number;
+    seuil_alerte?: number;
+    /** Étape 3 : les mêmes compteurs, par usage. */
+    par_usage?: Record<string, CompteUsageIa>;
   };
+  /** Étape 3 : le tarif appliqué au modèle effectif, daté ; `null` sans fournisseur. */
+  tarif?: TarifIa | null;
+}
+
+/** Étape 3 : les compteurs d'un usage (`playlist`, `album`, `pistes`, `test`, `requete`, `traduction`). */
+export interface CompteUsageIa {
+  cout_eur: number;
+  appels: number;
+  jetons_entree: number;
+  jetons_sortie: number;
+  depuis_cache: number;
+}
+
+/** Étape 3 : d'où vient le tarif appliqué, et quand il a été relevé. */
+export interface TarifIa {
+  origine: 'table' | 'saisi' | 'local' | null;
+  entree_usd_mtok?: number | null;
+  sortie_usd_mtok?: number | null;
+  releve_le?: string | null;
+  source_url?: string | null;
+  a_relever_avant?: string | null;
+  a_relever?: boolean;
+}
+
+/** Étape 3 : l'état du plafond, joint à chaque réponse d'un usage. */
+export interface EtatPlafondIa {
+  depense_eur: number;
+  plafond_eur: number;
+  part: number;
+  seuil_alerte: number;
+  alerte: boolean;
+  atteint: boolean;
 }
 
 export interface ModificationIa {
@@ -149,6 +187,7 @@ export interface LotIa {
   arret: { error: string; message: string } | null;
   non_traites: number[];
   cout_eur: number;
+  plafond?: EtatPlafondIa;
 }
 
 const accepter = (s: number) => s !== 401;
@@ -176,20 +215,20 @@ export function changerReglagesIa(m: ModificationIa): Promise<ReglagesIa | Echec
   return fetchJSON(`${RACINE}/reglages`, { method: 'PUT', body: JSON.stringify(m) }, accepter);
 }
 
-export function testerCleIa(): Promise<{ ok: true; cout_eur: number } | EchecIa> {
+export function testerCleIa(): Promise<{ ok: true; cout_eur: number; plafond?: EtatPlafondIa } | EchecIa> {
   return fetchJSON(`${RACINE}/tester`, { method: 'POST' }, accepter);
 }
 
 export function proposerPlaylistIa(
   phrase: string,
   cible: 'playlist' | 'collection' = 'playlist',
-): Promise<{ ok: true; proposition: PropositionIa; depuis_cache: boolean; cout_eur: number } | EchecIa> {
+): Promise<{ ok: true; proposition: PropositionIa; depuis_cache: boolean; cout_eur: number; plafond?: EtatPlafondIa } | EchecIa> {
   return fetchJSON(`${RACINE}/playlist`, { method: 'POST', body: JSON.stringify({ phrase, cible }) }, accepter);
 }
 
 export function suggestionsAlbumIa(
   albumId: number,
-): Promise<{ ok: true; suggestions: SuggestionIa[]; ecartees: EcarteeIa[]; depuis_cache: boolean; cout_eur: number } | EchecIa> {
+): Promise<{ ok: true; suggestions: SuggestionIa[]; ecartees: EcarteeIa[]; depuis_cache: boolean; cout_eur: number; plafond?: EtatPlafondIa } | EchecIa> {
   return fetchJSON(`${RACINE}/albums/${albumId}/suggestions`, { method: 'POST' }, accepter);
 }
 
@@ -217,7 +256,7 @@ export function annulerSuggestionsIa(
 
 export function suggestionsPistesIa(
   albumId: number,
-): Promise<{ ok: true; suggestions: SuggestionPisteIa[]; ecartees: EcarteePisteIa[]; depuis_cache: boolean; cout_eur: number } | EchecIa> {
+): Promise<{ ok: true; suggestions: SuggestionPisteIa[]; ecartees: EcarteePisteIa[]; depuis_cache: boolean; cout_eur: number; plafond?: EtatPlafondIa } | EchecIa> {
   return fetchJSON(`${RACINE}/albums/${albumId}/pistes/suggestions`, { method: 'POST' }, accepter);
 }
 
@@ -358,4 +397,68 @@ export function lignesDuLot(
     if (lignes.length) albums.push({ album_id: r.album_id, lignes });
   }
   return albums;
+}
+
+// ---------------------------------------------------------------------------
+// Étape 3 : suivi par usage, alerte à 80 %, tarif daté
+// ---------------------------------------------------------------------------
+
+/** Les usages que le serveur compte, dans l'ordre d'affichage. */
+export const USAGES_IA = ['playlist', 'album', 'pistes', 'requete', 'traduction', 'test'] as const;
+
+/** La clé i18n du nom d'un usage ; un usage inconnu garde son nom brut. */
+export function cleDUsage(usage: string): string | null {
+  return (USAGES_IA as readonly string[]).includes(usage) ? `assistantIa.usageName.${usage}` : null;
+}
+
+/** Les lignes du détail par usage : usages connus d'abord, dans leur ordre, puis les autres. */
+export function lignesParUsage(
+  c: ReglagesIa['consommation'] | null | undefined,
+): (CompteUsageIa & { usage: string })[] {
+  const par = c?.par_usage ?? {};
+  const rang = (u: string) => {
+    const i = (USAGES_IA as readonly string[]).indexOf(u);
+    return i < 0 ? USAGES_IA.length : i;
+  };
+  return Object.entries(par)
+    .map(([usage, v]) => ({ usage, ...v }))
+    .sort((a, b) => rang(a.usage) - rang(b.usage) || a.usage.localeCompare(b.usage));
+}
+
+/** L'alerte à 80 % s'affiche tant que le plafond n'est pas atteint (au-delà, c'est le refus qui parle). */
+export function alerteAAfficher(p: EtatPlafondIa | null | undefined): boolean {
+  return !!p && p.alerte && !p.atteint;
+}
+
+/** L'état du plafond tiré des réglages (même forme que celui des réponses). */
+export function plafondDesReglages(r: ReglagesIa | null | undefined): EtatPlafondIa | null {
+  if (!r || r.consommation.alerte === undefined) return null;
+  return {
+    depense_eur: r.consommation.cout_eur,
+    plafond_eur: r.plafond_eur,
+    part: r.consommation.part_du_plafond ?? 0,
+    seuil_alerte: r.consommation.seuil_alerte ?? 80,
+    alerte: r.consommation.alerte,
+    atteint: r.consommation.plafond_atteint,
+  };
+}
+
+/** Le texte de l'alerte : part dépensée (arrondie vers le bas), dépense et plafond. */
+export function texteAlerte(modele: string, p: EtatPlafondIa): string {
+  return modele
+    .replace('{part}', String(Math.floor(p.part * 100)))
+    .replace('{cout}', p.depense_eur.toFixed(2))
+    .replace('{plafond}', p.plafond_eur.toFixed(2));
+}
+
+/** `AAAA-MM-JJ` en date lisible dans la langue donnée ; la chaîne brute si illisible. */
+export function dateLisible(iso: string | null | undefined, langue = 'fr'): string {
+  if (!iso) return '';
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  try {
+    return d.toLocaleDateString(langue, { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch {
+    return iso;
+  }
 }
