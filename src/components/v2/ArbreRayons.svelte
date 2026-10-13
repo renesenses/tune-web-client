@@ -43,8 +43,9 @@
     /** Relire l'arbre après une écriture. */
     onChange?: () => void | Promise<void>;
     /**
-     * web#1579 — créer une collection intelligente DANS ce rayon. Absent = pas
-     * d'entrée de menu (la barre latérale, en lecture, ne la porte pas).
+     * web#1579 — créer une collection intelligente DANS ce rayon. Absent = ni
+     * bouton dans l'en-tête du rayon, ni entrée de menu (la barre latérale, en
+     * lecture, ne les porte pas).
      */
     onNouvelleSmart?: (rayon: RayonCollections) => void;
   }
@@ -175,6 +176,15 @@
       </button>
       <button class="nomrayon" onclick={() => basculer(f.id)} use:bulleTexte>{f.name}</button>
       <span class="compte">{f.collections.length}</span>
+      {#if !compact && onNouvelleSmart}
+        <!-- web#1579 : le geste à vue dans l'en-tête de CHAQUE rayon, sans
+             ouvrir le menu « ⋯ ». Même création que l'entrée du menu. -->
+        <button class="plus creer-smart-tete" aria-label={$t('v2.rayons.newSmartHere' as any)}
+          title={$t('v2.rayons.newSmartHere' as any)}
+          onclick={() => { menu = null; onNouvelleSmart(f); }}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+        </button>
+      {/if}
       {#if !compact}
         <button class="geste" aria-label={$t('v2.rayons.actions' as any)} title={$t('v2.rayons.actions' as any)}
           onclick={() => (menu = menu?.type === 'rayon' && menu.id === f.id ? null : { type: 'rayon', id: f.id, deplacer: false })}>⋯</button>
@@ -251,11 +261,12 @@
   .rayon, .col{position:relative}
   .tete{display:flex; align-items:center; gap:4px; border-radius:8px; padding:2px 4px}
   .tete.survol, .hors.survol{outline:2px dashed var(--v2-acc1); outline-offset:1px}
-  .pli, .geste{width:24px; height:24px; display:grid; place-items:center; padding:0; border:0;
+  .pli, .geste, .plus{width:24px; height:24px; display:grid; place-items:center; padding:0; border:0;
     background:transparent; color:var(--v2-txt3); cursor:pointer; border-radius:6px}
   .pli svg{width:14px; height:14px; transition:transform .12s}
+  .creer-smart-tete svg{width:14px; height:14px}
   .pli svg.ferme{transform:rotate(-90deg)}
-  .pli:hover, .geste:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .pli:hover, .geste:hover, .plus:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .nomrayon{flex:1; min-width:0; text-align:left; border:0; background:transparent; color:inherit;
     font:600 13.5px var(--v2-sans); cursor:pointer; padding:4px 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .compact .nomrayon{font-size:12.5px; color:var(--v2-txt2)}
