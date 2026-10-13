@@ -58,8 +58,9 @@
    * La lecture passe par le premier album : `POST /zones/{id}/play` n'accepte
    * pas d'`artist_id`. Même compromis que pour les collections.
    */
-  import { onMount } from 'svelte';
-  import { saveDetailScroll, restoreDetailScroll } from '../../lib/stores/navigation';
+  import { onMount, tick, untrack } from 'svelte';
+  import { saveDetailScroll, restoreDetailScroll, positionMemorisee } from '../../lib/stores/navigation';
+  import { TRANCHE_GRILLE, trancheSuivante, montageJusqua, premierIndex } from '../../lib/grilleProgressive';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { initialesArtiste } from '../../lib/initialesArtiste';
@@ -179,8 +180,71 @@
    * que la lettre demandée — au PREMIER clic seulement. On vise, puis on relit.
    * `grilleEl` est le conteneur défilant (`.grille` porte `overflow-y:auto`).
    */
-  function sauter(L: string) {
+  async function sauter(L: string) {
+    // web#1716 — la lettre peut être plus bas que les cartes montées : on
+    // monte jusqu'à elle (et une tranche dessous) AVANT de viser l'ancre.
+    const i = premierIndex(affiches, lettre, L);
+    if (i >= montees) {
+      montees = montageJusqua(i, montees, affiches.length);
+      await tick();
+    }
     sauterVersAncre(grilleEl, `[data-lettre="${L}"]`);
+  }
+
+  /**
+   * LA GRILLE PROGRESSIVE — web#1716, fil 2256 (Bilou, 1 295 artistes, 5-6 s).
+   *
+   * Les cartes montées sont un PRÉFIXE de `affiches` : une tranche à
+   * l'ouverture, la suivante quand la sentinelle du bas approche du cadre
+   * (`IntersectionObserver`, 800 px d'avance). L'ordre, les ancres du rail et
+   * le filtre restent ceux de la liste entière ; seul le montage est différé.
+   * Mesures et raison : `lib/grilleProgressive.ts`.
+   */
+  let montees = $state(TRANCHE_GRILLE);
+  const visibles = $derived(affiches.slice(0, montees));
+  let sentinelle = $state<HTMLElement | null>(null);
+  const AVANCE_PX = 800;
+
+  /** La sentinelle est-elle à moins de `AVANCE_PX` du bas du cadre ? */
+  function basProche(): boolean {
+    if (!grilleEl || !sentinelle) return false;
+    return sentinelle.getBoundingClientRect().top - grilleEl.getBoundingClientRect().bottom < AVANCE_PX;
+  }
+  async function monterLaSuite() {
+    // Une tranche ne suffit pas toujours à repousser la sentinelle hors de
+    // l'avance (écran très large, très haut) : l'observateur ne se redéclenche
+    // pas tant qu'elle y reste, d'où la relecture après chaque montage.
+    while (montees < affiches.length) {
+      montees = trancheSuivante(montees, affiches.length);
+      await tick();
+      if (!basProche()) break;
+    }
+  }
+  $effect(() => {
+    const racine = grilleEl, cible = sentinelle;
+    if (!racine || !cible || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(
+      (entrees) => { if (entrees.some((e) => e.isIntersecting)) void monterLaSuite(); },
+      { root: racine, rootMargin: `0px 0px ${AVANCE_PX}px 0px` },
+    );
+    io.observe(cible);
+    return () => io.disconnect();
+  });
+  // Une autre recherche, une autre source, une autre portée : on repart d'une
+  // tranche. PAS l'arrivée des sources des artistes (les pistes) : elle ne
+  // change pas ce que l'utilisateur a demandé, et le ramènerait en haut.
+  $effect(() => {
+    void q; void provenance; void nomPortee;
+    untrack(() => { montees = TRANCHE_GRILLE; });
+  });
+  /** Monter assez de cartes pour que la grille tienne `px` de défilement. */
+  async function monterJusquAHauteur(px: number) {
+    await tick();
+    while (px > 0 && montees < affiches.length && grilleEl
+      && grilleEl.scrollHeight < px + grilleEl.clientHeight) {
+      montees = Math.min(affiches.length, montees * 2);
+      await tick();
+    }
   }
 
   async function charger() {
@@ -227,6 +291,9 @@
     await charger();
     // La grille vient d'être rendue : on repose la position mémorisée avant
     // d'ouvrir la page commune (#864). Sans mémoire, la cible vaut zéro.
+    // web#1716 — la grille est progressive : on monte d'abord assez de
+    // cartes pour que la position soit tenable.
+    await monterJusquAHauteur(positionMemorisee(CLE_DEFILEMENT));
     restoreDetailScroll(CLE_DEFILEMENT, () => grilleEl);
   });
 </script>
@@ -242,7 +309,7 @@
 {:else}
   <div class="zone">
     <div class="grille artistes" bind:this={grilleEl}>
-      {#each affiches as a, i (a.id)}
+      {#each visibles as a, i (a.id)}
         <!-- `data-lettre` sur la PREMIÈRE carte de chaque lettre seulement :
              le rail cherche une ancre, et la poser sur toutes ferait viser la
              dernière au lieu de la première. -->
@@ -273,6 +340,10 @@
           </button>
         </div>
       {/each}
+      {#if montees < affiches.length}
+        <!-- web#1716 — la suite se monte quand ceci approche du cadre. -->
+        <div class="suite" bind:this={sentinelle} aria-hidden="true"></div>
+      {/if}
     </div>
 
     <!-- Rail A–Z, comme l'écran actuel. Les lettres absentes restent visibles
@@ -325,6 +396,7 @@
     content-visibility: auto;
     contain-intrinsic-size: auto 210px;
   }
+  .suite { grid-column: 1 / -1; height: 1px; }
   .cv { position: relative; aspect-ratio: 1; border-radius: var(--v2-r-card); overflow: hidden; }
   /*
     Pochettes d'artiste CARRÉES, comme les albums — décision de Bertrand du
