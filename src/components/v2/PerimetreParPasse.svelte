@@ -65,6 +65,7 @@
 <div class="clap-genres perimetre-par-passe">
   <span class="clap-genres-titre">{$t('settings.analysisPerPassTitle' as any)}</span>
   <p class="hint">{$t('settings.analysisPerPassHint' as any)}</p>
+  {#if comptes}<p class="hint">{$t('settings.analysisScopeTracksHint' as any)}</p>{/if}
   {#each PASSES as passe (passe)}
     <fieldset class="passe" data-passe={passe}>
       <legend>{$t(`settings.analysisPass_${passe}` as any)}</legend>
