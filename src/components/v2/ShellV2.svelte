@@ -172,6 +172,12 @@
   import BrowseView from '../v2-heritage/BrowseView.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import AvatarMenu from './AvatarMenu.svelte';
+  // « Demander à l'assistant » (chantier assistant-ia, `/ai/query`) : le
+  // bouton n'existe que si l'assistant est prêt ; les réglages sont sondés
+  // une fois, sans bandeau.
+  import { assistantIaPret, sonderAssistantIa } from '../../lib/assistantIaDialogue';
+  let demanderIa = $state(false);
+  $effect(() => { void sonderAssistantIa(); });
   /**
    * 🔴 LA RECHERCHE GLOBALE, écrite et montée nulle part ici.
    *
@@ -655,6 +661,12 @@
       On garde la recherche la plus à gauche pour que son champ, en s'ouvrant,
       pousse vers la gauche sans jamais recouvrir l'avatar.
     -->
+    {#if $assistantIaPret}
+      <button class="raccourci" onclick={() => (demanderIa = true)} data-demander-assistant-bouton
+        aria-label={$t('assistantIa.ask.button' as any)} title={$t('assistantIa.ask.button' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.5 10a2.5 2.5 0 1 1 3.3 2.4c-.5.2-.8.6-.8 1.1V14M12 17h.01"/></svg>
+      </button>
+    {/if}
     <GlobalSearchBar />
     <button class="raccourci" onclick={basculerPoseRaccourci}
       aria-label={$t('v2.nav.addShortcut' as any)} title={$t('v2.nav.addShortcut' as any)}>
@@ -890,6 +902,12 @@
   <!-- Playlists de cercle : l'ajout groupé et le partage d'une playlist,
        demandés depuis n'importe quel menu (`demandeCercle`). Chargée à la
        demande, comme la fenêtre d'ajout d'un seul titre. -->
+  {#if demanderIa && $assistantIaPret}
+    {#await import('./DemanderAssistantIaV2.svelte') then m}
+      <m.default onClose={() => (demanderIa = false)} />
+    {/await}
+  {/if}
+
   {#if $demandeCercle}
     {#await import('./AjoutGroupeCercleV2.svelte') then m}
       <m.default demande={$demandeCercle} onClose={() => demandeCercle.set(null)} />
