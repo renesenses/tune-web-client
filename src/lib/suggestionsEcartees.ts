@@ -59,6 +59,12 @@ export function cibleDeSuggestion(el: Element): SuggestionEcartee | null {
     subtitle: el.sous ?? null,
     cover_url: el.cover ?? null,
   };
+  // web#916 (13/10/2026) — une radio de l'accueil, par son identifiant local.
+  if (el.radioId != null) {
+    return Number.isInteger(el.radioId) && el.radioId > 0
+      ? { item_type: 'radio', source: 'local', item_id: String(el.radioId), ...instantane }
+      : null;
+  }
   if (el.ouvrir === 'playlist') {
     const sid = el.favoriDistant?.itemType === 'playlist' ? el.favoriDistant.serviceId : null;
     const service = el.source ?? null;

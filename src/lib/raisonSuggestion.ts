@@ -30,7 +30,9 @@ export type RaisonSuggestion =
    * Posée par le CLIENT, la seule : la rangée « Favoris » lit les routes de
    * favoris, pas `/home/*`, et la raison y est le fait même de la rangée.
    */
-  | { type: 'favori' };
+  | { type: 'favori' }
+  | { type: 'radio_favorite' }
+  | { type: 'radio_ecoutee'; ecoute_le?: number | null };
 
 type Traduire = (cle: string) => string;
 
@@ -93,6 +95,12 @@ export function texteRaison(raison: unknown, traduire: Traduire, langue = 'fr'):
     }
     case 'favori':
       return traduire('v2.why.favorite');
+    case 'radio_favorite':
+      return traduire('v2.why.favoriteRadio');
+    case 'radio_ecoutee': {
+      const d = typeof r.ecoute_le === 'number' ? dateCourte(r.ecoute_le, langue) : null;
+      return d ? traduire('v2.why.radioPlayedOn').replace('{date}', d) : traduire('v2.why.radioPlayedRecently');
+    }
     default:
       return null;
   }
