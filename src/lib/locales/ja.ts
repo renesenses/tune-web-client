@@ -1106,6 +1106,8 @@ export default {
   "library.versionGroups.byTitle": "タイトル・アーティスト・再生時間",
   "library.versionGroups.default": "既定で再生",
   "library.versionGroups.thisTrack": "この曲",
+  "library.versionGroups.menu": "このバージョンの操作",
+  "library.versionGroups.defaultHint": "既定で再生：バージョンを選ばずにこの曲を再生したときに Tune が再生する音源です。プロフィールの「既定で再生するバージョン」ルール（{rule}）に従います。",
   "nowplaying.version.played": "再生中のバージョン",
   "nowplaying.version.library": "ライブラリ",
   "nowplaying.version.fallback": "代替バージョン",
