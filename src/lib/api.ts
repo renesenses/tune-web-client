@@ -3157,6 +3157,19 @@ export async function uploadAlbumArtwork(albumId: number, file: File): Promise<A
   return response.json();
 }
 
+/**
+ * tune-server-rust#4805 lot 2 — « Chercher une pochette plus nette » :
+ * `POST /library/albums/{id}/artwork/enrich`. Une pochette de fournisseur en
+ * place n'est remplacée que par la MÊME, au moins 1,4 fois plus définie
+ * (empreinte visuelle, #6252) ; jamais un autre visuel.
+ */
+export function chercherPochettePlusNette(albumId: number) {
+  return fetchJSON<import('./enrichissementAlbum').ReponsePochettePlusNette>(
+    `${BASE}/library/albums/${albumId}/artwork/enrich`,
+    { method: 'POST' },
+  );
+}
+
 export function rescanAlbumArtwork(albumId: number) {
   return fetchJSON<ArtworkRescanResult>(`${BASE}/library/albums/${albumId}/artwork/rescan`, {
     method: 'POST',

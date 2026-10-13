@@ -18,6 +18,8 @@
   import { t, locale } from '../../lib/i18n';
   import {
     phraseDesManquantes,
+    phrasePochettePlusNette,
+    propositionsEnAttente,
     bpmAffiche,
     type Completude,
     type PropositionGardee,
@@ -33,19 +35,26 @@
   interface Props {
     albumId: number;
     pistes: PisteAffichee[];
+    /** La pochette en place (lot 2) : sans elle, pas de « plus nette ». */
+    pochette?: string | null;
+    /** Appelé avec la nouvelle adresse quand une pochette plus nette est posée. */
+    onPochette?: (hash: string) => void;
   }
-  let { albumId, pistes }: Props = $props();
+  let { albumId, pistes, pochette = null, onPochette }: Props = $props();
 
   let completude = $state<Completude | null>(null);
   let propositions = $state<PropositionGardee[]>([]);
   let bpm = $state<BpmPiste[]>([]);
   let bpmOuvert = $state(false);
-  let occupe = $state<'' | 'discogs' | 'bpm' | 'instruments' | 'decision'>('');
+  let occupe = $state<'' | 'discogs' | 'bpm' | 'instruments' | 'decision' | 'pochette'>('');
   let message = $state('');
   let avecCredits = $state(true);
 
   const plusieursDisques = $derived(pistes.some((p) => (p.disc_number ?? 1) > 1));
-  const enAttente = $derived(propositions.filter((p) => p.statut === 'proposee'));
+  // Conditions de Discogs : une proposition de plus de six heures ne montre
+  // plus son contenu (lot 2).
+  const enAttente = $derived(propositionsEnAttente(propositions).fraiches);
+  const perimees = $derived(propositionsEnAttente(propositions).perimees);
   const bpmConnus = $derived(bpm.filter((b) => b.bpm != null).length);
   const bpmParPiste = $derived(new Map(bpm.map((b) => [b.track_id, b])));
 
@@ -112,8 +121,28 @@
       }
       const liste = await api.getAlbumDiscogsProposals(albumId);
       propositions = liste.proposals ?? [];
+    } catch (e) {
+      const corps = (e as { corps?: { error?: string } } | null)?.corps;
+      message = corps?.error === 'proposition_perimee' ? $t('v2.discogs.stale') : $t('v2.discogs.unavailable');
+      if (corps?.error === 'proposition_perimee') {
+        api.getAlbumDiscogsProposals(albumId)
+          .then((r) => { propositions = r.proposals ?? []; })
+          .catch(() => {});
+      }
+    } finally {
+      occupe = '';
+    }
+  }
+
+  async function pochettePlusNette() {
+    occupe = 'pochette';
+    message = '';
+    try {
+      const r = await api.chercherPochettePlusNette(albumId);
+      message = phrasePochettePlusNette(r, (k) => $t(k as any));
+      if (r.enriched && r.hash) onPochette?.(r.hash);
     } catch {
-      message = $t('v2.discogs.unavailable');
+      message = $t('v2.cover.failed' as any);
     } finally {
       occupe = '';
     }
@@ -187,6 +216,11 @@
     <button class="ghost" onclick={instruments} disabled={occupe !== ''} title={$t('v2.instruments.tip')}>
       {occupe === 'instruments' ? $t('v2.instruments.running') : $t('v2.instruments.fetch')}
     </button>
+    {#if pochette}
+      <button class="ghost" data-pochette-plus-nette onclick={pochettePlusNette} disabled={occupe !== ''} title={$t('v2.cover.sharperTip' as any)}>
+        {occupe === 'pochette' ? $t('v2.cover.searching' as any) : $t('v2.cover.sharper' as any)}
+      </button>
+    {/if}
     {#if completude?.status === 'not_identified'}
       <button class="ghost" data-discogs-chercher onclick={chercherDiscogs} disabled={occupe !== ''} title={$t('v2.discogs.searchTip')}>
         {occupe === 'discogs' ? $t('v2.discogs.searching') : $t('v2.discogs.search')}
@@ -209,6 +243,11 @@
       {/each}
     </ul>
   {/if}
+
+  {#each perimees as p (p.proposition.discogs_id)}
+    <!-- Plus de six heures : le contenu Discogs ne s'affiche plus. -->
+    <p class="message" data-proposition-perimee={p.proposition.discogs_id}>{$t('v2.discogs.stale' as any)}</p>
+  {/each}
 
   {#each enAttente as p (p.proposition.discogs_id)}
     <div class="proposition" data-proposition-discogs={p.proposition.discogs_id}>

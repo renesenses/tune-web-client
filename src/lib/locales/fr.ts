@@ -4988,6 +4988,18 @@ export default {
   "v2.passes.continue": "Continuer",
   "v2.passes.discogsWithoutCode": "{n} album(s) sans code-barres ni n° de catalogue ne peuvent pas être cherchés sur Discogs.",
   "v2.passes.discogsNotice": "Cette application utilise l'API de Discogs mais n'est ni affiliée à Discogs, ni soutenue ou approuvée par Discogs. « Discogs » est une marque de Zink Media, LLC.",
+  // tune-server-rust#4805 lot 2 — fiche d'album : pochette plus nette, propositions Discogs périmées.
+  "v2.discogs.stale": "Proposition Discogs périmée (lue il y a plus de 6 h) : relancez la recherche pour la voir.",
+  "v2.cover.sharper": "Chercher une pochette plus nette",
+  "v2.cover.sharperTip": "Cover Art Archive : la même pochette, au moins 1,4 fois plus définie. Jamais un autre visuel.",
+  "v2.cover.searching": "Recherche d'une pochette plus nette…",
+  "v2.cover.replaced": "Pochette remplacée par la même, plus nette.",
+  "v2.cover.added": "Pochette ajoutée.",
+  "v2.cover.alreadyBest": "La pochette en place est déjà la plus nette.",
+  "v2.cover.different": "Le Cover Art Archive a un autre visuel : la pochette en place est gardée.",
+  "v2.cover.notReplaceable": "Pas de pochette plus nette à chercher : pochette de vos fichiers, choisie ou importée, ou album non identifié.",
+  "v2.cover.noneOnCaa": "Le Cover Art Archive n'a pas de pochette pour cet album.",
+  "v2.cover.failed": "La recherche de pochette n'a pas abouti.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

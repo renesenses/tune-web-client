@@ -4966,6 +4966,18 @@ export default {
   "v2.passes.continue": "계속",
   "v2.passes.discogsWithoutCode": "바코드나 카탈로그 번호가 없는 앨범 {n}개는 Discogs에서 찾을 수 없습니다.",
   "v2.passes.discogsNotice": "이 애플리케이션은 Discogs API를 사용하지만 Discogs와 제휴하거나 Discogs의 후원 또는 보증을 받지 않습니다. 'Discogs'는 Zink Media, LLC의 상표입니다.",
+  // tune-server-rust#4805 lot 2 — fiche d'album : pochette plus nette, propositions Discogs périmées.
+  "v2.discogs.stale": "Discogs 제안이 만료되었습니다(6시간 이상 전에 읽음): 보려면 다시 검색하세요.",
+  "v2.cover.sharper": "더 선명한 커버 찾기",
+  "v2.cover.sharperTip": "Cover Art Archive: 같은 커버로 1.4배 이상 더 선명한 것. 다른 이미지로는 바꾸지 않습니다.",
+  "v2.cover.searching": "더 선명한 커버를 찾는 중…",
+  "v2.cover.replaced": "같은 커버의 더 선명한 버전으로 바꾸었습니다.",
+  "v2.cover.added": "커버를 추가했습니다.",
+  "v2.cover.alreadyBest": "현재 커버가 이미 가장 선명합니다.",
+  "v2.cover.different": "Cover Art Archive에 다른 이미지가 있어 현재 커버를 유지합니다.",
+  "v2.cover.notReplaceable": "찾을 것이 없습니다: 파일의 커버, 직접 선택하거나 가져온 커버, 또는 식별되지 않은 앨범입니다.",
+  "v2.cover.noneOnCaa": "Cover Art Archive에 이 앨범의 커버가 없습니다.",
+  "v2.cover.failed": "커버 검색에 실패했습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

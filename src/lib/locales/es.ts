@@ -4966,6 +4966,18 @@ export default {
   "v2.passes.continue": "Continuar",
   "v2.passes.discogsWithoutCode": "{n} álbum(es) sin código de barras ni número de catálogo no se pueden buscar en Discogs.",
   "v2.passes.discogsNotice": "Esta aplicación usa la API de Discogs, pero no está afiliada a Discogs ni patrocinada o respaldada por Discogs. «Discogs» es una marca de Zink Media, LLC.",
+  // tune-server-rust#4805 lot 2 — fiche d'album : pochette plus nette, propositions Discogs périmées.
+  "v2.discogs.stale": "Propuesta de Discogs caducada (leída hace más de 6 h): vuelva a buscar para verla.",
+  "v2.cover.sharper": "Buscar una portada más nítida",
+  "v2.cover.sharperTip": "Cover Art Archive: la misma portada, al menos 1,4 veces más definida. Nunca otra imagen.",
+  "v2.cover.searching": "Buscando una portada más nítida…",
+  "v2.cover.replaced": "Portada sustituida por la misma, más nítida.",
+  "v2.cover.added": "Portada añadida.",
+  "v2.cover.alreadyBest": "La portada actual ya es la más nítida.",
+  "v2.cover.different": "El Cover Art Archive tiene otra imagen: se conserva la portada actual.",
+  "v2.cover.notReplaceable": "No hay portada más nítida que buscar: portada de sus archivos, elegida o importada, o álbum no identificado.",
+  "v2.cover.noneOnCaa": "El Cover Art Archive no tiene portada para este álbum.",
+  "v2.cover.failed": "La búsqueda de portada no ha tenido éxito.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

@@ -51,6 +51,13 @@ export interface PropositionGardee {
   statut: 'proposee' | 'acceptee' | 'rejetee' | string;
   cree_le: string;
   decide_le: string | null;
+  /**
+   * En attente et lue il y a plus de six heures (conditions de l'API
+   * Discogs, tune-server-rust#4805 lot 2) : son contenu ne s'affiche plus et
+   * elle ne s'accepte plus ; une nouvelle recherche la rafraîchit. Absent
+   * d'un serveur antérieur : traité comme `false`.
+   */
+  perimee?: boolean;
   proposition: PropositionDiscogs;
 }
 
@@ -117,4 +124,36 @@ export function bpmAffiche(b: BpmPiste | undefined): string {
 /** La clé masquée : « •••• 1a2b », ou « •••• » si elle est trop courte. */
 export function cleMasquee(e: EtatCleApi): string {
   return e.fin ? `•••• ${e.fin}` : '••••';
+}
+
+/**
+ * tune-server-rust#4805 lot 2 — la réponse de « Chercher une pochette plus
+ * nette » (`POST /library/albums/{id}/artwork/enrich`, règle de l'empreinte
+ * visuelle de #6252), traduite en une phrase.
+ */
+export interface ReponsePochettePlusNette {
+  enriched?: boolean;
+  hash?: string;
+  decision?: 'plus_nette' | 'poser' | 'meme_visuel' | 'visuel_different' | string;
+  reason?: string;
+}
+
+export function phrasePochettePlusNette(r: ReponsePochettePlusNette, tr: (k: string) => string): string {
+  if (r.enriched) return tr(r.decision === 'plus_nette' ? 'v2.cover.replaced' : 'v2.cover.added');
+  switch (r.decision) {
+    case 'meme_visuel': return tr('v2.cover.alreadyBest');
+    case 'visuel_different': return tr('v2.cover.different');
+  }
+  if (r.reason === 'no cover art found on Cover Art Archive') return tr('v2.cover.noneOnCaa');
+  if (r.reason === 'album already has cover art') return tr('v2.cover.notReplaceable');
+  return tr('v2.cover.failed');
+}
+
+/** Les propositions en attente, fraîches d'abord séparées des périmées. */
+export function propositionsEnAttente(liste: PropositionGardee[]): { fraiches: PropositionGardee[]; perimees: PropositionGardee[] } {
+  const enAttente = liste.filter((p) => p.statut === 'proposee');
+  return {
+    fraiches: enAttente.filter((p) => !p.perimee),
+    perimees: enAttente.filter((p) => p.perimee === true),
+  };
 }
