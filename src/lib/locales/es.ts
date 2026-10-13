@@ -4944,6 +4944,28 @@ export default {
   "v2.apiKeys.save": "Guardar",
   "v2.apiKeys.test": "Probar",
   "v2.apiKeys.remove": "Quitar",
+  // tune-server-rust#4805 lot 2 — passes de lot d'après MetaRust (Xavier Joly).
+  "v2.passes.bpmTitle": "BPM de la biblioteca",
+  "v2.passes.bpmHint": "Todos los álbumes locales: primero Wikidata, después una estimación a partir de la señal. Las etiquetas de los archivos no se modifican.",
+  "v2.passes.discogsTitle": "Propuestas de Discogs",
+  "v2.passes.discogsHint": "Álbumes sin identificador de MusicBrainz, por código de barras o número de catálogo. No se modifica nada: cada propuesta se acepta en la ficha del álbum.",
+  "v2.passes.progress": "{n} de {total} álbum(es)",
+  "v2.passes.bpmTally": "{wikidata} BPM de Wikidata, {signal} estimado(s), {none} sin resultado",
+  "v2.passes.discogsTally": "{found} propuesta(s), {none} sin resultado",
+  "v2.passes.paused": "En pausa.",
+  "v2.passes.done": "Terminado.",
+  "v2.passes.nothing": "Nada que hacer: todo está ya procesado.",
+  "v2.passes.interrupted": "Interrumpida por un reinicio del servidor; «Continuar» la retoma donde se detuvo.",
+  "v2.passes.stopUnreachable": "Detenida: Discogs no responde.",
+  "v2.passes.stopTokenRefused": "Detenida: Discogs rechaza el token (Ajustes ▸ Claves de API).",
+  "v2.passes.stopOther": "Detenida.",
+  "v2.passes.refusedPaused": "El enriquecimiento está en pausa: reanúdelo primero.",
+  "v2.passes.refusedRunning": "Esta pasada ya está en curso.",
+  "v2.passes.pause": "Pausar",
+  "v2.passes.resume": "Reanudar",
+  "v2.passes.continue": "Continuar",
+  "v2.passes.discogsWithoutCode": "{n} álbum(es) sin código de barras ni número de catálogo no se pueden buscar en Discogs.",
+  "v2.passes.discogsNotice": "Esta aplicación usa la API de Discogs, pero no está afiliada a Discogs ni patrocinada o respaldada por Discogs. «Discogs» es una marca de Zink Media, LLC.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

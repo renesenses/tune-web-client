@@ -7654,6 +7654,24 @@ export function lancerIdentificationAcoustid() {
   );
 }
 
+/**
+ * #4805 lot 2 (d'après MetaRust) — lancer une passe de lot : `POST
+ * /library/bpm-all` ou `POST /library/discogs-all`. `202`, ou `409` / `412`
+ * ACCEPTÉS pour que l'écran dise le motif (`lib/passesMetarust.ts`).
+ */
+export function lancerPasseMetarust(mode: import('./passesMetarust').ModePasse) {
+  return fetchJSON<Record<string, unknown>>(
+    `${BASE}/library/${mode}-all`,
+    { method: 'POST' },
+    (statut) => statut === 409 || statut === 412,
+  );
+}
+
+/** `GET /library/{mode}-all/status` — l'état brut, lu par `lireEtatPasse`. */
+export function etatPasseMetarust(mode: import('./passesMetarust').ModePasse) {
+  return fetchJSON<Record<string, unknown>>(`${BASE}/library/${mode}-all/status`);
+}
+
 /** `GET /library/identify-all/status` — l'état de la passe par lot, tous modes confondus. */
 export function getIdentifyAllStatus() {
   return fetchJSON<import('./acoustid').EtatLotIdentification>(

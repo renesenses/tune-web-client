@@ -4964,6 +4964,28 @@ export default {
   "v2.apiKeys.save": "Save",
   "v2.apiKeys.test": "Test",
   "v2.apiKeys.remove": "Remove",
+  // tune-server-rust#4805 lot 2 — passes de lot d'après MetaRust (Xavier Joly).
+  "v2.passes.bpmTitle": "Library BPM",
+  "v2.passes.bpmHint": "All local albums: Wikidata first, then an estimate from the signal. File tags are not changed.",
+  "v2.passes.discogsTitle": "Discogs proposals",
+  "v2.passes.discogsHint": "Albums without a MusicBrainz ID, by barcode or catalog number. Nothing is changed: each proposal is accepted on the album page.",
+  "v2.passes.progress": "{n} of {total} album(s)",
+  "v2.passes.bpmTally": "{wikidata} BPM from Wikidata, {signal} estimated, {none} without result",
+  "v2.passes.discogsTally": "{found} proposal(s), {none} without result",
+  "v2.passes.paused": "Paused.",
+  "v2.passes.done": "Done.",
+  "v2.passes.nothing": "Nothing to do: everything is already processed.",
+  "v2.passes.interrupted": "Interrupted by a server restart; “Continue” resumes where it stopped.",
+  "v2.passes.stopUnreachable": "Stopped: Discogs is not responding.",
+  "v2.passes.stopTokenRefused": "Stopped: Discogs refuses the token (Settings ▸ API keys).",
+  "v2.passes.stopOther": "Stopped.",
+  "v2.passes.refusedPaused": "Enrichment is paused: resume it first.",
+  "v2.passes.refusedRunning": "This pass is already running.",
+  "v2.passes.pause": "Pause",
+  "v2.passes.resume": "Resume",
+  "v2.passes.continue": "Continue",
+  "v2.passes.discogsWithoutCode": "{n} album(s) without a barcode or catalog number cannot be searched on Discogs.",
+  "v2.passes.discogsNotice": "This application uses Discogs’ API but is not affiliated with, sponsored or endorsed by Discogs. ‘Discogs’ is a trademark of Zink Media, LLC.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

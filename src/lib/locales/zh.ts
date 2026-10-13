@@ -4944,6 +4944,28 @@ export default {
   "v2.apiKeys.save": "保存",
   "v2.apiKeys.test": "测试",
   "v2.apiKeys.remove": "移除",
+  // tune-server-rust#4805 lot 2 — passes de lot d'après MetaRust (Xavier Joly).
+  "v2.passes.bpmTitle": "资料库 BPM",
+  "v2.passes.bpmHint": "所有本地专辑：先查 Wikidata，再根据信号估算。不会修改文件标签。",
+  "v2.passes.discogsTitle": "Discogs 建议",
+  "v2.passes.discogsHint": "没有 MusicBrainz 标识的专辑，按条形码或目录号查找。不会修改任何内容：每条建议都在专辑页面上接受。",
+  "v2.passes.progress": "{n} / {total} 张专辑",
+  "v2.passes.bpmTally": "Wikidata BPM {wikidata} 个，估算 {signal} 个，无结果 {none} 个",
+  "v2.passes.discogsTally": "建议 {found} 条，无结果 {none} 个",
+  "v2.passes.paused": "已暂停。",
+  "v2.passes.done": "完成。",
+  "v2.passes.nothing": "无事可做：全部已处理。",
+  "v2.passes.interrupted": "因服务器重启而中断；“继续”会从停止处接着进行。",
+  "v2.passes.stopUnreachable": "已停止：Discogs 无响应。",
+  "v2.passes.stopTokenRefused": "已停止：Discogs 拒绝该令牌（设置 ▸ API 密钥）。",
+  "v2.passes.stopOther": "已停止。",
+  "v2.passes.refusedPaused": "丰富处理已暂停：请先恢复。",
+  "v2.passes.refusedRunning": "此任务已在运行。",
+  "v2.passes.pause": "暂停",
+  "v2.passes.resume": "恢复",
+  "v2.passes.continue": "继续",
+  "v2.passes.discogsWithoutCode": "{n} 张没有条形码或目录号的专辑无法在 Discogs 上查找。",
+  "v2.passes.discogsNotice": "本应用使用 Discogs 的 API，但与 Discogs 无关联，也未获得 Discogs 的赞助或认可。“Discogs”是 Zink Media, LLC 的商标。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
