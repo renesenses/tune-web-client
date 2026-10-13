@@ -127,6 +127,8 @@ export default {
   'concerts.codePostalPlaceholder': '邮政编码',
   'concerts.rayon': '范围',
   'concerts.appliquer': '应用',
+  "concerts.questionLieu": "您住在哪里？为了一场音乐会，您愿意去多远？",
+  "concerts.pasMaintenant": "以后再说",
   'concerts.communeSaisieNote': '我们从不推测你所在的城市。它仅用于按城市级别计算距离。',
   'concerts.communeIntrouvable': '未找到该城市，正在显示全国的演出。',
   'concerts.nSurTotal': '{total} 场演出中的 {n} 场',

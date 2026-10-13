@@ -208,6 +208,8 @@ export default {
   'concerts.codePostalPlaceholder': 'Postcode',
   'concerts.rayon': 'Radius',
   'concerts.appliquer': 'Apply',
+  "concerts.questionLieu": "Where do you live, and how far would you travel for a concert?",
+  "concerts.pasMaintenant": "Not now",
   'concerts.communeSaisieNote': 'Your town is never guessed. It is used only to measure distances, at town level.',
   'concerts.communeIntrouvable': 'Town not found — showing concerts across the whole country.',
   'concerts.nSurTotal': '{n} of {total} concerts',
