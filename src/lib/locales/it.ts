@@ -2387,7 +2387,7 @@ export default {
   "v2.tags.eyebrow": "Ciò che hai riposto",
   "v2.tags.albumsWithTag": "album portano questa etichetta",
   "v2.tags.noAlbumWithTag": "Nessun album porta questa etichetta.",
-  "v2.tags.emptyHint": "Ancora nessuna etichetta. Applicane una dalla copertina di un album, di una playlist o di una raccolta.",
+  "v2.tags.emptyHint": "Ancora nessuna etichetta. Creane una con il campo qui sopra (pulsante «Crea») oppure applicala dalla copertina di un album, di una playlist o di una raccolta.",
   "v2.nav.shortcuts": "Scorciatoie",
   "v2.nav.artisteIntrouvable": "«{nom}» non è stato trovato su {service}: ecco i risultati della ricerca.",
   "v2.nav.serviceInjoignable": "{service} non ha risposto: ecco i risultati della ricerca per «{nom}».",
