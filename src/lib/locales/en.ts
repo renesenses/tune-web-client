@@ -164,6 +164,10 @@ export default {
   'oxygen.facetsTitle': 'Facets',
   // #2168: several values ticked within one facet combine with OR.
   'oxygen.facetClear': 'Clear all',
+  'oxygen.facetOpOr': 'Or',
+  'oxygen.facetOpAnd': 'And',
+  'oxygen.facetOpOrHelp': 'Checked values are combined with OR: a track has at least one of them. Click to switch to AND.',
+  'oxygen.facetOpAndHelp': 'Checked values are combined with AND: a track must have all of them. Click to switch back to OR.',
   'oxygen.facetShowAll': 'Show all',
   'oxygen.collapseAll': 'Collapse all',
   'oxygen.expandAll': 'Expand all',
@@ -4870,7 +4874,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID key removed.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Cloud backup",
-  "cloudBackup.intro": "Tune backs up your customisations to mozaiklabs, encrypted on this server with a key mozaiklabs does not know: settings, zones, profiles and preferences, equalisers, favourites, playlists and radios. Never your library, nor service passwords and tokens. Up to three snapshots per machine and five machines per account are kept; the oldest are removed.",
+  "cloudBackup.intro": "Tune backs up your customisations to mozaiklabs, encrypted on this server with a key mozaiklabs does not know: settings, zones, profiles and preferences, equalisers, favourites, playlists and radios. Never your library, nor service passwords and tokens, with one exception: the Discogs token, which travels encrypted with the rest. Up to three snapshots per machine and five machines per account are kept; the oldest are removed.",
   "cloudBackup.statePremium": "Cloud backup is part of Tune Premium.",
   "cloudBackup.stateNotLinked": "Link this server to your mozaiklabs account (Cloud section, just above) to use the backup.",
   "cloudBackup.stateDisabled": "Automatic backup is off.",
@@ -4920,6 +4924,7 @@ export default {
   "cloudBackup.reportPlaylistsReplaced": "Playlists replaced: {n}",
   "cloudBackup.reportFavorites": "Favourites restored: {n}",
   "cloudBackup.reportRadios": "Radios restored: {n}",
+  "cloudBackup.reportDiscogs": "Discogs token restored",
   "cloudBackup.cloudUnreachable": "mozaiklabs is not responding. Try again later.",
   "cloudBackup.error": "The backup failed: {error}",
   "cloudBackup.onboardingTitle": "Restore your customisations",

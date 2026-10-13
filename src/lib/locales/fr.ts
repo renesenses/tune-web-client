@@ -164,6 +164,10 @@ export default {
   'oxygen.facetsTitle': 'Facettes',
   // #2168 : plusieurs valeurs cochées dans une même facette se combinent en OU.
   'oxygen.facetClear': 'Tout décocher',
+  'oxygen.facetOpOr': 'Ou',
+  'oxygen.facetOpAnd': 'Et',
+  'oxygen.facetOpOrHelp': 'Les valeurs cochées se combinent en OU : une piste en porte au moins une. Cliquer pour passer en ET.',
+  'oxygen.facetOpAndHelp': 'Les valeurs cochées se combinent en ET : une piste doit toutes les porter. Cliquer pour revenir en OU.',
   'oxygen.facetShowAll': 'Tout afficher',
   'oxygen.collapseAll': 'Tout replier',
   'oxygen.expandAll': 'Tout déplier',
@@ -4872,7 +4876,7 @@ export default {
   "acoustid.keyRemoved": "Clé AcoustID retirée.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Sauvegarde dans le cloud",
-  "cloudBackup.intro": "Tune sauvegarde vos personnalisations chez mozaiklabs, chiffrées sur ce serveur avec une clé que mozaiklabs ne connaît pas : réglages, zones, profils et préférences, égaliseurs, favoris, playlists et radios. Jamais votre bibliothèque, ni les mots de passe et jetons des services. Trois instantanés au plus par machine et cinq machines au plus par compte sont gardés ; les plus anciens sont élagués.",
+  "cloudBackup.intro": "Tune sauvegarde vos personnalisations chez mozaiklabs, chiffrées sur ce serveur avec une clé que mozaiklabs ne connaît pas : réglages, zones, profils et préférences, égaliseurs, favoris, playlists et radios. Jamais votre bibliothèque, ni les mots de passe et jetons des services, à une exception près : le jeton Discogs, qui voyage chiffré avec le reste. Trois instantanés au plus par machine et cinq machines au plus par compte sont gardés ; les plus anciens sont élagués.",
   "cloudBackup.statePremium": "La sauvegarde dans le cloud fait partie de Tune Premium.",
   "cloudBackup.stateNotLinked": "Reliez ce serveur à votre compte mozaiklabs (section Cloud, juste au-dessus) pour utiliser la sauvegarde.",
   "cloudBackup.stateDisabled": "Sauvegarde automatique désactivée.",
@@ -4922,6 +4926,7 @@ export default {
   "cloudBackup.reportPlaylistsReplaced": "Playlists remplacées : {n}",
   "cloudBackup.reportFavorites": "Favoris restaurés : {n}",
   "cloudBackup.reportRadios": "Radios restaurées : {n}",
+  "cloudBackup.reportDiscogs": "Jeton Discogs repris",
   "cloudBackup.cloudUnreachable": "mozaiklabs ne répond pas. Réessayez plus tard.",
   "cloudBackup.error": "La sauvegarde a échoué : {error}",
   "cloudBackup.onboardingTitle": "Reprendre vos personnalisations",
