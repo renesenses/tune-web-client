@@ -643,6 +643,15 @@ export default {
   'settings.apiDocs': 'APIドキュメント',
   "v2.set.apiDocsCount": "サーバーが文書化したルート：{count} 件。",
   "v2.plug.docs": "拡張機能のドキュメント",
+  "v2.set.pluginSourceBadge": "プラグイン",
+  "v2.plug.sourceProvides": "「{nom}」サービスを提供します：設定 › サービス からサインインしてください。",
+  "v2.plug.sourceNotRegistered": "「{nom}」サービスは登録されていません：その名前は別のサービスが使用しています。",
+  "v2.plug.networkTitle": "ネットワーク",
+  "v2.plug.networkEmpty": "まだリクエストはありません。",
+  "v2.plug.networkHost": "ホスト",
+  "v2.plug.networkRequests": "リクエスト",
+  "v2.plug.networkRefused": "拒否",
+  "v2.plug.networkLast": "最新",
 
   // Metadata
 

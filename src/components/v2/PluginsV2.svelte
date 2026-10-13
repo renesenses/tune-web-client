@@ -35,6 +35,7 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import { notifications } from '../../lib/stores/notifications';
   import '../../styles/tune-v2.css';
+  import { journalTrie, type SourcesDesGreffons } from '../../lib/sourcesGreffons';
 
   let plugins = $state<MergedPlugin[]>([]);
   let loading = $state(true);
@@ -165,6 +166,19 @@
   $effect(() => { reload(); });
   $effect(() => { void relireNatifs(); });
 
+  /**
+   * tune-server-rust#6197 — ce qu'un greffon WASM fait du réseau : la source
+   * de streaming qu'il fournit, et son journal (hôtes contactés, refus de la
+   * liste de domaines, quota). Relu à chaque ouverture de l'écran ; un
+   * serveur sans la route rend une liste vide.
+   */
+  let sourcesGreffons = $state<SourcesDesGreffons>({ sources: [], network: {} });
+  async function relireSources() { sourcesGreffons = await api.getPluginSources(); }
+  $effect(() => { void relireSources(); });
+  const sourceDuGreffon = (id: string) => sourcesGreffons.sources.find((x) => x.plugin_id === id);
+  const aUnJournal = (id: string) => id in sourcesGreffons.network;
+  const quand = (ms: number) => (ms ? new Date(ms).toLocaleString() : '');
+
   const filtered = $derived(
     plugins
       .filter((p) => (tab === 'installed' ? p.installed : true))
@@ -288,6 +302,40 @@
                    pour les greffons natifs : Concerts porte les siens, traduits. -->
               <p class="pd">{p.name === 'concerts' ? $t('concerts.greffonDescription' as any) : p.description}</p>
               {#if p.author}<div class="pa">{p.author}</div>{/if}
+              {#if sourceDuGreffon(p.name)}
+                {@const src = sourceDuGreffon(p.name)!}
+                <div class="why" class:bad={!src.registered} data-source-du-greffon={src.service}>
+                  {$t((src.registered ? 'v2.plug.sourceProvides' : 'v2.plug.sourceNotRegistered') as any).replace('{nom}', src.display_name)}
+                </div>
+              {/if}
+              {#if aUnJournal(p.name)}
+                {@const lignes = journalTrie(sourcesGreffons, p.name)}
+                <details class="reseau" data-journal-reseau={p.name}>
+                  <summary>{$t('v2.plug.networkTitle' as any)} ({lignes.length})</summary>
+                  {#if !lignes.length}
+                    <p class="why">{$t('v2.plug.networkEmpty' as any)}</p>
+                  {:else}
+                    <table>
+                      <thead><tr>
+                        <th>{$t('v2.plug.networkHost' as any)}</th>
+                        <th>{$t('v2.plug.networkRequests' as any)}</th>
+                        <th>{$t('v2.plug.networkRefused' as any)}</th>
+                        <th>{$t('v2.plug.networkLast' as any)}</th>
+                      </tr></thead>
+                      <tbody>
+                        {#each lignes as l (l.host)}
+                          <tr class:bad={l.refused > 0}>
+                            <td><code>{l.host}</code></td>
+                            <td>{l.requests}</td>
+                            <td>{l.refused}</td>
+                            <td title={quand(l.last_at_ms)}>{l.last_error ?? (l.last_status ?? '')}</td>
+                          </tr>
+                        {/each}
+                      </tbody>
+                    </table>
+                  {/if}
+                </details>
+              {/if}
               {#if !p.compatible && (p.min_tune_version || p.max_tune_version)}
                 <div class="why">
                   {$t('v2.plug.requiresTune' as any).replace('{plage}', [p.min_tune_version ? `≥ ${p.min_tune_version}` : '', p.max_tune_version ? `≤ ${p.max_tune_version}` : ''].filter(Boolean).join(` ${$t('v2.common.and' as any)} `))}
@@ -464,6 +512,12 @@
   .pa{margin-top:5px; font:10.5px var(--v2-mono); color:var(--v2-txt3)}
   .why{margin-top:8px; font-size:11.5px; color:var(--v2-txt3)}
   .why.bad{color:var(--v2-danger)}
+  .reseau{margin-top:8px; font-size:11.5px; color:var(--v2-txt2)}
+  .reseau summary{cursor:pointer}
+  .reseau table{border-collapse:collapse; margin-top:6px; width:100%}
+  .reseau th, .reseau td{text-align:left; padding:2px 8px 2px 0; font-weight:400}
+  .reseau th{color:var(--v2-txt3)}
+  .reseau tr.bad td{color:var(--v2-danger)}
   .pl.grise{opacity:.55}
 
   .pact{display:flex; align-items:center; gap:12px; flex:0 0 auto}

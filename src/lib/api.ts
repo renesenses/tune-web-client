@@ -16,6 +16,7 @@ import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
 import type { CorpsEdition, EditionReponse, RapportBalises } from './editionAlbum';
 import { estDepotTuneDistant } from './depotsTuneDistants';
+import { lireSourcesDesGreffons, type SourcesDesGreffons } from './sourcesGreffons';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -5099,7 +5100,9 @@ export function authenticateStreaming(
   service: string,
   // `callback_url` — #2680 : l'adresse de rappel Spotify collée depuis un
   // autre poste, où le rappel 127.0.0.1 ne peut pas aboutir.
-  body?: { username?: string; password?: string; callback_url?: string },
+  // tune-server-rust#6197 — une source fournie par un greffon WASM envoie
+  // les champs que SON manifeste déclare (`sourcesGreffons.corpsDeConnexion`).
+  body?: { username?: string; password?: string; callback_url?: string } | Record<string, string>,
 ) {
   return fetchJSON<StreamingAuthResponse>(`${BASE}/streaming/${encodeURIComponent(service)}/auth`, {
     method: 'POST',
@@ -6645,6 +6648,21 @@ export function getApiDocs() {
  * mais un lien : `{ url: "https://mozaiklabs.fr/guide#plugins" }`. On ne
  * garde qu'une adresse http(s) ; toute autre valeur vaut « pas de lien ».
  */
+/**
+ * tune-server-rust#6197 — les sources de streaming des greffons WASM (champs
+ * de connexion du manifeste) et le journal réseau de chaque greffon `http`.
+ * Un serveur sans la route (plus ancien, ou sans `plugins-wasm` avant
+ * l'étape 2) répond 404 : on rend alors une liste vide, l'écran reste celui
+ * d'avant.
+ */
+export async function getPluginSources(): Promise<SourcesDesGreffons> {
+  try {
+    return lireSourcesDesGreffons(await fetchJSON<unknown>(`${BASE}/plugins/sources`, undefined, undefined, true));
+  } catch {
+    return lireSourcesDesGreffons(null);
+  }
+}
+
 export async function getPluginDocsUrl(): Promise<string | null> {
   const r = await fetchJSON<{ url?: unknown }>(`${BASE}/plugins/docs`);
   const url = typeof r?.url === 'string' ? r.url.trim() : '';

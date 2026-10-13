@@ -761,6 +761,15 @@ export default {
   'settings.apiDocs': 'Documentation API',
   "v2.set.apiDocsCount": "{count} routes documentées par le serveur.",
   "v2.plug.docs": "Documentation des extensions",
+  "v2.set.pluginSourceBadge": "Greffon",
+  "v2.plug.sourceProvides": "Fournit le service « {nom} » : connexion dans Réglages › Services.",
+  "v2.plug.sourceNotRegistered": "Service « {nom} » non inscrit : son nom est déjà pris par un autre service.",
+  "v2.plug.networkTitle": "Réseau",
+  "v2.plug.networkEmpty": "Aucune requête pour l’instant.",
+  "v2.plug.networkHost": "Hôte",
+  "v2.plug.networkRequests": "Requêtes",
+  "v2.plug.networkRefused": "Refus",
+  "v2.plug.networkLast": "Dernier",
 
   // Metadata
 

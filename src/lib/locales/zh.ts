@@ -643,6 +643,15 @@ export default {
   'settings.apiDocs': 'API 文档',
   "v2.set.apiDocsCount": "服务器已记录 {count} 个路由。",
   "v2.plug.docs": "扩展文档",
+  "v2.set.pluginSourceBadge": "插件",
+  "v2.plug.sourceProvides": "提供“{nom}”服务：请在 设置 › 服务 中登录。",
+  "v2.plug.sourceNotRegistered": "“{nom}”服务未注册：该名称已被其他服务占用。",
+  "v2.plug.networkTitle": "网络",
+  "v2.plug.networkEmpty": "暂无请求。",
+  "v2.plug.networkHost": "主机",
+  "v2.plug.networkRequests": "请求",
+  "v2.plug.networkRefused": "拒绝",
+  "v2.plug.networkLast": "最近",
 
   // Metadata
 
