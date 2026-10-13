@@ -20,6 +20,7 @@
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
+  import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
@@ -31,11 +32,13 @@
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
-  import { poserPhotoAppareil } from '../../lib/photoAppareil';
+  import {
+    poserPhotoAppareil, proposerPhotoAuCatalogue, propositionPossible, cleRefusProposition,
+  } from '../../lib/photoAppareil';
   import { emphaseParts } from '../../lib/i18nEmphase';
   import { preferences, estDispositionFile, DISPOSITION_FILE_DEFAUT } from '../../lib/stores/preferences';
   import { typesSourcesBarre } from '../../lib/sources';
-  import { TYPES_SOURCE_BARRE, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
+  import { TYPES_SOURCE_BARRE, gesteTypesBarre, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
   import {
     ID_GREFFON_ENTREE_AUDIO, etatGreffonEntreeAudio, propositionEntreeAudioVisible,
     type EtatGreffonEntreeAudio, type FicheGreffon,
@@ -56,6 +59,7 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
   import { chargerLienAcces, qrSvg } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
@@ -82,6 +86,7 @@
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
+  import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import {
     DELAI_MAJ_HOMEBREW_MS,
     divergenceHomebrew,
@@ -299,9 +304,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         traduire: (k) => get(t)(k as any),
       });
       if (!r) return;
-      zones.update((l) => l.map((x) => (x.id === zid ? { ...x, image_path: r.image_path } : x)));
+      // Une NOUVELLE photo est locale : l'état « proposée » ne la suit pas (#2109).
+      zones.update((l) => l.map((x) => (x.id === zid
+        ? { ...x, image_path: r.image_path, ...(x.image_share_status !== undefined ? { image_share_status: null } : {}) }
+        : x)));
     } catch (err: any) {
       notifications.error(err?.message ?? $t('v2.home.widgetFailed' as any));
+    }
+  }
+  /** #2109 — proposer la photo au catalogue, après un accord lu. */
+  let propositionPhotoEnCours = $state<number | null>(null);
+  async function proposerPhotoZone(z: Zone) {
+    if (z.id == null || propositionPhotoEnCours != null) return;
+    const zid = z.id;
+    propositionPhotoEnCours = zid;
+    try {
+      const r = await proposerPhotoAuCatalogue(zid, {
+        confirmer: (m) => dialogs.confirm(m),
+        traduire: (k) => get(t)(k as any),
+      });
+      if (!r) return;
+      zones.update((l) => l.map((x) => (x.id === zid ? { ...x, image_share_status: r.image_share_status } : x)));
+      notifications.success($t('v2.zone.photoShareSent' as any));
+    } catch (err: any) {
+      const cle = cleRefusProposition(err);
+      notifications.error(cle ? $t(cle as any) : (err?.message ?? $t('v2.home.widgetFailed' as any)));
+    } finally {
+      propositionPhotoEnCours = null;
     }
   }
   async function retirerImageZone(z: Zone) {
@@ -327,7 +356,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     cibleZone = target.zone ?? null;
     v2SettingsTarget.set(null);
     if (target.zone != null) {
-      tick().then(() => amenerSousEntete(document.getElementById(`zc-${target.zone}`)));
+      // #1427 — « Correction de pièce » du menu de zone : le bloc FIR de la
+      // fiche, pas le haut de la fiche (DSD, débit, canaux… le précèdent).
+      const bloc = target.bloc;
+      tick().then(() => amenerSousEntete(
+        (bloc === 'fir' ? document.getElementById(`fir-${target.zone}`) : null)
+          ?? document.getElementById(`zc-${target.zone}`),
+      ));
     } else if (target.section) {
       // #1670 — la carte visée est mise en avant ET amenée à l'écran : une
       // carte surlignée hors du cadre ne se voit pas plus qu'une carte muette.
@@ -674,6 +709,40 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }
   }
   $effect(() => { void loadIgnoredDevices(); });
+
+  /**
+   * Sendspin — liste d'exclusion (#3326, serveur rc4). Une enceinte qui
+   * appartient à un autre serveur (Music Assistant…) : Tune ne la contacte
+   * plus et refuse qu'elle se connecte. Chargée quand la section est visible.
+   */
+  let enceintesSs = $state<EnceinteSendspin[]>([]);
+  let ssOccupe = $state(false);
+  let ssErreur = $state(false);
+  async function chargerSendspin() {
+    try {
+      enceintesSs = enceintesSendspin(await api.listSendspinDevices());
+    } catch {
+      // Serveur sans la route : la section reste vide.
+      enceintesSs = [];
+    }
+  }
+  $effect(() => {
+    if (sections.some((x) => x.id === 'sendspin')) void chargerSendspin();
+  });
+  async function basculerExclusionSs(e: EnceinteSendspin, ev: Event) {
+    const exclue = (ev.currentTarget as HTMLInputElement).checked;
+    ssOccupe = true;
+    ssErreur = false;
+    try {
+      await api.setSendspinExclusion(e.cle, exclue);
+      await chargerSendspin();
+    } catch {
+      ssErreur = true;
+      await chargerSendspin();
+    } finally {
+      ssOccupe = false;
+    }
+  }
 
   async function ignoreDevice(deviceId: string, name: string) {
     ignoreBusy = true;
@@ -1893,6 +1962,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * publie pas le réglage, et les cases ne s'affichent pas.
    */
   let analysisExcluded = $state<string[] | null>(null);
+  // tune-server-rust#6198 — les genres de l'analyse acoustique (CLAP).
+  let clapGenresInclus = $state<string[] | null>(null);
+  let clapGenresExclus = $state<string[] | null>(null);
   let newDir = $state('');
   let dirBusy = $state(false);
   let scanning = $state(false);
@@ -2139,6 +2211,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       analysisExcluded = Array.isArray(c?.background_analysis_excluded_roots)
         ? c.background_analysis_excluded_roots.filter((r: unknown) => typeof r === 'string')
         : null;
+      clapGenresInclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_INCLUS]);
+      clapGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_EXCLUS]);
       await refreshDirectoryOrder();
       // Absent vaut VRAI cote serveur, et les valeurs peuvent arriver en
       // chaine ('false') aussi bien qu'en booleen.
@@ -2253,6 +2327,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const suivant = analyser ? avant.filter((r) => r !== d) : [...avant.filter((r) => r !== d), d];
     analysisExcluded = suivant;
     patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
+  }
+  /**
+   * tune-server-rust#6198 — les genres retenus ou écartés de l'analyse
+   * acoustique. Le serveur reçoit la liste COMPLÈTE ; s'il refuse, le champ
+   * revient à son état d'avant.
+   */
+  function setGenresClap(sens: 'inclus' | 'exclus', texte: string) {
+    const suivant = lireSaisieDeGenres(texte);
+    if (sens === 'inclus') {
+      const avant = clapGenresInclus;
+      clapGenresInclus = suivant;
+      patch({ [CLE_GENRES_CLAP_INCLUS]: suivant }, () => { clapGenresInclus = avant; });
+    } else {
+      const avant = clapGenresExclus;
+      clapGenresExclus = suivant;
+      patch({ [CLE_GENRES_CLAP_EXCLUS]: suivant }, () => { clapGenresExclus = avant; });
+    }
   }
   /** Retirer un dossier ne SUPPRIME aucun fichier : on le dit dans l'ecran,
    *  sinon le bouton fait peur a juste titre. */
@@ -3626,7 +3717,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /** #5065, étape 3 — une case « Afficher dans la barre » par type de
    *  source : décider une case ne décide qu'elle. */
   function basculerTypeSource(type: TypeSourceBarre, coche: boolean) {
-    preferences.update((pr) => ({ ...pr, sourcesBarre: { ...(pr.sourcesBarre ?? {}), [type]: coche } }));
+    // #2117 — le geste est DATÉ, pour arriver sur les autres appareils du profil.
+    preferences.update((pr) => ({ ...pr, ...gesteTypesBarre(pr.sourcesBarre, type, coche) }));
   }
 
   // tune-server-rust#5296 — « Entrée audio » ou « Entrée virtuelle » cochée,
@@ -5141,6 +5233,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <p class="monote">{$t('bitperfect.strictHelp' as any)}</p>
                         </div>
                       {/if}
+
+                      <!--
+                        TITRE RADIO PAR DLNA — renesenses/tune-server-rust#2991.
+                        Pour les lecteurs qui ignorent l'ICY (Hifi Rose RS250A,
+                        fil 1529) : réémettre le DIDL du morceau en cours.
+                        Désactivé par défaut : l'ICY suffit à la plupart des
+                        lecteurs, et cette option ajoute une commande réseau à
+                        chaque morceau. Proposé seulement sur une zone DLNA et
+                        si le serveur publie le champ.
+                      -->
+                      {#if typeof z.dlna_radio_title === 'string' && z.output_type === 'dlna'}
+                        <div class="radio-didl-bloc">
+                          <label class="zf radio-didl">
+                            <span>{$t('radioDidl.label' as any)}</span>
+                            <select value={z.dlna_radio_title}
+                              onchange={(e) => setZoneField(z, () => api.updateZoneDlnaRadioTitle(z.id as number, (e.currentTarget as HTMLSelectElement).value as 'off' | 'next' | 'reload'))}>
+                              <option value="off">{$t('radioDidl.off' as any)}</option>
+                              <option value="next">{$t('radioDidl.next' as any)}</option>
+                              <option value="reload">{$t('radioDidl.reload' as any)}</option>
+                            </select>
+                          </label>
+                          <p class="monote">{$t('radioDidl.help' as any)}</p>
+                        </div>
+                      {/if}
                       {/if}
 
                       <!--
@@ -5241,7 +5357,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         Aucune condition sur le type de sortie : le serveur
                         applique l'IR aux lecteurs réseau aussi.
                       -->
-                      <CorrectionAcoustiqueZone zone={z} />
+                      <div id={`fir-${z.id}`}><CorrectionAcoustiqueZone zone={z} /></div>
 
                       <!-- #1394 — LA PHOTO DE L'APPAREIL, dans le bloc où
                            l'appareil est déjà identifié par sa marque et son
@@ -5268,6 +5384,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <p class="hint">{$t('v2.zone.deviceImageHint' as any)}</p>
                           {#if z.image_path}
                             <button class="v2-btn sm" onclick={() => retirerImageZone(z)}>{$t('v2.zone.removeImage' as any)}</button>
+                          {/if}
+                          <!-- #2109 — proposer la photo au catalogue communautaire.
+                               Un geste À PART, précédé d'un accord lu ; jamais
+                               « partagée » avant l'approbation : l'état affiché
+                               reste « en attente ». -->
+                          {#if propositionPossible(z)}
+                            {#if z.image_share_status === 'pending'}
+                              <p class="zpattente">{$t('v2.zone.photoSharePending' as any)}</p>
+                            {:else}
+                              <button class="v2-btn sm" disabled={propositionPhotoEnCours === z.id}
+                                onclick={() => proposerPhotoZone(z)}>{$t('v2.zone.photoShare' as any)}</button>
+                            {/if}
                           {/if}
                         </div>
                       </div>
@@ -5353,6 +5481,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'library'}
+              <SacdIsoStatus />
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.scanLibraryV2' as any)}</span>
@@ -5524,6 +5653,26 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if orderError}<p class="errline" role="alert">{orderError}</p>{/if}
                 {#if analysisExcluded !== null}
                   <p class="hint">{$t('settings.backgroundAnalysisFoldersHint' as any)}</p>
+                {/if}
+                <!-- tune-server-rust#6198 — réserver l'analyse acoustique
+                     (ambiances) à certains genres, ou en écarter. -->
+                {#if clapGenresInclus !== null && clapGenresExclus !== null}
+                  <div class="clap-genres">
+                    <span class="clap-genres-titre">{$t('settings.clapGenresTitle' as any)}</span>
+                    <label>
+                      <span>{$t('settings.clapGenresIncluded' as any)}</span>
+                      <input type="text" value={afficherGenres(clapGenresInclus)}
+                        placeholder={$t('settings.clapGenresIncludedPlaceholder' as any)}
+                        onchange={(e) => setGenresClap('inclus', (e.currentTarget as HTMLInputElement).value)} />
+                    </label>
+                    <label>
+                      <span>{$t('settings.clapGenresExcluded' as any)}</span>
+                      <input type="text" value={afficherGenres(clapGenresExclus)}
+                        placeholder={$t('settings.clapGenresExcludedPlaceholder' as any)}
+                        onchange={(e) => setGenresClap('exclus', (e.currentTarget as HTMLInputElement).value)} />
+                    </label>
+                    <p class="hint">{$t('settings.clapGenresHint' as any)}</p>
+                  </div>
                 {/if}
                 <p class="hint">{#each emphaseParts($t('settings.removeFolderHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {:else}
@@ -6715,6 +6864,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/each}
               </div>
 
+            {:else if s.id === 'sendspin'}
+              <p class="hint">{$t('settings.sendspinIntro' as any)}</p>
+              <div class="devlist">
+                {#each enceintesSs as e (e.cle)}
+                  <div class="dev ign">
+                    <span class="dn" use:bulleTexte>{e.nom}</span>
+                    <span class="dh">{e.adresse ?? ''}</span>
+                    <label class="lnk">
+                      <input type="checkbox" checked={e.exclue} disabled={ssOccupe}
+                        onchange={(ev) => basculerExclusionSs(e, ev)} />
+                      {$t('settings.sendspinDoNotConnect' as any)}
+                    </label>
+                  </div>
+                {:else}
+                  <p class="hint">{$t('settings.sendspinNone' as any)}</p>
+                {/each}
+              </div>
+              {#if ssErreur}<p class="hint">{$t('settings.sendspinSaveFailed' as any)}</p>{/if}
+
             {:else if s.id === 'ignoredDevices'}
               <p class="hint">{$t('settings.ignoredDevicesIntro' as any)}</p>
               <div class="devlist">
@@ -7085,6 +7253,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dir.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto}
   .dir.ordered.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
   .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:12px; color:var(--v2-txt2)}
+  .clap-genres{display:flex; flex-direction:column; gap:6px; margin:10px 0}
+  .clap-genres-titre{font-weight:600}
+  .clap-genres label{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13px; color:var(--v2-txt2)}
+  .clap-genres label span{min-width:9em}
+  .clap-genres input{flex:1 1 16em; min-width:0}
   .directory-order-hint{margin-top:12px}
   .dir-order{display:flex; align-items:center; gap:3px}
   .dir-order .lnk{min-width:28px; min-height:28px}
@@ -7270,4 +7443,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zpveil svg{width:18px; height:18px}
   .zpv:hover .zpveil, .zpv:focus-visible .zpveil{opacity:1}
   .zpt{display:flex; flex-direction:column; gap:5px; min-width:0}
+  /* #2109 — pastille « en attente de relecture » : jamais « partagée » avant l'approbation. */
+  .zpattente{margin:0; font-size:12px; color:var(--tune-warning)}
 </style>

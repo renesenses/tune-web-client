@@ -77,6 +77,11 @@ export interface BilanRestauration {
   playlists_replaced: number;
   favorites_restored: number;
   radios_restored: number;
+  /**
+   * Jetons de service réécrits, par leur nom (serveurs récents) : aujourd'hui
+   * seul `discogs_token` voyage, chiffré dans l'instantané (#902).
+   */
+  service_tokens_restored?: string[];
   warnings: string[];
 }
 
@@ -194,6 +199,11 @@ export function tailleLisible(octets: number, langue?: string): string {
   }
 }
 
+/** La restauration a-t-elle repris le jeton Discogs (#902) ? */
+export function jetonDiscogsRepris(b: BilanRestauration | null | undefined): boolean {
+  return (b?.service_tokens_restored ?? []).includes('discogs_token');
+}
+
 /** Les compteurs du bilan, dans l'ordre de l'affichage, sans les zéros. */
 export function lignesDuBilan(b: BilanRestauration): { cle: string; n: number }[] {
   const lignes: [string, number][] = [
@@ -205,6 +215,7 @@ export function lignesDuBilan(b: BilanRestauration): { cle: string; n: number }[
     ['cloudBackup.reportPlaylistsReplaced', b.playlists_replaced],
     ['cloudBackup.reportFavorites', b.favorites_restored],
     ['cloudBackup.reportRadios', b.radios_restored],
+    ['cloudBackup.reportDiscogs', jetonDiscogsRepris(b) ? 1 : 0],
   ];
   return lignes.filter(([, n]) => (n ?? 0) > 0).map(([cle, n]) => ({ cle, n }));
 }

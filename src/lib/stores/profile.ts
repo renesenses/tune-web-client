@@ -55,6 +55,9 @@ function saveProfileId(id: number | null) {
 // (Bertrand + Fabien).
 const initialStoredProfileId = loadProfileId();
 export const hadStoredProfile = initialStoredProfileId !== null;
+/** web#2099 — l'identifiant que ce navigateur avait retenu au chargement de la
+ *  page (`null` : aucun, par exemple après un vidage du cache). */
+export const profilMemoriseAuChargement: number | null = initialStoredProfileId;
 export const currentProfileId = writable<number | null>(initialStoredProfileId);
 currentProfileId.subscribe(saveProfileId);
 
@@ -372,6 +375,34 @@ currentProfileId.subscribe((pid) => {
   loadFavoriteIds(pid);
 });
 
+/**
+ * tune-server-rust#5916 — dit au serveur le profil choisi, sans attendre.
+ *
+ * Un serveur ancien, sans la route, répond une erreur : on l'ignore, le choix
+ * reste au moins dans `localStorage` comme avant.
+ */
+export function retenirCoteServeur(id: number): void {
+  try {
+    void api.setDernierProfilChoisi(id).catch(() => {});
+  } catch { /* pas de réseau : tant pis, localStorage le garde */ }
+}
+
+/**
+ * tune-server-rust#5916 — le profil que le serveur a retenu pour cet appareil,
+ * s'il figure dans `list`. Sert quand `localStorage` est vide : navigation
+ * privée, ou navigateur qui efface les données des sites à sa fermeture (fil
+ * 2168, Gérard, 12/10). Sans lui, Tune retombait sur le premier profil.
+ */
+async function profilRetenuParLeServeur(list: Profile[]): Promise<number | null> {
+  try {
+    const r = await api.getDernierProfilChoisi();
+    const id = typeof r?.profile_id === 'number' ? r.profile_id : null;
+    return id !== null && list.some((p) => p.id === id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function loadProfiles(): Promise<void> {
   try {
     const list = await api.getProfiles();
@@ -388,7 +419,13 @@ export async function loadProfiles(): Promise<void> {
       // s'ouvrirait sur « Default », que la liste ne propose plus.
       const curId = get(currentProfileId);
       if (curId === null || !list.find((p: Profile) => p.id === curId)) {
-        currentProfileId.set(profilsVisibles(list)[0].id);
+        // #5916 — le serveur se souvient du dernier choix de cet appareil.
+        const retenu = await profilRetenuParLeServeur(list);
+        currentProfileId.set(retenu ?? profilsVisibles(list)[0].id);
+      } else if (curId === initialStoredProfileId) {
+        // Un choix que seul ce navigateur connaît (fait avant #5916) : le
+        // serveur l'apprend, pour le jour où ce stockage s'effacera.
+        retenirCoteServeur(curId);
       }
     }
     profileReady.set(true);
@@ -440,6 +477,7 @@ export async function createProfile(
     const created = await api.createProfile({ name, avatar_color: avatarColor });
     profiles.update((list) => [...list, created]);
     currentProfileId.set(created.id);
+    retenirCoteServeur(created.id);
     return { ok: true, profil: created };
   } catch (e: any) {
     // Handle 409 — profile already exists, auto-select it
@@ -481,6 +519,7 @@ export async function updateProfile(id: number, name: string, avatarColor: strin
 
 export async function selectProfile(id: number): Promise<void> {
   currentProfileId.set(id);
+  retenirCoteServeur(id);
 }
 
 export async function deleteProfile(id: number): Promise<void> {
