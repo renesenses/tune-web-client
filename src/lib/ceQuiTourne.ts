@@ -14,7 +14,12 @@
  *  - `tasks[]` : les tâches INSCRITES au registre le temps qu'elles vivent,
  *    avec leur libellé et parfois leur avancement ;
  *  - `playback_priority` : une zone joue-t-elle, depuis quand, la politique en
- *    vigueur et les compteurs des freins.
+ *    vigueur et les compteurs des freins ;
+ *  - depuis l'étape 3 du serveur (#6310) : `activity` et `reason` sur chaque
+ *    traitement et sur le scan — quand ils sont publiés, ils PRIMENT sur la
+ *    déduction faite à partir de `state` / `throttled_for_playback` (gardée
+ *    pour un serveur plus ancien) — et `playback_priority.background_compute`,
+ *    le pool du calcul de fond en basse priorité.
  *
  * Règle de l'écran : rien n'est inventé. Un champ absent (serveur plus ancien)
  * ne produit aucune ligne ; un identifiant que ce client ne sait pas nommer
@@ -77,6 +82,49 @@ export type LigneCeQuiTourne = {
   avancement?: { fait: number; total: number; detail: string };
 };
 
+/** Les activités publiées par le serveur (#6310). Un autre mot est ignoré :
+ *  l'écran retombe alors sur sa déduction. */
+export const ACTIVITES = ['working', 'throttled', 'yielded', 'paused', 'idle'] as const;
+export type Activite = (typeof ACTIVITES)[number];
+
+const activiteDe = (v: unknown): Activite | null =>
+  typeof v === 'string' && (ACTIVITES as readonly string[]).includes(v) ? (v as Activite) : null;
+
+/** Le calcul de fond en basse priorité (`playback_priority.background_compute`). */
+export type CalculDeFond = {
+  /** La politique envoie le calcul aux fils baissés. */
+  pool: boolean;
+  /** Le serveur a armé la baisse. */
+  arme: boolean;
+  /** `nice_10` | `qos_background` | `thread_mode_background` | `none`, ou
+   *  `null` tant qu'aucun fil n'est né. */
+  cpu: string | null;
+  /** `idle` | `best_effort_7` | `qos_background` | `thread_mode_background` |
+   *  `none`, ou `null`. */
+  io: string | null;
+  fils: number | null;
+  filsLibres: number | null;
+  travaux: number | null;
+  /** `policy.background_compute_low_priority === false` : réglage coupé. */
+  regleCoupe: boolean;
+};
+
+/** Les valeurs de `cpu` / `io` que ce client sait nommer, en clés ÉCRITES en
+ *  entier (la garde i18n ne devine pas une composition). */
+export const NOM_DE_LA_PRIORITE: Record<string, string> = {
+  nice_10: 'v2.health.running.prio.nice_10',
+  qos_background: 'v2.health.running.prio.qos_background',
+  thread_mode_background: 'v2.health.running.prio.thread_mode_background',
+  idle: 'v2.health.running.prio.idle',
+  best_effort_7: 'v2.health.running.prio.best_effort_7',
+  none: 'v2.health.running.prio.none',
+};
+
+/** La clé i18n d'une priorité publiée, ou `null` si inconnue (rien d'inventé). */
+export function clePriorite(v: string | null): string | null {
+  return v !== null && Object.prototype.hasOwnProperty.call(NOM_DE_LA_PRIORITE, v) ? NOM_DE_LA_PRIORITE[v] : null;
+}
+
 export type CeQuiTourne = {
   /** `null` : le serveur ne publie pas `playback_priority` (rien à en dire). */
   lecture: null | {
@@ -96,6 +144,8 @@ export type CeQuiTourne = {
     ecrituresDiffereesMs: number;
     prioriteBasseAppliquee: number;
   };
+  /** `null` : le serveur ne publie pas le bloc (antérieur à #6310). */
+  calcul: CalculDeFond | null;
 };
 
 const nombre = (v: unknown): number | null =>
@@ -134,6 +184,26 @@ export function ceQuiTourne(inst: InstantaneTachesDeFond | null | undefined): Ce
     const nomCle = NOM_DU_TRAITEMENT[id];
     const decode = (PASSES_QUI_DECODENT as readonly string[]).includes(id);
 
+    // Le serveur dit lui-même ce que fait la tâche (#6310) : il prime.
+    const act = activiteDe(t.activity);
+    if (act !== null) {
+      if (act === 'paused') {
+        lignes.push({
+          id, nomCle, etat: 'en_pause',
+          raisonCle: toutSuspendu ? 'v2.health.running.why.allPaused' : 'v2.health.running.why.paused',
+        });
+      } else if (act === 'yielded') {
+        lignes.push({ id, nomCle, etat: 'cedee', raisonCle: 'v2.health.running.why.decodeYield' });
+      } else if (act === 'throttled') {
+        lignes.push({ id, nomCle, etat: 'ralentie', ...raisonDuRalenti(pauseEntreElementsMs), avancement: avancementDe(inscrite) });
+      } else if (act === 'working') {
+        lignes.push({ id, nomCle, etat: 'en_cours', avancement: avancementDe(inscrite) });
+      } else {
+        auRepos += 1;
+      }
+      continue;
+    }
+
     if (t.paused || t.state === 'en_pause') {
       lignes.push({
         id, nomCle, etat: 'en_pause',
@@ -150,16 +220,7 @@ export function ceQuiTourne(inst: InstantaneTachesDeFond | null | undefined): Ce
     }
     if (t.state === 'en_cours') {
       if (cede) {
-        lignes.push({
-          id, nomCle, etat: 'ralentie',
-          ...(pauseEntreElementsMs !== null && pauseEntreElementsMs > 0
-            ? {
-                raisonCle: 'v2.health.running.why.itemPause',
-                params: { s: Math.round(pauseEntreElementsMs / 100) / 10 },
-              }
-            : { raisonCle: 'v2.health.running.why.slowed' }),
-          avancement: avancementDe(inscrite),
-        });
+        lignes.push({ id, nomCle, etat: 'ralentie', ...raisonDuRalenti(pauseEntreElementsMs), avancement: avancementDe(inscrite) });
       } else {
         lignes.push({ id, nomCle, etat: 'en_cours', avancement: avancementDe(inscrite) });
       }
@@ -171,8 +232,10 @@ export function ceQuiTourne(inst: InstantaneTachesDeFond | null | undefined): Ce
   // Le scan : pas suspendable, mais il cède lui aussi (2 fichiers à la fois
   // au lieu de 32 par défaut, une pause entre deux paquets).
   const scan = inst.scan;
-  if (scan?.running === true) {
-    if (scan.throttled_for_playback === true) {
+  const actScan = activiteDe(scan?.activity);
+  const scanTourne = actScan !== null ? actScan === 'working' || actScan === 'throttled' : scan?.running === true;
+  if (scanTourne) {
+    if (actScan !== null ? actScan === 'throttled' : scan?.throttled_for_playback === true) {
       const largeur = nombre(pp?.policy?.scan_width);
       const pauseMs = nombre(pp?.policy?.pause_between_files_ms);
       lignes.push({
@@ -216,7 +279,48 @@ export function ceQuiTourne(inst: InstantaneTachesDeFond | null | undefined): Ce
       }
     : null;
 
-  return { lecture, lignes, auRepos, freins };
+  const bc = pp?.background_compute;
+  const calcul: CalculDeFond | null = bc && typeof bc === 'object'
+    ? {
+        pool: bc.low_priority_pool === true,
+        arme: bc.armed === true,
+        cpu: typeof bc.cpu === 'string' ? bc.cpu : null,
+        io: typeof bc.io === 'string' ? bc.io : null,
+        fils: nombre(bc.threads),
+        filsLibres: nombre(bc.idle_threads),
+        travaux: nombre(bc.jobs_done),
+        regleCoupe: pp?.policy?.background_compute_low_priority === false,
+      }
+    : null;
+
+  return { lecture, lignes, auRepos, freins, calcul };
+}
+
+/** Le « pourquoi » d'une tâche ralentie : la pause publiée, sinon générique. */
+function raisonDuRalenti(pauseMs: number | null): Pick<LigneCeQuiTourne, 'raisonCle' | 'params'> {
+  return pauseMs !== null && pauseMs > 0
+    ? { raisonCle: 'v2.health.running.why.itemPause', params: { s: Math.round(pauseMs / 100) / 10 } }
+    : { raisonCle: 'v2.health.running.why.slowed' };
+}
+
+/**
+ * La phrase sur le calcul de fond : clé i18n et paramètres, ou `null` sans
+ * bloc publié. Réglage coupé, pas encore armé, ou armé avec la priorité
+ * réellement obtenue (`cpu` / `io`, nommées seulement si connues).
+ */
+export function phraseCalcul(
+  c: CeQuiTourne | null,
+): { cle: string; params: Record<string, string | number>; cpuCle: string | null; ioCle: string | null } | null {
+  const k = c?.calcul;
+  if (!k) return null;
+  const base = { cpuCle: clePriorite(k.cpu), ioCle: clePriorite(k.io) };
+  if (k.regleCoupe || !k.pool) return { cle: 'v2.health.running.compute.off', params: {}, ...base };
+  if (!k.arme) return { cle: 'v2.health.running.compute.notArmed', params: {}, ...base };
+  return {
+    cle: 'v2.health.running.compute.on',
+    params: { n: k.fils ?? 0, libres: k.filsLibres ?? 0, faits: k.travaux ?? 0 },
+    ...base,
+  };
 }
 
 /** La ligne d'en-tête sur la lecture : clé i18n et paramètres, ou `null`. */

@@ -233,3 +233,23 @@ describe('« Ce qui tourne » — l\'écran monté', () => {
     expect(h.querySelector('[data-testid="running-tasks"]')).toBeNull();
   });
 });
+
+describe('« Ce qui tourne » — le calcul de fond, écran monté (#6310)', () => {
+  it('affiche la basse priorité publiée par le serveur', async () => {
+    corpsTaches = instantane({
+      playback_priority: priorite({
+        background_compute: { low_priority_pool: true, armed: true, cpu: 'nice_10', io: 'idle', threads: 2, idle_threads: 1, jobs_done: 7 },
+      }),
+    });
+    const h = await monterLEcran();
+    const bloc = h.querySelector('[data-testid="background-compute"]') as HTMLElement | null;
+    expect(bloc, 'le bloc du calcul de fond doit être rendu').not.toBeNull();
+    expect(bloc!.textContent).toContain(remplir(fr['v2.health.running.compute.cpu'], { p: fr['v2.health.running.prio.nice_10'] }));
+  });
+
+  it('se tait quand le serveur ne publie pas le bloc', async () => {
+    corpsTaches = instantane();
+    const h = await monterLEcran();
+    expect(h.querySelector('[data-testid="background-compute"]')).toBeNull();
+  });
+});
