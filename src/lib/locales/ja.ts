@@ -3084,6 +3084,7 @@ export default {
   "v2.zone.horsBackendAsio": "ASIO が選択されています：ASIO ゾーンを使用してください",
   "v2.zone.openNowPlaying": "このゾーンの再生中画面を開く",
   "v2.zone.openSettings": "このゾーンの設定",
+  "v2.zone.roomCorrection": "ルーム補正",
   "v2.zone.presenceAbsent": "{days} 日間不在",
   "v2.zone.presenceNever": "更新以降未検出",
   "v2.zone.stereoPairs": "ステレオペア",
