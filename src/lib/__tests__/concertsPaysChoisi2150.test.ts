@@ -11,6 +11,7 @@ import { activeView } from '../stores/navigation';
 import { concertsPlugin } from '../stores/concerts';
 import { notifications } from '../stores/notifications';
 import fr from '../locales/fr';
+import { preferences } from '../stores/preferences';
 
 /**
  * Fil forum 2150 (Tune 1.0.0-rc2, macOS) — « la recherche de concerts ne prend
@@ -53,6 +54,9 @@ function reponse(status: number, corps: unknown): Response {
 beforeAll(async () => { await preparerLocale('fr'); });
 
 beforeEach(() => {
+  // web#1755 — ces bancs décrivent l'écran d'AVANT la question du lieu :
+  // le profil a répondu « Pas maintenant », rien n'est rejoué ni demandé.
+  preferences.update((p) => ({ ...p, concertsLieu: 'plus-tard' }));
   vi.useFakeTimers();
   appels = [];
   for (const n of get(notifications)) notifications.dismiss(n.id);

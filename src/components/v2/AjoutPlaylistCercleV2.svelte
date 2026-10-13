@@ -18,6 +18,8 @@
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import { motifCercle } from '../../lib/circle';
+  import { filtrerParNom, actionEntree } from '../../lib/filtrePlaylists';
+  import RecherchePlaylist from '../partages/RecherchePlaylist.svelte';
   import {
     listerPlaylistsCercle, ajouterMorceaux, lirePlaylistCercle, estConflit, etatDuConflit, codeT5, NOM_PLAYLIST_MAX,
     type Ajout, type PlaylistCercleResume,
@@ -33,6 +35,16 @@
   let playlists = $state<PlaylistCercleResume[] | null>(null);
   let erreur = $state<string | null>(null);
   let occupe = $state<string | null>(null);
+
+  /** Retrouver la playlist par son nom (13/10/2026) — même champ que la fenêtre Tune. */
+  let requete = $state('');
+  const vues = $derived(filtrerParNom(playlists ?? [], requete, (p) => p.name));
+
+  /** Entrée : la seule correspondance. Un cercle ne se crée pas d'ici : rien d'autre. */
+  function surEntree() {
+    const a = actionEntree(vues, requete);
+    if (a.type === 'choisir') void choisir(a.cible);
+  }
 
   function phrase(e: unknown): string {
     const cle = codeT5(e);
@@ -92,13 +104,14 @@
       <button class="lnk fermer" onclick={onClose} aria-label={$t('common.close' as any)}>×</button>
     </header>
     <p class="note">{$t('v2.circle.pl.addHint' as any)}</p>
+    <RecherchePlaylist bind:valeur={requete} onEntree={surEntree} />
     {#if playlists === null}
       <div class="note">{$t('v2.tool.loading' as any)}</div>
     {:else if playlists.length === 0 && !erreur}
       <p class="note vide">{$t('v2.circle.pl.noneToAdd' as any)}</p>
     {:else}
       <ul class="choix">
-        {#each playlists as p (String(p.id))}
+        {#each vues as p (String(p.id))}
           <li>
             <button class="ligne choix-playlist" disabled={occupe !== null} onclick={() => void choisir(p)}>
               <span class="nom" use:bulleTexte>{p.name}</span>
@@ -107,6 +120,9 @@
           </li>
         {/each}
       </ul>
+      {#if vues.length === 0 && playlists.length > 0}
+        <p class="note vide">{$t('playlist.noMatch')}</p>
+      {/if}
     {/if}
     {#if erreur}
       <p class="err" role="alert">{erreur}</p>
