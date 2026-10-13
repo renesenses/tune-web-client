@@ -3467,6 +3467,7 @@ export default {
   "v2.rech.albums": "专辑",
   "v2.stream.favIndex": "收藏目录",
   "v2.fas.topTracks": "热门单曲",
+  "v2.art.alsoOnTracks": "参与曲目",
   "v2.art.bio": "简介",
   "v2.art.bioReadMore": "展开全文",
   "v2.art.bioReadLess": "收起",

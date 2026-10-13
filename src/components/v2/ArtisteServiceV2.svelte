@@ -71,6 +71,8 @@
   import { initialesArtiste } from '../../lib/initialesArtiste';
   import DiscographieCommune from './DiscographieCommune.svelte';
   import BioEtTitresPhares from './BioEtTitresPhares.svelte';
+  import ListePistesV2 from './ListePistesV2.svelte';
+  import { pistesReliees } from '../../lib/artistesRelies';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
   import { currentZoneId, playAndSync, radioArtisteAndSync } from '../../lib/stores/zones';
   import { corpsRadioArtiste, lancerRadioArtiste, type IssueRadio } from '../../lib/radioArtiste';
@@ -813,6 +815,39 @@
     }
     enMasseLocale = false;
   }
+
+  /*
+   * Chantier artistes multiples (tune-server-rust,
+   * `docs/chantier-artistes-multiples.md`, « Reste » n°4) — « Apparaît aussi
+   * sur » : les pistes où cet artiste est RELIÉ par un crédit découpé
+   * (« The Beatles & Genesis » chez Genesis), sans en être l'artiste
+   * principal. Le serveur les marque `relie: true` dans
+   * `GET /library/artists/{id}/tracks`. Une fiche de bibliothèque seulement
+   * (`artisteEditable`) : un artiste de service n'a pas de liaison.
+   */
+  let pistesRelieesFiche = $state<Track[]>([]);
+  $effect(() => {
+    const id = artisteEditable?.id;
+    pistesRelieesFiche = [];
+    if (id == null) return;
+    let vivant = true;
+    api.getArtistTracks(id)
+      .then((p) => {
+        if (vivant) pistesRelieesFiche = pistesReliees(p as Track[]);
+      })
+      .catch(() => {});
+    return () => {
+      vivant = false;
+    };
+  });
+  function lireRelieesDepuis(i: number) {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    void lireListe(pistesRelieesFiche.slice(i), {
+      lire: (c: any) => playAndSync(zid, c),
+      enfiler: (c: any) => api.addToQueue(zid, c),
+    }).catch(signalerEchecLecture);
+  }
 </script>
 
 <!--
@@ -982,6 +1017,15 @@
       </section>
     {/if}
 
+    {#if pistesRelieesFiche.length}
+      <!-- Chantier artistes multiples — voir `pistesRelieesFiche`. -->
+      <section class="reliees" data-pistes-reliees>
+        <h2>{$tr('v2.art.alsoOnTracks' as any)}</h2>
+        <ListePistesV2 pistes={pistesRelieesFiche} pochetteEnTableau
+          onLire={(_p, i) => lireRelieesDepuis(i)} clef={(p, i) => String(p.id ?? i)} />
+      </section>
+    {/if}
+
     <!-- L'enveloppe doit citer TOUTES les sections que `DiscographieCommune`
          sait rendre, sinon une section chargée reste invisible faute d'en-tête.
          `collaborations` et `reprises` (#4767) y manquaient : un artiste sans
@@ -1033,6 +1077,7 @@
 {/if}
 
 <style>
+  .reliees { margin: 0 0 26px; }
   .v2-fas{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); padding:0 30px 40px}
   /* L'en-tête — `.tete`, `.retour`, `.portrait`, `.ident`, `.gestes` — vit

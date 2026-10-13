@@ -3421,6 +3421,7 @@ export default {
   "v2.rech.albums": "Albumok",
   "v2.stream.favIndex": "Kedvencek tartalomjegyzéke",
   "v2.fas.topTracks": "Népszerű dalok",
+  "v2.art.alsoOnTracks": "Szerepel még",
   "v2.art.bio": "Életrajz",
   "v2.art.bioReadMore": "Tovább olvasom",
   "v2.art.bioReadLess": "Kevesebb",

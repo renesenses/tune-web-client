@@ -3467,6 +3467,7 @@ export default {
   "v2.rech.albums": "Alben",
   "v2.stream.favIndex": "Favoriten-Übersicht",
   "v2.fas.topTracks": "Top-Titel",
+  "v2.art.alsoOnTracks": "Auch zu hören auf",
   "v2.art.bio": "Biografie",
   "v2.art.bioReadMore": "Weiterlesen",
   "v2.art.bioReadLess": "Weniger anzeigen",

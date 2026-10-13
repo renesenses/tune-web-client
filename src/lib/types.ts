@@ -244,6 +244,14 @@ export interface Track {
    * Voir `lib/canauxPiste.ts`.
    */
   channel_badge?: string | null;
+  /** Chantier artistes multiples — `GET /library/tracks/{id}` : les artistes
+   *  du crédit découpé, dans l'ordre du crédit (« The Beatles & Genesis »).
+   *  Absent pour une piste à un seul artiste. */
+  artists?: ArtisteRelie[];
+  /** Chantier artistes multiples — `GET /library/artists/{id}/tracks` : vrai
+   *  pour une piste où l'artiste n'est pas l'artiste principal, mais RELIÉ
+   *  par un crédit découpé. Absent sinon. */
+  relie?: boolean;
   cover_path?: string | null;
   source?: Source;
   source_id?: string | null;
@@ -1785,4 +1793,11 @@ export interface SmartCollectionPreview {
   // length of the returned list, i.e. capped by max_limit when one is sent.
   total: number;
   albums: any[];  // shape == albums table row
+}
+
+/** Un artiste relié à une piste par un crédit découpé (chantier artistes
+ *  multiples). */
+export interface ArtisteRelie {
+  id: number;
+  name: string;
 }

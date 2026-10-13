@@ -3489,6 +3489,7 @@ export default {
   "v2.rech.albums": "Albums",
   "v2.stream.favIndex": "Sommaire des favoris",
   "v2.fas.topTracks": "Titres phares",
+  "v2.art.alsoOnTracks": "Apparaît aussi sur",
   "v2.art.bio": "Biographie",
   "v2.art.bioReadMore": "Lire la suite",
   "v2.art.bioReadLess": "Réduire",
