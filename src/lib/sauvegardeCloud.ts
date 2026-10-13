@@ -229,3 +229,70 @@ export function profilsSansMotDePasse(b: BilanRestauration | null | undefined): 
   const noms = (b?.profiles_without_password ?? []).filter((n) => typeof n === 'string' && n.trim());
   return [...new Set(noms)].sort((a, c) => a.localeCompare(c));
 }
+
+/**
+ * `POST /system/config-backup/cloud/preview` : ce qu'un instantané contient,
+ * compté par le serveur Tune APRÈS déchiffrement, sans rien restaurer ni
+ * adopter la clé (#902). Le site ne connaît que la taille et la date de
+ * dépôt : ce résumé n'existe que sur le serveur Tune, et ne part nulle part.
+ */
+export interface ResumeInstantane {
+  /** Date écrite DANS l'instantané (que le site ne peut pas falsifier). */
+  created_at: string | null;
+  server_version: string | null;
+  settings: number;
+  zones: number;
+  zone_names: string[];
+  profiles: number;
+  playlists: number;
+  favorites: number;
+  radios: number;
+  eq_presets: number;
+  /** Noms des jetons présents, jamais leur valeur. */
+  service_tokens: string[];
+}
+
+/** Corps du POST d'aperçu. Le secret vide n'est pas envoyé. */
+export function corpsApercu(
+  id: number,
+  secret: string | null | undefined,
+): { id: number; secret: string | null } {
+  const { secret: s } = corpsRestauration(id, 'merge', secret);
+  return { id, secret: s };
+}
+
+/** Le résumé rendu est-il lisible ? Un serveur antérieur ne connaît pas la route. */
+export function lireResume(corps: unknown): ResumeInstantane | null {
+  const r = (corps as { summary?: unknown } | null)?.summary as Partial<ResumeInstantane> | undefined;
+  if (!r || typeof r !== 'object' || typeof r.settings !== 'number') return null;
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0);
+  const noms = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x.trim()) : []);
+  return {
+    created_at: typeof r.created_at === 'string' ? r.created_at : null,
+    server_version: typeof r.server_version === 'string' ? r.server_version : null,
+    settings: n(r.settings),
+    zones: n(r.zones),
+    zone_names: noms(r.zone_names),
+    profiles: n(r.profiles),
+    playlists: n(r.playlists),
+    favorites: n(r.favorites),
+    radios: n(r.radios),
+    eq_presets: n(r.eq_presets),
+    service_tokens: noms(r.service_tokens),
+  };
+}
+
+/** Les lignes du résumé, dans l'ordre de l'affichage, sans les zéros. */
+export function lignesDuResume(r: ResumeInstantane): { cle: string; n: number; detail?: string }[] {
+  const lignes: { cle: string; n: number; detail?: string }[] = [
+    { cle: 'cloudBackup.summarySettings', n: r.settings },
+    { cle: 'cloudBackup.summaryZones', n: r.zones, detail: r.zone_names.join(', ') || undefined },
+    { cle: 'cloudBackup.summaryProfiles', n: r.profiles },
+    { cle: 'cloudBackup.summaryEq', n: r.eq_presets },
+    { cle: 'cloudBackup.summaryPlaylists', n: r.playlists },
+    { cle: 'cloudBackup.summaryFavorites', n: r.favorites },
+    { cle: 'cloudBackup.summaryRadios', n: r.radios },
+    { cle: 'cloudBackup.summaryDiscogs', n: r.service_tokens.includes('discogs_token') ? 1 : 0 },
+  ];
+  return lignes.filter((l) => l.n > 0);
+}

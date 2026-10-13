@@ -19,9 +19,13 @@
     RefusSauvegarde,
     lignesDuBilan,
     profilsSansMotDePasse,
+    secretAttendu,
+    lignesDuResume,
     type InstantaneCloud,
     type ResultatRestauration,
+    type ResumeInstantane,
   } from '../../lib/sauvegardeCloud';
+  import { ssoDisponible } from '../../lib/bridge';
   import { dateEtHeure } from '../../lib/dates';
 
   let { onComplete }: { onComplete: () => void } = $props();
@@ -124,6 +128,22 @@
    * relié, Premium, au moins un instantané. Sinon, rien — pas même une
    * erreur : l'assistant ne doit jamais attendre ni crier pour une offre.
    *
+   * Pas encore relié : l'assistant propose de relier le compte (même geste
+   * que Réglages et le menu de l'avatar). Le retour du SSO recharge la page
+   * sur « / », l'assistant revient à l'accueil et relit l'état : l'offre
+   * paraît alors d'elle-même, « une fois le compte connecté ».
+   *
+   * 🔴 RIEN N'EST ÉCRASÉ SANS CONFIRMATION. Le parcours a quatre temps :
+   *   1. `offre`        — la dernière sauvegarde, sa date, sa machine ;
+   *                       « Restaurer » ou « Plus tard » ;
+   *   2. `secret`       — seulement si la clé de CE serveur ne l'ouvre pas
+   *                       (machine neuve : toujours) ;
+   *   3. `confirmation` — le contenu RÉEL, compté par le serveur après
+   *                       déchiffrement (`/cloud/preview`, qui n'écrit rien),
+   *                       puis « Lancer la restauration » ou « Annuler » ;
+   *   4. `fait`         — le bilan.
+   * Seul le geste du temps 3 appelle `/cloud/restore`.
+   *
    * Mode `replace` : sur une machine neuve il n'y a rien à garder, la
    * sauvegarde l'emporte. Rien n'est supprimé, et la bibliothèque n'est
    * jamais touchée (dossiers de musique compris) : l'étape suivante reste
@@ -131,19 +151,32 @@
    * l'offre le dit avant le geste, et le bilan nomme les profils concernés.
    *
    * 🔴 Le secret (phrase de passe ou clé de secours) ne quitte cet état que
-   * dans le corps du POST, puis il est vidé.
+   * dans le corps des POST d'aperçu et de restauration ; il est vidé après la
+   * restauration, à l'annulation et à « Plus tard ». Le déchiffrement a lieu
+   * sur le serveur Tune : le site ne reçoit ni le secret ni la clé.
    */
+  type PhaseCloud = 'offre' | 'secret' | 'confirmation' | 'fait' | 'plusTard';
   let cloudListe = $state<InstantaneCloud[]>([]);
   let cloudOffre = $state(false);
+  let cloudPhase = $state<PhaseCloud>('offre');
   let cloudChoix = $state<number | null>(null);
   let cloudSecret = $state('');
   let cloudBusy = $state(false);
   let cloudErr = $state<string | null>(null);
+  let cloudResume = $state<ResumeInstantane | null>(null);
   let cloudBilan = $state<ResultatRestauration | null>(null);
+  /** Serveur pas encore relié, SSO possible ici : proposer de relier le compte. */
+  let cloudARelier = $state(false);
+
+  let cloudChoisi = $derived(cloudListe.find((i) => i.id === cloudChoix) ?? null);
 
   async function chargerOffreCloud() {
     try {
       const etat = await api.getCloudBackupStatus(true);
+      if (etat && !etat.account_linked) {
+        void chargerReliure();
+        return;
+      }
       if (!peutLister(etat)) return;
       const liste = await api.listCloudBackups(true);
       if (!offreDeReprise(etat, liste)) return;
@@ -155,29 +188,92 @@
     }
   }
 
+  async function chargerReliure() {
+    try {
+      const sso: any = await api.apiFetch('/cloud/sso/status');
+      cloudARelier = !!sso?.configured && !sso?.connected && ssoDisponible();
+    } catch {
+      cloudARelier = false;
+    }
+  }
+
+  /** Même geste que Réglages › Compte et le menu de l'avatar. */
+  function relierLeCompte() {
+    try { localStorage.setItem('tune_sso_pending', Date.now().toString()); } catch {}
+    try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
+    window.location.href = '/api/v1/cloud/sso/authorize';
+  }
+
+  function messageCloud(err: any): string {
+    if (err instanceof RefusSauvegarde && (err.code === 'wrong_secret' || err.code === 'secret_required')) {
+      return get(t)('cloudBackup.wrongSecret');
+    }
+    if (err instanceof RefusSauvegarde && err.code === 'cloud_unreachable') {
+      return get(t)('cloudBackup.cloudUnreachable');
+    }
+    return get(t)('cloudBackup.error').replace('{error}', err?.message ?? String(err));
+  }
+
+  function cloudRestaurer() {
+    cloudErr = null;
+    if (secretAttendu(cloudChoisi) && !cloudSecret.trim()) {
+      cloudPhase = 'secret';
+      return;
+    }
+    void cloudApercu();
+  }
+
+  /** Lit le contenu, n'écrit rien. */
+  async function cloudApercu() {
+    if (cloudChoix == null) return;
+    cloudBusy = true;
+    cloudErr = null;
+    try {
+      cloudResume = await api.previewCloudBackup(cloudChoix, secretAttendu(cloudChoisi) ? cloudSecret : null);
+      cloudPhase = 'confirmation';
+    } catch (err: any) {
+      cloudErr = messageCloud(err);
+      if (err instanceof RefusSauvegarde && (err.code === 'wrong_secret' || err.code === 'secret_required')) {
+        cloudSecret = '';
+        cloudPhase = 'secret';
+      }
+    } finally {
+      cloudBusy = false;
+    }
+  }
+
+  /** Le seul geste qui écrit. */
   async function reprendreDuCloud() {
     if (cloudChoix == null) return;
-    const choisi = cloudListe.find((i) => i.id === cloudChoix);
     cloudBusy = true;
     cloudErr = null;
     try {
       cloudBilan = await api.restoreCloudBackup(
         cloudChoix,
         'replace',
-        choisi?.local_key ? null : cloudSecret,
+        secretAttendu(cloudChoisi) ? cloudSecret : null,
       );
+      cloudPhase = 'fait';
     } catch (err: any) {
-      if (err instanceof RefusSauvegarde && (err.code === 'wrong_secret' || err.code === 'secret_required')) {
-        cloudErr = get(t)('cloudBackup.wrongSecret');
-      } else if (err instanceof RefusSauvegarde && err.code === 'cloud_unreachable') {
-        cloudErr = get(t)('cloudBackup.cloudUnreachable');
-      } else {
-        cloudErr = get(t)('cloudBackup.error').replace('{error}', err?.message ?? String(err));
-      }
+      cloudErr = messageCloud(err);
     } finally {
       cloudSecret = '';
       cloudBusy = false;
     }
+  }
+
+  function cloudAnnuler() {
+    cloudSecret = '';
+    cloudErr = null;
+    cloudResume = null;
+    cloudPhase = 'offre';
+  }
+
+  function cloudPlusTard() {
+    cloudSecret = '';
+    cloudErr = null;
+    cloudResume = null;
+    cloudPhase = 'plusTard';
   }
 
   // Step 2: Music library
@@ -590,11 +686,12 @@
           </div>
         </div>
 
-        {#if cloudOffre}
+        {#if cloudOffre && cloudPhase === 'plusTard'}
+          <p class="reprise-limites reprise-plus-tard">{$t('cloudBackup.onboardingLaterNote')}</p>
+        {:else if cloudOffre}
           <div class="reprise reprise-cloud">
             <h2>{$t('cloudBackup.onboardingTitle')}</h2>
-            <p class="reprise-desc">{$t('cloudBackup.onboardingDesc')}</p>
-            {#if cloudBilan}
+            {#if cloudPhase === 'fait' && cloudBilan}
               <p class="reprise-ok">{$t('cloudBackup.onboardingDone')}</p>
               <ul class="reprise-bilan">
                 {#each lignesDuBilan(cloudBilan.report) as l (l.cle)}
@@ -613,31 +710,77 @@
                   <ul>{#each cloudBilan.report.warnings as w}<li>{w}</li>{/each}</ul>
                 </details>
               {/if}
-            {:else}
-              <label class="reprise-champ">
-                <span>{$t('cloudBackup.onboardingPick')}</span>
-                <select bind:value={cloudChoix} disabled={cloudBusy}>
-                  {#each cloudListe as i (i.id)}
-                    <option value={i.id}>{$dateEtHeure(i.created_at)}{i.server_label ? ` — ${i.server_label}` : ''}</option>
+            {:else if cloudPhase === 'confirmation'}
+              {#if cloudResume}
+                <p class="reprise-desc">
+                  {$t('cloudBackup.summaryTitle').replace('{date}', $dateEtHeure(cloudResume.created_at ?? cloudChoisi?.created_at ?? ''))}
+                </p>
+                <ul class="reprise-resume">
+                  {#each lignesDuResume(cloudResume) as l (l.cle)}
+                    <li>{$t(l.cle as any).replace('{n}', String(l.n))}{l.detail ? ` — ${l.detail}` : ''}</li>
                   {/each}
-                </select>
-              </label>
-              {#if !cloudListe.find((i) => i.id === cloudChoix)?.local_key}
+                </ul>
+              {:else}
+                <p class="reprise-desc">{$t('cloudBackup.summaryUnavailable')}</p>
+              {/if}
+              <p class="reprise-limites">{$t('cloudBackup.onboardingReplaceHint')}</p>
+              <p class="reprise-limites">{$t('cloudBackup.restoreSafety')}</p>
+              <p class="reprise-alerte" role="note">{$t('cloudBackup.passwordsWarning')}</p>
+              <div class="reprise-gestes">
+                <button class="btn-secondary reprise-confirmer" onclick={reprendreDuCloud} disabled={cloudBusy}>
+                  {cloudBusy ? $t('common.loading') : $t('cloudBackup.confirmRestore')}
+                </button>
+                <button class="btn-skip" onclick={cloudAnnuler} disabled={cloudBusy}>{$t('common.cancel')}</button>
+              </div>
+            {:else}
+              <p class="reprise-desc">{$t('cloudBackup.onboardingDesc')}</p>
+              {#if cloudListe.length > 1}
+                <label class="reprise-champ">
+                  <span>{$t('cloudBackup.onboardingPick')}</span>
+                  <select bind:value={cloudChoix} disabled={cloudBusy || cloudPhase === 'secret'}>
+                    {#each cloudListe as i (i.id)}
+                      <option value={i.id}>{$dateEtHeure(i.created_at)}{i.server_label ? ` — ${i.server_label}` : ''}</option>
+                    {/each}
+                  </select>
+                </label>
+              {:else if cloudChoisi}
+                <p class="reprise-fichier">
+                  {$t('cloudBackup.onboardingLatest').replace('{date}', $dateEtHeure(cloudChoisi.created_at))}{cloudChoisi.server_label ? ` — ${cloudChoisi.server_label}` : ''}
+                </p>
+              {/if}
+              {#if cloudPhase === 'secret'}
+                <p class="reprise-limites">{$t('cloudBackup.secretNeeded')}</p>
                 <label class="reprise-champ">
                   <span>{$t('cloudBackup.secretLabel')}</span>
                   <input type="password" autocomplete="off" bind:value={cloudSecret} disabled={cloudBusy} />
                 </label>
               {/if}
-              <p class="reprise-limites">{$t('cloudBackup.restoreSafety')}</p>
               <p class="reprise-alerte" role="note">{$t('cloudBackup.passwordsWarning')}</p>
               <div class="reprise-gestes">
-                <button class="btn-secondary" onclick={reprendreDuCloud}
-                  disabled={cloudBusy || cloudChoix == null || (!cloudListe.find((i) => i.id === cloudChoix)?.local_key && !cloudSecret.trim())}>
-                  {cloudBusy ? $t('common.loading') : $t('cloudBackup.onboardingRestore')}
+                {#if cloudPhase === 'secret'}
+                  <button class="btn-secondary reprise-restaurer" onclick={cloudApercu}
+                    disabled={cloudBusy || cloudChoix == null || !cloudSecret.trim()}>
+                    {cloudBusy ? $t('common.loading') : $t('cloudBackup.onboardingContinue')}
+                  </button>
+                {:else}
+                  <button class="btn-secondary reprise-restaurer" onclick={cloudRestaurer}
+                    disabled={cloudBusy || cloudChoix == null}>
+                    {cloudBusy ? $t('common.loading') : $t('cloudBackup.restore')}
+                  </button>
+                {/if}
+                <button class="btn-skip reprise-plus-tard-btn" onclick={cloudPlusTard} disabled={cloudBusy}>
+                  {$t('cloudBackup.onboardingLater')}
                 </button>
               </div>
             {/if}
             {#if cloudErr}<p class="reprise-err">{cloudErr}</p>{/if}
+          </div>
+        {:else if cloudARelier}
+          <div class="reprise reprise-relier">
+            <p class="reprise-desc">{$t('cloudBackup.onboardingConnect')}</p>
+            <div class="reprise-gestes">
+              <button class="btn-secondary" onclick={relierLeCompte}>{$t('settings.signIn' as any)}</button>
+            </div>
           </div>
         {/if}
 
@@ -1094,7 +1237,7 @@
   .reprise-ok{font-size:13px; margin:0; color:var(--tune-accent)}
   .reprise-champ{display:flex; flex-direction:column; gap:4px; font-size:12px; margin:0 0 8px}
   .reprise-champ select, .reprise-champ input{padding:6px 8px; border-radius:6px; border:1px solid var(--tune-border, rgba(128,128,128,.3)); background:transparent; color:inherit}
-  .reprise-bilan{font-size:12px; margin:6px 0 0; padding-left:18px}
+  .reprise-bilan, .reprise-resume{font-size:12px; margin:6px 0 0; padding-left:18px}
   .reprise-err{font-size:12px; margin:8px 0 0; color:var(--tune-danger, #d05353)}
   .reprise-alerte{font-size:12px; margin:0 0 8px; padding:4px 0 4px 10px; border-left:3px solid var(--tune-warning, #d0a053)}
   .step-desc {
