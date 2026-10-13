@@ -649,6 +649,15 @@ export default {
   'settings.apiDocs': 'Documentație API',
   "v2.set.apiDocsCount": "{count} rute documentate de server.",
   "v2.plug.docs": "Documentația extensiilor",
+  "v2.set.pluginSourceBadge": "Plugin",
+  "v2.plug.sourceProvides": "Oferă serviciul „{nom}”: conectați-vă din Setări › Servicii.",
+  "v2.plug.sourceNotRegistered": "Serviciul „{nom}” nu este înregistrat: numele său este deja folosit de alt serviciu.",
+  "v2.plug.networkTitle": "Rețea",
+  "v2.plug.networkEmpty": "Încă nicio cerere.",
+  "v2.plug.networkHost": "Gazdă",
+  "v2.plug.networkRequests": "Cereri",
+  "v2.plug.networkRefused": "Refuzate",
+  "v2.plug.networkLast": "Ultimul",
 
   // Metadata
 

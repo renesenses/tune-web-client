@@ -627,6 +627,15 @@ export default {
   'settings.apiDocs': 'API-dokumentation',
   "v2.set.apiDocsCount": "{count} vägar dokumenterade av servern.",
   "v2.plug.docs": "Dokumentation för tillägg",
+  "v2.set.pluginSourceBadge": "Tillägg",
+  "v2.plug.sourceProvides": "Tillhandahåller tjänsten ”{nom}”: logga in under Inställningar › Tjänster.",
+  "v2.plug.sourceNotRegistered": "Tjänsten ”{nom}” är inte registrerad: namnet används redan av en annan tjänst.",
+  "v2.plug.networkTitle": "Nätverk",
+  "v2.plug.networkEmpty": "Inga förfrågningar ännu.",
+  "v2.plug.networkHost": "Värd",
+  "v2.plug.networkRequests": "Förfrågningar",
+  "v2.plug.networkRefused": "Nekade",
+  "v2.plug.networkLast": "Senast",
 
   // Metadata
 

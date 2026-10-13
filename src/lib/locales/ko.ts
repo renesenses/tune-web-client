@@ -643,6 +643,15 @@ export default {
   'settings.apiDocs': 'API 문서',
   "v2.set.apiDocsCount": "서버가 문서화한 경로 {count}개.",
   "v2.plug.docs": "확장 기능 문서",
+  "v2.set.pluginSourceBadge": "플러그인",
+  "v2.plug.sourceProvides": "“{nom}” 서비스를 제공합니다: 설정 › 서비스에서 로그인하세요.",
+  "v2.plug.sourceNotRegistered": "“{nom}” 서비스가 등록되지 않았습니다: 다른 서비스가 이미 이 이름을 사용합니다.",
+  "v2.plug.networkTitle": "네트워크",
+  "v2.plug.networkEmpty": "아직 요청이 없습니다.",
+  "v2.plug.networkHost": "호스트",
+  "v2.plug.networkRequests": "요청",
+  "v2.plug.networkRefused": "거부",
+  "v2.plug.networkLast": "최근",
 
   // Metadata
 

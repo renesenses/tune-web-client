@@ -68,6 +68,10 @@
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
+  import {
+    sourceDuService, saisieVide, saisieComplete, corpsDeConnexion, sansLesMotsDePasse, autocompleteDuChamp,
+    type SourcesDesGreffons, type SaisieDeSource,
+  } from '../../lib/sourcesGreffons';
   import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
   import { clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, type RetourClientId } from '../../lib/clientIdSpotify';
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
@@ -1469,6 +1473,44 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let cred = $state<Record<string, { user: string; pass: string }>>({});
   let deviceFlow = $state<Record<string, { url: string; code: string | null } | undefined>>({});
   let polls: Record<string, ReturnType<typeof setInterval>> = {};
+
+  /**
+   * tune-server-rust#6197 — les services fournis par un greffon WASM. Leurs
+   * champs de connexion viennent du MANIFESTE du greffon (`GET
+   * /plugins/sources`) : aucun nom n'est écrit en dur ici. Voir
+   * `lib/sourcesGreffons`.
+   */
+  let sourcesGreffons = $state<SourcesDesGreffons>({ sources: [], network: {} });
+  let saisiesSources = $state<Record<string, SaisieDeSource>>({});
+  $effect(() => {
+    api.getPluginSources().then((lues) => {
+      sourcesGreffons = lues;
+      const suite = { ...saisiesSources };
+      for (const src of lues.sources) if (src.registered && !suite[src.service]) suite[src.service] = saisieVide(src);
+      saisiesSources = suite;
+    });
+  });
+  async function connecterSource(name: string) {
+    const src = sourceDuService(sourcesGreffons, name);
+    if (!src) return;
+    svcBusy = name;
+    svcErr = { ...svcErr, [name]: null };
+    try {
+      const res = await api.authenticateStreaming(name, corpsDeConnexion(src, saisiesSources[name]));
+      if (res?.authenticated) {
+        svcs = { ...svcs, [name]: { ...svcs[name], authenticated: true, username: res.username ?? svcs[name]?.username } };
+      } else {
+        svcErr = { ...svcErr, [name]: get(t)('settings.errCredentialsRejected') };
+      }
+    } catch (e: any) {
+      const motif = typeof e?.message === 'string' ? e.message.trim() : '';
+      svcErr = { ...svcErr, [name]: motif || get(t)('settings.errConnectFailed') };
+    } finally {
+      // Le mot de passe ne survit pas à la réponse, quelle qu'elle soit.
+      saisiesSources = { ...saisiesSources, [name]: sansLesMotsDePasse(src, saisiesSources[name]) };
+      svcBusy = null;
+    }
+  }
 
   $effect(() => {
     api.getStreamingServices()
@@ -6162,9 +6204,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="svclist">
                   {#each Object.entries(svcs) as [name, st] (name)}
                     {@const flow = deviceFlow[name]}
+                    {@const sourceGreffon = sourceDuService(sourcesGreffons, name)}
                     <div class="svc">
                       <div class="sname">
-                        {name}
+                        {sourceGreffon ? sourceGreffon.display_name : name}
+                        {#if sourceGreffon}<span class="sub" data-source-greffon={sourceGreffon.plugin_id}>{$t('v2.set.pluginSourceBadge' as any)}</span>{/if}
                         <!-- 🔴 DEUX faits, pas un.
                              `enabled` (le service est actif) et `authenticated`
                              (on y est connecté) sont indépendants. Le badge ne
@@ -6223,6 +6267,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             </div>
                           </div>
                         {/if}
+
+                      {:else if sourceGreffon && saisiesSources[name]}
+                        <!-- tune-server-rust#6197 — les champs que le greffon
+                             déclare dans son manifeste, dans son ordre. -->
+                        <div class="inline" data-connexion-source={name}>
+                          {#each sourceGreffon.login_fields as champ (champ.key)}
+                            <input class="txt" type={champ.type} autocomplete={autocompleteDuChamp(champ)}
+                              placeholder={champ.label} aria-label={champ.label} required={champ.required}
+                              bind:value={saisiesSources[name][champ.key]} disabled={svcBusy === name}
+                              onkeydown={(e) => { if (e.key === 'Enter' && saisieComplete(sourceGreffon, saisiesSources[name])) connecterSource(name); }} />
+                          {/each}
+                          <button class="lnk" disabled={svcBusy === name || !st.enabled || !saisieComplete(sourceGreffon, saisiesSources[name])}
+                            onclick={() => connecterSource(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
+                        </div>
 
                       {:else if formeSvc(name) === 'pseudo' && cred[name]}
                         <!-- #1067 — Bandcamp : un PSEUDO, pas de mot de passe.

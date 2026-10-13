@@ -758,6 +758,15 @@ export default {
   'settings.apiDocs': 'API Documentation',
   "v2.set.apiDocsCount": "{count} routes documented by the server.",
   "v2.plug.docs": "Extensions documentation",
+  "v2.set.pluginSourceBadge": "Plugin",
+  "v2.plug.sourceProvides": "Provides the “{nom}” service: sign in from Settings › Services.",
+  "v2.plug.sourceNotRegistered": "“{nom}” service not registered: its name is already taken by another service.",
+  "v2.plug.networkTitle": "Network",
+  "v2.plug.networkEmpty": "No request yet.",
+  "v2.plug.networkHost": "Host",
+  "v2.plug.networkRequests": "Requests",
+  "v2.plug.networkRefused": "Refused",
+  "v2.plug.networkLast": "Last",
 
   // Metadata
 

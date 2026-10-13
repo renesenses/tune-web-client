@@ -643,6 +643,15 @@ export default {
   'settings.apiDocs': 'Documentazione API',
   "v2.set.apiDocsCount": "{count} rotte documentate dal server.",
   "v2.plug.docs": "Documentazione delle estensioni",
+  "v2.set.pluginSourceBadge": "Plugin",
+  "v2.plug.sourceProvides": "Fornisce il servizio «{nom}»: accedi da Impostazioni › Servizi.",
+  "v2.plug.sourceNotRegistered": "Servizio «{nom}» non registrato: il suo nome è già usato da un altro servizio.",
+  "v2.plug.networkTitle": "Rete",
+  "v2.plug.networkEmpty": "Ancora nessuna richiesta.",
+  "v2.plug.networkHost": "Host",
+  "v2.plug.networkRequests": "Richieste",
+  "v2.plug.networkRefused": "Rifiutate",
+  "v2.plug.networkLast": "Ultimo",
 
   // Metadata
 

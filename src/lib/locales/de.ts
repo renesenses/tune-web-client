@@ -643,6 +643,15 @@ export default {
   'settings.apiDocs': 'API-Dokumentation',
   "v2.set.apiDocsCount": "{count} vom Server dokumentierte Routen.",
   "v2.plug.docs": "Dokumentation der Erweiterungen",
+  "v2.set.pluginSourceBadge": "Plugin",
+  "v2.plug.sourceProvides": "Stellt den Dienst „{nom}“ bereit: Anmeldung unter Einstellungen › Dienste.",
+  "v2.plug.sourceNotRegistered": "Dienst „{nom}“ nicht registriert: Sein Name ist bereits von einem anderen Dienst belegt.",
+  "v2.plug.networkTitle": "Netzwerk",
+  "v2.plug.networkEmpty": "Noch keine Anfrage.",
+  "v2.plug.networkHost": "Host",
+  "v2.plug.networkRequests": "Anfragen",
+  "v2.plug.networkRefused": "Abgelehnt",
+  "v2.plug.networkLast": "Zuletzt",
 
   // Metadata
 

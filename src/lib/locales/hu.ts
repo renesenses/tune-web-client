@@ -728,6 +728,15 @@ export default {
   "settings.apiDocs": "API-dokumentáció",
   "v2.set.apiDocsCount": "{count} útvonalat dokumentál a szerver.",
   "v2.plug.docs": "A bővítmények dokumentációja",
+  "v2.set.pluginSourceBadge": "Bővítmény",
+  "v2.plug.sourceProvides": "A(z) „{nom}” szolgáltatást biztosítja: bejelentkezés a Beállítások › Szolgáltatások menüben.",
+  "v2.plug.sourceNotRegistered": "A(z) „{nom}” szolgáltatás nincs regisztrálva: a nevét már egy másik szolgáltatás használja.",
+  "v2.plug.networkTitle": "Hálózat",
+  "v2.plug.networkEmpty": "Még nincs kérés.",
+  "v2.plug.networkHost": "Gazdagép",
+  "v2.plug.networkRequests": "Kérések",
+  "v2.plug.networkRefused": "Elutasítva",
+  "v2.plug.networkLast": "Utolsó",
   // Metaadatok
   // Gazdagítás
   "settings.enrichment": "Gazdagítás",
