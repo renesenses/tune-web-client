@@ -21,7 +21,7 @@ const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 function gestes(): GestesZone {
   return {
     renommer: vi.fn(), image: vi.fn(), reglages: vi.fn(), latence: vi.fn(),
-    appairer: vi.fn(), fusionner: vi.fn(), rattacher: vi.fn(), supprimer: vi.fn(),
+    appairer: vi.fn(), fusionner: vi.fn(), rattacher: vi.fn(), supprimer: vi.fn(), correction: vi.fn(),
   };
 }
 
