@@ -206,6 +206,8 @@ export default {
   "concerts.codePostalPlaceholder": "Irányítószám",
   "concerts.rayon": "Sugár",
   "concerts.appliquer": "Alkalmaz",
+  "concerts.questionLieu": "Hol lakik, és milyen messzire utazna el egy koncertért?",
+  "concerts.pasMaintenant": "Most nem",
   "concerts.communeSaisieNote": "A településére soha nem következtetünk. Kizárólag a távolságok méréséhez használjuk, települési szinten.",
   "concerts.communeIntrouvable": "A település nem található – az ország összes koncertje látható.",
   "concerts.nSurTotal": "{n} / {total} koncert",
