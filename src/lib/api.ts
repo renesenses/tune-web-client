@@ -2670,6 +2670,8 @@ export async function getFilteredTracks(opts: {
   untagged?: FacetParam;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
   original_year?: FacetParam; // Oxygen recording-year facet (albums.original_year)
   dr?: FacetParam;            // Oxygen Dynamic Range facet (#2144, #3196)
+  /** #2108 — les facettes dont les valeurs se combinent en ET (noms serveur). */
+  all_of?: FacetParam;
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
@@ -2694,6 +2696,8 @@ export async function getFilteredTracks(opts: {
     'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
     'year', 'source', 'label', 'composer', 'artist', 'country', 'mood', 'source_media',
     'favorite', 'playlist', 'untagged', 'original_year', 'dr', 'q',
+    // #2108 — pas une facette : l'opérateur « Et » de celles qu'il nomme.
+    'all_of',
   ] as const) {
     appendFacetParam(params, key, (opts as Record<string, FacetParam | undefined>)[key]);
   }

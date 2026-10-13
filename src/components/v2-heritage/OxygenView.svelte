@@ -17,6 +17,7 @@
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { notifications } from '../../lib/stores/notifications';
   import { pisteRepondAuTexteLibre } from '../../lib/texteLibreOxygen';
+  import { basculerOperateur, parametreEt } from '../../lib/facettesEtOu';
   import { t } from '../../lib/i18n';
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   import type { Track } from '../../lib/types';
@@ -149,6 +150,13 @@
     }
     facetSels = next;
   }
+  /** #2108 — les facettes (clés du rail) dont les valeurs se combinent en
+   *  « Et ». Absente = « Ou », le défaut. Le choix survit au décochage : il
+   *  ne part au serveur que tant que la facette a deux valeurs ou plus. */
+  let facetEt = $state<string[]>([]);
+  function basculerOperateurFacette(field: string) {
+    facetEt = basculerOperateur(facetEt, field);
+  }
   /** Décoche TOUTE une facette d'un geste. */
   function clearFacet(field: string) {
     const next = { ...facetSels };
@@ -220,6 +228,9 @@
       if (!key || !values?.length) continue;
       out[key] = NUMERIC_FACETS.has(field) ? values.map(Number) : [...values];
     }
+    // #2108 — `all_of=<facette>` pour celles qui sont en « Et ».
+    const enEt = parametreEt(sels, facetEt, FACET_PARAM);
+    if (enEt.length) out.all_of = enEt;
     return out;
   }
 
@@ -642,14 +653,14 @@
   });
 
   // Server-driven: (re)fetch the filtered tracks whenever the selection changes.
-  $effect(() => { void JSON.stringify(facetSels); void texteServeur; loadTracks(); });
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void texteServeur; loadTracks(); });
   // Ne charge que dans son mode : l'agrégat coûte un GROUP BY sur toute la
   // sélection, inutile tant que la vue n'est pas à l'écran.
-  $effect(() => { void JSON.stringify(facetSels); if (mode === 'cards') loadCards(); });
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); if (mode === 'cards') loadCards(); });
   // Facet counts also re-fetch when the per-facet value limit changes.
-  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(serverFacetFields); void $preferences.oxygenFacetLimit; loadFacets(); });
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void JSON.stringify(serverFacetFields); void $preferences.oxygenFacetLimit; loadFacets(); });
   // Folder drill-down re-fetches its children when the path or any filter changes.
-  $effect(() => { void JSON.stringify(facetSels); void folderEnabled; void $preferences.oxygenFacetLimit; loadFolder(); });
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void folderEnabled; void $preferences.oxygenFacetLimit; loadFolder(); });
 </script>
 
 <!-- Indicateur « en lecture », partagé par la vue album et la vue tableau : il
@@ -732,7 +743,7 @@
 
   <div class="body" class:noinsp={inspectorCollapsed} class:norail={railCollapsed}>
     <aside class="railwrap" class:open={mobileRail}>
-      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} folderCrumbs={folderData.crumbs} folderChildren={folderData.children} folderLoading={folderLoading} onFolderDrill={drillFolder} onSelect={(field, value) => { toggleFacet(field, value); }} onClearFacet={clearFacet} sansPlafond={sansPlafond} onToutAfficher={toutAfficher} />
+      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} folderCrumbs={folderData.crumbs} folderChildren={folderData.children} folderLoading={folderLoading} onFolderDrill={drillFolder} onSelect={(field, value) => { toggleFacet(field, value); }} onClearFacet={clearFacet} enEt={facetEt} onBasculerOperateur={basculerOperateurFacette} sansPlafond={sansPlafond} onToutAfficher={toutAfficher} />
       <!-- Le tiroir mobile ne se referme PLUS à chaque clic : depuis #2168 on
            coche plusieurs valeurs de suite, et le refermer entre deux cases
            rendrait la sélection multiple inutilisable au doigt. Il se ferme
