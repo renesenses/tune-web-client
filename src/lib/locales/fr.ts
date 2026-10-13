@@ -164,6 +164,10 @@ export default {
   'oxygen.facetsTitle': 'Facettes',
   // #2168 : plusieurs valeurs cochées dans une même facette se combinent en OU.
   'oxygen.facetClear': 'Tout décocher',
+  'oxygen.facetOpOr': 'Ou',
+  'oxygen.facetOpAnd': 'Et',
+  'oxygen.facetOpOrHelp': 'Les valeurs cochées se combinent en OU : une piste en porte au moins une. Cliquer pour passer en ET.',
+  'oxygen.facetOpAndHelp': 'Les valeurs cochées se combinent en ET : une piste doit toutes les porter. Cliquer pour revenir en OU.',
   'oxygen.facetShowAll': 'Tout afficher',
   'oxygen.collapseAll': 'Tout replier',
   'oxygen.expandAll': 'Tout déplier',

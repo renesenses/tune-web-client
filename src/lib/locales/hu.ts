@@ -4867,6 +4867,11 @@ export default {
   "cloudBackup.onboardingPick": "Mentés",
   "cloudBackup.onboardingRestore": "Átvétel",
   "cloudBackup.onboardingDone": "Testreszabások átvéve.",
+  // #2108 — Oxygen : opérateur entre valeurs cochées
+  "oxygen.facetOpOr": "Vagy",
+  "oxygen.facetOpAnd": "És",
+  "oxygen.facetOpOrHelp": "A bejelölt értékek VAGY kapcsolatban állnak: a szám legalább egyet hordoz közülük. Kattints az ÉS-re váltáshoz.",
+  "oxygen.facetOpAndHelp": "A bejelölt értékek ÉS kapcsolatban állnak: a számnak mindet hordoznia kell. Kattints a VAGY-ra való visszatéréshez.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
