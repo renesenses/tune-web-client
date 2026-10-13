@@ -20,6 +20,7 @@
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
+  import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
@@ -1910,6 +1911,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * publie pas le réglage, et les cases ne s'affichent pas.
    */
   let analysisExcluded = $state<string[] | null>(null);
+  // tune-server-rust#6198 — les genres de l'analyse acoustique (CLAP).
+  let clapGenresInclus = $state<string[] | null>(null);
+  let clapGenresExclus = $state<string[] | null>(null);
   let newDir = $state('');
   let dirBusy = $state(false);
   let scanning = $state(false);
@@ -2156,6 +2160,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       analysisExcluded = Array.isArray(c?.background_analysis_excluded_roots)
         ? c.background_analysis_excluded_roots.filter((r: unknown) => typeof r === 'string')
         : null;
+      clapGenresInclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_INCLUS]);
+      clapGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_EXCLUS]);
       await refreshDirectoryOrder();
       // Absent vaut VRAI cote serveur, et les valeurs peuvent arriver en
       // chaine ('false') aussi bien qu'en booleen.
@@ -2270,6 +2276,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const suivant = analyser ? avant.filter((r) => r !== d) : [...avant.filter((r) => r !== d), d];
     analysisExcluded = suivant;
     patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
+  }
+  /**
+   * tune-server-rust#6198 — les genres retenus ou écartés de l'analyse
+   * acoustique. Le serveur reçoit la liste COMPLÈTE ; s'il refuse, le champ
+   * revient à son état d'avant.
+   */
+  function setGenresClap(sens: 'inclus' | 'exclus', texte: string) {
+    const suivant = lireSaisieDeGenres(texte);
+    if (sens === 'inclus') {
+      const avant = clapGenresInclus;
+      clapGenresInclus = suivant;
+      patch({ [CLE_GENRES_CLAP_INCLUS]: suivant }, () => { clapGenresInclus = avant; });
+    } else {
+      const avant = clapGenresExclus;
+      clapGenresExclus = suivant;
+      patch({ [CLE_GENRES_CLAP_EXCLUS]: suivant }, () => { clapGenresExclus = avant; });
+    }
   }
   /** Retirer un dossier ne SUPPRIME aucun fichier : on le dit dans l'ecran,
    *  sinon le bouton fait peur a juste titre. */
@@ -5578,6 +5601,26 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if analysisExcluded !== null}
                   <p class="hint">{$t('settings.backgroundAnalysisFoldersHint' as any)}</p>
                 {/if}
+                <!-- tune-server-rust#6198 — réserver l'analyse acoustique
+                     (ambiances) à certains genres, ou en écarter. -->
+                {#if clapGenresInclus !== null && clapGenresExclus !== null}
+                  <div class="clap-genres">
+                    <span class="clap-genres-titre">{$t('settings.clapGenresTitle' as any)}</span>
+                    <label>
+                      <span>{$t('settings.clapGenresIncluded' as any)}</span>
+                      <input type="text" value={afficherGenres(clapGenresInclus)}
+                        placeholder={$t('settings.clapGenresIncludedPlaceholder' as any)}
+                        onchange={(e) => setGenresClap('inclus', (e.currentTarget as HTMLInputElement).value)} />
+                    </label>
+                    <label>
+                      <span>{$t('settings.clapGenresExcluded' as any)}</span>
+                      <input type="text" value={afficherGenres(clapGenresExclus)}
+                        placeholder={$t('settings.clapGenresExcludedPlaceholder' as any)}
+                        onchange={(e) => setGenresClap('exclus', (e.currentTarget as HTMLInputElement).value)} />
+                    </label>
+                    <p class="hint">{$t('settings.clapGenresHint' as any)}</p>
+                  </div>
+                {/if}
                 <p class="hint">{#each emphaseParts($t('settings.removeFolderHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {:else}
                 <p class="hint">{$t('settings.noFolderDeclared' as any)}</p>
@@ -7140,6 +7183,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dir.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto}
   .dir.ordered.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
   .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:12px; color:var(--v2-txt2)}
+  .clap-genres{display:flex; flex-direction:column; gap:6px; margin:10px 0}
+  .clap-genres-titre{font-weight:600}
+  .clap-genres label{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13px; color:var(--v2-txt2)}
+  .clap-genres label span{min-width:9em}
+  .clap-genres input{flex:1 1 16em; min-width:0}
   .directory-order-hint{margin-top:12px}
   .dir-order{display:flex; align-items:center; gap:3px}
   .dir-order .lnk{min-width:28px; min-height:28px}
