@@ -4946,6 +4946,11 @@ export default {
   "v2.apiKeys.remove": "移除",
   // tune-server-rust#4805 lot 2 — passes de lot d'après MetaRust (Xavier Joly).
   "v2.passes.bpmTitle": "资料库 BPM",
+  "v2.nuit.title": "夜间重试被 MusicBrainz 拒绝的专辑",
+  "v2.nuit.hint": "在 {debut} 点到 {fin} 点之间，Tune 以较低频率重试识别时被 MusicBrainz 拒绝（请求过多）的专辑。默认关闭。",
+  "v2.nuit.pending": "{n} 张专辑等待中",
+  "v2.nuit.last": "上一晚（{date}）：{traites} 张中识别了 {identifies} 张",
+  "v2.nuit.saveFailed": "设置未保存。",
   "v2.passes.bpmHint": "所有本地专辑：先查 Wikidata，再根据信号估算。不会修改文件标签。",
   "v2.passes.discogsTitle": "Discogs 建议",
   "v2.passes.discogsHint": "没有 MusicBrainz 标识的专辑，按条形码或目录号查找。不会修改任何内容：每条建议都在专辑页面上接受。",

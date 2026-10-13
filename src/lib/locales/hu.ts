@@ -4904,6 +4904,11 @@ export default {
   "v2.apiKeys.remove": "Eltávolítás",
   // tune-server-rust#4805 lot 2 — passes de lot d'après MetaRust (Xavier Joly).
   "v2.passes.bpmTitle": "A könyvtár BPM-értékei",
+  "v2.nuit.title": "A MusicBrainz által elutasított albumok újrapróbálása éjjel",
+  "v2.nuit.hint": "{debut} és {fin} óra között, csökkentett ütemben a Tune újrapróbálja azokat az albumokat, amelyeket a MusicBrainz azonosítás közben elutasított (túl sok kérés). Alapértelmezés szerint ki van kapcsolva.",
+  "v2.nuit.pending": "{n} album várakozik",
+  "v2.nuit.last": "Legutóbbi éjszaka ({date}): {traites} albumból {identifies} azonosítva",
+  "v2.nuit.saveFailed": "A beállítás nem lett mentve.",
   "v2.passes.bpmHint": "Minden helyi album: előbb Wikidata, aztán becslés a jelből. A fájlok címkéi nem változnak.",
   "v2.passes.discogsTitle": "Discogs-javaslatok",
   "v2.passes.discogsHint": "MusicBrainz-azonosító nélküli albumok, vonalkód vagy katalógusszám alapján. Semmi sem változik: minden javaslatot az album oldalán lehet elfogadni.",

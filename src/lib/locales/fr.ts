@@ -4968,6 +4968,11 @@ export default {
   "v2.apiKeys.remove": "Retirer",
   // tune-server-rust#4805 lot 2 — passes de lot d'après MetaRust (Xavier Joly).
   "v2.passes.bpmTitle": "BPM de la bibliothèque",
+  "v2.nuit.title": "Reprendre la nuit les albums refusés par MusicBrainz",
+  "v2.nuit.hint": "Entre {debut} h et {fin} h, à débit réduit, Tune reprend les albums que MusicBrainz a refusés (trop de requêtes) pendant une identification. Éteint par défaut.",
+  "v2.nuit.pending": "{n} album(s) en attente",
+  "v2.nuit.last": "Dernière nuit ({date}) : {identifies} identifié(s) sur {traites}",
+  "v2.nuit.saveFailed": "Le réglage n'a pas été enregistré.",
   "v2.passes.bpmHint": "Tous les albums locaux : Wikidata d'abord, puis une estimation sur le signal. Les balises des fichiers ne sont pas modifiées.",
   "v2.passes.discogsTitle": "Propositions Discogs",
   "v2.passes.discogsHint": "Albums sans identifiant MusicBrainz, par code-barres ou n° de catalogue. Rien n'est modifié : chaque proposition s'accepte sur la fiche de l'album.",

@@ -7685,6 +7685,23 @@ export function etatPasseMetarust(mode: import('./passesMetarust').ModePasse) {
   return fetchJSON<Record<string, unknown>>(`${BASE}/library/${mode}-all/status`);
 }
 
+/**
+ * tune-server-rust#4805 (13/10/2026) — la passe de nuit des albums refusés par
+ * MusicBrainz. Un serveur sans la route répond 404 : sans bandeau, l'écran
+ * masque alors la ligne (`lib/identificationNuit.ts`).
+ */
+export function getIdentificationNuit() {
+  return fetchJSON<unknown>(`${BASE}/library/identify-all/nuit`, undefined, undefined, true);
+}
+
+/** `POST /library/identify-all/nuit` `{ active }` — allumer ou éteindre (administrateur). */
+export function setIdentificationNuit(active: boolean) {
+  return fetchJSON<unknown>(`${BASE}/library/identify-all/nuit`, {
+    method: 'POST',
+    body: JSON.stringify({ active }),
+  });
+}
+
 /** `GET /library/identify-all/status` — l'état de la passe par lot, tous modes confondus. */
 export function getIdentifyAllStatus() {
   return fetchJSON<import('./acoustid').EtatLotIdentification>(
