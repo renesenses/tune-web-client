@@ -59,8 +59,9 @@ describe('Favoris — retirer le cœur fait DISPARAÎTRE l objet', () => {
     expect(src).toContain('$favoriteArtistIds.has');
   });
 
-  it('une piste locale reste affichée tant que son JUMEAU distant est favori', () => {
-    expect(src).toContain('$favoriteStreamingTrackKeys.has(clePisteJumelee(');
+  it('#1868 : une piste locale ne reste plus affichée par son jumeau distant', () => {
+    expect(src).not.toContain('$favoriteStreamingTrackKeys.has(clePisteJumelee(');
+    expect(src).toContain('return $favoriteTrackIds.has(idLocal);');
   });
 
   it('un objet qu on ne sait pas juger est GARDÉ, pas effacé', () => {
