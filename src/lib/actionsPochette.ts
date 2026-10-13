@@ -202,6 +202,8 @@ export interface GestesPochette {
   basculerEcouterPlusTard?: () => void;
   /** Sous-menu des collections manuelles, rangées par rayons (web#1591). */
   ajouterACollection?: () => Promise<SousEntreePochette[]>;
+  /** web#2096 — toutes les pistes de l'album rejoignent une playlist (Tune ou service). */
+  ajouterAPlaylist?: () => void;
   /** Toutes les pistes de l'objet rejoignent une playlist de cercle existante. */
   ajouterAPlaylistDeCercle?: () => void;
   /** Une playlist de cercle NEUVE, copie par références de cette playlist. */
@@ -346,6 +348,12 @@ export function entreesPochette(
    */
   const designe = deLaBibliotheque || deService;
   const listeDePistes = album || c.type === 'playlist' || c.type === 'playlistIntelligente';
+  /**
+   * « Ajouter à une playlist » — l'ALBUM entier, local ou de service
+   * (web#2096, FabienM, fil 2236). Le libellé de l'entrée du menu de piste :
+   * c'est le même geste, sur toutes les pistes du disque.
+   */
+  pousser(album && designe, 'playlist.addToPlaylist', g.ajouterAPlaylist);
   pousser(!!c.greffonCercle && designe && listeDePistes, 'v2.circle.pl.addToCircle', g.ajouterAPlaylistDeCercle);
 
   // ── Consulter, corriger (album) ─────────────────────────────────────────

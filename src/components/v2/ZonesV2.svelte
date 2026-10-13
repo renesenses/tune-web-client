@@ -35,6 +35,7 @@
   import BadgeHorsBackend from './BadgeHorsBackend.svelte';
   import MenuZone from './MenuZone.svelte';
   import { entreesMenuZone, type EntreeMenuZone } from '../../lib/menuZone';
+  import { rattacherZoneOrpheline } from '../../lib/rattacherZone';
   import AirplayPairingModal from '../partages/AirplayPairingModal.svelte';
   import OaatGroupsPanel from '../partages/OaatGroupsPanel.svelte';
   import MultiroomSettings from '../partages/MultiroomSettings.svelte';
@@ -348,6 +349,26 @@
     });
   }
 
+  /**
+   * tune-server-rust#6120 — la sortie de cette zone locale est absente : la
+   * rattacher à la main à une sortie ASIO présente. Le serveur ne la
+   * ré-associe pas seul (le nom d'un pilote ASIO n'identifie pas l'appareil).
+   */
+  async function rattacher(z: Zone) {
+    if (z.id == null) return;
+    let issue: string | null = null;
+    await act(async () => {
+      issue = (await rattacherZoneOrpheline(z.id as number, z.name, {
+        candidats: api.getRattachementCandidats,
+        confirmer: (m) => dialogs.confirm(m),
+        rattacher: api.rattacherZone,
+        question: $t('v2.zone.reattachConfirm' as any),
+      })).issue;
+    });
+    // Après `act`, dont le rafraîchissement remet `error` à zéro.
+    if (issue === 'aucun_candidat') error = $t('v2.zone.reattachNone' as any);
+  }
+
   async function act(fn: () => Promise<unknown>) {
     if (busy) return;
     busy = true;
@@ -484,14 +505,17 @@
         expert: showExpert,
         appairable: estAirplay(z) && !!z.output_device_id,
         jumelle: j ? j.name : null,
+        rattachable: z.sortie_absente === true,
       },
       {
         renommer: () => startRename(z),
         image: () => choisirImage(z),
         reglages: () => reglagesDeLaZone(z),
+        correction: () => correctionDeLaZone(z),
         latence: () => { void mesurerLatence(z); },
         appairer: () => ouvrirAppairage(z),
         fusionner: () => { if (j) void fusionner(z, j); },
+        rattacher: () => { void rattacher(z); },
         supprimer: () => { void supprimerZone(z); },
       },
     );
@@ -500,6 +524,12 @@
   /** #1006 — le lien vers les réglages DE CETTE zone (Réglages → Appareils → Par zone). */
   function reglagesDeLaZone(z: Zone) {
     v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: z.id ?? undefined });
+    activeView.set('settings');
+  }
+
+  /** #1427 — droit au bloc de correction de pièce (FIR) de CETTE zone. */
+  function correctionDeLaZone(z: Zone) {
+    v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: z.id ?? undefined, bloc: 'fir' });
     activeView.set('settings');
   }
 </script>

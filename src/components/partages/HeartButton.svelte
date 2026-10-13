@@ -9,8 +9,6 @@
     favoriteFacetKeys,
     facetFavKey,
     favoriteStreamingKeys,
-    favoriteStreamingTrackKeys,
-    clePisteJumelee,
     streamingFavKey,
     loadProfiles,
   } from '../../lib/stores/profile';
@@ -61,8 +59,9 @@
     /** Valeur de facette (label…) ; exclusive des ids ci-dessus. */
     facet?: FacetItem | null;
     size?: number;
-    /** Titre et artiste de la piste, pour le rapprochement avec un favori de
-     *  streaming. Facultatifs : sans eux, seul le favori local compte. */
+    /** Titre et artiste de la piste. #1868 : ils ne servent plus à rien pour
+     *  le cœur — une piste locale n'est favorite que par son propre favori
+     *  local. Gardés dans l'interface pour ne pas casser les appelants. */
     titre?: string | null;
     artiste?: string | null;
   }
@@ -74,8 +73,6 @@
     streaming = null,
     facet = null,
     size = 16,
-    titre = null,
-    artiste = null,
   }: Props = $props();
 
   let facetKey = $derived(facet ? facetFavKey(facet.facet, facet.value) : null);
@@ -88,13 +85,11 @@
   let isFavorite = $derived.by(() => {
     if (streaming) return isStreamingFavorite($favoriteStreamingKeys, streaming);
     if (facetKey) return $favoriteFacetKeys.has(facetKey);
-    // Une piste locale dont le JUMEAU distant est en favori l'est aussi —
-    // c'est ce que fait le serveur pour les regles (Bertrand, 05/09/2026).
-    // Sans titre passe au bouton, le rapprochement est impossible : on
-    // retombe alors sur le seul favori local.
-    if (trackId)
-      return $favoriteTrackIds.has(trackId)
-        || (!!titre && $favoriteStreamingTrackKeys.has(clePisteJumelee(titre, artiste)));
+    // #1868 (Bertrand, 12/10/2026) : chaque source garde ses favoris. Un
+    // favori Qobuz n'allume plus le cœur de la piste locale homonyme (titre +
+    // artiste) : le cœur local ne vaut que pour la piste locale. Seul le
+    // filtre « Toutes » de l'écran Favoris réunit les sources.
+    if (trackId) return $favoriteTrackIds.has(trackId);
     if (albumId)  return $favoriteAlbumIds.has(albumId);
     if (artistId) return $favoriteArtistIds.has(artistId);
     if (playlistId) return $favoritePlaylistIds.has(playlistId);

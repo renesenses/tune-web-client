@@ -105,14 +105,23 @@
    * playlists lister : les deux décisions de cette fenêtre parlent enfin de la
    * même règle.
    */
+  /**
+   * Les pistes à écrire : `tracks` quand il y en a (sélection #1683, ou album
+   * ENTIER #2096 — local ou de service), sinon `track` seule.
+   */
+  const lot = $derived(tracks?.length ? tracks : [track]);
+
   function buildAddArgs(): { trackIds: number[]; streamingTracks: StreamingTrackInfo[] | undefined } {
-    if (tracks?.length && tracks.every(estPisteLocale)) {
-      return { trackIds: tracks.map((x) => x.id!), streamingTracks: undefined };
-    }
-    if (estPisteLocale(track)) {
-      return { trackIds: [track.id!], streamingTracks: undefined };
-    }
-    // Streaming track — send as streaming_tracks
+    const locales = lot.filter(estPisteLocale);
+    const distantes = lot.filter((x) => !estPisteLocale(x));
+    return {
+      trackIds: locales.map((x) => x.id!),
+      // Streaming tracks — send as streaming_tracks (#4889), dans l'ordre reçu.
+      streamingTracks: distantes.length ? distantes.map(versStreaming) : undefined,
+    };
+  }
+
+  function versStreaming(track: Track): StreamingTrackInfo {
     const st: StreamingTrackInfo = {
       source: track.source!,
       source_id: track.source_id!,
@@ -130,13 +139,15 @@
       // (chaîne à l'exécution) ou dans `album_id_service` (Historique).
       album_id: track.album_id_service ?? (track.album_id != null ? String(track.album_id) : null),
     };
-    return { trackIds: [], streamingTracks: [st] };
+    return st;
   }
 
   /** Écrit la piste dans la destination — chez le service, ou chez Tune. */
   async function ecrire(ou: Ou, cle: string) {
     if (ou === 'service' && service) {
-      await api.addStreamingPlaylistTracks(service, cle, [String(track.source_id)]);
+      // #2096 — un album de service ENTIER part en une requête, dans l'ordre.
+      const ids = lot.filter((x) => !estPisteLocale(x) && x.source_id != null).map((x) => String(x.source_id));
+      await api.addStreamingPlaylistTracks(service, cle, ids);
     } else {
       const { trackIds, streamingTracks } = buildAddArgs();
       await api.addPlaylistTracks(Number(cle), trackIds, undefined, streamingTracks);
