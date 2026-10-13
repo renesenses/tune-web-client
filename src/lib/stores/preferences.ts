@@ -15,7 +15,7 @@ import {
 import {
   CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
 } from '../cadenceAnimations';
-import { normaliserTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
+import { normaliserTypesBarre, arbitrerTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
 import {
   normaliserChoixBarre, horodatageBarre, arbitrerBarre, type ChoixBarre,
 } from '../ordreBarreLaterale';
@@ -415,6 +415,12 @@ export interface Preferences {
    */
   sourcesBarre: ChoixTypesBarre | null;
   /**
+   * #2117 — l'instant (ms) du dernier geste sur ces cases, pour qu'un choix
+   * fait sur un autre appareil du même profil arrive ici. `0` : jamais daté.
+   * Voir `arbitrerTypesBarre` dans `lib/typesSourcesBarre`.
+   */
+  sourcesBarreMaj: number;
+  /**
    * L'ordre de la barre latérale et ses entrées masquées — web#1827,
    * Bertrand, 30/09/2026. `null` : l'ordre livré, rien de masqué — c'est le
    * défaut, et « Rétablir l'ordre par défaut » y revient. Voir
@@ -506,6 +512,7 @@ const defaults: Preferences = {
   // comme avant, tant qu'on ne l'a pas demandé.
   lienLectureVersSource: false,
   sourcesBarre: null,
+  sourcesBarreMaj: 0,
   // web#1827 : l'ordre livré — rien ne bouge pour qui n'a rien demandé.
   barreLaterale: null,
   barreLateraleMaj: 0,
@@ -680,6 +687,7 @@ function lirePrefs(stored: string | null): Preferences {
       // #5065 — même règle : un choix de types abîmé retombe sur « pas encore
       // décidé », donc sur les types présents ; une clé inconnue est écartée.
       p.sourcesBarre = normaliserTypesBarre((raw as { sourcesBarre?: unknown })?.sourcesBarre);
+      p.sourcesBarreMaj = horodatageBarre((raw as { sourcesBarreMaj?: unknown })?.sourcesBarreMaj);
       // web#1827 — même règle : un ordre abîmé retombe sur l'ordre livré ; un
       // groupe inconnu est écarté, Accueil ne peut pas être masqué.
       p.barreLaterale = normaliserChoixBarre((raw as { barreLaterale?: unknown })?.barreLaterale);
@@ -855,10 +863,40 @@ export async function syncPreferencesFromServer() {
     await relireDuServeur();
   } finally {
     signalerRelecture();
+    installerRelectureAuRetour();
   }
 }
 
+/** Vrai après la première relecture : les suivantes fusionnent avec le magasin. */
+let dejaRelu = false;
+let derniereRelecture = 0;
+let relectureAuRetourInstallee = false;
+/** Pas plus d'une relecture par demi-minute, même à force d'aller-retours. */
+export const ECART_RELECTURE_MS = 30_000;
+
+/**
+ * #2117 — un réglage du profil fait sur un AUTRE appareil (ordre de la barre,
+ * entrées masquées, types de sources…) n'arrivait ici qu'au rechargement de
+ * la page. On relit le serveur quand l'onglet redevient visible : revenir sur
+ * Tune après avoir réglé la barre sur le téléphone suffit.
+ *
+ * Une relecture n'écrit rien (aucune écriture de configuration sans geste),
+ * hormis la réparation ciblée de la barre déjà admise au chargement.
+ */
+function installerRelectureAuRetour(): void {
+  if (relectureAuRetourInstallee || typeof document === 'undefined') return;
+  relectureAuRetourInstallee = true;
+  try {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - derniereRelecture < ECART_RELECTURE_MS) return;
+      void relireDuServeur();
+    });
+  } catch { /* ignore */ }
+}
+
 async function relireDuServeur() {
+  derniereRelecture = Date.now();
   try {
     const res = await fetch('/api/v1/system/config', { headers: profileHeader() });
     if (!res.ok) return;
@@ -895,7 +933,10 @@ async function relireDuServeur() {
         if (choix) server.barreLaterale = choix; else delete server.barreLaterale;
       }
       server.barreLateraleMaj = horodatageBarre(server.barreLateraleMaj);
-      if (hadLocalPrefs) {
+      server.sourcesBarreMaj = horodatageBarre(server.sourcesBarreMaj);
+      // #2117 — à une RELECTURE (retour sur l'onglet), le magasin porte déjà
+      // les réglages de la session : on fusionne comme pour une copie locale.
+      if (hadLocalPrefs || dejaRelu) {
         // Fil 2109 — un geste de barre fait ICI, plus récent que celui du
         // serveur, et que son `PATCH` n'a jamais atteint. C'est la SEULE
         // écriture que le chargement s'autorise, et elle ne porte que la
@@ -910,11 +951,20 @@ async function relireDuServeur() {
           if ('barreLaterale' in server && barre.barreLateraleMaj > (server.barreLateraleMaj ?? 0)) {
             reparationBarre = { ...blobServeur, barreLaterale: barre.barreLaterale, barreLateraleMaj: barre.barreLateraleMaj };
           }
+          // #2117 — les cases de types de sources, même règle : le geste le
+          // plus récent gagne. Un geste local plus frais que le serveur, et que
+          // son `PATCH` n'a pas atteint, répare le serveur avec la barre.
+          const types = arbitrerTypesBarre(local, server);
+          if (types.sourcesBarreMaj > (server.sourcesBarreMaj ?? 0)) {
+            reparationBarre = { ...(reparationBarre ?? blobServeur), ...types };
+          }
           return {
             ...defaults, ...server, ...local,
             // #5065 — un `sourcesBarre` local encore indécis (`null`) ne doit pas
             // effacer le choix que le serveur porte, fait sur un autre poste.
-            sourcesBarre: { ...(normaliserTypesBarre(server.sourcesBarre) ?? {}), ...(local.sourcesBarre ?? {}) },
+            // #2117 — et un choix plus RÉCENT fait sur un autre poste l'emporte
+            // sur celui d'ici (voir `arbitrerTypesBarre`).
+            ...types,
             // #1673 — même piège, et il a mordu la photo d'avatar.
             //
             // `...local` gagne clé par clé, et `createPreferences` sérialise le
@@ -955,6 +1005,7 @@ async function relireDuServeur() {
       } else {
         preferences.adopterSansEcrire(() => ({ ...defaults, ...server, ...resoudreLangue([server]) }));
       }
+      dejaRelu = true;
     }
   } catch { /* ignore */ }
   // Sync server-side default zone into local preferences

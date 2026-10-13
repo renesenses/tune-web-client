@@ -38,7 +38,7 @@
   import { emphaseParts } from '../../lib/i18nEmphase';
   import { preferences, estDispositionFile, DISPOSITION_FILE_DEFAUT } from '../../lib/stores/preferences';
   import { typesSourcesBarre } from '../../lib/sources';
-  import { TYPES_SOURCE_BARRE, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
+  import { TYPES_SOURCE_BARRE, gesteTypesBarre, type TypeSourceBarre } from '../../lib/typesSourcesBarre';
   import {
     ID_GREFFON_ENTREE_AUDIO, etatGreffonEntreeAudio, propositionEntreeAudioVisible,
     type EtatGreffonEntreeAudio, type FicheGreffon,
@@ -3667,7 +3667,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /** #5065, étape 3 — une case « Afficher dans la barre » par type de
    *  source : décider une case ne décide qu'elle. */
   function basculerTypeSource(type: TypeSourceBarre, coche: boolean) {
-    preferences.update((pr) => ({ ...pr, sourcesBarre: { ...(pr.sourcesBarre ?? {}), [type]: coche } }));
+    // #2117 — le geste est DATÉ, pour arriver sur les autres appareils du profil.
+    preferences.update((pr) => ({ ...pr, ...gesteTypesBarre(pr.sourcesBarre, type, coche) }));
   }
 
   // tune-server-rust#5296 — « Entrée audio » ou « Entrée virtuelle » cochée,
