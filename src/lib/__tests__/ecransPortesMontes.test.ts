@@ -62,7 +62,7 @@ function corpsPour(url: string): unknown {
   // Un serveur qui OMET un tableau ne doit pas blanchir l'écran.
   if (url.includes('/dashboard-tronque')) return { by_source: [] };
   if (url.includes('/home/top-mixes')) return [];
-  if (url.includes('/library/recommendations')) return { albums: [], artists: [] };
+  if (url.includes('/home/recommendations')) return [];
   if (url.includes('/library/history')) return { items: [], total: 0 };
   return [];
 }

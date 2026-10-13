@@ -9,7 +9,7 @@
  *
  * ## Seulement ce que le serveur sait
  *
- * Cinq types, ceux que la logique actuelle des rangées justifie VRAIMENT. Un
+ * Les types que la logique actuelle des rangées justifie VRAIMENT. Un
  * type inconnu (serveur plus récent) ou une raison incomplète ne rend RIEN :
  * mieux vaut une vignette muette qu'une justification inventée. C'est la règle
  * même de la fonction — une recommandation qui dit pourquoi se réfute, une
@@ -22,7 +22,15 @@ export type RaisonSuggestion =
   | { type: 'artiste_favori'; artiste: string }
   | { type: 'artiste_possede'; artiste: string; albums: number }
   | { type: 'autre_version'; titre: string }
-  | { type: 'ajout_recent'; ajoute_le?: number | null };
+  | { type: 'ajout_recent'; ajoute_le?: number | null }
+  // Go du 13/10/2026 — les autres rangées.
+  | { type: 'hasard' }
+  | { type: 'reprise'; ecoute_le?: number | null }
+  /**
+   * Posée par le CLIENT, la seule : la rangée « Favoris » lit les routes de
+   * favoris, pas `/home/*`, et la raison y est le fait même de la rangée.
+   */
+  | { type: 'favori' };
 
 type Traduire = (cle: string) => string;
 
@@ -77,6 +85,14 @@ export function texteRaison(raison: unknown, traduire: Traduire, langue = 'fr'):
       const d = typeof r.ajoute_le === 'number' ? dateCourte(r.ajoute_le, langue) : null;
       return d ? traduire('v2.why.addedOn').replace('{date}', d) : traduire('v2.why.addedRecently');
     }
+    case 'hasard':
+      return traduire('v2.why.random');
+    case 'reprise': {
+      const d = typeof r.ecoute_le === 'number' ? dateCourte(r.ecoute_le, langue) : null;
+      return d ? traduire('v2.why.playedOn').replace('{date}', d) : traduire('v2.why.playedRecently');
+    }
+    case 'favori':
+      return traduire('v2.why.favorite');
     default:
       return null;
   }

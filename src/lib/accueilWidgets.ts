@@ -1493,7 +1493,10 @@ export const WIDGETS: Widget[] = [
       utiles(
         reprisesUtiles(liste(await api.getContinueListening(limiteDe(ctx)))).map((o, i) => {
           const el = versElement(o, i, 'rep');
-          return { ...el, sous: sousTitreReprise(o) || el.sous };
+          // web#916, go du 13/10/2026 — « Écouté le 12 oct. 2026 » (raison
+          // `reprise` du serveur), et « Pas pour moi » : le serveur ne remet
+          // plus dans la bande ce que le profil a écarté.
+          return suggere({ ...el, sous: sousTitreReprise(o) || el.sous }, o, champ(o, 'artist_name'));
         }),
       ),
   },
@@ -1661,7 +1664,18 @@ export const WIDGETS: Widget[] = [
     charger: async (ctx) => {
       if (ctx.profileId == null) return [];
       const f = await chargerFavorisFusionnes(ctx.profileId);
-      const albums = utiles(f.albums.slice(0, limiteDe(ctx)).map((o: any, i: number) => versElement(o, i, 'alb')));
+      // web#916, go du 13/10/2026 — « Dans vos favoris », et « Pas pour moi »
+      // retire l'album de CETTE bande pour le profil, sans toucher au cœur :
+      // il reste dans l'écran Favoris. La raison est posée ici, la seule côté
+      // client : la rangée lit les routes de favoris, pas `/home/*`.
+      const albums = utiles(
+        f.albums.slice(0, limiteDe(ctx)).map((o: any, i: number) => ({
+          ...versElement(o, i, 'alb'),
+          raison: { type: 'favori' } as const,
+          suggestion: true,
+          artisteSuggere: champ(o, 'artist_name') ?? null,
+        })),
+      );
       if (albums.length) return albums;
       const artistes = utiles(f.artists.slice(0, limiteDe(ctx)).map((o: any, i: number) => elementArtisteFavori(o, i)));
       if (artistes.length) return artistes;
