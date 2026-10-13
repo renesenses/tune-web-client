@@ -155,11 +155,17 @@
    * calculées par la Bibliothèque sur ses albums et ses pistes : celles du
    * serveur portent sur toute la bibliothèque.
    */
-  const sourcesServeur = $derived(pagePorteLesSources(artistes) ? sourcesDepuisLeServeur(artistes) : null);
-  const parLeServeur = $derived(sourcesServeur != null && idsPortee == null);
-  const sourcesEffectives = $derived(parLeServeur ? sourcesServeur! : sourcesArtistes);
-  const sourcesEnChargeEffectif = $derived(!parLeServeur && sourcesEnCharge);
-  const erreurSourcesEffective = $derived(parLeServeur ? null : erreurSources);
+  // Décision de Bertrand du 13/10 : la LISTE s'affiche d'abord, sans attendre
+  // les sources ; elles arrivent ensuite, par une seconde requête, et
+  // alimentent le menu Source. La première carte revient au temps d'avant.
+  let sourcesServeur = $state<Map<number, Set<string>> | null>(null);
+  let erreurSourcesServeur = $state<string | null>(null);
+  // Tant qu'un serveur ancien n'est pas constaté (`false`), les sources sont
+  // attendues du serveur : la Bibliothèque ne charge rien d'avance.
+  const parLeServeur = $derived($sourcesArtistesServeur !== false && idsPortee == null);
+  const sourcesEffectives = $derived(parLeServeur ? (sourcesServeur ?? new Map()) : sourcesArtistes);
+  const sourcesEnChargeEffectif = $derived(parLeServeur ? (sourcesServeur == null && erreurSourcesServeur == null) : sourcesEnCharge);
+  const erreurSourcesEffective = $derived(parLeServeur ? erreurSourcesServeur : erreurSources);
 
   /** Les artistes que la PORTÉE laisse passer — tous, sans portée. */
   const dansLaPortee = $derived(
@@ -263,22 +269,43 @@
     }
   }
 
+  let generationSources = 0;
   async function charger() {
     chargement = true;
     erreur = null;
     try {
       // La liste ENTIÈRE : `getArtists` plafonne à 100 par défaut, et une vue
       // d'artistes tronquée à 100 se lit comme une bibliothèque incomplète.
-      // web#1716 — avec leurs sources : la Bibliothèque lit la réponse
-      // (`sourcesArtistesServeur`) pour savoir si elle doit encore les calculer.
-      artistes = await api.getAllArtists(2000, { provenances: true });
-      const porte = pagePorteLesSources(artistes);
-      if (porte != null) sourcesArtistesServeur.set(porte);
+      // Sans les sources : la grille ne les attend pas (web#1716, 13/10).
+      artistes = await api.getAllArtists();
     } catch (e: any) {
       erreur = e?.message ?? $t('common.error' as any);
       artistes = [];
     }
     chargement = false;
+    // Serveur ancien déjà constaté : la Bibliothèque calcule, rien à demander.
+    if (!erreur && $sourcesArtistesServeur !== false) void chargerSources();
+  }
+
+  /**
+   * web#1716 — les sources, APRÈS la liste. La Bibliothèque lit la réponse
+   * (`sourcesArtistesServeur`) pour savoir si elle doit encore les calculer
+   * (serveur ancien : `false`, retour au calcul d'avant).
+   */
+  async function chargerSources() {
+    const g = ++generationSources;
+    erreurSourcesServeur = null;
+    try {
+      const page = await api.getAllArtists(2000, { provenances: true });
+      if (g !== generationSources) return;
+      const porte = pagePorteLesSources(page);
+      if (porte) sourcesServeur = sourcesDepuisLeServeur(page);
+      else if (porte == null) sourcesServeur = new Map();
+      if (porte != null) sourcesArtistesServeur.set(porte);
+    } catch (e: any) {
+      if (g !== generationSources) return;
+      erreurSourcesServeur = e?.message ?? $t('common.error' as any);
+    }
   }
 
   async function lireArtiste(a: Artist) {
