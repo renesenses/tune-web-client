@@ -1404,6 +1404,14 @@ export interface StreamingPlaylist {
    * l'illustration dessinée doit rester entière.
    */
   covers?: string[];
+  /**
+   * L'utilisateur peut-il modifier cette playlist ? `false` : il la suit
+   * seulement (éditoriale, autre compte) ; absent : le serveur ne le dit pas
+   * (web#2097, tune-server-rust lot `batch/bugs-rc5-20261012`).
+   */
+  editable?: boolean | null;
+  /** Le propriétaire, quand le service le donne. */
+  owner?: string | null;
   source: Source;
 }
 
