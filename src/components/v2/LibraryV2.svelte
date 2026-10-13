@@ -64,7 +64,7 @@
   // comptes servis par le serveur ; repli sur la liste entière face à un
   // serveur ancien.
   import {
-    FenetrePistes, chargeurServeur, COLONNES_TRIABLES, capaciteDuServeur, triSuivant, trierPistes, type Tri,
+    FenetrePistes, chargeurServeur, COLONNES_TRIABLES_NAVIGATEUR, colonnesTriablesServeur, refusDuTriDesEcoutes, capaciteDuServeur, triSuivant, trierPistes, type Tri,
   } from '../../lib/pistesPaginees';
   // 🔴 `pendingLibraryFolder` n'existe PLUS : `main` l'a remplacé par le
   // magasin `libraryFolderScope` (voir `lib/porteeBibliotheque`) parce qu'un
@@ -1828,6 +1828,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let modePistes = $state<'inconnu' | 'serveur' | 'entier'>(capaciteDuServeur() === 'ancien' ? 'entier' : 'inconnu');
   /** L'ordre choisi par l'en-tête ; `null` = l'ordre par défaut. */
   let triPistes = $state<Tri | null>(null);
+  /** #1470 — ce que l'en-tête propose quand le serveur trie : les écoutes
+   *  comprises, jusqu'au premier refus d'un serveur qui ne les connaît pas. */
+  let triablesPagine = $state.raw(colonnesTriablesServeur());
   /** La recherche envoyée au serveur : `q` après 250 ms de repos. */
   let qPistes = $state('');
   $effect(() => {
@@ -1871,7 +1874,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         if (remonter) remonterEnTeteDesPistes();
       })
       // L'échec est DIT : la fenêtre en erreur devient celle qu'on affiche.
-      .catch((e) => { if (fenetreDemandee === f && e?.name !== 'AbortError') fenetrePistes = f; })
+      .catch((e) => {
+        if (fenetreDemandee !== f || e?.name === 'AbortError') return;
+        // #1470 — un serveur qui ne sait pas trier par écoutes : on le dit,
+        // l'en-tête redevient inerte et l'ordre par défaut revient.
+        if (refusDuTriDesEcoutes(e, req.tri)) {
+          triablesPagine = colonnesTriablesServeur();
+          triPistes = null;
+          notifications.info($tr('v2.lib.sortPlaysUnsupported' as any), 5000);
+          return;
+        }
+        fenetrePistes = f;
+      })
       .finally(() => { if (fenetreDemandee === f) fenetreEnCharge = false; });
     return () => f.abandonner();
   });
@@ -3078,7 +3092,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
               espaceAvant={debutVisible * hauteurLigne}
               espaceApres={Math.max(0, totalPagine - debutVisible - lignesPagine.length) * hauteurLigne}
               tri={triPistes}
-              triables={COLONNES_TRIABLES}
+              triables={triablesPagine}
               onTrier={(cle) => (triPistes = triSuivant(triPistes, cle))}
               onLire={(p) => playTrack(p)}
               onLireDepuis={(_p, i) => lireLesTitresPaginesDepuis(debutVisible + i)}
@@ -3106,7 +3120,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             <ListePistesV2
               pistes={visibleTracks}
               tri={triPistes}
-              triables={COLONNES_TRIABLES}
+              triables={COLONNES_TRIABLES_NAVIGATEUR}
               onTrier={(cle) => (triPistes = triSuivant(triPistes, cle))}
               onLire={(p) => playTrack(p)}
               onLireDepuis={(_p, i) => lireLesTitresDepuis(i)}

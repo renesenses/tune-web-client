@@ -3935,6 +3935,7 @@ export default {
   "v2.tcol.year": "年份",
   "v2.tcol.plays": "播放次数",
   "v2.tcol.lastPlayed": "上次播放",
+  "v2.lib.sortPlaysUnsupported": "此服务器尚不支持按播放次数排序：已恢复默认顺序。",
   "v2.tcol.channels": "声道",
   "v2.tcol.bpm": "BPM",
   "v2.tcol.rating": "评分",

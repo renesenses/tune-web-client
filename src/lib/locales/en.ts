@@ -3955,6 +3955,7 @@ export default {
   "v2.tcol.year": "Year",
   "v2.tcol.plays": "# Plays",
   "v2.tcol.lastPlayed": "Last played",
+  "v2.lib.sortPlaysUnsupported": "This server cannot sort by plays yet: the default order is back.",
   "v2.tcol.channels": "Channels",
   "v2.tcol.bpm": "BPM",
   "v2.tcol.rating": "Rating",

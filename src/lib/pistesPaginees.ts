@@ -34,7 +34,8 @@ import { provenanceDe } from './provenanceBibliotheque';
 export const TAILLE_PAGE = 200;
 
 /** Les colonnes que le serveur sait trier — `COLONNES_TRIABLES` côté serveur
- *  (`tune_core::db::track_repo`). Ni `plays`, ni `lastPlayed`, ni `dr`, ni
+ *  (`tune_core::db::track_repo`). Ni `plays`, ni `lastPlayed` (voir
+ *  `COLONNES_ECOUTES`), ni `dr`, ni
  *  `quality`, ni `num` (le rang, sur cet onglet). */
 export const COLONNES_TRIABLES: ReadonlySet<CleColonne> = new Set<CleColonne>([
   'title', 'artist', 'composer', 'time', 'year', 'channels', 'bpm', 'rating', 'genre',
@@ -42,6 +43,43 @@ export const COLONNES_TRIABLES: ReadonlySet<CleColonne> = new Set<CleColonne>([
   'size', 'path', 'isrc', 'mbid', 'comments', 'discSubtitle', 'source',
   'modified', 'hash',
 ]);
+
+/**
+ * #1470 — « # écoutes » et « Dernière écoute » deviennent TRIABLES.
+ *
+ * Le navigateur sait les trier (`trierPistes`, liste entière). Le serveur, lui,
+ * ne les connaît pas encore dans sa page triée : `sort=plays` y rend 400
+ * (« colonne inconnue »). L'écran les PROPOSE donc d'office et, au premier
+ * refus, s'en souvient pour la session (`refusDuTriDesEcoutes`) : l'en-tête
+ * redevient inerte et l'ordre par défaut revient. Un serveur qui apprendra
+ * ces deux clés sera servi sans nouvelle version du client.
+ */
+export const COLONNES_ECOUTES: ReadonlySet<CleColonne> = new Set<CleColonne>(['plays', 'lastPlayed']);
+
+/** Ce que le navigateur sait trier : le jeu du serveur, plus les écoutes. */
+export const COLONNES_TRIABLES_NAVIGATEUR: ReadonlySet<CleColonne> = new Set<CleColonne>([
+  ...COLONNES_TRIABLES, ...COLONNES_ECOUTES,
+]);
+
+/** `false` dès qu'un serveur a refusé un tri par écoutes — retenu pour la session. */
+let ecoutesTriablesParLeServeur = true;
+
+/** Les colonnes que l'en-tête propose quand le SERVEUR trie (onglet paginé). */
+export function colonnesTriablesServeur(): ReadonlySet<CleColonne> {
+  return ecoutesTriablesParLeServeur ? COLONNES_TRIABLES_NAVIGATEUR : COLONNES_TRIABLES;
+}
+
+/**
+ * Cet échec est-il le refus, par un serveur qui ne les connaît pas, d'un tri
+ * par écoutes ? Si oui, il est retenu et l'appelant revient à l'ordre par
+ * défaut. Tout autre échec rend `false` et reste affiché tel quel.
+ */
+export function refusDuTriDesEcoutes(e: unknown, tri: Tri | null): boolean {
+  if (!tri || !COLONNES_ECOUTES.has(tri.cle)) return false;
+  if ((e as { status?: number } | null)?.status !== 400) return false;
+  ecoutesTriablesParLeServeur = false;
+  return true;
+}
 
 export interface Tri { cle: CleColonne; sens: 'asc' | 'desc' }
 
@@ -82,7 +120,7 @@ export function chargeurServeur(
  */
 let capacite: 'serveur' | 'ancien' | null = null;
 export function capaciteDuServeur(): 'serveur' | 'ancien' | null { return capacite; }
-export function _remiseAZeroPourTests(): void { capacite = null; }
+export function _remiseAZeroPourTests(): void { capacite = null; ecoutesTriablesParLeServeur = true; }
 
 function erreurAbandon(): Error {
   const e = new Error('Aborted');
@@ -291,6 +329,13 @@ function cleDeTri(cle: CleColonne): (p: Track) => string | number | null {
     case 'disc': return nombre((p) => a(p).disc_number);
     case 'size': return nombre((p) => a(p).file_size);
     case 'modified': return nombre((p) => a(p).file_mtime);
+    // #1470 — `0` est un compte, pas une cellule vide : la colonne l'affiche.
+    case 'plays': return nombre((p) => a(p).play_count);
+    // Creuse par nature : une piste jamais écoutée va en fin de liste.
+    case 'lastPlayed': return nombre((p) => {
+      const d = a(p).last_played_at;
+      return d ? Date.parse(String(d)) : null;
+    });
     default: return () => null;
   }
 }
