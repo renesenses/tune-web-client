@@ -21,7 +21,11 @@
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
-  import { CLE_GENRES_EXCLUS, ajouterDossierExclu, retirerDossierExclu, sousDossiersExclus } from '../../lib/perimetreAnalyses';
+  import {
+    CLE_GENRES_EXCLUS, CLE_PAR_PASSE, ajouterDossierExclu, compteDe, comptesDepuisReponse, genresSansNormalisation,
+    parPasseDepuisConfig, retirerDossierExclu, sousDossiersExclus, type ComptesPerimetre, type ParPasse,
+  } from '../../lib/perimetreAnalyses';
+  import PerimetreParPasse from './PerimetreParPasse.svelte';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
@@ -1926,6 +1930,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // exclus vivent dans la même liste que les racines décochées ; les genres
   // écartés valent pour TOUTES les passes. `null` : réglage non publié.
   let analysisGenresExclus = $state<string[] | null>(null);
+  // Étape 2 (13/10) : le périmètre propre à chaque passe. `null` : non publié.
+  let analysisParPasse = $state<ParPasse | null>(null);
+  // Étape 3 (13/10) : combien de pistes chaque entrée retire. `null` : pas
+  // (encore) compté, ou serveur sans la route — rien ne s'affiche.
+  let analysisComptes = $state<ComptesPerimetre | null>(null);
   let newExcludedDir = $state('');
   let excludedDirError = $state<string | null>(null);
   let newDir = $state('');
@@ -2177,6 +2186,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       clapGenresInclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_INCLUS]);
       clapGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_EXCLUS]);
       analysisGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_EXCLUS]);
+      analysisParPasse = parPasseDepuisConfig(c?.[CLE_PAR_PASSE]);
+      void rafraichirComptesDuPerimetre();
       await refreshDirectoryOrder();
       // Absent vaut VRAI cote serveur, et les valeurs peuvent arriver en
       // chaine ('false') aussi bien qu'en booleen.
@@ -2290,7 +2301,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const avant = analysisExcluded;
     const suivant = analyser ? avant.filter((r) => r !== d) : [...avant.filter((r) => r !== d), d];
     analysisExcluded = suivant;
-    patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
+    patchPerimetre({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
   }
   /**
    * #5593 (étape 1) — exclure un SOUS-DOSSIER des analyses de fond. Il doit
@@ -2309,21 +2320,43 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     excludedDirError = null;
     analysisExcluded = r.liste;
     newExcludedDir = '';
-    patch({ background_analysis_excluded_roots: r.liste }, () => { analysisExcluded = avant; });
+    patchPerimetre({ background_analysis_excluded_roots: r.liste }, () => { analysisExcluded = avant; });
   }
   function reinclureDossier(entree: string) {
     if (analysisExcluded === null) return;
     const avant = analysisExcluded;
     const suivant = retirerDossierExclu(avant, entree);
     analysisExcluded = suivant;
-    patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
+    patchPerimetre({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
+  }
+  /**
+   * #5593 (étape 3) — combien de pistes chaque entrée retire. Un serveur sans
+   * la route, ou une erreur, laisse l'écran sans chiffres : jamais un faux 0.
+   */
+  async function rafraichirComptesDuPerimetre() {
+    try {
+      analysisComptes = comptesDepuisReponse(await api.getAnalysisScopeCounts());
+    } catch {
+      analysisComptes = null;
+    }
+  }
+  /** Un réglage du périmètre posé : les comptes suivent. */
+  async function patchPerimetre(fields: Record<string, unknown>, revert: () => void) {
+    await patch(fields, revert);
+    void rafraichirComptesDuPerimetre();
+  }
+  /** #5593 (étape 2) — le périmètre propre à chaque passe. */
+  function setPerimetreParPasse(suivant: ParPasse) {
+    const avant = analysisParPasse;
+    analysisParPasse = suivant;
+    patchPerimetre({ [CLE_PAR_PASSE]: suivant }, () => { analysisParPasse = avant; });
   }
   /** #5593 (étape 1) — les genres écartés de TOUTES les analyses de fond. */
   function setGenresExclusDesAnalyses(texte: string) {
     const avant = analysisGenresExclus;
     const suivant = lireSaisieDeGenres(texte);
     analysisGenresExclus = suivant;
-    patch({ [CLE_GENRES_EXCLUS]: suivant }, () => { analysisGenresExclus = avant; });
+    patchPerimetre({ [CLE_GENRES_EXCLUS]: suivant }, () => { analysisGenresExclus = avant; });
   }
   /**
    * tune-server-rust#6198 — les genres retenus ou écartés de l'analyse
@@ -2335,11 +2368,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     if (sens === 'inclus') {
       const avant = clapGenresInclus;
       clapGenresInclus = suivant;
-      patch({ [CLE_GENRES_CLAP_INCLUS]: suivant }, () => { clapGenresInclus = avant; });
+      patchPerimetre({ [CLE_GENRES_CLAP_INCLUS]: suivant }, () => { clapGenresInclus = avant; });
     } else {
       const avant = clapGenresExclus;
       clapGenresExclus = suivant;
-      patch({ [CLE_GENRES_CLAP_EXCLUS]: suivant }, () => { clapGenresExclus = avant; });
+      patchPerimetre({ [CLE_GENRES_CLAP_EXCLUS]: suivant }, () => { clapGenresExclus = avant; });
     }
   }
   /** Retirer un dossier ne SUPPRIME aucun fichier : on le dit dans l'ecran,
@@ -5637,6 +5670,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             aria-label={$t('settings.backgroundAnalysisFolderAria' as any).replace('{path}', d)}
                             onchange={(e) => setAnalyseDuDossier(d, (e.currentTarget as HTMLInputElement).checked)} />
                           <span>{$t('settings.backgroundAnalysisFolder' as any)}</span>
+                          {#if analysisExcluded.includes(d) && compteDe(analysisComptes, null, 'excluded_roots', d) !== null}
+                            <span class="hint retrait">{$t('settings.analysisScopeTracks' as any).replace('{n}', $formatNombre(compteDe(analysisComptes, null, 'excluded_roots', d) ?? 0))}</span>
+                          {/if}
                         </label>
                       {/if}
                       <button class="del avec-texte" disabled={dirBusy} onclick={() => removeDir(d)}
@@ -5658,6 +5694,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#each sousDossiersExclus(analysisExcluded, musicDirs) as e (e)}
                       <div class="dev ign">
                         <span class="dn" use:bulleTexte>{e}</span>
+                        {#if compteDe(analysisComptes, null, 'excluded_roots', e) !== null}
+                          <span class="hint retrait">{$t('settings.analysisScopeTracks' as any).replace('{n}', $formatNombre(compteDe(analysisComptes, null, 'excluded_roots', e) ?? 0))}</span>
+                        {/if}
                         <button class="lnk" disabled={dirBusy}
                           aria-label={$t('settings.excludedFolderReincludeAria' as any).replace('{path}', e)}
                           onclick={() => reinclureDossier(e)}>{$t('settings.excludedFolderReinclude' as any)}</button>
@@ -5685,8 +5724,28 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         placeholder={$t('settings.analysisGenresExcludedPlaceholder' as any)}
                         onchange={(e) => setGenresExclusDesAnalyses((e.currentTarget as HTMLInputElement).value)} />
                     </label>
+                    {#if analysisGenresExclus.length && analysisComptes}
+                      <ul class="retraits">
+                        {#each analysisGenresExclus as g (g)}
+                          {@const n = compteDe(analysisComptes, null, 'excluded_genres', g)}
+                          {#if n !== null}
+                            <li><span class="dn" use:bulleTexte>{g}</span> <span class="hint retrait">{$t('settings.analysisScopeTracks' as any).replace('{n}', $formatNombre(n))}</span></li>
+                          {/if}
+                        {/each}
+                      </ul>
+                    {/if}
+                    {#if genresSansNormalisation(analysisParPasse, analysisGenresExclus) && !(analysisParPasse?.replaygain?.excluded_genres)}
+                      <p class="avertissement" role="note">{$t('settings.analysisNoNormalizationWarning' as any)}</p>
+                    {/if}
                     <p class="hint">{$t('settings.analysisGenresExcludedHint' as any)}</p>
                   </div>
+                {/if}
+                <!-- tune-server-rust#5593 (étapes 2 et 3) — le périmètre
+                     propre à chaque analyse, et ce que retire chaque entrée. -->
+                {#if analysisParPasse !== null && analysisExcluded !== null && analysisGenresExclus !== null}
+                  <PerimetreParPasse parPasse={analysisParPasse}
+                    commun={{ excluded_roots: analysisExcluded, excluded_genres: analysisGenresExclus }}
+                    comptes={analysisComptes} disabled={dirBusy} onchange={setPerimetreParPasse} />
                 {/if}
                 <!-- tune-server-rust#6198 — réserver l'analyse acoustique
                      (ambiances) à certains genres, ou en écarter. -->
@@ -7272,6 +7331,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:12px; color:var(--v2-txt2)}
   .clap-genres{display:flex; flex-direction:column; gap:6px; margin:10px 0}
   .clap-genres-titre{font-weight:600}
+  /* tune-server-rust#5593 (étapes 2 et 3, 13/10) — avertissement et comptes du périmètre. */
+  .avertissement{color:var(--v2-warn, #c8922b); font-weight:600; margin:2px 0}
+  .retraits{list-style:none; margin:0; padding:0; font-size:13px}
+  .retrait{margin-left:6px}
   .clap-genres label{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13px; color:var(--v2-txt2)}
   .clap-genres label span{min-width:9em}
   .clap-genres input{flex:1 1 16em; min-width:0}

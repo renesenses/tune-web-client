@@ -73,8 +73,8 @@ describe('#5593 étape 1 — ajouter et retirer un sous-dossier', () => {
 
 describe('#5593 étape 1 — l’écran', () => {
   it('les sous-dossiers vont dans la MÊME liste que les cases, complète, avec retour en arrière', () => {
-    expect(src).toContain('patch({ background_analysis_excluded_roots: r.liste }, () => { analysisExcluded = avant; });');
-    expect(src).toContain('patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });');
+    expect(src).toContain('patchPerimetre({ background_analysis_excluded_roots: r.liste }, () => { analysisExcluded = avant; });');
+    expect(src).toContain('patchPerimetre({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });');
     expect(src).toMatch(/\{#each sousDossiersExclus\(analysisExcluded, musicDirs\) as e \(e\)\}/);
     // La case d'une racine garde les sous-dossiers déjà exclus.
     expect(src).toContain('analyser ? avant.filter((r) => r !== d) : [...avant.filter((r) => r !== d), d]');
@@ -83,7 +83,7 @@ describe('#5593 étape 1 — l’écran', () => {
   it('les genres de toutes les analyses : lus, cachés si non publiés, écrits avec retour en arrière', () => {
     expect(src).toContain('analysisGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_EXCLUS]);');
     expect(src).toMatch(/\{#if analysisGenresExclus !== null\}/);
-    expect(src).toContain('patch({ [CLE_GENRES_EXCLUS]: suivant }, () => { analysisGenresExclus = avant; });');
+    expect(src).toContain('patchPerimetre({ [CLE_GENRES_EXCLUS]: suivant }, () => { analysisGenresExclus = avant; });');
   });
 
   it('les onze langues portent chaque texte, et le libellé accessible nomme le dossier', () => {

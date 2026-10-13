@@ -38,8 +38,8 @@ describe('#6198 — les genres de l’analyse acoustique', () => {
   });
 
   it('écrit la liste COMPLÈTE et revient en arrière sur un refus', () => {
-    expect(src).toContain('patch({ [CLE_GENRES_CLAP_INCLUS]: suivant }, () => { clapGenresInclus = avant; });');
-    expect(src).toContain('patch({ [CLE_GENRES_CLAP_EXCLUS]: suivant }, () => { clapGenresExclus = avant; });');
+    expect(src).toContain('patchPerimetre({ [CLE_GENRES_CLAP_INCLUS]: suivant }, () => { clapGenresInclus = avant; });');
+    expect(src).toContain('patchPerimetre({ [CLE_GENRES_CLAP_EXCLUS]: suivant }, () => { clapGenresExclus = avant; });');
   });
 
   it('les onze langues nomment les deux champs et l’explication', () => {
