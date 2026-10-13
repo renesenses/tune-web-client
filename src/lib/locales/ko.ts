@@ -5000,7 +5000,7 @@ export default {
   "assistantIa.ask.add": "추가",
   "assistantIa.ask.added": "“{titre}”을(를) 대기열에 추가했습니다.",
   "assistantIa.ask.noZone": "먼저 재생 영역을 선택하세요.",
-  "assistantIa.ask.cost": "이 질문의 비용: 약 {cout} €",
+  "assistantIa.ask.cost": "이 질문의 비용: {cout} €",
   "assistantIa.ask.cap": "이번 달 사용액: {depense} € / 한도 {plafond} €.",
   "assistantIa.err.erreur_fournisseur": "제공자가 오류를 반환했습니다. 다시 시도하세요.",
   "assistantIa.album.button": "AI 제안",

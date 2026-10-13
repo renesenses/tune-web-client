@@ -4999,7 +4999,7 @@ export default {
   "assistantIa.ask.add": "Lägg till",
   "assistantIa.ask.added": "”{titre}” har lagts till i kön.",
   "assistantIa.ask.noZone": "Välj först en uppspelningszon.",
-  "assistantIa.ask.cost": "Kostnad för frågan: cirka {cout} €",
+  "assistantIa.ask.cost": "Kostnad för frågan: {cout} €",
   "assistantIa.ask.cap": "Förbrukat denna månad: {depense} € av ett tak på {plafond} €.",
   "assistantIa.err.erreur_fournisseur": "Leverantören returnerade ett fel: försök igen.",
   "assistantIa.album.button": "AI-förslag",

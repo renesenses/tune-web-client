@@ -14,11 +14,12 @@
  * part. Chaque question part SEULE au serveur : `/ai/query` ne reçoit pas
  * les tours précédents.
  *
- * Le COÛT d'une question : `/ai/query` ne le rend pas (seulement `plafond`,
- * la dépense du mois après la question). L'écran le tire de l'écart entre la
- * dépense connue AVANT (réglages lus à l'ouverture, ou la question
- * précédente) et celle d'APRÈS. Un autre usage de l'assistant lancé entre les
- * deux (une autre fenêtre) s'y ajouterait : l'écran l'écrit « environ ».
+ * Le COÛT d'une question : `/ai/query` le rend, EXACT, dans `cout_eur` (la
+ * somme de ce qui a été compté à chacun de ses tours, au tarif daté de
+ * l'assistant), y compris sur un refus en cours de question. L'écran
+ * l'affiche tel quel. Un serveur antérieur ne le rend pas : l'écran n'écrit
+ * alors aucun coût de question, seulement la dépense du mois et le plafond
+ * (`plafond`) — jamais une estimation.
  *
  * Le panneau n'existe que si l'assistant est PRÊT ({@link assistantPret}) :
  * la coquille sonde les réglages une fois ({@link sonderAssistantIa}), sans
@@ -42,6 +43,8 @@ export interface ReponseDialogueIa {
   actions?: ActionIa[];
   zone_id?: number;
   error?: string;
+  /** Le coût exact de la question (euros) ; absent d'un serveur antérieur. */
+  cout_eur?: number;
   plafond?: EtatPlafondIa;
 }
 
@@ -62,7 +65,7 @@ export interface TourIa {
   reponse: string | null;
   erreur: string | null;
   citations: CitationsIa;
-  /** Le coût de la question, tiré de la dépense du mois (voir l'en-tête) ; `null` inconnu. */
+  /** Le coût exact de la question, rendu par le serveur ; `null` inconnu (serveur antérieur). */
   cout_eur: number | null;
   plafond: EtatPlafondIa | null;
   enCours: boolean;
@@ -99,7 +102,6 @@ export const assistantIaPret = derived(reglagesIaConnus, (r) => assistantPret(r)
 export function noterReglagesIa(r: unknown): void {
   if (estReglages(r)) {
     reglagesIaConnus.set(r);
-    derniereDepense = typeof r.consommation.cout_eur === 'number' ? r.consommation.cout_eur : null;
   }
 }
 
@@ -121,13 +123,10 @@ export async function sonderAssistantIa(
   return get(assistantIaPret);
 }
 
-/** La dépense du mois connue avant la prochaine question (euros). */
-let derniereDepense: number | null = null;
-
-/** L'écart de dépense d'une question ; `null` si l'un des deux bouts manque. */
-export function coutDeQuestion(avant: number | null, apres: number | null | undefined): number | null {
-  if (avant == null || apres == null || !Number.isFinite(avant) || !Number.isFinite(apres)) return null;
-  return Math.max(0, apres - avant);
+/** Le coût d'une question tel que le serveur le rend ; `null` s'il manque ou n'est pas un nombre. */
+export function coutDeReponse(r: Pick<ReponseDialogueIa, 'cout_eur'> | null | undefined): number | null {
+  const c = r?.cout_eur;
+  return typeof c === 'number' && Number.isFinite(c) && c >= 0 ? c : null;
 }
 
 export function demanderAssistantIa(message: string, zoneId: number | null): Promise<ReponseDialogueIa> {
@@ -234,19 +233,16 @@ export async function poserQuestionIa(
     cout_eur: null, plafond: null, enCours: true,
   };
   conversationIa.update((c) => [...c, tour]);
-  const avant = derniereDepense;
   let fini: TourIa;
   try {
     const r = await demander(q, zoneId);
-    const apres = r.plafond?.depense_eur ?? null;
-    if (apres != null) derniereDepense = apres;
     fini = {
       ...tour,
       enCours: false,
       reponse: r.error ? null : (r.reply ?? ''),
       erreur: r.error ? traduire(r.error, r.reply) : null,
       citations: r.error ? tour.citations : citationsDe(r),
-      cout_eur: coutDeQuestion(avant, apres),
+      cout_eur: coutDeReponse(r),
       plafond: r.plafond ?? null,
     };
   } catch (e) {
@@ -290,9 +286,16 @@ export function ajouterCitation(
   return ajouter(zoneId, corpsDeCitation(genre, id));
 }
 
-/** Le texte du coût d'un tour : `null` si inconnu. */
+/**
+ * Le texte du coût d'un tour : `null` si inconnu. Le serveur compte au
+ * micro-euro : six décimales au plus, sans zéros inutiles, deux au moins
+ * (0,125 → « 0.125 », 0,000037 → « 0.000037 », 0 → « 0.00 »).
+ */
 export function texteCout(modele: string, cout: number | null): string | null {
-  return cout == null ? null : modele.replace('{cout}', cout.toFixed(4));
+  if (cout == null) return null;
+  const exact = cout.toFixed(6).replace(/0+$/, '');
+  const [ent, dec = ''] = exact.split('.');
+  return modele.replace('{cout}', `${ent}.${dec.padEnd(2, '0')}`);
 }
 
 /** Le texte « dépensé ce mois / plafond ». */

@@ -4958,7 +4958,7 @@ export default {
   "assistantIa.ask.add": "Hozzáadás",
   "assistantIa.ask.added": "„{titre}” hozzáadva a lejátszási sorhoz.",
   "assistantIa.ask.noZone": "Előbb válasszon lejátszási zónát.",
-  "assistantIa.ask.cost": "A kérdés költsége: kb. {cout} €",
+  "assistantIa.ask.cost": "A kérdés költsége: {cout} €",
   "assistantIa.ask.cap": "E havi költés: {depense} € a(z) {plafond} € keretből.",
   "assistantIa.err.erreur_fournisseur": "A szolgáltató hibát adott vissza: próbálja újra.",
   "assistantIa.album.button": "MI-javaslatok",

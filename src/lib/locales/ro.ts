@@ -5000,7 +5000,7 @@ export default {
   "assistantIa.ask.add": "Adaugă",
   "assistantIa.ask.added": "„{titre}” adăugat în coadă.",
   "assistantIa.ask.noZone": "Alegeți mai întâi o zonă de redare.",
-  "assistantIa.ask.cost": "Costul acestei întrebări: aproximativ {cout} €",
+  "assistantIa.ask.cost": "Costul acestei întrebări: {cout} €",
   "assistantIa.ask.cap": "Cheltuit luna aceasta: {depense} € dintr-un plafon de {plafond} €.",
   "assistantIa.err.erreur_fournisseur": "Furnizorul a returnat o eroare: încercați din nou.",
   "assistantIa.album.button": "Sugestii IA",

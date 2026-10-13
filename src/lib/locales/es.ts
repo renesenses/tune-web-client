@@ -5000,7 +5000,7 @@ export default {
   "assistantIa.ask.add": "Añadir",
   "assistantIa.ask.added": "«{titre}» añadido a la cola.",
   "assistantIa.ask.noZone": "Elija primero una zona de reproducción.",
-  "assistantIa.ask.cost": "Coste de esta pregunta: unos {cout} €",
+  "assistantIa.ask.cost": "Coste de esta pregunta: {cout} €",
   "assistantIa.ask.cap": "Gastado este mes: {depense} € de un límite de {plafond} €.",
   "assistantIa.err.erreur_fournisseur": "El proveedor devolvió un error: inténtelo de nuevo.",
   "assistantIa.album.button": "Sugerencias de IA",
