@@ -127,6 +127,8 @@ export default {
   'concerts.codePostalPlaceholder': 'Cod poștal',
   'concerts.rayon': 'Rază',
   'concerts.appliquer': 'Aplică',
+  "concerts.questionLieu": "Unde locuiți și cât de departe ați merge pentru un concert?",
+  "concerts.pasMaintenant": "Nu acum",
   'concerts.communeSaisieNote': 'Localitatea ta nu este niciodată dedusă. Este folosită doar pentru a măsura distanțele, la nivel de oraș.',
   'concerts.communeIntrouvable': 'Localitate negăsită – se afișează concertele din toată țara.',
   'concerts.nSurTotal': '{n} din {total} concerte',

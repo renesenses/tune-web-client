@@ -127,6 +127,8 @@ export default {
   'concerts.codePostalPlaceholder': 'Código postal',
   'concerts.rayon': 'Radio',
   'concerts.appliquer': 'Aplicar',
+  "concerts.questionLieu": "¿Dónde vive y hasta dónde iría por un concierto?",
+  "concerts.pasMaintenant": "Ahora no",
   'concerts.communeSaisieNote': 'Su municipio nunca se deduce. Solo sirve para medir distancias, a nivel de ciudad.',
   'concerts.communeIntrouvable': 'Municipio no encontrado: se muestran los conciertos de todo el país.',
   'concerts.nSurTotal': '{n} de {total} conciertos',
