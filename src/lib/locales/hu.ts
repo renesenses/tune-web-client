@@ -4814,7 +4814,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID-kulcs eltávolítva.",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "Felhőmentés",
-  "cloudBackup.intro": "A Tune a mozaiklabsnál menti a testreszabásait, ezen a szerveren titkosítva egy olyan kulccsal, amelyet a mozaiklabs nem ismer: beállítások, zónák, profilok és preferenciák, ekvalizerek, kedvencek, lejátszási listák és rádiók. Soha nem a könyvtárát, sem a szolgáltatások jelszavait és tokenjeit. Gépenként legfeljebb három pillanatkép és fiókonként legfeljebb öt gép marad meg; a legrégebbiek törlődnek.",
+  "cloudBackup.intro": "A Tune a mozaiklabsnál menti a testreszabásait, ezen a szerveren titkosítva egy olyan kulccsal, amelyet a mozaiklabs nem ismer: beállítások, zónák, profilok és preferenciák, ekvalizerek, kedvencek, lejátszási listák és rádiók. Soha nem a könyvtárát, sem a szolgáltatások jelszavait és tokenjeit, egy kivétellel: a Discogs-token a többivel együtt, titkosítva utazik. Gépenként legfeljebb három pillanatkép és fiókonként legfeljebb öt gép marad meg; a legrégebbiek törlődnek.",
   "cloudBackup.statePremium": "A felhőmentés a Tune Premium része.",
   "cloudBackup.stateNotLinked": "A mentés használatához kapcsolja ezt a szervert a mozaiklabs-fiókjához (a Cloud szakasz, közvetlenül fent).",
   "cloudBackup.stateDisabled": "Az automatikus mentés ki van kapcsolva.",
@@ -4864,6 +4864,7 @@ export default {
   "cloudBackup.reportPlaylistsReplaced": "Lecserélt lejátszási listák: {n}",
   "cloudBackup.reportFavorites": "Visszaállított kedvencek: {n}",
   "cloudBackup.reportRadios": "Visszaállított rádiók: {n}",
+  "cloudBackup.reportDiscogs": "Discogs-token visszaállítva",
   "cloudBackup.cloudUnreachable": "A mozaiklabs nem válaszol. Próbálja újra később.",
   "cloudBackup.error": "A mentés sikertelen: {error}",
   "cloudBackup.onboardingTitle": "Testreszabások átvétele",
@@ -4871,6 +4872,11 @@ export default {
   "cloudBackup.onboardingPick": "Mentés",
   "cloudBackup.onboardingRestore": "Átvétel",
   "cloudBackup.onboardingDone": "Testreszabások átvéve.",
+  // #2108 — Oxygen : opérateur entre valeurs cochées
+  "oxygen.facetOpOr": "Vagy",
+  "oxygen.facetOpAnd": "És",
+  "oxygen.facetOpOrHelp": "A bejelölt értékek VAGY kapcsolatban állnak: a szám legalább egyet hordoz közülük. Kattints az ÉS-re váltáshoz.",
+  "oxygen.facetOpAndHelp": "A bejelölt értékek ÉS kapcsolatban állnak: a számnak mindet hordoznia kell. Kattints a VAGY-ra való visszatéréshez.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
