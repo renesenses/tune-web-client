@@ -32,7 +32,9 @@
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
-  import { poserPhotoAppareil } from '../../lib/photoAppareil';
+  import {
+    poserPhotoAppareil, proposerPhotoAuCatalogue, propositionPossible, cleRefusProposition,
+  } from '../../lib/photoAppareil';
   import { emphaseParts } from '../../lib/i18nEmphase';
   import { preferences, estDispositionFile, DISPOSITION_FILE_DEFAUT } from '../../lib/stores/preferences';
   import { typesSourcesBarre } from '../../lib/sources';
@@ -297,9 +299,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         traduire: (k) => get(t)(k as any),
       });
       if (!r) return;
-      zones.update((l) => l.map((x) => (x.id === zid ? { ...x, image_path: r.image_path } : x)));
+      // Une NOUVELLE photo est locale : l'état « proposée » ne la suit pas (#2109).
+      zones.update((l) => l.map((x) => (x.id === zid
+        ? { ...x, image_path: r.image_path, ...(x.image_share_status !== undefined ? { image_share_status: null } : {}) }
+        : x)));
     } catch (err: any) {
       notifications.error(err?.message ?? $t('v2.home.widgetFailed' as any));
+    }
+  }
+  /** #2109 — proposer la photo au catalogue, après un accord lu. */
+  let propositionPhotoEnCours = $state<number | null>(null);
+  async function proposerPhotoZone(z: Zone) {
+    if (z.id == null || propositionPhotoEnCours != null) return;
+    const zid = z.id;
+    propositionPhotoEnCours = zid;
+    try {
+      const r = await proposerPhotoAuCatalogue(zid, {
+        confirmer: (m) => dialogs.confirm(m),
+        traduire: (k) => get(t)(k as any),
+      });
+      if (!r) return;
+      zones.update((l) => l.map((x) => (x.id === zid ? { ...x, image_share_status: r.image_share_status } : x)));
+      notifications.success($t('v2.zone.photoShareSent' as any));
+    } catch (err: any) {
+      const cle = cleRefusProposition(err);
+      notifications.error(cle ? $t(cle as any) : (err?.message ?? $t('v2.home.widgetFailed' as any)));
+    } finally {
+      propositionPhotoEnCours = null;
     }
   }
   async function retirerImageZone(z: Zone) {
@@ -5307,6 +5333,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           {#if z.image_path}
                             <button class="v2-btn sm" onclick={() => retirerImageZone(z)}>{$t('v2.zone.removeImage' as any)}</button>
                           {/if}
+                          <!-- #2109 — proposer la photo au catalogue communautaire.
+                               Un geste À PART, précédé d'un accord lu ; jamais
+                               « partagée » avant l'approbation : l'état affiché
+                               reste « en attente ». -->
+                          {#if propositionPossible(z)}
+                            {#if z.image_share_status === 'pending'}
+                              <p class="zpattente">{$t('v2.zone.photoSharePending' as any)}</p>
+                            {:else}
+                              <button class="v2-btn sm" disabled={propositionPhotoEnCours === z.id}
+                                onclick={() => proposerPhotoZone(z)}>{$t('v2.zone.photoShare' as any)}</button>
+                            {/if}
+                          {/if}
                         </div>
                       </div>
                       <div class="zde"><ZoneDeviceEditor zone={z} onSaved={(maj) => zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...maj } : x)))} /></div>
@@ -7335,4 +7373,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zpveil svg{width:18px; height:18px}
   .zpv:hover .zpveil, .zpv:focus-visible .zpveil{opacity:1}
   .zpt{display:flex; flex-direction:column; gap:5px; min-width:0}
+  /* #2109 — pastille « en attente de relecture » : jamais « partagée » avant l'approbation. */
+  .zpattente{margin:0; font-size:12px; color:var(--tune-warning)}
 </style>

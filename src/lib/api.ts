@@ -1207,6 +1207,21 @@ export async function uploadZoneImage(id: number, file: File): Promise<{ image_p
   return response.json();
 }
 
+/**
+ * #2109 — PROPOSE la photo de la zone au catalogue communautaire de
+ * Mozaiklabs. Le serveur la relaie avec la marque canonique du catalogue ; le
+ * site la garde en attente et ne la montre à personne avant relecture.
+ *
+ * 🔴 N'appeler qu'après un accord explicite (`proposerPhotoAuCatalogue`).
+ * 409 : marque ou modèle manquant ; 422 : marque hors catalogue.
+ */
+export function shareZoneImage(id: number) {
+  return fetchJSON<{ zone_id: number; image_share_status: 'pending' | null }>(
+    `${BASE}/zones/${id}/image/share`,
+    { method: 'POST' },
+  );
+}
+
 /** Retire la photo : la vignette retombe sur le pictogramme de type de sortie. */
 export function deleteZoneImage(id: number) {
   return fetchJSON<{ image_path: null }>(`${BASE}/zones/${id}/image`, { method: 'DELETE' });
