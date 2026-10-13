@@ -98,6 +98,8 @@ export default {
   'concerts.codePostalPlaceholder': 'Postnummer',
   'concerts.rayon': 'Radie',
   'concerts.appliquer': 'Tillämpa',
+  "concerts.questionLieu": "Var bor du, och hur långt skulle du åka för en konsert?",
+  "concerts.pasMaintenant": "Inte nu",
   'concerts.communeSaisieNote': 'Din ort gissas aldrig. Den används enbart för att mäta avstånd, på ortsnivå.',
   'concerts.communeIntrouvable': 'Orten hittades inte – visar konserter i hela landet.',
   'concerts.nSurTotal': '{n} av {total} konserter',

@@ -127,6 +127,8 @@ export default {
   'concerts.codePostalPlaceholder': 'CAP',
   'concerts.rayon': 'Raggio',
   'concerts.appliquer': 'Applica',
+  "concerts.questionLieu": "Dove abiti e fin dove andresti per un concerto?",
+  "concerts.pasMaintenant": "Non ora",
   'concerts.communeSaisieNote': 'Il tuo comune non viene mai dedotto. Serve solo a misurare le distanze, a livello di città.',
   'concerts.communeIntrouvable': 'Comune non trovato: vengono mostrati i concerti di tutto il paese.',
   'concerts.nSurTotal': '{n} concerti su {total}',

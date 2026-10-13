@@ -208,6 +208,8 @@ export default {
   'concerts.codePostalPlaceholder': 'Code postal',
   'concerts.rayon': 'Rayon',
   'concerts.appliquer': 'Appliquer',
+  "concerts.questionLieu": "Où habitez-vous, et jusqu’où iriez-vous pour un concert ?",
+  "concerts.pasMaintenant": "Pas maintenant",
   'concerts.communeSaisieNote': 'Votre commune n’est jamais déduite. Elle sert uniquement à mesurer les distances, au niveau de la ville.',
   'concerts.communeIntrouvable': 'Commune introuvable : les concerts de tout le pays sont affichés.',
   'concerts.nSurTotal': '{n} concerts sur {total}',
