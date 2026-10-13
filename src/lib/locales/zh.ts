@@ -4851,7 +4851,7 @@ export default {
   "acoustid.keyRemoved": "AcoustID 密钥已移除。",
   // Sauvegarde des personnalisations dans le cloud (tune-server-rust#5654, web#902)
   "cloudBackup.title": "云备份",
-  "cloudBackup.intro": "Tune 会将您的个性化设置备份到 mozaiklabs，并在本服务器上用 mozaiklabs 不知道的密钥加密：设置、区域、个人资料与偏好、均衡器、收藏、播放列表和电台。绝不包含您的音乐库，也不包含各服务的密码和令牌。每台机器最多保留三个快照，每个账户最多保留五台机器；最旧的会被删除。",
+  "cloudBackup.intro": "Tune 会将您的个性化设置备份到 mozaiklabs，并在本服务器上用 mozaiklabs 不知道的密钥加密：设置、区域、个人资料与偏好、均衡器、收藏、播放列表和电台。绝不包含您的音乐库，也不包含各服务的密码和令牌，唯一的例外是 Discogs 令牌，它会与其余内容一起加密迁移。每台机器最多保留三个快照，每个账户最多保留五台机器；最旧的会被删除。",
   "cloudBackup.statePremium": "云备份属于 Tune Premium。",
   "cloudBackup.stateNotLinked": "请将本服务器关联到您的 mozaiklabs 账户（上方的 Cloud 部分）以使用备份。",
   "cloudBackup.stateDisabled": "自动备份已关闭。",
@@ -4901,6 +4901,7 @@ export default {
   "cloudBackup.reportPlaylistsReplaced": "已替换播放列表：{n}",
   "cloudBackup.reportFavorites": "已恢复收藏：{n}",
   "cloudBackup.reportRadios": "已恢复电台：{n}",
+  "cloudBackup.reportDiscogs": "已恢复 Discogs 令牌",
   "cloudBackup.cloudUnreachable": "mozaiklabs 无响应。请稍后再试。",
   "cloudBackup.error": "备份失败：{error}",
   "cloudBackup.onboardingTitle": "恢复您的个性化设置",
