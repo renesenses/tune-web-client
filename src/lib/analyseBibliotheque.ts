@@ -57,12 +57,27 @@ export interface AvancementAnalyse {
   emplacementRang: number | null;
   emplacement: string | null;
   emplacementFichiers: number | null;
+  /**
+   * #6167, décision du 13/10 : chaque emplacement avec ses fichiers repérés et
+   * traités (`locations` du serveur), pour un pourcentage PAR emplacement en
+   * plus du total. Vide : serveur antérieur, ou un seul emplacement.
+   */
+  parEmplacement: EmplacementDuScan[];
+}
+
+export interface EmplacementDuScan {
+  rang: number;
+  emplacement: string;
+  fichiers: number;
+  /** `null` tant que le serveur ne sait pas encore ce qui est à relire. */
+  traites: number | null;
 }
 
 const VIDE: AvancementAnalyse = {
   phase: null, scanned: 0, total: 0, inserted: 0, updated: 0, skipped: 0,
   dossier: null, cible: null,
   portee: null, emplacements: 0, emplacementRang: null, emplacement: null, emplacementFichiers: null,
+  parEmplacement: [],
 };
 
 export const avancementAnalyse = writable<AvancementAnalyse | null>(null);
@@ -105,7 +120,54 @@ export function fusionnerAvancement(
     emplacementRang: entier(d.location_index) ?? base.emplacementRang,
     emplacement: texte(d.location) ?? base.emplacement,
     emplacementFichiers: entier(d.location_files) ?? base.emplacementFichiers,
+    parEmplacement: lireEmplacements(d.locations) ?? base.parEmplacement,
   };
+}
+
+/** `locations` du serveur ; `null` s'il n'y est pas (on garde le précédent). */
+function lireEmplacements(v: unknown): EmplacementDuScan[] | null {
+  if (!Array.isArray(v)) return null;
+  const liste: EmplacementDuScan[] = [];
+  for (const e of v) {
+    const o = (e ?? {}) as Record<string, unknown>;
+    const rang = entier(o.index);
+    const emplacement = texte(o.location);
+    const fichiers = entier(o.files);
+    if (rang == null || !emplacement || fichiers == null) continue;
+    liste.push({ rang, emplacement, fichiers, traites: entier(o.scanned) });
+  }
+  return liste;
+}
+
+/** Le pourcentage d'un emplacement, ou `null` avant que le serveur le sache. */
+export function pourcentEmplacement(e: EmplacementDuScan): number | null {
+  if (e.traites == null) return null;
+  if (e.fichiers <= 0) return 100;
+  return Math.max(0, Math.min(100, Math.floor((e.traites / e.fichiers) * 100)));
+}
+
+/**
+ * #6167, décision du 13/10 — une ligne par emplacement : « 2/4 · Classique :
+ * 37 % (44 400 / 120 000) ». `null` hors d'un scan de toute la bibliothèque
+ * sur plusieurs emplacements.
+ */
+export function lignesEmplacements(
+  a: AvancementAnalyse | null,
+  t: (cle: string) => string,
+  nombre: (n: number) => string = String,
+): { texte: string; pct: number | null; complet: string; enCours: boolean }[] | null {
+  if (!a || a.portee !== 'library' || a.parEmplacement.length < 2) return null;
+  const n = a.parEmplacement.length;
+  return a.parEmplacement.map((e) => {
+    const pct = pourcentEmplacement(e);
+    const nom = e.emplacement.split(/[/\\]/).filter(Boolean).pop() ?? e.emplacement;
+    const gabarit = pct == null ? t('v2.scan.locationFilesOnly') : t('v2.scan.locationPct');
+    const texte = gabarit
+      .replace('{k}', String(e.rang)).replace('{n}', String(n)).replace('{d}', nom)
+      .replace('{p}', String(pct ?? 0))
+      .replace('{s}', nombre(e.traites ?? 0)).replace('{f}', nombre(e.fichiers));
+    return { texte, pct, complet: e.emplacement, enCours: a.emplacementRang === e.rang };
+  });
 }
 
 /**

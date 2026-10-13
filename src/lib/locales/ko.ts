@@ -2758,6 +2758,8 @@ export default {
   "v2.scan.scopeLibraryOne": "전체 라이브러리",
   "v2.scan.scopeLocation": "위치 {k}/{n}: {d}",
   "v2.scan.scopeLocationFiles": "위치 {k}/{n}: {d} (파일 {f}개)",
+  "v2.scan.locationPct": "{k}/{n} · {d}: {p}% ({s} / {f})",
+  "v2.scan.locationFilesOnly": "{k}/{n} · {d}: 파일 {f}개",
   "v2.nav.scanRunning": "라이브러리 검사 중…",
   "v2.nav.scanRunningPct": "라이브러리 검사 중 — {p}%",
   "v2.nav.scanRunningFiles": "라이브러리 검사 중 — 파일 {f}개",

@@ -2712,6 +2712,8 @@ export default {
   "v2.scan.scopeLibraryOne": "A teljes könyvtár",
   "v2.scan.scopeLocation": "{k}/{n}. hely: {d}",
   "v2.scan.scopeLocationFiles": "{k}/{n}. hely: {d} ({f} fájl)",
+  "v2.scan.locationPct": "{k}/{n} · {d}: {p}% ({s} / {f})",
+  "v2.scan.locationFilesOnly": "{k}/{n} · {d}: {f} fájl",
   "v2.nav.scanRunning": "Könyvtár elemzése…",
   "v2.nav.scanRunningPct": "Könyvtár elemzése — {p}%",
   "v2.nav.scanRunningFiles": "Könyvtár elemzése — {f} fájl",

@@ -2757,6 +2757,8 @@ export default {
   "v2.scan.scopeLibraryOne": "Hela biblioteket",
   "v2.scan.scopeLocation": "Plats {k}/{n}: {d}",
   "v2.scan.scopeLocationFiles": "Plats {k}/{n}: {d} ({f} filer)",
+  "v2.scan.locationPct": "{k}/{n} · {d}: {p} % ({s} / {f})",
+  "v2.scan.locationFilesOnly": "{k}/{n} · {d}: {f} filer",
   "v2.nav.scanRunning": "Biblioteksskanning…",
   "v2.nav.scanRunningPct": "Biblioteksskanning — {p} %",
   "v2.nav.scanRunningFiles": "Biblioteksskanning — {f} filer",

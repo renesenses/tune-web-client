@@ -1752,6 +1752,8 @@ export default {
   "v2.scan.scopeLibraryOne": "Whole library",
   "v2.scan.scopeLocation": "Location {k}/{n}: {d}",
   "v2.scan.scopeLocationFiles": "Location {k}/{n}: {d} ({f} files)",
+  "v2.scan.locationPct": "{k}/{n} · {d}: {p}% ({s} / {f})",
+  "v2.scan.locationFilesOnly": "{k}/{n} · {d}: {f} files",
   "v2.nav.scanRunning": "Library scan…",
   "v2.nav.scanRunningPct": "Library scan — {p}%",
   "v2.nav.scanRunningFiles": "Library scan — {f} files",

@@ -2758,6 +2758,8 @@ export default {
   "v2.scan.scopeLibraryOne": "整个音乐库",
   "v2.scan.scopeLocation": "位置 {k}/{n}：{d}",
   "v2.scan.scopeLocationFiles": "位置 {k}/{n}：{d}（{f} 个文件）",
+  "v2.scan.locationPct": "{k}/{n} · {d}：{p}%（{s} / {f}）",
+  "v2.scan.locationFilesOnly": "{k}/{n} · {d}：{f} 个文件",
   "v2.nav.scanRunning": "正在扫描音乐库…",
   "v2.nav.scanRunningPct": "正在扫描音乐库 — {p}%",
   "v2.nav.scanRunningFiles": "正在扫描音乐库 — {f} 个文件",

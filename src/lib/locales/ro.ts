@@ -2758,6 +2758,8 @@ export default {
   "v2.scan.scopeLibraryOne": "Întreaga bibliotecă",
   "v2.scan.scopeLocation": "Locația {k}/{n}: {d}",
   "v2.scan.scopeLocationFiles": "Locația {k}/{n}: {d} ({f} fișiere)",
+  "v2.scan.locationPct": "{k}/{n} · {d}: {p}% ({s} / {f})",
+  "v2.scan.locationFilesOnly": "{k}/{n} · {d}: {f} fișiere",
   "v2.nav.scanRunning": "Analiza bibliotecii…",
   "v2.nav.scanRunningPct": "Analiza bibliotecii — {p} %",
   "v2.nav.scanRunningFiles": "Analiza bibliotecii — {f} fișiere",

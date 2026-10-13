@@ -25,7 +25,7 @@ vi.mock('../api', async (importOriginal) => {
 import SettingsV2 from '../../components/v2/SettingsV2.svelte';
 import { preferences } from '../stores/preferences';
 import { locale } from '../i18n';
-import { avancementAnalyse, fusionnerAvancement, lignesPortee } from '../analyseBibliotheque';
+import { avancementAnalyse, fusionnerAvancement, lignesPortee, lignesEmplacements } from '../analyseBibliotheque';
 import lFr from '../locales/fr';
 
 const fr = lFr as unknown as Record<string, string>;
@@ -73,6 +73,42 @@ describe('#6167 — la portée du scan, dans l’état partagé', () => {
     expect(lignesPortee(fusionnerAvancement(null, { ...ANNONCE, scope: 'folder' }), tr)).toBeNull();
   });
   // Les onze langues : tenues par `scripts/check-i18n.mjs` (11 langues à 100 %).
+});
+
+/** Décision du 13/10 : le pourcentage de CHAQUE emplacement, en plus du total. */
+const LOCATIONS = [
+  { index: 1, location: '/mnt/disque1', files: 100_000, scanned: 100_000 },
+  { index: 2, location: '/mnt/disque2/Classique', files: 120_000, scanned: 44_400 },
+  { index: 3, location: '/mnt/disque3', files: 85_281, scanned: 0 },
+  { index: 4, location: '/mnt/disque4', files: 100_000, scanned: 0 },
+];
+
+describe('#6167 — le pourcentage par emplacement', () => {
+  it('une ligne par emplacement, avec son pourcentage ; l’emplacement en cours est marqué', () => {
+    const a = fusionnerAvancement(null, { ...ANNONCE, locations: LOCATIONS });
+    const l = lignesEmplacements(a, tr)!;
+    expect(l).toHaveLength(4);
+    expect(l.map((e) => e.pct)).toEqual([100, 37, 0, 0]);
+    expect(l[1].texte).toBe(fr['v2.scan.locationPct']
+      .replace('{k}', '2').replace('{n}', '4').replace('{d}', 'Classique')
+      .replace('{p}', '37').replace('{s}', '44400').replace('{f}', '120000'));
+    expect(l.map((e) => e.enCours)).toEqual([false, true, false, false]);
+    // Une annonce sans `locations` (extended_metadata, prune) garde la dernière.
+    expect(lignesEmplacements(fusionnerAvancement(a, { phase: 'prune', pruned: 1 }), tr)).toHaveLength(4);
+  });
+
+  it('avant le pré-filtre : les fichiers de chacun, sans pourcentage inventé', () => {
+    const avant = LOCATIONS.map(({ scanned: _s, ...e }) => e);
+    const l = lignesEmplacements(fusionnerAvancement(null, { ...ANNONCE, locations: avant }), tr)!;
+    expect(l.every((e) => e.pct === null)).toBe(true);
+    expect(l[0].texte).toBe(fr['v2.scan.locationFilesOnly']
+      .replace('{k}', '1').replace('{n}', '4').replace('{d}', 'disque1').replace('{f}', '100000'));
+  });
+
+  it('CONTRE-ÉPREUVE : serveur sans `locations`, ou scan ciblé : pas de liste', () => {
+    expect(lignesEmplacements(fusionnerAvancement(null, ANNONCE), tr)).toBeNull();
+    expect(lignesEmplacements(fusionnerAvancement(null, { ...ANNONCE, scope: 'folder', locations: LOCATIONS }), tr)).toBeNull();
+  });
 });
 
 // ── L'écran réel ────────────────────────────────────────────────────────────
@@ -133,5 +169,18 @@ describe('#6167 — sous la barre des Réglages', () => {
     expect(emplacement, 'l’emplacement en cours n’est pas nommé').not.toBeNull();
     expect(emplacement!.textContent).toMatch(/2\/4/);
     expect(emplacement!.textContent).toContain('Classique');
+  });
+
+  it('🔴 chaque emplacement a sa ligne et sa jauge, en plus du total', async () => {
+    const el = await ongletBibliotheque({ ...ANNONCE, locations: LOCATIONS });
+    const liste = el.querySelector('[data-emplacements-scan]');
+    expect(liste, 'aucun pourcentage par emplacement').not.toBeNull();
+    const lignes = [...liste!.querySelectorAll('li')];
+    expect(lignes).toHaveLength(4);
+    expect(lignes[1].textContent).toContain('37');
+    expect(lignes[1].classList.contains('en-cours')).toBe(true);
+    expect((lignes[1].querySelector('.rempli') as HTMLElement).style.width).toBe('37%');
+    // Le total reste là.
+    expect(el.querySelector('.scan-avance > .jauge .rempli')).not.toBeNull();
   });
 });
