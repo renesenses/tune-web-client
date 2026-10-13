@@ -3435,6 +3435,7 @@ export default {
   "streaming.genrePlaylists": 'Playlisturi din acest gen',
   "streaming.genresEmpty": 'Acest serviciu nu oferă genuri.',
   "v2.hist.eyebrow": "Ce ați ascultat",
+  "v2.hist.regleEcoute": "O ascultare contează de îndată ce sunetul ajunge la ieșire, la începutul piesei: și o piesă sărită după câteva secunde contează. Radioul nu este înregistrat. Trimiterea către Last.fm așteaptă jumătate din piesă sau 4 minute (piese de peste 30 s).",
   "v2.hist.replayError": "Nu s-a putut relua această ascultare",
   "v2.hist.ctx.album": "Album",
   "v2.hist.ctx.playlist": "Listă",
