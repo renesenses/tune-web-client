@@ -13,13 +13,17 @@
  *     seulement : le cœur n'est pas touché) ;
  *  4. `RecommendationsSection` (l'ancien tableau de bord, `/dashboard`) lit
  *     `/home/recommendations` et affiche la raison en phrase — plus jamais
- *     `/library/recommendations`.
+ *     `/library/recommendations` ;
+ *  5. les RADIOS de l'accueil (décision du 13/10/2026) : leur raison, leur
+ *     désignation, et un menu « … » réduit à « Pas pour moi ».
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { texteRaison } from '../raisonSuggestion';
 import { widgetParId, type Contexte } from '../accueilWidgets';
 import { cibleArtiste, cibleDeSuggestion } from '../suggestionsEcartees';
+import { entreesPochette } from '../actionsPochette';
+import { objetAUnMenu } from '../gestesObjet';
 import RecommendationsSection from '../../components/v2-heritage/RecommendationsSection.svelte';
 import lFr from '../locales/fr';
 import lEn from '../locales/en';
@@ -128,5 +132,36 @@ describe('4. RecommendationsSection lit /home/recommendations', () => {
     expect(raisons.join(' | ')).not.toMatch(/genre_match|random/);
     unmount(comp);
     hote.remove();
+  });
+});
+
+describe('5. les radios de l’accueil : raison et « Pas pour moi »', () => {
+  it('disent pourquoi, en français et en anglais', () => {
+    expect(texteRaison({ type: 'radio_favorite' }, tFr)).toBe('Dans vos radios favorites');
+    expect(texteRaison({ type: 'radio_ecoutee' }, tFr)).toBe('Écoutée récemment');
+    expect(texteRaison({ type: 'radio_ecoutee', ecoute_le: 1791806400 }, tEn, 'en')).toBe('Played on Oct 12, 2026');
+  });
+
+  it('la bande des radios reprend la raison et désigne la station', async () => {
+    serveur([
+      ['/home/radio-picks', [
+        { id: 7, name: 'FIP', url: 'https://exemple.test/fip', is_favorite: true, raison: { type: 'radio_favorite' } },
+      ]],
+    ]);
+    const [el] = await widgetParId('radios-artistes')!.charger(ctx);
+    expect(el.raison).toEqual({ type: 'radio_favorite' });
+    expect(el.suggestion).toBe(true);
+    expect(cibleDeSuggestion(el)).toMatchObject({ item_type: 'radio', source: 'local', item_id: '7' });
+    expect(cibleArtiste(el), 'une radio n’a pas d’artiste à écarter').toBeNull();
+  });
+
+  it('le menu d’une radio n’existe que pour « Pas pour moi », et ne porte que lui', () => {
+    const radio = { type: 'radio' as const, nom: 'FIP' };
+    expect(objetAUnMenu(radio), 'ailleurs, une radio garde ses propres boutons').toBe(false);
+    const pasPourMoi = () => {};
+    expect(objetAUnMenu(radio, { pasPourMoi })).toBe(true);
+    const entrees = entreesPochette({ type: 'radio', idBibliotheque: null, service: null }, { pasPourMoi }, tFr);
+    expect(entrees.map((e) => e.cle)).toEqual(['v2.dismiss.notForMe']);
+    expect(entreesPochette({ type: 'podcast', idBibliotheque: null, service: null }, { pasPourMoi }, tFr)).toEqual([]);
   });
 });

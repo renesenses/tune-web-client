@@ -68,6 +68,11 @@ export interface Element {
   suggestion?: boolean;
   /** L'artiste qu'un « Pas pour moi : cet artiste » écarterait. */
   artisteSuggere?: string | null;
+  /**
+   * La RADIO que montre la vignette (`radio_stations.id`), quand c'en est une
+   * — ce que « Pas pour moi » écarte (web#916, décision du 13/10/2026).
+   */
+  radioId?: number | null;
   cover?: string | null;
   /** Ce que fait un clic. Absent = l'élément n'est pas actionnable. */
   jouer?: (zoneId: number) => Promise<unknown> | void;
@@ -1766,9 +1771,13 @@ export const WIDGETS: Widget[] = [
             // convertisseur commun, cet `id` serait parti en `album_id` et
             // aurait joue un album au hasard.
             const el = versElement(o, i, 'rad', { genre: 'aucun' });
+            // web#916 (décision du 13/10/2026) — « Dans vos radios favorites » /
+            // « Écoutée le … » (raison du serveur), et « Pas pour moi » : le
+            // serveur ne la repropose plus à ce profil.
+            const pourquoi = { ...el, raison: raisonDe(o) };
             return o?.id != null
-              ? { ...el, jouer: (z: number) => api.playRadio(o.id, z) }
-              : el;
+              ? { ...pourquoi, jouer: (z: number) => api.playRadio(o.id, z), radioId: Number(o.id), suggestion: true }
+              : pourquoi;
           }),
       ),
   },

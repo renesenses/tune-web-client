@@ -8649,7 +8649,7 @@ export function getRadioPicks() {
  *   réduits — écarté chez tous les services à la fois.
  */
 export interface SuggestionEcartee {
-  item_type: 'album' | 'artist' | 'playlist';
+  item_type: 'album' | 'artist' | 'playlist' | 'radio';
   source: string;
   item_id: string;
   title?: string | null;

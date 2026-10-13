@@ -882,7 +882,9 @@ export function gestesObjet(o: ObjetMenu, options: OptionsMenuObjet = {}): Geste
  * de lectures de magasins pour peindre une liste.
  */
 export function objetAUnMenu(o: ObjetMenu, gestes: GestesPochette = {}): boolean {
-  if (o.type === 'radio' || o.type === 'podcast') return false;
+  // web#916 — sauf la radio que l'accueil suggère : « Pas pour moi ».
+  if (o.type === 'radio') return !!gestes.pasPourMoi;
+  if (o.type === 'podcast') return false;
   if (o.type === 'label') return !!o.nom;
   return o.id != null || deService(o) || !!gestes.ouvrir || ouvrirParDefaut(o) != null;
 }

@@ -996,6 +996,9 @@
 
   function objetElement(e: Element): ObjetMenu | null {
     if (!e || e.ouvrir === 'zone' || e.ouvrir === 'lire') return null;
+    // web#916 (13/10/2026) — une radio suggérée porte un menu « … » réduit à
+    // « Pas pour moi » (`entreesPochette`) : sans objet, pas de bouton.
+    if (e.radioId != null && e.suggestion) return { type: 'radio', nom: e.titre };
     if (e.ouvrir === 'cible' && e.cible) {
       const c = e.cible;
       if (c.sorte === 'playlist') return { type: 'playlist', id: c.id, nom: c.nom };
