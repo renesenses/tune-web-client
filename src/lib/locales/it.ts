@@ -3442,6 +3442,7 @@ export default {
   "streaming.genrePlaylists": 'Playlist di questo genere',
   "streaming.genresEmpty": 'Questo servizio non propone alcun genere.',
   "v2.hist.eyebrow": "Cosa hai ascoltato",
+  "v2.hist.regleEcoute": "Un ascolto conta appena il suono arriva all’uscita, all’inizio del brano: anche un brano saltato dopo pochi secondi conta. La radio non viene registrata. L’invio a Last.fm attende metà del brano o 4 minuti (brani oltre 30 s).",
   "v2.hist.replayError": "Impossibile riavviare questo ascolto",
   "v2.hist.ctx.album": "Album",
   "v2.hist.ctx.playlist": "Playlist",

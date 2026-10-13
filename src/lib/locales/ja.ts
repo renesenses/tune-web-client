@@ -3442,6 +3442,7 @@ export default {
   "streaming.genrePlaylists": 'このジャンルのプレイリスト',
   "streaming.genresEmpty": 'このサービスはジャンルを提供していません。',
   "v2.hist.eyebrow": "これまでに聴いた曲",
+  "v2.hist.regleEcoute": "再生は、音が出力に送られた時点（曲の冒頭）で記録されます。数秒でスキップした曲も数えられます。ラジオは記録されません。Last.fm へのスクロブルは、曲の半分または 4 分の再生を待ちます（30 秒を超える曲のみ）。",
   "v2.hist.replayError": "この再生を再開できませんでした",
   "v2.hist.ctx.album": "アルバム",
   "v2.hist.ctx.playlist": "プレイリスト",
