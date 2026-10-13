@@ -1115,6 +1115,7 @@ export default {
   "nowplaying.version.ruleTip": "Elegida por la regla de versión del perfil ({rule}).",
   "nowplaying.version.explicit": "elegida manualmente",
   "profiles.versionRule.title": "Versión reproducida por defecto",
+  "profiles.fallbackNotice": "Perfil: {name}. Este navegador ya no recordaba su perfil (¿caché borrada?). Si no es el correcto, cámbielo desde el menú de perfiles: sus listas y favoritos se guardan por perfil.",
   "profiles.versionRule.hint": "Cuando una misma grabación existe en varias copias (biblioteca, servicios), se reproduce la que elige esta regla, para el perfil activo.",
   "profiles.versionRule.inherit": "Predeterminado del servidor ({rule})",
   "profiles.versionRule.none": "Ninguna (reproducir lo que se lanza)",

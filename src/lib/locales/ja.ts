@@ -1115,6 +1115,7 @@ export default {
   "nowplaying.version.ruleTip": "プロファイルのバージョンルール（{rule}）で選択されました。",
   "nowplaying.version.explicit": "手動で選択",
   "profiles.versionRule.title": "既定で再生するバージョン",
+  "profiles.fallbackNotice": "プロフィール：{name}。このブラウザーはプロフィールを覚えていませんでした（キャッシュを消去しましたか？）。違う場合はプロフィールメニューから切り替えてください。プレイリストとお気に入りはプロフィールごとに保存されます。",
   "profiles.versionRule.hint": "同じ録音が複数（ライブラリ、サービス）にある場合、アクティブなプロファイルではこのルールで選ばれたものを再生します。",
   "profiles.versionRule.inherit": "サーバーの既定（{rule}）",
   "profiles.versionRule.none": "なし（起動したものを再生）",

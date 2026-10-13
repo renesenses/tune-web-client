@@ -1196,6 +1196,7 @@ export default {
   "nowplaying.version.ruleTip": "A profil verziószabálya választotta ({rule}).",
   "nowplaying.version.explicit": "kézzel választva",
   "profiles.versionRule.title": "Alapértelmezetten lejátszott verzió",
+  "profiles.fallbackNotice": "Profil: {name}. Ez a böngésző már nem emlékezett a profiljára (törölt gyorsítótár?). Ha nem ez a megfelelő, váltson a profilmenüben: a lejátszási listák és kedvencek profilonként tárolódnak.",
   "profiles.versionRule.hint": "Ha ugyanaz a felvétel több példányban létezik (könyvtár, szolgáltatások), az aktív profilnál a szabály által választott szól.",
   "profiles.versionRule.inherit": "Szerver alapértelmezése ({rule})",
   "profiles.versionRule.none": "Nincs (az elindítottat játssza)",
