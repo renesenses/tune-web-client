@@ -119,7 +119,9 @@ describe('#2264 — le panneau dessine les groupes du serveur', () => {
   it('deux groupes : cet enregistrement, puis un autre', async () => {
     await monter();
     const titres = [...document.querySelectorAll('.groupe h3')].map(texte);
-    expect(titres).toEqual(['Cet enregistrement · titre, artiste et durée', 'Autre enregistrement']);
+    // web#2017 — le second groupe se dit par ce qui le distingue, plus par
+    // « Autre enregistrement » répété.
+    expect(titres).toEqual(['Cet enregistrement · titre, artiste et durée', 'Live at Wembley · Michael Jackson · 4:54']);
     expect(document.querySelectorAll('.tuile')).toHaveLength(0);
   });
 
