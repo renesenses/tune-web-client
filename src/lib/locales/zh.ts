@@ -3086,6 +3086,7 @@ export default {
   "v2.zone.horsBackendAsio": "已选择 ASIO：请使用 ASIO 区域",
   "v2.zone.openNowPlaying": "打开此区域的正在播放",
   "v2.zone.openSettings": "此区域的设置",
+  "v2.zone.roomCorrection": "房间校正",
   "v2.zone.presenceAbsent": "已离线 {days} 天",
   "v2.zone.presenceNever": "更新后从未出现",
   "v2.zone.stereoPairs": "立体声配对",

@@ -3040,6 +3040,7 @@ export default {
   "v2.zone.horsBackendAsio": "Az ASIO van kiválasztva: használja az ASIO zónát",
   "v2.zone.openNowPlaying": "A most játszott megnyitása ezen a zónán",
   "v2.zone.openSettings": "Ennek a zónának a beállításai",
+  "v2.zone.roomCorrection": "Szobakorrekció",
   "v2.zone.presenceAbsent": "{days} napja hiányzik",
   "v2.zone.presenceNever": "A frissítés óta nem látott",
   "v2.zone.stereoPairs": "Sztereó párok",
