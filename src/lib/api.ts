@@ -5525,6 +5525,24 @@ export function getStreamingGenreAlbums(service: string, genreId: string, limit 
   return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`);
 }
 
+/**
+ * tune-server-rust#6231 — chercher dans le catalogue du service, restreint au
+ * genre. 501 : le service ne le permet pas ; 404 : serveur antérieur.
+ */
+export interface RechercheDansUnGenre {
+  albums: Album[];
+  /** Résultats de la recherche du service examinés pour en tirer `albums`. */
+  examined: number;
+  /** `results` : le genre est appliqué aux résultats de la recherche du service. */
+  genre_filter: string;
+}
+
+export function searchStreamingGenre(service: string, genreId: string, q: string, limit = 50) {
+  return fetchJSON<RechercheDansUnGenre>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+  );
+}
+
 export function getStreamingPlaylists(service: string) {
   return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists`);
 }
