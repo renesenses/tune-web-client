@@ -71,7 +71,12 @@
      */
     id?: number | null;
     onClose: () => void;
-    onSaved: () => void;
+    /**
+     * Appelé après l'enregistrement. À la CRÉATION, reçoit la collection rendue
+     * par le serveur (son `id`) : l'écran Collections en a besoin pour la ranger
+     * dans le rayon d'où la création est partie (web#1579).
+     */
+    onSaved: (creee?: { id?: number } | null) => void;
     /**
      * Supprimer la collection éditée — #1143.
      *
@@ -286,10 +291,11 @@
         rules: completes,
         match_mode: mode,
       };
+      let creee: { id?: number } | null = null;
       if (id != null) await api.updateSmartCollection(id, charge);
-      else await api.createSmartCollection(charge as any);
+      else creee = (await api.createSmartCollection(charge as any)) ?? null;
       notifications.success($t('v2.smart.saved' as any));
-      onSaved();
+      onSaved(creee);
       onClose();
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
