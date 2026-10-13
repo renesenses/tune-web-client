@@ -17,6 +17,7 @@
    */
   import { onMount } from 'svelte';
   import { t, locale } from '../../lib/i18n';
+  import { noterReglagesIa } from '../../lib/assistantIaDialogue';
   import AlertePlafondIaV2 from './AlertePlafondIaV2.svelte';
   import {
     lireReglagesIa, changerReglagesIa, testerCleIa, estEchec, estReglages, cleDEchec, peutModifier,
@@ -40,6 +41,7 @@
   let erreur = $state<string | null>(null);
 
   function remplir(v: ReglagesIa) {
+    noterReglagesIa(v);
     r = v;
     fournisseur = v.fournisseur ?? '';
     modele = v.modele ?? '';
