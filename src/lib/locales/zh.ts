@@ -4054,6 +4054,8 @@ export default {
   "v2.hint.serverUnreachableDot": "无法连接服务器。",
   "v2.hint.tracksAnalysed": "已分析 {n} 首曲目。进度可在 **{tab}** 中查看。",
   "v2.set.browserZoneExists": "该区域已存在：「{nom}」现在是活动区域。",
+  "v2.zone.browserOtherDevice": "「{nom}」是一个浏览器区域，本浏览器不会播放它（它属于另一台设备）：这里没有声音。",
+  "v2.zone.browserPlayHere": "在此设备上播放",
   "v2.set.browserZoneDuplicates": "已存在 {n} 个浏览器区域。它们可以互换 —— 一个就够了。",
   "v2.set.peakMeter": "峰值表",
   "v2.set.peakMeterHint": "仅用于显示，不改变信号。播放栏只显示指示灯：两种条形表在那里太宽。",

@@ -4053,6 +4053,8 @@ export default {
   "v2.hint.serverUnreachableDot": "Servern kan inte nås.",
   "v2.hint.tracksAnalysed": "{n} spår analyserade. Förloppet följs i **{tab}**.",
   "v2.set.browserZoneExists": "Den zonen finns redan: ”{nom}” är nu den aktiva zonen.",
+  "v2.zone.browserOtherDevice": "”{nom}” är en webbläsarzon som den här webbläsaren inte spelar (den tillhör en annan enhet): inget ljud här.",
+  "v2.zone.browserPlayHere": "Spela den på den här enheten",
   "v2.set.browserZoneDuplicates": "Det finns redan {n} webbläsarzoner. De är utbytbara — en räcker.",
   "v2.set.peakMeter": "Toppmätare",
   "v2.set.peakMeterHint": "Endast visning — signalen ändras inte. Uppspelningsraden visar bara lamporna: de två stapelmätarna är för breda där.",

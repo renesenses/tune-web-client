@@ -4054,6 +4054,8 @@ export default {
   "v2.hint.serverUnreachableDot": "Server nicht erreichbar.",
   "v2.hint.tracksAnalysed": "{n} Titel analysiert. Der Fortschritt wird in **{tab}** verfolgt.",
   "v2.set.browserZoneExists": "Diese Zone gibt es bereits: „{nom}“ ist jetzt die aktive Zone.",
+  "v2.zone.browserOtherDevice": "„{nom}“ ist eine Browser-Zone, die dieser Browser nicht abspielt (sie gehört zu einem anderen Gerät): hier kommt kein Ton.",
+  "v2.zone.browserPlayHere": "Auf diesem Gerät abspielen",
   "v2.set.browserZoneDuplicates": "Es gibt bereits {n} Browser-Zonen. Sie sind austauschbar — eine genügt.",
   "v2.set.peakMeter": "Spitzenpegelmesser",
   "v2.set.peakMeterHint": "Nur Anzeige — das Signal bleibt unverändert. Die Wiedergabeleiste zeigt nur die Lampen: Die beiden Bargraphen sind dort zu breit.",
