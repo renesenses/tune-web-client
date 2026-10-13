@@ -4749,6 +4749,21 @@ export function setMusicDirectoryOrder(ordre: string[]): Promise<MusicDirectoryO
   });
 }
 
+/**
+ * web#2063 — le lecteur de la zone navigateur dit qu'il joue (serveur #6066).
+ * 200 `{"status": "confirmed" | "nothing_pending" | "not_playing_yet"}`.
+ * 404 (zone inconnue, ou serveur antérieur sans la route), 405 et 409
+ * (`not_a_browser_zone`) sont rendus sans bandeau : la confirmation ne doit
+ * jamais gêner la lecture.
+ */
+export function signalerLectureNavigateur(zoneId: number, streamId: string, positionMs: number) {
+  return fetchJSON<{ status?: string; error?: string } | undefined>(
+    `${BASE}/zones/${zoneId}/browser-playing`,
+    { method: 'POST', body: JSON.stringify({ stream_id: streamId, position_ms: positionMs }) },
+    (statut) => statut === 404 || statut === 405 || statut === 409,
+  );
+}
+
 export function triggerScan(path?: string, full = false) {
   const params = new URLSearchParams();
   if (path) params.set('path', path);
