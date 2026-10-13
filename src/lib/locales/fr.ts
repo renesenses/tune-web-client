@@ -1,4 +1,11 @@
 export default {
+  "sacdIso.title": "ISO SACD",
+  "sacdIso.available": "sacd_extract détecté sur le serveur. Cela ne garantit pas l’extraction de chaque ISO.",
+  "sacdIso.missing": "sacd_extract n’est pas détecté par Tune. Installez cet outil séparément sur le serveur ; si vous modifiez le PATH, redémarrez Tune, puis relancez le scan. Tune ne fournit pas cet outil.",
+  "sacdIso.unknown": "Impossible de vérifier la disponibilité de sacd_extract. Réessayez ; cet état ne signifie pas que l’outil est absent.",
+  "sacdIso.loading": "Vérification de sacd_extract…",
+  "sacdIso.check": "Vérifier à nouveau",
+
   // App shell (bannières)
   'app.enrichmentRunning': 'Enrichissement en cours…',
   'app.scanArtistImagesPremiumSkipped': "Scan terminé · les images d’artistes n’ont pas été recherchées automatiquement (fonction Premium). Vous pouvez lancer « Enrichir les images d’artistes » dans Réglages > Bibliothèque.",
