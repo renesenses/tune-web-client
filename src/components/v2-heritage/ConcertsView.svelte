@@ -11,6 +11,7 @@
   import { grouperConcerts, normaliserTriConcerts, type TriConcerts } from '../../lib/concertsTri';
   import { PAYS_PAR_DEFAUT, codeDePays, optionsDePays } from '../../lib/concertsPays';
   import { creerArret, estArret } from '../../lib/rechercheArretable';
+  import { PLUS_TARD, communeEnregistree, lieuDejaApplique, normaliserChoixLieu, normaliserLieuConcerts } from '../../lib/concertsLieu';
 
   // L'écran répond à une question, une seule : « les artistes que j'écoute
   // jouent-ils près de chez moi ? » — demande de FabienM et Didier, fil 1540.
@@ -46,6 +47,9 @@
   let optionsPays = $derived(optionsDePays($locale, pays));
   let localisee = $state<boolean | null>(null);
   let enregistrement = $state(false);
+  /** web#1755 — ce profil n'a encore rien dit et le serveur ne garde aucune
+   *  commune : l'écran DEMANDE où l'on habite et jusqu'où l'on va. */
+  let aDemander = $state(false);
 
   /** Le périmètre qui a VRAIMENT filtré la liste (`applied_scope`), s'il est
    *  connu. `perimetre` reste le choix, qui pré-remplit le formulaire : un
@@ -96,33 +100,87 @@
     void ouvrir();
   });
 
+  /**
+   * web#1755 — la localisation est lue AVANT la recherche (route locale,
+   * rapide) : la commune enregistrée pré-remplit l'écran même quand le nuage
+   * tarde, et l'écran sait s'il doit poser la question ou rejouer le choix de
+   * CE profil (`lib/concertsLieu.ts`).
+   */
   async function ouvrir() {
-    await charger();
+    const lue = await lireLocalisation();
     // Un refus vaut pour toutes les routes du greffon : inutile de le récolter
     // une seconde fois (et un second bandeau).
-    if (!refus) await lireLocalisation();
+    if (refus) return;
+    const choix = normaliserChoixLieu($preferences.concertsLieu);
+    if (lue && !serveurTropAncien) {
+      if (choix && choix !== PLUS_TARD && !lieuDejaApplique(choix, lue)) {
+        // Un autre profil a réglé le serveur : rejouer celui-ci. La recherche
+        // suit l'enregistrement (`enregistrerLocalisation` → `charger`).
+        perimetre = choix.scope;
+        commune = choix.city;
+        codePostal = choix.postal_code ?? '';
+        if (codeDePays(choix.country)) pays = codeDePays(choix.country)!;
+        rayon = choix.radius_km;
+        await enregistrerLocalisation(choix.scope);
+        return;
+      }
+      if (!choix) {
+        // Une commune déjà enregistrée (avant ce réglage par profil) est
+        // reprise telle quelle : on ne redemande pas ce qui a été dit.
+        if (communeEnregistree(lue.city)) retenirLieu(lue.scope ?? perimetre);
+        else aDemander = true;
+      }
+    }
+    await charger();
+    if (lue && !refus) appliquerLocalisation(lue);
+  }
+
+  /** Retenir, pour CE profil, le périmètre et la commune affichés. */
+  function retenirLieu(scope: api.PerimetreConcerts) {
+    const lieu = normaliserLieuConcerts({
+      scope, city: commune.trim(), postal_code: codePostal.trim() || null,
+      country: pays.trim().toUpperCase(), radius_km: rayon,
+    });
+    if (lieu) preferences.update((p) => ({ ...p, concertsLieu: lieu }));
+  }
+
+  /** « Pas maintenant » : le comportement d'avant (pays ou Partout, ce que
+   *  le serveur applique), sans rien envoyer — et la question ne revient pas
+   *  à chaque ouverture. */
+  function passerLaQuestion() {
+    aDemander = false;
+    preferences.update((p) => ({ ...p, concertsLieu: PLUS_TARD }));
   }
 
   /** Pré-remplir la commune, le code postal et le périmètre enregistrés. */
-  async function lireLocalisation() {
+  async function lireLocalisation(): Promise<api.LocalisationConcerts | null> {
     try {
       const l = await api.getLocalisationConcerts();
-      if (!l) return;
-      if (l.scope) perimetre = l.scope;
-      if (l.radius_km) rayon = l.radius_km;
-      if (l.city && l.city !== '—') commune = l.city;
-      if (l.postal_code) codePostal = l.postal_code;
-      if (codeDePays(l.country)) pays = codeDePays(l.country)!;
-      // Ne pas écraser le verdict plus frais de `upcoming` : la liste vient
-      // d'être servie, c'est elle qui dit si le rayon s'applique.
-      if (typeof l.located === 'boolean' && localisee === null) localisee = l.located;
-      if (typeof l.ambiguous === 'boolean') ambigue = l.ambiguous;
+      if (!l) return null;
+      appliquerLocalisation(l);
+      return l;
     } catch (e) {
       const r = refusConcerts(e);
       if (r) refus = r;
       else if ((e as api.ApiError)?.status === 404) serveurTropAncien = true;
       // Toute autre erreur : on garde les valeurs de `upcoming`, rien à dire.
+      return null;
     }
+  }
+
+  /** Les valeurs de `GET /location` dans le formulaire. Appliquées une seconde
+   *  fois APRÈS la recherche (`ouvrir`) : elles priment sur celles de
+   *  `upcoming`, comme quand elles étaient lues après elle. */
+  function appliquerLocalisation(l: api.LocalisationConcerts) {
+    if (l.scope) perimetre = l.scope;
+    if (l.radius_km) rayon = l.radius_km;
+    if (l.city && l.city !== '—') commune = l.city;
+    if (l.postal_code) codePostal = l.postal_code;
+    if (codeDePays(l.country)) pays = codeDePays(l.country)!;
+    // Ne pas écraser le verdict plus frais de `upcoming` : la liste vient
+    // d'être servie, c'est elle qui dit si le rayon s'applique.
+    if (typeof l.located === 'boolean' && localisee === null) localisee = l.located;
+    if (typeof l.ambiguous === 'boolean') ambigue = l.ambiguous;
   }
 
   function lirePage(reponse: api.ConcertsAVenir) {
@@ -235,6 +293,9 @@
       ambigue = reponse.ambiguous === true;
       perimetreApplique = null;
       refus = null;
+      // web#1755 — le choix accepté est celui de CE profil.
+      aDemander = false;
+      retenirLieu(reponse.scope ?? vise);
       await charger();
     } catch (e) {
       if (estArret(e) || signal.aborted) return;
@@ -324,6 +385,47 @@
   {:else}
     {#if serveurTropAncien}
       <p class="cc-note cc-attention cc-trop-ancien">{$t('concerts.serveurTropAncien')}</p>
+    {:else if aDemander}
+      <!-- web#1755 (fil 2028) : la première question de l'écran est celle de
+           son titre — où j'habite, jusqu'où j'irais. « Pas maintenant » garde
+           le comportement d'avant (pays ou Partout). -->
+      <section class="cc-perimetre cc-question">
+        <p class="cc-question-titre">{$t('concerts.questionLieu')}</p>
+        <div class="cc-commune">
+          <input
+            type="text"
+            bind:value={commune}
+            placeholder={$t('concerts.communePlaceholder')}
+            aria-label={$t('concerts.commune')}
+          />
+          <input
+            type="text"
+            class="cc-cp"
+            bind:value={codePostal}
+            placeholder={$t('concerts.codePostalPlaceholder')}
+            aria-label={$t('concerts.codePostal')}
+          />
+          <select bind:value={pays} aria-label={$t('concerts.pays')}>
+            {#each optionsPays as option (option.code)}
+              <option value={option.code}>{option.nom}</option>
+            {/each}
+          </select>
+          <select bind:value={rayon} aria-label={$t('concerts.rayon')}>
+            {#each api.RAYONS_CONCERTS as km (km)}
+              <option value={km}>{km} km</option>
+            {/each}
+          </select>
+        </div>
+        <div class="cc-question-actions">
+          <button class="cc-principal" disabled={enregistrement} onclick={() => enregistrerLocalisation('radius')}>
+            {$t('concerts.appliquer')}
+          </button>
+          <button class="cc-pas-maintenant" disabled={enregistrement} onclick={passerLaQuestion}>
+            {$t('concerts.pasMaintenant')}
+          </button>
+        </div>
+        <p class="cc-note">{$t('concerts.communeSaisieNote')}</p>
+      </section>
     {:else}
     <section class="cc-perimetre">
       <div class="cc-crans">
@@ -514,6 +616,10 @@
   .cc-commune { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.75rem 0 0.25rem; }
   .cc-commune input { flex: 1; min-width: 8rem; padding: 0.5rem 0.75rem; border-radius: 6px; }
   .cc-commune .cc-cp { flex: 0 0 6rem; min-width: 5rem; }
+  .cc-question-titre { font-weight: 600; margin: 0 0 0.25rem; }
+  .cc-question-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+  .cc-question-actions .cc-principal { margin-top: 0; }
+  .cc-pas-maintenant { padding: 0.35rem 0.85rem; border-radius: 999px; }
   .cc-pays { display: flex; align-items: center; gap: 0.5rem; margin: 0.75rem 0 0.25rem; }
   .cc-pays select { padding: 0.4rem 0.6rem; border-radius: 6px; }
   .cc-note { color: var(--tune-text-muted); font-size: 0.875rem; margin: 0.35rem 0; }
