@@ -41,8 +41,15 @@ const SANS_SOURCES = AVEC_SOURCES.map(({ provenances: _p, ...a }) => a);
 
 let urls: string[] = [];
 let artistes: unknown[] = AVEC_SOURCES;
+/** Retient la réponse `provenances=1` tant qu'on ne la libère pas (13/10). */
+let porteSources: Promise<void> | null = null;
 
 function corpsPour(u: string): unknown {
+  // La liste sans sources n'a pas de `provenances`, comme le vrai serveur.
+  if (/\/library\/artists/.test(u) && !/provenances=1/.test(u)) {
+    const nus = (artistes as any[]).map(({ provenances: _p, ...a }) => a);
+    return { items: nus, total: nus.length };
+  }
   if (/\/library\/artists/.test(u)) return { items: artistes, total: artistes.length };
   if (/\/library\/tracks/.test(u)) return { items: [], total: 0 };
   if (/\/library\/albums/.test(u)) return { items: [], total: 0 };
@@ -62,6 +69,7 @@ async function jusqua(c: () => boolean, borne = 8000) {
 beforeEach(() => {
   urls = [];
   artistes = AVEC_SOURCES;
+  porteSources = null;
   // La liste des pistes est mémorisée par génération : un témoin précédent
   // qui l'aurait chargée masquerait la requête du repli.
   remisePistes();
@@ -74,6 +82,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async (url: any) => {
     const u = String(url);
     urls.push(u);
+    if (porteSources && /provenances=1/.test(u)) await porteSources;
     const corps = corpsPour(u);
     return {
       ok: true, status: 200, statusText: 'OK',
@@ -158,5 +167,42 @@ describe('web#1716 — filtre et comptes du menu Source sur les sources du serve
     expect(pagePorteLesSources(SANS_SOURCES as any)).toBe(false);
     expect(pagePorteLesSources(AVEC_SOURCES as any)).toBe(true);
     expect([...sourcesDepuisLeServeur(AVEC_SOURCES as any).get(2)!]).toEqual(['local', 'upnp:uuid:s1']);
+  });
+});
+
+describe('web#1716 — décision du 13/10 : la liste avant les sources', () => {
+  function monter(provenance: string | null) {
+    hote = document.createElement('div');
+    document.body.appendChild(hote);
+    monte = mount(ArtistesV2, { target: hote, props: { q: '', provenance } });
+    return () => [...hote!.querySelectorAll('.grille.artistes .carte .ct')].map((e) => e.textContent?.trim());
+  }
+
+  it('la grille s’affiche pendant que les sources sont en route', async () => {
+    let liberer!: () => void;
+    porteSources = new Promise<void>((r) => { liberer = r; });
+    const noms = monter(null);
+    await jusqua(() => noms().length === 3);
+    // Les cartes sont là alors que la réponse `provenances=1` n'est pas arrivée.
+    expect(noms(), 'la grille attend encore les sources').toHaveLength(3);
+    expect(urls.some((u) => /provenances=1/.test(u)), 'les sources ne sont pas demandées').toBe(true);
+    expect(get(sourcesArtistesServeur)).toBeNull();
+    liberer();
+    await jusqua(() => get(sourcesArtistesServeur) === true);
+    expect(get(sourcesArtistesServeur)).toBe(true);
+  });
+
+  it('un filtre Source attend les sources, puis filtre', async () => {
+    let liberer!: () => void;
+    porteSources = new Promise<void>((r) => { liberer = r; });
+    const noms = monter('upnp');
+    await jusqua(() => urls.some((u) => /provenances=1/.test(u)));
+    for (let i = 0; i < 10; i++) await respirer();
+    flushSync();
+    expect(noms(), 'le filtre a tranché sans les sources').toEqual([]);
+    expect(hote!.querySelector('.etat')?.textContent?.trim()).toBe(fr['common.loading']);
+    liberer();
+    await jusqua(() => noms().length === 2);
+    expect(noms()).toEqual(['Deux Sources', 'UPnP Seul']);
   });
 });
