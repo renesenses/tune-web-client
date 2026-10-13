@@ -5000,7 +5000,7 @@ export default {
   "assistantIa.ask.add": "添加",
   "assistantIa.ask.added": "“{titre}”已加入播放队列。",
   "assistantIa.ask.noZone": "请先选择一个播放区域。",
-  "assistantIa.ask.cost": "本次提问费用：约 {cout} €",
+  "assistantIa.ask.cost": "本次提问费用：{cout} €",
   "assistantIa.ask.cap": "本月已花费：{depense} €，上限 {plafond} €。",
   "assistantIa.err.erreur_fournisseur": "服务商返回错误：请重试。",
   "assistantIa.album.button": "AI 建议",

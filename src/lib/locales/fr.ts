@@ -5022,7 +5022,7 @@ export default {
   "assistantIa.ask.add": "Ajouter",
   "assistantIa.ask.added": "« {titre} » ajouté à la file d'attente.",
   "assistantIa.ask.noZone": "Choisissez d'abord une zone de lecture.",
-  "assistantIa.ask.cost": "Coût de cette question : environ {cout} €",
+  "assistantIa.ask.cost": "Coût de cette question : {cout} €",
   "assistantIa.ask.cap": "Dépensé ce mois : {depense} € sur un plafond de {plafond} €.",
   "assistantIa.err.erreur_fournisseur": "Le fournisseur a renvoyé une erreur : réessayez.",
   "assistantIa.album.button": "Suggestions IA",

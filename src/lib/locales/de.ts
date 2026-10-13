@@ -5000,7 +5000,7 @@ export default {
   "assistantIa.ask.add": "Hinzufügen",
   "assistantIa.ask.added": "„{titre}“ zur Warteschlange hinzugefügt.",
   "assistantIa.ask.noZone": "Wählen Sie zuerst eine Wiedergabezone.",
-  "assistantIa.ask.cost": "Kosten dieser Frage: etwa {cout} €",
+  "assistantIa.ask.cost": "Kosten dieser Frage: {cout} €",
   "assistantIa.ask.cap": "Diesen Monat ausgegeben: {depense} € von {plafond} € Obergrenze.",
   "assistantIa.err.erreur_fournisseur": "Der Anbieter hat einen Fehler gemeldet: bitte erneut versuchen.",
   "assistantIa.album.button": "KI-Vorschläge",

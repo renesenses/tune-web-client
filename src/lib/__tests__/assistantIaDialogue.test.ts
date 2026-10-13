@@ -72,26 +72,51 @@ describe('citations tirées des résultats d’outils', () => {
 });
 
 describe('coût d’une question', () => {
-  it('l’écart de dépense du mois ; inconnu si un bout manque', () => {
-    expect(d.coutDeQuestion(1, 1.0042)).toBeCloseTo(0.0042, 6);
-    expect(d.coutDeQuestion(null, 1)).toBeNull();
-    expect(d.coutDeQuestion(1, undefined)).toBeNull();
-    expect(d.coutDeQuestion(2, 1)).toBe(0);
+  it('le coût rendu par le serveur ; inconnu s’il manque ou n’est pas un nombre', () => {
+    expect(d.coutDeReponse({ cout_eur: 0.0042 })).toBe(0.0042);
+    expect(d.coutDeReponse({ cout_eur: 0 })).toBe(0);
+    expect(d.coutDeReponse({})).toBeNull();
+    expect(d.coutDeReponse({ cout_eur: 'x' as any })).toBeNull();
+    expect(d.coutDeReponse({ cout_eur: -1 })).toBeNull();
+    expect(d.coutDeReponse(null)).toBeNull();
   });
 
-  it('poserQuestionIa : coût tiré des réglages puis de la question précédente', async () => {
+  it('poserQuestionIa : le coût EXACT de chaque question, jamais un écart de dépense', async () => {
     d.noterReglagesIa(reglages({}, 1.0));
     const demander = vi.fn()
-      .mockResolvedValueOnce({ reply: 'ok', actions: [], plafond: plafond(1.003) })
-      .mockResolvedValueOnce({ reply: 'ok', actions: [], plafond: plafond(1.005) });
+      // La dépense du mois bouge plus que la question (un autre usage entre-temps) :
+      // le coût affiché reste celui que rend le serveur.
+      .mockResolvedValueOnce({ reply: 'ok', actions: [], cout_eur: 0.003, plafond: plafond(1.009) })
+      .mockResolvedValueOnce({ reply: 'ok', actions: [], cout_eur: 0.000037, plafond: plafond(1.5) });
     const t1 = await d.poserQuestionIa('  joue du jazz  ', 2, (c) => c, demander);
     expect(demander).toHaveBeenCalledWith('joue du jazz', 2);
-    expect(t1.cout_eur).toBeCloseTo(0.003, 6);
+    expect(t1.cout_eur).toBe(0.003);
     const t2 = await d.poserQuestionIa('encore', 2, (c) => c, demander);
-    expect(t2.cout_eur).toBeCloseTo(0.002, 6);
-    expect(d.dernierPlafond(get(d.conversationIa))?.depense_eur).toBe(1.005);
-    expect(d.texteCout('≈ {cout} €', t2.cout_eur)).toBe('≈ 0.0020 €');
+    expect(t2.cout_eur).toBe(0.000037);
+    expect(d.dernierPlafond(get(d.conversationIa))?.depense_eur).toBe(1.5);
+    expect(d.texteCout('{cout} €', t1.cout_eur)).toBe('0.003 €');
+    expect(d.texteCout('{cout} €', t2.cout_eur)).toBe('0.000037 €');
+    expect(d.texteCout('{cout} €', 0.125)).toBe('0.125 €');
+    expect(d.texteCout('{cout} €', 0)).toBe('0.00 €');
     expect(d.textePlafond('{depense}/{plafond}', plafond(1.005))).toBe('1.00/5.00');
+  });
+
+  it('serveur antérieur sans cout_eur : aucun coût de question, le plafond reste', async () => {
+    d.noterReglagesIa(reglages({}, 1.0));
+    const demander = vi.fn().mockResolvedValue({ reply: 'ok', actions: [], plafond: plafond(1.004) });
+    const t = await d.poserQuestionIa('x', null, (c) => c, demander);
+    expect(t.cout_eur).toBeNull();
+    expect(d.texteCout('{cout} €', t.cout_eur)).toBeNull();
+    expect(t.plafond?.depense_eur).toBe(1.004);
+  });
+
+  it('un refus en cours de question garde le coût des tours payés', async () => {
+    const demander = vi.fn().mockResolvedValue({
+      reply: 'Plafond…', error: 'plafond_atteint', actions: [], cout_eur: 0.1, plafond: plafond(5),
+    });
+    const tour = await d.poserQuestionIa('x', null, (c) => `trad:${c}`, demander);
+    expect(tour.erreur).toBe('trad:plafond_atteint');
+    expect(tour.cout_eur).toBe(0.1);
   });
 
   it('un refus du serveur est traduit par son code, sans citation', async () => {

@@ -5000,7 +5000,7 @@ export default {
   "assistantIa.ask.add": "追加",
   "assistantIa.ask.added": "「{titre}」をキューに追加しました。",
   "assistantIa.ask.noZone": "先に再生ゾーンを選択してください。",
-  "assistantIa.ask.cost": "この質問の費用：約 {cout} €",
+  "assistantIa.ask.cost": "この質問の費用：{cout} €",
   "assistantIa.ask.cap": "今月の使用額：{depense} €（上限 {plafond} €）。",
   "assistantIa.err.erreur_fournisseur": "プロバイダーがエラーを返しました。もう一度お試しください。",
   "assistantIa.album.button": "AI の提案",

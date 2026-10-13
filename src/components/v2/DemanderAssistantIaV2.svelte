@@ -5,8 +5,9 @@
    * bibliothèque locale, la réponse, et sous elle les albums et pistes
    * qu'elle cite, avec « Lire » et « Ajouter » ; les artistes s'ouvrent.
    *
-   * Chaque réponse dit son coût (environ : l'écart de dépense du mois) et
-   * l'état du plafond ; l'alerte à 80 % est celle des autres usages.
+   * Chaque réponse dit son coût exact (`cout_eur` du serveur ; rien face à
+   * un serveur antérieur) et l'état du plafond ; l'alerte à 80 % est celle
+   * des autres usages.
    *
    * La coquille ne monte ce panneau que si l'assistant est prêt
    * (`assistantIaPret`).

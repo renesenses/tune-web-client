@@ -5020,7 +5020,7 @@ export default {
   "assistantIa.ask.add": "Add",
   "assistantIa.ask.added": "“{titre}” added to the queue.",
   "assistantIa.ask.noZone": "Choose a playback zone first.",
-  "assistantIa.ask.cost": "Cost of this question: about €{cout}",
+  "assistantIa.ask.cost": "Cost of this question: €{cout}",
   "assistantIa.ask.cap": "Spent this month: €{depense} of a €{plafond} cap.",
   "assistantIa.err.erreur_fournisseur": "The provider returned an error: try again.",
   "assistantIa.album.button": "AI suggestions",
