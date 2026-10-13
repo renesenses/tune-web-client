@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AuditIntegrite from '../partages/AuditIntegrite.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Réglages du nouveau client (direction Levente).
@@ -5826,6 +5827,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'library'}
+              <AuditIntegrite />
               <SacdIsoStatus />
               <div class="row">
                 <div class="lbl">
