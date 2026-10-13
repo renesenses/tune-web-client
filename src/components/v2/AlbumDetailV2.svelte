@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BadgeReaffectation from './BadgeReaffectation.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Fiche album du nouveau client (direction Levente). Ouvre par-dessus la
@@ -1475,6 +1476,9 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         <!-- #5530 — le marquage « généré par IA » que le service pose sur
              l'album (Qobuz). Rien quand il ne dit rien. -->
         {#if estMarqueIa(albumAffiche)}<div class="qbadge cue ia" data-ia title={$tr('v2.str.aiGeneratedTip' as any)}>{$tr('v2.str.aiGenerated' as any)}</div>{/if}
+        <!-- web#2140 — une règle de réaffectation des canaux armée sur CET album
+             (bibliothèque locale seulement : la règle porte un album_id local). -->
+        {#if creditsPossibles}<BadgeReaffectation cible="album" id={album.id} />{/if}
       </div>
       <h1>{album.title}</h1>
       <!-- Un vrai BOUTON, pas un `<div onclick>` : le clavier doit l'atteindre.
