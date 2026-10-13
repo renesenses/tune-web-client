@@ -9,6 +9,7 @@ import { seekPositionMs, startSeekTimer, stopSeekTimer } from './nowPlaying';
 import * as api from '../api';
 import { sourceDuLecteur } from '../urlDeFluxNavigateur';
 import { fluxParLeRelais } from '../bridge';
+import { confirmerLectureNavigateur } from '../confirmationLectureNavigateur';
 
 // The singleton <audio> element used for browser playback
 let audioElement: HTMLAudioElement | null = null;
@@ -139,6 +140,8 @@ function getAudio(): HTMLAudioElement {
       echecsConsecutifs = 0;
       lectureRefusee = false;
       if (pilotLaBarreAffichee()) startSeekTimer();
+      // web#2063 : le lecteur dit au serveur qu'il joue (position > 0 seulement).
+      if (audioElement) confirmerLectureNavigateur(zoneDeLaSource(), audioElement.src, audioElement.currentTime);
     });
 
     audioElement.addEventListener('pause', () => {
@@ -181,6 +184,10 @@ function getAudio(): HTMLAudioElement {
     audioElement.addEventListener('timeupdate', () => {
       if (audioElement && pilotLaBarreAffichee()) {
         seekPositionMs.set(Math.floor(audioElement.currentTime * 1000));
+      }
+      // web#2063 : `playing` arrive souvent à 0 ; la première avancée confirme.
+      if (audioElement && !deverrouillageEnCours && !audioElement.paused) {
+        confirmerLectureNavigateur(zoneDeLaSource(), audioElement.src, audioElement.currentTime);
       }
     });
 
