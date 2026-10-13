@@ -323,6 +323,7 @@ export default {
   'playlist.addToPlaylist': 'Lägg till i spellista',
   'playlist.addedTo': 'Tillagd i <strong>{name}</strong>',
   'playlist.noExisting': 'Inga befintliga spellistor',
+  'playlist.noMatch': 'Ingen spellista matchar',
   'playlist.addFailed': 'Det gick inte att lägga till: tjänsten avvisade den här spellistan.',
   'playlist.servicePlaylistsOf': 'Dina {service}-spellistor',
   'playlist.groupTune': 'Tune-spellistor',

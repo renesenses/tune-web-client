@@ -358,6 +358,7 @@ export default {
   'playlist.addToPlaylist': 'Adaugă la playlist',
   'playlist.addedTo': 'Adăugat la <strong>{name}</strong>',
   'playlist.noExisting': 'Niciun playlist existent',
+  'playlist.noMatch': 'Niciun playlist nu corespunde',
   'playlist.addFailed': 'Adăugarea a eșuat: serviciul a refuzat acest playlist.',
   'playlist.servicePlaylistsOf': 'Playlisturile tale {service}',
   'playlist.groupTune': 'Playlisturi Tune',

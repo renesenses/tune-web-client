@@ -352,6 +352,7 @@ export default {
   'playlist.addToPlaylist': '添加到播放列表',
   'playlist.addedTo': '已添加到 <strong>{name}</strong>',
   'playlist.noExisting': '无现有播放列表',
+  'playlist.noMatch': '没有匹配的播放列表',
   'playlist.addFailed': '添加失败：该服务拒绝了此播放列表。',
   'playlist.servicePlaylistsOf': '您的 {service} 播放列表',
   'playlist.groupTune': 'Tune 播放列表',

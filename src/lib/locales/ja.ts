@@ -352,6 +352,7 @@ export default {
   'playlist.addToPlaylist': 'プレイリストに追加',
   'playlist.addedTo': '<strong>{name}</strong>に追加しました',
   'playlist.noExisting': '既存のプレイリストがありません',
+  'playlist.noMatch': '一致するプレイリストはありません',
   'playlist.addFailed': '追加できませんでした：サービスがこのプレイリストを拒否しました。',
   'playlist.servicePlaylistsOf': '{service} のプレイリスト',
   'playlist.groupTune': 'Tune のプレイリスト',

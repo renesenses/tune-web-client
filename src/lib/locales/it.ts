@@ -352,6 +352,7 @@ export default {
   'playlist.addToPlaylist': 'Aggiungi a una playlist',
   'playlist.addedTo': 'Aggiunto a <strong>{name}</strong>',
   'playlist.noExisting': 'Nessuna playlist esistente',
+  'playlist.noMatch': 'Nessuna playlist corrisponde',
   'playlist.addFailed': 'Aggiunta non riuscita: il servizio ha rifiutato questa playlist.',
   'playlist.servicePlaylistsOf': 'Le tue playlist {service}',
   'playlist.groupTune': 'Playlist di Tune',
