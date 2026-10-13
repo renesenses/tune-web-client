@@ -3464,6 +3464,7 @@ export default {
   "v2.rech.albums": "Albume",
   "v2.stream.favIndex": "Cuprinsul favoritelor",
   "v2.fas.topTracks": "Piese populare",
+  "v2.art.alsoOnTracks": "Apare și pe",
   "v2.art.bio": "Biografie",
   "v2.art.bioReadMore": "Citește mai mult",
   "v2.art.bioReadLess": "Restrânge",

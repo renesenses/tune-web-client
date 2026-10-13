@@ -3464,6 +3464,7 @@ export default {
   "v2.rech.albums": "アルバム",
   "v2.stream.favIndex": "お気に入りの目次",
   "v2.fas.topTracks": "人気の曲",
+  "v2.art.alsoOnTracks": "参加曲",
   "v2.art.bio": "バイオグラフィー",
   "v2.art.bioReadMore": "続きを読む",
   "v2.art.bioReadLess": "折りたたむ",

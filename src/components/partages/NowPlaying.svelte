@@ -68,7 +68,8 @@ import { ICONES } from '../../lib/menuPiste';
   import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles, type LyricsMiss } from '../../lib/lyrics';
   import { chargerParolesEnLigne } from '../../lib/lyricsOnline';
   import { boucleImages } from '../../lib/boucleImages';
-  import type { RepeatMode, Track, TrackCredit, NowPlaying } from '../../lib/types';
+  import type { ArtisteRelie, RepeatMode, Track, TrackCredit, NowPlaying } from '../../lib/types';
+  import { artistesDuCredit } from '../../lib/artistesRelies';
 
   let isFavorite = $state(false);
   let favChecking = $state(false);
@@ -1172,10 +1173,15 @@ import { ICONES } from '../../lib/menuPiste';
    * Voir `lib/canauxPiste.ts` pour le détail de ce qui est disponible où.
    */
   let badgeCanaux = $state<string | null>(null);
+  /** Chantier artistes multiples — les artistes du crédit découpé, rendus par
+   *  la même réponse (`artists`) : chacun mène à sa fiche. Vide pour une
+   *  piste à un seul artiste, qui garde son nom d'avant. */
+  let artistesRelies = $state<ArtisteRelie[]>([]);
   $effect(() => {
     const id = idPisteLocale;
     trackDr = null;
     badgeCanaux = null;
+    artistesRelies = [];
     if (id != null) {
       api.getTrack(id)
         .then((t) => {
@@ -1184,6 +1190,7 @@ import { ICONES } from '../../lib/menuPiste';
           if (normalizedTrack?.id !== id) return;
           trackDr = afficherDynamicRange(t as any);
           badgeCanaux = t.channel_badge ?? null;
+          artistesRelies = artistesDuCredit(t);
         })
         .catch(() => {});
     }
@@ -1891,7 +1898,13 @@ import { ICONES } from '../../lib/menuPiste';
               </button>
             {/if}
           </div>
-          {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
+          {#if artistesRelies.length && !isRadio}
+            <!-- Chantier artistes multiples — un lien par artiste du crédit. -->
+            <p class="track-artist truncate" title={displayTrack.artist_name ?? ''} data-artistes-relies>
+              {#each artistesRelies as a, i (a.id)}{#if i > 0}<span class="sep-artistes">, </span>{/if}<button
+                  type="button" class="lien-artiste clickable" onclick={() => navigateToArtist(a.id, a.name)}>{a.name}</button>{/each}
+            </p>
+          {:else if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <p class="track-artist truncate clickable" title={displayTrack.artist_name} onclick={() => navigateToArtist(artistIdOf(displayTrack), displayTrack.artist_name!)}>{displayTrack.artist_name}</p>
@@ -3193,6 +3206,13 @@ import { ICONES } from '../../lib/menuPiste';
     line-height: 1.2;
   }
 
+  /* Chantier artistes multiples — un bouton par artiste, qui garde l'allure
+     de la ligne d'artiste. */
+  .lien-artiste {
+    background: none; border: 0; padding: 0; margin: 0;
+    font: inherit; color: inherit; cursor: pointer;
+  }
+  .lien-artiste:hover { text-decoration: underline; }
   .track-artist.clickable {
     cursor: pointer;
     transition: color 0.15s ease-out;
