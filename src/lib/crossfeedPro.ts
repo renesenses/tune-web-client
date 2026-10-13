@@ -82,9 +82,10 @@ export const BORNES_CLASSIQUE: Pick<Record<CurseurCrossfeedPro, Borne>, 'amount'
 };
 
 /** Les bornes d'un curseur dans le mode du réglage. */
-export function borneCrossfeedPro(cle: CurseurCrossfeedPro, mode: string): Borne {
+export function borneCrossfeedPro(cle: CurseurCrossfeedPro | CurseurMidSide, mode: string): Borne {
   if (mode === 'classique' && (cle === 'amount' || cle === 'head_shadow_hz')) return BORNES_CLASSIQUE[cle];
-  return BORNES_CROSSFEED_PRO[cle];
+  if (cle in BORNES_MID_SIDE) return BORNES_MID_SIDE[cle as CurseurMidSide];
+  return BORNES_CROSSFEED_PRO[cle as CurseurCrossfeedPro];
 }
 
 /** Les défauts du schéma : éteint, mode Tune, ombre de la tête, coupe-bas et
@@ -128,6 +129,7 @@ export function reglagesCrossfeedPro(brut: unknown): ReglagesCrossfeedPro {
     if (typeof v === 'number' && Number.isFinite(v)) r[cle] = v;
     r[cle] = borner(r[cle], borneCrossfeedPro(cle, r.mode));
   }
+  midSideDepuis(src, r);
   return r;
 }
 
@@ -139,9 +141,9 @@ export function reglagesCrossfeedPro(brut: unknown): ReglagesCrossfeedPro {
  * `classique` (libbs2b).
  *
  * Un préréglage allume le greffon, passe en mode classique, et ÉTEINT la garde
- * de phase et le retard adaptatif. Retard et ombre de la tête sont posés
- * comme avant (sans effet en mode classique, ils servent si l'on repasse en
- * mode Tune) ; le coupe-bas n'est pas touché.
+ * de phase, le retard adaptatif et le matriçage Mid/Side. Retard et ombre de
+ * la tête sont posés comme avant (sans effet en mode classique, ils servent si
+ * l'on repasse en mode Tune) ; le coupe-bas n'est pas touché.
  *
  * ⚠️ Le greffon connaît aussi un préréglage « Meier extended » dont les valeurs
  * ne sont pas publiées : il n'est pas proposé ici tant que l'hôte ne publie
@@ -177,6 +179,9 @@ export function appliquerPresetCrossfeedPro(
     head_shadow: true,
     head_shadow_hz: p.head_shadow_hz,
     head_shadow_slope_db_oct: p.head_shadow_slope_db_oct,
+    // Comme le retard adaptatif : éteint, mais seulement s'il est déjà là
+    // (un greffon antérieur à 0.4.0 n'en sait rien).
+    ...('experimental_mid_side' in r ? { experimental_mid_side: false } : {}),
   };
 }
 
@@ -277,4 +282,93 @@ export function zoneStereo(zone: Pick<Zone, 'channel_layout' | 'channel_layout_s
   const disposition = zone?.channel_layout_status?.effective ?? zone?.channel_layout ?? null;
   if (!disposition) return null;
   return disposition === 'stereo';
+}
+
+// ─── Matriçage Mid/Side (EXPÉRIMENTAL, Crossfeed Pro ≥ 0.4.0) ───────────────
+
+/**
+ * Les réglages du mode « Matriçage Mid/Side » : clés et bornes recopiées du
+ * schéma de réglages du greffon 0.4.0. Mode Tune seulement : il y remplace la
+ * voie croisée.
+ *
+ * Ils ne font PAS partie de `DEFAUTS_CROSSFEED_PRO` : un greffon plus ancien
+ * ne les connaît pas, et l'écran ne les envoie que lorsqu'on s'en sert (ou que
+ * la zone les a déjà enregistrés).
+ */
+export const VERSION_MID_SIDE = '0.4.0';
+
+export type CurseurMidSide = 'ms_side_gain_db' | 'ms_delay_us' | 'ms_smoothing_ms';
+
+export const BORNES_MID_SIDE: Record<CurseurMidSide, Borne> = {
+  ms_side_gain_db: { min: -24, max: 0, pas: 0.5 },
+  ms_delay_us: { min: 0, max: 1000, pas: 10 },
+  ms_smoothing_ms: { min: 100, max: 200, pas: 5 },
+};
+
+export const DEFAUTS_MID_SIDE = {
+  experimental_mid_side: false,
+  ms_side_gain_db: -6,
+  ms_delay_us: 300,
+  ms_adaptive: false,
+  ms_smoothing_ms: 150,
+};
+
+const BOOLEENS_MID_SIDE = ['experimental_mid_side', 'ms_adaptive'] as const;
+
+/** Les réglages Mid/Side présents dans `src`, lisibles et bornés ; un champ
+ *  absent reste absent, un champ illisible retombe sur son défaut. */
+function midSideDepuis(src: Record<string, unknown>, r: ReglagesCrossfeedPro): void {
+  for (const cle of BOOLEENS_MID_SIDE) {
+    if (cle in src) r[cle] = typeof src[cle] === 'boolean' ? src[cle] : DEFAUTS_MID_SIDE[cle];
+  }
+  for (const cle of Object.keys(BORNES_MID_SIDE) as CurseurMidSide[]) {
+    if (!(cle in src)) continue;
+    const v = src[cle];
+    r[cle] = borner(typeof v === 'number' && Number.isFinite(v) ? v : DEFAUTS_MID_SIDE[cle], BORNES_MID_SIDE[cle]);
+  }
+}
+
+/** Un réglage Mid/Side lu, à défaut son défaut. */
+export function valeurMidSide<K extends keyof typeof DEFAUTS_MID_SIDE>(
+  r: ReglagesCrossfeedPro,
+  cle: K,
+): (typeof DEFAUTS_MID_SIDE)[K] {
+  const v = r[cle];
+  return (typeof v === typeof DEFAUTS_MID_SIDE[cle] ? v : DEFAUTS_MID_SIDE[cle]) as (typeof DEFAUTS_MID_SIDE)[K];
+}
+
+/** Allumer ou éteindre le mode : les sous-réglages manquants prennent leur
+ *  défaut, ceux déjà enregistrés sont gardés. */
+export function basculerMidSide(r: ReglagesCrossfeedPro): ReglagesCrossfeedPro {
+  return { ...DEFAUTS_MID_SIDE, ...r, experimental_mid_side: !valeurMidSide(r, 'experimental_mid_side') };
+}
+
+/** `a` ≥ `b`, versions `x.y.z` (un suffixe `-rc1` est ignoré). `null` si
+ *  l'une des deux est illisible. */
+function versionAuMoins(a: string, b: string): boolean | null {
+  const lire = (v: string) => {
+    const m = /^v?(\d+)\.(\d+)(?:\.(\d+))?/.exec(v.trim());
+    return m ? [Number(m[1]), Number(m[2]), Number(m[3] ?? 0)] : null;
+  };
+  const x = lire(a);
+  const y = lire(b);
+  if (!x || !y) return null;
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i];
+  return true;
+}
+
+/**
+ * Le greffon installé connaît-il le mode Mid/Side ?
+ *
+ * L'hôte ne publie pas le schéma du greffon, seulement sa version (liste des
+ * greffons natifs, réservée à l'administrateur ; `null` pour un paquet posé à
+ * la main). On répond NON seulement quand on le SAIT : version lue et
+ * antérieure à 0.4.0, et zone sans réglage Mid/Side enregistré. Faute de
+ * version, le bloc reste offert : mieux vaut un réglage proposé qu'un testeur
+ * renvoyé vers une mise à jour qu'il a déjà faite.
+ */
+export function midSideDisponible(version: string | null | undefined, settings: unknown): boolean {
+  if (settings && typeof settings === 'object' && 'experimental_mid_side' in settings) return true;
+  if (!version) return true;
+  return versionAuMoins(version, VERSION_MID_SIDE) !== false;
 }

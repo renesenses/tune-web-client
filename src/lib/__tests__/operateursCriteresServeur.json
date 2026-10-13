@@ -1,0 +1,16 @@
+{
+  "_source": "tune-server-rust, tune-smart-http/src/criteres.rs, Famille::operateurs() — lot batch/bugs-rc5-20261012 après #6250. Recopier ici toute modification de cette table (et inversement).",
+  "Nombre": ["=", "!=", ">=", ">", "<=", "<", "between"],
+  "Texte": ["=", "!=", "contains", "starts_with", "not_contains", "in", "is_null", "is_not_null"],
+  "Source": ["=", "!="],
+  "Repertoire": ["starts_with", "contains"],
+  "Vide": ["is_null", "is_not_null"],
+  "Horodatage": [">", "<", "between", "in_last", "is_null"],
+  "Credit": ["has"],
+  "RefCollection": ["in", "not_in"],
+  "RefPlaylist": ["in", "not_in"],
+  "Favori": ["is", "is_not"],
+  "Etiquette": ["is", "is_not"],
+  "Compte": [">=", ">", "<", "=", "between"],
+  "Marquage": ["is_false", "is_true"]
+}
