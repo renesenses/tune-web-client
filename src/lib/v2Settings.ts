@@ -87,6 +87,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'netDevices',    titleKey: 'settings.networkDevices',      from: 'network', min: 'intermediate', keywords: ['dlna', 'upnp', 'chromecast'] },
       { id: 'ignoredDevices', titleKey: 'settings.ignoredDevices',     from: 'network', min: 'intermediate', keywords: ['ignoré', 'réapparaît', 'rétablir', 'masqué'] },
       { id: 'squeezebox',    titleKey: 'settings.squeezebox',          from: 'services', min: 'intermediate', keywords: ['lyrion', 'lms', 'slimproto'] },
+      { id: 'sendspin',      title: 'Sendspin',                        from: 'services', min: 'intermediate', keywords: ['sendspin', 'enceinte', 'music assistant', 'voice pe', 'esphome', 'exclure', 'ne pas se connecter'] },
       { id: 'hqplayer',      title: 'HQPlayer',                        from: 'services', min: 'expert',   keywords: ['upsampling', 'naa'] },
       { id: 'bridge',        title: 'Tune Bridge',                     from: 'network', min: 'expert',   keywords: ['pont', 'relais'] },
       { id: 'dsd',           titleKey: 'settings.dsdNetworkTitle',     from: 'network', min: 'expert',   keywords: ['dsd', 'dop', 'sacd'] },
@@ -171,7 +172,9 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     icon: 'M4 2h16v20H4zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
     sections: [
       { id: 'devices',    titleKey: 'settings.tabDevices',       from: 'devices',  min: 'intermediate' },
-      { id: 'perZone',    titleKey: 'settings.perZoneSettings',  from: 'services', min: 'beginner', keywords: ['par zone', 'gapless', 'volume fixe', 'canaux', 'multicanal', '5.1', 'stéréo'] },
+      { id: 'perZone',    titleKey: 'settings.perZoneSettings',  from: 'services', min: 'beginner', keywords: ['par zone', 'gapless', 'volume fixe', 'canaux', 'multicanal', '5.1', 'stéréo',
+        // #1427 — la correction de pièce (FIR) vit ICI : on la cherche par son nom.
+        'correction de pièce', 'correction acoustique', 'correction numérique', 'room correction', 'fir', 'convolution', 'réponse impulsionnelle', 'impulse response'] },
       /**
        * Sauvegarde et récupération des réglages d'appareil — Bertrand,
        * 08/09/2026 : « Et je veux un bouton sur l'UI de Tune sauvegarder mes

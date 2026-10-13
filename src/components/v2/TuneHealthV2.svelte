@@ -36,7 +36,7 @@
   // déclarées non gérables) sur le TOTAL, et nomment les non gérées.
   import { jaugeTraiteesPlageDynamique, jaugeTraiteesReplayGain, ligneNonGerees } from '../../lib/santeJaugeTraitees';
   // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
-  import { temperatureProcesseur } from '../../lib/temperatureProcesseur';
+  import { bridageDesAnalyses, temperatureProcesseur } from '../../lib/temperatureProcesseur';
   // #1352 — la pause des traitements de fond. La lecture de l'instantané vit
   // dans `lib/tachesDeFond.ts`, hors du composant : elle se garde sans monter
   // l'écran, et l'absence de `pausable` (serveur < 0.9.159) s'y lit UNE fois.
@@ -127,6 +127,12 @@
    *  capteur) ou `undefined` (serveur antérieur, ou rapport illisible). */
   let tempCpu = $state<unknown>(undefined);
   const temperature = $derived(temperatureProcesseur(tempCpu, $t('v2.health.cpuTempUnavailable' as any)));
+  /** tune-server-rust#5410 — `analyses_bridees` brut (motif, `null` ou absent). */
+  let motifBridage = $state<unknown>(undefined);
+  const bridage = $derived(bridageDesAnalyses(motifBridage, {
+    illisible: $t('v2.health.analysesBrideesIllisible' as any),
+    figee: $t('v2.health.analysesBrideesFigee' as any),
+  }));
 
   // ── #1352 : la pause des traitements de fond ───────────────────────────
   //
@@ -708,6 +714,7 @@
       ? tableauFournisseurs(diag[0].value?.output_providers)
       : null;
     tempCpu = diag[0].status === 'fulfilled' ? diag[0].value?.cpu_temp_c : undefined;
+    motifBridage = diag[0].status === 'fulfilled' ? diag[0].value?.analyses_bridees : undefined;
     asioBloque = diag[0].status === 'fulfilled' && !!(diag[0].value as any)?.asio_warm_scan?.blocked_after_crash;
 
     cards = out;
@@ -938,6 +945,9 @@
         <section class="modules">
           <h2>{$t('v2.health.cpuTemp' as any)}</h2>
           <div class="sub">{temperature}</div>
+          <!-- tune-server-rust#5410 — sans température lisible, les analyses
+               de fond tournent à un fichier à la fois : on le dit. -->
+          {#if bridage}<div class="sub bridage">{bridage}</div>{/if}
         </section>
       {/if}
 
@@ -1082,6 +1092,8 @@
   .modules{margin-top:22px; border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px 18px}
   .modules h2{font-size:15px; font-weight:700}
   .modules .sub{margin-bottom:12px}
+  /* tune-server-rust#5410 — les analyses bridées faute de thermomètre. */
+  .modules .sub.bridage{color:var(--v2-acc2)}
 
   /* #865 — le bloc des journaux, dans l'enveloppe des autres sections de
      l'écran plutôt qu'avec un style à lui. */

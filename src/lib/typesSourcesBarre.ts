@@ -15,9 +15,14 @@
  * branchée plus tard apparaît d'elle-même. Un type décoché à la main le
  * reste.
  *
- * Module sans dépendance : `stores/preferences` le lit, et ne doit pas tirer
- * la couche API (voir le commentaire de `profileHeader` là-bas).
+ * Module sans dépendance vers la couche API : `stores/preferences` le lit, et
+ * ne doit pas la tirer (voir le commentaire de `profileHeader` là-bas).
+ *
+ * #2117 — ces cases suivent le PROFIL d'un appareil à l'autre, comme l'ordre
+ * de la barre (fil 2109) : chaque geste est daté (`sourcesBarreMaj`), et à la
+ * relecture du serveur le geste le plus récent gagne, type par type.
  */
+import { horodatageBarre } from './ordreBarreLaterale';
 
 export type TypeSourceBarre = 'cd' | 'entree' | 'virtuelle' | 'hdmi';
 export type TypesBarre = Record<TypeSourceBarre, boolean>;
@@ -87,4 +92,48 @@ export function figerTypesPresents(pref: unknown, liste: readonly SourceTypee[] 
 
 export function unTypeCoche(types: TypesBarre): boolean {
   return TYPES_SOURCE_BARRE.some((t) => types[t]);
+}
+
+/** Les cases de la barre telles qu'elles se rangent dans les préférences. */
+export interface EtatTypesBarre {
+  sourcesBarre: ChoixTypesBarre | null;
+  sourcesBarreMaj: number;
+}
+
+/** #2117 — un geste sur une case « Afficher dans la barre » : la case, datée. */
+export function gesteTypesBarre(
+  pref: unknown,
+  type: TypeSourceBarre,
+  coche: boolean,
+  maintenant: number = Date.now(),
+): EtatTypesBarre {
+  return {
+    sourcesBarre: { ...(normaliserTypesBarre(pref) ?? {}), [type]: coche },
+    sourcesBarreMaj: horodatageBarre(maintenant),
+  };
+}
+
+/**
+ * #2117 — les cases à retenir entre cet appareil et le serveur.
+ *
+ * Avant, le local gagnait toujours, type par type : un type figé coché sur cet
+ * appareil (il suffit d'y avoir vu une source CD une fois) ne recevait jamais
+ * la case décochée sur un autre appareil du même profil.
+ *
+ * - Le geste le plus RÉCENT gagne pour les types qu'il a décidés.
+ * - Un type que le gagnant n'a pas décidé garde la valeur de l'autre côté.
+ * - À égalité (deux blobs jamais datés, écrits avant ce correctif) : le local,
+ *   le comportement d'avant.
+ */
+export function arbitrerTypesBarre(
+  local: { sourcesBarre?: unknown; sourcesBarreMaj?: unknown },
+  serveur: { sourcesBarre?: unknown; sourcesBarreMaj?: unknown },
+): EtatTypesBarre {
+  const l = normaliserTypesBarre(local.sourcesBarre) ?? {};
+  const s = normaliserTypesBarre(serveur.sourcesBarre) ?? {};
+  const majL = horodatageBarre(local.sourcesBarreMaj);
+  const majS = horodatageBarre(serveur.sourcesBarreMaj);
+  return majS > majL
+    ? { sourcesBarre: { ...l, ...s }, sourcesBarreMaj: majS }
+    : { sourcesBarre: { ...s, ...l }, sourcesBarreMaj: majL };
 }

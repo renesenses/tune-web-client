@@ -6,6 +6,7 @@
   import { get } from 'svelte/store';
   import CorrectionAcoustiqueZone from './CorrectionAcoustiqueZone.svelte';
   import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
+  import { afficherCanaux, correspondance, lireSaisieDeCanaux } from '../../lib/canauxDeCarte';
 
   interface Props {
     zone: Zone;
@@ -214,6 +215,49 @@
       fonduError = e?.message || get(t)('common.error');
     } finally {
       fonduSaving = false;
+    }
+  }
+
+  /**
+   * tune-server-rust#6171 — les canaux de la carte (ASIO). Zone LOCALE
+   * seulement ; le bloc n'apparaît que si le serveur publie la route. La
+   * valeur affichée est celle du serveur ; un refus laisse la saisie et dit
+   * pourquoi.
+   */
+  let canauxCarte = $state<number[] | null>(null);
+  let canauxSaisie = $state('');
+  let canauxConnus = $state(false);
+  let canauxSaving = $state(false);
+  let canauxError = $state('');
+
+  $effect(() => {
+    if (!zoneLocale || zone.id === null || canauxConnus) return;
+    api.getZoneOutputChannels(zone.id)
+      .then((r) => {
+        canauxCarte = r?.output_channels ?? null;
+        canauxSaisie = afficherCanaux(canauxCarte);
+        canauxConnus = true;
+      })
+      .catch(() => { /* serveur sans la route : le bloc reste caché */ });
+  });
+
+  async function setCanauxCarte(texte: string) {
+    if (zone.id === null) return;
+    const lu = lireSaisieDeCanaux(texte);
+    if ('erreur' in lu) {
+      canauxError = get(t)(`zoneConfig.cardChannelsError_${lu.erreur}` as any).replace('{value}', lu.valeur);
+      return;
+    }
+    canauxSaving = true;
+    canauxError = '';
+    try {
+      const maj = await api.setZoneOutputChannels(zone.id, lu.canaux);
+      canauxCarte = maj?.output_channels ?? null;
+      canauxSaisie = afficherCanaux(canauxCarte);
+    } catch (e: any) {
+      canauxError = e?.message || get(t)('common.error');
+    } finally {
+      canauxSaving = false;
     }
   }
 
@@ -669,6 +713,39 @@
       {/if}
     </div>
 
+    <!-- tune-server-rust#6171 — canaux de la carte d'une zone ASIO. -->
+    {#if zoneLocale && canauxConnus}
+      <div class="modal-section">
+        <h3 class="section-title">{$t('zoneConfig.cardChannelsTitle')}</h3>
+        <p class="section-desc">{$t('zoneConfig.cardChannelsDesc')}</p>
+        <div class="zc-ligne">
+          <label class="zc-label" for="zc-canaux-{zone.id}">{$t('zoneConfig.cardChannelsLabel')}</label>
+          <input id="zc-canaux-{zone.id}" class="zc-canaux" type="text" inputmode="numeric"
+            placeholder={$t('zoneConfig.cardChannelsPlaceholder')}
+            bind:value={canauxSaisie}
+            disabled={canauxSaving}
+            onkeydown={(e) => { if (e.key === 'Enter') setCanauxCarte(canauxSaisie); }} />
+          <button class="btn btn-primary btn-sm" disabled={canauxSaving}
+            onclick={() => setCanauxCarte(canauxSaisie)}>{$t('zoneConfig.cardChannelsSave')}</button>
+          {#if canauxCarte}
+            <button class="btn btn-sm" disabled={canauxSaving}
+              onclick={() => setCanauxCarte('')}>{$t('zoneConfig.cardChannelsReset')}</button>
+          {/if}
+        </div>
+        {#if canauxCarte}
+          <ul class="zc-correspondance">
+            {#each correspondance(canauxCarte) as [piste, carte] (piste)}
+              <li>{$t('zoneConfig.cardChannelsMapping').replace('{track}', String(piste)).replace('{card}', String(carte))}</li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="zc-note">{$t('zoneConfig.cardChannelsDefault')}</p>
+        {/if}
+        <p class="zc-note">{$t('zoneConfig.cardChannelsHint')}</p>
+        {#if canauxError}<div class="ir-message ir-error" role="alert">{canauxError}</div>{/if}
+      </div>
+    {/if}
+
     <div class="modal-section">
       <h3 class="section-title">{$t('zoneConfig.monoTitle')}</h3>
       <p class="section-desc">{$t('zoneConfig.monoDesc')}</p>
@@ -1062,6 +1139,8 @@
     font-size: 0.92rem; color: var(--tune-text); cursor: pointer; }
   .zc-toggle input { cursor: pointer; }
   .zc-note { font-size: 0.82rem; color: var(--tune-text-secondary); margin: 6px 0 0; }
+  .zc-canaux { flex: 1 1 8em; min-width: 0; }
+  .zc-correspondance { margin: 6px 0 0; padding-left: 1.2em; font-size: 0.82rem; color: var(--tune-text-secondary); }
 
   /* #920 — une ligne « libellé + sélecteur », pour le mode DSD. */
   .zc-ligne { display: flex; align-items: center; justify-content: space-between;

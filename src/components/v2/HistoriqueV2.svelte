@@ -355,6 +355,10 @@
     <div class="v2-titres">
       <div class="v2-eyebrow">{$tr('v2.hist.eyebrow' as any)}</div>
       <h1>{$tr('history.title')}</h1>
+      <!-- #990 — la règle « à partir de quand une écoute compte », telle que le
+           serveur l'applique (record_listen gardé par `output_sent`), écrite
+           pour l'utilisateur. Toujours visible, liste vide comprise. -->
+      <p class="regle">{$tr('v2.hist.regleEcoute' as any)}</p>
     </div>
     {#if entrees.length}
       <div class="v2-actions">
@@ -524,6 +528,7 @@
 <style>
   .v2-hist{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
+  .regle{margin:4px 0 0; max-width:72ch; font-size:12px; line-height:1.45; color:var(--v2-txt3)}
   .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}

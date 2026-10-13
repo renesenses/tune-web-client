@@ -31,6 +31,7 @@
   import { cibleEtiquettePlaylist, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { rangsApresDeplacement } from '../../lib/playlistService';
   import { corpsDeFileListe, estPisteLocale } from '../../lib/pisteFile';
+  import { estIntrouvable } from '../../lib/pisteIntrouvable';
 
   type Item =
     | { kind: 'local'; pl: Playlist }
@@ -453,6 +454,15 @@
              selon l'état se résoudrait différemment dans l'en-tête et dans
              les lignes, et les colonnes ne tomberaient plus en face —
              `colonnesPistes` garde précisément cela. -->
+        <!-- #6179 — une ligne INTROUVABLE garde son bouton « Retirer » hors
+             du mode édition : c'est le seul geste qui l'efface, il doit être
+             à portée. -->
+        {#if !edition && isLocal && estIntrouvable(_t)}
+          <button class="rm" onclick={() => removeAt(rangReel(_t))}
+            aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+          </button>
+        {/if}
         {#if edition && isLocal}
           <button class="rm mv" onclick={() => deplacer(i, false)} disabled={!ordreNaturel || i === 0 || deplacement}
             aria-label={$tr('playlist.moveUp')} title={$tr('playlist.moveUp')}>
