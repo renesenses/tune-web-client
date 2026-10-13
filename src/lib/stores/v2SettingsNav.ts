@@ -17,6 +17,8 @@ export interface V2SettingsTarget {
   section?: string;
   /** #1006 — la carte de zone mène à SES réglages : la fiche de cette zone est mise en avant. */
   zone?: number;
+  /** #1427 — avec `zone` : amener à l'écran un BLOC de sa fiche (la correction de pièce). */
+  bloc?: 'fir';
 }
 
 export const v2SettingsTarget = writable<V2SettingsTarget | null>(null);

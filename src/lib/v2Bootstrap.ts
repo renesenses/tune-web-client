@@ -15,6 +15,7 @@
  * La coquille v2 appelle donc `bootstrapV2()` au montage. Les chargements
  * sont indépendants : l'échec de l'un ne prive pas des autres.
  */
+import { annoncerProfilDeRepli } from './annonceProfilRepli';
 import { get } from 'svelte/store';
 import * as api from './api';
 import { zones, currentZoneId } from './stores/zones';
@@ -104,6 +105,8 @@ async function loadDevices(): Promise<void> {
  */
 async function loadProfile(): Promise<void> {
   await loadProfiles();
+  // web#2099 — un profil choisi à la place d'un profil oublié se DIT.
+  annoncerProfilDeRepli();
   await loadFavoriteIds(get(currentProfileId));
 }
 

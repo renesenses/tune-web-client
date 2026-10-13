@@ -5513,6 +5513,18 @@ export function addStreamingPlaylistTracks(service: string, playlistId: string, 
   );
 }
 
+/**
+ * Retire des titres d'une playlist DU SERVICE (web#2098) —
+ * `POST /streaming/{service}/playlists/{id}/tracks/remove` → `{ removed }`.
+ * `trackIds` = les `source_id` des titres ; Qobuz retire chaque occurrence.
+ */
+export function removeStreamingPlaylistTracks(service: string, playlistId: string, trackIds: string[]) {
+  return fetchJSON<{ removed: number }>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks/remove`,
+    { method: 'POST', body: JSON.stringify({ track_ids: trackIds }) },
+  );
+}
+
 /** Crée une playlist sur le compte du service (#1268) — `POST /streaming/{service}/playlists` → `{ id }`. */
 export function createStreamingPlaylist(service: string, name: string) {
   return fetchJSON<{ id: string }>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists`, {
