@@ -19,7 +19,8 @@
   import { playFromHere } from '../../lib/playback';
   import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { } from '../../lib/utils';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
+  import { texteRaison } from '../../lib/raisonSuggestion';
   import * as api from '../../lib/api';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -245,6 +246,12 @@
                 <span class="mix-count">{mix.track_count} {$t('home.tracks').toLowerCase()}</span>
               {/if}
             </div>
+            <!-- web#916, go du 13/10/2026 — pourquoi ce mix : un des genres
+                 que l'historique compte le plus (`raison` du serveur). -->
+            {#if mix.raison}
+              {@const pourquoi = texteRaison(mix.raison, $t as any, $locale)}
+              {#if pourquoi}<span class="mix-reason" title={pourquoi}>{pourquoi}</span>{/if}
+            {/if}
           </button>
         {/each}
       </div>
@@ -782,6 +789,18 @@
     font-family: var(--font-body);
     font-size: 11px;
     color: rgba(255, 255, 255, 0.8);
+  }
+
+  .mix-reason {
+    width: 160px;
+    margin-top: 4px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-secondary);
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Radio picks */

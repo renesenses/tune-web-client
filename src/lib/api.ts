@@ -6819,12 +6819,6 @@ export function setNormalization(zoneId: number, enabled: boolean, targetLufs = 
 // --- DSP / Crossfeed ---
 
 
-// --- Recommendations ---
-
-export function getRecommendations(limit = 20) {
-  return fetchJSON<any>(`${BASE}/library/recommendations?limit=${limit}`);
-}
-
 // --- Listening Dashboard ---
 
 export function getHistoryDashboard() {
@@ -8631,8 +8625,9 @@ export function getTrackVersions(id: number, streaming = true) {
   );
 }
 
-export function getHomeRecommendations() {
-  return fetchJSON<any[]>(`${BASE}/home/recommendations`);
+export function getHomeRecommendations(limit?: number) {
+  const q = limit != null ? `?limit=${limit}` : '';
+  return fetchJSON<any[]>(`${BASE}/home/recommendations${q}`);
 }
 
 export function getTopMixes() {
