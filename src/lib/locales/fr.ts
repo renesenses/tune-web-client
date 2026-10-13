@@ -1384,7 +1384,7 @@ export default {
   "v2.tags.eyebrow": "Ce que vous avez rangé",
   "v2.tags.albumsWithTag": "albums portent cette étiquette",
   "v2.tags.noAlbumWithTag": "Aucun album ne porte cette étiquette.",
-  "v2.tags.emptyHint": "Aucune étiquette pour l’instant. Posez-en une depuis la pochette d’un album, d’une playlist ou d’une collection.",
+  "v2.tags.emptyHint": "Aucune étiquette pour l’instant. Créez-en une avec le champ « Créer » ci-dessus, ou posez-en une depuis la pochette d’un album, d’une playlist ou d’une collection.",
   "v2.nav.shortcuts": "Raccourcis",
   "v2.nav.artisteIntrouvable": "« {nom} » est introuvable chez {service} — voici les résultats de recherche.",
   "v2.nav.serviceInjoignable": "{service} n’a pas répondu — voici les résultats de recherche pour « {nom} ».",

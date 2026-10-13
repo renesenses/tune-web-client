@@ -1381,7 +1381,7 @@ export default {
   "v2.tags.eyebrow": "What you filed away",
   "v2.tags.albumsWithTag": "albums carry this tag",
   "v2.tags.noAlbumWithTag": "No album carries this tag.",
-  "v2.tags.emptyHint": "No tags yet. Add one from an album, playlist or collection cover.",
+  "v2.tags.emptyHint": "No tags yet. Create one with the “Create” field above, or add one from an album, playlist or collection cover.",
   "v2.nav.shortcuts": "Shortcuts",
   "v2.nav.artisteIntrouvable": "“{nom}” was not found on {service} — here are the search results.",
   "v2.nav.serviceInjoignable": "{service} did not respond — here are the search results for “{nom}”.",

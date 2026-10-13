@@ -810,8 +810,9 @@
     {#if chargement}
       <div class="etat">{$t('common.loading' as any)}</div>
     {:else if !etiquettes.length}
-      <!-- Une étiquette se pose depuis la pochette : on le DIT, sinon l'écran
-           vide se lit comme une panne. -->
+      <!-- Une étiquette se crée avec le champ « Créer » ci-dessus, ou se pose
+           depuis la pochette : on DIT les deux (web#2166), sinon l'écran vide
+           se lit comme une panne. -->
       <div class="etat">{$t('v2.tags.emptyHint' as any)}</div>
     {:else}
       <ul class="liste">
