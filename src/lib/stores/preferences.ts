@@ -752,7 +752,51 @@ function ecrireAuServeur(texte: string): void {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...profileHeader() },
     body: JSON.stringify({ ui_preferences: texte }),
-  }).catch(() => {});
+  }).then((res) => {
+    // Une erreur 4xx n'est pas une coupure : la rejouer ne la guérirait pas.
+    if (res && res.status >= 500) signalerServeurInjoignable();
+  }).catch(() => signalerServeurInjoignable());
+}
+
+/**
+ * #2117 — repli hors connexion. Un geste fait quand le serveur ne répond pas
+ * (réseau coupé, serveur redémarré) reste en `localStorage` : la barre de cet
+ * appareil le garde. Mais son `PATCH` est perdu, et il ne repartait qu'au
+ * rechargement de la page ou au retour sur l'onglet, par la réparation de la
+ * barre (fil 2109). Les autres appareils du profil ne le voyaient donc pas
+ * tant que celui-ci restait ouvert au premier plan.
+ *
+ * On reprend : au retour du réseau (`online`), et par une relecture différée
+ * tant que le serveur ne répond pas. La relecture n'écrit rien d'autre que la
+ * réparation déjà admise (barre et types de sources, geste local plus récent
+ * que le serveur) : aucune écriture sans geste.
+ */
+export const DELAI_REPRISE_MS = 60_000;
+let repriseProgrammee: ReturnType<typeof setTimeout> | null = null;
+let serveurInjoignable = false;
+
+function signalerServeurInjoignable(): void {
+  serveurInjoignable = true;
+  if (repriseProgrammee !== null) return;
+  try {
+    repriseProgrammee = setTimeout(() => {
+      repriseProgrammee = null;
+      void relireDuServeur();
+    }, DELAI_REPRISE_MS);
+  } catch { /* ignore */ }
+}
+
+let repriseAuRetourDuReseauInstallee = false;
+function installerRepriseAuRetourDuReseau(): void {
+  if (repriseAuRetourDuReseauInstallee || typeof window === 'undefined') return;
+  repriseAuRetourDuReseauInstallee = true;
+  try {
+    window.addEventListener('online', () => {
+      if (!serveurInjoignable) return;
+      if (repriseProgrammee !== null) { clearTimeout(repriseProgrammee); repriseProgrammee = null; }
+      void relireDuServeur();
+    });
+  } catch { /* ignore */ }
 }
 
 function createPreferences() {
@@ -864,6 +908,7 @@ export async function syncPreferencesFromServer() {
   } finally {
     signalerRelecture();
     installerRelectureAuRetour();
+    installerRepriseAuRetourDuReseau();
   }
 }
 
@@ -898,8 +943,22 @@ function installerRelectureAuRetour(): void {
 async function relireDuServeur() {
   derniereRelecture = Date.now();
   try {
-    const res = await fetch('/api/v1/system/config', { headers: profileHeader() });
-    if (!res.ok) return;
+    let res: Response;
+    try {
+      res = await fetch('/api/v1/system/config', { headers: profileHeader() });
+    } catch (e) {
+      // #2117 — serveur injoignable : la copie locale reste en place (repli
+      // hors connexion), et on retentera.
+      signalerServeurInjoignable();
+      throw e;
+    }
+    if (!res.ok) {
+      if (res.status >= 500) signalerServeurInjoignable();
+      return;
+    }
+    // Le serveur répond : la réparation ci-dessous renverra, s'il le faut, le
+    // geste de barre que la coupure avait perdu.
+    serveurInjoignable = false;
     const config = await res.json();
     if (config.ui_preferences) {
       const server: Partial<Preferences> = typeof config.ui_preferences === 'string'
