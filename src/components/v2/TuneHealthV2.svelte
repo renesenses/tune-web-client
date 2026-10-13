@@ -50,7 +50,7 @@
   } from '../../lib/tachesDeFond';
   // tune-server-rust#4681 (étape 4) — « Ce qui tourne » : quelles tâches de
   // fond travaillent, cèdent à la lecture ou sont en pause, et pourquoi.
-  import { ceQuiTourne, phraseLecture, remplir, type CeQuiTourne } from '../../lib/ceQuiTourne';
+  import { ceQuiTourne, phraseCalcul, phraseLecture, remplir, type CeQuiTourne } from '../../lib/ceQuiTourne';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
   import { lireBlocAcoustid, carteAcoustid, type BlocAcoustid } from '../../lib/acoustid';
   import { heureSeule } from '../../lib/dates';
@@ -168,6 +168,7 @@
    *  publie ni `pausable` ni `playback_priority` : la section se tait. */
   let tourne = $state<CeQuiTourne | null>(null);
   const lectureEnTete = $derived(phraseLecture(tourne));
+  const calculEnTete = $derived(phraseCalcul(tourne));
   /** tune-server-rust#5868 — le bloc `acoustid` de l'instantané ; `null` face
    *  à un serveur qui ne le publie pas : aucune carte. */
   let blocAcoustid: BlocAcoustid | null = null;
@@ -889,6 +890,19 @@
               ecr: $formatNombre(tourne.freins.ecrituresDifferees),
               ems: $formatNombre(tourne.freins.ecrituresDiffereesMs),
             })}</div>
+          {/if}
+          <!-- tune-server-rust#4681 (étape 3) — le calcul de fond en basse
+               priorité, tel que le serveur le publie. -->
+          {#if calculEnTete}
+            <div class="sub" data-testid="background-compute">
+              {remplir($t(calculEnTete.cle as any), calculEnTete.params)}
+              {#if calculEnTete.cpuCle}
+                {remplir($t('v2.health.running.compute.cpu' as any), { p: $t(calculEnTete.cpuCle as any) })}
+              {/if}
+              {#if calculEnTete.ioCle}
+                {remplir($t('v2.health.running.compute.io' as any), { p: $t(calculEnTete.ioCle as any) })}
+              {/if}
+            </div>
           {/if}
         </section>
       {/if}

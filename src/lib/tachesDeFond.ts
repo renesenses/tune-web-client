@@ -68,6 +68,12 @@ export type TraitementSuspendable = {
   paused: boolean;
   /** tune-server-rust#4681 : a cédé à la lecture dans la fenêtre récente. */
   throttled_for_playback?: boolean;
+  /** tune-server-rust#4681 (étape 3) : ce que fait la tâche — `working` |
+   *  `throttled` | `yielded` | `paused` | `idle`. Absent d'un serveur plus
+   *  ancien : l'écran le déduit alors des champs ci-dessus. */
+  activity?: string;
+  /** Pourquoi : `playback` | `user_pause` | `null`. */
+  reason?: string | null;
 };
 
 /** La réponse de `GET /system/background-tasks`.
@@ -91,7 +97,13 @@ export type InstantaneTachesDeFond = {
    *  peut-elle tourner. Lu par `lib/acoustid.ts` (`lireBlocAcoustid`). */
   acoustid?: import('./acoustid').BlocAcoustid;
   /** tune-server-rust#4681 : le scan tourne-t-il, a-t-il cédé à la lecture. */
-  scan?: { running?: boolean; throttled_for_playback?: boolean };
+  scan?: {
+    running?: boolean;
+    throttled_for_playback?: boolean;
+    /** tune-server-rust#4681 (étape 3) : `working` | `throttled` | `idle`. */
+    activity?: string;
+    reason?: string | null;
+  };
   /** tune-server-rust#4681 : le relevé de la priorité à la lecture. Lu par
    *  `lib/ceQuiTourne.ts` ; chaque champ y est vérifié avant usage. */
   playback_priority?: Record<string, any>;
