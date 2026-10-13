@@ -1021,6 +1021,25 @@ export function setZoneCrossfade(zoneId: number, durationSeconds: number) {
   });
 }
 
+/** tune-server-rust#6171 — les canaux de la carte qu'une zone ASIO utilise. */
+export interface ZoneOutputChannels {
+  zone_id: number;
+  output_channels: number[] | null;
+  card_channels_opened: number | null;
+  limits?: { min: number; max: number };
+}
+
+export function getZoneOutputChannels(zoneId: number) {
+  return fetchJSON<ZoneOutputChannels>(`${BASE}/output-channels/zones/${zoneId}`);
+}
+
+export function setZoneOutputChannels(zoneId: number, canaux: number[]) {
+  return fetchJSON<ZoneOutputChannels>(`${BASE}/output-channels/zones/${zoneId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ output_channels: canaux }),
+  });
+}
+
 export function updateZoneMonoDownmix(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
