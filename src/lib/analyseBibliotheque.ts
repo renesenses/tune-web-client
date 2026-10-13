@@ -45,11 +45,24 @@ export interface AvancementAnalyse {
   dossier: string | null;
   /** Le dossier ciblé par l'analyse, quand elle n'a pas porté sur tout (#1517). */
   cible: string | null;
+  /**
+   * tune-server-rust#6167 (Tades, fil 2231 : « 54 % mais de quelle bibliothèque
+   * parmi les 4 ? ») — la PORTÉE que le serveur annonce : `library` (toute la
+   * bibliothèque) ou `folder` (un dossier). `null` : serveur antérieur.
+   */
+  portee: 'library' | 'folder' | null;
+  /** Nombre d'emplacements couverts (0 : inconnu). */
+  emplacements: number;
+  /** Rang 1-based de l'emplacement en cours, sa racine, ses fichiers repérés. */
+  emplacementRang: number | null;
+  emplacement: string | null;
+  emplacementFichiers: number | null;
 }
 
 const VIDE: AvancementAnalyse = {
   phase: null, scanned: 0, total: 0, inserted: 0, updated: 0, skipped: 0,
   dossier: null, cible: null,
+  portee: null, emplacements: 0, emplacementRang: null, emplacement: null, emplacementFichiers: null,
 };
 
 export const avancementAnalyse = writable<AvancementAnalyse | null>(null);
@@ -87,7 +100,41 @@ export function fusionnerAvancement(
     skipped: garder('skipped', base.skipped),
     dossier: texte(d.current_dir) ?? base.dossier,
     cible: base.cible,
+    portee: d.scope === 'library' || d.scope === 'folder' ? d.scope : base.portee,
+    emplacements: garder('locations_total', base.emplacements),
+    emplacementRang: entier(d.location_index) ?? base.emplacementRang,
+    emplacement: texte(d.location) ?? base.emplacement,
+    emplacementFichiers: entier(d.location_files) ?? base.emplacementFichiers,
   };
+}
+
+/**
+ * #6167 — ce que couvre le pourcentage, en clair : « Toute la bibliothèque
+ * (4 emplacements) », puis l'emplacement en cours avec son rang. `null` quand
+ * le serveur ne l'a pas dit (serveur antérieur) ou pour un scan ciblé, que la
+ * ligne « Dossier analysé » décrit déjà.
+ *
+ * `t` : la fonction de traduction ; `nombre` : le formatage des nombres.
+ */
+export function lignesPortee(
+  a: AvancementAnalyse | null,
+  t: (cle: string) => string,
+  nombre: (n: number) => string = String,
+): { portee: string; emplacement: string | null; emplacementComplet: string | null } | null {
+  if (!a || a.portee !== 'library') return null;
+  const n = a.emplacements;
+  const portee = n > 1
+    ? t('v2.scan.scopeLibrary').replace('{n}', nombre(n))
+    : t('v2.scan.scopeLibraryOne');
+  let emplacement: string | null = null;
+  if (n > 1 && a.emplacementRang != null && a.emplacement) {
+    const nom = a.emplacement.split(/[/\\]/).filter(Boolean).pop() ?? a.emplacement;
+    emplacement = (a.emplacementFichiers != null
+      ? t('v2.scan.scopeLocationFiles').replace('{f}', nombre(a.emplacementFichiers))
+      : t('v2.scan.scopeLocation'))
+      .replace('{k}', String(a.emplacementRang)).replace('{n}', nombre(n)).replace('{d}', nom);
+  }
+  return { portee, emplacement, emplacementComplet: emplacement ? a.emplacement : null };
 }
 
 /**

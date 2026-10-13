@@ -64,7 +64,7 @@
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
   import {
-    avancementAnalyse, pourcentAnalyse, aDesChiffres,
+    avancementAnalyse, pourcentAnalyse, aDesChiffres, lignesPortee,
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
@@ -5466,6 +5466,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               -->
               {#if scanning && aDesChiffres($avancementAnalyse)}
                 {@const pct = pourcentAnalyse($avancementAnalyse)}
+                {@const portee = lignesPortee($avancementAnalyse, (k) => $t(k as any), (n) => $formatNombre(n))}
                 <div class="scan-avance">
                   {#if pct !== null}
                     <div class="jauge"><div class="rempli" style="width:{pct}%"></div></div>
@@ -5476,6 +5477,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {:else}
                     <p class="hint">{$t('v2.scan.indexing' as any)
                       .replace('{f}', $formatNombre($avancementAnalyse?.scanned ?? 0))}</p>
+                  {/if}
+                  <!-- tune-server-rust#6167 — ce que couvre le pourcentage :
+                       toute la bibliothèque (N emplacements), et lequel est en cours. -->
+                  {#if portee}
+                    <p class="hint" data-portee-scan>{portee.portee}</p>
+                    {#if portee.emplacement}
+                      <p class="hint dp" data-emplacement-scan title={portee.emplacementComplet ?? ''}>{portee.emplacement}</p>
+                    {/if}
                   {/if}
                   {#if $avancementAnalyse?.cible}
                     <p class="hint">{$t('v2.scan.progressFolder' as any)
