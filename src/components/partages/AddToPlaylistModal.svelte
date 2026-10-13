@@ -5,6 +5,9 @@
   import { t } from '../../lib/i18n';
   import { serviceDePlaylist } from '../../lib/playlistService';
   import { estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
+  import { playlistsModifiables } from '../../lib/playlistsModifiables';
+  import { filtrerParNom, actionEntree, nomPrerempli } from '../../lib/filtrePlaylists';
+  import RecherchePlaylist from './RecherchePlaylist.svelte';
 
   interface Props {
     track: Track;
@@ -64,6 +67,35 @@
   const cleDe = (c: Cible) => `${c.ou}:${c.cle}`;
 
   /**
+   * Retrouver la playlist par son nom (Bertrand, 13/10/2026) : le champ en
+   * haut de la liste filtre les DEUX groupes, sans casse ni accents.
+   */
+  let requete = $state('');
+  const vusTune = $derived(filtrerParNom(ciblesTune, requete, (c) => c.nom));
+  const vusService = $derived(filtrerParNom(ciblesService, requete, (c) => c.nom));
+  /** Toutes les destinations visibles, dans l'ordre affiché. */
+  const correspondances = $derived([...(versTune ? vusTune : []), ...(service ? vusService : [])]);
+
+  /** « Nouvelle playlist » : préremplie avec le texte tapé quand rien ne lui correspond. */
+  function ouvrirCreation(nom = nomPrerempli(correspondances.length, requete)) {
+    newName = nom;
+    showCreate = true;
+  }
+
+  /** Le champ du nom prend la main dès qu'il paraît : on confirme d'un Entrée. */
+  function focusCreation(el: HTMLInputElement) {
+    queueMicrotask(() => el.focus());
+  }
+
+  /** Entrée dans le champ : la seule correspondance, ou la création du nom tapé. */
+  function surEntree() {
+    if (loading || adding !== null) return;
+    const a = actionEntree(correspondances, requete);
+    if (a.type === 'choisir') void addToPlaylist(a.cible);
+    else if (a.type === 'creer') ouvrirCreation(a.nom);
+  }
+
+  /**
    * Les deux listes se chargent INDÉPENDAMMENT : un service qui ne répond pas
    * ne doit pas cacher les playlists Tune, ni l'inverse.
    */
@@ -76,9 +108,12 @@
               .map((p): Cible => ({ ou: 'tune', cle: String(p.id), nom: p.name, n: p.track_count ?? 0 })))
             .catch((e) => { console.error('Load playlists error:', e); return [] as Cible[]; })
         : Promise.resolve([] as Cible[]),
+      // #2097 — seulement les playlists que l'utilisateur peut modifier :
+      // Qobuz mêle à « ses » playlists celles qu'il suit, et refuse l'ajout
+      // à ces dernières (401).
       service
         ? api.getStreamingPlaylists(service)
-            .then((l) => (l ?? []).map((p): Cible => ({ ou: 'service', cle: String(p.source_id), nom: p.name, n: p.track_count ?? 0 })))
+            .then((l) => playlistsModifiables(l).map((p): Cible => ({ ou: 'service', cle: String(p.source_id), nom: p.name, n: p.track_count ?? 0 })))
             .catch((e) => { console.error('Load service playlists error:', e); return [] as Cible[]; })
         : Promise.resolve([] as Cible[]),
     ]);
@@ -217,6 +252,10 @@
         </button>
       </div>
 
+      <div class="modal-search">
+        <RecherchePlaylist bind:valeur={requete} onEntree={surEntree} />
+      </div>
+
       <div class="modal-body">
         {#if loading}
           <div class="loading"><div class="spinner"></div></div>
@@ -227,20 +266,24 @@
           <div class="playlist-list">
             {#if versTune}
               {#if deService}<h4 class="pl-groupe" data-groupe="tune">{$t('playlist.groupTune')}</h4>{/if}
-              {#each ciblesTune as pl (cleDe(pl))}
+              {#each vusTune as pl (cleDe(pl))}
                 {@render option(pl)}
               {/each}
               {#if ciblesTune.length === 0}
                 <p class="empty-hint">{$t('playlist.noExisting')}</p>
+              {:else if vusTune.length === 0}
+                <p class="empty-hint">{$t('playlist.noMatch')}</p>
               {/if}
             {/if}
             {#if service}
               <h4 class="pl-groupe" data-groupe="service">{$t('playlist.servicePlaylistsOf').replace('{service}', nomService)}</h4>
-              {#each ciblesService as pl (cleDe(pl))}
+              {#each vusService as pl (cleDe(pl))}
                 {@render option(pl)}
               {/each}
               {#if ciblesService.length === 0}
                 <p class="empty-hint">{$t('playlist.noExisting')}</p>
+              {:else if vusService.length === 0}
+                <p class="empty-hint">{$t('playlist.noMatch')}</p>
               {/if}
             {/if}
           </div>
@@ -290,8 +333,10 @@
             <input
               type="text"
               placeholder={$t('playlist.namePlaceholder')}
+              class="create-name"
               bind:value={newName}
               onkeydown={(e) => e.key === 'Enter' && createAndAdd()}
+              use:focusCreation
             />
             <button class="create-confirm" onclick={createAndAdd} disabled={!newName.trim()}>{$t('common.create')}</button>
             <button class="create-cancel" onclick={() => { showCreate = false; newName = ''; }}>
@@ -299,7 +344,7 @@
             </button>
           </div>
         {:else}
-          <button class="new-playlist-btn" onclick={() => showCreate = true}>
+          <button class="new-playlist-btn" onclick={() => ouvrirCreation()}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             {$t('playlist.newPlaylist')}
           </button>
@@ -370,6 +415,10 @@
 
   .close-btn:hover {
     color: var(--tune-text);
+  }
+
+  .modal-search {
+    padding: 10px 20px 4px;
   }
 
   .modal-body {
