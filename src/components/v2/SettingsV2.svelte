@@ -352,7 +352,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     cibleZone = target.zone ?? null;
     v2SettingsTarget.set(null);
     if (target.zone != null) {
-      tick().then(() => amenerSousEntete(document.getElementById(`zc-${target.zone}`)));
+      // #1427 — « Correction de pièce » du menu de zone : le bloc FIR de la
+      // fiche, pas le haut de la fiche (DSD, débit, canaux… le précèdent).
+      const bloc = target.bloc;
+      tick().then(() => amenerSousEntete(
+        (bloc === 'fir' ? document.getElementById(`fir-${target.zone}`) : null)
+          ?? document.getElementById(`zc-${target.zone}`),
+      ));
     } else if (target.section) {
       // #1670 — la carte visée est mise en avant ET amenée à l'écran : une
       // carte surlignée hors du cadre ne se voit pas plus qu'une carte muette.
@@ -5307,7 +5313,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         Aucune condition sur le type de sortie : le serveur
                         applique l'IR aux lecteurs réseau aussi.
                       -->
-                      <CorrectionAcoustiqueZone zone={z} />
+                      <div id={`fir-${z.id}`}><CorrectionAcoustiqueZone zone={z} /></div>
 
                       <!-- #1394 — LA PHOTO DE L'APPAREIL, dans le bloc où
                            l'appareil est déjà identifié par sa marque et son
