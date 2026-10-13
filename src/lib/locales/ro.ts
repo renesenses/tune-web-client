@@ -4944,6 +4944,28 @@ export default {
   "v2.apiKeys.save": "Salvează",
   "v2.apiKeys.test": "Testează",
   "v2.apiKeys.remove": "Elimină",
+  // tune-server-rust#4805 lot 2 — passes de lot d'après MetaRust (Xavier Joly).
+  "v2.passes.bpmTitle": "BPM-ul bibliotecii",
+  "v2.passes.bpmHint": "Toate albumele locale: întâi Wikidata, apoi o estimare din semnal. Etichetele fișierelor nu sunt modificate.",
+  "v2.passes.discogsTitle": "Propuneri Discogs",
+  "v2.passes.discogsHint": "Albume fără identificator MusicBrainz, după cod de bare sau număr de catalog. Nu se modifică nimic: fiecare propunere se acceptă pe pagina albumului.",
+  "v2.passes.progress": "{n} din {total} album(e)",
+  "v2.passes.bpmTally": "{wikidata} BPM din Wikidata, {signal} estimat(e), {none} fără rezultat",
+  "v2.passes.discogsTally": "{found} propunere(i), {none} fără rezultat",
+  "v2.passes.paused": "În pauză.",
+  "v2.passes.done": "Gata.",
+  "v2.passes.nothing": "Nimic de făcut: totul este deja procesat.",
+  "v2.passes.interrupted": "Întreruptă de o repornire a serverului; „Continuă” o reia de unde s-a oprit.",
+  "v2.passes.stopUnreachable": "Oprită: Discogs nu mai răspunde.",
+  "v2.passes.stopTokenRefused": "Oprită: Discogs refuză tokenul (Setări ▸ Chei API).",
+  "v2.passes.stopOther": "Oprită.",
+  "v2.passes.refusedPaused": "Îmbogățirea este în pauză: reluați-o mai întâi.",
+  "v2.passes.refusedRunning": "Această trecere rulează deja.",
+  "v2.passes.pause": "Suspendă",
+  "v2.passes.resume": "Reia",
+  "v2.passes.continue": "Continuă",
+  "v2.passes.discogsWithoutCode": "{n} album(e) fără cod de bare sau număr de catalog nu pot fi căutate pe Discogs.",
+  "v2.passes.discogsNotice": "Această aplicație folosește API-ul Discogs, dar nu este afiliată cu Discogs și nu este sponsorizată sau aprobată de Discogs. „Discogs” este o marcă a Zink Media, LLC.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

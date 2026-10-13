@@ -4902,6 +4902,28 @@ export default {
   "v2.apiKeys.save": "Mentés",
   "v2.apiKeys.test": "Teszt",
   "v2.apiKeys.remove": "Eltávolítás",
+  // tune-server-rust#4805 lot 2 — passes de lot d'après MetaRust (Xavier Joly).
+  "v2.passes.bpmTitle": "A könyvtár BPM-értékei",
+  "v2.passes.bpmHint": "Minden helyi album: előbb Wikidata, aztán becslés a jelből. A fájlok címkéi nem változnak.",
+  "v2.passes.discogsTitle": "Discogs-javaslatok",
+  "v2.passes.discogsHint": "MusicBrainz-azonosító nélküli albumok, vonalkód vagy katalógusszám alapján. Semmi sem változik: minden javaslatot az album oldalán lehet elfogadni.",
+  "v2.passes.progress": "{n} / {total} album",
+  "v2.passes.bpmTally": "{wikidata} BPM a Wikidatából, {signal} becsült, {none} eredmény nélkül",
+  "v2.passes.discogsTally": "{found} javaslat, {none} eredmény nélkül",
+  "v2.passes.paused": "Szüneteltetve.",
+  "v2.passes.done": "Kész.",
+  "v2.passes.nothing": "Nincs teendő: minden fel van már dolgozva.",
+  "v2.passes.interrupted": "Egy szerver-újraindítás megszakította; a „Folytatás” onnan folytatja, ahol abbamaradt.",
+  "v2.passes.stopUnreachable": "Leállt: a Discogs nem válaszol.",
+  "v2.passes.stopTokenRefused": "Leállt: a Discogs elutasítja a tokent (Beállítások ▸ API-kulcsok).",
+  "v2.passes.stopOther": "Leállt.",
+  "v2.passes.refusedPaused": "A gazdagítás szünetel: előbb folytassa.",
+  "v2.passes.refusedRunning": "Ez a menet már fut.",
+  "v2.passes.pause": "Szüneteltetés",
+  "v2.passes.resume": "Folytatás",
+  "v2.passes.continue": "Folytatás",
+  "v2.passes.discogsWithoutCode": "{n} album vonalkód és katalógusszám nélkül nem kereshető a Discogson.",
+  "v2.passes.discogsNotice": "Ez az alkalmazás a Discogs API-ját használja, de nem áll kapcsolatban a Discogsszal, és a Discogs nem szponzorálja és nem támogatja. A „Discogs” a Zink Media, LLC védjegye.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

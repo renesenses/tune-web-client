@@ -4944,6 +4944,28 @@ export default {
   "v2.apiKeys.save": "저장",
   "v2.apiKeys.test": "테스트",
   "v2.apiKeys.remove": "삭제",
+  // tune-server-rust#4805 lot 2 — passes de lot d'après MetaRust (Xavier Joly).
+  "v2.passes.bpmTitle": "라이브러리 BPM",
+  "v2.passes.bpmHint": "모든 로컬 앨범: 먼저 Wikidata, 그다음 신호에서 추정합니다. 파일 태그는 변경되지 않습니다.",
+  "v2.passes.discogsTitle": "Discogs 제안",
+  "v2.passes.discogsHint": "MusicBrainz ID가 없는 앨범을 바코드나 카탈로그 번호로 찾습니다. 아무것도 변경되지 않으며, 각 제안은 앨범 페이지에서 수락합니다.",
+  "v2.passes.progress": "{total}개 중 {n}개 앨범",
+  "v2.passes.bpmTally": "Wikidata BPM {wikidata}개, 추정 {signal}개, 결과 없음 {none}개",
+  "v2.passes.discogsTally": "제안 {found}개, 결과 없음 {none}개",
+  "v2.passes.paused": "일시 중지됨.",
+  "v2.passes.done": "완료.",
+  "v2.passes.nothing": "할 일이 없습니다: 모두 처리되었습니다.",
+  "v2.passes.interrupted": "서버 재시작으로 중단되었습니다. '계속'을 누르면 멈춘 곳부터 다시 시작합니다.",
+  "v2.passes.stopUnreachable": "중지됨: Discogs가 응답하지 않습니다.",
+  "v2.passes.stopTokenRefused": "중지됨: Discogs가 토큰을 거부합니다(설정 ▸ API 키).",
+  "v2.passes.stopOther": "중지됨.",
+  "v2.passes.refusedPaused": "보강이 일시 중지되어 있습니다: 먼저 재개하세요.",
+  "v2.passes.refusedRunning": "이 작업은 이미 실행 중입니다.",
+  "v2.passes.pause": "일시 중지",
+  "v2.passes.resume": "재개",
+  "v2.passes.continue": "계속",
+  "v2.passes.discogsWithoutCode": "바코드나 카탈로그 번호가 없는 앨범 {n}개는 Discogs에서 찾을 수 없습니다.",
+  "v2.passes.discogsNotice": "이 애플리케이션은 Discogs API를 사용하지만 Discogs와 제휴하거나 Discogs의 후원 또는 보증을 받지 않습니다. 'Discogs'는 Zink Media, LLC의 상표입니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

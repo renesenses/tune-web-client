@@ -4944,6 +4944,28 @@ export default {
   "v2.apiKeys.save": "Speichern",
   "v2.apiKeys.test": "Testen",
   "v2.apiKeys.remove": "Entfernen",
+  // tune-server-rust#4805 lot 2 — passes de lot d'après MetaRust (Xavier Joly).
+  "v2.passes.bpmTitle": "BPM der Bibliothek",
+  "v2.passes.bpmHint": "Alle lokalen Alben: zuerst Wikidata, dann eine Schätzung aus dem Signal. Die Tags der Dateien werden nicht verändert.",
+  "v2.passes.discogsTitle": "Discogs-Vorschläge",
+  "v2.passes.discogsHint": "Alben ohne MusicBrainz-ID, per Barcode oder Katalognummer. Nichts wird verändert: Jeder Vorschlag wird auf der Albumseite angenommen.",
+  "v2.passes.progress": "{n} von {total} Album/Alben",
+  "v2.passes.bpmTally": "{wikidata} BPM aus Wikidata, {signal} geschätzt, {none} ohne Ergebnis",
+  "v2.passes.discogsTally": "{found} Vorschlag/Vorschläge, {none} ohne Ergebnis",
+  "v2.passes.paused": "Pausiert.",
+  "v2.passes.done": "Fertig.",
+  "v2.passes.nothing": "Nichts zu tun: alles ist bereits verarbeitet.",
+  "v2.passes.interrupted": "Durch einen Serverneustart unterbrochen; „Fortsetzen“ macht dort weiter, wo es aufgehört hat.",
+  "v2.passes.stopUnreachable": "Angehalten: Discogs antwortet nicht mehr.",
+  "v2.passes.stopTokenRefused": "Angehalten: Discogs lehnt das Token ab (Einstellungen ▸ API-Schlüssel).",
+  "v2.passes.stopOther": "Angehalten.",
+  "v2.passes.refusedPaused": "Die Anreicherung ist pausiert: zuerst fortsetzen.",
+  "v2.passes.refusedRunning": "Dieser Durchlauf läuft bereits.",
+  "v2.passes.pause": "Pausieren",
+  "v2.passes.resume": "Fortsetzen",
+  "v2.passes.continue": "Fortsetzen",
+  "v2.passes.discogsWithoutCode": "{n} Album/Alben ohne Barcode oder Katalognummer können nicht auf Discogs gesucht werden.",
+  "v2.passes.discogsNotice": "Diese Anwendung nutzt die API von Discogs, ist aber weder mit Discogs verbunden noch von Discogs gesponsert oder unterstützt. „Discogs“ ist eine Marke der Zink Media, LLC.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

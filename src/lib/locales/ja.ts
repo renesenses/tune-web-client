@@ -4944,6 +4944,28 @@ export default {
   "v2.apiKeys.save": "保存",
   "v2.apiKeys.test": "テスト",
   "v2.apiKeys.remove": "削除",
+  // tune-server-rust#4805 lot 2 — passes de lot d'après MetaRust (Xavier Joly).
+  "v2.passes.bpmTitle": "ライブラリのBPM",
+  "v2.passes.bpmHint": "すべてのローカルアルバム：まずWikidata、次に信号からの推定。ファイルのタグは変更しません。",
+  "v2.passes.discogsTitle": "Discogsの提案",
+  "v2.passes.discogsHint": "MusicBrainz IDのないアルバムを、バーコードまたはカタログ番号で検索。何も変更されません：提案はアルバムのページで承認します。",
+  "v2.passes.progress": "{total}枚中{n}枚",
+  "v2.passes.bpmTally": "WikidataのBPM {wikidata}件、推定 {signal}件、結果なし {none}件",
+  "v2.passes.discogsTally": "提案 {found}件、結果なし {none}件",
+  "v2.passes.paused": "一時停止中。",
+  "v2.passes.done": "完了。",
+  "v2.passes.nothing": "処理するものはありません：すべて処理済みです。",
+  "v2.passes.interrupted": "サーバーの再起動で中断されました。「続行」で中断した所から再開します。",
+  "v2.passes.stopUnreachable": "停止：Discogsが応答しません。",
+  "v2.passes.stopTokenRefused": "停止：Discogsがトークンを拒否しました（設定 ▸ APIキー）。",
+  "v2.passes.stopOther": "停止しました。",
+  "v2.passes.refusedPaused": "エンリッチメントが一時停止中です：先に再開してください。",
+  "v2.passes.refusedRunning": "この処理はすでに実行中です。",
+  "v2.passes.pause": "一時停止",
+  "v2.passes.resume": "再開",
+  "v2.passes.continue": "続行",
+  "v2.passes.discogsWithoutCode": "バーコードもカタログ番号もないアルバム{n}枚はDiscogsで検索できません。",
+  "v2.passes.discogsNotice": "このアプリケーションはDiscogsのAPIを使用していますが、Discogsとは提携しておらず、Discogsによる後援や承認も受けていません。「Discogs」はZink Media, LLCの商標です。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

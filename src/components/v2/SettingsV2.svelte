@@ -147,6 +147,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
   import SauvegardeCloudV2 from './SauvegardeCloudV2.svelte';
   import ClesApiV2 from './ClesApiV2.svelte';
+  // tune-server-rust#4805 lot 2 — les passes de lot BPM et Discogs.
+  import PassesMetarustV2 from './PassesMetarustV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -4275,6 +4277,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 {#if acoustidErr}<div class="errline" data-acoustid="refus">{acoustidErr}</div>{/if}
               {/if}
+              <!-- tune-server-rust#4805 lot 2 (d'après MetaRust) : BPM et propositions Discogs, à la main. -->
+              <PassesMetarustV2 />
 
             {:else if s.id === 'ingest'}
               {#if !ingest}
