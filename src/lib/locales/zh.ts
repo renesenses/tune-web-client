@@ -2387,7 +2387,7 @@ export default {
   "v2.tags.eyebrow": "您整理过的内容",
   "v2.tags.albumsWithTag": "张专辑带有此标签",
   "v2.tags.noAlbumWithTag": "没有专辑带有此标签。",
-  "v2.tags.emptyHint": "暂无标签。可从专辑、播放列表或收藏集的封面添加。",
+  "v2.tags.emptyHint": "暂无标签。可通过上方的输入框（“创建”按钮）新建，或从专辑、播放列表或收藏集的封面添加。",
   "v2.nav.shortcuts": "快捷方式",
   "v2.nav.artisteIntrouvable": "在 {service} 上找不到“{nom}”——以下是搜索结果。",
   "v2.nav.serviceInjoignable": "{service} 没有响应——以下是“{nom}”的搜索结果。",
