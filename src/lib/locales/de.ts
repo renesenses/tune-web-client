@@ -2387,7 +2387,7 @@ export default {
   "v2.tags.eyebrow": "Was Sie eingeordnet haben",
   "v2.tags.albumsWithTag": "Alben tragen dieses Etikett",
   "v2.tags.noAlbumWithTag": "Kein Album trägt dieses Etikett.",
-  "v2.tags.emptyHint": "Noch keine Etiketten. Vergeben Sie eines über das Cover eines Albums, einer Playlist oder einer Sammlung.",
+  "v2.tags.emptyHint": "Noch keine Etiketten. Erstellen Sie eines über das Feld oben (Schaltfläche „Erstellen“) oder vergeben Sie eines über das Cover eines Albums, einer Playlist oder einer Sammlung.",
   "v2.nav.shortcuts": "Verknüpfungen",
   "v2.nav.artisteIntrouvable": "„{nom}“ wurde bei {service} nicht gefunden – hier sind die Suchergebnisse.",
   "v2.nav.serviceInjoignable": "{service} hat nicht geantwortet – hier sind die Suchergebnisse für „{nom}“.",
