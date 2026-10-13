@@ -7,7 +7,8 @@
  *
  * Trois maillons, tous exercés pour de vrai :
  *  1. le menu « ⋯ » d'un rayon porte « Nouvelle collection intelligente ici »,
- *     et le geste désigne CE rayon ;
+ *     et le geste désigne CE rayon ; depuis le 13/10, le même geste est aussi
+ *     un bouton À VUE dans l'en-tête de chaque rayon (1 bis) ;
  *  2. l'éditeur rend à l'appelant la collection CRÉÉE (son id) — sans quoi rien
  *     ne peut la ranger ;
  *  3. la collection créée est rangée dans le rayon par la route existante
@@ -127,6 +128,75 @@ describe('1 — le menu d’un rayon propose de créer une intelligente ICI', ()
     flushSync();
     const menu = ouvrirMenuDuRayon(3);
     expect(menu.querySelector('.creer-smart')).toBeNull();
+  });
+});
+
+describe('1 bis — un bouton À VUE dans l’en-tête de chaque rayon (13/10)', () => {
+  const boutonDe = (id: number) =>
+    hote.querySelector(`[data-rayon="${id}"] > .tete .creer-smart-tete`) as HTMLButtonElement | null;
+
+  it('chaque rayon, sous-rayon compris, porte le bouton sans ouvrir le menu', () => {
+    composant = mount(ArbreRayons, {
+      target: hote,
+      props: { arbre, onOuvrir: () => {}, onNouvelleSmart: () => {} },
+    });
+    flushSync();
+    for (const id of [1, 2, 3]) {
+      expect(boutonDe(id), `pas de bouton dans l’en-tête du rayon ${id}`).not.toBeNull();
+    }
+    // Aucun menu ouvert : le geste est visible d’emblée.
+    expect(hote.querySelector('.menu')).toBeNull();
+    expect(boutonDe(3)!.getAttribute('aria-label')).toBe('Nouvelle collection intelligente ici');
+    expect(boutonDe(3)!.title).toBe('Nouvelle collection intelligente ici');
+  });
+
+  it('le clic ouvre la création pour CE rayon (Progressive, pas Rock)', () => {
+    const demandes: number[] = [];
+    composant = mount(ArbreRayons, {
+      target: hote,
+      props: { arbre, onOuvrir: () => {}, onNouvelleSmart: (f: { id: number }) => demandes.push(f.id) },
+    });
+    flushSync();
+    boutonDe(2)!.click();
+    flushSync();
+    boutonDe(3)!.click();
+    flushSync();
+    expect(demandes).toEqual([2, 3]);
+  });
+
+  it('le clic referme un menu « ⋯ » resté ouvert', () => {
+    composant = mount(ArbreRayons, {
+      target: hote,
+      props: { arbre, onOuvrir: () => {}, onNouvelleSmart: () => {} },
+    });
+    flushSync();
+    expect(ouvrirMenuDuRayon(1)).not.toBeNull();
+    boutonDe(3)!.click();
+    flushSync();
+    expect(hote.querySelector('.menu')).toBeNull();
+  });
+
+  it('en anglais, le bouton est nommé en anglais', () => {
+    locale.set('en');
+    composant = mount(ArbreRayons, {
+      target: hote,
+      props: { arbre, onOuvrir: () => {}, onNouvelleSmart: () => {} },
+    });
+    flushSync();
+    expect(boutonDe(3)!.getAttribute('aria-label')).toBe('New smart collection here');
+  });
+
+  it('ni sans rappel, ni dans la barre latérale (en lecture)', () => {
+    composant = mount(ArbreRayons, { target: hote, props: { arbre, onOuvrir: () => {} } });
+    flushSync();
+    expect(hote.querySelector('.creer-smart-tete')).toBeNull();
+    unmount(composant);
+    composant = mount(ArbreRayons, {
+      target: hote,
+      props: { arbre, compact: true, onOuvrir: () => {}, onNouvelleSmart: () => {} },
+    });
+    flushSync();
+    expect(hote.querySelector('.creer-smart-tete')).toBeNull();
   });
 });
 

@@ -170,13 +170,15 @@ describe('1. Les entrées de chaque type, selon ce que l’objet permet', () => 
   it('album de la BIBLIOTHÈQUE : lecture, fiche, artiste, ranger, corriger', () => {
     expect(ouvrirLigne(ALBUM_LOCAL)).toEqual([
       ...LIRE, 'common.open', 'library.goToArtist', 'menuObjet.addShortcut', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags',
-      'v2.album.addToCollection', 'credits.see', 'v2.cover.edit', 'library.reidentify', 'v2.album.locate',
+      // web#2096 — l'album entier dans une playlist.
+      'v2.album.addToCollection', 'playlist.addToPlaylist', 'credits.see', 'v2.cover.edit', 'library.reidentify', 'v2.album.locate',
     ]);
   });
 
   it('album de SERVICE (Qobuz) : rien de ce qui prend un `i64`, les crédits parce que Qobuz en rend', () => {
     expect(ouvrirLigne(ALBUM_QOBUZ)).toEqual([
-      ...LIRE, 'common.open', 'library.goToArtist', 'menuObjet.addShortcut', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags', 'credits.see',
+      ...LIRE, 'common.open', 'library.goToArtist', 'menuObjet.addShortcut', 'v2.cover.favorite', 'v2.later.add', 'v2.cover.tags',
+      'playlist.addToPlaylist', 'credits.see',
     ]);
   });
 
