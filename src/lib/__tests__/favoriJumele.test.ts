@@ -40,19 +40,14 @@ describe('Favori jumelé : streaming ↔ local (Bertrand, 05/09/2026)', () => {
     expect(store).toContain('&& f.title');
   });
 
-  it('les deux cœurs suivent la même règle', () => {
+  it('#1868 : AUCUN des deux cœurs ne jumelle plus une piste locale', () => {
+    // Décision de Bertrand du 12/10/2026 : chaque source garde ses favoris.
     const pa = sansCommentaires(lire('src/components/v2/PisteActions.svelte'));
-    expect(pa).toContain('$favoriteTrackIds.has(piste.id!) || parJumeau');
-    expect(pa).toContain('clePisteJumelee(piste.title, piste.artist_name)');
+    expect(pa).not.toContain('parJumeau');
+    expect(pa).not.toContain('clePisteJumelee');
     const hb = sansCommentaires(lire('src/components/partages/HeartButton.svelte'));
-    expect(hb).toContain('$favoriteStreamingTrackKeys.has(clePisteJumelee(titre, artiste))');
-  });
-
-  it('le jumelage ne vaut QUE pour les pistes locales', () => {
-    // Une piste de service a sa propre clé `type:service:id` : la rapprocher
-    // par le titre la ferait paraître favorite chez un autre service.
-    const pa = sansCommentaires(lire('src/components/v2/PisteActions.svelte'));
-    expect(pa).toContain('const parJumeau = $derived(\n    local &&');
+    expect(hb).not.toContain('favoriteStreamingTrackKeys');
+    expect(hb).toContain('if (trackId) return $favoriteTrackIds.has(trackId);');
   });
 
   it('un cœur vidé quand rien n’est chargé', () => {
