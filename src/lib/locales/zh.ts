@@ -4966,6 +4966,18 @@ export default {
   "v2.passes.continue": "继续",
   "v2.passes.discogsWithoutCode": "{n} 张没有条形码或目录号的专辑无法在 Discogs 上查找。",
   "v2.passes.discogsNotice": "本应用使用 Discogs 的 API，但与 Discogs 无关联，也未获得 Discogs 的赞助或认可。“Discogs”是 Zink Media, LLC 的商标。",
+  // tune-server-rust#4805 lot 2 — fiche d'album : pochette plus nette, propositions Discogs périmées.
+  "v2.discogs.stale": "Discogs 建议已过期（读取已超过 6 小时）：请重新搜索以查看。",
+  "v2.cover.sharper": "查找更清晰的封面",
+  "v2.cover.sharperTip": "Cover Art Archive：同一封面，清晰度至少高 1.4 倍。绝不换成另一张图。",
+  "v2.cover.searching": "正在查找更清晰的封面…",
+  "v2.cover.replaced": "已替换为同一封面的更清晰版本。",
+  "v2.cover.added": "已添加封面。",
+  "v2.cover.alreadyBest": "当前封面已是最清晰的。",
+  "v2.cover.different": "Cover Art Archive 中是另一张图：保留当前封面。",
+  "v2.cover.notReplaceable": "无可查找：封面来自您的文件、由您选择或导入，或专辑未识别。",
+  "v2.cover.noneOnCaa": "Cover Art Archive 没有此专辑的封面。",
+  "v2.cover.failed": "封面查找未成功。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

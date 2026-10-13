@@ -4965,4 +4965,16 @@ export default {
   "v2.passes.continue": "Fortsätt",
   "v2.passes.discogsWithoutCode": "{n} album utan streckkod eller katalognummer kan inte sökas på Discogs.",
   "v2.passes.discogsNotice": "Den här applikationen använder Discogs API men är inte ansluten till, sponsrad eller godkänd av Discogs. ”Discogs” är ett varumärke som tillhör Zink Media, LLC.",
+  // tune-server-rust#4805 lot 2 — fiche d'album : pochette plus nette, propositions Discogs périmées.
+  "v2.discogs.stale": "Discogs-förslaget har gått ut (läst för mer än 6 h sedan): sök igen för att se det.",
+  "v2.cover.sharper": "Sök ett skarpare omslag",
+  "v2.cover.sharperTip": "Cover Art Archive: samma omslag, minst 1,4 gånger mer detaljerat. Aldrig en annan bild.",
+  "v2.cover.searching": "Söker ett skarpare omslag…",
+  "v2.cover.replaced": "Omslaget ersattes med samma, skarpare.",
+  "v2.cover.added": "Omslag tillagt.",
+  "v2.cover.alreadyBest": "Det nuvarande omslaget är redan det skarpaste.",
+  "v2.cover.different": "Cover Art Archive har en annan bild: det nuvarande omslaget behålls.",
+  "v2.cover.notReplaceable": "Inget att söka: omslag från dina filer, valt eller importerat, eller album som inte identifierats.",
+  "v2.cover.noneOnCaa": "Cover Art Archive har inget omslag för det här albumet.",
+  "v2.cover.failed": "Omslagssökningen lyckades inte.",
 } as const;

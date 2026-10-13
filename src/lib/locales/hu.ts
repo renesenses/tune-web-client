@@ -4924,6 +4924,18 @@ export default {
   "v2.passes.continue": "Folytatás",
   "v2.passes.discogsWithoutCode": "{n} album vonalkód és katalógusszám nélkül nem kereshető a Discogson.",
   "v2.passes.discogsNotice": "Ez az alkalmazás a Discogs API-ját használja, de nem áll kapcsolatban a Discogsszal, és a Discogs nem szponzorálja és nem támogatja. A „Discogs” a Zink Media, LLC védjegye.",
+  // tune-server-rust#4805 lot 2 — fiche d'album : pochette plus nette, propositions Discogs périmées.
+  "v2.discogs.stale": "A Discogs-javaslat lejárt (több mint 6 órája olvasva): keressen újra a megtekintéshez.",
+  "v2.cover.sharper": "Élesebb borító keresése",
+  "v2.cover.sharperTip": "Cover Art Archive: ugyanaz a borító, legalább 1,4-szer részletesebb. Soha nem másik kép.",
+  "v2.cover.searching": "Élesebb borító keresése…",
+  "v2.cover.replaced": "A borító ugyanarra, élesebbre cserélve.",
+  "v2.cover.added": "Borító hozzáadva.",
+  "v2.cover.alreadyBest": "A jelenlegi borító már a legélesebb.",
+  "v2.cover.different": "A Cover Art Archive-ban másik kép van: a jelenlegi borító marad.",
+  "v2.cover.notReplaceable": "Nincs mit keresni: a borító a fájljaiból való, kiválasztott vagy importált, vagy az album nincs azonosítva.",
+  "v2.cover.noneOnCaa": "A Cover Art Archive-ban nincs borító ehhez az albumhoz.",
+  "v2.cover.failed": "A borítókeresés nem sikerült.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

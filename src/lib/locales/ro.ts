@@ -4966,6 +4966,18 @@ export default {
   "v2.passes.continue": "Continuă",
   "v2.passes.discogsWithoutCode": "{n} album(e) fără cod de bare sau număr de catalog nu pot fi căutate pe Discogs.",
   "v2.passes.discogsNotice": "Această aplicație folosește API-ul Discogs, dar nu este afiliată cu Discogs și nu este sponsorizată sau aprobată de Discogs. „Discogs” este o marcă a Zink Media, LLC.",
+  // tune-server-rust#4805 lot 2 — fiche d'album : pochette plus nette, propositions Discogs périmées.
+  "v2.discogs.stale": "Propunere Discogs expirată (citită acum mai bine de 6 h): căutați din nou pentru a o vedea.",
+  "v2.cover.sharper": "Caută o copertă mai clară",
+  "v2.cover.sharperTip": "Cover Art Archive: aceeași copertă, de cel puțin 1,4 ori mai detaliată. Niciodată altă imagine.",
+  "v2.cover.searching": "Se caută o copertă mai clară…",
+  "v2.cover.replaced": "Coperta a fost înlocuită cu aceeași, mai clară.",
+  "v2.cover.added": "Copertă adăugată.",
+  "v2.cover.alreadyBest": "Coperta actuală este deja cea mai clară.",
+  "v2.cover.different": "Cover Art Archive are altă imagine: coperta actuală se păstrează.",
+  "v2.cover.notReplaceable": "Nimic de căutat: copertă din fișierele dvs., aleasă sau importată, ori album neidentificat.",
+  "v2.cover.noneOnCaa": "Cover Art Archive nu are copertă pentru acest album.",
+  "v2.cover.failed": "Căutarea copertei nu a reușit.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

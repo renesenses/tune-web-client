@@ -4966,6 +4966,18 @@ export default {
   "v2.passes.continue": "Fortsetzen",
   "v2.passes.discogsWithoutCode": "{n} Album/Alben ohne Barcode oder Katalognummer können nicht auf Discogs gesucht werden.",
   "v2.passes.discogsNotice": "Diese Anwendung nutzt die API von Discogs, ist aber weder mit Discogs verbunden noch von Discogs gesponsert oder unterstützt. „Discogs“ ist eine Marke der Zink Media, LLC.",
+  // tune-server-rust#4805 lot 2 — fiche d'album : pochette plus nette, propositions Discogs périmées.
+  "v2.discogs.stale": "Discogs-Vorschlag abgelaufen (vor mehr als 6 Std. gelesen): erneut suchen, um ihn zu sehen.",
+  "v2.cover.sharper": "Schärferes Cover suchen",
+  "v2.cover.sharperTip": "Cover Art Archive: dasselbe Cover, mindestens 1,4-mal detaillierter. Nie ein anderes Motiv.",
+  "v2.cover.searching": "Suche nach einem schärferen Cover…",
+  "v2.cover.replaced": "Cover durch dasselbe, schärfere ersetzt.",
+  "v2.cover.added": "Cover hinzugefügt.",
+  "v2.cover.alreadyBest": "Das aktuelle Cover ist bereits das schärfste.",
+  "v2.cover.different": "Das Cover Art Archive hat ein anderes Motiv: Das aktuelle Cover bleibt.",
+  "v2.cover.notReplaceable": "Kein schärferes Cover zu suchen: Cover aus Ihren Dateien, gewählt oder importiert, oder Album nicht identifiziert.",
+  "v2.cover.noneOnCaa": "Das Cover Art Archive hat kein Cover für dieses Album.",
+  "v2.cover.failed": "Die Cover-Suche war nicht erfolgreich.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

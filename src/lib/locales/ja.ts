@@ -4966,6 +4966,18 @@ export default {
   "v2.passes.continue": "続行",
   "v2.passes.discogsWithoutCode": "バーコードもカタログ番号もないアルバム{n}枚はDiscogsで検索できません。",
   "v2.passes.discogsNotice": "このアプリケーションはDiscogsのAPIを使用していますが、Discogsとは提携しておらず、Discogsによる後援や承認も受けていません。「Discogs」はZink Media, LLCの商標です。",
+  // tune-server-rust#4805 lot 2 — fiche d'album : pochette plus nette, propositions Discogs périmées.
+  "v2.discogs.stale": "Discogsの提案は期限切れです（6時間以上前に取得）：表示するには再検索してください。",
+  "v2.cover.sharper": "より鮮明なジャケットを探す",
+  "v2.cover.sharperTip": "Cover Art Archive：同じジャケットで、1.4倍以上高精細なもの。別の画像には置き換えません。",
+  "v2.cover.searching": "より鮮明なジャケットを検索中…",
+  "v2.cover.replaced": "同じジャケットの、より鮮明なものに置き換えました。",
+  "v2.cover.added": "ジャケットを追加しました。",
+  "v2.cover.alreadyBest": "現在のジャケットがすでに最も鮮明です。",
+  "v2.cover.different": "Cover Art Archiveには別の画像があります：現在のジャケットを残します。",
+  "v2.cover.notReplaceable": "探すものはありません：ファイル内のジャケット、選択またはインポートしたジャケット、または未識別のアルバムです。",
+  "v2.cover.noneOnCaa": "Cover Art Archiveにこのアルバムのジャケットはありません。",
+  "v2.cover.failed": "ジャケットの検索に失敗しました。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
