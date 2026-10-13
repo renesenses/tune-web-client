@@ -27,7 +27,7 @@ describe('#5593 — une case « Analyses de fond » par racine', () => {
   });
 
   it('écrit la liste COMPLÈTE des racines exclues, et revient en arrière sur un refus', () => {
-    expect(src).toMatch(/patch\(\{ background_analysis_excluded_roots: suivant \}, \(\) => \{ analysisExcluded = avant; \}\)/);
+    expect(src).toMatch(/patchPerimetre\(\{ background_analysis_excluded_roots: suivant \}, \(\) => \{ analysisExcluded = avant; \}\)/);
     // Décocher ajoute la racine une seule fois ; cocher la retire.
     expect(src).toContain('analyser ? avant.filter((r) => r !== d) : [...avant.filter((r) => r !== d), d]');
   });

@@ -4554,6 +4554,15 @@ export function getConfig() {
   return fetchJSON<any>(`${BASE}/system/config`);
 }
 
+/**
+ * tune-server-rust#5593 (étape 3) — combien de pistes chaque dossier ou genre
+ * exclu des analyses de fond retire : `{ common, by_pass }`, chaque liste en
+ * `{ value, tracks }`. Lu par `comptesDepuisReponse` (`perimetreAnalyses.ts`).
+ */
+export function getAnalysisScopeCounts() {
+  return fetchJSON<any>(`${BASE}/system/analysis-scope/counts`);
+}
+
 export function getDatabaseStatus() {
   return fetchJSON<any>(`${BASE}/system/database/status`);
 }
