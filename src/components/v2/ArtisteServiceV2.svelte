@@ -59,6 +59,8 @@
    * a produit ce chantier ; en créer une de plus serait le reproduire.
    */
   import { onMount } from 'svelte';
+  import { favoriteStreamingKeys } from '../../lib/stores/profile';
+  import { favoriExterneService } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
@@ -657,6 +659,30 @@
 
   /** Le nom affiché tant que la fiche charge : celui que l'appelant portait. */
   const nom = $derived(artiste?.name || cible?.nom || '');
+  /**
+   * web#2094 (FabienM, fil 2236, point 2) — « Pas de possibilité de mettre en
+   * favori un artiste du service (Qobuz, Bandcamp, Tidal) ». La VIGNETTE
+   * portait le cœur (`StreamingV2`, `favoriExterneService`), la fiche non.
+   * Même geste, même clé : la paire service + identifiant de l'artiste.
+   */
+  const coeurArtiste = $derived(
+    !cible || cible.service == null
+      ? null
+      : favoriExterneService($favoriteStreamingKeys, {
+          itemType: 'artist',
+          service: String(cible.service),
+          serviceId: String(cible.id ?? ''),
+          title: nom || undefined,
+          coverUrl: artiste?.image_path ?? undefined,
+        }),
+  );
+  let basculeCoeur = $state(false);
+  async function basculerCoeurArtiste() {
+    if (!coeurArtiste || basculeCoeur) return;
+    basculeCoeur = true;
+    try { await coeurArtiste.basculer(); } catch { /* le cœur reprend son état au prochain relevé */ }
+    basculeCoeur = false;
+  }
 
   /**
    * LA PAGE SE DÉCLARE COMME CIBLE DE RACCOURCI — #1501.
@@ -901,6 +927,15 @@
         <span class="echec">{$tr('v2.fas.topTracksFailed' as any)}</span>
         <button class="v2-btn ghost" onclick={() => cible && charger(cible.service as Source, cible.id)}>
           {$tr('zone.retry' as any)}
+        </button>
+      {/if}
+      <!-- #2094 — le cœur de l'artiste de SERVICE, celui de sa vignette. -->
+      {#if coeurArtiste}
+        <button class="v2-btn ghost coeur-artiste" class:on={coeurArtiste.actif} disabled={basculeCoeur}
+          onclick={basculerCoeurArtiste} aria-pressed={coeurArtiste.actif}
+          title={$tr(coeurArtiste.actif ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill={coeurArtiste.actif ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          {$tr(coeurArtiste.actif ? 'favorites.inFavorites' : 'favorites.addAlbum')}
         </button>
       {/if}
       <!-- tune-server-rust#5395 — la radio est TOUJOURS proposée (Bertrand,

@@ -36,6 +36,16 @@
   import { activeView, pendingLibraryAlbum } from '../../lib/stores/navigation';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
+  import MenuPisteV2 from './MenuPisteV2.svelte';
+  import { get } from 'svelte/store';
+  import { gestesNavigationService } from '../../lib/stores/navigation';
+  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
+  import { corpsDeFileListe } from '../../lib/pisteFile';
+  import type { EntreeMenuPiste } from '../../lib/menuPiste';
+  import {
+    cibleDeLocale, cibleDeMembre, cibleDeService, distinctionGroupe, entreesMenuVersion,
+    pisteDeVersion, type CibleVersion,
+  } from '../../lib/versionsPanneau';
 
   /**
    * ## Deux façons de rapprocher, UN seul rendu
@@ -58,7 +68,7 @@
    * laquelle il joue par défaut selon la règle réglée. L'écran le dessine tel
    * quel. Un serveur antérieur répond 404 : on retombe sur la liste plate.
    */
-  import { choixExplicite, cleLien, corpsMembre, getTrackVersionGroups, groupeVide, qualiteMembre, type GroupesVersions, type MembreGroupe } from '../../lib/groupesVersions';
+  import { choixExplicite, cleLien, corpsMembre, getTrackVersionGroups, groupeVide, libelleRegle, qualiteMembre, type GroupesVersions, type MembreGroupe } from '../../lib/groupesVersions';
 
   interface Props {
     /** La piste de la BIBLIOTHÈQUE. `null` : voir `parTitre`. */
@@ -175,8 +185,62 @@
     onClose();
   }
 
+  /**
+   * web#2017 — le menu « … » d'une version : Lire, Ajouter à la file, Aller à
+   * l'album, Aller à l'artiste. Le clic sur la pochette garde son geste.
+   */
+  let menu = $state<{ ancre: DOMRect; entrees: EntreeMenuPiste[] } | null>(null);
+
+  function aLaFile(c: CibleVersion) {
+    const zid = $currentZoneId;
+    const corps = corpsDeFileListe([pisteDeVersion(c) as any]);
+    if (zid == null || !corps) return;
+    api.addToQueue(zid, corps)
+      .then(() => notifications.success($t('v2.album.queued' as any).replace('{title}', c.title ?? '')))
+      .catch(() => notifications.error($t('v2.pa.queueError' as any)));
+  }
+  function allerAlbumVersion(c: CibleVersion) {
+    if (c.track_id != null && typeof c.album_id === 'number') { ouvrirAlbum(c.album_id); return; }
+    if (c.album_id == null) return;
+    get(gestesNavigationService)?.ouvrirAlbum({
+      service: c.source, albumId: String(c.album_id), titre: c.album_title ?? '',
+      pochette: c.cover_path, artiste: c.artist_name,
+    });
+    onClose();
+  }
+  function allerArtisteVersion(c: CibleVersion) {
+    const nom = (c.artist_name ?? '').trim();
+    if (!nom) return;
+    const depuis = get(activeView);
+    if (c.track_id != null) void ouvrirArtisteDepuis({ name: nom }, depuis);
+    else get(gestesNavigationService)?.ouvrirArtiste({ service: c.source, nom, depuis });
+    onClose();
+  }
+  function ouvrirMenuVersion(e: MouseEvent, c: CibleVersion, jouable: boolean, lire: () => void) {
+    e.stopPropagation();
+    menu = {
+      ancre: (e.currentTarget as HTMLElement).getBoundingClientRect(),
+      entrees: entreesMenuVersion(c, jouable, {
+        lire,
+        aLaFile: () => aLaFile(c),
+        allerAlbum: () => allerAlbumVersion(c),
+        allerArtiste: () => allerArtisteVersion(c),
+      }),
+    };
+  }
+
+  /** « Jouée par défaut » — ce que c'est, et la règle qui l'a choisie (#2017). */
+  const aideDefaut = $derived(
+    $t('library.versionGroups.defaultHint' as any)
+      .replace('{rule}', groupes ? libelleRegle(groupes.rule, (k) => $t(k as any)) : ''),
+  );
+
   function auClavier(e: KeyboardEvent) {
-    if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      if (menu) { menu = null; return; }
+      onClose();
+    }
   }
 </script>
 
@@ -207,9 +271,19 @@
       <div class="groupes">
         {#each groupesAffiches as g, gi (gi)}
           {@const lien = cleLien(g.identity)}
+          {@const distinction = g.contains_reference ? '' : distinctionGroupe(g)}
           <section class="groupe" class:courant={g.contains_reference}>
+            <!-- #2017 — un groupe qui ne porte pas la piste de départ se dit par
+                 ce qui le distingue (album, interprète, durée), et non plus
+                 par « Autre enregistrement » répété à chaque groupe. -->
             <h3>
-              {$t((g.contains_reference ? 'library.versionGroups.same' : 'library.versionGroups.other') as any)}
+              {#if g.contains_reference}
+                {$t('library.versionGroups.same' as any)}
+              {:else if distinction}
+                <span class="distinction">{distinction}</span>
+              {:else}
+                {$t('library.versionGroups.other' as any)}
+              {/if}
               {#if lien}<span class="lien">· {$t(lien as any)}</span>{/if}
             </h3>
             <ul>
@@ -230,7 +304,10 @@
                       {#if m.is_reference}<span class="moi">{$t('library.versionGroups.thisTrack' as any)}</span>{/if}
                     </span>
                   </span>
-                  {#if m.is_default}<span class="par-defaut">{$t('library.versionGroups.default' as any)}</span>{/if}
+                  {#if m.is_default}<span class="par-defaut" tabindex="0" role="note" title={aideDefaut} aria-label={aideDefaut}>{$t('library.versionGroups.default' as any)}</span>{/if}
+                  <button class="mv" aria-haspopup="menu" aria-label={$t('library.versionGroups.menu' as any)}
+                    title={$t('library.versionGroups.menu' as any)}
+                    onclick={(e) => ouvrirMenuVersion(e, cibleDeMembre(m), jouable, () => lireMembre(m))}>⋯</button>
                 </li>
               {/each}
             </ul>
@@ -255,6 +332,9 @@
                 {#if v.duration_ms}<span>{formatTime(v.duration_ms)}</span>{/if}
               </span>
             </span>
+            <button class="mv" aria-haspopup="menu" aria-label={$t('library.versionGroups.menu' as any)}
+              title={$t('library.versionGroups.menu' as any)}
+              onclick={(e) => ouvrirMenuVersion(e, cibleDeLocale(v as any), v.track_id != null, () => lireLocale(v))}>⋯</button>
           </div>
         {/each}
         {#each flux as v, i ((v.service ?? '') + ':' + (v.source_id ?? v.album_id ?? `s${i}`))}
@@ -273,12 +353,19 @@
                 <ServiceBadge source={v.service} compact />
               </span>
             </span>
+            <button class="mv" aria-haspopup="menu" aria-label={$t('library.versionGroups.menu' as any)}
+              title={$t('library.versionGroups.menu' as any)}
+              onclick={(e) => ouvrirMenuVersion(e, cibleDeService(v), !!destination, () => lireFlux(v))}>⋯</button>
           </div>
         {/each}
       </div>
     {/if}
   </div>
 </div>
+
+{#if menu}
+  <MenuPisteV2 ancre={menu.ancre} entrees={menu.entrees} onClose={() => (menu = null)} />
+{/if}
 
 <style>
   .fond{position:fixed; inset:0; z-index:900; display:grid; place-items:center;
@@ -322,6 +409,13 @@
     border:1px solid var(--v2-line, transparent); border-radius:8px}
   .membre.defaut{border-color:var(--v2-acc1, var(--tune-accent, currentColor))}
   .membre.inerte{opacity:.55}
+  /* #2017 — le bouton « … » d'une version, à droite de sa tuile. */
+  .mv{flex:0 0 auto; width:28px; height:28px; border:0; border-radius:6px; background:transparent;
+    color:var(--v2-txt3, inherit); font-size:18px; line-height:1; cursor:pointer}
+  .mv:hover{background:var(--v2-hover, rgba(255,255,255,.06)); color:var(--v2-txt, inherit)}
+  .mv:focus-visible{outline:2px solid var(--v2-acc1, var(--tune-accent, currentColor)); outline-offset:-2px}
+  .distinction{font-weight:600}
+  .par-defaut{cursor:help}
   .membre .txt{flex:1 1 auto}
   .cv.petit{width:40px; height:40px}
   .q{font-variant-numeric:tabular-nums}

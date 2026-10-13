@@ -72,6 +72,9 @@ function reponse(status: number, corps: unknown): Response {
 beforeAll(async () => { await preparerLocale('fr'); });
 
 beforeEach(() => {
+  // web#1755 — ces bancs décrivent l'écran d'AVANT la question du lieu :
+  // le profil a répondu « Pas maintenant », rien n'est rejoué ni demandé.
+  preferences.update((p) => ({ ...p, concertsLieu: 'plus-tard' }));
   vi.useFakeTimers();
   appels = [];
   refus = null;

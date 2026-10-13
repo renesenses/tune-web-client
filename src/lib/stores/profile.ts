@@ -55,6 +55,9 @@ function saveProfileId(id: number | null) {
 // (Bertrand + Fabien).
 const initialStoredProfileId = loadProfileId();
 export const hadStoredProfile = initialStoredProfileId !== null;
+/** web#2099 — l'identifiant que ce navigateur avait retenu au chargement de la
+ *  page (`null` : aucun, par exemple après un vidage du cache). */
+export const profilMemoriseAuChargement: number | null = initialStoredProfileId;
 export const currentProfileId = writable<number | null>(initialStoredProfileId);
 currentProfileId.subscribe(saveProfileId);
 
