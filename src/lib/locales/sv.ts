@@ -1530,6 +1530,7 @@ export default {
   "smartCollection.opBetween": "mellan",
   "smartCollection.opContains": "innehåller",
   "smartCollection.opStartsWith": "börjar med",
+  "smartCollection.opNotContains": "innehåller inte",
   "smartCollection.opIn": "bland",
   "smartCollection.opIsEmpty": "är tomt",
   "smartCollection.opIsNotEmpty": "är inte tomt",
