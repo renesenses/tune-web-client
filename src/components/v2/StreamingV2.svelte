@@ -80,6 +80,8 @@
     ongletDeRestitution,
     ongletsStreaming,
     aUneBibliothequeDeCompte,
+    bibliothequeDeCompteSurPreuve,
+    reponseProuveLaBibliotheque,
     pseudoOnglet,
   } from '../../lib/ongletsStreaming';
   import { untrack } from 'svelte';
@@ -425,8 +427,28 @@
    * figée : la garde de l'onglet Genres (`streamingOngletGenres`) reste tenue.
    */
   const ongletYouTube = $derived(active === 'youtube');
-  /** tune-server-rust#5247 — le compte de ce service se lit-il ? Non pour YouTube. */
-  const bibliothequeDeCompte = $derived(aUneBibliothequeDeCompte(cleServeur(active)));
+  /**
+   * tune-server-rust#5247 — les services « sur preuve » (YouTube) dont le
+   * serveur a PROUVÉ qu'il lit le compte : `GET /streaming/youtube/library`
+   * a répondu 200 avec `{ playlists, tracks }`. Un refus de Google (502), une
+   * panne ou l'ancien talon laissent les onglets du compte masqués.
+   */
+  let comptesLisibles = $state<ReadonlySet<string>>(new Set());
+  /** Une sonde par service et par montage : pas de nouvel appel à chaque clic. */
+  const comptesSondes = new Set<string>();
+  $effect(() => {
+    const cle = cleServeur(active);
+    if (cle !== 'youtube' || !bibliothequeDeCompteSurPreuve(cle) || comptesSondes.has(cle)) return;
+    if (!services[cle]?.authenticated) return;
+    comptesSondes.add(cle);
+    api.getYouTubeLibrary()
+      .then((r) => {
+        if (reponseProuveLaBibliotheque(r)) comptesLisibles = new Set([...untrack(() => comptesLisibles), cle]);
+      })
+      .catch(() => { /* refus ou panne : les onglets restent masqués */ });
+  });
+  /** tune-server-rust#5247 — le compte de ce service se lit-il ? YouTube : sur preuve. */
+  const bibliothequeDeCompte = $derived(aUneBibliothequeDeCompte(cleServeur(active), comptesLisibles));
   // Un sous-onglet du compte resté ouvert (arrivée par un autre chemin que
   // `ouvrirOnglet`) retombe sur l'éditorial plutôt que d'afficher un vide.
   $effect(() => {

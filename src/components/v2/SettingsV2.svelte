@@ -82,6 +82,7 @@
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
+  import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import {
     DELAI_MAJ_HOMEBREW_MS,
     divergenceHomebrew,
@@ -5430,6 +5431,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'library'}
+              <SacdIsoStatus />
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.scanLibraryV2' as any)}</span>
