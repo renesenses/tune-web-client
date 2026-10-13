@@ -3351,6 +3351,22 @@ export function deleteTag(id: number) {
   return fetchJSON<void>(`${BASE}/tags/${id}`, { method: 'DELETE' });
 }
 
+/**
+ * Enregistre l'ORDRE des étiquettes (web#2166, tune-server-rust#6257) : les
+ * identifiants du premier au dernier. Le serveur complète la liste — un
+ * identifiant inconnu est ignoré, une étiquette absente garde son rang
+ * relatif après les autres — et toutes ses listes d'étiquettes suivent
+ * ensuite cet ordre. Un serveur antérieur à #6257 n'a pas la route : l'appel
+ * échoue, l'écran le dit et reprend l'ordre d'avant.
+ */
+export function reorderTags(ids: number[]) {
+  return fetchJSON<void>(`${BASE}/tags/order`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+}
+
 export function updateTag(id: number, name?: string, color?: string) {
   return fetchJSON<void>(`${BASE}/tags/${id}`, {
     method: 'PUT',

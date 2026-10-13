@@ -2592,6 +2592,8 @@ export default {
   "v2.tags.add": "Lägg till",
   "v2.tags.remove": "Ta bort den här etiketten",
   "v2.tags.create": "Skapa",
+  "v2.tags.reorderHint": "Dra en etikett för att flytta den, eller använd Alt + piltangent på tangentbordet.",
+  "v2.tags.moved": "{name}: plats {n} av {total}",
   "v2.tags.newPlaceholder": "Ny etikett…",
   "v2.col.tabSmart": "Smart Collections",
   "v2.col.tabManual": "Samlingar",

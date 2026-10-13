@@ -25,6 +25,7 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
+  import { selonOrdre } from '../../lib/ordreEtiquettes';
   import {
     etiquettesPosees, poserEtiquette, retirerEtiquette, type CibleEtiquette,
   } from '../../lib/cibleEtiquette';
@@ -77,7 +78,9 @@
     try {
       if (!laCible) throw new Error($t('common.error' as any));
       await poserEtiquette(tag.id, laCible);
-      posees = [...posees, tag];
+      // web#2166 — la posée reprend SA place dans l'ordre choisi sur la page
+      // Étiquettes, au lieu de s'empiler au bout jusqu'au prochain chargement.
+      posees = selonOrdre([...posees, tag], toutes);
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     }

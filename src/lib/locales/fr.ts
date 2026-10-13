@@ -1590,6 +1590,8 @@ export default {
   "v2.tags.add": "Ajouter",
   "v2.tags.remove": "Retirer cette étiquette",
   "v2.tags.create": "Créer",
+  "v2.tags.reorderHint": "Glissez une étiquette pour la déplacer, ou utilisez Alt + flèche au clavier.",
+  "v2.tags.moved": "{name} : position {n} sur {total}",
   "v2.tags.newPlaceholder": "Nouvelle étiquette…",
   "v2.col.tabSmart": "Smart Collections",
   "v2.col.tabManual": "Collections",

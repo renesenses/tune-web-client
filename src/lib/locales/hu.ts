@@ -2547,6 +2547,8 @@ export default {
   "v2.tags.add": "Hozzáadás",
   "v2.tags.remove": "Címke eltávolítása",
   "v2.tags.create": "Létrehozás",
+  "v2.tags.reorderHint": "Húzzon el egy címkét az áthelyezéséhez, vagy használja az Alt + nyílbillentyűt.",
+  "v2.tags.moved": "{name}: {n}. hely / {total}",
   "v2.tags.newPlaceholder": "Új címke…",
   "v2.col.tabSmart": "Smart Collections",
   "v2.col.tabManual": "Gyűjtemények",
