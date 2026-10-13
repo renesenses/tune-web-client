@@ -536,6 +536,8 @@ export default {
   'ingest.placementArtist': 'En una subcarpeta de artista',
   'ingest.placementArtistHint': 'Mantiene la disposición habitual: una carpeta por artista debajo de esta.',
   'browse.rescanning': 'Escaneando...',
+  "browse.rescanAlreadyScanning": "Ya hay un análisis de la biblioteca en curso: el servidor ha rechazado volver a analizar esta carpeta. Inténtelo de nuevo cuando termine.",
+  "browse.rescanFailed": "No se pudo volver a analizar esta carpeta: {erreur}",
 
   // Media Servers (UPnP/DLNA)
   'nav.mediaservers': 'Servidores multimedia',

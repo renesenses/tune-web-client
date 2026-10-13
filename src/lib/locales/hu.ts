@@ -622,6 +622,8 @@ export default {
   "browse.openInLibrary": "Megtekintés a gyűjteményben",
   "browse.openInOxygen": "Megtekintés az Oxygenben",
   "browse.rescanning": "Beolvasás...",
+  "browse.rescanAlreadyScanning": "Már fut egy könyvtárvizsgálat: a szerver elutasította a mappa újravizsgálását. Próbálja újra, ha befejeződött.",
+  "browse.rescanFailed": "A mappa újravizsgálása nem sikerült: {erreur}",
   // Médiaszerverek (UPnP/DLNA)
   "nav.mediaservers": "Médiaszerverek",
   // Rádiók

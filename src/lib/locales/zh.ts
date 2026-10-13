@@ -536,6 +536,8 @@ export default {
   'ingest.placementArtist': '放入艺人子文件夹',
   'ingest.placementArtistHint': '保持惯常结构：在此之下为每位艺人建一个文件夹。',
   'browse.rescanning': '扫描中...',
+  "browse.rescanAlreadyScanning": "已有一次音乐库扫描正在进行：服务器拒绝重新扫描此文件夹。请在其完成后重试。",
+  "browse.rescanFailed": "重新扫描此文件夹失败：{erreur}",
 
   // Media Servers (UPnP/DLNA)
   'nav.mediaservers': '媒体服务器',

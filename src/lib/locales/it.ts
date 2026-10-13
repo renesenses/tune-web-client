@@ -536,6 +536,8 @@ export default {
   'ingest.placementArtist': 'In una sottocartella artista',
   'ingest.placementArtistHint': 'Mantiene la disposizione abituale: una cartella per artista sotto questa.',
   'browse.rescanning': 'Scansione...',
+  "browse.rescanAlreadyScanning": "È già in corso una scansione della libreria: il server ha rifiutato di riscansionare questa cartella. Riprova quando sarà terminata.",
+  "browse.rescanFailed": "Riscansione di questa cartella non riuscita: {erreur}",
 
   // Media Servers (UPnP/DLNA)
   'nav.mediaservers': 'Server multimediali',

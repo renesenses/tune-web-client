@@ -536,6 +536,8 @@ export default {
   'ingest.placementArtist': 'アーティストのサブフォルダーへ',
   'ingest.placementArtistHint': '通常の構成を保ちます。この下にアーティストごとのフォルダーを作ります。',
   'browse.rescanning': 'スキャン中...',
+  "browse.rescanAlreadyScanning": "ライブラリのスキャンがすでに実行中のため、サーバーはこのフォルダーの再スキャンを拒否しました。終了後にもう一度お試しください。",
+  "browse.rescanFailed": "このフォルダーの再スキャンに失敗しました：{erreur}",
 
   // Media Servers (UPnP/DLNA)
   'nav.mediaservers': 'メディアサーバー',

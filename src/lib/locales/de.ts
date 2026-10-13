@@ -536,6 +536,8 @@ export default {
   'ingest.placementArtist': 'In einen Interpreten-Unterordner',
   'ingest.placementArtistHint': 'Behält die übliche Anordnung: ein Ordner je Interpret darunter.',
   'browse.rescanning': 'Wird gescannt...',
+  "browse.rescanAlreadyScanning": "Es läuft bereits ein Bibliotheksscan: Der Server hat das erneute Scannen dieses Ordners abgelehnt. Versuchen Sie es nach dessen Ende erneut.",
+  "browse.rescanFailed": "Erneutes Scannen dieses Ordners fehlgeschlagen: {erreur}",
 
   // Media Servers (UPnP/DLNA)
   'nav.mediaservers': 'Medienserver',

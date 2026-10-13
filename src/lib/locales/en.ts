@@ -645,6 +645,8 @@ export default {
   'browse.openInLibrary': 'View in library',
   'browse.openInOxygen': 'View in Oxygen',
   'browse.rescanning': 'Scanning...',
+  "browse.rescanAlreadyScanning": "A library scan is already running: the server refused to rescan this folder. Try again once it has finished.",
+  "browse.rescanFailed": "Rescanning this folder failed: {erreur}",
 
   // Media Servers (UPnP/DLNA)
   'nav.mediaservers': 'Media Servers',
