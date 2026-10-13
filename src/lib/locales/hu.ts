@@ -1187,6 +1187,8 @@ export default {
   "library.versionGroups.byTitle": "cím, előadó és hossz",
   "library.versionGroups.default": "Alapértelmezetten lejátszva",
   "library.versionGroups.thisTrack": "ez a szám",
+  "library.versionGroups.menu": "A változat műveletei",
+  "library.versionGroups.defaultHint": "Alapértelmezetten lejátszva: ezt a példányt játssza le a Tune, ha a számot változat választása nélkül indítja, a profil „Alapértelmezetten lejátszott verzió” szabálya szerint ({rule}).",
   "nowplaying.version.played": "Lejátszott verzió",
   "nowplaying.version.library": "Könyvtár",
   "nowplaying.version.fallback": "tartalék verzió",

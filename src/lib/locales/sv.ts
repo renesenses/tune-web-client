@@ -1074,6 +1074,8 @@ export default {
   "library.versionGroups.byTitle": "titel, artist och längd",
   "library.versionGroups.default": "Spelas som standard",
   "library.versionGroups.thisTrack": "detta spår",
+  "library.versionGroups.menu": "Åtgärder för den här versionen",
+  "library.versionGroups.defaultHint": "Spelas som standard: det exemplar Tune spelar när spåret spelas utan att en version väljs, enligt profilens regel ”Version som spelas som standard” ({rule}).",
   "nowplaying.version.played": "Spelad version",
   "nowplaying.version.library": "Bibliotek",
   "nowplaying.version.fallback": "reservversion",
