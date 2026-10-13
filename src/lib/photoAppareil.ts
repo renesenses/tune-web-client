@@ -25,7 +25,8 @@
  * cette photo » trouvera sa place dans ce même dialogue — pas avant, car une
  * case qui ne fait rien serait un mensonge sur ce qui part.
  */
-import { uploadZoneImage } from './api';
+import { shareZoneImage, uploadZoneImage } from './api';
+import type { Zone } from './types';
 
 /** Les paragraphes du dialogue, dans l'ordre où on les lit. */
 export const CLES_AVANT_ENVOI = [
@@ -58,4 +59,53 @@ export async function poserPhotoAppareil(
 ): Promise<{ image_path: string } | null> {
   if (!(await deps.confirmer(messageAvantEnvoi(deps.traduire)))) return null;
   return (deps.envoyer ?? uploadZoneImage)(zoneId, fichier);
+}
+
+/**
+ * #2109 — PROPOSER la photo au catalogue communautaire : un second geste,
+ * distinct de la pose, et lui aussi précédé d'un accord lu.
+ *
+ * Poser une photo la garde sur ce serveur (ci-dessus, et le dialogue le dit).
+ * La proposer l'envoie à Mozaiklabs, avec la marque et le modèle de la zone.
+ * Le site l'enregistre EN ATTENTE : rien ne redescend chez personne avant que
+ * Bertrand l'ait approuvée (décision du 20/09/2026). Le dialogue le dit, au
+ * futur, et rappelle la consigne de prise de vue.
+ */
+export const CLES_AVANT_PROPOSITION = [
+  'v2.zone.photoShareWhere',
+  'v2.zone.photoConsentGuide',
+  'v2.zone.photoShareConfirm',
+] as const;
+
+/** Le bouton n'a de sens que si ce serveur sait proposer, et qu'il y a une photo. */
+export function propositionPossible(z: Pick<Zone, 'image_path' | 'image_share_status'>): boolean {
+  return !!z.image_path && z.image_share_status !== undefined;
+}
+
+/** La clé du texte qui explique un refus du serveur, ou `null`. */
+export function cleRefusProposition(err: unknown): string | null {
+  const statut = (err as { status?: number } | null)?.status;
+  if (statut === 409) return 'v2.zone.photoShareNeedsDevice';
+  if (statut === 422) return 'v2.zone.photoShareUnknownBrand';
+  return null;
+}
+
+export interface DepsProposition {
+  confirmer: (message: string) => Promise<boolean>;
+  traduire: (cle: string) => string;
+  /** `api.shareZoneImage` par défaut. */
+  proposer?: (zoneId: number) => Promise<{ image_share_status: 'pending' | null }>;
+}
+
+/**
+ * Demande l'accord, puis propose. `null` = refusé : RIEN n'est parti. Une
+ * erreur du serveur remonte telle quelle (voir `cleRefusProposition`).
+ */
+export async function proposerPhotoAuCatalogue(
+  zoneId: number,
+  deps: DepsProposition,
+): Promise<{ image_share_status: 'pending' | null } | null> {
+  const message = CLES_AVANT_PROPOSITION.map((c) => deps.traduire(c)).join('\n\n');
+  if (!(await deps.confirmer(message))) return null;
+  return (deps.proposer ?? shareZoneImage)(zoneId);
 }
