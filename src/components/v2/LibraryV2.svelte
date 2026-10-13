@@ -60,6 +60,7 @@
   // aléatoire par provenance) : mémorisée jusqu'au prochain scan, chargée une
   // seule fois pour tous, et abandonnée si plus personne ne l'attend.
   import { demanderToutesLesPistes } from '../../lib/stores/pistesEntieres';
+  import { sourcesArtistesServeur } from '../../lib/stores/sourcesArtistesServeur';
   // #1716, suite — l'onglet Titres PAR PAGES : tri, recherche, provenance et
   // comptes servis par le serveur ; repli sur la liste entière face à un
   // serveur ancien.
@@ -1384,9 +1385,24 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * ci-dessus. « Ajouts récents » n'en fait pas partie : cet onglet a sa
    * propre route.
    */
+  /**
+   * web#1716, étape 2 — l'onglet Artistes sans la bibliothèque entière.
+   *
+   * Il demandait TOUS les albums et TOUTES les pistes pour une seule chose :
+   * les sources de chaque artiste (filtre et comptes du menu Source). Un
+   * serveur récent les rend avec `/library/artists?provenances=1`
+   * (`sourcesArtistesServeur`, constaté par `ArtistesV2` sur la réponse) : il
+   * n'y a plus rien à charger. Tant que ce n'est pas su (`null`), on attend
+   * la réponse plutôt que de tout demander d'avance. Restent sur le calcul
+   * d'avant : un serveur ancien (`false`), un dépôt distant, et la portée de
+   * répertoire (sources DU DOSSIER, pas de la bibliothèque).
+   */
+  const artistesSansLaListe = $derived(
+    tab === 'artists' && !depot && !porteeActive && $sourcesArtistesServeur !== false,
+  );
   const sortirDesPages = $derived(
     !depot && (
-      porteeActive || (tab !== 'albums' && !sourcePropre) || q !== '' || filtreActif
+      porteeActive || (tab !== 'albums' && !sourcePropre && !artistesSansLaListe) || q !== '' || filtreActif
       || fYear != null || hoverYear != null || (showTimeline && navMode === 'years')
       || clef == null
     ),
@@ -1969,7 +1985,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     const portee = dossierPortee;
     // #1716 — l'onglet Titres ne demande la liste ENTIÈRE qu'à un dépôt
     // distant ou à un serveur qui ne sait pas paginer (`modePistes`).
-    const veutLaListe = tab === 'artists' || (tab === 'tracks' && (d != null || modePistes === 'entier'));
+    const veutLaListe = (tab === 'artists' && !artistesSansLaListe) || (tab === 'tracks' && (d != null || modePistes === 'entier'));
     if (!veutLaListe || porteePistes === portee) return;
     porteePistes = portee;
     // 🔴 La liste repart VIDE : la portée vient de changer, ce qu'elle

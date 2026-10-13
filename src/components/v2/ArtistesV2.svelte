@@ -67,6 +67,7 @@
   import { cleDeTriArtiste, comparerArtistes, initialeAlphabetique } from '../../lib/ordreAlphabetique';
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
+  import { sourcesArtistesServeur, pagePorteLesSources, sourcesDepuisLeServeur } from '../../lib/stores/sourcesArtistesServeur';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
@@ -145,20 +146,35 @@
   const plier = (s: string | null | undefined) =>
     (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+  /**
+   * LES SOURCES DES ARTISTES — web#1716, étape 2.
+   *
+   * Un serveur récent les rend avec la liste (`provenances=1`) : la Bibliothèque
+   * n'a plus à charger toutes les pistes et tous les albums pour les
+   * calculer. Sous une PORTÉE de répertoire, elles restent celles du dossier,
+   * calculées par la Bibliothèque sur ses albums et ses pistes : celles du
+   * serveur portent sur toute la bibliothèque.
+   */
+  const sourcesServeur = $derived(pagePorteLesSources(artistes) ? sourcesDepuisLeServeur(artistes) : null);
+  const parLeServeur = $derived(sourcesServeur != null && idsPortee == null);
+  const sourcesEffectives = $derived(parLeServeur ? sourcesServeur! : sourcesArtistes);
+  const sourcesEnChargeEffectif = $derived(!parLeServeur && sourcesEnCharge);
+  const erreurSourcesEffective = $derived(parLeServeur ? null : erreurSources);
+
   /** Les artistes que la PORTÉE laisse passer — tous, sans portée. */
   const dansLaPortee = $derived(
     idsPortee == null ? artistes : artistes.filter((x) => x.id != null && idsPortee!.has(x.id)),
   );
   const artistesRecherche = $derived(dansLaPortee.filter(a => plier(a.name).includes(plier(q))));
   const affiches = $derived(artistesRecherche.filter(a => provenance == null ||
-    [...(sourcesArtistes.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance)))
+    [...(sourcesEffectives.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance)))
     // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956), sur
     // sa clé : `sort_name` s'il existe (« Beatles, The » à B), sinon `name`.
     .sort(comparerArtistes));
   $effect(() => {
     onComptesSources?.({
       total: artistesRecherche.length,
-      comptes: compterSources(artistesRecherche.map(a => sourcesArtistes.get(a.id!) ?? [])),
+      comptes: compterSources(artistesRecherche.map(a => sourcesEffectives.get(a.id!) ?? [])),
     });
   });
 
@@ -253,7 +269,11 @@
     try {
       // La liste ENTIÈRE : `getArtists` plafonne à 100 par défaut, et une vue
       // d'artistes tronquée à 100 se lit comme une bibliothèque incomplète.
-      artistes = await api.getAllArtists();
+      // web#1716 — avec leurs sources : la Bibliothèque lit la réponse
+      // (`sourcesArtistesServeur`) pour savoir si elle doit encore les calculer.
+      artistes = await api.getAllArtists(2000, { provenances: true });
+      const porte = pagePorteLesSources(artistes);
+      if (porte != null) sourcesArtistesServeur.set(porte);
     } catch (e: any) {
       erreur = e?.message ?? $t('common.error' as any);
       artistes = [];
@@ -298,10 +318,10 @@
   });
 </script>
 
-{#if chargement || (provenance != null && sourcesEnCharge)}
+{#if chargement || (provenance != null && sourcesEnChargeEffectif)}
   <div class="etat">{$t('common.loading' as any)}</div>
-{:else if provenance != null && erreurSources}
-  <div class="etat err">{erreurSources}</div>
+{:else if provenance != null && erreurSourcesEffective}
+  <div class="etat err">{erreurSourcesEffective}</div>
 {:else if erreur}
   <div class="etat err">{erreur}</div>
 {:else if !affiches.length}

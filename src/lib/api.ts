@@ -2249,16 +2249,19 @@ export async function getAlbumTracksBatch(
   return { tracks: results.flat(), failedAlbums };
 }
 
-export async function getArtists(limit = 100, offset = 0) {
-  const raw = await fetchJSON<any>(`${BASE}/library/artists?limit=${limit}&offset=${offset}`);
+export async function getArtists(limit = 100, offset = 0, opts: { provenances?: boolean } = {}) {
+  // web#1716 — `provenances=1` : chaque artiste porte ses sources (albums et
+  // pistes visibles par provenance). Un serveur ancien ignore le paramètre.
+  const sq = opts.provenances ? '&provenances=1' : '';
+  const raw = await fetchJSON<any>(`${BASE}/library/artists?limit=${limit}&offset=${offset}${sq}`);
   return Array.isArray(raw) ? raw : (raw.items ?? []) as Artist[];
 }
 
-export async function getAllArtists(pageSize = 2000): Promise<Artist[]> {
+export async function getAllArtists(pageSize = 2000, opts: { provenances?: boolean } = {}): Promise<Artist[]> {
   const all: Artist[] = [];
   let offset = 0;
   while (true) {
-    const batch = await getArtists(pageSize, offset);
+    const batch = await getArtists(pageSize, offset, opts);
     all.push(...batch);
     if (batch.length < pageSize) break;
     offset += pageSize;
