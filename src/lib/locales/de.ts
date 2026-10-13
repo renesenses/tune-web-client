@@ -127,6 +127,8 @@ export default {
   'concerts.codePostalPlaceholder': 'Postleitzahl',
   'concerts.rayon': 'Umkreis',
   'concerts.appliquer': 'Anwenden',
+  "concerts.questionLieu": "Wo wohnen Sie, und wie weit würden Sie für ein Konzert fahren?",
+  "concerts.pasMaintenant": "Nicht jetzt",
   'concerts.communeSaisieNote': 'Ihr Ort wird nie erraten. Er dient allein dazu, Entfernungen auf Ortsebene zu messen.',
   'concerts.communeIntrouvable': 'Ort nicht gefunden – es werden Konzerte im ganzen Land angezeigt.',
   'concerts.nSurTotal': '{n} von {total} Konzerten',

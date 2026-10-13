@@ -127,6 +127,8 @@ export default {
   'concerts.codePostalPlaceholder': '郵便番号',
   'concerts.rayon': '範囲',
   'concerts.appliquer': '適用',
+  "concerts.questionLieu": "お住まいはどちらですか？コンサートのためにどこまで行けますか？",
+  "concerts.pasMaintenant": "今はしない",
   'concerts.communeSaisieNote': '市区町村を推測することはありません。距離の計測にのみ、市区町村単位で使用します。',
   'concerts.communeIntrouvable': '市区町村が見つかりません。国内すべてのコンサートを表示しています。',
   'concerts.nSurTotal': '{total} 件中 {n} 件のコンサート',
