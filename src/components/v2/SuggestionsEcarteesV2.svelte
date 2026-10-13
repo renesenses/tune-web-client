@@ -38,6 +38,7 @@
     album: 'v2.dismiss.kindAlbum',
     artist: 'v2.dismiss.kindArtist',
     playlist: 'v2.dismiss.kindPlaylist',
+    radio: 'v2.dismiss.kindRadio',
   };
 
   /** « Album · Qobuz », « Artiste », « Album » (bibliothèque). */

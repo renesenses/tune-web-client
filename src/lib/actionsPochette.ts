@@ -287,7 +287,13 @@ export function entreesPochette(
   // La radio et le podcast gardent leurs propres boutons (lecture au centre,
   // abonnement à part, suppression dans la modale d'édition) : ce catalogue
   // ne leur donne rien, comme avant — et leur bouton reste absent.
-  if (c.type === 'radio' || c.type === 'podcast') return sortie;
+  //
+  // web#916 (décision du 13/10/2026) — une seule exception : la radio que
+  // l'ACCUEIL suggère porte « Pas pour moi », que lui seul fournit.
+  if (c.type === 'radio' || c.type === 'podcast') {
+    pousser(c.type === 'radio', 'v2.dismiss.notForMe', g.pasPourMoi);
+    return sortie;
+  }
 
   // ── Lire ────────────────────────────────────────────────────────────────
   const lisible = jouable;
