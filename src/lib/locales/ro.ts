@@ -2388,7 +2388,7 @@ export default {
   "v2.tags.eyebrow": "Ce ați aranjat",
   "v2.tags.albumsWithTag": "albume poartă această etichetă",
   "v2.tags.noAlbumWithTag": "Niciun album nu poartă această etichetă.",
-  "v2.tags.emptyHint": "Încă nicio etichetă. Puneți una de pe coperta unui album, a unei liste sau a unei colecții.",
+  "v2.tags.emptyHint": "Încă nicio etichetă. Creați una cu câmpul de mai sus (butonul „Creează”) sau puneți una de pe coperta unui album, a unei liste sau a unei colecții.",
   "v2.nav.shortcuts": "Scurtături",
   "v2.nav.artisteIntrouvable": "„{nom}” nu a fost găsit pe {service} — iată rezultatele căutării.",
   "v2.nav.serviceInjoignable": "{service} nu a răspuns — iată rezultatele căutării pentru „{nom}”.",

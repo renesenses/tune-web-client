@@ -2388,7 +2388,7 @@ export default {
   "v2.tags.eyebrow": "あなたが整理したもの",
   "v2.tags.albumsWithTag": "枚のアルバムにこのタグが付いています",
   "v2.tags.noAlbumWithTag": "このタグが付いたアルバムはありません。",
-  "v2.tags.emptyHint": "まだタグがありません。アルバム、プレイリスト、コレクションのジャケットから追加できます。",
+  "v2.tags.emptyHint": "まだタグがありません。上の入力欄（「作成」ボタン）で作成するか、アルバム、プレイリスト、コレクションのジャケットから追加できます。",
   "v2.nav.shortcuts": "ショートカット",
   "v2.nav.artisteIntrouvable": "「{nom}」は {service} で見つかりませんでした。検索結果を表示します。",
   "v2.nav.serviceInjoignable": "{service} から応答がありませんでした。「{nom}」の検索結果を表示します。",

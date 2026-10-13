@@ -2388,7 +2388,7 @@ export default {
   "v2.tags.eyebrow": "정리해 두신 것",
   "v2.tags.albumsWithTag": "개의 앨범에 이 태그가 있습니다",
   "v2.tags.noAlbumWithTag": "이 태그가 붙은 앨범이 없습니다.",
-  "v2.tags.emptyHint": "아직 태그가 없습니다. 앨범, 재생목록, 컬렉션의 커버에서 붙일 수 있습니다.",
+  "v2.tags.emptyHint": "아직 태그가 없습니다. 위 입력란('만들기' 버튼)에서 만들거나, 앨범, 재생목록, 컬렉션의 커버에서 붙일 수 있습니다.",
   "v2.nav.shortcuts": "바로가기",
   "v2.nav.artisteIntrouvable": "“{nom}”을(를) {service}에서 찾을 수 없습니다 — 검색 결과를 표시합니다.",
   "v2.nav.serviceInjoignable": "{service}이(가) 응답하지 않았습니다 — “{nom}”의 검색 결과를 표시합니다.",

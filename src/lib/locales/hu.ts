@@ -2342,7 +2342,7 @@ export default {
   "v2.tags.eyebrow": "Amit elrendezett",
   "v2.tags.albumsWithTag": "album viseli ezt a címkét",
   "v2.tags.noAlbumWithTag": "Egyetlen album sem viseli ezt a címkét.",
-  "v2.tags.emptyHint": "Még nincs címke. Helyezzen el egyet egy album, lejátszási lista vagy gyűjtemény borítójáról.",
+  "v2.tags.emptyHint": "Még nincs címke. Hozzon létre egyet a fenti mezővel („Létrehozás” gomb), vagy helyezzen el egyet egy album, lejátszási lista vagy gyűjtemény borítójáról.",
   "v2.nav.shortcuts": "Gyorsindítók",
   "v2.nav.artisteIntrouvable": "A(z) „{nom}” nem található a(z) {service} szolgáltatásban – itt vannak a keresési eredmények.",
   "v2.nav.serviceInjoignable": "A(z) {service} nem válaszolt – itt vannak a(z) „{nom}” keresési eredményei.",
