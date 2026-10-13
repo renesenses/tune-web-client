@@ -21,6 +21,7 @@
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
+  import { CLE_GENRES_EXCLUS, ajouterDossierExclu, retirerDossierExclu, sousDossiersExclus } from '../../lib/perimetreAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
@@ -1921,6 +1922,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // tune-server-rust#6198 — les genres de l'analyse acoustique (CLAP).
   let clapGenresInclus = $state<string[] | null>(null);
   let clapGenresExclus = $state<string[] | null>(null);
+  // Chantier périmètre des analyses (#5593, étape 1) : les sous-dossiers
+  // exclus vivent dans la même liste que les racines décochées ; les genres
+  // écartés valent pour TOUTES les passes. `null` : réglage non publié.
+  let analysisGenresExclus = $state<string[] | null>(null);
+  let newExcludedDir = $state('');
+  let excludedDirError = $state<string | null>(null);
   let newDir = $state('');
   let dirBusy = $state(false);
   let scanning = $state(false);
@@ -2169,6 +2176,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         : null;
       clapGenresInclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_INCLUS]);
       clapGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_EXCLUS]);
+      analysisGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_EXCLUS]);
       await refreshDirectoryOrder();
       // Absent vaut VRAI cote serveur, et les valeurs peuvent arriver en
       // chaine ('false') aussi bien qu'en booleen.
@@ -2283,6 +2291,39 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const suivant = analyser ? avant.filter((r) => r !== d) : [...avant.filter((r) => r !== d), d];
     analysisExcluded = suivant;
     patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
+  }
+  /**
+   * #5593 (étape 1) — exclure un SOUS-DOSSIER des analyses de fond. Il doit
+   * être sous une racine déclarée (la casse compte, comme au serveur), sinon
+   * il ne correspondrait à aucune piste. La liste COMPLÈTE part au serveur ;
+   * s'il refuse, elle revient à son état d'avant.
+   */
+  function ajouterDossierExcluSaisi() {
+    if (analysisExcluded === null) return;
+    const avant = analysisExcluded;
+    const r = ajouterDossierExclu(avant, newExcludedDir, musicDirs);
+    if ('refus' in r) {
+      excludedDirError = r.refus === 'vide' ? null : get(t)(`settings.excludedFolderRefus_${r.refus}` as any);
+      return;
+    }
+    excludedDirError = null;
+    analysisExcluded = r.liste;
+    newExcludedDir = '';
+    patch({ background_analysis_excluded_roots: r.liste }, () => { analysisExcluded = avant; });
+  }
+  function reinclureDossier(entree: string) {
+    if (analysisExcluded === null) return;
+    const avant = analysisExcluded;
+    const suivant = retirerDossierExclu(avant, entree);
+    analysisExcluded = suivant;
+    patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
+  }
+  /** #5593 (étape 1) — les genres écartés de TOUTES les analyses de fond. */
+  function setGenresExclusDesAnalyses(texte: string) {
+    const avant = analysisGenresExclus;
+    const suivant = lireSaisieDeGenres(texte);
+    analysisGenresExclus = suivant;
+    patch({ [CLE_GENRES_EXCLUS]: suivant }, () => { analysisGenresExclus = avant; });
   }
   /**
    * tune-server-rust#6198 — les genres retenus ou écartés de l'analyse
@@ -5609,6 +5650,43 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if orderError}<p class="errline" role="alert">{orderError}</p>{/if}
                 {#if analysisExcluded !== null}
                   <p class="hint">{$t('settings.backgroundAnalysisFoldersHint' as any)}</p>
+                  <!-- tune-server-rust#5593 (étape 1, fil 2173) — exclure un
+                       SOUS-DOSSIER, pas seulement une racine. Même liste que
+                       les cases ci-dessus. -->
+                  <div class="clap-genres perimetre-dossiers">
+                    <span class="clap-genres-titre">{$t('settings.excludedFoldersTitle' as any)}</span>
+                    {#each sousDossiersExclus(analysisExcluded, musicDirs) as e (e)}
+                      <div class="dev ign">
+                        <span class="dn" use:bulleTexte>{e}</span>
+                        <button class="lnk" disabled={dirBusy}
+                          aria-label={$t('settings.excludedFolderReincludeAria' as any).replace('{path}', e)}
+                          onclick={() => reinclureDossier(e)}>{$t('settings.excludedFolderReinclude' as any)}</button>
+                      </div>
+                    {/each}
+                    <label>
+                      <span>{$t('settings.excludedFolderAdd' as any)}</span>
+                      <input type="text" bind:value={newExcludedDir}
+                        placeholder={$t('settings.excludedFolderPlaceholder' as any)}
+                        onkeydown={(e) => { if (e.key === 'Enter') ajouterDossierExcluSaisi(); }} />
+                      <button class="lnk" disabled={dirBusy || !newExcludedDir.trim()}
+                        onclick={ajouterDossierExcluSaisi}>{$t('settings.excludedFolderExclude' as any)}</button>
+                    </label>
+                    {#if excludedDirError}<p class="errline" role="alert">{excludedDirError}</p>{/if}
+                    <p class="hint">{$t('settings.excludedFoldersHint' as any)}</p>
+                  </div>
+                {/if}
+                <!-- tune-server-rust#5593 (étape 1) — les genres écartés de
+                     TOUTES les analyses de fond. -->
+                {#if analysisGenresExclus !== null}
+                  <div class="clap-genres perimetre-genres">
+                    <label>
+                      <span class="clap-genres-titre">{$t('settings.analysisGenresExcluded' as any)}</span>
+                      <input type="text" value={afficherGenres(analysisGenresExclus)}
+                        placeholder={$t('settings.analysisGenresExcludedPlaceholder' as any)}
+                        onchange={(e) => setGenresExclusDesAnalyses((e.currentTarget as HTMLInputElement).value)} />
+                    </label>
+                    <p class="hint">{$t('settings.analysisGenresExcludedHint' as any)}</p>
+                  </div>
                 {/if}
                 <!-- tune-server-rust#6198 — réserver l'analyse acoustique
                      (ambiances) à certains genres, ou en écarter. -->
