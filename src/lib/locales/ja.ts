@@ -4946,6 +4946,11 @@ export default {
   "v2.apiKeys.remove": "削除",
   // tune-server-rust#4805 lot 2 — passes de lot d'après MetaRust (Xavier Joly).
   "v2.passes.bpmTitle": "ライブラリのBPM",
+  "v2.nuit.title": "MusicBrainz に拒否されたアルバムを夜間に再試行",
+  "v2.nuit.hint": "{debut}時から{fin}時の間、低い頻度で、識別中に MusicBrainz に拒否された（リクエスト過多）アルバムを再試行します。既定ではオフです。",
+  "v2.nuit.pending": "{n} 件のアルバムが待機中",
+  "v2.nuit.last": "前回の夜（{date}）：{traites} 件中 {identifies} 件を識別",
+  "v2.nuit.saveFailed": "設定は保存されませんでした。",
   "v2.passes.bpmHint": "すべてのローカルアルバム：まずWikidata、次に信号からの推定。ファイルのタグは変更しません。",
   "v2.passes.discogsTitle": "Discogsの提案",
   "v2.passes.discogsHint": "MusicBrainz IDのないアルバムを、バーコードまたはカタログ番号で検索。何も変更されません：提案はアルバムのページで承認します。",
