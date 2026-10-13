@@ -55,7 +55,7 @@
   } from '../../lib/resolutionManquants';
   import RenommerModale from './RenommerModale.svelte';
   import ArbreRayons from './ArbreRayons.svelte';
-  import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
+  import { clesRangees, rafraichirRayons, rangerLaNouvelle, type EtatRayons } from '../../lib/rayonsCollections';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import BasculeAffichage from './BasculeAffichage.svelte';
   import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
@@ -268,9 +268,19 @@
     return recentDabord ? tb - ta : ta - tb;
   }
 
+  /**
+   * web#1579 — « Cela éviterait d'encombrer la page Smart Collection » (Didier,
+   * fil 1907). Une collection rangée dans un rayon reste listée dans l'onglet
+   * Smart (c'est une vraie collection intelligente), mais on peut n'y voir que
+   * celles qui ne sont dans aucun rayon. Décoché par défaut : rien ne disparaît
+   * sans geste de l'utilisateur.
+   */
+  let horsRayonSeul = $state(false);
+  const rangees = $derived(rayons.mode === 'arbre' ? clesRangees(rayons.arbre) : new Set<string>());
   const visibles = $derived(
     entrees
       .filter((e) => (onglet === 'smart' ? e.sorte === 'smart' : e.sorte === 'normale'))
+      .filter((e) => !(onglet === 'smart' && horsRayonSeul && rangees.has(`smart:${e.id}`)))
       .slice()
       .sort((a, b) =>
         tri === 'alpha' ? parNom(a, b)
@@ -792,7 +802,26 @@
    * pouvait pas — cet ecran savait creer une collection manuelle, mais une
    * intelligente exige des REGLES, donc un editeur.
    */
-  let editeurSmart = $state<{ id: number | null } | null>(null);
+  let editeurSmart = $state<{ id: number | null; rayon?: { id: number; name: string } | null } | null>(null);
+
+  /**
+   * web#1579 — l'éditeur a été ouvert depuis le menu d'un RAYON : la collection
+   * créée y est rangée tout de suite. Ne lève jamais : un refus du serveur est
+   * affiché, et la liste est rechargée quand même.
+   */
+  async function rangerDansLeRayon(
+    rayon: { id: number; name: string } | null | undefined,
+    creee?: { id?: number } | null,
+  ) {
+    if (!rayon) return;
+    try {
+      if (await rangerLaNouvelle(rayon.id, creee, api.placeCollectionInFolder)) {
+        notifications.success($t('v2.rayons.placedIn' as any).replace('{name}', rayon.name));
+      }
+    } catch (err: any) {
+      notifications.error(`${$t('v2.rayons.error' as any)} : ${err?.message ?? ''}`);
+    }
+  }
 
   /**
    * 🔴 APRÈS AVOIR ENREGISTRÉ DES RÈGLES, LE CONTENU AUSSI A CHANGÉ.
@@ -1290,6 +1319,12 @@
       {#if totalAlbums != null}
         <span class="totalonglet">{$t('v2.col.tabTotal' as any).replace('{n}', String(totalAlbums))}</span>
       {/if}
+      {#if onglet === 'smart' && rayons.mode === 'arbre'}
+        <label class="tricol horsrayon">
+          <input type="checkbox" bind:checked={horsRayonSeul} />
+          <span>{$t('v2.rayons.onlyUnfiled' as any)}</span>
+        </label>
+      {/if}
       <!-- Le tri porte sur les DEUX onglets : ce sont deux vues d'une même
            liste, et changer d'onglet ne doit pas changer l'ordre sous l'œil. -->
       <label class="tricol">
@@ -1315,7 +1350,8 @@
       <ArbreRayons arbre={rayons.arbre}
         libelle={(c) => { const e = entreeRangee(c.kind, c.id); return e ? libelleTradu(e) : (c.name ?? ''); }}
         onOuvrir={(kind, id) => { const e = entreeRangee(kind, id); if (e) void ouvrir(e); }}
-        onChange={chargerLesRayons} />
+        onChange={chargerLesRayons}
+        onNouvelleSmart={(f) => (editeurSmart = { id: null, rayon: { id: f.id, name: f.name } })} />
     {:else if chargement}
       <div class="state">{$t('common.loading' as any)}</div>
     {:else if !visibles.length}
@@ -1529,7 +1565,11 @@
       <m.default
         id={editeurSmart.id}
         onClose={() => (editeurSmart = null)}
-        onSaved={() => rafraichirApresRegles(editeurSmart?.id ?? null)}
+        onSaved={(creee) => {
+          // Lu AVANT tout await : l'éditeur se ferme (editeurSmart = null) juste après.
+          const e = editeurSmart;
+          void rangerDansLeRayon(e?.rayon, creee).then(() => rafraichirApresRegles(e?.id ?? null));
+        }}
         supprimer={cibleSmart ? () => supprimerCollection(cibleSmart) : null}
       />
     {/await}
@@ -1576,6 +1616,8 @@
   /* Dans l'en-tête d'une collection ouverte, le sélecteur ne se pousse pas à
      droite : il précède les boutons de lecture. */
   .fa .tricol{margin-left:0}
+  .tricol.horsrayon{margin-left:auto; cursor:pointer}
+  .tricol.horsrayon + .tricol{margin-left:0}
 
   .tabs{display:flex; gap:4px; padding:4px 30px 0}
   .tab{background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer;
