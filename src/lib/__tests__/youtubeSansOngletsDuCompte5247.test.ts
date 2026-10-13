@@ -45,6 +45,19 @@ function reponse(corps: unknown) {
 
 class ObservateurInerte { observe() {} unobserve() {} disconnect() {} }
 
+/** La réponse de `/streaming/youtube/library` pour l'épreuve en cours. */
+let bibliotheque: () => Response = () => reponse([]);
+let appelsBibliotheque = 0;
+
+function echec(status: number) {
+  return {
+    ok: false, status, statusText: 'Bad Gateway',
+    headers: new Map([['content-type', 'text/plain']]),
+    json: async () => { throw new Error('pas du JSON'); },
+    text: async () => 'YouTube a refusé : 403 accessNotConfigured',
+  } as unknown as Response;
+}
+
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 
@@ -70,6 +83,7 @@ beforeEach(() => {
     const u = String(url);
     if (/\/ext\/bandcamp\/tags/.test(u)) throw new Error('extension absente');
     if (/\/streaming\/services/.test(u)) return reponse(SERVICES);
+    if (/\/streaming\/youtube\/library/.test(u)) { appelsBibliotheque++; return bibliotheque(); }
     if (/\/config/.test(u)) return reponse({});
     return reponse([]);
   }));
@@ -84,19 +98,60 @@ afterEach(() => {
   hote = null;
   activeStreamingService.set(null as any);
   vi.unstubAllGlobals();
+  bibliotheque = () => reponse([]);
+  appelsBibliotheque = 0;
 });
 
 const PLAYLISTS = () => get(t)('v2.nav.playlists' as any);
 const FAVORIS = () => get(t)('v2.nav.favorites' as any);
 
 describe('tune-server-rust#5247 — onglets du compte YouTube', () => {
-  it('YouTube : ni Playlists ni Favoris dans les sous-onglets', async () => {
+  it('YouTube sans preuve du serveur : ni Playlists ni Favoris dans les sous-onglets', async () => {
     await monterSur('youtube');
     const s = sousOnglets();
     expect(s).not.toContain(PLAYLISTS());
     expect(s).not.toContain(FAVORIS());
     // L'éditorial et la découverte YouTube Music restent.
     expect(s).toContain(get(t)('v2.str.editorial' as any));
+  });
+
+  // Depuis la rc4 (PR serveur #5958), le serveur SAIT lire le compte, mais
+  // l'accès dépend de Google. Les onglets reviennent sur PREUVE seulement.
+  async function attendreLaSonde() {
+    for (let i = 0; i < 40; i++) {
+      await Promise.resolve();
+      await new Promise((r) => setTimeout(r, 0));
+      flushSync();
+    }
+  }
+
+  it('YouTube : la route du compte répond 200 { playlists, tracks } → Playlists et Favoris reviennent', async () => {
+    bibliotheque = () => reponse({ playlists: [{ id: 'PL1', name: 'Mes titres' }], tracks: [] });
+    await monterSur('youtube');
+    await attendreLaSonde();
+    expect(appelsBibliotheque, 'la sonde du compte doit partir').toBeGreaterThan(0);
+    const s = sousOnglets();
+    expect(s).toContain(PLAYLISTS());
+    expect(s).toContain(FAVORIS());
+  });
+
+  it('YouTube : Google refuse (502) → les onglets du compte restent masqués', async () => {
+    bibliotheque = () => echec(502);
+    await monterSur('youtube');
+    await attendreLaSonde();
+    expect(appelsBibliotheque).toBeGreaterThan(0);
+    const s = sousOnglets();
+    expect(s).not.toContain(PLAYLISTS());
+    expect(s).not.toContain(FAVORIS());
+  });
+
+  it('YouTube : l\'ancien talon (200, sans `tracks`) ne prouve rien → onglets masqués', async () => {
+    bibliotheque = () => reponse({ playlists: [], albums: [], artists: [] });
+    await monterSur('youtube');
+    await attendreLaSonde();
+    const s = sousOnglets();
+    expect(s).not.toContain(PLAYLISTS());
+    expect(s).not.toContain(FAVORIS());
   });
 
   it('Qobuz, qui lit son compte : Playlists et Favoris restent', async () => {
@@ -109,6 +164,10 @@ describe('tune-server-rust#5247 — onglets du compte YouTube', () => {
   it('la règle pure : YouTube seul est privé de bibliothèque de compte', () => {
     expect(typeof onglets.aUneBibliothequeDeCompte, 'aUneBibliothequeDeCompte absente').toBe('function');
     expect(onglets.aUneBibliothequeDeCompte('youtube')).toBe(false);
+    expect(onglets.aUneBibliothequeDeCompte('youtube', new Set(['youtube']))).toBe(true);
+    expect(onglets.reponseProuveLaBibliotheque({ playlists: [], tracks: [] })).toBe(true);
+    expect(onglets.reponseProuveLaBibliotheque({ playlists: [], albums: [], artists: [] })).toBe(false);
+    expect(onglets.reponseProuveLaBibliotheque([])).toBe(false);
     for (const svc of ['qobuz', 'tidal', 'deezer', 'spotify', 'amazon']) {
       expect(onglets.aUneBibliothequeDeCompte(svc), svc).toBe(true);
     }

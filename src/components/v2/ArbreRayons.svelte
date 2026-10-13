@@ -42,8 +42,13 @@
     onOuvrir: (kind: CollectionRangee['kind'], id: number) => void;
     /** Relire l'arbre après une écriture. */
     onChange?: () => void | Promise<void>;
+    /**
+     * web#1579 — créer une collection intelligente DANS ce rayon. Absent = pas
+     * d'entrée de menu (la barre latérale, en lecture, ne la porte pas).
+     */
+    onNouvelleSmart?: (rayon: RayonCollections) => void;
   }
-  let { arbre, compact = false, libelle, onOuvrir, onChange }: Props = $props();
+  let { arbre, compact = false, libelle, onOuvrir, onChange, onNouvelleSmart }: Props = $props();
 
   const nomDe = (c: CollectionRangee) => (libelle ? libelle(c) : (c.name ?? ''));
 
@@ -183,6 +188,10 @@
             <button role="menuitem" onclick={() => ecrire(() => api.moveCollectionFolder(f.id, d?.id ?? null))}>{nomDestination(d)}</button>
           {/each}
         {:else}
+          {#if onNouvelleSmart}
+            <!-- web#1579 : créer en place, sans passer par l'onglet Smart puis « Déplacer vers… ». -->
+            <button role="menuitem" class="creer-smart" onclick={() => { menu = null; onNouvelleSmart(f); }}>{$t('v2.rayons.newSmartHere' as any)}</button>
+          {/if}
           {#if peutContenirUnSousRayon(arbre, f)}
             <button role="menuitem" onclick={() => nouveauRayon(f.id)}>{$t('v2.rayons.newSub' as any)}</button>
           {/if}

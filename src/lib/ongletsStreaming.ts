@@ -247,23 +247,55 @@ export function ongletApresDemande(
 }
 
 /**
- * Les services dont Tune ne sait PAS lire la bibliothèque du compte —
- * tune-server-rust#5247.
+ * Les services dont la bibliothèque du compte ne s'affiche que si le serveur
+ * PROUVE qu'il sait la lire — tune-server-rust#5247.
  *
- * YouTube : `get_user_playlists`, `get_user_albums` et `get_user_artists`
- * rendent une liste vide EN DUR (`tune-core/src/streaming/youtube.rs:3118`,
- * « Requires Google OAuth — not implemented for now »). Les onglets Playlists
- * et Favoris affichaient donc « No playlist in your Youtube account » à
- * Levente Toth (fil 1995), qui en a : l'écran accusait son compte d'une limite
- * de Tune. Décision de Bertrand (27/09/2026) : retirer ces deux onglets de
- * YouTube tant que la lecture n'existe pas.
+ * YouTube : jusqu'à la 0.9.166, `get_user_playlists` rendait une liste vide EN
+ * DUR, et les onglets Playlists et Favoris affirmaient « No playlist in your
+ * Youtube account » à Levente Toth (fil 1995), qui en a. Décision de Bertrand
+ * (27/09/2026) : retirer ces deux onglets tant que la lecture n'existe pas.
+ *
+ * La lecture existe depuis la 1.0.0-rc4 (PR serveur #5958 :
+ * `playlists?mine=true`, `videos?myRating=like`), mais l'ACCÈS n'est pas
+ * acquis : le jeton vient d'un client OAuth TV que Google peut refuser
+ * (403 `accessNotConfigured`, rendu en 502 par le serveur). Les onglets
+ * reviennent donc sur PREUVE, jamais sur un nom de service : seulement quand
+ * `GET /streaming/youtube/library` répond 200 avec sa forme réelle
+ * (`{ playlists, tracks }`). L'ancien talon des serveurs d'avant la rc4
+ * répondait aussi 200, mais `{ playlists: [], albums: [], artists: [] }`, sans
+ * `tracks` : il ne prouve rien et n'ouvre rien.
  *
  * On raisonne sur la clé du SERVEUR (`cleServeur`), pas sur l'onglet.
  */
-const SANS_BIBLIOTHEQUE_DE_COMPTE: ReadonlySet<string> = new Set(['youtube']);
+const BIBLIOTHEQUE_DE_COMPTE_SUR_PREUVE: ReadonlySet<string> = new Set(['youtube']);
 
-/** Les onglets « Playlists » et « Favoris » du compte ont-ils un sens ici ? */
-export function aUneBibliothequeDeCompte(service: string | null | undefined): boolean {
+/** Ce service n'ouvre-t-il ses onglets du compte que sur preuve du serveur ? */
+export function bibliothequeDeCompteSurPreuve(service: string | null | undefined): boolean {
+  return !!service && BIBLIOTHEQUE_DE_COMPTE_SUR_PREUVE.has(service);
+}
+
+/**
+ * La réponse de `/streaming/{service}/library` prouve-t-elle que le compte se
+ * lit ? Oui seulement pour la forme réelle : deux tableaux `playlists` et
+ * `tracks`. (Une erreur HTTP n'arrive pas jusqu'ici : `fetchJSON` la rejette.)
+ */
+export function reponseProuveLaBibliotheque(corps: unknown): boolean {
+  const c = corps as { playlists?: unknown; tracks?: unknown } | null | undefined;
+  return !!c && Array.isArray(c.playlists) && Array.isArray(c.tracks);
+}
+
+/**
+ * Les onglets « Playlists » et « Favoris » du compte ont-ils un sens ici ?
+ *
+ * `lisibles` : les services dont la sonde a répondu (voir
+ * `reponseProuveLaBibliotheque`). Sans sonde réussie, un service « sur
+ * preuve » reste sans ces onglets.
+ */
+export function aUneBibliothequeDeCompte(
+  service: string | null | undefined,
+  lisibles: ReadonlySet<string> = new Set(),
+): boolean {
   if (!service) return true;
-  return !SANS_BIBLIOTHEQUE_DE_COMPTE.has(service);
+  if (!bibliothequeDeCompteSurPreuve(service)) return true;
+  return lisibles.has(service);
 }
