@@ -1115,6 +1115,7 @@ export default {
   "nowplaying.version.ruleTip": "Scelta dalla regola di versione del profilo ({rule}).",
   "nowplaying.version.explicit": "scelta manualmente",
   "profiles.versionRule.title": "Versione riprodotta predefinita",
+  "profiles.fallbackNotice": "Profilo: {name}. Questo browser non ricordava più il suo profilo (cache svuotata?). Se non è quello giusto, cambialo dal menu dei profili: playlist e preferiti sono salvati per profilo.",
   "profiles.versionRule.hint": "Quando la stessa registrazione esiste in più copie (libreria, servizi), viene riprodotta quella scelta da questa regola, per il profilo attivo.",
   "profiles.versionRule.inherit": "Predefinito del server ({rule})",
   "profiles.versionRule.none": "Nessuna (riproduci ciò che viene avviato)",

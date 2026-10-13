@@ -1252,6 +1252,7 @@ export default {
   "nowplaying.version.ruleTip": "Chosen by the profile's version rule ({rule}).",
   "nowplaying.version.explicit": "chosen manually",
   "profiles.versionRule.title": "Default playing version",
+  "profiles.fallbackNotice": "Profile: {name}. This browser no longer remembered its profile (cleared cache?). If it is not the right one, switch it from the profile menu: your playlists and favourites are stored per profile.",
   "profiles.versionRule.hint": "When the same recording exists in several copies (library, services), playback plays the one this rule picks, for the active profile.",
   "profiles.versionRule.inherit": "Server default ({rule})",
   "profiles.versionRule.none": "None (play what is launched)",
