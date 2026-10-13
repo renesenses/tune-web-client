@@ -1559,6 +1559,7 @@ export default {
   "smartCollection.opBetween": "între",
   "smartCollection.opContains": "conține",
   "smartCollection.opStartsWith": "începe cu",
+  "smartCollection.opNotContains": "nu conține",
   "smartCollection.opIn": "printre",
   "smartCollection.opIsEmpty": "este gol",
   "smartCollection.opIsNotEmpty": "nu este gol",

@@ -1651,6 +1651,7 @@ export default {
   "smartCollection.opBetween": "között",
   "smartCollection.opContains": "tartalmazza",
   "smartCollection.opStartsWith": "ezzel kezdődik",
+  "smartCollection.opNotContains": "nem tartalmazza",
   "smartCollection.opIn": "ezek közül",
   "smartCollection.opIsEmpty": "üres",
   "smartCollection.opIsNotEmpty": "nem üres",
