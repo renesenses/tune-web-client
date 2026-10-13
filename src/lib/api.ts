@@ -1021,6 +1021,25 @@ export function setZoneCrossfade(zoneId: number, durationSeconds: number) {
   });
 }
 
+/** tune-server-rust#6171 — les canaux de la carte qu'une zone ASIO utilise. */
+export interface ZoneOutputChannels {
+  zone_id: number;
+  output_channels: number[] | null;
+  card_channels_opened: number | null;
+  limits?: { min: number; max: number };
+}
+
+export function getZoneOutputChannels(zoneId: number) {
+  return fetchJSON<ZoneOutputChannels>(`${BASE}/output-channels/zones/${zoneId}`);
+}
+
+export function setZoneOutputChannels(zoneId: number, canaux: number[]) {
+  return fetchJSON<ZoneOutputChannels>(`${BASE}/output-channels/zones/${zoneId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ output_channels: canaux }),
+  });
+}
+
 export function updateZoneMonoDownmix(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
@@ -1205,6 +1224,21 @@ export async function uploadZoneImage(id: number, file: File): Promise<{ image_p
     throw new Error(`${response.status} ${response.statusText}`);
   }
   return response.json();
+}
+
+/**
+ * #2109 — PROPOSE la photo de la zone au catalogue communautaire de
+ * Mozaiklabs. Le serveur la relaie avec la marque canonique du catalogue ; le
+ * site la garde en attente et ne la montre à personne avant relecture.
+ *
+ * 🔴 N'appeler qu'après un accord explicite (`proposerPhotoAuCatalogue`).
+ * 409 : marque ou modèle manquant ; 422 : marque hors catalogue.
+ */
+export function shareZoneImage(id: number) {
+  return fetchJSON<{ zone_id: number; image_share_status: 'pending' | null }>(
+    `${BASE}/zones/${id}/image/share`,
+    { method: 'POST' },
+  );
 }
 
 /** Retire la photo : la vignette retombe sur le pictogramme de type de sortie. */
@@ -2670,6 +2704,8 @@ export async function getFilteredTracks(opts: {
   untagged?: FacetParam;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
   original_year?: FacetParam; // Oxygen recording-year facet (albums.original_year)
   dr?: FacetParam;            // Oxygen Dynamic Range facet (#2144, #3196)
+  /** #2108 — les facettes dont les valeurs se combinent en ET (noms serveur). */
+  all_of?: FacetParam;
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
@@ -2694,6 +2730,8 @@ export async function getFilteredTracks(opts: {
     'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
     'year', 'source', 'label', 'composer', 'artist', 'country', 'mood', 'source_media',
     'favorite', 'playlist', 'untagged', 'original_year', 'dr', 'q',
+    // #2108 — pas une facette : l'opérateur « Et » de celles qu'il nomme.
+    'all_of',
   ] as const) {
     appendFacetParam(params, key, (opts as Record<string, FacetParam | undefined>)[key]);
   }
@@ -5728,6 +5766,15 @@ export function getYouTubeMoods() {
 /** Le contenu d'une ambiance ou d'un genre : ses rayons de playlists. */
 export function getYouTubeMoodSections(params: string) {
   return fetchJSON<{ sections: YtRayon[] }>(`${BASE}/streaming/youtube/moods/${encodeURIComponent(params)}`);
+}
+
+/**
+ * tune-server-rust#5247 — la bibliothèque du COMPTE YouTube :
+ * `GET /streaming/youtube/library` → `{ playlists, tracks }` (PR serveur
+ * #5958), ou une erreur franche (502) quand Google refuse la lecture.
+ */
+export function getYouTubeLibrary() {
+  return fetchJSON<{ playlists?: unknown[]; tracks?: unknown[] }>(`${BASE}/streaming/youtube/library`);
 }
 
 
