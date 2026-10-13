@@ -111,7 +111,10 @@ import {
   RefusSauvegarde,
   codeDuRefus as codeDuRefusSauvegarde,
   corpsRestauration,
+  corpsApercu,
+  lireResume,
   type EtatSauvegardeCloud,
+  type ResumeInstantane,
   type InstantaneCloud,
   type ListeInstantanes,
   type ModeRestauration as ModeRestaurationCloud,
@@ -7563,6 +7566,29 @@ export async function restoreCloudBackup(
     method: 'POST',
     body: JSON.stringify(corpsRestauration(id, mode, secret)),
   });
+}
+
+/**
+ * Ce que contient un instantané, sans rien restaurer (#902). `secret` comme
+ * pour `restoreCloudBackup`, dans le CORPS seulement. Rend `null` quand le
+ * serveur ne connaît pas la route (antérieur : 404 / 405) ou rend un corps
+ * illisible — l'écran confirme alors sans le détail.
+ */
+export async function previewCloudBackup(
+  id: number,
+  secret?: string | null,
+): Promise<ResumeInstantane | null> {
+  let corps: unknown;
+  try {
+    corps = await appelSauvegarde<unknown>('preview', {
+      method: 'POST',
+      body: JSON.stringify(corpsApercu(id, secret)),
+    });
+  } catch (e) {
+    if (e instanceof RefusSauvegarde) throw e;
+    return null;
+  }
+  return lireResume(corps);
 }
 
 // --- MusicBrainz Batch Enrichment ---

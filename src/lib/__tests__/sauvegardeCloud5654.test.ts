@@ -216,11 +216,18 @@ describe('assistant — « Reprendre vos personnalisations »', () => {
     ).toContain(dictionnaire('fr')['cloudBackup.passwordsWarning']);
     const select = cible.querySelector('.reprise-cloud select') as HTMLSelectElement;
     expect(select.value, 'le plus récent par défaut').toBe('9');
+    // #902 : « Restaurer » demande d'abord le secret, puis montre le contenu ;
+    // seule la confirmation restaure (parcours complet : repriseAssistant902).
+    (cible.querySelector('.reprise-cloud .reprise-restaurer') as HTMLButtonElement).click();
+    flushSync();
     const champ = cible.querySelector('.reprise-cloud input[type="password"]') as HTMLInputElement;
     champ.value = SECRET;
     champ.dispatchEvent(new Event('input', { bubbles: true }));
     flushSync();
-    (cible.querySelector('.reprise-cloud button') as HTMLButtonElement).click();
+    (cible.querySelector('.reprise-cloud .reprise-restaurer') as HTMLButtonElement).click();
+    await attendre(() => !!cible.querySelector('.reprise-cloud .reprise-confirmer'));
+    expect(requetes.some((r) => r.url.includes('/cloud/restore')), 'restauré avant la confirmation').toBe(false);
+    (cible.querySelector('.reprise-cloud .reprise-confirmer') as HTMLButtonElement).click();
     await attendre(() => requetes.some((r) => r.url.includes('/cloud/restore')));
     const r = requetes.find((q) => q.url.includes('/cloud/restore'))!;
     expect(JSON.parse(r.corps!)).toEqual({ id: 9, mode: 'replace', secret: SECRET });
