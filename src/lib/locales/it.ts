@@ -3921,6 +3921,7 @@ export default {
   "v2.tcol.year": "Anno",
   "v2.tcol.plays": "Riproduzioni",
   "v2.tcol.lastPlayed": "Ultimo ascolto",
+  "v2.lib.sortPlaysUnsupported": "Questo server non sa ancora ordinare per ascolti: torna l'ordine predefinito.",
   "v2.tcol.channels": "Canali",
   "v2.tcol.bpm": "BPM",
   "v2.tcol.rating": "Voto",
