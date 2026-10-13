@@ -352,6 +352,7 @@ export default {
   'playlist.addToPlaylist': 'Añadir a una lista de reproducción',
   'playlist.addedTo': 'Añadida a <strong>{name}</strong>',
   'playlist.noExisting': 'Sin listas de reproducción existentes',
+  'playlist.noMatch': 'Ninguna lista coincide',
   'playlist.addFailed': 'No se pudo añadir: el servicio rechazó esta lista.',
   'playlist.servicePlaylistsOf': 'Tus listas de {service}',
   'playlist.groupTune': 'Listas de Tune',

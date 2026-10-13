@@ -447,6 +447,7 @@ export default {
   'playlist.addToPlaylist': 'Ajouter à une playlist',
   'playlist.addedTo': 'Ajoutée à <strong>{name}</strong>',
   'playlist.noExisting': 'Aucune playlist existante',
+  'playlist.noMatch': 'Aucune playlist ne correspond',
   'playlist.addFailed': 'L’ajout a échoué : le service a refusé cette playlist.',
   'playlist.servicePlaylistsOf': 'Vos playlists {service}',
   'playlist.groupTune': 'Playlists Tune',

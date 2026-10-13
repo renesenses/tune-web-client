@@ -433,6 +433,7 @@ export default {
   "playlist.groupTune": "Tune lejátszási listák",
   "playlist.createIn": "Létrehozás itt",
   "playlist.noExisting": "Nincs meglévő lejátszási lista",
+  "playlist.noMatch": "Nincs egyező lejátszási lista",
   "playlist.newPlaylist": "Új lejátszási lista",
   "playlist.searchPlaceholder": "Keresés a lejátszási listákban...",
   "playlist.local": "Helyi",

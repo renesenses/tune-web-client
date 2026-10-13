@@ -444,6 +444,7 @@ export default {
   'playlist.addToPlaylist': 'Add to Playlist',
   'playlist.addedTo': 'Added to <strong>{name}</strong>',
   'playlist.noExisting': 'No existing playlists',
+  'playlist.noMatch': 'No matching playlist',
   'playlist.addFailed': 'Could not add the track: the service refused this playlist.',
   'playlist.servicePlaylistsOf': 'Your {service} playlists',
   'playlist.groupTune': 'Tune playlists',
