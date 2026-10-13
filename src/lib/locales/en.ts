@@ -164,6 +164,10 @@ export default {
   'oxygen.facetsTitle': 'Facets',
   // #2168: several values ticked within one facet combine with OR.
   'oxygen.facetClear': 'Clear all',
+  'oxygen.facetOpOr': 'Or',
+  'oxygen.facetOpAnd': 'And',
+  'oxygen.facetOpOrHelp': 'Checked values are combined with OR: a track has at least one of them. Click to switch to AND.',
+  'oxygen.facetOpAndHelp': 'Checked values are combined with AND: a track must have all of them. Click to switch back to OR.',
   'oxygen.facetShowAll': 'Show all',
   'oxygen.collapseAll': 'Collapse all',
   'oxygen.expandAll': 'Expand all',
