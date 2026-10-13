@@ -66,6 +66,8 @@ export type TraitementSuspendable = {
   /** `en_cours` | `en_pause` | `au_repos`. */
   state: string;
   paused: boolean;
+  /** tune-server-rust#4681 : a cédé à la lecture dans la fenêtre récente. */
+  throttled_for_playback?: boolean;
 };
 
 /** La réponse de `GET /system/background-tasks`.
@@ -88,6 +90,11 @@ export type InstantaneTachesDeFond = {
   /** Serveur tune-server-rust#5868 : l'identification par empreinte AcoustID
    *  peut-elle tourner. Lu par `lib/acoustid.ts` (`lireBlocAcoustid`). */
   acoustid?: import('./acoustid').BlocAcoustid;
+  /** tune-server-rust#4681 : le scan tourne-t-il, a-t-il cédé à la lecture. */
+  scan?: { running?: boolean; throttled_for_playback?: boolean };
+  /** tune-server-rust#4681 : le relevé de la priorité à la lecture. Lu par
+   *  `lib/ceQuiTourne.ts` ; chaque champ y est vérifié avant usage. */
+  playback_priority?: Record<string, any>;
 };
 
 /** Le relevé du rattrapage des rapports `foo_dr.txt` (#5168). */

@@ -48,6 +48,9 @@
     type PrioriteDr,
     type RattrapageRapportsDr,
   } from '../../lib/tachesDeFond';
+  // tune-server-rust#4681 (étape 4) — « Ce qui tourne » : quelles tâches de
+  // fond travaillent, cèdent à la lecture ou sont en pause, et pourquoi.
+  import { ceQuiTourne, phraseLecture, remplir, type CeQuiTourne } from '../../lib/ceQuiTourne';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
   import { lireBlocAcoustid, carteAcoustid, type BlocAcoustid } from '../../lib/acoustid';
   import { heureSeule } from '../../lib/dates';
@@ -159,7 +162,12 @@
     rattrapageDr = inst?.dynamic_range_sidecar ?? null;
     etatServeurDr = etatServeurPlageDynamique(inst);
     blocAcoustid = lireBlocAcoustid(inst);
+    tourne = ceQuiTourne(inst);
   }
+  /** #4681 — la section « Ce qui tourne » ; `null` face à un serveur qui ne
+   *  publie ni `pausable` ni `playback_priority` : la section se tait. */
+  let tourne = $state<CeQuiTourne | null>(null);
+  const lectureEnTete = $derived(phraseLecture(tourne));
   /** tune-server-rust#5868 — le bloc `acoustid` de l'instantané ; `null` face
    *  à un serveur qui ne le publie pas : aucune carte. */
   let blocAcoustid: BlocAcoustid | null = null;
@@ -836,6 +844,54 @@
     {#if loading}
       <div class="state">{$t('v2.health.loading' as any)}</div>
     {:else}
+      {#if tourne}
+        <!-- tune-server-rust#4681 — ce qui tourne, et pourquoi. Rien n'y est
+             inventé : chaque ligne vient d'un champ publié par le serveur. -->
+        <section class="modules tourne" data-testid="running-tasks">
+          <h2>{$t('v2.health.running.title' as any)}</h2>
+          {#if lectureEnTete}
+            <div class="sub">
+              {remplir($t(lectureEnTete.cle as any), lectureEnTete.params)}
+              {#if tourne.lecture?.active && tourne.lecture.depuisEpochS}
+                {remplir($t('v2.health.running.since' as any), { h: $heureSeule(tourne.lecture.depuisEpochS * 1000) })}
+              {/if}
+            </div>
+          {/if}
+          {#if tourne.lecture?.freinsDesactives}
+            <div class="sub bridage">{$t('v2.health.running.brakesOff' as any)}</div>
+          {/if}
+          {#if tourne.lignes.length === 0}
+            <div class="sub">{$t('v2.health.running.nothing' as any)}</div>
+          {:else}
+            <ul class="tourne-liste">
+              {#each tourne.lignes as l (l.id)}
+                <li data-tache={l.id} data-etat={l.etat}>
+                  <span class="tourne-nom">{l.nomCle ? $t(l.nomCle as any) : l.libelle}</span>
+                  <span class="badge {l.etat === 'en_cours' ? 'run' : l.etat === 'en_pause' ? 'pause' : 'idle'}">{$t(`v2.health.running.state.${l.etat}` as any)}</span>
+                  {#if l.raisonCle}
+                    <span class="tourne-pourquoi">{remplir($t(l.raisonCle as any), l.params)}</span>
+                  {/if}
+                  {#if l.avancement}
+                    <span class="tourne-pourquoi">{remplir($t('v2.health.running.progress' as any), { detail: l.avancement.detail, fait: $formatNombre(l.avancement.fait), total: $formatNombre(l.avancement.total) })}</span>
+                  {/if}
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          {#if tourne.auRepos > 0}
+            <div class="sub">{remplir($t('v2.health.running.idleCount' as any), { n: tourne.auRepos })}</div>
+          {/if}
+          {#if tourne.freins && tourne.lecture?.active}
+            <div class="sub">{remplir($t('v2.health.running.brakes' as any), {
+              scan: $formatNombre(tourne.freins.fichiersDeScanRetenus),
+              lect: $formatNombre(tourne.freins.lecturesDifferees),
+              lms: $formatNombre(tourne.freins.lecturesDiffereesMs),
+              ecr: $formatNombre(tourne.freins.ecrituresDifferees),
+              ems: $formatNombre(tourne.freins.ecrituresDiffereesMs),
+            })}</div>
+          {/if}
+        </section>
+      {/if}
       <div class="cards">
         {#each cards as c (c.id)}
           {@const p = pct(c)}
@@ -1091,6 +1147,10 @@
   .reseau .ind{padding-left:18px}
   .modules{margin-top:22px; border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px 18px}
   .modules h2{font-size:15px; font-weight:700}
+  .tourne-liste{list-style:none; margin:0 0 10px; padding:0; display:flex; flex-direction:column; gap:8px}
+  .tourne-liste li{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 10px}
+  .tourne-nom{font-weight:600}
+  .tourne-pourquoi{flex-basis:100%; font-size:13px; color:var(--v2-txt2)}
   .modules .sub{margin-bottom:12px}
   /* tune-server-rust#5410 — les analyses bridées faute de thermomètre. */
   .modules .sub.bridage{color:var(--v2-acc2)}
