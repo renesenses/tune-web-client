@@ -13,10 +13,18 @@
    * n'existent qu'ICI. Recopier le bloc dans `HomeView` aurait laissé deux
    * définitions à tenir à jour — c'est exactement ce montage qui a fait perdre
    * le canal des bandes d'EQ (#2313).
+   *
+   * web#916, go du 13/10/2026 — elle lit `/home/recommendations`, la route qui
+   * recommande VRAIMENT (genres écoutés, albums jamais entendus, sans ce que
+   * le profil a écarté) et qui dit pourquoi (`raison`). Elle lisait
+   * `/library/recommendations`, qui rend les derniers albums par identifiant
+   * sous un titre qui promettait autre chose. Le composant vit toujours :
+   * l'ancien tableau de bord (`/dashboard`) le monte.
    */
   import { onMount } from 'svelte';
   import * as api from '../../lib/api';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
+  import { texteRaison } from '../../lib/raisonSuggestion';
   import { ouvrirAlbum } from '../../lib/libraryNavigation';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -26,8 +34,8 @@
 
   async function loadRecommendations() {
     try {
-      const r = await api.getRecommendations(12);
-      recommendations = Array.isArray(r) ? r : (r.albums ?? r.recommendations ?? []);
+      const r = await api.getHomeRecommendations(12);
+      recommendations = Array.isArray(r) ? r : [];
       recsLoaded = true;
     } catch (e) {
       console.error('Load recommendations error:', e);
@@ -66,8 +74,12 @@
           />
           <span class="rec-title truncate" title={rec.title}>{rec.title}</span>
           <span class="rec-artist truncate" title={rec.artist_name ?? ''}>{rec.artist_name ?? ''}</span>
-          {#if rec.reason}
-            <span class="rec-reason" title={rec.reason}>{rec.reason}</span>
+          <!-- La raison structurée, mise en phrase dans la langue de
+               l'interface. L'ancien `reason` (« random », « genre_match »)
+               était un code, pas une phrase : il n'est plus affiché. -->
+          {#if rec.raison}
+            {@const pourquoi = texteRaison(rec.raison, $t as any, $locale)}
+            {#if pourquoi}<span class="rec-reason" title={pourquoi}>{pourquoi}</span>{/if}
           {/if}
         </button>
       {/each}

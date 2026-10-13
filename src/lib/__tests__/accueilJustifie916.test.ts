@@ -9,7 +9,7 @@
  *     quand la raison est inconnue ou incomplète (jamais inventée) ;
  *  2. que les CHARGEURS des rangées de recommandation reprennent la raison du
  *     serveur et marquent leurs éléments comme suggestions, et que les rangées
- *     factuelles (favoris, ajouts récents) ne deviennent PAS écartables ;
+ *     factuelles (ajouts récents) ne deviennent PAS écartables ;
  *  3. ce que « Pas pour moi » désigne pour une vignette (album local, album de
  *     service, playlist de service, artiste) ;
  *  4. le menu « … » : l'entrée n'existe que si l'accueil fournit le geste ;
