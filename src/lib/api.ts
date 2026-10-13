@@ -3972,6 +3972,19 @@ export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs>
   return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
 }
 
+/** La version installée d'un greffon natif tiers, lue SANS bandeau : la
+ *  liste est réservée à l'administrateur, et un paquet posé à la main n'a pas
+ *  de version. `null` quand on ne peut pas la savoir. */
+export async function versionGreffonNatif(id: string): Promise<string | null> {
+  try {
+    const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins`, undefined, undefined, true);
+    const v = Array.isArray(r?.plugins) ? r.plugins.find((p) => p?.id === id)?.version : null;
+    return typeof v === 'string' && v ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 const racineGreffonNatif = (id: string) => `${BASE}/audio-plugins/${encodeURIComponent(id)}`;
 
 /** `POST /audio-plugins/{id}/install-from-catalog` — réussi. Le greffon est
