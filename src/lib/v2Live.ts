@@ -660,7 +660,7 @@ export function demarrerTransportV2(): () => void {
         noterSiDebutDEcoute(
           type, zid, courante, emettrice,
           nowPlayingToTrack,
-          (piste, nom) => playbackHistory.add(piste, nom),
+          (piste, nom, contexte) => playbackHistory.add(piste, nom, contexte),
           event?.data,
         );
       });
