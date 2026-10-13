@@ -3434,6 +3434,7 @@ export default {
   "streaming.genrePlaylists": 'Spellistor i den här genren',
   "streaming.genresEmpty": 'Den här tjänsten erbjuder inga genrer.',
   "v2.hist.eyebrow": "Vad du har lyssnat på",
+  "v2.hist.regleEcoute": "En lyssning räknas så snart ljudet når utgången, i början av spåret: även ett spår som hoppas över efter några sekunder räknas. Radio registreras inte. Scrobbling till Last.fm väntar halva spåret eller 4 minuter (spår längre än 30 s).",
   "v2.hist.replayError": "Kunde inte spela upp den här lyssningen igen",
   "v2.hist.ctx.album": "Album",
   "v2.hist.ctx.playlist": "Spellista",

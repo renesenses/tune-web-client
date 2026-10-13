@@ -3455,6 +3455,7 @@ export default {
   "streaming.genrePlaylists": 'Playlists in this genre',
   "streaming.genresEmpty": 'This service offers no genres.',
   "v2.hist.eyebrow": "What you have listened to",
+  "v2.hist.regleEcoute": "A play counts as soon as sound reaches the output, at the start of the track: a track skipped after a few seconds counts too. Radio is not recorded. Last.fm scrobbles wait for half the track or 4 minutes (tracks longer than 30 s).",
   "v2.hist.replayError": "Could not replay this listen",
   "v2.hist.ctx.album": "Album",
   "v2.hist.ctx.playlist": "Playlist",
