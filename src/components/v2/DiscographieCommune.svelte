@@ -22,13 +22,13 @@
   import type { GroupeCollaborations } from '../../lib/api';
   import { partagerDiscographie } from '../../lib/discographieConnexes';
   import {
-    BIBLIOTHEQUE, basculerProvenance, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances, recentrerSurProvenances,
+    BIBLIOTHEQUE, basculerProvenance, choixEffectif, CLE_SOURCE_FICHE, relireSource, serialiserSource, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances, recentrerSurProvenances,
     filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee,
     type EntreeDiscographie, type Exemplaire, type Qualite,
   } from '../../lib/discographieCommune';
   import { trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
   import type { OrigineSection } from '../../lib/focusArtiste';
-  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import { lireChoix, ecrireChoix, lireTexte } from '../../lib/preferencesEcran';
   import { libelleProvenance, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
@@ -81,8 +81,15 @@
      * (#4651, `lib/discographieConnexes`).
      */
     nomArtiste?: string | null;
+    /**
+     * #1874 — d'autres sources PEUVENT encore s'ajouter à cette discographie
+     * (des services sont interrogés, ou la bibliothèque l'est par le nom) : la
+     * rangée des pastilles est rendue dès l'ouverture, et ne surgit plus au
+     * milieu de la page quand le deuxième service répond.
+     */
+    rangeeSources?: boolean;
   }
-  let { locaux = [], services = [], servicesEnCharge = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [] }: Props = $props();
+  let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [] }: Props = $props();
 
   /**
    * #4651 — Qobuz range sous un artiste des reprises et des albums d'autres
@@ -132,20 +139,33 @@
   let choix = $state<Set<string>>(new Set());
   // La source choisie dans la grille de la Bibliothèque (#1501) est la
   // pastille cochée à l'OUVERTURE — et plus un filtre invisible qu'on ne
-  // pouvait pas retirer depuis la fiche. La fiche démonte cette grille pendant
-  // chaque chargement : un autre artiste repart donc de là.
+  // pouvait pas retirer depuis la fiche. Sans elle, c'est le DERNIER choix
+  // fait sur une fiche artiste (#1874) : « Local » choisi une fois reste
+  // « Local » à la fiche suivante, au lieu de revenir à « Toutes ».
   $effect.pre(() => {
-    choix = provenance ? new Set([provenance]) : new Set();
+    choix = provenance ? new Set([provenance]) : relireSource(lireTexte(CLE_SOURCE_FICHE));
   });
+  /**
+   * Ce qui s'applique : le choix ramené aux pastilles PRÉSENTES (#1874). Les
+   * pastilles arrivent avec les services ; un choix retenu dont la pastille
+   * n'est pas (encore) là ne vide pas la fiche, il attend.
+   */
+  const actif = $derived(choixEffectif(choix, provenances.map((p) => p.cle)));
   // Un ensemble REMPLACÉ, pas modifié en place : `$state` suit l'affectation,
-  // et un `Set` muté garderait la même référence.
+  // et un `Set` muté garderait la même référence. Le geste est RETENU ; la
+  // source posée par la Bibliothèque, elle, ne l'est pas — elle n'est pas un
+  // choix fait sur la fiche.
+  function choisir(n: Set<string>) {
+    choix = n;
+    ecrireChoix(CLE_SOURCE_FICHE, serialiserSource(n));
+  }
   function basculerPastille(cle: string) {
-    choix = basculerProvenance(choix, cle, provenances.map((p) => p.cle));
+    choisir(basculerProvenance(actif, cle, provenances.map((p) => p.cle)));
   }
   // Filtrer ne suffit pas : la vignette gardée pour son exemplaire Qobuz doit
   // aussi OUVRIR cet exemplaire, pas la copie locale (30/09/2026, Yves Corbat).
   const garder = (liste: EntreeDiscographie[]) =>
-    liste.filter((e) => dansProvenances(e, choix)).map((e) => recentrerSurProvenances(e, choix));
+    liste.filter((e) => dansProvenances(e, actif)).map((e) => recentrerSurProvenances(e, actif));
 
   /**
    * Les noms des serveurs UPnP, pour qu'une pastille dise « Sonos » et pas un
@@ -250,16 +270,19 @@
 </script>
 
 <div class="disco">
-  {#if provenances.length > 1 || choix.size}
+  {#if provenances.length > 1 || actif.size || rangeeSources}
     <!-- « Toutes » OUVRE la rangée et y est toujours : l'absence de filtre ne
          se dit pas en allumant toutes les autres (#1145, même rangée qu'à la
-         Recherche). Une seule source : rien à choisir, pas de rangée. -->
+         Recherche). Une seule source : rien à choisir, pas de rangée — sauf
+         quand d'autres sources peuvent encore arriver (#1874) : la rangée est
+         alors là dès l'ouverture, et la grille ne descend pas d'un cran quand
+         le deuxième service répond. -->
     <div class="pills" role="group" aria-label={$t('v2.disco.source' as any)}>
-      <button class="pill raz" data-pastille="tout" class:on={choix.size === 0}
-        aria-pressed={choix.size === 0} onclick={() => (choix = new Set())}>{$t('v2.fav.allSources' as any)}</button>
+      <button class="pill raz" data-pastille="tout" class:on={actif.size === 0}
+        aria-pressed={actif.size === 0} onclick={() => choisir(new Set())}>{$t('v2.fav.allSources' as any)}</button>
       {#each provenances as p (p.cle)}
-        <button class="pill" data-pastille={p.cle} class:on={provenanceCochee(p.cle, choix)}
-          aria-pressed={provenanceCochee(p.cle, choix)} onclick={() => basculerPastille(p.cle)}>
+        <button class="pill" data-pastille={p.cle} class:on={provenanceCochee(p.cle, actif)}
+          aria-pressed={provenanceCochee(p.cle, actif)} onclick={() => basculerPastille(p.cle)}>
           {#if p.cle.startsWith('upnp')}<ServiceBadge source="upnp" compact />{/if}
           {libelleProvenance(p.cle, nomsServeurs, $t('v2.lib.sourceLocal' as any))} <b>{p.n}</b>
         </button>
