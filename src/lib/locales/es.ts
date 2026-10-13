@@ -1106,6 +1106,8 @@ export default {
   "library.versionGroups.byTitle": "título, artista y duración",
   "library.versionGroups.default": "Se reproduce por defecto",
   "library.versionGroups.thisTrack": "esta pista",
+  "library.versionGroups.menu": "Acciones de esta versión",
+  "library.versionGroups.defaultHint": "Reproducida por defecto: la copia que Tune reproduce cuando se toca esta pista sin elegir versión, según la regla «Versión reproducida por defecto» del perfil ({rule}).",
   "nowplaying.version.played": "Versión reproducida",
   "nowplaying.version.library": "Biblioteca",
   "nowplaying.version.fallback": "versión de respaldo",
