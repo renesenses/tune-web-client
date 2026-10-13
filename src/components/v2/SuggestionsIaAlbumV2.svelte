@@ -22,6 +22,8 @@
     estEchec, cleDEchec, cleDeRaison, cleDeChamp, cocheesParDefaut, pourcent, messageDeRapport,
     type SuggestionIa, type EcarteeIa, type RapportIa, type SuggestionPisteIa, type EcarteePisteIa,
   } from '../../lib/assistantIa';
+  import type { EtatPlafondIa } from '../../lib/assistantIa';
+  import AlertePlafondIaV2 from './AlertePlafondIaV2.svelte';
 
   interface Props {
     albumId: number;
@@ -39,6 +41,7 @@
   let cochees = $state<Set<string>>(new Set());
   let depuisCache = $state(false);
   let cout = $state(0);
+  let plafond = $state<EtatPlafondIa | null>(null);
   let rapport = $state<RapportIa | null>(null);
   let annulable = $state(false);
   let message = $state<string | null>(null);
@@ -67,6 +70,7 @@
       cochees = cocheesParDefaut(r.suggestions);
       depuisCache = r.depuis_cache;
       cout = r.cout_eur;
+      plafond = r.plafond ?? null;
     } catch (e) {
       erreur = (e as Error)?.message ?? $t('assistantIa.err.generique' as any);
     } finally { chargement = false; }
@@ -120,6 +124,7 @@
       cocheesPistes = new Set(r.suggestions.filter((x) => x.confiance >= 0.7).map(clePiste));
       depuisCache = r.depuis_cache;
       cout = r.cout_eur;
+      plafond = r.plafond ?? null;
     } catch (e) {
       erreur = (e as Error)?.message ?? $t('assistantIa.err.generique' as any);
     } finally { occupe = false; }
@@ -284,6 +289,7 @@
       <p class="note">
         {depuisCache ? $t('assistantIa.fromCache' as any) : $t('assistantIa.cost' as any).replace('{cout}', cout.toFixed(4))}
       </p>
+      <AlertePlafondIaV2 {plafond} />
       <p class="note">{$t('assistantIa.album.dbOnly' as any)}</p>
     {/if}
   </div>

@@ -16,6 +16,8 @@
     estEchec, cleDEchec, cleDeRaison, cleDeChamp, pourcent,
     type ResultatLotIa,
   } from '../../lib/assistantIa';
+  import type { EtatPlafondIa } from '../../lib/assistantIa';
+  import AlertePlafondIaV2 from './AlertePlafondIaV2.svelte';
 
   interface Props {
     albumIds: number[];
@@ -31,6 +33,7 @@
   let arret = $state<{ error: string; message: string } | null>(null);
   let nonTraites = $state<number[]>([]);
   let cout = $state(0);
+  let plafond = $state<EtatPlafondIa | null>(null);
   let cochees = $state<Set<string>>(new Set());
   let operations = $state<{ album_id: number; operation_id: string | null }[]>([]);
   let message = $state<string | null>(null);
@@ -44,6 +47,7 @@
       arret = r.arret;
       nonTraites = r.non_traites;
       cout = r.cout_eur;
+      plafond = r.plafond ?? null;
       const n = new Set<string>();
       for (const x of r.resultats) {
         if (x.ok) for (const s of x.suggestions) if (s.confiance >= 0.7) n.add(cleDeLigneDuLot(x.album_id, s.champ));
@@ -171,6 +175,7 @@
       </div>
       {#if message}<p class="note" role="status">{message}</p>{/if}
       <p class="note">{$t('assistantIa.cost' as any).replace('{cout}', cout.toFixed(4))}</p>
+      <AlertePlafondIaV2 {plafond} />
       <p class="note">{$t('assistantIa.album.dbOnly' as any)}</p>
     {/if}
     {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}

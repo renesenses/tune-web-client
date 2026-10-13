@@ -10,11 +10,17 @@
    * La clé se SAISIT ici et ne revient jamais : le serveur la scelle et ne
    * rend que ses quatre derniers caractères. Le champ reste vide après
    * l'enregistrement ; le laisser vide ne touche pas à la clé posée.
+   *
+   * Étape 3 : la consommation du mois se détaille par usage, une alerte
+   * prévient à 80 % du plafond, et le tarif appliqué est daté (avec sa
+   * source, et le changement de prix annoncé par le fournisseur).
    */
   import { onMount } from 'svelte';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
+  import AlertePlafondIaV2 from './AlertePlafondIaV2.svelte';
   import {
     lireReglagesIa, changerReglagesIa, testerCleIa, estEchec, estReglages, cleDEchec, peutModifier,
+    lignesParUsage, cleDUsage, plafondDesReglages, dateLisible,
     type ReglagesIa, type FournisseurIa, type ModificationIa,
   } from '../../lib/assistantIa';
 
@@ -120,6 +126,19 @@
     .replace('{plafond}', r.plafond_eur.toFixed(2))
     .replace('{appels}', String(r.consommation.appels))
     .replace('{cache}', String(r.consommation.depuis_cache)) : '');
+
+  const usages = $derived(lignesParUsage(r?.consommation));
+  const plafondEtat = $derived(plafondDesReglages(r));
+  const prix = (v: number | null | undefined) => (v == null ? '?' : String(v));
+  const tarifTexte = $derived.by(() => {
+    const ta = r?.tarif;
+    if (!ta || !ta.origine) return '';
+    if (ta.origine === 'local') return $t('assistantIa.price.local' as any);
+    const base = $t((ta.origine === 'saisi' ? 'assistantIa.price.saisi' : 'assistantIa.price.table') as any)
+      .replace('{entree}', prix(ta.entree_usd_mtok))
+      .replace('{sortie}', prix(ta.sortie_usd_mtok));
+    return base.replace('{date}', dateLisible(ta.releve_le, $locale));
+  });
 </script>
 
 <div class="ia" data-assistant-ia-reglages>
@@ -230,6 +249,34 @@
   {#if r}
     <p class="hint" data-ia-conso>{resume}</p>
     {#if r.consommation.plafond_atteint}<p class="errline">{$t('assistantIa.capReached' as any)}</p>{/if}
+    <AlertePlafondIaV2 plafond={plafondEtat} />
+    {#if usages.length}
+      <details class="usages" data-ia-par-usage>
+        <summary>{$t('assistantIa.byUsage' as any)}</summary>
+        <ul>
+          {#each usages as u (u.usage)}
+            <li>{$t('assistantIa.usageLine' as any)
+              .replace('{usage}', cleDUsage(u.usage) ? $t(cleDUsage(u.usage) as any) : u.usage)
+              .replace('{cout}', u.cout_eur.toFixed(4))
+              .replace('{appels}', String(u.appels))
+              .replace('{cache}', String(u.depuis_cache))}</li>
+          {/each}
+        </ul>
+      </details>
+    {/if}
+    {#if tarifTexte}
+      <p class="hint" data-ia-tarif>
+        {tarifTexte}
+        {#if r.tarif?.source_url}
+          <a href={r.tarif.source_url} target="_blank" rel="noopener noreferrer">{$t('assistantIa.price.source' as any)}</a>
+        {/if}
+      </p>
+      {#if r.tarif?.a_relever}
+        <p class="errline" data-ia-tarif-a-relever>{$t('assistantIa.price.toCheck' as any).replace('{date}', dateLisible(r.tarif.a_relever_avant, $locale))}</p>
+      {:else if r.tarif?.a_relever_avant}
+        <p class="hint">{$t('assistantIa.price.announced' as any).replace('{date}', dateLisible(r.tarif.a_relever_avant, $locale))}</p>
+      {/if}
+    {/if}
   {/if}
 </div>
 
@@ -256,4 +303,8 @@
   .lnk:hover:not(:disabled) { border-color: var(--v2-acc1); color: var(--v2-acc1); }
   .lnk:disabled { opacity: 0.45; cursor: default; }
   .lnk.primaire { border-color: var(--v2-acc1); color: var(--v2-acc1); }
+  .usages { font-size: 12.5px; color: var(--v2-txt3); }
+  .usages summary { cursor: pointer; }
+  .usages ul { margin: 6px 0 0; padding-left: 18px; }
+  .hint a { color: var(--v2-acc1); }
 </style>
