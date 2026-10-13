@@ -782,6 +782,8 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   let valeurGroupe = $state('');
   let groupeOccupe = $state(false);
   let playlistSelection = $state(false);
+  /** web#2096 — « Ajouter à une playlist » pour l'album ENTIER (local ou de service). */
+  let playlistAlbum = $state(false);
   // Une autre fiche s'ouvre : la sélection de l'album d'avant ne la suit pas.
   $effect(() => { void album?.id; quitterSelection(); });
   // Le mode Modifier et la sélection ne vivent pas ensemble : l'un remplace
@@ -1539,6 +1541,14 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         <button class="ghost" onclick={addQueue} disabled={fileOccupee}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>{$tr('v2.album.addQueue' as any)}
         </button>
+        <!-- #2096 (FabienM, fil 2236, point 7) — l'album ENTIER dans une
+             playlist, la même fenêtre que pour un titre. Pas pour un album
+             d'un dépôt Tune distant : ses pistes ne se désignent pas ici. -->
+        {#if !depot && tracks.length}
+          <button class="ghost" data-album-playlist onclick={() => (playlistAlbum = true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h11M4 11h11M4 16h7M18 13v6M15 16h6"/></svg>{$tr('playlist.addToPlaylist')}
+          </button>
+        {/if}
         <!-- Le cœur n'apparaît que si l'album est DÉSIGNABLE (`id` local, ou
              référence de service — Bandcamp compris depuis #1409, désigné par
              l'URL de sa page comme sur sa vignette). Un bouton absent ne
@@ -1773,6 +1783,11 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
 {/if}
 <!-- #1683 — la fenêtre de playlists PARTAGÉE, pour toutes les pistes
      choisies en une requête. -->
+{#if playlistAlbum && tracks.length}
+  {#await import('../partages/AddToPlaylistModal.svelte') then m}
+    <m.default track={tracks[0]} {tracks} onClose={() => (playlistAlbum = false)} />
+  {/await}
+{/if}
 {#if playlistSelection && pistesChoisies.length}
   {#await import('../partages/AddToPlaylistModal.svelte') then m}
     <m.default track={pistesChoisies[0]} tracks={pistesChoisies}
