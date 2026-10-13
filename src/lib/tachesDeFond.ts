@@ -89,6 +89,9 @@ export type InstantaneTachesDeFond = {
   /** tune-server-rust#4681 — le scan, qui n'est pas suspendable, cède pourtant
    *  à la lecture comme les autres : il porte son propre drapeau. */
   scan?: { running?: boolean; throttled_for_playback?: boolean };
+  /** tune-server-rust#4681 : le relevé de la priorité à la lecture. Lu par
+   *  `lib/ceQuiTourne.ts` ; chaque champ y est vérifié avant usage. */
+  playback_priority?: Record<string, any>;
   /** Serveur tune-server-rust#5169 : la place de la plage dynamique parmi les
    *  passes qui décodent — `last` | `before_fingerprints` | `first`. Absent
    *  d'un serveur plus ancien (≤ 0.9.166). */
