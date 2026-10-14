@@ -107,6 +107,9 @@ const ANCIENNES_GRAPHIES: Readonly<Record<string, string>> = {
   empty: 'is_null',
   is_not_empty: 'is_not_null',
   not_empty: 'is_not_null',
+  // tune-web-client#2176 — mêmes graphies que le serveur (#6250).
+  does_not_contain: 'not_contains',
+  not_like: 'not_contains',
 };
 
 export function normaliserOperateur(op: string): string {

@@ -51,6 +51,7 @@ import { concertsCharge } from './stores/concerts';
 import { convertisseurCharge } from './stores/convertisseurPlaylists';
 import { circleCharge } from './circle';
 import { demandeCercle } from './circlePlaylists';
+import { demandeAjoutPlaylist } from './demandeAjoutPlaylist';
 import { ouvrirLeRepertoire } from './stores/repertoireCible';
 import { zoneRequise } from './zoneRequise';
 import { signalerEchecLecture } from './echecLecture';
@@ -846,6 +847,10 @@ export function gestesObjet(o: ObjetMenu, options: OptionsMenuObjet = {}): Geste
     if (ouvrir) g.modifier = () => { pendingModeModifier.set(id); ouvrir(); };
   }
   if (o.type === 'artiste') g.concerts = () => activeView.set('concerts');
+  if (o.type === 'album' && (o.id != null || deService(o))) {
+    // web#2096 — l'album entier, par la fenêtre partagée (`ShellV2`).
+    g.ajouterAPlaylist = () => demandeAjoutPlaylist.set({ nom: o.nom ?? '', pistes: () => pistesDe(o) });
+  }
   if (TYPES_DE_CERCLE.has(o.type) && (o.id != null || deService(o))) {
     const nom = o.nom ?? '';
     g.ajouterAPlaylistDeCercle = () => demandeCercle.set({ mode: 'ajout', nom, pistes: () => pistesPourCercle(o) });

@@ -13,8 +13,8 @@
    * (`gestesAlbumTop`, `gestePisteTop`). Donc :
    *
    *  - la LIGNE joue (`el.jouer`), quand l'élément est jouable ;
-   *  - le NOM D'ARTISTE ouvre la page artiste (`ouvrirArtisteParNom`), qui est
-   *    une fonction de bibliothèque et n'a besoin de personne.
+   *  - le NOM D'ARTISTE ouvre la page artiste commune (`ouvrirArtisteDepuis`,
+   *    #1232), qui n'a besoin de personne.
    *
    * ⚠️ Il n'OUVRE PAS la fiche d'un album. Cette fiche est un calque tenu par
    * `PageWidgets` (`ficheOuverte`, `AlbumDetailV2`), et un bloc est par
@@ -29,11 +29,29 @@
   import type { Element } from '../../../lib/accueilWidgets';
   import { t } from '../../../lib/i18n';
   import { currentZone } from '../../../lib/stores/zones';
-  import { ouvrirArtisteParNom } from '../../../lib/libraryNavigation';
+  import { get } from 'svelte/store';
+  import { ouvrirArtisteDepuis } from '../../../lib/ouvrirArtisteDepuis';
+  import { activeView } from '../../../lib/stores/navigation';
   import { signalerEchecLecture } from '../../../lib/echecLecture';
   import AlbumArt from '../../partages/AlbumArt.svelte';
 
   let { donnees }: { donnees: Element[] | null } = $props();
+
+  /**
+   * #1232 — la PAGE COMMUNE, comme le widget « Vos tops » de l'accueil
+   * (`PageWidgets.ouvrirElement`) : même chemin, même rapprochement par le nom,
+   * et le service d'écoute quand le classement le porte (#1696). Le clic
+   * passait par `libraryNavigation.ouvrirArtisteParNom`, la navigation de
+   * l'ancienne fiche de bibliothèque, retirée.
+   */
+  function ouvrirArtiste(el: Element) {
+    if (!el.sous) return;
+    const nom = el.artiste ?? el.sous;
+    void ouvrirArtisteDepuis(
+      el.artisteService ? { name: nom, service_ecoute: el.artisteService } : { name: nom },
+      get(activeView),
+    );
+  }
 
   const elements = $derived(donnees ?? []);
 
@@ -75,7 +93,7 @@
           <button
             type="button"
             class="art"
-            onclick={() => ouvrirArtisteParNom(el.sous)}
+            onclick={() => ouvrirArtiste(el)}
             title={`${el.sous} — ${$t('dashboard.viewArtist' as any)}`}
           >{el.sous}</button>
         {/if}

@@ -53,7 +53,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
-  import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab, yearFilter } from '../../lib/stores/library';
+  import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab, yearFilter } from '../../lib/stores/library';
   import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryYear } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { gestesNavigationService } from '../../lib/stores/navigation';
@@ -608,7 +608,6 @@ import { ICONES } from '../../lib/menuPiste';
   }
 
   async function navigateToAlbum(albumId: number | undefined, albumTitle?: string) {
-    selectedArtist.set(null);
 
     /*
      * 🔴 L'ALBUM DE CE QUI JOUE SE DEMANDE AU SERVEUR — #1361.

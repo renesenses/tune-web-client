@@ -27,9 +27,19 @@
   import type { Track, Source, TopTrack, TopArtist } from '../../lib/types';
   import {
     ouvrirAlbum as navigateToAlbum,
-    ouvrirArtiste as navigateToArtist,
-    ouvrirArtisteParNom as navigateArtistByName,
     ouvrirBibliotheque as goToLibrary } from '../../lib/libraryNavigation';
+  import { get } from 'svelte/store';
+  import { ouvrirArtisteDepuis, ouvrirFicheArtisteLocale } from '../../lib/ouvrirArtisteDepuis';
+
+  /*
+   * #1232 — la PAGE COMMUNE, plus la fiche de bibliothèque retirée : un
+   * identifiant local ouvre la page sur cet artiste, un nom seul passe par le
+   * rapprochement exact de `ouvrirArtisteDepuis`. Retour vers cet écran.
+   */
+  const navigateToArtist = (id: number, nom: string) => ouvrirFicheArtisteLocale(id, nom, get(activeView));
+  const navigateArtistByName = (nom: string | null | undefined) => {
+    if (nom) void ouvrirArtisteDepuis({ name: nom }, get(activeView));
+  };
 
   let zone = $derived($currentZone);
 
@@ -186,7 +196,7 @@
       <div class="top-artists-row" use:defilementHorizontal
            role="group" aria-label={$t('home.topArtists')}>
         {#each topArtists as artist, i}
-          <button class="artist-card" onclick={() => artist.artist_id ? navigateToArtist(artist.artist_id) : navigateArtistByName(artist.name)}>
+          <button class="artist-card" onclick={() => artist.artist_id ? navigateToArtist(artist.artist_id, artist.name) : navigateArtistByName(artist.name)}>
             <span class="artist-rank">#{i + 1}</span>
             <span class="artist-card-name">{artist.name}</span>
             <span class="play-count-badge">{artist.plays} {$t('home.plays')}</span>
