@@ -3988,6 +3988,19 @@ export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs>
   return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
 }
 
+/** La version installée d'un greffon natif tiers, lue SANS bandeau : la
+ *  liste est réservée à l'administrateur, et un paquet posé à la main n'a pas
+ *  de version. `null` quand on ne peut pas la savoir. */
+export async function versionGreffonNatif(id: string): Promise<string | null> {
+  try {
+    const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins`, undefined, undefined, true);
+    const v = Array.isArray(r?.plugins) ? r.plugins.find((p) => p?.id === id)?.version : null;
+    return typeof v === 'string' && v ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 const racineGreffonNatif = (id: string) => `${BASE}/audio-plugins/${encodeURIComponent(id)}`;
 
 /** `POST /audio-plugins/{id}/install-from-catalog` — réussi. Le greffon est
@@ -4765,6 +4778,21 @@ export function setMusicDirectoryOrder(ordre: string[]): Promise<MusicDirectoryO
   });
 }
 
+/**
+ * web#2063 — le lecteur de la zone navigateur dit qu'il joue (serveur #6066).
+ * 200 `{"status": "confirmed" | "nothing_pending" | "not_playing_yet"}`.
+ * 404 (zone inconnue, ou serveur antérieur sans la route), 405 et 409
+ * (`not_a_browser_zone`) sont rendus sans bandeau : la confirmation ne doit
+ * jamais gêner la lecture.
+ */
+export function signalerLectureNavigateur(zoneId: number, streamId: string, positionMs: number) {
+  return fetchJSON<{ status?: string; error?: string } | undefined>(
+    `${BASE}/zones/${zoneId}/browser-playing`,
+    { method: 'POST', body: JSON.stringify({ stream_id: streamId, position_ms: positionMs }) },
+    (statut) => statut === 404 || statut === 405 || statut === 409,
+  );
+}
+
 export function triggerScan(path?: string, full = false) {
   const params = new URLSearchParams();
   if (path) params.set('path', path);
@@ -5511,6 +5539,24 @@ export function getStreamingGenres(service: string, parentId?: string) {
 export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50, section?: string) {
   const rubrique = section ? `&section=${encodeURIComponent(section)}` : '';
   return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`);
+}
+
+/**
+ * tune-server-rust#6231 — chercher dans le catalogue du service, restreint au
+ * genre. 501 : le service ne le permet pas ; 404 : serveur antérieur.
+ */
+export interface RechercheDansUnGenre {
+  albums: Album[];
+  /** Résultats de la recherche du service examinés pour en tirer `albums`. */
+  examined: number;
+  /** `results` : le genre est appliqué aux résultats de la recherche du service. */
+  genre_filter: string;
+}
+
+export function searchStreamingGenre(service: string, genreId: string, q: string, limit = 50) {
+  return fetchJSON<RechercheDansUnGenre>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+  );
 }
 
 export function getStreamingPlaylists(service: string) {
