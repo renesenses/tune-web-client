@@ -149,7 +149,9 @@
   onMount(() => {
     api.getTags()
       // Une étiquette sans identifiant ne peut pas être visée par une règle.
-      .then((l) => { etiquettes = (l ?? []).filter((x) => x.id != null).sort((a, b) => a.name.localeCompare(b.name)); })
+      // web#2166 — l'ordre est celui du serveur (choisi sur la page
+      // Étiquettes) : pas de tri par nom ici.
+      .then((l) => { etiquettes = (l ?? []).filter((x) => x.id != null); })
       .catch(() => { /* la règle reste proposée, sa liste vide dit qu'il n'y a rien à choisir */ });
   });
 

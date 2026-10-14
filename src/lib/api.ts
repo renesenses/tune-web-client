@@ -3351,6 +3351,22 @@ export function deleteTag(id: number) {
   return fetchJSON<void>(`${BASE}/tags/${id}`, { method: 'DELETE' });
 }
 
+/**
+ * Enregistre l'ORDRE des étiquettes (web#2166, tune-server-rust#6257) : les
+ * identifiants du premier au dernier. Le serveur complète la liste — un
+ * identifiant inconnu est ignoré, une étiquette absente garde son rang
+ * relatif après les autres — et toutes ses listes d'étiquettes suivent
+ * ensuite cet ordre. Un serveur antérieur à #6257 n'a pas la route : l'appel
+ * échoue, l'écran le dit et reprend l'ordre d'avant.
+ */
+export function reorderTags(ids: number[]) {
+  return fetchJSON<void>(`${BASE}/tags/order`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+}
+
 export function updateTag(id: number, name?: string, color?: string) {
   return fetchJSON<void>(`${BASE}/tags/${id}`, {
     method: 'PUT',
@@ -5523,6 +5539,24 @@ export function getStreamingGenres(service: string, parentId?: string) {
 export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50, section?: string) {
   const rubrique = section ? `&section=${encodeURIComponent(section)}` : '';
   return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`);
+}
+
+/**
+ * tune-server-rust#6231 — chercher dans le catalogue du service, restreint au
+ * genre. 501 : le service ne le permet pas ; 404 : serveur antérieur.
+ */
+export interface RechercheDansUnGenre {
+  albums: Album[];
+  /** Résultats de la recherche du service examinés pour en tirer `albums`. */
+  examined: number;
+  /** `results` : le genre est appliqué aux résultats de la recherche du service. */
+  genre_filter: string;
+}
+
+export function searchStreamingGenre(service: string, genreId: string, q: string, limit = 50) {
+  return fetchJSON<RechercheDansUnGenre>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+  );
 }
 
 export function getStreamingPlaylists(service: string) {

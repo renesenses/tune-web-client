@@ -48,7 +48,7 @@
    * ⚠️ Les deux sortes de COLLECTION (#3194) restent hors de cet écran : le
    * serveur ne les liste pas par étiquette. On ne les annonce donc pas.
    */
-  import { onMount, untrack } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { zoneRequise } from '../../lib/zoneRequise';
@@ -86,6 +86,7 @@
   import { corpsDeLecture } from '../../lib/pisteFile';
   import { ouvrirParRaccourci, ouvrirSmartPlaylist, ouvrirCollection } from '../../lib/ouvrirParRaccourci';
   import { collectionNomAffiche } from '../../lib/collectionsLibelles';
+  import { deplacer, rangVise } from '../../lib/ordreEtiquettes';
 
   let etiquettes = $state<UserTag[]>([]);
   let chargement = $state(true);
@@ -365,6 +366,83 @@
       notifications.error(e?.message ?? $t('common.error' as any));
     }
     creation = false;
+  }
+
+  /*
+   * 🔴 RÉORGANISER LES ÉTIQUETTES — web#2166 (serveur : tune-server-rust#6257).
+   *
+   * Le serveur n'avait aucune notion d'ordre : toutes les listes sortaient
+   * par nom. Il range désormais les étiquettes selon `tags.position`, que
+   * `PUT /tags/order` écrit, et TOUTES ses listes (cette page, le panneau
+   * d'une pochette, les règles « Étiquette ») suivent cet ordre.
+   *
+   * Deux gestes, le même effet : glisser une étiquette sur une autre, ou,
+   * au clavier, Alt + flèche sur l'étiquette qui a le focus (Alt + Début /
+   * Fin pour les extrémités). L'ordre est montré tout de suite, puis
+   * enregistré ; un échec (serveur antérieur à #6257) le dit et reprend
+   * l'ordre d'avant. Le nouveau rang est annoncé aux lecteurs d'écran.
+   */
+  let glissee = $state<number | null>(null);
+  let survolee = $state<number | null>(null);
+  let annonce = $state('');
+
+  async function enregistrerOrdre(nouvelle: UserTag[], deplacee: UserTag) {
+    const avant = etiquettes;
+    etiquettes = nouvelle;
+    const rang = nouvelle.findIndex((x) => x.id === deplacee.id) + 1;
+    annonce = $t('v2.tags.moved' as any)
+      .replace('{name}', deplacee.name)
+      .replace('{n}', String(rang))
+      .replace('{total}', String(nouvelle.length));
+    try {
+      await api.reorderTags(nouvelle.map((x) => x.id).filter((id): id is number => id != null));
+    } catch (e: any) {
+      etiquettes = avant;
+      annonce = '';
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+  }
+
+  function toucheOrdre(e: KeyboardEvent, tag: UserTag) {
+    const de = etiquettes.findIndex((x) => x.id === tag.id);
+    const vers = rangVise(e, de, etiquettes.length);
+    if (vers == null) return;
+    e.preventDefault();
+    void enregistrerOrdre(deplacer(etiquettes, de, vers), tag);
+    // Le bouton est déplacé dans le DOM : le focus le suit, pour enchaîner
+    // les Alt + flèche sans le rechercher.
+    void tick().then(() => {
+      document.querySelector<HTMLElement>(`.v2-tags [data-tag-id="${tag.id}"]`)?.focus();
+    });
+  }
+
+  function debutGlisser(e: DragEvent, tag: UserTag) {
+    glissee = tag.id;
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(tag.id));
+    }
+  }
+  function survolGlisser(e: DragEvent, tag: UserTag) {
+    if (glissee == null) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    survolee = tag.id;
+  }
+  function deposer(e: DragEvent, cible: UserTag) {
+    e.preventDefault();
+    const id = glissee;
+    glissee = null;
+    survolee = null;
+    if (id == null || id === cible.id) return;
+    const de = etiquettes.findIndex((x) => x.id === id);
+    const vers = etiquettes.findIndex((x) => x.id === cible.id);
+    if (de < 0 || vers < 0) return;
+    void enregistrerOrdre(deplacer(etiquettes, de, vers), etiquettes[de]);
+  }
+  function finGlisser() {
+    glissee = null;
+    survolee = null;
   }
 
   async function charger() {
@@ -814,16 +892,29 @@
            vide se lit comme une panne. -->
       <div class="etat">{$t('v2.tags.emptyHint' as any)}</div>
     {:else}
+      <!-- web#2166 — réorganiser : glisser, ou Alt + flèche au clavier. -->
+      <p class="aide" id="etiquettes-aide-ordre">{$t('v2.tags.reorderHint' as any)}</p>
       <ul class="liste">
         {#each etiquettes as tag (tag.id)}
-          <li>
-            <button class="tag" style={tag.color ? `--c:${tag.color}` : ''} onclick={() => ouvrir(tag)}>
+          <li draggable="true"
+              class:glissee={glissee === tag.id}
+              class:survolee={survolee === tag.id && glissee !== tag.id}
+              ondragstart={(e) => debutGlisser(e, tag)}
+              ondragover={(e) => survolGlisser(e, tag)}
+              ondrop={(e) => deposer(e, tag)}
+              ondragend={finGlisser}>
+            <button class="tag" style={tag.color ? `--c:${tag.color}` : ''} onclick={() => ouvrir(tag)}
+                    data-tag-id={tag.id}
+                    aria-describedby="etiquettes-aide-ordre"
+                    aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+Home Alt+End"
+                    onkeydown={(e) => toucheOrdre(e, tag)}>
               <span class="pastille"></span>
               <span class="nom">{tag.name}</span>
             </button>
           </li>
         {/each}
       </ul>
+      <div class="sr" aria-live="polite">{annonce}</div>
     {/if}
   {/if}
 </section>
@@ -844,6 +935,13 @@
   .etat{padding:30px; color:var(--v2-txt3); font-size:13.5px; max-width:60ch}
 
   .liste{display:flex; flex-wrap:wrap; gap:10px; padding:12px 30px 30px; list-style:none}
+  .aide{margin:0; padding:4px 30px 0; color:var(--v2-txt3); font-size:12.5px}
+  /* web#2166 — l'étiquette tenue s'estompe, celle qu'on survole montre où
+     elle va tomber. */
+  .liste li{border-radius:var(--v2-r-pill)}
+  .liste li.glissee{opacity:.45}
+  .liste li.survolee{outline:2px dashed var(--v2-acc2); outline-offset:3px}
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
   .tag{
     --c:var(--v2-acc1);
     display:inline-flex; align-items:center; gap:9px; cursor:pointer;
