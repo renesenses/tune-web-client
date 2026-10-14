@@ -15,11 +15,12 @@ import {
 import {
   CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
 } from '../cadenceAnimations';
-import { normaliserTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
+import { normaliserTypesBarre, arbitrerTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
 import {
   normaliserChoixBarre, horodatageBarre, arbitrerBarre, type ChoixBarre,
 } from '../ordreBarreLaterale';
 import type { TriConcerts } from '../concertsTri';
+import type { ChoixLieuConcerts } from '../concertsLieu';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
  *
@@ -167,6 +168,13 @@ export interface Preferences {
    *  n'atteindrait plus personne. Seul le clic sur la bascule y écrit ; le
    *  défaut (`TRI_CONCERTS_DEFAUT`, « Par date ») s'applique à l'affichage. */
   concertsTri: TriConcerts | null;
+  /**
+   * web#1755 — la commune et le rayon (ou le périmètre) de CE profil pour
+   * l'écran Concerts. `null` = rien dit : l'écran pose la question ;
+   * `'plus-tard'` = « Pas maintenant ». Voir `lib/concertsLieu.ts` ; relu par
+   * `normaliserChoixLieu`.
+   */
+  concertsLieu: ChoixLieuConcerts | null;
   /**
    * Le crête-mètre affiché — #452, spécifié par Xavijol.
    *
@@ -415,6 +423,12 @@ export interface Preferences {
    */
   sourcesBarre: ChoixTypesBarre | null;
   /**
+   * #2117 — l'instant (ms) du dernier geste sur ces cases, pour qu'un choix
+   * fait sur un autre appareil du même profil arrive ici. `0` : jamais daté.
+   * Voir `arbitrerTypesBarre` dans `lib/typesSourcesBarre`.
+   */
+  sourcesBarreMaj: number;
+  /**
    * L'ordre de la barre latérale et ses entrées masquées — web#1827,
    * Bertrand, 30/09/2026. `null` : l'ordre livré, rien de masqué — c'est le
    * défaut, et « Rétablir l'ordre par défaut » y revient. Voir
@@ -462,6 +476,7 @@ const defaults: Preferences = {
   // web#1718 : `null`, pas le défaut — voir le type. L'écran lit
   // `normaliserTriConcerts(null)`, donc « Par date ».
   concertsTri: null,
+  concertsLieu: null,
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
@@ -506,6 +521,7 @@ const defaults: Preferences = {
   // comme avant, tant qu'on ne l'a pas demandé.
   lienLectureVersSource: false,
   sourcesBarre: null,
+  sourcesBarreMaj: 0,
   // web#1827 : l'ordre livré — rien ne bouge pour qui n'a rien demandé.
   barreLaterale: null,
   barreLateraleMaj: 0,
@@ -680,6 +696,7 @@ function lirePrefs(stored: string | null): Preferences {
       // #5065 — même règle : un choix de types abîmé retombe sur « pas encore
       // décidé », donc sur les types présents ; une clé inconnue est écartée.
       p.sourcesBarre = normaliserTypesBarre((raw as { sourcesBarre?: unknown })?.sourcesBarre);
+      p.sourcesBarreMaj = horodatageBarre((raw as { sourcesBarreMaj?: unknown })?.sourcesBarreMaj);
       // web#1827 — même règle : un ordre abîmé retombe sur l'ordre livré ; un
       // groupe inconnu est écarté, Accueil ne peut pas être masqué.
       p.barreLaterale = normaliserChoixBarre((raw as { barreLaterale?: unknown })?.barreLaterale);
@@ -744,7 +761,51 @@ function ecrireAuServeur(texte: string): void {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...profileHeader() },
     body: JSON.stringify({ ui_preferences: texte }),
-  }).catch(() => {});
+  }).then((res) => {
+    // Une erreur 4xx n'est pas une coupure : la rejouer ne la guérirait pas.
+    if (res && res.status >= 500) signalerServeurInjoignable();
+  }).catch(() => signalerServeurInjoignable());
+}
+
+/**
+ * #2117 — repli hors connexion. Un geste fait quand le serveur ne répond pas
+ * (réseau coupé, serveur redémarré) reste en `localStorage` : la barre de cet
+ * appareil le garde. Mais son `PATCH` est perdu, et il ne repartait qu'au
+ * rechargement de la page ou au retour sur l'onglet, par la réparation de la
+ * barre (fil 2109). Les autres appareils du profil ne le voyaient donc pas
+ * tant que celui-ci restait ouvert au premier plan.
+ *
+ * On reprend : au retour du réseau (`online`), et par une relecture différée
+ * tant que le serveur ne répond pas. La relecture n'écrit rien d'autre que la
+ * réparation déjà admise (barre et types de sources, geste local plus récent
+ * que le serveur) : aucune écriture sans geste.
+ */
+export const DELAI_REPRISE_MS = 60_000;
+let repriseProgrammee: ReturnType<typeof setTimeout> | null = null;
+let serveurInjoignable = false;
+
+function signalerServeurInjoignable(): void {
+  serveurInjoignable = true;
+  if (repriseProgrammee !== null) return;
+  try {
+    repriseProgrammee = setTimeout(() => {
+      repriseProgrammee = null;
+      void relireDuServeur();
+    }, DELAI_REPRISE_MS);
+  } catch { /* ignore */ }
+}
+
+let repriseAuRetourDuReseauInstallee = false;
+function installerRepriseAuRetourDuReseau(): void {
+  if (repriseAuRetourDuReseauInstallee || typeof window === 'undefined') return;
+  repriseAuRetourDuReseauInstallee = true;
+  try {
+    window.addEventListener('online', () => {
+      if (!serveurInjoignable) return;
+      if (repriseProgrammee !== null) { clearTimeout(repriseProgrammee); repriseProgrammee = null; }
+      void relireDuServeur();
+    });
+  } catch { /* ignore */ }
 }
 
 function createPreferences() {
@@ -855,13 +916,58 @@ export async function syncPreferencesFromServer() {
     await relireDuServeur();
   } finally {
     signalerRelecture();
+    installerRelectureAuRetour();
+    installerRepriseAuRetourDuReseau();
   }
 }
 
-async function relireDuServeur() {
+/** Vrai après la première relecture : les suivantes fusionnent avec le magasin. */
+let dejaRelu = false;
+let derniereRelecture = 0;
+let relectureAuRetourInstallee = false;
+/** Pas plus d'une relecture par demi-minute, même à force d'aller-retours. */
+export const ECART_RELECTURE_MS = 30_000;
+
+/**
+ * #2117 — un réglage du profil fait sur un AUTRE appareil (ordre de la barre,
+ * entrées masquées, types de sources…) n'arrivait ici qu'au rechargement de
+ * la page. On relit le serveur quand l'onglet redevient visible : revenir sur
+ * Tune après avoir réglé la barre sur le téléphone suffit.
+ *
+ * Une relecture n'écrit rien (aucune écriture de configuration sans geste),
+ * hormis la réparation ciblée de la barre déjà admise au chargement.
+ */
+function installerRelectureAuRetour(): void {
+  if (relectureAuRetourInstallee || typeof document === 'undefined') return;
+  relectureAuRetourInstallee = true;
   try {
-    const res = await fetch('/api/v1/system/config', { headers: profileHeader() });
-    if (!res.ok) return;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - derniereRelecture < ECART_RELECTURE_MS) return;
+      void relireDuServeur();
+    });
+  } catch { /* ignore */ }
+}
+
+async function relireDuServeur() {
+  derniereRelecture = Date.now();
+  try {
+    let res: Response;
+    try {
+      res = await fetch('/api/v1/system/config', { headers: profileHeader() });
+    } catch (e) {
+      // #2117 — serveur injoignable : la copie locale reste en place (repli
+      // hors connexion), et on retentera.
+      signalerServeurInjoignable();
+      throw e;
+    }
+    if (!res.ok) {
+      if (res.status >= 500) signalerServeurInjoignable();
+      return;
+    }
+    // Le serveur répond : la réparation ci-dessous renverra, s'il le faut, le
+    // geste de barre que la coupure avait perdu.
+    serveurInjoignable = false;
     const config = await res.json();
     if (config.ui_preferences) {
       const server: Partial<Preferences> = typeof config.ui_preferences === 'string'
@@ -895,7 +1001,10 @@ async function relireDuServeur() {
         if (choix) server.barreLaterale = choix; else delete server.barreLaterale;
       }
       server.barreLateraleMaj = horodatageBarre(server.barreLateraleMaj);
-      if (hadLocalPrefs) {
+      server.sourcesBarreMaj = horodatageBarre(server.sourcesBarreMaj);
+      // #2117 — à une RELECTURE (retour sur l'onglet), le magasin porte déjà
+      // les réglages de la session : on fusionne comme pour une copie locale.
+      if (hadLocalPrefs || dejaRelu) {
         // Fil 2109 — un geste de barre fait ICI, plus récent que celui du
         // serveur, et que son `PATCH` n'a jamais atteint. C'est la SEULE
         // écriture que le chargement s'autorise, et elle ne porte que la
@@ -910,11 +1019,20 @@ async function relireDuServeur() {
           if ('barreLaterale' in server && barre.barreLateraleMaj > (server.barreLateraleMaj ?? 0)) {
             reparationBarre = { ...blobServeur, barreLaterale: barre.barreLaterale, barreLateraleMaj: barre.barreLateraleMaj };
           }
+          // #2117 — les cases de types de sources, même règle : le geste le
+          // plus récent gagne. Un geste local plus frais que le serveur, et que
+          // son `PATCH` n'a pas atteint, répare le serveur avec la barre.
+          const types = arbitrerTypesBarre(local, server);
+          if (types.sourcesBarreMaj > (server.sourcesBarreMaj ?? 0)) {
+            reparationBarre = { ...(reparationBarre ?? blobServeur), ...types };
+          }
           return {
             ...defaults, ...server, ...local,
             // #5065 — un `sourcesBarre` local encore indécis (`null`) ne doit pas
             // effacer le choix que le serveur porte, fait sur un autre poste.
-            sourcesBarre: { ...(normaliserTypesBarre(server.sourcesBarre) ?? {}), ...(local.sourcesBarre ?? {}) },
+            // #2117 — et un choix plus RÉCENT fait sur un autre poste l'emporte
+            // sur celui d'ici (voir `arbitrerTypesBarre`).
+            ...types,
             // #1673 — même piège, et il a mordu la photo d'avatar.
             //
             // `...local` gagne clé par clé, et `createPreferences` sérialise le
@@ -955,6 +1073,7 @@ async function relireDuServeur() {
       } else {
         preferences.adopterSansEcrire(() => ({ ...defaults, ...server, ...resoudreLangue([server]) }));
       }
+      dejaRelu = true;
     }
   } catch { /* ignore */ }
   // Sync server-side default zone into local preferences

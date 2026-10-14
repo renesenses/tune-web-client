@@ -42,6 +42,11 @@
     presenceDepuis,
     zoneStereo,
     borneCrossfeedPro,
+    BORNES_MID_SIDE as BMS,
+    valeurMidSide,
+    basculerMidSide,
+    midSideDisponible,
+    type CurseurMidSide,
     type ModeCrossfeedPro,
     type ReglagesCrossfeedPro,
     type PresetCrossfeedPro,
@@ -78,6 +83,13 @@
     { mode: 'tune', cle: 'v2.cfp.modeTune' },
   ];
   const profilActif = $derived(profilCrossfeedProActif(r, profils));
+  /** La version du greffon installé, quand l'hôte la dit (administrateur,
+   *  paquet du catalogue) ; sinon `null`. */
+  let versionGreffon = $state<string | null>(null);
+  /** Matriçage Mid/Side (EXPÉRIMENTAL, greffon ≥ 0.4.0, mode Tune seulement). */
+  const msDispo = $derived(midSideDisponible(versionGreffon, r));
+  const midSide = $derived(valeurMidSide(r, 'experimental_mid_side'));
+  const msAdaptatif = $derived(valeurMidSide(r, 'ms_adaptive'));
 
   function publierPresence(p: PresenceCrossfeedPro) {
     presence = p;
@@ -100,6 +112,10 @@
         error = p === 'inconnue' ? $t('v2.cfp.errLoad' as any) : null;
       })
       .finally(() => { loading = false; });
+  });
+
+  $effect(() => {
+    void api.versionGreffonNatif(CROSSFEED_PRO_ID).then((v) => { versionGreffon = v; });
   });
 
   async function chargerProfils() {
@@ -150,7 +166,11 @@
     r = { ...r, [cle]: !r[cle] };
     void save();
   }
-  function regler(cle: CurseurCrossfeedPro, e: Event) {
+  function basculerMs(cle: 'experimental_mid_side' | 'ms_adaptive') {
+    r = cle === 'experimental_mid_side' ? basculerMidSide(r) : { ...r, ms_adaptive: !msAdaptatif };
+    void save();
+  }
+  function regler(cle: CurseurCrossfeedPro | CurseurMidSide, e: Event) {
     r = { ...r, [cle]: Number((e.currentTarget as HTMLInputElement).value) };
     queueSave();
   }
@@ -420,6 +440,71 @@
                 <span class="val">{Math.round(r.itd_smoothing_ms)} ms</span>
               </div>
             </div>
+          {/if}
+        </div>
+
+        <!-- Matriçage Mid/Side : EXPÉRIMENTAL, mode Tune seulement (il y
+             remplace la voie croisée), greffon 0.4.0 ou plus. -->
+        <div class="card exp" data-cfp="mid-side">
+          {#if !msDispo}
+            <div class="row" data-cfp-motif="mid-side-version">
+              <div class="lbl">
+                <span>{$t('v2.cfp.ms' as any)} <span class="badge">{$t('v2.cfp.experimental' as any)}</span></span>
+                <span class="hint">{$t('v2.cfp.msUpdate' as any)}</span>
+              </div>
+            </div>
+          {:else}
+            <div class="row">
+              <div class="lbl">
+                <span>{$t('v2.cfp.ms' as any)} <span class="badge">{$t('v2.cfp.experimental' as any)}</span></span>
+                <span class="hint">{$t('v2.cfp.msHint' as any)}</span>
+              </div>
+              <label class="sw">
+                <input type="checkbox" data-cfp="experimental_mid_side" checked={midSide}
+                  onchange={() => basculerMs('experimental_mid_side')} aria-label={$t('v2.cfp.ms' as any)} />
+                <span class="slider"></span>
+              </label>
+            </div>
+            {#if midSide}
+              <div class="row sub" class:off={eteint}>
+                <div class="lbl"><span>{$t('v2.cfp.msSideGain' as any)}</span></div>
+                <div class="sl">
+                  <input type="range" data-cfp="ms_side_gain_db" min={BMS.ms_side_gain_db.min} max={BMS.ms_side_gain_db.max}
+                    step={BMS.ms_side_gain_db.pas} value={valeurMidSide(r, 'ms_side_gain_db')}
+                    oninput={(e) => regler('ms_side_gain_db', e)} aria-label={$t('v2.cfp.msSideGain' as any)} />
+                  <span class="val">{valeurMidSide(r, 'ms_side_gain_db').toFixed(1)} dB</span>
+                </div>
+              </div>
+              <div class="row sub" class:off={eteint}>
+                <div class="lbl"><span>{$t('v2.cfp.msDelay' as any)}</span></div>
+                <div class="sl">
+                  <input type="range" data-cfp="ms_delay_us" min={BMS.ms_delay_us.min} max={BMS.ms_delay_us.max}
+                    step={BMS.ms_delay_us.pas} value={valeurMidSide(r, 'ms_delay_us')}
+                    oninput={(e) => regler('ms_delay_us', e)} aria-label={$t('v2.cfp.msDelay' as any)} />
+                  <span class="val">{Math.round(valeurMidSide(r, 'ms_delay_us'))} µs</span>
+                </div>
+              </div>
+              <div class="row sub" class:off={eteint}>
+                <div class="lbl">
+                  <span>{$t('v2.cfp.msAdaptive' as any)}</span>
+                  <span class="hint">{$t('v2.cfp.msAdaptiveHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-cfp="ms_adaptive" checked={msAdaptatif}
+                    onchange={() => basculerMs('ms_adaptive')} aria-label={$t('v2.cfp.msAdaptive' as any)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="row sub" class:off={eteint}>
+                <div class="lbl"><span>{$t('v2.cfp.msSmoothing' as any)}</span></div>
+                <div class="sl">
+                  <input type="range" data-cfp="ms_smoothing_ms" min={BMS.ms_smoothing_ms.min} max={BMS.ms_smoothing_ms.max}
+                    step={BMS.ms_smoothing_ms.pas} value={valeurMidSide(r, 'ms_smoothing_ms')}
+                    oninput={(e) => regler('ms_smoothing_ms', e)} aria-label={$t('v2.cfp.msSmoothing' as any)} />
+                  <span class="val">{Math.round(valeurMidSide(r, 'ms_smoothing_ms'))} ms</span>
+                </div>
+              </div>
+            {/if}
           {/if}
         </div>
         {/if}

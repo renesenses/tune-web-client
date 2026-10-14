@@ -47,6 +47,9 @@ interface Hote {
   /** Statut imposé à toute écriture (PUT/POST/DELETE), sinon succès. */
   refusEcriture?: { status: number; corps: unknown };
   profils: { id: string; name: string; settings: Record<string, unknown> }[];
+  /** La version que `GET /audio-plugins` annonce pour le greffon ; `undefined`
+   *  = la liste est refusée (403, compte non administrateur). */
+  version?: string | null;
 }
 
 let hote: Hote;
@@ -60,6 +63,10 @@ function simulerHote() {
     const method = (init?.method ?? 'GET').toUpperCase();
     const corps = init?.body ? JSON.parse(String(init.body)) : undefined;
     appels.push({ url: u, method, corps });
+    if (/\/api\/v1\/audio-plugins\/?$/.test(u) && method === 'GET') {
+      if (hote.version === undefined) return reponse(403, { error: 'admin_required' });
+      return reponse(200, { plugins: [{ id: 'crossfeed-pro', third_party: true, native_loaded: true, error: null, version: hote.version }] });
+    }
     if (u.includes(RACINE)) {
       if (method !== 'GET' && hote.refusEcriture) return reponse(hote.refusEcriture.status, hote.refusEcriture.corps);
       if (u.includes(`${RACINE}/zones/`)) {
@@ -270,6 +277,76 @@ describe('Crossfeed Pro — écritures', () => {
     expect(q<HTMLInputElement>('[data-cfp="enabled"]')!.checked).toBe(true);
     expect(q<HTMLInputElement>('[data-cfp="amount"]')!.value).toBe('0.45');
     expect(q('[data-cfp="itd_tau_max_us"]'), 'Tau_Max caché mode allumé').toBeTruthy();
+  });
+});
+
+describe('Crossfeed Pro — matriçage Mid/Side (EXPÉRIMENTAL, greffon ≥ 0.4.0)', () => {
+  const versionLue = () => appels.some((a) => /\/api\/v1\/audio-plugins\/?$/.test(a.url));
+
+  it('🔴 greffon 0.4.0, mode Tune : le bloc, éteint, puis ses 4 réglages aux défauts du schéma', async () => {
+    hote.version = '0.4.0';
+    await monter(() => versionLue() && !!q('[data-cfp="mid-side"]'));
+    const bloc = q('[data-cfp="mid-side"]')!;
+    expect(bloc, 'aucun bloc Mid/Side en mode Tune').toBeTruthy();
+    expect(bloc.textContent).toContain(texte('v2.cfp.ms'));
+    expect(bloc.textContent).toContain(texte('v2.cfp.experimental'));
+    expect(q('[data-cfp-motif="mid-side-version"]'), 'mise à jour demandée à un greffon 0.4.0').toBeNull();
+    const inter = q<HTMLInputElement>('[data-cfp="experimental_mid_side"]')!;
+    expect(inter.checked).toBe(false);
+    expect(q('[data-cfp="ms_side_gain_db"]'), 'sous-réglages montrés mode éteint').toBeNull();
+
+    inter.click();
+    await jusqua(() => puts().length > 0 && !!q('[data-cfp="ms_smoothing_ms"]'));
+    expect(puts()[0].corps).toMatchObject({
+      experimental_mid_side: true, ms_side_gain_db: -6, ms_delay_us: 300, ms_adaptive: false, ms_smoothing_ms: 150,
+    });
+    const g = q<HTMLInputElement>('[data-cfp="ms_side_gain_db"]')!;
+    expect([g.min, g.max, g.value]).toEqual(['-24', '0', '-6']);
+    const d = q<HTMLInputElement>('[data-cfp="ms_delay_us"]')!;
+    expect([d.min, d.max, d.value]).toEqual(['0', '1000', '300']);
+    const l = q<HTMLInputElement>('[data-cfp="ms_smoothing_ms"]')!;
+    expect([l.min, l.max, l.value]).toEqual(['100', '200', '150']);
+    expect(q<HTMLInputElement>('[data-cfp="ms_adaptive"]')!.checked).toBe(false);
+  });
+
+  it('🔴 mode classique : aucun bloc Mid/Side, même avec un greffon 0.4.0', async () => {
+    hote.version = '0.4.0';
+    hote.lecture = { status: 200, corps: { plugin: 'crossfeed-pro', zone_id: ZONE, active: true,
+      settings: { ...DEFAUTS_CROSSFEED_PRO, mode: 'classique', experimental_mid_side: true } } };
+    await monter(() => versionLue() && !!q('fieldset.reglages'));
+    expect(q('[data-mode="classique"]')!.classList.contains('on')).toBe(true);
+    expect(q('[data-cfp="mid-side"]'), 'bloc Mid/Side montré en mode classique').toBeNull();
+    expect(q('[data-cfp="experimental_mid_side"]')).toBeNull();
+  });
+
+  it('🔴 greffon 0.3.x : le bloc demande la mise à jour, sans aucun réglage Mid/Side', async () => {
+    hote.version = '0.3.2';
+    await monter(() => versionLue() && !!q('[data-cfp-motif="mid-side-version"]'));
+    const motif = q('[data-cfp-motif="mid-side-version"]');
+    expect(motif, 'pas de demande de mise à jour pour un greffon 0.3.2').toBeTruthy();
+    expect(motif!.textContent).toContain(texte('v2.cfp.msUpdate'));
+    expect(q('[data-cfp="experimental_mid_side"]')).toBeNull();
+    // Rien de Mid/Side ne part chez un greffon qui ne le connaît pas.
+    q<HTMLInputElement>('[data-cfp="enabled"]')!.click();
+    await jusqua(() => puts().length > 0);
+    expect(puts()[0].corps).toEqual({ ...DEFAUTS_CROSSFEED_PRO, enabled: true });
+  });
+
+  it('version inconnue (liste refusée, compte non administrateur) : le bloc reste offert', async () => {
+    await monter(() => versionLue() && !!q('[data-cfp="mid-side"]'));
+    expect(q('[data-cfp-motif="mid-side-version"]')).toBeNull();
+    expect(q('[data-cfp="experimental_mid_side"]')).toBeTruthy();
+  });
+
+  it('les réglages Mid/Side enregistrés sont relus, bornés au schéma', async () => {
+    hote.version = '0.4.0';
+    hote.lecture = { status: 200, corps: { plugin: 'crossfeed-pro', zone_id: ZONE, active: true,
+      settings: { ...DEFAUTS_CROSSFEED_PRO, experimental_mid_side: true, ms_side_gain_db: -40, ms_delay_us: 450, ms_adaptive: true } } };
+    await monter(() => !!q('[data-cfp="ms_side_gain_db"]'));
+    expect(q<HTMLInputElement>('[data-cfp="experimental_mid_side"]')!.checked).toBe(true);
+    expect(q<HTMLInputElement>('[data-cfp="ms_side_gain_db"]')!.value).toBe('-24');
+    expect(q<HTMLInputElement>('[data-cfp="ms_delay_us"]')!.value).toBe('450');
+    expect(q<HTMLInputElement>('[data-cfp="ms_adaptive"]')!.checked).toBe(true);
   });
 });
 

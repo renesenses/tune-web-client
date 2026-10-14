@@ -36,7 +36,11 @@ function createHistoryStore() {
   });
   return {
     subscribe,
-    add(track: Track, zoneName: string) {
+    /**
+     * `contexte` — l'objet lancé, lu sur la zone (#990, `contexteDeLaZone`) :
+     * l'écoute entre dans le groupe de sa playlist sans attendre le serveur.
+     */
+    add(track: Track, zoneName: string, contexte?: HistoryEntry['contexte']) {
       update((entries) => {
         // Avoid duplicate if same track played consecutively
         const prev = entries.length > 0 ? entries[0].track : null;
@@ -45,6 +49,7 @@ function createHistoryStore() {
           if (!track.id && prev.file_path && prev.file_path === track.file_path) return entries;
         }
         const entry: HistoryEntry = { track, playedAt: new Date().toISOString(), zoneName };
+        if (contexte) entry.contexte = contexte;
         return [entry, ...entries].slice(0, MAX_ENTRIES);
       });
     },

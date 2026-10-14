@@ -25,7 +25,7 @@
     currentProfileId, favoriteStreamingKeys,
     favoriteAlbumIds, favoriteTrackIds, favoriteArtistIds, favoritePlaylistIds,
     favoriteSmartPlaylistIds,
-    favoriteStreamingTrackKeys, clePisteJumelee, streamingFavKey,
+    streamingFavKey,
     favoriteFacetKeys, facetFavKey,
   } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
@@ -39,11 +39,11 @@
   import {
     trierEtFiltrer, sourcesPresentes, SOURCE_BIBLIOTHEQUE, type TriFavoris,
   } from '../../lib/favorisTriFiltre';
-  import { clesAvecJumeauLocal, LIMITE_RECHERCHE } from '../../lib/favorisJumeles';
   import { fold } from '../../lib/utils';
 import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import FavorisRadioQobuzModale from './FavorisRadioQobuzModale.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
@@ -271,40 +271,18 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       const cols = await collectionsFavorites(fusion);
       collections = [...cols.collections, ...cols.smartCollections];
       error = null;
-      // Les jumelages APRÈS coup, sans bloquer l'affichage (#1081).
-      void resoudreJumelages(tracks);
     } catch {
       error = $t('v2.fav.loadFailed' as any);
     }
     loading = false;
   }
-  /**
-   * 🔴 #1081 — les favoris de SERVICE que l'utilisateur possède aussi en local.
-   *
-   * Décision de Bertrand du 20/09/2026 : le jumelage compte comme bibliothèque.
-   * Une piste dont le cœur vient d'un jumelage doit figurer sous le filtre
-   * « Bibliothèque » — c'est ce que promet le cœur plein vu dans la
-   * bibliothèque.
-   *
-   * Le lien n'est porté par AUCUN champ (mesure du 20/09 sur le .18 : ni le
-   * favori de service ni la piste locale ne référence l'autre). Il faut donc le
-   * demander à la bibliothèque, titre par titre.
-   *
-   * ⚠️ SANS `await`, comme `reprendreFavorisDesServices` : les favoris sont
-   * déjà affichés, la puce « Bibliothèque » les rejoint quand la réponse
-   * arrive. Une bibliothèque lente ne doit pas retarder l'écran.
+  /*
+   * #1868 (Bertrand, 12/10/2026) : chaque source garde ses favoris. Le
+   * jumelage titre + artiste de #1081, qui faisait figurer un favori Qobuz
+   * sous « Bibliothèque » quand une piste locale homonyme existait, est
+   * retiré : sous « Bibliothèque », les seuls favoris locaux ; sous un
+   * service, les siens ; « Toutes » les réunit.
    */
-  let jumelesLocaux = $state<Set<string>>(new Set());
-
-  async function resoudreJumelages(liste: readonly any[]): Promise<void> {
-    try {
-      jumelesLocaux = await clesAvecJumeauLocal(liste, (q) =>
-        api.searchLibrary(q, LIMITE_RECHERCHE),
-      );
-    } catch {
-      /* On ne sait rien de plus qu'avant : l'écran garde son comportement. */
-    }
-  }
 
   // Rechargé si le profil change : les favoris sont personnels.
   $effect(() => { void $currentProfileId; reload(); });
@@ -347,13 +325,8 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     if (idLocal != null) {
       if (type === 'album') return $favoriteAlbumIds.has(idLocal);
       if (type === 'artist') return $favoriteArtistIds.has(idLocal);
-      // Une piste locale reste favorite par son JUMEAU distant — même règle
-      // que le cœur de `PisteActions`, sans quoi la ligne s'effacerait sous
-      // un cœur resté rouge.
-      return (
-        $favoriteTrackIds.has(idLocal) ||
-        (!!o?.title && $favoriteStreamingTrackKeys.has(clePisteJumelee(o.title, o.artist_name)))
-      );
+      // #1868 : le seul favori local compte, plus de jumeau distant.
+      return $favoriteTrackIds.has(idLocal);
     }
     const service = o?.source ?? '';
     const sid = o?.source_id;
@@ -365,17 +338,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   const fTracks = $derived(tracks.filter((t) => encoreFavori(t, 'track') && (match(t.title) || match(t.artist_name))));
   const fArtists = $derived(artists.filter((a) => encoreFavori(a, 'artist') && match(a.name)));
 
-  /*
-   * ⚠️ `jumelesLocaux` n'est passé QUE pour l'onglet Titres : la clé est un
-   * couple titre+artiste, et un album homonyme d'une piste favorite se
-   * glisserait sous « Bibliothèque » sans en être.
-   */
   const sourcesOnglet = $derived(
-    tab === 'tracks'
-      ? sourcesPresentes(fTracks, jumelesLocaux)
-      : sourcesPresentes(
-          tab === 'albums' ? fAlbums : tab === 'artists' ? fArtists : [],
-        ),
+    sourcesPresentes(
+      tab === 'tracks' ? fTracks : tab === 'albums' ? fAlbums : tab === 'artists' ? fArtists : [],
+    ),
   );
   $effect(() => {
     if (sourceFiltre && !sourcesOnglet.includes(sourceFiltre)) sourceFiltre = null;
@@ -467,7 +433,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   );
 
   const vAlbums = $derived(trierEtFiltrer(fAlbums, sourceFiltre, tri));
-  const vTracks = $derived(trierEtFiltrer(fTracks, sourceFiltre, tri, jumelesLocaux));
+  const vTracks = $derived(trierEtFiltrer(fTracks, sourceFiltre, tri));
   const vArtists = $derived(trierEtFiltrer(fArtists, sourceFiltre, tri));
 
   /** Nom lisible d'une source : la bibliotheque se traduit, un service porte son nom. */
@@ -498,6 +464,28 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   let creationPlaylist = $state(false);
   let nomPlaylist = $state('');
   let creation = $state(false);
+
+  /**
+   * Favoris radio → playlist Qobuz (14/10/2026). Le bouton n'apparaît que si
+   * Qobuz est ACTIF et CONNECTÉ : proposer une création qui ne peut que
+   * refuser serait un bouton mort. Le serveur revérifie de son côté.
+   */
+  let qobuzPret = $state(false);
+  let creationQobuz = $state(false);
+  let qobuzSonde = false;
+  $effect(() => {
+    if (qobuzSonde) return;
+    qobuzSonde = true;
+    api
+      .getStreamingServices()
+      .then((s) => {
+        const q = (s as any)?.qobuz;
+        qobuzPret = !!(q?.enabled && q?.authenticated);
+      })
+      .catch(() => {
+        qobuzPret = false;
+      });
+  });
 
   const vRadio = $derived(radio.filter((f) => match(f.title) || match(f.artist)));
   const vStations = $derived(stations.filter((r) => match(r.name) || match(r.genre)));
@@ -1285,6 +1273,12 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             {$t('v2.fav.radioMakePlaylist' as any)}
           </button>
+          {#if qobuzPret}
+            <button class="rf-btn" onclick={() => (creationQobuz = true)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              {$t('v2.fav.qobuzOpen' as any)}
+            </button>
+          {/if}
           <!-- Un lien, pas un bouton : c'est le navigateur qui télécharge, et
                le serveur rend déjà le CSV tout fait. -->
           <a class="rf-btn" href={urlNavigateur('/api/v1/radio-favorites/export')} download="radio_favorites.csv">
@@ -1336,6 +1330,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
         </div>
       </form>
     </div>
+  {/if}
+
+  {#if creationQobuz}
+    <FavorisRadioQobuzModale onClose={() => (creationQobuz = false)} />
   {/if}
 
   {#if opened}

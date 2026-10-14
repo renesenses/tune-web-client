@@ -79,7 +79,9 @@
   import PisteActions from './PisteActions.svelte';
   import type { CoeurExterne } from '../../lib/coeurExterne';
   import QualityBadge from '../partages/QualityBadge.svelte';
+  import { largeurColonneQualite } from '../../lib/largeurQualite';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
+  import { estIntrouvable, cheminIntrouvable } from '../../lib/pisteIntrouvable';
   import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
   import { ouvrirArtisteDepuis, artisteDePiste } from '../../lib/ouvrirArtisteDepuis';
   import { activeView, gestesNavigationService } from '../../lib/stores/navigation';
@@ -464,7 +466,21 @@
   // Le MODE est passé : une colonne réservée à Expert ne doit pas apparaître
   // si un réglage plus ancien la coche pour un mode inférieur.
   const colonnesDuMode = $derived(colonnesRetenues($preferences.v2Colonnes?.[mode] ?? [], mode));
-  const colonnes = $derived(lectureSeule ? colonnesDuMode.filter((c) => c.cle !== 'path') : colonnesDuMode);
+  const colonnesBrutes = $derived(lectureSeule ? colonnesDuMode.filter((c) => c.cle !== 'path') : colonnesDuMode);
+  /**
+   * web#2139 — la colonne Qualité prend la largeur de la pastille la plus
+   * longue de CETTE liste (calculée en px, jamais `auto` : voir le gabarit) ;
+   * le Titre, en `fr`, récupère le reste. Calculé seulement si la colonne est
+   * affichée.
+   */
+  const largeurQualite = $derived(
+    colonnesBrutes.some((c) => c.cle === 'quality') ? largeurColonneQualite(pistes) : 0,
+  );
+  const colonnes = $derived(
+    largeurQualite
+      ? colonnesBrutes.map((c) => (c.cle === 'quality' ? { ...c, largeur: `${largeurQualite}px` } : c))
+      : colonnesBrutes,
+  );
   /**
    * 🔴 AUCUN `auto` dans ce gabarit. C'est la règle, et elle a une raison.
    *
@@ -550,6 +566,7 @@
   const inerte = $derived(lectureSeule ? { disabled: true } : {});
   async function lireDelibere(p: Track, i: number) {
     if (pisteIndisponible(p)) return;
+    if (estIntrouvable(p)) return;
     if (lectureSeule) return;
     if (!(await confirmerLectureBannie(p))) return;
     onLire(p, i);
@@ -645,6 +662,10 @@
       {@render enTeteDisque(i)}
       <!-- Point 10 (17/09/2026) — une piste que le service dit indisponible
            est grisée et ne se lance pas : le lancer rendrait « no url ». -->
+      <!-- #6179 — une ligne de playlist INTROUVABLE (piste disparue de la
+           bibliothèque) est grisée comme une piste indisponible, avec sa
+           propre étiquette, et ne se lance pas. -->
+      {@const introuvable = estIntrouvable(p)}
       {@const indispo = pisteIndisponible(p)}
       {@const bannie = bannieDe(p)}
       <!-- Les attributs du glisser ne sont posés QUE si la liste est
@@ -652,7 +673,7 @@
       <!-- La ligne se saisit à la souris, la poignée (un bouton) porte le
            geste au clavier. -->
       <!-- svelte-ignore a11y_interactive_supports_focus -->
-      <div class="trow" class:np={etat != null} class:indispo class:bannie aria-current={etat ? 'true' : undefined}
+      <div class="trow" class:np={etat != null} class:indispo={indispo || introuvable} class:bannie aria-current={etat ? 'true' : undefined}
         class:saisie={saisi === i} class:survolee={survolee === i}
         draggable={reordonnable || undefined}
         ondragstart={reordonnable ? (e) => saisir(e, i) : undefined}
@@ -673,7 +694,7 @@
             <!-- Le TITRE porte le clic de lecture : c'est la cible la plus
                  large et la plus évidente de la ligne. -->
             <button class="td titre" onclick={() => void lireDelibere(p, i)}
-              disabled={indispo} {...inerte} title={indispo ? $t(etiquetteIndispo as any) : p.title}>
+              disabled={indispo || introuvable} {...inerte} title={indispo ? $t(etiquetteIndispo as any) : p.title}>
               <!-- L'indicateur est DANS la cellule du titre : une colonne de plus
                    décalerait l'en-tête, et la règle de ce composant est qu'un
                    seul gabarit vaut pour l'en-tête et pour les lignes.
@@ -693,7 +714,8 @@
                    absente ne rend aucune pastille, jamais un « LOCAL » faux. -->
               {#if sourceEnTableau}<ServiceBadge source={p.source} compact />{/if}
               {#if p.source === 'upnp'}<DisponibiliteUpnp sourceId={p.source_id} />{/if}
-              {#if indispo}<span class="indispo-etiq">{$t(etiquetteIndispo as any)}</span>{/if}
+              {#if introuvable}<span class="indispo-etiq" title={`${$t('v2.pl.missingTrackHint' as any)}${cheminIntrouvable(p) ? ` — ${cheminIntrouvable(p)}` : ''}`}>{$t('v2.pl.missingTrack' as any)}</span>
+              {:else if indispo}<span class="indispo-etiq">{$t(etiquetteIndispo as any)}</span>{/if}
               {#if bannie}<span class="bannie-etiq">{$t('ban.badge' as any)}</span>{/if}
             </button>
           {:else}

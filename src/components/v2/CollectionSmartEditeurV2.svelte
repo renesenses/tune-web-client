@@ -71,7 +71,12 @@
      */
     id?: number | null;
     onClose: () => void;
-    onSaved: () => void;
+    /**
+     * Appelé après l'enregistrement. À la CRÉATION, reçoit la collection rendue
+     * par le serveur (son `id`) : l'écran Collections en a besoin pour la ranger
+     * dans le rayon d'où la création est partie (web#1579).
+     */
+    onSaved: (creee?: { id?: number } | null) => void;
     /**
      * Supprimer la collection éditée — #1143.
      *
@@ -114,7 +119,9 @@
     api.getTags()
       // `UserTag.id` peut être nul : une étiquette sans identifiant ne peut
       // pas être visée par une règle, elle n'est donc pas proposée.
-      .then((l) => { etiquettes = (l ?? []).filter((x) => x.id != null).sort((a, b) => a.name.localeCompare(b.name)); })
+      // web#2166 — l'ordre est celui du serveur (choisi sur la page
+      // Étiquettes) : pas de tri par nom ici.
+      .then((l) => { etiquettes = (l ?? []).filter((x) => x.id != null); })
       .catch(() => { /* la règle reste proposée, sa liste vide dit qu'il n'y a rien à choisir */ });
   });
   /** Les statuts des services, pour la liste d'une règle « Source » (#4299). */
@@ -286,10 +293,11 @@
         rules: completes,
         match_mode: mode,
       };
+      let creee: { id?: number } | null = null;
       if (id != null) await api.updateSmartCollection(id, charge);
-      else await api.createSmartCollection(charge as any);
+      else creee = (await api.createSmartCollection(charge as any)) ?? null;
       notifications.success($t('v2.smart.saved' as any));
-      onSaved();
+      onSaved(creee);
       onClose();
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));

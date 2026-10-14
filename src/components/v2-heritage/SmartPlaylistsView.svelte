@@ -100,9 +100,10 @@
       api.getPlaylists(500).catch(() => []),
       api.getSmartPlaylists().catch(() => []),
     ]);
+    // web#2166 — l'ordre est celui du serveur (choisi sur la page
+    // Étiquettes) : pas de tri par nom ici.
     etiquettes = ((await api.getTags().catch(() => [])) ?? [])
-      .filter((x: UserTag) => x.id != null)
-      .sort((a: UserTag, b: UserTag) => a.name.localeCompare(b.name));
+      .filter((x: UserTag) => x.id != null);
     refOptions = {
       collections: collections ?? [],
       smartCollections: smartCollections ?? [],

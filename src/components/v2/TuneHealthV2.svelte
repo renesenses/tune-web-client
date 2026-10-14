@@ -36,7 +36,7 @@
   // déclarées non gérables) sur le TOTAL, et nomment les non gérées.
   import { jaugeTraiteesPlageDynamique, jaugeTraiteesReplayGain, ligneNonGerees } from '../../lib/santeJaugeTraitees';
   // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
-  import { temperatureProcesseur } from '../../lib/temperatureProcesseur';
+  import { bridageDesAnalyses, temperatureProcesseur } from '../../lib/temperatureProcesseur';
   // #1352 — la pause des traitements de fond. La lecture de l'instantané vit
   // dans `lib/tachesDeFond.ts`, hors du composant : elle se garde sans monter
   // l'écran, et l'absence de `pausable` (serveur < 0.9.159) s'y lit UNE fois.
@@ -58,7 +58,7 @@
   // `lib/journaux.ts` : aucune copie de la route ni du nom de fichier ici.
   import { lireJournaux, telechargerJournaux } from '../../lib/journaux';
   import { lireDiagnosticReseau, iconeVerdict, type EcouteReseau } from '../../lib/diagnosticReseau';
-  import { boutonLancer, CLE_ISSUE, estLancable, lancerTout, lancerTraitement, type CarteLancable } from '../../lib/lancerTraitement';
+  import { boutonLancer, CLE_ISSUE, estLancable, lancerTraitement, toutRelancer as relancerToutLesTraitements, type CarteLancable } from '../../lib/lancerTraitement';
   import '../../styles/tune-v2.css';
 
   type Card = {
@@ -127,6 +127,12 @@
    *  capteur) ou `undefined` (serveur antérieur, ou rapport illisible). */
   let tempCpu = $state<unknown>(undefined);
   const temperature = $derived(temperatureProcesseur(tempCpu, $t('v2.health.cpuTempUnavailable' as any)));
+  /** tune-server-rust#5410 — `analyses_bridees` brut (motif, `null` ou absent). */
+  let motifBridage = $state<unknown>(undefined);
+  const bridage = $derived(bridageDesAnalyses(motifBridage, {
+    illisible: $t('v2.health.analysesBrideesIllisible' as any),
+    figee: $t('v2.health.analysesBrideesFigee' as any),
+  }));
 
   // ── #1352 : la pause des traitements de fond ───────────────────────────
   //
@@ -221,26 +227,36 @@
   }
 
   /** Les traitements lançables qui tournent ou sont suspendus : « Tout
-   *  relancer » ne les touche pas (le second se REPREND, par son bouton). */
+   *  relancer » ne leur lance pas de seconde passe — le premier tourne, le
+   *  second est REPRIS par `relaunch-all` (tune-server-rust#6330). */
   const lancablesOccupes = $derived(new Set(
     cards
       .filter((c) => estLancable(c.id) && (c.etat === 'running' || !!(c.traitement && pauses[c.traitement])))
       .map((c) => c.id as CarteLancable),
   ));
   /** Au moins une carte lançable dont l'état est connu. */
-  const relancePossible = $derived(cards.some((c) => estLancable(c.id) && c.etat !== 'inconnu' && c.etat !== 'off'));
+  const relancePossible = $derived(
+    cards.some((c) => estLancable(c.id) && c.etat !== 'inconnu' && c.etat !== 'off')
+    // #6330 — un traitement suspendu (ReplayGain compris) est à relancer.
+    || Object.values(pauses).some(Boolean),
+  );
 
   async function toutRelancer() {
     lancement = '*';
     try {
-      const r = await lancerTout(lancablesOccupes);
-      const issues = Object.values(r);
-      const lances = issues.filter((x) => x === 'lance').length;
-      const echecs = issues.filter((x) => x === 'erreur').length;
-      notifications[lances ? 'success' : 'info'](
-        $t('v2.health.launchAllDone' as any).replace('{n}', String(lances)),
+      // #6330 — reprendre TOUT ce qui est suspendu (ReplayGain compris), rendre
+      // les pistes en échec à la passe, puis lancer ce qui était au repos.
+      const b = await relancerToutLesTraitements(lancablesOccupes);
+      const fait = b.lances + (b.repris ?? 0) + (b.pistes ?? 0);
+      notifications[fait ? 'success' : 'info'](
+        b.repris === null || b.pistes === null
+          ? $t('v2.health.launchAllDone' as any).replace('{n}', String(b.lances))
+          : $t('v2.health.relaunchAllDone' as any)
+            .replace('{r}', String(b.repris))
+            .replace('{p}', String(b.pistes))
+            .replace('{n}', String(b.lances)),
       );
-      if (echecs) notifications.error($t('v2.health.launchAllErrors' as any).replace('{n}', String(echecs)));
+      if (b.erreurs) notifications.error($t('v2.health.launchAllErrors' as any).replace('{n}', String(b.erreurs)));
       void collect();
     } finally {
       lancement = null;
@@ -708,6 +724,7 @@
       ? tableauFournisseurs(diag[0].value?.output_providers)
       : null;
     tempCpu = diag[0].status === 'fulfilled' ? diag[0].value?.cpu_temp_c : undefined;
+    motifBridage = diag[0].status === 'fulfilled' ? diag[0].value?.analyses_bridees : undefined;
     asioBloque = diag[0].status === 'fulfilled' && !!(diag[0].value as any)?.asio_warm_scan?.blocked_after_crash;
 
     cards = out;
@@ -938,6 +955,9 @@
         <section class="modules">
           <h2>{$t('v2.health.cpuTemp' as any)}</h2>
           <div class="sub">{temperature}</div>
+          <!-- tune-server-rust#5410 — sans température lisible, les analyses
+               de fond tournent à un fichier à la fois : on le dit. -->
+          {#if bridage}<div class="sub bridage">{bridage}</div>{/if}
         </section>
       {/if}
 
@@ -1082,6 +1102,8 @@
   .modules{margin-top:22px; border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px 18px}
   .modules h2{font-size:15px; font-weight:700}
   .modules .sub{margin-bottom:12px}
+  /* tune-server-rust#5410 — les analyses bridées faute de thermomètre. */
+  .modules .sub.bridage{color:var(--v2-acc2)}
 
   /* #865 — le bloc des journaux, dans l'enveloppe des autres sections de
      l'écran plutôt qu'avec un style à lui. */

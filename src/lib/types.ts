@@ -88,6 +88,14 @@ export interface Artist {
   bio_provenance?: import('./library/attributionBio').BioProvenance | null;
   image_path?: string | null;
   image_source?: string | null;
+  /**
+   * web#1716 — ses sources dans la bibliothèque, clé de provenance
+   * (`provenanceDe`) → albums et pistes visibles. Rendu par
+   * `/library/artists?provenances=1` ; absent d'un serveur ancien. (Pas
+   * `sources` : ce nom porte déjà les provenances FUSIONNÉES de la Recherche,
+   * `rechercheClassement.ts`.)
+   */
+  provenances?: Record<string, { albums: number; pistes: number }>;
   source_id?: string | null;
   /**
    * Le service d'où vient l'artiste — `'qobuz'`, `'tidal'`… Absent ou
@@ -295,6 +303,18 @@ export interface Track {
    * Passer par `lib/titreBanni.ts` (`estBannie`) plutôt que lire la clé.
    */
   banned?: boolean;
+  /**
+   * Ligne de playlist INTROUVABLE (serveur #6179) : la piste de la
+   * bibliothèque qu'elle désignait a disparu (fichier supprimé, déplacé,
+   * re-balisé). `id` est nul, `source` vaut `local`, et la ligne porte le
+   * titre, l'artiste, l'album, la durée et le chemin de la piste disparue.
+   * Elle reste à son rang, grisée, ne se joue pas, et revient d'elle-même
+   * quand le serveur retrouve la piste. Seul « Retirer » l'efface. Passer par
+   * `lib/pisteIntrouvable.ts` (`estIntrouvable`).
+   */
+  missing?: boolean;
+  /** Secondes Unix : quand la piste a disparu (#6179). */
+  missing_since?: number | null;
 }
 
 export interface Playlist {
@@ -509,6 +529,10 @@ export interface Zone {
    *  zone WASAPI quand ASIO est choisi). La zone reste jouable ; elle est
    *  signalée. */
   hors_backend_choisi?: boolean;
+  /** tune-server-rust#6120 — zone locale dont la sortie n'est pas
+   *  enregistrée (pilote disparu, renommé) : elle peut être rattachée à la
+   *  main à une sortie ASIO présente. Absent d'un serveur antérieur. */
+  sortie_absente?: boolean;
   /** DUP-1 phase 2 : à côté de `online`, DEPUIS QUAND l'appareil ne répond
    *  plus. `absente_depuis` s'accompagne de `jours_absente`. */
   presence?: 'en_ligne' | 'eteinte_recemment' | 'absente_depuis' | 'jamais_vue';
@@ -615,6 +639,14 @@ export interface Zone {
    */
   strict_bitperfect?: boolean;
   /**
+   * tune-server-rust#2991 — « Envoyer le titre radio par DLNA » : réémettre le
+   * DIDL (titre, artiste, pochette) à chaque morceau, pour les lecteurs qui
+   * ignorent l'ICY. `off` par défaut ; `next` = SetNextAVTransportURI (sans
+   * coupure), `reload` = SetAVTransportURI sur la même URI (coupure probable).
+   * Absent sur un vieux serveur ⇒ le sélecteur n'est pas proposé.
+   */
+  dlna_radio_title?: 'off' | 'next' | 'reload';
+  /**
    * La DISPOSITION DE CANAUX déclarée pour l'appareil — chantier
    * « multicanal ». Le nom stable d'une disposition, ou `null` quand on suit
    * l'appareil.
@@ -656,6 +688,12 @@ export interface Zone {
    * rien ne joue : voir la chaîne de repli dans `lib/vueZones`.
    */
   image_path?: string | null;
+  /**
+   * #2109 — la photo affichée a-t-elle été PROPOSÉE au catalogue ?
+   * `'pending'` = en attente de relecture ; `null` = locale. ABSENT = serveur
+   * d'avant #2109, qui ne sait pas proposer : le bouton ne s'affiche pas.
+   */
+  image_share_status?: 'pending' | null;
   /** Marque détectée en UPnP pour le device assigné (pré-remplissage). */
   /** Le serveur cherche encore une URL jouable (extraction YouTube longue). */
   resolving?: boolean;
@@ -1374,6 +1412,14 @@ export interface StreamingPlaylist {
    * l'illustration dessinée doit rester entière.
    */
   covers?: string[];
+  /**
+   * L'utilisateur peut-il modifier cette playlist ? `false` : il la suit
+   * seulement (éditoriale, autre compte) ; absent : le serveur ne le dit pas
+   * (web#2097, tune-server-rust lot `batch/bugs-rc5-20261012`).
+   */
+  editable?: boolean | null;
+  /** Le propriétaire, quand le service le donne. */
+  owner?: string | null;
   source: Source;
 }
 

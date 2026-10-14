@@ -201,12 +201,39 @@ export function qualiteDe(ex: Exemplaire): Qualite | null {
  * Young, « Second Song » (#4652, fil 1875) : Qobuz rend le single d'avant-
  * sortie (1 titre, rang 61) avant l'album (7 titres, rang 89), même titre. Le
  * premier arrivé gagnait, et l'album n'était plus atteignable depuis la page.
+ *
+ * 🔴 Cette règle ne vaut PAS pour la bibliothèque. Genesis sur le .18
+ * (Bertrand, 12/10/2026, rc4) : « A TRICK OF THE TAIL » d'un serveur UPnP
+ * (8 titres, rendu en premier), puis deux éditions locales, 1981 (7 titres)
+ * et 2007 (8 titres). Les trois passaient pour la source « local » : l'UPnP
+ * gardait la place, et sous la pastille « Local » la vignette — de provenance
+ * `upnp:<udn>` — tombait avec les deux albums locaux. Un album de la
+ * bibliothèque est un enregistrement à part entière : il n'en écarte jamais
+ * un autre. Deux albums de la bibliothèque se partagent une vignette s'ils
+ * viennent de provenances DIFFÉRENTES (local et un serveur UPnP) ; de la même
+ * provenance, le second a sa propre vignette.
  */
 export function fusionnerDiscographie(
   locaux: Album[] | null | undefined,
   services: AlbumsDeService[] | null | undefined,
 ): EntreeDiscographie[] {
   const parCle = new Map<string, Exemplaire[]>();
+  const ajouterBibliotheque = (album: Album) => {
+    const cle = cleEdition(album?.title);
+    if (!cle) return ajouter(BIBLIOTHEQUE, album);
+    const p = provenanceDe(album);
+    // La première vignette de ce titre qui n'a pas encore d'exemplaire de
+    // cette provenance ; sinon une vignette à elle, sous une clé dérivée.
+    for (let n = 1; ; n++) {
+      const k = n === 1 ? cle : `${cle}#${n}`;
+      const liste = parCle.get(k);
+      if (!liste) { parCle.set(k, [{ source: BIBLIOTHEQUE, album }]); return; }
+      if (!liste.some((e) => e.source === BIBLIOTHEQUE && provenanceDe(e.album) === p)) {
+        liste.push({ source: BIBLIOTHEQUE, album });
+        return;
+      }
+    }
+  };
   const ajouter = (source: string, album: Album) => {
     const cle = cleEdition(album?.title);
     // Un album sans titre ne se rapproche de rien : il garde sa vignette, sous
@@ -224,22 +251,26 @@ export function fusionnerDiscographie(
     parCle.set(k, liste);
   };
 
-  for (const al of locaux ?? []) ajouter(BIBLIOTHEQUE, al);
+  for (const al of locaux ?? []) ajouterBibliotheque(al);
   for (const sec of services ?? []) {
     for (const al of sec.albums ?? []) ajouter(sec.service, al);
   }
 
+  // Dans la bibliothèque, le local passe avant un serveur UPnP (règle 3).
+  const rangExemplaire = (e: Exemplaire) =>
+    e.source === BIBLIOTHEQUE ? rangProvenance(provenanceDe(e.album)) : rang(e.source);
   return [...parCle.entries()].map(([cle, exemplaires]) => {
     const ranges = exemplaires
       .map((e, i) => ({ e, i }))
-      .sort((a, b) => rang(a.e.source) - rang(b.e.source) || a.i - b.i)
+      .sort((a, b) => rangExemplaire(a.e) - rangExemplaire(b.e) || a.i - b.i)
       .map(({ e }) => e);
     const qualites = QUALITES.filter((q) => ranges.some((e) => qualiteDe(e) === q));
     return {
       cle,
       principal: ranges[0],
       exemplaires: ranges,
-      sources: ranges.map((e) => e.source),
+      // Local et UPnP partagent la pastille « bibliothèque » : une seule fois.
+      sources: [...new Set(ranges.map((e) => e.source))],
       qualites,
     };
   });
@@ -356,6 +387,54 @@ export function basculerProvenance(choix: ReadonlySet<string>, cle: string, pres
   const n = new Set(presentes.filter((p) => provenanceCochee(p, choix)));
   if (n.has(cle)) n.delete(cle); else n.add(cle);
   return n;
+}
+
+/**
+ * LE FILTRE « SOURCE » RETENU — #1874 (Levente Toth, fil 2103, 1.0.0-rc1).
+ *
+ * « Or could be also a option that the last state is saved, eg. if the Local
+ * is selected, that will be the default and it's not jumping back to All. »
+ *
+ * Le choix des pastilles vivait dans la grille : chaque fiche repartait de
+ * « Toutes ». Il est retenu comme le tri (`v2.art.albums.tri`) : une
+ * préférence d'affichage, globale à toutes les fiches artiste, dans le
+ * navigateur (`preferencesEcran`).
+ */
+export const CLE_SOURCE_FICHE = 'v2.art.disco.source';
+
+/** Le choix en texte : un tableau JSON trié, `[]` pour « Toutes ». */
+export function serialiserSource(choix: ReadonlySet<string>): string {
+  return JSON.stringify([...choix].sort());
+}
+
+/**
+ * Le choix relu. Tout ce qui n'est pas un tableau de clés non vides (texte
+ * illisible, valeur d'une autre version) rend « Toutes » : un filtre qu'on ne
+ * sait pas relire ne doit pas vider la fiche.
+ */
+export function relireSource(texte: string | null | undefined): Set<string> {
+  if (!texte) return new Set();
+  try {
+    const v = JSON.parse(texte);
+    if (!Array.isArray(v) || v.length > 32) return new Set();
+    return new Set(v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0 && x.length <= 200));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Le choix qui S'APPLIQUE à cette fiche : le choix retenu, ramené aux
+ * pastilles présentes.
+ *
+ * 🔴 Un choix retenu dont aucune pastille n'est là vaut « Toutes », sans être
+ * oublié : « Local » retenu sur un artiste que la bibliothèque ne connaît pas
+ * ne doit pas rendre une fiche vide, et une pastille YouTube retenue s'applique
+ * dès que YouTube a répondu — les pastilles arrivent avec les services.
+ */
+export function choixEffectif(choix: ReadonlySet<string>, presentes: readonly string[]): Set<string> {
+  if (choix.size === 0) return new Set();
+  return new Set(presentes.filter((p) => provenanceCochee(p, choix)));
 }
 
 /** Ce que le Focus retient. Un ensemble vide = pas de filtre sur cet axe. */

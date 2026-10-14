@@ -73,10 +73,7 @@
   } from '../../lib/titreBanni';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { rangLireEnsuite } from '../../lib/stores/queue';
-  import {
-    favoriteTrackIds, favoriteStreamingKeys,
-    favoriteStreamingTrackKeys, clePisteJumelee,
-  } from '../../lib/stores/profile';
+  import { favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { favKeyOf, toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
@@ -218,25 +215,11 @@
       ? favKeyOf({ itemType: 'track', service: String(piste.source), serviceId: String(piste.source_id) })
       : null,
   );
-  /**
-   * Une piste locale est aussi favorite quand son JUMEAU distant l'est.
-   *
-   * Bertrand, 05/09/2026. C'est ce que fait deja le serveur pour les regles :
-   * `track_favorites_sub` unit les favoris locaux et les pistes locales dont le
-   * titre et l'artiste normalises correspondent a un favori de streaming. Le
-   * cœur disait le contraire.
-   *
-   * ⚠️ Consequence assumee, et choisie par Bertrand : un cœur plein PAR JUMEAU
-   * qu'on clique cree le favori LOCAL — l'aspect ne change pas, puisqu'il etait
-   * deja plein. Un second clic retire le local, et le cœur reste plein par le
-   * jumeau. Le geste parait donc sans effet ; il ne l'est pas.
-   */
-  const parJumeau = $derived(
-    local && $favoriteStreamingTrackKeys.has(clePisteJumelee(piste.title, piste.artist_name)),
-  );
   const favori = $derived(
     local
-      ? $favoriteTrackIds.has(piste.id!) || parJumeau
+      ? // #1868 : chaque source garde ses favoris — plus de jumelage
+        // titre + artiste avec un favori de service.
+        $favoriteTrackIds.has(piste.id!)
       : cleService != null && $favoriteStreamingKeys.has(cleService),
   );
   /** Un cœur n'a de sens que si la piste est désignable d'une façon ou d'une autre. */

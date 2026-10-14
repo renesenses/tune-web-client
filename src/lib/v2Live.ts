@@ -73,6 +73,7 @@ import { playbackHistory } from './stores/history';
 import { noterSiDebutDEcoute } from './historiqueEcoutes';
 import { appliquerEvenementAudioNavigateur } from './audioNavigateurSync';
 import { estZoneJouableIci } from './zoneNavigateurProprietaire';
+import { signalerZoneNavigateurJoueeAilleurs } from './zoneNavigateurRevendication';
 import { browserPlay, browserPause, browserResume, browserStop } from './stores/browserAudio';
 import { urlFlux } from './bridge';
 import {
@@ -638,6 +639,19 @@ export function demarrerTransportV2(): () => void {
           },
         );
 
+        // web#2144 : la lecture démarre sur la zone choisie DANS ce navigateur,
+        // mais c'est une zone navigateur qu'il ne joue pas (renommée avant la
+        // rc4, ou retenue ailleurs). Plutôt que le silence : le dire, et
+        // proposer de la revendiquer. Les zones affichées sans être choisies
+        // ici ne déclenchent rien — le téléphone qui joue la sienne n'est pas
+        // l'affaire de ce navigateur.
+        if (type === 'playback.started' && zid != null && get(currentZoneId) === zid) {
+          signalerZoneNavigateurJoueeAilleurs(emettrice, (zz: any) => {
+            const src = urlFlux(zz?.stream_url, zz?.stream_url_remote);
+            if (src) browserPlay(src, true, zz.id);
+          });
+        }
+
         /**
          * 🔴 #1010 — LA PISTE VIENT DE L'ÉVÉNEMENT, PAS DE L'INSTANTANÉ.
          *
@@ -660,7 +674,7 @@ export function demarrerTransportV2(): () => void {
         noterSiDebutDEcoute(
           type, zid, courante, emettrice,
           nowPlayingToTrack,
-          (piste, nom) => playbackHistory.add(piste, nom),
+          (piste, nom, contexte) => playbackHistory.add(piste, nom, contexte),
           event?.data,
         );
       });

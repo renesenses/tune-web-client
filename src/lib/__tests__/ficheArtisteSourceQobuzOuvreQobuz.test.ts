@@ -65,6 +65,9 @@ describe('fiche artiste, source Qobuz : le clic ouvre l’album Qobuz', () => {
   beforeEach(() => {
     vi.stubGlobal('ResizeObserver', ObservateurInerte as any);
     if (!('IntersectionObserver' in globalThis)) vi.stubGlobal('IntersectionObserver', ObservateurInerte as any);
+    // #1874 — le filtre « Source » est RETENU d'une fiche à l'autre : chaque
+    // témoin part d'une fiche sans choix antérieur.
+    localStorage.clear();
     ouverts = [];
     lus = [];
     hote = document.createElement('div');

@@ -444,7 +444,9 @@ describe('Artistes — la vue est celle des artistes, pas des albums', () => {
 
   it('les artistes viennent de leur table, pas des albums', () => {
     const src = vue();
-    expect(src.includes('api.getAllArtists()'), 'la source des artistes a disparu').toBe(true);
+    // web#1716 — l'appel porte désormais `{ provenances: true }` (sources
+    // rendues par le serveur) : c'est toujours la liste ENTIÈRE.
+    expect(/api\.getAllArtists\(/.test(src), 'la source des artistes a disparu').toBe(true);
     // `getArtists` plafonne à 100 : une vue tronquée se lit comme une
     // bibliothèque incomplète.
     expect(
