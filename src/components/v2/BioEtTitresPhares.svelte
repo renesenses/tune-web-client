@@ -25,6 +25,7 @@
   import * as api from '../../lib/api';
   import ClampedText from '../partages/ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import { TITRES_PHARES_MAX } from '../../lib/titresPharesArtiste';
   import AttributionBio from './AttributionBio.svelte';
   import type { BioProvenance } from '../../lib/library/attributionBio';
 
@@ -33,6 +34,13 @@
     /** D'où vient la biographie (`bio_provenance`) — la ligne d'attribution. */
     provenance?: BioProvenance | null;
     titres?: Track[];
+    /**
+     * #1874 — les titres phares sont DEMANDÉS et pas encore là (artiste local :
+     * ils viennent des services, après ses albums). Leur bloc est rendu tout de
+     * suite, à la hauteur d'une liste pleine (`TITRES_PHARES_MAX` lignes), pour
+     * que la discographie, en dessous, ne descende pas quand ils arrivent.
+     */
+    titresEnCharge?: boolean;
     /** Change à chaque artiste : remet la biographie repliée. */
     cle?: unknown;
     /**
@@ -48,7 +56,7 @@
      */
     actionsBio?: Snippet;
   }
-  let { bio = null, provenance = null, titres = [], cle = undefined, actionsBio = undefined }: Props = $props();
+  let { bio = null, provenance = null, titres = [], titresEnCharge = false, cle = undefined, actionsBio = undefined }: Props = $props();
 
   const bioPropre = $derived((bio ?? '').trim());
 
@@ -85,6 +93,16 @@
       onLire={(_p, i) => lireDepuis(i)}
       clef={(p, i) => String((p as any).source ?? 'local') + ':' + String(p.id ?? (p as any).source_id ?? i)} />
   </section>
+{:else if titresEnCharge}
+  <!-- #1874 — la place d'une liste pleine, tenue pendant l'attente : même
+       titre, même marge, une ligne réservée par titre attendu (46 px, la
+       hauteur d'une ligne de `ListePistesV2`, plus son en-tête). -->
+  <section class="bloc" data-titres-reserves aria-busy="true">
+    <h2>{$t('v2.fas.topTracks' as any)}</h2>
+    <div class="reserve" style="--lignes:{TITRES_PHARES_MAX}">
+      <span class="attente">{$t('common.loading' as any)}</span>
+    </div>
+  </section>
 {/if}
 
 <style>
@@ -96,4 +114,11 @@
   .bio { margin: 0; font-size: 14px; line-height: 1.55; color: var(--v2-txt2); white-space: pre-line; max-width: 80ch; }
   /* Sous la biographie, jamais au milieu de la page (#1356). */
   .bio-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  /* #1874 — l'en-tête de `ListePistesV2` (~32 px) puis une ligne de 46 px par
+     titre attendu. */
+  .reserve {
+    min-height: calc(32px + var(--lignes) * 46px);
+    display: flex; align-items: flex-start; padding: 12px 10px;
+    color: var(--v2-txt3); font: 400 13px var(--v2-sans);
+  }
 </style>

@@ -128,6 +128,7 @@
    */
   import ToastContainer from '../partages/ToastContainer.svelte';
   import { demandeCercle } from '../../lib/circlePlaylists';
+  import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
   // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
   // « TV » juste au-dessus. Signale manquant par Bertrand le 05/09/2026 :
   // « Il manque Oxygen dans la v2 !! ». Il pese 1 400 lignes avec son rail de
@@ -893,6 +894,14 @@
   {#if $demandeCercle}
     {#await import('./AjoutGroupeCercleV2.svelte') then m}
       <m.default demande={$demandeCercle} onClose={() => demandeCercle.set(null)} />
+    {/await}
+  {/if}
+
+  <!-- #2096 — « Ajouter à une playlist » d'un album entier, demandé depuis
+       son menu « … » (`demandeAjoutPlaylist`). -->
+  {#if $demandeAjoutPlaylist}
+    {#await import('./AjoutAlbumPlaylistV2.svelte') then m}
+      <m.default demande={$demandeAjoutPlaylist} onClose={() => demandeAjoutPlaylist.set(null)} />
     {/await}
   {/if}
 

@@ -12,6 +12,7 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
+  import { onDestroy, untrack } from 'svelte';
   import {
     type CatalogueReaffectation, type EtatReaffectation, type ReglageReaffectation,
     getPrereglagesReaffectation, getReaffectationZone, setReaffectationZone, deleteReaffectationZone,
@@ -27,6 +28,14 @@
   let albumEtat = $state<EtatReaffectation | null>(null);
   let erreur = $state<string | null>(null);
   let occupe = $state(false);
+  /**
+   * web#2146 (Didier, fil 2202) : quelle règle la grille montre. La page ne
+   * chargeait QUE la règle de zone ; après « Enregistrer pour cet album »,
+   * revenir montrait une grille 2 → 2 désactivée alors qu'une règle 8 → 8
+   * active existait pour l'album — et c'est elle qui prime. Quand l'album en
+   * cours a une règle, c'est elle que la grille montre, et on le dit.
+   */
+  let source = $state<'zone' | 'album'>('zone');
 
   const albumId = $derived($currentZone?.current_track?.album_id ?? null);
   const albumTitre = $derived($currentZone?.current_track?.album_title ?? null);
@@ -34,7 +43,30 @@
   const nomsSorties = $derived(nomsDesCanaux(reglage.outputs));
   /** La grille affichée est-elle celle que le serveur a jugée ? Sinon, son
    *  `effective` décrit l'ancienne et ne s'affiche pas. */
-  const aJour = $derived(etat != null && JSON.stringify(reglage) === JSON.stringify(etat.settings));
+  const etatAffiche = $derived(source === 'album' ? albumEtat : etat);
+  const aJour = $derived(etatAffiche != null && JSON.stringify(reglage) === JSON.stringify(etatAffiche.settings));
+  /** La grille diffère de la règle enregistrée qu'elle montre (web#2146). */
+  const nonEnregistre = $derived(etatAffiche != null && !aJour);
+
+  /** Poser dans la grille la règle qui s'applique : celle de l'album si elle
+   *  existe, sinon celle de la zone. Jamais par-dessus une saisie en cours. */
+  function montrerLaRegleQuiPrime() {
+    if (nonEnregistre) return;
+    if (albumEtat?.saved) { source = 'album'; reglage = albumEtat.settings; }
+    else if (etat) { source = 'zone'; reglage = etat.settings; }
+  }
+
+  function montrer(s: 'zone' | 'album') {
+    const e = s === 'album' ? albumEtat : etat;
+    if (!e) return;
+    source = s;
+    reglage = e.settings;
+  }
+
+  // Quitter la page jetait la saisie sans un mot : le dire (web#2146).
+  onDestroy(() => {
+    if (nonEnregistre) notifications.info($t('v2.cr.unsavedLost' as any), 8000);
+  });
   const largeurs = Array.from({ length: CANAUX_MAX }, (_, i) => i + 1);
 
   $effect(() => {
@@ -45,14 +77,28 @@
     const zid = $currentZoneId;
     if (zid == null) { etat = null; return; }
     getReaffectationZone(zid)
-      .then((e) => { if ($currentZoneId === zid) { etat = e; reglage = e.settings; erreur = null; } })
+      .then((e) => {
+        if ($currentZoneId !== zid) return;
+        const avant = nonEnregistre;
+        etat = e; erreur = null;
+        if (!avant && source === 'zone') reglage = e.settings;
+        montrerLaRegleQuiPrime();
+      })
       .catch((e) => { erreur = e?.message ?? String(e); });
   });
 
   $effect(() => {
     const aid = albumId;
-    if (aid == null) { albumEtat = null; return; }
-    getReaffectationAlbum(aid).then((e) => { if (albumId === aid) albumEtat = e; }).catch(() => { albumEtat = null; });
+    if (aid == null) { albumEtat = null; untrack(() => { if (source === 'album') montrer('zone'); }); return; }
+    getReaffectationAlbum(aid).then((e) => {
+      if (albumId !== aid) return;
+      const avant = nonEnregistre;
+      albumEtat = e;
+      if (!avant) {
+        if (e.saved) { source = 'album'; reglage = e.settings; }
+        else if (source === 'album') montrer('zone');
+      }
+    }).catch(() => { albumEtat = null; if (source === 'album') montrer('zone'); });
   });
 
   function appliquerPrereglage(id: string) {
@@ -81,6 +127,7 @@
     occupe = true;
     try {
       etat = await setReaffectationZone(zid, reglage);
+      source = 'zone';
       reglage = etat.settings;
       erreur = null;
       if (!etat.applied_live) notifications.info($t('v2.cr.nextTrack' as any));
@@ -93,7 +140,7 @@
     const zid = zoneRequise();
     if (zid == null) return;
     occupe = true;
-    try { etat = await deleteReaffectationZone(zid); reglage = etat.settings; erreur = null; }
+    try { etat = await deleteReaffectationZone(zid); source = 'zone'; reglage = etat.settings; erreur = null; }
     catch (e: any) { erreur = e?.message ?? String(e); }
     finally { occupe = false; }
   }
@@ -101,7 +148,7 @@
   async function enregistrerPourLAlbum() {
     if (albumId == null || !formeValide(reglage)) return;
     occupe = true;
-    try { albumEtat = await setReaffectationAlbum(albumId, reglage); erreur = null; }
+    try { albumEtat = await setReaffectationAlbum(albumId, reglage); source = 'album'; reglage = albumEtat.settings; erreur = null; }
     catch (e: any) { erreur = e?.message ?? String(e); }
     finally { occupe = false; }
   }
@@ -109,7 +156,7 @@
   async function retirerDeLAlbum() {
     if (albumId == null) return;
     occupe = true;
-    try { albumEtat = await deleteReaffectationAlbum(albumId); erreur = null; }
+    try { albumEtat = await deleteReaffectationAlbum(albumId); erreur = null; montrer('zone'); }
     catch (e: any) { erreur = e?.message ?? String(e); }
     finally { occupe = false; }
   }
@@ -134,6 +181,16 @@
       <div class="warn" data-bit-perfect>{$t('v2.cr.bitPerfect' as any)}</div>
 
       <div class="card">
+        <div class="row" data-source={source}>
+          <div class="lbl">
+            <span>{source === 'album' ? $t('v2.cr.showingAlbum' as any).replace('{album}', albumTitre ?? '') : $t('v2.cr.showingZone' as any)}</span>
+          </div>
+          {#if source === 'album' && etat}
+            <button class="lnk" disabled={occupe} onclick={() => montrer('zone')}>{$t('v2.cr.showZone' as any)}</button>
+          {:else if source === 'zone' && albumEtat?.saved}
+            <button class="lnk" disabled={occupe} onclick={() => montrer('album')}>{$t('v2.cr.showAlbum' as any)}</button>
+          {/if}
+        </div>
         <div class="row">
           <div class="lbl"><span>{$t('v2.cr.enabled' as any)}</span><span class="hint">{$t('v2.cr.enabledHint' as any)}</span></div>
           <label class="sw">
@@ -192,8 +249,8 @@
                     </td>
                   {/each}
                   <td class="att">
-                    {#if aJour && etat?.effective?.normalization_db}
-                      {(etat.effective.normalization_db[o] ?? 0).toFixed(1)} dB
+                    {#if aJour && etatAffiche?.effective?.normalization_db}
+                      {(etatAffiche.effective.normalization_db[o] ?? 0).toFixed(1)} dB
                     {/if}
                   </td>
                 </tr>
@@ -212,12 +269,13 @@
           </label>
         </div>
 
-        {#if aJour && etat?.effective?.valid}
+        {#if aJour && etatAffiche?.effective?.valid}
           <p class="hint" data-effectif>
-            {etat.effective.identity ? $t('v2.cr.effIdentity' as any)
-              : etat.effective.bit_exact_copy ? $t('v2.cr.effCopy' as any) : $t('v2.cr.effMix' as any)}
+            {etatAffiche.effective.identity ? $t('v2.cr.effIdentity' as any)
+              : etatAffiche.effective.bit_exact_copy ? $t('v2.cr.effCopy' as any) : $t('v2.cr.effMix' as any)}
           </p>
         {/if}
+        {#if nonEnregistre}<p class="hint" data-non-enregistre>{$t('v2.cr.unsaved' as any)}</p>{/if}
 
         <div class="actions">
           <button class="go" disabled={occupe || !formeValide(reglage)} onclick={enregistrer}>{$t('v2.cr.save' as any)}</button>
