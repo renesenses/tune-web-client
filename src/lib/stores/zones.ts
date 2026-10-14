@@ -4,6 +4,7 @@ import * as api from '../api';
 import { notifications } from './notifications';
 import { loopByDefault } from './loopByDefault';
 import { estZoneJouableIci } from '../zoneNavigateurProprietaire';
+import { signalerZoneNavigateurJoueeAilleurs } from '../zoneNavigateurRevendication';
 // Lazy import to avoid circular dependency (browserAudio imports zones)
 async function getBrowserAudio() {
   return await import('./browserAudio');
@@ -179,7 +180,19 @@ async function handleBrowserPlayback(zone: Zone) {
   if (estZoneJouableIci(zone) && zone.stream_url) {
     const { browserPlay } = await getBrowserAudio();
     browserPlay(zone.stream_url, false, zone.id);
+    return;
   }
+  // web#2144 : une zone navigateur que ce navigateur ne joue pas ne reste pas
+  // muette en silence — on le dit, et on propose de la revendiquer.
+  signalerZoneNavigateurJoueeAilleurs(zone, jouerZoneNavigateurIci);
+}
+
+/** Lance ici le flux d'une zone navigateur (après revendication, web#2144). */
+function jouerZoneNavigateurIci(zone: Zone) {
+  const fraiche = get(zones).find((z) => z.id === zone.id) ?? zone;
+  const url = fraiche.stream_url ?? zone.stream_url;
+  if (!url) return;
+  void getBrowserAudio().then(({ browserPlay }) => browserPlay(url, true, zone.id));
 }
 
 export async function playAndSync(zoneId: number, body?: Parameters<typeof api.play>[1]): Promise<Zone> {
@@ -316,6 +329,8 @@ export async function resumeAndSync(zoneId: number): Promise<Zone> {
   if (estZoneJouableIci(zone)) {
     const { browserResume } = await getBrowserAudio();
     browserResume(zone.stream_url, zone.id);
+  } else {
+    signalerZoneNavigateurJoueeAilleurs(zone, jouerZoneNavigateurIci);
   }
   return zone;
 }

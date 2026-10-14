@@ -4116,6 +4116,8 @@ export default {
   "v2.hint.serverUnreachableDot": "Serveur injoignable.",
   "v2.hint.tracksAnalysed": "{n} titres analysés. L'avancement se suit dans **{tab}**.",
   "v2.set.browserZoneExists": "Cette zone existe déjà : « {nom} » est maintenant la zone active.",
+  "v2.zone.browserOtherDevice": "« {nom} » est une zone navigateur que ce navigateur ne joue pas (elle appartient à un autre appareil) : rien ne sort ici.",
+  "v2.zone.browserPlayHere": "La jouer sur cet appareil",
   "v2.set.browserZoneDuplicates": "{n} zones navigateur existent déjà. Elles sont interchangeables — une seule suffit.",
   "v2.set.peakMeter": "Crête-mètre",
   "v2.set.peakMeterHint": "Affichage seulement — le signal ne change pas. La barre de lecture n’affiche que les lampes : les deux bargraphes y sont trop larges.",

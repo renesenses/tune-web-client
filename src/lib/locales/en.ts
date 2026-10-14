@@ -4114,6 +4114,8 @@ export default {
   "v2.hint.serverUnreachableDot": "Server unreachable.",
   "v2.hint.tracksAnalysed": "{n} tracks analysed. Progress is followed in **{tab}**.",
   "v2.set.browserZoneExists": "That zone already exists: “{nom}” is now the active zone.",
+  "v2.zone.browserOtherDevice": "“{nom}” is a browser zone this browser does not play (it belongs to another device): no sound comes out here.",
+  "v2.zone.browserPlayHere": "Play it on this device",
   "v2.set.browserZoneDuplicates": "{n} browser zones already exist. They are interchangeable — one is enough.",
   "v2.set.peakMeter": "Peak meter",
   "v2.set.peakMeterHint": "Display only — the signal is unchanged. The playback bar shows the lamps only: the two bargraphs are too wide for it.",

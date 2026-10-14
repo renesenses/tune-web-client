@@ -4094,6 +4094,8 @@ export default {
   "v2.hint.serverUnreachableDot": "サーバーに接続できません。",
   "v2.hint.tracksAnalysed": "{n} 曲を解析しました。進捗は **{tab}** で確認できます。",
   "v2.set.browserZoneExists": "このゾーンはすでにあります。「{nom}」を有効なゾーンにしました。",
+  "v2.zone.browserOtherDevice": "「{nom}」はこのブラウザーが再生しないブラウザーゾーンです（別のデバイスのものです）。ここでは音が出ません。",
+  "v2.zone.browserPlayHere": "このデバイスで再生",
   "v2.set.browserZoneDuplicates": "ブラウザーのゾーンがすでに {n} 個あります。どれも同じ働きで、1 つで足ります。",
   "v2.set.peakMeter": "ピークメーター",
   "v2.set.peakMeterHint": "表示のみで、音は変わりません。再生バーにはランプだけを表示します。バーグラフは幅が足りません。",

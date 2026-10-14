@@ -4094,6 +4094,8 @@ export default {
   "v2.hint.serverUnreachableDot": "Serverul nu poate fi contactat.",
   "v2.hint.tracksAnalysed": "{n} piese analizate. Progresul se urmărește în **{tab}**.",
   "v2.set.browserZoneExists": "Această zonă există deja: „{nom}” este acum zona activă.",
+  "v2.zone.browserOtherDevice": "„{nom}” este o zonă de browser pe care acest browser nu o redă (aparține altui dispozitiv): aici nu se aude nimic.",
+  "v2.zone.browserPlayHere": "Red-o pe acest dispozitiv",
   "v2.set.browserZoneDuplicates": "Există deja {n} zone de browser. Sunt interschimbabile — una singură este de ajuns.",
   "v2.set.peakMeter": "Indicator de vârf",
   "v2.set.peakMeterHint": "Doar afișare — semnalul nu se schimbă. Bara de redare arată doar lămpile: cele două bargrafuri sunt prea late.",
