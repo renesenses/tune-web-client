@@ -58,14 +58,16 @@
    * La lecture passe par le premier album : `POST /zones/{id}/play` n'accepte
    * pas d'`artist_id`. Même compromis que pour les collections.
    */
-  import { onMount } from 'svelte';
-  import { saveDetailScroll, restoreDetailScroll } from '../../lib/stores/navigation';
+  import { onMount, tick, untrack } from 'svelte';
+  import { saveDetailScroll, restoreDetailScroll, positionMemorisee } from '../../lib/stores/navigation';
+  import { TRANCHE_GRILLE, trancheSuivante, montageJusqua, premierIndex } from '../../lib/grilleProgressive';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { initialesArtiste } from '../../lib/initialesArtiste';
   import { cleDeTriArtiste, comparerArtistes, initialeAlphabetique } from '../../lib/ordreAlphabetique';
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
+  import { sourcesArtistesServeur, pagePorteLesSources, sourcesDepuisLeServeur } from '../../lib/stores/sourcesArtistesServeur';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
@@ -144,20 +146,41 @@
   const plier = (s: string | null | undefined) =>
     (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+  /**
+   * LES SOURCES DES ARTISTES — web#1716, étape 2.
+   *
+   * Un serveur récent les rend avec la liste (`provenances=1`) : la Bibliothèque
+   * n'a plus à charger toutes les pistes et tous les albums pour les
+   * calculer. Sous une PORTÉE de répertoire, elles restent celles du dossier,
+   * calculées par la Bibliothèque sur ses albums et ses pistes : celles du
+   * serveur portent sur toute la bibliothèque.
+   */
+  // Décision de Bertrand du 13/10 : la LISTE s'affiche d'abord, sans attendre
+  // les sources ; elles arrivent ensuite, par une seconde requête, et
+  // alimentent le menu Source. La première carte revient au temps d'avant.
+  let sourcesServeur = $state<Map<number, Set<string>> | null>(null);
+  let erreurSourcesServeur = $state<string | null>(null);
+  // Tant qu'un serveur ancien n'est pas constaté (`false`), les sources sont
+  // attendues du serveur : la Bibliothèque ne charge rien d'avance.
+  const parLeServeur = $derived($sourcesArtistesServeur !== false && idsPortee == null);
+  const sourcesEffectives = $derived(parLeServeur ? (sourcesServeur ?? new Map()) : sourcesArtistes);
+  const sourcesEnChargeEffectif = $derived(parLeServeur ? (sourcesServeur == null && erreurSourcesServeur == null) : sourcesEnCharge);
+  const erreurSourcesEffective = $derived(parLeServeur ? erreurSourcesServeur : erreurSources);
+
   /** Les artistes que la PORTÉE laisse passer — tous, sans portée. */
   const dansLaPortee = $derived(
     idsPortee == null ? artistes : artistes.filter((x) => x.id != null && idsPortee!.has(x.id)),
   );
   const artistesRecherche = $derived(dansLaPortee.filter(a => plier(a.name).includes(plier(q))));
   const affiches = $derived(artistesRecherche.filter(a => provenance == null ||
-    [...(sourcesArtistes.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance)))
+    [...(sourcesEffectives.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance)))
     // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956), sur
     // sa clé : `sort_name` s'il existe (« Beatles, The » à B), sinon `name`.
     .sort(comparerArtistes));
   $effect(() => {
     onComptesSources?.({
       total: artistesRecherche.length,
-      comptes: compterSources(artistesRecherche.map(a => sourcesArtistes.get(a.id!) ?? [])),
+      comptes: compterSources(artistesRecherche.map(a => sourcesEffectives.get(a.id!) ?? [])),
     });
   });
 
@@ -179,22 +202,110 @@
    * que la lettre demandée — au PREMIER clic seulement. On vise, puis on relit.
    * `grilleEl` est le conteneur défilant (`.grille` porte `overflow-y:auto`).
    */
-  function sauter(L: string) {
+  async function sauter(L: string) {
+    // web#1716 — la lettre peut être plus bas que les cartes montées : on
+    // monte jusqu'à elle (et une tranche dessous) AVANT de viser l'ancre.
+    const i = premierIndex(affiches, lettre, L);
+    if (i >= montees) {
+      montees = montageJusqua(i, montees, affiches.length);
+      await tick();
+    }
     sauterVersAncre(grilleEl, `[data-lettre="${L}"]`);
   }
 
+  /**
+   * LA GRILLE PROGRESSIVE — web#1716, fil 2256 (Bilou, 1 295 artistes, 5-6 s).
+   *
+   * Les cartes montées sont un PRÉFIXE de `affiches` : une tranche à
+   * l'ouverture, la suivante quand la sentinelle du bas approche du cadre
+   * (`IntersectionObserver`, 800 px d'avance). L'ordre, les ancres du rail et
+   * le filtre restent ceux de la liste entière ; seul le montage est différé.
+   * Mesures et raison : `lib/grilleProgressive.ts`.
+   */
+  let montees = $state(TRANCHE_GRILLE);
+  const visibles = $derived(affiches.slice(0, montees));
+  let sentinelle = $state<HTMLElement | null>(null);
+  const AVANCE_PX = 800;
+
+  /** La sentinelle est-elle à moins de `AVANCE_PX` du bas du cadre ? */
+  function basProche(): boolean {
+    if (!grilleEl || !sentinelle) return false;
+    return sentinelle.getBoundingClientRect().top - grilleEl.getBoundingClientRect().bottom < AVANCE_PX;
+  }
+  async function monterLaSuite() {
+    // Une tranche ne suffit pas toujours à repousser la sentinelle hors de
+    // l'avance (écran très large, très haut) : l'observateur ne se redéclenche
+    // pas tant qu'elle y reste, d'où la relecture après chaque montage.
+    while (montees < affiches.length) {
+      montees = trancheSuivante(montees, affiches.length);
+      await tick();
+      if (!basProche()) break;
+    }
+  }
+  $effect(() => {
+    const racine = grilleEl, cible = sentinelle;
+    if (!racine || !cible || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(
+      (entrees) => { if (entrees.some((e) => e.isIntersecting)) void monterLaSuite(); },
+      { root: racine, rootMargin: `0px 0px ${AVANCE_PX}px 0px` },
+    );
+    io.observe(cible);
+    return () => io.disconnect();
+  });
+  // Une autre recherche, une autre source, une autre portée : on repart d'une
+  // tranche. PAS l'arrivée des sources des artistes (les pistes) : elle ne
+  // change pas ce que l'utilisateur a demandé, et le ramènerait en haut.
+  $effect(() => {
+    void q; void provenance; void nomPortee;
+    untrack(() => { montees = TRANCHE_GRILLE; });
+  });
+  /** Monter assez de cartes pour que la grille tienne `px` de défilement. */
+  async function monterJusquAHauteur(px: number) {
+    await tick();
+    while (px > 0 && montees < affiches.length && grilleEl
+      && grilleEl.scrollHeight < px + grilleEl.clientHeight) {
+      montees = Math.min(affiches.length, montees * 2);
+      await tick();
+    }
+  }
+
+  let generationSources = 0;
   async function charger() {
     chargement = true;
     erreur = null;
     try {
       // La liste ENTIÈRE : `getArtists` plafonne à 100 par défaut, et une vue
       // d'artistes tronquée à 100 se lit comme une bibliothèque incomplète.
+      // Sans les sources : la grille ne les attend pas (web#1716, 13/10).
       artistes = await api.getAllArtists();
     } catch (e: any) {
       erreur = e?.message ?? $t('common.error' as any);
       artistes = [];
     }
     chargement = false;
+    // Serveur ancien déjà constaté : la Bibliothèque calcule, rien à demander.
+    if (!erreur && $sourcesArtistesServeur !== false) void chargerSources();
+  }
+
+  /**
+   * web#1716 — les sources, APRÈS la liste. La Bibliothèque lit la réponse
+   * (`sourcesArtistesServeur`) pour savoir si elle doit encore les calculer
+   * (serveur ancien : `false`, retour au calcul d'avant).
+   */
+  async function chargerSources() {
+    const g = ++generationSources;
+    erreurSourcesServeur = null;
+    try {
+      const page = await api.getAllArtists(2000, { provenances: true });
+      if (g !== generationSources) return;
+      const porte = pagePorteLesSources(page);
+      if (porte) sourcesServeur = sourcesDepuisLeServeur(page);
+      else if (porte == null) sourcesServeur = new Map();
+      if (porte != null) sourcesArtistesServeur.set(porte);
+    } catch (e: any) {
+      if (g !== generationSources) return;
+      erreurSourcesServeur = e?.message ?? $t('common.error' as any);
+    }
   }
 
   async function lireArtiste(a: Artist) {
@@ -227,14 +338,17 @@
     await charger();
     // La grille vient d'être rendue : on repose la position mémorisée avant
     // d'ouvrir la page commune (#864). Sans mémoire, la cible vaut zéro.
+    // web#1716 — la grille est progressive : on monte d'abord assez de
+    // cartes pour que la position soit tenable.
+    await monterJusquAHauteur(positionMemorisee(CLE_DEFILEMENT));
     restoreDetailScroll(CLE_DEFILEMENT, () => grilleEl);
   });
 </script>
 
-{#if chargement || (provenance != null && sourcesEnCharge)}
+{#if chargement || (provenance != null && sourcesEnChargeEffectif)}
   <div class="etat">{$t('common.loading' as any)}</div>
-{:else if provenance != null && erreurSources}
-  <div class="etat err">{erreurSources}</div>
+{:else if provenance != null && erreurSourcesEffective}
+  <div class="etat err">{erreurSourcesEffective}</div>
 {:else if erreur}
   <div class="etat err">{erreur}</div>
 {:else if !affiches.length}
@@ -242,7 +356,7 @@
 {:else}
   <div class="zone">
     <div class="grille artistes" bind:this={grilleEl}>
-      {#each affiches as a, i (a.id)}
+      {#each visibles as a, i (a.id)}
         <!-- `data-lettre` sur la PREMIÈRE carte de chaque lettre seulement :
              le rail cherche une ancre, et la poser sur toutes ferait viser la
              dernière au lieu de la première. -->
@@ -273,6 +387,10 @@
           </button>
         </div>
       {/each}
+      {#if montees < affiches.length}
+        <!-- web#1716 — la suite se monte quand ceci approche du cadre. -->
+        <div class="suite" bind:this={sentinelle} aria-hidden="true"></div>
+      {/if}
     </div>
 
     <!-- Rail A–Z, comme l'écran actuel. Les lettres absentes restent visibles
@@ -325,6 +443,7 @@
     content-visibility: auto;
     contain-intrinsic-size: auto 210px;
   }
+  .suite { grid-column: 1 / -1; height: 1px; }
   .cv { position: relative; aspect-ratio: 1; border-radius: var(--v2-r-card); overflow: hidden; }
   /*
     Pochettes d'artiste CARRÉES, comme les albums — décision de Bertrand du
