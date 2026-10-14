@@ -33,6 +33,7 @@
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
   import BadgeHorsBackend from './BadgeHorsBackend.svelte';
+  import BadgeReaffectation from './BadgeReaffectation.svelte';
   import MenuZone from './MenuZone.svelte';
   import { entreesMenuZone, type EntreeMenuZone } from '../../lib/menuZone';
   import { rattacherZoneOrpheline } from '../../lib/rattacherZone';
@@ -700,6 +701,7 @@
                   {#if r}<span class="rc {r.cls}" title={r.long}>{r.txt}</span>{/if}
                   {#if presenceTxt(z)}<span class="rc warn" title={presenceTxt(z)}>{presenceTxt(z)}</span>{/if}
                   <BadgeHorsBackend zone={z} />
+                  <BadgeReaffectation cible="zone" id={z.id} />
                   {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
                 </span>
                 {#if np?.title}
@@ -752,6 +754,7 @@
                   {#if r}<span class="rc {r.cls}">{r.txt}</span>{/if}
                   {#if presenceTxt(z)}<span class="rc warn">{presenceTxt(z)}</span>{/if}
                   <BadgeHorsBackend zone={z} />
+                  <BadgeReaffectation cible="zone" id={z.id} />
                   {#if z.id != null && latences[z.id] !== undefined}<span class="rc">RTT {latences[z.id]} ms</span>{/if}
                 </span>
               </span>

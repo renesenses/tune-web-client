@@ -193,3 +193,24 @@ export const LIBELLES_PREREGLAGES: Record<string, string> = {
   mono: 'v2.cr.preset_mono',
   identity: 'v2.cr.preset_identity',
 };
+
+/**
+ * web#2140 (fil 2202) — une règle est-elle ARMÉE ?
+ *
+ * Miroir de `armee_pour` côté serveur (`tune-core/src/audio/reaffectation_canaux.rs`) :
+ * une règle enregistrée, activée, valide, et qui n'est pas l'identité (une
+ * identité ne change rien, le serveur ne l'applique pas). « Armée » n'est pas
+ * « appliquée » : le serveur ne l'applique qu'aux pistes dont le nombre de
+ * canaux égale ses entrées, et une règle d'album prime sur celle de la zone.
+ * C'est ce que disent les infobulles de l'indicateur.
+ */
+export interface RegleArmee {
+  entrees: number;
+  sorties: number;
+}
+
+export function regleArmee(e: EtatReaffectation | null | undefined): RegleArmee | null {
+  if (!e || !e.saved || !e.settings?.enabled) return null;
+  if (!e.effective?.valid || e.effective.identity) return null;
+  return { entrees: e.settings.inputs, sorties: e.settings.outputs };
+}

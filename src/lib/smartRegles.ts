@@ -177,6 +177,11 @@ export const OPERATEURS: Record<TypeChamp, readonly Operateur[]> = {
     { value: '=', label: '=' }, { value: '!=', label: '≠' },
     { value: 'contains', labelKey: 'smartCollection.opContains' },
     { value: 'starts_with', labelKey: 'smartCollection.opStartsWith' },
+    // tune-web-client#2176 — « ne contient pas », traduit par les deux
+    // moteurs depuis tune-server-rust#6250 (une valeur absente « ne contient
+    // pas » ; dans une collection, aucune piste de l'album ne contient).
+    // Même place que dans `criteres.rs` (`Famille::Texte`).
+    { value: 'not_contains', labelKey: 'smartCollection.opNotContains' },
     { value: 'in', labelKey: 'smartCollection.opIn' },
     { value: 'is_null', labelKey: 'smartCollection.opIsEmpty' },
     { value: 'is_not_null', labelKey: 'smartCollection.opIsNotEmpty' },

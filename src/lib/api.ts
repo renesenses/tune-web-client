@@ -3351,6 +3351,22 @@ export function deleteTag(id: number) {
   return fetchJSON<void>(`${BASE}/tags/${id}`, { method: 'DELETE' });
 }
 
+/**
+ * Enregistre l'ORDRE des étiquettes (web#2166, tune-server-rust#6257) : les
+ * identifiants du premier au dernier. Le serveur complète la liste — un
+ * identifiant inconnu est ignoré, une étiquette absente garde son rang
+ * relatif après les autres — et toutes ses listes d'étiquettes suivent
+ * ensuite cet ordre. Un serveur antérieur à #6257 n'a pas la route : l'appel
+ * échoue, l'écran le dit et reprend l'ordre d'avant.
+ */
+export function reorderTags(ids: number[]) {
+  return fetchJSON<void>(`${BASE}/tags/order`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+}
+
 export function updateTag(id: number, name?: string, color?: string) {
   return fetchJSON<void>(`${BASE}/tags/${id}`, {
     method: 'PUT',
@@ -3970,6 +3986,19 @@ export interface EtatGreffonsAudioNatifs {
 export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs> {
   const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins`);
   return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
+}
+
+/** La version installée d'un greffon natif tiers, lue SANS bandeau : la
+ *  liste est réservée à l'administrateur, et un paquet posé à la main n'a pas
+ *  de version. `null` quand on ne peut pas la savoir. */
+export async function versionGreffonNatif(id: string): Promise<string | null> {
+  try {
+    const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins`, undefined, undefined, true);
+    const v = Array.isArray(r?.plugins) ? r.plugins.find((p) => p?.id === id)?.version : null;
+    return typeof v === 'string' && v ? v : null;
+  } catch {
+    return null;
+  }
 }
 
 const racineGreffonNatif = (id: string) => `${BASE}/audio-plugins/${encodeURIComponent(id)}`;
@@ -4749,6 +4778,21 @@ export function setMusicDirectoryOrder(ordre: string[]): Promise<MusicDirectoryO
   });
 }
 
+/**
+ * web#2063 — le lecteur de la zone navigateur dit qu'il joue (serveur #6066).
+ * 200 `{"status": "confirmed" | "nothing_pending" | "not_playing_yet"}`.
+ * 404 (zone inconnue, ou serveur antérieur sans la route), 405 et 409
+ * (`not_a_browser_zone`) sont rendus sans bandeau : la confirmation ne doit
+ * jamais gêner la lecture.
+ */
+export function signalerLectureNavigateur(zoneId: number, streamId: string, positionMs: number) {
+  return fetchJSON<{ status?: string; error?: string } | undefined>(
+    `${BASE}/zones/${zoneId}/browser-playing`,
+    { method: 'POST', body: JSON.stringify({ stream_id: streamId, position_ms: positionMs }) },
+    (statut) => statut === 404 || statut === 405 || statut === 409,
+  );
+}
+
 export function triggerScan(path?: string, full = false) {
   const params = new URLSearchParams();
   if (path) params.set('path', path);
@@ -5497,6 +5541,24 @@ export function getStreamingGenreAlbums(service: string, genreId: string, limit 
   return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`);
 }
 
+/**
+ * tune-server-rust#6231 — chercher dans le catalogue du service, restreint au
+ * genre. 501 : le service ne le permet pas ; 404 : serveur antérieur.
+ */
+export interface RechercheDansUnGenre {
+  albums: Album[];
+  /** Résultats de la recherche du service examinés pour en tirer `albums`. */
+  examined: number;
+  /** `results` : le genre est appliqué aux résultats de la recherche du service. */
+  genre_filter: string;
+}
+
+export function searchStreamingGenre(service: string, genreId: string, q: string, limit = 50) {
+  return fetchJSON<RechercheDansUnGenre>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+  );
+}
+
 export function getStreamingPlaylists(service: string) {
   return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists`);
 }
@@ -5509,6 +5571,18 @@ export function getStreamingPlaylists(service: string) {
 export function addStreamingPlaylistTracks(service: string, playlistId: string, trackIds: string[]) {
   return fetchJSON<{ added: number }>(
     `${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks`,
+    { method: 'POST', body: JSON.stringify({ track_ids: trackIds }) },
+  );
+}
+
+/**
+ * Retire des titres d'une playlist DU SERVICE (web#2098) —
+ * `POST /streaming/{service}/playlists/{id}/tracks/remove` → `{ removed }`.
+ * `trackIds` = les `source_id` des titres ; Qobuz retire chaque occurrence.
+ */
+export function removeStreamingPlaylistTracks(service: string, playlistId: string, trackIds: string[]) {
+  return fetchJSON<{ removed: number }>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks/remove`,
     { method: 'POST', body: JSON.stringify({ track_ids: trackIds }) },
   );
 }
