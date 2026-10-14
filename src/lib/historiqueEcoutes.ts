@@ -40,6 +40,7 @@
  * ce qui est précisément ce qui vient de se passer.
  */
 import type { Track } from './types';
+import type { ContexteEcoute } from './historiqueParContexte';
 
 /**
  * Ce qu'une zone doit porter pour qu'on sache quoi noter.
@@ -54,6 +55,10 @@ export interface ZoneEcoutee {
   name?: string | null;
   group_id?: string | number | null;
   current_track?: unknown;
+  /** Ce que l'auditeur a demandé de lire — voir `contexteDeLaZone` (#990). */
+  session_context_type?: string | null;
+  session_context_id?: string | number | null;
+  session_context_source?: string | null;
 }
 
 /**
@@ -147,13 +152,54 @@ export function pisteDeLEvenement(donnees: unknown): unknown | null {
 export function noterEcoute(
   zone: ZoneEcoutee | null | undefined,
   convertir: (np: any) => Track,
-  ajouter: (piste: Track, nomDeZone: string) => void,
+  ajouter: (piste: Track, nomDeZone: string, contexte?: ContexteEcoute | null) => void,
   pisteEvenement?: unknown,
+  /** La zone qui joue, pour son contexte — à défaut, `zone`. Voir `contexteDeLaZone`. */
+  zoneQuiJoue?: ZoneEcoutee | null,
 ): boolean {
   const np = pisteDeLEvenement(pisteEvenement) ?? zone?.current_track;
   if (!np) return false;
-  ajouter(convertir(np), zone?.name ?? '');
+  ajouter(convertir(np), zone?.name ?? '', contexteDeLaZone(zoneQuiJoue ?? zone));
   return true;
+}
+
+/**
+ * 🔴 #990 — LA PLAYLIST EN COURS, DÈS SON LANCEMENT.
+ *
+ * Fabien, fil « v0.9.147 : v1 divers bugs », point 13 : une playlist en
+ * cours n'apparaît dans l'Historique qu'avec un seul titre, et ne se complète
+ * qu'après coup.
+ *
+ * Une écoute compte dès que le son part (#2125) : la règle est la bonne, c'est
+ * l'écran qui la montrait en retard. L'écoute notée ici, au `playback.started`,
+ * ne portait AUCUN contexte : elle s'affichait en titre nu, au-dessus de tout,
+ * et n'entrait dans le groupe de sa playlist qu'au moment où le serveur avait
+ * écrit la sienne et où l'écran l'avait relue (#1201, fil 1953) — plusieurs
+ * secondes, davantage pour une zone navigateur, dont l'écriture attend que
+ * l'onglet ait tiré le flux.
+ *
+ * Or la zone publie déjà ce que l'auditeur a demandé de lire
+ * (`session_context_type` / `_id` / `_source`, tune-server
+ * `inject_session_context`), et c'est exactement ce que le serveur recopie
+ * dans `listen_history` pour cette écoute (`transport.rs`, `record_listen`).
+ * L'écoute locale le porte donc aussi : elle tombe dans le groupe de sa
+ * playlist dès le premier titre, sous la même clé que la ligne que le serveur
+ * écrira ensuite — et `fusionnerHistorique` replie les deux en une seule.
+ *
+ * `null` quand la zone ne dit rien (serveur ancien, pas de contexte) : la
+ * ligne reste un titre nu, comme avant.
+ */
+export function contexteDeLaZone(zone: ZoneEcoutee | null | undefined): ContexteEcoute | null {
+  const type = zone?.session_context_type;
+  const id = zone?.session_context_id;
+  if (type == null || type === '' || id == null || String(id) === '') return null;
+  return {
+    type,
+    id: String(id),
+    position: null,
+    nom: null,
+    source: zone?.session_context_source ?? null,
+  };
 }
 
 /**
@@ -173,11 +219,13 @@ export function noterSiDebutDEcoute(
    * `check-svelte` l'a refusée, à juste titre.
    */
   convertir: (np: any) => Track,
-  ajouter: (piste: Track, nomDeZone: string) => void,
+  ajouter: (piste: Track, nomDeZone: string, contexte?: ContexteEcoute | null) => void,
   /** La charge de l'événement — #1010. Voir `pisteDeLEvenement`. */
   pisteEvenement?: unknown,
 ): boolean {
   if (!estDebutDEcoute(type)) return false;
   if (!concerneLEcoute(zoneEvenement, courante, zoneDeLEvenement)) return false;
-  return noterEcoute(courante, convertir, ajouter, pisteEvenement);
+  // #990 — le contexte vient de la zone qui JOUE : dans un groupe, c'est elle
+  // que le serveur lit pour écrire l'écoute, pas forcément la zone choisie.
+  return noterEcoute(courante, convertir, ajouter, pisteEvenement, zoneDeLEvenement ?? courante);
 }
