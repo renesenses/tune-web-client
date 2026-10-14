@@ -60,11 +60,12 @@
   // aléatoire par provenance) : mémorisée jusqu'au prochain scan, chargée une
   // seule fois pour tous, et abandonnée si plus personne ne l'attend.
   import { demanderToutesLesPistes } from '../../lib/stores/pistesEntieres';
+  import { sourcesArtistesServeur } from '../../lib/stores/sourcesArtistesServeur';
   // #1716, suite — l'onglet Titres PAR PAGES : tri, recherche, provenance et
   // comptes servis par le serveur ; repli sur la liste entière face à un
   // serveur ancien.
   import {
-    FenetrePistes, chargeurServeur, COLONNES_TRIABLES, capaciteDuServeur, triSuivant, trierPistes, type Tri,
+    FenetrePistes, chargeurServeur, COLONNES_TRIABLES_NAVIGATEUR, colonnesTriablesServeur, refusDuTriDesEcoutes, capaciteDuServeur, triSuivant, trierPistes, type Tri,
   } from '../../lib/pistesPaginees';
   // 🔴 `pendingLibraryFolder` n'existe PLUS : `main` l'a remplacé par le
   // magasin `libraryFolderScope` (voir `lib/porteeBibliotheque`) parce qu'un
@@ -1384,9 +1385,24 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * ci-dessus. « Ajouts récents » n'en fait pas partie : cet onglet a sa
    * propre route.
    */
+  /**
+   * web#1716, étape 2 — l'onglet Artistes sans la bibliothèque entière.
+   *
+   * Il demandait TOUS les albums et TOUTES les pistes pour une seule chose :
+   * les sources de chaque artiste (filtre et comptes du menu Source). Un
+   * serveur récent les rend avec `/library/artists?provenances=1`
+   * (`sourcesArtistesServeur`, constaté par `ArtistesV2` sur la réponse) : il
+   * n'y a plus rien à charger. Tant que ce n'est pas su (`null`), on attend
+   * la réponse plutôt que de tout demander d'avance. Restent sur le calcul
+   * d'avant : un serveur ancien (`false`), un dépôt distant, et la portée de
+   * répertoire (sources DU DOSSIER, pas de la bibliothèque).
+   */
+  const artistesSansLaListe = $derived(
+    tab === 'artists' && !depot && !porteeActive && $sourcesArtistesServeur !== false,
+  );
   const sortirDesPages = $derived(
     !depot && (
-      porteeActive || (tab !== 'albums' && !sourcePropre) || q !== '' || filtreActif
+      porteeActive || (tab !== 'albums' && !sourcePropre && !artistesSansLaListe) || q !== '' || filtreActif
       || fYear != null || hoverYear != null || (showTimeline && navMode === 'years')
       || clef == null
     ),
@@ -1828,6 +1844,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let modePistes = $state<'inconnu' | 'serveur' | 'entier'>(capaciteDuServeur() === 'ancien' ? 'entier' : 'inconnu');
   /** L'ordre choisi par l'en-tête ; `null` = l'ordre par défaut. */
   let triPistes = $state<Tri | null>(null);
+  /** #1470 — ce que l'en-tête propose quand le serveur trie : les écoutes
+   *  comprises, jusqu'au premier refus d'un serveur qui ne les connaît pas. */
+  let triablesPagine = $state.raw(colonnesTriablesServeur());
   /** La recherche envoyée au serveur : `q` après 250 ms de repos. */
   let qPistes = $state('');
   $effect(() => {
@@ -1871,7 +1890,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         if (remonter) remonterEnTeteDesPistes();
       })
       // L'échec est DIT : la fenêtre en erreur devient celle qu'on affiche.
-      .catch((e) => { if (fenetreDemandee === f && e?.name !== 'AbortError') fenetrePistes = f; })
+      .catch((e) => {
+        if (fenetreDemandee !== f || e?.name === 'AbortError') return;
+        // #1470 — un serveur qui ne sait pas trier par écoutes : on le dit,
+        // l'en-tête redevient inerte et l'ordre par défaut revient.
+        if (refusDuTriDesEcoutes(e, req.tri)) {
+          triablesPagine = colonnesTriablesServeur();
+          triPistes = null;
+          notifications.info($tr('v2.lib.sortPlaysUnsupported' as any), 5000);
+          return;
+        }
+        fenetrePistes = f;
+      })
       .finally(() => { if (fenetreDemandee === f) fenetreEnCharge = false; });
     return () => f.abandonner();
   });
@@ -1969,7 +1999,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     const portee = dossierPortee;
     // #1716 — l'onglet Titres ne demande la liste ENTIÈRE qu'à un dépôt
     // distant ou à un serveur qui ne sait pas paginer (`modePistes`).
-    const veutLaListe = tab === 'artists' || (tab === 'tracks' && (d != null || modePistes === 'entier'));
+    const veutLaListe = (tab === 'artists' && !artistesSansLaListe) || (tab === 'tracks' && (d != null || modePistes === 'entier'));
     if (!veutLaListe || porteePistes === portee) return;
     porteePistes = portee;
     // 🔴 La liste repart VIDE : la portée vient de changer, ce qu'elle
@@ -3078,7 +3108,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
               espaceAvant={debutVisible * hauteurLigne}
               espaceApres={Math.max(0, totalPagine - debutVisible - lignesPagine.length) * hauteurLigne}
               tri={triPistes}
-              triables={COLONNES_TRIABLES}
+              triables={triablesPagine}
               onTrier={(cle) => (triPistes = triSuivant(triPistes, cle))}
               onLire={(p) => playTrack(p)}
               onLireDepuis={(_p, i) => lireLesTitresPaginesDepuis(debutVisible + i)}
@@ -3106,7 +3136,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             <ListePistesV2
               pistes={visibleTracks}
               tri={triPistes}
-              triables={COLONNES_TRIABLES}
+              triables={COLONNES_TRIABLES_NAVIGATEUR}
               onTrier={(cle) => (triPistes = triSuivant(triPistes, cle))}
               onLire={(p) => playTrack(p)}
               onLireDepuis={(_p, i) => lireLesTitresDepuis(i)}
@@ -3161,12 +3191,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             {/if}
           </div>
         {:else}
+        <!-- web#2138 (même remède que #907 dans les Collections) : le « Retour »
+             vivait DANS `.facets`, qui défile ; dans un genre ou un label
+             riche, il partait avec la grille et seul le titre collant restait.
+             Il est désormais hors du conteneur qui défile, au-dessus de lui
+             dans une colonne (`.body` est une RANGÉE flex). -->
+        <div class="facette-ouverte">
+        <button class="fretour" onclick={() => (facetteOuverte = null)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+          {$tr('common.back' as any)}
+        </button>
         <div class="facets">
-          <button class="fretour" onclick={() => (facetteOuverte = null)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-            {$tr('common.back' as any)}
-          </button>
           {#each [groupeOuvert] as g (g.key)}
             <section class="facet" data-facette={g.key}>
               <h2>
@@ -3254,6 +3290,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
               {/if}
             </section>
           {/each}
+        </div>
         </div>
         {/if}
 
@@ -3687,7 +3724,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      qu'au re-tirage (#4558), qui en emprunte la taille et le cadre. */
 
   /* Vues par facette : une section par valeur (artiste, genre, année, label). */
-  .facets{flex:1; overflow-y:auto; padding:8px 30px 40px}
+  .facets{flex:1; min-height:0; overflow-y:auto; padding:8px 30px 40px}
+  /* web#2138 : la facette ouverte = une colonne, le Retour fixe en haut et
+     `.facets` qui défile dessous. `.body` étant une rangée flex, sans elle le
+     Retour se rangerait à GAUCHE de la grille. */
+  .facette-ouverte{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column}
   .facets::-webkit-scrollbar{width:9px}.facets::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   /* La puce de portée : visible sans crier, et son × est la seule action. */
   .portee{padding:2px 30px 6px}
@@ -3719,7 +3760,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     font-size:14px}
   /* Le retour vers la liste. Sans lui, on serait entré dans un genre sans
      pouvoir en sortir autrement qu'en changeant d'onglet. */
-  .fretour{display:inline-flex; align-items:center; gap:6px; margin:0 30px 8px;
+  /* web#2138 : hors de `.facets` (qui défile), il ne s'étire pas dans la
+     colonne flex et ne rétrécit pas : il reste à l'écran. */
+  .fretour{flex:none; align-self:flex-start; display:inline-flex; align-items:center; gap:6px; margin:8px 30px 0;
     padding:7px 12px 7px 8px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
     background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 12.5px var(--v2-sans)}
   .fretour:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
