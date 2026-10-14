@@ -651,6 +651,8 @@ export default {
   'browse.openInLibrary': 'Voir en bibliothèque',
   'browse.openInOxygen': 'Voir dans Oxygen',
   'browse.rescanning': 'Scan en cours...',
+  "browse.rescanAlreadyScanning": "Une analyse de la bibliothèque est déjà en cours : le serveur a refusé de rescanner ce dossier. Réessayez quand elle sera terminée.",
+  "browse.rescanFailed": "Le rescan de ce dossier a échoué : {erreur}",
 
   // Media Servers (UPnP/DLNA)
   'nav.mediaservers': 'Serveurs multimédia',

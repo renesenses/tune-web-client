@@ -539,6 +539,8 @@ export default {
   'ingest.placementArtist': '아티스트 하위 폴더에',
   'ingest.placementArtistHint': '평소 구조를 유지합니다. 이 아래에 아티스트별 폴더를 만듭니다.',
   'browse.rescanning': '스캔 중...',
+  "browse.rescanAlreadyScanning": "라이브러리 스캔이 이미 진행 중이어서 서버가 이 폴더의 재스캔을 거부했습니다. 끝난 뒤 다시 시도하세요.",
+  "browse.rescanFailed": "이 폴더를 다시 스캔하지 못했습니다: {erreur}",
 
   // Media Servers (UPnP/DLNA)
   'nav.mediaservers': '미디어 서버',
