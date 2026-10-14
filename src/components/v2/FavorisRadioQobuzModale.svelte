@@ -14,6 +14,7 @@
    * Les règles de choix vivent dans `lib/favorisRadioQobuz.ts`.
    */
   import { onMount } from 'svelte';
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { t, locale } from '../../lib/i18n';
   import * as api from '../../lib/api';
   import {
@@ -21,6 +22,7 @@
     choixInitial,
     cleBadge,
     nomParDefaut,
+    playlistsModifiables,
     selectionnable,
     titresRetenus,
     type ApercuFavorisRadio,
@@ -38,13 +40,24 @@
   let choix = $state<Choix>({});
   let nom = $state('');
   let creation = $state(false);
-  let resultat = $state<{ added: number; add_error: string | null } | null>(null);
+  let resultat = $state<{ added: number; already: number; existante: boolean; add_error: string | null } | null>(null);
+  /** '' : nouvelle playlist ; sinon l'identifiant d'une playlist Qobuz à soi. */
+  let cible = $state('');
+  let mesPlaylists = $state<{ source_id: string; name: string }[]>([]);
 
   const lignes = $derived<LigneApercu[]>(apercu?.items ?? []);
   const retenus = $derived(titresRetenus(lignes, choix));
 
   onMount(() => {
     nom = nomParDefaut($t('v2.fav.qobuzDefaultName' as any), new Date(), $locale);
+    api
+      .getStreamingPlaylists(SERVICE)
+      .then((l) => {
+        mesPlaylists = playlistsModifiables(l as any[]);
+      })
+      .catch(() => {
+        mesPlaylists = [];
+      });
     api
       .previewRadioFavoritesMatch(SERVICE)
       .then((a) => {
@@ -73,12 +86,17 @@
 
   async function creer() {
     const n = nom.trim();
-    if (!n || !retenus.length || creation) return;
+    if ((!cible && !n) || !retenus.length || creation) return;
     creation = true;
     erreur = null;
     try {
-      const r = await api.createPlaylistFromRadioSelection(SERVICE, n, retenus);
-      resultat = { added: r.added ?? 0, add_error: r.add_error ?? null };
+      const r = await api.createPlaylistFromRadioSelection(SERVICE, n, retenus, cible || null);
+      resultat = {
+        added: r.added ?? 0,
+        already: r.already_present ?? 0,
+        existante: !!cible,
+        add_error: r.add_error ?? null,
+      };
     } catch (e: any) {
       erreur = e?.message ?? $t('v2.fav.createFailed' as any);
     }
@@ -88,12 +106,15 @@
 
 <div class="fq-fond" role="presentation" onclick={onClose}>
   <form class="fq-modale" onclick={(e) => e.stopPropagation()}
-    onsubmit={(e) => { e.preventDefault(); void creer(); }}
-    onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}>
+    onsubmit={(e) => { e.preventDefault(); void creer(); }}>
     <h2>{$t('v2.fav.qobuzMakePlaylist' as any)}</h2>
 
     {#if resultat}
-      <p class="fq-sub">{$t('v2.fav.qobuzCreated' as any).replace('{n}', String(resultat.added))}</p>
+      <p class="fq-sub">
+        {resultat.existante
+          ? $t('v2.fav.qobuzAdded' as any).replace('{n}', String(resultat.added)).replace('{p}', String(resultat.already))
+          : $t('v2.fav.qobuzCreated' as any).replace('{n}', String(resultat.added))}
+      </p>
       {#if resultat.add_error}
         <p class="fq-erreur">{$t('v2.fav.qobuzAddFailed' as any)}</p>
       {/if}
@@ -119,7 +140,7 @@
                 aria-label={$t('v2.fav.qobuzKeep' as any)}
                 onchange={(e) => basculer(l, (e.currentTarget as HTMLInputElement).checked)} />
               <div class="fq-texte">
-                <span class="fq-capte">{l.title}{l.artist ? ` — ${l.artist}` : ''}</span>
+                <span class="fq-capte" use:bulleTexte>{l.title}{l.artist ? ` — ${l.artist}` : ''}</span>
                 {#if l.station_name}<span class="fq-station">{l.station_name}</span>{/if}
                 {#if candidats.length > 1 && (l.status === 'ambiguous' || l.status === 'approximate')}
                   <select value={choix[l.favorite_id] ?? candidats[0].id}
@@ -129,7 +150,7 @@
                     {/each}
                   </select>
                 {:else if candidats.length}
-                  <span class="fq-trouve">→ {libellePiste(candidats[0])}</span>
+                  <span class="fq-trouve" use:bulleTexte>→ {libellePiste(candidats[0])}</span>
                 {/if}
               </div>
               {#if badge}<span class="fq-badge" class:manque={!candidats.length}>{$t(badge as any)}</span>{/if}
@@ -141,15 +162,26 @@
       {#if erreur}<p class="fq-erreur">{erreur}</p>{/if}
 
       <label class="fq-nom">
-        <span>{$t('v2.fav.radioPlaylistName' as any)}</span>
-        <input bind:value={nom} />
+        <span>{$t('v2.fav.qobuzTarget' as any)}</span>
+        <select bind:value={cible}>
+          <option value="">{$t('v2.fav.qobuzNewPlaylist' as any)}</option>
+          {#each mesPlaylists as p (p.source_id)}
+            <option value={p.source_id}>{p.name}</option>
+          {/each}
+        </select>
       </label>
+      {#if !cible}
+        <label class="fq-nom">
+          <span>{$t('v2.fav.radioPlaylistName' as any)}</span>
+          <input bind:value={nom} onkeydown={(e) => { if (e.key === 'Escape') onClose(); }} />
+        </label>
+      {/if}
       <div class="fq-pied">
         <button type="button" class="fq-btn" onclick={onClose}>{$t('common.cancel' as any)}</button>
-        <button type="submit" class="fq-btn accent" disabled={creation || !nom.trim() || !retenus.length}>
+        <button type="submit" class="fq-btn accent" disabled={creation || (!cible && !nom.trim()) || !retenus.length}>
           {creation
             ? $t('common.loading' as any)
-            : $t('v2.fav.qobuzCreate' as any).replace('{n}', String(retenus.length))}
+            : $t((cible ? 'v2.fav.qobuzAddTo' : 'v2.fav.qobuzCreate') as any).replace('{n}', String(retenus.length))}
         </button>
       </div>
     {/if}
@@ -177,6 +209,8 @@
     border-radius:var(--v2-r-pill); padding:2px 7px; white-space:nowrap}
   .fq-badge.manque{color:var(--v2-danger); border-color:var(--v2-danger)}
   .fq-nom{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--v2-txt2)}
+  .fq-nom select{background:var(--v2-bg); border:1px solid var(--v2-line2); border-radius:8px;
+    color:var(--v2-txt); font:inherit; font-size:13.5px; padding:8px 10px}
   .fq-nom input{background:var(--v2-bg); border:1px solid var(--v2-line2); border-radius:8px;
     color:var(--v2-txt); font:inherit; font-size:13.5px; padding:9px 11px}
   .fq-pied{display:flex; justify-content:flex-end; gap:8px}

@@ -121,6 +121,15 @@ export function titresRetenus(lignes: LigneApercu[], choix: Choix): string[] {
   return out;
 }
 
+/**
+ * Les playlists Qobuz où l'on peut VERSER des titres : seulement celles que
+ * le serveur déclare modifiables (`editable: true`, web#2097). Une playlist
+ * suivie refuserait l'ajout en 401.
+ */
+export function playlistsModifiables<T extends { editable?: boolean | null }>(liste: T[] | null | undefined): T[] {
+  return (liste ?? []).filter((p) => p?.editable === true);
+}
+
 /** La clé de traduction du badge d'une ligne, ou `null` pour une ligne sûre. */
 export function cleBadge(ligne: LigneApercu): string | null {
   if (ligne.duplicate_of != null && ligne.match) return 'v2.fav.qobuzDuplicate';

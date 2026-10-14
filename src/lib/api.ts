@@ -7005,16 +7005,28 @@ export function previewRadioFavoritesMatch(service = 'qobuz', limit = 200) {
  * Favoris radio → playlist Qobuz, étape 2 : créer la playlist avec les
  * titres RETENUS à l'aperçu (identifiants du service), sans rapparier.
  */
-export function createPlaylistFromRadioSelection(service: string, playlistName: string, trackIds: string[]) {
+export function createPlaylistFromRadioSelection(
+  service: string,
+  playlistName: string,
+  trackIds: string[],
+  targetPlaylistId?: string | null,
+) {
+  // `target_playlist_id` : verser dans une playlist EXISTANTE du compte
+  // (décision de Bertrand du 14/10/2026) ; le serveur n'y remet pas les
+  // titres qu'elle contient déjà.
+  const corps: Record<string, unknown> = { service, playlist_name: playlistName, track_ids: trackIds };
+  if (targetPlaylistId) corps.target_playlist_id = targetPlaylistId;
   return fetchJSON<{
     playlist_id: string;
-    name: string;
+    name: string | null;
     added: number;
     duplicates_skipped: number;
+    already_present?: number;
+    existing_playlist?: boolean;
     add_error: string | null;
   }>(`${BASE}/radio-favorites/create-playlist`, {
     method: 'POST',
-    body: JSON.stringify({ service, playlist_name: playlistName, track_ids: trackIds }),
+    body: JSON.stringify(corps),
   });
 }
 

@@ -18,10 +18,12 @@ import {
   choixInitial,
   cleBadge,
   nomParDefaut,
+  playlistsModifiables,
   selectionnable,
   titresRetenus,
   type LigneApercu,
 } from '../favorisRadioQobuz';
+import * as api from '../api';
 
 const piste = (id: string, title: string, artist: string, score = 0.95) => ({
   id,
@@ -98,11 +100,24 @@ describe('règles de choix', () => {
   });
 });
 
+describe('playlist existante (décision du 14/10)', () => {
+  it('seules les playlists Qobuz à soi sont proposées comme destination', () => {
+    const l = [
+      { source_id: 'a', name: 'À moi', editable: true },
+      { source_id: 'b', name: 'Suivie', editable: false },
+      { source_id: 'c', name: 'Inconnue' },
+    ];
+    expect(playlistsModifiables(l).map((p) => p.source_id)).toEqual(['a']);
+    expect(playlistsModifiables(undefined)).toEqual([]);
+  });
+});
+
 describe('appels au serveur', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('l’aperçu et la création parlent aux bonnes routes, avec `track_ids`', async () => {
     const appels: { url: string; corps: any }[] = [];
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => {}, removeItem: () => {} });
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string, init: any) => {
@@ -113,7 +128,6 @@ describe('appels au serveur', () => {
         });
       }),
     );
-    const api = await import('../api');
     await api.previewRadioFavoritesMatch();
     await api.createPlaylistFromRadioSelection('qobuz', 'Favoris radio — 14/10/2026', ['101', '102']);
     expect(appels[0].url).toMatch(/\/radio-favorites\/match-preview$/);
@@ -124,7 +138,15 @@ describe('appels au serveur', () => {
       playlist_name: 'Favoris radio — 14/10/2026',
       track_ids: ['101', '102'],
     });
-  });
+    expect(appels[1].corps).not.toHaveProperty('target_playlist_id');
+    await api.createPlaylistFromRadioSelection('qobuz', '', ['104'], 'pl-555');
+    expect(appels[2].corps).toEqual({
+      service: 'qobuz',
+      playlist_name: '',
+      track_ids: ['104'],
+      target_playlist_id: 'pl-555',
+    });
+  }, 20_000);
 });
 
 describe('branchement dans l’écran Favoris', () => {
@@ -134,14 +156,15 @@ describe('branchement dans l’écran Favoris', () => {
 
   it('le bouton n’apparaît que si Qobuz est actif ET connecté', () => {
     expect(fav).toContain('qobuzPret = !!(q?.enabled && q?.authenticated)');
-    expect(fav).toMatch(/\{#if qobuzPret\}\s*<button[^>]*creationQobuz = true/);
+    expect(fav).toMatch(/\{#if qobuzPret\}\s*<button[^\n]*creationQobuz = true/);
     expect(fav).toContain('<FavorisRadioQobuzModale');
   });
 
   it('la modale demande l’aperçu, puis crée avec les titres retenus', () => {
     expect(modale).toContain('api\n      .previewRadioFavoritesMatch(SERVICE)');
-    expect(modale).toContain('api.createPlaylistFromRadioSelection(SERVICE, n, retenus)');
     expect(modale).toContain('titresRetenus(lignes, choix)');
     expect(modale).toContain("const SERVICE = 'qobuz'");
+    expect(modale).toContain('api.createPlaylistFromRadioSelection(SERVICE, n, retenus, cible || null)');
+    expect(modale).toContain('mesPlaylists = playlistsModifiables(l as any[])');
   });
 });
