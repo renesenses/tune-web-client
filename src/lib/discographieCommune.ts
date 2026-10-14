@@ -389,6 +389,54 @@ export function basculerProvenance(choix: ReadonlySet<string>, cle: string, pres
   return n;
 }
 
+/**
+ * LE FILTRE « SOURCE » RETENU — #1874 (Levente Toth, fil 2103, 1.0.0-rc1).
+ *
+ * « Or could be also a option that the last state is saved, eg. if the Local
+ * is selected, that will be the default and it's not jumping back to All. »
+ *
+ * Le choix des pastilles vivait dans la grille : chaque fiche repartait de
+ * « Toutes ». Il est retenu comme le tri (`v2.art.albums.tri`) : une
+ * préférence d'affichage, globale à toutes les fiches artiste, dans le
+ * navigateur (`preferencesEcran`).
+ */
+export const CLE_SOURCE_FICHE = 'v2.art.disco.source';
+
+/** Le choix en texte : un tableau JSON trié, `[]` pour « Toutes ». */
+export function serialiserSource(choix: ReadonlySet<string>): string {
+  return JSON.stringify([...choix].sort());
+}
+
+/**
+ * Le choix relu. Tout ce qui n'est pas un tableau de clés non vides (texte
+ * illisible, valeur d'une autre version) rend « Toutes » : un filtre qu'on ne
+ * sait pas relire ne doit pas vider la fiche.
+ */
+export function relireSource(texte: string | null | undefined): Set<string> {
+  if (!texte) return new Set();
+  try {
+    const v = JSON.parse(texte);
+    if (!Array.isArray(v) || v.length > 32) return new Set();
+    return new Set(v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0 && x.length <= 200));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Le choix qui S'APPLIQUE à cette fiche : le choix retenu, ramené aux
+ * pastilles présentes.
+ *
+ * 🔴 Un choix retenu dont aucune pastille n'est là vaut « Toutes », sans être
+ * oublié : « Local » retenu sur un artiste que la bibliothèque ne connaît pas
+ * ne doit pas rendre une fiche vide, et une pastille YouTube retenue s'applique
+ * dès que YouTube a répondu — les pastilles arrivent avec les services.
+ */
+export function choixEffectif(choix: ReadonlySet<string>, presentes: readonly string[]): Set<string> {
+  if (choix.size === 0) return new Set();
+  return new Set(presentes.filter((p) => provenanceCochee(p, choix)));
+}
+
 /** Ce que le Focus retient. Un ensemble vide = pas de filtre sur cet axe. */
 export interface Focus {
   sources: Set<string>;
