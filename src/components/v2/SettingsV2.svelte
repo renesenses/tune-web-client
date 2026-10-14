@@ -64,7 +64,7 @@
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
   import {
-    avancementAnalyse, pourcentAnalyse, aDesChiffres,
+    avancementAnalyse, pourcentAnalyse, aDesChiffres, lignesPortee, lignesEmplacements,
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
@@ -5466,6 +5466,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               -->
               {#if scanning && aDesChiffres($avancementAnalyse)}
                 {@const pct = pourcentAnalyse($avancementAnalyse)}
+                {@const portee = lignesPortee($avancementAnalyse, (k) => $t(k as any), (n) => $formatNombre(n))}
+                {@const parEmplacement = lignesEmplacements($avancementAnalyse, (k) => $t(k as any), (n) => $formatNombre(n))}
                 <div class="scan-avance">
                   {#if pct !== null}
                     <div class="jauge"><div class="rempli" style="width:{pct}%"></div></div>
@@ -5476,6 +5478,28 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {:else}
                     <p class="hint">{$t('v2.scan.indexing' as any)
                       .replace('{f}', $formatNombre($avancementAnalyse?.scanned ?? 0))}</p>
+                  {/if}
+                  <!-- tune-server-rust#6167 — ce que couvre le pourcentage :
+                       toute la bibliothèque (N emplacements), et lequel est en cours. -->
+                  {#if portee}
+                    <p class="hint" data-portee-scan>{portee.portee}</p>
+                    {#if portee.emplacement}
+                      <p class="hint dp" data-emplacement-scan title={portee.emplacementComplet ?? ''}>{portee.emplacement}</p>
+                    {/if}
+                  {/if}
+                  <!-- #6167, décision du 13/10 : le pourcentage de CHAQUE emplacement,
+                       en plus du total ci-dessus. -->
+                  {#if parEmplacement}
+                    <ul class="emplacements-scan" data-emplacements-scan>
+                      {#each parEmplacement as e (e.complet)}
+                        <li class:en-cours={e.enCours} title={e.complet}>
+                          <span class="hint dp">{e.texte}</span>
+                          {#if e.pct !== null}
+                            <div class="jauge mini"><div class="rempli" style="width:{e.pct}%"></div></div>
+                          {/if}
+                        </li>
+                      {/each}
+                    </ul>
                   {/if}
                   {#if $avancementAnalyse?.cible}
                     <p class="hint">{$t('v2.scan.progressFolder' as any)
@@ -7207,6 +7231,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .scan-avance{margin-top:12px; display:flex; flex-direction:column; gap:6px}
   .scan-avance .jauge{height:6px; border-radius:var(--v2-r-pill); background:var(--v2-line2); overflow:hidden}
   .scan-avance .rempli{height:100%; background:var(--v2-acc1); transition:width .3s ease}
+  .emplacements-scan{list-style:none; margin:4px 0; padding:0; display:flex; flex-direction:column; gap:6px}
+  .emplacements-scan li{display:flex; flex-direction:column; gap:3px; min-width:0}
+  .emplacements-scan li.en-cours .dp{color:var(--v2-txt)}
+  .scan-avance .jauge.mini{height:3px}
   .dir:hover{background:var(--v2-hover)}
   .dir svg{width:16px; height:16px; color:var(--v2-txt3)}
   .dp{font:12.5px var(--v2-mono); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}

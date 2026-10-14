@@ -25,6 +25,7 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
+  import { selonOrdre } from '../../lib/ordreEtiquettes';
   import {
     etiquettesPosees, poserEtiquette, retirerEtiquette, type CibleEtiquette,
   } from '../../lib/cibleEtiquette';
@@ -77,7 +78,9 @@
     try {
       if (!laCible) throw new Error($t('common.error' as any));
       await poserEtiquette(tag.id, laCible);
-      posees = [...posees, tag];
+      // web#2166 — la posée reprend SA place dans l'ordre choisi sur la page
+      // Étiquettes, au lieu de s'empiler au bout jusqu'au prochain chargement.
+      posees = selonOrdre([...posees, tag], toutes);
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     }
@@ -107,8 +110,17 @@
         // Deux appels : le serveur n'a pas de route qui crée ET pose.
         if (!laCible) throw new Error($t('common.error' as any));
         await poserEtiquette(cree.id, laCible);
-        posees = [...posees, cree];
-        toutes = [...toutes, cree];
+        // web#2166 — la place d'une neuve, c'est le SERVEUR qui la décide :
+        // par son nom tant que l'utilisateur n'a rien réordonné, en fin de
+        // liste sinon (tune-server-rust#6257). On relit donc la liste au lieu
+        // de l'empiler au bout ; faute de réponse, on l'ajoute à la fin.
+        try {
+          toutes = ((await api.getTags(laCible.itemType)) as any[]) ?? [...toutes, cree];
+        } catch {
+          toutes = [...toutes, cree];
+        }
+        if (!toutes.some((x) => x.id === cree.id)) toutes = [...toutes, cree];
+        posees = selonOrdre([...posees, cree], toutes);
         saisie = '';
       }
     } catch (e: any) {
