@@ -109,7 +109,7 @@ describe('#5593 étapes 2 et 3 — onze langues', () => {
         'analysisNoNormalizationWarning', 'analysisScopeTracks', 'analysisPerPassTitle', 'analysisPerPassHint',
         'analysisPass_replaygain', 'analysisPass_dynamic_range', 'analysisPass_fingerprints',
         'analysisPass_audio_embedding', 'analysisPerPassFolders', 'analysisPerPassGenres',
-        'analysisPerPassInheritCommon', 'analysisPerPassInheritReplaygain',
+        'analysisPerPassInheritCommon', 'analysisPerPassInheritReplaygain', 'analysisScopeTracksHint',
       ]) {
         expect(texte, `${f} : settings.${cle}`).toContain(`"settings.${cle}":`);
       }
@@ -120,5 +120,20 @@ describe('#5593 étapes 2 et 3 — onze langues', () => {
   it('le texte français de l’avertissement est celui de la décision', () => {
     const fr = fs.readFileSync(fileURLToPath(new URL('../locales/fr.ts', import.meta.url)), 'utf-8');
     expect(fr).toContain('"settings.analysisNoNormalizationWarning": "Ces pistes seront lues sans normalisation du volume."');
+  });
+});
+
+describe('#5593 — décisions du 13/10 (suite)', () => {
+  const fr = fs.readFileSync(fileURLToPath(new URL('../locales/fr.ts', import.meta.url)), 'utf-8');
+
+  it('l’aide dit qu’une piste désignée par deux entrées compte deux fois, là où les chiffres s’affichent', () => {
+    expect(fr).toMatch(/"settings\.analysisScopeTracksHint": "[^"]*compte dans les deux\."/);
+    expect(settings).toMatch(/\{#if analysisComptes\}\s*<p class="hint">\{\$t\('settings\.analysisScopeTracksHint' as any\)\}<\/p>/);
+    expect(composant).toContain("{#if comptes}<p class=\"hint\">{$t('settings.analysisScopeTracksHint' as any)}</p>{/if}");
+  });
+
+  it('l’aide des genres dit qu’un album sans genre est analysé en entier', () => {
+    expect(fr).toMatch(/"settings\.analysisGenresExcludedHint": "[^"]*un album d'un autre genre, ou sans genre, est analysé en entier/);
+    expect(fr).toContain('Seule une piste sans album se juge sur son propre genre');
   });
 });

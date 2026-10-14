@@ -5738,6 +5738,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <p class="avertissement" role="note">{$t('settings.analysisNoNormalizationWarning' as any)}</p>
                     {/if}
                     <p class="hint">{$t('settings.analysisGenresExcludedHint' as any)}</p>
+                    {#if analysisComptes}
+                      <p class="hint">{$t('settings.analysisScopeTracksHint' as any)}</p>
+                    {/if}
                   </div>
                 {/if}
                 <!-- tune-server-rust#5593 (étapes 2 et 3) — le périmètre
