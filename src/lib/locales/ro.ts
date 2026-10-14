@@ -545,6 +545,8 @@ export default {
   'ingest.placementArtist': 'Într-un subdosar de artist',
   'ingest.placementArtistHint': 'Păstrează dispunerea obișnuită: un dosar per artist dedesubt.',
   'browse.rescanning': 'Se scanează...',
+  "browse.rescanAlreadyScanning": "O scanare a bibliotecii este deja în curs: serverul a refuzat rescanarea acestui dosar. Încercați din nou după ce se termină.",
+  "browse.rescanFailed": "Rescanarea acestui dosar a eșuat: {erreur}",
 
   // Media Servers (UPnP/DLNA)
   'nav.mediaservers': 'Servere media',
