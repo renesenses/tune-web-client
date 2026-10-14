@@ -5,6 +5,7 @@ import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
 import { locale, t } from './i18n';
+import type { ApercuFavorisRadio } from './favorisRadioQobuz';
 import { profileHeader } from './profileHeader';
 import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
@@ -6986,6 +6987,34 @@ export function createPlaylistFromRadioFavorites(service: string, playlistName: 
   return fetchJSON<any>(`${BASE}/radio-favorites/create-playlist`, {
     method: 'POST',
     body: JSON.stringify({ service, playlist_name: playlistName, limit }),
+  });
+}
+
+/**
+ * Favoris radio → playlist Qobuz, étape 1 : chercher chaque favori chez le
+ * service et rendre la correspondance, SANS rien créer.
+ */
+export function previewRadioFavoritesMatch(service = 'qobuz', limit = 200) {
+  return fetchJSON<ApercuFavorisRadio>(
+    `${BASE}/radio-favorites/match-preview`,
+    { method: 'POST', body: JSON.stringify({ service, limit }) },
+  );
+}
+
+/**
+ * Favoris radio → playlist Qobuz, étape 2 : créer la playlist avec les
+ * titres RETENUS à l'aperçu (identifiants du service), sans rapparier.
+ */
+export function createPlaylistFromRadioSelection(service: string, playlistName: string, trackIds: string[]) {
+  return fetchJSON<{
+    playlist_id: string;
+    name: string;
+    added: number;
+    duplicates_skipped: number;
+    add_error: string | null;
+  }>(`${BASE}/radio-favorites/create-playlist`, {
+    method: 'POST',
+    body: JSON.stringify({ service, playlist_name: playlistName, track_ids: trackIds }),
   });
 }
 
