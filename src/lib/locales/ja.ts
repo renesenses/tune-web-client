@@ -2596,6 +2596,8 @@ export default {
   "v2.tags.add": "追加",
   "v2.tags.remove": "このタグを外す",
   "v2.tags.create": "作成",
+  "v2.tags.reorderHint": "タグをドラッグして移動するか、キーボードの Alt + 矢印キーを使います。",
+  "v2.tags.moved": "{name}：{total} 件中 {n} 番目",
   "v2.tags.newPlaceholder": "新しいタグ…",
   "v2.col.tabSmart": "Smart Collections",
   "v2.col.tabManual": "コレクション",

@@ -2596,6 +2596,8 @@ export default {
   "v2.tags.add": "추가",
   "v2.tags.remove": "이 태그 제거",
   "v2.tags.create": "만들기",
+  "v2.tags.reorderHint": "태그를 끌어서 옮기거나 키보드에서 Alt + 화살표 키를 사용하세요.",
+  "v2.tags.moved": "{name}: {total}개 중 {n}번째",
   "v2.tags.newPlaceholder": "새 태그…",
   "v2.col.tabSmart": "Smart Collections",
   "v2.col.tabManual": "컬렉션",

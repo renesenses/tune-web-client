@@ -2596,6 +2596,8 @@ export default {
   "v2.tags.add": "Hinzufügen",
   "v2.tags.remove": "Dieses Etikett entfernen",
   "v2.tags.create": "Erstellen",
+  "v2.tags.reorderHint": "Ziehen Sie ein Etikett, um es zu verschieben, oder verwenden Sie auf der Tastatur Alt + Pfeiltaste.",
+  "v2.tags.moved": "{name}: Position {n} von {total}",
   "v2.tags.newPlaceholder": "Neues Etikett…",
   "v2.col.tabSmart": "Smart Collections",
   "v2.col.tabManual": "Sammlungen",

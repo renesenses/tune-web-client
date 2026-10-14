@@ -2596,6 +2596,8 @@ export default {
   "v2.tags.add": "Adaugă",
   "v2.tags.remove": "Scoate această etichetă",
   "v2.tags.create": "Creează",
+  "v2.tags.reorderHint": "Trageți o etichetă pentru a o muta sau folosiți Alt + săgeată de la tastatură.",
+  "v2.tags.moved": "{name}: poziția {n} din {total}",
   "v2.tags.newPlaceholder": "Etichetă nouă…",
   "v2.col.tabSmart": "Smart Collections",
   "v2.col.tabManual": "Colecții",
