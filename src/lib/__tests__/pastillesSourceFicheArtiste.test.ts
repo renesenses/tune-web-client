@@ -88,7 +88,8 @@ describe('le composant applique les pastilles', () => {
   });
 
   it('la source de la grille est une pastille cochée, pas un filtre caché', () => {
-    expect(src).toMatch(/choix = provenance \? new Set\(\[provenance\]\) : new Set\(\)/);
+    // #1874 : sans source de la Bibliothèque, le DERNIER choix fait sur une fiche.
+    expect(src).toMatch(/choix = provenance \? new Set\(\[provenance\]\) : relireSource\(lireTexte\(CLE_SOURCE_FICHE\)\)/);
     expect(src).not.toMatch(/dansProvenance\(e, provenance\)/);
   });
 

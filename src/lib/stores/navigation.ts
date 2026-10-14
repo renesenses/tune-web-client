@@ -308,6 +308,11 @@ export function saveDetailScroll(key: string, el: CibleDefilement) {
   const cible = resoudre(el);
   if (cible) detailScrolls.set(key, cible.scrollTop);
 }
+/** La position mémorisée sous `key`, 0 sans mémoire — web#1716 : une grille
+ *  progressive doit savoir jusqu'où monter avant de la restaurer. */
+export function positionMemorisee(key: string): number {
+  return detailScrolls.get(key) ?? 0;
+}
 export function restoreDetailScroll(key: string, el: CibleDefilement) {
   const target = detailScrolls.get(key) ?? 0;
   let attempts = 0;

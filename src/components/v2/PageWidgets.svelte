@@ -33,7 +33,8 @@
    * la carte entière : rendre toute la bande déplaçable empêcherait de la faire
    * défiler à la souris, qui est son geste principal.
    */
-  import { onMount, tick, untrack } from 'svelte';
+  import { onDestroy, onMount, tick, untrack } from 'svelte';
+  import { creerDefilementAuBord } from '../../lib/defilementAuBord';
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import AccueilBibliothequeVide from '../partages/AccueilBibliothequeVide.svelte';
@@ -1052,6 +1053,7 @@
     const src = saisi;
     saisi = null;
     survole = null;
+    defilementAuBord.arreter();
     if (src == null || src === cible) return;
     const copie = [...disposition];
     const [w] = copie.splice(src, 1);
@@ -1155,6 +1157,11 @@
    * porte. Voir `lib/molettePortee`.
    */
   let zoneDefilante = $state<HTMLDivElement | null>(null);
+  /** web#2020 — pendant le déplacement d'un widget, la page défile quand le
+   *  pointeur approche du haut ou du bas de `.scroll` (Safari ne le fait pas
+   *  de lui-même pour un conteneur interne). */
+  const defilementAuBord = creerDefilementAuBord(() => zoneDefilante);
+  onDestroy(() => defilementAuBord.arreter());
 
   // ── « Voir tout » — renesenses/tune-remote-flutter#51 ─────────────────────
   /**
@@ -1435,8 +1442,8 @@
                   draggable="true"
                   title={$t('v2.home.move' as any)}
                   aria-label={$t('v2.home.move' as any)}
-                  ondragstart={() => (saisi = i)}
-                  ondragend={() => { saisi = null; survole = null; }}
+                  ondragstart={() => { saisi = i; defilementAuBord.demarrer(); }}
+                  ondragend={() => { saisi = null; survole = null; defilementAuBord.arreter(); }}
                   onkeydown={(e) => auClavier(e, i)}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg>

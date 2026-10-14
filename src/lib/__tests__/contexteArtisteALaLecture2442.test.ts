@@ -31,7 +31,6 @@ import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 import ArtisteServiceV2 from '../../components/v2/ArtisteServiceV2.svelte';
 import { currentZoneId, zones } from '../stores/zones';
-import { libraryTab, selectedArtist, artistAlbums } from '../stores/library';
 import { ficheArtisteService, streamingServices } from '../stores/streaming';
 import { activeView } from '../stores/navigation';
 import { t } from '../i18n';

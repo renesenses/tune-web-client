@@ -15,8 +15,6 @@ import {
   selectedAlbum,
   commencerFicheAlbum,
   poserPistesAlbum,
-  selectedArtist,
-  artistAlbums,
   libraryLoading,
 } from './stores/library';
 import * as api from './api';
@@ -125,7 +123,6 @@ export function nomsDeRechercheArtiste(nom: string | null | undefined): string[]
  * si `albumTracksOwner` désigne l'album affiché.
  */
 export async function ouvrirAlbum(albumId: number): Promise<void> {
-  selectedArtist.set(null);
   libraryLoading.set(true);
   const id = commencerFicheAlbum(albumId);
   try {
@@ -143,51 +140,15 @@ export async function ouvrirAlbum(albumId: number): Promise<void> {
   libraryLoading.set(false);
 }
 
-/** Ouvre la fiche d'un artiste, albums compris. */
-export async function ouvrirArtiste(artistId: number): Promise<void> {
-  selectedAlbum.set(null);
-  libraryLoading.set(true);
-  try {
-    const [artist, albums] = await Promise.all([
-      api.getArtist(artistId),
-      api.getArtistAlbums(artistId),
-    ]);
-    selectedArtist.set(artist);
-    artistAlbums.set(albums);
-    libraryTab.set('artists');
-    activeView.set('library');
-  } catch (e) {
-    console.error('Ouvrir artiste:', e);
-  }
-  libraryLoading.set(false);
-}
-
-/**
- * Ouvre un artiste dont on n'a que le nom — le cas des classements, où une
- * écoute de streaming ne porte pas d'identifiant local.
- *
- * Sans correspondance exacte, on ouvre l'onglet Artistes plutôt qu'une fiche
- * arbitraire : l'auditeur voit qu'il doit chercher, au lieu de croire qu'il est
- * arrivé.
+/*
+ * #1232 — `ouvrirArtiste(id)` et `ouvrirArtisteParNom(nom)` sont RETIRÉS. Ils
+ * posaient `selectedArtist` + `libraryTab = 'artists'`, la navigation de
+ * l'ancienne fiche d'artiste de la Bibliothèque : plus aucun écran ne les
+ * lisait depuis #1501, et le clic tombait sur la grille. Une seule page
+ * d'artiste demeure, et un seul chemin pour l'ouvrir : `ouvrirArtisteDepuis`
+ * (`lib/ouvrirArtisteDepuis.ts`), qui garde ici `trouverArtisteExact`,
+ * `nomsDeRechercheArtiste` et `ARTISTES_A_LIRE`.
  */
-export async function ouvrirArtisteParNom(nom: string | null | undefined): Promise<void> {
-  // `string | null` et non `string` : les classements viennent de l'historique,
-  // où une écoute de streaming peut n'avoir aucun nom d'artiste. La garde
-  // existait déjà — c'est la signature qui ne le disait pas, et l'appelant
-  // devait mentir au compilateur pour passer.
-  if (!nom) return;
-  try {
-    const resultats = await api.searchLibrary(nom, 5);
-    const id = trouverArtisteExact(resultats?.artists, nom);
-    if (id !== null) {
-      await ouvrirArtiste(id);
-    } else {
-      ouvrirBibliotheque('artists');
-    }
-  } catch (e) {
-    console.error('Ouvrir artiste par nom:', e);
-  }
-}
 
 /** Lecture seule de l'onglet courant — pratique pour les tests et les gardes. */
 export function ongletCourant(): OngletBibliotheque {
