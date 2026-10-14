@@ -3834,6 +3834,7 @@ export default {
   "v2.health.launchAlready": "Dieser Vorgang läuft bereits.",
   "v2.health.launchAllDone": "Gestartete Vorgänge: {n}.",
   "v2.health.launchAllErrors": "Start fehlgeschlagen: {n}.",
+  "v2.health.relaunchAllDone": "Fortgesetzt: {r} · fehlgeschlagene Titel erneut versucht: {p} · gestartet: {n}.",
   "v2.health.readAt": "erfasst um {h}",
   "v2.health.cpuTemp": "Prozessortemperatur",
   "v2.health.cpuTempUnavailable": "nicht verfügbar",

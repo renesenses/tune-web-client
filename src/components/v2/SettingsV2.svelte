@@ -3450,6 +3450,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // le travail dure des minutes. On lance, puis on suit — et on renvoie vers
   // Tune Health, ou l'avancement de tous les chantiers vit au meme endroit.
   let enrichRunning = $state(false);
+  /** tune-server-rust#6282 — la passe vit mais l'enrichissement est suspendu :
+   *  elle est garée, pas en cours. */
+  let enrichPaused = $state(false);
   let enrichDone = $state(0);
   let enrichTotal = $state(0);
   let coversMissing = $state<number | null>(null);
@@ -3459,6 +3462,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const st = await api.getBatchEnrichStatus();
       enrichRunning = st?.status === 'running';
+      enrichPaused = st?.status === 'paused';
       enrichDone = st?.enriched ?? 0; enrichTotal = st?.total ?? 0;
     } catch { /* route absente */ }
     try {
@@ -3468,7 +3472,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
   $effect(() => { refreshEnrich(); });
   $effect(() => {
-    if (!enrichRunning) return;
+    // #6282 — suivie aussi garée : la reprise peut venir d'un autre écran.
+    if (!enrichRunning && !enrichPaused) return;
     const h = setInterval(refreshEnrich, 4000);
     return () => clearInterval(h);
   });
@@ -4340,11 +4345,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span>{$t('settings.enrichMetadata' as any)}</span>
                   <span class="hint">{$t('settings.enrichMetadataHint' as any)}</span>
                 </div>
-                <button class="lnk" disabled={enrichRunning} onclick={startEnrich}>
-                  {$t((enrichRunning ? 'v2.set.running' : 'v2.set.start') as any)}
+                <button class="lnk" disabled={enrichRunning || enrichPaused} onclick={startEnrich}>
+                  {$t((enrichPaused ? 'v2.piste.enPause' : enrichRunning ? 'v2.set.running' : 'v2.set.start') as any)}
                 </button>
               </div>
-              {#if enrichRunning && enrichTotal > 0}
+              {#if (enrichRunning || enrichPaused) && enrichTotal > 0}
                 <div class="bar2"><span style="width:{Math.min(100, Math.round((enrichDone / enrichTotal) * 100))}%"></span></div>
                 <div class="hint">{$t('v2.set.progressOf' as any).replace('{n}', $formatNombre(enrichDone)).replace('{total}', $formatNombre(enrichTotal))}</div>
               {/if}

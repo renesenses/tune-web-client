@@ -3834,6 +3834,7 @@ export default {
   "v2.health.launchAlready": "Questa elaborazione è già in corso.",
   "v2.health.launchAllDone": "Elaborazioni avviate: {n}.",
   "v2.health.launchAllErrors": "Avvio non riuscito: {n}.",
+  "v2.health.relaunchAllDone": "Ripresi: {r} · brani in errore riprovati: {p} · avviati: {n}.",
   "v2.health.readAt": "rilevato alle {h}",
   "v2.health.cpuTemp": "Temperatura del processore",
   "v2.health.cpuTempUnavailable": "non disponibile",

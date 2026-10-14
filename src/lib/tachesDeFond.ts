@@ -34,6 +34,9 @@ export type TacheDeFond = {
   label: string;
   kind: string;
   progress?: ProgressionTache;
+  /** tune-server-rust#6282 — inscrite mais GARÉE : son traitement est
+   *  suspendu. Absent d'un serveur antérieur. */
+  paused?: boolean;
 };
 
 /** Identifiant de la tâche d'enrichissement des images d'artistes, tel que le
@@ -170,9 +173,14 @@ export function serveurSaitSuspendre(
  * @param secours libellé à afficher si le serveur ne nomme pas la tâche.
  */
 export function libelleBanniereEnrichissement(
-  taches: TacheDeFond[],
+  toutes: TacheDeFond[],
   secours: string,
 ): string | null {
+  // tune-server-rust#6282 — Kimon (fil 2259) : « un message "enrichissement"
+  // alors que j'ai mis tous les traitements en pause ». Une passe suspendue se
+  // GARE vivante et reste inscrite au registre : elle n'est pas en cours, le
+  // bandeau ne la montre pas.
+  const taches = toutes.filter((t) => t && !t.paused);
   const premiere = taches[0];
   if (!premiere) return null;
 
