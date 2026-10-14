@@ -4089,6 +4089,8 @@ export default {
   "v2.hint.serverUnreachableDot": "Server irraggiungibile.",
   "v2.hint.tracksAnalysed": "{n} brani analizzati. L'avanzamento si segue in **{tab}**.",
   "v2.set.browserZoneExists": "Questa zona esiste già: «{nom}» è ora la zona attiva.",
+  "v2.zone.browserOtherDevice": "«{nom}» è una zona browser che questo browser non riproduce (appartiene a un altro dispositivo): qui non esce alcun suono.",
+  "v2.zone.browserPlayHere": "Riprodurla su questo dispositivo",
   "v2.set.browserZoneDuplicates": "Esistono già {n} zone browser. Sono intercambiabili — ne basta una.",
   "v2.set.peakMeter": "Misuratore di picco",
   "v2.set.peakMeterHint": "Solo visualizzazione — il segnale non cambia. La barra di riproduzione mostra solo le lampade: i due bargraph vi sono troppo larghi.",

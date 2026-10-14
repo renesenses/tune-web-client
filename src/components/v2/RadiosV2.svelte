@@ -21,6 +21,7 @@
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { browserPlay } from '../../lib/stores/browserAudio';
   import { estZoneJouableIci } from '../../lib/zoneNavigateurProprietaire';
+  import { signalerZoneNavigateurJoueeAilleurs } from '../../lib/zoneNavigateurRevendication';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { fold } from '../../lib/utils';
@@ -214,6 +215,11 @@
       // qui doit lire le flux qu'il renvoie.
       // rc4 : seulement si c'est la zone de CET appareil (pas celle d'un téléphone).
       if (estZoneJouableIci($currentZone) && res?.stream_url) browserPlay(res.stream_url, false, zid);
+      // web#2144 : zone navigateur d'un autre appareil — le dire, proposer de la jouer ici.
+      else if (res?.stream_url) {
+        const url = res.stream_url as string;
+        signalerZoneNavigateurJoueeAilleurs($currentZone, () => browserPlay(url, true, zid));
+      }
     } catch {
       error = `Lecture impossible : ${r.name}`;
     }
