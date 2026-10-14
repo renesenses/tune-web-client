@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { chercherDansLeGenre, SAISIE_MIN, type EtatRechercheGenre } from '../../lib/rechercheGenre';
+  import { nomDeService } from '../../lib/groupesVersions';
   import BandcampManquantsV2 from './BandcampManquantsV2.svelte';
   import YouTubeDecouverteV2 from './YouTubeDecouverteV2.svelte';
   import type { YtElementRayon } from '../../lib/api';
@@ -780,6 +782,32 @@
       .catch(() => { if (genreId === gid) { bandesGenre = []; genreAlbums = []; } })
       .finally(() => { if (genreId === gid) genreLoading = false; });
   });
+
+  /**
+   * tune-server-rust#6231 — la saisie de l'onglet Genres cherche dans le
+   * CATALOGUE du service, restreint au genre ouvert (`lib/rechercheGenre`).
+   * Un service qui ne le permet pas : l'écran le dit, et la saisie garde son
+   * rôle de filtre des albums affichés.
+   */
+  let rechGenre = $state<EtatRechercheGenre>({ etat: 'inactive' });
+  let seqGenre = 0;
+  $effect(() => {
+    const svc = active, gid = genreId, needle = q.trim();
+    if (!svc || svc === BANDCAMP || sub !== 'genres' || !gid || needle.length < SAISIE_MIN) {
+      seqGenre++;
+      rechGenre = { etat: 'inactive' };
+      return;
+    }
+    const mien = ++seqGenre;
+    rechGenre = { etat: 'chargement' };
+    const minuterie = setTimeout(() => {
+      chercherDansLeGenre(svc, gid, needle).then((r) => { if (mien === seqGenre) rechGenre = r; });
+    }, 350);
+    return () => clearTimeout(minuterie);
+  });
+  const genreCourantNom = $derived(
+    (subGenres.find((g) => g.id === genreId) ?? genrePath.find((g) => g.id === genreId) ?? genrePath[0])?.name ?? '',
+  );
 
   // Recherche dans le service courant.
   $effect(() => {
@@ -1572,6 +1600,24 @@
             {/each}
           </div>
         {/if}
+        {#if rechGenre.etat === 'catalogue'}
+          <!-- #6231 — les résultats de la recherche du service, dans le genre. -->
+          <div class="note-genre" data-recherche-genre="catalogue">{$t('v2.stream.genreSearchCatalogue' as any)
+            .replace('{service}', nomDeService(active ?? '')).replace('{genre}', genreCourantNom)
+            .replace('{n}', String(rechGenre.albums.length)).replace('{examined}', String(rechGenre.examined))}</div>
+          {#if rechGenre.albums.length}
+            <div class="grid">{#each rechGenre.albums as a, i (((a as any).source_id ?? (a as any).id ?? i))}{@render tile(a as any, () => playAlbum(a as any))}{/each}</div>
+          {:else}
+            <div class="state">{$t('v2.common.noResult' as any)}</div>
+          {/if}
+        {:else if rechGenre.etat === 'chargement'}
+          <div class="state">{$t('v2.stream.genreSearching' as any)}</div>
+        {:else}
+        {#if rechGenre.etat === 'nonPrise' || rechGenre.etat === 'erreur'}
+          <!-- #6231 — pas de recherche par genre ici : on le DIT, puis on filtre. -->
+          <div class="note-genre" data-recherche-genre="filtre">{$t((rechGenre.etat === 'nonPrise' ? 'v2.stream.genreSearchUnsupported' : 'v2.stream.genreSearchFailed') as any)
+            .replace('{service}', nomDeService(active ?? ''))}</div>
+        {/if}
         {#if genreLoading}
           <div class="state">{$t('common.loading' as any)}</div>
         {:else if genreAlbumsVus.length}
@@ -1595,6 +1641,7 @@
           <div class="state">{$t('streaming.genreNoAlbums')}</div>
         {:else}
           <div class="state">{$t('streaming.pickGenre')}</div>
+        {/if}
         {/if}
         {#if genreId && genrePlaylists.length}
           <!-- #5313 — Cyrille Moutia, fil 1685 : les playlists Qobuz du genre. -->
@@ -1940,6 +1987,8 @@
   .scroll{flex:1; overflow-y:auto; padding:8px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
+  /* #6231 — ce que fait la saisie dans un genre : catalogue, ou simple filtre. */
+  .note-genre{margin:4px 0 12px; font-size:12px; color:var(--v2-txt2)}
   .notice{display:flex; flex-direction:column; align-items:flex-start; gap:12px; margin-top:20px; padding:20px 22px;
     border-radius:13px; border:1px solid var(--v2-line2); background:var(--v2-surface2); max-width:640px}
   .notice p{font-size:15px; color:var(--v2-txt)}
