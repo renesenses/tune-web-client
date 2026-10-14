@@ -3175,12 +3175,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             {/if}
           </div>
         {:else}
+        <!-- web#2138 (même remède que #907 dans les Collections) : le « Retour »
+             vivait DANS `.facets`, qui défile ; dans un genre ou un label
+             riche, il partait avec la grille et seul le titre collant restait.
+             Il est désormais hors du conteneur qui défile, au-dessus de lui
+             dans une colonne (`.body` est une RANGÉE flex). -->
+        <div class="facette-ouverte">
+        <button class="fretour" onclick={() => (facetteOuverte = null)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+          {$tr('common.back' as any)}
+        </button>
         <div class="facets">
-          <button class="fretour" onclick={() => (facetteOuverte = null)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-            {$tr('common.back' as any)}
-          </button>
           {#each [groupeOuvert] as g (g.key)}
             <section class="facet" data-facette={g.key}>
               <h2>
@@ -3268,6 +3274,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
               {/if}
             </section>
           {/each}
+        </div>
         </div>
         {/if}
 
@@ -3701,7 +3708,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      qu'au re-tirage (#4558), qui en emprunte la taille et le cadre. */
 
   /* Vues par facette : une section par valeur (artiste, genre, année, label). */
-  .facets{flex:1; overflow-y:auto; padding:8px 30px 40px}
+  .facets{flex:1; min-height:0; overflow-y:auto; padding:8px 30px 40px}
+  /* web#2138 : la facette ouverte = une colonne, le Retour fixe en haut et
+     `.facets` qui défile dessous. `.body` étant une rangée flex, sans elle le
+     Retour se rangerait à GAUCHE de la grille. */
+  .facette-ouverte{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column}
   .facets::-webkit-scrollbar{width:9px}.facets::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   /* La puce de portée : visible sans crier, et son × est la seule action. */
   .portee{padding:2px 30px 6px}
@@ -3733,7 +3744,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     font-size:14px}
   /* Le retour vers la liste. Sans lui, on serait entré dans un genre sans
      pouvoir en sortir autrement qu'en changeant d'onglet. */
-  .fretour{display:inline-flex; align-items:center; gap:6px; margin:0 30px 8px;
+  /* web#2138 : hors de `.facets` (qui défile), il ne s'étire pas dans la
+     colonne flex et ne rétrécit pas : il reste à l'écran. */
+  .fretour{flex:none; align-self:flex-start; display:inline-flex; align-items:center; gap:6px; margin:8px 30px 0;
     padding:7px 12px 7px 8px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
     background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 12.5px var(--v2-sans)}
   .fretour:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}

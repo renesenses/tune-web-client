@@ -181,6 +181,21 @@
   let autresServices = $state<AlbumsDeService[]>([]);
   let complementsEnCharge = $state(false);
   /**
+   * #1874 — LA PLACE EST RÉSERVÉE AVANT QUE LA MATIÈRE ARRIVE (Levente Toth,
+   * fil 2103 : « the following screen "jump" as the tracks and albums are
+   * added feels distracting »). Deux blocs surgissaient 1 à 2 s après
+   * l'ouverture et poussaient la discographie vers le bas :
+   *
+   *  - `rangeeSources` : la rangée des pastilles « Source », qui n'existait
+   *    qu'à partir de DEUX provenances — elle naissait avec le premier service
+   *    qui répondait. Elle est rendue dès qu'une autre source PEUT s'ajouter.
+   *  - `titresEnCharge` : les titres phares d'un artiste LOCAL, demandés aux
+   *    services APRÈS ses albums et rendus AU-DESSUS de la discographie. Leur
+   *    place est tenue pendant l'attente (`BioEtTitresPhares`).
+   */
+  let rangeeSources = $state(false);
+  let titresEnCharge = $state(false);
+  /**
    * La biographie affichée. Un artiste de SERVICE la porte sur lui (Qobuz la
    * publie) ; un artiste LOCAL a d'abord celle qu'on a éditée dans la
    * bibliothèque, et à défaut celle que `GET /library/artists/{id}/bio` sait
@@ -355,6 +370,8 @@
     ficheEnEchec = null;
     titres = [];
     titresEnEchec = false;
+    rangeeSources = false;
+    titresEnCharge = false;
     albums = [];
     bio = null;
     bioProvenance = null;
@@ -439,6 +456,8 @@
     ficheEnEchec = null;
     titres = [];
     titresEnEchec = false;
+    rangeeSources = false;
+    titresEnCharge = false;
     albums = [];
     bio = null;
     bioProvenance = null;
@@ -544,10 +563,19 @@
     autresServices = [];
     if (!nomArtiste.trim()) return;
     complementsEnCharge = true;
+    // #1874 — la place, AVANT la première attente : la bibliothèque est
+    // cherchée par le nom (artiste de service), ou des services connus du
+    // magasin vont répondre. Le magasin vide ne se devine pas : on attend ses
+    // statuts, une fois par session.
+    const pressentis = servicesInterrogeables($streamingServices).filter((s) => s !== service);
+    if (!localDejaCharge || pressentis.length) rangeeSources = true;
+    if (localDejaCharge && pressentis.length) titresEnCharge = true;
     // Le magasin peut être VIDE dans le nouveau client : voir `statutsStreaming`.
     const statuts = await statutsStreaming($streamingServices, api.getStreamingServices, (x) => streamingServices.set(x));
     if (mien !== jeton) return;
     const autres = servicesInterrogeables(statuts).filter((s) => s !== service);
+    if (autres.length) rangeeSources = true;
+    titresEnCharge = localDejaCharge && autres.length > 0;
     const [loc, svc] = await Promise.allSettled([
       (async () => {
         // Déjà tenu par l'identifiant : on ne le recherche pas par le nom.
@@ -581,6 +609,7 @@
       if (mien !== jeton) return;
       titres = phares;
     }
+    titresEnCharge = false;
   }
 
   function ouvrirExemplaire(ex: Exemplaire, origine: OrigineSection = null) {
@@ -985,7 +1014,7 @@
   {:else}
     <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
-    <BioEtTitresPhares bio={bio} provenance={bioProvenance} titres={titres} cle={cible?.id}
+    <BioEtTitresPhares bio={bio} provenance={bioProvenance} titres={titres} {titresEnCharge} cle={cible?.id}
       actionsBio={artisteEditable ? enrichirBio : undefined} />
 
     <!-- 🔴 « À propos » ne s'ouvre QUE si elle a quelque chose à dire (#1356).
@@ -1027,7 +1056,7 @@
       <h2>{$tr('v2.fas.albums' as any)}</h2>
       <!-- Le filtre « Source » s'applique DANS la grille commune (#4330, #4201) :
            le poser sur la seule bibliothèque cachait tous les services. -->
-      <DiscographieCommune {locaux} services={sectionsServices} servicesEnCharge={complementsEnCharge}
+      <DiscographieCommune {locaux} services={sectionsServices} servicesEnCharge={complementsEnCharge} {rangeeSources}
         nomArtiste={artiste?.name || cible?.nom || null} {provenance}
         onComptesProvenance={(c) => (comptesFiche = c)}
         {compilations} {apparitions} {collaborations} {reprises}
