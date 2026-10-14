@@ -43,6 +43,7 @@
 import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import FavorisRadioQobuzModale from './FavorisRadioQobuzModale.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
@@ -463,6 +464,28 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   let creationPlaylist = $state(false);
   let nomPlaylist = $state('');
   let creation = $state(false);
+
+  /**
+   * Favoris radio → playlist Qobuz (14/10/2026). Le bouton n'apparaît que si
+   * Qobuz est ACTIF et CONNECTÉ : proposer une création qui ne peut que
+   * refuser serait un bouton mort. Le serveur revérifie de son côté.
+   */
+  let qobuzPret = $state(false);
+  let creationQobuz = $state(false);
+  let qobuzSonde = false;
+  $effect(() => {
+    if (qobuzSonde) return;
+    qobuzSonde = true;
+    api
+      .getStreamingServices()
+      .then((s) => {
+        const q = (s as any)?.qobuz;
+        qobuzPret = !!(q?.enabled && q?.authenticated);
+      })
+      .catch(() => {
+        qobuzPret = false;
+      });
+  });
 
   const vRadio = $derived(radio.filter((f) => match(f.title) || match(f.artist)));
   const vStations = $derived(stations.filter((r) => match(r.name) || match(r.genre)));
@@ -1250,6 +1273,12 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             {$t('v2.fav.radioMakePlaylist' as any)}
           </button>
+          {#if qobuzPret}
+            <button class="rf-btn" onclick={() => (creationQobuz = true)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              {$t('v2.fav.qobuzOpen' as any)}
+            </button>
+          {/if}
           <!-- Un lien, pas un bouton : c'est le navigateur qui télécharge, et
                le serveur rend déjà le CSV tout fait. -->
           <a class="rf-btn" href={urlNavigateur('/api/v1/radio-favorites/export')} download="radio_favorites.csv">
@@ -1301,6 +1330,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
         </div>
       </form>
     </div>
+  {/if}
+
+  {#if creationQobuz}
+    <FavorisRadioQobuzModale onClose={() => (creationQobuz = false)} />
   {/if}
 
   {#if opened}
