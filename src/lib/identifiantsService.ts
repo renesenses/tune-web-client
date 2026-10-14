@@ -76,7 +76,9 @@ export function identifiantsComplets(nom: string, c: Saisie | null | undefined):
     case 'pseudo_motdepasse':
       return !!c?.user && !!c?.pass;
     case 'pseudo':
-      return !!(c?.user ?? '').trim();
+      // #2095 — une adresse e-mail n'est pas un pseudo Bandcamp : Bandcamp
+      // la refuse (« profil introuvable »). Le champ le dit, le bouton attend.
+      return !!(c?.user ?? '').trim() && !(c?.user ?? '').includes('@');
     default:
       return true;
   }
