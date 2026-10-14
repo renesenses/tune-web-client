@@ -101,3 +101,83 @@ export async function lancerTout(
   }
   return out;
 }
+
+/**
+ * tune-server-rust#6330 — Benjithom (fil 2270) : « malgré un appui sur le
+ * bouton "Tout Relancer" […] le Replay Gain reste bloqué à 99 % et la Plage
+ * Dynamique à 95 % ». Les deux étaient EN PAUSE, avec des pistes en échec de
+ * mesure. Le bouton ne connaissait que les trois routes de lancement, écartait
+ * ce qui était suspendu et ne touchait jamais au ReplayGain : il n'avait rien
+ * à faire, et il ne l'a pas fait.
+ *
+ * « Tout relancer » fait désormais ce que le mot promet :
+ *  1. `POST /system/background-tasks/relaunch-all` : le serveur REPREND tous
+ *     les traitements suspendus, ReplayGain compris, et rend à la passe les
+ *     pistes en échec (ReplayGain, plage dynamique) ;
+ *  2. puis les trois lancements, pour ce qui était au repos.
+ *
+ * Un serveur d'avant #6330 ne connaît pas la route : on retombe sur
+ * `resume-all`, qui reprend au moins tout ce qui est suspendu.
+ */
+export interface ReponseRelanceGenerale {
+  /** Les traitements que le clic a repris (ils étaient suspendus). */
+  resumed?: string[];
+  /** Les pistes rendues à la passe, par passe. */
+  retried?: { replaygain?: number; dynamic_range?: number; deferred?: number };
+}
+
+export interface RoutesToutRelancer extends RoutesLancement {
+  relancerTout: () => Promise<ReponseRelanceGenerale>;
+  reprendreTout: () => Promise<unknown>;
+}
+
+const ROUTES_TOUT: RoutesToutRelancer = {
+  ...ROUTES,
+  relancerTout: () => api.relaunchAllBackgroundTasks(),
+  reprendreTout: () => api.resumeAllBackgroundTasks(),
+};
+
+export interface BilanToutRelancer {
+  /** Traitements repris ; `null` quand le serveur ne sait pas le dire. */
+  repris: number | null;
+  /** Pistes en échec rendues à la passe ; `null` : serveur d'avant #6330. */
+  pistes: number | null;
+  lances: number;
+  erreurs: number;
+  lancements: Record<CarteLancable, IssueLancement | 'erreur'>;
+}
+
+/**
+ * « Tout relancer ». `occupes` : les cartes lançables qui tournaient ou étaient
+ * suspendues AVANT le clic — les secondes sont reprises par l'étape 1 et ne
+ * doivent pas recevoir une seconde passe par l'étape 2.
+ */
+export async function toutRelancer(
+  occupes: ReadonlySet<CarteLancable>,
+  routes: RoutesToutRelancer = ROUTES_TOUT,
+): Promise<BilanToutRelancer> {
+  let repris: number | null = null;
+  let pistes: number | null = null;
+  let erreurs = 0;
+  try {
+    const r = await routes.relancerTout();
+    repris = Array.isArray(r?.resumed) ? r.resumed.length : null;
+    const t = r?.retried;
+    if (t) pistes = (t.replaygain ?? 0) + (t.dynamic_range ?? 0) + (t.deferred ?? 0);
+  } catch {
+    try {
+      await routes.reprendreTout();
+    } catch {
+      erreurs += 1;
+    }
+  }
+  const lancements = await lancerTout(occupes, routes);
+  const issues = Object.values(lancements);
+  return {
+    repris,
+    pistes,
+    lances: issues.filter((x) => x === 'lance').length,
+    erreurs: erreurs + issues.filter((x) => x === 'erreur').length,
+    lancements,
+  };
+}

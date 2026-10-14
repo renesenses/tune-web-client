@@ -3834,6 +3834,7 @@ export default {
   "v2.health.launchAlready": "이 작업은 이미 실행 중입니다.",
   "v2.health.launchAllDone": "시작한 작업: {n}",
   "v2.health.launchAllErrors": "시작 실패: {n}",
+  "v2.health.relaunchAllDone": "재개: {r} · 실패한 트랙 재시도: {p} · 시작: {n}.",
   "v2.health.readAt": "{h} 기준",
   "v2.health.cpuTemp": "CPU 온도",
   "v2.health.cpuTempUnavailable": "사용할 수 없음",
