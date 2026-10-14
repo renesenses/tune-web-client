@@ -90,8 +90,6 @@ export function fermerFicheAlbum(): void {
 
 // Artists
 export const artists = writable<Artist[]>([]);
-export const selectedArtist = writable<Artist | null>(null);
-export const artistAlbums = writable<Album[]>([]);
 
 // Tracks
 export const tracks = writable<Track[]>([]);
@@ -113,10 +111,11 @@ export const yearFilter = writable<number | null>(null);
  */
 export const libraryFolderScope = writable<string | null>(null);
 
-// Reset library sub-navigation (artist detail, album detail) to root view.
+// Reset library sub-navigation (album detail) to root view.
+// La fiche d'artiste n'est plus une sous-navigation de la Bibliothèque : c'est
+// la page commune (`streamingartist`, #1232), et `selectedArtist` est retiré.
 // Call this whenever the user explicitly navigates to the Library from the sidebar/tabbar.
 export function resetLibraryNavigation() {
-  selectedArtist.set(null);
   selectedAlbum.set(null);
   // Un clic délibéré sur « Bibliothèque » demande TOUTE la bibliothèque : la
   // portée de répertoire tombe avec le reste de la sous-navigation.
