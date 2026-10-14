@@ -4,7 +4,9 @@
   import type { DashboardData, DashboardPeriod, SlotTrack } from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { activeView } from '../../lib/stores/navigation';
-  import { selectedAlbum, selectedArtist, libraryTab, commencerFicheAlbum, poserPistesAlbum, fermerFicheAlbum, artistAlbums } from '../../lib/stores/library';
+  import { selectedAlbum, libraryTab, commencerFicheAlbum, poserPistesAlbum } from '../../lib/stores/library';
+  import { get } from 'svelte/store';
+  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { artworkSrc } from '../../lib/api';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import DashboardHighlights from './DashboardHighlights.svelte';
@@ -48,21 +50,16 @@
   let visibleGenreBranches = $derived(showAllGenres ? genreBranches : genreBranches.slice(0, 20));
   let genreBranchMax = $derived(visibleGenreBranches.length ? Math.max(...visibleGenreBranches.map(b => b.plays)) : 0);
 
-  // Click → navigate. Use search to find the artist instead of loading all.
-  async function openArtist(name: string) {
+  /**
+   * #1232 — UNE SEULE PAGE ARTISTE. Ce clic posait `selectedArtist` +
+   * `libraryTab = 'artists'`, la navigation de l'ancienne fiche de
+   * bibliothèque : plus aucun écran ne les lisait, on tombait sur la grille.
+   * Il passe désormais par le chemin unique — rapprochement EXACT par le nom
+   * (`artisteLocalParNom`), page commune, et Retour vers ce tableau de bord.
+   */
+  function openArtist(name: string) {
     if (!name) return;
-    try {
-      const results = await api.searchLibrary(name, 5);
-      const hit = results.artists?.find((a: any) => (a.name || '').toLowerCase() === name.toLowerCase());
-      if (hit?.id) {
-        fermerFicheAlbum();
-        selectedArtist.set(hit);
-        const albums = await api.getArtistAlbums(hit.id);
-        artistAlbums.set(albums);
-        libraryTab.set('artists');
-        activeView.set('library');
-      }
-    } catch {}
+    void ouvrirArtisteDepuis({ name }, get(activeView));
   }
 
   async function openAlbum(title: string, artist: string) {
@@ -75,7 +72,6 @@
         (a.title || '').toLowerCase().includes((title || '').toLowerCase())
       );
       if (hit?.id) {
-        selectedArtist.set(null);
         selectedAlbum.set(hit);
         const idFiche = commencerFicheAlbum(hit.id);
         const tracks = await api.getAlbumTracks(hit.id);
@@ -98,7 +94,6 @@
         // sur Album, et la recherche peut le renvoyer vide.
         const album = results.albums?.find((a: any) => a.id === hit.album_id)
           || { id: hit.album_id, title: hit.album_title ?? '', artist_name: hit.artist_name ?? '' };
-        selectedArtist.set(null);
         selectedAlbum.set(album);
         const idFiche = commencerFicheAlbum(hit.album_id);
         const tracks = await api.getAlbumTracks(hit.album_id);
