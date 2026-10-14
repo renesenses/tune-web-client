@@ -58,7 +58,7 @@
   // `lib/journaux.ts` : aucune copie de la route ni du nom de fichier ici.
   import { lireJournaux, telechargerJournaux } from '../../lib/journaux';
   import { lireDiagnosticReseau, iconeVerdict, type EcouteReseau } from '../../lib/diagnosticReseau';
-  import { boutonLancer, CLE_ISSUE, estLancable, lancerTout, lancerTraitement, type CarteLancable } from '../../lib/lancerTraitement';
+  import { boutonLancer, CLE_ISSUE, estLancable, lancerTraitement, toutRelancer as relancerToutLesTraitements, type CarteLancable } from '../../lib/lancerTraitement';
   import '../../styles/tune-v2.css';
 
   type Card = {
@@ -227,26 +227,36 @@
   }
 
   /** Les traitements lançables qui tournent ou sont suspendus : « Tout
-   *  relancer » ne les touche pas (le second se REPREND, par son bouton). */
+   *  relancer » ne leur lance pas de seconde passe — le premier tourne, le
+   *  second est REPRIS par `relaunch-all` (tune-server-rust#6330). */
   const lancablesOccupes = $derived(new Set(
     cards
       .filter((c) => estLancable(c.id) && (c.etat === 'running' || !!(c.traitement && pauses[c.traitement])))
       .map((c) => c.id as CarteLancable),
   ));
   /** Au moins une carte lançable dont l'état est connu. */
-  const relancePossible = $derived(cards.some((c) => estLancable(c.id) && c.etat !== 'inconnu' && c.etat !== 'off'));
+  const relancePossible = $derived(
+    cards.some((c) => estLancable(c.id) && c.etat !== 'inconnu' && c.etat !== 'off')
+    // #6330 — un traitement suspendu (ReplayGain compris) est à relancer.
+    || Object.values(pauses).some(Boolean),
+  );
 
   async function toutRelancer() {
     lancement = '*';
     try {
-      const r = await lancerTout(lancablesOccupes);
-      const issues = Object.values(r);
-      const lances = issues.filter((x) => x === 'lance').length;
-      const echecs = issues.filter((x) => x === 'erreur').length;
-      notifications[lances ? 'success' : 'info'](
-        $t('v2.health.launchAllDone' as any).replace('{n}', String(lances)),
+      // #6330 — reprendre TOUT ce qui est suspendu (ReplayGain compris), rendre
+      // les pistes en échec à la passe, puis lancer ce qui était au repos.
+      const b = await relancerToutLesTraitements(lancablesOccupes);
+      const fait = b.lances + (b.repris ?? 0) + (b.pistes ?? 0);
+      notifications[fait ? 'success' : 'info'](
+        b.repris === null || b.pistes === null
+          ? $t('v2.health.launchAllDone' as any).replace('{n}', String(b.lances))
+          : $t('v2.health.relaunchAllDone' as any)
+            .replace('{r}', String(b.repris))
+            .replace('{p}', String(b.pistes))
+            .replace('{n}', String(b.lances)),
       );
-      if (echecs) notifications.error($t('v2.health.launchAllErrors' as any).replace('{n}', String(echecs)));
+      if (b.erreurs) notifications.error($t('v2.health.launchAllErrors' as any).replace('{n}', String(b.erreurs)));
       void collect();
     } finally {
       lancement = null;

@@ -3853,6 +3853,7 @@ export default {
   "v2.health.launchAlready": "Această procesare rulează deja.",
   "v2.health.launchAllDone": "Procesări pornite: {n}.",
   "v2.health.launchAllErrors": "Pornire eșuată: {n}.",
+  "v2.health.relaunchAllDone": "Reluate: {r} · piese eșuate reîncercate: {p} · pornite: {n}.",
   "v2.health.readAt": "citit la {h}",
   "v2.health.cpuTemp": "Temperatura procesorului",
   "v2.health.cpuTempUnavailable": "indisponibilă",

@@ -3873,6 +3873,7 @@ export default {
   "v2.health.launchAlready": "This task is already running.",
   "v2.health.launchAllDone": "Tasks started: {n}.",
   "v2.health.launchAllErrors": "Failed to start: {n}.",
+  "v2.health.relaunchAllDone": "Resumed: {r} · failed tracks retried: {p} · started: {n}.",
   "v2.health.readAt": "read at {h}",
   "v2.health.cpuTemp": "CPU temperature",
   "v2.health.cpuTempUnavailable": "unavailable",

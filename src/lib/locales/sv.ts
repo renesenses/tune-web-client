@@ -3852,6 +3852,7 @@ export default {
   "v2.health.launchAlready": "Den här bearbetningen körs redan.",
   "v2.health.launchAllDone": "Startade bearbetningar: {n}.",
   "v2.health.launchAllErrors": "Kunde inte starta: {n}.",
+  "v2.health.relaunchAllDone": "Återupptagna: {r} · misslyckade spår försökta igen: {p} · startade: {n}.",
   "v2.health.readAt": "avläst {h}",
   "v2.health.cpuTemp": "Processortemperatur",
   "v2.health.cpuTempUnavailable": "inte tillgänglig",

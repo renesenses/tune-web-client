@@ -5090,6 +5090,18 @@ export function resumeAllBackgroundTasks() {
 }
 
 /**
+ * « Tout relancer » (tune-server-rust#6330) : reprend TOUS les traitements
+ * suspendus, ReplayGain compris, et rend à la passe les pistes en échec de
+ * mesure (ReplayGain, plage dynamique). Rend l'instantané, plus `resumed` et
+ * `retried`. 404 sur un serveur antérieur.
+ */
+export function relaunchAllBackgroundTasks() {
+  return apiPost('/system/background-tasks/relaunch-all') as Promise<
+    import('./tachesDeFond').InstantaneTachesDeFond & import('./lancerTraitement').ReponseRelanceGenerale
+  >;
+}
+
+/**
  * La place de la plage dynamique parmi les passes qui décodent (serveur
  * tune-server-rust#5169) : `last` (défaut, l'ordre historique),
  * `before_fingerprints` (avant les empreintes et le CLAP) ou `first` (avant
@@ -7709,7 +7721,9 @@ export function startBatchEnrich() {
 export function getBatchEnrichStatus() {
   // Forme réelle du JSON serveur (routes/library/enrich.rs) : `status` +
   // `enriched`, PAS `running`/`processed` (Fabien-5).
-  return fetchJSON<{ status: 'running' | 'done' | 'idle'; enriched: number; errors?: number; total: number }>(
+  // tune-server-rust#6282 : `paused` (passe garée, enrichissement suspendu)
+  // et `interrupted` (« running » laissé par une passe qu'un arrêt a tuée).
+  return fetchJSON<{ status: 'running' | 'paused' | 'interrupted' | 'done' | 'idle'; paused?: boolean; enriched: number; errors?: number; total: number }>(
     `${BASE}/library/enrich-all/status`
   );
 }

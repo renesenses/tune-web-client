@@ -3807,6 +3807,7 @@ export default {
   "v2.health.launchAlready": "Ez a feldolgozás már fut.",
   "v2.health.launchAllDone": "Elindított feldolgozások: {n}.",
   "v2.health.launchAllErrors": "Sikertelen indítás: {n}.",
+  "v2.health.relaunchAllDone": "Folytatva: {r} · újrapróbált hibás számok: {p} · elindítva: {n}.",
   "v2.health.readAt": "leolvasva: {h}",
   "v2.health.cpuTemp": "Processzor hőmérséklete",
   "v2.health.cpuTempUnavailable": "nem elérhető",

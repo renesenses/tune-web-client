@@ -3853,6 +3853,7 @@ export default {
   "v2.health.launchAlready": "この処理はすでに実行中です。",
   "v2.health.launchAllDone": "開始した処理: {n}",
   "v2.health.launchAllErrors": "開始に失敗: {n}",
+  "v2.health.relaunchAllDone": "再開: {r} · 失敗したトラックの再試行: {p} · 開始: {n}。",
   "v2.health.readAt": "{h} 時点",
   "v2.health.cpuTemp": "CPU 温度",
   "v2.health.cpuTempUnavailable": "取得できません",

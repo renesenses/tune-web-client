@@ -3853,6 +3853,7 @@ export default {
   "v2.health.launchAlready": "此处理已在运行。",
   "v2.health.launchAllDone": "已启动的处理：{n}",
   "v2.health.launchAllErrors": "启动失败：{n}",
+  "v2.health.relaunchAllDone": "已恢复：{r} · 已重试失败曲目：{p} · 已启动：{n}。",
   "v2.health.readAt": "{h} 采集",
   "v2.health.cpuTemp": "处理器温度",
   "v2.health.cpuTempUnavailable": "不可用",

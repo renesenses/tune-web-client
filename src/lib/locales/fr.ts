@@ -3875,6 +3875,7 @@ export default {
   "v2.health.launchAlready": "Ce traitement tourne déjà.",
   "v2.health.launchAllDone": "Traitements lancés : {n}.",
   "v2.health.launchAllErrors": "Échec du lancement : {n}.",
+  "v2.health.relaunchAllDone": "Repris : {r} · pistes en échec relancées : {p} · lancés : {n}.",
   "v2.health.readAt": "relevé à {h}",
   "v2.health.cpuTemp": "Température du processeur",
   "v2.health.cpuTempUnavailable": "indisponible",

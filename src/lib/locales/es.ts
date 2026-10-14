@@ -3853,6 +3853,7 @@ export default {
   "v2.health.launchAlready": "Esta tarea ya está en curso.",
   "v2.health.launchAllDone": "Tareas iniciadas: {n}.",
   "v2.health.launchAllErrors": "Error al iniciar: {n}.",
+  "v2.health.relaunchAllDone": "Reanudados: {r} · pistas con error reintentadas: {p} · iniciados: {n}.",
   "v2.health.readAt": "leído a las {h}",
   "v2.health.cpuTemp": "Temperatura del procesador",
   "v2.health.cpuTempUnavailable": "no disponible",
