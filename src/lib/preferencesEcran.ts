@@ -40,6 +40,19 @@ export function lireChoix<T extends string>(
   }
 }
 
+/**
+ * Lit un choix LIBRE — une valeur qu'aucune liste fermée ne borne (le filtre
+ * « Source » d'une fiche artiste : `local`, un service, un serveur UPnP).
+ * L'appelant valide ; absent ou stockage indisponible rend `null`.
+ */
+export function lireTexte(cle: string): string | null {
+  try {
+    return localStorage.getItem(PREFIXE + cle);
+  } catch {
+    return null;
+  }
+}
+
 export function ecrireChoix(cle: string, valeur: string): void {
   try {
     localStorage.setItem(PREFIXE + cle, valeur);
