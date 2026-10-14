@@ -88,6 +88,14 @@ export interface Artist {
   bio_provenance?: import('./library/attributionBio').BioProvenance | null;
   image_path?: string | null;
   image_source?: string | null;
+  /**
+   * web#1716 — ses sources dans la bibliothèque, clé de provenance
+   * (`provenanceDe`) → albums et pistes visibles. Rendu par
+   * `/library/artists?provenances=1` ; absent d'un serveur ancien. (Pas
+   * `sources` : ce nom porte déjà les provenances FUSIONNÉES de la Recherche,
+   * `rechercheClassement.ts`.)
+   */
+  provenances?: Record<string, { albums: number; pistes: number }>;
   source_id?: string | null;
   /**
    * Le service d'où vient l'artiste — `'qobuz'`, `'tidal'`… Absent ou
@@ -1404,6 +1412,14 @@ export interface StreamingPlaylist {
    * l'illustration dessinée doit rester entière.
    */
   covers?: string[];
+  /**
+   * L'utilisateur peut-il modifier cette playlist ? `false` : il la suit
+   * seulement (éditoriale, autre compte) ; absent : le serveur ne le dit pas
+   * (web#2097, tune-server-rust lot `batch/bugs-rc5-20261012`).
+   */
+  editable?: boolean | null;
+  /** Le propriétaire, quand le service le donne. */
+  owner?: string | null;
   source: Source;
 }
 

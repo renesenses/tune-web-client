@@ -186,6 +186,11 @@ export const COLONNES: Colonne[] = [
    * police Linux plus large) ; au-delà, le détail s'abrège avec une
    * infobulle (`QualityBadge ajuste`) au lieu d'être tranché. Un témoin
    * tient ce plancher.
+   *
+   * web#2139 (fil 2248) : ces 196 px ne sont plus que la valeur du CATALOGUE.
+   * `ListePistesV2` la remplace par la largeur de la pastille la plus longue de
+   * la liste affichée (`largeurQualite.ts`), toujours en pixels ; le Titre
+   * récupère le reste.
    */
   { cle: 'quality',    cleI18n: 'v2.tcol.quality',    largeur: '196px' },
   /**

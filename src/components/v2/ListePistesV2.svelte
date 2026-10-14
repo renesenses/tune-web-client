@@ -79,6 +79,7 @@
   import PisteActions from './PisteActions.svelte';
   import type { CoeurExterne } from '../../lib/coeurExterne';
   import QualityBadge from '../partages/QualityBadge.svelte';
+  import { largeurColonneQualite } from '../../lib/largeurQualite';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
   import { estIntrouvable, cheminIntrouvable } from '../../lib/pisteIntrouvable';
   import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
@@ -465,7 +466,21 @@
   // Le MODE est passé : une colonne réservée à Expert ne doit pas apparaître
   // si un réglage plus ancien la coche pour un mode inférieur.
   const colonnesDuMode = $derived(colonnesRetenues($preferences.v2Colonnes?.[mode] ?? [], mode));
-  const colonnes = $derived(lectureSeule ? colonnesDuMode.filter((c) => c.cle !== 'path') : colonnesDuMode);
+  const colonnesBrutes = $derived(lectureSeule ? colonnesDuMode.filter((c) => c.cle !== 'path') : colonnesDuMode);
+  /**
+   * web#2139 — la colonne Qualité prend la largeur de la pastille la plus
+   * longue de CETTE liste (calculée en px, jamais `auto` : voir le gabarit) ;
+   * le Titre, en `fr`, récupère le reste. Calculé seulement si la colonne est
+   * affichée.
+   */
+  const largeurQualite = $derived(
+    colonnesBrutes.some((c) => c.cle === 'quality') ? largeurColonneQualite(pistes) : 0,
+  );
+  const colonnes = $derived(
+    largeurQualite
+      ? colonnesBrutes.map((c) => (c.cle === 'quality' ? { ...c, largeur: `${largeurQualite}px` } : c))
+      : colonnesBrutes,
+  );
   /**
    * 🔴 AUCUN `auto` dans ce gabarit. C'est la règle, et elle a une raison.
    *
