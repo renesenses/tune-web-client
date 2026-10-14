@@ -346,8 +346,18 @@
       }
       // Reload current folder — sans étape d'historique : on n'a pas bougé.
       await charger(browseResult.path);
-    } catch (e) {
+    } catch (e: any) {
+      // web#2145 (Tades, fil 2245) : le serveur refuse tout scan pendant qu'un
+      // autre tourne (409 `already_scanning`). Ce refus partait en console :
+      // le bouton se réactivait, le dossier restait « Aucune piste », et
+      // l'utilisateur recliquait sans savoir pourquoi rien ne changeait.
       console.error('Rescan error:', e);
+      notifications.error(
+        e?.status === 409
+          ? $tr('browse.rescanAlreadyScanning' as any)
+          : $tr('browse.rescanFailed' as any).replace('{erreur}', String(e?.message ?? e)),
+        10000,
+      );
     }
     rescanning = false;
   }

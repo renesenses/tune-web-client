@@ -523,6 +523,8 @@ export default {
   'ingest.placementArtist': 'I en artistundermapp',
   'ingest.placementArtistHint': 'Behåller den vanliga strukturen: en mapp per artist här under.',
   'browse.rescanning': 'Skannar...',
+  "browse.rescanAlreadyScanning": "En biblioteksskanning pågår redan: servern vägrade skanna om den här mappen. Försök igen när den är klar.",
+  "browse.rescanFailed": "Det gick inte att skanna om den här mappen: {erreur}",
 
   // Media Servers (UPnP/DLNA)
   'nav.mediaservers': 'Medieservrar',
