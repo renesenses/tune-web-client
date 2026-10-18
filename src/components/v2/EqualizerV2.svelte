@@ -30,7 +30,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
-  import { NEUTRAL_PARAMETRIC_BAND } from '../../lib/eqReset';
+  import { NEUTRAL_PARAMETRIC_BAND, resetParametricBands } from '../../lib/eqReset';
   import ParametricEq from '../partages/ParametricEq.svelte';
   import VoilePur from './VoilePur.svelte';
   import { audiophileEnabled } from '../../lib/stores/audiophile';
@@ -649,10 +649,19 @@
     }
   }
 
+  /**
+   * web#2212 (Tades, Jean Valjean, fil 2314) — « Remettre à plat » ne remettait
+   * à zéro que la grille GRAPHIQUE. En paramétrique, `save()` envoie `pBandes`,
+   * que rien ne touchait : la courbe repartait intacte au serveur et le bouton
+   * semblait sans effet. On remet donc AUSSI la courbe paramétrique à plat, sur
+   * la bande neutre de l'ancien client (`resetParametricBands`, forum #1385) :
+   * un point à saisir, inaudible côté serveur.
+   */
   function reset() {
     enCoursId = null;
     gains = Array(BANDS.length).fill(0);
     if (gainsRight !== null) gainsRight = Array(BANDS.length).fill(0);
+    if (sousMode === 'parametrique') pBandes = resetParametricBands();
     save();
   }
   function toggle() { enabled = !enabled; save(); }

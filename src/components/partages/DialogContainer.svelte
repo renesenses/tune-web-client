@@ -82,8 +82,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Above the other modals (200): a confirmation can be asked from one. */
-    z-index: 300;
+    /* Au-dessus de TOUTES les modales : une confirmation se demande depuis
+       l'une d'elles. À 300, elle passait sous les modales v2 (900) et sous
+       FolderBrowser (1200) : cachée derrière le panneau, elle n'apparaissait
+       qu'une fois la modale fermée, et « Supprimer » une radio échouait
+       (tune-server-rust#6473). Reste sous l'infobulle de texte (2000) et
+       l'écran de session expirée (9000). */
+    z-index: 1500;
     animation: fadeIn 0.15s ease-out;
   }
 
