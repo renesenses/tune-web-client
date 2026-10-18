@@ -70,7 +70,7 @@ describe('fondu enchaîné de zone locale (#2211)', () => {
   });
 
   it('les onze langues nomment le réglage', () => {
-    for (const lang of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu']) {
+    for (const lang of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi']) {
       const src = read(`src/lib/locales/${lang}.ts`);
       for (const cle of ['crossfadeLabel', 'crossfadeHint', 'crossfadeSeconds', 'crossfadeOff', 'crossfadeExclusive']) {
         expect(src, `${lang} : zoneConfig.${cle}`).toContain(`"zoneConfig.${cle}"`);

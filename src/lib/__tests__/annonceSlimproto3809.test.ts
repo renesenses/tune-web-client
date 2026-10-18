@@ -289,7 +289,7 @@ describe('#3809 — coquille ShellV2 (SettingsV2)', () => {
 
 describe('#3809 — l’intitulé départage les deux sens du protocole', () => {
   it('les deux clés existent dans les onze langues et ne sont pas vides', async () => {
-    const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu'];
+    const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi'];
     for (const code of langues) {
       const dico = dictionnaire(code);
       for (const cle of ['settings.slimprotoAnnonce', 'settings.slimprotoAnnonceHint']) {

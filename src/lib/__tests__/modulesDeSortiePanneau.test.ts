@@ -40,6 +40,7 @@ import lDe from '../locales/de';
 import lEn from '../locales/en';
 import lEs from '../locales/es';
 import lHu from '../locales/hu';
+import lVi from '../locales/vi';
 import lIt from '../locales/it';
 import lJa from '../locales/ja';
 import lKo from '../locales/ko';
@@ -274,7 +275,7 @@ describe('#2392 — les onze langues portent les clés du panneau', () => {
     'diagnostics.outputOpenLicense',
   ];
   const LANGUES: Record<string, Record<string, string>> = {
-    fr: lFr, en: lEn, de: lDe, es: lEs, it: lIt, hu: lHu, ja: lJa, ko: lKo, ro: lRo, sv: lSv, zh: lZh,
+    fr: lFr, en: lEn, de: lDe, es: lEs, it: lIt, hu: lHu, vi: lVi, ja: lJa, ko: lKo, ro: lRo, sv: lSv, zh: lZh,
   };
   it.each(Object.keys(LANGUES))('%s', (langue) => {
     const dict = LANGUES[langue];

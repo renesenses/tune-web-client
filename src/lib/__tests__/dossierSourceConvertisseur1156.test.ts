@@ -57,7 +57,7 @@ describe('#1156 — le Convertisseur dit d\'où viennent les albums retenus', ()
   });
 
   it('la clé existe dans les ONZE langues', () => {
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi']) {
       expect(readFileSync(`src/lib/locales/${l}.ts`, 'utf8'), l).toContain('v2.conv.sourceFolder');
     }
   });

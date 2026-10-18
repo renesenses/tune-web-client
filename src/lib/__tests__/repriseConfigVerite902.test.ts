@@ -83,6 +83,7 @@ import ro from '../locales/ro';
 import sv from '../locales/sv';
 import zh from '../locales/zh';
 import hu from '../locales/hu';
+import viLocale from '../locales/vi';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -107,6 +108,7 @@ const MOTS: Record<string, { dict: Record<string, string>; zone: string[]; eq: s
   sv: { dict: sv as any, zone: ['zon'], eq: ['equalizer'] },
   zh: { dict: zh as any, zone: ['区域'], eq: ['均衡器', 'egaliseur'] },
   hu: { dict: hu as any, zone: ['zóná', 'zóna'], eq: ['ekvalizer'] },
+  vi: { dict: viLocale as any, zone: ['vùng'], eq: ['EQ', 'equalizer'] },
 };
 
 const LANGUES = Object.keys(MOTS);

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dictionnaire } from './onzeDictionnaires';
 
-const LOCALES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu'];
+const LOCALES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi'];
 
 describe('#3836 — Ambiance doit DIRE qu’elle cherche un son, pas un genre', () => {
   it('l’écran affiche l’avertissement, et ne code plus le français en dur', () => {

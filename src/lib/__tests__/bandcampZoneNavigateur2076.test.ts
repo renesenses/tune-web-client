@@ -79,7 +79,7 @@ describe('#2076 — le message qui remplace l’accusation existe partout', () =
   it('« aucun flux » est traduit dans les 11 locales du client', async () => {
     // Une clef absente retombe silencieusement sur autre chose : l'auditeur
     // verrait la clef brute, ou pire, un message d'une autre langue.
-    const locales = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
+    const locales = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi'];
     for (const code of locales) {
       const dict = dictionnaire(code);
       expect(dict['bandcamp.noStream'], `bandcamp.noStream manque dans ${code}`).toBeTruthy();

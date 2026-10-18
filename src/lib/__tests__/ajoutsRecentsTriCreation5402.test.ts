@@ -138,7 +138,7 @@ describe('#5402 — tri des ajouts récents par date de création', () => {
 });
 
 describe('#5402 — les libellés dans les onze langues', () => {
-  const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu'];
+  const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi'];
   const CLES = ['library.recentSortModified', 'library.recentSortCreated', 'library.recentCreationFallback'];
   it.each(LANGUES)('%s porte les trois clés, sans double encodage', (l) => {
     const src = readFileSync(resolve(__dirname, `../locales/${l}.ts`), 'utf-8');

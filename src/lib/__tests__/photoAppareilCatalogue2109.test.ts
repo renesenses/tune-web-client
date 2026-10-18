@@ -23,6 +23,7 @@ import en from '../locales/en';
 import es from '../locales/es';
 import fr from '../locales/fr';
 import hu from '../locales/hu';
+import viLocale from '../locales/vi';
 import it_ from '../locales/it';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
@@ -30,7 +31,7 @@ import ro from '../locales/ro';
 import sv from '../locales/sv';
 import zh from '../locales/zh';
 
-const DICOS = { de, en, es, fr, hu, it: it_, ja, ko, ro, sv, zh } as unknown as Record<string, Record<string, string>>;
+const DICOS = { de, en, es, fr, hu, vi: viLocale, it: it_, ja, ko, ro, sv, zh } as unknown as Record<string, Record<string, string>>;
 const traduire = (k: string) => `«${k}»`;
 
 afterEach(() => vi.unstubAllGlobals());

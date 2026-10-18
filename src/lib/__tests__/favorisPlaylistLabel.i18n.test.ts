@@ -11,6 +11,7 @@ import ro from '../locales/ro';
 import sv from '../locales/sv';
 import zh from '../locales/zh';
 import hu from '../locales/hu';
+import viLocale from '../locales/vi';
 
 type Dict = Record<string, string | undefined>;
 
@@ -34,14 +35,14 @@ const LANGUES: Array<[string, Dict]> = [
   ['ro', ro as Dict],
   ['sv', sv as Dict],
   ['zh', zh as Dict],
-  ['hu', hu as Dict],
+  ['hu', hu as Dict], ['vi', viLocale as Dict],
 ];
 
 const CLES = ['favorites.playlists', 'favorites.labels'] as const;
 
 describe('libellés des onglets Playlists et Labels des Favoris', () => {
   it('les onze langues sont couvertes par ce test', () => {
-    expect(LANGUES).toHaveLength(11);
+    expect(LANGUES).toHaveLength(12);
   });
 
   for (const [nom, dict] of LANGUES) {

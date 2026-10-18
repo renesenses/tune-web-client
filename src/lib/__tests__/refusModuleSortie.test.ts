@@ -62,6 +62,7 @@ import lDe from '../locales/de';
 import lEn from '../locales/en';
 import lEs from '../locales/es';
 import lHu from '../locales/hu';
+import lVi from '../locales/vi';
 import lIt from '../locales/it';
 import lJa from '../locales/ja';
 import lKo from '../locales/ko';
@@ -454,7 +455,7 @@ describe('#2392 — les onze langues sont remplies', () => {
   ] as const;
 
   const DICTS: Record<string, Record<string, string>> = {
-    de: lDe, en: lEn, es: lEs, fr: lFr, hu: lHu, it: lIt,
+    de: lDe, en: lEn, es: lEs, fr: lFr, hu: lHu, vi: lVi, it: lIt,
     ja: lJa, ko: lKo, ro: lRo, sv: lSv, zh: lZh,
   };
 

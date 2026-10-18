@@ -13,6 +13,7 @@ import en from '../locales/en';
 import es from '../locales/es';
 import fr from '../locales/fr';
 import hu from '../locales/hu';
+import viLocale from '../locales/vi';
 import it_ from '../locales/it';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
@@ -52,7 +53,7 @@ describe('#6121 — règle « Artiste de l’album »', () => {
   });
 
   it('est traduite dans les onze langues', () => {
-    const langues = { de, en, es, fr, hu, it: it_, ja, ko, ro, sv, zh } as Record<
+    const langues = { de, en, es, fr, hu, vi: viLocale, it: it_, ja, ko, ro, sv, zh } as Record<
       string,
       Record<string, string>
     >;

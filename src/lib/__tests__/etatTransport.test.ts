@@ -21,6 +21,7 @@ import ro from '../locales/ro';
 import sv from '../locales/sv';
 import zh from '../locales/zh';
 import hu from '../locales/hu';
+import viLocale from '../locales/vi';
 
 /**
  * Infobulles d'état de la barre de lecture — `renesenses/tune-server-rust#2733`.
@@ -50,7 +51,7 @@ const LANGUES: Array<[string, Dict]> = [
   ['ro', ro as Dict],
   ['sv', sv as Dict],
   ['zh', zh as Dict],
-  ['hu', hu as Dict],
+  ['hu', hu as Dict], ['vi', viLocale as Dict],
 ];
 
 const MODES: RepeatMode[] = ['off', 'one', 'all'];
@@ -76,7 +77,7 @@ describe('la règle commune donne une clé par état', () => {
 
 describe('les onze langues portent les cinq libellés', () => {
   it('le test couvre bien onze langues', () => {
-    expect(LANGUES).toHaveLength(11);
+    expect(LANGUES).toHaveLength(12);
   });
 
   for (const [nom, dict] of LANGUES) {

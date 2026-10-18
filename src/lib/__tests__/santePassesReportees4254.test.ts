@@ -76,7 +76,7 @@ describe('#4214 / #4254 — les trois cartes lisent les reports', () => {
     expect(SOURCE).toMatch(/total - avec - ecartees - reportees/);
   });
   it('la clé existe dans les onze langues', () => {
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi']) {
       const src = fs.readFileSync(
         fileURLToPath(new URL(`../locales/${l}.ts`, import.meta.url)), 'utf8');
       expect(src, l).toContain('"v2.health.deferredPaths"');

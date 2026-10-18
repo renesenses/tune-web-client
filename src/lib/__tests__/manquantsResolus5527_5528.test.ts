@@ -35,7 +35,7 @@ const sansCommentaires = (src: string) =>
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:"'`\\])\/\/[^\n]*/g, '$1');
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu'];
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi'];
 const CLES = [
   'collections.missingMergedInto',
   'collections.missingReplace',

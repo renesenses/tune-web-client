@@ -25,6 +25,7 @@ import en from '../locales/en';
 import es from '../locales/es';
 import fr from '../locales/fr';
 import hu from '../locales/hu';
+import viLocale from '../locales/vi';
 import it_ from '../locales/it';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
@@ -33,10 +34,10 @@ import sv from '../locales/sv';
 import zh from '../locales/zh';
 
 const DICOS: Record<string, Record<string, string>> = {
-  de, en, es, fr, hu, it: it_, ja, ko, ro, sv, zh,
+  de, en, es, fr, hu, vi: viLocale, it: it_, ja, ko, ro, sv, zh,
 } as unknown as Record<string, Record<string, string>>;
 
-const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'] as const;
+const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi'] as const;
 
 function routes(statuts: Partial<Record<keyof RoutesLancement, string | Error>> = {}) {
   const appels: string[] = [];
