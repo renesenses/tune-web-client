@@ -427,7 +427,14 @@
     let migrationAFaire = false;
     /** 27/09/2026 — la première ligne doit-elle entrer dans cette disposition ? */
     let ligneAMigrer = false;
-    const pid = $currentProfileId;
+    // 🔴 #6454 — `get()`, jamais `$currentProfileId` dans ce code ordinaire.
+    // `$currentProfileId` est la copie que Svelte tient par SA souscription ;
+    // sur l'accueil salué, elle naît tard (le `find` de `profil` ne lit le
+    // magasin qu'une fois `$profiles` rempli), APRÈS la reprise de `onMount`.
+    // Quand le profil arrive, la reprise passe avant elle et lisait encore
+    // `null` : tous les widgets restaient sur « Chargement… » (rc6, depuis
+    // que `loadProfiles()` attend `/profiles/dernier-choisi`, #5916).
+    const pid = get(currentProfileId);
     if (pid == null) {
       // On rend la page malgré tout — un cadre vide vaut mieux qu'un écran
       // blanc — mais on ne charge RIEN : sans profil, les préférences n'ont
@@ -549,7 +556,9 @@
   }
 
   async function enregistrer() {
-    const pid = $currentProfileId;
+    // #6454 — même raison que dans `charger()` : la valeur du magasin, pas la
+    // copie de Svelte, qui peut retarder hors du cycle réactif.
+    const pid = get(currentProfileId);
     if (pid == null) return;
     try {
       // 🔴 Les identifiants INCONNUS de cette version sont conservés : on
