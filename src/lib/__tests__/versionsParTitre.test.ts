@@ -43,6 +43,7 @@ import lKo from '../locales/ko';
 import lRo from '../locales/ro';
 import lSv from '../locales/sv';
 import lHu from '../locales/hu';
+import lVi from '../locales/vi';
 
 const fr: Record<string, string> = lFr as any;
 
@@ -316,9 +317,9 @@ describe('i18n — la clé de l’en-tête dans les onze langues', () => {
   const LANGUES: [string, Record<string, string>][] = [
     ['fr', lFr as any], ['en', lEn as any], ['de', lDe as any], ['es', lEs as any],
     ['it', lIt as any], ['zh', lZh as any], ['ja', lJa as any], ['ko', lKo as any],
-    ['ro', lRo as any], ['sv', lSv as any], ['hu', lHu as any],
+    ['ro', lRo as any], ['sv', lSv as any], ['hu', lHu as any], ['vi', lVi as any],
   ];
-  it('couvre bien onze langues', () => { expect(LANGUES).toHaveLength(11); });
+  it('couvre bien onze langues', () => { expect(LANGUES).toHaveLength(12); });
   for (const [langue, dict] of LANGUES) {
     it(`library.otherVersionsByTitle — ${langue}`, () => {
       expect(dict['library.otherVersionsByTitle'], `manque en ${langue}`).toBeTruthy();

@@ -30,7 +30,7 @@ const lire = (p: string) => readFileSync(resolve(__dirname, p), 'utf-8');
 const api = lire('../api.ts');
 const settingsV2 = lire('../../components/v2/SettingsV2.svelte');
 
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh'] as const;
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi'] as const;
 const dict = (l: string) => (LOCALES as Record<string, Record<string, string>>)[l];
 
 /** Les cinq clés du sélecteur : son titre et ses quatre paliers. */

@@ -34,6 +34,7 @@ import ro from '../locales/ro';
 import sv from '../locales/sv';
 import zh from '../locales/zh';
 import hu from '../locales/hu';
+import viLocale from '../locales/vi';
 
 const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 
@@ -103,7 +104,7 @@ type Dict = Record<string, string | undefined>;
 const LANGUES: Array<[string, Dict]> = [
   ['fr', fr as Dict], ['en', en as Dict], ['de', de as Dict], ['es', es as Dict],
   ['it', it_ as Dict], ['ja', ja as Dict], ['ko', ko as Dict], ['ro', ro as Dict],
-  ['sv', sv as Dict], ['zh', zh as Dict], ['hu', hu as Dict],
+  ['sv', sv as Dict], ['zh', zh as Dict], ['hu', hu as Dict], ['vi', viLocale as Dict],
 ];
 const CLES = [
   'smartCollection.fieldAiGenerated',

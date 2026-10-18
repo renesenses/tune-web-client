@@ -9,7 +9,7 @@ import { widgetParId, DISPOSITION_DEFAUT } from '../accueilWidgets';
  * semaine. Tous vivent de `GET /library/history/dashboard`, qui porte déjà
  * `top_artists`, `top_radios` et les totaux : aucune route nouvelle.
  */
-const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
+const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi'];
 const ctx: any = { profileId: null, langue: 'fr' };
 
 function reponse(extra: Record<string, unknown> = {}) {

@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { dictionnaire } from './onzeDictionnaires';
 
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh'];
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi'];
 
 describe('#999 — l’entrée de la barre dit ce qu’elle ouvre', () => {
   for (const code of LANGUES) {

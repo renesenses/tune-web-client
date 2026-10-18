@@ -15,6 +15,7 @@ import ro from '../locales/ro';
 import sv from '../locales/sv';
 import zh from '../locales/zh';
 import hu from '../locales/hu';
+import viLocale from '../locales/vi';
 
 /**
  * Deux réglages avalés par la fusion `f14553f` (« Merge branch
@@ -49,7 +50,7 @@ import hu from '../locales/hu';
 
 const API = readFileSync(resolve(__dirname, '../api.ts'), 'utf8');
 
-const LOCALES = { fr, en, de, es, it: it_, ja, ko, ro, sv, zh, hu } as Record<
+const LOCALES = { fr, en, de, es, it: it_, ja, ko, ro, sv, zh, hu, vi: viLocale } as Record<
   string,
   Record<string, string>
 >;
@@ -58,7 +59,7 @@ describe('les 11 langues sont bien toutes chargées', () => {
   // Garde-fou contre le piège vécu : un échantillon vide rend « présent »
   // partout. Si cette liste rétrécit, les boucles ci-dessous ne prouvent rien.
   it('compte 11 locales', () => {
-    expect(Object.keys(LOCALES)).toHaveLength(11);
+    expect(Object.keys(LOCALES)).toHaveLength(12);
   });
 });
 
@@ -105,7 +106,7 @@ describe('infobulle du « Scan complet » (ac0a01f)', () => {
     // ne pouvait pas deviner qu'un scan complet ré-extrait aussi les pochettes.
     // `coper` couvre l'italien « copertine » ET le roumain « coperțile » — le
     // ț roumain n'est pas un t, un motif `copert` ne l'attraperait pas.
-    const POCHETTE = /pochette|cover|carátula|coper|ジャケット|커버|封面|omslag|borító/i;
+    const POCHETTE = /pochette|cover|carátula|coper|ジャケット|커버|封面|omslag|borító|ảnh bìa/i;
     for (const [code, dict] of Object.entries(LOCALES)) {
       const v = dict['settings.fullScanTitle'];
       expect(v, `settings.fullScanTitle manquant en ${code}`).toBeTruthy();

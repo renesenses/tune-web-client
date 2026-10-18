@@ -179,6 +179,7 @@ describe('la clé du plafond existe dans les onze langues', () => {
     ro: locales.ro,
     sv: locales.sv,
     hu: locales.hu,
+    vi: locales.vi,
   } as Record<string, Record<string, string>>;
 
   for (const [code, dict] of Object.entries(LANGUES)) {

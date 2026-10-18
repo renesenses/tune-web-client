@@ -107,7 +107,7 @@ describe('attente de lecture — le témoin est VISIBLE', () => {
   });
 
   it('les 11 langues portent la clé', () => {
-    const langues = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu'];
+    const langues = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi'];
     for (const l of langues) {
       expect(lire(`src/lib/locales/${l}.ts`)).toContain('transport.preparing');
     }

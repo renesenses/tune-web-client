@@ -291,7 +291,7 @@ describe('la disposition de canaux — ce que le SERVEUR en dit', () => {
       'channels_surround714', 'channels_surround916',
       'channels_immersive24', 'channels_immersive32',
     ];
-    const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
+    const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi'];
     for (const langue of langues) {
       const src = lire(`src/lib/locales/${langue}.ts`);
       for (const cle of cles) {

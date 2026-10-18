@@ -86,7 +86,7 @@ describe('#5081 — l’échelle et les bornes de l’ombre de la tête', () => 
     const tables = Object.values(LOCALES).filter(
       (v) => v && typeof v === 'object' && 'v2.cf.amountHint' in (v as object),
     ) as Record<string, string>[];
-    expect(tables).toHaveLength(11);
+    expect(tables).toHaveLength(12);
     for (const cle of [
       'v2.cf.headShadow', 'v2.cf.headShadowHint', 'v2.cf.cutoff', 'v2.cf.cutoffHint',
       'v2.cf.cutoffAria', 'v2.cf.slope', 'v2.cf.slopeHint', 'v2.cf.slopeAria',
