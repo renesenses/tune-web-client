@@ -58,12 +58,16 @@
 
   /** Supprimer la station — porté de l'ancien écran Radios, seul à le permettre. */
   async function supprimer() {
-    if (radio.id == null) return;
+    // #6473 — l'`id` est lu AVANT l'attente : si la modale se ferme pendant la
+    // confirmation, la prop `radio` passe à `null` et `radio.id` levait une
+    // TypeError au lieu de supprimer la station que l'utilisateur confirme.
+    const id = radio.id;
+    if (id == null) return;
     if (!(await dialogs.confirm($t('radio.deleteConfirm' as any), { danger: true }))) return;
     travail = true;
     try {
-      await api.deleteRadio(radio.id);
-      onDeleted?.(radio.id);
+      await api.deleteRadio(id);
+      onDeleted?.(id);
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     } finally {
