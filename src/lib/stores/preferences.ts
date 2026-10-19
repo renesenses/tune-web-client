@@ -238,6 +238,15 @@ export interface Preferences {
    *  le nom contient ces mots, dans cet ordre. Désactivée par défaut. */
   searchExact: boolean;
   /**
+   * tune-server-rust#6474 (René, fil 2313) — « Trier les artistes par nom de
+   * famille ». Coché : la liste des artistes et son rail A–Z suivent le NOM DE
+   * TRI quand il est connu (ARTISTSORT, ALBUMARTISTSORT, ou saisi dans
+   * « Modifier l'artiste ») — Miles Davis sous D. Décoché : le nom affiché,
+   * toujours. Le nom affiché ne change jamais. Coché par défaut : c'est l'ordre
+   * livré depuis #4956.
+   */
+  trierArtistesParNomDeTri: boolean;
+  /**
    * Mosaïque de quatre pochettes sur les cartes de collection, ou pochette
    * UNIQUE — l'écran compact de l'ancien client.
    *
@@ -482,6 +491,8 @@ const defaults: Preferences = {
   v2AlbumTechLine: false,
   v2ActionsReduites: false,
   searchExact: false,
+  // #6474 : l'ordre livré (nom de tri quand il existe) reste le défaut.
+  trierArtistesParNomDeTri: true,
   v2CollectionsMosaique: true,
   // #1428 — DÉCOCHÉ, et c'est la décision de Bertrand du 22/09/2026, pas un
   // oubli : l'écran de qui n'a rien demandé ne bouge pas d'un pixel.

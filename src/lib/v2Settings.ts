@@ -106,6 +106,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan'] },
       { id: 'searchExact', titleKey: 'settings.searchExact', from: 'library', min: 'beginner',
         keywords: ['recherche', 'exacte', 'guillemets', 'artiste', 'album', 'titre'] },
+      // tune-server-rust#6474 (René, fil 2313) — « Settings → Library →
+      // Artist sort order ».
+      { id: 'artistSort', titleKey: 'settings.artistSort', from: 'library', min: 'beginner',
+        keywords: ['artistes', 'tri', 'nom de famille', 'nom de tri', 'artistsort', 'sort', 'surname'] },
       { id: 'scanSched',  titleKey: 'settings.scanSchedule', from: 'library', min: 'intermediate', keywords: ['planification', 'automatique'] },
       /**
        * `min: 'beginner'` — renesenses/tune-server-rust#4051. La carte porte

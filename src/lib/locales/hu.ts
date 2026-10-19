@@ -1028,6 +1028,9 @@ export default {
   "settings.networkPollIntervalRange": "{min} és {max} perc között",
   "settings.searchExactLabel": "Pontos keresés",
   "settings.searchExactHint": "A beírt szavakat kifejezésként, ebben a sorrendben keresi előadó, album vagy szám nevében – mintha idézőjelben lennének.",
+  "settings.artistSort": "Előadók rendezése",
+  "settings.artistSortLabel": "Előadók rendezése vezetéknév szerint",
+  "settings.artistSortHint": "Az előadókat a rendezési nevük szerint rendezi, ha ismert (ARTISTSORT vagy ALBUMARTISTSORT címke, vagy az „Előadó szerkesztése” alatt megadott rendezési név): Miles Davis a D betűhöz kerül. A megjelenített név nem változik. A rendezési név nélküli előadó a neve szerint marad.",
   // Squeezebox / Lyrion
   "settings.squeezebox": "Squeezebox / Lyrion",
   "settings.squeezeboxHint": "Csatlakoztasd a helyi hálózatodon a Lyrion Music Server (LMS) által kezelt Squeezebox-lejátszókat.",

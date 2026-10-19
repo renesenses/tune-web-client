@@ -925,6 +925,9 @@ export default {
   "settings.networkPollIntervalRange": "{min}~{max}분",
   "settings.searchExactLabel": "정확히 일치 검색",
   "settings.searchExactHint": "입력한 단어를 그 순서대로 아티스트, 앨범, 트랙 이름에서 찾습니다(큰따옴표로 묶은 것과 같음).",
+  "settings.artistSort": "아티스트 정렬",
+  "settings.artistSortLabel": "아티스트를 성으로 정렬",
+  "settings.artistSortHint": "정렬 이름을 알 수 있으면 그 이름으로 아티스트를 정렬합니다(ARTISTSORT 또는 ALBUMARTISTSORT 태그, 또는 '아티스트 편집'에서 입력한 정렬 이름). Miles Davis는 D에 들어갑니다. 표시되는 이름은 바뀌지 않습니다. 정렬 이름이 없는 아티스트는 이름대로 정렬됩니다.",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',

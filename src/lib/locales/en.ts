@@ -1077,6 +1077,9 @@ export default {
   "settings.networkPollIntervalRange": "from {min} to {max} minutes",
   "settings.searchExactLabel": "Exact search",
   "settings.searchExactHint": "Match the typed words as a phrase, in that order, in an artist, album or track name — as if they were in double quotes. Double quotes still work without this setting.",
+  "settings.artistSort": "Artist sorting",
+  "settings.artistSortLabel": "Sort artists by family name",
+  "settings.artistSortHint": "Sorts artists by their sort name when it is known (ARTISTSORT or ALBUMARTISTSORT tags, or the sort name entered in “Edit artist”): Miles Davis is filed under D. The displayed name does not change. An artist without a sort name stays filed under its name.",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',

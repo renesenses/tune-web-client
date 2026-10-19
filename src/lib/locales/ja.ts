@@ -941,6 +941,9 @@ export default {
   "settings.networkPollIntervalRange": "{min}～{max} 分",
   "settings.searchExactLabel": "完全一致検索",
   "settings.searchExactHint": "入力した語句をその順序のまま、アーティスト・アルバム・トラック名から検索します（二重引用符で囲んだ場合と同じ）。",
+  "settings.artistSort": "アーティストの並び順",
+  "settings.artistSortLabel": "アーティストを姓で並べ替える",
+  "settings.artistSortHint": "ソート名が分かっている場合はソート名でアーティストを並べ替えます（ARTISTSORT または ALBUMARTISTSORT タグ、または「アーティストを編集」で入力したソート名）。Miles Davis は D に入ります。表示名は変わりません。ソート名のないアーティストは名前のまま並びます。",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',

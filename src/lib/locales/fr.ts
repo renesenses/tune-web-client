@@ -1081,6 +1081,9 @@ export default {
   "settings.networkPollIntervalRange": "de {min} à {max} minutes",
   "settings.searchExactLabel": "Recherche exacte",
   "settings.searchExactHint": "Cherche les mots saisis tels quels, dans cet ordre, dans le nom d’un artiste, d’un album ou d’un titre — comme s’ils étaient entre guillemets. Les doubles guillemets restent utilisables sans ce réglage.",
+  "settings.artistSort": "Tri des artistes",
+  "settings.artistSortLabel": "Trier les artistes par nom de famille",
+  "settings.artistSortHint": "Range les artistes sur leur nom de tri quand il est connu (balises ARTISTSORT ou ALBUMARTISTSORT, ou nom de tri saisi dans « Éditer l’artiste ») : Miles Davis se range à D. Le nom affiché ne change pas. Un artiste sans nom de tri reste rangé à son nom.",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
