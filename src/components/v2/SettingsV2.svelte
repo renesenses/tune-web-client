@@ -119,6 +119,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
+  import PlagesMacV2 from './PlagesMacV2.svelte';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
@@ -7111,6 +7112,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+
+            {:else if s.id === 'macRanges'}
+              <!-- #2244 — plage MAC reconnue et marque de chaque appareil, et
+                   la table entière (tune-server-rust#6546). Serveur ancien :
+                   le composant se tait. -->
+              <PlagesMacV2 appareils={$devices} />
             {/if}
           </section>
         {/each}

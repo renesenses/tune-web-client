@@ -1,6 +1,7 @@
 // REST API client for tune-server
 
 import { notifications } from './stores/notifications';
+import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
@@ -1320,6 +1321,21 @@ export function changeZoneOutput(id: number, outputType: string, outputDeviceId?
 
 export function getDevices() {
   return fetchJSON<DiscoveredDevice[]>(`${BASE}/devices`);
+}
+
+/**
+ * La table des plages MAC reconnues, groupée par marque (#2244,
+ * tune-server-rust#6546). `null` quand le serveur ne la sert pas (serveur
+ * antérieur : 404) ou rend autre chose : l'écran masque alors le bloc.
+ * Sans bandeau : une route absente n'est pas une panne.
+ */
+export async function getOuiAudio(): Promise<TableOuiAudio | null> {
+  try {
+    const corps = await fetchJSON<unknown>(`${BASE}/devices/oui-audio`, undefined, undefined, true);
+    return lireTableOui(corps);
+  } catch {
+    return null;
+  }
 }
 
 export function clearDevices() {
