@@ -107,7 +107,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'library',    titleKey: 'settings.library',      from: 'library', min: 'beginner' },
       { id: 'musicDirs',  titleKey: 'settings.musicDirs',    from: 'library', min: 'beginner', keywords: ['dossiers', 'chemins'] },
-      { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan'] },
+      { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan', 'coffret', 'coffrets', 'box set'] },
       { id: 'searchExact', titleKey: 'settings.searchExact', from: 'library', min: 'beginner',
         keywords: ['recherche', 'exacte', 'guillemets', 'artiste', 'album', 'titre'] },
       { id: 'scanSched',  titleKey: 'settings.scanSchedule', from: 'library', min: 'intermediate', keywords: ['planification', 'automatique'] },
@@ -153,6 +153,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'zoneAutoCreate', titleKey: 'settings.zoneAutoCreate', from: 'services', min: 'beginner', keywords: ['zones de lecture', 'création automatique'] },
       { id: 'followMe',       titleKey: 'settings.followMe',       from: 'services', min: 'beginner', keywords: ['me suivre', 'suivi', 'pause'] },
+      // #2244 — plages MAC reconnues : la plage et la marque de chaque
+      // appareil, et la table OUI entière (tune-server-rust#6546).
+      { id: 'macRanges',      titleKey: 'settings.macRanges',      from: 'devices',  min: 'beginner',
+        keywords: ['mac', 'oui', 'plage', 'préfixe', 'marque', 'fabricant', 'adresse mac', 'vendor', 'prefix'] },
     ],
   },
   {

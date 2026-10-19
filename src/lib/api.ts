@@ -1,6 +1,8 @@
+import { avecLangueSignal } from './langueRequete';
 // REST API client for tune-server
 
 import { notifications } from './stores/notifications';
+import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
@@ -262,7 +264,7 @@ export async function apiFetch(path: string): Promise<any> {
   const token = getToken();
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), { headers });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
   // du serveur est composé en français par `require_premium`, il ne doit jamais
@@ -281,7 +283,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), {
     method: 'POST',
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -304,7 +306,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), {
     method: 'PATCH',
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -326,7 +328,7 @@ export async function apiDelete(path: string): Promise<any> {
   const token = getToken();
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), { method: 'DELETE', headers });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
   // du serveur est composé en français par `require_premium`, il ne doit jamais
@@ -512,7 +514,7 @@ export async function fetchJSON<T>(
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    response = await fetch(url, {
+    response = await fetch(avecLangueSignal(url, acceptLang()), {
       headers,
       ...options,
     });
@@ -738,7 +740,7 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    response = await fetch(url, {
+    response = await fetch(avecLangueSignal(url, acceptLang()), {
       headers,
       ...options,
     });
@@ -1322,6 +1324,21 @@ export function getDevices() {
   return fetchJSON<DiscoveredDevice[]>(`${BASE}/devices`);
 }
 
+/**
+ * La table des plages MAC reconnues, groupée par marque (#2244,
+ * tune-server-rust#6546). `null` quand le serveur ne la sert pas (serveur
+ * antérieur : 404) ou rend autre chose : l'écran masque alors le bloc.
+ * Sans bandeau : une route absente n'est pas une panne.
+ */
+export async function getOuiAudio(): Promise<TableOuiAudio | null> {
+  try {
+    const corps = await fetchJSON<unknown>(`${BASE}/devices/oui-audio`, undefined, undefined, true);
+    return lireTableOui(corps);
+  } catch {
+    return null;
+  }
+}
+
 export function clearDevices() {
   return fetchJSON<{ cleared: number }>(`${BASE}/devices/clear`, { method: 'POST' });
 }
@@ -1739,8 +1756,21 @@ export function setVolumeDb(zoneId: number, volumeDb: number) {
   });
 }
 
+/**
+ * Réponse de `POST /zones/{id}/shuffle`. Depuis tune-server-rust#6526 le
+ * serveur RÉORDONNE la file : `queue_reordered` dit si l'ordre a changé,
+ * `queue_position` où se trouve maintenant le titre en cours (il bouge quand
+ * l'ordre d'origine est rétabli). Champs absents d'un serveur plus ancien.
+ */
+export interface ReponseAleatoire {
+  shuffle: boolean;
+  queue_reordered?: boolean;
+  queue_position?: number;
+  queue_length?: number;
+}
+
 export function setShuffle(zoneId: number, enabled: boolean) {
-  return fetchJSON<{ shuffle: boolean }>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
+  return fetchJSON<ReponseAleatoire>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
     method: 'POST',
   });
 }
@@ -7196,6 +7226,11 @@ export function rateAlbum(albumId: number, rating: number, note?: string) {
 
 export function getAlbumRating(albumId: number) {
   return fetchJSON<any>(`${BASE}/library/albums/${albumId}/rating`);
+}
+
+/** #6545 — notes et écoutes de la communauté pour un album (agrégats du site). */
+export function getAlbumCommunity(albumId: number) {
+  return fetchJSON<import('./notesCommunautaires').AgregatsCommunautaires>(`${BASE}/library/albums/${albumId}/community`);
 }
 
 export function getTopRatedAlbums(limit = 20) {
