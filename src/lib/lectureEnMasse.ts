@@ -93,10 +93,24 @@ export function planDeLecture(liste: readonly Track[]): PlanLecture {
   }
   return {
     voie: 'tete-et-reste',
-    tete: corpsDeLecture(jouables[0])!,
+    tete: corpsDeTete(jouables[0]),
     reste: corpsDeFileListe(jouables.slice(1)),
     pistes: jouables.length,
   };
+}
+/**
+ * Le corps qui lance la TÊTE d'une liste mixte, et remplace la file.
+ *
+ * #2130 (fil 2243) : `{ track_id }` seul est, pour le serveur, la « demande
+ * nue » de la barre de transport (#2876 / #4298) : si le titre figure DÉJÀ
+ * dans la file, il la GARDE et s'y place. Après un « Tout lire » d'une
+ * collection mixte, « Aléatoire » tirait donc un titre déjà en file : la file
+ * d'albums entiers restait en place, et la suite mélangée s'enfilait derrière.
+ * `start_index: 0` en fait un nouveau geste d'écoute — le procédé que
+ * `lireListeDepuis` emploie déjà (#5758).
+ */
+function corpsDeTete(t: Track): Record<string, unknown> {
+  return estPisteLocale(t) ? { track_id: t.id!, start_index: 0 } : corpsDeLecture(t)!;
 }
 /**
  * Le même plan, sur la liste MÉLANGÉE puis bornée au plafond de la file
@@ -106,7 +120,15 @@ export function planAleatoire(
   liste: readonly Track[],
   plafond: number = FILE_ALEATOIRE_DEFAUT,
 ): PlanLecture {
-  return planDeLecture(tirageAleatoire(pistesJouables(liste), plafond));
+  const tirage = tirageAleatoire(pistesJouables(liste), plafond);
+  // #2130 — une tête de SERVICE déjà en file garde, elle aussi, l'ancienne
+  // file (`file_deja_chargee`, tune-server-rust#2569), et `/play` n'a pour
+  // elle aucun moyen de dire « remplace ». Le tirage étant aléatoire, mettre
+  // en tête le premier titre LOCAL tiré ne change rien au hasard, et rend
+  // le remplacement sûr dès que la liste en compte un.
+  const local = tirage.findIndex((t) => estPisteLocale(t));
+  if (local > 0) tirage.unshift(...tirage.splice(local, 1));
+  return planDeLecture(tirage);
 }
 /** Une portée est utilisable si elle porte au moins un critère renseigné. */
 export function porteeUtilisable(p: PorteeServeur | null | undefined): boolean {
