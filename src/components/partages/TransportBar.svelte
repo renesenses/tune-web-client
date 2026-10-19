@@ -504,6 +504,20 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   let track = $derived($currentTrack);
   let playState = $derived($playbackState);
   let configZone = $state<typeof zone | null>(null);
+  /** web#2141 — la section où ouvrir la fenêtre de la zone. */
+  let configSection = $state<'groupe' | null>(null);
+  /**
+   * web#2141 (Didier, fil 2215) — la lecture groupée n'était atteignable que
+   * par un CLIC DROIT sur le bouton de zone : introuvable, et impossible au
+   * doigt. Le sélecteur de zones, qui s'ouvre au clic comme au toucher, porte
+   * désormais une entrée qui ouvre la même fenêtre, à la section du geste.
+   */
+  function ouvrirLectureGroupee() {
+    if (!zone) return;
+    $selecteurZoneOuvert = false;
+    configSection = 'groupe';
+    configZone = zone;
+  }
 
   /* ------------------------------------------------------------------ */
   /* TRANSFÉRER LA LECTURE VERS UNE AUTRE ZONE                          */
@@ -1054,6 +1068,19 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
             -->
             </div>
           {/each}
+          {#if zone && zonesDuMenu.length > 1}
+            <button class="zone-popover-item zone-popover-groupe" data-lecture-groupee onclick={ouvrirLectureGroupee}
+              title={$t('zone.groupedPlaybackOpenTip' as any)}>
+              <span class="zone-popover-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><rect x="2" y="7" width="8" height="10" rx="2"/><rect x="14" y="7" width="8" height="10" rx="2"/><path d="M10 12h4"/></svg>
+              </span>
+              <!-- Pas `zone-popover-name` : ce n'est pas une zone, et la liste
+                   des noms de zones ne doit pas la compter. -->
+              <span class="zone-popover-labels">
+                <span class="zone-popover-geste truncate">{$t('zone.groupedPlaybackOpen' as any)}</span>
+              </span>
+            </button>
+          {/if}
         </div>
 {/snippet}
 
@@ -1523,7 +1550,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         class:zone-offline={zone?.online === false && zone?.recovery_started_at == null}
         class:zone-online={zone?.online !== false && zone?.recovery_started_at == null}
         onclick={(e) => { e.stopPropagation(); $selecteurZoneOuvert = !$selecteurZoneOuvert; }}
-        oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); if (zone) configZone = zone; }}
+        oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); if (zone) { configSection = null; configZone = zone; } }}
         title={zone ? `${zoneFullLabel(zone)} — ${$t('zone.switchZone')}` : $t('zone.switchZone')}
         aria-label={zone ? zoneFullLabel(zone) : $t('zone.switchZone')}
       >
@@ -1744,8 +1771,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     zone={configZone}
     allZones={$zones}
     groups={[]}
-    onClose={() => configZone = null}
-    onDelete={async (id) => { await supprimerZoneConfirmee(id); configZone = null; }}
+    section={configSection}
+    onClose={() => { configZone = null; configSection = null; }}
+    onDelete={async (id) => { await supprimerZoneConfirmee(id); configZone = null; configSection = null; }}
     onGroupChanged={() => {}}
     onRenamed={() => {}}
   />
@@ -2619,6 +2647,18 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   .zone-popover-row:last-child {
     border-radius: 0 0 12px 12px;
     overflow: hidden;
+  }
+
+  /* web#2141 — « Lecture groupée… », en pied du sélecteur, séparée des zones :
+     ce n'est pas une zone de plus, c'est un geste sur la zone pilotée. */
+  .zone-popover-groupe {
+    width: 100%;
+    border-top: 1px solid var(--tune-border);
+    border-radius: 0 0 12px 12px;
+    color: var(--tune-text-secondary);
+  }
+  .zone-popover-groupe:hover {
+    background: var(--tune-surface-hover);
   }
 
   .zone-popover-item {
