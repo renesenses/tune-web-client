@@ -1,7 +1,7 @@
 export default {
   "sacdIso.title": "SACD ISO",
-  "sacdIso.available": "서버에서 sacd_extract를 찾았습니다. 모든 ISO의 추출을 보장하지는 않습니다.",
-  "sacdIso.missing": "Tune에서 sacd_extract를 찾지 못했습니다. 서버에 별도로 설치하세요. PATH를 변경했다면 Tune을 다시 시작한 후 다시 스캔하세요. Tune에는 이 도구가 포함되어 있지 않습니다.",
+  "sacdIso.available": "Tune은 SACD ISO를 직접 읽습니다. 서버에서 찾은 sacd_extract는 DST 디스크(압축 DSD)에만 쓰이며, 모든 디스크의 추출을 보장하지는 않습니다.",
+  "sacdIso.missing": "Tune은 SACD ISO를 직접 읽습니다. 이를 위해 설치할 것은 없습니다. sacd_extract는 DST 디스크(압축 DSD)에만 필요하며, 이 서버에서는 찾지 못했습니다. DST 디스크가 있다면 별도로 설치하고, PATH를 변경했다면 Tune을 다시 시작한 후 다시 스캔하세요.",
   "sacdIso.unknown": "sacd_extract 사용 가능 여부를 확인할 수 없습니다. 다시 시도하세요. 도구가 없다는 의미는 아닙니다.",
   "sacdIso.loading": "sacd_extract 확인 중…",
   "sacdIso.check": "다시 확인",
