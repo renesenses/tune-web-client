@@ -2421,6 +2421,8 @@ export default {
   "v2.nav.later": "Escuchar más tarde",
   "v2.later.add": "Escuchar más tarde",
   "v2.later.remove": "Quitar de Escuchar más tarde",
+  "v2.later.albumAddTip": "Guardar este álbum para escucharlo más tarde.",
+  "v2.later.albumRemoveTip": "Quitar este álbum de su lista Escuchar más tarde.",
   "v2.later.added": "Añadido a Escuchar más tarde",
   "v2.later.removed": "Quitado de Escuchar más tarde",
   "v2.later.eyebrow": "Lo que has apartado",

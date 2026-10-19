@@ -2421,6 +2421,8 @@ export default {
   "v2.nav.later": "稍后收听",
   "v2.later.add": "稍后收听",
   "v2.later.remove": "从“稍后收听”中移除",
+  "v2.later.albumAddTip": "将这张专辑留待稍后收听。",
+  "v2.later.albumRemoveTip": "将这张专辑从“稍后收听”列表中移除。",
   "v2.later.added": "已加入“稍后收听”",
   "v2.later.removed": "已从“稍后收听”移除",
   "v2.later.eyebrow": "你暂时收起的内容",

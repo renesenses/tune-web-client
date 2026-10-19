@@ -2420,6 +2420,8 @@ export default {
   "v2.nav.later": "Lyssna senare",
   "v2.later.add": "Lyssna senare",
   "v2.later.remove": "Ta bort från Lyssna senare",
+  "v2.later.albumAddTip": "Lägg undan albumet för att lyssna på det senare.",
+  "v2.later.albumRemoveTip": "Ta bort albumet från din lista Lyssna senare.",
   "v2.later.added": "Tillagd i Lyssna senare",
   "v2.later.removed": "Borttagen från Lyssna senare",
   "v2.later.eyebrow": "Det du lagt undan",

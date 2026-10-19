@@ -2421,6 +2421,8 @@ export default {
   "v2.nav.later": "Später hören",
   "v2.later.add": "Später hören",
   "v2.later.remove": "Aus „Später hören“ entfernen",
+  "v2.later.albumAddTip": "Dieses Album zurücklegen, um es später zu hören.",
+  "v2.later.albumRemoveTip": "Dieses Album aus Ihrer Liste „Später hören“ entfernen.",
   "v2.later.added": "Zu „Später hören“ hinzugefügt",
   "v2.later.removed": "Aus „Später hören“ entfernt",
   "v2.later.eyebrow": "Was Sie beiseitegelegt haben",

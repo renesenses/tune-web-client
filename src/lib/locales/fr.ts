@@ -1399,6 +1399,8 @@ export default {
   "v2.nav.later": "Écouter plus tard",
   "v2.later.add": "Écouter plus tard",
   "v2.later.remove": "Retirer d’Écouter plus tard",
+  "v2.later.albumAddTip": "Mettre cet album de côté, pour l'écouter plus tard.",
+  "v2.later.albumRemoveTip": "Retirer cet album de votre liste Écouter plus tard.",
   "v2.later.added": "Ajouté à Écouter plus tard",
   "v2.later.removed": "Retiré d’Écouter plus tard",
   "v2.later.eyebrow": "Ce que vous mettez de côté",

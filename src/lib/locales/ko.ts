@@ -2421,6 +2421,8 @@ export default {
   "v2.nav.later": "나중에 듣기",
   "v2.later.add": "나중에 듣기",
   "v2.later.remove": "‘나중에 듣기’에서 제거",
+  "v2.later.albumAddTip": "이 앨범을 나중에 듣도록 담아 둡니다.",
+  "v2.later.albumRemoveTip": "이 앨범을 '나중에 듣기' 목록에서 뺍니다.",
   "v2.later.added": "‘나중에 듣기’에 추가했습니다",
   "v2.later.removed": "‘나중에 듣기’에서 제거했습니다",
   "v2.later.eyebrow": "따로 모아 둔 항목",

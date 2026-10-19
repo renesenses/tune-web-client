@@ -2421,6 +2421,8 @@ export default {
   "v2.nav.later": "Ascultă mai târziu",
   "v2.later.add": "Ascultă mai târziu",
   "v2.later.remove": "Elimină din Ascultă mai târziu",
+  "v2.later.albumAddTip": "Pune deoparte acest album, pentru a-l asculta mai târziu.",
+  "v2.later.albumRemoveTip": "Scoate acest album din lista Ascultă mai târziu.",
   "v2.later.added": "Adăugat în Ascultă mai târziu",
   "v2.later.removed": "Eliminat din Ascultă mai târziu",
   "v2.later.eyebrow": "Ce ai pus deoparte",
