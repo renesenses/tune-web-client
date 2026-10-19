@@ -86,6 +86,7 @@
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
   import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
+  import { CLE_PARTAGE_COMMUNAUTAIRE } from '../../lib/notesCommunautaires';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import {
@@ -1138,6 +1139,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     ecoutesBusy = false;
     if (caseCochee) caseCochee.checked = !!ecoutesCompte;
   }
+  // « Partager mes notes et mes écoutes avec la communauté (anonymement) »
+  // (tune-server-rust#6545) : consentement SÉPARÉ, désactivé par défaut.
+  let partageCommunaute = $state<boolean | null>(null);
+  let partageCommunauteBusy = $state(false);
+  let partageCommunauteErr = $state<string | null>(null);
+  async function basculerPartageCommunaute(ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    partageCommunauteBusy = true;
+    partageCommunauteErr = null;
+    try {
+      await api.updateConfig({ [CLE_PARTAGE_COMMUNAUTAIRE]: souhait });
+    } catch {
+      partageCommunauteErr = get(t)('settings.errSaveFailed');
+    }
+    await chargerPartage();
+    partageCommunauteBusy = false;
+    if (caseCochee) caseCochee.checked = !!partageCommunaute;
+  }
   async function chargerPartage() {
     try {
       const c: any = await api.getConfig();
@@ -1146,6 +1166,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // tune-server-rust#6510 — un serveur qui ne publie pas la clé ne sait
       // pas envoyer les écoutes : pas de case plutôt qu'une case qui mentirait.
       ecoutesCompte = c && CLE_ECOUTES_AU_COMPTE in c ? reglageVrai(c[CLE_ECOUTES_AU_COMPTE]) : null;
+      // tune-server-rust#6545 — même règle pour le partage communautaire.
+      partageCommunaute = c && CLE_PARTAGE_COMMUNAUTAIRE in c ? reglageVrai(c[CLE_PARTAGE_COMMUNAUTAIRE]) : null;
       partageCharge = true;
     } catch { /* config illisible : les bascules ne sont pas offertes */ }
   }
@@ -4584,6 +4606,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </label>
                 </div>
                 {#if ecoutesErr}<div class="errline">{ecoutesErr}</div>{/if}
+              {/if}
+              <!-- tune-server-rust#6545 — notes et écoutes de la communauté :
+                   consentement séparé de « Mes écoutes », désactivé par défaut. -->
+              {#if ssoConnecte && partageCommunaute !== null}
+                <div class="row" data-partage="communaute">
+                  <div class="lbl">
+                    <span>{$t('settings.communityShare' as any)}</span>
+                    <span class="hint">{$t('settings.communityShareHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle="cloud_community_share_enabled" checked={partageCommunaute}
+                      disabled={partageCommunauteBusy}
+                      aria-label={$t('settings.communityShare' as any)}
+                      onchange={basculerPartageCommunaute} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                {#if partageCommunauteErr}<div class="errline">{partageCommunauteErr}</div>{/if}
               {/if}
               <!-- Consentement à la télémétrie — porté de l'ancien écran
                    (phase 5) : il ne doit JAMAIS devenir immodifiable. -->
