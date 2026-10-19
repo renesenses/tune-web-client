@@ -40,6 +40,7 @@
   import { ouvrirArtisteDepuis, ouvrirArtisteDeServiceParNom } from '../../lib/ouvrirArtisteDepuis';
   import { artisteDeCarteAlbum, type ArtisteDeCarte } from '../../lib/artisteCarteAlbum';
   import { requeteAuMontage } from '../../lib/rechercheContexte';
+import { sansDoublons } from '../../lib/clesUniques';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -410,6 +411,21 @@
     });
   });
 
+  // 🔴 web#2211 — une clé de rangée ne doit JAMAIS se répéter. La rangée des
+  // têtes d'affiche était indexée par le seul NOM ; deux fiches homonymes de
+  // la bibliothèque, que le serveur rendait en deux lignes au même nom,
+  // faisaient lever `each_key_duplicate`, et la page Recherche se figeait —
+  // « la page reste vide », impossible d'en sortir sans rafraîchir (Daniel
+  // LEVY, fil 2329, rc6 ; même mécanisme que #1775, voir `clesUniques.ts`).
+  // Clé : l'IDENTIFIANT de l'artiste, le nom à la casse près à défaut ; un
+  // doublon coûte une vignette en moins, jamais un écran mort.
+  const cleTete = (a: any) => (a.id != null ? `id:${a.id}` : `nom:${String(a.nom).toLowerCase()}`);
+  const tetesUniques = $derived(sansDoublons(tetesAffiche, cleTete));
+  // Les recherches récentes viennent de `localStorage`, que d'autres clients
+  // ou une version antérieure ont pu écrire : rien n'y garantit l'unicité.
+  const recentesUniques = $derived(sansDoublons(recentes, (r) => r.query));
+  const ajoutsRecentsUniques = $derived(sansDoublons(ajoutsRecents, (a) => a.id));
+
   function runAcoustic() {
     const query = q.trim();
     if (!query) return;
@@ -587,6 +603,8 @@
           .filter((l) => respecteLesPhrases(l, phrases))
       : [],
   );
+  // Un nom de label rendu deux fois ne doit pas répéter une clé (web#2211).
+  const labelsUniques = $derived(sansDoublons(labels, (l) => l.name));
   const nbLabels = $derived(
     ((local?.labels ?? []) as { name: string }[]).filter((l) => respecteLesPhrases(l, phrases)).length,
   );
@@ -1115,7 +1133,7 @@
             <button class="lnk" onclick={() => (recentes = viderRecherchesRecentes())}>{$t('v2.rech.clearRecent' as any)}</button>
           </h2>
           <div class="chips">
-            {#each recentes as r (r.query)}
+            {#each recentesUniques as r (r.query)}
               <span class="chip">
                 <button class="chq" onclick={() => (q = r.query)}>{r.query}</button>
                 <button class="chx" onclick={() => (recentes = oublierRecherche(r.query))}
@@ -1130,7 +1148,7 @@
         <section class="grp">
           <h2>{$t('search.topArtists')}</h2>
           <div class="arow">
-            {#each tetesAffiche as a (a.nom)}
+            {#each tetesUniques as a (cleTete(a))}
               <div class="artile">
                 <!-- #1341 — LA VIGNETTE EST LE GESTE : c'est elle que FabienM
                      clique. Un vrai bouton, que le clavier atteint comme les
@@ -1152,7 +1170,7 @@
         <section class="grp">
           <h2>{$t('v2.rech.recentAdds' as any)}</h2>
           <div class="grid">
-            {#each ajoutsRecents as a (a.id)}
+            {#each ajoutsRecentsUniques as a (a.id)}
               <div class="card">
                 <span class="cv">
                   <PochetteActions
@@ -1352,7 +1370,7 @@
         <section class="grp">
           <h2>{$t('v2.rech.labels' as any)}</h2>
           <div class="labels">
-            {#each labels as l (l.name)}
+            {#each labelsUniques as l (l.name)}
               <span class="labhote">
               <button class="lab" onclick={() => ouvrirLabel(l.name)} title={l.name}>
                 <span class="ln">{l.name}</span>
