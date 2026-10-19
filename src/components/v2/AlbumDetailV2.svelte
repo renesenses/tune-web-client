@@ -39,6 +39,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
   import ListePistesV2 from './ListePistesV2.svelte';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
+  import SuggestionsIaAlbumV2 from './SuggestionsIaAlbumV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
   import {
     SELECTION_VIDE, appliquerGenre, basculer, choisiesDansLOrdre, corpsArtistePistes,
@@ -171,6 +172,14 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
    * le reste de la fiche (lecture, étiquettes, file d'attente) continue de
    * travailler sur l'objet d'origine, dont l'identité ne change pas.
    */
+  // tune-server-rust#4805 lot 2 — la pochette plus nette posée depuis la
+  // fiche, affichée sans recharger l'album.
+  let pochetteRemplacee = $state<string | null>(null);
+  $effect(() => {
+    void album.id; // un autre album : on oublie la pochette posée sur le précédent
+    pochetteRemplacee = null;
+  });
+
   const albumAffiche = $derived.by(() => {
     const d = detailService;
     if (!d) return album;
@@ -729,6 +738,8 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   let rechargement = $state(0);
   let edition = $state.raw<EditionReponse | null>(null);
   let enEdition = $state(false);
+  /** Assistant IA, étape 1 : la fenêtre des suggestions de CET album. */
+  let suggestionsIa = $state(false);
   const editionPossible = $derived(album.id != null && !depot && !service && !bandcamp);
   $effect(() => {
     const id = album.id, possible = editionPossible;
@@ -744,7 +755,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     return () => { vivant = false; };
   });
   // Une autre fiche s'ouvre : on ne reste pas en édition sur l'album d'avant.
-  $effect(() => { void album?.id; enEdition = false; });
+  $effect(() => { void album?.id; enEdition = false; suggestionsIa = false; });
 
   /**
    * « Modifier » depuis le menu « … » d'un album (`lib/gestesObjet`) : la fiche
@@ -1522,7 +1533,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   <div class="head">
     <!-- #1342 — `albumAffiche` : la pochette que l'appelant n'a pas portée
          vient du service, sinon la fiche reste un carré gris à l'initiale. -->
-    <div class="art"><AlbumArt coverPath={albumAffiche.cover_path} albumId={depot ? null : album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
+    <div class="art"><AlbumArt coverPath={pochetteRemplacee ?? albumAffiche.cover_path} albumId={depot ? null : album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
     <div class="meta">
       <!-- 🔴 La pastille « compilation » vit À CÔTÉ du badge de qualité, pas
            dans la ligne de faits : c'est une NATURE de disque, pas une mesure,
@@ -1730,6 +1741,15 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
               {$tr('v2.edition.modify' as any)}
             </button>
           {/if}
+          <!-- Assistant IA, étape 1 — mêmes albums que « Modifier » : ceux de
+               la BIBLIOTHÈQUE, que l'assistant peut enrichir. -->
+          {#if edition && !enEdition}
+            <button class="ghost" data-suggestions-ia-album onclick={() => (suggestionsIa = true)}
+              title={$tr('assistantIa.album.tip' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>
+              {$tr('assistantIa.album.button' as any)}
+            </button>
+          {/if}
         </div>
       {/if}
     </div>
@@ -1758,6 +1778,22 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         {/if}
       {/if}
     </div>
+  {/if}
+
+  <!-- #4805 lot 1 (d'après MetaRust, de Xavier Joly) : complétude, BPM,
+       instruments Wikidata, propositions Discogs. Album de la BIBLIOTHÈQUE
+       seulement — la même garde que les crédits. -->
+  {#if creditsPossibles && album.id != null}
+    {#await import('./EnrichissementAlbumV2.svelte') then m}
+      <m.default albumId={album.id} pistes={tracks} pochette={pochetteRemplacee ?? albumAffiche.cover_path ?? null}
+        onPochette={(h) => (pochetteRemplacee = h)} />
+    {/await}
+  {/if}
+
+  {#if suggestionsIa && album.id != null}
+    <SuggestionsIaAlbumV2 albumId={album.id}
+      onClose={() => (suggestionsIa = false)}
+      onChange={() => (rechargement += 1)} />
   {/if}
 
   <div class="tracks">

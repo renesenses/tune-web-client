@@ -36,11 +36,11 @@ beforeEach(() => {
   currentZoneId.set(1);
   mutations = [];
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = String(input);
+    const url = new URL(String(input), 'http://tune.test').pathname;
     const method = init?.method ?? 'GET';
     if (method !== 'GET') mutations.push({ url, method });
     if (url.endsWith('/zones/1') && method === 'DELETE') { serverZones = []; return new Response(null, { status: 204 }); }
-    if (url.endsWith('/zones')) return response(serverZones);
+    if (/\/zones(?:\?lang=[a-z]{2})?$/.test(url)) return response(serverZones);
     if (url.endsWith('/zones/stereo-pairs')) return response([]);
     if (url.includes('tune-tested.json')) return response({ version: 1, count: 0, devices: [] });
     if (url.endsWith('/system/diagnostics')) return response({ zones_doublons: [] });

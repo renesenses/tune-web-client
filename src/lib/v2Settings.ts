@@ -77,6 +77,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       // jamais en créer un. L'onglet Profils de l'écran actuel arrive ici.
       { id: 'profiles',   titleKey: 'settings.tabProfiles', from: 'profiles', min: 'beginner', keywords: ['profils', 'utilisateurs', 'multi-profil', 'qui écoute'] },
       { id: 'voice',      title: 'Tune Voice AI',         from: 'general', min: 'expert',   keywords: ['voix', 'commande vocale'] },
+      // Chantier « assistant-ia », étape 1 : la clé de l'utilisateur, son
+      // fournisseur, son plafond. Gratuit, dès le niveau débutant.
+      { id: 'assistantIa', titleKey: 'assistantIa.title', from: 'general', min: 'beginner',
+        keywords: ['ia', 'ai', 'intelligence artificielle', 'assistant', 'claude', 'anthropic', 'openai', 'mistral', 'gemini', 'ollama', 'clé', 'api key', 'plafond'] },
     ],
   },
   {
@@ -103,7 +107,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'library',    titleKey: 'settings.library',      from: 'library', min: 'beginner' },
       { id: 'musicDirs',  titleKey: 'settings.musicDirs',    from: 'library', min: 'beginner', keywords: ['dossiers', 'chemins'] },
-      { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan'] },
+      { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan', 'coffret', 'coffrets', 'box set'] },
       { id: 'searchExact', titleKey: 'settings.searchExact', from: 'library', min: 'beginner',
         keywords: ['recherche', 'exacte', 'guillemets', 'artiste', 'album', 'titre'] },
       { id: 'scanSched',  titleKey: 'settings.scanSchedule', from: 'library', min: 'intermediate', keywords: ['planification', 'automatique'] },
@@ -235,6 +239,9 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'streaming',   titleKey: 'settings.streaming', from: 'services', min: 'intermediate', keywords: ['qobuz', 'tidal', 'deezer'] },
       { id: 'tokens',      title: 'Services & Jetons',     from: 'services', min: 'intermediate', keywords: ['jetons', 'tokens', 'api', 'clés'] },
+      /** #4805 lot 1 — la clé AcoustID et le jeton Discogs PERSONNELS de
+       *  l'utilisateur, chiffrés au repos, jamais réaffichés en clair. */
+      { id: 'apiKeys',     titleKey: 'v2.apiKeys.title',   from: 'services', min: 'intermediate', keywords: ['clé', 'clés', 'api', 'acoustid', 'discogs', 'jeton', 'token', 'key'] },
       { id: 'spotify',     title: 'Spotify Connect',       from: 'services', min: 'intermediate' },
       { id: 'accessFrom',  titleKey: 'settings.accessFromDevice', from: 'system', min: 'intermediate', keywords: ['accès', 'distant', 'url'] },
     ],

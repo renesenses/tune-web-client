@@ -135,6 +135,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import SuggestionsIaLotV2 from './SuggestionsIaLotV2.svelte';
+  import { idsDuLot } from '../../lib/assistantIa';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { cleGenre, grouperParGenre } from '../../lib/genresBibliotheque';
   import {
@@ -415,6 +417,26 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let fCompilation = $state<boolean | null>(null);
 
   /**
+   * ALBUMS INCOMPLETS (#4805 lot 1, d'après MetaRust de Xavier Joly) : ceux à
+   * qui il manque des pistes par rapport à leur édition MusicBrainz. Le
+   * serveur rend leurs IDENTIFIANTS (`GET /library/albums/incomplete`, calculé
+   * hors réseau) ; le filtre s'applique ensuite sur place, comme ses voisins.
+   * La puce reste cachée tant qu'aucun album n'est incomplet, ou devant un
+   * serveur antérieur.
+   */
+  let fIncomplets = $state(false);
+  let idsIncomplets = $state<Set<number>>(new Set());
+  $effect(() => {
+    // Bibliothèque d'un AUTRE serveur : ses identifiants ne sont pas les nôtres.
+    if (depot) return;
+    let vivant = true;
+    api.getIncompleteAlbumIds()
+      .then((r) => { if (vivant) idsIncomplets = new Set(r.ids ?? []); })
+      .catch(() => { /* serveur antérieur : pas de puce */ });
+    return () => { vivant = false; };
+  });
+
+  /**
    * SOURCE — de quelle bibliothèque l'album vient (#4152).
    *
    * `null` = toutes les sources. Sinon `'local'`, ou `'upnp:<udn>'` pour UN
@@ -549,6 +571,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // encore re-scannée, ne porte pas le champ. Il vaut « non », comme côté
     // serveur — jamais « on ne sait pas, laissons passer ».
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
+    if (fIncomplets && !(a.id != null && idsIncomplets.has(a.id))) return false;
     if (!dansSource(a, fProvenance)) return false;
     // #4319 — même règle que les comptes : artiste de piste et dossier
     // compris, portée ou non (`idsTexteServeur`).
@@ -1408,7 +1431,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   const filtreActif = $derived(
     fQuality.length > 0 || fRate.length > 0 || fFormat.length > 0 || fDepth.length > 0
-      || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null,
+      || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null || fIncomplets,
   );
 
   /**
@@ -2459,7 +2482,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
   }
 
-  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fProvenance = null; fDrMin = null; fDrMax = null; }
+  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fIncomplets = false; fProvenance = null; fDrMin = null; fDrMax = null; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
@@ -2482,6 +2505,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           affiches,
         }),
   );
+  /** Assistant IA, étape 2 : un lot de suggestions sur les albums AFFICHÉS
+   *  (le filtre courant), 50 au plus, dans l'ordre de la grille. */
+  let lotIa = $state<number[] | null>(null);
+  const idsDuLotIa = $derived(depot || tab !== 'albums' ? [] : idsDuLot(affiches.map((a) => a.id)));
+
   /** Le plafond de la file aléatoire, lu au serveur (#2901) ; son défaut s'il
    *  ne répond pas. */
   function plafondAleatoire(): Promise<number> {
@@ -2694,6 +2722,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <!-- Declarer un dossier de musique est un reglage du serveur LOCAL :
            le proposer sur la bibliotheque d'une autre machine promettrait
            d'agir sur elle, ce qu'on ne fait pas. -->
+      {#if idsDuLotIa.length && atLeast(level, 'intermediate')}
+        <button class="v2-btn" data-suggestions-ia-lot-ouvrir onclick={() => (lotIa = idsDuLotIa)}
+          title={$tr('assistantIa.lot.tip' as any).replace('{n}', String(idsDuLotIa.length))}>
+          {$tr('assistantIa.album.button' as any)}
+        </button>
+      {/if}
       <button class="v2-btn" onclick={addContent} title={$tr('v2.lib.addFolders' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>{$tr('v2.tags.add' as any)}
       </button>
@@ -2741,7 +2775,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', nbPistesAnnonce == null ? '…' : $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
+      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
@@ -2871,6 +2905,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           onpointerenter={voirLesFacettes}
           onclick={() => (fCompilation = fCompilation == null ? true : null)}
         >{$tr('v2.lib.compilations' as any)} <em>{comptesPrets ? $formatNombre(nCompilations) : '…'}</em></button>
+      {/if}
+      {#if idsIncomplets.size > 0 || fIncomplets}
+        <button class="chip" class:active={fIncomplets} data-filtre-incomplets
+          aria-pressed={fIncomplets}
+          title={$tr('v2.lib.incompleteHint' as any)}
+          onclick={() => (fIncomplets = !fIncomplets)}
+        >{$tr('v2.lib.incomplete' as any)} <em>{$formatNombre(idsIncomplets.size)}</em></button>
       {/if}
       {#if showExpert && depths.length > 1}
         <div class="drop" class:open={ddOpen === 'depth'} onpointerenter={voirLesFacettes}>
@@ -3596,6 +3637,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         enEdition = null;
       }}
     />
+  {/if}
+  {#if lotIa}
+    <!-- Les écritures du lot vont en base ; la grille se relit à la prochaine
+         ouverture de la Bibliothèque. -->
+    <SuggestionsIaLotV2 albumIds={lotIa} onClose={() => (lotIa = null)} onChange={() => {}} />
   {/if}
 </section>
 
