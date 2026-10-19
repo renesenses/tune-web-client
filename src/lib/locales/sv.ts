@@ -3687,6 +3687,7 @@ export default {
   "v2.album.alsoOnTip": "Samma album finns även på andra sidan: rutnätet visar bara ett, inget slås ihop.",
   "v2.album.shuffle": "Slumpa",
   "v2.album.locate": "Visa på disken",
+  "v2.album.booklet": "Häfte (PDF)",
   "v2.album.reveal": "Öppna i filhanteraren",
   "v2.album.revealTip": "Öppnar albumets mapp i den här datorns filhanterare.",
   "v2.album.revealNotFound": "Albummappen hittades inte på disken.",

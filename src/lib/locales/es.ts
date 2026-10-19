@@ -3688,6 +3688,7 @@ export default {
   "v2.album.alsoOnTip": "El mismo álbum existe en el otro lado: la cuadrícula solo muestra uno, no se fusiona nada.",
   "v2.album.shuffle": "Aleatorio",
   "v2.album.locate": "Localizar en el disco",
+  "v2.album.booklet": "Libreto (PDF)",
   "v2.album.reveal": "Abrir en el explorador",
   "v2.album.revealTip": "Abre la carpeta del álbum en el gestor de archivos de este ordenador.",
   "v2.album.revealNotFound": "No se encuentra la carpeta del álbum en el disco.",

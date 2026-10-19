@@ -3565,6 +3565,7 @@ export default {
   "v2.album.alsoOnTip": "Cùng album này tồn tại ở phía bên kia: lưới chỉ hiển thị một bản, không có gì bị hợp nhất.",
   "v2.album.shuffle": "Phát ngẫu nhiên",
   "v2.album.locate": "Định vị trên ổ đĩa",
+  "v2.album.booklet": "Tập sách nhỏ (PDF)",
   "v2.album.reveal": "Mở trong trình quản lý tệp",
   "v2.album.revealTip": "Mở thư mục album trong trình quản lý tệp của máy tính này.",
   "v2.album.revealNotFound": "Không tìm thấy thư mục album trên ổ đĩa.",

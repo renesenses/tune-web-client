@@ -3708,6 +3708,7 @@ export default {
   "v2.album.alsoOnTip": "The same album exists on the other side: the grid shows only one, nothing is merged.",
   "v2.album.shuffle": "Shuffle",
   "v2.album.locate": "Locate on disk",
+  "v2.album.booklet": "Booklet (PDF)",
   "v2.album.reveal": "Open in file manager",
   "v2.album.revealTip": "Opens the album folder in this computer's file manager.",
   "v2.album.revealNotFound": "The album folder cannot be found on disk.",

@@ -3688,6 +3688,7 @@ export default {
   "v2.album.alsoOnTip": "Același album există și de cealaltă parte: grila afișează doar unul, nimic nu este combinat.",
   "v2.album.shuffle": "Aleatoriu",
   "v2.album.locate": "Localizează pe disc",
+  "v2.album.booklet": "Broșură (PDF)",
   "v2.album.reveal": "Deschide în managerul de fișiere",
   "v2.album.revealTip": "Deschide dosarul albumului în managerul de fișiere al acestui computer.",
   "v2.album.revealNotFound": "Dosarul albumului nu a fost găsit pe disc.",

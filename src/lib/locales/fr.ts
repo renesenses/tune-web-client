@@ -3710,6 +3710,7 @@ export default {
   "v2.album.alsoOnTip": "Le même album existe de l’autre côté : la grille n’en montre qu’un, rien n’est fusionné.",
   "v2.album.shuffle": "Aléatoire",
   "v2.album.locate": "Localiser sur le disque",
+  "v2.album.booklet": "Livret (PDF)",
   "v2.album.reveal": "Ouvrir dans l'explorateur",
   "v2.album.revealTip": "Ouvre le dossier de l'album dans le gestionnaire de fichiers de cet ordinateur.",
   "v2.album.revealNotFound": "Le dossier de l'album est introuvable sur le disque.",

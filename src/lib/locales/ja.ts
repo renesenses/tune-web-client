@@ -3688,6 +3688,7 @@ export default {
   "v2.album.alsoOnTip": "同じアルバムが反対側にもあります。グリッドには一方だけを表示し、統合はしません。",
   "v2.album.shuffle": "シャッフル",
   "v2.album.locate": "ディスク上で表示",
+  "v2.album.booklet": "ブックレット (PDF)",
   "v2.album.reveal": "ファイルマネージャーで開く",
   "v2.album.revealTip": "このコンピューターのファイルマネージャーでアルバムのフォルダーを開きます。",
   "v2.album.revealNotFound": "アルバムのフォルダーがディスク上に見つかりません。",

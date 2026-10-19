@@ -3688,6 +3688,7 @@ export default {
   "v2.album.alsoOnTip": "같은 앨범이 다른 쪽에도 있습니다. 그리드에는 하나만 표시되며 병합하지 않습니다.",
   "v2.album.shuffle": "셔플",
   "v2.album.locate": "디스크에서 찾기",
+  "v2.album.booklet": "부클릿 (PDF)",
   "v2.album.reveal": "파일 관리자에서 열기",
   "v2.album.revealTip": "이 컴퓨터의 파일 관리자에서 앨범 폴더를 엽니다.",
   "v2.album.revealNotFound": "디스크에서 앨범 폴더를 찾을 수 없습니다.",

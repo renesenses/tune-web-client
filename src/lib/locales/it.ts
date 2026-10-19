@@ -3688,6 +3688,7 @@ export default {
   "v2.album.alsoOnTip": "Lo stesso album esiste anche dall’altra parte: la griglia ne mostra uno solo, nulla viene unito.",
   "v2.album.shuffle": "Casuale",
   "v2.album.locate": "Individua sul disco",
+  "v2.album.booklet": "Libretto (PDF)",
   "v2.album.reveal": "Apri in Esplora file",
   "v2.album.revealTip": "Apre la cartella dell'album nel gestore di file di questo computer.",
   "v2.album.revealNotFound": "La cartella dell'album non si trova sul disco.",

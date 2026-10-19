@@ -34,6 +34,7 @@
 import AlbumRating from '../partages/AlbumRating.svelte';
 import ReportButton from '../partages/ReportButton.svelte';
 import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
+import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbum';
   import ClampedText from '../partages/ClampedText.svelte';
   import AttributionBio from './AttributionBio.svelte';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
@@ -272,6 +273,28 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   let creditsOuverts = $state(false);
   /** Relevé AU CLIC : un refus (501/404) retire le bouton, pas le tiroir ouvert. */
   let creditsServiceOuvert = $state.raw<AlbumDeServiceCredits | null>(null);
+
+  /**
+   * #6481 — le LIVRET PDF (cpadiou77 et Patatorz, fil forum 2326) : les PDF du
+   * dossier d'un album de la bibliothèque, ou le livret numérique de Qobuz.
+   * Lus à l'ouverture de la fiche — une lecture de dossier, ou la réponse
+   * `album/get` que le serveur garde déjà en cache : le bouton n'apparaît que
+   * s'il y a un livret à ouvrir.
+   */
+  let livrets = $state.raw<Livret[]>([]);
+  $effect(() => {
+    const cible = cibleLivrets(album as any, { service, depot, bandcamp });
+    livrets = [];
+    if (!cible) return;
+    let perime = false;
+    void chargerLivrets(cible, {
+      base: api.BASE,
+      locaux: api.getAlbumBooklets,
+      deService: api.getStreamingAlbumBooklets,
+      navigateur: api.urlDeNavigation,
+    }).then((l) => { if (!perime) livrets = l; });
+    return () => { perime = true; };
+  });
 
   /* ══════════════════════════════════════════════════════════════════════
      « AJOUTER À UNE COLLECTION » — réunion du 23/09/2026.
@@ -1569,6 +1592,14 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
             </button>
           {/if}
         {/if}
+        <!-- #6481 — le livret s'ouvre dans un nouvel onglet. -->
+        {#each livrets as l (l.url)}
+          <a class="ghost livret" href={l.url} target="_blank" rel="noopener noreferrer"
+            title={l.nom || $tr('v2.album.booklet' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>
+            {livrets.length > 1 && l.nom ? l.nom.replace(/\.pdf$/i, '') : $tr('v2.album.booklet' as any)}
+          </a>
+        {/each}
         {#if coffretDefaisable()}
           <button class="ghost defaire-coffret" onclick={defaireCoffret} disabled={defaireEnCours}
             title={$tr('v2.album.boxUndoTip' as any)}>
@@ -1909,6 +1940,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  a.ghost.livret{text-decoration:none}
   /* Le cœur ACTIF garde le rouge : c'est un ÉTAT, pas une action — la même
      règle que sur les lignes de piste. */
   .coeur.on{color:var(--v2-danger); border-color:var(--v2-danger-bd)}

@@ -3688,6 +3688,7 @@ export default {
   "v2.album.alsoOnTip": "同一张专辑在另一侧也存在：网格只显示其中一张，不做合并。",
   "v2.album.shuffle": "随机播放",
   "v2.album.locate": "在磁盘中定位",
+  "v2.album.booklet": "小册子 (PDF)",
   "v2.album.reveal": "在文件管理器中打开",
   "v2.album.revealTip": "在这台电脑的文件管理器中打开专辑文件夹。",
   "v2.album.revealNotFound": "在磁盘上找不到专辑文件夹。",

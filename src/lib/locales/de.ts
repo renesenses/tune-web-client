@@ -3688,6 +3688,7 @@ export default {
   "v2.album.alsoOnTip": "Dasselbe Album gibt es auch auf der anderen Seite: das Raster zeigt nur eines, nichts wird zusammengeführt.",
   "v2.album.shuffle": "Zufall",
   "v2.album.locate": "Auf der Festplatte anzeigen",
+  "v2.album.booklet": "Booklet (PDF)",
   "v2.album.reveal": "Im Dateimanager öffnen",
   "v2.album.revealTip": "Öffnet den Albumordner im Dateimanager dieses Computers.",
   "v2.album.revealNotFound": "Der Albumordner wurde auf der Festplatte nicht gefunden.",

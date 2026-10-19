@@ -5287,6 +5287,30 @@ export function getStreamingAlbum(service: string, albumId: string) {
   return fetchJSON<Album>(`${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}`);
 }
 
+/**
+ * tune-server-rust#6481 — les livrets PDF d'un album. Bibliothèque : les PDF
+ * de son dossier (`{ booklets: [{ name, size }] }`) ; service : les livrets
+ * qu'il publie (`[{ name, url }]`). Sans bandeau : un serveur antérieur
+ * répond 404, et la fiche n'affiche alors simplement aucun livret.
+ */
+export function getAlbumBooklets(albumId: number) {
+  return fetchJSON<{ booklets: Array<{ name: string; size?: number }> }>(
+    `${BASE}/library/albums/${albumId}/booklets`, undefined, undefined, true,
+  );
+}
+
+export function getStreamingAlbumBooklets(service: string, albumId: string) {
+  return fetchJSON<Array<{ name: string; url: string }>>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/booklets`,
+    undefined, undefined, true,
+  );
+}
+
+/** Ouvre une adresse de l'API dans le navigateur (jeton du pont compris). */
+export function urlDeNavigation(url: string): string {
+  return urlNavigateur(url);
+}
+
 export function getStreamingAlbumTracks(service: string, albumId: string) {
   return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/tracks`)
     .then((t) => mapStreamingTracks(t, service));

@@ -3642,6 +3642,7 @@ export default {
   "v2.album.alsoOnTip": "Ugyanez az album a másik oldalon is megvan: a rács csak egyet mutat, semmi sem olvad össze.",
   "v2.album.shuffle": "Véletlenszerű",
   "v2.album.locate": "Megkeresés a lemezen",
+  "v2.album.booklet": "Kísérőfüzet (PDF)",
   "v2.album.reveal": "Megnyitás a fájlkezelőben",
   "v2.album.revealTip": "Megnyitja az album mappáját a számítógép fájlkezelőjében.",
   "v2.album.revealNotFound": "Az album mappája nem található a lemezen.",
