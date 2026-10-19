@@ -195,6 +195,8 @@ export default {
   'zone.airplayPair': 'Parkoppla via AirPlay 2 (PIN-kod)',
   'zone.rename': 'Byt namn',
   'zone.groupedPlayback': 'Grupperad uppspelning',
+  "zone.groupedPlaybackOpen": "Grupperad uppspelning…",
+  "zone.groupedPlaybackOpenTip": "Spela den här zonen i synk med andra: öppnar dess inställningar vid avsnittet Grupperad uppspelning.",
   'zone.selectZonesToSync': 'Välj zoner att synka med {name}',
   'zone.noOtherZone': 'Inga andra zoner tillgängliga',
   'zone.alreadyInGroup': 'Redan i en annan grupp',

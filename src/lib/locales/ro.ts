@@ -224,6 +224,8 @@ export default {
   'zone.airplayPair': 'Asociere prin AirPlay 2 (cod PIN)',
   'zone.rename': 'Redenumește',
   'zone.groupedPlayback': 'Redare grupată',
+  "zone.groupedPlaybackOpen": "Redare grupată…",
+  "zone.groupedPlaybackOpenTip": "Sincronizează această zonă cu altele: deschide setările ei la secțiunea Redare grupată.",
   'zone.selectZonesToSync': 'Selectează zonele de sincronizat cu {name}',
   'zone.noOtherZone': 'Nicio altă zonă disponibilă',
   'zone.alreadyInGroup': 'Deja în alt grup',

@@ -299,6 +299,8 @@ export default {
   "zone.airplayPair": "Párosítás AirPlay 2-n keresztül (PIN-kód)",
   "zone.rename": "Átnevezés",
   "zone.groupedPlayback": "Csoportos lejátszás",
+  "zone.groupedPlaybackOpen": "Csoportos lejátszás…",
+  "zone.groupedPlaybackOpenTip": "A zóna szinkronizálása másokkal: megnyitja a beállításait a Csoportos lejátszás résznél.",
   "zone.selectZonesToSync": "Válaszd ki a(z) {name} zónával szinkronizálandó zónákat",
   "zone.noOtherZone": "Nincs másik elérhető zóna",
   "zone.alreadyInGroup": "Már egy másik csoportban van",

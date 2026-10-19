@@ -220,6 +220,8 @@ export default {
   'zone.airplayPair': 'AirPlay 2로 페어링(PIN 코드)',
   'zone.rename': '이름 바꾸기',
   'zone.groupedPlayback': '그룹 재생',
+  "zone.groupedPlaybackOpen": "그룹 재생…",
+  "zone.groupedPlaybackOpenTip": "이 존을 다른 존과 동기화합니다. 존 설정을 '그룹 재생' 항목에서 엽니다.",
   'zone.selectZonesToSync': '{name}과(와) 동기화할 존 선택',
   'zone.noOtherZone': '사용 가능한 다른 존 없음',
   'zone.alreadyInGroup': '이미 다른 그룹에 있음',

@@ -220,6 +220,8 @@ export default {
   'zone.airplayPair': 'Über AirPlay 2 koppeln (PIN-Code)',
   'zone.rename': 'Umbenennen',
   'zone.groupedPlayback': 'Gruppierte Wiedergabe',
+  "zone.groupedPlaybackOpen": "Gruppierte Wiedergabe…",
+  "zone.groupedPlaybackOpenTip": "Diese Zone mit anderen synchronisieren: öffnet ihre Einstellungen im Abschnitt Gruppierte Wiedergabe.",
   'zone.selectZonesToSync': 'Zonen zum Synchronisieren mit {name} auswählen',
   'zone.noOtherZone': 'Keine anderen Zonen verfügbar',
   'zone.alreadyInGroup': 'Bereits in einer anderen Gruppe',

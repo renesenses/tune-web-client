@@ -288,6 +288,8 @@ export default {
   "zone.airplayPair": "Ghép nối qua AirPlay 2 (mã PIN)",
   "zone.rename": "Đổi tên",
   "zone.groupedPlayback": "Phát theo nhóm",
+  "zone.groupedPlaybackOpen": "Phát theo nhóm…",
+  "zone.groupedPlaybackOpenTip": "Phát vùng này đồng bộ với các vùng khác: mở phần cài đặt của vùng tại mục Phát theo nhóm.",
   "zone.selectZonesToSync": "Chọn các vùng phát để đồng bộ với {name}",
   "zone.noOtherZone": "Không có vùng phát nào khác",
   "zone.alreadyInGroup": "Đã thuộc một nhóm khác",
