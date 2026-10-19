@@ -1,6 +1,7 @@
 // REST API client for tune-server
 
 import { notifications } from './stores/notifications';
+import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
@@ -1322,6 +1323,21 @@ export function getDevices() {
   return fetchJSON<DiscoveredDevice[]>(`${BASE}/devices`);
 }
 
+/**
+ * La table des plages MAC reconnues, groupée par marque (#2244,
+ * tune-server-rust#6546). `null` quand le serveur ne la sert pas (serveur
+ * antérieur : 404) ou rend autre chose : l'écran masque alors le bloc.
+ * Sans bandeau : une route absente n'est pas une panne.
+ */
+export async function getOuiAudio(): Promise<TableOuiAudio | null> {
+  try {
+    const corps = await fetchJSON<unknown>(`${BASE}/devices/oui-audio`, undefined, undefined, true);
+    return lireTableOui(corps);
+  } catch {
+    return null;
+  }
+}
+
 export function clearDevices() {
   return fetchJSON<{ cleared: number }>(`${BASE}/devices/clear`, { method: 'POST' });
 }
@@ -1739,8 +1755,21 @@ export function setVolumeDb(zoneId: number, volumeDb: number) {
   });
 }
 
+/**
+ * Réponse de `POST /zones/{id}/shuffle`. Depuis tune-server-rust#6526 le
+ * serveur RÉORDONNE la file : `queue_reordered` dit si l'ordre a changé,
+ * `queue_position` où se trouve maintenant le titre en cours (il bouge quand
+ * l'ordre d'origine est rétabli). Champs absents d'un serveur plus ancien.
+ */
+export interface ReponseAleatoire {
+  shuffle: boolean;
+  queue_reordered?: boolean;
+  queue_position?: number;
+  queue_length?: number;
+}
+
 export function setShuffle(zoneId: number, enabled: boolean) {
-  return fetchJSON<{ shuffle: boolean }>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
+  return fetchJSON<ReponseAleatoire>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
     method: 'POST',
   });
 }

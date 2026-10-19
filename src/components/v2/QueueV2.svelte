@@ -40,6 +40,9 @@
   import { fenetreListe } from '../../lib/fenetreListe';
   import { pisteDeFile } from '../../lib/pisteDeFile';
   import { gesteVider, executerVider } from '../../lib/viderFile';
+  import { basculerAleatoire } from '../../lib/aleatoireFile';
+  import { libelleAleatoire } from '../../lib/etatTransport';
+  import { shuffleEnabled } from '../../lib/stores/nowPlaying';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -101,6 +104,32 @@
       notifications.error($tr('queue.autoplayFailed'));
     } finally {
       autoplayOccupe = false;
+    }
+  }
+
+  /**
+   * ALÉATOIRE depuis la file — tune-server-rust#6526.
+   *
+   * Le serveur RÉORDONNE la file : activer rebat la suite du titre en cours,
+   * éteindre rétablit l'ordre d'origine. C'est ici, sur l'écran qui montre
+   * l'ordre, que le geste a le plus de sens : la liste se relit aussitôt
+   * (`basculerAleatoire`) et montre l'ordre qui va réellement se jouer.
+   */
+  const aleatoireActif = $derived(zoneCourante?.shuffle ?? $shuffleEnabled);
+  let aleatoireOccupe = $state(false);
+
+  async function basculerAleatoireDeLaFile() {
+    const z = zoneCourante;
+    if (!z?.id || aleatoireOccupe) return;
+    aleatoireOccupe = true;
+    try {
+      const actif = await basculerAleatoire(z.id, !aleatoireActif);
+      zones.update((zs) => zs.map((x) => (x.id === z.id ? { ...x, shuffle: actif } : x)));
+      shuffleEnabled.set(actif);
+    } catch {
+      error = $tr('settings.errActionFailed' as any);
+    } finally {
+      aleatoireOccupe = false;
     }
   }
 
@@ -323,6 +352,14 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
         {$tr('queue.autoplayLabel' as any)}
       </button>
+      {#if tracks.length > 1}
+        <button class="v2-btn" class:primaire={aleatoireActif} onclick={basculerAleatoireDeLaFile}
+                disabled={aleatoireOccupe || !zoneCourante} aria-pressed={aleatoireActif}
+                aria-label={libelleAleatoire($tr, aleatoireActif)} title={libelleAleatoire($tr, aleatoireActif)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+          {$tr('transport.shuffle' as any)}
+        </button>
+      {/if}
       {#if tracks.length}
         <button class="v2-btn danger" onclick={clear} disabled={busy}
                 title={$tr((gesteDeVidage === 'tout' ? 'queue.clearAllTip' : 'queue.clearTip') as any)}
