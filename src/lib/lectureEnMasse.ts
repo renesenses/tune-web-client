@@ -48,7 +48,7 @@
  * n'a pas de nom côté serveur : on mélange la liste qu'on a, et on l'envoie.
  */
 import type { AddToQueueRequest } from './api';
-import { corpsDeFileListe, corpsDeLecture, estPisteLocale } from './pisteFile';
+import { corpsDeFileListe, corpsDeLecture, corpsDeTeteDeListe, estPisteLocale } from './pisteFile';
 import { FILE_ALEATOIRE_DEFAUT, plafondFileAleatoire } from './fileAleatoire';
 import { tirageAleatoire } from './porteeAleatoire';
 import type { Track } from './types';
@@ -93,7 +93,8 @@ export function planDeLecture(liste: readonly Track[]): PlanLecture {
   }
   return {
     voie: 'tete-et-reste',
-    tete: corpsDeLecture(jouables[0])!,
+    // #6469 — une suite à enfiler : la tête ne joue pas son album.
+    tete: (jouables.length > 1 ? corpsDeTeteDeListe(jouables[0]) : corpsDeLecture(jouables[0]))!,
     reste: corpsDeFileListe(jouables.slice(1)),
     pistes: jouables.length,
   };
@@ -211,7 +212,13 @@ export async function lireListeDepuis(
   }
 
   const tete = depuis[0];
-  await g.lire(estPisteLocale(tete) ? { track_id: tete.id!, start_index: 0 } : corpsDeLecture(tete)!);
+  // #6469 — une suite ou des précédents à enfiler : la tête ne joue pas son album.
+  const entouree = depuis.length > 1 || avant.length > 0;
+  await g.lire(
+    estPisteLocale(tete)
+      ? { track_id: tete.id!, start_index: 0 }
+      : (entouree ? corpsDeTeteDeListe(tete) : corpsDeLecture(tete))!,
+  );
   await enfilerDansLOrdre(depuis.slice(1), g.enfiler);
   const remis = await remettreLesPrecedents(avant, g.enfiler);
   return depuis.length + (remis ? avant.length : 0);

@@ -47,7 +47,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { circleCharge } from '../../lib/circle';
   import { demandeCercle } from '../../lib/circlePlaylists';
   import PastilleCompilation from './PastilleCompilation.svelte';
-  import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
+  import { corpsDeLecture, corpsDeFileListe, corpsDeTeteDeListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { lireListe } from '../../lib/lectureEnMasse';
   import { gestesDeZone } from '../../lib/gestesDeZone';
@@ -1117,7 +1117,9 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     // autres s'empilent en UNE requete.
     if (service || bandcamp) {
       const l = melanger(tracks);
-      const tete = corpsDeLecture(l[0]);
+      // #6469 — la suite mélangée s'enfile derrière : la tête ne rejoue pas
+      // l'album dans l'ordre.
+      const tete = l.length > 1 ? corpsDeTeteDeListe(l[0]) : corpsDeLecture(l[0]);
       if (!tete) return;
       (async () => {
         await playAndSync(zid, tete as any);
