@@ -1345,6 +1345,8 @@ export default {
   "settings.scanOptions": "Opțiuni de scanare",
   "settings.qualitySplit": "Împarte albumele pe calitate",
   "settings.qualitySplitHint": "Dacă același album există în CD și Hi-Res, creează două intrări separate (ex. „Album (96kHz/24bit)”)",
+  "settings.autoBoxSets": "Cutii automate",
+  "settings.autoBoxSetsHint": "Reunește într-un singur album discurile păstrate în dosare surori (CD1, CD2…) și afișează la Cutii albumele aflate în mai multe dosare. Dezactivat: nu se reunește nimic, iar un album cu mai multe discuri nu mai apare la Cutii. Cutiile deja reunite rămân așa: „Desfă cutia”, pe pagina lor, le readuce la discurile lor.",
   "settings.exportDatabase": "Exportă baza de date",
   "settings.importInProgress": "Se importă...",
   "settings.importFile": "Importă un fișier",

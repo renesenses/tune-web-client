@@ -64,6 +64,7 @@
   import { chargerLienAcces, qrSvg } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
+  import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
@@ -2017,6 +2018,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let scanning = $state(false);
   let scanReport = $state<any | null>(null);
   let qualitySplit = $state(true);
+  // tune-server-rust#6554 — « Coffrets automatiques ». Absent de la config :
+  // actif, comme le serveur (le comportement d'avant).
+  let coffretsAuto = $state(true);
+  let coffretsAutoErr = $state<string | null>(null);
   /** #4051 — « Paroles en ligne (LRCLIB) ». Absente de `/system/config` =
    *  éteinte : le serveur n'interroge LRCLIB que sur la chaîne "true". */
   let lrclibOn = $state(false);
@@ -2267,6 +2272,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         || c?.quality_split === 0 || c?.quality_split === '0');
       lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
       ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
+      coffretsAuto = coffretsAutoDepuisConfig(c?.[CLE_COFFRETS_AUTO]);
       scanDemarrage = scanAuDemarrageDepuisConfig(c);
     } catch { libErr = get(t)('settings.errConfigUnavailable'); }
     try {
@@ -2478,6 +2484,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       libErr = `${get(t)('common.error')}: ${e?.message || e}`;
     }
     clearingLibrary = false;
+  }
+  /** Même patron que `setEcritureFichiers` : un refus du serveur remet la case en place. */
+  async function setCoffretsAuto(v: boolean) {
+    const before = coffretsAuto; coffretsAuto = v; coffretsAutoErr = null;
+    try {
+      await api.updateConfig({ [CLE_COFFRETS_AUTO]: v });
+    } catch {
+      coffretsAuto = before;
+      coffretsAutoErr = get(t)('settings.errSaveFailed');
+    }
   }
   async function setQualitySplit(v: boolean) {
     const before = qualitySplit; qualitySplit = v;
@@ -5882,6 +5898,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               <p class="hint">{#each emphaseParts($t('settings.needsFullScanHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <!-- tune-server-rust#6554 (fil 2294) : APRÈS la phrase « nécessite
+                   une analyse complète », qui ne vaut pas pour lui — l'onglet
+                   Coffrets suit tout de suite, sans rescan. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.autoBoxSets' as any)}</span>
+                  <span class="hint">{$t('settings.autoBoxSetsHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-cle={CLE_COFFRETS_AUTO} checked={coffretsAuto}
+                    onchange={(e) => setCoffretsAuto((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if coffretsAutoErr}<div class="errline">{coffretsAutoErr}</div>{/if}
 
             {:else if s.id === 'scanSched'}
               {#if scanDemarrage !== null}

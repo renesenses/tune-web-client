@@ -1339,6 +1339,8 @@ export default {
   "settings.scanOptions": "Opzioni di scansione",
   "settings.qualitySplit": "Dividi gli album per qualità",
   "settings.qualitySplitHint": "Se lo stesso album esiste in CD e Hi-Res, crea due voci separate (es. \"Album (96kHz/24bit)\")",
+  "settings.autoBoxSets": "Cofanetti automatici",
+  "settings.autoBoxSetsHint": "Riunire in un solo album i dischi salvati in cartelle sorelle (CD1, CD2…) e mostrare tra i Cofanetti gli album su più cartelle. Disattivato: nulla viene riunito e un album di più dischi non compare più tra i Cofanetti. I cofanetti già riuniti restano tali: «Sciogli il cofanetto», nella loro scheda, li riporta ai loro dischi.",
   "settings.exportDatabase": "Esporta il database",
   "settings.importInProgress": "Importazione...",
   "settings.importFile": "Importa un file",

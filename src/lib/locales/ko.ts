@@ -1323,6 +1323,8 @@ export default {
   "settings.scanOptions": "스캔 옵션",
   "settings.qualitySplit": "품질별로 앨범 분리",
   "settings.qualitySplitHint": "동일한 앨범이 CD와 Hi-Res로 존재하면 두 개의 별도 항목을 만듭니다 (예: \"Album (96kHz/24bit)\")",
+  "settings.autoBoxSets": "자동 박스 세트",
+  "settings.autoBoxSetsHint": "형제 폴더(CD1, CD2…)에 저장된 디스크를 하나의 앨범으로 합치고, 여러 폴더로 된 앨범을 박스 세트에 표시합니다. 끄면 아무것도 합치지 않으며, 여러 디스크로 된 앨범이 더 이상 박스 세트에 표시되지 않습니다. 이미 합쳐진 박스 세트는 그대로 유지됩니다. 해당 페이지의 「박스 세트 해제」로 디스크별로 되돌릴 수 있습니다.",
   "settings.exportDatabase": "데이터베이스 내보내기",
   "settings.importInProgress": "가져오는 중...",
   "settings.importFile": "파일 가져오기",

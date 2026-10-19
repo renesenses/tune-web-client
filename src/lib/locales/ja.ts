@@ -1337,6 +1337,8 @@ export default {
   "settings.scanOptions": "スキャンオプション",
   "settings.qualitySplit": "品質別にアルバムを分割",
   "settings.qualitySplitHint": "同じアルバムが CD と Hi-Res で存在する場合、2つの別エントリを作成します（例:「Album (96kHz/24bit)」）",
+  "settings.autoBoxSets": "ボックスセットの自動作成",
+  "settings.autoBoxSetsHint": "兄弟フォルダー（CD1、CD2…）に保存されたディスクを1枚のアルバムにまとめ、複数フォルダーのアルバムをボックスセットに表示します。オフにすると何もまとめられず、複数ディスクのアルバムはボックスセットに表示されなくなります。すでにまとめられたボックスセットはそのまま残ります。各ページの「ボックスセットを解除」でディスクごとに戻せます。",
   "settings.exportDatabase": "データベースをエクスポート",
   "settings.importInProgress": "インポート中...",
   "settings.importFile": "ファイルをインポート",

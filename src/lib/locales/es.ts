@@ -1339,6 +1339,8 @@ export default {
   "settings.scanOptions": "Opciones de análisis",
   "settings.qualitySplit": "Separar álbumes por calidad",
   "settings.qualitySplitHint": "Si el mismo álbum existe en CD y Hi-Res, crea dos entradas separadas (p. ej. \"Álbum (96kHz/24bit)\")",
+  "settings.autoBoxSets": "Cajas automáticas",
+  "settings.autoBoxSetsHint": "Reunir en un solo álbum los discos guardados en carpetas hermanas (CD1, CD2…) y mostrar en Cajas los álbumes repartidos en varias carpetas. Desactivado: no se reúne nada y un álbum de varios discos ya no aparece en Cajas. Las cajas ya reunidas se mantienen: «Deshacer la caja», en su ficha, las devuelve a sus discos.",
   "settings.exportDatabase": "Exportar base de datos",
   "settings.importInProgress": "Importando...",
   "settings.importFile": "Importar un archivo",

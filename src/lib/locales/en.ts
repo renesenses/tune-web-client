@@ -2011,6 +2011,8 @@ export default {
   "settings.scanOptions": "Scan options",
   "settings.qualitySplit": "Split albums by quality",
   "settings.qualitySplitHint": "If the same album exists in CD and Hi-Res, create two separate entries (e.g. \"Album (96kHz/24bit)\")",
+  "settings.autoBoxSets": "Automatic box sets",
+  "settings.autoBoxSetsHint": "Merge discs stored in sibling folders (CD1, CD2…) into a single album, and list multi-folder albums under Box sets. Off: nothing is merged, and a multi-disc album no longer appears under Box sets. Box sets already merged stay merged: “Undo box set”, on their page, splits them back into their discs.",
   "settings.exportDatabase": "Export database",
   "settings.importInProgress": "Importing...",
   "settings.importFile": "Import a file",
