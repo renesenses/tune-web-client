@@ -51,7 +51,7 @@ let services: Record<string, { authenticated: boolean }> = {};
 let appels: { method: string; url: string; body: unknown }[] = [];
 
 function corpsPour(url: string): unknown {
-  if (/\/zones\/7\/play$/.test(url)) return { id: 7, name: 'Salon', state: 'playing' };
+  if (/\/zones\/7\/play(?:\?lang=[a-z]{2})?$/.test(url)) return { id: 7, name: 'Salon', state: 'playing' };
   if (url.includes('/playlist-manager/services')) return {};
   if (url.includes('/streaming/services')) return services;
   if (url.includes('/streaming/qobuz/playlists')) return [QOBUZ];
@@ -102,7 +102,7 @@ async function cliquerLire(el: HTMLElement, nom: string) {
   await souffler(4);
 }
 
-const lectures = () => appels.filter((a) => a.method === 'POST' && /\/zones\/\d+\/play$/.test(a.url));
+const lectures = () => appels.filter((a) => a.method === 'POST' && /\/zones\/\d+\/play(?:\?lang=[a-z]{2})?$/.test(a.url));
 const erreurs = () => get(notifications).filter((n) => n.level === 'error').map((n) => n.message);
 
 const ZONE = { id: 7, name: 'Salon', state: 'stopped', shuffle: false } as unknown as import('../types').Zone;
@@ -165,7 +165,7 @@ describe('Gestionnaire de playlists — le bouton lecture de la grille (web#1760
     await cliquerLire(el, QOBUZ.name);
     const l = lectures();
     expect(l.length, 'le clic sur la playlist Qobuz n’a envoyé AUCUNE requête de lecture').toBe(1);
-    expect(l[0].url).toMatch(/\/zones\/7\/play$/);
+    expect(l[0].url).toMatch(/\/zones\/7\/play(?:\?lang=[a-z]{2})?$/);
     expect(l[0].body).toEqual({ source: 'qobuz', streaming_playlist_id: 'q-777' });
     expect(erreurs()).toEqual([]);
   });

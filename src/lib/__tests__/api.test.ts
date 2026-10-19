@@ -270,14 +270,14 @@ describe('critical endpoint URLs', () => {
   it('getZones() calls /api/v1/zones', async () => {
     mockFetch([]);
     await api.getZones();
-    expect(fetchCalls[0].url).toBe('/api/v1/zones');
+    expect(fetchCalls[0].url).toBe('/api/v1/zones?lang=fr');
   });
 
   it('updateZoneFixedVolume omet l’accord tant que le danger n’a pas été confirmé', async () => {
     mockFetch({ id: 7, fixed_volume: true });
     await api.updateZoneFixedVolume(7, true);
 
-    expect(fetchCalls[0].url).toBe('/api/v1/zones/7');
+    expect(fetchCalls[0].url).toBe('/api/v1/zones/7?lang=fr');
     expect(fetchCalls[0].init?.method).toBe('PATCH');
     expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
       fixed_volume: true,
@@ -297,7 +297,7 @@ describe('critical endpoint URLs', () => {
   it('setAudiophileVolumeLock distingue surcharge et héritage par zone', async () => {
     mockFetch({ enabled: true, lock_volume: false, effective_lock_volume: false });
     await api.setAudiophileVolumeLock(7, false);
-    expect(fetchCalls[0].url).toBe('/api/v1/zones/7/audiophile');
+    expect(fetchCalls[0].url).toBe('/api/v1/zones/7/audiophile?lang=fr');
     expect(fetchCalls[0].init?.method).toBe('POST');
     expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
       lock_volume: false,

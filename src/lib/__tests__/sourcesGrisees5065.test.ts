@@ -86,7 +86,7 @@ beforeEach(() => {
       return listeServeur === 404 ? reponse(404, { error: 'not_found' }) : reponse(200, listeServeur);
     }
     if (/\/sources\/[^/]+\/jouer$/.test(u)) return reponse(200, { ok: true });
-    if (/\/zones\/3$/.test(u)) return reponse(200, { id: 3, name: 'Salon', state: 'playing' });
+    if (/\/zones\/3(?:\?lang=[a-z]{2})?$/.test(u)) return reponse(200, { id: 3, name: 'Salon', state: 'playing' });
     if (/\/system\/scan\/status/.test(u)) return reponse(200, { scanning: false });
     return reponse(200, []);
   }));
