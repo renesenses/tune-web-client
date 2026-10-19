@@ -94,6 +94,8 @@
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import { enTetesDisque as calculerEnTetes } from '../../lib/enTetesDisque';
   import { sectionsParRang } from '../../lib/library/grouping';
+  import { nombreDeDisques, pistesDuDisque, type GesteDisque } from '../../lib/lectureDisque';
+  import EnTeteDisqueV2 from './EnTeteDisqueV2.svelte';
 
   interface Props {
     pistes: Track[];
@@ -258,6 +260,21 @@
      */
     enTetesDisque?: boolean;
     /**
+     * 🔴 LIRE UN DISQUE — web#2221 (demande relayée par Bertrand le
+     * 19/10/2026 : « comment lire un seul CD d'un coffret ? »).
+     *
+     * Fourni, l'en-tête « Disque N » d'un album d'au moins DEUX disques
+     * devient actif (`EnTeteDisqueV2`) : « Lire le disque », menu « … »
+     * (« Lire ensuite », « Ajouter à la file ») et durée du disque. La liste
+     * DIT le geste et la tranche de `pistes` qui forme le disque, dans son
+     * ordre (`lib/lectureDisque`) ; l'écran — seul à savoir désigner ses
+     * pistes (bibliothèque, service, autre serveur Tune) — la joue.
+     *
+     * Absent, en lecture seule, ou sur un album d'un seul disque : l'en-tête
+     * reste un libellé, exactement comme avant.
+     */
+    onGesteDisque?: ((geste: GesteDisque, pistes: Track[], disque: number) => void) | null;
+    /**
      * 🔴 Le RÉORDONNANCEMENT, par glisser-déposer et au clavier — OPT-IN.
      *
      * Bertrand, 23/09/2026 : l'écran « Gestion des playlists » rendait sa
@@ -362,6 +379,7 @@
     ouvertureAlbum = null, apres, coeurDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
     enTetesDisque = false,
+    onGesteDisque = null,
     reordonnable = false, onReordonner = null,
     etiquetteIndispo = 'v2.str.coming',
     lectureSeule = false,
@@ -439,6 +457,11 @@
   // la même prop : seule la fiche d'album rend les pistes d'UN album dans
   // l'ordre disque/piste. Règle et témoins dans `lib/library/grouping.ts`.
   const sections = $derived(enTetesDisque ? sectionsParRang(pistes) : []);
+  // web#2221 — l'en-tête de disque n'est actif qu'à DEUX disques au moins :
+  // un album d'un disque (avec ou sans sous-titre) ne change pas.
+  const disquesActifs = $derived(
+    enTetesDisque && onGesteDisque != null && !lectureSeule && nombreDeDisques(pistes) >= 2,
+  );
 
   /**
    * « Lire à partir d'ici », par DÉFAUT — Bertrand, 20/09/2026.
@@ -588,10 +611,9 @@
 {#snippet enTeteDisque(i: number)}
   {@const e = enTetes[i]}
   {#if e}
-    <div class="dischead">
-      <span class="discno">{$t('library.disc' as any).replace('{num}', String(e.disque))}</span>
-      {#if e.sousTitre}<span class="discsub">{e.sousTitre}</span>{/if}
-    </div>
+    {@const tranche = disquesActifs ? pistesDuDisque(pistes, i) : []}
+    <EnTeteDisqueV2 entete={e} actif={disquesActifs} pistes={tranche}
+      onGeste={(g) => { if (tranche.length) onGesteDisque?.(g, tranche, e.disque); }} />
   {/if}
   {#if sections[i]}
     <div class="grouphead">{sections[i]}</div>
@@ -777,12 +799,7 @@
      `overflow-x` : la grille ne pouvait pas déborder, donc elle écrasait. */
   .tbl{display:flex; flex-direction:column; min-width:0; overflow-x:auto}
   .tbl::-webkit-scrollbar{height:9px}
-  /* #1431 — l'en-tête de disque : une ligne de texte, hors de la grille des
-     colonnes (il n'a pas de cellules), la forme de `.dischead` d'Oxygen. */
-  .dischead{display:flex; align-items:baseline; gap:10px; padding:14px 10px 4px}
-  .discno{font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
-    color:var(--v2-txt3)}
-  .discsub{font-size:12px; color:var(--v2-txt2)}
+  /* #1431 — l'en-tête de disque vit dans `EnTeteDisqueV2` (web#2221). */
   /* web#1862 — l'en-tête de section GROUPING : un cran sous celui du disque. */
   .grouphead{padding:10px 10px 2px; font-size:12px; font-weight:600; color:var(--v2-txt2)}
   .tbl::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
