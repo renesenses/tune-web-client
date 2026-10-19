@@ -235,6 +235,9 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'streaming',   titleKey: 'settings.streaming', from: 'services', min: 'intermediate', keywords: ['qobuz', 'tidal', 'deezer'] },
       { id: 'tokens',      title: 'Services & Jetons',     from: 'services', min: 'intermediate', keywords: ['jetons', 'tokens', 'api', 'clés'] },
+      /** #4805 lot 1 — la clé AcoustID et le jeton Discogs PERSONNELS de
+       *  l'utilisateur, chiffrés au repos, jamais réaffichés en clair. */
+      { id: 'apiKeys',     titleKey: 'v2.apiKeys.title',   from: 'services', min: 'intermediate', keywords: ['clé', 'clés', 'api', 'acoustid', 'discogs', 'jeton', 'token', 'key'] },
       { id: 'spotify',     title: 'Spotify Connect',       from: 'services', min: 'intermediate' },
       { id: 'accessFrom',  titleKey: 'settings.accessFromDevice', from: 'system', min: 'intermediate', keywords: ['accès', 'distant', 'url'] },
     ],

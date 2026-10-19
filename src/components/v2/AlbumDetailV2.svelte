@@ -171,6 +171,14 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
    * le reste de la fiche (lecture, étiquettes, file d'attente) continue de
    * travailler sur l'objet d'origine, dont l'identité ne change pas.
    */
+  // tune-server-rust#4805 lot 2 — la pochette plus nette posée depuis la
+  // fiche, affichée sans recharger l'album.
+  let pochetteRemplacee = $state<string | null>(null);
+  $effect(() => {
+    void album.id; // un autre album : on oublie la pochette posée sur le précédent
+    pochetteRemplacee = null;
+  });
+
   const albumAffiche = $derived.by(() => {
     const d = detailService;
     if (!d) return album;
@@ -1524,7 +1532,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   <div class="head">
     <!-- #1342 — `albumAffiche` : la pochette que l'appelant n'a pas portée
          vient du service, sinon la fiche reste un carré gris à l'initiale. -->
-    <div class="art"><AlbumArt coverPath={albumAffiche.cover_path} albumId={depot ? null : album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
+    <div class="art"><AlbumArt coverPath={pochetteRemplacee ?? albumAffiche.cover_path} albumId={depot ? null : album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
     <div class="meta">
       <!-- 🔴 La pastille « compilation » vit À CÔTÉ du badge de qualité, pas
            dans la ligne de faits : c'est une NATURE de disque, pas une mesure,
@@ -1760,6 +1768,16 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         {/if}
       {/if}
     </div>
+  {/if}
+
+  <!-- #4805 lot 1 (d'après MetaRust, de Xavier Joly) : complétude, BPM,
+       instruments Wikidata, propositions Discogs. Album de la BIBLIOTHÈQUE
+       seulement — la même garde que les crédits. -->
+  {#if creditsPossibles && album.id != null}
+    {#await import('./EnrichissementAlbumV2.svelte') then m}
+      <m.default albumId={album.id} pistes={tracks} pochette={pochetteRemplacee ?? albumAffiche.cover_path ?? null}
+        onPochette={(h) => (pochetteRemplacee = h)} />
+    {/await}
   {/if}
 
   <div class="tracks">

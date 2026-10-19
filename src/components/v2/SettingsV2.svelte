@@ -159,6 +159,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   } from '../../lib/cadenceAnimations';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
   import SauvegardeCloudV2 from './SauvegardeCloudV2.svelte';
+  import ClesApiV2 from './ClesApiV2.svelte';
+  // tune-server-rust#4805 lot 2 — les passes de lot BPM et Discogs.
+  import PassesMetarustV2 from './PassesMetarustV2.svelte';
+  import IdentificationNuitV2 from './IdentificationNuitV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -4478,6 +4482,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 {#if acoustidErr}<div class="errline" data-acoustid="refus">{acoustidErr}</div>{/if}
               {/if}
+              <!-- tune-server-rust#4805 lot 2 (d'après MetaRust) : BPM et propositions Discogs, à la main. -->
+              <PassesMetarustV2 />
+              <!-- tune-server-rust#4805 (13/10) : reprise de nuit des albums refusés par MusicBrainz. -->
+              <IdentificationNuitV2 />
 
             {:else if s.id === 'ingest'}
               {#if !ingest}
@@ -4906,6 +4914,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'backup'}
               <SauvegardeCloudV2 />
+
+            {:else if s.id === 'apiKeys'}
+              <ClesApiV2 />
 
             {:else if s.id === 'config'}
               <p class="hint">{#each emphaseParts($t('settings.configBackupHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
