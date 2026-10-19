@@ -86,6 +86,9 @@ export const SETTING_LEVELS = {
   'library.folderPlaylists': { tab: 'library', level: 'intermediate' },
   'library.importPlaylistFiles': { tab: 'library', level: 'intermediate' },
   'library.qualitySplit': { tab: 'library', level: 'intermediate' },
+  // tune-server-rust#6554 (fil 2294) — « Coffrets automatiques », dans la
+  // même carte « Options d'analyse » que la séparation par qualité.
+  'library.autoBoxSets': { tab: 'library', level: 'intermediate' },
   'library.scanSchedule': { tab: 'library', level: 'intermediate' },
   'library.scanScheduleTime': { tab: 'library', level: 'intermediate', sub: true, parent: 'library.scanSchedule' },
   'library.enrichOnScan': { tab: 'library', level: 'intermediate' },

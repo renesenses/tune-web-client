@@ -2014,6 +2014,8 @@ export default {
   "settings.scanOptions": "Options de scan",
   "settings.qualitySplit": "Séparer les albums par qualité",
   "settings.qualitySplitHint": "Si un même album existe en CD et Hi-Res, créer deux entrées distinctes (ex: \"Album (96kHz/24bit)\")",
+  "settings.autoBoxSets": "Coffrets automatiques",
+  "settings.autoBoxSetsHint": "Réunir en un seul album les disques rangés dans des dossiers frères (CD1, CD2…) et ranger sous Coffrets les albums à plusieurs dossiers. Désactivé : rien n'est réuni, et un album à plusieurs disques n'apparaît plus sous Coffrets. Les coffrets déjà réunis le restent : « Défaire le coffret », sur leur fiche, les rend à leurs disques.",
   "settings.exportDatabase": "Exporter la base",
   "settings.importInProgress": "Import...",
   "settings.importFile": "Importer un fichier",
