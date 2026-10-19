@@ -33,6 +33,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import RadioEditModale from './RadioEditModale.svelte';
+  import RadioAnnuaire from './RadioAnnuaire.svelte';
   import { notifications } from '../../lib/stores/notifications';
   import '../../styles/tune-v2.css';
 
@@ -77,6 +78,39 @@
    * favori, et l'écran retombe sur « toutes » dès que la dernière est retirée.
    */
   let ongletFavoris = $state(false);
+
+  /**
+   * tune-server-rust#6516 — « Mes radios » / « Annuaire ».
+   *
+   * « Mes radios » reste la liste personnelle, avec ses onglets Favoris /
+   * Toutes. « Annuaire » montre les stations de radio-metadata.fr que le
+   * serveur garde en cache (`RadioAnnuaire`) : on y écoute d'un clic, et on
+   * ajoute à « Mes radios » sans doublon.
+   */
+  let section = $state<'mes' | 'annuaire'>('mes');
+  /** La fiche d'annuaire qui joue, pour sa pastille « en direct ». */
+  let ficheJouee = $state<string | null>(null);
+
+  /**
+   * Le titre en cours de la zone, quand elle joue une radio — celui que le
+   * serveur lit sur le relais radio-metadata.fr, chez le diffuseur ou dans
+   * l'ICY. Tant que la station n'a rien publié, le serveur pose son NOM en
+   * titre et « Live Radio » en artiste : rien à montrer de plus que la vignette.
+   */
+  const titreEnCours = $derived.by(() => {
+    const np = $currentZone?.current_track;
+    if (!np || np.source !== 'radio' || !np.title) return null;
+    if (np.title === np.album_title) return null;
+    const artiste = np.artist_name && np.artist_name !== 'Live Radio' ? np.artist_name : null;
+    return artiste ? `${artiste} — ${np.title}` : np.title;
+  });
+
+  /** Une station vient d'entrer dans « Mes radios » depuis l'annuaire. */
+  function stationAjoutee(st: RadioStation) {
+    radios = radios.some((x) => x.id === st.id)
+      ? radios.map((x) => (x.id === st.id ? { ...x, ...st } : x))
+      : [...radios, st];
+  }
 
   /*
    * Importer / exporter une liste M3U — portés de l'ancien écran Radios, seul
@@ -209,6 +243,7 @@
     const zid = zoneRequise();
     if (zid == null) return;
     playingId = r.id;
+    ficheJouee = null;
     try {
       const res: any = await api.playRadio(r.id, zid);
       // Zone navigateur : le serveur n'a pas de sortie audio, c'est la page
@@ -251,6 +286,8 @@
       <h1>{$t('v2.radio.title' as any)}</h1>
     </div>
     <div class="v2-actions">
+      <!-- #6516 — l'annuaire porte sa propre recherche, avec ses filtres. -->
+      {#if section === 'mes'}
       <div class="v2-rech">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         <input placeholder={$t('v2.radio.searchPlaceholder' as any)} bind:value={q} />
@@ -260,6 +297,7 @@
           </button>
         {/if}
       </div>
+      {/if}
       <!-- #863 — le basculeur de vue, au MÊME endroit et avec les mêmes icônes
            que celui des Zones : deux écrans qui offrent le même choix doivent
            le proposer pareil. -->
@@ -285,7 +323,15 @@
     </div>
   </header>
 
-  {#if showFilters && rayons.length}
+  <!-- #6516 — la liste personnelle, ou l'annuaire complet. -->
+  <div class="sections" role="tablist">
+    <button class="v2-btn" class:on={section === 'mes'} role="tab" aria-selected={section === 'mes'}
+      onclick={() => (section = 'mes')}>{$t('v2.radio.tabMine' as any)}</button>
+    <button class="v2-btn" class:on={section === 'annuaire'} role="tab" aria-selected={section === 'annuaire'}
+      onclick={() => (section = 'annuaire')}>{$t('v2.radio.tabDirectory' as any)}</button>
+  </div>
+
+  {#if section === 'mes' && showFilters && rayons.length}
     <div class="chips">
       <button class="chip" class:active={!genre} onclick={() => (genre = null)}>{$t('v2.radio.allGenres' as any)} ({shown.length})</button>
       {#each rayons as { rayon, n } (rayon.key)}
@@ -296,7 +342,14 @@
   {/if}
 
   <div class="scroll">
-    {#if loading}
+    {#if section === 'annuaire'}
+      <RadioAnnuaire
+        onAjoutee={stationAjoutee}
+        enDirect={ficheJouee}
+        titreEnCours={titreEnCours}
+        onJoue={(id) => { ficheJouee = id; playingId = null; }}
+      />
+    {:else if loading}
       <div class="state">{$t('v2.radio.loading' as any)}</div>
     {:else if error}
       <div class="state err">{error}</div>
@@ -372,11 +425,13 @@
         onOuvrir={() => play(r)}
         nom={r.name}
       >
-        <AlbumArt coverPath={r.logo_url ?? null} albumId={null} size={0} alt={r.name} fallbackInitials={r.name?.slice(0,1)} />
+        <!-- #6516 — le logo de la fiche d'annuaire quand la station n'en a pas. -->
+        <AlbumArt coverPath={r.logo_url || r.annuaire?.logo_url || null} albumId={null} size={0} alt={r.name} fallbackInitials={r.name?.slice(0,1)} />
       </PochetteActions>
       {#if playingId === r.id}<span class="onair">{$t('v2.lbl.liveNow' as any)}</span>{/if}
     </span>
     <span class="nm" use:bulleTexte>{r.name}</span>
+    {#if playingId === r.id && titreEnCours}<span class="encours" use:bulleTexte>{titreEnCours}</span>{/if}
     {#if radioGenreRayon(r)}<span class="gn" use:bulleTexte>{libelle(radioGenreRayon(r)!)}</span>{/if}
     <!-- #863 — Jean Valjean : « pouvoir voir le format d'émission ». Le codec
          existait, réservé à Expert ; il s'est lu dès Avancé, comme les filtres.
@@ -389,6 +444,10 @@
 <style>
   /* #863 — les onglets Favoris / Toutes, et la vue en liste. */
   .ronglets{display:flex; gap:8px; padding:0 30px 12px}
+  /* #6516 — Mes radios / Annuaire. */
+  .sections{display:flex; gap:8px; padding:0 30px 10px}
+  .sections .v2-btn.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
+  .encours{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-acc2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ronglets .rn{font:11px var(--v2-mono); opacity:.7; margin-left:5px}
   .bascule{display:flex; gap:4px}
   .bascule .v2-btn{padding:6px 9px}
