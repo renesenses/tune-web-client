@@ -7118,6 +7118,11 @@ export function getAlbumRating(albumId: number) {
   return fetchJSON<any>(`${BASE}/library/albums/${albumId}/rating`);
 }
 
+/** #6545 — notes et écoutes de la communauté pour un album (agrégats du site). */
+export function getAlbumCommunity(albumId: number) {
+  return fetchJSON<import('./notesCommunautaires').AgregatsCommunautaires>(`${BASE}/library/albums/${albumId}/community`);
+}
+
 export function getTopRatedAlbums(limit = 20) {
   return fetchJSON<any[]>(`${BASE}/library/albums/top-rated?limit=${limit}`);
 }
