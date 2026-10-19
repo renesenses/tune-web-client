@@ -34,6 +34,7 @@
     ordonnerArbre,
     placementsPourDeposer,
     ORDRES_RAYONS,
+    ORDRE_RAYONS_DEFAUT,
     type Glisse,
     type OrdreRayons,
   } from '../../lib/rayonsCollections';
@@ -63,7 +64,7 @@
   }
   let {
     arbre, compact = false, libelle, onOuvrir, onChange, onNouvelleSmart,
-    ordre = 'manuel', onOrdre,
+    ordre = ORDRE_RAYONS_DEFAUT, onOrdre,
   }: Props = $props();
 
   const nomDe = (c: CollectionRangee) => (libelle ? libelle(c) : (c.name ?? ''));
