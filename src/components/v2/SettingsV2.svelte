@@ -119,6 +119,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
+  import PlagesMacV2 from './PlagesMacV2.svelte';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
@@ -7111,6 +7112,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+
+            {:else if s.id === 'macRanges'}
+              <!-- #2244 — plage MAC reconnue et marque de chaque appareil, et
+                   la table entière (tune-server-rust#6546). Serveur ancien :
+                   le composant se tait. -->
+              <PlagesMacV2 appareils={$devices} />
             {/if}
           </section>
         {/each}
@@ -7236,8 +7243,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zr{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px}
   .zf{display:flex; flex-direction:column; gap:5px}
   .zf .dsd-dop{max-width:220px; font:11.5px/1.35 var(--v2-sans); color:var(--v2-txt2)}
-  .zf > span{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .zf > span{font:10px var(--v2-mono); line-height:14px; letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  /* web#2089 (Didier, fil 2222) — les cases « Volume fixe » et « Sortie mono »
+     s'alignaient sur le BAS de la rangée (`align-self:flex-end`) : la note DoP
+     sous le sélecteur DSD (#1876) allongeait la colonne, et les cases
+     descendaient au niveau de la note. Elles s'alignent désormais sur les
+     SÉLECTEURS : intitulé (14 px) + écart (5 px) au-dessus, la hauteur d'un
+     `.sel.sm` (32 px), quelle que soit la hauteur des colonnes voisines. */
   .zf.chk{flex-direction:row; align-items:center; gap:8px; align-self:flex-end; padding-bottom:8px; cursor:pointer}
+  .zr > .zf.chk{align-self:flex-start; padding-bottom:0; margin-top:19px; height:32px}
   .zf.chk input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
   .zf.chk span{font:12px var(--v2-sans); text-transform:none; letter-spacing:0; color:var(--v2-txt2)}
   .sel.sm{min-width:130px; height:32px; font-size:12.5px}
