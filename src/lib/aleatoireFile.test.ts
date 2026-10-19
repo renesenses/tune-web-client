@@ -85,6 +85,70 @@ describe('basculerAleatoire — la file affichée suit le mélange du serveur', 
 });
 
 /**
+ * Revue Codex de #2237 : la zone n'était vérifiée qu'AVANT la relecture. Si
+ * l'utilisateur change de zone pendant `GET …/queue`, la réponse de l'ancienne
+ * zone écrasait la file de la nouvelle (zone affichée 8, file de la zone 7).
+ */
+describe('basculerAleatoire — une réponse périmée n’écrase pas la file', () => {
+  function attente<T>() {
+    let resoudre!: (v: T) => void;
+    const promesse = new Promise<T>((r) => (resoudre = r));
+    return { promesse, resoudre };
+  }
+
+  it('la zone change pendant la relecture : la file de la nouvelle zone reste', async () => {
+    let zone = 7;
+    const lecture = attente<{ tracks: Track[]; position: number; length: number }>();
+    const partie = attente<void>();
+    const p: PortesAleatoire = {
+      basculer: async () => ({ shuffle: true, queue_reordered: true }),
+      lireFile: () => {
+        partie.resoudre();
+        return lecture.promesse;
+      },
+      zoneAffichee: () => zone,
+    };
+    const enCours = basculerAleatoire(7, true, p);
+    // La relecture de la zone 7 est bien PARTIE avant le changement de zone.
+    await partie.promesse;
+    // L'utilisateur passe sur la zone 8, dont la file est chargée.
+    zone = 8;
+    const FILE_ZONE_8 = [piste(80, 'zone 8')];
+    queueTracks.set(FILE_ZONE_8);
+    queueLength.set(1);
+    lecture.resoudre({ tracks: [piste(70, 'zone 7')], position: 0, length: 1 });
+    expect(await enCours).toBe(true);
+    expect(get(queueTracks).map((t) => t.title)).toEqual(['zone 8']);
+    expect(get(queueLength)).toBe(1);
+  });
+
+  it('deux bascules rapprochées : la réponse de la première, arrivée en dernier, est ignorée', async () => {
+    const premiere = attente<{ tracks: Track[]; position: number; length: number }>();
+    const seconde = attente<{ tracks: Track[]; position: number; length: number }>();
+    const lectures = [premiere.promesse, seconde.promesse];
+    const parties = [attente<void>(), attente<void>()];
+    let n = 0;
+    const p: PortesAleatoire = {
+      basculer: async (_z, enabled) => ({ shuffle: enabled, queue_reordered: true }),
+      lireFile: () => {
+        parties[n++].resoudre();
+        return lectures.shift()!;
+      },
+      zoneAffichee: () => 7,
+    };
+    const a = basculerAleatoire(7, true, p);
+    await parties[0].promesse;
+    const b = basculerAleatoire(7, false, p);
+    await parties[1].promesse;
+    seconde.resoudre({ tracks: ANCIENNE, position: 0, length: ANCIENNE.length });
+    await b;
+    premiere.resoudre({ tracks: MELANGEE, position: 0, length: MELANGEE.length });
+    await a;
+    expect(get(queueTracks).map((t) => t.title)).toEqual(['A', 'B', 'C', 'D']);
+  });
+});
+
+/**
  * Les quatre boutons Aléatoire passent par la MÊME bascule — barre de lecture,
  * « Lecture en cours », carte de zone, et l'écran File d'attente qui n'en
  * avait pas. Un appel direct à `api.setShuffle` dans un gabarit relirait sans

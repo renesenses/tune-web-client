@@ -46,6 +46,13 @@ const PORTES: PortesAleatoire = {
  * prudence. Une relecture qui échoue garde la file précédente : elle sera
  * corrigée par l'événement suivant, et la bascule, elle, a réussi.
  */
+/**
+ * Numéro de la dernière relecture lancée. Une réponse qui arrive alors qu'une
+ * relecture plus récente est partie est périmée : on l'ignore, sinon deux
+ * bascules rapprochées pourraient finir sur l'ordre de la première.
+ */
+let derniereRelecture = 0;
+
 export async function basculerAleatoire(
   zoneId: number,
   enabled: boolean,
@@ -53,8 +60,16 @@ export async function basculerAleatoire(
 ): Promise<boolean> {
   const r = await portes.basculer(zoneId, enabled);
   if (r.queue_reordered !== false && portes.zoneAffichee() === zoneId) {
+    const relecture = ++derniereRelecture;
     try {
       const q = await portes.lireFile(zoneId);
+      // La zone a pu changer PENDANT la requête : la réponse décrit alors la
+      // file d'une zone qui n'est plus affichée, et l'écrire écraserait celle
+      // de la nouvelle zone (revue Codex de #2237 : zone affichée 8, file de
+      // la zone 7). Même chose si une relecture plus récente est partie.
+      if (relecture !== derniereRelecture || portes.zoneAffichee() !== zoneId) {
+        return r.shuffle;
+      }
       const pistes = q.tracks ?? [];
       queueTracks.set(pistes);
       queuePosition.set(q.position ?? 0);
