@@ -26,6 +26,7 @@
   import type { Track } from '../../lib/types';
   import { acousticStatus, acousticEnabled, acousticProgress, refreshAcousticStatus } from '../../lib/stores/acoustic';
   import AcousticProgress from '../partages/AcousticProgress.svelte';
+  import AmbianceExport from './AmbianceExport.svelte';
 
   let loading = $state(false);
   let tracks = $state<(Track & { similarity?: number })[]>([]);
@@ -269,20 +270,8 @@
     }
   }
 
-  async function saveAsPlaylist() {
-    const ids = trackIds();
-    if (ids.length === 0 || !lastQuery) return;
-    const name = `Ambiance · ${lastQuery}`;
-    try {
-      const created = await api.createPlaylist(name);
-      if (created.id) {
-        await api.addPlaylistTracks(created.id, ids);
-        notifications.success(`Playlist « ${name} » sauvegardée (${ids.length} titres)`);
-      }
-    } catch (e: any) {
-      notifications.error(e?.message || $t('v2.ambiance.saveError' as any));
-    }
-  }
+  // « Sauvegarder » est devenu « Exporter vers… » (web#2218) : playlist locale
+  // comme avant, ou service de streaming connecté. Voir `AmbianceExport`.
 </script>
 
 <div class="ambiance-view">
@@ -452,10 +441,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
             {$t('v2.ambiance.shuffle' as any)}
           </button>
-          <button class="action-btn save-btn" onclick={saveAsPlaylist}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
-            {$t('v2.ambiance.save' as any)}
-          </button>
+          <AmbianceExport ids={trackIds()} nomPropose={`Ambiance · ${lastQuery}`} />
         </div>
       </div>
 
