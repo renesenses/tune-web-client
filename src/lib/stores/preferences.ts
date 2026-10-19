@@ -20,6 +20,7 @@ import {
   normaliserChoixBarre, horodatageBarre, arbitrerBarre, type ChoixBarre,
 } from '../ordreBarreLaterale';
 import type { TriConcerts } from '../concertsTri';
+import { estOrdreRayons, ORDRE_RAYONS_DEFAUT, type OrdreRayons } from '../rayonsCollections';
 import type { ChoixLieuConcerts } from '../concertsLieu';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
@@ -362,6 +363,15 @@ export interface Preferences {
    */
   ordreAutresVersions: OrdreVersions;
   /**
+   * web#2207 (Didier, fil 1907) — l'ordre des collections dans l'arbre des
+   * rayons, à tous les niveaux : `manuel` (la position gardée par le serveur,
+   * réglée par glisser-déposer — l'ordre de création tant que rien n'a bougé)
+   * ou `alpha` (alphanumérique, sur le libellé affiché). Rangé ici, donc dans
+   * `ui_preferences` synchronisé serveur : les collections et leur rangement
+   * vivent sur le serveur, leur ordre d'affichage aussi.
+   */
+  ordreRayons: OrdreRayons;
+  /**
    * La cadence des animations de « Lecture en cours » — #1256.
    *
    * Trois crans : `fluide` (30 i/s, le comportement livré), `econome` (20 i/s,
@@ -507,6 +517,9 @@ const defaults: Preferences = {
   // fusion `{ ...defaults, ...raw }` de `loadPrefs` donne toujours le dernier
   // mot à la valeur enregistrée. Un utilisateur qui a choisi garde son choix.
   ordreAutresVersions: ORDRE_VERSIONS_DEFAUT,
+  // web#2207 : l'ordre livré (manuel, position du serveur) reste le défaut —
+  // personne ne voit ses rayons se réordonner sans l'avoir demandé.
+  ordreRayons: ORDRE_RAYONS_DEFAUT,
   // #1256 : 30 images par seconde, la cadence d'aujourd'hui. L'économie est
   // réelle et mesurée, mais elle SE VOIT — elle se propose, elle ne s'impose
   // pas. Personne ne doit voir son affichage changer sans l'avoir demandé.
@@ -682,6 +695,10 @@ function lirePrefs(stored: string | null): Preferences {
       // défaut plutôt que de laisser le panneau sur un mode qui n'existe pas.
       if (!estOrdreVersions((raw as { ordreAutresVersions?: unknown })?.ordreAutresVersions)) {
         p.ordreAutresVersions = ORDRE_VERSIONS_DEFAUT;
+      }
+      // web#2207 — même règle : un ordre inconnu retombe sur le défaut.
+      if (!estOrdreRayons((raw as { ordreRayons?: unknown })?.ordreRayons)) {
+        p.ordreRayons = ORDRE_RAYONS_DEFAUT;
       }
       // #1256 — même règle, même raison : ce blob vient aussi du SERVEUR. Un
       // cran inconnu (version ultérieure, blob abîmé) retombe sur la cadence
@@ -989,6 +1006,9 @@ async function relireDuServeur() {
       // `defaults` qui doit reprendre la main, sinon un blob abîmé figerait
       // les animations sur une cadence qui n'existe pas.
       if (!estCranCadence(server.cadenceAnimations)) delete server.cadenceAnimations;
+      // web#2207 — idem pour l'ordre des rayons : un ordre inconnu est
+      // supprimé, et `defaults` reprend la main.
+      if (server.ordreRayons !== undefined && !estOrdreRayons(server.ordreRayons)) delete server.ordreRayons;
       // web#1800 — idem pour la disposition de la file.
       if (!estDispositionFile(server.dispositionFile)) delete server.dispositionFile;
       // #5065 — idem pour les types de sources de la barre.
