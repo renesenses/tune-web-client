@@ -2421,6 +2421,8 @@ export default {
   "v2.nav.later": "後で聴く",
   "v2.later.add": "後で聴く",
   "v2.later.remove": "「後で聴く」から削除",
+  "v2.later.albumAddTip": "このアルバムを取っておき、あとで聴きます。",
+  "v2.later.albumRemoveTip": "このアルバムを「後で聴く」リストから外します。",
   "v2.later.added": "「後で聴く」に追加しました",
   "v2.later.removed": "「後で聴く」から削除しました",
   "v2.later.eyebrow": "取っておいたもの",

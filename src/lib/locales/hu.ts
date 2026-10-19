@@ -2375,6 +2375,8 @@ export default {
   "v2.nav.later": "Meghallgatás később",
   "v2.later.add": "Meghallgatás később",
   "v2.later.remove": "Eltávolítás a Meghallgatás később listáról",
+  "v2.later.albumAddTip": "Az album félretétele későbbi meghallgatásra.",
+  "v2.later.albumRemoveTip": "Az album eltávolítása a Meghallgatás később listáról.",
   "v2.later.added": "Hozzáadva a Meghallgatás később listához",
   "v2.later.removed": "Eltávolítva a Meghallgatás később listáról",
   "v2.later.eyebrow": "Amit félretett",

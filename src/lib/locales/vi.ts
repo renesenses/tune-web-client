@@ -1275,6 +1275,8 @@ export default {
   "v2.nav.later": "Nghe sau",
   "v2.later.add": "Nghe sau",
   "v2.later.remove": "Gỡ khỏi Nghe sau",
+  "v2.later.albumAddTip": "Để dành album này để nghe sau.",
+  "v2.later.albumRemoveTip": "Gỡ album này khỏi danh sách Nghe sau.",
   "v2.later.added": "Đã thêm vào Nghe sau",
   "v2.later.removed": "Đã gỡ khỏi Nghe sau",
   "v2.later.eyebrow": "Những gì bạn để dành",

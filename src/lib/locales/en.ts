@@ -1396,6 +1396,8 @@ export default {
   "v2.nav.later": "Listen later",
   "v2.later.add": "Listen later",
   "v2.later.remove": "Remove from Listen later",
+  "v2.later.albumAddTip": "Set this album aside to listen to later.",
+  "v2.later.albumRemoveTip": "Remove this album from your Listen later list.",
   "v2.later.added": "Added to Listen later",
   "v2.later.removed": "Removed from Listen later",
   "v2.later.eyebrow": "What you set aside",
