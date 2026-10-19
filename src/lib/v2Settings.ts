@@ -77,6 +77,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       // jamais en créer un. L'onglet Profils de l'écran actuel arrive ici.
       { id: 'profiles',   titleKey: 'settings.tabProfiles', from: 'profiles', min: 'beginner', keywords: ['profils', 'utilisateurs', 'multi-profil', 'qui écoute'] },
       { id: 'voice',      title: 'Tune Voice AI',         from: 'general', min: 'expert',   keywords: ['voix', 'commande vocale'] },
+      // Chantier « assistant-ia », étape 1 : la clé de l'utilisateur, son
+      // fournisseur, son plafond. Gratuit, dès le niveau débutant.
+      { id: 'assistantIa', titleKey: 'assistantIa.title', from: 'general', min: 'beginner',
+        keywords: ['ia', 'ai', 'intelligence artificielle', 'assistant', 'claude', 'anthropic', 'openai', 'mistral', 'gemini', 'ollama', 'clé', 'api key', 'plafond'] },
     ],
   },
   {

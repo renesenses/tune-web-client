@@ -159,6 +159,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // tune-server-rust#4805 lot 2 — les passes de lot BPM et Discogs.
   import PassesMetarustV2 from './PassesMetarustV2.svelte';
   import IdentificationNuitV2 from './IdentificationNuitV2.svelte';
+  import AssistantIaReglagesV2 from './AssistantIaReglagesV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -4815,6 +4816,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'apiKeys'}
               <ClesApiV2 />
+
+            {:else if s.id === 'assistantIa'}
+              <AssistantIaReglagesV2 />
 
             {:else if s.id === 'config'}
               <p class="hint">{#each emphaseParts($t('settings.configBackupHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
