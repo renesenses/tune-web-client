@@ -92,6 +92,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { cale, elargir, fenetreNeuve, plafondDe, type Fenetre } from '../../lib/fenetreDeRendu';
+  import { trierAlbums } from '../../lib/trierAlbums';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
@@ -547,6 +548,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         return list.sort((a, b) =>
           comparerAlbumsParAnnee(a, b, modeAnnee, ordreAnnee) || byTitle(a, b),
         );
+      case 'release_date':
+        // web#2206 — même clé, même règle des absents (en dernier dans les
+        // deux sens), mêmes départages que la recherche et la fiche artiste.
+        return trierAlbums(list, 'release_date', ordreAnnee);
       case 'added':
         return list.sort((a, b) => (b.added_at ?? 0) - (a.added_at ?? 0) || byTitle(a, b));
       case 'random':
@@ -610,9 +615,17 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * sans le savoir ferait tomber la frise a 90 albums, ce qui se lit comme une
    * panne.
    *
-   * `release_date` n'est toujours pas propose comme MODE : mesure du
+   * `release_date` n'est toujours pas propose comme MODE d'annee : mesure du
    * 12/09/2026 sur le .18 (v0.9.146), 0 album sur 4 255 en porte un. Un choix
    * qui ne trierait rien n'est pas un choix.
+   *
+   * 🔴 web#2206 (Jean Valjean, fil 2300) — il est en revanche un TRI, « Date
+   * de sortie » : la date complete si elle est connue, sinon l'annee. Il trie
+   * donc toujours quelque chose, et c'est la regle des autres tris d'albums
+   * (recherche, fiche artiste, dossiers : `trierAlbums`, serveur
+   * `list_sorted`). Le 0 sur 4 255 venait du scan, qui ne lisait la date
+   * complete que dans RELEASEDATE / TDRL : tune-server-rust (meme issue) la
+   * lit aussi dans DATE / TDRC quand elle porte un mois.
    *
    * ⚠️ A ne pas confondre avec le DEPARTAGE par date ajoute pour #866 : le tri
    * par annee descend desormais jusqu'a `original_date`/`release_date` quand
@@ -735,7 +748,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // « Ajout récent » n'est propose que si la donnee existe : sur une
   // bibliotheque importee d'un ancien serveur, `added_at` est souvent vide,
   // et un tri qui ne trie rien est pire qu'un tri absent.
-  type SortKey = 'title' | 'artist' | 'year' | 'added' | 'dr' | 'random';
+  type SortKey = 'title' | 'artist' | 'year' | 'added' | 'dr' | 'release_date' | 'random';
   // `l` porte une CLÉ, pas un libellé : le menu de tri restait en français
   // quelle que soit la langue (Bertrand, 06/09/2026).
   const SORTS: { k: SortKey; l: string }[] = [
@@ -745,6 +758,17 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // interface ne l'avait jamais repris. Décroissant : on trie par DR pour
     // remonter ses disques les PLUS dynamiques, pas les plus écrasés.
     { k: 'dr', l: 'library.sortDynamicRange' },
+    /**
+     * web#2206 — Jean Valjean, fil 2300, 15/10/2026 : « Serait-il possible
+     * d'avoir un tri par date de sortie dans la bibliothèque pour l'onglet
+     * Albums ? » La date complète si elle est connue (`release_date`, sinon
+     * `original_date`), sinon l'année : la règle des autres tris d'albums
+     * (`trierAlbums`, et le serveur pour les dossiers), pour qu'un même album
+     * se range au même endroit partout. Plus récent d'abord, comme l'année
+     * (`ordreAnnee`). Toujours offert : sans date complète, il retombe sur
+     * l'année, il trie donc toujours quelque chose.
+     */
+    { k: 'release_date', l: 'library.sortReleaseDate' },
     /**
      * 🔴 #4558 — Steve Taylor, fil 1671, 19/09/2026 : « Could you reinstate
      * the "random" sort for albums in the library view please? »

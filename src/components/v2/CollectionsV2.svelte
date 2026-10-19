@@ -635,11 +635,15 @@
    * leurs règles ; l'utilisateur veut pouvoir le changer à l'écran.
    *
    * Côté CLIENT, sur la liste reçue : `/smart-collections/{id}/albums` ne prend
-   * pas `?sort=`, et ses albums ne portent que titre, artiste et ANNÉE — ni
-   * date de sortie, ni date d'ajout. On ne propose donc que ces trois clés.
+   * pas `?sort=`, et ses albums ne portaient que titre, artiste et ANNÉE.
    * `regles` = l'ordre défini par les règles, le défaut.
+   *
+   * web#2206 (Jean Valjean, fil 2300) — « Date de sortie » aussi : le serveur
+   * (même issue) joint désormais `release_date` et `original_date` aux albums
+   * d'une collection intelligente. Face à un serveur plus ancien, la clé
+   * retombe sur l'année (`trierAlbums`), elle trie donc toujours quelque chose.
    */
-  const TRIS_SMART = ['regles', 'artist', 'title', 'year'] as const;
+  const TRIS_SMART = ['regles', 'artist', 'title', 'year', 'release_date'] as const;
   type TriSmart = (typeof TRIS_SMART)[number];
   let triSmart = $state<TriSmart>(lireChoix<TriSmart>('v2.collection.smart.tri', TRIS_SMART, 'regles'));
   let sensSmart = $state<Sens>(lireChoix<Sens>('v2.collection.smart.sens', SENS, 'asc'));
@@ -647,6 +651,7 @@
   $effect(() => { ecrireChoix('v2.collection.smart.sens', sensSmart); });
   const LIBELLES_SMART: Record<TriSmart, string> = {
     regles: 'v2.col.sortRules', artist: 'v2.lib.sortArtist', title: 'v2.lib.sortTitle', year: 'v2.lib.sortYear',
+    release_date: 'library.sortReleaseDate',
   };
   /** Ce que la grille AFFICHE — et ce que « Tout lire » enchaîne. */
   const albumsVus = $derived(
