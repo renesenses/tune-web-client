@@ -1,7 +1,7 @@
 export default {
   "sacdIso.title": "SACD-ISO",
-  "sacdIso.available": "sacd_extract auf dem Server erkannt. Dies garantiert nicht die Extraktion jeder ISO-Datei.",
-  "sacdIso.missing": "Tune hat sacd_extract nicht erkannt. Installieren Sie es separat auf dem Server. Wenn Sie PATH ändern, starten Sie Tune neu und durchsuchen Sie die Bibliothek erneut. Tune liefert das Werkzeug nicht mit.",
+  "sacdIso.available": "Tune liest SACD-ISOs selbst. sacd_extract wurde auf dem Server erkannt und dient nur für DST-Discs (komprimiertes DSD); die Extraktion jeder einzelnen ist nicht garantiert.",
+  "sacdIso.missing": "Tune liest SACD-ISOs selbst: dafür muss nichts installiert werden. Nur DST-Discs (komprimiertes DSD) benötigen sacd_extract, das auf diesem Server nicht erkannt wurde. Wenn Sie solche haben, installieren Sie es separat, starten Sie Tune neu, wenn Sie PATH ändern, und durchsuchen Sie die Bibliothek erneut.",
   "sacdIso.unknown": "Die Verfügbarkeit von sacd_extract konnte nicht geprüft werden. Versuchen Sie es erneut; dies bedeutet nicht, dass das Werkzeug fehlt.",
   "sacdIso.loading": "sacd_extract wird geprüft…",
   "sacdIso.check": "Erneut prüfen",
