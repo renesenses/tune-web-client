@@ -85,6 +85,7 @@
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
+  import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import {
@@ -1117,11 +1118,34 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let contribution = $state<ContributionCommunautaire | null>(null);
   let partageBusy = $state(false);
   let partageErr = $state<string | null>(null);
+  // « Envoyer mes écoutes à mon compte » (tune-server-rust#6510) : opt-in,
+  // lu et écrit par les mêmes routes. `null` : le serveur ne le connaît pas.
+  let ecoutesCompte = $state<boolean | null>(null);
+  let ecoutesBusy = $state(false);
+  let ecoutesErr = $state<string | null>(null);
+  async function basculerEcoutes(ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    ecoutesBusy = true;
+    ecoutesErr = null;
+    try {
+      await api.updateConfig({ [CLE_ECOUTES_AU_COMPTE]: souhait });
+    } catch {
+      ecoutesErr = get(t)('settings.errSaveFailed');
+    }
+    // L'état affiché est celui que le serveur RELIT : un refus remet la case.
+    await chargerPartage();
+    ecoutesBusy = false;
+    if (caseCochee) caseCochee.checked = !!ecoutesCompte;
+  }
   async function chargerPartage() {
     try {
       const c: any = await api.getConfig();
       syncCommunautaire = reglageVrai(c?.[CLE_SYNC_COMMUNAUTAIRE]);
       contribution = contributionDepuisConfig(c);
+      // tune-server-rust#6510 — un serveur qui ne publie pas la clé ne sait
+      // pas envoyer les écoutes : pas de case plutôt qu'une case qui mentirait.
+      ecoutesCompte = c && CLE_ECOUTES_AU_COMPTE in c ? reglageVrai(c[CLE_ECOUTES_AU_COMPTE]) : null;
       partageCharge = true;
     } catch { /* config illisible : les bascules ne sont pas offertes */ }
   }
@@ -4540,6 +4564,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     >{$t('settings.signIn' as any)}</button>
                 {/if}
               </div>
+              <!-- tune-server-rust#6510 — « Mes écoutes, tous serveurs » : seulement
+                   pour un serveur relié à un compte, et seulement si le serveur
+                   publie la clé. Désactivé par défaut. -->
+              {#if ssoConnecte && ecoutesCompte !== null}
+                <div class="row" data-ecoutes="compte">
+                  <div class="lbl">
+                    <span>{$t('settings.cloudListens' as any)}</span>
+                    <span class="hint">{$t('settings.cloudListensHint' as any)}</span>
+                    <a class="lnk" href={URL_MES_ECOUTES} target="_blank" rel="noopener noreferrer"
+                      >{$t('settings.cloudListensLink' as any)}</a>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle="cloud_listens_upload_enabled" checked={ecoutesCompte}
+                      disabled={ecoutesBusy}
+                      aria-label={$t('settings.cloudListens' as any)}
+                      onchange={basculerEcoutes} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                {#if ecoutesErr}<div class="errline">{ecoutesErr}</div>{/if}
+              {/if}
               <!-- Consentement à la télémétrie — porté de l'ancien écran
                    (phase 5) : il ne doit JAMAIS devenir immodifiable. -->
               {#if telCharge}
