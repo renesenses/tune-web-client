@@ -49,6 +49,9 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
+  import { lireListe } from '../../lib/lectureEnMasse';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
+  import type { GesteDisque } from '../../lib/lectureDisque';
   import { notifications } from '../../lib/stores/notifications';
   import { cleEchecRevelation, revelationDisponible, revelerDossierAlbum } from '../../lib/revelerDossier';
   import { fichiersInchanges } from '../../lib/ecritureFichiers';
@@ -1166,6 +1169,51 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     fileOccupee = false;
   }
   const addQueue = () => enfiler(undefined, 'v2.album.queued');
+  /**
+   * web#2221 — UN disque d'un album à plusieurs disques : « comment lire un
+   * seul CD d'un coffret ? » (demande relayée par Bertrand le 19/10/2026).
+   *
+   * `ListePistesV2` remet la tranche du disque, dans l'ordre de l'album. Les
+   * gestes sont ceux que la fiche emploie déjà, sur cette tranche :
+   *   - « Lire le disque » : `lireListe` (« Tout lire ») — une liste locale
+   *     part en `track_ids` et REMPLACE la file ; une liste de service, tête
+   *     puis reste ;
+   *   - « Lire ensuite » / « Ajouter à la file » : `corpsDeFileListe`, UNE
+   *     requête, au rang de `rangLireEnsuite` ou à la fin.
+   *
+   * ⚠️ Pas d'`album_id` ici : il désignerait l'album ENTIER, tous disques
+   * compris — précisément ce que « Lire à partir d'ici » fait déjà.
+   *
+   * Album d'un AUTRE serveur Tune (`depot`) : ses identifiants ne désignent
+   * rien sur ce serveur ; chaque piste part par son flux (`corpsLecture`),
+   * comme `enchainerDistant` et `enfiler`.
+   */
+  async function gesteDisque(geste: GesteDisque, liste: Track[], disque: number) {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    const d = depot;
+    const designees: Track[] = d
+      ? liste.map((t) => ({ ...corpsLecture(d, t), id: null }) as unknown as Track)
+      : liste;
+    if (geste === 'lire') {
+      lireListe(designees, gestesDeZone(zid)).catch(signalerEchecLecture);
+      return;
+    }
+    if (fileOccupee) return;
+    const corps = corpsDeFileListe(designees, geste === 'ensuite' ? rangLireEnsuite() : undefined);
+    if (!corps) return;
+    const titre = [album.title, $tr('library.disc' as any).replace('{num}', String(disque))]
+      .filter(Boolean).join(' — ');
+    fileOccupee = true;
+    try {
+      await api.addToQueue(zid, corps);
+      notifications.success($tr((geste === 'ensuite' ? 'v2.album.queuedNext' : 'v2.album.queued') as any)
+        .replace('{title}', titre));
+    } catch {
+      notifications.error($tr('v2.pa.queueError' as any));
+    }
+    fileOccupee = false;
+  }
   /** « Lire ensuite » insère au rang SUIVANT celui qui joue. Sans rang, la
    *  route ajoute à la fin — ce serait le bouton d'à côté. */
   const lireEnsuite = () => enfiler(rangLireEnsuite(), 'v2.album.queuedNext');
@@ -1769,6 +1817,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         enTetesDisque
         onLire={(_p, i) => playAlbum(i)}
         onLireDepuis={(_p, i) => playAlbum(i)}
+        onGesteDisque={gesteDisque}
       />
     {/if}
   </div>
