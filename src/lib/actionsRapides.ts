@@ -15,10 +15,11 @@
  *    favori), et le menu n'a pas d'entrée « favori » ;
  *  - le « … » lui-même.
  *
- * La barre garde ses HUIT cases (`LARGEUR_ACTIONS`, fil 1906) : les quatre
- * masquées deviennent des cases vides EN TÊTE, si bien que ce qui reste reste
- * calé à droite, à la même place d'une ligne à l'autre — et la ligne d'objet
- * de l'Historique, qui compose sa grille avec cette largeur, ne bouge pas.
+ * web#2213 (Sandro, fil 2317) — les quatre masquées partent AVEC leurs
+ * cases : la barre réduite a quatre cases, et la colonne du tableau comme la
+ * ligne d'objet de l'Historique prennent la largeur réduite
+ * (`largeurActions`, `ListePistesV2`). Les garder vides laissait 120 px
+ * réservés à rien, qui faisaient déborder le tableau au zoom.
  */
 
 /** Les clés i18n des entrées du menu « … » qui reprennent les icônes masquées. */
@@ -29,7 +30,7 @@ export const ACTIONS_MASQUABLES = [
   'v2.cover.tags',
 ] as const;
 
-/** Les cases laissées vides en tête quand l'option est active. */
+/** Le nombre de cases que l’option retire de la barre (web#2213). */
 export const CASES_MASQUEES = ACTIONS_MASQUABLES.length;
 
 export function actionsReduites(prefs: { v2ActionsReduites?: boolean } | null | undefined): boolean {
