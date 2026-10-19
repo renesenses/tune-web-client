@@ -20,6 +20,7 @@
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import { basculerAleatoire } from '../../lib/aleatoireFile';
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { atteintLeSon } from '../../lib/porteeReglage';
   import { gainIgnoreParPure, gainReplayGainApplique, replayGainActif } from '../../lib/pureReplayGain';
@@ -700,8 +701,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   async function toggleShuffle() {
     if (!zone?.id) return;
-    const result = await api.setShuffle(zone.id, !$shuffleEnabled);
-    shuffleEnabled.set(result.shuffle);
+    // tune-server-rust#6526 — le serveur réordonne la file : la bascule la relit.
+    shuffleEnabled.set(await basculerAleatoire(zone.id, !$shuffleEnabled));
   }
 
   async function cycleRepeat() {
