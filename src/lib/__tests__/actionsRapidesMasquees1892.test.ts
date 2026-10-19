@@ -7,8 +7,9 @@
 //  1. par défaut rien ne change (décision du 05/09/2026) ;
 //  2. l'option masque lire ensuite, file, playlist et étiquettes ; « Lire »,
 //     « Lire à partir d'ici », le cœur et le « … » restent ;
-//  3. la barre garde ses HUIT cases, les vides en tête : le cœur et le « … »
-//     restent au même rang (fil 1906), l'Historique ne se décale pas ;
+//  3. web#2213 : la barre réduite n'a plus que ses QUATRE cases utiles, sans
+//     case vide — la colonne du tableau et l'Historique suivent
+//     (`colonneActionsReduite2213.test.ts`) ;
 //  4. chaque geste masqué reste au menu « … » ;
 //  5. le réglage existe, défaut OFF, et ses textes dans les onze langues.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -87,16 +88,19 @@ describe('#1892 — les icônes d’action rapide', () => {
     expect(b.querySelector('[aria-haspopup="menu"]'), 'le « … » a disparu').toBeTruthy();
   });
 
-  it('🔴 la barre garde ses huit cases, les vides en tête, cœur et « … » au même rang', () => {
+  it('🔴 web#2213 — la barre réduite a QUATRE cases, sans case vide : lire, à partir d’ici, cœur, « … »', () => {
+    // Elle gardait ses huit cases, les quatre masquées laissées vides en tête :
+    // 120 px réservés à rien, qui faisaient déborder le tableau au zoom et
+    // poussaient le « … » hors de l'écran (Sandro, fil 2317).
     const pleine = barre();
-    const rangCoeur = cases(pleine).findIndex((el) => el.classList.contains('coeur'));
-    const rangMenu = cases(pleine).findIndex((el) => el.getAttribute('aria-haspopup') === 'menu');
+    expect(cases(pleine).length).toBe(8);
     preferences.update((p) => ({ ...p, v2ActionsReduites: true }));
     const reduite = barre();
-    expect(cases(reduite).length).toBe(8);
-    expect(cases(reduite).slice(0, 4).every((el) => el.classList.contains('vide'))).toBe(true);
-    expect(cases(reduite).findIndex((el) => el.classList.contains('coeur'))).toBe(rangCoeur);
-    expect(cases(reduite).findIndex((el) => el.getAttribute('aria-haspopup') === 'menu')).toBe(rangMenu);
+    expect(cases(reduite).length).toBe(4);
+    expect(cases(reduite).some((el) => el.classList.contains('vide'))).toBe(false);
+    expect(cases(reduite).map((el) => el.getAttribute('aria-label'))).toEqual([
+      tr('v2.pa.play'), tr('common.playFromHere'), tr('v2.pa.fav'), tr('library.moreOptions'),
+    ]);
   });
 
   it('chaque geste masqué reste au menu « … »', () => {

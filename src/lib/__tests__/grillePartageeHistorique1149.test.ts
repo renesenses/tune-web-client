@@ -96,23 +96,29 @@ describe('#1149 — une SEULE grille pour la ligne d’objet et la ligne de pist
   });
 
   /** La largeur des actions vient de `ListePistesV2`, jamais recopiée. */
-  it('`--col-actions` est la LARGEUR_ACTIONS exportée par `ListePistesV2`', () => {
+  it('`--col-actions` vient de `largeurActions`, exportée par `ListePistesV2`', () => {
     const l = liste();
     expect(l, 'LARGEUR_ACTIONS n’est pas exportée').toMatch(
       /export const LARGEUR_ACTIONS = '\d+px';/,
     );
+    // web#2213 — la largeur suit l'option « icônes réduites » : la ligne
+    // d'objet prend la MÊME fonction que le tableau, jamais une copie.
+    expect(l, 'largeurActions n’est pas exportée').toMatch(/export function largeurActions\(/);
     const h = hist();
-    expect(h, 'HistoriqueV2 n’importe pas LARGEUR_ACTIONS').toMatch(
-      /import ListePistesV2, \{[^}]*LARGEUR_ACTIONS[^}]*\} from '\.\/ListePistesV2\.svelte'/,
+    expect(h, 'HistoriqueV2 n’importe pas largeurActions').toMatch(
+      /import ListePistesV2, \{[^}]*largeurActions[^}]*\} from '\.\/ListePistesV2\.svelte'/,
     );
-    expect(h, '`--col-actions` n’est pas posée depuis la constante importée').toMatch(
-      /--col-actions:\{LARGEUR_ACTIONS\}/,
+    expect(h, '`--col-actions` n’est pas posée depuis la fonction importée').toMatch(
+      /const colonneActions = \$derived\(largeurActions\(actionsReduites\(\$preferences\)\)\.css\);/,
     );
+    expect(h).toMatch(/--col-actions:\{colonneActions\}/);
     // Et rien d'écrit en dur : la barre d'actions a déjà changé de largeur une
     // fois (178 → 208 px, 16/09/2026), un nombre figé ici s'en détacherait.
-    const px = /export const LARGEUR_ACTIONS = '(\d+)px';/.exec(l)![1];
     const sansCommentaires = h.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
-    expect(sansCommentaires, `${px}px est recopié dans HistoriqueV2`).not.toContain(`${px}px`);
+    for (const px of [/export const LARGEUR_ACTIONS = '(\d+)px';/, /export const LARGEUR_ACTIONS_REDUITE = '(\d+)px';/]
+      .map((r) => r.exec(l)![1])) {
+      expect(sansCommentaires, `${px}px est recopié dans HistoriqueV2`).not.toContain(`${px}px`);
+    }
   });
 
   /** La largeur du suffixe est la MÊME des deux côtés de l'écran. */
@@ -173,7 +179,8 @@ describe('#1149 — une SEULE grille pour la ligne d’objet et la ligne de pist
     // et c'est justement elle que la ligne d'objet de l'Historique importe.
     // Ce qui compte ici est l'ORDRE : actions, puis suffixe.
     expect(liste()).toMatch(/gabaritGrille\(colonnes\)\} \$\{largeurDesActions\}/);
-    expect(liste()).toMatch(/const largeurDesActions = LARGEUR_ACTIONS;/);
+    // web#2213 — une seule source, `largeurActions`, qui suit les icônes réduites.
+    expect(liste()).toMatch(/const largeurDesActions = \$derived\(colonneActions\.css\);/);
     expect(liste()).toMatch(/apres \? ` \$\{largeurApres\}` : ''/);
     // 🔴 L'Historique ne pose toujours aucun `onLireDepuis` : il prend le
     // défaut de la liste, et sa ligne d'objet compose avec la MÊME constante.
