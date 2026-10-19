@@ -4422,6 +4422,8 @@ export default {
   "v2.circle.err.failed": "Thao tác không thành công. Vui lòng thử lại.",
   "v2.circle.share.toggle": "Chia sẻ thư viện của tôi",
   "v2.circle.share.what": "Các liên hệ trong vòng kết nối này sẽ có thể duyệt thư viện của máy chủ này, và chỉ máy chủ này: tên bài hát, nghệ sĩ, album, năm, định dạng, tần số lấy mẫu, độ sâu bit, thời lượng, thể loại, số bài hát và số đĩa, ISRC. Không bao giờ là tệp của bạn hay đường dẫn của chúng, và hiện chưa có gì để nghe.",
+  "v2.circle.share.artwork": "Chia sẻ ảnh bìa với vòng kết nối của tôi",
+  "v2.circle.share.artworkWhat": "Với mỗi album được chia sẻ, một ảnh thu nhỏ của bìa (160 pixel, không có siêu dữ liệu) được gửi tới mozaiklabs.fr và chỉ hiển thị cho các liên hệ trong những vòng kết nối chia sẻ thư viện này. Tắt tùy chọn này sẽ xóa các ảnh thu nhỏ đã gửi.",
   "v2.circle.share.started": "Thư viện của bạn đã được chia sẻ với vòng kết nối này.",
   "v2.circle.share.stopped": "Đã dừng chia sẻ: vòng kết nối này không còn thấy thư viện của bạn.",
   "v2.circle.share.syncNone": "Chưa có bản sao trực tuyến nào của thư viện này được gửi: các liên hệ của bạn sẽ thấy một danh mục trống.",

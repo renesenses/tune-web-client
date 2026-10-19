@@ -4558,6 +4558,8 @@ export default {
   "v2.circle.err.failed": "Åtgärden gick inte igenom. Försök igen.",
   "v2.circle.share.toggle": "Dela mitt bibliotek",
   "v2.circle.share.what": "Kontakterna i den här cirkeln kan bläddra i den här serverns bibliotek, och bara den här serverns: titel, artist, album, år, format, samplingsfrekvens, bitdjup, längd, genre, spår- och skivnummer, ISRC. Aldrig dina filer eller deras sökvägar, och inget att lyssna på än så länge.",
+  "v2.circle.share.artwork": "Dela omslag med min cirkel",
+  "v2.circle.share.artworkWhat": "För varje delat album skickas en liten miniatyr av omslaget (160 pixlar, utan metadata) till mozaiklabs.fr och visas bara för kontakterna i dina cirklar som delar det här biblioteket. Om du stänger av det raderas de miniatyrer som redan skickats.",
   "v2.circle.share.started": "Ditt bibliotek delas med den här cirkeln.",
   "v2.circle.share.stopped": "Delningen har stoppats: den här cirkeln ser inte längre ditt bibliotek.",
   "v2.circle.share.syncNone": "Ingen onlinekopia av det här biblioteket har skickats än: dina kontakter kommer att se en tom katalog.",

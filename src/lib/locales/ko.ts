@@ -4559,6 +4559,8 @@ export default {
   "v2.circle.err.failed": "작업을 완료하지 못했습니다. 다시 시도하세요.",
   "v2.circle.share.toggle": "내 라이브러리 공유",
   "v2.circle.share.what": "이 서클의 연락처는 이 서버(이 서버만)의 라이브러리를 둘러볼 수 있습니다: 제목, 아티스트, 앨범, 연도, 포맷, 샘플레이트, 비트 심도, 재생 시간, 장르, 트랙 및 디스크 번호, ISRC. 파일이나 그 경로는 절대 공유되지 않으며, 지금은 들을 수 없습니다.",
+  "v2.circle.share.artwork": "서클과 앨범 커버 공유",
+  "v2.circle.share.artworkWhat": "공유된 각 앨범마다 커버의 작은 썸네일(160픽셀, 메타데이터 없음)이 mozaiklabs.fr로 전송되며, 이 라이브러리를 공유하는 서클의 연락처에게만 표시됩니다. 끄면 이미 전송된 썸네일이 삭제됩니다.",
   "v2.circle.share.started": "라이브러리를 이 서클과 공유하고 있습니다.",
   "v2.circle.share.stopped": "공유 중지: 이 서클은 더 이상 라이브러리를 볼 수 없습니다.",
   "v2.circle.share.syncNone": "이 라이브러리의 온라인 사본이 아직 전송되지 않았습니다: 연락처에는 빈 카탈로그가 표시됩니다.",

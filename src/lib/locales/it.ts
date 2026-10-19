@@ -4559,6 +4559,8 @@ export default {
   "v2.circle.err.failed": "L'azione non è riuscita. Riprova.",
   "v2.circle.share.toggle": "Condividi la mia libreria",
   "v2.circle.share.what": "I contatti di questa cerchia potranno sfogliare la libreria di questo server, e solo di questo: titolo, artista, album, anno, formato, frequenza, profondità, durata, genere, numeri di traccia e di disco, ISRC. Mai i tuoi file né i loro percorsi, e per ora niente da ascoltare.",
+  "v2.circle.share.artwork": "Condividi le copertine con la mia cerchia",
+  "v2.circle.share.artworkWhat": "Per ogni album condiviso, una piccola miniatura della copertina (160 pixel, senza alcun metadato) viene inviata a mozaiklabs.fr e mostrata solo ai contatti delle tue cerchie che condividono questa libreria. Disattivandolo, le miniature già inviate vengono cancellate.",
   "v2.circle.share.started": "La tua libreria è condivisa con questa cerchia.",
   "v2.circle.share.stopped": "Condivisione interrotta: questa cerchia non vede più la tua libreria.",
   "v2.circle.share.syncNone": "Nessuna copia online di questa libreria è stata ancora inviata: i tuoi contatti vedranno un catalogo vuoto.",

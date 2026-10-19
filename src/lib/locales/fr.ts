@@ -4581,6 +4581,8 @@ export default {
   "v2.circle.err.failed": "L'action n'a pas abouti. Réessayez.",
   "v2.circle.share.toggle": "Partager ma bibliothèque",
   "v2.circle.share.what": "Les contacts de ce cercle pourront parcourir la bibliothèque de ce serveur, et de lui seul : titre, artiste, album, année, format, fréquence, profondeur, durée, genre, numéros de piste et de disque, ISRC. Jamais vos fichiers ni leurs chemins, et rien à écouter pour l'instant.",
+  "v2.circle.share.artwork": "Partager les pochettes avec mon cercle",
+  "v2.circle.share.artworkWhat": "Pour chaque album partagé, une petite vignette de sa pochette (160 pixels, sans aucune métadonnée) est envoyée à mozaiklabs.fr et montrée aux seuls contacts de vos cercles qui partagent cette bibliothèque. Désactiver efface les vignettes déjà envoyées.",
   "v2.circle.share.started": "Votre bibliothèque est partagée avec ce cercle.",
   "v2.circle.share.stopped": "Partage arrêté : ce cercle ne voit plus votre bibliothèque.",
   "v2.circle.share.syncNone": "Aucune copie en ligne de cette bibliothèque n'a encore été envoyée : vos contacts verront un catalogue vide.",

@@ -4559,6 +4559,8 @@ export default {
   "v2.circle.err.failed": "操作未完成。请重试。",
   "v2.circle.share.toggle": "共享我的音乐库",
   "v2.circle.share.what": "此圈子中的联系人将可以浏览本服务器（仅限本服务器）的音乐库：标题、艺术家、专辑、年份、格式、采样率、位深、时长、流派、曲目号和碟号、ISRC。绝不包括您的文件或其路径，目前也无法收听。",
+  "v2.circle.share.artwork": "与我的圈子共享封面",
+  "v2.circle.share.artworkWhat": "对于每张共享的专辑，其封面的小缩略图（160 像素，不含任何元数据）会发送到 mozaiklabs.fr，仅向共享此音乐库的圈子中的联系人显示。关闭后将删除已发送的缩略图。",
   "v2.circle.share.started": "您的音乐库已与此圈子共享。",
   "v2.circle.share.stopped": "已停止共享：此圈子不再能看到您的音乐库。",
   "v2.circle.share.syncNone": "此音乐库尚未发送任何在线副本：您的联系人将看到一个空目录。",

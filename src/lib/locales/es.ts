@@ -4559,6 +4559,8 @@ export default {
   "v2.circle.err.failed": "La acción no se ha completado. Inténtalo de nuevo.",
   "v2.circle.share.toggle": "Compartir mi biblioteca",
   "v2.circle.share.what": "Los contactos de este círculo podrán explorar la biblioteca de este servidor, y solo de este: título, artista, álbum, año, formato, frecuencia, profundidad, duración, género, números de pista y de disco, ISRC. Nunca sus archivos ni sus rutas, y por ahora nada que escuchar.",
+  "v2.circle.share.artwork": "Compartir las portadas con mi círculo",
+  "v2.circle.share.artworkWhat": "Para cada álbum compartido, se envía a mozaiklabs.fr una pequeña miniatura de su portada (160 píxeles, sin ningún metadato), que solo ven los contactos de sus círculos que comparten esta biblioteca. Desactivarlo borra las miniaturas ya enviadas.",
   "v2.circle.share.started": "Su biblioteca se comparte con este círculo.",
   "v2.circle.share.stopped": "Se dejó de compartir: este círculo ya no ve su biblioteca.",
   "v2.circle.share.syncNone": "Todavía no se ha enviado ninguna copia en línea de esta biblioteca: sus contactos verán un catálogo vacío.",
