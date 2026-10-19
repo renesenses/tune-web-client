@@ -40,7 +40,7 @@ beforeEach(() => {
     if (/\/channel-remap\/(zones|albums)\/\d+$/.test(url)) {
       return armees.some((r) => r.test(url)) ? response(ARMEE) : response({ ...ARMEE, saved: false });
     }
-    if (url.endsWith('/zones')) return response([{ id: 1, name: 'Salon', state: 'stopped', output_type: 'local' }, { id: 2, name: 'Bureau', state: 'stopped', output_type: 'local' }]);
+    if (/\/zones(?:\?lang=[a-z]{2})?$/.test(url)) return response([{ id: 1, name: 'Salon', state: 'stopped', output_type: 'local' }, { id: 2, name: 'Bureau', state: 'stopped', output_type: 'local' }]);
     if (url.endsWith('/zones/stereo-pairs')) return response([]);
     if (url.includes('tune-tested.json')) return response({ version: 1, count: 0, devices: [] });
     if (url.endsWith('/system/diagnostics')) return response({ zones_doublons: [] });
