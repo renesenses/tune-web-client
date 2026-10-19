@@ -1503,6 +1503,7 @@ export default {
   "trackTags.savingProgress": "Sparar…",
   "smartCollection.fieldArtist": "Artist",
   "smartCollection.fieldAlbumArtist": "Albumartist",
+  "smartCollection.fieldTrackArtist": "Spårartist",
   "smartCollection.fieldAlbumTitle": "Albumtitel",
   "smartCollection.fieldGenre": "Genre",
   "smartCollection.fieldComposer": "Kompositör",

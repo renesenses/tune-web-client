@@ -1524,6 +1524,7 @@ export default {
   "trackTags.savingProgress": "保存中…",
   "smartCollection.fieldArtist": "アーティスト",
   "smartCollection.fieldAlbumArtist": "アルバムアーティスト",
+  "smartCollection.fieldTrackArtist": "トラックアーティスト",
   "smartCollection.fieldAlbumTitle": "アルバムタイトル",
   "smartCollection.fieldGenre": "ジャンル",
   "smartCollection.fieldComposer": "作曲者",
