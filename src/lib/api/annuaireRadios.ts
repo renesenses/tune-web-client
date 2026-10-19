@@ -85,6 +85,15 @@ export function ajouterDepuisAnnuaire(externalId: string, favori = false) {
   );
 }
 
+/** `POST /radios/directory/update-stream/{radio}` — « Mettre à jour l'adresse
+ *  du flux » : la station liée prend l'adresse que publie sa fiche. */
+export function mettreAJourLeFluxDepuisAnnuaire(radioId: number) {
+  return fetchJSON<RadioStation>(
+    `${BASE}/radios/directory/update-stream/${radioId}`,
+    { method: 'POST' },
+  );
+}
+
 /** `POST /radios/directory/{id}/play/{zone}` — écoute sans rien ajouter. */
 export function jouerDepuisAnnuaire(externalId: string, zoneId: number) {
   return fetchJSON<RadioPlayResult>(

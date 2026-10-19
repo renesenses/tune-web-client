@@ -5056,6 +5056,9 @@ export default {
   "radioGenre.rnb": "R&B",
   "radioGenre.country": "カントリー",
   "radioGenre.latin": "ラテン",
+  "v2.radio.updateStream": "ストリームのアドレスを更新",
+  "v2.radio.updateStreamHint": "ディレクトリにこの局の新しいアドレスがあります。",
+  "v2.radio.updateStreamDone": "ストリームのアドレスを更新しました",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

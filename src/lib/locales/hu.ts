@@ -5015,6 +5015,9 @@ export default {
   "radioGenre.rnb": "R&B",
   "radioGenre.country": "Country",
   "radioGenre.latin": "Latin",
+  "v2.radio.updateStream": "A streamcím frissítése",
+  "v2.radio.updateStreamHint": "A katalógus új címet ad meg ehhez az állomáshoz.",
+  "v2.radio.updateStreamDone": "A streamcím frissítve",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

@@ -5055,4 +5055,7 @@ export default {
   "radioGenre.rnb": "R&B",
   "radioGenre.country": "Country",
   "radioGenre.latin": "Latin",
+  "v2.radio.updateStream": "Uppdatera strömadressen",
+  "v2.radio.updateStreamHint": "Katalogen anger en ny adress för den här kanalen.",
+  "v2.radio.updateStreamDone": "Strömadressen har uppdaterats",
 } as const;

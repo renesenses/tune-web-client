@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   getRadios: vi.fn(), updateRadio: vi.fn(), playRadio: vi.fn(),
   importRadios: vi.fn(), exportRadiosUrl: vi.fn(() => '#'),
   getAnnuaireRadios: vi.fn(), ajouterDepuisAnnuaire: vi.fn(), jouerDepuisAnnuaire: vi.fn(),
+  mettreAJourLeFluxDepuisAnnuaire: vi.fn(),
 }));
 vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), ...mocks }));
 vi.mock('../zoneRequise', () => ({ zoneRequise: () => 3 }));
@@ -144,5 +145,41 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
   it('CONTRE-ÉPREUVE : en ligne, pas de mention de copie locale', async () => {
     await ouvrirAnnuaire();
     expect(hote.querySelector('.source .horsligne')).toBeNull();
+  });
+});
+
+describe('#6516 — l’adresse du flux a changé dans l’annuaire', () => {
+  async function monter(station: Record<string, unknown>) {
+    mocks.getRadios.mockResolvedValue([station]);
+    hote = document.createElement('div');
+    document.body.append(hote);
+    instance = mount(RadiosV2, { target: hote, props: {} });
+    flushSync();
+    await respirer();
+  }
+  const LIEE = {
+    ...FIP_LOCALE,
+    annuaire: { external_id: 'S000973', rapproche_par: 'id', flux_change: true,
+      stream_url_annuaire: 'https://nouveau.example/fip.aac' },
+  };
+
+  it('🔴 l’écran PROPOSE la mise à jour, et seul le geste la fait', async () => {
+    mocks.mettreAJourLeFluxDepuisAnnuaire.mockResolvedValue({
+      ...FIP_LOCALE, stream_url: 'https://nouveau.example/fip.aac',
+      annuaire: { external_id: 'S000973', rapproche_par: 'id', flux_change: false },
+    });
+    await monter(LIEE);
+    const bouton = hote.querySelector<HTMLButtonElement>('.st .majflux');
+    expect(bouton, 'la proposition manque').not.toBeNull();
+    expect(mocks.mettreAJourLeFluxDepuisAnnuaire).not.toHaveBeenCalled();
+    bouton!.click();
+    await respirer();
+    expect(mocks.mettreAJourLeFluxDepuisAnnuaire).toHaveBeenCalledWith(7);
+    expect(hote.querySelector('.st .majflux'), 'la proposition reste après la mise à jour').toBeNull();
+  });
+
+  it('CONTRE-ÉPREUVE : adresse inchangée, aucune proposition', async () => {
+    await monter({ ...LIEE, annuaire: { ...LIEE.annuaire, flux_change: false } });
+    expect(hote.querySelector('.st .majflux')).toBeNull();
   });
 });

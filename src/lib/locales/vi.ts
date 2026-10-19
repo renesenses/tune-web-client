@@ -4911,5 +4911,8 @@ export default {
   "radioGenre.rnb": "R&B",
   "radioGenre.country": "Đồng quê",
   "radioGenre.latin": "Latinh",
+  "v2.radio.updateStream": "Cập nhật địa chỉ luồng",
+  "v2.radio.updateStreamHint": "Danh bạ có địa chỉ mới cho đài này.",
+  "v2.radio.updateStreamDone": "Đã cập nhật địa chỉ luồng",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

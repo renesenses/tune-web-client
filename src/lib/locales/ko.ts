@@ -5056,6 +5056,9 @@ export default {
   "radioGenre.rnb": "R&B",
   "radioGenre.country": "컨트리",
   "radioGenre.latin": "라틴",
+  "v2.radio.updateStream": "스트림 주소 업데이트",
+  "v2.radio.updateStreamHint": "디렉터리에 이 방송국의 새 주소가 있습니다.",
+  "v2.radio.updateStreamDone": "스트림 주소를 업데이트했습니다",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

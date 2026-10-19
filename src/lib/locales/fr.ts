@@ -5078,6 +5078,9 @@ export default {
   "radioGenre.rnb": "R&B",
   "radioGenre.country": "Country",
   "radioGenre.latin": "Latino",
+  "v2.radio.updateStream": "Mettre à jour l’adresse du flux",
+  "v2.radio.updateStreamHint": "L’annuaire indique une nouvelle adresse pour cette station.",
+  "v2.radio.updateStreamDone": "Adresse du flux mise à jour",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

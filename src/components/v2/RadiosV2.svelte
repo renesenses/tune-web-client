@@ -105,6 +105,22 @@
     return artiste ? `${artiste} — ${np.title}` : np.title;
   });
 
+  /**
+   * #6516 — « Mettre à jour l'adresse du flux ». La station est liée à sa
+   * fiche d'annuaire (`external_id`), mais l'annuaire publie désormais une
+   * autre adresse : on le PROPOSE, et seul ce geste la change.
+   */
+  async function mettreAJourLeFlux(r: RadioStation) {
+    if (r.id == null) return;
+    try {
+      const maj = await api.mettreAJourLeFluxDepuisAnnuaire(r.id);
+      radios = radios.map((x) => (x.id === maj.id ? { ...x, ...maj } : x));
+      notifications.success($t('v2.radio.updateStreamDone' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+  }
+
   /** Une station vient d'entrer dans « Mes radios » depuis l'annuaire. */
   function stationAjoutee(st: RadioStation) {
     radios = radios.some((x) => x.id === st.id)
@@ -438,6 +454,10 @@
          #5716 (décision du 07/10) : il se lit dès Essentiel. Le pays reste
          réservé à Avancé. -->
     {#if tech(r, showFilters)}<span class="tk">{tech(r, showFilters)}</span>{/if}
+    {#if r.annuaire?.flux_change && r.id != null}
+      <button class="majflux" onclick={() => mettreAJourLeFlux(r)}
+        title={$t('v2.radio.updateStreamHint' as any)}>{$t('v2.radio.updateStream' as any)}</button>
+    {/if}
   </div>
 {/snippet}
 
@@ -447,6 +467,9 @@
   /* #6516 — Mes radios / Annuaire. */
   .sections{display:flex; gap:8px; padding:0 30px 10px}
   .sections .v2-btn.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
+  .majflux{margin-top:4px; align-self:flex-start; border:1px solid var(--v2-acc2); background:transparent;
+    color:var(--v2-acc2); border-radius:var(--v2-r-pill); padding:3px 9px; font:600 10.5px var(--v2-sans); cursor:pointer}
+  .majflux:hover{color:var(--v2-acc1); border-color:var(--v2-acc1)}
   .encours{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-acc2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ronglets .rn{font:11px var(--v2-mono); opacity:.7; margin-left:5px}
   .bascule{display:flex; gap:4px}

@@ -5056,6 +5056,9 @@ export default {
   "radioGenre.rnb": "节奏布鲁斯",
   "radioGenre.country": "乡村",
   "radioGenre.latin": "拉丁",
+  "v2.radio.updateStream": "更新流地址",
+  "v2.radio.updateStreamHint": "目录为此电台提供了新地址。",
+  "v2.radio.updateStreamDone": "流地址已更新",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -1490,6 +1490,12 @@ export interface RadioStation {
     logo_url?: string | null;
     description?: string | null;
     website_url?: string | null;
+    /** Comment la fiche a été retrouvée : lien enregistré, adresse, nom. */
+    rapproche_par?: 'id' | 'flux' | 'nom' | string;
+    /** La station est liée à sa fiche, mais l'annuaire publie une autre
+     *  adresse de flux : l'écran PROPOSE de la reprendre, rien ne change seul. */
+    flux_change?: boolean;
+    stream_url_annuaire?: string | null;
   } | null;
 }
 

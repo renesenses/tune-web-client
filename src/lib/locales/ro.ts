@@ -5056,6 +5056,9 @@ export default {
   "radioGenre.rnb": "R&B",
   "radioGenre.country": "Country",
   "radioGenre.latin": "Latino",
+  "v2.radio.updateStream": "Actualizează adresa fluxului",
+  "v2.radio.updateStreamHint": "Directorul indică o adresă nouă pentru acest post.",
+  "v2.radio.updateStreamDone": "Adresa fluxului a fost actualizată",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
