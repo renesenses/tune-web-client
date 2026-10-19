@@ -41,7 +41,8 @@
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { activeView } from '../../lib/stores/navigation';
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne } from '../../lib/stores/nowPlaying';
-  import { melangee } from '../../lib/shuffle';
+  import { tirageAleatoire } from '../../lib/porteeAleatoire';
+  import { plafondFileAleatoire } from '../../lib/fileAleatoire';
   import { motifCercle } from '../../lib/circle';
   import {
     lirePlaylistCercle, resoudrePlaylistCercle, retirerMorceau, reordonnerMorceaux,
@@ -237,12 +238,15 @@
     void lire({ seulement: [m.item_id] });
   }
 
-  /** Aléatoire : les morceaux jouables chez moi, mélangés ICI, joués dans cet ordre. */
-  function lireAleatoire() {
+  /**
+   * Aléatoire : les morceaux jouables chez moi, tirés ICI au sort sous le
+   * plafond de file aléatoire du serveur (#5284), joués dans cet ordre.
+   */
+  async function lireAleatoire() {
     if (!playlist) return;
     const ids = idsJouables(playlist.items, resolution);
     if (!ids.length) { void lire(); return; }
-    void lire({ seulement: melangee(ids) });
+    void lire({ seulement: tirageAleatoire(ids, await plafondFileAleatoire()) });
   }
 
   /**
@@ -389,7 +393,7 @@
   {:else if !playlist}
     <div class="state">{$t('v2.tool.loading' as any)}</div>
   {:else}
-    <header class="entete">
+    <header class="en-tete-pl">
       <div class="entete-texte">
         <h2 class="nom-playlist">{playlist.name}</h2>
         <p class="faits">
@@ -403,7 +407,7 @@
           <button class="play lire-playlist" disabled={occupe || items.length === 0} onclick={() => void lire()}>
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8V4z"/></svg>{$t('v2.circle.pl.play' as any)}
           </button>
-          <button class="ghost aleatoire-playlist" disabled={occupe || items.length === 0} onclick={lireAleatoire}>
+          <button class="ghost aleatoire-playlist" disabled={occupe || items.length === 0} onclick={() => void lireAleatoire()}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('library.shuffle')}
           </button>
           <button class="ghost ajouter-morceaux" onclick={ajouterDesMorceaux}>
@@ -546,7 +550,7 @@
 
   /* En-tête : le texte et les gestes à gauche, la mosaïque et les membres à
      droite sur grand écran ; empilés sur mobile. */
-  .entete{display:flex; gap:24px; align-items:flex-start; justify-content:space-between; padding:4px 0 8px}
+  .en-tete-pl{display:flex; gap:24px; align-items:flex-start; justify-content:space-between; padding:4px 0 8px}
   .entete-texte{display:flex; flex-direction:column; gap:8px; min-width:0; flex:1}
   .nom-playlist{font-size:22px; font-weight:800; margin:0; overflow-wrap:anywhere; letter-spacing:-.01em}
   .faits{display:flex; gap:8px; margin:0; font:12px var(--v2-mono); color:var(--v2-txt3)}
@@ -626,7 +630,7 @@
   .play:focus-visible,.ghost:focus-visible,.lnk:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
 
   @media (max-width: 760px){
-    .entete{flex-direction:column-reverse; align-items:stretch}
+    .en-tete-pl{flex-direction:column-reverse; align-items:stretch}
     .entete-cote{flex-direction:row; align-items:center; justify-content:space-between}
     .mosaique{width:96px; height:96px}
   }
