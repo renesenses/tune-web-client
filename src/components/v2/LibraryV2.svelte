@@ -135,6 +135,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import SuggestionsIaLotV2 from './SuggestionsIaLotV2.svelte';
+  import { idsDuLot } from '../../lib/assistantIa';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { cleGenre, grouperParGenre } from '../../lib/genresBibliotheque';
   import {
@@ -2503,6 +2505,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           affiches,
         }),
   );
+  /** Assistant IA, étape 2 : un lot de suggestions sur les albums AFFICHÉS
+   *  (le filtre courant), 50 au plus, dans l'ordre de la grille. */
+  let lotIa = $state<number[] | null>(null);
+  const idsDuLotIa = $derived(depot || tab !== 'albums' ? [] : idsDuLot(affiches.map((a) => a.id)));
+
   /** Le plafond de la file aléatoire, lu au serveur (#2901) ; son défaut s'il
    *  ne répond pas. */
   function plafondAleatoire(): Promise<number> {
@@ -2715,6 +2722,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <!-- Declarer un dossier de musique est un reglage du serveur LOCAL :
            le proposer sur la bibliotheque d'une autre machine promettrait
            d'agir sur elle, ce qu'on ne fait pas. -->
+      {#if idsDuLotIa.length && atLeast(level, 'intermediate')}
+        <button class="v2-btn" data-suggestions-ia-lot-ouvrir onclick={() => (lotIa = idsDuLotIa)}
+          title={$tr('assistantIa.lot.tip' as any).replace('{n}', String(idsDuLotIa.length))}>
+          {$tr('assistantIa.album.button' as any)}
+        </button>
+      {/if}
       <button class="v2-btn" onclick={addContent} title={$tr('v2.lib.addFolders' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>{$tr('v2.tags.add' as any)}
       </button>
@@ -3624,6 +3637,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         enEdition = null;
       }}
     />
+  {/if}
+  {#if lotIa}
+    <!-- Les écritures du lot vont en base ; la grille se relit à la prochaine
+         ouverture de la Bibliothèque. -->
+    <SuggestionsIaLotV2 albumIds={lotIa} onClose={() => (lotIa = null)} onChange={() => {}} />
   {/if}
 </section>
 
