@@ -1,3 +1,4 @@
+import { avecLangueSignal } from './langueRequete';
 // REST API client for tune-server
 
 import { notifications } from './stores/notifications';
@@ -263,7 +264,7 @@ export async function apiFetch(path: string): Promise<any> {
   const token = getToken();
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), { headers });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
   // du serveur est composé en français par `require_premium`, il ne doit jamais
@@ -282,7 +283,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), {
     method: 'POST',
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -305,7 +306,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), {
     method: 'PATCH',
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -327,7 +328,7 @@ export async function apiDelete(path: string): Promise<any> {
   const token = getToken();
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), { method: 'DELETE', headers });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
   // du serveur est composé en français par `require_premium`, il ne doit jamais
@@ -513,7 +514,7 @@ export async function fetchJSON<T>(
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    response = await fetch(url, {
+    response = await fetch(avecLangueSignal(url, acceptLang()), {
       headers,
       ...options,
     });
@@ -739,7 +740,7 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    response = await fetch(url, {
+    response = await fetch(avecLangueSignal(url, acceptLang()), {
       headers,
       ...options,
     });
