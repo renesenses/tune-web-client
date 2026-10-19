@@ -1,7 +1,7 @@
 export default {
   "sacdIso.title": "SACD ISO",
-  "sacdIso.available": "サーバー上で sacd_extract を検出しました。すべての ISO の抽出を保証するものではありません。",
-  "sacdIso.missing": "Tune は sacd_extract を検出できませんでした。サーバーに別途インストールしてください。PATH を変更した場合は Tune を再起動してから再スキャンしてください。Tune には同梱されていません。",
+  "sacdIso.available": "Tune は SACD ISO を自分で読み込みます。サーバーで検出された sacd_extract は DST ディスク（圧縮 DSD）にのみ使われ、すべての抽出を保証するものではありません。",
+  "sacdIso.missing": "Tune は SACD ISO を自分で読み込みます。そのためにインストールするものはありません。sacd_extract が必要なのは DST ディスク（圧縮 DSD）だけで、このサーバーでは検出されていません。DST ディスクがある場合は別途インストールし、PATH を変更したら Tune を再起動してから再スキャンしてください。",
   "sacdIso.unknown": "sacd_extract の利用可否を確認できませんでした。再試行してください。ツールがないことを意味するものではありません。",
   "sacdIso.loading": "sacd_extract を確認中…",
   "sacdIso.check": "再確認",
@@ -2421,6 +2421,8 @@ export default {
   "v2.nav.later": "後で聴く",
   "v2.later.add": "後で聴く",
   "v2.later.remove": "「後で聴く」から削除",
+  "v2.later.albumAddTip": "このアルバムを取っておき、あとで聴きます。",
+  "v2.later.albumRemoveTip": "このアルバムを「後で聴く」リストから外します。",
   "v2.later.added": "「後で聴く」に追加しました",
   "v2.later.removed": "「後で聴く」から削除しました",
   "v2.later.eyebrow": "取っておいたもの",

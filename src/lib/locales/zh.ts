@@ -1,7 +1,7 @@
 export default {
   "sacdIso.title": "SACD ISO",
-  "sacdIso.available": "服务器上已检测到 sacd_extract。这并不保证每个 ISO 都能提取。",
-  "sacdIso.missing": "Tune 未检测到 sacd_extract。请在服务器上单独安装此工具；如果修改了 PATH，请重启 Tune 后重新扫描。Tune 不附带此工具。",
+  "sacdIso.available": "Tune 自行读取 SACD ISO。服务器上检测到的 sacd_extract 仅用于 DST 光盘（压缩 DSD），并不保证每张都能提取。",
+  "sacdIso.missing": "Tune 自行读取 SACD ISO，无需为此安装任何工具。只有 DST 光盘（压缩 DSD）需要 sacd_extract，本服务器上未检测到它。如果您有这类光盘，请单独安装，修改 PATH 后重启 Tune，然后重新扫描。",
   "sacdIso.unknown": "无法检查 sacd_extract 是否可用。请重试；这并不表示工具未安装。",
   "sacdIso.loading": "正在检查 sacd_extract…",
   "sacdIso.check": "重新检查",
@@ -2421,6 +2421,8 @@ export default {
   "v2.nav.later": "稍后收听",
   "v2.later.add": "稍后收听",
   "v2.later.remove": "从“稍后收听”中移除",
+  "v2.later.albumAddTip": "将这张专辑留待稍后收听。",
+  "v2.later.albumRemoveTip": "将这张专辑从“稍后收听”列表中移除。",
   "v2.later.added": "已加入“稍后收听”",
   "v2.later.removed": "已从“稍后收听”移除",
   "v2.later.eyebrow": "你暂时收起的内容",

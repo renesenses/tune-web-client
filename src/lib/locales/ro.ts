@@ -1,7 +1,7 @@
 export default {
   "sacdIso.title": "ISO SACD",
-  "sacdIso.available": "sacd_extract detectat pe server. Aceasta nu garantează extragerea fiecărui ISO.",
-  "sacdIso.missing": "Tune nu a detectat sacd_extract. Instalați-l separat pe server; dacă modificați PATH, reporniți Tune, apoi scanați din nou. Tune nu include acest instrument.",
+  "sacdIso.available": "Tune citește singur fișierele ISO SACD. sacd_extract, detectat pe server, servește doar pentru discurile DST (DSD comprimat), fără a garanta extragerea fiecăruia.",
+  "sacdIso.missing": "Tune citește singur fișierele ISO SACD: pentru ele nu trebuie instalat nimic. Doar discurile DST (DSD comprimat) necesită sacd_extract, care nu a fost detectat pe acest server. Dacă aveți astfel de discuri, instalați-l separat, reporniți Tune dacă modificați PATH, apoi scanați din nou.",
   "sacdIso.unknown": "Disponibilitatea sacd_extract nu a putut fi verificată. Încercați din nou; aceasta nu înseamnă că instrumentul lipsește.",
   "sacdIso.loading": "Se verifică sacd_extract…",
   "sacdIso.check": "Verifică din nou",
@@ -2421,6 +2421,8 @@ export default {
   "v2.nav.later": "Ascultă mai târziu",
   "v2.later.add": "Ascultă mai târziu",
   "v2.later.remove": "Elimină din Ascultă mai târziu",
+  "v2.later.albumAddTip": "Pune deoparte acest album, pentru a-l asculta mai târziu.",
+  "v2.later.albumRemoveTip": "Scoate acest album din lista Ascultă mai târziu.",
   "v2.later.added": "Adăugat în Ascultă mai târziu",
   "v2.later.removed": "Eliminat din Ascultă mai târziu",
   "v2.later.eyebrow": "Ce ai pus deoparte",

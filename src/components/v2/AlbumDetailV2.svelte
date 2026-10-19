@@ -60,6 +60,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { favKeyOf, refFavoriDeFiche, toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
   import { cibleEtiquetteAlbum, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import { basculerLeSas, chargerSas, estDansLeSas, rangeableDansLeSas, sasEcouterPlusTard } from '../../lib/ecouterPlusTard';
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
@@ -225,6 +226,22 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   );
   /** Le panneau partagé — celui des vignettes, pas une seconde copie. */
   let etiquettesOuvertes = $state(false);
+
+  /**
+   * web#2202 (Sandro, fil 2285 ; Patatorz, fil 2325) — « Écouter plus tard »
+   * sur la FICHE d'un album. Le geste de web#1653 n'existait que dans le menu
+   * « … » des vignettes et des pistes : la fiche, qui n'a pas de menu « … »,
+   * ne l'offrait nulle part.
+   *
+   * Même désignation que les étiquettes (`cibleEtiquettes`) et même module
+   * que les vignettes (`lib/ecouterPlusTard`) : album de la bibliothèque comme
+   * de service, ABSENT pour le dépôt distant. La lecture de l'état est
+   * synchrone, dans le magasin ; la liste du sas est lue une fois.
+   */
+  const dansLeSas = $derived<boolean | null>(
+    rangeableDansLeSas(cibleEtiquettes) ? estDansLeSas(cibleEtiquettes, $sasEcouterPlusTard) : null,
+  );
+  $effect(() => { if (dansLeSas !== null) untrack(() => void chargerSas()); });
 
   /**
    * LA FICHE SE DÉCLARE COMME CIBLE DE RACCOURCI — fil 2143, point 2.
@@ -1636,6 +1653,16 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
             aria-label={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
             <svg viewBox="0 0 24 24" fill={enFavori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             {$tr(enFavori ? 'favorites.inFavorites' : 'favorites.addAlbum')}
+          </button>
+        {/if}
+        <!-- web#2202 — « Écouter plus tard », AVANT les étiquettes : celles-ci
+             et « Ajouter à une collection » restent côte à côte. -->
+        {#if dansLeSas !== null}
+          <button class="ghost" data-ecouter-plus-tard aria-pressed={dansLeSas}
+            onclick={() => void basculerLeSas(cibleEtiquettes)}
+            title={$tr((dansLeSas ? 'v2.later.albumRemoveTip' : 'v2.later.albumAddTip') as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            {$tr((dansLeSas ? 'v2.later.remove' : 'v2.later.add') as any)}
           </button>
         {/if}
         <!-- ÉTIQUETTES — même niveau visuel que les autres (`ghost`), et

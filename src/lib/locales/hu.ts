@@ -1,7 +1,7 @@
 export default {
   "sacdIso.title": "SACD ISO",
-  "sacdIso.available": "A szerveren elérhető a sacd_extract. Ez nem garantálja minden ISO kibontását.",
-  "sacdIso.missing": "A Tune nem észlelte a sacd_extract eszközt. Telepítse külön a szerverre; ha módosítja a PATH változót, indítsa újra a Tune-t, majd olvassa be újra a könyvtárat. A Tune nem tartalmazza ezt az eszközt.",
+  "sacdIso.available": "A Tune maga olvassa a SACD ISO-kat. A szerveren észlelt sacd_extract csak a DST lemezekhez (tömörített DSD) kell, és nem garantálja mindegyik kibontását.",
+  "sacdIso.missing": "A Tune maga olvassa a SACD ISO-kat: ezekhez semmit sem kell telepíteni. Csak a DST lemezekhez (tömörített DSD) kell a sacd_extract, amelyet ezen a szerveren nem észlelt. Ha vannak ilyen lemezei, telepítse külön, a PATH módosítása után indítsa újra a Tune-t, majd olvassa be újra a könyvtárat.",
   "sacdIso.unknown": "A sacd_extract elérhetősége nem ellenőrizhető. Próbálja újra; ez nem jelenti azt, hogy az eszköz hiányzik.",
   "sacdIso.loading": "A sacd_extract ellenőrzése…",
   "sacdIso.check": "Ellenőrzés újra",
@@ -2375,6 +2375,8 @@ export default {
   "v2.nav.later": "Meghallgatás később",
   "v2.later.add": "Meghallgatás később",
   "v2.later.remove": "Eltávolítás a Meghallgatás később listáról",
+  "v2.later.albumAddTip": "Az album félretétele későbbi meghallgatásra.",
+  "v2.later.albumRemoveTip": "Az album eltávolítása a Meghallgatás később listáról.",
   "v2.later.added": "Hozzáadva a Meghallgatás később listához",
   "v2.later.removed": "Eltávolítva a Meghallgatás később listáról",
   "v2.later.eyebrow": "Amit félretett",

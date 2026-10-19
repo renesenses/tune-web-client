@@ -1,7 +1,7 @@
 export default {
   "sacdIso.title": "ISO SACD",
-  "sacdIso.available": "sacd_extract detectado en el servidor. Esto no garantiza la extracción de todos los archivos ISO.",
-  "sacdIso.missing": "Tune no ha detectado sacd_extract. Instálelo por separado en el servidor; si modifica PATH, reinicie Tune y vuelva a explorar la biblioteca. Tune no incluye esta herramienta.",
+  "sacdIso.available": "Tune lee las ISO SACD por sí mismo. sacd_extract, detectado en el servidor, solo se usa para los discos DST (DSD comprimido), sin garantizar la extracción de cada uno.",
+  "sacdIso.missing": "Tune lee las ISO SACD por sí mismo: no hay nada que instalar para ellas. Solo los discos DST (DSD comprimido) necesitan sacd_extract, que no se ha detectado en este servidor. Si tiene alguno, instálelo por separado, reinicie Tune si modifica PATH y vuelva a explorar la biblioteca.",
   "sacdIso.unknown": "No se pudo comprobar la disponibilidad de sacd_extract. Reinténtelo; esto no significa que falte la herramienta.",
   "sacdIso.loading": "Comprobando sacd_extract…",
   "sacdIso.check": "Comprobar de nuevo",
@@ -2421,6 +2421,8 @@ export default {
   "v2.nav.later": "Escuchar más tarde",
   "v2.later.add": "Escuchar más tarde",
   "v2.later.remove": "Quitar de Escuchar más tarde",
+  "v2.later.albumAddTip": "Guardar este álbum para escucharlo más tarde.",
+  "v2.later.albumRemoveTip": "Quitar este álbum de su lista Escuchar más tarde.",
   "v2.later.added": "Añadido a Escuchar más tarde",
   "v2.later.removed": "Quitado de Escuchar más tarde",
   "v2.later.eyebrow": "Lo que has apartado",
