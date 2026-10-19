@@ -1326,7 +1326,11 @@
         </label>
       {/if}
       <!-- Le tri porte sur les DEUX onglets : ce sont deux vues d'une même
-           liste, et changer d'onglet ne doit pas changer l'ordre sous l'œil. -->
+           liste, et changer d'onglet ne doit pas changer l'ordre sous l'œil.
+           web#2207 : pas sur l'onglet Rayons, dont l'arbre ne le suivait pas
+           (il y était affiché sans effet) ; l'arbre a son propre ordre, dans
+           sa barre. -->
+      {#if onglet !== 'rayons'}
       <label class="tricol">
         <span>{$t('v2.fav.sortBy' as any)}</span>
         <select bind:value={tri} aria-label={$t('v2.fav.sortBy' as any)}>
@@ -1336,6 +1340,7 @@
           <option value="ancien">{$t('v2.fav.sortOldest' as any)}</option>
         </select>
       </label>
+      {/if}
       <!-- web#1801 — la forme de la liste, pour les deux onglets. Pas sur
            l'arbre des rayons, qui n'est pas une grille. -->
       {#if onglet !== 'rayons'}
@@ -1351,7 +1356,9 @@
         libelle={(c) => { const e = entreeRangee(c.kind, c.id); return e ? libelleTradu(e) : (c.name ?? ''); }}
         onOuvrir={(kind, id) => { const e = entreeRangee(kind, id); if (e) void ouvrir(e); }}
         onChange={chargerLesRayons}
-        onNouvelleSmart={(f) => (editeurSmart = { id: null, rayon: { id: f.id, name: f.name } })} />
+        onNouvelleSmart={(f) => (editeurSmart = { id: null, rayon: { id: f.id, name: f.name } })}
+        ordre={$preferences.ordreRayons}
+        onOrdre={(o) => preferences.update((p) => ({ ...p, ordreRayons: o }))} />
     {:else if chargement}
       <div class="state">{$t('common.loading' as any)}</div>
     {:else if !visibles.length}
