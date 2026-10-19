@@ -40,8 +40,28 @@
     ancre: DOMRect;
     entrees: Entree[];
     onClose: () => void;
+    /**
+     * web#2221 — OPT-IN : le focus entre dans le menu à l'ouverture, et ↑ / ↓
+     * passent d'une entrée à l'autre. Le menu est PORTÉ à la racine du
+     * document : sans ce focus, un menu ouvert au clavier se trouverait au bout
+     * de l'ordre de tabulation. L'en-tête d'un disque (`ListePistesV2`) le
+     * demande ; absent, rien ne change pour les menus de piste.
+     */
+    focusInitial?: boolean;
   }
-  let { ancre, entrees, onClose }: Props = $props();
+  let { ancre, entrees, onClose, focusInitial = false }: Props = $props();
+  let menu = $state<HTMLElement | null>(null);
+  const items = () => Array.from(menu?.querySelectorAll<HTMLElement>('.item') ?? []);
+  $effect(() => { if (focusInitial && menu) items()[0]?.focus(); });
+  function parcourir(e: KeyboardEvent) {
+    if (!focusInitial || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
+    const l = items();
+    if (!l.length) return;
+    e.preventDefault();
+    const i = l.indexOf(document.activeElement as HTMLElement);
+    const pas = e.key === 'ArrowDown' ? 1 : -1;
+    l[(i + pas + l.length) % l.length]?.focus();
+  }
 
   /**
    * Le menu s'ouvre sous le bouton, aligné à DROITE sur lui — et remonte
@@ -74,7 +94,8 @@
 <div class="fond tune-v2" role="presentation" use:portail
   onclick={(e) => { e.stopPropagation(); e.preventDefault(); onClose(); }}
   onwheel={onClose}>
-  <div class="menu" role="menu" style={style}>
+  <!-- svelte-ignore a11y_interactive_supports_focus -->
+  <div class="menu" role="menu" style={style} bind:this={menu} onkeydown={parcourir}>
     {#each entrees as entree (entree.cle)}
       <button class="item" role="menuitem" onclick={(e) => lancer(e, entree)}>
         <svg viewBox="0 0 24 24" fill={entree.plein ? 'currentColor' : 'none'}
