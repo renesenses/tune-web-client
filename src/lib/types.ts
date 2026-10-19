@@ -44,6 +44,8 @@ export type RepeatMode = 'off' | 'one' | 'all';
 export const TYPES_DE_SORTIE = [
   'local', 'dlna', 'openhome', 'airplay', 'airplay2', 'chromecast',
   'bluos', 'snapcast', 'sonos', 'squeezebox', 'browser', 'oaat',
+  // #6542 — Devialet AIR (Expert de première génération), expérimental.
+  'devialet_air',
 ] as const;
 
 export type OutputType = (typeof TYPES_DE_SORTIE)[number];
