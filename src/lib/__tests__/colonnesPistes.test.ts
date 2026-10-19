@@ -462,7 +462,9 @@ describe('les huit listes passent par le rendu partagé', () => {
     // cette garde tient. Le chiffre est tenu par
     // `largeurActionsSuitLaBarre.test.ts`.
     expect(liste).toMatch(/gabaritGrille\(colonnes\)\} \$\{largeurDesActions\}/);
-    expect(liste).toMatch(/const largeurDesActions = LARGEUR_ACTIONS;/);
+    // web#2213 — une seule source, `largeurActions`, qui suit les icônes réduites.
+    expect(liste).toMatch(/const colonneActions = \$derived\(largeurActions\(actionsReduites\(\$preferences\)\)\);/);
+    expect(liste).toMatch(/const largeurDesActions = \$derived\(colonneActions\.css\);/);
     expect(liste).toMatch(/apres \? ` \$\{largeurApres\}` : ''/);
     expect(liste).toMatch(/\{#if apres\}<span class="td act" role="cell">\{@render apres\(p, i\)\}<\/span>\{\/if\}/);
   });

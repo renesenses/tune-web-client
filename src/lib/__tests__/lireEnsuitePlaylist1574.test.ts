@@ -61,7 +61,7 @@ function corpsPour(url: string): unknown {
   if (url.includes('/playlists/42/tracks')) return LOCALES;
   if (url.includes('/streaming/qobuz/playlists/pq/tracks')) return QOBUZ;
   if (/\/playlists(\?|$)/.test(url)) return [{ id: 42, name: 'Nocturnes', track_count: 3 }];
-  if (/\/queue\/add$/.test(url)) return { queue_length: 10 };
+  if (/\/queue\/add(?:\?lang=[a-z]{2})?$/.test(url)) return { queue_length: 10 };
   return [];
 }
 
@@ -85,7 +85,7 @@ async function monter<P extends Record<string, unknown>>(Vue: Component<P>, prop
   return hote;
 }
 
-const ajouts = () => appels.filter((a) => a.method === 'POST' && /\/zones\/7\/queue\/add$/.test(a.url));
+const ajouts = () => appels.filter((a) => a.method === 'POST' && /\/zones\/7\/queue\/add(?:\?lang=[a-z]{2})?$/.test(a.url));
 const boutonLireEnsuite = (racine: HTMLElement | null) =>
   Array.from(racine?.querySelectorAll<HTMLButtonElement>('button') ?? []).find(
     (b) => b.textContent?.trim() === LIRE_ENSUITE,
