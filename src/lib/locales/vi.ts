@@ -1,7 +1,7 @@
 export default {
   "sacdIso.title": "SACD ISO",
-  "sacdIso.available": "Đã phát hiện sacd_extract trên máy chủ. Điều này không đảm bảo có thể trích xuất mọi file ISO.",
-  "sacdIso.missing": "Tune không phát hiện được sacd_extract. Hãy cài đặt riêng công cụ này trên máy chủ; nếu bạn thay đổi PATH, hãy khởi động lại Tune rồi quét lại. Tune không đi kèm công cụ này.",
+  "sacdIso.available": "Tune tự đọc các file ISO SACD. sacd_extract, đã phát hiện trên máy chủ, chỉ dùng cho đĩa DST (DSD nén) và không đảm bảo trích xuất được từng đĩa.",
+  "sacdIso.missing": "Tune tự đọc các file ISO SACD: không cần cài đặt gì cho chúng. Chỉ đĩa DST (DSD nén) mới cần sacd_extract, công cụ không được phát hiện trên máy chủ này. Nếu bạn có đĩa như vậy, hãy cài đặt riêng công cụ, khởi động lại Tune nếu bạn thay đổi PATH, rồi quét lại.",
   "sacdIso.unknown": "Không thể kiểm tra sacd_extract có sẵn hay không. Hãy thử lại; điều này không có nghĩa là công cụ bị thiếu.",
   "sacdIso.loading": "Đang kiểm tra sacd_extract…",
   "sacdIso.check": "Kiểm tra lại",
