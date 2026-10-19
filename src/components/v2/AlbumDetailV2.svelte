@@ -931,6 +931,8 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
           ...refService,
           title: album.title, artist: album.artist_name ?? undefined,
           coverUrl: album.cover_path ?? undefined,
+          // #6482 — l'artiste CHEZ LE SERVICE, pour proposer de l'ajouter aussi.
+          artistId: album.artist_id != null ? String(album.artist_id) : undefined,
         });
       }
     } catch { /* le cœur reprend son état au prochain relevé */ }
