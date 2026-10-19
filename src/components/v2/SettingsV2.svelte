@@ -86,6 +86,7 @@
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
+  import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import {
@@ -120,6 +121,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
+  import PlagesMacV2 from './PlagesMacV2.svelte';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
@@ -1118,11 +1120,34 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let contribution = $state<ContributionCommunautaire | null>(null);
   let partageBusy = $state(false);
   let partageErr = $state<string | null>(null);
+  // « Envoyer mes écoutes à mon compte » (tune-server-rust#6510) : opt-in,
+  // lu et écrit par les mêmes routes. `null` : le serveur ne le connaît pas.
+  let ecoutesCompte = $state<boolean | null>(null);
+  let ecoutesBusy = $state(false);
+  let ecoutesErr = $state<string | null>(null);
+  async function basculerEcoutes(ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    ecoutesBusy = true;
+    ecoutesErr = null;
+    try {
+      await api.updateConfig({ [CLE_ECOUTES_AU_COMPTE]: souhait });
+    } catch {
+      ecoutesErr = get(t)('settings.errSaveFailed');
+    }
+    // L'état affiché est celui que le serveur RELIT : un refus remet la case.
+    await chargerPartage();
+    ecoutesBusy = false;
+    if (caseCochee) caseCochee.checked = !!ecoutesCompte;
+  }
   async function chargerPartage() {
     try {
       const c: any = await api.getConfig();
       syncCommunautaire = reglageVrai(c?.[CLE_SYNC_COMMUNAUTAIRE]);
       contribution = contributionDepuisConfig(c);
+      // tune-server-rust#6510 — un serveur qui ne publie pas la clé ne sait
+      // pas envoyer les écoutes : pas de case plutôt qu'une case qui mentirait.
+      ecoutesCompte = c && CLE_ECOUTES_AU_COMPTE in c ? reglageVrai(c[CLE_ECOUTES_AU_COMPTE]) : null;
       partageCharge = true;
     } catch { /* config illisible : les bascules ne sont pas offertes */ }
   }
@@ -4556,6 +4581,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     >{$t('settings.signIn' as any)}</button>
                 {/if}
               </div>
+              <!-- tune-server-rust#6510 — « Mes écoutes, tous serveurs » : seulement
+                   pour un serveur relié à un compte, et seulement si le serveur
+                   publie la clé. Désactivé par défaut. -->
+              {#if ssoConnecte && ecoutesCompte !== null}
+                <div class="row" data-ecoutes="compte">
+                  <div class="lbl">
+                    <span>{$t('settings.cloudListens' as any)}</span>
+                    <span class="hint">{$t('settings.cloudListensHint' as any)}</span>
+                    <a class="lnk" href={URL_MES_ECOUTES} target="_blank" rel="noopener noreferrer"
+                      >{$t('settings.cloudListensLink' as any)}</a>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle="cloud_listens_upload_enabled" checked={ecoutesCompte}
+                      disabled={ecoutesBusy}
+                      aria-label={$t('settings.cloudListens' as any)}
+                      onchange={basculerEcoutes} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                {#if ecoutesErr}<div class="errline">{ecoutesErr}</div>{/if}
+              {/if}
               <!-- Consentement à la télémétrie — porté de l'ancien écran
                    (phase 5) : il ne doit JAMAIS devenir immodifiable. -->
               {#if telCharge}
@@ -7142,6 +7188,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+
+            {:else if s.id === 'macRanges'}
+              <!-- #2244 — plage MAC reconnue et marque de chaque appareil, et
+                   la table entière (tune-server-rust#6546). Serveur ancien :
+                   le composant se tait. -->
+              <PlagesMacV2 appareils={$devices} />
             {/if}
           </section>
         {/each}
@@ -7267,8 +7319,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zr{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px}
   .zf{display:flex; flex-direction:column; gap:5px}
   .zf .dsd-dop{max-width:220px; font:11.5px/1.35 var(--v2-sans); color:var(--v2-txt2)}
-  .zf > span{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .zf > span{font:10px var(--v2-mono); line-height:14px; letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  /* web#2089 (Didier, fil 2222) — les cases « Volume fixe » et « Sortie mono »
+     s'alignaient sur le BAS de la rangée (`align-self:flex-end`) : la note DoP
+     sous le sélecteur DSD (#1876) allongeait la colonne, et les cases
+     descendaient au niveau de la note. Elles s'alignent désormais sur les
+     SÉLECTEURS : intitulé (14 px) + écart (5 px) au-dessus, la hauteur d'un
+     `.sel.sm` (32 px), quelle que soit la hauteur des colonnes voisines. */
   .zf.chk{flex-direction:row; align-items:center; gap:8px; align-self:flex-end; padding-bottom:8px; cursor:pointer}
+  .zr > .zf.chk{align-self:flex-start; padding-bottom:0; margin-top:19px; height:32px}
   .zf.chk input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
   .zf.chk span{font:12px var(--v2-sans); text-transform:none; letter-spacing:0; color:var(--v2-txt2)}
   .sel.sm{min-width:130px; height:32px; font-size:12.5px}

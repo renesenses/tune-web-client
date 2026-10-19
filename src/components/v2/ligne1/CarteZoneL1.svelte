@@ -45,6 +45,7 @@
   import { currentZoneId, zones } from '../../../lib/stores/zones';
   import { seekPositionMs } from '../../../lib/stores/nowPlaying';
   import * as api from '../../../lib/api';
+  import { basculerAleatoire } from '../../../lib/aleatoireFile';
   import type { RepeatMode, Zone } from '../../../lib/types';
 
   let { zone }: { zone: Zone } = $props();
@@ -125,11 +126,11 @@
     zones.update((zs) => zs.map((z) => (z.id === id ? { ...z, ...champs } : z)));
   }
 
-  async function basculerAleatoire() {
+  async function basculerLAleatoire() {
     const id = zone?.id;
     if (id == null || transport.shuffle === undefined) return;
-    const r = await api.setShuffle(id, !transport.shuffle);
-    poser(id, { shuffle: r.shuffle });
+    // tune-server-rust#6526 — le serveur réordonne la file : la bascule la relit.
+    poser(id, { shuffle: await basculerAleatoire(id, !transport.shuffle) });
   }
 
   async function tournerRepetition() {
@@ -199,7 +200,7 @@
     {#if transport.shuffle !== undefined || transport.repeat !== undefined}
       <div class="modes">
         {#if transport.shuffle !== undefined}
-          <button class="mode aleatoire" class:actif={transport.shuffle} onclick={basculerAleatoire}
+          <button class="mode aleatoire" class:actif={transport.shuffle} onclick={basculerLAleatoire}
             aria-pressed={transport.shuffle}
             aria-label={libelleAleatoire($t, transport.shuffle)}
             title={libelleAleatoire($t, transport.shuffle)}>

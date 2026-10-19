@@ -186,11 +186,11 @@ export async function lireListeAleatoire(liste: readonly Track[], g: GestesLectu
  *     d'écoute, qui remplace la file.
  *
  * Mode ALÉATOIRE de la zone : le client n'y touche pas (jamais `setShuffle`).
- * Si la zone est en aléatoire, le serveur retire l'ordre de tirage autour du
- * titre cliqué (`update_queue_info` → `generate_shuffle_order`) : il joue en
- * premier, puis le tirage porte sur TOUTE la file, précédents compris — comme
- * pour une playlist lancée par `start_index`. Avant ce correctif, le tirage ne
- * portait que sur la suite.
+ * Si la zone est en aléatoire, le serveur MÉLANGE la file neuve autour du
+ * titre cliqué (`melange::sur_file_neuve`, tune-server-rust#6526) : il joue
+ * en premier, puis tout le reste suit dans le désordre, précédents compris —
+ * comme pour une playlist lancée par `start_index`. Depuis #6526 ce mélange
+ * est écrit dans la file elle-même : `GET …/queue` montre l'ordre joué.
  *
  * Rend le nombre de pistes envoyées.
  */
