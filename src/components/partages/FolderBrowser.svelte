@@ -136,7 +136,13 @@
     z-index: 1200;
   }
   .folder-modal {
-    background: var(--tune-bg-secondary, #1e1e1e);
+    /* Jetons du thème, et seulement eux (#2092, fil 2230, Daniel) : la
+       fenêtre lisait `--tune-bg-secondary` et `--tune-bg-hover`, définis
+       NULLE PART — le repli sombre s'appliquait donc dans tous les thèmes,
+       alors que `--tune-text` suivait le thème clair (#1A1A1A) : noms de
+       dossiers et « Annuler » sombres sur fond sombre, illisibles. */
+    background: var(--tune-surface);
+    color: var(--tune-text);
     border-radius: 12px;
     width: min(600px, 90vw);
     max-height: 70vh;
@@ -189,10 +195,10 @@
     cursor: pointer;
     text-align: left;
   }
-  .dir-item:hover { background: var(--tune-bg-hover, #2a2a2a); }
+  .dir-item:hover { background: var(--tune-surface-hover); }
   .dir-row { display: flex; align-items: center; border-radius: 6px; }
   .dir-row .dir-item { flex: 1; width: auto; min-width: 0; }
-  .dir-row.selected { background: var(--tune-bg-hover, #2a2a2a); outline: 1px solid var(--tune-accent, #f59e0b); }
+  .dir-row.selected { background: var(--tune-surface-hover); outline: 1px solid var(--tune-accent, #f59e0b); }
   .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .open {
     flex-shrink: 0;

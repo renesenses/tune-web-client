@@ -55,8 +55,8 @@ function corpsPour(url: string): unknown {
   // Aucun service : la page ne cherche rien au-delà de la bibliothèque.
   if (/\/streaming\/services/.test(url)) return {};
   if (/\/library\/albums\/7\/tracks/.test(url)) return PISTES;
-  if (/\/zones\/1\/play$/.test(url)) return { id: 1, name: 'Salon', state: 'playing' };
-  if (/\/zones\/1$/.test(url)) return { id: 1, name: 'Salon', state: 'playing' };
+  if (/\/zones\/1\/play(?:\?lang=[a-z]{2})?$/.test(url)) return { id: 1, name: 'Salon', state: 'playing' };
+  if (/\/zones\/1(?:\?lang=[a-z]{2})?$/.test(url)) return { id: 1, name: 'Salon', state: 'playing' };
   if (/\/zones(\?|$)/.test(url)) return [{ id: 1, name: 'Salon', state: 'stopped', online: true }];
   return {};
 }
@@ -92,7 +92,7 @@ function boutonToutLire(el: HTMLElement): HTMLButtonElement {
 }
 
 const corpsDuPlay = () => {
-  const p = appels.filter((a) => a.method === 'POST' && /\/zones\/1\/play$/.test(a.url));
+  const p = appels.filter((a) => a.method === 'POST' && /\/zones\/1\/play(?:\?lang=[a-z]{2})?$/.test(a.url));
   expect(
     p.length,
     `la lecture n'a pas été lancée ; appels vus : ${appels.map((a) => `${a.method} ${a.url}`).join(' | ')}`,
