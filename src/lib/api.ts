@@ -3782,6 +3782,37 @@ export function importAutoEqPreset(body: { text: string; name?: string; zone_id?
   });
 }
 
+/**
+ * tune-server-rust#6388 — la base AutoEq en ligne, lue par le SERVEUR
+ * (`GET /eq/autoeq/search`, `POST /eq/autoeq/import`). Un résultat est un
+ * couple casque × source de mesure ; `path` est ce que l'import attend.
+ * 503 : base injoignable et aucune copie locale sur le serveur.
+ */
+export interface AutoEqResultat {
+  name: string;
+  source: string;
+  rig: string | null;
+  form: string;
+  path: string;
+}
+
+export interface AutoEqRecherche {
+  query: string;
+  results: AutoEqResultat[];
+  total: number;
+}
+
+export function searchAutoEq(q: string, limit = 50): Promise<AutoEqRecherche> {
+  return fetchJSON<AutoEqRecherche>(`${BASE}/eq/autoeq/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+}
+
+export function importAutoEqFromDatabase(body: { path: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
+  return fetchJSON<EqAutoEqImport>(`${BASE}/eq/autoeq/import`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
 // Headphone crossfeed — bleeds a delayed, attenuated copy of each channel
 // into the opposite ear so the stereo image sits in front of you instead of
 // inside your head. Local output only. Server clamps amount 0..0.5, delay 0..5.
