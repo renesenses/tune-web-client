@@ -16,9 +16,21 @@
     onDelete: (id: number) => void | Promise<void>;
     onGroupChanged: () => void;
     onRenamed: (id: number, name: string) => void;
+    /**
+     * web#2141 — la section à montrer à l'ouverture. `'groupe'` : la fenêtre
+     * s'ouvre depuis l'entrée « Lecture groupée… » du sélecteur de zones, et
+     * descend à la section qui porte ce geste.
+     */
+    section?: 'groupe' | null;
   }
 
-  let { zone, allZones, groups, onClose, onDelete, onGroupChanged, onRenamed }: Props = $props();
+  let { zone, allZones, groups, onClose, onDelete, onGroupChanged, onRenamed, section = null }: Props = $props();
+
+  let sectionGroupe = $state<HTMLElement | null>(null);
+  $effect(() => {
+    if (section !== 'groupe' || !sectionGroupe) return;
+    try { sectionGroupe.scrollIntoView?.({ block: 'start' }); } catch { /* vieux moteur */ }
+  });
 
   // Find the group this zone belongs to (if any)
   let currentGroup = $derived(groups.find(g => zone.id !== null && g.zone_ids.includes(zone.id)));
@@ -495,7 +507,7 @@
       <ZoneDeviceEditor {zone} />
     </div>
 
-    <div class="modal-section">
+    <div class="modal-section" data-section="groupe" bind:this={sectionGroupe}>
       <h3 class="section-title">{$t('zone.groupedPlayback')}</h3>
       <p class="section-desc">{$t('zone.selectZonesToSync').replace('{name}', zone.name)}</p>
 

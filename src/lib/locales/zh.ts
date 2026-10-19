@@ -220,6 +220,8 @@ export default {
   'zone.airplayPair': '通过 AirPlay 2 配对（PIN 码）',
   'zone.rename': '重命名',
   'zone.groupedPlayback': '组合播放',
+  "zone.groupedPlaybackOpen": "组合播放…",
+  "zone.groupedPlaybackOpenTip": "让此区域与其他区域同步播放：在「组合播放」部分打开其设置。",
   'zone.selectZonesToSync': '选择要与 {name} 同步的区域',
   'zone.noOtherZone': '无其他可用区域',
   'zone.alreadyInGroup': '已在其他组中',

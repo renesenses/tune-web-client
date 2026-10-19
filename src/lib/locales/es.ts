@@ -220,6 +220,8 @@ export default {
   'zone.airplayPair': 'Emparejar por AirPlay 2 (código PIN)',
   'zone.rename': 'Renombrar',
   'zone.groupedPlayback': 'Reproducción agrupada',
+  "zone.groupedPlaybackOpen": "Reproducción agrupada…",
+  "zone.groupedPlaybackOpenTip": "Sincronizar esta zona con otras: abre sus ajustes en la sección Reproducción agrupada.",
   'zone.selectZonesToSync': 'Selecciona las zonas para sincronizar con {name}',
   'zone.noOtherZone': 'Sin otras zonas disponibles',
   'zone.alreadyInGroup': 'Ya está en otro grupo',

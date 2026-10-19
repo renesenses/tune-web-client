@@ -220,6 +220,8 @@ export default {
   'zone.airplayPair': 'AirPlay 2 でペアリング（PIN コード）',
   'zone.rename': '名前を変更',
   'zone.groupedPlayback': 'グループ再生',
+  "zone.groupedPlaybackOpen": "グループ再生…",
+  "zone.groupedPlaybackOpenTip": "このゾーンをほかのゾーンと同期します。ゾーンの設定を「グループ再生」の項目で開きます。",
   'zone.selectZonesToSync': '{name}と同期するゾーンを選択',
   'zone.noOtherZone': '他のゾーンは利用できません',
   'zone.alreadyInGroup': '既に別のグループに属しています',

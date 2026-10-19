@@ -306,6 +306,8 @@ export default {
   'zone.airplayPair': 'Pair over AirPlay 2 (PIN code)',
   'zone.rename': 'Rename',
   'zone.groupedPlayback': 'Grouped Playback',
+  "zone.groupedPlaybackOpen": "Grouped playback…",
+  "zone.groupedPlaybackOpenTip": "Play this zone in sync with others: opens its settings at the Grouped Playback section.",
   'zone.selectZonesToSync': 'Select zones to sync with {name}',
   'zone.noOtherZone': 'No other zones available',
   'zone.alreadyInGroup': 'Already in another group',

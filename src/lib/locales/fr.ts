@@ -306,6 +306,8 @@ export default {
   'zone.airplayPair': 'Appairer en AirPlay 2 (code PIN)',
   'zone.rename': 'Renommer',
   'zone.groupedPlayback': 'Lecture groupée',
+  "zone.groupedPlaybackOpen": "Lecture groupée…",
+  "zone.groupedPlaybackOpenTip": "Synchroniser cette zone avec d’autres : ouvre ses réglages, à la section Lecture groupée.",
   'zone.selectZonesToSync': 'Sélectionner les zones à synchroniser avec {name}',
   'zone.noOtherZone': 'Aucune autre zone disponible',
   'zone.alreadyInGroup': 'Déjà dans un autre groupe',

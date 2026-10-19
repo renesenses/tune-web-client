@@ -220,6 +220,8 @@ export default {
   'zone.airplayPair': 'Associa via AirPlay 2 (codice PIN)',
   'zone.rename': 'Rinomina',
   'zone.groupedPlayback': 'Riproduzione in gruppo',
+  "zone.groupedPlaybackOpen": "Riproduzione in gruppo…",
+  "zone.groupedPlaybackOpenTip": "Sincronizzare questa zona con altre: apre le sue impostazioni alla sezione Riproduzione in gruppo.",
   'zone.selectZonesToSync': 'Seleziona le zone da sincronizzare con {name}',
   'zone.noOtherZone': 'Nessuna altra zona disponibile',
   'zone.alreadyInGroup': 'Già in un altro gruppo',
