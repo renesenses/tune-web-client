@@ -121,6 +121,20 @@
   const cercles = $derived<CercleNomme[]>(connecte?.circles ?? []);
   const nomDe = $derived(new Map(contacts.map((c) => [c.user_id, c.name])));
 
+  /**
+   * web#2219 — les membres qu'on sait nommer pour l'en-tête d'une playlist :
+   * son propriétaire quand ce n'est pas moi ; pour un de MES cercles, ses
+   * membres (mes contacts). Rien d'autre : la composition d'un cercle qui
+   * n'est pas le mien n'est jamais montrée à un membre.
+   */
+  function membresDePlaylist(pid: IdOpaque): string[] {
+    const p = playlists.find((x) => String(x.id) === String(pid));
+    if (!p) return [];
+    if (!p.mine) return p.owner?.name ? [p.owner.name] : [];
+    const c = p.circle_id != null ? cercles.find((x) => x.id === p.circle_id) : undefined;
+    return (c?.member_ids ?? []).map((uid) => nomDe.get(uid)).filter((n): n is string => !!n);
+  }
+
   function phrase(m: MotifCercle): string {
     const s = $t(m.cle as any);
     return m.minutes != null ? s.replace('{n}', String(m.minutes)) : s;
@@ -514,7 +528,7 @@
       </div>
     {:else if playlistOuverte != null}
       {#key String(playlistOuverte)}
-        <PlaylistCercleV2 id={playlistOuverte} onFermer={fermerPlaylist} />
+        <PlaylistCercleV2 id={playlistOuverte} onFermer={fermerPlaylist} membres={membresDePlaylist(playlistOuverte)} />
       {/key}
     {:else if contactOuvert}
       {#key contactOuvert.user_id}

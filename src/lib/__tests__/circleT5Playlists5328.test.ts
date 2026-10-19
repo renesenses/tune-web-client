@@ -10,7 +10,7 @@ import AjoutPlaylistCercleV2 from '../../components/v2/AjoutPlaylistCercleV2.sve
 import { preparerLocale } from '../i18n';
 import { preferences } from '../stores/preferences';
 import { dialogs } from '../stores/dialogs';
-import { currentZoneId } from '../stores/zones';
+import { currentZoneId, zones } from '../stores/zones';
 import { notifications } from '../stores/notifications';
 import { circlePlugin } from '../circle';
 import {
@@ -55,7 +55,7 @@ let copieEchoue = false;
 let introuvablesACopier = 0;
 /** Les playlists archivées d'un cercle supprimé que je peux récupérer. */
 let recup: { id: number; name: string; owner: { user_id: number; name: string }; mine: boolean; count: number; archived_at: string; expires_at?: string }[] = [];
-let resolution: Record<string, { status: string; source?: string; source_id?: string }> = {};
+let resolution: Record<string, { status: string; source?: string; source_id?: string; [k: string]: unknown }> = {};
 /** Un autre membre écrit ENTRE ma lecture et mon geste. */
 let avantMonGeste: ((p: Pl) => void) | null = null;
 
@@ -136,9 +136,19 @@ function greffon(u: string, method: string, body: any): Response {
       }));
     }
     if (reste === '/play' && method === 'POST') {
-      const manquants = p.items.filter((x) => (resolution[x.item_id]?.status ?? 'not_found') === 'not_found').map((x) => x.item_id);
-      if (manquants.length === p.items.length) return reponse(422, { error: 'circle.nothing_playable' });
-      return reponse(200, { ok: true, zone_id: body.zone_id, queued: p.items.length - manquants.length, missing: manquants, resolution: [] });
+      // web#2219 — `from_item_id` / `item_ids`, comme le greffon.
+      let choisis = p.items;
+      if (body.from_item_id != null) {
+        const r = p.items.findIndex((x) => x.item_id === body.from_item_id);
+        if (r < 0) return reponse(422, { error: 'circle.unknown_item' });
+        if ((resolution[p.items[r].item_id]?.status ?? 'not_found') === 'not_found') return reponse(422, { error: 'circle.item_not_playable' });
+        choisis = p.items.slice(r);
+      } else if (Array.isArray(body.item_ids)) {
+        choisis = body.item_ids.map((i: string) => p.items.find((x) => x.item_id === i)).filter(Boolean);
+      }
+      const manquants = choisis.filter((x) => (resolution[x.item_id]?.status ?? 'not_found') === 'not_found').map((x) => x.item_id);
+      if (manquants.length === choisis.length) return reponse(422, { error: 'circle.nothing_playable' });
+      return reponse(200, { ok: true, zone_id: body.zone_id, queued: choisis.length - manquants.length, missing: manquants, resolution: [] });
     }
     // Les écritures : un autre membre peut passer juste avant.
     if (avantMonGeste) { const f = avantMonGeste; avantMonGeste = null; f(p); }
@@ -295,6 +305,15 @@ async function ouvrir(el: Element, nom: string) {
   await laisserFaire();
 }
 
+/**
+ * web#2219 — Retirer, Monter et Descendre vivent dans le menu ⋯ de la
+ * ligne : on l'ouvre, puis on choisit.
+ */
+async function viaMenu(el: Element, titre: string, sel: string) {
+  await cliquer(ligne(el, titre), 'button.menu-morceau');
+  await cliquer(ligne(el, titre), sel);
+}
+
 const morceaux = (el: Element) => [...el.querySelectorAll('li.morceau')];
 const titres = (el: Element) => morceaux(el).map((n) => texte(n.querySelector('.titre-morceau')!));
 const ligne = (el: Element, titre: string) => morceaux(el).find((n) => texte(n.querySelector('.titre-morceau')!) === titre)!;
@@ -397,7 +416,7 @@ describe('T5 — la vue d\'une playlist', () => {
   it('retirer : DELETE …/items/{item_id}?version=, et l\'état rendu par le cloud s\'affiche', async () => {
     const el = await poser(CircleV2);
     await ouvrir(el, 'Dimanche');
-    await cliquer(ligne(el, 'Blue in Green'), 'button.retirer-morceau');
+    await viaMenu(el, 'Blue in Green', 'button.retirer-morceau');
     const d = ecritures().find((a) => a.method === 'DELETE')!;
     expect(chemin(d)).toBe('/playlists/pl-a/items/it-2?version=3');
     expect(titres(el)).toEqual(['So What', 'Naima', 'Alabama']);
@@ -406,7 +425,7 @@ describe('T5 — la vue d\'une playlist', () => {
   it('réordonner : PUT /order avec la permutation EXACTE et la version', async () => {
     const el = await poser(CircleV2);
     await ouvrir(el, 'Dimanche');
-    await cliquer(ligne(el, 'So What'), 'button.descendre');
+    await viaMenu(el, 'So What', 'button.descendre');
     const put = ecritures().find((a) => a.method === 'PUT')!;
     expect(chemin(put)).toBe('/playlists/pl-a/order');
     expect(put.body).toEqual({ item_ids: ['it-2', 'it-1', 'it-3', 'it-4'], version: 3 });
@@ -429,7 +448,7 @@ describe('T5 — la vue d\'une playlist', () => {
     await ouvrir(el, 'Dimanche');
     // Un autre membre ajoute un morceau pendant que je retire le mien.
     avantMonGeste = (p) => { p.items.push({ item_id: 'it-8', title: 'Impressions', added_by: null, added_at: null }); p.version = 5; };
-    await cliquer(ligne(el, 'Blue in Green'), 'button.retirer-morceau');
+    await viaMenu(el, 'Blue in Green', 'button.retirer-morceau');
     const d = ecritures().filter((a) => a.method === 'DELETE').map(chemin);
     expect(d).toEqual(['/playlists/pl-a/items/it-2?version=3', '/playlists/pl-a/items/it-2?version=5']);
     expect(titres(el)).toEqual(['So What', 'Naima', 'Alabama', 'Impressions']);
@@ -441,7 +460,7 @@ describe('T5 — la vue d\'une playlist', () => {
     await ouvrir(el, 'Dimanche');
     // Quelqu'un a déjà retiré ce morceau.
     avantMonGeste = (p) => { p.items = p.items.filter((x) => x.item_id !== 'it-2'); p.version = 4; };
-    await cliquer(ligne(el, 'Blue in Green'), 'button.retirer-morceau');
+    await viaMenu(el, 'Blue in Green', 'button.retirer-morceau');
     expect(ecritures().filter((a) => a.method === 'DELETE')).toHaveLength(1);
     expect(titres(el)).toEqual(['So What', 'Naima', 'Alabama']);
     expect(texte(el.querySelector('.retour-playlist')!)).toContain('La playlist a changé entre-temps');
@@ -451,7 +470,7 @@ describe('T5 — la vue d\'une playlist', () => {
     const el = await poser(CircleV2);
     await ouvrir(el, 'Dimanche');
     avantMonGeste = (p) => { p.items.push({ item_id: 'it-8', title: 'Impressions', added_by: null, added_at: null }); p.version = 4; };
-    await cliquer(ligne(el, 'So What'), 'button.descendre');
+    await viaMenu(el, 'So What', 'button.descendre');
     const puts = ecritures().filter((a) => a.method === 'PUT').map((a) => a.body);
     expect(puts).toEqual([
       { item_ids: ['it-2', 'it-1', 'it-3', 'it-4'], version: 3 },
@@ -463,7 +482,7 @@ describe('T5 — la vue d\'une playlist', () => {
     const el = await poser(CircleV2);
     await ouvrir(el, 'Dimanche');
     coupees.add('pl-a');
-    await cliquer(ligne(el, 'So What'), 'button.retirer-morceau');
+    await viaMenu(el, 'So What', 'button.retirer-morceau');
     expect(el.querySelector('li.morceau')).toBeNull();
     expect(texte(el.querySelector('.retour')!)).toBe('Cette playlist n\'est plus partagée avec vous.');
     expect([...el.querySelectorAll('li.playlist-cercle .nom')].map(texte)).toEqual(['Famille en voiture']);
@@ -725,5 +744,197 @@ describe('T5 — lecture défensive', () => {
   it('isrcNormalise', () => {
     expect(isrcNormalise('us-sm1-59-00113')).toBe('USSM15900113');
     expect(isrcNormalise('pas un isrc')).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// web#2219 (go de Bertrand du 19/10/2026, rc7) — lecture par piste, rangement
+// de la liste, en-tête.
+
+describe('web#2219 — lecture par piste', () => {
+  afterEach(() => { zones.set([]); });
+
+  const corpsPlay = () => ecritures().filter((a) => chemin(a) === '/playlists/pl-a/play').map((a) => a.body);
+  const ajoutsFile = () => appels.filter((a) => /\/zones\/2\/queue\/add$/.test(a.url) && a.method === 'POST').map((a) => a.body);
+
+  it('▶ d\'une ligne : la playlist À PARTIR de ce titre (`from_item_id`), la suite en file', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    await cliquer(ligne(el, 'Blue in Green'), 'button.lire-morceau');
+    expect(corpsPlay()).toEqual([{ zone_id: 2, from_item_id: 'it-2' }]);
+    expect(JSON.stringify(get(notifications))).toContain('1 morceaux introuvables chez vous');
+  });
+
+  it('double-clic sur la ligne : le même geste', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    ligne(el, 'Alabama').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    await laisserFaire();
+    expect(corpsPlay()).toEqual([{ zone_id: 2, from_item_id: 'it-4' }]);
+  });
+
+  it('menu ⋯ « Lire ce titre seulement » : `item_ids` de ce seul titre', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    await viaMenu(el, 'So What', 'button.lire-seul');
+    expect(corpsPlay()).toEqual([{ zone_id: 2, item_ids: ['it-1'] }]);
+    expect(ligne(el, 'So What').querySelector('.menu')).toBeNull();
+  });
+
+  it('une ligne introuvable : ▶ désactivé avec la raison, rien ne part, ni lecture ni file', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    const naima = ligne(el, 'Naima');
+    const lire = naima.querySelector('button.lire-morceau') as HTMLButtonElement;
+    expect(lire.disabled).toBe(true);
+    expect(lire.title).toBe('Introuvable chez vous');
+    lire.click();
+    naima.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    await laisserFaire();
+    await cliquer(naima, 'button.menu-morceau');
+    for (const sel of ['button.lire-seul', 'button.lire-ensuite', 'button.ajouter-file']) {
+      expect((naima.querySelector(sel) as HTMLButtonElement).disabled, sel).toBe(true);
+    }
+    expect(texte(naima.querySelector('.menu .raison')!)).toBe('Introuvable chez vous');
+    expect(corpsPlay()).toEqual([]);
+    expect(ajoutsFile()).toEqual([]);
+    // Les gestes de rangement restent offerts : on peut retirer un introuvable.
+    expect((naima.querySelector('button.retirer-morceau') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('« Lire ensuite » et « Ajouter à la file » : la route de file existante, avec la piste trouvée CHEZ MOI', async () => {
+    resolution['it-1'] = { status: 'matched', source: 'qobuz', source_id: '123', title: 'So What (Remastered)',
+      artist_name: 'Miles Davis', album_title: 'Kind of Blue', duration_ms: 562000, cover_url: 'https://static.qobuz.com/kob.jpg' };
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    await viaMenu(el, 'So What', 'button.lire-ensuite');
+    await viaMenu(el, 'Blue in Green', 'button.ajouter-file');
+    const [ensuite, fin] = ajoutsFile();
+    expect(ensuite).toEqual({
+      tracks: [{ source: 'qobuz', source_id: '123', title: 'So What (Remastered)', artist_name: 'Miles Davis',
+        album_title: 'Kind of Blue', cover_path: 'https://static.qobuz.com/kob.jpg', duration_ms: 562000 }],
+      position: 1,
+    });
+    // Ma bibliothèque : par son seul `track_id`, jamais par un chemin.
+    expect(fin).toEqual({ track_id: 44 });
+    expect(corpsPlay()).toEqual([]);
+    sansFuite(el);
+  });
+
+  it('le titre en cours est surligné (et dit), par la piste de MON service', async () => {
+    zones.set([{ id: 2, name: 'Salon', state: 'playing', current_track: { source: 'qobuz', source_id: '123', title: 'So What' } } as any]);
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    expect(ligne(el, 'So What').classList.contains('en-cours')).toBe(true);
+    expect(ligne(el, 'So What').getAttribute('aria-current')).toBe('true');
+    expect(ligne(el, 'Alabama').classList.contains('en-cours')).toBe(false);
+  });
+
+  it('Aléatoire : `item_ids` = les seuls jouables, mélangés', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    await cliquer(el, 'button.aleatoire-playlist');
+    const [b] = corpsPlay() as { zone_id: number; item_ids: string[] }[];
+    expect(b.zone_id).toBe(2);
+    expect([...b.item_ids].sort()).toEqual(['it-1', 'it-2', 'it-4']);
+  });
+
+  it('un départ devenu introuvable entre-temps : le refus du greffon est dit en clair', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    resolution['it-2'] = { status: 'not_found' };
+    await cliquer(ligne(el, 'Blue in Green'), 'button.lire-morceau');
+    expect(texte(el.querySelector('.retour-playlist')!)).toBe('Ce morceau est introuvable chez vous : il ne peut pas être lu.');
+  });
+});
+
+describe('web#2219 — rangement de la liste et en-tête', () => {
+  it('pastille « Jouable via X » seulement quand elle diffère de la majorité, résumée en tête', async () => {
+    resolution = {
+      'it-1': { status: 'matched', source: 'qobuz', source_id: '1' },
+      'it-2': { status: 'matched', source: 'qobuz', source_id: '2' },
+      'it-3': { status: 'not_found' },
+      'it-4': { status: 'matched', source: 'local', source_id: '/Users/moi/a.flac' },
+    };
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    expect(texte(el.querySelector('.resume-majorite')!)).toBe('2 titres jouables via Qobuz');
+    expect(texte(ligne(el, 'So What').querySelector('.resolution')!)).toBe('');
+    expect(texte(ligne(el, 'Blue in Green').querySelector('.resolution')!)).toBe('');
+    expect(texte(ligne(el, 'Alabama').querySelector('.resolution')!)).toBe('Dans votre bibliothèque');
+    // L'introuvable n'est jamais tu.
+    expect(texte(ligne(el, 'Naima').querySelector('.resolution')!)).toBe('Introuvable chez vous');
+    sansFuite(el);
+  });
+
+  it('sans majorité nette (égalité), chaque ligne garde sa pastille et l\'en-tête ne résume rien', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    expect(el.querySelector('.resume-majorite')).toBeNull();
+    expect(texte(ligne(el, 'So What').querySelector('.resolution')!)).toBe('Jouable via Qobuz');
+  });
+
+  it('« ajouté par » : une fois en tête quand un seul membre a tout ajouté, à chaque ligne sinon', async () => {
+    for (const it of pls[0].items) { it.added_by = { user_id: 40, name: 'Élise' }; it.mine = false; }
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    expect(texte(el.querySelector('.auteur-unique')!)).toBe('Tous ajoutés par Élise');
+    expect(el.querySelectorAll('li.morceau .auteur')).toHaveLength(0);
+  });
+
+  it('plusieurs contributeurs : pas de phrase de tête, l\'auteur reste à chaque ligne', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    expect(el.querySelector('.auteur-unique')).toBeNull();
+    expect(el.querySelectorAll('li.morceau .auteur')).toHaveLength(4);
+  });
+
+  it('en tête : le nombre de morceaux et la durée totale', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    // 562 + 337 + 261 + 305 s = 1 465 s, soit 24 min.
+    expect(texte(el.querySelector('.compte')!)).toBe('4 morceaux');
+    expect(texte(el.querySelector('.duree-totale')!)).toBe('24min');
+  });
+
+  it('en tête : Lire, Aléatoire, Ajouter des morceaux (vers la Recherche)', async () => {
+    const { activeView } = await import('../stores/navigation');
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    expect(el.querySelector('button.lire-playlist')).not.toBeNull();
+    expect(el.querySelector('button.aleatoire-playlist')).not.toBeNull();
+    await cliquer(el, 'button.ajouter-morceaux');
+    expect(get(activeView)).toBe('search');
+    expect(JSON.stringify(get(notifications))).toContain('Ajouter à une playlist de cercle');
+  });
+
+  it('les membres : le propriétaire et les contributeurs nommés, jamais moi ni un anonyme', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    const noms = [...el.querySelectorAll('.membres .avatar')].map((n) => n.getAttribute('title'));
+    expect(noms).toEqual(['Élise']);
+  });
+
+  it('pour MON cercle : les membres de ce cercle (mes contacts)', async () => {
+    pls[1].items = [{ item_id: 'it-9', title: 'Impressions', added_by: { user_id: 1, name: 'Moi' }, mine: true, added_at: null }];
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Famille en voiture');
+    const noms = [...el.querySelectorAll('.membres .avatar')].map((n) => n.getAttribute('title'));
+    expect(noms).toEqual(['Élise']);
+  });
+
+  it('pochettes : celle de MON service par le relais de NOTRE serveur ; rien vers le serveur d\'un membre', async () => {
+    resolution['it-1'] = { status: 'matched', source: 'qobuz', source_id: '123', cover_url: 'https://static.qobuz.com/kob.jpg' };
+    resolution['it-4'] = { status: 'matched', source: 'tidal', source_id: '9', cover_url: 'http://nas.elise.local/cover.jpg' };
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    const img = ligne(el, 'So What').querySelector('.vignette img') as HTMLImageElement;
+    expect(img.getAttribute('src')).toBe(`/api/v1/library/artwork/proxy?url=${encodeURIComponent('https://static.qobuz.com/kob.jpg')}`);
+    // Un introuvable n'a pas de pochette : la référence n'en porte aucune.
+    expect(ligne(el, 'Naima').querySelector('.vignette img')).toBeNull();
+    // Toute image de la vue passe par NOTRE serveur.
+    for (const i of el.querySelectorAll('img')) expect(i.getAttribute('src') ?? '').toMatch(/^\/api\/v1\/library\/artwork\//);
+    // Et aucun appel n'est parti ailleurs que vers notre propre API.
+    for (const a of appels) expect(a.url).not.toMatch(/nas\.elise|coverartarchive/);
   });
 });
