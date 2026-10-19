@@ -88,7 +88,7 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
-  import { actionsReduites, CASES_MASQUEES } from '../../lib/actionsRapides';
+  import { actionsReduites } from '../../lib/actionsRapides';
   import MenuPisteV2 from './MenuPisteV2.svelte';
   import { entreesMenuPiste } from '../../lib/menuPiste';
   import { serviceDePlaylist } from '../../lib/playlistService';
@@ -508,12 +508,13 @@
 
 <span class="pactions" class:a-favori={coeurPlein} class:reduite>
   <!-- #1892 — icônes réduites : les quatre raccourcis que le menu « … »
-       reprend laissent leurs cases VIDES EN TÊTE. La barre garde ses huit
-       cases, et ce qui reste (lire, à partir d'ici, cœur, menu) reste calé à
-       droite, à la même place d'une ligne à l'autre. -->
-  {#if reduite}
-    {#each { length: CASES_MASQUEES } as _}<span class="pa vide" aria-hidden="true"></span>{/each}
-  {/if}
+       reprend disparaissent AVEC leurs cases. web#2213 (Sandro, fil 2317) :
+       des cases vides en tête gardaient la barre à huit cases, donc la
+       colonne à 238 px, dont 120 vides — au zoom, le tableau débordait et le
+       « … » sortait de l'écran. La barre réduite a QUATRE cases, toujours les
+       mêmes (lire, à partir d'ici, cœur, menu), et la colonne
+       (`largeurActions`, `ListePistesV2`) les suit : l'alignement d'une
+       ligne à l'autre tient, l'option valant pour tout l'écran. -->
   <!-- 🔴 CHAQUE BOUTON GARDE SA CASE — fil forum 1906 (FabienM, v0.9.163).
 
        Un geste qui n'a pas lieu d'être était ABSENT, et tout ce qui le suivait

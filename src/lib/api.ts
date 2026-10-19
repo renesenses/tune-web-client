@@ -1755,8 +1755,21 @@ export function setVolumeDb(zoneId: number, volumeDb: number) {
   });
 }
 
+/**
+ * Réponse de `POST /zones/{id}/shuffle`. Depuis tune-server-rust#6526 le
+ * serveur RÉORDONNE la file : `queue_reordered` dit si l'ordre a changé,
+ * `queue_position` où se trouve maintenant le titre en cours (il bouge quand
+ * l'ordre d'origine est rétabli). Champs absents d'un serveur plus ancien.
+ */
+export interface ReponseAleatoire {
+  shuffle: boolean;
+  queue_reordered?: boolean;
+  queue_position?: number;
+  queue_length?: number;
+}
+
 export function setShuffle(zoneId: number, enabled: boolean) {
-  return fetchJSON<{ shuffle: boolean }>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
+  return fetchJSON<ReponseAleatoire>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
     method: 'POST',
   });
 }
