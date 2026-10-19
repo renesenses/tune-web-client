@@ -1408,6 +1408,8 @@ export default {
   "settings.scanOptions": "Beolvasási beállítások",
   "settings.qualitySplit": "Albumok szétválasztása minőség szerint",
   "settings.qualitySplitHint": "Ha ugyanaz az album létezik CD- és Hi-Res változatban, két külön bejegyzés készül (pl. „Album (96kHz/24bit)”)",
+  "settings.autoBoxSets": "Automatikus díszdobozok",
+  "settings.autoBoxSetsHint": "A testvérmappákban (CD1, CD2…) tárolt lemezek egyetlen albummá egyesítése, és a több mappás albumok megjelenítése a Díszdobozok között. Kikapcsolva: semmi sem egyesül, és a többlemezes album nem jelenik meg a Díszdobozok között. A már egyesített díszdobozok megmaradnak: a lapjukon a „Díszdoboz felbontása” visszabontja őket lemezeikre.",
   "settings.exportDatabase": "Adatbázis exportálása",
   "settings.importInProgress": "Importálás...",
   "settings.importFile": "Fájl importálása",

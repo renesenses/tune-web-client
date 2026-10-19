@@ -1295,6 +1295,8 @@ export default {
   "settings.scanOptions": "Skanningsalternativ",
   "settings.qualitySplit": "Dela album efter kvalitet",
   "settings.qualitySplitHint": "Om samma album finns i CD och Hi-Res, skapa två separata poster (t.ex. \"Album (96kHz/24bit)\")",
+  "settings.autoBoxSets": "Automatiska boxar",
+  "settings.autoBoxSetsHint": "Slå ihop skivor i syskonmappar (CD1, CD2…) till ett album och visa album i flera mappar under Boxar. Av: inget slås ihop, och ett album med flera skivor visas inte längre under Boxar. Boxar som redan slagits ihop förblir det: ”Lös upp boxen” på deras sida delar upp dem i sina skivor igen.",
   "settings.exportDatabase": "Exportera databas",
   "settings.importInProgress": "Importerar...",
   "settings.importFile": "Importera en fil",

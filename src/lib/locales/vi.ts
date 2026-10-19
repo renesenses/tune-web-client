@@ -1876,6 +1876,8 @@ export default {
   "settings.scanOptions": "Tùy chọn quét",
   "settings.qualitySplit": "Tách album theo chất lượng",
   "settings.qualitySplitHint": "Nếu cùng một album có cả bản CD và Hi-Res, tạo hai mục riêng biệt (vd. \"Album (96kHz/24bit)\")",
+  "settings.autoBoxSets": "Bộ đĩa (box set) tự động",
+  "settings.autoBoxSetsHint": "Gộp thành một album các đĩa nằm trong các thư mục anh em (CD1, CD2…) và xếp vào mục Bộ đĩa (box set) các album nằm trong nhiều thư mục. Tắt: không gộp gì cả, và album nhiều đĩa không còn xuất hiện trong mục Bộ đĩa (box set). Các bộ đĩa đã gộp vẫn giữ nguyên: « Hủy bộ đĩa (box set) » trên trang của chúng sẽ tách chúng trở lại thành từng đĩa.",
   "settings.exportDatabase": "Xuất cơ sở dữ liệu",
   "settings.importInProgress": "Đang nhập...",
   "settings.importFile": "Nhập một tệp",

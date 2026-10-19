@@ -1327,6 +1327,8 @@ export default {
   "settings.scanOptions": "扫描选项",
   "settings.qualitySplit": "按质量拆分专辑",
   "settings.qualitySplitHint": "如果同一专辑同时存在 CD 和 Hi-Res 版本，创建两个独立条目（例如“Album (96kHz/24bit)”）",
+  "settings.autoBoxSets": "自动套装",
+  "settings.autoBoxSetsHint": "将存放在同级文件夹（CD1、CD2…）中的光盘合并为一张专辑，并将分布在多个文件夹中的专辑列入“套装”。关闭后：不再合并，多碟专辑也不再出现在“套装”中。已合并的套装保持不变：在其页面上点击“拆分套装”即可恢复为各张光盘。",
   "settings.exportDatabase": "导出数据库",
   "settings.importInProgress": "导入中…",
   "settings.importFile": "导入文件",

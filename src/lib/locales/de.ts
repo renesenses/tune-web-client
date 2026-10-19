@@ -1327,6 +1327,8 @@ export default {
   "settings.scanOptions": "Scan-Optionen",
   "settings.qualitySplit": "Alben nach Qualität aufteilen",
   "settings.qualitySplitHint": "Wenn dasselbe Album als CD und Hi-Res vorliegt, zwei separate Einträge erstellen (z. B. „Album (96kHz/24bit)“)",
+  "settings.autoBoxSets": "Automatische Box-Sets",
+  "settings.autoBoxSetsHint": "Discs in benachbarten Ordnern (CD1, CD2…) zu einem Album zusammenführen und Alben aus mehreren Ordnern unter Box-Sets aufführen. Aus: Nichts wird zusammengeführt, und ein Album mit mehreren Discs erscheint nicht mehr unter Box-Sets. Bereits zusammengeführte Box-Sets bleiben bestehen: „Box-Set auflösen“ auf ihrer Seite teilt sie wieder in ihre Discs auf.",
   "settings.exportDatabase": "Datenbank exportieren",
   "settings.importInProgress": "Wird importiert…",
   "settings.importFile": "Datei importieren",
