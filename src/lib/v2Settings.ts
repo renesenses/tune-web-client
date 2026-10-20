@@ -192,6 +192,13 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        */
       { id: 'sauvegardeReglages', titleKey: 'v2.dev.backupTitle', from: 'devices', min: 'intermediate',
         keywords: ['sauvegarde', 'backup', 'export', 'import', 'restaurer', 'récupérer', 'fichier'] },
+      /**
+       * #6542 — Devialet AIR, pour les Devialet Expert de première génération
+       * (D200, D400…). Option EXPÉRIMENTALE, désactivée par défaut (décision
+       * de Bertrand, 19/10) : protocole reconstitué par rétro-ingénierie.
+       */
+      { id: 'devialetAir', titleKey: 'v2.set.devialetAirTitle', from: 'devices', min: 'intermediate',
+        keywords: ['devialet', 'air', 'expert', 'd200', 'd400', 'ampli', 'expérimental'] },
     ],
   },
   {

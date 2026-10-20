@@ -3422,6 +3422,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     spcBusy = false;
   }
 
+  // #6542 — « Devialet AIR (expérimental) », désactivé par défaut. `null` :
+  // serveur sans cette sortie (antérieur à la rc7), la section le dit.
+  let air = $state<api.DevialetAirReglages | null>(null);
+  let airBusy = $state(false);
+  let airErr = $state<string | null>(null);
+  $effect(() => {
+    api.getDevialetAirReglages()
+      .then((r) => { air = r; })
+      .catch(() => { air = null; });
+  });
+  async function reglerDevialetAir(corps: { enabled?: boolean; source_index?: number }) {
+    airBusy = true; airErr = null;
+    try {
+      air = await api.setDevialetAirReglages(corps);
+    } catch (e: any) { airErr = e?.message ?? get(t)('settings.errActionFailed'); }
+    airBusy = false;
+  }
+
   // ── Base de donnees / exports ─────────────────────────────────────────
   let dbEngine = $state<string | null>(null);
   let dbConnected = $state<boolean | null>(null);
@@ -5195,6 +5213,37 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'sauvegardeReglages'}
               <SauvegardeReglagesV2 />
+            {:else if s.id === 'devialetAir'}
+              {#if !air}
+                <p class="hint">{$t('v2.set.devialetAirUnavailable' as any)}</p>
+              {:else}
+                <p class="hint">{$t('v2.set.devialetAirWarning' as any)}</p>
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('v2.set.devialetAirEnable' as any)}</span>
+                    <span class="hint">{$t('v2.set.devialetAirDiscoveryHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={!!air?.enabled} disabled={airBusy}
+                      onchange={(e) => reglerDevialetAir({ enabled: (e.currentTarget as HTMLInputElement).checked })} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('v2.set.devialetAirSource' as any)}</span>
+                    <span class="hint">{$t('v2.set.devialetAirSourceHint' as any).replace('{n}', String(air.source_index_default))}</span>
+                  </div>
+                  <select class="sel" value={String(air.source_index)} disabled={airBusy}
+                    onchange={(e) => reglerDevialetAir({ source_index: Number((e.currentTarget as HTMLSelectElement).value) })}>
+                    {#each Array.from({ length: air.source_index_max + 1 }, (_, i) => i) as i (i)}
+                      <option value={String(i)}>{i}</option>
+                    {/each}
+                  </select>
+                </div>
+                <p class="hint">{$t('v2.set.devialetAirLimits' as any).replace('{db}', String(air.volume_ceiling_db)).replace('{khz}', String(air.max_sample_rate / 1000))}</p>
+                {#if airErr}<div class="errline">{airErr}</div>{/if}
+              {/if}
             {:else if s.id === 'perZone'}
               {#if !$zones.length}
                 <p class="hint">{$t('settings.noZoneCreateOne' as any)}</p>

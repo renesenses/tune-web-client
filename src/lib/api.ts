@@ -5390,6 +5390,29 @@ export function setSpotifyLectureExperimentale(enabled: boolean) {
   });
 }
 
+/** #6542 — réglages de la sortie Devialet AIR (expérimentale). */
+export interface DevialetAirReglages {
+  enabled: boolean;
+  experimental: boolean;
+  source_index: number;
+  source_index_default: number;
+  source_index_max: number;
+  volume_ceiling_db: number;
+  max_sample_rate: number;
+}
+
+export function getDevialetAirReglages() {
+  return fetchJSON<DevialetAirReglages>(`${BASE}/devialet-air/reglages`);
+}
+
+/** Chaque champ est facultatif : seul ce qui est passé change. */
+export function setDevialetAirReglages(corps: { enabled?: boolean; source_index?: number }) {
+  return fetchJSON<DevialetAirReglages>(`${BASE}/devialet-air/reglages`, {
+    method: 'POST',
+    body: JSON.stringify(corps),
+  });
+}
+
 export function rescanArtwork() {
   return fetchJSON<{ status: string }>(`${BASE}/library/artwork/rescan`, { method: 'POST' });
 }
