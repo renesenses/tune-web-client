@@ -5090,6 +5090,8 @@ export default {
   // #4805 lot 1 — enrichissement d'après MetaRust (Xavier Joly).
   "credits.wikidataTip": "Instrumente din fișa Wikidata a artistului: ce cântă în general, nu neapărat pe acest disc.",
   "credits.wikidataSource": "după Wikidata",
+  "v2.liensExternes.titre": "Linkuri externe",
+  "v2.liensExternes.voirSur": "Vezi pe {site}",
   "v2.completeness.disc": "(discul {n})",
   "v2.completeness.missingOne": "Lipsește piesa {list}",
   "v2.completeness.missingMany": "Lipsesc piesele {list}",

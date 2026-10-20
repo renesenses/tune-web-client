@@ -2418,6 +2418,20 @@ export function getAlbumCompleteness(albumId: number) {
   );
 }
 
+/** tune-server-rust#6001 — `GET /library/artists/{id}/external-links`, sans bandeau. */
+export function getArtistExternalLinks(artistId: number) {
+  return fetchJSON<import('./liensExternes').ReponseLiens>(
+    `${BASE}/library/artists/${artistId}/external-links`, undefined, undefined, true,
+  );
+}
+
+/** tune-server-rust#6001 — `GET /library/albums/{id}/external-links`, sans bandeau. */
+export function getAlbumExternalLinks(albumId: number) {
+  return fetchJSON<import('./liensExternes').ReponseLiens>(
+    `${BASE}/library/albums/${albumId}/external-links`, undefined, undefined, true,
+  );
+}
+
 /** `GET /library/albums/incomplete` — les albums à qui il manque des pistes. */
 export function getIncompleteAlbumIds() {
   return fetchJSON<{ total: number; ids: number[] }>(

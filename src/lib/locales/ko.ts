@@ -5090,6 +5090,8 @@ export default {
   // #4805 lot 1 — enrichissement d'après MetaRust (Xavier Joly).
   "credits.wikidataTip": "아티스트의 Wikidata 항목에 있는 악기: 일반적으로 연주하는 악기이며, 이 음반에서 연주했다는 뜻은 아닙니다.",
   "credits.wikidataSource": "Wikidata 기준",
+  "v2.liensExternes.titre": "외부 링크",
+  "v2.liensExternes.voirSur": "{site}에서 보기",
   "v2.completeness.disc": "(디스크 {n})",
   "v2.completeness.missingOne": "트랙 {list}이(가) 없습니다",
   "v2.completeness.missingMany": "트랙 {list}이(가) 없습니다",

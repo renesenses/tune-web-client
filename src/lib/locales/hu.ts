@@ -5049,6 +5049,8 @@ export default {
   // #4805 lot 1 — enrichissement d'après MetaRust (Xavier Joly).
   "credits.wikidataTip": "Hangszerek az előadó Wikidata-adatlapjáról: amin általában játszik, nem feltétlenül ezen a lemezen.",
   "credits.wikidataSource": "a Wikidata szerint",
+  "v2.liensExternes.titre": "Külső hivatkozások",
+  "v2.liensExternes.voirSur": "Megtekintés itt: {site}",
   "v2.completeness.disc": "({n}. lemez)",
   "v2.completeness.missingOne": "Hiányzik a(z) {list}. szám",
   "v2.completeness.missingMany": "Hiányoznak a(z) {list}. számok",

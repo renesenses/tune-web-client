@@ -5110,6 +5110,8 @@ export default {
   // #4805 lot 1 — enrichissement d'après MetaRust (Xavier Joly).
   "credits.wikidataTip": "Instruments from the artist's Wikidata entry: what they generally play, not necessarily on this record.",
   "credits.wikidataSource": "from Wikidata",
+  "v2.liensExternes.titre": "External links",
+  "v2.liensExternes.voirSur": "View on {site}",
   "v2.completeness.disc": "(disc {n})",
   "v2.completeness.missingOne": "Track {list} is missing",
   "v2.completeness.missingMany": "Tracks {list} are missing",
