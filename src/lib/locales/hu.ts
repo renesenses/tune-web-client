@@ -1646,6 +1646,7 @@ export default {
   "trackTags.savingProgress": "Mentés…",
   "smartCollection.fieldArtist": "Előadó",
   "smartCollection.fieldAlbumArtist": "Album előadója",
+  "smartCollection.fieldTrackArtist": "Szám előadója",
   "smartCollection.fieldAlbumTitle": "Album címe",
   "smartCollection.fieldGenre": "Műfaj",
   "smartCollection.fieldComposer": "Szerző",

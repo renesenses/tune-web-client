@@ -1548,6 +1548,7 @@ export default {
   "trackTags.savingProgress": "保存中…",
   "smartCollection.fieldArtist": "艺术家",
   "smartCollection.fieldAlbumArtist": "专辑艺人",
+  "smartCollection.fieldTrackArtist": "曲目艺人",
   "smartCollection.fieldAlbumTitle": "专辑标题",
   "smartCollection.fieldGenre": "流派",
   "smartCollection.fieldComposer": "作曲家",

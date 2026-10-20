@@ -2243,6 +2243,7 @@ export default {
   "trackTags.savingProgress": "Saving…",
   "smartCollection.fieldArtist": "Artist",
   "smartCollection.fieldAlbumArtist": "Album artist",
+  "smartCollection.fieldTrackArtist": "Track artist",
   "smartCollection.fieldAlbumTitle": "Album title",
   "smartCollection.fieldGenre": "Genre",
   "smartCollection.fieldComposer": "Composer",

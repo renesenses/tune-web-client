@@ -2121,6 +2121,7 @@ export default {
   "trackTags.savingProgress": "Đang lưu…",
   "smartCollection.fieldArtist": "Nghệ sĩ",
   "smartCollection.fieldAlbumArtist": "Nghệ sĩ album",
+  "smartCollection.fieldTrackArtist": "Nghệ sĩ của bản nhạc",
   "smartCollection.fieldAlbumTitle": "Tên album",
   "smartCollection.fieldGenre": "Thể loại",
   "smartCollection.fieldComposer": "Nhà soạn nhạc",

@@ -1548,6 +1548,7 @@ export default {
   "trackTags.savingProgress": "Guardando…",
   "smartCollection.fieldArtist": "Artista",
   "smartCollection.fieldAlbumArtist": "Artista del álbum",
+  "smartCollection.fieldTrackArtist": "Intérprete de la pista",
   "smartCollection.fieldAlbumTitle": "Título del álbum",
   "smartCollection.fieldGenre": "Género",
   "smartCollection.fieldComposer": "Compositor",
