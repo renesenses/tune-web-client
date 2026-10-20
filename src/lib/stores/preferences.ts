@@ -20,6 +20,8 @@ import {
   normaliserChoixBarre, horodatageBarre, arbitrerBarre, type ChoixBarre,
 } from '../ordreBarreLaterale';
 import type { TriConcerts } from '../concertsTri';
+import { estOrdreRayons, ORDRE_RAYONS_DEFAUT, type OrdreRayons } from '../rayonsCollections';
+import { normaliserOrdreManuel, type OrdreManuelCollections } from '../ordreManuelCollections';
 import type { ChoixLieuConcerts } from '../concertsLieu';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
@@ -371,6 +373,22 @@ export interface Preferences {
    */
   ordreAutresVersions: OrdreVersions;
   /**
+   * web#2207 (Didier, fil 1907) — l'ordre des collections dans l'arbre des
+   * rayons, à tous les niveaux : `manuel` (la position gardée par le serveur,
+   * réglée par glisser-déposer — l'ordre de création tant que rien n'a bougé)
+   * ou `alpha` (alphanumérique, sur le libellé affiché). Rangé ici, donc dans
+   * `ui_preferences` synchronisé serveur : les collections et leur rangement
+   * vivent sur le serveur, leur ordre d'affichage aussi.
+   */
+  ordreRayons: OrdreRayons;
+  /**
+   * web#2256 (Didier, fil 1907) — l'ordre MANUEL des deux listes plates de
+   * l'écran Collections, quand leur tri est « Manuel » : les identifiants,
+   * dans l'ordre choisi par glisser-déposer. Dans `ui_preferences`, donc
+   * gardé par le serveur, comme `ordreRayons`. Assaini aux deux lectures.
+   */
+  ordreManuelCollections: OrdreManuelCollections;
+  /**
    * La cadence des animations de « Lecture en cours » — #1256.
    *
    * Trois crans : `fluide` (30 i/s, le comportement livré), `econome` (20 i/s,
@@ -518,6 +536,11 @@ const defaults: Preferences = {
   // fusion `{ ...defaults, ...raw }` de `loadPrefs` donne toujours le dernier
   // mot à la valeur enregistrée. Un utilisateur qui a choisi garde son choix.
   ordreAutresVersions: ORDRE_VERSIONS_DEFAUT,
+  // web#2256 : l'alphabétique (Didier, fil 1907, 19/10/2026) ; le manuel
+  // reste au choix. Un choix enregistré garde le dernier mot.
+  ordreRayons: ORDRE_RAYONS_DEFAUT,
+  // web#2256 : rien de rangé à la main tant qu'on n'a rien déplacé.
+  ordreManuelCollections: { smart: [], normale: [] },
   // #1256 : 30 images par seconde, la cadence d'aujourd'hui. L'économie est
   // réelle et mesurée, mais elle SE VOIT — elle se propose, elle ne s'impose
   // pas. Personne ne doit voir son affichage changer sans l'avoir demandé.
@@ -694,6 +717,14 @@ function lirePrefs(stored: string | null): Preferences {
       if (!estOrdreVersions((raw as { ordreAutresVersions?: unknown })?.ordreAutresVersions)) {
         p.ordreAutresVersions = ORDRE_VERSIONS_DEFAUT;
       }
+      // web#2207 — même règle : un ordre inconnu retombe sur le défaut.
+      if (!estOrdreRayons((raw as { ordreRayons?: unknown })?.ordreRayons)) {
+        p.ordreRayons = ORDRE_RAYONS_DEFAUT;
+      }
+      // web#2256 — même règle : des identifiants entiers, sans doublon.
+      p.ordreManuelCollections = normaliserOrdreManuel(
+        (raw as { ordreManuelCollections?: unknown })?.ordreManuelCollections,
+      );
       // #1256 — même règle, même raison : ce blob vient aussi du SERVEUR. Un
       // cran inconnu (version ultérieure, blob abîmé) retombe sur la cadence
       // d'aujourd'hui, jamais sur une cadence qui n'existe pas.
@@ -1000,6 +1031,13 @@ async function relireDuServeur() {
       // `defaults` qui doit reprendre la main, sinon un blob abîmé figerait
       // les animations sur une cadence qui n'existe pas.
       if (!estCranCadence(server.cadenceAnimations)) delete server.cadenceAnimations;
+      // web#2207 — idem pour l'ordre des rayons : un ordre inconnu est
+      // supprimé, et `defaults` reprend la main.
+      if (server.ordreRayons !== undefined && !estOrdreRayons(server.ordreRayons)) delete server.ordreRayons;
+      // web#2256 — assaini, jamais adopté tel quel.
+      if (server.ordreManuelCollections !== undefined) {
+        server.ordreManuelCollections = normaliserOrdreManuel(server.ordreManuelCollections);
+      }
       // web#1800 — idem pour la disposition de la file.
       if (!estDispositionFile(server.dispositionFile)) delete server.dispositionFile;
       // #5065 — idem pour les types de sources de la barre.

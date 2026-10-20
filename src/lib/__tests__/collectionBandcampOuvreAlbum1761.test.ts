@@ -73,7 +73,7 @@ function serveur() {
     if (/\/ext\/bandcamp\/discover/.test(u)) return reponse({ items: [] });
     if (/\/ext\/bandcamp\/tags/.test(u)) return reponse({ tags: [], genres: [] });
     if (/\/streaming\/services/.test(u)) return reponse(SERVICES);
-    if (/\/zones\/\d+\/play$/.test(u)) return reponse({ id: 1, name: 'Z', state: 'playing' });
+    if (/\/zones\/\d+\/play(?:\?lang=[a-z]{2})?$/.test(u)) return reponse({ id: 1, name: 'Z', state: 'playing' });
     if (/\/profiles(\?|$)/.test(u)) return reponse([{ id: 1, name: 'Default', avatar_color: '#6366f1' }]);
     return reponse([]);
   }));
@@ -90,7 +90,7 @@ async function respirer(tours = 40, pret: () => boolean = () => false) {
 }
 
 const vignettes = () => Array.from(hote!.querySelectorAll('.achat .card')) as HTMLElement[];
-const lectures = () => parties.filter((p) => p.method === 'POST' && /\/zones\/\d+\/play$/.test(p.url));
+const lectures = () => parties.filter((p) => p.method === 'POST' && /\/zones\/\d+\/play(?:\?lang=[a-z]{2})?$/.test(p.url));
 const fiches = () => parties.filter((p) => /\/ext\/bandcamp\/album\?/.test(p.url));
 
 async function monterCollection() {

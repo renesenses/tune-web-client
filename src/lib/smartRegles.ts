@@ -58,6 +58,12 @@ export const CHAMPS: readonly Champ[] = [
   // « Artiste » lit déjà l'artiste de l'album ; dans une playlist, c'est
   // l'interprète de la PISTE, et les deux critères diffèrent.
   { value: 'album_artist',   labelKey: 'smartCollection.fieldAlbumArtist', type: 'text' },
+  // tune-server-rust#6232 (forum 2218) — « Interprète de la piste » : la
+  // balise ARTIST de la piste, à défaut l'artiste de la piste en base. Dans
+  // une collection, l'album passe dès qu'UNE de ses pistes passe : c'est ce
+  // que « Artiste » (l'artiste de l'album) ne sait pas faire. Même nom aux
+  // deux niveaux.
+  { value: 'track_artist',   labelKey: 'smartCollection.fieldTrackArtist', type: 'text' },
   { value: 'title',          labelKey: 'smartCollection.fieldAlbumTitle',  type: 'text', piste: 'album' },
   { value: 'genre',          labelKey: 'smartCollection.fieldGenre',       type: 'text' },
   { value: 'composer',       labelKey: 'smartCollection.fieldComposer',    type: 'text' },

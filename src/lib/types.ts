@@ -44,6 +44,8 @@ export type RepeatMode = 'off' | 'one' | 'all';
 export const TYPES_DE_SORTIE = [
   'local', 'dlna', 'openhome', 'airplay', 'airplay2', 'chromecast',
   'bluos', 'snapcast', 'sonos', 'squeezebox', 'browser', 'oaat',
+  // #6542 — Devialet AIR (Expert de première génération), expérimental.
+  'devialet_air',
 ] as const;
 
 export type OutputType = (typeof TYPES_DE_SORTIE)[number];
@@ -796,6 +798,10 @@ export interface DiscoveredDevice {
   manufacturer?: string | null;
   model?: string | null;
   mac_address?: string | null;
+  /** Plage MAC reconnue, `AA:BB:CC` — tune-server-rust#6546 ; absent d'un serveur ancien. */
+  mac_prefix?: string | null;
+  /** Marque que la table OUI associe à cette plage ; `null` si elle n'y est pas. */
+  mac_vendor?: string | null;
 }
 
 export interface LocalAudioDevice {

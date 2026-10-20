@@ -27,6 +27,21 @@
   export const LARGEUR_ACTIONS = '238px';
   /** La même largeur en NOMBRE, pour le calcul du plancher (#853). */
   export const LARGEUR_ACTIONS_PX = 238;
+  /**
+   * web#2213 (Sandro, fil 2317) — icônes rapides masquées (#1892) : la barre
+   * n'a plus que QUATRE cases (lire, à partir d'ici, cœur, « … »), et la
+   * colonne les suit. Elle gardait ses 238 px, dont 120 vides : au zoom, le
+   * tableau débordait et le « … » sortait de l'écran à droite.
+   * 118 px = quatre boutons de 28 px + trois gouttières de 2 px.
+   */
+  export const LARGEUR_ACTIONS_REDUITE = '118px';
+  export const LARGEUR_ACTIONS_REDUITE_PX = 118;
+  /** La largeur de la colonne d'actions selon l'option « icônes réduites ». */
+  export function largeurActions(reduite: boolean): { css: string; px: number } {
+    return reduite
+      ? { css: LARGEUR_ACTIONS_REDUITE, px: LARGEUR_ACTIONS_REDUITE_PX }
+      : { css: LARGEUR_ACTIONS, px: LARGEUR_ACTIONS_PX };
+  }
   /** La colonne de la POIGNÉE de réordonnancement : un bouton de 28 px. */
   export const LARGEUR_POIGNEE_PX = 28;
   /** Numérote les instances : la poignée à refocaliser après un déplacement
@@ -77,6 +92,7 @@
   import type { Track } from '../../lib/types';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import PisteActions from './PisteActions.svelte';
+  import { actionsReduites } from '../../lib/actionsRapides';
   import type { CoeurExterne } from '../../lib/coeurExterne';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import { largeurColonneQualite } from '../../lib/largeurQualite';
@@ -539,8 +555,10 @@
   const largeurApresPx = $derived(parseFloat(largeurApres) || 0);
   // #1061 : la colonne suit la barre, bouton « à partir d'ici » compris — et
   // il y est sur TOUTES les lignes depuis le 20/09/2026, donc une seule valeur.
-  const largeurDesActions = LARGEUR_ACTIONS;
-  const largeurDesActionsPx = LARGEUR_ACTIONS_PX;
+  // web#2213 — sauf icônes réduites (#1892) : quatre cases, pas huit.
+  const colonneActions = $derived(largeurActions(actionsReduites($preferences)));
+  const largeurDesActions = $derived(colonneActions.css);
+  const largeurDesActionsPx = $derived(colonneActions.px);
   // La poignée est une COLONNE de la grille, en tête, présente dans l'en-tête
   // comme dans les lignes : la même règle que le suffixe, pour la même raison.
   const colonnePoignee = $derived(

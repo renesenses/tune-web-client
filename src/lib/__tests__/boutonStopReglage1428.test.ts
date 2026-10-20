@@ -214,7 +214,7 @@ describe('#1428 — le bouton emprunte le MÊME chemin d’arrêt que les gestes
     expect(parLaTouche, 'la touche S n’arrête plus rien : le témoin ne compare rien')
       .toHaveLength(1);
     expect(parLeBouton[0]).toEqual(parLaTouche[0]);
-    expect(parLeBouton[0].url).toMatch(/\/zones\/1\/stop$/);
+    expect(parLeBouton[0].url).toMatch(/\/zones\/1\/stop(?:\?lang=[a-z]{2})?$/);
   });
 
   it('inerte sans zone, il n’envoie rien du tout', async () => {
