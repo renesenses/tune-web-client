@@ -2516,6 +2516,20 @@ export function getStreamingTrackCredits(service: string, sourceId: string) {
   );
 }
 
+/**
+ * La présentation d'un album de SERVICE — tune-server-rust#6480. Du texte, le
+ * serveur a retiré le balisage. `null` : pas de présentation pour cet album ;
+ * 501 : le service n'en publie jamais. Sans bandeau, comme les crédits.
+ */
+export function getStreamingAlbumDescription(service: string, albumSourceId: string) {
+  return fetchJSON<import('./presentationAlbumService').PresentationAlbum | null>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumSourceId)}/description`,
+    undefined,
+    undefined,
+    true,
+  );
+}
+
 /** Crédits d'un album de SERVICE, chaque ligne portant sa piste — #4993. */
 export function getStreamingAlbumCredits(service: string, albumSourceId: string) {
   return fetchJSON<import('./library/credits').CreditAvecPiste[]>(
@@ -6262,6 +6276,9 @@ export * from './api/bandcampAchats';
 // Rôle maître / agent entre serveurs Tune (tune-server-rust#4626).
 // Voir lib/api/agentTune.ts.
 export * from './api/agentTune';
+// Annuaire radio-metadata.fr (tune-server-rust#6516).
+// Voir lib/api/annuaireRadios.ts.
+export * from './api/annuaireRadios';
 
 // --- Radios ---
 

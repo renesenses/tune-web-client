@@ -84,6 +84,7 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import { portail } from '../../lib/portail';
   import { estMarqueIa, marquageIaADemander } from '../../lib/contenuIa';
 import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
+import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentationRefuses, type EtatPresentation } from '../../lib/presentationAlbumService';
   import { dialogs } from '../../lib/stores/dialogs';
   import { origineDuCoffret, EVT_COFFRET_DEFAIT, type OrigineCoffret } from '../../lib/coffretAuto';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -1344,6 +1345,39 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   }
 
   /**
+   * #6480 — la PRÉSENTATION d'un album de service (cpadiou77, fil 2327) : la
+   * critique que Qobuz publie, servie en texte par le serveur. Même geste que
+   * « Notes / Bio » ci-dessus (un bouton, lu au clic), pour un album SANS
+   * `id` local. Voir `lib/presentationAlbumService`.
+   */
+  const presentationCible = $derived(
+    depot || bandcamp || album.id != null ? null
+      : presentationAlbumDeServiceDe(service, sidDistant, $servicesPresentationRefuses),
+  );
+  let presentationOuverte = $state(false);
+  let presentation = $state<EtatPresentation | null>(null);
+  let presentationChargement = $state(false);
+  let presentationCle = $state<string | null>(null);
+  $effect(() => {
+    const cle = presentationCible ? `${presentationCible.service}:${presentationCible.albumId}` : null;
+    if (cle === untrack(() => presentationCle)) return;
+    presentationCle = cle;
+    presentationOuverte = false;
+    presentation = null;
+  });
+  async function basculerPresentation() {
+    presentationOuverte = !presentationOuverte;
+    const cible = presentationCible;
+    if (!presentationOuverte || !cible || presentation || presentationChargement) return;
+    presentationChargement = true;
+    const cle = `${cible.service}:${cible.albumId}`;
+    const r = await chargerPresentation(cible, api.getStreamingAlbumDescription);
+    // Course : l'album a pu changer pendant la requête.
+    if (presentationCle === cle) presentation = r;
+    presentationChargement = false;
+  }
+
+  /**
    * Le nom de l'artiste MÈNE à sa fiche — #3708, FabienM, fil forum 1726 :
    * « l'hyperlien sur l'artiste est absent, ex ici: Artiste Depeche Mode n'a
    * pas de lien actif pour rediriger vers la page de l'artiste. »
@@ -1813,6 +1847,31 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     </div>
   {/if}
 
+  <!-- #6480 — la présentation d'un album de SERVICE, en texte : jamais de
+       balisage interprété (`{@html}`), le serveur l'a déjà retiré. Un refus
+       (501) retire le bouton des fiches suivantes ; celle-ci dit pourquoi. -->
+  {#if presentationCible || presentation?.etat === 'refus'}
+    <div class="bio">
+      <button class="bio-toggle" onclick={basculerPresentation} aria-expanded={presentationOuverte}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        {presentationOuverte ? $tr('v2.album.hidePresentation' as any) : $tr('v2.album.presentation' as any)}
+      </button>
+      {#if presentationOuverte}
+        {#if presentationChargement}
+          <p class="bio-state">{$tr('v2.common.loading' as any)}</p>
+        {:else if presentation?.etat === 'texte'}
+          <ClampedText lines={4} resetKey={presentation.texte}>
+            <p class="bio-text presentation" lang={presentation.langue ?? undefined}>{presentation.texte}</p>
+          </ClampedText>
+        {:else if presentation?.etat === 'erreur'}
+          <p class="bio-state err">{$tr('v2.album.presentationError' as any)}</p>
+        {:else if presentation}
+          <p class="bio-state">{$tr('v2.album.noPresentation' as any)}</p>
+        {/if}
+      {/if}
+    </div>
+  {/if}
+
   <!-- #4805 lot 1 (d'après MetaRust, de Xavier Joly) : complétude, BPM,
        instruments Wikidata, propositions Discogs. Album de la BIBLIOTHÈQUE
        seulement — la même garde que les crédits. -->
@@ -2117,4 +2176,5 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   .bio-text{margin:0; color:var(--v2-txt2); font-size:14px; line-height:1.65; max-width:70ch}
   .bio-state{margin:0; color:var(--v2-txt3); font-size:13px; font-style:italic}
   .bio-state.err{color:var(--v2-danger)}
+  .bio-text.presentation{white-space:pre-line}
 </style>
