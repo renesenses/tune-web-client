@@ -38,7 +38,7 @@
 //   · qu'une carte d'un AUTRE service reste cochable (le verrou de service est
 //     tombé le 21/09 et ne doit pas se refermer à la faveur d'une migration) ;
 //   · qu'aucun bouton n'est imbriqué dans un bouton (#1006).
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { compile } from 'svelte/compiler';
 import { readFileSync } from 'node:fs';
@@ -117,7 +117,8 @@ interface Feuille {
   portee: string;
   el: HTMLStyleElement;
 }
-let feuilles: Feuille[] = [];
+// Compiler pendant la collecte, hors du délai des hooks et des assertions.
+let feuilles: Feuille[] = compilerFeuilles();
 
 function compilerFeuilles(): Feuille[] {
   return COMPOSANTS.map((chemin) => {
@@ -153,20 +154,15 @@ class ResizeObserverInerte {
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
 
-const respirer = () => new Promise((r) => setTimeout(r, 0));
-async function souffler(n = 4) {
-  for (let i = 0; i < n; i++) {
-    await respirer();
-    flushSync();
-  }
-}
-
 async function monterLaGrille(): Promise<HTMLDivElement> {
   hote = document.createElement('div');
   document.body.appendChild(hote);
   monte = mount(PlaylistManagerView, { target: hote, props: { onAddToPlaylist: () => {} } });
   flushSync();
-  await souffler(8);
+  await vi.waitFor(() => {
+    flushSync();
+    expect(cartes(hote!).map((c) => c.querySelector('.pl-nom')?.textContent?.trim())).toEqual([LOCALE.name, QOBUZ.name, TIDAL.name]);
+  });
   const grille = hote.querySelector('.pl-grille');
   expect(grille, 'la grille de playlists n’est pas peinte').not.toBeNull();
   return hote;
@@ -189,9 +185,6 @@ const surcoucheDe = (c: HTMLElement) => c.querySelector<HTMLElement>('.pl-vignet
 /** Le bouton du coin bas gauche de la surcouche : le menu d'actions. */
 const menuDe = (c: HTMLElement) => c.querySelector<HTMLButtonElement>('.pl-vignette .pa button.coin.bl');
 
-beforeAll(() => {
-  feuilles = compilerFeuilles();
-});
 afterAll(() => {
   for (const f of feuilles) f.el.remove();
   feuilles = [];
@@ -326,7 +319,10 @@ describe('Gestionnaire de playlists — la grille sur la surcouche commune', () 
     const el = await monterLaGrille();
     const coin = menuDe(carte(el, LOCALE.name))!;
     coin.click();
-    await souffler(4);
+    await vi.waitFor(() => {
+      flushSync();
+      expect(document.querySelectorAll('[role="menu"] [role="menuitem"]').length).toBeGreaterThan(0);
+    });
     const peintes = [...document.querySelectorAll<HTMLElement>('[role="menu"] [role="menuitem"]')]
       .map((b) => b.dataset.cle)
       .filter((v): v is string => !!v);
@@ -363,13 +359,13 @@ describe('Gestionnaire de playlists — la grille sur la surcouche commune', () 
     const el = await monterLaGrille();
     const q = caseDe(carte(el, QOBUZ.name))!;
     q.click();
-    await souffler(3);
+    flushSync();
     expect(q.getAttribute('aria-pressed'), 'la carte Qobuz ne se coche pas').toBe('true');
 
     const t = caseDe(carte(el, TIDAL.name))!;
     expect(t.hasAttribute('disabled'), 'la carte TIDAL est désactivée par la sélection Qobuz').toBe(false);
     t.click();
-    await souffler(3);
+    flushSync();
     expect(
       caseDe(carte(el, TIDAL.name))!.getAttribute('aria-pressed'),
       'la carte TIDAL refuse de se cocher alors qu’une Qobuz l’est : le verrou de service est revenu',
@@ -379,7 +375,7 @@ describe('Gestionnaire de playlists — la grille sur la surcouche commune', () 
     // Et la locale aussi, dans la même grille.
     const l = caseDe(carte(el, LOCALE.name))!;
     l.click();
-    await souffler(3);
+    flushSync();
     expect(caseDe(carte(el, LOCALE.name))!.getAttribute('aria-pressed')).toBe('true');
     // La barre apparue porte le sélecteur de cible — la réponse à la question.
     expect(el.querySelector('.merge-cible'), 'pas de sélecteur de cible dans la barre').not.toBeNull();
@@ -394,7 +390,7 @@ describe('Gestionnaire de playlists — la grille sur la surcouche commune', () 
     // Et la barre de fusion n'est pas là tant que rien n'est coché.
     expect(el.querySelector('.merge-bar'), 'la barre s’affiche sans sélection').toBeNull();
     caseDe(carte(el, LOCALE.name))!.click();
-    await souffler(3);
+    flushSync();
     expect(el.querySelector('.merge-bar'), 'la barre ne s’affiche pas dès UNE sélection').not.toBeNull();
     // La grille n'a pas basculé d'état : les mêmes cartes, les mêmes cases.
     expect(cartes(el).length).toBe(3);

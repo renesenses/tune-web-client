@@ -843,7 +843,9 @@
       <!-- La garde de mode est reprise ICI : un snippet ne voit pas le
            rétrécissement de type fait par l'appelant. -->
       {#if !arbreBarreReplie && $etatRayons.mode === 'arbre'}
-        <ArbreRayons compact arbre={$etatRayons.arbre} onOuvrir={ouvrirCollectionRangee} />
+        <!-- web#2207 : le même ordre que l'onglet Rayons (préférence du profil). -->
+        <ArbreRayons compact arbre={$etatRayons.arbre} onOuvrir={ouvrirCollectionRangee}
+          ordre={$preferences.ordreRayons} />
       {/if}
     {/snippet}
 

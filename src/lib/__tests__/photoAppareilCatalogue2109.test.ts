@@ -70,7 +70,7 @@ describe('#2109 — proposerPhotoAuCatalogue', () => {
     const r = await shareZoneImage(7);
     expect(r.image_share_status).toBe('pending');
     expect(appels).toHaveLength(1);
-    expect(appels[0][0]).toMatch(/\/zones\/7\/image\/share$/);
+    expect(appels[0][0]).toMatch(/\/zones\/7\/image\/share(?:\?lang=[a-z]{2})?$/);
     expect(appels[0][1]?.method).toBe('POST');
   });
 });
