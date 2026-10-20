@@ -19,8 +19,15 @@
  *                   aucun_lecteur · 501 ejection_non_prise_en_charge · 502
  *                   ejection
  *
+ *   POST /memoire/charger → l'état de `/memoire` (tune-server-rust#6596) :
+ *                   charge le disque inséré en mémoire SANS rien jouer ;
+ *                   404 memoire_indisponible · 409 memoire_desactivee ·
+ *                   409 extraction_en_cours · 409 aucun_disque
+ *
  * L'insertion et l'éjection se voient en relisant `/etat` (voir
- * `LectureCdV2.svelte`) ; le greffon publie aussi `sources.changed`.
+ * `LectureCdV2.svelte`) ; le greffon publie aussi `sources.changed`, et
+ * (#6596) `cd.disque.insere` à l'insertion, `cd.memoire.progression` pendant
+ * le chargement, `cd.memoire.termine` à sa fin (`ChargementCd` complet).
  *
  * Tous les appels passent `sansBandeau` : l'écran porte lui-même ses erreurs,
  * dans sa langue — jamais le bandeau brut « Server error: … ».
@@ -53,8 +60,11 @@ export interface ChargementCd {
   octets_ram: number;
   octets_fichier: number;
   secteurs_perdus: number;
-  /** `null` tant que le chargement avance. */
-  fin: 'termine' | 'ejecte' | 'libere' | null;
+  /**
+   * `null` tant que le chargement avance ; `termine` = prêt ; `ejecte` ou
+   * `echec` (#6596) = le chargement n'a pas abouti ; `libere` = rendu.
+   */
+  fin: 'termine' | 'ejecte' | 'libere' | 'echec' | null;
 }
 
 /** tune-server-rust#6043 — `GET /ext/cd/memoire`. */
@@ -144,6 +154,47 @@ export function reglerMemoireCd(actif: boolean): Promise<MemoireCd> {
 }
 
 /**
+ * tune-server-rust#6596 — « Charger en mémoire » : le disque inséré, sans
+ * rien jouer. La file et la lecture des zones restent ce qu'elles sont.
+ */
+export function chargerCdEnMemoire(): Promise<MemoireCd> {
+  return fetchJSON<MemoireCd>(
+    `${BASE}/ext/cd/memoire/charger`,
+    { method: 'POST', body: '{}' },
+    undefined,
+    true,
+  );
+}
+
+/** #6596 — où en est le chargement du disque affiché. */
+export type EtatChargementCd = 'aucun' | 'en_cours' | 'pret' | 'echec';
+
+export function etatChargementCd(
+  c: ChargementCd | null | undefined,
+  discId: string | null | undefined,
+): EtatChargementCd {
+  if (!c || !discId || c.disc_id !== discId) return 'aucun';
+  if (c.fin === null || c.fin === undefined) return 'en_cours';
+  if (c.fin === 'termine') return 'pret';
+  if (c.fin === 'ejecte' || c.fin === 'echec') return 'echec';
+  return 'aucun';
+}
+
+/**
+ * #6596 — un évènement `cd.memoire.*` porte le `ChargementCd` complet :
+ * le rend, ou `null` si l'évènement n'en est pas un.
+ */
+export function chargementDepuisEvenement(
+  ev: { type?: string; data?: unknown } | null | undefined,
+): ChargementCd | null {
+  const type = ev?.type ?? '';
+  if (type !== 'cd.memoire.progression' && type !== 'cd.memoire.termine') return null;
+  const c = ev!.data as ChargementCd | null;
+  if (!c || typeof c !== 'object' || typeof c.disc_id !== 'string') return null;
+  return c;
+}
+
+/**
  * Ce que l'indicateur affiche du chargement : rien s'il ne porte pas sur le
  * disque affiché ou s'il s'est arrêté (éjection, réglage), sinon le
  * pourcentage et « fini ».
@@ -153,7 +204,7 @@ export function vueChargementCd(
   discId: string | null | undefined,
 ): { pourcentage: number; fini: boolean; surDisque: boolean } | null {
   if (!c || !discId || c.disc_id !== discId) return null;
-  if (c.fin === 'ejecte' || c.fin === 'libere') return null;
+  if (c.fin === 'ejecte' || c.fin === 'libere' || c.fin === 'echec') return null;
   const fini = c.fin === 'termine';
   const pourcentage = fini ? 100 : Math.max(0, Math.min(99, Math.floor(c.pourcentage)));
   return { pourcentage, fini, surDisque: c.octets_fichier > 0 };

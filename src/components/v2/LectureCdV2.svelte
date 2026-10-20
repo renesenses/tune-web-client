@@ -30,6 +30,12 @@
    * le titre du disque ; la case « Charger le CD en mémoire » lit et règle
    * `/memoire`. Un serveur qui ne sait pas charger n'a ni l'un ni l'autre :
    * rien ne s'affiche.
+   *
+   * tune-server-rust#6596 (option 3 du fil 2342) : « Charger en mémoire »
+   * charge le disque SANS rien jouer — la musique en cours continue. La
+   * progression suit `cd.memoire.*` en direct (et la relecture de `/etat`) ;
+   * une fois prêt, « Lire le disque » se sert dans la mémoire. Rien ne part
+   * tout seul : c'est l'utilisateur qui lance la lecture.
    */
   import { onDestroy } from 'svelte';
   import * as api from '../../lib/api';
@@ -39,8 +45,10 @@
     cdCharge, cdPlugin, refreshCdPlugin, getEtatLecteurCd, getDisqueCd, jouerCd, ejecterCd,
     dureeCd, titrePisteCd, codeRefusCd, delaiRelectureCd, numeroPisteCdEnCours,
     getMemoireCd, reglerMemoireCd, vueChargementCd,
+    chargerCdEnMemoire, etatChargementCd, chargementDepuisEvenement,
     type EtatLecteurCd, type DisqueCd, type MemoireCd,
   } from '../../lib/lectureCd';
+  import { tuneWS } from '../../lib/websocket';
   import ExtractionCdV2 from './ExtractionCdV2.svelte';
   import '../../styles/tune-v2.css';
 
@@ -55,6 +63,10 @@
   let memoire = $state<MemoireCd | null>(null);
   let reglageMemoire = $state(false);
   const vueChargement = $derived(vueChargementCd(etat?.chargement, disque?.disc_id));
+  /** #6596 — où en est le chargement du disque affiché. */
+  const etatCharg = $derived(etatChargementCd(etat?.chargement, disque?.disc_id));
+  let chargementDemande = $state(false);
+  let erreurChargement = $state<string | null>(null);
 
   let echecs = 0;
   let minuteur: ReturnType<typeof setTimeout> | null = null;
@@ -134,6 +146,32 @@
       reglageMemoire = false;
     }
   }
+
+  /** #6596 — charger le disque en mémoire, sans rien jouer. */
+  async function chargerEnMemoire() {
+    if (chargementDemande) return;
+    chargementDemande = true;
+    erreurChargement = null;
+    try {
+      const m = await chargerCdEnMemoire();
+      if (fini) return;
+      memoire = m;
+      if (etat) etat = { ...etat, chargement: m.chargement };
+    } catch (e) {
+      const code = codeRefusCd(e);
+      erreurChargement = code === 'extraction_en_cours'
+        ? $t('v2.cd.busyRipping' as any)
+        : $t('v2.cd.memLoadFailed' as any);
+    } finally {
+      chargementDemande = false;
+    }
+  }
+
+  // #6596 — la progression en direct, sans attendre la relecture de `/etat`.
+  $effect(() => tuneWS.onEvent((ev) => {
+    const c = chargementDepuisEvenement(ev);
+    if (c && etat && !fini) etat = { ...etat, chargement: c };
+  }));
 
   function planifier() {
     if (fini) return;
@@ -279,6 +317,19 @@
             <!-- tune-server-rust#2466 : n'apparaît que si le serveur sait extraire. -->
             <ExtractionCdV2 {disque} />
           </div>
+          {#if memoire?.actif && (etatCharg === 'aucun' || etatCharg === 'echec')}
+            <!-- #6596 : charger sans jouer ; la musique en cours continue. -->
+            <div class="charger">
+              <button class="lnk charger-memoire" disabled={chargementDemande} onclick={chargerEnMemoire}>
+                {chargementDemande ? '…' : $t('v2.cd.loadIntoMemory' as any)}
+              </button>
+              <span class="note">{$t('v2.cd.loadIntoMemoryHint' as any)}</span>
+            </div>
+          {/if}
+          {#if etatCharg === 'echec' && !erreurChargement}
+            <div class="note echec-chargement" role="status">{$t('v2.cd.memLoadFailed' as any)}</div>
+          {/if}
+          {#if erreurChargement}<div class="err" role="alert">{erreurChargement}</div>{/if}
           {#if memoire}
             <label class="memoire note">
               <input type="checkbox" checked={memoire.actif} disabled={reglageMemoire}
@@ -357,5 +408,7 @@
   .chargement .barre span{display:block; height:100%; background:var(--v2-acc-tint); transition:width .4s}
   .chargement.fini .barre span{background:var(--v2-acc2)}
   .chargement small{margin-left:4px; color:var(--v2-txt3)}
+  .charger{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .charger-memoire{padding:0; font-weight:600}
   .memoire{display:inline-flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px}
 </style>
