@@ -9,6 +9,12 @@
   import * as api from '../../lib/api';
   import { analyserDb, formaterDb, lineaireDepuisDb } from '../../lib/volumeDb';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
+  import {
+    PAS_BOUTON,
+    bornerCurseur,
+    plusEnButee,
+    serveurConnaitLesLimites,
+  } from '../../lib/limitesVolume';
 
   let zone = $derived($currentZone);
   let vol = $derived($zoneVolume);
@@ -83,7 +89,11 @@
 
   function handleVolume(e: Event) {
     if (!zone?.id || $volumeLocked) return;
-    const val = Number((e.target as HTMLInputElement).value);
+    const champ = e.target as HTMLInputElement;
+    // tune-server-rust#6541 — le serveur borne le curseur (confort, sécurité) ;
+    // l'écran le montre au lieu de laisser le pouce filer plus haut que le son.
+    const val = bornerCurseur(zone, Number(champ.value), vol);
+    if (val !== Number(champ.value)) champ.value = String(val);
     if (val > 0) mutedVolume.set(null);
     zoneVolume.set(val);
     if (isBrowserZone(zone)) browserSetVolume(val);
@@ -118,23 +128,30 @@
     }
   }
 
-  const STEP = 0.01;
-
-  async function stepDown() {
+  // tune-server-rust#6541 — boutons + / − : le serveur fait le pas depuis le
+  // volume COURANT et le borne par la seule limite de sécurité (au-dessus du
+  // confort, seuls les boutons montent). Un serveur antérieur, sans la route,
+  // reçoit l'ancien `PUT /volume`.
+  async function pas(direction: 'up' | 'down') {
     if (!zone?.id || $volumeLocked) return;
-    const next = Math.max(0, vol - STEP);
-    if (next > 0) mutedVolume.set(null);
-    applyVolume(next);
-    await api.setVolume(zone.id, next);
+    if (direction === 'up') mutedVolume.set(null);
+    if (!serveurConnaitLesLimites(zone) || isBrowserZone(zone)) {
+      const next = direction === 'up' ? Math.min(1, vol + PAS_BOUTON) : Math.max(0, vol - PAS_BOUTON);
+      if (next > 0) mutedVolume.set(null);
+      applyVolume(next);
+      await api.setVolume(zone.id, next);
+      return;
+    }
+    try {
+      const r = await api.stepVolume(zone.id, direction);
+      applyVolume(r.volume);
+      if (r.limited) notifications.info($t('volume.limitedBySafety'));
+    } catch {
+      notifications.error($t('volume.stepFailed'));
+    }
   }
 
-  async function stepUp() {
-    if (!zone?.id || $volumeLocked) return;
-    const next = Math.min(1, vol + STEP);
-    mutedVolume.set(null);
-    applyVolume(next);
-    await api.setVolume(zone.id, next);
-  }
+  let enButee = $derived(plusEnButee(zone, vol));
 </script>
 
 <div class="volume-control" class:locked={$volumeLocked}>
@@ -162,6 +179,15 @@
       </svg>
     {/if}
   </button>
+  <button
+    class="step-btn"
+    onclick={() => pas('down')}
+    disabled={$volumeLocked || vol <= 0}
+    title={$t('volume.stepDown')}
+    aria-label={$t('volume.stepDown')}
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+  </button>
   <input
     type="range"
     class="volume-slider"
@@ -174,6 +200,15 @@
     title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : undefined}
     aria-label="Volume"
   />
+  <button
+    class="step-btn"
+    onclick={() => pas('up')}
+    disabled={$volumeLocked || enButee}
+    title={enButee ? $t('volume.limitedBySafety') : $t('volume.stepUp')}
+    aria-label={$t('volume.stepUp')}
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+  </button>
   {#if modeDb}
     <input
       type="text"

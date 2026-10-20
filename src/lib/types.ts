@@ -614,6 +614,15 @@ export interface Zone {
    *  device uniquement — l'affichage garde le volume utilisateur. 0 = neutre.
    *  Sans effet sur une zone fixed_volume. */
   gain_trim_db?: number;
+  /** tune-server-rust#6541 — limite de SÉCURITÉ du volume (fraction 0..1) :
+   *  le serveur ne la dépasse jamais, boutons compris. `null` = aucune ;
+   *  clé absente = serveur antérieur. */
+  volume_limit_safety?: number | null;
+  volume_limit_safety_db?: number | null;
+  /** tune-server-rust#6541 — limite de CONFORT : au-dessus, seuls les boutons
+   *  + / − font monter le volume, pas le curseur. */
+  volume_limit_comfort?: number | null;
+  volume_limit_comfort_db?: number | null;
   /**
    * Sortie mono (#2362) : le serveur somme `M = (L + R) / 2` et émet `M` sur
    * les DEUX voies de la zone.

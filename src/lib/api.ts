@@ -1740,6 +1740,45 @@ export function setVolume(zoneId: number, volume: number) {
   });
 }
 
+/** Réponse de `POST /zones/{id}/volume/step` (tune-server-rust#6541). */
+export type PasDeVolumeReponse = {
+  zone_id: number;
+  volume: number;
+  volume_db: number | null;
+  /** La limite de sécurité a retenu le pas. */
+  limited: boolean;
+  volume_limit_safety: number | null;
+  volume_limit_comfort: number | null;
+};
+
+/**
+ * tune-server-rust#6541 — un pas de volume (bouton + / −). Le serveur part du
+ * volume COURANT de la zone : deux clics rapides font deux pas, sans que le
+ * client ait à connaître la valeur exacte. La limite de confort ne retient pas
+ * ce chemin ; la limite de sécurité, si (`limited`).
+ */
+export function stepVolume(zoneId: number, direction: 'up' | 'down', step?: number) {
+  return fetchJSON<PasDeVolumeReponse>(`${BASE}/zones/${zoneId}/volume/step`, {
+    method: 'POST',
+    body: JSON.stringify(step === undefined ? { direction } : { direction, step }),
+  });
+}
+
+/**
+ * tune-server-rust#6541 — les deux limites de volume d'une zone, en fraction
+ * 0..1. Le PUT REMPLACE les deux : `null` efface (pas de limite). Une zone
+ * au-dessus de la nouvelle sécurité est ramenée par le serveur sur-le-champ.
+ */
+export function setVolumeLimits(
+  zoneId: number,
+  limites: { safety: number | null; comfort: number | null },
+) {
+  return fetchJSON<{ zone_id: number; volume_limit_safety: number | null; volume_limit_comfort: number | null }>(
+    `${BASE}/zones/${zoneId}/volume-limits`,
+    { method: 'PUT', body: JSON.stringify(limites) },
+  );
+}
+
 /**
  * Le volume demandé en dB, pas en pour-cent (#1274).
  *
