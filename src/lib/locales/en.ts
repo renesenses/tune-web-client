@@ -1999,6 +1999,8 @@ export default {
   "settings.crossfadeHint": "Crossfade between tracks. Uncheck for gapless playback (no silence or fade).",
   "settings.loopByDefault": "Loop by default",
   "settings.loopByDefaultHint": "Restarts each track instead of stopping at the end.",
+  "settings.controlesEcranVerrouille": "Lock-screen controls",
+  "settings.controlesEcranVerrouilleHint": "Play, pause, previous and next on the phone's lock screen control the server. Shown while a browser zone plays in this tab.",
   "settings.voiceCommand": "Voice command",
   "settings.voiceCommandHint": "Enable the microphone to talk to Tune AI instead of typing.",
   "settings.micAuthorized": "Microphone authorized. Reload the page to enable the mic button in Tune AI.",

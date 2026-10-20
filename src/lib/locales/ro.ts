@@ -1333,6 +1333,8 @@ export default {
   "settings.crossfadeHint": "Tranziție (crossfade) între piese. Debifează pentru redare fără pauze (fără liniște sau estompare).",
   "settings.loopByDefault": "Redă în buclă implicit",
   "settings.loopByDefaultHint": "Reia fiecare piesă în loc să se oprească la final.",
+  "settings.controlesEcranVerrouille": "Comenzi pe ecranul de blocare",
+  "settings.controlesEcranVerrouilleHint": "Redare, pauză, anterior și următor de pe ecranul de blocare controlează serverul. Vizibile cât timp o zonă de browser redă în această filă.",
   "settings.voiceCommand": "Comandă vocală",
   "settings.voiceCommandHint": "Activează microfonul pentru a vorbi cu Tune AI în loc să scrii.",
   "settings.micAuthorized": "Microfon autorizat. Reîncarcă pagina pentru a activa butonul de microfon în Tune AI.",

@@ -2002,6 +2002,8 @@ export default {
   "settings.crossfadeHint": "Fondu enchaîné entre les pistes. Décochez pour un enchaînement gapless (sans silence ni fondu).",
   "settings.loopByDefault": "Lire en boucle par défaut",
   "settings.loopByDefaultHint": "Relance chaque piste au lieu de s'arrêter à la fin.",
+  "settings.controlesEcranVerrouille": "Commandes de l'écran verrouillé",
+  "settings.controlesEcranVerrouilleHint": "Lecture, pause, précédent et suivant sur l'écran verrouillé du téléphone pilotent le serveur. Visibles quand une zone navigateur joue dans cet onglet.",
   "settings.voiceCommand": "Commande vocale",
   "settings.voiceCommandHint": "Activez le micro pour parler à Tune AI au lieu de taper.",
   "settings.micAuthorized": "Micro autorisé. Rechargez la page pour activer le bouton micro dans Tune AI.",

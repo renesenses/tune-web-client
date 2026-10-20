@@ -1311,6 +1311,8 @@ export default {
   "settings.crossfadeHint": "트랙 간 크로스페이드. 갭리스 재생(무음 또는 페이드 없음)을 원하면 체크 해제하세요.",
   "settings.loopByDefault": "기본으로 반복 재생",
   "settings.loopByDefaultHint": "끝에서 멈추지 않고 각 트랙을 다시 시작합니다.",
+  "settings.controlesEcranVerrouille": "잠금 화면 컨트롤",
+  "settings.controlesEcranVerrouilleHint": "잠금 화면의 재생, 일시정지, 이전, 다음 버튼으로 서버를 제어합니다. 이 탭에서 브라우저 존이 재생 중일 때 표시됩니다.",
   "settings.voiceCommand": "음성 명령",
   "settings.voiceCommandHint": "입력 대신 Tune AI와 대화하려면 마이크를 활성화하세요.",
   "settings.micAuthorized": "마이크 권한 허용됨. Tune AI의 마이크 버튼을 활성화하려면 페이지를 새로고침하세요.",

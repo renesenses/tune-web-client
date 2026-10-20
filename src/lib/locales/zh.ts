@@ -1327,6 +1327,8 @@ export default {
   "settings.crossfadeHint": "曲目之间交叉淡入淡出。取消勾选以实现无缝播放（无静音或淡变）。",
   "settings.loopByDefault": "默认循环播放",
   "settings.loopByDefaultHint": "每首曲目结束后重新开始播放，而不是停止。",
+  "settings.controlesEcranVerrouille": "锁屏控制",
+  "settings.controlesEcranVerrouilleHint": "锁屏上的播放、暂停、上一首和下一首控制服务器。仅在此标签页中的浏览器区域播放时显示。",
   "settings.voiceCommand": "语音指令",
   "settings.voiceCommandHint": "启用麦克风以对 Tune AI 讲话，而非打字。",
   "settings.micAuthorized": "麦克风已授权。重新加载页面以在 Tune AI 中启用麦克风按钮。",
