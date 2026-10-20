@@ -6238,6 +6238,9 @@ export * from './api/bandcampAchats';
 // Rôle maître / agent entre serveurs Tune (tune-server-rust#4626).
 // Voir lib/api/agentTune.ts.
 export * from './api/agentTune';
+// Annuaire radio-metadata.fr (tune-server-rust#6516).
+// Voir lib/api/annuaireRadios.ts.
+export * from './api/annuaireRadios';
 
 // --- Radios ---
 
