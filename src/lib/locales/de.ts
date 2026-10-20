@@ -5365,6 +5365,13 @@ export default {
   "assistantIa.lot.applied": "{n} Änderung(en) auf {albums} Album/Alben angewendet.",
   "assistantIa.lot.undo": "Diesen Stapel rückgängig machen",
   "assistantIa.lot.undone": "Stapel rückgängig gemacht.",
+  "v2.set.upnpImportTitle": "Synchronisierte UPnP-Bibliothek",
+  "v2.set.upnpImportComplete": "Letzter Import für alle {total} synchronisierten Quellen vollständig.",
+  "v2.set.upnpImportIncomplete": "Import unvollständig: {n} von {total} Quelle(n). Der Grund steht unter jeder Quelle.",
+  "v2.set.upnpImportLastSync": "Letzte erfolgreiche Synchronisierung: {date}",
+  "v2.set.upnpImportNeverSynced": "Noch nie erfolgreich synchronisiert",
+  "v2.set.upnpImportTracks": "{n} Titel",
+  "v2.set.upnpImportErrors": "{n} Fehler",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

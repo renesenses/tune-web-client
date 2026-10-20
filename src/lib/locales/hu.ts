@@ -5324,6 +5324,13 @@ export default {
   "assistantIa.lot.applied": "{n} módosítás alkalmazva {albums} albumon.",
   "assistantIa.lot.undo": "A köteg visszavonása",
   "assistantIa.lot.undone": "Köteg visszavonva.",
+  "v2.set.upnpImportTitle": "Szinkronizált UPnP-könyvtár",
+  "v2.set.upnpImportComplete": "Az utolsó importálás teljes mind a(z) {total} szinkronizált forrásnál.",
+  "v2.set.upnpImportIncomplete": "Hiányos importálás: {total} forrásból {n}. Az ok minden forrás alatt látható.",
+  "v2.set.upnpImportLastSync": "Utolsó sikeres szinkronizálás: {date}",
+  "v2.set.upnpImportNeverSynced": "Még soha nem sikerült szinkronizálni",
+  "v2.set.upnpImportTracks": "{n} szám",
+  "v2.set.upnpImportErrors": "{n} hiba",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

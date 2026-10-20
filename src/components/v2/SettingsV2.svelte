@@ -90,6 +90,7 @@
   import { CLE_PARTAGE_COMMUNAUTAIRE } from '../../lib/notesCommunautaires';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
+  import EtatImportUpnp from '../partages/EtatImportUpnp.svelte';
   import {
     DELAI_MAJ_HOMEBREW_MS,
     divergenceHomebrew,
@@ -5670,6 +5671,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'library'}
               <SacdIsoStatus />
+              <!-- tune-server-rust#4201 — l'état de la bibliothèque UPnP
+                   synchronisée (dernier bilan persisté de chaque source). -->
+              <EtatImportUpnp />
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.scanLibraryV2' as any)}</span>

@@ -5365,6 +5365,13 @@ export default {
   "assistantIa.lot.applied": "{albums}枚のアルバムに{n}件の変更を適用しました。",
   "assistantIa.lot.undo": "この一括処理を取り消す",
   "assistantIa.lot.undone": "一括処理を取り消しました。",
+  "v2.set.upnpImportTitle": "同期済み UPnP ライブラリ",
+  "v2.set.upnpImportComplete": "同期済みの {total} ソースすべてで前回のインポートは完了しています。",
+  "v2.set.upnpImportIncomplete": "インポート未完了：{total} ソース中 {n} ソース。理由は各ソースの下に表示されます。",
+  "v2.set.upnpImportLastSync": "最後に成功した同期：{date}",
+  "v2.set.upnpImportNeverSynced": "同期に成功したことはありません",
+  "v2.set.upnpImportTracks": "{n} トラック",
+  "v2.set.upnpImportErrors": "エラー {n} 件",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

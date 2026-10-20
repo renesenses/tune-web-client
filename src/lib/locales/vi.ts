@@ -5217,5 +5217,12 @@ export default {
   "assistantIa.lot.applied": "Đã áp dụng {n} thay đổi cho {albums} album.",
   "assistantIa.lot.undo": "Hoàn tác lô này",
   "assistantIa.lot.undone": "Đã hoàn tác lô.",
+  "v2.set.upnpImportTitle": "Thư viện UPnP đã đồng bộ",
+  "v2.set.upnpImportComplete": "Lần nhập gần nhất đã hoàn tất cho cả {total} nguồn đã đồng bộ.",
+  "v2.set.upnpImportIncomplete": "Nhập chưa hoàn tất: {n} trên {total} nguồn. Lý do được ghi dưới mỗi nguồn.",
+  "v2.set.upnpImportLastSync": "Lần đồng bộ thành công gần nhất: {date}",
+  "v2.set.upnpImportNeverSynced": "Chưa từng đồng bộ thành công",
+  "v2.set.upnpImportTracks": "{n} bài hát",
+  "v2.set.upnpImportErrors": "{n} lỗi",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

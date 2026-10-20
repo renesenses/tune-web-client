@@ -5365,6 +5365,13 @@ export default {
   "assistantIa.lot.applied": "{n} cambio(s) aplicado(s) en {albums} álbum(es).",
   "assistantIa.lot.undo": "Deshacer este lote",
   "assistantIa.lot.undone": "Lote deshecho.",
+  "v2.set.upnpImportTitle": "Biblioteca UPnP sincronizada",
+  "v2.set.upnpImportComplete": "Última importación completa para las {total} fuentes sincronizadas.",
+  "v2.set.upnpImportIncomplete": "Importación incompleta: {n} de {total} fuente(s). El motivo aparece bajo cada fuente.",
+  "v2.set.upnpImportLastSync": "Última sincronización correcta: {date}",
+  "v2.set.upnpImportNeverSynced": "Nunca sincronizada correctamente",
+  "v2.set.upnpImportTracks": "{n} pistas",
+  "v2.set.upnpImportErrors": "{n} error(es)",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

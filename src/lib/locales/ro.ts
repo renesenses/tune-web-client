@@ -5365,6 +5365,13 @@ export default {
   "assistantIa.lot.applied": "{n} modificare(ări) aplicată(e) pe {albums} album(e).",
   "assistantIa.lot.undo": "Anulează acest lot",
   "assistantIa.lot.undone": "Lot anulat.",
+  "v2.set.upnpImportTitle": "Bibliotecă UPnP sincronizată",
+  "v2.set.upnpImportComplete": "Ultimul import este complet pentru toate cele {total} surse sincronizate.",
+  "v2.set.upnpImportIncomplete": "Import incomplet: {n} din {total} surse. Motivul apare sub fiecare sursă.",
+  "v2.set.upnpImportLastSync": "Ultima sincronizare reușită: {date}",
+  "v2.set.upnpImportNeverSynced": "Niciodată sincronizată cu succes",
+  "v2.set.upnpImportTracks": "{n} piese",
+  "v2.set.upnpImportErrors": "{n} eroare/erori",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

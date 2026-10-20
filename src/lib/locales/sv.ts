@@ -5364,4 +5364,11 @@ export default {
   "assistantIa.lot.applied": "{n} ändring(ar) tillämpade på {albums} album.",
   "assistantIa.lot.undo": "Ångra den här satsen",
   "assistantIa.lot.undone": "Satsen ångrad.",
+  "v2.set.upnpImportTitle": "Synkroniserat UPnP-bibliotek",
+  "v2.set.upnpImportComplete": "Senaste importen är komplett för alla {total} synkroniserade källor.",
+  "v2.set.upnpImportIncomplete": "Importen är ofullständig: {n} av {total} källa/källor. Orsaken visas under varje källa.",
+  "v2.set.upnpImportLastSync": "Senaste lyckade synkronisering: {date}",
+  "v2.set.upnpImportNeverSynced": "Aldrig synkroniserad",
+  "v2.set.upnpImportTracks": "{n} spår",
+  "v2.set.upnpImportErrors": "{n} fel",
 } as const;

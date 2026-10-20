@@ -5365,6 +5365,13 @@ export default {
   "assistantIa.lot.applied": "已在 {albums} 张专辑上应用 {n} 项修改。",
   "assistantIa.lot.undo": "撤销本批次",
   "assistantIa.lot.undone": "批次已撤销。",
+  "v2.set.upnpImportTitle": "已同步的 UPnP 媒体库",
+  "v2.set.upnpImportComplete": "全部 {total} 个已同步来源的上次导入均已完成。",
+  "v2.set.upnpImportIncomplete": "导入不完整：{total} 个来源中有 {n} 个。原因显示在每个来源下方。",
+  "v2.set.upnpImportLastSync": "上次成功同步：{date}",
+  "v2.set.upnpImportNeverSynced": "从未成功同步",
+  "v2.set.upnpImportTracks": "{n} 首曲目",
+  "v2.set.upnpImportErrors": "{n} 个错误",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

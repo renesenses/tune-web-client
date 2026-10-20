@@ -5365,6 +5365,13 @@ export default {
   "assistantIa.lot.applied": "앨범 {albums}개에 변경 {n}건을 적용했습니다.",
   "assistantIa.lot.undo": "이 일괄 처리 취소",
   "assistantIa.lot.undone": "일괄 처리를 취소했습니다.",
+  "v2.set.upnpImportTitle": "동기화된 UPnP 라이브러리",
+  "v2.set.upnpImportComplete": "동기화된 소스 {total}개 모두 마지막 가져오기가 완료되었습니다.",
+  "v2.set.upnpImportIncomplete": "가져오기 미완료: 소스 {total}개 중 {n}개. 사유는 각 소스 아래에 표시됩니다.",
+  "v2.set.upnpImportLastSync": "마지막 동기화 성공: {date}",
+  "v2.set.upnpImportNeverSynced": "동기화에 성공한 적 없음",
+  "v2.set.upnpImportTracks": "{n}개 트랙",
+  "v2.set.upnpImportErrors": "오류 {n}건",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
