@@ -102,6 +102,30 @@ export interface CreditAvecPiste extends Omit<TrackCredit, 'track_id'> {
   track_title?: string | null;
   track_number?: number | null;
   disc_number?: number | null;
+  artist_mbid?: string | null;
+  /**
+   * #4805 lot 1 (d'après MetaRust, de Xavier Joly) — les instruments que la
+   * fiche WIKIDATA de l'artiste lui attribue, quand MusicBrainz l'a crédité
+   * sans instrument. Ce sont ceux de l'artiste, pas la preuve qu'il en joue
+   * sur ce disque : l'écran les marque « d'après Wikidata ».
+   */
+  instruments_wikidata?: InstrumentWikidata[] | null;
+}
+
+/** Un instrument de la fiche Wikidata d'un artiste (`artiste_instruments`). */
+export interface InstrumentWikidata {
+  qid: string;
+  fr?: string | null;
+  en?: string | null;
+  canon?: string | null;
+}
+
+/** Le libellé d'un instrument Wikidata dans la langue de l'interface :
+ *  le français en français, l'anglais partout ailleurs, l'autre à défaut. */
+export function libelleInstrumentWikidata(i: InstrumentWikidata, langue: string): string {
+  const fr = i.fr?.trim() || null;
+  const en = i.en?.trim() || null;
+  return (langue === 'fr' ? fr ?? en : en ?? fr) ?? i.qid;
 }
 
 /** Les deux blocs de la fiche de Roon, plus un bloc pour l'inconnu. */
@@ -130,6 +154,8 @@ export interface PisteCitee {
 export interface ArtisteCredite {
   artist_id: number | null;
   artist_name: string;
+  /** Instruments d'après Wikidata (#4805 lot 1), sans doublon. */
+  instrumentsWikidata?: InstrumentWikidata[];
   /** Les pistes où il figure à ce titre — vide pour la fiche d'une piste. */
   pistes: PisteCitee[];
 }
@@ -175,6 +201,10 @@ export function blocsDeCredits(credits: CreditAvecPiste[]): BlocCredits[] {
     if (!artiste) {
       artiste = { artist_id: c.artist_id ?? null, artist_name: nom, pistes: [] };
       ligne.artistes.push(artiste);
+    }
+    for (const i of c.instruments_wikidata ?? []) {
+      artiste.instrumentsWikidata ??= [];
+      if (!artiste.instrumentsWikidata.some((x) => x.qid === i.qid)) artiste.instrumentsWikidata.push(i);
     }
     if (c.track_id != null && !artiste.pistes.some((p) => p.track_id === c.track_id)) {
       artiste.pistes.push({

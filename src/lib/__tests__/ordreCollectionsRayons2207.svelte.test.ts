@@ -130,8 +130,8 @@ describe('web#2207 — placementsPourDeposer (ranger à la main)', () => {
 });
 
 describe('web#2207 — préférence', () => {
-  it('deux valeurs admises, « manuel » par défaut (l’ordre livré)', () => {
-    expect(ORDRE_RAYONS_DEFAUT).toBe('manuel');
+  it('deux valeurs admises, « alpha » par défaut (web#2256, Didier, 19/10)', () => {
+    expect(ORDRE_RAYONS_DEFAUT).toBe('alpha');
     expect(estOrdreRayons('manuel')).toBe(true);
     expect(estOrdreRayons('alpha')).toBe(true);
     expect(estOrdreRayons('creation')).toBe(false);
@@ -186,10 +186,14 @@ describe('web#2207 — ArbreRayons monté', () => {
     expect(lignes('.hors')).toEqual(['Abba', 'Bach', 'Muse', 'Zappa']);
   });
 
-  it('sans ordre choisi : celui du serveur (création), comme avant', () => {
+  it('sans ordre choisi : l’alphabétique (web#2256) ; « manuel » : celui du serveur (création)', () => {
     monter({});
-    const prog = [...hote.querySelectorAll('[data-rayon="2"] .col .nom')].map((n) => n.textContent);
-    expect(prog).toEqual(['Yes', 'Genesis', 'Camel']);
+    const prog = () => [...hote.querySelectorAll('[data-rayon="2"] .col .nom')].map((n) => n.textContent);
+    expect(prog()).toEqual(['Camel', 'Genesis', 'Yes']);
+    unmount(composant!);
+    composant = null;
+    monter({ ordre: 'manuel' });
+    expect(prog()).toEqual(['Yes', 'Genesis', 'Camel']);
   });
 
   it('le sélecteur d’ordre appelle onOrdre ; absent sans onOrdre', () => {

@@ -86,7 +86,7 @@ beforeEach(() => {
       let charge: unknown = {};
       if (url.includes('/devices/catalog')) charge = CATALOGUE;
       // Le serveur rend la fiche complète ; il retient ce qu'on lui a envoyé.
-      if (method === 'PATCH' && /\/zones\/\d+$/.test(url)) {
+      if (method === 'PATCH' && /\/zones\/\d+(?:\?lang=[a-z]{2})?$/.test(url)) {
         charge = { ...ZONE_NUE(), brand: body?.brand ?? null, model: body?.model ?? null };
       }
       return {
@@ -163,7 +163,7 @@ function valeurAutre(intitule: string): string {
 }
 
 function patchsDeZone(): Requete[] {
-  return requetes.filter((r) => r.method === 'PATCH' && /\/zones\/\d+$/.test(r.url));
+  return requetes.filter((r) => r.method === 'PATCH' && /\/zones\/\d+(?:\?lang=[a-z]{2})?$/.test(r.url));
 }
 
 function boutonAppliquer(): HTMLButtonElement | null {
@@ -264,7 +264,7 @@ describe('#1107 — le CONTRAT serveur ne bouge pas', () => {
 
     const patchs = patchsDeZone();
     expect(patchs.length, `aucun PATCH. Vu : ${requetes.map((r) => `${r.method} ${r.url}`).join(' | ')}`).toBe(1);
-    expect(patchs[0].url).toMatch(/\/zones\/7$/);
+    expect(patchs[0].url).toMatch(/\/zones\/7(?:\?lang=[a-z]{2})?$/);
     // 🔴 Deux champs, deux chaînes, taillées aux extrémités. Aucun drapeau de
     // mode, aucun sentinelle : le mode de saisie est affaire d'écran.
     expect(patchs[0].body).toEqual({ brand: 'Gros Bidon Audio', model: 'US-366' });

@@ -121,7 +121,7 @@ describe('« Ce téléphone » en tête de la feuille', () => {
     localStorage.clear();
     let creee = false;
     vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
-      if ((init?.method ?? 'GET') === 'POST' && /\/zones$/.test(String(url))) {
+      if ((init?.method ?? 'GET') === 'POST' && /\/zones(?:\?lang=[a-z]{2})?$/.test(String(url))) {
         posts.push({ url: String(url), corps: JSON.parse(String(init!.body)) });
         creee = true;
         return reponse({ id: 42, name: 'Ce téléphone', output_type: 'browser' });

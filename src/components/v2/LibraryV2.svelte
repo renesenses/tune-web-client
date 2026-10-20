@@ -100,7 +100,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
   import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
-  import { favoriteFacetKeys, facetFavKey } from '../../lib/stores/profile';
+  import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys } from '../../lib/stores/profile';
+  import { albumsDesFavorisDeService, albumsEtendus, cleCarteAlbum, ecrireBasculeEtendue, estAlbumDeServiceEtendu, lireBasculeEtendue } from '../../lib/bibliothequeEtendue';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -134,6 +135,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import SuggestionsIaLotV2 from './SuggestionsIaLotV2.svelte';
+  import { idsDuLot } from '../../lib/assistantIa';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { cleGenre, grouperParGenre } from '../../lib/genresBibliotheque';
   import {
@@ -273,13 +276,43 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    *  serveur. C'est assez pour ce qui se lit sur un échantillon (« y a-t-il
    *  une date d'ajout, un DR ? ») ; tout ce qui exige la liste entière fait
    *  sortir du mode paginé, et `src` redevient la bibliothèque complète. */
-  const src: Album[] = $derived.by(() =>
+  const srcBibliotheque: Album[] = $derived.by(() =>
     depot ? albumsD
       : nu ? albumsCharges($albumsPagines)
       : !porteeActive ? $albums
       : idsPortee == null ? []
       : $albums.filter((a) => a.id != null && idsPortee!.has(a.id)),
   );
+
+  /**
+   * tune-server-rust#6482 — « Bibliothèque + favoris » (DidLyon, fils 2320 et
+   * 2321). La bascule AJOUTE à l'onglet Albums les albums favoris des
+   * services, avec leur pastille de provenance : même recherche, même tri,
+   * même menu « Source ». Ni dépôt distant (ses favoris ne sont pas ceux de
+   * ce serveur), ni portée de répertoire (un album de service n'a pas de
+   * dossier). Voir `lib/bibliothequeEtendue`.
+   */
+  let etendue = $state(lireBasculeEtendue());
+  // `$derived.by` : `tab` est déclaré plus bas — lu paresseusement, jamais à l'initialisation.
+  const etendueActive = $derived.by(() => etendue && !depot && !porteeActive && tab === 'albums');
+  let favorisDeService = $state.raw<Album[]>([]);
+  $effect(() => {
+    const pid = $currentProfileId;
+    // Relu quand un cœur de service change : la grille suit le miroir.
+    void $favoriteStreamingKeys;
+    if (!etendueActive || pid == null) return;
+    let perime = false;
+    api.getProfileStreamingFavorites(pid, 'album')
+      .then((f) => { if (!perime) favorisDeService = albumsDesFavorisDeService(f as any); })
+      .catch(() => { if (!perime) favorisDeService = []; });
+    return () => { perime = true; };
+  });
+  function basculerEtendue() {
+    etendue = !etendue;
+    ecrireBasculeEtendue(etendue);
+  }
+
+  const src: Album[] = $derived(albumsEtendus(srcBibliotheque, favorisDeService, etendueActive));
   const enCharge: boolean = $derived.by(() =>
     depot ? chargementD
       : nu ? ($albumsPagines.total == null && $albumsPagines.erreur == null)
@@ -382,6 +415,26 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * `false` n'est pas offert : voir `FiltresBibliotheque.compilation`.
    */
   let fCompilation = $state<boolean | null>(null);
+
+  /**
+   * ALBUMS INCOMPLETS (#4805 lot 1, d'après MetaRust de Xavier Joly) : ceux à
+   * qui il manque des pistes par rapport à leur édition MusicBrainz. Le
+   * serveur rend leurs IDENTIFIANTS (`GET /library/albums/incomplete`, calculé
+   * hors réseau) ; le filtre s'applique ensuite sur place, comme ses voisins.
+   * La puce reste cachée tant qu'aucun album n'est incomplet, ou devant un
+   * serveur antérieur.
+   */
+  let fIncomplets = $state(false);
+  let idsIncomplets = $state<Set<number>>(new Set());
+  $effect(() => {
+    // Bibliothèque d'un AUTRE serveur : ses identifiants ne sont pas les nôtres.
+    if (depot) return;
+    let vivant = true;
+    api.getIncompleteAlbumIds()
+      .then((r) => { if (vivant) idsIncomplets = new Set(r.ids ?? []); })
+      .catch(() => { /* serveur antérieur : pas de puce */ });
+    return () => { vivant = false; };
+  });
 
   /**
    * SOURCE — de quelle bibliothèque l'album vient (#4152).
@@ -518,6 +571,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // encore re-scannée, ne porte pas le champ. Il vaut « non », comme côté
     // serveur — jamais « on ne sait pas, laissons passer ».
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
+    if (fIncomplets && !(a.id != null && idsIncomplets.has(a.id))) return false;
     if (!dansSource(a, fProvenance)) return false;
     // #4319 — même règle que les comptes : artiste de piste et dossier
     // compris, portée ou non (`idsTexteServeur`).
@@ -1377,7 +1431,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   const filtreActif = $derived(
     fQuality.length > 0 || fRate.length > 0 || fFormat.length > 0 || fDepth.length > 0
-      || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null,
+      || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null || fIncomplets,
   );
 
   /**
@@ -1403,6 +1457,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const sortirDesPages = $derived(
     !depot && (
       porteeActive || (tab !== 'albums' && !sourcePropre && !artistesSansLaListe) || q !== '' || filtreActif
+      || etendueActive
       || fYear != null || hoverYear != null || (showTimeline && navMode === 'years')
       || clef == null
     ),
@@ -2415,12 +2470,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       ouvrirCalqueAlbum(a);
       return;
     }
-    const zid = $currentZoneId;
-    if (zid == null || a.id == null) return;
+    // `zoneRequise` : sans zone, le geste le DIT (#1233) au lieu de rien faire.
+    const zid = zoneRequise();
+    if (zid == null) return;
+    // #6482 — un album favori d'un service, ajouté par « Bibliothèque + favoris ».
+    if (estAlbumDeServiceEtendu(a)) {
+      playAndSync(zid, { streaming_album_id: String(a.source_id), source: a.source as any }).catch(signalerEchecLecture);
+      return;
+    }
+    if (a.id == null) return;
     playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
   }
 
-  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fProvenance = null; fDrMin = null; fDrMax = null; }
+  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fIncomplets = false; fProvenance = null; fDrMin = null; fDrMax = null; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
@@ -2443,6 +2505,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           affiches,
         }),
   );
+  /** Assistant IA, étape 2 : un lot de suggestions sur les albums AFFICHÉS
+   *  (le filtre courant), 50 au plus, dans l'ordre de la grille. */
+  let lotIa = $state<number[] | null>(null);
+  const idsDuLotIa = $derived(depot || tab !== 'albums' ? [] : idsDuLot(affiches.map((a) => a.id)));
+
   /** Le plafond de la file aléatoire, lu au serveur (#2901) ; son défaut s'il
    *  ne répond pas. */
   function plafondAleatoire(): Promise<number> {
@@ -2655,6 +2722,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <!-- Declarer un dossier de musique est un reglage du serveur LOCAL :
            le proposer sur la bibliotheque d'une autre machine promettrait
            d'agir sur elle, ce qu'on ne fait pas. -->
+      {#if idsDuLotIa.length && atLeast(level, 'intermediate')}
+        <button class="v2-btn" data-suggestions-ia-lot-ouvrir onclick={() => (lotIa = idsDuLotIa)}
+          title={$tr('assistantIa.lot.tip' as any).replace('{n}', String(idsDuLotIa.length))}>
+          {$tr('assistantIa.album.button' as any)}
+        </button>
+      {/if}
       <button class="v2-btn" onclick={addContent} title={$tr('v2.lib.addFolders' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>{$tr('v2.tags.add' as any)}
       </button>
@@ -2702,7 +2775,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', nbPistesAnnonce == null ? '…' : $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
+      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
@@ -2731,6 +2804,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         `/home/recently-added`, qui ne connaît pas la provenance. Le menu s'y
         ouvrait et se cochait sans que rien ne bouge.
       -->
+      {#if showSearch && tab === 'albums' && !depot && !porteeActive}
+        <!-- #6482 — « Bibliothèque + favoris » : les albums favoris des
+             services rejoignent la grille. -->
+        <button class="chip" class:active={etendue} aria-pressed={etendue} onclick={basculerEtendue}
+          title={$tr('v2.lib.extendedHint' as any)}>{$tr('v2.lib.extended' as any)}</button>
+      {/if}
       {#if showSearch}
         <!-- #4800 — `onpointerenter` : le menu s'ouvre AUSSI au survol
              (`.drop:hover .menu`), et ses comptes veulent la liste entière. -->
@@ -2826,6 +2905,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           onpointerenter={voirLesFacettes}
           onclick={() => (fCompilation = fCompilation == null ? true : null)}
         >{$tr('v2.lib.compilations' as any)} <em>{comptesPrets ? $formatNombre(nCompilations) : '…'}</em></button>
+      {/if}
+      {#if idsIncomplets.size > 0 || fIncomplets}
+        <button class="chip" class:active={fIncomplets} data-filtre-incomplets
+          aria-pressed={fIncomplets}
+          title={$tr('v2.lib.incompleteHint' as any)}
+          onclick={() => (fIncomplets = !fIncomplets)}
+        >{$tr('v2.lib.incomplete' as any)} <em>{$formatNombre(idsIncomplets.size)}</em></button>
       {/if}
       {#if showExpert && depths.length > 1}
         <div class="drop" class:open={ddOpen === 'depth'} onpointerenter={voirLesFacettes}>
@@ -3330,7 +3416,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
         {:else}
         <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
-          {#each affichesVisibles as a, i (a.id)}
+          {#each affichesVisibles as a, i (cleCarteAlbum(a))}
             {@const it = intertitres?.get(i)}
             {#if it}
               <h3 class="yinter" data-annee={it.annee ?? ''}>
@@ -3377,7 +3463,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
              use:centrageCarrousel={{ nombre: affiches.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
              style="--ccw:{geoCarrou.cote}px; --cch:{geoCarrou.hauteurCarte}px; --ccg:{geoCarrou.gouttiere}px; --ccp:{geoCarrou.margeBord}px; --cce:{geoCarrou.echelle}"
              role="group" aria-label={$tr('v2.lib.viewCarousel' as any)}>
-          {#each affichesVisibles as a, i (a.id)}
+          {#each affichesVisibles as a, i (cleCarteAlbum(a))}
             {@render carteCarrou(a, i)}
           {/each}
           {@render caleDeFin(affiches.length, true, geoCarrou.cote + geoCarrou.gouttiere)}
@@ -3389,7 +3475,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
         {:else}
         <div class="grid" class:expert={showExpert} bind:this={gridEl}>
-          {#each affichesVisibles as a, i (a.id)}
+          {#each affichesVisibles as a, i (cleCarteAlbum(a))}
             {@const it = intertitres?.get(i)}
             {#if it}
               <h3 class="yinter" data-annee={it.annee ?? ''}>
@@ -3433,6 +3519,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
         </PochetteActions>
         {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
+        {#if estAlbumDeServiceEtendu(a)}<span class="prov" title={$tr('v2.lib.extendedFavorite' as any)}>{libelleProvenance(provenanceDe(a))}</span>{/if}
       </div>
       <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
@@ -3455,7 +3542,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <!-- La pastille reste DANS la cellule du titre : une septieme
            colonne decalerait toutes les autres, et seule une poignee de
            lignes la porte (#1957, et la lecon d'alignement du 05/09). -->
-      <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
+      <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact />{#if estAlbumDeServiceEtendu(a)}<span class="prov inline">{libelleProvenance(provenanceDe(a))}</span>{/if}</span>
       <span class="la" use:bulleTexte>{a.artist_name ?? ''}</span>
       <span class="ly">{albumYear(a) ?? ''}</span>
       <!--
@@ -3533,7 +3620,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   {/snippet}
 
   {#if opened}
-    <AlbumDetailV2 album={opened} {depot} onClose={retourCalqueAlbum} />
+    <AlbumDetailV2 album={opened} {depot} service={estAlbumDeServiceEtendu(opened) ? opened.source : null} onClose={retourCalqueAlbum} />
   {/if}
 
   {#if enEdition}
@@ -3550,6 +3637,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         enEdition = null;
       }}
     />
+  {/if}
+  {#if lotIa}
+    <!-- Les écritures du lot vont en base ; la grille se relit à la prochaine
+         ouverture de la Bibliothèque. -->
+    <SuggestionsIaLotV2 albumIds={lotIa} onClose={() => (lotIa = null)} onChange={() => {}} />
   {/if}
 </section>
 
@@ -3977,6 +4069,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      navigateurs défont. Le bloc de texte reprend donc le rôle cliquable. */
   .meta{display:block; width:100%; border:0; background:transparent; text-align:left; cursor:pointer; padding:0; color:inherit; font:inherit}
   .cover{position:relative; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
+  /* #6482 — la provenance d'un album favori d'un service. */
+  .prov{position:absolute; right:6px; top:6px; font:700 8px var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
+    border-radius:4px; color:var(--v2-on-acc); background:var(--v2-acc2); pointer-events:none}
+  .prov.inline{position:static; margin-left:6px; vertical-align:middle}
   .bdg{position:absolute; left:6px; top:6px; font:700 8px var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
     border-radius:3px; background:var(--v2-scrim); color:var(--v2-acc-tint)}
   .ct{margin-top:9px; font:600 12.5px var(--v2-sans); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
