@@ -5385,6 +5385,11 @@ export default {
   "assistantIa.lot.applied": "{n} change(s) applied to {albums} album(s).",
   "assistantIa.lot.undo": "Undo this batch",
   "assistantIa.lot.undone": "Batch undone.",
+  "v2.plug.nativeUninstall": "Uninstall",
+  "v2.plug.nativeUninstalling": "Uninstalling…",
+  "v2.plug.nativeUninstallConfirm": "Uninstall {name}? The plugin and its binaries (all versions) will be deleted from the server. It leaves local playback immediately, and network zones at the next track. No restart is needed.",
+  "v2.plug.nativeUninstallPurgeSettings": "Also erase its settings and profiles (otherwise they are kept for a reinstall)",
+  "v2.plug.nativeUninstallFailed": "restart the server, then try uninstalling again.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

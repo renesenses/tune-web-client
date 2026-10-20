@@ -5365,6 +5365,11 @@ export default {
   "assistantIa.lot.applied": "已在 {albums} 张专辑上应用 {n} 项修改。",
   "assistantIa.lot.undo": "撤销本批次",
   "assistantIa.lot.undone": "批次已撤销。",
+  "v2.plug.nativeUninstall": "卸载",
+  "v2.plug.nativeUninstalling": "正在卸载…",
+  "v2.plug.nativeUninstallConfirm": "卸载 {name}？该插件及其二进制文件（所有版本）将从服务器删除。它会立即退出本地播放，网络区域则在下一首曲目时退出。无需重启。",
+  "v2.plug.nativeUninstallPurgeSettings": "同时清除其设置和配置（否则将保留以便重新安装）",
+  "v2.plug.nativeUninstallFailed": "请重启服务器，然后重试卸载。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

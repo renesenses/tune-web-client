@@ -5365,6 +5365,11 @@ export default {
   "assistantIa.lot.applied": "{n} modificare(ări) aplicată(e) pe {albums} album(e).",
   "assistantIa.lot.undo": "Anulează acest lot",
   "assistantIa.lot.undone": "Lot anulat.",
+  "v2.plug.nativeUninstall": "Dezinstalează",
+  "v2.plug.nativeUninstalling": "Se dezinstalează…",
+  "v2.plug.nativeUninstallConfirm": "Dezinstalați {name}? Pluginul și fișierele sale binare (toate versiunile) vor fi șterse de pe server. Iese imediat din redarea locală, iar pe o zonă de rețea de la piesa următoare. Nu este necesară repornirea.",
+  "v2.plug.nativeUninstallPurgeSettings": "Șterge și setările și profilurile sale (altfel sunt păstrate pentru o reinstalare)",
+  "v2.plug.nativeUninstallFailed": "reporniți serverul, apoi reîncercați dezinstalarea.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -4196,6 +4196,33 @@ export function installerGreffonNatifDuCatalogue(id: string): Promise<Installati
   );
 }
 
+/**
+ * `POST /audio-plugins/{id}/uninstall` avec `{"purge": true, …}` —
+ * tune-server-rust#6618 (issue #6256). Désinstallation COMPLÈTE d'un greffon
+ * natif TIERS : il quitte le registre, son dossier `plugins/audio/<id>`
+ * (versions, binaire, données rangées dedans) est retiré, et il sort tout de
+ * suite de la lecture locale (à la piste suivante sur une zone réseau).
+ * `keep_settings: false` efface aussi ses réglages de zone et ses profils.
+ * Aucun redémarrage n'est demandé (`restart_required: false`).
+ */
+export interface DesinstallationGreffonNatif {
+  unloaded?: boolean;
+  files_removed?: boolean;
+  configuration_preserved?: boolean;
+  settings_removed?: string[];
+  zones_refreshed_live?: unknown;
+  restart_required?: boolean;
+}
+
+export function desinstallerGreffonNatif(id: string, garderReglages: boolean): Promise<DesinstallationGreffonNatif> {
+  return fetchJSON<DesinstallationGreffonNatif>(
+    `${racineGreffonNatif(id)}/uninstall`,
+    { method: 'POST', body: JSON.stringify({ purge: true, keep_settings: garderReglages }) },
+    undefined,
+    true,
+  );
+}
+
 export function getReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
   return fetchJSON<ReglageGreffonNatif>(`${racineGreffonNatif(id)}/zones/${zoneId}`);
 }

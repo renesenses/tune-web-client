@@ -5324,6 +5324,11 @@ export default {
   "assistantIa.lot.applied": "{n} módosítás alkalmazva {albums} albumon.",
   "assistantIa.lot.undo": "A köteg visszavonása",
   "assistantIa.lot.undone": "Köteg visszavonva.",
+  "v2.plug.nativeUninstall": "Eltávolítás",
+  "v2.plug.nativeUninstalling": "Eltávolítás…",
+  "v2.plug.nativeUninstallConfirm": "Eltávolítja: {name}? A bővítmény és bináris fájljai (minden verzió) törlődnek a szerverről. A helyi lejátszásból azonnal kikerül, hálózati zónában a következő számtól. Újraindítás nem szükséges.",
+  "v2.plug.nativeUninstallPurgeSettings": "A beállításai és profiljai is törlődjenek (különben megmaradnak egy újratelepítéshez)",
+  "v2.plug.nativeUninstallFailed": "indítsa újra a szervert, majd próbálja újra az eltávolítást.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

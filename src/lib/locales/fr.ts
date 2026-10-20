@@ -5387,6 +5387,11 @@ export default {
   "assistantIa.lot.applied": "{n} modification(s) appliquée(s) sur {albums} album(s).",
   "assistantIa.lot.undo": "Annuler ce lot",
   "assistantIa.lot.undone": "Lot annulé.",
+  "v2.plug.nativeUninstall": "Désinstaller",
+  "v2.plug.nativeUninstalling": "Désinstallation…",
+  "v2.plug.nativeUninstallConfirm": "Désinstaller {name} ? Le greffon et ses binaires (toutes ses versions) seront supprimés du serveur. Il sort tout de suite de la lecture locale, et à la piste suivante sur une zone réseau. Aucun redémarrage n’est nécessaire.",
+  "v2.plug.nativeUninstallPurgeSettings": "Effacer aussi ses réglages et profils (sinon ils sont gardés pour une réinstallation)",
+  "v2.plug.nativeUninstallFailed": "redémarrez le serveur, puis réessayez la désinstallation.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

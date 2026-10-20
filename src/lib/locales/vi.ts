@@ -5217,5 +5217,10 @@ export default {
   "assistantIa.lot.applied": "Đã áp dụng {n} thay đổi cho {albums} album.",
   "assistantIa.lot.undo": "Hoàn tác lô này",
   "assistantIa.lot.undone": "Đã hoàn tác lô.",
+  "v2.plug.nativeUninstall": "Gỡ cài đặt",
+  "v2.plug.nativeUninstalling": "Đang gỡ cài đặt…",
+  "v2.plug.nativeUninstallConfirm": "Gỡ cài đặt {name}? Plugin và các tệp nhị phân của nó (mọi phiên bản) sẽ bị xóa khỏi máy chủ. Nó rời khỏi phát cục bộ ngay lập tức, và ở bài kế tiếp trên vùng mạng. Không cần khởi động lại.",
+  "v2.plug.nativeUninstallPurgeSettings": "Xóa luôn cài đặt và hồ sơ của nó (nếu không, chúng được giữ lại để cài lại)",
+  "v2.plug.nativeUninstallFailed": "hãy khởi động lại máy chủ rồi thử gỡ cài đặt lại.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

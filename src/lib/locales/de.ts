@@ -5365,6 +5365,11 @@ export default {
   "assistantIa.lot.applied": "{n} Änderung(en) auf {albums} Album/Alben angewendet.",
   "assistantIa.lot.undo": "Diesen Stapel rückgängig machen",
   "assistantIa.lot.undone": "Stapel rückgängig gemacht.",
+  "v2.plug.nativeUninstall": "Deinstallieren",
+  "v2.plug.nativeUninstalling": "Wird deinstalliert…",
+  "v2.plug.nativeUninstallConfirm": "{name} deinstallieren? Das Plugin und seine Binärdateien (alle Versionen) werden vom Server gelöscht. Es verlässt die lokale Wiedergabe sofort, Netzwerkzonen ab dem nächsten Titel. Kein Neustart erforderlich.",
+  "v2.plug.nativeUninstallPurgeSettings": "Auch seine Einstellungen und Profile löschen (sonst bleiben sie für eine Neuinstallation erhalten)",
+  "v2.plug.nativeUninstallFailed": "Starten Sie den Server neu und versuchen Sie die Deinstallation erneut.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
