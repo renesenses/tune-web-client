@@ -97,7 +97,7 @@ beforeEach(() => {
       requetes.push({ method, url, body });
       let charge: unknown = {};
       if (url.includes('/devices/catalog')) charge = { brands: [] };
-      if (method === 'PATCH' && /\/zones\/\d+$/.test(url)) charge = reponsePatchZone;
+      if (method === 'PATCH' && /\/zones\/\d+(?:\?lang=[a-z]{2})?$/.test(url)) charge = reponsePatchZone;
       return {
         ok: true,
         status: 200,
@@ -146,7 +146,7 @@ function caseRecuser(): HTMLInputElement {
 }
 
 function patchsDeZone(): Requete[] {
-  return requetes.filter((r) => r.method === 'PATCH' && /\/zones\/\d+$/.test(r.url));
+  return requetes.filter((r) => r.method === 'PATCH' && /\/zones\/\d+(?:\?lang=[a-z]{2})?$/.test(r.url));
 }
 
 const texte = () => (hote?.textContent ?? '').replace(/\s+/g, ' ').trim();
@@ -164,7 +164,7 @@ describe('#3660 — l’écran ENVOIE le vide forcé', () => {
         .map((r) => `${r.method} ${r.url}`)
         .join(' | ')}`,
     ).toBe(1);
-    expect(patchs[0].url).toMatch(/\/zones\/7$/);
+    expect(patchs[0].url).toMatch(/\/zones\/7(?:\?lang=[a-z]{2})?$/);
     // 🔴 LE NOM DE CHAMP EXACT du serveur, et rien d'autre dans le corps.
     expect(patchs[0].body).toEqual({ identite_appareil_effacee: true });
   });

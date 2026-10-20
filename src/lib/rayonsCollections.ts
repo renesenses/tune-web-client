@@ -9,7 +9,10 @@
  * partagent, et ce que les témoins vérifient.
  */
 import { writable } from 'svelte/store';
-import type { ArbreCollections, RayonCollections, SorteCollectionRangee } from './api';
+import type {
+  ArbreCollections, CollectionRangee, RayonCollections, SorteCollectionRangee,
+} from './api';
+import { comparerAlphabetique } from './ordreAlphabetique';
 
 /**
  * Ce que l'écran peut montrer.
@@ -249,4 +252,128 @@ export async function rangerLaNouvelle(
   if (typeof id !== 'number' || !Number.isFinite(id)) return false;
   await placer('smart', id, rayonId);
   return true;
+}
+
+/* ------------------------------------------------------------------------- */
+/*  web#2207 — l'ORDRE des collections dans l'arbre des rayons (Didier, fil   */
+/*  1907, réponse 8434) : « que les Collections Intelligentes (tous les       */
+/*  niveaux) soient classées dans l'ordre alphanumérique ou avoir la          */
+/*  possibilité de les ranger selon son choix. Pour le moment elles sont      */
+/*  classées selon leur ordre de création. » Go de Bertrand du 19/10/2026.   */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * `manuel` : l'ordre que le SERVEUR garde (`collection_folder_items.position`,
+ * tune-server-rust#4853), réglé par glisser-déposer. C'est l'ordre livré
+ * jusqu'ici — l'ordre de création tant que rien n'a été déplacé.
+ *
+ * `alpha` : l'ordre alphanumérique du libellé AFFICHÉ, à chaque niveau (dans
+ * chaque rayon, et hors rayon). Même comparaison que le reste de
+ * l'application (`comparerAlphabetique`) : « Best 2 » avant « Best 10 »,
+ * sans casse ni accents.
+ *
+ * Le choix est une préférence d'écran rangée dans `ui_preferences`, donc
+ * gardée par le SERVEUR, comme les collections elles-mêmes : il suit le
+ * profil d'un navigateur à l'autre.
+ */
+export type OrdreRayons = 'manuel' | 'alpha';
+export const ORDRES_RAYONS: readonly OrdreRayons[] = ['manuel', 'alpha'];
+/**
+ * web#2256 — l'ALPHABÉTIQUE par défaut. Didier, fil 1907 (19/10/2026) : « si
+ * un seul choix est possible je préfère classement alphabétique
+ * automatique » ; go de Bertrand le même jour. Le manuel reste au choix.
+ *
+ * Ce défaut ne touche que les profils qui n'ont jamais choisi : un
+ * `ordreRayons` enregistré garde le dernier mot (`{ ...defaults, ...raw }`).
+ * web#2224 n'est pas encore publié (rc7) : aucun testeur n'a de valeur
+ * figée sur l'ancien défaut.
+ */
+export const ORDRE_RAYONS_DEFAUT: OrdreRayons = 'alpha';
+
+export function estOrdreRayons(v: unknown): v is OrdreRayons {
+  return v === 'manuel' || v === 'alpha';
+}
+
+/**
+ * L'arbre à AFFICHER dans l'ordre choisi. `manuel` le rend tel quel (même
+ * objet) ; `alpha` en rend une copie dont les collections de chaque niveau
+ * sont triées sur leur libellé affiché. Les rayons gardent leur ordre : la
+ * demande porte sur les collections.
+ */
+export function ordonnerArbre(
+  arbre: ArbreCollections,
+  ordre: OrdreRayons,
+  libelle: (c: CollectionRangee) => string = (c) => c.name ?? '',
+): ArbreCollections {
+  if (ordre !== 'alpha') return arbre;
+  const trier = (cs: CollectionRangee[]) =>
+    cs.slice().sort((a, b) =>
+      comparerAlphabetique(libelle(a), libelle(b))
+      // À libellé égal, un ordre TOTAL et stable : la sorte, puis l'id.
+      || a.kind.localeCompare(b.kind) || a.id - b.id,
+    );
+  const rayon = (f: RayonCollections): RayonCollections => ({
+    ...f,
+    folders: (f.folders ?? []).map(rayon),
+    collections: trier(f.collections ?? []),
+  });
+  return { ...arbre, folders: arbre.folders.map(rayon), collections: trier(arbre.collections) };
+}
+
+/** Une écriture de rangement : `placeCollectionInFolder(kind, id, folderId, position)`. */
+export interface Placement {
+  kind: SorteCollectionRangee;
+  id: number;
+  folderId: number | null;
+  position: number;
+}
+
+/**
+ * Ranger À LA MAIN : la collection `glisse`, déposée sur la collection
+ * `cible` d'un même niveau `liste` (dans l'ordre affiché, celui du serveur),
+ * prend la place de la cible — avant elle si on remonte, après elle si on
+ * descend, comme dans toute liste qu'on réordonne.
+ *
+ * Rend les écritures à faire, dans l'ordre :
+ *
+ * - dans un RAYON, toutes les collections ont une position : UNE écriture,
+ *   le serveur renumérote la fratrie (`place_item`) ;
+ * - HORS RAYON, le serveur ne range à une position que les collections qui
+ *   ont une ligne de rangement ; les autres suivent, dans l'ordre de leurs
+ *   listes (`position: null`). Pour qu'une collection prenne une place parmi
+ *   elles, celles qui la précéderont reçoivent d'abord la leur, dans l'ordre
+ *   affiché — sinon le serveur la poserait après les seules rangées, et le
+ *   geste ne ferait pas ce qu'il montre.
+ *
+ * Rend `[]` quand il n'y a rien à faire (cible = glisse, ou absente).
+ */
+export function placementsPourDeposer(
+  liste: readonly CollectionRangee[],
+  glisse: { kind: SorteCollectionRangee; id: number },
+  cible: { kind: SorteCollectionRangee; id: number },
+  folderId: number | null,
+): Placement[] {
+  const meme = (a: { kind: string; id: number }, b: { kind: string; id: number }) =>
+    a.kind === b.kind && a.id === b.id;
+  if (meme(glisse, cible)) return [];
+  const iCible = liste.findIndex((c) => meme(c, cible));
+  if (iCible < 0) return [];
+  const iGlisse = liste.findIndex((c) => meme(c, glisse));
+  const sans = liste.filter((c) => !meme(c, glisse));
+  const jCible = sans.findIndex((c) => meme(c, cible));
+  // Venue d'ailleurs (autre rayon) ou d'au-dessus : après la cible quand on
+  // descend, avant elle sinon.
+  const at = iGlisse >= 0 && iGlisse < iCible ? jCible + 1 : jCible;
+  const sorte = (c: CollectionRangee): SorteCollectionRangee => c.kind;
+  if (folderId !== null) {
+    return [{ kind: glisse.kind, id: glisse.id, folderId, position: at }];
+  }
+  // Hors rayon : les collections déjà posées à une place forment le préfixe.
+  const posees = sans.filter((c) => c.position !== null && c.position !== undefined).length;
+  const ecritures: Placement[] = [];
+  for (let k = posees; k < at; k++) {
+    ecritures.push({ kind: sorte(sans[k]), id: sans[k].id, folderId: null, position: k });
+  }
+  ecritures.push({ kind: glisse.kind, id: glisse.id, folderId: null, position: at });
+  return ecritures;
 }
