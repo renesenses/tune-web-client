@@ -3782,6 +3782,7 @@ export default {
   "v2.album.alsoOnTip": "Le même album existe de l’autre côté : la grille n’en montre qu’un, rien n’est fusionné.",
   "v2.album.shuffle": "Aléatoire",
   "v2.album.locate": "Localiser sur le disque",
+  "v2.album.booklet": "Livret (PDF)",
   "v2.album.playTip": "Lire l'album depuis sa première piste.",
   "v2.album.shuffleTip": "Lire toutes les pistes de l'album dans un ordre aléatoire.",
   "v2.album.playNextTip": "Insérer l'album dans la file d'attente, juste après le morceau en cours.",

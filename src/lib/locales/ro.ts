@@ -3760,6 +3760,7 @@ export default {
   "v2.album.alsoOnTip": "Același album există și de cealaltă parte: grila afișează doar unul, nimic nu este combinat.",
   "v2.album.shuffle": "Aleatoriu",
   "v2.album.locate": "Localizează pe disc",
+  "v2.album.booklet": "Broșură (PDF)",
   "v2.album.playTip": "Redă albumul de la prima piesă.",
   "v2.album.shuffleTip": "Redă toate piesele albumului în ordine aleatorie.",
   "v2.album.playNextTip": "Inserează albumul în coadă, imediat după piesa curentă.",

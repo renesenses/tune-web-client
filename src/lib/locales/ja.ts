@@ -3760,6 +3760,7 @@ export default {
   "v2.album.alsoOnTip": "同じアルバムが反対側にもあります。グリッドには一方だけを表示し、統合はしません。",
   "v2.album.shuffle": "シャッフル",
   "v2.album.locate": "ディスク上で表示",
+  "v2.album.booklet": "ブックレット (PDF)",
   "v2.album.playTip": "アルバムを最初のトラックから再生します。",
   "v2.album.shuffleTip": "アルバムの全トラックをランダムな順序で再生します。",
   "v2.album.playNextTip": "再生中の曲のすぐ後に、アルバムをキューに挿入します。",

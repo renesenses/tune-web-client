@@ -3760,6 +3760,7 @@ export default {
   "v2.album.alsoOnTip": "同一张专辑在另一侧也存在：网格只显示其中一张，不做合并。",
   "v2.album.shuffle": "随机播放",
   "v2.album.locate": "在磁盘中定位",
+  "v2.album.booklet": "小册子 (PDF)",
   "v2.album.playTip": "从第一首开始播放这张专辑。",
   "v2.album.shuffleTip": "以随机顺序播放专辑的所有曲目。",
   "v2.album.playNextTip": "将专辑插入播放队列，紧接在当前曲目之后。",

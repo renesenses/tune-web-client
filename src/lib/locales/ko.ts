@@ -3760,6 +3760,7 @@ export default {
   "v2.album.alsoOnTip": "같은 앨범이 다른 쪽에도 있습니다. 그리드에는 하나만 표시되며 병합하지 않습니다.",
   "v2.album.shuffle": "셔플",
   "v2.album.locate": "디스크에서 찾기",
+  "v2.album.booklet": "부클릿 (PDF)",
   "v2.album.playTip": "앨범을 첫 트랙부터 재생합니다.",
   "v2.album.shuffleTip": "앨범의 모든 트랙을 무작위 순서로 재생합니다.",
   "v2.album.playNextTip": "현재 곡 바로 다음에 앨범을 대기열에 넣습니다.",

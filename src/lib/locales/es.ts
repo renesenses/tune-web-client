@@ -3760,6 +3760,7 @@ export default {
   "v2.album.alsoOnTip": "El mismo álbum existe en el otro lado: la cuadrícula solo muestra uno, no se fusiona nada.",
   "v2.album.shuffle": "Aleatorio",
   "v2.album.locate": "Localizar en el disco",
+  "v2.album.booklet": "Libreto (PDF)",
   "v2.album.playTip": "Reproducir el álbum desde su primera pista.",
   "v2.album.shuffleTip": "Reproducir todas las pistas del álbum en orden aleatorio.",
   "v2.album.playNextTip": "Insertar el álbum en la cola, justo después de la pista actual.",

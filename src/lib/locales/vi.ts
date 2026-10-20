@@ -3637,6 +3637,7 @@ export default {
   "v2.album.alsoOnTip": "Cùng album này tồn tại ở phía bên kia: lưới chỉ hiển thị một bản, không có gì bị hợp nhất.",
   "v2.album.shuffle": "Phát ngẫu nhiên",
   "v2.album.locate": "Định vị trên ổ đĩa",
+  "v2.album.booklet": "Tập sách nhỏ (PDF)",
   "v2.album.playTip": "Phát album từ bài đầu tiên.",
   "v2.album.shuffleTip": "Phát tất cả các bài của album theo thứ tự ngẫu nhiên.",
   "v2.album.playNextTip": "Chèn album vào hàng đợi, ngay sau bài đang phát.",

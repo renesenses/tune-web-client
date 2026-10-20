@@ -3760,6 +3760,7 @@ export default {
   "v2.album.alsoOnTip": "Lo stesso album esiste anche dall’altra parte: la griglia ne mostra uno solo, nulla viene unito.",
   "v2.album.shuffle": "Casuale",
   "v2.album.locate": "Individua sul disco",
+  "v2.album.booklet": "Libretto (PDF)",
   "v2.album.playTip": "Riprodurre l'album dalla prima traccia.",
   "v2.album.shuffleTip": "Riprodurre tutte le tracce dell'album in ordine casuale.",
   "v2.album.playNextTip": "Inserire l'album nella coda, subito dopo il brano in corso.",

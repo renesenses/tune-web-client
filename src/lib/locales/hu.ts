@@ -3714,6 +3714,7 @@ export default {
   "v2.album.alsoOnTip": "Ugyanez az album a másik oldalon is megvan: a rács csak egyet mutat, semmi sem olvad össze.",
   "v2.album.shuffle": "Véletlenszerű",
   "v2.album.locate": "Megkeresés a lemezen",
+  "v2.album.booklet": "Kísérőfüzet (PDF)",
   "v2.album.playTip": "Az album lejátszása az első számától.",
   "v2.album.shuffleTip": "Az album összes számának lejátszása véletlenszerű sorrendben.",
   "v2.album.playNextTip": "Az album beillesztése a lejátszási sorba, közvetlenül az aktuális szám után.",

@@ -3759,6 +3759,7 @@ export default {
   "v2.album.alsoOnTip": "Samma album finns även på andra sidan: rutnätet visar bara ett, inget slås ihop.",
   "v2.album.shuffle": "Slumpa",
   "v2.album.locate": "Visa på disken",
+  "v2.album.booklet": "Häfte (PDF)",
   "v2.album.playTip": "Spela albumet från första spåret.",
   "v2.album.shuffleTip": "Spela alla albumets spår i slumpvis ordning.",
   "v2.album.playNextTip": "Lägg in albumet i kön, direkt efter det aktuella spåret.",

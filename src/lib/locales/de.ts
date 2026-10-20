@@ -3760,6 +3760,7 @@ export default {
   "v2.album.alsoOnTip": "Dasselbe Album gibt es auch auf der anderen Seite: das Raster zeigt nur eines, nichts wird zusammengeführt.",
   "v2.album.shuffle": "Zufall",
   "v2.album.locate": "Auf der Festplatte anzeigen",
+  "v2.album.booklet": "Booklet (PDF)",
   "v2.album.playTip": "Das Album ab dem ersten Titel abspielen.",
   "v2.album.shuffleTip": "Alle Titel des Albums in zufälliger Reihenfolge abspielen.",
   "v2.album.playNextTip": "Das Album direkt nach dem aktuellen Titel in die Warteschlange einfügen.",

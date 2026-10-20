@@ -3780,6 +3780,7 @@ export default {
   "v2.album.alsoOnTip": "The same album exists on the other side: the grid shows only one, nothing is merged.",
   "v2.album.shuffle": "Shuffle",
   "v2.album.locate": "Locate on disk",
+  "v2.album.booklet": "Booklet (PDF)",
   "v2.album.playTip": "Play the album from its first track.",
   "v2.album.shuffleTip": "Play all the album's tracks in random order.",
   "v2.album.playNextTip": "Insert the album into the queue, right after the current track.",
