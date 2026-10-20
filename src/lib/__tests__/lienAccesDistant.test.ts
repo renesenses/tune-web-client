@@ -1,7 +1,14 @@
 // Le lien d'accès à distance : lu sur la route réservée au propriétaire,
 // vérifié avant d'être montré, et mis en QR code.
 import { describe, expect, it, vi } from 'vitest';
-import { chargerLienAcces, lienValide, qrSvg, ROUTE_LIEN_ACCES } from '../lienAccesDistant';
+import {
+  chargerLienAcces,
+  lienValide,
+  qrSvg,
+  renouvelerLienAcces,
+  ROUTE_LIEN_ACCES,
+  ROUTE_RENOUVELER_LIEN,
+} from '../lienAccesDistant';
 
 const SID = '75f24b9e-0000-4000-8000-000000000001';
 const LIEN = `https://bridge.mozaiklabs.fr/${SID}/#token=FAUX-jeton-1`;
@@ -37,5 +44,26 @@ describe('lien d’accès à distance', () => {
     expect(a).not.toBe(b);
     // Le lien lui-même n'est pas recopié en clair dans le dessin.
     expect(a).not.toContain('FAUX-jeton-1');
+  });
+
+  it('renouvelle par la route réservée et rend le nouveau lien', async () => {
+    const nouveau = `https://bridge.mozaiklabs.fr/${SID}/#token=FAUX-jeton-2`;
+    const f = vi.fn(async () => ({ link: nouveau, server_id: SID }));
+    expect(await renouvelerLienAcces(f)).toBe(nouveau);
+    expect(f).toHaveBeenCalledWith(ROUTE_RENOUVELER_LIEN);
+    expect(ROUTE_RENOUVELER_LIEN).toBe('/cloud/bridge/rotate-token');
+  });
+
+  it('un renouvellement refusé ou illisible n’est pas tu', async () => {
+    const refus = Object.assign(new Error('admin role required'), { status: 403 });
+    await expect(
+      renouvelerLienAcces(async () => {
+        throw refus;
+      }),
+    ).rejects.toBe(refus);
+    await expect(
+      renouvelerLienAcces(async () => ({ link: `https://ailleurs.example/${SID}/#token=x` })),
+    ).rejects.toThrow();
+    await expect(renouvelerLienAcces(async () => null)).rejects.toThrow();
   });
 });

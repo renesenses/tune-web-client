@@ -128,7 +128,7 @@ describe('#3973 — interrupteur « Bit-perfect strict » par zone (v2)', () => 
     boite.dispatchEvent(new Event('change', { bubbles: true }));
     await vi.waitFor(() => expect(patches.length).toBeGreaterThan(0));
     const p = patches[patches.length - 1];
-    expect(p.url).toMatch(/\/zones\/21$/);
+    expect(p.url).toMatch(/\/zones\/21(?:\?lang=[a-z]{2})?$/);
     expect(p.corps).toEqual({ strict_bitperfect: true });
   });
 

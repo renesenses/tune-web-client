@@ -18,6 +18,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../../lib/npWheelGesture';
   import { largeurReserveeFileAttente } from '../../lib/fileAttenteReserve';
   import * as api from '../../lib/api';
+  import { basculerAleatoire } from '../../lib/aleatoireFile';
   import { gesteVider, executerVider } from '../../lib/viderFile';
   import { lireOuAjouter } from '../../lib/playback';
   import CreteMetre from './CreteMetre.svelte';
@@ -1252,8 +1253,8 @@ import { ICONES } from '../../lib/menuPiste';
 
   async function toggleShuffle() {
     if (zone?.id == null) return;
-    const result = await api.setShuffle(zone.id, !$shuffleEnabled);
-    shuffleEnabled.set(result.shuffle);
+    // tune-server-rust#6526 — le serveur réordonne la file : la bascule la relit.
+    shuffleEnabled.set(await basculerAleatoire(zone.id, !$shuffleEnabled));
   }
 
   async function cycleRepeat() {

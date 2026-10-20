@@ -45,7 +45,7 @@ beforeEach(() => {
     const url = String(input);
     const method = (init?.method ?? 'GET').toUpperCase();
     parties.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : null });
-    if (url.endsWith('/zones')) return response(serverZones);
+    if (/\/zones(?:\?lang=[a-z]{2})?$/.test(url)) return response(serverZones);
     if (url.endsWith('/zones/stereo-pairs')) return response([]);
     if (url.includes('tune-tested.json')) return response({ version: 1, count: 0, devices: [] });
     if (url.endsWith('/system/diagnostics')) return response({ zones_doublons: [] });
@@ -93,7 +93,7 @@ describe('écran Zones — le curseur de volume pose un volume LINÉAIRE', () =>
     const chiffre = curseurs()[0].parentElement?.querySelector('.vn')?.textContent?.trim();
     expect(chiffre).toBe('30');
 
-    const puts = parties.filter((p) => p.method === 'PUT' && /\/zones\/1\/volume$/.test(p.url));
+    const puts = parties.filter((p) => p.method === 'PUT' && /\/zones\/1\/volume(?:\?lang=[a-z]{2})?$/.test(p.url));
     expect(puts.length).toBe(1);
     expect(puts[0].body.volume).toBeCloseTo(0.3, 6);
   });

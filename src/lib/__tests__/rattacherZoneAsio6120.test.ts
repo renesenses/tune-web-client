@@ -131,9 +131,9 @@ describe('#6120 — l’API appelle la route du serveur', () => {
     const c = await api.getRattachementCandidats(14);
     expect(c.candidats[0].device_id).toBe('local:USB DAC ASIO');
     await api.rattacherZone(14, 'local:USB DAC ASIO');
-    expect(appels[0].url).toMatch(/\/zones\/14\/rattacher$/);
+    expect(appels[0].url).toMatch(/\/zones\/14\/rattacher(?:\?lang=[a-z]{2})?$/);
     expect(appels[0].method).toBe('GET');
-    expect(appels[1].url).toMatch(/\/zones\/14\/rattacher$/);
+    expect(appels[1].url).toMatch(/\/zones\/14\/rattacher(?:\?lang=[a-z]{2})?$/);
     expect(appels[1].method).toBe('POST');
     expect(JSON.parse(String(appels[1].body))).toEqual({ device_id: 'local:USB DAC ASIO' });
   });

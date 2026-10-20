@@ -64,8 +64,8 @@ function serveur() {
   appels = [];
   const faux = vi.fn(async (url: string, init: RequestInit = {}) => {
     appels.push({ url, init });
-    if (/\/queue\/clear$/.test(url)) return new Response(null, { status: 204 });
-    if (/\/queue$/.test(url)) {
+    if (/\/queue\/clear(?:\?|$)/.test(url)) return new Response(null, { status: 204 });
+    if (/\/queue(?:\?|$)/.test(url)) {
       return new Response(JSON.stringify(FILE), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -79,7 +79,7 @@ function serveur() {
 
 /** La requête de vidage réellement partie, décodée. */
 function vidage() {
-  const a = appels.find((x) => /\/queue\/clear$/.test(x.url));
+  const a = appels.find((x) => /\/queue\/clear(?:\?|$)/.test(x.url));
   if (!a) throw new Error('aucune requête de vidage n\'est partie');
   return { url: a.url, body: a.init.body ? JSON.parse(String(a.init.body)) : undefined };
 }
@@ -161,7 +161,7 @@ describe('QueueV2 — le vrai écran, le vrai clic', () => {
   it('🔴 le cliquer envoie keep_current: true — la lecture n\'est pas coupée', { timeout: DELAI_MONTAGE }, async () => {
     const racine = await ecran();
     boutonsDeVidage(racine)[0].click();
-    await vi.waitFor(() => expect(appels.some((a) => /\/queue\/clear$/.test(a.url))).toBe(true));
+    await vi.waitFor(() => expect(appels.some((a) => /\/queue\/clear(?:\?|$)/.test(a.url))).toBe(true));
 
     const r = vidage();
     expect(r.url).toContain(`/zones/${ZONE}/queue/clear`);
@@ -171,8 +171,8 @@ describe('QueueV2 — le vrai écran, le vrai clic', () => {
   it('aucune requête d\'arrêt ne part avec le vidage', { timeout: DELAI_MONTAGE }, async () => {
     const racine = await ecran();
     boutonsDeVidage(racine)[0].click();
-    await vi.waitFor(() => expect(appels.some((a) => /\/queue\/clear$/.test(a.url))).toBe(true));
-    expect(appels.filter((a) => /\/stop$/.test(a.url))).toHaveLength(0);
+    await vi.waitFor(() => expect(appels.some((a) => /\/queue\/clear(?:\?|$)/.test(a.url))).toBe(true));
+    expect(appels.filter((a) => /\/stop(?:\?|$)/.test(a.url))).toHaveLength(0);
   });
 });
 

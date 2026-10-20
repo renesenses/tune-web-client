@@ -37,6 +37,8 @@ import { largeurMaxEffective, releverReglesLargeur } from '../nowPlayingPaliers'
 
 const CHEMIN = 'src/components/partages/NowPlaying.svelte';
 const SOURCE = readFileSync(resolve(process.cwd(), CHEMIN), 'utf-8');
+// Compilation synchrone pendant la collecte, hors du délai des assertions.
+const CSS_COMPILE = compile(SOURCE, { filename: CHEMIN, css: 'external' }).css;
 
 const PISTE = {
   track_id: 77, album_id: 5, artist_id: 3,
@@ -64,7 +66,6 @@ function reponse(url: string): Response {
   } as unknown as Response;
 }
 
-const respirer = (ms = 60) => new Promise((r) => setTimeout(r, ms));
 
 async function poser(): Promise<HTMLElement> {
   zones.set([{ id: 1, name: 'Salon', state: 'playing', current_track: PISTE, position_ms: 12000 }] as any);
@@ -74,7 +75,10 @@ async function poser(): Promise<HTMLElement> {
   document.body.appendChild(hote);
   monte = mount(NowPlaying, { target: hote, props: {} as any });
   flushSync();
-  await respirer();
+  await vi.waitFor(() => {
+    flushSync();
+    expect(hote?.querySelector('.now-playing.wide .up-next'), 'écran large et aperçu de file prêts').not.toBeNull();
+  });
   queueTracks.set(FILE as any);
   flushSync();
   const racine = hote.querySelector<HTMLElement>('.now-playing');
@@ -138,7 +142,7 @@ describe('web#1837 — 1. le DOM : la classe d’élargissement, file repliée',
 
 describe('web#1837 — 2. la feuille compilée garde la règle d’élargissement', () => {
   it('Svelte n’élague pas `.content-layout.wide.file-sous-barre .info-column`', () => {
-    const { css } = compile(SOURCE, { filename: CHEMIN, css: 'external' });
+    const css = CSS_COMPILE;
     expect(css, 'aucune feuille compilée').not.toBeNull();
     const code = css!.code.replace(/\s+/g, ' ');
     // Svelte 5 sort : `.content-layout.wide.file-sous-barre.svelte-xxxx
