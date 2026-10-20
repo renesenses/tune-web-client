@@ -4481,6 +4481,7 @@ export default {
   "v2.cd.memLoadStarted": "正在将光盘载入内存…",
   "v2.cd.memLoadFailed": "无法将光盘载入内存。",
   "v2.cd.memReadyPrompt": "光盘已载入：{disc}",
+  "v2.cd.memBusyOtherDisc": "另一张光盘仍在内存中并正在播放：请等待其播放结束或先停止，再载入这张光盘。",
   "v2.cd.unreadable": "无法读取光盘。请清洁或重新放入光盘。",
   "v2.cd.unknownTrack": "此光盘上没有这条音轨。",
   "v2.cd.playFailed": "无法在此区域开始播放。",

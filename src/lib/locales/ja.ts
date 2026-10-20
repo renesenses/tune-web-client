@@ -4481,6 +4481,7 @@ export default {
   "v2.cd.memLoadStarted": "ディスクをメモリに読み込んでいます…",
   "v2.cd.memLoadFailed": "ディスクをメモリに読み込めませんでした。",
   "v2.cd.memReadyPrompt": "ディスクを読み込みました：{disc}",
+  "v2.cd.memBusyOtherDisc": "別のディスクがまだメモリにあり再生中です。終了を待つか停止してから、このディスクを読み込んでください。",
   "v2.cd.unreadable": "ディスクを読み込めませんでした。クリーニングするか、入れ直してください。",
   "v2.cd.unknownTrack": "このトラックはこのディスクにありません。",
   "v2.cd.playFailed": "このゾーンで再生を開始できませんでした。",

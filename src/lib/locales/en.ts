@@ -4501,6 +4501,7 @@ export default {
   "v2.cd.memLoadStarted": "Loading the disc into memory…",
   "v2.cd.memLoadFailed": "The disc could not be loaded into memory.",
   "v2.cd.memReadyPrompt": "Disc loaded: {disc}",
+  "v2.cd.memBusyOtherDisc": "Another disc is still in memory and playing: wait for it to finish or stop it before loading this one.",
   "v2.cd.unreadable": "The disc could not be read. Clean it or reinsert it.",
   "v2.cd.unknownTrack": "This track does not exist on this disc.",
   "v2.cd.playFailed": "Playback could not start on this zone.",

@@ -22,7 +22,9 @@
  *   POST /memoire/charger → l'état de `/memoire` (tune-server-rust#6596) :
  *                   charge le disque inséré en mémoire SANS rien jouer ;
  *                   404 memoire_indisponible · 409 memoire_desactivee ·
- *                   409 extraction_en_cours · 409 aucun_disque
+ *                   409 extraction_en_cours · 409 aucun_disque ·
+ *                   409 memoire_occupee (un autre disque, encore en mémoire,
+ *                   joue : le charger le couperait)
  *
  * L'insertion et l'éjection se voient en relisant `/etat` (voir
  * `LectureCdV2.svelte`) ; le greffon publie aussi `sources.changed`, et

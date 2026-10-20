@@ -4481,6 +4481,7 @@ export default {
   "v2.cd.memLoadStarted": "Disc wird in den Speicher geladen…",
   "v2.cd.memLoadFailed": "Die Disc konnte nicht in den Speicher geladen werden.",
   "v2.cd.memReadyPrompt": "Disc geladen: {disc}",
+  "v2.cd.memBusyOtherDisc": "Eine andere Disc ist noch im Speicher und wird abgespielt: Warten Sie, bis sie endet, oder stoppen Sie sie, bevor Sie diese laden.",
   "v2.cd.unreadable": "Die Disc konnte nicht gelesen werden. Reinige sie oder lege sie erneut ein.",
   "v2.cd.unknownTrack": "Dieser Titel existiert auf dieser Disc nicht.",
   "v2.cd.playFailed": "Die Wiedergabe konnte in dieser Zone nicht starten.",

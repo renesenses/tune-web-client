@@ -4481,6 +4481,7 @@ export default {
   "v2.cd.memLoadStarted": "Se încarcă discul în memorie…",
   "v2.cd.memLoadFailed": "Discul nu a putut fi încărcat în memorie.",
   "v2.cd.memReadyPrompt": "Disc încărcat: {disc}",
+  "v2.cd.memBusyOtherDisc": "Un alt disc este încă în memorie și se redă: așteptați să se termine sau opriți-l înainte de a-l încărca pe acesta.",
   "v2.cd.unreadable": "Discul nu a putut fi citit. Curăță-l sau reintrodu-l.",
   "v2.cd.unknownTrack": "Această piesă nu există pe acest disc.",
   "v2.cd.playFailed": "Redarea nu a putut porni în această zonă.",

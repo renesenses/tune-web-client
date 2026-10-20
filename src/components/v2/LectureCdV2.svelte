@@ -161,7 +161,10 @@
       const code = codeRefusCd(e);
       erreurChargement = code === 'extraction_en_cours'
         ? $t('v2.cd.busyRipping' as any)
-        : $t('v2.cd.memLoadFailed' as any);
+        // Relecture rc7 : un autre disque, encore en mémoire, joue.
+        : code === 'memoire_occupee'
+          ? $t('v2.cd.memBusyOtherDisc' as any)
+          : $t('v2.cd.memLoadFailed' as any);
     } finally {
       chargementDemande = false;
     }

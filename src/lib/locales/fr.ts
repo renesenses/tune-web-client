@@ -4503,6 +4503,7 @@ export default {
   "v2.cd.memLoadStarted": "Chargement du disque en mémoire…",
   "v2.cd.memLoadFailed": "Le disque n'a pas pu être chargé en mémoire.",
   "v2.cd.memReadyPrompt": "Disque chargé : {disc}",
+  "v2.cd.memBusyOtherDisc": "Un autre disque est encore en mémoire et joue : attendez la fin de sa lecture ou arrêtez-la avant de charger celui-ci.",
   "v2.cd.unreadable": "Le disque n'a pas pu être lu. Nettoyez-le ou réinsérez-le.",
   "v2.cd.unknownTrack": "Cette piste n'existe pas sur ce disque.",
   "v2.cd.playFailed": "La lecture n'a pas pu démarrer sur cette zone.",

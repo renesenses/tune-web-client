@@ -4435,6 +4435,7 @@ export default {
   "v2.cd.memLoadStarted": "A lemez betöltése a memóriába…",
   "v2.cd.memLoadFailed": "A lemezt nem sikerült a memóriába tölteni.",
   "v2.cd.memReadyPrompt": "Lemez betöltve: {disc}",
+  "v2.cd.memBusyOtherDisc": "Egy másik lemez még a memóriában van és szól: várja meg a végét, vagy állítsa le, mielőtt ezt betölti.",
   "v2.cd.unreadable": "A lemezt nem sikerült beolvasni. Tisztítsd meg, vagy helyezd be újra.",
   "v2.cd.unknownTrack": "Ez a szám nem szerepel ezen a lemezen.",
   "v2.cd.playFailed": "A lejátszás nem indult el ebben a zónában.",

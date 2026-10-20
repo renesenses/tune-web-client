@@ -69,7 +69,7 @@ beforeAll(async () => { await preparerLocale('fr'); });
 
 type Toast = { message: string; bouton: string; action: () => void };
 
-function banc(opts: { chargerEchoue?: boolean } = {}) {
+function banc(opts: { chargerEchoue?: boolean; refus?: string } = {}) {
   const toasts: Toast[] = [];
   const infos: string[] = [];
   const erreurs: string[] = [];
@@ -82,7 +82,10 @@ function banc(opts: { chargerEchoue?: boolean } = {}) {
     retirer: () => {},
     traduire: (cle) => get(t)(cle as any),
     zoneCourante: () => 3,
-    charger: () => { charges.push(1); return opts.chargerEchoue ? Promise.reject(new Error('x')) : Promise.resolve({}); },
+    charger: () => {
+      charges.push(1);
+      if (opts.refus) return Promise.reject(Object.assign(new Error(opts.refus), { code: opts.refus, status: 409 }));
+      return opts.chargerEchoue ? Promise.reject(new Error('x')) : Promise.resolve({}); },
     jouer: (z) => { lectures.push(z); return Promise.resolve({}); },
   };
   return { traiter: creerPropositionChargementCd(d), toasts, infos, erreurs, charges, lectures };
@@ -134,6 +137,16 @@ describe('#6596 — proposer de charger le CD inséré, sans rien jouer', () => 
     expect(r.erreurs).toEqual([fr['v2.cd.memLoadFailed']]);
   });
 
+  it('relecture rc7 — un autre disque joue encore depuis la mémoire : le refus le dit', async () => {
+    const r = banc({ refus: 'memoire_occupee' });
+    r.traiter(INSERE);
+    r.toasts[0].action();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(r.erreurs).toEqual([fr['v2.cd.memBusyOtherDisc']]);
+    expect(r.lectures).toHaveLength(0);
+  });
+
   it('rien à proposer si le réglage est coupé ; pas de « Lire » pour un chargement d’ailleurs', () => {
     const b = banc();
     b.traiter({ ...INSERE, data: { ...INSERE.data, memoire: { disponible: true, actif: false } } });
@@ -163,7 +176,7 @@ describe('#6596 — proposer de charger le CD inséré, sans rien jouer', () => 
   });
 
   it('les textes existent dans les douze catalogues', () => {
-    const cles = ['v2.cd.insertedPrompt', 'v2.cd.loadIntoMemory', 'v2.cd.loadIntoMemoryHint',
+    const cles = ['v2.cd.memBusyOtherDisc', 'v2.cd.insertedPrompt', 'v2.cd.loadIntoMemory', 'v2.cd.loadIntoMemoryHint',
       'v2.cd.memLoadStarted', 'v2.cd.memLoadFailed', 'v2.cd.memReadyPrompt'];
     for (const [l, cat] of Object.entries({ fr, en, de, es, it: it_, hu, ja, ko, ro, sv, vi: vi_, zh })) {
       for (const c of cles) {
@@ -182,6 +195,8 @@ let appels: Appel[] = [];
 let etat: Record<string, unknown> = {};
 let memoireSrv: Record<string, unknown> = {};
 let handlers: ((ev: WSEvent) => void)[] = [];
+/** Relecture rc7 — `POST /memoire/charger` refusé `409 memoire_occupee`. */
+let memoireOccupee = false;
 
 function reponse(status: number, corps: unknown): Response {
   return {
@@ -195,6 +210,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   appels = [];
   handlers = [];
+  memoireOccupee = false;
   etat = { plateforme_prise_en_charge: true, lecteur: '/dev/sr0', presence: 'disque', chargement: null };
   memoireSrv = { disponible: true, actif: true, plafond_mio: 800, chargement: null };
   cdPlugin.set(null);
@@ -210,6 +226,9 @@ beforeEach(() => {
     if (u.includes('/ext/cd/etat')) return reponse(200, etat);
     if (u.includes('/ext/cd/disque')) return reponse(200, DISQUE);
     if (u.includes('/ext/cd/memoire/charger')) {
+      if (memoireOccupee) {
+        return reponse(409, { error: 'memoire_occupee', message: 'x', disc_id_en_memoire: 'A', zones: [7] });
+      }
       memoireSrv = { ...memoireSrv, chargement: chargement(0, null) };
       return reponse(200, memoireSrv);
     }
@@ -283,6 +302,15 @@ describe('#6596 — écran Lecture CD : charger, suivre, puis lire au choix', ()
     emettre({ type: 'cd.memoire.termine', data: chargement(8, 'echec') });
     expect(texte(el.querySelector('.echec-chargement'))).toContain(fr['v2.cd.memLoadFailed']);
     expect(el.querySelector('button.charger-memoire')).not.toBeNull();
+  });
+
+  it('relecture rc7 — un autre disque joue depuis la mémoire : refus dit clairement, rien ne joue', async () => {
+    memoireOccupee = true;
+    const el = await poser();
+    (el.querySelector('button.charger-memoire') as HTMLButtonElement).click();
+    await laisserFaire();
+    expect(texte(el.querySelector('[role=alert]'))).toContain(fr['v2.cd.memBusyOtherDisc']);
+    expect(appels.filter((a) => a.url.includes('/ext/cd/jouer'))).toHaveLength(0);
   });
 
   it('réglage coupé : pas de bouton', async () => {

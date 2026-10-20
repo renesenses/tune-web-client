@@ -77,7 +77,12 @@ export function creerPropositionChargementCd(d: DependancesProposition): (ev: WS
     charger().catch((e) => {
       demandes.delete(discId);
       const code = codeRefusCd(e);
-      d.erreur(d.traduire(code === 'extraction_en_cours' ? 'v2.cd.busyRipping' : 'v2.cd.memLoadFailed'));
+      d.erreur(d.traduire(
+        code === 'extraction_en_cours' ? 'v2.cd.busyRipping'
+          // Un autre disque, encore en mémoire, joue : le serveur refuse de le couper.
+          : code === 'memoire_occupee' ? 'v2.cd.memBusyOtherDisc'
+            : 'v2.cd.memLoadFailed',
+      ));
     });
   }
 

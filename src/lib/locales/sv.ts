@@ -4480,6 +4480,7 @@ export default {
   "v2.cd.memLoadStarted": "Läser in skivan i minnet…",
   "v2.cd.memLoadFailed": "Skivan kunde inte läsas in i minnet.",
   "v2.cd.memReadyPrompt": "Skiva inläst: {disc}",
+  "v2.cd.memBusyOtherDisc": "En annan skiva finns fortfarande i minnet och spelas: vänta tills den är klar eller stoppa den innan du läser in den här.",
   "v2.cd.unreadable": "Skivan kunde inte läsas. Rengör den eller sätt i den igen.",
   "v2.cd.unknownTrack": "Det här spåret finns inte på skivan.",
   "v2.cd.playFailed": "Uppspelningen kunde inte starta i den här zonen.",

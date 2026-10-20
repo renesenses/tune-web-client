@@ -4481,6 +4481,7 @@ export default {
   "v2.cd.memLoadStarted": "Caricamento del disco in memoria…",
   "v2.cd.memLoadFailed": "Impossibile caricare il disco in memoria.",
   "v2.cd.memReadyPrompt": "Disco caricato: {disc}",
+  "v2.cd.memBusyOtherDisc": "Un altro disco è ancora in memoria e in riproduzione: attendi che finisca o fermalo prima di caricare questo.",
   "v2.cd.unreadable": "Impossibile leggere il disco. Puliscilo o reinseriscilo.",
   "v2.cd.unknownTrack": "Questa traccia non esiste su questo disco.",
   "v2.cd.playFailed": "Impossibile avviare la riproduzione in questa zona.",
