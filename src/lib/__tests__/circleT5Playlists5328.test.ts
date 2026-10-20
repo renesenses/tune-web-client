@@ -755,7 +755,7 @@ describe('web#2219 — lecture par piste', () => {
   afterEach(() => { zones.set([]); });
 
   const corpsPlay = () => ecritures().filter((a) => chemin(a) === '/playlists/pl-a/play').map((a) => a.body);
-  const ajoutsFile = () => appels.filter((a) => /\/zones\/2\/queue\/add$/.test(a.url) && a.method === 'POST').map((a) => a.body);
+  const ajoutsFile = () => appels.filter((a) => /\/zones\/2\/queue\/add(?:\?lang=[a-z]{2})?$/.test(a.url) && a.method === 'POST').map((a) => a.body);
 
   it('▶ d\'une ligne : la playlist À PARTIR de ce titre (`from_item_id`), la suite en file', async () => {
     const el = await poser(CircleV2);
