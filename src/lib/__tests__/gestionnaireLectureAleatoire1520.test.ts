@@ -134,7 +134,7 @@ afterEach(() => {
 const ZONE = { id: 7, name: 'Salon', state: 'stopped', shuffle: false } as unknown as import('../types').Zone;
 
 const enTete = (el: HTMLElement) => el.querySelector<HTMLElement>('.detail-actions');
-const appelsDeLecture = () => appels.filter((a) => a.method === 'POST' && /\/zones\/7\/play$/.test(a.url));
+const appelsDeLecture = () => appels.filter((a) => a.method === 'POST' && /\/zones\/7\/play(?:\?lang=[a-z]{2})?$/.test(a.url));
 
 describe('Gestionnaire de playlists — Lire et Lecture aléatoire (web#1520)', () => {
   beforeEach(() => {

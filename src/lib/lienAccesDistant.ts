@@ -39,6 +39,26 @@ export async function chargerLienAcces(
   }
 }
 
+/** Renouvelle le lien d'accès : nouveau jeton, l'ancien cesse d'ouvrir. */
+export const ROUTE_RENOUVELER_LIEN = '/cloud/bridge/rotate-token';
+
+/**
+ * Renouvelle le lien d'accès (`POST /cloud/bridge/rotate-token`, réservé à
+ * l'administrateur, 409 pont éteint) et rend le NOUVEAU lien.
+ *
+ * Contrairement à `chargerLienAcces`, un refus n'est pas tu : l'écran doit
+ * dire que le renouvellement n'a pas eu lieu. L'erreur de l'appel remonte
+ * telle quelle, et une réponse sans lien valide en est une aussi.
+ */
+export async function renouvelerLienAcces(
+  poster: (chemin: string) => Promise<unknown>,
+): Promise<string> {
+  const d = (await poster(ROUTE_RENOUVELER_LIEN)) as { link?: unknown } | null;
+  const lien = lienValide(d?.link);
+  if (!lien) throw new Error('invalid_access_link');
+  return lien;
+}
+
 /**
  * Le QR code du lien, en SVG autonome.
  *

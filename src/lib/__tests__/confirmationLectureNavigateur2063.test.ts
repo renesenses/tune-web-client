@@ -57,7 +57,7 @@ describe('web#2063 — le lecteur confirme qu\'il joue', () => {
     avancer(1.5);
     await attendre();
     expect(confirmations()).toHaveLength(1);
-    expect(confirmations()[0].url).toMatch(/\/api\/v1\/zones\/18\/browser-playing$/);
+    expect(confirmations()[0].url).toMatch(/\/api\/v1\/zones\/18\/browser-playing(?:\?lang=[a-z]{2})?$/);
     expect(confirmations()[0].corps).toEqual({ stream_id: 'session-abc', position_ms: 1500 });
   });
 

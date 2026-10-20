@@ -77,6 +77,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       // jamais en créer un. L'onglet Profils de l'écran actuel arrive ici.
       { id: 'profiles',   titleKey: 'settings.tabProfiles', from: 'profiles', min: 'beginner', keywords: ['profils', 'utilisateurs', 'multi-profil', 'qui écoute'] },
       { id: 'voice',      title: 'Tune Voice AI',         from: 'general', min: 'expert',   keywords: ['voix', 'commande vocale'] },
+      // Chantier « assistant-ia », étape 1 : la clé de l'utilisateur, son
+      // fournisseur, son plafond. Gratuit, dès le niveau débutant.
+      { id: 'assistantIa', titleKey: 'assistantIa.title', from: 'general', min: 'beginner',
+        keywords: ['ia', 'ai', 'intelligence artificielle', 'assistant', 'claude', 'anthropic', 'openai', 'mistral', 'gemini', 'ollama', 'clé', 'api key', 'plafond'] },
     ],
   },
   {
@@ -103,9 +107,13 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'library',    titleKey: 'settings.library',      from: 'library', min: 'beginner' },
       { id: 'musicDirs',  titleKey: 'settings.musicDirs',    from: 'library', min: 'beginner', keywords: ['dossiers', 'chemins'] },
-      { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan'] },
+      { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan', 'coffret', 'coffrets', 'box set'] },
       { id: 'searchExact', titleKey: 'settings.searchExact', from: 'library', min: 'beginner',
         keywords: ['recherche', 'exacte', 'guillemets', 'artiste', 'album', 'titre'] },
+      // tune-server-rust#6474 (René, fil 2313) — « Settings → Library →
+      // Artist sort order ».
+      { id: 'artistSort', titleKey: 'settings.artistSort', from: 'library', min: 'beginner',
+        keywords: ['artistes', 'tri', 'nom de famille', 'nom de tri', 'artistsort', 'sort', 'surname'] },
       { id: 'scanSched',  titleKey: 'settings.scanSchedule', from: 'library', min: 'intermediate', keywords: ['planification', 'automatique'] },
       /**
        * `min: 'beginner'` — renesenses/tune-server-rust#4051. La carte porte
@@ -149,6 +157,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'zoneAutoCreate', titleKey: 'settings.zoneAutoCreate', from: 'services', min: 'beginner', keywords: ['zones de lecture', 'création automatique'] },
       { id: 'followMe',       titleKey: 'settings.followMe',       from: 'services', min: 'beginner', keywords: ['me suivre', 'suivi', 'pause'] },
+      // #2244 — plages MAC reconnues : la plage et la marque de chaque
+      // appareil, et la table OUI entière (tune-server-rust#6546).
+      { id: 'macRanges',      titleKey: 'settings.macRanges',      from: 'devices',  min: 'beginner',
+        keywords: ['mac', 'oui', 'plage', 'préfixe', 'marque', 'fabricant', 'adresse mac', 'vendor', 'prefix'] },
     ],
   },
   {
@@ -184,6 +196,13 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        */
       { id: 'sauvegardeReglages', titleKey: 'v2.dev.backupTitle', from: 'devices', min: 'intermediate',
         keywords: ['sauvegarde', 'backup', 'export', 'import', 'restaurer', 'récupérer', 'fichier'] },
+      /**
+       * #6542 — Devialet AIR, pour les Devialet Expert de première génération
+       * (D200, D400…). Option EXPÉRIMENTALE, désactivée par défaut (décision
+       * de Bertrand, 19/10) : protocole reconstitué par rétro-ingénierie.
+       */
+      { id: 'devialetAir', titleKey: 'v2.set.devialetAirTitle', from: 'devices', min: 'intermediate',
+        keywords: ['devialet', 'air', 'expert', 'd200', 'd400', 'ampli', 'expérimental'] },
     ],
   },
   {
@@ -231,6 +250,9 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'streaming',   titleKey: 'settings.streaming', from: 'services', min: 'intermediate', keywords: ['qobuz', 'tidal', 'deezer'] },
       { id: 'tokens',      title: 'Services & Jetons',     from: 'services', min: 'intermediate', keywords: ['jetons', 'tokens', 'api', 'clés'] },
+      /** #4805 lot 1 — la clé AcoustID et le jeton Discogs PERSONNELS de
+       *  l'utilisateur, chiffrés au repos, jamais réaffichés en clair. */
+      { id: 'apiKeys',     titleKey: 'v2.apiKeys.title',   from: 'services', min: 'intermediate', keywords: ['clé', 'clés', 'api', 'acoustid', 'discogs', 'jeton', 'token', 'key'] },
       { id: 'spotify',     title: 'Spotify Connect',       from: 'services', min: 'intermediate' },
       { id: 'accessFrom',  titleKey: 'settings.accessFromDevice', from: 'system', min: 'intermediate', keywords: ['accès', 'distant', 'url'] },
     ],

@@ -524,6 +524,8 @@ async function basculerFavori(o: ObjetMenu): Promise<void> {
   if (rs) {
     await toggleStreamingFavorite({
       ...rs, title: o.nom ?? undefined, artist: o.artisteNom ?? undefined, coverUrl: o.pochette ?? undefined,
+      // #6482 — l'artiste chez le service, pour proposer de l'ajouter aussi.
+      artistId: o.type === 'album' && typeof o.artisteId === 'string' ? o.artisteId : undefined,
     });
   }
 }
