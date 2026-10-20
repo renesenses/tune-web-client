@@ -953,6 +953,9 @@ export default {
   "settings.networkPollIntervalRange": "von {min} bis {max} Minuten",
   "settings.searchExactLabel": "Exakte Suche",
   "settings.searchExactHint": "Sucht die eingegebenen Wörter als Phrase, in dieser Reihenfolge, im Namen eines Interpreten, Albums oder Titels – als stünden sie in Anführungszeichen.",
+  "settings.artistSort": "Sortierung der Interpreten",
+  "settings.artistSortLabel": "Interpreten nach Nachnamen sortieren",
+  "settings.artistSortHint": "Sortiert Interpreten nach ihrem Sortiernamen, wenn er bekannt ist (Tags ARTISTSORT oder ALBUMARTISTSORT oder unter „Künstler bearbeiten“ eingegebener Sortiername): Miles Davis steht unter D. Der angezeigte Name ändert sich nicht. Ein Interpret ohne Sortiernamen bleibt unter seinem Namen einsortiert.",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',

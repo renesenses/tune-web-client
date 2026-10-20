@@ -953,6 +953,9 @@ export default {
   "settings.networkPollIntervalRange": "{min} 至 {max} 分钟",
   "settings.searchExactLabel": "精确搜索",
   "settings.searchExactHint": "按输入顺序将词语作为短语，在艺人、专辑或曲目名称中查找——相当于加上双引号。",
+  "settings.artistSort": "艺人排序",
+  "settings.artistSortLabel": "按姓氏对艺人排序",
+  "settings.artistSortHint": "已知排序名时按排序名对艺人排序（ARTISTSORT 或 ALBUMARTISTSORT 标签，或在“编辑艺术家”中输入的排序名）：Miles Davis 归入 D。显示的名称不变。没有排序名的艺人仍按其名称排序。",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',

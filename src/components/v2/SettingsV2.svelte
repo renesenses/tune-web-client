@@ -7304,6 +7304,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+            {:else if s.id === 'artistSort'}
+              <!-- tune-server-rust#6474 (René, fil 2313) — trier les artistes sur
+                   leur nom de tri (nom de famille), le nom affiché restant le
+                   même. Le nom de tri vient des balises ARTISTSORT /
+                   ALBUMARTISTSORT, lues au scan, ou de « Modifier l'artiste ». -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.artistSortLabel' as any)}</span>
+                  <span class="hint">{$t('settings.artistSortHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.trierArtistesParNomDeTri !== false}
+                    onchange={(e) => preferences.update((pr) => ({ ...pr, trierArtistesParNomDeTri: (e.currentTarget as HTMLInputElement).checked }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
             {:else if s.id === 'followMe'}
               <!-- Section réellement portée : même store que l'écran actuel,
                    donc le réglage est partagé, pas dupliqué. -->

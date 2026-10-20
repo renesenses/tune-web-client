@@ -953,6 +953,9 @@ export default {
   "settings.networkPollIntervalRange": "de {min} a {max} minutos",
   "settings.searchExactLabel": "Búsqueda exacta",
   "settings.searchExactHint": "Busca las palabras escritas como una frase, en ese orden, en el nombre de un artista, álbum o pista, como si estuvieran entre comillas dobles.",
+  "settings.artistSort": "Orden de los artistas",
+  "settings.artistSortLabel": "Ordenar los artistas por apellido",
+  "settings.artistSortHint": "Ordena los artistas por su nombre de ordenación cuando se conoce (etiquetas ARTISTSORT o ALBUMARTISTSORT, o nombre de ordenación introducido en «Editar artista»): Miles Davis se ordena en la D. El nombre mostrado no cambia. Un artista sin nombre de ordenación sigue ordenado por su nombre.",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',

@@ -921,6 +921,9 @@ export default {
   "settings.networkPollIntervalRange": "från {min} till {max} minuter",
   "settings.searchExactLabel": "Exakt sökning",
   "settings.searchExactHint": "Söker de inskrivna orden som en fras, i den ordningen, i namnet på en artist, ett album eller ett spår – som inom citattecken.",
+  "settings.artistSort": "Sortering av artister",
+  "settings.artistSortLabel": "Sortera artister efter efternamn",
+  "settings.artistSortHint": "Sorterar artister efter deras sorteringsnamn när det är känt (taggarna ARTISTSORT eller ALBUMARTISTSORT, eller sorteringsnamnet som angetts i ”Redigera artist”): Miles Davis hamnar under D. Det visade namnet ändras inte. En artist utan sorteringsnamn sorteras fortfarande på sitt namn.",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',

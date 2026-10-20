@@ -959,6 +959,9 @@ export default {
   "settings.networkPollIntervalRange": "de la {min} la {max} minute",
   "settings.searchExactLabel": "Căutare exactă",
   "settings.searchExactHint": "Caută cuvintele introduse ca frază, în această ordine, în numele unui artist, album sau piese — ca între ghilimele.",
+  "settings.artistSort": "Sortarea artiștilor",
+  "settings.artistSortLabel": "Sortează artiștii după numele de familie",
+  "settings.artistSortHint": "Sortează artiștii după numele de sortare, atunci când este cunoscut (etichetele ARTISTSORT sau ALBUMARTISTSORT, sau numele de sortare introdus în „Editează artistul”): Miles Davis apare la D. Numele afișat nu se schimbă. Un artist fără nume de sortare rămâne sortat după nume.",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
