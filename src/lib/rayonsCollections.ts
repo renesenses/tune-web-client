@@ -278,7 +278,17 @@ export async function rangerLaNouvelle(
  */
 export type OrdreRayons = 'manuel' | 'alpha';
 export const ORDRES_RAYONS: readonly OrdreRayons[] = ['manuel', 'alpha'];
-export const ORDRE_RAYONS_DEFAUT: OrdreRayons = 'manuel';
+/**
+ * web#2256 — l'ALPHABÉTIQUE par défaut. Didier, fil 1907 (19/10/2026) : « si
+ * un seul choix est possible je préfère classement alphabétique
+ * automatique » ; go de Bertrand le même jour. Le manuel reste au choix.
+ *
+ * Ce défaut ne touche que les profils qui n'ont jamais choisi : un
+ * `ordreRayons` enregistré garde le dernier mot (`{ ...defaults, ...raw }`).
+ * web#2224 n'est pas encore publié (rc7) : aucun testeur n'a de valeur
+ * figée sur l'ancien défaut.
+ */
+export const ORDRE_RAYONS_DEFAUT: OrdreRayons = 'alpha';
 
 export function estOrdreRayons(v: unknown): v is OrdreRayons {
   return v === 'manuel' || v === 'alpha';

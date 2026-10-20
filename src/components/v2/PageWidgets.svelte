@@ -62,6 +62,8 @@
   import { togglePlayPause } from '../../lib/playback-controls';
   import { formatTime } from '../../lib/utils';
   import { activeView } from '../../lib/stores/navigation';
+  import { clearShortcutTarget, currentShortcutTarget, setShortcutTarget } from '../../lib/stores/shortcuts';
+  import { cleVoirTout, demandePour, demandeVoirTout, installerEcouteVoirTout } from '../../lib/raccourciVoirTout';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { ouvrirCollection, ouvrirParRaccourci, ouvrirSmartPlaylist } from '../../lib/ouvrirParRaccourci';
   import { currentProfileId, profiles } from '../../lib/stores/profile';
@@ -1213,6 +1215,9 @@
     if (!w) return;
     defilementAvant = zoneDefilante?.scrollTop ?? 0;
     voirTout = { id, phase: 'attente', elements: [...(etatDe(id)?.elements ?? [])] };
+    // web#2112 — la page devient la CIBLE d'un raccourci : sans elle, un
+    // raccourci posé ici rouvrait l'Accueil (ou le service) sans la page.
+    setShortcutTarget({ key: cleVoirTout(CLE, id), restore: { page: CLE, widget: id }, label: get(t)(w.cleTitre as any) });
     try { zoneDefilante?.scrollTo?.({ top: 0 }); } catch { /* jsdom, vieux moteur */ }
     const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones),
                   chiffresChoisis: chiffres, langue: get(locale), limite: LIMITE_VOIR_TOUT };
@@ -1229,11 +1234,35 @@
       });
   }
 
+  /** web#2112 — n'oublier que NOTRE cible : une fiche ouverte depuis la page a pu poser la sienne. */
+  function oublierCibleVoirTout() {
+    const k = get(currentShortcutTarget)?.key;
+    if (k != null && k.startsWith(cleVoirTout(CLE, ''))) clearShortcutTarget();
+  }
+
   function fermerVoirTout() {
     voirTout = null;
+    oublierCibleVoirTout();
     const y = defilementAvant;
     void tick().then(() => { if (zoneDefilante) zoneDefilante.scrollTop = y; });
   }
+
+  /**
+   * web#2112 — un raccourci sur une page « Voir tout » la rouvre. La demande
+   * attend (`lib/raccourciVoirTout`) que CETTE page soit chargée et connaisse
+   * le widget : celle d'un service monte après son catalogue, et un widget de
+   * catégorie n'existe qu'une fois appris (#987).
+   */
+  installerEcouteVoirTout();
+  $effect(() => {
+    const widget = demandePour($demandeVoirTout, CLE);
+    if (!widget || !charge || !parId(widget)) return;
+    untrack(() => {
+      demandeVoirTout.set(null);
+      if (voirTout?.id !== widget) ouvrirVoirTout(widget);
+    });
+  });
+  onDestroy(() => oublierCibleVoirTout());
 </script>
 
 {#snippet carte(el: Element)}
@@ -1324,7 +1353,7 @@
            qu'il révèle n'existent qu'une fois franchie. Le `title` nomme les
            trois gestes ; le bandeau ci-dessous les redit une fois dedans. -->
       <button class="v2-btn" class:on={edition} title={$t('v2.home.editTip' as any)}
-              onclick={() => { edition = !edition; ajoutOuvert = false; voirTout = null; }}>
+              onclick={() => { edition = !edition; ajoutOuvert = false; voirTout = null; oublierCibleVoirTout(); }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l4 4"/></svg>
         {edition ? $t('v2.home.done' as any) : $t('v2.home.edit' as any)}
       </button>

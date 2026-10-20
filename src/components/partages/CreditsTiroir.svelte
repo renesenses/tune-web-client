@@ -29,13 +29,14 @@
   import { onMount, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import { activeView } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import {
     blocsDeCredits,
     libelleLigne,
+    libelleInstrumentWikidata,
     numerosDePistes,
     type CreditAvecPiste,
   } from '../../lib/library/credits';
@@ -177,6 +178,14 @@
                     {:else}
                       <span class="texte">{a.artist_name}</span>
                     {/if}
+                    {#if a.instrumentsWikidata?.length}
+                      <!-- #4805 lot 1 (d'après MetaRust) : les instruments de
+                           la fiche Wikidata de l'artiste, pas de ce disque. -->
+                      <span class="wikidata" data-instruments-wikidata title={$t('credits.wikidataTip')}>
+                        {a.instrumentsWikidata.map((i) => libelleInstrumentWikidata(i, $locale)).join(', ')}
+                        · {$t('credits.wikidataSource')}
+                      </span>
+                    {/if}
                     {#if c.type === 'album' && a.pistes.length}
                       <span class="pistes" title={a.pistes.map((p) => p.titre).filter(Boolean).join(' · ')}>
                         {$t('credits.onTracks').replace('{liste}', numerosDePistes(a.pistes, plusieursDisques))}
@@ -240,4 +249,5 @@
   .lien:hover { text-decoration: underline; }
   .texte { font-size: 14px; font-weight: 600; color: var(--tune-text); }
   .pistes { font-size: 11px; color: var(--tune-text-muted); }
+  .wikidata { font-size: 11px; font-style: italic; color: var(--tune-text-muted); }
 </style>

@@ -1,6 +1,8 @@
+import { avecLangueSignal } from './langueRequete';
 // REST API client for tune-server
 
 import { notifications } from './stores/notifications';
+import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
@@ -262,7 +264,7 @@ export async function apiFetch(path: string): Promise<any> {
   const token = getToken();
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), { headers });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
   // du serveur est composé en français par `require_premium`, il ne doit jamais
@@ -281,7 +283,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), {
     method: 'POST',
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -304,7 +306,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), {
     method: 'PATCH',
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -326,7 +328,7 @@ export async function apiDelete(path: string): Promise<any> {
   const token = getToken();
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), { method: 'DELETE', headers });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
   // du serveur est composé en français par `require_premium`, il ne doit jamais
@@ -512,7 +514,7 @@ export async function fetchJSON<T>(
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    response = await fetch(url, {
+    response = await fetch(avecLangueSignal(url, acceptLang()), {
       headers,
       ...options,
     });
@@ -738,7 +740,7 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    response = await fetch(url, {
+    response = await fetch(avecLangueSignal(url, acceptLang()), {
       headers,
       ...options,
     });
@@ -1322,6 +1324,21 @@ export function getDevices() {
   return fetchJSON<DiscoveredDevice[]>(`${BASE}/devices`);
 }
 
+/**
+ * La table des plages MAC reconnues, groupée par marque (#2244,
+ * tune-server-rust#6546). `null` quand le serveur ne la sert pas (serveur
+ * antérieur : 404) ou rend autre chose : l'écran masque alors le bloc.
+ * Sans bandeau : une route absente n'est pas une panne.
+ */
+export async function getOuiAudio(): Promise<TableOuiAudio | null> {
+  try {
+    const corps = await fetchJSON<unknown>(`${BASE}/devices/oui-audio`, undefined, undefined, true);
+    return lireTableOui(corps);
+  } catch {
+    return null;
+  }
+}
+
 export function clearDevices() {
   return fetchJSON<{ cleared: number }>(`${BASE}/devices/clear`, { method: 'POST' });
 }
@@ -1666,7 +1683,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string }) {
+export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string; queue_follows?: boolean }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1739,8 +1756,21 @@ export function setVolumeDb(zoneId: number, volumeDb: number) {
   });
 }
 
+/**
+ * Réponse de `POST /zones/{id}/shuffle`. Depuis tune-server-rust#6526 le
+ * serveur RÉORDONNE la file : `queue_reordered` dit si l'ordre a changé,
+ * `queue_position` où se trouve maintenant le titre en cours (il bouge quand
+ * l'ordre d'origine est rétabli). Champs absents d'un serveur plus ancien.
+ */
+export interface ReponseAleatoire {
+  shuffle: boolean;
+  queue_reordered?: boolean;
+  queue_position?: number;
+  queue_length?: number;
+}
+
 export function setShuffle(zoneId: number, enabled: boolean) {
-  return fetchJSON<{ shuffle: boolean }>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
+  return fetchJSON<ReponseAleatoire>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
     method: 'POST',
   });
 }
@@ -2370,6 +2400,102 @@ export function getAlbumCredits(albumId: number) {
   return fetchJSON<import('./library/credits').CreditAvecPiste[]>(
     `${BASE}/library/albums/${albumId}/credits`,
     undefined,
+    undefined,
+    true,
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   #4805 lot 1 — enrichissement d'après MetaRust, de Xavier Joly :
+   complétude, propositions Discogs, BPM, clés d'API personnelles. Les
+   formes vivent dans `lib/enrichissementAlbum`.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/** `GET /library/albums/{id}/completeness/musicbrainz` — hors réseau, sans bandeau. */
+export function getAlbumCompleteness(albumId: number) {
+  return fetchJSON<import('./enrichissementAlbum').Completude>(
+    `${BASE}/library/albums/${albumId}/completeness/musicbrainz`, undefined, undefined, true,
+  );
+}
+
+/** `GET /library/albums/incomplete` — les albums à qui il manque des pistes. */
+export function getIncompleteAlbumIds() {
+  return fetchJSON<{ total: number; ids: number[] }>(
+    `${BASE}/library/albums/incomplete`, undefined, undefined, true,
+  );
+}
+
+/** `POST /library/albums/{id}/instruments` — instruments Wikidata du disque. */
+export function enrichAlbumInstruments(albumId: number) {
+  return fetchJSON<{ album_id: number; result: Record<string, number> }>(
+    `${BASE}/library/albums/${albumId}/instruments`, { method: 'POST' },
+  );
+}
+
+export function getAlbumDiscogsProposals(albumId: number) {
+  return fetchJSON<{ album_id: number; proposals: import('./enrichissementAlbum').PropositionGardee[] }>(
+    `${BASE}/library/albums/${albumId}/discogs`, undefined, undefined, true,
+  );
+}
+
+/** Cherche sur Discogs (code-barres, puis n° de catalogue). N'écrit rien. */
+export function searchAlbumDiscogs(albumId: number) {
+  return fetchJSON<{ album_id: number; proposal: import('./enrichissementAlbum').PropositionDiscogs | null }>(
+    `${BASE}/library/albums/${albumId}/discogs/search`, { method: 'POST' }, undefined, true,
+  );
+}
+
+/** Accepte une proposition : remplit les champs VIDES seulement. */
+export function acceptDiscogsProposal(albumId: number, discogsId: number, credits: boolean) {
+  return fetchJSON<{ accepted: boolean; result: { champs_poses: string[]; champs_gardes: string[]; pistes_creditees: number } }>(
+    `${BASE}/library/albums/${albumId}/discogs/${discogsId}/accept`,
+    { method: 'POST', body: JSON.stringify({ credits }) },
+  );
+}
+
+export function rejectDiscogsProposal(albumId: number, discogsId: number) {
+  return fetchJSON<{ rejected: boolean }>(
+    `${BASE}/library/albums/${albumId}/discogs/${discogsId}/reject`, { method: 'POST' },
+  );
+}
+
+export function getAlbumBpm(albumId: number) {
+  return fetchJSON<{ album_id: number; tracks: import('./enrichissementAlbum').BpmPiste[] }>(
+    `${BASE}/library/albums/${albumId}/bpm`, undefined, undefined, true,
+  );
+}
+
+/** Wikidata d'abord, puis une estimation sur le signal. N'écrit pas les fichiers. */
+export function estimateAlbumBpm(albumId: number, redo = false) {
+  return fetchJSON<{ album_id: number; tracks: import('./enrichissementAlbum').BpmPiste[] }>(
+    `${BASE}/library/albums/${albumId}/bpm/estimate`,
+    { method: 'POST', body: JSON.stringify({ redo }) },
+  );
+}
+
+/** `GET /system/api-keys` — l'état des clés, jamais leur valeur. */
+export function getApiKeys() {
+  return fetchJSON<{ keys: import('./enrichissementAlbum').EtatCleApi[] }>(`${BASE}/system/api-keys`);
+}
+
+export function setApiKey(service: string, value: string) {
+  return fetchJSON<import('./enrichissementAlbum').EtatCleApi>(
+    `${BASE}/system/api-keys/${encodeURIComponent(service)}`,
+    { method: 'PUT', body: JSON.stringify({ value }) },
+  );
+}
+
+export function deleteApiKey(service: string) {
+  return fetchJSON<import('./enrichissementAlbum').EtatCleApi>(
+    `${BASE}/system/api-keys/${encodeURIComponent(service)}`, { method: 'DELETE' },
+  );
+}
+
+/** « Tester » : la saisie si elle est donnée, sinon la clé en service. */
+export function testApiKey(service: string, value?: string) {
+  return fetchJSON<{ service: string; tested: string; verdict: 'valide' | 'refusee' | 'indetermine' }>(
+    `${BASE}/system/api-keys/${encodeURIComponent(service)}/test`,
+    { method: 'POST', body: JSON.stringify(value ? { value } : {}) },
     undefined,
     true,
   );
@@ -3146,6 +3272,19 @@ export async function uploadAlbumArtwork(albumId: number, file: File): Promise<A
     throw await apiError(response);
   }
   return response.json();
+}
+
+/**
+ * tune-server-rust#4805 lot 2 — « Chercher une pochette plus nette » :
+ * `POST /library/albums/{id}/artwork/enrich`. Une pochette de fournisseur en
+ * place n'est remplacée que par la MÊME, au moins 1,4 fois plus définie
+ * (empreinte visuelle, #6252) ; jamais un autre visuel.
+ */
+export function chercherPochettePlusNette(albumId: number) {
+  return fetchJSON<import('./enrichissementAlbum').ReponsePochettePlusNette>(
+    `${BASE}/library/albums/${albumId}/artwork/enrich`,
+    { method: 'POST' },
+  );
 }
 
 export function rescanAlbumArtwork(albumId: number) {
@@ -7112,6 +7251,11 @@ export function getAlbumRating(albumId: number) {
   return fetchJSON<any>(`${BASE}/library/albums/${albumId}/rating`);
 }
 
+/** #6545 — notes et écoutes de la communauté pour un album (agrégats du site). */
+export function getAlbumCommunity(albumId: number) {
+  return fetchJSON<import('./notesCommunautaires').AgregatsCommunautaires>(`${BASE}/library/albums/${albumId}/community`);
+}
+
 export function getTopRatedAlbums(limit = 20) {
   return fetchJSON<any[]>(`${BASE}/library/albums/top-rated?limit=${limit}`);
 }
@@ -7829,6 +7973,41 @@ export function lancerIdentificationAcoustid() {
     { method: 'POST' },
     (statut) => statut === 409,
   );
+}
+
+/**
+ * #4805 lot 2 (d'après MetaRust) — lancer une passe de lot : `POST
+ * /library/bpm-all` ou `POST /library/discogs-all`. `202`, ou `409` / `412`
+ * ACCEPTÉS pour que l'écran dise le motif (`lib/passesMetarust.ts`).
+ */
+export function lancerPasseMetarust(mode: import('./passesMetarust').ModePasse) {
+  return fetchJSON<Record<string, unknown>>(
+    `${BASE}/library/${mode}-all`,
+    { method: 'POST' },
+    (statut) => statut === 409 || statut === 412,
+  );
+}
+
+/** `GET /library/{mode}-all/status` — l'état brut, lu par `lireEtatPasse`. */
+export function etatPasseMetarust(mode: import('./passesMetarust').ModePasse) {
+  return fetchJSON<Record<string, unknown>>(`${BASE}/library/${mode}-all/status`);
+}
+
+/**
+ * tune-server-rust#4805 (13/10/2026) — la passe de nuit des albums refusés par
+ * MusicBrainz. Un serveur sans la route répond 404 : sans bandeau, l'écran
+ * masque alors la ligne (`lib/identificationNuit.ts`).
+ */
+export function getIdentificationNuit() {
+  return fetchJSON<unknown>(`${BASE}/library/identify-all/nuit`, undefined, undefined, true);
+}
+
+/** `POST /library/identify-all/nuit` `{ active }` — allumer ou éteindre (administrateur). */
+export function setIdentificationNuit(active: boolean) {
+  return fetchJSON<unknown>(`${BASE}/library/identify-all/nuit`, {
+    method: 'POST',
+    body: JSON.stringify({ active }),
+  });
 }
 
 /** `GET /library/identify-all/status` — l'état de la passe par lot, tous modes confondus. */

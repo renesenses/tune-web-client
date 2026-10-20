@@ -65,7 +65,7 @@ describe('#5395 — la route du serveur', () => {
     const zone = await api.radioArtiste(3, { artist: 'Graine', service: 'qobuz', artist_id: 'g' });
     expect(typeof zone === 'object' ? zone.radio.count : zone).toBe(25);
     const [url, init] = f.mock.calls[0];
-    expect(String(url)).toMatch(/\/zones\/3\/radio\/artist$/);
+    expect(String(url)).toMatch(/\/zones\/3\/radio\/artist(?:\?lang=[a-z]{2})?$/);
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body)).toEqual({ artist: 'Graine', service: 'qobuz', artist_id: 'g' });
   });
