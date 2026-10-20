@@ -21,6 +21,7 @@ import {
 } from '../ordreBarreLaterale';
 import type { TriConcerts } from '../concertsTri';
 import { estOrdreRayons, ORDRE_RAYONS_DEFAUT, type OrdreRayons } from '../rayonsCollections';
+import { normaliserOrdreManuel, type OrdreManuelCollections } from '../ordreManuelCollections';
 import type { ChoixLieuConcerts } from '../concertsLieu';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
@@ -239,6 +240,15 @@ export interface Preferences {
    *  le nom contient ces mots, dans cet ordre. Désactivée par défaut. */
   searchExact: boolean;
   /**
+   * tune-server-rust#6474 (René, fil 2313) — « Trier les artistes par nom de
+   * famille ». Coché : la liste des artistes et son rail A–Z suivent le NOM DE
+   * TRI quand il est connu (ARTISTSORT, ALBUMARTISTSORT, ou saisi dans
+   * « Modifier l'artiste ») — Miles Davis sous D. Décoché : le nom affiché,
+   * toujours. Le nom affiché ne change jamais. Coché par défaut : c'est l'ordre
+   * livré depuis #4956.
+   */
+  trierArtistesParNomDeTri: boolean;
+  /**
    * Mosaïque de quatre pochettes sur les cartes de collection, ou pochette
    * UNIQUE — l'écran compact de l'ancien client.
    *
@@ -372,6 +382,13 @@ export interface Preferences {
    */
   ordreRayons: OrdreRayons;
   /**
+   * web#2256 (Didier, fil 1907) — l'ordre MANUEL des deux listes plates de
+   * l'écran Collections, quand leur tri est « Manuel » : les identifiants,
+   * dans l'ordre choisi par glisser-déposer. Dans `ui_preferences`, donc
+   * gardé par le serveur, comme `ordreRayons`. Assaini aux deux lectures.
+   */
+  ordreManuelCollections: OrdreManuelCollections;
+  /**
    * La cadence des animations de « Lecture en cours » — #1256.
    *
    * Trois crans : `fluide` (30 i/s, le comportement livré), `econome` (20 i/s,
@@ -492,6 +509,8 @@ const defaults: Preferences = {
   v2AlbumTechLine: false,
   v2ActionsReduites: false,
   searchExact: false,
+  // #6474 : l'ordre livré (nom de tri quand il existe) reste le défaut.
+  trierArtistesParNomDeTri: true,
   v2CollectionsMosaique: true,
   // #1428 — DÉCOCHÉ, et c'est la décision de Bertrand du 22/09/2026, pas un
   // oubli : l'écran de qui n'a rien demandé ne bouge pas d'un pixel.
@@ -517,9 +536,11 @@ const defaults: Preferences = {
   // fusion `{ ...defaults, ...raw }` de `loadPrefs` donne toujours le dernier
   // mot à la valeur enregistrée. Un utilisateur qui a choisi garde son choix.
   ordreAutresVersions: ORDRE_VERSIONS_DEFAUT,
-  // web#2207 : l'ordre livré (manuel, position du serveur) reste le défaut —
-  // personne ne voit ses rayons se réordonner sans l'avoir demandé.
+  // web#2256 : l'alphabétique (Didier, fil 1907, 19/10/2026) ; le manuel
+  // reste au choix. Un choix enregistré garde le dernier mot.
   ordreRayons: ORDRE_RAYONS_DEFAUT,
+  // web#2256 : rien de rangé à la main tant qu'on n'a rien déplacé.
+  ordreManuelCollections: { smart: [], normale: [] },
   // #1256 : 30 images par seconde, la cadence d'aujourd'hui. L'économie est
   // réelle et mesurée, mais elle SE VOIT — elle se propose, elle ne s'impose
   // pas. Personne ne doit voir son affichage changer sans l'avoir demandé.
@@ -700,6 +721,10 @@ function lirePrefs(stored: string | null): Preferences {
       if (!estOrdreRayons((raw as { ordreRayons?: unknown })?.ordreRayons)) {
         p.ordreRayons = ORDRE_RAYONS_DEFAUT;
       }
+      // web#2256 — même règle : des identifiants entiers, sans doublon.
+      p.ordreManuelCollections = normaliserOrdreManuel(
+        (raw as { ordreManuelCollections?: unknown })?.ordreManuelCollections,
+      );
       // #1256 — même règle, même raison : ce blob vient aussi du SERVEUR. Un
       // cran inconnu (version ultérieure, blob abîmé) retombe sur la cadence
       // d'aujourd'hui, jamais sur une cadence qui n'existe pas.
@@ -1009,6 +1034,10 @@ async function relireDuServeur() {
       // web#2207 — idem pour l'ordre des rayons : un ordre inconnu est
       // supprimé, et `defaults` reprend la main.
       if (server.ordreRayons !== undefined && !estOrdreRayons(server.ordreRayons)) delete server.ordreRayons;
+      // web#2256 — assaini, jamais adopté tel quel.
+      if (server.ordreManuelCollections !== undefined) {
+        server.ordreManuelCollections = normaliserOrdreManuel(server.ordreManuelCollections);
+      }
       // web#1800 — idem pour la disposition de la file.
       if (!estDispositionFile(server.dispositionFile)) delete server.dispositionFile;
       // #5065 — idem pour les types de sources de la barre.

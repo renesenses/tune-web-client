@@ -86,8 +86,8 @@ const entree = (items: HTMLButtonElement[], l: string) =>
 
 const indexDe = (pred: (a: Appel) => boolean) => appels.findIndex(pred);
 const estSimilaires = (a: Appel) => a.url.includes('/streaming/qobuz/tracks/441078583/similar');
-const estLecture = (a: Appel) => a.methode === 'POST' && /\/zones\/1\/play$/.test(a.url);
-const estFile = (a: Appel) => a.methode === 'POST' && /\/zones\/1\/queue\/add$/.test(a.url);
+const estLecture = (a: Appel) => a.methode === 'POST' && /\/zones\/1\/play(?:\?lang=[a-z]{2})?$/.test(a.url);
+const estFile = (a: Appel) => a.methode === 'POST' && /\/zones\/1\/queue\/add(?:\?lang=[a-z]{2})?$/.test(a.url);
 
 function reponse(statut: number, corps: unknown): Response {
   return {
@@ -116,8 +116,8 @@ beforeEach(() => {
     if (url.includes('/library/tracks/2450/similar')) {
       return reponse(200, { seed_track_id: 2450, count: 2, items: [{ id: 11 }, { id: 12 }] });
     }
-    if (/\/zones\/1\/play$/.test(url)) return reponse(200, { id: 1, name: 'Salon', state: 'playing' });
-    if (/\/zones\/1\/queue\/add$/.test(url)) return reponse(200, { queue_length: 2 });
+    if (/\/zones\/1\/play(?:\?lang=[a-z]{2})?$/.test(url)) return reponse(200, { id: 1, name: 'Salon', state: 'playing' });
+    if (/\/zones\/1\/queue\/add(?:\?lang=[a-z]{2})?$/.test(url)) return reponse(200, { queue_length: 2 });
     return reponse(200, {});
   }));
 });

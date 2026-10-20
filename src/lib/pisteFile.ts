@@ -70,6 +70,26 @@ export function corpsDeLecture(t: Track): Record<string, unknown> | null {
 }
 
 /**
+ * Corps de lecture de la TÊTE d'une liste dont l'appelant enfile lui-même la
+ * suite (« Écouter le best of », « Tout lire », « Lire à partir d'ici », le
+ * mélange d'un album de service).
+ *
+ * tune-server-rust#6469 — un titre de service lancé seul joue son ALBUM à
+ * partir de lui (#5372). En tête de liste, c'est faux : le best of d'ABBA
+ * partait de « Slipping Through My Fingers », titre d'une compilation Qobuz,
+ * et toute la compilation entrait en file avant les autres titres phares —
+ * artistes variés, et la pochette de la compilation partout (FabienM, fil
+ * 2302 point 14). `queue_follows` dit au serveur que la suite vient d'ici ;
+ * un serveur qui ne le connaît pas l'ignore. Une piste locale n'est pas
+ * concernée : son corps reste celui de `corpsDeLecture`.
+ */
+export function corpsDeTeteDeListe(t: Track): Record<string, unknown> | null {
+  const corps = corpsDeLecture(t);
+  if (!corps || estPisteLocale(t)) return corps;
+  return { ...corps, queue_follows: true };
+}
+
+/**
  * Corps d'ajout à la file pour une LISTE de pistes, en UNE requête.
  *
  * `QueueAddRequest` accepte `tracks: [...]` côté serveur (mesuré sur la tête

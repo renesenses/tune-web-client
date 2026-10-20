@@ -152,7 +152,7 @@ describe('#4626 — « Publier cette zone sur le réseau », visible et expliqu�
     boite.dispatchEvent(new Event('change', { bubbles: true }));
     await vi.waitFor(() => expect(patches.length).toBeGreaterThan(0));
     const p = patches[patches.length - 1];
-    expect(p.url).toMatch(/\/zones\/21$/);
+    expect(p.url).toMatch(/\/zones\/21(?:\?lang=[a-z]{2})?$/);
     expect(p.corps).toEqual({ upnp_renderer: true });
   });
 

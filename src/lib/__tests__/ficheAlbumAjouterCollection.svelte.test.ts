@@ -96,7 +96,8 @@ function poser(props: Record<string, unknown>) {
 
 /** Le bouton, retrouvé par son libellé traduit — jamais par sa position. */
 function bouton(): HTMLButtonElement | null {
-  const libelle = get(t)('v2.album.addToCollection');
+  // web#2151 — la bulle du bouton décrit son geste ; elle ne recopie plus le libellé.
+  const libelle = get(t)('v2.album.addToCollectionTip' as any);
   return hote?.querySelector<HTMLButtonElement>(`.actions button[title="${libelle}"]`) ?? null;
 }
 /** Le panneau est porté à la racine du document (`use:portail`). */
@@ -110,7 +111,7 @@ describe('la fiche d’un album de la bibliothèque', () => {
     const b = bouton();
     expect(b, 'pas de bouton « Ajouter à une collection »').not.toBeNull();
     const boutons = Array.from(hote!.querySelectorAll<HTMLButtonElement>('.actions button'));
-    const etiquettes = boutons.findIndex((x) => x.title === get(t)('v2.cover.tags'));
+    const etiquettes = boutons.findIndex((x) => x.title === get(t)('v2.album.tagsTip' as any));
     expect(etiquettes).toBeGreaterThan(-1);
     expect(boutons.indexOf(b!)).toBe(etiquettes + 1);
   });

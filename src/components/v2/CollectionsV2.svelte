@@ -57,6 +57,10 @@
   import ArbreRayons from './ArbreRayons.svelte';
   import { clesRangees, rafraichirRayons, rangerLaNouvelle, type EtatRayons } from '../../lib/rayonsCollections';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import {
+    TYPE_GLISSE_PLATE, decoderGlissePlate, deposerDansOrdre, encoderGlissePlate,
+    comparateurManuel, type SortePlate,
+  } from '../../lib/ordreManuelCollections';
   import BasculeAffichage from './BasculeAffichage.svelte';
   import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
   import { trierAlbums } from '../../lib/trierAlbums';
@@ -200,7 +204,13 @@
    * sens : la mettre en tête d'un tri « plus ancien » ferait passer une
    * absence de donnée pour une ancienneté.
    */
-  const TRIS = ['alpha', 'alphaInverse', 'recent', 'ancien'] as const;
+  /*
+   * web#2256 — « Manuel » (Didier, fil 1907, 19/10/2026 : « choisir entre
+   * classement alphabétique automatique ou manuel »). L'alphabétique reste le
+   * défaut. En manuel, on range par glisser-déposer, comme dans l'onglet
+   * Rayons ; l'ordre est gardé par le serveur (`ordreManuelCollections`).
+   */
+  const TRIS = ['alpha', 'alphaInverse', 'recent', 'ancien', 'manuel'] as const;
   type Tri = (typeof TRIS)[number];
   let tri = $state<Tri>(lireChoix<Tri>('v2.collections.tri', TRIS, 'alpha'));
   $effect(() => { ecrireChoix('v2.collections.tri', tri); });
@@ -277,17 +287,60 @@
    */
   let horsRayonSeul = $state(false);
   const rangees = $derived(rayons.mode === 'arbre' ? clesRangees(rayons.arbre) : new Set<string>());
+  /**
+   * web#2256 — TOUTE la liste d'une sorte dans l'ordre manuel : les rangées à
+   * la main d'abord, puis les autres par ordre alphabétique. Le dépôt se
+   * calcule sur elle, pas sur la liste filtrée (« Hors rayon seulement ») :
+   * masquer des collections ne doit pas défaire leur place.
+   */
+  const manuelDe = (sorte: SortePlate) =>
+    comparateurManuel<Entree>($preferences.ordreManuelCollections?.[sorte] ?? [], (e) => e.id, parNom);
+  function enOrdreManuel(sorte: SortePlate): Entree[] {
+    return entrees.filter((e) => e.sorte === sorte).sort(manuelDe(sorte));
+  }
   const visibles = $derived(
     entrees
       .filter((e) => (onglet === 'smart' ? e.sorte === 'smart' : e.sorte === 'normale'))
       .filter((e) => !(onglet === 'smart' && horsRayonSeul && rangees.has(`smart:${e.id}`)))
       .slice()
-      .sort((a, b) =>
-        tri === 'alpha' ? parNom(a, b)
-        : tri === 'alphaInverse' ? -parNom(a, b)
-        : parDate(a, b, tri === 'recent'),
+      .sort(
+        tri === 'manuel' ? manuelDe(onglet === 'smart' ? 'smart' : 'normale')
+        : (a, b) =>
+          tri === 'alpha' ? parNom(a, b)
+          : tri === 'alphaInverse' ? -parNom(a, b)
+          : parDate(a, b, tri === 'recent'),
       ),
   );
+
+  /* ------------- web#2256 — ranger à la main, par glisser-déposer ---------- */
+  /** La carte survolée pendant un glisser, `sorte:id`. */
+  let survolCarte = $state<string | null>(null);
+  function commencerGlisse(ev: DragEvent, e: Entree) {
+    if (tri !== 'manuel' || !ev.dataTransfer) return;
+    ev.dataTransfer.setData(TYPE_GLISSE_PLATE, encoderGlissePlate(e.sorte as SortePlate, e.id));
+    ev.dataTransfer.effectAllowed = 'move';
+  }
+  function passerSurCarte(ev: DragEvent, e: Entree) {
+    if (tri !== 'manuel') return;
+    ev.preventDefault();
+    survolCarte = `${e.sorte}:${e.id}`;
+  }
+  function deposerSurCarte(ev: DragEvent, cible: Entree) {
+    if (tri !== 'manuel') return;
+    ev.preventDefault();
+    survolCarte = null;
+    const g = decoderGlissePlate(ev.dataTransfer?.getData(TYPE_GLISSE_PLATE));
+    // Une carte d'un autre onglet ne se range pas ici : les deux sortes ont
+    // des identifiants qui se recouvrent.
+    if (!g || g.sorte !== cible.sorte) return;
+    const sorte = g.sorte;
+    const nouveau = deposerDansOrdre(enOrdreManuel(sorte).map((e) => e.id), g.id, cible.id);
+    if (!nouveau) return;
+    preferences.update((p) => ({
+      ...p,
+      ordreManuelCollections: { ...p.ordreManuelCollections, [sorte]: nouveau },
+    }));
+  }
 
   /* ---------------- Rail A-Z de la LISTE des collections ------------------- */
   /**
@@ -635,11 +688,15 @@
    * leurs règles ; l'utilisateur veut pouvoir le changer à l'écran.
    *
    * Côté CLIENT, sur la liste reçue : `/smart-collections/{id}/albums` ne prend
-   * pas `?sort=`, et ses albums ne portent que titre, artiste et ANNÉE — ni
-   * date de sortie, ni date d'ajout. On ne propose donc que ces trois clés.
+   * pas `?sort=`, et ses albums ne portaient que titre, artiste et ANNÉE.
    * `regles` = l'ordre défini par les règles, le défaut.
+   *
+   * web#2206 (Jean Valjean, fil 2300) — « Date de sortie » aussi : le serveur
+   * (même issue) joint désormais `release_date` et `original_date` aux albums
+   * d'une collection intelligente. Face à un serveur plus ancien, la clé
+   * retombe sur l'année (`trierAlbums`), elle trie donc toujours quelque chose.
    */
-  const TRIS_SMART = ['regles', 'artist', 'title', 'year'] as const;
+  const TRIS_SMART = ['regles', 'artist', 'title', 'year', 'release_date'] as const;
   type TriSmart = (typeof TRIS_SMART)[number];
   let triSmart = $state<TriSmart>(lireChoix<TriSmart>('v2.collection.smart.tri', TRIS_SMART, 'regles'));
   let sensSmart = $state<Sens>(lireChoix<Sens>('v2.collection.smart.sens', SENS, 'asc'));
@@ -647,6 +704,7 @@
   $effect(() => { ecrireChoix('v2.collection.smart.sens', sensSmart); });
   const LIBELLES_SMART: Record<TriSmart, string> = {
     regles: 'v2.col.sortRules', artist: 'v2.lib.sortArtist', title: 'v2.lib.sortTitle', year: 'v2.lib.sortYear',
+    release_date: 'library.sortReleaseDate',
   };
   /** Ce que la grille AFFICHE — et ce que « Tout lire » enchaîne. */
   const albumsVus = $derived(
@@ -1338,6 +1396,7 @@
           <option value="alphaInverse">{$t('v2.fav.sortAlphaDesc' as any)}</option>
           <option value="recent">{$t('v2.fav.sortRecent' as any)}</option>
           <option value="ancien">{$t('v2.fav.sortOldest' as any)}</option>
+          <option value="manuel">{$t('v2.rayons.orderManual' as any)}</option>
         </select>
       </label>
       {/if}
@@ -1376,6 +1435,10 @@
       <!-- #1153 : le rail des « répertoires », que la V0 a et que le nouvel
            écran n'avait pas. Rail et grille sont FRERES, comme dans le détail :
            les imbriquer ferait défiler le rail avec la liste. -->
+      {#if tri === 'manuel'}
+        <!-- web#2256 : le geste, dit une fois — le même texte que l'onglet Rayons. -->
+        <p class="indicemanuel">{$t('v2.rayons.reorderHint' as any)}</p>
+      {/if}
       <div class="aveclettres" bind:this={grilleListeEl}>
         {#if railListe}
         <div class="rail">
@@ -1385,14 +1448,22 @@
           {/each}
         </div>
         {/if}
-      <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
+      <div class="grid" role="list" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
         {#each visibles as e (e.sorte + ':' + e.id)}
           <!-- Un LISERE de couleur, pas un fond : une pochette doit rester
                lisible. -->
           <!-- La lettre du rail suit le libelle LU ; la teinte reste derivee du nom
                STOCKE, pour qu'une collection ne change pas de couleur en changeant
                de langue. -->
-          <div class="card" data-lettre={initiale(libelleTradu(e))} style="--teinte:{teinte(e.nom)}">
+          <div class="card" data-lettre={initiale(libelleTradu(e))} style="--teinte:{teinte(e.nom)}"
+            data-collection={`${e.sorte}:${e.id}`}
+            role="listitem"
+            draggable={tri === 'manuel'}
+            class:survol={survolCarte === `${e.sorte}:${e.id}`}
+            ondragstart={(ev) => commencerGlisse(ev, e)}
+            ondragover={(ev) => passerSurCarte(ev, e)}
+            ondragleave={() => (survolCarte = survolCarte === `${e.sorte}:${e.id}` ? null : survolCarte)}
+            ondrop={(ev) => deposerSurCarte(ev, e)}>
             <span class="cv teintee">
               <!-- Les deux sortes portent des `item_type` DISTINCTS : leurs
                    identifiants se recouvrent (l'id 1 est à la fois la
@@ -1654,6 +1725,10 @@
   .grid.liste{grid-template-columns:1fr; gap:2px}
   .grid.liste .card{flex-direction:row; align-items:center; gap:14px; padding:6px 10px; border-radius:9px}
   .grid.liste .card:hover{background:var(--v2-hover)}
+  /* web#2256 — même liseré que l'onglet Rayons (ArbreRayons, `.col.survol`). */
+  .card.survol{outline:2px dashed var(--v2-acc1); outline-offset:2px; border-radius:9px}
+  .card[draggable="true"]{cursor:grab}
+  .indicemanuel{margin:0 0 8px; font-size:12px; color:var(--v2-txt3)}
   .grid.liste .cv{width:48px; flex:0 0 48px}
   .grid.liste .meta{flex-direction:row; align-items:baseline; gap:12px; flex:1; min-width:0}
   .grid.liste .meta .ct{max-width:60%; min-width:0}

@@ -39,7 +39,7 @@ beforeEach(() => {
   currentZoneId.set(1);
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
-    if (url.endsWith('/zones')) return response(serverZones);
+    if (/\/zones(?:\?lang=[a-z]{2})?$/.test(url)) return response(serverZones);
     if (url.endsWith('/zones/stereo-pairs')) return response([]);
     if (url.includes('tune-tested.json')) return response({ version: 1, count: 0, devices: [] });
     if (url.endsWith('/system/diagnostics')) return response({ zones_doublons: [] });
