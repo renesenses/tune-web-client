@@ -1,3 +1,6 @@
+import { get } from 'svelte/store';
+import { locale } from './i18n';
+import { avecLangue } from './langueRequete';
 // WebSocket client for real-time events from tune-server
 // Falls back to HTTP polling after repeated WS failures
 
@@ -12,6 +15,8 @@ const POLLING_INTERVAL_MS = 2000;
 
 class TuneWebSocket {
   private ws: WebSocket | null = null;
+  private arreterLangue: (() => void) | null = null;
+  private langueConnexion: string | null = null;
   private handlers: EventHandler[] = [];
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectDelay = 1000;
@@ -49,7 +54,17 @@ class TuneWebSocket {
     // to see if WS has become available (e.g. after server restart)
     // `/ws` en local ; `/ws/client/{server_id}?token=…` a travers le relais,
     // dont la poignee de main ne peut pas porter d'en-tete.
-    const url = urlWebSocket();
+    const langue = get(locale);
+    this.langueConnexion = langue;
+    if (!this.arreterLangue) {
+      this.arreterLangue = locale.subscribe((nouvelle) => {
+        if (this.langueConnexion !== nouvelle) {
+          this.disconnect();
+          this.connect();
+        }
+      });
+    }
+    const url = avecLangue(urlWebSocket(), langue);
 
     try {
       this.ws = new WebSocket(url);
@@ -207,12 +222,22 @@ class TuneWebSocket {
   }
 
   disconnect() {
+    this.arreterLangue?.();
+    this.arreterLangue = null;
+    this.langueConnexion = null;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
     this.stopPolling();
-    this.ws?.close();
+    if (this._stableTimer) clearTimeout(this._stableTimer);
+    if (this.ws) {
+      this.ws.onclose = null;
+      this.ws.onopen = null;
+      this.ws.onmessage = null;
+      this.ws.onerror = null;
+      this.ws.close();
+    }
     this.ws = null;
     this._connected = false;
   }

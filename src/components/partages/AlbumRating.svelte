@@ -1,7 +1,8 @@
 <script lang="ts">
   import * as api from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
-  import { t as tr } from '../../lib/i18n';
+  import { t as tr, locale } from '../../lib/i18n';
+  import { ligneCommunautaire, type AgregatsCommunautaires } from '../../lib/notesCommunautaires';
 
   interface Props {
     albumId: number;
@@ -14,10 +15,16 @@
   let savedNote = $state('');
   let loadedAlbumId = $state<number | null>(null);
   let submitting = $state(false);
+  // #6545 — les agrégats publics de la communauté (null : rien à afficher).
+  let communaute = $state<AgregatsCommunautaires | null>(null);
+  let ligne = $derived(ligneCommunautaire(communaute, $locale, $tr));
 
   async function load(id: number) {
     // Mark the target album before awaiting so the effect doesn't re-fire.
     loadedAlbumId = id;
+    communaute = null;
+    // Indépendant de la note : un serveur muet ou non relié n'empêche rien.
+    api.getAlbumCommunity(id).then((c) => { if (loadedAlbumId === id) communaute = c; }).catch(() => {});
     try {
       const r = await api.getAlbumRating(id);
       rating = r.rating ?? 0;
@@ -89,6 +96,9 @@
       </button>
     {/each}
   </div>
+  {#if ligne}
+    <div class="album-community" data-communaute="album">{ligne}</div>
+  {/if}
   <div class="album-rating-note">
     <input
       type="text"
@@ -137,6 +147,11 @@
   .star-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .album-community {
+    font-size: 12px;
+    color: var(--tune-text-muted);
   }
 
   .rating-note-input {

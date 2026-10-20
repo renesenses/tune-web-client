@@ -161,9 +161,10 @@ describe('#899 — « Ajout récent » : l’option existe, elle ne doit plus s�
     const el = await poserVide();
     await livrer(AVEC_DATE);
     // « Aléatoire » ferme la liste depuis tune-server-rust#4558 : il ne
-    // dépend d'aucune donnée, il est donc toujours du menu.
+    // dépend d'aucune donnée, il est donc toujours du menu. « Date de
+    // sortie » (web#2206) retombe sur l'année : toujours du menu lui aussi.
     expect(menuTri(el), 'le menu de tri n’offre pas « Ajout récent »')
-      .toEqual(['Titre', 'Artiste', 'Année', 'Ajout récent', 'Aléatoire']);
+      .toEqual(['Titre', 'Artiste', 'Année', 'Ajout récent', 'Date de sortie', 'Aléatoire']);
   });
 
   it('CONTRE-ÉPREUVE : une bibliothèque CHARGÉE sans date d’ajout retire bien le tri', async () => {
@@ -174,7 +175,7 @@ describe('#899 — « Ajout récent » : l’option existe, elle ne doit plus s�
     await livrer(SANS_DATE);
 
     expect(menuTri(el), '« Ajout récent » est proposé sur une bibliothèque sans aucune date')
-      .toEqual(['Titre', 'Artiste', 'Année', 'Aléatoire']);
+      .toEqual(['Titre', 'Artiste', 'Année', 'Date de sortie', 'Aléatoire']);
     expect(libelleTri(el), 'l’écran est resté sur un tri absent du menu').toBe('Titre');
     expect(localStorage.getItem(CLE_TRI)).toBe('title');
   });

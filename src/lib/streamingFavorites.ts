@@ -56,6 +56,12 @@ export interface StreamingRef {
    * favori pour qu'une playlist intelligente puisse l'écarter.
    */
   aiGenerated?: boolean;
+  /**
+   * tune-server-rust#6482 — l'identifiant CHEZ LE SERVICE de l'artiste d'un
+   * album. Quand il est connu, mettre l'album en favori propose aussi
+   * l'artiste (à la demande : une notification, jamais un geste automatique).
+   */
+  artistId?: string;
 }
 
 /**
@@ -387,7 +393,50 @@ export function fusionnerPlaylistsFavorites(
  *
  * Renvoie le nouvel état, ou `null` si rien n'a pu être fait.
  */
+/**
+ * tune-server-rust#6482 (DidLyon, fil 2321) — « si on met un album en favori,
+ * ne pourrait-on pas mettre l'artiste également (automatiquement ou à la
+ * demande) ? ». FabienM conteste l'automatique (réponse 8458) : c'est donc À LA
+ * DEMANDE. L'artiste à proposer après l'ajout d'un album en favori, ou `null` :
+ * un retrait, un objet qui n'est pas un album, un artiste inconnu ou déjà en
+ * favori ne proposent rien.
+ */
+export function artisteAProposer(
+  ref: StreamingRef,
+  devenuFavori: boolean | null,
+  cles: ReadonlySet<string>,
+): StreamingRef | null {
+  if (devenuFavori !== true || ref.itemType !== 'album') return null;
+  const artistId = (ref.artistId ?? '').trim();
+  if (!artistId) return null;
+  const artiste: StreamingRef = { itemType: 'artist', service: ref.service, serviceId: artistId, title: ref.artist };
+  const cle = favKeyOf(artiste);
+  if (!cle || cles.has(cle)) return null;
+  return artiste;
+}
+
+/** La notification qui propose l'artiste ; son bouton pose le cœur de l'artiste. */
+export function proposerArtisteEnFavori(artiste: StreamingRef): void {
+  const traduire = get(t);
+  const nom = artiste.title?.trim() || traduire('favoris.artistAlso.unknown' as any);
+  notifications.withAction(
+    traduire('favoris.artistAlso.message' as any).replace('{artist}', nom),
+    traduire('favoris.artistAlso.action' as any),
+    () => { void toggleStreamingFavorite(artiste); },
+  );
+}
+
 export async function toggleStreamingFavorite(ref: StreamingRef): Promise<boolean | null> {
+  const avant = isStreamingFavorite(get(favoriteStreamingKeys), ref);
+  const etat = await basculerFavoriDeService(ref);
+  // Un AJOUT réussi seulement : un retrait, ou un ajout revenu en arrière
+  // (l'écriture a échoué), ne propose rien.
+  const artiste = artisteAProposer(ref, !avant && etat === true, get(favoriteStreamingKeys));
+  if (artiste) proposerArtisteEnFavori(artiste);
+  return etat;
+}
+
+async function basculerFavoriDeService(ref: StreamingRef): Promise<boolean | null> {
   const key = favKeyOf(ref);
   if (!key) return null;
 

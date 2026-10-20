@@ -41,8 +41,8 @@ beforeEach(() => {
     const url = String(input);
     const method = (init?.method ?? 'GET').toUpperCase();
     parties.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : null });
-    if (/\/zones\/\d+$/.test(url) && method === 'PATCH') return response({ ...serverZones[0], name: 'Bureau' });
-    if (url.endsWith('/zones')) return response(serverZones);
+    if (/\/zones\/\d+(?:\?lang=[a-z]{2})?$/.test(url) && method === 'PATCH') return response({ ...serverZones[0], name: 'Bureau' });
+    if (/\/zones(?:\?lang=[a-z]{2})?$/.test(url)) return response(serverZones);
     if (url.endsWith('/zones/stereo-pairs')) return response([]);
     if (url.includes('tune-tested.json')) return response({ version: 1, count: 0, devices: [] });
     if (url.endsWith('/system/diagnostics')) return response({ zones_doublons: [] });
@@ -108,7 +108,7 @@ describe('fil 2132 — renommer une zone en vue Grille', () => {
     flushSync();
     await settle();
     const patchs = parties.filter((p) => p.method === 'PATCH');
-    expect(patchs).toEqual([{ url: expect.stringMatching(/\/zones\/1$/), method: 'PATCH', body: { name: 'Bureau' } }]);
+    expect(patchs).toEqual([{ url: expect.stringMatching(/\/zones\/1(?:\?lang=[a-z]{2})?$/), method: 'PATCH', body: { name: 'Bureau' } }]);
     expect(carte.querySelector('input.rn')).toBeNull();
   });
 
