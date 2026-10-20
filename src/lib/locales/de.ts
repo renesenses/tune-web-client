@@ -4631,6 +4631,8 @@ export default {
   "v2.circle.err.failed": "Die Aktion ist fehlgeschlagen. Bitte erneut versuchen.",
   "v2.circle.share.toggle": "Meine Bibliothek teilen",
   "v2.circle.share.what": "Die Kontakte in diesem Kreis können die Bibliothek dieses Servers durchsuchen, und nur dieses Servers: Titel, Interpret, Album, Jahr, Format, Abtastrate, Bittiefe, Dauer, Genre, Titel- und CD-Nummern, ISRC. Niemals Ihre Dateien oder deren Pfade, und vorerst nichts zum Anhören.",
+  "v2.circle.share.artwork": "Cover mit meinem Kreis teilen",
+  "v2.circle.share.artworkWhat": "Für jedes geteilte Album wird ein kleines Vorschaubild seines Covers (160 Pixel, ohne Metadaten) an mozaiklabs.fr gesendet und nur den Kontakten Ihrer Kreise gezeigt, die diese Bibliothek teilen. Beim Ausschalten werden die bereits gesendeten Vorschaubilder gelöscht.",
   "v2.circle.share.started": "Ihre Bibliothek wird mit diesem Kreis geteilt.",
   "v2.circle.share.stopped": "Teilen beendet: Dieser Kreis sieht Ihre Bibliothek nicht mehr.",
   "v2.circle.share.syncNone": "Es wurde noch keine Online-Kopie dieser Bibliothek gesendet: Ihre Kontakte sehen einen leeren Katalog.",

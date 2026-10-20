@@ -4585,6 +4585,8 @@ export default {
   "v2.circle.err.failed": "A művelet nem sikerült. Próbálja újra.",
   "v2.circle.share.toggle": "Könyvtáram megosztása",
   "v2.circle.share.what": "A kör kapcsolatai böngészhetik ennek a szervernek – és csak ennek – a könyvtárát: cím, előadó, album, év, formátum, mintavételi frekvencia, bitmélység, hossz, műfaj, sáv- és lemezszám, ISRC. A fájljait és azok elérési útját soha, és egyelőre semmit sem lehet meghallgatni.",
+  "v2.circle.share.artwork": "Borítók megosztása a körömmel",
+  "v2.circle.share.artworkWhat": "Minden megosztott albumhoz a borítójának kis bélyegképe (160 képpont, metaadatok nélkül) kerül a mozaiklabs.fr-re, és csak azoknak a köröknek a kapcsolatai látják, amelyekkel ezt a könyvtárat megosztja. Kikapcsoláskor a már elküldött bélyegképek törlődnek.",
   "v2.circle.share.started": "A könyvtára meg van osztva ezzel a körrel.",
   "v2.circle.share.stopped": "Megosztás leállítva: ez a kör már nem látja a könyvtárát.",
   "v2.circle.share.syncNone": "Erről a könyvtárról még nem ment el online másolat: a kapcsolatai üres katalógust fognak látni.",

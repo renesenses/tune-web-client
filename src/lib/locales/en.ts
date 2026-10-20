@@ -4651,6 +4651,8 @@ export default {
   "v2.circle.err.failed": "The action did not go through. Please try again.",
   "v2.circle.share.toggle": "Share my library",
   "v2.circle.share.what": "Contacts in this circle will be able to browse this server's library, and this server's only: title, artist, album, year, format, sample rate, bit depth, duration, genre, track and disc numbers, ISRC. Never your files or their paths, and nothing to listen to for now.",
+  "v2.circle.share.artwork": "Share covers with my circle",
+  "v2.circle.share.artworkWhat": "For each shared album, a small thumbnail of its cover (160 pixels, with no metadata) is sent to mozaiklabs.fr and shown only to the contacts of your circles that share this library. Turning it off deletes the thumbnails already sent.",
   "v2.circle.share.started": "Your library is shared with this circle.",
   "v2.circle.share.stopped": "Sharing stopped: this circle no longer sees your library.",
   "v2.circle.share.syncNone": "No online copy of this library has been sent yet: your contacts will see an empty catalogue.",

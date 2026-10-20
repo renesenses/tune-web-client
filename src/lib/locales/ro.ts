@@ -4631,6 +4631,8 @@ export default {
   "v2.circle.err.failed": "Acțiunea nu a reușit. Reîncercați.",
   "v2.circle.share.toggle": "Partajează biblioteca mea",
   "v2.circle.share.what": "Contactele din acest cerc vor putea răsfoi biblioteca acestui server, și numai a lui: titlu, artist, album, an, format, frecvență, adâncime, durată, gen, numere de piesă și de disc, ISRC. Niciodată fișierele sau căile lor și, deocamdată, nimic de ascultat.",
+  "v2.circle.share.artwork": "Partajează copertele cu cercul meu",
+  "v2.circle.share.artworkWhat": "Pentru fiecare album partajat, o mică miniatură a copertei (160 de pixeli, fără metadate) este trimisă la mozaiklabs.fr și arătată doar contactelor din cercurile dvs. care partajează această bibliotecă. Dezactivarea șterge miniaturile deja trimise.",
   "v2.circle.share.started": "Biblioteca ta este partajată cu acest cerc.",
   "v2.circle.share.stopped": "Partajare oprită: acest cerc nu mai vede biblioteca ta.",
   "v2.circle.share.syncNone": "Nicio copie online a acestei biblioteci nu a fost încă trimisă: contactele tale vor vedea un catalog gol.",
