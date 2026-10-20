@@ -3278,7 +3278,7 @@ export default {
   "v2.meta.drToEngrave": "beírandó szám",
   "v2.meta.drInFiles": "szám, ahol a DR már a fájlban van",
   "v2.meta.drOtherFormats": "mért, de nem beírható (MP3, M4A…)",
-  "v2.meta.drProgress": "{done} / {total} szám feldolgozva",
+  "v2.meta.drProgress": "Folyamatban lévő menet: {done} / {total} szám feldolgozva (az indításkor rögzített lista)",
   "v2.meta.drDone": "Kész: {written} beírva, {already} már a fájlban volt, {skipped} fájl nem található, {errors} hiba.",
   "v2.meta.drNothing": "Nincs mit beírni: minden mért szám már a fájlban hordozza a DR-jét.",
   "v2.meta.drUnavail": "A beírás nem érhető el.",
@@ -5324,6 +5324,8 @@ export default {
   "assistantIa.lot.applied": "{n} módosítás alkalmazva {albums} albumon.",
   "assistantIa.lot.undo": "A köteg visszavonása",
   "assistantIa.lot.undone": "Köteg visszavonva.",
+  "v2.meta.drToEngraveLive": "még beírandó (élő számlálás)",
+  "v2.meta.drCountersNote": "A „Folyamatban lévő menet” a „Beírás” megnyomásakor rögzített listára vonatkozik. A „Még beírandó” élőben számolódik újra: tartalmazza az indítás óta megmért számokat, valamint e menet nem található vagy hibás fájljait. A két szám ezért nem egészíti ki egymást.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

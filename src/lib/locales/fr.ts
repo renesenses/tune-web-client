@@ -3345,7 +3345,7 @@ export default {
   "v2.meta.drToEngrave": "pistes à graver",
   "v2.meta.drInFiles": "pistes déjà gravées dans le fichier",
   "v2.meta.drOtherFormats": "mesurées mais non gravables (MP3, M4A…)",
-  "v2.meta.drProgress": "{done} / {total} pistes traitées",
+  "v2.meta.drProgress": "Passe en cours : {done} / {total} pistes traitées (liste figée au lancement)",
   "v2.meta.drDone": "Terminé : {written} gravées, {already} déjà présentes dans le fichier, {skipped} fichiers introuvables, {errors} erreurs.",
   "v2.meta.drNothing": "Rien à graver : toutes les pistes mesurées portent déjà leur DR dans le fichier.",
   "v2.meta.drUnavail": "Gravure indisponible.",
@@ -5387,6 +5387,8 @@ export default {
   "assistantIa.lot.applied": "{n} modification(s) appliquée(s) sur {albums} album(s).",
   "assistantIa.lot.undo": "Annuler ce lot",
   "assistantIa.lot.undone": "Lot annulé.",
+  "v2.meta.drToEngraveLive": "restent à graver (recompté en direct)",
+  "v2.meta.drCountersNote": "« Passe en cours » porte sur la liste figée au clic sur « Graver ». « Restent à graver » est recompté en direct : il inclut les pistes mesurées depuis le lancement, ainsi que les fichiers introuvables ou en erreur de cette passe. Les deux nombres ne se complètent donc pas.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

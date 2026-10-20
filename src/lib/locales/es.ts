@@ -3324,7 +3324,7 @@ export default {
   "v2.meta.drToEngrave": "pistas por escribir",
   "v2.meta.drInFiles": "pistas con el DR ya en el archivo",
   "v2.meta.drOtherFormats": "medidas pero no escribibles (MP3, M4A…)",
-  "v2.meta.drProgress": "{done} / {total} pistas procesadas",
+  "v2.meta.drProgress": "Pasada en curso: {done} / {total} pistas procesadas (lista fijada al iniciar)",
   "v2.meta.drDone": "Terminado: {written} escritas, {already} ya presentes en el archivo, {skipped} archivos no encontrados, {errors} errores.",
   "v2.meta.drNothing": "Nada que escribir: todas las pistas medidas ya llevan su DR en el archivo.",
   "v2.meta.drUnavail": "Escritura no disponible.",
@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "{n} cambio(s) aplicado(s) en {albums} álbum(es).",
   "assistantIa.lot.undo": "Deshacer este lote",
   "assistantIa.lot.undone": "Lote deshecho.",
+  "v2.meta.drToEngraveLive": "quedan por escribir (recuento en directo)",
+  "v2.meta.drCountersNote": "«Pasada en curso» se refiere a la lista fijada al pulsar «Escribir». «Quedan por escribir» se recuenta en directo: incluye las pistas medidas desde el inicio y los archivos de esta pasada no encontrados o con error. Por eso las dos cifras no se complementan.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

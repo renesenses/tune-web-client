@@ -3324,7 +3324,7 @@ export default {
   "v2.meta.drToEngrave": "書き込み対象のトラック",
   "v2.meta.drInFiles": "ファイルに DR 済みのトラック",
   "v2.meta.drOtherFormats": "測定済みだが書き込めない（MP3、M4A など）",
-  "v2.meta.drProgress": "{done} / {total} トラック処理済み",
+  "v2.meta.drProgress": "実行中のパス：{done} / {total} トラック処理済み（開始時に固定されたリスト）",
   "v2.meta.drDone": "完了：{written} 件書き込み、{already} 件はファイルに既存、{skipped} 件ファイル未検出、{errors} 件エラー。",
   "v2.meta.drNothing": "書き込むものはありません：測定済みのトラックはすべてファイルに DR を持っています。",
   "v2.meta.drUnavail": "書き込みは利用できません。",
@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "{albums}枚のアルバムに{n}件の変更を適用しました。",
   "assistantIa.lot.undo": "この一括処理を取り消す",
   "assistantIa.lot.undone": "一括処理を取り消しました。",
+  "v2.meta.drToEngraveLive": "残りの書き込み対象（リアルタイム集計）",
+  "v2.meta.drCountersNote": "「実行中のパス」は「書き込む」をクリックした時点で固定されたリストが対象です。「残りの書き込み対象」はリアルタイムで再集計され、開始後に測定されたトラックと、このパスで見つからなかったファイルやエラーになったファイルを含みます。そのため、2つの数値は互いに補い合いません。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

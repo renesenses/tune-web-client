@@ -3324,7 +3324,7 @@ export default {
   "v2.meta.drToEngrave": "piese de scris",
   "v2.meta.drInFiles": "piese cu DR deja în fișier",
   "v2.meta.drOtherFormats": "măsurate, dar nescriibile (MP3, M4A…)",
-  "v2.meta.drProgress": "{done} / {total} piese procesate",
+  "v2.meta.drProgress": "Trecere în curs: {done} / {total} piese procesate (listă fixată la pornire)",
   "v2.meta.drDone": "Gata: {written} scrise, {already} deja în fișier, {skipped} fișiere negăsite, {errors} erori.",
   "v2.meta.drNothing": "Nimic de scris: toate piesele măsurate au deja DR-ul în fișier.",
   "v2.meta.drUnavail": "Scrierea nu este disponibilă.",
@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "{n} modificare(ări) aplicată(e) pe {albums} album(e).",
   "assistantIa.lot.undo": "Anulează acest lot",
   "assistantIa.lot.undone": "Lot anulat.",
+  "v2.meta.drToEngraveLive": "rămase de scris (numărate în timp real)",
+  "v2.meta.drCountersNote": "„Trecere în curs” se referă la lista fixată la clic pe „Scrie”. „Rămase de scris” se renumără în timp real: include piesele măsurate de la pornire, precum și fișierele din această trecere negăsite sau cu erori. De aceea, cele două numere nu se completează.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

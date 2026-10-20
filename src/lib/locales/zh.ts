@@ -3324,7 +3324,7 @@ export default {
   "v2.meta.drToEngrave": "待写入的曲目",
   "v2.meta.drInFiles": "文件中已有 DR 的曲目",
   "v2.meta.drOtherFormats": "已测量但不可写入（MP3、M4A 等）",
-  "v2.meta.drProgress": "已处理 {done} / {total} 首曲目",
+  "v2.meta.drProgress": "当前批次：已处理 {done} / {total} 首曲目（启动时固定的列表）",
   "v2.meta.drDone": "完成：写入 {written} 首，{already} 首文件中已有，{skipped} 个文件未找到，{errors} 个错误。",
   "v2.meta.drNothing": "无需写入：所有已测量的曲目文件中都已带有 DR。",
   "v2.meta.drUnavail": "写入不可用。",
@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "已在 {albums} 张专辑上应用 {n} 项修改。",
   "assistantIa.lot.undo": "撤销本批次",
   "assistantIa.lot.undone": "批次已撤销。",
+  "v2.meta.drToEngraveLive": "剩余待写入（实时统计）",
+  "v2.meta.drCountersNote": "“当前批次”针对点击“写入”时固定的列表。“剩余待写入”实时重新统计：包括启动后新测得的曲目，以及本批次中未找到或出错的文件。因此两个数字并不互补。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

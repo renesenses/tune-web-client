@@ -3323,7 +3323,7 @@ export default {
   "v2.meta.drToEngrave": "spår att skriva",
   "v2.meta.drInFiles": "spår med DR redan i filen",
   "v2.meta.drOtherFormats": "mätta men ej skrivbara (MP3, M4A…)",
-  "v2.meta.drProgress": "{done} / {total} spår behandlade",
+  "v2.meta.drProgress": "Pågående körning: {done} / {total} spår behandlade (lista fastställd vid start)",
   "v2.meta.drDone": "Klart: {written} skrivna, {already} fanns redan i filen, {skipped} filer hittades inte, {errors} fel.",
   "v2.meta.drNothing": "Inget att skriva: alla mätta spår bär redan sitt DR i filen.",
   "v2.meta.drUnavail": "Skrivning ej tillgänglig.",
@@ -5364,4 +5364,6 @@ export default {
   "assistantIa.lot.applied": "{n} ändring(ar) tillämpade på {albums} album.",
   "assistantIa.lot.undo": "Ångra den här satsen",
   "assistantIa.lot.undone": "Satsen ångrad.",
+  "v2.meta.drToEngraveLive": "kvar att skriva (räknas live)",
+  "v2.meta.drCountersNote": "”Pågående körning” gäller listan som fastställdes när du klickade på ”Skriv”. ”Kvar att skriva” räknas om live: den omfattar spår som mätts sedan start samt filer i den här körningen som inte hittades eller misslyckades. De två talen kompletterar därför inte varandra.",
 } as const;

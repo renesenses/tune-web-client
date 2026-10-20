@@ -3324,7 +3324,7 @@ export default {
   "v2.meta.drToEngrave": "zu schreibende Titel",
   "v2.meta.drInFiles": "Titel mit DR bereits in der Datei",
   "v2.meta.drOtherFormats": "gemessen, aber nicht schreibbar (MP3, M4A…)",
-  "v2.meta.drProgress": "{done} / {total} Titel verarbeitet",
+  "v2.meta.drProgress": "Laufender Durchgang: {done} / {total} Titel verarbeitet (Liste beim Start festgelegt)",
   "v2.meta.drDone": "Fertig: {written} geschrieben, {already} bereits in der Datei, {skipped} Dateien nicht gefunden, {errors} Fehler.",
   "v2.meta.drNothing": "Nichts zu schreiben: alle gemessenen Titel tragen ihren DR bereits in der Datei.",
   "v2.meta.drUnavail": "Schreiben nicht verfügbar.",
@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "{n} Änderung(en) auf {albums} Album/Alben angewendet.",
   "assistantIa.lot.undo": "Diesen Stapel rückgängig machen",
   "assistantIa.lot.undone": "Stapel rückgängig gemacht.",
+  "v2.meta.drToEngraveLive": "noch zu schreiben (live gezählt)",
+  "v2.meta.drCountersNote": "„Laufender Durchgang“ bezieht sich auf die Liste, die beim Klick auf „Schreiben“ festgelegt wurde. „Noch zu schreiben“ wird live neu gezählt: Es umfasst die seit dem Start gemessenen Titel sowie die Dateien dieses Durchgangs, die nicht gefunden wurden oder fehlschlugen. Die beiden Zahlen ergänzen sich daher nicht.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

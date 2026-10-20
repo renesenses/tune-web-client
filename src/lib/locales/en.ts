@@ -3343,7 +3343,7 @@ export default {
   "v2.meta.drToEngrave": "tracks to write",
   "v2.meta.drInFiles": "tracks already carrying the DR in the file",
   "v2.meta.drOtherFormats": "measured but not writable (MP3, M4A…)",
-  "v2.meta.drProgress": "{done} / {total} tracks processed",
+  "v2.meta.drProgress": "Current pass: {done} / {total} tracks processed (list fixed at launch)",
   "v2.meta.drDone": "Done: {written} written, {already} already in the file, {skipped} files not found, {errors} errors.",
   "v2.meta.drNothing": "Nothing to write: every measured track already carries its DR in the file.",
   "v2.meta.drUnavail": "Writing unavailable.",
@@ -5385,6 +5385,8 @@ export default {
   "assistantIa.lot.applied": "{n} change(s) applied to {albums} album(s).",
   "assistantIa.lot.undo": "Undo this batch",
   "assistantIa.lot.undone": "Batch undone.",
+  "v2.meta.drToEngraveLive": "left to write (live count)",
+  "v2.meta.drCountersNote": "“Current pass” covers the list fixed when you clicked “Write”. “Left to write” is recounted live: it includes tracks measured since the launch, plus files from this pass that were missing or failed. The two numbers are therefore not meant to add up.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

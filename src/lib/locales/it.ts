@@ -3324,7 +3324,7 @@ export default {
   "v2.meta.drToEngrave": "tracce da scrivere",
   "v2.meta.drInFiles": "tracce con il DR già nel file",
   "v2.meta.drOtherFormats": "misurate ma non scrivibili (MP3, M4A…)",
-  "v2.meta.drProgress": "{done} / {total} tracce elaborate",
+  "v2.meta.drProgress": "Passata in corso: {done} / {total} tracce elaborate (elenco fissato all'avvio)",
   "v2.meta.drDone": "Fatto: {written} scritte, {already} già presenti nel file, {skipped} file non trovati, {errors} errori.",
   "v2.meta.drNothing": "Niente da scrivere: tutte le tracce misurate portano già il DR nel file.",
   "v2.meta.drUnavail": "Scrittura non disponibile.",
@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "{n} modifica/he applicata/e su {albums} album.",
   "assistantIa.lot.undo": "Annulla questo lotto",
   "assistantIa.lot.undone": "Lotto annullato.",
+  "v2.meta.drToEngraveLive": "ancora da scrivere (conteggio in tempo reale)",
+  "v2.meta.drCountersNote": "«Passata in corso» riguarda l'elenco fissato al clic su «Scrivi». «Ancora da scrivere» è ricontato in tempo reale: include le tracce misurate dall'avvio e i file di questa passata non trovati o in errore. Per questo i due numeri non si completano.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];
