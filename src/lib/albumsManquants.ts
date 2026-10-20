@@ -7,7 +7,15 @@
  * requête par seconde, jusqu'à quinze pour un artiste prolifique) : l'écran ne
  * la déclenche qu'à la demande, jamais à l'ouverture de la fiche.
  */
-export type StatutManquants = 'ok' | 'non_identifie' | 'inconnu' | 'indisponible';
+export type StatutManquants =
+  | 'ok'
+  | 'non_identifie'
+  | 'inconnu'
+  | 'indisponible'
+  | 'sans_album'
+  // Pas un statut du serveur : une réponse 500 `code: bibliotheque_illisible`,
+  // traduite ici pour que l'écran dise CE qui a échoué.
+  | 'bibliotheque_illisible';
 
 export interface GroupeManquant {
   mbid: string;
@@ -48,7 +56,24 @@ export function cleEtat(r: ReponseManquants): string {
       return 'v2.manquants.nonIdentifie';
     case 'indisponible':
       return 'v2.manquants.indisponible';
+    case 'sans_album':
+      return 'v2.manquants.sansAlbum';
+    case 'bibliotheque_illisible':
+      return 'v2.manquants.bibliothequeIllisible';
     default:
       return (r.manquants?.length ?? 0) > 0 ? 'v2.manquants.compte' : 'v2.manquants.aucun';
   }
+}
+
+/** Le code d'erreur que rend le serveur quand la bibliothèque est illisible. */
+export const CODE_BIBLIOTHEQUE_ILLISIBLE = 'bibliotheque_illisible';
+
+/**
+ * La réponse à afficher pour une requête en ÉCHEC : une bibliothèque illisible
+ * (500, `code: bibliotheque_illisible`) a sa propre phrase ; tout autre échec
+ * (réseau, serveur antérieur) reste « MusicBrainz ne répond pas ».
+ */
+export function reponseDEchec(e: unknown): ReponseManquants {
+  const code = (e as { code?: unknown } | null)?.code;
+  return { statut: code === CODE_BIBLIOTHEQUE_ILLISIBLE ? 'bibliotheque_illisible' : 'indisponible' };
 }

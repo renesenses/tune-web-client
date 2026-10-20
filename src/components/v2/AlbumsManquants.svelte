@@ -10,7 +10,7 @@
 <script lang="ts">
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import { anneeDe, cleEtat, lienMusicBrainz, type ReponseManquants } from '../../lib/albumsManquants';
+  import { anneeDe, cleEtat, lienMusicBrainz, reponseDEchec, type ReponseManquants } from '../../lib/albumsManquants';
 
   interface Props {
     artistId: number;
@@ -36,8 +36,8 @@
     try {
       const r = await api.getArtistMissingAlbums(artistId, avecSecondaires);
       if (j === jeton) reponse = r;
-    } catch {
-      if (j === jeton) reponse = { statut: 'indisponible' };
+    } catch (e) {
+      if (j === jeton) reponse = reponseDEchec(e);
     } finally {
       if (j === jeton) enCours = false;
     }

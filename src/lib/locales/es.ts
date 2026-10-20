@@ -5090,6 +5090,8 @@ export default {
   // #4805 lot 1 — enrichissement d'après MetaRust (Xavier Joly).
   "credits.wikidataTip": "Instrumentos de la ficha de Wikidata del artista: lo que toca en general, no necesariamente en este disco.",
   "credits.wikidataSource": "según Wikidata",
+  "v2.manquants.bibliothequeIllisible": "No se pudo leer la biblioteca: no se ha hecho la comparación.",
+  "v2.manquants.sansAlbum": "Ningún álbum de este artista está en la biblioteca: nada que comparar.",
   "v2.manquants.titre": "Álbumes que faltan",
   "v2.manquants.afficher": "Comparar con la discografía",
   "v2.manquants.chargement": "Leyendo la discografía…",
