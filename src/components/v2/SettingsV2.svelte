@@ -61,7 +61,7 @@
   import * as api from '../../lib/api';
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
-  import { chargerLienAcces, qrSvg } from '../../lib/lienAccesDistant';
+  import { chargerLienAcces, qrSvg, renouvelerLienAcces } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
@@ -1033,6 +1033,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
   async function copierLienPont() {
     if (brLien) brLienCopie = await copyText(brLien);
+  }
+  // Renouveler le lien : nouveau jeton côté serveur, le relais oublie
+  // l'ancien. Tout ce qui s'en sert déjà (liens, QR, apps appairées) cesse de
+  // marcher : on le dit avant, et l'écran montre ensuite le nouveau lien.
+  let brRenouvellement = $state(false);
+  async function renouvelerLienPont() {
+    if (!(await dialogs.confirm(get(t)('settings.remoteLinkRenewConfirm' as any), { danger: true }))) return;
+    brRenouvellement = true;
+    try {
+      brLien = await renouvelerLienAcces((chemin) => api.apiPost(chemin));
+      brLienCopie = false;
+      brToken = '';
+      notifications.success(get(t)('settings.remoteLinkRenewed' as any));
+    } catch {
+      notifications.error(get(t)('settings.remoteLinkRenewFailed' as any));
+    }
+    brRenouvellement = false;
   }
   $effect(() => {
     api.apiFetch('/cloud/bridge/status')
@@ -6659,6 +6676,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </div>
                   <div class="brqr" data-acces="qr" aria-label={$t('settings.remoteLinkQr' as any)} role="img">
                     {@html brQr}
+                  </div>
+                  <div class="row">
+                    <div class="lbl">
+                      <span class="hint">{$t('settings.remoteLinkRenewHint' as any)}</span>
+                    </div>
+                    <button class="lnk danger" data-acces="renouveler" onclick={renouvelerLienPont} disabled={brRenouvellement}>
+                      {brRenouvellement ? '…' : $t('settings.remoteLinkRenew' as any)}
+                    </button>
                   </div>
                 {/if}
                 {#if brToken}
