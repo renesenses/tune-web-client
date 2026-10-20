@@ -3617,6 +3617,7 @@ export default {
   "v2.fas.topTracksFailed": "Les titres phares n'ont pas pu être chargés — « Best of » a besoin d'eux.",
   "v2.fas.artistNotFound": "Cet artiste est introuvable chez {service}.",
   "v2.fas.artistUnavailable": "{service} n'a pas pu fournir la fiche de cet artiste pour le moment.",
+  "v2.fas.play": "Lire",
   "v2.fas.bestOf": "Écouter le best of",
   "v2.fas.radio": "Radio de l'artiste",
   "v2.fas.radioServeurAncien": "La radio de l'artiste demande une version plus récente du serveur Tune, et cette fiche n'a pas de titres phares à mélanger.",

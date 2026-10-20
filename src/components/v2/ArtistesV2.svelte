@@ -67,6 +67,8 @@
   import { cleDeTriArtiste, comparerArtistes, initialeAlphabetique } from '../../lib/ordreAlphabetique';
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
+  import { PLAFOND_ARTISTE, lireArtisteBibliotheque } from '../../lib/lireArtiste';
+  import { tirageAleatoire } from '../../lib/porteeAleatoire';
   import { sourcesArtistesServeur, pagePorteLesSources, sourcesDepuisLeServeur } from '../../lib/stores/sourcesArtistesServeur';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -315,13 +317,32 @@
       return;
     }
     try {
-      const liste = (await api.getArtistAlbums(a.id!)) ?? [];
-      const premier = liste.find((x) => x?.id != null && dansSource(x, provenance));
-      if (!premier) {
+      // tune-server-rust#6467 — la vignette jouait le PREMIER album local
+      // (fil 2302, point 10). Hors filtre de provenance, elle joue l'artiste :
+      // 50 titres au hasard, tirés par le serveur (`lib/lireArtiste`).
+      if (provenance == null) {
+        const n = await lireArtisteBibliotheque(a.id!, {
+          lire: (c) => playAndSync(zid, c as any),
+          titres: (id) => api.getArtistTracks(id),
+        });
+        if (n === 0) notifications.error($t('library.noTracks' as any));
+        return;
+      }
+      // Sous un filtre de provenance, les titres de cette provenance seuls,
+      // au hasard eux aussi.
+      const pistes = ((await api.getArtistTracks(a.id!)) ?? []).filter(
+        (p: any) => p?.id != null && !p.banned && dansSource(p, provenance),
+      );
+      const tires = tirageAleatoire(pistes, PLAFOND_ARTISTE);
+      if (!tires.length) {
         notifications.error($t('v2.art.noAlbum' as any));
         return;
       }
-      await playAndSync(zid, { album_id: premier.id! });
+      await playAndSync(zid, {
+        track_ids: tires.map((p: any) => p.id as number),
+        context_type: 'artist',
+        context_id: String(a.id),
+      });
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     }

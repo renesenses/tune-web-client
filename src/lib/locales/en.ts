@@ -3615,6 +3615,7 @@ export default {
   "v2.fas.topTracksFailed": "Top tracks could not be loaded — “Best of” needs them.",
   "v2.fas.artistNotFound": "This artist could not be found on {service}.",
   "v2.fas.artistUnavailable": "{service} could not provide this artist's page right now.",
+  "v2.fas.play": "Play",
   "v2.fas.bestOf": "Play the best of",
   "v2.fas.radio": "Artist radio",
   "v2.fas.radioServeurAncien": "Artist radio needs a newer Tune server, and this page has no top tracks to shuffle.",

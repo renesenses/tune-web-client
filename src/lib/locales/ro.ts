@@ -3595,6 +3595,7 @@ export default {
   "v2.fas.topTracksFailed": "Piesele de top nu au putut fi încărcate — „Best of” are nevoie de ele.",
   "v2.fas.artistNotFound": "Acest artist nu a fost găsit pe {service}.",
   "v2.fas.artistUnavailable": "{service} nu a putut furniza pagina acestui artist deocamdată.",
+  "v2.fas.play": "Redă",
   "v2.fas.bestOf": "Ascultă cele mai bune",
   "v2.fas.radio": "Radio artist",
   "v2.fas.radioServeurAncien": "Radioul artistului necesită un server Tune mai recent, iar această pagină nu are piese de top de amestecat.",

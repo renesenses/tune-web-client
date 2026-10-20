@@ -3472,6 +3472,7 @@ export default {
   "v2.fas.topTracksFailed": "Không thể tải các bài hát nổi bật — “Best of” cần đến chúng.",
   "v2.fas.artistNotFound": "Không tìm thấy nghệ sĩ này trên {service}.",
   "v2.fas.artistUnavailable": "{service} hiện không thể cung cấp trang của nghệ sĩ này.",
+  "v2.fas.play": "Phát",
   "v2.fas.bestOf": "Phát best of",
   "v2.fas.radio": "Radio nghệ sĩ",
   "v2.fas.radioServeurAncien": "Radio nghệ sĩ cần máy chủ Tune phiên bản mới hơn, và trang này không có bài hát nổi bật nào để phát ngẫu nhiên.",

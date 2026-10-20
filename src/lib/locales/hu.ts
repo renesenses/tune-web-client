@@ -3549,6 +3549,7 @@ export default {
   "v2.fas.topTracksFailed": "A népszerű számokat nem sikerült betölteni – a „Best of” ezekre épül.",
   "v2.fas.artistNotFound": "Ez az előadó nem található a(z) {service} szolgáltatásban.",
   "v2.fas.artistUnavailable": "A(z) {service} most nem tudta betölteni az előadó adatlapját.",
+  "v2.fas.play": "Lejátszás",
   "v2.fas.bestOf": "A legjobbak lejátszása",
   "v2.fas.radio": "Előadórádió",
   "v2.fas.radioServeurAncien": "Az előadórádióhoz újabb Tune-szerver szükséges, és ezen az oldalon nincsenek keverhető népszerű számok.",

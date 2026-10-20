@@ -3595,6 +3595,7 @@ export default {
   "v2.fas.topTracksFailed": "No se han podido cargar las canciones destacadas: «Best of» las necesita.",
   "v2.fas.artistNotFound": "No se encuentra a este artista en {service}.",
   "v2.fas.artistUnavailable": "{service} no ha podido proporcionar la ficha de este artista por ahora.",
+  "v2.fas.play": "Reproducir",
   "v2.fas.bestOf": "Escuchar lo mejor",
   "v2.fas.radio": "Radio del artista",
   "v2.fas.radioServeurAncien": "La radio del artista requiere un servidor Tune más reciente, y esta ficha no tiene canciones destacadas para mezclar.",

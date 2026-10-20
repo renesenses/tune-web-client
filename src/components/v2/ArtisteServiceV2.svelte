@@ -62,6 +62,7 @@
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import { PLAFOND_ARTISTE, lireArtisteBibliotheque } from '../../lib/lireArtiste';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
   import { activeView, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
@@ -837,6 +838,44 @@
     await playAndSync(zid, { track_ids: ids, context_type: 'artist', context_id: String(a.id) } as any);
     return ids.length;
   }
+  /**
+   * tune-server-rust#6467 — « Lire » l'artiste : jusqu'à 50 de ses titres, au
+   * hasard. Artiste de bibliothèque → le serveur tire (`lib/lireArtiste`) ;
+   * artiste de service → ses titres phares, mélangés, bornés à 50.
+   */
+  async function lireLArtiste() {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    const idLocal = estLocal ? Number(cible?.id) : null;
+    if (idLocal != null && Number.isFinite(idLocal)) {
+      enMasseLocale = true;
+      try {
+        const n = await lireArtisteBibliotheque(idLocal, {
+          lire: (c) => playAndSync(zid, c as any),
+          titres: (id) => api.getArtistTracks(id),
+        });
+        if (n === 0) notifications.error($tr('library.noTracks' as any));
+      } catch (e: any) {
+        notifications.error(e?.message ?? $tr('common.error' as any));
+      }
+      enMasseLocale = false;
+      return;
+    }
+    if (!titres.length) return;
+    enMasse = true;
+    try {
+      const n = await lireListeAleatoire(titres, {
+        lire: (c: any) => playAndSync(zid, c),
+        enfiler: (c: any) => api.addToQueue(zid, c),
+        plafond: async () => PLAFOND_ARTISTE,
+      });
+      if (!n) notifications.error($tr('v2.fas.empty' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $tr('v2.fas.empty' as any));
+    }
+    enMasse = false;
+  }
+
   async function lireDiscographieLocale(aleatoire: boolean) {
     const a = artisteLocal;
     const zid = $currentZoneId;
@@ -917,6 +956,13 @@
     sousTitre={estLocal ? `${comptesFiche?.total ?? locaux.length} ${$tr('v2.art.albums' as any)}` : null}
     onRetour={retour}>
     {#snippet actions()}
+      <!-- tune-server-rust#6467 — « Lire » AVANT le best of (fil 2302, point
+           12) : 50 titres de l'artiste au hasard, bibliothèque ou service. -->
+      {#if estLocal || titres.length}
+        <button class="v2-btn" disabled={enMasse || enMasseLocale} onclick={lireLArtiste}>
+          {$tr('v2.fas.play' as any)}
+        </button>
+      {/if}
       {#if titres.length}
         <button class="v2-btn" disabled={enMasse} onclick={() => jouerLesTitres(false)}>
           {$tr('v2.fas.bestOf' as any)}

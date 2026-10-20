@@ -3595,6 +3595,7 @@ export default {
   "v2.fas.topTracksFailed": "Die Top-Titel konnten nicht geladen werden – „Best of“ braucht sie.",
   "v2.fas.artistNotFound": "Dieser Künstler ist bei {service} nicht zu finden.",
   "v2.fas.artistUnavailable": "{service} konnte die Seite dieses Künstlers gerade nicht liefern.",
+  "v2.fas.play": "Abspielen",
   "v2.fas.bestOf": "Best of abspielen",
   "v2.fas.radio": "Künstlerradio",
   "v2.fas.radioServeurAncien": "Das Künstlerradio erfordert einen neueren Tune-Server, und diese Seite hat keine Top-Titel zum Mischen.",
