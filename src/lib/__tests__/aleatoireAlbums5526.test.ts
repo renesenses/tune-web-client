@@ -118,7 +118,9 @@ describe('#5526 — la Bibliothèque V2 branche bien le chargement par album', (
 
   it('« Lire » (fil 1946) : la même chose, dans l’ordre des albums', () => {
     const corps = corpsDe('async function lireDansLOrdre()', 'async function aleatoireDistant');
-    expect(corps).toContain('pistesDesAlbums(ordre, chargeursDePistes)');
+    // tune-server-rust#6222 : la même règle de chargement, qui dit en plus si
+    // les pistes viennent des fiches (`chargerPistesDesAlbums`).
+    expect(corps).toContain('chargerPistesDesAlbums(ordre, chargeursDePistes)');
     expect(corps).not.toContain('api.getAllTracks()');
   });
 
