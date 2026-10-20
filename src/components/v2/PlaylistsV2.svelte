@@ -1,5 +1,6 @@
 <script lang="ts">
   import { bulleTexte } from '../../lib/infobulleTexte';
+  import type { PropositionIa } from '../../lib/assistantIa';
   /**
    * Playlists du nouveau client (direction Levente). Cœur de nav, présent à
    * tous les niveaux. Densité par niveau :
@@ -465,7 +466,9 @@
    *
    * `{ id: null }` crée, `{ id: <n> }` modifie.
    */
-  let editeurSmart = $state<{ id: number | null } | null>(null);
+  let editeurSmart = $state<{ id: number | null; propose?: PropositionIa | null } | null>(null);
+  /** Assistant IA, étape 1 : la fenêtre « une phrase → des règles ». */
+  let parPhrase = $state(false);
 
   /**
    * 🔴 L'ÉDITEUR DE RÈGLE EMPILE UNE ENTRÉE D'HISTORIQUE — web#1649.
@@ -478,8 +481,8 @@
    */
   let cleEditeurEmpilee: string | null = null;
 
-  function ouvrirEditeurSmart(id: number | null) {
-    editeurSmart = { id };
+  function ouvrirEditeurSmart(id: number | null, propose: PropositionIa | null = null) {
+    editeurSmart = { id, propose };
     cleEditeurEmpilee = `smartplaylist:${id ?? 'nouvelle'}`;
     ouvrirDetail(cleEditeurEmpilee);
   }
@@ -841,6 +844,7 @@
            bouton sert le plus. -->
       <div class="grp creer">
         <button class="v2-btn primaire" onclick={() => ouvrirEditeurSmart(null)}>{$t('smartPlaylists.new')}</button>
+        <button class="v2-btn" onclick={() => (parPhrase = true)} data-playlist-ia>{$t('assistantIa.playlist.button' as any)}</button>
       </div>
       {#if !smart.length}
         <div class="state">{$t('v2.pl.noSmart' as any)}</div>
@@ -936,8 +940,17 @@
     {#await import('./PlaylistSmartEditeurV2.svelte') then m}
       <m.default
         id={cibleSmart.id}
+        propose={cibleSmart.propose ?? null}
         onClose={retourEditeurSmart}
         onSaved={rechargerSmart} />
+    {/await}
+  {/if}
+
+  {#if parPhrase}
+    {#await import('./PlaylistParPhraseV2.svelte') then m}
+      <m.default
+        onClose={() => (parPhrase = false)}
+        onPropose={(p) => { parPhrase = false; ouvrirEditeurSmart(null, p); }} />
     {/await}
   {/if}
 

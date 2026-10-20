@@ -91,7 +91,7 @@ beforeEach(() => {
       return listeServeur === 404 ? reponse(404, { error: 'not_found' }) : reponse(200, listeServeur);
     }
     if (/\/sources\/[^/]+\/jouer$/.test(u)) return reponse(200, { ok: true });
-    if (/\/zones\/3$/.test(u)) return reponse(200, { id: 3, name: 'Salon', state: 'playing' });
+    if (/\/zones\/3(?:\?lang=[a-z]{2})?$/.test(u)) return reponse(200, { id: 3, name: 'Salon', state: 'playing' });
     if (/\/system\/scan\/status/.test(u)) return reponse(200, { scanning: false });
     return reponse(200, []);
   }));
@@ -283,13 +283,13 @@ describe('#5065 — page d’une entrée', () => {
     expect(bouton.textContent?.trim()).toBe(fr['v2.sources.listenOn'].replace('{zone}', 'Salon'));
     expect(bouton.disabled).toBe(false);
     bouton.click();
-    await jusqua(() => appels.some((a) => /\/zones\/3$/.test(a.url)));
+    await jusqua(() => appels.some((a) => /\/zones\/3(?:\?lang=[a-z]{2})?$/.test(a.url)));
     const jouer = appels.filter((a) => a.url.includes('/jouer'));
     expect(jouer).toHaveLength(1);
     expect(jouer[0].method).toBe('POST');
     expect(jouer[0].url).toMatch(/\/api\/v1\/sources\/entree%3Ayeti-x\/jouer$/);
     expect(jouer[0].body).toEqual({ zone_id: 3 });
-    expect(appels.some((a) => /\/zones\/3$/.test(a.url)), 'la zone n’a pas été relue').toBe(true);
+    expect(appels.some((a) => /\/zones\/3(?:\?lang=[a-z]{2})?$/.test(a.url)), 'la zone n’a pas été relue').toBe(true);
   });
 
   it('🔴 autorisation refusée : message lisible, où l’accorder dans macOS, bouton éteint', () => {
