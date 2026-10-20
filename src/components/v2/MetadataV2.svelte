@@ -30,6 +30,9 @@
   import { t } from '../../lib/i18n';
   import { chargerLesDoublons, DELAI_DOUBLONS_MS, type EchecDoublons } from '../../lib/doublonsChargement';
   import { titreDeCopie, titresDifferent } from '../../lib/doublonsCarte';
+  import { grouperParAlbums, questionDeRetrait, type CoupleAlbums } from '../../lib/albumsEnDouble';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { notifications } from '../../lib/stores/notifications';
   import '../../styles/tune-v2.css';
 
   type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr' | 'compil' | 'coffret' | 'manquants';
@@ -140,10 +143,51 @@
     dblAlbums = r.albums; dblArtistes = r.artistes; dblPaires = r.paires;
     dblEchec = r.echec;
     dblLoading = false;
+    void chargerAlbumsRetires();
     // #4471 : même onglet, même moment — mais une requête à part, pour qu'un
     // serveur antérieur (404) ne prive pas l'écran de ses trois autres listes.
     void chargerDisques();
     void chargerCoffrets();
+  }
+  /**
+   * tune-server-rust#6300 (Lulu, fil 2205) — retirer un album en double EN
+   * ENTIER. Les paires de pistes sont regroupées par couple d'albums ; le
+   * serveur rend d'abord le PLAN (rien n'est écrit), la confirmation le dit en
+   * clair, puis seulement le retrait. Retirer = masquer : aucun fichier n'est
+   * supprimé, et « Albums retirés » remet l'album.
+   */
+  let couplesAlbums = $derived<CoupleAlbums[]>(grouperParAlbums(dblPaires));
+  let albumsRetires = $state<api.AlbumRetire[]>([]);
+  let retraitEnCours = $state<string | null>(null);
+  async function chargerAlbumsRetires() {
+    try { albumsRetires = await api.listerAlbumsRetires(); }
+    catch { albumsRetires = []; }
+  }
+  async function retirerAlbum(c: CoupleAlbums, garder: number, retirer: number) {
+    if (retraitEnCours) return;
+    retraitEnCours = c.cle;
+    try {
+      const { plan } = await api.retirerAlbumDoublon(garder, retirer, false);
+      const question = questionDeRetrait($t('v2.meta.removeAlbumAsk' as any), plan);
+      if (!(await dialogs.confirm(question, { danger: true }))) return;
+      await api.retirerAlbumDoublon(garder, retirer, true);
+      notifications.success($t('v2.meta.albumRemoved' as any));
+      error = null;
+      await chargerDoublons();
+    } catch (e: any) {
+      error = e?.message ?? $t('v2.meta.decisionNotSaved' as any);
+    } finally {
+      retraitEnCours = null;
+    }
+  }
+  async function remettre(a: api.AlbumRetire) {
+    try {
+      await api.remettreAlbum(a.album_id);
+      error = null;
+      await chargerDoublons();
+    } catch (e: any) {
+      error = e?.message ?? $t('v2.meta.decisionNotSaved' as any);
+    }
   }
   $effect(() => {
     if (tab !== 'doublons' || dblLoaded) return;
@@ -866,6 +910,28 @@
             {/each}
           </div>
         {/if}
+        {#if couplesAlbums.length}
+          <div class="dh">{$t('v2.meta.dupAlbumsWhole' as any)} <span>{$formatNombre(couplesAlbums.length)}</span></div>
+          <div class="list">
+            {#each couplesAlbums as c (c.cle)}
+              <article class="prop grp" data-couple-albums={c.cle}>
+                <div class="pw">
+                  <div class="sub">A · {c.a.title}</div>
+                  <div class="sub">B · {c.b.title}</div>
+                  <div class="pf">{$t('v2.meta.dupAlbumsPairs' as any).replace('{n}', $formatNombre(c.paires))}</div>
+                  <div class="pa wrap">
+                    <button class="lnk" disabled={retraitEnCours != null} onclick={() => retirerAlbum(c, c.a.album_id, c.b.album_id)}>
+                      {$t('v2.meta.keepAlbumRemoveOther' as any).replace('{keep}', c.a.title)}
+                    </button>
+                    <button class="lnk" disabled={retraitEnCours != null} onclick={() => retirerAlbum(c, c.b.album_id, c.a.album_id)}>
+                      {$t('v2.meta.keepAlbumRemoveOther' as any).replace('{keep}', c.b.title)}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            {/each}
+          </div>
+        {/if}
         {#if dblPaires.length}
           <div class="dh">{$t('v2.meta.dupTracks' as any)} <span>{$formatNombre(dblPaires.length)}</span></div>
           <div class="list">
@@ -894,6 +960,22 @@
             {/each}
           </div>
         {/if}
+      {/if}
+      <!-- tune-server-rust#6300 — ce que l'on a retiré se remet ici : le geste est réversible. -->
+      {#if albumsRetires.length}
+        <div class="dh">{$t('v2.meta.removedAlbums' as any)} <span>{$formatNombre(albumsRetires.length)}</span></div>
+        <div class="list">
+          {#each albumsRetires as a (a.album_id)}
+            <article class="prop grp" data-album-retire={a.album_id}>
+              <div class="pw">
+                <div class="pt">{a.title}{#if a.artist}<em>{a.artist}</em>{/if}</div>
+                <div class="pa wrap">
+                  <button class="lnk" onclick={() => remettre(a)}>{$t('v2.meta.restoreAlbum' as any)}</button>
+                </div>
+              </div>
+            </article>
+          {/each}
+        </div>
       {/if}
 
     {:else if tab === 'genres'}
