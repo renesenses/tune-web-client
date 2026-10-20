@@ -5385,6 +5385,8 @@ export default {
   "assistantIa.lot.applied": "{n} change(s) applied to {albums} album(s).",
   "assistantIa.lot.undo": "Undo this batch",
   "assistantIa.lot.undone": "Batch undone.",
+  "v2.home.profilesUnavailable": "Unable to load profiles: the server is not responding. Retrying automatically.",
+  "v2.home.profilesRetryNow": "Retry now",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

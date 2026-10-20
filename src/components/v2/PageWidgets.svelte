@@ -67,6 +67,7 @@
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { ouvrirCollection, ouvrirParRaccourci, ouvrirSmartPlaylist } from '../../lib/ouvrirParRaccourci';
   import { currentProfileId, profiles } from '../../lib/stores/profile';
+  import { etatDesProfils, reessayerLesProfils } from '../../lib/repriseDesProfils';
   import { salutation } from '../../lib/salutation';
   import { notifications } from '../../lib/stores/notifications';
   import {
@@ -1390,6 +1391,15 @@
          bibliothèque vide propose son premier dossier, en tête de page :
          l'assistant de première installation, lui, ne revient jamais. -->
     {#if salut}<AccueilBibliothequeVide />{/if}
+    <!-- tune-server-rust#6454 — sans profil, aucun widget ne peut charger.
+         Quand `/profiles` échoue avec insistance, on le DIT, au lieu d'un
+         « Chargement… » sans fin ; la reprise continue en arrière-plan. -->
+    {#if $etatDesProfils === 'echec' && $currentProfileId == null}
+      <div class="state err" role="alert" data-temoin="profils-echec">
+        <span>{$t('v2.home.profilesUnavailable' as any)}</span>
+        <button class="relancer" onclick={() => reessayerLesProfils()}>{$t('v2.home.profilesRetryNow' as any)}</button>
+      </div>
+    {/if}
     {#if !charge}
       <div class="state">{$t('common.loading' as any)}</div>
     {:else if !disposition.length}

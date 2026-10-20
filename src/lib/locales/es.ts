@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "{n} cambio(s) aplicado(s) en {albums} álbum(es).",
   "assistantIa.lot.undo": "Deshacer este lote",
   "assistantIa.lot.undone": "Lote deshecho.",
+  "v2.home.profilesUnavailable": "No se pueden cargar los perfiles: el servidor no responde. Reintentando automáticamente.",
+  "v2.home.profilesRetryNow": "Reintentar ahora",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

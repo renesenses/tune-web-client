@@ -5364,4 +5364,6 @@ export default {
   "assistantIa.lot.applied": "{n} ändring(ar) tillämpade på {albums} album.",
   "assistantIa.lot.undo": "Ångra den här satsen",
   "assistantIa.lot.undone": "Satsen ångrad.",
+  "v2.home.profilesUnavailable": "Det går inte att läsa in profilerna: servern svarar inte. Försöker igen automatiskt.",
+  "v2.home.profilesRetryNow": "Försök igen nu",
 } as const;

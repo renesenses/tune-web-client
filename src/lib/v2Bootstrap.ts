@@ -23,10 +23,11 @@ import { invaliderBibliotheque } from './stores/albumsPagines';
 import { regrouper } from './regroupement';
 import { tuneWS } from './websocket';
 import { devices } from './stores/devices';
-import { loadProfiles, loadFavoriteIds, currentProfileId } from './stores/profile';
+import { loadFavoriteIds, currentProfileId } from './stores/profile';
 import { loadLicense } from './stores/license';
 import { zoneInitiale } from './zoneInitiale';
 import { chargerLesZones } from './chargementDesZones';
+import { chargerLesProfilsAvecReprise } from './repriseDesProfils';
 
 
 /**
@@ -103,11 +104,25 @@ async function loadDevices(): Promise<void> {
  * favoris sont chargés dans la foulée : ils servent aux boutons cœur, qui
  * doivent répondre « est-ce un favori ? » sans un appel réseau par ligne.
  */
-async function loadProfile(): Promise<void> {
-  await loadProfiles();
+async function apresLeProfil(): Promise<void> {
   // web#2099 — un profil choisi à la place d'un profil oublié se DIT.
   annoncerProfilDeRepli();
   await loadFavoriteIds(get(currentProfileId));
+}
+
+/**
+ * 🔴 tune-server-rust#6454 — un `/profiles` en échec est RÉESSAYÉ
+ * (`lib/repriseDesProfils`). On n'attend que le premier essai : sur un échec,
+ * l'amorçage rend la main et la reprise continue en arrière-plan, puis fait
+ * la suite (favoris, annonce) quand le profil arrive.
+ */
+async function loadProfile(): Promise<void> {
+  const { premier, fin } = chargerLesProfilsAvecReprise();
+  if (await premier) {
+    await apresLeProfil();
+    return;
+  }
+  void fin.then(apresLeProfil);
 }
 
 /** Charge tout ce dont la coquille v2 dépend. Ne rejette jamais : chaque

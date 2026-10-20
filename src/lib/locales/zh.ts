@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "已在 {albums} 张专辑上应用 {n} 项修改。",
   "assistantIa.lot.undo": "撤销本批次",
   "assistantIa.lot.undone": "批次已撤销。",
+  "v2.home.profilesUnavailable": "无法加载配置文件：服务器无响应。正在自动重试。",
+  "v2.home.profilesRetryNow": "立即重试",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

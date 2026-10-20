@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "앨범 {albums}개에 변경 {n}건을 적용했습니다.",
   "assistantIa.lot.undo": "이 일괄 처리 취소",
   "assistantIa.lot.undone": "일괄 처리를 취소했습니다.",
+  "v2.home.profilesUnavailable": "프로필을 불러올 수 없습니다: 서버가 응답하지 않습니다. 자동으로 다시 시도하는 중입니다.",
+  "v2.home.profilesRetryNow": "지금 다시 시도",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

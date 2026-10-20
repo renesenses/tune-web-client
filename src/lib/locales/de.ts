@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "{n} Änderung(en) auf {albums} Album/Alben angewendet.",
   "assistantIa.lot.undo": "Diesen Stapel rückgängig machen",
   "assistantIa.lot.undone": "Stapel rückgängig gemacht.",
+  "v2.home.profilesUnavailable": "Profile können nicht geladen werden: Der Server antwortet nicht. Automatischer neuer Versuch läuft.",
+  "v2.home.profilesRetryNow": "Jetzt erneut versuchen",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

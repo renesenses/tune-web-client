@@ -5387,6 +5387,8 @@ export default {
   "assistantIa.lot.applied": "{n} modification(s) appliquée(s) sur {albums} album(s).",
   "assistantIa.lot.undo": "Annuler ce lot",
   "assistantIa.lot.undone": "Lot annulé.",
+  "v2.home.profilesUnavailable": "Impossible de charger les profils : le serveur ne répond pas. Nouvel essai automatique en cours.",
+  "v2.home.profilesRetryNow": "Réessayer maintenant",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

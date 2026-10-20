@@ -5217,5 +5217,7 @@ export default {
   "assistantIa.lot.applied": "Đã áp dụng {n} thay đổi cho {albums} album.",
   "assistantIa.lot.undo": "Hoàn tác lô này",
   "assistantIa.lot.undone": "Đã hoàn tác lô.",
+  "v2.home.profilesUnavailable": "Không thể tải hồ sơ: máy chủ không phản hồi. Đang tự động thử lại.",
+  "v2.home.profilesRetryNow": "Thử lại ngay",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

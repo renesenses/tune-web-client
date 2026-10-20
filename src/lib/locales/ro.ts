@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "{n} modificare(ări) aplicată(e) pe {albums} album(e).",
   "assistantIa.lot.undo": "Anulează acest lot",
   "assistantIa.lot.undone": "Lot anulat.",
+  "v2.home.profilesUnavailable": "Profilurile nu pot fi încărcate: serverul nu răspunde. Se reîncearcă automat.",
+  "v2.home.profilesRetryNow": "Reîncearcă acum",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

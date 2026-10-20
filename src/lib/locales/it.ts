@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "{n} modifica/he applicata/e su {albums} album.",
   "assistantIa.lot.undo": "Annulla questo lotto",
   "assistantIa.lot.undone": "Lotto annullato.",
+  "v2.home.profilesUnavailable": "Impossibile caricare i profili: il server non risponde. Nuovo tentativo automatico in corso.",
+  "v2.home.profilesRetryNow": "Riprova ora",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

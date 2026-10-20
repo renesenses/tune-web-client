@@ -5324,6 +5324,8 @@ export default {
   "assistantIa.lot.applied": "{n} módosítás alkalmazva {albums} albumon.",
   "assistantIa.lot.undo": "A köteg visszavonása",
   "assistantIa.lot.undone": "Köteg visszavonva.",
+  "v2.home.profilesUnavailable": "A profilok nem tölthetők be: a szerver nem válaszol. Automatikus újrapróbálás folyamatban.",
+  "v2.home.profilesRetryNow": "Újrapróbálás most",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

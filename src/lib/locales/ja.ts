@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.lot.applied": "{albums}枚のアルバムに{n}件の変更を適用しました。",
   "assistantIa.lot.undo": "この一括処理を取り消す",
   "assistantIa.lot.undone": "一括処理を取り消しました。",
+  "v2.home.profilesUnavailable": "プロファイルを読み込めません：サーバーが応答しません。自動的に再試行しています。",
+  "v2.home.profilesRetryNow": "今すぐ再試行",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
