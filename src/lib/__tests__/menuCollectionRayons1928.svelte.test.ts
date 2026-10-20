@@ -138,7 +138,8 @@ afterEach(() => {
 });
 
 function bouton(): HTMLButtonElement | null {
-  const libelle = get(t)('v2.album.addToCollection');
+  // web#2151 — la bulle du bouton décrit son geste ; elle ne recopie plus le libellé.
+  const libelle = get(t)('v2.album.addToCollectionTip' as any);
   return hote?.querySelector<HTMLButtonElement>(`.actions button[title="${libelle}"]`) ?? null;
 }
 const panneau = () => document.body.querySelector<HTMLElement>('.coll-menu');

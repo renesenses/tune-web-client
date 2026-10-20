@@ -259,6 +259,13 @@ export interface AlbumContact {
   track_count: number | null; year: number | null;
   /** Décision 4 du 28/09 : la pochette PUBLIQUE vient de Cover Art Archive par cet identifiant. */
   musicbrainz_release_group_id: string | null;
+  /**
+   * tune-server-rust#6521 (décision du 19/10/2026) : l'empreinte SHA-256 de la
+   * vignette que le serveur du contact a envoyée au cloud, ou `null`. Elle
+   * sert de version dans l'adresse ; l'image vient de
+   * `/ext/circle/contacts/{uid}/library/albums/{id}/thumbnail`.
+   */
+  thumbnail: string | null;
 }
 export interface PisteContact {
   id: number; title: string; artist_name: string | null; album_title: string | null;
@@ -282,8 +289,11 @@ export function albumContact(b: any): AlbumContact {
     id: Number(b?.id), title: String(b?.title ?? ''), artist_name: texteOuNul(b?.artist_name),
     genre: texteOuNul(b?.genre), track_count: nombreOuNul(b?.track_count), year: nombreOuNul(b?.year),
     musicbrainz_release_group_id: mbidValide(b?.musicbrainz_release_group_id),
+    thumbnail: typeof b?.thumbnail === 'string' && SHA256.test(b.thumbnail) ? b.thumbnail.toLowerCase() : null,
   };
 }
+
+const SHA256 = /^[0-9a-f]{64}$/i;
 
 const MBID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -293,18 +303,70 @@ function mbidValide(v: unknown): string | null {
 }
 
 /**
- * La pochette PUBLIQUE d'un album de contact, ou `null` (icône générique).
+ * Les pochettes d'un album de contact, dans l'ordre où les essayer
+ * (tune-server-rust#6521, décision du 19/10/2026) :
  *
- * 🔴 Seul l'identifiant MusicBrainz sort — jamais un titre ni un artiste —,
- * et il sort par le relais de pochettes de NOTRE serveur (`artworkUrl` fait
- * passer toute adresse absolue par `/library/artwork/proxy`, qui admet
- * `coverartarchive.org` et `archive.org`, vers lequel il redirige). Rien
- * n'est demandé au serveur du contact. Une pochette introuvable (404) laisse
- * l'icône générique : `AlbumArt` s'en charge sur `onerror`.
+ *  1. la VIGNETTE que le serveur du contact a envoyée au cloud, quand la
+ *     projection en porte l'empreinte : servie par NOTRE serveur, qui la
+ *     relaie depuis mozaiklabs, aux seuls membres du cercle. L'empreinte est
+ *     dans l'adresse : une vignette changée est une autre adresse ;
+ *  2. la pochette PUBLIQUE de Cover Art Archive, par l'identifiant
+ *     MusicBrainz (décision 4 du 28/09) — seul le MBID sort, par le relais de
+ *     pochettes de NOTRE serveur (`artworkUrl` fait passer toute adresse
+ *     absolue par `/library/artwork/proxy`) ;
+ *  3. rien : `AlbumArt` montre l'icône générique.
+ *
+ * Rien n'est jamais demandé au serveur du contact lui-même.
  */
-export function pochetteAlbumContact(a: Pick<AlbumContact, 'musicbrainz_release_group_id'>): string | null {
+export function pochettesAlbumContact(
+  a: Pick<AlbumContact, 'id' | 'musicbrainz_release_group_id'> & { thumbnail?: string | null },
+  userId: number | null | undefined,
+): string[] {
+  const sources: string[] = [];
+  if (a.thumbnail && SHA256.test(a.thumbnail) && Number.isInteger(userId) && Number.isInteger(a.id)) {
+    sources.push(`${BASE}/ext/circle/contacts/${seg(userId as number)}/library/albums/${seg(a.id)}/thumbnail?v=${a.thumbnail.slice(0, 16)}`);
+  }
   const m = a.musicbrainz_release_group_id;
-  return m ? `https://coverartarchive.org/release-group/${m}/front-250` : null;
+  if (m) sources.push(`https://coverartarchive.org/release-group/${m}/front-250`);
+  return sources;
+}
+
+/** La première pochette à essayer (voir `pochettesAlbumContact`), ou `null`. */
+export function pochetteAlbumContact(
+  a: Pick<AlbumContact, 'id' | 'musicbrainz_release_group_id'> & { thumbnail?: string | null },
+  userId?: number | null,
+): string | null {
+  return pochettesAlbumContact(a, userId)[0] ?? null;
+}
+
+/** La pochette à essayer si la première ne se charge pas, ou `null`. */
+export function reprisePochetteAlbumContact(
+  a: Pick<AlbumContact, 'id' | 'musicbrainz_release_group_id'> & { thumbnail?: string | null },
+  userId?: number | null,
+): string | null {
+  return pochettesAlbumContact(a, userId)[1] ?? null;
+}
+
+// ─── #6521 : partager les pochettes avec mon cercle (réglage de CE serveur) ──
+
+/**
+ * Le réglage « Partager les pochettes avec mon cercle », ACTIVÉ par défaut
+ * (décision de Bertrand du 19/10/2026). `null` : greffon qui ne le connaît
+ * pas encore (404), l'écran n'en montre rien.
+ */
+export async function getPartagePochettes(): Promise<boolean | null> {
+  try {
+    const r = await fetchJSON<{ enabled?: unknown }>(`${BASE}/ext/circle/artwork-sharing`, undefined, undefined, true);
+    return r?.enabled !== false;
+  } catch (e) {
+    if (plusPartage(e)) return null;
+    throw e;
+  }
+}
+
+/** Couper efface chez le cloud les vignettes déjà envoyées. */
+export function reglerPartagePochettes(enabled: boolean): Promise<{ enabled: boolean; purged?: boolean }> {
+  return envoyer(`${BASE}/ext/circle/artwork-sharing`, 'PUT', { enabled });
 }
 
 export function pisteContact(b: any): PisteContact {

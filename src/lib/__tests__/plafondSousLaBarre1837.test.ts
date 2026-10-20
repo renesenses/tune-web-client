@@ -30,6 +30,8 @@ import { largeurMaxEffective, releverReglesLargeur } from '../nowPlayingPaliers'
 
 const CHEMIN = 'src/components/partages/NowPlaying.svelte';
 const SOURCE = readFileSync(resolve(process.cwd(), CHEMIN), 'utf-8');
+// Compilation synchrone pendant la collecte, hors du délai des assertions.
+const CSS_COMPILE = compile(SOURCE, { filename: CHEMIN, css: 'external' }).css;
 const FEUILLE = extraireFeuilleDeStyle(SOURCE);
 const REGLES = releverReglesLargeur(FEUILLE);
 
@@ -117,7 +119,7 @@ describe('web#1837 — « sous la barre » : la pochette garde des proportions r
 
 describe('web#1837 — la feuille compilée garde les deux règles', () => {
   it('Svelte n’élague ni la règle de l’îlot ni celle de la pochette', () => {
-    const { css } = compile(SOURCE, { filename: CHEMIN, css: 'external' });
+    const css = CSS_COMPILE;
     const code = css!.code.replace(/\s+/g, ' ');
     expect(code).toMatch(/\.content-layout\.wide\.file-sous-barre\.svelte-[\w-]+ ?\{ ?max-width: none;? ?\}/);
     expect(code).toMatch(

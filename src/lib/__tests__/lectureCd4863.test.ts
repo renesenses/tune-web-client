@@ -107,7 +107,7 @@ beforeEach(() => {
         if (r) return reponse(r.status, r.corps);
         return reponse(200, { ejecte: true, lecteur: '/dev/sr0', zones_arretees: [] });
       }
-      if (/\/zones\/3$/.test(u)) return reponse(200, { id: 3, name: 'Salon', state: 'playing' });
+      if (/\/zones\/3(?:\?lang=[a-z]{2})?$/.test(u)) return reponse(200, { id: 3, name: 'Salon', state: 'playing' });
       if (u.includes('/marketplace')) return reponse(200, { plugins: [] });
       if (u.endsWith('/plugins')) return reponse(200, greffon);
       if (u.includes('/plugins/docs')) return reponse(200, {});
@@ -210,7 +210,7 @@ describe('Lecture CD — lecture vers la zone courante', () => {
     expect(jouer[0].method).toBe('POST');
     expect(jouer[0].body).toEqual({ zone_id: 3 });
     // La barre de lecture reçoit l'état de la zone tout de suite.
-    expect(appels.some((a) => /\/zones\/3$/.test(a.url))).toBe(true);
+    expect(appels.some((a) => /\/zones\/3\?lang=fr$/.test(a.url))).toBe(true);
   });
 
   it('« Lire cette piste » envoie le numéro de la piste', async () => {

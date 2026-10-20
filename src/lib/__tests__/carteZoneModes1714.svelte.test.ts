@@ -103,7 +103,7 @@ describe('#1714 — aléatoire et boucle sur la carte de zone', () => {
     const { desabonner } = monter({ shuffle: false, repeat: 'off' });
     aleatoire()!.click();
     await attendre();
-    expect(appels).toEqual(['/api/v1/zones/7/shuffle?enabled=true']);
+    expect(appels).toEqual(['/api/v1/zones/7/shuffle?enabled=true&lang=fr']);
     expect(get(zones)[0].shuffle).toBe(true);
     expect(aleatoire()!.getAttribute('aria-pressed')).toBe('true');
     desabonner();
@@ -117,9 +117,9 @@ describe('#1714 — aléatoire et boucle sur la carte de zone', () => {
       expect(get(zones)[0].repeat).toBe(attendu);
     }
     expect(appels).toEqual([
-      '/api/v1/zones/7/repeat?mode=one',
-      '/api/v1/zones/7/repeat?mode=all',
-      '/api/v1/zones/7/repeat?mode=off',
+      '/api/v1/zones/7/repeat?mode=one&lang=fr',
+      '/api/v1/zones/7/repeat?mode=all&lang=fr',
+      '/api/v1/zones/7/repeat?mode=off&lang=fr',
     ]);
     desabonner();
   });

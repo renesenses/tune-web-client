@@ -327,7 +327,7 @@ const CHEMINS: { fichier: string; monte?: true; delegue?: RegExp }[] = [
  */
 const ECRITURES_HORS_SELECTEUR = [
   'components/v2-heritage/PlaylistManagerView.svelte', // transferts et correspondances manuelles
-  'components/v2-heritage/AmbianceView.svelte', // « Enregistrer comme playlist » (création)
+  'lib/ambianceExport.ts', // Ambiance, « Exporter vers… » (création ; web#2218, ex-AmbianceView)
   'components/v2-heritage/SmartAIView.svelte', // idem
   'components/v2/SearchV2.svelte', // « Créer une playlist des résultats »
   'lib/gestesObjet.ts', // duplication d'une playlist

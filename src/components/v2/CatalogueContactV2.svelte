@@ -20,12 +20,12 @@
    * - Les pistes passent par la liste commune de la Bibliothèque
    *   (`ListePistesV2`), en `lectureSeule` : ni barre d'actions, ni clic de
    *   lecture, ni colonne « Chemin ».
-   * - Les pochettes (décision 4 du 28/09) : la pochette PUBLIQUE de Cover Art
-   *   Archive, par l'identifiant MusicBrainz de release-group quand la
-   *   projection le porte (`pochetteAlbumContact`), sinon — ou si elle ne se
-   *   charge pas — l'icône générique d'`AlbumArt`. Seul le MBID sort, par le
-   *   relais de NOTRE serveur ; aucun titre, aucun artiste, et rien n'est
-   *   demandé au serveur du contact.
+   * - Les pochettes (#6521, décision du 19/10/2026, qui complète la décision 4
+   *   du 28/09) : d'abord la vignette que le serveur du contact a envoyée au
+   *   cloud, relayée par NOTRE serveur ; puis la pochette PUBLIQUE de Cover Art
+   *   Archive par le MBID (`pochettesAlbumContact`) ; sinon — ou si rien ne se
+   *   charge — l'icône générique d'`AlbumArt`. Rien n'est demandé au serveur
+   *   du contact lui-même.
    * - 🔴 Un 404 à n'importe quel moment (partage coupé, retrait du cercle,
    *   révocation) : l'écran se FERME et le dit. Rien n'est gardé — ce
    *   composant détruit, toutes ses listes partent avec lui.
@@ -48,7 +48,7 @@
   import { dateCourte } from '../../lib/dates';
   import {
     statsContact, artistesContact, albumsContact, pistesContact, pistesAlbumContact,
-    pisteVersTrack, plusPartage, motifCercle, pochetteAlbumContact,
+    pisteVersTrack, plusPartage, motifCercle, pochetteAlbumContact, reprisePochetteAlbumContact,
     rayonsContact, albumsRayon, pistesRayon, artistesRayon, referencesRayon, servicesReference, NOM_SERVICE,
     ecoutePermise, ecouterChezContact, motifEcoute,
     type PartageRecu, type StatsContact, type ArtisteContact, type AlbumContact,
@@ -387,7 +387,7 @@
     <div class="album-ouvert">
       <button class="lnk retour-albums" onclick={() => { album = null; pistesAlbum = []; }}>← {$t('v2.circle.lib.backToAlbums' as any)}</button>
       <div class="album-tete">
-        <span class="pochette"><AlbumArt coverPath={pochetteAlbumContact(album)} albumId={null} size={0} alt={album.title} /></span>
+        <span class="pochette"><AlbumArt coverPath={pochetteAlbumContact(album, contact.user_id)} repli={reprisePochetteAlbumContact(album, contact.user_id)} albumId={null} size={0} alt={album.title} /></span>
         <div class="album-infos">
           <h3 class="album-titre">{album.title}</h3>
           <p class="note" use:bulleTexte>{detailsAlbum(album)}{#if album.genre} · {album.genre}{/if}</p>
@@ -440,7 +440,7 @@
           {#each albums as a (a.id)}
             <li>
               <button class="album-contact" onclick={() => ouvrirAlbum(a)} title={a.title}>
-                <span class="pochette"><AlbumArt coverPath={pochetteAlbumContact(a)} albumId={null} size={0} alt={a.title} /></span>
+                <span class="pochette"><AlbumArt coverPath={pochetteAlbumContact(a, contact.user_id)} repli={reprisePochetteAlbumContact(a, contact.user_id)} albumId={null} size={0} alt={a.title} /></span>
                 <span class="album-nom">{a.title}</span>
                 <span class="note">{detailsAlbum(a)}</span>
               </button>

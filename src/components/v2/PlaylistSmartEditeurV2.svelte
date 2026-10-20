@@ -88,10 +88,16 @@
      * Playlists ne porte qu'un nom et des pochettes, jamais les règles.
      */
     id?: number | null;
+    /**
+     * Assistant IA, étape 1 : des règles PROPOSÉES par une phrase, à
+     * retoucher avant d'enregistrer. Seulement à la création (`id` nul) ;
+     * rien n'est écrit tant que l'utilisateur n'a pas enregistré.
+     */
+    propose?: import('../../lib/assistantIa').PropositionIa | null;
     onClose: () => void;
     onSaved: () => void;
   }
-  let { id = null, onClose, onSaved }: Props = $props();
+  let { id = null, propose = null, onClose, onSaved }: Props = $props();
 
   let chargement = $state(id != null);
   let nom = $state('');
@@ -110,6 +116,17 @@
     { value: 'duration', key: 'smartPlaylists.sortDuration' },
     { value: 'random', key: 'smartPlaylists.sortRandom' },
   ];
+
+  $effect(() => {
+    if (id != null || !propose) return;
+    nom = propose.name ?? '';
+    mode = propose.match_mode === 'any' ? 'any' : 'all';
+    if (propose.sort_by) triPar = propose.sort_by;
+    if (propose.sort_order) ordre = propose.sort_order;
+    if (propose.max_tracks) maximum = propose.max_tracks;
+    const lues = lireRegles(propose.rules);
+    regles = lues.length ? lues : [regleNeuve()];
+  });
 
   $effect(() => {
     if (id == null) return;

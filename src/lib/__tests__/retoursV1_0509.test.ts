@@ -126,8 +126,8 @@ describe('Playlists — la zone de recherche', () => {
 describe('Collections — le tri au choix', () => {
   const src = sansCommentaires(lire('src/components/v2/CollectionsV2.svelte'));
 
-  it('les quatre critères existent', () => {
-    expect(src).toContain("const TRIS = ['alpha', 'alphaInverse', 'recent', 'ancien'] as const");
+  it('les quatre critères existent, et le classement manuel (web#2256)', () => {
+    expect(src).toContain("const TRIS = ['alpha', 'alphaInverse', 'recent', 'ancien', 'manuel'] as const");
   });
 
   it('la date vient du serveur, pas d une invention', () => {

@@ -65,6 +65,7 @@
     seConnecterAMozaiklabs, NOM_CERCLE_MAX, RELECTURE_CERCLE_MS,
     partageActif, partagerBibliotheque, arreterPartageBibliotheque, ouPartage,
     getSynchroBibliotheque, avisSynchro, getPartagesAvecMoi, plusPartage,
+    getPartagePochettes, reglerPartagePochettes,
     getRayonsCercle, partagerRayon, retirerRayon, estBibliothequeNonPartagee,
     type RayonsCercle, type RayonLocal,
     type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme,
@@ -96,6 +97,9 @@
   /** T2 : `null` tant qu'on ne sait pas si le greffon connaît l'étape (404 = non). */
   let t2 = $state<boolean | null>(null);
   let synchro = $state<EtatSynchroBibliotheque | null>(null);
+  /* #6521 — « Partager les pochettes avec mon cercle », réglage de CE serveur,
+     activé par défaut. `null` : greffon qui ne le connaît pas, rien à montrer. */
+  let pochettesPartagees = $state<boolean | null>(null);
   let partages = $state<PartageRecu[]>([]);
   let erreurPartages = $state<MotifCercle | null>(null);
   let contactOuvert = $state<PartageRecu | null>(null);
@@ -158,8 +162,9 @@
    * dit un greffon T1 : la partie T2 se cache.
    */
   async function relireT2() {
-    const [s, p] = await Promise.allSettled([getSynchroBibliotheque(), getPartagesAvecMoi()]);
+    const [s, p, v] = await Promise.allSettled([getSynchroBibliotheque(), getPartagesAvecMoi(), getPartagePochettes()]);
     if (fini) return;
+    pochettesPartagees = v.status === 'fulfilled' ? v.value : pochettesPartagees;
     if (s.status === 'fulfilled') { synchro = s.value; t2 = true; }
     else { synchro = null; t2 = plusPartage(s.reason) ? false : t2; }
     if (p.status === 'fulfilled') { partages = p.value; erreurPartages = null; }
@@ -357,6 +362,13 @@
       if (!ok) return;
     }
     void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started', apres: oublierSelections });
+  }
+
+  /** #6521 — couper efface chez le cloud les vignettes déjà envoyées. */
+  function basculerPochettes() {
+    if (occupe !== null || pochettesPartagees === null) return;
+    const voulu = !pochettesPartagees;
+    void geste('pochettes', async () => { await reglerPartagePochettes(voulu); pochettesPartagees = voulu; });
   }
 
   /**
@@ -692,6 +704,16 @@
               {/if}
             </article>
           {/each}
+          {#if t2 && pochettesPartagees !== null && cercles.some((c) => ou(c) === 'ici')}
+            <div class="partage partage-pochettes">
+              <button class="interrupteur interrupteur-pochettes" role="switch" aria-checked={pochettesPartagees}
+                disabled={occupe !== null} onclick={basculerPochettes}>
+                <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
+                <span>{$t('v2.circle.share.artwork' as any)}</span>
+              </button>
+              <p class="note pochettes-quoi">{$t('v2.circle.share.artworkWhat' as any)}</p>
+            </div>
+          {/if}
         {/if}
       </section>
 

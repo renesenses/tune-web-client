@@ -84,8 +84,8 @@ beforeEach(() => {
     if (/\/library\/albums\/\d+\/edition$/.test(u)) return reponse(EDITION);
     if (/\/library\/albums\/\d+$/.test(u)) return reponse(ALBUM);
     if (/\/library\/tracks\/\d+$/.test(u)) return reponse({ status: 'ok' });
-    if (/\/queue\/add$/.test(u)) return reponse({ queue_length: 3 });
-    if (/\/zones\/\d+\/play$/.test(u)) return reponse({ id: 1, name: 'Salon' });
+    if (/\/queue\/add(?:\?lang=[a-z]{2})?$/.test(u)) return reponse({ queue_length: 3 });
+    if (/\/zones\/\d+\/play(?:\?lang=[a-z]{2})?$/.test(u)) return reponse({ id: 1, name: 'Salon' });
     return reponse([]);
   }));
   vi.stubGlobal('WebSocket', class {
@@ -142,8 +142,8 @@ describe.each(['beginner', 'intermediate'] as const)('la fiche d’un album de l
     expect(hote!.querySelector('[data-sel-compte]')?.textContent?.trim())
       .toBe(get(t)('v2.selection.countMany' as any).replace('{n}', '2'));
     cliquer(barre('data-sel-file'));
-    await jusqua(() => envois(/\/zones\/1\/queue\/add$/).length > 0);
-    const file = envois(/\/zones\/1\/queue\/add$/);
+    await jusqua(() => envois(/\/zones\/1\/queue\/add(?:\?lang=[a-z]{2})?$/).length > 0);
+    const file = envois(/\/zones\/1\/queue\/add(?:\?lang=[a-z]{2})?$/);
     expect(file).toHaveLength(1);
     expect(file[0].corps).toEqual({ track_ids: [11, 13] });
   });
@@ -154,8 +154,8 @@ describe.each(['beginner', 'intermediate'] as const)('la fiche d’un album de l
     cliquer(caseDe(13), true);
     expect(cases().map((c) => c.checked)).toEqual([true, true, true]);
     cliquer(barre('data-sel-lire'));
-    await jusqua(() => envois(/\/zones\/1\/play$/).length > 0);
-    expect(envois(/\/zones\/1\/play$/)[0].corps).toEqual({ track_ids: [11, 12, 13] });
+    await jusqua(() => envois(/\/zones\/1\/play(?:\?lang=[a-z]{2})?$/).length > 0);
+    expect(envois(/\/zones\/1\/play(?:\?lang=[a-z]{2})?$/)[0].corps).toEqual({ track_ids: [11, 12, 13] });
   });
 
   it('🔴 « Changer le genre » ⇒ PUT /library/tracks/{id} { genre } pour CHAQUE piste choisie, et rien d’autre', async () => {

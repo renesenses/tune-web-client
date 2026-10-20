@@ -157,9 +157,15 @@ export interface ArtisteTriable {
  * (« Beatles, The »), sinon le nom. Un nom de tri vide ou fait d'espaces ne
  * compte pas.
  */
-export function cleDeTriArtiste(a: ArtisteTriable): string {
+export function cleDeTriArtiste(a: ArtisteTriable, parNomDeTri = true): string {
+  // tune-server-rust#6474 — réglage « Trier les artistes par nom de famille »
+  // (René, fil 2313). Coché (le défaut, l'ordre livré) : le nom de tri s'il
+  // est renseigné. Décoché : le nom AFFICHÉ, toujours. Aucune règle n'est
+  // inventée quand le nom de tri manque — ni inversion « Prénom Nom », ni
+  // article retiré : René l'écarte (Beethoven, noms composés, orchestres,
+  // groupes), et l'artiste se range alors à son nom.
   const s = a.sort_name;
-  return s != null && s.trim() !== '' ? s : (a.name ?? '');
+  return parNomDeTri && s != null && s.trim() !== '' ? s : (a.name ?? '');
 }
 
 /**
@@ -167,8 +173,8 @@ export function cleDeTriArtiste(a: ArtisteTriable): string {
  * `cleDeTriArtiste`, et à clé égale l'identifiant (un id absent passe en
  * premier, comme `None` en Rust).
  */
-export function comparerArtistes(a: ArtisteTriable, b: ArtisteTriable): number {
-  const c = comparerAlphabetique(cleDeTriArtiste(a), cleDeTriArtiste(b));
+export function comparerArtistes(a: ArtisteTriable, b: ArtisteTriable, parNomDeTri = true): number {
+  const c = comparerAlphabetique(cleDeTriArtiste(a, parNomDeTri), cleDeTriArtiste(b, parNomDeTri));
   if (c !== 0) return c;
   const ia = a.id ?? null, ib = b.id ?? null;
   if (ia === ib) return 0;

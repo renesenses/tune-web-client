@@ -27,6 +27,21 @@
   export const LARGEUR_ACTIONS = '238px';
   /** La même largeur en NOMBRE, pour le calcul du plancher (#853). */
   export const LARGEUR_ACTIONS_PX = 238;
+  /**
+   * web#2213 (Sandro, fil 2317) — icônes rapides masquées (#1892) : la barre
+   * n'a plus que QUATRE cases (lire, à partir d'ici, cœur, « … »), et la
+   * colonne les suit. Elle gardait ses 238 px, dont 120 vides : au zoom, le
+   * tableau débordait et le « … » sortait de l'écran à droite.
+   * 118 px = quatre boutons de 28 px + trois gouttières de 2 px.
+   */
+  export const LARGEUR_ACTIONS_REDUITE = '118px';
+  export const LARGEUR_ACTIONS_REDUITE_PX = 118;
+  /** La largeur de la colonne d'actions selon l'option « icônes réduites ». */
+  export function largeurActions(reduite: boolean): { css: string; px: number } {
+    return reduite
+      ? { css: LARGEUR_ACTIONS_REDUITE, px: LARGEUR_ACTIONS_REDUITE_PX }
+      : { css: LARGEUR_ACTIONS, px: LARGEUR_ACTIONS_PX };
+  }
   /** La colonne de la POIGNÉE de réordonnancement : un bouton de 28 px. */
   export const LARGEUR_POIGNEE_PX = 28;
   /** Numérote les instances : la poignée à refocaliser après un déplacement
@@ -77,6 +92,7 @@
   import type { Track } from '../../lib/types';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import PisteActions from './PisteActions.svelte';
+  import { actionsReduites } from '../../lib/actionsRapides';
   import type { CoeurExterne } from '../../lib/coeurExterne';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import { largeurColonneQualite } from '../../lib/largeurQualite';
@@ -94,6 +110,8 @@
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import { enTetesDisque as calculerEnTetes } from '../../lib/enTetesDisque';
   import { sectionsParRang } from '../../lib/library/grouping';
+  import { nombreDeDisques, pistesDuDisque, type GesteDisque } from '../../lib/lectureDisque';
+  import EnTeteDisqueV2 from './EnTeteDisqueV2.svelte';
 
   interface Props {
     pistes: Track[];
@@ -258,6 +276,21 @@
      */
     enTetesDisque?: boolean;
     /**
+     * 🔴 LIRE UN DISQUE — web#2221 (demande relayée par Bertrand le
+     * 19/10/2026 : « comment lire un seul CD d'un coffret ? »).
+     *
+     * Fourni, l'en-tête « Disque N » d'un album d'au moins DEUX disques
+     * devient actif (`EnTeteDisqueV2`) : « Lire le disque », menu « … »
+     * (« Lire ensuite », « Ajouter à la file ») et durée du disque. La liste
+     * DIT le geste et la tranche de `pistes` qui forme le disque, dans son
+     * ordre (`lib/lectureDisque`) ; l'écran — seul à savoir désigner ses
+     * pistes (bibliothèque, service, autre serveur Tune) — la joue.
+     *
+     * Absent, en lecture seule, ou sur un album d'un seul disque : l'en-tête
+     * reste un libellé, exactement comme avant.
+     */
+    onGesteDisque?: ((geste: GesteDisque, pistes: Track[], disque: number) => void) | null;
+    /**
      * 🔴 Le RÉORDONNANCEMENT, par glisser-déposer et au clavier — OPT-IN.
      *
      * Bertrand, 23/09/2026 : l'écran « Gestion des playlists » rendait sa
@@ -362,6 +395,7 @@
     ouvertureAlbum = null, apres, coeurDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
     enTetesDisque = false,
+    onGesteDisque = null,
     reordonnable = false, onReordonner = null,
     etiquetteIndispo = 'v2.str.coming',
     lectureSeule = false,
@@ -439,6 +473,11 @@
   // la même prop : seule la fiche d'album rend les pistes d'UN album dans
   // l'ordre disque/piste. Règle et témoins dans `lib/library/grouping.ts`.
   const sections = $derived(enTetesDisque ? sectionsParRang(pistes) : []);
+  // web#2221 — l'en-tête de disque n'est actif qu'à DEUX disques au moins :
+  // un album d'un disque (avec ou sans sous-titre) ne change pas.
+  const disquesActifs = $derived(
+    enTetesDisque && onGesteDisque != null && !lectureSeule && nombreDeDisques(pistes) >= 2,
+  );
 
   /**
    * « Lire à partir d'ici », par DÉFAUT — Bertrand, 20/09/2026.
@@ -516,8 +555,10 @@
   const largeurApresPx = $derived(parseFloat(largeurApres) || 0);
   // #1061 : la colonne suit la barre, bouton « à partir d'ici » compris — et
   // il y est sur TOUTES les lignes depuis le 20/09/2026, donc une seule valeur.
-  const largeurDesActions = LARGEUR_ACTIONS;
-  const largeurDesActionsPx = LARGEUR_ACTIONS_PX;
+  // web#2213 — sauf icônes réduites (#1892) : quatre cases, pas huit.
+  const colonneActions = $derived(largeurActions(actionsReduites($preferences)));
+  const largeurDesActions = $derived(colonneActions.css);
+  const largeurDesActionsPx = $derived(colonneActions.px);
   // La poignée est une COLONNE de la grille, en tête, présente dans l'en-tête
   // comme dans les lignes : la même règle que le suffixe, pour la même raison.
   const colonnePoignee = $derived(
@@ -588,10 +629,9 @@
 {#snippet enTeteDisque(i: number)}
   {@const e = enTetes[i]}
   {#if e}
-    <div class="dischead">
-      <span class="discno">{$t('library.disc' as any).replace('{num}', String(e.disque))}</span>
-      {#if e.sousTitre}<span class="discsub">{e.sousTitre}</span>{/if}
-    </div>
+    {@const tranche = disquesActifs ? pistesDuDisque(pistes, i) : []}
+    <EnTeteDisqueV2 entete={e} actif={disquesActifs} pistes={tranche}
+      onGeste={(g) => { if (tranche.length) onGesteDisque?.(g, tranche, e.disque); }} />
   {/if}
   {#if sections[i]}
     <div class="grouphead">{sections[i]}</div>
@@ -777,12 +817,7 @@
      `overflow-x` : la grille ne pouvait pas déborder, donc elle écrasait. */
   .tbl{display:flex; flex-direction:column; min-width:0; overflow-x:auto}
   .tbl::-webkit-scrollbar{height:9px}
-  /* #1431 — l'en-tête de disque : une ligne de texte, hors de la grille des
-     colonnes (il n'a pas de cellules), la forme de `.dischead` d'Oxygen. */
-  .dischead{display:flex; align-items:baseline; gap:10px; padding:14px 10px 4px}
-  .discno{font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
-    color:var(--v2-txt3)}
-  .discsub{font-size:12px; color:var(--v2-txt2)}
+  /* #1431 — l'en-tête de disque vit dans `EnTeteDisqueV2` (web#2221). */
   /* web#1862 — l'en-tête de section GROUPING : un cran sous celui du disque. */
   .grouphead{padding:10px 10px 2px; font-size:12px; font-weight:600; color:var(--v2-txt2)}
   .tbl::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
