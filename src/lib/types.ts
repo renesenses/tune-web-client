@@ -197,6 +197,10 @@ export interface Album {
 export interface Track {
   id: number | null;
   title: string;
+  /** tune-server-rust#6332 — débit moyen en kbit/s : celui du FICHIER pour une
+   *  piste locale (lu au scan), celui annoncé par la source sinon. Absent ou
+   *  0 = inconnu, rien ne s'affiche. */
+  bitrate_kbps?: number | null;
   album_id?: number | null;
   /**
    * L'identifiant de l'album CHEZ LE SERVICE, quand l'appelant l'a appris

@@ -1060,6 +1060,7 @@ export default {
   "nowplaying.saveError": "Error al guardar",
   "nowplaying.back": "Atrás",
   "nowplaying.stereo": "Estéreo",
+  "nowplaying.bitrate": "Tasa de bits",
   "nowplaying.liveNow": "EN DIRECTO",
   "nowplaying.lyrics": "Letra",
   "nowplaying.share": "Compartir",

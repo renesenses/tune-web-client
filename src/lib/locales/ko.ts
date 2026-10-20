@@ -1044,6 +1044,7 @@ export default {
   "nowplaying.saveError": "저장 중 오류",
   "nowplaying.back": "뒤로",
   "nowplaying.stereo": "스테레오",
+  "nowplaying.bitrate": "비트레이트",
   "nowplaying.liveNow": "라이브",
   "nowplaying.lyrics": "가사",
   "nowplaying.share": "공유",

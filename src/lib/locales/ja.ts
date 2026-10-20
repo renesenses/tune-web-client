@@ -1060,6 +1060,7 @@ export default {
   "nowplaying.saveError": "保存中にエラーが発生しました",
   "nowplaying.back": "戻る",
   "nowplaying.stereo": "ステレオ",
+  "nowplaying.bitrate": "ビットレート",
   "nowplaying.liveNow": "ライブ",
   "nowplaying.lyrics": "歌詞",
   "nowplaying.share": "共有",

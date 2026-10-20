@@ -1200,6 +1200,7 @@ export default {
   "nowplaying.saveError": "Erreur lors de la sauvegarde",
   "nowplaying.back": "Retour",
   "nowplaying.stereo": "Stéréo",
+  "nowplaying.bitrate": "Débit",
   "nowplaying.liveNow": "EN DIRECT",
   "nowplaying.lyrics": "Paroles",
   "nowplaying.share": "Partager",

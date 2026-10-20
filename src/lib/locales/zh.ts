@@ -1060,6 +1060,7 @@ export default {
   "nowplaying.saveError": "保存时出错",
   "nowplaying.back": "返回",
   "nowplaying.stereo": "立体声",
+  "nowplaying.bitrate": "比特率",
   "nowplaying.liveNow": "直播",
   "nowplaying.lyrics": "歌词",
   "nowplaying.share": "分享",

@@ -1197,6 +1197,7 @@ export default {
   "nowplaying.saveError": "Error while saving",
   "nowplaying.back": "Back",
   "nowplaying.stereo": "Stereo",
+  "nowplaying.bitrate": "Bitrate",
   "nowplaying.liveNow": "LIVE",
   "nowplaying.lyrics": "Lyrics",
   "nowplaying.share": "Share",

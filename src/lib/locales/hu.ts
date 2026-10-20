@@ -1141,6 +1141,7 @@ export default {
   "nowplaying.saveError": "Hiba a mentés közben",
   "nowplaying.back": "Vissza",
   "nowplaying.stereo": "Sztereó",
+  "nowplaying.bitrate": "Bitráta",
   "nowplaying.liveNow": "ÉLŐ",
   "nowplaying.lyrics": "Dalszöveg",
   "nowplaying.share": "Megosztás",
