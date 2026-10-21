@@ -62,6 +62,7 @@
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import LiensExternes from './LiensExternes.svelte';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
   import { activeView, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
@@ -1016,6 +1017,12 @@
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
     <BioEtTitresPhares bio={bio} provenance={bioProvenance} titres={titres} {titresEnCharge} cle={cible?.id}
       actionsBio={artisteEditable ? enrichirBio : undefined} />
+
+    <!-- tune-server-rust#6001 — ProgArchives / Metal Archives / AllMusic, pour
+         un artiste de la bibliothèque (l'identifiant MusicBrainz est le sien). -->
+    {#if artisteEditable?.id != null}
+      <LiensExternes cle={artisteEditable.id} charger={api.getArtistExternalLinks} />
+    {/if}
 
     <!-- 🔴 « À propos » ne s'ouvre QUE si elle a quelque chose à dire (#1356).
          Le bouton d'enrichissement l'a quittée pour rejoindre la biographie :

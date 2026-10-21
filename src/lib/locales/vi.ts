@@ -5012,6 +5012,8 @@ export default {
   // #4805 — enrichissement d'après MetaRust (Xavier Joly), lots 1 et 2.
   "credits.wikidataTip": "Nhạc cụ lấy từ mục Wikidata của nghệ sĩ: những gì họ thường chơi, không nhất thiết trên bản thu này.",
   "credits.wikidataSource": "theo Wikidata",
+  "v2.liensExternes.titre": "Liên kết ngoài",
+  "v2.liensExternes.voirSur": "Xem trên {site}",
   "v2.completeness.disc": "(đĩa {n})",
   "v2.completeness.missingOne": "Thiếu bản nhạc {list}",
   "v2.completeness.missingMany": "Thiếu các bản nhạc {list}",

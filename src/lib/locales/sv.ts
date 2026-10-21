@@ -5156,6 +5156,8 @@ export default {
   // #4805 lot 1 — enrichissement d'après MetaRust (Xavier Joly).
   "credits.wikidataTip": "Instrument från artistens Wikidata-post: vad artisten spelar i allmänhet, inte nödvändigtvis på den här skivan.",
   "credits.wikidataSource": "enligt Wikidata",
+  "v2.liensExternes.titre": "Externa länkar",
+  "v2.liensExternes.voirSur": "Visa på {site}",
   "v2.completeness.disc": "(skiva {n})",
   "v2.completeness.missingOne": "Spår {list} saknas",
   "v2.completeness.missingMany": "Spåren {list} saknas",
