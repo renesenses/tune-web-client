@@ -2418,6 +2418,20 @@ export function getAlbumCompleteness(albumId: number) {
   );
 }
 
+/** tune-server-rust#6001 — `GET /library/artists/{id}/external-links`, sans bandeau. */
+export function getArtistExternalLinks(artistId: number) {
+  return fetchJSON<import('./liensExternes').ReponseLiens>(
+    `${BASE}/library/artists/${artistId}/external-links`, undefined, undefined, true,
+  );
+}
+
+/** tune-server-rust#6001 — `GET /library/albums/{id}/external-links`, sans bandeau. */
+export function getAlbumExternalLinks(albumId: number) {
+  return fetchJSON<import('./liensExternes').ReponseLiens>(
+    `${BASE}/library/albums/${albumId}/external-links`, undefined, undefined, true,
+  );
+}
+
 /** `GET /library/albums/incomplete` — les albums à qui il manque des pistes. */
 export function getIncompleteAlbumIds() {
   return fetchJSON<{ total: number; ids: number[] }>(
@@ -2510,6 +2524,20 @@ export function testApiKey(service: string, value?: string) {
 export function getStreamingTrackCredits(service: string, sourceId: string) {
   return fetchJSON<import('./library/credits').CreditAvecPiste[]>(
     `${BASE}/streaming/${encodeURIComponent(service)}/tracks/${encodeURIComponent(sourceId)}/credits`,
+    undefined,
+    undefined,
+    true,
+  );
+}
+
+/**
+ * La présentation d'un album de SERVICE — tune-server-rust#6480. Du texte, le
+ * serveur a retiré le balisage. `null` : pas de présentation pour cet album ;
+ * 501 : le service n'en publie jamais. Sans bandeau, comme les crédits.
+ */
+export function getStreamingAlbumDescription(service: string, albumSourceId: string) {
+  return fetchJSON<import('./presentationAlbumService').PresentationAlbum | null>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumSourceId)}/description`,
     undefined,
     undefined,
     true,
@@ -3916,6 +3944,37 @@ export interface EqAutoEqImport {
 
 export function importAutoEqPreset(body: { text: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
   return fetchJSON<EqAutoEqImport>(`${BASE}/eq/import/autoeq`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * tune-server-rust#6388 — la base AutoEq en ligne, lue par le SERVEUR
+ * (`GET /eq/autoeq/search`, `POST /eq/autoeq/import`). Un résultat est un
+ * couple casque × source de mesure ; `path` est ce que l'import attend.
+ * 503 : base injoignable et aucune copie locale sur le serveur.
+ */
+export interface AutoEqResultat {
+  name: string;
+  source: string;
+  rig: string | null;
+  form: string;
+  path: string;
+}
+
+export interface AutoEqRecherche {
+  query: string;
+  results: AutoEqResultat[];
+  total: number;
+}
+
+export function searchAutoEq(q: string, limit = 50): Promise<AutoEqRecherche> {
+  return fetchJSON<AutoEqRecherche>(`${BASE}/eq/autoeq/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+}
+
+export function importAutoEqFromDatabase(body: { path: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
+  return fetchJSON<EqAutoEqImport>(`${BASE}/eq/autoeq/import`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -5390,6 +5449,29 @@ export function setSpotifyLectureExperimentale(enabled: boolean) {
   });
 }
 
+/** #6542 — réglages de la sortie Devialet AIR (expérimentale). */
+export interface DevialetAirReglages {
+  enabled: boolean;
+  experimental: boolean;
+  source_index: number;
+  source_index_default: number;
+  source_index_max: number;
+  volume_ceiling_db: number;
+  max_sample_rate: number;
+}
+
+export function getDevialetAirReglages() {
+  return fetchJSON<DevialetAirReglages>(`${BASE}/devialet-air/reglages`);
+}
+
+/** Chaque champ est facultatif : seul ce qui est passé change. */
+export function setDevialetAirReglages(corps: { enabled?: boolean; source_index?: number }) {
+  return fetchJSON<DevialetAirReglages>(`${BASE}/devialet-air/reglages`, {
+    method: 'POST',
+    body: JSON.stringify(corps),
+  });
+}
+
 export function rescanArtwork() {
   return fetchJSON<{ status: string }>(`${BASE}/library/artwork/rescan`, { method: 'POST' });
 }
@@ -5424,6 +5506,30 @@ export function searchStreaming(service: string, q: string, limit = SEARCH_PAGE_
 
 export function getStreamingAlbum(service: string, albumId: string) {
   return fetchJSON<Album>(`${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}`);
+}
+
+/**
+ * tune-server-rust#6481 — les livrets PDF d'un album. Bibliothèque : les PDF
+ * de son dossier (`{ booklets: [{ name, size }] }`) ; service : les livrets
+ * qu'il publie (`[{ name, url }]`). Sans bandeau : un serveur antérieur
+ * répond 404, et la fiche n'affiche alors simplement aucun livret.
+ */
+export function getAlbumBooklets(albumId: number) {
+  return fetchJSON<{ booklets: Array<{ name: string; size?: number }> }>(
+    `${BASE}/library/albums/${albumId}/booklets`, undefined, undefined, true,
+  );
+}
+
+export function getStreamingAlbumBooklets(service: string, albumId: string) {
+  return fetchJSON<Array<{ name: string; url: string }>>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/booklets`,
+    undefined, undefined, true,
+  );
+}
+
+/** Ouvre une adresse de l'API dans le navigateur (jeton du pont compris). */
+export function urlDeNavigation(url: string): string {
+  return urlNavigateur(url);
 }
 
 export function getStreamingAlbumTracks(service: string, albumId: string) {
@@ -6184,6 +6290,9 @@ export * from './api/bandcampAchats';
 // Rôle maître / agent entre serveurs Tune (tune-server-rust#4626).
 // Voir lib/api/agentTune.ts.
 export * from './api/agentTune';
+// Annuaire radio-metadata.fr (tune-server-rust#6516).
+// Voir lib/api/annuaireRadios.ts.
+export * from './api/annuaireRadios';
 
 // --- Radios ---
 

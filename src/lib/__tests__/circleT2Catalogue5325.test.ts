@@ -567,7 +567,8 @@ describe('T2 — liste blanche côté client', () => {
       'id', 'isrc', 'sample_rate', 'title', 'track_number',
     ]);
     expect(Object.keys(albumContact(ALBUMS[0])).sort()).toEqual([
-      'artist_name', 'genre', 'id', 'musicbrainz_release_group_id', 'title', 'track_count', 'year',
+      // `thumbnail` : tune-server-rust#6521 (décision du 19/10/2026).
+      'artist_name', 'genre', 'id', 'musicbrainz_release_group_id', 'thumbnail', 'title', 'track_count', 'year',
     ]);
     expect(albumContact(ALBUMS[1]).musicbrainz_release_group_id).toBeNull();
     expect(pochetteAlbumContact(albumContact(ALBUMS[1]))).toBeNull();
