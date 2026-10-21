@@ -5441,6 +5441,11 @@ export default {
   "assistantIa.lot.applied": "앨범 {albums}개에 변경 {n}건을 적용했습니다.",
   "assistantIa.lot.undo": "이 일괄 처리 취소",
   "assistantIa.lot.undone": "일괄 처리를 취소했습니다.",
+  "v2.plug.nativeUninstall": "제거",
+  "v2.plug.nativeUninstalling": "제거 중…",
+  "v2.plug.nativeUninstallConfirm": "{name}을(를) 제거할까요? 플러그인과 바이너리(모든 버전)가 서버에서 삭제됩니다. 로컬 재생에서는 즉시, 네트워크 존에서는 다음 트랙부터 빠집니다. 재시작은 필요 없습니다.",
+  "v2.plug.nativeUninstallPurgeSettings": "설정과 프로필도 지우기 (지우지 않으면 재설치를 위해 보관됩니다)",
+  "v2.plug.nativeUninstallFailed": "서버를 재시작한 뒤 다시 제거해 보세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

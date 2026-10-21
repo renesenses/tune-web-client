@@ -5440,4 +5440,9 @@ export default {
   "assistantIa.lot.applied": "{n} ändring(ar) tillämpade på {albums} album.",
   "assistantIa.lot.undo": "Ångra den här satsen",
   "assistantIa.lot.undone": "Satsen ångrad.",
+  "v2.plug.nativeUninstall": "Avinstallera",
+  "v2.plug.nativeUninstalling": "Avinstallerar…",
+  "v2.plug.nativeUninstallConfirm": "Avinstallera {name}? Insticksprogrammet och dess binärfiler (alla versioner) tas bort från servern. Det lämnar lokal uppspelning direkt, och nätverkszoner vid nästa spår. Ingen omstart behövs.",
+  "v2.plug.nativeUninstallPurgeSettings": "Radera även dess inställningar och profiler (annars sparas de för en ominstallation)",
+  "v2.plug.nativeUninstallFailed": "starta om servern och försök sedan avinstallera igen.",
 } as const;

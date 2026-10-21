@@ -5441,6 +5441,11 @@ export default {
   "assistantIa.lot.applied": "{n} cambio(s) aplicado(s) en {albums} álbum(es).",
   "assistantIa.lot.undo": "Deshacer este lote",
   "assistantIa.lot.undone": "Lote deshecho.",
+  "v2.plug.nativeUninstall": "Desinstalar",
+  "v2.plug.nativeUninstalling": "Desinstalando…",
+  "v2.plug.nativeUninstallConfirm": "¿Desinstalar {name}? El complemento y sus binarios (todas sus versiones) se eliminarán del servidor. Sale de inmediato de la reproducción local, y en la siguiente pista en una zona de red. No hace falta reiniciar.",
+  "v2.plug.nativeUninstallPurgeSettings": "Borrar también sus ajustes y perfiles (si no, se conservan para una reinstalación)",
+  "v2.plug.nativeUninstallFailed": "reinicie el servidor y vuelva a intentar la desinstalación.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

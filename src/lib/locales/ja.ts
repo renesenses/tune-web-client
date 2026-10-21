@@ -5441,6 +5441,11 @@ export default {
   "assistantIa.lot.applied": "{albums}枚のアルバムに{n}件の変更を適用しました。",
   "assistantIa.lot.undo": "この一括処理を取り消す",
   "assistantIa.lot.undone": "一括処理を取り消しました。",
+  "v2.plug.nativeUninstall": "アンインストール",
+  "v2.plug.nativeUninstalling": "アンインストール中…",
+  "v2.plug.nativeUninstallConfirm": "{name} をアンインストールしますか？プラグインとそのバイナリ（すべてのバージョン）がサーバーから削除されます。ローカル再生からは直ちに、ネットワークゾーンでは次のトラックから外れます。再起動は不要です。",
+  "v2.plug.nativeUninstallPurgeSettings": "設定とプロファイルも消去する（消去しない場合は再インストール用に保持されます）",
+  "v2.plug.nativeUninstallFailed": "サーバーを再起動してから、もう一度アンインストールしてください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

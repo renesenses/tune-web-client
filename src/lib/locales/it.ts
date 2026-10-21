@@ -5441,6 +5441,11 @@ export default {
   "assistantIa.lot.applied": "{n} modifica/he applicata/e su {albums} album.",
   "assistantIa.lot.undo": "Annulla questo lotto",
   "assistantIa.lot.undone": "Lotto annullato.",
+  "v2.plug.nativeUninstall": "Disinstalla",
+  "v2.plug.nativeUninstalling": "Disinstallazione…",
+  "v2.plug.nativeUninstallConfirm": "Disinstallare {name}? Il plugin e i suoi binari (tutte le versioni) saranno eliminati dal server. Esce subito dalla riproduzione locale, e dalla traccia successiva su una zona di rete. Non serve riavviare.",
+  "v2.plug.nativeUninstallPurgeSettings": "Cancella anche le sue impostazioni e i profili (altrimenti vengono conservati per una reinstallazione)",
+  "v2.plug.nativeUninstallFailed": "riavvia il server, poi riprova la disinstallazione.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];
