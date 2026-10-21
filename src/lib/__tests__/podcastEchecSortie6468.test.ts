@@ -125,9 +125,11 @@ describe('#6468 — épisode refusé par la sortie', () => {
       },
     };
     const ep = await cliquerEpisode();
+    // L'état « en lecture » d'abord : c'est ce que le testeur a vu à tort.
+    expect(ep.classList.contains('live'), 'épisode affiché « en lecture » malgré le 502').toBe(false);
     const bandeau = hote!.querySelector('.err');
-    expect(bandeau?.textContent).toContain(fr['v2.pod.playOutputRefused']);
-    expect(ep.classList.contains('live')).toBe(false);
+    expect(bandeau, 'aucun bandeau d’erreur sur l’écran Podcasts').not.toBeNull();
+    expect(bandeau!.textContent).toContain(fr['v2.pod.playOutputRefused']);
     // Pas de bandeau global « Server error: Output device error… » en anglais.
     const toasts = get(notifications).map((n) => n.message);
     expect(toasts.some((m) => m.includes('Output device error'))).toBe(false);
