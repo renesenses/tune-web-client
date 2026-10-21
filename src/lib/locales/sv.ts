@@ -1205,6 +1205,8 @@ export default {
   "devices.volumeLimitNone": "ingen",
   "devices.volumeLimitHint": "Säkerhet: Tune överskrider den aldrig, oavsett var kommandot kommer ifrån (app, API, renderare). Komfort: över den höjer bara knapparna + och − volymen, inte reglaget. Lämna tomt för ingen gräns.",
   "devices.volumeLimitInvalid": "Ange en gräns mellan 1 och 100 % eller lämna fältet tomt.",
+  "devices.volumeLimitRefusedPure": "Den här zonen är i PURE-läge: Tune rör inte volymen, så en gräns gäller inte. Lämna PURE-läget för att ställa in en.",
+  "devices.volumeLimitRefusedFixed": "Den här zonen har fast volym: förstärkaren eller DAC:en styr volymen, så en gräns gäller inte. Stäng av fast volym för att ställa in en.",
   "devices.volumeLockOn": "Volymen låst till 100 % i Audiofilt läge",
   "devices.volumeLockOff": "Volymen fri i Audiofilt läge",
   "devices.volumeLockInherited": "ärvd från den allmänna inställningen",

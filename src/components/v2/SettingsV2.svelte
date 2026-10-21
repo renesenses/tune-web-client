@@ -17,7 +17,7 @@
    * absent.
    */
   import { t } from '../../lib/i18n';
-  import { limiteDepuisPourcent, pourcentDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
+  import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
@@ -2626,7 +2626,26 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       safety: quelle === 'safety' ? lue : (z.volume_limit_safety ?? null),
       comfort: quelle === 'comfort' ? lue : (z.volume_limit_comfort ?? null),
     };
-    void setZoneField(z, () => api.setVolumeLimits(z.id as number, limites));
+    void poserLimitesVolume(z, limites);
+  }
+
+  // 409 `limite_refusee_*` : la zone est (ou vient de passer) en PURE / volume
+  // fixe. On montre la phrase traduite et on masque les champs sans attendre
+  // le prochain GET /zones.
+  async function poserLimitesVolume(z: any, limites: { safety: number | null; comfort: number | null }) {
+    try {
+      const up = await api.setVolumeLimits(z.id as number, limites);
+      zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x)));
+    } catch (e) {
+      const err = e as { code?: string; status?: number; message?: string };
+      const cle = err.status === 409 ? cleTexteRefus(err.code) : null;
+      if (cle) {
+        zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume_limits_refusal: err.code } : x)));
+        notifications.error(get(t)(cle as any));
+      } else {
+        zoneErr = get(t)('settings.errSettingNotSaved');
+      }
+    }
   }
 
   async function setZoneField(z: any, fn: () => Promise<any>) {
@@ -5479,7 +5498,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <!-- tune-server-rust#6541 — limites de volume (fil 2335).
                            Tenues par le SERVEUR pour tous les clients ; ici on
                            ne fait que les régler. Vide = aucune limite. -->
-                      {#if serveurConnaitLesLimites(z)}
+                      {#if serveurConnaitLesLimites(z) && refusDeLimite(z)}
+                      <p class="monote">{$t((cleTexteRefus(refusDeLimite(z)) ?? 'devices.volumeLimitRefusedFixed') as any)}</p>
+                      {:else if serveurConnaitLesLimites(z)}
                       <div class="trim limites-volume">
                         <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
                         <input type="text" inputmode="decimal" class="lim" size="5"

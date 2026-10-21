@@ -1237,6 +1237,8 @@ export default {
   "devices.volumeLimitNone": "无",
   "devices.volumeLimitHint": "安全：无论命令来自何处（应用、API、渲染器），Tune 都不会超过它。舒适：超过后只能用 + 和 − 按钮调高音量，滑块不行。留空表示不限制。",
   "devices.volumeLimitInvalid": "请输入 1 到 100 % 之间的上限，或留空。",
+  "devices.volumeLimitRefusedPure": "此区域处于 PURE 模式：Tune 不会调整音量，因此限制不适用。请退出 PURE 模式后再设置。",
+  "devices.volumeLimitRefusedFixed": "此区域使用固定音量：音量由功放或 DAC 控制，因此限制不适用。请关闭固定音量后再设置。",
   "devices.volumeLockOn": "发烧模式下音量锁定为 100 %",
   "devices.volumeLockOff": "发烧模式下音量不锁定",
   "devices.volumeLockInherited": "继承自通用设置",

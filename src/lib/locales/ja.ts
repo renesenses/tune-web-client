@@ -1237,6 +1237,8 @@ export default {
   "devices.volumeLimitNone": "なし",
   "devices.volumeLimitHint": "安全：コマンドの送信元（アプリ、API、レンダラー）に関係なく、Tune はこれを超えません。快適：これを超えると、スライダーではなく + と − ボタンでのみ音量を上げられます。空欄で上限なし。",
   "devices.volumeLimitInvalid": "1〜100 % の上限を入力するか、空欄のままにしてください。",
+  "devices.volumeLimitRefusedPure": "このゾーンはPUREモードです。Tuneは音量に触れないため、制限は適用されません。制限を設定するにはPUREモードを終了してください。",
+  "devices.volumeLimitRefusedFixed": "このゾーンは固定音量です。音量はアンプまたはDACが管理するため、制限は適用されません。制限を設定するには固定音量を無効にしてください。",
   "devices.volumeLockOn": "オーディオファイルモードで音量を 100 % に固定",
   "devices.volumeLockOff": "オーディオファイルモードで音量は固定しない",
   "devices.volumeLockInherited": "全体設定を継承",

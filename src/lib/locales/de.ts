@@ -1237,6 +1237,8 @@ export default {
   "devices.volumeLimitNone": "keine",
   "devices.volumeLimitHint": "Sicherheit: Tune überschreitet sie nie, egal woher der Befehl kommt (App, API, Renderer). Komfort: darüber erhöhen nur die Tasten + und − die Lautstärke, nicht der Schieberegler. Leer lassen für keine Grenze.",
   "devices.volumeLimitInvalid": "Eine Grenze zwischen 1 und 100 % eingeben oder das Feld leer lassen.",
+  "devices.volumeLimitRefusedPure": "Diese Zone ist im PURE-Modus: Tune greift dort nicht in die Lautstärke ein, ein Limit gilt hier nicht. Verlassen Sie den PURE-Modus, um eines zu setzen.",
+  "devices.volumeLimitRefusedFixed": "Diese Zone hat eine feste Lautstärke: Verstärker oder DAC bestimmen sie, ein Limit gilt hier nicht. Deaktivieren Sie die feste Lautstärke, um eines zu setzen.",
   "devices.volumeLockOn": "Lautstärke im Audiophil-Modus auf 100 % gesperrt",
   "devices.volumeLockOff": "Lautstärke im Audiophil-Modus frei",
   "devices.volumeLockInherited": "von der allgemeinen Einstellung geerbt",

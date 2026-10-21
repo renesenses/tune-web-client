@@ -1254,6 +1254,8 @@ export default {
   "devices.volumeLimitNone": "không có",
   "devices.volumeLimitHint": "An toàn: Tune không bao giờ vượt quá, dù lệnh đến từ đâu (ứng dụng, API, renderer). Thoải mái: vượt quá mức này, chỉ các nút + và − mới tăng âm lượng, thanh trượt thì không. Để trống nếu không giới hạn.",
   "devices.volumeLimitInvalid": "Nhập giới hạn từ 1 đến 100 % hoặc để trống.",
+  "devices.volumeLimitRefusedPure": "Vùng này đang ở chế độ PURE: Tune không can thiệp vào âm lượng nên giới hạn không có hiệu lực. Thoát chế độ PURE để đặt giới hạn.",
+  "devices.volumeLimitRefusedFixed": "Vùng này dùng âm lượng cố định: ampli hoặc DAC giữ âm lượng nên giới hạn không có hiệu lực. Tắt âm lượng cố định để đặt giới hạn.",
   "devices.volumeLockOn": "Âm lượng bị khóa ở 100% trong chế độ Audiophile",
   "devices.volumeLockOff": "Âm lượng được để tự do trong chế độ Audiophile",
   "devices.volumeLockInherited": "kế thừa từ thiết lập chung",

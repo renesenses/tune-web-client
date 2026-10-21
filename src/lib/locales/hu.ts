@@ -1318,6 +1318,8 @@ export default {
   "devices.volumeLimitNone": "nincs",
   "devices.volumeLimitHint": "Biztonság: a Tune soha nem lépi túl, bárhonnan jön is a parancs (alkalmazás, API, renderelő). Kényelem: felette csak a + és − gombok emelik a hangerőt, a csúszka nem. Hagyja üresen, ha nem kell határ.",
   "devices.volumeLimitInvalid": "Adjon meg 1 és 100 % közötti határt, vagy hagyja üresen a mezőt.",
+  "devices.volumeLimitRefusedPure": "Ez a zóna PURE módban van: a Tune nem nyúl a hangerőhöz, ezért a korlát itt nem érvényes. Lépjen ki a PURE módból a beállításhoz.",
+  "devices.volumeLimitRefusedFixed": "Ennek a zónának fix a hangereje: az erősítő vagy a DAC szabályozza, ezért a korlát itt nem érvényes. Kapcsolja ki a fix hangerőt a beállításhoz.",
   "devices.volumeLockOn": "A hangerő 100 %-on rögzítve Audiofil módban",
   "devices.volumeLockOff": "A hangerő szabad Audiofil módban",
   "devices.volumeLockInherited": "az általános beállításból örökölve",

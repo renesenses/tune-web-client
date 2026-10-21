@@ -1377,6 +1377,8 @@ export default {
   "devices.volumeLimitNone": "aucune",
   "devices.volumeLimitHint": "Sécurité : Tune ne la dépasse jamais, quelle que soit l'origine de la commande (appli, API, renderer). Confort : au-delà, seuls les boutons + et − font monter le volume, pas le curseur. Laisser vide pour aucune limite.",
   "devices.volumeLimitInvalid": "Saisir une limite entre 1 et 100 %, ou laisser le champ vide.",
+  "devices.volumeLimitRefusedPure": "Cette zone est en mode PURE : Tune n'y touche pas au volume, une limite n'y a pas cours. Quittez le mode PURE pour en poser une.",
+  "devices.volumeLimitRefusedFixed": "Cette zone est à volume fixe : le volume est tenu par l'ampli ou le DAC, une limite n'y a pas cours. Désactivez le volume fixe pour en poser une.",
   "devices.volumeLockOn": "Volume verrouillé à 100 % en mode Audiophile",
   "devices.volumeLockOff": "Volume libre en mode Audiophile",
   "devices.volumeLockInherited": "hérité du réglage général",

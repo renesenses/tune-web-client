@@ -623,6 +623,11 @@ export interface Zone {
    *  + / − font monter le volume, pas le curseur. */
   volume_limit_comfort?: number | null;
   volume_limit_comfort_db?: number | null;
+  /** tune-server-rust#6620 — `limite_refusee_zone_pure` ou
+   *  `limite_refusee_volume_fixe` quand la zone est en PURE ou à volume fixe :
+   *  les limites y sont ignorées et le serveur refuse d'en poser (409).
+   *  `null` = les limites ont cours ; clé absente = serveur antérieur. */
+  volume_limits_refusal?: string | null;
   /**
    * Sortie mono (#2362) : le serveur somme `M = (L + R) / 2` et émet `M` sur
    * les DEUX voies de la zone.

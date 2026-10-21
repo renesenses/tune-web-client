@@ -1766,8 +1766,12 @@ export function stepVolume(zoneId: number, direction: 'up' | 'down', step?: numb
 
 /**
  * tune-server-rust#6541 — les deux limites de volume d'une zone, en fraction
- * 0..1. Le PUT REMPLACE les deux : `null` efface (pas de limite). Une zone
- * au-dessus de la nouvelle sécurité est ramenée par le serveur sur-le-champ.
+ * 0..1. Le PUT REMPLACE les deux : `null` efface (pas de limite). Seule une
+ * sécurité ABAISSÉE sous le volume courant ramène la zone sur-le-champ, à la
+ * baisse ; relever ou effacer une limite n'envoie rien à l'appareil.
+ * Sur une zone en PURE ou à volume fixe, poser une limite est refusé : 409,
+ * `error` = `limite_refusee_zone_pure` | `limite_refusee_volume_fixe` (lu par
+ * `apiError` dans `err.code`) ; effacer reste permis.
  */
 export function setVolumeLimits(
   zoneId: number,

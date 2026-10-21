@@ -1243,6 +1243,8 @@ export default {
   "devices.volumeLimitNone": "niciuna",
   "devices.volumeLimitHint": "Siguranță: Tune nu o depășește niciodată, indiferent de unde vine comanda (aplicație, API, renderer). Confort: peste ea, doar butoanele + și − cresc volumul, nu cursorul. Lăsați gol pentru nicio limită.",
   "devices.volumeLimitInvalid": "Introduceți o limită între 1 și 100 % sau lăsați câmpul gol.",
+  "devices.volumeLimitRefusedPure": "Această zonă este în modul PURE: Tune nu atinge volumul, deci o limită nu se aplică. Ieșiți din modul PURE pentru a seta una.",
+  "devices.volumeLimitRefusedFixed": "Această zonă are volum fix: volumul este ținut de amplificator sau de DAC, deci o limită nu se aplică. Dezactivați volumul fix pentru a seta una.",
   "devices.volumeLockOn": "Volum blocat la 100 % în modul Audiofil",
   "devices.volumeLockOff": "Volum liber în modul Audiofil",
   "devices.volumeLockInherited": "moștenit din setarea generală",

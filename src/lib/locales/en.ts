@@ -1374,6 +1374,8 @@ export default {
   "devices.volumeLimitNone": "none",
   "devices.volumeLimitHint": "Safety: Tune never goes above it, whatever sends the command (app, API, renderer). Comfort: above it, only the + and − buttons raise the volume, not the slider. Leave empty for no limit.",
   "devices.volumeLimitInvalid": "Enter a limit between 1 and 100 %, or leave the field empty.",
+  "devices.volumeLimitRefusedPure": "This zone is in PURE mode: Tune does not touch the volume there, so a limit does not apply. Leave PURE mode to set one.",
+  "devices.volumeLimitRefusedFixed": "This zone has a fixed volume: the amp or DAC holds the volume, so a limit does not apply. Turn off fixed volume to set one.",
   "devices.volumeLockOn": "Volume locked at 100% in Audiophile mode",
   "devices.volumeLockOff": "Volume left free in Audiophile mode",
   "devices.volumeLockInherited": "inherited from the general setting",

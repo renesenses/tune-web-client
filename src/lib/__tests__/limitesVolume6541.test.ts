@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+  REFUS_VOLUME_FIXE,
+  REFUS_ZONE_PURE,
   bornerCurseur,
+  cleTexteRefus,
   confort,
   limiteDepuisPourcent,
   plafondDuCurseur,
   plusEnButee,
   pourcentDeLimite,
+  refusDeLimite,
+  securite,
   serveurConnaitLesLimites,
 } from '../limitesVolume';
 
@@ -52,5 +57,33 @@ describe('limites de volume (#6541)', () => {
     expect(limiteDepuisPourcent('abc')).toBeUndefined();
     expect(pourcentDeLimite(0.625)).toBe('62.5');
     expect(pourcentDeLimite(null)).toBe('');
+  });
+});
+
+// tune-server-rust#6620 — zone PURE / volume fixe : le serveur publie
+// `volume_limits_refusal` et ignore les limites déjà posées.
+describe('refus de limite (#6620)', () => {
+  const pure = { ...zone, volume_limits_refusal: 'limite_refusee_zone_pure' };
+  const fixe = { ...zone, volume_limits_refusal: 'limite_refusee_volume_fixe' };
+
+  it('avec le refus publié, le curseur et le bouton + ignorent les limites', () => {
+    expect(bornerCurseur(pure, 1, 0.2)).toBe(1);
+    expect(plusEnButee(fixe, 0.7)).toBe(false);
+    expect(securite(pure)).toBeNull();
+    expect(confort(fixe)).toBeNull();
+  });
+
+  it('contre-épreuve : sans refus (null), les limites tiennent', () => {
+    const libre = { ...zone, volume_limits_refusal: null };
+    expect(bornerCurseur(libre, 1, 0.2)).toBe(0.3);
+    expect(plusEnButee(libre, 0.7)).toBe(true);
+    expect(refusDeLimite(libre)).toBeNull();
+  });
+
+  it('chaque code a sa phrase ; un code inconnu n’en a pas', () => {
+    expect(cleTexteRefus(REFUS_ZONE_PURE)).toBe('devices.volumeLimitRefusedPure');
+    expect(cleTexteRefus(REFUS_VOLUME_FIXE)).toBe('devices.volumeLimitRefusedFixed');
+    expect(cleTexteRefus('autre')).toBeNull();
+    expect(refusDeLimite(pure)).toBe(REFUS_ZONE_PURE);
   });
 });

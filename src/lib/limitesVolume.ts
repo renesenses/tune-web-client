@@ -20,7 +20,27 @@
 export type LimitesVolume = {
   volume_limit_safety?: number | null;
   volume_limit_comfort?: number | null;
+  /** Code publié par le serveur quand les limites n'ont pas cours sur la zone. */
+  volume_limits_refusal?: string | null;
 };
+
+/** Les codes de refus publiés par le serveur (`volume_limits_refusal`, et
+ *  `error` du 409 d'un PUT /volume-limits). */
+export const REFUS_ZONE_PURE = 'limite_refusee_zone_pure';
+export const REFUS_VOLUME_FIXE = 'limite_refusee_volume_fixe';
+
+/** Le refus publié pour cette zone, ou null si les limites y ont cours. */
+export function refusDeLimite(zone: LimitesVolume | null | undefined): string | null {
+  const r = zone?.volume_limits_refusal;
+  return typeof r === 'string' && r !== '' ? r : null;
+}
+
+/** Clé de traduction de la phrase d'un refus (code inconnu : null). */
+export function cleTexteRefus(code: string | null | undefined): string | null {
+  if (code === REFUS_ZONE_PURE) return 'devices.volumeLimitRefusedPure';
+  if (code === REFUS_VOLUME_FIXE) return 'devices.volumeLimitRefusedFixed';
+  return null;
+}
 
 /** Pas des boutons, en fraction : celui du serveur par défaut (0,02). */
 export const PAS_BOUTON = 0.02;
@@ -37,11 +57,14 @@ export function serveurConnaitLesLimites(zone: object | null | undefined): boole
 }
 
 export function securite(zone: LimitesVolume | null | undefined): number | null {
+  // Zone PURE ou à volume fixe : le serveur ignore les limites déjà posées.
+  if (refusDeLimite(zone)) return null;
   return valide(zone?.volume_limit_safety);
 }
 
 /** Le confort tel qu'il agit : jamais au-dessus de la sécurité. */
 export function confort(zone: LimitesVolume | null | undefined): number | null {
+  if (refusDeLimite(zone)) return null;
   const c = valide(zone?.volume_limit_comfort);
   const s = securite(zone);
   if (c === null) return null;

@@ -1221,6 +1221,8 @@ export default {
   "devices.volumeLimitNone": "없음",
   "devices.volumeLimitHint": "안전: 명령이 어디서 오든(앱, API, 렌더러) Tune은 이를 넘지 않습니다. 쾌적: 이를 넘으면 슬라이더가 아니라 + 와 − 버튼으로만 볼륨을 높일 수 있습니다. 비워 두면 한도가 없습니다.",
   "devices.volumeLimitInvalid": "1~100 % 사이의 한도를 입력하거나 비워 두세요.",
+  "devices.volumeLimitRefusedPure": "이 영역은 PURE 모드입니다. Tune이 볼륨에 손대지 않으므로 제한이 적용되지 않습니다. 제한을 설정하려면 PURE 모드를 해제하세요.",
+  "devices.volumeLimitRefusedFixed": "이 영역은 고정 볼륨입니다. 앰프나 DAC가 볼륨을 제어하므로 제한이 적용되지 않습니다. 제한을 설정하려면 고정 볼륨을 끄세요.",
   "devices.volumeLockOn": "오디오파일 모드에서 볼륨을 100 %로 고정",
   "devices.volumeLockOff": "오디오파일 모드에서 볼륨 고정 없음",
   "devices.volumeLockInherited": "일반 설정에서 상속됨",
