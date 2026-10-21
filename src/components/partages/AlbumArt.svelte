@@ -19,9 +19,15 @@
        l'original. À réserver aux tuiles : les vues de détail et « Lecture en
        cours » gardent la grande image. */
     vignette?: boolean;
+    /* tune-server-rust#6521 — une seconde adresse à essayer, UNE fois, quand
+       `coverPath` ne se charge pas (album de contact : la vignette du cloud,
+       puis Cover Art Archive). Sans elle, rien ne change. */
+    repli?: string | null;
   }
 
-  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null, fallbackInitials = null, vignette = false }: Props = $props();
+  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null, fallbackInitials = null, vignette = false, repli = null }: Props = $props();
+  /* #6521 — le repli explicite ne s'essaie qu'une fois par couple de props. */
+  let repliTente = $state(false);
 
   let hasError = $state(false);
   let resolvedCoverPath = $state<string | null>(null);
@@ -54,6 +60,11 @@
    */
   function handleError(e: Event) {
     console.warn('AlbumArt load error:', coverPath, 'src:', src);
+    if (repli && !repliTente && repli !== resolvedCoverPath) {
+      repliTente = true;
+      resolvedCoverPath = repli;
+      return;
+    }
     if (albumId && !repliAlbumTente) {
       repliAlbumTente = true;
       const repliPour = albumId;
@@ -80,6 +91,7 @@
     prevAlbumId = albumId;
     hasError = false;
     repliAlbumTente = false;
+    repliTente = false;
     if (coverPath) {
       resolvedCoverPath = coverPath;
     } else if (albumId) {
