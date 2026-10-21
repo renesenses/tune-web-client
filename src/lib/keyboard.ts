@@ -38,9 +38,29 @@ export function flecheDeLecture(
  * dans la recherche EN PLUS de lancer l'action.
  */
 export const TOUCHES_RACCOURCIS: readonly string[] = [
-  'Space', 'KeyS', 'KeyN', 'KeyP', 'KeyM', 'MediaStop',
+  'Space', 's', 'n', 'p', 'm', 'MediaStop',
   'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
 ];
+
+/**
+ * #6700 — la touche d'un raccourci, telle que `TOUCHES_RACCOURCIS` la nomme.
+ *
+ * Décision de Bertrand du 21/10/2026 : un raccourci à UNE LETTRE se lit sur la
+ * lettre TAPÉE (`e.key`, en minuscule), pas sur la position physique
+ * (`e.code`). Sur un clavier AZERTY, la position QWERTY de M (`KeyM`) porte la
+ * virgule : lue par `code`, chaque « , » tapée hors d'un champ coupait le son,
+ * et la vraie lettre M (`Semicolon`) ne faisait rien.
+ *
+ * Les touches sans lettre (espace, flèches, MediaStop) gardent leur `code`.
+ * Une position de lettre qui ne tape pas une lettre (la virgule de l'AZERTY)
+ * n'est le raccourci de rien.
+ */
+export function toucheDuRaccourci(e: Pick<KeyboardEvent, 'key' | 'code'>): string {
+  const lettre = typeof e.key === 'string' ? e.key : '';
+  if (/^[a-z]$/i.test(lettre)) return lettre.toLowerCase();
+  if (/^Key[A-Z]$/.test(e.code ?? '')) return '';
+  return e.code ?? '';
+}
 
 function surEcranDeLecture(): boolean {
   return get(activeView) === 'nowplaying' || get(mobileNowPlayingOpen);
@@ -55,7 +75,7 @@ export function setupKeyboardShortcuts(): () => void {
     if (!zone?.id) return;
     if (e.code.startsWith('Arrow') && !flecheDeLecture(e, surEcranDeLecture())) return;
 
-    switch (e.code) {
+    switch (toucheDuRaccourci(e)) {
       case 'Space': {
         e.preventDefault();
         const state = get(playbackState);
@@ -112,7 +132,7 @@ export function setupKeyboardShortcuts(): () => void {
        * La RADIO est exclue, comme elle l'était du bouton : un flux en direct
        * ne s'arrête pas pour reprendre où l'on était.
        */
-      case 'KeyS':
+      case 's':
       case 'MediaStop': {
         if (e.metaKey || e.ctrlKey) break;
         if (get(currentTrack)?.source === 'radio') break;
@@ -122,13 +142,13 @@ export function setupKeyboardShortcuts(): () => void {
         stopAndSync(zone.id);
         break;
       }
-      case 'KeyN':
+      case 'n':
         if (!e.metaKey && !e.ctrlKey) nextAndSync(zone.id);
         break;
-      case 'KeyP':
+      case 'p':
         if (!e.metaKey && !e.ctrlKey) previousAndSync(zone.id);
         break;
-      case 'KeyM': {
+      case 'm': {
         if (e.metaKey || e.ctrlKey) break;
         // #6700 — une VRAIE sourdine (`muted`), jamais un volume à zéro.
         void basculerSourdineZone({ ...zone, id: zone.id }).catch(() => {});
