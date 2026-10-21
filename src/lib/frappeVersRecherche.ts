@@ -1,4 +1,4 @@
-import { TOUCHES_RACCOURCIS } from './keyboard';
+import { TOUCHES_RACCOURCIS, toucheDuRaccourci } from './keyboard';
 
 /**
  * #1872 — dans la Bibliothèque, taper au clavier écrit dans la recherche.
@@ -62,7 +62,7 @@ export function decisionFrappe(
   if ((e.ctrlKey || e.altKey) && !altGr) return null;
   if (estChampDeSaisie(e.target) || estChampDeSaisie(actif)) return null;
   if (dansUnWidgetALettres(e.target) || dansUnWidgetALettres(actif)) return null;
-  if (TOUCHES_RACCOURCIS.includes(e.code)) return null;
+  if (TOUCHES_RACCOURCIS.includes(toucheDuRaccourci(e))) return null;
   if (e.key === '/') return 'focus';
   // Imprimable : UN caractère (« Enter », « Tab », « Dead » en ont plusieurs ;
   // le spread compte un emoji pour un).

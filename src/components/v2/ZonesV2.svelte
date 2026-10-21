@@ -440,6 +440,8 @@
     sonos: 'Sonos', squeezebox: 'Squeezebox', browser: 'Navigateur',
     // Un sigle, comme DLNA — #1003.
     oaat: 'OAAT',
+    // #6542
+    devialet_air: 'Devialet AIR',
   };
   /**
    * L'avertissement d'une zone — `txt` est la PASTILLE (deux mots), `long`
