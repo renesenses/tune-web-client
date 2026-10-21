@@ -226,6 +226,9 @@
     avancementAnalyse, pourcentAnalyse, abonnerAvancementAnalyse, demarrerAvancement, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
   import { tuneWS } from '../../lib/websocket';
+  import { abonnerPropositionChargementCd } from '../../lib/propositionChargementCd';
+  import { notifications } from '../../lib/stores/notifications';
+  import { currentZoneId as zoneCouranteCd, syncZone as syncZoneCd } from '../../lib/stores/zones';
   import { formatNombre } from '../../lib/formats';
   /**
    * Barre latérale du nouveau client (direction Levente).
@@ -681,6 +684,17 @@
    */
   $effect(() => { void rafraichirSources(); });
   $effect(() => abonnerSources((h) => tuneWS.onEvent(h)));
+  // tune-server-rust#6596 — à l'insertion d'un CD, proposer de le charger en
+  // mémoire (toast non bloquant) ; prêt, proposer « Lire ». Rien ne joue seul.
+  $effect(() => abonnerPropositionChargementCd((h) => tuneWS.onEvent(h), {
+    proposer: (m, b, a) => notifications.withAction(m, b, a, 15000),
+    info: (m) => notifications.info(m),
+    erreur: (m) => notifications.error(m),
+    retirer: (id) => notifications.dismiss(id),
+    traduire: (cle) => get(t)(cle as any),
+    zoneCourante: () => get(zoneCouranteCd) ?? null,
+    apresLecture: (z) => { api.getZone(z).then(syncZoneCd, () => {}); },
+  }));
   // #5065, étape 3 — seuls les TYPES cochés dans les Réglages ; une source
   // inutilisable est grisée, un type coché sans source a sa place grisée.
   const sourcesBarre = $derived(partagerSources(sourcesDeLaBarre($sources ?? [], $typesSourcesBarre)));

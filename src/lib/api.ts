@@ -4255,6 +4255,33 @@ export function installerGreffonNatifDuCatalogue(id: string): Promise<Installati
   );
 }
 
+/**
+ * `POST /audio-plugins/{id}/uninstall` avec `{"purge": true, …}` —
+ * tune-server-rust#6618 (issue #6256). Désinstallation COMPLÈTE d'un greffon
+ * natif TIERS : il quitte le registre, son dossier `plugins/audio/<id>`
+ * (versions, binaire, données rangées dedans) est retiré, et il sort tout de
+ * suite de la lecture locale (à la piste suivante sur une zone réseau).
+ * `keep_settings: false` efface aussi ses réglages de zone et ses profils.
+ * Aucun redémarrage n'est demandé (`restart_required: false`).
+ */
+export interface DesinstallationGreffonNatif {
+  unloaded?: boolean;
+  files_removed?: boolean;
+  configuration_preserved?: boolean;
+  settings_removed?: string[];
+  zones_refreshed_live?: unknown;
+  restart_required?: boolean;
+}
+
+export function desinstallerGreffonNatif(id: string, garderReglages: boolean): Promise<DesinstallationGreffonNatif> {
+  return fetchJSON<DesinstallationGreffonNatif>(
+    `${racineGreffonNatif(id)}/uninstall`,
+    { method: 'POST', body: JSON.stringify({ purge: true, keep_settings: garderReglages }) },
+    undefined,
+    true,
+  );
+}
+
 export function getReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
   return fetchJSON<ReglageGreffonNatif>(`${racineGreffonNatif(id)}/zones/${zoneId}`);
 }
@@ -10131,7 +10158,7 @@ export function getArtistsDoublons(signal?: AbortSignal) {
 export function absorbArtist(cible: number, doublon: number) {
   return fetchJSON<unknown>(`${BASE}/library/artists/${cible}/absorber/${doublon}`, { method: 'POST' });
 }
-export interface CopieDoublon { id: number; title?: string; artist_name?: string | null; file_path?: string; duration_ms?: number; format?: string | null; sample_rate?: number | null; bit_depth?: number | null }
+export interface CopieDoublon { id: number; title?: string; artist_name?: string | null; file_path?: string; duration_ms?: number; format?: string | null; sample_rate?: number | null; bit_depth?: number | null; album_id?: number | null; album_title?: string | null }
 export interface PaireDoublonNommee { critere: string; suppression_sure: boolean; a: CopieDoublon; b: CopieDoublon; recommandation: { garder: number | null; raison: string } }
 /** BIB-B3 : les paires de pistes en double, une forme unique — critère nommé,
  *  recommandation « garder » par la règle de qualité partagée. */
@@ -10143,6 +10170,33 @@ export function getPairesDoublons(critere?: string, signal?: AbortSignal) {
  *  favoris repointés sur `keep`). Le fichier n'est pas touché. */
 export function resolveTrackDuplicate(keep: number, del: number) {
   return fetchJSON<unknown>(`${BASE}/library/duplicates/resolve`, { method: 'POST', body: JSON.stringify({ keep_id: keep, delete_id: del }) });
+}
+
+/** tune-server-rust#6300 — ce que le retrait d'un album en double ferait. */
+export interface PlanRetraitAlbum {
+  garde: { album_id: number; title: string; artist_name?: string | null; pistes: number };
+  retire: { album_id: number; title: string; artist_name?: string | null; pistes: number; pistes_sans_equivalent: number };
+  mode: 'masquage';
+  fichiers_supprimes: number;
+  annuler: string;
+}
+/** tune-server-rust#6300 — garder l'album `keep`, retirer l'album `remove`.
+ *  Sans `confirm`, le serveur n'écrit rien et rend le plan. Retirer, c'est
+ *  masquer (#1391) : fichiers intacts, geste réversible (`remettreAlbum`). */
+export function retirerAlbumDoublon(keep: number, remove: number, confirm: boolean) {
+  return fetchJSON<{ applique: boolean; plan: PlanRetraitAlbum }>(`${BASE}/library/duplicates/resolve-album`, {
+    method: 'POST',
+    body: JSON.stringify({ keep_album_id: keep, remove_album_id: remove, confirm }),
+  });
+}
+export interface AlbumRetire { album_id: number; title: string; artist?: string | null; hidden_at?: string | null; resolved: boolean }
+/** Les albums retirés (masqués) de la bibliothèque. */
+export function listerAlbumsRetires() {
+  return fetchJSON<{ total: number; items: AlbumRetire[] }>(`${BASE}/library/albums/hidden`).then((r) => r?.items ?? []);
+}
+/** Remettre un album retiré dans la bibliothèque. */
+export function remettreAlbum(id: number) {
+  return fetchJSON<unknown>(`${BASE}/library/albums/${id}/hide`, { method: 'DELETE' });
 }
 
 export function listMetadataProposals(
