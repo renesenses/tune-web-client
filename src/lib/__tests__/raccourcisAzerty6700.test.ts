@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // #6700 (tune-server-rust) — décision de Bertrand du 21/10/2026 : la sourdine
