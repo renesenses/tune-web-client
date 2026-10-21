@@ -62,6 +62,7 @@
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import LiensExternes from './LiensExternes.svelte';
   import AlbumsManquants from './AlbumsManquants.svelte';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
@@ -1017,6 +1018,12 @@
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
     <BioEtTitresPhares bio={bio} provenance={bioProvenance} titres={titres} {titresEnCharge} cle={cible?.id}
       actionsBio={artisteEditable ? enrichirBio : undefined} />
+
+    <!-- tune-server-rust#6001 — ProgArchives / Metal Archives / AllMusic, pour
+         un artiste de la bibliothèque (l'identifiant MusicBrainz est le sien). -->
+    {#if artisteEditable?.id != null}
+      <LiensExternes cle={artisteEditable.id} charger={api.getArtistExternalLinks} />
+    {/if}
 
     <!-- tune-server-rust#6288 — MetaRust, « Albums manquants » : seulement pour
          un artiste de la bibliothèque, et à la demande. -->

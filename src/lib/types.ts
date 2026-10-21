@@ -1484,6 +1484,25 @@ export interface RadioStation {
   genre_label?: string | null;
   homepage_url?: string | null;
   favorite: boolean;
+  /**
+   * La fiche de l'annuaire radio-metadata.fr rapprochée de cette station
+   * (tune-server-rust#6516) : par adresse de flux, sinon par nom. Absente pour
+   * une station que l'annuaire ne connaît pas — ou plus (retirée, refusée) :
+   * elle reste dans « Mes radios », sans fiche.
+   */
+  annuaire?: {
+    external_id?: string | null;
+    radio_metadata_key?: string | null;
+    logo_url?: string | null;
+    description?: string | null;
+    website_url?: string | null;
+    /** Comment la fiche a été retrouvée : lien enregistré, adresse, nom. */
+    rapproche_par?: 'id' | 'flux' | 'nom' | string;
+    /** La station est liée à sa fiche, mais l'annuaire publie une autre
+     *  adresse de flux : l'écran PROPOSE de la reprendre, rien ne change seul. */
+    flux_change?: boolean;
+    stream_url_annuaire?: string | null;
+  } | null;
 }
 
 export interface RadioImportResult {
