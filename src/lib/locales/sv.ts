@@ -3626,6 +3626,7 @@ export default {
   "v2.fas.topTracksFailed": "Toppspåren kunde inte hämtas – ”Best of” behöver dem.",
   "v2.fas.artistNotFound": "Den här artisten hittades inte på {service}.",
   "v2.fas.artistUnavailable": "{service} kunde inte leverera artistens sida just nu.",
+  "v2.fas.play": "Spela",
   "v2.fas.bestOf": "Spela det bästa",
   "v2.fas.radio": "Artistradio",
   "v2.fas.radioServeurAncien": "Artistradion kräver en nyare Tune-server, och den här sidan har inga toppspår att blanda.",

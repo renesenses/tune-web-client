@@ -3627,6 +3627,7 @@ export default {
   "v2.fas.topTracksFailed": "无法加载热门曲目——“Best of”需要它们。",
   "v2.fas.artistNotFound": "在 {service} 上找不到该艺人。",
   "v2.fas.artistUnavailable": "{service} 暂时无法提供该艺人的页面。",
+  "v2.fas.play": "播放",
   "v2.fas.bestOf": "播放精选",
   "v2.fas.radio": "艺人电台",
   "v2.fas.radioServeurAncien": "艺人电台需要更新版本的 Tune 服务器，且此页面没有可随机播放的热门曲目。",
