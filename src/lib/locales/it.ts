@@ -1340,6 +1340,8 @@ export default {
   "settings.crossfadeHint": "Dissolvenza incrociata tra le tracce. Deseleziona per la riproduzione gapless (nessun silenzio o dissolvenza).",
   "settings.loopByDefault": "Riproduci in loop per impostazione predefinita",
   "settings.loopByDefaultHint": "Riavvia ogni traccia invece di fermarsi alla fine.",
+  "settings.controlesEcranVerrouille": "Controlli della schermata di blocco",
+  "settings.controlesEcranVerrouilleHint": "Riproduci, pausa, precedente e successivo sulla schermata di blocco controllano il server. Visibili mentre una zona browser suona in questa scheda.",
   "settings.voiceCommand": "Comando vocale",
   "settings.voiceCommandHint": "Attiva il microfono per parlare con Tune AI invece di digitare.",
   "settings.micAuthorized": "Microfono autorizzato. Ricarica la pagina per abilitare il pulsante del microfono in Tune AI.",

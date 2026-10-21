@@ -1308,6 +1308,8 @@ export default {
   "settings.crossfadeHint": "Övertoning mellan spår. Avmarkera för gapless-uppspelning (ingen tystnad eller toning).",
   "settings.loopByDefault": "Upprepa som standard",
   "settings.loopByDefaultHint": "Startar om varje spår istället för att stoppa vid slutet.",
+  "settings.controlesEcranVerrouille": "Kontroller på låsskärmen",
+  "settings.controlesEcranVerrouilleHint": "Spela, paus, föregående och nästa på låsskärmen styr servern. Visas medan en webbläsarzon spelar i den här fliken.",
   "settings.voiceCommand": "Röstkommando",
   "settings.voiceCommandHint": "Aktivera mikrofonen för att tala med Tune AI istället för att skriva.",
   "settings.micAuthorized": "Mikrofon godkänd. Ladda om sidan för att aktivera mikrofonknappen i Tune AI.",

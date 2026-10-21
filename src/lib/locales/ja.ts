@@ -2352,6 +2352,8 @@ export default {
   "settings.licenseRateLimited": "試行回数が多すぎます。1 分ほど待ってからもう一度お試しください。",
   "settings.loopByDefault": "既定でループ再生",
   "settings.loopByDefaultHint": "各曲を終了時に停止せず、もう一度再生します。",
+  "settings.controlesEcranVerrouille": "ロック画面のコントロール",
+  "settings.controlesEcranVerrouilleHint": "ロック画面の再生・一時停止・前へ・次へでサーバーを操作します。このタブでブラウザゾーンが再生中のときに表示されます。",
   "settings.playHereHint": "このサーバーにオーディオ出力がありませんか？ この端末（スピーカーやヘッドホン）で聴くには、このブラウザーで再生するゾーンを作成してください。",
   "settings.signOut": "サインアウト",
   "settings.tabProfiles": "プロフィール",

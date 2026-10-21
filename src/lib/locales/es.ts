@@ -1340,6 +1340,8 @@ export default {
   "settings.crossfadeHint": "Fundido encadenado entre pistas. Desmarca para reproducción sin pausas (sin silencio ni fundido).",
   "settings.loopByDefault": "Reproducir en bucle por defecto",
   "settings.loopByDefaultHint": "Reinicia cada pista en lugar de detenerse al final.",
+  "settings.controlesEcranVerrouille": "Controles de la pantalla de bloqueo",
+  "settings.controlesEcranVerrouilleHint": "Reproducir, pausa, anterior y siguiente en la pantalla de bloqueo controlan el servidor. Visibles mientras una zona de navegador suena en esta pestaña.",
   "settings.voiceCommand": "Comando de voz",
   "settings.voiceCommandHint": "Activa el micrófono para hablar con Tune AI en lugar de escribir.",
   "settings.micAuthorized": "Micrófono autorizado. Recarga la página para activar el botón de micrófono en Tune AI.",

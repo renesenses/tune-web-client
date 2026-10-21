@@ -1900,6 +1900,8 @@ export default {
   "settings.crossfadeHint": "Crossfade giữa các bài hát. Bỏ chọn để phát gapless (không khoảng lặng, không chuyển mờ).",
   "settings.loopByDefault": "Lặp lại theo mặc định",
   "settings.loopByDefaultHint": "Phát lại từng bài hát thay vì dừng ở cuối bài.",
+  "settings.controlesEcranVerrouille": "Điều khiển trên màn hình khóa",
+  "settings.controlesEcranVerrouilleHint": "Phát, tạm dừng, bài trước và bài tiếp theo trên màn hình khóa điều khiển máy chủ. Hiển thị khi một vùng trình duyệt đang phát trong thẻ này.",
   "settings.voiceCommand": "Điều khiển bằng giọng nói",
   "settings.voiceCommandHint": "Bật micro để nói chuyện với Tune AI thay vì gõ phím.",
   "settings.micAuthorized": "Đã cấp quyền micro. Hãy tải lại trang để bật nút micro trong Tune AI.",

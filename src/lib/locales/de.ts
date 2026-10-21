@@ -1340,6 +1340,8 @@ export default {
   "settings.crossfadeHint": "Überblenden zwischen Titeln. Deaktivieren für lückenlose Wiedergabe (keine Stille oder Blende).",
   "settings.loopByDefault": "Standardmäßig wiederholen",
   "settings.loopByDefaultHint": "Startet jeden Titel neu, statt am Ende zu stoppen.",
+  "settings.controlesEcranVerrouille": "Steuerung auf dem Sperrbildschirm",
+  "settings.controlesEcranVerrouilleHint": "Wiedergabe, Pause, Zurück und Weiter auf dem Sperrbildschirm steuern den Server. Sichtbar, solange eine Browser-Zone in diesem Tab spielt.",
   "settings.voiceCommand": "Sprachbefehl",
   "settings.voiceCommandHint": "Aktiviere das Mikrofon, um mit Tune AI zu sprechen, statt zu tippen.",
   "settings.micAuthorized": "Mikrofon autorisiert. Lade die Seite neu, um die Mikrofontaste in Tune AI zu aktivieren.",

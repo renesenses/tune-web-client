@@ -1421,6 +1421,8 @@ export default {
   "settings.crossfadeHint": "Áttűnés a számok között. Vedd ki a pipát a gapless lejátszáshoz (nincs csend és nincs elhalkulás).",
   "settings.loopByDefault": "Alapból ismétlés",
   "settings.loopByDefaultHint": "Minden számot újraindít ahelyett, hogy a végén leállna.",
+  "settings.controlesEcranVerrouille": "Vezérlés a lezárási képernyőn",
+  "settings.controlesEcranVerrouilleHint": "A lezárási képernyő lejátszás, szünet, előző és következő gombjai a szervert vezérlik. Akkor látszanak, ha ebben a lapon böngészőzóna szól.",
   "settings.voiceCommand": "Hangparancs",
   "settings.voiceCommandHint": "Kapcsold be a mikrofont, hogy gépelés helyett beszélhess a Tune MI-vel.",
   "settings.micAuthorized": "A mikrofon engedélyezve. Töltsd újra az oldalt, hogy a mikrofongomb megjelenjen a Tune MI-ben.",
