@@ -2432,6 +2432,14 @@ export function getAlbumExternalLinks(albumId: number) {
   );
 }
 
+/** tune-server-rust#6288 — `GET /library/artists/{id}/missing-albums`, sans bandeau. */
+export function getArtistMissingAlbums(artistId: number, avecSecondaires = false) {
+  const q = avecSecondaires ? '?secondaires=1' : '';
+  return fetchJSON<import('./albumsManquants').ReponseManquants>(
+    `${BASE}/library/artists/${artistId}/missing-albums${q}`, undefined, undefined, true,
+  );
+}
+
 /** `GET /library/albums/incomplete` — les albums à qui il manque des pistes. */
 export function getIncompleteAlbumIds() {
   return fetchJSON<{ total: number; ids: number[] }>(
