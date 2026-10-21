@@ -15,6 +15,7 @@
    *    instrument ; ils s'affichent ensuite dans les Crédits.
    */
   import * as api from '../../lib/api';
+  import LiensExternes from './LiensExternes.svelte';
   import { t, locale } from '../../lib/i18n';
   import {
     phraseDesManquantes,
@@ -186,6 +187,8 @@
 </script>
 
 <section class="enrichissement" data-enrichissement-album>
+  <!-- tune-server-rust#6001 — ProgArchives / Metal Archives / AllMusic. -->
+  <LiensExternes cle={albumId} charger={api.getAlbumExternalLinks} />
   {#if completude?.status === 'incomplete' && completude.missing?.length}
     <p class="manque" data-completude="incomplete"
       title={completude.missing.map((m) => m.titre).join(' · ')}>

@@ -71,6 +71,7 @@
   import { tirageAleatoire } from '../../lib/porteeAleatoire';
   import { sourcesArtistesServeur, pagePorteLesSources, sourcesDepuisLeServeur } from '../../lib/stores/sourcesArtistesServeur';
   import { t } from '../../lib/i18n';
+  import { preferences } from '../../lib/stores/preferences';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import type { Artist } from '../../lib/types';
@@ -102,6 +103,10 @@
     nomPortee?: string | null;
   }
   let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, idsPortee = null, nomPortee = null }: Props = $props();
+  /** tune-server-rust#6474 — « Trier les artistes par nom de famille » (réglage
+   *  du profil, gardé par le serveur dans `ui_preferences`). `!== false` : un
+   *  blob d'avant le réglage garde l'ordre livré, celui du nom de tri. */
+  const parNomDeTri = $derived($preferences.trierArtistesParNomDeTri !== false);
 
   let artistes = $state<Artist[]>([]);
   let chargement = $state(true);
@@ -178,7 +183,9 @@
     [...(sourcesEffectives.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance)))
     // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956), sur
     // sa clé : `sort_name` s'il existe (« Beatles, The » à B), sinon `name`.
-    .sort(comparerArtistes));
+    // tune-server-rust#6474 — sauf si le réglage « Trier les artistes par nom
+    // de famille » est décoché : le nom affiché, toujours.
+    .sort((a, b) => comparerArtistes(a, b, parNomDeTri)));
   $effect(() => {
     onComptesSources?.({
       total: artistesRecherche.length,
@@ -190,7 +197,10 @@
    *  même règle que l'ordre : « (hed) p.e. » est sous H, « The Beatles »
    *  (nom de tri « Beatles, The ») sous B. */
   function lettre(a: Artist): string {
-    return initialeAlphabetique(cleDeTriArtiste(a));
+    // #6474 — la lettre suit la MÊME clé que l'ordre, réglage compris : sinon
+    // le rail viserait une lettre qui n'est pas celle sous laquelle l'artiste
+    // est rangé.
+    return initialeAlphabetique(cleDeTriArtiste(a, parNomDeTri));
   }
   const ALPHABET = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
   const presentes = $derived(new Set(affiches.map(lettre)));
