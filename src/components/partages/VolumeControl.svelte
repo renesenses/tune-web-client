@@ -1,6 +1,6 @@
 <script lang="ts">
   import { currentZone } from '../../lib/stores/zones';
-  import { zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
+  import { zoneVolume } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
   import { isBrowserZone, browserSetVolume } from '../../lib/stores/browserAudio';
   import { t } from '../../lib/i18n';
@@ -15,10 +15,12 @@
     plusEnButee,
     serveurConnaitLesLimites,
   } from '../../lib/limitesVolume';
+  import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
 
   let zone = $derived($currentZone);
   let vol = $derived($zoneVolume);
-  let isMuted = $derived(vol === 0 && $mutedVolume !== null);
+  // #6700 — la sourdine est l'état `muted` de la zone, pas un volume à zéro.
+  let isMuted = $derived(zone?.muted === true);
 
   // #1274 \u2014 le mode dB n'est plus une simple fa\u00E7on d'\u00C9CRIRE le pour-cent : le
   // champ est saisissable, et ce qu'on y tape part tel quel dans `volume_db`.
@@ -65,7 +67,7 @@
     }
     const lineaire = lineaireDepuisDb(lu.db);
     if (lineaire === null) return;
-    if (lineaire > 0) mutedVolume.set(null);
+    if (zone.id != null) leverSourdineSiBesoin({ ...zone, id: zone.id }, lineaire);
     zoneVolume.set(lineaire);
     if (isBrowserZone(zone)) browserSetVolume(lineaire);
     // Le dB part TEL QUEL : le repasser en lin\u00E9aire avant l'envoi rendrait la
@@ -94,7 +96,7 @@
     // l'écran le montre au lieu de laisser le pouce filer plus haut que le son.
     const val = bornerCurseur(zone, Number(champ.value), vol);
     if (val !== Number(champ.value)) champ.value = String(val);
-    if (val > 0) mutedVolume.set(null);
+    leverSourdineSiBesoin({ ...zone, id: zone.id }, val);
     zoneVolume.set(val);
     if (isBrowserZone(zone)) browserSetVolume(val);
     const zoneId = zone.id;
@@ -111,21 +113,11 @@
     if (isBrowserZone(zone)) browserSetVolume(val);
   }
 
+  // #6700 — décision de Bertrand du 21/10 : une VRAIE sourdine. Le volume
+  // n'est pas touché, lever la sourdine rend le son au volume d'avant.
   async function toggleMute() {
     if (!zone?.id || $volumeLocked) return;
-    if (vol > 0) {
-      mutedVolume.set(vol);
-      applyVolume(0);
-      await api.setVolume(zone.id, 0);
-    } else if ($mutedVolume !== null) {
-      const restore = $mutedVolume;
-      mutedVolume.set(null);
-      applyVolume(restore);
-      await api.setVolume(zone.id, restore);
-    } else {
-      applyVolume(0.5);
-      await api.setVolume(zone.id, 0.5);
-    }
+    await basculerSourdineZone({ ...zone, id: zone.id }).catch(() => {});
   }
 
   // tune-server-rust#6541 — boutons + / − : le serveur fait le pas depuis le
@@ -134,16 +126,16 @@
   // reçoit l'ancien `PUT /volume`.
   async function pas(direction: 'up' | 'down') {
     if (!zone?.id || $volumeLocked) return;
-    if (direction === 'up') mutedVolume.set(null);
     if (!serveurConnaitLesLimites(zone) || isBrowserZone(zone)) {
       const next = direction === 'up' ? Math.min(1, vol + PAS_BOUTON) : Math.max(0, vol - PAS_BOUTON);
-      if (next > 0) mutedVolume.set(null);
+      if (direction === 'up') leverSourdineSiBesoin({ ...zone, id: zone.id }, next);
       applyVolume(next);
       await api.setVolume(zone.id, next);
       return;
     }
     try {
       const r = await api.stepVolume(zone.id, direction);
+      if (direction === 'up') leverSourdineSiBesoin({ ...zone, id: zone.id }, r.volume);
       applyVolume(r.volume);
       if (r.limited) notifications.info($t('volume.limitedBySafety'));
     } catch {
