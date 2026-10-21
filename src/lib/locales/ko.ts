@@ -3627,6 +3627,7 @@ export default {
   "v2.fas.topTracksFailed": "인기 트랙을 불러오지 못했습니다 — ‘Best of’에 필요합니다.",
   "v2.fas.artistNotFound": "{service}에서 이 아티스트를 찾을 수 없습니다.",
   "v2.fas.artistUnavailable": "{service}에서 지금은 이 아티스트 페이지를 가져올 수 없습니다.",
+  "v2.fas.play": "재생",
   "v2.fas.bestOf": "베스트 재생",
   "v2.fas.radio": "아티스트 라디오",
   "v2.fas.radioServeurAncien": "아티스트 라디오를 사용하려면 최신 Tune 서버가 필요하며, 이 페이지에는 섞을 인기 트랙이 없습니다.",
