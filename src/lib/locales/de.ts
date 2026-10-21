@@ -1073,6 +1073,7 @@ export default {
   "nowplaying.saveError": "Fehler beim Speichern",
   "nowplaying.back": "Zurück",
   "nowplaying.stereo": "Stereo",
+  "nowplaying.bitrate": "Bitrate",
   "nowplaying.liveNow": "LIVE",
   "nowplaying.lyrics": "Songtext",
   "nowplaying.share": "Teilen",

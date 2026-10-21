@@ -285,6 +285,30 @@ export function fixedBitrateLabel(source: string | null | undefined): string | n
   return (source ?? '').toLowerCase() === 'bandcamp' ? '128 kbit/s' : null;
 }
 
+/** Les formats AVEC PERTE, où le débit dit quelque chose de la qualité
+ *  (tune-server-rust#6332). Sur un FLAC, le débit moyen ne dit rien qu'on ne
+ *  lise déjà dans la fréquence et la profondeur. */
+const FORMATS_AVEC_PERTE = new Set(['mp3', 'aac', 'm4a', 'mp4', 'ogg', 'vorbis', 'opus', 'wma']);
+
+export function estFormatAvecPerte(format: string | null | undefined): boolean {
+  return FORMATS_AVEC_PERTE.has((format ?? '').trim().toLowerCase());
+}
+
+/** Le débit de la piste, « 128 kbit/s », ou `null`.
+ *
+ *  tune-server-rust#6332 — le serveur porte désormais `bitrate_kbps` pour une
+ *  piste LOCALE (lu au scan : le débit moyen du fichier) ; il le portait déjà
+ *  pour les sources qui le nomment. Une valeur absente, nulle ou négative ne
+ *  s'affiche pas — on n'affiche pas un débit qu'on ne connaît pas. Repli :
+ *  [`fixedBitrateLabel`] pour une source à débit unique. */
+export function bitrateLabel(
+  track: { bitrate_kbps?: number | null; source?: string | null } | null | undefined,
+): string | null {
+  const b = track?.bitrate_kbps;
+  if (typeof b === 'number' && Number.isFinite(b) && b > 0) return `${Math.round(b)} kbit/s`;
+  return fixedBitrateLabel(track?.source);
+}
+
 /** Build the source + quality label, e.g. "Tidal Hi-Res", "Qobuz 24/96", "Local FLAC" */
 export function formatQualitySource(
   track: {
@@ -332,6 +356,7 @@ export function formatCompactQuality(
     sample_rate?: number | null;
     bit_depth?: number | null;
     source?: string | null;
+    bitrate_kbps?: number | null;
   } | null | undefined,
 ): string {
   if (!track) return '';
@@ -343,7 +368,10 @@ export function formatCompactQuality(
   // décrirait ici le PCM après décodage, pas ce que Bandcamp a envoyé. On le
   // montre à sa place, jamais en plus : deux chiffres pour la même chose se
   // contrediraient à l'œil.
-  const debit = fixedBitrateLabel(track.source);
+  // #6332 — même règle pour un fichier local AVEC PERTE dont le serveur
+  // connaît le débit : « MP3 128 kbit/s » plutôt que « MP3 44.1/16 ».
+  const debit =
+    fixedBitrateLabel(track.source) ?? (estFormatAvecPerte(track.format) ? bitrateLabel(track) : null);
   if (debit) return fmt ? `${fmt} ${debit}` : debit;
 
   if (!fmt && !sr && !bd) return '';
@@ -362,6 +390,7 @@ export function formatQualityTooltip(
     sample_rate?: number | null;
     bit_depth?: number | null;
     source?: string | null;
+    bitrate_kbps?: number | null;
   } | null | undefined,
 ): string {
   if (!track) return '';
@@ -376,7 +405,7 @@ export function formatQualityTooltip(
   if (tierLabel) lines.push(`Quality: ${tierLabel}`);
   lines.push(`Source: ${source}`);
   lines.push(`Format: ${fmt}`);
-  const debit = fixedBitrateLabel(track.source);
+  const debit = bitrateLabel(track);
   if (debit) lines.push(`Bitrate: ${debit}`);
   if (sr > 0) lines.push(`Sample rate: ${(sr / 1000).toFixed(sr % 1000 === 0 ? 0 : 1)} kHz`);
   if (bd > 0) lines.push(`Bit depth: ${bd}-bit`);

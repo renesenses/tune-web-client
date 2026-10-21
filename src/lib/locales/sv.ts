@@ -1041,6 +1041,7 @@ export default {
   "nowplaying.saveError": "Fel vid sparande",
   "nowplaying.back": "Tillbaka",
   "nowplaying.stereo": "Stereo",
+  "nowplaying.bitrate": "Bithastighet",
   "nowplaying.liveNow": "LIVE",
   "nowplaying.lyrics": "Låttext",
   "nowplaying.share": "Dela",

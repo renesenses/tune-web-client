@@ -1090,6 +1090,7 @@ export default {
   "nowplaying.saveError": "Lỗi khi lưu",
   "nowplaying.back": "Quay lại",
   "nowplaying.stereo": "Stereo",
+  "nowplaying.bitrate": "Tốc độ bit",
   "nowplaying.liveNow": "TRỰC TIẾP",
   "nowplaying.lyrics": "Lời bài hát",
   "nowplaying.share": "Chia sẻ",

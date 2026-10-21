@@ -1079,6 +1079,7 @@ export default {
   "nowplaying.saveError": "Eroare la salvare",
   "nowplaying.back": "Înapoi",
   "nowplaying.stereo": "Stereo",
+  "nowplaying.bitrate": "Rată de biți",
   "nowplaying.liveNow": "LIVE",
   "nowplaying.lyrics": "Versuri",
   "nowplaying.share": "Partajează",
