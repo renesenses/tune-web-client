@@ -173,6 +173,20 @@ const ALIASES: Readonly<Record<string, string>> = {
   folk: 'radioGenre.folk',
   ambient: 'radioGenre.ambient',
   ambiant: 'radioGenre.ambient',
+
+  // tune-server-rust#6516 — les genres de l'annuaire radio-metadata.fr v2
+  // (relevé du 19/10/2026 : 836 stations, seize genres) que ce relevé-ci
+  // ignorait, et leurs catégories voisines. Sans eux, la puce « news » —
+  // 178 stations — restait en anglais dans toutes les langues.
+  news: 'radioGenre.news',
+  talk: 'radioGenre.news',
+  info: 'radioGenre.news',
+  lounge: 'radioGenre.lounge',
+  'easy listening': 'radioGenre.lounge',
+  rnb: 'radioGenre.rnb',
+  'r&b': 'radioGenre.rnb',
+  country: 'radioGenre.country',
+  latin: 'radioGenre.latin',
 };
 
 /**

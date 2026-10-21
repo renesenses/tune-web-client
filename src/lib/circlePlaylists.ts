@@ -364,19 +364,77 @@ export function renoncerRecuperable(id: IdOpaque): Promise<unknown> {
  * - `introuvable`  : rien chez lui — l'écran le dit clairement.
  */
 export type EtatResolution =
-  | { etat: 'bibliotheque' }
-  | { etat: 'service'; service: string }
+  | { etat: 'bibliotheque'; piste?: PisteDeMaBibliotheque }
+  | { etat: 'service'; service: string; titre?: TitreDeMonService }
   | { etat: 'introuvable' };
 
+/**
+ * web#2219 — la piste de MA bibliothèque qui rejoue le morceau : de quoi
+ * l'enfiler (`track_id`) et montrer sa pochette (`album_id`, par
+ * `/library/artwork`). Jamais la colonne `source_id` de la base, qui peut
+ * être un chemin.
+ */
+export interface PisteDeMaBibliotheque { track_id: number; album_id?: number }
+
+/**
+ * web#2219 — le titre de MON service qui rejoue le morceau, tel que le
+ * service le décrit : de quoi l'enfiler par `POST /zones/{id}/queue/add`
+ * (« Lire ensuite », « Ajouter à la file ») et montrer SA pochette.
+ */
+export interface TitreDeMonService {
+  source_id: string;
+  title?: string;
+  artist_name?: string;
+  album_title?: string;
+  duration_ms?: number;
+  /** Une adresse http(s) : elle passe par le relais de pochettes de NOTRE serveur. */
+  cover_url?: string;
+}
+
 const SOURCES_LOCALES = new Set(['local', 'library', 'bibliotheque', 'upnp']);
+
+const adresseWeb = (v: unknown): string | null => {
+  const s = texte(v);
+  return s && /^https?:\/\/[^\s]+$/i.test(s) ? s : null;
+};
+
+function pisteDeMaBibliotheque(b: any): PisteDeMaBibliotheque | undefined {
+  const tid = entier(b?.track_id);
+  if (tid == null || tid <= 0) return undefined;
+  const aid = entier(b?.album_id);
+  return aid != null && aid > 0 ? { track_id: tid, album_id: aid } : { track_id: tid };
+}
+
+function titreDeMonService(b: any): TitreDeMonService | undefined {
+  const sid = idService(b?.source_id);
+  if (!sid) return undefined;
+  const t: TitreDeMonService = { source_id: sid };
+  const titre = texte(b?.title);
+  const artiste = texte(b?.artist_name);
+  const album = texte(b?.album_title);
+  const duree = entier(b?.duration_ms);
+  const pochette = adresseWeb(b?.cover_url);
+  if (titre) t.title = titre;
+  if (artiste) t.artist_name = artiste;
+  if (album) t.album_title = album;
+  if (duree != null && duree > 0) t.duration_ms = duree;
+  if (pochette) t.cover_url = pochette;
+  return t;
+}
 
 export function etatResolution(b: any): EtatResolution | null {
   const st = texte(b?.status);
   if (st === 'not_found') return { etat: 'introuvable' };
   if (st !== 'matched') return null;
   const src = (texte(b?.source) ?? '').toLowerCase();
-  if (!src || SOURCES_LOCALES.has(src)) return { etat: 'bibliotheque' };
-  return /^[a-z0-9_-]{1,32}$/.test(src) ? { etat: 'service', service: src } : { etat: 'bibliotheque' };
+  const local = (): EtatResolution => {
+    const piste = pisteDeMaBibliotheque(b);
+    return piste ? { etat: 'bibliotheque', piste } : { etat: 'bibliotheque' };
+  };
+  if (!src || SOURCES_LOCALES.has(src)) return local();
+  if (!/^[a-z0-9_-]{1,32}$/.test(src)) return { etat: 'bibliotheque' };
+  const titre = titreDeMonService(b);
+  return titre ? { etat: 'service', service: src, titre } : { etat: 'service', service: src };
 }
 
 /** Rien n'est gardé : la résolution est refaite à chaque ouverture. */
@@ -395,8 +453,24 @@ export async function resoudrePlaylistCercle(id: IdOpaque): Promise<Map<string, 
 /** Ce que la lecture a mis en file, et ce qui manquait chez moi. */
 export interface BilanLecture { lances: number | null; manquants: number }
 
-export async function jouerPlaylistCercle(id: IdOpaque, zoneId: number): Promise<BilanLecture> {
-  const b = await envoyer<any>(`${racine}/${seg(id)}/play`, 'POST', { zone_id: zoneId });
+/**
+ * Ce que `play` doit jouer (web#2219, greffon `from_item_id` / `item_ids`) :
+ * - rien : toute la playlist ;
+ * - `depuis` : la playlist À PARTIR de ce morceau, la suite en file ;
+ * - `seulement` : ces morceaux, dans cet ordre (un titre seul, ou un
+ *   mélange aléatoire fait ici).
+ */
+export type SelectionLecture = { depuis: IdOpaque } | { seulement: IdOpaque[] };
+
+export function corpsDeLecturePlaylist(zoneId: number, selection?: SelectionLecture): Record<string, unknown> {
+  const corps: Record<string, unknown> = { zone_id: zoneId };
+  if (selection && 'depuis' in selection) corps.from_item_id = selection.depuis;
+  else if (selection && 'seulement' in selection) corps.item_ids = selection.seulement;
+  return corps;
+}
+
+export async function jouerPlaylistCercle(id: IdOpaque, zoneId: number, selection?: SelectionLecture): Promise<BilanLecture> {
+  const b = await envoyer<any>(`${racine}/${seg(id)}/play`, 'POST', corpsDeLecturePlaylist(zoneId, selection));
   const compte = (v: unknown) => (Array.isArray(v) ? v.length : entier(v));
   return {
     lances: compte(b?.queued) ?? compte(b?.matched) ?? compte(b?.played),
@@ -513,6 +587,9 @@ export function codeT5(e: unknown): string | null {
     case 'playlist_too_large': return 'v2.circle.pl.err.tooLarge';
     case 'too_many_playlists': return 'v2.circle.pl.err.tooMany';
     case 'circle.nothing_playable': return 'v2.circle.pl.nothingPlayable';
+    case 'circle.item_not_playable': return 'v2.circle.pl.err.itemNotPlayable';
+    case 'circle.unknown_item':
+    case 'circle.invalid_selection': return 'v2.circle.pl.changed';
     case 'invalid_order':
     case 'invalid_position': return 'v2.circle.pl.changed';
   }

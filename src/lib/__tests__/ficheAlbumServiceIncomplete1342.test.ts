@@ -133,7 +133,9 @@ afterEach(() => {
 
 /** Les appels au DÉTAIL de l'album — pas à ses pistes. */
 const appelsDetail = () =>
-  appels.filter((u) => /\/streaming\/qobuz\/albums\//.test(u) && !/\/tracks/.test(u));
+  // tune-server-rust#6481 — `/booklets` (les livrets PDF) est une autre route,
+  // pas une relecture de la fiche : elle n'entre pas dans ce compte.
+  appels.filter((u) => /\/streaming\/qobuz\/albums\//.test(u) && !/\/(tracks|booklets)/.test(u));
 
 /**
  * ⚠️ `AlbumArt` ne pose pas l'URL du service telle quelle : une adresse
