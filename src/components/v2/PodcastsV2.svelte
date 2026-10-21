@@ -17,6 +17,7 @@
    * réseau dont deux ne seront jamais regardés.
    */
   import * as api from '../../lib/api';
+  import { lancerEpisode } from '../../lib/lectureEpisode';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { listResetNonce } from '../../lib/stores/navigation';
   import { untrack } from 'svelte';
@@ -516,20 +517,22 @@
   async function playEpisode(ep: any) {
     const zid = $currentZoneId;
     if (zid == null) { error = $t('v2.lib.noActiveZone' as any); return; }
+    // tune-server-rust#6468 — l'épisode ne s'allume « en lecture » qu'APRÈS
+    // une réponse 2xx. Il s'allumait avant l'appel, et restait allumé deux
+    // secondes sur un refus de l'enceinte : l'écran disait le contraire du
+    // serveur, qui venait de repasser la zone à l'arrêt.
+    playingUrl = null;
+    const issue = await lancerEpisode(zid, {
+      audio_url: ep.audio_url,
+      title: ep.title,
+      podcast_name: title(opened),
+      cover_url: ep.cover_url ?? cover(opened) ?? undefined,
+      duration_ms: ep.duration_ms,
+    });
+    if (!issue.ok) { error = issue.message; return; }
+    error = null;
     playingUrl = ep.audio_url;
-    try {
-      await api.playPodcastEpisode(zid, {
-        audio_url: ep.audio_url,
-        title: ep.title,
-        podcast_name: title(opened),
-        cover_url: ep.cover_url ?? cover(opened) ?? undefined,
-        duration_ms: ep.duration_ms,
-      });
-    } catch {
-      error = $t('v2.stream.playFailed' as any);
-    } finally {
-      setTimeout(() => { playingUrl = null; }, 2000);
-    }
+    setTimeout(() => { if (playingUrl === ep.audio_url) playingUrl = null; }, 2000);
   }
 
   const isSubscribed = $derived.by(() => {

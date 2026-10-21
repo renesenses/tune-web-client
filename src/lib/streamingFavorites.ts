@@ -594,12 +594,16 @@ export function signalerRecopieManquee(service: string, e: unknown): void {
 export function favoriExterneService(
   keys: ReadonlySet<string>,
   ref: StreamingRef | null | undefined,
+  // tune-server-rust#6461 — ce que l'écran fait du nouvel état (`null` :
+  // rien n'a pu être fait). Absent, le geste est celui d'avant.
+  apres?: (etat: boolean | null) => void,
 ): { actif: boolean; basculer: () => Promise<void> } | null {
   if (!ref || !favKeyOf(ref)) return null;
   return {
     actif: isStreamingFavorite(keys, ref),
     basculer: async () => {
-      await toggleStreamingFavorite(ref);
+      const etat = await toggleStreamingFavorite(ref);
+      apres?.(etat);
     },
   };
 }

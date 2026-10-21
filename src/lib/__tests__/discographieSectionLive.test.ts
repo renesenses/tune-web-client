@@ -62,9 +62,11 @@ describe('Section « Live » de la fiche artiste', () => {
     expect(titres(s.albums)).toEqual(['Ragged Glory']);
   });
 
-  it('TÉMOIN — sans type secondaire, rien ne va dans « Live »', () => {
-    expect(estLive(fusionnerDiscographie([album(1, 'Live at Leeds', 'album')], [])[0])).toBe(false);
+  it('TÉMOIN — sans type secondaire, seul le TITRE range dans « Live » (#6464)', () => {
+    expect(estLive(fusionnerDiscographie([album(1, 'Live at Leeds', 'album')], [])[0])).toBe(true);
     expect(estLive(fusionnerDiscographie([album(2, 'x', 'album', null)], [])[0])).toBe(false);
+    // Un type secondaire CONNU sans `live` n'est pas contredit par le titre.
+    expect(estLive(fusionnerDiscographie([album(3, 'Live Remixes', 'album', ['remix'])], [])[0])).toBe(false);
   });
 
   it('la réponse à sections transmet la clé `live`', () => {
@@ -80,7 +82,7 @@ describe('Section « Live » de la fiche artiste', () => {
     }
   });
 
-  it('rend la section « Live » APRÈS Albums, EP et Singles', () => {
+  it('rend la section « Live » AVANT Albums, EP et Singles (#6464)', () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}), text: async () => '{}' })));
     vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
     const hote = document.createElement('div');
@@ -103,7 +105,7 @@ describe('Section « Live » de la fiche artiste', () => {
       expect(hote.querySelector('[data-section="live"] .ct')?.textContent).toBe('Live EP');
       expect(hote.querySelector('[data-section="eps"] .ct')?.textContent).toBe('Un EP');
       const ordre = [...hote.querySelectorAll('section[data-section]')].map((s) => s.getAttribute('data-section'));
-      expect(ordre.slice(0, 4)).toEqual(['albums-principaux', 'eps', 'singles', 'live']);
+      expect(ordre.slice(0, 4)).toEqual(['live', 'albums-principaux', 'eps', 'singles']);
     } finally {
       unmount(composant);
       hote.remove();

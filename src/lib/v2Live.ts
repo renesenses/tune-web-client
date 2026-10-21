@@ -505,6 +505,20 @@ export function demarrerTransportV2(): () => void {
       return;
     }
 
+    // #6700 — la sourdine posée ailleurs (autre client, autre onglet) :
+    // `PlaybackManager::set_mute` émet `playback.muted` `{ muted, zone_id }`.
+    if (
+      type === 'playback.muted' &&
+      event.data?.zone_id !== undefined &&
+      typeof event.data?.muted === 'boolean'
+    ) {
+      const { zone_id, muted } = event.data;
+      zones.update((liste: any[]) =>
+        liste.map((z) => (z?.id === zone_id ? { ...z, muted } : z)),
+      );
+      return;
+    }
+
     // Une zone qui apparaît, disparaît ou revient change la LISTE : la relire
     // est le seul moyen d'en connaître l'état complet.
     if (

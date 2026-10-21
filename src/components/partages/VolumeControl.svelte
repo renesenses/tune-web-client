@@ -1,6 +1,6 @@
 <script lang="ts">
   import { currentZone } from '../../lib/stores/zones';
-  import { zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
+  import { zoneVolume } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
   import { isBrowserZone, browserSetVolume } from '../../lib/stores/browserAudio';
   import { t } from '../../lib/i18n';
@@ -9,10 +9,12 @@
   import * as api from '../../lib/api';
   import { analyserDb, formaterDb, lineaireDepuisDb } from '../../lib/volumeDb';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
+  import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
 
   let zone = $derived($currentZone);
   let vol = $derived($zoneVolume);
-  let isMuted = $derived(vol === 0 && $mutedVolume !== null);
+  // #6700 — la sourdine est l'état `muted` de la zone, pas un volume à zéro.
+  let isMuted = $derived(zone?.muted === true);
 
   // #1274 \u2014 le mode dB n'est plus une simple fa\u00E7on d'\u00C9CRIRE le pour-cent : le
   // champ est saisissable, et ce qu'on y tape part tel quel dans `volume_db`.
@@ -59,7 +61,7 @@
     }
     const lineaire = lineaireDepuisDb(lu.db);
     if (lineaire === null) return;
-    if (lineaire > 0) mutedVolume.set(null);
+    if (zone.id != null) leverSourdineSiBesoin({ ...zone, id: zone.id }, lineaire);
     zoneVolume.set(lineaire);
     if (isBrowserZone(zone)) browserSetVolume(lineaire);
     // Le dB part TEL QUEL : le repasser en lin\u00E9aire avant l'envoi rendrait la
@@ -84,7 +86,7 @@
   function handleVolume(e: Event) {
     if (!zone?.id || $volumeLocked) return;
     const val = Number((e.target as HTMLInputElement).value);
-    if (val > 0) mutedVolume.set(null);
+    leverSourdineSiBesoin({ ...zone, id: zone.id }, val);
     zoneVolume.set(val);
     if (isBrowserZone(zone)) browserSetVolume(val);
     const zoneId = zone.id;
@@ -101,21 +103,11 @@
     if (isBrowserZone(zone)) browserSetVolume(val);
   }
 
+  // #6700 — décision de Bertrand du 21/10 : une VRAIE sourdine. Le volume
+  // n'est pas touché, lever la sourdine rend le son au volume d'avant.
   async function toggleMute() {
     if (!zone?.id || $volumeLocked) return;
-    if (vol > 0) {
-      mutedVolume.set(vol);
-      applyVolume(0);
-      await api.setVolume(zone.id, 0);
-    } else if ($mutedVolume !== null) {
-      const restore = $mutedVolume;
-      mutedVolume.set(null);
-      applyVolume(restore);
-      await api.setVolume(zone.id, restore);
-    } else {
-      applyVolume(0.5);
-      await api.setVolume(zone.id, 0.5);
-    }
+    await basculerSourdineZone({ ...zone, id: zone.id }).catch(() => {});
   }
 
   const STEP = 0.01;
@@ -123,7 +115,6 @@
   async function stepDown() {
     if (!zone?.id || $volumeLocked) return;
     const next = Math.max(0, vol - STEP);
-    if (next > 0) mutedVolume.set(null);
     applyVolume(next);
     await api.setVolume(zone.id, next);
   }
@@ -131,7 +122,7 @@
   async function stepUp() {
     if (!zone?.id || $volumeLocked) return;
     const next = Math.min(1, vol + STEP);
-    mutedVolume.set(null);
+    leverSourdineSiBesoin({ ...zone, id: zone.id }, next);
     applyVolume(next);
     await api.setVolume(zone.id, next);
   }

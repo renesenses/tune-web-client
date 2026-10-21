@@ -139,6 +139,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { estZoneDeCetAppareil, retenirZoneDeCetAppareil } from '../../lib/zoneNavigateurProprietaire';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
+  import { controlesEcranVerrouille } from '../../lib/mediaSession';
   import { licenseState, loadLicense, offlineGrace } from '../../lib/stores/license';
   import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
@@ -3928,6 +3929,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <label class="sw">
                   <input type="checkbox" bind:checked={$loopByDefault} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- tune-server-rust#4908 — commandes de l'écran verrouillé. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.controlesEcranVerrouille' as any)}</span>
+                  <span class="hint">{$t('settings.controlesEcranVerrouilleHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" bind:checked={$controlesEcranVerrouille} />
                   <span class="slider"></span>
                 </label>
               </div>
