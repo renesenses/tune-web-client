@@ -17,6 +17,7 @@
    * absent.
    */
   import { t } from '../../lib/i18n';
+  import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
@@ -2631,6 +2632,40 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     fvAsk = null; fvTyped = '';
     applyFixedVolume(target, true, true);
   }
+  // tune-server-rust#6541 — les deux limites de volume d'une zone, saisies en
+  // %. Le PUT remplace les deux : on renvoie l'autre telle qu'elle est.
+  function enregistrerLimiteVolume(z: any, quelle: 'safety' | 'comfort', texte: string) {
+    const lue = limiteDepuisPourcent(texte);
+    if (lue === undefined) {
+      notifications.error(get(t)('devices.volumeLimitInvalid' as any));
+      return;
+    }
+    const limites = {
+      safety: quelle === 'safety' ? lue : (z.volume_limit_safety ?? null),
+      comfort: quelle === 'comfort' ? lue : (z.volume_limit_comfort ?? null),
+    };
+    void poserLimitesVolume(z, limites);
+  }
+
+  // 409 `limite_refusee_*` : la zone est (ou vient de passer) en PURE / volume
+  // fixe. On montre la phrase traduite et on masque les champs sans attendre
+  // le prochain GET /zones.
+  async function poserLimitesVolume(z: any, limites: { safety: number | null; comfort: number | null }) {
+    try {
+      const up = await api.setVolumeLimits(z.id as number, limites);
+      zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x)));
+    } catch (e) {
+      const err = e as { code?: string; status?: number; message?: string };
+      const cle = err.status === 409 ? cleTexteRefus(err.code) : null;
+      if (cle) {
+        zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume_limits_refusal: err.code } : x)));
+        notifications.error(get(t)(cle as any));
+      } else {
+        zoneErr = get(t)('settings.errSettingNotSaved');
+      }
+    }
+  }
+
   async function setZoneField(z: any, fn: () => Promise<any>) {
     if (z?.id == null) return;
     try { const up = await fn(); zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x))); }
@@ -5539,6 +5574,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       </div>
                       <p class="monote">{$t('devices.gainTrimHint' as any)}</p>
 
+                      <!-- tune-server-rust#6541 — limites de volume (fil 2335).
+                           Tenues par le SERVEUR pour tous les clients ; ici on
+                           ne fait que les régler. Vide = aucune limite. -->
+                      {#if serveurConnaitLesLimites(z) && refusDeLimite(z)}
+                      <p class="monote">{$t((cleTexteRefus(refusDeLimite(z)) ?? 'devices.volumeLimitRefusedFixed') as any)}</p>
+                      {:else if serveurConnaitLesLimites(z)}
+                      <div class="trim limites-volume">
+                        <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
+                        <input type="text" inputmode="decimal" class="lim" size="5"
+                          value={pourcentDeLimite(z.volume_limit_safety)}
+                          placeholder={$t('devices.volumeLimitNone' as any)}
+                          disabled={z.id == null}
+                          aria-label={$t('devices.volumeLimitSafety' as any)}
+                          onchange={(e) => enregistrerLimiteVolume(z, 'safety', (e.currentTarget as HTMLInputElement).value)} />
+                        <span class="tv">%</span>
+                        <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
+                        <input type="text" inputmode="decimal" class="lim" size="5"
+                          value={pourcentDeLimite(z.volume_limit_comfort)}
+                          placeholder={$t('devices.volumeLimitNone' as any)}
+                          disabled={z.id == null}
+                          aria-label={$t('devices.volumeLimitComfort' as any)}
+                          onchange={(e) => enregistrerLimiteVolume(z, 'comfort', (e.currentTarget as HTMLInputElement).value)} />
+                        <span class="tv">%</span>
+                      </div>
+                      <p class="monote">{$t('devices.volumeLimitHint' as any)}</p>
+                      {/if}
+
                       <!--
                         #1427 — CORRECTION ACOUSTIQUE (FIR), à sa place.
 
@@ -7510,6 +7572,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .trim input[type=range]{flex:1; min-width:150px; max-width:320px; accent-color:var(--v2-acc1)}
   .trim .tv{font:12px var(--v2-mono); color:var(--v2-acc1); min-width:62px}
   .trim .tv.neutre{color:var(--v2-txt3)}
+  /* #6541 — limites de volume : deux champs courts sur la ligne du trim. */
+  .limites-volume .lim{width:4.5em; font:12px var(--v2-mono)}
+  .limites-volume .tv{min-width:0}
   .trim .tf{font-size:11.5px; color:var(--v2-txt3)}
   .zde{margin-top:13px}
   .radv{margin-top:13px; border-top:1px solid var(--v2-line); padding-top:11px}

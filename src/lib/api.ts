@@ -1683,7 +1683,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string; queue_follows?: boolean }) {
+export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string; queue_follows?: boolean }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1738,6 +1738,49 @@ export function setVolume(zoneId: number, volume: number) {
     method: 'PUT',
     body: JSON.stringify({ volume }),
   });
+}
+
+/** Réponse de `POST /zones/{id}/volume/step` (tune-server-rust#6541). */
+export type PasDeVolumeReponse = {
+  zone_id: number;
+  volume: number;
+  volume_db: number | null;
+  /** La limite de sécurité a retenu le pas. */
+  limited: boolean;
+  volume_limit_safety: number | null;
+  volume_limit_comfort: number | null;
+};
+
+/**
+ * tune-server-rust#6541 — un pas de volume (bouton + / −). Le serveur part du
+ * volume COURANT de la zone : deux clics rapides font deux pas, sans que le
+ * client ait à connaître la valeur exacte. La limite de confort ne retient pas
+ * ce chemin ; la limite de sécurité, si (`limited`).
+ */
+export function stepVolume(zoneId: number, direction: 'up' | 'down', step?: number) {
+  return fetchJSON<PasDeVolumeReponse>(`${BASE}/zones/${zoneId}/volume/step`, {
+    method: 'POST',
+    body: JSON.stringify(step === undefined ? { direction } : { direction, step }),
+  });
+}
+
+/**
+ * tune-server-rust#6541 — les deux limites de volume d'une zone, en fraction
+ * 0..1. Le PUT REMPLACE les deux : `null` efface (pas de limite). Seule une
+ * sécurité ABAISSÉE sous le volume courant ramène la zone sur-le-champ, à la
+ * baisse ; relever ou effacer une limite n'envoie rien à l'appareil.
+ * Sur une zone en PURE ou à volume fixe, poser une limite est refusé : 409,
+ * `error` = `limite_refusee_zone_pure` | `limite_refusee_volume_fixe` (lu par
+ * `apiError` dans `err.code`) ; effacer reste permis.
+ */
+export function setVolumeLimits(
+  zoneId: number,
+  limites: { safety: number | null; comfort: number | null },
+) {
+  return fetchJSON<{ zone_id: number; volume_limit_safety: number | null; volume_limit_comfort: number | null }>(
+    `${BASE}/zones/${zoneId}/volume-limits`,
+    { method: 'PUT', body: JSON.stringify(limites) },
+  );
 }
 
 /**
@@ -2429,6 +2472,14 @@ export function getArtistExternalLinks(artistId: number) {
 export function getAlbumExternalLinks(albumId: number) {
   return fetchJSON<import('./liensExternes').ReponseLiens>(
     `${BASE}/library/albums/${albumId}/external-links`, undefined, undefined, true,
+  );
+}
+
+/** tune-server-rust#6288 — `GET /library/artists/{id}/missing-albums`, sans bandeau. */
+export function getArtistMissingAlbums(artistId: number, avecSecondaires = false) {
+  const q = avecSecondaires ? '?secondaires=1' : '';
+  return fetchJSON<import('./albumsManquants').ReponseManquants>(
+    `${BASE}/library/artists/${artistId}/missing-albums${q}`, undefined, undefined, true,
   );
 }
 
