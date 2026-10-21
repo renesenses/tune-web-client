@@ -7647,7 +7647,11 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
 }
 
 export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; cover_url?: string; duration_ms?: number }): Promise<any> {
-  return fetchJSON(`${BASE}/podcasts/play/${zoneId}`, { method: 'POST', body: JSON.stringify(episode) });
+  // tune-server-rust#6468 — un refus de la sortie est un 502/503 avec un `code`
+  // stable. Sans bandeau global : l'écran Podcasts porte l'échec dans son
+  // propre bandeau, traduit (`lectureEpisode.ts`), au lieu d'un
+  // « Server error: Output device error: … » en anglais.
+  return fetchJSON(`${BASE}/podcasts/play/${zoneId}`, { method: 'POST', body: JSON.stringify(episode) }, undefined, true);
 }
 
 export function getPodcastSubscriptions(): Promise<any[]> {
