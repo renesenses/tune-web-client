@@ -1,7 +1,8 @@
 import { get } from 'svelte/store';
 import { currentZone, nextAndSync, previousAndSync, resumeAndSync, stopAndSync } from './stores/zones';
-import { playbackState, seekPositionMs, mutedVolume, currentTrack } from './stores/nowPlaying';
+import { playbackState, seekPositionMs, currentTrack } from './stores/nowPlaying';
 import * as api from './api';
+import { basculerSourdineZone } from './sourdine';
 import { activeView, mobileNowPlayingOpen } from './stores/navigation';
 
 /**
@@ -129,17 +130,8 @@ export function setupKeyboardShortcuts(): () => void {
         break;
       case 'KeyM': {
         if (e.metaKey || e.ctrlKey) break;
-        const vol = zone.volume ?? 0.5;
-        const savedMute = get(mutedVolume);
-        if (vol > 0) {
-          mutedVolume.set(vol);
-          api.setVolume(zone.id, 0);
-        } else if (savedMute !== null) {
-          mutedVolume.set(null);
-          api.setVolume(zone.id, savedMute);
-        } else {
-          api.setVolume(zone.id, 0.5);
-        }
+        // #6700 — une VRAIE sourdine (`muted`), jamais un volume à zéro.
+        void basculerSourdineZone({ ...zone, id: zone.id }).catch(() => {});
         break;
       }
     }

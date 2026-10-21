@@ -44,6 +44,7 @@ const TRANSPORT_PUR = new Set([
   'playback.resumed',
   'playback.stopped',
   'playback.volume',
+  'playback.muted',
   'playback.state_changed',
   'playback.repeat',
   'playback.position',
