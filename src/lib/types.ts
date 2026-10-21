@@ -484,6 +484,8 @@ export interface Zone {
   output_type?: OutputType;
   output_device_id?: string | null;
   volume?: number;
+  /** Sourdine de la zone (`SetMute`), indépendante du volume (#6700). */
+  muted?: boolean;
   group_id?: string | null;
   sync_delay_ms?: number;
   state?: PlaybackState;

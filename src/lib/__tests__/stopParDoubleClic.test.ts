@@ -80,7 +80,7 @@ describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
     // passer. La touche `S` reste le chemin d'arrêt au clavier.
     const i = bar.indexOf('async function clicLecture(');
     expect(bar.slice(i, i + 260)).toContain('>= 2');
-    expect(lire('src/lib/keyboard.ts')).toContain("case 'KeyS':");
+    expect(lire('src/lib/keyboard.ts')).toContain("case 's':");
   });
 
   it('le double-clic passe par le même arrêt que le bouton', () => {
