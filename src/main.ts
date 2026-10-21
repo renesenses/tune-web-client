@@ -44,6 +44,9 @@ preparerLocale(get(preferences).language ?? 'en').then(() => {
   mount(ShellV2, {
     target: document.getElementById('app')!,
   });
+  // tune-server-rust#4908 — commandes de l'écran verrouillé, si le réglage
+  // est allumé (éteint par défaut).
+  void import('./lib/mediaSessionInstallee').then((m) => m.installerSessionMedia());
 });
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});

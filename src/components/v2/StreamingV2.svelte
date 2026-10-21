@@ -38,6 +38,7 @@
   import { filtrerParSaisie } from '../../lib/filtreSaisieOnglet';
   import { chargerRubriquesGenre, type BandeRubrique } from '../../lib/rubriquesGenre';
   import { chargerPlaylistsDuGenre } from '../../lib/playlistsDuGenre';
+  import { sansLaPlaylistRetiree } from '../../lib/playlistsSuiviesRetrait';
   import { compterParAuteur, filtrerParAuteur, filtreAuteurUtile, type FiltreAuteur } from '../../lib/filtreAuteurPlaylists';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
@@ -1062,6 +1063,22 @@
     playAndSync(zid, { source: svc as any, source_id: String(sid) })
       .catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
+  /**
+   * tune-server-rust#6461 — le cœur retiré d'une playlist SUIVIE, dans Qobuz ›
+   * Playlists, la sort de la bibliothèque du service : elle sort aussi de la
+   * liste, tout de suite, puis la liste est relue (le serveur a purgé la
+   * sienne). Une relecture ratée garde la liste déjà corrigée.
+   */
+  function apresCoeurPlaylist(serviceId: string, etat: boolean | null) {
+    const avant = myPlaylists.length;
+    myPlaylists = sansLaPlaylistRetiree(myPlaylists, serviceId, etat);
+    const svc = active;
+    if (myPlaylists.length === avant || !svc) return;
+    api.getStreamingPlaylists(svc)
+      .then((p) => { if (active === svc && sub === 'playlists') myPlaylists = p ?? []; })
+      .catch(() => {});
+  }
+
   function playPlaylist(p: any) {
     const zid = zoneRequise();
     if (zid == null) return;
@@ -1890,7 +1907,9 @@
               coverUrl: pCover(p) ?? undefined,
               // #5530 — le marquage IA de l'album, quand le service l'a rendu.
               aiGenerated: typeof p?.ai_generated === 'boolean' ? p.ai_generated : undefined,
-            })
+            }, type === 'playlist' && sub === 'playlists'
+              ? (etat) => apresCoeurPlaylist(String(p?.source_id ?? ''), etat)
+              : undefined)
           : null}
       >
         <AlbumArt coverPath={pCover(p)} albumId={null} size={0} vignette alt={pTitle(p)} source={p?.source ?? active} fallbackInitials={pTitle(p).slice(0,1)} />

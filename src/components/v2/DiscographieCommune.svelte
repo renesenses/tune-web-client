@@ -333,6 +333,18 @@
         {/each}
       </div>
     {:else}
+      <!-- Section « Live » (Bertrand, 05/10) : AVANT Albums, EP et Singles depuis
+           tune-server-rust#6464 (go du 20/10). -->
+      {#if sectionsSortie.live.length}
+        <section class="connexes" data-section="live">
+          <h3 class="titre-connexes">{$t('v2.disco.live' as any)} <span class="cpt">{sectionsSortie.live.length}</span></h3>
+          <div class="gr">
+            {#each sectionsSortie.live as e (e.cle)}
+              {@render carte(e)}
+            {/each}
+          </div>
+        </section>
+      {/if}
       {#if sectionsSortie.albums.length}
         <section data-section="albums-principaux">
           <h3 class="titre-connexes">{$t('v2.disco.mainAlbums' as any)} <span class="cpt">{sectionsSortie.albums.length}</span></h3>
@@ -359,17 +371,6 @@
           <h3 class="titre-connexes">{$t('v2.disco.singles' as any)} <span class="cpt">{sectionsSortie.singles.length}</span></h3>
           <div class="gr">
             {#each sectionsSortie.singles as e (e.cle)}
-              {@render carte(e)}
-            {/each}
-          </div>
-        </section>
-      {/if}
-      <!-- Section « Live » (Bertrand, 05/10) : après Albums, EP et Singles. -->
-      {#if sectionsSortie.live.length}
-        <section class="connexes" data-section="live">
-          <h3 class="titre-connexes">{$t('v2.disco.live' as any)} <span class="cpt">{sectionsSortie.live.length}</span></h3>
-          <div class="gr">
-            {#each sectionsSortie.live as e (e.cle)}
               {@render carte(e)}
             {/each}
           </div>

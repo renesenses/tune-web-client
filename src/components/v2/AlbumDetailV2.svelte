@@ -34,6 +34,7 @@
 import AlbumRating from '../partages/AlbumRating.svelte';
 import ReportButton from '../partages/ReportButton.svelte';
 import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
+import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbum';
   import ClampedText from '../partages/ClampedText.svelte';
   import AttributionBio from './AttributionBio.svelte';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
@@ -83,6 +84,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { portail } from '../../lib/portail';
   import { estMarqueIa, marquageIaADemander } from '../../lib/contenuIa';
 import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
+import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentationRefuses, type EtatPresentation } from '../../lib/presentationAlbumService';
   import { dialogs } from '../../lib/stores/dialogs';
   import { origineDuCoffret, EVT_COFFRET_DEFAIT, type OrigineCoffret } from '../../lib/coffretAuto';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -301,6 +303,28 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   let creditsOuverts = $state(false);
   /** Relevé AU CLIC : un refus (501/404) retire le bouton, pas le tiroir ouvert. */
   let creditsServiceOuvert = $state.raw<AlbumDeServiceCredits | null>(null);
+
+  /**
+   * #6481 — le LIVRET PDF (cpadiou77 et Patatorz, fil forum 2326) : les PDF du
+   * dossier d'un album de la bibliothèque, ou le livret numérique de Qobuz.
+   * Lus à l'ouverture de la fiche — une lecture de dossier, ou la réponse
+   * `album/get` que le serveur garde déjà en cache : le bouton n'apparaît que
+   * s'il y a un livret à ouvrir.
+   */
+  let livrets = $state.raw<Livret[]>([]);
+  $effect(() => {
+    const cible = cibleLivrets(album as any, { service, depot, bandcamp });
+    livrets = [];
+    if (!cible) return;
+    let perime = false;
+    void chargerLivrets(cible, {
+      base: api.BASE,
+      locaux: api.getAlbumBooklets,
+      deService: api.getStreamingAlbumBooklets,
+      navigateur: api.urlDeNavigation,
+    }).then((l) => { if (!perime) livrets = l; });
+    return () => { perime = true; };
+  });
 
   /* ══════════════════════════════════════════════════════════════════════
      « AJOUTER À UNE COLLECTION » — réunion du 23/09/2026.
@@ -1321,6 +1345,39 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   }
 
   /**
+   * #6480 — la PRÉSENTATION d'un album de service (cpadiou77, fil 2327) : la
+   * critique que Qobuz publie, servie en texte par le serveur. Même geste que
+   * « Notes / Bio » ci-dessus (un bouton, lu au clic), pour un album SANS
+   * `id` local. Voir `lib/presentationAlbumService`.
+   */
+  const presentationCible = $derived(
+    depot || bandcamp || album.id != null ? null
+      : presentationAlbumDeServiceDe(service, sidDistant, $servicesPresentationRefuses),
+  );
+  let presentationOuverte = $state(false);
+  let presentation = $state<EtatPresentation | null>(null);
+  let presentationChargement = $state(false);
+  let presentationCle = $state<string | null>(null);
+  $effect(() => {
+    const cle = presentationCible ? `${presentationCible.service}:${presentationCible.albumId}` : null;
+    if (cle === untrack(() => presentationCle)) return;
+    presentationCle = cle;
+    presentationOuverte = false;
+    presentation = null;
+  });
+  async function basculerPresentation() {
+    presentationOuverte = !presentationOuverte;
+    const cible = presentationCible;
+    if (!presentationOuverte || !cible || presentation || presentationChargement) return;
+    presentationChargement = true;
+    const cle = `${cible.service}:${cible.albumId}`;
+    const r = await chargerPresentation(cible, api.getStreamingAlbumDescription);
+    // Course : l'album a pu changer pendant la requête.
+    if (presentationCle === cle) presentation = r;
+    presentationChargement = false;
+  }
+
+  /**
    * Le nom de l'artiste MÈNE à sa fiche — #3708, FabienM, fil forum 1726 :
    * « l'hyperlien sur l'artiste est absent, ex ici: Artiste Depeche Mode n'a
    * pas de lien actif pour rediriger vers la page de l'artiste. »
@@ -1652,6 +1709,14 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
             </button>
           {/if}
         {/if}
+        <!-- #6481 — le livret s'ouvre dans un nouvel onglet. -->
+        {#each livrets as l (l.url)}
+          <a class="ghost livret" href={l.url} target="_blank" rel="noopener noreferrer"
+            title={l.nom || $tr('v2.album.booklet' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>
+            {livrets.length > 1 && l.nom ? l.nom.replace(/\.pdf$/i, '') : $tr('v2.album.booklet' as any)}
+          </a>
+        {/each}
         {#if coffretDefaisable()}
           <button class="ghost defaire-coffret" onclick={defaireCoffret} disabled={defaireEnCours}
             title={$tr('v2.album.boxUndoTip' as any)}>
@@ -1777,6 +1842,31 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
           <AttributionBio provenance={bioProvenance} />
         {:else}
           <p class="bio-state">{$tr('library.noAlbumNote')}</p>
+        {/if}
+      {/if}
+    </div>
+  {/if}
+
+  <!-- #6480 — la présentation d'un album de SERVICE, en texte : jamais de
+       balisage interprété (`{@html}`), le serveur l'a déjà retiré. Un refus
+       (501) retire le bouton des fiches suivantes ; celle-ci dit pourquoi. -->
+  {#if presentationCible || presentation?.etat === 'refus'}
+    <div class="bio">
+      <button class="bio-toggle" onclick={basculerPresentation} aria-expanded={presentationOuverte}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        {presentationOuverte ? $tr('v2.album.hidePresentation' as any) : $tr('v2.album.presentation' as any)}
+      </button>
+      {#if presentationOuverte}
+        {#if presentationChargement}
+          <p class="bio-state">{$tr('v2.common.loading' as any)}</p>
+        {:else if presentation?.etat === 'texte'}
+          <ClampedText lines={4} resetKey={presentation.texte}>
+            <p class="bio-text presentation" lang={presentation.langue ?? undefined}>{presentation.texte}</p>
+          </ClampedText>
+        {:else if presentation?.etat === 'erreur'}
+          <p class="bio-state err">{$tr('v2.album.presentationError' as any)}</p>
+        {:else if presentation}
+          <p class="bio-state">{$tr('v2.album.noPresentation' as any)}</p>
         {/if}
       {/if}
     </div>
@@ -2029,6 +2119,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  a.ghost.livret{text-decoration:none}
   /* Le cœur ACTIF garde le rouge : c'est un ÉTAT, pas une action — la même
      règle que sur les lignes de piste. */
   .coeur.on{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
@@ -2085,4 +2176,5 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   .bio-text{margin:0; color:var(--v2-txt2); font-size:14px; line-height:1.65; max-width:70ch}
   .bio-state{margin:0; color:var(--v2-txt3); font-size:13px; font-style:italic}
   .bio-state.err{color:var(--v2-danger)}
+  .bio-text.presentation{white-space:pre-line}
 </style>
