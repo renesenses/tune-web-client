@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "安装",
+  "v2.lic.activate": "激活",
   "sacdIso.title": "SACD ISO",
   "sacdIso.available": "Tune 自行读取 SACD ISO。服务器上检测到的 sacd_extract 仅用于 DST 光盘（压缩 DSD），并不保证每张都能提取。",
   "sacdIso.missing": "Tune 自行读取 SACD ISO，无需为此安装任何工具。只有 DST 光盘（压缩 DSD）需要 sacd_extract，本服务器上未检测到它。如果您有这类光盘，请单独安装，修改 PATH 后重启 Tune，然后重新扫描。",
