@@ -109,6 +109,9 @@ export interface EchecIa {
   ok: false;
   error: string;
   message: string;
+  /** `aucune_regle` (tune-server-rust#6731) : les règles écartées et ce que le modèle n'a pas traduit. */
+  refusees?: { regle: Record<string, unknown>; raison: string }[];
+  untranslated?: string[];
 }
 
 export interface RegleIa {
@@ -313,6 +316,7 @@ export const CODES_ECHEC = [
   'cle_refusee', 'quota', 'surcharge', 'modele_inconnu', 'reseau', 'refus',
   'reponse_invalide', 'phrase_invalide', 'album_introuvable', 'reglage_invalide',
   'admin_requis', 'lot_invalide', 'budget_du_lot_atteint', 'erreur_fournisseur',
+  'aucune_regle',
 ] as const;
 
 /** La clé i18n du message d'un échec. */

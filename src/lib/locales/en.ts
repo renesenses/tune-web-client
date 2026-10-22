@@ -5385,6 +5385,8 @@ export default {
   "assistantIa.err.reseau": "Provider unreachable: check the network or the address.",
   "assistantIa.err.refus": "The model declined to answer.",
   "assistantIa.err.reponse_invalide": "The model's answer does not follow the expected format: try again.",
+  "assistantIa.err.aucune_regle": "The model proposed no usable rule: nothing was created. Rephrase with a concrete criterion (genre, artist, years, duration…).",
+  "assistantIa.playlist.garderUneRegle": "These rules come from the assistant: keep at least one, or the playlist would take the whole library.",
   "assistantIa.err.phrase_invalide": "Describe the playlist in one sentence (500 characters at most).",
   "assistantIa.err.album_introuvable": "Album not found.",
   "assistantIa.err.reglage_invalide": "Setting rejected: check the values you entered.",

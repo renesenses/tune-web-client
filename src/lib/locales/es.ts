@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.err.reseau": "Proveedor inaccesible: compruebe la red o la dirección.",
   "assistantIa.err.refus": "El modelo se negó a responder.",
   "assistantIa.err.reponse_invalide": "La respuesta del modelo no sigue el formato esperado: inténtelo de nuevo.",
+  "assistantIa.err.aucune_regle": "El modelo no propuso ninguna regla utilizable: no se ha creado nada. Reformule con un criterio concreto (género, artista, años, duración…).",
+  "assistantIa.playlist.garderUneRegle": "Estas reglas vienen del asistente: conserve al menos una, o la lista tomaría toda la biblioteca.",
   "assistantIa.err.phrase_invalide": "Describa la lista en una frase (500 caracteres como máximo).",
   "assistantIa.err.album_introuvable": "Álbum no encontrado.",
   "assistantIa.err.reglage_invalide": "Ajuste rechazado: compruebe los valores introducidos.",

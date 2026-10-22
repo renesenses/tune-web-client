@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.err.reseau": "Fornitore irraggiungibile: controlla la rete o l'indirizzo.",
   "assistantIa.err.refus": "Il modello ha rifiutato di rispondere.",
   "assistantIa.err.reponse_invalide": "La risposta del modello non segue il formato previsto: riprova.",
+  "assistantIa.err.aucune_regle": "Il modello non ha proposto alcuna regola utilizzabile: non è stato creato nulla. Riformula con un criterio concreto (genere, artista, anni, durata…).",
+  "assistantIa.playlist.garderUneRegle": "Queste regole vengono dall'assistente: conservane almeno una, altrimenti la playlist prenderebbe tutta la libreria.",
   "assistantIa.err.phrase_invalide": "Descrivi la playlist in una frase (al massimo 500 caratteri).",
   "assistantIa.err.album_introuvable": "Album non trovato.",
   "assistantIa.err.reglage_invalide": "Impostazione rifiutata: controlla i valori inseriti.",

@@ -5324,6 +5324,8 @@ export default {
   "assistantIa.err.reseau": "A szolgáltató nem érhető el: ellenőrizze a hálózatot vagy a címet.",
   "assistantIa.err.refus": "A modell megtagadta a választ.",
   "assistantIa.err.reponse_invalide": "A modell válasza nem a várt formátumú: próbálja újra.",
+  "assistantIa.err.aucune_regle": "A modell nem javasolt használható szabályt: semmi sem jött létre. Fogalmazza át konkrét feltétellel (műfaj, előadó, évek, hossz…).",
+  "assistantIa.playlist.garderUneRegle": "Ezek a szabályok az asszisztenstől származnak: tartson meg legalább egyet, különben a lejátszási lista a teljes könyvtárat tartalmazná.",
   "assistantIa.err.phrase_invalide": "Írja le a lejátszási listát egy mondatban (legfeljebb 500 karakter).",
   "assistantIa.err.album_introuvable": "Az album nem található.",
   "assistantIa.err.reglage_invalide": "A beállítás elutasítva: ellenőrizze a megadott értékeket.",

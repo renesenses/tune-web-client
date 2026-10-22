@@ -5364,6 +5364,8 @@ export default {
   "assistantIa.err.reseau": "Leverantören går inte att nå: kontrollera nätverket eller adressen.",
   "assistantIa.err.refus": "Modellen avböjde att svara.",
   "assistantIa.err.reponse_invalide": "Modellens svar har inte det väntade formatet: försök igen.",
+  "assistantIa.err.aucune_regle": "Modellen föreslog ingen användbar regel: inget skapades. Formulera om med ett konkret kriterium (genre, artist, år, längd…).",
+  "assistantIa.playlist.garderUneRegle": "Reglerna kommer från assistenten: behåll minst en, annars tar spellistan hela biblioteket.",
   "assistantIa.err.phrase_invalide": "Beskriv spellistan med en mening (högst 500 tecken).",
   "assistantIa.err.album_introuvable": "Albumet hittades inte.",
   "assistantIa.err.reglage_invalide": "Inställningen avvisades: kontrollera värdena.",

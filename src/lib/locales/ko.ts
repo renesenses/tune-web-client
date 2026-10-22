@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.err.reseau": "제공업체에 연결할 수 없습니다. 네트워크나 주소를 확인하세요.",
   "assistantIa.err.refus": "모델이 응답을 거부했습니다.",
   "assistantIa.err.reponse_invalide": "모델 응답이 예상 형식이 아닙니다. 다시 시도하세요.",
+  "assistantIa.err.aucune_regle": "모델이 사용할 수 있는 규칙을 제안하지 않았습니다. 아무것도 만들지 않았습니다. 구체적인 조건(장르, 아티스트, 연도, 길이 등)으로 다시 표현하세요.",
+  "assistantIa.playlist.garderUneRegle": "이 규칙은 어시스턴트가 제안했습니다. 하나 이상 남겨 두세요. 그렇지 않으면 라이브러리 전체가 포함됩니다.",
   "assistantIa.err.phrase_invalide": "재생목록을 한 문장으로 설명하세요(최대 500자).",
   "assistantIa.err.album_introuvable": "앨범을 찾을 수 없습니다.",
   "assistantIa.err.reglage_invalide": "설정이 거부되었습니다. 입력한 값을 확인하세요.",

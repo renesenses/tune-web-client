@@ -4411,7 +4411,7 @@ export function getSmartPlaylists() {
   return fetchJSON<any[]>(`${BASE}/library/smart-playlists`);
 }
 
-export function createSmartPlaylist(data: { name: string; rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_tracks?: number; description?: string }) {
+export function createSmartPlaylist(data: { name: string; rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_tracks?: number; description?: string; origine?: 'assistant' }) {
   return fetchJSON<{ id: number }>(`${BASE}/library/smart-playlists`, {
     method: 'POST',
     body: JSON.stringify(data),

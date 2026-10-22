@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.err.reseau": "Furnizor inaccesibil: verificați rețeaua sau adresa.",
   "assistantIa.err.refus": "Modelul a refuzat să răspundă.",
   "assistantIa.err.reponse_invalide": "Răspunsul modelului nu respectă formatul așteptat: reîncercați.",
+  "assistantIa.err.aucune_regle": "Modelul nu a propus nicio regulă utilizabilă: nu s-a creat nimic. Reformulați cu un criteriu concret (gen, artist, ani, durată…).",
+  "assistantIa.playlist.garderUneRegle": "Aceste reguli vin de la asistent: păstrați cel puțin una, altfel lista ar cuprinde întreaga bibliotecă.",
   "assistantIa.err.phrase_invalide": "Descrieți playlistul într-o frază (cel mult 500 de caractere).",
   "assistantIa.err.album_introuvable": "Album negăsit.",
   "assistantIa.err.reglage_invalide": "Setare respinsă: verificați valorile introduse.",

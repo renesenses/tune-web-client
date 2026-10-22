@@ -5387,6 +5387,8 @@ export default {
   "assistantIa.err.reseau": "Fournisseur injoignable : vérifiez le réseau ou l'adresse.",
   "assistantIa.err.refus": "Le modèle a refusé de répondre.",
   "assistantIa.err.reponse_invalide": "La réponse du modèle ne suit pas le format attendu : réessayez.",
+  "assistantIa.err.aucune_regle": "Le modèle n'a proposé aucune règle utilisable : rien n'est créé. Reformulez avec un critère concret (genre, artiste, années, durée…).",
+  "assistantIa.playlist.garderUneRegle": "Ces règles viennent de l'assistant : gardez-en au moins une, sinon la playlist prendrait toute la bibliothèque.",
   "assistantIa.err.phrase_invalide": "Décrivez la playlist en une phrase (500 caractères au plus).",
   "assistantIa.err.album_introuvable": "Album introuvable.",
   "assistantIa.err.reglage_invalide": "Réglage refusé : vérifiez les valeurs saisies.",
