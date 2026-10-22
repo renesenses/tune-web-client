@@ -109,13 +109,15 @@ describe('« si on reclique ça fait planter l’appli » (podcasts)', () => {
   });
 
   it('un flux DÉJÀ listé n’est jamais rangé deux fois', () => {
-    expect(pod()).toMatch(/subs\.some\(\(s\) => feedOf\(s\) === feed\) \? subs : \[\.\.\.subs, created\]/);
+    // tune-server-rust#6770 — le flux comparé est celui que le serveur a
+    // RÉSOLU (une entrée du palmarès n'en a pas avant l'abonnement).
+    expect(pod()).toMatch(/subs\.some\(\(s\) => resolu != null && feedOf\(s\) === resolu\)\s*\? subs\s*: \[\.\.\.subs, \{ \.\.\.created/);
   });
 
   it('un double clic rapide ne lance pas deux abonnements', () => {
     // Deux appels partis avant la première réponse produiraient le même
     // doublon par un autre chemin.
-    expect(pod()).toContain('if (!feed || basculeEnCours) return;');
+    expect(pod()).toContain('if ((!feed && !source) || basculeEnCours) return;');
     expect(pod()).toContain('basculeEnCours = true;');
     expect(pod()).toMatch(/finally \{\s*basculeEnCours = false;/);
   });

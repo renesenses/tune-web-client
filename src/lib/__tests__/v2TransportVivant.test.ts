@@ -328,7 +328,10 @@ describe('Podcasts — les clés de liste', () => {
   const src = () => lire('../../components/v2/PodcastsV2.svelte');
 
   it('un flux VIDE ne devient pas une clé', () => {
-    const s = src();
+    // tune-server-rust#6770 — la règle vit dans `lib/podcastPalmares.ts`,
+    // que l'écran appelle.
+    const s = lire('../podcastPalmares.ts');
+    expect(src().includes('return fluxDe(p);'), 'l’écran ne passe plus par `fluxDe`').toBe(true);
     expect(
       s.includes('p?.feed_url || p?.feedUrl || null'),
       '`??` est revenu : une chaîne vide passerait et cinquante podcasts partageraient la même clé.',
@@ -352,9 +355,11 @@ describe('Podcasts — les clés de liste', () => {
     expect(s.includes('{#snippet failed('), 'le message d’échec a disparu').toBe(true);
   });
 
-  it('on ne propose pas de s’abonner sans flux', () => {
+  it('on ne propose pas de s’abonner sans rien à résoudre', () => {
     // `toggleSub` sortait silencieusement : le bouton était là et sans effet.
-    expect(src().includes('disabled={!feedOf(p)}'), 'le bouton d’abonnement ment de nouveau').toBe(true);
+    // tune-server-rust#6770 — un identifiant Apple suffit désormais : le
+    // serveur résout le flux. Sans flux NI identifiant, le bouton reste grisé.
+    expect(src().includes('disabled={!keyOf(p)}'), 'le bouton d’abonnement ment de nouveau').toBe(true);
   });
 });
 
