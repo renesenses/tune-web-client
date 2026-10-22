@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "Cài đặt",
+  "v2.lic.activate": "Kích hoạt",
   "sacdIso.title": "SACD ISO",
   "sacdIso.available": "Tune tự đọc các file ISO SACD. sacd_extract, đã phát hiện trên máy chủ, chỉ dùng cho đĩa DST (DSD nén) và không đảm bảo trích xuất được từng đĩa.",
   "sacdIso.missing": "Tune tự đọc các file ISO SACD: không cần cài đặt gì cho chúng. Chỉ đĩa DST (DSD nén) mới cần sacd_extract, công cụ không được phát hiện trên máy chủ này. Nếu bạn có đĩa như vậy, hãy cài đặt riêng công cụ, khởi động lại Tune nếu bạn thay đổi PATH, rồi quét lại.",

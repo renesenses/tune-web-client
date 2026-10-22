@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "Installa",
+  "v2.lic.activate": "Attiva",
   "sacdIso.title": "ISO SACD",
   "sacdIso.available": "Tune legge da sé le ISO SACD. sacd_extract, rilevato sul server, serve solo per i dischi DST (DSD compresso), senza garantire l’estrazione di ciascuno.",
   "sacdIso.missing": "Tune legge da sé le ISO SACD: per queste non c’è nulla da installare. Solo i dischi DST (DSD compresso) richiedono sacd_extract, che non è stato rilevato su questo server. Se ne avete, installatelo separatamente, riavviate Tune se modificate PATH, quindi eseguite di nuovo la scansione.",

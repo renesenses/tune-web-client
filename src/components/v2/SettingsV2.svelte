@@ -6400,7 +6400,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <input class="txt" type="text" placeholder="XXXX-XXXX-XXXX" bind:value={licKey}
                       disabled={licBusy} onkeydown={(e) => { if (e.key === 'Enter') activateLic(); }} />
                     <button class="lnk" disabled={licBusy || !licKey.trim()} onclick={activateLic}>
-                      {licBusy ? '…' : 'Activer'}
+                      {licBusy ? '…' : $t('v2.lic.activate' as any)}
                     </button>
                   </div>
                 </div>
@@ -6777,7 +6777,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="hint">{$t('settings.remoteAccessHint' as any)}</span>
                 </div>
                 <button class="lnk" class:danger={brEnabled} onclick={toggleBridge} disabled={brBusy}>
-                  {brBusy ? '…' : brEnabled ? 'Désactiver' : 'Activer'}
+                  {brBusy ? '…' : brEnabled ? $t('settings.disable' as any) : $t('settings.enable' as any)}
                 </button>
               </div>
               {#if brEnabled}
