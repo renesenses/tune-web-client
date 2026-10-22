@@ -5504,4 +5504,11 @@ export default {
   "accesCompte.retourEnCours": "Loggar in…",
   "accesCompte.fermer": "Dölj",
   "accesCompte.reessayer": "Försök igen",
+  "v2.set.spotifyClientIdStored": "Client ID sparat på den här servern.",
+  "v2.set.spotifyClientIdImposed": "Client ID anges av servern (miljövariabel eller tune.toml): det kan inte ändras här.",
+  "v2.set.spotifyClientIdConfigured": "Ett Client ID är konfigurerat.",
+  "v2.set.spotifyClientIdEdit": "Ändra",
+  "v2.set.spotifyClientIdClear": "Rensa",
+  "v2.set.spotifyClientIdConfirmClear": "Rensa det sparade Spotify Client ID:t? Övriga Spotify-inställningar (Spotify Connect, uppspelning) behålls. Du behöver ange ett nytt för att logga in.",
+  "v2.set.spotifyClientIdCleared": "Spotify Client ID rensat",
 } as const;

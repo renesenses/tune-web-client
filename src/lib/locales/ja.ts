@@ -5505,6 +5505,13 @@ export default {
   "accesCompte.retourEnCours": "サインインしています…",
   "accesCompte.fermer": "閉じる",
   "accesCompte.reessayer": "再試行",
+  "v2.set.spotifyClientIdStored": "Client ID はこのサーバーに保存されています。",
+  "v2.set.spotifyClientIdImposed": "Client ID はサーバー側（環境変数または tune.toml）で指定されているため、この画面では変更できません。",
+  "v2.set.spotifyClientIdConfigured": "Client ID が設定されています。",
+  "v2.set.spotifyClientIdEdit": "変更",
+  "v2.set.spotifyClientIdClear": "消去",
+  "v2.set.spotifyClientIdConfirmClear": "保存されている Spotify Client ID を消去しますか？ほかの Spotify 設定（Spotify Connect、再生）はそのまま残ります。ログインするには新しい Client ID を入力してください。",
+  "v2.set.spotifyClientIdCleared": "Spotify Client ID を消去しました",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

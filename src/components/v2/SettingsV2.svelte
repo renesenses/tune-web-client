@@ -75,7 +75,7 @@
   } from '../../lib/analyseBibliotheque';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
   import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
-  import { clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, type RetourClientId } from '../../lib/clientIdSpotify';
+  import { clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, gestesClientIdSpotify, effacerClientIdSpotify, type RetourClientId } from '../../lib/clientIdSpotify';
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
@@ -3349,6 +3349,39 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     stkBusy = null;
   }
 
+  // ── web#2304 — corriger ou effacer un Client ID Spotify enregistré ──
+  //
+  // La ligne Spotify arrive avec `fields: []` : sans ce bloc, un Client ID
+  // erroné ne se corrigeait ni ne s'effaçait depuis l'écran (fils 2384 et
+  // 2385). « Effacer » passe par la route qui n'efface QUE le Client ID
+  // (tune-server-rust#6777), jamais par `deleteServiceToken('spotify')`, qui
+  // emporte toutes les clés `spotify_*`. Voir `lib/clientIdSpotify`.
+  let spotifyModifClientId = $state(false);
+  async function enregistrerClientIdDepuisJetons() {
+    await enregistrerClientIdSpotify();
+    if (clientIdRetour?.etat === 'enregistre') {
+      spotifyModifClientId = false;
+      await loadTokens();
+    }
+  }
+  async function effacerClientIdSpotifyGeste() {
+    const ok = await dialogs.confirm(get(t)('v2.set.spotifyClientIdConfirmClear' as any), { danger: true });
+    if (!ok) return;
+    stkBusy = 'spotify';
+    const msgOk = get(t)('v2.set.spotifyClientIdCleared' as any);
+    const msgKo = get(t)('serviceTokens.error');
+    const r = await effacerClientIdSpotify(() => api.deleteSpotifyClientId());
+    if (r.ok) {
+      notifications.success(msgOk);
+      spotifyClientIdManque = r.manque;
+      spotifyModifClientId = false;
+      await loadTokens();
+    } else {
+      notifications.error(`${msgKo} : ${r.erreur ?? ''}`);
+    }
+    stkBusy = null;
+  }
+
   async function stkRemove(s: any) {
     // Geste destructif : confirmation EN PAGE. `window.confirm` est interdit
     // par scripts/check-native-dialogs.mjs.
@@ -5177,6 +5210,40 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <button class="lnk danger" disabled={stkBusy === sv.id} onclick={() => stkRemove(sv)}>{$t('common.delete' as any)}</button>
                         {/if}
                       </div>
+                    {/if}
+
+                    {#if sv.id === 'spotify'}
+                      <!-- web#2304 : corriger ou effacer le Client ID enregistré. -->
+                      {@const geste = gestesClientIdSpotify(sv)}
+                      {#if geste}
+                        <div class="svcsub" data-spotify-client-id>
+                          <p class="hint">{$t(geste.cle as any)}</p>
+                          {#if spotifyModifClientId && geste.modifier}
+                            <div class="svcfields">
+                              <label class="svcfield">
+                                <span>{$t('v2.set.spotifyClientIdLabel' as any)}</span>
+                                <input type="text" bind:value={clientIdSaisi} autocomplete="off" spellcheck="false" data-saisie-client-id />
+                              </label>
+                            </div>
+                            <div class="inline">
+                              <button class="lnk" data-enregistrer-client-id disabled={svcBusy === 'spotify' || !clientIdSaisi.trim()} onclick={enregistrerClientIdDepuisJetons}>{$t('v2.set.spotifyClientIdSave' as any)}</button>
+                              <button class="lnk" onclick={() => { spotifyModifClientId = false; clientIdSaisi = ''; }}>{$t('common.cancel' as any)}</button>
+                            </div>
+                            {#if clientIdRetour && clientIdRetour.etat !== 'enregistre'}
+                              <p class="hint bad">{$t(cleDuRetourClientId(clientIdRetour.etat) as any)}{clientIdRetour.message ? ` : ${clientIdRetour.message}` : ''}</p>
+                            {/if}
+                          {:else}
+                            <div class="inline">
+                              {#if geste.modifier}
+                                <button class="lnk" data-modifier-client-id disabled={stkBusy === 'spotify'} onclick={() => { spotifyModifClientId = true; clientIdSaisi = ''; clientIdRetour = null; }}>{$t('v2.set.spotifyClientIdEdit' as any)}</button>
+                              {/if}
+                              {#if geste.effacer}
+                                <button class="lnk danger" data-effacer-client-id disabled={stkBusy === 'spotify'} onclick={effacerClientIdSpotifyGeste}>{$t('v2.set.spotifyClientIdClear' as any)}</button>
+                              {/if}
+                            </div>
+                          {/if}
+                        </div>
+                      {/if}
                     {/if}
 
                     {#if sv.help_url}

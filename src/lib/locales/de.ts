@@ -5505,6 +5505,13 @@ export default {
   "accesCompte.retourEnCours": "Anmeldung läuft…",
   "accesCompte.fermer": "Ausblenden",
   "accesCompte.reessayer": "Erneut versuchen",
+  "v2.set.spotifyClientIdStored": "Client ID auf diesem Server gespeichert.",
+  "v2.set.spotifyClientIdImposed": "Client ID vom Server vorgegeben (Umgebungsvariable oder tune.toml): Sie lässt sich hier nicht ändern.",
+  "v2.set.spotifyClientIdConfigured": "Eine Client ID ist konfiguriert.",
+  "v2.set.spotifyClientIdEdit": "Ändern",
+  "v2.set.spotifyClientIdClear": "Löschen",
+  "v2.set.spotifyClientIdConfirmClear": "Gespeicherte Spotify Client ID löschen? Die übrigen Spotify-Einstellungen (Spotify Connect, Wiedergabe) bleiben erhalten. Zum Anmelden müssen Sie eine neue eingeben.",
+  "v2.set.spotifyClientIdCleared": "Spotify Client ID gelöscht",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

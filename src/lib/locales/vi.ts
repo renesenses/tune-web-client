@@ -5357,5 +5357,12 @@ export default {
   "accesCompte.retourEnCours": "Đang đăng nhập…",
   "accesCompte.fermer": "Ẩn",
   "accesCompte.reessayer": "Thử lại",
+  "v2.set.spotifyClientIdStored": "Client ID đã được lưu trên máy chủ này.",
+  "v2.set.spotifyClientIdImposed": "Client ID do máy chủ áp đặt (biến môi trường hoặc tune.toml): không thể thay đổi tại màn hình này.",
+  "v2.set.spotifyClientIdConfigured": "Đã cấu hình một Client ID.",
+  "v2.set.spotifyClientIdEdit": "Sửa",
+  "v2.set.spotifyClientIdClear": "Xóa",
+  "v2.set.spotifyClientIdConfirmClear": "Xóa Client ID Spotify đã lưu? Các thiết lập Spotify khác (Spotify Connect, phát nhạc) vẫn được giữ. Bạn cần nhập Client ID mới để đăng nhập.",
+  "v2.set.spotifyClientIdCleared": "Đã xóa Client ID Spotify",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

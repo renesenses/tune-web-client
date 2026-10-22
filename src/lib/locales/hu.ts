@@ -5464,6 +5464,13 @@ export default {
   "accesCompte.retourEnCours": "Bejelentkezés…",
   "accesCompte.fermer": "Elrejtés",
   "accesCompte.reessayer": "Újra",
+  "v2.set.spotifyClientIdStored": "A Client ID ezen a szerveren van mentve.",
+  "v2.set.spotifyClientIdImposed": "A Client ID-t a szerver írja elő (környezeti változó vagy tune.toml): ezen a képernyőn nem módosítható.",
+  "v2.set.spotifyClientIdConfigured": "Be van állítva egy Client ID.",
+  "v2.set.spotifyClientIdEdit": "Módosítás",
+  "v2.set.spotifyClientIdClear": "Törlés",
+  "v2.set.spotifyClientIdConfirmClear": "Törli a mentett Spotify Client ID-t? A többi Spotify-beállítás (Spotify Connect, lejátszás) megmarad. A bejelentkezéshez újat kell megadnia.",
+  "v2.set.spotifyClientIdCleared": "Spotify Client ID törölve",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

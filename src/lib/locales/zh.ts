@@ -5505,6 +5505,13 @@ export default {
   "accesCompte.retourEnCours": "正在登录…",
   "accesCompte.fermer": "隐藏",
   "accesCompte.reessayer": "重试",
+  "v2.set.spotifyClientIdStored": "Client ID 已保存在此服务器上。",
+  "v2.set.spotifyClientIdImposed": "Client ID 由服务器指定（环境变量或 tune.toml），无法在此页面修改。",
+  "v2.set.spotifyClientIdConfigured": "已配置 Client ID。",
+  "v2.set.spotifyClientIdEdit": "修改",
+  "v2.set.spotifyClientIdClear": "清除",
+  "v2.set.spotifyClientIdConfirmClear": "清除已保存的 Spotify Client ID？其他 Spotify 设置（Spotify Connect、播放）将保留。之后需要输入新的 Client ID 才能登录。",
+  "v2.set.spotifyClientIdCleared": "Spotify Client ID 已清除",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

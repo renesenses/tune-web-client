@@ -5505,6 +5505,13 @@ export default {
   "accesCompte.retourEnCours": "Conectare în curs…",
   "accesCompte.fermer": "Ascundeți",
   "accesCompte.reessayer": "Reîncercați",
+  "v2.set.spotifyClientIdStored": "Client ID salvat pe acest server.",
+  "v2.set.spotifyClientIdImposed": "Client ID impus de server (variabilă de mediu sau tune.toml): nu se poate modifica din acest ecran.",
+  "v2.set.spotifyClientIdConfigured": "Un Client ID este configurat.",
+  "v2.set.spotifyClientIdEdit": "Modifică",
+  "v2.set.spotifyClientIdClear": "Șterge",
+  "v2.set.spotifyClientIdConfirmClear": "Ștergeți Client ID-ul Spotify salvat? Celelalte setări Spotify (Spotify Connect, redare) se păstrează. Va trebui să introduceți unul nou pentru a vă conecta.",
+  "v2.set.spotifyClientIdCleared": "Client ID Spotify șters",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

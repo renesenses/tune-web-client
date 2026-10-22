@@ -5505,6 +5505,13 @@ export default {
   "accesCompte.retourEnCours": "로그인하는 중…",
   "accesCompte.fermer": "숨기기",
   "accesCompte.reessayer": "다시 시도",
+  "v2.set.spotifyClientIdStored": "Client ID가 이 서버에 저장되어 있습니다.",
+  "v2.set.spotifyClientIdImposed": "Client ID가 서버(환경 변수 또는 tune.toml)에서 지정되어 이 화면에서는 바꿀 수 없습니다.",
+  "v2.set.spotifyClientIdConfigured": "Client ID가 설정되어 있습니다.",
+  "v2.set.spotifyClientIdEdit": "수정",
+  "v2.set.spotifyClientIdClear": "지우기",
+  "v2.set.spotifyClientIdConfirmClear": "저장된 Spotify Client ID를 지울까요? 다른 Spotify 설정(Spotify Connect, 재생)은 유지됩니다. 로그인하려면 새 Client ID를 입력해야 합니다.",
+  "v2.set.spotifyClientIdCleared": "Spotify Client ID를 지웠습니다",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
