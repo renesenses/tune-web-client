@@ -52,6 +52,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { fullVolumeConfirmationRequired } from '../../lib/audiophileSafety';
   import { zonesDuSelecteur } from '../../lib/zonesSelecteur';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
+  import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
   import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
   import {
     audiophileEnabled,
@@ -62,6 +63,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     refreshVolumeLock,
     setZoneVolumeLock,
     volumeLocked,
+    isVolumeLocked,
   } from '../../lib/stores/audiophile';
 
   // Le libellé de protocole vivait ici en copie locale (il en existe encore
@@ -98,7 +100,15 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     leverSourdineSiBesoin({ ...z, id: z.id }, val);
     applyMobileVolume(z, val);
     const zoneId = z.id;
-    limiterEnvoiMobile(() => { void api.setVolume(zoneId, val); });
+    // tune-server-rust#6721 — même règle que `VolumeControl` : un refus relit le verrou.
+    limiterEnvoiMobile(() => {
+      void envoyerVolumeOuReverrouiller(zoneId, val, {
+        envoyer: api.setVolume,
+        relireVerrou: refreshAudiophile,
+        verrouille: isVolumeLocked,
+        direVerrou: () => notifications.error($t('audiophile.volumeLockedHint' as any)),
+      });
+    });
   }
 
   async function mobileVolumeStep(delta: number) {
