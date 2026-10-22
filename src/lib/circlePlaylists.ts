@@ -574,7 +574,6 @@ export function ordreDeplace(items: { item_id: IdOpaque }[], itemId: IdOpaque, v
   return ids;
 }
 
-/** Le morceau est-il encore là ? (un retrait sur un état reçu en 409) */
 /**
  * web#2287 — ce que fait une relecture planifiée de la fiche ouverte.
  *
@@ -594,6 +593,7 @@ export function issueRelecture(
   return { remplacer: true, resoudre: !affichee || ids(affichee) !== ids(lue) };
 }
 
+/** Le morceau est-il encore là ? (un retrait sur un état reçu en 409) */
 export function contient(p: PlaylistCercle, itemId: IdOpaque): boolean {
   return p.items.some((x) => String(x.item_id) === String(itemId));
 }
