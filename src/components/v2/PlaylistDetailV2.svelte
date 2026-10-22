@@ -500,7 +500,7 @@
              du mode édition : c'est le seul geste qui l'efface, il doit être
              à portée. -->
         {#if !edition && isLocal && estIntrouvable(_t)}
-          <button class="rm" disabled={retraitEnCours} onclick={() => removeAt(rangReel(_t))}
+          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
             aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
           </button>
@@ -514,7 +514,7 @@
             aria-label={$tr('playlist.moveDown')} title={$tr('playlist.moveDown')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
           </button>
-          <button class="rm" disabled={retraitEnCours} onclick={() => removeAt(rangReel(_t))} aria-label={$tr('v2.pl.remove' as any)}>
+          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours} aria-label={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
           </button>
         {:else if edition && aMoiChezLeService}
