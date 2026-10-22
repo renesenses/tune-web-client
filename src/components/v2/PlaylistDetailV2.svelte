@@ -8,6 +8,7 @@
    * Détail technique (fréquence/profondeur) réservé à l'Expert, comme ailleurs.
    */
   import * as api from '../../lib/api';
+  import { creerRetraitPlaylist } from '../../lib/retraitPlaylist';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { t as tr } from '../../lib/i18n';
@@ -267,11 +268,23 @@
       .catch(() => {})
       .finally(() => { renaming = false; });
   }
-  function removeAt(i: number) {
-    if (item.kind !== 'local' || item.pl.id == null) return;
-    api.removePlaylistTrackAt(item.pl.id, i)
-      .then(() => { tracks = tracks.filter((_, k) => k !== i); onChanged?.(); })
-      .catch(() => {});
+  /**
+   * web#2286 — la ligne par `entry_id`, un retrait à la fois, puis relecture
+   * (`lib/retraitPlaylist`, partagé avec `PlaylistManagerView`).
+   */
+  const retraitPlaylist = creerRetraitPlaylist({
+    retirer: (id, cible) => api.removePlaylistEntry(id, cible),
+    relire: (id) => api.getPlaylistTracks(id),
+  });
+  let retraitEnCours = $state(false);
+  async function removeAt(i: number) {
+    if (item.kind !== 'local' || item.pl.id == null || retraitPlaylist.enCours) return;
+    retraitEnCours = true;
+    const issue = await retraitPlaylist.retirer(item.pl.id as number, tracks, i);
+    retraitEnCours = false;
+    if (!issue) return;
+    tracks = issue.pistes;
+    if (issue.ok) onChanged?.();
   }
 
   /** Retire un titre de la playlist du service (#2098) — toutes ses occurrences. */
@@ -487,7 +500,7 @@
              du mode édition : c'est le seul geste qui l'efface, il doit être
              à portée. -->
         {#if !edition && isLocal && estIntrouvable(_t)}
-          <button class="rm" onclick={() => removeAt(rangReel(_t))}
+          <button class="rm" disabled={retraitEnCours} onclick={() => removeAt(rangReel(_t))}
             aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
           </button>
@@ -501,7 +514,7 @@
             aria-label={$tr('playlist.moveDown')} title={$tr('playlist.moveDown')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
           </button>
-          <button class="rm" onclick={() => removeAt(rangReel(_t))} aria-label={$tr('v2.pl.remove' as any)}>
+          <button class="rm" disabled={retraitEnCours} onclick={() => removeAt(rangReel(_t))} aria-label={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
           </button>
         {:else if edition && aMoiChezLeService}
