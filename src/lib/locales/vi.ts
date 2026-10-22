@@ -5357,5 +5357,9 @@ export default {
   "accesCompte.retourEnCours": "Đang đăng nhập…",
   "accesCompte.fermer": "Ẩn",
   "accesCompte.reessayer": "Thử lại",
+  "v2.health.launchWaitingPlayback": "Đã khởi chạy: đang chờ lượt phát hiện tại kết thúc, vì phát nhạc luôn được ưu tiên.",
+  "v2.health.launchRgDisabled": "Phân tích ReplayGain đang tắt trong phần cài đặt: lượt xử lý sẽ không đo gì cả.",
+  "v2.health.launchRgPaused": "Lượt xử lý ReplayGain đang tạm dừng: hãy tiếp tục để nó chạy lại.",
+  "v2.health.launchRgUnsupported": "Máy chủ này chưa thể khởi chạy lượt ReplayGain theo yêu cầu: nó sẽ tự tiếp tục trong vòng mười lăm phút.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

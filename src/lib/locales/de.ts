@@ -5505,6 +5505,10 @@ export default {
   "accesCompte.retourEnCours": "Anmeldung läuft…",
   "accesCompte.fermer": "Ausblenden",
   "accesCompte.reessayer": "Erneut versuchen",
+  "v2.health.launchWaitingPlayback": "Durchlauf gestartet: Er wartet auf das Ende der laufenden Wiedergabe, die immer Vorrang hat.",
+  "v2.health.launchRgDisabled": "Die ReplayGain-Analyse ist in den Einstellungen ausgeschaltet: Der Durchlauf würde nichts messen.",
+  "v2.health.launchRgPaused": "Der ReplayGain-Durchlauf ist pausiert: Setzen Sie ihn fort, damit er weiterläuft.",
+  "v2.health.launchRgUnsupported": "Dieser Server kann den ReplayGain-Durchlauf noch nicht auf Abruf starten: Er setzt spätestens nach einer Viertelstunde von selbst fort.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

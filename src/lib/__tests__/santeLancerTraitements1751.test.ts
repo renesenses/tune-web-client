@@ -66,7 +66,8 @@ describe('#1751 — quelle carte porte « Lancer »', () => {
   });
 
   it('les cartes sans route de lancement n’ont pas de bouton', () => {
-    for (const id of ['scan', 'clap', 'rg', 'acoustid']) {
+    // web#2295 — la carte ReplayGain a désormais sa route (tune-server-rust#6778).
+    for (const id of ['scan', 'clap', 'acoustid']) {
       expect(boutonLancer({ id, etat: 'idle' }, false), id).toBe(false);
     }
   });

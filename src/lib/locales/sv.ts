@@ -5504,4 +5504,8 @@ export default {
   "accesCompte.retourEnCours": "Loggar in…",
   "accesCompte.fermer": "Dölj",
   "accesCompte.reessayer": "Försök igen",
+  "v2.health.launchWaitingPlayback": "Körning startad: den väntar på att den pågående uppspelningen, som alltid går först, ska bli klar.",
+  "v2.health.launchRgDisabled": "ReplayGain-analysen är avstängd i inställningarna: körningen skulle inte mäta något.",
+  "v2.health.launchRgPaused": "ReplayGain-körningen är pausad: återuppta den så att den startar igen.",
+  "v2.health.launchRgUnsupported": "Den här servern kan ännu inte starta ReplayGain-körningen på begäran: den återupptas av sig själv inom en kvart.",
 } as const;

@@ -5505,6 +5505,10 @@ export default {
   "accesCompte.retourEnCours": "Accesso in corso…",
   "accesCompte.fermer": "Nascondi",
   "accesCompte.reessayer": "Riprova",
+  "v2.health.launchWaitingPlayback": "Passata avviata: attende la fine della riproduzione in corso, che ha sempre la precedenza.",
+  "v2.health.launchRgDisabled": "L’analisi ReplayGain è disattivata nelle impostazioni: la passata non misurerebbe nulla.",
+  "v2.health.launchRgPaused": "La passata ReplayGain è in pausa: riprendila perché riparta.",
+  "v2.health.launchRgUnsupported": "Questo server non sa ancora avviare la passata ReplayGain su richiesta: riprende da sola entro un quarto d’ora.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

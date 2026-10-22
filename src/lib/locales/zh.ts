@@ -5505,6 +5505,10 @@ export default {
   "accesCompte.retourEnCours": "正在登录…",
   "accesCompte.fermer": "隐藏",
   "accesCompte.reessayer": "重试",
+  "v2.health.launchWaitingPlayback": "已启动：正在等待当前播放结束，播放始终优先。",
+  "v2.health.launchRgDisabled": "设置中已关闭 ReplayGain 分析：此次处理不会测量任何内容。",
+  "v2.health.launchRgPaused": "ReplayGain 处理已暂停：请先恢复，它才会继续。",
+  "v2.health.launchRgUnsupported": "此服务器尚不支持按需启动 ReplayGain 处理：它会在最多十五分钟内自行恢复。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

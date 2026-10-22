@@ -5525,6 +5525,10 @@ export default {
   "accesCompte.retourEnCours": "Signing in…",
   "accesCompte.fermer": "Hide",
   "accesCompte.reessayer": "Try again",
+  "v2.health.launchWaitingPlayback": "Pass started: it is waiting for the current playback to finish, which always comes first.",
+  "v2.health.launchRgDisabled": "ReplayGain analysis is turned off in the settings: the pass would measure nothing.",
+  "v2.health.launchRgPaused": "The ReplayGain pass is paused: resume it to start it again.",
+  "v2.health.launchRgUnsupported": "This server cannot start the ReplayGain pass on demand yet: it resumes on its own within fifteen minutes.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

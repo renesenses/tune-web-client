@@ -5505,6 +5505,10 @@ export default {
   "accesCompte.retourEnCours": "Conectare în curs…",
   "accesCompte.fermer": "Ascundeți",
   "accesCompte.reessayer": "Reîncercați",
+  "v2.health.launchWaitingPlayback": "Trecere pornită: așteaptă sfârșitul redării în curs, care are mereu prioritate.",
+  "v2.health.launchRgDisabled": "Analiza ReplayGain este dezactivată în setări: trecerea nu ar măsura nimic.",
+  "v2.health.launchRgPaused": "Trecerea ReplayGain este în pauză: reluați-o ca să pornească din nou.",
+  "v2.health.launchRgUnsupported": "Acest server nu poate încă porni trecerea ReplayGain la cerere: se reia singură în cel mult un sfert de oră.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -5464,6 +5464,10 @@ export default {
   "accesCompte.retourEnCours": "Bejelentkezés…",
   "accesCompte.fermer": "Elrejtés",
   "accesCompte.reessayer": "Újra",
+  "v2.health.launchWaitingPlayback": "Elindítva: megvárja az éppen folyó lejátszás végét, amely mindig elsőbbséget élvez.",
+  "v2.health.launchRgDisabled": "A ReplayGain-elemzés ki van kapcsolva a beállításokban: a futás semmit sem mérne.",
+  "v2.health.launchRgPaused": "A ReplayGain-futás szüneteltetve van: folytassa, hogy újrainduljon.",
+  "v2.health.launchRgUnsupported": "Ez a szerver még nem tudja kérésre elindítani a ReplayGain-futást: legkésőbb negyedóra múlva magától folytatódik.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

@@ -5505,6 +5505,10 @@ export default {
   "accesCompte.retourEnCours": "로그인하는 중…",
   "accesCompte.fermer": "숨기기",
   "accesCompte.reessayer": "다시 시도",
+  "v2.health.launchWaitingPlayback": "시작했습니다: 항상 우선인 현재 재생이 끝나기를 기다리는 중입니다.",
+  "v2.health.launchRgDisabled": "설정에서 ReplayGain 분석이 꺼져 있습니다: 작업을 해도 아무것도 측정되지 않습니다.",
+  "v2.health.launchRgPaused": "ReplayGain 작업이 일시 중지되었습니다: 다시 시작하려면 재개하세요.",
+  "v2.health.launchRgUnsupported": "이 서버는 아직 ReplayGain 작업을 바로 시작할 수 없습니다: 늦어도 15분 안에 스스로 재개됩니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
