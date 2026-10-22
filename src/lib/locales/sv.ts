@@ -5504,4 +5504,6 @@ export default {
   "accesCompte.retourEnCours": "Loggar in…",
   "accesCompte.fermer": "Dölj",
   "accesCompte.reessayer": "Försök igen",
+  "assistantIa.err.cle_sans_espace_de_travail": "Den här Anthropic-nyckeln är inte kopplad till någon arbetsyta: skapa en nyckel i en arbetsyta (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Orsak som leverantören angav: ”{motif}”",
 } as const;

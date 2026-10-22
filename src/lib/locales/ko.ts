@@ -5505,6 +5505,8 @@ export default {
   "accesCompte.retourEnCours": "로그인하는 중…",
   "accesCompte.fermer": "숨기기",
   "accesCompte.reessayer": "다시 시도",
+  "assistantIa.err.cle_sans_espace_de_travail": "이 Anthropic 키는 어떤 워크스페이스에도 연결되어 있지 않습니다. 워크스페이스 안에서 키를 만드세요(console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "제공자가 밝힌 사유: \"{motif}\"",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

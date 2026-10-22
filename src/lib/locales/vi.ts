@@ -5357,5 +5357,7 @@ export default {
   "accesCompte.retourEnCours": "Đang đăng nhập…",
   "accesCompte.fermer": "Ẩn",
   "accesCompte.reessayer": "Thử lại",
+  "assistantIa.err.cle_sans_espace_de_travail": "Khóa Anthropic này không gắn với không gian làm việc nào: hãy tạo khóa trong một không gian làm việc (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Lý do nhà cung cấp đưa ra: « {motif} »",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

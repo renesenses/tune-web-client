@@ -5505,6 +5505,8 @@ export default {
   "accesCompte.retourEnCours": "Iniciando sesión…",
   "accesCompte.fermer": "Ocultar",
   "accesCompte.reessayer": "Reintentar",
+  "assistantIa.err.cle_sans_espace_de_travail": "Esta clave de Anthropic no está vinculada a ningún espacio de trabajo: cree una dentro de un espacio de trabajo (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Motivo indicado por el proveedor: «{motif}»",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

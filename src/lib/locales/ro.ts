@@ -5505,6 +5505,8 @@ export default {
   "accesCompte.retourEnCours": "Conectare în curs…",
   "accesCompte.fermer": "Ascundeți",
   "accesCompte.reessayer": "Reîncercați",
+  "assistantIa.err.cle_sans_espace_de_travail": "Această cheie Anthropic nu este atașată niciunui spațiu de lucru: creați una într-un spațiu de lucru (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Motivul dat de furnizor: „{motif}”",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

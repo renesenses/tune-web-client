@@ -5505,6 +5505,8 @@ export default {
   "accesCompte.retourEnCours": "サインインしています…",
   "accesCompte.fermer": "閉じる",
   "accesCompte.reessayer": "再試行",
+  "assistantIa.err.cle_sans_espace_de_travail": "この Anthropic キーはどのワークスペースにも属していません。ワークスペース内でキーを作成してください（console.anthropic.com › API keys）。",
+  "assistantIa.err.motif": "プロバイダーが示した理由：「{motif}」",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

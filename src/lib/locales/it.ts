@@ -5505,6 +5505,8 @@ export default {
   "accesCompte.retourEnCours": "Accesso in corso…",
   "accesCompte.fermer": "Nascondi",
   "accesCompte.reessayer": "Riprova",
+  "assistantIa.err.cle_sans_espace_de_travail": "Questa chiave Anthropic non è associata ad alcuno spazio di lavoro: creane una all’interno di uno spazio di lavoro (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Motivo indicato dal fornitore: «{motif}»",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

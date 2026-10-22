@@ -19,7 +19,7 @@
   import {
     suggestionsAlbumIa, appliquerSuggestionsIa, annulerSuggestionsIa,
     suggestionsPistesIa, appliquerPistesIa,
-    estEchec, cleDEchec, cleDeRaison, cleDeChamp, cocheesParDefaut, pourcent, messageDeRapport,
+    estEchec, messageDEchec, cleDeRaison, cleDeChamp, cocheesParDefaut, pourcent, messageDeRapport,
     type SuggestionIa, type EcarteeIa, type RapportIa, type SuggestionPisteIa, type EcarteePisteIa,
   } from '../../lib/assistantIa';
   import type { EtatPlafondIa } from '../../lib/assistantIa';
@@ -64,7 +64,7 @@
   onMount(async () => {
     try {
       const r = await suggestionsAlbumIa(albumId);
-      if (estEchec(r)) { erreur = $t(cleDEchec(r.error) as any); return; }
+      if (estEchec(r)) { erreur = messageDEchec(r, (k) => $t(k as any)); return; }
       suggestions = r.suggestions;
       ecartees = r.ecartees;
       cochees = cocheesParDefaut(r.suggestions);
@@ -87,7 +87,7 @@
     occupe = true; erreur = null; message = null;
     try {
       const r = await appliquerSuggestionsIa(albumId, lesquelles.map((s) => ({ champ: s.champ, valeur: s.apres })));
-      if (estEchec(r)) { erreur = $t(cleDEchec(r.error) as any); return; }
+      if (estEchec(r)) { erreur = messageDEchec(r, (k) => $t(k as any)); return; }
       rapport = r.rapport;
       annulable = r.rapport.appliquees.length > 0;
       const faits = new Set(r.rapport.appliquees.map((l) => l.champ));
@@ -104,7 +104,7 @@
     occupe = true; erreur = null; message = null;
     try {
       const r = await annulerSuggestionsIa(albumId, rapport?.operation_id ?? null);
-      if (estEchec(r)) { erreur = $t(cleDEchec(r.error) as any); return; }
+      if (estEchec(r)) { erreur = messageDEchec(r, (k) => $t(k as any)); return; }
       annulable = false;
       rapport = r.rapport;
       message = dire('assistantIa.album.undone', r.rapport, r.rapport.appliquees.length);
@@ -118,7 +118,7 @@
     occupe = true; erreur = null; message = null; pistesDemandees = true;
     try {
       const r = await suggestionsPistesIa(albumId);
-      if (estEchec(r)) { erreur = $t(cleDEchec(r.error) as any); return; }
+      if (estEchec(r)) { erreur = messageDEchec(r, (k) => $t(k as any)); return; }
       pistes = r.suggestions;
       pistesEcartees = r.ecartees;
       cocheesPistes = new Set(r.suggestions.filter((x) => x.confiance >= 0.7).map(clePiste));
@@ -142,7 +142,7 @@
     occupe = true; erreur = null; message = null;
     try {
       const r = await appliquerPistesIa(albumId, lesquelles.map((x) => ({ piste_id: x.piste_id, champ: x.champ, valeur: x.apres })));
-      if (estEchec(r)) { erreur = $t(cleDEchec(r.error) as any); return; }
+      if (estEchec(r)) { erreur = messageDEchec(r, (k) => $t(k as any)); return; }
       rapport = r.rapport;
       annulable = r.rapport.appliquees.length > 0;
       const faits = new Set(r.rapport.appliquees.map((l) => `${l.piste_id}:${l.champ}`));
