@@ -5359,5 +5359,18 @@ export default {
   "accesCompte.retourEnCours": "Đang đăng nhập…",
   "accesCompte.fermer": "Ẩn",
   "accesCompte.reessayer": "Thử lại",
+  "scanDetenteur.origine.startup": "Quét khi khởi động",
+  "scanDetenteur.origine.manual": "Quét khởi chạy thủ công",
+  "scanDetenteur.origine.scheduled": "Quét theo lịch",
+  "scanDetenteur.origine.late_network_mount": "Quét thư mục mạng được gắn muộn",
+  "scanDetenteur.origine.music_dir_added": "Quét thư mục vừa thêm",
+  "scanDetenteur.origine.import": "Quét bản nhập",
+  "scanDetenteur.origine.cd_rip": "Quét bản trích xuất CD",
+  "scanDetenteur.origine.inconnue": "Quét không rõ nguồn gốc",
+  "scanDetenteur.dossier": "thư mục {chemin}",
+  "scanDetenteur.toute": "toàn bộ thư viện",
+  "scanDetenteur.depuis": "từ {heure}",
+  "scanDetenteur.residuel": "Trạng thái còn sót: thực ra không có lượt quét nào đang chạy. Nhấn « Dừng » để đặt lại.",
+  "scanDetenteur.refus409": "Máy chủ đã từ chối: một lượt quét khác đang chạy ({scan}). Hãy thử lại khi nó kết thúc.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

@@ -5507,6 +5507,19 @@ export default {
   "accesCompte.retourEnCours": "正在登录…",
   "accesCompte.fermer": "隐藏",
   "accesCompte.reessayer": "重试",
+  "scanDetenteur.origine.startup": "启动扫描",
+  "scanDetenteur.origine.manual": "手动启动的扫描",
+  "scanDetenteur.origine.scheduled": "定时扫描",
+  "scanDetenteur.origine.late_network_mount": "延迟挂载的网络共享扫描",
+  "scanDetenteur.origine.music_dir_added": "新增文件夹扫描",
+  "scanDetenteur.origine.import": "导入扫描",
+  "scanDetenteur.origine.cd_rip": "CD 抓轨扫描",
+  "scanDetenteur.origine.inconnue": "来源未知的扫描",
+  "scanDetenteur.dossier": "文件夹 {chemin}",
+  "scanDetenteur.toute": "整个音乐库",
+  "scanDetenteur.depuis": "开始于 {heure}",
+  "scanDetenteur.residuel": "残留状态：实际上没有扫描在运行。点击“停止”即可复位。",
+  "scanDetenteur.refus409": "服务器拒绝：已有另一个扫描正在进行（{scan}）。请在其完成后重试。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

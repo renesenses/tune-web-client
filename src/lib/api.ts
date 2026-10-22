@@ -5205,7 +5205,9 @@ export function transferToPeer(ip: string, port: number = 8888, zoneId: number =
 }
 
 export function getScanStatus() {
-  return fetchJSON<{ scanning: boolean }>(`${BASE}/system/scan/status`);
+  // web#2305 : `current` (tune-server-rust#6744) dit QUEL scan tient le
+  // droit ; absent d'un serveur plus ancien. Lu par `scanDetenteur.ts`.
+  return fetchJSON<{ scanning: boolean; status?: string; current?: unknown }>(`${BASE}/system/scan/status`);
 }
 
 /**

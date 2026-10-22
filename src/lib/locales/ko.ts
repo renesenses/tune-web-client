@@ -5507,6 +5507,19 @@ export default {
   "accesCompte.retourEnCours": "로그인하는 중…",
   "accesCompte.fermer": "숨기기",
   "accesCompte.reessayer": "다시 시도",
+  "scanDetenteur.origine.startup": "시작 시 스캔",
+  "scanDetenteur.origine.manual": "수동으로 시작한 스캔",
+  "scanDetenteur.origine.scheduled": "예약된 스캔",
+  "scanDetenteur.origine.late_network_mount": "늦게 마운트된 네트워크 공유 스캔",
+  "scanDetenteur.origine.music_dir_added": "추가된 폴더 스캔",
+  "scanDetenteur.origine.import": "가져오기 스캔",
+  "scanDetenteur.origine.cd_rip": "CD 리핑 스캔",
+  "scanDetenteur.origine.inconnue": "출처를 알 수 없는 스캔",
+  "scanDetenteur.dossier": "폴더 {chemin}",
+  "scanDetenteur.toute": "전체 라이브러리",
+  "scanDetenteur.depuis": "{heure}부터",
+  "scanDetenteur.residuel": "남은 상태: 실제로 실행 중인 스캔이 없습니다. '중지'를 누르면 초기화됩니다.",
+  "scanDetenteur.refus409": "서버가 거부했습니다: 다른 스캔이 이미 실행 중입니다({scan}). 끝난 뒤 다시 시도하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
