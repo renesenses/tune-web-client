@@ -254,13 +254,31 @@ export interface Appariement {
 }
 
 /**
+ * tune-server-rust#6774 — un trim POSITIF ne se restaure pas sur une zone
+ * retrouvée par son NOM : le nom ne prouve pas que c'est le même appareil, et
+ * un trim positif monte le niveau de celui qui est là. Il est montré, et
+ * laissé à la main (comme `fixed_volume`). Par la sortie, il revient.
+ */
+export function trimPositifParNom(
+  cle: CleReglage,
+  apres: ValeurReglage,
+  methode: MethodeAppariement,
+): boolean {
+  return methode === 'nom' && cle === 'gain_trim_db' && !(Number(apres) <= 0);
+}
+
+/**
  * Ce que la récupération changerait sur une zone.
  *
  * Marque et modèle en font partie : ce sont des corrections posées à la main,
  * et ce sont elles qui donnent son sens au reste (elles décident du préréglage
  * proposé et du badge « Tune tested »).
  */
-export function changements(entree: EntreeZone, zone: Zone): Changement[] {
+export function changements(
+  entree: EntreeZone,
+  zone: Zone,
+  methode: MethodeAppariement = 'sortie',
+): Changement[] {
   const out: Changement[] = [];
   const z = zone as unknown as Record<string, unknown>;
 
@@ -276,7 +294,10 @@ export function changements(entree: EntreeZone, zone: Zone): Changement[] {
     if (apres === undefined) continue;
     const avant = (z[cle] ?? defautDe(cle)) as ValeurReglage;
     if (avant === apres) continue;
-    out.push({ cle, avant, apres, applicable: !CLES_A_LA_MAIN.includes(cle) });
+    out.push({
+      cle, avant, apres,
+      applicable: !CLES_A_LA_MAIN.includes(cle) && !trimPositifParNom(cle, apres, methode),
+    });
   }
   return out;
 }
@@ -324,7 +345,9 @@ export function apparier(sauvegarde: Sauvegarde, zones: Zone[]): Appariement[] {
     if (z) { r.zone = z; r.methode = 'nom'; }
   });
 
-  for (const r of resultats) if (r.zone) r.changements = changements(r.entree, r.zone);
+  for (const r of resultats) {
+    if (r.zone) r.changements = changements(r.entree, r.zone, r.methode ?? 'sortie');
+  }
   return resultats;
 }
 
