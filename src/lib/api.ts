@@ -1892,6 +1892,11 @@ export interface AddToQueueRequest {
   album_ref?: string;
   /** Ordered streaming rows, supported by QueueAddRequest on the server. */
   tracks?: StreamingQueueItem[];
+  /** tune-server-rust#6466 — le conteneur de ce qui est ajouté (album,
+   *  playlist, artiste, label), écrit sur les lignes puis dans l'historique. */
+  context_type?: string;
+  context_id?: string;
+  context_source?: string;
 }
 
 /**
