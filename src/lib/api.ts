@@ -7671,7 +7671,7 @@ export async function getRadioFranceEpisodes(showUrl: string, limit = 20): Promi
   return res.json();
 }
 
-export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string, podcastId?: number | string, sourceId?: string): Promise<any[]> {
+export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string, podcastId?: number | string, sourceId?: string, country?: string): Promise<any[]> {
   let url: string;
   if (podcastId != null && podcastId !== '') {
     // Prefer the by-id endpoint: the server resolves feed_url from the
@@ -7688,11 +7688,23 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
     if (!feedUrl && !showUrl && !sourceId) return []; // nothing to fetch — don't hit the 400
     url = `${BASE}/podcasts/episodes?limit=${limit}`;
     if (feedUrl) url += `&feed_url=${encodeURIComponent(feedUrl)}`;
-    else if (sourceId) url += `&source_id=${encodeURIComponent(sourceId)}`;
+    else if (sourceId) {
+      url += `&source_id=${encodeURIComponent(sourceId)}`;
+      // tune-server-rust#6770 — le flux se résout dans la boutique Apple du
+      // PAYS du palmarès : la boutique par défaut (américaine) ignore un
+      // podcast classé seulement en France.
+      if (country) url += `&country=${encodeURIComponent(country)}`;
+    }
     if (showUrl) url += `&show_url=${encodeURIComponent(showUrl)}`;
   }
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Podcast episodes failed: ${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    // #6770 — garder le `code` du serveur (« aucun flux public »…) : l'écran
+    // le traduit au lieu d'un « épisodes indisponibles » qui ne dit rien.
+    let code: string | undefined;
+    try { code = (await res.json())?.code ?? undefined; } catch { /* corps non JSON */ }
+    throw Object.assign(new Error(`Podcast episodes failed: ${res.status} ${res.statusText}`), { code });
+  }
   const data = await res.json();
   return data.episodes || data;
 }
@@ -7709,8 +7721,9 @@ export function getPodcastSubscriptions(): Promise<any[]> {
   return fetchJSON(`${BASE}/podcasts/subscriptions`);
 }
 
-export function subscribePodcast(podcast: { title: string; feed_url: string; author?: string; image_url?: string; description?: string; source_id?: string }): Promise<any> {
-  return fetchJSON(`${BASE}/podcasts/subscriptions`, { method: 'POST', body: JSON.stringify(podcast) });
+export function subscribePodcast(podcast: { title: string; feed_url: string; author?: string; image_url?: string; description?: string; source_id?: string; country?: string }): Promise<any> {
+  // #6770 — l'écran Podcasts dit lui-même un échec de résolution (sans bandeau).
+  return fetchJSON(`${BASE}/podcasts/subscriptions`, { method: 'POST', body: JSON.stringify(podcast) }, undefined, true);
 }
 
 export function unsubscribePodcast(id: number): Promise<void> {

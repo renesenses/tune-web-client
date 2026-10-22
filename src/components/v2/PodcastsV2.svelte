@@ -31,6 +31,7 @@
   import { t } from '../../lib/i18n';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { dateCourte } from '../../lib/dates';
+  import { abonnementDe, cleDe, cleEchecResolution, fluxDe, sourceAppleDe } from '../../lib/podcastPalmares';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -383,7 +384,22 @@
    * frontière d'erreur pour lire la cause (02/09/2026).
    */
   function feedOf(p: any): string | null {
-    return p?.feed_url || p?.feedUrl || null;
+    return fluxDe(p);
+  }
+  /**
+   * tune-server-rust#6770 — ce qui identifie un podcast pour l'ouvrir ou s'y
+   * abonner : son flux, SINON son identifiant Apple. Le palmarès (« Populaires »
+   * et « Tous ») n'a que le second : avec le seul flux, ses cinquante entrées
+   * étaient inertes — rien ne s'ouvrait, l'abonnement restait grisé — alors
+   * que le serveur sait résoudre le flux depuis `source_id` (#1000).
+   */
+  function keyOf(p: any): string | null {
+    return cleDe(p);
+  }
+  /** Un échec rendu par le serveur, dit dans la langue de l'interface (#6770). */
+  function messageDEchec(e: any, repli: string): string {
+    const cle = cleEchecResolution(e?.code);
+    return cle ? $t(cle as any) : $t(repli as any);
   }
 
   function match(p: any): boolean {
@@ -401,19 +417,21 @@
    * raccourci posé depuis l'un doit se rouvrir depuis l'autre. C'est aussi ce
    * qui identifie un podcast partout ailleurs dans cet écran (`feedOf`).
    */
-  const cleCible = (p: any) => `podcasts:${feedOf(p)}`;
+  const cleCible = (p: any) => `podcasts:${keyOf(p)}`;
 
   $effect(() => {
     const auRetour = async (ev: Event) => {
       const cible = (ev as CustomEvent).detail?.target;
       const cle: string | undefined = cible?.key;
       if (!cle || !cle.startsWith('podcasts:')) return;
-      const flux: string | undefined = cible.restore?.feed;
-      if (!flux) return;
+      const flux: string | undefined = cible.restore?.feed || undefined;
+      const source: string | undefined = cible.restore?.source_id || undefined;
+      if (!flux && !source) return;
       // On rouvre depuis les abonnements quand on l'y trouve — la fiche y est
-      // plus complète —, sinon depuis le seul flux mémorisé.
-      const connu = subs.find((s2: any) => feedOf(s2) === flux);
-      openPodcast(connu ?? { feed_url: flux, title: cible.restore?.name });
+      // plus complète —, sinon depuis le flux (ou l'identifiant Apple, #6770)
+      // mémorisé.
+      const memorise = { feed_url: flux ?? '', source_id: source, country: cible.restore?.country, title: cible.restore?.name };
+      openPodcast(abonnementDe(subs, memorise) ?? memorise);
     };
     window.addEventListener('tune:shortcut-restore', auRetour);
     return () => window.removeEventListener('tune:shortcut-restore', auRetour);
@@ -499,17 +517,20 @@
 
   async function openPodcast(p: any) {
     const feed = feedOf(p);
-    if (!feed) return;
+    const source = sourceAppleDe(p);
+    if (!feed && !source) return;
+    // Le pays du palmarès d'où vient l'entrée, sinon celui de l'écran (#6770).
+    const country = p?.country ?? pays;
     opened = p; episodes = []; epLoading = true;
     setShortcutTarget({
       key: cleCible(p),
-      restore: { feed, name: p?.title ?? p?.name ?? null },
+      restore: { feed, source_id: feed ? undefined : source, country: feed ? undefined : country, name: p?.title ?? p?.name ?? null },
       label: p?.title ?? p?.name ?? undefined,
     });
     try {
-      episodes = await api.getPodcastEpisodes(feed, 50, undefined, p?.id ?? p?.subscription_id, p?.source_id);
-    } catch {
-      error = $t('v2.pod.episodesUnavail' as any);
+      episodes = await api.getPodcastEpisodes(feed ?? '', 50, undefined, p?.id ?? p?.subscription_id, source ?? undefined, country);
+    } catch (e) {
+      error = messageDEchec(e, 'v2.pod.episodesUnavail');
     }
     epLoading = false;
   }
@@ -536,8 +557,10 @@
   }
 
   const isSubscribed = $derived.by(() => {
-    const feeds = new Set(subs.map(feedOf).filter(Boolean));
-    return (p: any) => { const f = feedOf(p); return !!f && feeds.has(f); };
+    const liste = subs;
+    // Par le flux OU par l'identifiant Apple : une entrée du palmarès n'a pas
+    // de flux, son abonnement porte le flux résolu ET son `source_id` (#6770).
+    return (p: any) => abonnementDe(liste, p) !== undefined;
   });
 
   /**
@@ -568,9 +591,10 @@
   async function toggleSub(p: any, e: MouseEvent) {
     e.stopPropagation();
     const feed = feedOf(p);
-    if (!feed || basculeEnCours) return;
+    const source = sourceAppleDe(p);
+    if ((!feed && !source) || basculeEnCours) return;
     basculeEnCours = true;
-    const existing = subs.find((s) => feedOf(s) === feed);
+    const existing = abonnementDe(subs, p);
     try {
       if (existing) {
         if (existing.id == null) {
@@ -581,21 +605,27 @@
         await api.unsubscribePodcast(existing.id);
         subs = subs.filter((s) => s.id !== existing.id);
       } else {
+        // Sans flux (palmarès), le serveur le résout depuis `source_id`, dans
+        // la boutique Apple du pays du palmarès (#6770).
         const created = await api.subscribePodcast({
-          title: title(p), feed_url: feed, author: author(p) || undefined,
+          title: title(p), feed_url: feed ?? '', author: author(p) || undefined,
           image_url: cover(p) ?? undefined, source_id: p?.source_id ?? undefined,
+          country: feed ? undefined : (p?.country ?? pays),
         });
         if (created?.id != null) {
           // Ceinture ET bretelles : même avec un identifiant, on refuse un
           // flux déjà listé — deux entrées du même flux se disputeraient la
-          // clé de repli.
-          subs = subs.some((s) => feedOf(s) === feed) ? subs : [...subs, created];
+          // clé de repli. La réponse porte le flux résolu.
+          const resolu = feedOf(created) ?? feed;
+          subs = subs.some((s) => resolu != null && feedOf(s) === resolu)
+            ? subs
+            : [...subs, { ...created, feed_url: resolu ?? created.feed_url, source_id: created.source_id ?? p?.source_id }];
         } else {
           subs = (await api.getPodcastSubscriptions()) ?? [];
         }
       }
-    } catch {
-      error = $t('v2.pod.subscribeFailed' as any);
+    } catch (e) {
+      error = messageDEchec(e, 'v2.pod.subscribeFailed');
     } finally {
       basculeEnCours = false;
     }
@@ -923,9 +953,9 @@
          silencieusement, et le bouton mentait. Le palmarès rend `feed_url: ''`
          sur ses cinquante entrées — le même défaut rend l'abonnement inerte
          sur l'écran ACTUEL, où le bouton est simplement là et sans effet. -->
-    <button class="sub" class:on={sub || isSubscribed(p)} disabled={!feedOf(p)}
+    <button class="sub" class:on={sub || isSubscribed(p)} disabled={!keyOf(p)}
       onclick={(e) => toggleSub(p, e)}
-      title={!feedOf(p) ? $t('v2.pod.noFeed' as any) : undefined}
+      title={!keyOf(p) ? $t('v2.pod.noFeed' as any) : undefined}
       aria-label={isSubscribed(p) ? $t('v2.pod.unsubscribe' as any) : $t('v2.pod.subscribe' as any)}>
       {#if isSubscribed(p)}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
