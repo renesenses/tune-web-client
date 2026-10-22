@@ -4,7 +4,8 @@
   import { preferences } from '../../lib/stores/preferences';
   import { isBrowserZone, browserSetVolume } from '../../lib/stores/browserAudio';
   import { t } from '../../lib/i18n';
-  import { volumeLocked } from '../../lib/stores/audiophile';
+  import { volumeLocked, refreshAudiophile, isVolumeLocked } from '../../lib/stores/audiophile';
+  import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
   import { notifications } from '../../lib/stores/notifications';
   import * as api from '../../lib/api';
   import { analyserDb, formaterDb, lineaireDepuisDb } from '../../lib/volumeDb';
@@ -100,7 +101,18 @@
     zoneVolume.set(val);
     if (isBrowserZone(zone)) browserSetVolume(val);
     const zoneId = zone.id;
-    limiterEnvoi(() => { void api.setVolume(zoneId, val); });
+    limiterEnvoi(() => { void envoyerVolume(zoneId, val); });
+  }
+
+  // tune-server-rust#6721 — un refus du serveur (PURE « Forcer à 100 % »
+  // armé ailleurs, ou mal lu ici) relit le verrou : le curseur se grise.
+  function envoyerVolume(zoneId: number, val: number) {
+    return envoyerVolumeOuReverrouiller(zoneId, val, {
+      envoyer: api.setVolume,
+      relireVerrou: refreshAudiophile,
+      verrouille: isVolumeLocked,
+      direVerrou: () => notifications.error($t('audiophile.volumeLockedHint' as any)),
+    });
   }
 
   // Une zone navigateur joue dans CET onglet (<audio>) : le serveur ignore
