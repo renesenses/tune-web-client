@@ -67,8 +67,11 @@
   import { cleDeTriArtiste, comparerArtistes, initialeAlphabetique } from '../../lib/ordreAlphabetique';
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
+  import { PLAFOND_ARTISTE, lireArtisteBibliotheque } from '../../lib/lireArtiste';
+  import { tirageAleatoire } from '../../lib/porteeAleatoire';
   import { sourcesArtistesServeur, pagePorteLesSources, sourcesDepuisLeServeur } from '../../lib/stores/sourcesArtistesServeur';
   import { t } from '../../lib/i18n';
+  import { preferences } from '../../lib/stores/preferences';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import type { Artist } from '../../lib/types';
@@ -100,6 +103,10 @@
     nomPortee?: string | null;
   }
   let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, idsPortee = null, nomPortee = null }: Props = $props();
+  /** tune-server-rust#6474 — « Trier les artistes par nom de famille » (réglage
+   *  du profil, gardé par le serveur dans `ui_preferences`). `!== false` : un
+   *  blob d'avant le réglage garde l'ordre livré, celui du nom de tri. */
+  const parNomDeTri = $derived($preferences.trierArtistesParNomDeTri !== false);
 
   let artistes = $state<Artist[]>([]);
   let chargement = $state(true);
@@ -176,7 +183,9 @@
     [...(sourcesEffectives.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance)))
     // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956), sur
     // sa clé : `sort_name` s'il existe (« Beatles, The » à B), sinon `name`.
-    .sort(comparerArtistes));
+    // tune-server-rust#6474 — sauf si le réglage « Trier les artistes par nom
+    // de famille » est décoché : le nom affiché, toujours.
+    .sort((a, b) => comparerArtistes(a, b, parNomDeTri)));
   $effect(() => {
     onComptesSources?.({
       total: artistesRecherche.length,
@@ -188,7 +197,10 @@
    *  même règle que l'ordre : « (hed) p.e. » est sous H, « The Beatles »
    *  (nom de tri « Beatles, The ») sous B. */
   function lettre(a: Artist): string {
-    return initialeAlphabetique(cleDeTriArtiste(a));
+    // #6474 — la lettre suit la MÊME clé que l'ordre, réglage compris : sinon
+    // le rail viserait une lettre qui n'est pas celle sous laquelle l'artiste
+    // est rangé.
+    return initialeAlphabetique(cleDeTriArtiste(a, parNomDeTri));
   }
   const ALPHABET = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
   const presentes = $derived(new Set(affiches.map(lettre)));
@@ -315,13 +327,32 @@
       return;
     }
     try {
-      const liste = (await api.getArtistAlbums(a.id!)) ?? [];
-      const premier = liste.find((x) => x?.id != null && dansSource(x, provenance));
-      if (!premier) {
+      // tune-server-rust#6467 — la vignette jouait le PREMIER album local
+      // (fil 2302, point 10). Hors filtre de provenance, elle joue l'artiste :
+      // 50 titres au hasard, tirés par le serveur (`lib/lireArtiste`).
+      if (provenance == null) {
+        const n = await lireArtisteBibliotheque(a.id!, {
+          lire: (c) => playAndSync(zid, c as any),
+          titres: (id) => api.getArtistTracks(id),
+        });
+        if (n === 0) notifications.error($t('library.noTracks' as any));
+        return;
+      }
+      // Sous un filtre de provenance, les titres de cette provenance seuls,
+      // au hasard eux aussi.
+      const pistes = ((await api.getArtistTracks(a.id!)) ?? []).filter(
+        (p: any) => p?.id != null && !p.banned && dansSource(p, provenance),
+      );
+      const tires = tirageAleatoire(pistes, PLAFOND_ARTISTE);
+      if (!tires.length) {
         notifications.error($t('v2.art.noAlbum' as any));
         return;
       }
-      await playAndSync(zid, { album_id: premier.id! });
+      await playAndSync(zid, {
+        track_ids: tires.map((p: any) => p.id as number),
+        context_type: 'artist',
+        context_id: String(a.id),
+      });
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     }

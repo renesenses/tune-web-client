@@ -127,6 +127,10 @@
    * changé à l'écran.
    */
   import ToastContainer from '../partages/ToastContainer.svelte';
+  // Accès à distance par compte mozaiklabs (rc8) : seulement par le relais.
+  import AccesParCompte from '../partages/AccesParCompte.svelte';
+  import { serverIdDepuisUrl } from '../../lib/bridge';
+  const parLeRelais = serverIdDepuisUrl() !== null;
   import { demandeCercle } from '../../lib/circlePlaylists';
   import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
   // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
@@ -899,6 +903,11 @@
        `notifications.error()` écrit dans un magasin que personne ne rend, et
        un échec de lecture ne produit rigoureusement rien (#3732). -->
   <ToastContainer />
+
+  <!-- Accès à distance par compte : connexion, refus, écoute reprise ailleurs. -->
+  {#if parLeRelais}
+    <AccesParCompte />
+  {/if}
 
   <!-- Playlists de cercle : l'ajout groupé et le partage d'une playlist,
        demandés depuis n'importe quel menu (`demandeCercle`). Chargée à la

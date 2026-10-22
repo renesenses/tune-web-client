@@ -241,8 +241,17 @@
   // pas celui d'un album — il ne peut donc pas servir de cible.
   const catalogueSansCible = $derived(manqueUneCible(regles, 'piste'));
 
-  // La validation de l'ancien écran, mot pour mot : un nom, rien de plus.
-  const pretAEnregistrer = $derived(!chargement && nom.trim().length > 0);
+  /**
+   * tune-server-rust#6731 — des règles venues de l'assistant ne s'enregistrent
+   * pas VIDES : la playlist rendrait toute la bibliothèque, ce que personne
+   * n'a demandé par une phrase. Une saisie à la main garde ce droit
+   * (« Recently Added »).
+   */
+  const iaSansRegle = $derived(propose != null && id == null && reglesPourServeur(regles).length === 0);
+
+  // La validation de l'ancien écran, mot pour mot : un nom, rien de plus —
+  // sauf pour une proposition de l'assistant, qui doit garder une règle.
+  const pretAEnregistrer = $derived(!chargement && nom.trim().length > 0 && !iaSansRegle);
 
   let travail = $state(false);
   async function enregistrer() {
@@ -257,6 +266,8 @@
         sort_by: triPar,
         sort_order: ordre,
         max_tracks: maximum,
+        // #6731 — le serveur refuse `rules: []` pour cette origine.
+        ...(propose != null && id == null ? { origine: 'assistant' as const } : {}),
       };
       if (id != null) {
         await api.updateSmartPlaylist(id, charge);
@@ -450,6 +461,9 @@
 
   <!-- #4473 — au-dessus du pied, pleine largeur : un avertissement rangé
        entre « Annuler » et « Enregistrer » se lit comme un bouton. -->
+  {#if iaSansRegle}
+    <p class="avert" data-ia-sans-regle>{$t('assistantIa.playlist.garderUneRegle' as any)}</p>
+  {/if}
   {#if catalogueSansCible}
     <p class="avert">{$t('v2.smart.catalogueSansCible' as any)}</p>
   {/if}

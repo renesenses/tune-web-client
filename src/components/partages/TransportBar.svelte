@@ -52,6 +52,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { fullVolumeConfirmationRequired } from '../../lib/audiophileSafety';
   import { zonesDuSelecteur } from '../../lib/zonesSelecteur';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
+  import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
+  import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
   import {
     audiophileEnabled,
     audiophileGlobalLockVolume,
@@ -61,6 +63,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     refreshVolumeLock,
     setZoneVolumeLock,
     volumeLocked,
+    isVolumeLocked,
   } from '../../lib/stores/audiophile';
 
   // Le libellé de protocole vivait ici en copie locale (il en existe encore
@@ -75,7 +78,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   // --- Mobile Volume Popup ---
   let mobileVolumeOpen = $state(false);
   let mobileVol = $derived($zoneVolume);
-  let mobileIsMuted = $derived(mobileVol === 0 && $mutedVolume !== null);
+  // #6700 — la sourdine est l'état `muted` de la zone, pas un volume à zéro.
+  let mobileIsMuted = $derived($currentZone?.muted === true);
 
   // Miroir local obligatoire pour les zones navigateur : le serveur ignore
   // leur volume (set_volume_no_device_id), l'<audio> de cet onglet doit être
@@ -93,37 +97,34 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
     const val = Number((e.target as HTMLInputElement).value);
-    if (val > 0) mutedVolume.set(null);
+    leverSourdineSiBesoin({ ...z, id: z.id }, val);
     applyMobileVolume(z, val);
     const zoneId = z.id;
-    limiterEnvoiMobile(() => { void api.setVolume(zoneId, val); });
+    // tune-server-rust#6721 — même règle que `VolumeControl` : un refus relit le verrou.
+    limiterEnvoiMobile(() => {
+      void envoyerVolumeOuReverrouiller(zoneId, val, {
+        envoyer: api.setVolume,
+        relireVerrou: refreshAudiophile,
+        verrouille: isVolumeLocked,
+        direVerrou: () => notifications.error($t('audiophile.volumeLockedHint' as any)),
+      });
+    });
   }
 
   async function mobileVolumeStep(delta: number) {
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
     const newVal = Math.max(0, Math.min(1, mobileVol + delta));
-    if (newVal > 0) mutedVolume.set(null);
+    if (delta > 0) leverSourdineSiBesoin({ ...z, id: z.id }, newVal);
     applyMobileVolume(z, newVal);
     await api.setVolume(z.id, newVal);
   }
 
+  // #6700 — une VRAIE sourdine (`muted`), le volume n'est pas touché.
   async function toggleMobileMute() {
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
-    if (mobileVol > 0) {
-      mutedVolume.set(mobileVol);
-      applyMobileVolume(z, 0);
-      await api.setVolume(z.id, 0);
-    } else if ($mutedVolume !== null) {
-      const restore = $mutedVolume;
-      mutedVolume.set(null);
-      applyMobileVolume(z, restore);
-      await api.setVolume(z.id, restore);
-    } else {
-      applyMobileVolume(z, 0.5);
-      await api.setVolume(z.id, 0.5);
-    }
+    await basculerSourdineZone({ ...z, id: z.id }).catch(() => {});
   }
 
   // --- Sleep Timer ---
