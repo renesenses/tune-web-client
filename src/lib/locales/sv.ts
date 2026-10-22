@@ -5504,4 +5504,5 @@ export default {
   "accesCompte.retourEnCours": "Loggar in…",
   "accesCompte.fermer": "Dölj",
   "accesCompte.reessayer": "Försök igen",
+  "v2.circle.lib.thumbnailsProgress": "Omslag: {n} av {total}, fler kommer efter hand.",
 } as const;

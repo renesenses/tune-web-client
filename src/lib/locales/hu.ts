@@ -5464,6 +5464,7 @@ export default {
   "accesCompte.retourEnCours": "Bejelentkezés…",
   "accesCompte.fermer": "Elrejtés",
   "accesCompte.reessayer": "Újra",
+  "v2.circle.lib.thumbnailsProgress": "Borítók: {n} / {total}, fokozatosan érkeznek.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

@@ -5505,6 +5505,7 @@ export default {
   "accesCompte.retourEnCours": "로그인하는 중…",
   "accesCompte.fermer": "숨기기",
   "accesCompte.reessayer": "다시 시도",
+  "v2.circle.lib.thumbnailsProgress": "커버: {total}개 중 {n}개, 차례로 도착하는 중입니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

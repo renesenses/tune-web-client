@@ -5357,5 +5357,6 @@ export default {
   "accesCompte.retourEnCours": "Đang đăng nhập…",
   "accesCompte.fermer": "Ẩn",
   "accesCompte.reessayer": "Thử lại",
+  "v2.circle.lib.thumbnailsProgress": "Ảnh bìa: {n} trên {total}, đang dần được gửi tới.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

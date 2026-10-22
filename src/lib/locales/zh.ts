@@ -5505,6 +5505,7 @@ export default {
   "accesCompte.retourEnCours": "正在登录…",
   "accesCompte.fermer": "隐藏",
   "accesCompte.reessayer": "重试",
+  "v2.circle.lib.thumbnailsProgress": "封面：{n} / {total}，正在陆续到达。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

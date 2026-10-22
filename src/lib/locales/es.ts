@@ -5505,6 +5505,7 @@ export default {
   "accesCompte.retourEnCours": "Iniciando sesión…",
   "accesCompte.fermer": "Ocultar",
   "accesCompte.reessayer": "Reintentar",
+  "v2.circle.lib.thumbnailsProgress": "Portadas: {n} de {total}, van llegando poco a poco.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

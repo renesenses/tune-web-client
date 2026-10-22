@@ -5505,6 +5505,7 @@ export default {
   "accesCompte.retourEnCours": "サインインしています…",
   "accesCompte.fermer": "閉じる",
   "accesCompte.reessayer": "再試行",
+  "v2.circle.lib.thumbnailsProgress": "ジャケット：{total} 件中 {n} 件。順次届きます。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

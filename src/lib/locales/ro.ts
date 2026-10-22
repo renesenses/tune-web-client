@@ -5505,6 +5505,7 @@ export default {
   "accesCompte.retourEnCours": "Conectare în curs…",
   "accesCompte.fermer": "Ascundeți",
   "accesCompte.reessayer": "Reîncercați",
+  "v2.circle.lib.thumbnailsProgress": "Coperți: {n} din {total}, sosesc treptat.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

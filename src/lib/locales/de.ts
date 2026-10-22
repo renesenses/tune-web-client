@@ -5505,6 +5505,7 @@ export default {
   "accesCompte.retourEnCours": "Anmeldung läuft…",
   "accesCompte.fermer": "Ausblenden",
   "accesCompte.reessayer": "Erneut versuchen",
+  "v2.circle.lib.thumbnailsProgress": "Cover: {n} von {total}, weitere folgen nach und nach.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

@@ -5527,6 +5527,7 @@ export default {
   "accesCompte.retourEnCours": "Connexion en cours…",
   "accesCompte.fermer": "Masquer",
   "accesCompte.reessayer": "Réessayer",
+  "v2.circle.lib.thumbnailsProgress": "Pochettes : {n} sur {total}, elles arrivent progressivement.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];
