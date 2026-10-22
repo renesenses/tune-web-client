@@ -22,6 +22,7 @@
   import { detailOuvert, ouvrirDetail, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { reculerAvecIntention } from '../../lib/historiqueNavigation';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
+  import { refusScanConcurrent } from '../../lib/scanDetenteur';
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
@@ -354,7 +355,8 @@
       console.error('Rescan error:', e);
       notifications.error(
         e?.status === 409
-          ? $tr('browse.rescanAlreadyScanning' as any)
+          // web#2305 : le refus nomme le scan qui tient le droit, s'il le dit.
+          ? (refusScanConcurrent(e, (k) => $tr(k as any)) ?? $tr('browse.rescanAlreadyScanning' as any))
           : $tr('browse.rescanFailed' as any).replace('{erreur}', String(e?.message ?? e)),
         10000,
       );
