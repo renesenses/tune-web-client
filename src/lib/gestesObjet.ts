@@ -857,7 +857,9 @@ export function gestesObjet(o: ObjetMenu, options: OptionsMenuObjet = {}): Geste
     const nom = o.nom ?? '';
     g.ajouterAPlaylistDeCercle = () => demandeCercle.set({ mode: 'ajout', nom, pistes: () => pistesPourCercle(o) });
     if (o.type !== 'album') {
-      g.partagerAvecUnCercle = () => demandeCercle.set({ mode: 'partage', nom, pistes: () => pistesPourCercle(o) });
+      // web#2287 — une playlist LOCALE partagée est suivie par sa copie de cercle.
+      const playlistLocale = o.type === 'playlist' && o.id != null ? o.id : null;
+      g.partagerAvecUnCercle = () => demandeCercle.set({ mode: 'partage', nom, pistes: () => pistesPourCercle(o), playlistLocale });
     }
   }
   if (o.type === 'playlist' && o.id != null) {

@@ -8,6 +8,7 @@
    * Détail technique (fréquence/profondeur) réservé à l'Expert, comme ailleurs.
    */
   import * as api from '../../lib/api';
+  import { ligneBadgeCercles } from '../../lib/suiviCercle';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { t as tr } from '../../lib/i18n';
@@ -362,6 +363,11 @@
         <h1>{title}</h1>
       {/if}
       {#if item.pl.description}<div class="desc">{item.pl.description}</div>{/if}
+      <!-- web#2287 — « Partagée avec un cercle » (tune-server-rust#6694, champ `cercles`). -->
+      {#if isLocal}
+        {@const badge = ligneBadgeCercles(item.pl, (k) => $tr(k as any))}
+        {#if badge}<div class="desc badge-cercle" data-badge-cercle>{badge}</div>{/if}
+      {/if}
       <div class="facts">
         <span>{$tr((tracks.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(tracks.length))}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
