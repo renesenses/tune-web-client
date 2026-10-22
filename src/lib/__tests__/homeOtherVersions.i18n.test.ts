@@ -11,6 +11,7 @@ import ro from '../locales/ro';
 import sv from '../locales/sv';
 import zh from '../locales/zh';
 import hu from '../locales/hu';
+import viLocale from '../locales/vi';
 
 type Dict = Record<string, string | undefined>;
 
@@ -53,11 +54,12 @@ const LANGUES: [string, Dict, RegExp][] = [
   ['sv', sv as Dict, /dagens|idag|i dag/iu],
   ['zh', zh as Dict, /今日|今天/u],
   ['hu', hu as Dict, mot('mai', 'ma')],
+  ['vi', viLocale as Dict, /hôm nay/iu],
 ];
 
 describe('Autres versions — aucun libellé ne promet « du jour »', () => {
   it('couvre bien les onze langues livrées', () => {
-    expect(LANGUES).toHaveLength(11);
+    expect(LANGUES).toHaveLength(12);
   });
 
   for (const cle of CLES) {

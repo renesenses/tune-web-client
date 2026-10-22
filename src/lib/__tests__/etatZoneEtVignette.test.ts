@@ -39,7 +39,7 @@ beforeEach(() => {
   currentZoneId.set(1);
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
-    if (url.endsWith('/zones')) return response(serverZones);
+    if (/\/zones(?:\?lang=[a-z]{2})?$/.test(url)) return response(serverZones);
     if (url.endsWith('/zones/stereo-pairs')) return response([]);
     if (url.includes('tune-tested.json')) return response({ version: 1, count: 0, devices: [] });
     if (url.endsWith('/system/diagnostics')) return response({ zones_doublons: [] });
@@ -73,7 +73,7 @@ describe('l’état de lecture d’une zone', () => {
     expect(cleEtatLecture('playing')).toBe('zone.playing');
     expect(cleEtatLecture('paused')).toBe('zone.paused');
     expect(cleEtatLecture('idle')).toBe('zone.stopped');
-    for (const lg of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh']) {
+    for (const lg of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi']) {
       const src = readFileSync(resolve(__dirname, `../locales/${lg}.ts`), 'utf8');
       for (const cle of ['zone.playing', 'zone.paused', 'zone.stopped']) {
         expect(src.includes(`'${cle}'`) || src.includes(`"${cle}"`), `${cle} absente de ${lg}`).toBe(true);

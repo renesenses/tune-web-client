@@ -19,14 +19,14 @@
 // importent (`import { fr, dictionnaire } from './onzeDictionnaires'`).
 // `setupLocales.ts` les enregistre dans `i18n.ts` avant chaque banc, pour
 // que `$t` reste synchrone sous test comme il l'était.
-import { fr, en, de, es, it, zh, ja, ko, ro, sv, hu } from './lesOnzeLangues';
+import { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, vi as viLocale } from './lesOnzeLangues';
 
-export { fr, en, de, es, it, zh, ja, ko, ro, sv, hu };
+export { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, viLocale as vi };
 
-export const ONZE_LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'] as const;
+export const ONZE_LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi'] as const;
 
 const DICTIONNAIRES: Record<string, Record<string, string>> = {
-  fr, en, de, es, it, zh, ja, ko, ro, sv, hu,
+  fr, en, de, es, it, zh, ja, ko, ro, sv, hu, vi: viLocale,
 } as unknown as Record<string, Record<string, string>>;
 
 /** Le dictionnaire d'une langue, déjà chargé. Une langue inconnue est une erreur de banc. */

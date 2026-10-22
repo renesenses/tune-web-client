@@ -35,7 +35,7 @@ describe('#5593 — une case « Analyses de fond » par racine', () => {
   it('les onze langues nomment la case, son libellé accessible et son explication', () => {
     const dossier = fileURLToPath(new URL('../locales/', import.meta.url));
     const langues = fs.readdirSync(dossier).filter((f) => f.endsWith('.ts') && f !== 'index.ts');
-    expect(langues.length).toBe(11);
+    expect(langues.length).toBe(12);
     for (const f of langues) {
       const texte = fs.readFileSync(dossier + f, 'utf-8');
       for (const cle of ['backgroundAnalysisFolder', 'backgroundAnalysisFolderAria', 'backgroundAnalysisFoldersHint']) {

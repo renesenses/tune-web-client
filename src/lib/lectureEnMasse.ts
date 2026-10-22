@@ -48,7 +48,7 @@
  * n'a pas de nom côté serveur : on mélange la liste qu'on a, et on l'envoie.
  */
 import type { AddToQueueRequest } from './api';
-import { corpsDeFileListe, corpsDeLecture, estPisteLocale } from './pisteFile';
+import { corpsDeFileListe, corpsDeLecture, corpsDeTeteDeListe, estPisteLocale } from './pisteFile';
 import { FILE_ALEATOIRE_DEFAUT, plafondFileAleatoire } from './fileAleatoire';
 import { tirageAleatoire } from './porteeAleatoire';
 import type { Track } from './types';
@@ -93,10 +93,28 @@ export function planDeLecture(liste: readonly Track[]): PlanLecture {
   }
   return {
     voie: 'tete-et-reste',
-    tete: corpsDeLecture(jouables[0])!,
+    // #6469 — une suite à enfiler : la tête ne joue pas son album.
+    tete: corpsDeTete(jouables[0], jouables.length > 1),
     reste: corpsDeFileListe(jouables.slice(1)),
     pistes: jouables.length,
   };
+}
+/**
+ * Le corps qui lance la TÊTE d'une liste mixte, et remplace la file.
+ *
+ * #2130 (fil 2243) : `{ track_id }` seul est, pour le serveur, la « demande
+ * nue » de la barre de transport (#2876 / #4298) : si le titre figure DÉJÀ
+ * dans la file, il la GARDE et s'y place. Après un « Tout lire » d'une
+ * collection mixte, « Aléatoire » tirait donc un titre déjà en file : la file
+ * d'albums entiers restait en place, et la suite mélangée s'enfilait derrière.
+ * `start_index: 0` en fait un nouveau geste d'écoute — le procédé que
+ * `lireListeDepuis` emploie déjà (#5758).
+ */
+function corpsDeTete(t: Track, suite: boolean): Record<string, unknown> {
+  if (estPisteLocale(t)) return { track_id: t.id!, start_index: 0 };
+  // tune-server-rust#6469 — une tête de SERVICE suivie d'une suite que l'on
+  // enfile soi-même ne doit pas jouer son album (`queue_follows`).
+  return (suite ? corpsDeTeteDeListe(t) : corpsDeLecture(t))!;
 }
 /**
  * Le même plan, sur la liste MÉLANGÉE puis bornée au plafond de la file
@@ -106,7 +124,15 @@ export function planAleatoire(
   liste: readonly Track[],
   plafond: number = FILE_ALEATOIRE_DEFAUT,
 ): PlanLecture {
-  return planDeLecture(tirageAleatoire(pistesJouables(liste), plafond));
+  const tirage = tirageAleatoire(pistesJouables(liste), plafond);
+  // #2130 — une tête de SERVICE déjà en file garde, elle aussi, l'ancienne
+  // file (`file_deja_chargee`, tune-server-rust#2569), et `/play` n'a pour
+  // elle aucun moyen de dire « remplace ». Le tirage étant aléatoire, mettre
+  // en tête le premier titre LOCAL tiré ne change rien au hasard, et rend
+  // le remplacement sûr dès que la liste en compte un.
+  const local = tirage.findIndex((t) => estPisteLocale(t));
+  if (local > 0) tirage.unshift(...tirage.splice(local, 1));
+  return planDeLecture(tirage);
 }
 /** Une portée est utilisable si elle porte au moins un critère renseigné. */
 export function porteeUtilisable(p: PorteeServeur | null | undefined): boolean {
@@ -186,11 +212,11 @@ export async function lireListeAleatoire(liste: readonly Track[], g: GestesLectu
  *     d'écoute, qui remplace la file.
  *
  * Mode ALÉATOIRE de la zone : le client n'y touche pas (jamais `setShuffle`).
- * Si la zone est en aléatoire, le serveur retire l'ordre de tirage autour du
- * titre cliqué (`update_queue_info` → `generate_shuffle_order`) : il joue en
- * premier, puis le tirage porte sur TOUTE la file, précédents compris — comme
- * pour une playlist lancée par `start_index`. Avant ce correctif, le tirage ne
- * portait que sur la suite.
+ * Si la zone est en aléatoire, le serveur MÉLANGE la file neuve autour du
+ * titre cliqué (`melange::sur_file_neuve`, tune-server-rust#6526) : il joue
+ * en premier, puis tout le reste suit dans le désordre, précédents compris —
+ * comme pour une playlist lancée par `start_index`. Depuis #6526 ce mélange
+ * est écrit dans la file elle-même : `GET …/queue` montre l'ordre joué.
  *
  * Rend le nombre de pistes envoyées.
  */
@@ -211,7 +237,13 @@ export async function lireListeDepuis(
   }
 
   const tete = depuis[0];
-  await g.lire(estPisteLocale(tete) ? { track_id: tete.id!, start_index: 0 } : corpsDeLecture(tete)!);
+  // #6469 — une suite ou des précédents à enfiler : la tête ne joue pas son album.
+  const entouree = depuis.length > 1 || avant.length > 0;
+  await g.lire(
+    estPisteLocale(tete)
+      ? { track_id: tete.id!, start_index: 0 }
+      : (entouree ? corpsDeTeteDeListe(tete) : corpsDeLecture(tete))!,
+  );
   await enfilerDansLOrdre(depuis.slice(1), g.enfiler);
   const remis = await remettreLesPrecedents(avant, g.enfiler);
   return depuis.length + (remis ? avant.length : 0);

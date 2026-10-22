@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const espions = vi.hoisted(() => ({
   next: vi.fn(), previous: vi.fn(), resume: vi.fn(), stop: vi.fn(),
   pause: vi.fn(), seek: vi.fn(), setVolume: vi.fn(),
+  sourdine: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('../stores/zones', async () => {
@@ -41,6 +42,7 @@ vi.mock('../stores/navigation', async () => {
 vi.mock('../api', () => ({
   pause: espions.pause, seek: espions.seek, setVolume: espions.setVolume,
 }));
+vi.mock('../sourdine', () => ({ basculerSourdineZone: espions.sourdine }));
 
 import { setupKeyboardShortcuts, TOUCHES_RACCOURCIS } from '../keyboard';
 import { decisionFrappe, gestionnaireFrappeVersRecherche } from '../frappeVersRecherche';
@@ -121,7 +123,9 @@ describe('#1872 — taper écrit dans la recherche de la Bibliothèque', () => {
     frappe('s', 'KeyS', document.body);
     expect(espions.stop).toHaveBeenCalledWith('z1');
     frappe('m', 'KeyM', document.body);
-    expect(espions.setVolume).toHaveBeenCalledWith('z1', 0);
+    // #6700 — une vraie sourdine, jamais un volume à zéro.
+    expect(espions.sourdine).toHaveBeenCalledWith({ id: 'z1', volume: 0.4 });
+    expect(espions.setVolume).not.toHaveBeenCalled();
     frappe(' ', 'Space', document.body);
     expect(espions.resume).toHaveBeenCalledWith('z1');
     // Maj+N aussi : `keyboard.ts` ne regarde pas Maj.

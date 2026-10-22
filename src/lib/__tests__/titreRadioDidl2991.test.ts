@@ -127,7 +127,7 @@ describe('#2991 — sélecteur « titre radio par DLNA » par zone (v2)', () => 
     s.dispatchEvent(new Event('change', { bubbles: true }));
     await vi.waitFor(() => expect(patches.length).toBeGreaterThan(0));
     const p = patches[patches.length - 1];
-    expect(p.url).toMatch(/\/zones\/21$/);
+    expect(p.url).toMatch(/\/zones\/21(?:\?lang=[a-z]{2})?$/);
     expect(p.corps).toEqual({ dlna_radio_title: 'next' });
   });
 

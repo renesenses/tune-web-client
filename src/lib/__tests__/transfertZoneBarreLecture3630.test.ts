@@ -176,7 +176,7 @@ describe('#3630 puis #1192 — la barre de lecture transfère, par UN SEUL geste
     await respirer();
     await respirer();
 
-    const transfert = appels.filter((a) => /\/zones\/1\/transfer\/2$/.test(a.url));
+    const transfert = appels.filter((a) => /\/zones\/1\/transfer\/2(?:\?lang=[a-z]{2})?$/.test(a.url));
     expect(
       transfert.length,
       `la route de transfert n’a pas été appelée ; appels vus : ${appels.map((a) => `${a.method} ${a.url}`).join(' | ')}`,

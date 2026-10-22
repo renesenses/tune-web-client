@@ -37,6 +37,7 @@ import lKo from '../locales/ko';
 import lRo from '../locales/ro';
 import lSv from '../locales/sv';
 import lHu from '../locales/hu';
+import lVi from '../locales/vi';
 
 const PISTE_LOCALE = { id: 42, title: 'Lovely Day', artist_name: 'Bill Withers', source: 'local' };
 const PISTE_RADIO = { id: 43, title: 'FIP', artist_name: 'FIP', source: 'radio' };
@@ -205,7 +206,7 @@ describe('#1428 — le bouton emprunte le MÊME chemin d’arrêt que les gestes
     // Le MÊME geste au clavier, mesuré dans la même monnaie.
     appels = [];
     const detacher = setupKeyboardShortcuts();
-    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyS', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', code: 'KeyS', bubbles: true }));
     await respirer();
     const parLaTouche = arrets();
     detacher();
@@ -213,7 +214,7 @@ describe('#1428 — le bouton emprunte le MÊME chemin d’arrêt que les gestes
     expect(parLaTouche, 'la touche S n’arrête plus rien : le témoin ne compare rien')
       .toHaveLength(1);
     expect(parLeBouton[0]).toEqual(parLaTouche[0]);
-    expect(parLeBouton[0].url).toMatch(/\/zones\/1\/stop$/);
+    expect(parLeBouton[0].url).toMatch(/\/zones\/1\/stop(?:\?lang=[a-z]{2})?$/);
   });
 
   it('inerte sans zone, il n’envoie rien du tout', async () => {
@@ -243,7 +244,7 @@ describe('#1428 — les libellés existent dans les ONZE langues', () => {
   const LANGUES: [string, Record<string, string>][] = [
     ['fr', lFr as never], ['en', lEn as never], ['de', lDe as never], ['es', lEs as never],
     ['it', lIt as never], ['zh', lZh as never], ['ja', lJa as never], ['ko', lKo as never],
-    ['ro', lRo as never], ['sv', lSv as never], ['hu', lHu as never],
+    ['ro', lRo as never], ['sv', lSv as never], ['hu', lHu as never], ['vi', lVi as never],
   ];
   const CLES = ['settings.showStopButton', 'settings.showStopButtonHint'];
   // Réutilisées telles quelles, et déjà traduites partout : le bouton n'a pas
@@ -251,7 +252,7 @@ describe('#1428 — les libellés existent dans les ONZE langues', () => {
   const REUTILISEES = ['common.stop', 'transport.dblClickStop'];
 
   it('les onze langues sont bien au rendez-vous', () => {
-    expect(LANGUES).toHaveLength(11);
+    expect(LANGUES).toHaveLength(12);
   });
 
   for (const [code, dict] of LANGUES) {

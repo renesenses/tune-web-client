@@ -23,6 +23,7 @@ import en from '../locales/en';
 import es from '../locales/es';
 import fr from '../locales/fr';
 import hu from '../locales/hu';
+import viLocale from '../locales/vi';
 import it_ from '../locales/it';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
@@ -30,7 +31,7 @@ import ro from '../locales/ro';
 import sv from '../locales/sv';
 import zh from '../locales/zh';
 
-const DICOS = { de, en, es, fr, hu, it: it_, ja, ko, ro, sv, zh } as unknown as Record<string, Record<string, string>>;
+const DICOS = { de, en, es, fr, hu, vi: viLocale, it: it_, ja, ko, ro, sv, zh } as unknown as Record<string, Record<string, string>>;
 const traduire = (k: string) => `«${k}»`;
 
 afterEach(() => vi.unstubAllGlobals());
@@ -69,7 +70,7 @@ describe('#2109 — proposerPhotoAuCatalogue', () => {
     const r = await shareZoneImage(7);
     expect(r.image_share_status).toBe('pending');
     expect(appels).toHaveLength(1);
-    expect(appels[0][0]).toMatch(/\/zones\/7\/image\/share$/);
+    expect(appels[0][0]).toMatch(/\/zones\/7\/image\/share(?:\?lang=[a-z]{2})?$/);
     expect(appels[0][1]?.method).toBe('POST');
   });
 });

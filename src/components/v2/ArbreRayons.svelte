@@ -31,7 +31,12 @@
     encoderGlisse,
     lireReplis,
     peutContenirUnSousRayon,
+    ordonnerArbre,
+    placementsPourDeposer,
+    ORDRES_RAYONS,
+    ORDRE_RAYONS_DEFAUT,
     type Glisse,
+    type OrdreRayons,
   } from '../../lib/rayonsCollections';
 
   interface Props {
@@ -48,10 +53,27 @@
      * lecture, ne les porte pas).
      */
     onNouvelleSmart?: (rayon: RayonCollections) => void;
+    /**
+     * web#2207 — l'ordre des collections à chaque niveau : `manuel` (celui du
+     * serveur, réglé par glisser-déposer) ou `alpha`. Le même pour l'écran et
+     * la barre latérale : c'est une préférence du profil.
+     */
+    ordre?: OrdreRayons;
+    /** Changer l'ordre. Absent = pas de sélecteur (la barre latérale). */
+    onOrdre?: (o: OrdreRayons) => void;
   }
-  let { arbre, compact = false, libelle, onOuvrir, onChange, onNouvelleSmart }: Props = $props();
+  let {
+    arbre, compact = false, libelle, onOuvrir, onChange, onNouvelleSmart,
+    ordre = ORDRE_RAYONS_DEFAUT, onOrdre,
+  }: Props = $props();
 
   const nomDe = (c: CollectionRangee) => (libelle ? libelle(c) : (c.name ?? ''));
+  /** L'arbre AFFICHÉ : celui du serveur, ou trié sur le libellé lu. */
+  const vue = $derived(ordonnerArbre(arbre, ordre, nomDe));
+  const LIBELLES_ORDRE: Record<OrdreRayons, string> = {
+    manuel: 'v2.rayons.orderManual',
+    alpha: 'v2.rayons.orderAlpha',
+  };
 
   let replis = $state<Set<number>>(lireReplis());
   function basculer(id: number) {
@@ -106,7 +128,8 @@
     d ? `${'· '.repeat(Math.max(0, d.depth - 1))}${d.name}` : $t('v2.rayons.root' as any);
 
   /* ------------------------------ glisser-déposer ------------------------------ */
-  let survol = $state<number | 'racine' | null>(null);
+  /** Un rayon (son id), la racine, ou une collection (`sorte:id`, web#2207). */
+  let survol = $state<number | 'racine' | string | null>(null);
 
   function commencer(ev: DragEvent, g: Glisse) {
     if (compact || !ev.dataTransfer) return;
@@ -131,11 +154,58 @@
       await ecrire(() => api.placeCollectionInFolder(g.kind, g.id, cible));
     }
   }
+
+  /**
+   * web#2207 — déposer SUR une collection : en ordre manuel, la collection
+   * glissée prend sa place (avant elle en remontant, après elle en
+   * descendant) ; en ordre alphabétique, la place est celle du tri, et le
+   * dépôt range seulement dans le même niveau. Un rayon déposé sur une
+   * collection va dans le rayon qui la contient.
+   */
+  function passerSurCollection(ev: DragEvent, c: CollectionRangee) {
+    if (compact) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    survol = `${c.kind}:${c.id}`;
+  }
+  async function deposerSurCollection(
+    ev: DragEvent,
+    c: CollectionRangee,
+    liste: CollectionRangee[],
+    dossier: number | null,
+  ) {
+    if (compact) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    survol = null;
+    const g = decoderGlisse(ev.dataTransfer?.getData(TYPE_GLISSE));
+    if (!g) return;
+    if (g.type === 'rayon') {
+      if (g.id === dossier) return;
+      await ecrire(() => api.moveCollectionFolder(g.id, dossier));
+      return;
+    }
+    if (ordre !== 'manuel') {
+      await ecrire(() => api.placeCollectionInFolder(g.kind, g.id, dossier));
+      return;
+    }
+    const ecritures = placementsPourDeposer(liste, g, c, dossier);
+    if (!ecritures.length) return;
+    await ecrire(async () => {
+      // Dans l'ordre : hors rayon, les collections qui précéderont reçoivent
+      // leur place AVANT celle qu'on dépose.
+      for (const e of ecritures) await api.placeCollectionInFolder(e.kind, e.id, e.folderId, e.position);
+    });
+  }
 </script>
 
-{#snippet ligneCollection(c: CollectionRangee)}
-  <li class="col" draggable={!compact}
-    ondragstart={(ev) => commencer(ev, { type: 'collection', kind: c.kind, id: c.id })}>
+{#snippet ligneCollection(c: CollectionRangee, liste: CollectionRangee[], dossierDeLaListe: number | null)}
+  <li class="col" draggable={!compact} class:survol={survol === `${c.kind}:${c.id}`}
+    data-collection={`${c.kind}:${c.id}`}
+    ondragstart={(ev) => commencer(ev, { type: 'collection', kind: c.kind, id: c.id })}
+    ondragover={(ev) => passerSurCollection(ev, c)}
+    ondragleave={() => (survol = survol === `${c.kind}:${c.id}` ? null : survol)}
+    ondrop={(ev) => deposerSurCollection(ev, c, liste, dossierDeLaListe)}>
     <button class="ouvre" onclick={() => onOuvrir(c.kind, c.id)} title={nomDe(c)}>
       <span class="pastille" style={c.color ? `background:${c.color}` : undefined}></span>
       <span class="nom">{nomDe(c)}</span>
@@ -214,7 +284,7 @@
     {#if !replie}
       <ul class="enfants">
         {#each f.folders as s (s.id)}{@render noeud(s)}{/each}
-        {#each f.collections as c (c.kind + ':' + c.id)}{@render ligneCollection(c)}{/each}
+        {#each f.collections as c (c.kind + ':' + c.id)}{@render ligneCollection(c, f.collections, f.id)}{/each}
         {#if !compact && !f.folders.length && !f.collections.length}
           <li class="vide">{$t('v2.rayons.emptyFolder' as any)}</li>
         {/if}
@@ -227,13 +297,26 @@
   {#if !compact}
     <div class="barre">
       <button class="v2-btn" onclick={() => nouveauRayon(null)}>{$t('v2.rayons.new' as any)}</button>
+      {#if onOrdre}
+        <!-- web#2207 — l'ordre des collections, à tous les niveaux. -->
+        <label class="ordre">
+          <span>{$t('v2.rayons.order' as any)}</span>
+          <select value={ordre} aria-label={$t('v2.rayons.order' as any)}
+            onchange={(e) => onOrdre((e.currentTarget as HTMLSelectElement).value as OrdreRayons)}>
+            {#each ORDRES_RAYONS as o (o)}<option value={o}>{$t(LIBELLES_ORDRE[o] as any)}</option>{/each}
+          </select>
+        </label>
+      {/if}
     </div>
+    {#if onOrdre && ordre === 'manuel'}
+      <p class="indice">{$t('v2.rayons.reorderHint' as any)}</p>
+    {/if}
     {#if !arbre.folders.length}
       <p class="aucun">{$t('v2.rayons.empty' as any)}</p>
     {/if}
   {/if}
   <ul class="racine" role="tree">
-    {#each arbre.folders as f (f.id)}{@render noeud(f)}{/each}
+    {#each vue.folders as f (f.id)}{@render noeud(f)}{/each}
   </ul>
   {#if !compact}
     <!-- Hors rayon : la racine. Y déposer un rayon ou une collection l'y range. -->
@@ -244,7 +327,7 @@
       <h2>{$t('v2.rayons.unfiled' as any)}</h2>
       <p class="indice">{$t('v2.rayons.dropHint' as any)}</p>
       <ul>
-        {#each arbre.collections as c (c.kind + ':' + c.id)}{@render ligneCollection(c)}{/each}
+        {#each vue.collections as c (c.kind + ':' + c.id)}{@render ligneCollection(c, vue.collections, null)}{/each}
       </ul>
     </section>
   {/if}
@@ -260,7 +343,9 @@
   .compact .enfants{padding-left:12px}
   .rayon, .col{position:relative}
   .tete{display:flex; align-items:center; gap:4px; border-radius:8px; padding:2px 4px}
-  .tete.survol, .hors.survol{outline:2px dashed var(--v2-acc1); outline-offset:1px}
+  .tete.survol, .hors.survol, .col.survol{outline:2px dashed var(--v2-acc1); outline-offset:1px}
+  .ordre{display:flex; align-items:center; gap:6px; margin-left:auto; font:12.5px var(--v2-sans); color:var(--v2-txt3)}
+  .ordre select{font:12.5px var(--v2-sans)}
   .pli, .geste, .plus{width:24px; height:24px; display:grid; place-items:center; padding:0; border:0;
     background:transparent; color:var(--v2-txt3); cursor:pointer; border-radius:6px}
   .pli svg{width:14px; height:14px; transition:transform .12s}

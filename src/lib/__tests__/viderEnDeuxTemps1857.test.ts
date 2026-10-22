@@ -47,19 +47,19 @@ function serveur() {
     const json = (o: unknown) => new Response(JSON.stringify(o), {
       status: 200, headers: { 'Content-Type': 'application/json' },
     });
-    if (/\/queue\/clear$/.test(url)) {
+    if (/\/queue\/clear(?:\?|$)/.test(url)) {
       if ((body as any)?.keep_current) file = { tracks: file.tracks.slice(0, file.position + 1), position: file.position };
       else file = { tracks: [], position: 0 };
       return new Response(null, { status: 204 });
     }
-    if (/\/queue$/.test(url)) return json(file);
-    if (/\/stop$/.test(url)) return json({ id: ZONE, name: 'Salon', state: 'stopped' });
+    if (/\/queue(?:\?|$)/.test(url)) return json(file);
+    if (/\/stop(?:\?|$)/.test(url)) return json({ id: ZONE, name: 'Salon', state: 'stopped' });
     return json({});
   }));
 }
 
-const vidages = () => appels.filter((a) => /\/queue\/clear$/.test(a.url));
-const arrets = () => appels.filter((a) => /\/stop$/.test(a.url));
+const vidages = () => appels.filter((a) => /\/queue\/clear(?:\?|$)/.test(a.url));
+const arrets = () => appels.filter((a) => /\/stop(?:\?|$)/.test(a.url));
 
 let cible: HTMLElement;
 let monte: Record<string, any> | null = null;
@@ -139,8 +139,8 @@ describe('QueueV2 — deux appuis sur le même bouton', () => {
     // Le second vidage part SANS keep_current : le serveur arrête et retire tout.
     expect(vidages()[1].body).toBeUndefined();
     // L'arrêt part AVANT le vidage complet.
-    expect(appels.findIndex((a) => /\/stop$/.test(a.url)))
-      .toBeLessThan(appels.findIndex((a, i) => i > 0 && /\/queue\/clear$/.test(a.url) && a.body === undefined));
+    expect(appels.findIndex((a) => /\/stop(?:\?|$)/.test(a.url)))
+      .toBeLessThan(appels.findIndex((a, i) => i > 0 && /\/queue\/clear(?:\?|$)/.test(a.url) && a.body === undefined));
     // La file vide fait disparaître le bouton.
     await vi.waitFor(() => expect(cible.querySelector('.v2-actions button.danger')).toBeNull());
   });
@@ -166,7 +166,7 @@ describe('les 11 langues portent les deux libellés', () => {
   const dicos = ONZE_LANGUES.map((c) => [c, dictionnaire(c)] as const);
 
   it('chaque dictionnaire a « Arrêter et vider » et son infobulle, distincts de la première', () => {
-    expect(dicos).toHaveLength(11);
+    expect(dicos).toHaveLength(12);
     for (const [nom, d] of dicos) {
       expect(d['queue.clearAllLabel'], nom).toBeTruthy();
       expect(d['queue.clearAllTip'], nom).toBeTruthy();

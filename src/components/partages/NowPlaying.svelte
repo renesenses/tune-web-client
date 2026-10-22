@@ -14,10 +14,11 @@ import { ICONES } from '../../lib/menuPiste';
   import { upNextTracks, upNextHiddenCount, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
   import type { QueueSheetState } from '../../lib/stores/queue';
   import { currentZoneId } from '../../lib/stores/zones';
-  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality, copyText } from '../../lib/utils';
+  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality, copyText, bitrateLabel } from '../../lib/utils';
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../../lib/npWheelGesture';
   import { largeurReserveeFileAttente } from '../../lib/fileAttenteReserve';
   import * as api from '../../lib/api';
+  import { basculerAleatoire } from '../../lib/aleatoireFile';
   import { gesteVider, executerVider } from '../../lib/viderFile';
   import { lireOuAjouter } from '../../lib/playback';
   import CreteMetre from './CreteMetre.svelte';
@@ -1252,8 +1253,8 @@ import { ICONES } from '../../lib/menuPiste';
 
   async function toggleShuffle() {
     if (zone?.id == null) return;
-    const result = await api.setShuffle(zone.id, !$shuffleEnabled);
-    shuffleEnabled.set(result.shuffle);
+    // tune-server-rust#6526 — le serveur réordonne la file : la bascule la relit.
+    shuffleEnabled.set(await basculerAleatoire(zone.id, !$shuffleEnabled));
   }
 
   async function cycleRepeat() {
@@ -1847,6 +1848,13 @@ import { ICONES } from '../../lib/menuPiste';
                     {#if displayTrack.bit_depth}
                       <span class="td-label">Bit Depth</span>
                       <span class="td-value">{displayTrack.bit_depth}-bit</span>
+                    {/if}
+                    <!-- tune-server-rust#6332 — le débit, lu au scan pour une piste
+                         locale (fil 2269 : « aucune façon de consulter cette
+                         information dans TUNE »). -->
+                    {#if bitrateLabel(displayTrack)}
+                      <span class="td-label">{$t('nowplaying.bitrate')}</span>
+                      <span class="td-value">{bitrateLabel(displayTrack)}</span>
                     {/if}
                     {#if channelsOf(displayTrack)}
                       <span class="td-label">Channels</span>

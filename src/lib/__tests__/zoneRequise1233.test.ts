@@ -70,7 +70,7 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     expect(coupables, `gestes encore muets : ${coupables.join(', ')}`).toEqual([]);
   });
 
-  it('et les vingt-deux écrans passent par le helper', () => {
+  it('et les vingt-trois écrans passent par le helper', () => {
     const avec = fichiersV2.filter((f) => lire(f).includes("from '../../lib/zoneRequise'"));
     // Quinze depuis la phase 5, lot 4 : `YouTubeDecouverteV2` (tendances et
     // ambiances YouTube Music) lance la lecture, donc passe par le helper.
@@ -90,7 +90,10 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // écrans nés en parallèle — le compte est leur SOMME, jamais l'un des trois.
     // VINGT-DEUX depuis tune-server-rust#6044 : `ReaffectationCanauxV2` écrit
     // un réglage DE ZONE (la matrice de réaffectation des canaux).
-    expect(avec.length).toBe(22);
+    // VINGT-TROIS depuis tune-server-rust#6516 : `RadioAnnuaire` écoute d'un
+    // clic une station de l'annuaire radio-metadata.fr.
+    expect(avec.length).toBe(23);
+    expect(avec).toContain('RadioAnnuaire.svelte');
     expect(avec).toContain('ReaffectationCanauxV2.svelte');
     expect(avec).toContain('CrossfeedProV2.svelte');
     expect(avec).toContain('PlaylistCercleV2.svelte');
@@ -128,7 +131,7 @@ describe('#1233 — aucune HUITIÈME clé pour le même message', () => {
   });
 
   it('elle est traduite dans les ONZE langues', () => {
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi']) {
       expect(readFileSync(`src/lib/locales/${l}.ts`, 'utf8'), l)
         .toContain('library.noZoneSelectedSelectZone');
     }

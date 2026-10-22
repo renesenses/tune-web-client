@@ -49,7 +49,7 @@ function poserLaBarre(): HTMLDivElement {
 
 const boutonLune = () => (hote ?? document).querySelector<HTMLButtonElement>('.control-btn.sleep-btn');
 const respirer = () => new Promise((r) => setTimeout(r, 0));
-const envoisSleep = () => appels.filter((a) => /\/zones\/1\/sleep$/.test(a.url) && a.methode === 'POST');
+const envoisSleep = () => appels.filter((a) => /\/zones\/1\/sleep(?:\?lang=[a-z]{2})?$/.test(a.url) && a.methode === 'POST');
 
 beforeEach(() => {
   appels = [];
@@ -62,7 +62,7 @@ beforeEach(() => {
     const url = typeof input === 'string' ? input : input.toString();
     const methode = (init?.method ?? 'GET').toUpperCase();
     appels.push({ url, methode, corps: init?.body ? JSON.parse(String(init.body)) : undefined });
-    const corps = /\/sleep$/.test(url)
+    const corps = /\/sleep(?:\?lang=[a-z]{2})?$/.test(url)
       ? (methode === 'GET' ? minuterieServeur : { sleep_timer: { minutes: 1, zone_id: 1 } })
       : SALON;
     return {
@@ -193,7 +193,7 @@ describe('web#1861 — durée libre', () => {
 
 describe('web#1861 — les 11 langues', () => {
   it('chaque dictionnaire porte les six libellés', () => {
-    expect(ONZE_LANGUES).toHaveLength(11);
+    expect(ONZE_LANGUES).toHaveLength(12);
     for (const code of ONZE_LANGUES) {
       const d = dictionnaire(code);
       for (const k of ['sleep.customLabel', 'sleep.customPlaceholder', 'sleep.customStart', 'sleep.customInvalid',

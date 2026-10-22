@@ -17,6 +17,7 @@
    * absent.
    */
   import { t } from '../../lib/i18n';
+  import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
@@ -61,9 +62,10 @@
   import * as api from '../../lib/api';
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
-  import { chargerLienAcces, qrSvg } from '../../lib/lienAccesDistant';
+  import { chargerLienAcces, qrSvg, renouvelerLienAcces } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
+  import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
@@ -85,6 +87,8 @@
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
+  import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
+  import { CLE_PARTAGE_COMMUNAUTAIRE } from '../../lib/notesCommunautaires';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import {
@@ -119,6 +123,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
+  import PlagesMacV2 from './PlagesMacV2.svelte';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
@@ -135,6 +140,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { estZoneDeCetAppareil, retenirZoneDeCetAppareil } from '../../lib/zoneNavigateurProprietaire';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
+  import { controlesEcranVerrouille } from '../../lib/mediaSession';
   import { licenseState, loadLicense, offlineGrace } from '../../lib/stores/license';
   import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
@@ -155,6 +161,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   } from '../../lib/cadenceAnimations';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
   import SauvegardeCloudV2 from './SauvegardeCloudV2.svelte';
+  import ClesApiV2 from './ClesApiV2.svelte';
+  // tune-server-rust#4805 lot 2 — les passes de lot BPM et Discogs.
+  import PassesMetarustV2 from './PassesMetarustV2.svelte';
+  import IdentificationNuitV2 from './IdentificationNuitV2.svelte';
+  import AssistantIaReglagesV2 from './AssistantIaReglagesV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -1025,6 +1036,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function copierLienPont() {
     if (brLien) brLienCopie = await copyText(brLien);
   }
+  // Renouveler le lien : nouveau jeton côté serveur, le relais oublie
+  // l'ancien. Tout ce qui s'en sert déjà (liens, QR, apps appairées) cesse de
+  // marcher : on le dit avant, et l'écran montre ensuite le nouveau lien.
+  let brRenouvellement = $state(false);
+  async function renouvelerLienPont() {
+    if (!(await dialogs.confirm(get(t)('settings.remoteLinkRenewConfirm' as any), { danger: true }))) return;
+    brRenouvellement = true;
+    try {
+      brLien = await renouvelerLienAcces((chemin) => api.apiPost(chemin));
+      brLienCopie = false;
+      brToken = '';
+      notifications.success(get(t)('settings.remoteLinkRenewed' as any));
+    } catch {
+      notifications.error(get(t)('settings.remoteLinkRenewFailed' as any));
+    }
+    brRenouvellement = false;
+  }
   $effect(() => {
     api.apiFetch('/cloud/bridge/status')
       .then((d: any) => {
@@ -1117,11 +1145,55 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let contribution = $state<ContributionCommunautaire | null>(null);
   let partageBusy = $state(false);
   let partageErr = $state<string | null>(null);
+  // « Envoyer mes écoutes à mon compte » (tune-server-rust#6510) : opt-in,
+  // lu et écrit par les mêmes routes. `null` : le serveur ne le connaît pas.
+  let ecoutesCompte = $state<boolean | null>(null);
+  let ecoutesBusy = $state(false);
+  let ecoutesErr = $state<string | null>(null);
+  async function basculerEcoutes(ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    ecoutesBusy = true;
+    ecoutesErr = null;
+    try {
+      await api.updateConfig({ [CLE_ECOUTES_AU_COMPTE]: souhait });
+    } catch {
+      ecoutesErr = get(t)('settings.errSaveFailed');
+    }
+    // L'état affiché est celui que le serveur RELIT : un refus remet la case.
+    await chargerPartage();
+    ecoutesBusy = false;
+    if (caseCochee) caseCochee.checked = !!ecoutesCompte;
+  }
+  // « Partager mes notes et mes écoutes avec la communauté (anonymement) »
+  // (tune-server-rust#6545) : consentement SÉPARÉ, désactivé par défaut.
+  let partageCommunaute = $state<boolean | null>(null);
+  let partageCommunauteBusy = $state(false);
+  let partageCommunauteErr = $state<string | null>(null);
+  async function basculerPartageCommunaute(ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    partageCommunauteBusy = true;
+    partageCommunauteErr = null;
+    try {
+      await api.updateConfig({ [CLE_PARTAGE_COMMUNAUTAIRE]: souhait });
+    } catch {
+      partageCommunauteErr = get(t)('settings.errSaveFailed');
+    }
+    await chargerPartage();
+    partageCommunauteBusy = false;
+    if (caseCochee) caseCochee.checked = !!partageCommunaute;
+  }
   async function chargerPartage() {
     try {
       const c: any = await api.getConfig();
       syncCommunautaire = reglageVrai(c?.[CLE_SYNC_COMMUNAUTAIRE]);
       contribution = contributionDepuisConfig(c);
+      // tune-server-rust#6510 — un serveur qui ne publie pas la clé ne sait
+      // pas envoyer les écoutes : pas de case plutôt qu'une case qui mentirait.
+      ecoutesCompte = c && CLE_ECOUTES_AU_COMPTE in c ? reglageVrai(c[CLE_ECOUTES_AU_COMPTE]) : null;
+      // tune-server-rust#6545 — même règle pour le partage communautaire.
+      partageCommunaute = c && CLE_PARTAGE_COMMUNAUTAIRE in c ? reglageVrai(c[CLE_PARTAGE_COMMUNAUTAIRE]) : null;
       partageCharge = true;
     } catch { /* config illisible : les bascules ne sont pas offertes */ }
   }
@@ -1970,6 +2042,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let scanning = $state(false);
   let scanReport = $state<any | null>(null);
   let qualitySplit = $state(true);
+  // tune-server-rust#6554 — « Coffrets automatiques ». Absent de la config :
+  // actif, comme le serveur (le comportement d'avant).
+  let coffretsAuto = $state(true);
+  let coffretsAutoErr = $state<string | null>(null);
   /** #4051 — « Paroles en ligne (LRCLIB) ». Absente de `/system/config` =
    *  éteinte : le serveur n'interroge LRCLIB que sur la chaîne "true". */
   let lrclibOn = $state(false);
@@ -2220,6 +2296,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         || c?.quality_split === 0 || c?.quality_split === '0');
       lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
       ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
+      coffretsAuto = coffretsAutoDepuisConfig(c?.[CLE_COFFRETS_AUTO]);
       scanDemarrage = scanAuDemarrageDepuisConfig(c);
     } catch { libErr = get(t)('settings.errConfigUnavailable'); }
     try {
@@ -2432,6 +2509,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }
     clearingLibrary = false;
   }
+  /** Même patron que `setEcritureFichiers` : un refus du serveur remet la case en place. */
+  async function setCoffretsAuto(v: boolean) {
+    const before = coffretsAuto; coffretsAuto = v; coffretsAutoErr = null;
+    try {
+      await api.updateConfig({ [CLE_COFFRETS_AUTO]: v });
+    } catch {
+      coffretsAuto = before;
+      coffretsAutoErr = get(t)('settings.errSaveFailed');
+    }
+  }
   async function setQualitySplit(v: boolean) {
     const before = qualitySplit; qualitySplit = v;
     try { await api.updateConfig({ quality_split: v }); notifications.success(get(t)('settings.savedNeedsFullScan')); }
@@ -2545,6 +2632,40 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     fvAsk = null; fvTyped = '';
     applyFixedVolume(target, true, true);
   }
+  // tune-server-rust#6541 — les deux limites de volume d'une zone, saisies en
+  // %. Le PUT remplace les deux : on renvoie l'autre telle qu'elle est.
+  function enregistrerLimiteVolume(z: any, quelle: 'safety' | 'comfort', texte: string) {
+    const lue = limiteDepuisPourcent(texte);
+    if (lue === undefined) {
+      notifications.error(get(t)('devices.volumeLimitInvalid' as any));
+      return;
+    }
+    const limites = {
+      safety: quelle === 'safety' ? lue : (z.volume_limit_safety ?? null),
+      comfort: quelle === 'comfort' ? lue : (z.volume_limit_comfort ?? null),
+    };
+    void poserLimitesVolume(z, limites);
+  }
+
+  // 409 `limite_refusee_*` : la zone est (ou vient de passer) en PURE / volume
+  // fixe. On montre la phrase traduite et on masque les champs sans attendre
+  // le prochain GET /zones.
+  async function poserLimitesVolume(z: any, limites: { safety: number | null; comfort: number | null }) {
+    try {
+      const up = await api.setVolumeLimits(z.id as number, limites);
+      zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x)));
+    } catch (e) {
+      const err = e as { code?: string; status?: number; message?: string };
+      const cle = err.status === 409 ? cleTexteRefus(err.code) : null;
+      if (cle) {
+        zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume_limits_refusal: err.code } : x)));
+        notifications.error(get(t)(cle as any));
+      } else {
+        zoneErr = get(t)('settings.errSettingNotSaved');
+      }
+    }
+  }
+
   async function setZoneField(z: any, fn: () => Promise<any>) {
     if (z?.id == null) return;
     try { const up = await fn(); zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x))); }
@@ -3337,6 +3458,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     spcBusy = false;
   }
 
+  // #6542 — « Devialet AIR (expérimental) », désactivé par défaut. `null` :
+  // serveur sans cette sortie (antérieur à la rc7), la section le dit.
+  let air = $state<api.DevialetAirReglages | null>(null);
+  let airBusy = $state(false);
+  let airErr = $state<string | null>(null);
+  $effect(() => {
+    api.getDevialetAirReglages()
+      .then((r) => { air = r; })
+      .catch(() => { air = null; });
+  });
+  async function reglerDevialetAir(corps: { enabled?: boolean; source_index?: number }) {
+    airBusy = true; airErr = null;
+    try {
+      air = await api.setDevialetAirReglages(corps);
+    } catch (e: any) { airErr = e?.message ?? get(t)('settings.errActionFailed'); }
+    airBusy = false;
+  }
+
   // ── Base de donnees / exports ─────────────────────────────────────────
   let dbEngine = $state<string | null>(null);
   let dbConnected = $state<boolean | null>(null);
@@ -3825,6 +3964,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <label class="sw">
                   <input type="checkbox" bind:checked={$loopByDefault} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- tune-server-rust#4908 — commandes de l'écran verrouillé. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.controlesEcranVerrouille' as any)}</span>
+                  <span class="hint">{$t('settings.controlesEcranVerrouilleHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" bind:checked={$controlesEcranVerrouille} />
                   <span class="slider"></span>
                 </label>
               </div>
@@ -4415,6 +4566,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 {#if acoustidErr}<div class="errline" data-acoustid="refus">{acoustidErr}</div>{/if}
               {/if}
+              <!-- tune-server-rust#4805 lot 2 (d'après MetaRust) : BPM et propositions Discogs, à la main. -->
+              <PassesMetarustV2 />
+              <!-- tune-server-rust#4805 (13/10) : reprise de nuit des albums refusés par MusicBrainz. -->
+              <IdentificationNuitV2 />
 
             {:else if s.id === 'ingest'}
               {#if !ingest}
@@ -4540,6 +4695,45 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     >{$t('settings.signIn' as any)}</button>
                 {/if}
               </div>
+              <!-- tune-server-rust#6510 — « Mes écoutes, tous serveurs » : seulement
+                   pour un serveur relié à un compte, et seulement si le serveur
+                   publie la clé. Désactivé par défaut. -->
+              {#if ssoConnecte && ecoutesCompte !== null}
+                <div class="row" data-ecoutes="compte">
+                  <div class="lbl">
+                    <span>{$t('settings.cloudListens' as any)}</span>
+                    <span class="hint">{$t('settings.cloudListensHint' as any)}</span>
+                    <a class="lnk" href={URL_MES_ECOUTES} target="_blank" rel="noopener noreferrer"
+                      >{$t('settings.cloudListensLink' as any)}</a>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle="cloud_listens_upload_enabled" checked={ecoutesCompte}
+                      disabled={ecoutesBusy}
+                      aria-label={$t('settings.cloudListens' as any)}
+                      onchange={basculerEcoutes} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                {#if ecoutesErr}<div class="errline">{ecoutesErr}</div>{/if}
+              {/if}
+              <!-- tune-server-rust#6545 — notes et écoutes de la communauté :
+                   consentement séparé de « Mes écoutes », désactivé par défaut. -->
+              {#if ssoConnecte && partageCommunaute !== null}
+                <div class="row" data-partage="communaute">
+                  <div class="lbl">
+                    <span>{$t('settings.communityShare' as any)}</span>
+                    <span class="hint">{$t('settings.communityShareHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle="cloud_community_share_enabled" checked={partageCommunaute}
+                      disabled={partageCommunauteBusy}
+                      aria-label={$t('settings.communityShare' as any)}
+                      onchange={basculerPartageCommunaute} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                {#if partageCommunauteErr}<div class="errline">{partageCommunauteErr}</div>{/if}
+              {/if}
               <!-- Consentement à la télémétrie — porté de l'ancien écran
                    (phase 5) : il ne doit JAMAIS devenir immodifiable. -->
               {#if telCharge}
@@ -4805,6 +4999,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'backup'}
               <SauvegardeCloudV2 />
 
+            {:else if s.id === 'apiKeys'}
+              <ClesApiV2 />
+
+            {:else if s.id === 'assistantIa'}
+              <AssistantIaReglagesV2 />
+
             {:else if s.id === 'config'}
               <p class="hint">{#each emphaseParts($t('settings.configBackupHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               <!-- #902 — Cette sauvegarde-ci ne porte pas les jetons de
@@ -5061,6 +5261,37 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'sauvegardeReglages'}
               <SauvegardeReglagesV2 />
+            {:else if s.id === 'devialetAir'}
+              {#if !air}
+                <p class="hint">{$t('v2.set.devialetAirUnavailable' as any)}</p>
+              {:else}
+                <p class="hint">{$t('v2.set.devialetAirWarning' as any)}</p>
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('v2.set.devialetAirEnable' as any)}</span>
+                    <span class="hint">{$t('v2.set.devialetAirDiscoveryHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={!!air?.enabled} disabled={airBusy}
+                      onchange={(e) => reglerDevialetAir({ enabled: (e.currentTarget as HTMLInputElement).checked })} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('v2.set.devialetAirSource' as any)}</span>
+                    <span class="hint">{$t('v2.set.devialetAirSourceHint' as any).replace('{n}', String(air.source_index_default))}</span>
+                  </div>
+                  <select class="sel" value={String(air.source_index)} disabled={airBusy}
+                    onchange={(e) => reglerDevialetAir({ source_index: Number((e.currentTarget as HTMLSelectElement).value) })}>
+                    {#each Array.from({ length: air.source_index_max + 1 }, (_, i) => i) as i (i)}
+                      <option value={String(i)}>{i}</option>
+                    {/each}
+                  </select>
+                </div>
+                <p class="hint">{$t('v2.set.devialetAirLimits' as any).replace('{db}', String(air.volume_ceiling_db)).replace('{khz}', String(air.max_sample_rate / 1000))}</p>
+                {#if airErr}<div class="errline">{airErr}</div>{/if}
+              {/if}
             {:else if s.id === 'perZone'}
               {#if !$zones.length}
                 <p class="hint">{$t('settings.noZoneCreateOne' as any)}</p>
@@ -5342,6 +5573,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {#if z.fixed_volume}<span class="tf">{$t('devices.gainTrimFixedVolume' as any)}</span>{/if}
                       </div>
                       <p class="monote">{$t('devices.gainTrimHint' as any)}</p>
+
+                      <!-- tune-server-rust#6541 — limites de volume (fil 2335).
+                           Tenues par le SERVEUR pour tous les clients ; ici on
+                           ne fait que les régler. Vide = aucune limite. -->
+                      {#if serveurConnaitLesLimites(z) && refusDeLimite(z)}
+                      <p class="monote">{$t((cleTexteRefus(refusDeLimite(z)) ?? 'devices.volumeLimitRefusedFixed') as any)}</p>
+                      {:else if serveurConnaitLesLimites(z)}
+                      <div class="trim limites-volume">
+                        <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
+                        <input type="text" inputmode="decimal" class="lim" size="5"
+                          value={pourcentDeLimite(z.volume_limit_safety)}
+                          placeholder={$t('devices.volumeLimitNone' as any)}
+                          disabled={z.id == null}
+                          aria-label={$t('devices.volumeLimitSafety' as any)}
+                          onchange={(e) => enregistrerLimiteVolume(z, 'safety', (e.currentTarget as HTMLInputElement).value)} />
+                        <span class="tv">%</span>
+                        <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
+                        <input type="text" inputmode="decimal" class="lim" size="5"
+                          value={pourcentDeLimite(z.volume_limit_comfort)}
+                          placeholder={$t('devices.volumeLimitNone' as any)}
+                          disabled={z.id == null}
+                          aria-label={$t('devices.volumeLimitComfort' as any)}
+                          onchange={(e) => enregistrerLimiteVolume(z, 'comfort', (e.currentTarget as HTMLInputElement).value)} />
+                        <span class="tv">%</span>
+                      </div>
+                      <p class="monote">{$t('devices.volumeLimitHint' as any)}</p>
+                      {/if}
 
                       <!--
                         #1427 — CORRECTION ACOUSTIQUE (FIR), à sa place.
@@ -5796,6 +6054,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               <p class="hint">{#each emphaseParts($t('settings.needsFullScanHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <!-- tune-server-rust#6554 (fil 2294) : APRÈS la phrase « nécessite
+                   une analyse complète », qui ne vaut pas pour lui — l'onglet
+                   Coffrets suit tout de suite, sans rescan. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.autoBoxSets' as any)}</span>
+                  <span class="hint">{$t('settings.autoBoxSetsHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-cle={CLE_COFFRETS_AUTO} checked={coffretsAuto}
+                    onchange={(e) => setCoffretsAuto((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if coffretsAutoErr}<div class="errline">{coffretsAutoErr}</div>{/if}
 
             {:else if s.id === 'scanSched'}
               {#if scanDemarrage !== null}
@@ -6528,6 +6801,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="brqr" data-acces="qr" aria-label={$t('settings.remoteLinkQr' as any)} role="img">
                     {@html brQr}
                   </div>
+                  <div class="row">
+                    <div class="lbl">
+                      <span class="hint">{$t('settings.remoteLinkRenewHint' as any)}</span>
+                    </div>
+                    <button class="lnk danger" data-acces="renouveler" onclick={renouvelerLienPont} disabled={brRenouvellement}>
+                      {brRenouvellement ? '…' : $t('settings.remoteLinkRenew' as any)}
+                    </button>
+                  </div>
                 {/if}
                 {#if brToken}
                   <div class="tok">
@@ -7098,6 +7379,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+            {:else if s.id === 'artistSort'}
+              <!-- tune-server-rust#6474 (René, fil 2313) — trier les artistes sur
+                   leur nom de tri (nom de famille), le nom affiché restant le
+                   même. Le nom de tri vient des balises ARTISTSORT /
+                   ALBUMARTISTSORT, lues au scan, ou de « Modifier l'artiste ». -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.artistSortLabel' as any)}</span>
+                  <span class="hint">{$t('settings.artistSortHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.trierArtistesParNomDeTri !== false}
+                    onchange={(e) => preferences.update((pr) => ({ ...pr, trierArtistesParNomDeTri: (e.currentTarget as HTMLInputElement).checked }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
             {:else if s.id === 'followMe'}
               <!-- Section réellement portée : même store que l'écran actuel,
                    donc le réglage est partagé, pas dupliqué. -->
@@ -7111,6 +7409,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+
+            {:else if s.id === 'macRanges'}
+              <!-- #2244 — plage MAC reconnue et marque de chaque appareil, et
+                   la table entière (tune-server-rust#6546). Serveur ancien :
+                   le composant se tait. -->
+              <PlagesMacV2 appareils={$devices} />
             {/if}
           </section>
         {/each}
@@ -7236,8 +7540,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zr{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px}
   .zf{display:flex; flex-direction:column; gap:5px}
   .zf .dsd-dop{max-width:220px; font:11.5px/1.35 var(--v2-sans); color:var(--v2-txt2)}
-  .zf > span{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .zf > span{font:10px var(--v2-mono); line-height:14px; letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  /* web#2089 (Didier, fil 2222) — les cases « Volume fixe » et « Sortie mono »
+     s'alignaient sur le BAS de la rangée (`align-self:flex-end`) : la note DoP
+     sous le sélecteur DSD (#1876) allongeait la colonne, et les cases
+     descendaient au niveau de la note. Elles s'alignent désormais sur les
+     SÉLECTEURS : intitulé (14 px) + écart (5 px) au-dessus, la hauteur d'un
+     `.sel.sm` (32 px), quelle que soit la hauteur des colonnes voisines. */
   .zf.chk{flex-direction:row; align-items:center; gap:8px; align-self:flex-end; padding-bottom:8px; cursor:pointer}
+  .zr > .zf.chk{align-self:flex-start; padding-bottom:0; margin-top:19px; height:32px}
   .zf.chk input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
   .zf.chk span{font:12px var(--v2-sans); text-transform:none; letter-spacing:0; color:var(--v2-txt2)}
   .sel.sm{min-width:130px; height:32px; font-size:12.5px}
@@ -7261,6 +7572,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .trim input[type=range]{flex:1; min-width:150px; max-width:320px; accent-color:var(--v2-acc1)}
   .trim .tv{font:12px var(--v2-mono); color:var(--v2-acc1); min-width:62px}
   .trim .tv.neutre{color:var(--v2-txt3)}
+  /* #6541 — limites de volume : deux champs courts sur la ligne du trim. */
+  .limites-volume .lim{width:4.5em; font:12px var(--v2-mono)}
+  .limites-volume .tv{min-width:0}
   .trim .tf{font-size:11.5px; color:var(--v2-txt3)}
   .zde{margin-top:13px}
   .radv{margin-top:13px; border-top:1px solid var(--v2-line); padding-top:11px}

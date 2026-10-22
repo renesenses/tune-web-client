@@ -86,7 +86,7 @@ describe('Écran Étiquettes — un onglet Collections, cliquable vers le détai
 });
 
 describe('La clé i18n existe dans les onze langues', () => {
-  it.each(['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh'])('%s', (l) => {
+  it.each(['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi'])('%s', (l) => {
     expect(lire(`lib/locales/${l}.ts`)).toContain('"v2.tags.noCollectionWithTag":');
   });
 });

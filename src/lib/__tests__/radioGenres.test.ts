@@ -42,17 +42,22 @@ const NOMS = Object.keys(LANGUES).filter((n) => n !== 'default');
 describe('le vocabulaire est un ensemble de clés, jamais de libellés', () => {
   it('les onze langues sont bien chargées', () => {
     // Sans cette borne, les `it.each` plus bas pourraient passer à vide.
-    expect(NOMS.length).toBe(11);
+    expect(NOMS.length).toBe(12);
     expect(NOMS).toContain('fr');
     expect(NOMS).toContain('hu');
   });
 
-  it('couvre les VINGT genres que le serveur sait nommer', () => {
+  it('couvre les VINGT genres que le serveur sait nommer, et les cinq de l’annuaire v2', () => {
     // Seize jusqu'au 22/09/2026 ; le serveur en nomme vingt depuis #4713
     // (`cle_genre`, `tune-server/src/routes/radios_libelles.rs:94`), dont
     // `soul`, `funk`, `folk` et `ambient` que ce relevé ignorait. Une clé
     // servie et non traduite s'afficherait TELLE QUELLE.
-    expect(RADIO_GENRE_KEYS.length).toBe(20);
+    // tune-server-rust#6516 : l'annuaire radio-metadata.fr v2 ajoute `news`,
+    // `lounge`, `rnb`, `country` et `latin` (relevé du 19/10/2026).
+    expect(RADIO_GENRE_KEYS.length).toBe(25);
+    for (const cle of ['news', 'lounge', 'rnb', 'country', 'latin']) {
+      expect(RADIO_GENRE_KEYS).toContain(`radioGenre.${cle}`);
+    }
   });
 
   it('chaque clé est un identifiant ASCII, sans accent ni espace', () => {

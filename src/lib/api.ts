@@ -1,6 +1,8 @@
+import { avecLangueSignal } from './langueRequete';
 // REST API client for tune-server
 
 import { notifications } from './stores/notifications';
+import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
@@ -262,7 +264,7 @@ export async function apiFetch(path: string): Promise<any> {
   const token = getToken();
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), { headers });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
   // du serveur est composé en français par `require_premium`, il ne doit jamais
@@ -281,7 +283,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), {
     method: 'POST',
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -304,7 +306,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, {
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), {
     method: 'PATCH',
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -326,7 +328,7 @@ export async function apiDelete(path: string): Promise<any> {
   const token = getToken();
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
+  const resp = await fetch(avecLangueSignal(`${BASE}${stripDoubleBase(path)}`, acceptLang()), { method: 'DELETE', headers });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
   // du serveur est composé en français par `require_premium`, il ne doit jamais
@@ -512,7 +514,7 @@ export async function fetchJSON<T>(
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    response = await fetch(url, {
+    response = await fetch(avecLangueSignal(url, acceptLang()), {
       headers,
       ...options,
     });
@@ -738,7 +740,7 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    response = await fetch(url, {
+    response = await fetch(avecLangueSignal(url, acceptLang()), {
       headers,
       ...options,
     });
@@ -1322,6 +1324,21 @@ export function getDevices() {
   return fetchJSON<DiscoveredDevice[]>(`${BASE}/devices`);
 }
 
+/**
+ * La table des plages MAC reconnues, groupée par marque (#2244,
+ * tune-server-rust#6546). `null` quand le serveur ne la sert pas (serveur
+ * antérieur : 404) ou rend autre chose : l'écran masque alors le bloc.
+ * Sans bandeau : une route absente n'est pas une panne.
+ */
+export async function getOuiAudio(): Promise<TableOuiAudio | null> {
+  try {
+    const corps = await fetchJSON<unknown>(`${BASE}/devices/oui-audio`, undefined, undefined, true);
+    return lireTableOui(corps);
+  } catch {
+    return null;
+  }
+}
+
 export function clearDevices() {
   return fetchJSON<{ cleared: number }>(`${BASE}/devices/clear`, { method: 'POST' });
 }
@@ -1666,7 +1683,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string }) {
+export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string; queue_follows?: boolean }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1723,6 +1740,49 @@ export function setVolume(zoneId: number, volume: number) {
   });
 }
 
+/** Réponse de `POST /zones/{id}/volume/step` (tune-server-rust#6541). */
+export type PasDeVolumeReponse = {
+  zone_id: number;
+  volume: number;
+  volume_db: number | null;
+  /** La limite de sécurité a retenu le pas. */
+  limited: boolean;
+  volume_limit_safety: number | null;
+  volume_limit_comfort: number | null;
+};
+
+/**
+ * tune-server-rust#6541 — un pas de volume (bouton + / −). Le serveur part du
+ * volume COURANT de la zone : deux clics rapides font deux pas, sans que le
+ * client ait à connaître la valeur exacte. La limite de confort ne retient pas
+ * ce chemin ; la limite de sécurité, si (`limited`).
+ */
+export function stepVolume(zoneId: number, direction: 'up' | 'down', step?: number) {
+  return fetchJSON<PasDeVolumeReponse>(`${BASE}/zones/${zoneId}/volume/step`, {
+    method: 'POST',
+    body: JSON.stringify(step === undefined ? { direction } : { direction, step }),
+  });
+}
+
+/**
+ * tune-server-rust#6541 — les deux limites de volume d'une zone, en fraction
+ * 0..1. Le PUT REMPLACE les deux : `null` efface (pas de limite). Seule une
+ * sécurité ABAISSÉE sous le volume courant ramène la zone sur-le-champ, à la
+ * baisse ; relever ou effacer une limite n'envoie rien à l'appareil.
+ * Sur une zone en PURE ou à volume fixe, poser une limite est refusé : 409,
+ * `error` = `limite_refusee_zone_pure` | `limite_refusee_volume_fixe` (lu par
+ * `apiError` dans `err.code`) ; effacer reste permis.
+ */
+export function setVolumeLimits(
+  zoneId: number,
+  limites: { safety: number | null; comfort: number | null },
+) {
+  return fetchJSON<{ zone_id: number; volume_limit_safety: number | null; volume_limit_comfort: number | null }>(
+    `${BASE}/zones/${zoneId}/volume-limits`,
+    { method: 'PUT', body: JSON.stringify(limites) },
+  );
+}
+
 /**
  * Le volume demandé en dB, pas en pour-cent (#1274).
  *
@@ -1739,8 +1799,21 @@ export function setVolumeDb(zoneId: number, volumeDb: number) {
   });
 }
 
+/**
+ * Réponse de `POST /zones/{id}/shuffle`. Depuis tune-server-rust#6526 le
+ * serveur RÉORDONNE la file : `queue_reordered` dit si l'ordre a changé,
+ * `queue_position` où se trouve maintenant le titre en cours (il bouge quand
+ * l'ordre d'origine est rétabli). Champs absents d'un serveur plus ancien.
+ */
+export interface ReponseAleatoire {
+  shuffle: boolean;
+  queue_reordered?: boolean;
+  queue_position?: number;
+  queue_length?: number;
+}
+
 export function setShuffle(zoneId: number, enabled: boolean) {
-  return fetchJSON<{ shuffle: boolean }>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
+  return fetchJSON<ReponseAleatoire>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
     method: 'POST',
   });
 }
@@ -2375,6 +2448,124 @@ export function getAlbumCredits(albumId: number) {
   );
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   #4805 lot 1 — enrichissement d'après MetaRust, de Xavier Joly :
+   complétude, propositions Discogs, BPM, clés d'API personnelles. Les
+   formes vivent dans `lib/enrichissementAlbum`.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/** `GET /library/albums/{id}/completeness/musicbrainz` — hors réseau, sans bandeau. */
+export function getAlbumCompleteness(albumId: number) {
+  return fetchJSON<import('./enrichissementAlbum').Completude>(
+    `${BASE}/library/albums/${albumId}/completeness/musicbrainz`, undefined, undefined, true,
+  );
+}
+
+/** tune-server-rust#6001 — `GET /library/artists/{id}/external-links`, sans bandeau. */
+export function getArtistExternalLinks(artistId: number) {
+  return fetchJSON<import('./liensExternes').ReponseLiens>(
+    `${BASE}/library/artists/${artistId}/external-links`, undefined, undefined, true,
+  );
+}
+
+/** tune-server-rust#6001 — `GET /library/albums/{id}/external-links`, sans bandeau. */
+export function getAlbumExternalLinks(albumId: number) {
+  return fetchJSON<import('./liensExternes').ReponseLiens>(
+    `${BASE}/library/albums/${albumId}/external-links`, undefined, undefined, true,
+  );
+}
+
+/** tune-server-rust#6288 — `GET /library/artists/{id}/missing-albums`, sans bandeau. */
+export function getArtistMissingAlbums(artistId: number, avecSecondaires = false) {
+  const q = avecSecondaires ? '?secondaires=1' : '';
+  return fetchJSON<import('./albumsManquants').ReponseManquants>(
+    `${BASE}/library/artists/${artistId}/missing-albums${q}`, undefined, undefined, true,
+  );
+}
+
+/** `GET /library/albums/incomplete` — les albums à qui il manque des pistes. */
+export function getIncompleteAlbumIds() {
+  return fetchJSON<{ total: number; ids: number[] }>(
+    `${BASE}/library/albums/incomplete`, undefined, undefined, true,
+  );
+}
+
+/** `POST /library/albums/{id}/instruments` — instruments Wikidata du disque. */
+export function enrichAlbumInstruments(albumId: number) {
+  return fetchJSON<{ album_id: number; result: Record<string, number> }>(
+    `${BASE}/library/albums/${albumId}/instruments`, { method: 'POST' },
+  );
+}
+
+export function getAlbumDiscogsProposals(albumId: number) {
+  return fetchJSON<{ album_id: number; proposals: import('./enrichissementAlbum').PropositionGardee[] }>(
+    `${BASE}/library/albums/${albumId}/discogs`, undefined, undefined, true,
+  );
+}
+
+/** Cherche sur Discogs (code-barres, puis n° de catalogue). N'écrit rien. */
+export function searchAlbumDiscogs(albumId: number) {
+  return fetchJSON<{ album_id: number; proposal: import('./enrichissementAlbum').PropositionDiscogs | null }>(
+    `${BASE}/library/albums/${albumId}/discogs/search`, { method: 'POST' }, undefined, true,
+  );
+}
+
+/** Accepte une proposition : remplit les champs VIDES seulement. */
+export function acceptDiscogsProposal(albumId: number, discogsId: number, credits: boolean) {
+  return fetchJSON<{ accepted: boolean; result: { champs_poses: string[]; champs_gardes: string[]; pistes_creditees: number } }>(
+    `${BASE}/library/albums/${albumId}/discogs/${discogsId}/accept`,
+    { method: 'POST', body: JSON.stringify({ credits }) },
+  );
+}
+
+export function rejectDiscogsProposal(albumId: number, discogsId: number) {
+  return fetchJSON<{ rejected: boolean }>(
+    `${BASE}/library/albums/${albumId}/discogs/${discogsId}/reject`, { method: 'POST' },
+  );
+}
+
+export function getAlbumBpm(albumId: number) {
+  return fetchJSON<{ album_id: number; tracks: import('./enrichissementAlbum').BpmPiste[] }>(
+    `${BASE}/library/albums/${albumId}/bpm`, undefined, undefined, true,
+  );
+}
+
+/** Wikidata d'abord, puis une estimation sur le signal. N'écrit pas les fichiers. */
+export function estimateAlbumBpm(albumId: number, redo = false) {
+  return fetchJSON<{ album_id: number; tracks: import('./enrichissementAlbum').BpmPiste[] }>(
+    `${BASE}/library/albums/${albumId}/bpm/estimate`,
+    { method: 'POST', body: JSON.stringify({ redo }) },
+  );
+}
+
+/** `GET /system/api-keys` — l'état des clés, jamais leur valeur. */
+export function getApiKeys() {
+  return fetchJSON<{ keys: import('./enrichissementAlbum').EtatCleApi[] }>(`${BASE}/system/api-keys`);
+}
+
+export function setApiKey(service: string, value: string) {
+  return fetchJSON<import('./enrichissementAlbum').EtatCleApi>(
+    `${BASE}/system/api-keys/${encodeURIComponent(service)}`,
+    { method: 'PUT', body: JSON.stringify({ value }) },
+  );
+}
+
+export function deleteApiKey(service: string) {
+  return fetchJSON<import('./enrichissementAlbum').EtatCleApi>(
+    `${BASE}/system/api-keys/${encodeURIComponent(service)}`, { method: 'DELETE' },
+  );
+}
+
+/** « Tester » : la saisie si elle est donnée, sinon la clé en service. */
+export function testApiKey(service: string, value?: string) {
+  return fetchJSON<{ service: string; tested: string; verdict: 'valide' | 'refusee' | 'indetermine' }>(
+    `${BASE}/system/api-keys/${encodeURIComponent(service)}/test`,
+    { method: 'POST', body: JSON.stringify(value ? { value } : {}) },
+    undefined,
+    true,
+  );
+}
+
 /**
  * Crédits d'un titre de SERVICE — tune-server-rust#4993 (srv#5041). Même
  * forme que `getTrackCredits`, `id` et `artist_id` nuls, `track_id` en
@@ -2384,6 +2575,20 @@ export function getAlbumCredits(albumId: number) {
 export function getStreamingTrackCredits(service: string, sourceId: string) {
   return fetchJSON<import('./library/credits').CreditAvecPiste[]>(
     `${BASE}/streaming/${encodeURIComponent(service)}/tracks/${encodeURIComponent(sourceId)}/credits`,
+    undefined,
+    undefined,
+    true,
+  );
+}
+
+/**
+ * La présentation d'un album de SERVICE — tune-server-rust#6480. Du texte, le
+ * serveur a retiré le balisage. `null` : pas de présentation pour cet album ;
+ * 501 : le service n'en publie jamais. Sans bandeau, comme les crédits.
+ */
+export function getStreamingAlbumDescription(service: string, albumSourceId: string) {
+  return fetchJSON<import('./presentationAlbumService').PresentationAlbum | null>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumSourceId)}/description`,
     undefined,
     undefined,
     true,
@@ -3148,6 +3353,19 @@ export async function uploadAlbumArtwork(albumId: number, file: File): Promise<A
   return response.json();
 }
 
+/**
+ * tune-server-rust#4805 lot 2 — « Chercher une pochette plus nette » :
+ * `POST /library/albums/{id}/artwork/enrich`. Une pochette de fournisseur en
+ * place n'est remplacée que par la MÊME, au moins 1,4 fois plus définie
+ * (empreinte visuelle, #6252) ; jamais un autre visuel.
+ */
+export function chercherPochettePlusNette(albumId: number) {
+  return fetchJSON<import('./enrichissementAlbum').ReponsePochettePlusNette>(
+    `${BASE}/library/albums/${albumId}/artwork/enrich`,
+    { method: 'POST' },
+  );
+}
+
 export function rescanAlbumArtwork(albumId: number) {
   return fetchJSON<ArtworkRescanResult>(`${BASE}/library/albums/${albumId}/artwork/rescan`, {
     method: 'POST',
@@ -3782,6 +4000,37 @@ export function importAutoEqPreset(body: { text: string; name?: string; zone_id?
   });
 }
 
+/**
+ * tune-server-rust#6388 — la base AutoEq en ligne, lue par le SERVEUR
+ * (`GET /eq/autoeq/search`, `POST /eq/autoeq/import`). Un résultat est un
+ * couple casque × source de mesure ; `path` est ce que l'import attend.
+ * 503 : base injoignable et aucune copie locale sur le serveur.
+ */
+export interface AutoEqResultat {
+  name: string;
+  source: string;
+  rig: string | null;
+  form: string;
+  path: string;
+}
+
+export interface AutoEqRecherche {
+  query: string;
+  results: AutoEqResultat[];
+  total: number;
+}
+
+export function searchAutoEq(q: string, limit = 50): Promise<AutoEqRecherche> {
+  return fetchJSON<AutoEqRecherche>(`${BASE}/eq/autoeq/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+}
+
+export function importAutoEqFromDatabase(body: { path: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
+  return fetchJSON<EqAutoEqImport>(`${BASE}/eq/autoeq/import`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
 // Headphone crossfeed — bleeds a delayed, attenuated copy of each channel
 // into the opposite ear so the stereo image sits in front of you instead of
 // inside your head. Local output only. Server clamps amount 0..0.5, delay 0..5.
@@ -4052,6 +4301,33 @@ export function installerGreffonNatifDuCatalogue(id: string): Promise<Installati
   return fetchJSON<InstallationGreffonNatif>(
     `${racineGreffonNatif(id)}/install-from-catalog`,
     { method: 'POST' },
+    undefined,
+    true,
+  );
+}
+
+/**
+ * `POST /audio-plugins/{id}/uninstall` avec `{"purge": true, …}` —
+ * tune-server-rust#6618 (issue #6256). Désinstallation COMPLÈTE d'un greffon
+ * natif TIERS : il quitte le registre, son dossier `plugins/audio/<id>`
+ * (versions, binaire, données rangées dedans) est retiré, et il sort tout de
+ * suite de la lecture locale (à la piste suivante sur une zone réseau).
+ * `keep_settings: false` efface aussi ses réglages de zone et ses profils.
+ * Aucun redémarrage n'est demandé (`restart_required: false`).
+ */
+export interface DesinstallationGreffonNatif {
+  unloaded?: boolean;
+  files_removed?: boolean;
+  configuration_preserved?: boolean;
+  settings_removed?: string[];
+  zones_refreshed_live?: unknown;
+  restart_required?: boolean;
+}
+
+export function desinstallerGreffonNatif(id: string, garderReglages: boolean): Promise<DesinstallationGreffonNatif> {
+  return fetchJSON<DesinstallationGreffonNatif>(
+    `${racineGreffonNatif(id)}/uninstall`,
+    { method: 'POST', body: JSON.stringify({ purge: true, keep_settings: garderReglages }) },
     undefined,
     true,
   );
@@ -5251,6 +5527,29 @@ export function setSpotifyLectureExperimentale(enabled: boolean) {
   });
 }
 
+/** #6542 — réglages de la sortie Devialet AIR (expérimentale). */
+export interface DevialetAirReglages {
+  enabled: boolean;
+  experimental: boolean;
+  source_index: number;
+  source_index_default: number;
+  source_index_max: number;
+  volume_ceiling_db: number;
+  max_sample_rate: number;
+}
+
+export function getDevialetAirReglages() {
+  return fetchJSON<DevialetAirReglages>(`${BASE}/devialet-air/reglages`);
+}
+
+/** Chaque champ est facultatif : seul ce qui est passé change. */
+export function setDevialetAirReglages(corps: { enabled?: boolean; source_index?: number }) {
+  return fetchJSON<DevialetAirReglages>(`${BASE}/devialet-air/reglages`, {
+    method: 'POST',
+    body: JSON.stringify(corps),
+  });
+}
+
 export function rescanArtwork() {
   return fetchJSON<{ status: string }>(`${BASE}/library/artwork/rescan`, { method: 'POST' });
 }
@@ -5285,6 +5584,30 @@ export function searchStreaming(service: string, q: string, limit = SEARCH_PAGE_
 
 export function getStreamingAlbum(service: string, albumId: string) {
   return fetchJSON<Album>(`${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}`);
+}
+
+/**
+ * tune-server-rust#6481 — les livrets PDF d'un album. Bibliothèque : les PDF
+ * de son dossier (`{ booklets: [{ name, size }] }`) ; service : les livrets
+ * qu'il publie (`[{ name, url }]`). Sans bandeau : un serveur antérieur
+ * répond 404, et la fiche n'affiche alors simplement aucun livret.
+ */
+export function getAlbumBooklets(albumId: number) {
+  return fetchJSON<{ booklets: Array<{ name: string; size?: number }> }>(
+    `${BASE}/library/albums/${albumId}/booklets`, undefined, undefined, true,
+  );
+}
+
+export function getStreamingAlbumBooklets(service: string, albumId: string) {
+  return fetchJSON<Array<{ name: string; url: string }>>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/booklets`,
+    undefined, undefined, true,
+  );
+}
+
+/** Ouvre une adresse de l'API dans le navigateur (jeton du pont compris). */
+export function urlDeNavigation(url: string): string {
+  return urlNavigateur(url);
 }
 
 export function getStreamingAlbumTracks(service: string, albumId: string) {
@@ -6045,6 +6368,9 @@ export * from './api/bandcampAchats';
 // Rôle maître / agent entre serveurs Tune (tune-server-rust#4626).
 // Voir lib/api/agentTune.ts.
 export * from './api/agentTune';
+// Annuaire radio-metadata.fr (tune-server-rust#6516).
+// Voir lib/api/annuaireRadios.ts.
+export * from './api/annuaireRadios';
 
 // --- Radios ---
 
@@ -7089,6 +7415,11 @@ export function getAlbumRating(albumId: number) {
   return fetchJSON<any>(`${BASE}/library/albums/${albumId}/rating`);
 }
 
+/** #6545 — notes et écoutes de la communauté pour un album (agrégats du site). */
+export function getAlbumCommunity(albumId: number) {
+  return fetchJSON<import('./notesCommunautaires').AgregatsCommunautaires>(`${BASE}/library/albums/${albumId}/community`);
+}
+
 export function getTopRatedAlbums(limit = 20) {
   return fetchJSON<any[]>(`${BASE}/library/albums/top-rated?limit=${limit}`);
 }
@@ -7367,7 +7698,11 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
 }
 
 export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; cover_url?: string; duration_ms?: number }): Promise<any> {
-  return fetchJSON(`${BASE}/podcasts/play/${zoneId}`, { method: 'POST', body: JSON.stringify(episode) });
+  // tune-server-rust#6468 — un refus de la sortie est un 502/503 avec un `code`
+  // stable. Sans bandeau global : l'écran Podcasts porte l'échec dans son
+  // propre bandeau, traduit (`lectureEpisode.ts`), au lieu d'un
+  // « Server error: Output device error: … » en anglais.
+  return fetchJSON(`${BASE}/podcasts/play/${zoneId}`, { method: 'POST', body: JSON.stringify(episode) }, undefined, true);
 }
 
 export function getPodcastSubscriptions(): Promise<any[]> {
@@ -7806,6 +8141,41 @@ export function lancerIdentificationAcoustid() {
     { method: 'POST' },
     (statut) => statut === 409,
   );
+}
+
+/**
+ * #4805 lot 2 (d'après MetaRust) — lancer une passe de lot : `POST
+ * /library/bpm-all` ou `POST /library/discogs-all`. `202`, ou `409` / `412`
+ * ACCEPTÉS pour que l'écran dise le motif (`lib/passesMetarust.ts`).
+ */
+export function lancerPasseMetarust(mode: import('./passesMetarust').ModePasse) {
+  return fetchJSON<Record<string, unknown>>(
+    `${BASE}/library/${mode}-all`,
+    { method: 'POST' },
+    (statut) => statut === 409 || statut === 412,
+  );
+}
+
+/** `GET /library/{mode}-all/status` — l'état brut, lu par `lireEtatPasse`. */
+export function etatPasseMetarust(mode: import('./passesMetarust').ModePasse) {
+  return fetchJSON<Record<string, unknown>>(`${BASE}/library/${mode}-all/status`);
+}
+
+/**
+ * tune-server-rust#4805 (13/10/2026) — la passe de nuit des albums refusés par
+ * MusicBrainz. Un serveur sans la route répond 404 : sans bandeau, l'écran
+ * masque alors la ligne (`lib/identificationNuit.ts`).
+ */
+export function getIdentificationNuit() {
+  return fetchJSON<unknown>(`${BASE}/library/identify-all/nuit`, undefined, undefined, true);
+}
+
+/** `POST /library/identify-all/nuit` `{ active }` — allumer ou éteindre (administrateur). */
+export function setIdentificationNuit(active: boolean) {
+  return fetchJSON<unknown>(`${BASE}/library/identify-all/nuit`, {
+    method: 'POST',
+    body: JSON.stringify({ active }),
+  });
 }
 
 /** `GET /library/identify-all/status` — l'état de la passe par lot, tous modes confondus. */
@@ -9839,7 +10209,7 @@ export function getArtistsDoublons(signal?: AbortSignal) {
 export function absorbArtist(cible: number, doublon: number) {
   return fetchJSON<unknown>(`${BASE}/library/artists/${cible}/absorber/${doublon}`, { method: 'POST' });
 }
-export interface CopieDoublon { id: number; title?: string; artist_name?: string | null; file_path?: string; duration_ms?: number; format?: string | null; sample_rate?: number | null; bit_depth?: number | null }
+export interface CopieDoublon { id: number; title?: string; artist_name?: string | null; file_path?: string; duration_ms?: number; format?: string | null; sample_rate?: number | null; bit_depth?: number | null; album_id?: number | null; album_title?: string | null }
 export interface PaireDoublonNommee { critere: string; suppression_sure: boolean; a: CopieDoublon; b: CopieDoublon; recommandation: { garder: number | null; raison: string } }
 /** BIB-B3 : les paires de pistes en double, une forme unique — critère nommé,
  *  recommandation « garder » par la règle de qualité partagée. */
@@ -9851,6 +10221,33 @@ export function getPairesDoublons(critere?: string, signal?: AbortSignal) {
  *  favoris repointés sur `keep`). Le fichier n'est pas touché. */
 export function resolveTrackDuplicate(keep: number, del: number) {
   return fetchJSON<unknown>(`${BASE}/library/duplicates/resolve`, { method: 'POST', body: JSON.stringify({ keep_id: keep, delete_id: del }) });
+}
+
+/** tune-server-rust#6300 — ce que le retrait d'un album en double ferait. */
+export interface PlanRetraitAlbum {
+  garde: { album_id: number; title: string; artist_name?: string | null; pistes: number };
+  retire: { album_id: number; title: string; artist_name?: string | null; pistes: number; pistes_sans_equivalent: number };
+  mode: 'masquage';
+  fichiers_supprimes: number;
+  annuler: string;
+}
+/** tune-server-rust#6300 — garder l'album `keep`, retirer l'album `remove`.
+ *  Sans `confirm`, le serveur n'écrit rien et rend le plan. Retirer, c'est
+ *  masquer (#1391) : fichiers intacts, geste réversible (`remettreAlbum`). */
+export function retirerAlbumDoublon(keep: number, remove: number, confirm: boolean) {
+  return fetchJSON<{ applique: boolean; plan: PlanRetraitAlbum }>(`${BASE}/library/duplicates/resolve-album`, {
+    method: 'POST',
+    body: JSON.stringify({ keep_album_id: keep, remove_album_id: remove, confirm }),
+  });
+}
+export interface AlbumRetire { album_id: number; title: string; artist?: string | null; hidden_at?: string | null; resolved: boolean }
+/** Les albums retirés (masqués) de la bibliothèque. */
+export function listerAlbumsRetires() {
+  return fetchJSON<{ total: number; items: AlbumRetire[] }>(`${BASE}/library/albums/hidden`).then((r) => r?.items ?? []);
+}
+/** Remettre un album retiré dans la bibliothèque. */
+export function remettreAlbum(id: number) {
+  return fetchJSON<unknown>(`${BASE}/library/albums/${id}/hide`, { method: 'DELETE' });
 }
 
 export function listMetadataProposals(

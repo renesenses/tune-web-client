@@ -34,11 +34,13 @@
 import AlbumRating from '../partages/AlbumRating.svelte';
 import ReportButton from '../partages/ReportButton.svelte';
 import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
+import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbum';
   import ClampedText from '../partages/ClampedText.svelte';
   import AttributionBio from './AttributionBio.svelte';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
   import ListePistesV2 from './ListePistesV2.svelte';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
+  import SuggestionsIaAlbumV2 from './SuggestionsIaAlbumV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
   import {
     SELECTION_VIDE, appliquerGenre, basculer, choisiesDansLOrdre, corpsArtistePistes,
@@ -47,8 +49,11 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { circleCharge } from '../../lib/circle';
   import { demandeCercle } from '../../lib/circlePlaylists';
   import PastilleCompilation from './PastilleCompilation.svelte';
-  import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
+  import { corpsDeLecture, corpsDeFileListe, corpsDeTeteDeListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
+  import { lireListe } from '../../lib/lectureEnMasse';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
+  import type { GesteDisque } from '../../lib/lectureDisque';
   import { notifications } from '../../lib/stores/notifications';
   import { cleEchecRevelation, revelationDisponible, revelerDossierAlbum } from '../../lib/revelerDossier';
   import { fichiersInchanges } from '../../lib/ecritureFichiers';
@@ -57,6 +62,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { favKeyOf, refFavoriDeFiche, toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
   import { cibleEtiquetteAlbum, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import { basculerLeSas, chargerSas, estDansLeSas, rangeableDansLeSas, sasEcouterPlusTard } from '../../lib/ecouterPlusTard';
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
@@ -78,6 +84,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { portail } from '../../lib/portail';
   import { estMarqueIa, marquageIaADemander } from '../../lib/contenuIa';
 import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
+import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentationRefuses, type EtatPresentation } from '../../lib/presentationAlbumService';
   import { dialogs } from '../../lib/stores/dialogs';
   import { origineDuCoffret, EVT_COFFRET_DEFAIT, type OrigineCoffret } from '../../lib/coffretAuto';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -167,6 +174,14 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
    * le reste de la fiche (lecture, étiquettes, file d'attente) continue de
    * travailler sur l'objet d'origine, dont l'identité ne change pas.
    */
+  // tune-server-rust#4805 lot 2 — la pochette plus nette posée depuis la
+  // fiche, affichée sans recharger l'album.
+  let pochetteRemplacee = $state<string | null>(null);
+  $effect(() => {
+    void album.id; // un autre album : on oublie la pochette posée sur le précédent
+    pochetteRemplacee = null;
+  });
+
   const albumAffiche = $derived.by(() => {
     const d = detailService;
     if (!d) return album;
@@ -224,6 +239,22 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   let etiquettesOuvertes = $state(false);
 
   /**
+   * web#2202 (Sandro, fil 2285 ; Patatorz, fil 2325) — « Écouter plus tard »
+   * sur la FICHE d'un album. Le geste de web#1653 n'existait que dans le menu
+   * « … » des vignettes et des pistes : la fiche, qui n'a pas de menu « … »,
+   * ne l'offrait nulle part.
+   *
+   * Même désignation que les étiquettes (`cibleEtiquettes`) et même module
+   * que les vignettes (`lib/ecouterPlusTard`) : album de la bibliothèque comme
+   * de service, ABSENT pour le dépôt distant. La lecture de l'état est
+   * synchrone, dans le magasin ; la liste du sas est lue une fois.
+   */
+  const dansLeSas = $derived<boolean | null>(
+    rangeableDansLeSas(cibleEtiquettes) ? estDansLeSas(cibleEtiquettes, $sasEcouterPlusTard) : null,
+  );
+  $effect(() => { if (dansLeSas !== null) untrack(() => void chargerSas()); });
+
+  /**
    * LA FICHE SE DÉCLARE COMME CIBLE DE RACCOURCI — fil 2143, point 2.
    *
    * FabienM : « impossible de définir un raccourci sur […] un album ouvert ».
@@ -272,6 +303,28 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   let creditsOuverts = $state(false);
   /** Relevé AU CLIC : un refus (501/404) retire le bouton, pas le tiroir ouvert. */
   let creditsServiceOuvert = $state.raw<AlbumDeServiceCredits | null>(null);
+
+  /**
+   * #6481 — le LIVRET PDF (cpadiou77 et Patatorz, fil forum 2326) : les PDF du
+   * dossier d'un album de la bibliothèque, ou le livret numérique de Qobuz.
+   * Lus à l'ouverture de la fiche — une lecture de dossier, ou la réponse
+   * `album/get` que le serveur garde déjà en cache : le bouton n'apparaît que
+   * s'il y a un livret à ouvrir.
+   */
+  let livrets = $state.raw<Livret[]>([]);
+  $effect(() => {
+    const cible = cibleLivrets(album as any, { service, depot, bandcamp });
+    livrets = [];
+    if (!cible) return;
+    let perime = false;
+    void chargerLivrets(cible, {
+      base: api.BASE,
+      locaux: api.getAlbumBooklets,
+      deService: api.getStreamingAlbumBooklets,
+      navigateur: api.urlDeNavigation,
+    }).then((l) => { if (!perime) livrets = l; });
+    return () => { perime = true; };
+  });
 
   /* ══════════════════════════════════════════════════════════════════════
      « AJOUTER À UNE COLLECTION » — réunion du 23/09/2026.
@@ -709,6 +762,8 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   let rechargement = $state(0);
   let edition = $state.raw<EditionReponse | null>(null);
   let enEdition = $state(false);
+  /** Assistant IA, étape 1 : la fenêtre des suggestions de CET album. */
+  let suggestionsIa = $state(false);
   const editionPossible = $derived(album.id != null && !depot && !service && !bandcamp);
   $effect(() => {
     const id = album.id, possible = editionPossible;
@@ -724,7 +779,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     return () => { vivant = false; };
   });
   // Une autre fiche s'ouvre : on ne reste pas en édition sur l'album d'avant.
-  $effect(() => { void album?.id; enEdition = false; });
+  $effect(() => { void album?.id; enEdition = false; suggestionsIa = false; });
 
   /**
    * « Modifier » depuis le menu « … » d'un album (`lib/gestesObjet`) : la fiche
@@ -931,6 +986,8 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
           ...refService,
           title: album.title, artist: album.artist_name ?? undefined,
           coverUrl: album.cover_path ?? undefined,
+          // #6482 — l'artiste CHEZ LE SERVICE, pour proposer de l'ajouter aussi.
+          artistId: album.artist_id != null ? String(album.artist_id) : undefined,
         });
       }
     } catch { /* le cœur reprend son état au prochain relevé */ }
@@ -1112,7 +1169,9 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     // autres s'empilent en UNE requete.
     if (service || bandcamp) {
       const l = melanger(tracks);
-      const tete = corpsDeLecture(l[0]);
+      // #6469 — la suite mélangée s'enfile derrière : la tête ne rejoue pas
+      // l'album dans l'ordre.
+      const tete = l.length > 1 ? corpsDeTeteDeListe(l[0]) : corpsDeLecture(l[0]);
       if (!tete) return;
       (async () => {
         await playAndSync(zid, tete as any);
@@ -1164,6 +1223,51 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     fileOccupee = false;
   }
   const addQueue = () => enfiler(undefined, 'v2.album.queued');
+  /**
+   * web#2221 — UN disque d'un album à plusieurs disques : « comment lire un
+   * seul CD d'un coffret ? » (demande relayée par Bertrand le 19/10/2026).
+   *
+   * `ListePistesV2` remet la tranche du disque, dans l'ordre de l'album. Les
+   * gestes sont ceux que la fiche emploie déjà, sur cette tranche :
+   *   - « Lire le disque » : `lireListe` (« Tout lire ») — une liste locale
+   *     part en `track_ids` et REMPLACE la file ; une liste de service, tête
+   *     puis reste ;
+   *   - « Lire ensuite » / « Ajouter à la file » : `corpsDeFileListe`, UNE
+   *     requête, au rang de `rangLireEnsuite` ou à la fin.
+   *
+   * ⚠️ Pas d'`album_id` ici : il désignerait l'album ENTIER, tous disques
+   * compris — précisément ce que « Lire à partir d'ici » fait déjà.
+   *
+   * Album d'un AUTRE serveur Tune (`depot`) : ses identifiants ne désignent
+   * rien sur ce serveur ; chaque piste part par son flux (`corpsLecture`),
+   * comme `enchainerDistant` et `enfiler`.
+   */
+  async function gesteDisque(geste: GesteDisque, liste: Track[], disque: number) {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    const d = depot;
+    const designees: Track[] = d
+      ? liste.map((t) => ({ ...corpsLecture(d, t), id: null }) as unknown as Track)
+      : liste;
+    if (geste === 'lire') {
+      lireListe(designees, gestesDeZone(zid)).catch(signalerEchecLecture);
+      return;
+    }
+    if (fileOccupee) return;
+    const corps = corpsDeFileListe(designees, geste === 'ensuite' ? rangLireEnsuite() : undefined);
+    if (!corps) return;
+    const titre = [album.title, $tr('library.disc' as any).replace('{num}', String(disque))]
+      .filter(Boolean).join(' — ');
+    fileOccupee = true;
+    try {
+      await api.addToQueue(zid, corps);
+      notifications.success($tr((geste === 'ensuite' ? 'v2.album.queuedNext' : 'v2.album.queued') as any)
+        .replace('{title}', titre));
+    } catch {
+      notifications.error($tr('v2.pa.queueError' as any));
+    }
+    fileOccupee = false;
+  }
   /** « Lire ensuite » insère au rang SUIVANT celui qui joue. Sans rang, la
    *  route ajoute à la fin — ce serait le bouton d'à côté. */
   const lireEnsuite = () => enfiler(rangLireEnsuite(), 'v2.album.queuedNext');
@@ -1238,6 +1342,39 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
       if (album.id === id) bioErreur = true;
     }
     bioChargement = false;
+  }
+
+  /**
+   * #6480 — la PRÉSENTATION d'un album de service (cpadiou77, fil 2327) : la
+   * critique que Qobuz publie, servie en texte par le serveur. Même geste que
+   * « Notes / Bio » ci-dessus (un bouton, lu au clic), pour un album SANS
+   * `id` local. Voir `lib/presentationAlbumService`.
+   */
+  const presentationCible = $derived(
+    depot || bandcamp || album.id != null ? null
+      : presentationAlbumDeServiceDe(service, sidDistant, $servicesPresentationRefuses),
+  );
+  let presentationOuverte = $state(false);
+  let presentation = $state<EtatPresentation | null>(null);
+  let presentationChargement = $state(false);
+  let presentationCle = $state<string | null>(null);
+  $effect(() => {
+    const cle = presentationCible ? `${presentationCible.service}:${presentationCible.albumId}` : null;
+    if (cle === untrack(() => presentationCle)) return;
+    presentationCle = cle;
+    presentationOuverte = false;
+    presentation = null;
+  });
+  async function basculerPresentation() {
+    presentationOuverte = !presentationOuverte;
+    const cible = presentationCible;
+    if (!presentationOuverte || !cible || presentation || presentationChargement) return;
+    presentationChargement = true;
+    const cle = `${cible.service}:${cible.albumId}`;
+    const r = await chargerPresentation(cible, api.getStreamingAlbumDescription);
+    // Course : l'album a pu changer pendant la requête.
+    if (presentationCle === cle) presentation = r;
+    presentationChargement = false;
   }
 
   /**
@@ -1455,7 +1592,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   <div class="head">
     <!-- #1342 — `albumAffiche` : la pochette que l'appelant n'a pas portée
          vient du service, sinon la fiche reste un carré gris à l'initiale. -->
-    <div class="art"><AlbumArt coverPath={albumAffiche.cover_path} albumId={depot ? null : album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
+    <div class="art"><AlbumArt coverPath={pochetteRemplacee ?? albumAffiche.cover_path} albumId={depot ? null : album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
     <div class="meta">
       <!-- 🔴 La pastille « compilation » vit À CÔTÉ du badge de qualité, pas
            dans la ligne de faits : c'est une NATURE de disque, pas une mesure,
@@ -1522,7 +1659,9 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         </div>
       {/if}
       <div class="actions">
-        <button class="play" onclick={() => playAlbum(0)}>
+        <!-- #2151 (Didier, fil 2258) — chaque bouton de la fiche a une bulle qui
+             dit ce qu'il FAIT, pas son libellé recopié. -->
+        <button class="play" onclick={() => playAlbum(0)} title={$tr('v2.album.playTip' as any)}>
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>{$tr('v2.album.play' as any)}
         </button>
         <!-- 🔴 Les CINQ actions valent pour les QUATRE origines.
@@ -1532,20 +1671,21 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
              piste porte sa paire `source` + `source_id`, et la route de file
              accepte `tracks[]`. Un album Qobuz n'offrait que deux boutons sur
              cinq (Bertrand, 06/09/2026). -->
-        <button class="ghost" onclick={shuffle}>
+        <button class="ghost" onclick={shuffle} title={$tr('v2.album.shuffleTip' as any)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3"/></svg>{$tr('v2.album.shuffle' as any)}
         </button>
-        <button class="ghost" onclick={lireEnsuite} disabled={fileOccupee}>
+        <button class="ghost" onclick={lireEnsuite} disabled={fileOccupee} title={$tr('v2.album.playNextTip' as any)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h9M4 12h9M4 18h5"/><path d="M15 8l5 4-5 4z" fill="currentColor" stroke="none"/></svg>{$tr('v2.album.playNext' as any)}
         </button>
-        <button class="ghost" onclick={addQueue} disabled={fileOccupee}>
+        <button class="ghost" onclick={addQueue} disabled={fileOccupee} title={$tr('v2.album.addQueueTip' as any)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>{$tr('v2.album.addQueue' as any)}
         </button>
         <!-- #2096 (FabienM, fil 2236, point 7) — l'album ENTIER dans une
              playlist, la même fenêtre que pour un titre. Pas pour un album
              d'un dépôt Tune distant : ses pistes ne se désignent pas ici. -->
         {#if !depot && tracks.length}
-          <button class="ghost" data-album-playlist onclick={() => (playlistAlbum = true)}>
+          <button class="ghost" data-album-playlist onclick={() => (playlistAlbum = true)}
+            title={$tr('v2.album.addToPlaylistTip' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h11M4 11h11M4 16h7M18 13v6M15 16h6"/></svg>{$tr('playlist.addToPlaylist')}
           </button>
         {/if}
@@ -1557,7 +1697,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
              pistes portent un chemin : le bouton n'apparaît qu'alors. -->
         {#if dossier}
           <button class="ghost" onclick={localiser}
-            title={$tr('v2.album.locate' as any)} aria-label={$tr('v2.album.locate' as any)}>
+            title={$tr('v2.album.locateTip' as any)} aria-label={$tr('v2.album.locate' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             {$tr('v2.album.locate' as any)}
           </button>
@@ -1569,6 +1709,14 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
             </button>
           {/if}
         {/if}
+        <!-- #6481 — le livret s'ouvre dans un nouvel onglet. -->
+        {#each livrets as l (l.url)}
+          <a class="ghost livret" href={l.url} target="_blank" rel="noopener noreferrer"
+            title={l.nom || $tr('v2.album.booklet' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>
+            {livrets.length > 1 && l.nom ? l.nom.replace(/\.pdf$/i, '') : $tr('v2.album.booklet' as any)}
+          </a>
+        {/each}
         {#if coffretDefaisable()}
           <button class="ghost defaire-coffret" onclick={defaireCoffret} disabled={defaireEnCours}
             title={$tr('v2.album.boxUndoTip' as any)}>
@@ -1579,10 +1727,20 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         {#if album.id != null || refService}
           <button class="ghost coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
             aria-pressed={enFavori}
-            title={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}
+            title={$tr(enFavori ? 'favorites.removeAlbum' : 'v2.album.favoriteTip' as any)}
             aria-label={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
             <svg viewBox="0 0 24 24" fill={enFavori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             {$tr(enFavori ? 'favorites.inFavorites' : 'favorites.addAlbum')}
+          </button>
+        {/if}
+        <!-- web#2202 — « Écouter plus tard », AVANT les étiquettes : celles-ci
+             et « Ajouter à une collection » restent côte à côte. -->
+        {#if dansLeSas !== null}
+          <button class="ghost" data-ecouter-plus-tard aria-pressed={dansLeSas}
+            onclick={() => void basculerLeSas(cibleEtiquettes)}
+            title={$tr((dansLeSas ? 'v2.later.albumRemoveTip' : 'v2.later.albumAddTip') as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            {$tr((dansLeSas ? 'v2.later.remove' : 'v2.later.add') as any)}
           </button>
         {/if}
         <!-- ÉTIQUETTES — même niveau visuel que les autres (`ghost`), et
@@ -1592,7 +1750,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         {#if cibleEtiquettes}
           <button class="ghost" onclick={() => (etiquettesOuvertes = true)}
             aria-haspopup="dialog" aria-expanded={etiquettesOuvertes}
-            title={$tr('v2.cover.tags' as any)}>
+            title={$tr('v2.album.tagsTip' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/><circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
             {$tr('v2.cover.tags' as any)}
           </button>
@@ -1602,7 +1760,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         {#if album.id != null && !depot}
           <button class="ghost" onclick={basculerMenuCollection}
             aria-haspopup="menu" aria-expanded={menuCollectionOuvert}
-            title={$tr('v2.album.addToCollection' as any)}>
+            title={$tr('v2.album.addToCollectionTip' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7zM12 10v6M9 13h6"/></svg>
             {$tr('v2.album.addToCollection' as any)}
           </button>
@@ -1611,7 +1769,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
           <button class="ghost" data-credits-album
             onclick={() => { creditsServiceOuvert = creditsPossibles ? null : creditsDeService; creditsOuverts = true; }}
             aria-haspopup="dialog" aria-expanded={creditsOuverts}
-            title={$tr('artist.credits' as any)}>
+            title={$tr('v2.album.creditsTip' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             {$tr('artist.credits' as any)}
           </button>
@@ -1622,7 +1780,8 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
       {#if album.id != null && !depot}
         <div class="actions local">
           <AlbumRating albumId={album.id} />
-          <button class="ghost" onclick={reidentifier} disabled={reidentification}>
+          <button class="ghost" onclick={reidentifier} disabled={reidentification}
+            title={$tr('v2.album.reidentifyTip' as any)}>
             {reidentification ? $tr('library.reidentifying') : $tr('library.reidentify')}
           </button>
           {#if album.cover_path}
@@ -1647,6 +1806,15 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
               aria-expanded={enEdition} title={$tr('v2.edition.modifyTip' as any)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
               {$tr('v2.edition.modify' as any)}
+            </button>
+          {/if}
+          <!-- Assistant IA, étape 1 — mêmes albums que « Modifier » : ceux de
+               la BIBLIOTHÈQUE, que l'assistant peut enrichir. -->
+          {#if edition && !enEdition}
+            <button class="ghost" data-suggestions-ia-album onclick={() => (suggestionsIa = true)}
+              title={$tr('assistantIa.album.tip' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>
+              {$tr('assistantIa.album.button' as any)}
             </button>
           {/if}
         </div>
@@ -1677,6 +1845,47 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         {/if}
       {/if}
     </div>
+  {/if}
+
+  <!-- #6480 — la présentation d'un album de SERVICE, en texte : jamais de
+       balisage interprété (`{@html}`), le serveur l'a déjà retiré. Un refus
+       (501) retire le bouton des fiches suivantes ; celle-ci dit pourquoi. -->
+  {#if presentationCible || presentation?.etat === 'refus'}
+    <div class="bio">
+      <button class="bio-toggle" onclick={basculerPresentation} aria-expanded={presentationOuverte}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        {presentationOuverte ? $tr('v2.album.hidePresentation' as any) : $tr('v2.album.presentation' as any)}
+      </button>
+      {#if presentationOuverte}
+        {#if presentationChargement}
+          <p class="bio-state">{$tr('v2.common.loading' as any)}</p>
+        {:else if presentation?.etat === 'texte'}
+          <ClampedText lines={4} resetKey={presentation.texte}>
+            <p class="bio-text presentation" lang={presentation.langue ?? undefined}>{presentation.texte}</p>
+          </ClampedText>
+        {:else if presentation?.etat === 'erreur'}
+          <p class="bio-state err">{$tr('v2.album.presentationError' as any)}</p>
+        {:else if presentation}
+          <p class="bio-state">{$tr('v2.album.noPresentation' as any)}</p>
+        {/if}
+      {/if}
+    </div>
+  {/if}
+
+  <!-- #4805 lot 1 (d'après MetaRust, de Xavier Joly) : complétude, BPM,
+       instruments Wikidata, propositions Discogs. Album de la BIBLIOTHÈQUE
+       seulement — la même garde que les crédits. -->
+  {#if creditsPossibles && album.id != null}
+    {#await import('./EnrichissementAlbumV2.svelte') then m}
+      <m.default albumId={album.id} pistes={tracks} pochette={pochetteRemplacee ?? albumAffiche.cover_path ?? null}
+        onPochette={(h) => (pochetteRemplacee = h)} />
+    {/await}
+  {/if}
+
+  {#if suggestionsIa && album.id != null}
+    <SuggestionsIaAlbumV2 albumId={album.id}
+      onClose={() => (suggestionsIa = false)}
+      onChange={() => (rechargement += 1)} />
   {/if}
 
   <div class="tracks">
@@ -1767,6 +1976,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
         enTetesDisque
         onLire={(_p, i) => playAlbum(i)}
         onLireDepuis={(_p, i) => playAlbum(i)}
+        onGesteDisque={gesteDisque}
       />
     {/if}
   </div>
@@ -1909,6 +2119,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  a.ghost.livret{text-decoration:none}
   /* Le cœur ACTIF garde le rouge : c'est un ÉTAT, pas une action — la même
      règle que sur les lignes de piste. */
   .coeur.on{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
@@ -1965,4 +2176,5 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   .bio-text{margin:0; color:var(--v2-txt2); font-size:14px; line-height:1.65; max-width:70ch}
   .bio-state{margin:0; color:var(--v2-txt3); font-size:13px; font-style:italic}
   .bio-state.err{color:var(--v2-danger)}
+  .bio-text.presentation{white-space:pre-line}
 </style>

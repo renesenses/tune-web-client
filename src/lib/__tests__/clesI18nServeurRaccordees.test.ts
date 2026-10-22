@@ -51,7 +51,7 @@ import {
 } from '../collectionsLibelles';
 
 const RACINE = resolve(__dirname, '../../..');
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu'] as const;
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi'] as const;
 
 /* ─────────────────────────────────────────────────────────────────────────
  * Le décor : un serveur À JOUR, et un serveur ANCIEN.
@@ -238,7 +238,7 @@ describe('Radios — le PAYS suit enfin la langue (capture Silviu)', () => {
     expect(rendus).toEqual([
       'Royaume-Uni', 'United Kingdom', 'Vereinigtes Königreich', 'Reino Unido',
       'Regno Unito', '英国', 'イギリス', '영국', 'Regatul Unit', 'Storbritannien',
-      'Egyesült Királyság',
+      'Egyesült Királyság', 'Vương quốc Anh',
     ]);
     // Onze langues, onze libellés — dont aucun n'est le code nu.
     expect(rendus).not.toContain('GB');

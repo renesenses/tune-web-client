@@ -56,6 +56,15 @@
   --mini-player-height: 56px;
 }
 
+/* Vietnamien : Lato n'a pas de sous-ensemble `vietnamese` sur Google Fonts
+   (ế, ạ, ộ… tomberaient, glyphe par glyphe, sur la police système). Inter,
+   déjà chargée, l'a : le corps bascule sur elle. Cormorant Garamond (titres)
+   l'a aussi. `<html lang>` est tenu par i18n.ts. */
+:root:lang(vi) {
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
 /* Tablet: sidebar collapsée */
 @media (max-width: 1024px) {
   :root { --sidebar-width: var(--sidebar-collapsed-width); }

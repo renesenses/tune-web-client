@@ -181,7 +181,7 @@ async function cliquer(b: HTMLButtonElement) {
   flushSync();
 }
 
-const lectures = () => appels.filter((a) => a.methode === 'POST' && /\/zones\/1\/play$/.test(a.url));
+const lectures = () => appels.filter((a) => a.methode === 'POST' && /\/zones\/1\/play(?:\?lang=[a-z]{2})?$/.test(a.url));
 
 describe('« Vos tops » — les lignes sont des gestes', () => {
   beforeEach(() => {

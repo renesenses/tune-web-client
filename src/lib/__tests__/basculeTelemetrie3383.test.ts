@@ -37,9 +37,10 @@ import ko from '../locales/ko';
 import ro from '../locales/ro';
 import sv from '../locales/sv';
 import hu from '../locales/hu';
+import viLocale from '../locales/vi';
 
 const LANGUES: Record<string, Record<string, string>> = {
-  fr, en, de, es, it: itLocale, zh, ja, ko, ro, sv, hu,
+  fr, en, de, es, it: itLocale, zh, ja, ko, ro, sv, hu, vi: viLocale,
 } as never;
 
 

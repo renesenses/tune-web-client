@@ -98,6 +98,9 @@ export function zoneTypeLabel(type?: OutputType | null): string {
      */
     case 'oaat':
       return 'OAAT';
+    // #6542 — le nom du protocole tel que Devialet l'écrit.
+    case 'devialet_air':
+      return 'Devialet AIR';
     case 'local':
       return '';
     default:

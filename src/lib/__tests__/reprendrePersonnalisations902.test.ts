@@ -39,7 +39,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu'];
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi'];
 const CLES = [
   'onboarding.restoreTitle',
   'onboarding.restoreDesc',

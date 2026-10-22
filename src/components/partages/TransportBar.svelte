@@ -20,6 +20,7 @@
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import { basculerAleatoire } from '../../lib/aleatoireFile';
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { atteintLeSon } from '../../lib/porteeReglage';
   import { gainIgnoreParPure, gainReplayGainApplique, replayGainActif } from '../../lib/pureReplayGain';
@@ -51,6 +52,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { fullVolumeConfirmationRequired } from '../../lib/audiophileSafety';
   import { zonesDuSelecteur } from '../../lib/zonesSelecteur';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
+  import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
   import {
     audiophileEnabled,
     audiophileGlobalLockVolume,
@@ -74,7 +76,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   // --- Mobile Volume Popup ---
   let mobileVolumeOpen = $state(false);
   let mobileVol = $derived($zoneVolume);
-  let mobileIsMuted = $derived(mobileVol === 0 && $mutedVolume !== null);
+  // #6700 — la sourdine est l'état `muted` de la zone, pas un volume à zéro.
+  let mobileIsMuted = $derived($currentZone?.muted === true);
 
   // Miroir local obligatoire pour les zones navigateur : le serveur ignore
   // leur volume (set_volume_no_device_id), l'<audio> de cet onglet doit être
@@ -92,7 +95,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
     const val = Number((e.target as HTMLInputElement).value);
-    if (val > 0) mutedVolume.set(null);
+    leverSourdineSiBesoin({ ...z, id: z.id }, val);
     applyMobileVolume(z, val);
     const zoneId = z.id;
     limiterEnvoiMobile(() => { void api.setVolume(zoneId, val); });
@@ -102,27 +105,16 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
     const newVal = Math.max(0, Math.min(1, mobileVol + delta));
-    if (newVal > 0) mutedVolume.set(null);
+    if (delta > 0) leverSourdineSiBesoin({ ...z, id: z.id }, newVal);
     applyMobileVolume(z, newVal);
     await api.setVolume(z.id, newVal);
   }
 
+  // #6700 — une VRAIE sourdine (`muted`), le volume n'est pas touché.
   async function toggleMobileMute() {
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
-    if (mobileVol > 0) {
-      mutedVolume.set(mobileVol);
-      applyMobileVolume(z, 0);
-      await api.setVolume(z.id, 0);
-    } else if ($mutedVolume !== null) {
-      const restore = $mutedVolume;
-      mutedVolume.set(null);
-      applyMobileVolume(z, restore);
-      await api.setVolume(z.id, restore);
-    } else {
-      applyMobileVolume(z, 0.5);
-      await api.setVolume(z.id, 0.5);
-    }
+    await basculerSourdineZone({ ...z, id: z.id }).catch(() => {});
   }
 
   // --- Sleep Timer ---
@@ -503,6 +495,20 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   let track = $derived($currentTrack);
   let playState = $derived($playbackState);
   let configZone = $state<typeof zone | null>(null);
+  /** web#2141 — la section où ouvrir la fenêtre de la zone. */
+  let configSection = $state<'groupe' | null>(null);
+  /**
+   * web#2141 (Didier, fil 2215) — la lecture groupée n'était atteignable que
+   * par un CLIC DROIT sur le bouton de zone : introuvable, et impossible au
+   * doigt. Le sélecteur de zones, qui s'ouvre au clic comme au toucher, porte
+   * désormais une entrée qui ouvre la même fenêtre, à la section du geste.
+   */
+  function ouvrirLectureGroupee() {
+    if (!zone) return;
+    $selecteurZoneOuvert = false;
+    configSection = 'groupe';
+    configZone = zone;
+  }
 
   /* ------------------------------------------------------------------ */
   /* TRANSFÉRER LA LECTURE VERS UNE AUTRE ZONE                          */
@@ -686,8 +692,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   async function toggleShuffle() {
     if (!zone?.id) return;
-    const result = await api.setShuffle(zone.id, !$shuffleEnabled);
-    shuffleEnabled.set(result.shuffle);
+    // tune-server-rust#6526 — le serveur réordonne la file : la bascule la relit.
+    shuffleEnabled.set(await basculerAleatoire(zone.id, !$shuffleEnabled));
   }
 
   async function cycleRepeat() {
@@ -1053,6 +1059,19 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
             -->
             </div>
           {/each}
+          {#if zone && zonesDuMenu.length > 1}
+            <button class="zone-popover-item zone-popover-groupe" data-lecture-groupee onclick={ouvrirLectureGroupee}
+              title={$t('zone.groupedPlaybackOpenTip' as any)}>
+              <span class="zone-popover-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><rect x="2" y="7" width="8" height="10" rx="2"/><rect x="14" y="7" width="8" height="10" rx="2"/><path d="M10 12h4"/></svg>
+              </span>
+              <!-- Pas `zone-popover-name` : ce n'est pas une zone, et la liste
+                   des noms de zones ne doit pas la compter. -->
+              <span class="zone-popover-labels">
+                <span class="zone-popover-geste truncate">{$t('zone.groupedPlaybackOpen' as any)}</span>
+              </span>
+            </button>
+          {/if}
         </div>
 {/snippet}
 
@@ -1522,7 +1541,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         class:zone-offline={zone?.online === false && zone?.recovery_started_at == null}
         class:zone-online={zone?.online !== false && zone?.recovery_started_at == null}
         onclick={(e) => { e.stopPropagation(); $selecteurZoneOuvert = !$selecteurZoneOuvert; }}
-        oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); if (zone) configZone = zone; }}
+        oncontextmenu={(e) => { e.preventDefault(); e.stopPropagation(); if (zone) { configSection = null; configZone = zone; } }}
         title={zone ? `${zoneFullLabel(zone)} — ${$t('zone.switchZone')}` : $t('zone.switchZone')}
         aria-label={zone ? zoneFullLabel(zone) : $t('zone.switchZone')}
       >
@@ -1743,8 +1762,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     zone={configZone}
     allZones={$zones}
     groups={[]}
-    onClose={() => configZone = null}
-    onDelete={async (id) => { await supprimerZoneConfirmee(id); configZone = null; }}
+    section={configSection}
+    onClose={() => { configZone = null; configSection = null; }}
+    onDelete={async (id) => { await supprimerZoneConfirmee(id); configZone = null; configSection = null; }}
     onGroupChanged={() => {}}
     onRenamed={() => {}}
   />
@@ -2618,6 +2638,18 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   .zone-popover-row:last-child {
     border-radius: 0 0 12px 12px;
     overflow: hidden;
+  }
+
+  /* web#2141 — « Lecture groupée… », en pied du sélecteur, séparée des zones :
+     ce n'est pas une zone de plus, c'est un geste sur la zone pilotée. */
+  .zone-popover-groupe {
+    width: 100%;
+    border-top: 1px solid var(--tune-border);
+    border-radius: 0 0 12px 12px;
+    color: var(--tune-text-secondary);
+  }
+  .zone-popover-groupe:hover {
+    background: var(--tune-surface-hover);
   }
 
   .zone-popover-item {

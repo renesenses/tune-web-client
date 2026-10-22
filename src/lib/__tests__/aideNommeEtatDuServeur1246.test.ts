@@ -28,7 +28,7 @@ import { dictionnaire } from './onzeDictionnaires';
 
 vi.setConfig({ testTimeout: 30_000 });
 
-const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'] as const;
+const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi'] as const;
 
 class ObservateurInerte {
   observe() {}

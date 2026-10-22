@@ -24,6 +24,7 @@ import ro from '../locales/ro';
 import sv from '../locales/sv';
 import zh from '../locales/zh';
 import hu from '../locales/hu';
+import viLocale from '../locales/vi';
 
 /**
  * « Autres versions de ce titre » dans le menu « … » d'une piste — #2372.
@@ -61,7 +62,7 @@ const LANGUES: [string, Dict][] = [
   ['ro', ro as Dict],
   ['sv', sv as Dict],
   ['zh', zh as Dict],
-  ['hu', hu as Dict],
+  ['hu', hu as Dict], ['vi', viLocale as Dict],
 ];
 
 /** Les clés que ce lot introduit. */
@@ -164,7 +165,7 @@ describe('api.ts — la route par piste', () => {
 
 describe('i18n — les onze langues livrées', () => {
   it('couvre bien onze langues', () => {
-    expect(LANGUES).toHaveLength(11);
+    expect(LANGUES).toHaveLength(12);
   });
 
   for (const cle of CLES) {

@@ -38,6 +38,8 @@
   import { filtrerParSaisie } from '../../lib/filtreSaisieOnglet';
   import { chargerRubriquesGenre, type BandeRubrique } from '../../lib/rubriquesGenre';
   import { chargerPlaylistsDuGenre } from '../../lib/playlistsDuGenre';
+  import { sansLaPlaylistRetiree } from '../../lib/playlistsSuiviesRetrait';
+  import { compterParAuteur, filtrerParAuteur, filtreAuteurUtile, type FiltreAuteur } from '../../lib/filtreAuteurPlaylists';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -608,7 +610,14 @@
   }
 
   // Ce que montrent les onglets FILTRÉS par la saisie (#2030).
-  const playlistsVues = $derived(filtrerParSaisie(myPlaylists, q));
+  // #6331 — « Tous / Par vous / Par Qobuz ». Le filtre n'agit que s'il est
+  // offert : un service sans drapeau `editable` ne doit pas garder un choix
+  // posé ailleurs et afficher une liste vide.
+  let filtreAuteur = $state<FiltreAuteur>('tous');
+  const auteurOffert = $derived(filtreAuteurUtile(compterParAuteur(myPlaylists)));
+  const playlistsSaisies = $derived(filtrerParSaisie(myPlaylists, q));
+  const comptesAuteur = $derived(compterParAuteur(playlistsSaisies));
+  const playlistsVues = $derived(filtrerParAuteur(playlistsSaisies, auteurOffert ? filtreAuteur : 'tous'));
   const favAlbumsVus = $derived(filtrerParSaisie(favAlbums, q));
   const favArtistsVus = $derived(filtrerParSaisie(favArtists, q));
   const favTracksVus = $derived(filtrerParSaisie(favTracks, q));
@@ -1054,6 +1063,22 @@
     playAndSync(zid, { source: svc as any, source_id: String(sid) })
       .catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
+  /**
+   * tune-server-rust#6461 — le cœur retiré d'une playlist SUIVIE, dans Qobuz ›
+   * Playlists, la sort de la bibliothèque du service : elle sort aussi de la
+   * liste, tout de suite, puis la liste est relue (le serveur a purgé la
+   * sienne). Une relecture ratée garde la liste déjà corrigée.
+   */
+  function apresCoeurPlaylist(serviceId: string, etat: boolean | null) {
+    const avant = myPlaylists.length;
+    myPlaylists = sansLaPlaylistRetiree(myPlaylists, serviceId, etat);
+    const svc = active;
+    if (myPlaylists.length === avant || !svc) return;
+    api.getStreamingPlaylists(svc)
+      .then((p) => { if (active === svc && sub === 'playlists') myPlaylists = p ?? []; })
+      .catch(() => {});
+  }
+
   function playPlaylist(p: any) {
     const zid = zoneRequise();
     if (zid == null) return;
@@ -1653,6 +1678,18 @@
       {/if}
 
     {:else if sub === 'playlists'}
+      {#if auteurOffert}
+        <div class="chips auteur" role="group" aria-label={$t('v2.str.plAuthorGroup' as any)}>
+          {#each [
+            { id: 'tous' as FiltreAuteur, libelle: $t('v2.str.plAuthorAll' as any), n: comptesAuteur.tous },
+            { id: 'moi' as FiltreAuteur, libelle: $t('v2.str.plAuthorMe' as any), n: comptesAuteur.moi },
+            { id: 'service' as FiltreAuteur, libelle: $t('v2.str.plAuthorService' as any).replace('{s}', label(active ?? '')), n: comptesAuteur.service },
+          ] as f (f.id)}
+            <button class="chip" class:active={filtreAuteur === f.id} aria-pressed={filtreAuteur === f.id}
+              onclick={() => (filtreAuteur = f.id)}>{f.libelle} <span class="n">{f.n}</span></button>
+          {/each}
+        </div>
+      {/if}
       {#if playlistsVues.length}
         <div class="grid">{#each playlistsVues as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
       {:else if myPlaylists.length}
@@ -1870,7 +1907,9 @@
               coverUrl: pCover(p) ?? undefined,
               // #5530 — le marquage IA de l'album, quand le service l'a rendu.
               aiGenerated: typeof p?.ai_generated === 'boolean' ? p.ai_generated : undefined,
-            })
+            }, type === 'playlist' && sub === 'playlists'
+              ? (etat) => apresCoeurPlaylist(String(p?.source_id ?? ''), etat)
+              : undefined)
           : null}
       >
         <AlbumArt coverPath={pCover(p)} albumId={null} size={0} vignette alt={pTitle(p)} source={p?.source ?? active} fallbackInitials={pTitle(p).slice(0,1)} />
@@ -2036,6 +2075,7 @@
     font:600 12px var(--v2-sans); cursor:pointer}
   .sommaire .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
   .sommaire .chip .n{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .chips.auteur .chip .n{font:11px var(--v2-mono); opacity:.75}
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
   /* Le cœur de l'artiste Bandcamp (#4577) s'aligne sur le nom sans le
      décaler : `HeartButton` porte déjà sa taille, on ne lui donne qu'une
