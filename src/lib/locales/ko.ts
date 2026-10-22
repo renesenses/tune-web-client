@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "설치",
+  "v2.lic.activate": "활성화",
   "sacdIso.title": "SACD ISO",
   "sacdIso.available": "Tune은 SACD ISO를 직접 읽습니다. 서버에서 찾은 sacd_extract는 DST 디스크(압축 DSD)에만 쓰이며, 모든 디스크의 추출을 보장하지는 않습니다.",
   "sacdIso.missing": "Tune은 SACD ISO를 직접 읽습니다. 이를 위해 설치할 것은 없습니다. sacd_extract는 DST 디스크(압축 DSD)에만 필요하며, 이 서버에서는 찾지 못했습니다. DST 디스크가 있다면 별도로 설치하고, PATH를 변경했다면 Tune을 다시 시작한 후 다시 스캔하세요.",

@@ -6400,7 +6400,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <input class="txt" type="text" placeholder="XXXX-XXXX-XXXX" bind:value={licKey}
                       disabled={licBusy} onkeydown={(e) => { if (e.key === 'Enter') activateLic(); }} />
                     <button class="lnk" disabled={licBusy || !licKey.trim()} onclick={activateLic}>
-                      {licBusy ? '…' : 'Activer'}
+                      {licBusy ? '…' : $t('v2.lic.activate' as any)}
                     </button>
                   </div>
                 </div>
@@ -6777,7 +6777,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="hint">{$t('settings.remoteAccessHint' as any)}</span>
                 </div>
                 <button class="lnk" class:danger={brEnabled} onclick={toggleBridge} disabled={brBusy}>
-                  {brBusy ? '…' : brEnabled ? 'Désactiver' : 'Activer'}
+                  {brBusy ? '…' : brEnabled ? $t('settings.disable' as any) : $t('settings.enable' as any)}
                 </button>
               </div>
               {#if brEnabled}
@@ -7149,7 +7149,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="dev net">
                     <input type="checkbox" checked={!$preferences.hiddenDeviceIds.includes(pid)}
                       onchange={() => toggleDevice(pid)} aria-label={`Afficher ${d.name}`} />
-                    <span class="dn" use:bulleTexte>{d.name}</span>
+                    <span class="dn" use:bulleTexte>{(d.name ?? '').trim()}</span>
                     <span class="dt">{netLabel(d.type)}</span>
                     {#if d.host}<span class="dh">{d.host}</span>{/if}
                     {#if isAir}
@@ -7333,7 +7333,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {@const pid = `audio:${d.id}`}
                   <label class="dev">
                     <input type="checkbox" checked={!$preferences.hiddenDeviceIds.includes(pid)} onchange={() => toggleDevice(pid)} />
-                    <span class="dn" use:bulleTexte>{d.name}</span>
+                    <span class="dn" use:bulleTexte>{(d.name ?? '').trim()}</span>
                     <span class="dt">{etiquetteCaracteristiques(d)}</span>
                   </label>
                 {:else}
@@ -7750,7 +7750,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     color:var(--v2-txt2); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
   .acts{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
   .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
-  .dev.net{grid-template-columns:auto minmax(0,1fr) auto auto auto; cursor:default}
+  /* Une ligne d'appareil réseau a 4 à 7 éléments selon le type (type, hôte,
+     bouton « Appairer » ou saisie du PIN pour AirPlay) : une grille à colonnes
+     fixes renvoyait la croix à la ligne suivante sur les enceintes AirPlay
+     (Sonos Move, One, Play:5 — retour d'Alex Campbell, 22/10/2026). En flex,
+     le nom prend la place libre et la croix reste au bout de SA ligne. */
+  .dev.net{display:flex; flex-wrap:nowrap; align-items:center; cursor:default}
+  .dev.net .dn{flex:1 1 auto}
+  .dev.net .del{margin-left:auto; flex:0 0 auto}
   .dev.ign{grid-template-columns:minmax(0,1fr) auto auto auto; cursor:default}
   .dev.ign.ko .dt{color:var(--v2-danger)}
   .devlist.smb{margin-top:14px}

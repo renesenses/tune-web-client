@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "Telepítés",
+  "v2.lic.activate": "Aktiválás",
   "sacdIso.title": "SACD ISO",
   "sacdIso.available": "A Tune maga olvassa a SACD ISO-kat. A szerveren észlelt sacd_extract csak a DST lemezekhez (tömörített DSD) kell, és nem garantálja mindegyik kibontását.",
   "sacdIso.missing": "A Tune maga olvassa a SACD ISO-kat: ezekhez semmit sem kell telepíteni. Csak a DST lemezekhez (tömörített DSD) kell a sacd_extract, amelyet ezen a szerveren nem észlelt. Ha vannak ilyen lemezei, telepítse külön, a PATH módosítása után indítsa újra a Tune-t, majd olvassa be újra a könyvtárat.",
