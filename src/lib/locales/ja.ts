@@ -1246,6 +1246,7 @@ export default {
   "devices.gainTrim": "ゲイントリム",
   "devices.gainTrimHint": "このデバイスに送るボリュームに適用する dB オフセットです。ゾーン間の聴感上の音量を揃えます。表示されるボリュームには影響しません。",
   "devices.gainTrimFixedVolume": "固定ボリュームが有効：トリムは無効です（ビットパーフェクト）。",
+  "devices.gainTrimPositiveIgnoredHardware": "ハードウェア音量のネットワークゾーン：正のトリムは無効です。Tune は要求された音量を超える値をデバイスに送りません（安全のため）。負のトリムのみ適用されます。",
   "devices.volumeLimitSafety": "安全上限",
   "devices.volumeLimitComfort": "快適上限",
   "devices.volumeLimitNone": "なし",

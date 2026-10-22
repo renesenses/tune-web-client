@@ -1386,6 +1386,7 @@ export default {
   "devices.gainTrim": "Trim de gain",
   "devices.gainTrimHint": "Décalage en dB appliqué au volume envoyé à cet appareil, pour harmoniser le niveau perçu entre zones. N'affecte pas le volume affiché.",
   "devices.gainTrimFixedVolume": "Volume fixe actif : le trim est sans effet (bit-perfect).",
+  "devices.gainTrimPositiveIgnoredHardware": "Zone réseau à volume matériel : un trim positif est sans effet, Tune n'envoie jamais à l'appareil plus que le volume demandé (sécurité). Seul un trim négatif s'applique.",
   "devices.volumeLimitSafety": "Limite de sécurité",
   "devices.volumeLimitComfort": "Limite de confort",
   "devices.volumeLimitNone": "aucune",

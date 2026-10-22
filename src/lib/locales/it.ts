@@ -1246,6 +1246,7 @@ export default {
   "devices.gainTrim": "Trim di guadagno",
   "devices.gainTrimHint": "Offset in dB applicato al volume inviato a questo dispositivo, per uniformare il livello percepito tra le zone. Non influisce sul volume visualizzato.",
   "devices.gainTrimFixedVolume": "Volume fisso attivo: il trim non ha effetto (bit-perfect).",
+  "devices.gainTrimPositiveIgnoredHardware": "Zona di rete con volume hardware: un trim positivo non ha effetto; Tune non invia mai al dispositivo più del volume richiesto (sicurezza). Si applica solo un trim negativo.",
   "devices.volumeLimitSafety": "Limite di sicurezza",
   "devices.volumeLimitComfort": "Limite di comfort",
   "devices.volumeLimitNone": "nessuno",

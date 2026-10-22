@@ -1263,6 +1263,7 @@ export default {
   "devices.gainTrim": "Tinh chỉnh gain",
   "devices.gainTrimHint": "Độ lệch tính bằng dB áp dụng cho âm lượng gửi tới thiết bị này, để cân bằng độ lớn cảm nhận giữa các vùng phát. Không ảnh hưởng tới âm lượng hiển thị.",
   "devices.gainTrimFixedVolume": "Âm lượng cố định đang bật: tinh chỉnh không có tác dụng (bit-perfect).",
+  "devices.gainTrimPositiveIgnoredHardware": "Vùng phát mạng dùng âm lượng phần cứng: tinh chỉnh dương không có tác dụng; Tune không bao giờ gửi tới thiết bị mức cao hơn âm lượng yêu cầu (an toàn). Chỉ tinh chỉnh âm được áp dụng.",
   "devices.volumeLimitSafety": "Giới hạn an toàn",
   "devices.volumeLimitComfort": "Giới hạn thoải mái",
   "devices.volumeLimitNone": "không có",

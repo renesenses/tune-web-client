@@ -1230,6 +1230,7 @@ export default {
   "devices.gainTrim": "게인 트림",
   "devices.gainTrimHint": "이 기기로 전송되는 볼륨에 적용되는 dB 오프셋으로, 존 간 체감 음량을 맞춥니다. 표시되는 볼륨에는 영향을 주지 않습니다.",
   "devices.gainTrimFixedVolume": "고정 볼륨 활성화: 트림이 적용되지 않습니다(비트 퍼펙트).",
+  "devices.gainTrimPositiveIgnoredHardware": "하드웨어 볼륨 네트워크 존: 양의 트림은 적용되지 않습니다. Tune은 요청한 볼륨보다 큰 값을 기기에 보내지 않습니다(안전). 음의 트림만 적용됩니다.",
   "devices.volumeLimitSafety": "안전 한도",
   "devices.volumeLimitComfort": "쾌적 한도",
   "devices.volumeLimitNone": "없음",

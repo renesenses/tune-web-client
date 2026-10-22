@@ -1327,6 +1327,7 @@ export default {
   "devices.gainTrim": "Erősítés finomhangolása",
   "devices.gainTrimHint": "Az eszközre küldött hangerőre alkalmazott dB-eltolás, hogy a zónák érzékelt hangossága kiegyenlítődjön. A megjelenített hangerőt nem érinti.",
   "devices.gainTrimFixedVolume": "A rögzített hangerő be van kapcsolva: a finomhangolásnak nincs hatása (bit-perfect).",
+  "devices.gainTrimPositiveIgnoredHardware": "Hardveres hangerejű hálózati zóna: a pozitív finomhangolásnak nincs hatása; a Tune soha nem küld az eszköznek a kértnél nagyobb hangerőt (biztonság). Csak a negatív finomhangolás érvényes.",
   "devices.volumeLimitSafety": "Biztonsági határ",
   "devices.volumeLimitComfort": "Kényelmi határ",
   "devices.volumeLimitNone": "nincs",

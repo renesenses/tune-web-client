@@ -1246,6 +1246,7 @@ export default {
   "devices.gainTrim": "Ajuste de ganancia",
   "devices.gainTrimHint": "Desfase en dB aplicado al volumen enviado a este dispositivo, para igualar el nivel percibido entre zonas. No afecta al volumen mostrado.",
   "devices.gainTrimFixedVolume": "Volumen fijo activo: el ajuste no tiene efecto (bit-perfect).",
+  "devices.gainTrimPositiveIgnoredHardware": "Zona de red con volumen de hardware: un ajuste positivo no tiene efecto; Tune nunca envía al dispositivo más que el volumen pedido (seguridad). Solo se aplica un ajuste negativo.",
   "devices.volumeLimitSafety": "Límite de seguridad",
   "devices.volumeLimitComfort": "Límite de confort",
   "devices.volumeLimitNone": "ninguno",
