@@ -1214,6 +1214,7 @@ export default {
   "devices.gainTrim": "Gain-trim",
   "devices.gainTrimHint": "Förskjutning i dB som tillämpas på volymen som skickas till denna enhet, för att jämna ut upplevd ljudnivå mellan zoner. Påverkar inte den visade volymen.",
   "devices.gainTrimFixedVolume": "Fast volym aktiv: trimmen har ingen effekt (bit-perfekt).",
+  "devices.gainTrimPositiveIgnoredHardware": "Nätverkszon med hårdvaruvolym: en positiv trim har ingen effekt; Tune skickar aldrig mer än den begärda volymen till enheten (säkerhet). Endast en negativ trim tillämpas.",
   "devices.volumeLimitSafety": "Säkerhetsgräns",
   "devices.volumeLimitComfort": "Komfortgräns",
   "devices.volumeLimitNone": "ingen",

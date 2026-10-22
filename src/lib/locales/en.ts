@@ -1383,6 +1383,7 @@ export default {
   "devices.gainTrim": "Gain trim",
   "devices.gainTrimHint": "Offset in dB applied to the volume sent to this device, to even out perceived loudness across zones. Does not affect the displayed volume.",
   "devices.gainTrimFixedVolume": "Fixed volume enabled: the trim has no effect (bit-perfect).",
+  "devices.gainTrimPositiveIgnoredHardware": "Network zone with hardware volume: a positive trim has no effect; Tune never sends the device more than the requested volume (safety). Only a negative trim applies.",
   "devices.volumeLimitSafety": "Safety limit",
   "devices.volumeLimitComfort": "Comfort limit",
   "devices.volumeLimitNone": "none",

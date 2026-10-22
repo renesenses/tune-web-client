@@ -1246,6 +1246,7 @@ export default {
   "devices.gainTrim": "增益微调",
   "devices.gainTrimHint": "应用于发送到此设备的音量的 dB 偏移，用于统一各区域的感知响度。不影响显示的音量。",
   "devices.gainTrimFixedVolume": "固定音量已启用：微调无效（比特完美）。",
+  "devices.gainTrimPositiveIgnoredHardware": "硬件音量的网络区域：正向微调无效；Tune 发送给设备的音量绝不会高于所请求的音量（安全）。仅负向微调生效。",
   "devices.volumeLimitSafety": "安全上限",
   "devices.volumeLimitComfort": "舒适上限",
   "devices.volumeLimitNone": "无",

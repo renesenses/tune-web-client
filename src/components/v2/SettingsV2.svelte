@@ -5572,6 +5572,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <span class="tv" class:neutre={trimDe(z) === 0}>{trimDe(z) > 0 ? '+' : ''}{trimDe(z).toFixed(1)} dB</span>
                         {#if z.fixed_volume}<span class="tf">{$t('devices.gainTrimFixedVolume' as any)}</span>{/if}
                       </div>
+                      <!-- tune-server-rust#6739 (fil 2366/2375, tweeter détruit) —
+                           sur une sortie à volume matériel (tout sauf `local`),
+                           le serveur IGNORE un trim positif : il ne dépasse
+                           jamais la consigne envoyée à l'appareil. On le dit. -->
+                      {#if !z.fixed_volume && trimDe(z) > 0 && (z.output_type ?? 'local') !== 'local'}
+                        <p class="monote trim-materiel">{$t('devices.gainTrimPositiveIgnoredHardware' as any)}</p>
+                      {/if}
                       <p class="monote">{$t('devices.gainTrimHint' as any)}</p>
 
                       <!-- tune-server-rust#6541 — limites de volume (fil 2335).

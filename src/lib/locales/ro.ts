@@ -1252,6 +1252,7 @@ export default {
   "devices.gainTrim": "Trim de câștig",
   "devices.gainTrimHint": "Decalaj în dB aplicat volumului trimis către acest dispozitiv, pentru a uniformiza nivelul perceput între zone. Nu afectează volumul afișat.",
   "devices.gainTrimFixedVolume": "Volum fix activ: trim-ul nu are efect (bit-perfect).",
+  "devices.gainTrimPositiveIgnoredHardware": "Zonă de rețea cu volum hardware: un trim pozitiv nu are efect; Tune nu trimite niciodată dispozitivului mai mult decât volumul cerut (siguranță). Se aplică doar un trim negativ.",
   "devices.volumeLimitSafety": "Limită de siguranță",
   "devices.volumeLimitComfort": "Limită de confort",
   "devices.volumeLimitNone": "niciuna",

@@ -1246,6 +1246,7 @@ export default {
   "devices.gainTrim": "Gain-Trim",
   "devices.gainTrimHint": "Versatz in dB auf die an dieses Gerät gesendete Lautstärke, um die wahrgenommene Lautheit zwischen Zonen anzugleichen. Die angezeigte Lautstärke bleibt unverändert.",
   "devices.gainTrimFixedVolume": "Feste Lautstärke aktiv: der Trim hat keine Wirkung (Bit-perfekt).",
+  "devices.gainTrimPositiveIgnoredHardware": "Netzwerkzone mit Hardware-Lautstärke: ein positiver Trim hat keine Wirkung; Tune sendet dem Gerät nie mehr als die gewünschte Lautstärke (Sicherheit). Nur ein negativer Trim wird angewendet.",
   "devices.volumeLimitSafety": "Sicherheitsgrenze",
   "devices.volumeLimitComfort": "Komfortgrenze",
   "devices.volumeLimitNone": "keine",
