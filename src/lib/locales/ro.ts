@@ -5505,6 +5505,19 @@ export default {
   "accesCompte.retourEnCours": "Conectare în curs…",
   "accesCompte.fermer": "Ascundeți",
   "accesCompte.reessayer": "Reîncercați",
+  "scanDetenteur.origine.startup": "Scanare la pornire",
+  "scanDetenteur.origine.manual": "Scanare pornită manual",
+  "scanDetenteur.origine.scheduled": "Scanare programată",
+  "scanDetenteur.origine.late_network_mount": "Scanarea unei partajări de rețea montate cu întârziere",
+  "scanDetenteur.origine.music_dir_added": "Scanarea unui dosar adăugat",
+  "scanDetenteur.origine.import": "Scanarea unui import",
+  "scanDetenteur.origine.cd_rip": "Scanarea unei extrageri de CD",
+  "scanDetenteur.origine.inconnue": "Scanare de origine necunoscută",
+  "scanDetenteur.dossier": "dosarul {chemin}",
+  "scanDetenteur.toute": "întreaga bibliotecă",
+  "scanDetenteur.depuis": "de la {heure}",
+  "scanDetenteur.residuel": "Stare reziduală: nicio scanare nu rulează de fapt. „Oprește” o resetează.",
+  "scanDetenteur.refus409": "Serverul a refuzat: o altă scanare este deja în curs ({scan}). Reîncercați după ce se termină.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

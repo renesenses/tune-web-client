@@ -5505,6 +5505,19 @@ export default {
   "accesCompte.retourEnCours": "Iniciando sesión…",
   "accesCompte.fermer": "Ocultar",
   "accesCompte.reessayer": "Reintentar",
+  "scanDetenteur.origine.startup": "Escaneo de inicio",
+  "scanDetenteur.origine.manual": "Escaneo iniciado manualmente",
+  "scanDetenteur.origine.scheduled": "Escaneo programado",
+  "scanDetenteur.origine.late_network_mount": "Escaneo de un recurso de red montado con retraso",
+  "scanDetenteur.origine.music_dir_added": "Escaneo de una carpeta añadida",
+  "scanDetenteur.origine.import": "Escaneo de una importación",
+  "scanDetenteur.origine.cd_rip": "Escaneo de una extracción de CD",
+  "scanDetenteur.origine.inconnue": "Escaneo de origen desconocido",
+  "scanDetenteur.dossier": "carpeta {chemin}",
+  "scanDetenteur.toute": "toda la biblioteca",
+  "scanDetenteur.depuis": "desde las {heure}",
+  "scanDetenteur.residuel": "Estado residual: no hay ningún escaneo en curso. «Detener» lo restablece.",
+  "scanDetenteur.refus409": "El servidor lo rechazó: ya hay otro escaneo en curso ({scan}). Vuelva a intentarlo cuando termine.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

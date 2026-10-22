@@ -5464,6 +5464,19 @@ export default {
   "accesCompte.retourEnCours": "Bejelentkezés…",
   "accesCompte.fermer": "Elrejtés",
   "accesCompte.reessayer": "Újra",
+  "scanDetenteur.origine.startup": "Indításkori vizsgálat",
+  "scanDetenteur.origine.manual": "Kézzel indított vizsgálat",
+  "scanDetenteur.origine.scheduled": "Ütemezett vizsgálat",
+  "scanDetenteur.origine.late_network_mount": "Késve csatolt hálózati megosztás vizsgálata",
+  "scanDetenteur.origine.music_dir_added": "Hozzáadott mappa vizsgálata",
+  "scanDetenteur.origine.import": "Importálás vizsgálata",
+  "scanDetenteur.origine.cd_rip": "CD-rippelés vizsgálata",
+  "scanDetenteur.origine.inconnue": "Ismeretlen eredetű vizsgálat",
+  "scanDetenteur.dossier": "mappa: {chemin}",
+  "scanDetenteur.toute": "teljes könyvtár",
+  "scanDetenteur.depuis": "{heure} óta",
+  "scanDetenteur.residuel": "Maradvány állapot: valójában nem fut vizsgálat. A „Leállítás” visszaállítja.",
+  "scanDetenteur.refus409": "A szerver elutasította: már fut egy másik vizsgálat ({scan}). Próbálja újra, ha befejeződött.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
