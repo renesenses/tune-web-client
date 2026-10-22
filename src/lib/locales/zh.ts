@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.err.reseau": "无法连接提供商：请检查网络或地址。",
   "assistantIa.err.refus": "模型拒绝回答。",
   "assistantIa.err.reponse_invalide": "模型回答格式不符：请重试。",
+  "assistantIa.err.aucune_regle": "模型没有提出可用的规则：未创建任何内容。请用具体条件（流派、艺人、年代、时长等）重新表述。",
+  "assistantIa.playlist.garderUneRegle": "这些规则来自助手：请至少保留一条，否则播放列表将包含整个资料库。",
   "assistantIa.err.phrase_invalide": "请用一句话描述播放列表（最多 500 个字符）。",
   "assistantIa.err.album_introuvable": "未找到专辑。",
   "assistantIa.err.reglage_invalide": "设置被拒绝：请检查输入的值。",

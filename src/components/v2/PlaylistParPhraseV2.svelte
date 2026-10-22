@@ -25,6 +25,9 @@
   let phrase = $state('');
   let occupe = $state(false);
   let erreur = $state<string | null>(null);
+  /** #6731 — pourquoi aucune règle n'a été retenue. */
+  let ecartees = $state<{ regle: Record<string, unknown>; raison: string }[]>([]);
+  let nonTraduit = $state<string[]>([]);
   let proposition = $state<PropositionIa | null>(null);
   let depuisCache = $state(false);
   let cout = $state(0);
@@ -33,10 +36,15 @@
   async function proposer(e?: Event) {
     e?.preventDefault();
     if (!phrase.trim() || occupe) return;
-    occupe = true; erreur = null; proposition = null;
+    occupe = true; erreur = null; proposition = null; ecartees = []; nonTraduit = [];
     try {
       const r = await proposerPlaylistIa(phrase.trim());
-      if (estEchec(r)) { erreur = $t(cleDEchec(r.error) as any); return; }
+      if (estEchec(r)) {
+        erreur = $t(cleDEchec(r.error) as any);
+        ecartees = r.refusees ?? [];
+        nonTraduit = r.untranslated ?? [];
+        return;
+      }
       proposition = r.proposition;
       depuisCache = r.depuis_cache;
       cout = r.cout_eur;
@@ -71,6 +79,22 @@
     </form>
 
     {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}
+    {#if erreur && (ecartees.length || nonTraduit.length)}
+      <section class="res" data-ia-sans-regle>
+        {#if nonTraduit.length}
+          <h3>{$t('assistantIa.playlist.untranslated' as any)}</h3>
+          <ul class="regles">{#each nonTraduit as u, i (i)}<li>{u}</li>{/each}</ul>
+        {/if}
+        {#if ecartees.length}
+          <h3>{$t('assistantIa.playlist.refused' as any)}</h3>
+          <ul class="regles refusees">
+            {#each ecartees as r, i (i)}
+              <li><code>{String(r.regle?.field ?? '')}</code> — {$t(cleDeRaison(r.raison) as any)}</li>
+            {/each}
+          </ul>
+        {/if}
+      </section>
+    {/if}
 
     {#if proposition}
       <section class="res" data-ia-proposition>

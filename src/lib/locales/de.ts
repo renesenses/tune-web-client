@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.err.reseau": "Anbieter nicht erreichbar: Netzwerk oder Adresse prüfen.",
   "assistantIa.err.refus": "Das Modell hat die Antwort verweigert.",
   "assistantIa.err.reponse_invalide": "Die Antwort des Modells hat nicht das erwartete Format: Bitte erneut versuchen.",
+  "assistantIa.err.aucune_regle": "Das Modell hat keine verwendbare Regel vorgeschlagen: Es wurde nichts erstellt. Formulieren Sie mit einem konkreten Kriterium (Genre, Künstler, Jahre, Dauer…).",
+  "assistantIa.playlist.garderUneRegle": "Diese Regeln stammen vom Assistenten: Behalten Sie mindestens eine, sonst umfasst die Playlist die ganze Bibliothek.",
   "assistantIa.err.phrase_invalide": "Beschreiben Sie die Playlist in einem Satz (höchstens 500 Zeichen).",
   "assistantIa.err.album_introuvable": "Album nicht gefunden.",
   "assistantIa.err.reglage_invalide": "Einstellung abgelehnt: Eingaben prüfen.",

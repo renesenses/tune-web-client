@@ -5218,6 +5218,8 @@ export default {
   "assistantIa.err.reseau": "Không kết nối được nhà cung cấp: hãy kiểm tra mạng hoặc địa chỉ.",
   "assistantIa.err.refus": "Mô hình đã từ chối trả lời.",
   "assistantIa.err.reponse_invalide": "Câu trả lời của mô hình không đúng định dạng mong đợi: hãy thử lại.",
+  "assistantIa.err.aucune_regle": "Mô hình không đề xuất quy tắc nào dùng được: không có gì được tạo. Hãy diễn đạt lại với một tiêu chí cụ thể (thể loại, nghệ sĩ, năm, thời lượng…).",
+  "assistantIa.playlist.garderUneRegle": "Các quy tắc này đến từ trợ lý: hãy giữ ít nhất một quy tắc, nếu không danh sách phát sẽ lấy toàn bộ thư viện.",
   "assistantIa.err.phrase_invalide": "Hãy mô tả danh sách phát trong một câu (tối đa 500 ký tự).",
   "assistantIa.err.album_introuvable": "Không tìm thấy album.",
   "assistantIa.err.reglage_invalide": "Cài đặt bị từ chối: hãy kiểm tra các giá trị đã nhập.",

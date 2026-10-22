@@ -5365,6 +5365,8 @@ export default {
   "assistantIa.err.reseau": "プロバイダーに接続できません。ネットワークまたはアドレスを確認してください。",
   "assistantIa.err.refus": "モデルが回答を拒否しました。",
   "assistantIa.err.reponse_invalide": "モデルの回答が想定の形式ではありません。もう一度お試しください。",
+  "assistantIa.err.aucune_regle": "モデルは使用できるルールを提案しませんでした。何も作成されていません。具体的な条件（ジャンル、アーティスト、年代、長さなど）で言い換えてください。",
+  "assistantIa.playlist.garderUneRegle": "これらのルールはアシスタントの提案です。少なくとも1つ残してください。残さないとライブラリ全体が対象になります。",
   "assistantIa.err.phrase_invalide": "プレイリストを一文で説明してください（500 文字以内）。",
   "assistantIa.err.album_introuvable": "アルバムが見つかりません。",
   "assistantIa.err.reglage_invalide": "設定が拒否されました。入力値を確認してください。",

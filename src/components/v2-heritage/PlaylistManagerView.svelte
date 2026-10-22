@@ -47,6 +47,7 @@
   import { quatreDistinctes } from '../../lib/mosaique';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
+  import type { PropositionIa } from '../../lib/assistantIa';
   import { listResetNonce } from '../../lib/stores/navigation';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { untrack } from 'svelte';
@@ -61,6 +62,18 @@
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
 
   let viewTab = $state<'manual' | 'smart' | 'smart-ai'>('manual');
+
+  /**
+   * tune-server-rust#6731 — la barre latérale ouvre CET écran, et son onglet
+   * « Intelligentes » n'offrait pas « Créer par une phrase (IA) » : le bouton
+   * de l'assistant n'existait que dans `PlaylistsV2`, qu'aucune entrée de menu
+   * n'ouvre. Le .18, 22/10 : une playlist « Démo » enregistrée ici, à la main,
+   * sans règle. Même fenêtre et même éditeur que `PlaylistsV2`.
+   */
+  let parPhraseIa = $state(false);
+  let proposeIa = $state<PropositionIa | null>(null);
+  /** Remonte la liste après un enregistrement. */
+  let tourSmart = $state(0);
 
   async function handleSharePlaylist(playlistId: number) {
     try {
@@ -1840,7 +1853,27 @@
 </div>
 
 {#if viewTab === 'smart'}
-  <SmartPlaylistsView />
+  <div class="pm-smart">
+    <div class="pm-smart-ia">
+      <button class="v2-btn" onclick={() => (parPhraseIa = true)} data-playlist-ia>{$tr('assistantIa.playlist.button' as any)}</button>
+    </div>
+    {#key tourSmart}<SmartPlaylistsView />{/key}
+    {#if proposeIa}
+      {@const p = proposeIa}
+      {#await import('../v2/PlaylistSmartEditeurV2.svelte') then m}
+        <m.default id={null} propose={p}
+          onClose={() => (proposeIa = null)}
+          onSaved={() => { tourSmart += 1; }} />
+      {/await}
+    {/if}
+    {#if parPhraseIa}
+      {#await import('../v2/PlaylistParPhraseV2.svelte') then m}
+        <m.default
+          onClose={() => (parPhraseIa = false)}
+          onPropose={(p) => { parPhraseIa = false; proposeIa = p; }} />
+      {/await}
+    {/if}
+  </div>
 {:else if viewTab === 'smart-ai'}
   <SmartAIView />
 {:else}
@@ -4793,4 +4826,7 @@
   /* Le message de coupure premium d'un onglet. */
   .pm-premium{margin:0; padding:22px; text-align:center; color:var(--tune-text-secondary);
     font-size:13px; line-height:1.7; border:1px dashed var(--tune-border); border-radius:10px}
+  /* #6731 — l'éditeur IA se pose sur l'onglet (position absolue, inset 0). */
+  .pm-smart { position: relative; min-height: 70vh; }
+  .pm-smart-ia { display: flex; justify-content: flex-end; padding: 8px 16px 0; }
 </style>
