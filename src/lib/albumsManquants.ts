@@ -77,3 +77,60 @@ export function reponseDEchec(e: unknown): ReponseManquants {
   const code = (e as { code?: unknown } | null)?.code;
   return { statut: code === CODE_BIBLIOTHEQUE_ILLISIBLE ? 'bibliotheque_illisible' : 'indisponible' };
 }
+
+// ---------------------------------------------------------------------------
+// « Écouter » et « Ajouter aux favoris » — la suite de #6288
+// ---------------------------------------------------------------------------
+
+/** Un album manquant trouvé chez un service connecté. */
+export interface ManqueSurUnService {
+  service: string;
+  /** L'identifiant de l'album CHEZ le service. */
+  sourceId: string;
+  album: { title?: string | null; artist_name?: string | null; cover_path?: string | null; artist_id?: unknown };
+}
+
+/** Les sections d'albums de service que la fiche d'artiste a déjà chargées. */
+export interface SectionDeService {
+  service: string;
+  albums: { title?: string | null; source_id?: unknown; artist_name?: string | null; cover_path?: string | null; artist_id?: unknown }[];
+}
+
+/**
+ * La clé d'un titre d'album pour l'apparier entre MusicBrainz et un service :
+ * sans accents, minuscules, ponctuation et espaces resserrés, et sans la
+ * mention d'édition finale entre parenthèses ou crochets que les services
+ * ajoutent (« Kind of Blue (Legacy Edition) », « Abbey Road [Remastered] »).
+ */
+export function cleDeTitre(titre: string | null | undefined): string {
+  let t = (titre ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  // Les mentions finales, une ou plusieurs : « (Deluxe) [Remastered 2009] ».
+  for (;;) {
+    const sans = t.replace(/\s*[([][^()[\]]*[)\]]\s*$/, '').trim();
+    if (sans === t || !sans) break;
+    t = sans;
+  }
+  return t.replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+
+/**
+ * L'album manquant `titre`, chez le premier service qui l'a (dans l'ordre des
+ * sections), ou `null`. Un titre ne s'apparie qu'à un titre IDENTIQUE une fois
+ * la clé faite : « Kind of Blue » ne trouve ni « Kind of Blue Live » ni
+ * « Blue ». Un album sans identifiant chez son service n'est pas retenu : il
+ * ne serait ni jouable ni mis en favori.
+ */
+export function trouverSurUnService(
+  titre: string | null | undefined,
+  sections: readonly SectionDeService[] | null | undefined,
+): ManqueSurUnService | null {
+  const cle = cleDeTitre(titre);
+  if (!cle) return null;
+  for (const s of sections ?? []) {
+    for (const a of s.albums ?? []) {
+      const id = a?.source_id == null ? '' : String(a.source_id).trim();
+      if (id && cleDeTitre(a.title) === cle) return { service: s.service, sourceId: id, album: a };
+    }
+  }
+  return null;
+}
