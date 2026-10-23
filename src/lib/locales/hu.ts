@@ -388,7 +388,7 @@ export default {
   "library.recentCreationFallback": "{n} számnak nincs ismert létrehozási dátuma: módosítás dátuma szerint rendezve.",
   "library.noRecentAlbums": "Ebben az időszakban nem került album hozzáadásra.",
   "library.recentLoadError": "A legutóbbi hozzáadások nem tölthetők be: a lista üres marad.",
-  "library.boxSetsRule": "A könyvtár díszdobozai: automatikusan összevonva (lemezenként egy mappa) vagy kézzel összeállítva.",
+  "library.boxSetsRule": "A könyvtár díszdobozai: automatikusan összevonva (lemezenként egy mappa), legalább három, egymástól eltérő nevű lemezből álló albumok, vagy kézzel összeállítva.",
   "library.noBoxSets": "Nincs díszdoboz a könyvtárban.",
   "library.boxSetsLoadError": "A díszdobozok nem tölthetők be: a lista üres marad.",
   "library.boxSetsUnsupported": "Ez a szerver még nem listázza a díszdobozokat: frissítse.",

@@ -319,7 +319,7 @@ export default {
   'library.recentCreationFallback': '{n} piese fără dată de creare cunoscută: ordonate după data modificării.',
   'library.noRecentAlbums': 'Niciun album adăugat în această perioadă.',
   'library.recentLoadError': 'Adăugările recente nu au putut fi încărcate: lista rămâne goală.',
-  'library.boxSetsRule': 'Cutiile din bibliotecă: reunite automat (un dosar pe disc) sau compuse manual.',
+  'library.boxSetsRule': 'Cutiile din bibliotecă: reunite automat (un dosar pe disc), albume de cel puțin trei discuri cu nume diferite sau compuse manual.',
   'library.noBoxSets': 'Nicio cutie în bibliotecă.',
   'library.boxSetsLoadError': 'Cutiile nu au putut fi încărcate: lista rămâne goală.',
   'library.boxSetsUnsupported': 'Acest server nu listează încă cutiile: actualizați-l.',

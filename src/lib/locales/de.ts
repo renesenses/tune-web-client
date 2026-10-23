@@ -313,7 +313,7 @@ export default {
   'library.recentCreationFallback': '{n} Titel ohne bekanntes Erstellungsdatum: nach Änderungsdatum sortiert.',
   'library.noRecentAlbums': 'In diesem Zeitraum wurde kein Album hinzugefügt.',
   'library.recentLoadError': 'Die letzten Neuzugänge konnten nicht geladen werden: die Liste bleibt leer.',
-  'library.boxSetsRule': 'Box-Sets der Bibliothek: automatisch zusammengeführt (ein Ordner pro Disc) oder von Hand zusammengestellt.',
+  'library.boxSetsRule': 'Box-Sets der Bibliothek: automatisch zusammengeführt (ein Ordner pro Disc), Alben mit mindestens drei unterschiedlich benannten Discs oder von Hand zusammengestellt.',
   'library.noBoxSets': 'Keine Box-Sets in der Bibliothek.',
   'library.boxSetsLoadError': 'Die Box-Sets konnten nicht geladen werden: die Liste bleibt leer.',
   'library.boxSetsUnsupported': 'Dieser Server listet noch keine Box-Sets auf: bitte aktualisieren.',

@@ -401,7 +401,7 @@ export default {
   'library.recentCreationFallback': '{n} tracks have no known creation date: sorted by date modified.',
   'library.noRecentAlbums': 'No album added in this period.',
   'library.recentLoadError': 'Could not load recent additions: the list stays empty.',
-  'library.boxSetsRule': 'Box sets in the library: merged automatically (one folder per disc) or put together by hand.',
+  'library.boxSetsRule': 'Box sets in the library: merged automatically (one folder per disc), albums of at least three discs each with its own name, or put together by hand.',
   'library.noBoxSets': 'No box set in the library.',
   'library.boxSetsLoadError': 'Could not load box sets: the list stays empty.',
   'library.boxSetsUnsupported': 'This server does not list box sets yet: please update it.',
