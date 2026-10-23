@@ -9,6 +9,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import LibraryV2 from '../../components/v2/LibraryV2.svelte';
+import EnTeteArtiste from '../../components/v2/EnTeteArtiste.svelte';
 import { activeView } from '../stores/navigation';
 import { albums as albumsStore, libraryFolderScope } from '../stores/library';
 import { locale } from '../i18n';
@@ -196,7 +197,6 @@ describe('web#2191 — Retour rend la liste des facettes là où on l’avait la
 
 describe('web#2191 — fiche artiste : le Retour reste accessible en défilant', () => {
   it('un Retour collant apparaît quand l’en-tête sort du cadre, et seulement alors', async () => {
-    const { default: EnTeteArtiste } = await import('../../components/v2/EnTeteArtiste.svelte');
     let rappel: ((e: { isIntersecting: boolean }[]) => void) | null = null;
     vi.stubGlobal('IntersectionObserver', class {
       constructor(cb: (e: { isIntersecting: boolean }[]) => void) { rappel = cb; }
