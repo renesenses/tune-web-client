@@ -1,0 +1,59 @@
+/**
+ * web#2297 — la vue GRILLE de l'onglet Labels : un logo, le nom, le nombre
+ * d'albums.
+ *
+ * Le logo vient du serveur (`GET /library/labels`, tune-server-rust#6736) :
+ * l'image du label chez Qobuz, mise en cache comme une pochette. Le serveur la
+ * cherche en arrière-plan et sans rafale ; un label dont le logo n'est pas
+ * (encore) connu montre un MONOGRAMME — jamais une image cassée.
+ *
+ * Les albums et leur compte restent ceux de l'onglet (le regroupement de
+ * `LibraryV2`) : seul le logo est demandé au serveur. Un serveur qui ne
+ * connaît pas la route rend une carte vide, et la grille tient en monogrammes.
+ */
+import type { LibraryLabel } from './api';
+
+/** La clé d'un nom de label : espaces resserrés, minuscules. LA MÊME que
+ *  celle du serveur (`cle_de_label`, tune-core/src/library/logos_labels.rs) :
+ *  deux graphies qui ne diffèrent que par la casse partagent leur logo. */
+export function cleDeLabel(nom: string): string {
+  return nom.trim().split(/\s+/).join(' ').toLowerCase();
+}
+
+/** `clé → adresse du logo`, pour les seuls labels qui en ont un. */
+export function carteDesLogos(labels: readonly LibraryLabel[] | null | undefined): Map<string, string> {
+  const carte = new Map<string, string>();
+  for (const l of labels ?? []) {
+    if (l && typeof l.name === 'string' && typeof l.image_url === 'string' && l.image_url) {
+      carte.set(cleDeLabel(l.name), l.image_url);
+    }
+  }
+  return carte;
+}
+
+/** L'adresse du logo de ce label, ou `null` : alors, le monogramme. */
+export function logoDuLabel(carte: ReadonlyMap<string, string>, nom: string): string | null {
+  return carte.get(cleDeLabel(nom)) ?? null;
+}
+
+/**
+ * Le monogramme d'un label sans logo : les initiales de ses deux premiers
+ * mots (« Deutsche Grammophon » → « DG »), la première lettre d'un nom d'un
+ * seul mot (« Verve » → « V »). Seuls lettres et chiffres comptent ; un nom
+ * qui n'en a aucun rend « ? ».
+ */
+export function monogramme(nom: string): string {
+  const mots = nom
+    .split(/[\s\-_/&+.,·]+/)
+    .map((m) => m.replace(/[^\p{L}\p{N}]/gu, ''))
+    .filter((m) => m.length > 0);
+  if (!mots.length) return '?';
+  const lettres = mots.slice(0, 2).map((m) => Array.from(m)[0]);
+  return lettres.join('').toLocaleUpperCase();
+}
+
+/** Les deux vues de la liste des labels, dans l'ordre de rotation. */
+export const VUES_LABELS = ['list', 'grid'] as const;
+export type VueLabels = (typeof VUES_LABELS)[number];
+/** La clé de `lib/preferencesEcran` sous laquelle le choix est retenu. */
+export const CLE_VUE_LABELS = 'lib.labelsVue';

@@ -45,9 +45,10 @@
    */
   import { onDestroy } from 'svelte';
   import { t } from '../../lib/i18n';
+  import { formatNombre } from '../../lib/formats';
   import { dateCourte } from '../../lib/dates';
   import {
-    statsContact, artistesContact, albumsContact, pistesContact, pistesAlbumContact,
+    statsContact, ligneVignettesContact, artistesContact, albumsContact, pistesContact, pistesAlbumContact,
     pisteVersTrack, plusPartage, motifCercle, pochetteAlbumContact, reprisePochetteAlbumContact,
     rayonsContact, albumsRayon, pistesRayon, artistesRayon, referencesRayon, servicesReference, NOM_SERVICE,
     ecoutePermise, ecouterChezContact, motifEcoute,
@@ -336,6 +337,9 @@
     <h2 class="titre-catalogue">{$t('v2.circle.lib.title' as any).replace('{name}', contact.name)}</h2>
     {#if stats}
       <p class="note stats" use:bulleTexte>{ligneStats}{#if stats.last_sync} · {$t('v2.circle.lib.updated' as any).replace('{date}', $dateCourte(stats.last_sync))}{/if}</p>
+      <!-- web#2307 : les vignettes arrivent progressivement, en « n sur total ». -->
+      {@const vignettes = ligneVignettesContact(stats, (k) => $t(k as any), (n) => $formatNombre(n))}
+      {#if vignettes}<p class="note vignettes-progression" data-vignettes-progression use:bulleTexte>{vignettes}</p>{/if}
     {/if}
     {#if ecoute}
       <p class="note ecoute-note" use:bulleTexte>{$t('v2.circle.listen.hint' as any)}</p>
