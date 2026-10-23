@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => ({
   browseServerDirs: vi.fn(),
   estimateMusicDir: vi.fn(),
   addMusicDir: vi.fn(),
+  getStreamingServices: vi.fn(),
 }));
 const confirmer = vi.hoisted(() => vi.fn());
 
@@ -65,6 +66,8 @@ function bouton(el: ParentNode, texte: string): HTMLButtonElement | undefined {
 
 beforeEach(() => {
   for (const m of Object.values(mocks)) m.mockReset();
+  // web#2142 — par défaut, aucun service connecté.
+  mocks.getStreamingServices.mockResolvedValue({});
   confirmer.mockReset();
   mocks.browseServerDirs.mockResolvedValue({
     current: null, parent: null, drives: true,
@@ -176,5 +179,32 @@ describe('les trois écrans montent le bouton', () => {
     const avantBouton = etat.slice(0, etat.indexOf('<BoutonAjouterDossier'));
     expect(avantBouton).toContain('{#if !depot}');
     expect(avantBouton.lastIndexOf('{#if !depot}')).toBeGreaterThan(avantBouton.lastIndexOf('causeVide}'));
+  });
+});
+
+// web#2142 (fil 2251) — un abonné qui n'écoute que ses services n'a pas à
+// recevoir le grand encart à chaque ouverture : une ligne discrète suffit.
+describe('web#2142 — bibliothèque vide et service connecté', () => {
+  beforeEach(async () => {
+    const { streamingServices } = await import('../stores/streaming');
+    streamingServices.set({} as any);
+  });
+  it('🔴 une ligne discrète au lieu du grand encart', async () => {
+    mocks.getLibraryStats.mockResolvedValue({ tracks: 0, albums: 0 });
+    mocks.getStreamingServices.mockResolvedValue({ qobuz: { enabled: true, authenticated: true } });
+    const el = await poser();
+    expect(el.querySelector('.accueil-vide'), 'le grand encart est resté').toBeNull();
+    const ligne = el.querySelector('.accueil-vide-discret');
+    expect(ligne).not.toBeNull();
+    expect(ligne!.textContent).toContain('Qobuz');
+    expect(bouton(el, fr['v2.accueilVide.settings'])).toBeTruthy();
+  });
+
+  it('un service seulement activé, non connecté, ne change rien', async () => {
+    mocks.getLibraryStats.mockResolvedValue({ tracks: 0, albums: 0 });
+    mocks.getStreamingServices.mockResolvedValue({ qobuz: { enabled: true, authenticated: false } });
+    const el = await poser();
+    expect(el.querySelector('.accueil-vide')).not.toBeNull();
+    expect(el.querySelector('.accueil-vide-discret')).toBeNull();
   });
 });

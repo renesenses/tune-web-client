@@ -95,6 +95,11 @@ describe('web#1895 — la cible du lien de playlist', () => {
     expect(ouverturePlaylistDuLot('album', lot('local'), 'X')).toBeNull();
     // Deux écoutes du même numéro, deux catalogues : on ne choisit pas.
     expect(ouverturePlaylistDuLot('playlist', [...lot('local'), ...lot('qobuz')], 'X')).toBeNull();
+    // web#2051 — une écoute muette ne retire pas le lien aux autres…
+    expect(ouverturePlaylistDuLot('playlist', [...lot(null), ...lot('local')], 'Ma liste')).not.toBeNull();
+    // … mais ne départage pas deux catalogues, et seule elle ne suffit pas.
+    expect(ouverturePlaylistDuLot('playlist', [...lot(null), ...lot('local'), ...lot('qobuz')], 'X')).toBeNull();
+    expect(ouverturePlaylistDuLot('playlist', [...lot(null), ...lot(null)], 'X')).toBeNull();
   });
 });
 
@@ -136,6 +141,25 @@ describe('web#1895 — le nom d’une ligne Playlist de l’Historique', () => {
       key: 'streamingplaylists:qobuz:21846544',
       restore: expect.objectContaining({ kind: 'streaming', service: 'qobuz' }),
     })]);
+  });
+
+  it('🔴 web#2051 — une playlist écoutée avant ET après la mise à jour du serveur : le nom reste un lien', async () => {
+    // La plus récente sait sa source ; la plus ancienne, d'avant la migration,
+    // l'ignore. Les deux tombent dans la même ligne (même type, même id).
+    lignes = [
+      ligne({ id: 1, source: 'local', contextId: '12', contextSource: 'local', nom: 'Ma liste du soir' }),
+      ligne({ id: 2, source: 'local', contextId: '12', contextSource: null, nom: 'Ma liste du soir' }),
+    ];
+    const el = await poserHistorique();
+    const objet = el.querySelector<HTMLButtonElement>('button.objet');
+    expect(objet, 'pas de ligne Playlist — le témoin ne mesure rien').not.toBeNull();
+    const nom = objet!.querySelector<HTMLElement>('.otitre.lien-playlist');
+    expect(nom, 'une écoute d’avant la migration a retiré le lien de la playlist — web#2051').not.toBeNull();
+    nom!.click();
+    flushSync();
+    for (let i = 0; i < 4; i++) await respirer();
+    expect(get(activeView)).toBe('playlists');
+    expect(restaurations).toEqual([expect.objectContaining({ key: 'playlists:12' })]);
   });
 
   it('écoute sans `context_source` (serveur d’avant) : le nom reste du texte', async () => {
