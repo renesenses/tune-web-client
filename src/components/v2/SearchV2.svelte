@@ -866,7 +866,10 @@ import { sansDoublons } from '../../lib/clesUniques';
 
   function ouvrirArtiste(ar: any) {
     if (!estLocal(ar) && (!ar?.source || !ar?.source_id)) { q = ar.name; return; }
-    void ouvrirArtisteDepuis(ar, 'search');
+    // tune-server-rust#6463 — la vignette de la tuile suit l'artiste : une
+    // tuile fusionnée peut montrer l'image d'une autre provenance que celle
+    // qu'elle ouvre, et la fiche s'en sert quand elle n'a pas de portrait.
+    void ouvrirArtisteDepuis(ar, 'search', { image: ar?.image_path ?? null });
   }
 
   /**

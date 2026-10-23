@@ -53,7 +53,7 @@ describe('les écrans', () => {
     // `lib/ouvrirArtisteDepuis`, avec la vue qui change vraiment.
     expect(s).toContain("ouvrirArtisteDepuis(a, 'favorites')");
     const nav = sans(lire('src/lib/ouvrirArtisteDepuis.ts'));
-    expect(nav).toContain("ficheArtisteService.set({ service: a.source as Source, id: String(a.source_id), nom: a.name ?? '' })");
+    expect(nav).toContain("ficheArtisteService.set({ service: a.source as Source, id: String(a.source_id), nom: a.name ?? '', ...(options.image ? { image: options.image } : {}) })");
     expect(nav).toContain("activeView.set('streamingartist')");
   });
   it('Streaming › favoris : les titres en liste avec actions, lecture depuis la ligne (#1062)', () => {
