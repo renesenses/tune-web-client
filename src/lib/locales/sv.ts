@@ -1441,6 +1441,7 @@ export default {
   "settings.communityShareHint": "Fristående från ”Mina lyssningar” och av som standard. Dina albumbetyg (utan kommentar) och de lyssningar ditt konto tar emot EFTER aktiveringen ingår i offentliga, anonyma summor som visas på albumsidan från tre olika personer. Inga individuella uppgifter visas någonsin. Stänger du av det tas ditt bidrag bort direkt.",
   "library.communityRating": "★ {average} ({count} betyg)",
   "library.communityListens": "{count} lyssningar",
+  "library.communityListensTip": "Lyssningar i Tune-communityn",
   "library.communityLine": "{parts} i communityn",
   "settings.communityContribution": "Dela mina berikade metadata med communityn",
   "settings.communityNeedsTelemetry": "Ingen effekt så länge telemetrin är avstängd: delningen kräver den, men telemetrin ensam slår inte på delningen.",

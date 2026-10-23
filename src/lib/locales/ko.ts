@@ -1415,6 +1415,7 @@ export default {
   "settings.communityShareHint": "‘내 감상 기록’과 별개이며 기본값은 꺼짐입니다. 앨범 평점(코멘트 제외)과 켠 이후 계정에 수신된 감상 기록이 공개 익명 집계에 포함되며, 서로 다른 세 명 이상일 때 앨범 페이지에 표시됩니다. 개인 데이터는 절대 표시되지 않습니다. 끄면 기여분이 즉시 제외됩니다.",
   "library.communityRating": "★ {average} (평점 {count}개)",
   "library.communityListens": "감상 {count}회",
+  "library.communityListensTip": "Tune 커뮤니티 재생 횟수",
   "library.communityLine": "커뮤니티: {parts}",
   "settings.communityContribution": "보강된 메타데이터를 커뮤니티와 공유",
   "settings.communityNeedsTelemetry": "텔레메트리가 꺼져 있는 동안에는 효과가 없습니다. 공유에는 텔레메트리가 필요하지만 텔레메트리만으로 공유가 켜지지는 않습니다.",

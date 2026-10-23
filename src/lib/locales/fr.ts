@@ -2162,6 +2162,7 @@ export default {
   "settings.communityShareHint": "Distinct de « Mes écoutes » et désactivé par défaut. Vos notes d'albums (sans commentaire) et les écoutes reçues par votre compte APRÈS l'activation entrent dans des totaux publics et anonymes, affichés sur la fiche d'un album à partir de trois personnes distinctes. Aucune donnée individuelle n'est montrée. Le couper retire aussitôt votre contribution.",
   "library.communityRating": "★ {average} ({count} notes)",
   "library.communityListens": "{count} écoutes",
+  "library.communityListensTip": "Écoutes de la communauté Tune",
   "library.communityLine": "{parts} dans la communauté",
   "settings.communityContribution": "Partager mes métadonnées enrichies avec la communauté",
   "settings.communityNeedsTelemetry": "Sans effet tant que la télémétrie est coupée : elle est nécessaire au partage, mais ne l'active pas à elle seule.",

@@ -1558,6 +1558,7 @@ export default {
   "settings.communityShareHint": "Független a „Hallgatásaim” funkciótól, alapértelmezés szerint ki van kapcsolva. Az albumértékeléseid (megjegyzés nélkül) és a fiókod által a bekapcsolás UTÁN kapott hallgatások nyilvános, névtelen összesítésekbe kerülnek, amelyek legalább három különböző személytől jelennek meg az album oldalán. Egyéni adat soha nem látható. A kikapcsolás azonnal visszavonja a hozzájárulásodat.",
   "library.communityRating": "★ {average} ({count} értékelés)",
   "library.communityListens": "{count} hallgatás",
+  "library.communityListensTip": "A Tune közösség hallgatásai",
   "library.communityLine": "{parts} a közösségben",
   "settings.communityContribution": "Bővített metaadataim megosztása a közösséggel",
   "settings.communityNeedsTelemetry": "Hatástalan, amíg a telemetria ki van kapcsolva: a megosztáshoz szükséges, de a telemetria önmagában nem kapcsolja be.",

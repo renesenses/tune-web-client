@@ -2037,6 +2037,7 @@ export default {
   "settings.communityShareHint": "Tách biệt với “Lượt nghe của tôi” và tắt theo mặc định. Điểm đánh giá album (không kèm nhận xét) và các lượt nghe tài khoản nhận được SAU khi bật sẽ được tính vào tổng số công khai, ẩn danh, hiển thị trên trang album khi có từ ba người khác nhau. Không bao giờ hiển thị dữ liệu cá nhân. Tắt đi sẽ rút ngay phần đóng góp của bạn.",
   "library.communityRating": "★ {average} ({count} lượt đánh giá)",
   "library.communityListens": "{count} lượt nghe",
+  "library.communityListensTip": "Lượt nghe của cộng đồng Tune",
   "library.communityLine": "{parts} trong cộng đồng",
   "settings.communityContribution": "Chia sẻ siêu dữ liệu đã bổ sung của tôi với cộng đồng",
   "settings.communityNeedsTelemetry": "Không có tác dụng khi telemetry đang tắt: việc chia sẻ cần telemetry, nhưng chỉ bật telemetry thì không tự bật chia sẻ.",
