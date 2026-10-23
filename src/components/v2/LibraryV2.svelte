@@ -3840,9 +3840,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .v2-lib{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden; box-sizing:border-box}
   /* padding-right élargi : l'avatar de la coquille est pincé à droite. */
-  .tabs{margin-left:auto; display:flex; align-items:center; gap:4px}
+  /* web#1869 — huit onglets sur une rangée qui ne passait pas à la ligne :
+     « Coffrets », le dernier, sortait le premier du cadre sur une fenêtre
+     étroite, et `.v2-lib` (overflow:hidden) le rognait sans trace. La rangée
+     passe désormais à la ligne, alignée à droite, et un onglet ne se coupe
+     jamais en deux. */
+  .tabs{margin-left:auto; display:flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:flex-end; min-width:0}
   .tab{padding:8px 15px; border-radius:var(--v2-r-pill); border:0; background:transparent; color:var(--v2-txt2);
-    font:600 14px var(--v2-sans); cursor:pointer}
+    font:600 14px var(--v2-sans); cursor:pointer; white-space:nowrap}
   .tab:hover{color:var(--v2-txt)}
   .tab.active{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
