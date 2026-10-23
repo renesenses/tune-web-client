@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { labelDe, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
   import BadgeReaffectation from './BadgeReaffectation.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
@@ -1643,6 +1644,15 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
              locale (`GET /library/albums/{id}`) ; rien sans le champ. -->
         <EcoutesCommunaute objet={fiche ?? album} />
       </div>
+      <!-- tune-server-rust#6782 — vers la page du label : ses autres artistes,
+           dans la bibliothèque puis chez Qobuz. Album de la bibliothèque
+           seulement : la page du label est celle de la Bibliothèque. -->
+      {#if creditsPossibles && labelDe(albumAffiche)}
+        {@const nomLabel = labelDe(albumAffiche)!}
+        <button type="button" class="lien-label" data-lien-label onclick={() => { onClose(); void ouvrirLabelDansLaBibliotheque(nomLabel); }}>
+          {$tr('v2.label.autresArtistes' as any).replace('{label}', nomLabel)}
+        </button>
+      {/if}
       {#if preferenceChargee && (repertoiresDeCetAlbum.length > 1 || racinePreferee)}
         <div class="repertoire-lecture">
           <label for="album-repertoire-{album.id}">{$tr('v2.album.playFrom' as any)}</label>
@@ -2098,6 +2108,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .artist.lien:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:3px; border-radius:4px}
   .facts{display:flex; gap:16px; font:12px var(--v2-mono); color:var(--v2-txt3)}
   .repertoire-lecture{display:flex; flex-direction:column; align-items:flex-start; gap:5px; max-width:min(100%, 520px)}
+  .lien-label{all:unset; cursor:pointer; margin-top:6px; font:500 12px var(--v2-sans); color:var(--tune-accent)}
+  .lien-label:hover{text-decoration:underline}
+  .lien-label:focus-visible{outline:2px solid var(--tune-accent); outline-offset:2px}
   .repertoire-lecture label{font:600 12px var(--v2-sans); color:var(--v2-txt2)}
   .repertoire-lecture select{width:100%; min-height:38px; padding:6px 10px; border-radius:8px;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);

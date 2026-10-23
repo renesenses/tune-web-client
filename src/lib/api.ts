@@ -1696,7 +1696,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string; queue_follows?: boolean }) {
+export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; album_ref?: string; queue_follows?: boolean }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -2057,6 +2057,50 @@ export async function getLibraryLabels(): Promise<LibraryLabel[]> {
     return Array.isArray(r) ? r : [];
   } catch {
     return [];
+  }
+}
+
+/** tune-server-rust#6782 — un artiste de la bibliothèque sous ce label.
+ *  `image_url` n'est là que si l'artiste a un portrait. */
+export interface ArtisteDuLabel {
+  id: number;
+  name: string;
+  album_count: number;
+  image_url?: string;
+}
+
+/** tune-server-rust#6782 — un artiste du catalogue Qobuz du label, absent de
+ *  la bibliothèque, avec son album le plus récent. */
+export interface ArtisteADecouvrir {
+  name: string;
+  qobuz_artist_id?: string;
+  album_count: number;
+  album_phare: { id: string; title: string; cover_url?: string; year?: number };
+}
+
+/** `GET /library/labels/{nom}/artists`. `decouvrir` est ABSENT sans compte
+ *  Qobuz connecté, ou quand le label n'a pas de correspondant Qobuz. */
+export interface ArtistesDuLabel {
+  name: string;
+  bibliotheque: ArtisteDuLabel[];
+  qobuz_label_id?: string;
+  decouvrir?: ArtisteADecouvrir[];
+}
+
+/** tune-server-rust#6782 — les artistes d'un label : la bibliothèque, puis
+ *  « À découvrir » chez Qobuz. Un serveur plus ancien (404) ou injoignable
+ *  rend `null` : la page du label reste celle d'avant. */
+export async function getArtistesDuLabel(nom: string): Promise<ArtistesDuLabel | null> {
+  try {
+    const r = await fetchJSON<ArtistesDuLabel>(
+      `${BASE}/library/labels/${encodeURIComponent(nom)}/artists`,
+      undefined,
+      undefined,
+      true,
+    );
+    return r && Array.isArray(r.bibliotheque) ? r : null;
+  } catch {
+    return null;
   }
 }
 
@@ -2770,6 +2814,9 @@ export interface DashboardData {
   top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number; cover_path?: string | null; source?: string | null; source_id?: string | null }[];
   /** Absent de la réponse quand la liste est vide (skip_serializing_if). */
   top_radios?: { station_name: string; radio_id: number | null; plays: number; listening_ms: number; cover_url?: string | null; cover_path?: string | null }[];
+  /** tune-server-rust#6682 — le temps d'écoute radio par station sur la période,
+   *  à part des classements. Absent quand aucune radio n'a été écoutée. */
+  radio_listening?: { station_name: string; radio_id: number | null; listening_ms: number; sessions: number; cover_url?: string | null }[];
   trend: { day: string; plays: number; listening_ms: number }[];
   hourly: { hour: number; plays: number }[];
   by_zone: { zone_id: number | null; zone_name: string | null; plays: number; listening_ms: number }[];
@@ -9282,6 +9329,8 @@ export interface OtherVersionGroup {
     cover_path: string | null;
     kind: 'version' | 'reprise';
     url?: string | null;
+    /** web#2210 — la durée, quand le rapprochement par titre la connaît. */
+    duration_ms?: number | null;
   }[];
   versions: {
     track_id: number | null;
