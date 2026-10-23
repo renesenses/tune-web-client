@@ -44,7 +44,14 @@ export interface V2SettingsSection {
   from: string;
   min: SettingsLevel;
   /** Mots-clés de recherche supplémentaires (synonymes, marques). */
-  keywords?: string[];
+  keywords?: string[];  /**
+   * Bloc visuel commun à plusieurs sections CONSÉCUTIVES d'un onglet : l'écran
+   * pose un seul intertitre au-dessus de la première visible. Aujourd'hui un
+   * seul bloc, `libraryTools` (#2354).
+   */
+  group?: 'libraryTools';
+  /** La section est une zone dangereuse : isolée et signalée à l'écran. */
+  danger?: boolean;
 }
 
 export interface V2SettingsTab {
@@ -105,7 +112,44 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     id: 'library', labelKey: 'settings.tabLibrary', min: 'beginner',
     icon: 'M4 5v14M9 5v14M14 6l5 13',
     sections: [
-      { id: 'library',    titleKey: 'settings.library',      from: 'library', min: 'beginner' },
+      /*
+       * OUTILS DE LA BIBLIOTHÈQUE (#2354, Didier, fil 2397 ; décision de
+       * Bertrand du 24/10/2026) : Analyser, Nettoyer, Vider, réunis EN TÊTE
+       * de l'onglet, dans cet ordre. « Vider » ferme le bloc, isolé en zone
+       * dangereuse, avec sa confirmation danger.
+       *
+       * Chaque outil garde son niveau d'affichage : Analyser et Vider en
+       * débutant, le Nettoyage en intermédiaire, comme quand il vivait dans
+       * Système › Santé (section `health`, 'intermediate').
+       */
+      { id: 'library',    titleKey: 'settings.library',      from: 'library', min: 'beginner', group: 'libraryTools' },
+      /* Quitte Système › Santé : ce qu'il fait est un travail sur la
+       * BIBLIOTHÈQUE (albums en double fusionnés, pistes en double, albums et
+       * artistes orphelins). Santé garde un renvoi le temps d'une version. */
+      { id: 'libraryCleanup', titleKey: 'diagnostics.cleanupServer', from: 'system', min: 'intermediate', group: 'libraryTools',
+        keywords: ['nettoyage', 'nettoyer', 'doublons', 'double', 'orphelins', 'fusion', 'cleanup', 'base de données'] },
+      /**
+       * REPARTIR À ZÉRO (#3585, volet 1) — `min: 'beginner'`, et c'est un
+       * choix, pas un oubli.
+       *
+       * L'écran actuel range `library.clearLibrary` en `expert`
+       * (`lib/settingLevels.ts:109`), et cette PR n'y touche pas. Mais le
+       * ticket dit précisément ce que cette barrière produit : Louis Bertin,
+       * premier essai avec une clé USB de 15 albums qui ressortent mélangés,
+       * ne trouve pas comment recommencer — « on ne peut même pas tout
+       * effacer et recommencer à zéro ». Le niveau Expert cache la fonction
+       * au moment exact où elle sert le plus, et à la seule personne qui en a
+       * besoin : celle dont le premier essai a raté.
+       *
+       * Ce qui rend le pari tenable : `library_clear` efface l'INDEX
+       * (tracks/albums/artists/credits), jamais un fichier — l'« Analyse
+       * complète », dans le même onglet, le reconstruit. La protection reste
+       * la confirmation danger, qui est explicite, pas un niveau d'affichage,
+       * qui ne l'est pas.
+       */
+      { id: 'clearLibrary', titleKey: 'settings.clearLibrary', from: 'library', min: 'beginner',
+        group: 'libraryTools', danger: true,
+        keywords: ['vider', 'effacer', 'réinitialiser', 'repartir', 'zéro', 'remise à zéro'] },
       { id: 'musicDirs',  titleKey: 'settings.musicDirs',    from: 'library', min: 'beginner', keywords: ['dossiers', 'chemins'] },
       { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan', 'coffret', 'coffrets', 'box set', 'sacd', 'iso', 'dst'] },
       { id: 'searchExact', titleKey: 'settings.searchExact', from: 'library', min: 'beginner',
@@ -128,27 +172,6 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'enrichment', titleKey: 'settings.enrichment',   from: 'library', min: 'expert',   keywords: ['enrichissement', 'musicbrainz'] },
       { id: 'ingest',     titleKey: 'settings.ingest',       from: 'library', min: 'expert',   keywords: ['import', 'rangement'] },
       { id: 'oxygen',     titleKey: 'oxygen.settingsTitle',  from: 'library', min: 'expert' },
-      /**
-       * REPARTIR À ZÉRO (#3585, volet 1) — `min: 'beginner'`, et c'est un
-       * choix, pas un oubli.
-       *
-       * L'écran actuel range `library.clearLibrary` en `expert`
-       * (`lib/settingLevels.ts:109`), et cette PR n'y touche pas. Mais le
-       * ticket dit précisément ce que cette barrière produit : Louis Bertin,
-       * premier essai avec une clé USB de 15 albums qui ressortent mélangés,
-       * ne trouve pas comment recommencer — « on ne peut même pas tout
-       * effacer et recommencer à zéro ». Le niveau Expert cache la fonction
-       * au moment exact où elle sert le plus, et à la seule personne qui en a
-       * besoin : celle dont le premier essai a raté.
-       *
-       * Ce qui rend le pari tenable : `library_clear` efface l'INDEX
-       * (tracks/albums/artists/credits), jamais un fichier — l'« Analyse
-       * complète », dans le même onglet, le reconstruit. La protection reste
-       * la confirmation danger, qui est explicite, pas un niveau d'affichage,
-       * qui ne l'est pas.
-       */
-      { id: 'clearLibrary', titleKey: 'settings.clearLibrary', from: 'library', min: 'beginner',
-        keywords: ['vider', 'effacer', 'réinitialiser', 'repartir', 'zéro', 'remise à zéro'] },
     ],
   },
   {
