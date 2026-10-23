@@ -30,6 +30,8 @@
   import type { Snippet } from 'svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { t } from '../../lib/i18n';
+  import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
+  import type { PorteEcoutes } from '../../lib/ecoutesCommunaute';
 
   interface Props {
     /** Le nom affiché. */
@@ -52,6 +54,11 @@
     onRetour: () => void;
     /** Les pastilles d'action de la fiche. */
     actions?: Snippet;
+    /**
+     * #2298 — l'artiste local tel que `/library/artists/{id}` le rend : son
+     * `community_listens` donne « Miles Davis (43 100) ». Rien sans le champ.
+     */
+    ecoutes?: PorteEcoutes | null;
   }
   let {
     nom,
@@ -61,6 +68,7 @@
     sousTitre = null,
     onRetour,
     actions,
+    ecoutes = null,
   }: Props = $props();
 
   /**
@@ -97,7 +105,7 @@
     <AlbumArt coverPath={imagePath} albumId={null} size={0} alt={nom} fallbackInitials={initiales} />
   </div>
   <div class="ident">
-    <h1>{nom}</h1>
+    <h1>{nom}<EcoutesCommunaute objet={ecoutes} /></h1>
     {#if provenance}<span class="prov">{provenance}</span>{/if}
     {#if sousTitre}<span class="cpt">{sousTitre}</span>{/if}
     {#if actions}

@@ -73,7 +73,10 @@
   // lu quand la Bibliothèque était déjà montée. On prend sa version.
   // `pendingLibraryAlbum`, lui, reste : c'est le contrat des liens de la
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
-  import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryYear, type View } from '../../lib/stores/navigation';
+  import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryYear, pendingSearchQuery, type View } from '../../lib/stores/navigation';
+  import { streamingServices } from '../../lib/stores/streaming';
+  import { servicesConnectes } from '../../lib/ongletsStreaming';
+  import { nomService } from '../../lib/convertisseurPlaylists';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { causeBibliothequeVide, type CauseBibliothequeVide } from '../../lib/smbMountState';
@@ -133,6 +136,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { AFFICHAGES, GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
   import { carteDesLogos, logoDuLabel, monogramme, VUES_LABELS, CLE_VUE_LABELS, type VueLabels } from '../../lib/logosLabels';
   import QualiteAlbum from './QualiteAlbum.svelte';
+  import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import ArtistesV2 from './ArtistesV2.svelte';
@@ -1518,6 +1522,23 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /** Le mode paginé. */
   const nu = $derived(!depot && !bibliothequeEntiere && !sortirDesPages);
 
+  /**
+   * web#2142 (fil 2251, abonné Qobuz sans bibliothèque locale) — « si la
+   * bibliothèque est vide on met un grand champ recherche qui ne cherche que
+   * sur elle ? mais pas dans les services de streaming ? ».
+   *
+   * Le champ de cet écran ne cherche que dans la bibliothèque LOCALE (son
+   * libellé le dit désormais). Quand il ne trouve rien — bibliothèque vide ou
+   * aucun album correspondant —, l'écran offre, comme les télécommandes
+   * (tune-remote-flutter#69, tune-remote-ios#71), de chercher le même texte
+   * chez les services connectés. Rien n'est proposé sans service connecté.
+   */
+  const servicesPourRecherche = $derived(servicesConnectes($streamingServices as any));
+  function chercherAussiSurLesServices() {
+    pendingSearchQuery.set(q.trim());
+    activeView.set('search');
+  }
+
   // La liste entière, quand un geste l'exige et qu'elle n'est pas là.
   //
   // 🔴 Fil 2134 — après une invalidation, `albums` n'est plus VIDÉ : il est
@@ -2769,6 +2790,17 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 </script>
 
 
+{#snippet passerelleServices()}
+  <!-- web#2142 — chercher le même texte chez les services connectés. -->
+  {#if !depot && q.trim() && servicesPourRecherche.length}
+    <span class="gestes-vide">
+      <button class="chip" data-chercher-services onclick={chercherAussiSurLesServices}>
+        {$tr('v2.lib.searchAlsoOn' as any).replace('{services}', servicesPourRecherche.map(nomService).join(', '))}
+      </button>
+    </span>
+  {/if}
+{/snippet}
+
 <svelte:window onclick={ddDehors} onkeydown={ddEchap} />
 <section class="v2-lib tune-v2">
   <header class="v2-top">
@@ -2777,33 +2809,6 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       {#if depot}<span class="dist">{depot.hote}</span>{/if}
     </div>
     <div class="v2-actions">
-    {#if !depot}
-      <button class="v2-btn" data-lire-selection onclick={lireDansLOrdre}
-        disabled={lectureEnOrdre || $currentZoneId == null || lireEnCharge || selectionVide}
-        title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any) : $tr('v2.lib.playInOrder' as any)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4l14 8-14 8z"/></svg>{lectureEnOrdre ? $tr('v2.lib.starting' as any) : $tr('v2.album.play' as any)}
-      </button>
-    {/if}
-    <button class="v2-btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null || (albumsAleatoire != null && enCharge)}
-      title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any)
-        : depot ? $tr('v2.lib.shuffleDepot' as any).replace('{nom}', depot.nom)
-        : $tr('v2.lib.shuffleAll' as any)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20 20 4M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>{shuffling ? $tr('v2.lib.starting' as any) : $tr('v2.album.shuffle' as any)}
-    </button>
-    {#if !depot}
-      <!-- Declarer un dossier de musique est un reglage du serveur LOCAL :
-           le proposer sur la bibliotheque d'une autre machine promettrait
-           d'agir sur elle, ce qu'on ne fait pas. -->
-      {#if idsDuLotIa.length && atLeast(level, 'intermediate')}
-        <button class="v2-btn" data-suggestions-ia-lot-ouvrir onclick={() => (lotIa = idsDuLotIa)}
-          title={$tr('assistantIa.lot.tip' as any).replace('{n}', String(idsDuLotIa.length))}>
-          {$tr('assistantIa.album.button' as any)}
-        </button>
-      {/if}
-      <button class="v2-btn" onclick={addContent} title={$tr('v2.lib.addFolders' as any)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>{$tr('v2.tags.add' as any)}
-      </button>
-    {/if}
     <nav class="tabs">
       <!-- #1372 — `ONGLETS`, et non `TABS` : « Ajouts récents » n'est pas
            offert sur un dépôt distant, faute de route chez lui. -->
@@ -3062,6 +3067,40 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         onChanger={(v) => (display = v)} />
       {/if}
     {/if}
+    <!-- web#2198 (fil 2277, capture annotée) — Lire, Aléatoire et Ajouter
+         occupaient une rangée à eux au-dessus des onglets sur un écran de
+         16 pouces (la grappe d'actions passait à la ligne). Ils rejoignent
+         le bout de la rangée du champ de recherche, à droite : l'en-tête ne
+         garde que le titre et les onglets, et les filtres ne bougent pas. -->
+    <div class="v2-actions gestes-lib">
+    {#if !depot}
+      <button class="v2-btn" data-lire-selection onclick={lireDansLOrdre}
+        disabled={lectureEnOrdre || $currentZoneId == null || lireEnCharge || selectionVide}
+        title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any) : $tr('v2.lib.playInOrder' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4l14 8-14 8z"/></svg>{lectureEnOrdre ? $tr('v2.lib.starting' as any) : $tr('v2.album.play' as any)}
+      </button>
+    {/if}
+    <button class="v2-btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null || (albumsAleatoire != null && enCharge)}
+      title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any)
+        : depot ? $tr('v2.lib.shuffleDepot' as any).replace('{nom}', depot.nom)
+        : $tr('v2.lib.shuffleAll' as any)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20 20 4M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>{shuffling ? $tr('v2.lib.starting' as any) : $tr('v2.album.shuffle' as any)}
+    </button>
+    {#if !depot}
+      <!-- Declarer un dossier de musique est un reglage du serveur LOCAL :
+           le proposer sur la bibliotheque d'une autre machine promettrait
+           d'agir sur elle, ce qu'on ne fait pas. -->
+      {#if idsDuLotIa.length && atLeast(level, 'intermediate')}
+        <button class="v2-btn" data-suggestions-ia-lot-ouvrir onclick={() => (lotIa = idsDuLotIa)}
+          title={$tr('assistantIa.lot.tip' as any).replace('{n}', String(idsDuLotIa.length))}>
+          {$tr('assistantIa.album.button' as any)}
+        </button>
+      {/if}
+      <button class="v2-btn" onclick={addContent} title={$tr('v2.lib.addFolders' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>{$tr('v2.tags.add' as any)}
+      </button>
+    {/if}
+    </div>
   </div>
 
   <!--
@@ -3248,7 +3287,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             <BoutonAjouterDossier onAjoute={() => void lireCauseVide()} />
             <button class="chip" onclick={addContent}>{$tr('v2.lib.emptyOpenFolders' as any)}</button>
           </span>
-        {/if}</div>
+        {/if}
+        {@render passerelleServices()}</div>
     {:else}
       <!-- Le rail reste sur TOUS les tris (Bertrand, 25/09/2026) : sur un tri
            qui n'est pas alphabétique, une lettre repasse au tri Titre puis
@@ -3495,7 +3535,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                     <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
                       <div class="ct" title={a.title}>{a.title}</div>
                       <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
-                      <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
+                      <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
                     </button>
                   </div>
                 {/each}
@@ -3540,7 +3580,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
       {:else if display === 'list'}
         {#if !affiches.length}
-          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
+          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}{@render passerelleServices()}</div>
         {:else}
         <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
           {#each affichesVisibles as a, i (cleCarteAlbum(a))}
@@ -3584,7 +3624,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           repères, et `jump()` sait désormais viser aussi en largeur.
         -->
         {#if !affiches.length}
-          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
+          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}{@render passerelleServices()}</div>
         {:else}
         <div class="carrou" use:defilementHorizontal bind:this={gridEl}
              use:centrageCarrousel={{ nombre: affiches.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
@@ -3599,7 +3639,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
       {:else}
         {#if !affiches.length}
-          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
+          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}{@render passerelleServices()}</div>
         {:else}
         <div class="grid" class:expert={showExpert} bind:this={gridEl}>
           {#each affichesVisibles as a, i (cleCarteAlbum(a))}
@@ -3651,7 +3691,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
         <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
-        <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
+        <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
         {#if showTech}<div class="cq" use:bulleTexte>{tech(a)}</div>{/if}
       </button>
     </div>
@@ -3707,7 +3747,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
         <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
-        <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
+        <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
         {#if showTech}<div class="cq" use:bulleTexte>{tech(a)}</div>{/if}
       </button>
     </div>
@@ -3800,6 +3840,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .tab.active{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .filters{display:flex; align-items:center; gap:12px; padding:16px 30px 14px; flex-wrap:wrap}
+  /* web#2198 — les gestes de l'écran, poussés au bout de la rangée. */
+  .gestes-lib{margin-left:auto}
   .chip{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 15px; border-radius:var(--v2-r-pill);
     background:var(--v2-surface); border:1px solid transparent; color:var(--v2-txt2); font:600 13.5px var(--v2-sans); cursor:pointer; transition:.15s}
   .chip:hover{color:var(--v2-txt)}
