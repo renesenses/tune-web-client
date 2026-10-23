@@ -5466,6 +5466,7 @@ export default {
   "accesCompte.retourEnCours": "Bejelentkezés…",
   "accesCompte.fermer": "Elrejtés",
   "accesCompte.reessayer": "Újra",
+  "v2.circle.lib.thumbnailsProgress": "Borítók: {n} / {total}, fokozatosan érkeznek.",
   "assistantIa.err.cle_sans_espace_de_travail": "Ez az Anthropic-kulcs nem tartozik egyetlen munkaterülethez sem: hozzon létre egyet egy munkaterületen belül (console.anthropic.com › API keys).",
   "assistantIa.err.motif": "A szolgáltató által megadott ok: „{motif}”",
   "scanDetenteur.origine.startup": "Indításkori vizsgálat",

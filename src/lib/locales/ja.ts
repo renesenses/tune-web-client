@@ -5507,6 +5507,7 @@ export default {
   "accesCompte.retourEnCours": "サインインしています…",
   "accesCompte.fermer": "閉じる",
   "accesCompte.reessayer": "再試行",
+  "v2.circle.lib.thumbnailsProgress": "ジャケット：{total} 件中 {n} 件。順次届きます。",
   "assistantIa.err.cle_sans_espace_de_travail": "この Anthropic キーはどのワークスペースにも属していません。ワークスペース内でキーを作成してください（console.anthropic.com › API keys）。",
   "assistantIa.err.motif": "プロバイダーが示した理由：「{motif}」",
   "scanDetenteur.origine.startup": "起動時スキャン",

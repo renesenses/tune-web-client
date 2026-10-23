@@ -5507,6 +5507,7 @@ export default {
   "accesCompte.retourEnCours": "Iniciando sesión…",
   "accesCompte.fermer": "Ocultar",
   "accesCompte.reessayer": "Reintentar",
+  "v2.circle.lib.thumbnailsProgress": "Portadas: {n} de {total}, van llegando poco a poco.",
   "assistantIa.err.cle_sans_espace_de_travail": "Esta clave de Anthropic no está vinculada a ningún espacio de trabajo: cree una dentro de un espacio de trabajo (console.anthropic.com › API keys).",
   "assistantIa.err.motif": "Motivo indicado por el proveedor: «{motif}»",
   "scanDetenteur.origine.startup": "Escaneo de inicio",

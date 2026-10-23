@@ -5529,6 +5529,7 @@ export default {
   "accesCompte.retourEnCours": "Connexion en cours…",
   "accesCompte.fermer": "Masquer",
   "accesCompte.reessayer": "Réessayer",
+  "v2.circle.lib.thumbnailsProgress": "Pochettes : {n} sur {total}, elles arrivent progressivement.",
   "assistantIa.err.cle_sans_espace_de_travail": "Cette clé Anthropic n’est rattachée à aucun espace de travail : créez-en une dans un espace de travail (console.anthropic.com › API keys).",
   "assistantIa.err.motif": "Motif donné par le fournisseur : « {motif} »",
   "scanDetenteur.origine.startup": "Scan de démarrage",
