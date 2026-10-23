@@ -677,6 +677,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': 'Liknande artister',
+  "artist.backToSimilars": "Tillbaka till artister som liknar {nom}",
   'artist.members': 'Medlemmar',
   'artist.credits': 'Medverkande',
   'credits.performer': 'Utövare',
@@ -1441,6 +1442,7 @@ export default {
   "settings.communityShareHint": "Fristående från ”Mina lyssningar” och av som standard. Dina albumbetyg (utan kommentar) och de lyssningar ditt konto tar emot EFTER aktiveringen ingår i offentliga, anonyma summor som visas på albumsidan från tre olika personer. Inga individuella uppgifter visas någonsin. Stänger du av det tas ditt bidrag bort direkt.",
   "library.communityRating": "★ {average} ({count} betyg)",
   "library.communityListens": "{count} lyssningar",
+  "library.communityListensTip": "Lyssningar i Tune-communityn",
   "library.communityLine": "{parts} i communityn",
   "settings.communityContribution": "Dela mina berikade metadata med communityn",
   "settings.communityNeedsTelemetry": "Ingen effekt så länge telemetrin är avstängd: delningen kräver den, men telemetrin ensam slår inte på delningen.",
@@ -3688,6 +3690,7 @@ export default {
   "v2.sup.bugIntro": "Beskriv vad som är fel: din text, diagnostiken och serverns senaste loggar skickas till forumet i en modererad tråd. Ingen licens behövs.",
   "v2.sup.bugDesc": "Vad händer",
   "v2.sup.bugDescHint": "T.ex. uppspelningen stannar efter två spår i min DLNA-zon…",
+  "v2.sup.bugDraftClear": "Rensa utkastet",
   "v2.sup.bugSend": "Skicka till forumet",
   "v2.sup.bugPreview": "Visa den bifogade rapporten",
   "v2.sup.bugPreviewLoading": "Förbereder rapporten…",
@@ -4529,6 +4532,7 @@ export default {
   "v2.cd.insertedPrompt": "Skiva isatt: {disc}",
   "v2.cd.loadIntoMemory": "Läs in i minnet",
   "v2.cd.loadIntoMemoryHint": "Den pågående uppspelningen fortsätter.",
+  "v2.cd.declineLoad": "Nej",
   "v2.cd.memLoadStarted": "Läser in skivan i minnet…",
   "v2.cd.memLoadFailed": "Skivan kunde inte läsas in i minnet.",
   "v2.cd.memReadyPrompt": "Skiva inläst: {disc}",

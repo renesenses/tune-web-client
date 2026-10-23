@@ -693,6 +693,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': '類似アーティスト',
+  "artist.backToSimilars": "{nom} の類似アーティストに戻る",
   'artist.members': 'メンバー',
   'artist.credits': 'クレジット',
   'credits.performer': '演奏者',
@@ -1427,6 +1428,7 @@ export default {
   "settings.communityShareHint": "「再生履歴」とは別の設定で、初期設定はオフです。アルバムの評価（コメントなし）と、オンにした後にアカウントが受信した再生が公開の匿名集計に加わり、3 人以上の異なる利用者がいる場合にアルバムページに表示されます。個人のデータは表示されません。オフにすると寄与はただちに取り除かれます。",
   "library.communityRating": "★ {average}（{count} 件の評価）",
   "library.communityListens": "{count} 回の再生",
+  "library.communityListensTip": "Tune コミュニティの再生回数",
   "library.communityLine": "コミュニティ：{parts}",
   "settings.communityContribution": "充実させたメタデータをコミュニティと共有する",
   "settings.communityNeedsTelemetry": "テレメトリーがオフの間は効果がありません。共有にはテレメトリーが必要ですが、テレメトリーだけでは共有は有効になりません。",
@@ -3689,6 +3691,7 @@ export default {
   "v2.sup.bugIntro": "問題を説明してください。本文、診断情報、サーバーの最近のログがフォーラムの承認制スレッドに送られます。ライセンスは不要です。",
   "v2.sup.bugDesc": "何が起きているか",
   "v2.sup.bugDescHint": "例：DLNA ゾーンで 2 曲再生すると止まる…",
+  "v2.sup.bugDraftClear": "下書きを消去",
   "v2.sup.bugSend": "フォーラムに送信",
   "v2.sup.bugPreview": "添付されるレポートを見る",
   "v2.sup.bugPreviewLoading": "レポートを準備中…",
@@ -4530,6 +4533,7 @@ export default {
   "v2.cd.insertedPrompt": "ディスクが挿入されました：{disc}",
   "v2.cd.loadIntoMemory": "メモリに読み込む",
   "v2.cd.loadIntoMemoryHint": "現在の再生はそのまま続きます。",
+  "v2.cd.declineLoad": "いいえ",
   "v2.cd.memLoadStarted": "ディスクをメモリに読み込んでいます…",
   "v2.cd.memLoadFailed": "ディスクをメモリに読み込めませんでした。",
   "v2.cd.memReadyPrompt": "ディスクを読み込みました：{disc}",
