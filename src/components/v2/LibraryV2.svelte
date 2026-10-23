@@ -134,6 +134,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { lireChoix, ecrireChoix, lireNombre } from '../../lib/preferencesEcran';
   import BasculeAffichage from './BasculeAffichage.svelte';
   import { AFFICHAGES, GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
+  import ArtistesDuLabel from './ArtistesDuLabel.svelte';
   import { carteDesLogos, logoDuLabel, monogramme, VUES_LABELS, CLE_VUE_LABELS, type VueLabels } from '../../lib/logosLabels';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
@@ -3492,6 +3493,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         <div class="facets">
           {#each [groupeOuvert] as g (g.key)}
             <section class="facet" data-facette={g.key}>
+              <!-- tune-server-rust#6782 — les artistes du label : ceux de la
+                   bibliothèque, puis « À découvrir » chez Qobuz. Ni sur
+                   « Sans label » ni sur un dépôt distant. -->
+              {#if tab === 'labels' && !depot && g.reel}
+                <ArtistesDuLabel label={g.key} />
+              {/if}
               <!-- 🔴 #1419 — la bascule grille/liste est offerte sur ces
                    onglets : la facette ouverte doit donc lire `display`. La
                    grille était écrite en dur, et le clic ne changeait rien
