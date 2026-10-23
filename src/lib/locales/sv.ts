@@ -4530,6 +4530,7 @@ export default {
   "v2.cd.insertedPrompt": "Skiva isatt: {disc}",
   "v2.cd.loadIntoMemory": "Läs in i minnet",
   "v2.cd.loadIntoMemoryHint": "Den pågående uppspelningen fortsätter.",
+  "v2.cd.declineLoad": "Nej",
   "v2.cd.memLoadStarted": "Läser in skivan i minnet…",
   "v2.cd.memLoadFailed": "Skivan kunde inte läsas in i minnet.",
   "v2.cd.memReadyPrompt": "Skiva inläst: {disc}",

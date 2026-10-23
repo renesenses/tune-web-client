@@ -4531,6 +4531,7 @@ export default {
   "v2.cd.insertedPrompt": "ディスクが挿入されました：{disc}",
   "v2.cd.loadIntoMemory": "メモリに読み込む",
   "v2.cd.loadIntoMemoryHint": "現在の再生はそのまま続きます。",
+  "v2.cd.declineLoad": "いいえ",
   "v2.cd.memLoadStarted": "ディスクをメモリに読み込んでいます…",
   "v2.cd.memLoadFailed": "ディスクをメモリに読み込めませんでした。",
   "v2.cd.memReadyPrompt": "ディスクを読み込みました：{disc}",

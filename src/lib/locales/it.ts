@@ -4531,6 +4531,7 @@ export default {
   "v2.cd.insertedPrompt": "Disco inserito: {disc}",
   "v2.cd.loadIntoMemory": "Carica in memoria",
   "v2.cd.loadIntoMemoryHint": "La riproduzione in corso continua.",
+  "v2.cd.declineLoad": "No",
   "v2.cd.memLoadStarted": "Caricamento del disco in memoria…",
   "v2.cd.memLoadFailed": "Impossibile caricare il disco in memoria.",
   "v2.cd.memReadyPrompt": "Disco caricato: {disc}",

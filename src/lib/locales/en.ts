@@ -4551,6 +4551,7 @@ export default {
   "v2.cd.insertedPrompt": "Disc inserted: {disc}",
   "v2.cd.loadIntoMemory": "Load into memory",
   "v2.cd.loadIntoMemoryHint": "Current playback keeps going.",
+  "v2.cd.declineLoad": "No",
   "v2.cd.memLoadStarted": "Loading the disc into memory…",
   "v2.cd.memLoadFailed": "The disc could not be loaded into memory.",
   "v2.cd.memReadyPrompt": "Disc loaded: {disc}",
