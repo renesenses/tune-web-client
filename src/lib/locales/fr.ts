@@ -3712,6 +3712,7 @@ export default {
   "v2.sup.bugIntro": "Décrivez ce qui ne va pas : votre texte, les diagnostics et les journaux récents du serveur partent sur le forum, dans un fil modéré. Aucune licence n’est nécessaire.",
   "v2.sup.bugDesc": "Ce qui se passe",
   "v2.sup.bugDescHint": "Ex. : la lecture s’arrête après deux titres sur ma zone DLNA…",
+  "v2.sup.bugDraftClear": "Effacer le brouillon",
   "v2.sup.bugSend": "Envoyer au forum",
   "v2.sup.bugPreview": "Voir le rapport joint",
   "v2.sup.bugPreviewLoading": "Préparation du rapport…",

@@ -3690,6 +3690,7 @@ export default {
   "v2.sup.bugIntro": "Descrieți problema: textul dumneavoastră, diagnosticul și jurnalele recente ale serverului ajung pe forum, într-un fir moderat. Nu este nevoie de licență.",
   "v2.sup.bugDesc": "Ce se întâmplă",
   "v2.sup.bugDescHint": "Ex.: redarea se oprește după două piese în zona mea DLNA…",
+  "v2.sup.bugDraftClear": "Șterge ciorna",
   "v2.sup.bugSend": "Trimite pe forum",
   "v2.sup.bugPreview": "Vezi raportul atașat",
   "v2.sup.bugPreviewLoading": "Se pregătește raportul…",

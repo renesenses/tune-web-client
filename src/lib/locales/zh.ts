@@ -3690,6 +3690,7 @@ export default {
   "v2.sup.bugIntro": "描述问题：您的文字、诊断信息和服务器最近的日志将发送到论坛的一个审核帖中。无需许可证。",
   "v2.sup.bugDesc": "发生了什么",
   "v2.sup.bugDescHint": "例如：在我的 DLNA 区域播放两首后停止…",
+  "v2.sup.bugDraftClear": "清除草稿",
   "v2.sup.bugSend": "发送到论坛",
   "v2.sup.bugPreview": "查看附带的报告",
   "v2.sup.bugPreviewLoading": "正在准备报告…",

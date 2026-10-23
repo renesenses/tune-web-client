@@ -3644,6 +3644,7 @@ export default {
   "v2.sup.bugIntro": "Írja le, mi a gond: a szövege, a diagnosztika és a kiszolgáló legutóbbi naplói egy moderált fórumszálba kerülnek. Licenc nem szükséges.",
   "v2.sup.bugDesc": "Mi történik",
   "v2.sup.bugDescHint": "Pl.: a lejátszás két szám után leáll a DLNA-zónámban…",
+  "v2.sup.bugDraftClear": "Piszkozat törlése",
   "v2.sup.bugSend": "Küldés a fórumra",
   "v2.sup.bugPreview": "A csatolt jelentés megtekintése",
   "v2.sup.bugPreviewLoading": "A jelentés előkészítése…",

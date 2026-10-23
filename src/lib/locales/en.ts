@@ -3710,6 +3710,7 @@ export default {
   "v2.sup.bugIntro": "Describe what is wrong: your text, the diagnostics and the server's recent logs go to the forum, in a moderated thread. No licence is needed.",
   "v2.sup.bugDesc": "What happens",
   "v2.sup.bugDescHint": "E.g. playback stops after two tracks on my DLNA zone…",
+  "v2.sup.bugDraftClear": "Clear draft",
   "v2.sup.bugSend": "Send to the forum",
   "v2.sup.bugPreview": "View the attached report",
   "v2.sup.bugPreviewLoading": "Preparing the report…",

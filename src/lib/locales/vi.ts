@@ -3567,6 +3567,7 @@ export default {
   "v2.sup.bugIntro": "Hãy mô tả vấn đề: nội dung của bạn, thông tin chẩn đoán và nhật ký gần đây của máy chủ sẽ được gửi lên diễn đàn, trong một chủ đề có kiểm duyệt. Không cần giấy phép.",
   "v2.sup.bugDesc": "Chuyện gì xảy ra",
   "v2.sup.bugDescHint": "Ví dụ: việc phát dừng lại sau hai bài hát trên vùng phát DLNA của tôi…",
+  "v2.sup.bugDraftClear": "Xóa bản nháp",
   "v2.sup.bugSend": "Gửi lên diễn đàn",
   "v2.sup.bugPreview": "Xem báo cáo đính kèm",
   "v2.sup.bugPreviewLoading": "Đang chuẩn bị báo cáo…",
