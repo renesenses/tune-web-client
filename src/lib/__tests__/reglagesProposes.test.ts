@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { zoneAProposer, propositionRetenue, resumeProposition, OCCURRENCES_MIN } from '../reglagesProposes';
+import { reglagesDePresetApplicables } from '../api';
 
 const p = (occurrences: number, settings: Record<string, unknown> = { dlna_lpcm: true }) =>
   ({ occurrences, settings }) as any;
@@ -43,5 +44,30 @@ describe('branchement dans Réglages › par zone', () => {
   it('les propositions passent par la règle partagée', () => {
     expect(V2).toContain('if (!zoneAProposer(z)) continue;');
     expect(V2).toContain('propositionRetenue(r.presets)');
+  });
+});
+
+describe('tune-server-rust#6774 — un trim positif proposé n’est jamais appliqué', () => {
+  it('🔴 le +12 dB d’un préréglage communautaire ne part pas', () => {
+    const r = propositionRetenue([p(9, { dlna_lpcm: true, gain_trim_db: 12 })]);
+    expect(r, 'la proposition garde ses autres réglages').not.toBeNull();
+    expect(
+      r!.settings,
+      'un trim positif proposé serait appliqué à l’appareil (#6774)',
+    ).not.toHaveProperty('gain_trim_db');
+    expect(resumeProposition(r!)).toBe('dlna_lpcm');
+  });
+  it('une proposition qui ne porte qu’un trim positif n’en est pas une', () => {
+    expect(propositionRetenue([p(9, { gain_trim_db: 3 })])).toBeNull();
+  });
+  it('un trim négatif ou nul passe', () => {
+    expect(propositionRetenue([p(9, { gain_trim_db: -3 })])!.settings).toEqual({ gain_trim_db: -3 });
+    expect(reglagesDePresetApplicables({ gain_trim_db: 0 })).toEqual({ gain_trim_db: 0 });
+  });
+  it('🔴 l’appel au serveur filtre aussi, quel que soit l’appelant', () => {
+    expect(reglagesDePresetApplicables({ gain_trim_db: '8.5', dlna_wav24: true })).toEqual({ dlna_wav24: true });
+    const API = readFileSync('src/lib/api.ts', 'utf8');
+    const corps = API.slice(API.indexOf('export function applyZoneDevicePreset('));
+    expect(corps.slice(0, 300)).toContain('reglagesDePresetApplicables(settings)');
   });
 });
