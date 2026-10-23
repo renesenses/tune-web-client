@@ -10,7 +10,7 @@
   import { t } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
   import {
-    proposerPlaylistIa, estEchec, cleDEchec, cleDeRaison, valeurLisible,
+    proposerPlaylistIa, estEchec, messageDEchec, cleDeRaison, valeurLisible,
     type PropositionIa,
   } from '../../lib/assistantIa';
   import type { EtatPlafondIa } from '../../lib/assistantIa';
@@ -40,7 +40,7 @@
     try {
       const r = await proposerPlaylistIa(phrase.trim());
       if (estEchec(r)) {
-        erreur = $t(cleDEchec(r.error) as any);
+        erreur = messageDEchec(r, (k) => $t(k as any));
         ecartees = r.refusees ?? [];
         nonTraduit = r.untranslated ?? [];
         return;

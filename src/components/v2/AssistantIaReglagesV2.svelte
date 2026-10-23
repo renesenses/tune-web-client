@@ -20,7 +20,7 @@
   import { noterReglagesIa } from '../../lib/assistantIaDialogue';
   import AlertePlafondIaV2 from './AlertePlafondIaV2.svelte';
   import {
-    lireReglagesIa, changerReglagesIa, testerCleIa, estEchec, estReglages, cleDEchec, peutModifier,
+    lireReglagesIa, changerReglagesIa, testerCleIa, estEchec, estReglages, messageDEchec, peutModifier,
     lignesParUsage, cleDUsage, plafondDesReglages, dateLisible,
     type ReglagesIa, type FournisseurIa, type ModificationIa,
   } from '../../lib/assistantIa';
@@ -55,7 +55,7 @@
   async function charger() {
     try {
       const v = await lireReglagesIa();
-      if (estEchec(v)) erreur = $t(cleDEchec(v.error) as any);
+      if (estEchec(v)) erreur = messageDEchec(v, (k) => $t(k as any));
       else if (estReglages(v)) remplir(v);
     } catch (e) {
       erreur = (e as Error)?.message ?? $t('assistantIa.err.generique' as any);
@@ -94,7 +94,7 @@
     if (cle.trim()) m.cle = cle.trim();
     try {
       const v = await changerReglagesIa(m);
-      if (estEchec(v)) erreur = $t(cleDEchec(v.error) as any);
+      if (estEchec(v)) erreur = messageDEchec(v, (k) => $t(k as any));
       else if (estReglages(v)) { remplir(v); cle = ''; message = $t('assistantIa.saved' as any); }
     } catch (e) {
       erreur = (e as Error)?.message ?? $t('assistantIa.err.generique' as any);
@@ -105,7 +105,7 @@
     occupe = true; message = null; erreur = null;
     try {
       const v = await changerReglagesIa({ cle: '' });
-      if (estEchec(v)) erreur = $t(cleDEchec(v.error) as any);
+      if (estEchec(v)) erreur = messageDEchec(v, (k) => $t(k as any));
       else if (estReglages(v)) remplir(v);
     } finally { occupe = false; }
   }
@@ -114,7 +114,7 @@
     occupe = true; message = null; erreur = null;
     try {
       const v = await testerCleIa();
-      if (estEchec(v)) erreur = $t(cleDEchec(v.error) as any);
+      if (estEchec(v)) erreur = messageDEchec(v, (k) => $t(k as any));
       else message = $t('assistantIa.testOk' as any);
       await charger();
     } catch (e) {
