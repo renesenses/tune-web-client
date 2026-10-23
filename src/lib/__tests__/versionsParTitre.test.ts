@@ -272,7 +272,9 @@ describe('le panneau, MONTÉ en mode titre + artiste', () => {
     await souffler();
   }
   const albumsRendus = () =>
-    [...document.querySelectorAll('.tuile .ti')].map((e) => (e.textContent ?? '').trim());
+    // web#2210 — la fenêtre d'un titre de service est celle d'un titre local :
+    // une ligne (`.membre`) par exemplaire, plus de tuiles plates.
+    [...document.querySelectorAll('.membre .ti')].map((e) => (e.textContent ?? '').trim());
 
   it('🔴 interroge la recherche fédérée par le titre, jamais la route par `i64`', async () => {
     await ouvrir({ parTitre: CIBLE, titre: 'Lovely Day' });
@@ -298,7 +300,8 @@ describe('le panneau, MONTÉ en mode titre + artiste', () => {
     expect(albumsRendus()).toEqual([
       'Menagerie', 'Lovely Day (Single)', 'Lovely Day (Remastered 2005)', 'Live',
     ]);
-    expect(document.querySelectorAll('.tuile')).toHaveLength(4);
+    expect(document.querySelectorAll('.membre')).toHaveLength(4);
+    expect(document.querySelectorAll('.tuile')).toHaveLength(0);
   });
   it('l’ordre « par source » (#4368) s’applique : Bandcamp passe en dernier', async () => {
     preferences.update((p) => ({ ...p, ordreAutresVersions: 'source' }));

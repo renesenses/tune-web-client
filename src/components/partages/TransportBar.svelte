@@ -1370,7 +1370,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
          Le nombre de titres à suivre est en infobulle, pas dessiné : la barre
          reste compacte. -->
     <button
-      class="control-btn small"
+      class="control-btn small queue-btn"
       class:active={$activeView === 'queue'}
       onclick={() => activeView.set('queue')}
       aria-label={$t('nav.queue')}
@@ -3441,6 +3441,38 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
     /* Mini-player: seulement play/pause + next */
     .transport-controls .control-btn.small { display: none; }
+
+    /* web#1870 (Lionel, fil 1638) — « en voulant voir la playlist en cours
+       j'ai souvent cliqué sur le bandeau d'avance du morceau ».
+       Sur téléphone, la barre de saut (`.transport-progress`, 18 px de haut)
+       se rangeait dans la colonne des commandes, juste SOUS lecture/suivant,
+       et l'accès à la file était masqué avec les autres petits boutons : le
+       pouce qui cherchait la file tombait sur le saut.
+       1. La file reste dans la mini-barre, en cible de 44 px (le minimum
+          tactile d'Apple), à côté de lecture/suivant.
+       2. Le saut quitte la mini-barre : il vit dans « Lecture en cours »
+          (`SeekBar`, pleine largeur). Ici, il ne reste qu'un trait de
+          progression en HAUT de la barre, qui ne capte aucun toucher. */
+    .transport-controls .control-btn.small.queue-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+    }
+
+    .transport-progress { display: none; }
+
+    .transport-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 2px;
+      background: var(--tune-accent);
+      width: var(--compact-progress, 0%);
+      pointer-events: none;
+    }
     .transport-controls .audiophile-btn { display: none; }
 
     .transport-controls .play-btn {

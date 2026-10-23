@@ -27,7 +27,11 @@ describe('web#2138 — le Retour d\'un genre ou d\'un label ouvert reste à l\'�
     expect(facets).toBeGreaterThan(retour);
     // Et c'est bien le Retour de la facette ouverte, juste avant elle.
     const entre = GAB.slice(retour, facets);
-    expect(entre).toContain('facetteOuverte = null');
+    // web#2191 — le Retour passe par `fermerFacette`, qui note la position de
+    // la liste à rétablir puis referme la valeur ouverte.
+    expect(entre).toContain('onclick={fermerFacette}');
+    const fermer = SRC.slice(SRC.indexOf('function fermerFacette()'));
+    expect(fermer.slice(0, fermer.indexOf('}'))).toContain('facetteOuverte = null');
     expect(entre).not.toMatch(/<div\b/);
   });
 
