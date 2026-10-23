@@ -221,7 +221,7 @@ export interface Preferences {
    *  Défaut : débutant pour TOUS, installations existantes comprises
    *  (arbitrage Bertrand, 14/08) — l'ancien toggle « réglages avancés »
    *  migre vers expert au premier chargement (voir loadPrefs). */
-  /** Thème du NOUVEAU client (six palettes, voir lib/v2Theme). Distinct de
+  /** Thème du NOUVEAU client (sept palettes, voir lib/v2Theme). Distinct de
    *  `theme` ci-dessus, qui reste celui de l'app historique : les deux
    *  clients cohabitent derrière le drapeau `?v2`, chacun garde le sien. */
   v2Theme: V2Theme;

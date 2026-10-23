@@ -1,5 +1,5 @@
 /**
- * Thèmes du nouveau client (direction Levente) — six palettes.
+ * Thèmes du nouveau client (direction Levente) — sept palettes.
  *
  * Le choix est posé en attribut `data-v2-theme` sur <html> ; les tokens
  * correspondants vivent dans `styles/tune-v2.css` sous
@@ -15,6 +15,10 @@ export const V2_THEMES = [
   { id: 'black-blue',      label: 'Noir / Bleu',     swatch: ['#06111A', '#00BCD4'] },
   { id: 'midnight-orange', label: 'Minuit / Orange', swatch: ['#0B1020', '#FF8A3D'] },
   { id: 'brown',           label: 'Brun',            swatch: ['#17110D', '#D89A63'] },
+  // #2364 (Sandro, fil 2405) : un palier gris neutre entre les sombres et les
+  // clairs, rangé entre les deux. Son nom est traduit (`labelKey`) ; `label`
+  // reste le repli français, comme pour les six autres.
+  { id: 'dark-grey',       label: 'Gris foncé',      swatch: ['#2B2B2B', '#3DD6B0'], labelKey: 'settings.themeDarkGrey' },
   { id: 'clear-white',     label: 'Clair / Blanc',   swatch: ['#FFFFFF', '#00A88A'] },
   { id: 'clear-grey',      label: 'Clair / Gris',    swatch: ['#EDEFF2', '#37718E'] },
 ] as const;
@@ -22,6 +26,15 @@ export const V2_THEMES = [
 export type V2Theme = (typeof V2_THEMES)[number]['id'];
 
 export const V2_THEME_DEFAULT: V2Theme = 'black-green';
+
+/** Nom affiché d'une palette : sa clé de traduction si elle en a une, sinon
+ *  son libellé (les six palettes d'origine n'en ont pas encore). */
+export function v2ThemeLabel(
+  theme: (typeof V2_THEMES)[number],
+  tr: (key: string) => string,
+): string {
+  return 'labelKey' in theme ? tr(theme.labelKey) : theme.label;
+}
 
 const IDS = V2_THEMES.map((t) => t.id) as readonly string[];
 
