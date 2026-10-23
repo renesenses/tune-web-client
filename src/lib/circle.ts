@@ -275,7 +275,15 @@ export interface PisteContact {
   /** Décision 3 du 28/09 : servira à T5 (ajout à une playlist collaborative). */
   isrc: string | null;
 }
-export interface StatsContact { tracks: number; albums: number; artists: number; last_sync: string | null }
+export interface StatsContact {
+  tracks: number; albums: number; artists: number; last_sync: string | null;
+  /**
+   * web#2307 (tune-server-rust#6733, point 4) — les albums partagés dont la
+   * vignette est arrivée sur le site (site-mozaiklabs, champ `thumbnails` de
+   * `stats`). `null` : site plus ancien, rien à dire.
+   */
+  thumbnails: number | null;
+}
 
 const texteOuNul = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 const nombreOuNul = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
@@ -430,12 +438,35 @@ function requete(q: RequeteCatalogue): string {
 const racineContact = (uid: number) => `${BASE}/ext/circle/contacts/${seg(uid)}/library`;
 const lire = <T>(url: string) => fetchJSON<T>(url, undefined, undefined, true);
 
-export async function statsContact(uid: number): Promise<StatsContact> {
-  const b = await lire<any>(`${racineContact(uid)}/stats`);
+export function lireStatsContact(b: any): StatsContact {
   return {
     tracks: nombreOuNul(b?.tracks) ?? 0, albums: nombreOuNul(b?.albums) ?? 0,
     artists: nombreOuNul(b?.artists) ?? 0, last_sync: texteOuNul(b?.last_sync),
+    thumbnails: nombreOuNul(b?.thumbnails),
   };
+}
+
+export async function statsContact(uid: number): Promise<StatsContact> {
+  return lireStatsContact(await lire<any>(`${racineContact(uid)}/stats`));
+}
+
+/**
+ * web#2307 — « Pochettes : n sur total, elles arrivent progressivement »,
+ * tant que toutes les vignettes ne sont pas arrivées. Le serveur de l'ami les
+ * envoie en continu, les plus récentes d'abord (tune-server-rust#6747) : une
+ * grande bibliothèque met des heures à être couverte, et la grille grise
+ * doit dire pourquoi. `null` : complet, bibliothèque vide, ou site qui ne
+ * compte pas les vignettes.
+ */
+export function ligneVignettesContact(
+  s: Pick<StatsContact, 'albums' | 'thumbnails'> | null | undefined,
+  tr: (cle: string) => string,
+  nombre: (n: number) => string = String,
+): string | null {
+  if (!s || s.thumbnails == null || s.albums <= 0) return null;
+  const n = Math.max(0, Math.min(s.thumbnails, s.albums));
+  if (n >= s.albums) return null;
+  return tr('v2.circle.lib.thumbnailsProgress').replace('{n}', nombre(n)).replace('{total}', nombre(s.albums));
 }
 
 export async function artistesContact(uid: number, q: RequeteCatalogue = {}): Promise<PageContact<ArtisteContact>> {
