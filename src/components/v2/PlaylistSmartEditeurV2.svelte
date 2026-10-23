@@ -79,6 +79,7 @@
     type RegleSmartPlaylist,
   } from '../../lib/smartPlaylistChamps';
   import SmartFolderPicker from '../partages/SmartFolderPicker.svelte';
+  import RequeteAvanceeV2 from './RequeteAvanceeV2.svelte';
   import '../../styles/tune-v2.css';
 
   interface Props {
@@ -252,6 +253,13 @@
   // La validation de l'ancien écran, mot pour mot : un nom, rien de plus —
   // sauf pour une proposition de l'assistant, qui doit garder une règle.
   const pretAEnregistrer = $derived(!chargement && nom.trim().length > 0 && !iaSansRegle);
+
+  /** #6287 — les règles d'une requête textuelle, reprises dans l'éditeur. */
+  function reprendreRequete(rules: any[], m: 'all' | 'any') {
+    const lues = lireRegles(rules);
+    regles = lues.length ? lues : [regleNeuve()];
+    mode = m;
+  }
 
   let travail = $state(false);
   async function enregistrer() {
@@ -437,6 +445,10 @@
       {/each}
       <button class="lnk" onclick={ajouter}>+ {$t('v2.smart.addRule' as any)}</button>
     </div>
+
+    <!-- tune-server-rust#6287, étape 2 — la requête textuelle : essayée sur la
+         bibliothèque, et reprise dans l'éditeur quand elle en a la forme. -->
+    <RequeteAvanceeV2 {triPar} {ordre} {maximum} onReprendre={reprendreRequete} />
 
     <div class="options">
       <label class="champ">

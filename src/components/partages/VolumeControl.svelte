@@ -13,6 +13,7 @@
   import {
     PAS_BOUTON,
     bornerCurseur,
+    cibleDuPas,
     plusEnButee,
     serveurConnaitLesLimites,
   } from '../../lib/limitesVolume';
@@ -139,14 +140,16 @@
   async function pas(direction: 'up' | 'down') {
     if (!zone?.id || $volumeLocked) return;
     if (!serveurConnaitLesLimites(zone) || isBrowserZone(zone)) {
-      const next = direction === 'up' ? Math.min(1, vol + PAS_BOUTON) : Math.max(0, vol - PAS_BOUTON);
+      // web#2292 — borné par la sécurité de la zone, pas seulement par 100 %.
+      const next = cibleDuPas(zone, vol, direction);
+      if (next === vol) return;
       if (direction === 'up') leverSourdineSiBesoin({ ...zone, id: zone.id }, next);
       applyVolume(next);
       await api.setVolume(zone.id, next);
       return;
     }
     try {
-      const r = await api.stepVolume(zone.id, direction);
+      const r = await api.stepVolume(zone.id, direction, PAS_BOUTON);
       if (direction === 'up') leverSourdineSiBesoin({ ...zone, id: zone.id }, r.volume);
       applyVolume(r.volume);
       if (r.limited) notifications.info($t('volume.limitedBySafety'));
@@ -156,6 +159,9 @@
   }
 
   let enButee = $derived(plusEnButee(zone, vol));
+  // web#2292 — les boutons − et + sont une OPTION des Réglages, désactivée par
+  // défaut : seul le curseur s'affiche tant qu'on ne l'a pas choisie.
+  let boutonsPas = $derived($preferences.volumeStepButtons === true);
 </script>
 
 <div class="volume-control" class:locked={$volumeLocked}>
@@ -183,6 +189,7 @@
       </svg>
     {/if}
   </button>
+  {#if boutonsPas}
   <button
     class="step-btn"
     onclick={() => pas('down')}
@@ -192,6 +199,7 @@
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
   </button>
+  {/if}
   <input
     type="range"
     class="volume-slider"
@@ -204,6 +212,7 @@
     title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : undefined}
     aria-label="Volume"
   />
+  {#if boutonsPas}
   <button
     class="step-btn"
     onclick={() => pas('up')}
@@ -213,6 +222,7 @@
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
   </button>
+  {/if}
   {#if modeDb}
     <input
       type="text"
