@@ -696,6 +696,12 @@ export default {
   // Artist detail
   'artist.similarArtists': '類似アーティスト',
   "artist.backToSimilars": "{nom} の類似アーティストに戻る",
+  "artist.detachIdentity": "識別情報を外す",
+  "artist.detachIdentityHint": "このアーティストの MusicBrainz 識別子と、それに伴って取得された写真と経歴を削除します。Tune が自動で再び結び付けることはありません。",
+  "artist.detachIdentityConfirm": "「{nom}」の MusicBrainz 識別情報を外しますか？それに伴って取得された写真と経歴は削除され、Tune は自動で結び付けなくなります。",
+  "artist.identityDetached": "識別情報を外しました：「{nom}」は MusicBrainz と結び付いていません。",
+  "artist.identityDetachFailed": "このアーティストの識別情報を外せませんでした。",
+  "artist.identityDetachedNote": "あなたが外した識別情報です：Tune はもう検索しません。",
   'artist.members': 'メンバー',
   'artist.credits': 'クレジット',
   'credits.performer': '演奏者',

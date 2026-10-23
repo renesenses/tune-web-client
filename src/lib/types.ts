@@ -87,6 +87,10 @@ export interface Artist {
   name: string;
   sort_name?: string | null;
   musicbrainz_id?: string | null;
+  /** tune-server-rust#6463 — d'où vient `musicbrainz_id` : `balise`, `nom`,
+   *  `pressage`, `manuel` (saisi ou détaché par l'utilisateur), `null` :
+   *  inconnu. Absent d'un serveur ancien. */
+  musicbrainz_id_source?: 'balise' | 'nom' | 'pressage' | 'manuel' | null;
   discogs_id?: string | null;
   bio?: string | null;
   /** Provenance de `bio` (source, URL, licence, langue) — absente sur un serveur ancien. */

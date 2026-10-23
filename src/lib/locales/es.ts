@@ -696,6 +696,12 @@ export default {
   // Artist detail
   'artist.similarArtists': 'Artistas similares',
   "artist.backToSimilars": "Volver a los artistas similares a {nom}",
+  "artist.detachIdentity": "Desvincular la identidad",
+  "artist.detachIdentityHint": "Quita el identificador de MusicBrainz de este artista, junto con el retrato y la biografía que trajo. Tune no volverá a vincularlo por sí mismo.",
+  "artist.detachIdentityConfirm": "¿Desvincular la identidad de MusicBrainz de «{nom}»? Se quitarán el retrato y la biografía que trajo, y Tune ya no la vinculará automáticamente.",
+  "artist.identityDetached": "Identidad desvinculada: «{nom}» ya no está vinculado a MusicBrainz.",
+  "artist.identityDetachFailed": "No se pudo desvincular la identidad de este artista.",
+  "artist.identityDetachedNote": "Identidad desvinculada por usted: Tune ya no la busca.",
   'artist.members': 'Miembros',
   'artist.credits': 'Créditos',
   'credits.performer': 'Intérprete',

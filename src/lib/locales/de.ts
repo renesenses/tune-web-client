@@ -696,6 +696,12 @@ export default {
   // Artist detail
   'artist.similarArtists': 'Ähnliche Künstler',
   "artist.backToSimilars": "Zurück zu den ähnlichen Künstlern von {nom}",
+  "artist.detachIdentity": "Identität lösen",
+  "artist.detachIdentityHint": "Entfernt die MusicBrainz-Kennung dieses Künstlers samt dem Porträt und der Biografie, die sie mitgebracht hat. Tune verknüpft sie nicht mehr von selbst.",
+  "artist.detachIdentityConfirm": "Die MusicBrainz-Identität von „{nom}“ lösen? Das Porträt und die Biografie, die damit kamen, werden entfernt, und Tune verknüpft sie nicht mehr automatisch.",
+  "artist.identityDetached": "Identität gelöst: „{nom}“ ist nicht mehr mit MusicBrainz verknüpft.",
+  "artist.identityDetachFailed": "Die Identität dieses Künstlers konnte nicht gelöst werden.",
+  "artist.identityDetachedNote": "Von Ihnen gelöste Identität: Tune sucht sie nicht mehr.",
   'artist.members': 'Mitglieder',
   'artist.credits': 'Mitwirkende',
   'credits.performer': 'Musiker',

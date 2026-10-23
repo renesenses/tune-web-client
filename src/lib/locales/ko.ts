@@ -696,6 +696,12 @@ export default {
   // Artist detail
   'artist.similarArtists': '비슷한 아티스트',
   "artist.backToSimilars": "{nom}와(과) 비슷한 아티스트로 돌아가기",
+  "artist.detachIdentity": "식별 정보 분리",
+  "artist.detachIdentityHint": "이 아티스트의 MusicBrainz 식별자와 함께 가져온 사진과 소개를 삭제합니다. Tune이 스스로 다시 연결하지 않습니다.",
+  "artist.detachIdentityConfirm": "“{nom}”의 MusicBrainz 식별 정보를 분리할까요? 함께 가져온 사진과 소개가 삭제되며, Tune은 더 이상 자동으로 연결하지 않습니다.",
+  "artist.identityDetached": "식별 정보 분리됨: “{nom}”은(는) 더 이상 MusicBrainz에 연결되어 있지 않습니다.",
+  "artist.identityDetachFailed": "이 아티스트의 식별 정보를 분리할 수 없습니다.",
+  "artist.identityDetachedNote": "직접 분리한 식별 정보: Tune이 더 이상 찾지 않습니다.",
   'artist.members': '멤버',
   'artist.credits': '크레딧',
   'credits.performer': '연주자',
