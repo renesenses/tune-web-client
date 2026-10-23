@@ -12,6 +12,7 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';
   import { t as tr } from '../../lib/i18n';
+  import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import { formatAnneeAlbum } from '../../lib/formats';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -1638,6 +1639,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
              `DR ~12` souligné en pointillés pour la moyenne des pistes. Même
              valeur, provenance différente — voir `lib/dynamicRange.ts`. -->
         {#if dr}<span class="dr" class:deduit={dr.deduit} use:tip={dr.cleInfobulle}>DR {dr.texte}</span>{/if}
+        <!-- #2298 — le total des écoutes de la communauté, lu sur la fiche
+             locale (`GET /library/albums/{id}`) ; rien sans le champ. -->
+        <EcoutesCommunaute objet={fiche ?? album} />
       </div>
       {#if preferenceChargee && (repertoiresDeCetAlbum.length > 1 || racinePreferee)}
         <div class="repertoire-lecture">

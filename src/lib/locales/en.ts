@@ -808,6 +808,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': 'Similar Artists',
+  "artist.backToSimilars": "Back to artists similar to {nom}",
   'artist.members': 'Members',
   'artist.credits': 'Credits',
   'credits.performer': 'Performer',
@@ -2160,6 +2161,7 @@ export default {
   "settings.communityShareHint": "Separate from “My listens” and off by default. Your album ratings (without comment) and the listens your account receives AFTER you turn it on go into public, anonymous totals, shown on an album page from three distinct people. No individual data is ever shown. Turning it off removes your contribution at once.",
   "library.communityRating": "★ {average} ({count} ratings)",
   "library.communityListens": "{count} listens",
+  "library.communityListensTip": "Tune community listens",
   "library.communityLine": "{parts} in the community",
   "settings.communityContribution": "Share my enriched metadata with the community",
   "settings.communityNeedsTelemetry": "No effect while telemetry is off: sharing needs it, but telemetry alone does not turn sharing on.",
@@ -3711,6 +3713,7 @@ export default {
   "v2.sup.bugIntro": "Describe what is wrong: your text, the diagnostics and the server's recent logs go to the forum, in a moderated thread. No licence is needed.",
   "v2.sup.bugDesc": "What happens",
   "v2.sup.bugDescHint": "E.g. playback stops after two tracks on my DLNA zone…",
+  "v2.sup.bugDraftClear": "Clear draft",
   "v2.sup.bugSend": "Send to the forum",
   "v2.sup.bugPreview": "View the attached report",
   "v2.sup.bugPreviewLoading": "Preparing the report…",
@@ -4552,6 +4555,7 @@ export default {
   "v2.cd.insertedPrompt": "Disc inserted: {disc}",
   "v2.cd.loadIntoMemory": "Load into memory",
   "v2.cd.loadIntoMemoryHint": "Current playback keeps going.",
+  "v2.cd.declineLoad": "No",
   "v2.cd.memLoadStarted": "Loading the disc into memory…",
   "v2.cd.memLoadFailed": "The disc could not be loaded into memory.",
   "v2.cd.memReadyPrompt": "Disc loaded: {disc}",

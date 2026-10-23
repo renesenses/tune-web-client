@@ -699,6 +699,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': 'Artiști similari',
+  "artist.backToSimilars": "Înapoi la artiștii similari cu {nom}",
   'artist.members': 'Membri',
   'artist.credits': 'Credite',
   'credits.performer': 'Interpret',
@@ -1437,6 +1438,7 @@ export default {
   "settings.communityShareHint": "Separat de „Ascultările mele” și dezactivat implicit. Notele tale pentru albume (fără comentariu) și ascultările primite de contul tău DUPĂ activare intră în totaluri publice și anonime, afișate pe pagina albumului de la trei persoane distincte. Nu se afișează niciodată date individuale. Dezactivarea îți retrage imediat contribuția.",
   "library.communityRating": "★ {average} ({count} note)",
   "library.communityListens": "{count} ascultări",
+  "library.communityListensTip": "Ascultări ale comunității Tune",
   "library.communityLine": "{parts} în comunitate",
   "settings.communityContribution": "Partajează metadatele mele îmbogățite cu comunitatea",
   "settings.communityNeedsTelemetry": "Fără efect cât timp telemetria este oprită: partajarea are nevoie de ea, dar telemetria singură nu o activează.",
@@ -3691,6 +3693,7 @@ export default {
   "v2.sup.bugIntro": "Descrieți problema: textul dumneavoastră, diagnosticul și jurnalele recente ale serverului ajung pe forum, într-un fir moderat. Nu este nevoie de licență.",
   "v2.sup.bugDesc": "Ce se întâmplă",
   "v2.sup.bugDescHint": "Ex.: redarea se oprește după două piese în zona mea DLNA…",
+  "v2.sup.bugDraftClear": "Șterge ciorna",
   "v2.sup.bugSend": "Trimite pe forum",
   "v2.sup.bugPreview": "Vezi raportul atașat",
   "v2.sup.bugPreviewLoading": "Se pregătește raportul…",
@@ -4532,6 +4535,7 @@ export default {
   "v2.cd.insertedPrompt": "Disc introdus: {disc}",
   "v2.cd.loadIntoMemory": "Încarcă în memorie",
   "v2.cd.loadIntoMemoryHint": "Redarea curentă continuă.",
+  "v2.cd.declineLoad": "Nu",
   "v2.cd.memLoadStarted": "Se încarcă discul în memorie…",
   "v2.cd.memLoadFailed": "Discul nu a putut fi încărcat în memorie.",
   "v2.cd.memReadyPrompt": "Disc încărcat: {disc}",

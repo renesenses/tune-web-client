@@ -693,6 +693,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': 'Artisti simili',
+  "artist.backToSimilars": "Torna agli artisti simili a {nom}",
   'artist.members': 'Membri',
   'artist.credits': 'Crediti',
   'credits.performer': 'Musicista',
@@ -1431,6 +1432,7 @@ export default {
   "settings.communityShareHint": "Separato da «I miei ascolti» e disattivato per impostazione predefinita. I tuoi voti agli album (senza commento) e gli ascolti ricevuti dal tuo account DOPO l'attivazione entrano in totali pubblici e anonimi, mostrati nella scheda dell'album a partire da tre persone distinte. Nessun dato individuale viene mai mostrato. Disattivarlo ritira subito il tuo contributo.",
   "library.communityRating": "★ {average} ({count} voti)",
   "library.communityListens": "{count} ascolti",
+  "library.communityListensTip": "Ascolti della community Tune",
   "library.communityLine": "{parts} nella community",
   "settings.communityContribution": "Condividi i miei metadati arricchiti con la comunità",
   "settings.communityNeedsTelemetry": "Nessun effetto finché la telemetria è disattivata: la condivisione ne ha bisogno, ma la telemetria da sola non la attiva.",
@@ -3691,6 +3693,7 @@ export default {
   "v2.sup.bugIntro": "Descrivi cosa non va: il tuo testo, la diagnostica e i log recenti del server vanno sul forum, in una discussione moderata. Nessuna licenza necessaria.",
   "v2.sup.bugDesc": "Cosa succede",
   "v2.sup.bugDescHint": "Es.: la riproduzione si ferma dopo due brani sulla mia zona DLNA…",
+  "v2.sup.bugDraftClear": "Cancella la bozza",
   "v2.sup.bugSend": "Invia al forum",
   "v2.sup.bugPreview": "Vedi il rapporto allegato",
   "v2.sup.bugPreviewLoading": "Preparazione del rapporto…",
@@ -4532,6 +4535,7 @@ export default {
   "v2.cd.insertedPrompt": "Disco inserito: {disc}",
   "v2.cd.loadIntoMemory": "Carica in memoria",
   "v2.cd.loadIntoMemoryHint": "La riproduzione in corso continua.",
+  "v2.cd.declineLoad": "No",
   "v2.cd.memLoadStarted": "Caricamento del disco in memoria…",
   "v2.cd.memLoadFailed": "Impossibile caricare il disco in memoria.",
   "v2.cd.memReadyPrompt": "Disco caricato: {disc}",
