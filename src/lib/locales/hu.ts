@@ -5466,6 +5466,8 @@ export default {
   "accesCompte.retourEnCours": "Bejelentkezés…",
   "accesCompte.fermer": "Elrejtés",
   "accesCompte.reessayer": "Újra",
+  "assistantIa.err.cle_sans_espace_de_travail": "Ez az Anthropic-kulcs nem tartozik egyetlen munkaterülethez sem: hozzon létre egyet egy munkaterületen belül (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "A szolgáltató által megadott ok: „{motif}”",
   "scanDetenteur.origine.startup": "Indításkori vizsgálat",
   "scanDetenteur.origine.manual": "Kézzel indított vizsgálat",
   "scanDetenteur.origine.scheduled": "Ütemezett vizsgálat",
