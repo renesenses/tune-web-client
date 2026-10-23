@@ -179,5 +179,10 @@ describe('conversion du curseur (gain du serveur ↔ position db60)', () => {
     expect(plafondDuCurseur(zone, 0.2)).toBeCloseTo(0.5, 9);
     expect(plusEnButee(zone, 0.5)).toBe(true);
     expect(plusEnButee(zone, 0.4)).toBe(false);
+    // Le pas calculé par le client (web#2292) s'arrête au même endroit.
+    const { cibleDuPas } = await import('../limitesVolume');
+    expect(cibleDuPas(zone, 0.495, 'up')).toBeLessThanOrEqual(0.5 + 1e-9);
+    expect(cibleDuPas(zone, 0.5, 'up')).toBe(0.5);
+    expect(cibleDuPas(zone, 0.3, 'up')).toBeCloseTo(0.31, 9);
   });
 });
