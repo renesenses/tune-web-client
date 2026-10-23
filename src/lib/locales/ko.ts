@@ -3689,6 +3689,7 @@ export default {
   "v2.sup.bugIntro": "문제를 설명해 주세요. 작성한 내용, 진단 정보, 서버의 최근 로그가 포럼의 검토 스레드로 전송됩니다. 라이선스는 필요 없습니다.",
   "v2.sup.bugDesc": "무슨 일이 일어나나요",
   "v2.sup.bugDescHint": "예: DLNA 존에서 두 곡 후 재생이 멈춤…",
+  "v2.sup.bugDraftClear": "임시 저장 지우기",
   "v2.sup.bugSend": "포럼에 보내기",
   "v2.sup.bugPreview": "첨부될 보고서 보기",
   "v2.sup.bugPreviewLoading": "보고서 준비 중…",

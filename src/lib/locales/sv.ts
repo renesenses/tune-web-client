@@ -3688,6 +3688,7 @@ export default {
   "v2.sup.bugIntro": "Beskriv vad som är fel: din text, diagnostiken och serverns senaste loggar skickas till forumet i en modererad tråd. Ingen licens behövs.",
   "v2.sup.bugDesc": "Vad händer",
   "v2.sup.bugDescHint": "T.ex. uppspelningen stannar efter två spår i min DLNA-zon…",
+  "v2.sup.bugDraftClear": "Rensa utkastet",
   "v2.sup.bugSend": "Skicka till forumet",
   "v2.sup.bugPreview": "Visa den bifogade rapporten",
   "v2.sup.bugPreviewLoading": "Förbereder rapporten…",

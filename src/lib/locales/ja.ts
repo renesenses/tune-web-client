@@ -3689,6 +3689,7 @@ export default {
   "v2.sup.bugIntro": "問題を説明してください。本文、診断情報、サーバーの最近のログがフォーラムの承認制スレッドに送られます。ライセンスは不要です。",
   "v2.sup.bugDesc": "何が起きているか",
   "v2.sup.bugDescHint": "例：DLNA ゾーンで 2 曲再生すると止まる…",
+  "v2.sup.bugDraftClear": "下書きを消去",
   "v2.sup.bugSend": "フォーラムに送信",
   "v2.sup.bugPreview": "添付されるレポートを見る",
   "v2.sup.bugPreviewLoading": "レポートを準備中…",
