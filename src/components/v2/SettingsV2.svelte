@@ -5842,8 +5842,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'library'}
-              <SacdIsoStatus />
-              <div class="row">
+              <!-- web#2324 — décision de Bertrand (23/10) : « Analyser la
+                   bibliothèque » EN TÊTE de Réglages › Bibliothèque. Le bloc
+                   ISO SACD est descendu dans « Options de scan ». -->
+              <div class="row" data-analyse-bibliotheque>
                 <div class="lbl">
                   <span>{$t('settings.scanLibraryV2' as any)}</span>
                   <span class="hint">{$t('settings.scanModesHint' as any)}</span>
@@ -6172,6 +6174,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               {#if coffretsAutoErr}<div class="errline">{coffretsAutoErr}</div>{/if}
+              <!-- web#2324 — l'état de l'outil ISO SACD (disques DST), descendu
+                   ici depuis la carte « Bibliothèque » (décision du 23/10). -->
+              <SacdIsoStatus />
 
             {:else if s.id === 'scanSched'}
               {#if scanDemarrage !== null}
