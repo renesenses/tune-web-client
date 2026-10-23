@@ -343,6 +343,11 @@ export interface Playlist {
   name: string;
   description?: string | null;
   track_count?: number;
+  /**
+   * web#2287 — les cercles où cette playlist locale est partagée
+   * (tune-server-rust#6694) ; vide ou absent sinon.
+   */
+  cercles?: { id: number | string; nom: string; suivi: boolean; synchronisee_le?: string | null }[];
 }
 
 export interface QueueItem {

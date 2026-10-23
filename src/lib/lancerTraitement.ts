@@ -25,13 +25,24 @@
  */
 import * as api from './api';
 
-export type CarteLancable = 'dr' | 'enrich' | 'covers';
+/**
+ * web#2295 (Tades, fil 2370 ; récidive de tune-server-rust#6330) — la carte
+ * ReplayGain a désormais SA route : `POST /system/replaygain/analyze`
+ * (tune-server-rust#6778, même contrat que la plage dynamique, plus un 409
+ * `refused` qui dit pourquoi). Elle n'entre pas dans « Tout relancer » : la
+ * relance générale (`relaunch-all`) réveille déjà la passe ReplayGain.
+ */
+export type CarteRelancable = 'dr' | 'enrich' | 'covers';
+export type CarteLancable = CarteRelancable | 'rg';
 
 /** L'ordre du geste « Tout relancer » : celui du fil 2043. */
-export const CARTES_LANCABLES: readonly CarteLancable[] = ['dr', 'enrich', 'covers'];
+export const CARTES_LANCABLES: readonly CarteRelancable[] = ['dr', 'enrich', 'covers'];
+
+/** Les cartes qui portent « Lancer ». */
+export const CARTES_A_BOUTON: readonly CarteLancable[] = [...CARTES_LANCABLES, 'rg'];
 
 export function estLancable(id: string): id is CarteLancable {
-  return (CARTES_LANCABLES as readonly string[]).includes(id);
+  return (CARTES_A_BOUTON as readonly string[]).includes(id);
 }
 
 /**
@@ -45,12 +56,30 @@ export function boutonLancer(c: { id: string; etat: string }, enPause: boolean):
   return estLancable(c.id) && !enPause && (c.etat === 'idle' || c.etat === 'done');
 }
 
-export type IssueLancement = 'lance' | 'rien' | 'deja';
+export type IssueLancement =
+  | 'lance' | 'rien' | 'deja'
+  /** web#2295 — ReplayGain : lancé, mais une zone joue (la lecture passe d'abord, #1310). */
+  | 'attente'
+  /** web#2295 — 409 `refused` : analyse ReplayGain coupée dans les réglages. */
+  | 'coupee'
+  /** web#2295 — 409 `refused` : passe suspendue, elle se REPREND. */
+  | 'suspendue'
+  /** web#2295 — serveur sans la route (404/405) : la passe reprend seule. */
+  | 'indisponible';
 
-/** Lit le `status` que rendent les trois routes. Tout autre succès = lancé. */
-export function issueDe(statut: unknown): IssueLancement {
+/** La réponse d'une route de lancement. */
+export interface ReponseLancement {
+  status?: string;
+  reason?: string | null;
+  waiting_reason?: string | null;
+}
+
+/** Lit le `status` que rendent les routes. Tout autre succès = lancé. */
+export function issueDe(statut: unknown, corps?: ReponseLancement | null): IssueLancement {
   if (statut === 'nothing_to_do' || statut === 'skipped') return 'rien';
   if (statut === 'already_running') return 'deja';
+  if (statut === 'refused') return corps?.reason === 'paused' ? 'suspendue' : 'coupee';
+  if (corps?.waiting_reason === 'playback') return 'attente';
   return 'lance';
 }
 
@@ -59,18 +88,24 @@ export const CLE_ISSUE: Record<IssueLancement, string> = {
   lance: 'v2.health.launchStarted',
   rien: 'v2.health.launchNothing',
   deja: 'v2.health.launchAlready',
+  attente: 'v2.health.launchWaitingPlayback',
+  coupee: 'v2.health.launchRgDisabled',
+  suspendue: 'v2.health.launchRgPaused',
+  indisponible: 'v2.health.launchRgUnsupported',
 };
 
 export interface RoutesLancement {
-  dr: () => Promise<{ status?: string }>;
-  enrich: () => Promise<{ status?: string }>;
-  covers: () => Promise<{ status?: string }>;
+  dr: () => Promise<ReponseLancement>;
+  enrich: () => Promise<ReponseLancement>;
+  covers: () => Promise<ReponseLancement>;
+  rg?: () => Promise<ReponseLancement>;
 }
 
 const ROUTES: RoutesLancement = {
   dr: () => api.lancerPlageDynamique(),
   enrich: () => api.startBatchEnrich(),
   covers: () => api.enrichArtistImages(),
+  rg: () => api.lancerReplayGain(),
 };
 
 /** Lance UN traitement. Une erreur (refus, panne) remonte à l'appelant. */
@@ -78,8 +113,19 @@ export async function lancerTraitement(
   id: CarteLancable,
   routes: RoutesLancement = ROUTES,
 ): Promise<IssueLancement> {
-  const r = await routes[id]();
-  return issueDe(r?.status);
+  const route = routes[id];
+  if (!route) return 'indisponible';
+  let r: ReponseLancement;
+  try {
+    r = await route();
+  } catch (e) {
+    // Un serveur d'avant tune-server-rust#6778 ne connaît pas la route : ce
+    // n'est pas une panne, la passe reprend seule — on le dit, sans erreur.
+    const statut = (e as { status?: number } | null)?.status;
+    if (id === 'rg' && (statut === 404 || statut === 405)) return 'indisponible';
+    throw e;
+  }
+  return issueDe(r?.status, r);
 }
 
 /**
@@ -89,8 +135,8 @@ export async function lancerTraitement(
 export async function lancerTout(
   enCours: ReadonlySet<CarteLancable>,
   routes: RoutesLancement = ROUTES,
-): Promise<Record<CarteLancable, IssueLancement | 'erreur'>> {
-  const out = {} as Record<CarteLancable, IssueLancement | 'erreur'>;
+): Promise<Record<CarteRelancable, IssueLancement | 'erreur'>> {
+  const out = {} as Record<CarteRelancable, IssueLancement | 'erreur'>;
   for (const id of CARTES_LANCABLES) {
     if (enCours.has(id)) { out[id] = 'deja'; continue; }
     try {
@@ -144,7 +190,7 @@ export interface BilanToutRelancer {
   pistes: number | null;
   lances: number;
   erreurs: number;
-  lancements: Record<CarteLancable, IssueLancement | 'erreur'>;
+  lancements: Record<CarteRelancable, IssueLancement | 'erreur'>;
 }
 
 /**

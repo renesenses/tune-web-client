@@ -13,7 +13,7 @@
   import { portail } from '../../lib/portail';
   import {
     lotSuggestionsIa, lotAppliquerIa, lotAnnulerIa, lignesDuLot, cleDeLigneDuLot,
-    estEchec, cleDEchec, cleDeRaison, cleDeChamp, pourcent,
+    estEchec, messageDEchec, cleDeRaison, cleDeChamp, pourcent,
     type ResultatLotIa,
   } from '../../lib/assistantIa';
   import type { EtatPlafondIa } from '../../lib/assistantIa';
@@ -42,7 +42,7 @@
     occupe = true; erreur = null; message = null; operations = [];
     try {
       const r = await lotSuggestionsIa(albumIds, budget);
-      if (estEchec(r)) { erreur = $t(cleDEchec(r.error) as any); return; }
+      if (estEchec(r)) { erreur = messageDEchec(r, (k) => $t(k as any)); return; }
       resultats = r.resultats;
       arret = r.arret;
       nonTraites = r.non_traites;
@@ -71,7 +71,7 @@
     occupe = true; erreur = null; message = null;
     try {
       const r = await lotAppliquerIa(albums);
-      if (estEchec(r)) { erreur = $t(cleDEchec(r.error) as any); return; }
+      if (estEchec(r)) { erreur = messageDEchec(r, (k) => $t(k as any)); return; }
       let n = 0;
       const ops: { album_id: number; operation_id: string | null }[] = [];
       for (const x of r.rapports) {
@@ -94,7 +94,7 @@
     occupe = true; erreur = null; message = null;
     try {
       const r = await lotAnnulerIa(operations);
-      if (estEchec(r)) { erreur = $t(cleDEchec(r.error) as any); return; }
+      if (estEchec(r)) { erreur = messageDEchec(r, (k) => $t(k as any)); return; }
       operations = [];
       message = $t('assistantIa.lot.undone' as any);
       onChange();
@@ -130,7 +130,7 @@
     {:else}
       {#if arret}
         <p class="err" role="alert" data-ia-lot-arret>
-          {$t(cleDEchec(arret.error) as any)} {$t('assistantIa.lot.notSubmitted' as any).replace('{n}', String(nonTraites.length))}
+          {messageDEchec(arret, (k) => $t(k as any))} {$t('assistantIa.lot.notSubmitted' as any).replace('{n}', String(nonTraites.length))}
         </p>
       {/if}
       {#each resultats as x (x.album_id)}
@@ -161,7 +161,7 @@
             {/if}
           {:else}
             <h3>#{x.album_id}</h3>
-            <p class="err">{$t(cleDEchec(x.error) as any)}</p>
+            <p class="err">{messageDEchec(x, (k) => $t(k as any))}</p>
           {/if}
         </section>
       {/each}
