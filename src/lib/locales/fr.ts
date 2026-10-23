@@ -1787,6 +1787,7 @@ export default {
   "settings.configBackupHint": "Sauvegarde de la configuration du serveur — dossiers, réglages audio et zones. Ne contient *aucun fichier de musique* et *aucun mot de passe de service*.",
   "settings.configBackupPremium": "La sauvegarde *automatique et chiffrée* dans le cloud — profils, préférences, favoris, playlists et radios, à reprendre sur une nouvelle machine — fait partie de *Tune Premium*, dans *Réglages › Système › Sauvegarde dans le cloud*.",
   "settings.fixedVolumeWarning": "Activer le volume fixe sur cette zone *réseau* envoie *100 %* à l'appareil : l'ampli part à fond. Tapez *100* pour confirmer.",
+  "settings.fixedVolumeWarningLocal": "Activer le volume fixe sur cette zone porte la sortie à *100 %* : Tune n'atténue plus le son, seul votre ampli le règle. Tapez *100* pour confirmer.",
   "settings.removeFolderHint": "Retirer un dossier ne supprime *aucun fichier* : il sort simplement de la bibliothèque.",
   "settings.needsFullScanHint": "Ce réglage ne s'applique qu'après une *analyse complète*.",
   "settings.backgroundTasksHint": "Les traitements de fond se suivent dans *{tab}*.",

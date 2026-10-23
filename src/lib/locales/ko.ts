@@ -2823,6 +2823,7 @@ export default {
   "settings.configBackupHint": "서버 설정의 백업 — 폴더, 오디오 설정, 존. *음악 파일* 도 *서비스 비밀번호* 도 포함하지 않습니다.",
   "settings.configBackupPremium": "*자동·암호화* 클라우드 백업 — 프로필, 환경설정, 즐겨찾기, 재생목록, 라디오를 새 기기에 복원 가능 — 은 *Tune Premium*에 포함됩니다(*설정 › 시스템 › 클라우드 백업*).",
   "settings.fixedVolumeWarning": "이 *네트워크* 존에서 고정 음량을 켜면 기기에 *100 %* 가 전달됩니다. 앰프가 최대로 올라갑니다. 확인하려면 *100* 을 입력하세요.",
+  "settings.fixedVolumeWarningLocal": "이 존에서 고정 음량을 켜면 출력이 *100 %* 가 됩니다. Tune 은 더 이상 소리를 줄이지 않으며 앰프만 음량을 조절합니다. 확인하려면 *100* 을 입력하세요.",
   "settings.removeFolderHint": "폴더를 제거해도 *파일은 삭제되지 않습니다*. 라이브러리에서 빠질 뿐입니다.",
   "settings.needsFullScanHint": "이 설정은 *전체 스캔* 후에만 적용됩니다.",
   "settings.backgroundTasksHint": "백그라운드 처리는 *{tab}* 에서 확인합니다.",

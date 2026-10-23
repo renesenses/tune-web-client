@@ -2823,6 +2823,7 @@ export default {
   "settings.configBackupHint": "服务器配置的备份 — 文件夹、音频设置和区域。*不含任何音乐文件*，也*不含任何服务密码*。",
   "settings.configBackupPremium": "*自动加密*的云备份 —— 个人资料、偏好、收藏、播放列表和电台，可在新机器上恢复 —— 属于 *Tune Premium*，位于*设置 › 系统 › 云备份*。",
   "settings.fixedVolumeWarning": "在此*网络*区域启用固定音量会向设备发送 *100 %*：功放会开到最大。请输入 *100* 以确认。",
+  "settings.fixedVolumeWarningLocal": "在此区域启用固定音量会将输出设为 *100 %*：Tune 不再衰减声音，音量只由功放调节。请输入 *100* 以确认。",
   "settings.removeFolderHint": "移除文件夹*不会删除任何文件*：它只是离开音乐库。",
   "settings.needsFullScanHint": "此设置仅在*完整扫描*之后生效。",
   "settings.backgroundTasksHint": "后台处理可在 *{tab}* 中查看。",

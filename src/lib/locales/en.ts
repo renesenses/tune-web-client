@@ -1784,6 +1784,7 @@ export default {
   "settings.configBackupHint": "Backup of the server configuration — folders, audio settings and zones. Contains *no music file* and *no service password*.",
   "settings.configBackupPremium": "The *automatic, encrypted* cloud backup — profiles, preferences, favourites, playlists and radios, restorable onto a new machine — is part of *Tune Premium*, in *Settings › System › Cloud backup*.",
   "settings.fixedVolumeWarning": "Turning on fixed volume for this *network* zone sends *100 %* to the device: the amplifier goes full scale. Type *100* to confirm.",
+  "settings.fixedVolumeWarningLocal": "Turning on fixed volume for this zone sets the output to *100 %*: Tune no longer attenuates the sound, only your amplifier does. Type *100* to confirm.",
   "settings.removeFolderHint": "Removing a folder deletes *no file*: it simply leaves the library.",
   "settings.needsFullScanHint": "This setting only applies after a *full scan*.",
   "settings.backgroundTasksHint": "Background processing is followed in *{tab}*.",

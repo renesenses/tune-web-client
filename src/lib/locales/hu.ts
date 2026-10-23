@@ -2777,6 +2777,7 @@ export default {
   "settings.configBackupHint": "A kiszolgáló beállításainak mentése — mappák, hangbeállítások és zónák. *Egyetlen zenefájlt* és *egyetlen szolgáltatásjelszót sem* tartalmaz.",
   "settings.configBackupPremium": "Az *automatikus, titkosított* felhőmentés — profilok, preferenciák, kedvencek, lejátszási listák és rádiók, új gépen visszaállítható — a *Tune Premium* része, a *Beállítások › Rendszer › Felhőmentés* alatt.",
   "settings.fixedVolumeWarning": "A fix hangerő bekapcsolása ezen a *hálózati* zónán *100 %*-ot küld a készüléknek: az erősítő teljes hangerőre megy. Írja be: *100* a megerősítéshez.",
+  "settings.fixedVolumeWarningLocal": "A fix hangerő bekapcsolása ezen a zónán *100 %*-ra állítja a kimenetet: a Tune már nem csillapítja a hangot, csak az erősítő szabályozza. Írja be: *100* a megerősítéshez.",
   "settings.removeFolderHint": "Egy mappa eltávolítása *egyetlen fájlt sem* töröl: csak kikerül a könyvtárból.",
   "settings.needsFullScanHint": "Ez a beállítás csak *teljes elemzés* után lép életbe.",
   "settings.backgroundTasksHint": "A háttérfeldolgozás a *{tab}* alatt követhető.",

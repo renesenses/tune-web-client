@@ -2823,6 +2823,7 @@ export default {
   "settings.configBackupHint": "Copie a configurației serverului — dosare, setări audio și zone. Nu conține *niciun fișier de muzică* și *nicio parolă de serviciu*.",
   "settings.configBackupPremium": "Copia de rezervă *automată și criptată* în cloud — profiluri, preferințe, favorite, liste de redare și radiouri, de reluat pe o mașină nouă — face parte din *Tune Premium*, în *Setări › Sistem › Copie de rezervă în cloud*.",
   "settings.fixedVolumeWarning": "Activarea volumului fix pe această zonă de *rețea* trimite *100 %* către aparat: amplificatorul merge la maximum. Tastați *100* pentru a confirma.",
+  "settings.fixedVolumeWarningLocal": "Activarea volumului fix pe această zonă duce ieșirea la *100 %*: Tune nu mai atenuează sunetul, doar amplificatorul îl reglează. Tastați *100* pentru a confirma.",
   "settings.removeFolderHint": "Scoaterea unui dosar nu șterge *niciun fișier*: acesta doar iese din bibliotecă.",
   "settings.needsFullScanHint": "Această setare se aplică doar după o *analiză completă*.",
   "settings.backgroundTasksHint": "Prelucrările de fundal se urmăresc în *{tab}*.",

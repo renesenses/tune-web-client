@@ -2823,6 +2823,7 @@ export default {
   "settings.configBackupHint": "Copia de la configuración del servidor — carpetas, ajustes de audio y zonas. No contiene *ningún archivo de música* ni *ninguna contraseña de servicio*.",
   "settings.configBackupPremium": "La copia *automática y cifrada* en la nube — perfiles, preferencias, favoritos, listas y radios, recuperables en una máquina nueva — forma parte de *Tune Premium*, en *Ajustes › Sistema › Copia en la nube*.",
   "settings.fixedVolumeWarning": "Activar el volumen fijo en esta zona de *red* envía *100 %* al aparato: el amplificador va a tope. Escriba *100* para confirmar.",
+  "settings.fixedVolumeWarningLocal": "Activar el volumen fijo en esta zona lleva la salida al *100 %*: Tune ya no atenúa el sonido, solo lo regula su amplificador. Escriba *100* para confirmar.",
   "settings.removeFolderHint": "Quitar una carpeta no borra *ningún archivo*: simplemente sale de la biblioteca.",
   "settings.needsFullScanHint": "Este ajuste solo se aplica tras un *análisis completo*.",
   "settings.backgroundTasksHint": "Los procesos en segundo plano se siguen en *{tab}*.",
