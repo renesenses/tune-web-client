@@ -8432,6 +8432,10 @@ export function getServerDiagnostics() {
     // `temperature_figee`). Absent chez un serveur antérieur.
     analyses_bridees?: string | null;
     analyses_bridees_largeur?: number | null;
+    // tune-server-rust#6713 — le motif quand la température est illisible
+    // MAIS que l'utilisateur a levé le bridage ; `null` sinon. Absent chez
+    // un serveur antérieur.
+    analyses_bridage_leve?: string | null;
     // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
     // compatible with older servers during rolling client/server updates.
     asio_warm_scan?: AsioWarmScanStatus;
