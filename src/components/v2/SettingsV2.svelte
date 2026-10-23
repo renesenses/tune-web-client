@@ -2629,9 +2629,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
   function askFixedVolume(z: any, enabled: boolean) {
     zoneErr = null;
-    // Couper n'a rien de dangereux : immediat. Une zone LOCALE non plus —
-    // 100 % logiciel est justement le but.
-    if (!enabled || isLocalZone(z)) { applyFixedVolume(z, enabled); return; }
+    // Couper n'a rien de dangereux : immediat.
+    // web#2243 — ACTIVER demande l'accord sur TOUTE zone, locale comprise. Le
+    // serveur l'exige sans exception de type depuis tune-server-rust#2395
+    // (409 `full_volume_confirmation_required`) : la zone locale, dispensée
+    // ici, partait sans `confirm_full_volume` et n'était jamais enregistrée.
+    if (!enabled) { applyFixedVolume(z, false); return; }
     fvAsk = z.id; fvTyped = '';
   }
   function confirmFixedVolume(z: any) {
@@ -5771,7 +5774,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
                       {#if fvAsk === z.id}
                         <div class="fvbox">
-                          <p>{#each emphaseParts($t('settings.fixedVolumeWarning' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+                          <p>{#each emphaseParts($t((isLocalZone(z) ? 'settings.fixedVolumeWarningLocal' : 'settings.fixedVolumeWarning') as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
                           <div class="inline">
                             <input class="txt time" type="text" placeholder="100" bind:value={fvTyped}
                               onkeydown={(e) => { if (e.key === 'Enter') confirmFixedVolume(z); if (e.key === 'Escape') fvAsk = null; }} />
