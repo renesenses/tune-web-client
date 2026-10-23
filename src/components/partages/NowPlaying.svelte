@@ -1,6 +1,6 @@
 <script lang="ts">
   import { atteintLeSon } from '../../lib/porteeReglage';
-  import { descriptionDEtape, etapeIntacte, etatSansPerte, traitIntact } from '../../lib/formatInconnu';
+  import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
   import { pisteDeFile } from '../../lib/pisteDeFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
@@ -1919,6 +1919,12 @@ import { ICONES } from '../../lib/menuPiste';
               {#if channelsOf(displayTrack)}<span class="tech-chip">{channelsOf(displayTrack)}ch</span>{/if}
               {#if trackDr}<span class="tech-chip dr-chip" class:dr-deduit={trackDr.deduit} title={$t(trackDr.cleInfobulle)}>DR {trackDr.texte}</span>{/if}
             </p>
+          {/if}
+          <!-- web#2300 (fil 2376) — le format d'une radio, relevé par la sonde du
+               flux (étape Source du chemin du signal), à la place des pastilles
+               d'une fiche qu'elle n'a pas. -->
+          {#if isRadio && formatDuFluxRadio(zone?.signal_path)}
+            <p class="track-tech-info"><span class="tech-chip">{formatDuFluxRadio(zone?.signal_path)}</span></p>
           {/if}
           {#if !isRadio && displayTrack.source === 'local' && trackPlays !== null && trackPlays > 0}
             <p class="track-plays">{trackPlays} {$t('home.plays')}</p>

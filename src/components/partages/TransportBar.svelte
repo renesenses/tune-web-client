@@ -1,6 +1,6 @@
 <script lang="ts">
   import { preferences } from '../../lib/stores/preferences';
-  import { descriptionDEtape, etapeIntacte, etatSansPerte, traitIntact } from '../../lib/formatInconnu';
+  import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
   // La barre à VU-mètres (Bertrand, 27/09/2026, maquette de Levente). Le
   // cadran est celui du Grand écran, par `lib/dessinVuMetre` : une seconde
@@ -1167,6 +1167,20 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                   title={hasTrackFormat ? formatQualityTooltip(displayTrack) : (zone?.signal_path?.summary ?? '')}
                 >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || (etatSansPerte(zone?.signal_path) === 'unknown' ? $t('signal.unknownFormat') : etatSansPerte(zone?.signal_path) === 'lossless' ? 'Lossless' : 'Lossy'))}</span>
             {/if}
+            </span>
+          {:else if formatDuFluxRadio(zone?.signal_path)}
+            <!-- web#2300 (fil 2376) — une radio a aussi son format : celui que
+                 la sonde du flux a relevé (étape Source du chemin du signal). -->
+            {@const formatRadio = formatDuFluxRadio(zone?.signal_path)}
+            <span class="mini-badges">
+              <span
+                class="tb-quality-badge tier-{getQualityTierColor(etatSansPerte(zone?.signal_path) === 'lossless' ? 'cd' : 'lossy')} sp-clickable"
+                role="button"
+                tabindex={0}
+                onclick={(e) => { e.stopPropagation(); showSignalPath = true; }}
+                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); showSignalPath = true; } }}
+                title={zone?.signal_path?.summary ?? ''}
+              >{formatRadio}</span>
             </span>
           {/if}
         </div>
