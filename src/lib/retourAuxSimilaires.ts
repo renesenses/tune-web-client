@@ -18,8 +18,8 @@
  *    quitté le parcours.
  */
 import { get, writable } from 'svelte/store';
-import { activeView, listResetNonce, vueDeRetour, type View } from './stores/navigation';
-import { ficheAlbumDeRetour, ficheArtisteService } from './stores/streaming';
+import { listResetNonce, type View } from './stores/navigation';
+import { ouvrirFicheArtisteLocale } from './ouvrirArtisteDepuis';
 
 export interface DepartSimilaires {
   /** Identifiant de BIBLIOTHÈQUE de l'artiste de départ. */
@@ -58,15 +58,9 @@ export function revenirAuxSimilaires(): boolean {
   const d = get(departSimilaires);
   if (!d) return false;
   departSimilaires.set(null);
-  ficheAlbumDeRetour.set(null);
-  vueDeRetour.set(d.depuis);
-  ficheArtisteService.set({
-    service: null,
-    id: d.id,
-    nom: d.nom,
-    ...(d.provenance != null ? { provenance: d.provenance } : {}),
-  });
   defilerVersSimilaires.set(true);
-  activeView.set('streamingartist');
+  // Le chemin unique vers la fiche locale (#1494) : il pose `vueDeRetour`,
+  // efface `ficheAlbumDeRetour` et ouvre la vue.
+  ouvrirFicheArtisteLocale(d.id, d.nom, d.depuis ?? 'library', d.provenance ?? null);
   return true;
 }
