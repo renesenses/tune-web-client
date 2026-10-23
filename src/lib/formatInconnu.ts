@@ -82,3 +82,24 @@ export function traitIntact(
 ): boolean {
   return etapeIntacte(steps[i], verdict) && etapeIntacte(steps[i + 1], verdict);
 }
+
+/**
+ * web#2300 (fil 2376) — le format d'une RADIO, comme celui d'un fichier.
+ *
+ * Une station n'a pas de fiche technique : ce que Tune en sait vient de la
+ * sonde du flux, publiée dans l'étape `Source` du chemin du signal (codec et
+ * fréquence, tune-server-rust#4346 ; débit annoncé par `icy-br`,
+ * tune-server-rust#6821) — « MP3 128 kbit/s 44kHz ».
+ *
+ * `null` tant que le codec n'est pas connu (station pas encore sondée) : on
+ * n'affiche rien plutôt qu'un « Format inconnu » sur chaque radio, et rien
+ * n'est déduit du conteneur WAV que le serveur émet.
+ */
+export function formatDuFluxRadio(
+  sp: { steps?: readonly ({ name?: string; description?: string | null; code?: string | null } | null | undefined)[] } | null | undefined,
+): string | null {
+  const source = sp?.steps?.find((s) => s?.name === 'Source');
+  if (!source || source.code === CODE_CODEC_INCONNU) return null;
+  const texte = (source.description ?? '').trim();
+  return texte === '' ? null : texte;
+}

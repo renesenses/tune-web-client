@@ -23,6 +23,7 @@
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
+  import { CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
@@ -91,6 +92,7 @@
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
   import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
   import { CLE_PARTAGE_COMMUNAUTAIRE } from '../../lib/notesCommunautaires';
+  import { CLE_LEVER_LE_BRIDAGE } from '../../lib/temperatureProcesseur';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import {
@@ -509,6 +511,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // de ses cœurs). `null` : serveur qui ne connaît pas le réglage, on le tait.
   let bgSpeed = $state<string | null>(null);
   let bgSpeedWidths = $state<Record<string, number>>({});
+  // tune-server-rust#6713 — lever le bridage des analyses quand la
+  // température est illisible : désactivé par défaut, niveau Expert, avec
+  // un avertissement à l'activation.
+  let levBridage = $state<boolean | null>(null);
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let devicesLoaded = $state(false);
   let creatingBrowserZone = $state(false);
@@ -531,6 +537,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const vitesse = c?.background_analysis_speed;
         bgSpeed = ['discreet', 'normal', 'fast'].includes(vitesse) ? vitesse : null;
         bgSpeedWidths = c?.background_analysis_speed_widths ?? {};
+        // tune-server-rust#6713 — `null` : serveur qui ne publie pas la clé, pas de case.
+        levBridage = c && CLE_LEVER_LE_BRIDAGE in c ? (c[CLE_LEVER_LE_BRIDAGE] === true || c[CLE_LEVER_LE_BRIDAGE] === 'true') : null;
       })
       .catch(() => {});
     api.withTimeout(api.getAudioDevices(), 8_000, '/devices/audio')
@@ -582,6 +590,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function setBgSpeed(v: string) {
     const before = bgSpeed; bgSpeed = v;
     patch({ background_analysis_speed: v }, () => { bgSpeed = before; });
+  }
+  async function setLevBridage(ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    // Lever le bridage se fait en connaissance de cause : l'avertissement
+    // d'abord, et un refus laisse la case décochée.
+    if (souhait && !(await dialogs.confirm($t('settings.analysisUnthrottleConfirm' as any), { danger: true }))) {
+      if (caseCochee) caseCochee.checked = false;
+      return;
+    }
+    const before = levBridage; levBridage = souhait;
+    patch({ [CLE_LEVER_LE_BRIDAGE]: souhait }, () => {
+      levBridage = before;
+      if (caseCochee) caseCochee.checked = !!before;
+    });
   }
   function libelleVitesse(v: string, cle: string): string {
     const n = bgSpeedWidths?.[v];
@@ -2037,6 +2060,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   let analysisExcluded = $state<string[] | null>(null);
   // tune-server-rust#6198 — les genres de l'analyse acoustique (CLAP).
+  // tune-server-rust#5593 (fil 2173) — dossiers auxquels les analyses se limitent ; `null` : serveur antérieur.
+  let analysisDirs = $state<string[] | null>(null);
   let clapGenresInclus = $state<string[] | null>(null);
   let clapGenresExclus = $state<string[] | null>(null);
   let newDir = $state('');
@@ -2291,6 +2316,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       analysisExcluded = Array.isArray(c?.background_analysis_excluded_roots)
         ? c.background_analysis_excluded_roots.filter((r: unknown) => typeof r === 'string')
         : null;
+      analysisDirs = dossiersDepuisConfig(c?.[CLE_DOSSIERS_INCLUS]);
       clapGenresInclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_INCLUS]);
       clapGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_EXCLUS]);
       await refreshDirectoryOrder();
@@ -2409,6 +2435,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const suivant = analyser ? avant.filter((r) => r !== d) : [...avant.filter((r) => r !== d), d];
     analysisExcluded = suivant;
     patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
+  }
+  /**
+   * tune-server-rust#5593 (fil 2173) — les dossiers auxquels les analyses de
+   * fond se limitent. Le serveur reçoit la liste COMPLÈTE ; s'il refuse, le
+   * champ revient à son état d'avant.
+   */
+  function setDossiersAnalyses(texte: string) {
+    const avant = analysisDirs;
+    const suivant = lireSaisieDeDossiers(texte);
+    analysisDirs = suivant;
+    patch({ [CLE_DOSSIERS_INCLUS]: suivant }, () => { analysisDirs = avant; });
   }
   /**
    * tune-server-rust#6198 — les genres retenus ou écartés de l'analyse
@@ -2630,9 +2667,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
   function askFixedVolume(z: any, enabled: boolean) {
     zoneErr = null;
-    // Couper n'a rien de dangereux : immediat. Une zone LOCALE non plus —
-    // 100 % logiciel est justement le but.
-    if (!enabled || isLocalZone(z)) { applyFixedVolume(z, enabled); return; }
+    // Couper n'a rien de dangereux : immediat.
+    // web#2243 — ACTIVER demande l'accord sur TOUTE zone, locale comprise. Le
+    // serveur l'exige sans exception de type depuis tune-server-rust#2395
+    // (409 `full_volume_confirmation_required`) : la zone locale, dispensée
+    // ici, partait sans `confirm_full_volume` et n'était jamais enregistrée.
+    if (!enabled) { applyFixedVolume(z, false); return; }
     fvAsk = z.id; fvTyped = '';
   }
   function confirmFixedVolume(z: any) {
@@ -4436,6 +4476,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       onclick={() => preferences.update((pr) => ({ ...pr, volumeDisplay: 'dB' as VolumeDisplay }))}>{$t('settings.decibels' as any)}</button>
                   </div>
                 </div>
+                <!-- web#2292 (fil 2366) — boutons − et + autour du curseur de
+                     volume, au pas d'un point. Désactivés par défaut. -->
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.volumeStepButtons' as any)}</span>
+                    <span class="hint">{$t('settings.volumeStepButtonsHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={$preferences.volumeStepButtons === true}
+                      onchange={(e) => preferences.update((pr) => ({ ...pr, volumeStepButtons: (e.currentTarget as HTMLInputElement).checked }))} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
                 <!-- Niveau EXPERT seulement : la ligne technique n'existe pas
                      en dessous, proposer de l'afficher n'aurait aucun effet. -->
                 {#if atLeast(level, 'expert')}
@@ -5772,7 +5825,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
                       {#if fvAsk === z.id}
                         <div class="fvbox">
-                          <p>{#each emphaseParts($t('settings.fixedVolumeWarning' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+                          <p>{#each emphaseParts($t((isLocalZone(z) ? 'settings.fixedVolumeWarningLocal' : 'settings.fixedVolumeWarning') as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
                           <div class="inline">
                             <input class="txt time" type="text" placeholder="100" bind:value={fvTyped}
                               onkeydown={(e) => { if (e.key === 'Enter') confirmFixedVolume(z); if (e.key === 'Escape') fvAsk = null; }} />
@@ -5827,9 +5880,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'library'}
-              <AuditIntegrite />
-              <SacdIsoStatus />
-              <div class="row">
+              <!-- web#2324 — décision de Bertrand (23/10) : « Analyser la
+                   bibliothèque » EN TÊTE de Réglages › Bibliothèque. Le bloc
+                   ISO SACD est descendu dans « Options de scan ». -->
+              <div class="row" data-analyse-bibliotheque>
                 <div class="lbl">
                   <span>{$t('settings.scanLibraryV2' as any)}</span>
                   <span class="hint">{$t('settings.scanModesHint' as any)}</span>
@@ -5949,6 +6003,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
+              <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
+              <AuditIntegrite />
 
             {:else if s.id === 'musicDirs'}
               <!-- Fil 2171 — le sélecteur est LE geste d'ajout : un vrai bouton,
@@ -6029,6 +6085,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if orderError}<p class="errline" role="alert">{orderError}</p>{/if}
                 {#if analysisExcluded !== null}
                   <p class="hint">{$t('settings.backgroundAnalysisFoldersHint' as any)}</p>
+                {/if}
+                <!-- tune-server-rust#5593 (fil 2173) — circonscrire les
+                     analyses de fond à des dossiers, un par ligne. -->
+                {#if analysisDirs !== null}
+                  <div class="clap-genres" data-reglage="dossiers-analyses">
+                    <span class="clap-genres-titre">{$t('settings.analysisDirsTitle' as any)}</span>
+                    <label>
+                      <span>{$t('settings.analysisDirsIncluded' as any)}</span>
+                      <textarea rows="3" value={afficherDossiers(analysisDirs)}
+                        placeholder={$t('settings.analysisDirsPlaceholder' as any)}
+                        aria-label={$t('settings.analysisDirsIncluded' as any)}
+                        onchange={(e) => setDossiersAnalyses((e.currentTarget as HTMLTextAreaElement).value)}></textarea>
+                    </label>
+                    <p class="hint">{$t('settings.analysisDirsHint' as any)}</p>
+                  </div>
                 {/if}
                 <!-- tune-server-rust#6198 — réserver l'analyse acoustique
                      (ambiances) à certains genres, ou en écarter. -->
@@ -6158,6 +6229,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               {#if coffretsAutoErr}<div class="errline">{coffretsAutoErr}</div>{/if}
+              <!-- web#2324 — l'état de l'outil ISO SACD (disques DST), descendu
+                   ici depuis la carte « Bibliothèque » (décision du 23/10). -->
+              <SacdIsoStatus />
 
             {:else if s.id === 'scanSched'}
               {#if scanDemarrage !== null}
@@ -7391,6 +7465,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </div>
                   </div>
                 {/if}
+                <!-- tune-server-rust#6713 — niveau Expert seulement : rend la
+                     vitesse réglée quand la température est illisible. -->
+                {#if levBridage !== null && atLeast(level, 'expert')}
+                  <div class="row" data-reglage="lever-bridage">
+                    <div class="lbl">
+                      <span>{$t('settings.analysisUnthrottle' as any)}</span>
+                      <span class="hint">{$t('settings.analysisUnthrottleHint' as any)}</span>
+                    </div>
+                    <label class="sw">
+                      <input type="checkbox" data-cle={CLE_LEVER_LE_BRIDAGE} checked={levBridage}
+                        aria-label={$t('settings.analysisUnthrottle' as any)}
+                        onchange={setLevBridage} />
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                {/if}
                 {#if remesure}
                   <div class="row" data-remesure="lancer">
                     <div class="lbl">
@@ -7690,6 +7780,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .clap-genres label{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13px; color:var(--v2-txt2)}
   .clap-genres label span{min-width:9em}
   .clap-genres input{flex:1 1 16em; min-width:0}
+  .clap-genres textarea{flex:1 1 16em; min-width:0; font:inherit}
   .directory-order-hint{margin-top:12px}
   .dir-order{display:flex; align-items:center; gap:3px}
   .dir-order .lnk{min-width:28px; min-height:28px}

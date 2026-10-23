@@ -1,6 +1,7 @@
 import { writable, derived } from 'svelte/store';
 import { currentZone, currentZoneId } from './zones';
 import type { NowPlaying, PlaybackState, Source, Track } from '../types';
+import { volumeDepuisGain } from '../courbeDeVolume';
 
 // Seek position in milliseconds
 export const seekPositionMs = writable<number>(0);
@@ -155,7 +156,9 @@ currentZoneId.subscribe(() => { _volLocalUntil = 0; });
 currentZone.subscribe(($zone) => {
   if ($zone?.volume !== undefined && Date.now() > _volLocalUntil) {
     const v = $zone.volume > 1 ? $zone.volume / 100 : $zone.volume;
-    _zoneVol.set(v);
+    // tune-server-rust#6787 — `volume` est le GAIN ; le magasin tient la
+    // position du CURSEUR (loi `db60` sur une sortie logicielle).
+    _zoneVol.set(volumeDepuisGain($zone, v));
   }
 });
 export const zoneVolume = {

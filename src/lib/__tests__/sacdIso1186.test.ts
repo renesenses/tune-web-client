@@ -49,8 +49,9 @@ async function show() {
 }
 
 it('shows missing tool and an action on the actual Library settings screen', async () => {
-  preferences.update(p => ({ ...p, settingsLevel: 'beginner' }));
-  v2SettingsTarget.set({ tab: 'library', section: 'library' });
+  preferences.update(p => ({ ...p, settingsLevel: 'intermediate' }));
+  // web#2324 (23/10) : le bloc ISO SACD vit dans « Options de scan ».
+  v2SettingsTarget.set({ tab: 'library', section: 'scanOpts' });
   component = mount(SettingsV2, { target: host });
   await settle();
   expect(text()).toContain(fr['sacdIso.missing']);
