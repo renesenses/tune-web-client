@@ -80,7 +80,7 @@
     const lineaire = volumeDepuisGain(zone, gain);
     if (zone.id != null) leverSourdineSiBesoin({ ...zone, id: zone.id }, lineaire);
     zoneVolume.set(lineaire);
-    if (isBrowserZone(zone)) browserSetVolume(lineaire);
+    if (isBrowserZone(zone)) browserSetVolume(lineaire, zone);
     // Le dB part TEL QUEL : le repasser en lin\u00E9aire avant l'envoi rendrait la
     // valeur au serveur d\u00E9j\u00E0 entam\u00E9e par un aller-retour de flottant.
     await api.setVolumeDb(zone.id, lu.db);
@@ -157,8 +157,11 @@
     }
     try {
       const r = await api.stepVolume(zone.id, direction);
-      if (direction === 'up') leverSourdineSiBesoin({ ...zone, id: zone.id }, r.volume);
-      applyVolume(r.volume);
+      // tune-server-rust#6787 — la réponse porte le GAIN : le curseur en est
+      // la position sur la loi de la zone.
+      const curseur = volumeDepuisGain(zone, r.volume);
+      if (direction === 'up') leverSourdineSiBesoin({ ...zone, id: zone.id }, curseur);
+      applyVolume(curseur);
       if (r.limited) notifications.info($t('volume.limitedBySafety'));
     } catch {
       notifications.error($t('volume.stepFailed'));

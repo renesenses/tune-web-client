@@ -6,6 +6,7 @@ import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
+import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
 import type { ApercuFavorisRadio } from './favorisRadioQobuz';
 import { profileHeader } from './profileHeader';
@@ -1746,7 +1747,13 @@ export function seek(zoneId: number, positionMs: number) {
   });
 }
 
-export function setVolume(zoneId: number, volume: number) {
+/** Règle le volume d'une zone. `curseur` est la position du CURSEUR (0..1) :
+ *  sur une zone `volume_curve: "db60"` (tune-server-rust#6787), elle part en
+ *  GAIN, le sens historique de `volume` côté serveur. Une valeur qui serait
+ *  déjà un gain y est relue comme un curseur : elle joue plus bas, jamais
+ *  plus haut (`gainPerceptif(p) <= p`). */
+export function setVolume(zoneId: number, curseur: number) {
+  const volume = gainDeLaZone(zonePourLeCurseur(zoneId), curseur);
   return fetchVoid(`${BASE}/zones/${zoneId}/volume`, {
     method: 'PUT',
     body: JSON.stringify({ volume }),

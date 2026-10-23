@@ -452,8 +452,9 @@ export function browserAlignerSurLaZone(
 ) {
   const v = zone?.volume;
   if (typeof v !== 'number' || !Number.isFinite(v)) return;
-  const curseur = v > 1 ? v / 100 : v;
-  const gain = zone?.muted ? 0 : gainDeLaZone(zone, curseur);
+  // `volume` est le GAIN de la zone (tune-server-rust#6787) : il se pose tel
+  // quel, sans loi.
+  const gain = zone?.muted ? 0 : Math.max(0, Math.min(1, v > 1 ? v / 100 : v));
   if (gain < get(browserAudioVolume)) {
     browserAudioVolume.set(gain);
     getAudio().volume = gain;

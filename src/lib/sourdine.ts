@@ -15,6 +15,7 @@
  * serveur pousse (`playback.muted`) à tous les clients.
  */
 import * as api from './api';
+import { volumeDepuisGain } from './courbeDeVolume';
 import { zones } from './stores/zones';
 import { browserSetVolume, isBrowserZone } from './stores/browserAudio';
 
@@ -35,10 +36,11 @@ export interface DependancesSourdine {
   audioLocal?: (volume: number) => void;
 }
 
-/** Le volume linéaire d'une zone (le serveur peut encore rendre du pour-cent). */
+/** La position du CURSEUR d'une zone (le serveur peut encore rendre du
+ *  pour-cent ; `volume` est le gain, tune-server-rust#6787). */
 function volumeLineaire(zone: ZoneSourdine): number {
   const v = zone.volume ?? 0.5;
-  return v > 1 ? v / 100 : v;
+  return volumeDepuisGain(zone, v > 1 ? v / 100 : v);
 }
 
 /** Pose `muted` sur la zone voulue (cœur testable, dépendances injectées). */
