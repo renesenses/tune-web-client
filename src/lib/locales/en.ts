@@ -2159,6 +2159,7 @@ export default {
   "settings.communityShareHint": "Separate from “My listens” and off by default. Your album ratings (without comment) and the listens your account receives AFTER you turn it on go into public, anonymous totals, shown on an album page from three distinct people. No individual data is ever shown. Turning it off removes your contribution at once.",
   "library.communityRating": "★ {average} ({count} ratings)",
   "library.communityListens": "{count} listens",
+  "library.communityListensTip": "Tune community listens",
   "library.communityLine": "{parts} in the community",
   "settings.communityContribution": "Share my enriched metadata with the community",
   "settings.communityNeedsTelemetry": "No effect while telemetry is off: sharing needs it, but telemetry alone does not turn sharing on.",

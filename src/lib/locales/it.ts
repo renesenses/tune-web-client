@@ -1431,6 +1431,7 @@ export default {
   "settings.communityShareHint": "Separato da «I miei ascolti» e disattivato per impostazione predefinita. I tuoi voti agli album (senza commento) e gli ascolti ricevuti dal tuo account DOPO l'attivazione entrano in totali pubblici e anonimi, mostrati nella scheda dell'album a partire da tre persone distinte. Nessun dato individuale viene mai mostrato. Disattivarlo ritira subito il tuo contributo.",
   "library.communityRating": "★ {average} ({count} voti)",
   "library.communityListens": "{count} ascolti",
+  "library.communityListensTip": "Ascolti della community Tune",
   "library.communityLine": "{parts} nella community",
   "settings.communityContribution": "Condividi i miei metadati arricchiti con la comunità",
   "settings.communityNeedsTelemetry": "Nessun effetto finché la telemetria è disattivata: la condivisione ne ha bisogno, ma la telemetria da sola non la attiva.",

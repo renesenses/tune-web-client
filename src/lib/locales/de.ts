@@ -1431,6 +1431,7 @@ export default {
   "settings.communityShareHint": "Unabhängig von „Meine Wiedergaben“ und standardmäßig aus. Ihre Albumbewertungen (ohne Kommentar) und die Wiedergaben, die Ihr Konto NACH dem Einschalten erhält, fließen in öffentliche, anonyme Summen ein, die ab drei verschiedenen Personen auf der Albumseite erscheinen. Es werden nie Einzeldaten gezeigt. Ausschalten entfernt Ihren Beitrag sofort.",
   "library.communityRating": "★ {average} ({count} Bewertungen)",
   "library.communityListens": "{count} Wiedergaben",
+  "library.communityListensTip": "Wiedergaben der Tune-Community",
   "library.communityLine": "{parts} in der Community",
   "settings.communityContribution": "Meine angereicherten Metadaten mit der Community teilen",
   "settings.communityNeedsTelemetry": "Ohne Wirkung, solange die Telemetrie aus ist: Das Teilen setzt sie voraus, aber die Telemetrie allein schaltet es nicht ein.",
