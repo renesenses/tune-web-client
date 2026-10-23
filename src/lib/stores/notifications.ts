@@ -16,6 +16,12 @@ export interface Notification {
   duration: number;
   /** Bouton d'action optionnel — « Jouer cette version », etc. */
   action?: { label: string; run: () => void };
+  /**
+   * tune-web-client#2296 — second bouton, celui qui DÉCLINE (« Non »). Une
+   * notification qui en porte un est une QUESTION : elle reste affichée
+   * jusqu'à la réponse (`duration` 0), et ce bouton la retire.
+   */
+  refus?: { label: string; run?: () => void };
 }
 
 function createStore() {
@@ -27,9 +33,10 @@ function createStore() {
     level: NotificationLevel = 'error',
     duration = 5000,
     action?: Notification['action'],
+    refus?: Notification['refus'],
   ) {
     const id = nextId++;
-    update((list) => [...list, { id, level, message, duration, action }]);
+    update((list) => [...list, { id, level, message, duration, action, refus }]);
     if (duration > 0) {
       setTimeout(() => {
         update((list) => list.filter((n) => n.id !== id));
@@ -50,6 +57,13 @@ function createStore() {
     /** Toast avec bouton d'action — reste plus longtemps qu'une info. */
     withAction: (msg: string, label: string, run: () => void, duration = 10000) =>
       push(msg, 'info', duration, { label, run }),
+    /**
+     * tune-web-client#2296 — une question Oui / Non : elle ne disparaît pas
+     * d'elle-même (le lecteur CD peut être dans une autre pièce que l'écran),
+     * seulement à la réponse ou par `dismiss`.
+     */
+    question: (msg: string, oui: string, run: () => void, non: string, siNon?: () => void) =>
+      push(msg, 'info', 0, { label: oui, run }, { label: non, run: siNon }),
     dismiss,
   };
 }

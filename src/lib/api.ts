@@ -1697,7 +1697,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string; queue_follows?: boolean }) {
+export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; album_ref?: string; queue_follows?: boolean }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -2044,6 +2044,27 @@ export async function getAlbumsPage(limit = 100, offset = 0): Promise<{ items: A
   if (Array.isArray(r)) { amorcerPochettes(r); return { items: r, total: r.length }; }
   amorcerPochettes(r?.items);
   return { items: r?.items ?? [], total: r?.total ?? (r?.items?.length ?? 0) };
+}
+
+/** Un label de la bibliothèque (tune-server-rust#6736). `image_url` et
+ *  `qobuz_label_id` sont ABSENTS tant que le serveur ne les connaît pas. */
+export interface LibraryLabel {
+  name: string;
+  album_count: number;
+  image_url?: string;
+  qobuz_label_id?: string;
+}
+
+/** web#2297 — les labels de la bibliothèque et leur logo Qobuz. Un serveur
+ *  plus ancien (404) ou injoignable rend une liste vide : la grille tient
+ *  alors en monogrammes. */
+export async function getLibraryLabels(): Promise<LibraryLabel[]> {
+  try {
+    const r = await fetchJSON<LibraryLabel[]>(`${BASE}/library/labels`);
+    return Array.isArray(r) ? r : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getAlbums(limit = 100, offset = 0): Promise<Album[]> {
@@ -2756,6 +2777,9 @@ export interface DashboardData {
   top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number; cover_path?: string | null; source?: string | null; source_id?: string | null }[];
   /** Absent de la réponse quand la liste est vide (skip_serializing_if). */
   top_radios?: { station_name: string; radio_id: number | null; plays: number; listening_ms: number; cover_url?: string | null; cover_path?: string | null }[];
+  /** tune-server-rust#6682 — le temps d'écoute radio par station sur la période,
+   *  à part des classements. Absent quand aucune radio n'a été écoutée. */
+  radio_listening?: { station_name: string; radio_id: number | null; listening_ms: number; sessions: number; cover_url?: string | null }[];
   trend: { day: string; plays: number; listening_ms: number }[];
   hourly: { hour: number; plays: number }[];
   by_zone: { zone_id: number | null; zone_name: string | null; plays: number; listening_ms: number }[];
@@ -4518,6 +4542,17 @@ export function removePlaylistTrackAt(playlistId: number, position: number) {
 }
 
 /**
+ * web#2286 — retire UNE ligne, désignée par son `entry_id` (tune-server-rust#6690)
+ * ou, à défaut, par son rang. Un retrait qui n'efface rien rend 404.
+ */
+export function removePlaylistEntry(playlistId: number, cible: { entry_id: number } | { position: number }) {
+  return fetchVoid(`${BASE}/playlists/${playlistId}/tracks/remove`, {
+    method: 'POST',
+    body: JSON.stringify(cible),
+  });
+}
+
+/**
  * Réordonne une playlist Tune — #4889.
  *
  * `positions` = le NOUVEL ORDRE exprimé en RANGS ACTUELS (indices de la liste
@@ -5248,6 +5283,21 @@ export function lancerPlageDynamique() {
     `${BASE}/system/dynamic-range/analyze`,
     { method: 'POST' },
     (statut) => statut === 409,
+  );
+}
+
+/**
+ * web#2295 / tune-server-rust#6778 — lancer la passe ReplayGain à la demande.
+ * 202 `started` (avec `waiting_reason: "playback"` quand une zone joue),
+ * 200 `nothing_to_do`, 409 `already_running` ou `refused` (`reason` :
+ * `analysis_disabled` ou `paused`). Les 409 sont des réponses, pas des pannes.
+ */
+export function lancerReplayGain() {
+  return fetchJSON<{ status?: string; reason?: string | null; waiting_reason?: string | null; playing_zone?: string | null; candidates?: number }>(
+    `${BASE}/system/replaygain/analyze`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+    true,
   );
 }
 
@@ -9219,6 +9269,8 @@ export interface OtherVersionGroup {
     cover_path: string | null;
     kind: 'version' | 'reprise';
     url?: string | null;
+    /** web#2210 — la durée, quand le rapprochement par titre la connaît. */
+    duration_ms?: number | null;
   }[];
   versions: {
     track_id: number | null;

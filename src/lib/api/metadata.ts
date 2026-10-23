@@ -634,6 +634,18 @@ export function deleteServiceToken(service: string) {
   return fetchJSON<{ ok?: boolean }>(`${BASE}/services/tokens/${encodeURIComponent(service)}`, { method: 'DELETE' });
 }
 
+/**
+ * web#2304 / tune-server-rust#6777 — efface le SEUL Client ID Spotify, sans
+ * toucher aux autres réglages `spotify_*` (Spotify Connect…), que
+ * `deleteServiceToken('spotify')` emporte tous.
+ */
+export function deleteSpotifyClientId() {
+  return fetchJSON<{ ok?: boolean; spotify_client_id_configure?: boolean; spotify_client_id_source?: string | null }>(
+    `${BASE}/services/tokens/spotify/client-id`,
+    { method: 'DELETE' },
+  );
+}
+
 // --- Last.fm scrobbling ---
 
 export interface LastfmAuthToken {

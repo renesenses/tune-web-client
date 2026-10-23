@@ -7,6 +7,7 @@
   import { playlists as playlistsStore, pendingPlaylistId } from '../../lib/stores/playlists';
   import { streamingServices } from '../../lib/stores/streaming';
   import * as api from '../../lib/api';
+  import { creerRetraitPlaylist } from '../../lib/retraitPlaylist';
   import { shareLink } from '../../lib/playlistShare';
   import { formatTime, errText } from '../../lib/utils';
   import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../../lib/types';
@@ -1475,14 +1476,24 @@
     }
   }
 
+  /**
+   * web#2286 — la ligne par `entry_id`, un retrait à la fois, puis relecture
+   * (`lib/retraitPlaylist`, partagé avec `PlaylistDetailV2`).
+   */
+  const retraitPlaylist = creerRetraitPlaylist({
+    retirer: (id, cible) => api.removePlaylistEntry(id, cible),
+    relire: (id) => api.getPlaylistTracks(id),
+  });
+  let retraitEnCours = $state(false);
   async function removeTrack(position: number) {
-    if (!selectedPlaylist?.id || position < 0) return;
-    try {
-      await api.removePlaylistTrackAt(selectedPlaylist.id, position);
-      detailTracks = detailTracks.filter((_, i) => i !== position);
-    } catch (e) {
-      console.error('Remove track error:', e);
-    }
+    const pl = selectedPlaylist;
+    if (!pl?.id || position < 0 || retraitPlaylist.enCours) return;
+    retraitEnCours = true;
+    const issue = await retraitPlaylist.retirer(pl.id, detailTracks, position);
+    retraitEnCours = false;
+    if (!issue || selectedPlaylist?.id !== pl.id) return;
+    detailTracks = issue.pistes;
+    if (!issue.ok) console.error('Remove track error: le serveur n’a rien retiré');
   }
 
   /**
@@ -1999,7 +2010,7 @@
         {#snippet retirer(_t: Track, index: number)}
           <!-- « Retirer de la playlist » : le seul geste que la barre commune
                n'a pas, parce qu'il n'a de sens que dans une playlist locale. -->
-          <button class="remove-btn" onclick={() => removeTrack(index)}
+          <button class="remove-btn" onclick={() => removeTrack(index)} disabled={retraitEnCours}
             title={$tr('playlist.remove')} aria-label={$tr('playlist.remove')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>

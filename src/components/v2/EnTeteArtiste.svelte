@@ -30,6 +30,8 @@
   import type { Snippet } from 'svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { t } from '../../lib/i18n';
+  import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
+  import type { PorteEcoutes } from '../../lib/ecoutesCommunaute';
 
   interface Props {
     /** Le nom affiché. */
@@ -52,6 +54,11 @@
     onRetour: () => void;
     /** Les pastilles d'action de la fiche. */
     actions?: Snippet;
+    /**
+     * #2298 — l'artiste local tel que `/library/artists/{id}` le rend : son
+     * `community_listens` donne « Miles Davis (43 100) ». Rien sans le champ.
+     */
+    ecoutes?: PorteEcoutes | null;
   }
   let {
     nom,
@@ -61,10 +68,36 @@
     sousTitre = null,
     onRetour,
     actions,
+    ecoutes = null,
   }: Props = $props();
+
+  /**
+   * web#2191 (fil 2274) — « Pour 'Artistes', "<" toujours accessible en
+   * superposition comme pour les boutons 'Recherche' et 'Raccourci' ».
+   * Le Retour de l'en-tête part avec lui quand on descend dans une fiche
+   * riche. Un second Retour, collant, apparaît dès que l'en-tête est sorti
+   * du cadre — et seulement alors, pour ne pas en montrer deux.
+   */
+  let tete = $state<HTMLElement | null>(null);
+  let teteHorsCadre = $state(false);
+  $effect(() => {
+    const el = tete;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const obs = new IntersectionObserver((entrees) => {
+      for (const e of entrees) teteHorsCadre = !e.isIntersecting;
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  });
 </script>
 
-<header class="tete">
+<div class="retour-flottant" class:visible={teteHorsCadre} aria-hidden={!teteHorsCadre}>
+  <button class="retour" onclick={onRetour} aria-label={$t('common.back' as any)}
+    tabindex={teteHorsCadre ? 0 : -1}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+</div>
+<header class="tete" bind:this={tete}>
   <button class="retour" onclick={onRetour} aria-label={$t('common.back' as any)}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
@@ -72,7 +105,7 @@
     <AlbumArt coverPath={imagePath} albumId={null} size={0} alt={nom} fallbackInitials={initiales} />
   </div>
   <div class="ident">
-    <h1>{nom}</h1>
+    <h1>{nom}<EcoutesCommunaute objet={ecoutes} /></h1>
     {#if provenance}<span class="prov">{provenance}</span>{/if}
     {#if sousTitre}<span class="cpt">{sousTitre}</span>{/if}
     {#if actions}
@@ -88,6 +121,13 @@
     background:transparent; color:var(--v2-txt2); cursor:pointer; display:grid; place-items:center; flex:none}
   .retour:hover{color:var(--v2-txt); border-color:var(--v2-txt3)}
   .retour svg{width:17px; height:17px}
+  /* web#2191 — collant au haut du conteneur qui défile (`.v2-fas`), sans
+     hauteur propre : il ne pousse rien, il se superpose. */
+  .retour-flottant{position:sticky; top:10px; height:0; z-index:6; pointer-events:none;
+    opacity:0; transition:opacity .15s ease}
+  .retour-flottant.visible{opacity:1}
+  .retour-flottant.visible .retour{pointer-events:auto}
+  .retour-flottant .retour{background:var(--v2-bg); box-shadow:0 2px 10px rgba(0,0,0,.25)}
   /*
     PORTRAIT ROND — arbitrage de Bertrand du 20/09/2026 (#1356), qui ne porte
     que sur l'EN-TÊTE DE FICHE.

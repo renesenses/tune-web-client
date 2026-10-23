@@ -1,6 +1,6 @@
 <script lang="ts">
   import { preferences } from '../../lib/stores/preferences';
-  import { descriptionDEtape, etapeIntacte, etatSansPerte, traitIntact } from '../../lib/formatInconnu';
+  import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
   // La barre à VU-mètres (Bertrand, 27/09/2026, maquette de Levente). Le
   // cadran est celui du Grand écran, par `lib/dessinVuMetre` : une seconde
@@ -54,6 +54,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
   import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
   import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
+  import { cibleDuPas } from '../../lib/limitesVolume';
   import {
     audiophileEnabled,
     audiophileGlobalLockVolume,
@@ -114,7 +115,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   async function mobileVolumeStep(delta: number) {
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
-    const newVal = Math.max(0, Math.min(1, mobileVol + delta));
+    // web#2292 — un point, et + borné par la sécurité de la zone comme les
+    // boutons du curseur, pas seulement par 100 %.
+    const newVal = cibleDuPas(z, mobileVol, delta > 0 ? 'up' : 'down');
+    if (newVal === mobileVol) return;
     if (delta > 0) leverSourdineSiBesoin({ ...z, id: z.id }, newVal);
     applyMobileVolume(z, newVal);
     await api.setVolume(z.id, newVal);
@@ -1168,6 +1172,20 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                 >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || (etatSansPerte(zone?.signal_path) === 'unknown' ? $t('signal.unknownFormat') : etatSansPerte(zone?.signal_path) === 'lossless' ? 'Lossless' : 'Lossy'))}</span>
             {/if}
             </span>
+          {:else if formatDuFluxRadio(zone?.signal_path)}
+            <!-- web#2300 (fil 2376) — une radio a aussi son format : celui que
+                 la sonde du flux a relevé (étape Source du chemin du signal). -->
+            {@const formatRadio = formatDuFluxRadio(zone?.signal_path)}
+            <span class="mini-badges">
+              <span
+                class="tb-quality-badge tier-{getQualityTierColor(etatSansPerte(zone?.signal_path) === 'lossless' ? 'cd' : 'lossy')} sp-clickable"
+                role="button"
+                tabindex={0}
+                onclick={(e) => { e.stopPropagation(); showSignalPath = true; }}
+                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); showSignalPath = true; } }}
+                title={zone?.signal_path?.summary ?? ''}
+              >{formatRadio}</span>
+            </span>
           {/if}
         </div>
       </div>
@@ -1366,7 +1384,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
          Le nombre de titres à suivre est en infobulle, pas dessiné : la barre
          reste compacte. -->
     <button
-      class="control-btn small"
+      class="control-btn small queue-btn"
       class:active={$activeView === 'queue'}
       onclick={() => activeView.set('queue')}
       aria-label={$t('nav.queue')}
@@ -3437,6 +3455,38 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
     /* Mini-player: seulement play/pause + next */
     .transport-controls .control-btn.small { display: none; }
+
+    /* web#1870 (Lionel, fil 1638) — « en voulant voir la playlist en cours
+       j'ai souvent cliqué sur le bandeau d'avance du morceau ».
+       Sur téléphone, la barre de saut (`.transport-progress`, 18 px de haut)
+       se rangeait dans la colonne des commandes, juste SOUS lecture/suivant,
+       et l'accès à la file était masqué avec les autres petits boutons : le
+       pouce qui cherchait la file tombait sur le saut.
+       1. La file reste dans la mini-barre, en cible de 44 px (le minimum
+          tactile d'Apple), à côté de lecture/suivant.
+       2. Le saut quitte la mini-barre : il vit dans « Lecture en cours »
+          (`SeekBar`, pleine largeur). Ici, il ne reste qu'un trait de
+          progression en HAUT de la barre, qui ne capte aucun toucher. */
+    .transport-controls .control-btn.small.queue-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+    }
+
+    .transport-progress { display: none; }
+
+    .transport-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 2px;
+      background: var(--tune-accent);
+      width: var(--compact-progress, 0%);
+      pointer-events: none;
+    }
     .transport-controls .audiophile-btn { display: none; }
 
     .transport-controls .play-btn {
