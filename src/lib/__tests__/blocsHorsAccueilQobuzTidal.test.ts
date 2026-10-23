@@ -112,7 +112,7 @@ describe('🔴 la règle « tous horizontaux » après l’ouverture du moteur a
     // forme `bloc` n'a jamais été écrite — ils prouveraient que la règle tient
     // en ne prouvant rien du tout. Ils ne valent que parce qu'il y a
     // effectivement des blocs à tenir à l'écart.
-    expect(BLOCS_TABLEAU_DE_BORD.length).toBe(11);
+    expect(BLOCS_TABLEAU_DE_BORD.length).toBe(12);
     expect(BLOCS_TABLEAU_DE_BORD.every((w) => w.forme === 'bloc')).toBe(true);
   });
 });
