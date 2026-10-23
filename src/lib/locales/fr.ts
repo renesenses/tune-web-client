@@ -811,6 +811,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': 'Artistes similaires',
+  "artist.backToSimilars": "Retour aux similaires de {nom}",
   'artist.members': 'Membres',
   'artist.credits': 'Crédits',
   'credits.performer': 'Musicien',

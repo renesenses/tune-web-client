@@ -68,6 +68,7 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
   import { activeView, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
+  import { departSimilaires, defilerVersSimilaires, retenirDepartSimilaires, retourAuxSimilairesVisible, revenirAuxSimilaires } from '../../lib/retourAuxSimilaires';
   import { ficheAlbumDeRetour, ficheAlbumService, ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
   import { albumsDeStreamingPourArtiste, servicesInterrogeables, statutsStreaming, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
   import { BIBLIOTHEQUE, cleEdition, type Exemplaire } from '../../lib/discographieCommune';
@@ -241,6 +242,15 @@
    * état réactif, sinon l'effet se relancerait sur sa propre écriture.
    */
   let metaFiche = $state<ArtistMetadata | null>(null);
+  // web#2299 — rouverte par « Retour aux similaires », la fiche y descend
+  // dès que la liste est rendue (les métadonnées arrivent après la fiche).
+  let titreSimilaires = $state<HTMLElement | null>(null);
+  $effect(() => {
+    const titre = titreSimilaires;
+    if (!titre || !$defilerVersSimilaires) return;
+    defilerVersSimilaires.set(false);
+    try { titre.scrollIntoView({ block: 'start' }); } catch { /* jsdom, vieux moteur */ }
+  });
   let creditsFiche = $state<TrackCredit[]>([]);
   let enrichissement = $state(false);
   let jetonMeta = 0;
@@ -300,6 +310,12 @@
    * Recherche, comme le faisait `ArtistesV2`.
    */
   async function ouvrirSimilaire(nomVoisin: string) {
+    // web#2299 — l'artiste DONT on lit les similaires, pour pouvoir y revenir
+    // (même après être passé par la Recherche et un artiste de service).
+    const depart = cible;
+    if (depart && depart.service == null) {
+      retenirDepartSimilaires({ id: depart.id, nom: nom || depart.nom, depuis: $vueDeRetour, provenance: depart.provenance ?? null });
+    }
     let id: number | null = null;
     try {
       id = trouverArtisteExact((await api.searchLibrary(nomVoisin, 5))?.artists, nomVoisin);
@@ -1035,6 +1051,12 @@
       {/if}
     {/snippet}
   </EnTeteArtiste>
+  {#if retourAuxSimilairesVisible($departSimilaires, cible)}
+    <!-- web#2299 — remonter à la liste des similaires de l'artiste de départ. -->
+    <button class="v2-btn retour-similaires" onclick={revenirAuxSimilaires}>
+      ‹ {$tr('artist.backToSimilars' as any).replace('{nom}', $departSimilaires?.nom ?? '')}
+    </button>
+  {/if}
 
   {#if !chargement && ficheEnEchec}
     <!-- #992 — jamais le « 502 » ni le texte brut du service : ce qui s'est
@@ -1084,7 +1106,7 @@
     {#if artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || creditsFiche.length)}
       <section class="apropos">
         {#if metaFiche?.similar_artists?.length}
-          <h3>{$tr('artist.similarArtists' as any)}</h3>
+          <h3 bind:this={titreSimilaires}>{$tr('artist.similarArtists' as any)}</h3>
           <div class="puces">
             {#each metaFiche.similar_artists as sa (sa.name)}
               <button class="puce" title={sa.reason} onclick={() => ouvrirSimilaire(sa.name)}>{sa.name}</button>
@@ -1176,6 +1198,7 @@
     color:var(--v2-txt2); font:12px var(--v2-sans); cursor:pointer}
   .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .puce.fixe{cursor:default}
+  .retour-similaires{margin:0 0 12px; align-self:flex-start}
   .membres{margin:0; padding-left:18px; color:var(--v2-txt2); font-size:13px}
   @media (max-width: 640px){
     .v2-fas{padding:0 16px 40px}

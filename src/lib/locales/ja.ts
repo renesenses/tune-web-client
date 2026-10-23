@@ -693,6 +693,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': '類似アーティスト',
+  "artist.backToSimilars": "{nom} の類似アーティストに戻る",
   'artist.members': 'メンバー',
   'artist.credits': 'クレジット',
   'credits.performer': '演奏者',

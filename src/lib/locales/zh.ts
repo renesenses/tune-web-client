@@ -693,6 +693,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': '相似艺术家',
+  "artist.backToSimilars": "返回 {nom} 的相似艺术家",
   'artist.members': '成员',
   'artist.credits': '创作人员',
   'credits.performer': '演奏者',
