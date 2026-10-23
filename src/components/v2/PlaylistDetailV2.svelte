@@ -183,15 +183,33 @@
    * Le drapeau `shuffle` de la zone n'est pas touche.
    */
   let melangeEnCours = $state(false);
+  /**
+   * tune-server-rust#6465 (FabienM, fil 2379, point 1) — « Playlist avec
+   * lecture aléatoire → dans l'historique on n'a pas le conteneur playlist ».
+   * La liste part en `track_ids` ou en tête + suite, et rien dans ces corps
+   * ne dit qu'elle vient d'une playlist : le serveur écrivait des titres nus.
+   * La playlist s'ÉNONCE donc, sur la lecture comme sur la file, avec son
+   * espace de noms (`context_source`) : le service du titre de tête n'est pas
+   * celui d'une playlist de la bibliothèque qui mêle des titres Qobuz.
+   */
+  function conteneur() {
+    return item.kind === 'local'
+      ? { context_type: 'playlist' as const, context_id: String(item.pl.id), context_source: 'local' }
+      : { context_type: 'playlist' as const, context_id: String(item.pl.source_id), context_source: item.service };
+  }
+  function gestesDeLaPlaylist(zid: number) {
+    const c = conteneur();
+    return {
+      lire: (corps: any) => playAndSync(zid, { ...corps, ...c }),
+      enfiler: (corps: any) => api.addToQueue(zid, { ...corps, ...c }),
+    };
+  }
   async function lireAleatoire() {
     const zid = zoneRequise();
     if (zid == null) return;
     melangeEnCours = true;
     try {
-      const n = await lireListeAleatoire(tracks, {
-        lire: (c: any) => playAndSync(zid, c),
-        enfiler: (c: any) => api.addToQueue(zid, c),
-      });
+      const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
       notifications.error(errText(e) ?? $tr('common.error'));
@@ -204,10 +222,7 @@
     // Liste TRIÉE : « lire depuis ici » suit l'ordre affiché, pas celui de la
     // playlist — `start_index` du serveur ne connaît que ce dernier.
     if (!ordreNaturel) {
-      void lireListe(pistesVues.slice(startIndex), {
-        lire: (c: any) => playAndSync(zid, c),
-        enfiler: (c: any) => api.addToQueue(zid, c),
-      }).catch(signalerEchecLecture);
+      void lireListe(pistesVues.slice(startIndex), gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
       return;
     }
     if (item.kind === 'local') {

@@ -6,16 +6,56 @@
   parce que sa première lecture va au rythme de MusicBrainz. Live et
   compilations sont exclus par défaut (choix prudent, à valider) ; une case
   les ajoute.
+
+  Suite de #6288 : un manque que la fiche a déjà trouvé chez un service
+  connecté (`services`, les albums de l'artiste que la fiche charge pour sa
+  discographie) propose « Écouter » et « Ajouter aux favoris » sur ce service.
+  Aucun appel de plus : l'appariement se fait sur ce qui est déjà là, par le
+  titre (`trouverSurUnService`).
 -->
 <script lang="ts">
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import { anneeDe, cleEtat, lienMusicBrainz, reponseDEchec, type ReponseManquants } from '../../lib/albumsManquants';
+  import {
+    anneeDe, cleEtat, lienMusicBrainz, reponseDEchec, trouverSurUnService,
+    type ManqueSurUnService, type ReponseManquants, type SectionDeService,
+  } from '../../lib/albumsManquants';
+  import { favoriteStreamingKeys } from '../../lib/stores/profile';
+  import { isStreamingFavorite, toggleStreamingFavorite, type StreamingRef } from '../../lib/streamingFavorites';
+  import { playAndSync } from '../../lib/stores/zones';
+  import { zoneRequise } from '../../lib/zoneRequise';
+  import { messageEchecLecture } from '../../lib/echecLecture';
+  import { notifications } from '../../lib/stores/notifications';
 
   interface Props {
     artistId: number;
+    /** Les albums de l'artiste chez les services connectés, déjà chargés par
+     *  la fiche. Vides ou absents : ni « Écouter » ni favori. */
+    services?: readonly SectionDeService[];
   }
-  let { artistId }: Props = $props();
+  let { artistId, services = [] }: Props = $props();
+
+  const nomService = (k: string) => k.charAt(0).toUpperCase() + k.slice(1);
+
+  function refDe(m: ManqueSurUnService): StreamingRef {
+    return {
+      itemType: 'album',
+      service: m.service,
+      serviceId: m.sourceId,
+      title: m.album.title ?? undefined,
+      artist: m.album.artist_name ?? undefined,
+      coverUrl: m.album.cover_path ?? undefined,
+      ...(m.album.artist_id != null ? { artistId: String(m.album.artist_id) } : {}),
+    };
+  }
+
+  function ecouter(m: ManqueSurUnService) {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    playAndSync(zid, { streaming_album_id: m.sourceId, source: m.service as any }).catch((e) =>
+      notifications.error(messageEchecLecture(e, 'library.playbackError')),
+    );
+  }
 
   let reponse = $state<ReponseManquants | null>(null);
   let enCours = $state(false);
@@ -69,11 +109,25 @@
       <ul>
         {#each reponse.manquants as g (g.mbid)}
           {@const lien = lienMusicBrainz(g.mbid)}
+          {@const surService = trouverSurUnService(g.titre, services)}
           <li>
             <span class="titre">{g.titre}</span>
             {#if anneeDe(g.premiere_sortie)}<span class="annee">{anneeDe(g.premiere_sortie)}</span>{/if}
             {#if g.type_primaire}<span class="type">{[g.type_primaire, ...(g.types_secondaires ?? [])].join(' · ')}</span>{/if}
             {#if lien}<a href={lien} target="_blank" rel="noopener noreferrer external">{$t('v2.manquants.voirMb')}</a>{/if}
+            {#if surService}
+              {@const ref = refDe(surService)}
+              {@const fav = isStreamingFavorite($favoriteStreamingKeys, ref)}
+              <span class="service" data-manque-service={surService.service}>
+                <button class="mini" onclick={() => ecouter(surService)} data-ecouter
+                  title={$t('v2.manquants.ecouterSur' as any).replace('{service}', nomService(surService.service))}>
+                  {$t('v2.manquants.ecouterSur' as any).replace('{service}', nomService(surService.service))}
+                </button>
+                <button class="mini" class:on={fav} aria-pressed={fav} onclick={() => void toggleStreamingFavorite(ref)} data-favori>
+                  {$t((fav ? 'v2.manquants.retirerFavori' : 'v2.manquants.ajouterFavori') as any)}
+                </button>
+              </span>
+            {/if}
           </li>
         {/each}
       </ul>
@@ -100,4 +154,11 @@
   .titre { font-weight: 600; }
   .annee, .type { color: var(--tune-text-muted); }
   li a { color: var(--tune-accent); }
+  .service { display: inline-flex; gap: 6px; }
+  .mini {
+    padding: 2px 8px; border-radius: 10px; cursor: pointer; font-size: 11px;
+    background: transparent; color: var(--tune-text);
+    border: 1px solid var(--tune-border, rgba(127, 127, 127, 0.3));
+  }
+  .mini.on { color: var(--tune-accent); border-color: var(--tune-accent); }
 </style>

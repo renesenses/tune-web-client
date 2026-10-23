@@ -32,6 +32,19 @@ export function bridageDesAnalyses(
   return null;
 }
 
+/**
+ * tune-server-rust#6713 — `analyses_bridage_leve` de `GET /system/diagnostics`
+ * : le motif d'une température illisible quand l'UTILISATEUR a levé le
+ * bridage (Réglages, niveau Expert), `null` sinon. Les analyses tournent
+ * alors à la vitesse réglée : l'écran le dit, pour que ce choix ne s'oublie
+ * pas. Absent chez un serveur antérieur : rien.
+ */
+export const CLE_LEVER_LE_BRIDAGE = 'background_analysis_unthrottle_unreadable_temperature';
+
+export function bridageLeve(motif: unknown, libelle: string): string | null {
+  return typeof motif === 'string' && motif.trim() !== '' ? libelle : null;
+}
+
 export function temperatureProcesseur(valeur: unknown, indisponible: string): string | null {
   if (valeur === undefined) return null;
   if (typeof valeur !== 'number' || !Number.isFinite(valeur)) return indisponible;
