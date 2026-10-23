@@ -5639,6 +5639,8 @@ export default {
   "assistantIa.coll.fromListening": "D'après mon écoute (Premium)",
   "assistantIa.coll.create": "Créer",
   "assistantIa.coll.created": "Créée",
+  "assistantIa.coll.why": "Pourquoi cet album ? (IA)",
+  "assistantIa.coll.whyTitle": "Pourquoi cet album est dans la collection",
   "assistantIa.err.premium_requis": "Cette fonction fait partie de Premium.",
   "assistantIa.err.apercu_requis": "Montrez d'abord ce qui sera envoyé : préparez un nouvel aperçu.",
   "assistantIa.err.diagnostic_indisponible": "Le diagnostic n'est pas disponible sur ce serveur.",

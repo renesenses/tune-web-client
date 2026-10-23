@@ -5617,6 +5617,8 @@ export default {
   "assistantIa.coll.fromListening": "自分の再生履歴から（Premium）",
   "assistantIa.coll.create": "作成",
   "assistantIa.coll.created": "作成済み",
+  "assistantIa.coll.why": "なぜこのアルバム？（AI）",
+  "assistantIa.coll.whyTitle": "このアルバムがコレクションにある理由",
   "assistantIa.err.premium_requis": "この機能は Premium の一部です。",
   "assistantIa.err.apercu_requis": "まず送信内容を確認してください。新しいプレビューを準備してください。",
   "assistantIa.err.diagnostic_indisponible": "このサーバーでは診断を利用できません。",

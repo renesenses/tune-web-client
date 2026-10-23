@@ -5617,6 +5617,8 @@ export default {
   "assistantIa.coll.fromListening": "După ascultarea mea (Premium)",
   "assistantIa.coll.create": "Creează",
   "assistantIa.coll.created": "Creată",
+  "assistantIa.coll.why": "De ce acest album? (IA)",
+  "assistantIa.coll.whyTitle": "De ce acest album este în colecție",
   "assistantIa.err.premium_requis": "Această funcție face parte din Premium.",
   "assistantIa.err.apercu_requis": "Arătați întâi ce se va trimite: pregătiți o nouă previzualizare.",
   "assistantIa.err.diagnostic_indisponible": "Diagnosticul nu este disponibil pe acest server.",

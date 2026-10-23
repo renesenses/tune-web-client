@@ -5637,6 +5637,8 @@ export default {
   "assistantIa.coll.fromListening": "From my listening (Premium)",
   "assistantIa.coll.create": "Create",
   "assistantIa.coll.created": "Created",
+  "assistantIa.coll.why": "Why this album? (AI)",
+  "assistantIa.coll.whyTitle": "Why this album is in the collection",
   "assistantIa.err.premium_requis": "This feature is part of Premium.",
   "assistantIa.err.apercu_requis": "Show what will be sent first: prepare a new preview.",
   "assistantIa.err.diagnostic_indisponible": "Diagnostics are not available on this server.",

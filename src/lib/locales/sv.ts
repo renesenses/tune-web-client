@@ -5616,6 +5616,8 @@ export default {
   "assistantIa.coll.fromListening": "Utifrån min lyssning (Premium)",
   "assistantIa.coll.create": "Skapa",
   "assistantIa.coll.created": "Skapad",
+  "assistantIa.coll.why": "Varför det här albumet? (AI)",
+  "assistantIa.coll.whyTitle": "Varför albumet finns i samlingen",
   "assistantIa.err.premium_requis": "Den här funktionen ingår i Premium.",
   "assistantIa.err.apercu_requis": "Visa först vad som skickas: förbered en ny förhandsvisning.",
   "assistantIa.err.diagnostic_indisponible": "Diagnosen är inte tillgänglig på den här servern.",

@@ -5617,6 +5617,8 @@ export default {
   "assistantIa.coll.fromListening": "Según mi escucha (Premium)",
   "assistantIa.coll.create": "Crear",
   "assistantIa.coll.created": "Creada",
+  "assistantIa.coll.why": "¿Por qué este álbum? (IA)",
+  "assistantIa.coll.whyTitle": "Por qué este álbum está en la colección",
   "assistantIa.err.premium_requis": "Esta función forma parte de Premium.",
   "assistantIa.err.apercu_requis": "Muestre primero lo que se enviará: prepare una nueva vista previa.",
   "assistantIa.err.diagnostic_indisponible": "El diagnóstico no está disponible en este servidor.",

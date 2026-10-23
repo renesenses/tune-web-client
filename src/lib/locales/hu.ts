@@ -5576,6 +5576,8 @@ export default {
   "assistantIa.coll.fromListening": "A hallgatásaim alapján (Premium)",
   "assistantIa.coll.create": "Létrehozás",
   "assistantIa.coll.created": "Létrehozva",
+  "assistantIa.coll.why": "Miért ez az album? (MI)",
+  "assistantIa.coll.whyTitle": "Miért van ez az album a gyűjteményben",
   "assistantIa.err.premium_requis": "Ez a funkció a Premium része.",
   "assistantIa.err.apercu_requis": "Előbb nézd meg, mi megy el: készíts új előnézetet.",
   "assistantIa.err.diagnostic_indisponible": "A diagnosztika ezen a szerveren nem érhető el.",

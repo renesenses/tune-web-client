@@ -5617,6 +5617,8 @@ export default {
   "assistantIa.coll.fromListening": "내 청취 기반 (Premium)",
   "assistantIa.coll.create": "만들기",
   "assistantIa.coll.created": "생성됨",
+  "assistantIa.coll.why": "이 앨범이 왜 있나요? (AI)",
+  "assistantIa.coll.whyTitle": "이 앨범이 컬렉션에 있는 이유",
   "assistantIa.err.premium_requis": "이 기능은 Premium에 포함됩니다.",
   "assistantIa.err.apercu_requis": "먼저 보낼 내용을 확인하세요: 새 미리보기를 준비하세요.",
   "assistantIa.err.diagnostic_indisponible": "이 서버에서는 진단을 사용할 수 없습니다.",

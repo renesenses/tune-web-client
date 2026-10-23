@@ -5469,6 +5469,8 @@ export default {
   "assistantIa.coll.fromListening": "Theo lượt nghe của tôi (Premium)",
   "assistantIa.coll.create": "Tạo",
   "assistantIa.coll.created": "Đã tạo",
+  "assistantIa.coll.why": "Vì sao có album này? (AI)",
+  "assistantIa.coll.whyTitle": "Vì sao album này nằm trong bộ sưu tập",
   "assistantIa.err.premium_requis": "Tính năng này thuộc Premium.",
   "assistantIa.err.apercu_requis": "Hãy xem trước nội dung sẽ gửi: chuẩn bị bản xem trước mới.",
   "assistantIa.err.diagnostic_indisponible": "Chẩn đoán không khả dụng trên máy chủ này.",

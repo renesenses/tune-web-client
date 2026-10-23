@@ -83,6 +83,8 @@ describe('i18n et branchements', () => {
     '../../components/v2/DiagnosticIaV2.svelte',
     '../../components/v2/CollectionIaV2.svelte',
     '../../components/v2/PropositionsCollectionsIaV2.svelte',
+    '../../components/v2/PourquoiAlbumIaV2.svelte',
+    '../../components/v2/CollectionsV2.svelte',
     '../../components/v2/AssistantIaReglagesV2.svelte',
     '../../components/v2/SupportV2.svelte',
   ];
@@ -111,5 +113,6 @@ describe('i18n et branchements', () => {
     expect(source('../../components/v2/SupportV2.svelte')).toContain('joindreResumeIa = $state(false)');
     expect(source('../../components/v2/CollectionSmartEditeurV2.svelte')).toContain('<CollectionIaV2');
     expect(source('../../components/v2/CollectionsV2.svelte')).toContain("import('./PropositionsCollectionsIaV2.svelte')");
+    expect(source('../../components/v2/CollectionsV2.svelte')).toContain("import('./PourquoiAlbumIaV2.svelte')");
   });
 });

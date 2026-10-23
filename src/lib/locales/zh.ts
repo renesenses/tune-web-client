@@ -5617,6 +5617,8 @@ export default {
   "assistantIa.coll.fromListening": "根据我的收听（Premium）",
   "assistantIa.coll.create": "创建",
   "assistantIa.coll.created": "已创建",
+  "assistantIa.coll.why": "为什么是这张专辑？（AI）",
+  "assistantIa.coll.whyTitle": "为什么这张专辑在合集中",
   "assistantIa.err.premium_requis": "此功能属于 Premium。",
   "assistantIa.err.apercu_requis": "请先查看将发送的内容：重新准备预览。",
   "assistantIa.err.diagnostic_indisponible": "此服务器不提供诊断。",
