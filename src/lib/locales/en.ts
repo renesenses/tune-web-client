@@ -5527,6 +5527,21 @@ export default {
   "accesCompte.retourEnCours": "Signing in…",
   "accesCompte.fermer": "Hide",
   "accesCompte.reessayer": "Try again",
+  "assistantIa.err.cle_sans_espace_de_travail": "This Anthropic key is not attached to any workspace: create one inside a workspace (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Reason given by the provider: “{motif}”",
+  "scanDetenteur.origine.startup": "Startup scan",
+  "scanDetenteur.origine.manual": "Manually started scan",
+  "scanDetenteur.origine.scheduled": "Scheduled scan",
+  "scanDetenteur.origine.late_network_mount": "Scan of a late-mounted network share",
+  "scanDetenteur.origine.music_dir_added": "Scan of an added folder",
+  "scanDetenteur.origine.import": "Import scan",
+  "scanDetenteur.origine.cd_rip": "CD rip scan",
+  "scanDetenteur.origine.inconnue": "Scan of unknown origin",
+  "scanDetenteur.dossier": "folder {chemin}",
+  "scanDetenteur.toute": "whole library",
+  "scanDetenteur.depuis": "since {heure}",
+  "scanDetenteur.residuel": "Leftover status: no scan is actually running. “Stop” resets it.",
+  "scanDetenteur.refus409": "The server refused: another scan is already running ({scan}). Try again once it has finished.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

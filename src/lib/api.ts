@@ -4532,6 +4532,17 @@ export function removePlaylistTrackAt(playlistId: number, position: number) {
 }
 
 /**
+ * web#2286 — retire UNE ligne, désignée par son `entry_id` (tune-server-rust#6690)
+ * ou, à défaut, par son rang. Un retrait qui n'efface rien rend 404.
+ */
+export function removePlaylistEntry(playlistId: number, cible: { entry_id: number } | { position: number }) {
+  return fetchVoid(`${BASE}/playlists/${playlistId}/tracks/remove`, {
+    method: 'POST',
+    body: JSON.stringify(cible),
+  });
+}
+
+/**
  * Réordonne une playlist Tune — #4889.
  *
  * `positions` = le NOUVEL ORDRE exprimé en RANGS ACTUELS (indices de la liste
@@ -5226,7 +5237,9 @@ export function transferToPeer(ip: string, port: number = 8888, zoneId: number =
 }
 
 export function getScanStatus() {
-  return fetchJSON<{ scanning: boolean }>(`${BASE}/system/scan/status`);
+  // web#2305 : `current` (tune-server-rust#6744) dit QUEL scan tient le
+  // droit ; absent d'un serveur plus ancien. Lu par `scanDetenteur.ts`.
+  return fetchJSON<{ scanning: boolean; status?: string; current?: unknown }>(`${BASE}/system/scan/status`);
 }
 
 /**

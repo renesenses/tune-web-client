@@ -5529,6 +5529,21 @@ export default {
   "accesCompte.retourEnCours": "Connexion en cours…",
   "accesCompte.fermer": "Masquer",
   "accesCompte.reessayer": "Réessayer",
+  "assistantIa.err.cle_sans_espace_de_travail": "Cette clé Anthropic n’est rattachée à aucun espace de travail : créez-en une dans un espace de travail (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Motif donné par le fournisseur : « {motif} »",
+  "scanDetenteur.origine.startup": "Scan de démarrage",
+  "scanDetenteur.origine.manual": "Scan lancé à la main",
+  "scanDetenteur.origine.scheduled": "Scan programmé",
+  "scanDetenteur.origine.late_network_mount": "Scan d’un partage réseau monté en retard",
+  "scanDetenteur.origine.music_dir_added": "Scan d’un dossier ajouté",
+  "scanDetenteur.origine.import": "Scan d’un import",
+  "scanDetenteur.origine.cd_rip": "Scan d’une extraction de CD",
+  "scanDetenteur.origine.inconnue": "Scan d’origine inconnue",
+  "scanDetenteur.dossier": "dossier {chemin}",
+  "scanDetenteur.toute": "toute la bibliothèque",
+  "scanDetenteur.depuis": "depuis {heure}",
+  "scanDetenteur.residuel": "Statut résiduel : aucun scan ne tourne réellement. « Arrêter » le remet au repos.",
+  "scanDetenteur.refus409": "Le serveur a refusé : un autre scan est déjà en cours ({scan}). Réessayez quand il sera terminé.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -271,13 +271,15 @@ export function abonnerAvancementAnalyse(
 export async function lancerAnalyse(
   declencher: (path?: string, full?: boolean) => Promise<unknown>,
   options: { chemin?: string | null; complete?: boolean } = {},
-): Promise<{ ok: boolean; cible: string | null }> {
+): Promise<{ ok: boolean; cible: string | null; erreur?: unknown }> {
   const cible = texte(options.chemin);
   const complete = !!options.complete;
   try {
     await declencher(cible ?? undefined, complete);
-  } catch {
-    return { ok: false, cible };
+  } catch (erreur) {
+    // web#2305 : l'erreur voyage, pour qu'un refus 409 `already_scanning`
+    // puisse nommer le scan qui tient le droit (`refusScanConcurrent`).
+    return { ok: false, cible, erreur };
   }
   demarrerAvancement(cible);
   return { ok: true, cible };

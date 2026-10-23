@@ -73,6 +73,7 @@
     avancementAnalyse, pourcentAnalyse, aDesChiffres, lignesPortee, lignesEmplacements,
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
+  import { decrireScanCourant, refusScanConcurrent } from '../../lib/scanDetenteur';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
   import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
   import { clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, type RetourClientId } from '../../lib/clientIdSpotify';
@@ -2040,6 +2041,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let newDir = $state('');
   let dirBusy = $state(false);
   let scanning = $state(false);
+  /** web#2305 : le `current` de `scan/status` — QUEL scan tient le droit. */
+  let scanCourant = $state<unknown>(null);
   let scanReport = $state<any | null>(null);
   let qualitySplit = $state(true);
   // tune-server-rust#6554 — « Coffrets automatiques ». Absent de la config :
@@ -2338,7 +2341,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   // L'etat d'analyse est sonde UNIQUEMENT pendant une analyse.
   $effect(() => {
-    api.getScanStatus().then((s) => { scanning = !!s?.scanning; }).catch(() => {});
+    api.getScanStatus().then((s) => { scanning = !!s?.scanning; scanCourant = s?.current ?? null; }).catch(() => {});
   });
   $effect(() => {
     if (!scanning) return;
@@ -2346,6 +2349,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       try {
         const s = await api.getScanStatus();
         scanning = !!s?.scanning;
+        scanCourant = s?.current ?? null;
         if (!scanning) {
           terminerAvancement();
           scanReport = await api.getScanReport().catch(() => null);
@@ -2451,12 +2455,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   async function scan(full: boolean, chemin: string | null = null) {
     const r = await lancerAnalyse((p, f) => api.triggerScan(p, f), { chemin, complete: full });
-    if (!r.ok) { libErr = get(t)('settings.errScanStartFailed'); return; }
+    if (!r.ok) {
+      // web#2305 : un 409 `already_scanning` nomme le scan qui tient le droit.
+      libErr = refusScanConcurrent(r.erreur, (k) => get(t)(k as any)) ?? get(t)('settings.errScanStartFailed');
+      return;
+    }
     scanning = true; scanReport = null; libErr = null;
   }
   async function stopScan() {
     try { await api.cancelScan(); } catch { /* deja finie */ }
-    scanning = false; terminerAvancement();
+    scanning = false; scanCourant = null; terminerAvancement();
   }
 
   /**
@@ -5767,6 +5775,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/if}
                 </div>
               </div>
+              <!-- web#2305 (tune-server-rust#6729) : QUEL scan tient le droit. -->
+              {#if scanning}
+                {@const detenteur = decrireScanCourant(scanCourant, (k) => $t(k as any))}
+                {#if detenteur}<p class="hint" data-scan-detenteur>{detenteur}</p>{/if}
+              {/if}
               <!--
                 #1518 — l'avancement, enfin montré.
 

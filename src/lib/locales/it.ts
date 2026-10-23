@@ -5507,6 +5507,21 @@ export default {
   "accesCompte.retourEnCours": "Accesso in corso…",
   "accesCompte.fermer": "Nascondi",
   "accesCompte.reessayer": "Riprova",
+  "assistantIa.err.cle_sans_espace_de_travail": "Questa chiave Anthropic non è associata ad alcuno spazio di lavoro: creane una all’interno di uno spazio di lavoro (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Motivo indicato dal fornitore: «{motif}»",
+  "scanDetenteur.origine.startup": "Scansione all’avvio",
+  "scanDetenteur.origine.manual": "Scansione avviata manualmente",
+  "scanDetenteur.origine.scheduled": "Scansione pianificata",
+  "scanDetenteur.origine.late_network_mount": "Scansione di una condivisione di rete montata in ritardo",
+  "scanDetenteur.origine.music_dir_added": "Scansione di una cartella aggiunta",
+  "scanDetenteur.origine.import": "Scansione di un’importazione",
+  "scanDetenteur.origine.cd_rip": "Scansione di un’estrazione da CD",
+  "scanDetenteur.origine.inconnue": "Scansione di origine sconosciuta",
+  "scanDetenteur.dossier": "cartella {chemin}",
+  "scanDetenteur.toute": "tutta la libreria",
+  "scanDetenteur.depuis": "dalle {heure}",
+  "scanDetenteur.residuel": "Stato residuo: nessuna scansione è in corso. «Interrompi» lo azzera.",
+  "scanDetenteur.refus409": "Il server ha rifiutato: è già in corso un’altra scansione ({scan}). Riprova quando sarà terminata.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

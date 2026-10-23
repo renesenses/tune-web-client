@@ -5507,6 +5507,21 @@ export default {
   "accesCompte.retourEnCours": "Anmeldung läuft…",
   "accesCompte.fermer": "Ausblenden",
   "accesCompte.reessayer": "Erneut versuchen",
+  "assistantIa.err.cle_sans_espace_de_travail": "Dieser Anthropic-Schlüssel ist keinem Workspace zugeordnet: Erstellen Sie einen Schlüssel in einem Workspace (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Vom Anbieter genannter Grund: „{motif}“",
+  "scanDetenteur.origine.startup": "Scan beim Start",
+  "scanDetenteur.origine.manual": "Manuell gestarteter Scan",
+  "scanDetenteur.origine.scheduled": "Geplanter Scan",
+  "scanDetenteur.origine.late_network_mount": "Scan einer verspätet eingebundenen Netzwerkfreigabe",
+  "scanDetenteur.origine.music_dir_added": "Scan eines hinzugefügten Ordners",
+  "scanDetenteur.origine.import": "Scan eines Imports",
+  "scanDetenteur.origine.cd_rip": "Scan eines CD-Rips",
+  "scanDetenteur.origine.inconnue": "Scan unbekannter Herkunft",
+  "scanDetenteur.dossier": "Ordner {chemin}",
+  "scanDetenteur.toute": "gesamte Bibliothek",
+  "scanDetenteur.depuis": "seit {heure}",
+  "scanDetenteur.residuel": "Veralteter Status: Es läuft kein Scan. „Stopp“ setzt ihn zurück.",
+  "scanDetenteur.refus409": "Der Server hat abgelehnt: Ein anderer Scan läuft bereits ({scan}). Versuchen Sie es erneut, wenn er beendet ist.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
