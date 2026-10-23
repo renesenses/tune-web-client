@@ -14,6 +14,7 @@
  */
 import type { WSEvent } from './types';
 import { chargementDepuisEvenement, chargerCdEnMemoire, codeRefusCd, jouerCd } from './lectureCd';
+import { normaliserSources } from './sources';
 
 export interface AnnonceInsertionCd {
   disc_id: string;
@@ -28,6 +29,12 @@ export interface AnnonceInsertionCd {
 export interface DependancesProposition {
   /** Toast avec un bouton ; rend son identifiant. */
   proposer: (message: string, bouton: string, action: () => void) => number;
+  /**
+   * tune-web-client#2296 — une QUESTION Oui / Non, qui reste affichée jusqu'à
+   * la réponse ; rend son identifiant. Sans elle, la proposition retombe sur
+   * `proposer` (toast qui s'efface).
+   */
+  demander?: (message: string, oui: string, action: () => void, non: string) => number;
   info: (message: string) => void;
   erreur: (message: string) => void;
   retirer: (id: number) => void;
@@ -95,12 +102,25 @@ export function creerPropositionChargementCd(d: DependancesProposition): (ev: WS
       const nom = nomDisqueInsere(a, d.traduire('v2.cd.unknownAlbum'));
       const ancien = toasts.get(a.disc_id);
       if (ancien != null) d.retirer(ancien);
-      const id = d.proposer(
-        d.traduire('v2.cd.insertedPrompt').replace('{disc}', nom),
-        d.traduire('v2.cd.loadIntoMemory'),
-        () => demanderChargement(a.disc_id, nom),
-      );
+      const message = d.traduire('v2.cd.insertedPrompt').replace('{disc}', nom);
+      const oui = d.traduire('v2.cd.loadIntoMemory');
+      const action = () => demanderChargement(a.disc_id, nom);
+      // #2296 (Tades, fil 2372) — le lecteur n'est pas forcément dans la
+      // pièce de l'écran : la proposition attend la réponse.
+      const id = d.demander
+        ? d.demander(message, oui, action, d.traduire('v2.cd.declineLoad'))
+        : d.proposer(message, oui, action);
       toasts.set(a.disc_id, id);
+      return;
+    }
+    // #2296 — une question qui attend sa réponse ne survit pas au disque :
+    // le lecteur n'en a plus (éjecté), la proposition est retirée.
+    if (ev?.type === 'sources.changed' && toasts.size > 0) {
+      const cd = normaliserSources(ev.data).find((s) => s.type === 'cd');
+      if (cd && cd.etat !== 'disque') {
+        for (const id of toasts.values()) d.retirer(id);
+        toasts.clear();
+      }
       return;
     }
     if (ev?.type === 'cd.memoire.termine') {

@@ -81,6 +81,7 @@
    */
   import { tick, type Snippet } from 'svelte';
   import { t } from '../../lib/i18n';
+  import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import { preferences } from '../../lib/stores/preferences';
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
     from '../../lib/stores/nowPlaying';
@@ -750,6 +751,9 @@
               {/if}
               <IndicateurLecture {etat} />
               <span class="ttxt">{cellule(p, i, c.cle) ?? ''}</span>
+              <!-- #2298 — « So What (128) » : écoutes de la communauté, rien
+                   quand le serveur n'envoie pas le champ. -->
+              <EcoutesCommunaute objet={p} />
               <!-- D'OÙ VIENT CETTE LIGNE — #1113. Telle quelle : une source
                    absente ne rend aucune pastille, jamais un « LOCAL » faux. -->
               {#if sourceEnTableau}<ServiceBadge source={p.source} compact />{/if}

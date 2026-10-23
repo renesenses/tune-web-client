@@ -81,6 +81,9 @@ export interface GroupDelay {
 // Core domain models
 export interface Artist {
   id: number | null;
+  /** tune-server-rust#6738 — écoutes de la communauté Tune, ABSENT sous le
+   *  seuil de trois comptes ou sans compte relié (#2298). */
+  community_listens?: number;
   name: string;
   sort_name?: string | null;
   musicbrainz_id?: string | null;
@@ -112,6 +115,9 @@ export interface Artist {
 }
 
 export interface Album {
+  /** tune-server-rust#6738 — écoutes de la communauté Tune, ABSENT sous le
+   *  seuil de trois comptes ou sans compte relié (#2298). */
+  community_listens?: number;
   added_at?: number | null;
   /**
    * #4767 (crédits) — sur un album des sections « Collaborations » et
@@ -198,6 +204,9 @@ export interface Album {
 
 export interface Track {
   id: number | null;
+  /** tune-server-rust#6738 — écoutes de la communauté Tune, ABSENT sous le
+   *  seuil de trois comptes ou sans compte relié (#2298). */
+  community_listens?: number;
   title: string;
   /** tune-server-rust#6332 — débit moyen en kbit/s : celui du FICHIER pour une
    *  piste locale (lu au scan), celui annoncé par la source sinon. Absent ou
