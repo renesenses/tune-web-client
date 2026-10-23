@@ -92,6 +92,7 @@
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
   import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
   import { CLE_PARTAGE_COMMUNAUTAIRE } from '../../lib/notesCommunautaires';
+  import { CLE_RECEPTION_MESURES, CLE_CONTRIBUTION_MESURES } from '../../lib/mesuresCommunautaires';
   import { CLE_LEVER_LE_BRIDAGE } from '../../lib/temperatureProcesseur';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
@@ -149,7 +150,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
-  import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
+  import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
@@ -1209,6 +1210,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     partageCommunauteBusy = false;
     if (caseCochee) caseCochee.checked = !!partageCommunaute;
   }
+  // Résultats d'analyse de la communauté (tune-server-rust#5594) : RECEVOIR
+  // et CONTRIBUER, deux réglages séparés, désactivés par défaut. `null` : le
+  // serveur ne publie pas la clé, pas de case.
+  let mesuresRecues = $state<boolean | null>(null);
+  let mesuresEnvoyees = $state<boolean | null>(null);
+  let mesuresBusy = $state(false);
+  let mesuresErr = $state<string | null>(null);
+  async function basculerMesures(cle: string, ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    mesuresBusy = true;
+    mesuresErr = null;
+    try {
+      await api.updateConfig({ [cle]: souhait });
+    } catch {
+      mesuresErr = get(t)('settings.errSaveFailed');
+    }
+    // L'état affiché est celui que le serveur RELIT.
+    await chargerPartage();
+    mesuresBusy = false;
+    if (caseCochee) {
+      caseCochee.checked = !!(cle === CLE_RECEPTION_MESURES ? mesuresRecues : mesuresEnvoyees);
+    }
+  }
   async function chargerPartage() {
     try {
       const c: any = await api.getConfig();
@@ -1219,6 +1244,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ecoutesCompte = c && CLE_ECOUTES_AU_COMPTE in c ? reglageVrai(c[CLE_ECOUTES_AU_COMPTE]) : null;
       // tune-server-rust#6545 — même règle pour le partage communautaire.
       partageCommunaute = c && CLE_PARTAGE_COMMUNAUTAIRE in c ? reglageVrai(c[CLE_PARTAGE_COMMUNAUTAIRE]) : null;
+      // tune-server-rust#5594 — même règle pour les mesures communautaires.
+      mesuresRecues = c && CLE_RECEPTION_MESURES in c ? reglageVrai(c[CLE_RECEPTION_MESURES]) : null;
+      mesuresEnvoyees = c && CLE_CONTRIBUTION_MESURES in c ? reglageVrai(c[CLE_CONTRIBUTION_MESURES]) : null;
       partageCharge = true;
     } catch { /* config illisible : les bascules ne sont pas offertes */ }
   }
@@ -4350,7 +4378,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <div class="themerow">
                   {#each V2_THEMES as th (th.id)}
-                    <button class="sw2" class:on={$preferences.v2Theme === th.id} title={th.label} aria-label={th.label}
+                    <button class="sw2" class:on={$preferences.v2Theme === th.id} title={v2ThemeLabel(th, (k) => $t(k as any))} aria-label={v2ThemeLabel(th, (k) => $t(k as any))}
                       aria-pressed={$preferences.v2Theme === th.id}
                       style="--sw-bg:{th.swatch[0]}; --sw-acc:{th.swatch[1]}"
                       onclick={() => setV2Theme(th.id)}></button>
@@ -4839,6 +4867,41 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 {#if partageCommunauteErr}<div class="errline">{partageCommunauteErr}</div>{/if}
               {/if}
+              <!-- tune-server-rust#5594 — résultats d'analyse de la communauté :
+                   recevoir et contribuer, deux cases séparées, décochées par
+                   défaut. Aucun compte n'est nécessaire : le serveur ne
+                   s'identifie que par son installation. -->
+              {#if mesuresRecues !== null}
+                <div class="row" data-mesures="recevoir">
+                  <div class="lbl">
+                    <span>{$t('settings.communityMeasuresReceive' as any)}</span>
+                    <span class="hint">{$t('settings.communityMeasuresReceiveHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle={CLE_RECEPTION_MESURES} checked={mesuresRecues}
+                      disabled={mesuresBusy}
+                      aria-label={$t('settings.communityMeasuresReceive' as any)}
+                      onchange={(e) => basculerMesures(CLE_RECEPTION_MESURES, e)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/if}
+              {#if mesuresEnvoyees !== null}
+                <div class="row" data-mesures="contribuer">
+                  <div class="lbl">
+                    <span>{$t('settings.communityMeasuresContribute' as any)}</span>
+                    <span class="hint">{$t('settings.communityMeasuresContributeHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle={CLE_CONTRIBUTION_MESURES} checked={mesuresEnvoyees}
+                      disabled={mesuresBusy}
+                      aria-label={$t('settings.communityMeasuresContribute' as any)}
+                      onchange={(e) => basculerMesures(CLE_CONTRIBUTION_MESURES, e)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/if}
+              {#if mesuresErr}<div class="errline">{mesuresErr}</div>{/if}
               <!-- Consentement à la télémétrie — porté de l'ancien écran
                    (phase 5) : il ne doit JAMAIS devenir immodifiable. -->
               {#if telCharge}
