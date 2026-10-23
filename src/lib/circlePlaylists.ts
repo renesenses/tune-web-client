@@ -61,6 +61,7 @@ import { writable } from 'svelte/store';
 import { BASE, fetchJSON, type ApiError } from './api';
 import { estPisteLocale } from './pisteFile';
 import type { Track } from './types';
+import { lireSuivi, type SuiviPlaylist } from './suiviCercle';
 
 /** Un identifiant du cloud : opaque, on ne le compare qu'à lui-même. */
 export type IdOpaque = string | number;
@@ -128,6 +129,8 @@ export interface PlaylistCercle {
   version: number;
   mine: boolean;
   items: MorceauCercle[];
+  /** web#2287 — le suivi de la playlist locale d'origine (tune-server-rust#6694), ou `null`. */
+  follow?: SuiviPlaylist | null;
 }
 
 // ─── Lecture défensive ───────────────────────────────────────────────────────
@@ -219,6 +222,7 @@ export function playlistCercle(b: any): PlaylistCercle | null {
     version: entier(p?.version) ?? 0,
     mine: p?.mine === true,
     items: (p.items as unknown[]).map(morceauCercle).filter((x): x is MorceauCercle => x != null),
+    follow: lireSuivi(p?.follow ?? b?.follow),
   };
 }
 
@@ -788,6 +792,12 @@ export interface DemandeCercle {
   mode: 'ajout' | 'partage';
   nom: string;
   pistes: () => Promise<Track[]>;
+  /**
+   * web#2287 — le partage d'une playlist LOCALE : la playlist de cercle créée
+   * la suivra (`PUT …/follow`, tune-server-rust#6694). Absent pour une
+   * playlist intelligente ou de service : copie, comme avant.
+   */
+  playlistLocale?: number | null;
 }
 
 /** La demande en cours ; `ShellV2` monte la fenêtre tant qu'elle n'est pas `null`. */

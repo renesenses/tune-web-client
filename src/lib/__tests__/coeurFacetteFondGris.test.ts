@@ -34,7 +34,7 @@ describe('Bibliothèque : le cœur d’une facette n’a pas de fond gris', () =
   });
 
   it('le bouton existe bien aux deux endroits, sinon la garde ne garde rien', () => {
-    const liste = vue.slice(vue.indexOf('<div class="fliste">'), vue.indexOf('.fliste{'));
+    const liste = vue.slice(vue.indexOf('<div class="fliste"'), vue.indexOf('.fliste{'));
     expect(liste).toContain('class="fcoeur"');
     expect(vue).toContain('class="fcoeur"');
   });

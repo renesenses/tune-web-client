@@ -1696,7 +1696,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string; queue_follows?: boolean }) {
+export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; album_ref?: string; queue_follows?: boolean }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -5273,6 +5273,21 @@ export function lancerPlageDynamique() {
     `${BASE}/system/dynamic-range/analyze`,
     { method: 'POST' },
     (statut) => statut === 409,
+  );
+}
+
+/**
+ * web#2295 / tune-server-rust#6778 — lancer la passe ReplayGain à la demande.
+ * 202 `started` (avec `waiting_reason: "playback"` quand une zone joue),
+ * 200 `nothing_to_do`, 409 `already_running` ou `refused` (`reason` :
+ * `analysis_disabled` ou `paused`). Les 409 sont des réponses, pas des pannes.
+ */
+export function lancerReplayGain() {
+  return fetchJSON<{ status?: string; reason?: string | null; waiting_reason?: string | null; playing_zone?: string | null; candidates?: number }>(
+    `${BASE}/system/replaygain/analyze`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+    true,
   );
 }
 
@@ -9244,6 +9259,8 @@ export interface OtherVersionGroup {
     cover_path: string | null;
     kind: 'version' | 'reprise';
     url?: string | null;
+    /** web#2210 — la durée, quand le rapprochement par titre la connaît. */
+    duration_ms?: number | null;
   }[];
   versions: {
     track_id: number | null;

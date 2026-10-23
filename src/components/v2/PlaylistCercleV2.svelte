@@ -48,6 +48,8 @@
   import { tirageAleatoire } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
   import { motifCercle, RELECTURE_CERCLE_MS } from '../../lib/circle';
+  import { dateCourte } from '../../lib/dates';
+  import { cleAvertissement, nePlusSuivre, synchroniserSuivi } from '../../lib/suiviCercle';
   import {
     lirePlaylistCercle, resoudrePlaylistCercle, retirerMorceau, reordonnerMorceaux,
     renommerPlaylistCercle, supprimerPlaylistCercle, jouerPlaylistCercle,
@@ -162,6 +164,46 @@
       await relirePlanifie();
       planifier();
     }, RELECTURE_CERCLE_MS);
+  }
+
+  /**
+   * web#2287, point 2 — le suivi de la playlist locale d'origine
+   * (tune-server-rust#6694). « Synchroniser maintenant » relit et reporte ;
+   * « Ne plus suivre » arrête les reports (la copie reste).
+   */
+  let suiviOccupe = $state(false);
+  async function synchroniserMaintenant() {
+    if (!playlist || suiviOccupe) return;
+    suiviOccupe = true;
+    try {
+      const f = await synchroniserSuivi(playlist.id);
+      const p = await relireSeule();
+      if (fini) return;
+      playlist = { ...p, follow: p.follow ?? f };
+      void resoudre();
+      retour = { texte: $t('v2.circle.follow.synced' as any), erreur: false };
+    } catch (e) {
+      if (!fermerSi404(e)) retour = { texte: phraseRefus(e), erreur: true };
+    } finally {
+      suiviOccupe = false;
+    }
+  }
+  async function arreterLeSuivi() {
+    if (!playlist || suiviOccupe) return;
+    const ok = await dialogs.confirm($t('v2.circle.follow.stopConfirm' as any), { danger: true });
+    if (!ok || !playlist) return;
+    suiviOccupe = true;
+    try {
+      await nePlusSuivre(playlist.id);
+      if (fini || !playlist) return;
+      const f = playlist.follow;
+      playlist = { ...playlist, follow: f ? { ...f, following: false, stoppedAt: new Date().toISOString() } : null };
+      retour = { texte: $t('v2.circle.follow.stopped' as any), erreur: false };
+    } catch (e) {
+      retour = { texte: phraseRefus(e), erreur: true };
+    } finally {
+      suiviOccupe = false;
+    }
   }
 
   function auRetourDeLOnglet() {
@@ -457,6 +499,29 @@
         {#if maj}<p class="note resume-majorite">{phraseMajorite(maj.etat, maj.n)}</p>{/if}
         {#if unique}<p class="note auteur-unique">{auteurDeTete(unique)}</p>{/if}
         <p class="note">{$t('v2.circle.pl.refsOnly' as any)}</p>
+        {#if playlist.follow}
+          {@const f = playlist.follow}
+          {@const avert = cleAvertissement(f)}
+          <!-- web#2287 — la copie suit sa playlist locale d'origine (#6694). -->
+          <div class="suivi-origine" data-suivi-origine>
+            <p class="note">
+              {#if f.following}
+                {$t('v2.circle.follow.following' as any).replace('{name}', f.localName ?? '')}
+                {#if f.lastSync} · {$t('v2.circle.follow.lastSync' as any).replace('{date}', $dateCourte(f.lastSync))}{/if}
+                {#if f.pending} · {$t('v2.circle.follow.pending' as any)}{/if}
+              {:else}
+                {$t('v2.circle.follow.stoppedNote' as any).replace('{name}', f.localName ?? '')}
+              {/if}
+            </p>
+            {#if avert}<p class="note alerte-suivi" role="status">{$t(avert as any)}</p>{/if}
+            {#if f.following}
+              <div class="actions">
+                <button class="ghost sm synchroniser-suivi" disabled={suiviOccupe || occupe} onclick={() => void synchroniserMaintenant()}>{$t('v2.circle.follow.syncNow' as any)}</button>
+                <button class="ghost sm danger arreter-suivi" disabled={suiviOccupe || occupe} onclick={() => void arreterLeSuivi()}>{$t('v2.circle.follow.stop' as any)}</button>
+              </div>
+            {/if}
+          </div>
+        {/if}
         <div class="actions">
           <button class="play lire-playlist" disabled={occupe || items.length === 0} onclick={() => void lire()}>
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8V4z"/></svg>{$t('v2.circle.pl.play' as any)}
@@ -595,6 +660,9 @@
   .tete{display:flex; align-items:center}
   .state{color:var(--v2-txt3); font-size:13px}
   .note{font-size:11.5px; color:var(--v2-txt3); margin:0}
+  /* web#2287 — le suivi de la playlist d'origine. */
+  .suivi-origine{display:flex; flex-direction:column; gap:4px; margin-top:4px}
+  .alerte-suivi{color:var(--v2-acc1)}
   .alerte{color:var(--v2-danger)}
   .vide{margin:0}
   .err,.ok{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:12.5px}
