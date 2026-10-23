@@ -34,6 +34,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   import { modeleSysteme, mermaidSysteme, planSysteme } from '../../lib/schemaSysteme';
   import { sonder, valeurDe, libelleEchec, espaceLibre, type IssueSonde } from '../../lib/sondesDiagnostic';
   import '../../styles/tune-v2.css';
+  import DiagnosticIaV2 from './DiagnosticIaV2.svelte';
 
   /**
    * TROIS volets, comme l'écran du client actuel.
@@ -113,6 +114,10 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   // web#2190 — le texte survit à un départ de l'écran : il vit dans
   // `brouillonSupport`, pas seulement dans le composant (qui est démonté).
   let bogueDesc = $state(lireBrouillon('bogueDesc'));
+  /** Le résumé du diagnostic de l'assistant (marqué IA, pseudonymisé) et la
+   *  case qui le joint au rapport : DÉCOCHÉE par défaut (Bertrand, 23/10/2026). */
+  let resumeIa = $state<string | null>(null);
+  let joindreResumeIa = $state(false);
   $effect(() => { if (!bogueEnvoye) ecrireBrouillon('bogueDesc', bogueDesc); });
   let bogueApercu = $state<string | null>(null);
   let bogueApercuEnCours = $state(false);
@@ -212,7 +217,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
     bogueEnvoi = true;
     bogueErreur = null;
     try {
-      const r = await api.submitBugReport(bogueDesc, bogueImages);
+      const r = await api.submitBugReport(bogueDesc, bogueImages, { texte: resumeIa, joindre: joindreResumeIa });
       bogueFil = typeof r?.url === 'string' ? r.url : '';
       // #4564 — ce que le FORUM dit avoir rangé, pas ce qu'on a envoyé. Une
       // capture perdue en route doit se voir ici, pas se deviner sur le fil.
@@ -247,6 +252,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
 
   function nouveauBogue() {
     bogueDesc = ''; bogueApercu = null; bogueApercuEchec = false;
+    resumeIa = null; joindreResumeIa = false;
     bogueEnvoye = false; bogueFil = ''; bogueErreur = null;
     bogueImages = []; bogueImagesErreur = null; bogueCaptures = null;
     bogueCapturesPerdues = false;
@@ -594,6 +600,9 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
             </div>
           </div>
         {:else}
+          <DiagnosticIaV2 zones={$zones.filter((z) => z.id != null).map((z) => ({ id: z.id as number, name: z.name }))}
+            zoneParDefaut={$currentZone?.id ?? null}
+            onResume={(r) => { resumeIa = r; joindreResumeIa = false; }} />
           <label class="champ">
             <span>{$t('v2.sup.bugDesc' as any)}</span>
             <textarea class="txt zone bogue-desc" bind:value={bogueDesc} rows="5"
@@ -630,6 +639,13 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
             {/if}
             {#if bogueImagesErreur}<span class="bogue-err">{bogueImagesErreur}</span>{/if}
           </label>
+          {#if resumeIa}
+            <label class="champ case-ia" data-joindre-resume-ia>
+              <span><input type="checkbox" bind:checked={joindreResumeIa} disabled={bogueEnvoi} />
+                {$t('assistantIa.diag.attach' as any)}</span>
+              <pre class="bogue-apercu">{resumeIa}</pre>
+            </label>
+          {/if}
           <div class="bogue-actions">
             <button class="go bogue-envoi" onclick={envoyerBogue} disabled={bogueEnvoi}>
               {bogueEnvoi ? $t('v2.sup.sending' as any) : $t('v2.sup.bugSend' as any)}

@@ -19,6 +19,7 @@
   import { t, locale } from '../../lib/i18n';
   import { noterReglagesIa } from '../../lib/assistantIaDialogue';
   import AlertePlafondIaV2 from './AlertePlafondIaV2.svelte';
+  import { transcriptionDesReglages } from '../../lib/assistantIaRc8';
   import {
     lireReglagesIa, changerReglagesIa, testerCleIa, estEchec, estReglages, messageDEchec, peutModifier,
     lignesParUsage, cleDUsage, plafondDesReglages, dateLisible,
@@ -36,6 +37,8 @@
   let prixEntree = $state('');
   let prixSortie = $state('');
   let cle = $state('');
+  /** La clé de transcription (Whisper), scellée au coffre (tune-server-rust, 23/10/2026). */
+  let cleTranscription = $state('');
   let occupe = $state(false);
   let message = $state<string | null>(null);
   let erreur = $state<string | null>(null);
@@ -92,10 +95,11 @@
       prix_sortie_usd_mtok: prixSortie.trim(),
     };
     if (cle.trim()) m.cle = cle.trim();
+    if (cleTranscription.trim()) m.cle_transcription = cleTranscription.trim();
     try {
       const v = await changerReglagesIa(m);
       if (estEchec(v)) erreur = messageDEchec(v, (k) => $t(k as any));
-      else if (estReglages(v)) { remplir(v); cle = ''; message = $t('assistantIa.saved' as any); }
+      else if (estReglages(v)) { remplir(v); cle = ''; cleTranscription = ''; message = $t('assistantIa.saved' as any); }
     } catch (e) {
       erreur = (e as Error)?.message ?? $t('assistantIa.err.generique' as any);
     } finally { occupe = false; }
@@ -130,6 +134,7 @@
     .replace('{cache}', String(r.consommation.depuis_cache)) : '');
 
   const usages = $derived(lignesParUsage(r?.consommation));
+  const transcription = $derived(transcriptionDesReglages(r));
   const plafondEtat = $derived(plafondDesReglages(r));
   const prix = (v: number | null | undefined) => (v == null ? '?' : String(v));
   const tarifTexte = $derived.by(() => {
@@ -223,6 +228,23 @@
         </label>
       </div>
       <p class="hint">{$t('assistantIa.priceHint' as any)}</p>
+    {/if}
+
+    {#if transcription}
+      <label class="champ" data-ia-transcription>
+        <span>{$t('assistantIa.transcription.key' as any)}</span>
+        <input type="password" autocomplete="off" bind:value={cleTranscription}
+          placeholder={$t('assistantIa.keyPlaceholder' as any)} />
+        <small class="hint">
+          {transcription.source
+            ? $t(`assistantIa.transcription.source.${transcription.source}` as any).replace('{fin}', transcription.cle_fin ?? '')
+            : $t('assistantIa.transcription.none' as any)}
+          · {$t('assistantIa.transcription.price' as any).replace('{prix}', String(transcription.prix_usd_minute)).replace('{date}', transcription.releve_le)}
+        </small>
+      </label>
+    {/if}
+    {#if r?.modele_second_avis}
+      <p class="hint">{$t('assistantIa.secondOpinion.model' as any).replace('{model}', r.modele_second_avis)}</p>
     {/if}
 
     <label class="champ">

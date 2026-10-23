@@ -9809,12 +9809,17 @@ export const BUG_REPORT_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 export async function submitBugReport(
   description: string,
   images: File[] = [],
+  /** Le résumé du diagnostic de l'assistant : joint SEULEMENT si `joindre`. */
+  resumeIa: { texte: string | null; joindre: boolean } = { texte: null, joindre: false },
 ): Promise<BugReportEnvoye> {
+  const joindre = resumeIa.joindre && !!resumeIa.texte && resumeIa.texte.trim() !== '';
   // Sans capture : le chemin JSON historique, inchangé (#4564).
   if (images.length === 0) {
+    const corps: Record<string, unknown> = { description: description.trim() };
+    if (joindre) { corps.resume_ia = resumeIa.texte!.trim(); corps.joindre_resume_ia = true; }
     return fetchJSON(`${BASE}/system/bug-report/submit`, {
       method: 'POST',
-      body: JSON.stringify({ description: description.trim() }),
+      body: JSON.stringify(corps),
     });
   }
 
@@ -9823,6 +9828,7 @@ export async function submitBugReport(
   // le multipart de sa frontière et ferait refuser l'envoi côté serveur.
   const form = new FormData();
   form.append('description', description.trim());
+  if (joindre) { form.append('resume_ia', resumeIa.texte!.trim()); form.append('joindre_resume_ia', 'true'); }
   for (const f of images) form.append('images[]', f, f.name);
 
   const token = getToken();
