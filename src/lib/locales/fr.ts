@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "Installer",
+  "v2.lic.activate": "Activer",
   "sacdIso.title": "ISO SACD",
   "sacdIso.available": "Tune lit les ISO SACD lui-même. sacd_extract, détecté sur le serveur, ne sert qu’aux disques DST (DSD compressé), sans garantir l’extraction de chacun.",
   "sacdIso.missing": "Tune lit les ISO SACD lui-même : rien à installer pour elles. Seuls les disques DST (DSD compressé) demandent sacd_extract, qui n’est pas détecté sur ce serveur. Si vous en avez, installez-le séparément, redémarrez Tune si vous modifiez le PATH, puis relancez le scan.",
@@ -5528,6 +5530,19 @@ export default {
   "accesCompte.fermer": "Masquer",
   "accesCompte.reessayer": "Réessayer",
   "v2.circle.lib.thumbnailsProgress": "Pochettes : {n} sur {total}, elles arrivent progressivement.",
+  "scanDetenteur.origine.startup": "Scan de démarrage",
+  "scanDetenteur.origine.manual": "Scan lancé à la main",
+  "scanDetenteur.origine.scheduled": "Scan programmé",
+  "scanDetenteur.origine.late_network_mount": "Scan d’un partage réseau monté en retard",
+  "scanDetenteur.origine.music_dir_added": "Scan d’un dossier ajouté",
+  "scanDetenteur.origine.import": "Scan d’un import",
+  "scanDetenteur.origine.cd_rip": "Scan d’une extraction de CD",
+  "scanDetenteur.origine.inconnue": "Scan d’origine inconnue",
+  "scanDetenteur.dossier": "dossier {chemin}",
+  "scanDetenteur.toute": "toute la bibliothèque",
+  "scanDetenteur.depuis": "depuis {heure}",
+  "scanDetenteur.residuel": "Statut résiduel : aucun scan ne tourne réellement. « Arrêter » le remet au repos.",
+  "scanDetenteur.refus409": "Le serveur a refusé : un autre scan est déjà en cours ({scan}). Réessayez quand il sera terminé.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -41,6 +41,7 @@
   } from '../../lib/historiqueParContexte';
   import { NomsDePlaylists, type FichePlaylist } from '../../lib/nomsDePlaylists';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
+  import { completerAlbumsDeService } from '../../lib/albumDesEcoutes';
   import { ouverturePlaylistDuLot } from '../../lib/lienPlaylistDHistorique';
   import { ouvertureArtisteDuLot } from '../../lib/lienArtisteDHistorique';
   import { gestesNavigationService, type GestesNavigationService } from '../../lib/stores/navigation';
@@ -112,6 +113,8 @@
   const colonneActions = $derived(largeurActions(actionsReduites($preferences)).css);
 
   let serveur = $state<HistoryEntry[]>([]);
+  /** web#2209 — le dernier passage de `completerAlbumsDeService` ; un plus ancien ne s'applique pas. */
+  let tourAlbums = 0;
   let favorisRadio = $state(new Set<string>());
   let occupe = $state<string | null>(null);
   let vidage = $state(false);
@@ -210,7 +213,15 @@
       try {
         const response = await api.getPlaybackHistory(100);
         if (active && !vidage && requestedGeneration === generation) {
-          serveur = entreesDepuisServeur(response?.items ?? []);
+          const lues = entreesDepuisServeur(response?.items ?? []);
+          serveur = lues;
+          // web#2209 — l'album CHEZ LE SERVICE d'un titre lancé hors de son
+          // album : le lien de la colonne Album et « Aller à l'album » en
+          // dépendent. Demandé à la piste elle-même, borné et mémorisé.
+          const tour = ++tourAlbums;
+          void completerAlbumsDeService(lues, api.getStreamingTrack).then((maj) => {
+            if (maj && active && tour === tourAlbums && requestedGeneration === generation) serveur = maj;
+          });
         }
       } catch {
         // Keep the last successful snapshot on a transient network failure.
