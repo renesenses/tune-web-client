@@ -128,6 +128,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { lireChoix, ecrireChoix, lireNombre } from '../../lib/preferencesEcran';
   import BasculeAffichage from './BasculeAffichage.svelte';
   import { AFFICHAGES, GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
+  import { carteDesLogos, logoDuLabel, monogramme, VUES_LABELS, CLE_VUE_LABELS, type VueLabels } from '../../lib/logosLabels';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
@@ -928,6 +929,26 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   let display = $state<Display>(lireChoix('lib.display', AFFICHAGES, 'grid'));
   $effect(() => ecrireChoix('lib.display', display));
+
+  /**
+   * web#2297 — la liste des LABELS se montre en liste ou en GRILLE (logo, nom,
+   * nombre d'albums). Un choix à part de `display`, qui règle les albums d'un
+   * label ouvert : on peut parcourir les labels en grille et leurs albums en
+   * liste. Retenu sous sa propre clé.
+   */
+  let vueLabels = $state<VueLabels>(lireChoix(CLE_VUE_LABELS, VUES_LABELS, 'list'));
+  $effect(() => ecrireChoix(CLE_VUE_LABELS, vueLabels));
+  /** Les logos connus du serveur (tune-server-rust#6736), relus à chaque
+   *  entrée dans l'onglet : le serveur les cherche en arrière-plan, un logo
+   *  trouvé entre-temps apparaît à l'ouverture suivante. Jamais pour un dépôt
+   *  distant : ses labels ne sont pas les nôtres. */
+  let logosLabels = $state.raw<Map<string, string>>(new Map());
+  $effect(() => {
+    if (tab !== 'labels' || depot) return;
+    let vivant = true;
+    api.getLibraryLabels().then((l) => { if (vivant) logosLabels = carteDesLogos(l); });
+    return () => { vivant = false; };
+  });
 
   /** Histogramme : une barre par année, du minimum au maximum RÉELS de la
    *  bibliothèque — pas une plage fixe, qui laisserait des décennies vides
@@ -2863,8 +2884,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            playlists : `BasculeAffichage`, où il a été déplacé pour qu'il n'en
            existe qu'une définition. Cet écran ne lui apporte que ses modes
            (`modesAffichage`) et son état retenu (`lib.display`). -->
+      <!-- web#2297 — sur la LISTE des labels, le même bouton bascule entre
+           liste et grille de labels ; dans un label ouvert, il règle de
+           nouveau l'affichage de ses albums. -->
+      {#if tab === 'labels' && groupeOuvert == null}
+        <BasculeAffichage modes={VUES_LABELS} valeur={vueLabels}
+          onChanger={(v) => (vueLabels = v)} />
+      {:else}
       <BasculeAffichage modes={modesAffichage} valeur={display}
         onChanger={(v) => (display = v)} />
+      {/if}
     {/if}
   </div>
 
@@ -3130,7 +3159,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           <div class="fliste">
             {#if !groups.length}
               <div class="state">{$tr('v2.lib.nothingToGroup' as any)}</div>
-            {:else}
+            {:else if !(tab === 'labels' && vueLabels === 'grid')}
               {#each groups as g (g.key)}
                 {@const fav = g.reel && facetteCourante ? estFacetteFavorite(g.key) : false}
                 <div class="fl">
@@ -3155,6 +3184,45 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                       {/if}
                     </button>
+                  {/if}
+                </div>
+              {/each}
+            {:else}
+              <!-- web#2297 — la GRILLE des labels : logo Qobuz s'il est connu,
+                   sinon un monogramme ; le nom et le nombre d'albums. Le menu
+                   « … » et le cœur de facette y restent, comme dans la liste. -->
+              {#each groups as g (g.key)}
+                {@const logo = g.reel && !depot ? logoDuLabel(logosLabels, g.key) : null}
+                {@const fav = g.reel && facetteCourante ? estFacetteFavorite(g.key) : false}
+                <div class="lgcase" data-label={g.key}>
+                  <button class="lgouvrir" onclick={() => (facetteOuverte = g.key)}
+                    aria-label={`${g.key}, ${$tr('v2.rech.labelAlbums' as any).replace('{n}', String(g.albums.length))}`}>
+                    <span class="lglogo" aria-hidden="true">
+                      {#if logo}
+                        <img src={api.artworkUrl(logo, 200)} alt="" loading="lazy" decoding="async" />
+                      {:else}
+                        <span class="lgmono">{monogramme(g.key)}</span>
+                      {/if}
+                    </span>
+                    <span class="lgnom" use:bulleTexte>{g.key}</span>
+                    <span class="lgn">{$tr('v2.rech.labelAlbums' as any).replace('{n}', String(g.albums.length))}</span>
+                  </button>
+                  {#if !depot && g.reel}
+                    <span class="lgactions">
+                      <MenuObjetV2 objet={objetLabel(g.key)} gestes={{ ouvrir: () => (facetteOuverte = g.key) }} nom={g.key} />
+                      {#if facetteCourante}
+                        <button class="fcoeur" class:on={fav} aria-pressed={fav}
+                          title={fav ? $tr('favorites.removeTrack' as any) : $tr('favorites.addTrack' as any)}
+                          aria-label={fav ? $tr('favorites.removeTrack' as any) : $tr('favorites.addTrack' as any)}
+                          onclick={() => basculerFacette(g.key)}>
+                          {#if fav}
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                          {:else}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                          {/if}
+                        </button>
+                      {/if}
+                    </span>
                   {/if}
                 </div>
               {/each}
@@ -3709,6 +3777,21 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .fliste{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
     gap:2px 18px; padding:6px 30px 40px; align-content:start; overflow-y:auto}
   .fl{display:flex; align-items:center; gap:6px; border-radius:9px}
+  /* web#2297 — la grille des labels : des cases carrées, logo au-dessus. */
+  .fliste:has(.lgcase){grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:18px}
+  .lgcase{position:relative; display:flex; flex-direction:column; min-width:0; border-radius:12px}
+  .lgcase:hover{background:var(--v2-hover)}
+  .lgouvrir{display:flex; flex-direction:column; align-items:stretch; gap:6px; min-width:0;
+    padding:8px; border:0; border-radius:12px; background:transparent; cursor:pointer;
+    color:var(--v2-txt2); font:inherit; text-align:left}
+  .lgouvrir:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .lgactions{display:flex; align-items:center; justify-content:flex-end; gap:4px; padding:0 6px 6px}
+  .lglogo{display:flex; align-items:center; justify-content:center; aspect-ratio:1/1;
+    border-radius:10px; overflow:hidden; background:var(--v2-hover)}
+  .lglogo img{width:100%; height:100%; object-fit:contain; background:#fff}
+  .lgmono{font-size:34px; font-weight:600; letter-spacing:.02em; color:var(--v2-txt2)}
+  .lgnom{font-size:14px; color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lgn{font-size:12px; color:var(--v2-txt3, var(--v2-txt2))}
   .fl:hover{background:var(--v2-hover)}
   .flnom{display:flex; align-items:center; gap:10px; flex:1; min-width:0;
     padding:10px 12px; border:0; background:transparent; cursor:pointer;
