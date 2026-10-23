@@ -103,8 +103,8 @@ async function loadDevices(): Promise<void> {
  * favoris sont chargés dans la foulée : ils servent aux boutons cœur, qui
  * doivent répondre « est-ce un favori ? » sans un appel réseau par ligne.
  */
-async function loadProfile(): Promise<void> {
-  await loadProfiles();
+async function loadProfile(profilsPrets: Promise<void> = loadProfiles()): Promise<void> {
+  await profilsPrets;
   // web#2099 — un profil choisi à la place d'un profil oublié se DIT.
   annoncerProfilDeRepli();
   await loadFavoriteIds(get(currentProfileId));
@@ -186,14 +186,27 @@ export async function bootstrapV2(): Promise<void> {
   // qui tournent en `node`, ou `localStorage` n'existe pas. Un test etranger
   // est tombe ainsi (`bibliothequeVivante`, 12/09/2026) : il n'appelle meme pas
   // `bootstrapV2`, il importait seulement `suivreLaBibliotheque`.
-  const preferences = import('./stores/preferences').then((m) =>
-    m.syncPreferencesFromServer(),
-  );
+  //
+  // 🔴 web#2205 (fil 2299, Jean Valjean : « Afficher le bouton Stop » perdu à
+  // chaque démarrage de Firefox, réglé pour tout effacer à la fermeture).
+  // La relecture partait EN MÊME TEMPS que `loadProfiles()`. Avec un
+  // `localStorage` vide, son `GET /system/config` n'avait donc pas encore de
+  // `tune-profile-id` à mettre dans `X-Profile-Id` : le serveur lisait le
+  // blob du profil global (`active_profile_id`, sinon 1 — le « Default »
+  // que la liste masque, web#1672), pendant que `loadProfiles` choisissait un
+  // AUTRE profil, sous lequel partaient ensuite tous les `PATCH`. Le réglage
+  // était bien écrit… sous un profil que le démarrage suivant ne relisait pas.
+  // La relecture attend donc que le profil soit choisi. `loadProfiles` ne
+  // rejette jamais : une panne des profils ne prive pas des préférences.
+  const profilsPrets = loadProfiles();
+  const preferences = profilsPrets
+    .then(() => import('./stores/preferences'))
+    .then((m) => m.syncPreferencesFromServer());
 
   await Promise.allSettled([
     loadZones(),
     loadDevices(),
-    loadProfile(),
+    loadProfile(profilsPrets),
     loadLicense(),
     preferences,
   ]);
