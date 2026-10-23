@@ -722,7 +722,18 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   let audiophileLoading = $state(false);
   let lockLoading = $state(false);
 
+  /**
+   * tune-server-rust#6774 — quand la zone passe sur un AUTRE appareil, le
+   * serveur désarme PURE verrouillé (« Forcer à 100 % ») : la même zone, un
+   * autre appareil, et l'état PURE doit être relu. Sans cette dépendance, la
+   * barre gardait le bouclier armé et le curseur gelé jusqu'au changement de
+   * zone. Une valeur PRIMITIVE dérivée : l'effet ne repart que si
+   * l'identifiant change, pas à chaque mise à jour de la zone.
+   */
+  const appareilDeLaZone = $derived(zone?.output_device_id ?? null);
+
   $effect(() => {
+    void appareilDeLaZone;
     void refreshAudiophile($currentZoneId);
   });
 

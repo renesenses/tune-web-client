@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "インストール",
+  "v2.lic.activate": "有効化",
   "sacdIso.title": "SACD ISO",
   "sacdIso.available": "Tune は SACD ISO を自分で読み込みます。サーバーで検出された sacd_extract は DST ディスク（圧縮 DSD）にのみ使われ、すべての抽出を保証するものではありません。",
   "sacdIso.missing": "Tune は SACD ISO を自分で読み込みます。そのためにインストールするものはありません。sacd_extract が必要なのは DST ディスク（圧縮 DSD）だけで、このサーバーでは検出されていません。DST ディスクがある場合は別途インストールし、PATH を変更したら Tune を再起動してから再スキャンしてください。",
@@ -5507,6 +5509,19 @@ export default {
   "accesCompte.reessayer": "再試行",
   "assistantIa.err.cle_sans_espace_de_travail": "この Anthropic キーはどのワークスペースにも属していません。ワークスペース内でキーを作成してください（console.anthropic.com › API keys）。",
   "assistantIa.err.motif": "プロバイダーが示した理由：「{motif}」",
+  "scanDetenteur.origine.startup": "起動時スキャン",
+  "scanDetenteur.origine.manual": "手動で開始したスキャン",
+  "scanDetenteur.origine.scheduled": "定期スキャン",
+  "scanDetenteur.origine.late_network_mount": "遅れてマウントされたネットワーク共有のスキャン",
+  "scanDetenteur.origine.music_dir_added": "追加したフォルダのスキャン",
+  "scanDetenteur.origine.import": "インポートのスキャン",
+  "scanDetenteur.origine.cd_rip": "CD リッピングのスキャン",
+  "scanDetenteur.origine.inconnue": "起点不明のスキャン",
+  "scanDetenteur.dossier": "フォルダ {chemin}",
+  "scanDetenteur.toute": "ライブラリ全体",
+  "scanDetenteur.depuis": "{heure} から",
+  "scanDetenteur.residuel": "残留状態：実際にはスキャンは動いていません。「停止」でリセットされます。",
+  "scanDetenteur.refus409": "サーバーが拒否しました：別のスキャンが実行中です（{scan}）。終了してから再試行してください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
