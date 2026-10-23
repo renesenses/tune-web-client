@@ -2819,6 +2819,7 @@ export default {
   "settings.configBackupHint": "Säkerhetskopia av serverkonfigurationen — mappar, ljudinställningar och zoner. Innehåller *ingen musikfil* och *inget tjänstlösenord*.",
   "settings.configBackupPremium": "Den *automatiska, krypterade* molnsäkerhetskopian — profiler, preferenser, favoriter, spellistor och radiokanaler, återställbara på en ny maskin — ingår i *Tune Premium*, under *Inställningar › System › Molnsäkerhetskopia*.",
   "settings.fixedVolumeWarning": "Att slå på fast volym för den här *nätverkszonen* skickar *100 %* till enheten: förstärkaren går för fullt. Skriv *100* för att bekräfta.",
+  "settings.fixedVolumeWarningLocal": "Att slå på fast volym för den här zonen sätter utgången till *100 %*: Tune dämpar inte längre ljudet, bara förstärkaren reglerar det. Skriv *100* för att bekräfta.",
   "settings.removeFolderHint": "Att ta bort en mapp raderar *ingen fil*: den lämnar bara biblioteket.",
   "settings.needsFullScanHint": "Den här inställningen gäller först efter en *fullständig genomsökning*.",
   "settings.backgroundTasksHint": "Bakgrundsbearbetningen följs i *{tab}*.",

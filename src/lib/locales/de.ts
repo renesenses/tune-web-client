@@ -2820,6 +2820,7 @@ export default {
   "settings.configBackupHint": "Sicherung der Serverkonfiguration — Ordner, Audio-Einstellungen und Zonen. Enthält *keine Musikdatei* und *kein Dienstpasswort*.",
   "settings.configBackupPremium": "Die *automatische, verschlüsselte* Cloud-Sicherung – Profile, Vorlieben, Favoriten, Wiedergabelisten und Radios, auf einem neuen Gerät wiederherstellbar – gehört zu *Tune Premium*, unter *Einstellungen › System › Cloud-Sicherung*.",
   "settings.fixedVolumeWarning": "Festen Pegel für diese *Netzwerk*-Zone einzuschalten sendet *100 %* an das Gerät: der Verstärker geht voll auf. Tippen Sie *100*, um zu bestätigen.",
+  "settings.fixedVolumeWarningLocal": "Festen Pegel für diese Zone einzuschalten setzt den Ausgang auf *100 %*: Tune dämpft den Ton nicht mehr, nur noch Ihr Verstärker. Tippen Sie *100*, um zu bestätigen.",
   "settings.removeFolderHint": "Einen Ordner zu entfernen löscht *keine Datei*: er verlässt lediglich die Bibliothek.",
   "settings.needsFullScanHint": "Diese Einstellung greift erst nach einer *vollständigen Analyse*.",
   "settings.backgroundTasksHint": "Hintergrundverarbeitung wird unter *{tab}* verfolgt.",

@@ -1661,6 +1661,7 @@ export default {
   "settings.configBackupHint": "Bản sao lưu cấu hình máy chủ — thư mục, cài đặt âm thanh và vùng phát. *Không chứa tệp nhạc nào* và *không chứa mật khẩu dịch vụ nào*.",
   "settings.configBackupPremium": "Sao lưu lên cloud *tự động, được mã hóa* — hồ sơ, tùy chọn, yêu thích, danh sách phát và radio, có thể khôi phục trên một máy mới — là một phần của *Tune Premium*, trong *Cài đặt › Hệ thống › Sao lưu lên cloud*.",
   "settings.fixedVolumeWarning": "Bật âm lượng cố định cho vùng phát *mạng* này sẽ gửi *100 %* đến thiết bị: bộ khuếch đại sẽ chạy hết công suất. Nhập *100* để xác nhận.",
+  "settings.fixedVolumeWarningLocal": "Bật âm lượng cố định cho vùng phát này sẽ đưa đầu ra lên *100 %*: Tune không còn giảm âm lượng nữa, chỉ bộ khuếch đại điều chỉnh. Nhập *100* để xác nhận.",
   "settings.removeFolderHint": "Gỡ một thư mục *không xóa tệp nào*: nó chỉ rời khỏi thư viện.",
   "settings.needsFullScanHint": "Cài đặt này chỉ được áp dụng sau một lần *quét toàn bộ*.",
   "settings.backgroundTasksHint": "Các tác vụ xử lý nền được theo dõi trong *{tab}*.",

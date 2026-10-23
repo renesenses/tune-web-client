@@ -2820,6 +2820,7 @@ export default {
   "settings.configBackupHint": "Backup della configurazione del server — cartelle, impostazioni audio e zone. Non contiene *alcun file musicale* né *alcuna password di servizio*.",
   "settings.configBackupPremium": "Il backup *automatico e cifrato* nel cloud — profili, preferenze, preferiti, playlist e radio, ripristinabili su una nuova macchina — fa parte di *Tune Premium*, in *Impostazioni › Sistema › Backup nel cloud*.",
   "settings.fixedVolumeWarning": "Attivare il volume fisso su questa zona di *rete* invia *100 %* all'apparecchio: l'amplificatore va al massimo. Digita *100* per confermare.",
+  "settings.fixedVolumeWarningLocal": "Attivare il volume fisso su questa zona porta l'uscita al *100 %*: Tune non attenua più il suono, lo regola solo l'amplificatore. Digita *100* per confermare.",
   "settings.removeFolderHint": "Togliere una cartella non elimina *alcun file*: esce semplicemente dalla libreria.",
   "settings.needsFullScanHint": "Questa impostazione si applica solo dopo un'*analisi completa*.",
   "settings.backgroundTasksHint": "Le elaborazioni in background si seguono in *{tab}*.",

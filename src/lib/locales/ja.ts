@@ -2820,6 +2820,7 @@ export default {
   "settings.configBackupHint": "サーバー設定のバックアップ — フォルダ、オーディオ設定、ゾーン。*音楽ファイル* も *サービスのパスワード* も含みません。",
   "settings.configBackupPremium": "*自動・暗号化*されたクラウドバックアップ — プロファイル、表示設定、お気に入り、プレイリスト、ラジオを新しいマシンに復元可能 — は *Tune Premium* に含まれます（*設定 › システム › クラウドバックアップ*）。",
   "settings.fixedVolumeWarning": "この *ネットワーク* ゾーンで固定音量を有効にすると機器に *100 %* が送られます。アンプは最大になります。確認のため *100* と入力してください。",
+  "settings.fixedVolumeWarningLocal": "このゾーンで固定音量を有効にすると出力が *100 %* になります。Tune は音を減衰しなくなり、音量はアンプだけで調整されます。確認のため *100* と入力してください。",
   "settings.removeFolderHint": "フォルダを外してもファイルは *一切削除されません*。ライブラリから外れるだけです。",
   "settings.needsFullScanHint": "この設定は *完全スキャン* の後にのみ適用されます。",
   "settings.backgroundTasksHint": "バックグラウンド処理は *{tab}* で確認できます。",
