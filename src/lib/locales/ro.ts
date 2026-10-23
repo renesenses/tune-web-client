@@ -699,6 +699,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': 'Artiști similari',
+  "artist.backToSimilars": "Înapoi la artiștii similari cu {nom}",
   'artist.members': 'Membri',
   'artist.credits': 'Credite',
   'credits.performer': 'Interpret',

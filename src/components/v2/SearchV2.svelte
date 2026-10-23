@@ -35,6 +35,7 @@
     basculerPastille, dansLePerimetreDe, doitViderLePerimetre, pastilleAllumee, sansRestriction,
   } from '../../lib/perimetreRecherche';
   import { activeView, pendingSearchQuery } from '../../lib/stores/navigation';
+  import { departSimilaires, revenirAuxSimilaires } from '../../lib/retourAuxSimilaires';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { ouvrirArtisteDepuis, ouvrirArtisteDeServiceParNom } from '../../lib/ouvrirArtisteDepuis';
@@ -1037,6 +1038,13 @@ import { sansDoublons } from '../../lib/clesUniques';
   <!-- L'en-tête partagé, avec une nuance : ici le champ EST l'écran, il garde
        donc sa taille propre (`.field`, 50 px de haut) au lieu du `.v2-rech` des
        barres de filtre. Ce qu'il partage, c'est la gouttière et l'alignement. -->
+  {#if $departSimilaires}
+    <!-- web#2299 — un similaire absent de la bibliothèque mène ICI : on garde
+         le chemin vers la liste des similaires de l'artiste de départ. -->
+    <button class="v2-btn retour-similaires" onclick={revenirAuxSimilaires}>
+      ‹ {$t('artist.backToSimilars' as any).replace('{nom}', $departSimilaires.nom)}
+    </button>
+  {/if}
   <header class="v2-top champ-large">
     <div class="field">
       <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -1610,6 +1618,8 @@ import { sansDoublons } from '../../lib/clesUniques';
 </section>
 
 <style>
+  /* web#2299 */
+  .retour-similaires{margin:12px 24px 0; align-self:flex-start}
   /* « Voir plus » : une action de LISTE, pas un bouton d'action principale —
      il ne doit pas rivaliser avec les pochettes qu'il découvre. */
   .voirplus{display:block; margin:14px auto 0; padding:9px 18px; cursor:pointer;

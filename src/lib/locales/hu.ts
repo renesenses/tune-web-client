@@ -773,6 +773,7 @@ export default {
   "signal.decisions": "A feldolgozási lánc döntései",
   // Előadó részletei
   "artist.similarArtists": "Hasonló előadók",
+  "artist.backToSimilars": "Vissza a(z) {nom} előadóhoz hasonlókhoz",
   "artist.members": "Tagok",
   "artist.credits": "Közreműködők",
   "credits.performer": "Előadó",

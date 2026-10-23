@@ -693,6 +693,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': '비슷한 아티스트',
+  "artist.backToSimilars": "{nom}와(과) 비슷한 아티스트로 돌아가기",
   'artist.members': '멤버',
   'artist.credits': '크레딧',
   'credits.performer': '연주자',

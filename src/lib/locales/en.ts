@@ -808,6 +808,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': 'Similar Artists',
+  "artist.backToSimilars": "Back to artists similar to {nom}",
   'artist.members': 'Members',
   'artist.credits': 'Credits',
   'credits.performer': 'Performer',

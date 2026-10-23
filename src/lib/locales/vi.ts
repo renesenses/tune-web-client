@@ -730,6 +730,7 @@ export default {
   "signal.verified": "Đã xác minh",
   "signal.decisions": "Quyết định của pipeline",
   "artist.similarArtists": "Nghệ sĩ tương tự",
+  "artist.backToSimilars": "Quay lại các nghệ sĩ tương tự {nom}",
   "artist.members": "Thành viên",
   "artist.credits": "Thông tin thực hiện",
   "credits.performer": "Người biểu diễn",

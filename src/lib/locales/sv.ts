@@ -677,6 +677,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': 'Liknande artister',
+  "artist.backToSimilars": "Tillbaka till artister som liknar {nom}",
   'artist.members': 'Medlemmar',
   'artist.credits': 'Medverkande',
   'credits.performer': 'Utövare',

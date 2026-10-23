@@ -693,6 +693,7 @@ export default {
 
   // Artist detail
   'artist.similarArtists': 'Ähnliche Künstler',
+  "artist.backToSimilars": "Zurück zu den ähnlichen Künstlern von {nom}",
   'artist.members': 'Mitglieder',
   'artist.credits': 'Mitwirkende',
   'credits.performer': 'Musiker',
