@@ -378,9 +378,46 @@ export async function pistesPourCercle(o: ObjetMenu): Promise<Track[]> {
   return pistesDe(o);
 }
 
-const gestesDeLecture = (zid: number) => ({
-  lire: (c: any) => playAndSync(zid, c),
-  enfiler: (c: any) => api.addToQueue(zid, c),
+/**
+ * tune-server-rust#6466 (FabienM, fil 2302 points 10, 11, 15) — le CONTENEUR
+ * d'un objet, tel que le serveur l'écrit sur les lignes de file puis dans
+ * l'historique : album, playlist, artiste ou label. « Lire », « Lire
+ * aléatoire », « Lire ensuite » et « Ajouter à la file » en sont les
+ * déclencheurs. `null` : l'objet n'est pas un conteneur que l'historique
+ * regroupe (collection, playlist intelligente) ou ne se désigne pas.
+ */
+export function contexteDObjet(
+  o: ObjetMenu,
+): { context_type: string; context_id: string; context_source: string } | null {
+  const nature =
+    o.type === 'album' ? 'album'
+    : o.type === 'artiste' ? 'artist'
+    : o.type === 'playlist' ? 'playlist'
+    : o.type === 'label' ? 'label'
+    : null;
+  if (!nature) return null;
+  if (nature === 'label') return o.nom ? { context_type: 'label', context_id: o.nom, context_source: 'local' } : null;
+  if (o.id != null) return { context_type: nature, context_id: String(o.id), context_source: 'local' };
+  if (deService(o) && o.sourceId) return { context_type: nature, context_id: String(o.sourceId), context_source: o.service! };
+  return null;
+}
+
+/** Le corps augmenté du conteneur. `/play` lit `context_type`/`context_id`
+ *  (son service est celui du corps) ; `queue/add` lit aussi `context_source`. */
+export function avecContexte<C extends object>(
+  corps: C,
+  contexte: ReturnType<typeof contexteDObjet>,
+  pourLaFile: boolean,
+): C {
+  if (!contexte) return corps;
+  return pourLaFile
+    ? { ...corps, ...contexte }
+    : { ...corps, context_type: contexte.context_type, context_id: contexte.context_id };
+}
+
+const gestesDeLecture = (zid: number, contexte: ReturnType<typeof contexteDObjet> = null) => ({
+  lire: (c: any) => playAndSync(zid, avecContexte(c, contexte, false)),
+  enfiler: (c: any) => api.addToQueue(zid, avecContexte(c, contexte, true)),
 });
 
 /** Le corps de lecture DIRECT, quand le serveur sait lire l'objet d'un coup. */
@@ -413,9 +450,11 @@ async function lire(o: ObjetMenu, aleatoire: boolean): Promise<void> {
       return;
     }
     const pistes = await pistesDe(o);
+    // #6466 — la liste d'un artiste, d'un label… part avec son conteneur.
+    const contexte = contexteDObjet(o);
     const n = aleatoire
-      ? await lireListeAleatoire(pistes, gestesDeLecture(zid))
-      : await lireListe(pistes, gestesDeLecture(zid));
+      ? await lireListeAleatoire(pistes, gestesDeLecture(zid, contexte))
+      : await lireListe(pistes, gestesDeLecture(zid, contexte));
     if (!n) notifications.error(traduire('collections.noTracks' as any));
   } catch (e) {
     signalerEchecLecture(e);
@@ -439,7 +478,9 @@ async function enfiler(o: ObjetMenu, position: number | undefined): Promise<void
       notifications.error(traduire('collections.noTracks' as any));
       return;
     }
-    await api.addToQueue(zid, corps);
+    // #6466 — « Lire ensuite » et « Ajouter à la file » sont des
+    // déclencheurs : les lignes ajoutées portent leur conteneur.
+    await api.addToQueue(zid, avecContexte(corps, contexteDObjet(o), true));
     const cle = position != null ? 'v2.album.queuedNext' : 'v2.album.queued';
     notifications.success(traduire(cle as any).replace('{title}', o.nom ?? ''));
   } catch {

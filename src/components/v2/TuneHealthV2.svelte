@@ -60,6 +60,7 @@
   import { lireDiagnosticReseau, iconeVerdict, type EcouteReseau } from '../../lib/diagnosticReseau';
   import { boutonLancer, CLE_ISSUE, estLancable, lancerTraitement, toutRelancer as relancerToutLesTraitements, type CarteLancable } from '../../lib/lancerTraitement';
   import '../../styles/tune-v2.css';
+  import { decrireScanCourant } from '../../lib/scanDetenteur';
 
   type Card = {
     id: string;
@@ -386,7 +387,9 @@
              : $t('v2.health.noScan' as any)),
         fait: pctScan !== null ? (av?.scanned ?? 0) : undefined,
         total: pctScan !== null ? (av?.total ?? 0) : undefined,
-        detail: failures ? $t('v2.health.pathsFailed' as any).replace('{n}', String(failures)) : undefined,
+        // web#2305 : pendant un scan, le détail dit lequel tient le droit.
+        detail: (scanning ? decrireScanCourant(scan.value?.current, (k) => $t(k as any)) : null)
+          ?? (failures ? $t('v2.health.pathsFailed' as any).replace('{n}', String(failures)) : undefined),
         sansJauge: pctScan === null,
       });
     } else {

@@ -216,6 +216,12 @@ export interface Track {
    * le rejeu par `album_id`. Lu par `routageAlbum.albumDeServiceDe`.
    */
   album_id_service?: string | null;
+  /**
+   * web#2286 — la LIGNE d'une playlist locale (`playlist_tracks.id`), servie
+   * par `GET /playlists/{id}/tracks` depuis tune-server-rust#6690. C'est elle
+   * qu'un retrait désigne (`lib/retraitPlaylist`), pas le rang.
+   */
+  entry_id?: number | null;
   album_title?: string | null;
   artist_id?: number | null;
   /**
