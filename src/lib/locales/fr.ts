@@ -848,6 +848,7 @@ export default {
   'nav.dashboard': 'Tableau de bord',
   'nav.equalizer': 'Égaliseur',
   'dashboard.title': 'Mon écoute',
+  'dashboard.section.radio_listening': 'Radios — temps d\'écoute',
   'dashboard.period.today': "Aujourd'hui",
   'dashboard.period.7d': '7 jours',
   'dashboard.period.30d': '30 jours',

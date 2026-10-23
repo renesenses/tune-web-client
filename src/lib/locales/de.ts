@@ -730,6 +730,7 @@ export default {
   'nav.dashboard': 'Dashboard',
   'nav.equalizer': 'Equalizer',
   'dashboard.title': 'Mein Hörverlauf',
+  'dashboard.section.radio_listening': 'Radio – Hörzeit',
   'dashboard.period.today': 'Heute',
   'dashboard.period.7d': '7 Tage',
   'dashboard.period.30d': '30 Tage',

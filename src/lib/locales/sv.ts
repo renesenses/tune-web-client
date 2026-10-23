@@ -714,6 +714,7 @@ export default {
   'nav.dashboard': 'Översikt',
   'nav.equalizer': 'Equalizer',
   'dashboard.title': 'Mitt lyssnande',
+  'dashboard.section.radio_listening': 'Radio – lyssningstid',
   'dashboard.period.today': 'Idag',
   'dashboard.period.7d': '7 dagar',
   'dashboard.period.30d': '30 dagar',

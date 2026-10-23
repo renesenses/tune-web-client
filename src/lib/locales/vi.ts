@@ -765,6 +765,7 @@ export default {
   "nav.dashboard": "Bảng điều khiển",
   "nav.equalizer": "Bộ cân bằng",
   "dashboard.title": "Thói quen nghe của tôi",
+  "dashboard.section.radio_listening": "Radio — thời gian nghe",
   "dashboard.period.today": "Hôm nay",
   "dashboard.period.7d": "7 ngày",
   "dashboard.period.30d": "30 ngày",

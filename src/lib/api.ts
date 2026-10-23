@@ -2770,6 +2770,9 @@ export interface DashboardData {
   top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number; cover_path?: string | null; source?: string | null; source_id?: string | null }[];
   /** Absent de la réponse quand la liste est vide (skip_serializing_if). */
   top_radios?: { station_name: string; radio_id: number | null; plays: number; listening_ms: number; cover_url?: string | null; cover_path?: string | null }[];
+  /** tune-server-rust#6682 — le temps d'écoute radio par station sur la période,
+   *  à part des classements. Absent quand aucune radio n'a été écoutée. */
+  radio_listening?: { station_name: string; radio_id: number | null; listening_ms: number; sessions: number; cover_url?: string | null }[];
   trend: { day: string; plays: number; listening_ms: number }[];
   hourly: { hour: number; plays: number }[];
   by_zone: { zone_id: number | null; zone_name: string | null; plays: number; listening_ms: number }[];

@@ -730,6 +730,7 @@ export default {
   'nav.dashboard': '仪表盘',
   'nav.equalizer': '均衡器',
   'dashboard.title': '我的收听',
+  'dashboard.section.radio_listening': '电台 — 收听时长',
   'dashboard.period.today': '今天',
   'dashboard.period.7d': '7 天',
   'dashboard.period.30d': '30 天',

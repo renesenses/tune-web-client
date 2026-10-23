@@ -730,6 +730,7 @@ export default {
   'nav.dashboard': 'Panel',
   'nav.equalizer': 'Ecualizador',
   'dashboard.title': 'Mi escucha',
+  'dashboard.section.radio_listening': 'Radio: tiempo de escucha',
   'dashboard.period.today': 'Hoy',
   'dashboard.period.7d': '7 días',
   'dashboard.period.30d': '30 días',
