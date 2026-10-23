@@ -9259,6 +9259,8 @@ export interface OtherVersionGroup {
     cover_path: string | null;
     kind: 'version' | 'reprise';
     url?: string | null;
+    /** web#2210 — la durée, quand le rapprochement par titre la connaît. */
+    duration_ms?: number | null;
   }[];
   versions: {
     track_id: number | null;

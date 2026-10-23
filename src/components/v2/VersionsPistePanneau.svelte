@@ -60,6 +60,7 @@
    * été obtenue. La piste d'origine en est exclue par le chargeur.
    */
   import { chargerVersionsParTitre, type CibleParTitre } from '../../lib/versionsParTitre';
+  import { groupesParTitre } from '../../lib/groupesParTitre';
   /**
    * ## Les versions REGROUPÉES par enregistrement — tune-server-rust#2264
    *
@@ -83,9 +84,17 @@
   let groupe = $state<api.OtherVersionGroup | null>(null);
   /** La réponse regroupée ; `null` : liste plate (mode par titre, ou serveur antérieur). */
   let groupes = $state<GroupesVersions | null>(null);
-  const groupesAffiches = $derived((groupes?.groups ?? []).filter((g) => !groupeVide(g)));
   /** Le mode approximatif : l'en-tête le dit. */
   const approximatif = $derived(trackId == null && parTitre != null);
+  /**
+   * web#2210 — un titre de SERVICE prend la fenêtre d'un titre local : son
+   * rapprochement est mis sous la forme regroupée (`groupesParTitre`), et la
+   * même branche du gabarit le dessine.
+   */
+  const groupesRendus = $derived<GroupesVersions | null>(
+    groupes ?? (approximatif && groupe ? groupesParTitre(groupe, $preferences.ordreAutresVersions) : null),
+  );
+  const groupesAffiches = $derived((groupesRendus?.groups ?? []).filter((g) => !groupeVide(g)));
   let chargement = $state(true);
   let erreur = $state(false);
 
@@ -102,7 +111,7 @@
    * quand la liste se complète — voir la règle, dans `versionsPiste.ts`.
    */
   const flux = $derived(ordonnerVersionsService(groupe?.streaming ?? [], $preferences.ordreAutresVersions));
-  const vide = $derived(!chargement && !erreur && (groupes
+  const vide = $derived(!chargement && !erreur && (groupesRendus
     ? groupesAffiches.length === 0
     : locales.length === 0 && flux.length === 0));
 
@@ -267,7 +276,7 @@
       <p class="etat">{$t('common.error' as any)}</p>
     {:else if vide}
       <p class="etat">{$t('library.noOtherVersions' as any)}</p>
-    {:else if groupes}
+    {:else if groupesRendus}
       <div class="groupes">
         {#each groupesAffiches as g, gi (gi)}
           {@const lien = cleLien(g.identity)}
