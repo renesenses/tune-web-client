@@ -22,6 +22,7 @@
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
+  import { CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
@@ -2058,6 +2059,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   let analysisExcluded = $state<string[] | null>(null);
   // tune-server-rust#6198 — les genres de l'analyse acoustique (CLAP).
+  // tune-server-rust#5593 (fil 2173) — dossiers auxquels les analyses se limitent ; `null` : serveur antérieur.
+  let analysisDirs = $state<string[] | null>(null);
   let clapGenresInclus = $state<string[] | null>(null);
   let clapGenresExclus = $state<string[] | null>(null);
   let newDir = $state('');
@@ -2312,6 +2315,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       analysisExcluded = Array.isArray(c?.background_analysis_excluded_roots)
         ? c.background_analysis_excluded_roots.filter((r: unknown) => typeof r === 'string')
         : null;
+      analysisDirs = dossiersDepuisConfig(c?.[CLE_DOSSIERS_INCLUS]);
       clapGenresInclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_INCLUS]);
       clapGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_EXCLUS]);
       await refreshDirectoryOrder();
@@ -2430,6 +2434,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const suivant = analyser ? avant.filter((r) => r !== d) : [...avant.filter((r) => r !== d), d];
     analysisExcluded = suivant;
     patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
+  }
+  /**
+   * tune-server-rust#5593 (fil 2173) — les dossiers auxquels les analyses de
+   * fond se limitent. Le serveur reçoit la liste COMPLÈTE ; s'il refuse, le
+   * champ revient à son état d'avant.
+   */
+  function setDossiersAnalyses(texte: string) {
+    const avant = analysisDirs;
+    const suivant = lireSaisieDeDossiers(texte);
+    analysisDirs = suivant;
+    patch({ [CLE_DOSSIERS_INCLUS]: suivant }, () => { analysisDirs = avant; });
   }
   /**
    * tune-server-rust#6198 — les genres retenus ou écartés de l'analyse
@@ -6068,6 +6083,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if analysisExcluded !== null}
                   <p class="hint">{$t('settings.backgroundAnalysisFoldersHint' as any)}</p>
                 {/if}
+                <!-- tune-server-rust#5593 (fil 2173) — circonscrire les
+                     analyses de fond à des dossiers, un par ligne. -->
+                {#if analysisDirs !== null}
+                  <div class="clap-genres" data-reglage="dossiers-analyses">
+                    <span class="clap-genres-titre">{$t('settings.analysisDirsTitle' as any)}</span>
+                    <label>
+                      <span>{$t('settings.analysisDirsIncluded' as any)}</span>
+                      <textarea rows="3" value={afficherDossiers(analysisDirs)}
+                        placeholder={$t('settings.analysisDirsPlaceholder' as any)}
+                        aria-label={$t('settings.analysisDirsIncluded' as any)}
+                        onchange={(e) => setDossiersAnalyses((e.currentTarget as HTMLTextAreaElement).value)}></textarea>
+                    </label>
+                    <p class="hint">{$t('settings.analysisDirsHint' as any)}</p>
+                  </div>
+                {/if}
                 <!-- tune-server-rust#6198 — réserver l'analyse acoustique
                      (ambiances) à certains genres, ou en écarter. -->
                 {#if clapGenresInclus !== null && clapGenresExclus !== null}
@@ -7747,6 +7777,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .clap-genres label{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13px; color:var(--v2-txt2)}
   .clap-genres label span{min-width:9em}
   .clap-genres input{flex:1 1 16em; min-width:0}
+  .clap-genres textarea{flex:1 1 16em; min-width:0; font:inherit}
   .directory-order-hint{margin-top:12px}
   .dir-order{display:flex; align-items:center; gap:3px}
   .dir-order .lnk{min-width:28px; min-height:28px}
