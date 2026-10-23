@@ -1907,9 +1907,15 @@ import { ICONES } from '../../lib/menuPiste';
             <p class="inline-credits" title={inlineCredits}>{inlineCredits}</p>
           {/if}
           {#if !isRadio && displayTrack.album_title}
+            <!-- web#1870 — « comment aller sur l'album du morceau joué » (Lionel,
+                 fil 1638, téléphone). Le lien existait, mais c'était un <p>
+                 cliquable dont le seul signe était un SURVOL : au doigt, rien ne
+                 le distinguait du texte. C'est désormais un vrai bouton
+                 (clavier, lecteur d'écran), souligné quand l'écran n'a pas de
+                 survol. -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <p class="track-album truncate clickable" title={displayTrack.year ? `${displayTrack.album_title} (${displayTrack.year})` : displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
+            <button type="button" class="track-album truncate clickable" title={displayTrack.year ? `${displayTrack.album_title} (${displayTrack.year})` : displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</button>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || trackDr)}
             <p class="track-tech-info">
@@ -3230,6 +3236,27 @@ import { ICONES } from '../../lib/menuPiste';
   .track-album.clickable {
     cursor: pointer;
     transition: color 0.15s ease-out;
+  }
+
+  /* web#1870 — le titre d'album est un <button> : on lui retire l'habit de
+     bouton du navigateur, il garde celui d'une ligne de texte. */
+  button.track-album {
+    display: block;
+    max-width: 100%;
+    background: none;
+    border: 0;
+    padding: 0;
+    text-align: inherit;
+    line-height: inherit;
+  }
+
+  /* Au doigt, pas de survol : le lien doit se VOIR sans lui, et se viser. */
+  @media (hover: none) {
+    .track-album.clickable {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      min-height: 32px;
+    }
   }
 
   .track-album.clickable:hover {
