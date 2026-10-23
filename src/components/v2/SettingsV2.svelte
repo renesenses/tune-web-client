@@ -4036,10 +4036,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           {/if}
         </div>
 
-        {#each sections as s (s.id)}
-          <section class="card" class:hl={highlight === s.id} data-section={s.id}>
+        {#each sections as s, i (s.id)}
+          <!-- #2354 — un intertitre au-dessus de la PREMIÈRE section visible
+               d'un bloc (« Outils de la bibliothèque »). Calculé sur les
+               sections déjà filtrées par niveau : à aucun niveau le bloc ne
+               perd son titre. -->
+          {#if s.group && sections[i - 1]?.group !== s.group}
+            <h2 class="groupe" data-groupe={s.group}>{$t('settings.libraryTools' as any)}</h2>
+          {/if}
+          <section class="card" class:hl={highlight === s.id} class:zone-danger={s.danger}
+            class:fin-groupe={!!s.group && sections[i + 1]?.group !== s.group}
+            data-section={s.id} data-groupe={s.group ?? null}>
             <div class="cardhead">
               <h3>{title(s)}</h3>
+              {#if s.danger}<span class="danger-tag" data-zone-danger>{$t('settings.dangerZone' as any)}</span>{/if}
             </div>
 
             {#if s.id === 'playback'}
@@ -6244,6 +6254,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
+            {:else if s.id === 'libraryCleanup'}
+              <!-- #2354 (Didier, fil 2397) : venu de Système › Santé. Même
+                   bouton, même confirmation danger, même compte rendu. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('diagnostics.cleanupServer' as any)}</span>
+                  <span class="hint">{$t('v2.maint.cleanupHint' as any)}</span>
+                </div>
+                <button class="lnk danger" disabled={nettoyageEnCours} onclick={nettoyerLeServeur}>
+                  {nettoyageEnCours ? $t('diagnostics.cleaning' as any) : $t('diagnostics.cleanupServer' as any)}
+                </button>
+              </div>
+              {#if nettoyage}
+                <div class="rows" role="status">
+                  <div class="kv"><span>{$t('v2.maint.mergedAlbums' as any)}</span><b>{nettoyage.duplicate_albums_merged ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanAlbums' as any)}</span><b>{nettoyage.orphan_albums_deleted ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanArtists' as any)}</span><b>{nettoyage.orphan_artists_deleted ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.dupTracks' as any)}</span><b>{nettoyage.duplicate_tracks_removed ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanArtwork' as any)}</span><b>{nettoyage.orphan_artwork_deleted ?? 0}</b></div>
+                  {#if nettoyage.db_optimized}<div class="kv"><span>{$t('v2.maint.dbOptimized' as any)}</span><b>✓</b></div>{/if}
+                </div>
+              {/if}
+              {#if nettoyageErr}<div class="errline">{nettoyageErr}</div>{/if}
             {:else if s.id === 'clearLibrary'}
               <!-- « Repartir à zéro » (#3585). La fonction existait côté
                    serveur et n'était exposée nulle part ici. -->
@@ -6681,7 +6714,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
               <!-- Phase 5 (web#1257) : niveau des journaux, nettoyage du
-                   serveur, rapport d'analyse — portés de l'ancienne interface. -->
+                   serveur, rapport d'analyse — portés de l'ancienne interface.
+                   Le nettoyage vit depuis #2354 dans Bibliothèque. -->
               {#if atLeast(level, 'expert') && niveauJournaux !== null}
                 <div class="row">
                   <div class="lbl">
@@ -6696,26 +6730,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 {#if niveauMsg}<p class="hint" class:errline={!niveauMsg.ok}>{niveauMsg.texte}</p>{/if}
               {/if}
-              <div class="row">
+              <!-- #2354 — le Nettoyage a rejoint Réglages › Bibliothèque ›
+                   Outils de la bibliothèque. Un renvoi, le temps d'une
+                   version, pour qui le cherche encore ici. Même niveau
+                   (intermédiaire) que la section d'arrivée : le lien ne
+                   mène jamais à une section masquée. -->
+              <div class="row" data-renvoi-nettoyage>
                 <div class="lbl">
                   <span>{$t('diagnostics.cleanupServer' as any)}</span>
-                  <span class="hint">{$t('v2.maint.cleanupHint' as any)}</span>
+                  <span class="hint">{$t('settings.cleanupMovedHint' as any)}</span>
                 </div>
-                <button class="lnk danger" disabled={nettoyageEnCours} onclick={nettoyerLeServeur}>
-                  {nettoyageEnCours ? $t('diagnostics.cleaning' as any) : $t('diagnostics.cleanupServer' as any)}
+                <button class="lnk" onclick={() => { tabId = 'library'; highlight = 'libraryCleanup'; }}>
+                  {$t('settings.cleanupMovedGo' as any)}
                 </button>
               </div>
-              {#if nettoyage}
-                <div class="rows" role="status">
-                  <div class="kv"><span>{$t('v2.maint.mergedAlbums' as any)}</span><b>{nettoyage.duplicate_albums_merged ?? 0}</b></div>
-                  <div class="kv"><span>{$t('v2.maint.orphanAlbums' as any)}</span><b>{nettoyage.orphan_albums_deleted ?? 0}</b></div>
-                  <div class="kv"><span>{$t('v2.maint.orphanArtists' as any)}</span><b>{nettoyage.orphan_artists_deleted ?? 0}</b></div>
-                  <div class="kv"><span>{$t('v2.maint.dupTracks' as any)}</span><b>{nettoyage.duplicate_tracks_removed ?? 0}</b></div>
-                  <div class="kv"><span>{$t('v2.maint.orphanArtwork' as any)}</span><b>{nettoyage.orphan_artwork_deleted ?? 0}</b></div>
-                  {#if nettoyage.db_optimized}<div class="kv"><span>{$t('v2.maint.dbOptimized' as any)}</span><b>✓</b></div>{/if}
-                </div>
-              {/if}
-              {#if nettoyageErr}<div class="errline">{nettoyageErr}</div>{/if}
               <div class="row">
                 <div class="lbl">
                   <span>{$t('v2.maint.clearScanReport' as any)}</span>
@@ -7740,6 +7768,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px}
   .card.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  /* #2354 — bloc « Outils de la bibliothèque ». L'intertitre ouvre le bloc,
+     un écart plus large le ferme ; « Vider » y est une ZONE DANGEREUSE :
+     bordure et étiquette de danger, séparée des deux autres outils. */
+  .groupe{font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt2); margin:4px 2px -4px}
+  .card.fin-groupe{margin-bottom:14px}
+  .card.zone-danger{border-color:var(--v2-danger-bd); background:var(--v2-danger-soft); margin-top:10px}
+  .danger-tag{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--v2-danger);
+    border:1px solid var(--v2-danger-bd); border-radius:var(--v2-r-pill); padding:1px 8px}
   .cardhead{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
   .cardhead h3{font-size:15px; font-weight:700}
 
