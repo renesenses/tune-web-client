@@ -5528,6 +5528,8 @@ export default {
   "accesCompte.fermer": "Hide",
   "accesCompte.reessayer": "Try again",
   "v2.circle.lib.thumbnailsProgress": "Covers: {n} of {total}, more are on their way.",
+  "assistantIa.err.cle_sans_espace_de_travail": "This Anthropic key is not attached to any workspace: create one inside a workspace (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Reason given by the provider: “{motif}”",
   "scanDetenteur.origine.startup": "Startup scan",
   "scanDetenteur.origine.manual": "Manually started scan",
   "scanDetenteur.origine.scheduled": "Scheduled scan",

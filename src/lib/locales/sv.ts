@@ -5507,6 +5507,8 @@ export default {
   "accesCompte.fermer": "Dölj",
   "accesCompte.reessayer": "Försök igen",
   "v2.circle.lib.thumbnailsProgress": "Omslag: {n} av {total}, fler kommer efter hand.",
+  "assistantIa.err.cle_sans_espace_de_travail": "Den här Anthropic-nyckeln är inte kopplad till någon arbetsyta: skapa en nyckel i en arbetsyta (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Orsak som leverantören angav: ”{motif}”",
   "scanDetenteur.origine.startup": "Skanning vid start",
   "scanDetenteur.origine.manual": "Manuellt startad skanning",
   "scanDetenteur.origine.scheduled": "Schemalagd skanning",

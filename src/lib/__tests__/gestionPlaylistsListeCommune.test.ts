@@ -258,7 +258,8 @@ describe('garde de source', () => {
     expect(src).toMatch(/apres=\{selectedPlaylist \? retirer : undefined\}/);
     // #4889 — l'ordre part en RANGS actuels (`positions`), plus en identifiants.
     expect(src).toContain('api.reorderPlaylistTracks(selectedPlaylist.id, positions)');
-    expect(src).toContain('api.removePlaylistTrackAt(selectedPlaylist.id, position)');
+    // web#2286 — la ligne par `entry_id`, un retrait à la fois, puis relecture.
+    expect(src).toContain('retraitPlaylist.retirer(pl.id, detailTracks, position)');
   });
 
   it('🔴 plus aucun rendu de piste maison', () => {

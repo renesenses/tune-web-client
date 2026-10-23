@@ -5508,6 +5508,8 @@ export default {
   "accesCompte.fermer": "Ascundeți",
   "accesCompte.reessayer": "Reîncercați",
   "v2.circle.lib.thumbnailsProgress": "Coperți: {n} din {total}, sosesc treptat.",
+  "assistantIa.err.cle_sans_espace_de_travail": "Această cheie Anthropic nu este atașată niciunui spațiu de lucru: creați una într-un spațiu de lucru (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Motivul dat de furnizor: „{motif}”",
   "scanDetenteur.origine.startup": "Scanare la pornire",
   "scanDetenteur.origine.manual": "Scanare pornită manual",
   "scanDetenteur.origine.scheduled": "Scanare programată",

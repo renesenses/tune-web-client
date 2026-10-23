@@ -5508,6 +5508,8 @@ export default {
   "accesCompte.fermer": "Nascondi",
   "accesCompte.reessayer": "Riprova",
   "v2.circle.lib.thumbnailsProgress": "Copertine: {n} su {total}, arrivano poco alla volta.",
+  "assistantIa.err.cle_sans_espace_de_travail": "Questa chiave Anthropic non è associata ad alcuno spazio di lavoro: creane una all’interno di uno spazio di lavoro (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Motivo indicato dal fornitore: «{motif}»",
   "scanDetenteur.origine.startup": "Scansione all’avvio",
   "scanDetenteur.origine.manual": "Scansione avviata manualmente",
   "scanDetenteur.origine.scheduled": "Scansione pianificata",

@@ -5508,6 +5508,8 @@ export default {
   "accesCompte.fermer": "隐藏",
   "accesCompte.reessayer": "重试",
   "v2.circle.lib.thumbnailsProgress": "封面：{n} / {total}，正在陆续到达。",
+  "assistantIa.err.cle_sans_espace_de_travail": "此 Anthropic 密钥未关联任何工作区：请在某个工作区中创建密钥（console.anthropic.com › API keys）。",
+  "assistantIa.err.motif": "服务商给出的原因：“{motif}”",
   "scanDetenteur.origine.startup": "启动扫描",
   "scanDetenteur.origine.manual": "手动启动的扫描",
   "scanDetenteur.origine.scheduled": "定时扫描",

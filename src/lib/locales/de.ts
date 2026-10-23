@@ -5508,6 +5508,8 @@ export default {
   "accesCompte.fermer": "Ausblenden",
   "accesCompte.reessayer": "Erneut versuchen",
   "v2.circle.lib.thumbnailsProgress": "Cover: {n} von {total}, weitere folgen nach und nach.",
+  "assistantIa.err.cle_sans_espace_de_travail": "Dieser Anthropic-Schlüssel ist keinem Workspace zugeordnet: Erstellen Sie einen Schlüssel in einem Workspace (console.anthropic.com › API keys).",
+  "assistantIa.err.motif": "Vom Anbieter genannter Grund: „{motif}“",
   "scanDetenteur.origine.startup": "Scan beim Start",
   "scanDetenteur.origine.manual": "Manuell gestarteter Scan",
   "scanDetenteur.origine.scheduled": "Geplanter Scan",
