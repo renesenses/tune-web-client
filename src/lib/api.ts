@@ -1868,6 +1868,27 @@ export async function getAlbumsPage(limit = 100, offset = 0): Promise<{ items: A
   return { items: r?.items ?? [], total: r?.total ?? (r?.items?.length ?? 0) };
 }
 
+/** Un label de la bibliothèque (tune-server-rust#6736). `image_url` et
+ *  `qobuz_label_id` sont ABSENTS tant que le serveur ne les connaît pas. */
+export interface LibraryLabel {
+  name: string;
+  album_count: number;
+  image_url?: string;
+  qobuz_label_id?: string;
+}
+
+/** web#2297 — les labels de la bibliothèque et leur logo Qobuz. Un serveur
+ *  plus ancien (404) ou injoignable rend une liste vide : la grille tient
+ *  alors en monogrammes. */
+export async function getLibraryLabels(): Promise<LibraryLabel[]> {
+  try {
+    const r = await fetchJSON<LibraryLabel[]>(`${BASE}/library/labels`);
+    return Array.isArray(r) ? r : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function getAlbums(limit = 100, offset = 0): Promise<Album[]> {
   return (await getAlbumsPage(limit, offset)).items;
 }
