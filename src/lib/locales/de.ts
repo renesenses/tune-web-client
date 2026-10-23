@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "Installieren",
+  "v2.lic.activate": "Aktivieren",
   "sacdIso.title": "SACD-ISO",
   "sacdIso.available": "Tune liest SACD-ISOs selbst. sacd_extract wurde auf dem Server erkannt und dient nur für DST-Discs (komprimiertes DSD); die Extraktion jeder einzelnen ist nicht garantiert.",
   "sacdIso.missing": "Tune liest SACD-ISOs selbst: dafür muss nichts installiert werden. Nur DST-Discs (komprimiertes DSD) benötigen sacd_extract, das auf diesem Server nicht erkannt wurde. Wenn Sie solche haben, installieren Sie es separat, starten Sie Tune neu, wenn Sie PATH ändern, und durchsuchen Sie die Bibliothek erneut.",
@@ -5509,6 +5511,19 @@ export default {
   "v2.health.launchRgDisabled": "Die ReplayGain-Analyse ist in den Einstellungen ausgeschaltet: Der Durchlauf würde nichts messen.",
   "v2.health.launchRgPaused": "Der ReplayGain-Durchlauf ist pausiert: Setzen Sie ihn fort, damit er weiterläuft.",
   "v2.health.launchRgUnsupported": "Dieser Server kann den ReplayGain-Durchlauf noch nicht auf Abruf starten: Er setzt spätestens nach einer Viertelstunde von selbst fort.",
+  "scanDetenteur.origine.startup": "Scan beim Start",
+  "scanDetenteur.origine.manual": "Manuell gestarteter Scan",
+  "scanDetenteur.origine.scheduled": "Geplanter Scan",
+  "scanDetenteur.origine.late_network_mount": "Scan einer verspätet eingebundenen Netzwerkfreigabe",
+  "scanDetenteur.origine.music_dir_added": "Scan eines hinzugefügten Ordners",
+  "scanDetenteur.origine.import": "Scan eines Imports",
+  "scanDetenteur.origine.cd_rip": "Scan eines CD-Rips",
+  "scanDetenteur.origine.inconnue": "Scan unbekannter Herkunft",
+  "scanDetenteur.dossier": "Ordner {chemin}",
+  "scanDetenteur.toute": "gesamte Bibliothek",
+  "scanDetenteur.depuis": "seit {heure}",
+  "scanDetenteur.residuel": "Veralteter Status: Es läuft kein Scan. „Stopp“ setzt ihn zurück.",
+  "scanDetenteur.refus409": "Der Server hat abgelehnt: Ein anderer Scan läuft bereits ({scan}). Versuchen Sie es erneut, wenn er beendet ist.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "Telepítés",
+  "v2.lic.activate": "Aktiválás",
   "sacdIso.title": "SACD ISO",
   "sacdIso.available": "A Tune maga olvassa a SACD ISO-kat. A szerveren észlelt sacd_extract csak a DST lemezekhez (tömörített DSD) kell, és nem garantálja mindegyik kibontását.",
   "sacdIso.missing": "A Tune maga olvassa a SACD ISO-kat: ezekhez semmit sem kell telepíteni. Csak a DST lemezekhez (tömörített DSD) kell a sacd_extract, amelyet ezen a szerveren nem észlelt. Ha vannak ilyen lemezei, telepítse külön, a PATH módosítása után indítsa újra a Tune-t, majd olvassa be újra a könyvtárat.",
@@ -5468,6 +5470,19 @@ export default {
   "v2.health.launchRgDisabled": "A ReplayGain-elemzés ki van kapcsolva a beállításokban: a futás semmit sem mérne.",
   "v2.health.launchRgPaused": "A ReplayGain-futás szüneteltetve van: folytassa, hogy újrainduljon.",
   "v2.health.launchRgUnsupported": "Ez a szerver még nem tudja kérésre elindítani a ReplayGain-futást: legkésőbb negyedóra múlva magától folytatódik.",
+  "scanDetenteur.origine.startup": "Indításkori vizsgálat",
+  "scanDetenteur.origine.manual": "Kézzel indított vizsgálat",
+  "scanDetenteur.origine.scheduled": "Ütemezett vizsgálat",
+  "scanDetenteur.origine.late_network_mount": "Késve csatolt hálózati megosztás vizsgálata",
+  "scanDetenteur.origine.music_dir_added": "Hozzáadott mappa vizsgálata",
+  "scanDetenteur.origine.import": "Importálás vizsgálata",
+  "scanDetenteur.origine.cd_rip": "CD-rippelés vizsgálata",
+  "scanDetenteur.origine.inconnue": "Ismeretlen eredetű vizsgálat",
+  "scanDetenteur.dossier": "mappa: {chemin}",
+  "scanDetenteur.toute": "teljes könyvtár",
+  "scanDetenteur.depuis": "{heure} óta",
+  "scanDetenteur.residuel": "Maradvány állapot: valójában nem fut vizsgálat. A „Leállítás” visszaállítja.",
+  "scanDetenteur.refus409": "A szerver elutasította: már fut egy másik vizsgálat ({scan}). Próbálja újra, ha befejeződött.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

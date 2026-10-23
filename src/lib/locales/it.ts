@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "Installa",
+  "v2.lic.activate": "Attiva",
   "sacdIso.title": "ISO SACD",
   "sacdIso.available": "Tune legge da sé le ISO SACD. sacd_extract, rilevato sul server, serve solo per i dischi DST (DSD compresso), senza garantire l’estrazione di ciascuno.",
   "sacdIso.missing": "Tune legge da sé le ISO SACD: per queste non c’è nulla da installare. Solo i dischi DST (DSD compresso) richiedono sacd_extract, che non è stato rilevato su questo server. Se ne avete, installatelo separatamente, riavviate Tune se modificate PATH, quindi eseguite di nuovo la scansione.",
@@ -5509,6 +5511,19 @@ export default {
   "v2.health.launchRgDisabled": "L’analisi ReplayGain è disattivata nelle impostazioni: la passata non misurerebbe nulla.",
   "v2.health.launchRgPaused": "La passata ReplayGain è in pausa: riprendila perché riparta.",
   "v2.health.launchRgUnsupported": "Questo server non sa ancora avviare la passata ReplayGain su richiesta: riprende da sola entro un quarto d’ora.",
+  "scanDetenteur.origine.startup": "Scansione all’avvio",
+  "scanDetenteur.origine.manual": "Scansione avviata manualmente",
+  "scanDetenteur.origine.scheduled": "Scansione pianificata",
+  "scanDetenteur.origine.late_network_mount": "Scansione di una condivisione di rete montata in ritardo",
+  "scanDetenteur.origine.music_dir_added": "Scansione di una cartella aggiunta",
+  "scanDetenteur.origine.import": "Scansione di un’importazione",
+  "scanDetenteur.origine.cd_rip": "Scansione di un’estrazione da CD",
+  "scanDetenteur.origine.inconnue": "Scansione di origine sconosciuta",
+  "scanDetenteur.dossier": "cartella {chemin}",
+  "scanDetenteur.toute": "tutta la libreria",
+  "scanDetenteur.depuis": "dalle {heure}",
+  "scanDetenteur.residuel": "Stato residuo: nessuna scansione è in corso. «Interrompi» lo azzera.",
+  "scanDetenteur.refus409": "Il server ha rifiutato: è già in corso un’altra scansione ({scan}). Riprova quando sarà terminata.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

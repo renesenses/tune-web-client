@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "Cài đặt",
+  "v2.lic.activate": "Kích hoạt",
   "sacdIso.title": "SACD ISO",
   "sacdIso.available": "Tune tự đọc các file ISO SACD. sacd_extract, đã phát hiện trên máy chủ, chỉ dùng cho đĩa DST (DSD nén) và không đảm bảo trích xuất được từng đĩa.",
   "sacdIso.missing": "Tune tự đọc các file ISO SACD: không cần cài đặt gì cho chúng. Chỉ đĩa DST (DSD nén) mới cần sacd_extract, công cụ không được phát hiện trên máy chủ này. Nếu bạn có đĩa như vậy, hãy cài đặt riêng công cụ, khởi động lại Tune nếu bạn thay đổi PATH, rồi quét lại.",
@@ -5361,5 +5363,18 @@ export default {
   "v2.health.launchRgDisabled": "Phân tích ReplayGain đang tắt trong phần cài đặt: lượt xử lý sẽ không đo gì cả.",
   "v2.health.launchRgPaused": "Lượt xử lý ReplayGain đang tạm dừng: hãy tiếp tục để nó chạy lại.",
   "v2.health.launchRgUnsupported": "Máy chủ này chưa thể khởi chạy lượt ReplayGain theo yêu cầu: nó sẽ tự tiếp tục trong vòng mười lăm phút.",
+  "scanDetenteur.origine.startup": "Quét khi khởi động",
+  "scanDetenteur.origine.manual": "Quét khởi chạy thủ công",
+  "scanDetenteur.origine.scheduled": "Quét theo lịch",
+  "scanDetenteur.origine.late_network_mount": "Quét thư mục mạng được gắn muộn",
+  "scanDetenteur.origine.music_dir_added": "Quét thư mục vừa thêm",
+  "scanDetenteur.origine.import": "Quét bản nhập",
+  "scanDetenteur.origine.cd_rip": "Quét bản trích xuất CD",
+  "scanDetenteur.origine.inconnue": "Quét không rõ nguồn gốc",
+  "scanDetenteur.dossier": "thư mục {chemin}",
+  "scanDetenteur.toute": "toàn bộ thư viện",
+  "scanDetenteur.depuis": "từ {heure}",
+  "scanDetenteur.residuel": "Trạng thái còn sót: thực ra không có lượt quét nào đang chạy. Nhấn « Dừng » để đặt lại.",
+  "scanDetenteur.refus409": "Máy chủ đã từ chối: một lượt quét khác đang chạy ({scan}). Hãy thử lại khi nó kết thúc.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

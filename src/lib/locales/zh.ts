@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "安装",
+  "v2.lic.activate": "激活",
   "sacdIso.title": "SACD ISO",
   "sacdIso.available": "Tune 自行读取 SACD ISO。服务器上检测到的 sacd_extract 仅用于 DST 光盘（压缩 DSD），并不保证每张都能提取。",
   "sacdIso.missing": "Tune 自行读取 SACD ISO，无需为此安装任何工具。只有 DST 光盘（压缩 DSD）需要 sacd_extract，本服务器上未检测到它。如果您有这类光盘，请单独安装，修改 PATH 后重启 Tune，然后重新扫描。",
@@ -5509,6 +5511,19 @@ export default {
   "v2.health.launchRgDisabled": "设置中已关闭 ReplayGain 分析：此次处理不会测量任何内容。",
   "v2.health.launchRgPaused": "ReplayGain 处理已暂停：请先恢复，它才会继续。",
   "v2.health.launchRgUnsupported": "此服务器尚不支持按需启动 ReplayGain 处理：它会在最多十五分钟内自行恢复。",
+  "scanDetenteur.origine.startup": "启动扫描",
+  "scanDetenteur.origine.manual": "手动启动的扫描",
+  "scanDetenteur.origine.scheduled": "定时扫描",
+  "scanDetenteur.origine.late_network_mount": "延迟挂载的网络共享扫描",
+  "scanDetenteur.origine.music_dir_added": "新增文件夹扫描",
+  "scanDetenteur.origine.import": "导入扫描",
+  "scanDetenteur.origine.cd_rip": "CD 抓轨扫描",
+  "scanDetenteur.origine.inconnue": "来源未知的扫描",
+  "scanDetenteur.dossier": "文件夹 {chemin}",
+  "scanDetenteur.toute": "整个音乐库",
+  "scanDetenteur.depuis": "开始于 {heure}",
+  "scanDetenteur.residuel": "残留状态：实际上没有扫描在运行。点击“停止”即可复位。",
+  "scanDetenteur.refus409": "服务器拒绝：已有另一个扫描正在进行（{scan}）。请在其完成后重试。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
