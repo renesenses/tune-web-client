@@ -970,7 +970,7 @@
   <EnTeteArtiste
     {nom}
     provenance={estLocal ? $tr('library.title' as any) : (cible?.service ?? null)}
-    imagePath={artiste?.image_path ?? null}
+    imagePath={artiste?.image_path || cible?.image || null}
     initiales={estLocal ? initialesArtiste(nom) : nom.slice(0, 1)}
     sousTitre={estLocal ? `${comptesFiche?.total ?? locaux.length} ${$tr('v2.art.albums' as any)}` : null}
     ecoutes={estLocal ? artiste : null}
@@ -1108,7 +1108,7 @@
     <!-- tune-server-rust#6288 — MetaRust, « Albums manquants » : seulement pour
          un artiste de la bibliothèque, et à la demande. -->
     {#if artisteEditable?.id != null}
-      <AlbumsManquants artistId={artisteEditable.id} />
+      <AlbumsManquants artistId={artisteEditable.id} services={sectionsServices} />
     {/if}
 
     <!-- 🔴 « À propos » ne s'ouvre QUE si elle a quelque chose à dire (#1356).

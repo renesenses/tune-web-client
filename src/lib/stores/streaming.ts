@@ -99,7 +99,15 @@ export const pendingStreamingArtist = writable<Artist | null>(null);
  * objet pour un artiste de service.
  */
 export const ficheArtisteService =
-  writable<{ service: Source | null; id: string; nom: string; provenance?: string | null } | null>(null);
+  writable<{
+    service: Source | null;
+    id: string;
+    nom: string;
+    provenance?: string | null;
+    /** tune-server-rust#6463 — la vignette que montrait la tuile cliquée, en
+     *  repli pour l'en-tête quand la fiche ouverte n'a pas de portrait. */
+    image?: string | null;
+  } | null>(null);
 
 /**
  * La cible de la FICHE ALBUM DE SERVICE de la coquille v2 — #1361, #3626.

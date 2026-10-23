@@ -4504,6 +4504,29 @@ export function createSmartPlaylist(data: { name: string; rules: any[]; match_mo
   });
 }
 
+/** tune-server-rust#6287 — la réponse de `POST /library/smart-playlists/requete`.
+ *  `rules`/`match_mode` sont `null` pour une requête imbriquée ou niée : elle
+ *  s'exécute, mais l'éditeur (un seul niveau) ne sait pas la montrer. */
+export interface ReponseRequeteTextuelle {
+  tracks: any[];
+  total: number;
+  regles_refusees: string[];
+  rules: any[] | null;
+  match_mode: 'all' | 'any' | null;
+}
+
+/** tune-server-rust#6287 — exécute une requête textuelle sur la bibliothèque.
+ *  Une requête fautive rend 400 `{error: "requete_invalide", message,
+ *  position}` : l'erreur levée porte ce corps dans `corps`. */
+export function postRequeteTextuelle(body: { q: string; sort_by?: string; sort_order?: string; max_tracks?: number }) {
+  return fetchJSON<ReponseRequeteTextuelle>(
+    `${BASE}/library/smart-playlists/requete`,
+    { method: 'POST', body: JSON.stringify(body) },
+    undefined,
+    true,
+  );
+}
+
 export function getSmartPlaylist(id: number) {
   return fetchJSON<any>(`${BASE}/library/smart-playlists/${id}`);
 }
