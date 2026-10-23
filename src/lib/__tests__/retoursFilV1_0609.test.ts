@@ -61,7 +61,10 @@ describe('le rail A–Z suit le tri', () => {
 describe('les facettes s’ouvrent sur une liste', () => {
   it('la liste existe, et le clic ouvre la valeur', () => {
     expect(src()).toContain('class="fliste"');
-    expect(src()).toContain('onclick={() => (facetteOuverte = g.key)}');
+    // web#2191 — le clic passe par `ouvrirFacette`, qui note la position de
+    // la liste avant d'ouvrir la valeur.
+    expect(src()).toContain('onclick={() => ouvrirFacette(g.key)}');
+    expect(src()).toMatch(/function ouvrirFacette\(cle: string\) \{[^}]*facetteOuverte = cle;/);
     expect(src()).toMatch(/\{#if groupeOuvert == null\}/);
   });
 
@@ -76,7 +79,9 @@ describe('les facettes s’ouvrent sur une liste', () => {
     // Sans retour, on entre dans un genre sans pouvoir en sortir autrement
     // qu'en changeant d'onglet.
     expect(src()).toContain('class="fretour"');
-    expect(src()).toContain('onclick={() => (facetteOuverte = null)}');
+    // web#2191 — via `fermerFacette`, qui rend aussi la position de la liste.
+    expect(src()).toContain('onclick={fermerFacette}');
+    expect(src()).toMatch(/function fermerFacette\(\) \{[^}]*facetteOuverte = null;/);
   });
 
   it('changer d’onglet ou de recherche REFERME la valeur ouverte', () => {
