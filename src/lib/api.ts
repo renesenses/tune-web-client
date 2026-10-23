@@ -4511,6 +4511,17 @@ export function removePlaylistTrackAt(playlistId: number, position: number) {
 }
 
 /**
+ * web#2286 — retire UNE ligne, désignée par son `entry_id` (tune-server-rust#6690)
+ * ou, à défaut, par son rang. Un retrait qui n'efface rien rend 404.
+ */
+export function removePlaylistEntry(playlistId: number, cible: { entry_id: number } | { position: number }) {
+  return fetchVoid(`${BASE}/playlists/${playlistId}/tracks/remove`, {
+    method: 'POST',
+    body: JSON.stringify(cible),
+  });
+}
+
+/**
  * Réordonne une playlist Tune — #4889.
  *
  * `positions` = le NOUVEL ORDRE exprimé en RANGS ACTUELS (indices de la liste
