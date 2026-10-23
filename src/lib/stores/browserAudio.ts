@@ -4,7 +4,8 @@
 // points the <audio> element at the stream URL and wires play/pause/seek/volume.
 
 import { writable, get } from 'svelte/store';
-import { currentZone, syncZone } from './zones';
+import { currentZone, syncZone, zones } from './zones';
+import { gainDeLaZone, type ZoneAvecCourbe } from '../courbeDeVolume';
 import { seekPositionMs, startSeekTimer, stopSeekTimer } from './nowPlaying';
 import * as api from '../api';
 import { sourceDuLecteur } from '../urlDeFluxNavigateur';
@@ -24,7 +25,9 @@ export const browserStreamUrl = writable<string | null>(null);
 // Whether browser audio is actively playing
 export const browserAudioPlaying = writable<boolean>(false);
 
-// Browser audio volume (0..1)
+// Browser audio volume (0..1) — le GAIN posé sur l'élément `<audio>`, pas la
+// position du curseur (tune-server-rust#6787 : sur une zone `db60`, le gain
+// suit la loi perceptive du serveur).
 export const browserAudioVolume = writable<number>(1.0);
 
 /** Returns true if the given zone should use browser-local audio */
@@ -247,6 +250,13 @@ export function browserPlay(streamUrl: string, force = false, zoneId?: number | 
     audio.load();
     browserStreamUrl.set(relativeUrl);
   }
+  // tune-server-rust#6787 — l'élément naît à 1,0 : sans cet alignement, une
+  // zone navigateur rechargée jouait à pleine échelle jusqu'au premier geste,
+  // quel que soit son curseur. On ne fait que BAISSER (jamais de hausse).
+  if (typeof zoneId === 'number') {
+    const zone = get(zones).find((z) => z?.id === zoneId);
+    if (zone) browserAlignerSurLaZone(zone);
+  }
   audio.volume = get(browserAudioVolume);
   audio.play().catch((e) => {
     // #5975 — refus de la politique de lecture (Safari hors geste) : la
@@ -419,11 +429,35 @@ export function browserSeek(positionMs: number) {
   }
 }
 
-/** Set browser audio volume (0..1) */
-export function browserSetVolume(volume: number) {
-  browserAudioVolume.set(volume);
+/**
+ * Set browser audio volume : `volume` est la valeur du curseur (0..1) de
+ * `zone`. tune-server-rust#6787 — sur une zone `volume_curve: "db60"`, le
+ * gain posé sur l'élément suit la loi perceptive du serveur (50 % = −30 dB) ;
+ * sans `volume_curve` (serveur antérieur) ni zone, il reste linéaire.
+ */
+export function browserSetVolume(volume: number, zone?: ZoneAvecCourbe) {
+  const gain = gainDeLaZone(zone, volume);
+  browserAudioVolume.set(gain);
   const audio = getAudio();
-  audio.volume = Math.max(0, Math.min(1, volume));
+  audio.volume = gain;
+}
+
+/**
+ * tune-server-rust#6787 — ramène l'élément au niveau du curseur de la zone,
+ * À LA BAISSE seulement : un élément déjà plus bas (sourdine, geste récent)
+ * n'est jamais remonté par cet alignement.
+ */
+export function browserAlignerSurLaZone(
+  zone: ZoneAvecCourbe & { volume?: number | null; muted?: boolean | null },
+) {
+  const v = zone?.volume;
+  if (typeof v !== 'number' || !Number.isFinite(v)) return;
+  const curseur = v > 1 ? v / 100 : v;
+  const gain = zone?.muted ? 0 : gainDeLaZone(zone, curseur);
+  if (gain < get(browserAudioVolume)) {
+    browserAudioVolume.set(gain);
+    getAudio().volume = gain;
+  }
 }
 
 /** Clean up the audio element (call on app destroy) */

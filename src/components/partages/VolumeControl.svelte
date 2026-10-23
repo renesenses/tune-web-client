@@ -9,6 +9,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import * as api from '../../lib/api';
   import { analyserDb, formaterDb, lineaireDepuisDb } from '../../lib/volumeDb';
+  import { gainDeLaZone, volumeDepuisGain } from '../../lib/courbeDeVolume';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
   import {
     PAS_BOUTON,
@@ -27,8 +28,14 @@
   // champ est saisissable, et ce qu'on y tape part tel quel dans `volume_db`.
   let modeDb = $derived($preferences.volumeDisplay === 'dB');
 
+  // tune-server-rust#6787 — le dB affiché est celui du GAIN, lu sur la loi de
+  // la zone (`volume_curve`) : 50 % valent −30 dB sur une sortie logicielle.
+  function dbDuCurseur(v: number): string {
+    return formaterDb(gainDeLaZone(zone, v));
+  }
+
   function volumeDisplay(v: number): string {
-    if (modeDb) return formaterDb(v);
+    if (modeDb) return dbDuCurseur(v);
     return `${Math.round(v * 100)}`;
   }
 
@@ -47,7 +54,7 @@
 
   function ouvrirSaisie() {
     if ($volumeLocked) return;
-    saisie = formaterDb(vol);
+    saisie = dbDuCurseur(vol);
   }
 
   async function validerSaisie(texte: string) {
@@ -56,7 +63,7 @@
     // Rien tapé : le champ rend sa propre valeur, il n'y a aucune commande à
     // envoyer. C'est aussi ce qui évite de refuser « -∞ dB », le texte que le
     // champ affiche LUI-MÊME quand la zone est au silence.
-    if (texte === formaterDb(vol)) return;
+    if (texte === dbDuCurseur(vol)) return;
     const lu = analyserDb(texte);
     if ('refus' in lu) {
       // Un champ qui se remet tout seul \u00E0 sa valeur sans un mot laisse croire
@@ -66,8 +73,11 @@
       );
       return;
     }
-    const lineaire = lineaireDepuisDb(lu.db);
-    if (lineaire === null) return;
+    const gain = lineaireDepuisDb(lu.db);
+    if (gain === null) return;
+    // #6787 — le dB tapé est un dB de gain : le curseur va à la position qui
+    // le rend (le serveur fait la même conversion sur `volume_db`).
+    const lineaire = volumeDepuisGain(zone, gain);
     if (zone.id != null) leverSourdineSiBesoin({ ...zone, id: zone.id }, lineaire);
     zoneVolume.set(lineaire);
     if (isBrowserZone(zone)) browserSetVolume(lineaire);
@@ -99,7 +109,7 @@
     if (val !== Number(champ.value)) champ.value = String(val);
     leverSourdineSiBesoin({ ...zone, id: zone.id }, val);
     zoneVolume.set(val);
-    if (isBrowserZone(zone)) browserSetVolume(val);
+    if (isBrowserZone(zone)) browserSetVolume(val, zone);
     const zoneId = zone.id;
     limiterEnvoi(() => { void envoyerVolume(zoneId, val); });
   }
@@ -122,7 +132,7 @@
   // « Cet ordinateur » (Bertrand, .18).
   function applyVolume(val: number) {
     zoneVolume.set(val);
-    if (isBrowserZone(zone)) browserSetVolume(val);
+    if (isBrowserZone(zone)) browserSetVolume(val, zone);
   }
 
   // #6700 — décision de Bertrand du 21/10 : une VRAIE sourdine. Le volume

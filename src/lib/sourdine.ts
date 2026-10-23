@@ -23,6 +23,7 @@ export interface ZoneSourdine {
   muted?: boolean;
   volume?: number;
   output_type?: string;
+  volume_curve?: string | null;
 }
 
 export interface DependancesSourdine {
@@ -72,7 +73,7 @@ function dependances(zone: ZoneSourdine): DependancesSourdine {
   return {
     muteZone: api.muteZone,
     poserMuet: poserMuetDansLesZones,
-    audioLocal: isBrowserZone(zone) ? browserSetVolume : undefined,
+    audioLocal: isBrowserZone(zone) ? (v: number) => browserSetVolume(v, zone) : undefined,
   };
 }
 

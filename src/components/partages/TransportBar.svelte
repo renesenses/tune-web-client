@@ -84,9 +84,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   // Miroir local obligatoire pour les zones navigateur : le serveur ignore
   // leur volume (set_volume_no_device_id), l'<audio> de cet onglet doit être
   // piloté directement (même règle que VolumeControl).
-  function applyMobileVolume(z: { output_type?: string }, val: number) {
+  function applyMobileVolume(z: { output_type?: string; volume_curve?: string | null }, val: number) {
     zoneVolume.set(val);
-    if (isBrowserZone(z)) browserSetVolume(val);
+    if (isBrowserZone(z)) browserSetVolume(val, z);
   }
 
   // Fil forum 2129 : même limitation que le curseur principal (`VolumeControl`).
