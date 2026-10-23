@@ -5276,6 +5276,21 @@ export function lancerPlageDynamique() {
   );
 }
 
+/**
+ * web#2295 / tune-server-rust#6778 — lancer la passe ReplayGain à la demande.
+ * 202 `started` (avec `waiting_reason: "playback"` quand une zone joue),
+ * 200 `nothing_to_do`, 409 `already_running` ou `refused` (`reason` :
+ * `analysis_disabled` ou `paused`). Les 409 sont des réponses, pas des pannes.
+ */
+export function lancerReplayGain() {
+  return fetchJSON<{ status?: string; reason?: string | null; waiting_reason?: string | null; playing_zone?: string | null; candidates?: number }>(
+    `${BASE}/system/replaygain/analyze`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+    true,
+  );
+}
+
 export function getReplayGainProgress() {
   return fetchJSON<import('./santeReplayGain').AvancementReplayGain>(
     `${BASE}/system/replaygain/progress`,
@@ -9244,6 +9259,8 @@ export interface OtherVersionGroup {
     cover_path: string | null;
     kind: 'version' | 'reprise';
     url?: string | null;
+    /** web#2210 — la durée, quand le rapprochement par titre la connaît. */
+    duration_ms?: number | null;
   }[];
   versions: {
     track_id: number | null;
