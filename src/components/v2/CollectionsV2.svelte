@@ -852,6 +852,8 @@
    * ne produirait pas ce qu'on regarde.
    */
   let creation = $state(false);
+  /** tune-server-rust #6839 — collections proposées par l'assistant. */
+  let propositionsIa = $state(false);
   /**
    * Editeur de collection INTELLIGENTE : creation quand il vaut `true`,
    * modification quand il porte la collection.
@@ -1359,6 +1361,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
           {$t('v2.smart.newTitle' as any)}
         </button>
+        <!-- tune-server-rust #6839 — l'assistant propose, l'utilisateur crée. -->
+        <button class="v2-btn" onclick={() => (propositionsIa = true)} data-propositions-ia>
+          {$t('assistantIa.coll.proposeButton' as any)}
+        </button>
       {/if}
       </div>
     </header>
@@ -1650,6 +1656,12 @@
         }}
         supprimer={cibleSmart ? () => supprimerCollection(cibleSmart) : null}
       />
+    {/await}
+  {/if}
+
+  {#if propositionsIa}
+    {#await import('./PropositionsCollectionsIaV2.svelte') then m}
+      <m.default onClose={() => (propositionsIa = false)} onCreee={() => charger()} />
     {/await}
   {/if}
 

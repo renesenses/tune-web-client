@@ -60,6 +60,10 @@ export interface ReglagesIa {
   };
   /** Étape 3 : le tarif appliqué au modèle effectif, daté ; `null` sans fournisseur. */
   tarif?: TarifIa | null;
+  /** 23/10/2026 : le modèle du « second avis » (Sonnet 5.5 chez Anthropic), demandé explicitement. */
+  modele_second_avis?: string;
+  /** 23/10/2026 : la transcription vocale au coffre (voir `assistantIaRc8.ts`). */
+  transcription?: unknown;
 }
 
 /** Étape 3 : les compteurs d'un usage (`playlist`, `album`, `pistes`, `test`, `requete`, `traduction`). */
@@ -103,6 +107,8 @@ export interface ModificationIa {
   taux_usd_eur?: string | number;
   /** En clair, une seule fois ; `''` efface la clé. */
   cle?: string;
+  /** 23/10/2026 : la clé de transcription (Whisper), en clair une seule fois ; `''` l'efface. */
+  cle_transcription?: string;
 }
 
 export interface EchecIa {
@@ -323,6 +329,9 @@ export const CODES_ECHEC = [
   'reponse_invalide', 'phrase_invalide', 'album_introuvable', 'reglage_invalide',
   'admin_requis', 'lot_invalide', 'budget_du_lot_atteint', 'erreur_fournisseur',
   'aucune_regle', 'cle_sans_espace_de_travail',
+  // tune-server-rust, 23/10/2026 : notes, diagnostic, collections.
+  'premium_requis', 'apercu_requis', 'diagnostic_indisponible', 'aucune_collection',
+  'aucun_paragraphe', 'regle_inconnue',
 ] as const;
 
 /** La clé i18n du message d'un échec. */
