@@ -73,7 +73,10 @@
   // lu quand la Bibliothèque était déjà montée. On prend sa version.
   // `pendingLibraryAlbum`, lui, reste : c'est le contrat des liens de la
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
-  import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryYear, type View } from '../../lib/stores/navigation';
+  import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryYear, pendingSearchQuery, type View } from '../../lib/stores/navigation';
+  import { streamingServices } from '../../lib/stores/streaming';
+  import { servicesConnectes } from '../../lib/ongletsStreaming';
+  import { nomService } from '../../lib/convertisseurPlaylists';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { causeBibliothequeVide, type CauseBibliothequeVide } from '../../lib/smbMountState';
@@ -1519,6 +1522,23 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /** Le mode paginé. */
   const nu = $derived(!depot && !bibliothequeEntiere && !sortirDesPages);
 
+  /**
+   * web#2142 (fil 2251, abonné Qobuz sans bibliothèque locale) — « si la
+   * bibliothèque est vide on met un grand champ recherche qui ne cherche que
+   * sur elle ? mais pas dans les services de streaming ? ».
+   *
+   * Le champ de cet écran ne cherche que dans la bibliothèque LOCALE (son
+   * libellé le dit désormais). Quand il ne trouve rien — bibliothèque vide ou
+   * aucun album correspondant —, l'écran offre, comme les télécommandes
+   * (tune-remote-flutter#69, tune-remote-ios#71), de chercher le même texte
+   * chez les services connectés. Rien n'est proposé sans service connecté.
+   */
+  const servicesPourRecherche = $derived(servicesConnectes($streamingServices as any));
+  function chercherAussiSurLesServices() {
+    pendingSearchQuery.set(q.trim());
+    activeView.set('search');
+  }
+
   // La liste entière, quand un geste l'exige et qu'elle n'est pas là.
   //
   // 🔴 Fil 2134 — après une invalidation, `albums` n'est plus VIDÉ : il est
@@ -2743,6 +2763,17 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 </script>
 
 
+{#snippet passerelleServices()}
+  <!-- web#2142 — chercher le même texte chez les services connectés. -->
+  {#if !depot && q.trim() && servicesPourRecherche.length}
+    <span class="gestes-vide">
+      <button class="chip" data-chercher-services onclick={chercherAussiSurLesServices}>
+        {$tr('v2.lib.searchAlsoOn' as any).replace('{services}', servicesPourRecherche.map(nomService).join(', '))}
+      </button>
+    </span>
+  {/if}
+{/snippet}
+
 <svelte:window onclick={ddDehors} onkeydown={ddEchap} />
 <section class="v2-lib tune-v2">
   <header class="v2-top">
@@ -3229,7 +3260,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             <BoutonAjouterDossier onAjoute={() => void lireCauseVide()} />
             <button class="chip" onclick={addContent}>{$tr('v2.lib.emptyOpenFolders' as any)}</button>
           </span>
-        {/if}</div>
+        {/if}
+        {@render passerelleServices()}</div>
     {:else}
       <!-- Le rail reste sur TOUS les tris (Bertrand, 25/09/2026) : sur un tri
            qui n'est pas alphabétique, une lettre repasse au tri Titre puis
@@ -3513,7 +3545,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
       {:else if display === 'list'}
         {#if !affiches.length}
-          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
+          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}{@render passerelleServices()}</div>
         {:else}
         <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
           {#each affichesVisibles as a, i (cleCarteAlbum(a))}
@@ -3557,7 +3589,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           repères, et `jump()` sait désormais viser aussi en largeur.
         -->
         {#if !affiches.length}
-          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
+          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}{@render passerelleServices()}</div>
         {:else}
         <div class="carrou" use:defilementHorizontal bind:this={gridEl}
              use:centrageCarrousel={{ nombre: affiches.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
@@ -3572,7 +3604,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
       {:else}
         {#if !affiches.length}
-          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
+          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}{@render passerelleServices()}</div>
         {:else}
         <div class="grid" class:expert={showExpert} bind:this={gridEl}>
           {#each affichesVisibles as a, i (cleCarteAlbum(a))}

@@ -367,6 +367,34 @@ import { sansDoublons } from '../../lib/clesUniques';
     if (mine === seq) playlists = trouvees;
   }
 
+  /**
+   * web#2142 (fil 2251) — « une recherche pour trouver sans clic inutile :
+   * albums / track / PLAYLIST / artist / label ». Les playlists du CATALOGUE
+   * que la recherche fédérée fait remonter (`SearchResult.playlists`)
+   * n'étaient lues par personne : seules celles que l'utilisateur possède
+   * étaient filtrées par nom ci-dessus. Elles rejoignent la même section, avec
+   * le même geste (lecture par `streaming_playlist_id` + `source`), comme la
+   * recherche de la page d'un service sur les télécommandes (tune-remote-ios#70).
+   * Une playlist déjà trouvée parmi les siennes n'est pas répétée.
+   */
+  const playlistsCatalogue = $derived.by(() => {
+    const out: PlaylistTrouvee[] = [];
+    for (const [svc, r] of Object.entries(fed ?? {})) {
+      for (const pl of (r as SearchResult | undefined)?.playlists ?? []) {
+        if (!pl?.source_id || !pl?.name) continue;
+        out.push({
+          nom: pl.name, pistes: pl.track_count ?? 0, source: svc.charAt(0).toUpperCase() + svc.slice(1),
+          idService: String(pl.source_id), serviceSource: svc,
+        });
+      }
+    }
+    return out;
+  });
+  const toutesPlaylists = $derived.by(() => {
+    const vues = new Set(playlists.filter((p) => p.idService).map((p) => `${p.serviceSource}:${p.idService}`));
+    return [...playlists, ...playlistsCatalogue.filter((p) => !vues.has(`${p.serviceSource}:${p.idService}`))];
+  });
+
   /* ---------------------------------------------------------------- */
   /* Découverte — ce que montre l'écran AVANT la première frappe       */
   /* ---------------------------------------------------------------- */
@@ -767,7 +795,7 @@ import { sansDoublons } from '../../lib/clesUniques';
     }
   }
 
-  const lesPlaylists = $derived(voirPlaylists ? playlists.filter((pl) => respecteLesPhrases(pl, phrases)) : []);
+  const lesPlaylists = $derived(voirPlaylists ? toutesPlaylists.filter((pl) => respecteLesPhrases(pl, phrases)) : []);
 
   // Déclaré APRÈS `dansLePerimetre` : il s'en sert. Le meilleur résultat doit
   // sortir du périmètre choisi, sinon on met en avant un album d'un service
@@ -814,7 +842,7 @@ import { sansDoublons } from '../../lib/clesUniques';
 
   const nothing = $derived(
     q.trim().length >= 2 && !busy && !groupes.albums.length && !groupes.pistes.length &&
-    !groupes.artistes.length && !playlists.length && !(acoustic?.tracks.length) &&
+    !groupes.artistes.length && !toutesPlaylists.length && !(acoustic?.tracks.length) &&
     !(local?.labels?.length)
   );
 
@@ -1120,7 +1148,7 @@ import { sansDoublons } from '../../lib/clesUniques';
           : ty === 'labels' ? nbLabels
           : ty === 'albums' ? groupes.albums.filter(dansLePerimetre).length
           : ty === 'titres' ? groupes.pistes.filter(dansLePerimetre).length
-          : playlists.filter((pl) => respecteLesPhrases(pl, phrases)).length) + (reste?.n ?? 0)}
+          : toutesPlaylists.filter((pl) => respecteLesPhrases(pl, phrases)).length) + (reste?.n ?? 0)}
         <button class="pill" class:on={pastilleAllumee(typesActifs, ty)}
           aria-pressed={pastilleAllumee(typesActifs, ty)}
           onclick={() => basculerType(ty)}
