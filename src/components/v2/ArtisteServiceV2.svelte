@@ -1075,7 +1075,7 @@
     <!-- tune-server-rust#6288 — MetaRust, « Albums manquants » : seulement pour
          un artiste de la bibliothèque, et à la demande. -->
     {#if artisteEditable?.id != null}
-      <AlbumsManquants artistId={artisteEditable.id} />
+      <AlbumsManquants artistId={artisteEditable.id} services={sectionsServices} />
     {/if}
 
     <!-- 🔴 « À propos » ne s'ouvre QUE si elle a quelque chose à dire (#1356).
