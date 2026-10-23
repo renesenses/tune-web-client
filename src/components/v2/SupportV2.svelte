@@ -30,6 +30,7 @@
   import { zones } from '../../lib/stores/zones';
   import { currentVersion } from '../../lib/stores/updates';
   import { copyText } from '../../lib/utils';
+import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brouillonSupport';
   import { modeleSysteme, mermaidSysteme, planSysteme } from '../../lib/schemaSysteme';
   import { sonder, valeurDe, libelleEchec, espaceLibre, type IssueSonde } from '../../lib/sondesDiagnostic';
   import '../../styles/tune-v2.css';
@@ -109,7 +110,10 @@
    * journaux récents) et y place la description en tête ; l'aperçu n'est donc
    * qu'une lecture, pas un préalable à l'envoi.
    */
-  let bogueDesc = $state('');
+  // web#2190 — le texte survit à un départ de l'écran : il vit dans
+  // `brouillonSupport`, pas seulement dans le composant (qui est démonté).
+  let bogueDesc = $state(lireBrouillon('bogueDesc'));
+  $effect(() => { if (!bogueEnvoye) ecrireBrouillon('bogueDesc', bogueDesc); });
   let bogueApercu = $state<string | null>(null);
   let bogueApercuEnCours = $state(false);
   let bogueApercuEchec = $state(false);
@@ -221,6 +225,8 @@
       // à ce que le forum CONFIRME, et on le dit.
       bogueCapturesPerdues = bogueImages.length > 0 && (bogueCaptures ?? 0) < bogueImages.length;
       bogueEnvoye = true;
+      // Envoi ACCEPTÉ : le brouillon a rempli son office (web#2190).
+      effacerBrouillon('bogueDesc');
     } catch (e: any) {
       console.error('Support: envoi du rapport de bogue', e);
       // #5068 — la limite d'envoi du forum n'est pas un échec : on dit
@@ -313,6 +319,9 @@
   let replies = $state<SupportTicketReply[]>([]);
   let repLoading = $state(false);
   let draft = $state('');
+  // web#2190 — la réponse en cours est gardée PAR TICKET : rouvrir un autre
+  // fil ne doit pas y faire apparaître le texte du précédent.
+  $effect(() => { const id = opened?.id; if (id != null) ecrireBrouillon(`reponse:${id}`, draft); });
   let sending = $state(false);
 
   /**
@@ -330,8 +339,10 @@
    * à une route multipart reçoit un 415 sans rien comprendre.
    */
   let redaction = $state(false);
-  let sujet = $state('');
-  let corps = $state('');
+  // web#2190 — même règle que la description du bogue.
+  let sujet = $state(lireBrouillon('sujet'));
+  let corps = $state(lireBrouillon('corps'));
+  $effect(() => { ecrireBrouillon('sujet', sujet); ecrireBrouillon('corps', corps); });
   let categorie = $state('other');
   let zone = $state('');
   let joindreDiag = $state(true);
@@ -458,7 +469,7 @@
   async function open(t: SupportTicketSummary) {
     const key = licenseKey;
     if (!key) return;
-    opened = t; replies = []; repLoading = true; draft = '';
+    opened = t; replies = []; repLoading = true; draft = lireBrouillon(`reponse:${t.id}`);
     try {
       const r = await api.getSupportTicket(t.id, key);
       replies = r?.replies ?? [];
@@ -485,6 +496,7 @@
       const r = await api.getSupportTicket(opened.id, key);
       replies = r?.replies ?? [];
       draft = '';
+      effacerBrouillon(`reponse:${opened.id}`);
     } catch (e) { console.error('Support: envoi de la réponse', e); error = messageErreurSupport(e, tr1, get(locale)); }
     sending = false;
   }
@@ -622,6 +634,12 @@
             <button class="go bogue-envoi" onclick={envoyerBogue} disabled={bogueEnvoi}>
               {bogueEnvoi ? $t('v2.sup.sending' as any) : $t('v2.sup.bugSend' as any)}
             </button>
+            {#if bogueDesc}
+              <!-- web#2190 — le brouillon tient jusqu'à l'envoi ; on peut
+                   aussi s'en défaire sans envoyer. -->
+              <button class="lnk bogue-effacer" onclick={() => { bogueDesc = ''; effacerBrouillon('bogueDesc'); }}
+                disabled={bogueEnvoi}>{$t('v2.sup.bugDraftClear' as any)}</button>
+            {/if}
             <button class="lnk" onclick={apercuBogue} disabled={bogueApercuEnCours}>
               {bogueApercuEnCours ? $t('v2.sup.bugPreviewLoading' as any) : $t('v2.sup.bugPreview' as any)}
             </button>
