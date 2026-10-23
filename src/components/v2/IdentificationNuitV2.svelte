@@ -67,8 +67,18 @@
   {#if erreur}<div class="errline" data-identification-nuit-erreur>{erreur}</div>{/if}
 {/if}
 
+<!--
+  web#2324 — `row`, `lbl`, `hint` et `errline` vivent dans le bloc de styles à portée
+  locale de SettingsV2.svelte, qui ne s'applique pas à ce composant enfant :
+  le libellé et le compteur se collaient (« Éteint par défaut.0 album(s) en
+  attente », Didier, fil 2390). Mêmes règles que les lignes voisines.
+-->
 <style>
-  .nuit{display:flex; align-items:center; justify-content:space-between; gap:24px}
+  .row.nuit{display:flex; align-items:center; justify-content:space-between; gap:24px; margin-top:12px}
+  .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
+  .lbl span:first-child{font-size:13.5px; font-weight:500}
+  .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3)}
+  .errline{margin-top:10px; font-size:12px; color:var(--v2-danger)}
   .sw{position:relative; flex:0 0 auto; width:44px; height:25px; cursor:pointer}
   .sw input{position:absolute; opacity:0; width:0; height:0}
   .slider{position:absolute; inset:0; border-radius:999px; background:var(--v2-line2); transition:.18s}
