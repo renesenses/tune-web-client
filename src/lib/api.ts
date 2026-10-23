@@ -7943,6 +7943,27 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
 
 // --- CSV Export ---
 
+export interface EtatIntegrite {
+  status: 'idle' | 'running' | 'paused' | 'completed' | 'error';
+  total: number; traites: number; sains: number; corrompus: number;
+  non_verifiables: number; alertes_taille: number; erreur: string | null;
+  lecture_prioritaire: boolean;
+}
+export interface LigneIntegrite {
+  id: number; chemin: string; taille_sans_nouvelle_date: boolean;
+  resultat: { verdict: 'sain' | 'corrompu' | 'non_verifiable'; code: string;
+    erreur: string | null; position_trames: number | null; trames_decodees: number };
+}
+export function getIntegrityStatus() { return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity`); }
+export function startIntegrity(resume = false) {
+  return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity?resume=${resume}`, { method: 'POST' });
+}
+export function pauseIntegrity() { return fetchJSON<void>(`${BASE}/library/integrity/pause`, { method: 'POST' }); }
+export function getIntegrityReport(offset = 0, verdict = '') {
+  return fetchJSON<{ etat: EtatIntegrite; lignes: LigneIntegrite[] }>(`${BASE}/library/integrity/report?offset=${offset}${verdict ? `&verdict=${encodeURIComponent(verdict)}` : ''}`);
+}
+export function exportIntegrityCsv() { return downloadCsv('/library/integrity/report.csv', 'integrite-bibliotheque.csv'); }
+
 async function downloadCsv(path: string, filename: string) {
   const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
