@@ -688,6 +688,8 @@
   // mémoire (toast non bloquant) ; prêt, proposer « Lire ». Rien ne joue seul.
   $effect(() => abonnerPropositionChargementCd((h) => tuneWS.onEvent(h), {
     proposer: (m, b, a) => notifications.withAction(m, b, a, 15000),
+    // #2296 — « Disque inséré » attend Oui / Non au lieu de s'effacer.
+    demander: (m, oui, a, non) => notifications.question(m, oui, a, non),
     info: (m) => notifications.info(m),
     erreur: (m) => notifications.error(m),
     retirer: (id) => notifications.dismiss(id),
