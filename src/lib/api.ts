@@ -892,11 +892,24 @@ const PRESET_KEYS = [
   'dlna_native_flac', 'alac_passthrough', 'aac_passthrough', 'dlna_lpcm', 'dlna_cap_16bit',
   'dlna_wav24', 'dlna_play_delay_ms', 'gain_trim_db',
 ] as const;
-export function applyZoneDevicePreset(id: number, settings: Record<string, unknown>) {
-  const body: Record<string, unknown> = {};
+/**
+ * tune-server-rust#6774 — les clés d'un préréglage communautaire que Tune
+ * accepte d'appliquer. Un trim POSITIF n'en fait jamais partie : il monte le
+ * niveau d'un appareil que la communauté n'a pas entendu ici (des préréglages
+ * non validés portent +12 dB). Un trim négatif ou nul passe.
+ */
+export function reglagesDePresetApplicables(settings: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
   for (const k of PRESET_KEYS) {
-    if (k in settings) body[k] = settings[k];
+    if (!(k in settings)) continue;
+    if (k === 'gain_trim_db' && !(Number(settings[k]) <= 0)) continue;
+    out[k] = settings[k];
   }
+  return out;
+}
+
+export function applyZoneDevicePreset(id: number, settings: Record<string, unknown>) {
+  const body = reglagesDePresetApplicables(settings);
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(body),
@@ -5203,7 +5216,9 @@ export function transferToPeer(ip: string, port: number = 8888, zoneId: number =
 }
 
 export function getScanStatus() {
-  return fetchJSON<{ scanning: boolean }>(`${BASE}/system/scan/status`);
+  // web#2305 : `current` (tune-server-rust#6744) dit QUEL scan tient le
+  // droit ; absent d'un serveur plus ancien. Lu par `scanDetenteur.ts`.
+  return fetchJSON<{ scanning: boolean; status?: string; current?: unknown }>(`${BASE}/system/scan/status`);
 }
 
 /**

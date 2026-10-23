@@ -196,3 +196,24 @@ export function positionApresReleve(
 
   return { suivi: { clePiste: cle, positionMs: positionLocale, etat }, ecrire: false, raison: 'horloge' };
 }
+
+/**
+ * web#2285 (tune-server-rust#6380, Sandro, fil 2284) — APRÈS UNE COUPURE DE
+ * LIAISON, L'ÉTAT OBSERVÉ NE VAUT PLUS RIEN.
+ *
+ * Après un redémarrage du serveur, page ouverte, la barre affichait 0:00 alors
+ * que le serveur rendait la position restaurée (la reprise est armée, #2876).
+ * La règle de web#1652 ci-dessus avait vu la zone passer de `paused` (ou
+ * `playing`) à `stopped` et l'avait prise pour un « Arrêter » de
+ * l'utilisateur. Ce n'en était pas un : la liaison était coupée, et ce qu'on
+ * retrouve à la reconnexion est une zone trouvée arrêtée, comme à
+ * l'ouverture de la page — sa position fait foi.
+ *
+ * Le serveur ne publie pas la reprise armée (`pending_resume_ms` est
+ * `#[serde(skip)]`) : c'est donc au client d'oublier ce qu'il a vu quand la
+ * liaison tombe. La piste suivie reste, pour que #954 ne refuse pas le
+ * premier relevé.
+ */
+export function oublierEtatObserve(suivi: SuiviPosition): SuiviPosition {
+  return { clePiste: suivi.clePiste, positionMs: suivi.positionMs };
+}
