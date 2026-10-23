@@ -844,6 +844,7 @@ export default {
   'nav.dashboard': 'Dashboard',
   'nav.equalizer': 'Equalizer',
   'dashboard.title': 'My listening',
+  'dashboard.section.radio_listening': 'Radio — listening time',
   'dashboard.period.today': 'Today',
   'dashboard.period.7d': '7 days',
   'dashboard.period.30d': '30 days',

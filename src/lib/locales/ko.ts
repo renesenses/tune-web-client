@@ -729,6 +729,7 @@ export default {
   'nav.dashboard': '대시보드',
   'nav.equalizer': '이퀄라이저',
   'dashboard.title': '내 청취',
+  'dashboard.section.radio_listening': '라디오 — 청취 시간',
   'dashboard.period.today': '오늘',
   'dashboard.period.7d': '7일',
   'dashboard.period.30d': '30일',

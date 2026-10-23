@@ -729,6 +729,7 @@ export default {
   'nav.dashboard': 'Dashboard',
   'nav.equalizer': 'Equalizzatore',
   'dashboard.title': 'I miei ascolti',
+  'dashboard.section.radio_listening': 'Radio: tempo di ascolto',
   'dashboard.period.today': 'Oggi',
   'dashboard.period.7d': '7 giorni',
   'dashboard.period.30d': '30 giorni',

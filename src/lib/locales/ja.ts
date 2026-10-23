@@ -729,6 +729,7 @@ export default {
   'nav.dashboard': 'ダッシュボード',
   'nav.equalizer': 'イコライザー',
   'dashboard.title': 'マイリスニング',
+  'dashboard.section.radio_listening': 'ラジオ — 聴取時間',
   'dashboard.period.today': '今日',
   'dashboard.period.7d': '7日間',
   'dashboard.period.30d': '30日間',

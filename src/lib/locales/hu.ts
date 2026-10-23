@@ -808,6 +808,7 @@ export default {
   "nav.dashboard": "Irányítópult",
   "nav.equalizer": "Hangszínszabályzó",
   "dashboard.title": "Amit hallgatok",
+  "dashboard.section.radio_listening": "Rádió — hallgatási idő",
   "dashboard.period.today": "Ma",
   "dashboard.period.7d": "7 nap",
   "dashboard.period.30d": "30 nap",

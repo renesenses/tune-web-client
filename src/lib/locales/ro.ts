@@ -735,6 +735,7 @@ export default {
   'nav.dashboard': 'Tablou de bord',
   'nav.equalizer': 'Egalizator',
   'dashboard.title': 'Ascultările mele',
+  'dashboard.section.radio_listening': 'Radio — timp de ascultare',
   'dashboard.period.today': 'Azi',
   'dashboard.period.7d': '7 zile',
   'dashboard.period.30d': '30 de zile',
