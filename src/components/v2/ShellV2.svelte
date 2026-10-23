@@ -89,6 +89,7 @@
    * ligne suffit, et la règle ne vit qu'à un seul endroit.
    */
   import AssistantPremiereInstallation from '../partages/AssistantPremiereInstallation.svelte';
+  import ConsentementEcoutes from '../partages/ConsentementEcoutes.svelte';
   import TvView from '../v2-heritage/TvView.svelte';
   /**
    * 🔴 SANS LUI, TOUT DIALOGUE RESTE SANS REPONSE POUR TOUJOURS.
@@ -950,6 +951,10 @@
 <!-- Première installation (#1033) : hors de `.v2-shell` comme le calque de
      session expirée, et pour la même raison — `overflow:hidden`. -->
 <AssistantPremiereInstallation />
+<!-- tune-server-rust#6840 — la question du partage des écoutes avec le
+     compte : même patron, hors de `.v2-shell` ; ne rend rien sur un serveur
+     non relié ou déjà répondu. -->
+<ConsentementEcoutes />
 
 <style>
   /* 🔴 `--v2-grappe-w` — la gouttière de la grappe — vit dans
