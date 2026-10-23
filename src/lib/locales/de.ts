@@ -4530,6 +4530,7 @@ export default {
   "v2.cd.insertedPrompt": "Disc eingelegt: {disc}",
   "v2.cd.loadIntoMemory": "In den Speicher laden",
   "v2.cd.loadIntoMemoryHint": "Die laufende Wiedergabe geht weiter.",
+  "v2.cd.declineLoad": "Nein",
   "v2.cd.memLoadStarted": "Disc wird in den Speicher geladen…",
   "v2.cd.memLoadFailed": "Die Disc konnte nicht in den Speicher geladen werden.",
   "v2.cd.memReadyPrompt": "Disc geladen: {disc}",

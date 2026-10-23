@@ -4395,6 +4395,7 @@ export default {
   "v2.cd.insertedPrompt": "Đã đưa đĩa vào: {disc}",
   "v2.cd.loadIntoMemory": "Nạp vào bộ nhớ",
   "v2.cd.loadIntoMemoryHint": "Bản nhạc đang phát vẫn tiếp tục.",
+  "v2.cd.declineLoad": "Không",
   "v2.cd.memLoadStarted": "Đang nạp đĩa vào bộ nhớ…",
   "v2.cd.memLoadFailed": "Không thể nạp đĩa vào bộ nhớ.",
   "v2.cd.memReadyPrompt": "Đã nạp đĩa: {disc}",

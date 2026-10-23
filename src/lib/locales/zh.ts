@@ -4530,6 +4530,7 @@ export default {
   "v2.cd.insertedPrompt": "已插入光盘：{disc}",
   "v2.cd.loadIntoMemory": "载入内存",
   "v2.cd.loadIntoMemoryHint": "当前播放将继续。",
+  "v2.cd.declineLoad": "否",
   "v2.cd.memLoadStarted": "正在将光盘载入内存…",
   "v2.cd.memLoadFailed": "无法将光盘载入内存。",
   "v2.cd.memReadyPrompt": "光盘已载入：{disc}",

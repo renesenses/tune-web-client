@@ -4484,6 +4484,7 @@ export default {
   "v2.cd.insertedPrompt": "Lemez behelyezve: {disc}",
   "v2.cd.loadIntoMemory": "Betöltés a memóriába",
   "v2.cd.loadIntoMemoryHint": "Az aktuális lejátszás folytatódik.",
+  "v2.cd.declineLoad": "Nem",
   "v2.cd.memLoadStarted": "A lemez betöltése a memóriába…",
   "v2.cd.memLoadFailed": "A lemezt nem sikerült a memóriába tölteni.",
   "v2.cd.memReadyPrompt": "Lemez betöltve: {disc}",

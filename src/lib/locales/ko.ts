@@ -4530,6 +4530,7 @@ export default {
   "v2.cd.insertedPrompt": "디스크 삽입됨: {disc}",
   "v2.cd.loadIntoMemory": "메모리에 불러오기",
   "v2.cd.loadIntoMemoryHint": "현재 재생은 계속됩니다.",
+  "v2.cd.declineLoad": "아니요",
   "v2.cd.memLoadStarted": "디스크를 메모리에 불러오는 중…",
   "v2.cd.memLoadFailed": "디스크를 메모리에 불러오지 못했습니다.",
   "v2.cd.memReadyPrompt": "디스크 불러옴: {disc}",
