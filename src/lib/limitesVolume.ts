@@ -42,8 +42,10 @@ export function cleTexteRefus(code: string | null | undefined): string | null {
   return null;
 }
 
-/** Pas des boutons, en fraction : celui du serveur par défaut (0,02). */
-export const PAS_BOUTON = 0.02;
+/** Pas des boutons − et +, en fraction : UN point de volume (web#2292,
+ *  décision du 22/10). Envoyé tel quel au serveur (`step`), dont le pas par
+ *  défaut est de 0,02. */
+export const PAS_BOUTON = 0.01;
 
 function valide(v: number | null | undefined): number | null {
   return typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 1 ? v : null;
@@ -88,6 +90,25 @@ export function bornerCurseur(zone: LimitesVolume | null | undefined, cible: num
 /** Le bouton + est-il en butée (sécurité atteinte) ? */
 export function plusEnButee(zone: LimitesVolume | null | undefined, actuel: number): boolean {
   return actuel >= (securite(zone) ?? 1) - 1e-6;
+}
+
+/** web#2292 — le volume que vise un bouton − ou + calculé PAR LE CLIENT
+ *  (zone navigateur, serveur sans la route `/volume/step`, boutons du
+ *  téléphone). Un point, arrondi au point : jamais sous 0, et en montant
+ *  jamais au-dessus de la limite de sécurité ni de 100 %. Déjà au-dessus de
+ *  la sécurité (abaissée après coup), + ne bouge pas : il ne doit ni monter,
+ *  ni faire BAISSER le son. */
+export function cibleDuPas(
+  zone: LimitesVolume | null | undefined,
+  actuel: number,
+  direction: 'up' | 'down',
+): number {
+  const brut = direction === 'up' ? actuel + PAS_BOUTON : actuel - PAS_BOUTON;
+  const arrondi = Math.round(brut * 100) / 100;
+  if (direction === 'down') return Math.max(0, Math.min(arrondi, 1));
+  const plafond = Math.min(securite(zone) ?? 1, 1);
+  if (actuel >= plafond - 1e-6) return actuel;
+  return Math.min(arrondi, plafond);
 }
 
 /** Une saisie de limite en % (texte), ramenée à une fraction ; vide = pas de

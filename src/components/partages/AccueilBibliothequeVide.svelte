@@ -23,17 +23,36 @@
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import BoutonAjouterDossier from './BoutonAjouterDossier.svelte';
+  import { get } from 'svelte/store';
+  import { streamingServices } from '../../lib/stores/streaming';
+  import { statutsStreaming, servicesInterrogeables } from '../../lib/albumsArtisteStreaming';
+  import { nomService } from '../../lib/convertisseurPlaylists';
 
   let vide = $state(false);
   let ajoute = $state(false);
+  /**
+   * web#2142 (fil 2251) — « si la bibliothèque est vide ou bien Deezer non
+   * configuré, quel sens d'afficher ? ». Un abonné qui n'écoute QUE ses
+   * services n'a pas à recevoir, à chaque ouverture, le grand encart de
+   * bienvenue d'une bibliothèque à remplir. Avec un service connecté,
+   * l'invitation tient sur une ligne discrète, qui garde les deux gestes.
+   */
+  let services = $state<string[]>([]);
 
   onMount(async () => {
+    let estVide = false;
     try {
       const s = await api.getLibraryStats();
-      vide = typeof s?.tracks === 'number' && s.tracks === 0;
+      estVide = typeof s?.tracks === 'number' && s.tracks === 0;
     } catch {
-      vide = false;
+      estVide = false;
     }
+    if (!estVide) return;
+    // Les services AVANT d'afficher quoi que ce soit : sinon le grand encart
+    // paraîtrait, puis se replierait sous les yeux.
+    const statuts = await statutsStreaming(get(streamingServices), api.getStreamingServices, (x) => streamingServices.set(x));
+    services = servicesInterrogeables(statuts);
+    vide = true;
   });
 
   function ouvrirEmplacements() {
@@ -42,7 +61,12 @@
   }
 </script>
 
-{#if vide}
+{#if vide && services.length}
+  <p class="accueil-vide-discret" role="note">
+    <span>{$t('v2.accueilVide.streamingOnly' as any).replace('{services}', services.map(nomService).join(', '))}</span>
+    <button class="lien" type="button" onclick={ouvrirEmplacements}>{$t('v2.accueilVide.settings' as any)}</button>
+  </p>
+{:else if vide}
   <section class="accueil-vide" aria-labelledby="accueil-vide-titre">
     <h2 id="accueil-vide-titre">{$t('v2.accueilVide.title' as any)}</h2>
     {#if ajoute}
@@ -70,4 +94,8 @@
   p { margin: 0 0 16px; color: var(--v2-txt2); line-height: 1.5; }
   .ajoute { color: var(--v2-txt); }
   .gestes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .accueil-vide-discret { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    margin: 10px 0 18px; font-size: 13px; color: var(--v2-txt3); }
+  .lien { border: 0; padding: 0; background: transparent; color: var(--v2-acc1); cursor: pointer; font: inherit; }
+  .lien:hover { text-decoration: underline; }
 </style>
