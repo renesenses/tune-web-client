@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { labelPrincipal, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
   /**
    * LA FICHE ARTISTE ÉLUE — #3825, socle de #2568, puis #1232.
    *
@@ -1072,6 +1073,16 @@
       <LiensExternes cle={artisteEditable.id} charger={api.getArtistExternalLinks} />
     {/if}
 
+    <!-- tune-server-rust#6782 — vers la page de son label principal (celui de
+         la plupart de ses albums de la bibliothèque) : les autres artistes du
+         label, dans la bibliothèque puis chez Qobuz. -->
+    {#if artisteEditable?.id != null && labelPrincipal(locaux)}
+      {@const nomLabel = labelPrincipal(locaux)!}
+      <button type="button" class="lien-label" data-lien-label onclick={() => void ouvrirLabelDansLaBibliotheque(nomLabel)}>
+        {$tr('v2.label.autresArtistes' as any).replace('{label}', nomLabel)}
+      </button>
+    {/if}
+
     <!-- tune-server-rust#6288 — MetaRust, « Albums manquants » : seulement pour
          un artiste de la bibliothèque, et à la demande. -->
     {#if artisteEditable?.id != null}
@@ -1158,6 +1169,9 @@
 {/if}
 
 <style>
+  .lien-label { all: unset; cursor: pointer; align-self: flex-start; margin: 4px 0 8px; font-size: 13px; color: var(--tune-accent); }
+  .lien-label:hover { text-decoration: underline; }
+  .lien-label:focus-visible { outline: 2px solid var(--tune-accent); outline-offset: 2px; }
   .v2-fas{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); padding:0 30px 40px}
   /* L'en-tête — `.tete`, `.retour`, `.portrait`, `.ident`, `.gestes` — vit
