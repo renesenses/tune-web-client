@@ -354,7 +354,9 @@ describe('Podcasts — les clés de liste', () => {
 
   it('on ne propose pas de s’abonner sans flux', () => {
     // `toggleSub` sortait silencieusement : le bouton était là et sans effet.
-    expect(src().includes('disabled={!feedOf(p)}'), 'le bouton d’abonnement ment de nouveau').toBe(true);
+    // web#2322 : un podcast du palmarès sans flux mais avec son identifiant
+    // `apple-…` peut s'abonner — le serveur résout le flux ou dit pourquoi.
+    expect(src().includes('disabled={!feedOf(p) && !appleIdOf(p)}'), 'le bouton d’abonnement ment de nouveau').toBe(true);
   });
 });
 
