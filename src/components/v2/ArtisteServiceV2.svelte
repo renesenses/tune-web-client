@@ -972,6 +972,7 @@
     imagePath={artiste?.image_path ?? null}
     initiales={estLocal ? initialesArtiste(nom) : nom.slice(0, 1)}
     sousTitre={estLocal ? `${comptesFiche?.total ?? locaux.length} ${$tr('v2.art.albums' as any)}` : null}
+    ecoutes={estLocal ? artiste : null}
     onRetour={retour}>
     {#snippet actions()}
       <!-- tune-server-rust#6467 — « Lire » AVANT le best of (fil 2302, point
