@@ -1,6 +1,7 @@
 <script lang="ts">
   import { artworkUrl, getAlbumCoverPath, tailleDeVignette } from '../../lib/api';
   import ServiceBadge from './ServiceBadge.svelte';
+  import { illustrationRectangulaire } from '../../lib/pochetteEntiere';
 
   interface Props {
     coverPath?: string | null;
@@ -143,6 +144,24 @@
   const enAttenteDeMesure = $derived(vignetteUtile && !size && largeurMesuree === undefined);
 
   let src = $derived(enAttenteDeMesure ? '' : artworkUrl(resolvedCoverPath, tailleDemandee));
+
+  /*
+   * web#2353 — une illustration nettement rectangulaire (pochette
+   * `image_rectangle` d'une playlist éditoriale Qobuz) est montrée entière,
+   * contenue dans la boîte carrée, au lieu d'être recadrée au centre. Le
+   * format n'est connu qu'une fois l'image chargée ; il est oublié quand
+   * l'adresse change. Les avatars ronds et les photos d'artiste (initiales
+   * de repli) gardent le recadrage : un visage se recadre, un titre écrit non.
+   */
+  let entiere = $state(false);
+  let srcMesuree = $state('');
+  const recadrageVoulu = $derived(round || !!fallbackInitials);
+  function handleLoad(e: Event) {
+    const image = e.currentTarget as HTMLImageElement;
+    srcMesuree = src;
+    entiere = !recadrageVoulu && illustrationRectangulaire(image.naturalWidth, image.naturalHeight);
+  }
+  const contenue = $derived(entiere && srcMesuree === src);
 </script>
 
 <div bind:this={boite} class="album-art" class:round class:fill={!size} style={size ? `width: ${size}px; height: ${size}px;` : ''}>
@@ -153,6 +172,8 @@
       width={size || undefined}
       height={size || undefined}
       loading="lazy"
+      class:entiere={contenue}
+      onload={handleLoad}
       onerror={handleError}
     />
   {:else if fallbackInitials}
@@ -218,6 +239,11 @@
     height: 100%;
     object-fit: cover;
     display: block;
+  }
+
+  /* web#2353 — illustration rectangulaire : entière, sur le fond neutre. */
+  img.entiere {
+    object-fit: contain;
   }
 
   .placeholder {

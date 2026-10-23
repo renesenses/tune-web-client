@@ -6,6 +6,7 @@ import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
+import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
 import type { ApercuFavorisRadio } from './favorisRadioQobuz';
 import { profileHeader } from './profileHeader';
@@ -1696,7 +1697,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string; queue_follows?: boolean }) {
+export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; album_ref?: string; queue_follows?: boolean }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1746,7 +1747,13 @@ export function seek(zoneId: number, positionMs: number) {
   });
 }
 
-export function setVolume(zoneId: number, volume: number) {
+/** Règle le volume d'une zone. `curseur` est la position du CURSEUR (0..1) :
+ *  sur une zone `volume_curve: "db60"` (tune-server-rust#6787), elle part en
+ *  GAIN, le sens historique de `volume` côté serveur. Une valeur qui serait
+ *  déjà un gain y est relue comme un curseur : elle joue plus bas, jamais
+ *  plus haut (`gainPerceptif(p) <= p`). */
+export function setVolume(zoneId: number, curseur: number) {
+  const volume = gainDeLaZone(zonePourLeCurseur(zoneId), curseur);
   return fetchVoid(`${BASE}/zones/${zoneId}/volume`, {
     method: 'PUT',
     body: JSON.stringify({ volume }),
@@ -2057,6 +2064,50 @@ export async function getLibraryLabels(): Promise<LibraryLabel[]> {
     return Array.isArray(r) ? r : [];
   } catch {
     return [];
+  }
+}
+
+/** tune-server-rust#6782 — un artiste de la bibliothèque sous ce label.
+ *  `image_url` n'est là que si l'artiste a un portrait. */
+export interface ArtisteDuLabel {
+  id: number;
+  name: string;
+  album_count: number;
+  image_url?: string;
+}
+
+/** tune-server-rust#6782 — un artiste du catalogue Qobuz du label, absent de
+ *  la bibliothèque, avec son album le plus récent. */
+export interface ArtisteADecouvrir {
+  name: string;
+  qobuz_artist_id?: string;
+  album_count: number;
+  album_phare: { id: string; title: string; cover_url?: string; year?: number };
+}
+
+/** `GET /library/labels/{nom}/artists`. `decouvrir` est ABSENT sans compte
+ *  Qobuz connecté, ou quand le label n'a pas de correspondant Qobuz. */
+export interface ArtistesDuLabel {
+  name: string;
+  bibliotheque: ArtisteDuLabel[];
+  qobuz_label_id?: string;
+  decouvrir?: ArtisteADecouvrir[];
+}
+
+/** tune-server-rust#6782 — les artistes d'un label : la bibliothèque, puis
+ *  « À découvrir » chez Qobuz. Un serveur plus ancien (404) ou injoignable
+ *  rend `null` : la page du label reste celle d'avant. */
+export async function getArtistesDuLabel(nom: string): Promise<ArtistesDuLabel | null> {
+  try {
+    const r = await fetchJSON<ArtistesDuLabel>(
+      `${BASE}/library/labels/${encodeURIComponent(nom)}/artists`,
+      undefined,
+      undefined,
+      true,
+    );
+    return r && Array.isArray(r.bibliotheque) ? r : null;
+  } catch {
+    return null;
   }
 }
 
@@ -2770,6 +2821,9 @@ export interface DashboardData {
   top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number; cover_path?: string | null; source?: string | null; source_id?: string | null }[];
   /** Absent de la réponse quand la liste est vide (skip_serializing_if). */
   top_radios?: { station_name: string; radio_id: number | null; plays: number; listening_ms: number; cover_url?: string | null; cover_path?: string | null }[];
+  /** tune-server-rust#6682 — le temps d'écoute radio par station sur la période,
+   *  à part des classements. Absent quand aucune radio n'a été écoutée. */
+  radio_listening?: { station_name: string; radio_id: number | null; listening_ms: number; sessions: number; cover_url?: string | null }[];
   trend: { day: string; plays: number; listening_ms: number }[];
   hourly: { hour: number; plays: number }[];
   by_zone: { zone_id: number | null; zone_name: string | null; plays: number; listening_ms: number }[];
@@ -4455,6 +4509,29 @@ export function createSmartPlaylist(data: { name: string; rules: any[]; match_mo
     method: 'POST',
     body: JSON.stringify(data),
   });
+}
+
+/** tune-server-rust#6287 — la réponse de `POST /library/smart-playlists/requete`.
+ *  `rules`/`match_mode` sont `null` pour une requête imbriquée ou niée : elle
+ *  s'exécute, mais l'éditeur (un seul niveau) ne sait pas la montrer. */
+export interface ReponseRequeteTextuelle {
+  tracks: any[];
+  total: number;
+  regles_refusees: string[];
+  rules: any[] | null;
+  match_mode: 'all' | 'any' | null;
+}
+
+/** tune-server-rust#6287 — exécute une requête textuelle sur la bibliothèque.
+ *  Une requête fautive rend 400 `{error: "requete_invalide", message,
+ *  position}` : l'erreur levée porte ce corps dans `corps`. */
+export function postRequeteTextuelle(body: { q: string; sort_by?: string; sort_order?: string; max_tracks?: number }) {
+  return fetchJSON<ReponseRequeteTextuelle>(
+    `${BASE}/library/smart-playlists/requete`,
+    { method: 'POST', body: JSON.stringify(body) },
+    undefined,
+    true,
+  );
 }
 
 export function getSmartPlaylist(id: number) {
@@ -7738,7 +7815,7 @@ export async function getRadioFranceEpisodes(showUrl: string, limit = 20): Promi
   return res.json();
 }
 
-export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string, podcastId?: number | string, sourceId?: string): Promise<any[]> {
+export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string, podcastId?: number | string, sourceId?: string, country?: string): Promise<any[]> {
   let url: string;
   if (podcastId != null && podcastId !== '') {
     // Prefer the by-id endpoint: the server resolves feed_url from the
@@ -7755,11 +7832,19 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
     if (!feedUrl && !showUrl && !sourceId) return []; // nothing to fetch — don't hit the 400
     url = `${BASE}/podcasts/episodes?limit=${limit}`;
     if (feedUrl) url += `&feed_url=${encodeURIComponent(feedUrl)}`;
-    else if (sourceId) url += `&source_id=${encodeURIComponent(sourceId)}`;
+    else if (sourceId) {
+      url += `&source_id=${encodeURIComponent(sourceId)}`;
+      // tune-server-rust#6770 — le flux se cherche dans la boutique du pays
+      // d'où vient le palmarès.
+      if (country) url += `&country=${encodeURIComponent(country)}`;
+    }
     if (showUrl) url += `&show_url=${encodeURIComponent(showUrl)}`;
   }
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Podcast episodes failed: ${res.status} ${res.statusText}`);
+  // web#2322 — l'erreur garde le `code` stable du serveur
+  // (`podcast_sans_flux_public`, `podcast_introuvable`,
+  // `podcast_resolution_reseau`) : l'écran en tire la phrase à montrer.
+  if (!res.ok) throw await apiError(res);
   const data = await res.json();
   return data.episodes || data;
 }
@@ -7776,7 +7861,7 @@ export function getPodcastSubscriptions(): Promise<any[]> {
   return fetchJSON(`${BASE}/podcasts/subscriptions`);
 }
 
-export function subscribePodcast(podcast: { title: string; feed_url: string; author?: string; image_url?: string; description?: string; source_id?: string }): Promise<any> {
+export function subscribePodcast(podcast: { title: string; feed_url: string; author?: string; image_url?: string; description?: string; source_id?: string; country?: string }): Promise<any> {
   return fetchJSON(`${BASE}/podcasts/subscriptions`, { method: 'POST', body: JSON.stringify(podcast) });
 }
 
@@ -9263,6 +9348,8 @@ export interface OtherVersionGroup {
     cover_path: string | null;
     kind: 'version' | 'reprise';
     url?: string | null;
+    /** web#2210 — la durée, quand le rapprochement par titre la connaît. */
+    duration_ms?: number | null;
   }[];
   versions: {
     track_id: number | null;

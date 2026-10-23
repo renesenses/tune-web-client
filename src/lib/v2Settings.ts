@@ -107,7 +107,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'library',    titleKey: 'settings.library',      from: 'library', min: 'beginner' },
       { id: 'musicDirs',  titleKey: 'settings.musicDirs',    from: 'library', min: 'beginner', keywords: ['dossiers', 'chemins'] },
-      { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan', 'coffret', 'coffrets', 'box set'] },
+      { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan', 'coffret', 'coffrets', 'box set', 'sacd', 'iso', 'dst'] },
       { id: 'searchExact', titleKey: 'settings.searchExact', from: 'library', min: 'beginner',
         keywords: ['recherche', 'exacte', 'guillemets', 'artiste', 'album', 'titre'] },
       // tune-server-rust#6474 (René, fil 2313) — « Settings → Library →

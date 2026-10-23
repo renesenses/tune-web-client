@@ -92,7 +92,10 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // un réglage DE ZONE (la matrice de réaffectation des canaux).
     // VINGT-TROIS depuis tune-server-rust#6516 : `RadioAnnuaire` écoute d'un
     // clic une station de l'annuaire radio-metadata.fr.
-    expect(avec.length).toBe(23);
+    // VINGT-QUATRE depuis tune-server-rust#6288 : `AlbumsManquants` lance
+    // « Écouter sur <service> » un album manquant.
+    expect(avec.length).toBe(24);
+    expect(avec).toContain('AlbumsManquants.svelte');
     expect(avec).toContain('RadioAnnuaire.svelte');
     expect(avec).toContain('ReaffectationCanauxV2.svelte');
     expect(avec).toContain('CrossfeedProV2.svelte');

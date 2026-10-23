@@ -2651,9 +2651,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
   function askFixedVolume(z: any, enabled: boolean) {
     zoneErr = null;
-    // Couper n'a rien de dangereux : immediat. Une zone LOCALE non plus —
-    // 100 % logiciel est justement le but.
-    if (!enabled || isLocalZone(z)) { applyFixedVolume(z, enabled); return; }
+    // Couper n'a rien de dangereux : immediat.
+    // web#2243 — ACTIVER demande l'accord sur TOUTE zone, locale comprise. Le
+    // serveur l'exige sans exception de type depuis tune-server-rust#2395
+    // (409 `full_volume_confirmation_required`) : la zone locale, dispensée
+    // ici, partait sans `confirm_full_volume` et n'était jamais enregistrée.
+    if (!enabled) { applyFixedVolume(z, false); return; }
     fvAsk = z.id; fvTyped = '';
   }
   function confirmFixedVolume(z: any) {
@@ -4457,6 +4460,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       onclick={() => preferences.update((pr) => ({ ...pr, volumeDisplay: 'dB' as VolumeDisplay }))}>{$t('settings.decibels' as any)}</button>
                   </div>
                 </div>
+                <!-- web#2292 (fil 2366) — boutons − et + autour du curseur de
+                     volume, au pas d'un point. Désactivés par défaut. -->
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.volumeStepButtons' as any)}</span>
+                    <span class="hint">{$t('settings.volumeStepButtonsHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={$preferences.volumeStepButtons === true}
+                      onchange={(e) => preferences.update((pr) => ({ ...pr, volumeStepButtons: (e.currentTarget as HTMLInputElement).checked }))} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
                 <!-- Niveau EXPERT seulement : la ligne technique n'existe pas
                      en dessous, proposer de l'afficher n'aurait aucun effet. -->
                 {#if atLeast(level, 'expert')}
@@ -5793,7 +5809,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
                       {#if fvAsk === z.id}
                         <div class="fvbox">
-                          <p>{#each emphaseParts($t('settings.fixedVolumeWarning' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+                          <p>{#each emphaseParts($t((isLocalZone(z) ? 'settings.fixedVolumeWarningLocal' : 'settings.fixedVolumeWarning') as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
                           <div class="inline">
                             <input class="txt time" type="text" placeholder="100" bind:value={fvTyped}
                               onkeydown={(e) => { if (e.key === 'Enter') confirmFixedVolume(z); if (e.key === 'Escape') fvAsk = null; }} />
@@ -5848,8 +5864,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'library'}
-              <SacdIsoStatus />
-              <div class="row">
+              <!-- web#2324 — décision de Bertrand (23/10) : « Analyser la
+                   bibliothèque » EN TÊTE de Réglages › Bibliothèque. Le bloc
+                   ISO SACD est descendu dans « Options de scan ». -->
+              <div class="row" data-analyse-bibliotheque>
                 <div class="lbl">
                   <span>{$t('settings.scanLibraryV2' as any)}</span>
                   <span class="hint">{$t('settings.scanModesHint' as any)}</span>
@@ -6178,6 +6196,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               {#if coffretsAutoErr}<div class="errline">{coffretsAutoErr}</div>{/if}
+              <!-- web#2324 — l'état de l'outil ISO SACD (disques DST), descendu
+                   ici depuis la carte « Bibliothèque » (décision du 23/10). -->
+              <SacdIsoStatus />
 
             {:else if s.id === 'scanSched'}
               {#if scanDemarrage !== null}

@@ -27,18 +27,25 @@
  * playlists de catalogues différents peuvent partager un numéro. En cas de
  * désaccord, pas de lien.
  *
+ * web#2051 (FabienM, fil 2199, point 2) — une écoute qui IGNORE sa source
+ * (d'avant la migration du serveur) ne désaccorde pas les autres : elle se
+ * tait. Une playlist écoutée avant ET après la mise à jour réunit les deux
+ * sortes dans la même ligne, et la seule écoute muette retirait le lien à
+ * toute la ligne, pour toujours. Il faut au moins une écoute qui sache.
+ *
  * Il faut aussi un NOM : la fiche d'une playlist de service ne relit pas le
  * sien, et une fiche sans titre ne vaut pas mieux que la ligne.
  */
 import { ouvrirParRaccourci, ouvrirPlaylistDeService } from './ouvrirParRaccourci';
 import type { ContexteEcoute } from './historiqueParContexte';
 
-/** La source commune des écoutes, ou `null` si l'une l'ignore ou diverge. */
+/** La source commune des écoutes qui la disent, ou `null` si aucune ne la
+ *  dit ou si deux divergent. Une écoute qui l'ignore ne compte pas (web#2051). */
 function sourceCommune(lot: readonly { contexte?: ContexteEcoute | null }[]): string | null {
   let source: string | null = null;
   for (const e of lot) {
     const s = typeof e.contexte?.source === 'string' ? e.contexte.source.trim().toLowerCase() : '';
-    if (!s) return null;
+    if (!s) continue;
     if (source == null) source = s;
     else if (source !== s) return null;
   }
