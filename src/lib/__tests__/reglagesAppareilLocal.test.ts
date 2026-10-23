@@ -292,3 +292,35 @@ describe('Le résumé montré avant d’écrire', () => {
     expect(resume(a)).toMatchObject({ zonesTrouvees: 3, zonesAChanger: 0, changements: 0, aLaMain: 0 });
   });
 });
+
+describe('tune-server-rust#6774 — un trim positif ne revient pas par le nom', () => {
+  const regle = zone({ id: 20, name: 'Salon', output_device_id: 'uuid:MEITNER', gain_trim_db: 4.5 });
+  const fichier = construireSauvegarde([regle]);
+
+  it('🔴 retrouvée par son NOM, la zone ne reçoit pas le trim positif', () => {
+    const marantz = zone({ id: 2, name: 'Salon', output_device_id: 'uuid:MARANTZ', gain_trim_db: 0 });
+    const [a] = apparier(fichier, [marantz]);
+    expect(a.methode).toBe('nom');
+    const trim = a.changements.find((c) => c.cle === 'gain_trim_db');
+    expect(trim, 'le trim est montré').toBeDefined();
+    expect(
+      trim!.applicable,
+      'un trim positif a été restauré sur un AUTRE appareil retrouvé par son seul nom (#6774)',
+    ).toBe(false);
+    expect(corpsPatch(a.changements)).not.toHaveProperty('gain_trim_db');
+    expect(resume([a]).aLaMain).toBe(1);
+  });
+
+  it('par la SORTIE, le même appareil retrouve son trim', () => {
+    const meme = zone({ id: 20, name: 'Renommé', output_device_id: 'uuid:MEITNER', gain_trim_db: 0 });
+    const [a] = apparier(fichier, [meme]);
+    expect(a.methode).toBe('sortie');
+    expect(corpsPatch(a.changements)).toMatchObject({ gain_trim_db: 4.5 });
+  });
+
+  it('par le nom, un trim négatif revient (il ne monte rien)', () => {
+    const f = construireSauvegarde([{ ...regle, gain_trim_db: -6 } as Zone]);
+    const autre = zone({ id: 2, name: 'Salon', output_device_id: 'uuid:MARANTZ' });
+    expect(corpsPatch(apparier(f, [autre])[0].changements)).toMatchObject({ gain_trim_db: -6 });
+  });
+});

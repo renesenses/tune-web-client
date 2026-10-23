@@ -574,6 +574,25 @@ export function ordreDeplace(items: { item_id: IdOpaque }[], itemId: IdOpaque, v
   return ids;
 }
 
+/**
+ * web#2287 — ce que fait une relecture planifiée de la fiche ouverte.
+ *
+ * - `remplacer` : la `version` du cloud a changé (un autre membre a écrit,
+ *   ou le suivi d'une playlist d'origine a reporté un changement) ; même
+ *   version → rien ne bouge à l'écran.
+ * - `resoudre` : la résolution « où se rejoue ce morceau chez moi » coûte
+ *   au greffon ; elle n'est refaite que si l'ensemble des `item_id` change
+ *   (un renommage ou un réordonnancement n'en demande pas).
+ */
+export function issueRelecture(
+  affichee: PlaylistCercle | null,
+  lue: PlaylistCercle,
+): { remplacer: boolean; resoudre: boolean } {
+  if (affichee && affichee.version === lue.version) return { remplacer: false, resoudre: false };
+  const ids = (p: PlaylistCercle) => p.items.map((x) => String(x.item_id)).sort().join(',');
+  return { remplacer: true, resoudre: !affichee || ids(affichee) !== ids(lue) };
+}
+
 /** Le morceau est-il encore là ? (un retrait sur un état reçu en 409) */
 export function contient(p: PlaylistCercle, itemId: IdOpaque): boolean {
   return p.items.some((x) => String(x.item_id) === String(itemId));

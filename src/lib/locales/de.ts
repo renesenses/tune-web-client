@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "Installieren",
+  "v2.lic.activate": "Aktivieren",
   "sacdIso.title": "SACD-ISO",
   "sacdIso.available": "Tune liest SACD-ISOs selbst. sacd_extract wurde auf dem Server erkannt und dient nur für DST-Discs (komprimiertes DSD); die Extraktion jeder einzelnen ist nicht garantiert.",
   "sacdIso.missing": "Tune liest SACD-ISOs selbst: dafür muss nichts installiert werden. Nur DST-Discs (komprimiertes DSD) benötigen sacd_extract, das auf diesem Server nicht erkannt wurde. Wenn Sie solche haben, installieren Sie es separat, starten Sie Tune neu, wenn Sie PATH ändern, und durchsuchen Sie die Bibliothek erneut.",
@@ -5512,6 +5514,19 @@ export default {
   "v2.set.spotifyClientIdClear": "Löschen",
   "v2.set.spotifyClientIdConfirmClear": "Gespeicherte Spotify Client ID löschen? Die übrigen Spotify-Einstellungen (Spotify Connect, Wiedergabe) bleiben erhalten. Zum Anmelden müssen Sie eine neue eingeben.",
   "v2.set.spotifyClientIdCleared": "Spotify Client ID gelöscht",
+  "scanDetenteur.origine.startup": "Scan beim Start",
+  "scanDetenteur.origine.manual": "Manuell gestarteter Scan",
+  "scanDetenteur.origine.scheduled": "Geplanter Scan",
+  "scanDetenteur.origine.late_network_mount": "Scan einer verspätet eingebundenen Netzwerkfreigabe",
+  "scanDetenteur.origine.music_dir_added": "Scan eines hinzugefügten Ordners",
+  "scanDetenteur.origine.import": "Scan eines Imports",
+  "scanDetenteur.origine.cd_rip": "Scan eines CD-Rips",
+  "scanDetenteur.origine.inconnue": "Scan unbekannter Herkunft",
+  "scanDetenteur.dossier": "Ordner {chemin}",
+  "scanDetenteur.toute": "gesamte Bibliothek",
+  "scanDetenteur.depuis": "seit {heure}",
+  "scanDetenteur.residuel": "Veralteter Status: Es läuft kein Scan. „Stopp“ setzt ihn zurück.",
+  "scanDetenteur.refus409": "Der Server hat abgelehnt: Ein anderer Scan läuft bereits ({scan}). Versuchen Sie es erneut, wenn er beendet ist.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

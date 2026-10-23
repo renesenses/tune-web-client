@@ -29,6 +29,10 @@
    *   peuvent en récupérer une copie 30 jours durant ; la confirmation le dit.
    * - Pas de bouton « copier » ici (décision 5) : la copie ne s'offre que
    *   pour une playlist d'un cercle supprimé (bloc « Playlists à récupérer »).
+   * - web#2287 — la fiche ouverte se relit comme la liste : toutes les
+   *   `RELECTURE_CERCLE_MS` ms, onglet visible et aucun geste en cours, et au
+   *   retour de l'onglet. Elle ne remplace l'écran que si la `version` a
+   *   changé (voir `issueRelecture`).
    */
   import { onDestroy, tick } from 'svelte';
   import { t } from '../../lib/i18n';
@@ -43,11 +47,11 @@
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne } from '../../lib/stores/nowPlaying';
   import { tirageAleatoire } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
-  import { motifCercle } from '../../lib/circle';
+  import { motifCercle, RELECTURE_CERCLE_MS } from '../../lib/circle';
   import {
     lirePlaylistCercle, resoudrePlaylistCercle, retirerMorceau, reordonnerMorceaux,
     renommerPlaylistCercle, supprimerPlaylistCercle, jouerPlaylistCercle,
-    gesteVersionne, ordreDeplace, contient, plusPartagee, codeT5, nomPlaylistValide, NOM_PLAYLIST_MAX,
+    gesteVersionne, ordreDeplace, contient, issueRelecture, plusPartagee, codeT5, nomPlaylistValide, NOM_PLAYLIST_MAX,
     type IdOpaque, type PlaylistCercle, type MorceauCercle, type EtatResolution, type IssueGeste,
     type SelectionLecture,
   } from '../../lib/circlePlaylists';
@@ -121,6 +125,47 @@
       if (fermerSi404(e)) return;
       erreur = phraseRefus(e);
     }
+  }
+
+  /**
+   * web#2287 — relecture planifiée. Rien pendant un geste (`occupe`) ou un
+   * glisser, ni onglet caché ; et un geste commencé pendant la lecture
+   * l'emporte : son résultat est plus frais que ce qui revient.
+   */
+  let minuteur: ReturnType<typeof setTimeout> | null = null;
+  let relectureEnCours = false;
+
+  async function relirePlanifie() {
+    if (fini || !playlist || occupe || glisse != null || relectureEnCours) return;
+    if (typeof document !== 'undefined' && document.hidden) return;
+    relectureEnCours = true;
+    try {
+      const p = await relireSeule();
+      if (fini || occupe || !playlist) return;
+      const issue = issueRelecture(playlist, p);
+      if (!issue.remplacer) return;
+      playlist = p;
+      if (issue.resoudre) void resoudre();
+    } catch (e) {
+      // Une relecture qui échoue se tait : l'écran garde ce qu'il montrait,
+      // la suivante réessaiera. Seul un 404 dit la fin du partage.
+      fermerSi404(e);
+    } finally {
+      relectureEnCours = false;
+    }
+  }
+
+  function planifier() {
+    if (fini) return;
+    if (minuteur) clearTimeout(minuteur);
+    minuteur = setTimeout(async () => {
+      await relirePlanifie();
+      planifier();
+    }, RELECTURE_CERCLE_MS);
+  }
+
+  function auRetourDeLOnglet() {
+    if (!document.hidden) void relirePlanifie();
   }
 
   /**
@@ -377,7 +422,16 @@
   };
 
   $effect(() => { void charger(); });
-  onDestroy(() => { fini = true; });
+  $effect(() => {
+    planifier();
+    document.addEventListener('visibilitychange', auRetourDeLOnglet);
+    return () => {
+      if (minuteur) clearTimeout(minuteur);
+      minuteur = null;
+      document.removeEventListener('visibilitychange', auRetourDeLOnglet);
+    };
+  });
+  onDestroy(() => { fini = true; if (minuteur) clearTimeout(minuteur); });
 </script>
 
 <svelte:window onclick={clicDehors} />

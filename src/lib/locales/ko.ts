@@ -1,4 +1,6 @@
 export default {
+  "plugins.install": "설치",
+  "v2.lic.activate": "활성화",
   "sacdIso.title": "SACD ISO",
   "sacdIso.available": "Tune은 SACD ISO를 직접 읽습니다. 서버에서 찾은 sacd_extract는 DST 디스크(압축 DSD)에만 쓰이며, 모든 디스크의 추출을 보장하지는 않습니다.",
   "sacdIso.missing": "Tune은 SACD ISO를 직접 읽습니다. 이를 위해 설치할 것은 없습니다. sacd_extract는 DST 디스크(압축 DSD)에만 필요하며, 이 서버에서는 찾지 못했습니다. DST 디스크가 있다면 별도로 설치하고, PATH를 변경했다면 Tune을 다시 시작한 후 다시 스캔하세요.",
@@ -5512,6 +5514,19 @@ export default {
   "v2.set.spotifyClientIdClear": "지우기",
   "v2.set.spotifyClientIdConfirmClear": "저장된 Spotify Client ID를 지울까요? 다른 Spotify 설정(Spotify Connect, 재생)은 유지됩니다. 로그인하려면 새 Client ID를 입력해야 합니다.",
   "v2.set.spotifyClientIdCleared": "Spotify Client ID를 지웠습니다",
+  "scanDetenteur.origine.startup": "시작 시 스캔",
+  "scanDetenteur.origine.manual": "수동으로 시작한 스캔",
+  "scanDetenteur.origine.scheduled": "예약된 스캔",
+  "scanDetenteur.origine.late_network_mount": "늦게 마운트된 네트워크 공유 스캔",
+  "scanDetenteur.origine.music_dir_added": "추가된 폴더 스캔",
+  "scanDetenteur.origine.import": "가져오기 스캔",
+  "scanDetenteur.origine.cd_rip": "CD 리핑 스캔",
+  "scanDetenteur.origine.inconnue": "출처를 알 수 없는 스캔",
+  "scanDetenteur.dossier": "폴더 {chemin}",
+  "scanDetenteur.toute": "전체 라이브러리",
+  "scanDetenteur.depuis": "{heure}부터",
+  "scanDetenteur.residuel": "남은 상태: 실제로 실행 중인 스캔이 없습니다. '중지'를 누르면 초기화됩니다.",
+  "scanDetenteur.refus409": "서버가 거부했습니다: 다른 스캔이 이미 실행 중입니다({scan}). 끝난 뒤 다시 시도하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
