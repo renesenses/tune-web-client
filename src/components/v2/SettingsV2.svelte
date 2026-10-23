@@ -90,6 +90,7 @@
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
   import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
   import { CLE_PARTAGE_COMMUNAUTAIRE } from '../../lib/notesCommunautaires';
+  import { CLE_LEVER_LE_BRIDAGE } from '../../lib/temperatureProcesseur';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import {
@@ -508,6 +509,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // de ses cœurs). `null` : serveur qui ne connaît pas le réglage, on le tait.
   let bgSpeed = $state<string | null>(null);
   let bgSpeedWidths = $state<Record<string, number>>({});
+  // tune-server-rust#6713 — lever le bridage des analyses quand la
+  // température est illisible : désactivé par défaut, niveau Expert, avec
+  // un avertissement à l'activation.
+  let levBridage = $state<boolean | null>(null);
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let devicesLoaded = $state(false);
   let creatingBrowserZone = $state(false);
@@ -530,6 +535,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const vitesse = c?.background_analysis_speed;
         bgSpeed = ['discreet', 'normal', 'fast'].includes(vitesse) ? vitesse : null;
         bgSpeedWidths = c?.background_analysis_speed_widths ?? {};
+        // tune-server-rust#6713 — `null` : serveur qui ne publie pas la clé, pas de case.
+        levBridage = c && CLE_LEVER_LE_BRIDAGE in c ? (c[CLE_LEVER_LE_BRIDAGE] === true || c[CLE_LEVER_LE_BRIDAGE] === 'true') : null;
       })
       .catch(() => {});
     api.withTimeout(api.getAudioDevices(), 8_000, '/devices/audio')
@@ -581,6 +588,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function setBgSpeed(v: string) {
     const before = bgSpeed; bgSpeed = v;
     patch({ background_analysis_speed: v }, () => { bgSpeed = before; });
+  }
+  async function setLevBridage(ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    // Lever le bridage se fait en connaissance de cause : l'avertissement
+    // d'abord, et un refus laisse la case décochée.
+    if (souhait && !(await dialogs.confirm($t('settings.analysisUnthrottleConfirm' as any), { danger: true }))) {
+      if (caseCochee) caseCochee.checked = false;
+      return;
+    }
+    const before = levBridage; levBridage = souhait;
+    patch({ [CLE_LEVER_LE_BRIDAGE]: souhait }, () => {
+      levBridage = before;
+      if (caseCochee) caseCochee.checked = !!before;
+    });
   }
   function libelleVitesse(v: string, cle: string): string {
     const n = bgSpeedWidths?.[v];
@@ -5842,8 +5864,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'library'}
-              <SacdIsoStatus />
-              <div class="row">
+              <!-- web#2324 — décision de Bertrand (23/10) : « Analyser la
+                   bibliothèque » EN TÊTE de Réglages › Bibliothèque. Le bloc
+                   ISO SACD est descendu dans « Options de scan ». -->
+              <div class="row" data-analyse-bibliotheque>
                 <div class="lbl">
                   <span>{$t('settings.scanLibraryV2' as any)}</span>
                   <span class="hint">{$t('settings.scanModesHint' as any)}</span>
@@ -6172,6 +6196,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               {#if coffretsAutoErr}<div class="errline">{coffretsAutoErr}</div>{/if}
+              <!-- web#2324 — l'état de l'outil ISO SACD (disques DST), descendu
+                   ici depuis la carte « Bibliothèque » (décision du 23/10). -->
+              <SacdIsoStatus />
 
             {:else if s.id === 'scanSched'}
               {#if scanDemarrage !== null}
@@ -7403,6 +7430,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <button class:on={bgSpeed === 'normal'} onclick={() => setBgSpeed('normal')}>{libelleVitesse('normal', 'settings.analysisSpeedNormal')}</button>
                       <button class:on={bgSpeed === 'fast'} onclick={() => setBgSpeed('fast')}>{libelleVitesse('fast', 'settings.analysisSpeedFast')}</button>
                     </div>
+                  </div>
+                {/if}
+                <!-- tune-server-rust#6713 — niveau Expert seulement : rend la
+                     vitesse réglée quand la température est illisible. -->
+                {#if levBridage !== null && atLeast(level, 'expert')}
+                  <div class="row" data-reglage="lever-bridage">
+                    <div class="lbl">
+                      <span>{$t('settings.analysisUnthrottle' as any)}</span>
+                      <span class="hint">{$t('settings.analysisUnthrottleHint' as any)}</span>
+                    </div>
+                    <label class="sw">
+                      <input type="checkbox" data-cle={CLE_LEVER_LE_BRIDAGE} checked={levBridage}
+                        aria-label={$t('settings.analysisUnthrottle' as any)}
+                        onchange={setLevBridage} />
+                      <span class="slider"></span>
+                    </label>
                   </div>
                 {/if}
                 {#if remesure}

@@ -6,6 +6,7 @@ import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
+import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
 import type { ApercuFavorisRadio } from './favorisRadioQobuz';
 import { profileHeader } from './profileHeader';
@@ -1746,7 +1747,13 @@ export function seek(zoneId: number, positionMs: number) {
   });
 }
 
-export function setVolume(zoneId: number, volume: number) {
+/** Règle le volume d'une zone. `curseur` est la position du CURSEUR (0..1) :
+ *  sur une zone `volume_curve: "db60"` (tune-server-rust#6787), elle part en
+ *  GAIN, le sens historique de `volume` côté serveur. Une valeur qui serait
+ *  déjà un gain y est relue comme un curseur : elle joue plus bas, jamais
+ *  plus haut (`gainPerceptif(p) <= p`). */
+export function setVolume(zoneId: number, curseur: number) {
+  const volume = gainDeLaZone(zonePourLeCurseur(zoneId), curseur);
   return fetchVoid(`${BASE}/zones/${zoneId}/volume`, {
     method: 'PUT',
     body: JSON.stringify({ volume }),
@@ -8510,6 +8517,10 @@ export function getServerDiagnostics() {
     // `temperature_figee`). Absent chez un serveur antérieur.
     analyses_bridees?: string | null;
     analyses_bridees_largeur?: number | null;
+    // tune-server-rust#6713 — le motif quand la température est illisible
+    // MAIS que l'utilisateur a levé le bridage ; `null` sinon. Absent chez
+    // un serveur antérieur.
+    analyses_bridage_leve?: string | null;
     // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
     // compatible with older servers during rolling client/server updates.
     asio_warm_scan?: AsioWarmScanStatus;

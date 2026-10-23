@@ -18,6 +18,7 @@
    *   Expert → type de sortie, volume fixe, plafond de fréquence, DSD.
    */
   import * as api from '../../lib/api';
+  import { gainDeLaZone, volumeDepuisGain } from '../../lib/courbeDeVolume';
   import { zones, currentZoneId } from '../../lib/stores/zones';
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { chargerLesZones, etatDesZones, listeVraimentVide } from '../../lib/chargementDesZones';
@@ -430,7 +431,8 @@
   function setVol(z: Zone, v: number) {
     if (z.id == null) return;
     const lineaire = v / 100;
-    zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume: lineaire } : x)));
+    // tune-server-rust#6787 — `v` est le CURSEUR ; la zone porte le GAIN.
+    zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume: gainDeLaZone(z, lineaire) } : x)));
     api.setVolume(z.id, lineaire).catch(() => { error = $t('v2.zone.volumeRefused' as any); refresh(); });
   }
 
@@ -722,10 +724,10 @@
             {/if}
             <div class="cvol">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
-              <input type="range" min="0" max="100" step="1" value={Math.round((z.volume ?? 0) * 100)}
+              <input type="range" min="0" max="100" step="1" value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
                 aria-label={`Volume de ${z.name}`} />
-              <span class="vn">{Math.round((z.volume ?? 0) * 100)}</span>
+              <span class="vn">{Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
               <MenuZone entrees={entreesDe(z)} nom={z.name} occupe={busy} />
             </div>
           </div>
@@ -764,10 +766,10 @@
 
             <span class="vol">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
-              <input type="range" min="0" max="100" step="1" value={Math.round((z.volume ?? 0) * 100)}
+              <input type="range" min="0" max="100" step="1" value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
                 aria-label={`Volume de ${z.name}`} />
-              <span class="vn">{Math.round((z.volume ?? 0) * 100)}</span>
+              <span class="vn">{Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
             </span>
 
             {#if showExpert}
