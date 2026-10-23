@@ -461,6 +461,8 @@ export default {
   'settings.defaultZone': 'Zona por defecto',
   'settings.autoZone': 'Automática (primera zona)',
   'settings.volumeDisplay': 'Visualización del volumen',
+  "settings.volumeStepButtons": "Botones − y + junto al control de volumen",
+  "settings.volumeStepButtonsHint": "Cada clic sube o baja el volumen un punto. El + se detiene en el límite de seguridad de la zona.",
   'settings.percent': 'Porcentaje (0-100)',
   'settings.decibels': 'Decibelios (dB)',
   'settings.streaming': 'Servicios de streaming',

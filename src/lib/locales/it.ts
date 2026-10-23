@@ -461,6 +461,8 @@ export default {
   'settings.defaultZone': 'Zona predefinita',
   'settings.autoZone': 'Automatica (prima zona)',
   'settings.volumeDisplay': 'Visualizzazione volume',
+  "settings.volumeStepButtons": "Pulsanti − e + accanto al cursore del volume",
+  "settings.volumeStepButtonsHint": "Ogni clic alza o abbassa il volume di un punto. Il + si ferma al limite di sicurezza della zona.",
   'settings.percent': 'Percentuale (0-100)',
   'settings.decibels': 'Decibel (dB)',
   'settings.streaming': 'Servizi di streaming',

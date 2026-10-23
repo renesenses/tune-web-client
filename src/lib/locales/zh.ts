@@ -461,6 +461,8 @@ export default {
   'settings.defaultZone': '默认区域',
   'settings.autoZone': '自动（第一个区域）',
   'settings.volumeDisplay': '音量显示',
+  "settings.volumeStepButtons": "音量滑块两侧的 − 和 + 按钮",
+  "settings.volumeStepButtonsHint": "每次点击将音量升高或降低一个点。+ 会停在该区域的安全上限。",
   'settings.percent': '百分比（0-100）',
   'settings.decibels': '分贝（dB）',
   'settings.streaming': '流媒体服务',

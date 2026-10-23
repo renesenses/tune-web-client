@@ -467,6 +467,8 @@ export default {
   'settings.defaultZone': 'Zonă implicită',
   'settings.autoZone': 'Automat (prima zonă)',
   'settings.volumeDisplay': 'Afișare volum',
+  "settings.volumeStepButtons": "Butoane − și + în jurul cursorului de volum",
+  "settings.volumeStepButtonsHint": "Fiecare clic crește sau scade volumul cu un punct. + se oprește la limita de siguranță a zonei.",
   'settings.percent': 'Procent (0-100)',
   'settings.decibels': 'Decibeli (dB)',
   'settings.streaming': 'Servicii de streaming',

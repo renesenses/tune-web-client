@@ -54,6 +54,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
   import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
   import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
+  import { cibleDuPas } from '../../lib/limitesVolume';
   import {
     audiophileEnabled,
     audiophileGlobalLockVolume,
@@ -114,7 +115,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   async function mobileVolumeStep(delta: number) {
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
-    const newVal = Math.max(0, Math.min(1, mobileVol + delta));
+    // web#2292 — un point, et + borné par la sécurité de la zone comme les
+    // boutons du curseur, pas seulement par 100 %.
+    const newVal = cibleDuPas(z, mobileVol, delta > 0 ? 'up' : 'down');
+    if (newVal === mobileVol) return;
     if (delta > 0) leverSourdineSiBesoin({ ...z, id: z.id }, newVal);
     applyMobileVolume(z, newVal);
     await api.setVolume(z.id, newVal);

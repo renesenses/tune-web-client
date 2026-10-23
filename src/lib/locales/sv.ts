@@ -436,6 +436,8 @@ export default {
   'settings.defaultZone': 'Standardzon',
   'settings.autoZone': 'Automatisk (första zonen)',
   'settings.volumeDisplay': 'Volymvisning',
+  "settings.volumeStepButtons": "Knappar − och + runt volymreglaget",
+  "settings.volumeStepButtonsHint": "Varje klick höjer eller sänker volymen med en punkt. + stannar vid zonens säkerhetsgräns.",
   'settings.percent': 'Procent (0–100)',
   'settings.decibels': 'Decibel (dB)',
   'settings.streaming': 'Streamingtjänster',

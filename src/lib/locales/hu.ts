@@ -537,6 +537,8 @@ export default {
   "settings.defaultZone": "Alapértelmezett zóna",
   "settings.autoZone": "Automatikus (első zóna)",
   "settings.volumeDisplay": "Hangerő megjelenítése",
+  "settings.volumeStepButtons": "− és + gombok a hangerő-csúszka két oldalán",
+  "settings.volumeStepButtonsHint": "Minden kattintás egy ponttal növeli vagy csökkenti a hangerőt. A + megáll a zóna biztonsági határánál.",
   "settings.percent": "Százalék (0–100)",
   "settings.decibels": "Decibel (dB)",
   "settings.streaming": "Streamingszolgáltatások",

@@ -557,6 +557,8 @@ export default {
   'settings.defaultZone': 'Default Zone',
   'settings.autoZone': 'Automatic (first zone)',
   'settings.volumeDisplay': 'Volume Display',
+  "settings.volumeStepButtons": "− and + buttons around the volume slider",
+  "settings.volumeStepButtonsHint": "Each click raises or lowers the volume by one point. + stops at the zone's safety limit.",
   'settings.percent': 'Percentage (0-100)',
   'settings.decibels': 'Decibels (dB)',
   'settings.streaming': 'Streaming Services',

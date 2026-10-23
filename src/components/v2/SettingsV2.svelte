@@ -4435,6 +4435,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       onclick={() => preferences.update((pr) => ({ ...pr, volumeDisplay: 'dB' as VolumeDisplay }))}>{$t('settings.decibels' as any)}</button>
                   </div>
                 </div>
+                <!-- web#2292 (fil 2366) — boutons − et + autour du curseur de
+                     volume, au pas d'un point. Désactivés par défaut. -->
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.volumeStepButtons' as any)}</span>
+                    <span class="hint">{$t('settings.volumeStepButtonsHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={$preferences.volumeStepButtons === true}
+                      onchange={(e) => preferences.update((pr) => ({ ...pr, volumeStepButtons: (e.currentTarget as HTMLInputElement).checked }))} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
                 <!-- Niveau EXPERT seulement : la ligne technique n'existe pas
                      en dessous, proposer de l'afficher n'aurait aucun effet. -->
                 {#if atLeast(level, 'expert')}

@@ -461,6 +461,8 @@ export default {
   'settings.defaultZone': '기본 존',
   'settings.autoZone': '자동 (첫 번째 존)',
   'settings.volumeDisplay': '볼륨 표시',
+  "settings.volumeStepButtons": "볼륨 슬라이더 양옆의 − 및 + 버튼",
+  "settings.volumeStepButtonsHint": "클릭할 때마다 볼륨을 1포인트씩 올리거나 내립니다. +는 존의 안전 한도에서 멈춥니다.",
   'settings.percent': '백분율 (0-100)',
   'settings.decibels': '데시벨 (dB)',
   'settings.streaming': '스트리밍 서비스',
