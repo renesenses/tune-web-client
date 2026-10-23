@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AuditIntegrite from '../partages/AuditIntegrite.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Réglages du nouveau client (direction Levente).
@@ -6065,6 +6066,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
+              <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
+              <AuditIntegrite />
 
             {:else if s.id === 'musicDirs'}
               <!-- Fil 2171 — le sélecteur est LE geste d'ajout : un vrai bouton,
