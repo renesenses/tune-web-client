@@ -2750,33 +2750,6 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       {#if depot}<span class="dist">{depot.hote}</span>{/if}
     </div>
     <div class="v2-actions">
-    {#if !depot}
-      <button class="v2-btn" data-lire-selection onclick={lireDansLOrdre}
-        disabled={lectureEnOrdre || $currentZoneId == null || lireEnCharge || selectionVide}
-        title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any) : $tr('v2.lib.playInOrder' as any)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4l14 8-14 8z"/></svg>{lectureEnOrdre ? $tr('v2.lib.starting' as any) : $tr('v2.album.play' as any)}
-      </button>
-    {/if}
-    <button class="v2-btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null || (albumsAleatoire != null && enCharge)}
-      title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any)
-        : depot ? $tr('v2.lib.shuffleDepot' as any).replace('{nom}', depot.nom)
-        : $tr('v2.lib.shuffleAll' as any)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20 20 4M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>{shuffling ? $tr('v2.lib.starting' as any) : $tr('v2.album.shuffle' as any)}
-    </button>
-    {#if !depot}
-      <!-- Declarer un dossier de musique est un reglage du serveur LOCAL :
-           le proposer sur la bibliotheque d'une autre machine promettrait
-           d'agir sur elle, ce qu'on ne fait pas. -->
-      {#if idsDuLotIa.length && atLeast(level, 'intermediate')}
-        <button class="v2-btn" data-suggestions-ia-lot-ouvrir onclick={() => (lotIa = idsDuLotIa)}
-          title={$tr('assistantIa.lot.tip' as any).replace('{n}', String(idsDuLotIa.length))}>
-          {$tr('assistantIa.album.button' as any)}
-        </button>
-      {/if}
-      <button class="v2-btn" onclick={addContent} title={$tr('v2.lib.addFolders' as any)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>{$tr('v2.tags.add' as any)}
-      </button>
-    {/if}
     <nav class="tabs">
       <!-- #1372 — `ONGLETS`, et non `TABS` : « Ajouts récents » n'est pas
            offert sur un dépôt distant, faute de route chez lui. -->
@@ -3035,6 +3008,40 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         onChanger={(v) => (display = v)} />
       {/if}
     {/if}
+    <!-- web#2198 (fil 2277, capture annotée) — Lire, Aléatoire et Ajouter
+         occupaient une rangée à eux au-dessus des onglets sur un écran de
+         16 pouces (la grappe d'actions passait à la ligne). Ils rejoignent
+         le bout de la rangée du champ de recherche, à droite : l'en-tête ne
+         garde que le titre et les onglets, et les filtres ne bougent pas. -->
+    <div class="v2-actions gestes-lib">
+    {#if !depot}
+      <button class="v2-btn" data-lire-selection onclick={lireDansLOrdre}
+        disabled={lectureEnOrdre || $currentZoneId == null || lireEnCharge || selectionVide}
+        title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any) : $tr('v2.lib.playInOrder' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4l14 8-14 8z"/></svg>{lectureEnOrdre ? $tr('v2.lib.starting' as any) : $tr('v2.album.play' as any)}
+      </button>
+    {/if}
+    <button class="v2-btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null || (albumsAleatoire != null && enCharge)}
+      title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any)
+        : depot ? $tr('v2.lib.shuffleDepot' as any).replace('{nom}', depot.nom)
+        : $tr('v2.lib.shuffleAll' as any)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20 20 4M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>{shuffling ? $tr('v2.lib.starting' as any) : $tr('v2.album.shuffle' as any)}
+    </button>
+    {#if !depot}
+      <!-- Declarer un dossier de musique est un reglage du serveur LOCAL :
+           le proposer sur la bibliotheque d'une autre machine promettrait
+           d'agir sur elle, ce qu'on ne fait pas. -->
+      {#if idsDuLotIa.length && atLeast(level, 'intermediate')}
+        <button class="v2-btn" data-suggestions-ia-lot-ouvrir onclick={() => (lotIa = idsDuLotIa)}
+          title={$tr('assistantIa.lot.tip' as any).replace('{n}', String(idsDuLotIa.length))}>
+          {$tr('assistantIa.album.button' as any)}
+        </button>
+      {/if}
+      <button class="v2-btn" onclick={addContent} title={$tr('v2.lib.addFolders' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>{$tr('v2.tags.add' as any)}
+      </button>
+    {/if}
+    </div>
   </div>
 
   <!--
@@ -3765,6 +3772,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .tab.active{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .filters{display:flex; align-items:center; gap:12px; padding:16px 30px 14px; flex-wrap:wrap}
+  /* web#2198 — les gestes de l'écran, poussés au bout de la rangée. */
+  .gestes-lib{margin-left:auto}
   .chip{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 15px; border-radius:var(--v2-r-pill);
     background:var(--v2-surface); border:1px solid transparent; color:var(--v2-txt2); font:600 13.5px var(--v2-sans); cursor:pointer; transition:.15s}
   .chip:hover{color:var(--v2-txt)}
