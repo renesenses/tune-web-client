@@ -404,7 +404,7 @@ export default {
   'library.recentCreationFallback': '{n} pistes sans date de création connue : rangées par date de modification.',
   'library.noRecentAlbums': 'Aucun album ajouté sur cette période.',
   'library.recentLoadError': 'Impossible de charger les ajouts récents : la liste reste vide.',
-  'library.boxSetsRule': 'Les coffrets de la bibliothèque : réunis automatiquement (un dossier par disque) ou composés à la main.',
+  'library.boxSetsRule': 'Les coffrets de la bibliothèque : réunis automatiquement (un dossier par disque), albums d\'au moins trois disques nommés chacun autrement, ou composés à la main.',
   'library.noBoxSets': 'Aucun coffret dans la bibliothèque.',
   'library.boxSetsLoadError': 'Impossible de charger les coffrets : la liste reste vide.',
   'library.boxSetsUnsupported': 'Ce serveur ne liste pas encore les coffrets : mettez-le à jour.',

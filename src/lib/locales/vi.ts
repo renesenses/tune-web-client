@@ -371,7 +371,7 @@ export default {
   "library.recentCreationFallback": "{n} bài hát không có ngày tạo: được sắp xếp theo ngày sửa đổi.",
   "library.noRecentAlbums": "Không có album nào được thêm trong khoảng thời gian này.",
   "library.recentLoadError": "Không thể tải các mục mới thêm: danh sách vẫn trống.",
-  "library.boxSetsRule": "Các bộ đĩa (box set) trong thư viện: được gộp tự động (mỗi đĩa một thư mục) hoặc ghép thủ công.",
+  "library.boxSetsRule": "Các bộ đĩa (box set) trong thư viện: được gộp tự động (mỗi đĩa một thư mục), album có ít nhất ba đĩa mang tên khác nhau, hoặc ghép thủ công.",
   "library.noBoxSets": "Không có bộ đĩa (box set) nào trong thư viện.",
   "library.boxSetsLoadError": "Không thể tải các bộ đĩa (box set): danh sách vẫn trống.",
   "library.boxSetsUnsupported": "Máy chủ này chưa hỗ trợ liệt kê bộ đĩa (box set): vui lòng cập nhật máy chủ.",

@@ -284,7 +284,7 @@ export default {
   'library.recentCreationFallback': '{n} spår saknar känt skapandedatum: sorterade efter ändringsdatum.',
   'library.noRecentAlbums': 'Inget album tillagt under denna period.',
   'library.recentLoadError': 'De senaste tilläggen kunde inte läsas in: listan förblir tom.',
-  'library.boxSetsRule': 'Bibliotekets boxar: sammanslagna automatiskt (en mapp per skiva) eller sammansatta för hand.',
+  'library.boxSetsRule': 'Bibliotekets boxar: sammanslagna automatiskt (en mapp per skiva), album med minst tre olika namngivna skivor eller sammansatta för hand.',
   'library.noBoxSets': 'Inga boxar i biblioteket.',
   'library.boxSetsLoadError': 'Boxarna kunde inte läsas in: listan förblir tom.',
   'library.boxSetsUnsupported': 'Den här servern listar inte boxar än: uppdatera den.',

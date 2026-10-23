@@ -313,7 +313,7 @@ export default {
   'library.recentCreationFallback': '{n} 首曲目没有已知的创建日期：按修改日期排序。',
   'library.noRecentAlbums': '该时间段内没有新增专辑。',
   'library.recentLoadError': '无法加载最近添加的内容：列表保持为空。',
-  'library.boxSetsRule': '媒体库中的套装：自动合并（每张碟一个文件夹）或手动组合。',
+  'library.boxSetsRule': '媒体库中的套装：自动合并（每张碟一个文件夹）、至少三张且各有不同名称的碟的专辑，或手动组合。',
   'library.noBoxSets': '媒体库中没有套装。',
   'library.boxSetsLoadError': '无法加载套装：列表保持为空。',
   'library.boxSetsUnsupported': '此服务器尚不能列出套装：请更新。',

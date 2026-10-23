@@ -313,7 +313,7 @@ export default {
   'library.recentCreationFallback': '트랙 {n}개는 만든 날짜를 알 수 없어 수정한 날짜로 정렬했습니다.',
   'library.noRecentAlbums': '이 기간에 추가된 앨범이 없습니다.',
   'library.recentLoadError': '최근 추가된 항목을 불러올 수 없습니다. 목록은 비어 있습니다.',
-  'library.boxSetsRule': '라이브러리의 박스 세트: 자동으로 합친 것(디스크마다 폴더 하나)과 직접 만든 것.',
+  'library.boxSetsRule': '라이브러리의 박스 세트: 자동으로 합친 것(디스크마다 폴더 하나), 디스크마다 이름이 다른 3장 이상의 앨범, 직접 만든 것.',
   'library.noBoxSets': '라이브러리에 박스 세트가 없습니다.',
   'library.boxSetsLoadError': '박스 세트를 불러올 수 없습니다. 목록은 비어 있습니다.',
   'library.boxSetsUnsupported': '이 서버는 아직 박스 세트 목록을 제공하지 않습니다. 업데이트하세요.',

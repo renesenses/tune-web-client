@@ -313,7 +313,7 @@ export default {
   'library.recentCreationFallback': '{n} brani senza data di creazione nota: ordinati per data di modifica.',
   'library.noRecentAlbums': 'Nessun album aggiunto in questo periodo.',
   'library.recentLoadError': 'Impossibile caricare le aggiunte recenti: l’elenco resta vuoto.',
-  'library.boxSetsRule': 'I cofanetti della libreria: riuniti automaticamente (una cartella per disco) o composti a mano.',
+  'library.boxSetsRule': 'I cofanetti della libreria: riuniti automaticamente (una cartella per disco), album di almeno tre dischi con nomi diversi o composti a mano.',
   'library.noBoxSets': 'Nessun cofanetto nella libreria.',
   'library.boxSetsLoadError': 'Impossibile caricare i cofanetti: l’elenco resta vuoto.',
   'library.boxSetsUnsupported': 'Questo server non elenca ancora i cofanetti: aggiornalo.',

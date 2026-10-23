@@ -313,7 +313,7 @@ export default {
   'library.recentCreationFallback': '{n} 曲は作成日が不明です：更新日で並べています。',
   'library.noRecentAlbums': 'この期間に追加されたアルバムはありません。',
   'library.recentLoadError': '最近追加された項目を読み込めませんでした。リストは空のままです。',
-  'library.boxSetsRule': 'ライブラリのボックスセット：自動でまとめたもの（ディスクごとに1フォルダ）と手動で作成したもの。',
+  'library.boxSetsRule': 'ライブラリのボックスセット：自動でまとめたもの（ディスクごとに1フォルダ）、それぞれ異なる名前の付いた3枚以上のディスクのアルバム、手動で作成したもの。',
   'library.noBoxSets': 'ライブラリにボックスセットはありません。',
   'library.boxSetsLoadError': 'ボックスセットを読み込めませんでした。リストは空のままです。',
   'library.boxSetsUnsupported': 'このサーバーはまだボックスセットを一覧表示できません。更新してください。',

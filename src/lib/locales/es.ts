@@ -313,7 +313,7 @@ export default {
   'library.recentCreationFallback': '{n} pistas sin fecha de creación conocida: ordenadas por fecha de modificación.',
   'library.noRecentAlbums': 'Ningún álbum añadido en este periodo.',
   'library.recentLoadError': 'No se pudieron cargar los añadidos recientes: la lista queda vacía.',
-  'library.boxSetsRule': 'Las cajas de la biblioteca: reunidas automáticamente (una carpeta por disco) o compuestas a mano.',
+  'library.boxSetsRule': 'Las cajas de la biblioteca: reunidas automáticamente (una carpeta por disco), álbumes de al menos tres discos con nombres distintos o compuestas a mano.',
   'library.noBoxSets': 'Ninguna caja en la biblioteca.',
   'library.boxSetsLoadError': 'No se pudieron cargar las cajas: la lista queda vacía.',
   'library.boxSetsUnsupported': 'Este servidor aún no lista las cajas: actualícelo.',
