@@ -6,6 +6,7 @@ import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
+import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
 import type { ApercuFavorisRadio } from './favorisRadioQobuz';
 import { profileHeader } from './profileHeader';
@@ -1746,7 +1747,13 @@ export function seek(zoneId: number, positionMs: number) {
   });
 }
 
-export function setVolume(zoneId: number, volume: number) {
+/** Règle le volume d'une zone. `curseur` est la position du CURSEUR (0..1) :
+ *  sur une zone `volume_curve: "db60"` (tune-server-rust#6787), elle part en
+ *  GAIN, le sens historique de `volume` côté serveur. Une valeur qui serait
+ *  déjà un gain y est relue comme un curseur : elle joue plus bas, jamais
+ *  plus haut (`gainPerceptif(p) <= p`). */
+export function setVolume(zoneId: number, curseur: number) {
+  const volume = gainDeLaZone(zonePourLeCurseur(zoneId), curseur);
   return fetchVoid(`${BASE}/zones/${zoneId}/volume`, {
     method: 'PUT',
     body: JSON.stringify({ volume }),
@@ -7808,7 +7815,7 @@ export async function getRadioFranceEpisodes(showUrl: string, limit = 20): Promi
   return res.json();
 }
 
-export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string, podcastId?: number | string, sourceId?: string): Promise<any[]> {
+export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string, podcastId?: number | string, sourceId?: string, country?: string): Promise<any[]> {
   let url: string;
   if (podcastId != null && podcastId !== '') {
     // Prefer the by-id endpoint: the server resolves feed_url from the
@@ -7825,11 +7832,19 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
     if (!feedUrl && !showUrl && !sourceId) return []; // nothing to fetch — don't hit the 400
     url = `${BASE}/podcasts/episodes?limit=${limit}`;
     if (feedUrl) url += `&feed_url=${encodeURIComponent(feedUrl)}`;
-    else if (sourceId) url += `&source_id=${encodeURIComponent(sourceId)}`;
+    else if (sourceId) {
+      url += `&source_id=${encodeURIComponent(sourceId)}`;
+      // tune-server-rust#6770 — le flux se cherche dans la boutique du pays
+      // d'où vient le palmarès.
+      if (country) url += `&country=${encodeURIComponent(country)}`;
+    }
     if (showUrl) url += `&show_url=${encodeURIComponent(showUrl)}`;
   }
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Podcast episodes failed: ${res.status} ${res.statusText}`);
+  // web#2322 — l'erreur garde le `code` stable du serveur
+  // (`podcast_sans_flux_public`, `podcast_introuvable`,
+  // `podcast_resolution_reseau`) : l'écran en tire la phrase à montrer.
+  if (!res.ok) throw await apiError(res);
   const data = await res.json();
   return data.episodes || data;
 }
@@ -7846,7 +7861,7 @@ export function getPodcastSubscriptions(): Promise<any[]> {
   return fetchJSON(`${BASE}/podcasts/subscriptions`);
 }
 
-export function subscribePodcast(podcast: { title: string; feed_url: string; author?: string; image_url?: string; description?: string; source_id?: string }): Promise<any> {
+export function subscribePodcast(podcast: { title: string; feed_url: string; author?: string; image_url?: string; description?: string; source_id?: string; country?: string }): Promise<any> {
   return fetchJSON(`${BASE}/podcasts/subscriptions`, { method: 'POST', body: JSON.stringify(podcast) });
 }
 
@@ -7927,6 +7942,27 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
 }
 
 // --- CSV Export ---
+
+export interface EtatIntegrite {
+  status: 'idle' | 'running' | 'paused' | 'completed' | 'error';
+  total: number; traites: number; sains: number; corrompus: number;
+  non_verifiables: number; alertes_taille: number; erreur: string | null;
+  lecture_prioritaire: boolean;
+}
+export interface LigneIntegrite {
+  id: number; chemin: string; taille_sans_nouvelle_date: boolean;
+  resultat: { verdict: 'sain' | 'corrompu' | 'non_verifiable'; code: string;
+    erreur: string | null; position_trames: number | null; trames_decodees: number };
+}
+export function getIntegrityStatus() { return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity`); }
+export function startIntegrity(resume = false) {
+  return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity?resume=${resume}`, { method: 'POST' });
+}
+export function pauseIntegrity() { return fetchJSON<void>(`${BASE}/library/integrity/pause`, { method: 'POST' }); }
+export function getIntegrityReport(offset = 0, verdict = '') {
+  return fetchJSON<{ etat: EtatIntegrite; lignes: LigneIntegrite[] }>(`${BASE}/library/integrity/report?offset=${offset}${verdict ? `&verdict=${encodeURIComponent(verdict)}` : ''}`);
+}
+export function exportIntegrityCsv() { return downloadCsv('/library/integrity/report.csv', 'integrite-bibliotheque.csv'); }
 
 async function downloadCsv(path: string, filename: string) {
   const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
@@ -8502,6 +8538,10 @@ export function getServerDiagnostics() {
     // `temperature_figee`). Absent chez un serveur antérieur.
     analyses_bridees?: string | null;
     analyses_bridees_largeur?: number | null;
+    // tune-server-rust#6713 — le motif quand la température est illisible
+    // MAIS que l'utilisateur a levé le bridage ; `null` sinon. Absent chez
+    // un serveur antérieur.
+    analyses_bridage_leve?: string | null;
     // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
     // compatible with older servers during rolling client/server updates.
     asio_warm_scan?: AsioWarmScanStatus;
