@@ -1895,6 +1895,33 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return tab === 'genres' ? cleGenre(cle) === cleGenre(valeur) : cle === valeur;
   }
   $effect(() => { void tab; void q; facetteOuverte = null; });
+
+  /**
+   * web#2191 (fil 2274) — « lors d'un appui sur < Retour la liste des genres
+   * reprend du début ». `.fliste` défile elle-même, et elle est DÉTRUITE à
+   * l'ouverture d'une valeur (`{#if groupeOuvert == null}`) : recréée au
+   * Retour, elle repartait de 0. On note sa position au moment d'ouvrir une
+   * valeur, par onglet (Genres, Années, Labels), et on la repose quand elle
+   * revient.
+   */
+  let flisteEl = $state<HTMLElement | null>(null);
+  const positionsListeFacettes = new Map<string, number>();
+  let positionARetablir: number | null = null;
+  function ouvrirFacette(cle: string) {
+    if (flisteEl) positionsListeFacettes.set(tab, flisteEl.scrollTop);
+    facetteOuverte = cle;
+  }
+  function fermerFacette() {
+    positionARetablir = positionsListeFacettes.get(tab) ?? null;
+    facetteOuverte = null;
+  }
+  $effect(() => {
+    const el = flisteEl;
+    if (!el || positionARetablir == null) return;
+    const cible = positionARetablir;
+    positionARetablir = null;
+    el.scrollTop = cible;
+  });
   const groupeOuvert = $derived(
     facetteOuverte == null ? null : (groups.find((g) => memeFacette(g.key, facetteOuverte!)) ?? null),
   );
@@ -3336,14 +3363,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
              atteindre « Rock » demandait de traverser tous les albums des
              genres précédents. -->
         {#if groupeOuvert == null}
-          <div class="fliste">
+          <div class="fliste" bind:this={flisteEl}>
             {#if !groups.length}
               <div class="state">{$tr('v2.lib.nothingToGroup' as any)}</div>
             {:else if !(tab === 'labels' && vueLabels === 'grid')}
               {#each groups as g (g.key)}
                 {@const fav = g.reel && facetteCourante ? estFacetteFavorite(g.key) : false}
                 <div class="fl">
-                  <button class="flnom" onclick={() => (facetteOuverte = g.key)}>
+                  <button class="flnom" onclick={() => ouvrirFacette(g.key)}>
                     <span class="fk" use:bulleTexte>{g.key}</span>
                     <span class="fc">{g.albums.length}</span>
                   </button>
@@ -3351,7 +3378,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                        une valeur RÉELLE de la bibliothèque, jamais « Sans
                        label » ni le catalogue d'un dépôt distant. -->
                   {#if tab === 'labels' && !depot && g.reel}
-                    <MenuObjetV2 objet={objetLabel(g.key)} gestes={{ ouvrir: () => (facetteOuverte = g.key) }} nom={g.key} />
+                    <MenuObjetV2 objet={objetLabel(g.key)} gestes={{ ouvrir: () => ouvrirFacette(g.key) }} nom={g.key} />
                   {/if}
                   {#if facetteCourante && g.reel}
                     <button class="fcoeur" class:on={fav} aria-pressed={fav}
@@ -3375,7 +3402,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                 {@const logo = g.reel && !depot ? logoDuLabel(logosLabels, g.key) : null}
                 {@const fav = g.reel && facetteCourante ? estFacetteFavorite(g.key) : false}
                 <div class="lgcase" data-label={g.key}>
-                  <button class="lgouvrir" onclick={() => (facetteOuverte = g.key)}
+                  <button class="lgouvrir" onclick={() => ouvrirFacette(g.key)}
                     aria-label={`${g.key}, ${$tr('v2.rech.labelAlbums' as any).replace('{n}', String(g.albums.length))}`}>
                     <span class="lglogo" aria-hidden="true">
                       {#if logo}
@@ -3389,7 +3416,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                   </button>
                   {#if !depot && g.reel}
                     <span class="lgactions">
-                      <MenuObjetV2 objet={objetLabel(g.key)} gestes={{ ouvrir: () => (facetteOuverte = g.key) }} nom={g.key} />
+                      <MenuObjetV2 objet={objetLabel(g.key)} gestes={{ ouvrir: () => ouvrirFacette(g.key) }} nom={g.key} />
                       {#if facetteCourante}
                         <button class="fcoeur" class:on={fav} aria-pressed={fav}
                           title={fav ? $tr('favorites.removeTrack' as any) : $tr('favorites.addTrack' as any)}
@@ -3415,15 +3442,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
              Il est désormais hors du conteneur qui défile, au-dessus de lui
              dans une colonne (`.body` est une RANGÉE flex). -->
         <div class="facette-ouverte">
-        <button class="fretour" onclick={() => (facetteOuverte = null)}>
+        <!-- web#2191 (fil 2274, captures) — Retour, titre, compte et cœur sur
+             UNE ligne, au-dessus de ce qui défile : la bande qui portait le
+             titre au-dessus des pochettes disparaît, et le Retour reste à
+             l'écran (#2138). -->
+        {#each [groupeOuvert] as g (g.key)}
+        <div class="fentete">
+        <button class="fretour" onclick={fermerFacette}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
           {$tr('common.back' as any)}
         </button>
-        <div class="facets">
-          {#each [groupeOuvert] as g (g.key)}
-            <section class="facet" data-facette={g.key}>
-              <h2>
+          <h2 class="ftitre">
                 <span class="fk" use:bulleTexte>{g.key}</span><span class="fc">{g.albums.length}</span>
                 {#if tab === 'labels' && !depot && g.reel}
                   <MenuObjetV2 objet={objetLabel(g.key)} nom={g.key} />
@@ -3457,6 +3487,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                   </button>
                 {/if}
               </h2>
+        </div>
+        {/each}
+        <div class="facets">
+          {#each [groupeOuvert] as g (g.key)}
+            <section class="facet" data-facette={g.key}>
               <!-- 🔴 #1419 — la bascule grille/liste est offerte sur ces
                    onglets : la facette ouverte doit donc lire `display`. La
                    grille était écrite en dur, et le clic ne changeait rien
@@ -4011,10 +4046,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .fretour svg{width:15px; height:15px}
 
   .facet{padding-bottom:26px}
-  .facet h2{display:flex; align-items:center; gap:10px; font-size:17px; font-weight:700; padding:6px 0 14px;
-    position:sticky; top:0; background:var(--v2-bg); z-index:2}
-  .facet .fk{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .facet .fc{font:10px var(--v2-mono); color:var(--v2-txt3); border:1px solid var(--v2-line2);
+  /* web#2191 — l'en-tête de la valeur ouverte : Retour et titre sur une
+     ligne, hors de `.facets` qui défile. */
+  .fentete{flex:none; display:flex; align-items:center; gap:14px; min-width:0; padding:8px 30px 6px}
+  .fentete .fretour{margin:0}
+  .fentete h2{display:flex; align-items:center; gap:10px; min-width:0; margin:0; font-size:17px; font-weight:700}
+  .fentete .fk{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .fentete .fc{font:10px var(--v2-mono); color:var(--v2-txt3); border:1px solid var(--v2-line2);
     border-radius:999px; padding:2px 8px; flex:none}
   /* Le coeur reste discret tant qu'il est vide : c'est un titre de section,
      pas une barre d'actions. Une fois plein, il prend la couleur d'accent et
@@ -4026,18 +4064,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      son fond par défaut — un carré GRIS opaque sous chaque cœur, sur tout
      l'onglet Genres (Bertrand, 22/09/2026, v0.9.161).
      Les deux emplacements partagent donc désormais les mêmes règles. */
-  .facet .fcoeur,
+  .fentete .fcoeur,
   .fl .fcoeur{flex:none; display:flex; align-items:center; justify-content:center;
     width:26px; height:26px; padding:0; border:0; border-radius:8px; cursor:pointer;
     background:transparent; color:var(--v2-txt3); opacity:.45;
     transition:opacity .12s ease, color .12s ease, background .12s ease}
-  .facet h2:hover .fcoeur,
+  .fentete h2:hover .fcoeur,
   .fl:hover .fcoeur{opacity:1}
-  .facet .fcoeur:hover,
+  .fentete .fcoeur:hover,
   .fl .fcoeur:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .facet .fcoeur:focus-visible,
+  .fentete .fcoeur:focus-visible,
   .fl .fcoeur:focus-visible{opacity:1; outline:2px solid var(--v2-acc1); outline-offset:2px}
-  .facet .fcoeur.on,
+  .fentete .fcoeur.on,
   .fl .fcoeur.on{opacity:1; color:var(--v2-acc1)}
   .facetgrid{overflow:visible; padding:0}
   /* #1419 — la liste d'une facette défile avec la page, comme sa grille. */
