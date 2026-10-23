@@ -78,6 +78,7 @@
   } from '../../lib/circlePlaylists';
   import CatalogueContactV2 from './CatalogueContactV2.svelte';
   import PlaylistCercleV2 from './PlaylistCercleV2.svelte';
+  import SceneCercleV2 from './SceneCercleV2.svelte';
   import '../../styles/tune-v2.css';
 
   /** `relier` : le refus dit que ce serveur n'est pas relié au compte (T2). */
@@ -585,6 +586,40 @@
         </section>
       {/if}
 
+      <div class="hero">
+      <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length}>
+        {#snippet invitation()}
+          <section class="bloc inviter" aria-labelledby="circle-inviter">
+            <h2 id="circle-inviter">{$t('v2.circle.invite' as any)}</h2>
+            <form class="rangee" onsubmit={inviter}>
+              <label class="sr" for="circle-email">{$t('v2.circle.emailLabel' as any)}</label>
+              <input id="circle-email" class="champ email" type="email" autocomplete="email"
+                placeholder={$t('v2.circle.emailLabel' as any)} bind:value={email} />
+              {#if cercles.length > 0}
+                <label class="sr" for="circle-ranger">{$t('v2.circle.fileInto' as any)}</label>
+                <select id="circle-ranger" class="champ ranger-dans" bind:value={cercleInvitation}>
+                  <option value="">{$t('v2.circle.fileIntoNone' as any)}</option>
+                  {#each cercles as c (c.id)}
+                    <option value={c.id}>{$t('v2.circle.fileIntoNamed' as any).replace('{name}', c.name)}</option>
+                  {/each}
+                </select>
+              {/if}
+              <button class="go envoyer" type="submit" disabled={occupe !== null || !email.trim()}>{$t('v2.circle.send' as any)}</button>
+            </form>
+            {#if retourInvitation}
+              <div class={retourInvitation.erreur ? 'err retour-invitation' : 'ok retour-invitation'}
+                role={retourInvitation.erreur ? 'alert' : 'status'}>
+                <span>{retourInvitation.texte}</span>
+                {#if retourInvitation.reessayer}
+                  <button class="lnk reessayer" onclick={retourInvitation.reessayer}>{$t('v2.circle.retry' as any)}</button>
+                {/if}
+              </div>
+            {/if}
+          </section>
+        {/snippet}
+      </SceneCercleV2>
+      </div>
+
       <section class="bloc contacts" aria-labelledby="circle-contacts">
         <h2 id="circle-contacts">{$t('v2.circle.contacts' as any)}</h2>
         {#if contacts.length === 0}
@@ -815,34 +850,6 @@
         </section>
       {/if}
 
-      <section class="bloc inviter" aria-labelledby="circle-inviter">
-        <h2 id="circle-inviter">{$t('v2.circle.invite' as any)}</h2>
-        <form class="rangee" onsubmit={inviter}>
-          <label class="sr" for="circle-email">{$t('v2.circle.emailLabel' as any)}</label>
-          <input id="circle-email" class="champ email" type="email" autocomplete="email"
-            placeholder={$t('v2.circle.emailLabel' as any)} bind:value={email} />
-          {#if cercles.length > 0}
-            <label class="sr" for="circle-ranger">{$t('v2.circle.fileInto' as any)}</label>
-            <select id="circle-ranger" class="champ ranger-dans" bind:value={cercleInvitation}>
-              <option value="">{$t('v2.circle.fileIntoNone' as any)}</option>
-              {#each cercles as c (c.id)}
-                <option value={c.id}>{$t('v2.circle.fileIntoNamed' as any).replace('{name}', c.name)}</option>
-              {/each}
-            </select>
-          {/if}
-          <button class="go envoyer" type="submit" disabled={occupe !== null || !email.trim()}>{$t('v2.circle.send' as any)}</button>
-        </form>
-        {#if retourInvitation}
-          <div class={retourInvitation.erreur ? 'err retour-invitation' : 'ok retour-invitation'}
-            role={retourInvitation.erreur ? 'alert' : 'status'}>
-            <span>{retourInvitation.texte}</span>
-            {#if retourInvitation.reessayer}
-              <button class="lnk reessayer" onclick={retourInvitation.reessayer}>{$t('v2.circle.retry' as any)}</button>
-            {/if}
-          </div>
-        {/if}
-      </section>
-
       <section class="bloc envoyees" aria-labelledby="circle-envoyees">
         <h2 id="circle-envoyees">{$t('v2.circle.sent' as any)}</h2>
         {#if connecte.sent.length === 0}
@@ -871,7 +878,9 @@
 <style>
   .v2-circle{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; display:flex; flex-direction:column; gap:16px; max-width:880px}
+  .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; display:flex; flex-direction:column; gap:16px}
+  /* rc8 : la scène prend toute la largeur ; les blocs de gestion gardent leur colonne lisible. */
+  .scroll > :not(.hero){max-width:880px}
   .state{color:var(--v2-txt3); font-size:13px}
   .absent,.deconnecte{padding:14px 16px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2);
     display:flex; flex-direction:column; gap:10px; align-items:flex-start}
