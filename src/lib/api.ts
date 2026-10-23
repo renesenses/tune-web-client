@@ -7740,6 +7740,18 @@ export function getServerDiagnostics() {
     // capteur lisible (macOS, Windows, conteneur, VM). Optionnel : un serveur
     // antérieur n'envoie pas le champ. Lu par `lib/temperatureProcesseur.ts`.
     cpu_temp_c?: number | null;
+<<<<<<< ours
+=======
+    // tune-server-rust#5410 — `null` si la garde thermique mesure, sinon le
+    // motif du bridage des analyses de fond (`temperature_illisible`,
+    // `temperature_figee`). Absent chez un serveur antérieur.
+    analyses_bridees?: string | null;
+    analyses_bridees_largeur?: number | null;
+    // tune-server-rust#6713 — le motif quand la température est illisible
+    // MAIS que l'utilisateur a levé le bridage ; `null` sinon. Absent chez
+    // un serveur antérieur.
+    analyses_bridage_leve?: string | null;
+>>>>>>> theirs
     // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
     // compatible with older servers during rolling client/server updates.
     asio_warm_scan?: AsioWarmScanStatus;
