@@ -461,6 +461,8 @@ export default {
   'settings.defaultZone': 'デフォルトゾーン',
   'settings.autoZone': '自動（最初のゾーン）',
   'settings.volumeDisplay': '音量表示',
+  "settings.volumeStepButtons": "音量スライダーの両側に − と + ボタン",
+  "settings.volumeStepButtonsHint": "クリックごとに音量を 1 ポイント上げ下げします。+ はゾーンの安全上限で止まります。",
   'settings.percent': 'パーセンテージ（0-100）',
   'settings.decibels': 'デシベル（dB）',
   'settings.streaming': 'ストリーミングサービス',

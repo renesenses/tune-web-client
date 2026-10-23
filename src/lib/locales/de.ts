@@ -461,6 +461,8 @@ export default {
   'settings.defaultZone': 'Standardzone',
   'settings.autoZone': 'Automatisch (erste Zone)',
   'settings.volumeDisplay': 'Lautstärkeanzeige',
+  "settings.volumeStepButtons": "Tasten − und + neben dem Lautstärkeregler",
+  "settings.volumeStepButtonsHint": "Jeder Klick hebt oder senkt die Lautstärke um einen Punkt. + hält an der Sicherheitsgrenze der Zone an.",
   'settings.percent': 'Prozent (0-100)',
   'settings.decibels': 'Dezibel (dB)',
   'settings.streaming': 'Streaming-Dienste',

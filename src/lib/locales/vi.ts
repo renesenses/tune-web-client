@@ -519,6 +519,8 @@ export default {
   "settings.defaultZone": "Vùng phát mặc định",
   "settings.autoZone": "Tự động (vùng phát đầu tiên)",
   "settings.volumeDisplay": "Hiển thị âm lượng",
+  "settings.volumeStepButtons": "Nút − và + hai bên thanh âm lượng",
+  "settings.volumeStepButtonsHint": "Mỗi lần nhấn tăng hoặc giảm âm lượng một điểm. Nút + dừng ở giới hạn an toàn của vùng phát.",
   "settings.percent": "Phần trăm (0-100)",
   "settings.decibels": "Decibel (dB)",
   "settings.streaming": "Dịch vụ streaming",
