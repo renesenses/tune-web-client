@@ -79,6 +79,7 @@ describe('#2298 — la grille des albums', () => {
     const src = readFileSync(join(process.cwd(), 'src/components/v2/LibraryV2.svelte'), 'utf8');
     const cartes = src.match(/<span class="cbot">[^\n]*<EcoutesCommunaute objet=\{a\} \/><\/span>/g) ?? [];
     expect(cartes.length, 'une carte d’album sans le total des écoutes').toBe(3);
-    expect(src.match(/<span class="cbot">/g)?.length, 'une carte de plus, sans le total').toBe(3);
+    // La case d'attente (`<span class="cbot">&nbsp;</span>`) n'est pas une carte.
+    expect(src.match(/<span class="cbot"><QualiteAlbum/g)?.length, 'une carte de plus, sans le total').toBe(3);
   });
 });
