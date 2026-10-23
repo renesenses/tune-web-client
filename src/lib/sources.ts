@@ -44,6 +44,11 @@ export interface DetailSource {
   canaux?: number | null;
   niveau_db?: number | null;
   virtuelle?: boolean;
+  /**
+   * tune-server-rust#6410 — CD : le disque est sorti du lecteur, mais il est
+   * entier en mémoire et se joue de là (`etat` reste « disque »).
+   */
+  en_memoire?: boolean;
   [cle: string]: unknown;
 }
 

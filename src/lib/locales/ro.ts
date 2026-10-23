@@ -4530,6 +4530,7 @@ export default {
   "v2.cd.insertedPrompt": "Disc introdus: {disc}",
   "v2.cd.loadIntoMemory": "Încarcă în memorie",
   "v2.cd.loadIntoMemoryHint": "Redarea curentă continuă.",
+  "v2.cd.declineLoad": "Nu",
   "v2.cd.memLoadStarted": "Se încarcă discul în memorie…",
   "v2.cd.memLoadFailed": "Discul nu a putut fi încărcat în memorie.",
   "v2.cd.memReadyPrompt": "Disc încărcat: {disc}",
