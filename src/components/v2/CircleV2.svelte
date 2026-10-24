@@ -81,6 +81,7 @@
   import CatalogueContactV2 from './CatalogueContactV2.svelte';
   import PlaylistCercleV2 from './PlaylistCercleV2.svelte';
   import SceneCercleV2 from './SceneCercleV2.svelte';
+  import InviterSansEmailV2 from './InviterSansEmailV2.svelte';
   import '../../styles/tune-v2.css';
 
   /** `relier` : le refus dit que ce serveur n'est pas relié au compte (T2). */
@@ -652,6 +653,8 @@
                 {/if}
               </div>
             {/if}
+            <!-- #6935 : inviter sans e-mail (pseudo du forum, lien à usage unique). -->
+            <InviterSansEmailV2 circleId={cercleInvitation === '' ? null : cercleInvitation} onchange={() => void relire()} />
           </section>
         {/snippet}
       </SceneCercleV2>
