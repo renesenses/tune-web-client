@@ -37,6 +37,7 @@
   import VoilePur from './VoilePur.svelte';
   import { audiophileEnabled } from '../../lib/stores/audiophile';
   import ProfilerV2 from './ProfilerV2.svelte';
+  import ModesPieceV2 from './ModesPieceV2.svelte';
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
   import { estCourbeGraphique } from '../../lib/eqHydratation';
@@ -81,7 +82,7 @@
    * la façon de les composer, pas ce qu'on envoie. Le mode courant décide donc
    * seulement quelle liste part.
    */
-  let sousMode = $state<'graphique' | 'parametrique' | 'assistant'>('graphique');
+  let sousMode = $state<'graphique' | 'parametrique' | 'assistant' | 'modes'>('graphique');
   /** Incrémenté à chaque courbe enregistrée : `CompensationNiveauV2` se relit. */
   let revisionDsp = $state(0);
   let pBandes = $state<EqBand[]>([]);
@@ -314,12 +315,15 @@
   async function save() {
     const zid = zoneRequise();
     if (zid == null) return;
-    const bands: EqBand[] = sousMode === 'parametrique'
+    // #6709 — sur l'onglet « Modes de la pièce », couper ou remettre à plat
+    // garde la courbe en service : paramétrique si elle l'est.
+    const parametrique = sousMode === 'parametrique' || (sousMode === 'modes' && courbeEnServiceParametrique);
+    const bands: EqBand[] = parametrique
       ? $state.snapshot(pBandes)
       : bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0);
     try {
       const res: any = await api.setEq(zid, { bands, enabled });
-      courbeEnServiceParametrique = sousMode === 'parametrique';
+      courbeEnServiceParametrique = parametrique;
       reportReach(atteintLeSon(res?.applied_live, res?.portee));
       // La courbe a changé : ce que la compensation rend aussi (#4685).
       revisionDsp++;
@@ -358,6 +362,20 @@
       pBandes = depart.length ? depart : [{ ...NEUTRAL_PARAMETRIC_BAND }];
     }
     sousMode = 'parametrique';
+  }
+
+  /**
+   * tune-server-rust#6709 — « Modes de la pièce » : les filtres proposés
+   * (atténuations seulement) deviennent la courbe PARAMÉTRIQUE de la zone, et
+   * partent par `save()` → `setEq`, le chemin de toute courbe. Ils remplacent
+   * la courbe en cours, et restent modifiables bande par bande ensuite.
+   */
+  function appliquerModesDeLaPiece(bandes: EqBand[]) {
+    enCoursId = null;
+    pBandes = bandes.map((b) => ({ ...b }));
+    sousMode = 'parametrique';
+    if (!enabled) enabled = true;
+    void save();
   }
 
   function setGain(i: number, v: number) {
@@ -733,7 +751,7 @@
     enCoursId = null;
     gains = Array(BANDS.length).fill(0);
     if (gainsRight !== null) gainsRight = Array(BANDS.length).fill(0);
-    if (sousMode === 'parametrique') pBandes = resetParametricBands();
+    if (sousMode === 'parametrique' || (sousMode === 'modes' && courbeEnServiceParametrique)) pBandes = resetParametricBands();
     save();
   }
   function toggle() { enabled = !enabled; save(); }
@@ -926,11 +944,18 @@
           <button class:on={sousMode === 'assistant'} onclick={() => (sousMode = 'assistant')}>
             {$t('v2.eq.modeAssistant' as any)}
           </button>
+          <!-- tune-server-rust#6709 — un CALCUL qui propose des bandes ; rien
+               ne part vers le son avant « Appliquer », qui passe par save(). -->
+          <button class:on={sousMode === 'modes'} onclick={() => (sousMode = 'modes')}>
+            {$t('v2.eq.modeRoomModes' as any)}
+          </button>
         </div>
       {/if}
 
       {#if sousMode === 'assistant'}
         <ProfilerV2 />
+      {:else if sousMode === 'modes'}
+        <ModesPieceV2 onappliquer={appliquerModesDeLaPiece} />
       {:else if sousMode === 'parametrique'}
         <ParametricEq bind:bands={pBandes} {enabled} onchange={surChangementParametrique} />
       {:else}
