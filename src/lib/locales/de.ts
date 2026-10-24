@@ -257,6 +257,8 @@ export default {
   'zone.groupedPlayback': 'Gruppierte Wiedergabe',
   "zone.groupedPlaybackOpen": "Gruppierte Wiedergabe…",
   "zone.groupedPlaybackOpenTip": "Diese Zone mit anderen synchronisieren: öffnet ihre Einstellungen im Abschnitt Gruppierte Wiedergabe.",
+  "zone.settingsOpen": "Zoneneinstellungen…",
+  "zone.settingsOpenTip": "Öffnet die Einstellungen dieser Zone: lückenlose Wiedergabe, Lautstärke, Gerät, Korrektur…",
   'zone.selectZonesToSync': 'Zonen zum Synchronisieren mit {name} auswählen',
   'zone.noOtherZone': 'Keine anderen Zonen verfügbar',
   'zone.alreadyInGroup': 'Bereits in einer anderen Gruppe',

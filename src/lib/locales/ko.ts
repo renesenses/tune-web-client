@@ -257,6 +257,8 @@ export default {
   'zone.groupedPlayback': '그룹 재생',
   "zone.groupedPlaybackOpen": "그룹 재생…",
   "zone.groupedPlaybackOpenTip": "이 존을 다른 존과 동기화합니다. 존 설정을 '그룹 재생' 항목에서 엽니다.",
+  "zone.settingsOpen": "존 설정…",
+  "zone.settingsOpenTip": "이 존의 설정을 엽니다: 갭리스, 볼륨, 장치, 보정 등.",
   'zone.selectZonesToSync': '{name}과(와) 동기화할 존 선택',
   'zone.noOtherZone': '사용 가능한 다른 존 없음',
   'zone.alreadyInGroup': '이미 다른 그룹에 있음',

@@ -261,6 +261,8 @@ export default {
   'zone.groupedPlayback': 'Redare grupată',
   "zone.groupedPlaybackOpen": "Redare grupată…",
   "zone.groupedPlaybackOpenTip": "Sincronizează această zonă cu altele: deschide setările ei la secțiunea Redare grupată.",
+  "zone.settingsOpen": "Setările zonei…",
+  "zone.settingsOpenTip": "Deschide setările acestei zone: redare fără pauze, volum, dispozitiv, corecție…",
   'zone.selectZonesToSync': 'Selectează zonele de sincronizat cu {name}',
   'zone.noOtherZone': 'Nicio altă zonă disponibilă',
   'zone.alreadyInGroup': 'Deja în alt grup',
