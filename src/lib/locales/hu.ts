@@ -4004,6 +4004,7 @@ export default {
   "v2.health.stOff": "kikapcsolva",
   "v2.health.stUnknown": "ismeretlen",
   "v2.health.stPaused": "szüneteltetve",
+  "v2.health.throttledForPlayback": "Hallgatás közben lelassítva: ez a feladat elsőbbséget ad a folyamatban lévő lejátszásnak (vagy annak végéig leáll), majd magától folytatódik.",
   "v2.health.pause": "Szünet",
   "v2.health.resume": "Folytatás",
   "v2.health.pauseAll": "Minden feldolgozás szüneteltetése",

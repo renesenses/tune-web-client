@@ -4070,6 +4070,7 @@ export default {
   "v2.health.stOff": "off",
   "v2.health.stUnknown": "unknown",
   "v2.health.stPaused": "paused",
+  "v2.health.throttledForPlayback": "Slowed down while you listen: this task gives way to the current playback (or stops until it ends), then resumes on its own.",
   "v2.health.pause": "Pause",
   "v2.health.resume": "Resume",
   "v2.health.pauseAll": "Pause all processing",

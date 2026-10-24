@@ -4050,6 +4050,7 @@ export default {
   "v2.health.stOff": "未启用",
   "v2.health.stUnknown": "未知",
   "v2.health.stPaused": "已暂停",
+  "v2.health.throttledForPlayback": "播放期间已放慢：此任务为当前播放让路（或暂停至播放结束），之后自动继续。",
   "v2.health.pause": "暂停",
   "v2.health.resume": "继续",
   "v2.health.pauseAll": "暂停所有后台处理",

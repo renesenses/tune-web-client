@@ -69,6 +69,11 @@ export type TraitementSuspendable = {
   /** `en_cours` | `en_pause` | `au_repos`. */
   state: string;
   paused: boolean;
+  /** tune-server-rust#4681 — a cédé à la lecture dans la fenêtre récente :
+   *  ralenti, ou arrêté jusqu'à l'arrêt de la lecture pour les passes qui
+   *  décodent (`routes/system/taches_de_fond.rs`, `instantane`). Absent d'un
+   *  serveur antérieur. */
+  throttled_for_playback?: boolean;
 };
 
 /** La réponse de `GET /system/background-tasks`.
@@ -81,6 +86,9 @@ export type InstantaneTachesDeFond = {
   pausable?: TraitementSuspendable[];
   all_paused?: boolean;
   scan_pausable?: boolean;
+  /** tune-server-rust#4681 — le scan, qui n'est pas suspendable, cède pourtant
+   *  à la lecture comme les autres : il porte son propre drapeau. */
+  scan?: { running?: boolean; throttled_for_playback?: boolean };
   /** Serveur tune-server-rust#5169 : la place de la plage dynamique parmi les
    *  passes qui décodent — `last` | `before_fingerprints` | `first`. Absent
    *  d'un serveur plus ancien (≤ 0.9.166). */
@@ -150,6 +158,33 @@ export function pausesParTraitement(
   for (const t of instantane?.pausable ?? []) {
     if (t && typeof t.id === 'string') sortie[t.id] = !!t.paused;
   }
+  return sortie;
+}
+
+/** L'identifiant que [`freinesParLaLecture`] donne au scan, qui n'est pas un
+ *  traitement suspendable et n'a donc pas d'identifiant dans `pausable`. */
+export const FREIN_SCAN = 'scan';
+
+/**
+ * Les traitements que la lecture ralentit ou arrête en ce moment.
+ *
+ * tune-server-rust#6330 (Benjithom, fil 2270) : une carte de l'État du
+ * serveur restait figée pendant une écoute (plage dynamique à 95 %) sans dire
+ * pourquoi. Le serveur le publiait déjà (`throttled_for_playback`, #4681),
+ * l'écran ne le lisait pas.
+ *
+ * Rend les identifiants SERVEUR (`pausable[].id`), plus [`FREIN_SCAN`] pour
+ * le scan. Un serveur qui ne publie pas le champ rend un ensemble vide :
+ * aucune carte n'affirme un frein qu'on ne lui a pas dit.
+ */
+export function freinesParLaLecture(
+  instantane: InstantaneTachesDeFond | null | undefined,
+): Set<string> {
+  const sortie = new Set<string>();
+  for (const t of instantane?.pausable ?? []) {
+    if (t && typeof t.id === 'string' && t.throttled_for_playback === true) sortie.add(t.id);
+  }
+  if (instantane?.scan?.throttled_for_playback === true) sortie.add(FREIN_SCAN);
   return sortie;
 }
 

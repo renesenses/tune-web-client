@@ -4072,6 +4072,7 @@ export default {
   "v2.health.stOff": "inactif",
   "v2.health.stUnknown": "inconnu",
   "v2.health.stPaused": "en pause",
+  "v2.health.throttledForPlayback": "Ralenti pendant l’écoute : ce traitement cède la place à la lecture en cours (ou s’arrête jusqu’à sa fin), puis reprend seul.",
   "v2.health.pause": "Pause",
   "v2.health.resume": "Reprendre",
   "v2.health.pauseAll": "Suspendre tous les traitements",

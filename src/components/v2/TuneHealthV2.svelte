@@ -43,6 +43,8 @@
   import {
     choixPrioriteDr,
     pausesParTraitement,
+    freinesParLaLecture,
+    FREIN_SCAN,
     serveurSaitSuspendre,
     type InstantaneTachesDeFond,
     type PrioriteDr,
@@ -147,6 +149,11 @@
   /** Suspendu ou non, par identifiant serveur. Vide = le serveur ne sait pas
    *  suspendre (< 0.9.159) : aucune carte ne portera de bouton. */
   let pauses = $state<Record<string, boolean>>({});
+  /** tune-server-rust#6330 — ce que la lecture ralentit ou arrête, par
+   *  identifiant serveur (`FREIN_SCAN` pour le scan). */
+  let freins = $state<Set<string>>(new Set());
+  /** L'identifiant de frein d'une carte : son traitement, ou le scan. */
+  const freinDe = (c: Card) => (c.id === 'scan' ? FREIN_SCAN : c.traitement);
   let pausePossible = $state(false);
   let toutEnPause = $state(false);
   /** L'identifiant dont le clic est en vol, pour ne pas le rejouer. `'*'` pour
@@ -158,6 +165,7 @@
   function rangerLInstantane(inst: InstantaneTachesDeFond | null) {
     pausePossible = serveurSaitSuspendre(inst);
     pauses = pausesParTraitement(inst);
+    freins = freinesParLaLecture(inst);
     toutEnPause = !!inst?.all_paused;
     prioriteDr = choixPrioriteDr(inst);
     rattrapageDr = inst?.dynamic_range_sidecar ?? null;
@@ -875,6 +883,13 @@
 
             <div class="line">{c.ligne}</div>
 
+            <!-- tune-server-rust#6330 — une carte figée pendant une écoute dit
+                 POURQUOI : le serveur cède la place à la lecture. Pas sur une
+                 carte suspendue, dont « en pause » dit déjà la raison. -->
+            {#if !enPause && freinDe(c) && freins.has(freinDe(c)!)}
+              <div class="frein" role="note" data-frein-lecture>{$t('v2.health.throttledForPlayback' as any)}</div>
+            {/if}
+
             {#if p !== null}
               <div class="bar"><span style="width:{p}%"></span></div>
               <div class="pct">{p} %</div>
@@ -1100,6 +1115,7 @@
   .pct{margin-top:6px; font:10.5px var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .nogauge{margin-top:11px; font:10.5px var(--v2-mono); color:var(--v2-txt3); font-style:italic}
   .detail{margin-top:9px; font-size:11.5px; color:var(--v2-txt3)}
+  .frein{margin-top:9px; font-size:11.5px; color:var(--v2-txt2)}
   .sansportrait{list-style:none; margin:8px 0 0; padding:0; max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; font-size:12.5px}
   .sansportrait li{display:flex; align-items:baseline; justify-content:space-between; gap:10px; min-width:0}
   .nomartiste{border:0; background:transparent; padding:2px 0; color:var(--v2-txt2); cursor:pointer; text-align:left; font:inherit; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
