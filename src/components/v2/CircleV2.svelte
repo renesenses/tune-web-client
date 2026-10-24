@@ -65,6 +65,7 @@
     seConnecterAMozaiklabs, NOM_CERCLE_MAX, RELECTURE_CERCLE_MS,
     partageActif, partagerBibliotheque, arreterPartageBibliotheque, ouPartage,
     getSynchroBibliotheque, avisSynchro, getPartagesAvecMoi, plusPartage,
+    getPartagePochettes, reglerPartagePochettes,
     getRayonsCercle, partagerRayon, retirerRayon, estBibliothequeNonPartagee,
     type RayonsCercle, type RayonLocal,
     type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme,
@@ -77,6 +78,7 @@
   } from '../../lib/circlePlaylists';
   import CatalogueContactV2 from './CatalogueContactV2.svelte';
   import PlaylistCercleV2 from './PlaylistCercleV2.svelte';
+  import SceneCercleV2 from './SceneCercleV2.svelte';
   import '../../styles/tune-v2.css';
 
   /** `relier` : le refus dit que ce serveur n'est pas relié au compte (T2). */
@@ -96,6 +98,9 @@
   /** T2 : `null` tant qu'on ne sait pas si le greffon connaît l'étape (404 = non). */
   let t2 = $state<boolean | null>(null);
   let synchro = $state<EtatSynchroBibliotheque | null>(null);
+  /* #6521 — « Partager les pochettes avec mon cercle », réglage de CE serveur,
+     activé par défaut. `null` : greffon qui ne le connaît pas, rien à montrer. */
+  let pochettesPartagees = $state<boolean | null>(null);
   let partages = $state<PartageRecu[]>([]);
   let erreurPartages = $state<MotifCercle | null>(null);
   let contactOuvert = $state<PartageRecu | null>(null);
@@ -120,6 +125,20 @@
   /** MES cercles, et eux seuls : aucun nom de cercle ne vient d'ailleurs. */
   const cercles = $derived<CercleNomme[]>(connecte?.circles ?? []);
   const nomDe = $derived(new Map(contacts.map((c) => [c.user_id, c.name])));
+
+  /**
+   * web#2219 — les membres qu'on sait nommer pour l'en-tête d'une playlist :
+   * son propriétaire quand ce n'est pas moi ; pour un de MES cercles, ses
+   * membres (mes contacts). Rien d'autre : la composition d'un cercle qui
+   * n'est pas le mien n'est jamais montrée à un membre.
+   */
+  function membresDePlaylist(pid: IdOpaque): string[] {
+    const p = playlists.find((x) => String(x.id) === String(pid));
+    if (!p) return [];
+    if (!p.mine) return p.owner?.name ? [p.owner.name] : [];
+    const c = p.circle_id != null ? cercles.find((x) => x.id === p.circle_id) : undefined;
+    return (c?.member_ids ?? []).map((uid) => nomDe.get(uid)).filter((n): n is string => !!n);
+  }
 
   function phrase(m: MotifCercle): string {
     const s = $t(m.cle as any);
@@ -158,8 +177,9 @@
    * dit un greffon T1 : la partie T2 se cache.
    */
   async function relireT2() {
-    const [s, p] = await Promise.allSettled([getSynchroBibliotheque(), getPartagesAvecMoi()]);
+    const [s, p, v] = await Promise.allSettled([getSynchroBibliotheque(), getPartagesAvecMoi(), getPartagePochettes()]);
     if (fini) return;
+    pochettesPartagees = v.status === 'fulfilled' ? v.value : pochettesPartagees;
     if (s.status === 'fulfilled') { synchro = s.value; t2 = true; }
     else { synchro = null; t2 = plusPartage(s.reason) ? false : t2; }
     if (p.status === 'fulfilled') { partages = p.value; erreurPartages = null; }
@@ -359,6 +379,13 @@
     void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started', apres: oublierSelections });
   }
 
+  /** #6521 — couper efface chez le cloud les vignettes déjà envoyées. */
+  function basculerPochettes() {
+    if (occupe !== null || pochettesPartagees === null) return;
+    const voulu = !pochettesPartagees;
+    void geste('pochettes', async () => { await reglerPartagePochettes(voulu); pochettesPartagees = voulu; });
+  }
+
   /**
    * Le texte de confirmation d'une coupure, ou `null` s'il n'y a rien à perdre.
    * Les cases sont relues au greffon, pas prises dans une liste affichée
@@ -514,7 +541,7 @@
       </div>
     {:else if playlistOuverte != null}
       {#key String(playlistOuverte)}
-        <PlaylistCercleV2 id={playlistOuverte} onFermer={fermerPlaylist} />
+        <PlaylistCercleV2 id={playlistOuverte} onFermer={fermerPlaylist} membres={membresDePlaylist(playlistOuverte)} />
       {/key}
     {:else if contactOuvert}
       {#key contactOuvert.user_id}
@@ -558,6 +585,40 @@
           </ul>
         </section>
       {/if}
+
+      <div class="hero">
+      <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length}>
+        {#snippet invitation()}
+          <section class="bloc inviter" aria-labelledby="circle-inviter">
+            <h2 id="circle-inviter">{$t('v2.circle.invite' as any)}</h2>
+            <form class="rangee" onsubmit={inviter}>
+              <label class="sr" for="circle-email">{$t('v2.circle.emailLabel' as any)}</label>
+              <input id="circle-email" class="champ email" type="email" autocomplete="email"
+                placeholder={$t('v2.circle.emailLabel' as any)} bind:value={email} />
+              {#if cercles.length > 0}
+                <label class="sr" for="circle-ranger">{$t('v2.circle.fileInto' as any)}</label>
+                <select id="circle-ranger" class="champ ranger-dans" bind:value={cercleInvitation}>
+                  <option value="">{$t('v2.circle.fileIntoNone' as any)}</option>
+                  {#each cercles as c (c.id)}
+                    <option value={c.id}>{$t('v2.circle.fileIntoNamed' as any).replace('{name}', c.name)}</option>
+                  {/each}
+                </select>
+              {/if}
+              <button class="go envoyer" type="submit" disabled={occupe !== null || !email.trim()}>{$t('v2.circle.send' as any)}</button>
+            </form>
+            {#if retourInvitation}
+              <div class={retourInvitation.erreur ? 'err retour-invitation' : 'ok retour-invitation'}
+                role={retourInvitation.erreur ? 'alert' : 'status'}>
+                <span>{retourInvitation.texte}</span>
+                {#if retourInvitation.reessayer}
+                  <button class="lnk reessayer" onclick={retourInvitation.reessayer}>{$t('v2.circle.retry' as any)}</button>
+                {/if}
+              </div>
+            {/if}
+          </section>
+        {/snippet}
+      </SceneCercleV2>
+      </div>
 
       <section class="bloc contacts" aria-labelledby="circle-contacts">
         <h2 id="circle-contacts">{$t('v2.circle.contacts' as any)}</h2>
@@ -692,6 +753,16 @@
               {/if}
             </article>
           {/each}
+          {#if t2 && pochettesPartagees !== null && cercles.some((c) => ou(c) === 'ici')}
+            <div class="partage partage-pochettes">
+              <button class="interrupteur interrupteur-pochettes" role="switch" aria-checked={pochettesPartagees}
+                disabled={occupe !== null} onclick={basculerPochettes}>
+                <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
+                <span>{$t('v2.circle.share.artwork' as any)}</span>
+              </button>
+              <p class="note pochettes-quoi">{$t('v2.circle.share.artworkWhat' as any)}</p>
+            </div>
+          {/if}
         {/if}
       </section>
 
@@ -779,34 +850,6 @@
         </section>
       {/if}
 
-      <section class="bloc inviter" aria-labelledby="circle-inviter">
-        <h2 id="circle-inviter">{$t('v2.circle.invite' as any)}</h2>
-        <form class="rangee" onsubmit={inviter}>
-          <label class="sr" for="circle-email">{$t('v2.circle.emailLabel' as any)}</label>
-          <input id="circle-email" class="champ email" type="email" autocomplete="email"
-            placeholder={$t('v2.circle.emailLabel' as any)} bind:value={email} />
-          {#if cercles.length > 0}
-            <label class="sr" for="circle-ranger">{$t('v2.circle.fileInto' as any)}</label>
-            <select id="circle-ranger" class="champ ranger-dans" bind:value={cercleInvitation}>
-              <option value="">{$t('v2.circle.fileIntoNone' as any)}</option>
-              {#each cercles as c (c.id)}
-                <option value={c.id}>{$t('v2.circle.fileIntoNamed' as any).replace('{name}', c.name)}</option>
-              {/each}
-            </select>
-          {/if}
-          <button class="go envoyer" type="submit" disabled={occupe !== null || !email.trim()}>{$t('v2.circle.send' as any)}</button>
-        </form>
-        {#if retourInvitation}
-          <div class={retourInvitation.erreur ? 'err retour-invitation' : 'ok retour-invitation'}
-            role={retourInvitation.erreur ? 'alert' : 'status'}>
-            <span>{retourInvitation.texte}</span>
-            {#if retourInvitation.reessayer}
-              <button class="lnk reessayer" onclick={retourInvitation.reessayer}>{$t('v2.circle.retry' as any)}</button>
-            {/if}
-          </div>
-        {/if}
-      </section>
-
       <section class="bloc envoyees" aria-labelledby="circle-envoyees">
         <h2 id="circle-envoyees">{$t('v2.circle.sent' as any)}</h2>
         {#if connecte.sent.length === 0}
@@ -835,7 +878,9 @@
 <style>
   .v2-circle{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; display:flex; flex-direction:column; gap:16px; max-width:880px}
+  .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; display:flex; flex-direction:column; gap:16px}
+  /* rc8 : la scène prend toute la largeur ; les blocs de gestion gardent leur colonne lisible. */
+  .scroll > :not(.hero){max-width:880px}
   .state{color:var(--v2-txt3); font-size:13px}
   .absent,.deconnecte{padding:14px 16px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2);
     display:flex; flex-direction:column; gap:10px; align-items:flex-start}

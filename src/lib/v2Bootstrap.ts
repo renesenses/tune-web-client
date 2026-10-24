@@ -27,7 +27,7 @@ import { loadFavoriteIds, currentProfileId } from './stores/profile';
 import { loadLicense } from './stores/license';
 import { zoneInitiale } from './zoneInitiale';
 import { chargerLesZones } from './chargementDesZones';
-import { chargerLesProfilsAvecReprise } from './repriseDesProfils';
+import { chargerLesProfilsAvecReprise, type Reprise } from './repriseDesProfils';
 
 
 /**
@@ -116,8 +116,8 @@ async function apresLeProfil(): Promise<void> {
  * l'amorçage rend la main et la reprise continue en arrière-plan, puis fait
  * la suite (favoris, annonce) quand le profil arrive.
  */
-async function loadProfile(): Promise<void> {
-  const { premier, fin } = chargerLesProfilsAvecReprise();
+async function loadProfile(reprise: Reprise = chargerLesProfilsAvecReprise()): Promise<void> {
+  const { premier, fin } = reprise;
   if (await premier) {
     await apresLeProfil();
     return;
@@ -201,14 +201,31 @@ export async function bootstrapV2(): Promise<void> {
   // qui tournent en `node`, ou `localStorage` n'existe pas. Un test etranger
   // est tombe ainsi (`bibliothequeVivante`, 12/09/2026) : il n'appelle meme pas
   // `bootstrapV2`, il importait seulement `suivreLaBibliotheque`.
-  const preferences = import('./stores/preferences').then((m) =>
-    m.syncPreferencesFromServer(),
-  );
+  //
+  // 🔴 web#2205 (fil 2299, Jean Valjean : « Afficher le bouton Stop » perdu à
+  // chaque démarrage de Firefox, réglé pour tout effacer à la fermeture).
+  // La relecture partait EN MÊME TEMPS que `loadProfiles()`. Avec un
+  // `localStorage` vide, son `GET /system/config` n'avait donc pas encore de
+  // `tune-profile-id` à mettre dans `X-Profile-Id` : le serveur lisait le
+  // blob du profil global (`active_profile_id`, sinon 1 — le « Default »
+  // que la liste masque, web#1672), pendant que `loadProfiles` choisissait un
+  // AUTRE profil, sous lequel partaient ensuite tous les `PATCH`. Le réglage
+  // était bien écrit… sous un profil que le démarrage suivant ne relisait pas.
+  // La relecture attend donc que le profil soit choisi. Le premier essai de
+  // la reprise (tune-server-rust#6454) ne rejette jamais : une panne des
+  // profils ne prive pas des préférences. S'il a échoué, la relecture est
+  // refaite quand la reprise aboutit enfin, sous le profil alors choisi.
+  const reprise = chargerLesProfilsAvecReprise();
+  const preferences = reprise.premier.then(async (ok) => {
+    const m = await import('./stores/preferences');
+    await m.syncPreferencesFromServer();
+    if (!ok) void reprise.fin.then(() => m.syncPreferencesFromServer());
+  });
 
   await Promise.allSettled([
     loadZones(),
     loadDevices(),
-    loadProfile(),
+    loadProfile(reprise),
     loadLicense(),
     preferences,
   ]);

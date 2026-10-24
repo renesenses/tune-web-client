@@ -41,7 +41,9 @@
   } from '../../lib/historiqueParContexte';
   import { NomsDePlaylists, type FichePlaylist } from '../../lib/nomsDePlaylists';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
+  import { completerAlbumsDeService } from '../../lib/albumDesEcoutes';
   import { ouverturePlaylistDuLot } from '../../lib/lienPlaylistDHistorique';
+  import { ouvertureArtisteDuLot } from '../../lib/lienArtisteDHistorique';
   import { gestesNavigationService, type GestesNavigationService } from '../../lib/stores/navigation';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { preferences } from '../../lib/stores/preferences';
@@ -111,6 +113,8 @@
   const colonneActions = $derived(largeurActions(actionsReduites($preferences)).css);
 
   let serveur = $state<HistoryEntry[]>([]);
+  /** web#2209 — le dernier passage de `completerAlbumsDeService` ; un plus ancien ne s'applique pas. */
+  let tourAlbums = 0;
   let favorisRadio = $state(new Set<string>());
   let occupe = $state<string | null>(null);
   let vidage = $state(false);
@@ -209,7 +213,15 @@
       try {
         const response = await api.getPlaybackHistory(100);
         if (active && !vidage && requestedGeneration === generation) {
-          serveur = entreesDepuisServeur(response?.items ?? []);
+          const lues = entreesDepuisServeur(response?.items ?? []);
+          serveur = lues;
+          // web#2209 — l'album CHEZ LE SERVICE d'un titre lancé hors de son
+          // album : le lien de la colonne Album et « Aller à l'album » en
+          // dépendent. Demandé à la piste elle-même, borné et mémorisé.
+          const tour = ++tourAlbums;
+          void completerAlbumsDeService(lues, api.getStreamingTrack).then((maj) => {
+            if (maj && active && tour === tourAlbums && requestedGeneration === generation) serveur = maj;
+          });
         }
       } catch {
         // Keep the last successful snapshot on a transient network failure.
@@ -415,6 +427,8 @@
             <!-- web#1895 — le nom d'une ligne PLAYLIST mène à sa fiche, quand
                  l'écoute dit chez qui la chercher (`lib/lienPlaylistDHistorique`). -->
             {@const versPlaylist = ouverturePlaylistDuLot(tranche.type, lot, fiche?.nom ?? nom, fiche?.pochette ?? null)}
+            <!-- tune-server-rust#6466, point 10 — la ligne ARTISTE mène à la page artiste. -->
+            {@const versArtiste = ouvertureArtisteDuLot(tranche.type, lot, nom)}
             <!-- Le « + » / « − » du schéma de FabienM. L'objet est REPLIÉ par
                  défaut : déplié, l'écran redeviendrait la liste plate qu'il
                  remplace. -->
@@ -462,6 +476,11 @@
                       <span class="otitre lien-album" role="link" title={nom}
                         onclick={(e) => { e.stopPropagation(); versAlbum(); }}
                         onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); versAlbum(); } }}>{nom}</span>
+                    {:else if versArtiste && nom}
+                      <!-- svelte-ignore a11y_interactive_supports_focus -->
+                      <span class="otitre lien-album lien-artiste" role="link" title={nom}
+                        onclick={(e) => { e.stopPropagation(); versArtiste(); }}
+                        onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); versArtiste(); } }}>{nom}</span>
                     {:else if versPlaylist}
                       <!-- Même forme que le lien d'album, juste au-dessus. -->
                       <!-- svelte-ignore a11y_interactive_supports_focus -->

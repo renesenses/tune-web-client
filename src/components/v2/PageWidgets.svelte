@@ -1343,6 +1343,13 @@
       <h1>{$t(cleTitre as any)}</h1>
     </div>
     <div class="v2-actions">
+      <!-- web#2369 — sur la page « Voir tout » d'un widget, « Modifier » n'a
+           rien à modifier : il réglait la PAGE (ajout / retrait de widgets) et
+           son clic refermait « Voir tout » pour ramener à la page principale
+           en mode édition (Didier, fil 2411). Les actions de l'en-tête se
+           taisent donc tant que « Voir tout » est ouvert ; la flèche de
+           retour reste la seule sortie. -->
+      {#if !voirTout}
       {#if edition}
         <button class="v2-btn" onclick={() => (ajoutOuvert = !ajoutOuvert)} disabled={!catalogueComplet.length}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -1358,6 +1365,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l4 4"/></svg>
         {edition ? $t('v2.home.done' as any) : $t('v2.home.edit' as any)}
       </button>
+      {/if}
     </div>
   </header>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pochetteMajoritaire } from '../../lib/pochetteMajoritaire';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount } from 'svelte';
   import { shuffleAll } from '../../lib/api';
@@ -259,6 +260,11 @@
     // whichever track happened to load first (Dominique). Single-artist albums
     // keep that artist. (See albumArtistOf.)
     for (const g of m.values()) g.artist = albumArtistOf(g);
+    // tune-server-rust#6411 — la pochette MAJORITAIRE des pistes, la règle du
+    // serveur (#5454), et non celle de la première piste chargée : un coffret
+    // dont chaque disque porte sa jaquette montrait le disque 1 ici, le
+    // disque majoritaire dans la Bibliothèque.
+    for (const g of m.values()) g.cover = pochetteMajoritaire(g.tracks) ?? g.cover;
     return [...m.values()].sort((a, b) => comparerAlphabetique(a.artist, b.artist) || comparerAlphabetique(a.title, b.title));
   });
   // Mirrors the server's compilation detection (case-insensitive ALBUMARTIST

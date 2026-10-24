@@ -147,9 +147,9 @@ describe('#1671 — le Tableau de bord est une GRILLE aux cotes des maquettes', 
     expect(largeurBloc(2)).toBe(646);
   });
 
-  it('les onze widgets restent, et trois d’entre eux (les plus larges) prennent deux colonnes', () => {
-    expect(BLOCS_TABLEAU_DE_BORD).toHaveLength(11);
-    expect(DISPOSITION_DEFAUT_TABLEAU_DE_BORD).toHaveLength(11);
+  it('les douze widgets restent (onze, et les radios de #6682), et trois d’entre eux (les plus larges) prennent deux colonnes', () => {
+    expect(BLOCS_TABLEAU_DE_BORD).toHaveLength(12);
+    expect(DISPOSITION_DEFAUT_TABLEAU_DE_BORD).toHaveLength(12);
     const larges = BLOCS_TABLEAU_DE_BORD.filter((w) => w.bloc?.colonnes === 2).map((w) => w.id);
     expect(larges).toEqual(['tdb-tendance', 'tdb-semaine-heures', 'tdb-heures']);
   });
@@ -163,14 +163,14 @@ describe('#1671 — le Tableau de bord est une GRILLE aux cotes des maquettes', 
     expect(sansEspaces(cs.gridTemplateColumns)).toBe(`repeat(auto-fill,${COTE_GRILLE}px)`);
     expect(cs.columnGap).toBe(`${GOUTTIERE_GRILLE}px`);
     // Les onze blocs sont DANS la grille, pas à côté.
-    expect(grille!.querySelectorAll(':scope > section.bloc')).toHaveLength(11);
-    expect(grille!.querySelectorAll('.blocpropre')).toHaveLength(11);
+    expect(grille!.querySelectorAll(':scope > section.bloc')).toHaveLength(12);
+    expect(grille!.querySelectorAll('.blocpropre')).toHaveLength(12);
   });
 
   it('🔴 aucun bloc ne s’étire au-delà de ses colonnes', async () => {
     const page = await poser(TableauDeBordV2);
     const sections = [...page.querySelectorAll<HTMLElement>('.mosaique > section.bloc')];
-    expect(sections).toHaveLength(11);
+    expect(sections).toHaveLength(12);
     sections.forEach((el, i) => {
       const w = BLOCS_TABLEAU_DE_BORD.find((x) => x.id === DISPOSITION_DEFAUT_TABLEAU_DE_BORD[i])!;
       const n = w.bloc?.colonnes ?? 1;
@@ -202,7 +202,7 @@ describe('#1671 — le Tableau de bord est une GRILLE aux cotes des maquettes', 
     });
     // Les feuilles s'appliquent bien (sinon « pas de grille » ne prouverait rien).
     expect(getComputedStyle(page.querySelector<HTMLElement>('.scroll')!).overflowY).toBe('auto');
-    expect(page.querySelectorAll('.blocpropre')).toHaveLength(11);
+    expect(page.querySelectorAll('.blocpropre')).toHaveLength(12);
     expect(page.querySelector('.mosaique')).toBeNull();
     const premiere = page.querySelector<HTMLElement>('section.bloc')!;
     expect(getComputedStyle(premiere.parentElement!).display).not.toBe('grid');

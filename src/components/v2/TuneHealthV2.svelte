@@ -36,7 +36,7 @@
   // déclarées non gérables) sur le TOTAL, et nomment les non gérées.
   import { jaugeTraiteesPlageDynamique, jaugeTraiteesReplayGain, ligneNonGerees } from '../../lib/santeJaugeTraitees';
   // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
-  import { bridageDesAnalyses, temperatureProcesseur } from '../../lib/temperatureProcesseur';
+  import { bridageDesAnalyses, temperatureProcesseur, bridageLeve } from '../../lib/temperatureProcesseur';
   // #1352 — la pause des traitements de fond. La lecture de l'instantané vit
   // dans `lib/tachesDeFond.ts`, hors du composant : elle se garde sans monter
   // l'écran, et l'absence de `pausable` (serveur < 0.9.159) s'y lit UNE fois.
@@ -60,6 +60,7 @@
   import { lireDiagnosticReseau, iconeVerdict, type EcouteReseau } from '../../lib/diagnosticReseau';
   import { boutonLancer, CLE_ISSUE, estLancable, lancerTraitement, toutRelancer as relancerToutLesTraitements, type CarteLancable } from '../../lib/lancerTraitement';
   import '../../styles/tune-v2.css';
+  import { decrireScanCourant } from '../../lib/scanDetenteur';
 
   type Card = {
     id: string;
@@ -133,6 +134,9 @@
     illisible: $t('v2.health.analysesBrideesIllisible' as any),
     figee: $t('v2.health.analysesBrideesFigee' as any),
   }));
+  /** tune-server-rust#6713 — `analyses_bridage_leve` brut : bridage levé par l'utilisateur. */
+  let motifBridageLeve = $state<unknown>(undefined);
+  const bridageLeveTexte = $derived(bridageLeve(motifBridageLeve, $t('v2.health.analysesBridageLeve' as any)));
 
   // ── #1352 : la pause des traitements de fond ───────────────────────────
   //
@@ -386,7 +390,9 @@
              : $t('v2.health.noScan' as any)),
         fait: pctScan !== null ? (av?.scanned ?? 0) : undefined,
         total: pctScan !== null ? (av?.total ?? 0) : undefined,
-        detail: failures ? $t('v2.health.pathsFailed' as any).replace('{n}', String(failures)) : undefined,
+        // web#2305 : pendant un scan, le détail dit lequel tient le droit.
+        detail: (scanning ? decrireScanCourant(scan.value?.current, (k) => $t(k as any)) : null)
+          ?? (failures ? $t('v2.health.pathsFailed' as any).replace('{n}', String(failures)) : undefined),
         sansJauge: pctScan === null,
       });
     } else {
@@ -725,6 +731,7 @@
       : null;
     tempCpu = diag[0].status === 'fulfilled' ? diag[0].value?.cpu_temp_c : undefined;
     motifBridage = diag[0].status === 'fulfilled' ? diag[0].value?.analyses_bridees : undefined;
+    motifBridageLeve = diag[0].status === 'fulfilled' ? diag[0].value?.analyses_bridage_leve : undefined;
     asioBloque = diag[0].status === 'fulfilled' && !!(diag[0].value as any)?.asio_warm_scan?.blocked_after_crash;
 
     cards = out;
@@ -958,6 +965,8 @@
           <!-- tune-server-rust#5410 — sans température lisible, les analyses
                de fond tournent à un fichier à la fois : on le dit. -->
           {#if bridage}<div class="sub bridage">{bridage}</div>{/if}
+          <!-- tune-server-rust#6713 — bridage levé par l'utilisateur : on le dit. -->
+          {#if bridageLeveTexte}<div class="sub bridage" data-bridage="leve">{bridageLeveTexte}</div>{/if}
         </section>
       {/if}
 

@@ -6,7 +6,7 @@ import { avecLangue } from './langueRequete';
 
 import type { WSEvent } from './types';
 import { apiFetch } from './api';
-import { urlWebSocket } from './bridge';
+import { fermetureWebSocketRelais, urlWebSocket } from './bridge';
 
 type EventHandler = (event: WSEvent) => void;
 
@@ -108,7 +108,10 @@ class TuneWebSocket {
         }
       };
 
-      this.ws.onclose = () => {
+      this.ws.onclose = (ev?: CloseEvent) => {
+        // Par le relais, une session coupée (écoute reprise ailleurs, appareil
+        // révoqué) ferme le WebSocket en 4001 : l'accès par compte l'affiche.
+        if (ev) fermetureWebSocketRelais(ev.code, ev.reason);
         this._connected = false;
         this._reconnecting = true;
         if (this._stableTimer) { clearTimeout(this._stableTimer); this._stableTimer = null; }
