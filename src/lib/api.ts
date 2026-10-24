@@ -1889,6 +1889,50 @@ export async function getLibraryLabels(): Promise<LibraryLabel[]> {
   }
 }
 
+/** tune-server-rust#6782 — un artiste de la bibliothèque sous ce label.
+ *  `image_url` n'est là que si l'artiste a un portrait. */
+export interface ArtisteDuLabel {
+  id: number;
+  name: string;
+  album_count: number;
+  image_url?: string;
+}
+
+/** tune-server-rust#6782 — un artiste du catalogue Qobuz du label, absent de
+ *  la bibliothèque, avec son album le plus récent. */
+export interface ArtisteADecouvrir {
+  name: string;
+  qobuz_artist_id?: string;
+  album_count: number;
+  album_phare: { id: string; title: string; cover_url?: string; year?: number };
+}
+
+/** `GET /library/labels/{nom}/artists`. `decouvrir` est ABSENT sans compte
+ *  Qobuz connecté, ou quand le label n'a pas de correspondant Qobuz. */
+export interface ArtistesDuLabel {
+  name: string;
+  bibliotheque: ArtisteDuLabel[];
+  qobuz_label_id?: string;
+  decouvrir?: ArtisteADecouvrir[];
+}
+
+/** tune-server-rust#6782 — les artistes d'un label : la bibliothèque, puis
+ *  « À découvrir » chez Qobuz. Un serveur plus ancien (404) ou injoignable
+ *  rend `null` : la page du label reste celle d'avant. */
+export async function getArtistesDuLabel(nom: string): Promise<ArtistesDuLabel | null> {
+  try {
+    const r = await fetchJSON<ArtistesDuLabel>(
+      `${BASE}/library/labels/${encodeURIComponent(nom)}/artists`,
+      undefined,
+      undefined,
+      true,
+    );
+    return r && Array.isArray(r.bibliotheque) ? r : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getAlbums(limit = 100, offset = 0): Promise<Album[]> {
   return (await getAlbumsPage(limit, offset)).items;
 }
