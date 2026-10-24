@@ -33,7 +33,7 @@ describe('#1042 — le sommaire des favoris de service', () => {
     expect(src).toMatch(/\.sommaire\{position:sticky; top:-?\d+px;/);
   });
   it('le libellé accessible existe dans les onze langues', async () => {
-    for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi']) {
+    for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi', 'el']) {
       const dico = dictionnaire(code);
       expect(dico['v2.stream.favIndex'], code).toBeTruthy();
     }

@@ -39,7 +39,7 @@ describe('#1061 — le bouton, dans la barre partagée', () => {
   });
 
   it('la clé existe dans les ONZE langues', () => {
-    const langues = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi'];
+    const langues = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el'];
     for (const l of langues) {
       expect(lire(`src/lib/locales/${l}.ts`), l).toContain('common.playFromHere');
     }

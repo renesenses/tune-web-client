@@ -69,7 +69,7 @@ describe('web#2295 — ce que dit chaque réponse de la route', () => {
     expect(rg).not.toHaveBeenCalled();
   });
 
-  it('chaque issue a sa phrase dans les 12 langues', () => {
+  it('chaque issue a sa phrase dans les 13 langues', () => {
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l);
       for (const cle of Object.values(CLE_ISSUE)) expect(d[cle], `${l} ${cle}`).toBeTruthy();

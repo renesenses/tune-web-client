@@ -119,7 +119,7 @@ describe('la règle d’affichage — même valeur, provenance différente', () 
   });
 
   it('les deux infobulles sont DISTINCTES dans les onze langues', async () => {
-    const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi'];
+    const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el'];
     for (const l of langues) {
       const m = dictionnaire(l);
       const mesure = m['library.dynamicRangeTip'];

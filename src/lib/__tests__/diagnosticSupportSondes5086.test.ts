@@ -25,6 +25,7 @@ import de from '../locales/de';
 import es from '../locales/es';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
+import elLocale from '../locales/el';
 import it_ from '../locales/it';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
@@ -76,7 +77,7 @@ describe('#5086 — sonder : nommer ce qui a échoué', () => {
     expect(libelleEchec({ etat: 'delai' })?.cle).toBe('v2.sup.diagTimeout');
     expect(libelleEchec({ etat: 'http', statut: 503 })).toEqual({ cle: 'v2.sup.diagHttpError', vars: { status: 503 } });
     expect(libelleEchec({ etat: 'injoignable' })?.cle).toBe('v2.sup.diagUnreachable');
-    const langues = { fr, en, de, es, hu, vi: viLocale, it: it_, ja, ko, ro, sv, zh } as Record<string, Record<string, string>>;
+    const langues = { fr, en, de, es, hu, vi: viLocale, el: elLocale, it: it_, ja, ko, ro, sv, zh } as Record<string, Record<string, string>>;
     for (const [l, table] of Object.entries(langues)) {
       expect(table['v2.sup.diagTimeout'], `${l} : v2.sup.diagTimeout`).toBeTruthy();
       expect(table['v2.sup.diagHttpError'], `${l} : v2.sup.diagHttpError`).toContain('{status}');

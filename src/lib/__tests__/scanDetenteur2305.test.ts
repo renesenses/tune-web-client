@@ -65,7 +65,7 @@ describe('web#2305 — le refus 409 nomme le scan détenteur', () => {
   });
 });
 
-describe('web#2305 — écrans branchés et 12 langues', () => {
+describe('web#2305 — écrans branchés et 13 langues', () => {
   it('Réglages, État du serveur et Parcourir lisent le détenteur', () => {
     const lire = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8');
     expect(lire('../../components/v2/SettingsV2.svelte')).toMatch(/decrireScanCourant\(scanCourant/);
@@ -74,7 +74,7 @@ describe('web#2305 — écrans branchés et 12 langues', () => {
     expect(lire('../../components/v2-heritage/BrowseView.svelte')).toMatch(/refusScanConcurrent\(e,/);
   });
 
-  it('chaque libellé existe dans les 12 langues', () => {
+  it('chaque libellé existe dans les 13 langues', () => {
     const cles = [
       ...ORIGINES_DE_SCAN.map((o) => `scanDetenteur.origine.${o}`),
       'scanDetenteur.origine.inconnue', 'scanDetenteur.dossier', 'scanDetenteur.toute',

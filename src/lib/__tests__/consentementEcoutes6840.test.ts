@@ -104,7 +104,7 @@ afterEach(() => {
 
 describe('#6840 — libellés', () => {
   it('les douze libellés existent dans les douze langues', () => {
-    expect(ONZE_LANGUES.length).toBe(12);
+    expect(ONZE_LANGUES.length).toBe(13);
     const cles = ['Title', 'Intro', 'SentLabel', 'Sent', 'NeverLabel', 'Never', 'Benefit',
       'SettingsReminder', 'Error', 'No', 'Yes', 'Close'].map((k) => `settings.cloudListensConsent${k}`);
     for (const code of ONZE_LANGUES) {

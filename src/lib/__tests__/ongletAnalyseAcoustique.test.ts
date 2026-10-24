@@ -28,7 +28,7 @@ import * as LOCALES from './lesOnzeLangues';
  */
 
 /** Les onze locales livrées, telles que `locales/index.ts` les exporte. */
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi'] as const;
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el'] as const;
 const dict = (l: string) => (LOCALES as Record<string, Record<string, string>>)[l];
 
 const settingsV2 = readFileSync(

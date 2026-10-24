@@ -37,7 +37,7 @@ describe('web#2306 — le motif du fournisseur', () => {
     }
   });
 
-  it('les deux libellés existent dans les 12 langues', () => {
+  it('les deux libellés existent dans les 13 langues', () => {
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l);
       expect(d['assistantIa.err.cle_sans_espace_de_travail'], l).toBeTruthy();

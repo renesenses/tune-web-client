@@ -43,6 +43,7 @@ import lRo from '../locales/ro';
 import lSv from '../locales/sv';
 import lHu from '../locales/hu';
 import lVi from '../locales/vi';
+import lEl from '../locales/el';
 
 const STORAGE_KEY = 'tune-preferences';
 
@@ -251,7 +252,7 @@ describe('#1256 — les libellés existent dans les ONZE langues', () => {
   const LANGUES: [string, Record<string, string>][] = [
     ['fr', lFr as never], ['en', lEn as never], ['de', lDe as never], ['es', lEs as never],
     ['it', lIt as never], ['zh', lZh as never], ['ja', lJa as never], ['ko', lKo as never],
-    ['ro', lRo as never], ['sv', lSv as never], ['hu', lHu as never], ['vi', lVi as never],
+    ['ro', lRo as never], ['sv', lSv as never], ['hu', lHu as never], ['vi', lVi as never], ['el', lEl as never],
   ];
   const CLES = [
     'settings.animationRate', 'settings.animationRateHint',
@@ -259,7 +260,7 @@ describe('#1256 — les libellés existent dans les ONZE langues', () => {
   ];
 
   it('les onze langues sont bien au rendez-vous', () => {
-    expect(LANGUES).toHaveLength(12);
+    expect(LANGUES).toHaveLength(13);
     expect(CLES).toHaveLength(5);
   });
 

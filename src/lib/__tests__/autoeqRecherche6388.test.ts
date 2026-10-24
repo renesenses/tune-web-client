@@ -144,10 +144,10 @@ describe('#6388 — Égaliseur : chercher un casque dans AutoEq', () => {
     expect(el.querySelector('.autoeq-vide')?.textContent).toBe(fr['eq.autoeqNoResult']);
   });
 
-  it('les clés AutoEq existent dans les 12 langues', () => {
+  it('les clés AutoEq existent dans les 13 langues', () => {
     const cles = Object.keys(fr).filter((k) => k.startsWith('eq.autoeq'));
     expect(cles.length).toBe(10);
-    expect(ONZE_LANGUES.length).toBe(12);
+    expect(ONZE_LANGUES.length).toBe(13);
     for (const lang of ONZE_LANGUES) {
       const table = dictionnaire(lang);
       for (const k of cles) expect(table[k], `${lang} : ${k}`).toBeTruthy();

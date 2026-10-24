@@ -17,6 +17,7 @@ import es from '../locales/es';
 import fr from '../locales/fr';
 import hu from '../locales/hu';
 import vi from '../locales/vi';
+import el from '../locales/el';
 import it_ from '../locales/it';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
@@ -53,7 +54,7 @@ describe('#6232 — règle « Interprète de la piste »', () => {
   });
 
   it('est traduite dans les douze langues, et distincte des deux autres artistes', () => {
-    const langues = { de, en, es, fr, hu, vi, it: it_, ja, ko, ro, sv, zh } as Record<
+    const langues = { de, en, es, fr, hu, vi, el, it: it_, ja, ko, ro, sv, zh } as Record<
       string,
       Record<string, string>
     >;

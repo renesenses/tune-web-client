@@ -42,6 +42,7 @@ import lEn from '../locales/en';
 import lEs from '../locales/es';
 import lHu from '../locales/hu';
 import lVi from '../locales/vi';
+import lEl from '../locales/el';
 import lIt from '../locales/it';
 import lJa from '../locales/ja';
 import lKo from '../locales/ko';
@@ -193,11 +194,11 @@ describe('le filtre « compilations » de la bibliothèque (#1957)', () => {
 
 describe('les onze langues portent les clés de la pastille', () => {
   const langues: [string, Record<string, string>][] = [
-    ['fr', lFr], ['en', lEn], ['de', lDe], ['es', lEs], ['hu', lHu], ['vi', lVi], ['it', lIt],
+    ['fr', lFr], ['en', lEn], ['de', lDe], ['es', lEs], ['hu', lHu], ['vi', lVi], ['el', lEl], ['it', lIt],
     ['ja', lJa], ['ko', lKo], ['ro', lRo], ['sv', lSv], ['zh', lZh],
   ];
   it('onze fichiers, quatre clés chacun, aucune valeur vide', () => {
-    expect(langues).toHaveLength(12);
+    expect(langues).toHaveLength(13);
     for (const [nom, dict] of langues) {
       for (const cle of CLES) {
         expect(`${nom}:${cle}:${dict[cle] ?? ''}`.length).toBeGreaterThan(nom.length + cle.length + 2);
