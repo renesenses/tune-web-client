@@ -12,6 +12,7 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
+  import { dialogs } from '../../lib/stores/dialogs';
   import { onDestroy, untrack } from 'svelte';
   import {
     type CatalogueReaffectation, type EtatReaffectation, type ReglageReaffectation,
@@ -124,6 +125,10 @@
   async function enregistrer() {
     const zid = zoneRequise();
     if (zid == null || !formeValide(reglage)) return;
+    // web#2146 (Didier, réponse 8281) : la grille montre la règle de l'album ;
+    // l'enregistrer pour la zone remplace le réglage par défaut de TOUTE la
+    // zone. Le demander avant de le faire.
+    if (source === 'album' && !(await dialogs.confirm($t('v2.cr.saveZoneFromAlbumConfirm' as any)))) return;
     occupe = true;
     try {
       etat = await setReaffectationZone(zid, reglage);
@@ -281,6 +286,7 @@
           <button class="go" disabled={occupe || !formeValide(reglage)} onclick={enregistrer}>{$t('v2.cr.save' as any)}</button>
           {#if etat?.saved}<button class="lnk danger" disabled={occupe} onclick={effacer}>{$t('v2.cr.reset' as any)}</button>{/if}
         </div>
+        <p class="hint" data-portee-zone={source}>{source === 'album' ? $t('v2.cr.saveZoneFromAlbum' as any) : $t('v2.cr.saveZoneHint' as any)}</p>
       </div>
 
       <div class="card album" data-album>
@@ -288,11 +294,12 @@
           <div class="lbl">
             <span>{$t('v2.cr.albumTitle' as any)}</span>
             <span class="hint">{$t('v2.cr.albumHint' as any)}</span>
+            {#if albumId != null && !albumEtat?.saved}<span class="hint" data-creer-album>{$t('v2.cr.albumCreateHint' as any)}</span>{/if}
             {#if albumTitre}<span class="val">{albumTitre}</span>{/if}
             {#if albumEtat?.saved}<span class="val" data-regle-album>{$t('v2.cr.albumActive' as any)}</span>{/if}
           </div>
           <div class="actions">
-            <button class="go" disabled={occupe || albumId == null || !formeValide(reglage)} onclick={enregistrerPourLAlbum}>{$t('v2.cr.albumSave' as any)}</button>
+            <button class="go" disabled={occupe || albumId == null || !formeValide(reglage)} onclick={enregistrerPourLAlbum}>{albumEtat?.saved ? $t('v2.cr.albumSave' as any) : $t('v2.cr.albumCreate' as any)}</button>
             {#if albumEtat?.saved}<button class="lnk danger" disabled={occupe} onclick={retirerDeLAlbum}>{$t('v2.cr.albumRemove' as any)}</button>{/if}
           </div>
         </div>
