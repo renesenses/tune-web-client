@@ -737,6 +737,12 @@ export default {
   // Artist detail
   'artist.similarArtists': 'Artiști similari',
   "artist.backToSimilars": "Înapoi la artiștii similari cu {nom}",
+  "artist.detachIdentity": "Detașează identitatea",
+  "artist.detachIdentityHint": "Elimină identificatorul MusicBrainz al acestui artist, împreună cu portretul și biografia aduse de el. Tune nu îl va reatașa de la sine.",
+  "artist.detachIdentityConfirm": "Detașați identitatea MusicBrainz a „{nom}”? Portretul și biografia venite odată cu ea vor fi eliminate, iar Tune nu o va mai atașa automat.",
+  "artist.identityDetached": "Identitate detașată: „{nom}” nu mai este legat de MusicBrainz.",
+  "artist.identityDetachFailed": "Identitatea acestui artist nu a putut fi detașată.",
+  "artist.identityDetachedNote": "Identitate detașată de dvs.: Tune nu o mai caută.",
   'artist.members': 'Membri',
   'artist.credits': 'Credite',
   'credits.performer': 'Interpret',

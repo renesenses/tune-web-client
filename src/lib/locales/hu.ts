@@ -811,6 +811,12 @@ export default {
   // Előadó részletei
   "artist.similarArtists": "Hasonló előadók",
   "artist.backToSimilars": "Vissza a(z) {nom} előadóhoz hasonlókhoz",
+  "artist.detachIdentity": "Azonosítás leválasztása",
+  "artist.detachIdentityHint": "Eltávolítja az előadó MusicBrainz-azonosítóját, a vele érkezett portréval és életrajzzal együtt. A Tune magától nem kapcsolja vissza.",
+  "artist.detachIdentityConfirm": "Leválasztja „{nom}” MusicBrainz-azonosítását? A vele érkezett portré és életrajz törlődik, és a Tune többé nem kapcsolja hozzá automatikusan.",
+  "artist.identityDetached": "Azonosítás leválasztva: „{nom}” már nincs a MusicBrainzhez kapcsolva.",
+  "artist.identityDetachFailed": "Nem sikerült leválasztani az előadó azonosítását.",
+  "artist.identityDetachedNote": "Ön választotta le az azonosítást: a Tune már nem keresi.",
   "artist.members": "Tagok",
   "artist.credits": "Közreműködők",
   "credits.performer": "Előadó",

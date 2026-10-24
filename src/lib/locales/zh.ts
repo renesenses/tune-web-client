@@ -731,6 +731,12 @@ export default {
   // Artist detail
   'artist.similarArtists': '相似艺术家',
   "artist.backToSimilars": "返回 {nom} 的相似艺术家",
+  "artist.detachIdentity": "解除身份关联",
+  "artist.detachIdentityHint": "移除该艺人的 MusicBrainz 标识符，以及随之获取的照片和简介。Tune 不会再自动重新关联。",
+  "artist.detachIdentityConfirm": "要解除“{nom}”的 MusicBrainz 身份关联吗？随之获取的照片和简介将被移除，Tune 将不再自动关联。",
+  "artist.identityDetached": "已解除身份关联：“{nom}”不再关联到 MusicBrainz。",
+  "artist.identityDetachFailed": "无法解除该艺人的身份关联。",
+  "artist.identityDetachedNote": "由您解除的身份关联：Tune 不再查找。",
   'artist.members': '成员',
   'artist.credits': '创作人员',
   'credits.performer': '演奏者',

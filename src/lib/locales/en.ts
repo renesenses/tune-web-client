@@ -846,6 +846,12 @@ export default {
   // Artist detail
   'artist.similarArtists': 'Similar Artists',
   "artist.backToSimilars": "Back to artists similar to {nom}",
+  "artist.detachIdentity": "Detach identity",
+  "artist.detachIdentityHint": "Removes this artist's MusicBrainz identifier, along with the portrait and biography it brought. Tune will not attach it again on its own.",
+  "artist.detachIdentityConfirm": "Detach the MusicBrainz identity of “{nom}”? The portrait and biography that came with it will be removed, and Tune will no longer attach it automatically.",
+  "artist.identityDetached": "Identity detached: “{nom}” is no longer linked to MusicBrainz.",
+  "artist.identityDetachFailed": "Could not detach this artist's identity.",
+  "artist.identityDetachedNote": "Identity detached by you: Tune no longer looks it up.",
   'artist.members': 'Members',
   'artist.credits': 'Credits',
   'credits.performer': 'Performer',

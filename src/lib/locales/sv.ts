@@ -715,6 +715,12 @@ export default {
   // Artist detail
   'artist.similarArtists': 'Liknande artister',
   "artist.backToSimilars": "Tillbaka till artister som liknar {nom}",
+  "artist.detachIdentity": "Koppla bort identiteten",
+  "artist.detachIdentityHint": "Tar bort artistens MusicBrainz-identifierare, tillsammans med porträttet och biografin som följde med den. Tune kopplar inte tillbaka den av sig själv.",
+  "artist.detachIdentityConfirm": "Koppla bort MusicBrainz-identiteten för ”{nom}”? Porträttet och biografin som följde med den tas bort, och Tune kopplar inte längre den automatiskt.",
+  "artist.identityDetached": "Identiteten bortkopplad: ”{nom}” är inte längre kopplad till MusicBrainz.",
+  "artist.identityDetachFailed": "Det gick inte att koppla bort artistens identitet.",
+  "artist.identityDetachedNote": "Identitet bortkopplad av dig: Tune söker inte längre efter den.",
   'artist.members': 'Medlemmar',
   'artist.credits': 'Medverkande',
   'credits.performer': 'Utövare',
