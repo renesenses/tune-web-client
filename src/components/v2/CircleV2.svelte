@@ -67,6 +67,7 @@
     getSynchroBibliotheque, avisSynchro, getPartagesAvecMoi, plusPartage,
     getPartagePochettes, reglerPartagePochettes,
     getRayonsCercle, partagerRayon, retirerRayon, estBibliothequeNonPartagee,
+    listerPersonnesBloquees, bloquerInvitant, debloquerPersonne, type PersonneBloquee,
     type RayonsCercle, type RayonLocal,
     type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme,
     type EtatSynchroBibliotheque, type PartageRecu, type AvisSynchro,
@@ -116,6 +117,13 @@
   let erreurPlaylists = $state<MotifCercle | null>(null);
   let playlistOuverte = $state<IdOpaque | null>(null);
   let recuperables = $state<PlaylistRecuperable[]>([]);
+  /** #6935 : `null` tant qu'on ne sait pas si le greffon et le cloud savent bloquer (404 = non). */
+  let blocage = $state<boolean | null>(null);
+  let bloquees = $state<PersonneBloquee[]>([]);
+  /** L'invitation reçue dont on confirme le blocage, dans la page (pas de `confirm()`). */
+  let aBloquer = $state<number | null>(null);
+  /** Annonce `aria-live` d'un blocage ou d'un déblocage réussi. */
+  let annonceBlocage = $state('');
 
   let fini = false;
   let enCours = false;
@@ -161,7 +169,7 @@
           if (!partageIci(c) && (rayons[c.id] || rayonsOuverts[c.id])) { delete rayons[c.id]; delete rayonsOuverts[c.id]; }
         }
       }
-      if (estConnecte(e)) await Promise.all([relireT2(), relireT5()]);
+      if (estConnecte(e)) await Promise.all([relireT2(), relireT5(), relireBlocages()]);
     } catch (e) {
       if (fini) return;
       // Pas de liste périmée affichée comme vraie : l'écran dit la panne.
@@ -197,6 +205,24 @@
     else erreurPlaylists = motifCercle(l.reason);
     // Rien à récupérer, ou une panne : le bloc se tait (il ne porte aucun geste urgent).
     recuperables = r.status === 'fulfilled' ? r.value : [];
+  }
+
+  /**
+   * #6935 : les personnes que j'ai bloquées. Un 404 (ou 405) dit un greffon ou
+   * un cloud d'avant #6935 : « Bloquer » et la liste se cachent. Une autre
+   * panne garde ce qu'on savait : les gestes diront le refus.
+   */
+  async function relireBlocages() {
+    try {
+      const b = await listerPersonnesBloquees();
+      if (fini) return;
+      bloquees = b;
+      blocage = true;
+    } catch (e) {
+      if (fini) return;
+      const status = (e as { status?: number } | null)?.status;
+      if (status === 404 || status === 405) { blocage = false; bloquees = []; aBloquer = null; }
+    }
   }
 
   /** Relecture modérée : onglet visible, écran ouvert, rien en cours. */
@@ -255,6 +281,38 @@
     void geste('inviter', () => inviterAuCercle(adresse, cid), {
       vers: 'invitation', succes: 'v2.circle.invited', champ: 'email',
       apres: () => { email = ''; cercleInvitation = ''; },
+    });
+  }
+
+  /** #6935 : ouvre la confirmation dans la ligne, et y porte le focus. */
+  function demanderBlocage(id: number) {
+    aBloquer = id;
+    annonceBlocage = '';
+    queueMicrotask(() => {
+      (document.querySelector(`[data-confirmer-blocage="${id}"]`) as HTMLButtonElement | null)?.focus();
+    });
+  }
+
+  function annulerBlocage(id: number) {
+    aBloquer = null;
+    queueMicrotask(() => {
+      (document.querySelector(`[data-bloquer="${id}"]`) as HTMLButtonElement | null)?.focus();
+    });
+  }
+
+  function bloquer(id: number, nom: string) {
+    void geste(`bloquer-${id}`, () => bloquerInvitant(id), {
+      apres: () => {
+        aBloquer = null;
+        annonceBlocage = $t('v2.circle.block.done' as any).split('{name}').join(nom);
+      },
+    });
+  }
+
+  function debloquer(p: PersonneBloquee) {
+    annonceBlocage = '';
+    void geste(`debloquer-${p.user_id}`, () => debloquerPersonne(p.user_id), {
+      apres: () => { annonceBlocage = $t('v2.circle.block.undone' as any).split('{name}').join(p.name); },
     });
   }
 
@@ -580,11 +638,61 @@
                     onclick={() => void geste(`refuser-${inv.id}`, () => refuserInvitation(inv.id))}>
                     {$t('v2.circle.decline' as any)}
                   </button>
+                  {#if blocage === true}
+                    <button class="lnk danger bloquer" disabled={occupe !== null || aBloquer === inv.id}
+                      data-bloquer={inv.id}
+                      aria-label={$t('v2.circle.block.named' as any).split('{name}').join(inv.name_or_email)}
+                      aria-expanded={aBloquer === inv.id}
+                      onclick={() => demanderBlocage(inv.id)}>
+                      {$t('v2.circle.block.action' as any)}
+                    </button>
+                  {/if}
                 </span>
+                {#if blocage === true && aBloquer === inv.id}
+                  <div class="confirmer-blocage" role="group" aria-labelledby="circle-bloquer-{inv.id}">
+                    <p id="circle-bloquer-{inv.id}">{$t('v2.circle.block.confirm' as any).split('{name}').join(inv.name_or_email)}</p>
+                    <span class="gestes">
+                      <button class="risque confirmer-bloquer" disabled={occupe !== null}
+                        data-confirmer-blocage={inv.id}
+                        onclick={() => bloquer(inv.id, inv.name_or_email)}>
+                        {$t('v2.circle.block.confirmAction' as any)}
+                      </button>
+                      <button class="lnk annuler-bloquer" disabled={occupe !== null}
+                        onclick={() => annulerBlocage(inv.id)}>
+                        {$t('v2.circle.block.cancel' as any)}
+                      </button>
+                    </span>
+                  </div>
+                {/if}
               </li>
             {/each}
           </ul>
         </section>
+      {/if}
+
+      <!-- #6935 : annonce d'un blocage ou d'un déblocage (région toujours présente). -->
+      <p class="ok annonce-blocage" class:muette={!annonceBlocage} role="status" aria-live="polite">{annonceBlocage}</p>
+
+      {#if blocage === true && bloquees.length > 0}
+        <details class="bloc bloquees">
+          <summary>{$t('v2.circle.block.list' as any).replace('{n}', String(bloquees.length))}</summary>
+          <p class="note">{$t('v2.circle.block.listHint' as any)}</p>
+          <ul>
+            {#each bloquees as p (p.user_id)}
+              <li class="ligne personne-bloquee">
+                <span class="nom" use:bulleTexte>{p.name}</span>
+                <span class="note">{$t('v2.circle.block.since' as any).replace('{date}', $dateCourte(p.since))}</span>
+                <span class="gestes">
+                  <button class="lnk debloquer" disabled={occupe !== null}
+                    aria-label={$t('v2.circle.block.unblockNamed' as any).split('{name}').join(p.name)}
+                    onclick={() => debloquer(p)}>
+                    {$t('v2.circle.block.unblock' as any)}
+                  </button>
+                </span>
+              </li>
+            {/each}
+          </ul>
+        </details>
       {/if}
 
       <div class="hero">
@@ -916,6 +1024,19 @@
   .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:13px; padding:4px 2px}
   .lnk:disabled{opacity:.35; cursor:not-allowed}
   .danger{color:var(--v2-danger)}
+  /* #6935 : bloquer, confirmation dans la ligne et personnes bloquées. */
+  .confirmer-blocage{grid-column:1 / -1; display:flex; flex-direction:column; gap:8px; padding:10px 12px; border-radius:10px;
+    border:1px solid var(--v2-danger-bd); background:var(--v2-danger-soft); font-size:12.5px}
+  .confirmer-blocage p{margin:0; color:var(--v2-txt)}
+  .risque{height:32px; padding:0 16px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-danger-bd); cursor:pointer;
+    font:700 12.5px var(--v2-sans); color:var(--v2-danger); background:var(--v2-surface)}
+  .risque:disabled{opacity:.35; cursor:not-allowed}
+  .risque:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .annonce-blocage{margin:0}
+  .annonce-blocage.muette{padding:0; border:0; background:transparent}
+  .bloquees summary{cursor:pointer; font-size:14px; font-weight:700}
+  .bloquees summary:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .bloquees .note{margin:0}
   .partage{display:flex; flex-direction:column; gap:4px; padding:4px 0 6px; border-bottom:1px solid var(--v2-line)}
   .partage-quoi{margin:0}
   .avis-synchro{margin:0}

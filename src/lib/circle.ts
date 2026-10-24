@@ -970,3 +970,45 @@ export function creerLienInvitation(circleId?: number | null): Promise<LienInvit
 export function revoquerLienInvitation(id: number): Promise<{ ok: boolean }> {
   return envoyer(`${BASE}/ext/circle/invitation-links/${seg(id)}`, 'DELETE');
 }
+
+// ─── #6935 : bloquer l'auteur d'une invitation reçue ────────────────────────
+//
+// Contrat de site-mozaiklabs#353, relayé tel quel par le greffon (#6950) :
+//
+//   POST   /invitations/{id}/block → { ok: true } : l'invitation est refusée
+//          et son auteur bloqué. 🔴 L'invitant n'en apprend RIEN : ses
+//          invitations suivantes reçoivent le même 201 que d'habitude.
+//   GET    /blocks                 → { blocks: [{ user_id, name, since }] }
+//   DELETE /blocks/{user_id}       → { ok: true } / 404 `not_found`
+//
+// Un 404 sur `GET /blocks` dit un greffon ou un cloud d'avant #6935 : l'écran
+// cache alors « Bloquer » et la liste des personnes bloquées.
+
+export interface PersonneBloquee {
+  user_id: number;
+  name: string;
+  since: string;
+}
+
+/** Ne garde que les lignes bien formées : un nom vide ou un id absent ne s'affiche pas. */
+export function lirePersonnesBloquees(brut: unknown): PersonneBloquee[] {
+  const lignes = (brut as { blocks?: unknown } | null)?.blocks;
+  if (!Array.isArray(lignes)) return [];
+  return lignes.flatMap((l) => {
+    const b = l as Partial<PersonneBloquee> | null;
+    if (!b || typeof b.user_id !== 'number' || typeof b.name !== 'string' || typeof b.since !== 'string') return [];
+    return [{ user_id: b.user_id, name: b.name, since: b.since }];
+  });
+}
+
+export async function listerPersonnesBloquees(): Promise<PersonneBloquee[]> {
+  return lirePersonnesBloquees(await fetchJSON<unknown>(`${BASE}/ext/circle/blocks`, undefined, undefined, true));
+}
+
+export function bloquerInvitant(invitationId: number): Promise<{ ok: boolean }> {
+  return envoyer(`${BASE}/ext/circle/invitations/${seg(invitationId)}/block`, 'POST');
+}
+
+export function debloquerPersonne(userId: number): Promise<{ ok: boolean }> {
+  return envoyer(`${BASE}/ext/circle/blocks/${seg(userId)}`, 'DELETE');
+}
