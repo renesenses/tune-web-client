@@ -1,25 +1,42 @@
 <script lang="ts">
   import { currentZone } from '../../lib/stores/zones';
-  import { zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
+  import { zoneVolume } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
   import { isBrowserZone, browserSetVolume } from '../../lib/stores/browserAudio';
   import { t } from '../../lib/i18n';
-  import { volumeLocked } from '../../lib/stores/audiophile';
+  import { volumeLocked, refreshAudiophile, isVolumeLocked } from '../../lib/stores/audiophile';
+  import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
   import { notifications } from '../../lib/stores/notifications';
   import * as api from '../../lib/api';
   import { analyserDb, formaterDb, lineaireDepuisDb } from '../../lib/volumeDb';
+  import { gainDeLaZone, volumeDepuisGain } from '../../lib/courbeDeVolume';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
+  import {
+    PAS_BOUTON,
+    bornerCurseur,
+    cibleDuPas,
+    plusEnButee,
+    serveurConnaitLesLimites,
+  } from '../../lib/limitesVolume';
+  import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
 
   let zone = $derived($currentZone);
   let vol = $derived($zoneVolume);
-  let isMuted = $derived(vol === 0 && $mutedVolume !== null);
+  // #6700 — la sourdine est l'état `muted` de la zone, pas un volume à zéro.
+  let isMuted = $derived(zone?.muted === true);
 
   // #1274 \u2014 le mode dB n'est plus une simple fa\u00E7on d'\u00C9CRIRE le pour-cent : le
   // champ est saisissable, et ce qu'on y tape part tel quel dans `volume_db`.
   let modeDb = $derived($preferences.volumeDisplay === 'dB');
 
+  // tune-server-rust#6787 — le dB affiché est celui du GAIN, lu sur la loi de
+  // la zone (`volume_curve`) : 50 % valent −30 dB sur une sortie logicielle.
+  function dbDuCurseur(v: number): string {
+    return formaterDb(gainDeLaZone(zone, v));
+  }
+
   function volumeDisplay(v: number): string {
-    if (modeDb) return formaterDb(v);
+    if (modeDb) return dbDuCurseur(v);
     return `${Math.round(v * 100)}`;
   }
 
@@ -38,7 +55,7 @@
 
   function ouvrirSaisie() {
     if ($volumeLocked) return;
-    saisie = formaterDb(vol);
+    saisie = dbDuCurseur(vol);
   }
 
   async function validerSaisie(texte: string) {
@@ -47,7 +64,7 @@
     // Rien tapé : le champ rend sa propre valeur, il n'y a aucune commande à
     // envoyer. C'est aussi ce qui évite de refuser « -∞ dB », le texte que le
     // champ affiche LUI-MÊME quand la zone est au silence.
-    if (texte === formaterDb(vol)) return;
+    if (texte === dbDuCurseur(vol)) return;
     const lu = analyserDb(texte);
     if ('refus' in lu) {
       // Un champ qui se remet tout seul \u00E0 sa valeur sans un mot laisse croire
@@ -57,11 +74,14 @@
       );
       return;
     }
-    const lineaire = lineaireDepuisDb(lu.db);
-    if (lineaire === null) return;
-    if (lineaire > 0) mutedVolume.set(null);
+    const gain = lineaireDepuisDb(lu.db);
+    if (gain === null) return;
+    // #6787 — le dB tapé est un dB de gain : le curseur va à la position qui
+    // le rend (le serveur fait la même conversion sur `volume_db`).
+    const lineaire = volumeDepuisGain(zone, gain);
+    if (zone.id != null) leverSourdineSiBesoin({ ...zone, id: zone.id }, lineaire);
     zoneVolume.set(lineaire);
-    if (isBrowserZone(zone)) browserSetVolume(lineaire);
+    if (isBrowserZone(zone)) browserSetVolume(lineaire, zone);
     // Le dB part TEL QUEL : le repasser en lin\u00E9aire avant l'envoi rendrait la
     // valeur au serveur d\u00E9j\u00E0 entam\u00E9e par un aller-retour de flottant.
     await api.setVolumeDb(zone.id, lu.db);
@@ -83,12 +103,27 @@
 
   function handleVolume(e: Event) {
     if (!zone?.id || $volumeLocked) return;
-    const val = Number((e.target as HTMLInputElement).value);
-    if (val > 0) mutedVolume.set(null);
+    const champ = e.target as HTMLInputElement;
+    // tune-server-rust#6541 — le serveur borne le curseur (confort, sécurité) ;
+    // l'écran le montre au lieu de laisser le pouce filer plus haut que le son.
+    const val = bornerCurseur(zone, Number(champ.value), vol);
+    if (val !== Number(champ.value)) champ.value = String(val);
+    leverSourdineSiBesoin({ ...zone, id: zone.id }, val);
     zoneVolume.set(val);
-    if (isBrowserZone(zone)) browserSetVolume(val);
+    if (isBrowserZone(zone)) browserSetVolume(val, zone);
     const zoneId = zone.id;
-    limiterEnvoi(() => { void api.setVolume(zoneId, val); });
+    limiterEnvoi(() => { void envoyerVolume(zoneId, val); });
+  }
+
+  // tune-server-rust#6721 — un refus du serveur (PURE « Forcer à 100 % »
+  // armé ailleurs, ou mal lu ici) relit le verrou : le curseur se grise.
+  function envoyerVolume(zoneId: number, val: number) {
+    return envoyerVolumeOuReverrouiller(zoneId, val, {
+      envoyer: api.setVolume,
+      relireVerrou: refreshAudiophile,
+      verrouille: isVolumeLocked,
+      direVerrou: () => notifications.error($t('audiophile.volumeLockedHint' as any)),
+    });
   }
 
   // Une zone navigateur joue dans CET onglet (<audio>) : le serveur ignore
@@ -98,43 +133,48 @@
   // « Cet ordinateur » (Bertrand, .18).
   function applyVolume(val: number) {
     zoneVolume.set(val);
-    if (isBrowserZone(zone)) browserSetVolume(val);
+    if (isBrowserZone(zone)) browserSetVolume(val, zone);
   }
 
+  // #6700 — décision de Bertrand du 21/10 : une VRAIE sourdine. Le volume
+  // n'est pas touché, lever la sourdine rend le son au volume d'avant.
   async function toggleMute() {
     if (!zone?.id || $volumeLocked) return;
-    if (vol > 0) {
-      mutedVolume.set(vol);
-      applyVolume(0);
-      await api.setVolume(zone.id, 0);
-    } else if ($mutedVolume !== null) {
-      const restore = $mutedVolume;
-      mutedVolume.set(null);
-      applyVolume(restore);
-      await api.setVolume(zone.id, restore);
-    } else {
-      applyVolume(0.5);
-      await api.setVolume(zone.id, 0.5);
+    await basculerSourdineZone({ ...zone, id: zone.id }).catch(() => {});
+  }
+
+  // tune-server-rust#6541 — boutons + / − : le serveur fait le pas depuis le
+  // volume COURANT et le borne par la seule limite de sécurité (au-dessus du
+  // confort, seuls les boutons montent). Un serveur antérieur, sans la route,
+  // reçoit l'ancien `PUT /volume`.
+  async function pas(direction: 'up' | 'down') {
+    if (!zone?.id || $volumeLocked) return;
+    if (!serveurConnaitLesLimites(zone) || isBrowserZone(zone)) {
+      // web#2292 — borné par la sécurité de la zone, pas seulement par 100 %.
+      const next = cibleDuPas(zone, vol, direction);
+      if (next === vol) return;
+      if (direction === 'up') leverSourdineSiBesoin({ ...zone, id: zone.id }, next);
+      applyVolume(next);
+      await api.setVolume(zone.id, next);
+      return;
+    }
+    try {
+      const r = await api.stepVolume(zone.id, direction, PAS_BOUTON);
+      // tune-server-rust#6787 — la réponse porte le GAIN : le curseur en est
+      // la position sur la loi de la zone.
+      const curseur = volumeDepuisGain(zone, r.volume);
+      if (direction === 'up') leverSourdineSiBesoin({ ...zone, id: zone.id }, curseur);
+      applyVolume(curseur);
+      if (r.limited) notifications.info($t('volume.limitedBySafety'));
+    } catch {
+      notifications.error($t('volume.stepFailed'));
     }
   }
 
-  const STEP = 0.01;
-
-  async function stepDown() {
-    if (!zone?.id || $volumeLocked) return;
-    const next = Math.max(0, vol - STEP);
-    if (next > 0) mutedVolume.set(null);
-    applyVolume(next);
-    await api.setVolume(zone.id, next);
-  }
-
-  async function stepUp() {
-    if (!zone?.id || $volumeLocked) return;
-    const next = Math.min(1, vol + STEP);
-    mutedVolume.set(null);
-    applyVolume(next);
-    await api.setVolume(zone.id, next);
-  }
+  let enButee = $derived(plusEnButee(zone, vol));
+  // web#2292 — les boutons − et + sont une OPTION des Réglages, désactivée par
+  // défaut : seul le curseur s'affiche tant qu'on ne l'a pas choisie.
+  let boutonsPas = $derived($preferences.volumeStepButtons === true);
 </script>
 
 <div class="volume-control" class:locked={$volumeLocked}>
@@ -162,6 +202,17 @@
       </svg>
     {/if}
   </button>
+  {#if boutonsPas}
+  <button
+    class="step-btn"
+    onclick={() => pas('down')}
+    disabled={$volumeLocked || vol <= 0}
+    title={$t('volume.stepDown')}
+    aria-label={$t('volume.stepDown')}
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+  </button>
+  {/if}
   <input
     type="range"
     class="volume-slider"
@@ -174,6 +225,17 @@
     title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : undefined}
     aria-label="Volume"
   />
+  {#if boutonsPas}
+  <button
+    class="step-btn"
+    onclick={() => pas('up')}
+    disabled={$volumeLocked || enButee}
+    title={enButee ? $t('volume.limitedBySafety') : $t('volume.stepUp')}
+    aria-label={$t('volume.stepUp')}
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+  </button>
+  {/if}
   {#if modeDb}
     <input
       type="text"

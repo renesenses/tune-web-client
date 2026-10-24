@@ -132,6 +132,9 @@ export interface Preferences {
    *  Absent d'un blob ancien. Règle complète : `langueParDefaut.ts`. */
   langueAuto: Locale | null;
   volumeDisplay: VolumeDisplay;
+  /** web#2292 (fil 2366) — boutons − et + de part et d'autre du curseur de
+   *  volume, au pas d'un point. Désactivé par défaut (décision du 22/10). */
+  volumeStepButtons: boolean;
   startupView: StartupView;
   defaultZoneId: number | null;
   hiddenDeviceIds: string[];
@@ -218,7 +221,7 @@ export interface Preferences {
    *  Défaut : débutant pour TOUS, installations existantes comprises
    *  (arbitrage Bertrand, 14/08) — l'ancien toggle « réglages avancés »
    *  migre vers expert au premier chargement (voir loadPrefs). */
-  /** Thème du NOUVEAU client (six palettes, voir lib/v2Theme). Distinct de
+  /** Thème du NOUVEAU client (sept palettes, voir lib/v2Theme). Distinct de
    *  `theme` ci-dessus, qui reste celui de l'app historique : les deux
    *  clients cohabitent derrière le drapeau `?v2`, chacun garde le sien. */
   v2Theme: V2Theme;
@@ -239,6 +242,15 @@ export interface Preferences {
    *  vaut une phrase entre guillemets — un artiste, un album ou un titre dont
    *  le nom contient ces mots, dans cet ordre. Désactivée par défaut. */
   searchExact: boolean;
+  /**
+   * tune-server-rust#6474 (René, fil 2313) — « Trier les artistes par nom de
+   * famille ». Coché : la liste des artistes et son rail A–Z suivent le NOM DE
+   * TRI quand il est connu (ARTISTSORT, ALBUMARTISTSORT, ou saisi dans
+   * « Modifier l'artiste ») — Miles Davis sous D. Décoché : le nom affiché,
+   * toujours. Le nom affiché ne change jamais. Coché par défaut : c'est l'ordre
+   * livré depuis #4956.
+   */
+  trierArtistesParNomDeTri: boolean;
   /**
    * Mosaïque de quatre pochettes sur les cartes de collection, ou pochette
    * UNIQUE — l'écran compact de l'ancien client.
@@ -477,6 +489,7 @@ const defaults: Preferences = {
   // sinon (`langueParDefaut.ts`).
   ...resoudreLangue([]),
   volumeDisplay: 'percent',
+  volumeStepButtons: false,
   startupView: 'home',
   defaultZoneId: null,
   hiddenDeviceIds: [],
@@ -500,6 +513,8 @@ const defaults: Preferences = {
   v2AlbumTechLine: false,
   v2ActionsReduites: false,
   searchExact: false,
+  // #6474 : l'ordre livré (nom de tri quand il existe) reste le défaut.
+  trierArtistesParNomDeTri: true,
   v2CollectionsMosaique: true,
   // #1428 — DÉCOCHÉ, et c'est la décision de Bertrand du 22/09/2026, pas un
   // oubli : l'écran de qui n'a rien demandé ne bouge pas d'un pixel.

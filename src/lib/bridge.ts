@@ -117,6 +117,93 @@ function resoudre(): { serverId: string | null; jeton: string | null } {
 /** Réinitialise l'état résolu — pour les tests. */
 export function reinitialiserPourTest(): void {
   etat = null;
+  compte = null;
+}
+
+/**
+ * Accès PAR COMPTE (laissez-passer, rc8) : branché par `accesParCompte.ts`.
+ *
+ * Le jeton de session que rend le relais prend la place du jeton du pont,
+ * aux mêmes endroits (`X-Bridge-Token`, `?token=`). Tant qu'aucune session
+ * n'est ouverte — site sans clés (503), relais antérieur, compte non relié —
+ * `jeton()` rend `null` et c'est l'ancien jeton du pont qui sert : la
+ * coexistence ne coûte rien à qui n'a qu'un lien d'accès.
+ */
+export interface BranchementCompte {
+  /** Jeton de session courant, ou `null`. */
+  jeton: () => string | null;
+  /** Un compte est relié : le mode distant est actif même sans ancien jeton. */
+  actif: boolean;
+  /** Ouverture de session en cours : les requêtes l'attendent. `null` sinon. */
+  attente: () => Promise<void> | null;
+  /** Refus du relais lu dans une réponse (`{code, motif?, appareil?}`). */
+  refus: (corps: { code?: string; motif?: string; appareil?: string }) => void;
+  /** Le relais a servi l'ancien jeton avec `X-Tune-Avertissement: lien-obsolete`. */
+  lienObsolete: () => void;
+}
+
+let compte: BranchementCompte | null = null;
+
+export function brancherAccesParCompte(b: BranchementCompte | null): void {
+  compte = b;
+}
+
+/** Un ancien jeton du pont (lien `#token=`) est-il connu de ce navigateur ? */
+export function jetonHeriteConnu(): boolean {
+  return Boolean(resoudre().jeton);
+}
+
+/** Le jeton à présenter au relais : celui de la session par compte, sinon l'ancien. */
+function jetonEffectif(): string | null {
+  return compte?.jeton() ?? resoudre().jeton;
+}
+
+/**
+ * Fermeture du WebSocket par le relais : code 4001, raison = le JSON du refus
+ * (`{code, motif?, appareil?}`, contrat relais). Rend `true` si la fermeture
+ * venait d'une session coupée ou refusée.
+ */
+export function fermetureWebSocketRelais(code: number, raison: string): boolean {
+  if (code !== 4001 || !compte) return false;
+  try {
+    const corps = JSON.parse(raison);
+    if (corps && typeof corps.code === 'string') {
+      compte.refus(corps);
+      return true;
+    }
+  } catch {
+    /* raison illisible */
+  }
+  return false;
+}
+
+/** Codes de refus du relais qui intéressent la session par compte. */
+const CODES_REFUS_RELAIS = new Set(['session_coupee', 'session_expiree', 'revoque', 'autre_appareil', 'lien_obsolete']);
+
+/**
+ * Lit une réponse du relais pour la session par compte, sans en consommer le
+ * corps : l'en-tête d'avertissement de l'ancien lien, et les refus 401/403.
+ */
+export function observerReponseRelais(r: Response): void {
+  if (!compte) return;
+  try {
+    if (r.headers?.get('X-Tune-Avertissement') === 'lien-obsolete') compte.lienObsolete();
+  } catch {
+    /* en-têtes illisibles : rien */
+  }
+  if (r.status !== 401 && r.status !== 403) return;
+  const b = compte;
+  try {
+    void r
+      .clone()
+      .json()
+      .then((corps) => {
+        if (corps && typeof corps.code === 'string' && CODES_REFUS_RELAIS.has(corps.code)) b.refus(corps);
+      })
+      .catch(() => {});
+  } catch {
+    /* réponse non clonable : rien à lire */
+  }
 }
 
 /**
@@ -127,7 +214,7 @@ export function reinitialiserPourTest(): void {
  */
 export function viaRelais(): boolean {
   const e = resoudre();
-  return Boolean(e.serverId && e.jeton);
+  return Boolean(e.serverId && (jetonEffectif() || compte?.actif));
 }
 
 /** Identifiant du serveur quand la page vient du relais, sinon `null`. */
@@ -138,7 +225,7 @@ export function serverId(): string | null {
 /** Vrai quand la page vient du relais mais qu'aucun jeton n'est connu. */
 export function jetonManquant(): boolean {
   const e = resoudre();
-  return Boolean(e.serverId && !e.jeton);
+  return Boolean(e.serverId && !jetonEffectif() && !compte?.actif);
 }
 
 /**
@@ -156,8 +243,8 @@ export function baseApi(): string {
 
 /** En-têtes propres au relais, vides en local. */
 export function entetesRelais(): Record<string, string> {
-  const e = resoudre();
-  return viaRelais() ? { 'X-Bridge-Token': e.jeton as string } : {};
+  const jeton = jetonEffectif();
+  return viaRelais() && jeton ? { 'X-Bridge-Token': jeton } : {};
 }
 
 /** Adresse du WebSocket, selon le mode. */
@@ -167,7 +254,7 @@ export function urlWebSocket(): string {
   if (viaRelais()) {
     // Le jeton passe en paramètre : l'API WebSocket du navigateur ne permet
     // pas de poser d'en-tête sur la poignée de main.
-    return `${proto}//${window.location.host}/ws/client/${e.serverId}?token=${encodeURIComponent(e.jeton as string)}`;
+    return `${proto}//${window.location.host}/ws/client/${e.serverId}?token=${encodeURIComponent(jetonEffectif() ?? '')}`;
   }
   return `${proto}//${window.location.host}/ws`;
 }
@@ -186,10 +273,9 @@ export function urlFlux(
   streamUrl: string | null | undefined,
   streamUrlRemote?: string | null,
 ): string | null {
-  const e = resoudre();
   if (viaRelais() && streamUrlRemote) {
     const sep = streamUrlRemote.includes('?') ? '&' : '?';
-    return `${streamUrlRemote}${sep}token=${encodeURIComponent(e.jeton as string)}`;
+    return `${streamUrlRemote}${sep}token=${encodeURIComponent(jetonEffectif() ?? '')}`;
   }
   return streamUrl ?? null;
 }
@@ -228,7 +314,7 @@ export function fluxParLeRelais(url: string): string | null {
     return null;
   }
   const avecJeton = (chemin: string, params: URLSearchParams) => {
-    if (!params.has('token')) params.set('token', e.jeton as string);
+    if (!params.has('token')) params.set('token', jetonEffectif() ?? '');
     return `${origine}${chemin}?${params.toString()}`;
   };
   const prefixeRelais = `/stream/relay/${e.serverId}/`;
@@ -308,7 +394,7 @@ export function urlNavigateur(url: string): string {
   if (!url) return url;
   const cible = versLeRelais(url);
   if (cible === null) return url;
-  const jeton = resoudre().jeton as string;
+  const jeton = jetonEffectif() ?? '';
   const diese = cible.indexOf('#');
   const avant = diese < 0 ? cible : cible.slice(0, diese);
   const fragment = diese < 0 ? '' : cible.slice(diese);
@@ -361,21 +447,35 @@ export function installerIntercepteurRelais(): boolean {
   const w = window as typeof window & { __tuneIntercepteurRelais?: boolean };
   if (w.__tuneIntercepteurRelais) return true;
   const fetchOrigine = window.fetch.bind(window);
-  const jeton = entetesRelais()['X-Bridge-Token'];
+  // Le jeton est lu À CHAQUE requête : la session par compte s'ouvre après
+  // l'installation, et une session rouverte (relais redémarré) en change.
+  // Pendant l'ouverture, la requête attend (`attente`) au lieu de partir sans
+  // jeton et de revenir en 401.
+  const envoyer = async (cible: RequestInfo | URL, init: RequestInit | undefined, poser: (j: string) => void) => {
+    const attente = compte?.attente();
+    if (attente) await attente.catch(() => {});
+    const jeton = jetonEffectif();
+    if (jeton) poser(jeton);
+    const r = await fetchOrigine(cible, init);
+    observerReponseRelais(r);
+    return r;
+  };
   const relaye = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     if (typeof Request !== 'undefined' && input instanceof Request) {
       const cible = versLeRelais(input.url);
       if (cible === null) return fetchOrigine(input, init);
       const req = new Request(cible, input);
-      if (!req.headers.has('X-Bridge-Token')) req.headers.set('X-Bridge-Token', jeton);
-      return fetchOrigine(req, init);
+      return envoyer(req, init, (j) => {
+        if (!req.headers.has('X-Bridge-Token')) req.headers.set('X-Bridge-Token', j);
+      });
     }
     const url = input instanceof URL ? input.href : String(input);
     const cible = versLeRelais(url);
     if (cible === null) return fetchOrigine(input, init);
     const headers = new Headers(init?.headers ?? undefined);
-    if (!headers.has('X-Bridge-Token')) headers.set('X-Bridge-Token', jeton);
-    return fetchOrigine(cible, { ...init, headers });
+    return envoyer(cible, { ...init, headers }, (j) => {
+      if (!headers.has('X-Bridge-Token')) headers.set('X-Bridge-Token', j);
+    });
   };
   window.fetch = relaye as typeof window.fetch;
   w.__tuneIntercepteurRelais = true;

@@ -87,6 +87,7 @@ import {
 import { mergeTransport, type TransportState } from './transportSync';
 import {
   positionApresReleve,
+  oublierEtatObserve,
   clePisteEnCours,
   type SuiviPosition,
 } from './positionLecture';
@@ -352,6 +353,14 @@ export function demarrerTransportV2(): () => void {
     const type = event?.type as string | undefined;
     if (!type) return;
 
+    // web#2285 — la liaison est tombée (redémarrage du serveur, réseau) : ce
+    // qu'on avait vu de la zone ne dit plus rien. Une zone retrouvée arrêtée
+    // à la reconnexion n'est pas un « Arrêter » vécu en session (web#1652).
+    if (type === '_disconnected' || type === '_connected') {
+      suivi = oublierEtatObserve(suivi);
+      return;
+    }
+
     // Alerte de santé du serveur — portée d'`App.svelte`, que cette coquille ne
     // monte pas : un serveur en état critique ne se signalait nulle part.
     if (type === 'system.health_alert' && event.data) {
@@ -501,6 +510,20 @@ export function demarrerTransportV2(): () => void {
       const { zone_id, volume } = event.data;
       zones.update((liste: any[]) =>
         liste.map((z) => (z?.id === zone_id ? { ...z, volume } : z)),
+      );
+      return;
+    }
+
+    // #6700 — la sourdine posée ailleurs (autre client, autre onglet) :
+    // `PlaybackManager::set_mute` émet `playback.muted` `{ muted, zone_id }`.
+    if (
+      type === 'playback.muted' &&
+      event.data?.zone_id !== undefined &&
+      typeof event.data?.muted === 'boolean'
+    ) {
+      const { zone_id, muted } = event.data;
+      zones.update((liste: any[]) =>
+        liste.map((z) => (z?.id === zone_id ? { ...z, muted } : z)),
       );
       return;
     }

@@ -108,12 +108,47 @@ export function rangDeSortie(entree: EntreeDiscographie): 'album' | 'ep' | 'sing
  * qu'un de ses exemplaires porte le type secondaire `live`
  * (`release_secondary_types`, serveur), QUEL QUE SOIT son type primaire : un EP
  * live est un live. Les services ne publient pas de type secondaire ; leur
- * silence ne contredit donc pas la bibliothèque.
+ * silence ne contredit donc pas la bibliothèque. Sans type secondaire, le
+ * TITRE décide (#6464, voir `titreAnnonceUnLive`).
  */
 export function estLive(entree: EntreeDiscographie): boolean {
-  return entree.exemplaires.some((ex) =>
-    (ex.album.release_secondary_types ?? []).some((t) => t?.trim().toLowerCase() === 'live'),
-  );
+  const secondaires = entree.exemplaires.map((ex) => ex.album.release_secondary_types ?? []);
+  if (secondaires.some((types) => types.some((t) => t?.trim().toLowerCase() === 'live'))) return true;
+  // tune-server-rust#6464 — règle PROVISOIRE par le titre, seulement quand
+  // aucun exemplaire ne porte de type secondaire : une réponse explicite n'est
+  // jamais contredite par le titre. Les services n'en publient pas, d'où la
+  // règle (FabienM, fil 2302 point 4).
+  if (secondaires.some((types) => types.length > 0)) return false;
+  return entree.exemplaires.some((ex) => titreAnnonceUnLive(ex.album.title ?? ''));
+}
+
+/** Les mots qui, juste AVANT « live », en font un verbe (« Long Live… », « I Want to Live »). */
+const LIVE_VERBE_SI_PRECEDE_DE = new Set([
+  'i', 'you', 'we', 'they', 'to', 'will', 'would', 'can', 'could', 'must', 'shall', 'should',
+  'long', 'll', 'let', 'gonna', 'wanna', 'might', 'may', 'never', 'still',
+]);
+
+/** Les mots qui, juste APRÈS « live », en font un verbe (« Live Through This », « Live and Let Die »). */
+const LIVE_VERBE_SI_SUIVI_DE: string[][] = [
+  ['through'], ['forever'], ['to'], ['your'], ['my'], ['our'], ['it'], ['with'], ['without'],
+  ['like'], ['for'], ['a'], ['again'], ['and', 'let'],
+];
+
+/**
+ * tune-server-rust#6464 — le titre annonce-t-il un live ? Les MOTS « live » ou
+ * « unplugged », pas les lettres (« Alive », « Liverpool » n'y sont pas), et
+ * « live » employé comme verbe ne compte pas. Même règle, mot pour mot, que
+ * `titre_annonce_un_live` côté serveur (`tune-core/src/metadata/release_type.rs`).
+ */
+export function titreAnnonceUnLive(titre: string): boolean {
+  const mots = titre.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (mots.includes('unplugged')) return true;
+  return mots.some((mot, i) => {
+    if (mot !== 'live') return false;
+    if (i > 0 && LIVE_VERBE_SI_PRECEDE_DE.has(mots[i - 1])) return false;
+    const suite = mots.slice(i + 1);
+    return !LIVE_VERBE_SI_SUIVI_DE.some((motif) => motif.every((m, k) => suite[k] === m));
+  });
 }
 
 /** Conserve l'ordre reçu, y compris pour les albums sans type connu. */

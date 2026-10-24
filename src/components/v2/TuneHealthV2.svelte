@@ -36,13 +36,15 @@
   // déclarées non gérables) sur le TOTAL, et nomment les non gérées.
   import { jaugeTraiteesPlageDynamique, jaugeTraiteesReplayGain, ligneNonGerees } from '../../lib/santeJaugeTraitees';
   // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
-  import { bridageDesAnalyses, temperatureProcesseur } from '../../lib/temperatureProcesseur';
+  import { bridageDesAnalyses, temperatureProcesseur, bridageLeve } from '../../lib/temperatureProcesseur';
   // #1352 — la pause des traitements de fond. La lecture de l'instantané vit
   // dans `lib/tachesDeFond.ts`, hors du composant : elle se garde sans monter
   // l'écran, et l'absence de `pausable` (serveur < 0.9.159) s'y lit UNE fois.
   import {
     choixPrioriteDr,
     pausesParTraitement,
+    freinesParLaLecture,
+    FREIN_SCAN,
     serveurSaitSuspendre,
     type InstantaneTachesDeFond,
     type PrioriteDr,
@@ -60,6 +62,7 @@
   import { lireDiagnosticReseau, iconeVerdict, type EcouteReseau } from '../../lib/diagnosticReseau';
   import { boutonLancer, CLE_ISSUE, estLancable, lancerTraitement, toutRelancer as relancerToutLesTraitements, type CarteLancable } from '../../lib/lancerTraitement';
   import '../../styles/tune-v2.css';
+  import { decrireScanCourant } from '../../lib/scanDetenteur';
 
   type Card = {
     id: string;
@@ -133,6 +136,9 @@
     illisible: $t('v2.health.analysesBrideesIllisible' as any),
     figee: $t('v2.health.analysesBrideesFigee' as any),
   }));
+  /** tune-server-rust#6713 — `analyses_bridage_leve` brut : bridage levé par l'utilisateur. */
+  let motifBridageLeve = $state<unknown>(undefined);
+  const bridageLeveTexte = $derived(bridageLeve(motifBridageLeve, $t('v2.health.analysesBridageLeve' as any)));
 
   // ── #1352 : la pause des traitements de fond ───────────────────────────
   //
@@ -143,6 +149,11 @@
   /** Suspendu ou non, par identifiant serveur. Vide = le serveur ne sait pas
    *  suspendre (< 0.9.159) : aucune carte ne portera de bouton. */
   let pauses = $state<Record<string, boolean>>({});
+  /** tune-server-rust#6330 — ce que la lecture ralentit ou arrête, par
+   *  identifiant serveur (`FREIN_SCAN` pour le scan). */
+  let freins = $state<Set<string>>(new Set());
+  /** L'identifiant de frein d'une carte : son traitement, ou le scan. */
+  const freinDe = (c: Card) => (c.id === 'scan' ? FREIN_SCAN : c.traitement);
   let pausePossible = $state(false);
   let toutEnPause = $state(false);
   /** L'identifiant dont le clic est en vol, pour ne pas le rejouer. `'*'` pour
@@ -154,6 +165,7 @@
   function rangerLInstantane(inst: InstantaneTachesDeFond | null) {
     pausePossible = serveurSaitSuspendre(inst);
     pauses = pausesParTraitement(inst);
+    freins = freinesParLaLecture(inst);
     toutEnPause = !!inst?.all_paused;
     prioriteDr = choixPrioriteDr(inst);
     rattrapageDr = inst?.dynamic_range_sidecar ?? null;
@@ -386,7 +398,9 @@
              : $t('v2.health.noScan' as any)),
         fait: pctScan !== null ? (av?.scanned ?? 0) : undefined,
         total: pctScan !== null ? (av?.total ?? 0) : undefined,
-        detail: failures ? $t('v2.health.pathsFailed' as any).replace('{n}', String(failures)) : undefined,
+        // web#2305 : pendant un scan, le détail dit lequel tient le droit.
+        detail: (scanning ? decrireScanCourant(scan.value?.current, (k) => $t(k as any)) : null)
+          ?? (failures ? $t('v2.health.pathsFailed' as any).replace('{n}', String(failures)) : undefined),
         sansJauge: pctScan === null,
       });
     } else {
@@ -725,6 +739,7 @@
       : null;
     tempCpu = diag[0].status === 'fulfilled' ? diag[0].value?.cpu_temp_c : undefined;
     motifBridage = diag[0].status === 'fulfilled' ? diag[0].value?.analyses_bridees : undefined;
+    motifBridageLeve = diag[0].status === 'fulfilled' ? diag[0].value?.analyses_bridage_leve : undefined;
     asioBloque = diag[0].status === 'fulfilled' && !!(diag[0].value as any)?.asio_warm_scan?.blocked_after_crash;
 
     cards = out;
@@ -868,6 +883,13 @@
 
             <div class="line">{c.ligne}</div>
 
+            <!-- tune-server-rust#6330 — une carte figée pendant une écoute dit
+                 POURQUOI : le serveur cède la place à la lecture. Pas sur une
+                 carte suspendue, dont « en pause » dit déjà la raison. -->
+            {#if !enPause && freinDe(c) && freins.has(freinDe(c)!)}
+              <div class="frein" role="note" data-frein-lecture>{$t('v2.health.throttledForPlayback' as any)}</div>
+            {/if}
+
             {#if p !== null}
               <div class="bar"><span style="width:{p}%"></span></div>
               <div class="pct">{p} %</div>
@@ -958,6 +980,8 @@
           <!-- tune-server-rust#5410 — sans température lisible, les analyses
                de fond tournent à un fichier à la fois : on le dit. -->
           {#if bridage}<div class="sub bridage">{bridage}</div>{/if}
+          <!-- tune-server-rust#6713 — bridage levé par l'utilisateur : on le dit. -->
+          {#if bridageLeveTexte}<div class="sub bridage" data-bridage="leve">{bridageLeveTexte}</div>{/if}
         </section>
       {/if}
 
@@ -1091,6 +1115,7 @@
   .pct{margin-top:6px; font:10.5px var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .nogauge{margin-top:11px; font:10.5px var(--v2-mono); color:var(--v2-txt3); font-style:italic}
   .detail{margin-top:9px; font-size:11.5px; color:var(--v2-txt3)}
+  .frein{margin-top:9px; font-size:11.5px; color:var(--v2-txt2)}
   .sansportrait{list-style:none; margin:8px 0 0; padding:0; max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; font-size:12.5px}
   .sansportrait li{display:flex; align-items:baseline; justify-content:space-between; gap:10px; min-width:0}
   .nomartiste{border:0; background:transparent; padding:2px 0; color:var(--v2-txt2); cursor:pointer; text-align:left; font:inherit; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}

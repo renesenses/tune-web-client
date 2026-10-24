@@ -44,6 +44,16 @@ import type { Source } from './types';
  */
 export interface OptionsOuvrirArtiste {
   provenance?: string | null;
+  /**
+   * tune-server-rust#6463 (FabienM, fil 2302, point 3) — la vignette que
+   * montrait la tuile cliquée. Le meilleur résultat de la Recherche FUSIONNE
+   * les artistes du même nom : il ouvre la fiche de la provenance en tête,
+   * mais peut montrer l'image d'une autre (`regrouperArtistes`). La fiche
+   * ouverte n'en avait alors aucune : « la bonne vignette, mais quand je
+   * clique dessus je n'ai pas de vignette ». Elle sert de REPLI à l'en-tête,
+   * jamais à la place d'un portrait que la fiche a.
+   */
+  image?: string | null;
 }
 
 export async function ouvrirArtisteDepuis(a: any, depuis: View, options: OptionsOuvrirArtiste = {}): Promise<void> {
@@ -51,13 +61,13 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View, options: Options
   if (a.id != null && estDeBibliotheque(a)) {
     // #1494 — la PAGE COMMUNE, plus la fiche de la Bibliothèque : voir
     // `ouvrirFicheArtisteLocale` en bas de ce module.
-    ouvrirFicheArtisteLocale(a.id, a.name ?? '', depuis, options.provenance);
+    ouvrirFicheArtisteLocale(a.id, a.name ?? '', depuis, options.provenance, options.image);
     return;
   }
   if (a.source && a.source_id) {
     vueDeRetour.set(depuis);
     ficheAlbumDeRetour.set(null);
-    ficheArtisteService.set({ service: a.source as Source, id: String(a.source_id), nom: a.name ?? '' });
+    ficheArtisteService.set({ service: a.source as Source, id: String(a.source_id), nom: a.name ?? '', ...(options.image ? { image: options.image } : {}) });
     activeView.set('streamingartist');
     return;
   }
@@ -394,6 +404,7 @@ export function ouvrirFicheArtisteLocale(
   nom: string | null | undefined,
   depuis: View,
   provenance?: string | null,
+  image?: string | null,
 ): void {
   vueDeRetour.set(depuis);
   ficheAlbumDeRetour.set(null);
@@ -402,6 +413,7 @@ export function ouvrirFicheArtisteLocale(
     id: String(id),
     nom: nom ?? '',
     ...(provenance != null ? { provenance } : {}),
+    ...(image ? { image } : {}),
   });
   activeView.set('streamingartist');
 }

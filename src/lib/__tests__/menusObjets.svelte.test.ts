@@ -268,7 +268,11 @@ describe('2. Chaque geste appelle la bonne route, ou ouvre le bon écran', () =>
     ouvrirLigne(ALBUM_LOCAL);
     cliquer('queue.addToQueue');
     await attendre();
-    expect(vi.mocked(api.addToQueue).mock.calls[1]).toEqual([1, { album_id: 7 }]);
+    // tune-server-rust#6466 — « Ajouter à la file » est un déclencheur : le corps porte le conteneur.
+    expect(vi.mocked(api.addToQueue).mock.calls[1]).toEqual([
+      1,
+      { album_id: 7, context_type: 'album', context_id: '7', context_source: 'local' },
+    ]);
   });
 
   it('Ajouter un label à la file : ses pistes par le filtre Label (`/library/tracks?label=`)', async () => {
@@ -276,7 +280,13 @@ describe('2. Chaque geste appelle la bonne route, ou ouvre le bon écran', () =>
     cliquer('queue.addToQueue');
     await attendre();
     expect(api.getFilteredTracks).toHaveBeenCalledWith({ label: 'ECM', limit: 2000 });
-    expect(api.addToQueue).toHaveBeenCalledWith(1, { track_ids: [81, 82] });
+    // tune-server-rust#6466 — le label est le conteneur des titres ajoutés.
+    expect(api.addToQueue).toHaveBeenCalledWith(1, {
+      track_ids: [81, 82],
+      context_type: 'label',
+      context_id: 'ECM',
+      context_source: 'local',
+    });
   });
 
   it('Lire une collection : ses albums, puis leurs pistes, en une file', async () => {

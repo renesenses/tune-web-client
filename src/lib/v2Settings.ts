@@ -44,7 +44,14 @@ export interface V2SettingsSection {
   from: string;
   min: SettingsLevel;
   /** Mots-clés de recherche supplémentaires (synonymes, marques). */
-  keywords?: string[];
+  keywords?: string[];  /**
+   * Bloc visuel commun à plusieurs sections CONSÉCUTIVES d'un onglet : l'écran
+   * pose un seul intertitre au-dessus de la première visible. Aujourd'hui un
+   * seul bloc, `libraryTools` (#2354).
+   */
+  group?: 'libraryTools';
+  /** La section est une zone dangereuse : isolée et signalée à l'écran. */
+  danger?: boolean;
 }
 
 export interface V2SettingsTab {
@@ -105,25 +112,22 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     id: 'library', labelKey: 'settings.tabLibrary', min: 'beginner',
     icon: 'M4 5v14M9 5v14M14 6l5 13',
     sections: [
-      { id: 'library',    titleKey: 'settings.library',      from: 'library', min: 'beginner' },
-      { id: 'musicDirs',  titleKey: 'settings.musicDirs',    from: 'library', min: 'beginner', keywords: ['dossiers', 'chemins'] },
-      { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan', 'coffret', 'coffrets', 'box set'] },
-      { id: 'searchExact', titleKey: 'settings.searchExact', from: 'library', min: 'beginner',
-        keywords: ['recherche', 'exacte', 'guillemets', 'artiste', 'album', 'titre'] },
-      { id: 'scanSched',  titleKey: 'settings.scanSchedule', from: 'library', min: 'intermediate', keywords: ['planification', 'automatique'] },
-      /**
-       * `min: 'beginner'` — renesenses/tune-server-rust#4051. La carte porte
-       * la case « Paroles en ligne (LRCLIB) », que l'arbitrage #2859 range au
-       * niveau débutant (`lib/settingLevels`) : c'est la seule source de
-       * paroles qu'on obtienne sans poser soi-même un `.lrc`. Le renvoi vers
-       * l'écran Métadonnées du Studio, lui, reste réservé au niveau Avancé à
-       * l'intérieur de la carte, comme avant.
+      /*
+       * OUTILS DE LA BIBLIOTHÈQUE (#2354, Didier, fil 2397 ; décision de
+       * Bertrand du 24/10/2026) : Analyser, Nettoyer, Vider, réunis EN TÊTE
+       * de l'onglet, dans cet ordre. « Vider » ferme le bloc, isolé en zone
+       * dangereuse, avec sa confirmation danger.
+       *
+       * Chaque outil garde son niveau d'affichage : Analyser et Vider en
+       * débutant, le Nettoyage en intermédiaire, comme quand il vivait dans
+       * Système › Santé (section `health`, 'intermediate').
        */
-      { id: 'metadata',   titleKey: 'metadata.title',        from: 'library', min: 'beginner',
-        keywords: ['métadonnées', 'tags', 'paroles', 'lyrics', 'lrclib', 'en ligne', 'fichiers', 'écrire', 'balises'] },
-      { id: 'enrichment', titleKey: 'settings.enrichment',   from: 'library', min: 'expert',   keywords: ['enrichissement', 'musicbrainz'] },
-      { id: 'ingest',     titleKey: 'settings.ingest',       from: 'library', min: 'expert',   keywords: ['import', 'rangement'] },
-      { id: 'oxygen',     titleKey: 'oxygen.settingsTitle',  from: 'library', min: 'expert' },
+      { id: 'library',    titleKey: 'settings.library',      from: 'library', min: 'beginner', group: 'libraryTools' },
+      /* Quitte Système › Santé : ce qu'il fait est un travail sur la
+       * BIBLIOTHÈQUE (albums en double fusionnés, pistes en double, albums et
+       * artistes orphelins). Santé garde un renvoi le temps d'une version. */
+      { id: 'libraryCleanup', titleKey: 'diagnostics.cleanupServer', from: 'system', min: 'intermediate', group: 'libraryTools',
+        keywords: ['nettoyage', 'nettoyer', 'doublons', 'double', 'orphelins', 'fusion', 'cleanup', 'base de données'] },
       /**
        * REPARTIR À ZÉRO (#3585, volet 1) — `min: 'beginner'`, et c'est un
        * choix, pas un oubli.
@@ -144,7 +148,30 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        * qui ne l'est pas.
        */
       { id: 'clearLibrary', titleKey: 'settings.clearLibrary', from: 'library', min: 'beginner',
+        group: 'libraryTools', danger: true,
         keywords: ['vider', 'effacer', 'réinitialiser', 'repartir', 'zéro', 'remise à zéro'] },
+      { id: 'musicDirs',  titleKey: 'settings.musicDirs',    from: 'library', min: 'beginner', keywords: ['dossiers', 'chemins'] },
+      { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan', 'coffret', 'coffrets', 'box set', 'sacd', 'iso', 'dst'] },
+      { id: 'searchExact', titleKey: 'settings.searchExact', from: 'library', min: 'beginner',
+        keywords: ['recherche', 'exacte', 'guillemets', 'artiste', 'album', 'titre'] },
+      // tune-server-rust#6474 (René, fil 2313) — « Settings → Library →
+      // Artist sort order ».
+      { id: 'artistSort', titleKey: 'settings.artistSort', from: 'library', min: 'beginner',
+        keywords: ['artistes', 'tri', 'nom de famille', 'nom de tri', 'artistsort', 'sort', 'surname'] },
+      { id: 'scanSched',  titleKey: 'settings.scanSchedule', from: 'library', min: 'intermediate', keywords: ['planification', 'automatique'] },
+      /**
+       * `min: 'beginner'` — renesenses/tune-server-rust#4051. La carte porte
+       * la case « Paroles en ligne (LRCLIB) », que l'arbitrage #2859 range au
+       * niveau débutant (`lib/settingLevels`) : c'est la seule source de
+       * paroles qu'on obtienne sans poser soi-même un `.lrc`. Le renvoi vers
+       * l'écran Métadonnées du Studio, lui, reste réservé au niveau Avancé à
+       * l'intérieur de la carte, comme avant.
+       */
+      { id: 'metadata',   titleKey: 'metadata.title',        from: 'library', min: 'beginner',
+        keywords: ['métadonnées', 'tags', 'paroles', 'lyrics', 'lrclib', 'en ligne', 'fichiers', 'écrire', 'balises'] },
+      { id: 'enrichment', titleKey: 'settings.enrichment',   from: 'library', min: 'expert',   keywords: ['enrichissement', 'musicbrainz'] },
+      { id: 'ingest',     titleKey: 'settings.ingest',       from: 'library', min: 'expert',   keywords: ['import', 'rangement'] },
+      { id: 'oxygen',     titleKey: 'oxygen.settingsTitle',  from: 'library', min: 'expert' },
     ],
   },
   {
@@ -192,6 +219,13 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        */
       { id: 'sauvegardeReglages', titleKey: 'v2.dev.backupTitle', from: 'devices', min: 'intermediate',
         keywords: ['sauvegarde', 'backup', 'export', 'import', 'restaurer', 'récupérer', 'fichier'] },
+      /**
+       * #6542 — Devialet AIR, pour les Devialet Expert de première génération
+       * (D200, D400…). Option EXPÉRIMENTALE, désactivée par défaut (décision
+       * de Bertrand, 19/10) : protocole reconstitué par rétro-ingénierie.
+       */
+      { id: 'devialetAir', titleKey: 'v2.set.devialetAirTitle', from: 'devices', min: 'intermediate',
+        keywords: ['devialet', 'air', 'expert', 'd200', 'd400', 'ampli', 'expérimental'] },
     ],
   },
   {

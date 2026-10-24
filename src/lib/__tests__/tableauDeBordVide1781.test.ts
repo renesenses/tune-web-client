@@ -63,6 +63,7 @@ const PERIODIQUES = [
   'tdb-genres',
   'tdb-zones',
   'tdb-sources',
+  'tdb-radios',
   'tdb-completion',
 ];
 

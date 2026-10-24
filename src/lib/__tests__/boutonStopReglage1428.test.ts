@@ -206,7 +206,7 @@ describe('#1428 — le bouton emprunte le MÊME chemin d’arrêt que les gestes
     // Le MÊME geste au clavier, mesuré dans la même monnaie.
     appels = [];
     const detacher = setupKeyboardShortcuts();
-    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyS', bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', code: 'KeyS', bubbles: true }));
     await respirer();
     const parLaTouche = arrets();
     detacher();

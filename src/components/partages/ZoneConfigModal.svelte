@@ -4,6 +4,7 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { get } from 'svelte/store';
+  import { dialogs } from '../../lib/stores/dialogs';
   import CorrectionAcoustiqueZone from './CorrectionAcoustiqueZone.svelte';
   import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
   import { afficherCanaux, correspondance, lireSaisieDeCanaux } from '../../lib/canauxDeCarte';
@@ -162,14 +163,28 @@
    * pas ce dialogue ici — on renvoie à l'écran qui le porte, plutôt que
    * d'offrir depuis ce panneau un geste risqué sans sa garde.
    */
-  async function setVolumeFixe(enabled: boolean) {
+  async function setVolumeFixe(enabled: boolean, caseACocher?: HTMLInputElement) {
     if (zone.id === null) return;
     const avant = volumeFixe;
+    volumeError = '';
+    // web#2243 — même sur une zone LOCALE, activer porte la sortie à 100 %, et
+    // le serveur refuse l'armement sans `confirm_full_volume` sur toute sortie
+    // (tune-server-rust#2395). Ce panneau l'envoyait sans : le réglage n'était
+    // jamais enregistré. L'accord est demandé ici, et seul un « oui » le porte.
+    let accord = false;
+    if (enabled) {
+      accord = await dialogs.confirm(get(t)('audiophile.lockVolumeWarn' as any), { danger: true });
+      if (!accord) {
+        // L'état n'a pas bougé : Svelte ne redessine rien, la case resterait
+        // cochée sur un réglage qui n'existe pas.
+        if (caseACocher) caseACocher.checked = avant;
+        return;
+      }
+    }
     volumeFixe = enabled;
     volumeSaving = true;
-    volumeError = '';
     try {
-      const maj = await api.updateZoneFixedVolume(zone.id, enabled);
+      const maj = await api.updateZoneFixedVolume(zone.id, enabled, accord);
       volumeFixe = maj?.fixed_volume ?? enabled;
       if (volumeFixe) zone.volume = 100;
     } catch (e: any) {
@@ -699,7 +714,7 @@
         <label class="zc-toggle">
           <input type="checkbox" checked={volumeFixe}
             disabled={volumeSaving || zone.id === null}
-            onchange={(e) => setVolumeFixe((e.target as HTMLInputElement).checked)} />
+            onchange={(e) => setVolumeFixe((e.target as HTMLInputElement).checked, e.target as HTMLInputElement)} />
           <span>{$t('settings.fixedVolume')}</span>
         </label>
         {#if volumeError}<div class="ir-message ir-error">{volumeError}</div>{/if}
