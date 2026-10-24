@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 //
 // Tune Circle T5 dans la scène (demande de Bertrand du 24/10/2026) : les
-// playlists partagées en petites lunes autour de la planète de leur cercle,
+// playlists partagées en petites lunes sur l'anneau de leur cercle (24/10 au soir),
 // un accès en haut de la scène, et « Lire » depuis la ligne d'une playlist,
 // sur la zone courante, sans l'ouvrir.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -170,7 +170,7 @@ describe('T5 — Lire depuis la ligne d\'une playlist', () => {
 });
 
 describe('T5 — les lunes', () => {
-  it('une lune par playlist, accrochée à la planète de son cercle (la mienne) ou de son propriétaire', async () => {
+  it('une lune par playlist, accrochée à l\'anneau de son cercle (la mienne) ou de son propriétaire', async () => {
     toile = true;
     const el = await poser();
     const lunes = [...el.querySelectorAll('.sc-noeuds button.sc-lune')];
@@ -180,6 +180,18 @@ describe('T5 — les lunes', () => {
       'Ouvrir la playlist Noël', 'Ouvrir la playlist Dimanche',
     ]));
     expect(lunes.filter((b) => b.getAttribute('title') === 'Dimanche')).toHaveLength(1);
+  });
+
+  it('anneaux (24/10) : le nom du cercle est un bouton qui dit « Cercle Famille : Alice, vous »', async () => {
+    toile = true;
+    const el = await poser();
+    const anneaux = [...el.querySelectorAll('.sc-noeuds button.sorte-ring')];
+    expect(anneaux.length).toBeGreaterThan(0);
+    for (const b of anneaux) {
+      expect(b.getAttribute('aria-label')).toBe('Cercle Famille : Alice, vous');
+      expect(b.getAttribute('data-mode')).toBe('ring');
+    }
+    expect(el.querySelector('.sc-noeuds button.sorte-circle')).toBeNull();
   });
 
   it('clic sur une lune : la playlist s\'ouvre', async () => {

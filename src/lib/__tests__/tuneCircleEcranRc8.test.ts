@@ -139,6 +139,19 @@ describe('Tune Circle rc8 — vie privée', () => {
     expect(texte(ligne('Bruno')!)).toContain(fr['v2.circle.scene.info.noShare']);
   });
 
+  it('anneaux (24/10) : la vue liste dit chaque cercle « Cercle Famille : Alice, vous », en Réseau comme en Solo', async () => {
+    const el = await poser();
+    const ligne = (nom: string) => [...el.querySelectorAll('.sc-ligne')].find((li) => texte(li.querySelector('.sc-ligne-nom')) === nom);
+    for (const v of ['.vue-reseau', '.vue-seul']) {
+      await (el.querySelector(v) as HTMLButtonElement).click();
+      await laisserFaire();
+      expect(texte(ligne('Famille')!.querySelector('.note'))).toBe('Cercle Famille : Alice, vous');
+    }
+    // En Solo, la pastille d'Alice (membre) est là ; Bruno, hors cercle, n'y est pas.
+    expect(ligne('Alice')).toBeDefined();
+    expect(ligne('Bruno')).toBeUndefined();
+  });
+
   it('« Montrer ma ville » : ÉTEINT par défaut, rien n\'est écrit à l\'ouverture', async () => {
     const el = await poser();
     const inter = el.querySelector('.interrupteur-lieu') as HTMLButtonElement;

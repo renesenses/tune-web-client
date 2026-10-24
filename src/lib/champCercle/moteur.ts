@@ -6,7 +6,8 @@
  * Le site pourra en garder une copie versionnée ; l'écran Svelte n'en est
  * qu'une fine coquille.
  *
- * Le canevas ne porte QUE le décor (sphères de points, fils, flux, globe). Tout
+ * Le canevas ne porte QUE le décor (sphères de points, fils, flux, globe, et
+ * les ANNEAUX des cercles — `anneaux.ts`). Tout
  * ce qui se clique est un vrai bouton du DOM posé par-dessus : le moteur dit
  * seulement, à chaque image, où se trouve chaque nœud (`placer`).
  *
@@ -14,7 +15,9 @@
  * - image fixe sous `prefers-reduced-motion` (budget `anime: false`) : une
  *   seule image, redessinée quand la scène, la vue ou la taille changent ;
  * - boucle arrêtée onglet caché (`boucleImages`) et au démontage ;
- * - aucun appel réseau, aucune allocation de tableau par image ;
+ * - aucun appel réseau, aucune allocation de tableau par image (les boucles
+ *   des cercles ne se recalculent que si un nœud bouge : transition, scène,
+ *   taille) ;
  * - transitions maison (interpolation cubique), sans bibliothèque.
  */
 import { boucleImages } from '../boucleImages';
@@ -22,8 +25,9 @@ import { parBudget, type Budget } from './budget';
 import { deprojeter, pointArc, projeter, vecteur, decoderPointsTerre, DEG, type Orientation } from './globe';
 import { POINTS_TERRE } from './pointsTerre';
 import { cleLien, type Scene, type Vue, type NoeudScene, type GenreLien } from './scene';
+import { anneauDepuis, rayonVisible, type AnneauPx, type Disque } from './anneaux';
 
-export type ModePlacement = 'sphere' | 'avatar' | 'cluster' | 'pin' | 'more';
+export type ModePlacement = 'sphere' | 'avatar' | 'cluster' | 'pin' | 'more' | 'ring';
 
 export interface PlacementNoeud {
   /** Centre, en px CSS dans le canevas. */
@@ -33,6 +37,9 @@ export interface PlacementNoeud {
   r: number;
   alpha: number;
   mode: ModePlacement;
+  /** Anneau : sa boucle en px [x0, y0, …] et le sommet où se pose son nom (x, y). */
+  contour?: readonly number[];
+  ancre?: number;
 }
 
 export interface OptionsChamp {
@@ -108,6 +115,9 @@ export class ChampCercle {
   private detruit = false;
   private pose = false;
   private repereLieu: { lat: number; lon: number } | null = null;
+  // Anneaux des cercles, en px : recalculés seulement quand un nœud a bougé.
+  private anneauxPx = new Map<string, AnneauPx>();
+  private anneauxSales = true;
   // Particules
   private grand!: Float32Array;
   private petit!: Float32Array;
@@ -193,12 +203,14 @@ export class ChampCercle {
     for (const id of [...this.noeuds.keys()]) if (!vus.has(id)) { this.noeuds.delete(id); this.opts.placer?.(id, null); }
     const anciens = new Map(this.liens.map((l) => [cleLien(l.a, l.b), l]));
     this.liens = s.liens.map((l) => anciens.get(cleLien(l.a, l.b)) ?? { a: l.a, b: l.b, w: 0, stream: 0, phases: this.phasesLien() });
+    this.anneauxSales = true;
     this.vue(this.vueCourante, false);
   }
 
   /** Passe à une vue, en transition (ou d'un coup : `instant`, ou image fixe). */
   vue(v: Vue, instant = false) {
     this.vueCourante = v;
+    this.anneauxSales = true;
     if (!this.scene) return;
     const etat = this.scene.vues[v];
     const maintenant = this.maintenant();
@@ -258,6 +270,7 @@ export class ChampCercle {
     this.canvas.width = Math.round(this.W * this.dpr);
     this.canvas.height = Math.round(this.H * this.dpr);
     this.ctx?.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.anneauxSales = true;
     this.demander();
   }
 
@@ -312,6 +325,7 @@ export class ChampCercle {
       for (const k of CLES) {
         const a = e.anim[k];
         if (!a) continue;
+        this.anneauxSales = true;
         e.cur[k] = pas(a)!;
         if (fini(a)) delete e.anim[k];
       }
@@ -337,6 +351,7 @@ export class ChampCercle {
     this.avancer(this.maintenant());
     ctx.clearRect(0, 0, this.W, this.H);
     this.dessinerGlobe(ctx);
+    this.dessinerAnneaux(ctx);
     this.dessinerLiens(ctx);
     this.dessinerNoeuds(ctx);
     ctx.globalAlpha = 1;
@@ -479,8 +494,50 @@ export class ChampCercle {
   }
 
   private rayonNoeud(e: EtatNoeud): number {
-    const U = this.U;
-    return Math.max(e.cur.sphere * U * 0.92, e.cur.avatar, e.cur.cluster > 0.01 ? Math.max(22, 40 * e.cur.cluster) : 0, e.n.kind === 'more' ? 16 : 0);
+    return rayonVisible(e.cur, e.n.kind, this.U);
+  }
+
+  /**
+   * Les anneaux des cercles (décision du 24/10/2026) : une boucle douce de la
+   * couleur du cercle autour de ses membres et de moi, dessinée SOUS les fils
+   * et les planètes ; son nom est un bouton du DOM posé sur le trait.
+   */
+  private dessinerAnneaux(ctx: CanvasRenderingContext2D) {
+    if (!this.scene) return;
+    if (this.anneauxSales) {
+      this.anneauxSales = false;
+      this.anneauxPx.clear();
+      const ou = (id: string): Disque | null => {
+        const e = this.noeuds.get(id);
+        if (!e || e.cur.alpha < 0.01) return null;
+        const [x, y] = this.pos(e.cur);
+        return { x, y, r: this.rayonNoeud(e) };
+      };
+      for (const e of this.noeuds.values()) {
+        if (e.n.kind !== 'ring' || e.cur.alpha < 0.01) continue;
+        const a = anneauDepuis(e.n, ou);
+        if (a) this.anneauxPx.set(e.n.id, a);
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.lineJoin = 'round';
+    for (const [id, e] of this.noeuds) {
+      if (e.n.kind !== 'ring') continue;
+      const a = this.anneauxPx.get(id);
+      if (!a || e.cur.alpha < 0.01) { this.opts.placer?.(id, null); continue; }
+      const c = a.contour;
+      const hl = this.sel === id || this.hover === id;
+      ctx.beginPath();
+      ctx.moveTo(c[0], c[1]);
+      for (let i = 2; i < c.length; i += 2) ctx.lineTo(c[i], c[i + 1]);
+      ctx.closePath();
+      ctx.globalAlpha = e.cur.alpha * (hl ? 0.1 : 0.05);
+      ctx.fillStyle = `hsl(${e.n.hue} 60% 60%)`; ctx.fill();
+      ctx.globalAlpha = e.cur.alpha * (hl ? 0.95 : 0.7);
+      ctx.strokeStyle = `hsl(${e.n.hue} 62% 64%)`; ctx.lineWidth = hl ? 2.4 : 1.6; ctx.stroke();
+      this.opts.placer?.(id, { x: a.x, y: a.y, r: 12, alpha: e.cur.alpha, mode: 'ring', contour: c, ancre: a.ancre });
+    }
+    ctx.globalAlpha = 1;
   }
 
   private dessinerLiens(ctx: CanvasRenderingContext2D) {
@@ -517,14 +574,14 @@ export class ChampCercle {
     const U = this.U;
     ctx.globalCompositeOperation = 'lighter';
     for (const [id, e] of this.noeuds) {
-      if (e.n.kind === 'pin' || e.cur.alpha < 0.01 || e.cur.sphere < 0.01) continue;
+      if (e.n.kind === 'pin' || e.n.kind === 'ring' || e.cur.alpha < 0.01 || e.cur.sphere < 0.01) continue;
       const [x, y] = this.pos(e.cur);
       const grand = e.cur.sphere > 0.25;
       this.dessinerSphere(ctx, x, y, e.cur.sphere * U, grand ? this.grand : this.petit, e.cur.alpha, e.cur.sphere > 0.3, this.sel === id || this.hover === id);
     }
     ctx.globalCompositeOperation = 'source-over';
     for (const [id, e] of this.noeuds) {
-      if (e.n.kind === 'pin') continue;
+      if (e.n.kind === 'pin' || e.n.kind === 'ring') continue;
       if (e.cur.alpha < 0.01) { this.opts.placer?.(id, null); continue; }
       const [x, y] = this.pos(e.cur);
       const hl = this.sel === id || this.hover === id;

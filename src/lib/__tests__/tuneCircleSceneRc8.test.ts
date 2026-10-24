@@ -193,10 +193,10 @@ describe('scène en données', () => {
     expect(r[idContact(13)].sphere).toBeCloseTo(0.16 * RAYON_PAR_DEFAUT, 3);
     // Le flux dit « partage » : vers moi, et jamais pour un contact qui ne partage pas.
     expect(s.vues.reseau.liens[`self|${idContact(12)}`]).toBe('stream');
-    // Ana ne partage pas et est dans « Family » : reliée à son cercle, qui l'est à moi.
+    // Ana ne partage pas et est dans « Family » : aucun fil, elle est dans l'anneau du cercle (avec moi).
     expect(s.vues.reseau.liens[`self|${idContact(13)}`]).toBeUndefined();
-    expect(s.vues.reseau.liens[`${idContact(13)}|k:7`]).toBe('line');
-    expect(s.vues.reseau.liens['self|k:7']).toBe('line');
+    expect(s.liens.some((l) => l.a === 'k:7' || l.b === 'k:7')).toBe(false);
+    expect(s.noeuds.find((n) => n.id === 'k:7')?.enclos).toEqual(['self', idContact(12), idContact(13)]);
     const sans = base();
     sans.cercles = [];
     const s2 = construireScene(sans);
@@ -256,7 +256,7 @@ describe('scène en données', () => {
     expect(rayons.size).toBe(2);
   });
 
-  it('cercles : en Solo des grappes nommées autour de moi, membres en orbite ; en Réseau un contact commun relié aux DEUX', () => {
+  it('cercles : en Solo et en Réseau des ANNEAUX nommés (plus aucun nœud entre moi et mes membres)', () => {
     const d = base();
     d.contacts = [
       { id: 12, nom: 'Levente', albums: null, genres: [], lieu: null },
@@ -266,22 +266,21 @@ describe('scène en données', () => {
     ];
     d.cercles = [{ id: 7, nom: 'Family', membres: [12, 13] }, { id: 8, nom: 'Jazz', membres: [13, 14] }];
     const s = construireScene(d);
-    // Solo : deux grappes, reliées à moi, avec les teintes de leurs membres.
+    // Solo : deux anneaux, nommés, qui m'englobent avec leurs membres ; les pastilles des membres sont là.
     const solo = Object.keys(s.vues.seul.noeuds).filter((k) => k.startsWith('ks:')).sort();
     expect(solo).toEqual(['ks:7', 'ks:8']);
-    expect(s.noeuds.find((n) => n.id === 'ks:8')?.memberHues).toHaveLength(2);
-    expect(s.noeuds.find((n) => n.id === 'ks:7')?.label).toBe('Family');
-    expect(s.vues.seul.liens['self|ks:7']).toBe('line');
-    expect(s.vues.seul.noeuds.self.sphere).toBeCloseTo(0.4, 3);
-    // Réseau : Ana est UNE planète, reliée à Family ET à Jazz ; « Hors » est relié à moi.
+    expect(s.noeuds.find((n) => n.id === 'ks:7')).toMatchObject({ kind: 'ring', label: 'Family', enclos: ['self', idContact(12), idContact(13)] });
+    expect(s.vues.seul.noeuds[idContact(13)].avatar).toBeGreaterThan(0);
+    expect(s.vues.seul.noeuds[idContact(15)]).toBeUndefined();
+    expect(Object.keys(s.vues.seul.liens)).toEqual([]);
+    // Réseau : Ana est UNE planète, dans les DEUX anneaux ; « Hors » est relié à moi.
     expect(s.noeuds.filter((n) => n.id === idContact(13))).toHaveLength(1);
-    expect(s.vues.reseau.liens[`${idContact(13)}|k:7`]).toBe('line');
-    expect(s.vues.reseau.liens[`${idContact(13)}|k:8`]).toBe('line');
-    expect(s.vues.reseau.liens[`${idContact(14)}|k:7`]).toBeUndefined();
+    expect(s.noeuds.find((n) => n.id === 'k:7')?.enclos).toContain(idContact(13));
+    expect(s.noeuds.find((n) => n.id === 'k:8')?.enclos).toContain(idContact(13));
+    expect(s.noeuds.find((n) => n.id === 'k:7')?.enclos).not.toContain(idContact(14));
     expect(s.vues.reseau.liens[`self|${idContact(15)}`]).toBe('line');
-    // En Réseau la grappe n'a pas d'orbite : ses membres y sont déjà des planètes.
-    expect(s.noeuds.find((n) => n.id === 'k:7')?.memberHues).toBeUndefined();
-    // Genres inchangé : aucune grappe de cercle.
+    expect(s.noeuds.some((n) => (n.kind as string) === 'circle')).toBe(false);
+    // Genres inchangé : aucun anneau.
     expect(Object.keys(s.vues.genres.noeuds).some((k) => k.startsWith('k'))).toBe(false);
   });
 
