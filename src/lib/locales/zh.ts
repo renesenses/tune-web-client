@@ -4149,6 +4149,8 @@ export default {
   "v2.home.wZonesCards": "正在收听",
   "v2.home.wFirstRow": "第一行",
   "v2.home.zoneOf": "在 {z} 播放",
+  "v2.home.profilesUnavailable": "无法加载配置文件：服务器无响应。正在自动重试。",
+  "v2.home.profilesRetryNow": "立即重试",
   "v2.lib.scopedFolder": "文件夹：{d}",
   "v2.lib.scopedClear": "显示整个音乐库",
   "settings.zonesUnlimited": "无限制",

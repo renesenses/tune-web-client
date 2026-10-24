@@ -4025,6 +4025,8 @@ export default {
   "v2.home.wZonesCards": "Đang nghe",
   "v2.home.wFirstRow": "Hàng đầu tiên",
   "v2.home.zoneOf": "trên {z}",
+  "v2.home.profilesUnavailable": "Không thể tải hồ sơ: máy chủ không phản hồi. Đang tự động thử lại.",
+  "v2.home.profilesRetryNow": "Thử lại ngay",
   "v2.lib.scopedFolder": "Thư mục: {d}",
   "v2.lib.scopedClear": "Hiển thị toàn bộ thư viện",
   "settings.zonesUnlimited": "Không giới hạn",
