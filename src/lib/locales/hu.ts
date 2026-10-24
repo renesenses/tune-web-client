@@ -336,6 +336,8 @@ export default {
   "zone.groupedPlayback": "Csoportos lejátszás",
   "zone.groupedPlaybackOpen": "Csoportos lejátszás…",
   "zone.groupedPlaybackOpenTip": "A zóna szinkronizálása másokkal: megnyitja a beállításait a Csoportos lejátszás résznél.",
+  "zone.settingsOpen": "Zóna beállításai…",
+  "zone.settingsOpenTip": "Megnyitja a zóna beállításait: szünetmentes lejátszás, hangerő, eszköz, korrekció…",
   "zone.selectZonesToSync": "Válaszd ki a(z) {name} zónával szinkronizálandó zónákat",
   "zone.noOtherZone": "Nincs másik elérhető zóna",
   "zone.alreadyInGroup": "Már egy másik csoportban van",
