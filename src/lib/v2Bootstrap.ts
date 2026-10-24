@@ -23,10 +23,11 @@ import { invaliderBibliotheque } from './stores/albumsPagines';
 import { regrouper } from './regroupement';
 import { tuneWS } from './websocket';
 import { devices } from './stores/devices';
-import { loadProfiles, loadFavoriteIds, currentProfileId } from './stores/profile';
+import { loadFavoriteIds, currentProfileId } from './stores/profile';
 import { loadLicense } from './stores/license';
 import { zoneInitiale } from './zoneInitiale';
 import { chargerLesZones } from './chargementDesZones';
+import { chargerLesProfilsAvecReprise, type Reprise } from './repriseDesProfils';
 
 
 /**
@@ -103,11 +104,25 @@ async function loadDevices(): Promise<void> {
  * favoris sont chargés dans la foulée : ils servent aux boutons cœur, qui
  * doivent répondre « est-ce un favori ? » sans un appel réseau par ligne.
  */
-async function loadProfile(profilsPrets: Promise<void> = loadProfiles()): Promise<void> {
-  await profilsPrets;
+async function apresLeProfil(): Promise<void> {
   // web#2099 — un profil choisi à la place d'un profil oublié se DIT.
   annoncerProfilDeRepli();
   await loadFavoriteIds(get(currentProfileId));
+}
+
+/**
+ * 🔴 tune-server-rust#6454 — un `/profiles` en échec est RÉESSAYÉ
+ * (`lib/repriseDesProfils`). On n'attend que le premier essai : sur un échec,
+ * l'amorçage rend la main et la reprise continue en arrière-plan, puis fait
+ * la suite (favoris, annonce) quand le profil arrive.
+ */
+async function loadProfile(reprise: Reprise = chargerLesProfilsAvecReprise()): Promise<void> {
+  const { premier, fin } = reprise;
+  if (await premier) {
+    await apresLeProfil();
+    return;
+  }
+  void fin.then(apresLeProfil);
 }
 
 /** Charge tout ce dont la coquille v2 dépend. Ne rejette jamais : chaque
@@ -196,17 +211,21 @@ export async function bootstrapV2(): Promise<void> {
   // que la liste masque, web#1672), pendant que `loadProfiles` choisissait un
   // AUTRE profil, sous lequel partaient ensuite tous les `PATCH`. Le réglage
   // était bien écrit… sous un profil que le démarrage suivant ne relisait pas.
-  // La relecture attend donc que le profil soit choisi. `loadProfiles` ne
-  // rejette jamais : une panne des profils ne prive pas des préférences.
-  const profilsPrets = loadProfiles();
-  const preferences = profilsPrets
-    .then(() => import('./stores/preferences'))
-    .then((m) => m.syncPreferencesFromServer());
+  // La relecture attend donc que le profil soit choisi. Le premier essai de
+  // la reprise (tune-server-rust#6454) ne rejette jamais : une panne des
+  // profils ne prive pas des préférences. S'il a échoué, la relecture est
+  // refaite quand la reprise aboutit enfin, sous le profil alors choisi.
+  const reprise = chargerLesProfilsAvecReprise();
+  const preferences = reprise.premier.then(async (ok) => {
+    const m = await import('./stores/preferences');
+    await m.syncPreferencesFromServer();
+    if (!ok) void reprise.fin.then(() => m.syncPreferencesFromServer());
+  });
 
   await Promise.allSettled([
     loadZones(),
     loadDevices(),
-    loadProfile(profilsPrets),
+    loadProfile(reprise),
     loadLicense(),
     preferences,
   ]);

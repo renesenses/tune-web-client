@@ -4149,6 +4149,8 @@ export default {
   "v2.home.wZonesCards": "In ascolto",
   "v2.home.wFirstRow": "Prima riga",
   "v2.home.zoneOf": "su {z}",
+  "v2.home.profilesUnavailable": "Impossibile caricare i profili: il server non risponde. Nuovo tentativo automatico in corso.",
+  "v2.home.profilesRetryNow": "Riprova ora",
   "v2.lib.scopedFolder": "Cartella: {d}",
   "v2.lib.scopedClear": "Mostra tutta la libreria",
   "settings.zonesUnlimited": "Illimitato",

@@ -4149,6 +4149,8 @@ export default {
   "v2.home.wZonesCards": "Se ascultă acum",
   "v2.home.wFirstRow": "Primul rând",
   "v2.home.zoneOf": "pe {z}",
+  "v2.home.profilesUnavailable": "Profilurile nu pot fi încărcate: serverul nu răspunde. Se reîncearcă automat.",
+  "v2.home.profilesRetryNow": "Reîncearcă acum",
   "v2.lib.scopedFolder": "Dosar: {d}",
   "v2.lib.scopedClear": "Vezi toată biblioteca",
   "settings.zonesUnlimited": "Nelimitat",

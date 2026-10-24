@@ -4148,6 +4148,8 @@ export default {
   "v2.home.wZonesCards": "Spelas nu",
   "v2.home.wFirstRow": "Första raden",
   "v2.home.zoneOf": "på {z}",
+  "v2.home.profilesUnavailable": "Det går inte att läsa in profilerna: servern svarar inte. Försöker igen automatiskt.",
+  "v2.home.profilesRetryNow": "Försök igen nu",
   "v2.lib.scopedFolder": "Mapp: {d}",
   "v2.lib.scopedClear": "Visa hela biblioteket",
   "settings.zonesUnlimited": "Obegränsat",

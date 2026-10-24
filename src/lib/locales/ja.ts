@@ -4149,6 +4149,8 @@ export default {
   "v2.home.wZonesCards": "再生中",
   "v2.home.wFirstRow": "最初の行",
   "v2.home.zoneOf": "{z} で再生中",
+  "v2.home.profilesUnavailable": "プロファイルを読み込めません：サーバーが応答しません。自動的に再試行しています。",
+  "v2.home.profilesRetryNow": "今すぐ再試行",
   "v2.lib.scopedFolder": "フォルダー：{d}",
   "v2.lib.scopedClear": "ライブラリ全体を表示",
   "settings.zonesUnlimited": "無制限",
