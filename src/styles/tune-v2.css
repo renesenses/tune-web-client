@@ -1,7 +1,7 @@
 /* Jeu de tokens du nouveau client (direction Levente).
    Portée .tune-v2 pour cohabiter avec le thème historique sans le perturber.
 
-   SIX THÈMES. Le thème actif est posé par `applyV2Theme()` en attribut
+   SEPT THÈMES. Le thème actif est posé par `applyV2Theme()` en attribut
    `data-v2-theme` sur <html>. Le sélecteur `:root[data-v2-theme=…] .tune-v2`
    l'emporte sur le bloc de base (3 niveaux de spécificité contre 1) et
    s'applique donc à TOUTES les racines .tune-v2, y compris imbriquées — sans
@@ -179,6 +179,27 @@
 }
 
 
+/* ── 7. Gris foncé — #2364 (Sandro, fil 2405) ─────────────────────────
+   Un palier entre les thèmes très sombres et les thèmes clairs : fonds GRIS
+   NEUTRES (R = V = B, ni bleu ni brun), moins de contraste global que
+   « Noir / Vert » sans quitter le sombre. Les trois plans gardent l'ordre
+   du haut de ce fichier : fond 1,00, surface de choix 1,10, surface
+   flottante 1,21. Le texte principal, le secondaire ET l'atténué tiennent
+   4,5:1 sur le fond, le fond 2, la surface, la surface de choix et le
+   survol. Garde : `themeGrisFonce2364.test.ts`. */
+:root[data-v2-theme="dark-grey"] .tune-v2{
+  --v2-bg:#2B2B2B; --v2-bg2:#2F2F2F; --v2-surface:#383838; --v2-surface2:#323232;
+  --v2-line:#3A3A3A; --v2-line2:#474747;
+  --v2-txt:#F2F2F2; --v2-txt2:#C2C2C2; --v2-txt3:#A6A6A6;
+  --v2-acc1:#3DD6B0; --v2-acc2:#62B886; --v2-acc-tint:#DFFFEF; --v2-on-acc:#101010;
+  --v2-hover:#313131; --v2-active1:#373737; --v2-active2:#303030;
+  --v2-player1:#262626; --v2-player2:#232323; --v2-knob:#F2F2F2;
+  --v2-av1:#4A4A4A; --v2-av2:#666666;
+  --v2-danger:#FF8F87; --v2-danger-soft:rgba(255,143,135,.12); --v2-danger-bd:#FF6B6B;
+  --v2-sh-card:0 6px 16px rgba(0,0,0,.30); --v2-sh-lg:0 16px 40px rgba(0,0,0,.45); --v2-sh-menu:0 20px 50px rgba(0,0,0,.50);
+  --v2-glow:rgba(61,214,176,.20); --v2-glow-strong:rgba(61,214,176,.26); --v2-acc-soft:rgba(98,184,134,.10); --v2-focus:rgba(61,214,176,.18); --v2-scrim:rgba(43,43,43,.8); --v2-sh-sm:rgba(0,0,0,.35);
+}
+
 /* ── Fond du document ───────────────────────────────────────────────────
    Mesuré dans Chrome : <body> restait #181818 (thème historique) sous TOUS
    les thèmes v2 — invisible tant que la coquille couvre 100vh, mais le
@@ -191,6 +212,7 @@
 :root[data-v2-theme="brown"]{ --v2-body-bg:#17110D; }
 :root[data-v2-theme="clear-white"]{ --v2-body-bg:#FFFFFF; }
 :root[data-v2-theme="clear-grey"]{ --v2-body-bg:#EDEFF2; }
+:root[data-v2-theme="dark-grey"]{ --v2-body-bg:#2B2B2B; }
 :root[data-v2-theme] body{ background:var(--v2-body-bg); }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -235,9 +257,12 @@
    `tune-theme.css` dans les deux thèmes CLAIRS. Fil 2136 (Pierre, 04/10/2026),
    écran Ambiance en « Clair / Gris » : puces gris foncé, texte à 2,1:1.
    Il prend la surface de choix du thème — c'est exactement son rôle.
-   Limité aux thèmes clairs : sur les quatre thèmes sombres, rien ne change. */
+   Limité aux thèmes clairs : sur les quatre thèmes sombres, rien ne change.
+   « Gris foncé » (#2364) en est aussi : son fond #2B2B2B est le #2A2A2A de
+   `--tune-grey2` à un point près, les puces s'y seraient fondues. */
 :root[data-v2-theme="clear-white"] .tune-v2,
-:root[data-v2-theme="clear-grey"] .tune-v2{
+:root[data-v2-theme="clear-grey"] .tune-v2,
+:root[data-v2-theme="dark-grey"] .tune-v2{
   --tune-grey2: var(--v2-surface2);
 }
 

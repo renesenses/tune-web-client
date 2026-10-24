@@ -59,6 +59,7 @@
   import { comptesDesEtiquettes, libelleEtiquette } from '../../lib/compteEtiquetteCollection';
   import type { SmartRule } from '../../lib/types';
   import '../../styles/tune-v2.css';
+  import CollectionIaV2 from './CollectionIaV2.svelte';
 
   interface Props {
     /**
@@ -459,6 +460,11 @@
         </div>
       {/each}
       <button class="lnk" onclick={ajouter}>+ {$t('v2.smart.addRule' as any)}</button>
+      <!-- tune-server-rust #6839 — l'assistant propose, l'écart se voit, et
+           seul « Enregistrer » ci-dessous écrit. -->
+      <CollectionIaV2 {nom} {mode} regles={completes as any}
+        onAppliquer={(r, m) => { regles = r as any; mode = m; }}
+        onNom={(n, d) => { nom = n; if (d) description = d; }} />
     </div>
 
     <!-- L'APERÇU : une règle mal posée ne se voit qu'à l'usage. On annonce ce

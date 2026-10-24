@@ -43,6 +43,7 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import ListePistesV2 from './ListePistesV2.svelte';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
   import SuggestionsIaAlbumV2 from './SuggestionsIaAlbumV2.svelte';
+  import NotesPochetteIaV2 from './NotesPochetteIaV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
   import {
     SELECTION_VIDE, appliquerGenre, basculer, choisiesDansLOrdre, corpsArtistePistes,
@@ -766,6 +767,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   let enEdition = $state(false);
   /** Assistant IA, étape 1 : la fenêtre des suggestions de CET album. */
   let suggestionsIa = $state(false);
+  /** Notes de pochette écrites par l'assistant (tune-server-rust, 23/10/2026). */
+  let notesIa = $state(false);
   const editionPossible = $derived(album.id != null && !depot && !service && !bandcamp);
   $effect(() => {
     const id = album.id, possible = editionPossible;
@@ -781,7 +784,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     return () => { vivant = false; };
   });
   // Une autre fiche s'ouvre : on ne reste pas en édition sur l'album d'avant.
-  $effect(() => { void album?.id; enEdition = false; suggestionsIa = false; });
+  $effect(() => { void album?.id; enEdition = false; suggestionsIa = false; notesIa = false; });
 
   /**
    * « Modifier » depuis le menu « … » d'un album (`lib/gestesObjet`) : la fiche
@@ -1830,6 +1833,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>
               {$tr('assistantIa.album.button' as any)}
             </button>
+            <button class="ghost" data-notes-ia-album onclick={() => (notesIa = true)}
+              title={$tr('assistantIa.notes.tip' as any)}>
+              {$tr('assistantIa.notes.button' as any)}
+            </button>
           {/if}
         </div>
       {/if}
@@ -1894,6 +1901,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       <m.default albumId={album.id} pistes={tracks} pochette={pochetteRemplacee ?? albumAffiche.cover_path ?? null}
         onPochette={(h) => (pochetteRemplacee = h)} />
     {/await}
+  {/if}
+
+  {#if notesIa && album.id != null}
+    <NotesPochetteIaV2 albumId={album.id} onClose={() => (notesIa = false)} />
   {/if}
 
   {#if suggestionsIa && album.id != null}

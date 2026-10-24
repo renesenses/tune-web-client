@@ -2,6 +2,7 @@ import { get } from 'svelte/store';
 import { currentZone, nextAndSync, previousAndSync, resumeAndSync, stopAndSync } from './stores/zones';
 import { playbackState, seekPositionMs, currentTrack } from './stores/nowPlaying';
 import * as api from './api';
+import { volumeDepuisGain } from './courbeDeVolume';
 import { basculerSourdineZone } from './sourdine';
 import { activeView, mobileNowPlayingOpen } from './stores/navigation';
 
@@ -105,14 +106,14 @@ export function setupKeyboardShortcuts(): () => void {
       }
       case 'ArrowUp': {
         e.preventDefault();
-        const vol = zone.volume ?? 0.5;
+        const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         // Step by 1% (round to avoid float drift), not 5%.
         api.setVolume(zone.id, Math.min(1, Math.round((vol + 0.01) * 100) / 100));
         break;
       }
       case 'ArrowDown': {
         e.preventDefault();
-        const vol = zone.volume ?? 0.5;
+        const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         api.setVolume(zone.id, Math.max(0, Math.round((vol - 0.01) * 100) / 100));
         break;
       }

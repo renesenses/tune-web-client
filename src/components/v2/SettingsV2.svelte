@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AuditIntegrite from '../partages/AuditIntegrite.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Réglages du nouveau client (direction Levente).
@@ -22,6 +23,7 @@
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
+  import { CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
@@ -90,6 +92,8 @@
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
   import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
   import { CLE_PARTAGE_COMMUNAUTAIRE } from '../../lib/notesCommunautaires';
+  import { CLE_RECEPTION_MESURES, CLE_CONTRIBUTION_MESURES } from '../../lib/mesuresCommunautaires';
+  import { CLE_LEVER_LE_BRIDAGE } from '../../lib/temperatureProcesseur';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import {
@@ -146,7 +150,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
-  import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
+  import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
@@ -508,6 +512,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // de ses cœurs). `null` : serveur qui ne connaît pas le réglage, on le tait.
   let bgSpeed = $state<string | null>(null);
   let bgSpeedWidths = $state<Record<string, number>>({});
+  // tune-server-rust#6713 — lever le bridage des analyses quand la
+  // température est illisible : désactivé par défaut, niveau Expert, avec
+  // un avertissement à l'activation.
+  let levBridage = $state<boolean | null>(null);
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let devicesLoaded = $state(false);
   let creatingBrowserZone = $state(false);
@@ -530,6 +538,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const vitesse = c?.background_analysis_speed;
         bgSpeed = ['discreet', 'normal', 'fast'].includes(vitesse) ? vitesse : null;
         bgSpeedWidths = c?.background_analysis_speed_widths ?? {};
+        // tune-server-rust#6713 — `null` : serveur qui ne publie pas la clé, pas de case.
+        levBridage = c && CLE_LEVER_LE_BRIDAGE in c ? (c[CLE_LEVER_LE_BRIDAGE] === true || c[CLE_LEVER_LE_BRIDAGE] === 'true') : null;
       })
       .catch(() => {});
     api.withTimeout(api.getAudioDevices(), 8_000, '/devices/audio')
@@ -581,6 +591,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function setBgSpeed(v: string) {
     const before = bgSpeed; bgSpeed = v;
     patch({ background_analysis_speed: v }, () => { bgSpeed = before; });
+  }
+  async function setLevBridage(ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    // Lever le bridage se fait en connaissance de cause : l'avertissement
+    // d'abord, et un refus laisse la case décochée.
+    if (souhait && !(await dialogs.confirm($t('settings.analysisUnthrottleConfirm' as any), { danger: true }))) {
+      if (caseCochee) caseCochee.checked = false;
+      return;
+    }
+    const before = levBridage; levBridage = souhait;
+    patch({ [CLE_LEVER_LE_BRIDAGE]: souhait }, () => {
+      levBridage = before;
+      if (caseCochee) caseCochee.checked = !!before;
+    });
   }
   function libelleVitesse(v: string, cle: string): string {
     const n = bgSpeedWidths?.[v];
@@ -1185,6 +1210,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     partageCommunauteBusy = false;
     if (caseCochee) caseCochee.checked = !!partageCommunaute;
   }
+  // Résultats d'analyse de la communauté (tune-server-rust#5594) : RECEVOIR
+  // et CONTRIBUER, deux réglages séparés, désactivés par défaut. `null` : le
+  // serveur ne publie pas la clé, pas de case.
+  let mesuresRecues = $state<boolean | null>(null);
+  let mesuresEnvoyees = $state<boolean | null>(null);
+  let mesuresBusy = $state(false);
+  let mesuresErr = $state<string | null>(null);
+  async function basculerMesures(cle: string, ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    mesuresBusy = true;
+    mesuresErr = null;
+    try {
+      await api.updateConfig({ [cle]: souhait });
+    } catch {
+      mesuresErr = get(t)('settings.errSaveFailed');
+    }
+    // L'état affiché est celui que le serveur RELIT.
+    await chargerPartage();
+    mesuresBusy = false;
+    if (caseCochee) {
+      caseCochee.checked = !!(cle === CLE_RECEPTION_MESURES ? mesuresRecues : mesuresEnvoyees);
+    }
+  }
   async function chargerPartage() {
     try {
       const c: any = await api.getConfig();
@@ -1195,6 +1244,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ecoutesCompte = c && CLE_ECOUTES_AU_COMPTE in c ? reglageVrai(c[CLE_ECOUTES_AU_COMPTE]) : null;
       // tune-server-rust#6545 — même règle pour le partage communautaire.
       partageCommunaute = c && CLE_PARTAGE_COMMUNAUTAIRE in c ? reglageVrai(c[CLE_PARTAGE_COMMUNAUTAIRE]) : null;
+      // tune-server-rust#5594 — même règle pour les mesures communautaires.
+      mesuresRecues = c && CLE_RECEPTION_MESURES in c ? reglageVrai(c[CLE_RECEPTION_MESURES]) : null;
+      mesuresEnvoyees = c && CLE_CONTRIBUTION_MESURES in c ? reglageVrai(c[CLE_CONTRIBUTION_MESURES]) : null;
       partageCharge = true;
     } catch { /* config illisible : les bascules ne sont pas offertes */ }
   }
@@ -2036,6 +2088,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   let analysisExcluded = $state<string[] | null>(null);
   // tune-server-rust#6198 — les genres de l'analyse acoustique (CLAP).
+  // tune-server-rust#5593 (fil 2173) — dossiers auxquels les analyses se limitent ; `null` : serveur antérieur.
+  let analysisDirs = $state<string[] | null>(null);
   let clapGenresInclus = $state<string[] | null>(null);
   let clapGenresExclus = $state<string[] | null>(null);
   let newDir = $state('');
@@ -2290,6 +2344,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       analysisExcluded = Array.isArray(c?.background_analysis_excluded_roots)
         ? c.background_analysis_excluded_roots.filter((r: unknown) => typeof r === 'string')
         : null;
+      analysisDirs = dossiersDepuisConfig(c?.[CLE_DOSSIERS_INCLUS]);
       clapGenresInclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_INCLUS]);
       clapGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_EXCLUS]);
       await refreshDirectoryOrder();
@@ -2408,6 +2463,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const suivant = analyser ? avant.filter((r) => r !== d) : [...avant.filter((r) => r !== d), d];
     analysisExcluded = suivant;
     patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
+  }
+  /**
+   * tune-server-rust#5593 (fil 2173) — les dossiers auxquels les analyses de
+   * fond se limitent. Le serveur reçoit la liste COMPLÈTE ; s'il refuse, le
+   * champ revient à son état d'avant.
+   */
+  function setDossiersAnalyses(texte: string) {
+    const avant = analysisDirs;
+    const suivant = lireSaisieDeDossiers(texte);
+    analysisDirs = suivant;
+    patch({ [CLE_DOSSIERS_INCLUS]: suivant }, () => { analysisDirs = avant; });
   }
   /**
    * tune-server-rust#6198 — les genres retenus ou écartés de l'analyse
@@ -3970,10 +4036,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           {/if}
         </div>
 
-        {#each sections as s (s.id)}
-          <section class="card" class:hl={highlight === s.id} data-section={s.id}>
+        {#each sections as s, i (s.id)}
+          <!-- #2354 — un intertitre au-dessus de la PREMIÈRE section visible
+               d'un bloc (« Outils de la bibliothèque »). Calculé sur les
+               sections déjà filtrées par niveau : à aucun niveau le bloc ne
+               perd son titre. -->
+          {#if s.group && sections[i - 1]?.group !== s.group}
+            <h2 class="groupe" data-groupe={s.group}>{$t('settings.libraryTools' as any)}</h2>
+          {/if}
+          <section class="card" class:hl={highlight === s.id} class:zone-danger={s.danger}
+            class:fin-groupe={!!s.group && sections[i + 1]?.group !== s.group}
+            data-section={s.id} data-groupe={s.group ?? null}>
             <div class="cardhead">
               <h3>{title(s)}</h3>
+              {#if s.danger}<span class="danger-tag" data-zone-danger>{$t('settings.dangerZone' as any)}</span>{/if}
             </div>
 
             {#if s.id === 'playback'}
@@ -4302,7 +4378,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <div class="themerow">
                   {#each V2_THEMES as th (th.id)}
-                    <button class="sw2" class:on={$preferences.v2Theme === th.id} title={th.label} aria-label={th.label}
+                    <button class="sw2" class:on={$preferences.v2Theme === th.id} title={v2ThemeLabel(th, (k) => $t(k as any))} aria-label={v2ThemeLabel(th, (k) => $t(k as any))}
                       aria-pressed={$preferences.v2Theme === th.id}
                       style="--sw-bg:{th.swatch[0]}; --sw-acc:{th.swatch[1]}"
                       onclick={() => setV2Theme(th.id)}></button>
@@ -4791,6 +4867,41 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 {#if partageCommunauteErr}<div class="errline">{partageCommunauteErr}</div>{/if}
               {/if}
+              <!-- tune-server-rust#5594 — résultats d'analyse de la communauté :
+                   recevoir et contribuer, deux cases séparées, décochées par
+                   défaut. Aucun compte n'est nécessaire : le serveur ne
+                   s'identifie que par son installation. -->
+              {#if mesuresRecues !== null}
+                <div class="row" data-mesures="recevoir">
+                  <div class="lbl">
+                    <span>{$t('settings.communityMeasuresReceive' as any)}</span>
+                    <span class="hint">{$t('settings.communityMeasuresReceiveHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle={CLE_RECEPTION_MESURES} checked={mesuresRecues}
+                      disabled={mesuresBusy}
+                      aria-label={$t('settings.communityMeasuresReceive' as any)}
+                      onchange={(e) => basculerMesures(CLE_RECEPTION_MESURES, e)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/if}
+              {#if mesuresEnvoyees !== null}
+                <div class="row" data-mesures="contribuer">
+                  <div class="lbl">
+                    <span>{$t('settings.communityMeasuresContribute' as any)}</span>
+                    <span class="hint">{$t('settings.communityMeasuresContributeHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle={CLE_CONTRIBUTION_MESURES} checked={mesuresEnvoyees}
+                      disabled={mesuresBusy}
+                      aria-label={$t('settings.communityMeasuresContribute' as any)}
+                      onchange={(e) => basculerMesures(CLE_CONTRIBUTION_MESURES, e)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/if}
+              {#if mesuresErr}<div class="errline">{mesuresErr}</div>{/if}
               <!-- Consentement à la télémétrie — porté de l'ancien écran
                    (phase 5) : il ne doit JAMAIS devenir immodifiable. -->
               {#if telCharge}
@@ -5965,6 +6076,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
+              <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
+              <AuditIntegrite />
 
             {:else if s.id === 'musicDirs'}
               <!-- Fil 2171 — le sélecteur est LE geste d'ajout : un vrai bouton,
@@ -6046,6 +6159,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if analysisExcluded !== null}
                   <p class="hint">{$t('settings.backgroundAnalysisFoldersHint' as any)}</p>
                 {/if}
+                <!-- tune-server-rust#5593 (fil 2173) — circonscrire les
+                     analyses de fond à des dossiers, un par ligne. -->
+                {#if analysisDirs !== null}
+                  <div class="clap-genres" data-reglage="dossiers-analyses">
+                    <span class="clap-genres-titre">{$t('settings.analysisDirsTitle' as any)}</span>
+                    <label>
+                      <span>{$t('settings.analysisDirsIncluded' as any)}</span>
+                      <textarea rows="3" value={afficherDossiers(analysisDirs)}
+                        placeholder={$t('settings.analysisDirsPlaceholder' as any)}
+                        aria-label={$t('settings.analysisDirsIncluded' as any)}
+                        onchange={(e) => setDossiersAnalyses((e.currentTarget as HTMLTextAreaElement).value)}></textarea>
+                    </label>
+                    <p class="hint">{$t('settings.analysisDirsHint' as any)}</p>
+                  </div>
+                {/if}
                 <!-- tune-server-rust#6198 — réserver l'analyse acoustique
                      (ambiances) à certains genres, ou en écarter. -->
                 {#if clapGenresInclus !== null && clapGenresExclus !== null}
@@ -6126,6 +6254,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
+            {:else if s.id === 'libraryCleanup'}
+              <!-- #2354 (Didier, fil 2397) : venu de Système › Santé. Même
+                   bouton, même confirmation danger, même compte rendu. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('diagnostics.cleanupServer' as any)}</span>
+                  <span class="hint">{$t('v2.maint.cleanupHint' as any)}</span>
+                </div>
+                <button class="lnk danger" disabled={nettoyageEnCours} onclick={nettoyerLeServeur}>
+                  {nettoyageEnCours ? $t('diagnostics.cleaning' as any) : $t('diagnostics.cleanupServer' as any)}
+                </button>
+              </div>
+              {#if nettoyage}
+                <div class="rows" role="status">
+                  <div class="kv"><span>{$t('v2.maint.mergedAlbums' as any)}</span><b>{nettoyage.duplicate_albums_merged ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanAlbums' as any)}</span><b>{nettoyage.orphan_albums_deleted ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanArtists' as any)}</span><b>{nettoyage.orphan_artists_deleted ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.dupTracks' as any)}</span><b>{nettoyage.duplicate_tracks_removed ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanArtwork' as any)}</span><b>{nettoyage.orphan_artwork_deleted ?? 0}</b></div>
+                  {#if nettoyage.db_optimized}<div class="kv"><span>{$t('v2.maint.dbOptimized' as any)}</span><b>✓</b></div>{/if}
+                </div>
+              {/if}
+              {#if nettoyageErr}<div class="errline">{nettoyageErr}</div>{/if}
             {:else if s.id === 'clearLibrary'}
               <!-- « Repartir à zéro » (#3585). La fonction existait côté
                    serveur et n'était exposée nulle part ici. -->
@@ -6563,7 +6714,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
               <!-- Phase 5 (web#1257) : niveau des journaux, nettoyage du
-                   serveur, rapport d'analyse — portés de l'ancienne interface. -->
+                   serveur, rapport d'analyse — portés de l'ancienne interface.
+                   Le nettoyage vit depuis #2354 dans Bibliothèque. -->
               {#if atLeast(level, 'expert') && niveauJournaux !== null}
                 <div class="row">
                   <div class="lbl">
@@ -6578,26 +6730,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 {#if niveauMsg}<p class="hint" class:errline={!niveauMsg.ok}>{niveauMsg.texte}</p>{/if}
               {/if}
-              <div class="row">
+              <!-- #2354 — le Nettoyage a rejoint Réglages › Bibliothèque ›
+                   Outils de la bibliothèque. Un renvoi, le temps d'une
+                   version, pour qui le cherche encore ici. Même niveau
+                   (intermédiaire) que la section d'arrivée : le lien ne
+                   mène jamais à une section masquée. -->
+              <div class="row" data-renvoi-nettoyage>
                 <div class="lbl">
                   <span>{$t('diagnostics.cleanupServer' as any)}</span>
-                  <span class="hint">{$t('v2.maint.cleanupHint' as any)}</span>
+                  <span class="hint">{$t('settings.cleanupMovedHint' as any)}</span>
                 </div>
-                <button class="lnk danger" disabled={nettoyageEnCours} onclick={nettoyerLeServeur}>
-                  {nettoyageEnCours ? $t('diagnostics.cleaning' as any) : $t('diagnostics.cleanupServer' as any)}
+                <button class="lnk" onclick={() => { tabId = 'library'; highlight = 'libraryCleanup'; }}>
+                  {$t('settings.cleanupMovedGo' as any)}
                 </button>
               </div>
-              {#if nettoyage}
-                <div class="rows" role="status">
-                  <div class="kv"><span>{$t('v2.maint.mergedAlbums' as any)}</span><b>{nettoyage.duplicate_albums_merged ?? 0}</b></div>
-                  <div class="kv"><span>{$t('v2.maint.orphanAlbums' as any)}</span><b>{nettoyage.orphan_albums_deleted ?? 0}</b></div>
-                  <div class="kv"><span>{$t('v2.maint.orphanArtists' as any)}</span><b>{nettoyage.orphan_artists_deleted ?? 0}</b></div>
-                  <div class="kv"><span>{$t('v2.maint.dupTracks' as any)}</span><b>{nettoyage.duplicate_tracks_removed ?? 0}</b></div>
-                  <div class="kv"><span>{$t('v2.maint.orphanArtwork' as any)}</span><b>{nettoyage.orphan_artwork_deleted ?? 0}</b></div>
-                  {#if nettoyage.db_optimized}<div class="kv"><span>{$t('v2.maint.dbOptimized' as any)}</span><b>✓</b></div>{/if}
-                </div>
-              {/if}
-              {#if nettoyageErr}<div class="errline">{nettoyageErr}</div>{/if}
               <div class="row">
                 <div class="lbl">
                   <span>{$t('v2.maint.clearScanReport' as any)}</span>
@@ -7410,6 +7556,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </div>
                   </div>
                 {/if}
+                <!-- tune-server-rust#6713 — niveau Expert seulement : rend la
+                     vitesse réglée quand la température est illisible. -->
+                {#if levBridage !== null && atLeast(level, 'expert')}
+                  <div class="row" data-reglage="lever-bridage">
+                    <div class="lbl">
+                      <span>{$t('settings.analysisUnthrottle' as any)}</span>
+                      <span class="hint">{$t('settings.analysisUnthrottleHint' as any)}</span>
+                    </div>
+                    <label class="sw">
+                      <input type="checkbox" data-cle={CLE_LEVER_LE_BRIDAGE} checked={levBridage}
+                        aria-label={$t('settings.analysisUnthrottle' as any)}
+                        onchange={setLevBridage} />
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                {/if}
                 {#if remesure}
                   <div class="row" data-remesure="lancer">
                     <div class="lbl">
@@ -7606,6 +7768,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px}
   .card.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  /* #2354 — bloc « Outils de la bibliothèque ». L'intertitre ouvre le bloc,
+     un écart plus large le ferme ; « Vider » y est une ZONE DANGEREUSE :
+     bordure et étiquette de danger, séparée des deux autres outils. */
+  .groupe{font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt2); margin:4px 2px -4px}
+  .card.fin-groupe{margin-bottom:14px}
+  .card.zone-danger{border-color:var(--v2-danger-bd); background:var(--v2-danger-soft); margin-top:10px}
+  .danger-tag{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--v2-danger);
+    border:1px solid var(--v2-danger-bd); border-radius:var(--v2-r-pill); padding:1px 8px}
   .cardhead{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
   .cardhead h3{font-size:15px; font-weight:700}
 
@@ -7709,6 +7879,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .clap-genres label{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13px; color:var(--v2-txt2)}
   .clap-genres label span{min-width:9em}
   .clap-genres input{flex:1 1 16em; min-width:0}
+  .clap-genres textarea{flex:1 1 16em; min-width:0; font:inherit}
   .directory-order-hint{margin-top:12px}
   .dir-order{display:flex; align-items:center; gap:3px}
   .dir-order .lnk{min-width:28px; min-height:28px}

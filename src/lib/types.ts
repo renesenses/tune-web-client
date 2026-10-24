@@ -512,6 +512,10 @@ export interface Zone {
   output_type?: OutputType;
   output_device_id?: string | null;
   volume?: number;
+  /** tune-server-rust#6787 — loi du volume : `db60` (sortie logicielle, le
+   *  volume est une position sur une loi en dB) ou `linear` (appareil). Absent
+   *  sur un serveur antérieur : linéaire. Voir `lib/courbeDeVolume.ts`. */
+  volume_curve?: string | null;
   /** Sourdine de la zone (`SetMute`), indépendante du volume (#6700). */
   muted?: boolean;
   group_id?: string | null;

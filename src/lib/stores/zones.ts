@@ -1,6 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import type { Zone } from '../types';
 import * as api from '../api';
+import { brancherZonePourLeCurseur } from '../courbeDeVolume';
 import { notifications } from './notifications';
 import { loopByDefault } from './loopByDefault';
 import { estZoneJouableIci } from '../zoneNavigateurProprietaire';
@@ -11,6 +12,8 @@ async function getBrowserAudio() {
 }
 
 export const zones = writable<Zone[]>([]);
+// tune-server-rust#6787 — `api.setVolume` lit la loi du curseur de la zone.
+brancherZonePourLeCurseur((id) => get(zones).find((z) => z?.id === id) ?? null);
 
 function loadSavedZoneId(): number | null {
   try {

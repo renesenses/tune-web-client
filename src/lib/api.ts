@@ -6,6 +6,7 @@ import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
+import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
 import type { ApercuFavorisRadio } from './favorisRadioQobuz';
 import { profileHeader } from './profileHeader';
@@ -1746,7 +1747,13 @@ export function seek(zoneId: number, positionMs: number) {
   });
 }
 
-export function setVolume(zoneId: number, volume: number) {
+/** Règle le volume d'une zone. `curseur` est la position du CURSEUR (0..1) :
+ *  sur une zone `volume_curve: "db60"` (tune-server-rust#6787), elle part en
+ *  GAIN, le sens historique de `volume` côté serveur. Une valeur qui serait
+ *  déjà un gain y est relue comme un curseur : elle joue plus bas, jamais
+ *  plus haut (`gainPerceptif(p) <= p`). */
+export function setVolume(zoneId: number, curseur: number) {
+  const volume = gainDeLaZone(zonePourLeCurseur(zoneId), curseur);
   return fetchVoid(`${BASE}/zones/${zoneId}/volume`, {
     method: 'PUT',
     body: JSON.stringify({ volume }),
@@ -7944,6 +7951,27 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
 
 // --- CSV Export ---
 
+export interface EtatIntegrite {
+  status: 'idle' | 'running' | 'paused' | 'completed' | 'error';
+  total: number; traites: number; sains: number; corrompus: number;
+  non_verifiables: number; alertes_taille: number; erreur: string | null;
+  lecture_prioritaire: boolean;
+}
+export interface LigneIntegrite {
+  id: number; chemin: string; taille_sans_nouvelle_date: boolean;
+  resultat: { verdict: 'sain' | 'corrompu' | 'non_verifiable'; code: string;
+    erreur: string | null; position_trames: number | null; trames_decodees: number };
+}
+export function getIntegrityStatus() { return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity`); }
+export function startIntegrity(resume = false) {
+  return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity?resume=${resume}`, { method: 'POST' });
+}
+export function pauseIntegrity() { return fetchJSON<void>(`${BASE}/library/integrity/pause`, { method: 'POST' }); }
+export function getIntegrityReport(offset = 0, verdict = '') {
+  return fetchJSON<{ etat: EtatIntegrite; lignes: LigneIntegrite[] }>(`${BASE}/library/integrity/report?offset=${offset}${verdict ? `&verdict=${encodeURIComponent(verdict)}` : ''}`);
+}
+export function exportIntegrityCsv() { return downloadCsv('/library/integrity/report.csv', 'integrite-bibliotheque.csv'); }
+
 async function downloadCsv(path: string, filename: string) {
   const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
@@ -8518,6 +8546,10 @@ export function getServerDiagnostics() {
     // `temperature_figee`). Absent chez un serveur antérieur.
     analyses_bridees?: string | null;
     analyses_bridees_largeur?: number | null;
+    // tune-server-rust#6713 — le motif quand la température est illisible
+    // MAIS que l'utilisateur a levé le bridage ; `null` sinon. Absent chez
+    // un serveur antérieur.
+    analyses_bridage_leve?: string | null;
     // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
     // compatible with older servers during rolling client/server updates.
     asio_warm_scan?: AsioWarmScanStatus;
@@ -9785,12 +9817,17 @@ export const BUG_REPORT_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 export async function submitBugReport(
   description: string,
   images: File[] = [],
+  /** Le résumé du diagnostic de l'assistant : joint SEULEMENT si `joindre`. */
+  resumeIa: { texte: string | null; joindre: boolean } = { texte: null, joindre: false },
 ): Promise<BugReportEnvoye> {
+  const joindre = resumeIa.joindre && !!resumeIa.texte && resumeIa.texte.trim() !== '';
   // Sans capture : le chemin JSON historique, inchangé (#4564).
   if (images.length === 0) {
+    const corps: Record<string, unknown> = { description: description.trim() };
+    if (joindre) { corps.resume_ia = resumeIa.texte!.trim(); corps.joindre_resume_ia = true; }
     return fetchJSON(`${BASE}/system/bug-report/submit`, {
       method: 'POST',
-      body: JSON.stringify({ description: description.trim() }),
+      body: JSON.stringify(corps),
     });
   }
 
@@ -9799,6 +9836,7 @@ export async function submitBugReport(
   // le multipart de sa frontière et ferait refuser l'envoi côté serveur.
   const form = new FormData();
   form.append('description', description.trim());
+  if (joindre) { form.append('resume_ia', resumeIa.texte!.trim()); form.append('joindre_resume_ia', 'true'); }
   for (const f of images) form.append('images[]', f, f.name);
 
   const token = getToken();
