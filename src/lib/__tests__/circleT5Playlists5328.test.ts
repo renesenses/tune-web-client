@@ -882,6 +882,36 @@ describe('web#2219 — rangement de la liste et en-tête', () => {
     expect(el.querySelectorAll('li.morceau .auteur')).toHaveLength(0);
   });
 
+  it('T5 (24/10) — QUAND : chaque ligne dit la date d\'ajout du cloud (`added_at`), lisible dans la langue', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    const q = ligne(el, 'So What').querySelector('time.quand-ajoute')!;
+    expect(q).not.toBeNull();
+    expect(q.getAttribute('datetime')).toBe('2026-09-28T09:00:00Z');
+    expect(texte(q)).toMatch(/28 sept\. 2026/);
+    expect(q.getAttribute('aria-label')).toMatch(/^Ajouté le 28 sept\. 2026$/);
+    // L'auteur reste dit à part, inchangé.
+    expect(texte(ligne(el, 'So What').querySelector('.auteur')!)).toBe('ajouté par Élise');
+  });
+
+  it('T5 (24/10) — sans date, ou date illisible : rien ne s\'affiche (jamais « Invalid Date »)', async () => {
+    pls[0].items[0].added_at = null;
+    pls[0].items[1].added_at = 'pas une date';
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    expect(ligne(el, 'So What').querySelector('time.quand-ajoute')).toBeNull();
+    expect(ligne(el, 'Blue in Green').querySelector('time.quand-ajoute')).toBeNull();
+    expect(el.textContent).not.toContain('Invalid');
+  });
+
+  it('T5 (24/10) — un seul contributeur : la date reste à chaque ligne, l\'auteur est dit une fois', async () => {
+    for (const it of pls[0].items) { it.added_by = { user_id: 40, name: 'Élise' }; it.mine = false; }
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    expect(el.querySelectorAll('li.morceau .auteur')).toHaveLength(0);
+    expect(el.querySelectorAll('li.morceau time.quand-ajoute')).toHaveLength(4);
+  });
+
   it('plusieurs contributeurs : pas de phrase de tête, l\'auteur reste à chaque ligne', async () => {
     const el = await poser(CircleV2);
     await ouvrir(el, 'Dimanche');
@@ -905,7 +935,7 @@ describe('web#2219 — rangement de la liste et en-tête', () => {
     expect(el.querySelector('button.aleatoire-playlist')).not.toBeNull();
     await cliquer(el, 'button.ajouter-morceaux');
     expect(get(activeView)).toBe('search');
-    expect(JSON.stringify(get(notifications))).toContain('Ajouter à une playlist de cercle');
+    expect(JSON.stringify(get(notifications))).toContain('Ajouter à une playlist partagée');
   });
 
   it('les membres : le propriétaire et les contributeurs nommés, jamais moi ni un anonyme', async () => {
