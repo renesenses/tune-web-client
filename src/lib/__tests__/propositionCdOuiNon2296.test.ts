@@ -18,6 +18,7 @@ import ko from '../locales/ko';
 import ro from '../locales/ro';
 import sv from '../locales/sv';
 import vi_ from '../locales/vi';
+import el_ from '../locales/el';
 import zh from '../locales/zh';
 
 /**
@@ -116,7 +117,7 @@ describe('#2296 — « Disque inséré » est une question', () => {
   });
 
   it('« Non » existe dans les douze catalogues', () => {
-    for (const [l, cat] of Object.entries({ fr, en, de, es, it: it_, hu, ja, ko, ro, sv, vi: vi_, zh })) {
+    for (const [l, cat] of Object.entries({ fr, en, de, es, it: it_, hu, ja, ko, ro, sv, vi: vi_, el: el_, zh })) {
       const v = (cat as Record<string, string>)['v2.cd.declineLoad'];
       expect(typeof v === 'string' && v.trim().length > 0, `${l} : v2.cd.declineLoad`).toBe(true);
     }

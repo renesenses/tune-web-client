@@ -40,7 +40,7 @@ describe('web#2307 — la ligne « n sur total »', () => {
     expect(src).toMatch(/ligneVignettesContact\(stats,/);
     expect(src).toContain('data-vignettes-progression');
   });
-  it('le libellé existe dans les 12 langues, avec {n} et {total}', () => {
+  it('le libellé existe dans les 13 langues, avec {n} et {total}', () => {
     for (const l of ONZE_LANGUES) {
       const v = dictionnaire(l)['v2.circle.lib.thumbnailsProgress'];
       expect(v, l).toContain('{n}');

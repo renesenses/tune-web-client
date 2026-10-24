@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { dictionnaire } from './onzeDictionnaires';
 
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi'];
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi', 'el'];
 
 describe('#896 — le libellé de la facette Dynamic Range', () => {
   it('🔴 fr et en nomment l’ALBUM', async () => {

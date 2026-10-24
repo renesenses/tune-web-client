@@ -52,7 +52,7 @@ describe('tri des albums d’une collection', () => {
     const cles = ['v2.lib.sortArtist', 'v2.lib.sortTitle', 'v2.lib.sortYear',
       'library.sortReleaseDate', 'library.sortAddedDate', 'common.ascending', 'common.descending', 'v2.fav.sortBy'];
     for (const c of cles) expect(vue, c).toContain(`'${c}'`);
-    for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh','vi']) {
+    for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh','vi','el']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const c of cles) expect(src, `${l} : ${c}`).toContain(`"${c}":`);
     }

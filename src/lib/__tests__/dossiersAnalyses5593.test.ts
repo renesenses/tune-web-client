@@ -110,7 +110,7 @@ describe('#5593 — circonscrire les analyses à des dossiers (fil 2173)', () =>
   });
 
   it('les douze langues nomment le champ et l’explication', () => {
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       for (const cle of ['analysisDirsTitle', 'analysisDirsIncluded', 'analysisDirsPlaceholder', 'analysisDirsHint']) {
         expect(src, `${l} settings.${cle}`).toContain(`"settings.${cle}":`);

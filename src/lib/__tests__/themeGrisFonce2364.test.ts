@@ -12,7 +12,7 @@ import { V2_THEMES, isV2Theme, v2ThemeLabel } from '../v2Theme';
 //   - des fonds réellement neutres (R = V = B) ;
 //   - le contraste WCAG ≥ 4,5:1 du texte principal, secondaire et atténué,
 //     jetons RÉSOLUS comme le navigateur (thème → pont → tune-theme.css) ;
-//   - le nom traduit dans les 12 langues et le choix mémorisé.
+//   - le nom traduit dans les 13 langues et le choix mémorisé.
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 const sansCommentaires = (s: string) =>
@@ -164,9 +164,9 @@ describe('#2364 — thème « Gris foncé » : contraste ≥ 4,5:1', () => {
 });
 
 describe('#2364 — nom traduit et choix mémorisé', () => {
-  const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'vi', 'zh'];
+  const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'vi', 'el', 'zh'];
 
-  it('le nom est traduit dans les 12 langues', () => {
+  it('le nom est traduit dans les 13 langues', () => {
     const th = V2_THEMES.find((t) => t.id === ID)!;
     expect('labelKey' in th && th.labelKey).toBe('settings.themeDarkGrey');
     for (const l of LANGUES) {
