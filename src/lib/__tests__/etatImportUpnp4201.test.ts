@@ -103,7 +103,9 @@ describe('Réglages › Bibliothèque : état de la bibliothèque UPnP (#4201)',
     const v2 = readFileSync(resolve(process.cwd(), 'src/components/v2/SettingsV2.svelte'), 'utf-8');
     const i = v2.indexOf("{:else if s.id === 'library'}");
     expect(i).toBeGreaterThan(-1);
-    const section = v2.slice(i, v2.indexOf('{:else if', i + 10));
+    // La section va jusqu'à la suivante (`{:else if s.id === …}`) : elle
+    // contient ses propres `{:else if}` imbriqués (web#2324).
+    const section = v2.slice(i, v2.indexOf('{:else if s.id ===', i + 10));
     expect(section).toMatch(/<EtatImportUpnp \/>/);
   });
 });
