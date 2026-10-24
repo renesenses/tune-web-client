@@ -3744,6 +3744,67 @@ export function importAutoEqPreset(body: { text: string; name?: string; zone_id?
   });
 }
 
+/**
+ * tune-server-rust#6709 — les modes propres de la pièce. `POST /eq/room-modes`
+ * est un CALCUL : il ne lit ni n'écrit aucune zone. Les filtres rendus sont
+ * des ATTÉNUATIONS (gain de −20 à −3 dB, Q de 4 à 20, 20 à 250 Hz) ; ils
+ * s'appliquent ensuite par `setEq`, le chemin de l'égaliseur paramétrique.
+ * 400 : valeur hors bornes, non finie ou absente — `code` porte la clé
+ * (`room_value_out_of_bounds`, `room_value_not_finite`,
+ * `room_positions_incompatible`, `room_body_invalid`) et `corps.field` le
+ * champ fautif.
+ */
+export interface RoomModesRequest {
+  length_m: number;
+  width_m: number;
+  height_m: number;
+  listener_from_back_wall_m: number;
+  speaker_from_front_wall_m: number;
+  listener_from_side_wall_m?: number;
+  listener_height_m?: number;
+  speaker_height_m?: number;
+  rt60_s?: number;
+  count?: number;
+}
+
+export interface RoomModeFilter {
+  freq: number;
+  gain: number;
+  q: number;
+  type: 'peak';
+  /** Les modes couverts, en indices `[nx, ny, nz]`. */
+  modes: [number, number, number][];
+}
+
+export interface RoomMode {
+  n: [number, number, number];
+  freq: number;
+  kind: 'axial' | 'tangential' | 'oblique';
+  /** Couplage enceinte → auditeur, pondéré par la famille, de 0 à 1. */
+  coupling: number;
+}
+
+export interface RoomModes {
+  filters: RoomModeFilter[];
+  modes: RoomMode[];
+  modes_total: number;
+  assumptions: {
+    speed_of_sound_m_s: number;
+    rt60_s: number;
+    count: number;
+    min_freq_hz: number;
+    max_freq_hz: number;
+  };
+  bounds?: { gain_db: [number, number]; q: [number, number]; count: [number, number] };
+}
+
+export function computeRoomModes(body: RoomModesRequest): Promise<RoomModes> {
+  return fetchJSON<RoomModes>(`${BASE}/eq/room-modes`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
 // Headphone crossfeed — bleeds a delayed, attenuated copy of each channel
 // into the opposite ear so the stereo image sits in front of you instead of
 // inside your head. Local output only. Server clamps amount 0..0.5, delay 0..5.
