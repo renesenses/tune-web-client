@@ -4169,6 +4169,8 @@ export default {
   "v2.home.wZonesCards": "Now listening",
   "v2.home.wFirstRow": "First row",
   "v2.home.zoneOf": "on {z}",
+  "v2.home.profilesUnavailable": "Unable to load profiles: the server is not responding. Retrying automatically.",
+  "v2.home.profilesRetryNow": "Retry now",
   "v2.lib.scopedFolder": "Folder: {d}",
   "v2.lib.scopedClear": "Show the whole library",
   "settings.zonesUnlimited": "Unlimited",

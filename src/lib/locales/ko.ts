@@ -4149,6 +4149,8 @@ export default {
   "v2.home.wZonesCards": "지금 재생 중",
   "v2.home.wFirstRow": "첫 번째 행",
   "v2.home.zoneOf": "{z}에서 재생 중",
+  "v2.home.profilesUnavailable": "프로필을 불러올 수 없습니다: 서버가 응답하지 않습니다. 자동으로 다시 시도하는 중입니다.",
+  "v2.home.profilesRetryNow": "지금 다시 시도",
   "v2.lib.scopedFolder": "폴더: {d}",
   "v2.lib.scopedClear": "라이브러리 전체 보기",
   "settings.zonesUnlimited": "무제한",

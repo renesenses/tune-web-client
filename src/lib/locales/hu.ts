@@ -4103,6 +4103,8 @@ export default {
   "v2.home.wZonesCards": "Most szól",
   "v2.home.wFirstRow": "Első sor",
   "v2.home.zoneOf": "itt: {z}",
+  "v2.home.profilesUnavailable": "A profilok nem tölthetők be: a szerver nem válaszol. Automatikus újrapróbálás folyamatban.",
+  "v2.home.profilesRetryNow": "Újrapróbálás most",
   "v2.lib.scopedFolder": "Mappa: {d}",
   "v2.lib.scopedClear": "A teljes könyvtár megjelenítése",
   "settings.zonesUnlimited": "Korlátlan",
