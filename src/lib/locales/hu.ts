@@ -653,6 +653,7 @@ export default {
   "browse.dirUnreachable": "A mappa nem érhető el",
   "browse.dirUnreachableHint": "A szerver nem tudta megnyitni ezt a mappát. Windowson a csatlakoztatott hálózati meghajtó (Z:) csak azt a munkamenetet látja, amelyik létrehozta — használd helyette az UNC-elérési utat (\\\\szerver\\megosztas).",
   "browse.noTracks": "Nincs szám ebben a könyvtárban",
+  "browse.noTracksHint": "Itt csak a már beolvasott számok jelennek meg. Ha ez a mappa zenét tartalmaz, az még nincs a könyvtárban: az „Újraolvasás” beolvassa (a folyamatban lévő vizsgálat végeztével, ha van ilyen).",
   "browse.playAll": "Összes lejátszása",
   "browse.addAll": "Összes hozzáadása",
   "browse.rescan": "Újraolvasás",

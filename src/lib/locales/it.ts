@@ -569,6 +569,7 @@ export default {
   'browse.openError': 'Impossibile aprire questa cartella — verifica che il disco o la condivisione di rete sia raggiungibile',
   'browse.rootEmpty': 'Cartella vuota',
   'browse.noTracks': 'Nessun brano in questa directory',
+  "browse.noTracksHint": "Qui compaiono solo i brani già analizzati. Se questa cartella contiene musica, non è ancora nella libreria: «Riscansiona» la analizza (al termine dell'eventuale scansione in corso).",
   'browse.playAll': 'Riproduci tutto',
   'browse.addAll': 'Aggiungi tutto',
   'browse.rescan': 'Riscansiona',

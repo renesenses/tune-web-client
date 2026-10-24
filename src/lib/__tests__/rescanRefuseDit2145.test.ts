@@ -112,3 +112,13 @@ describe('web#2145 — « Rescanner » refusé pendant une analyse le dit', () =
     reponseScan = { status: 409, corps: { status: 'already_scanning', scanning: true } };
   });
 });
+
+describe('web#2145 — un dossier sans piste en base ne se dit plus simplement « vide »', () => {
+  it('🔴 « Aucune piste » explique que seules les pistes analysées s\'affichent, et que « Rescanner » les analyse', async () => {
+    await attendreQue(() => !!hote!.querySelector('[data-aucune-piste]'), 'le dossier vide');
+    const texte = hote!.querySelector('[data-aucune-piste]')!.textContent ?? '';
+    expect(texte).toContain('Aucune piste dans ce répertoire');
+    expect(texte).toContain('déjà analysées');
+    expect(texte).toContain('« Rescanner »');
+  });
+});
