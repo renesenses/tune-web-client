@@ -10412,6 +10412,10 @@ export function getPairesDoublons(critere?: string, signal?: AbortSignal) {
 }
 /** Garde `keep`, retire `del` de la bibliothèque (playlists, file, historique et
  *  favoris repointés sur `keep`). Le fichier n'est pas touché. */
+/** tune-server-rust#6285 — le verdict des faux hi-res d'un album local. */
+export function getAlbumHiRes(albumId: number) {
+  return fetchJSON<import('./badgeHiRes').VerdictHiRes>(`${BASE}/library/albums/${albumId}/hires`);
+}
 export function resolveTrackDuplicate(keep: number, del: number) {
   return fetchJSON<unknown>(`${BASE}/library/duplicates/resolve`, { method: 'POST', body: JSON.stringify({ keep_id: keep, delete_id: del }) });
 }
