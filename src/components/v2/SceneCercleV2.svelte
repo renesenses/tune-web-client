@@ -47,6 +47,8 @@
   } from '../../lib/circleMonde';
   import { chargerVilles, chercherVilles, villeExacte, type Ville } from '../../lib/champCercle/villes';
   import { motifCercle, type ContactCercle, type CercleNomme, type PartageRecu } from '../../lib/circle';
+  import type { IdOpaque, PlaylistCercleResume } from '../../lib/circlePlaylists';
+  import { lunesParPlanete, positionLune, type LunesDePlanete } from '../../lib/champCercle/lunes';
 
   interface Props {
     contacts: ContactCercle[];
@@ -57,8 +59,17 @@
     enAttente: number;
     /** Le formulaire d'invitation de l'écran, posé sous le slogan. */
     invitation?: Snippet;
+    /**
+     * T5 (24/10) — les playlists partagées que je vois (`GET /playlists`),
+     * ou `null` : greffon d'avant T5, ni lunes ni accès en haut.
+     */
+    playlists?: PlaylistCercleResume[] | null;
+    /** Ouvrir la vue d'une playlist partagée (celle de `CircleV2`). */
+    onOuvrirPlaylist?: (id: IdOpaque) => void;
+    /** La lire sur la zone courante. */
+    onLirePlaylist?: (p: PlaylistCercleResume) => void;
   }
-  let { contacts, cercles, partages, enAttente, invitation }: Props = $props();
+  let { contacts, cercles, partages, enAttente, invitation, playlists = null, onOuvrirPlaylist, onLirePlaylist }: Props = $props();
 
   const CLE_VUE: Record<Vue, string> = {
     monde: 'v2.circle.scene.view.monde', seul: 'v2.circle.scene.view.seul', lien: 'v2.circle.scene.view.lien',
@@ -238,8 +249,57 @@
     return { destroy() { if (boutons.get(id) === el) boutons.delete(id); } };
   }
 
+  // ── T5 : les playlists partagées en petites lunes (24/10) ───────────────
+  /** Les lunes de chaque planète que la scène porte, dans l'ordre du cloud. */
+  const lunes = $derived<Map<string, LunesDePlanete>>(
+    playlists?.length ? lunesParPlanete(playlists, new Set(scene.noeuds.map((n) => n.id))) : new Map(),
+  );
+  /** Les boutons des lunes, par planète, pour le moteur (hors Svelte, comme `boutons`). */
+  const boutonsLunes = new Map<string, HTMLButtonElement[]>();
+  function inscrireLune(el: HTMLButtonElement, arg: { planete: string; k: number }) {
+    let cle = arg;
+    const poser = (c: { planete: string; k: number }) => {
+      const l = boutonsLunes.get(c.planete) ?? [];
+      l[c.k] = el;
+      boutonsLunes.set(c.planete, l);
+    };
+    const oter = (c: { planete: string; k: number }) => {
+      const l = boutonsLunes.get(c.planete);
+      if (!l || l[c.k] !== el) return;
+      l.splice(c.k, 1, undefined as unknown as HTMLButtonElement);
+      while (l.length && !l[l.length - 1]) l.pop();
+      if (!l.length) boutonsLunes.delete(c.planete);
+    };
+    poser(cle);
+    return {
+      update(c: { planete: string; k: number }) { oter(cle); cle = c; poser(c); },
+      destroy() { oter(cle); },
+    };
+  }
+  // Des lunes nées ou parties : une image de plus pour les poser (image fixe comprise).
+  $effect(() => { void lunes; const m = moteur; if (m) void tick().then(() => m.redessiner()); });
+  /** L'accès en haut de la scène : la liste des playlists partagées, repliée. */
+  let accesOuvert = $state(false);
+
+  function placerLunes(id: string, p: PlacementNoeud | null) {
+    const l = boutonsLunes.get(id);
+    if (!l) return;
+    // Pas de lune sur une épingle du globe ni sur « +N » : ce ne sont pas des planètes.
+    const visible = !!p && p.alpha >= 0.05 && p.mode !== 'pin' && p.mode !== 'more';
+    const n = l.length;
+    l.forEach((b, k) => {
+      if (!b) return;
+      if (!visible) { if (b.style.visibility !== 'hidden') b.style.visibility = 'hidden'; return; }
+      const c = positionLune(p!, k, n);
+      b.style.visibility = 'visible';
+      b.style.transform = `translate(${c.x.toFixed(1)}px, ${c.y.toFixed(1)}px)`;
+      b.style.opacity = String(Math.min(1, p!.alpha));
+    });
+  }
+
   /** Le moteur dit où est chaque nœud ; on y pose son bouton, sans passer par Svelte. */
   function placer(id: string, p: PlacementNoeud | null) {
+    placerLunes(id, p);
     const b = boutons.get(id);
     if (!b) return;
     if (!p || p.alpha < 0.05) { if (b.style.visibility !== 'hidden') b.style.visibility = 'hidden'; return; }
@@ -524,7 +584,41 @@
     {#if !sansToile}
       <button type="button" class="sc-vue sc-bascule-liste" aria-pressed={liste} onclick={() => { liste = !liste; }}>{$t('v2.circle.scene.listView' as any)}</button>
     {/if}
+    {#if playlists}
+      <button type="button" class="sc-vue sc-acces-playlists" aria-expanded={accesOuvert} aria-controls="sc-playlists"
+        onclick={() => { accesOuvert = !accesOuvert; }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h11M4 12h11M4 17h7M17 17V7l4 2"/></svg>
+        {tr('v2.circle.scene.playlists', { n: playlists.length })}
+      </button>
+    {/if}
   </div>
+
+  {#if playlists && accesOuvert}
+    <div class="sc-playlists" id="sc-playlists">
+      {#if playlists.length === 0}
+        <p class="note">{$t('v2.circle.pl.none' as any)}</p>
+      {:else}
+        <ul>
+          {#each playlists as p (String(p.id))}
+            <li class="sc-playlist">
+              <span class="sc-pl-nom" use:bulleTexte>{p.name}</span>
+              <span class="note">{$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}{#if !p.mine && p.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', p.owner.name)}{/if}</span>
+              <span class="sc-pl-gestes">
+                {#if onLirePlaylist}
+                  <button type="button" class="lnk sc-lire-playlist" disabled={p.count === 0}
+                    aria-label={$t('v2.circle.pl.playNamed' as any).replace('{name}', p.name)}
+                    onclick={() => onLirePlaylist?.(p)}>{$t('v2.circle.pl.play' as any)}</button>
+                {/if}
+                <button type="button" class="lnk sc-ouvrir-playlist"
+                  aria-label={$t('v2.circle.pl.openNamed' as any).replace('{name}', p.name)}
+                  onclick={() => onOuvrirPlaylist?.(p.id)}>{$t('v2.circle.pl.open' as any)}</button>
+              </span>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  {/if}
 
   {#if relais === 'absent'}
     <p class="note sc-degrade">{$t('v2.circle.scene.relay.absent' as any)}</p>
@@ -555,6 +649,22 @@
               {#if n.kind === 'pin' && n.place}<span class="sc-albums">{n.place}</span>{/if}
             </span>
           </button>
+        {/each}
+        <!-- T5 (24/10) — les playlists partagées, petites lunes de leur planète. -->
+        {#each [...lunes] as [planete, e] (planete)}
+          {#each e.lunes as l, k (String(l.id))}
+            <button type="button" class="sc-lune" use:inscrireLune={{ planete, k }}
+              title={l.nom} aria-label={$t('v2.circle.pl.openNamed' as any).replace('{name}', l.nom)}
+              onclick={() => onOuvrirPlaylist?.(l.id)}>
+              <span class="sr">{l.nom}</span>
+            </button>
+          {/each}
+          {#if e.reste > 0}
+            <button type="button" class="sc-lune sc-lune-plus" use:inscrireLune={{ planete, k: e.lunes.length }}
+              aria-label={tr('v2.circle.scene.morePlaylists', { n: e.reste })} title={tr('v2.circle.scene.morePlaylists', { n: e.reste })}
+              aria-controls="sc-playlists" aria-expanded={accesOuvert}
+              onclick={() => { accesOuvert = true; }}>+{e.reste}</button>
+          {/if}
         {/each}
       </div>
       {#if vue === 'monde' && epingles.length === 0 && !poseOuverte}
@@ -706,6 +816,21 @@
     background:radial-gradient(ellipse at 50% 45%, #18262b 0%, var(--sc-fond) 70%); color:var(--sc-txt)}
   .sc-scene canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
   .sc-noeuds{position:absolute; inset:0; pointer-events:none}
+  /* T5 — les lunes : de petits disques posés par le moteur autour de la planète. */
+  .sc-lune{position:absolute; left:0; top:0; visibility:hidden; width:16px; height:16px; margin:-8px 0 0 -8px; padding:0;
+    border-radius:50%; border:1px solid var(--sc-or); background:radial-gradient(circle at 35% 35%, #f3dca8, var(--sc-or) 60%, #8a6a35);
+    cursor:pointer; box-shadow:0 0 8px rgba(222,178,104,.45); pointer-events:auto}
+  .sc-lune:hover,.sc-lune:focus-visible{outline:2px solid var(--sc-txt); outline-offset:2px}
+  .sc-lune-plus{width:24px; height:18px; margin:-9px 0 0 -12px; border-radius:999px; background:rgba(15,24,28,.92);
+    color:var(--sc-or); font:700 10px var(--v2-sans); box-shadow:none}
+  .sc-acces-playlists{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--v2-line); background:var(--v2-surface2)}
+  .sc-acces-playlists svg{width:14px; height:14px}
+  .sc-acces-playlists[aria-expanded="true"]{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .sc-playlists{border:1px solid var(--v2-line); border-radius:12px; padding:8px 12px; background:var(--v2-surface2)}
+  .sc-playlists ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px}
+  .sc-playlist{display:flex; align-items:center; gap:10px; min-width:0; flex-wrap:wrap}
+  .sc-pl-nom{font-weight:600; min-width:0; max-width:60%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .sc-pl-gestes{margin-left:auto; display:flex; gap:12px}
   .sc-noeud{position:absolute; left:0; top:0; visibility:hidden; pointer-events:auto; --r:16px;
     width:calc(var(--r) * 2); height:calc(var(--r) * 2); margin:calc(var(--r) * -1) 0 0 calc(var(--r) * -1);
     border:0; border-radius:50%; background:transparent; color:#fff; cursor:pointer; padding:0;

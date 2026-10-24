@@ -57,6 +57,8 @@
   import { activeView } from '../../lib/stores/navigation';
   import { ssoDisponible } from '../../lib/bridge';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import { zoneRequise } from '../../lib/zoneRequise';
+  import { notifications } from '../../lib/stores/notifications';
   import {
     circleCharge, circlePlugin, refreshCirclePlugin, getCercle, estConnecte, ecouteOuverte,
     inviterAuCercle, accepterInvitation, refuserInvitation, annulerInvitation,
@@ -72,7 +74,7 @@
     type EtatSynchroBibliotheque, type PartageRecu, type AvisSynchro,
   } from '../../lib/circle';
   import {
-    listerPlaylistsCercle, creerPlaylistCercle, nomPlaylistValide, codeT5,
+    listerPlaylistsCercle, creerPlaylistCercle, nomPlaylistValide, codeT5, jouerPlaylistCercle, plusPartagee,
     listerRecuperables, recupererCopie, renoncerRecuperable,
     NOM_PLAYLIST_MAX, type IdOpaque, type PlaylistCercleResume, type PlaylistRecuperable, type BilanCopie,
   } from '../../lib/circlePlaylists';
@@ -243,6 +245,40 @@
   }
 
   // ── Les gestes ────────────────────────────────────────────────────────────
+
+  /**
+   * T5 (24/10) — lire une playlist partagée sur la zone COURANTE, sans
+   * l'ouvrir : depuis sa ligne, la liste du haut de la scène. Même appel que
+   * le bouton Lire de sa vue (`POST …/play`, la file de la zone remplacée).
+   */
+  async function lirePlaylistPartagee(p: PlaylistCercleResume) {
+    const zid = zoneRequise();
+    if (zid == null || occupe !== null) return;
+    occupe = `lire-${String(p.id)}`;
+    retour = null;
+    try {
+      const b = await jouerPlaylistCercle(p.id, zid);
+      if (b.lances === 0) notifications.info($t('v2.circle.pl.nothingPlayable' as any));
+      else if (b.manquants > 0) notifications.info($t('v2.circle.pl.playedMissing' as any).replace('{m}', String(b.manquants)));
+      else notifications.success($t('v2.circle.pl.played' as any));
+    } catch (e) {
+      if (plusPartagee(e)) {
+        retour = { texte: $t('v2.circle.pl.gone' as any), erreur: true };
+        occupe = null;
+        await relire();
+        return;
+      }
+      const t5cle = codeT5(e);
+      retour = { texte: t5cle ? $t(t5cle as any) : phrase(motifCercle(e)), erreur: true };
+    } finally {
+      occupe = null;
+    }
+  }
+
+  function ouvrirPlaylistPartagee(id: IdOpaque) {
+    retour = null;
+    playlistOuverte = id;
+  }
 
   function inviter(ev: SubmitEvent) {
     ev.preventDefault();
@@ -587,7 +623,8 @@
       {/if}
 
       <div class="hero">
-      <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length}>
+      <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length}
+        playlists={t5 ? playlists : null} onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)}>
         {#snippet invitation()}
           <section class="bloc inviter" aria-labelledby="circle-inviter">
             <h2 id="circle-inviter">{$t('v2.circle.invite' as any)}</h2>
@@ -813,9 +850,14 @@
                     {$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}{#if !p.mine && p.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', p.owner.name)}{/if}
                   </span>
                   <span class="gestes">
+                    <button class="lnk lire-playlist-ligne" disabled={occupe !== null || p.count === 0}
+                      aria-label={$t('v2.circle.pl.playNamed' as any).replace('{name}', p.name)}
+                      onclick={() => void lirePlaylistPartagee(p)}>
+                      {$t('v2.circle.pl.play' as any)}
+                    </button>
                     <button class="lnk ouvrir-playlist"
                       aria-label={$t('v2.circle.pl.openNamed' as any).replace('{name}', p.name)}
-                      onclick={() => { retour = null; playlistOuverte = p.id; }}>
+                      onclick={() => ouvrirPlaylistPartagee(p.id)}>
                       {$t('v2.circle.pl.open' as any)}
                     </button>
                   </span>
