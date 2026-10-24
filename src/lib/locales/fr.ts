@@ -343,6 +343,8 @@ export default {
   'zone.groupedPlayback': 'Lecture groupée',
   "zone.groupedPlaybackOpen": "Lecture groupée…",
   "zone.groupedPlaybackOpenTip": "Synchroniser cette zone avec d’autres : ouvre ses réglages, à la section Lecture groupée.",
+  "zone.settingsOpen": "Réglages de la zone…",
+  "zone.settingsOpenTip": "Ouvre les réglages de cette zone : gapless, volume, appareil, correction…",
   'zone.selectZonesToSync': 'Sélectionner les zones à synchroniser avec {name}',
   'zone.noOtherZone': 'Aucune autre zone disponible',
   'zone.alreadyInGroup': 'Déjà dans un autre groupe',

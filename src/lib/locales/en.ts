@@ -343,6 +343,8 @@ export default {
   'zone.groupedPlayback': 'Grouped Playback',
   "zone.groupedPlaybackOpen": "Grouped playback…",
   "zone.groupedPlaybackOpenTip": "Play this zone in sync with others: opens its settings at the Grouped Playback section.",
+  "zone.settingsOpen": "Zone settings…",
+  "zone.settingsOpenTip": "Opens this zone’s settings: gapless, volume, device, correction…",
   'zone.selectZonesToSync': 'Select zones to sync with {name}',
   'zone.noOtherZone': 'No other zones available',
   'zone.alreadyInGroup': 'Already in another group',
