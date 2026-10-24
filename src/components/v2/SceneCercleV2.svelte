@@ -12,8 +12,10 @@
    * - la taille et les genres d'un contact ne sont demandés QUE s'il partage
    *   déjà sa bibliothèque avec moi (`partages`, T2) ; sinon taille par défaut ;
    * - « Montrer ma ville à mes proches » est ÉTEINT par défaut ; la ville se
-   *   pose d'un clic sur le globe (ou deux champs), avec un libellé libre,
-   *   arrondie au demi-degré avant l'envoi ; le retrait est un clic ;
+   *   choisit dans une liste de villes EMBARQUÉE (GeoNames, chargée à
+   *   l'ouverture du réglage, cherchée hors ligne), d'un clic sur le globe, ou
+   *   par deux champs repliés sous « Avancé » ; libellé libre, arrondie au
+   *   demi-degré avant l'envoi ; le retrait est un clic ;
    * - aucune présence, aucune écoute en direct, aucune photo : le flux entre
    *   deux planètes dit seulement « partage sa bibliothèque avec moi ».
    *
@@ -26,6 +28,7 @@
    * et sur petit écran (`budget.ts`).
    */
   import type { Snippet } from 'svelte';
+  import { tick } from 'svelte';
   import { t } from '../../lib/i18n';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { formatNombre } from '../../lib/formats';
@@ -39,9 +42,10 @@
   import { arrondiDemiDegre } from '../../lib/champCercle/tailles';
   import {
     lireMonLieu, lireLieuxContacts, poserMonLieu, retirerMonLieu, lireResumeContact,
-    lireMesChiffres, lireMonNom, corpsLieu, LIBELLE_LIEU_MAX,
+    lireMesChiffres, lireMonNom, corpsLieu, lireCoordonnee, LIBELLE_LIEU_MAX,
     type EtatRelais, type ResumeBibliotheque,
   } from '../../lib/circleMonde';
+  import { chargerVilles, chercherVilles, villeExacte, type Ville } from '../../lib/champCercle/villes';
   import { motifCercle, type ContactCercle, type CercleNomme, type PartageRecu } from '../../lib/circle';
 
   interface Props {
@@ -91,12 +95,26 @@
   // ── Réglage du lieu ─────────────────────────────────────────────────────
   let poseOuverte = $state(false);
   let saisieLabel = $state('');
-  let saisieLat = $state<number | null>(null);
-  let saisieLon = $state<number | null>(null);
+  // Texte, pas `type="number"` : « 47,32 » doit valoir 47.32 (voir `lireCoordonnee`).
+  let saisieLatTexte = $state('');
+  let saisieLonTexte = $state('');
+  const saisieLat = $derived(lireCoordonnee(saisieLatTexte));
+  const saisieLon = $derived(lireCoordonnee(saisieLonTexte));
   let saisiePays = $state('');
+  /** D'où vient la position : une ville de la liste, le globe, ou les champs. */
+  let originePosition: 'ville' | 'globe' | null = null;
   let occupeLieu = $state(false);
   let retourLieu = $state<{ texte: string; erreur: boolean } | null>(null);
   const repere = $derived(poseOuverte && saisieLat != null && saisieLon != null ? { lat: saisieLat, lon: saisieLon } : null);
+
+  // ── Villes : index embarqué, chargé à l'ouverture du réglage ─────────────
+  let villes = $state.raw<Ville[] | null>(null);
+  let listeVilles = $state(false);
+  let villeActive = $state(-1);
+  const suggestions = $derived(villes && poseOuverte ? chercherVilles(villes, saisieLabel) : []);
+  const montrerVilles = $derived(listeVilles && suggestions.length > 0);
+  const aucuneVille = $derived(listeVilles && villes !== null && suggestions.length === 0
+    && saisieLabel.trim().length >= 3 && saisieLat == null);
 
   const fmt = (n: number) => $formatNombre(n);
   function tr(cle: string, vars: Record<string, string | number> = {}): string {
@@ -122,7 +140,8 @@
     contacts: contactsScene,
     cercles: cercles.map((c) => ({ id: c.id, nom: c.name, membres: c.member_ids })),
     focus,
-    maxAutour: petit ? 8 : 12,
+    // Grand écran : TOUS les contacts (jusqu'à 30, en deux couronnes) ; mobile : 8 puis « +N ».
+    maxAutour: petit ? 8 : 30,
     maxGrappes: petit ? 4 : 6,
   });
   const scene = $derived(construireScene(donnees));
@@ -132,6 +151,10 @@
   const epingles = $derived(noeudsDeVue(scene, 'monde'));
   const noeudSel = $derived(selection ? scene.noeuds.find((n) => n.id === selection) ?? null : null);
   const enCommun = $derived(grappes.some((g) => g.moi && g.membres.length > 0));
+  /** Contacts qui n'ont pas posé leur ville : le globe le dit, au lieu de les taire. */
+  const sansVille = $derived(relais === 'ok' ? contactsScene.filter((c) => !c.lieu).length : 0);
+  const texteSansVille = $derived(sansVille === 0 ? '' : sansVille === 1
+    ? tr('v2.circle.scene.world.unplacedOne') : tr('v2.circle.scene.world.unplacedMany', { n: sansVille }));
 
   // ── Lectures ────────────────────────────────────────────────────────────
   async function chargerFond() {
@@ -148,13 +171,16 @@
     choisirVue();
   }
 
-  /** La première vue : le globe s'il y a un lieu, sinon les genres, le réseau, ou moi seul. */
+  /**
+   * La première vue : le globe si un CONTACT y est (mon épingle seule ne
+   * montre personne), sinon le réseau, les genres, ou moi seul avec mes cercles.
+   */
   function choisirVue() {
     if (vueChoisie) return;
     vueChoisie = true;
-    if (relais === 'ok' && (monLieu || lieux.size > 0)) vue = 'monde';
-    else if (grappes.length > 0) vue = 'genres';
+    if (relais === 'ok' && lieux.size > 0) vue = 'monde';
     else if (contacts.length > 0) vue = 'reseau';
+    else if (grappes.length > 0) vue = 'genres';
     else vue = 'seul';
   }
 
@@ -235,9 +261,13 @@
 
   function surClicGlobe(l: { lat: number; lon: number }) {
     if (!poseOuverte) return;
-    saisieLat = arrondiDemiDegre(l.lat);
-    saisieLon = arrondiDemiDegre(l.lon);
-    retourLieu = { texte: tr('v2.circle.scene.loc.picked', { lat: String(saisieLat), lon: String(saisieLon) }), erreur: false };
+    const lat = arrondiDemiDegre(l.lat);
+    const lon = arrondiDemiDegre(l.lon);
+    saisieLatTexte = String(lat);
+    saisieLonTexte = String(lon);
+    originePosition = 'globe';
+    listeVilles = false;
+    retourLieu = { texte: tr('v2.circle.scene.loc.picked', { lat: String(lat), lon: String(lon) }), erreur: false };
   }
 
   $effect(() => {
@@ -261,6 +291,14 @@
   $effect(() => { const m = moteur; const s = selection; m?.selection(s); });
   $effect(() => { const m = moteur; const b = budget; m?.majBudget(b); });
   $effect(() => { const m = moteur; const p = poseOuverte && vue === 'monde'; m?.modePose(p); m?.repere(repere); });
+  // Au rechargement, le globe se tourne une fois vers MON lieu (s'il est posé).
+  let centreSurMoi = false;
+  $effect(() => {
+    const m = moteur; const l = monLieu;
+    if (!m || !l || centreSurMoi) return;
+    centreSurMoi = true;
+    m.centrerSur(l.lat, l.lon);
+  });
 
   // ── Gestes ──────────────────────────────────────────────────────────────
   function choisir(v: Vue) {
@@ -363,18 +401,78 @@
     : '');
 
   // ── Lieu : poser, enregistrer, retirer ──────────────────────────────────
-  function ouvrirPose() {
+  let racine = $state<HTMLElement | undefined>();
+
+  /** L'index des villes : demandé ici, à l'ouverture du réglage, et pas avant. */
+  function demanderVilles() {
+    if (villes) return;
+    chargerVilles().then((v) => { if (!fini) villes = v; }).catch(() => { /* reste : le globe et les champs */ });
+  }
+
+  function ouvrirPose(depart: Lieu | null = null) {
     poseOuverte = true;
     retourLieu = null;
-    saisieLabel = ''; saisieLat = null; saisieLon = null; saisiePays = '';
+    saisieLabel = depart?.label ?? '';
+    saisieLatTexte = depart ? String(depart.lat) : '';
+    saisieLonTexte = depart ? String(depart.lon) : '';
+    saisiePays = depart?.country_code ?? '';
+    originePosition = depart ? 'globe' : null;
+    listeVilles = false;
+    villeActive = -1;
     precedente = null;
     vue = 'monde';
+    demanderVilles();
+    // Le globe ET le formulaire d'un seul coup d'œil : la scène remonte en haut.
+    void tick().then(() => {
+      if (typeof racine?.scrollIntoView === 'function') racine.scrollIntoView({ block: 'start', behavior: reduit ? 'auto' : 'smooth' });
+    });
   }
-  function annulerPose() { poseOuverte = false; retourLieu = null; }
+  function annulerPose() { poseOuverte = false; retourLieu = null; listeVilles = false; }
+
+  function choisirVille(v: Ville) {
+    saisieLabel = v.nom;
+    saisiePays = v.pays;
+    saisieLatTexte = String(v.lat);
+    saisieLonTexte = String(v.lon);
+    originePosition = 'ville';
+    listeVilles = false;
+    villeActive = -1;
+    retourLieu = { texte: tr('v2.circle.scene.loc.cityChosen', { city: `${v.nom}, ${v.pays}` }), erreur: false };
+    moteur?.centrerSur(v.lat, v.lon);
+  }
+
+  function surSaisieVille() {
+    // Le nom d'une ville choisie qu'on retape : sa position ne vaut plus.
+    // (Une position venue du globe reste : le libellé y est libre.)
+    if (originePosition === 'ville') {
+      saisieLatTexte = ''; saisieLonTexte = ''; saisiePays = '';
+      originePosition = null;
+      retourLieu = null;
+    }
+    listeVilles = true;
+    villeActive = -1;
+  }
+
+  function surToucheVille(ev: KeyboardEvent) {
+    if (!montrerVilles) return;
+    const n = suggestions.length;
+    if (ev.key === 'ArrowDown') { ev.preventDefault(); villeActive = (villeActive + 1) % n; }
+    else if (ev.key === 'ArrowUp') { ev.preventDefault(); villeActive = (villeActive - 1 + n) % n; }
+    else if (ev.key === 'Enter' && villeActive >= 0) { ev.preventDefault(); choisirVille(suggestions[villeActive]); }
+    else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); listeVilles = false; villeActive = -1; }
+  }
 
   async function enregistrerLieu(ev: SubmitEvent) {
     ev.preventDefault();
     if (occupeLieu) return;
+    // Un nom de ville tapé sans rien choisir (« Dijon », puis « Montrer ma
+    // ville ») : la ville de ce nom, s'il y en a une, donne la position.
+    if ((saisieLat == null || saisieLon == null) && saisieLabel.trim()) {
+      let index = villes;
+      if (!index) { try { index = await chargerVilles(); villes = index; } catch { index = null; } }
+      const v = index ? villeExacte(index, saisieLabel) : null;
+      if (v) choisirVille(v);
+    }
     const s = { label: saisieLabel, country_code: saisiePays, lat: saisieLat ?? NaN, lon: saisieLon ?? NaN };
     if (!corpsLieu(s)) { retourLieu = { texte: tr('v2.circle.scene.loc.invalid'), erreur: true }; return; }
     occupeLieu = true;
@@ -405,6 +503,7 @@
     }
   }
 
+  /** L'interrupteur : allumé (lieu posé) → retrait en un clic ; éteint → le réglage s'ouvre. */
   function basculerLieu() {
     if (monLieu) void retirerLieu();
     else if (poseOuverte) annulerPose();
@@ -414,7 +513,7 @@
   const montrerListe = $derived(liste || sansToile);
 </script>
 
-<section class="sc" aria-labelledby="sc-titre">
+<section class="sc" aria-labelledby="sc-titre" bind:this={racine}>
   <div class="sc-barre">
     <h2 id="sc-titre">{$t('v2.circle.contacts' as any)}</h2>
     <div class="sc-vues" role="group" aria-label={$t('v2.circle.scene.viewsLabel' as any)}>
@@ -437,7 +536,7 @@
 
   {#if !montrerListe}
     <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
-    <div class="sc-scene" bind:this={hote} role="region" aria-label={$t('v2.circle.scene.stageLabel' as any)}
+    <div class="sc-scene" class:sc-scene-pose={poseOuverte} bind:this={hote} role="region" aria-label={$t('v2.circle.scene.stageLabel' as any)}
       tabindex={vue === 'monde' ? 0 : -1} onkeydown={surToucheScene}>
       <canvas bind:this={toile} aria-hidden="true"></canvas>
       <div class="sc-noeuds">
@@ -461,12 +560,10 @@
       {#if vue === 'monde' && epingles.length === 0 && !poseOuverte}
         <div class="sc-vide">
           <p>{$t('v2.circle.scene.world.empty' as any)}</p>
-          {#if relais === 'ok'}<button type="button" class="go sc-poser" onclick={ouvrirPose}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
+          {#if relais === 'ok'}<button type="button" class="go sc-poser" onclick={() => ouvrirPose()}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
         </div>
-      {:else if vue === 'monde' && poseOuverte}
-        <p class="sc-astuce">{$t('v2.circle.scene.loc.pick' as any)}</p>
-      {:else if vue === 'monde'}
-        <p class="sc-astuce">{$t('v2.circle.scene.world.rotate' as any)}</p>
+      {:else if vue === 'monde' && !poseOuverte}
+        <p class="sc-astuce">{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)}</p>
       {:else if vue === 'genres' && grappes.length === 0}
         <p class="sc-vide">{$t('v2.circle.scene.genres.empty' as any)}</p>
       {:else if vue === 'lien' && contacts.length === 0}
@@ -476,6 +573,7 @@
   {:else}
     <div class="sc-liste-bloc">
       <h3>{$t(CLE_VUE[vue] as any)}</h3>
+      {#if vue === 'monde' && texteSansVille}<p class="note sc-sans-ville">{texteSansVille}</p>{/if}
       {#if noeudsVue.length === 0}
         <p class="note">{$t((vue === 'monde' ? 'v2.circle.scene.world.empty' : vue === 'genres' ? 'v2.circle.scene.genres.empty' : 'v2.circle.scene.link.empty') as any)}</p>
       {:else}
@@ -489,6 +587,73 @@
             </li>
           {/each}
         </ul>
+      {/if}
+    </div>
+  {/if}
+
+  {#if relais === 'ok'}
+    <div class="sc-lieu partage">
+      <button type="button" class="interrupteur interrupteur-lieu" role="switch" aria-checked={monLieu !== null}
+        disabled={occupeLieu} onclick={basculerLieu}>
+        <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
+        <span>{$t('v2.circle.scene.loc.toggle' as any)}</span>
+      </button>
+      <p class="note">{$t('v2.circle.scene.loc.what' as any)}</p>
+      {#if monLieu}
+        <p class="note sc-lieu-actuel">
+          {tr('v2.circle.scene.loc.current', { label: monLieu.label })}
+          {#if !poseOuverte}
+            <button type="button" class="lnk sc-changer-lieu" disabled={occupeLieu} onclick={() => ouvrirPose(monLieu)}>{$t('v2.circle.scene.loc.change' as any)}</button>
+          {/if}
+          <button type="button" class="lnk danger sc-retirer-lieu" disabled={occupeLieu} onclick={() => void retirerLieu()}>{$t('v2.circle.scene.loc.remove' as any)}</button>
+        </p>
+      {/if}
+      {#if poseOuverte}
+        <form class="sc-pose" onsubmit={enregistrerLieu}>
+          <p class="note sc-aide-pose">{$t('v2.circle.scene.loc.pick' as any)}</p>
+          <div class="sc-ville">
+            <label class="sc-champ" for="sc-libelle">{$t('v2.circle.scene.loc.label' as any)}</label>
+            <input id="sc-libelle" class="champ sc-libelle" type="text" maxlength={LIBELLE_LIEU_MAX} autocomplete="off" spellcheck="false"
+              role="combobox" aria-autocomplete="list" aria-expanded={montrerVilles} aria-controls="sc-villes"
+              aria-activedescendant={montrerVilles && villeActive >= 0 ? `sc-ville-${villeActive}` : undefined}
+              bind:value={saisieLabel} oninput={surSaisieVille} onkeydown={surToucheVille}
+              onfocus={() => { if (saisieLat == null) listeVilles = true; }} onblur={() => { listeVilles = false; villeActive = -1; }} />
+            {#if montrerVilles}
+              <ul id="sc-villes" class="sc-villes" role="listbox" aria-label={$t('v2.circle.scene.loc.suggestions' as any)}>
+                {#each suggestions as v, i (i)}
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <li id="sc-ville-{i}" class="sc-ville-option" role="option" aria-selected={i === villeActive}
+                    onpointerdown={(e) => e.preventDefault()} onclick={() => choisirVille(v)}>
+                    <span class="sc-ville-nom">{v.nom}, {v.pays}</span>
+                    <span class="sc-ville-pos">{v.lat.toFixed(1)}, {v.lon.toFixed(1)}</span>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+          {#if aucuneVille}<p class="note sc-aucune-ville" role="status">{$t('v2.circle.scene.loc.noMatch' as any)}</p>{/if}
+          <label class="sc-champ"><span>{$t('v2.circle.scene.loc.country' as any)}</span>
+            <input class="champ sc-pays" type="text" maxlength="2" autocomplete="off" bind:value={saisiePays} /></label>
+          <details class="sc-avance">
+            <summary>{$t('v2.circle.scene.loc.advanced' as any)}</summary>
+            <div class="rangee">
+              <label class="sc-champ"><span>{$t('v2.circle.scene.loc.lat' as any)}</span>
+                <input class="champ sc-lat" type="text" inputmode="decimal" autocomplete="off" bind:value={saisieLatTexte}
+                  oninput={() => { originePosition = null; }} /></label>
+              <label class="sc-champ"><span>{$t('v2.circle.scene.loc.lon' as any)}</span>
+                <input class="champ sc-lon" type="text" inputmode="decimal" autocomplete="off" bind:value={saisieLonTexte}
+                  oninput={() => { originePosition = null; }} /></label>
+            </div>
+          </details>
+          <div class="rangee">
+            <button type="submit" class="go sc-enregistrer-lieu" disabled={occupeLieu}>{$t('v2.circle.scene.loc.save' as any)}</button>
+            <button type="button" class="lnk sc-annuler-lieu" onclick={annulerPose}>{$t('v2.circle.scene.loc.cancel' as any)}</button>
+          </div>
+          <p class="note sc-source-villes">{$t('v2.circle.scene.loc.source' as any)}</p>
+        </form>
+      {/if}
+      {#if retourLieu}
+        <p class={retourLieu.erreur ? 'note sc-retour-lieu alerte' : 'note sc-retour-lieu'} role={retourLieu.erreur ? 'alert' : 'status'}>{retourLieu.texte}</p>
       {/if}
     </div>
   {/if}
@@ -524,46 +689,6 @@
     </div>
   </div>
 
-  {#if relais === 'ok'}
-    <div class="sc-lieu partage">
-      <button type="button" class="interrupteur interrupteur-lieu" role="switch" aria-checked={monLieu !== null}
-        disabled={occupeLieu} onclick={basculerLieu}>
-        <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
-        <span>{$t('v2.circle.scene.loc.toggle' as any)}</span>
-      </button>
-      <p class="note">{$t('v2.circle.scene.loc.what' as any)}</p>
-      {#if monLieu}
-        <p class="note sc-lieu-actuel">
-          {tr('v2.circle.scene.loc.current', { label: monLieu.label })}
-          <button type="button" class="lnk danger sc-retirer-lieu" disabled={occupeLieu} onclick={() => void retirerLieu()}>{$t('v2.circle.scene.loc.remove' as any)}</button>
-        </p>
-      {/if}
-      {#if poseOuverte}
-        <form class="sc-pose" onsubmit={enregistrerLieu}>
-          <p class="note">{$t('v2.circle.scene.loc.pick' as any)}</p>
-          <label class="sc-champ">
-            <span>{$t('v2.circle.scene.loc.label' as any)}</span>
-            <input class="champ sc-libelle" type="text" maxlength={LIBELLE_LIEU_MAX} autocomplete="off" bind:value={saisieLabel} />
-          </label>
-          <div class="rangee">
-            <label class="sc-champ"><span>{$t('v2.circle.scene.loc.lat' as any)}</span>
-              <input class="champ sc-lat" type="number" min="-90" max="90" step="any" bind:value={saisieLat} /></label>
-            <label class="sc-champ"><span>{$t('v2.circle.scene.loc.lon' as any)}</span>
-              <input class="champ sc-lon" type="number" min="-180" max="180" step="any" bind:value={saisieLon} /></label>
-            <label class="sc-champ"><span>{$t('v2.circle.scene.loc.country' as any)}</span>
-              <input class="champ sc-pays" type="text" maxlength="2" autocomplete="off" bind:value={saisiePays} /></label>
-          </div>
-          <div class="rangee">
-            <button type="submit" class="go sc-enregistrer-lieu" disabled={occupeLieu}>{$t('v2.circle.scene.loc.save' as any)}</button>
-            <button type="button" class="lnk sc-annuler-lieu" onclick={annulerPose}>{$t('v2.circle.scene.loc.cancel' as any)}</button>
-          </div>
-        </form>
-      {/if}
-      {#if retourLieu}
-        <p class={retourLieu.erreur ? 'note sc-retour-lieu alerte' : 'note sc-retour-lieu'} role={retourLieu.erreur ? 'alert' : 'status'}>{retourLieu.texte}</p>
-      {/if}
-    </div>
-  {/if}
 </section>
 
 <style>
@@ -632,7 +757,18 @@
   .sc-champ{display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--v2-txt2); min-width:0}
   .sc-lat,.sc-lon{width:110px}
   .sc-pays{width:70px; text-transform:uppercase}
-  .sc-libelle{max-width:320px}
+  .sc-libelle{width:min(320px, 100%)}
+  /* Réglage ouvert : la scène se tasse pour que globe et formulaire tiennent ensemble. */
+  .sc-scene.sc-scene-pose{height:clamp(300px, 46vh, 520px)}
+  .sc-ville{position:relative; display:flex; flex-direction:column; gap:3px; width:min(320px, 100%)}
+  .sc-villes{position:absolute; top:100%; left:0; right:0; z-index:5; margin:4px 0 0; padding:4px; list-style:none;
+    border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface); box-shadow:0 8px 24px rgba(0,0,0,.35);
+    max-height:280px; overflow-y:auto}
+  .sc-ville-option{display:flex; justify-content:space-between; gap:10px; padding:7px 10px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--v2-txt)}
+  .sc-ville-option:hover,.sc-ville-option[aria-selected="true"]{background:var(--v2-acc-soft, rgba(0,212,170,.14))}
+  .sc-ville-pos{color:var(--v2-txt3); font-size:11.5px; font-variant-numeric:tabular-nums}
+  .sc-avance summary{cursor:pointer; font-size:12px; color:var(--v2-txt2); padding:2px 0}
+  .sc-avance .rangee{margin-top:6px}
   .note{font-size:11.5px; color:var(--v2-txt3)}
   .rangee{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap}
   .champ{height:34px; padding:0 12px; border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface);

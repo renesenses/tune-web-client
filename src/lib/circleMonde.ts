@@ -99,6 +99,19 @@ export function corpsLieu(s: SaisieLieu): { label: string; country_code?: string
   return corps;
 }
 
+/**
+ * Une coordonnée tapée à la main : « 47,32 » (virgule décimale française)
+ * vaut « 47.32 ». Vide ou illisible → `null`. Les champs sont en `type="text"` :
+ * un `type="number"` rend une valeur VIDE pour « 47,32 » dans un navigateur
+ * qui n'accepte que le point, et la saisie était refusée sans rien dire.
+ */
+export function lireCoordonnee(s: string | number | null | undefined): number | null {
+  if (typeof s === 'number') return Number.isFinite(s) ? s : null;
+  const t = (s ?? '').trim().replace(/\s+/g, '').replace(',', '.').replace(/°$/, '');
+  if (!t || !/^[-+]?(\d+\.?\d*|\.\d+)$/.test(t)) return null;
+  return Number(t);
+}
+
 /** « Montrer ma ville à mes proches » : PUT, position déjà arrondie. */
 export async function poserMonLieu(s: SaisieLieu): Promise<Lieu> {
   const corps = corpsLieu(s);
