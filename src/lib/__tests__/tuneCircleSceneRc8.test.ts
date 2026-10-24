@@ -187,12 +187,21 @@ describe('scène en données', () => {
   it('Réseau : la taille suit l\'aire ; sans partage, taille par défaut', () => {
     const s = construireScene(base());
     const r = s.vues.reseau.noeuds;
-    expect(r.self.sphere).toBeCloseTo(0.3, 3);
+    // Un cercle au milieu : ma planète se fait plus petite pour lui laisser la place.
+    expect(r.self.sphere).toBeCloseTo(0.2, 3);
     expect(r[idContact(12)].sphere).toBeCloseTo(0.16 * Math.sqrt(1200 / 9300), 3);
     expect(r[idContact(13)].sphere).toBeCloseTo(0.16 * RAYON_PAR_DEFAUT, 3);
-    // Le flux dit « partage » : jamais pour un contact qui ne partage pas.
+    // Le flux dit « partage » : vers moi, et jamais pour un contact qui ne partage pas.
     expect(s.vues.reseau.liens[`self|${idContact(12)}`]).toBe('stream');
-    expect(s.vues.reseau.liens[`self|${idContact(13)}`]).toBe('line');
+    // Ana ne partage pas et est dans « Family » : reliée à son cercle, qui l'est à moi.
+    expect(s.vues.reseau.liens[`self|${idContact(13)}`]).toBeUndefined();
+    expect(s.vues.reseau.liens[`${idContact(13)}|k:7`]).toBe('line');
+    expect(s.vues.reseau.liens['self|k:7']).toBe('line');
+    const sans = base();
+    sans.cercles = [];
+    const s2 = construireScene(sans);
+    expect(s2.vues.reseau.noeuds.self.sphere).toBeCloseTo(0.3, 3);
+    expect(s2.vues.reseau.liens[`self|${idContact(13)}`]).toBe('line');
   });
 
   it('Genres : seuls les contacts qui partagent forment les grappes', () => {
@@ -212,6 +221,68 @@ describe('scène en données', () => {
     const d = base();
     d.moi.lieu = null;
     expect(Object.keys(construireScene(d).vues.monde.noeuds)).toEqual(['p:12']);
+  });
+
+  it('grand écran : 11 contacts sans partage ni lieu = 11 planètes en Réseau, aucune puce « +N », reliées à moi', () => {
+    const d = base();
+    d.cercles = [];
+    d.maxAutour = 30;
+    d.contacts = Array.from({ length: 11 }, (_, i) => ({ id: 100 + i, nom: `P${i}`, albums: null, genres: [], lieu: null }));
+    const s = construireScene(d);
+    const cs = Object.keys(s.vues.reseau.noeuds).filter((k) => k.startsWith('c:'));
+    expect(cs).toHaveLength(11);
+    expect(s.noeuds.find((n) => n.id === 'more')).toBeUndefined();
+    for (const id of cs) {
+      expect(s.vues.reseau.noeuds[id].alpha).toBe(1);
+      expect(s.vues.reseau.noeuds[id].sphere).toBeGreaterThan(0.05);
+      expect(s.vues.reseau.liens[`self|${id}`]).toBe('line');
+    }
+    // Lisibles : deux planètes voisines ne se touchent pas (unités de scène).
+    const pts = cs.map((id) => s.vues.reseau.noeuds[id]);
+    for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+      expect(Math.hypot(pts[i].x! - pts[j].x!, pts[i].y! - pts[j].y!)).toBeGreaterThan(0.3);
+    }
+  });
+
+  it('30 contacts : deux couronnes alternées, tous visibles', () => {
+    const d = base();
+    d.cercles = [];
+    d.maxAutour = 30;
+    d.contacts = Array.from({ length: 30 }, (_, i) => ({ id: 200 + i, nom: `P${i}`, albums: null, genres: [], lieu: null }));
+    const s = construireScene(d);
+    const cs = Object.keys(s.vues.reseau.noeuds).filter((k) => k.startsWith('c:'));
+    expect(cs).toHaveLength(30);
+    const rayons = new Set(cs.map((id) => Math.hypot(s.vues.reseau.noeuds[id].x! / 0.84, s.vues.reseau.noeuds[id].y! / 0.8).toFixed(2)));
+    expect(rayons.size).toBe(2);
+  });
+
+  it('cercles : en Solo des grappes nommées autour de moi, membres en orbite ; en Réseau un contact commun relié aux DEUX', () => {
+    const d = base();
+    d.contacts = [
+      { id: 12, nom: 'Levente', albums: null, genres: [], lieu: null },
+      { id: 13, nom: 'Ana', albums: null, genres: [], lieu: null },
+      { id: 14, nom: 'Bruno', albums: null, genres: [], lieu: null },
+      { id: 15, nom: 'Hors', albums: null, genres: [], lieu: null },
+    ];
+    d.cercles = [{ id: 7, nom: 'Family', membres: [12, 13] }, { id: 8, nom: 'Jazz', membres: [13, 14] }];
+    const s = construireScene(d);
+    // Solo : deux grappes, reliées à moi, avec les teintes de leurs membres.
+    const solo = Object.keys(s.vues.seul.noeuds).filter((k) => k.startsWith('ks:')).sort();
+    expect(solo).toEqual(['ks:7', 'ks:8']);
+    expect(s.noeuds.find((n) => n.id === 'ks:8')?.memberHues).toHaveLength(2);
+    expect(s.noeuds.find((n) => n.id === 'ks:7')?.label).toBe('Family');
+    expect(s.vues.seul.liens['self|ks:7']).toBe('line');
+    expect(s.vues.seul.noeuds.self.sphere).toBeCloseTo(0.4, 3);
+    // Réseau : Ana est UNE planète, reliée à Family ET à Jazz ; « Hors » est relié à moi.
+    expect(s.noeuds.filter((n) => n.id === idContact(13))).toHaveLength(1);
+    expect(s.vues.reseau.liens[`${idContact(13)}|k:7`]).toBe('line');
+    expect(s.vues.reseau.liens[`${idContact(13)}|k:8`]).toBe('line');
+    expect(s.vues.reseau.liens[`${idContact(14)}|k:7`]).toBeUndefined();
+    expect(s.vues.reseau.liens[`self|${idContact(15)}`]).toBe('line');
+    // En Réseau la grappe n'a pas d'orbite : ses membres y sont déjà des planètes.
+    expect(s.noeuds.find((n) => n.id === 'k:7')?.memberHues).toBeUndefined();
+    // Genres inchangé : aucune grappe de cercle.
+    expect(Object.keys(s.vues.genres.noeuds).some((k) => k.startsWith('k'))).toBe(false);
   });
 
   it('mobile : au plus 8 contacts autour, puis « +N »', () => {

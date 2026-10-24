@@ -175,3 +175,13 @@ L'app s'ouvre en mode standalone (plein écran, sans barre d'URL). Le service wo
 ## Licence
 
 MIT — see [LICENSE](LICENSE)
+### Données tierces embarquées
+
+- **Liste des villes de Tune Circle** (`src/lib/champCercle/villesDonnees.ts`) :
+  extraite de l'export `cities15000` de [GeoNames](https://www.geonames.org/),
+  sous licence [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/).
+  Seuls le nom, le nom ASCII, le pays, la position (au dixième de degré) et la
+  population sont gardés ; villes de 20 000 habitants et plus, et capitales.
+  Régénérer : `node scripts/genererVilles.mjs cities15000.zip --min-pop 20000`.
+- **Points de terre du globe** (`src/lib/champCercle/pointsTerre.ts`) :
+  world-atlas (Mike Bostock, licence ISC), d'après Natural Earth (domaine public).
