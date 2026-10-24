@@ -523,6 +523,18 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     configSection = 'groupe';
     configZone = zone;
   }
+  /**
+   * web#2371 (Van Der Graaf Generator, forum-hifi : où se règle le gapless ?)
+   * — le reste de la fenêtre de la zone (gapless, volume, correction,
+   * appareil…) n'était, lui aussi, atteignable que par le clic droit. Même
+   * porte que la lecture groupée, la fenêtre ouverte en haut.
+   */
+  function ouvrirReglagesZone() {
+    if (!zone) return;
+    $selecteurZoneOuvert = false;
+    configSection = null;
+    configZone = zone;
+  }
 
   /* ------------------------------------------------------------------ */
   /* TRANSFÉRER LA LECTURE VERS UNE AUTRE ZONE                          */
@@ -1094,6 +1106,19 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                    des noms de zones ne doit pas la compter. -->
               <span class="zone-popover-labels">
                 <span class="zone-popover-geste truncate">{$t('zone.groupedPlaybackOpen' as any)}</span>
+              </span>
+            </button>
+          {/if}
+          {#if zone}
+            <!-- web#2371 — les réglages de la zone pilotée, au clic comme au
+                 doigt et au clavier ; le clic droit reste un raccourci. -->
+            <button class="zone-popover-item zone-popover-groupe" data-reglages-zone onclick={ouvrirReglagesZone}
+              title={$t('zone.settingsOpenTip' as any)}>
+              <span class="zone-popover-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+              </span>
+              <span class="zone-popover-labels">
+                <span class="zone-popover-geste truncate">{$t('zone.settingsOpen' as any)}</span>
               </span>
             </button>
           {/if}
