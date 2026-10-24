@@ -569,6 +569,7 @@ export default {
   'browse.openError': 'このフォルダを開けませんでした — ドライブまたはネットワーク共有にアクセスできるか確認してください',
   'browse.rootEmpty': '空のフォルダ',
   'browse.noTracks': 'このディレクトリにトラックはありません',
+  "browse.noTracksHint": "ここにはスキャン済みのトラックだけが表示されます。このフォルダーに音楽がある場合、まだライブラリに入っていません：「再スキャン」でスキャンされます（実行中のスキャンがあれば、その終了後）。",
   'browse.playAll': 'すべて再生',
   'browse.addAll': 'すべて追加',
   'browse.rescan': '再スキャン',
