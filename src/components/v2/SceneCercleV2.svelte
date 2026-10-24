@@ -4,7 +4,9 @@
    * blocs de gestion de `CircleV2` (qui portent toujours le consentement).
    *
    * Cinq vues : Monde (globe, lieux posés), Solo, Lien (moi et un contact),
-   * Réseau (mes contacts et mes cercles nommés), Genres (grappes). Le décor
+   * Réseau (mes contacts et mes cercles nommés), Genres (grappes). En Solo et
+   * en Réseau, chaque cercle est un ANNEAU (24/10) : une boucle de sa couleur,
+   * nommée sur son trait, qui entoure ses membres et moi. Le décor
    * est dessiné par `ChampCercle` (Canvas 2D, `lib/champCercle`) ; chaque nœud
    * est un VRAI bouton posé par-dessus, à l'endroit que le moteur indique.
    *
@@ -48,7 +50,7 @@
   import { chargerVilles, chercherVilles, villeExacte, type Ville } from '../../lib/champCercle/villes';
   import { motifCercle, type ContactCercle, type CercleNomme, type PartageRecu } from '../../lib/circle';
   import type { IdOpaque, PlaylistCercleResume } from '../../lib/circlePlaylists';
-  import { lunesParPlanete, positionLune, type LunesDePlanete } from '../../lib/champCercle/lunes';
+  import { lunesParPlanete, positionLune, positionLuneSurAnneau, type LunesDePlanete } from '../../lib/champCercle/lunes';
 
   interface Props {
     contacts: ContactCercle[];
@@ -290,7 +292,8 @@
     l.forEach((b, k) => {
       if (!b) return;
       if (!visible) { if (b.style.visibility !== 'hidden') b.style.visibility = 'hidden'; return; }
-      const c = positionLune(p!, k, n);
+      // Sur un anneau : les lunes se suivent sur le trait, après son nom.
+      const c = p!.mode === 'ring' && p!.contour ? positionLuneSurAnneau(p!.contour, p!.ancre ?? 0, k) : positionLune(p!, k, n);
       b.style.visibility = 'visible';
       b.style.transform = `translate(${c.x.toFixed(1)}px, ${c.y.toFixed(1)}px)`;
       b.style.opacity = String(Math.min(1, p!.alpha));
@@ -428,8 +431,12 @@
         const noms = g.membres.map((id) => contactsScene.find((c) => c.id === id)?.nom).filter(Boolean) as string[];
         return tr('v2.circle.scene.info.genre', { genre: n.label, list: liste2(noms) });
       }
-      case 'circle': return tr('v2.circle.scene.info.circle', { name: n.label, n: n.members });
-      case 'more': return tr('v2.circle.scene.info.more', { n: n.members });
+      case 'ring': {
+        // « Cercle Jazz : Alex, Yves, vous » — tous ses membres, puis moi.
+        const noms = (n.membresIds ?? []).map((id) => contactsScene.find((c) => c.id === id)?.nom).filter(Boolean) as string[];
+        return tr('v2.circle.scene.info.ring', { name: n.label, list: liste2([...noms, tr('v2.circle.scene.info.ringYou')]) });
+      }
+      case 'more': return n.plusDe === 'cercles' ? tr('v2.circle.scene.info.moreCircles', { n: n.members }) : tr('v2.circle.scene.info.more', { n: n.members });
       case 'pin': return n.me ? `${n.place ?? ''} — ${tr('v2.circle.scene.info.pinMe')}` : `${n.place ?? ''} — ${tr('v2.circle.scene.info.pin', { name: n.label })}`;
     }
   }
@@ -437,7 +444,7 @@
   /** Ce qu'un bouton annonce : le nom, et de quoi il s'agit. */
   function etiquetteAria(n: NoeudScene): string {
     if (n.kind === 'pin') return `${n.label}, ${n.place ?? ''}`;
-    if (n.kind === 'more') return tr('v2.circle.scene.info.more', { n: n.members });
+    if (n.kind === 'more' || n.kind === 'ring') return info(n);
     return `${n.label} — ${info(n)}`;
   }
 
@@ -636,7 +643,8 @@
       <div class="sc-noeuds">
         {#each scene.noeuds as n (n.id)}
           <button type="button" class="sc-noeud sorte-{n.kind}" class:pin-moi={n.kind === 'pin' && n.me} use:inscrire={n.id}
-            data-mode={n.kind === 'pin' ? 'pin' : n.kind === 'more' ? 'more' : n.kind === 'genre' || n.kind === 'circle' ? 'cluster' : 'sphere'}
+            data-mode={n.kind === 'pin' ? 'pin' : n.kind === 'more' ? 'more' : n.kind === 'ring' ? 'ring' : n.kind === 'genre' ? 'cluster' : 'sphere'}
+            style={n.kind === 'ring' ? `--teinte:${n.hue}` : undefined}
             data-grand={n.kind === 'self' ? '1' : '0'}
             data-cote={n.kind === 'pin' && n.me ? 'g' : 'd'}
             aria-label={etiquetteAria(n)} aria-pressed={selection === n.id}
@@ -786,6 +794,7 @@
             <button type="button" class="lnk sc-fermer" onclick={() => { selection = null; }}>{$t('v2.circle.scene.close' as any)}</button>
           </div>
           <p>{info(noeudSel)}</p>
+          {#if noeudSel.kind === 'ring'}<p>{tr('v2.circle.scene.info.circle', { name: noeudSel.label, n: noeudSel.members })}</p>{/if}
         </div>
       {/if}
       {#if enCommun}
@@ -844,6 +853,15 @@
   .sc-noeud[data-mode="cluster"] .sc-nom{font:600 clamp(11px, calc(var(--r) * 0.4), 19px) var(--v2-sans); max-width:calc(var(--r) * 1.85);
     white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; text-align:center; line-height:1.05}
   .sc-noeud[data-mode="pin"]{width:28px; height:28px; margin:-14px 0 0 -14px}
+  /* Pastille d'un membre (vue Solo) : son nom dessous, en petit. */
+  /* `avatar` n'est posé que par le moteur (`placer`) : hors du gabarit, d'où `:global`. */
+  .sc-noeud:global([data-mode="avatar"]) .sc-etiquette{position:absolute; top:calc(100% + 3px)}
+  .sc-noeud:global([data-mode="avatar"]) .sc-nom{font:500 11px var(--v2-sans); max-width:110px}
+  /* Anneau d'un cercle : son nom, posé SUR le trait, de la couleur du cercle. */
+  .sc-noeud[data-mode="ring"]{--teinte:160; width:auto; height:auto; margin:0; translate:-50% -50%; padding:2px 10px; border-radius:999px;
+    background:rgba(15,24,28,.92); border:1.5px solid hsl(var(--teinte) 62% 64%); color:hsl(var(--teinte) 70% 80%); font:600 12px var(--v2-sans); text-shadow:none}
+  .sc-noeud[data-mode="ring"] .sc-nom{max-width:180px}
+  .sc-noeud[data-mode="ring"][aria-pressed="true"]{background:hsl(var(--teinte) 40% 22%)}
   .sc-noeud[data-mode="pin"] .sc-etiquette{position:absolute; left:calc(100% + 2px); top:-6px; align-items:flex-start}
   /* Étiquette d'épingle à GAUCHE : la mienne, et celles du bord droit (voir `placer`). */
   .sc-noeud[data-mode="pin"][data-cote="g"] .sc-etiquette{left:auto; right:calc(100% + 2px); align-items:flex-end}

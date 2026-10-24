@@ -50,7 +50,12 @@ export interface DonneesCercle {
   maxGrappes: number;
 }
 
-export type GenreNoeud = 'self' | 'person' | 'genre' | 'circle' | 'pin' | 'more';
+/**
+ * `ring` : un de MES cercles, dessiné en ANNEAU (décision du 24/10/2026) —
+ * une boucle de sa couleur, nommée sur son trait, qui entoure ses membres et
+ * moi. Il n'a pas de planète : le moteur pose son nom sur la boucle.
+ */
+export type GenreNoeud = 'self' | 'person' | 'genre' | 'ring' | 'pin' | 'more';
 
 export interface NoeudScene {
   id: string;
@@ -60,6 +65,15 @@ export interface NoeudScene {
   albums: number | null;
   /** Grappe ou cercle : le nombre de personnes ; « +N » : N. */
   members: number;
+  /** Anneau : son cercle, et TOUS ses membres connus (identifiants de contact), pour la vue liste. */
+  cercleId?: number;
+  membresIds?: number[];
+  /** Anneau : les nœuds que la boucle entoure dans SA vue — `self` d'abord, puis les membres visibles. */
+  enclos?: string[];
+  /** Anneau : son rang dans la vue (la marge grandit avec lui : deux boucles ne se confondent pas). */
+  rang?: number;
+  /** « +N » : ce qu'il compte (des contacts par défaut, ou des cercles en vue Solo). */
+  plusDe?: 'contacts' | 'cercles';
   /** Teintes des membres d'une grappe, pour les petits disques qui l'entourent. */
   memberHues?: number[];
   contactId?: number;
@@ -80,8 +94,75 @@ export const idContact = (uid: number) => `c:${uid}`;
 export const idGenre = (g: string) => `g:${g.toLowerCase()}`;
 export const idCercle = (id: number) => `k:${id}`;
 export const idCercleSolo = (id: number) => `ks:${id}`;
+export const ID_PLUS_CERCLES = 'more-k';
 export const idEpingle = (uid: number | 'moi') => `p:${uid}`;
 export const cleLien = (a: string, b: string) => `${a}|${b}`;
+
+/** Teinte stable d'un cercle (angle d'or : deux cercles voisins ne se ressemblent pas). */
+export function teinteCercle(id: number): number {
+  return Math.round((((id * 137.508) % 360) + 360) % 360);
+}
+
+/**
+ * L'ordre des contacts autour de moi, pour des anneaux lisibles : les cercles
+ * en chaîne (chacun suivi de celui avec qui il partage le plus), les membres
+ * d'un cercle côte à côte, ceux qu'il partage avec le suivant à la jonction,
+ * puis les contacts hors cercle. `ids` : l'ordre de départ (alphabétique).
+ */
+export function ordreParCercles(ids: readonly number[], cercles: readonly { membres: number[] }[]): number[] {
+  const connus = new Set(ids);
+  const rang = new Map(ids.map((id, i) => [id, i]));
+  const restants = cercles.filter((k) => k.membres.some((m) => connus.has(m)));
+  const chaine: { membres: number[] }[] = [];
+  if (restants.length) chaine.push(restants.shift()!);
+  while (restants.length) {
+    const der = chaine[chaine.length - 1];
+    let best = 0; let score = -1;
+    restants.forEach((k, i) => {
+      const c = k.membres.filter((m) => der.membres.includes(m)).length;
+      if (c > score) { score = c; best = i; }
+    });
+    chaine.push(restants.splice(best, 1)[0]);
+  }
+  const places = new Set<number>();
+  const ordre: number[] = [];
+  chaine.forEach((k, i) => {
+    const suivant = chaine[i + 1];
+    const enFin = (m: number) => (suivant?.membres.includes(m) ? 1 : 0);
+    const a = [...new Set(k.membres)].filter((m) => connus.has(m) && !places.has(m))
+      .sort((x, y) => enFin(x) - enFin(y) || rang.get(x)! - rang.get(y)!);
+    for (const m of a) { places.add(m); ordre.push(m); }
+  });
+  for (const m of ids) if (!places.has(m)) { places.add(m); ordre.push(m); }
+  return ordre;
+}
+
+/**
+ * Les angles des contacts rangés (`ordre`) : un pas régulier, plus du vide
+ * entre deux voisins qui ne sont pas dans les mêmes cercles — beaucoup s'ils
+ * n'en ont aucun en commun (deux boucles qui ne se touchent pas restent
+ * séparées, un contact hors cercle aussi), un peu à une jonction (la boucle
+ * qui s'arrête là ne prend pas le voisin).
+ */
+function anglesRanges(ordre: readonly number[], cercles: readonly { membres: number[] }[]): number[] {
+  const n = ordre.length;
+  if (!n) return [];
+  const cle = (m: number) => cercles.map((k, i) => (k.membres.includes(m) ? i : -1)).filter((i) => i >= 0);
+  const vide = (a: number, b: number) => {
+    const ka = cle(a); const kb = cle(b);
+    if (!ka.some((i) => kb.includes(i))) return 0.8;
+    return ka.length === kb.length && ka.every((i) => kb.includes(i)) ? 0 : 0.5;
+  };
+  const pos: number[] = [];
+  let p = 0;
+  for (let i = 0; i < n; i++) {
+    if (i > 0) p += vide(ordre[i - 1], ordre[i]);
+    pos.push(p);
+    p += 1;
+  }
+  const total = p + (n > 1 ? vide(ordre[n - 1], ordre[0]) : 0);
+  return pos.map((x) => -Math.PI / 2 + (x * Math.PI * 2) / Math.max(1, total));
+}
 
 /** Teinte stable d'un contact, dérivée de son identifiant (monogramme, jamais une photo). */
 export function teinte(uid: number): number {
@@ -160,25 +241,42 @@ export function construireScene(d: DonneesCercle): Scene {
   }
 
   // ── Les cercles nommés (MES classements, privés : jamais envoyés) ──
-  // Deux nœuds par cercle : en Solo une grappe dont les membres sont en orbite
-  // (`ks:`), en Réseau une grappe au milieu de ses membres, qui y sont déjà
-  // des planètes (`k:`, sans orbite).
+  // Un ANNEAU par cercle et par vue (décision du 24/10/2026) : `ks:` en Solo,
+  // `k:` en Réseau. Une boucle entoure ses membres ET moi ; un contact de deux
+  // cercles est dans les deux boucles ; aucun nœud entre moi et mes membres.
   const membresConnus = new Set(d.contacts.map((c) => c.id));
-  const cercles = d.cercles.map((k) => ({ ...k, membres: k.membres.filter((m) => membresConnus.has(m)) }));
-  for (const k of cercles) {
-    noeuds.push({ id: idCercleSolo(k.id), kind: 'circle', label: k.nom, hue: 160, albums: null, members: k.membres.length, memberHues: k.membres.map(teinte) });
-    noeuds.push({ id: idCercle(k.id), kind: 'circle', label: k.nom, hue: 160, albums: null, members: k.membres.length });
-  }
-
-  // ── Solo : moi au centre ; mes cercles en grappes nommées autour ──
-  const cerclesSolo = cercles.slice(0, Math.max(0, d.maxGrappes));
-  vues.seul.noeuds.self = { x: 0, y: 0, sphere: cerclesSolo.length ? 0.4 : 0.66, alpha: 1 };
-  anneau(cerclesSolo.length, 0.74, 0.68, -0.7).forEach(([x, y], i) => {
-    const id = idCercleSolo(cerclesSolo[i].id);
-    vues.seul.noeuds[id] = { x, y, cluster: 0.8, alpha: 1 };
-    lien('self', id);
-    vues.seul.liens[cleLien('self', id)] = 'line';
+  const cercles = d.cercles.map((k) => ({ ...k, membres: [...new Set(k.membres.filter((m) => membresConnus.has(m)))] }));
+  const anneauNoeud = (id: string, k: (typeof cercles)[number], rang: number, visibles: Set<number>): NoeudScene => ({
+    id, kind: 'ring', label: k.nom, hue: teinteCercle(k.id), albums: null, members: k.membres.length,
+    cercleId: k.id, membresIds: k.membres, rang,
+    enclos: ['self', ...k.membres.filter((m) => visibles.has(m)).map(idContact)],
   });
+  const ids = d.contacts.map((c) => c.id);
+
+  // ── Solo : moi au centre ; mes cercles en boucles nommées qui m'englobent,
+  // les pastilles de leurs membres dedans ; au-delà de `maxGrappes`, « +N ».
+  const cerclesSolo = cercles.slice(0, Math.max(0, d.maxGrappes));
+  vues.seul.noeuds.self = { x: 0, y: 0, sphere: cerclesSolo.length ? 0.34 : 0.66, alpha: 1 };
+  {
+    const dansSolo = new Set(cerclesSolo.flatMap((k) => k.membres));
+    const ordre = ordreParCercles(ids, cerclesSolo).filter((m) => dansSolo.has(m)).slice(0, Math.max(0, d.maxAutour));
+    const angles = anglesRanges(ordre, cerclesSolo);
+    ordre.forEach((uid, i) => {
+      const a = angles[i];
+      vues.seul.noeuds[idContact(uid)] = { x: +(Math.cos(a) * 0.76).toFixed(3), y: +(Math.sin(a) * 0.72).toFixed(3), avatar: 11, alpha: 1 };
+    });
+    const vus = new Set(ordre);
+    cerclesSolo.forEach((k, rang) => {
+      const id = idCercleSolo(k.id);
+      noeuds.push(anneauNoeud(id, k, rang, vus));
+      vues.seul.noeuds[id] = { alpha: 1 };
+    });
+    const resteCercles = cercles.length - cerclesSolo.length;
+    if (resteCercles > 0) {
+      noeuds.push({ id: ID_PLUS_CERCLES, kind: 'more', label: `+${resteCercles}`, hue: 0, albums: null, members: resteCercles, plusDe: 'cercles' });
+      vues.seul.noeuds[ID_PLUS_CERCLES] = { x: 0, y: 0.97, alpha: 1 };
+    }
+  }
 
   // ── Lien : moi à gauche, le contact choisi à droite, un flux s'il partage ──
   const f = contactFocus(d);
@@ -192,26 +290,22 @@ export function construireScene(d: DonneesCercle): Scene {
     vues.lien.noeuds.self = { ...vues.seul.noeuds.self };
   }
 
-  // ── Réseau : mes contacts en couronne, groupés par cercle ; chaque cercle
-  // au milieu de ses membres, entre eux et moi. Un contact de deux cercles
-  // reste UNE planète, reliée aux deux ; un contact hors cercle est relié à moi.
-  const premierCercle = (uid: number) => {
-    const i = cercles.findIndex((k) => k.membres.includes(uid));
-    return i < 0 ? cercles.length : i;
-  };
-  const ordonnes = [...d.contacts].sort((a, b) => premierCercle(a.id) - premierCercle(b.id));
-  const visibles = ordonnes.slice(0, Math.max(0, d.maxAutour));
+  // ── Réseau : mes contacts en couronne, rangés par cercle ; chaque cercle en
+  // boucle qui entoure ses membres et moi. Un contact de deux cercles est UNE
+  // planète, à la jonction des deux boucles ; un contact hors cercle est relié
+  // à moi par un fil, hors de toute boucle.
+  const cerclesReseau = cercles.slice(0, 8);
+  const ordonnes = ordreParCercles(ids, cerclesReseau);
+  const parId = new Map(d.contacts.map((c) => [c.id, c]));
+  const visibles = ordonnes.slice(0, Math.max(0, d.maxAutour)).map((id) => parId.get(id)!);
   const reste = d.contacts.length - visibles.length;
   const mReseau = maxConnu([d.moi.albums, ...visibles.map((c) => c.albums)]);
-  const cerclesReseau = cercles.slice(0, 8);
   vues.reseau.noeuds.self = { x: 0, y: 0, sphere: +((cerclesReseau.length ? 0.2 : 0.3) * rayonRelatif(d.moi.albums, mReseau)).toFixed(3), alpha: 1 };
   // Au-delà de 14, deux couronnes alternées : les noms ne se chevauchent pas.
   const deux = visibles.length > 14;
-  const angles = new Map<number, number>();
-  const pasAngle = (Math.PI * 2) / Math.max(1, visibles.length);
+  const angles = anglesRanges(visibles.map((c) => c.id), cerclesReseau);
   visibles.forEach((c, i) => {
-    const a = -Math.PI / 2 + i * pasAngle;
-    angles.set(c.id, a);
+    const a = angles[i];
     const ext = !deux || i % 2 === 0;
     const rx = ext ? 0.84 : 0.64; const ry = ext ? 0.8 : 0.61;
     const id = idContact(c.id);
@@ -223,29 +317,14 @@ export function construireScene(d: DonneesCercle): Scene {
       vues.reseau.liens[cleLien('self', id)] = c.albums != null ? 'stream' : 'line';
     }
   });
-  // Chaque cercle à l'angle moyen de ses membres visibles, écartés s'ils se touchent.
-  const placesCercles = cerclesReseau.map((k, i) => {
-    let sx = 0; let sy = 0;
-    for (const m of k.membres) { const a = angles.get(m); if (a != null) { sx += Math.cos(a); sy += Math.sin(a); } }
-    const a = sx || sy ? Math.atan2(sy, sx) : -Math.PI / 2 + (i * Math.PI * 2) / Math.max(1, cerclesReseau.length);
-    return { k, a };
-  }).sort((x, y) => x.a - y.a);
-  const ecart = Math.min(0.9, (Math.PI * 2) / Math.max(1, placesCercles.length));
-  for (let i = 1; i < placesCercles.length; i++) {
-    if (placesCercles[i].a - placesCercles[i - 1].a < ecart) placesCercles[i].a = placesCercles[i - 1].a + ecart;
-  }
-  for (const { k, a } of placesCercles) {
+  const vusReseau = new Set(visibles.map((c) => c.id));
+  cerclesReseau.forEach((k, rang) => {
     const id = idCercle(k.id);
-    vues.reseau.noeuds[id] = { x: +(Math.cos(a) * 0.42).toFixed(3), y: +(Math.sin(a) * 0.4).toFixed(3), cluster: 0.6, alpha: 1 };
-    lien('self', id);
-    vues.reseau.liens[cleLien('self', id)] = 'line';
-    for (const uid of k.membres) {
-      const cid = idContact(uid);
-      if (vues.reseau.noeuds[cid]) { lien(cid, id); vues.reseau.liens[cleLien(cid, id)] = 'line'; }
-    }
-  }
+    noeuds.push(anneauNoeud(id, k, rang, vusReseau));
+    vues.reseau.noeuds[id] = { alpha: 1 };
+  });
   if (reste > 0) {
-    noeuds.push({ id: 'more', kind: 'more', label: `+${reste}`, hue: 0, albums: null, members: reste });
+    noeuds.push({ id: 'more', kind: 'more', label: `+${reste}`, hue: 0, albums: null, members: reste, plusDe: 'contacts' });
     vues.reseau.noeuds.more = { x: 0, y: 0.97, alpha: 1 };
   }
 

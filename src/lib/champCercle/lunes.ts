@@ -1,14 +1,17 @@
 /**
  * Tune Circle T5 dans la scène (demande de Bertrand du 24/10/2026) — les
- * playlists partagées en PETITES LUNES autour de la planète de leur cercle.
+ * playlists partagées en PETITES LUNES : posées SUR l'anneau de leur cercle
+ * (les cercles sont des boucles depuis le 24/10 au soir), ou autour de la
+ * planète de leur propriétaire.
  *
  * Ce module ne dessine rien : il dit à quelle planète chaque playlist
  * s'accroche, et où poser sa lune autour du placement que le moteur donne.
  *
- * À quelle planète ?
- * - une playlist d'un de MES cercles (`mine`, `circle_id` connu) : la planète
+ * À quel nœud ?
+ * - une playlist d'un de MES cercles (`mine`, `circle_id` connu) : l'ANNEAU
  *   de ce cercle, dans la vue Réseau (`k:{id}`) comme dans la vue Solo
- *   (`ks:{id}`) — le moteur ne montre que celle de la vue courante ;
+ *   (`ks:{id}`) — le moteur ne montre que celui de la vue courante ; ses
+ *   lunes se suivent sur le trait, après le nom ({@link positionLuneSurAnneau}) ;
  * - une playlist d'un cercle d'un contact (`circle_id` jamais montré à un
  *   membre, contrat T5) : la planète de son PROPRIÉTAIRE (`c:{user_id}`) ;
  * - sinon (cercle hors de la scène, propriétaire sans planète) : aucune lune.
@@ -19,6 +22,7 @@
  */
 import type { PlaylistCercleResume } from '../circlePlaylists';
 import { idCercle, idCercleSolo, idContact } from './scene';
+import { pointSurContour } from './anneaux';
 
 /** Une lune : de quoi la nommer et l'ouvrir. */
 export interface Lune {
@@ -76,4 +80,17 @@ export function positionLune(planete: { x: number; y: number; r: number }, k: nu
   const pas = n > 6 ? (2 * Math.PI) / n : Math.PI / 5;
   const a = -Math.PI / 3 + k * pas;
   return { x: planete.x + Math.cos(a) * orbite, y: planete.y + Math.sin(a) * orbite };
+}
+
+/** Distance (px, le long du trait) entre le nom d'un anneau et sa première lune, puis entre deux lunes. */
+export const LUNE_APRES_NOM = 48;
+export const LUNE_PAS = 24;
+
+/**
+ * Le centre de la lune `k` d'un ANNEAU : sur sa boucle (`contour`, px), à pas
+ * fixe après le sommet où se pose son nom (`ancre`). Une lune de plus ne
+ * déplace pas les autres.
+ */
+export function positionLuneSurAnneau(contour: ArrayLike<number>, ancre: number, k: number): { x: number; y: number } {
+  return pointSurContour(contour, ancre, LUNE_APRES_NOM + k * LUNE_PAS);
 }

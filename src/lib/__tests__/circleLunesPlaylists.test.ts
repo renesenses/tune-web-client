@@ -4,7 +4,7 @@ import type { PlaylistCercleResume } from '../circlePlaylists';
 
 /**
  * Tune Circle T5 dans la scène (24/10/2026) — les playlists partagées en
- * petites lunes autour de la planète de leur cercle.
+ * petites lunes sur l'anneau de leur cercle (24/10 au soir).
  */
 const pl = (o: Partial<PlaylistCercleResume>): PlaylistCercleResume => ({
   id: 'p', name: 'P', owner: null, count: 0, version: 1, updated_at: null, mine: false, circle_id: null, ...o,
