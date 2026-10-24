@@ -317,11 +317,13 @@ describe('#1134 — le recensement des vues qui ne sont pas des destinations de 
     expect(estDestinationDeRetour('nowplaying', 'tv')).toBe(true);
   });
 
-  it('les deux seuls cas conditionnels sont les fiches de streaming', () => {
+  // tune-server-rust#6934 — la page « Label » d'un service rejoint les deux
+  // fiches : son contenu vit, lui aussi, dans un magasin (`ficheLabelService`).
+  it('les seuls cas conditionnels sont les fiches de streaming', () => {
     const conditionnelles = Object.entries(APTITUDES)
       .filter(([, a]) => a === 'siSaFicheEstGarnie')
       .map(([v]) => v)
       .sort();
-    expect(conditionnelles).toEqual(['streamingalbum', 'streamingartist']);
+    expect(conditionnelles).toEqual(['streamingalbum', 'streamingartist', 'streaminglabel']);
   });
 });

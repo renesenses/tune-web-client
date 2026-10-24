@@ -17,6 +17,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { activeView, gestesNavigationService } from '../../lib/stores/navigation';
+  import { ouvrirLabelDeService } from '../../lib/labelDeService';
 
   interface Props {
     label: string;
@@ -61,8 +62,17 @@
   }
 </script>
 
-{#if reponse && (reponse.bibliotheque.length > 0 || reponse.decouvrir?.length)}
+{#if reponse && (reponse.bibliotheque.length > 0 || reponse.decouvrir?.length || reponse.qobuz_label_id)}
   <div class="artistes-du-label" data-artistes-du-label>
+    <!-- tune-server-rust#6934 — le catalogue Qobuz du label, quand le serveur
+         l'a rapproché : sa page « Label » (albums, artistes, « Voir tout »). -->
+    {#if reponse.qobuz_label_id}
+      {@const idQobuz = reponse.qobuz_label_id}
+      <button type="button" class="catalogue" data-catalogue-qobuz
+        onclick={() => ouvrirLabelDeService({ service: 'qobuz', id: idQobuz, nom: label })}>
+        {$t('v2.label.catalogueQobuz' as any)}
+      </button>
+    {/if}
     {#if reponse.bibliotheque.length > 0}
       <section data-section="bibliotheque">
         <h3>{$t('v2.label.artistesBibliotheque' as any)}</h3>
@@ -115,4 +125,7 @@
   .compte, .source { font-size: 11px; color: var(--v2-txt2, var(--tune-text-muted)); }
   .phare { all: unset; cursor: pointer; font-size: 11px; color: var(--tune-accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .source { margin: 6px 0 0; }
+  .catalogue { all: unset; cursor: pointer; align-self: flex-start; font: 500 12px var(--v2-sans, inherit); color: var(--tune-accent); }
+  .catalogue:hover { text-decoration: underline; }
+  .catalogue:focus-visible { outline: 2px solid var(--tune-accent); outline-offset: 2px; }
 </style>
