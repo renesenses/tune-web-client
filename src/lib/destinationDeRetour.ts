@@ -39,7 +39,7 @@
  */
 import { get } from 'svelte/store';
 import type { View } from './stores/navigation';
-import { ficheAlbumService, ficheArtisteService } from './stores/streaming';
+import { ficheAlbumService, ficheArtisteService, ficheLabelService } from './stores/streaming';
 
 /**
  * - `destination` : un écran où l'utilisateur a navigué et qu'il peut retrouver
@@ -154,12 +154,16 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   // clic, d'où la lecture de magasin plutôt qu'une simple table.
   streamingalbum: 'siSaFicheEstGarnie',
   streamingartist: 'siSaFicheEstGarnie',
+  // tune-server-rust#6934 — la page « Label » d'un service : même famille,
+  // son contenu vit dans `ficheLabelService`.
+  streaminglabel: 'siSaFicheEstGarnie',
 };
 
 /** Le magasin qui porte le contenu d'une vue `siSaFicheEstGarnie`. */
 function ficheGarnie(vue: View): boolean {
   if (vue === 'streamingalbum') return get(ficheAlbumService) !== null;
   if (vue === 'streamingartist') return get(ficheArtisteService) !== null;
+  if (vue === 'streaminglabel') return get(ficheLabelService) !== null;
   return true;
 }
 

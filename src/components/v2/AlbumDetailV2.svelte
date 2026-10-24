@@ -1,5 +1,6 @@
 <script lang="ts">
   import { labelDe, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
+  import { labelQobuzDe, ouvrirLabelDeService } from '../../lib/labelDeService';
   import BadgeReaffectation from './BadgeReaffectation.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
@@ -301,6 +302,36 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * Deezer…) n'ont pas le bouton, Bandcamp et le dépôt distant non plus.
    */
   const creditsPossibles = $derived(album.id != null && !depot && !service && !bandcamp);
+
+  /**
+   * tune-server-rust#6934 — le label de l'album CHEZ QOBUZ, pour ouvrir la
+   * page « Label » du catalogue :
+   *   • album Qobuz → `GET /streaming/qobuz/albums/{id}/context` (lu sur la
+   *     réponse `album/get` déjà en cache côté serveur) ;
+   *   • album de la bibliothèque → le `qobuz_label_id` que le serveur a
+   *     rapproché pour son label (`GET /library/labels`), sinon rien.
+   * Sans compte Qobuz, ni service, ni label rapproché : aucun lien.
+   */
+  let labelQobuz = $state<{ id: string; nom: string } | null>(null);
+  let jetonLabelQobuz = 0;
+  $effect(() => {
+    const j = ++jetonLabelQobuz;
+    labelQobuz = null;
+    if (depot || bandcamp) return;
+    if (service === 'qobuz' && sidDistant) {
+      const sid = String(sidDistant);
+      void api.getStreamingAlbumContext('qobuz', sid).then((c) => {
+        if (j === jetonLabelQobuz && c?.label_id) labelQobuz = { id: c.label_id, nom: c.label_name ?? '' };
+      });
+      return;
+    }
+    const nom = creditsPossibles ? labelDe(albumAffiche) : null;
+    if (!nom) return;
+    void api.getLibraryLabels().then((labels) => {
+      const id = labelQobuzDe(nom, labels);
+      if (j === jetonLabelQobuz && id) labelQobuz = { id, nom };
+    });
+  });
   const creditsDeService = $derived(
     depot || bandcamp ? null : creditsAlbumDeServiceDe(service, sidDistant, $servicesCreditsRefuses),
   );
@@ -1674,6 +1705,13 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         {@const nomLabel = labelDe(albumAffiche)!}
         <button type="button" class="lien-label" data-lien-label onclick={() => { onClose(); void ouvrirLabelDansLaBibliotheque(nomLabel); }}>
           {$tr('v2.label.autresArtistes' as any).replace('{label}', nomLabel)}
+        </button>
+      {/if}
+      {#if labelQobuz}
+        {@const lq = labelQobuz}
+        <button type="button" class="lien-label" data-lien-label-qobuz title={$tr('v2.label.ouvrirLabelTip' as any)}
+          onclick={() => ouvrirLabelDeService({ service: 'qobuz', id: lq.id, nom: lq.nom })}>
+          {$tr('v2.label.ouvrirLabel' as any).replace('{label}', lq.nom || $tr('v2.label.qobuzTitre' as any))}
         </button>
       {/if}
       {#if preferenceChargee && (repertoiresDeCetAlbum.length > 1 || racinePreferee)}
