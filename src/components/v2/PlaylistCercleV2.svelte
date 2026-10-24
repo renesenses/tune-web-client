@@ -619,7 +619,7 @@
                    `added_at` à chaque ajout (site-mozaiklabs CirclePlaylists). Une
                    date illisible ne s'affiche pas. -->
               {#if !unique || m.added_at}
-                <span class="note qui-quand">
+                <span class="note qui-quand" use:bulleTexte>
                   {#if !unique}<span class="auteur">{auteur(m)}</span>{/if}
                   {#if m.added_at && $dateCourte(m.added_at)}
                     {#if !unique}<span aria-hidden="true"> · </span>{/if}<time class="quand-ajoute" datetime={m.added_at}
