@@ -4041,6 +4041,7 @@ export default {
   "v2.health.stOff": "av",
   "v2.health.stUnknown": "okänd",
   "v2.health.stPaused": "pausad",
+  "v2.health.throttledForPlayback": "Långsammare medan du lyssnar: uppgiften ger företräde åt den pågående uppspelningen (eller stannar tills den slutar) och återupptas sedan av sig själv.",
   "v2.health.pause": "Pausa",
   "v2.health.resume": "Återuppta",
   "v2.health.pauseAll": "Pausa alla bearbetningar",

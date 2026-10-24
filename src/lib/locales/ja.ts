@@ -4042,6 +4042,7 @@ export default {
   "v2.health.stOff": "停止",
   "v2.health.stUnknown": "不明",
   "v2.health.stPaused": "一時停止中",
+  "v2.health.throttledForPlayback": "再生中は減速しています。この処理は現在の再生を優先し（再生が終わるまで停止することもあります）、その後自動的に再開します。",
   "v2.health.pause": "一時停止",
   "v2.health.resume": "再開",
   "v2.health.pauseAll": "すべての処理を一時停止",

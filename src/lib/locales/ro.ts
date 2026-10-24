@@ -4042,6 +4042,7 @@ export default {
   "v2.health.stOff": "inactiv",
   "v2.health.stUnknown": "necunoscut",
   "v2.health.stPaused": "în pauză",
+  "v2.health.throttledForPlayback": "Încetinit în timpul ascultării: această sarcină cedează locul redării în curs (sau se oprește până la finalul ei), apoi se reia singură.",
   "v2.health.pause": "Pauză",
   "v2.health.resume": "Reia",
   "v2.health.pauseAll": "Suspendă toate procesările",
