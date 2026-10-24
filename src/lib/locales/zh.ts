@@ -567,6 +567,7 @@ export default {
   'browse.openError': '无法打开此文件夹 — 请检查磁盘或网络共享是否可访问',
   'browse.rootEmpty': '空文件夹',
   'browse.noTracks': '此目录中没有曲目',
+  "browse.noTracksHint": "这里只显示已扫描的曲目。如果此文件夹包含音乐，它尚未进入音乐库：“重新扫描”会扫描它（如有正在进行的扫描，会在其结束后）。",
   'browse.playAll': '全部播放',
   'browse.addAll': '全部添加',
   'browse.rescan': '重新扫描',

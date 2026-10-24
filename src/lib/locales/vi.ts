@@ -630,6 +630,7 @@ export default {
   "browse.dirUnreachable": "Không truy cập được thư mục",
   "browse.dirUnreachableHint": "Máy chủ không thể mở thư mục này. Trên Windows, ổ mạng được ánh xạ (Z:) chỉ hiển thị với phiên đã tạo ra nó — hãy dùng đường dẫn UNC (\\\\server\\share) thay thế.",
   "browse.noTracks": "Không có bài hát nào trong thư mục này",
+  "browse.noTracksHint": "Ở đây chỉ hiển thị các bài đã được quét. Nếu thư mục này có nhạc, nhạc đó chưa có trong thư viện: « Quét lại » sẽ quét nó (sau khi lượt quét đang chạy, nếu có, kết thúc).",
   "browse.playAll": "Phát tất cả",
   "browse.addAll": "Thêm tất cả",
   "browse.rescan": "Quét lại",

@@ -674,6 +674,7 @@ export default {
   "browse.dirUnreachable": "Folder unreachable",
   "browse.dirUnreachableHint": "The server could not open this folder. On Windows, a mapped network drive (Z:) is only visible to the session that created it — use the UNC path (\\\\server\\share) instead.",
   'browse.noTracks': 'No tracks in this directory',
+  "browse.noTracksHint": "Only tracks that have already been scanned appear here. If this folder holds music, it is not in the library yet: “Rescan” scans it (once any scan in progress has finished).",
   'browse.playAll': 'Play All',
   'browse.addAll': 'Add All',
   'browse.rescan': 'Rescan',

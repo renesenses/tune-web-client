@@ -567,6 +567,7 @@ export default {
   'browse.openError': 'Ordner konnte nicht geöffnet werden – prüfen Sie, ob das Laufwerk oder die Netzwerkfreigabe erreichbar ist',
   'browse.rootEmpty': 'Leerer Ordner',
   'browse.noTracks': 'Keine Titel in diesem Verzeichnis',
+  "browse.noTracksHint": "Hier erscheinen nur bereits gescannte Titel. Enthält dieser Ordner Musik, ist sie noch nicht in der Bibliothek: „Neu scannen“ scannt ihn (sobald ein laufender Scan beendet ist).",
   'browse.playAll': 'Alle abspielen',
   'browse.addAll': 'Alle hinzufügen',
   'browse.rescan': 'Neu scannen',

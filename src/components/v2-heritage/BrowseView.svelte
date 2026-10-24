@@ -515,7 +515,15 @@
           <span class="hint">{$tr('browse.dirUnreachableHint')}</span>
         </div>
       {:else if browseResult.directories.length === 0}
-        <div class="empty">{$tr('browse.noTracks')}</div>
+        <!-- web#2145 (Tades, fil 2245) : Répertoires liste les sous-dossiers
+             depuis le disque mais les pistes depuis la BASE. Un dossier pas
+             encore analysé s'affichait « Aucune piste » sans un mot de plus ;
+             le serveur ne compte pas les fichiers audio du disque, l'écran ne
+             peut donc pas trancher « vide » ou « pas analysé » : il le dit. -->
+        <div class="empty" data-aucune-piste>
+          {$tr('browse.noTracks')}
+          <span class="empty-hint">{$tr('browse.noTracksHint' as any)}</span>
+        </div>
       {/if}
     {/if}
     </div>
@@ -1057,6 +1065,7 @@
   .unreachable .reason { font-family: monospace; font-size: 0.85em; opacity: 0.9; }
   .unreachable .hint { font-size: 0.85em; opacity: 0.75; }
 
+  .empty-hint { display: block; margin-top: 0.5em; font-size: 0.85em; opacity: 0.75; }
   .empty {
     color: var(--tune-text-muted);
     font-family: var(--font-body);
