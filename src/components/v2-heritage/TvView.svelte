@@ -23,6 +23,7 @@
   import { formatTime } from '../../lib/utils';
   import { skipNext, skipPrevious } from '../../lib/playback-controls';
   import * as api from '../../lib/api';
+  import { volumeDepuisGain } from '../../lib/courbeDeVolume';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import TvVuMeters from './TvVuMeters.svelte';
@@ -167,13 +168,13 @@
     switch (e.code) {
       case 'ArrowUp': {
         e.preventDefault(); e.stopPropagation();
-        const vol = zone.volume ?? 0.5;
+        const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         api.setVolume(zone.id, Math.min(1, Math.round((vol + 0.01) * 100) / 100));
         break;
       }
       case 'ArrowDown': {
         e.preventDefault(); e.stopPropagation();
-        const vol = zone.volume ?? 0.5;
+        const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         api.setVolume(zone.id, Math.max(0, Math.round((vol - 0.01) * 100) / 100));
         break;
       }

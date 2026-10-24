@@ -18,7 +18,7 @@ describe('Raccourcis clavier (Bertrand, 05/09/2026)', () => {
   });
 
   it('S arrête, et la touche média matérielle aussi', () => {
-    expect(clavier).toContain("case 'KeyS':");
+    expect(clavier).toContain("case 's':");
     expect(clavier).toContain("case 'MediaStop':");
     // Par `stopAndSync` : sans report d'état, la zone resterait « playing »
     // dans le magasin et le transport deviendrait inerte.
@@ -28,20 +28,20 @@ describe('Raccourcis clavier (Bertrand, 05/09/2026)', () => {
   it("S ne marche pas sur les frappes de saisie ni avec Cmd/Ctrl", () => {
     // La garde de saisie couvre tout le gestionnaire.
     expect(clavier).toContain("if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;");
-    const i = clavier.indexOf("case 'KeyS':");
+    const i = clavier.indexOf("case 's':");
     expect(clavier.slice(i, i + 240)).toContain('if (e.metaKey || e.ctrlKey) break;');
   });
 
   it('la RADIO est exclue, comme elle l’était du bouton', () => {
-    const i = clavier.indexOf("case 'KeyS':");
+    const i = clavier.indexOf("case 's':");
     expect(clavier.slice(i, i + 240)).toContain("get(currentTrack)?.source === 'radio'");
   });
 
   it("S n'écrase aucune touche déjà prise", () => {
     // Space, N, P, M et les flèches étaient déjà attribuées.
-    for (const c of ['Space', 'KeyN', 'KeyP', 'KeyM', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
+    for (const c of ['Space', 'n', 'p', 'm', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
       expect((clavier.match(new RegExp(`case '${c}'`, 'g')) ?? []).length, c).toBe(1);
     }
-    expect((clavier.match(/case 'KeyS'/g) ?? []).length).toBe(1);
+    expect((clavier.match(/case 's'/g) ?? []).length).toBe(1);
   });
 });

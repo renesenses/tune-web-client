@@ -54,8 +54,9 @@ afterEach(async () => {
 
 describe('web#2208 — le bloc « ISO SACD » dit que Tune lit les ISO lui-même', () => {
   it('🔴 Réglages › Bibliothèque, sacd_extract absent : lecture native, l’outil réservé au DST', { timeout: 60_000 }, async () => {
-    preferences.update((p) => ({ ...p, settingsLevel: 'beginner' }));
-    v2SettingsTarget.set({ tab: 'library', section: 'library' });
+    preferences.update((p) => ({ ...p, settingsLevel: 'intermediate' }));
+    // web#2324 (23/10) : le bloc ISO SACD vit dans « Options de scan ».
+    v2SettingsTarget.set({ tab: 'library', section: 'scanOpts' });
     component = mount(SettingsV2, { target: host });
     await settle();
     const texte = bloc();

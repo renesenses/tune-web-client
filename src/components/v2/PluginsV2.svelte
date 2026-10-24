@@ -135,6 +135,39 @@
     installation = null;
   }
 
+  /**
+   * tune-server-rust#6618 — désinstaller un greffon natif TIERS. La
+   * confirmation dit ce qui part (le greffon, ses binaires et toutes ses
+   * versions) ; la case « effacer aussi ses réglages » est DÉCOCHÉE par
+   * défaut : effacer ce que l'utilisateur a réglé doit être demandé. Sur
+   * échec, le `detail` du serveur est montré sur la carte, avec l'invitation à
+   * redémarrer puis réessayer (une DLL encore tenue sous Windows, par exemple).
+   */
+  let desinstallation = $state<string | null>(null);
+  let refusDesinstallation = $state<Record<string, string>>({});
+  async function desinstaller(g: api.GreffonAudioNatif) {
+    if (desinstallation || !g.third_party) return;
+    const nom = NOMS_GREFFONS_NATIFS[g.id] ? $t(NOMS_GREFFONS_NATIFS[g.id] as any) : g.id;
+    const reponse = await dialogs.confirmAvecCase(
+      $t('v2.plug.nativeUninstallConfirm' as any).replace('{name}', nom),
+      $t('v2.plug.nativeUninstallPurgeSettings' as any),
+      { danger: true, coche: false },
+    );
+    if (!reponse) return;
+    desinstallation = g.id;
+    const { [g.id]: _ancien, ...autres } = refusDesinstallation;
+    refusDesinstallation = autres;
+    try {
+      await api.desinstallerGreffonNatif(g.id, !reponse.coche);
+      const { [g.id]: _version, ...restants } = installes;
+      installes = restants;
+      await relireNatifs();
+    } catch (e) {
+      refusDesinstallation = { ...refusDesinstallation, [g.id]: errText(e) ?? $t('v2.plug.unavailable' as any) };
+    }
+    desinstallation = null;
+  }
+
   const natifsFiltres = $derived(
     natifs.filter((g) => {
       const nom = NOMS_GREFFONS_NATIFS[g.id] ? $t(NOMS_GREFFONS_NATIFS[g.id] as any) : g.id;
@@ -339,7 +372,7 @@
               {:else}
                 <button class="go" disabled={!p.compatible || busy === key(p)} onclick={() => install(p)}
                   title={p.compatible ? '' : $t('v2.plug.incompatible' as any)}>
-                  {busy === key(p) ? '…' : 'Installer'}
+                  {busy === key(p) ? '…' : $t('plugins.install' as any)}
                 </button>
               {/if}
             </div>
@@ -400,6 +433,9 @@
                 <div class="why" data-maj>{$t('v2.plug.catalogUpdateAvailable' as any).replace('{version}', catalogue[g.id].latest_version ?? '')}</div>
               {/if}
               {#if refusInstallation[g.id]}<div class="why bad" data-refus>{$t(refusInstallation[g.id] as any)}</div>{/if}
+              {#if refusDesinstallation[g.id]}
+                <div class="why bad" data-refus-desinstallation>{refusDesinstallation[g.id]} — {$t('v2.plug.nativeUninstallFailed' as any)}</div>
+              {/if}
             </div>
             <div class="pact">
               {#if premium && catalogue[g.id]?.update_available}
@@ -412,6 +448,11 @@
               {/if}
               {#if ecran}
                 <button class="lnk ouvrir-natif" onclick={() => activeView.set(ecran)}>{$t('v2.plug.nativeSettings' as any)}</button>
+              {/if}
+              {#if g.third_party}
+                <button class="lnk desinstaller-natif" disabled={desinstallation !== null} onclick={() => desinstaller(g)}>
+                  {desinstallation === g.id ? $t('v2.plug.nativeUninstalling' as any) : $t('v2.plug.nativeUninstall' as any)}
+                </button>
               {/if}
             </div>
           </article>

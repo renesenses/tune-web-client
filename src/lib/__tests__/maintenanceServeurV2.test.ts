@@ -53,15 +53,25 @@ async function attendre(tours = 6) {
 }
 
 async function ouvrirSysteme(): Promise<HTMLDivElement> {
+  return ouvrirOnglet('settings.tabSystem');
+}
+
+// #2354 : le nettoyage du serveur a quitté Système › Santé pour
+// Bibliothèque › Outils de la bibliothèque.
+async function ouvrirBibliotheque(): Promise<HTMLDivElement> {
+  return ouvrirOnglet('settings.tabLibrary');
+}
+
+async function ouvrirOnglet(cle: string): Promise<HTMLDivElement> {
   hote = document.createElement('div');
   document.body.appendChild(hote);
   monte = mount(SettingsV2, { target: hote, props: {} });
   flushSync();
   await attendre();
   const onglet = [...hote.querySelectorAll('button')].find(
-    (b) => (b.textContent ?? '').trim() === fr['settings.tabSystem'],
+    (b) => (b.textContent ?? '').trim() === fr[cle],
   );
-  expect(onglet, 'onglet Système introuvable').toBeDefined();
+  expect(onglet, `onglet ${fr[cle]} introuvable`).toBeDefined();
   (onglet as HTMLButtonElement).click();
   flushSync();
   await attendre();
@@ -155,9 +165,9 @@ describe('Réglages v2 › Système › Santé — niveau des journaux', () => {
   });
 });
 
-describe('Réglages v2 › Système › Santé — nettoyage du serveur', () => {
+describe('Réglages v2 › Bibliothèque › Outils — nettoyage du serveur (#2354)', () => {
   it('demande confirmation AVANT d’appeler la route ; « non » n’envoie rien', async () => {
-    const el = await ouvrirSysteme();
+    const el = await ouvrirBibliotheque();
     bouton(el, fr['diagnostics.cleanupServer']).click();
     await attendre();
     expect(get(dialogs).at(-1)?.message).toBe(fr['v2.maint.cleanupConfirm']);
@@ -168,7 +178,7 @@ describe('Réglages v2 › Système › Santé — nettoyage du serveur', () => 
   });
 
   it('« oui » appelle POST /system/cleanup et affiche les champs que le serveur rend', async () => {
-    const el = await ouvrirSysteme();
+    const el = await ouvrirBibliotheque();
     bouton(el, fr['diagnostics.cleanupServer']).click();
     await attendre();
     repondre(true);
@@ -184,7 +194,7 @@ describe('Réglages v2 › Système › Santé — nettoyage du serveur', () => 
 
   it('un refus (403 administrateur) est dit, avec le motif du serveur', async () => {
     nettoyage = { status: 403, corps: { error: 'admin required' } };
-    const el = await ouvrirSysteme();
+    const el = await ouvrirBibliotheque();
     bouton(el, fr['diagnostics.cleanupServer']).click();
     await attendre();
     repondre(true);

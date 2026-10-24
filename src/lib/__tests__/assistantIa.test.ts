@@ -127,3 +127,30 @@ describe('Assistant IA — branchements', () => {
     expect(editeur).toContain('if (id != null || !propose) return;');
   });
 });
+
+describe('tune-server-rust#6731 — aucune playlist IA vide de règles', () => {
+  it('le gestionnaire ouvert par la barre latérale porte le bouton IA', () => {
+    const gestionnaire = source('../../components/v2-heritage/PlaylistManagerView.svelte');
+    expect(gestionnaire).toContain('data-playlist-ia');
+    expect(gestionnaire).toContain("import('../v2/PlaylistParPhraseV2.svelte')");
+    expect(gestionnaire).toContain("import('../v2/PlaylistSmartEditeurV2.svelte')");
+  });
+
+  it('la règle de départ vide disparaît à l’envoi : c’est ainsi que naît `rules: []`', async () => {
+    const { reglesPourServeur, regleNeuve } = await import('../smartPlaylistChamps');
+    expect(reglesPourServeur([regleNeuve()])).toEqual([]);
+  });
+
+  it("l'éditeur refuse d'enregistrer une proposition IA sans règle, et la marque", () => {
+    const editeur = source('../../components/v2/PlaylistSmartEditeurV2.svelte');
+    expect(editeur).toMatch(/iaSansRegle = \$derived\(propose != null && id == null && reglesPourServeur\(regles\)\.length === 0\)/);
+    expect(editeur).toContain('&& !iaSansRegle');
+    expect(editeur).toContain("origine: 'assistant'");
+  });
+
+  it('le refus `aucune_regle` du serveur se dit, avec les règles écartées', async () => {
+    expect(ia.cleDEchec('aucune_regle')).toBe('assistantIa.err.aucune_regle');
+    const fenetre = source('../../components/v2/PlaylistParPhraseV2.svelte');
+    expect(fenetre).toContain('ecartees = r.refusees ?? []');
+  });
+});

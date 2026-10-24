@@ -81,6 +81,9 @@ export interface GroupDelay {
 // Core domain models
 export interface Artist {
   id: number | null;
+  /** tune-server-rust#6738 — écoutes de la communauté Tune, ABSENT sous le
+   *  seuil de trois comptes ou sans compte relié (#2298). */
+  community_listens?: number;
   name: string;
   sort_name?: string | null;
   musicbrainz_id?: string | null;
@@ -112,6 +115,9 @@ export interface Artist {
 }
 
 export interface Album {
+  /** tune-server-rust#6738 — écoutes de la communauté Tune, ABSENT sous le
+   *  seuil de trois comptes ou sans compte relié (#2298). */
+  community_listens?: number;
   added_at?: number | null;
   /**
    * #4767 (crédits) — sur un album des sections « Collaborations » et
@@ -198,7 +204,14 @@ export interface Album {
 
 export interface Track {
   id: number | null;
+  /** tune-server-rust#6738 — écoutes de la communauté Tune, ABSENT sous le
+   *  seuil de trois comptes ou sans compte relié (#2298). */
+  community_listens?: number;
   title: string;
+  /** tune-server-rust#6332 — débit moyen en kbit/s : celui du FICHIER pour une
+   *  piste locale (lu au scan), celui annoncé par la source sinon. Absent ou
+   *  0 = inconnu, rien ne s'affiche. */
+  bitrate_kbps?: number | null;
   album_id?: number | null;
   /**
    * L'identifiant de l'album CHEZ LE SERVICE, quand l'appelant l'a appris
@@ -212,6 +225,12 @@ export interface Track {
    * le rejeu par `album_id`. Lu par `routageAlbum.albumDeServiceDe`.
    */
   album_id_service?: string | null;
+  /**
+   * web#2286 — la LIGNE d'une playlist locale (`playlist_tracks.id`), servie
+   * par `GET /playlists/{id}/tracks` depuis tune-server-rust#6690. C'est elle
+   * qu'un retrait désigne (`lib/retraitPlaylist`), pas le rang.
+   */
+  entry_id?: number | null;
   album_title?: string | null;
   artist_id?: number | null;
   /**
@@ -324,6 +343,11 @@ export interface Playlist {
   name: string;
   description?: string | null;
   track_count?: number;
+  /**
+   * web#2287 — les cercles où cette playlist locale est partagée
+   * (tune-server-rust#6694) ; vide ou absent sinon.
+   */
+  cercles?: { id: number | string; nom: string; suivi: boolean; synchronisee_le?: string | null }[];
 }
 
 export interface QueueItem {
@@ -484,6 +508,12 @@ export interface Zone {
   output_type?: OutputType;
   output_device_id?: string | null;
   volume?: number;
+  /** tune-server-rust#6787 — loi du volume : `db60` (sortie logicielle, le
+   *  volume est une position sur une loi en dB) ou `linear` (appareil). Absent
+   *  sur un serveur antérieur : linéaire. Voir `lib/courbeDeVolume.ts`. */
+  volume_curve?: string | null;
+  /** Sourdine de la zone (`SetMute`), indépendante du volume (#6700). */
+  muted?: boolean;
   group_id?: string | null;
   sync_delay_ms?: number;
   state?: PlaybackState;
@@ -616,6 +646,20 @@ export interface Zone {
    *  device uniquement — l'affichage garde le volume utilisateur. 0 = neutre.
    *  Sans effet sur une zone fixed_volume. */
   gain_trim_db?: number;
+  /** tune-server-rust#6541 — limite de SÉCURITÉ du volume (fraction 0..1) :
+   *  le serveur ne la dépasse jamais, boutons compris. `null` = aucune ;
+   *  clé absente = serveur antérieur. */
+  volume_limit_safety?: number | null;
+  volume_limit_safety_db?: number | null;
+  /** tune-server-rust#6541 — limite de CONFORT : au-dessus, seuls les boutons
+   *  + / − font monter le volume, pas le curseur. */
+  volume_limit_comfort?: number | null;
+  volume_limit_comfort_db?: number | null;
+  /** tune-server-rust#6620 — `limite_refusee_zone_pure` ou
+   *  `limite_refusee_volume_fixe` quand la zone est en PURE ou à volume fixe :
+   *  les limites y sont ignorées et le serveur refuse d'en poser (409).
+   *  `null` = les limites ont cours ; clé absente = serveur antérieur. */
+  volume_limits_refusal?: string | null;
   /**
    * Sortie mono (#2362) : le serveur somme `M = (L + R) / 2` et émet `M` sur
    * les DEUX voies de la zone.
@@ -1484,6 +1528,25 @@ export interface RadioStation {
   genre_label?: string | null;
   homepage_url?: string | null;
   favorite: boolean;
+  /**
+   * La fiche de l'annuaire radio-metadata.fr rapprochée de cette station
+   * (tune-server-rust#6516) : par adresse de flux, sinon par nom. Absente pour
+   * une station que l'annuaire ne connaît pas — ou plus (retirée, refusée) :
+   * elle reste dans « Mes radios », sans fiche.
+   */
+  annuaire?: {
+    external_id?: string | null;
+    radio_metadata_key?: string | null;
+    logo_url?: string | null;
+    description?: string | null;
+    website_url?: string | null;
+    /** Comment la fiche a été retrouvée : lien enregistré, adresse, nom. */
+    rapproche_par?: 'id' | 'flux' | 'nom' | string;
+    /** La station est liée à sa fiche, mais l'annuaire publie une autre
+     *  adresse de flux : l'écran PROPOSE de la reprendre, rien ne change seul. */
+    flux_change?: boolean;
+    stream_url_annuaire?: string | null;
+  } | null;
 }
 
 export interface RadioImportResult {

@@ -181,6 +181,27 @@ function branches(
     .sort((a, b) => b.valeur - a.valeur);
 }
 
+/**
+ * Une durée d'écoute courte, `42 min` ou `3 h 05` (tune-server-rust#6682).
+ * Les unités sont des symboles, pas des mots : rien à traduire.
+ */
+export function dureeDEcoute(ms: number): string {
+  const minutes = Math.max(0, Math.round(ms / 60_000));
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  return `${h} h ${String(minutes % 60).padStart(2, '0')}`;
+}
+
+/**
+ * tune-server-rust#6682 (Gros Bidon, fil 2353) — le temps d'écoute RADIO, par
+ * station, à part des classements : la barre suit le temps, le texte le dit.
+ */
+export function lignesRadios(d: api.DashboardData): { label: string; valeur: number; texte: string }[] {
+  return (d.radio_listening ?? [])
+    .filter((r) => r.listening_ms > 0)
+    .map((r) => ({ label: r.station_name || '—', valeur: r.listening_ms, texte: dureeDEcoute(r.listening_ms) }));
+}
+
 /** Les éléments d'un classement d'albums, gestes compris. */
 function elementsAlbums(d: api.DashboardData): Element[] {
   return (d.top_albums ?? []).map((a, i) => ({
@@ -361,6 +382,18 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     },
   },
   {
+    // tune-server-rust#6682 — la radio, à part des classements de titres.
+    id: 'tdb-radios',
+    cleTitre: 'dashboard.section.radio_listening',
+    forme: 'bloc',
+    charger: VIDE,
+    bloc: {
+      composant: BlocBarres,
+      hauteur: MOYEN,
+      donnees: async (ctx) => ({ lignes: lignesRadios(await tableauDeBord(PERIODE, ctx.signal)) }),
+    },
+  },
+  {
     id: 'tdb-ce-jour-la',
     cleTitre: 'dashboard.onThisDay',
     forme: 'bloc',
@@ -425,9 +458,10 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
  *   6. Genres              GRAND   — la plus longue des listes de barres
  *   7. Zones               MOYEN   — les deux « par … », même taille, appariés
  *   8. Sources             MOYEN
- *   9. Ce jour-là          MOYEN
- *  10. Série               PETIT   — les deux petits chiffres ferment la page
- *  11. Complétion          PETIT
+ *   9. Radios              MOYEN   — le temps par station (#6682), à part
+ *  10. Ce jour-là          MOYEN
+ *  11. Série               PETIT   — les deux petits chiffres ferment la page
+ *  12. Complétion          PETIT
  *
  * Les tailles descendent par paliers et les blocs de même nature portent la
  * même hauteur : c'est ce qui fait que la page se lit de haut en bas au lieu

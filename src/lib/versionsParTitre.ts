@@ -188,6 +188,7 @@ export function rapprocherParTitre(
         album_id: albumId,
         cover_path: t.cover_path ?? null,
         kind: 'version',
+        duration_ms: t.duration_ms ?? null,
       });
     }
   }

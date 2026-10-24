@@ -122,8 +122,8 @@ async function poserLEcran() {
 }
 
 describe('le catalogue des blocs', () => {
-  it('onze blocs, chacun avec son composant et une hauteur déclarée', () => {
-    expect(BLOCS_TABLEAU_DE_BORD).toHaveLength(11);
+  it('douze blocs (onze, et les radios de #6682), chacun avec son composant et une hauteur déclarée', () => {
+    expect(BLOCS_TABLEAU_DE_BORD).toHaveLength(12);
     for (const w of BLOCS_TABLEAU_DE_BORD) {
       expect(w.forme, `${w.id} n’est pas un bloc`).toBe('bloc');
       expect(w.bloc, `${w.id} ne porte pas de contrat de bloc`).toBeTruthy();
@@ -182,13 +182,13 @@ describe('🔴 un BLOC rend son contenu propre sur le nouvel écran', () => {
     // l'écran aurait l'air de marcher, et ne montrerait rien.
     expect(page.querySelectorAll('.blocpropre').length,
       'aucun bloc n’a été rendu : la branche `bloc` du balisage est-elle bien AVANT le repli « (vide) » ?')
-      .toBe(11);
+      .toBe(12);
   });
 
   it('chaque bloc RÉSERVE la hauteur qu’il a déclarée', async () => {
     const page = await poserLEcran();
     const rendus = [...page.querySelectorAll('.blocpropre')] as HTMLElement[];
-    expect(rendus).toHaveLength(11);
+    expect(rendus).toHaveLength(12);
     rendus.forEach((el, i) => {
       const attendue = BLOCS_TABLEAU_DE_BORD[i].bloc!.hauteur;
       expect(el.style.minHeight, `le bloc ${BLOCS_TABLEAU_DE_BORD[i].id} ne réserve pas sa hauteur`)
@@ -226,7 +226,7 @@ describe('🔴 la disposition se range PAR PROFIL, sous la clé de CET écran', 
     prefs = { home_widgets: ['tdb-serie'] };
     const page = await poserLEcran();
     expect(page.querySelectorAll('.blocpropre').length,
-      'l’écran a suivi la disposition de l’ACCUEIL').toBe(11);
+      'l’écran a suivi la disposition de l’ACCUEIL').toBe(12);
   });
 
   it('retirer un bloc l’ENREGISTRE pour ce profil, sous cette clé', async () => {
@@ -254,7 +254,7 @@ describe('🔴 la disposition se range PAR PROFIL, sous la clé de CET écran', 
     const rangee = derniere.corps[CLE] as string[];
     expect(rangee, 'le bloc retiré est toujours dans la disposition enregistrée')
       .not.toContain(DISPOSITION_DEFAUT_TABLEAU_DE_BORD[0]);
-    expect(rangee).toHaveLength(10);
+    expect(rangee).toHaveLength(DISPOSITION_DEFAUT_TABLEAU_DE_BORD.length - 1);
     // Et surtout : la clé de l'accueil n'est pas touchée.
     expect(Object.keys(derniere.corps)).not.toContain('home_widgets');
   });
