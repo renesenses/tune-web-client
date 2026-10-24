@@ -1933,6 +1933,85 @@ export async function getArtistesDuLabel(nom: string): Promise<ArtistesDuLabel |
   }
 }
 
+/** tune-server-rust#6934 — le contexte de découverte d'un album de service
+ *  (`GET /streaming/{service}/albums/{id}/context`) : son genre et son label
+ *  chez le service. Chaque champ est ABSENT quand le service ne le donne pas. */
+export interface StreamingAlbumContext {
+  genre_id?: string;
+  genre_name?: string;
+  label_id?: string;
+  label_name?: string;
+}
+
+/** tune-server-rust#6934 — le label d'un album de service. Sans bandeau : un
+ *  service sans contexte (501) ou injoignable rend `null`, et la fiche garde
+ *  le nom du label en texte. */
+export async function getStreamingAlbumContext(service: string, albumId: string): Promise<StreamingAlbumContext | null> {
+  try {
+    const r = await fetchJSON<StreamingAlbumContext>(
+      `${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/context`,
+      undefined,
+      undefined,
+      true,
+    );
+    return r && typeof r === 'object' ? r : null;
+  } catch {
+    return null;
+  }
+}
+
+/** tune-server-rust#6934 — une page du catalogue d'un label chez un service.
+ *  `total` est celui que le service annonce (précommandes comprises) ;
+ *  `albums` n'en garde que les albums sortis et écoutables. */
+export interface StreamingLabelPage {
+  id: string;
+  name: string;
+  image_url?: string;
+  total: number;
+  offset: number;
+  limit: number;
+  albums: Album[];
+}
+
+/** `GET /streaming/{service}/labels/{id}?limit=&offset=` (50 albums au plus
+ *  par page). `null` sur un serveur plus ancien (404) ou un échec. */
+export async function getStreamingLabel(service: string, labelId: string, offset = 0, limit = 50): Promise<StreamingLabelPage | null> {
+  try {
+    const r = await fetchJSON<StreamingLabelPage>(
+      `${BASE}/streaming/${encodeURIComponent(service)}/labels/${encodeURIComponent(labelId)}?limit=${limit}&offset=${offset}`,
+      undefined,
+      undefined,
+      true,
+    );
+    return r && Array.isArray(r.albums) ? r : null;
+  } catch {
+    return null;
+  }
+}
+
+/** tune-server-rust#6934 — les artistes du catalogue d'un label chez un
+ *  service, regroupés comme « À découvrir » (#6782), bibliothèque comprise. */
+export interface StreamingLabelArtists {
+  id: string;
+  artists: ArtisteADecouvrir[];
+}
+
+/** `GET /streaming/{service}/labels/{id}/artists`. `null` sur un serveur plus
+ *  ancien ou un échec : la page du label garde ses albums. */
+export async function getStreamingLabelArtists(service: string, labelId: string): Promise<StreamingLabelArtists | null> {
+  try {
+    const r = await fetchJSON<StreamingLabelArtists>(
+      `${BASE}/streaming/${encodeURIComponent(service)}/labels/${encodeURIComponent(labelId)}/artists`,
+      undefined,
+      undefined,
+      true,
+    );
+    return r && Array.isArray(r.artists) ? r : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getAlbums(limit = 100, offset = 0): Promise<Album[]> {
   return (await getAlbumsPage(limit, offset)).items;
 }
