@@ -1,5 +1,6 @@
 <script lang="ts">
   import { labelDe, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
+  import { labelQobuzDe, ouvrirLabelDeService } from '../../lib/labelDeService';
   import BadgeReaffectation from './BadgeReaffectation.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
@@ -51,6 +52,7 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   } from '../../lib/selectionPistes';
   import { circleCharge } from '../../lib/circle';
   import { demandeCercle } from '../../lib/circlePlaylists';
+  import { badgeHiRes, type BadgeHiRes } from '../../lib/badgeHiRes';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe, corpsDeTeteDeListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
@@ -300,6 +302,36 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * Deezer…) n'ont pas le bouton, Bandcamp et le dépôt distant non plus.
    */
   const creditsPossibles = $derived(album.id != null && !depot && !service && !bandcamp);
+
+  /**
+   * tune-server-rust#6934 — le label de l'album CHEZ QOBUZ, pour ouvrir la
+   * page « Label » du catalogue :
+   *   • album Qobuz → `GET /streaming/qobuz/albums/{id}/context` (lu sur la
+   *     réponse `album/get` déjà en cache côté serveur) ;
+   *   • album de la bibliothèque → le `qobuz_label_id` que le serveur a
+   *     rapproché pour son label (`GET /library/labels`), sinon rien.
+   * Sans compte Qobuz, ni service, ni label rapproché : aucun lien.
+   */
+  let labelQobuz = $state<{ id: string; nom: string } | null>(null);
+  let jetonLabelQobuz = 0;
+  $effect(() => {
+    const j = ++jetonLabelQobuz;
+    labelQobuz = null;
+    if (depot || bandcamp) return;
+    if (service === 'qobuz' && sidDistant) {
+      const sid = String(sidDistant);
+      void api.getStreamingAlbumContext('qobuz', sid).then((c) => {
+        if (j === jetonLabelQobuz && c?.label_id) labelQobuz = { id: c.label_id, nom: c.label_name ?? '' };
+      });
+      return;
+    }
+    const nom = creditsPossibles ? labelDe(albumAffiche) : null;
+    if (!nom) return;
+    void api.getLibraryLabels().then((labels) => {
+      const id = labelQobuzDe(nom, labels);
+      if (j === jetonLabelQobuz && id) labelQobuz = { id, nom };
+    });
+  });
   const creditsDeService = $derived(
     depot || bandcamp ? null : creditsAlbumDeServiceDe(service, sidDistant, $servicesCreditsRefuses),
   );
@@ -428,6 +460,21 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   let focusReferme = $state(false);
   // Une autre fiche s'ouvre (ou un autre focus arrive) : la pastille revient.
   $effect(() => { void album?.id; void artisteFocus?.id; void artisteFocus?.pistes; focusReferme = false; });
+
+  /** tune-server-rust#6285 — le verdict des faux hi-res, album LOCAL seulement.
+   *  Un serveur antérieur (404) ou un album jamais mesuré : pas de badge. */
+  let hiRes = $state<BadgeHiRes>(null);
+  $effect(() => {
+    const id = album?.id;
+    const local = album != null && (album.source == null || album.source === 'local');
+    hiRes = null;
+    if (id == null || !local) return;
+    let annule = false;
+    api.getAlbumHiRes(id)
+      .then((v) => { if (!annule) hiRes = badgeHiRes(v); })
+      .catch(() => { if (!annule) hiRes = null; });
+    return () => { annule = true; };
+  });
   // #4767 (crédits) — venu de « Collaborations » ou de « Reprises », le focus
   // porte les pistes CRÉDITÉES (`focus_track_ids`) : `tracks.artist_id` y
   // désigne l'artiste principal, pas celui de la page.
@@ -1609,6 +1656,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         <!-- #852 — pas de badge quand la qualite est inconnue : mieux vaut
              rien qu'un « CD » invente. -->
         {#if qLabel}<div class="qbadge">{qLabel}</div>{/if}
+        <!-- tune-server-rust#6285 — « hi-res vérifié / douteux » : rien tant que
+             le serveur n'a pas mesuré l'album (lib/badgeHiRes). -->
+        {#if hiRes}<div class="qbadge cue" class:douteux={hiRes.genre === 'douteux'} data-hires={hiRes.genre}
+          title={$tr((hiRes.cleRaison ?? 'v2.album.hiresVerifiedTip') as any)}>{$tr(hiRes.cle as any)}</div>{/if}
         <PastilleCompilation compilation={album.is_compilation} />
         <!-- #862 — Marco Polo, fil 1738 : « identifier dans la bibliothèque
              qu'un album affiché est la résultante d'un fichier .CUE ». La
@@ -1654,6 +1705,13 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         {@const nomLabel = labelDe(albumAffiche)!}
         <button type="button" class="lien-label" data-lien-label onclick={() => { onClose(); void ouvrirLabelDansLaBibliotheque(nomLabel); }}>
           {$tr('v2.label.autresArtistes' as any).replace('{label}', nomLabel)}
+        </button>
+      {/if}
+      {#if labelQobuz}
+        {@const lq = labelQobuz}
+        <button type="button" class="lien-label" data-lien-label-qobuz title={$tr('v2.label.ouvrirLabelTip' as any)}
+          onclick={() => ouvrirLabelDeService({ service: 'qobuz', id: lq.id, nom: lq.nom })}>
+          {$tr('v2.label.ouvrirLabel' as any).replace('{label}', lq.nom || $tr('v2.label.qobuzTitre' as any))}
         </button>
       {/if}
       {#if preferenceChargee && (repertoiresDeCetAlbum.length > 1 || racinePreferee)}
@@ -2106,6 +2164,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
      elles pousseraient le titre de l'album hors du premier coup d'œil. */
   .qrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   .qbadge.cue{background:transparent; border:1px solid var(--v2-line2); color:var(--v2-txt2)}
+  /* tune-server-rust#6285 — un hi-res douteux se distingue, sans crier. */
+  .qbadge.cue.douteux{border-color:var(--v2-danger-bd)}
   .qbadge{font:700 11px var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
     color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .meta h1{font-size:38px; font-weight:800; letter-spacing:-.01em; line-height:1.05}
