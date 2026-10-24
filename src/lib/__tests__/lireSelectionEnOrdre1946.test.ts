@@ -101,7 +101,13 @@ beforeEach(() => {
     if (/\/library\/tracks(\?|$)/.test(url)) return reponse(PISTES);
     // #5526 — une sélection de quelques albums se lit fiche par fiche.
     const fiche = /\/library\/albums\/(\d+)\/tracks/.exec(url);
-    if (fiche) return reponse(PISTES.filter((p) => p.album_id === Number(fiche[1])));
+    // La fiche rend ses pistes déjà rangées (disque, puis numéro), comme le
+    // serveur ; « Lire » garde cet ordre (tune-server-rust#6222). Le désordre
+    // de `PISTES` reste celui de `/library/tracks` et du bloc unitaire.
+    if (fiche) {
+      return reponse(PISTES.filter((p) => p.album_id === Number(fiche[1]))
+        .sort((x, y) => (x.disc_number ?? 1) - (y.disc_number ?? 1) || (x.track_number ?? 0) - (y.track_number ?? 0)));
+    }
     if (url.includes('/system/config')) return reponse({});
     if (/\/queue/.test(url)) return reponse({ tracks: [], position: 0, length: 0 });
     return reponse([]);

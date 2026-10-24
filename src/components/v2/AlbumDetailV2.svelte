@@ -52,6 +52,7 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   } from '../../lib/selectionPistes';
   import { circleCharge } from '../../lib/circle';
   import { demandeCercle } from '../../lib/circlePlaylists';
+  import { badgeHiRes, type BadgeHiRes } from '../../lib/badgeHiRes';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe, corpsDeTeteDeListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
@@ -459,6 +460,21 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   let focusReferme = $state(false);
   // Une autre fiche s'ouvre (ou un autre focus arrive) : la pastille revient.
   $effect(() => { void album?.id; void artisteFocus?.id; void artisteFocus?.pistes; focusReferme = false; });
+
+  /** tune-server-rust#6285 — le verdict des faux hi-res, album LOCAL seulement.
+   *  Un serveur antérieur (404) ou un album jamais mesuré : pas de badge. */
+  let hiRes = $state<BadgeHiRes>(null);
+  $effect(() => {
+    const id = album?.id;
+    const local = album != null && (album.source == null || album.source === 'local');
+    hiRes = null;
+    if (id == null || !local) return;
+    let annule = false;
+    api.getAlbumHiRes(id)
+      .then((v) => { if (!annule) hiRes = badgeHiRes(v); })
+      .catch(() => { if (!annule) hiRes = null; });
+    return () => { annule = true; };
+  });
   // #4767 (crédits) — venu de « Collaborations » ou de « Reprises », le focus
   // porte les pistes CRÉDITÉES (`focus_track_ids`) : `tracks.artist_id` y
   // désigne l'artiste principal, pas celui de la page.
@@ -1640,6 +1656,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         <!-- #852 — pas de badge quand la qualite est inconnue : mieux vaut
              rien qu'un « CD » invente. -->
         {#if qLabel}<div class="qbadge">{qLabel}</div>{/if}
+        <!-- tune-server-rust#6285 — « hi-res vérifié / douteux » : rien tant que
+             le serveur n'a pas mesuré l'album (lib/badgeHiRes). -->
+        {#if hiRes}<div class="qbadge cue" class:douteux={hiRes.genre === 'douteux'} data-hires={hiRes.genre}
+          title={$tr((hiRes.cleRaison ?? 'v2.album.hiresVerifiedTip') as any)}>{$tr(hiRes.cle as any)}</div>{/if}
         <PastilleCompilation compilation={album.is_compilation} />
         <!-- #862 — Marco Polo, fil 1738 : « identifier dans la bibliothèque
              qu'un album affiché est la résultante d'un fichier .CUE ». La
@@ -2144,6 +2164,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
      elles pousseraient le titre de l'album hors du premier coup d'œil. */
   .qrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   .qbadge.cue{background:transparent; border:1px solid var(--v2-line2); color:var(--v2-txt2)}
+  /* tune-server-rust#6285 — un hi-res douteux se distingue, sans crier. */
+  .qbadge.cue.douteux{border-color:var(--v2-danger-bd)}
   .qbadge{font:700 11px var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
     color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .meta h1{font-size:38px; font-weight:800; letter-spacing:-.01em; line-height:1.05}

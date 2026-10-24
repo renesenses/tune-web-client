@@ -91,6 +91,8 @@
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import EnTeteArtiste from './EnTeteArtiste.svelte';
   import { notifications } from '../../lib/stores/notifications';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { apresDetachement, identiteDetachee, peutDetacherIdentite } from '../../lib/identiteArtiste';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { messageEchecFiche, motifEchecFiche, type MotifEchecFiche } from '../../lib/echecFicheArtiste';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, revenirA } from '../../lib/historiqueCoquille';
@@ -272,6 +274,36 @@
     if (jeton !== jetonMeta) return;
     metaFiche = m;
     creditsFiche = c ?? [];
+  }
+
+  /*
+   * tune-server-rust#6463 — « Détacher l'identité » : « Ange » portait le
+   * MBID d'une chanteuse homonyme, et son portrait. Le serveur retire le MBID,
+   * le marque `manuel` (plus de rattachement automatique) et efface le
+   * portrait et la bio que ce MBID avait rapportés. La fiche suit sans être
+   * rechargée.
+   */
+  let detachement = $state(false);
+  async function detacherIdentite() {
+    const a = artisteEditable;
+    if (a?.id == null || detachement || !peutDetacherIdentite(a)) return;
+    // `dialogs.confirm`, jamais `window.confirm` (#166).
+    const question = $tr('artist.detachIdentityConfirm' as any).replace('{nom}', a.name);
+    if (!(await dialogs.confirm(question, { danger: true }))) return;
+    detachement = true;
+    try {
+      const reponse = await api.detacherIdentiteArtiste(a.id);
+      const maj = apresDetachement(a, reponse);
+      artiste = maj;
+      artisteLocal = maj;
+      if (!maj.bio?.trim()) { bio = null; bioProvenance = null; }
+      metaFiche = null;
+      notifications.success($tr('artist.identityDetached' as any).replace('{nom}', a.name));
+    } catch {
+      notifications.error($tr('artist.identityDetachFailed' as any));
+    } finally {
+      detachement = false;
+    }
   }
 
   async function enrichir() {
@@ -1040,6 +1072,17 @@
           aria-haspopup="dialog" title={$tr('v2.cover.tags' as any)}>
           {$tr('v2.cover.tags' as any)}
         </button>
+        {#if peutDetacherIdentite(local)}
+          <!-- tune-server-rust#6463 — retirer une identité MusicBrainz fausse. -->
+          <button class="v2-btn ghost" onclick={detacherIdentite} disabled={detachement}
+            data-detacher-identite title={$tr('artist.detachIdentityHint' as any)}>
+            {$tr('artist.detachIdentity' as any)}
+          </button>
+        {:else if identiteDetachee(local)}
+          <span class="identite-detachee" data-identite-detachee>
+            {$tr('artist.identityDetachedNote' as any)}
+          </span>
+        {/if}
         {#if local.image_path}
           <ReportButton entity="artist_image" entityId={local.id!}
             mbid={local.musicbrainz_id ?? undefined}
@@ -1201,6 +1244,7 @@
      (#1356). Ne reste ici que ce qui est rendu dans CETTE portée. */
   /* #910 — pourquoi les deux gestes manquent. */
   .echec{font-size:12.5px; line-height:1.4; color:var(--v2-txt2); align-self:center}
+  .identite-detachee{font-size:12.5px; line-height:1.4; color:var(--v2-txt2); align-self:center}
   .etat{padding:40px 0; color:var(--v2-txt3)}
   h2{margin:22px 0 10px; font:600 13px var(--v2-sans); color:var(--v2-txt2);
     text-transform:uppercase; letter-spacing:.05em}
