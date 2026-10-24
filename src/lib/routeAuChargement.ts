@@ -136,6 +136,8 @@ const VUES: Record<View, boolean> = {
   // sur son repli « À venir ». Reposer la vue seule promettrait un écran vide.
   streamingalbum: false,
   streamingartist: false,
+  // tune-server-rust#6934 — la page « Label » d'un service, même raison.
+  streaminglabel: false,
   // tune-server-rust#5065 — la page d'UNE source : son identifiant vit dans
   // `sourceCourante`, que l'adresse ne porte pas. Recharger n'a rien à rouvrir.
   source: false,
