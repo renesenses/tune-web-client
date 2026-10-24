@@ -679,6 +679,7 @@ export default {
   "browse.dirUnreachable": "Dossier injoignable",
   "browse.dirUnreachableHint": "Le serveur n'a pas pu ouvrir ce dossier. Sous Windows, une lettre de lecteur réseau (Z:) n'est visible que par la session qui l'a créée : utilisez le chemin UNC (\\\\serveur\\partage).",
   'browse.noTracks': 'Aucune piste dans ce répertoire',
+  "browse.noTracksHint": "Seules les pistes déjà analysées s'affichent ici. Si ce dossier contient de la musique, elle n'est pas encore dans la bibliothèque : « Rescanner » l'analyse (une fois l'analyse en cours terminée, s'il y en a une).",
   'browse.playAll': 'Tout lire',
   'browse.addAll': 'Tout ajouter',
   'browse.rescan': 'Rescanner',

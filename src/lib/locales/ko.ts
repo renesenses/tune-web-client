@@ -569,6 +569,7 @@ export default {
   'browse.openError': '이 폴더를 열 수 없습니다 — 드라이브 또는 네트워크 공유에 접근할 수 있는지 확인하세요',
   'browse.rootEmpty': '빈 폴더',
   'browse.noTracks': '이 디렉토리에 곡이 없습니다',
+  "browse.noTracksHint": "여기에는 이미 스캔된 트랙만 표시됩니다. 이 폴더에 음악이 있다면 아직 라이브러리에 없습니다. '다시 스캔'으로 스캔하세요(진행 중인 스캔이 있으면 끝난 뒤).",
   'browse.playAll': '모두 재생',
   'browse.addAll': '모두 추가',
   'browse.rescan': '다시 스캔',
