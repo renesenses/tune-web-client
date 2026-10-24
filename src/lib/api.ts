@@ -3425,6 +3425,14 @@ export function updateTrack(id: number, data: { title?: string; album_id?: numbe
   });
 }
 
+/** tune-server-rust#6463 — « Détacher l'identité » : le serveur retire le MBID
+ *  de l'artiste, le marque `manuel` (plus de rattachement automatique) et
+ *  efface le portrait et la bio que ce MBID avait rapportés. Rend l'artiste
+ *  relu. */
+export function detacherIdentiteArtiste(id: number) {
+  return fetchJSON<Artist>(`${BASE}/library/artists/${id}/detacher-identite`, { method: 'POST' });
+}
+
 export function updateArtist(id: number, data: { name?: string; sort_name?: string; bio?: string }) {
   return fetchJSON<Artist>(`${BASE}/library/artists/${id}`, {
     method: 'PUT',
