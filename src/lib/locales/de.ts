@@ -4044,6 +4044,7 @@ export default {
   "v2.health.stOff": "aus",
   "v2.health.stUnknown": "unbekannt",
   "v2.health.stPaused": "pausiert",
+  "v2.health.throttledForPlayback": "Während der Wiedergabe gebremst: Diese Aufgabe lässt der laufenden Wiedergabe den Vortritt (oder hält bis zu deren Ende an) und setzt dann von selbst fort.",
   "v2.health.pause": "Pause",
   "v2.health.resume": "Fortsetzen",
   "v2.health.pauseAll": "Alle Verarbeitungen pausieren",

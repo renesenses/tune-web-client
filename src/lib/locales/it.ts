@@ -4044,6 +4044,7 @@ export default {
   "v2.health.stOff": "non attivo",
   "v2.health.stUnknown": "sconosciuto",
   "v2.health.stPaused": "in pausa",
+  "v2.health.throttledForPlayback": "Rallentato durante l’ascolto: questa attività cede il passo alla riproduzione in corso (o si ferma fino alla sua fine), poi riprende da sola.",
   "v2.health.pause": "Pausa",
   "v2.health.resume": "Riprendi",
   "v2.health.pauseAll": "Sospendi tutte le elaborazioni",

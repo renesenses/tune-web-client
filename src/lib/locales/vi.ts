@@ -3921,6 +3921,7 @@ export default {
   "v2.health.stOff": "tắt",
   "v2.health.stUnknown": "không xác định",
   "v2.health.stPaused": "đã tạm dừng",
+  "v2.health.throttledForPlayback": "Chạy chậm lại khi đang nghe: tác vụ này nhường chỗ cho việc phát hiện tại (hoặc dừng đến khi phát xong), rồi tự tiếp tục.",
   "v2.health.pause": "Tạm dừng",
   "v2.health.resume": "Tiếp tục",
   "v2.health.pauseAll": "Tạm dừng mọi tác vụ xử lý",

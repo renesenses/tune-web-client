@@ -4044,6 +4044,7 @@ export default {
   "v2.health.stOff": "inactivo",
   "v2.health.stUnknown": "desconocido",
   "v2.health.stPaused": "en pausa",
+  "v2.health.throttledForPlayback": "Ralentizado durante la escucha: esta tarea cede el paso a la reproducción en curso (o se detiene hasta que termine) y luego se reanuda sola.",
   "v2.health.pause": "Pausar",
   "v2.health.resume": "Reanudar",
   "v2.health.pauseAll": "Pausar todos los procesos",

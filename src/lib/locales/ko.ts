@@ -4044,6 +4044,7 @@ export default {
   "v2.health.stOff": "꺼짐",
   "v2.health.stUnknown": "알 수 없음",
   "v2.health.stPaused": "일시 중지됨",
+  "v2.health.throttledForPlayback": "재생 중에는 느려집니다. 이 작업은 현재 재생에 자리를 양보하고(재생이 끝날 때까지 멈추기도 함), 이후 자동으로 다시 시작합니다.",
   "v2.health.pause": "일시 중지",
   "v2.health.resume": "재개",
   "v2.health.pauseAll": "모든 처리 일시 중지",
