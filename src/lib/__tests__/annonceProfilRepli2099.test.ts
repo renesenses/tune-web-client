@@ -77,8 +77,20 @@ describe('#2099 — un profil choisi à la place d’un profil oublié se dit', 
   });
 
   it('l’amorçage v2 appelle l’annonce après le chargement des profils', () => {
-    const corps = sourceAmorcage.slice(sourceAmorcage.indexOf('async function loadProfile('));
-    const bloc = corps.slice(0, corps.indexOf('\n}\n'));
-    expect(bloc.indexOf('annoncerProfilDeRepli()')).toBeGreaterThan(bloc.indexOf('await loadProfiles()'));
+    // tune-server-rust#6454 — le chargement passe par la reprise
+    // (`chargerLesProfilsAvecReprise`) ; l'annonce vit dans `apresLeProfil`,
+    // appelée seulement une fois le premier essai réussi, ou à la fin de la
+    // reprise.
+    const bloc = (nom: string) => {
+      const corps = sourceAmorcage.slice(sourceAmorcage.indexOf(`async function ${nom}(`));
+      return corps.slice(0, corps.indexOf('\n}\n'));
+    };
+    expect(bloc('apresLeProfil')).toContain('annoncerProfilDeRepli()');
+    const charge = bloc('loadProfile');
+    const reprise = charge.indexOf('chargerLesProfilsAvecReprise()');
+    expect(reprise).toBeGreaterThan(-1);
+    expect(charge.indexOf('if (await premier)')).toBeGreaterThan(reprise);
+    expect(charge.indexOf('await apresLeProfil()')).toBeGreaterThan(charge.indexOf('if (await premier)'));
+    expect(charge).toContain('void fin.then(apresLeProfil)');
   });
 });

@@ -688,11 +688,15 @@
    * leurs règles ; l'utilisateur veut pouvoir le changer à l'écran.
    *
    * Côté CLIENT, sur la liste reçue : `/smart-collections/{id}/albums` ne prend
-   * pas `?sort=`, et ses albums ne portent que titre, artiste et ANNÉE — ni
-   * date de sortie, ni date d'ajout. On ne propose donc que ces trois clés.
+   * pas `?sort=`, et ses albums ne portaient que titre, artiste et ANNÉE.
    * `regles` = l'ordre défini par les règles, le défaut.
+   *
+   * web#2206 (Jean Valjean, fil 2300) — « Date de sortie » aussi : le serveur
+   * (même issue) joint désormais `release_date` et `original_date` aux albums
+   * d'une collection intelligente. Face à un serveur plus ancien, la clé
+   * retombe sur l'année (`trierAlbums`), elle trie donc toujours quelque chose.
    */
-  const TRIS_SMART = ['regles', 'artist', 'title', 'year'] as const;
+  const TRIS_SMART = ['regles', 'artist', 'title', 'year', 'release_date'] as const;
   type TriSmart = (typeof TRIS_SMART)[number];
   let triSmart = $state<TriSmart>(lireChoix<TriSmart>('v2.collection.smart.tri', TRIS_SMART, 'regles'));
   let sensSmart = $state<Sens>(lireChoix<Sens>('v2.collection.smart.sens', SENS, 'asc'));
@@ -700,6 +704,7 @@
   $effect(() => { ecrireChoix('v2.collection.smart.sens', sensSmart); });
   const LIBELLES_SMART: Record<TriSmart, string> = {
     regles: 'v2.col.sortRules', artist: 'v2.lib.sortArtist', title: 'v2.lib.sortTitle', year: 'v2.lib.sortYear',
+    release_date: 'library.sortReleaseDate',
   };
   /** Ce que la grille AFFICHE — et ce que « Tout lire » enchaîne. */
   const albumsVus = $derived(
@@ -847,6 +852,10 @@
    * ne produirait pas ce qu'on regarde.
    */
   let creation = $state(false);
+  /** tune-server-rust #6839 — collections proposées par l'assistant. */
+  let propositionsIa = $state(false);
+  /** tune-server-rust #6839 — « pourquoi cet album est là ». */
+  let pourquoiIa = $state<{ album: number; titre: string } | null>(null);
   /**
    * Editeur de collection INTELLIGENTE : creation quand il vaut `true`,
    * modification quand il porte la collection.
@@ -1327,6 +1336,12 @@
               <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
             </button>
             <QualiteAlbum objet={a} />
+            {#if ouverte?.sorte === 'smart' && a.id != null}
+              <!-- tune-server-rust #6839 — pourquoi cet album est là. -->
+              <button class="lnk pourquoi-ia" data-pourquoi-ia onclick={() => (pourquoiIa = { album: a.id, titre: a.title ?? '' })}>
+                {$t('assistantIa.coll.why' as any)}
+              </button>
+            {/if}
           </div>
         {/each}
         </div>
@@ -1353,6 +1368,10 @@
         <button class="v2-btn primaire" onclick={() => (editeurSmart = { id: null })}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
           {$t('v2.smart.newTitle' as any)}
+        </button>
+        <!-- tune-server-rust #6839 — l'assistant propose, l'utilisateur crée. -->
+        <button class="v2-btn" onclick={() => (propositionsIa = true)} data-propositions-ia>
+          {$t('assistantIa.coll.proposeButton' as any)}
         </button>
       {/if}
       </div>
@@ -1648,6 +1667,18 @@
     {/await}
   {/if}
 
+  {#if pourquoiIa && ouverte?.sorte === 'smart'}
+    {#await import('./PourquoiAlbumIaV2.svelte') then m}
+      <m.default collectionId={ouverte.id} albumId={pourquoiIa.album} titre={pourquoiIa.titre} onClose={() => (pourquoiIa = null)} />
+    {/await}
+  {/if}
+
+  {#if propositionsIa}
+    {#await import('./PropositionsCollectionsIaV2.svelte') then m}
+      <m.default onClose={() => (propositionsIa = false)} onCreee={() => charger()} />
+    {/await}
+  {/if}
+
   {#if creation}
     <RenommerModale
       titre={$t('v2.col.create' as any)}
@@ -1661,6 +1692,8 @@
 </section>
 
 <style>
+  .pourquoi-ia{background:none;border:0;padding:2px 0;color:var(--v2-txt3);font-size:11.5px;cursor:pointer;text-align:left}
+  .pourquoi-ia:hover{color:var(--v2-acc1)}
   .v2-collections{height:100%; display:flex; flex-direction:column; overflow:hidden; background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans)}
   /* #855 / #907 — la SECTION défilait tout entière : en-tête, « Retour »,
      onglets et tri partaient avec la grille. Seul `.defil` défile désormais ;

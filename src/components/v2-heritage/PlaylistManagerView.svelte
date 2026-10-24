@@ -7,6 +7,7 @@
   import { playlists as playlistsStore, pendingPlaylistId } from '../../lib/stores/playlists';
   import { streamingServices } from '../../lib/stores/streaming';
   import * as api from '../../lib/api';
+  import { creerRetraitPlaylist } from '../../lib/retraitPlaylist';
   import { shareLink } from '../../lib/playlistShare';
   import { formatTime, errText } from '../../lib/utils';
   import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../../lib/types';
@@ -47,6 +48,7 @@
   import { quatreDistinctes } from '../../lib/mosaique';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
+  import type { PropositionIa } from '../../lib/assistantIa';
   import { listResetNonce } from '../../lib/stores/navigation';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { untrack } from 'svelte';
@@ -61,6 +63,18 @@
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
 
   let viewTab = $state<'manual' | 'smart' | 'smart-ai'>('manual');
+
+  /**
+   * tune-server-rust#6731 — la barre latérale ouvre CET écran, et son onglet
+   * « Intelligentes » n'offrait pas « Créer par une phrase (IA) » : le bouton
+   * de l'assistant n'existait que dans `PlaylistsV2`, qu'aucune entrée de menu
+   * n'ouvre. Le .18, 22/10 : une playlist « Démo » enregistrée ici, à la main,
+   * sans règle. Même fenêtre et même éditeur que `PlaylistsV2`.
+   */
+  let parPhraseIa = $state(false);
+  let proposeIa = $state<PropositionIa | null>(null);
+  /** Remonte la liste après un enregistrement. */
+  let tourSmart = $state(0);
 
   async function handleSharePlaylist(playlistId: number) {
     try {
@@ -1462,14 +1476,24 @@
     }
   }
 
+  /**
+   * web#2286 — la ligne par `entry_id`, un retrait à la fois, puis relecture
+   * (`lib/retraitPlaylist`, partagé avec `PlaylistDetailV2`).
+   */
+  const retraitPlaylist = creerRetraitPlaylist({
+    retirer: (id, cible) => api.removePlaylistEntry(id, cible),
+    relire: (id) => api.getPlaylistTracks(id),
+  });
+  let retraitEnCours = $state(false);
   async function removeTrack(position: number) {
-    if (!selectedPlaylist?.id || position < 0) return;
-    try {
-      await api.removePlaylistTrackAt(selectedPlaylist.id, position);
-      detailTracks = detailTracks.filter((_, i) => i !== position);
-    } catch (e) {
-      console.error('Remove track error:', e);
-    }
+    const pl = selectedPlaylist;
+    if (!pl?.id || position < 0 || retraitPlaylist.enCours) return;
+    retraitEnCours = true;
+    const issue = await retraitPlaylist.retirer(pl.id, detailTracks, position);
+    retraitEnCours = false;
+    if (!issue || selectedPlaylist?.id !== pl.id) return;
+    detailTracks = issue.pistes;
+    if (!issue.ok) console.error('Remove track error: le serveur n’a rien retiré');
   }
 
   /**
@@ -1840,7 +1864,27 @@
 </div>
 
 {#if viewTab === 'smart'}
-  <SmartPlaylistsView />
+  <div class="pm-smart">
+    <div class="pm-smart-ia">
+      <button class="v2-btn" onclick={() => (parPhraseIa = true)} data-playlist-ia>{$tr('assistantIa.playlist.button' as any)}</button>
+    </div>
+    {#key tourSmart}<SmartPlaylistsView />{/key}
+    {#if proposeIa}
+      {@const p = proposeIa}
+      {#await import('../v2/PlaylistSmartEditeurV2.svelte') then m}
+        <m.default id={null} propose={p}
+          onClose={() => (proposeIa = null)}
+          onSaved={() => { tourSmart += 1; }} />
+      {/await}
+    {/if}
+    {#if parPhraseIa}
+      {#await import('../v2/PlaylistParPhraseV2.svelte') then m}
+        <m.default
+          onClose={() => (parPhraseIa = false)}
+          onPropose={(p) => { parPhraseIa = false; proposeIa = p; }} />
+      {/await}
+    {/if}
+  </div>
 {:else if viewTab === 'smart-ai'}
   <SmartAIView />
 {:else}
@@ -1966,7 +2010,7 @@
         {#snippet retirer(_t: Track, index: number)}
           <!-- « Retirer de la playlist » : le seul geste que la barre commune
                n'a pas, parce qu'il n'a de sens que dans une playlist locale. -->
-          <button class="remove-btn" onclick={() => removeTrack(index)}
+          <button class="remove-btn" onclick={() => removeTrack(index)} disabled={retraitEnCours}
             title={$tr('playlist.remove')} aria-label={$tr('playlist.remove')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
@@ -4793,4 +4837,7 @@
   /* Le message de coupure premium d'un onglet. */
   .pm-premium{margin:0; padding:22px; text-align:center; color:var(--tune-text-secondary);
     font-size:13px; line-height:1.7; border:1px dashed var(--tune-border); border-radius:10px}
+  /* #6731 — l'éditeur IA se pose sur l'onglet (position absolue, inset 0). */
+  .pm-smart { position: relative; min-height: 70vh; }
+  .pm-smart-ia { display: flex; justify-content: flex-end; padding: 8px 16px 0; }
 </style>

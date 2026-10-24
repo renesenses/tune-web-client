@@ -1,6 +1,6 @@
 <script lang="ts">
   import { atteintLeSon } from '../../lib/porteeReglage';
-  import { descriptionDEtape, etapeIntacte, etatSansPerte, traitIntact } from '../../lib/formatInconnu';
+  import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
   import { pisteDeFile } from '../../lib/pisteDeFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
@@ -14,7 +14,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { upNextTracks, upNextHiddenCount, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
   import type { QueueSheetState } from '../../lib/stores/queue';
   import { currentZoneId } from '../../lib/stores/zones';
-  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality, copyText } from '../../lib/utils';
+  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality, copyText, bitrateLabel } from '../../lib/utils';
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../../lib/npWheelGesture';
   import { largeurReserveeFileAttente } from '../../lib/fileAttenteReserve';
   import * as api from '../../lib/api';
@@ -1849,6 +1849,13 @@ import { ICONES } from '../../lib/menuPiste';
                       <span class="td-label">Bit Depth</span>
                       <span class="td-value">{displayTrack.bit_depth}-bit</span>
                     {/if}
+                    <!-- tune-server-rust#6332 — le débit, lu au scan pour une piste
+                         locale (fil 2269 : « aucune façon de consulter cette
+                         information dans TUNE »). -->
+                    {#if bitrateLabel(displayTrack)}
+                      <span class="td-label">{$t('nowplaying.bitrate')}</span>
+                      <span class="td-value">{bitrateLabel(displayTrack)}</span>
+                    {/if}
                     {#if channelsOf(displayTrack)}
                       <span class="td-label">Channels</span>
                       <span class="td-value">{channelsOf(displayTrack) === 2 ? $t('nowplaying.stereo') : channelsOf(displayTrack) === 1 ? 'Mono' : channelsOf(displayTrack) + ' ch'}</span>
@@ -1900,9 +1907,15 @@ import { ICONES } from '../../lib/menuPiste';
             <p class="inline-credits" title={inlineCredits}>{inlineCredits}</p>
           {/if}
           {#if !isRadio && displayTrack.album_title}
+            <!-- web#1870 — « comment aller sur l'album du morceau joué » (Lionel,
+                 fil 1638, téléphone). Le lien existait, mais c'était un <p>
+                 cliquable dont le seul signe était un SURVOL : au doigt, rien ne
+                 le distinguait du texte. C'est désormais un vrai bouton
+                 (clavier, lecteur d'écran), souligné quand l'écran n'a pas de
+                 survol. -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <p class="track-album truncate clickable" title={displayTrack.year ? `${displayTrack.album_title} (${displayTrack.year})` : displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
+            <button type="button" class="track-album truncate clickable" title={displayTrack.year ? `${displayTrack.album_title} (${displayTrack.year})` : displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</button>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || trackDr)}
             <p class="track-tech-info">
@@ -1912,6 +1925,12 @@ import { ICONES } from '../../lib/menuPiste';
               {#if channelsOf(displayTrack)}<span class="tech-chip">{channelsOf(displayTrack)}ch</span>{/if}
               {#if trackDr}<span class="tech-chip dr-chip" class:dr-deduit={trackDr.deduit} title={$t(trackDr.cleInfobulle)}>DR {trackDr.texte}</span>{/if}
             </p>
+          {/if}
+          <!-- web#2300 (fil 2376) — le format d'une radio, relevé par la sonde du
+               flux (étape Source du chemin du signal), à la place des pastilles
+               d'une fiche qu'elle n'a pas. -->
+          {#if isRadio && formatDuFluxRadio(zone?.signal_path)}
+            <p class="track-tech-info"><span class="tech-chip">{formatDuFluxRadio(zone?.signal_path)}</span></p>
           {/if}
           {#if !isRadio && displayTrack.source === 'local' && trackPlays !== null && trackPlays > 0}
             <p class="track-plays">{trackPlays} {$t('home.plays')}</p>
@@ -3223,6 +3242,27 @@ import { ICONES } from '../../lib/menuPiste';
   .track-album.clickable {
     cursor: pointer;
     transition: color 0.15s ease-out;
+  }
+
+  /* web#1870 — le titre d'album est un <button> : on lui retire l'habit de
+     bouton du navigateur, il garde celui d'une ligne de texte. */
+  button.track-album {
+    display: block;
+    max-width: 100%;
+    background: none;
+    border: 0;
+    padding: 0;
+    text-align: inherit;
+    line-height: inherit;
+  }
+
+  /* Au doigt, pas de survol : le lien doit se VOIR sans lui, et se viser. */
+  @media (hover: none) {
+    .track-album.clickable {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      min-height: 32px;
+    }
   }
 
   .track-album.clickable:hover {

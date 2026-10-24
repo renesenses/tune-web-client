@@ -19,7 +19,9 @@
    * lieu de la réécrire : elle a ses tests, et deux implémentations d'un
    * découpage gauche/droite finiraient par diverger.
    */
+  import { untrack } from 'svelte';
   import * as api from '../../lib/api';
+  import { zoneChangee } from '../../lib/eqPresetEnCours';
   import { rafraichirGreffonEgaliseur } from '../../lib/stores/egaliseur';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { EqBand, MergedPlugin } from '../../lib/api';
@@ -118,6 +120,8 @@
   /** Le numéro de la dernière lecture : une réponse plus ancienne, arrivée
    *  après (changement de zone, rechargement), ne remplace plus l'écran. */
   let numeroLecture = 0;
+  /** web#2303 — la zone du dernier chargement ; `undefined` avant le premier. */
+  let zoneDuChargement: number | null | undefined = undefined;
   /**
    * La courbe en service est PARAMÉTRIQUE (ou l'est devenue au dernier
    * enregistrement). Sur l'onglet Graphique, ses bandes n'ont pas de curseur :
@@ -164,10 +168,17 @@
     void rechargement; // relu exprès : l'installation du greffon relance le chargement
     loading = true;
     const lecture = ++numeroLecture;
-    const msgIndisponible = $t('v2.eq.errUnavailable' as any);
+    // web#2303 (Thierry, fil 2377) — lu SANS dépendance : `$t` réémet chaque
+    // fois qu'un dictionnaire arrive (`revision`, i18n.ts), et cet effet se
+    // relançait alors, oubliant le préréglage en cours sans aucun geste.
+    const msgIndisponible = untrack(() => $t('v2.eq.errUnavailable' as any));
     // web#1750 — une autre zone, une autre courbe : « Enregistrer » ne doit
     // pas l'écrire dans le préréglage qu'on éditait sur la précédente.
-    enCoursId = null;
+    // web#2303 — mais SEULEMENT sur un vrai changement de zone : une relance
+    // du chargement (« Réessayer », installation du greffon, traduction qui
+    // arrive, même zone réannoncée) garde le préréglage en cours.
+    if (zoneChangee(zoneDuChargement, zid)) enCoursId = null;
+    zoneDuChargement = zid;
     // Le greffon se lit SANS zone : « pas installé » se dit même quand aucune
     // zone n'est choisie, sinon l'écran réclamerait une zone pour un
     // égaliseur qui n'existe pas encore.
@@ -632,12 +643,7 @@
     try {
       const texte = await fichier.text();
       const r = await api.importAutoEqPreset({ text: texte, name: nomDuFichierPeq(fichier.name) });
-      const bilan = bilanImportPeq(r);
-      bilanPeq = bilan;
-      mesPresets = [...mesPresets.filter((p) => p.id !== r.preset.id), r.preset];
-      ecrireCachePresets($state.snapshot(mesPresets));
-      notifications.success(msgOk.replace('{name}', bilan.nom).replace('{count}', String(bilan.bandes)));
-      if (!bilan.alerte) appliquerMonPreset(r.preset);
+      accueillirImport(r, msgOk);
     } catch (err) {
       // 402 : `fetchJSON` a déjà dit le refus Premium dans la langue de l'écran.
       if ((err as { status?: number })?.status !== 402) {
@@ -647,6 +653,72 @@
     } finally {
       importEnCours = false;
     }
+  }
+
+  /** Le préréglage importé (fichier ou base AutoEq) rejoint « Mes presets » ;
+   *  le bilan est dit, et il s'applique sauf alerte de marge. */
+  function accueillirImport(r: api.EqAutoEqImport, msgOk: string) {
+    const bilan = bilanImportPeq(r);
+    bilanPeq = bilan;
+    mesPresets = [...mesPresets.filter((p) => p.id !== r.preset.id), r.preset];
+    ecrireCachePresets($state.snapshot(mesPresets));
+    notifications.success(msgOk.replace('{name}', bilan.nom).replace('{count}', String(bilan.bandes)));
+    if (!bilan.alerte) appliquerMonPreset(r.preset);
+  }
+
+  /**
+   * tune-server-rust#6388 (Tades, fil 2282) — chercher un casque dans la base
+   * AutoEq au lieu d'aller chercher le fichier sur GitHub. C'est le SERVEUR qui
+   * lit la base (et en garde une copie) : l'écran envoie le nom cherché, puis
+   * le chemin du profil choisi. Un même casque revient une fois par source de
+   * mesure (oratory1990, crinacle, Rtings…) : c'est l'utilisateur qui choisit.
+   */
+  let rechercheAutoEqOuverte = $state(false);
+  let requeteAutoEq = $state('');
+  let resultatsAutoEq = $state<api.AutoEqResultat[] | null>(null);
+  let totalAutoEq = $state(0);
+  let rechercheAutoEqEnCours = $state(false);
+  let erreurAutoEq = $state<string | null>(null);
+  async function chercherAutoEq(e?: Event) {
+    e?.preventDefault();
+    const q = requeteAutoEq.trim();
+    if (!q) return;
+    const msgHorsLigne = $t('eq.autoeqOffline' as any);
+    const msgKo = $t('eq.autoeqSearchFailed' as any);
+    rechercheAutoEqEnCours = true;
+    erreurAutoEq = null;
+    try {
+      const r = await api.searchAutoEq(q);
+      resultatsAutoEq = r.results;
+      totalAutoEq = r.total;
+    } catch (err) {
+      resultatsAutoEq = null;
+      const status = (err as { status?: number })?.status;
+      erreurAutoEq = status === 503 ? msgHorsLigne
+        : msgKo.replace('{detail}', err instanceof Error ? err.message : String(err));
+    } finally {
+      rechercheAutoEqEnCours = false;
+    }
+  }
+  async function importerDepuisAutoEq(r: api.AutoEqResultat) {
+    const msgOk = $t('eq.importPeqDone' as any);
+    const msgKo = $t('eq.importPeqFailed' as any);
+    const msgHorsLigne = $t('eq.autoeqOffline' as any);
+    importEnCours = true;
+    try {
+      accueillirImport(await api.importAutoEqFromDatabase({ path: r.path }), msgOk);
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      if (status === 503) notifications.error(msgHorsLigne);
+      else if (status !== 402) {
+        notifications.error(msgKo.replace('{detail}', err instanceof Error ? err.message : String(err)));
+      }
+    } finally {
+      importEnCours = false;
+    }
+  }
+  function libelleSource(r: api.AutoEqResultat): string {
+    return r.rig ? `${r.source} · ${r.rig}` : r.source;
   }
 
   /**
@@ -770,7 +842,41 @@
           title={$t('eq.importPeqTitle' as any)}>{$t('eq.importPeq' as any)}</button>
         <input class="import-peq-fichier" type="file" accept=".txt,text/plain" hidden
           bind:this={fichierPeq} onchange={importerPeq} />
+        <!-- tune-server-rust#6388 — la base AutoEq, lue par le serveur. -->
+        <button class="recherche-autoeq" aria-expanded={rechercheAutoEqOuverte}
+          onclick={() => (rechercheAutoEqOuverte = !rechercheAutoEqOuverte)}
+          title={$t('eq.autoeqSearchTitle' as any)}>{$t('eq.autoeqSearch' as any)}</button>
       </div>
+      {#if rechercheAutoEqOuverte}
+        <div class="autoeq">
+          <form class="autoeq-form" onsubmit={chercherAutoEq}>
+            <input type="search" bind:value={requeteAutoEq}
+              placeholder={$t('eq.autoeqPlaceholder' as any)}
+              aria-label={$t('eq.autoeqPlaceholder' as any)} />
+            <button type="submit" disabled={rechercheAutoEqEnCours || !requeteAutoEq.trim()}>
+              {$t('eq.autoeqFind' as any)}</button>
+          </form>
+          {#if erreurAutoEq}
+            <p class="autoeq-erreur" role="alert">{erreurAutoEq}</p>
+          {:else if resultatsAutoEq && resultatsAutoEq.length === 0}
+            <p class="autoeq-vide">{$t('eq.autoeqNoResult' as any)}</p>
+          {:else if resultatsAutoEq}
+            <p class="autoeq-compte">{$t('eq.autoeqCount' as any).replace('{shown}', String(resultatsAutoEq.length)).replace('{total}', String(totalAutoEq))}</p>
+            <ul class="autoeq-resultats">
+              {#each resultatsAutoEq as r (r.path)}
+                <li>
+                  <button disabled={importEnCours} onclick={() => importerDepuisAutoEq(r)}
+                    title={$t('eq.autoeqImportTitle' as any).replace('{name}', r.name).replace('{source}', libelleSource(r))}>
+                    <span class="autoeq-nom">{r.name}</span>
+                    <span class="autoeq-source">{libelleSource(r)}</span>
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          <p class="autoeq-credit">{$t('eq.autoeqCredit' as any)}</p>
+        </div>
+      {/if}
       {#if bilanPeq}
         <!-- Le bilan est DIT, pas avalé : bandes retenues, lignes écartées,
              préampli du fichier non appliqué en plus de la réserve de Tune. -->
@@ -947,6 +1053,15 @@
   .bilan-peq p{margin:0}
   .bilan-peq.alerte{border-color:var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
   .presets button:disabled{opacity:.45; cursor:default}
+  .autoeq{margin:-8px 0 16px; padding:10px 14px; border-radius:10px; border:1px solid var(--v2-line2)}
+  .autoeq-form{display:flex; gap:7px; flex-wrap:wrap}
+  .autoeq-form input{flex:1 1 180px; min-width:0}
+  .autoeq-resultats{list-style:none; margin:8px 0 0; padding:0; max-height:280px; overflow-y:auto}
+  .autoeq-resultats button{display:flex; justify-content:space-between; gap:10px; width:100%; text-align:left}
+  .autoeq-source{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .autoeq-compte, .autoeq-vide, .autoeq-erreur, .autoeq-credit{margin:8px 0 0; font-size:12px; color:var(--v2-txt2)}
+  .autoeq-erreur{color:var(--v2-acc-tint)}
+  .autoeq-credit{color:var(--v2-txt3)}
   /* Un avertissement, pas une erreur : la liste est utilisable, elle est
      seulement peut-être périmée. D'où le ton d'accentuation et non le rouge
      de `.err`, qui dirait à tort que rien ne marche. */

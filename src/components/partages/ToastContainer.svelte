@@ -24,6 +24,11 @@
         {n.action.label}
       </button>
     {/if}
+    {#if n.refus}
+      <button class="toast-action toast-refus" onclick={() => { n.refus?.run?.(); notifications.dismiss(n.id); }}>
+        {n.refus.label}
+      </button>
+    {/if}
     <button class="toast-dismiss" onclick={() => notifications.dismiss(n.id)}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
     </button>
@@ -43,6 +48,7 @@
     white-space: nowrap;
   }
   .toast-action:hover { background: rgba(255, 255, 255, 0.12); }
+  .toast-refus { font-weight: 400; }
 
   .toast {
     position: fixed;
