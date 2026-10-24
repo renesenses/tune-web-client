@@ -161,3 +161,23 @@ export interface GenreBreadcrumbItem {
 }
 
 export const streamingGenreBreadcrumb = writable<GenreBreadcrumbItem[]>([]);
+
+/**
+ * tune-server-rust#6934 — la page « Label » d'un service (vue
+ * `streaminglabel` de la coquille) : le label chez le service, et le chemin
+ * de SON Retour.
+ *
+ * `retour` est l'écran d'où l'on vient, `retourDuRetour` le `vueDeRetour`
+ * qu'il avait (une fiche album garde le sien : le label ne doit pas l'écraser),
+ * et `ficheAlbum` la fiche album d'où l'on est parti, rouverte telle quelle au
+ * Retour même si un autre album a été ouvert depuis la page du label.
+ */
+export interface CibleFicheLabelService {
+  service: Source;
+  id: string;
+  nom: string;
+  retour: View | null;
+  retourDuRetour: View | null;
+  ficheAlbum: CibleFicheAlbumService | null;
+}
+export const ficheLabelService = writable<CibleFicheLabelService | null>(null);

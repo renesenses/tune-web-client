@@ -82,7 +82,7 @@
   import { causeBibliothequeVide, type CauseBibliothequeVide } from '../../lib/smbMountState';
   import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
   import { rangAleatoire, graineAleatoire } from '../../lib/shuffle';
-  import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection, pistesDansLOrdre, bornee, tirageAleatoire, pistesDesAlbums } from '../../lib/porteeAleatoire';
+  import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection, pistesDansLOrdre, bornee, tirageAleatoire, pistesDesAlbums, chargerPistesDesAlbums } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
@@ -2711,8 +2711,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         if (nu) await demanderBibliothequeEntiere();
         const ordre = albumsDansLOrdre.flatMap((a) => (a.id == null ? [] : [a.id]));
         const provenance = fProvenance;
-        const [liste, plafond] = await Promise.all([pistesDesAlbums(ordre, chargeursDePistes), plafondAleatoire()]);
-        ids = pistesDansLOrdre(liste, ordre, plafond, (p) => dansSource(p, provenance));
+        // tune-server-rust#6222 — fiche par fiche, l'ordre de chaque album est
+        // celui du serveur (`ordreDesFiches`) : on ne le retrie pas.
+        const [charge, plafond] = await Promise.all([chargerPistesDesAlbums(ordre, chargeursDePistes), plafondAleatoire()]);
+        ids = pistesDansLOrdre(charge.pistes, ordre, plafond, (p) => dansSource(p, provenance), charge.ordreDesFiches);
       }
       if (ids.length) await playAndSync(zid, { track_ids: ids });
       else notifications.error($tr('library.noTracks'));

@@ -190,19 +190,37 @@ export function tirageAleatoire<T>(liste: readonly T[], plafond: number): T[] {
  * `albumsOrdonnes` porte l'ordre : c'est la liste que l'écran affiche, pas un
  * ensemble. Une piste sans numéro passe après les numérotées de son disque ;
  * à égalité, l'ordre d'arrivée du serveur tient (tri stable).
+ *
+ * ## tune-server-rust#6222 — `ordreDesFiches`
+ *
+ * Quand les pistes viennent des FICHES d'album (`/library/albums/{id}/tracks`,
+ * `chargerPistesDesAlbums` → `ordreDesFiches: true`), l'ordre DANS un album
+ * est celui du serveur, et on ne le retrie pas. Depuis tune-server-rust#6609,
+ * un album d'un seul disque dont des pistes de titres différents partagent un
+ * numéro (une compilation personnelle) y est rendu dans l'ordre naturel des
+ * chemins de fichier ; retrier par numéro ici défaisait cet ordre, et « Lire »
+ * ne jouait plus ce que la fiche affiche. Seul l'ordre ENTRE albums reste
+ * celui de l'écran (tri stable sur le rang de l'album).
+ *
+ * Sans fiches (`ordreDesFiches` absent : la bibliothèque entière, au-delà de
+ * `SEUIL_ALBUMS_PAR_FICHE` ou après une fiche illisible), on garde le tri par
+ * disque puis numéro : `/library/tracks` est trié par artiste et album, et
+ * n'applique pas l'ordre de fichiers de #6609.
  */
 export function pistesDansLOrdre(
   pistes: readonly Track[],
   albumsOrdonnes: readonly number[],
   plafond: number,
   garder: (t: Track) => boolean = () => true,
+  ordreDesFiches = false,
 ): number[] {
   const rang = new Map<number, number>();
   albumsOrdonnes.forEach((id, i) => { if (!rang.has(id)) rang.set(id, i); });
   const retenues = pistesRetenues(pistes, new Set(rang.keys()), garder);
   const num = (n: number | null | undefined) => (n == null || n <= 0 ? Number.MAX_SAFE_INTEGER : n);
-  retenues.sort((a, b) =>
-    rang.get(a.album_id as number)! - rang.get(b.album_id as number)!
+  const parAlbum = (a: Track, b: Track) => rang.get(a.album_id as number)! - rang.get(b.album_id as number)!;
+  retenues.sort(ordreDesFiches ? parAlbum : (a, b) =>
+    parAlbum(a, b)
     || (a.disc_number ?? 1) - (b.disc_number ?? 1)
     || num(a.track_number) - num(b.track_number));
   return bornee(retenues.map((t) => t.id as number), plafond);
@@ -243,15 +261,35 @@ export interface ChargeursDePistes {
   toutes: () => Promise<Track[]>;
 }
 
+/** Les pistes chargées, et d'où elles viennent : `ordreDesFiches` dit
+ *  qu'elles sont arrivées fiche par fiche, dans l'ordre que le serveur donne
+ *  à chaque album (tune-server-rust#6222, voir `pistesDansLOrdre`). */
+export interface PistesChargees {
+  pistes: Track[];
+  ordreDesFiches: boolean;
+}
+
 /** Les pistes où chercher celles des `albums` retenus — voir plus haut. */
+export async function chargerPistesDesAlbums(
+  albums: Iterable<number>,
+  charger: ChargeursDePistes,
+  seuil: number = SEUIL_ALBUMS_PAR_FICHE,
+): Promise<PistesChargees> {
+  const ids = [...new Set(albums)];
+  if (ids.length === 0) return { pistes: [], ordreDesFiches: true };
+  if (ids.length > seuil) return { pistes: await charger.toutes(), ordreDesFiches: false };
+  const { tracks, failedAlbums } = await charger.parAlbums(ids);
+  return failedAlbums > 0
+    ? { pistes: await charger.toutes(), ordreDesFiches: false }
+    : { pistes: tracks, ordreDesFiches: true };
+}
+
+/** `chargerPistesDesAlbums`, sans la provenance — pour l'aléatoire, qui
+ *  mélange de toute façon. */
 export async function pistesDesAlbums(
   albums: Iterable<number>,
   charger: ChargeursDePistes,
   seuil: number = SEUIL_ALBUMS_PAR_FICHE,
 ): Promise<Track[]> {
-  const ids = [...new Set(albums)];
-  if (ids.length === 0) return [];
-  if (ids.length > seuil) return charger.toutes();
-  const { tracks, failedAlbums } = await charger.parAlbums(ids);
-  return failedAlbums > 0 ? charger.toutes() : tracks;
+  return (await chargerPistesDesAlbums(albums, charger, seuil)).pistes;
 }

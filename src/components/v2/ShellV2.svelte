@@ -22,6 +22,7 @@
   import { ouvrirArtisteDeServiceParNom } from '../../lib/ouvrirArtisteDepuis';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import ArtisteServiceV2 from './ArtisteServiceV2.svelte';
+  import LabelServiceV2 from './LabelServiceV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import PlaylistsV2 from './PlaylistsV2.svelte';
   import SettingsV2 from './SettingsV2.svelte';
@@ -761,6 +762,11 @@
              cette route, `activeView` tomberait sur le repli « À venir » —
              le huitième « écrit, pas branché ». -->
         <ArtisteServiceV2 />
+      {:else if $activeView === 'streaminglabel'}
+        <!-- tune-server-rust#6934 — la page « Label » d'un service (Qobuz) :
+             son contenu vit dans `ficheLabelService` ; sans lui, la page dit
+             qu'il n'y a rien à montrer plutôt que de retomber sur « À venir ». -->
+        <LabelServiceV2 />
       {:else if $activeView === 'playlists'}
         <PlaylistsV2 />
       {:else if $activeView === 'settings'}

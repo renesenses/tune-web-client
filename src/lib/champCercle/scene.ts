@@ -44,9 +44,9 @@ export interface DonneesCercle {
   cercles: { id: number; nom: string; membres: number[] }[];
   /** Contact au centre de la vue Lien ; `null` = le premier qui partage, sinon le premier. */
   focus: number | null;
-  /** Nombre de contacts autour de moi avant la puce « +N » (8 sur mobile). */
+  /** Nombre de contacts autour de moi avant la puce « +N » (8 sur mobile, 30 sinon). */
   maxAutour: number;
-  /** Nombre de grappes de genres (4 sur mobile). */
+  /** Nombre de grappes de genres, et de cercles en vue Solo (4 sur mobile). */
   maxGrappes: number;
 }
 
@@ -79,6 +79,7 @@ export interface Scene { noeuds: NoeudScene[]; liens: { a: string; b: string }[]
 export const idContact = (uid: number) => `c:${uid}`;
 export const idGenre = (g: string) => `g:${g.toLowerCase()}`;
 export const idCercle = (id: number) => `k:${id}`;
+export const idCercleSolo = (id: number) => `ks:${id}`;
 export const idEpingle = (uid: number | 'moi') => `p:${uid}`;
 export const cleLien = (a: string, b: string) => `${a}|${b}`;
 
@@ -158,8 +159,26 @@ export function construireScene(d: DonneesCercle): Scene {
     noeuds.push({ id: idContact(c.id), kind: 'person', label: c.nom, hue: teinte(c.id), albums: c.albums, members: 0, contactId: c.id });
   }
 
-  // ── Solo ──
-  vues.seul.noeuds.self = { x: 0, y: 0, sphere: 0.66, alpha: 1 };
+  // ── Les cercles nommés (MES classements, privés : jamais envoyés) ──
+  // Deux nœuds par cercle : en Solo une grappe dont les membres sont en orbite
+  // (`ks:`), en Réseau une grappe au milieu de ses membres, qui y sont déjà
+  // des planètes (`k:`, sans orbite).
+  const membresConnus = new Set(d.contacts.map((c) => c.id));
+  const cercles = d.cercles.map((k) => ({ ...k, membres: k.membres.filter((m) => membresConnus.has(m)) }));
+  for (const k of cercles) {
+    noeuds.push({ id: idCercleSolo(k.id), kind: 'circle', label: k.nom, hue: 160, albums: null, members: k.membres.length, memberHues: k.membres.map(teinte) });
+    noeuds.push({ id: idCercle(k.id), kind: 'circle', label: k.nom, hue: 160, albums: null, members: k.membres.length });
+  }
+
+  // ── Solo : moi au centre ; mes cercles en grappes nommées autour ──
+  const cerclesSolo = cercles.slice(0, Math.max(0, d.maxGrappes));
+  vues.seul.noeuds.self = { x: 0, y: 0, sphere: cerclesSolo.length ? 0.4 : 0.66, alpha: 1 };
+  anneau(cerclesSolo.length, 0.74, 0.68, -0.7).forEach(([x, y], i) => {
+    const id = idCercleSolo(cerclesSolo[i].id);
+    vues.seul.noeuds[id] = { x, y, cluster: 0.8, alpha: 1 };
+    lien('self', id);
+    vues.seul.liens[cleLien('self', id)] = 'line';
+  });
 
   // ── Lien : moi à gauche, le contact choisi à droite, un flux s'il partage ──
   const f = contactFocus(d);
@@ -173,32 +192,61 @@ export function construireScene(d: DonneesCercle): Scene {
     vues.lien.noeuds.self = { ...vues.seul.noeuds.self };
   }
 
-  // ── Réseau : mes contacts autour de moi, mes cercles nommés plus loin ──
-  const visibles = d.contacts.slice(0, Math.max(0, d.maxAutour));
+  // ── Réseau : mes contacts en couronne, groupés par cercle ; chaque cercle
+  // au milieu de ses membres, entre eux et moi. Un contact de deux cercles
+  // reste UNE planète, reliée aux deux ; un contact hors cercle est relié à moi.
+  const premierCercle = (uid: number) => {
+    const i = cercles.findIndex((k) => k.membres.includes(uid));
+    return i < 0 ? cercles.length : i;
+  };
+  const ordonnes = [...d.contacts].sort((a, b) => premierCercle(a.id) - premierCercle(b.id));
+  const visibles = ordonnes.slice(0, Math.max(0, d.maxAutour));
   const reste = d.contacts.length - visibles.length;
   const mReseau = maxConnu([d.moi.albums, ...visibles.map((c) => c.albums)]);
-  vues.reseau.noeuds.self = { x: 0, y: 0, sphere: +(0.3 * rayonRelatif(d.moi.albums, mReseau)).toFixed(3), alpha: 1 };
-  anneau(visibles.length, 0.62, 0.66).forEach(([x, y], i) => {
-    const c = visibles[i];
+  const cerclesReseau = cercles.slice(0, 8);
+  vues.reseau.noeuds.self = { x: 0, y: 0, sphere: +((cerclesReseau.length ? 0.2 : 0.3) * rayonRelatif(d.moi.albums, mReseau)).toFixed(3), alpha: 1 };
+  // Au-delà de 14, deux couronnes alternées : les noms ne se chevauchent pas.
+  const deux = visibles.length > 14;
+  const angles = new Map<number, number>();
+  const pasAngle = (Math.PI * 2) / Math.max(1, visibles.length);
+  visibles.forEach((c, i) => {
+    const a = -Math.PI / 2 + i * pasAngle;
+    angles.set(c.id, a);
+    const ext = !deux || i % 2 === 0;
+    const rx = ext ? 0.84 : 0.64; const ry = ext ? 0.8 : 0.61;
     const id = idContact(c.id);
-    vues.reseau.noeuds[id] = { x, y, sphere: +(0.16 * rayonRelatif(c.albums, mReseau)).toFixed(3), alpha: 1 };
-    lien('self', id);
-    vues.reseau.liens[cleLien('self', id)] = c.albums != null ? 'stream' : 'line';
+    vues.reseau.noeuds[id] = { x: +(Math.cos(a) * rx).toFixed(3), y: +(Math.sin(a) * ry).toFixed(3), sphere: +((deux ? 0.12 : 0.16) * rayonRelatif(c.albums, mReseau)).toFixed(3), alpha: 1 };
+    const dansUnCercle = cerclesReseau.some((k) => k.membres.includes(c.id));
+    // Le flux dit « partage sa bibliothèque avec moi » : toujours vers moi.
+    if (c.albums != null || !dansUnCercle) {
+      lien('self', id);
+      vues.reseau.liens[cleLien('self', id)] = c.albums != null ? 'stream' : 'line';
+    }
   });
-  const cerclesVus = d.cercles.slice(0, 4);
-  anneau(cerclesVus.length, 0.9, 0.84, -2.2 + Math.PI / Math.max(1, visibles.length || 1)).forEach(([x, y], i) => {
-    const k = cerclesVus[i];
+  // Chaque cercle à l'angle moyen de ses membres visibles, écartés s'ils se touchent.
+  const placesCercles = cerclesReseau.map((k, i) => {
+    let sx = 0; let sy = 0;
+    for (const m of k.membres) { const a = angles.get(m); if (a != null) { sx += Math.cos(a); sy += Math.sin(a); } }
+    const a = sx || sy ? Math.atan2(sy, sx) : -Math.PI / 2 + (i * Math.PI * 2) / Math.max(1, cerclesReseau.length);
+    return { k, a };
+  }).sort((x, y) => x.a - y.a);
+  const ecart = Math.min(0.9, (Math.PI * 2) / Math.max(1, placesCercles.length));
+  for (let i = 1; i < placesCercles.length; i++) {
+    if (placesCercles[i].a - placesCercles[i - 1].a < ecart) placesCercles[i].a = placesCercles[i - 1].a + ecart;
+  }
+  for (const { k, a } of placesCercles) {
     const id = idCercle(k.id);
-    noeuds.push({ id, kind: 'circle', label: k.nom, hue: 160, albums: null, members: k.membres.length });
-    vues.reseau.noeuds[id] = { x, y, cluster: 0.8, alpha: 1 };
+    vues.reseau.noeuds[id] = { x: +(Math.cos(a) * 0.42).toFixed(3), y: +(Math.sin(a) * 0.4).toFixed(3), cluster: 0.6, alpha: 1 };
+    lien('self', id);
+    vues.reseau.liens[cleLien('self', id)] = 'line';
     for (const uid of k.membres) {
       const cid = idContact(uid);
       if (vues.reseau.noeuds[cid]) { lien(cid, id); vues.reseau.liens[cleLien(cid, id)] = 'line'; }
     }
-  });
+  }
   if (reste > 0) {
     noeuds.push({ id: 'more', kind: 'more', label: `+${reste}`, hue: 0, albums: null, members: reste });
-    vues.reseau.noeuds.more = { x: 0, y: 0.92, alpha: 1 };
+    vues.reseau.noeuds.more = { x: 0, y: 0.97, alpha: 1 };
   }
 
   // ── Genres : grappes autour de moi, les proches qui ont ce genre en orbite ──

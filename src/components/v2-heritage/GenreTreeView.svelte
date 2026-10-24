@@ -5,6 +5,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { t } from '../../lib/i18n';
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
+  import ArbreGenresMusicBrainzV2 from '../v2/ArbreGenresMusicBrainzV2.svelte';
 
   type Tree = Record<string, string[]>;
 
@@ -323,6 +324,10 @@
       {#each knownGenres as g}<option value={g}></option>{/each}
     </datalist>
   {/if}
+
+  <!-- tune-server-rust#6001 : la proposition MusicBrainz + Wikidata (CC0),
+       en lecture seule, sous l'arbre de l'auditeur. -->
+  <ArbreGenresMusicBrainzV2 />
 </section>
 
 <style>
