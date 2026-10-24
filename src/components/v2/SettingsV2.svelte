@@ -96,6 +96,7 @@
   import { CLE_LEVER_LE_BRIDAGE } from '../../lib/temperatureProcesseur';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
+  import EtatImportUpnp from '../partages/EtatImportUpnp.svelte';
   import {
     DELAI_MAJ_HOMEBREW_MS,
     divergenceHomebrew,
@@ -6078,6 +6079,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
               <AuditIntegrite />
+              <!-- tune-server-rust#4201 — l'état de la bibliothèque UPnP
+                   synchronisée (dernier bilan persisté de chaque source). -->
+              <EtatImportUpnp />
 
             {:else if s.id === 'musicDirs'}
               <!-- Fil 2171 — le sélecteur est LE geste d'ajout : un vrai bouton,
