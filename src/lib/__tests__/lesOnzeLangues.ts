@@ -18,5 +18,6 @@ import ro from '../locales/ro';
 import sv from '../locales/sv';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
+import elLocale from '../locales/el';
 
-export { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, viLocale as vi };
+export { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, viLocale as vi, elLocale as el };

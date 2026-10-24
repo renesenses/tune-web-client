@@ -31,7 +31,7 @@ const sansCommentaires = (src: string): string =>
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-const LANGUES = ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi'] as const;
+const LANGUES = ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el'] as const;
 const CLES = [
   'search.durationShown',
   'search.createPlaylist',

@@ -23,6 +23,7 @@ import es from '../locales/es';
 import fr from '../locales/fr';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
+import elLocale from '../locales/el';
 import it_ from '../locales/it';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
@@ -93,7 +94,7 @@ describe('#1875 — branché dans la fiche, et traduit', () => {
     expect(src).toMatch(/revelerDossierAlbum\(album\.id\)/);
   });
 
-  const DICOS = { de, en, es, fr, hu, vi: viLocale, it: it_, ja, ko, ro, sv, zh } as unknown as Record<string, Record<string, string>>;
+  const DICOS = { de, en, es, fr, hu, vi: viLocale, el: elLocale, it: it_, ja, ko, ro, sv, zh } as unknown as Record<string, Record<string, string>>;
   const CLES = ['v2.album.reveal', 'v2.album.revealTip', 'v2.album.revealNotFound', 'v2.album.revealRefused', 'v2.album.revealFailed'];
   it.each(Object.keys(DICOS))('%s porte les cinq textes', (l) => {
     for (const k of CLES) expect(DICOS[l][k]?.trim(), `${l} : ${k}`).toBeTruthy();

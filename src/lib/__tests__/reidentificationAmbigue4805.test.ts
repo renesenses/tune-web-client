@@ -93,7 +93,7 @@ describe('Ré-identifier : verdict ambiguous (#4805 D)', () => {
   it('les clés existent dans les onze langues', () => {
     const dossier = new URL('../locales/', import.meta.url);
     const langues = readdirSync(dossier).filter((f) => f.endsWith('.ts') && f !== 'index.ts');
-    expect(langues.length).toBe(12);
+    expect(langues.length).toBe(13);
     for (const f of langues) {
       const texte = readFileSync(new URL(f, dossier), 'utf8');
       for (const cle of ['library.reidentifyAmbiguous', 'library.reidentifyChoose', 'library.reidentifyTracks']) {

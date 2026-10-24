@@ -14,7 +14,7 @@ import { dictionnaire } from './onzeDictionnaires';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8')
   .replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi'];
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi', 'el'];
 
 describe('#1011 — l’éditeur de playlists intelligentes est monté, et atteignable', () => {
   const shell = lire('src/components/v2/ShellV2.svelte');

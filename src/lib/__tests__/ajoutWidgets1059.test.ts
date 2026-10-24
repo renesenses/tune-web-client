@@ -115,9 +115,9 @@ describe('#1059 — l’écran s’en sert vraiment', () => {
 });
 
 describe('#1059 — la clé nouvelle est dans les ONZE dictionnaires', () => {
-  const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi'];
+  const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el'];
   it('aucune ne manque, aucune n’est vide', () => {
-    expect(LANGUES).toHaveLength(12);
+    expect(LANGUES).toHaveLength(13);
     for (const lg of LANGUES) {
       const src = lire(`../locales/${lg}.ts`);
       const m = src.match(/"v2\.home\.alreadyPlaced":\s*"([^"]*)"/);

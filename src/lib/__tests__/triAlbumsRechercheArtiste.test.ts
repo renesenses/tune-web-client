@@ -58,7 +58,7 @@ describe('trierAlbums', () => {
   });
 
   it('chaque clé a un libellé qui existe dans les onze langues', () => {
-    for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh','vi']) {
+    for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh','vi','el']) {
       const src = readFileSync(resolve(process.cwd(), `src/lib/locales/${l}.ts`), 'utf-8');
       for (const k of CLES_TRI_ALBUMS) {
         const cle = LIBELLES_TRI_ALBUMS[k];

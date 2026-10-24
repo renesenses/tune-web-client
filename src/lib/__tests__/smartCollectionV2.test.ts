@@ -289,7 +289,7 @@ describe('Le champ « répertoire »', () => {
       'smartCollection.folderBrowse',
       'smartCollection.folderUnavailable',
     ];
-    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi']) {
+    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
       const src = lire(`src/lib/locales/${langue}.ts`);
       for (const cle of CLES) {
         expect(src, `${langue}.ts ne porte pas ${cle}`).toContain(`"${cle}"`);

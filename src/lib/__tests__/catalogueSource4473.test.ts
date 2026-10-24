@@ -264,7 +264,7 @@ describe('#4473 — `title` ne veut pas dire la même chose des deux côtés', (
 });
 
 describe('#4473 — les onze langues', () => {
-  const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi'];
+  const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el'];
 
   it('les trois libellés existent partout', () => {
     for (const l of LANGUES) {

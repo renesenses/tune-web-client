@@ -32,6 +32,7 @@ import sv from '../locales/sv';
 import zh from '../locales/zh';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
+import elLocale from '../locales/el';
 
 const tvView = readFileSync(resolve(__dirname, '../../components/v2-heritage/TvView.svelte'), 'utf-8');
 const bars = readFileSync(resolve(__dirname, '../../components/v2-heritage/TvVuBars.svelte'), 'utf-8');
@@ -152,7 +153,7 @@ describe('le bargraphe affiche du dBFS — jamais de la sonie', () => {
   });
 
   it('aucun libellé traduit ne promet une mesure de sonie', () => {
-    const DICTS = { fr, en, de, es, it: it_, ja, ko, ro, sv, zh, hu, vi: viLocale } as Record<
+    const DICTS = { fr, en, de, es, it: it_, ja, ko, ro, sv, zh, hu, vi: viLocale, el: elLocale } as Record<
       string,
       Record<string, string | undefined>
     >;
@@ -302,7 +303,7 @@ describe('les trois choix arrivent bien à l’écran', () => {
  * ------------------------------------------------------------------------ */
 describe('les onze langues portent les libellés du choix d’instrument', () => {
   const DICTS: Record<string, Record<string, string | undefined>> = {
-    fr, en, de, es, it: it_, ja, ko, ro, sv, zh, hu, vi: viLocale,
+    fr, en, de, es, it: it_, ja, ko, ro, sv, zh, hu, vi: viLocale, el: elLocale,
   };
   const KEYS = [
     'tv.vuInstrument',
@@ -314,7 +315,7 @@ describe('les onze langues portent les libellés du choix d’instrument', () =>
   ];
 
   it('les onze dictionnaires sont bien onze', () => {
-    expect(Object.keys(DICTS)).toHaveLength(12);
+    expect(Object.keys(DICTS)).toHaveLength(13);
   });
 
   for (const [locale, dict] of Object.entries(DICTS)) {
