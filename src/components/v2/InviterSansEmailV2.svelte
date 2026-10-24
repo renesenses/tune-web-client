@@ -18,6 +18,7 @@
   import { t } from '../../lib/i18n';
   import { dateCourte } from '../../lib/dates';
   import { copyText } from '../../lib/utils';
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import {
     inviterParPseudo, listerLiensInvitation, creerLienInvitation, revoquerLienInvitation, motifCercle,
     type LienInvitation, type MotifCercle,
@@ -162,7 +163,7 @@
         <ul>
           {#each liens as l (l.id)}
             <li class="ligne lien-actif">
-              <span class="nom">{$t('v2.circle.link.item' as any).replace('{date}', $dateCourte(l.created_at))}</span>
+              <span class="nom" use:bulleTexte>{$t('v2.circle.link.item' as any).replace('{date}', $dateCourte(l.created_at))}</span>
               <span class="note">{$t('v2.circle.expires' as any).replace('{date}', $dateCourte(l.expires_at))}</span>
               <span class="gestes">
                 <button class="lnk revoquer-lien" type="button" disabled={occupe} onclick={() => void revoquer(l)}>
