@@ -48,7 +48,7 @@
   import { tirageAleatoire } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
   import { motifCercle, RELECTURE_CERCLE_MS } from '../../lib/circle';
-  import { dateCourte } from '../../lib/dates';
+  import { dateCourte, dateEtHeure } from '../../lib/dates';
   import { cleAvertissement, nePlusSuivre, synchroniserSuivi } from '../../lib/suiviCercle';
   import {
     lirePlaylistCercle, resoudrePlaylistCercle, retirerMorceau, reordonnerMorceaux,
@@ -615,7 +615,19 @@
             <span class="infos">
               <span class="titre-ligne"><IndicateurLecture etat={enCours} /><span class="titre-morceau" use:bulleTexte>{m.title}</span></span>
               {#if sousTitre(m)}<span class="note sous-titre" use:bulleTexte>{sousTitre(m)}</span>{/if}
-              {#if !unique}<span class="note auteur">{auteur(m)}</span>{/if}
+              <!-- T5 (24/10) — qui a ajouté (déjà là) ET quand : le cloud stocke
+                   `added_at` à chaque ajout (site-mozaiklabs CirclePlaylists). Une
+                   date illisible ne s'affiche pas. -->
+              {#if !unique || m.added_at}
+                <span class="note qui-quand" use:bulleTexte>
+                  {#if !unique}<span class="auteur">{auteur(m)}</span>{/if}
+                  {#if m.added_at && $dateCourte(m.added_at)}
+                    {#if !unique}<span aria-hidden="true"> · </span>{/if}<time class="quand-ajoute" datetime={m.added_at}
+                      title={$t('v2.circle.pl.addedOn' as any).replace('{date}', $dateEtHeure(m.added_at))}
+                      aria-label={$t('v2.circle.pl.addedOn' as any).replace('{date}', $dateCourte(m.added_at))}>{$dateCourte(m.added_at)}</time>
+                  {/if}
+                </span>
+              {/if}
             </span>
             <span class="note duree">{m.duration_ms ? formatTime(m.duration_ms) : ''}</span>
             <span class={`resolution ${r && pastilleVisible(r, maj) ? `res-${r.etat}` : ''}`}>{r && pastilleVisible(r, maj) ? libelleResolution(r) : ''}</span>
@@ -665,6 +677,7 @@
   .alerte-suivi{color:var(--v2-acc1)}
   .alerte{color:var(--v2-danger)}
   .vide{margin:0}
+  .qui-quand{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .err,.ok{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:12.5px}
   .err{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .ok{border:1px solid var(--v2-line); background:var(--v2-acc-soft); color:var(--v2-txt)}
