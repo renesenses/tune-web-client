@@ -134,3 +134,29 @@
     {/if}
   {/each}
 {/if}
+
+<!--
+  web#2324 — ce composant n'avait AUCUN bloc de styles. Les classes `row`,
+  `lbl`, `hint`, `inline`, `lnk`, `bar2`, `errline` sont définies dans le
+  bloc de styles de SettingsV2.svelte, à portée LOCALE : Svelte ne les applique pas à
+  un composant enfant. Les lignes « BPM de la bibliothèque » et « Propositions
+  Discogs » s'affichaient donc en texte brut, à la taille par défaut, avec des
+  boutons « Lancer » natifs sous le libellé (Didier, fil 2390). Les règles
+  reprennent, à l'identique, celles des lignes voisines de Réglages.
+-->
+<style>
+  .row{display:flex; align-items:center; justify-content:space-between; gap:20px; margin-top:12px}
+  .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
+  .lbl span:first-child{font-size:13.5px; font-weight:500}
+  .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3)}
+  p.hint{margin:6px 0 0}
+  .inline{display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:0 0 auto}
+  .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans)}
+  .lnk:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .lnk:disabled{opacity:.5; cursor:default}
+  .bar2{margin-top:12px; height:6px; border-radius:4px; background:var(--v2-line); overflow:hidden}
+  .bar2 span{display:block; height:100%; border-radius:4px;
+    background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2)); transition:width .4s}
+  .errline{margin-top:10px; font-size:12px; color:var(--v2-danger)}
+</style>

@@ -8,6 +8,7 @@ import { preferences } from './lib/stores/preferences';
 import { preparerLocale } from './lib/i18n';
 import { installerRechargementApresMiseAJour } from './lib/rechargementApresMiseAJour';
 import { viaRelais } from './lib/bridge';
+import { estRetourOAuth } from './lib/laissezPasser/accesParCompte';
 
 // Par le pont (téléphone hors du réseau local), Safari oublie le geste pendant
 // l'aller-retour de `POST /play` et refuse ensuite de lancer le son de la zone
@@ -40,10 +41,20 @@ installerRechargementApresMiseAJour();
 // profil serveur en apporte une autre, `locale.set` chargera son chunk puis
 // basculera. Un chunk qui n'arrive pas ne bloque pas le montage : `preparerLocale`
 // se résout toujours.
-preparerLocale(get(preferences).language ?? 'en').then(() => {
+preparerLocale(get(preferences).language ?? 'en').then(async () => {
+  // `/oauth/retour` sur le relais : fin de la connexion au compte mozaiklabs,
+  // puis retour sur `/{server_id}/`. Pas de coquille : il n'y a pas de serveur ici.
+  if (estRetourOAuth()) {
+    const { default: RetourOAuth } = await import('./components/partages/RetourOAuth.svelte');
+    mount(RetourOAuth, { target: document.getElementById('app')! });
+    return;
+  }
   mount(ShellV2, {
     target: document.getElementById('app')!,
   });
+  // tune-server-rust#4908 — commandes de l'écran verrouillé, si le réglage
+  // est allumé (éteint par défaut).
+  void import('./lib/mediaSessionInstallee').then((m) => m.installerSessionMedia());
 });
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});

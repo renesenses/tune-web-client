@@ -1,6 +1,6 @@
 <script lang="ts">
   import { preferences } from '../../lib/stores/preferences';
-  import { descriptionDEtape, etapeIntacte, etatSansPerte, traitIntact } from '../../lib/formatInconnu';
+  import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
   // La barre à VU-mètres (Bertrand, 27/09/2026, maquette de Levente). Le
   // cadran est celui du Grand écran, par `lib/dessinVuMetre` : une seconde
@@ -52,6 +52,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { fullVolumeConfirmationRequired } from '../../lib/audiophileSafety';
   import { zonesDuSelecteur } from '../../lib/zonesSelecteur';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
+  import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
+  import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
+  import { cibleDuPas } from '../../lib/limitesVolume';
   import {
     audiophileEnabled,
     audiophileGlobalLockVolume,
@@ -61,6 +64,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     refreshVolumeLock,
     setZoneVolumeLock,
     volumeLocked,
+    isVolumeLocked,
   } from '../../lib/stores/audiophile';
 
   // Le libellé de protocole vivait ici en copie locale (il en existe encore
@@ -75,14 +79,15 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   // --- Mobile Volume Popup ---
   let mobileVolumeOpen = $state(false);
   let mobileVol = $derived($zoneVolume);
-  let mobileIsMuted = $derived(mobileVol === 0 && $mutedVolume !== null);
+  // #6700 — la sourdine est l'état `muted` de la zone, pas un volume à zéro.
+  let mobileIsMuted = $derived($currentZone?.muted === true);
 
   // Miroir local obligatoire pour les zones navigateur : le serveur ignore
   // leur volume (set_volume_no_device_id), l'<audio> de cet onglet doit être
   // piloté directement (même règle que VolumeControl).
-  function applyMobileVolume(z: { output_type?: string }, val: number) {
+  function applyMobileVolume(z: { output_type?: string; volume_curve?: string | null }, val: number) {
     zoneVolume.set(val);
-    if (isBrowserZone(z)) browserSetVolume(val);
+    if (isBrowserZone(z)) browserSetVolume(val, z);
   }
 
   // Fil forum 2129 : même limitation que le curseur principal (`VolumeControl`).
@@ -93,37 +98,37 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
     const val = Number((e.target as HTMLInputElement).value);
-    if (val > 0) mutedVolume.set(null);
+    leverSourdineSiBesoin({ ...z, id: z.id }, val);
     applyMobileVolume(z, val);
     const zoneId = z.id;
-    limiterEnvoiMobile(() => { void api.setVolume(zoneId, val); });
+    // tune-server-rust#6721 — même règle que `VolumeControl` : un refus relit le verrou.
+    limiterEnvoiMobile(() => {
+      void envoyerVolumeOuReverrouiller(zoneId, val, {
+        envoyer: api.setVolume,
+        relireVerrou: refreshAudiophile,
+        verrouille: isVolumeLocked,
+        direVerrou: () => notifications.error($t('audiophile.volumeLockedHint' as any)),
+      });
+    });
   }
 
   async function mobileVolumeStep(delta: number) {
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
-    const newVal = Math.max(0, Math.min(1, mobileVol + delta));
-    if (newVal > 0) mutedVolume.set(null);
+    // web#2292 — un point, et + borné par la sécurité de la zone comme les
+    // boutons du curseur, pas seulement par 100 %.
+    const newVal = cibleDuPas(z, mobileVol, delta > 0 ? 'up' : 'down');
+    if (newVal === mobileVol) return;
+    if (delta > 0) leverSourdineSiBesoin({ ...z, id: z.id }, newVal);
     applyMobileVolume(z, newVal);
     await api.setVolume(z.id, newVal);
   }
 
+  // #6700 — une VRAIE sourdine (`muted`), le volume n'est pas touché.
   async function toggleMobileMute() {
     const z = $currentZone;
     if (!z?.id || $volumeLocked) return;
-    if (mobileVol > 0) {
-      mutedVolume.set(mobileVol);
-      applyMobileVolume(z, 0);
-      await api.setVolume(z.id, 0);
-    } else if ($mutedVolume !== null) {
-      const restore = $mutedVolume;
-      mutedVolume.set(null);
-      applyMobileVolume(z, restore);
-      await api.setVolume(z.id, restore);
-    } else {
-      applyMobileVolume(z, 0.5);
-      await api.setVolume(z.id, 0.5);
-    }
+    await basculerSourdineZone({ ...z, id: z.id }).catch(() => {});
   }
 
   // --- Sleep Timer ---
@@ -518,6 +523,18 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     configSection = 'groupe';
     configZone = zone;
   }
+  /**
+   * web#2371 (Van Der Graaf Generator, forum-hifi : où se règle le gapless ?)
+   * — le reste de la fenêtre de la zone (gapless, volume, correction,
+   * appareil…) n'était, lui aussi, atteignable que par le clic droit. Même
+   * porte que la lecture groupée, la fenêtre ouverte en haut.
+   */
+  function ouvrirReglagesZone() {
+    if (!zone) return;
+    $selecteurZoneOuvert = false;
+    configSection = null;
+    configZone = zone;
+  }
 
   /* ------------------------------------------------------------------ */
   /* TRANSFÉRER LA LECTURE VERS UNE AUTRE ZONE                          */
@@ -721,7 +738,18 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   let audiophileLoading = $state(false);
   let lockLoading = $state(false);
 
+  /**
+   * tune-server-rust#6774 — quand la zone passe sur un AUTRE appareil, le
+   * serveur désarme PURE verrouillé (« Forcer à 100 % ») : la même zone, un
+   * autre appareil, et l'état PURE doit être relu. Sans cette dépendance, la
+   * barre gardait le bouclier armé et le curseur gelé jusqu'au changement de
+   * zone. Une valeur PRIMITIVE dérivée : l'effet ne repart que si
+   * l'identifiant change, pas à chaque mise à jour de la zone.
+   */
+  const appareilDeLaZone = $derived(zone?.output_device_id ?? null);
+
   $effect(() => {
+    void appareilDeLaZone;
     void refreshAudiophile($currentZoneId);
   });
 
@@ -1081,6 +1109,19 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               </span>
             </button>
           {/if}
+          {#if zone}
+            <!-- web#2371 — les réglages de la zone pilotée, au clic comme au
+                 doigt et au clavier ; le clic droit reste un raccourci. -->
+            <button class="zone-popover-item zone-popover-groupe" data-reglages-zone onclick={ouvrirReglagesZone}
+              title={$t('zone.settingsOpenTip' as any)}>
+              <span class="zone-popover-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+              </span>
+              <span class="zone-popover-labels">
+                <span class="zone-popover-geste truncate">{$t('zone.settingsOpen' as any)}</span>
+              </span>
+            </button>
+          {/if}
         </div>
 {/snippet}
 
@@ -1155,6 +1196,20 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                   title={hasTrackFormat ? formatQualityTooltip(displayTrack) : (zone?.signal_path?.summary ?? '')}
                 >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || (etatSansPerte(zone?.signal_path) === 'unknown' ? $t('signal.unknownFormat') : etatSansPerte(zone?.signal_path) === 'lossless' ? 'Lossless' : 'Lossy'))}</span>
             {/if}
+            </span>
+          {:else if formatDuFluxRadio(zone?.signal_path)}
+            <!-- web#2300 (fil 2376) — une radio a aussi son format : celui que
+                 la sonde du flux a relevé (étape Source du chemin du signal). -->
+            {@const formatRadio = formatDuFluxRadio(zone?.signal_path)}
+            <span class="mini-badges">
+              <span
+                class="tb-quality-badge tier-{getQualityTierColor(etatSansPerte(zone?.signal_path) === 'lossless' ? 'cd' : 'lossy')} sp-clickable"
+                role="button"
+                tabindex={0}
+                onclick={(e) => { e.stopPropagation(); showSignalPath = true; }}
+                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); showSignalPath = true; } }}
+                title={zone?.signal_path?.summary ?? ''}
+              >{formatRadio}</span>
             </span>
           {/if}
         </div>
@@ -1354,7 +1409,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
          Le nombre de titres à suivre est en infobulle, pas dessiné : la barre
          reste compacte. -->
     <button
-      class="control-btn small"
+      class="control-btn small queue-btn"
       class:active={$activeView === 'queue'}
       onclick={() => activeView.set('queue')}
       aria-label={$t('nav.queue')}
@@ -3425,6 +3480,38 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
     /* Mini-player: seulement play/pause + next */
     .transport-controls .control-btn.small { display: none; }
+
+    /* web#1870 (Lionel, fil 1638) — « en voulant voir la playlist en cours
+       j'ai souvent cliqué sur le bandeau d'avance du morceau ».
+       Sur téléphone, la barre de saut (`.transport-progress`, 18 px de haut)
+       se rangeait dans la colonne des commandes, juste SOUS lecture/suivant,
+       et l'accès à la file était masqué avec les autres petits boutons : le
+       pouce qui cherchait la file tombait sur le saut.
+       1. La file reste dans la mini-barre, en cible de 44 px (le minimum
+          tactile d'Apple), à côté de lecture/suivant.
+       2. Le saut quitte la mini-barre : il vit dans « Lecture en cours »
+          (`SeekBar`, pleine largeur). Ici, il ne reste qu'un trait de
+          progression en HAUT de la barre, qui ne capte aucun toucher. */
+    .transport-controls .control-btn.small.queue-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+    }
+
+    .transport-progress { display: none; }
+
+    .transport-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 2px;
+      background: var(--tune-accent);
+      width: var(--compact-progress, 0%);
+      pointer-events: none;
+    }
     .transport-controls .audiophile-btn { display: none; }
 
     .transport-controls .play-btn {

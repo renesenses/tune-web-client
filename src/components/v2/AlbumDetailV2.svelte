@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { labelDe, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
   import BadgeReaffectation from './BadgeReaffectation.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
@@ -12,6 +13,7 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';
   import { t as tr } from '../../lib/i18n';
+  import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import { formatAnneeAlbum } from '../../lib/formats';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -34,12 +36,14 @@
 import AlbumRating from '../partages/AlbumRating.svelte';
 import ReportButton from '../partages/ReportButton.svelte';
 import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
+import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbum';
   import ClampedText from '../partages/ClampedText.svelte';
   import AttributionBio from './AttributionBio.svelte';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
   import ListePistesV2 from './ListePistesV2.svelte';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
   import SuggestionsIaAlbumV2 from './SuggestionsIaAlbumV2.svelte';
+  import NotesPochetteIaV2 from './NotesPochetteIaV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
   import {
     SELECTION_VIDE, appliquerGenre, basculer, choisiesDansLOrdre, corpsArtistePistes,
@@ -83,6 +87,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { portail } from '../../lib/portail';
   import { estMarqueIa, marquageIaADemander } from '../../lib/contenuIa';
 import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
+import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentationRefuses, type EtatPresentation } from '../../lib/presentationAlbumService';
   import { dialogs } from '../../lib/stores/dialogs';
   import { origineDuCoffret, EVT_COFFRET_DEFAIT, type OrigineCoffret } from '../../lib/coffretAuto';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -301,6 +306,28 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   let creditsOuverts = $state(false);
   /** Relevé AU CLIC : un refus (501/404) retire le bouton, pas le tiroir ouvert. */
   let creditsServiceOuvert = $state.raw<AlbumDeServiceCredits | null>(null);
+
+  /**
+   * #6481 — le LIVRET PDF (cpadiou77 et Patatorz, fil forum 2326) : les PDF du
+   * dossier d'un album de la bibliothèque, ou le livret numérique de Qobuz.
+   * Lus à l'ouverture de la fiche — une lecture de dossier, ou la réponse
+   * `album/get` que le serveur garde déjà en cache : le bouton n'apparaît que
+   * s'il y a un livret à ouvrir.
+   */
+  let livrets = $state.raw<Livret[]>([]);
+  $effect(() => {
+    const cible = cibleLivrets(album as any, { service, depot, bandcamp });
+    livrets = [];
+    if (!cible) return;
+    let perime = false;
+    void chargerLivrets(cible, {
+      base: api.BASE,
+      locaux: api.getAlbumBooklets,
+      deService: api.getStreamingAlbumBooklets,
+      navigateur: api.urlDeNavigation,
+    }).then((l) => { if (!perime) livrets = l; });
+    return () => { perime = true; };
+  });
 
   /* ══════════════════════════════════════════════════════════════════════
      « AJOUTER À UNE COLLECTION » — réunion du 23/09/2026.
@@ -740,6 +767,8 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   let enEdition = $state(false);
   /** Assistant IA, étape 1 : la fenêtre des suggestions de CET album. */
   let suggestionsIa = $state(false);
+  /** Notes de pochette écrites par l'assistant (tune-server-rust, 23/10/2026). */
+  let notesIa = $state(false);
   const editionPossible = $derived(album.id != null && !depot && !service && !bandcamp);
   $effect(() => {
     const id = album.id, possible = editionPossible;
@@ -755,7 +784,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     return () => { vivant = false; };
   });
   // Une autre fiche s'ouvre : on ne reste pas en édition sur l'album d'avant.
-  $effect(() => { void album?.id; enEdition = false; suggestionsIa = false; });
+  $effect(() => { void album?.id; enEdition = false; suggestionsIa = false; notesIa = false; });
 
   /**
    * « Modifier » depuis le menu « … » d'un album (`lib/gestesObjet`) : la fiche
@@ -1321,6 +1350,39 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   }
 
   /**
+   * #6480 — la PRÉSENTATION d'un album de service (cpadiou77, fil 2327) : la
+   * critique que Qobuz publie, servie en texte par le serveur. Même geste que
+   * « Notes / Bio » ci-dessus (un bouton, lu au clic), pour un album SANS
+   * `id` local. Voir `lib/presentationAlbumService`.
+   */
+  const presentationCible = $derived(
+    depot || bandcamp || album.id != null ? null
+      : presentationAlbumDeServiceDe(service, sidDistant, $servicesPresentationRefuses),
+  );
+  let presentationOuverte = $state(false);
+  let presentation = $state<EtatPresentation | null>(null);
+  let presentationChargement = $state(false);
+  let presentationCle = $state<string | null>(null);
+  $effect(() => {
+    const cle = presentationCible ? `${presentationCible.service}:${presentationCible.albumId}` : null;
+    if (cle === untrack(() => presentationCle)) return;
+    presentationCle = cle;
+    presentationOuverte = false;
+    presentation = null;
+  });
+  async function basculerPresentation() {
+    presentationOuverte = !presentationOuverte;
+    const cible = presentationCible;
+    if (!presentationOuverte || !cible || presentation || presentationChargement) return;
+    presentationChargement = true;
+    const cle = `${cible.service}:${cible.albumId}`;
+    const r = await chargerPresentation(cible, api.getStreamingAlbumDescription);
+    // Course : l'album a pu changer pendant la requête.
+    if (presentationCle === cle) presentation = r;
+    presentationChargement = false;
+  }
+
+  /**
    * Le nom de l'artiste MÈNE à sa fiche — #3708, FabienM, fil forum 1726 :
    * « l'hyperlien sur l'artiste est absent, ex ici: Artiste Depeche Mode n'a
    * pas de lien actif pour rediriger vers la page de l'artiste. »
@@ -1581,7 +1643,19 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
              `DR ~12` souligné en pointillés pour la moyenne des pistes. Même
              valeur, provenance différente — voir `lib/dynamicRange.ts`. -->
         {#if dr}<span class="dr" class:deduit={dr.deduit} use:tip={dr.cleInfobulle}>DR {dr.texte}</span>{/if}
+        <!-- #2298 — le total des écoutes de la communauté, lu sur la fiche
+             locale (`GET /library/albums/{id}`) ; rien sans le champ. -->
+        <EcoutesCommunaute objet={fiche ?? album} />
       </div>
+      <!-- tune-server-rust#6782 — vers la page du label : ses autres artistes,
+           dans la bibliothèque puis chez Qobuz. Album de la bibliothèque
+           seulement : la page du label est celle de la Bibliothèque. -->
+      {#if creditsPossibles && labelDe(albumAffiche)}
+        {@const nomLabel = labelDe(albumAffiche)!}
+        <button type="button" class="lien-label" data-lien-label onclick={() => { onClose(); void ouvrirLabelDansLaBibliotheque(nomLabel); }}>
+          {$tr('v2.label.autresArtistes' as any).replace('{label}', nomLabel)}
+        </button>
+      {/if}
       {#if preferenceChargee && (repertoiresDeCetAlbum.length > 1 || racinePreferee)}
         <div class="repertoire-lecture">
           <label for="album-repertoire-{album.id}">{$tr('v2.album.playFrom' as any)}</label>
@@ -1652,6 +1726,14 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
             </button>
           {/if}
         {/if}
+        <!-- #6481 — le livret s'ouvre dans un nouvel onglet. -->
+        {#each livrets as l (l.url)}
+          <a class="ghost livret" href={l.url} target="_blank" rel="noopener noreferrer"
+            title={l.nom || $tr('v2.album.booklet' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>
+            {livrets.length > 1 && l.nom ? l.nom.replace(/\.pdf$/i, '') : $tr('v2.album.booklet' as any)}
+          </a>
+        {/each}
         {#if coffretDefaisable()}
           <button class="ghost defaire-coffret" onclick={defaireCoffret} disabled={defaireEnCours}
             title={$tr('v2.album.boxUndoTip' as any)}>
@@ -1751,6 +1833,10 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>
               {$tr('assistantIa.album.button' as any)}
             </button>
+            <button class="ghost" data-notes-ia-album onclick={() => (notesIa = true)}
+              title={$tr('assistantIa.notes.tip' as any)}>
+              {$tr('assistantIa.notes.button' as any)}
+            </button>
           {/if}
         </div>
       {/if}
@@ -1782,6 +1868,31 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
     </div>
   {/if}
 
+  <!-- #6480 — la présentation d'un album de SERVICE, en texte : jamais de
+       balisage interprété (`{@html}`), le serveur l'a déjà retiré. Un refus
+       (501) retire le bouton des fiches suivantes ; celle-ci dit pourquoi. -->
+  {#if presentationCible || presentation?.etat === 'refus'}
+    <div class="bio">
+      <button class="bio-toggle" onclick={basculerPresentation} aria-expanded={presentationOuverte}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        {presentationOuverte ? $tr('v2.album.hidePresentation' as any) : $tr('v2.album.presentation' as any)}
+      </button>
+      {#if presentationOuverte}
+        {#if presentationChargement}
+          <p class="bio-state">{$tr('v2.common.loading' as any)}</p>
+        {:else if presentation?.etat === 'texte'}
+          <ClampedText lines={4} resetKey={presentation.texte}>
+            <p class="bio-text presentation" lang={presentation.langue ?? undefined}>{presentation.texte}</p>
+          </ClampedText>
+        {:else if presentation?.etat === 'erreur'}
+          <p class="bio-state err">{$tr('v2.album.presentationError' as any)}</p>
+        {:else if presentation}
+          <p class="bio-state">{$tr('v2.album.noPresentation' as any)}</p>
+        {/if}
+      {/if}
+    </div>
+  {/if}
+
   <!-- #4805 lot 1 (d'après MetaRust, de Xavier Joly) : complétude, BPM,
        instruments Wikidata, propositions Discogs. Album de la BIBLIOTHÈQUE
        seulement — la même garde que les crédits. -->
@@ -1790,6 +1901,10 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
       <m.default albumId={album.id} pistes={tracks} pochette={pochetteRemplacee ?? albumAffiche.cover_path ?? null}
         onPochette={(h) => (pochetteRemplacee = h)} />
     {/await}
+  {/if}
+
+  {#if notesIa && album.id != null}
+    <NotesPochetteIaV2 albumId={album.id} onClose={() => (notesIa = false)} />
   {/if}
 
   {#if suggestionsIa && album.id != null}
@@ -2004,6 +2119,9 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   .artist.lien:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:3px; border-radius:4px}
   .facts{display:flex; gap:16px; font:12px var(--v2-mono); color:var(--v2-txt3)}
   .repertoire-lecture{display:flex; flex-direction:column; align-items:flex-start; gap:5px; max-width:min(100%, 520px)}
+  .lien-label{all:unset; cursor:pointer; margin-top:6px; font:500 12px var(--v2-sans); color:var(--tune-accent)}
+  .lien-label:hover{text-decoration:underline}
+  .lien-label:focus-visible{outline:2px solid var(--tune-accent); outline-offset:2px}
   .repertoire-lecture label{font:600 12px var(--v2-sans); color:var(--v2-txt2)}
   .repertoire-lecture select{width:100%; min-height:38px; padding:6px 10px; border-radius:8px;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
@@ -2029,6 +2147,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  a.ghost.livret{text-decoration:none}
   /* Le cœur ACTIF garde le rouge : c'est un ÉTAT, pas une action — la même
      règle que sur les lignes de piste. */
   .coeur.on{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
@@ -2085,4 +2204,5 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
   .bio-text{margin:0; color:var(--v2-txt2); font-size:14px; line-height:1.65; max-width:70ch}
   .bio-state{margin:0; color:var(--v2-txt3); font-size:13px; font-style:italic}
   .bio-state.err{color:var(--v2-danger)}
+  .bio-text.presentation{white-space:pre-line}
 </style>

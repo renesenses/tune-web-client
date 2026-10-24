@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { labelPrincipal, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
   /**
    * LA FICHE ARTISTE ÉLUE — #3825, socle de #2568, puis #1232.
    *
@@ -62,9 +63,13 @@
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import { PLAFOND_ARTISTE, lireArtisteBibliotheque } from '../../lib/lireArtiste';
+  import LiensExternes from './LiensExternes.svelte';
+  import AlbumsManquants from './AlbumsManquants.svelte';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
   import { activeView, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
+  import { departSimilaires, defilerVersSimilaires, retenirDepartSimilaires, retourAuxSimilairesVisible, revenirAuxSimilaires } from '../../lib/retourAuxSimilaires';
   import { ficheAlbumDeRetour, ficheAlbumService, ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
   import { albumsDeStreamingPourArtiste, servicesInterrogeables, statutsStreaming, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
   import { BIBLIOTHEQUE, cleEdition, type Exemplaire } from '../../lib/discographieCommune';
@@ -238,6 +243,15 @@
    * état réactif, sinon l'effet se relancerait sur sa propre écriture.
    */
   let metaFiche = $state<ArtistMetadata | null>(null);
+  // web#2299 — rouverte par « Retour aux similaires », la fiche y descend
+  // dès que la liste est rendue (les métadonnées arrivent après la fiche).
+  let titreSimilaires = $state<HTMLElement | null>(null);
+  $effect(() => {
+    const titre = titreSimilaires;
+    if (!titre || !$defilerVersSimilaires) return;
+    defilerVersSimilaires.set(false);
+    try { titre.scrollIntoView({ block: 'start' }); } catch { /* jsdom, vieux moteur */ }
+  });
   let creditsFiche = $state<TrackCredit[]>([]);
   let enrichissement = $state(false);
   let jetonMeta = 0;
@@ -297,6 +311,12 @@
    * Recherche, comme le faisait `ArtistesV2`.
    */
   async function ouvrirSimilaire(nomVoisin: string) {
+    // web#2299 — l'artiste DONT on lit les similaires, pour pouvoir y revenir
+    // (même après être passé par la Recherche et un artiste de service).
+    const depart = cible;
+    if (depart && depart.service == null) {
+      retenirDepartSimilaires({ id: depart.id, nom: nom || depart.nom, depuis: $vueDeRetour, provenance: depart.provenance ?? null });
+    }
     let id: number | null = null;
     try {
       id = trouverArtisteExact((await api.searchLibrary(nomVoisin, 5))?.artists, nomVoisin);
@@ -837,6 +857,44 @@
     await playAndSync(zid, { track_ids: ids, context_type: 'artist', context_id: String(a.id) } as any);
     return ids.length;
   }
+  /**
+   * tune-server-rust#6467 — « Lire » l'artiste : jusqu'à 50 de ses titres, au
+   * hasard. Artiste de bibliothèque → le serveur tire (`lib/lireArtiste`) ;
+   * artiste de service → ses titres phares, mélangés, bornés à 50.
+   */
+  async function lireLArtiste() {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    const idLocal = estLocal ? Number(cible?.id) : null;
+    if (idLocal != null && Number.isFinite(idLocal)) {
+      enMasseLocale = true;
+      try {
+        const n = await lireArtisteBibliotheque(idLocal, {
+          lire: (c) => playAndSync(zid, c as any),
+          titres: (id) => api.getArtistTracks(id),
+        });
+        if (n === 0) notifications.error($tr('library.noTracks' as any));
+      } catch (e: any) {
+        notifications.error(e?.message ?? $tr('common.error' as any));
+      }
+      enMasseLocale = false;
+      return;
+    }
+    if (!titres.length) return;
+    enMasse = true;
+    try {
+      const n = await lireListeAleatoire(titres, {
+        lire: (c: any) => playAndSync(zid, c),
+        enfiler: (c: any) => api.addToQueue(zid, c),
+        plafond: async () => PLAFOND_ARTISTE,
+      });
+      if (!n) notifications.error($tr('v2.fas.empty' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $tr('v2.fas.empty' as any));
+    }
+    enMasse = false;
+  }
+
   async function lireDiscographieLocale(aleatoire: boolean) {
     const a = artisteLocal;
     const zid = $currentZoneId;
@@ -912,11 +970,19 @@
   <EnTeteArtiste
     {nom}
     provenance={estLocal ? $tr('library.title' as any) : (cible?.service ?? null)}
-    imagePath={artiste?.image_path ?? null}
+    imagePath={artiste?.image_path || cible?.image || null}
     initiales={estLocal ? initialesArtiste(nom) : nom.slice(0, 1)}
     sousTitre={estLocal ? `${comptesFiche?.total ?? locaux.length} ${$tr('v2.art.albums' as any)}` : null}
+    ecoutes={estLocal ? artiste : null}
     onRetour={retour}>
     {#snippet actions()}
+      <!-- tune-server-rust#6467 — « Lire » AVANT le best of (fil 2302, point
+           12) : 50 titres de l'artiste au hasard, bibliothèque ou service. -->
+      {#if estLocal || titres.length}
+        <button class="v2-btn" disabled={enMasse || enMasseLocale} onclick={lireLArtiste}>
+          {$tr('v2.fas.play' as any)}
+        </button>
+      {/if}
       {#if titres.length}
         <button class="v2-btn" disabled={enMasse} onclick={() => jouerLesTitres(false)}>
           {$tr('v2.fas.bestOf' as any)}
@@ -987,6 +1053,12 @@
       {/if}
     {/snippet}
   </EnTeteArtiste>
+  {#if retourAuxSimilairesVisible($departSimilaires, cible)}
+    <!-- web#2299 — remonter à la liste des similaires de l'artiste de départ. -->
+    <button class="v2-btn retour-similaires" onclick={revenirAuxSimilaires}>
+      ‹ {$tr('artist.backToSimilars' as any).replace('{nom}', $departSimilaires?.nom ?? '')}
+    </button>
+  {/if}
 
   {#if !chargement && ficheEnEchec}
     <!-- #992 — jamais le « 502 » ni le texte brut du service : ce qui s'est
@@ -1017,6 +1089,28 @@
     <BioEtTitresPhares bio={bio} provenance={bioProvenance} titres={titres} {titresEnCharge} cle={cible?.id}
       actionsBio={artisteEditable ? enrichirBio : undefined} />
 
+    <!-- tune-server-rust#6001 — ProgArchives / Metal Archives / AllMusic, pour
+         un artiste de la bibliothèque (l'identifiant MusicBrainz est le sien). -->
+    {#if artisteEditable?.id != null}
+      <LiensExternes cle={artisteEditable.id} charger={api.getArtistExternalLinks} />
+    {/if}
+
+    <!-- tune-server-rust#6782 — vers la page de son label principal (celui de
+         la plupart de ses albums de la bibliothèque) : les autres artistes du
+         label, dans la bibliothèque puis chez Qobuz. -->
+    {#if artisteEditable?.id != null && labelPrincipal(locaux)}
+      {@const nomLabel = labelPrincipal(locaux)!}
+      <button type="button" class="lien-label" data-lien-label onclick={() => void ouvrirLabelDansLaBibliotheque(nomLabel)}>
+        {$tr('v2.label.autresArtistes' as any).replace('{label}', nomLabel)}
+      </button>
+    {/if}
+
+    <!-- tune-server-rust#6288 — MetaRust, « Albums manquants » : seulement pour
+         un artiste de la bibliothèque, et à la demande. -->
+    {#if artisteEditable?.id != null}
+      <AlbumsManquants artistId={artisteEditable.id} services={sectionsServices} />
+    {/if}
+
     <!-- 🔴 « À propos » ne s'ouvre QUE si elle a quelque chose à dire (#1356).
          Le bouton d'enrichissement l'a quittée pour rejoindre la biographie :
          sans cette garde, elle resterait à l'écran vide, avec sa marge, entre
@@ -1024,7 +1118,7 @@
     {#if artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || creditsFiche.length)}
       <section class="apropos">
         {#if metaFiche?.similar_artists?.length}
-          <h3>{$tr('artist.similarArtists' as any)}</h3>
+          <h3 bind:this={titreSimilaires}>{$tr('artist.similarArtists' as any)}</h3>
           <div class="puces">
             {#each metaFiche.similar_artists as sa (sa.name)}
               <button class="puce" title={sa.reason} onclick={() => ouvrirSimilaire(sa.name)}>{sa.name}</button>
@@ -1097,6 +1191,9 @@
 {/if}
 
 <style>
+  .lien-label { all: unset; cursor: pointer; align-self: flex-start; margin: 4px 0 8px; font-size: 13px; color: var(--tune-accent); }
+  .lien-label:hover { text-decoration: underline; }
+  .lien-label:focus-visible { outline: 2px solid var(--tune-accent); outline-offset: 2px; }
   .v2-fas{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); padding:0 30px 40px}
   /* L'en-tête — `.tete`, `.retour`, `.portrait`, `.ident`, `.gestes` — vit
@@ -1116,6 +1213,7 @@
     color:var(--v2-txt2); font:12px var(--v2-sans); cursor:pointer}
   .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .puce.fixe{cursor:default}
+  .retour-similaires{margin:0 0 12px; align-self:flex-start}
   .membres{margin:0; padding-left:18px; color:var(--v2-txt2); font-size:13px}
   @media (max-width: 640px){
     .v2-fas{padding:0 16px 40px}

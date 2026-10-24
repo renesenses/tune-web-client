@@ -5,7 +5,7 @@
  * Porté de l'ancien écran Appareils (`DevicesSettings`), seul à le proposer.
  * La règle vit ici pour qu'un test l'APPELLE.
  */
-import type { DevicePreset } from './api';
+import { reglagesDePresetApplicables, type DevicePreset } from './api';
 import type { Zone } from './types';
 
 /** Sous ce nombre d'occurrences, une « habitude » n'en est pas une. */
@@ -24,12 +24,20 @@ export function zoneAProposer(z: Partial<Zone>): boolean {
   return z.id != null && identifie && !aDesReglagesLocaux(z);
 }
 
-/** La meilleure proposition retenue, ou `null`. */
+/**
+ * La meilleure proposition retenue, ou `null`.
+ *
+ * tune-server-rust#6774 — seules ses clés APPLICABLES comptent : un trim
+ * positif n'est jamais appliqué (voir `reglagesDePresetApplicables`), une
+ * proposition qui ne porte que lui n'en est pas une.
+ */
 export function propositionRetenue(presets: readonly DevicePreset[] | undefined): DevicePreset | null {
   const p = presets?.[0];
-  return p && p.occurrences >= OCCURRENCES_MIN && Object.keys(p.settings ?? {}).length > 0 ? p : null;
+  if (!p || p.occurrences < OCCURRENCES_MIN) return null;
+  const settings = reglagesDePresetApplicables(p.settings ?? {});
+  return Object.keys(settings).length > 0 ? { ...p, settings } : null;
 }
 
 export function resumeProposition(p: DevicePreset): string {
-  return Object.entries(p.settings).map(([k, v]) => (v === true ? k : `${k}=${v}`)).join(' · ');
+  return Object.entries(reglagesDePresetApplicables(p.settings ?? {})).map(([k, v]) => (v === true ? k : `${k}=${v}`)).join(' · ');
 }

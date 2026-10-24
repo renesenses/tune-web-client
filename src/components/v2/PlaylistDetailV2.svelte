@@ -8,6 +8,8 @@
    * Détail technique (fréquence/profondeur) réservé à l'Expert, comme ailleurs.
    */
   import * as api from '../../lib/api';
+  import { ligneBadgeCercles } from '../../lib/suiviCercle';
+  import { creerRetraitPlaylist } from '../../lib/retraitPlaylist';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { t as tr } from '../../lib/i18n';
@@ -181,15 +183,33 @@
    * Le drapeau `shuffle` de la zone n'est pas touche.
    */
   let melangeEnCours = $state(false);
+  /**
+   * tune-server-rust#6465 (FabienM, fil 2379, point 1) — « Playlist avec
+   * lecture aléatoire → dans l'historique on n'a pas le conteneur playlist ».
+   * La liste part en `track_ids` ou en tête + suite, et rien dans ces corps
+   * ne dit qu'elle vient d'une playlist : le serveur écrivait des titres nus.
+   * La playlist s'ÉNONCE donc, sur la lecture comme sur la file, avec son
+   * espace de noms (`context_source`) : le service du titre de tête n'est pas
+   * celui d'une playlist de la bibliothèque qui mêle des titres Qobuz.
+   */
+  function conteneur() {
+    return item.kind === 'local'
+      ? { context_type: 'playlist' as const, context_id: String(item.pl.id), context_source: 'local' }
+      : { context_type: 'playlist' as const, context_id: String(item.pl.source_id), context_source: item.service };
+  }
+  function gestesDeLaPlaylist(zid: number) {
+    const c = conteneur();
+    return {
+      lire: (corps: any) => playAndSync(zid, { ...corps, ...c }),
+      enfiler: (corps: any) => api.addToQueue(zid, { ...corps, ...c }),
+    };
+  }
   async function lireAleatoire() {
     const zid = zoneRequise();
     if (zid == null) return;
     melangeEnCours = true;
     try {
-      const n = await lireListeAleatoire(tracks, {
-        lire: (c: any) => playAndSync(zid, c),
-        enfiler: (c: any) => api.addToQueue(zid, c),
-      });
+      const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
       notifications.error(errText(e) ?? $tr('common.error'));
@@ -202,10 +222,7 @@
     // Liste TRIÉE : « lire depuis ici » suit l'ordre affiché, pas celui de la
     // playlist — `start_index` du serveur ne connaît que ce dernier.
     if (!ordreNaturel) {
-      void lireListe(pistesVues.slice(startIndex), {
-        lire: (c: any) => playAndSync(zid, c),
-        enfiler: (c: any) => api.addToQueue(zid, c),
-      }).catch(signalerEchecLecture);
+      void lireListe(pistesVues.slice(startIndex), gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
       return;
     }
     if (item.kind === 'local') {
@@ -267,11 +284,23 @@
       .catch(() => {})
       .finally(() => { renaming = false; });
   }
-  function removeAt(i: number) {
-    if (item.kind !== 'local' || item.pl.id == null) return;
-    api.removePlaylistTrackAt(item.pl.id, i)
-      .then(() => { tracks = tracks.filter((_, k) => k !== i); onChanged?.(); })
-      .catch(() => {});
+  /**
+   * web#2286 — la ligne par `entry_id`, un retrait à la fois, puis relecture
+   * (`lib/retraitPlaylist`, partagé avec `PlaylistManagerView`).
+   */
+  const retraitPlaylist = creerRetraitPlaylist({
+    retirer: (id, cible) => api.removePlaylistEntry(id, cible),
+    relire: (id) => api.getPlaylistTracks(id),
+  });
+  let retraitEnCours = $state(false);
+  async function removeAt(i: number) {
+    if (item.kind !== 'local' || item.pl.id == null || retraitPlaylist.enCours) return;
+    retraitEnCours = true;
+    const issue = await retraitPlaylist.retirer(item.pl.id as number, tracks, i);
+    retraitEnCours = false;
+    if (!issue) return;
+    tracks = issue.pistes;
+    if (issue.ok) onChanged?.();
   }
 
   /** Retire un titre de la playlist du service (#2098) — toutes ses occurrences. */
@@ -362,6 +391,11 @@
         <h1>{title}</h1>
       {/if}
       {#if item.pl.description}<div class="desc">{item.pl.description}</div>{/if}
+      <!-- web#2287 — « Partagée avec un cercle » (tune-server-rust#6694, champ `cercles`). -->
+      {#if isLocal}
+        {@const badge = ligneBadgeCercles(item.pl, (k) => $tr(k as any))}
+        {#if badge}<div class="desc badge-cercle" data-badge-cercle>{badge}</div>{/if}
+      {/if}
       <div class="facts">
         <span>{$tr((tracks.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(tracks.length))}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
@@ -487,7 +521,7 @@
              du mode édition : c'est le seul geste qui l'efface, il doit être
              à portée. -->
         {#if !edition && isLocal && estIntrouvable(_t)}
-          <button class="rm" onclick={() => removeAt(rangReel(_t))}
+          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
             aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
           </button>
@@ -501,7 +535,7 @@
             aria-label={$tr('playlist.moveDown')} title={$tr('playlist.moveDown')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
           </button>
-          <button class="rm" onclick={() => removeAt(rangReel(_t))} aria-label={$tr('v2.pl.remove' as any)}>
+          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours} aria-label={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
           </button>
         {:else if edition && aMoiChezLeService}

@@ -19,6 +19,7 @@
    */
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
+  import { suivrePlaylistLocale } from '../../lib/suiviCercle';
   import { motifCercle, getCercle, estConnecte, type CercleNomme } from '../../lib/circle';
   import {
     listerPlaylistsCercle, creerPlaylistCercle, ajouterPistesEnLot, codeAjoutGroupe, phrasesBilan, idCree,
@@ -120,7 +121,25 @@
       creee = idCree(await creerPlaylistCercle(cercleChoisi, n));
       if (creee == null) throw Object.assign(new Error('invalid playlist'), { status: 502 });
       const b = await ajouterPistesEnLot(creee, lues);
-      finir(phrasesBilan(b, n, (k) => $t(k as any), true));
+      const lignes = phrasesBilan(b, n, (k) => $t(k as any), true);
+      // web#2287 — une playlist locale : la copie de cercle la SUIT désormais
+      // (tune-server-rust#6694). Un greffon d'avant le suivi (404) garde la
+      // copie d'avant, et on le dit.
+      if (demande.playlistLocale != null) {
+        const cercle = cercles?.find((c) => c.id === cercleChoisi);
+        try {
+          await suivrePlaylistLocale(creee, demande.playlistLocale, { id: Number(cercleChoisi), nom: cercle?.name ?? null });
+          lignes.push({ texte: $t('v2.circle.follow.started' as any), alerte: false });
+        } catch (e) {
+          lignes.push({
+            texte: (e as { status?: number })?.status === 404
+              ? $t('v2.circle.follow.unsupported' as any)
+              : $t('v2.circle.follow.startFailed' as any).replace('{reason}', phrase(e)),
+            alerte: true,
+          });
+        }
+      }
+      finir(lignes);
     } catch (e) {
       if ((e as { code?: string })?.code === 'circle.no_tracks') erreur = $t('v2.circle.pl.err.noTracks' as any);
       else if (creee != null) {
@@ -156,7 +175,7 @@
       <button class="primaire" onclick={onClose}>{$t('common.close' as any)}</button>
     {:else}
       <p class="note">
-        {$t((partage ? 'v2.circle.pl.shareHint' : 'v2.circle.pl.bulkHint') as any).replace('{max}', String(MORCEAUX_MAX))}
+        {$t((partage ? (demande.playlistLocale != null ? 'v2.circle.follow.shareHint' : 'v2.circle.pl.shareHint') : 'v2.circle.pl.bulkHint') as any).replace('{max}', String(MORCEAUX_MAX))}
       </p>
       {#if partage}
         {#if cercles === null}

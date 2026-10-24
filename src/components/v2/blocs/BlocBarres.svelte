@@ -14,7 +14,9 @@
   import { t } from '../../../lib/i18n';
 
   export interface MatiereBarres {
-    lignes: { label: string; valeur: number }[];
+    /** `texte` remplace la valeur affichée (une durée, tune-server-rust#6682) ;
+     *  la barre suit toujours `valeur`. */
+    lignes: { label: string; valeur: number; texte?: string }[];
     /** Au-delà, la liste se replie derrière « voir plus ». 0 = jamais. */
     plafond?: number;
   }
@@ -49,7 +51,7 @@
         <span class="piste">
           <span class="jauge" style:width="{max ? Math.max((l.valeur / max) * 100, 2) : 0}%"></span>
         </span>
-        <span class="val">{l.valeur}</span>
+        <span class="val">{l.texte ?? l.valeur}</span>
       </li>
     {/each}
   </ul>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AuditIntegrite from '../partages/AuditIntegrite.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Réglages du nouveau client (direction Levente).
@@ -17,10 +18,12 @@
    * absent.
    */
   import { t } from '../../lib/i18n';
+  import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
+  import { CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
@@ -72,9 +75,10 @@
     avancementAnalyse, pourcentAnalyse, aDesChiffres, lignesPortee, lignesEmplacements,
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
+  import { decrireScanCourant, refusScanConcurrent } from '../../lib/scanDetenteur';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
   import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
-  import { clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, type RetourClientId } from '../../lib/clientIdSpotify';
+  import { clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, gestesClientIdSpotify, effacerClientIdSpotify, type RetourClientId } from '../../lib/clientIdSpotify';
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
@@ -88,6 +92,8 @@
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
   import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
   import { CLE_PARTAGE_COMMUNAUTAIRE } from '../../lib/notesCommunautaires';
+  import { CLE_RECEPTION_MESURES, CLE_CONTRIBUTION_MESURES } from '../../lib/mesuresCommunautaires';
+  import { CLE_LEVER_LE_BRIDAGE } from '../../lib/temperatureProcesseur';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import {
@@ -139,11 +145,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { estZoneDeCetAppareil, retenirZoneDeCetAppareil } from '../../lib/zoneNavigateurProprietaire';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
+  import { controlesEcranVerrouille } from '../../lib/mediaSession';
   import { licenseState, loadLicense, offlineGrace } from '../../lib/stores/license';
   import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
-  import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
+  import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
@@ -505,6 +512,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // de ses cœurs). `null` : serveur qui ne connaît pas le réglage, on le tait.
   let bgSpeed = $state<string | null>(null);
   let bgSpeedWidths = $state<Record<string, number>>({});
+  // tune-server-rust#6713 — lever le bridage des analyses quand la
+  // température est illisible : désactivé par défaut, niveau Expert, avec
+  // un avertissement à l'activation.
+  let levBridage = $state<boolean | null>(null);
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let devicesLoaded = $state(false);
   let creatingBrowserZone = $state(false);
@@ -527,6 +538,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const vitesse = c?.background_analysis_speed;
         bgSpeed = ['discreet', 'normal', 'fast'].includes(vitesse) ? vitesse : null;
         bgSpeedWidths = c?.background_analysis_speed_widths ?? {};
+        // tune-server-rust#6713 — `null` : serveur qui ne publie pas la clé, pas de case.
+        levBridage = c && CLE_LEVER_LE_BRIDAGE in c ? (c[CLE_LEVER_LE_BRIDAGE] === true || c[CLE_LEVER_LE_BRIDAGE] === 'true') : null;
       })
       .catch(() => {});
     api.withTimeout(api.getAudioDevices(), 8_000, '/devices/audio')
@@ -578,6 +591,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function setBgSpeed(v: string) {
     const before = bgSpeed; bgSpeed = v;
     patch({ background_analysis_speed: v }, () => { bgSpeed = before; });
+  }
+  async function setLevBridage(ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    // Lever le bridage se fait en connaissance de cause : l'avertissement
+    // d'abord, et un refus laisse la case décochée.
+    if (souhait && !(await dialogs.confirm($t('settings.analysisUnthrottleConfirm' as any), { danger: true }))) {
+      if (caseCochee) caseCochee.checked = false;
+      return;
+    }
+    const before = levBridage; levBridage = souhait;
+    patch({ [CLE_LEVER_LE_BRIDAGE]: souhait }, () => {
+      levBridage = before;
+      if (caseCochee) caseCochee.checked = !!before;
+    });
   }
   function libelleVitesse(v: string, cle: string): string {
     const n = bgSpeedWidths?.[v];
@@ -1182,6 +1210,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     partageCommunauteBusy = false;
     if (caseCochee) caseCochee.checked = !!partageCommunaute;
   }
+  // Résultats d'analyse de la communauté (tune-server-rust#5594) : RECEVOIR
+  // et CONTRIBUER, deux réglages séparés, désactivés par défaut. `null` : le
+  // serveur ne publie pas la clé, pas de case.
+  let mesuresRecues = $state<boolean | null>(null);
+  let mesuresEnvoyees = $state<boolean | null>(null);
+  let mesuresBusy = $state(false);
+  let mesuresErr = $state<string | null>(null);
+  async function basculerMesures(cle: string, ev: Event) {
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !!caseCochee?.checked;
+    mesuresBusy = true;
+    mesuresErr = null;
+    try {
+      await api.updateConfig({ [cle]: souhait });
+    } catch {
+      mesuresErr = get(t)('settings.errSaveFailed');
+    }
+    // L'état affiché est celui que le serveur RELIT.
+    await chargerPartage();
+    mesuresBusy = false;
+    if (caseCochee) {
+      caseCochee.checked = !!(cle === CLE_RECEPTION_MESURES ? mesuresRecues : mesuresEnvoyees);
+    }
+  }
   async function chargerPartage() {
     try {
       const c: any = await api.getConfig();
@@ -1192,6 +1244,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ecoutesCompte = c && CLE_ECOUTES_AU_COMPTE in c ? reglageVrai(c[CLE_ECOUTES_AU_COMPTE]) : null;
       // tune-server-rust#6545 — même règle pour le partage communautaire.
       partageCommunaute = c && CLE_PARTAGE_COMMUNAUTAIRE in c ? reglageVrai(c[CLE_PARTAGE_COMMUNAUTAIRE]) : null;
+      // tune-server-rust#5594 — même règle pour les mesures communautaires.
+      mesuresRecues = c && CLE_RECEPTION_MESURES in c ? reglageVrai(c[CLE_RECEPTION_MESURES]) : null;
+      mesuresEnvoyees = c && CLE_CONTRIBUTION_MESURES in c ? reglageVrai(c[CLE_CONTRIBUTION_MESURES]) : null;
       partageCharge = true;
     } catch { /* config illisible : les bascules ne sont pas offertes */ }
   }
@@ -2033,11 +2088,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   let analysisExcluded = $state<string[] | null>(null);
   // tune-server-rust#6198 — les genres de l'analyse acoustique (CLAP).
+  // tune-server-rust#5593 (fil 2173) — dossiers auxquels les analyses se limitent ; `null` : serveur antérieur.
+  let analysisDirs = $state<string[] | null>(null);
   let clapGenresInclus = $state<string[] | null>(null);
   let clapGenresExclus = $state<string[] | null>(null);
   let newDir = $state('');
   let dirBusy = $state(false);
   let scanning = $state(false);
+  /** web#2305 : le `current` de `scan/status` — QUEL scan tient le droit. */
+  let scanCourant = $state<unknown>(null);
   let scanReport = $state<any | null>(null);
   let qualitySplit = $state(true);
   // tune-server-rust#6554 — « Coffrets automatiques ». Absent de la config :
@@ -2285,6 +2344,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       analysisExcluded = Array.isArray(c?.background_analysis_excluded_roots)
         ? c.background_analysis_excluded_roots.filter((r: unknown) => typeof r === 'string')
         : null;
+      analysisDirs = dossiersDepuisConfig(c?.[CLE_DOSSIERS_INCLUS]);
       clapGenresInclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_INCLUS]);
       clapGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_EXCLUS]);
       await refreshDirectoryOrder();
@@ -2336,7 +2396,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   // L'etat d'analyse est sonde UNIQUEMENT pendant une analyse.
   $effect(() => {
-    api.getScanStatus().then((s) => { scanning = !!s?.scanning; }).catch(() => {});
+    api.getScanStatus().then((s) => { scanning = !!s?.scanning; scanCourant = s?.current ?? null; }).catch(() => {});
   });
   $effect(() => {
     if (!scanning) return;
@@ -2344,6 +2404,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       try {
         const s = await api.getScanStatus();
         scanning = !!s?.scanning;
+        scanCourant = s?.current ?? null;
         if (!scanning) {
           terminerAvancement();
           scanReport = await api.getScanReport().catch(() => null);
@@ -2404,6 +2465,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     patch({ background_analysis_excluded_roots: suivant }, () => { analysisExcluded = avant; });
   }
   /**
+   * tune-server-rust#5593 (fil 2173) — les dossiers auxquels les analyses de
+   * fond se limitent. Le serveur reçoit la liste COMPLÈTE ; s'il refuse, le
+   * champ revient à son état d'avant.
+   */
+  function setDossiersAnalyses(texte: string) {
+    const avant = analysisDirs;
+    const suivant = lireSaisieDeDossiers(texte);
+    analysisDirs = suivant;
+    patch({ [CLE_DOSSIERS_INCLUS]: suivant }, () => { analysisDirs = avant; });
+  }
+  /**
    * tune-server-rust#6198 — les genres retenus ou écartés de l'analyse
    * acoustique. Le serveur reçoit la liste COMPLÈTE ; s'il refuse, le champ
    * revient à son état d'avant.
@@ -2449,12 +2521,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   async function scan(full: boolean, chemin: string | null = null) {
     const r = await lancerAnalyse((p, f) => api.triggerScan(p, f), { chemin, complete: full });
-    if (!r.ok) { libErr = get(t)('settings.errScanStartFailed'); return; }
+    if (!r.ok) {
+      // web#2305 : un 409 `already_scanning` nomme le scan qui tient le droit.
+      libErr = refusScanConcurrent(r.erreur, (k) => get(t)(k as any)) ?? get(t)('settings.errScanStartFailed');
+      return;
+    }
     scanning = true; scanReport = null; libErr = null;
   }
   async function stopScan() {
     try { await api.cancelScan(); } catch { /* deja finie */ }
-    scanning = false; terminerAvancement();
+    scanning = false; scanCourant = null; terminerAvancement();
   }
 
   /**
@@ -2619,9 +2695,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
   function askFixedVolume(z: any, enabled: boolean) {
     zoneErr = null;
-    // Couper n'a rien de dangereux : immediat. Une zone LOCALE non plus —
-    // 100 % logiciel est justement le but.
-    if (!enabled || isLocalZone(z)) { applyFixedVolume(z, enabled); return; }
+    // Couper n'a rien de dangereux : immediat.
+    // web#2243 — ACTIVER demande l'accord sur TOUTE zone, locale comprise. Le
+    // serveur l'exige sans exception de type depuis tune-server-rust#2395
+    // (409 `full_volume_confirmation_required`) : la zone locale, dispensée
+    // ici, partait sans `confirm_full_volume` et n'était jamais enregistrée.
+    if (!enabled) { applyFixedVolume(z, false); return; }
     fvAsk = z.id; fvTyped = '';
   }
   function confirmFixedVolume(z: any) {
@@ -2630,6 +2709,40 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     fvAsk = null; fvTyped = '';
     applyFixedVolume(target, true, true);
   }
+  // tune-server-rust#6541 — les deux limites de volume d'une zone, saisies en
+  // %. Le PUT remplace les deux : on renvoie l'autre telle qu'elle est.
+  function enregistrerLimiteVolume(z: any, quelle: 'safety' | 'comfort', texte: string) {
+    const lue = limiteDepuisPourcent(texte);
+    if (lue === undefined) {
+      notifications.error(get(t)('devices.volumeLimitInvalid' as any));
+      return;
+    }
+    const limites = {
+      safety: quelle === 'safety' ? lue : (z.volume_limit_safety ?? null),
+      comfort: quelle === 'comfort' ? lue : (z.volume_limit_comfort ?? null),
+    };
+    void poserLimitesVolume(z, limites);
+  }
+
+  // 409 `limite_refusee_*` : la zone est (ou vient de passer) en PURE / volume
+  // fixe. On montre la phrase traduite et on masque les champs sans attendre
+  // le prochain GET /zones.
+  async function poserLimitesVolume(z: any, limites: { safety: number | null; comfort: number | null }) {
+    try {
+      const up = await api.setVolumeLimits(z.id as number, limites);
+      zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x)));
+    } catch (e) {
+      const err = e as { code?: string; status?: number; message?: string };
+      const cle = err.status === 409 ? cleTexteRefus(err.code) : null;
+      if (cle) {
+        zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume_limits_refusal: err.code } : x)));
+        notifications.error(get(t)(cle as any));
+      } else {
+        zoneErr = get(t)('settings.errSettingNotSaved');
+      }
+    }
+  }
+
   async function setZoneField(z: any, fn: () => Promise<any>) {
     if (z?.id == null) return;
     try { const up = await fn(); zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x))); }
@@ -3313,6 +3426,39 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     stkBusy = null;
   }
 
+  // ── web#2304 — corriger ou effacer un Client ID Spotify enregistré ──
+  //
+  // La ligne Spotify arrive avec `fields: []` : sans ce bloc, un Client ID
+  // erroné ne se corrigeait ni ne s'effaçait depuis l'écran (fils 2384 et
+  // 2385). « Effacer » passe par la route qui n'efface QUE le Client ID
+  // (tune-server-rust#6777), jamais par `deleteServiceToken('spotify')`, qui
+  // emporte toutes les clés `spotify_*`. Voir `lib/clientIdSpotify`.
+  let spotifyModifClientId = $state(false);
+  async function enregistrerClientIdDepuisJetons() {
+    await enregistrerClientIdSpotify();
+    if (clientIdRetour?.etat === 'enregistre') {
+      spotifyModifClientId = false;
+      await loadTokens();
+    }
+  }
+  async function effacerClientIdSpotifyGeste() {
+    const ok = await dialogs.confirm(get(t)('v2.set.spotifyClientIdConfirmClear' as any), { danger: true });
+    if (!ok) return;
+    stkBusy = 'spotify';
+    const msgOk = get(t)('v2.set.spotifyClientIdCleared' as any);
+    const msgKo = get(t)('serviceTokens.error');
+    const r = await effacerClientIdSpotify(() => api.deleteSpotifyClientId());
+    if (r.ok) {
+      notifications.success(msgOk);
+      spotifyClientIdManque = r.manque;
+      spotifyModifClientId = false;
+      await loadTokens();
+    } else {
+      notifications.error(`${msgKo} : ${r.erreur ?? ''}`);
+    }
+    stkBusy = null;
+  }
+
   async function stkRemove(s: any) {
     // Geste destructif : confirmation EN PAGE. `window.confirm` est interdit
     // par scripts/check-native-dialogs.mjs.
@@ -3890,10 +4036,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           {/if}
         </div>
 
-        {#each sections as s (s.id)}
-          <section class="card" class:hl={highlight === s.id} data-section={s.id}>
+        {#each sections as s, i (s.id)}
+          <!-- #2354 — un intertitre au-dessus de la PREMIÈRE section visible
+               d'un bloc (« Outils de la bibliothèque »). Calculé sur les
+               sections déjà filtrées par niveau : à aucun niveau le bloc ne
+               perd son titre. -->
+          {#if s.group && sections[i - 1]?.group !== s.group}
+            <h2 class="groupe" data-groupe={s.group}>{$t('settings.libraryTools' as any)}</h2>
+          {/if}
+          <section class="card" class:hl={highlight === s.id} class:zone-danger={s.danger}
+            class:fin-groupe={!!s.group && sections[i + 1]?.group !== s.group}
+            data-section={s.id} data-groupe={s.group ?? null}>
             <div class="cardhead">
               <h3>{title(s)}</h3>
+              {#if s.danger}<span class="danger-tag" data-zone-danger>{$t('settings.dangerZone' as any)}</span>{/if}
             </div>
 
             {#if s.id === 'playback'}
@@ -3928,6 +4084,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <label class="sw">
                   <input type="checkbox" bind:checked={$loopByDefault} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- tune-server-rust#4908 — commandes de l'écran verrouillé. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.controlesEcranVerrouille' as any)}</span>
+                  <span class="hint">{$t('settings.controlesEcranVerrouilleHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" bind:checked={$controlesEcranVerrouille} />
                   <span class="slider"></span>
                 </label>
               </div>
@@ -4210,7 +4378,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <div class="themerow">
                   {#each V2_THEMES as th (th.id)}
-                    <button class="sw2" class:on={$preferences.v2Theme === th.id} title={th.label} aria-label={th.label}
+                    <button class="sw2" class:on={$preferences.v2Theme === th.id} title={v2ThemeLabel(th, (k) => $t(k as any))} aria-label={v2ThemeLabel(th, (k) => $t(k as any))}
                       aria-pressed={$preferences.v2Theme === th.id}
                       style="--sw-bg:{th.swatch[0]}; --sw-acc:{th.swatch[1]}"
                       onclick={() => setV2Theme(th.id)}></button>
@@ -4345,6 +4513,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <button class:on={$preferences.volumeDisplay === 'dB'}
                       onclick={() => preferences.update((pr) => ({ ...pr, volumeDisplay: 'dB' as VolumeDisplay }))}>{$t('settings.decibels' as any)}</button>
                   </div>
+                </div>
+                <!-- web#2292 (fil 2366) — boutons − et + autour du curseur de
+                     volume, au pas d'un point. Désactivés par défaut. -->
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.volumeStepButtons' as any)}</span>
+                    <span class="hint">{$t('settings.volumeStepButtonsHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={$preferences.volumeStepButtons === true}
+                      onchange={(e) => preferences.update((pr) => ({ ...pr, volumeStepButtons: (e.currentTarget as HTMLInputElement).checked }))} />
+                    <span class="slider"></span>
+                  </label>
                 </div>
                 <!-- Niveau EXPERT seulement : la ligne technique n'existe pas
                      en dessous, proposer de l'afficher n'aurait aucun effet. -->
@@ -4686,6 +4867,41 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 {#if partageCommunauteErr}<div class="errline">{partageCommunauteErr}</div>{/if}
               {/if}
+              <!-- tune-server-rust#5594 — résultats d'analyse de la communauté :
+                   recevoir et contribuer, deux cases séparées, décochées par
+                   défaut. Aucun compte n'est nécessaire : le serveur ne
+                   s'identifie que par son installation. -->
+              {#if mesuresRecues !== null}
+                <div class="row" data-mesures="recevoir">
+                  <div class="lbl">
+                    <span>{$t('settings.communityMeasuresReceive' as any)}</span>
+                    <span class="hint">{$t('settings.communityMeasuresReceiveHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle={CLE_RECEPTION_MESURES} checked={mesuresRecues}
+                      disabled={mesuresBusy}
+                      aria-label={$t('settings.communityMeasuresReceive' as any)}
+                      onchange={(e) => basculerMesures(CLE_RECEPTION_MESURES, e)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/if}
+              {#if mesuresEnvoyees !== null}
+                <div class="row" data-mesures="contribuer">
+                  <div class="lbl">
+                    <span>{$t('settings.communityMeasuresContribute' as any)}</span>
+                    <span class="hint">{$t('settings.communityMeasuresContributeHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" data-cle={CLE_CONTRIBUTION_MESURES} checked={mesuresEnvoyees}
+                      disabled={mesuresBusy}
+                      aria-label={$t('settings.communityMeasuresContribute' as any)}
+                      onchange={(e) => basculerMesures(CLE_CONTRIBUTION_MESURES, e)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/if}
+              {#if mesuresErr}<div class="errline">{mesuresErr}</div>{/if}
               <!-- Consentement à la télémétrie — porté de l'ancien écran
                    (phase 5) : il ne doit JAMAIS devenir immodifiable. -->
               {#if telCharge}
@@ -5131,6 +5347,40 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       </div>
                     {/if}
 
+                    {#if sv.id === 'spotify'}
+                      <!-- web#2304 : corriger ou effacer le Client ID enregistré. -->
+                      {@const geste = gestesClientIdSpotify(sv)}
+                      {#if geste}
+                        <div class="svcsub" data-spotify-client-id>
+                          <p class="hint">{$t(geste.cle as any)}</p>
+                          {#if spotifyModifClientId && geste.modifier}
+                            <div class="svcfields">
+                              <label class="svcfield">
+                                <span>{$t('v2.set.spotifyClientIdLabel' as any)}</span>
+                                <input type="text" bind:value={clientIdSaisi} autocomplete="off" spellcheck="false" data-saisie-client-id />
+                              </label>
+                            </div>
+                            <div class="inline">
+                              <button class="lnk" data-enregistrer-client-id disabled={svcBusy === 'spotify' || !clientIdSaisi.trim()} onclick={enregistrerClientIdDepuisJetons}>{$t('v2.set.spotifyClientIdSave' as any)}</button>
+                              <button class="lnk" onclick={() => { spotifyModifClientId = false; clientIdSaisi = ''; }}>{$t('common.cancel' as any)}</button>
+                            </div>
+                            {#if clientIdRetour && clientIdRetour.etat !== 'enregistre'}
+                              <p class="hint bad">{$t(cleDuRetourClientId(clientIdRetour.etat) as any)}{clientIdRetour.message ? ` : ${clientIdRetour.message}` : ''}</p>
+                            {/if}
+                          {:else}
+                            <div class="inline">
+                              {#if geste.modifier}
+                                <button class="lnk" data-modifier-client-id disabled={stkBusy === 'spotify'} onclick={() => { spotifyModifClientId = true; clientIdSaisi = ''; clientIdRetour = null; }}>{$t('v2.set.spotifyClientIdEdit' as any)}</button>
+                              {/if}
+                              {#if geste.effacer}
+                                <button class="lnk danger" data-effacer-client-id disabled={stkBusy === 'spotify'} onclick={effacerClientIdSpotifyGeste}>{$t('v2.set.spotifyClientIdClear' as any)}</button>
+                              {/if}
+                            </div>
+                          {/if}
+                        </div>
+                      {/if}
+                    {/if}
+
                     {#if sv.help_url}
                       <a class="lnk" href={sv.help_url} target="_blank" rel="noopener noreferrer">{$t('serviceTokens.howToGetToken' as any)}</a>
                     {/if}
@@ -5524,7 +5774,41 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <span class="tv" class:neutre={trimDe(z) === 0}>{trimDe(z) > 0 ? '+' : ''}{trimDe(z).toFixed(1)} dB</span>
                         {#if z.fixed_volume}<span class="tf">{$t('devices.gainTrimFixedVolume' as any)}</span>{/if}
                       </div>
+                      <!-- tune-server-rust#6739 (fil 2366/2375, tweeter détruit) —
+                           sur une sortie à volume matériel (tout sauf `local`),
+                           le serveur IGNORE un trim positif : il ne dépasse
+                           jamais la consigne envoyée à l'appareil. On le dit. -->
+                      {#if !z.fixed_volume && trimDe(z) > 0 && (z.output_type ?? 'local') !== 'local'}
+                        <p class="monote trim-materiel">{$t('devices.gainTrimPositiveIgnoredHardware' as any)}</p>
+                      {/if}
                       <p class="monote">{$t('devices.gainTrimHint' as any)}</p>
+
+                      <!-- tune-server-rust#6541 — limites de volume (fil 2335).
+                           Tenues par le SERVEUR pour tous les clients ; ici on
+                           ne fait que les régler. Vide = aucune limite. -->
+                      {#if serveurConnaitLesLimites(z) && refusDeLimite(z)}
+                      <p class="monote">{$t((cleTexteRefus(refusDeLimite(z)) ?? 'devices.volumeLimitRefusedFixed') as any)}</p>
+                      {:else if serveurConnaitLesLimites(z)}
+                      <div class="trim limites-volume">
+                        <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
+                        <input type="text" inputmode="decimal" class="lim" size="5"
+                          value={pourcentDeLimite(z.volume_limit_safety)}
+                          placeholder={$t('devices.volumeLimitNone' as any)}
+                          disabled={z.id == null}
+                          aria-label={$t('devices.volumeLimitSafety' as any)}
+                          onchange={(e) => enregistrerLimiteVolume(z, 'safety', (e.currentTarget as HTMLInputElement).value)} />
+                        <span class="tv">%</span>
+                        <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
+                        <input type="text" inputmode="decimal" class="lim" size="5"
+                          value={pourcentDeLimite(z.volume_limit_comfort)}
+                          placeholder={$t('devices.volumeLimitNone' as any)}
+                          disabled={z.id == null}
+                          aria-label={$t('devices.volumeLimitComfort' as any)}
+                          onchange={(e) => enregistrerLimiteVolume(z, 'comfort', (e.currentTarget as HTMLInputElement).value)} />
+                        <span class="tv">%</span>
+                      </div>
+                      <p class="monote">{$t('devices.volumeLimitHint' as any)}</p>
+                      {/if}
 
                       <!--
                         #1427 — CORRECTION ACOUSTIQUE (FIR), à sa place.
@@ -5614,7 +5898,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
                       {#if fvAsk === z.id}
                         <div class="fvbox">
-                          <p>{#each emphaseParts($t('settings.fixedVolumeWarning' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+                          <p>{#each emphaseParts($t((isLocalZone(z) ? 'settings.fixedVolumeWarningLocal' : 'settings.fixedVolumeWarning') as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
                           <div class="inline">
                             <input class="txt time" type="text" placeholder="100" bind:value={fvTyped}
                               onkeydown={(e) => { if (e.key === 'Enter') confirmFixedVolume(z); if (e.key === 'Escape') fvAsk = null; }} />
@@ -5669,8 +5953,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'library'}
-              <SacdIsoStatus />
-              <div class="row">
+              <!-- web#2324 — décision de Bertrand (23/10) : « Analyser la
+                   bibliothèque » EN TÊTE de Réglages › Bibliothèque. Le bloc
+                   ISO SACD est descendu dans « Options de scan ». -->
+              <div class="row" data-analyse-bibliotheque>
                 <div class="lbl">
                   <span>{$t('settings.scanLibraryV2' as any)}</span>
                   <span class="hint">{$t('settings.scanModesHint' as any)}</span>
@@ -5685,6 +5971,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/if}
                 </div>
               </div>
+              <!-- web#2305 (tune-server-rust#6729) : QUEL scan tient le droit. -->
+              {#if scanning}
+                {@const detenteur = decrireScanCourant(scanCourant, (k) => $t(k as any))}
+                {#if detenteur}<p class="hint" data-scan-detenteur>{detenteur}</p>{/if}
+              {/if}
               <!--
                 #1518 — l'avancement, enfin montré.
 
@@ -5785,6 +6076,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
+              <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
+              <AuditIntegrite />
 
             {:else if s.id === 'musicDirs'}
               <!-- Fil 2171 — le sélecteur est LE geste d'ajout : un vrai bouton,
@@ -5866,6 +6159,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if analysisExcluded !== null}
                   <p class="hint">{$t('settings.backgroundAnalysisFoldersHint' as any)}</p>
                 {/if}
+                <!-- tune-server-rust#5593 (fil 2173) — circonscrire les
+                     analyses de fond à des dossiers, un par ligne. -->
+                {#if analysisDirs !== null}
+                  <div class="clap-genres" data-reglage="dossiers-analyses">
+                    <span class="clap-genres-titre">{$t('settings.analysisDirsTitle' as any)}</span>
+                    <label>
+                      <span>{$t('settings.analysisDirsIncluded' as any)}</span>
+                      <textarea rows="3" value={afficherDossiers(analysisDirs)}
+                        placeholder={$t('settings.analysisDirsPlaceholder' as any)}
+                        aria-label={$t('settings.analysisDirsIncluded' as any)}
+                        onchange={(e) => setDossiersAnalyses((e.currentTarget as HTMLTextAreaElement).value)}></textarea>
+                    </label>
+                    <p class="hint">{$t('settings.analysisDirsHint' as any)}</p>
+                  </div>
+                {/if}
                 <!-- tune-server-rust#6198 — réserver l'analyse acoustique
                      (ambiances) à certains genres, ou en écarter. -->
                 {#if clapGenresInclus !== null && clapGenresExclus !== null}
@@ -5946,6 +6254,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
+            {:else if s.id === 'libraryCleanup'}
+              <!-- #2354 (Didier, fil 2397) : venu de Système › Santé. Même
+                   bouton, même confirmation danger, même compte rendu. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('diagnostics.cleanupServer' as any)}</span>
+                  <span class="hint">{$t('v2.maint.cleanupHint' as any)}</span>
+                </div>
+                <button class="lnk danger" disabled={nettoyageEnCours} onclick={nettoyerLeServeur}>
+                  {nettoyageEnCours ? $t('diagnostics.cleaning' as any) : $t('diagnostics.cleanupServer' as any)}
+                </button>
+              </div>
+              {#if nettoyage}
+                <div class="rows" role="status">
+                  <div class="kv"><span>{$t('v2.maint.mergedAlbums' as any)}</span><b>{nettoyage.duplicate_albums_merged ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanAlbums' as any)}</span><b>{nettoyage.orphan_albums_deleted ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanArtists' as any)}</span><b>{nettoyage.orphan_artists_deleted ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.dupTracks' as any)}</span><b>{nettoyage.duplicate_tracks_removed ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanArtwork' as any)}</span><b>{nettoyage.orphan_artwork_deleted ?? 0}</b></div>
+                  {#if nettoyage.db_optimized}<div class="kv"><span>{$t('v2.maint.dbOptimized' as any)}</span><b>✓</b></div>{/if}
+                </div>
+              {/if}
+              {#if nettoyageErr}<div class="errline">{nettoyageErr}</div>{/if}
             {:else if s.id === 'clearLibrary'}
               <!-- « Repartir à zéro » (#3585). La fonction existait côté
                    serveur et n'était exposée nulle part ici. -->
@@ -5994,6 +6325,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               {#if coffretsAutoErr}<div class="errline">{coffretsAutoErr}</div>{/if}
+              <!-- web#2324 — l'état de l'outil ISO SACD (disques DST), descendu
+                   ici depuis la carte « Bibliothèque » (décision du 23/10). -->
+              <SacdIsoStatus />
 
             {:else if s.id === 'scanSched'}
               {#if scanDemarrage !== null}
@@ -6318,7 +6652,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <input class="txt" type="text" placeholder="XXXX-XXXX-XXXX" bind:value={licKey}
                       disabled={licBusy} onkeydown={(e) => { if (e.key === 'Enter') activateLic(); }} />
                     <button class="lnk" disabled={licBusy || !licKey.trim()} onclick={activateLic}>
-                      {licBusy ? '…' : 'Activer'}
+                      {licBusy ? '…' : $t('v2.lic.activate' as any)}
                     </button>
                   </div>
                 </div>
@@ -6380,7 +6714,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
               <!-- Phase 5 (web#1257) : niveau des journaux, nettoyage du
-                   serveur, rapport d'analyse — portés de l'ancienne interface. -->
+                   serveur, rapport d'analyse — portés de l'ancienne interface.
+                   Le nettoyage vit depuis #2354 dans Bibliothèque. -->
               {#if atLeast(level, 'expert') && niveauJournaux !== null}
                 <div class="row">
                   <div class="lbl">
@@ -6395,26 +6730,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 {#if niveauMsg}<p class="hint" class:errline={!niveauMsg.ok}>{niveauMsg.texte}</p>{/if}
               {/if}
-              <div class="row">
+              <!-- #2354 — le Nettoyage a rejoint Réglages › Bibliothèque ›
+                   Outils de la bibliothèque. Un renvoi, le temps d'une
+                   version, pour qui le cherche encore ici. Même niveau
+                   (intermédiaire) que la section d'arrivée : le lien ne
+                   mène jamais à une section masquée. -->
+              <div class="row" data-renvoi-nettoyage>
                 <div class="lbl">
                   <span>{$t('diagnostics.cleanupServer' as any)}</span>
-                  <span class="hint">{$t('v2.maint.cleanupHint' as any)}</span>
+                  <span class="hint">{$t('settings.cleanupMovedHint' as any)}</span>
                 </div>
-                <button class="lnk danger" disabled={nettoyageEnCours} onclick={nettoyerLeServeur}>
-                  {nettoyageEnCours ? $t('diagnostics.cleaning' as any) : $t('diagnostics.cleanupServer' as any)}
+                <button class="lnk" onclick={() => { tabId = 'library'; highlight = 'libraryCleanup'; }}>
+                  {$t('settings.cleanupMovedGo' as any)}
                 </button>
               </div>
-              {#if nettoyage}
-                <div class="rows" role="status">
-                  <div class="kv"><span>{$t('v2.maint.mergedAlbums' as any)}</span><b>{nettoyage.duplicate_albums_merged ?? 0}</b></div>
-                  <div class="kv"><span>{$t('v2.maint.orphanAlbums' as any)}</span><b>{nettoyage.orphan_albums_deleted ?? 0}</b></div>
-                  <div class="kv"><span>{$t('v2.maint.orphanArtists' as any)}</span><b>{nettoyage.orphan_artists_deleted ?? 0}</b></div>
-                  <div class="kv"><span>{$t('v2.maint.dupTracks' as any)}</span><b>{nettoyage.duplicate_tracks_removed ?? 0}</b></div>
-                  <div class="kv"><span>{$t('v2.maint.orphanArtwork' as any)}</span><b>{nettoyage.orphan_artwork_deleted ?? 0}</b></div>
-                  {#if nettoyage.db_optimized}<div class="kv"><span>{$t('v2.maint.dbOptimized' as any)}</span><b>✓</b></div>{/if}
-                </div>
-              {/if}
-              {#if nettoyageErr}<div class="errline">{nettoyageErr}</div>{/if}
               <div class="row">
                 <div class="lbl">
                   <span>{$t('v2.maint.clearScanReport' as any)}</span>
@@ -6695,7 +7024,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="hint">{$t('settings.remoteAccessHint' as any)}</span>
                 </div>
                 <button class="lnk" class:danger={brEnabled} onclick={toggleBridge} disabled={brBusy}>
-                  {brBusy ? '…' : brEnabled ? 'Désactiver' : 'Activer'}
+                  {brBusy ? '…' : brEnabled ? $t('settings.disable' as any) : $t('settings.enable' as any)}
                 </button>
               </div>
               {#if brEnabled}
@@ -7067,7 +7396,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="dev net">
                     <input type="checkbox" checked={!$preferences.hiddenDeviceIds.includes(pid)}
                       onchange={() => toggleDevice(pid)} aria-label={`Afficher ${d.name}`} />
-                    <span class="dn" use:bulleTexte>{d.name}</span>
+                    <span class="dn" use:bulleTexte>{(d.name ?? '').trim()}</span>
                     <span class="dt">{netLabel(d.type)}</span>
                     {#if d.host}<span class="dh">{d.host}</span>{/if}
                     {#if isAir}
@@ -7227,6 +7556,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </div>
                   </div>
                 {/if}
+                <!-- tune-server-rust#6713 — niveau Expert seulement : rend la
+                     vitesse réglée quand la température est illisible. -->
+                {#if levBridage !== null && atLeast(level, 'expert')}
+                  <div class="row" data-reglage="lever-bridage">
+                    <div class="lbl">
+                      <span>{$t('settings.analysisUnthrottle' as any)}</span>
+                      <span class="hint">{$t('settings.analysisUnthrottleHint' as any)}</span>
+                    </div>
+                    <label class="sw">
+                      <input type="checkbox" data-cle={CLE_LEVER_LE_BRIDAGE} checked={levBridage}
+                        aria-label={$t('settings.analysisUnthrottle' as any)}
+                        onchange={setLevBridage} />
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                {/if}
                 {#if remesure}
                   <div class="row" data-remesure="lancer">
                     <div class="lbl">
@@ -7251,7 +7596,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {@const pid = `audio:${d.id}`}
                   <label class="dev">
                     <input type="checkbox" checked={!$preferences.hiddenDeviceIds.includes(pid)} onchange={() => toggleDevice(pid)} />
-                    <span class="dn" use:bulleTexte>{d.name}</span>
+                    <span class="dn" use:bulleTexte>{(d.name ?? '').trim()}</span>
                     <span class="dt">{etiquetteCaracteristiques(d)}</span>
                   </label>
                 {:else}
@@ -7423,6 +7768,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px}
   .card.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  /* #2354 — bloc « Outils de la bibliothèque ». L'intertitre ouvre le bloc,
+     un écart plus large le ferme ; « Vider » y est une ZONE DANGEREUSE :
+     bordure et étiquette de danger, séparée des deux autres outils. */
+  .groupe{font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt2); margin:4px 2px -4px}
+  .card.fin-groupe{margin-bottom:14px}
+  .card.zone-danger{border-color:var(--v2-danger-bd); background:var(--v2-danger-soft); margin-top:10px}
+  .danger-tag{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--v2-danger);
+    border:1px solid var(--v2-danger-bd); border-radius:var(--v2-r-pill); padding:1px 8px}
   .cardhead{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
   .cardhead h3{font-size:15px; font-weight:700}
 
@@ -7497,6 +7850,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .trim input[type=range]{flex:1; min-width:150px; max-width:320px; accent-color:var(--v2-acc1)}
   .trim .tv{font:12px var(--v2-mono); color:var(--v2-acc1); min-width:62px}
   .trim .tv.neutre{color:var(--v2-txt3)}
+  /* #6541 — limites de volume : deux champs courts sur la ligne du trim. */
+  .limites-volume .lim{width:4.5em; font:12px var(--v2-mono)}
+  .limites-volume .tv{min-width:0}
   .trim .tf{font-size:11.5px; color:var(--v2-txt3)}
   .zde{margin-top:13px}
   .radv{margin-top:13px; border-top:1px solid var(--v2-line); padding-top:11px}
@@ -7523,6 +7879,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .clap-genres label{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13px; color:var(--v2-txt2)}
   .clap-genres label span{min-width:9em}
   .clap-genres input{flex:1 1 16em; min-width:0}
+  .clap-genres textarea{flex:1 1 16em; min-width:0; font:inherit}
   .directory-order-hint{margin-top:12px}
   .dir-order{display:flex; align-items:center; gap:3px}
   .dir-order .lnk{min-width:28px; min-height:28px}
@@ -7665,7 +8022,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     color:var(--v2-txt2); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
   .acts{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
   .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
-  .dev.net{grid-template-columns:auto minmax(0,1fr) auto auto auto; cursor:default}
+  /* Une ligne d'appareil réseau a 4 à 7 éléments selon le type (type, hôte,
+     bouton « Appairer » ou saisie du PIN pour AirPlay) : une grille à colonnes
+     fixes renvoyait la croix à la ligne suivante sur les enceintes AirPlay
+     (Sonos Move, One, Play:5 — retour d'Alex Campbell, 22/10/2026). En flex,
+     le nom prend la place libre et la croix reste au bout de SA ligne. */
+  .dev.net{display:flex; flex-wrap:nowrap; align-items:center; cursor:default}
+  .dev.net .dn{flex:1 1 auto}
+  .dev.net .del{margin-left:auto; flex:0 0 auto}
   .dev.ign{grid-template-columns:minmax(0,1fr) auto auto auto; cursor:default}
   .dev.ign.ko .dt{color:var(--v2-danger)}
   .devlist.smb{margin-top:14px}
