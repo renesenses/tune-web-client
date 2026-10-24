@@ -232,6 +232,8 @@ export class ChampCercle {
 
   selection(id: string | null) { this.sel = id; this.demander(); }
   survol(id: string | null) { this.hover = id; this.demander(); }
+  /** Une image de plus, rien d'autre : ce que l'écran pose AUTOUR des nœuds (les lunes T5) a changé. */
+  redessiner() { this.demander(); }
 
   /** Mode « poser mon lieu » : le prochain clic sur le globe rend un lieu. */
   modePose(actif: boolean) { this.pose = actif; this.canvas.style.cursor = actif ? 'crosshair' : 'default'; this.demander(); }

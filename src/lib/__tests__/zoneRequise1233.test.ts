@@ -94,7 +94,10 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // clic une station de l'annuaire radio-metadata.fr.
     // VINGT-QUATRE depuis tune-server-rust#6288 : `AlbumsManquants` lance
     // « Écouter sur <service> » un album manquant.
-    expect(avec.length).toBe(24);
+    // VINGT-CINQ depuis le 24/10 (Tune Circle T5) : `CircleV2` lit une
+    // playlist partagée sur la zone courante depuis sa ligne ou la scène.
+    expect(avec.length).toBe(25);
+    expect(avec).toContain('CircleV2.svelte');
     expect(avec).toContain('AlbumsManquants.svelte');
     expect(avec).toContain('RadioAnnuaire.svelte');
     expect(avec).toContain('ReaffectationCanauxV2.svelte');
