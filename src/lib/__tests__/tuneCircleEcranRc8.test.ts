@@ -11,6 +11,7 @@ import CircleV2 from '../../components/v2/CircleV2.svelte';
 import { preparerLocale } from '../i18n';
 import { circlePlugin } from '../circle';
 import fr from '../locales/fr';
+import { chargerVilles } from '../champCercle/villes';
 
 type Appel = { url: string; method: string; body: unknown };
 let appels: Appel[] = [];
@@ -49,7 +50,9 @@ function cloud(chemin: string, method: string, body: any): Response {
   return reponse(404, { error: 'not_found' });
 }
 
-beforeAll(async () => { await preparerLocale('fr'); });
+// L'index des villes, chargé d'avance : sous horloge factice, un import
+// dynamique pendant le test n'aurait pas le temps d'aboutir.
+beforeAll(async () => { await preparerLocale('fr'); await chargerVilles(); });
 
 beforeEach(() => {
   vi.useFakeTimers();
