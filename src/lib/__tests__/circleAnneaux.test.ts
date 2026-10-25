@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import { construireScene, ordreParCercles, idContact, ID_PLUS_CERCLES, type DonneesCercle, type Vue } from '../champCercle/scene';
-import { anneauxDeVue, dansContour, enveloppe, pointSurContour } from '../champCercle/anneaux';
-import { lunesParPlanete, positionLuneSurAnneau, LUNES_MAX } from '../champCercle/lunes';
+import { anneauxDeVue, dansContour, demiBras, DOUCEUR, MAILLE, enveloppe, etiquettesDeVue, formeLissee, pointSurContour, recouvrement, placerEtiquettes, largeurEtiquette, type Boite } from '../champCercle/anneaux';
+import { lunesParPlanete, positionLuneEnRangee, largeurRangeeLunes, LUNES_MAX } from '../champCercle/lunes';
 import { ChampCercle, type PlacementNoeud } from '../champCercle/moteur';
 import { budgetScene } from '../champCercle/budget';
 import type { PlaylistCercleResume } from '../circlePlaylists';
@@ -192,8 +192,9 @@ describe('anneaux — les lunes sur la boucle', () => {
     const a = places.get('k:7')!;
     expect(a).toMatchObject({ mode: 'ring' });
     expect(a.contour!.length).toBeGreaterThan(6);
-    // Le nom est posé SUR le trait.
-    expect(distanceAuContour(a.contour!, a.x, a.y)).toBeLessThan(1e-6);
+    // Le nom est posé DEHORS de la forme (25/10 : plus sur le trait).
+    expect(dansContour(a.contour!, a.x, a.y)).toBe(false);
+    expect(distanceAuContour(a.contour!, a.x, a.y)).toBeGreaterThan(8);
     // Les planètes de ses membres (Alex, Yves) dedans, Zoé (Rock seulement) et moi : moi dedans, Zoé dehors.
     const p = (id: string) => places.get(id)!;
     expect(dansContour(a.contour!, p(idContact(1)).x, p(idContact(1)).y)).toBe(true);
@@ -202,15 +203,93 @@ describe('anneaux — les lunes sur la boucle', () => {
     expect(dansContour(a.contour!, p(idContact(5)).x, p(idContact(5)).y)).toBe(false);
     // En Réseau, l'anneau de la vue Solo est caché (ses lunes aussi).
     expect(places.get('ks:7')).toBeNull();
-    const lunes = Array.from({ length: 6 }, (_, k) => positionLuneSurAnneau(a.contour!, a.ancre!, k));
-    for (const l of lunes) expect(distanceAuContour(a.contour!, l.x, l.y)).toBeLessThan(1e-6);
-    for (let i = 1; i < lunes.length; i++) expect(Math.hypot(lunes[i].x - lunes[i - 1].x, lunes[i].y - lunes[i - 1].y)).toBeGreaterThan(16);
-    // Ni sur le nom : la première lune est à distance de l'ancre.
-    expect(Math.hypot(lunes[0].x - a.x, lunes[0].y - a.y)).toBeGreaterThan(30);
+    // Les lunes : une rangée serrée à droite du nom, sans se chevaucher (12 px chacune).
+    expect(a.lunesX).toBeGreaterThan(a.x);
+    const lunes = Array.from({ length: 6 }, (_, k) => positionLuneEnRangee(a.lunesX!, a.y, k));
+    for (const l of lunes) expect(l.y).toBe(a.y);
+    for (let i = 1; i < lunes.length; i++) expect(lunes[i].x - lunes[i - 1].x).toBeGreaterThanOrEqual(13);
+    expect(lunes[0].x - 6).toBeGreaterThan(a.x);
     m.detruire();
     vi.unstubAllGlobals();
   });
 });
+
+describe('anneaux — le design de Levente (25/10)', () => {
+  it('forme lissée : contient chaque disque gonflé, suit les bras, ne couvre pas la scène comme l\'enveloppe convexe', () => {
+    const moi = { x: 400, y: 250, r: 40 };
+    const a = { x: 700, y: 120, r: 20 }; const b = { x: 650, y: 420, r: 20 };
+    const f = formeLissee([moi, a, b], 12);
+    const conv = enveloppe([moi, a, b], 12);
+    for (const d of [moi, a, b]) {
+      for (let i = 0; i < 16; i++) {
+        const t = (i / 16) * Math.PI * 2;
+        expect(dansContour(f, d.x + Math.cos(t) * (d.r + 11), d.y + Math.sin(t) * (d.r + 11))).toBe(true);
+      }
+    }
+    // Le bras relie moi à chaque membre.
+    for (const d of [a, b]) for (let k = 1; k < 10; k++) expect(dansContour(f, moi.x + (d.x - moi.x) * k / 10, moi.y + (d.y - moi.y) * k / 10)).toBe(true);
+    // Entre les deux membres, là où l'enveloppe convexe passait : vide.
+    expect(dansContour(conv, 640, 270)).toBe(true);
+    expect(dansContour(f, 640, 270)).toBe(false);
+    expect(aire(f)).toBeLessThan(aire(conv) * 0.6);
+    // Sans pointe parasite : chaque sommet colle à un disque gonflé ou à un bras, à la rondeur près.
+    const w = demiBras(12); const tol = DOUCEUR / 4 + 1;
+    const n = f.length / 2;
+    for (let i = 0; i < n; i++) {
+      const x = f[i * 2]; const y = f[i * 2 + 1];
+      const prochesDisque = [moi, a, b].some((d) => Math.hypot(x - d.x, y - d.y) <= d.r + 12 + tol);
+      const prochesBras = [a, b].some((d) => distSeg(x, y, moi, d) <= w + tol);
+      expect(prochesDisque || prochesBras, `sommet ${i}`).toBe(true);
+    }
+    // Et un raccord doux (le creux comblé) au pied des bras : plus d'aire qu'une union sèche.
+    const aPlat = formeLissee([moi, a, b], 12, MAILLE, 1e-6);
+    expect(aire(f)).toBeGreaterThan(aire(aPlat));
+  });
+
+  it('étiquettes : aucune boîte d\'étiquette de cercle ne coupe une boîte de nom (ni une autre étiquette), sur toutes les tailles', () => {
+    const contacts = Array.from({ length: 14 }, (_, i) => ({ id: 100 + i, nom: ['Alex Campbell', 'Reivax66', 'Sevy Tabroc', 'Belkadi Yacine', 'Benjithom', 'FabienM', 'Levente', 'Matteo', 'Gilles', 'Tades', 'Vincent', 'Yves', 'Zoé', 'Ana'][i], albums: i % 3 ? 4100 : null, genres: [], lieu: null }));
+    const cercles = [
+      { id: 1, nom: 'Vumètre', membres: [110] },
+      { id: 2, nom: 'Bermuda', membres: [100, 101] },
+      { id: 3, nom: 'Test', membres: [101, 102, 103, 104, 105, 106] },
+    ];
+    const d = donnees({ contacts, cercles });
+    const s = construireScene(d);
+    for (const [W, H] of [[1600, 550], [1400, 640], [800, 500], [390, 420]] as [number, number][]) {
+      for (const v of ['reseau', 'seul'] as Vue[]) {
+        const { noeuds, etiquettes, anneaux } = etiquettesDeVue(s, v, W, H, () => largeurRangeeLunes(3));
+        expect(etiquettes.length).toBe(anneaux.length);
+        for (const e of etiquettes) {
+          for (const o of noeuds) expect(recouvrement(e.boite, o), `${e.id} sur un nom (${v} ${W}×${H})`).toBe(0);
+          for (const f of etiquettes) if (f !== e) expect(recouvrement(e.boite, f.boite)).toBe(0);
+          const a = anneaux.find((x) => x.id === e.id)!;
+          expect(dansContour(a.contour, e.x, e.y), `${e.id} dehors de sa forme`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('évitement : à côté d\'un nom, l\'étiquette se pose ailleurs', () => {
+    const moi = { x: 300, y: 200, r: 30 }; const m = { x: 500, y: 200, r: 16 };
+    const contour = formeLissee([moi, m], 12);
+    // Un nom occupe tout le côté droit du membre, là où l'étiquette irait d'abord.
+    const nom: Boite = { x: 520, y: 150, w: 200, h: 100 };
+    const [e] = placerEtiquettes([{ id: 'k', contour, cx: 300, cy: 200, dx: 1, dy: 0, largeur: largeurEtiquette('Bermuda') }], [nom], 900, 400);
+    expect(recouvrement(e.boite, nom)).toBe(0);
+  });
+});
+
+function distSeg(x: number, y: number, p: { x: number; y: number }, q: { x: number; y: number }): number {
+  const dx = q.x - p.x; const dy = q.y - p.y; const l2 = dx * dx + dy * dy;
+  const t = Math.max(0, Math.min(1, ((x - p.x) * dx + (y - p.y) * dy) / l2));
+  return Math.hypot(x - (p.x + t * dx), y - (p.y + t * dy));
+}
+
+function aire(c: ArrayLike<number>): number {
+  let s = 0; const n = c.length / 2;
+  for (let i = 0; i < n; i++) { const j = (i + 1) % n; s += c[i * 2] * c[j * 2 + 1] - c[j * 2] * c[i * 2 + 1]; }
+  return Math.abs(s) / 2;
+}
 
 function distanceAuContour(c: ArrayLike<number>, x: number, y: number): number {
   const n = c.length / 2;

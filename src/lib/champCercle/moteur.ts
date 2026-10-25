@@ -25,7 +25,7 @@ import { parBudget, type Budget } from './budget';
 import { deprojeter, pointArc, projeter, vecteur, decoderPointsTerre, DEG, type Orientation } from './globe';
 import { POINTS_TERRE } from './pointsTerre';
 import { cleLien, type Scene, type Vue, type NoeudScene, type GenreLien } from './scene';
-import { anneauDepuis, rayonVisible, type AnneauPx, type Disque } from './anneaux';
+import { anneauDepuis, boitesDesNoeuds, largeurEtiquette, placerEtiquettes, rayonVisible, type AnneauPx, type Disque, type EtiquettePosee, type NoeudVisible } from './anneaux';
 
 export type ModePlacement = 'sphere' | 'avatar' | 'cluster' | 'pin' | 'more' | 'ring';
 
@@ -37,9 +37,11 @@ export interface PlacementNoeud {
   r: number;
   alpha: number;
   mode: ModePlacement;
-  /** Anneau : sa boucle en px [x0, y0, …] et le sommet où se pose son nom (x, y). */
+  /** Anneau : sa forme en px [x0, y0, …] ; (x, y) est alors le centre de son nom, posé DEHORS. */
   contour?: readonly number[];
   ancre?: number;
+  /** Anneau : où commence la rangée de ses lunes, à droite de son nom (px). */
+  lunesX?: number;
 }
 
 export interface OptionsChamp {
@@ -52,6 +54,8 @@ export interface OptionsChamp {
   couleurs?: Partial<Couleurs>;
   /** Générateur pseudo-aléatoire (bancs). */
   aleatoire?: () => number;
+  /** Anneau : la place (px) que ses lunes prennent à droite de son nom. */
+  largeurLunes?: (id: string) => number;
 }
 
 export interface Couleurs { or: string; orClair: string; vert: string; vertClair: string; fil: string; fond: string }
@@ -117,6 +121,7 @@ export class ChampCercle {
   private repereLieu: { lat: number; lon: number } | null = null;
   // Anneaux des cercles, en px : recalculés seulement quand un nœud a bougé.
   private anneauxPx = new Map<string, AnneauPx>();
+  private etiquettesPx = new Map<string, EtiquettePosee>();
   private anneauxSales = true;
   // Particules
   private grand!: Float32Array;
@@ -245,7 +250,7 @@ export class ChampCercle {
   selection(id: string | null) { this.sel = id; this.demander(); }
   survol(id: string | null) { this.hover = id; this.demander(); }
   /** Une image de plus, rien d'autre : ce que l'écran pose AUTOUR des nœuds (les lunes T5) a changé. */
-  redessiner() { this.demander(); }
+  redessiner() { this.anneauxSales = true; this.demander(); }
 
   /** Mode « poser mon lieu » : le prochain clic sur le globe rend un lieu. */
   modePose(actif: boolean) { this.pose = actif; this.canvas.style.cursor = actif ? 'crosshair' : 'default'; this.demander(); }
@@ -518,9 +523,25 @@ export class ChampCercle {
         const a = anneauDepuis(e.n, ou);
         if (a) this.anneauxPx.set(e.n.id, a);
       }
+      // Les noms des anneaux, DEHORS, sans couvrir un nœud ni un nom.
+      const visibles: NoeudVisible[] = [];
+      for (const e of this.noeuds.values()) {
+        if (e.n.kind === 'ring' || e.cur.alpha < 0.05) continue;
+        const [x, y] = this.pos(e.cur);
+        const mode: NoeudVisible['mode'] = e.n.kind === 'pin' ? 'pin' : e.n.kind === 'more' ? 'more' : e.cur.cluster > 0.01 ? 'cluster' : e.cur.avatar > 0.5 ? 'avatar' : 'sphere';
+        visibles.push({ x, y, r: this.rayonNoeud(e), mode, label: e.n.label, albums: e.n.albums != null });
+      }
+      const ids = [...this.anneauxPx.keys()];
+      const poses = placerEtiquettes(
+        ids.map((id) => ({ ...this.anneauxPx.get(id)!, largeur: largeurEtiquette(this.noeuds.get(id)!.n.label), enPlus: this.opts.largeurLunes?.(id) ?? 0 })),
+        boitesDesNoeuds(visibles), this.W, this.H,
+      );
+      this.etiquettesPx.clear();
+      for (const p of poses) this.etiquettesPx.set(p.id, p);
     }
     ctx.globalCompositeOperation = 'source-over';
     ctx.lineJoin = 'round';
+    // Langage de Levente : un halo doux et un remplissage très léger, un trait à peine marqué.
     for (const [id, e] of this.noeuds) {
       if (e.n.kind !== 'ring') continue;
       const a = this.anneauxPx.get(id);
@@ -531,11 +552,14 @@ export class ChampCercle {
       ctx.moveTo(c[0], c[1]);
       for (let i = 2; i < c.length; i += 2) ctx.lineTo(c[i], c[i + 1]);
       ctx.closePath();
-      ctx.globalAlpha = e.cur.alpha * (hl ? 0.1 : 0.05);
-      ctx.fillStyle = `hsl(${e.n.hue} 60% 60%)`; ctx.fill();
-      ctx.globalAlpha = e.cur.alpha * (hl ? 0.95 : 0.7);
-      ctx.strokeStyle = `hsl(${e.n.hue} 62% 64%)`; ctx.lineWidth = hl ? 2.4 : 1.6; ctx.stroke();
-      this.opts.placer?.(id, { x: a.x, y: a.y, r: 12, alpha: e.cur.alpha, mode: 'ring', contour: c, ancre: a.ancre });
+      ctx.shadowColor = `hsl(${e.n.hue} 55% 60% / ${hl ? 0.5 : 0.28})`; ctx.shadowBlur = hl ? 22 : 16;
+      ctx.globalAlpha = e.cur.alpha * (hl ? 0.11 : 0.055);
+      ctx.fillStyle = `hsl(${e.n.hue} 48% 58%)`; ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = e.cur.alpha * (hl ? 0.7 : 0.3);
+      ctx.strokeStyle = `hsl(${e.n.hue} 55% 66%)`; ctx.lineWidth = hl ? 1.6 : 1; ctx.stroke();
+      const t = this.etiquettesPx.get(id);
+      this.opts.placer?.(id, { x: t?.x ?? a.x, y: t?.y ?? a.y, r: 12, alpha: e.cur.alpha, mode: 'ring', contour: c, ancre: a.ancre, lunesX: t?.lunesX });
     }
     ctx.globalAlpha = 1;
   }
@@ -561,8 +585,8 @@ export class ChampCercle {
         for (let i = 0; i < p.length; i += 3) {
           const t = (p[i] + this.time * p[i + 2]) % 1;
           const env = Math.sin(Math.PI * t);
-          const off = (p[i + 1] + Math.sin(this.time * 2 + t * 10 + p[i + 1] * 5) * 0.25) * env * Math.min(26, seg * 0.08);
-          ctx.globalAlpha = a * l.stream * (0.15 + 0.6 * env);
+          const off = (p[i + 1] + Math.sin(this.time * 2 + t * 10 + p[i + 1] * 5) * 0.25) * env * Math.min(7, seg * 0.03);
+          ctx.globalAlpha = a * l.stream * (0.1 + 0.4 * env);
           ctx.fillRect(sx + (ex - sx) * t - uy * off, sy + (ey - sy) * t + ux * off, 1.4, 1.4);
         }
       }
