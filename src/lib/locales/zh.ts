@@ -4243,6 +4243,7 @@ export default {
   "v2.tcol.time": "时长",
   "v2.tcol.year": "年份",
   "v2.tcol.plays": "播放次数",
+  "v2.tcol.playsCommunity": "Tune 全部用户的播放次数",
   "v2.tcol.lastPlayed": "上次播放",
   "v2.lib.sortPlaysUnsupported": "此服务器尚不支持按播放次数排序：已恢复默认顺序。",
   "v2.tcol.channels": "声道",

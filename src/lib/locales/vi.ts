@@ -4119,6 +4119,7 @@ export default {
   "v2.tcol.time": "Thời lượng",
   "v2.tcol.year": "Năm",
   "v2.tcol.plays": "Số lượt nghe",
+  "v2.tcol.playsCommunity": "Lượt nghe trên Tune, mọi người dùng",
   "v2.tcol.lastPlayed": "Nghe lần cuối",
   "v2.lib.sortPlaysUnsupported": "Máy chủ này chưa hỗ trợ sắp xếp theo lượt nghe: đã quay về thứ tự mặc định.",
   "v2.tcol.channels": "Kênh",

@@ -4117,6 +4117,7 @@ export default {
   "v2.tcol.time": "Διάρκεια",
   "v2.tcol.year": "Έτος",
   "v2.tcol.plays": "Ακροάσεις",
+  "v2.tcol.playsCommunity": "Αναπαραγωγές στο Tune, όλοι οι χρήστες",
   "v2.tcol.lastPlayed": "Τελευταία ακρόαση",
   "v2.lib.sortPlaysUnsupported": "Αυτός ο διακομιστής δεν μπορεί ακόμη να ταξινομήσει κατά ακροάσεις: επανήλθε η προεπιλεγμένη σειρά.",
   "v2.tcol.channels": "Κανάλια",

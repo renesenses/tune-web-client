@@ -4243,6 +4243,7 @@ export default {
   "v2.tcol.time": "Durată",
   "v2.tcol.year": "An",
   "v2.tcol.plays": "Redări",
+  "v2.tcol.playsCommunity": "Redări pe Tune, toți utilizatorii",
   "v2.tcol.lastPlayed": "Ultima redare",
   "v2.lib.sortPlaysUnsupported": "Acest server nu poate încă sorta după redări: ordinea implicită a fost restabilită.",
   "v2.tcol.channels": "Canale",
