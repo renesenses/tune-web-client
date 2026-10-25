@@ -5287,6 +5287,30 @@ export function signalerLectureNavigateur(zoneId: number, streamId: string, posi
   );
 }
 
+/**
+ * tune-server-rust#5975 — le lecteur de la zone navigateur dit POURQUOI il ne
+ * joue pas : code `MediaError`, ou refus de `play()`. Le serveur l'écrit au
+ * journal à côté de ce qu'il a servi (`browser_media_error`). 404 (serveur
+ * antérieur sans la route), 405 et 409 sont rendus sans bandeau : le signal
+ * ne doit jamais gêner la lecture.
+ */
+export function signalerErreurMediaNavigateur(
+  zoneId: number,
+  corps: {
+    stream_id: string | null;
+    kind: 'media_error' | 'play_rejected';
+    code: number | null;
+    message: string;
+    position_ms: number;
+  },
+) {
+  return fetchJSON<{ status?: string; error?: string } | undefined>(
+    `${BASE}/zones/${zoneId}/browser-error`,
+    { method: 'POST', body: JSON.stringify(corps) },
+    (statut) => statut === 404 || statut === 405 || statut === 409,
+  );
+}
+
 export function triggerScan(path?: string, full = false) {
   const params = new URLSearchParams();
   if (path) params.set('path', path);
