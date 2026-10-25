@@ -50,7 +50,7 @@
   import { chargerVilles, chercherVilles, villeExacte, type Ville } from '../../lib/champCercle/villes';
   import { motifCercle, type ContactCercle, type CercleNomme, type PartageRecu } from '../../lib/circle';
   import type { IdOpaque, PlaylistCercleResume } from '../../lib/circlePlaylists';
-  import { lunesParPlanete, positionLune, positionLuneSurAnneau, type LunesDePlanete } from '../../lib/champCercle/lunes';
+  import { largeurRangeeLunes, lunesParPlanete, positionLune, positionLuneEnRangee, type LunesDePlanete } from '../../lib/champCercle/lunes';
 
   interface Props {
     contacts: ContactCercle[];
@@ -292,10 +292,11 @@
     l.forEach((b, k) => {
       if (!b) return;
       if (!visible) { if (b.style.visibility !== 'hidden') b.style.visibility = 'hidden'; return; }
-      // Sur un anneau : les lunes se suivent sur le trait, après son nom.
-      const c = p!.mode === 'ring' && p!.contour ? positionLuneSurAnneau(p!.contour, p!.ancre ?? 0, k) : positionLune(p!, k, n);
+      // Sur un anneau : une rangée serrée à droite de son nom (la place est réservée par le moteur).
+      const c = p!.mode === 'ring' && p!.lunesX != null ? positionLuneEnRangee(p!.lunesX, p!.y, k) : positionLune(p!, k, n);
       b.style.visibility = 'visible';
-      b.style.transform = `translate(${c.x.toFixed(1)}px, ${c.y.toFixed(1)}px)`;
+      const x = p!.mode === 'ring' && b.dataset.plus != null ? c.x + 6 : c.x;
+      b.style.transform = `translate(${x.toFixed(1)}px, ${c.y.toFixed(1)}px)`;
       b.style.opacity = String(Math.min(1, p!.alpha));
     });
   }
@@ -338,7 +339,9 @@
     if (!c || !h || liste) return;
     // jsdom et les navigateurs très anciens : pas de mesure, pas de dessin — la vue liste suffit.
     if (typeof ResizeObserver === 'undefined') { sansToile = true; return; }
-    const m = new ChampCercle(c, { budget: budgetInitial(), placer, surClicGlobe });
+    // La rangée de lunes d'un anneau (« +N » compte pour deux) : le moteur réserve sa place à droite du nom.
+    const largeurLunes = (id: string) => { const e = lunes.get(id); return e ? largeurRangeeLunes(e.lunes.length + (e.reste > 0 ? 2 : 0)) : 0; };
+    const m = new ChampCercle(c, { budget: budgetInitial(), placer, surClicGlobe, largeurLunes });
     if (!m.disponible) { m.detruire(); sansToile = true; return; }
     const mesurer = () => { const r = h.getBoundingClientRect(); m.redimensionner(r.width, r.height); };
     const ro = new ResizeObserver(mesurer);
@@ -668,7 +671,7 @@
             </button>
           {/each}
           {#if e.reste > 0}
-            <button type="button" class="sc-lune sc-lune-plus" use:inscrireLune={{ planete, k: e.lunes.length }}
+            <button type="button" class="sc-lune sc-lune-plus" data-plus use:inscrireLune={{ planete, k: e.lunes.length }}
               aria-label={tr('v2.circle.scene.morePlaylists', { n: e.reste })} title={tr('v2.circle.scene.morePlaylists', { n: e.reste })}
               aria-controls="sc-playlists" aria-expanded={accesOuvert}
               onclick={() => { accesOuvert = true; }}>+{e.reste}</button>
@@ -826,9 +829,9 @@
   .sc-scene canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
   .sc-noeuds{position:absolute; inset:0; pointer-events:none}
   /* T5 — les lunes : de petits disques posés par le moteur autour de la planète. */
-  .sc-lune{position:absolute; left:0; top:0; visibility:hidden; width:16px; height:16px; margin:-8px 0 0 -8px; padding:0;
-    border-radius:50%; border:1px solid var(--sc-or); background:radial-gradient(circle at 35% 35%, #f3dca8, var(--sc-or) 60%, #8a6a35);
-    cursor:pointer; box-shadow:0 0 8px rgba(222,178,104,.45); pointer-events:auto}
+  .sc-lune{position:absolute; left:0; top:0; visibility:hidden; width:12px; height:12px; margin:-6px 0 0 -6px; padding:0;
+    border-radius:50%; border:1px solid rgba(222,178,104,.7); background:radial-gradient(circle at 35% 35%, #e9d3a3, #b48a4c 70%);
+    cursor:pointer; box-shadow:0 0 4px rgba(222,178,104,.25); opacity:.9; pointer-events:auto}
   .sc-lune:hover,.sc-lune:focus-visible{outline:2px solid var(--sc-txt); outline-offset:2px}
   .sc-lune-plus{width:24px; height:18px; margin:-9px 0 0 -12px; border-radius:999px; background:rgba(15,24,28,.92);
     color:var(--sc-or); font:700 10px var(--v2-sans); box-shadow:none}
@@ -857,9 +860,10 @@
   /* `avatar` n'est posé que par le moteur (`placer`) : hors du gabarit, d'où `:global`. */
   .sc-noeud:global([data-mode="avatar"]) .sc-etiquette{position:absolute; top:calc(100% + 3px)}
   .sc-noeud:global([data-mode="avatar"]) .sc-nom{font:500 11px var(--v2-sans); max-width:110px}
-  /* Anneau d'un cercle : son nom, posé SUR le trait, de la couleur du cercle. */
+  /* Anneau d'un cercle : son nom, posé DEHORS de sa forme (sans couvrir un nom), dans la couleur discrète du cercle. */
   .sc-noeud[data-mode="ring"]{--teinte:160; width:auto; height:auto; margin:0; translate:-50% -50%; padding:2px 10px; border-radius:999px;
-    background:rgba(15,24,28,.92); border:1.5px solid hsl(var(--teinte) 62% 64%); color:hsl(var(--teinte) 70% 80%); font:600 12px var(--v2-sans); text-shadow:none}
+    background:rgba(15,24,28,.78); border:1px solid hsl(var(--teinte) 45% 60% / .45); color:hsl(var(--teinte) 55% 82%); font:600 12px var(--v2-sans);
+    letter-spacing:.02em; text-shadow:none; box-shadow:0 0 14px hsl(var(--teinte) 50% 50% / .18)}
   .sc-noeud[data-mode="ring"] .sc-nom{max-width:180px}
   .sc-noeud[data-mode="ring"][aria-pressed="true"]{background:hsl(var(--teinte) 40% 22%)}
   .sc-noeud[data-mode="pin"] .sc-etiquette{position:absolute; left:calc(100% + 2px); top:-6px; align-items:flex-start}
