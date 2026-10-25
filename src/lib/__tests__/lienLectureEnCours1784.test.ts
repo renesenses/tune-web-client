@@ -32,6 +32,7 @@ import lEs from '../locales/es';
 import lIt from '../locales/it';
 import lHu from '../locales/hu';
 import lVi from '../locales/vi';
+import lEl from '../locales/el';
 import lJa from '../locales/ja';
 import lKo from '../locales/ko';
 import lRo from '../locales/ro';
@@ -40,7 +41,7 @@ import lZh from '../locales/zh';
 
 const fr = lFr as unknown as Record<string, string>;
 const DICTIONNAIRES = {
-  fr: lFr, en: lEn, de: lDe, es: lEs, it: lIt, hu: lHu, vi: lVi, ja: lJa, ko: lKo, ro: lRo, sv: lSv, zh: lZh,
+  fr: lFr, en: lEn, de: lDe, es: lEs, it: lIt, hu: lHu, vi: lVi, el: lEl, ja: lJa, ko: lKo, ro: lRo, sv: lSv, zh: lZh,
 } as unknown as Record<string, Record<string, string>>;
 
 const PISTE_LOCALE = {

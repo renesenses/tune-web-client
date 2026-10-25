@@ -60,6 +60,10 @@ export interface ReglagesIa {
   };
   /** Étape 3 : le tarif appliqué au modèle effectif, daté ; `null` sans fournisseur. */
   tarif?: TarifIa | null;
+  /** 23/10/2026 : le modèle du « second avis » (Sonnet 5.5 chez Anthropic), demandé explicitement. */
+  modele_second_avis?: string;
+  /** 23/10/2026 : la transcription vocale au coffre (voir `assistantIaRc8.ts`). */
+  transcription?: unknown;
 }
 
 /** Étape 3 : les compteurs d'un usage (`playlist`, `album`, `pistes`, `test`, `requete`, `traduction`). */
@@ -103,12 +107,23 @@ export interface ModificationIa {
   taux_usd_eur?: string | number;
   /** En clair, une seule fois ; `''` efface la clé. */
   cle?: string;
+  /** 23/10/2026 : la clé de transcription (Whisper), en clair une seule fois ; `''` l'efface. */
+  cle_transcription?: string;
 }
 
 export interface EchecIa {
   ok: false;
   error: string;
   message: string;
+  /**
+   * web#2306 (tune-server-rust#6730, PR #6746) — le motif rendu par le
+   * fournisseur (`error.message`), expurgé de toute clé et tronqué à 300
+   * caractères par le serveur. Absent d'un serveur plus ancien.
+   */
+  motif?: string;
+  /** `aucune_regle` (tune-server-rust#6731) : les règles écartées et ce que le modèle n'a pas traduit. */
+  refusees?: { regle: Record<string, unknown>; raison: string }[];
+  untranslated?: string[];
 }
 
 export interface RegleIa {
@@ -313,6 +328,10 @@ export const CODES_ECHEC = [
   'cle_refusee', 'quota', 'surcharge', 'modele_inconnu', 'reseau', 'refus',
   'reponse_invalide', 'phrase_invalide', 'album_introuvable', 'reglage_invalide',
   'admin_requis', 'lot_invalide', 'budget_du_lot_atteint', 'erreur_fournisseur',
+  'aucune_regle', 'cle_sans_espace_de_travail',
+  // tune-server-rust, 23/10/2026 : notes, diagnostic, collections.
+  'premium_requis', 'apercu_requis', 'diagnostic_indisponible', 'aucune_collection',
+  'aucun_paragraphe', 'regle_inconnue',
 ] as const;
 
 /** La clé i18n du message d'un échec. */
@@ -320,6 +339,21 @@ export function cleDEchec(code: string | undefined): string {
   return (CODES_ECHEC as readonly string[]).includes(code ?? '')
     ? `assistantIa.err.${code}`
     : 'assistantIa.err.generique';
+}
+
+/**
+ * web#2306 — le message traduit d'un échec, suivi du motif du fournisseur
+ * quand le serveur l'a gardé (tune-server-rust#6746). Sans motif : le message
+ * traduit seul, comme avant.
+ */
+export function messageDEchec(
+  e: { error?: string; motif?: unknown } | null | undefined,
+  tr: (cle: string) => string,
+): string {
+  const message = tr(cleDEchec(e?.error));
+  const motif = typeof e?.motif === 'string' ? e.motif.trim() : '';
+  if (!motif) return message;
+  return `${message} ${tr('assistantIa.err.motif').replace('{motif}', motif)}`;
 }
 
 /** Les raisons d'écart que l'écran sait dire. */

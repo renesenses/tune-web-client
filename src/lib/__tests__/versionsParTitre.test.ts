@@ -44,6 +44,7 @@ import lRo from '../locales/ro';
 import lSv from '../locales/sv';
 import lHu from '../locales/hu';
 import lVi from '../locales/vi';
+import lEl from '../locales/el';
 
 const fr: Record<string, string> = lFr as any;
 
@@ -272,7 +273,9 @@ describe('le panneau, MONTÉ en mode titre + artiste', () => {
     await souffler();
   }
   const albumsRendus = () =>
-    [...document.querySelectorAll('.tuile .ti')].map((e) => (e.textContent ?? '').trim());
+    // web#2210 — la fenêtre d'un titre de service est celle d'un titre local :
+    // une ligne (`.membre`) par exemplaire, plus de tuiles plates.
+    [...document.querySelectorAll('.membre .ti')].map((e) => (e.textContent ?? '').trim());
 
   it('🔴 interroge la recherche fédérée par le titre, jamais la route par `i64`', async () => {
     await ouvrir({ parTitre: CIBLE, titre: 'Lovely Day' });
@@ -298,7 +301,8 @@ describe('le panneau, MONTÉ en mode titre + artiste', () => {
     expect(albumsRendus()).toEqual([
       'Menagerie', 'Lovely Day (Single)', 'Lovely Day (Remastered 2005)', 'Live',
     ]);
-    expect(document.querySelectorAll('.tuile')).toHaveLength(4);
+    expect(document.querySelectorAll('.membre')).toHaveLength(4);
+    expect(document.querySelectorAll('.tuile')).toHaveLength(0);
   });
   it('l’ordre « par source » (#4368) s’applique : Bandcamp passe en dernier', async () => {
     preferences.update((p) => ({ ...p, ordreAutresVersions: 'source' }));
@@ -317,9 +321,9 @@ describe('i18n — la clé de l’en-tête dans les onze langues', () => {
   const LANGUES: [string, Record<string, string>][] = [
     ['fr', lFr as any], ['en', lEn as any], ['de', lDe as any], ['es', lEs as any],
     ['it', lIt as any], ['zh', lZh as any], ['ja', lJa as any], ['ko', lKo as any],
-    ['ro', lRo as any], ['sv', lSv as any], ['hu', lHu as any], ['vi', lVi as any],
+    ['ro', lRo as any], ['sv', lSv as any], ['hu', lHu as any], ['vi', lVi as any], ['el', lEl as any],
   ];
-  it('couvre bien onze langues', () => { expect(LANGUES).toHaveLength(12); });
+  it('couvre bien onze langues', () => { expect(LANGUES).toHaveLength(13); });
   for (const [langue, dict] of LANGUES) {
     it(`library.otherVersionsByTitle — ${langue}`, () => {
       expect(dict['library.otherVersionsByTitle'], `manque en ${langue}`).toBeTruthy();

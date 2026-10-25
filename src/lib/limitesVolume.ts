@@ -1,3 +1,4 @@
+import { volumeDepuisGain } from './courbeDeVolume';
 /**
  * tune-server-rust#6541 — boutons + / − et limites de volume d'une zone
  * (fil forum 2335, alec_eiffel).
@@ -18,6 +19,8 @@
  */
 
 export type LimitesVolume = {
+  /** tune-server-rust#6787 — loi du curseur ; les limites restent des GAINS. */
+  volume_curve?: string | null;
   volume_limit_safety?: number | null;
   volume_limit_comfort?: number | null;
   /** Code publié par le serveur quand les limites n'ont pas cours sur la zone. */
@@ -42,8 +45,10 @@ export function cleTexteRefus(code: string | null | undefined): string | null {
   return null;
 }
 
-/** Pas des boutons, en fraction : celui du serveur par défaut (0,02). */
-export const PAS_BOUTON = 0.02;
+/** Pas des boutons − et +, en fraction : UN point de volume (web#2292,
+ *  décision du 22/10). Envoyé tel quel au serveur (`step`), dont le pas par
+ *  défaut est de 0,02. */
+export const PAS_BOUTON = 0.01;
 
 function valide(v: number | null | undefined): number | null {
   return typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 1 ? v : null;
@@ -74,8 +79,10 @@ export function confort(zone: LimitesVolume | null | undefined): number | null {
 /** Jusqu'où le CURSEUR peut monter depuis `actuel` : `min(sécurité,
  *  max(confort, actuel))`. Même règle que le serveur. */
 export function plafondDuCurseur(zone: LimitesVolume | null | undefined, actuel: number): number {
-  const s = securite(zone) ?? 1;
-  const c = confort(zone);
+  // tune-server-rust#6787 — les limites sont des GAINS ; `actuel` et la
+  // valeur rendue sont des positions du curseur de la zone.
+  const s = curseurDeLimite(zone, securite(zone)) ?? 1;
+  const c = curseurDeLimite(zone, confort(zone));
   const haut = c === null ? 1 : Math.max(c, actuel);
   return Math.min(s, haut);
 }
@@ -87,7 +94,32 @@ export function bornerCurseur(zone: LimitesVolume | null | undefined, cible: num
 
 /** Le bouton + est-il en butée (sécurité atteinte) ? */
 export function plusEnButee(zone: LimitesVolume | null | undefined, actuel: number): boolean {
-  return actuel >= (securite(zone) ?? 1) - 1e-6;
+  return actuel >= (curseurDeLimite(zone, securite(zone)) ?? 1) - 1e-6;
+}
+
+/** Une limite (gain) sur le curseur de la zone (tune-server-rust#6787). */
+function curseurDeLimite(zone: LimitesVolume | null | undefined, limite: number | null): number | null {
+  return limite === null ? null : volumeDepuisGain(zone, limite);
+}
+
+/** web#2292 — le volume que vise un bouton − ou + calculé PAR LE CLIENT
+ *  (zone navigateur, serveur sans la route `/volume/step`, boutons du
+ *  téléphone). Un point, arrondi au point : jamais sous 0, et en montant
+ *  jamais au-dessus de la limite de sécurité ni de 100 %. Déjà au-dessus de
+ *  la sécurité (abaissée après coup), + ne bouge pas : il ne doit ni monter,
+ *  ni faire BAISSER le son. */
+export function cibleDuPas(
+  zone: LimitesVolume | null | undefined,
+  actuel: number,
+  direction: 'up' | 'down',
+): number {
+  const brut = direction === 'up' ? actuel + PAS_BOUTON : actuel - PAS_BOUTON;
+  const arrondi = Math.round(brut * 100) / 100;
+  if (direction === 'down') return Math.max(0, Math.min(arrondi, 1));
+  // tune-server-rust#6787 — la sécurité est un GAIN, `actuel` un curseur.
+  const plafond = Math.min(curseurDeLimite(zone, securite(zone)) ?? 1, 1);
+  if (actuel >= plafond - 1e-6) return actuel;
+  return Math.min(arrondi, plafond);
 }
 
 /** Une saisie de limite en % (texte), ramenée à une fraction ; vide = pas de

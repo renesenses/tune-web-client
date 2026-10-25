@@ -29,6 +29,10 @@
    *   peuvent en récupérer une copie 30 jours durant ; la confirmation le dit.
    * - Pas de bouton « copier » ici (décision 5) : la copie ne s'offre que
    *   pour une playlist d'un cercle supprimé (bloc « Playlists à récupérer »).
+   * - web#2287 — la fiche ouverte se relit comme la liste : toutes les
+   *   `RELECTURE_CERCLE_MS` ms, onglet visible et aucun geste en cours, et au
+   *   retour de l'onglet. Elle ne remplace l'écran que si la `version` a
+   *   changé (voir `issueRelecture`).
    */
   import { onDestroy, tick } from 'svelte';
   import { t } from '../../lib/i18n';
@@ -43,11 +47,13 @@
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne } from '../../lib/stores/nowPlaying';
   import { tirageAleatoire } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
-  import { motifCercle } from '../../lib/circle';
+  import { motifCercle, RELECTURE_CERCLE_MS } from '../../lib/circle';
+  import { dateCourte, dateEtHeure } from '../../lib/dates';
+  import { cleAvertissement, nePlusSuivre, synchroniserSuivi } from '../../lib/suiviCercle';
   import {
     lirePlaylistCercle, resoudrePlaylistCercle, retirerMorceau, reordonnerMorceaux,
     renommerPlaylistCercle, supprimerPlaylistCercle, jouerPlaylistCercle,
-    gesteVersionne, ordreDeplace, contient, plusPartagee, codeT5, nomPlaylistValide, NOM_PLAYLIST_MAX,
+    gesteVersionne, ordreDeplace, contient, issueRelecture, plusPartagee, codeT5, nomPlaylistValide, NOM_PLAYLIST_MAX,
     type IdOpaque, type PlaylistCercle, type MorceauCercle, type EtatResolution, type IssueGeste,
     type SelectionLecture,
   } from '../../lib/circlePlaylists';
@@ -121,6 +127,87 @@
       if (fermerSi404(e)) return;
       erreur = phraseRefus(e);
     }
+  }
+
+  /**
+   * web#2287 — relecture planifiée. Rien pendant un geste (`occupe`) ou un
+   * glisser, ni onglet caché ; et un geste commencé pendant la lecture
+   * l'emporte : son résultat est plus frais que ce qui revient.
+   */
+  let minuteur: ReturnType<typeof setTimeout> | null = null;
+  let relectureEnCours = false;
+
+  async function relirePlanifie() {
+    if (fini || !playlist || occupe || glisse != null || relectureEnCours) return;
+    if (typeof document !== 'undefined' && document.hidden) return;
+    relectureEnCours = true;
+    try {
+      const p = await relireSeule();
+      if (fini || occupe || !playlist) return;
+      const issue = issueRelecture(playlist, p);
+      if (!issue.remplacer) return;
+      playlist = p;
+      if (issue.resoudre) void resoudre();
+    } catch (e) {
+      // Une relecture qui échoue se tait : l'écran garde ce qu'il montrait,
+      // la suivante réessaiera. Seul un 404 dit la fin du partage.
+      fermerSi404(e);
+    } finally {
+      relectureEnCours = false;
+    }
+  }
+
+  function planifier() {
+    if (fini) return;
+    if (minuteur) clearTimeout(minuteur);
+    minuteur = setTimeout(async () => {
+      await relirePlanifie();
+      planifier();
+    }, RELECTURE_CERCLE_MS);
+  }
+
+  /**
+   * web#2287, point 2 — le suivi de la playlist locale d'origine
+   * (tune-server-rust#6694). « Synchroniser maintenant » relit et reporte ;
+   * « Ne plus suivre » arrête les reports (la copie reste).
+   */
+  let suiviOccupe = $state(false);
+  async function synchroniserMaintenant() {
+    if (!playlist || suiviOccupe) return;
+    suiviOccupe = true;
+    try {
+      const f = await synchroniserSuivi(playlist.id);
+      const p = await relireSeule();
+      if (fini) return;
+      playlist = { ...p, follow: p.follow ?? f };
+      void resoudre();
+      retour = { texte: $t('v2.circle.follow.synced' as any), erreur: false };
+    } catch (e) {
+      if (!fermerSi404(e)) retour = { texte: phraseRefus(e), erreur: true };
+    } finally {
+      suiviOccupe = false;
+    }
+  }
+  async function arreterLeSuivi() {
+    if (!playlist || suiviOccupe) return;
+    const ok = await dialogs.confirm($t('v2.circle.follow.stopConfirm' as any), { danger: true });
+    if (!ok || !playlist) return;
+    suiviOccupe = true;
+    try {
+      await nePlusSuivre(playlist.id);
+      if (fini || !playlist) return;
+      const f = playlist.follow;
+      playlist = { ...playlist, follow: f ? { ...f, following: false, stoppedAt: new Date().toISOString() } : null };
+      retour = { texte: $t('v2.circle.follow.stopped' as any), erreur: false };
+    } catch (e) {
+      retour = { texte: phraseRefus(e), erreur: true };
+    } finally {
+      suiviOccupe = false;
+    }
+  }
+
+  function auRetourDeLOnglet() {
+    if (!document.hidden) void relirePlanifie();
   }
 
   /**
@@ -377,7 +464,16 @@
   };
 
   $effect(() => { void charger(); });
-  onDestroy(() => { fini = true; });
+  $effect(() => {
+    planifier();
+    document.addEventListener('visibilitychange', auRetourDeLOnglet);
+    return () => {
+      if (minuteur) clearTimeout(minuteur);
+      minuteur = null;
+      document.removeEventListener('visibilitychange', auRetourDeLOnglet);
+    };
+  });
+  onDestroy(() => { fini = true; if (minuteur) clearTimeout(minuteur); });
 </script>
 
 <svelte:window onclick={clicDehors} />
@@ -403,6 +499,29 @@
         {#if maj}<p class="note resume-majorite">{phraseMajorite(maj.etat, maj.n)}</p>{/if}
         {#if unique}<p class="note auteur-unique">{auteurDeTete(unique)}</p>{/if}
         <p class="note">{$t('v2.circle.pl.refsOnly' as any)}</p>
+        {#if playlist.follow}
+          {@const f = playlist.follow}
+          {@const avert = cleAvertissement(f)}
+          <!-- web#2287 — la copie suit sa playlist locale d'origine (#6694). -->
+          <div class="suivi-origine" data-suivi-origine>
+            <p class="note">
+              {#if f.following}
+                {$t('v2.circle.follow.following' as any).replace('{name}', f.localName ?? '')}
+                {#if f.lastSync} · {$t('v2.circle.follow.lastSync' as any).replace('{date}', $dateCourte(f.lastSync))}{/if}
+                {#if f.pending} · {$t('v2.circle.follow.pending' as any)}{/if}
+              {:else}
+                {$t('v2.circle.follow.stoppedNote' as any).replace('{name}', f.localName ?? '')}
+              {/if}
+            </p>
+            {#if avert}<p class="note alerte-suivi" role="status">{$t(avert as any)}</p>{/if}
+            {#if f.following}
+              <div class="actions">
+                <button class="ghost sm synchroniser-suivi" disabled={suiviOccupe || occupe} onclick={() => void synchroniserMaintenant()}>{$t('v2.circle.follow.syncNow' as any)}</button>
+                <button class="ghost sm danger arreter-suivi" disabled={suiviOccupe || occupe} onclick={() => void arreterLeSuivi()}>{$t('v2.circle.follow.stop' as any)}</button>
+              </div>
+            {/if}
+          </div>
+        {/if}
         <div class="actions">
           <button class="play lire-playlist" disabled={occupe || items.length === 0} onclick={() => void lire()}>
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8V4z"/></svg>{$t('v2.circle.pl.play' as any)}
@@ -496,7 +615,19 @@
             <span class="infos">
               <span class="titre-ligne"><IndicateurLecture etat={enCours} /><span class="titre-morceau" use:bulleTexte>{m.title}</span></span>
               {#if sousTitre(m)}<span class="note sous-titre" use:bulleTexte>{sousTitre(m)}</span>{/if}
-              {#if !unique}<span class="note auteur">{auteur(m)}</span>{/if}
+              <!-- T5 (24/10) — qui a ajouté (déjà là) ET quand : le cloud stocke
+                   `added_at` à chaque ajout (site-mozaiklabs CirclePlaylists). Une
+                   date illisible ne s'affiche pas. -->
+              {#if !unique || m.added_at}
+                <span class="note qui-quand" use:bulleTexte>
+                  {#if !unique}<span class="auteur">{auteur(m)}</span>{/if}
+                  {#if m.added_at && $dateCourte(m.added_at)}
+                    {#if !unique}<span aria-hidden="true"> · </span>{/if}<time class="quand-ajoute" datetime={m.added_at}
+                      title={$t('v2.circle.pl.addedOn' as any).replace('{date}', $dateEtHeure(m.added_at))}
+                      aria-label={$t('v2.circle.pl.addedOn' as any).replace('{date}', $dateCourte(m.added_at))}>{$dateCourte(m.added_at)}</time>
+                  {/if}
+                </span>
+              {/if}
             </span>
             <span class="note duree">{m.duration_ms ? formatTime(m.duration_ms) : ''}</span>
             <span class={`resolution ${r && pastilleVisible(r, maj) ? `res-${r.etat}` : ''}`}>{r && pastilleVisible(r, maj) ? libelleResolution(r) : ''}</span>
@@ -541,8 +672,12 @@
   .tete{display:flex; align-items:center}
   .state{color:var(--v2-txt3); font-size:13px}
   .note{font-size:11.5px; color:var(--v2-txt3); margin:0}
+  /* web#2287 — le suivi de la playlist d'origine. */
+  .suivi-origine{display:flex; flex-direction:column; gap:4px; margin-top:4px}
+  .alerte-suivi{color:var(--v2-acc1)}
   .alerte{color:var(--v2-danger)}
   .vide{margin:0}
+  .qui-quand{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .err,.ok{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:12.5px}
   .err{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .ok{border:1px solid var(--v2-line); background:var(--v2-acc-soft); color:var(--v2-txt)}

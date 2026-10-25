@@ -372,7 +372,7 @@
               {:else}
                 <button class="go" disabled={!p.compatible || busy === key(p)} onclick={() => install(p)}
                   title={p.compatible ? '' : $t('v2.plug.incompatible' as any)}>
-                  {busy === key(p) ? '…' : 'Installer'}
+                  {busy === key(p) ? '…' : $t('plugins.install' as any)}
                 </button>
               {/if}
             </div>

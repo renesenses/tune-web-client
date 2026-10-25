@@ -99,7 +99,15 @@ export const pendingStreamingArtist = writable<Artist | null>(null);
  * objet pour un artiste de service.
  */
 export const ficheArtisteService =
-  writable<{ service: Source | null; id: string; nom: string; provenance?: string | null } | null>(null);
+  writable<{
+    service: Source | null;
+    id: string;
+    nom: string;
+    provenance?: string | null;
+    /** tune-server-rust#6463 — la vignette que montrait la tuile cliquée, en
+     *  repli pour l'en-tête quand la fiche ouverte n'a pas de portrait. */
+    image?: string | null;
+  } | null>(null);
 
 /**
  * La cible de la FICHE ALBUM DE SERVICE de la coquille v2 — #1361, #3626.
@@ -153,3 +161,23 @@ export interface GenreBreadcrumbItem {
 }
 
 export const streamingGenreBreadcrumb = writable<GenreBreadcrumbItem[]>([]);
+
+/**
+ * tune-server-rust#6934 — la page « Label » d'un service (vue
+ * `streaminglabel` de la coquille) : le label chez le service, et le chemin
+ * de SON Retour.
+ *
+ * `retour` est l'écran d'où l'on vient, `retourDuRetour` le `vueDeRetour`
+ * qu'il avait (une fiche album garde le sien : le label ne doit pas l'écraser),
+ * et `ficheAlbum` la fiche album d'où l'on est parti, rouverte telle quelle au
+ * Retour même si un autre album a été ouvert depuis la page du label.
+ */
+export interface CibleFicheLabelService {
+  service: Source;
+  id: string;
+  nom: string;
+  retour: View | null;
+  retourDuRetour: View | null;
+  ficheAlbum: CibleFicheAlbumService | null;
+}
+export const ficheLabelService = writable<CibleFicheLabelService | null>(null);

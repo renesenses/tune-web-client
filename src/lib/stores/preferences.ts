@@ -132,6 +132,9 @@ export interface Preferences {
    *  Absent d'un blob ancien. Règle complète : `langueParDefaut.ts`. */
   langueAuto: Locale | null;
   volumeDisplay: VolumeDisplay;
+  /** web#2292 (fil 2366) — boutons − et + de part et d'autre du curseur de
+   *  volume, au pas d'un point. Désactivé par défaut (décision du 22/10). */
+  volumeStepButtons: boolean;
   startupView: StartupView;
   defaultZoneId: number | null;
   hiddenDeviceIds: string[];
@@ -218,7 +221,7 @@ export interface Preferences {
    *  Défaut : débutant pour TOUS, installations existantes comprises
    *  (arbitrage Bertrand, 14/08) — l'ancien toggle « réglages avancés »
    *  migre vers expert au premier chargement (voir loadPrefs). */
-  /** Thème du NOUVEAU client (six palettes, voir lib/v2Theme). Distinct de
+  /** Thème du NOUVEAU client (sept palettes, voir lib/v2Theme). Distinct de
    *  `theme` ci-dessus, qui reste celui de l'app historique : les deux
    *  clients cohabitent derrière le drapeau `?v2`, chacun garde le sien. */
   v2Theme: V2Theme;
@@ -486,6 +489,7 @@ const defaults: Preferences = {
   // sinon (`langueParDefaut.ts`).
   ...resoudreLangue([]),
   volumeDisplay: 'percent',
+  volumeStepButtons: false,
   startupView: 'home',
   defaultZoneId: null,
   hiddenDeviceIds: [],

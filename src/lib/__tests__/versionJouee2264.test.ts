@@ -30,6 +30,7 @@ import sv from '../locales/sv';
 import zh from '../locales/zh';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
+import elLocale from '../locales/el';
 
 const tFr = (k: string) => (fr as Record<string, string>)[k] ?? k;
 
@@ -232,7 +233,7 @@ describe('#2264 — aides et libellés', () => {
       'profiles.versionRule.none', 'profiles.versionRule.local', 'profiles.versionRule.quality', 'profiles.versionRule.service',
       'profiles.versionRule.error',
     ];
-    for (const dict of [fr, en, de, es, it_, ja, ko, ro, sv, zh, hu, viLocale] as Record<string, string | undefined>[]) {
+    for (const dict of [fr, en, de, es, it_, ja, ko, ro, sv, zh, hu, viLocale, elLocale] as Record<string, string | undefined>[]) {
       for (const c of cles) expect(dict[c], c).toBeTruthy();
       expect(dict['nowplaying.version.fallbackTip']).toContain('{source}');
       expect(dict['profiles.versionRule.service']).toContain('{service}');

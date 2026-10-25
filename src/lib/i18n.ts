@@ -15,6 +15,7 @@ export const localeNames: Record<Locale, string> = {
   sv: 'Svenska',
   hu: 'Magyar',
   vi: 'Tiếng Việt',
+  el: 'Ελληνικά',
 };
 /**
  * 🔴 LES DICTIONNAIRES ARRIVENT À LA DEMANDE (tune-server-rust#4800, cause 4).
@@ -29,7 +30,7 @@ export const localeNames: Record<Locale, string> = {
  * posé la fait avancer, pour que les écrans déjà montés se retraduisent.
  */
 const messages: Record<Locale, Dictionnaire> = {
-  fr: {}, en: {}, de: {}, es: {}, it: {}, zh: {}, ja: {}, ko: {}, ro: {}, sv: {}, hu: {}, vi: {},
+  fr: {}, en: {}, de: {}, es: {}, it: {}, zh: {}, ja: {}, ko: {}, ro: {}, sv: {}, hu: {}, vi: {}, el: {},
 };
 const chargees = new Set<Locale>();
 const enCours = new Map<Locale, Promise<void>>();
@@ -81,7 +82,8 @@ const langue = writable<Locale>(langueDuNavigateur());
 // `<html lang>` suit la langue active (index.html le fige à `fr`). La feuille
 // de thème s'en sert : Lato, la police du corps, n'a pas de sous-ensemble
 // vietnamien sur Google Fonts — sans bascule, « Tiếng Việt » mélangerait deux
-// polices dans un même mot (ế, ạ, ộ tombant sur la police système).
+// polices dans un même mot (ế, ạ, ộ tombant sur la police système). Même
+// chose pour le grec : Lato n'a pas non plus de sous-ensemble `greek`.
 if (typeof document !== 'undefined') {
   langue.subscribe((l) => { document.documentElement.lang = l; });
 }

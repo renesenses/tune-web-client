@@ -87,6 +87,7 @@ import {
 import { mergeTransport, type TransportState } from './transportSync';
 import {
   positionApresReleve,
+  oublierEtatObserve,
   clePisteEnCours,
   type SuiviPosition,
 } from './positionLecture';
@@ -351,6 +352,14 @@ export function demarrerTransportV2(): () => void {
   const desabonnerEvents = tuneWS.onEvent((event: any) => {
     const type = event?.type as string | undefined;
     if (!type) return;
+
+    // web#2285 — la liaison est tombée (redémarrage du serveur, réseau) : ce
+    // qu'on avait vu de la zone ne dit plus rien. Une zone retrouvée arrêtée
+    // à la reconnexion n'est pas un « Arrêter » vécu en session (web#1652).
+    if (type === '_disconnected' || type === '_connected') {
+      suivi = oublierEtatObserve(suivi);
+      return;
+    }
 
     // Alerte de santé du serveur — portée d'`App.svelte`, que cette coquille ne
     // monte pas : un serveur en état critique ne se signalait nulle part.

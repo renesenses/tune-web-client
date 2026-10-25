@@ -403,7 +403,13 @@ async function profilRetenuParLeServeur(list: Profile[]): Promise<number | null>
   }
 }
 
-export async function loadProfiles(): Promise<void> {
+/**
+ * Rend `true` quand la liste est chargée et un profil désigné, `false` sur
+ * échec. Le booléen sert à la reprise de #6454 (`lib/repriseDesProfils`) :
+ * avant lui, un échec ne laissait qu'un `console.error`, et personne ne
+ * rappelait cette fonction.
+ */
+export async function loadProfiles(): Promise<boolean> {
   try {
     const list = await api.getProfiles();
     profiles.set(list);
@@ -429,8 +435,10 @@ export async function loadProfiles(): Promise<void> {
       }
     }
     profileReady.set(true);
+    return true;
   } catch (e) {
     console.error('Load profiles error:', e);
+    return false;
   }
 }
 

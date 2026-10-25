@@ -275,7 +275,15 @@ export interface PisteContact {
   /** Décision 3 du 28/09 : servira à T5 (ajout à une playlist collaborative). */
   isrc: string | null;
 }
-export interface StatsContact { tracks: number; albums: number; artists: number; last_sync: string | null }
+export interface StatsContact {
+  tracks: number; albums: number; artists: number; last_sync: string | null;
+  /**
+   * web#2307 (tune-server-rust#6733, point 4) — les albums partagés dont la
+   * vignette est arrivée sur le site (site-mozaiklabs, champ `thumbnails` de
+   * `stats`). `null` : site plus ancien, rien à dire.
+   */
+  thumbnails: number | null;
+}
 
 const texteOuNul = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 const nombreOuNul = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
@@ -430,12 +438,35 @@ function requete(q: RequeteCatalogue): string {
 const racineContact = (uid: number) => `${BASE}/ext/circle/contacts/${seg(uid)}/library`;
 const lire = <T>(url: string) => fetchJSON<T>(url, undefined, undefined, true);
 
-export async function statsContact(uid: number): Promise<StatsContact> {
-  const b = await lire<any>(`${racineContact(uid)}/stats`);
+export function lireStatsContact(b: any): StatsContact {
   return {
     tracks: nombreOuNul(b?.tracks) ?? 0, albums: nombreOuNul(b?.albums) ?? 0,
     artists: nombreOuNul(b?.artists) ?? 0, last_sync: texteOuNul(b?.last_sync),
+    thumbnails: nombreOuNul(b?.thumbnails),
   };
+}
+
+export async function statsContact(uid: number): Promise<StatsContact> {
+  return lireStatsContact(await lire<any>(`${racineContact(uid)}/stats`));
+}
+
+/**
+ * web#2307 — « Pochettes : n sur total, elles arrivent progressivement »,
+ * tant que toutes les vignettes ne sont pas arrivées. Le serveur de l'ami les
+ * envoie en continu, les plus récentes d'abord (tune-server-rust#6747) : une
+ * grande bibliothèque met des heures à être couverte, et la grille grise
+ * doit dire pourquoi. `null` : complet, bibliothèque vide, ou site qui ne
+ * compte pas les vignettes.
+ */
+export function ligneVignettesContact(
+  s: Pick<StatsContact, 'albums' | 'thumbnails'> | null | undefined,
+  tr: (cle: string) => string,
+  nombre: (n: number) => string = String,
+): string | null {
+  if (!s || s.thumbnails == null || s.albums <= 0) return null;
+  const n = Math.max(0, Math.min(s.thumbnails, s.albums));
+  if (n >= s.albums) return null;
+  return tr('v2.circle.lib.thumbnailsProgress').replace('{n}', nombre(n)).replace('{total}', nombre(s.albums));
 }
 
 export async function artistesContact(uid: number, q: RequeteCatalogue = {}): Promise<PageContact<ArtisteContact>> {
@@ -720,7 +751,7 @@ export function estRefusDeLiaison(code: string): boolean {
  * 🔴 AUCUNE clé ne dit « cette adresse n'a pas de compte » : le cloud répond
  * pareil que l'adresse soit connue ou non, et l'écran ne doit rien en déduire.
  */
-export function motifCercle(e: unknown, champ: 'email' | 'name' | null = null): MotifCercle {
+export function motifCercle(e: unknown, champ: 'email' | 'name' | 'pseudo' | null = null): MotifCercle {
   const err = e as ApiError | null;
   const status = err?.status;
   const code = typeof err?.code === 'string' ? err.code : '';
@@ -744,6 +775,8 @@ export function motifCercle(e: unknown, champ: 'email' | 'name' | null = null): 
     case 'self_invitation': return { cle: 'v2.circle.err.selfInvitation' };
     case 'circle_name_taken': return { cle: 'v2.circle.err.nameTaken' };
     case 'too_many_circles': return { cle: 'v2.circle.err.tooManyCircles' };
+    // #6935 : plus de 10 liens d'invitation actifs.
+    case 'too_many_links': return { cle: 'v2.circle.link.err.tooMany' };
     case 'not_found':
     case 'circle.not_found': return { cle: 'v2.circle.err.notFound' };
   }
@@ -751,6 +784,8 @@ export function motifCercle(e: unknown, champ: 'email' | 'name' | null = null): 
     const erreurs = (err?.corps as { errors?: Record<string, unknown> } | undefined)?.errors;
     if (erreurs && 'name' in erreurs) return { cle: 'v2.circle.err.nameInvalid' };
     if (erreurs && 'email' in erreurs) return { cle: 'v2.circle.err.emailInvalid' };
+    if (erreurs && 'pseudo' in erreurs) return { cle: 'v2.circle.pseudo.err.invalid' };
+    if (champ === 'pseudo') return { cle: 'v2.circle.pseudo.err.invalid' };
     if (champ === 'name') return { cle: 'v2.circle.err.nameInvalid' };
     if (champ === 'email') return { cle: 'v2.circle.err.emailInvalid' };
   }
@@ -884,4 +919,96 @@ export function estEcouteRevoquee(event: { type?: unknown; data?: any } | null |
   if (event.type === 'circle.stream_revoked') return true;
   const echec = event.type === 'zone.playback_error' || event.type === 'playback.error';
   return echec && (event.data?.code === 'circle.stream_revoked' || event.data?.reason === 'circle.stream_revoked');
+}
+
+// ─── #6935 : inviter sans e-mail ────────────────────────────────────────────
+//
+// renesenses/tune-server-rust#6935 (go du 24/10/2026), relayé tel quel par le
+// greffon, contrat de site-mozaiklabs :
+//
+//   POST   /invitations/by-pseudo {pseudo, circle_id?} → 201 l'invitation, la
+//          MÊME réponse que le pseudo existe ou non (aucune recherche, aucune
+//          liste : il faut connaître le pseudo exact du forum)
+//   GET    /invitation-links          → { links: [{ id, circle_id, created_at, expires_at }] }
+//   POST   /invitation-links {circle_id?} → 201 { id, circle_id, url, created_at, expires_at }
+//          L'URL n'est rendue QU'UNE fois : le cloud ne garde que l'empreinte
+//          du jeton. Lien valable 7 jours, une seule acceptation.
+//   DELETE /invitation-links/{id}     → { ok: true } (révoqué = effacé)
+//
+// Refus : 409 `too_many_links` (10 liens actifs), 429, 404 (cercle d'un autre).
+// Un 404 sur `GET /invitation-links` dit un greffon ou un cloud d'avant #6935 :
+// l'écran cache alors ces deux gestes.
+
+export interface LienInvitation {
+  id: number;
+  circle_id: number | null;
+  created_at: string;
+  expires_at: string;
+}
+
+export interface LienInvitationCree extends LienInvitation {
+  /** À copier tout de suite : on ne pourra plus la relire. */
+  url: string;
+}
+
+export function inviterParPseudo(pseudo: string, circleId?: number | null): Promise<InvitationCercle> {
+  const corps: { pseudo: string; circle_id?: number } = { pseudo };
+  if (circleId != null) corps.circle_id = circleId;
+  return envoyer<InvitationCercle>(`${BASE}/ext/circle/invitations/by-pseudo`, 'POST', corps);
+}
+
+export function listerLiensInvitation(): Promise<{ links: LienInvitation[] }> {
+  return fetchJSON<{ links: LienInvitation[] }>(`${BASE}/ext/circle/invitation-links`, undefined, undefined, true);
+}
+
+export function creerLienInvitation(circleId?: number | null): Promise<LienInvitationCree> {
+  return envoyer<LienInvitationCree>(
+    `${BASE}/ext/circle/invitation-links`, 'POST', circleId != null ? { circle_id: circleId } : {},
+  );
+}
+
+export function revoquerLienInvitation(id: number): Promise<{ ok: boolean }> {
+  return envoyer(`${BASE}/ext/circle/invitation-links/${seg(id)}`, 'DELETE');
+}
+
+// ─── #6935 : bloquer l'auteur d'une invitation reçue ────────────────────────
+//
+// Contrat de site-mozaiklabs#353, relayé tel quel par le greffon (#6950) :
+//
+//   POST   /invitations/{id}/block → { ok: true } : l'invitation est refusée
+//          et son auteur bloqué. 🔴 L'invitant n'en apprend RIEN : ses
+//          invitations suivantes reçoivent le même 201 que d'habitude.
+//   GET    /blocks                 → { blocks: [{ user_id, name, since }] }
+//   DELETE /blocks/{user_id}       → { ok: true } / 404 `not_found`
+//
+// Un 404 sur `GET /blocks` dit un greffon ou un cloud d'avant #6935 : l'écran
+// cache alors « Bloquer » et la liste des personnes bloquées.
+
+export interface PersonneBloquee {
+  user_id: number;
+  name: string;
+  since: string;
+}
+
+/** Ne garde que les lignes bien formées : un nom vide ou un id absent ne s'affiche pas. */
+export function lirePersonnesBloquees(brut: unknown): PersonneBloquee[] {
+  const lignes = (brut as { blocks?: unknown } | null)?.blocks;
+  if (!Array.isArray(lignes)) return [];
+  return lignes.flatMap((l) => {
+    const b = l as Partial<PersonneBloquee> | null;
+    if (!b || typeof b.user_id !== 'number' || typeof b.name !== 'string' || typeof b.since !== 'string') return [];
+    return [{ user_id: b.user_id, name: b.name, since: b.since }];
+  });
+}
+
+export async function listerPersonnesBloquees(): Promise<PersonneBloquee[]> {
+  return lirePersonnesBloquees(await fetchJSON<unknown>(`${BASE}/ext/circle/blocks`, undefined, undefined, true));
+}
+
+export function bloquerInvitant(invitationId: number): Promise<{ ok: boolean }> {
+  return envoyer(`${BASE}/ext/circle/invitations/${seg(invitationId)}/block`, 'POST');
+}
+
+export function debloquerPersonne(userId: number): Promise<{ ok: boolean }> {
+  return envoyer(`${BASE}/ext/circle/blocks/${seg(userId)}`, 'DELETE');
 }

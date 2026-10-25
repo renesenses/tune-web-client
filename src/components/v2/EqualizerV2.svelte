@@ -19,7 +19,9 @@
    * lieu de la réécrire : elle a ses tests, et deux implémentations d'un
    * découpage gauche/droite finiraient par diverger.
    */
+  import { untrack } from 'svelte';
   import * as api from '../../lib/api';
+  import { zoneChangee } from '../../lib/eqPresetEnCours';
   import { rafraichirGreffonEgaliseur } from '../../lib/stores/egaliseur';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { EqBand, MergedPlugin } from '../../lib/api';
@@ -118,6 +120,8 @@
   /** Le numéro de la dernière lecture : une réponse plus ancienne, arrivée
    *  après (changement de zone, rechargement), ne remplace plus l'écran. */
   let numeroLecture = 0;
+  /** web#2303 — la zone du dernier chargement ; `undefined` avant le premier. */
+  let zoneDuChargement: number | null | undefined = undefined;
   /**
    * La courbe en service est PARAMÉTRIQUE (ou l'est devenue au dernier
    * enregistrement). Sur l'onglet Graphique, ses bandes n'ont pas de curseur :
@@ -164,10 +168,17 @@
     void rechargement; // relu exprès : l'installation du greffon relance le chargement
     loading = true;
     const lecture = ++numeroLecture;
-    const msgIndisponible = $t('v2.eq.errUnavailable' as any);
+    // web#2303 (Thierry, fil 2377) — lu SANS dépendance : `$t` réémet chaque
+    // fois qu'un dictionnaire arrive (`revision`, i18n.ts), et cet effet se
+    // relançait alors, oubliant le préréglage en cours sans aucun geste.
+    const msgIndisponible = untrack(() => $t('v2.eq.errUnavailable' as any));
     // web#1750 — une autre zone, une autre courbe : « Enregistrer » ne doit
     // pas l'écrire dans le préréglage qu'on éditait sur la précédente.
-    enCoursId = null;
+    // web#2303 — mais SEULEMENT sur un vrai changement de zone : une relance
+    // du chargement (« Réessayer », installation du greffon, traduction qui
+    // arrive, même zone réannoncée) garde le préréglage en cours.
+    if (zoneChangee(zoneDuChargement, zid)) enCoursId = null;
+    zoneDuChargement = zid;
     // Le greffon se lit SANS zone : « pas installé » se dit même quand aucune
     // zone n'est choisie, sinon l'écran réclamerait une zone pour un
     // égaliseur qui n'existe pas encore.

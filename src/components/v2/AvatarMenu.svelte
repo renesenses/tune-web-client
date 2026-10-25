@@ -13,7 +13,7 @@
   import { activeView } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
-  import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
+  import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import { t } from '../../lib/i18n';
   import { get } from 'svelte/store';
   import { searchSettings, tabLabel, type V2SettingsHit } from '../../lib/v2Settings';
@@ -266,6 +266,10 @@
     preferences.update((p) => ({ ...p, settingsLevel: l }));
   }
   const theme = $derived($preferences.v2Theme);
+  const themeLabel = $derived.by(() => {
+    const th = V2_THEMES.find((x) => x.id === theme);
+    return th ? v2ThemeLabel(th, (k) => $t(k as any)) : '';
+  });
   function setTheme(t: V2Theme) {
     preferences.update((p) => ({ ...p, v2Theme: t }));
   }
@@ -441,19 +445,19 @@
 
       <div class="sec">{$t('settings.themes' as any)}</div>
       <div class="themes">
-        {#each V2_THEMES as t (t.id)}
+        {#each V2_THEMES as th (th.id)}
           <button
             class="sw"
-            class:on={theme === t.id}
-            title={t.label}
-            aria-label={t.label}
-            aria-pressed={theme === t.id}
-            style="--sw-bg:{t.swatch[0]}; --sw-acc:{t.swatch[1]}"
-            onclick={() => setTheme(t.id)}
+            class:on={theme === th.id}
+            title={v2ThemeLabel(th, (k) => $t(k as any))}
+            aria-label={v2ThemeLabel(th, (k) => $t(k as any))}
+            aria-pressed={theme === th.id}
+            style="--sw-bg:{th.swatch[0]}; --sw-acc:{th.swatch[1]}"
+            onclick={() => setTheme(th.id)}
           ></button>
         {/each}
       </div>
-      <div class="hint">{V2_THEMES.find((t) => t.id === theme)?.label ?? ''}</div>
+      <div class="hint">{themeLabel}</div>
       <!-- Même avertissement que l'écran Réglages (décision Bertrand du
            01/09/2026) : depuis ce menu, on changeait le thème sans savoir qu'il
            ne s'applique qu'au nouveau client. -->

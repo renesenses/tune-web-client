@@ -37,7 +37,7 @@ describe('fil 2157 — les pistes hors du périmètre des analyses', () => {
   });
 
   it('la clé existe dans les onze langues, avec {n}', () => {
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
       const src = fs.readFileSync(
         fileURLToPath(new URL(`../locales/${l}.ts`, import.meta.url)), 'utf8');
       expect(src, l).toMatch(/"v2\.health\.drOutOfScope": "[^"]*\{n\}/);

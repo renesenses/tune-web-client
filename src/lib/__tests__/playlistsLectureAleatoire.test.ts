@@ -31,7 +31,8 @@ describe('lecture aléatoire des playlists', () => {
 
   it('la vignette d’une playlist propose « Lecture aléatoire »', () => {
     expect(grille).toContain('objet={objetPlaylist(pl)}');
-    expect(gestes).toMatch(/lireListeAleatoire\(pistes, gestesDeLecture\(zid\)\)/);
+    // tune-server-rust#6466 — la liste part avec son conteneur.
+    expect(gestes).toMatch(/lireListeAleatoire\(pistes, gestesDeLecture\(zid, contexte\)\)/);
   });
 
   it('la vignette d’une playlist intelligente aussi, et sa lecture accepte les favoris de service', () => {

@@ -44,6 +44,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { errText } from '../../lib/utils';
   import { champsJours, EN_SEMAINE, joursDuReveil, WEEK_END } from '../../lib/joursReveil';
+  import SelecteurSourceReveil from './SelecteurSourceReveil.svelte';
   import '../../styles/tune-v2.css';
 
   interface Reveil {
@@ -272,20 +273,30 @@
 
       <label class="champ">
         <span>{$t('alarms.source')}</span>
-        <select bind:value={fTypeSource}>
+        <select bind:value={fTypeSource} onchange={() => { fIdSource = ''; fNomSource = ''; }}>
           <option value="radio">{$t('alarms.sourceRadio')}</option>
           <option value="playlist">{$t('alarms.sourcePlaylist')}</option>
           <option value="album">{$t('alarms.sourceAlbum')}</option>
         </select>
       </label>
 
-      <label class="champ">
-        <span>{fTypeSource === 'radio' ? $t('alarms.radioUrl') : $t('alarms.id')}</span>
-        <input
-          type="text"
-          bind:value={fIdSource}
-          placeholder={fTypeSource === 'radio' ? 'https://stream.fip.fr/fip-hifi.aac' : $t('alarms.idPlaceholder')} />
-      </label>
+      {#if fTypeSource === 'radio'}
+        <label class="champ">
+          <span>{$t('alarms.radioUrl')}</span>
+          <input type="text" bind:value={fIdSource} placeholder="https://stream.fip.fr/fip-hifi.aac" />
+        </label>
+      {:else}
+        <div class="champ">
+          <span>{fTypeSource === 'album' ? $t('alarms.sourceAlbum') : $t('alarms.sourcePlaylist')}</span>
+          {#key fTypeSource}
+            <SelecteurSourceReveil
+              type={fTypeSource === 'album' ? 'album' : 'playlist'}
+              idChoisi={fIdSource}
+              nomChoisi={fNomSource}
+              onchoisir={(id, nom) => { fIdSource = id; fNomSource = nom; }} />
+          {/key}
+        </div>
+      {/if}
 
       {#if atLeast(niveau, 'intermediate')}
         <label class="champ">

@@ -496,5 +496,8 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
  * `afficherDynamicRange`, la même que sur les deux fiches d'album.
  */
 export function cleInfobulleColonne(t: Track, cle: CleColonne): string | null {
+  // #7026 — sur les « Top tracks » d'un service, `play_count` est le total de
+  // tous les utilisateurs de Tune, pas celui de ce serveur : la cellule le dit.
+  if (cle === 'plays') return t.play_count_scope === 'community' ? 'v2.tcol.playsCommunity' : null;
   return cle === 'dr' ? (afficherDynamicRange(t)?.cleInfobulle ?? null) : null;
 }

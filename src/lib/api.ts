@@ -6,6 +6,7 @@ import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
+import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
 import type { ApercuFavorisRadio } from './favorisRadioQobuz';
 import { profileHeader } from './profileHeader';
@@ -892,11 +893,24 @@ const PRESET_KEYS = [
   'dlna_native_flac', 'alac_passthrough', 'aac_passthrough', 'dlna_lpcm', 'dlna_cap_16bit',
   'dlna_wav24', 'dlna_play_delay_ms', 'gain_trim_db',
 ] as const;
-export function applyZoneDevicePreset(id: number, settings: Record<string, unknown>) {
-  const body: Record<string, unknown> = {};
+/**
+ * tune-server-rust#6774 — les clés d'un préréglage communautaire que Tune
+ * accepte d'appliquer. Un trim POSITIF n'en fait jamais partie : il monte le
+ * niveau d'un appareil que la communauté n'a pas entendu ici (des préréglages
+ * non validés portent +12 dB). Un trim négatif ou nul passe.
+ */
+export function reglagesDePresetApplicables(settings: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
   for (const k of PRESET_KEYS) {
-    if (k in settings) body[k] = settings[k];
+    if (!(k in settings)) continue;
+    if (k === 'gain_trim_db' && !(Number(settings[k]) <= 0)) continue;
+    out[k] = settings[k];
   }
+  return out;
+}
+
+export function applyZoneDevicePreset(id: number, settings: Record<string, unknown>) {
+  const body = reglagesDePresetApplicables(settings);
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(body),
@@ -1683,7 +1697,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; album_ref?: string; queue_follows?: boolean }) {
+export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; album_ref?: string; queue_follows?: boolean }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1733,7 +1747,13 @@ export function seek(zoneId: number, positionMs: number) {
   });
 }
 
-export function setVolume(zoneId: number, volume: number) {
+/** Règle le volume d'une zone. `curseur` est la position du CURSEUR (0..1) :
+ *  sur une zone `volume_curve: "db60"` (tune-server-rust#6787), elle part en
+ *  GAIN, le sens historique de `volume` côté serveur. Une valeur qui serait
+ *  déjà un gain y est relue comme un curseur : elle joue plus bas, jamais
+ *  plus haut (`gainPerceptif(p) <= p`). */
+export function setVolume(zoneId: number, curseur: number) {
+  const volume = gainDeLaZone(zonePourLeCurseur(zoneId), curseur);
   return fetchVoid(`${BASE}/zones/${zoneId}/volume`, {
     method: 'PUT',
     body: JSON.stringify({ volume }),
@@ -1892,6 +1912,11 @@ export interface AddToQueueRequest {
   album_ref?: string;
   /** Ordered streaming rows, supported by QueueAddRequest on the server. */
   tracks?: StreamingQueueItem[];
+  /** tune-server-rust#6466 — le conteneur de ce qui est ajouté (album,
+   *  playlist, artiste, label), écrit sur les lignes puis dans l'historique. */
+  context_type?: string;
+  context_id?: string;
+  context_source?: string;
 }
 
 /**
@@ -2019,6 +2044,150 @@ export async function getAlbumsPage(limit = 100, offset = 0): Promise<{ items: A
   if (Array.isArray(r)) { amorcerPochettes(r); return { items: r, total: r.length }; }
   amorcerPochettes(r?.items);
   return { items: r?.items ?? [], total: r?.total ?? (r?.items?.length ?? 0) };
+}
+
+/** Un label de la bibliothèque (tune-server-rust#6736). `image_url` et
+ *  `qobuz_label_id` sont ABSENTS tant que le serveur ne les connaît pas. */
+export interface LibraryLabel {
+  name: string;
+  album_count: number;
+  image_url?: string;
+  qobuz_label_id?: string;
+}
+
+/** web#2297 — les labels de la bibliothèque et leur logo Qobuz. Un serveur
+ *  plus ancien (404) ou injoignable rend une liste vide : la grille tient
+ *  alors en monogrammes. */
+export async function getLibraryLabels(): Promise<LibraryLabel[]> {
+  try {
+    const r = await fetchJSON<LibraryLabel[]>(`${BASE}/library/labels`);
+    return Array.isArray(r) ? r : [];
+  } catch {
+    return [];
+  }
+}
+
+/** tune-server-rust#6782 — un artiste de la bibliothèque sous ce label.
+ *  `image_url` n'est là que si l'artiste a un portrait. */
+export interface ArtisteDuLabel {
+  id: number;
+  name: string;
+  album_count: number;
+  image_url?: string;
+}
+
+/** tune-server-rust#6782 — un artiste du catalogue Qobuz du label, absent de
+ *  la bibliothèque, avec son album le plus récent. */
+export interface ArtisteADecouvrir {
+  name: string;
+  qobuz_artist_id?: string;
+  album_count: number;
+  album_phare: { id: string; title: string; cover_url?: string; year?: number };
+}
+
+/** `GET /library/labels/{nom}/artists`. `decouvrir` est ABSENT sans compte
+ *  Qobuz connecté, ou quand le label n'a pas de correspondant Qobuz. */
+export interface ArtistesDuLabel {
+  name: string;
+  bibliotheque: ArtisteDuLabel[];
+  qobuz_label_id?: string;
+  decouvrir?: ArtisteADecouvrir[];
+}
+
+/** tune-server-rust#6782 — les artistes d'un label : la bibliothèque, puis
+ *  « À découvrir » chez Qobuz. Un serveur plus ancien (404) ou injoignable
+ *  rend `null` : la page du label reste celle d'avant. */
+export async function getArtistesDuLabel(nom: string): Promise<ArtistesDuLabel | null> {
+  try {
+    const r = await fetchJSON<ArtistesDuLabel>(
+      `${BASE}/library/labels/${encodeURIComponent(nom)}/artists`,
+      undefined,
+      undefined,
+      true,
+    );
+    return r && Array.isArray(r.bibliotheque) ? r : null;
+  } catch {
+    return null;
+  }
+}
+
+/** tune-server-rust#6934 — le contexte de découverte d'un album de service
+ *  (`GET /streaming/{service}/albums/{id}/context`) : son genre et son label
+ *  chez le service. Chaque champ est ABSENT quand le service ne le donne pas. */
+export interface StreamingAlbumContext {
+  genre_id?: string;
+  genre_name?: string;
+  label_id?: string;
+  label_name?: string;
+}
+
+/** tune-server-rust#6934 — le label d'un album de service. Sans bandeau : un
+ *  service sans contexte (501) ou injoignable rend `null`, et la fiche garde
+ *  le nom du label en texte. */
+export async function getStreamingAlbumContext(service: string, albumId: string): Promise<StreamingAlbumContext | null> {
+  try {
+    const r = await fetchJSON<StreamingAlbumContext>(
+      `${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/context`,
+      undefined,
+      undefined,
+      true,
+    );
+    return r && typeof r === 'object' ? r : null;
+  } catch {
+    return null;
+  }
+}
+
+/** tune-server-rust#6934 — une page du catalogue d'un label chez un service.
+ *  `total` est celui que le service annonce (précommandes comprises) ;
+ *  `albums` n'en garde que les albums sortis et écoutables. */
+export interface StreamingLabelPage {
+  id: string;
+  name: string;
+  image_url?: string;
+  total: number;
+  offset: number;
+  limit: number;
+  albums: Album[];
+}
+
+/** `GET /streaming/{service}/labels/{id}?limit=&offset=` (50 albums au plus
+ *  par page). `null` sur un serveur plus ancien (404) ou un échec. */
+export async function getStreamingLabel(service: string, labelId: string, offset = 0, limit = 50): Promise<StreamingLabelPage | null> {
+  try {
+    const r = await fetchJSON<StreamingLabelPage>(
+      `${BASE}/streaming/${encodeURIComponent(service)}/labels/${encodeURIComponent(labelId)}?limit=${limit}&offset=${offset}`,
+      undefined,
+      undefined,
+      true,
+    );
+    return r && Array.isArray(r.albums) ? r : null;
+  } catch {
+    return null;
+  }
+}
+
+/** tune-server-rust#6934 — les artistes du catalogue d'un label chez un
+ *  service, regroupés comme « À découvrir » (#6782), bibliothèque comprise. */
+export interface StreamingLabelArtists {
+  id: string;
+  artists: ArtisteADecouvrir[];
+}
+
+/** `GET /streaming/{service}/labels/{id}/artists`. `null` sur un serveur plus
+ *  ancien ou un échec : la page du label garde ses albums. */
+export async function getStreamingLabelArtists(service: string, labelId: string): Promise<StreamingLabelArtists | null> {
+  try {
+    const r = await fetchJSON<StreamingLabelArtists>(
+      `${BASE}/streaming/${encodeURIComponent(service)}/labels/${encodeURIComponent(labelId)}/artists`,
+      undefined,
+      undefined,
+      true,
+    );
+    return r && Array.isArray(r.artists) ? r : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getAlbums(limit = 100, offset = 0): Promise<Album[]> {
@@ -2731,6 +2900,9 @@ export interface DashboardData {
   top_tracks: { track_id: number | null; title: string; artist_name: string; plays: number; listening_ms: number; cover_path?: string | null; source?: string | null; source_id?: string | null }[];
   /** Absent de la réponse quand la liste est vide (skip_serializing_if). */
   top_radios?: { station_name: string; radio_id: number | null; plays: number; listening_ms: number; cover_url?: string | null; cover_path?: string | null }[];
+  /** tune-server-rust#6682 — le temps d'écoute radio par station sur la période,
+   *  à part des classements. Absent quand aucune radio n'a été écoutée. */
+  radio_listening?: { station_name: string; radio_id: number | null; listening_ms: number; sessions: number; cover_url?: string | null }[];
   trend: { day: string; plays: number; listening_ms: number }[];
   hourly: { hour: number; plays: number }[];
   by_zone: { zone_id: number | null; zone_name: string | null; plays: number; listening_ms: number }[];
@@ -3330,6 +3502,14 @@ export function updateTrack(id: number, data: { title?: string; album_id?: numbe
     method: 'PUT',
     body: JSON.stringify(data),
   });
+}
+
+/** tune-server-rust#6463 — « Détacher l'identité » : le serveur retire le MBID
+ *  de l'artiste, le marque `manuel` (plus de rattachement automatique) et
+ *  efface le portrait et la bio que ce MBID avait rapportés. Rend l'artiste
+ *  relu. */
+export function detacherIdentiteArtiste(id: number) {
+  return fetchJSON<Artist>(`${BASE}/library/artists/${id}/detacher-identite`, { method: 'POST' });
 }
 
 export function updateArtist(id: number, data: { name?: string; sort_name?: string; bio?: string }) {
@@ -4411,11 +4591,34 @@ export function getSmartPlaylists() {
   return fetchJSON<any[]>(`${BASE}/library/smart-playlists`);
 }
 
-export function createSmartPlaylist(data: { name: string; rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_tracks?: number; description?: string }) {
+export function createSmartPlaylist(data: { name: string; rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_tracks?: number; description?: string; origine?: 'assistant' }) {
   return fetchJSON<{ id: number }>(`${BASE}/library/smart-playlists`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
+}
+
+/** tune-server-rust#6287 — la réponse de `POST /library/smart-playlists/requete`.
+ *  `rules`/`match_mode` sont `null` pour une requête imbriquée ou niée : elle
+ *  s'exécute, mais l'éditeur (un seul niveau) ne sait pas la montrer. */
+export interface ReponseRequeteTextuelle {
+  tracks: any[];
+  total: number;
+  regles_refusees: string[];
+  rules: any[] | null;
+  match_mode: 'all' | 'any' | null;
+}
+
+/** tune-server-rust#6287 — exécute une requête textuelle sur la bibliothèque.
+ *  Une requête fautive rend 400 `{error: "requete_invalide", message,
+ *  position}` : l'erreur levée porte ce corps dans `corps`. */
+export function postRequeteTextuelle(body: { q: string; sort_by?: string; sort_order?: string; max_tracks?: number }) {
+  return fetchJSON<ReponseRequeteTextuelle>(
+    `${BASE}/library/smart-playlists/requete`,
+    { method: 'POST', body: JSON.stringify(body) },
+    undefined,
+    true,
+  );
 }
 
 export function getSmartPlaylist(id: number) {
@@ -4489,6 +4692,17 @@ export function removePlaylistTrackAt(playlistId: number, position: number) {
   return fetchVoid(`${BASE}/playlists/${playlistId}/tracks/remove`, {
     method: 'POST',
     body: JSON.stringify({ position }),
+  });
+}
+
+/**
+ * web#2286 — retire UNE ligne, désignée par son `entry_id` (tune-server-rust#6690)
+ * ou, à défaut, par son rang. Un retrait qui n'efface rien rend 404.
+ */
+export function removePlaylistEntry(playlistId: number, cible: { entry_id: number } | { position: number }) {
+  return fetchVoid(`${BASE}/playlists/${playlistId}/tracks/remove`, {
+    method: 'POST',
+    body: JSON.stringify(cible),
   });
 }
 
@@ -5073,6 +5287,30 @@ export function signalerLectureNavigateur(zoneId: number, streamId: string, posi
   );
 }
 
+/**
+ * tune-server-rust#5975 — le lecteur de la zone navigateur dit POURQUOI il ne
+ * joue pas : code `MediaError`, ou refus de `play()`. Le serveur l'écrit au
+ * journal à côté de ce qu'il a servi (`browser_media_error`). 404 (serveur
+ * antérieur sans la route), 405 et 409 sont rendus sans bandeau : le signal
+ * ne doit jamais gêner la lecture.
+ */
+export function signalerErreurMediaNavigateur(
+  zoneId: number,
+  corps: {
+    stream_id: string | null;
+    kind: 'media_error' | 'play_rejected';
+    code: number | null;
+    message: string;
+    position_ms: number;
+  },
+) {
+  return fetchJSON<{ status?: string; error?: string } | undefined>(
+    `${BASE}/zones/${zoneId}/browser-error`,
+    { method: 'POST', body: JSON.stringify(corps) },
+    (statut) => statut === 404 || statut === 405 || statut === 409,
+  );
+}
+
 export function triggerScan(path?: string, full = false) {
   const params = new URLSearchParams();
   if (path) params.set('path', path);
@@ -5187,7 +5425,9 @@ export function transferToPeer(ip: string, port: number = 8888, zoneId: number =
 }
 
 export function getScanStatus() {
-  return fetchJSON<{ scanning: boolean }>(`${BASE}/system/scan/status`);
+  // web#2305 : `current` (tune-server-rust#6744) dit QUEL scan tient le
+  // droit ; absent d'un serveur plus ancien. Lu par `scanDetenteur.ts`.
+  return fetchJSON<{ scanning: boolean; status?: string; current?: unknown }>(`${BASE}/system/scan/status`);
 }
 
 /**
@@ -5221,6 +5461,21 @@ export function lancerPlageDynamique() {
     `${BASE}/system/dynamic-range/analyze`,
     { method: 'POST' },
     (statut) => statut === 409,
+  );
+}
+
+/**
+ * web#2295 / tune-server-rust#6778 — lancer la passe ReplayGain à la demande.
+ * 202 `started` (avec `waiting_reason: "playback"` quand une zone joue),
+ * 200 `nothing_to_do`, 409 `already_running` ou `refused` (`reason` :
+ * `analysis_disabled` ou `paused`). Les 409 sont des réponses, pas des pannes.
+ */
+export function lancerReplayGain() {
+  return fetchJSON<{ status?: string; reason?: string | null; waiting_reason?: string | null; playing_zone?: string | null; candidates?: number }>(
+    `${BASE}/system/replaygain/analyze`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+    true,
   );
 }
 
@@ -7671,7 +7926,7 @@ export async function getRadioFranceEpisodes(showUrl: string, limit = 20): Promi
   return res.json();
 }
 
-export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string, podcastId?: number | string, sourceId?: string): Promise<any[]> {
+export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string, podcastId?: number | string, sourceId?: string, country?: string): Promise<any[]> {
   let url: string;
   if (podcastId != null && podcastId !== '') {
     // Prefer the by-id endpoint: the server resolves feed_url from the
@@ -7688,11 +7943,19 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
     if (!feedUrl && !showUrl && !sourceId) return []; // nothing to fetch — don't hit the 400
     url = `${BASE}/podcasts/episodes?limit=${limit}`;
     if (feedUrl) url += `&feed_url=${encodeURIComponent(feedUrl)}`;
-    else if (sourceId) url += `&source_id=${encodeURIComponent(sourceId)}`;
+    else if (sourceId) {
+      url += `&source_id=${encodeURIComponent(sourceId)}`;
+      // tune-server-rust#6770 — le flux se cherche dans la boutique du pays
+      // d'où vient le palmarès.
+      if (country) url += `&country=${encodeURIComponent(country)}`;
+    }
     if (showUrl) url += `&show_url=${encodeURIComponent(showUrl)}`;
   }
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Podcast episodes failed: ${res.status} ${res.statusText}`);
+  // web#2322 — l'erreur garde le `code` stable du serveur
+  // (`podcast_sans_flux_public`, `podcast_introuvable`,
+  // `podcast_resolution_reseau`) : l'écran en tire la phrase à montrer.
+  if (!res.ok) throw await apiError(res);
   const data = await res.json();
   return data.episodes || data;
 }
@@ -7709,7 +7972,7 @@ export function getPodcastSubscriptions(): Promise<any[]> {
   return fetchJSON(`${BASE}/podcasts/subscriptions`);
 }
 
-export function subscribePodcast(podcast: { title: string; feed_url: string; author?: string; image_url?: string; description?: string; source_id?: string }): Promise<any> {
+export function subscribePodcast(podcast: { title: string; feed_url: string; author?: string; image_url?: string; description?: string; source_id?: string; country?: string }): Promise<any> {
   return fetchJSON(`${BASE}/podcasts/subscriptions`, { method: 'POST', body: JSON.stringify(podcast) });
 }
 
@@ -7790,6 +8053,27 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
 }
 
 // --- CSV Export ---
+
+export interface EtatIntegrite {
+  status: 'idle' | 'running' | 'paused' | 'completed' | 'error';
+  total: number; traites: number; sains: number; corrompus: number;
+  non_verifiables: number; alertes_taille: number; erreur: string | null;
+  lecture_prioritaire: boolean;
+}
+export interface LigneIntegrite {
+  id: number; chemin: string; taille_sans_nouvelle_date: boolean;
+  resultat: { verdict: 'sain' | 'corrompu' | 'non_verifiable'; code: string;
+    erreur: string | null; position_trames: number | null; trames_decodees: number };
+}
+export function getIntegrityStatus() { return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity`); }
+export function startIntegrity(resume = false) {
+  return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity?resume=${resume}`, { method: 'POST' });
+}
+export function pauseIntegrity() { return fetchJSON<void>(`${BASE}/library/integrity/pause`, { method: 'POST' }); }
+export function getIntegrityReport(offset = 0, verdict = '') {
+  return fetchJSON<{ etat: EtatIntegrite; lignes: LigneIntegrite[] }>(`${BASE}/library/integrity/report?offset=${offset}${verdict ? `&verdict=${encodeURIComponent(verdict)}` : ''}`);
+}
+export function exportIntegrityCsv() { return downloadCsv('/library/integrity/report.csv', 'integrite-bibliotheque.csv'); }
 
 async function downloadCsv(path: string, filename: string) {
   const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
@@ -8365,6 +8649,10 @@ export function getServerDiagnostics() {
     // `temperature_figee`). Absent chez un serveur antérieur.
     analyses_bridees?: string | null;
     analyses_bridees_largeur?: number | null;
+    // tune-server-rust#6713 — le motif quand la température est illisible
+    // MAIS que l'utilisateur a levé le bridage ; `null` sinon. Absent chez
+    // un serveur antérieur.
+    analyses_bridage_leve?: string | null;
     // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
     // compatible with older servers during rolling client/server updates.
     asio_warm_scan?: AsioWarmScanStatus;
@@ -9192,6 +9480,8 @@ export interface OtherVersionGroup {
     cover_path: string | null;
     kind: 'version' | 'reprise';
     url?: string | null;
+    /** web#2210 — la durée, quand le rapprochement par titre la connaît. */
+    duration_ms?: number | null;
   }[];
   versions: {
     track_id: number | null;
@@ -9630,12 +9920,17 @@ export const BUG_REPORT_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 export async function submitBugReport(
   description: string,
   images: File[] = [],
+  /** Le résumé du diagnostic de l'assistant : joint SEULEMENT si `joindre`. */
+  resumeIa: { texte: string | null; joindre: boolean } = { texte: null, joindre: false },
 ): Promise<BugReportEnvoye> {
+  const joindre = resumeIa.joindre && !!resumeIa.texte && resumeIa.texte.trim() !== '';
   // Sans capture : le chemin JSON historique, inchangé (#4564).
   if (images.length === 0) {
+    const corps: Record<string, unknown> = { description: description.trim() };
+    if (joindre) { corps.resume_ia = resumeIa.texte!.trim(); corps.joindre_resume_ia = true; }
     return fetchJSON(`${BASE}/system/bug-report/submit`, {
       method: 'POST',
-      body: JSON.stringify({ description: description.trim() }),
+      body: JSON.stringify(corps),
     });
   }
 
@@ -9644,6 +9939,7 @@ export async function submitBugReport(
   // le multipart de sa frontière et ferait refuser l'envoi côté serveur.
   const form = new FormData();
   form.append('description', description.trim());
+  if (joindre) { form.append('resume_ia', resumeIa.texte!.trim()); form.append('joindre_resume_ia', 'true'); }
   for (const f of images) form.append('images[]', f, f.name);
 
   const token = getToken();
@@ -10219,6 +10515,10 @@ export function getPairesDoublons(critere?: string, signal?: AbortSignal) {
 }
 /** Garde `keep`, retire `del` de la bibliothèque (playlists, file, historique et
  *  favoris repointés sur `keep`). Le fichier n'est pas touché. */
+/** tune-server-rust#6285 — le verdict des faux hi-res d'un album local. */
+export function getAlbumHiRes(albumId: number) {
+  return fetchJSON<import('./badgeHiRes').VerdictHiRes>(`${BASE}/library/albums/${albumId}/hires`);
+}
 export function resolveTrackDuplicate(keep: number, del: number) {
   return fetchJSON<unknown>(`${BASE}/library/duplicates/resolve`, { method: 'POST', body: JSON.stringify({ keep_id: keep, delete_id: del }) });
 }

@@ -100,7 +100,8 @@ describe('« si on reclique ça fait planter l’appli » (podcasts)', () => {
     // Deux clés identiques arrêtent Svelte sur `each_key_duplicate`.
     expect(pod(), 'une entrée sans id est encore fabriquée')
       .not.toMatch(/\{ id: null, title: title\(p\)/);
-    expect(pod()).toMatch(/if \(created\?\.id != null\)/);
+    // web#2322 : la condition exige aussi le flux (résolu par le serveur au besoin).
+    expect(pod()).toMatch(/if \(created\?\.id != null && fluxCree\)/);
   });
 
   it('la liste est relue au SERVEUR quand la réponse ne dit rien', () => {
@@ -109,13 +110,14 @@ describe('« si on reclique ça fait planter l’appli » (podcasts)', () => {
   });
 
   it('un flux DÉJÀ listé n’est jamais rangé deux fois', () => {
-    expect(pod()).toMatch(/subs\.some\(\(s\) => feedOf\(s\) === feed\) \? subs : \[\.\.\.subs, created\]/);
+    expect(pod()).toMatch(/subs\.some\(\(s\) => feedOf\(s\) === fluxCree\) \? subs : \[\.\.\.subs, created\]/);
   });
 
   it('un double clic rapide ne lance pas deux abonnements', () => {
     // Deux appels partis avant la première réponse produiraient le même
     // doublon par un autre chemin.
-    expect(pod()).toContain('if (!feed || basculeEnCours) return;');
+    // web#2322 : sans flux, l'identifiant `apple-…` suffit à s'abonner.
+    expect(pod()).toContain('if ((!feed && !apple) || basculeEnCours) return;');
     expect(pod()).toContain('basculeEnCours = true;');
     expect(pod()).toMatch(/finally \{\s*basculeEnCours = false;/);
   });

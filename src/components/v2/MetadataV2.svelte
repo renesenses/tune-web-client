@@ -260,6 +260,9 @@
   }
   // Pistes déjà traitées par la passe (en cours ou interrompue).
   const drFaites = $derived(dr ? (dr.written ?? 0) + (dr.already ?? 0) + (dr.skipped ?? 0) + (dr.errors ?? 0) : 0);
+  /** web#2279 — une passe a été lancée : « à graver » ne se lit plus comme
+   *  avant le clic (recompté en direct, voir la grille). */
+  const passeConnue = $derived(!!dr && (dr.status === 'running' || dr.status === 'interrupted' || dr.status === 'done'));
   async function graverDr() {
     if (drBusy) return;
     drBusy = true;
@@ -1022,10 +1025,17 @@
           </button>
         </div>
         <div class="drgrid">
-          <div class="drk"><b>{$formatNombre(dr.a_graver)}</b><span>{$t('v2.meta.drToEngrave' as any)}</span></div>
+          <!-- web#2279 (fil 2349) — pendant ou après une passe, « à graver » est
+               recompté en DIRECT, alors que « N / total » porte sur la liste
+               figée au clic : le libellé le dit, sinon « 1 825 / 1 886 » et
+               « 1 295 à graver » côte à côte se lisent comme une erreur. -->
+          <div class="drk"><b>{$formatNombre(dr.a_graver)}</b><span>{$t((passeConnue ? 'v2.meta.drToEngraveLive' : 'v2.meta.drToEngrave') as any)}</span></div>
           <div class="drk"><b>{$formatNombre(dr.dans_les_fichiers)}</b><span>{$t('v2.meta.drInFiles' as any)}</span></div>
           <div class="drk"><b>{$formatNombre(dr.hors_format)}</b><span>{$t('v2.meta.drOtherFormats' as any)}</span></div>
         </div>
+        {#if dr.status === 'running' || dr.status === 'interrupted'}
+          <p class="note" data-temoin="dr-compteurs">{$t('v2.meta.drCountersNote' as any)}</p>
+        {/if}
         {#if dr.status === 'running'}
           <p class="note">{$t('v2.meta.drProgress' as any).replace('{done}', $formatNombre(drFaites)).replace('{total}', $formatNombre(dr.total ?? 0))}</p>
         {:else if dr.status === 'done'}

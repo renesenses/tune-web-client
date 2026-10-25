@@ -22,6 +22,7 @@
   import { ouvrirArtisteDeServiceParNom } from '../../lib/ouvrirArtisteDepuis';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import ArtisteServiceV2 from './ArtisteServiceV2.svelte';
+  import LabelServiceV2 from './LabelServiceV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import PlaylistsV2 from './PlaylistsV2.svelte';
   import SettingsV2 from './SettingsV2.svelte';
@@ -89,6 +90,7 @@
    * ligne suffit, et la règle ne vit qu'à un seul endroit.
    */
   import AssistantPremiereInstallation from '../partages/AssistantPremiereInstallation.svelte';
+  import ConsentementEcoutes from '../partages/ConsentementEcoutes.svelte';
   import TvView from '../v2-heritage/TvView.svelte';
   /**
    * 🔴 SANS LUI, TOUT DIALOGUE RESTE SANS REPONSE POUR TOUJOURS.
@@ -127,6 +129,10 @@
    * changé à l'écran.
    */
   import ToastContainer from '../partages/ToastContainer.svelte';
+  // Accès à distance par compte mozaiklabs (rc8) : seulement par le relais.
+  import AccesParCompte from '../partages/AccesParCompte.svelte';
+  import { serverIdDepuisUrl } from '../../lib/bridge';
+  const parLeRelais = serverIdDepuisUrl() !== null;
   import { demandeCercle } from '../../lib/circlePlaylists';
   import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
   // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
@@ -756,6 +762,11 @@
              cette route, `activeView` tomberait sur le repli « À venir » —
              le huitième « écrit, pas branché ». -->
         <ArtisteServiceV2 />
+      {:else if $activeView === 'streaminglabel'}
+        <!-- tune-server-rust#6934 — la page « Label » d'un service (Qobuz) :
+             son contenu vit dans `ficheLabelService` ; sans lui, la page dit
+             qu'il n'y a rien à montrer plutôt que de retomber sur « À venir ». -->
+        <LabelServiceV2 />
       {:else if $activeView === 'playlists'}
         <PlaylistsV2 />
       {:else if $activeView === 'settings'}
@@ -900,6 +911,11 @@
        un échec de lecture ne produit rigoureusement rien (#3732). -->
   <ToastContainer />
 
+  <!-- Accès à distance par compte : connexion, refus, écoute reprise ailleurs. -->
+  {#if parLeRelais}
+    <AccesParCompte />
+  {/if}
+
   <!-- Playlists de cercle : l'ajout groupé et le partage d'une playlist,
        demandés depuis n'importe quel menu (`demandeCercle`). Chargée à la
        demande, comme la fenêtre d'ajout d'un seul titre. -->
@@ -941,6 +957,10 @@
 <!-- Première installation (#1033) : hors de `.v2-shell` comme le calque de
      session expirée, et pour la même raison — `overflow:hidden`. -->
 <AssistantPremiereInstallation />
+<!-- tune-server-rust#6840 — la question du partage des écoutes avec le
+     compte : même patron, hors de `.v2-shell` ; ne rend rien sur un serveur
+     non relié ou déjà répondu. -->
+<ConsentementEcoutes />
 
 <style>
   /* 🔴 `--v2-grappe-w` — la gouttière de la grappe — vit dans

@@ -81,9 +81,16 @@ export interface GroupDelay {
 // Core domain models
 export interface Artist {
   id: number | null;
+  /** tune-server-rust#6738 — écoutes de la communauté Tune, ABSENT sous le
+   *  seuil de trois comptes ou sans compte relié (#2298). */
+  community_listens?: number;
   name: string;
   sort_name?: string | null;
   musicbrainz_id?: string | null;
+  /** tune-server-rust#6463 — d'où vient `musicbrainz_id` : `balise`, `nom`,
+   *  `pressage`, `manuel` (saisi ou détaché par l'utilisateur), `null` :
+   *  inconnu. Absent d'un serveur ancien. */
+  musicbrainz_id_source?: 'balise' | 'nom' | 'pressage' | 'manuel' | null;
   discogs_id?: string | null;
   bio?: string | null;
   /** Provenance de `bio` (source, URL, licence, langue) — absente sur un serveur ancien. */
@@ -112,6 +119,9 @@ export interface Artist {
 }
 
 export interface Album {
+  /** tune-server-rust#6738 — écoutes de la communauté Tune, ABSENT sous le
+   *  seuil de trois comptes ou sans compte relié (#2298). */
+  community_listens?: number;
   added_at?: number | null;
   /**
    * #4767 (crédits) — sur un album des sections « Collaborations » et
@@ -198,6 +208,9 @@ export interface Album {
 
 export interface Track {
   id: number | null;
+  /** tune-server-rust#6738 — écoutes de la communauté Tune, ABSENT sous le
+   *  seuil de trois comptes ou sans compte relié (#2298). */
+  community_listens?: number;
   title: string;
   /** tune-server-rust#6332 — débit moyen en kbit/s : celui du FICHIER pour une
    *  piste locale (lu au scan), celui annoncé par la source sinon. Absent ou
@@ -216,6 +229,12 @@ export interface Track {
    * le rejeu par `album_id`. Lu par `routageAlbum.albumDeServiceDe`.
    */
   album_id_service?: string | null;
+  /**
+   * web#2286 — la LIGNE d'une playlist locale (`playlist_tracks.id`), servie
+   * par `GET /playlists/{id}/tracks` depuis tune-server-rust#6690. C'est elle
+   * qu'un retrait désigne (`lib/retraitPlaylist`), pas le rang.
+   */
+  entry_id?: number | null;
   album_title?: string | null;
   artist_id?: number | null;
   /**
@@ -300,6 +319,16 @@ export interface Track {
    *  (#3518). Va toujours de pair avec `play_count`. */
   last_played_at?: string | null;
   /**
+   * Ce que compte `play_count` (serveur #7026). `'community'` : les « Top
+   * tracks » d'une fiche artiste de service, où `play_count` est le total des
+   * écoutes de TOUS les utilisateurs de Tune (agrégé par mozaiklabs.fr, à
+   * partir de 3 comptes), et `last_played_at` celle de CE serveur. Absent :
+   * `play_count` est local, comme partout ailleurs.
+   */
+  play_count_scope?: 'community';
+  /** Écoutes de ce serveur, quand `play_count` est celui de la communauté (#7026). */
+  local_play_count?: number;
+  /**
    * Titre BANNI par le profil qui regarde (serveur #4806, `attacher_banni`).
    *
    * Même contrat que `play_count` : toujours posé quand la lecture a réussi,
@@ -328,6 +357,11 @@ export interface Playlist {
   name: string;
   description?: string | null;
   track_count?: number;
+  /**
+   * web#2287 — les cercles où cette playlist locale est partagée
+   * (tune-server-rust#6694) ; vide ou absent sinon.
+   */
+  cercles?: { id: number | string; nom: string; suivi: boolean; synchronisee_le?: string | null }[];
 }
 
 export interface QueueItem {
@@ -488,6 +522,10 @@ export interface Zone {
   output_type?: OutputType;
   output_device_id?: string | null;
   volume?: number;
+  /** tune-server-rust#6787 — loi du volume : `db60` (sortie logicielle, le
+   *  volume est une position sur une loi en dB) ou `linear` (appareil). Absent
+   *  sur un serveur antérieur : linéaire. Voir `lib/courbeDeVolume.ts`. */
+  volume_curve?: string | null;
   /** Sourdine de la zone (`SetMute`), indépendante du volume (#6700). */
   muted?: boolean;
   group_id?: string | null;

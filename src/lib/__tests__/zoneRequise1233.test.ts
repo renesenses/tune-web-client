@@ -92,7 +92,13 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // un réglage DE ZONE (la matrice de réaffectation des canaux).
     // VINGT-TROIS depuis tune-server-rust#6516 : `RadioAnnuaire` écoute d'un
     // clic une station de l'annuaire radio-metadata.fr.
-    expect(avec.length).toBe(23);
+    // VINGT-QUATRE depuis tune-server-rust#6288 : `AlbumsManquants` lance
+    // « Écouter sur <service> » un album manquant.
+    // VINGT-CINQ depuis le 24/10 (Tune Circle T5) : `CircleV2` lit une
+    // playlist partagée sur la zone courante depuis sa ligne ou la scène.
+    expect(avec.length).toBe(25);
+    expect(avec).toContain('CircleV2.svelte');
+    expect(avec).toContain('AlbumsManquants.svelte');
     expect(avec).toContain('RadioAnnuaire.svelte');
     expect(avec).toContain('ReaffectationCanauxV2.svelte');
     expect(avec).toContain('CrossfeedProV2.svelte');
@@ -131,7 +137,7 @@ describe('#1233 — aucune HUITIÈME clé pour le même message', () => {
   });
 
   it('elle est traduite dans les ONZE langues', () => {
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el']) {
       expect(readFileSync(`src/lib/locales/${l}.ts`, 'utf8'), l)
         .toContain('library.noZoneSelectedSelectZone');
     }
