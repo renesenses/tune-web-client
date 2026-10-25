@@ -11,6 +11,7 @@ import * as api from '../api';
 import { sourceDuLecteur } from '../urlDeFluxNavigateur';
 import { fluxParLeRelais } from '../bridge';
 import { confirmerLectureNavigateur } from '../confirmationLectureNavigateur';
+import { signalerErreurMedia, signalerLectureRefusee } from '../erreurMediaNavigateur';
 
 // The singleton <audio> element used for browser playback
 let audioElement: HTMLAudioElement | null = null;
@@ -198,6 +199,11 @@ function getAudio(): HTMLAudioElement {
       if (deverrouillageEnCours) return;
       const erreur = audioElement?.error;
       console.error('Browser audio error:', erreur);
+      // #5975 — la cause part au journal du serveur, à côté de ce qu'il a
+      // servi : sans elle, le rapport d'un testeur ne dit pas pourquoi.
+      if (erreur && audioElement?.src && get(browserStreamUrl) !== null) {
+        signalerErreurMedia(zoneDeLaSource(), audioElement.src, erreur, audioElement.currentTime);
+      }
       browserAudioPlaying.set(false);
       if (pilotLaBarreAffichee()) stopSeekTimer();
       // #5975 — une piste illisible ne doit pas arrêter la file : on passe à
@@ -263,6 +269,8 @@ export function browserPlay(streamUrl: string, force = false, zoneId?: number | 
     // lecture démarrera au prochain geste dans la page.
     if ((e as { name?: string } | null)?.name === 'NotAllowedError') lectureRefusee = true;
     console.warn('Browser audio play failed (may need user gesture):', e);
+    // #5975 — le refus part au journal du serveur (hors `AbortError`).
+    signalerLectureRefusee(zoneDeLaSource(), audio.src, e, audio.currentTime);
   });
 }
 
