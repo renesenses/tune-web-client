@@ -319,6 +319,16 @@ export interface Track {
    *  (#3518). Va toujours de pair avec `play_count`. */
   last_played_at?: string | null;
   /**
+   * Ce que compte `play_count` (serveur #7026). `'community'` : les « Top
+   * tracks » d'une fiche artiste de service, où `play_count` est le total des
+   * écoutes de TOUS les utilisateurs de Tune (agrégé par mozaiklabs.fr, à
+   * partir de 3 comptes), et `last_played_at` celle de CE serveur. Absent :
+   * `play_count` est local, comme partout ailleurs.
+   */
+  play_count_scope?: 'community';
+  /** Écoutes de ce serveur, quand `play_count` est celui de la communauté (#7026). */
+  local_play_count?: number;
+  /**
    * Titre BANNI par le profil qui regarde (serveur #4806, `attacher_banni`).
    *
    * Même contrat que `play_count` : toujours posé quand la lecture a réussi,

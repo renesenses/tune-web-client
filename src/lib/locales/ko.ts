@@ -4243,6 +4243,7 @@ export default {
   "v2.tcol.time": "시간",
   "v2.tcol.year": "연도",
   "v2.tcol.plays": "재생 수",
+  "v2.tcol.playsCommunity": "Tune 전체 사용자 재생 수",
   "v2.tcol.lastPlayed": "마지막 재생",
   "v2.lib.sortPlaysUnsupported": "이 서버는 아직 재생 횟수로 정렬할 수 없습니다. 기본 순서로 돌아갑니다.",
   "v2.tcol.channels": "채널",

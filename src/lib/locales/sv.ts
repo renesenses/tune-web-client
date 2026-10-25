@@ -4242,6 +4242,7 @@ export default {
   "v2.tcol.time": "Tid",
   "v2.tcol.year": "År",
   "v2.tcol.plays": "Uppspelningar",
+  "v2.tcol.playsCommunity": "Spelningar på Tune, alla användare",
   "v2.tcol.lastPlayed": "Senast spelad",
   "v2.lib.sortPlaysUnsupported": "Den här servern kan ännu inte sortera efter spelningar: standardordningen gäller igen.",
   "v2.tcol.channels": "Kanaler",

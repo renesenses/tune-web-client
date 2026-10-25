@@ -4243,6 +4243,7 @@ export default {
   "v2.tcol.time": "Durata",
   "v2.tcol.year": "Anno",
   "v2.tcol.plays": "Riproduzioni",
+  "v2.tcol.playsCommunity": "Ascolti su Tune, tutti gli utenti",
   "v2.tcol.lastPlayed": "Ultimo ascolto",
   "v2.lib.sortPlaysUnsupported": "Questo server non sa ancora ordinare per ascolti: torna l'ordine predefinito.",
   "v2.tcol.channels": "Canali",

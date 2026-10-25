@@ -4197,6 +4197,7 @@ export default {
   "v2.tcol.time": "Idő",
   "v2.tcol.year": "Év",
   "v2.tcol.plays": "Lejátszások",
+  "v2.tcol.playsCommunity": "Lejátszások a Tune-on, minden felhasználó",
   "v2.tcol.lastPlayed": "Utoljára játszva",
   "v2.lib.sortPlaysUnsupported": "Ez a szerver még nem tud lejátszások szerint rendezni: visszaállt az alapértelmezett sorrend.",
   "v2.tcol.channels": "Csatornák",
