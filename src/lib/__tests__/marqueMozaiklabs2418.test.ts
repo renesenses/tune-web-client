@@ -12,7 +12,7 @@ import * as LANGUES from './lesOnzeLangues';
 // laisse passer `mozaiklabs` quand il est collé à un domaine ou à un chemin.
 
 /** « mozaiklabs » en minuscules, hors domaine, URL, adresse ou identifiant. */
-const MINUSCULE = /(?<![A-Za-z0-9_./@:-])mozaiklabs(?![A-Za-z0-9_-]|\.[A-Za-z])/;
+const MINUSCULE = /(?<![A-Za-z0-9_./@:-])mozaiklabs(?![A-Za-z0-9_]|\.[A-Za-z])/;
 const AUTRES_GRAPHIES = /Mozaik Labs|MozaikLabs|Mozaik-Labs/;
 
 const dicos = Object.entries(LANGUES) as [string, Record<string, string>][];
@@ -51,5 +51,8 @@ describe('#2418 — la marque s’écrit « Mozaiklabs » dans les textes visibl
     expect(MINUSCULE.test('https://mozaiklabs.fr/x')).toBe(false);
     expect(MINUSCULE.test('mozaiklabs에 로그인')).toBe(true);
     expect(MINUSCULE.test('Mozaiklabs')).toBe(false);
+    // Les composés de l'allemand ou des langues nordiques sont du texte lu.
+    expect(MINUSCULE.test('Ihr mozaiklabs-Konto')).toBe(true);
+    expect(MINUSCULE.test('Ihr Mozaiklabs-Konto')).toBe(false);
   });
 });

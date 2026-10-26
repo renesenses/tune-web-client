@@ -129,15 +129,17 @@ describe('Le panneau du compte porte la bascule', () => {
     // Sur une installation à profil unique, une liste à un élément n'est pas un
     // choix : c'est une rubrique de plus dans un panneau déjà plafonné.
     const src = menu();
-    const i = src.indexOf("$t('profiles.title')");
+    const i = src.indexOf("$t('profiles.sectionTitle' as any)");
     expect(i, 'la rubrique Profils a disparu').toBeGreaterThan(-1);
     // Le bloc conditionnel le plus proche AU-DESSUS du titre doit être celui-ci,
     // et il ne doit pas s'être refermé entre les deux.
     const avant = src.slice(0, i);
     // web#1672 : la garde compte les profils VISIBLES (Default masqué dès
     // qu'un profil personnel existe), et reste ouverte si l'on est sur Default.
-    const garde = avant.lastIndexOf('{#if $visibleProfiles.length > 1');
+    const garde = avant.lastIndexOf("{#if forme !== 'aucune'}");
     expect(garde, 'la rubrique n’est plus conditionnée au nombre de profils').toBeGreaterThan(-1);
+    // #2420 — la forme se décide dans `formeDeLaSection` : liste dès DEUX profils.
+    expect(readFileSync(resolve(__dirname, '../profilDuCompte.ts'), 'utf-8')).toContain('if (nbVisibles > 1) return \'liste\';');
     expect(
       avant.lastIndexOf('{/if}'),
       'la condition se referme avant le titre : la rubrique s’affiche toujours',
@@ -156,8 +158,8 @@ describe('Le panneau du compte porte la bascule', () => {
 
   it('le profil actif est marqué, pour la vue ET pour l’assistance vocale', () => {
     const src = menu();
-    expect(src).toContain('class:actif={p.id === $currentProfileId}');
-    expect(src).toContain("aria-current={p.id === $currentProfileId ? 'true' : undefined}");
+    expect(src).toContain("class:actif={forme === 'liste' && p.id === $currentProfileId}");
+    expect(src).toContain("aria-current={forme === 'liste' && p.id === $currentProfileId ? 'true' : undefined}");
   });
 
   it('le rechargement est ANNONCÉ', () => {
