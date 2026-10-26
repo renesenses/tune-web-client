@@ -89,7 +89,7 @@ describe('multicanal — l\'écran', () => {
 describe('multicanal — les clés dans les ONZE langues', () => {
   const LAYOUTS = ['mono', 'stereo', 'surround51', 'surround71', 'surround514',
     'surround714', 'surround916', 'immersive24', 'immersive32'];
-  const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb'];
+  const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'];
 
   for (const l of LANGUES) {
     it(l, () => {

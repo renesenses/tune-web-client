@@ -163,7 +163,7 @@ describe('les onze langues portent les nouvelles phrases', () => {
     ro: locales.ro,
     sv: locales.sv,
     hu: locales.hu,
-    vi: locales.vi, el: locales.el, nb: locales.nb,
+    vi: locales.vi, el: locales.el, nb: locales.nb, pl: locales.pl,
   } as Record<string, Record<string, string>>;
 
   const NOUVELLES = [

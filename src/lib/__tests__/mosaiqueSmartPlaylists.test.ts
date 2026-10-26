@@ -132,7 +132,7 @@ describe('Smart playlists : la carte est celle des smart collections', () => {
   });
 
   it('les clés ajoutées existent dans les 11 langues', () => {
-    const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb'];
+    const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'];
     for (const cle of ['smartPlaylists.deleteAsk', 'smartPlaylists.sortName', 'smartPlaylists.sortTracks']) {
       for (const l of langues) {
         expect(lire(`lib/locales/${l}.ts`), `${cle} absente de ${l}`).toContain(`"${cle}"`);

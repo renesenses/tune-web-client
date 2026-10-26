@@ -19,6 +19,7 @@ import hu from '../locales/hu';
 import vi from '../locales/vi';
 import el from '../locales/el';
 import nb from '../locales/nb';
+import pl from '../locales/pl';
 import it_ from '../locales/it';
 import ja from '../locales/ja';
 import ko from '../locales/ko';

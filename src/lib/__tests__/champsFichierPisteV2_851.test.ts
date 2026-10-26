@@ -119,7 +119,7 @@ describe('#851 — les champs du fichier depuis le menu « … » d’une piste'
   });
 
   it('le libellé est une CLÉ de traduction présente partout', () => {
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'nb']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'nb', 'pl']) {
       expect(lire(`src/lib/locales/${l}.ts`)).toContain(`"${CLE}"`);
     }
   });

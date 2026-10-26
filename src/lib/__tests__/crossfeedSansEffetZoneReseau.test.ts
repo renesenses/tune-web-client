@@ -123,7 +123,7 @@ describe('#2742 — le verdict d’indisponibilité du crossfeed', () => {
       'dsp.crossfeedUnavailablePlugin',
       'dsp.crossfeedUnavailable',
     ];
-    const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb'];
+    const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'];
     for (const langue of LANGUES) {
       const source = readFileSync(
         resolve(__dirname, `../locales/${langue}.ts`),
@@ -192,7 +192,7 @@ describe('#2742 — les deux écrans lisent le verdict et verrouillent', () => {
 });
 
 describe('#2742 — la raison est traduite dans les onze langues', () => {
-  const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb'] as const;
+  const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'] as const;
   const CLES = [
     'dsp.crossfeedUnavailableNetwork',
     'dsp.crossfeedUnavailablePure',

@@ -35,7 +35,7 @@ import { currentZoneId } from '../stores/zones';
 import { notifications } from '../stores/notifications';
 import { get } from 'svelte/store';
 
-const LOCALES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'nb'];
+const LOCALES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'nb', 'pl'];
 const CLES = [
   'v2.eq.pluginNotInstalled', 'v2.eq.pluginProposed', 'v2.eq.pluginInstall', 'v2.eq.pluginInstalling',
   'v2.eq.pluginInstalled', 'v2.eq.pluginInstallError', 'v2.eq.pluginRestart',

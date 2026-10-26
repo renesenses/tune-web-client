@@ -21,6 +21,7 @@ import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
 import nbLocale from '../locales/nb';
+import plLocale from '../locales/pl';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
 import ro from '../locales/ro';
@@ -28,7 +29,7 @@ import sv from '../locales/sv';
 import zh from '../locales/zh';
 
 const CATALOGUES: Record<string, Record<string, string>> = {
-  fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, nb: nbLocale, ja, ko, ro, sv, zh,
+  fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, nb: nbLocale, pl: plLocale, ja, ko, ro, sv, zh,
 } as unknown as Record<string, Record<string, string>>;
 
 const publie = {
@@ -84,7 +85,7 @@ describe("l'écran Réglages › Bibliothèque › Dossiers (#5792)", () => {
   });
 
   it('les trois libellés existent dans les 11 langues', () => {
-    expect(Object.keys(CATALOGUES)).toHaveLength(14);
+    expect(Object.keys(CATALOGUES)).toHaveLength(15);
     for (const [lg, cat] of Object.entries(CATALOGUES)) {
       expect(cat['settings.networkPollInterval'], lg).toBeTruthy();
       expect(cat['settings.networkPollIntervalHint'], lg).toBeTruthy();

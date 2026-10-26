@@ -140,7 +140,7 @@ describe('#6713 — l’État du serveur dit le bridage levé', () => {
   });
 
   it('les quatre phrases existent dans les douze langues', () => {
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl']) {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       for (const cle of [
         'settings.analysisUnthrottle',
