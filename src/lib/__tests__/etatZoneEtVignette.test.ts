@@ -73,7 +73,7 @@ describe('l’état de lecture d’une zone', () => {
     expect(cleEtatLecture('playing')).toBe('zone.playing');
     expect(cleEtatLecture('paused')).toBe('zone.paused');
     expect(cleEtatLecture('idle')).toBe('zone.stopped');
-    for (const lg of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
+    for (const lg of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl']) {
       const src = readFileSync(resolve(__dirname, `../locales/${lg}.ts`), 'utf8');
       for (const cle of ['zone.playing', 'zone.paused', 'zone.stopped']) {
         expect(src.includes(`'${cle}'`) || src.includes(`"${cle}"`), `${cle} absente de ${lg}`).toBe(true);

@@ -138,7 +138,7 @@ describe('l’écran branche les listes', () => {
     const cles = ['seeList','hideList','listEmpty','onlyLocal','selectAll','selectNone',
       'genrePlaceholder','yearPlaceholder','applyGenre','applyYear','applied','dropCover',
       'coverDone','tracks','more','proposeFromArtist','applyProposals','proposed','noProposal'];
-    for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh','vi','el']) {
+    for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh','vi','el', 'nb', 'pl']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const c of cles) expect(src, `${l} : v2.miss.${c}`).toContain(`"v2.miss.${c}":`);
     }

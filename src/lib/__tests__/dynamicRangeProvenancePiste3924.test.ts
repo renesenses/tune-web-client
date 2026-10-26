@@ -200,7 +200,7 @@ describe('#3924 — la colonne DR est BRANCHÉE sur cette règle', () => {
 
 describe('#3924 — l’infobulle existe dans les onze langues', () => {
   it('`library.dynamicRangeAnalysisTip` est traduite partout, et distincte des deux autres', async () => {
-    const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el'];
+    const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'];
     for (const code of langues) {
       const dico = dictionnaire(code);
       const tip = dico['library.dynamicRangeAnalysisTip'];

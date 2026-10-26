@@ -23,6 +23,8 @@ import fr from '../locales/fr';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
+import nbLocale from '../locales/nb';
+import plLocale from '../locales/pl';
 import it_ from '../locales/it';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
@@ -31,10 +33,10 @@ import sv from '../locales/sv';
 import zh from '../locales/zh';
 
 const DICOS: Record<string, Record<string, string>> = {
-  de, en, es, fr, hu, vi: viLocale, el: elLocale, it: it_, ja, ko, ro, sv, zh,
+  de, en, es, fr, hu, vi: viLocale, el: elLocale, nb: nbLocale, pl: plLocale, it: it_, ja, ko, ro, sv, zh,
 } as unknown as Record<string, Record<string, string>>;
 
-const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el'] as const;
+const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'] as const;
 const fichier = () => new File([new Uint8Array([0xff, 0xd8, 0xff])], 'ampli.jpg', { type: 'image/jpeg' });
 const traduire = (k: string) => `«${k}»`;
 

@@ -128,7 +128,7 @@ describe('l’écran des douteuses', () => {
 
   it('les six libellés existent dans les onze langues', () => {
     const cles = ['dArtistIntro','dArtistApply','dArtistAll','dArtistTracks','dArtistNoClue','dArtistDone'];
-    for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh','vi','el']) {
+    for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh','vi','el', 'nb', 'pl']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const c of cles) expect(src, `${l} : v2.meta.${c}`).toContain(`"v2.meta.${c}":`);
     }

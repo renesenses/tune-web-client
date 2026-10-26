@@ -378,7 +378,7 @@ describe('Le bouton est ABSENT, pas grisé', () => {
     // La promesse n'était pas seulement un état grisé, c'était une phrase :
     // « Autres actions — bientôt ». La laisser traduite, c'est inviter à la
     // remettre.
-    const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el'];
+    const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'];
     for (const l of LANGUES) {
       const src = readFileSync(resolve(process.cwd(), `src/lib/locales/${l}.ts`), 'utf-8');
       expect(src.includes('v2.cover.moreSoon'), `${l} promet encore « bientôt »`).toBe(false);

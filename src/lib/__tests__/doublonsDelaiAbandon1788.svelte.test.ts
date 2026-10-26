@@ -148,7 +148,7 @@ describe('#1788 — onglet Doublons : une route muette ne retient plus l\'écran
 
   it('les trois clés existent dans les onze langues, et le délai y figure', async () => {
     const { readFileSync } = await import('node:fs');
-    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl']) {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       for (const k of ['v2.meta.dupTimeout', 'v2.meta.dupFailed', 'v2.meta.dupRetry']) {
         expect(src, `${k} manque en ${l}`).toContain(`"${k}"`);

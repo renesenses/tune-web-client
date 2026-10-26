@@ -169,7 +169,7 @@ describe('#4767 — les écrans sont branchés', () => {
       'v2.album.artistOnly',
       'v2.album.artistOnlyClear',
     ];
-    const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el'];
+    const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'];
     for (const l of LANGUES) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const c of CLES) expect(src, `${l} : ${c}`).toContain(`"${c}"`);

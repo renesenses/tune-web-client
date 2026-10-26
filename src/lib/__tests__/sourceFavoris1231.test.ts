@@ -53,7 +53,7 @@ describe('l’éditeur le dit à l’écran', () => {
   });
 
   it('le libellé existe dans les onze langues, et nomme les favoris', () => {
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       expect(src, `${l}`).toContain('"v2.smart.sourceFavoris":');
       const ligne = src.split('\n').find((x) => x.includes('"v2.smart.sourceFavoris":')) ?? '';

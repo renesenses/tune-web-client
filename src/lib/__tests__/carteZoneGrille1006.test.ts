@@ -63,7 +63,7 @@ describe('#1006 — la carte de zone en grille', () => {
     expect(carte).toContain('<span class="cbadges">');
   });
   it('les pastilles courtes tiennent en deux mots, dans les onze langues', async () => {
-    for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi', 'el']) {
+    for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi', 'el', 'nb', 'pl']) {
       const dico = dictionnaire(code);
       for (const k of ['v2.zone.badgeNoOutput', 'v2.zone.badgeBrowser', 'v2.zone.badgeOffline']) {
         expect(dico[k], `${code} ${k}`).toBeTruthy();

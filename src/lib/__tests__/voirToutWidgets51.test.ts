@@ -188,7 +188,7 @@ describe('#51 — l’icône « Voir tout » et sa page', () => {
   });
 
   it('les clés existent dans les onze langues', () => {
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl']) {
       const table = dictionnaire(l);
       for (const k of ['v2.home.seeAll', 'v2.home.seeAllCount']) {
         expect(table[k], `${l} : ${k}`).toBeTruthy();

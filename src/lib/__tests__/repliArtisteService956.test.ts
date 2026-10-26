@@ -23,7 +23,7 @@ import {
 } from '../repliArtisteService';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el'];
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'nb', 'pl'];
 const LEPROUS = { service: 'qobuz', nom: 'Leprous' };
 
 describe('#956 — résoudre un artiste de service, ou dire pourquoi on n’a pas pu', () => {
