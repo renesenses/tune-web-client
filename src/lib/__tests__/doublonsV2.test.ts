@@ -40,7 +40,7 @@ describe('onglet Doublons', () => {
 
   it('les quinze clés existent dans les onze langues', () => {
     const cles = ['v2.meta.tabDoublons', 'v2.meta.dupAlbums', 'v2.meta.dupArtists', 'v2.meta.dupTracks', 'v2.meta.regroupIn', 'v2.meta.absorbIn', 'v2.meta.keepThis', 'v2.meta.confirm', 'v2.meta.noDup', 'v2.meta.critereFichier', 'v2.meta.critereContenu', 'v2.meta.critereEmpreinte', 'v2.meta.critereEtiquettes', 'v2.meta.recoKeep', 'v2.meta.mbidDistinct'];
-    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const k of cles) expect(src, `${k} manque en ${l}`).toContain(`"${k}"`);
     }
