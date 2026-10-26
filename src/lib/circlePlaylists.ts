@@ -83,13 +83,13 @@ export interface PlaylistCercleResume {
   /** C'est moi qui l'ai partagée. */
   mine: boolean;
   /** Je peux la retirer : je l'ai partagée, ou je suis le propriétaire du cercle (modération). */
-  can_remove: boolean;
+  can_remove?: boolean;
   /** Les cercles que je possède seulement : l'identifiant du cercle (`null` pour un membre). */
   circle_id: number | null;
   /** #2434 — le nom du cercle, vu de tous ses membres. */
-  circle_name: string | null;
+  circle_name?: string | null;
   /** #2434 — le propriétaire du cercle, pour distinguer deux cercles de même nom. */
-  circle_owner_id: number | null;
+  circle_owner_id?: number | null;
 }
 
 /** Les champs d'une référence, et EUX SEULS. */
@@ -135,7 +135,7 @@ export interface PlaylistCercle {
   version: number;
   mine: boolean;
   /** Je peux la renommer et la supprimer : partageur ou propriétaire du cercle. */
-  can_remove: boolean;
+  can_remove?: boolean;
   items: MorceauCercle[];
   /** web#2287 — le suivi de la playlist locale d'origine (tune-server-rust#6694), ou `null`. */
   follow?: SuiviPlaylist | null;
