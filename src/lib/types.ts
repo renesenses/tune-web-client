@@ -1560,6 +1560,8 @@ export interface RadioStation {
   genre_label?: string | null;
   homepage_url?: string | null;
   favorite: boolean;
+  /** Dernière lecture, si le serveur la date (rc9) ; sinon repli local. */
+  last_played_at?: string | null;
   /**
    * La fiche de l'annuaire radio-metadata.fr rapprochée de cette station
    * (tune-server-rust#6516) : par adresse de flux, sinon par nom. Absente pour
