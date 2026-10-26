@@ -88,12 +88,39 @@ export interface CercleNomme {
   sharing?: PartageCercle | null;
 }
 
+/**
+ * #2434 (décision du 26/10/2026) — un cercle d'un AUTRE où je suis rangé, lien
+ * actif seulement. Un cercle est un vrai groupe : le membre en voit le nom.
+ */
+export interface CercleOuJeSuisInvite {
+  circle_id: number;
+  owner_id: number;
+  owner_name: string;
+  circle_name: string;
+}
+
 export interface EtatCercleConnecte {
   connected?: true;
   members: ContactCercle[];
   sent: InvitationCercle[];
   received: InvitationCercle[];
   circles?: CercleNomme[];
+  /** Absent si je ne suis rangé chez personne, ou sur un cloud plus ancien. */
+  member_of?: CercleOuJeSuisInvite[];
+}
+
+/** Lecture défensive de `member_of` : seules les entrées complètes comptent. */
+export function cerclesOuJeSuisInvite(e: EtatCercleConnecte | null | undefined): CercleOuJeSuisInvite[] {
+  const brut = (e as { member_of?: unknown } | null | undefined)?.member_of;
+  if (!Array.isArray(brut)) return [];
+  const out: CercleOuJeSuisInvite[] = [];
+  for (const b of brut as any[]) {
+    if (!b || typeof b !== 'object') continue;
+    if (!Number.isFinite(b.circle_id) || !Number.isFinite(b.owner_id)) continue;
+    if (typeof b.circle_name !== 'string' || b.circle_name === '' || typeof b.owner_name !== 'string') continue;
+    out.push({ circle_id: b.circle_id, owner_id: b.owner_id, owner_name: b.owner_name, circle_name: b.circle_name });
+  }
+  return out;
 }
 
 export type EtatCercle = { connected: false } | EtatCercleConnecte;
