@@ -61,6 +61,9 @@ import { sansDoublons } from '../../lib/clesUniques';
   // de pastille : celui-là existe, il sait déjà nommer la bibliothèque.
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import RadiosTrouvees from './RadiosTrouvees.svelte';
+  import { entreesRadios } from '../../lib/rechercheRadios';
+  import type { RadiosTrouvees as RadiosTrouveesDonnees } from '../../lib/api/annuaireRadios';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import { objetAlbum, objetArtiste, objetLabel, objetPlaylist, type ObjetMenu } from '../../lib/gestesObjet';
   import MenuObjetV2 from './MenuObjetV2.svelte';
@@ -160,6 +163,8 @@ import { sansDoublons } from '../../lib/clesUniques';
     setSearchCriteria(q.trim() ? { q } : null);
   });
   let local = $state<SearchResult | null>(null);
+  /** #7045 — « Mes radios » et l'annuaire, un appel à part (`sources=radios`). */
+  let radiosTrouvees = $state<RadiosTrouveesDonnees | null>(null);
   let fed = $state<Record<string, SearchResult>>({});
   let acoustic = $state<AcousticSearchResult | null>(null);
   let acousticOn = $state(false);
@@ -260,7 +265,7 @@ import { sansDoublons } from '../../lib/clesUniques';
    */
   $effect(() => {
     const query = q.trim();
-    if (query.length < 2) { local = null; fed = {}; acoustic = null; busy = false; return; }
+    if (query.length < 2) { local = null; radiosTrouvees = null; fed = {}; acoustic = null; busy = false; return; }
     const mine = ++seq;
     busy = true;
     const t = setTimeout(() => {
@@ -269,6 +274,10 @@ import { sansDoublons } from '../../lib/clesUniques';
         .catch(() => { if (mine === seq) local = null; })
         .finally(() => { if (mine === seq) busy = false; });
       void deuxiemeTemps(query, mine);
+      // #7045 — les radios. Un échec (ou un serveur antérieur) n'en montre pas.
+      api.chercherRadios(requeteExacte(query))
+        .then((r) => { if (mine === seq) radiosTrouvees = r; })
+        .catch(() => { if (mine === seq) radiosTrouvees = null; });
       chercherPlaylists(query, mine);
       recentes = retenirRecherche(query);
     }, 240);
@@ -541,12 +550,14 @@ import { sansDoublons } from '../../lib/clesUniques';
   const voirAlbums = $derived(sectionVisible(typesActifs, 'albums'));
   const voirTitres = $derived(sectionVisible(typesActifs, 'titres'));
   const voirPlaylists = $derived(sectionVisible(typesActifs, 'playlists'));
+  const voirRadios = $derived(sectionVisible(typesActifs, 'radios'));
   function basculerType(ty: TypeRecherche) {
     typesActifs = basculerPastille(typesActifs, ty);
   }
   const LIBELLE_TYPE: Record<TypeRecherche, string> = {
     artistes: 'v2.rech.artists', labels: 'v2.rech.labels',
     albums: 'v2.rech.albums', titres: 'v2.rech.tracks', playlists: 'v2.rech.playlists',
+    radios: 'v2.rech.radios',
   };
   // Les DOUBLES GUILLEMETS : une phrase exacte. Le serveur la tient pour la
   // bibliothèque ; ce filtre la tient pour tout ce qui s'affiche, services
@@ -795,6 +806,23 @@ import { sansDoublons } from '../../lib/clesUniques';
     }
   }
 
+  /**
+   * #7045 — les radios (« Mes radios » + annuaire), une ligne par station.
+   * Comme les labels, elles appartiennent au LOCAL : restreint à un service,
+   * l'écran n'en montre pas. Les doubles guillemets s'appliquent au nom.
+   */
+  const lesRadios = $derived(
+    voirRadios && radiosTrouvees && dansLePerimetreDe(sourcesActives, 'local')
+      ? entreesRadios(radiosTrouvees).map((e) => ({ e, nom: e.nom })).filter((x) => respecteLesPhrases(x, phrases)).map((x) => x.e)
+      : [],
+  );
+  const resteRadios = $derived(lesRadios.length && radiosTrouvees ? radiosTrouvees.reste : 0);
+  const nbRadios = $derived(
+    radiosTrouvees && dansLePerimetreDe(sourcesActives, 'local')
+      ? entreesRadios(radiosTrouvees).filter((e) => respecteLesPhrases({ nom: e.nom }, phrases)).length + radiosTrouvees.reste
+      : 0,
+  );
+
   const lesPlaylists = $derived(voirPlaylists ? toutesPlaylists.filter((pl) => respecteLesPhrases(pl, phrases)) : []);
 
   // Déclaré APRÈS `dansLePerimetre` : il s'en sert. Le meilleur résultat doit
@@ -843,7 +871,7 @@ import { sansDoublons } from '../../lib/clesUniques';
   const nothing = $derived(
     q.trim().length >= 2 && !busy && !groupes.albums.length && !groupes.pistes.length &&
     !groupes.artistes.length && !toutesPlaylists.length && !(acoustic?.tracks.length) &&
-    !(local?.labels?.length)
+    !(local?.labels?.length) && !(radiosTrouvees && (radiosTrouvees.miennes.length || radiosTrouvees.annuaire.length))
   );
 
   function lirePlaylist(pl: PlaylistTrouvee) {
@@ -1149,6 +1177,7 @@ import { sansDoublons } from '../../lib/clesUniques';
         {@const reste = ty === 'artistes' ? restant('artists') : ty === 'albums' ? restant('albums') : ty === 'titres' ? restant('tracks') : null}
         {@const n = (ty === 'artistes' ? regrouperArtistes(groupes.artistes.filter(dansLePerimetre)).length
           : ty === 'labels' ? nbLabels
+          : ty === 'radios' ? nbRadios
           : ty === 'albums' ? groupes.albums.filter(dansLePerimetre).length
           : ty === 'titres' ? groupes.pistes.filter(dansLePerimetre).length
           : toutesPlaylists.filter((pl) => respecteLesPhrases(pl, phrases)).length) + (reste?.n ?? 0)}
@@ -1604,6 +1633,13 @@ import { sansDoublons } from '../../lib/clesUniques';
               </div>
             {/each}
           </div>
+        </section>
+      {/if}
+
+      {#if lesRadios.length}
+        <section class="grp" data-section="radios">
+          <h2>{$t('v2.rech.radios' as any)}</h2>
+          <RadiosTrouvees entrees={lesRadios} reste={resteRadios} />
         </section>
       {/if}
     {/if}

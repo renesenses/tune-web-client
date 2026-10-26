@@ -3772,6 +3772,8 @@ export default {
   "v2.fas.radioServeurAncien": "La radio del artista requiere un servidor Tune más reciente, y esta ficha no tiene canciones destacadas para mezclar.",
   "v2.rech.tracks": "Pistas",
   "v2.rech.playlists": "Listas",
+  "v2.rech.radios": "Radios",
+  "v2.rech.radiosMore": "{n} más en el directorio de radios",
   "v2.rech.best": "Mejor resultado",
   "v2.rech.kindArtist": "Artista",
   "v2.rech.kindAlbum": "Álbum",

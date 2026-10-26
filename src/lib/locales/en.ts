@@ -3792,6 +3792,8 @@ export default {
   "v2.fas.radioServeurAncien": "Artist radio needs a newer Tune server, and this page has no top tracks to shuffle.",
   "v2.rech.tracks": "Tracks",
   "v2.rech.playlists": "Playlists",
+  "v2.rech.radios": "Radios",
+  "v2.rech.radiosMore": "{n} more in the radio directory",
   "v2.rech.best": "Top result",
   "v2.rech.kindArtist": "Artist",
   "v2.rech.kindAlbum": "Album",

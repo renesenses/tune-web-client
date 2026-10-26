@@ -996,6 +996,24 @@ export interface CataloguePlaylist {
 export interface FederatedSearchResult {
   local: SearchResult;
   services: Record<string, SearchResult>;
+  /**
+   * « Mes radios » qui répondent à la requête (`routes/search.rs`, depuis
+   * longtemps). Optionnel : un serveur plus ancien ne l'envoie pas.
+   */
+  radios?: RadioStation[];
+  /**
+   * #7045 — l'annuaire des radios (`FicheAnnuaireRadio`, la forme de
+   * `GET /radios/directory`), aperçu borné : `total` dit combien existent,
+   * `has_more` qu'il y en a davantage. ABSENT d'un serveur antérieur à la
+   * rc9 — l'écran ne montre alors que « Mes radios ».
+   */
+  radios_annuaire?: {
+    total: number;
+    count?: number;
+    has_more?: boolean;
+    origine?: string;
+    items: import('./api/annuaireRadios').FicheAnnuaireRadio[];
+  };
 }
 
 export interface FeaturedSection {
