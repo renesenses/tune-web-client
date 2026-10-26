@@ -27,7 +27,7 @@ import { readFileSync } from 'fs';
 
 const ECRAN = readFileSync('src/components/v2/SettingsV2.svelte', 'utf8');
 const FR = readFileSync('src/lib/locales/fr.ts', 'utf8');
-const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el'];
+const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb'];
 
 /** Les réglages où se tromper coûte cher, et leur explication. */
 const ATTENDUES: Array<[string, string]> = [

@@ -63,7 +63,7 @@ describe('etatWifi (#1260)', () => {
 });
 
 describe('messages et branchement (#1260)', () => {
-  const langues = ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'zh', 'ja', 'ko', 'vi', 'el'];
+  const langues = ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'zh', 'ja', 'ko', 'vi', 'el', 'nb'];
   it('chaque message existe dans les 11 langues', () => {
     for (const l of langues) {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf-8');

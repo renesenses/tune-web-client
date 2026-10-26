@@ -230,7 +230,7 @@ describe('#1519 — la décision est BRANCHÉE au chargement', () => {
 
 describe('#1519 — aucune chaîne nouvelle à traduire', () => {
   it('la clé de la carte est déjà dans les onze catalogues', () => {
-    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
+    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
       const src = lire(`src/lib/locales/${langue}.ts`);
       expect(src.includes('"v2.home.sTracks"'), langue).toBe(true);
     }

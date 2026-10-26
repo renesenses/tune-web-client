@@ -103,7 +103,7 @@ describe('#6545 — la ligne communautaire', () => {
   });
 
   it('les libellés existent dans les douze langues, avec leurs marques', () => {
-    expect(ONZE_LANGUES.length).toBe(13);
+    expect(ONZE_LANGUES.length).toBe(14);
     for (const code of ONZE_LANGUES) {
       const d = dictionnaire(code);
       expect(d['library.communityRating'], code).toContain('{average}');

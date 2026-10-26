@@ -26,7 +26,7 @@ describe('bascule « traitement au fil de l’eau sur les lecteurs réseau »', 
 
   it('les sept clés existent dans les onze langues', () => {
     const cles = ['settings.dspProgressifTitle', 'settings.dspProgressifLabel', 'settings.dspProgressifHint', 'settings.dspOptionFile', 'settings.dspOptionStream', 'settings.dspProgressifOn', 'settings.dspProgressifOff'];
-    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const k of cles) expect(src, `${k} manque en ${l}`).toContain(`"${k}"`);
     }

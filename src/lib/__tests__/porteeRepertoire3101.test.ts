@@ -151,7 +151,7 @@ describe('une seule source de vérité : `libraryFolderScope`', () => {
   });
 
   it('la clé du message existe dans les onze langues, avec le nom du dossier', () => {
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       expect(src, l).toMatch(/['"]library\.scopeLoadError['"]:\s*['"][^'"]*\{d\}[^'"]*['"]/);
     }

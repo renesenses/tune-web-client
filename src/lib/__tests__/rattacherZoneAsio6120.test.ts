@@ -51,7 +51,7 @@ describe('#6120 — le menu propose « Rattacher » à une zone orpheline, et à
   });
 
   it('les trois clés existent dans les onze langues', () => {
-    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const k of ['v2.zone.reattach', 'v2.zone.reattachConfirm', 'v2.zone.reattachNone']) {
         expect(src, `${k} manque en ${l}`).toContain(`"${k}"`);

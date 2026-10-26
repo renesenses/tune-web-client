@@ -27,9 +27,10 @@ import sv from '../locales/sv';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
+import nbLocale from '../locales/nb';
 
 const LANGUES: Record<string, Record<string, string>> = {
-  fr, en, de, es, it: it_, zh, ja, ko, ro, sv, hu, vi: viLocale, el: elLocale,
+  fr, en, de, es, it: it_, zh, ja, ko, ro, sv, hu, vi: viLocale, el: elLocale, nb: nbLocale,
 } as any;
 
 const CLES = [
@@ -53,7 +54,7 @@ afterEach(() => {
 });
 
 describe('#6542 — Devialet AIR expérimental', () => {
-  it('🔴 les huit textes existent dans les 13 langues, avec leurs marques', () => {
+  it('🔴 les huit textes existent dans les 14 langues, avec leurs marques', () => {
     for (const [lang, table] of Object.entries(LANGUES)) {
       for (const cle of CLES) {
         expect(table[cle], `${lang} : ${cle}`).toBeTruthy();
