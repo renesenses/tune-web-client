@@ -45,11 +45,18 @@ function poserLeServeur() {
       corps = { status: 'ok', url: 'https://forum.example/thread', slug: 'x' };
     } else if (/\/profiles\/1\/settings/.test(url)) {
       if (methode === 'GET' && lectureEnPanne) throw new TypeError('Failed to fetch');
-      if (methode === 'GET' && delaiDeLecture) await new Promise((r) => setTimeout(r, delaiDeLecture));
+      // L'instantané est pris AVANT l'attente : la réponse est vieille quand elle arrive.
+      const instantane = { ...prefs };
+      if (methode === 'GET' && delaiDeLecture) {
+        await new Promise((r) => setTimeout(r, delaiDeLecture));
+        corps = instantane;
+        return { ok: true, status: 200, statusText: 'OK', headers: new Headers({ 'content-type': 'application/json' }), json: async () => corps, text: async () => JSON.stringify(corps) } as unknown as Response;
+      }
       if (methode === 'POST') {
         const ecrit = JSON.parse(String(init!.body));
         ecritures.push(ecrit);
-        prefs = { ...prefs, ...ecrit };
+        // Comme le vrai serveur : `POST /settings` REMPLACE l'objet entier.
+        prefs = ecrit;
       }
       corps = prefs;
     }
