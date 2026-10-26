@@ -67,7 +67,10 @@ describe('page Radio — capture Silviu (roumain, v0.9.161)', () => {
 
   it('n’écrit plus « Tous » en dur sur la puce de remise à zéro', () => {
     expect(CORPS).not.toContain('>Tous (');
-    expect(CORPS).toContain("'v2.radio.allGenres'");
+    // #2397 : la puce vit désormais dans le composant partagé par les deux onglets.
+    const puces = sansCommentaires(readFileSync(
+      resolve(__dirname, '../../components/v2/RadioChipsGenres.svelte'), 'utf8'));
+    expect(puces).toContain("'v2.radio.allGenres'");
   });
 
   it('ne dérive plus les puces de la chaîne BRUTE du serveur', () => {

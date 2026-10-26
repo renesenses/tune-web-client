@@ -20,6 +20,7 @@ import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
 import type { CorpsEdition, EditionReponse, RapportBalises } from './editionAlbum';
 import { estDepotTuneDistant } from './depotsTuneDistants';
+import { estMessageGenerique, lireMessageServeur } from './messageServeur';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -202,33 +203,33 @@ export function authHeaders(extra: Record<string, string> = {}): Record<string, 
  * pas de message du tout.
  */
 export async function erreurDepuisReponse(resp: Response): Promise<Error> {
-  let detail = '';
   let corps: unknown = null;
+  let brut = '';
   try {
-    const texte = await resp.text();
-    const t = texte.trim();
-    if (t) {
+    brut = (await resp.text()).trim();
+    if (brut) {
       try {
-        const j = JSON.parse(t);
-        corps = j;
-        if (typeof j === 'string') detail = j;
-        else if (estRefusEcriture(j)) detail = messageRefusEcriture();
-        else detail = j?.error ?? j?.message ?? j?.detail ?? '';
+        const j = JSON.parse(brut);
+        corps = typeof j === 'string' ? null : j;
+        if (typeof j === 'string') brut = j;
       } catch {
-        // Pas du JSON. Une page d'erreur HTML n'apprend rien a l'utilisateur ;
-        // du texte brut court, si.
-        if (!t.startsWith('<')) detail = t;
+        // Pas du JSON : `lireMessageServeur` le range dans le détail.
       }
     }
   } catch {
     // Corps illisible (connexion coupee en cours de lecture) : le statut reste.
   }
-  detail = String(detail ?? '').trim();
-  // Un stderr de mount.cifs peut etre long ; l'interface doit rester lisible.
-  if (detail.length > 300) detail = detail.slice(0, 300) + '…';
-  const err = (detail
-    ? new Error(`${resp.status} — ${detail}`)
-    : new Error(`${resp.status}`)) as ApiError;
+  // #2417 — le texte du serveur (souvent français, ou brut d'un service
+  // tiers) ne s'affiche plus : le code traduit, la phrase que le serveur dit
+  // avoir traduite, ou le message générique. Le brut part dans `detail`
+  // (« Détails » replié du bandeau) : le stderr de mount.cifs n'est pas perdu.
+  const lu = estRefusEcriture(corps)
+    ? { message: messageRefusEcriture(), detail: '', code: CODE_REFUS_ECRITURE }
+    : lireMessageServeur(corps, brut, resp.status);
+  const err = new Error(lu.message) as ApiError;
+  err.detail = lu.detail;
+  if (lu.code) err.code = lu.code;
+  if (corps && typeof corps === 'object') err.corps = corps;
   // Le statut et le delai de reprise voyagent aussi en PROPRIETES : les lire
   // dans le texte du message est fragile (un detail contenant « 403 » suffisait
   // a detourner la traduction) et le `retry_after` d'un 429 s'y perdait
@@ -350,6 +351,11 @@ export async function apiDelete(path: string): Promise<any> {
  *  code and HTTP status so callers (and fetchJSON's toast layer) can react. */
 export interface ApiError extends Error {
   code?: string;
+  /**
+   * #2417 — le texte technique du refus (corps brut du serveur, statut,
+   * code). Jamais le texte principal d'un écran : le « Détails » replié.
+   */
+  detail?: string;
   status?: number;
   /** Secondes avant nouvelle tentative, sur un 429 qui l'annonce (#2178). */
   retryAfter?: number;
@@ -407,12 +413,15 @@ async function apiError(response: Response): Promise<ApiError> {
    * l'ancienne.
    */
   const brut = await response.text().catch(() => '');
+  let technique = '';
   try {
     const body = JSON.parse(brut);
     corps = body;
-    if (body.detail) detail = body.detail;
-    else if (body.message) detail = body.message;
-    else if (typeof body.error === 'string' && body.error) detail = body.error;
+    // #2417 — jamais le texte brut du serveur en message : voir
+    // `messageServeur.ts`. Le brut reste dans `err.detail`.
+    const lu = lireMessageServeur(body, brut, response.status);
+    detail = lu.message;
+    technique = lu.detail;
     code = body.code ?? body.error;
     // « Écrire les modifications dans les fichiers audio » décoché : la phrase
     // du client, dans sa langue — le `message` du serveur est en français.
@@ -421,11 +430,14 @@ async function apiError(response: Response): Promise<ApiError> {
       code = CODE_REFUS_ECRITURE;
     }
   } catch {
-    // Pas du JSON : c'est un message en clair, et c'est tout ce qu'on a.
-    const texte = brut.trim();
-    if (texte && texte.length <= 500 && !texte.startsWith('<')) detail = texte;
+    // Pas du JSON : un message en clair, dont on ne sait pas la langue. Il
+    // part dans le détail ; l'écran dit le message générique.
+    const lu = lireMessageServeur(null, brut, response.status);
+    detail = lu.message;
+    technique = lu.detail;
   }
   const err = new Error(detail) as ApiError;
+  err.detail = technique;
   err.code = code;
   err.status = response.status;
   if (corps && typeof corps === 'object') err.corps = corps;
@@ -608,9 +620,9 @@ export async function fetchJSON<T>(
        * vraies pannes.
        */
       if (sansBandeau) {
-        console.warn('[api] échec porté par l’écran appelant, sans bandeau :', url, response.status, err.message);
+        console.warn('[api] échec porté par l’écran appelant, sans bandeau :', url, response.status, err.detail || err.message);
       } else {
-        notifications.error(`Server error: ${err.message}`);
+        notifications.error(err.message, 8000, err.detail);
       }
     } else {
       // Surface actionable playback failures that callers would otherwise
@@ -634,6 +646,7 @@ export async function fetchJSON<T>(
         && MESSAGES_RENDUS_PAR_LE_SERVEUR.has(err.code)
         && typeof err.message === 'string'
         && err.message.trim() !== ''
+        && !estMessageGenerique(err.message)
       ) {
         // 🔴 La phrase du SERVEUR, telle quelle — voir
         // `MESSAGES_RENDUS_PAR_LE_SERVEUR`. 10 s comme le refus bit-perfect :
@@ -779,9 +792,9 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
      * l'exception est étroite, et c'est la moitié de la garde qui compte.
      */
     if (response.status === 501) {
-      notifications.info(err.message);
+      notifications.info(err.message, 3000, err.detail);
     } else if (response.status >= 500) {
-      notifications.error(`Server error: ${err.message}`);
+      notifications.error(err.message, 8000, err.detail);
     }
     throw err;
   }

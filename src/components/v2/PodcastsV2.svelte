@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { etatSourceRadioFrance } from '../../lib/radioFranceSource';
   /**
@@ -56,6 +57,7 @@
   /** Pays pour lequel la découverte est déjà chargée. */
   let discoverCharge: string | null = null;
   let error = $state<string | null>(null);
+  let errorDetail = $state('');
 
   // Émission ouverte + ses épisodes.
   let opened = $state<any | null>(null);
@@ -66,7 +68,7 @@
   $effect(() => {
     api.getPodcastSubscriptions()
       .then((r) => { subs = r ?? []; })
-      .catch(() => { error = $t('v2.pod.subsUnavailable' as any); })
+      .catch(() => { errorDetail = ''; error = $t('v2.pod.subsUnavailable' as any); })
       .finally(() => { subsLoading = false; });
   });
 
@@ -514,7 +516,7 @@
         cover_url: ep.cover_url || show.cover_url || '',
       }));
     } catch {
-      error = $t('v2.pod.episodesUnavail' as any);
+      errorDetail = ''; error = $t('v2.pod.episodesUnavail' as any);
     }
     epLoading = false;
   }
@@ -539,9 +541,9 @@
       if (cle) {
         // Rien à montrer : la fiche vide se referme, la raison reste.
         if (opened === p) opened = null;
-        error = $t(cle as any);
+        errorDetail = ''; error = $t(cle as any);
       } else {
-        error = $t('v2.pod.episodesUnavail' as any);
+        errorDetail = ''; error = $t('v2.pod.episodesUnavail' as any);
       }
     }
     epLoading = false;
@@ -549,7 +551,7 @@
 
   async function playEpisode(ep: any) {
     const zid = $currentZoneId;
-    if (zid == null) { error = $t('v2.lib.noActiveZone' as any); return; }
+    if (zid == null) { errorDetail = ''; error = $t('v2.lib.noActiveZone' as any); return; }
     // tune-server-rust#6468 — l'épisode ne s'allume « en lecture » qu'APRÈS
     // une réponse 2xx. Il s'allumait avant l'appel, et restait allumé deux
     // secondes sur un refus de l'enceinte : l'écran disait le contraire du
@@ -562,8 +564,9 @@
       cover_url: ep.cover_url ?? cover(opened) ?? undefined,
       duration_ms: ep.duration_ms,
     });
-    if (!issue.ok) { error = issue.message; return; }
+    if (!issue.ok) { error = issue.message; errorDetail = issue.detail ?? ''; return; }
     error = null;
+    errorDetail = '';
     playingUrl = ep.audio_url;
     setTimeout(() => { if (playingUrl === ep.audio_url) playingUrl = null; }, 2000);
   }
@@ -640,7 +643,7 @@
         }
       }
     } catch (e) {
-      error = $t((cleEchecResolution(e) ?? 'v2.pod.subscribeFailed') as any);
+      errorDetail = ''; error = $t((cleEchecResolution(e) ?? 'v2.pod.subscribeFailed') as any);
     } finally {
       basculeEnCours = false;
     }
@@ -713,7 +716,7 @@
     </div>
   </header>
 
-  {#if error}<div class="err" role="status">{error}<button onclick={() => (error = null)} aria-label={$t('v2.common.close' as any)}>×</button></div>{/if}
+  {#if error}<div class="err" role="status">{error}<button onclick={() => (error = null)} aria-label={$t('v2.common.close' as any)}>×</button></div><DetailsServeur detail={errorDetail} />{/if}
 
   <div class="scroll">
     {#if tab === 'subs'}

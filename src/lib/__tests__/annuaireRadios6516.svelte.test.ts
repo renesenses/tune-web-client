@@ -85,8 +85,8 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
     // FIP est déjà dans « Mes radios » : pas de bouton d'ajout, une mention.
     const fiches = hote.querySelectorAll('.fiche');
     expect(fiches[0].querySelector('.dedans')).not.toBeNull();
-    expect(fiches[0].querySelector('.ajout')).toBeNull();
-    expect(fiches[1].querySelector('.ajout')).not.toBeNull();
+    expect(fiches[0].querySelector('.tl2')).toBeNull();
+    expect(fiches[1].querySelector('.tl2')).not.toBeNull();
   });
 
   it('🔴 la mention radio-metadata.fr porte le lien Ko-fi', async () => {
@@ -98,12 +98,14 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
 
   it('les filtres pays et genre viennent des facettes du serveur', async () => {
     await ouvrirAnnuaire();
+    // #2397 : le pays reste une liste, le genre passe en BOUTONS.
     const choix = hote.querySelectorAll<HTMLSelectElement>('.annuaire select');
-    expect(choix.length).toBe(2);
+    expect(choix.length).toBe(1);
     expect(choix[0].options.length).toBe(3); // tous + FR + US
-    expect(choix[1].options.length).toBe(3); // tous + news + eclectic
+    const puces = [...hote.querySelectorAll('.annuaire .chip')].map((c) => c.textContent ?? '');
+    expect(puces.length).toBe(3); // tous + news + eclectic
     // `news` a sa traduction : la puce n'est plus le mot anglais brut.
-    expect(choix[1].options[1].textContent).toContain('Info');
+    expect(puces[1]).toContain('Info');
   });
 
   it('🔴 « Ajouter à mes radios » passe par le serveur, et la station rejoint la liste', async () => {
@@ -111,7 +113,11 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
       id: 42, name: 'Radio Paradise: Main Mix', stream_url: 'http://stream.radioparadise.com/flacm', favorite: false,
     });
     await ouvrirAnnuaire();
-    hote.querySelectorAll('.fiche')[1].querySelector<HTMLButtonElement>('.ajout')!.click();
+    // Le serveur, relu au retour sur « Mes radios », rend la station ajoutée.
+    mocks.getRadios.mockResolvedValue([FIP_LOCALE, {
+      id: 42, name: 'Radio Paradise: Main Mix', stream_url: 'http://stream.radioparadise.com/flacm', favorite: false,
+    }]);
+    hote.querySelectorAll('.fiche')[1].querySelector<HTMLButtonElement>('.tl2')!.click();
     await respirer();
     expect(mocks.ajouterDepuisAnnuaire).toHaveBeenCalledWith('S002479', false);
     expect(hote.querySelectorAll('.fiche')[1].querySelector('.dedans')).not.toBeNull();
@@ -148,38 +154,20 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
   });
 });
 
-describe('#6516 — l’adresse du flux a changé dans l’annuaire', () => {
-  async function monter(station: Record<string, unknown>) {
-    mocks.getRadios.mockResolvedValue([station]);
+describe('#2397 — plus de proposition « mettre à jour le flux »', () => {
+  it('🔴 même quand l’annuaire publie une autre adresse, l’écran n’offre aucun bouton', async () => {
+    mocks.getRadios.mockResolvedValue([{
+      ...FIP_LOCALE,
+      annuaire: { external_id: 'S000973', rapproche_par: 'id', flux_change: true,
+        stream_url_annuaire: 'https://nouveau.example/fip.aac' },
+    }]);
     hote = document.createElement('div');
     document.body.append(hote);
     instance = mount(RadiosV2, { target: hote, props: {} });
     flushSync();
     await respirer();
-  }
-  const LIEE = {
-    ...FIP_LOCALE,
-    annuaire: { external_id: 'S000973', rapproche_par: 'id', flux_change: true,
-      stream_url_annuaire: 'https://nouveau.example/fip.aac' },
-  };
-
-  it('🔴 l’écran PROPOSE la mise à jour, et seul le geste la fait', async () => {
-    mocks.mettreAJourLeFluxDepuisAnnuaire.mockResolvedValue({
-      ...FIP_LOCALE, stream_url: 'https://nouveau.example/fip.aac',
-      annuaire: { external_id: 'S000973', rapproche_par: 'id', flux_change: false },
-    });
-    await monter(LIEE);
-    const bouton = hote.querySelector<HTMLButtonElement>('.st .majflux');
-    expect(bouton, 'la proposition manque').not.toBeNull();
-    expect(mocks.mettreAJourLeFluxDepuisAnnuaire).not.toHaveBeenCalled();
-    bouton!.click();
-    await respirer();
-    expect(mocks.mettreAJourLeFluxDepuisAnnuaire).toHaveBeenCalledWith(7);
-    expect(hote.querySelector('.st .majflux'), 'la proposition reste après la mise à jour').toBeNull();
-  });
-
-  it('CONTRE-ÉPREUVE : adresse inchangée, aucune proposition', async () => {
-    await monter({ ...LIEE, annuaire: { ...LIEE.annuaire, flux_change: false } });
+    expect(hote.querySelector('.st'), 'la station manque').not.toBeNull();
     expect(hote.querySelector('.st .majflux')).toBeNull();
+    expect(mocks.mettreAJourLeFluxDepuisAnnuaire).not.toHaveBeenCalled();
   });
 });

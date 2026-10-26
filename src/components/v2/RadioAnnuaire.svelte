@@ -26,6 +26,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import RadioRecherche from './RadioRecherche.svelte';
+  import RadioChipsGenres from './RadioChipsGenres.svelte';
 
   interface Props {
     /** Une station vient d'entrer dans « Mes radios » (ou d'y changer). */
@@ -136,31 +138,22 @@
 
 <div class="annuaire">
   <div class="filtres">
-    <div class="v2-rech">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input placeholder={$t('v2.radio.dir.search' as any)} bind:value={q} />
-      {#if q}
-        <button class="clr" onclick={() => (q = '')} aria-label={$t('v2.radio.dir.clear' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      {/if}
-    </div>
+    <RadioRecherche bind:valeur={q} />
     <select class="choix" bind:value={pays} aria-label={$t('v2.radio.country' as any)}>
       <option value={null}>{$t('v2.radio.dir.allCountries' as any)}</option>
       {#each page?.countries ?? [] as c (c.code)}
         <option value={c.code}>{nomPays(c.code)} ({c.count})</option>
       {/each}
     </select>
-    <select class="choix" bind:value={genre} aria-label={$t('v2.radio.genre' as any)}>
-      <option value={null}>{$t('v2.radio.dir.allGenres' as any)}</option>
-      {#each page?.genres ?? [] as g (g.key)}
-        <option value={g.key}>{libelleGenre(g.key ?? '')} ({g.count})</option>
-      {/each}
-    </select>
     {#if page}
       <span class="total">{$t('v2.radio.dir.count' as any).replace('{n}', String(page.total))}</span>
     {/if}
   </div>
+  {#if page?.genres?.length}
+    <RadioChipsGenres
+      genres={page.genres.map((g) => ({ cle: g.key ?? '', libelle: libelleGenre(g.key ?? ''), n: g.count }))}
+      choisi={genre} total={page.stations} onChoisir={(c) => (genre = c)} />
+  {/if}
 
   {#if erreur}
     <div class="etat err">{erreur}</div>
@@ -178,13 +171,14 @@
           <span class="vignette">
             <PochetteActions
               favoriExterne={{ actif: !!f.my_radio_favorite, basculer: () => basculerFavori(f) }}
+              onAjouter={f.my_radio_id == null ? () => ajouter(f) : null}
+              libelleAjouter={$t('v2.radio.dir.add' as any)}
               onLire={() => ecouter(f)}
               onOuvrir={() => ecouter(f)}
               nom={f.name}
             >
               <AlbumArt coverPath={f.logo_url ?? null} albumId={null} size={0} alt={f.name} fallbackInitials={f.name?.slice(0, 1)} />
             </PochetteActions>
-            {#if enDirect === f.external_id}<span class="onair">{$t('v2.lbl.liveNow' as any)}</span>{/if}
           </span>
           <span class="nm" use:bulleTexte>{f.name}</span>
           {#if enDirect === f.external_id && titreEnCours}
@@ -197,10 +191,6 @@
             {#if f.codec}<span class="tk">{f.codec}{f.bitrate ? ` ${f.bitrate}` : ''}</span>{/if}
             {#if f.my_radio_id != null}
               <span class="dedans">{$t('v2.radio.dir.inMine' as any)}</span>
-            {:else}
-              <button class="ajout" onclick={() => ajouter(f)} title={$t('v2.radio.dir.add' as any)} aria-label={`${$t('v2.radio.dir.add' as any)} — ${f.name}`}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
-              </button>
             {/if}
           </span>
         </div>
@@ -235,8 +225,6 @@
   .vignette{position:relative; display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden;
     box-shadow:var(--v2-sh-card); transition:.18s}
   .fiche:hover .vignette{box-shadow:0 10px 24px var(--v2-glow)}
-  .onair{position:absolute; left:8px; bottom:8px; z-index:2; font:700 8.5px var(--v2-mono); letter-spacing:.12em;
-    color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); padding:3px 7px; border-radius:5px}
   .nm{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .gn,.encours{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .encours{color:var(--v2-acc2)}
@@ -244,10 +232,6 @@
   .np{font-size:11px; color:var(--v2-acc1)}
   .tk{font:9.5px var(--v2-mono); color:var(--v2-acc2)}
   .dedans{margin-left:auto; font:600 9.5px var(--v2-mono); color:var(--v2-txt3)}
-  .ajout{margin-left:auto; width:24px; height:24px; border-radius:50%; border:1px solid var(--v2-line2);
-    background:transparent; color:var(--v2-txt2); cursor:pointer; display:grid; place-items:center}
-  .ajout:hover{color:var(--v2-acc1); border-color:var(--v2-acc1)}
-  .ajout svg{width:13px; height:13px}
   .suite{display:flex; justify-content:center; padding-top:8px}
   .source{margin-top:14px; font:11px var(--v2-sans); color:var(--v2-txt3)}
   .source a{color:var(--v2-acc2); text-decoration:none}
