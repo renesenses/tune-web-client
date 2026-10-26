@@ -138,7 +138,8 @@ describe('#4895 — le navigateur de serveur multimédia dit ce qu’il fait', (
     await vi.waitFor(() => { if (!racine.querySelector('.err')) throw new Error('aucun bandeau'); });
     const bandeau = racine.querySelector('.err')!.textContent ?? '';
     expect(bandeau).toContain(fr['v2.ms.folderNoAnswer']);
-    expect(bandeau, 'le motif écrit par le serveur est perdu').toContain(motif);
+    // #2417 — la phrase brute du serveur (française) ne s'affiche plus.
+    expect(bandeau).not.toContain(motif);
   });
 
   it('un 502 de la recherche affiche le bandeau avec le motif, sans prétendre que le serveur ne sait pas chercher', { timeout: DELAI_MONTAGE }, async () => {
@@ -154,7 +155,7 @@ describe('#4895 — le navigateur de serveur multimédia dit ce qu’il fait', (
     await vi.waitFor(() => { if (!racine.querySelector('.err')) throw new Error('aucun bandeau'); }, { timeout: 3000 });
     const bandeau = racine.querySelector('.err')!.textContent ?? '';
     expect(bandeau).toContain(fr['v2.ms.searchFailed']);
-    expect(bandeau).toContain(motif);
+    expect(bandeau).not.toContain(motif);
     expect(racine.querySelector('.warn'), "la recherche a échoué : ce n'est pas un serveur sans index").toBeNull();
   });
 

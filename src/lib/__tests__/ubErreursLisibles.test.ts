@@ -91,11 +91,15 @@ describe('#3732 (suite) — le bandeau d’un écran v2 porte le MOTIF, pas un g
     e.status = 400;
     e.code = 'no tracks to play';
 
+    // #2417 — le motif est un CODE : il ne s'affiche plus tel quel (un
+    // `zone_en_lecture` n'est pas une phrase), il part au « Détails » replié.
     const vu = messageEchecLecture(e, 'library.playbackError');
+    expect(vu).not.toContain('no tracks to play');
+    signalerEchecLecture(e);
+    const dernier = get(notifications).at(-1);
     expect(
-      vu,
-      'le motif nommé par le serveur reste dans `.code` et n’atteint pas l’écran : ' +
-        'le testeur lit « 400 Bad Request », ce qui ne dit RIEN de plus que le silence',
+      dernier?.detail,
+      'le motif nommé par le serveur est perdu : ni à l’écran ni au « Détails »',
     ).toContain('no tracks to play');
     // Le statut reste : c'est lui qu'on demande à un testeur de nous répéter.
     expect(vu).toContain('400');
@@ -188,7 +192,8 @@ describe('#3732 (suite) — un serveur qui redémarre ne remplit pas l’écran 
       bandeaux.length,
       `${bandeaux.length} bandeaux identiques empilés : le remède est devenu le mal`,
     ).toBe(1);
-    expect(bandeaux[0].message, 'le message a été perdu en chemin').toContain('audio-gd USB audio');
+    // #2417 — le texte brut (français) part au « Détails » replié.
+    expect(bandeaux[0].detail, 'le message a été perdu en chemin').toContain('audio-gd USB audio');
   });
 
   it('mais un message DIFFÉRENT n’est jamais masqué par le précédent', () => {
@@ -198,7 +203,7 @@ describe('#3732 (suite) — un serveur qui redémarre ne remplit pas l’écran 
     signalerErreurServeur({ message: 'DAC absent' });
     signalerErreurServeur({ message: 'Le dossier réseau ne répond plus' });
 
-    const vus = get(notifications).map((n) => n.message);
+    const vus = get(notifications).map((n) => n.detail ?? '');
     expect(vus.length, 'un motif distinct a été avalé par la déduplication').toBe(2);
     expect(vus.join(' | ')).toContain('DAC absent');
     expect(vus.join(' | ')).toContain('Le dossier réseau ne répond plus');

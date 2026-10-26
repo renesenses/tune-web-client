@@ -5729,5 +5729,8 @@ export default {
   "scanDetenteur.depuis": "siden {heure}",
   "scanDetenteur.residuel": "Gjenværende status: ingen skanning kjører egentlig. «Stopp» nullstiller den.",
   "scanDetenteur.refus409": "Serveren avviste: en annen skanning pågår allerede ({scan}). Prøv igjen når den er ferdig.",
+  "erreursServeur.generique": "Serveren kunne ikke fullføre forespørselen.",
+  "erreursServeur.details": "Detaljer",
+  "erreursServeur.track_decode_failed": "Sporet kunne ikke dekodes.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

@@ -156,7 +156,7 @@ describe('Réglages v2 › Système › Cloud — consentement à la télémétr
     const err = el.querySelector('.errline');
     expect(err, 'aucune erreur affichée').not.toBeNull();
     expect(err!.textContent).toContain(fr['settings.telemetryError']);
-    expect(err!.textContent).toContain('admin only');
+    expect(err!.textContent).not.toContain('admin only'); // #2417
     expect(laCase(el)!.checked, 'la case reste sur l’état précédent').toBe(true);
   });
 });

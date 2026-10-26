@@ -201,7 +201,8 @@ describe('Réglages v2 › Bibliothèque › Outils — nettoyage du serveur (#2
     await attendre();
     const err = el.querySelector('.errline');
     expect(err, 'aucune erreur affichée').not.toBeNull();
-    expect(err!.textContent).toContain('admin required');
+    // #2417 — plus de texte brut du serveur à l'écran : message traduit ou générique, brut dans `err.detail`.
+    expect(err!.textContent).not.toContain('admin required');
   });
 });
 

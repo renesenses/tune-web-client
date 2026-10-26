@@ -1,5 +1,6 @@
 <script lang="ts">
   import { notifications } from '../../lib/stores/notifications';
+  import { t } from '../../lib/i18n';
 </script>
 
 {#each $notifications as n (n.id)}
@@ -18,7 +19,16 @@
         <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
       {/if}
     </svg>
-    <span class="toast-msg">{n.message}</span>
+    <span class="toast-msg">
+      {n.message}
+      {#if n.detail}
+        <!-- #2417 : le texte brut du serveur, replié, jamais en message. -->
+        <details class="toast-detail">
+          <summary>{$t('erreursServeur.details')}</summary>
+          <code>{n.detail}</code>
+        </details>
+      {/if}
+    </span>
     {#if n.action}
       <button class="toast-action" onclick={() => { n.action?.run(); notifications.dismiss(n.id); }}>
         {n.action.label}
@@ -109,6 +119,21 @@
   .toast-msg {
     flex: 1;
     min-width: 0;
+  }
+
+  .toast-detail {
+    margin-top: 4px;
+    font-size: 12px;
+    opacity: 0.85;
+  }
+  .toast-detail summary { cursor: pointer; }
+  .toast-detail code {
+    display: block;
+    margin-top: 2px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 8em;
+    overflow: auto;
   }
 
   .toast-dismiss {

@@ -5884,6 +5884,9 @@ export default {
   "scanDetenteur.depuis": "{heure}부터",
   "scanDetenteur.residuel": "남은 상태: 실제로 실행 중인 스캔이 없습니다. '중지'를 누르면 초기화됩니다.",
   "scanDetenteur.refus409": "서버가 거부했습니다: 다른 스캔이 이미 실행 중입니다({scan}). 끝난 뒤 다시 시도하세요.",
+  "erreursServeur.generique": "서버가 요청을 처리하지 못했습니다.",
+  "erreursServeur.details": "세부 정보",
+  "erreursServeur.track_decode_failed": "트랙을 디코딩하지 못했습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

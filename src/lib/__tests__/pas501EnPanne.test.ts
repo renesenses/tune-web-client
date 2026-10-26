@@ -28,6 +28,8 @@
  * Qu’un 501 ne lève aucun bandeau, et qu’un VRAI 5xx en lève toujours un. La
  * seconde moitié compte autant : élargir l’exception ferait taire les pannes.
  */
+import { get } from 'svelte/store';
+import { t } from '../i18n';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const toasts: string[] = [];
@@ -63,8 +65,10 @@ describe('501 n’est pas une panne', () => {
     let attrape: any = null;
     try { await api.getStreamingPlaylists('bandcamp'); } catch (e) { attrape = e; }
     expect(attrape).toBeTruthy();
-    // Et il porte la phrase du serveur, pas un code nu (acquis de #859).
-    expect(String(attrape?.message ?? attrape)).toContain('Bandcamp');
+    // La phrase du serveur n'est pas perdue (acquis de #859) : elle est dans
+    // le détail ; l'écran dit le message traduit (#2417).
+    expect(String(attrape?.detail)).toContain('Bandcamp');
+    expect(String(attrape?.message)).not.toContain('Bandcamp');
   });
 
   /**
@@ -75,7 +79,7 @@ describe('501 n’est pas une panne', () => {
     repond(500, 'boom');
     await expect(api.getStreamingPlaylists('qobuz')).rejects.toBeTruthy();
     expect(toasts.length).toBe(1);
-    expect(toasts[0]).toContain('Server error');
+    expect(toasts[0]).toContain(get(t)('erreursServeur.generique'));
   });
 
   it('un 502 et un 503 aussi', async () => {

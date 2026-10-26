@@ -320,7 +320,8 @@ describe('le mode Modifier — un seul PUT, exactement ce qui a changé', () => 
     expect(await jusqua(() => !!q('[data-erreur-edition]'))).toBe(true);
     const texte = q('[data-erreur-edition]')!.textContent!;
     expect(texte).toContain(get(t)('v2.edition.errRefused' as any));
-    expect(texte).toContain('la piste 11 manque dans discs');
+    // #2417 — plus de texte brut du serveur à l'écran : message traduit ou générique, brut dans `err.detail`.
+    expect(texte).not.toContain('la piste 11 manque dans discs');
     expect(q('.edition')).not.toBeNull();
   });
 

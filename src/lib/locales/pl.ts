@@ -5729,5 +5729,8 @@ export default {
   "scanDetenteur.refus409": "Serwer odmówił: trwa już inne skanowanie ({scan}). Spróbuj ponownie po jego zakończeniu.",
   "v2.rech.radios": "Radia",
   "v2.rech.radiosMore": "Kolejne w katalogu radiowym: {n}",
+  "erreursServeur.generique": "Serwer nie mógł zrealizować żądania.",
+  "erreursServeur.details": "Szczegóły",
+  "erreursServeur.track_decode_failed": "Nie udało się zdekodować utworu.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];
