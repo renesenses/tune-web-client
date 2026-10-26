@@ -10,6 +10,7 @@
 //
 // On monte le vrai écran et on lit le DOM : vérifier qu'une fonction est citée
 // ne prouve pas que le geste marche.
+import { attendreDetailsReplie } from './detailsReplies2417';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import SupportV2 from '../../components/v2/SupportV2.svelte';
@@ -106,7 +107,7 @@ describe('Support v2 — signaler un bogue au forum (porté de DiagnosticsView)'
     const err = hote!.querySelector('.bogue-err');
     expect(err, 'aucune erreur affichée après un refus').toBeTruthy();
     expect(err!.textContent).toContain(fr['v2.sup.bugSendError']);
-    expect(err!.textContent).not.toContain('cloud rejected the report'); // #2417
+    attendreDetailsReplie(hote!, fr['v2.sup.bugSendError'], 'cloud rejected the report'); // #2417
     expect(hote!.textContent).not.toContain(fr['v2.sup.bugSent']);
   });
 

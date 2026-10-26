@@ -12,6 +12,7 @@
 // Ce témoin MONTE les Réglages v2, ouvre Système, et agit comme un humain :
 // il choisit un niveau, clique, répond aux confirmations. Il lit les requêtes
 // réellement parties (`fetch` bouchonné).
+import { attendreDetailsReplie } from './detailsReplies2417';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
@@ -201,8 +202,9 @@ describe('Réglages v2 › Bibliothèque › Outils — nettoyage du serveur (#2
     await attendre();
     const err = el.querySelector('.errline');
     expect(err, 'aucune erreur affichée').not.toBeNull();
-    // #2417 — plus de texte brut du serveur à l'écran : message traduit ou générique, brut dans `err.detail`.
-    expect(err!.textContent).not.toContain('admin required');
+    expect(err!.textContent).toContain(fr['common.error']);
+    // #2417 — le motif du serveur, replié dans « Détails », jamais hors du repli.
+    attendreDetailsReplie(el, fr['common.error'], 'admin required');
   });
 });
 

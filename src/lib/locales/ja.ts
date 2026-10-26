@@ -5887,6 +5887,7 @@ export default {
   "erreursServeur.generique": "サーバーはリクエストを完了できませんでした。",
   "erreursServeur.details": "詳細",
   "erreursServeur.track_decode_failed": "トラックをデコードできませんでした。",
+  "v2.pl.serviceNoPlaylists": "{s} はプレイリストを提供していません。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

@@ -5732,5 +5732,6 @@ export default {
   "erreursServeur.generique": "Serveren kunne ikke fullføre forespørselen.",
   "erreursServeur.details": "Detaljer",
   "erreursServeur.track_decode_failed": "Sporet kunne ikke dekodes.",
+  "v2.pl.serviceNoPlaylists": "{s} tilbyr ikke spillelister.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

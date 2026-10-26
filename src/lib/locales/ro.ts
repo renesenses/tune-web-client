@@ -5887,6 +5887,7 @@ export default {
   "erreursServeur.generique": "Serverul nu a putut finaliza cererea.",
   "erreursServeur.details": "Detalii",
   "erreursServeur.track_decode_failed": "Piesa nu a putut fi decodată.",
+  "v2.pl.serviceNoPlaylists": "{s} nu oferă liste de redare.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

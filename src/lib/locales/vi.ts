@@ -5739,5 +5739,6 @@ export default {
   "erreursServeur.generique": "Máy chủ không thể hoàn tất yêu cầu.",
   "erreursServeur.details": "Chi tiết",
   "erreursServeur.track_decode_failed": "Không thể giải mã bản nhạc.",
+  "v2.pl.serviceNoPlaylists": "{s} không cung cấp danh sách phát.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

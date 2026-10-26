@@ -5887,6 +5887,7 @@ export default {
   "erreursServeur.generique": "Der Server konnte die Anfrage nicht ausführen.",
   "erreursServeur.details": "Details",
   "erreursServeur.track_decode_failed": "Der Titel konnte nicht dekodiert werden.",
+  "v2.pl.serviceNoPlaylists": "{s} stellt keine Playlists bereit.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

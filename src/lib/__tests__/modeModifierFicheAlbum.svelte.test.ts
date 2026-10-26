@@ -11,6 +11,7 @@
 //   PUT  /library/albums/{id}/edition       ← ce qui a changé ; 422 si `discs` incomplet
 //   POST /library/albums/{id}/discs/attach  ← { album_id }
 //   POST /library/albums/{id}/discs/{n}/detach
+import { attendreDetailsReplie } from './detailsReplies2417';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
 import { mount, unmount, flushSync } from 'svelte';
@@ -320,8 +321,8 @@ describe('le mode Modifier — un seul PUT, exactement ce qui a changé', () => 
     expect(await jusqua(() => !!q('[data-erreur-edition]'))).toBe(true);
     const texte = q('[data-erreur-edition]')!.textContent!;
     expect(texte).toContain(get(t)('v2.edition.errRefused' as any));
-    // #2417 — plus de texte brut du serveur à l'écran : message traduit ou générique, brut dans `err.detail`.
-    expect(texte).not.toContain('la piste 11 manque dans discs');
+    // #2417 — le motif du serveur, replié dans « Détails », jamais hors du repli.
+    attendreDetailsReplie(hote!, get(t)('v2.edition.errRefused' as any), 'la piste 11 manque dans discs');
     expect(q('.edition')).not.toBeNull();
   });
 

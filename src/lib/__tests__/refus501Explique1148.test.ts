@@ -42,6 +42,7 @@
  * Chaque garde a sa contre-épreuve : un VRAI 5xx (500, 502, 503) doit
  * continuer d'alerter, partout. Sans elle, on aurait éteint l'alarme.
  */
+import { attendreDetailsReplie } from './detailsReplies2417';
 import { get } from 'svelte/store';
 import { t } from '../i18n';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -178,10 +179,14 @@ describe('Écran Playlists — un service qui ne fournit pas de playlists', () =
     expect(erreurs(), `bandeau levé : ${erreurs().join(' | ')}`).toEqual([]);
   });
 
-  it("ne recopie pas la phrase brute du serveur à l'écran (#2417)", async () => {
+  it("dit POURQUOI Bandcamp n'est pas là, dans sa langue ; la phrase du serveur repliée (#2417)", async () => {
     serveur(501);
     await ouvrirEcran();
-    expect(target.textContent ?? '').not.toContain(MOTIF);
+    attendreDetailsReplie(
+      target,
+      get(t)('v2.pl.serviceNoPlaylists' as any).replace('{s}', 'Bandcamp'),
+      MOTIF,
+    );
   });
 
   it("n'empêche pas les autres services de s'afficher", async () => {

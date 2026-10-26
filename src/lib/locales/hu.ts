@@ -5846,6 +5846,7 @@ export default {
   "erreursServeur.generique": "A szerver nem tudta teljesíteni a kérést.",
   "erreursServeur.details": "Részletek",
   "erreursServeur.track_decode_failed": "A számot nem sikerült dekódolni.",
+  "v2.pl.serviceNoPlaylists": "A(z) {s} nem kínál lejátszási listákat.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { attendreDetailsReplie } from './detailsReplies2417';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { fr } from './onzeDictionnaires';
@@ -138,8 +139,8 @@ describe('#4895 — le navigateur de serveur multimédia dit ce qu’il fait', (
     await vi.waitFor(() => { if (!racine.querySelector('.err')) throw new Error('aucun bandeau'); });
     const bandeau = racine.querySelector('.err')!.textContent ?? '';
     expect(bandeau).toContain(fr['v2.ms.folderNoAnswer']);
-    // #2417 — la phrase brute du serveur (française) ne s'affiche plus.
-    expect(bandeau).not.toContain(motif);
+    // #2417 — la phrase brute du serveur, repliée dans « Détails ».
+    attendreDetailsReplie(racine, fr['v2.ms.folderNoAnswer'], motif);
   });
 
   it('un 502 de la recherche affiche le bandeau avec le motif, sans prétendre que le serveur ne sait pas chercher', { timeout: DELAI_MONTAGE }, async () => {
@@ -155,7 +156,7 @@ describe('#4895 — le navigateur de serveur multimédia dit ce qu’il fait', (
     await vi.waitFor(() => { if (!racine.querySelector('.err')) throw new Error('aucun bandeau'); }, { timeout: 3000 });
     const bandeau = racine.querySelector('.err')!.textContent ?? '';
     expect(bandeau).toContain(fr['v2.ms.searchFailed']);
-    expect(bandeau).not.toContain(motif);
+    attendreDetailsReplie(racine, fr['v2.ms.searchFailed'], motif);
     expect(racine.querySelector('.warn'), "la recherche a échoué : ce n'est pas un serveur sans index").toBeNull();
   });
 

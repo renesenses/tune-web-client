@@ -5886,4 +5886,5 @@ export default {
   "erreursServeur.generique": "Servern kunde inte slutföra begäran.",
   "erreursServeur.details": "Detaljer",
   "erreursServeur.track_decode_failed": "Spåret kunde inte avkodas.",
+  "v2.pl.serviceNoPlaylists": "{s} tillhandahåller inga spellistor.",
 } as const;

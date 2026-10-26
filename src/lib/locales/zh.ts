@@ -5887,6 +5887,7 @@ export default {
   "erreursServeur.generique": "服务器无法完成该请求。",
   "erreursServeur.details": "详情",
   "erreursServeur.track_decode_failed": "无法解码该曲目。",
+  "v2.pl.serviceNoPlaylists": "{s} 不提供播放列表。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

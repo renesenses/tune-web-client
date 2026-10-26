@@ -125,3 +125,15 @@ export function lireEvenementErreur(
   if (lu.message === get(t)(CLE_GENERIQUE)) return { ...lu, message: get(t)(cleRepli) };
   return lu;
 }
+
+/**
+ * Le motif technique d'une erreur, pour le « Détails » replié d'un écran
+ * (`components/partages/DetailsServeur.svelte`) : `err.detail` posé par
+ * `api.ts`, sinon le code du refus ; vide pour une erreur sans détail (panne
+ * réseau, erreur locale).
+ */
+export function detailServeur(e: unknown): string {
+  const o = (e ?? {}) as { detail?: unknown; code?: unknown };
+  if (typeof o.detail === 'string' && o.detail.trim()) return o.detail.trim();
+  return typeof o.code === 'string' ? o.code.trim() : '';
+}

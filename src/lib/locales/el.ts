@@ -5732,5 +5732,6 @@ export default {
   "erreursServeur.generique": "Ο διακομιστής δεν μπόρεσε να ολοκληρώσει το αίτημα.",
   "erreursServeur.details": "Λεπτομέρειες",
   "erreursServeur.track_decode_failed": "Το κομμάτι δεν μπόρεσε να αποκωδικοποιηθεί.",
+  "v2.pl.serviceNoPlaylists": "Το {s} δεν παρέχει λίστες αναπαραγωγής.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

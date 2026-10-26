@@ -5887,6 +5887,7 @@ export default {
   "erreursServeur.generique": "서버가 요청을 처리하지 못했습니다.",
   "erreursServeur.details": "세부 정보",
   "erreursServeur.track_decode_failed": "트랙을 디코딩하지 못했습니다.",
+  "v2.pl.serviceNoPlaylists": "{s}은(는) 재생목록을 제공하지 않습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

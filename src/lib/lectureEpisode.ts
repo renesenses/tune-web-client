@@ -23,7 +23,7 @@
  * traduite pour les codes connus, et sinon le repli traduit suivi du message
  * du serveur. L'écran n'allume l'épisode qu'après un succès.
  */
-import { estMessageGenerique } from './messageServeur';
+import { detailServeur, estMessageGenerique } from './messageServeur';
 import { get } from 'svelte/store';
 import { playPodcastEpisode } from './api';
 import { t } from './i18n';
@@ -37,7 +37,7 @@ export type EpisodeAJouer = {
   duration_ms?: number;
 };
 
-export type IssueEpisode = { ok: true } | { ok: false; message: string };
+export type IssueEpisode = { ok: true } | { ok: false; message: string; detail?: string };
 
 /** Les codes rendus par `play_episode` (tune-server, routes/podcasts.rs). */
 const CLES_DES_CODES: Record<string, string> = {
@@ -66,6 +66,7 @@ export async function lancerEpisode(zoneId: number, episode: EpisodeAJouer): Pro
     // Le détail technique du serveur (« Output device error: SOAP fault… »)
     // reste en console, là où on le cherche pour diagnostiquer.
     console.error('Podcast episode play error:', e);
-    return { ok: false, message: messageEchecEpisode(e) };
+    // #2417 — le motif brut du serveur, pour le « Détails » replié de l'écran.
+    return { ok: false, message: messageEchecEpisode(e), detail: detailServeur(e) };
   }
 }

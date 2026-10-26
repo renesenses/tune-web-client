@@ -5732,5 +5732,6 @@ export default {
   "erreursServeur.generique": "Serwer nie mógł zrealizować żądania.",
   "erreursServeur.details": "Szczegóły",
   "erreursServeur.track_decode_failed": "Nie udało się zdekodować utworu.",
+  "v2.pl.serviceNoPlaylists": "{s} nie udostępnia playlist.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

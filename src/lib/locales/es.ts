@@ -5887,6 +5887,7 @@ export default {
   "erreursServeur.generique": "El servidor no ha podido completar la solicitud.",
   "erreursServeur.details": "Detalles",
   "erreursServeur.track_decode_failed": "No se ha podido decodificar la pista.",
+  "v2.pl.serviceNoPlaylists": "{s} no ofrece listas de reproducción.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];
