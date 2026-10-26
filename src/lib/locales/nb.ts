@@ -4121,7 +4121,7 @@ export default {
   "v2.tcol.time": "Tid",
   "v2.tcol.year": "År",
   "v2.tcol.plays": "# avspillinger",
-  "v2.tcol.playsCommunity": "Avspillinger på Tune, alle brukere",
+  "v2.tcol.playsCommunity": "Avspillinger på Tune: til venstre alle brukere, til høyre du (denne serveren)",
   "v2.tcol.lastPlayed": "Sist spilt",
   "v2.lib.sortPlaysUnsupported": "Denne serveren kan ikke sortere etter avspillinger ennå: standardrekkefølgen er tilbake.",
   "v2.tcol.channels": "Kanaler",

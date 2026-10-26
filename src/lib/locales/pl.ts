@@ -4119,7 +4119,7 @@ export default {
   "v2.tcol.time": "Czas",
   "v2.tcol.year": "Rok",
   "v2.tcol.plays": "Odtworzenia",
-  "v2.tcol.playsCommunity": "Odtworzenia w Tune, wszyscy użytkownicy",
+  "v2.tcol.playsCommunity": "Odtworzenia w Tune: po lewej wszyscy użytkownicy, po prawej Ty (ten serwer)",
   "v2.tcol.lastPlayed": "Ostatnio odtwarzany",
   "v2.lib.sortPlaysUnsupported": "Ten serwer nie potrafi jeszcze sortować według odtworzeń: przywrócono domyślną kolejność.",
   "v2.tcol.channels": "Kanały",

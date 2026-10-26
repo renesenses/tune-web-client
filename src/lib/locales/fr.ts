@@ -4269,7 +4269,7 @@ export default {
   "v2.tcol.time": "Durée",
   "v2.tcol.year": "Année",
   "v2.tcol.plays": "Écoutes",
-  "v2.tcol.playsCommunity": "Écoutes sur Tune, tous utilisateurs",
+  "v2.tcol.playsCommunity": "Écoutes sur Tune : à gauche tous les utilisateurs, à droite vous (ce serveur)",
   "v2.tcol.lastPlayed": "Dernière écoute",
   "v2.lib.sortPlaysUnsupported": "Ce serveur ne sait pas encore trier par écoutes : l'ordre par défaut est rétabli.",
   "v2.tcol.channels": "Canaux",
