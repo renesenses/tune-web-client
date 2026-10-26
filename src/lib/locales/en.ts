@@ -5898,6 +5898,9 @@ export default {
   "scanDetenteur.depuis": "since {heure}",
   "scanDetenteur.residuel": "Leftover status: no scan is actually running. “Stop” resets it.",
   "scanDetenteur.refus409": "The server refused: another scan is already running ({scan}). Try again once it has finished.",
+  "v2.labels.logoCredit": "Logo: {auteur} · {licence} · {source}",
+  "v2.labels.logoCreditSansAuteur": "Logo: {licence} · {source}",
+  "v2.labels.logoLicenceDouteuse": "license to be checked",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

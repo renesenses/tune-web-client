@@ -5837,6 +5837,9 @@ export default {
   "scanDetenteur.depuis": "{heure} óta",
   "scanDetenteur.residuel": "Maradvány állapot: valójában nem fut vizsgálat. A „Leállítás” visszaállítja.",
   "scanDetenteur.refus409": "A szerver elutasította: már fut egy másik vizsgálat ({scan}). Próbálja újra, ha befejeződött.",
+  "v2.labels.logoCredit": "Logó: {auteur} · {licence} · {source}",
+  "v2.labels.logoCreditSansAuteur": "Logó: {licence} · {source}",
+  "v2.labels.logoLicenceDouteuse": "a licenc ellenőrizendő",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

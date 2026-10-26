@@ -5878,6 +5878,9 @@ export default {
   "scanDetenteur.depuis": "{heure} から",
   "scanDetenteur.residuel": "残留状態：実際にはスキャンは動いていません。「停止」でリセットされます。",
   "scanDetenteur.refus409": "サーバーが拒否しました：別のスキャンが実行中です（{scan}）。終了してから再試行してください。",
+  "v2.labels.logoCredit": "ロゴ：{auteur} · {licence} · {source}",
+  "v2.labels.logoCreditSansAuteur": "ロゴ：{licence} · {source}",
+  "v2.labels.logoLicenceDouteuse": "ライセンス要確認",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

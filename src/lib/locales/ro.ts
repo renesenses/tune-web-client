@@ -5878,6 +5878,9 @@ export default {
   "scanDetenteur.depuis": "de la {heure}",
   "scanDetenteur.residuel": "Stare reziduală: nicio scanare nu rulează de fapt. „Oprește” o resetează.",
   "scanDetenteur.refus409": "Serverul a refuzat: o altă scanare este deja în curs ({scan}). Reîncercați după ce se termină.",
+  "v2.labels.logoCredit": "Siglă: {auteur} · {licence} · {source}",
+  "v2.labels.logoCreditSansAuteur": "Siglă: {licence} · {source}",
+  "v2.labels.logoLicenceDouteuse": "licență de verificat",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -2048,11 +2048,25 @@ export async function getAlbumsPage(limit = 100, offset = 0): Promise<{ items: A
 
 /** Un label de la bibliothèque (tune-server-rust#6736). `image_url` et
  *  `qobuz_label_id` sont ABSENTS tant que le serveur ne les connaît pas. */
+/** tune-server-rust#7089 — l'attribution d'un logo libre venu de Wikimedia
+ *  Commons : licence, auteur, page source. Absente pour un logo Qobuz. */
+export interface LabelImageCredit {
+  provider: string;
+  license: string;
+  license_url?: string;
+  author?: string;
+  source_url: string;
+  file: string;
+  /** Logo de marque déclaré « œuvre personnelle » par qui l'a versé. */
+  doubtful?: boolean;
+}
+
 export interface LibraryLabel {
   name: string;
   album_count: number;
   image_url?: string;
   qobuz_label_id?: string;
+  image_credit?: LabelImageCredit;
 }
 
 /** web#2297 — les labels de la bibliothèque et leur logo Qobuz. Un serveur

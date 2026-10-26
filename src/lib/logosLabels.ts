@@ -11,7 +11,7 @@
  * `LibraryV2`) : seul le logo est demandé au serveur. Un serveur qui ne
  * connaît pas la route rend une carte vide, et la grille tient en monogrammes.
  */
-import type { LibraryLabel } from './api';
+import type { LabelImageCredit, LibraryLabel } from './api';
 
 /** La clé d'un nom de label : espaces resserrés, minuscules. LA MÊME que
  *  celle du serveur (`cle_de_label`, tune-core/src/library/logos_labels.rs) :
@@ -34,6 +34,45 @@ export function carteDesLogos(labels: readonly LibraryLabel[] | null | undefined
 /** L'adresse du logo de ce label, ou `null` : alors, le monogramme. */
 export function logoDuLabel(carte: ReadonlyMap<string, string>, nom: string): string | null {
   return carte.get(cleDeLabel(nom)) ?? null;
+}
+
+/** tune-server-rust#7089 — `clé → attribution`, pour les seuls logos libres
+ *  venus de Wikimedia Commons (un logo Qobuz n'en a pas). Une attribution
+ *  sans licence ni page source est ignorée : on n'affiche jamais un crédit
+ *  à moitié. */
+export function carteDesCredits(
+  labels: readonly LibraryLabel[] | null | undefined,
+): Map<string, LabelImageCredit> {
+  const carte = new Map<string, LabelImageCredit>();
+  for (const l of labels ?? []) {
+    const c = l?.image_credit;
+    if (l && typeof l.name === 'string' && typeof l.image_url === 'string' && l.image_url
+      && c && typeof c.license === 'string' && c.license
+      && typeof c.source_url === 'string' && c.source_url) {
+      carte.set(cleDeLabel(l.name), c);
+    }
+  }
+  return carte;
+}
+
+/** L'attribution du logo de ce label, ou `null`. */
+export function creditDuLabel(
+  carte: ReadonlyMap<string, LabelImageCredit>,
+  nom: string,
+): LabelImageCredit | null {
+  return carte.get(cleDeLabel(nom)) ?? null;
+}
+
+/** Le texte de l'attribution, au survol du logo : auteur, licence, source —
+ *  et « licence à vérifier » pour un logo douteux. `tr` est la traduction. */
+export function texteDuCredit(credit: LabelImageCredit, tr: (cle: string) => string): string {
+  const source = credit.provider || 'Wikimedia Commons';
+  const auteur = (credit.author ?? '').trim();
+  const base = (auteur ? tr('v2.labels.logoCredit') : tr('v2.labels.logoCreditSansAuteur'))
+    .replace('{auteur}', auteur)
+    .replace('{licence}', credit.license)
+    .replace('{source}', source);
+  return credit.doubtful ? `${base} · ${tr('v2.labels.logoLicenceDouteuse')}` : base;
 }
 
 /**

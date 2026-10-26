@@ -5900,6 +5900,9 @@ export default {
   "scanDetenteur.depuis": "depuis {heure}",
   "scanDetenteur.residuel": "Statut résiduel : aucun scan ne tourne réellement. « Arrêter » le remet au repos.",
   "scanDetenteur.refus409": "Le serveur a refusé : un autre scan est déjà en cours ({scan}). Réessayez quand il sera terminé.",
+  "v2.labels.logoCredit": "Logo : {auteur} · {licence} · {source}",
+  "v2.labels.logoCreditSansAuteur": "Logo : {licence} · {source}",
+  "v2.labels.logoLicenceDouteuse": "licence à vérifier",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -5723,5 +5723,8 @@ export default {
   "scanDetenteur.depuis": "siden {heure}",
   "scanDetenteur.residuel": "Gjenværende status: ingen skanning kjører egentlig. «Stopp» nullstiller den.",
   "scanDetenteur.refus409": "Serveren avviste: en annen skanning pågår allerede ({scan}). Prøv igjen når den er ferdig.",
+  "v2.labels.logoCredit": "Logo: {auteur} · {licence} · {source}",
+  "v2.labels.logoCreditSansAuteur": "Logo: {licence} · {source}",
+  "v2.labels.logoLicenceDouteuse": "lisensen må kontrolleres",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

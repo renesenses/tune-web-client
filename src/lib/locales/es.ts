@@ -5878,6 +5878,9 @@ export default {
   "scanDetenteur.depuis": "desde las {heure}",
   "scanDetenteur.residuel": "Estado residual: no hay ningún escaneo en curso. «Detener» lo restablece.",
   "scanDetenteur.refus409": "El servidor lo rechazó: ya hay otro escaneo en curso ({scan}). Vuelva a intentarlo cuando termine.",
+  "v2.labels.logoCredit": "Logotipo: {auteur} · {licence} · {source}",
+  "v2.labels.logoCreditSansAuteur": "Logotipo: {licence} · {source}",
+  "v2.labels.logoLicenceDouteuse": "licencia por verificar",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

@@ -135,7 +135,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import BasculeAffichage from './BasculeAffichage.svelte';
   import { AFFICHAGES, GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
   import ArtistesDuLabel from './ArtistesDuLabel.svelte';
-  import { carteDesLogos, logoDuLabel, monogramme, VUES_LABELS, CLE_VUE_LABELS, type VueLabels } from '../../lib/logosLabels';
+  import { carteDesLogos, carteDesCredits, creditDuLabel, texteDuCredit, logoDuLabel, monogramme, VUES_LABELS, CLE_VUE_LABELS, type VueLabels } from '../../lib/logosLabels';
+  import type { LabelImageCredit } from '../../lib/api';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';
@@ -1027,10 +1028,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    *  trouvé entre-temps apparaît à l'ouverture suivante. Jamais pour un dépôt
    *  distant : ses labels ne sont pas les nôtres. */
   let logosLabels = $state.raw<Map<string, string>>(new Map());
+  // tune-server-rust#7089 — l'attribution des logos libres (Wikimedia Commons).
+  let creditsLabels = $state.raw<Map<string, LabelImageCredit>>(new Map());
   $effect(() => {
     if (tab !== 'labels' || depot) return;
     let vivant = true;
-    api.getLibraryLabels().then((l) => { if (vivant) logosLabels = carteDesLogos(l); });
+    api.getLibraryLabels().then((l) => { if (vivant) { logosLabels = carteDesLogos(l); creditsLabels = carteDesCredits(l); } });
     return () => { vivant = false; };
   });
 
@@ -3403,11 +3406,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                    « … » et le cœur de facette y restent, comme dans la liste. -->
               {#each groups as g (g.key)}
                 {@const logo = g.reel && !depot ? logoDuLabel(logosLabels, g.key) : null}
+                {@const credit = logo ? creditDuLabel(creditsLabels, g.key) : null}
                 {@const fav = g.reel && facetteCourante ? estFacetteFavorite(g.key) : false}
                 <div class="lgcase" data-label={g.key}>
                   <button class="lgouvrir" onclick={() => ouvrirFacette(g.key)}
                     aria-label={`${g.key}, ${$tr('v2.rech.labelAlbums' as any).replace('{n}', String(g.albums.length))}`}>
-                    <span class="lglogo" aria-hidden="true">
+                    <span class="lglogo" aria-hidden="true"
+                      title={credit ? texteDuCredit(credit, (k) => $tr(k as any)) : undefined}
+                      data-credit={credit ? credit.license : undefined}>
                       {#if logo}
                         <img src={api.artworkUrl(logo, 200)} alt="" loading="lazy" decoding="async" />
                       {:else}

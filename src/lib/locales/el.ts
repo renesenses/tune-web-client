@@ -5723,5 +5723,8 @@ export default {
   "scanDetenteur.depuis": "από τις {heure}",
   "scanDetenteur.residuel": "Υπολειπόμενη κατάσταση: καμία σάρωση δεν εκτελείται στην πραγματικότητα. Η «Διακοπή» την επαναφέρει.",
   "scanDetenteur.refus409": "Ο διακομιστής αρνήθηκε: μια άλλη σάρωση βρίσκεται ήδη σε εξέλιξη ({scan}). Δοκιμάστε ξανά όταν ολοκληρωθεί.",
+  "v2.labels.logoCredit": "Λογότυπο: {auteur} · {licence} · {source}",
+  "v2.labels.logoCreditSansAuteur": "Λογότυπο: {licence} · {source}",
+  "v2.labels.logoLicenceDouteuse": "η άδεια χρήσης πρέπει να ελεγχθεί",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

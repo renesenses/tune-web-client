@@ -5878,6 +5878,9 @@ export default {
   "scanDetenteur.depuis": "{heure}부터",
   "scanDetenteur.residuel": "남은 상태: 실제로 실행 중인 스캔이 없습니다. '중지'를 누르면 초기화됩니다.",
   "scanDetenteur.refus409": "서버가 거부했습니다: 다른 스캔이 이미 실행 중입니다({scan}). 끝난 뒤 다시 시도하세요.",
+  "v2.labels.logoCredit": "로고: {auteur} · {licence} · {source}",
+  "v2.labels.logoCreditSansAuteur": "로고: {licence} · {source}",
+  "v2.labels.logoLicenceDouteuse": "라이선스 확인 필요",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

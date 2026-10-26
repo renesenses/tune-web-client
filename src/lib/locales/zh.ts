@@ -5878,6 +5878,9 @@ export default {
   "scanDetenteur.depuis": "开始于 {heure}",
   "scanDetenteur.residuel": "残留状态：实际上没有扫描在运行。点击“停止”即可复位。",
   "scanDetenteur.refus409": "服务器拒绝：已有另一个扫描正在进行（{scan}）。请在其完成后重试。",
+  "v2.labels.logoCredit": "标志：{auteur} · {licence} · {source}",
+  "v2.labels.logoCreditSansAuteur": "标志：{licence} · {source}",
+  "v2.labels.logoLicenceDouteuse": "许可证待核实",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

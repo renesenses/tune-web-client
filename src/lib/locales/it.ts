@@ -5878,6 +5878,9 @@ export default {
   "scanDetenteur.depuis": "dalle {heure}",
   "scanDetenteur.residuel": "Stato residuo: nessuna scansione è in corso. «Interrompi» lo azzera.",
   "scanDetenteur.refus409": "Il server ha rifiutato: è già in corso un’altra scansione ({scan}). Riprova quando sarà terminata.",
+  "v2.labels.logoCredit": "Logo: {auteur} · {licence} · {source}",
+  "v2.labels.logoCreditSansAuteur": "Logo: {licence} · {source}",
+  "v2.labels.logoLicenceDouteuse": "licenza da verificare",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

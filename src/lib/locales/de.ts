@@ -5878,6 +5878,9 @@ export default {
   "scanDetenteur.depuis": "seit {heure}",
   "scanDetenteur.residuel": "Veralteter Status: Es läuft kein Scan. „Stopp“ setzt ihn zurück.",
   "scanDetenteur.refus409": "Der Server hat abgelehnt: Ein anderer Scan läuft bereits ({scan}). Versuchen Sie es erneut, wenn er beendet ist.",
+  "v2.labels.logoCredit": "Logo: {auteur} · {licence} · {source}",
+  "v2.labels.logoCreditSansAuteur": "Logo: {licence} · {source}",
+  "v2.labels.logoLicenceDouteuse": "Lizenz zu prüfen",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
