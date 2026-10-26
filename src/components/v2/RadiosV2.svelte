@@ -28,12 +28,16 @@
   import { radioGenreRayon, radioGenreLabel, type RadioGenreShelf }
     from '../../lib/radioGenres';
   import { nomDuPays } from '../../lib/paysAffichage';
-  import { ecrireVue, lireVue, type VueEcran } from '../../lib/vueEcran';
+  import { estDeLAnnuaire, dernieresLues, memoriserLecture } from '../../lib/mesRadios';
+  import { dialogs } from '../../lib/stores/dialogs';
   import type { RadioStation } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import RadioEditModale from './RadioEditModale.svelte';
   import RadioAnnuaire from './RadioAnnuaire.svelte';
+  import RadioRecherche from './RadioRecherche.svelte';
+  import RadioChipsGenres from './RadioChipsGenres.svelte';
+  import RadioNouvelleStationModale from './RadioNouvelleStationModale.svelte';
   import { notifications } from '../../lib/stores/notifications';
   import '../../styles/tune-v2.css';
 
@@ -48,22 +52,11 @@
   let genre = $state<string | null>(null);
   let playingId = $state<number | null>(null);
 
-  /**
-   * 🔴 #863 — « une vue par ligne », demandée par Jean Valjean (fil 1671).
-   *
-   * L'écran ne connaissait qu'une disposition : `.grid`, en
-   * `repeat(auto-fill, minmax(150px, 1fr))`. Sur un catalogue de stations, une
-   * liste est plus dense et se balaie plus vite qu'une grille de vignettes —
-   * c'est la même demande qu'il avait faite pour les Genres deux jours plus
-   * tôt dans ce fil.
-   *
-   * La mécanique vient de `lib/vueEcran`, généralisée depuis `vueZones` :
-   * recopier aurait donné deux implémentations de la même chose, à tenir
-   * d'accord à la main.
+  /*
+   * Plus de vue en liste (Rémi, RC7, #2397) : la liste ne marchait pas sur
+   * l'annuaire, et deux dispositions pour un écran de vignettes n'apportaient
+   * rien. Toujours la grille.
    */
-  let vue = $state<VueEcran>('grille');
-  $effect(() => { vue = lireVue('radios'); });
-  function choisirVue(v: VueEcran) { vue = ecrireVue('radios', v); }
 
   /**
    * 🔴 #863 — « un onglet avec ses radios favorites ».
@@ -105,17 +98,24 @@
     return artiste ? `${artiste} — ${np.title}` : np.title;
   });
 
-  /**
-   * #6516 — « Mettre à jour l'adresse du flux ». La station est liée à sa
-   * fiche d'annuaire (`external_id`), mais l'annuaire publie désormais une
-   * autre adresse : on le PROPOSE, et seul ce geste la change.
+  /*
+   * Plus de bouton « Mettre à jour l'adresse du flux » (Rémi, RC7, #2397) :
+   * le flux et le logo d'une station de l'annuaire sont gérés en central et
+   * se mettent à jour seuls — côté serveur (tune-server-rust#7043).
    */
-  async function mettreAJourLeFlux(r: RadioStation) {
-    if (r.id == null) return;
+
+  /**
+   * Une entrée de l'annuaire se RETIRE de « Mes radios » ; elle ne se modifie
+   * pas. Même confirmation que la suppression d'une station saisie à la main.
+   */
+  async function retirer(r: RadioStation) {
+    const id = r.id;
+    if (id == null) return;
+    if (!(await dialogs.confirm($t('v2.radio.removeConfirm' as any).replace('{name}', r.name), { danger: true }))) return;
     try {
-      const maj = await api.mettreAJourLeFluxDepuisAnnuaire(r.id);
-      radios = radios.map((x) => (x.id === maj.id ? { ...x, ...maj } : x));
-      notifications.success($t('v2.radio.updateStreamDone' as any));
+      await api.deleteRadio(id);
+      radios = radios.filter((x) => x.id !== id);
+      notifications.success($t('v2.radio.removed' as any).replace('{name}', r.name));
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     }
@@ -151,13 +151,30 @@
     }
   }
 
-  $effect(() => {
-    loading = true; error = null;
-    api.getRadios({ limit: 500 })
+  function charger(silencieux = false) {
+    if (!silencieux) loading = true;
+    error = null;
+    return api.getRadios({ limit: 500 })
       .then((r) => { radios = r ?? []; })
       .catch(() => { error = $t('v2.radio.loadFailed' as any); })
       .finally(() => { loading = false; });
-  });
+  }
+  $effect(() => { charger(); });
+
+  /**
+   * Revenir sur « Mes radios » relit la liste : le serveur met à jour seul le
+   * flux et le logo des stations de l'annuaire, et l'écran ne doit pas garder
+   * ce qu'il a lu à l'ouverture. (« Annuaire » se relit à CHAQUE ouverture :
+   * le composant est monté à neuf.)
+   */
+  function ouvrirSection(v: 'mes' | 'annuaire') {
+    if (v === 'mes' && section !== 'mes') charger(true);
+    section = v;
+  }
+
+  /** Dernières stations lues — la première rangée de « Mes radios ». */
+  let lectures = $state(0);
+  const recentes = $derived.by(() => { void lectures; return dernieresLues(radios); });
 
   /**
    * Genres réellement présents, comptés — pas une liste figée qui
@@ -245,7 +262,9 @@
    * formulaire — nom, flux, logo, genre, pays, site — existait déjà ici pour
    * la modification. Il ne manquait que le bouton et l'appel.
    */
+  let choixNouvelle = $state(false);
   function nouvelleStation() {
+    choixNouvelle = false;
     enEdition = {
       id: null, name: '', stream_url: '', logo_url: '', genre: '', country: '', homepage_url: '',
     } as unknown as RadioStation;
@@ -259,6 +278,8 @@
     const zid = zoneRequise();
     if (zid == null) return;
     playingId = r.id;
+    memoriserLecture(r.id);
+    lectures += 1;
     ficheJouee = null;
     try {
       const res: any = await api.playRadio(r.id, zid);
@@ -302,37 +323,15 @@
       <h1>{$t('v2.radio.title' as any)}</h1>
     </div>
     <div class="v2-actions">
-      <!-- #6516 — l'annuaire porte sa propre recherche, avec ses filtres. -->
+      <!-- Import et export M3U concernent « Mes radios » seulement. -->
       {#if section === 'mes'}
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={$t('v2.radio.searchPlaceholder' as any)} bind:value={q} />
-        {#if q}
-          <button class="clr" onclick={() => (q = '')} aria-label="Effacer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-        {/if}
-      </div>
+        <label class="v2-btn" class:occupe={importEnCours}>
+          {$t('radio.import' as any)}
+          <input type="file" accept=".m3u,.m3u8,.pls" onchange={importerM3u} disabled={importEnCours} hidden />
+        </label>
+        <a class="v2-btn" href={api.exportRadiosUrl()} download="radios.m3u">{$t('radio.export' as any)}</a>
       {/if}
-      <!-- #863 — le basculeur de vue, au MÊME endroit et avec les mêmes icônes
-           que celui des Zones : deux écrans qui offrent le même choix doivent
-           le proposer pareil. -->
-      <div class="bascule" role="group" aria-label={$t('v2.zones.viewSwitch' as any)}>
-        <button class="v2-btn" class:on={vue === 'grille'} aria-pressed={vue === 'grille'}
-          onclick={() => choisirVue('grille')} title={$t('v2.zones.viewGrid' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-        </button>
-        <button class="v2-btn" class:on={vue === 'liste'} aria-pressed={vue === 'liste'}
-          onclick={() => choisirVue('liste')} title={$t('v2.zones.viewList' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
-        </button>
-      </div>
-      <label class="v2-btn" class:occupe={importEnCours}>
-        {$t('radio.import' as any)}
-        <input type="file" accept=".m3u,.m3u8,.pls" onchange={importerM3u} disabled={importEnCours} hidden />
-      </label>
-      <a class="v2-btn" href={api.exportRadiosUrl()} download="radios.m3u">{$t('radio.export' as any)}</a>
-      <button class="v2-btn primaire" onclick={nouvelleStation}>
+      <button class="v2-btn primaire" onclick={() => (choixNouvelle = true)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         {$t('v2.radio.create' as any)}
       </button>
@@ -342,22 +341,23 @@
   <!-- #6516 — la liste personnelle, ou l'annuaire complet. -->
   <div class="sections" role="tablist">
     <button class="v2-btn" class:on={section === 'mes'} role="tab" aria-selected={section === 'mes'}
-      onclick={() => (section = 'mes')}>{$t('v2.radio.tabMine' as any)}</button>
+      onclick={() => ouvrirSection('mes')}>{$t('v2.radio.tabMine' as any)}</button>
     <button class="v2-btn" class:on={section === 'annuaire'} role="tab" aria-selected={section === 'annuaire'}
-      onclick={() => (section = 'annuaire')}>{$t('v2.radio.tabDirectory' as any)}</button>
+      onclick={() => ouvrirSection('annuaire')}>{$t('v2.radio.tabDirectory' as any)}</button>
   </div>
 
-  {#if section === 'mes' && showFilters && rayons.length}
-    <div class="chips">
-      <button class="chip" class:active={!genre} onclick={() => (genre = null)}>{$t('v2.radio.allGenres' as any)} ({shown.length})</button>
-      {#each rayons as { rayon, n } (rayon.key)}
-        <button class="chip" class:active={genre === rayon.key}
-          onclick={() => (genre = genre === rayon.key ? null : rayon.key)}>{libelle(rayon)} <span>{n}</span></button>
-      {/each}
-    </div>
-  {/if}
-
   <div class="scroll">
+    <!-- La recherche et les genres, au MÊME endroit que dans « Annuaire ». -->
+    {#if section === 'mes'}
+      <div class="filtres"><RadioRecherche bind:valeur={q} /></div>
+      {#if showFilters && rayons.length}
+        <div class="filtres">
+          <RadioChipsGenres
+            genres={rayons.map(({ rayon, n }) => ({ cle: rayon.key, libelle: libelle(rayon), n }))}
+            choisi={genre} total={shown.length} onChoisir={(c) => (genre = c)} />
+        </div>
+      {/if}
+    {/if}
     {#if section === 'annuaire'}
       <RadioAnnuaire
         onAjoutee={stationAjoutee}
@@ -389,12 +389,22 @@
           </button>
         </div>
       {/if}
+      {#if recentes.length && !q && !genre}
+        <section class="sec recentes">
+          <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
+          <div class="grid rangee">
+            {#each recentes as r (r.id)}
+              {@render tile(r)}
+            {/each}
+          </div>
+        </section>
+      {/if}
       {@const liste = favorites.length && ongletFavoris ? favorites : shown}
       {#if !liste.length}
         <div class="state">{$t('v2.radio.noMatch' as any)}</div>
       {:else}
         <section class="sec">
-          <div class={vue === 'liste' ? 'rlist' : 'grid'}>
+          <div class="grid">
             {#each liste as r (r.id)}
               {@render tile(r)}
             {/each}
@@ -403,6 +413,13 @@
       {/if}
     {/if}
   </div>
+
+  {#if choixNouvelle}
+    <RadioNouvelleStationModale
+      onClose={() => (choixNouvelle = false)}
+      onAnnuaire={() => { choixNouvelle = false; ouvrirSection('annuaire'); }}
+      onSaisie={nouvelleStation} />
+  {/if}
 
   {#if enEdition}
     {@const cible = enEdition}
@@ -436,7 +453,9 @@
         favoriExterne={r.id != null
           ? { actif: !!r.favorite, basculer: () => toggleFav(r) }
           : null}
-        onEditer={r.id != null ? () => (enEdition = r) : null}
+        onEditer={r.id != null && !estDeLAnnuaire(r) ? () => (enEdition = r) : null}
+        onRetirer={r.id != null && estDeLAnnuaire(r) ? () => retirer(r) : null}
+        libelleRetirer={$t('v2.radio.removeFromMine' as any)}
         onLire={() => play(r)}
         onOuvrir={() => play(r)}
         nom={r.name}
@@ -444,7 +463,6 @@
         <!-- #6516 — le logo de la fiche d'annuaire quand la station n'en a pas. -->
         <AlbumArt coverPath={r.logo_url || r.annuaire?.logo_url || null} albumId={null} size={0} alt={r.name} fallbackInitials={r.name?.slice(0,1)} />
       </PochetteActions>
-      {#if playingId === r.id}<span class="onair">{$t('v2.lbl.liveNow' as any)}</span>{/if}
     </span>
     <span class="nm" use:bulleTexte>{r.name}</span>
     {#if playingId === r.id && titreEnCours}<span class="encours" use:bulleTexte>{titreEnCours}</span>{/if}
@@ -454,10 +472,6 @@
          #5716 (décision du 07/10) : il se lit dès Essentiel. Le pays reste
          réservé à Avancé. -->
     {#if tech(r, showFilters)}<span class="tk">{tech(r, showFilters)}</span>{/if}
-    {#if r.annuaire?.flux_change && r.id != null}
-      <button class="majflux" onclick={() => mettreAJourLeFlux(r)}
-        title={$t('v2.radio.updateStreamHint' as any)}>{$t('v2.radio.updateStream' as any)}</button>
-    {/if}
   </div>
 {/snippet}
 
@@ -467,34 +481,15 @@
   /* #6516 — Mes radios / Annuaire. */
   .sections{display:flex; gap:8px; padding:0 30px 10px}
   .sections .v2-btn.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
-  .majflux{margin-top:4px; align-self:flex-start; border:1px solid var(--v2-acc2); background:transparent;
-    color:var(--v2-acc2); border-radius:var(--v2-r-pill); padding:3px 9px; font:600 10.5px var(--v2-sans); cursor:pointer}
-  .majflux:hover{color:var(--v2-acc1); border-color:var(--v2-acc1)}
   .encours{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-acc2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ronglets .rn{font:11px var(--v2-mono); opacity:.7; margin-left:5px}
-  .bascule{display:flex; gap:4px}
-  .bascule .v2-btn{padding:6px 9px}
-  .bascule .v2-btn svg{width:15px; height:15px}
-  .bascule .v2-btn.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
-
-  /* La vue par ligne : une station par rangée, dense et balayable. C'est ce
-     que Jean Valjean demande — « une vue par ligne » — et c'est la grille
-     ramenée à une seule colonne, pour que la vignette reste la MÊME. */
-  .rlist{display:flex; flex-direction:column; gap:6px; padding:0 30px 20px}
-  .rlist :global(.st){display:grid; grid-template-columns:44px 1fr auto;
-    align-items:center; gap:12px}
-  .rlist :global(.st .cv){width:44px; height:44px}
+  /* « Dernières lues » : UNE seule rangée, quelle que soit la largeur. */
+  .rangee{grid-template-rows:auto; grid-auto-rows:0; row-gap:0; overflow:hidden}
+  .recentes{padding-bottom:4px}
+  .filtres{padding:4px 30px 10px}
 
   .v2-radios{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-
-  .chips{display:flex; gap:7px; flex-wrap:wrap; padding:4px 30px 12px}
-  .chip{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 11.5px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill); transition:.15s}
-  .chip span{font-family:var(--v2-mono); font-size:9.5px; color:var(--v2-txt3); margin-left:5px}
-  .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
-  .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .chip.active span{color:var(--v2-on-acc); opacity:.75}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
@@ -509,8 +504,6 @@
   .cv{position:relative; display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden;
     box-shadow:var(--v2-sh-card); transition:.18s}
   .st:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
-  .onair{position:absolute; left:8px; bottom:8px; z-index:2; font:700 8.5px var(--v2-mono); letter-spacing:.12em;
-    color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); padding:3px 7px; border-radius:5px}
   .nm{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .gn{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .tk{margin-top:2px; font:9.5px var(--v2-mono); color:var(--v2-acc2)}

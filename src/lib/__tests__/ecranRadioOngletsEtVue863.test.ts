@@ -67,32 +67,23 @@ describe('#863 · 1 — les favoris deviennent un ONGLET', () => {
   });
 });
 
-describe('#863 · 3 — la vue par ligne', () => {
-  it('🔴 l’écran offre les deux dispositions', () => {
+describe('#863 · 3 — la vue par ligne, RETIRÉE par #2397', () => {
+  it('🔴 l’écran ne offre plus que la grille (Rémi, RC7 : « la liste ne marche pas sur Directory »)', () => {
     const s = ecran();
-    expect(s).toContain("class={vue === 'liste' ? 'rlist' : 'grid'}");
-    expect(s).toContain("choisirVue('liste')");
-    expect(s).toContain("choisirVue('grille')");
+    expect(s).not.toContain("choisirVue('liste')");
+    expect(s).not.toContain('v2.zones.viewSwitch');
+    expect(s).not.toContain('rlist');
+    expect(s).toContain('<div class="grid">');
   });
 
-  it('le basculeur est le MÊME que celui des Zones', () => {
-    // Deux écrans qui offrent le même choix doivent le proposer pareil — mêmes
-    // libellés, mêmes icônes, même place.
-    const s = ecran();
-    const zones = readFileSync(
-      resolve(__dirname, '../../components/v2/ZonesV2.svelte'), 'utf8');
-    for (const cle of ['v2.zones.viewSwitch', 'v2.zones.viewGrid', 'v2.zones.viewList']) {
-      expect(s.includes(cle), `${cle} absente de RadiosV2`).toBe(true);
-      expect(zones.includes(cle), `${cle} absente de ZonesV2`).toBe(true);
-    }
+  it('CONTRE-ÉPREUVE : l’état d’avant portait le basculeur', () => {
+    const avant = `<div class="bascule"><button onclick={() => choisirVue('liste')}></button></div>`;
+    expect(avant).toContain("choisirVue('liste')");
+    expect(ecran()).not.toContain("choisirVue('liste')");
   });
 
-  it('la MÊME vignette sert aux deux vues', () => {
-    // `rlist` est la grille ramenée à une colonne : un second gabarit de
-    // station aurait divergé du premier à la première correction.
-    const s = ecran();
-    expect((s.match(/\{@render tile\(r\)\}/g) ?? []).length,
-      'la vignette est rendue à plusieurs endroits : ils divergeront').toBe(1);
+  it('la vignette reste rendue à un seul endroit… plus la rangée « dernières lues »', () => {
+    expect((ecran().match(/\{@render tile\(r\)\}/g) ?? []).length).toBe(2);
   });
 });
 
