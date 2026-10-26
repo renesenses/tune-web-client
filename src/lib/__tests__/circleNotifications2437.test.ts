@@ -151,7 +151,8 @@ describe('Tune Circle rc9 — notifications : écran', () => {
     const lus = vers(/\/notifications\/17\/read$/);
     expect(lus.map((a) => [a.method, a.body])).toEqual([['POST', undefined]]);
     expect(get(notifsCercle).nonLues).toBe(1);
-    expect(el.querySelector('.notifs-cercle')).toBeNull();
+    // La vue de la playlist s'ouvre : elle lit la playlist désignée.
+    expect(vers(/\/ext\/circle\/playlists\/9$/).length).toBeGreaterThan(0);
   });
 
   it('« Tout marquer comme lu » vide la pastille', async () => {
