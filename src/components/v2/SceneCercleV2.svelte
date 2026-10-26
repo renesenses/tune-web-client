@@ -19,7 +19,12 @@
    *   par deux champs repliés sous « Avancé » ; libellé libre, arrondie au
    *   demi-degré avant l'envoi ; le retrait est un clic ;
    * - aucune présence, aucune écoute en direct, aucune photo : le flux entre
-   *   deux planètes dit seulement « partage sa bibliothèque avec moi ».
+   *   deux planètes dit seulement « partage sa bibliothèque avec moi » ;
+   * - rc9 (décision du 26/10) : la vue Monde montre aussi la COMMUNAUTÉ en
+   *   points anonymes (cloud : 1°, un point par case, 3 comptes au moins par
+   *   case ; aucun nom, aucun bouton, aucune présence), sous le cercle. Les
+   *   personnes qui avaient posé leur ville sont prévenues ici, avec
+   *   l'interrupteur « Me retirer de la carte publique », effectif tout de suite.
    *
    * Dégradé : un serveur sans les routes rc8 (404) garde contacts, cercles et
    * mes genres ; le globe, le réglage du lieu et les tailles disparaissent.
@@ -45,7 +50,8 @@
   import {
     lireMonLieu, lireLieuxContacts, poserMonLieu, retirerMonLieu, lireResumeContact,
     lireMesChiffres, lireMonNom, corpsLieu, lireCoordonnee, LIBELLE_LIEU_MAX,
-    type EtatRelais, type ResumeBibliotheque,
+    lirePointsPublics, lireRetraitCarte, changerRetraitCarte,
+    type EtatRelais, type ResumeBibliotheque, type PointPublic,
   } from '../../lib/circleMonde';
   import { chargerVilles, chercherVilles, villeExacte, type Ville } from '../../lib/champCercle/villes';
   import { motifCercle, type ContactCercle, type CercleNomme, type PartageRecu } from '../../lib/circle';
@@ -85,6 +91,13 @@
   let resumes = $state<Record<number, ResumeBibliotheque | null>>({});
   let mes = $state.raw<ResumeBibliotheque>({ albums: null, genres: [] });
   let monNom = $state<string | null>(null);
+  /** rc9 : la carte publique (points anonymes) et mon retrait (`null` : route absente, interrupteur caché). */
+  let pointsPublics = $state.raw<PointPublic[]>([]);
+  let retraitCarte = $state<boolean | null>(null);
+  let occupeRetrait = $state(false);
+  let retourRetrait = $state<{ texte: string; erreur: boolean } | null>(null);
+  const CLE_AVIS = 'tune.circle.carte-publique.avis-vu';
+  let avisVu = $state((() => { try { return localStorage.getItem(CLE_AVIS) === '1'; } catch { return false; } })());
   let fini = false;
 
   // ── Vue ─────────────────────────────────────────────────────────────────
@@ -178,20 +191,24 @@
     mes = m;
     monNom = nom;
     if (l.relais === 'ok') {
-      const lx = await lireLieuxContacts();
-      if (!fini) lieux = lx;
+      const [lx, pp, rc] = await Promise.all([lireLieuxContacts(), lirePointsPublics(), lireRetraitCarte()]);
+      if (fini) return;
+      lieux = lx;
+      pointsPublics = pp.points;
+      retraitCarte = rc;
     }
     choisirVue();
   }
 
   /**
-   * La première vue : le globe si un CONTACT y est (mon épingle seule ne
-   * montre personne), sinon le réseau, les genres, ou moi seul avec mes cercles.
+   * La première vue : le globe si un CONTACT ou la communauté (carte
+   * publique, rc9) y est — mon épingle seule ne montre personne —, sinon le
+   * réseau, les genres, ou moi seul avec mes cercles.
    */
   function choisirVue() {
     if (vueChoisie) return;
     vueChoisie = true;
-    if (relais === 'ok' && lieux.size > 0) vue = 'monde';
+    if (relais === 'ok' && (lieux.size > 0 || pointsPublics.length > 0)) vue = 'monde';
     else if (contacts.length > 0) vue = 'reseau';
     else if (grappes.length > 0) vue = 'genres';
     else vue = 'seul';
@@ -353,6 +370,7 @@
   function budgetInitial() { return budget; }
 
   $effect(() => { const m = moteur; const s = scene; m?.majScene(s); });
+  $effect(() => { const m = moteur; const p = pointsPublics; m?.majPointsPublics(p); });
   $effect(() => { const m = moteur; const v = vue; m?.vue(v); });
   $effect(() => { const m = moteur; const s = selection; m?.selection(s); });
   $effect(() => { const m = moteur; const b = budget; m?.majBudget(b); });
@@ -580,6 +598,28 @@
     else ouvrirPose();
   }
 
+  // ── Carte publique (rc9) : l'avis et l'interrupteur ─────────────────────
+  /** L'avis s'adresse à qui avait posé sa ville sous l'ancienne promesse (contacts seuls). */
+  const montrerAvis = $derived(relais === 'ok' && retraitCarte !== null && monLieu !== null && !avisVu);
+  function fermerAvis() {
+    avisVu = true;
+    try { localStorage.setItem(CLE_AVIS, '1'); } catch { /* l'avis reviendra : rien de grave */ }
+  }
+
+  /** « Me retirer de la carte publique » : effectif tout de suite, côté cloud. */
+  async function basculerRetrait() {
+    if (occupeRetrait || retraitCarte === null) return;
+    occupeRetrait = true;
+    retourRetrait = null;
+    try {
+      retraitCarte = await changerRetraitCarte(!retraitCarte);
+    } catch (e) {
+      retourRetrait = { texte: tr(motifCercle(e).cle), erreur: true };
+    } finally {
+      occupeRetrait = false;
+    }
+  }
+
   const montrerListe = $derived(liste || sansToile);
 </script>
 
@@ -678,13 +718,13 @@
           {/if}
         {/each}
       </div>
-      {#if vue === 'monde' && epingles.length === 0 && !poseOuverte}
+      {#if vue === 'monde' && epingles.length === 0 && pointsPublics.length === 0 && !poseOuverte}
         <div class="sc-vide">
           <p>{$t('v2.circle.scene.world.empty' as any)}</p>
           {#if relais === 'ok'}<button type="button" class="go sc-poser" onclick={() => ouvrirPose()}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
         </div>
       {:else if vue === 'monde' && !poseOuverte}
-        <p class="sc-astuce">{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)}</p>
+        <p class="sc-astuce">{#if pointsPublics.length}<span class="sc-legende-publique">{$t('v2.circle.scene.world.publicLegend' as any)}</span> {/if}{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)}</p>
       {:else if vue === 'genres' && grappes.length === 0}
         <p class="sc-vide">{$t('v2.circle.scene.genres.empty' as any)}</p>
       {:else if vue === 'lien' && contacts.length === 0}
@@ -695,8 +735,9 @@
     <div class="sc-liste-bloc">
       <h3>{$t(CLE_VUE[vue] as any)}</h3>
       {#if vue === 'monde' && texteSansVille}<p class="note sc-sans-ville">{texteSansVille}</p>{/if}
+      {#if vue === 'monde' && pointsPublics.length}<p class="note sc-compte-public">{tr('v2.circle.scene.world.publicCount', { n: pointsPublics.length })}</p>{/if}
       {#if noeudsVue.length === 0}
-        <p class="note">{$t((vue === 'monde' ? 'v2.circle.scene.world.empty' : vue === 'genres' ? 'v2.circle.scene.genres.empty' : 'v2.circle.scene.link.empty') as any)}</p>
+        {#if !(vue === 'monde' && pointsPublics.length)}<p class="note">{$t((vue === 'monde' ? 'v2.circle.scene.world.empty' : vue === 'genres' ? 'v2.circle.scene.genres.empty' : 'v2.circle.scene.link.empty') as any)}</p>{/if}
       {:else}
         <ul class="sc-liste">
           {#each noeudsVue as n (n.id)}
@@ -720,6 +761,22 @@
         <span>{$t('v2.circle.scene.loc.toggle' as any)}</span>
       </button>
       <p class="note">{$t('v2.circle.scene.loc.what' as any)}</p>
+      {#if montrerAvis}
+        <div class="sc-avis-public" role="note" aria-labelledby="sc-avis-titre">
+          <p class="sc-avis-titre" id="sc-avis-titre">{$t('v2.circle.scene.public.noticeTitle' as any)}</p>
+          <p class="note">{$t('v2.circle.scene.public.notice' as any)}</p>
+          <button type="button" class="lnk sc-avis-compris" onclick={fermerAvis}>{$t('v2.circle.scene.public.dismiss' as any)}</button>
+        </div>
+      {/if}
+      {#if retraitCarte !== null}
+        <button type="button" class="interrupteur interrupteur-retrait" role="switch" aria-checked={retraitCarte}
+          disabled={occupeRetrait} onclick={() => void basculerRetrait()}>
+          <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
+          <span>{$t('v2.circle.scene.public.optOut' as any)}</span>
+        </button>
+        <p class="note sc-etat-retrait">{$t((retraitCarte ? 'v2.circle.scene.public.optedOut' : 'v2.circle.scene.public.optedIn') as any)}</p>
+        {#if retourRetrait}<p class="note sc-retour-retrait alerte" role="alert">{retourRetrait.texte}</p>{/if}
+      {/if}
       {#if monLieu}
         <p class="note sc-lieu-actuel">
           {tr('v2.circle.scene.loc.current', { label: monLieu.label })}
@@ -899,7 +956,11 @@
   .sc-lieu{display:flex; flex-direction:column; gap:6px; padding:8px 0; border-top:1px solid var(--v2-line); border-bottom:1px solid var(--v2-line)}
   .sc-lieu .note{margin:0}
   .sc-lieu-actuel{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
-  .sc-retour-lieu.alerte{color:var(--v2-danger)}
+  .sc-retour-lieu.alerte,.sc-retour-retrait.alerte{color:var(--v2-danger)}
+  .sc-avis-public{display:flex; flex-direction:column; gap:4px; padding:10px 12px; border-radius:12px; border:1px solid var(--v2-line2); background:var(--v2-surface2)}
+  .sc-avis-titre{margin:0; font:600 13px var(--v2-sans); color:var(--v2-txt)}
+  .sc-avis-compris{align-self:flex-start}
+  .sc-legende-publique{display:block; margin-bottom:2px}
   .sc-pose{display:flex; flex-direction:column; gap:8px}
   .sc-champ{display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--v2-txt2); min-width:0}
   .sc-lat,.sc-lon{width:110px}
