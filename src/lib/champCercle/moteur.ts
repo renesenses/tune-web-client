@@ -58,8 +58,9 @@ export interface OptionsChamp {
   largeurLunes?: (id: string) => number;
 }
 
-export interface Couleurs { or: string; orClair: string; vert: string; vertClair: string; fil: string; fond: string }
-const COULEURS: Couleurs = { or: '#deb268', orClair: '#f3cf86', vert: '#4cc79d', vertClair: '#7fe0bd', fil: '#9fb0b6', fond: 'rgba(15,24,28,.92)' };
+export interface Couleurs { or: string; orClair: string; vert: string; vertClair: string; fil: string; fond: string; public: string }
+/** `public` (rc9) : les points anonymes de la carte publique, gris bleuté, en retrait de l'or du cercle. */
+const COULEURS: Couleurs = { or: '#deb268', orClair: '#f3cf86', vert: '#4cc79d', vertClair: '#7fe0bd', fil: '#9fb0b6', fond: 'rgba(15,24,28,.92)', public: '#a9c4cf' };
 
 type Props = { x: number; y: number; sphere: number; avatar: number; cluster: number; alpha: number };
 const CLES: (keyof Props)[] = ['x', 'y', 'sphere', 'avatar', 'cluster', 'alpha'];
@@ -129,6 +130,8 @@ export class ChampCercle {
   private bande!: Float32Array;
   private halo!: Float32Array;
   private terre: [number, number][];
+  /** rc9 : les points ANONYMES de la carte publique (lat, lon au degré), sous le cercle. */
+  private publics: [number, number][] = [];
   private terrePhase: Float32Array;
   private arcPh!: Float32Array;
   // Globe
@@ -244,6 +247,15 @@ export class ChampCercle {
     const gw = etat.globe ? 1 : 0;
     if (duree === 0) { this.G.w = gw; this.G.anim = undefined; } else this.G.anim = { de: this.G.w, vers: gw, t0: maintenant, duree };
     this.canvas.style.touchAction = etat.globe ? 'none' : 'auto';
+    this.demander();
+  }
+
+  /**
+   * rc9 : la carte publique, des points anonymes (aucun nom, aucun bouton),
+   * dessinés discrets sous les épingles du cercle. Rien que des coordonnées.
+   */
+  majPointsPublics(points: readonly { lat: number; lon: number }[]) {
+    this.publics = points.map((p) => [p.lat, p.lon]);
     this.demander();
   }
 
@@ -429,6 +441,17 @@ export class ChampCercle {
       ctx.globalAlpha = a * (0.1 + 0.8 * z * z) * tw;
       const s = 0.7 + z * 1.4;
       ctx.fillRect(x - s / 2, y - s / 2, s, s);
+    }
+    // rc9 : la communauté, en points anonymes et discrets ; le cercle se dessine par-dessus.
+    if (this.publics.length) {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = this.c.public;
+      for (const [la, lo] of this.publics) {
+        const [x, y, z] = projeter(la, lo, R, cx, cy, this.G);
+        if (z < 0.02) continue;
+        ctx.globalAlpha = a * (0.18 + 0.4 * z);
+        ctx.beginPath(); ctx.arc(x, y, 1.4 + z * 1.6, 0, Math.PI * 2); ctx.fill();
+      }
     }
     const pins = this.scene.noeuds.filter((n) => n.kind === 'pin');
     const moi = pins.find((p) => p.me);

@@ -94,11 +94,13 @@ describe('web#2145 — « Rescanner » refusé pendant une analyse le dit', () =
     await attendreQue(() => !boutonRescan()!.disabled, 'le bouton réactivé');
   });
 
-  it('un autre échec le dit aussi, avec la raison du serveur', async () => {
+  it('un autre échec le dit aussi, le motif du serveur replié (#2417)', async () => {
     reponseScan = { status: 400, corps: { error: 'chemin hors bibliothèque' } };
     boutonRescan()!.click();
     await attendreQue(() => erreurs().length > 0, 'un message');
-    expect(erreurs().join(' | ')).toContain('chemin hors bibliothèque');
+    expect(erreurs().join(' | ')).not.toContain('chemin hors bibliothèque');
+    // #2417 — le motif part au « Détails » replié du bandeau.
+    expect(get(notifications).map((n) => n.detail ?? '').join(' | ')).toContain('chemin hors bibliothèque');
     reponseScan = { status: 409, corps: { status: 'already_scanning', scanning: true } };
   });
 

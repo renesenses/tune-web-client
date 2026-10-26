@@ -2,6 +2,9 @@
 //
 // jsdom : sans `window`, `$effect` ne se déclenche pas et l'écran ne lirait
 // jamais `GET /ext/pont-roon/` — un test vert qui n'aurait rien exécuté.
+import { attendreDetailsReplie } from './detailsReplies2417';
+import { get } from 'svelte/store';
+import { t } from '../i18n';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import PontRoonV2 from '../../components/v2/PontRoonV2.svelte';
@@ -172,12 +175,13 @@ describe('Pont Roon — aperçu puis import (#4349)', () => {
     expect(imports().map((a) => a.url.split('?')[1])).toEqual(['apercu=true']);
   });
 
-  it('le motif du refus serveur est affiché, pas son code', async () => {
+  it('le refus serveur est dit, son motif replié dans « Détails » (#2417)', async () => {
     refusApercu = { status: 422, corps: { error: 'export_pont_roon_illisible', detail: "ce n'est pas un export du moissonneur" } };
     const el = await poserEcran();
     await choisirFichier(el, ARCHIVE());
     const err = el.querySelector('.err');
-    expect(err?.textContent).toContain("ce n'est pas un export du moissonneur");
+    expect(err?.textContent).toBeTruthy();
+    attendreDetailsReplie(el, get(t)('v2.pontRoon.failed' as any), "ce n'est pas un export du moissonneur");
   });
 
   it('sans Premium : le message, et aucun sélecteur', async () => {
