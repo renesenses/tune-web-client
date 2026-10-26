@@ -456,7 +456,7 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
     // témoins du présent lot deviennent des gardes SUR ELLE — ils la couvrent
     // plus largement qu'elle ne se couvrait (`play_count` à 0, clé absente,
     // horodatage illisible).
-    case 'plays':      return texte((t as any).play_count);
+    case 'plays':      return ecoutesDeuxCompteurs(t) ?? texte((t as any).play_count);
     // Creuse par nature : une piste jamais écoutée n'en a pas. `texte` rend
     // une chaîne vide, ce qui se lit « jamais » sans rien inventer.
     case 'lastPlayed': return dateFichier(
@@ -483,6 +483,22 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
 }
 
 /**
+ * #7107 — les « Top tracks » d'un artiste portent DEUX compteurs : le total
+ * de la communauté (`play_count`, `play_count_scope: 'community'`, absent
+ * sous le seuil de trois comptes) et les écoutes de CE serveur
+ * (`local_play_count`, locales et du service). La cellule les montre tous
+ * les deux, « communauté · vous » ; l'infobulle (`v2.tcol.playsCommunity`) dit
+ * lequel est lequel. Une piste de la bibliothèque, qui n'a ni l'un ni
+ * l'autre champ, garde son nombre seul (`null` ici).
+ */
+export function ecoutesDeuxCompteurs(t: Track): string | null {
+  const local = t.local_play_count;
+  const communaute = t.play_count_scope === 'community' ? t.play_count : undefined;
+  if (communaute === undefined && local === undefined) return null;
+  return `${communaute ?? '–'} · ${local ?? 0}`;
+}
+
+/**
  * Ce qu'une cellule doit DIRE d'elle-même, en clé de traduction (#3924).
  *
  * `null` — le cas de toutes les colonnes sauf une — laisse l'infobulle
@@ -498,6 +514,6 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
 export function cleInfobulleColonne(t: Track, cle: CleColonne): string | null {
   // #7026 — sur les « Top tracks » d'un service, `play_count` est le total de
   // tous les utilisateurs de Tune, pas celui de ce serveur : la cellule le dit.
-  if (cle === 'plays') return t.play_count_scope === 'community' ? 'v2.tcol.playsCommunity' : null;
+  if (cle === 'plays') return ecoutesDeuxCompteurs(t) !== null ? 'v2.tcol.playsCommunity' : null;
   return cle === 'dr' ? (afficherDynamicRange(t)?.cleInfobulle ?? null) : null;
 }

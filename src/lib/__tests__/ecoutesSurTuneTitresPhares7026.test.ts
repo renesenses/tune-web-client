@@ -25,7 +25,8 @@ const PISTE_LOCALE = { id: 7, title: 'So What', play_count: 4, last_played_at: '
 
 describe('#7026 — # Plays des titres phares : les écoutes sur Tune', () => {
   it('affiche le total et le dit en infobulle', () => {
-    expect(valeurColonne(TITRE_PHARE, 'plays')).toBe('500');
+    // #7107 : la cellule montre « communauté · vous ».
+    expect(valeurColonne(TITRE_PHARE, 'plays')).toBe('500 · 2');
     expect(valeurColonne(TITRE_PHARE, 'lastPlayed')).toBe('2026-10-24');
     expect(cleInfobulleColonne(TITRE_PHARE, 'plays')).toBe('v2.tcol.playsCommunity');
   });
