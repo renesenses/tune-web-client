@@ -5892,6 +5892,10 @@ export default {
   "scanDetenteur.depuis": "开始于 {heure}",
   "scanDetenteur.residuel": "残留状态：实际上没有扫描在运行。点击“停止”即可复位。",
   "scanDetenteur.refus409": "服务器拒绝：已有另一个扫描正在进行（{scan}）。请在其完成后重试。",
+  "erreursServeur.generique": "服务器无法完成该请求。",
+  "erreursServeur.details": "详情",
+  "erreursServeur.track_decode_failed": "无法解码该曲目。",
+  "v2.pl.serviceNoPlaylists": "{s} 不提供播放列表。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

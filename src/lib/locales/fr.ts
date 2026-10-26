@@ -5914,6 +5914,10 @@ export default {
   "scanDetenteur.depuis": "depuis {heure}",
   "scanDetenteur.residuel": "Statut résiduel : aucun scan ne tourne réellement. « Arrêter » le remet au repos.",
   "scanDetenteur.refus409": "Le serveur a refusé : un autre scan est déjà en cours ({scan}). Réessayez quand il sera terminé.",
+  "erreursServeur.generique": "Le serveur n'a pas pu traiter la demande.",
+  "erreursServeur.details": "Détails",
+  "erreursServeur.track_decode_failed": "La piste n'a pas pu être décodée.",
+  "v2.pl.serviceNoPlaylists": "{s} ne propose pas de playlists.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

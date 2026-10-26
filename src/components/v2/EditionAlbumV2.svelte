@@ -1,4 +1,6 @@
 <script lang="ts">
+  import DetailsServeur from '../partages/DetailsServeur.svelte';
+  import { detailServeur, estMessageGenerique } from '../../lib/messageServeur';
   /**
    * LE MODE « MODIFIER » DE LA FICHE ALBUM — GO de Bertrand, 25/09/2026.
    *
@@ -61,7 +63,7 @@
   );
 
   /** L'erreur affichée : une CLÉ et le détail du serveur, traduits au rendu. */
-  let erreur = $state<{ cle: string; detail?: string } | null>(null);
+  let erreur = $state<{ cle: string; detail?: string; technique?: string } | null>(null);
   let enCours = $state(false);
 
   const CLES_VALIDATION: Record<string, string> = {
@@ -70,11 +72,15 @@
     titrePisteVide: 'v2.edition.errTrackTitle',
   };
 
-  function erreurDe(e: unknown, cle: string): { cle: string; detail?: string } {
+  function erreurDe(e: unknown, cle: string): { cle: string; detail?: string; technique?: string } {
     const x = e as { status?: number; message?: string } | null;
-    if (x?.status === 404 || x?.status === 405 || x?.status === 501) return { cle: 'v2.edition.errUpdateServer' };
-    if (x?.status === 422) return { cle: 'v2.edition.errRefused', detail: x?.message || undefined };
-    return { cle, detail: x?.message || undefined };
+    // #2417 — `detail` : la phrase TRADUITE du refus (jamais le générique, qui
+    // redirait la phrase de l'écran) ; `technique` : le motif brut, replié.
+    const phrase = x?.message && !estMessageGenerique(x.message) ? x.message : undefined;
+    const technique = detailServeur(e) || undefined;
+    if (x?.status === 404 || x?.status === 405 || x?.status === 501) return { cle: 'v2.edition.errUpdateServer', technique };
+    if (x?.status === 422) return { cle: 'v2.edition.errRefused', detail: phrase, technique };
+    return { cle, detail: phrase, technique };
   }
 
   async function enregistrer() {
@@ -416,6 +422,7 @@
     <p class="ed-erreur" role="alert" data-erreur-edition>
       {$tr(erreur.cle as any)}{#if erreur.detail}{' '}<span class="ed-detail">{erreur.detail}</span>{/if}
     </p>
+    <DetailsServeur detail={erreur.technique} />
   {/if}
 
   <fieldset class="ed-champs">

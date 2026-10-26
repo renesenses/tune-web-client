@@ -1,4 +1,6 @@
 <script lang="ts">
+  import DetailsServeur from '../partages/DetailsServeur.svelte';
+  import { detailServeur, estMessageGenerique } from '../../lib/messageServeur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Serveurs multimédia (UPnP/DLNA) — nouveau client (direction Levente).
@@ -70,6 +72,7 @@
   let servers = $state<MediaServer[]>([]);
   let loadingServers = $state(true);
   let error = $state<string | null>(null);
+  let errorDetail = $state('');
 
   // L'onglet actif porte un IDENTIFIANT, pas l'objet : la liste des serveurs
   // se rafraichit, et garder l'objet ferait pointer sur une copie perimee.
@@ -110,7 +113,7 @@
       // Laisser la nouvelle à l'écran ferait croire à un plafond levé qui ne
       // l'est pas — le défaut muet de #4154, déplacé dans le client.
       plafonds = { ...plafonds, [axe]: avant };
-      error = $t('v2.ms.indexSettingFailed' as any);
+      errorDetail = ''; error = $t('v2.ms.indexSettingFailed' as any);
     }
   }
 
@@ -130,7 +133,7 @@
         .then((c) => { plafonds = lirePlafonds(c as Record<string, unknown>); })
         .catch(() => {});
     } catch {
-      error = $t('v2.ms.indexFailed' as any);
+      errorDetail = ''; error = $t('v2.ms.indexFailed' as any);
     } finally {
       indexation = false;
     }
@@ -182,7 +185,7 @@
       const fait = await api.retirerServeurMediaDeLaBibliotheque(s.id, vu.pistes);
       retire = $t('v2.ms.removeDone' as any).replace('{tracks}', String(fait.pistes));
     } catch {
-      error = $t('v2.ms.removeFailed' as any);
+      errorDetail = ''; error = $t('v2.ms.removeFailed' as any);
     } finally {
       retrait = false;
     }
@@ -210,7 +213,11 @@
    *  son message (« Failed to fetch ») n'apprendrait rien, on garde la phrase. */
   function avecMotif(phrase: string, e: unknown): string {
     const err = e as { status?: unknown; message?: unknown } | null;
-    const motif = typeof err?.status === 'number' ? String(err.message ?? '').trim() : '';
+    const brut = typeof err?.status === 'number' ? String(err.message ?? '').trim() : '';
+    // #2417 — la phrase traduite du refus s'accole ; le générique, non (il
+    // redirait la phrase de l'écran) ; le motif brut part replié.
+    const motif = brut && !estMessageGenerique(brut) ? brut : '';
+    errorDetail = detailServeur(e);
     return motif ? `${phrase} ${motif}` : phrase;
   }
   /** Hors de l'effet de recherche : son `const t = setTimeout(…)` masque `$t`. */
@@ -283,7 +290,7 @@
         // Le premier PRÉSENT : un absent ne s'ouvre jamais d'office.
         if (actif == null) actif = ongletParDefaut(null, servers);
       })
-      .catch(() => { error = $t('v2.ms.discoveryUnavail' as any); })
+      .catch(() => { errorDetail = ''; error = $t('v2.ms.discoveryUnavail' as any); })
       .finally(() => { loadingServers = false; });
   });
 
@@ -410,14 +417,14 @@
     const zid = $currentZoneId;
     if (zid == null || !it.res_url) return;
     try { await playAndSync(zid, corps(it) as any); }
-    catch { error = $t('v2.stream.playFailed' as any); }
+    catch { errorDetail = ''; error = $t('v2.stream.playFailed' as any); }
   }
 
   async function enfiler(it: MediaServerItem) {
     const zid = $currentZoneId;
     if (zid == null || !it.res_url) return;
     try { await api.addToQueue(zid, corps(it) as any); }
-    catch { error = $t('v2.ms.addFailed' as any); }
+    catch { errorDetail = ''; error = $t('v2.ms.addFailed' as any); }
   }
 
   /** Lance une suite de pistes : la premiere joue, les autres s'empilent. */
@@ -525,7 +532,7 @@
     </details>
   {/if}
 
-  {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
+  {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div><DetailsServeur detail={errorDetail} />{/if}
 
   <UpnpLibrarySourcesV2 server={open ?? null} container={estTune ? '0' : (objetCourant ?? '0')} name={estTune ? undefined : fil.map(c => c.titre).join(' / ')} />
 

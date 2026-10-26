@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { detailServeur, estMessageGenerique } from '../../lib/messageServeur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { get } from 'svelte/store';
@@ -357,8 +358,9 @@
         e?.status === 409
           // web#2305 : le refus nomme le scan qui tient le droit, s'il le dit.
           ? (refusScanConcurrent(e, (k) => $tr(k as any)) ?? $tr('browse.rescanAlreadyScanning' as any))
-          : $tr('browse.rescanFailed' as any).replace('{erreur}', String(e?.message ?? e)),
+          : $tr('browse.rescanFailed' as any).replace('{erreur}', estMessageGenerique(e?.message) ? '' : String(e?.message ?? e)),
         10000,
+        detailServeur(e),
       );
     }
     rescanning = false;

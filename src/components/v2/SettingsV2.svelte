@@ -1,4 +1,6 @@
 <script lang="ts">
+  import DetailsServeur from '../partages/DetailsServeur.svelte';
+  import { detailServeur } from '../../lib/messageServeur';
   import AuditIntegrite from '../partages/AuditIntegrite.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
@@ -1119,6 +1121,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let telCharge = $state(false);
   let telBusy = $state(false);
   let telErr = $state<string | null>(null);
+  let telDetail = $state('');
   async function chargerTelemetrie() {
     try {
       const r = await api.getTelemetryStatus();
@@ -1143,6 +1146,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const souhait = !telActif;
     telBusy = true;
     telErr = null;
+    telDetail = '';
     try {
       const r = await api.setTelemetryConsent(souhait);
       const etat = etatTelemetrie(r, { actif: souhait, verrouEnvironnement: telVerrou });
@@ -1154,6 +1158,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       const motif = errText(e);
       const base = get(t)('settings.telemetryError' as any);
       telErr = motif ? `${base} : ${motif}` : base;
+      telDetail = detailServeur(e);
     }
     telBusy = false;
     // Le clic a déjà bougé la case : on la repose sur l'état CONFIRMÉ, sinon
@@ -3064,15 +3069,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let nettoyageEnCours = $state(false);
   let nettoyage = $state<api.ResultatNettoyage | null>(null);
   let nettoyageErr = $state<string | null>(null);
+  let nettoyageDetail = $state('');
   async function nettoyerLeServeur() {
     if (!(await dialogs.confirm(get(t)('v2.maint.cleanupConfirm' as any), { danger: true }))) return;
     nettoyageEnCours = true;
     nettoyage = null;
     nettoyageErr = null;
+    nettoyageDetail = '';
     try {
       nettoyage = await api.cleanupServer();
     } catch (e) {
       nettoyageErr = get(t)('common.error' as any) + motifOuRien(e);
+      nettoyageDetail = detailServeur(e);
     }
     nettoyageEnCours = false;
   }
@@ -4932,7 +4940,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {$t('settings.cloudRetryIn' as any)} {dureePause(telPause)}.
                   </p>
                 {/if}
-                {#if telErr}<div class="errline">{telErr}</div>{/if}
+                {#if telErr}<div class="errline">{telErr}</div><DetailsServeur detail={telDetail} />{/if}
               {/if}
               <!-- web#1866 — partage communautaire : les deux bascules perdues
                    à la phase 5. Libellé de la synchro repris de l'ancien
@@ -6280,7 +6288,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {#if nettoyage.db_optimized}<div class="kv"><span>{$t('v2.maint.dbOptimized' as any)}</span><b>✓</b></div>{/if}
                 </div>
               {/if}
-              {#if nettoyageErr}<div class="errline">{nettoyageErr}</div>{/if}
+              {#if nettoyageErr}<div class="errline">{nettoyageErr}</div><DetailsServeur detail={nettoyageDetail} />{/if}
             {:else if s.id === 'clearLibrary'}
               <!-- « Repartir à zéro » (#3585). La fonction existait côté
                    serveur et n'était exposée nulle part ici. -->

@@ -5744,5 +5744,9 @@ export default {
   "scanDetenteur.depuis": "từ {heure}",
   "scanDetenteur.residuel": "Trạng thái còn sót: thực ra không có lượt quét nào đang chạy. Nhấn « Dừng » để đặt lại.",
   "scanDetenteur.refus409": "Máy chủ đã từ chối: một lượt quét khác đang chạy ({scan}). Hãy thử lại khi nó kết thúc.",
+  "erreursServeur.generique": "Máy chủ không thể hoàn tất yêu cầu.",
+  "erreursServeur.details": "Chi tiết",
+  "erreursServeur.track_decode_failed": "Không thể giải mã bản nhạc.",
+  "v2.pl.serviceNoPlaylists": "{s} không cung cấp danh sách phát.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

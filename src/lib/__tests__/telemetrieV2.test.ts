@@ -14,6 +14,7 @@
 // bascule. Il lit les requêtes réellement parties (`fetch` bouchonné) : un
 // test qui chercherait « telemetry » dans un fichier resterait vert si la case
 // perdait son gestionnaire.
+import { attendreDetailsReplie } from './detailsReplies2417';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import SettingsV2 from '../../components/v2/SettingsV2.svelte';
@@ -156,7 +157,7 @@ describe('Réglages v2 › Système › Cloud — consentement à la télémétr
     const err = el.querySelector('.errline');
     expect(err, 'aucune erreur affichée').not.toBeNull();
     expect(err!.textContent).toContain(fr['settings.telemetryError']);
-    expect(err!.textContent).toContain('admin only');
+    attendreDetailsReplie(el, fr['settings.telemetryError'], 'admin only'); // #2417
     expect(laCase(el)!.checked, 'la case reste sur l’état précédent').toBe(true);
   });
 });
