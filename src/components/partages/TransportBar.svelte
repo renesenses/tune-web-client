@@ -1252,6 +1252,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     <!-- Le libellé porte le nom ET l'état : la couleur n'est plus le seul
          indice (#2733). La règle vit dans lib/etatTransport, partagée avec le
          panneau « Lecture en cours » et avec le bouton Répéter ci-dessous. -->
+    <!-- #2398 — aléatoire, répéter et file d'attente n'ont pas de sens pour un
+         flux en direct : absents sur une radio (Rémi, RC7). -->
+    {#if displayTrack?.source !== 'radio'}
     <button
       class="control-btn small"
       class:active={$shuffleEnabled}
@@ -1264,6 +1267,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" />
       </svg>
     </button>
+    {/if}
 
     {#if displayTrack?.source !== 'radio'}
       <button
@@ -1384,6 +1388,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     <!-- Trois états, deux apparences : `active` ne dit pas si l'on répète la
          piste ou la file. Le libellé le dit. Pas d'`aria-pressed` ici — le
          pourquoi est écrit dans lib/etatTransport. -->
+    {#if displayTrack?.source !== 'radio'}
     <button
       class="control-btn small"
       class:active={$repeatMode !== 'off'}
@@ -1420,6 +1425,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         <polygon points="17 10 22 13 17 16 17 10" fill="currentColor" stroke="none" />
       </svg>
     </button>
+    {/if}
   </div>
 
   <!-- Mobile volume button (visible only on small screens) -->

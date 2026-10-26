@@ -40,6 +40,7 @@ import { ICONES } from '../../lib/menuPiste';
   import VersionJoueePastille from './VersionJoueePastille.svelte';
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
+  import RadioFicheModale from './RadioFicheModale.svelte';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
   import { isPremium, licenseState } from '../../lib/stores/license';
   import { estRefusPremium } from '../../lib/premiumRefus';
@@ -80,6 +81,7 @@ import { ICONES } from '../../lib/menuPiste';
   let npCreditsTrackId: number | null = $state(null);
   let creditsEnriching = $state(false);
   let showLyrics = $state(false);
+  let ficheStationOuverte = $state(false);
   // Témoin de « la zone paroles a été remise à zéro pour cette piste ». DISTINCT
   // de npLyricsTrackId, qui dit « les paroles de cette piste sont chargées ».
   // Les confondre rouvrirait #2555 dans un sens ou dans l'autre : soit la garde
@@ -1785,9 +1787,8 @@ import { ICONES } from '../../lib/menuPiste';
             </button>
           {/if}
         {/if}
-        {#if isRadio}
-          <div class="art-live-badge"><span class="art-live-dot"></span>LIVE</div>
-        {/if}
+        <!-- #2398 — le badge « LIVE » sur la jaquette est retiré (Rémi, RC7) :
+             il restait affiché après l'arrêt. -->
       </div>
 
       <div class="info-column">
@@ -1876,17 +1877,10 @@ import { ICONES } from '../../lib/menuPiste';
         </div>
         <div class="track-info" class:center={!isWide}>
           {#if isRadio}
-            <div class="radio-live-label">
-              <svg class="radio-antenna-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
-                <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
-                <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
-                <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" />
-                <circle cx="12" cy="12" r="2" fill="currentColor" />
-              </svg>
-              {$t('nowplaying.liveNow')}
-            </div>
-            <p class="radio-station-name truncate" title={displayTrack.album_title || zone?.name || 'Radio'}>{displayTrack.album_title || zone?.name || 'Radio'}</p>
+            <!-- #2398 — l'étiquette « EN DIRECT » de la 2e colonne est retirée aussi. -->
+            <!-- #2398 — le nom de la station ouvre sa fiche (description, site). -->
+            <button class="radio-station-name radio-station-lien truncate" title={displayTrack.album_title || zone?.name || 'Radio'}
+              onclick={() => (ficheStationOuverte = true)}>{displayTrack.album_title || zone?.name || 'Radio'}</button>
           {/if}
           <div class="track-title-row">
             <h2 class="track-title truncate" title={displayTrack.title}>{displayTrack.title}</h2>
@@ -2323,6 +2317,9 @@ import { ICONES } from '../../lib/menuPiste';
 
         <!-- Settings row: shuffle, repeat -->
         <div class="settings-row" class:center={!isWide}>
+          <!-- #2398 — aléatoire, répéter, normalisation et Smart AutoPlay n'ont
+               pas de sens pour un flux en direct : absents, pas grisés. -->
+          {#if !isRadio}
           <!-- Même règle d'affichage que la barre de lecture (#2733) : le
                libellé porte le nom ET l'état, et il vient de lib/etatTransport
                pour que les deux points d'entrée ne divergent pas. -->
@@ -2347,6 +2344,8 @@ import { ICONES } from '../../lib/menuPiste';
           </button>
 
 
+          {/if}
+
           <!-- Le garde testait `displayTrack?.id`, absent du now-playing de la zone
                (le champ y est `track_id`) : le bouton n'apparaissait donc jamais
                pour une piste locale en plein écran. -->
@@ -2358,6 +2357,7 @@ import { ICONES } from '../../lib/menuPiste';
             </button>
           {/if}
 
+          {#if !isRadio}
           <button class="setting-btn" class:active={normEnabled} onclick={toggleNormalization} title={$t('nowplaying.normalization')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
               <line x1="2" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="22" y2="12" /><line x1="8" y1="8" x2="8" y2="16" /><line x1="12" y1="6" x2="12" y2="18" /><line x1="16" y1="9" x2="16" y2="15" />
@@ -2393,6 +2393,8 @@ import { ICONES } from '../../lib/menuPiste';
             {/if}
           </div>
 
+          {/if}
+
           <div class="setting-spacer"></div>
 
           <div class="np-volume-control">
@@ -2419,7 +2421,7 @@ import { ICONES } from '../../lib/menuPiste';
         </div>
 
         <!-- Queue toggle button -->
-        {#if $queueTracks.length > 0}
+        {#if !isRadio && $queueTracks.length > 0}
           <button class="queue-sheet-toggle" onclick={toggleQueueSheet}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
               <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
@@ -2768,6 +2770,10 @@ import { ICONES } from '../../lib/menuPiste';
       </a>
     {/if}
   </div>
+{/if}
+
+{#if ficheStationOuverte && displayTrack}
+  <RadioFicheModale np={displayTrack} onClose={() => (ficheStationOuverte = false)} />
 {/if}
 
 <style>
@@ -3210,6 +3216,21 @@ import { ICONES } from '../../lib/menuPiste';
     color: var(--tune-text-secondary);
     margin-bottom: var(--space-xs);
     line-height: 1.2;
+  }
+  /* #2398 — le nom de la station est un bouton qui ouvre sa fiche. */
+  .radio-station-lien {
+    display: block;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+  }
+  .radio-station-lien:hover,
+  .radio-station-lien:focus-visible {
+    color: var(--tune-text);
+    text-decoration: underline;
   }
 
   .track-artist.clickable {
@@ -3709,57 +3730,6 @@ import { ICONES } from '../../lib/menuPiste';
   .up-next-quality.tier-gray {
     color: #f87171;
     background: rgba(248, 113, 113, 0.06);
-  }
-
-  /* Radio LIVE badge on artwork */
-  .art-live-badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-family: var(--font-label);
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 4px;
-    background: var(--tune-warning);
-    color: white;
-    letter-spacing: 0.8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    z-index: 2;
-  }
-
-  .art-live-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: white;
-    animation: live-pulse-np 1.5s ease-in-out infinite;
-  }
-
-  @keyframes live-pulse-np {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  /* Radio live label */
-  .radio-live-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--font-label);
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--tune-warning);
-    margin-bottom: var(--space-sm);
-  }
-
-  .radio-antenna-icon {
-    flex-shrink: 0;
   }
 
   .radio-station-name {
