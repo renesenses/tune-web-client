@@ -12,7 +12,7 @@
  * `/api/v1/circle`, plus la résolution locale) :
  *
  *   GET    /playlists                       → [{ id, name, owner, count, version, updated_at, mine }]
- *   POST   /playlists {circle_id, name}     → 201 la playlist (propriétaire du cercle SEUL)
+ *   POST   /playlists {circle_id, name}     → 201 la playlist (propriétaire du cercle, ou membre rangé : #2434)
  *   GET    /playlists/{id}                  → { id, name, version, items: [{ item_id, …référence, added_by, added_at }] }
  *   PATCH  /playlists/{id} {name, version}  → la playlist (propriétaire seul)
  *   DELETE /playlists/{id}                  → { ok: true } (propriétaire seul)
@@ -80,10 +80,16 @@ export interface PlaylistCercleResume {
   count: number;
   version: number;
   updated_at: string | null;
-  /** Je suis le propriétaire du cercle : je renomme et je supprime. */
+  /** C'est moi qui l'ai partagée. */
   mine: boolean;
-  /** Mes playlists seulement : le cercle auquel elle appartient (jamais montré à un membre). */
+  /** Je peux la retirer : je l'ai partagée, ou je suis le propriétaire du cercle (modération). */
+  can_remove?: boolean;
+  /** Les cercles que je possède seulement : l'identifiant du cercle (`null` pour un membre). */
   circle_id: number | null;
+  /** #2434 — le nom du cercle, vu de tous ses membres. */
+  circle_name?: string | null;
+  /** #2434 — le propriétaire du cercle, pour distinguer deux cercles de même nom. */
+  circle_owner_id?: number | null;
 }
 
 /** Les champs d'une référence, et EUX SEULS. */
@@ -128,6 +134,8 @@ export interface PlaylistCercle {
   name: string;
   version: number;
   mine: boolean;
+  /** Je peux la renommer et la supprimer : partageur ou propriétaire du cercle. */
+  can_remove?: boolean;
   items: MorceauCercle[];
   /** web#2287 — le suivi de la playlist locale d'origine (tune-server-rust#6694), ou `null`. */
   follow?: SuiviPlaylist | null;
@@ -178,7 +186,10 @@ export function playlistResume(b: any): PlaylistCercleResume | null {
     version: entier(b?.version) ?? 0,
     updated_at: texte(b?.updated_at),
     mine: b?.mine === true,
+    can_remove: b?.can_remove === true || b?.mine === true,
     circle_id: entier(b?.circle_id),
+    circle_name: texte(b?.circle_name),
+    circle_owner_id: entier(b?.circle_owner_id),
   };
 }
 
@@ -221,6 +232,7 @@ export function playlistCercle(b: any): PlaylistCercle | null {
     name: String(p?.name ?? ''),
     version: entier(p?.version) ?? 0,
     mine: p?.mine === true,
+    can_remove: p?.can_remove === true || p?.mine === true,
     items: (p.items as unknown[]).map(morceauCercle).filter((x): x is MorceauCercle => x != null),
     follow: lireSuivi(p?.follow ?? b?.follow),
   };
