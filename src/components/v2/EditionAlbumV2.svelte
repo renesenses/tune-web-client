@@ -63,7 +63,7 @@
   );
 
   /** L'erreur affichée : une CLÉ et le détail du serveur, traduits au rendu. */
-  let erreur = $state<{ cle: string; detail?: string } | null>(null);
+  let erreur = $state<{ cle: string; detail?: string; technique?: string } | null>(null);
   let enCours = $state(false);
 
   const CLES_VALIDATION: Record<string, string> = {
