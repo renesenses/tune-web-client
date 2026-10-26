@@ -6,6 +6,7 @@
   import { tip } from '../../lib/tooltip';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
+  import OxygenEtiquetageFiltre from './OxygenEtiquetageFiltre.svelte';
   import HeartButton from '../partages/HeartButton.svelte';
   import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkSrc, addToQueue, getQueue, jumpInQueue, type FacetValue, type FacetParam, type FolderFacet, type AlbumDetailed } from '../../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../../lib/api/metadata';
@@ -713,6 +714,13 @@
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input placeholder={$t('oxygen.filter')} bind:value={query} />
     </div>
+    {#if albumFilter == null}
+      <!-- tune-server-rust#7128 — tout le résultat filtré, pas la fenêtre chargée. -->
+      <OxygenEtiquetageFiltre
+        filtres={mode === 'cards' ? facetParam(facetSels) : { ...facetParam(facetSels), ...texteLibreParam() }}
+        cibleParDefaut={mode === 'cards' ? 'album' : 'track'}
+        nombre={mode === 'cards' ? cardsTotal : total} />
+    {/if}
     <div class="count" class:partial={truncated} title={truncated ? $t('oxygen.truncated') : ''}>
       {visible.length.toLocaleString('fr')}{#if truncated}<span class="cslash">/</span>{total.toLocaleString('fr')}{/if}
     </div>
