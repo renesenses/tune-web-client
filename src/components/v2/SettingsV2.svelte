@@ -4473,6 +4473,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               </div>
 
+              <!-- #2429 — le visualiseur à barres de la barre de lecture, retirable
+                   comme les crêtes (testeur Alex, rc8). Affiché par défaut. -->
+              <div class="row" data-visualiseur-barre>
+                <div class="lbl">
+                  <span>{$t('v2.set.barViz' as any)}</span>
+                  <span class="hint">{$t('v2.set.barVizHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.visualiseurBarre ?? true}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, visualiseurBarre: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <!-- La barre de lecture à VU-MÈTRES — Bertrand, 27/09/2026, sur
                    la maquette de Levente. Un interrupteur à part et non une
                    cinquième valeur du choix ci-dessus : celui-ci change la

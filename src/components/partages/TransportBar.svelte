@@ -1229,7 +1229,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           <CreteMetre style="lamps" hauteur={22} largeur={56} joue={isPlaying} />
         </div>
       {/if}
-      {#if !vuActif}
+      <!-- #2429 — l'option « Visualiseur dans la barre de lecture » (Réglages ▸
+           Interface) : affiché par défaut, retirable comme les crêtes. -->
+      {#if !vuActif && ($preferences.visualiseurBarre ?? true)}
       <div class="tb-mini-viz">
         <AudioVisualizer
           playing={isPlaying}
