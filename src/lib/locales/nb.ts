@@ -3833,6 +3833,8 @@ export default {
   "v2.album.queuedNext": "«{title}» spilles neste.",
   "v2.rech.seeMore": "Vis mer ({n})",
   "v2.rech.seeMoreOn": "Vis mer på {service}",
+  "v2.rech.radios": "Radio",
+  "v2.rech.radiosMore": "{n} til i radiokatalogen",
   "v2.nav.radios": "Direkteradio",
   "v2.nav.podcasts": "Podkaster",
   "v2.nav.streaming": "Strømming",
