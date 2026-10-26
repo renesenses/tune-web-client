@@ -16,7 +16,12 @@
 // fin, RIEN n'a changé : ni côté serveur, ni dans le navigateur, ni en
 // mémoire, ni sur l'accueil remonté.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
+import * as api from '../api';
+import PageWidgets from '../../components/v2/PageWidgets.svelte';
+import { currentProfileId } from '../stores/profile';
+import { preferences, syncPreferencesFromServer } from '../stores/preferences';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -93,24 +98,22 @@ const souffler = (ms = 40) => new Promise((r) => setTimeout(r, ms));
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
-// `vi.resetModules()` donne à chaque cas ses propres modules : Svelte aussi doit
-// venir du MÊME registre que les composants, sinon `onMount` s'exécute hors d'un
-// composant (`effect_orphan`).
-let svelte: typeof import('svelte');
 
 beforeEach(() => {
-  vi.resetModules();
   profil = JSON.parse(JSON.stringify(PROFIL_ALEX));
   config = { ui_preferences: JSON.stringify(INTERFACE_ALEX) };
   occupe = false;
   ecritures = [];
   localStorage.clear();
-  localStorage.setItem('tune-preferences', JSON.stringify(INTERFACE_ALEX));
   poserLeServeur();
+  // Le navigateur d'Alex : ses réglages d'interface sont déjà là, adoptés SANS
+  // écriture serveur (comme une relecture), puis rangés dans le stockage local.
+  preferences.adopterSansEcrire((p) => ({ ...p, ...INTERFACE_ALEX } as typeof p));
+  config = { ui_preferences: localStorage.getItem('tune-preferences') };
 });
 
 afterEach(() => {
-  if (monte) { try { svelte.unmount(monte); } catch { /* sans objet */ } }
+  if (monte) { try { unmount(monte); } catch { /* sans objet */ } }
   monte = null;
   hote?.remove();
   hote = null;
@@ -124,13 +127,10 @@ const bande = (id: string) => ({
 });
 
 async function monterLAccueil() {
-  svelte = await import('svelte');
-  const { default: PageWidgets } = await import('../../components/v2/PageWidgets.svelte');
-  const { currentProfileId } = await import('../stores/profile');
   currentProfileId.set(1);
   hote = document.createElement('div');
   document.body.appendChild(hote);
-  monte = svelte.mount(PageWidgets, {
+  monte = mount(PageWidgets, {
     target: hote,
     props: {
       catalogue: [bande('temoin'), bande('genres'), bande('mes-playlists')],
@@ -138,9 +138,9 @@ async function monterLAccueil() {
       cle: 'accueil_temoin',
     },
   });
-  svelte.flushSync();
+  flushSync();
   await souffler(120);
-  svelte.flushSync();
+  flushSync();
   return hote;
 }
 
@@ -154,8 +154,6 @@ const ordre = (h: HTMLElement) =>
 describe('aucune préférence ne change après l’envoi d’un rapport ou d’un ticket', () => {
   for (const envoi of ['rapport de bogue', 'ticket de support'] as const) {
     it(`🔴 ${envoi} : serveur occupé, relectures en panne, écritures concurrentes`, async () => {
-      const api = await import('../api');
-      const { preferences, syncPreferencesFromServer } = await import('../stores/preferences');
 
       // L'état de départ : le navigateur et le serveur disent la même chose.
       await syncPreferencesFromServer();
@@ -211,7 +209,7 @@ describe('aucune préférence ne change après l’envoi d’un rapport ou d’u
       ).toEqual([]);
 
       // Et l'accueil remonté montre la même liste dans le même ordre.
-      await new Promise<void>((r) => { svelte.unmount(monte!); monte = null; hote!.remove(); r(); });
+      await new Promise<void>((r) => { unmount(monte!); monte = null; hote!.remove(); r(); });
       const apres = await monterLAccueil();
       expect(ordre(apres), 'la liste ou l’ordre des widgets a changé').toEqual(ordreAvant);
     });
