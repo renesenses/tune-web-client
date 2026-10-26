@@ -61,7 +61,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import {
     circleCharge, circlePlugin, refreshCirclePlugin, getCercle, estConnecte, ecouteOuverte,
-    inviterAuCercle, accepterInvitation, refuserInvitation, annulerInvitation,
+    inviterAuCercle, accepterInvitation, cerclesOuJeSuisInvite, refuserInvitation, annulerInvitation,
     revoquerContact, creerCercle, renommerCercle, supprimerCercle,
     rangerDansCercle, retirerDuCercle, motifCercle, nomCercleValide,
     seConnecterAMozaiklabs, NOM_CERCLE_MAX, RELECTURE_CERCLE_MS,
@@ -71,7 +71,7 @@
     getRayonsCercle, partagerRayon, retirerRayon, estBibliothequeNonPartagee,
     listerPersonnesBloquees, bloquerInvitant, debloquerPersonne, type PersonneBloquee,
     type RayonsCercle, type RayonLocal,
-    type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme,
+    type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme, type CercleOuJeSuisInvite,
     type EtatSynchroBibliotheque, type PartageRecu, type AvisSynchro,
   } from '../../lib/circle';
   import {
@@ -135,6 +135,8 @@
   const contacts = $derived<ContactCercle[]>(connecte?.members ?? []);
   /** MES cercles, et eux seuls : aucun nom de cercle ne vient d'ailleurs. */
   const cercles = $derived<CercleNomme[]>(connecte?.circles ?? []);
+  /** #2434 : les cercles des autres où je suis rangé (lien actif). */
+  const invitePar = $derived(cerclesOuJeSuisInvite(connecte));
   const nomDe = $derived(new Map(contacts.map((c) => [c.user_id, c.name])));
 
   /**
@@ -378,7 +380,7 @@
   }
 
   /** Mes playlists de CE cercle (le cloud dit `circle_id` des miennes seulement). */
-  const playlistsDe = (c: CercleNomme) => playlists.filter((p) => p.mine && p.circle_id === c.id);
+  const playlistsDe = (c: CercleNomme) => playlists.filter((p) => p.circle_id === c.id);
 
   async function supprimer(c: CercleNomme) {
     // Décision 3 du 28/09 : ses playlists sont ARCHIVÉES par le cloud, et
@@ -417,6 +419,15 @@
   }
 
   /** Le propriétaire du cercle crée une playlist pour CE cercle. */
+  /** #2434 : un membre partage une playlist dans un cercle où il est rangé. */
+  async function partagerDansCercleInvite(m: CercleOuJeSuisInvite) {
+    const saisi = await dialogs.prompt($t('v2.circle.pl.newPrompt' as any).replace('{max}', String(NOM_PLAYLIST_MAX)) + '\n' + $t('v2.circle.memberOf.shareNote' as any), '');
+    if (saisi === null) return;
+    const nom = nomPlaylistValide(saisi);
+    if (nom === null) { retour = { texte: $t('v2.circle.pl.err.nameInvalid' as any).replace('{max}', String(NOM_PLAYLIST_MAX)), erreur: true }; return; }
+    void geste(`partager-${m.circle_id}`, () => creerPlaylistCercle(m.circle_id, nom), { succes: 'v2.circle.pl.created' });
+  }
+
   async function nouvellePlaylist(c: CercleNomme) {
     const saisi = await dialogs.prompt($t('v2.circle.pl.newPrompt' as any).replace('{max}', String(NOM_PLAYLIST_MAX)), '');
     if (saisi === null) return;
@@ -800,6 +811,7 @@
             placeholder={$t('v2.circle.newCirclePlaceholder' as any)} bind:value={nomNouveau} />
           <button class="go creer" type="submit" disabled={occupe !== null || !nomNouveau.trim()}>{$t('v2.circle.create' as any)}</button>
         </form>
+        <p class="note nom-visible">{$t('v2.circle.newCircleHint' as any)}</p>
         {#if cercles.length === 0}
           <p class="note vide">{$t('v2.circle.noCircles' as any)}</p>
         {:else}
@@ -943,6 +955,28 @@
         </section>
       {/if}
 
+      {#if invitePar.length > 0}
+        <section class="bloc cercles-invite" aria-labelledby="circle-invite">
+          <h2 id="circle-invite">{$t('v2.circle.memberOf.title' as any)}</h2>
+          <p class="note">{$t('v2.circle.memberOf.hint' as any)}</p>
+          <ul>
+            {#each invitePar as m (m.circle_id)}
+              <li class="ligne cercle-invite">
+                <span class="nom" use:bulleTexte>{m.circle_name}</span>
+                <span class="note">{$t('v2.circle.memberOf.by' as any).replace('{name}', m.owner_name)}</span>
+                {#if t5}
+                  <span class="gestes">
+                    <button class="lnk partager-ici" disabled={occupe !== null}
+                      aria-label={$t('v2.circle.memberOf.shareNamed' as any).replace('{circle}', m.circle_name)}
+                      onclick={() => void partagerDansCercleInvite(m)}>{$t('v2.circle.memberOf.share' as any)}</button>
+                  </span>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        </section>
+      {/if}
+
       {#if t5}
         <section class="bloc playlists-cercle" aria-labelledby="circle-playlists">
           <h2 id="circle-playlists">{$t('v2.circle.pl.title' as any)}</h2>
@@ -958,7 +992,7 @@
                 <li class="ligne playlist-cercle">
                   <span class="nom" use:bulleTexte>{p.name}</span>
                   <span class="note">
-                    {$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}{#if !p.mine && p.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', p.owner.name)}{/if}
+                    {$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}{#if !p.mine && p.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', p.owner.name)}{/if}{#if p.circle_name} · {p.circle_name}{/if}
                   </span>
                   <span class="gestes">
                     <button class="lnk lire-playlist-ligne" disabled={occupe !== null || p.count === 0}

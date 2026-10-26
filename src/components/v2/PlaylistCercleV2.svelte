@@ -532,7 +532,7 @@
           <button class="ghost ajouter-morceaux" onclick={ajouterDesMorceaux}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{$t('v2.circle.pl.addTracks' as any)}
           </button>
-          {#if playlist.mine}
+          {#if playlist.can_remove}
             <button class="ghost sm renommer-playlist" disabled={occupe} onclick={() => void renommer()}>{$t('v2.circle.rename' as any)}</button>
             <button class="ghost sm danger supprimer-playlist" disabled={occupe} onclick={() => void supprimer()}>{$t('v2.circle.pl.delete' as any)}</button>
           {/if}
