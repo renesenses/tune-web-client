@@ -3726,6 +3726,8 @@ export default {
   "v2.fas.radioServeurAncien": "Az előadórádióhoz újabb Tune-szerver szükséges, és ezen az oldalon nincsenek keverhető népszerű számok.",
   "v2.rech.tracks": "Számok",
   "v2.rech.playlists": "Lejátszási listák",
+  "v2.rech.radios": "Rádiók",
+  "v2.rech.radiosMore": "még {n} a rádiókatalógusban",
   "v2.rech.best": "Legjobb találat",
   "v2.rech.kindArtist": "Előadó",
   "v2.rech.kindAlbum": "Album",

@@ -3772,6 +3772,8 @@ export default {
   "v2.fas.radioServeurAncien": "Radioul artistului necesită un server Tune mai recent, iar această pagină nu are piese de top de amestecat.",
   "v2.rech.tracks": "Piese",
   "v2.rech.playlists": "Playlisturi",
+  "v2.rech.radios": "Radio",
+  "v2.rech.radiosMore": "încă {n} în directorul de radiouri",
   "v2.rech.best": "Cel mai bun rezultat",
   "v2.rech.kindArtist": "Artist",
   "v2.rech.kindAlbum": "Album",

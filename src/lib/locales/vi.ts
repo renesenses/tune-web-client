@@ -3649,6 +3649,8 @@ export default {
   "v2.fas.radioServeurAncien": "Radio nghệ sĩ cần máy chủ Tune phiên bản mới hơn, và trang này không có bài hát nổi bật nào để phát ngẫu nhiên.",
   "v2.rech.tracks": "Bài hát",
   "v2.rech.playlists": "Danh sách phát",
+  "v2.rech.radios": "Radio",
+  "v2.rech.radiosMore": "Còn {n} đài nữa trong danh bạ đài",
   "v2.rech.best": "Kết quả hàng đầu",
   "v2.rech.kindArtist": "Nghệ sĩ",
   "v2.rech.kindAlbum": "Album",

@@ -3772,6 +3772,8 @@ export default {
   "v2.fas.radioServeurAncien": "아티스트 라디오를 사용하려면 최신 Tune 서버가 필요하며, 이 페이지에는 섞을 인기 트랙이 없습니다.",
   "v2.rech.tracks": "트랙",
   "v2.rech.playlists": "재생목록",
+  "v2.rech.radios": "라디오",
+  "v2.rech.radiosMore": "라디오 디렉터리에 {n}개 더 있음",
   "v2.rech.best": "가장 일치하는 결과",
   "v2.rech.kindArtist": "아티스트",
   "v2.rech.kindAlbum": "앨범",

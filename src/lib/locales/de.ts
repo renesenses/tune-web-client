@@ -3772,6 +3772,8 @@ export default {
   "v2.fas.radioServeurAncien": "Das Künstlerradio erfordert einen neueren Tune-Server, und diese Seite hat keine Top-Titel zum Mischen.",
   "v2.rech.tracks": "Titel",
   "v2.rech.playlists": "Playlists",
+  "v2.rech.radios": "Radios",
+  "v2.rech.radiosMore": "{n} weitere im Radioverzeichnis",
   "v2.rech.best": "Bestes Ergebnis",
   "v2.rech.kindArtist": "Interpret",
   "v2.rech.kindAlbum": "Album",
