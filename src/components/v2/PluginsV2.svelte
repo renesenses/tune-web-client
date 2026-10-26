@@ -1,4 +1,6 @@
 <script lang="ts">
+  import DetailsServeur from '../partages/DetailsServeur.svelte';
+  import { detailServeur } from '../../lib/messageServeur';
   import { publierGreffons } from '../../lib/stores/greffonsStudio';
   import { t } from '../../lib/i18n';
   /**
@@ -145,6 +147,8 @@
    */
   let desinstallation = $state<string | null>(null);
   let refusDesinstallation = $state<Record<string, string>>({});
+  /** #2417 — le motif technique du refus, rendu replié sous la phrase. */
+  let detailDesinstallation = $state<Record<string, string>>({});
   async function desinstaller(g: api.GreffonAudioNatif) {
     if (desinstallation || !g.third_party) return;
     const nom = NOMS_GREFFONS_NATIFS[g.id] ? $t(NOMS_GREFFONS_NATIFS[g.id] as any) : g.id;
@@ -164,6 +168,7 @@
       await relireNatifs();
     } catch (e) {
       refusDesinstallation = { ...refusDesinstallation, [g.id]: errText(e) ?? $t('v2.plug.unavailable' as any) };
+      detailDesinstallation = { ...detailDesinstallation, [g.id]: detailServeur(e) };
     }
     desinstallation = null;
   }
@@ -435,6 +440,7 @@
               {#if refusInstallation[g.id]}<div class="why bad" data-refus>{$t(refusInstallation[g.id] as any)}</div>{/if}
               {#if refusDesinstallation[g.id]}
                 <div class="why bad" data-refus-desinstallation>{refusDesinstallation[g.id]} — {$t('v2.plug.nativeUninstallFailed' as any)}</div>
+                <DetailsServeur detail={detailDesinstallation[g.id]} />
               {/if}
             </div>
             <div class="pact">

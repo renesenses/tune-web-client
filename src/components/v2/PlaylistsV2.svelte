@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
+  import DetailsServeur from '../partages/DetailsServeur.svelte';
+  import { detailServeur } from '../../lib/messageServeur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import type { PropositionIa } from '../../lib/assistantIa';
   /**
@@ -253,12 +256,15 @@
    * montre, telle quelle, sans la déguiser en incident.
    */
   let indisponibles = $state<Record<string, string>>({});
+  /** #2417 — le motif brut du serveur, replié sous la phrase traduite. */
+  let detailsIndisponibles = $state<Record<string, string>>({});
   const sansPlaylists = $derived(Object.entries(indisponibles));
 
   function load() {
     loading = true;
     mosaiques = {};
     indisponibles = {};
+    detailsIndisponibles = {};
     Promise.all([
       api.getPlaylists().catch(() => [] as Playlist[]),
       api.getStreamingServices().catch(() => ({}) as Record<string, any>),
@@ -274,6 +280,7 @@
           .map(([n]) => n);
         const par: Record<string, StreamingPlaylist[]> = {};
         const refus: Record<string, string> = {};
+        const detailsRefus: Record<string, string> = {};
         await Promise.all(
           noms.map(async (n) => {
             try {
@@ -285,13 +292,18 @@
               // panne : on garde son motif pour le dire à l'écran. Un 500 ou
               // un 502, eux, ont DÉJÀ levé leur bandeau dans `fetchJSON` — les
               // rendre ici en plus ferait dire deux fois la même chose.
-              const motif = String(e?.message ?? '').trim();
-              if (e?.status === 501 && motif) refus[n] = motif;
+              // #2417 — la phrase est celle du CLIENT, traduite ; le motif
+              // brut du serveur (« Bandcamp ne fournit pas… ») part replié.
+              if (e?.status === 501) {
+                refus[n] = get(t)('v2.pl.serviceNoPlaylists' as any).replace('{s}', n.charAt(0).toUpperCase() + n.slice(1));
+                detailsRefus[n] = detailServeur(e);
+              }
             }
           }),
         );
         services = par;
         indisponibles = refus;
+        detailsIndisponibles = detailsRefus;
       })
       .catch(() => {
         local = [];
@@ -734,6 +746,7 @@
        traduit à ajouter : le serveur écrit déjà la phrase. -->
   {#each sansPlaylists as [nom, motif] (nom)}
     <p class="sans-pl">{motif}</p>
+    <DetailsServeur detail={detailsIndisponibles[nom]} />
   {/each}
 
   <!-- Second niveau : le TYPE. Réservé à « cet appareil » — une playlist

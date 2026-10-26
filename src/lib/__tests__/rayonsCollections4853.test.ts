@@ -96,11 +96,14 @@ describe('repli sur les listes plates', () => {
     expect(e.mode === 'arbre' && e.arbre.folders.map((f) => f.name)).toEqual(['Musique', 'Jazz', 'Vide']);
   });
 
-  it('le refus serveur garde son MOTIF (profondeur, cycle) pour l’écran', async () => {
+  it('le refus serveur garde son MOTIF (profondeur, cycle) dans le détail (#2417)', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(
       JSON.stringify({ error: 'profondeur maximale atteinte : 3 niveaux de dossiers', code: 'conflict' }),
       { status: 409, headers: { 'Content-Type': 'application/json' } },
     )));
-    await expect(api.createCollectionFolder('4', 3)).rejects.toThrow(/profondeur maximale/);
+    await expect(api.createCollectionFolder('4', 3)).rejects.toMatchObject({
+      detail: expect.stringMatching(/profondeur maximale/),
+      code: 'conflict',
+    });
   });
 });
