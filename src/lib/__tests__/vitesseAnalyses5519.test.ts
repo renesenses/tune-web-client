@@ -29,7 +29,7 @@ describe('#5519 — vitesse des analyses de fond', () => {
   it('les onze langues nomment le réglage et ses trois vitesses', () => {
     const dossier = fileURLToPath(new URL('../locales/', import.meta.url));
     const langues = fs.readdirSync(dossier).filter((f) => f.endsWith('.ts') && f !== 'index.ts');
-    expect(langues.length).toBe(13);
+    expect(langues.length).toBe(14);
     for (const f of langues) {
       const texte = fs.readFileSync(dossier + f, 'utf-8');
       for (const cle of ['analysisSpeed', 'analysisSpeedHint', 'analysisSpeedDiscreet', 'analysisSpeedNormal', 'analysisSpeedFast']) {

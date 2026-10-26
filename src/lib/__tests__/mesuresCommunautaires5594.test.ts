@@ -158,7 +158,7 @@ describe('#5594 — les mesures communautaires, dans Réglages › Système › 
   });
 
   it('les libellés existent dans les douze langues', () => {
-    expect(ONZE_LANGUES.length).toBe(13);
+    expect(ONZE_LANGUES.length).toBe(14);
     for (const code of ONZE_LANGUES) {
       const d = dictionnaire(code);
       for (const cle of [

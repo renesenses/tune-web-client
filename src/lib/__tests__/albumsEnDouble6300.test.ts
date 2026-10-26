@@ -14,6 +14,7 @@ import it_ from '../locales/it';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
+import nbLocale from '../locales/nb';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
 import ro from '../locales/ro';
@@ -56,8 +57,8 @@ describe('Albums en double (#6300)', () => {
     expect(q).toMatch(/Aucun fichier n'est supprimé/);
   });
 
-  it('les sept libellés existent dans les 13 langues, avec leurs jetons', () => {
-    const tables: Record<string, Record<string, string>> = { fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, ja, ko, ro, sv, zh };
+  it('les sept libellés existent dans les 14 langues, avec leurs jetons', () => {
+    const tables: Record<string, Record<string, string>> = { fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, nb: nbLocale, ja, ko, ro, sv, zh };
     const jetons: Record<string, string[]> = {
       'v2.meta.dupAlbumsWhole': [],
       'v2.meta.dupAlbumsPairs': ['{n}'],

@@ -29,7 +29,7 @@ import {
 } from '../tableauDeBordWidgets';
 
 const CLE = 'tableau_de_bord_widgets';
-const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el'];
+const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb'];
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;

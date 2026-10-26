@@ -50,7 +50,7 @@ describe('#6179 — la ligne introuvable', () => {
   });
 
   it('a son étiquette et son explication dans toutes les langues', () => {
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       expect(src, l).toContain('"v2.pl.missingTrack":');
       expect(src, l).toContain('"v2.pl.missingTrackHint":');

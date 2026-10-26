@@ -53,7 +53,7 @@ import { catalogueService, cleSectionEditoriale, SECTIONS_TRADUITES } from '../w
 
 type Dict = Record<string, string | undefined>;
 const DICTS = locales as unknown as Record<string, Dict>;
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el'] as const;
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb'] as const;
 
 /** Les sept sections exactement telles que le serveur les écrit. */
 const SECTIONS_DU_SERVEUR = [

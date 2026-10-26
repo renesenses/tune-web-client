@@ -194,7 +194,7 @@ describe('#4741 — un refus est expliqué, pas montré comme une panne', () => 
   // Décision de Bertrand du 08/10 (tune-server-rust#5966) : une restauration
   // recrée la playlist DANS TUNE, l'export vers un service reste le transfert.
   it('« Restaurer » est annoncé comme une recréation dans Tune, dans les onze langues', () => {
-    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
+    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
       const ligne = source(`../locales/${langue}.ts`)
         .split('\n')
         .find((l) => l.includes('"v2.pl.backupRing":'));
@@ -208,7 +208,7 @@ describe('#4741 — un refus est expliqué, pas montré comme une panne', () => 
     expect(ecran).toContain("$t('v2.pl.backupPremium' as any)");
     expect(ecran).toContain("$t('v2.pl.backupNoPlugin' as any)");
     expect(ecran).toMatch(/<a href=\{sauvegardeImpossible\.url\}[^>]*>\{\$t\('v2\.pl\.backupPremiumLink' as any\)\}<\/a>/);
-    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
+    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
       const fichier = source(`../locales/${langue}.ts`);
       for (const cle of ['backupPremium', 'backupNoPlugin', 'backupRing', 'backupPartial', 'backupPremiumLink']) {
         expect(fichier, `${langue} : v2.pl.${cle}`).toContain(`"v2.pl.${cle}":`);

@@ -39,6 +39,7 @@ import lEs from '../locales/es';
 import lHu from '../locales/hu';
 import lVi from '../locales/vi';
 import lEl from '../locales/el';
+import lNb from '../locales/nb';
 import lIt from '../locales/it';
 import lJa from '../locales/ja';
 import lKo from '../locales/ko';
@@ -165,11 +166,11 @@ describe('etatDeLaLigne — quelle ligne, et dans quel état (#1845)', () => {
 
 describe('les onze langues portent les clés de l’indicateur', () => {
   const langues: [string, Record<string, string>][] = [
-    ['fr', lFr], ['en', lEn], ['de', lDe], ['es', lEs], ['hu', lHu], ['vi', lVi], ['el', lEl], ['it', lIt],
+    ['fr', lFr], ['en', lEn], ['de', lDe], ['es', lEs], ['hu', lHu], ['vi', lVi], ['el', lEl], ['nb', lNb], ['it', lIt],
     ['ja', lJa], ['ko', lKo], ['ro', lRo], ['sv', lSv], ['zh', lZh],
   ];
   it('onze fichiers, trois clés chacun, aucune valeur vide', () => {
-    expect(langues).toHaveLength(13);
+    expect(langues).toHaveLength(14);
     for (const [nom, dict] of langues) {
       for (const cle of CLES) {
         expect(`${nom}/${cle}`, `${nom} n’a pas ${cle}`).toBeDefined();

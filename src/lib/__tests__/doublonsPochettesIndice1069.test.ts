@@ -103,7 +103,7 @@ describe('#1069 — les pochettes côte à côte', () => {
 });
 
 describe('#1069 — les deux clés dans les ONZE langues', () => {
-  for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el']) {
+  for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb']) {
     it(l, () => {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       expect(src).toContain('v2.meta.indiceDossierTitre');

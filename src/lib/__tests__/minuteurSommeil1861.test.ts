@@ -193,7 +193,7 @@ describe('web#1861 — durée libre', () => {
 
 describe('web#1861 — les 11 langues', () => {
   it('chaque dictionnaire porte les six libellés', () => {
-    expect(ONZE_LANGUES).toHaveLength(13);
+    expect(ONZE_LANGUES).toHaveLength(14);
     for (const code of ONZE_LANGUES) {
       const d = dictionnaire(code);
       for (const k of ['sleep.customLabel', 'sleep.customPlaceholder', 'sleep.customStart', 'sleep.customInvalid',

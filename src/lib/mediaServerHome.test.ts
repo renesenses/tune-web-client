@@ -103,7 +103,7 @@ describe('RAYONS_TUNE', () => {
     // dans l'onglet. `check-i18n` ne voit pas ces cles : elles sont lues
     // dynamiquement (`$tr(r.cle)`), pas ecrites en clair dans un composant.
     const langues = Object.entries(locales) as [string, Record<string, string>][];
-    expect(langues.length).toBe(13);
+    expect(langues.length).toBe(14);
     for (const [langue, dico] of langues) {
       for (const r of RAYONS_TUNE) {
         expect(typeof dico[r.cle], `${langue} : ${r.cle}`).toBe('string');

@@ -110,7 +110,7 @@ describe('#4471 — l\'écran', () => {
 describe('#4471 — les six clés dans les ONZE langues', () => {
   const CLES = ['v2.meta.discsTitle', 'v2.meta.discsWhat', 'v2.meta.discsPreview',
     'v2.meta.discsDone', 'v2.meta.discsSafe', 'v2.meta.discsFix'];
-  for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el']) {
+  for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb']) {
     it(l, () => {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       for (const c of CLES) expect(src, `${l} / ${c}`).toContain(c);
