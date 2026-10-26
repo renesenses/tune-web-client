@@ -3647,6 +3647,8 @@ export default {
   "v2.fas.radioServeurAncien": "Το ραδιόφωνο καλλιτέχνη απαιτεί νεότερο διακομιστή Tune και αυτή η σελίδα δεν έχει κορυφαία κομμάτια για τυχαία αναπαραγωγή.",
   "v2.rech.tracks": "Κομμάτια",
   "v2.rech.playlists": "Λίστες αναπαραγωγής",
+  "v2.rech.radios": "Ραδιόφωνα",
+  "v2.rech.radiosMore": "{n} ακόμη στον κατάλογο ραδιοφώνων",
   "v2.rech.best": "Κορυφαίο αποτέλεσμα",
   "v2.rech.kindArtist": "Καλλιτέχνης",
   "v2.rech.kindAlbum": "Άλμπουμ",

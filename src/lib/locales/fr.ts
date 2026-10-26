@@ -3794,6 +3794,8 @@ export default {
   "v2.fas.radioServeurAncien": "La radio de l'artiste demande une version plus récente du serveur Tune, et cette fiche n'a pas de titres phares à mélanger.",
   "v2.rech.tracks": "Titres",
   "v2.rech.playlists": "Playlists",
+  "v2.rech.radios": "Radios",
+  "v2.rech.radiosMore": "{n} de plus dans l’annuaire des radios",
   "v2.rech.best": "Meilleur résultat",
   "v2.rech.kindArtist": "Artiste",
   "v2.rech.kindAlbum": "Album",

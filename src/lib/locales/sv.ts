@@ -3771,6 +3771,8 @@ export default {
   "v2.fas.radioServeurAncien": "Artistradion kräver en nyare Tune-server, och den här sidan har inga toppspår att blanda.",
   "v2.rech.tracks": "Låtar",
   "v2.rech.playlists": "Spellistor",
+  "v2.rech.radios": "Radio",
+  "v2.rech.radiosMore": "{n} till i radiokatalogen",
   "v2.rech.best": "Bästa träff",
   "v2.rech.kindArtist": "Artist",
   "v2.rech.kindAlbum": "Album",

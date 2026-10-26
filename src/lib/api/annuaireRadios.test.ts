@@ -55,3 +55,29 @@ describe('annuaire des radios', () => {
     expect(f.mock.calls[0][1].method).toBe('POST');
   });
 });
+
+describe('radios dans la recherche globale (tune-server-rust#7045)', () => {
+  it('demande les radios SEULES : sources=radios, sans la bibliothèque ni les services', async () => {
+    const f = repond({ radios: [], radios_annuaire: { total: 0, items: [] } });
+    await api.chercherRadios('fip jazz');
+    expect(f.mock.calls[0][0]).toBe('/api/v1/search?q=fip%20jazz&sources=radios');
+  });
+
+  it("lit « Mes radios » et l'annuaire, et dit combien l'aperçu n'en montre pas", async () => {
+    repond({
+      radios: [{ id: 3, name: 'FIP', stream_url: 'x', favorite: false }],
+      radios_annuaire: { total: 45, items: [{ external_id: 'S1', name: 'FIP Jazz', stream_url: 'y', now_playing: false }] },
+    });
+    const r = await api.chercherRadios('fip');
+    expect(r.miennes.map((x) => x.name)).toEqual(['FIP']);
+    expect(r.annuaire.map((x) => x.name)).toEqual(['FIP Jazz']);
+    expect(r.reste).toBe(44);
+  });
+
+  it("un serveur plus ancien (sans radios_annuaire, ou sans rien) ne casse pas l'écran", async () => {
+    repond({ local: { artists: [], albums: [], tracks: [] }, services: {} });
+    expect(await api.chercherRadios('fip')).toEqual({ miennes: [], annuaire: [], reste: 0 });
+    expect(api.lireRadiosTrouvees(null)).toEqual({ miennes: [], annuaire: [], reste: 0 });
+    expect(api.lireRadiosTrouvees({ radios: [{ id: 1, name: 'A', stream_url: 'x', favorite: false }] }).reste).toBe(0);
+  });
+});
