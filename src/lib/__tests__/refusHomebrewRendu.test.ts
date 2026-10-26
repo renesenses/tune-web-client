@@ -147,7 +147,7 @@ function boutonMaj(): HTMLButtonElement {
 
 describe('les onze langues portent les sept clés', () => {
   it('aucune langue ne retombe sur la clé', async () => {
-    const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb'];
+    const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'];
     const cles = [
       'settings.homebrewManaged',
       'settings.homebrewMismatch',

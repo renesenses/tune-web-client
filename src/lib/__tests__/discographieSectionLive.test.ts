@@ -20,6 +20,7 @@ import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
 import nbLocale from '../locales/nb';
+import plLocale from '../locales/pl';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
 import ro from '../locales/ro';
@@ -78,7 +79,7 @@ describe('Section « Live » de la fiche artiste', () => {
   });
 
   it('le libellé « Live » existe dans les 11 langues', () => {
-    const tables: Record<string, Record<string, string>> = { fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, nb: nbLocale, ja, ko, ro, sv, zh };
+    const tables: Record<string, Record<string, string>> = { fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, nb: nbLocale, pl: plLocale, ja, ko, ro, sv, zh };
     for (const [l, table] of Object.entries(tables)) {
       expect(table['v2.disco.live'], `${l} : v2.disco.live`).toBeTruthy();
     }

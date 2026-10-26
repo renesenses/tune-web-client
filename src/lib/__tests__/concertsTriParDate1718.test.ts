@@ -26,6 +26,7 @@ import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
 import nbLocale from '../locales/nb';
+import plLocale from '../locales/pl';
 
 /**
  * Concerts : trier la liste par date de concert — web#1718.
@@ -154,14 +155,14 @@ const LANGUES: Array<[string, Dict]> = [
   ['ro', ro as Dict],
   ['sv', sv as Dict],
   ['zh', zh as Dict],
-  ['hu', hu as Dict], ['vi', viLocale as Dict], ['el', elLocale as Dict], ['nb', nbLocale as Dict],
+  ['hu', hu as Dict], ['vi', viLocale as Dict], ['el', elLocale as Dict], ['nb', nbLocale as Dict], ['pl', plLocale as Dict],
 ];
 
 const CLES = ['concerts.trier', 'concerts.triArtiste', 'concerts.triDate'] as const;
 
 describe('les libellés du tri des concerts, dans les onze langues', () => {
   it('les onze langues sont couvertes par ce test', () => {
-    expect(LANGUES).toHaveLength(14);
+    expect(LANGUES).toHaveLength(15);
   });
 
   for (const [nom, dict] of LANGUES) {

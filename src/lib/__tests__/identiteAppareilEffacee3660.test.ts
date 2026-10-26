@@ -261,7 +261,7 @@ describe('#3660 — la coquille porte l’éditeur', () => {
 
 describe('#3660 — l’intitulé, dans les onze langues', () => {
   it('les deux clés existent partout et ne sont pas vides', async () => {
-    const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb'];
+    const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'];
     for (const code of langues) {
       const dico = dictionnaire(code);
       for (const cle of ['zoneConfig.identiteEffacee', 'zoneConfig.identiteEffaceeHint']) {

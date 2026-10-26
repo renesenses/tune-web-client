@@ -23,6 +23,7 @@ import sv from '../locales/sv';
 import vi from '../locales/vi';
 import el from '../locales/el';
 import nb from '../locales/nb';
+import pl from '../locales/pl';
 import zh from '../locales/zh';
 
 const LANGUES: Record<string, Record<string, string>> = {

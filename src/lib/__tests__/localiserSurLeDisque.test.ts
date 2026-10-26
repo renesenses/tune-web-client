@@ -114,7 +114,7 @@ describe('le bouton est BRANCHÉ, pas seulement écrit', () => {
   });
 
   it('le libellé existe dans les 11 langues', () => {
-    for (const l of ['en', 'fr', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'nb']) {
+    for (const l of ['en', 'fr', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'nb', 'pl']) {
       expect(lire(`lib/locales/${l}.ts`), l).toContain('v2.album.locate');
     }
   });

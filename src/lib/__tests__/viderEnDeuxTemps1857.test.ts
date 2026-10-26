@@ -166,7 +166,7 @@ describe('les 11 langues portent les deux libellés', () => {
   const dicos = ONZE_LANGUES.map((c) => [c, dictionnaire(c)] as const);
 
   it('chaque dictionnaire a « Arrêter et vider » et son infobulle, distincts de la première', () => {
-    expect(dicos).toHaveLength(14);
+    expect(dicos).toHaveLength(15);
     for (const [nom, d] of dicos) {
       expect(d['queue.clearAllLabel'], nom).toBeTruthy();
       expect(d['queue.clearAllTip'], nom).toBeTruthy();

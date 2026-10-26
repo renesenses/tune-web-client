@@ -45,7 +45,7 @@ describe('#6171 — les canaux de la carte', () => {
   it('les onze langues portent les libellés et les trois refus', () => {
     const dossier = fileURLToPath(new URL('../locales/', import.meta.url));
     const langues = fs.readdirSync(dossier).filter((f) => f.endsWith('.ts') && f !== 'index.ts');
-    expect(langues.length).toBe(14);
+    expect(langues.length).toBe(15);
     for (const f of langues) {
       const texte = fs.readFileSync(dossier + f, 'utf-8');
       for (const cle of [

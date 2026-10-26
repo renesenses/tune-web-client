@@ -34,10 +34,10 @@ describe('les écrans', () => {
   it('la règle de l’onglet Coffrets nomme les trois disques, dans les quatorze langues', () => {
     const fr = readFileSync('src/lib/locales/fr.ts', 'utf8');
     expect(fr).toContain("albums d\\'au moins trois disques nommés chacun autrement");
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'vi', 'el', 'nb', 'zh']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'vi', 'el', 'nb', 'pl', 'zh']) {
       const s = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       const ligne = s.split('\n').find((x) => /['"]library\.boxSetsRule['"]/.test(x)) ?? '';
-      expect(ligne, l).toMatch(/3|three|drei|tres|tre|három|trois|trei|ba|τρι|三|세|3/);
+      expect(ligne, l).toMatch(/3|three|drei|tres|tre|három|trois|trei|ba|τρι|trzech|三|세|3/);
     }
   });
 });

@@ -158,7 +158,7 @@ describe('le branchement — une seule implémentation, deux écrans', () => {
 });
 
 describe('les deux clés dans les ONZE langues', () => {
-  for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb']) {
+  for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl']) {
     it(l, () => {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       for (const c of ['v2.album.addToCollection', 'v2.album.noCollection']) {
