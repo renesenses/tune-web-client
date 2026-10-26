@@ -85,7 +85,7 @@ describe('#5313 — l’écran du genre branche la bande', () => {
   });
 
   it('le libellé existe dans les onze langues', () => {
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'pl']) {
       const txt = readFileSync(resolve(process.cwd(), `src/lib/locales/${l}.ts`), 'utf-8');
       expect(txt, l).toMatch(/"streaming\.genrePlaylists":\s*['"][^'"]+['"]/);
     }

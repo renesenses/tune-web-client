@@ -46,7 +46,7 @@ describe('graver le DR depuis Métadonnées', () => {
 
   it('les douze libellés existent dans les onze langues', () => {
     const cles = ['tabDr','drEngrave','drHint','drEngraveBtn','drRunning','drToEngrave','drInFiles','drOtherFormats','drProgress','drDone','drNothing','drUnavail'];
-    for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh','vi','el']) {
+    for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh','vi','el', 'pl']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const c of cles) expect(src, `${l} : v2.meta.${c}`).toContain(`"v2.meta.${c}":`);
     }

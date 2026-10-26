@@ -72,7 +72,7 @@ describe('#4601 — ce que le bandeau PROPOSE, et ce qu’il ne propose pas', ()
   });
 
   it('les onze langues portent les deux clés', () => {
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'pl']) {
       const s = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       expect(s, `${l} : phrase`).toContain('zone.outputMissingBanner');
       expect(s, `${l} : bouton`).toContain('zone.outputMissingBannerAction');

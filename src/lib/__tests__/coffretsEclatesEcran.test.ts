@@ -77,7 +77,7 @@ describe('coffrets éclatés — l\'écran', () => {
 
 describe('coffrets éclatés — les trois clés dans les ONZE langues', () => {
   const CLES = ['v2.meta.boxTitle', 'v2.meta.boxDiscs', 'v2.meta.boxMerge'];
-  for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el']) {
+  for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'pl']) {
     it(l, () => {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       for (const c of CLES) expect(src, `${l} / ${c}`).toContain(c);

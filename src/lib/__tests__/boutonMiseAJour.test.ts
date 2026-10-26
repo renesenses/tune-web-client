@@ -124,7 +124,7 @@ describe('le bloc de mise à jour de SettingsV2 est toujours visible', () => {
   });
 
   it('la clé du bouton existe dans les onze langues', () => {
-    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'pl']) {
       expect(lire(`src/lib/locales/${l}.ts`)).toContain('"settings.checkUpdatesNow"');
     }
   });

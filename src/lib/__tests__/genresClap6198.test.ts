@@ -45,7 +45,7 @@ describe('#6198 — les genres de l’analyse acoustique', () => {
   it('les onze langues nomment les deux champs et l’explication', () => {
     const dossier = fileURLToPath(new URL('../locales/', import.meta.url));
     const langues = fs.readdirSync(dossier).filter((f) => f.endsWith('.ts') && f !== 'index.ts');
-    expect(langues.length).toBe(13);
+    expect(langues.length).toBe(14);
     for (const f of langues) {
       const texte = fs.readFileSync(dossier + f, 'utf-8');
       for (const cle of [

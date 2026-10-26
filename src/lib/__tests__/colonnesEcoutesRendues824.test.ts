@@ -360,7 +360,7 @@ describe('les trois en-têtes existent dans les ONZE langues', () => {
     .sort();
 
   it('onze fichiers de langue, hongrois compris', () => {
-    expect(langues.length).toBe(13);
+    expect(langues.length).toBe(14);
     expect(langues).toContain('hu.ts');
   });
 

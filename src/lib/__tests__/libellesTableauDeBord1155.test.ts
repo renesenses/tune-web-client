@@ -25,7 +25,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 const vue = readFileSync('src/components/v2-heritage/DashboardView.svelte', 'utf8');
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el'];
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'pl'];
 const locale = (l: string) => readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
 
 describe('#1155 — chaque chiffre dit ce qu\'il compte', () => {

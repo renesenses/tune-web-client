@@ -31,7 +31,7 @@ describe('#859 — un 501 n’est pas un échec de widget', () => {
     expect(bloc).not.toContain('relancerWidget');
   });
   it('le libellé existe dans les onze langues', async () => {
-    for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi', 'el']) {
+    for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi', 'el', 'pl']) {
       const dico = dictionnaire(code);
       expect(dico['v2.home.widgetUnsupported'], code).toBeTruthy();
     }

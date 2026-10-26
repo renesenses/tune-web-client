@@ -48,7 +48,7 @@ import lFr from '../locales/fr';
 
 const fr = lFr as unknown as Record<string, string>;
 
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el'] as const;
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'pl'] as const;
 
 const CLES = [
   'settings.licenseGraceTitle',

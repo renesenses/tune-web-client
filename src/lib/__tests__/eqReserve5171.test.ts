@@ -29,7 +29,7 @@ vi.mock('../api', () => mocks);
 import EqualizerV2 from '../../components/v2/EqualizerV2.svelte';
 import { currentZoneId } from '../stores/zones';
 
-const LOCALES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el'];
+const LOCALES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'pl'];
 const CLES = ['v2.eq.headroom', 'v2.eq.headroomSafe', 'v2.eq.headroomRealistic', 'v2.eq.headroomHelp'];
 
 const respirer = () => new Promise((r) => setTimeout(r, 0));

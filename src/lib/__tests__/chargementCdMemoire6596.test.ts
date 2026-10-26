@@ -24,6 +24,7 @@ import ro from '../locales/ro';
 import sv from '../locales/sv';
 import vi_ from '../locales/vi';
 import el_ from '../locales/el';
+import pl_ from '../locales/pl';
 import zh from '../locales/zh';
 
 /**
@@ -179,7 +180,7 @@ describe('#6596 — proposer de charger le CD inséré, sans rien jouer', () => 
   it('les textes existent dans les douze catalogues', () => {
     const cles = ['v2.cd.memBusyOtherDisc', 'v2.cd.insertedPrompt', 'v2.cd.loadIntoMemory', 'v2.cd.loadIntoMemoryHint',
       'v2.cd.memLoadStarted', 'v2.cd.memLoadFailed', 'v2.cd.memReadyPrompt'];
-    for (const [l, cat] of Object.entries({ fr, en, de, es, it: it_, hu, ja, ko, ro, sv, vi: vi_, el: el_, zh })) {
+    for (const [l, cat] of Object.entries({ fr, en, de, es, it: it_, hu, ja, ko, ro, sv, vi: vi_, el: el_, pl: pl_, zh })) {
       for (const c of cles) {
         const v = (cat as Record<string, string>)[c];
         expect(typeof v === 'string' && v.trim().length > 0, `${l} : ${c}`).toBe(true);

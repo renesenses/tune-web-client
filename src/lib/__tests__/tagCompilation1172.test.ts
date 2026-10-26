@@ -186,7 +186,7 @@ describe('poser le tag compilation depuis Métadonnées', () => {
       'compilGroup','compilSelectGroup','compilMixed',
       'compilNoneSel','compilMark','compilUnmark','compilMerge','compilBurn',
       'compilBurnHint','compilTracks','compilMarked','compilMerged','compilBurned','compilUnavail'];
-    for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh','vi','el']) {
+    for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh','vi','el', 'pl']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const c of cles) expect(src, `${l} : v2.meta.${c}`).toContain(`"v2.meta.${c}":`);
     }

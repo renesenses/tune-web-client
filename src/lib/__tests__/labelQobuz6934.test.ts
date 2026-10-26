@@ -243,7 +243,7 @@ describe('les écrans qui y mènent', () => {
   it('les libellés sont traduits dans les douze langues', () => {
     const cles = ['qobuzTitre', 'albumsTotal', 'albums', 'artistes', 'voirTout', 'voirMoins', 'chargerPlus', 'chargement',
       'indisponible', 'ouvrirLabel', 'ouvrirLabelTip', 'catalogueQobuz', 'dansMaBibliotheque', 'retour'];
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'vi', 'el', 'zh']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'vi', 'el', 'pl', 'zh']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const c of cles) expect(src, `${l} ${c}`).toContain(`"v2.label.${c}"`);
       expect(src, l).toMatch(/"v2\.label\.ouvrirLabel": "[^"]*\{label\}[^"]*"/);

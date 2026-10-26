@@ -131,7 +131,7 @@ describe('#4741 — un compte gratuit voit pourquoi le transfert est refusé', (
   });
 
   it('les deux libellés existent dans les onze langues', () => {
-    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el']) {
+    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'pl']) {
       const fichier = source(`../locales/${langue}.ts`);
       expect(fichier, langue).toContain('"playlist.transferPremium":');
       expect(fichier, langue).toContain('"playlist.transferPremiumLink":');

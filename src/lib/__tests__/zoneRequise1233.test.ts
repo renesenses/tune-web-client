@@ -137,7 +137,7 @@ describe('#1233 — aucune HUITIÈME clé pour le même message', () => {
   });
 
   it('elle est traduite dans les ONZE langues', () => {
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'pl']) {
       expect(readFileSync(`src/lib/locales/${l}.ts`, 'utf8'), l)
         .toContain('library.noZoneSelectedSelectZone');
     }

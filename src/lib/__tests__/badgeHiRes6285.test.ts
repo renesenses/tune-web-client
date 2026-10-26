@@ -15,6 +15,7 @@ import it_ from '../locales/it';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
+import plLocale from '../locales/pl';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
 import ro from '../locales/ro';
@@ -36,8 +37,8 @@ describe('Badge hi-res (#6285)', () => {
     expect(badgeHiRes(null)).toBeNull();
   });
 
-  it('les six libellés existent dans les 13 langues', () => {
-    const tables: Record<string, Record<string, string>> = { fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, ja, ko, ro, sv, zh };
+  it('les six libellés existent dans les 14 langues', () => {
+    const tables: Record<string, Record<string, string>> = { fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, pl: plLocale, ja, ko, ro, sv, zh };
     const cles = ['v2.album.hiresVerified', 'v2.album.hiresDoubtful', 'v2.album.hiresVerifiedTip', 'v2.album.hiresWhyBits', 'v2.album.hiresWhyCd', 'v2.album.hiresWhyCodec'];
     for (const [l, table] of Object.entries(tables)) for (const c of cles) expect(table[c], `${l} : ${c}`).toBeTruthy();
   });

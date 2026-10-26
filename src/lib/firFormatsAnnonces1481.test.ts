@@ -21,7 +21,7 @@ import { readFileSync } from 'node:fs';
  *      moitié de la question de GgB resterait sans réponse.
  */
 
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el'];
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'pl'];
 const CLE = '"zoneConfig.firFormats"';
 
 /** La valeur brute de la clé, telle qu'elle est écrite dans le dictionnaire. */

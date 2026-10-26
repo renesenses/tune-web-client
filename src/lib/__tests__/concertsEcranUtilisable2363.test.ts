@@ -442,7 +442,7 @@ describe('Concerts — contrat réel du lot serveur (srv#5102)', () => {
 });
 
 describe('Concerts — tuile de la grille des modules Premium (`Feature::Concerts`)', () => {
-  const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el'];
+  const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'pl'];
 
   it('le code `concerts` a son nom dans les ONZE langues', () => {
     const manquantes = LANGUES.filter(

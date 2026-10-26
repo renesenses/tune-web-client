@@ -42,7 +42,7 @@ const NOMS = Object.keys(LANGUES).filter((n) => n !== 'default');
 describe('le vocabulaire est un ensemble de clés, jamais de libellés', () => {
   it('les onze langues sont bien chargées', () => {
     // Sans cette borne, les `it.each` plus bas pourraient passer à vide.
-    expect(NOMS.length).toBe(13);
+    expect(NOMS.length).toBe(14);
     expect(NOMS).toContain('fr');
     expect(NOMS).toContain('hu');
   });
