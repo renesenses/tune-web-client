@@ -27,7 +27,7 @@ const CODES = [
   'playlist_transfer', 'playlists_hub', 'plugin_marketplace', 'room_correction',
   'social_sharing', 'synced_lyrics', 'unlimited_zones', 'weekly_digest',
 ];
-const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'pl'];
+const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'];
 
 describe('Le nom d’une fonctionnalité de licence', () => {
   it('🔴 les VINGT-CINQ codes du serveur ont leur traduction, dans les ONZE langues', () => {

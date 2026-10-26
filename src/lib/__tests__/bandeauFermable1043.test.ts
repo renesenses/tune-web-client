@@ -85,7 +85,7 @@ describe('branchement — la croix existe et appelle `fermer`', () => {
     expect(src).toMatch(/class="zone-output-banner-close"[\s\S]*?aria-label=\{\$t\('zone\.bannerDismiss'\)\}/);
   });
   it('le libellé existe dans les onze langues', async () => {
-    for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi', 'el', 'pl']) {
+    for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh', 'vi', 'el', 'nb', 'pl']) {
       const dico = dictionnaire(code);
       expect(dico['zone.bannerDismiss'], code).toBeTruthy();
     }

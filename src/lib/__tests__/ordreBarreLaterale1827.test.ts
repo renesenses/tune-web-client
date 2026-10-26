@@ -329,7 +329,7 @@ describe('#1827 — traductions', () => {
     'sidebarMoveDown', 'sidebarShow', 'sidebarAlwaysVisible', 'sidebarReset', 'sidebarResetDone',
     'sidebarMoved', 'sidebarDrag',
   ];
-  const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'pl'];
+  const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'];
   it.each(LANGUES)('%s porte les dix clés, avec leurs jetons', (l) => {
     const src = readFileSync(resolve(process.cwd(), `src/lib/locales/${l}.ts`), 'utf-8');
     for (const k of CLES) {

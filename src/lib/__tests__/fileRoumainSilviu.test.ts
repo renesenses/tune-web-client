@@ -46,7 +46,7 @@ const QUEUE = resolve(RACINE, 'src/components/v2/QueueV2.svelte');
 
 type Dict = Record<string, string | undefined>;
 const DICTS = locales as unknown as Record<string, Dict>;
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'pl'] as const;
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'] as const;
 
 /** Le fichier sans ses commentaires : la doc est en français exprès. */
 function sansCommentaires(src: string): string {

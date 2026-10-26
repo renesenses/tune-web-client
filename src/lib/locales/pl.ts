@@ -5721,5 +5721,7 @@ export default {
   "scanDetenteur.depuis": "od {heure}",
   "scanDetenteur.residuel": "Status szczątkowy: w rzeczywistości nie trwa żadne skanowanie. “Zatrzymaj” przywraca stan spoczynku.",
   "scanDetenteur.refus409": "Serwer odmówił: trwa już inne skanowanie ({scan}). Spróbuj ponownie po jego zakończeniu.",
+  "v2.rech.radios": "Radia",
+  "v2.rech.radiosMore": "Kolejne w katalogu radiowym: {n}",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

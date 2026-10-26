@@ -9,6 +9,7 @@ import it_ from '../locales/it';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
+import nbLocale from '../locales/nb';
 import plLocale from '../locales/pl';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
@@ -69,7 +70,7 @@ describe('#5616 — type déduit par le serveur sur la page artiste', () => {
   });
 
   it('#5616 — les libellés des deux sections existent dans les 11 langues', () => {
-    const tables: Record<string, Record<string, string>> = { fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, pl: plLocale, ja, ko, ro, sv, zh };
+    const tables: Record<string, Record<string, string>> = { fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, nb: nbLocale, pl: plLocale, ja, ko, ro, sv, zh };
     for (const [l, table] of Object.entries(tables)) {
       expect(table['v2.disco.eps'], `${l} : v2.disco.eps`).toBeTruthy();
       expect(table['v2.disco.singles'], `${l} : v2.disco.singles`).toBeTruthy();

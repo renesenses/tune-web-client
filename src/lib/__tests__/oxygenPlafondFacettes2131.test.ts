@@ -170,7 +170,7 @@ describe('le plafond levé vaut aussi pour les facettes agrégées côté client
 describe('la clé de traduction existe dans les ONZE langues', () => {
   // Une clé manquante rendrait le nom de la clé à l'écran, pas une erreur.
   it('oxygen.facetShowAll est traduite partout', async () => {
-    const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'pl'];
+    const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'];
     for (const l of langues) {
       const table = dictionnaire(l);
       const v = table['oxygen.facetShowAll'];

@@ -26,6 +26,7 @@ import zh from '../locales/zh';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
+import nbLocale from '../locales/nb';
 import plLocale from '../locales/pl';
 
 /**
@@ -64,7 +65,7 @@ const LANGUES: [string, Dict][] = [
   ['ro', ro as Dict],
   ['sv', sv as Dict],
   ['zh', zh as Dict],
-  ['hu', hu as Dict], ['vi', viLocale as Dict], ['el', elLocale as Dict], ['pl', plLocale as Dict],
+  ['hu', hu as Dict], ['vi', viLocale as Dict], ['el', elLocale as Dict], ['nb', nbLocale as Dict], ['pl', plLocale as Dict],
 ];
 
 /** Les clés que ce lot introduit. */
@@ -167,7 +168,7 @@ describe('api.ts — la route par piste', () => {
 
 describe('i18n — les onze langues livrées', () => {
   it('couvre bien onze langues', () => {
-    expect(LANGUES).toHaveLength(14);
+    expect(LANGUES).toHaveLength(15);
   });
 
   for (const cle of CLES) {

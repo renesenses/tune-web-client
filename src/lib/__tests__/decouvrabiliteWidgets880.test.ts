@@ -32,7 +32,7 @@ import { resolve } from 'node:path';
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 const page = () => lire('src/components/v2/PageWidgets.svelte');
 
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'pl'];
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'nb', 'pl'];
 
 /**
  * La balise qui porte `classe`, du `<` à son `>` fermant.

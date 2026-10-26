@@ -134,7 +134,7 @@ describe('les onze langues nomment la provenance', () => {
    * `scripts/check-i18n.mjs` garde la parité globale ; ce test-ci nomme les
    * trois clés, pour que leur perte se lise ici et pas dans un décompte.
    */
-  const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'pl'];
+  const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'];
 
   it('les trois clés existent dans les onze fichiers', () => {
     for (const langue of LANGUES) {

@@ -23,6 +23,7 @@ import zh from '../locales/zh';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
+import nbLocale from '../locales/nb';
 import plLocale from '../locales/pl';
 
 /**
@@ -53,7 +54,7 @@ const LANGUES: Array<[string, Dict]> = [
   ['ro', ro as Dict],
   ['sv', sv as Dict],
   ['zh', zh as Dict],
-  ['hu', hu as Dict], ['vi', viLocale as Dict], ['el', elLocale as Dict], ['pl', plLocale as Dict],
+  ['hu', hu as Dict], ['vi', viLocale as Dict], ['el', elLocale as Dict], ['nb', nbLocale as Dict], ['pl', plLocale as Dict],
 ];
 
 const MODES: RepeatMode[] = ['off', 'one', 'all'];
@@ -79,7 +80,7 @@ describe('la règle commune donne une clé par état', () => {
 
 describe('les onze langues portent les cinq libellés', () => {
   it('le test couvre bien onze langues', () => {
-    expect(LANGUES).toHaveLength(14);
+    expect(LANGUES).toHaveLength(15);
   });
 
   for (const [nom, dict] of LANGUES) {

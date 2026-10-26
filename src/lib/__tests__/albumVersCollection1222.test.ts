@@ -170,7 +170,7 @@ describe('#1222 — le retrait, depuis la collection ouverte', () => {
 
 describe('#1222 — les quatre clés dans les ONZE langues', () => {
   const CLES = ['v2.col.addTo', 'v2.col.alreadyIn', 'v2.col.removeAlbum', 'v2.col.removeAlbumFailed'];
-  for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'pl']) {
+  for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl']) {
     it(l, () => {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       for (const c of CLES) expect(src, `${l} / ${c}`).toContain(c);

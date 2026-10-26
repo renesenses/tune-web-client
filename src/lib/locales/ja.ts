@@ -3772,6 +3772,8 @@ export default {
   "v2.fas.radioServeurAncien": "アーティストラジオには新しいTuneサーバーが必要です。このページにはシャッフルできる人気曲もありません。",
   "v2.rech.tracks": "曲",
   "v2.rech.playlists": "プレイリスト",
+  "v2.rech.radios": "ラジオ",
+  "v2.rech.radiosMore": "ラジオディレクトリにあと{n}件",
   "v2.rech.best": "最も一致する結果",
   "v2.rech.kindArtist": "アーティスト",
   "v2.rech.kindAlbum": "アルバム",

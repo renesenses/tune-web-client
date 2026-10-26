@@ -22,7 +22,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'pl'];
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'];
 const loc = (l: string) => readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
 const valeur = (l: string, cle: string) =>
   (loc(l).match(new RegExp(`"${cle.replace('.', '\\.')}"\\s*:\\s*"((?:\\\\.|[^"])*)"`)) ?? [])[1] ?? '';

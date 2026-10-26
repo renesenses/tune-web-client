@@ -42,7 +42,7 @@ const SHELL = lire('../../components/v2/ShellV2.svelte');
 const NAVIGATION = lire('../stores/navigation.ts');
 
 /** Les onze langues servies par le client. */
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'pl'];
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'];
 
 describe('#1141 — le mode Grand écran PORTE SON NOM', () => {
   it("'tv' est une vue déclarée, et la coquille l'aiguille", () => {

@@ -38,6 +38,7 @@ import zh from '../locales/zh';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
+import nbLocale from '../locales/nb';
 import plLocale from '../locales/pl';
 
 /** La réponse telle que `tune_core::config_export::rapport` la produit. */
@@ -147,7 +148,7 @@ describe('Réglages — l’aperçu précède la confirmation', () => {
 
 describe('les phrases de l’aperçu existent dans les onze langues', () => {
   const DICTS: Record<string, Record<string, string>> = {
-    fr, en, de, es, it: it_, ja, ko, ro, sv, zh, hu, vi: viLocale, el: elLocale, pl: plLocale,
+    fr, en, de, es, it: it_, ja, ko, ro, sv, zh, hu, vi: viLocale, el: elLocale, nb: nbLocale, pl: plLocale,
   } as any;
   const CLES = [
     'settings.restorePreviewTitle',

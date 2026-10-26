@@ -16,6 +16,7 @@ export const localeNames: Record<Locale, string> = {
   hu: 'Magyar',
   vi: 'Tiếng Việt',
   el: 'Ελληνικά',
+  nb: 'Norsk bokmål',
   pl: 'Polski',
 };
 /**
@@ -31,7 +32,7 @@ export const localeNames: Record<Locale, string> = {
  * posé la fait avancer, pour que les écrans déjà montés se retraduisent.
  */
 const messages: Record<Locale, Dictionnaire> = {
-  fr: {}, en: {}, de: {}, es: {}, it: {}, zh: {}, ja: {}, ko: {}, ro: {}, sv: {}, hu: {}, vi: {}, el: {}, pl: {},
+  fr: {}, en: {}, de: {}, es: {}, it: {}, zh: {}, ja: {}, ko: {}, ro: {}, sv: {}, hu: {}, vi: {}, el: {}, nb: {}, pl: {},
 };
 const chargees = new Set<Locale>();
 const enCours = new Map<Locale, Promise<void>>();

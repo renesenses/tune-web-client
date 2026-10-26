@@ -23,9 +23,9 @@ import { dansLePerimetreDe } from './perimetreRecherche';
  * dans l'union aurait donné deux façons de dire « tout » — la pastille et
  * l'ensemble vide — qui auraient fini par diverger.
  */
-export type TypeRecherche = 'artistes' | 'labels' | 'albums' | 'titres' | 'playlists';
+export type TypeRecherche = 'artistes' | 'labels' | 'albums' | 'titres' | 'playlists' | 'radios';
 
-export const TYPES_RECHERCHE: TypeRecherche[] = ['artistes', 'labels', 'albums', 'titres', 'playlists'];
+export const TYPES_RECHERCHE: TypeRecherche[] = ['artistes', 'labels', 'albums', 'titres', 'playlists', 'radios'];
 
 /**
  * La section est-elle affichée ?

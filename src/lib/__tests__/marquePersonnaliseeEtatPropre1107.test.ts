@@ -340,7 +340,7 @@ describe('#1107 — ce que l’état propre ne doit PAS casser', () => {
 
 describe('#1107 — l’intitulé du retour, dans les onze langues', () => {
   it('`zoneConfig.backToList` existe partout et n’est pas vide', async () => {
-    const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'pl'];
+    const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'];
     for (const code of langues) {
       const dico = dictionnaire(code);
       expect(dico['zoneConfig.backToList'], `${code} / zoneConfig.backToList`).toBeTruthy();

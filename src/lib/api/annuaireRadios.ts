@@ -101,3 +101,45 @@ export function jouerDepuisAnnuaire(externalId: string, zoneId: number) {
     { method: 'POST' },
   );
 }
+
+/**
+ * Ce que la recherche globale sait des radios (tune-server-rust#7045).
+ *
+ * `miennes` : « Mes radios » qui répondent. `annuaire` : les fiches de
+ * l'annuaire qui répondent, dont certaines sont déjà dans « Mes radios »
+ * (`my_radio_id`). `reste` : combien de fiches l'aperçu ne montre pas.
+ */
+export interface RadiosTrouvees {
+  miennes: RadioStation[];
+  annuaire: FicheAnnuaireRadio[];
+  reste: number;
+}
+
+/**
+ * Lit les radios d'une réponse de `GET /search`. Pure.
+ *
+ * 🔴 Chaque champ est facultatif : un serveur antérieur à la rc9 n'a pas
+ * `radios_annuaire` (et, avec `sources=radios`, qu'il ne connaît pas, il rend
+ * des tableaux vides). Absent n'est pas une erreur : l'écran n'a simplement
+ * rien à montrer de ce côté.
+ */
+export function lireRadiosTrouvees(r: {
+  radios?: RadioStation[] | null;
+  radios_annuaire?: { total?: number; items?: FicheAnnuaireRadio[] | null } | null;
+} | null | undefined): RadiosTrouvees {
+  const miennes = Array.isArray(r?.radios) ? r!.radios! : [];
+  const annuaire = Array.isArray(r?.radios_annuaire?.items) ? r!.radios_annuaire!.items! : [];
+  const total = Number(r?.radios_annuaire?.total ?? annuaire.length);
+  return { miennes, annuaire, reste: Math.max(0, (Number.isFinite(total) ? total : annuaire.length) - annuaire.length) };
+}
+
+/**
+ * `GET /search?sources=radios` — « Mes radios » ET l'annuaire, sans la
+ * bibliothèque ni les services : l'écran de recherche tient déjà son local de
+ * `/library/search`.
+ */
+export function chercherRadios(q: string) {
+  return fetchJSON<Parameters<typeof lireRadiosTrouvees>[0]>(
+    `${BASE}/search?q=${encodeURIComponent(q)}&sources=radios`,
+  ).then(lireRadiosTrouvees);
+}

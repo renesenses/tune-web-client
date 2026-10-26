@@ -22,11 +22,12 @@ import ro from '../locales/ro';
 import sv from '../locales/sv';
 import vi from '../locales/vi';
 import el from '../locales/el';
+import nb from '../locales/nb';
 import pl from '../locales/pl';
 import zh from '../locales/zh';
 
 const LANGUES: Record<string, Record<string, string>> = {
-  de, en, es, fr, hu, it: it_, ja, ko, ro, sv, vi, el, pl, zh,
+  de, en, es, fr, hu, it: it_, ja, ko, ro, sv, vi, el, zh,
 } as any;
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');

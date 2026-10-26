@@ -80,7 +80,7 @@ describe('#910 — ce que l\'écran en dit', () => {
   });
 
   it('la clé existe dans les ONZE langues', () => {
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'pl']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl']) {
       expect(readFileSync(`src/lib/locales/${l}.ts`, 'utf8'), l).toContain('v2.fas.topTracksFailed');
     }
   });

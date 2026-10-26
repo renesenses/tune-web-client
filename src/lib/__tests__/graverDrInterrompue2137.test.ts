@@ -17,7 +17,7 @@ const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 const sansCommentaires = (s: string) =>
   s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '').replace(/^\s*\/\/.*$/gm, '');
 
-const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'pl'];
+const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'];
 
 describe('gravure du DR interrompue (fil 2137)', () => {
   const api = sansCommentaires(lire('src/lib/api.ts'));

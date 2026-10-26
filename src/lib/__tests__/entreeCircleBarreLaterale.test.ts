@@ -126,7 +126,7 @@ describe('barre latérale — entrée « Tune Circle »', () => {
 
   it('le libellé existe dans les onze langues', () => {
     const dossier = resolve(__dirname, '../locales');
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'pl']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'nb', 'pl']) {
       const src = readFileSync(resolve(dossier, `${l}.ts`), 'utf8');
       expect(src, `v2.circle.title manquant en ${l}`).toMatch(/["']v2\.circle\.title["']\s*:/);
     }

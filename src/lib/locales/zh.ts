@@ -3772,6 +3772,8 @@ export default {
   "v2.fas.radioServeurAncien": "艺人电台需要更新版本的 Tune 服务器，且此页面没有可随机播放的热门曲目。",
   "v2.rech.tracks": "曲目",
   "v2.rech.playlists": "播放列表",
+  "v2.rech.radios": "电台",
+  "v2.rech.radiosMore": "电台目录中还有 {n} 个",
   "v2.rech.best": "最佳结果",
   "v2.rech.kindArtist": "艺人",
   "v2.rech.kindAlbum": "专辑",
