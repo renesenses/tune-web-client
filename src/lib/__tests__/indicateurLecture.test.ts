@@ -166,7 +166,7 @@ describe('etatDeLaLigne — quelle ligne, et dans quel état (#1845)', () => {
 
 describe('les onze langues portent les clés de l’indicateur', () => {
   const langues: [string, Record<string, string>][] = [
-    ['fr', lFr], ['en', lEn], ['de', lDe], ['es', lEs], ['hu', lHu], ['vi', lVi], ['el', 'pl', lEl], ['it', lIt],
+    ['fr', lFr], ['en', lEn], ['de', lDe], ['es', lEs], ['hu', lHu], ['vi', lVi], ['el', lEl], ['pl', lPl], ['it', lIt],
     ['ja', lJa], ['ko', lKo], ['ro', lRo], ['sv', lSv], ['zh', lZh],
   ];
   it('onze fichiers, trois clés chacun, aucune valeur vide', () => {

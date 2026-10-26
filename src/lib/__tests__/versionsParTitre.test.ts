@@ -322,7 +322,7 @@ describe('i18n — la clé de l’en-tête dans les onze langues', () => {
   const LANGUES: [string, Record<string, string>][] = [
     ['fr', lFr as any], ['en', lEn as any], ['de', lDe as any], ['es', lEs as any],
     ['it', lIt as any], ['zh', lZh as any], ['ja', lJa as any], ['ko', lKo as any],
-    ['ro', lRo as any], ['sv', lSv as any], ['hu', lHu as any], ['vi', lVi as any], ['el', 'pl', lEl as any],
+    ['ro', lRo as any], ['sv', lSv as any], ['hu', lHu as any], ['vi', lVi as any], ['el', lEl as any], ['pl', lPl as any],
   ];
   it('couvre bien onze langues', () => { expect(LANGUES).toHaveLength(14); });
   for (const [langue, dict] of LANGUES) {

@@ -353,7 +353,7 @@ export default {
   "transport.shuffle": "Losowo",
   "transport.previous": "Poprzedni",
   "transport.next": "Następny",
-  "transport.repeat": "Powtarzaj",
+  "transport.repeat": "Powtarzanie",
   "transport.shuffleOn": "Losowo: włączone",
   "transport.shuffleOff": "Losowo: wyłączone",
   "transport.repeatOff": "Powtarzanie: wyłączone",

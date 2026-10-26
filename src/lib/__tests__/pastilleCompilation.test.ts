@@ -195,7 +195,7 @@ describe('le filtre « compilations » de la bibliothèque (#1957)', () => {
 
 describe('les onze langues portent les clés de la pastille', () => {
   const langues: [string, Record<string, string>][] = [
-    ['fr', lFr], ['en', lEn], ['de', lDe], ['es', lEs], ['hu', lHu], ['vi', lVi], ['el', 'pl', lEl], ['it', lIt],
+    ['fr', lFr], ['en', lEn], ['de', lDe], ['es', lEs], ['hu', lHu], ['vi', lVi], ['el', lEl], ['pl', lPl], ['it', lIt],
     ['ja', lJa], ['ko', lKo], ['ro', lRo], ['sv', lSv], ['zh', lZh],
   ];
   it('onze fichiers, quatre clés chacun, aucune valeur vide', () => {

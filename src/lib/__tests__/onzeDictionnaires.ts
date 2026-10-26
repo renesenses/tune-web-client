@@ -19,7 +19,7 @@
 // importent (`import { fr, dictionnaire } from './onzeDictionnaires'`).
 // `setupLocales.ts` les enregistre dans `i18n.ts` avant chaque banc, pour
 // que `$t` reste synchrone sous test comme il l'était.
-import { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, vi as viLocale, el, pl as elLocale } from './lesOnzeLangues';
+import { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, vi as viLocale, el as elLocale, pl as plLocale } from './lesOnzeLangues';
 
 export { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, viLocale as vi, elLocale as el, plLocale as pl };
 
