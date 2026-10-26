@@ -1,5 +1,5 @@
 /**
- * Compte Mozaiklabs et profil d'écoute : deux choses, une ressemblance — #2420.
+ * Compte Mozaiklabs et profil d'écoute : deux choses, une ressemblance — #2426.
  *
  * Alex (rc8) voit en haut du menu son COMPTE (nom, e-mail, photo), puis une
  * section « Profils » avec un profil du même nom et une simple pastille « A » :

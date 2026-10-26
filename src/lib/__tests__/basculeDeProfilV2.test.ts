@@ -138,7 +138,7 @@ describe('Le panneau du compte porte la bascule', () => {
     // qu'un profil personnel existe), et reste ouverte si l'on est sur Default.
     const garde = avant.lastIndexOf("{#if forme !== 'aucune'}");
     expect(garde, 'la rubrique n’est plus conditionnée au nombre de profils').toBeGreaterThan(-1);
-    // #2420 — la forme se décide dans `formeDeLaSection` : liste dès DEUX profils.
+    // #2426 — la forme se décide dans `formeDeLaSection` : liste dès DEUX profils.
     expect(readFileSync(resolve(__dirname, '../profilDuCompte.ts'), 'utf-8')).toContain('if (nbVisibles > 1) return \'liste\';');
     expect(
       avant.lastIndexOf('{/if}'),

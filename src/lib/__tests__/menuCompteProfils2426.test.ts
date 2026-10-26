@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// #2420 — Alex (rc8) voit en haut du menu de l'avatar son COMPTE Mozaiklabs
+// #2426 — Alex (rc8) voit en haut du menu de l'avatar son COMPTE Mozaiklabs
 // (nom, e-mail, photo), puis une section « PROFILES » avec un profil du même
 // nom et une pastille « A » : « Are the profiles not one of the same? ».
 // Le modèle ne change pas ; l'écran doit distinguer les deux :
@@ -66,7 +66,7 @@ const DEFAULT = { id: 1, name: 'Default', display_name: null, avatar_color: '#55
 const ALEX = { id: 2, name: 'alex@example.org', display_name: 'Alex Campbell', avatar_color: '#c33' };
 const LEA = { id: 3, name: 'lea', display_name: 'Léa', avatar_color: '#39c' };
 
-describe('#2420 — le compte n’est pas le profil', () => {
+describe('#2426 — le compte n’est pas le profil', () => {
   it('🔴 l’intitulé dit que ce sont des profils d’écoute de CE serveur, avec une ligne d’aide', async () => {
     profiles.set([DEFAULT, ALEX, LEA]);
     currentProfileId.set(2);

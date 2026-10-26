@@ -386,7 +386,7 @@
       <!-- web#1672 : « Default » n'y figure plus dès qu'un profil personnel
            existe (`visibleProfiles`). La section reste utile si l'on est
            encore SUR Default : elle offre alors d'en sortir. -->
-      <!-- #2420 — LE COMPTE N'EST PAS LE PROFIL. L'intitulé le dit, une ligne
+      <!-- #2426 — LE COMPTE N'EST PAS LE PROFIL. L'intitulé le dit, une ligne
            d'aide aussi ; le profil du compte connecté montre la PHOTO du compte
            au lieu de la pastille ; et un profil seul n'est pas une liste à
            choisir, c'est un geste. -->
