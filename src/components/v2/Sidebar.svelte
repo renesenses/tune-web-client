@@ -555,6 +555,24 @@
   // cocher sa case.
   const servicesBarre = $derived(servicesConnectes($streamingServices));
 
+  /**
+   * #2415 — UNE SEULE BULLE PAR GROUPE : celle de l'enfant.
+   *
+   * Streaming › Qobuz allumait « Streaming » ET « Qobuz » (testeur Alex, rc8).
+   * Quand un service de la barre est ouvert, l'entrée parent ne porte plus la
+   * bulle de sélection (`parent-actif` : sa couleur d'accent, sans fond) ; le
+   * service la garde. Sans service ouvert (écran Streaming seul), le parent
+   * redevient l'entrée sélectionnée. La règle vaut pour tout groupe
+   * parent/enfant de la barre : aujourd'hui Streaming › services (les rayons de
+   * Collections n'ont pas d'enfant sélectionné dans l'arbre).
+   */
+  const serviceOuvert = $derived(
+    $activeView === 'streaming' && $activeStreamingService && servicesBarre.includes($activeStreamingService)
+      ? $activeStreamingService
+      : null,
+  );
+  const parentSansBulle = (it: Item) => it.view === 'streaming' && serviceOuvert !== null;
+
   // Le magasin n'est rempli par AUCUN écran de cette coquille : sans ce
   // chargement la section resterait vide pour toujours (même constat que
   // `statutsStreaming`, #4330). Rangé dans le magasin, il sert aux écrans
@@ -827,7 +845,7 @@
 
   <div class="navscroll">
     {#snippet boutonEntree(it: Item)}
-      <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+      <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView) && !parentSansBulle(it)} class:parent-actif={estActif(it, $activeView) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
         <span>{$t(it.labelKey as any)}</span>
       </button>
@@ -881,7 +899,7 @@
     {:else}
     <nav class="grp">
       {#each noyauAffiche as it (it.view)}
-        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView) && !parentSansBulle(it)} class:parent-actif={estActif(it, $activeView) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
@@ -973,7 +991,7 @@
         {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
           {@render collectionsEtRayons(it)}
         {:else}
-          <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+          <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView) && !parentSansBulle(it)} class:parent-actif={estActif(it, $activeView) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
             <span>{$t(it.labelKey as any)}</span>
           </button>
@@ -1171,6 +1189,9 @@
   .nav:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .nav.active{color:var(--v2-txt); background:linear-gradient(90deg,var(--v2-active1),var(--v2-active2)); box-shadow:inset 0 0 0 1px var(--v2-line2)}
   .nav.active svg{color:var(--v2-acc1)}
+  /* #2415 — le parent d'un service ouvert : l'accent, sans la bulle. */
+  .nav.parent-actif{color:var(--v2-txt)}
+  .nav.parent-actif svg{color:var(--v2-acc1)}
   /* Les services connectés sont un DÉTAIL de l'entrée Streaming : ils en
      dépendent, ils s'en retirent. Le retrait disparaît quand la barre est
      repliée — à 72 px de large, décaler une icône la sortirait de sa colonne
