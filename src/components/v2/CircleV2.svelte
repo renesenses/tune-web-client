@@ -83,6 +83,8 @@
   import PlaylistCercleV2 from './PlaylistCercleV2.svelte';
   import SceneCercleV2 from './SceneCercleV2.svelte';
   import InviterSansEmailV2 from './InviterSansEmailV2.svelte';
+  import NotificationsCercleV2 from './NotificationsCercleV2.svelte';
+  import type { NotifCercle } from '../../lib/circleNotifications';
   import '../../styles/tune-v2.css';
 
   /** `relier` : le refus dit que ce serveur n'est pas relié au compte (T2). */
@@ -307,6 +309,12 @@
   function ouvrirPlaylistPartagee(id: IdOpaque) {
     retour = null;
     playlistOuverte = id;
+  }
+
+  /** rc9 (web#2437) : une notification ouverte mène à ce qu'elle désigne, quand l'écran le montre. */
+  function ouvrirNotification(n: NotifCercle) {
+    if (n.kind === 'playlist_shared' && n.playlist) { ouvrirPlaylistPartagee(n.playlist.id as IdOpaque); return; }
+    if (n.kind === 'contact_request') document.getElementById('circle-recues')?.scrollIntoView?.({ block: 'start' });
   }
 
   function inviter(ev: SubmitEvent) {
@@ -655,6 +663,8 @@
       {/key}
     {:else}
       <p class="intro">{$t('v2.circle.intro' as any)}</p>
+
+      <NotificationsCercleV2 onOuvrir={ouvrirNotification} />
 
       {#if retour}
         <div class={retour.erreur ? 'err retour' : 'ok retour'} role={retour.erreur ? 'alert' : 'status'}>
