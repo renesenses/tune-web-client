@@ -5909,7 +5909,7 @@ export default {
   "erreursServeur.generique": "Le serveur n'a pas pu traiter la demande.",
   "erreursServeur.details": "Détails",
   "erreursServeur.track_decode_failed": "La piste n'a pas pu être décodée.",
-  "v2.pl.serviceNoPlaylists": "{s} ne fournit pas de playlists.",
+  "v2.pl.serviceNoPlaylists": "{s} ne propose pas de playlists.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];
