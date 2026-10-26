@@ -218,6 +218,8 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { concertsUtilisable, refreshConcertsPlugin } from '../../lib/stores/concerts';
   import { circleCharge, refreshCirclePlugin } from '../../lib/circle';
+  import { demarrerSuiviNotifications, arreterSuiviNotifications } from '../../lib/circleNotifications';
+  import PastilleNotifsCercle from './PastilleNotifsCercle.svelte';
   import { healthStatus } from '../../lib/stores/health';
   import { niveauDeLaSonde } from '../../lib/santeServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
@@ -321,6 +323,13 @@
   // aucune explication à offrir d'un greffon arrêté, ses routes rendraient le
   // 404 nu d'axum. C'est la condition du bouton « Ouvrir » des Extensions.
   $effect(() => { void refreshCirclePlugin(); });
+  // Tune Circle rc9 (web#2437) : la pastille des notifications, relue toutes
+  // les minutes onglet visible, seulement quand le greffon tourne.
+  $effect(() => {
+    if ($circleCharge) demarrerSuiviNotifications();
+    else arreterSuiviNotifications();
+    return () => arreterSuiviNotifications();
+  });
   const avanceDisponibles = $derived(
     ADVANCED.filter((it) => it.view !== 'concerts' || $concertsUtilisable)
       .filter((it) => it.view !== 'circle' || $circleCharge),
@@ -829,7 +838,7 @@
     {#snippet boutonEntree(it: Item)}
       <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-        <span>{$t(it.labelKey as any)}</span>
+        <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
       </button>
     {/snippet}
     {#snippet servicesSousStreaming()}
@@ -848,7 +857,7 @@
       <div class="nav-pli">
         <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{$t(it.labelKey as any)}</span>
+          <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
         <button class="pli-arbre" aria-expanded={!arbreBarreReplie}
           aria-label={libellePliArbre} title={libellePliArbre}
@@ -883,7 +892,7 @@
       {#each noyauAffiche as it (it.view)}
         <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{$t(it.labelKey as any)}</span>
+          <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
         <!-- Les services connectés, chacun par son nom, SOUS l'entrée qu'ils
              complètent — #1138. La pastille reprend celle de l'ancienne barre :
@@ -897,7 +906,7 @@
       {#each avanceVisibles as it (it.view)}
         <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{$t(it.labelKey as any)}</span>
+          <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
       {/each}
     </nav>
@@ -975,7 +984,7 @@
         {:else}
           <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-            <span>{$t(it.labelKey as any)}</span>
+            <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
           </button>
         {/if}
       {/each}
@@ -991,7 +1000,7 @@
       {#each studioVisible as it (it.view)}
         <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{$t(it.labelKey as any)}</span>
+          <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
       {/each}
     </nav>
