@@ -14,7 +14,6 @@
     fetchTrackLyrics,
     fetchLyricsByMeta,
     metaLyricsQuery,
-    radioAnchorFrom,
     lyricsSourceKind,
     type LyricsData,
     type LyricsMiss,
@@ -207,29 +206,12 @@
   // (radio OU streaming Qobuz/Tidal). `null` sinon.
   let metaQuery = $derived($currentTrackId == null ? metaLyricsQuery(track) : null);
 
-  // ─── Ancrage temporel radio ─────────────────────────────────────────────
-  // Une radio n'a ni durée ni position : la « position » des paroles est le
-  // temps écoulé depuis l'instant où le SERVEUR a détecté le changement de
-  // métadonnée du flux (début du morceau). Le serveur fournit
-  // `metadata_age_ms` (âge calculé sur son horloge) dans current_track : on
-  // pose l'ancrage local `performance.now() − âge`, recalé à chaque
-  // rafraîchissement de zone. Précision attendue : ±5-15 s (latence de la
-  // détection ICY/livemeta) — l'affichage doit rester lisible malgré cela.
-  // (Le streaming, lui, s'appuie sur la position de lecture réelle.)
-  let radioAnchor = 0;
-  $effect(() => {
-    if (!isRadio || !track) return;
-    radioAnchor = radioAnchorFrom(track.metadata_age_ms, performance.now());
-  });
-  let radioPos = $state(0);
-
   let rafId = 0;
   function rafTick() {
     if (isPlaying) {
       const extrapolated = basePos + (performance.now() - baseTs);
       smoothPos = durationMs > 0 ? Math.min(extrapolated, durationMs) : extrapolated;
     }
-    if (isRadio) radioPos = Math.max(0, performance.now() - radioAnchor);
     rafId = requestAnimationFrame(rafTick);
   }
 
@@ -261,6 +243,13 @@
       if (lyricsKey === key) { lyrics = data; lyricsMiss = miss; }
     });
   });
+  // ─── Radio : pas de défilement synchronisé (#2398) ─────────────────────
+  // Une radio n'a ni durée ni position, et le début du morceau n'est pas
+  // fiable (±5-15 s de latence ICY, parfois plus) : le surlignage et le
+  // défilement calés dessus tombaient à côté (Rémi, RC7). Les paroles d'une
+  // radio s'affichent donc comme du texte simple, que l'on fait défiler soi-même.
+  let paroleSynchronisee = $derived(!!lyrics?.synced && !isRadio);
+
   let showLyrics = $derived(settings.lyrics && lyrics !== null && lyrics.lines.length > 0);
   /**
    * L'état vide du Grand écran.
@@ -292,19 +281,18 @@
   //  - radio (durée inconnue) : ancrage large = maintenant − metadata_age ;
   //  - tout le reste (local, streaming Qobuz/Tidal) : position de lecture
   //    réelle et interpolée → synchro exacte, pas de tolérance élargie.
-  let useRadioAnchor = $derived(isRadio && durationMs <= 0);
   // Décalage réglé sur la zone (#1328). Le serveur sait quand le morceau a
   // changé AVANT que l'auditeur ne l'entende — le son traverse encore le
   // tampon de Tune puis celui du renderer. Retrancher le décalage recule les
   // paroles d'autant. Positif = paroles retardées ; 0 = comportement d'avant.
   let lyricsOffsetMs = $derived(zone?.lyrics_offset_ms ?? 0);
   let syncPos = $derived(
-    Math.max(0, (useRadioAnchor ? radioPos : smoothPos) - lyricsOffsetMs)
+    Math.max(0, smoothPos - lyricsOffsetMs)
   );
 
   // Ligne active (paroles synchronisées) : dernière ligne dont t_ms <= position.
   let activeLine = $derived.by(() => {
-    if (!lyrics?.synced) return -1;
+    if (!lyrics || !paroleSynchronisee) return -1;
     const pos = syncPos;
     let idx = -1;
     for (let i = 0; i < lyrics.lines.length; i++) {
@@ -325,7 +313,7 @@
   $effect(() => {
     const idx = activeLine;
     const el = lyricsEl;
-    if (idx < 0 || !el || !lyrics?.synced) return;
+    if (idx < 0 || !el || !paroleSynchronisee) return;
     if (performance.now() < userScrollUntil) return;
     const lineEl = el.children[idx] as HTMLElement | undefined;
     if (!lineEl) return;
@@ -334,20 +322,14 @@
   });
 
   // (b) Non synchronisé : défilement lent calé sur la durée de la piste.
-  // Radio (durée inconnue) : défilement doux calé sur le temps écoulé depuis
-  // l'ancrage de métadonnée, avec une fenêtre forfaitaire de 4 min.
-  const RADIO_SCROLL_WINDOW_MS = 240_000;
+  // Radio : aucun défilement automatique (voir plus haut).
   $effect(() => {
     const el = lyricsEl;
-    if (!el || !lyrics || lyrics.synced) return;
+    if (!el || !lyrics || paroleSynchronisee || isRadio) return;
     if (performance.now() < userScrollUntil) return;
     const max = el.scrollHeight - el.clientHeight;
     if (max <= 0) return;
-    if (isRadio) {
-      el.scrollTop = Math.min(radioPos / RADIO_SCROLL_WINDOW_MS, 1) * max;
-    } else if (durationMs > 0) {
-      el.scrollTop = progress * max;
-    }
+    if (durationMs > 0) el.scrollTop = progress * max;
   });
 
   onMount(() => {
@@ -436,7 +418,7 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="tv-lyrics"
-          class:synced={lyrics.synced}
+          class:synced={paroleSynchronisee}
           bind:this={lyricsEl}
           onclick={(e) => e.stopPropagation()}
           onwheel={pokeUserScroll}
@@ -445,8 +427,8 @@
           {#each lyrics.lines as line, i}
             <p
               class="tv-line"
-              class:active={lyrics.synced && i === activeLine}
-              class:past={lyrics.synced && activeLine >= 0 && i < activeLine}
+              class:active={paroleSynchronisee && i === activeLine}
+              class:past={paroleSynchronisee && activeLine >= 0 && i < activeLine}
             >
               {line.text || '♪'}
             </p>
@@ -480,10 +462,14 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="tv-panel" onclick={(e) => e.stopPropagation()}>
-      <label class="tv-panel-item">
-        <input type="checkbox" checked={settings.lyrics} onchange={(e) => { settings = { ...settings, lyrics: (e.target as HTMLInputElement).checked }; }} />
-        {$t('tv.lyrics')}
-      </label>
+      <!-- #2398 — « Paroles » est un BOUTON à bascule, comme tous les autres
+           réglages de ce panneau (c'était une case à cocher). -->
+      <button
+        class="tv-panel-item tv-size-btn"
+        class:active={settings.lyrics}
+        aria-pressed={settings.lyrics}
+        onclick={() => { settings = { ...settings, lyrics: !settings.lyrics }; }}
+      >{$t('tv.lyrics')}</button>
       <!-- Choix d'instrument (#2514) : la case à cocher devient trois choix,
            dans le même panneau et au même endroit qu'avant. -->
       <div class="tv-panel-item tv-panel-vu" role="group" aria-label={$t('tv.vuInstrument' as any)}>
