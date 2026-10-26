@@ -15,6 +15,7 @@
   import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import { t } from '../../lib/i18n';
+  import { urlSsoAuthorize } from '../../lib/ssoAuthorize';
   import { get } from 'svelte/store';
   import { searchSettings, tabLabel, type V2SettingsHit } from '../../lib/v2Settings';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
@@ -103,7 +104,7 @@
   function signIn() {
     try { localStorage.setItem('tune_sso_pending', Date.now().toString()); } catch {}
     try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
-    window.location.href = '/api/v1/cloud/sso/authorize';
+    window.location.href = urlSsoAuthorize('/api/v1');
   }
 
   async function signOut() {
