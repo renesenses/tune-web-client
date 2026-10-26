@@ -1715,6 +1715,7 @@ export default {
   "settings.levelsOpenMoreTabs": "Các cấp Nâng cao và Chuyên gia mở thêm các tab khác.",
   "settings.themePalettesHint": "Bảy bảng màu. Riêng cho ứng dụng mới — giao diện hiện tại giữ chủ đề riêng của nó.",
   "settings.themeDarkGrey": "Xám đậm",
+  "settings.themeMozaiklabs": "Mozaiklabs (xám than / cam)",
   "settings.ingestConflictHint": "Khi một tệp cùng tên đã tồn tại ở nơi đích.",
   "settings.writeTagsHint": "Sửa đổi các tệp được nhập. Nếu bỏ chọn, chỉ cơ sở dữ liệu được cập nhật.",
   "settings.facetValuesHint": "0 = tất cả. Quá vài trăm giá trị, cột sẽ trở nên khó đọc.",

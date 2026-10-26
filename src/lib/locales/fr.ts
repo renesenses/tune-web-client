@@ -1839,6 +1839,7 @@ export default {
   "settings.levelsOpenMoreTabs": "Les niveaux Avancé et Expert ouvrent d'autres onglets.",
   "settings.themePalettesHint": "Sept palettes. Réglage propre au nouveau client — le thème de l'interface actuelle reste séparé.",
   "settings.themeDarkGrey": "Gris foncé",
+  "settings.themeMozaiklabs": "Mozaiklabs (anthracite / orange)",
   "settings.ingestConflictHint": "Quand un fichier de même nom existe déjà à destination.",
   "settings.writeTagsHint": "Modifie les fichiers importés. Décoché, la base seule est renseignée.",
   "settings.facetValuesHint": "0 = toutes. Au-delà de quelques centaines, la colonne devient illisible.",

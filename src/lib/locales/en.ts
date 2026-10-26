@@ -1836,6 +1836,7 @@ export default {
   "settings.levelsOpenMoreTabs": "The Advanced and Expert levels open further tabs.",
   "settings.themePalettesHint": "Seven palettes. Specific to the new client — the current interface keeps its own theme.",
   "settings.themeDarkGrey": "Dark grey",
+  "settings.themeMozaiklabs": "Mozaiklabs (charcoal / orange)",
   "settings.ingestConflictHint": "When a file of the same name already exists at the destination.",
   "settings.writeTagsHint": "Modifies imported files. Unchecked, only the database is filled in.",
   "settings.facetValuesHint": "0 = all. Beyond a few hundred, the column becomes unreadable.",

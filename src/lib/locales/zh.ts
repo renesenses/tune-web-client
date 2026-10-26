@@ -2918,6 +2918,7 @@ export default {
   "settings.levelsOpenMoreTabs": "高级和专家级别会打开更多标签页。",
   "settings.themePalettesHint": "七种配色。新客户端专有的设置 — 当前界面的主题保持独立。",
   "settings.themeDarkGrey": "深灰",
+  "settings.themeMozaiklabs": "Mozaiklabs（炭灰 / 橙色）",
   "settings.ingestConflictHint": "当目标位置已存在同名文件时。",
   "settings.writeTagsHint": "修改导入的文件。不勾选时，只填充数据库。",
   "settings.facetValuesHint": "0 = 全部。超过几百项后，该列将难以阅读。",

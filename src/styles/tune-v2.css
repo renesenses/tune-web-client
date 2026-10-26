@@ -1,7 +1,7 @@
 /* Jeu de tokens du nouveau client (direction Levente).
    Portée .tune-v2 pour cohabiter avec le thème historique sans le perturber.
 
-   SEPT THÈMES. Le thème actif est posé par `applyV2Theme()` en attribut
+   HUIT THÈMES. Le thème actif est posé par `applyV2Theme()` en attribut
    `data-v2-theme` sur <html>. Le sélecteur `:root[data-v2-theme=…] .tune-v2`
    l'emporte sur le bloc de base (3 niveaux de spécificité contre 1) et
    s'applique donc à TOUTES les racines .tune-v2, y compris imbriquées — sans
@@ -200,6 +200,32 @@
   --v2-glow:rgba(61,214,176,.20); --v2-glow-strong:rgba(61,214,176,.26); --v2-acc-soft:rgba(98,184,134,.10); --v2-focus:rgba(61,214,176,.18); --v2-scrim:rgba(43,43,43,.8); --v2-sh-sm:rgba(0,0,0,.35);
 }
 
+/* ── 8. Mozaiklabs — gris anthracite, accent orange en dégradé ───────────
+   Le thème de la page de connexion Mozaiklabs (décision de Bertrand,
+   26/10/2026, rc9) : fond gris anthracite, accent orange vif en dégradé
+   #F97316 → #EA580C. Mêmes jetons que les autres thèmes sombres.
+
+   Mesuré (WCAG, sur fond, fond 2, surface, surface de choix et survol) :
+   texte 12,2:1, secondaire 7,9:1, atténué 5,5:1, accent `--v2-acc1` 4,78:1
+   (il sert de texte et d'icône), texte sur le dégradé orange 5,4:1 au
+   minimum. `--v2-acc2`, l'extrémité sombre du dégradé, ne tient que 3,77:1 :
+   c'est un REMPLISSAGE et un filet (WCAG 1.4.11, 3:1), pas une couleur de
+   texte — la même limite que tous les thèmes, où l'extrémité sombre d'un
+   dégradé ne peut pas être plus sombre que le début ET atteindre 4,5:1.
+   Garde : `themeMozaiklabs.test.ts`. */
+:root[data-v2-theme="mozaiklabs"] .tune-v2{
+  --v2-bg:#1E1F22; --v2-bg2:#222326; --v2-surface:#2D2F33; --v2-surface2:#26282B;
+  --v2-line:#34363B; --v2-line2:#42454B;
+  --v2-txt:#F4F4F5; --v2-txt2:#C4C6CC; --v2-txt3:#A3A6AE;
+  --v2-acc1:#F97316; --v2-acc2:#EA580C; --v2-acc-tint:#FFE4D0; --v2-on-acc:#1A0A02;
+  --v2-hover:#292B2E; --v2-active1:#3A2619; --v2-active2:#2C2018;
+  --v2-player1:#1A1B1E; --v2-player2:#17181B; --v2-knob:#F4F4F5;
+  --v2-av1:#46484E; --v2-av2:#666970;
+  --v2-danger:#FF8F87; --v2-danger-soft:rgba(255,143,135,.12); --v2-danger-bd:#FF6B6B;
+  --v2-sh-card:0 6px 16px rgba(0,0,0,.35); --v2-sh-lg:0 16px 40px rgba(0,0,0,.50); --v2-sh-menu:0 20px 50px rgba(0,0,0,.55);
+  --v2-glow:rgba(249,115,22,.22); --v2-glow-strong:rgba(249,115,22,.30); --v2-acc-soft:rgba(234,88,12,.12); --v2-focus:rgba(249,115,22,.20); --v2-scrim:rgba(30,31,34,.8); --v2-sh-sm:rgba(0,0,0,.40);
+}
+
 /* ── Fond du document ───────────────────────────────────────────────────
    Mesuré dans Chrome : <body> restait #181818 (thème historique) sous TOUS
    les thèmes v2 — invisible tant que la coquille couvre 100vh, mais le
@@ -213,6 +239,7 @@
 :root[data-v2-theme="clear-white"]{ --v2-body-bg:#FFFFFF; }
 :root[data-v2-theme="clear-grey"]{ --v2-body-bg:#EDEFF2; }
 :root[data-v2-theme="dark-grey"]{ --v2-body-bg:#2B2B2B; }
+:root[data-v2-theme="mozaiklabs"]{ --v2-body-bg:#1E1F22; }
 :root[data-v2-theme] body{ background:var(--v2-body-bg); }
 
 /* ─────────────────────────────────────────────────────────────────────────
