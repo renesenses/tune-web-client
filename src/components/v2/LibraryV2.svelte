@@ -4021,17 +4021,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /* La LISTE des valeurs de facette : un écran, pas un déroulé de grilles.
      Deux colonnes dès qu'il y a la place — une bibliothèque compte souvent
      plus de cinquante genres, et une colonne unique redemanderait à faire
-     défiler ce qu'on venait d'éviter (eric, forum 1671).
-     Bertrand, 26/10 (capture Labels) : la liste est un enfant de `.body`, qui
-     est un flex en LIGNE. Sans `flex:1`, elle prenait la largeur de son
-     contenu — deux colonnes étroites à gauche et le reste de l'écran vide.
-     Comme `.grid`, `.facets` et `.tracklist`, elle occupe toute la largeur. */
-  .fliste{flex:1; min-width:0; min-height:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+     défiler ce qu'on venait d'éviter (eric, forum 1671). */
+  .fliste{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
     gap:2px 18px; padding:6px 30px 40px; align-content:start; overflow-y:auto}
   .fl{display:flex; align-items:center; gap:6px; border-radius:9px}
-  /* web#2297 — la grille des labels : des cases carrées, logo au-dessus,
-     au pas de la grille des albums (`.grid`) — même colonne, même gouttière. */
-  .fliste:has(.lgcase){grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:22px 18px; padding:8px 30px 40px}
+  /* web#2297 — la grille des labels : des cases carrées, logo au-dessus. */
+  .fliste:has(.lgcase){grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:18px}
   .lgcase{position:relative; display:flex; flex-direction:column; min-width:0; border-radius:12px}
   .lgcase:hover{background:var(--v2-hover)}
   .lgouvrir{display:flex; flex-direction:column; align-items:stretch; gap:6px; min-width:0;

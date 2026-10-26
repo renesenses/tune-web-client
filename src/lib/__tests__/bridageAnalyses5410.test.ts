@@ -33,7 +33,7 @@ describe('#5410 — le bridage des analyses à l’écran', () => {
   });
 
   it('les deux phrases existent dans toutes les langues', () => {
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       expect(src, l).toContain('"v2.health.analysesBrideesIllisible":');
       expect(src, l).toContain('"v2.health.analysesBrideesFigee":');

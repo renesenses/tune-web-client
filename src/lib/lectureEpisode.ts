@@ -23,6 +23,7 @@
  * traduite pour les codes connus, et sinon le repli traduit suivi du message
  * du serveur. L'écran n'allume l'épisode qu'après un succès.
  */
+import { estMessageGenerique } from './messageServeur';
 import { get } from 'svelte/store';
 import { playPodcastEpisode } from './api';
 import { t } from './i18n';
@@ -50,7 +51,9 @@ export function messageEchecEpisode(e: unknown): string {
   const code = (e as { code?: unknown } | null)?.code;
   const cle = typeof code === 'string' ? CLES_DES_CODES[code] : undefined;
   if (cle) return traduire(cle);
-  const detail = texteEchec(e).trim();
+  const brut = texteEchec(e).trim();
+  // #2417 — le message générique ne s'accole pas à la phrase de l'écran.
+  const detail = estMessageGenerique(brut) ? '' : brut;
   const repli = traduire('v2.pod.playFailed');
   return detail ? `${repli} : ${detail}` : repli;
 }

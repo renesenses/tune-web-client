@@ -5877,4 +5877,7 @@ export default {
   "scanDetenteur.depuis": "sedan {heure}",
   "scanDetenteur.residuel": "Kvarvarande status: ingen skanning körs egentligen. ”Stoppa” återställer den.",
   "scanDetenteur.refus409": "Servern nekade: en annan skanning pågår redan ({scan}). Försök igen när den är klar.",
+  "erreursServeur.generique": "Servern kunde inte slutföra begäran.",
+  "erreursServeur.details": "Detaljer",
+  "erreursServeur.track_decode_failed": "Spåret kunde inte avkodas.",
 } as const;

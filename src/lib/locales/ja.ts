@@ -5878,6 +5878,9 @@ export default {
   "scanDetenteur.depuis": "{heure} から",
   "scanDetenteur.residuel": "残留状態：実際にはスキャンは動いていません。「停止」でリセットされます。",
   "scanDetenteur.refus409": "サーバーが拒否しました：別のスキャンが実行中です（{scan}）。終了してから再試行してください。",
+  "erreursServeur.generique": "サーバーはリクエストを完了できませんでした。",
+  "erreursServeur.details": "詳細",
+  "erreursServeur.track_decode_failed": "トラックをデコードできませんでした。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

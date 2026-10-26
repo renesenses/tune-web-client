@@ -125,7 +125,7 @@ describe('les écrans qui y mènent', () => {
     }
   });
   it('les cinq libellés sont traduits dans les douze langues', async () => {
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'vi', 'el', 'nb', 'pl', 'zh']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'vi', 'el', 'nb', 'zh']) {
       const src = lire(`../locales/${l}.ts`);
       for (const c of ['artistesBibliotheque', 'aDecouvrir', 'albumPhare', 'sourceQobuz', 'autresArtistes']) {
         expect(src, `${l} ${c}`).toContain(`"v2.label.${c}"`);

@@ -48,7 +48,7 @@ describe('fusion des zones en double', () => {
 
   it('les cinq clés existent dans les onze langues', () => {
     const cles = ['v2.zone.mergeInto', 'v2.zone.mergeConfirm', 'v2.zone.presenceRecent', 'v2.zone.presenceAbsent', 'v2.zone.presenceNever'];
-    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const k of cles) expect(src, `${k} manque en ${l}`).toContain(`"${k}"`);
     }

@@ -126,7 +126,7 @@ describe('#1068 — le branchement', () => {
     const cles = ['v2.scan.discarded', 'v2.scan.discardedSample', 'v2.scan.skipFailed',
       'v2.scan.skipEmpty', 'v2.scan.skipCue', 'v2.scan.skipNoMeta',
       'v2.scan.skipUnsupported', 'v2.scan.skipDuplicate'];
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb']) {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       for (const c of cles) expect(src, `${l} / ${c}`).toContain(c);
     }

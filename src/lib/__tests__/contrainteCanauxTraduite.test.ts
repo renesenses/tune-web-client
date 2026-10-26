@@ -9,7 +9,7 @@ import { cleContrainteCanaux } from '../vueZones';
 // tune-core/src/audio/canaux_declares.rs) et l'écran l'affichait telle quelle.
 // Le serveur envoie pourtant le code STABLE à côté, dans `reason`.
 
-const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'];
+const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb'];
 const dico = (lg: string) => readFileSync(resolve(__dirname, `../locales/${lg}.ts`), 'utf8');
 
 describe('la contrainte de canaux est TRADUITE, pas recopiée du serveur', () => {

@@ -172,12 +172,14 @@ describe('Pont Roon — aperçu puis import (#4349)', () => {
     expect(imports().map((a) => a.url.split('?')[1])).toEqual(['apercu=true']);
   });
 
-  it('le motif du refus serveur est affiché, pas son code', async () => {
+  it('le refus serveur est dit, sans son texte brut ni son code (#2417)', async () => {
     refusApercu = { status: 422, corps: { error: 'export_pont_roon_illisible', detail: "ce n'est pas un export du moissonneur" } };
     const el = await poserEcran();
     await choisirFichier(el, ARCHIVE());
     const err = el.querySelector('.err');
-    expect(err?.textContent).toContain("ce n'est pas un export du moissonneur");
+    expect(err?.textContent).toBeTruthy();
+    expect(err?.textContent).not.toContain("ce n'est pas un export du moissonneur");
+    expect(err?.textContent).not.toContain('export_pont_roon_illisible');
   });
 
   it('sans Premium : le message, et aucun sélecteur', async () => {

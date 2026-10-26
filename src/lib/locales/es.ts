@@ -5878,6 +5878,9 @@ export default {
   "scanDetenteur.depuis": "desde las {heure}",
   "scanDetenteur.residuel": "Estado residual: no hay ningún escaneo en curso. «Detener» lo restablece.",
   "scanDetenteur.refus409": "El servidor lo rechazó: ya hay otro escaneo en curso ({scan}). Vuelva a intentarlo cuando termine.",
+  "erreursServeur.generique": "El servidor no ha podido completar la solicitud.",
+  "erreursServeur.details": "Detalles",
+  "erreursServeur.track_decode_failed": "No se ha podido decodificar la pista.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

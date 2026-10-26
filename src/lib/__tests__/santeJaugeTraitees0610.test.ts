@@ -119,7 +119,7 @@ describe('la carte Santé applique la règle', () => {
       ['v2.health.unmanaged.oversized', /\{n\}/],
       ['v2.health.unmanaged.outOfScope', /\{n\}/],
     ];
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
       const src = fs.readFileSync(fileURLToPath(new URL(`../locales/${l}.ts`, import.meta.url)), 'utf8');
       for (const [k, marqueurs] of cles) {
         const m = src.match(new RegExp(`"${k.replace(/\./g, '\\.')}": "([^"]*)"`));

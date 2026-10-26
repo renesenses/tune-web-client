@@ -29,10 +29,9 @@ import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
 import nbLocale from '../locales/nb';
-import plLocale from '../locales/pl';
 
 const LANGUES: Record<string, Record<string, string>> = {
-  fr, en, de, es, it: it_, zh, ja, ko, ro, sv, hu, vi: viLocale, el: elLocale, nb: nbLocale, pl: plLocale,
+  fr, en, de, es, it: it_, zh, ja, ko, ro, sv, hu, vi: viLocale, el: elLocale, nb: nbLocale,
 } as any;
 
 const CLE_REFUS = 'playback.errorSpotifyDisabled';

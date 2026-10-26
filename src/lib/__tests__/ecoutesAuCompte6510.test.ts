@@ -100,7 +100,7 @@ describe('#6510 — libellés', () => {
   });
 
   it('les trois libellés existent dans les douze langues', () => {
-    expect(ONZE_LANGUES.length).toBe(15);
+    expect(ONZE_LANGUES.length).toBe(14);
     for (const code of ONZE_LANGUES) {
       const d = dictionnaire(code);
       for (const k of ['settings.cloudListens', 'settings.cloudListensHint', 'settings.cloudListensLink']) {

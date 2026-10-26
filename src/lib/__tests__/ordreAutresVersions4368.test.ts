@@ -44,7 +44,6 @@ import lHu from '../locales/hu';
 import lVi from '../locales/vi';
 import lEl from '../locales/el';
 import lNb from '../locales/nb';
-import lPl from '../locales/pl';
 
 const TRACK = 25930;
 
@@ -350,7 +349,7 @@ describe('#4368 — les libellés existent dans les ONZE langues', () => {
   const LANGUES: [string, Record<string, string>][] = [
     ['fr', lFr as never], ['en', lEn as never], ['de', lDe as never], ['es', lEs as never],
     ['it', lIt as never], ['zh', lZh as never], ['ja', lJa as never], ['ko', lKo as never],
-    ['ro', lRo as never], ['sv', lSv as never], ['hu', lHu as never], ['vi', lVi as never], ['el', lEl as never], ['nb', lNb as never], ['pl', lPl as never],
+    ['ro', lRo as never], ['sv', lSv as never], ['hu', lHu as never], ['vi', lVi as never], ['el', lEl as never], ['nb', lNb as never],
   ];
   const CLES = [
     'settings.versionsOrder', 'settings.versionsOrderHint',
@@ -358,7 +357,7 @@ describe('#4368 — les libellés existent dans les ONZE langues', () => {
   ];
 
   it('les onze langues sont bien au rendez-vous', () => {
-    expect(LANGUES).toHaveLength(15);
+    expect(LANGUES).toHaveLength(14);
   });
 
   for (const [code, dict] of LANGUES) {

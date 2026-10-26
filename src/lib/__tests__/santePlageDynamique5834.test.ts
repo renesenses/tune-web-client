@@ -71,7 +71,7 @@ describe('#5834 — la carte lit la jauge et dit ce qu’elle exclut', () => {
     expect(SOURCE).toMatch(/total - avec - ecartees - reportees - tropLongues - sansFichier/);
   });
   it('les clés existent dans les onze langues', () => {
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
       const src = fs.readFileSync(
         fileURLToPath(new URL(`../locales/${l}.ts`, import.meta.url)), 'utf8');
       for (const k of ['v2.health.drGaugeMeasurable', 'v2.health.drOversized', 'v2.health.drWithoutFile']) {

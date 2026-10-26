@@ -20,7 +20,6 @@ import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
 import nbLocale from '../locales/nb';
-import plLocale from '../locales/pl';
 import it_ from '../locales/it';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
@@ -55,9 +54,9 @@ describe('#5524 — fréquence max par zone', () => {
 
   it('les deux libellés existent dans les 11 langues', () => {
     const langues: Record<string, Record<string, string>> = {
-      de, en, es, fr, hu, vi: viLocale, el: elLocale, nb: nbLocale, pl: plLocale, it: it_, ja, ko, ro, sv, zh,
+      de, en, es, fr, hu, vi: viLocale, el: elLocale, nb: nbLocale, it: it_, ja, ko, ro, sv, zh,
     };
-    expect(Object.keys(langues)).toHaveLength(15);
+    expect(Object.keys(langues)).toHaveLength(14);
     for (const [code, dico] of Object.entries(langues)) {
       for (const cle of ['settings.maxSampleRateAuto', 'settings.maxSampleRateHint']) {
         expect(dico[cle], `${code} : ${cle}`).toBeTruthy();

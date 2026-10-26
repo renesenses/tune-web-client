@@ -106,7 +106,7 @@ describe('Support v2 — signaler un bogue au forum (porté de DiagnosticsView)'
     const err = hote!.querySelector('.bogue-err');
     expect(err, 'aucune erreur affichée après un refus').toBeTruthy();
     expect(err!.textContent).toContain(fr['v2.sup.bugSendError']);
-    expect(err!.textContent).toContain('cloud rejected the report');
+    expect(err!.textContent).not.toContain('cloud rejected the report'); // #2417
     expect(hote!.textContent).not.toContain(fr['v2.sup.bugSent']);
   });
 

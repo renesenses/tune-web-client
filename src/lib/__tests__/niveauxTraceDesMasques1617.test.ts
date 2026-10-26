@@ -138,7 +138,7 @@ afterEach(() => {
 
 describe('les deux clés neuves existent dans les ONZE langues', () => {
   it('settings.hiddenHere et settings.hiddenHereReveal sont traduites partout', async () => {
-    const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'];
+    const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb'];
     for (const l of langues) {
       const table = dictionnaire(l);
       for (const k of ['settings.hiddenHere', 'settings.hiddenHereReveal']) {

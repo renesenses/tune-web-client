@@ -5837,6 +5837,9 @@ export default {
   "scanDetenteur.depuis": "{heure} óta",
   "scanDetenteur.residuel": "Maradvány állapot: valójában nem fut vizsgálat. A „Leállítás” visszaállítja.",
   "scanDetenteur.refus409": "A szerver elutasította: már fut egy másik vizsgálat ({scan}). Próbálja újra, ha befejeződött.",
+  "erreursServeur.generique": "A szerver nem tudta teljesíteni a kérést.",
+  "erreursServeur.details": "Részletek",
+  "erreursServeur.track_decode_failed": "A számot nem sikerült dekódolni.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

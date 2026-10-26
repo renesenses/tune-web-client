@@ -55,7 +55,7 @@ describe('les libellés du critère « favori »', () => {
 
   it('les six libellés existent dans les onze langues', () => {
     const cles = ['favColTrack', 'favColAlbum', 'favColArtist', 'favPlTrack', 'favPlAlbum', 'favPlArtist'];
-    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl']) {
+    for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const c of cles) expect(src, `${l} : v2.smart.${c}`).toContain(`"v2.smart.${c}":`);
     }

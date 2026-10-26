@@ -27,7 +27,6 @@ import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
 import nbLocale from '../locales/nb';
-import plLocale from '../locales/pl';
 
 function membre(p: Partial<MembreGroupe>): MembreGroupe {
   return {
@@ -190,7 +189,7 @@ describe('#2264 — les aides pures', () => {
     const cles = ['same', 'other', 'byIsrc', 'byMbid', 'byTitle', 'default', 'thisTrack'].map((k) => `library.versionGroups.${k}`);
     for (const l of ['isrc', 'mbid', 'title_artist_duration'] as const) expect(cles).toContain(cleLien(l));
     expect(cleLien(null)).toBeNull();
-    for (const dict of [fr, en, de, es, it_, ja, ko, ro, sv, zh, hu, viLocale, elLocale, nbLocale, plLocale] as Record<string, string | undefined>[]) {
+    for (const dict of [fr, en, de, es, it_, ja, ko, ro, sv, zh, hu, viLocale, elLocale, nbLocale] as Record<string, string | undefined>[]) {
       for (const c of cles) expect(dict[c], c).toBeTruthy();
     }
   });

@@ -60,7 +60,7 @@ export const PALIERS_DE_SECOURS: { v: number; l: string }[] = [
  */
 export function localiserDecimale(label: string, langue: string | null | undefined): string {
   const l = (langue ?? '').slice(0, 2).toLowerCase();
-  const virgule = ['fr', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'].includes(l);
+  const virgule = ['fr', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'nb'].includes(l);
   if (!virgule) return label;
   // Uniquement entre deux chiffres : un point de fin de phrase ne bouge pas.
   return label.replace(/(\d)\.(\d)/g, '$1,$2');

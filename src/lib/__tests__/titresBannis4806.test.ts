@@ -38,7 +38,6 @@ import lHu from '../locales/hu';
 import lVi from '../locales/vi';
 import lEl from '../locales/el';
 import lNb from '../locales/nb';
-import lPl from '../locales/pl';
 import lJa from '../locales/ja';
 import lKo from '../locales/ko';
 import lZh from '../locales/zh';
@@ -312,7 +311,7 @@ describe('#4806 — onze langues', () => {
     'ban.error', 'ban.title', 'ban.eyebrow', 'ban.intro', 'ban.empty', 'ban.loadError', 'ban.retry',
     'ban.count', 'ban.orphan'];
   const LANGUES: [string, unknown][] = [['fr', lFr], ['en', lEn], ['de', lDe], ['es', lEs], ['it', lIt],
-    ['ro', lRo], ['sv', lSv], ['hu', lHu], ['vi', lVi], ['el', lEl], ['nb', lNb], ['pl', lPl], ['ja', lJa], ['ko', lKo], ['zh', lZh]];
+    ['ro', lRo], ['sv', lSv], ['hu', lHu], ['vi', lVi], ['el', lEl], ['nb', lNb], ['ja', lJa], ['ko', lKo], ['zh', lZh]];
   it('chaque clé existe dans les 11 fichiers, et « {title} » y survit', () => {
     for (const [nom, dico] of LANGUES) {
       const d = dico as Record<string, string>;

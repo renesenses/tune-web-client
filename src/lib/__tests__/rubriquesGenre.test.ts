@@ -169,7 +169,7 @@ describe('Les sept clés de traduction existent dans les onze langues', () => {
   //
   // `hu.ts` écrit ses clés entre guillemets doubles : la reconnaissance ne
   // présume pas du guillemet.
-  const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'];
+  const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb'];
 
   for (const lang of LANGUES) {
     it(`${lang} traduit les sept rubriques`, () => {

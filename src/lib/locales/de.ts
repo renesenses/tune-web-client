@@ -5878,6 +5878,9 @@ export default {
   "scanDetenteur.depuis": "seit {heure}",
   "scanDetenteur.residuel": "Veralteter Status: Es läuft kein Scan. „Stopp“ setzt ihn zurück.",
   "scanDetenteur.refus409": "Der Server hat abgelehnt: Ein anderer Scan läuft bereits ({scan}). Versuchen Sie es erneut, wenn er beendet ist.",
+  "erreursServeur.generique": "Der Server konnte die Anfrage nicht ausführen.",
+  "erreursServeur.details": "Details",
+  "erreursServeur.track_decode_failed": "Der Titel konnte nicht dekodiert werden.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

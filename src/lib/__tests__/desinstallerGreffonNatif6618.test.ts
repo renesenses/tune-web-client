@@ -125,14 +125,14 @@ describe('Extensions — désinstaller un greffon natif tiers (#6618)', () => {
     expect(q('[data-natif="exemple-tiers"]')).not.toBeNull();
   });
 
-  it('un refus du serveur montre son detail et invite à redémarrer puis réessayer', async () => {
+  it('un refus du serveur est dit, sans son texte brut, et invite à redémarrer puis réessayer (#2417)', async () => {
     refus = { status: 500, corps: { detail: 'le fichier du greffon est encore utilisé' } };
     const d = await ouvrirLaConfirmation();
     dialogs.settle(d.id, { coche: false });
     await jusqua(() => !!q('[data-natif="exemple-tiers"] [data-refus-desinstallation]'));
     const motif = q('[data-natif="exemple-tiers"] [data-refus-desinstallation]');
     expect(motif, 'l’échec de désinstallation reste muet').not.toBeNull();
-    expect(motif!.textContent).toContain('le fichier du greffon est encore utilisé');
+    expect(motif!.textContent).not.toContain('le fichier du greffon est encore utilisé');
     expect(motif!.textContent).toContain(texte('v2.plug.nativeUninstallFailed'));
   });
 });
