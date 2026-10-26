@@ -5725,6 +5725,8 @@ export default {
   "v2.rech.radiosMore": "Kolejne w katalogu radiowym: {n}",
   "v2.labels.logoCredit": "Logo: {auteur} · {licence} · {source}",
   "v2.labels.logoCreditSansAuteur": "Logo: {licence} · {source}",
+  "v2.labels.logoNonLibre": "Logo: {source} · niewolne, użyte do identyfikacji",
+  "v2.labels.logoLicenceInconnue": "Logo: {source} · licencja nieznana",
   "v2.labels.logoLicenceDouteuse": "licencja do sprawdzenia",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

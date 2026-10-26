@@ -5879,5 +5879,7 @@ export default {
   "scanDetenteur.refus409": "Servern nekade: en annan skanning pågår redan ({scan}). Försök igen när den är klar.",
   "v2.labels.logoCredit": "Logotyp: {auteur} · {licence} · {source}",
   "v2.labels.logoCreditSansAuteur": "Logotyp: {licence} · {source}",
+  "v2.labels.logoNonLibre": "Logotyp: {source} · ej fri, används för identifiering",
+  "v2.labels.logoLicenceInconnue": "Logotyp: {source} · okänd licens",
   "v2.labels.logoLicenceDouteuse": "licensen behöver kontrolleras",
 } as const;

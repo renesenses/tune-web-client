@@ -36,10 +36,12 @@ export function logoDuLabel(carte: ReadonlyMap<string, string>, nom: string): st
   return carte.get(cleDeLabel(nom)) ?? null;
 }
 
-/** tune-server-rust#7089 — `clé → attribution`, pour les seuls logos libres
- *  venus de Wikimedia Commons (un logo Qobuz n'en a pas). Une attribution
- *  sans licence ni page source est ignorée : on n'affiche jamais un crédit
- *  à moitié. */
+const STATUTS = new Set(['free', 'non_free_identification', 'unknown']);
+
+/** tune-server-rust#7089 — `clé → attribution`, pour les labels qui ont un
+ *  logo : sa source et ce qu'on sait de sa licence. Une attribution
+ *  incomplète (sans fournisseur ni statut, ou « libre » sans licence) est
+ *  ignorée : on n'affiche jamais un crédit à moitié. */
 export function carteDesCredits(
   labels: readonly LibraryLabel[] | null | undefined,
 ): Map<string, LabelImageCredit> {
@@ -47,8 +49,9 @@ export function carteDesCredits(
   for (const l of labels ?? []) {
     const c = l?.image_credit;
     if (l && typeof l.name === 'string' && typeof l.image_url === 'string' && l.image_url
-      && c && typeof c.license === 'string' && c.license
-      && typeof c.source_url === 'string' && c.source_url) {
+      && c && typeof c.provider === 'string' && c.provider
+      && STATUTS.has(c.license_status)
+      && (c.license_status !== 'free' || (typeof c.license === 'string' && c.license))) {
       carte.set(cleDeLabel(l.name), c);
     }
   }
@@ -63,15 +66,24 @@ export function creditDuLabel(
   return carte.get(cleDeLabel(nom)) ?? null;
 }
 
-/** Le texte de l'attribution, au survol du logo : auteur, licence, source —
- *  et « licence à vérifier » pour un logo douteux. `tr` est la traduction. */
+/** Le texte de l'attribution, au survol du logo, selon ce qu'on sait de la
+ *  licence : libre (auteur, licence, source), non libre en usage
+ *  d'identification, ou inconnue — et « licence à vérifier » pour un logo
+ *  douteux. `tr` est la traduction. */
 export function texteDuCredit(credit: LabelImageCredit, tr: (cle: string) => string): string {
-  const source = credit.provider || 'Wikimedia Commons';
+  const source = credit.provider;
   const auteur = (credit.author ?? '').trim();
-  const base = (auteur ? tr('v2.labels.logoCredit') : tr('v2.labels.logoCreditSansAuteur'))
-    .replace('{auteur}', auteur)
-    .replace('{licence}', credit.license)
-    .replace('{source}', source);
+  let base: string;
+  if (credit.license_status === 'free') {
+    base = (auteur ? tr('v2.labels.logoCredit') : tr('v2.labels.logoCreditSansAuteur'))
+      .replace('{auteur}', auteur)
+      .replace('{licence}', credit.license ?? '')
+      .replace('{source}', source);
+  } else if (credit.license_status === 'non_free_identification') {
+    base = tr('v2.labels.logoNonLibre').replace('{source}', source);
+  } else {
+    base = tr('v2.labels.logoLicenceInconnue').replace('{source}', source);
+  }
   return credit.doubtful ? `${base} · ${tr('v2.labels.logoLicenceDouteuse')}` : base;
 }
 

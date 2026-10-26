@@ -5900,6 +5900,8 @@ export default {
   "scanDetenteur.refus409": "The server refused: another scan is already running ({scan}). Try again once it has finished.",
   "v2.labels.logoCredit": "Logo: {auteur} · {licence} · {source}",
   "v2.labels.logoCreditSansAuteur": "Logo: {licence} · {source}",
+  "v2.labels.logoNonLibre": "Logo: {source} · non-free, used for identification",
+  "v2.labels.logoLicenceInconnue": "Logo: {source} · license unknown",
   "v2.labels.logoLicenceDouteuse": "license to be checked",
 } as const;
 

@@ -1028,7 +1028,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    *  trouvé entre-temps apparaît à l'ouverture suivante. Jamais pour un dépôt
    *  distant : ses labels ne sont pas les nôtres. */
   let logosLabels = $state.raw<Map<string, string>>(new Map());
-  // tune-server-rust#7089 — l'attribution des logos libres (Wikimedia Commons).
+  // tune-server-rust#7089 — la source et la licence connue de chaque logo.
   let creditsLabels = $state.raw<Map<string, LabelImageCredit>>(new Map());
   $effect(() => {
     if (tab !== 'labels' || depot) return;
@@ -3413,7 +3413,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                     aria-label={`${g.key}, ${$tr('v2.rech.labelAlbums' as any).replace('{n}', String(g.albums.length))}`}>
                     <span class="lglogo" aria-hidden="true"
                       title={credit ? texteDuCredit(credit, (k) => $tr(k as any)) : undefined}
-                      data-credit={credit ? credit.license : undefined}>
+                      data-credit={credit ? credit.source : undefined}>
                       {#if logo}
                         <img src={api.artworkUrl(logo, 200)} alt="" loading="lazy" decoding="async" />
                       {:else}

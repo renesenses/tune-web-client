@@ -5732,6 +5732,8 @@ export default {
   "scanDetenteur.refus409": "Máy chủ đã từ chối: một lượt quét khác đang chạy ({scan}). Hãy thử lại khi nó kết thúc.",
   "v2.labels.logoCredit": "Logo: {auteur} · {licence} · {source}",
   "v2.labels.logoCreditSansAuteur": "Logo: {licence} · {source}",
+  "v2.labels.logoNonLibre": "Logo: {source} · không tự do, dùng để nhận diện",
+  "v2.labels.logoLicenceInconnue": "Logo: {source} · giấy phép không rõ",
   "v2.labels.logoLicenceDouteuse": "giấy phép cần kiểm tra",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

@@ -5839,6 +5839,8 @@ export default {
   "scanDetenteur.refus409": "A szerver elutasította: már fut egy másik vizsgálat ({scan}). Próbálja újra, ha befejeződött.",
   "v2.labels.logoCredit": "Logó: {auteur} · {licence} · {source}",
   "v2.labels.logoCreditSansAuteur": "Logó: {licence} · {source}",
+  "v2.labels.logoNonLibre": "Logó: {source} · nem szabad, azonosításra használva",
+  "v2.labels.logoLicenceInconnue": "Logó: {source} · ismeretlen licenc",
   "v2.labels.logoLicenceDouteuse": "a licenc ellenőrizendő",
 } as const;
 

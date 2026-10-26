@@ -5880,6 +5880,8 @@ export default {
   "scanDetenteur.refus409": "Serverul a refuzat: o altă scanare este deja în curs ({scan}). Reîncercați după ce se termină.",
   "v2.labels.logoCredit": "Siglă: {auteur} · {licence} · {source}",
   "v2.labels.logoCreditSansAuteur": "Siglă: {licence} · {source}",
+  "v2.labels.logoNonLibre": "Siglă: {source} · neliberă, folosită pentru identificare",
+  "v2.labels.logoLicenceInconnue": "Siglă: {source} · licență necunoscută",
   "v2.labels.logoLicenceDouteuse": "licență de verificat",
 } as const;
 

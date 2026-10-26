@@ -5725,6 +5725,8 @@ export default {
   "scanDetenteur.refus409": "Ο διακομιστής αρνήθηκε: μια άλλη σάρωση βρίσκεται ήδη σε εξέλιξη ({scan}). Δοκιμάστε ξανά όταν ολοκληρωθεί.",
   "v2.labels.logoCredit": "Λογότυπο: {auteur} · {licence} · {source}",
   "v2.labels.logoCreditSansAuteur": "Λογότυπο: {licence} · {source}",
+  "v2.labels.logoNonLibre": "Λογότυπο: {source} · μη ελεύθερο, χρήση για αναγνώριση",
+  "v2.labels.logoLicenceInconnue": "Λογότυπο: {source} · άγνωστη άδεια",
   "v2.labels.logoLicenceDouteuse": "η άδεια χρήσης πρέπει να ελεγχθεί",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

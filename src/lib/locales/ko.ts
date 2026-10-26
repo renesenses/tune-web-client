@@ -5880,6 +5880,8 @@ export default {
   "scanDetenteur.refus409": "서버가 거부했습니다: 다른 스캔이 이미 실행 중입니다({scan}). 끝난 뒤 다시 시도하세요.",
   "v2.labels.logoCredit": "로고: {auteur} · {licence} · {source}",
   "v2.labels.logoCreditSansAuteur": "로고: {licence} · {source}",
+  "v2.labels.logoNonLibre": "로고: {source} · 비자유, 식별 목적 사용",
+  "v2.labels.logoLicenceInconnue": "로고: {source} · 라이선스 알 수 없음",
   "v2.labels.logoLicenceDouteuse": "라이선스 확인 필요",
 } as const;
 

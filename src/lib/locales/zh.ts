@@ -5880,6 +5880,8 @@ export default {
   "scanDetenteur.refus409": "服务器拒绝：已有另一个扫描正在进行（{scan}）。请在其完成后重试。",
   "v2.labels.logoCredit": "标志：{auteur} · {licence} · {source}",
   "v2.labels.logoCreditSansAuteur": "标志：{licence} · {source}",
+  "v2.labels.logoNonLibre": "标志：{source} · 非自由许可，仅用于识别",
+  "v2.labels.logoLicenceInconnue": "标志：{source} · 许可证未知",
   "v2.labels.logoLicenceDouteuse": "许可证待核实",
 } as const;
 

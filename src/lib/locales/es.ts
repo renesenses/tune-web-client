@@ -5880,6 +5880,8 @@ export default {
   "scanDetenteur.refus409": "El servidor lo rechazó: ya hay otro escaneo en curso ({scan}). Vuelva a intentarlo cuando termine.",
   "v2.labels.logoCredit": "Logotipo: {auteur} · {licence} · {source}",
   "v2.labels.logoCreditSansAuteur": "Logotipo: {licence} · {source}",
+  "v2.labels.logoNonLibre": "Logotipo: {source} · no libre, uso de identificación",
+  "v2.labels.logoLicenceInconnue": "Logotipo: {source} · licencia desconocida",
   "v2.labels.logoLicenceDouteuse": "licencia por verificar",
 } as const;
 

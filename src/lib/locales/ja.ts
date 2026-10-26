@@ -5880,6 +5880,8 @@ export default {
   "scanDetenteur.refus409": "サーバーが拒否しました：別のスキャンが実行中です（{scan}）。終了してから再試行してください。",
   "v2.labels.logoCredit": "ロゴ：{auteur} · {licence} · {source}",
   "v2.labels.logoCreditSansAuteur": "ロゴ：{licence} · {source}",
+  "v2.labels.logoNonLibre": "ロゴ：{source} · 非フリー、識別目的で使用",
+  "v2.labels.logoLicenceInconnue": "ロゴ：{source} · ライセンス不明",
   "v2.labels.logoLicenceDouteuse": "ライセンス要確認",
 } as const;
 
