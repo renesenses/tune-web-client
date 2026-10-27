@@ -27,6 +27,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { fold, formatDuration } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import CartePodcasts from './CartePodcasts.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { PODCAST_GENRES, sousCategories } from '../../lib/podcast-genres';
   import { t } from '../../lib/i18n';
@@ -38,7 +39,8 @@
   const showDiscover = $derived(atLeast(level, 'intermediate'));
   const showExpert = $derived(atLeast(level, 'expert'));
 
-  type Tab = 'subs' | 'discover' | 'search';
+  /** web#2450 — `map` : la carte des émissions par pays et par catégorie. */
+  type Tab = 'subs' | 'discover' | 'search' | 'map';
   /**
    * DÉCOUVRIR en premier — décision de Bertrand du 02/09/2026, et c'est aussi
    * l'onglet par défaut de l'écran actuel. Ouvrir sur des abonnements vides ne
@@ -672,7 +674,7 @@
         <input placeholder={$t('v2.pod.filterSubs' as any)} aria-label={$t('v2.pod.filterSubs' as any)} bind:value={q} />
       </div>
     {/if}
-    {#if showDiscover && tab !== 'subs'}
+    {#if showDiscover && tab !== 'subs' && tab !== 'map'}
       <!-- Le PAYS commande les palmarès ET la recherche : les deux
            interrogent l'iTunes Store d'un pays donné. -->
       <!-- La langue reste VISIBLE en permanence, comme sur l'écran actuel :
@@ -711,6 +713,7 @@
         <button class:on={tab === 'discover'} onclick={() => (tab = 'discover')}>{$t('v2.pod.tabDiscover' as any)}</button>
         <button class:on={tab === 'subs'} onclick={() => (tab = 'subs')}>{$t('v2.pod.tabSubs' as any)}</button>
         <button class:on={tab === 'search'} onclick={() => (tab = 'search')}>{$t('v2.pod.search' as any)}</button>
+        <button class:on={tab === 'map'} onclick={() => (tab = 'map')}>{$t('v2.pod.tabMap' as any)}</button>
       </nav>
     {/if}
     </div>
@@ -733,6 +736,11 @@
           {/each}
         </div>
       {/if}
+
+    {:else if tab === 'map'}
+      <!-- web#2450 — la carte ouvre la MÊME fiche d'épisodes et le MÊME
+           abonnement que les autres onglets. -->
+      <CartePodcasts onOuvrir={(p) => openPodcast(p)} onAbonner={(p, e) => toggleSub(p, e)} estAbonne={(p) => isSubscribed(p)} />
 
     {:else if tab === 'search'}
       <form class="rech" onsubmit={(e) => { e.preventDefault(); void chercher(); }}>

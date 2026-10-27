@@ -69,7 +69,8 @@ async function ouvrirAnnuaire() {
   flushSync();
   await respirer();
   const onglets = hote.querySelectorAll<HTMLButtonElement>('.sections button');
-  expect(onglets.length, 'les onglets Mes radios / Annuaire manquent').toBe(2);
+  // Trois depuis web#2400 : « Carte » rejoint Mes radios et Annuaire.
+  expect(onglets.length, 'les onglets Mes radios / Annuaire / Carte manquent').toBe(3);
   onglets[1].click();
   await respirer();
   await new Promise((r) => setTimeout(r, 10));

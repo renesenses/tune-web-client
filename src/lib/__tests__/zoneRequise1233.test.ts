@@ -100,8 +100,11 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // station trouvée par la recherche globale, et réclame la zone.
     // VINGT-SEPT depuis web#2452 : `PlaylistsCercleSection` lit une playlist de
     // cercle depuis le menu Playlists, et réclame la zone.
-    expect(avec.length).toBe(27);
+    // VINGT-HUIT depuis web#2400 : `CarteRadios` écoute d'un clic une
+    // station de la carte des radios, et réclame la zone.
+    expect(avec.length).toBe(28);
     expect(avec).toContain('PlaylistsCercleSection.svelte');
+    expect(avec).toContain('CarteRadios.svelte');
     expect(avec).toContain('RadiosTrouvees.svelte');
     expect(avec).toContain('CircleV2.svelte');
     expect(avec).toContain('AlbumsManquants.svelte');
