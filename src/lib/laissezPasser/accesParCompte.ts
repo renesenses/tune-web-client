@@ -12,6 +12,9 @@ import { creerCleAppareil, magasinIndexedDb, nomParDefaut, signer } from './cleA
 import { AccesParCompte, magasinSessionOnglet, type Etat } from './machine';
 import { adresseAutorisation, CHEMIN_RETOUR, magasinJetonsLocal, SITE, terminerAutorisation } from './oauth';
 
+/** Page « Écoute à distance » de l'espace client : appareils du compte, écoute en cours. */
+export const ESPACE_CLIENT_ECOUTE = `${SITE}/account/remote`;
+
 /** Au plus ce délai d'attente au démarrage : au-delà, l'ancien jeton (s'il existe) sert. */
 export const ATTENTE_MAX_MS = 8000;
 
