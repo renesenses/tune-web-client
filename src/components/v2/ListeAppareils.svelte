@@ -89,8 +89,8 @@
             onclick={() => onselect(ouverte === cle ? null : cle)}>
             <span class="ic" aria-hidden="true"><ZoneTypeIcon type={z.output_type ?? null} size={18} /></span>
             <span class="nom">
-              <span class="zn">{z.name}</span>
-              {#if zoneDeviceName(z)}<span class="app">{zoneDeviceName(z)}</span>{/if}
+              <span class="zn" title={z.name}>{z.name}</span>
+              {#if zoneDeviceName(z)}<span class="app" title={zoneDeviceName(z) ?? undefined}>{zoneDeviceName(z)}</span>{/if}
             </span>
             <span class="zt proto">{zoneTypeLabel(z.output_type) && z.output_type !== 'browser' ? zoneTypeLabel(z.output_type) : $t('v2.set.localOutput' as any)}</span>
             <span class="etat etat-{etat}"><span class="pt" aria-hidden="true"></span>{libelleEtat(z)}</span>
