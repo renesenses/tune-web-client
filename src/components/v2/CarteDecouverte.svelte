@@ -23,6 +23,7 @@
   import type { Snippet } from 'svelte';
   import { untrack } from 'svelte';
   import { t } from '../../lib/i18n';
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { artworkUrl } from '../../lib/api';
   import { browserAudioPlaying } from '../../lib/stores/browserAudio';
   import { budgetScene } from '../../lib/champCercle/budget';
@@ -371,7 +372,7 @@
                     tabindex={i === focus || (focus < 0 && i === 0) ? 0 : -1}
                     bind:this={boutons[i]} onfocus={() => (focus = i)}
                     aria-label={decrire(n)} onclick={() => ouvrir(n)}>
-                    <span class="etiquette" aria-hidden="true">{libelleNoeud(n)} · {n.elements.length}</span>
+                    <span class="etiquette" aria-hidden="true" use:bulleTexte>{libelleNoeud(n)} · {n.elements.length}</span>
                   </button>
                 {:else}
                   {@const e = n.element!}
@@ -387,7 +388,7 @@
                       <span class="ini" aria-hidden="true">{initiales(e.nom)}</span>
                     {/if}
                     {#if avecLisibles}<span class="pastille" class:non={!lisible(e)} aria-hidden="true"></span>{/if}
-                    <span class="nom" aria-hidden="true">{e.nom}</span>
+                    <span class="nom" aria-hidden="true" use:bulleTexte>{e.nom}</span>
                   </button>
                 {/if}
               {/if}
