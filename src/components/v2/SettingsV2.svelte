@@ -234,6 +234,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   import CorrectionAcoustiqueZone from '../partages/CorrectionAcoustiqueZone.svelte';
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
+  import ListeAppareils from './ListeAppareils.svelte';
+  import { cleZone } from '../../lib/listeAppareils';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import type { Zone } from '../../lib/types';
 
@@ -295,6 +297,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let highlight = $state<string | null>(null);
   /** #1006 — la zone visée par la carte de l'écran Zones, mise en avant dans « Par zone ». */
   let cibleZone = $state<number | null>(null);
+  // web#2451 — la zone dont la carte de détails est ouverte sous la liste
+  // compacte (clé `cleZone`). Rien d'ouvert par défaut : la liste se lit d'un
+  // coup d'œil, les détails s'ouvrent au clic.
+  let zoneOuverte = $state<string | null>(null);
+  function ouvrirZone(cle: string | null) {
+    zoneOuverte = cle;
+    if (cle) tick().then(() => amenerSousEntete(document.querySelector(`[data-carte-zone="${cle}"]`)));
+  }
 
   /**
    * #1394 — la photo de l'appareil d'une zone.
@@ -374,6 +384,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     tabId = ongletDeLaSection(target.tab, target.section);
     highlight = target.section ?? null;
     cibleZone = target.zone ?? null;
+    // web#2451 — une cible de zone (roue crantée, carte de zone, FIR) ouvre
+    // d'office les détails de CETTE zone : sans cela, la carte visée n'existe
+    // pas dans la page et le geste n'aboutit nulle part.
+    if (target.zone != null) zoneOuverte = cleZone({ id: target.zone, name: '' });
     v2SettingsTarget.set(null);
     if (target.zone != null) {
       // #1427 — « Correction de pièce » du menu de zone : le bloc FIR de la
@@ -5520,9 +5534,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <p class="hint">{$t('settings.noZoneCreateOne' as any)}</p>
               {:else}
                 <p class="hint">{$t('settings.perZoneScopeHint' as any)}</p>
+                <ListeAppareils zones={$zones} ouverte={zoneOuverte} onselect={ouvrirZone} />
+                {#if zoneOuverte == null || !$zones.some((x) => cleZone(x) === zoneOuverte)}
+                  <p class="hint">{$t('v2.dev.pickHint' as any)}</p>
+                {/if}
                 <div class="zlist">
                   {#each $zones as z (z.id)}
-                    <div class="zc" id={`zc-${z.id}`} class:hl={cibleZone === z.id}>
+                    {#if cleZone(z) === zoneOuverte}
+                    <div class="zc" id={`zc-${z.id}`} data-carte-zone={cleZone(z)} role="region"
+                      aria-label={$t('v2.dev.detailTitle' as any).replace('{name}', z.name)} class:hl={cibleZone === z.id}>
                       <div class="zch">
                         <span class="zn">{z.name}</span>
                         <span class="zt">{$t((isLocalZone(z) ? 'v2.set.localOutput' : 'v2.set.networkOutput') as any)}</span>
@@ -5930,6 +5950,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {/if}
                       {/if}
                     </div>
+                    {/if}
                   {/each}
                 </div>
                 {#if zoneErr}<div class="errline">{zoneErr}</div>{/if}

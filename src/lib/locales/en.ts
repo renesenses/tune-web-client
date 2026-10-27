@@ -6003,6 +6003,15 @@ export default {
   "erreursServeur.details": "Details",
   "erreursServeur.track_decode_failed": "The track could not be decoded.",
   "v2.pl.serviceNoPlaylists": "{s} does not provide playlists.",
+  "v2.dev.listAria": "Devices and zones",
+  "v2.dev.filterLabel": "Filter devices",
+  "v2.dev.filterPlaceholder": "Search for a device…",
+  "v2.dev.typeLabel": "Output type",
+  "v2.dev.typeAll": "All types",
+  "v2.dev.count": "{shown} of {total}",
+  "v2.dev.noMatch": "No device matches the filter.",
+  "v2.dev.detailTitle": "Details of {name}",
+  "v2.dev.pickHint": "Pick a device in the list to see its details and settings.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

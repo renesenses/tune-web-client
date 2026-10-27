@@ -97,6 +97,11 @@ async function ecranReglagesParZone(): Promise<HTMLElement> {
 }
 
 function caseVolumeFixe(racine: HTMLElement, id: number): HTMLInputElement {
+  // web#2451 : les détails d'une zone s'ouvrent au clic sur sa ligne.
+  if (!racine.querySelector(`#zc-${id}`)) {
+    racine.querySelector<HTMLButtonElement>(`button.ligne[data-zone="i:${id}"]`)?.click();
+    flushSync();
+  }
   const carte = racine.querySelector<HTMLElement>(`#zc-${id}`);
   expect(carte, `carte de la zone ${id} absente`).not.toBeNull();
   const libelle = get(t)('v2.lbl.fixedVolume' as any);

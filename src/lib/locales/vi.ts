@@ -5835,5 +5835,14 @@ export default {
   "erreursServeur.details": "Chi tiết",
   "erreursServeur.track_decode_failed": "Không thể giải mã bản nhạc.",
   "v2.pl.serviceNoPlaylists": "{s} không cung cấp danh sách phát.",
+  "v2.dev.listAria": "Thiết bị và vùng",
+  "v2.dev.filterLabel": "Lọc thiết bị",
+  "v2.dev.filterPlaceholder": "Tìm thiết bị…",
+  "v2.dev.typeLabel": "Loại đầu ra",
+  "v2.dev.typeAll": "Tất cả các loại",
+  "v2.dev.count": "{shown} trên {total}",
+  "v2.dev.noMatch": "Không có thiết bị nào khớp với bộ lọc.",
+  "v2.dev.detailTitle": "Chi tiết của {name}",
+  "v2.dev.pickHint": "Chọn một thiết bị trong danh sách để xem chi tiết và cài đặt.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

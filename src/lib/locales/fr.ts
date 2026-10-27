@@ -6005,6 +6005,15 @@ export default {
   "erreursServeur.details": "Détails",
   "erreursServeur.track_decode_failed": "La piste n'a pas pu être décodée.",
   "v2.pl.serviceNoPlaylists": "{s} ne propose pas de playlists.",
+  "v2.dev.listAria": "Appareils et zones",
+  "v2.dev.filterLabel": "Filtrer les appareils",
+  "v2.dev.filterPlaceholder": "Rechercher un appareil…",
+  "v2.dev.typeLabel": "Type de sortie",
+  "v2.dev.typeAll": "Tous les types",
+  "v2.dev.count": "{shown} sur {total}",
+  "v2.dev.noMatch": "Aucun appareil ne correspond au filtre.",
+  "v2.dev.detailTitle": "Détails de {name}",
+  "v2.dev.pickHint": "Choisissez un appareil dans la liste pour voir ses détails et ses réglages.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

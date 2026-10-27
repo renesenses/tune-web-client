@@ -5983,6 +5983,15 @@ export default {
   "erreursServeur.details": "Detalii",
   "erreursServeur.track_decode_failed": "Piesa nu a putut fi decodată.",
   "v2.pl.serviceNoPlaylists": "{s} nu oferă liste de redare.",
+  "v2.dev.listAria": "Dispozitive și zone",
+  "v2.dev.filterLabel": "Filtrează dispozitivele",
+  "v2.dev.filterPlaceholder": "Caută un dispozitiv…",
+  "v2.dev.typeLabel": "Tipul de ieșire",
+  "v2.dev.typeAll": "Toate tipurile",
+  "v2.dev.count": "{shown} din {total}",
+  "v2.dev.noMatch": "Niciun dispozitiv nu corespunde filtrului.",
+  "v2.dev.detailTitle": "Detalii despre {name}",
+  "v2.dev.pickHint": "Alegeți un dispozitiv din listă pentru a-i vedea detaliile și setările.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

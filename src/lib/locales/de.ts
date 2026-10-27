@@ -5983,6 +5983,15 @@ export default {
   "erreursServeur.details": "Details",
   "erreursServeur.track_decode_failed": "Der Titel konnte nicht dekodiert werden.",
   "v2.pl.serviceNoPlaylists": "{s} stellt keine Playlists bereit.",
+  "v2.dev.listAria": "Geräte und Zonen",
+  "v2.dev.filterLabel": "Geräte filtern",
+  "v2.dev.filterPlaceholder": "Gerät suchen …",
+  "v2.dev.typeLabel": "Ausgabetyp",
+  "v2.dev.typeAll": "Alle Typen",
+  "v2.dev.count": "{shown} von {total}",
+  "v2.dev.noMatch": "Kein Gerät entspricht dem Filter.",
+  "v2.dev.detailTitle": "Details zu {name}",
+  "v2.dev.pickHint": "Wählen Sie ein Gerät in der Liste, um Details und Einstellungen zu sehen.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
