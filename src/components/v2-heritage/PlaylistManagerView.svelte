@@ -58,6 +58,7 @@
   import { cleRaison } from '../../lib/convertisseurPlaylists';
   import { estRefusPremium } from '../../lib/premiumRefus';
   import TransfertsConvertisseur from './convertisseur/TransfertsConvertisseur.svelte';
+  import PlaylistsCercleSection from '../v2/PlaylistsCercleSection.svelte';
   import SnapshotsConvertisseur from './convertisseur/SnapshotsConvertisseur.svelte';
   import LiensConvertisseur from './convertisseur/LiensConvertisseur.svelte';
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
@@ -2338,6 +2339,8 @@
       </div>
 
     {:else}
+    <!-- web#2452 : les playlists Tune Circle (partagées avec moi, et que je partage) ; absente sans compte relié ni cercle. -->
+    <PlaylistsCercleSection filtre={searchQuery} />
     <!-- Filter Chips (original playlists tab) -->
     <div class="filter-chips">
       {#each filterChips as chip}
