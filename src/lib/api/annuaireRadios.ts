@@ -8,7 +8,7 @@
 // Routes serveur : `/api/v1/radios/directory…` (`routes/radios_annuaire.rs`).
 // Importé via la barrel `lib/api`.
 import { BASE, fetchJSON } from './_client';
-import type { RadioPlayResult, RadioStation } from '../types';
+import type { FluxRadio, RadioPlayResult, RadioStation } from '../types';
 
 /** Une fiche de l'annuaire, telle que la rend `GET /radios/directory`. */
 export interface FicheAnnuaireRadio {
@@ -28,6 +28,9 @@ export interface FicheAnnuaireRadio {
   website_url?: string | null;
   stream_url: string;
   radio_metadata_key?: string | null;
+  /** Les flux publiés de la fiche, le principal d'abord (tune-server-rust#7177).
+   *  Absent sur un serveur antérieur : seul `stream_url` est connu. */
+  streams?: FluxRadio[];
   /** radio-metadata.fr publie le titre en cours de cette station. */
   now_playing: boolean;
   /** La station de « Mes radios » rapprochée de cette fiche, s'il y en a une. */
@@ -91,6 +94,19 @@ export function mettreAJourLeFluxDepuisAnnuaire(radioId: number) {
   return fetchJSON<RadioStation>(
     `${BASE}/radios/directory/update-stream/${radioId}`,
     { method: 'POST' },
+  );
+}
+
+/**
+ * `POST /radios/directory/preferred-stream/{radio}` — la station de « Mes
+ * radios » liée à sa fiche écoute désormais ce flux, choisi parmi ceux que la
+ * fiche publie (tune-server-rust#7177, web#2443). 422 pour une adresse qui
+ * n'est pas de la fiche, 409 pour une station sans fiche liée.
+ */
+export function choisirFluxPrefere(radioId: number, streamUrl: string) {
+  return fetchJSON<RadioStation>(
+    `${BASE}/radios/directory/preferred-stream/${radioId}`,
+    { method: 'POST', body: JSON.stringify({ stream_url: streamUrl }) },
   );
 }
 

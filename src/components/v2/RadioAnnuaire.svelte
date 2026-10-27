@@ -28,6 +28,8 @@
   import PochetteActions from './PochetteActions.svelte';
   import RadioRecherche from './RadioRecherche.svelte';
   import RadioChipsGenres from './RadioChipsGenres.svelte';
+  import RadioFicheModale from '../partages/RadioFicheModale.svelte';
+  import BadgeMetadataPlus from '../partages/BadgeMetadataPlus.svelte';
 
   interface Props {
     /** Une station vient d'entrer dans « Mes radios » (ou d'y changer). */
@@ -49,6 +51,8 @@
   let items = $state<FicheAnnuaireRadio[]>([]);
   let chargement = $state(true);
   let erreur = $state<string | null>(null);
+  /** web#2443 — la fiche « Voir » ouverte (œil de la vignette). */
+  let enFiche = $state<FicheAnnuaireRadio | null>(null);
 
   let jeton = 0;
   async function charger(suite = false) {
@@ -173,6 +177,8 @@
               favoriExterne={{ actif: !!f.my_radio_favorite, basculer: () => basculerFavori(f) }}
               onAjouter={f.my_radio_id == null ? () => ajouter(f) : null}
               libelleAjouter={$t('v2.radio.dir.add' as any)}
+              onVoir={() => (enFiche = f)}
+              libelleVoir={$t('v2.radio.view' as any)}
               onLire={() => ecouter(f)}
               onOuvrir={() => ecouter(f)}
               nom={f.name}
@@ -187,7 +193,9 @@
             <span class="gn" use:bulleTexte>{[f.genre ? libelleGenre(f.genre) : null, nomPays(f.country_code)].filter(Boolean).join(' · ')}</span>
           {/if}
           <span class="pied">
-            {#if f.now_playing}<span class="np" title={$t('v2.radio.dir.nowPlaying' as any)}>♪</span>{/if}
+            <!-- web#2443 — « Metadata+ » : la fiche a une clé radio-metadata.fr,
+                 qui publie son titre en cours (c'est ce que disait le ♪). -->
+            {#if f.radio_metadata_key || f.now_playing}<BadgeMetadataPlus />{/if}
             {#if f.codec}<span class="tk">{f.codec}{f.bitrate ? ` ${f.bitrate}` : ''}</span>{/if}
             {#if f.my_radio_id != null}
               <span class="dedans">{$t('v2.radio.dir.inMine' as any)}</span>
@@ -201,6 +209,11 @@
         <button class="v2-btn" disabled={chargement} onclick={() => charger(true)}>{$t('v2.radio.dir.more' as any)}</button>
       </div>
     {/if}
+  {/if}
+
+  {#if enFiche}
+    <RadioFicheModale annuaire={enFiche} onClose={() => (enFiche = null)}
+      onChange={(st) => onAjoutee?.(st)} />
   {/if}
 
   <!-- Mention décidée le 13/10 avec Rémi : la source, et sa page de
@@ -229,7 +242,6 @@
   .gn,.encours{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .encours{color:var(--v2-acc2)}
   .pied{display:flex; align-items:center; gap:6px; margin-top:4px; min-height:22px}
-  .np{font-size:11px; color:var(--v2-acc1)}
   .tk{font:9.5px var(--v2-mono); color:var(--v2-acc2)}
   .dedans{margin-left:auto; font:600 9.5px var(--v2-mono); color:var(--v2-txt3)}
   .suite{display:flex; justify-content:center; padding-top:8px}
