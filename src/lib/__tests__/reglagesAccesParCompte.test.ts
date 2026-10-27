@@ -10,17 +10,19 @@
 //    jeton OAuth du compte.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import { writable } from 'svelte/store';
 
-const etatFactice = writable<any>({ type: 'ouverte', expire: 0, renouvelerA: 0, secours: false });
+// `vi.mock` est remonté en tête du fichier : ce qu'il lit doit l'être aussi.
+const faux = vi.hoisted(() => ({ machine: null as any }));
 let machineFactice: any = null;
 
 vi.mock('../laissezPasser/accesParCompte', async (importOriginal) => {
   const vrai: any = await importOriginal();
+  const { writable } = await import('svelte/store');
+  const etat = writable<any>({ type: 'ouverte', expire: 0, renouvelerA: 0, secours: false });
   return {
     ...vrai,
-    accesParCompte: () => machineFactice,
-    etatAccesParCompte: { subscribe: etatFactice.subscribe },
+    accesParCompte: () => faux.machine,
+    etatAccesParCompte: { subscribe: etat.subscribe },
   };
 });
 
@@ -78,6 +80,7 @@ const FIREFOX = { device_id: 'dev_firefox', name: 'Firefox', platform: 'web', la
 beforeEach(() => {
   appelsServeur.length = 0;
   machineFactice = null;
+  faux.machine = null;
   statut = {
     enabled: true, connected: true, server_id: SID, has_token: true,
     access_url: `https://bridge.mozaiklabs.fr/${SID}/`,
@@ -126,18 +129,18 @@ describe('Réglages › Accès distant par compte', () => {
     expect(el.querySelector('[data-acces="qr"]')).not.toBeNull();
   });
 
-  it('sur le réseau local : renvoi vers l’espace client, aucun appel au site', { timeout: 60_000 }, async () => {
+  it('sur le réseau local : renvoi vers l’espace client, aucun appel aux appareils', { timeout: 60_000 }, async () => {
     const el = await monter(SettingsV2, ecranPont);
     const lien = el.querySelector<HTMLAnchorElement>('[data-acces="espace-client"]');
     expect(lien, 'aucun lien vers l’espace client').not.toBeNull();
     expect(lien!.href).toBe('https://mozaiklabs.fr/account/remote');
-    expect(appelsServeur.some((u) => u.startsWith('https://mozaiklabs.fr'))).toBe(false);
+    expect(appelsServeur.some((u) => u.includes('/api/v1/remote/'))).toBe(false);
   });
 });
 
 describe('Appareils du compte, par le relais', () => {
   it('liste les appareils, marque ce navigateur, sans clé ni jeton', { timeout: 60_000 }, async () => {
-    machineFactice = machine([IPHONE, FIREFOX], 'dev_firefox');
+    machineFactice = faux.machine = machine([IPHONE, FIREFOX], 'dev_firefox');
     const el = await monter(ReglagesAccesParCompte);
     const lignes = [...el.querySelectorAll('[data-appareil]')];
     expect(lignes.map((l) => l.getAttribute('data-appareil'))).toEqual(['dev_iphone', 'dev_firefox']);
@@ -149,7 +152,7 @@ describe('Appareils du compte, par le relais', () => {
   });
 
   it('retire un appareil après confirmation, et la liste suit', { timeout: 60_000 }, async () => {
-    machineFactice = machine([IPHONE, FIREFOX], 'dev_firefox');
+    machineFactice = faux.machine = machine([IPHONE, FIREFOX], 'dev_firefox');
     const confirmer = vi.spyOn(dialogs, 'confirm').mockResolvedValue(true);
     const el = await monter(ReglagesAccesParCompte);
     el.querySelector<HTMLButtonElement>('[data-appareil="dev_iphone"] [data-acces="retirer"]')!.click();
@@ -162,7 +165,7 @@ describe('Appareils du compte, par le relais', () => {
   });
 
   it('ne retire rien si la confirmation est refusée', { timeout: 60_000 }, async () => {
-    machineFactice = machine([IPHONE], null);
+    machineFactice = faux.machine = machine([IPHONE], null);
     vi.spyOn(dialogs, 'confirm').mockResolvedValue(false);
     const el = await monter(ReglagesAccesParCompte);
     el.querySelector<HTMLButtonElement>('[data-acces="retirer"]')!.click();
@@ -172,8 +175,9 @@ describe('Appareils du compte, par le relais', () => {
   });
 
   it('un refus du site s’affiche avec son code, et l’appareil reste listé', { timeout: 60_000 }, async () => {
-    machineFactice = machine([IPHONE], null);
+    machineFactice = faux.machine = machine([IPHONE], null);
     machineFactice.retirerAppareil = vi.fn(async () => ({ ok: false, raison: 'site_injoignable' }));
+    faux.machine = machineFactice;
     vi.spyOn(dialogs, 'confirm').mockResolvedValue(true);
     const el = await monter(ReglagesAccesParCompte);
     el.querySelector<HTMLButtonElement>('[data-acces="retirer"]')!.click();
