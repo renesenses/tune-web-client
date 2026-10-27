@@ -131,6 +131,8 @@ describe('web#2089 — la rangée montée porte ces éléments', () => {
     );
     (onglet as HTMLButtonElement).click();
     for (let i = 0; i < 4; i++) { await new Promise((r) => setTimeout(r, 0)); flushSync(); }
+    hote.querySelector<HTMLButtonElement>('button.ligne')?.click(); // web#2451
+    for (let i = 0; i < 4; i++) { await new Promise((r) => setTimeout(r, 0)); flushSync(); }
     const rangee = hote.querySelector('#zc-21 .zr');
     expect(rangee, 'rangée DSD / fréquence / paroles absente').not.toBeNull();
     expect(rangee!.querySelector('.dsd-dop'), 'note DoP absente — témoin sans objet').not.toBeNull();

@@ -49,7 +49,8 @@ describe('#1006 — la carte de zone en grille', () => {
     expect(ecran).toContain("v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: z.id ?? undefined });");
     const reglages = lire('src/components/v2/SettingsV2.svelte');
     expect(reglages).toContain('cibleZone = target.zone ?? null;');
-    expect(reglages).toContain('<div class="zc" id={`zc-${z.id}`} class:hl={cibleZone === z.id}>');
+    expect(reglages).toContain('id={`zc-${z.id}`}');
+    expect(reglages).toContain('class:hl={cibleZone === z.id}');
     expect(lire('src/lib/stores/v2SettingsNav.ts')).toContain('zone?: number;');
   });
   it('🔴 les états sont des PASTILLES courtes, la phrase en infobulle — et plus de français en dur', () => {
