@@ -41,6 +41,8 @@ import { ICONES } from '../../lib/menuPiste';
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import RadioFicheModale from './RadioFicheModale.svelte';
+  import BadgeMetadataPlus from './BadgeMetadataPlus.svelte';
+  import { metadataPlusDeLecture } from '../../lib/ficheStation';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
   import { isPremium, licenseState } from '../../lib/stores/license';
   import { estRefusPremium } from '../../lib/premiumRefus';
@@ -82,6 +84,8 @@ import { ICONES } from '../../lib/menuPiste';
   let creditsEnriching = $state(false);
   let showLyrics = $state(false);
   let ficheStationOuverte = $state(false);
+  /** web#2443 — la station qui joue a une clé radio-metadata.fr. */
+  let stationMetadataPlus = $state(false);
   // Témoin de « la zone paroles a été remise à zéro pour cette piste ». DISTINCT
   // de npLyricsTrackId, qui dit « les paroles de cette piste sont chargées ».
   // Les confondre rouvrirait #2555 dans un sens ou dans l'autre : soit la garde
@@ -1003,6 +1007,17 @@ import { ICONES } from '../../lib/menuPiste';
     estStyleCrete($preferences.peakMeterStyle) ? $preferences.peakMeterStyle : STYLE_CRETE_DEFAUT,
   );
   let isRadio = $derived(track?.source === 'radio' || (track == null && $ytPlayerState.track?.source === 'radio'));
+  // web#2443 — le badge « Metadata+ » à côté du nom de la station. La
+  // recherche est retenue par station (`metadataPlusDeLecture`) : elle ne
+  // repart pas à chaque titre.
+  $effect(() => {
+    const np = isRadio && track ? { source_id: track.source_id, album_title: track.album_title } : null;
+    stationMetadataPlus = false;
+    if (!np) return;
+    let vivant = true;
+    metadataPlusDeLecture(np).then((oui) => { if (vivant) stationMetadataPlus = oui; });
+    return () => { vivant = false; };
+  });
 
   // ─── #719 : le temps qui passe sur une RADIO ──────────────────────────
   //
@@ -1879,8 +1894,12 @@ import { ICONES } from '../../lib/menuPiste';
           {#if isRadio}
             <!-- #2398 — l'étiquette « EN DIRECT » de la 2e colonne est retirée aussi. -->
             <!-- #2398 — le nom de la station ouvre sa fiche (description, site). -->
-            <button class="radio-station-name radio-station-lien truncate" title={displayTrack.album_title || zone?.name || 'Radio'}
-              onclick={() => (ficheStationOuverte = true)}>{displayTrack.album_title || zone?.name || 'Radio'}</button>
+            <!-- web#2443 — plus grand, et le badge « Metadata+ » à côté. -->
+            <div class="radio-station-ligne">
+              <button class="radio-station-name radio-station-lien truncate" title={displayTrack.album_title || zone?.name || 'Radio'}
+                onclick={() => (ficheStationOuverte = true)}>{displayTrack.album_title || zone?.name || 'Radio'}</button>
+              {#if stationMetadataPlus}<BadgeMetadataPlus />{/if}
+            </div>
           {/if}
           <div class="track-title-row">
             <h2 class="track-title truncate" title={displayTrack.title}>{displayTrack.title}</h2>
@@ -3732,10 +3751,22 @@ import { ICONES } from '../../lib/menuPiste';
     background: rgba(248, 113, 113, 0.06);
   }
 
+  .radio-station-ligne {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+    margin-bottom: var(--space-xs);
+  }
+  .track-info.center .radio-station-ligne {
+    justify-content: center;
+  }
+  /* web#2443 — « le nom de la radio est petit » (Rémi) : 18 → 22 px. */
   .radio-station-name {
     font-family: var(--font-display);
-    font-size: 18px;
-    font-weight: 400;
+    font-size: 22px;
+    font-weight: 600;
     color: var(--tune-text-secondary);
     margin-bottom: var(--space-xs);
     line-height: 1.2;
