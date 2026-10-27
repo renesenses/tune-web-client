@@ -516,6 +516,14 @@ export interface NowPlaying {
   version?: import('./versionJouee').VersionJoueeServeur | null;
 }
 
+/** État reçu de l'appareil, distinct de toute consigne (#2457 / serveur #6912). */
+export interface DeviceVolumeObservation {
+  device_id: string;
+  volume: number;
+  volume_db: number;
+  muted: boolean;
+}
+
 export interface Zone {
   id: number | null;
   name: string;
@@ -526,6 +534,8 @@ export interface Zone {
    *  volume est une position sur une loi en dB) ou `linear` (appareil). Absent
    *  sur un serveur antérieur : linéaire. Voir `lib/courbeDeVolume.ts`. */
   volume_curve?: string | null;
+  /** Lecture seule ; absent sur les serveurs anciens, null sans annonce fraîche. */
+  device_volume_observation?: DeviceVolumeObservation | null;
   /** Sourdine de la zone (`SetMute`), indépendante du volume (#6700). */
   muted?: boolean;
   group_id?: string | null;

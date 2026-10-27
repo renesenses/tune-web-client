@@ -514,6 +514,14 @@ export function demarrerTransportV2(): () => void {
       return;
     }
 
+    // #2457 / serveur #6912 — ce relevé n'est jamais recopié dans la consigne.
+    if (type === 'playback.device_volume_observation' && event.data?.zone_id !== undefined) {
+      const { zone_id, device_volume_observation = null } = event.data;
+      zones.update((liste: any[]) => liste.map((z) =>
+        z?.id === zone_id ? { ...z, device_volume_observation } : z));
+      return;
+    }
+
     // #6700 — la sourdine posée ailleurs (autre client, autre onglet) :
     // `PlaybackManager::set_mute` émet `playback.muted` `{ muted, zone_id }`.
     if (

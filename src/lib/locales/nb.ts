@@ -5905,5 +5905,7 @@ export default {
   "v2.carte.pod.noNearby": "Ingen lignende programmer (ingen felles produsent eller kategori).",
   "v2.carte.pod.charts": "Topplister: {list}",
   "v2.carte.pod.episodes": "Se episoder",
+  "volume.deviceObserved": "AIR (avlest): {value} dB",
+
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

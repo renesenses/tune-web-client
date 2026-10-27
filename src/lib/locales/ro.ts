@@ -6060,6 +6060,8 @@ export default {
   "v2.carte.pod.noNearby": "Nicio emisiune apropiată (niciun producător sau categorie în comun).",
   "v2.carte.pod.charts": "Clasamente: {list}",
   "v2.carte.pod.episodes": "Vezi episoadele",
+  "volume.deviceObserved": "AIR (observat): {value} dB",
+
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

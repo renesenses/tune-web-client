@@ -6019,6 +6019,8 @@ export default {
   "v2.carte.pod.noNearby": "Nincs hasonló műsor (nincs közös producer vagy kategória).",
   "v2.carte.pod.charts": "Toplisták: {list}",
   "v2.carte.pod.episodes": "Epizódok",
+  "volume.deviceObserved": "AIR (jelzett): {value} dB",
+
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

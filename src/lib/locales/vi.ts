@@ -5912,5 +5912,7 @@ export default {
   "v2.carte.pod.noNearby": "Không có chương trình gần (không chung nhà sản xuất hay danh mục).",
   "v2.carte.pod.charts": "Bảng xếp hạng: {list}",
   "v2.carte.pod.episodes": "Xem các tập",
+  "volume.deviceObserved": "AIR (ghi nhận): {value} dB",
+
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

@@ -36,6 +36,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
+  import DeviceVolumeObservation from './DeviceVolumeObservation.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ZoneTypeIcon from './ZoneTypeIcon.svelte';
@@ -1487,6 +1488,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
           <button class="mobile-step-btn" onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
         </div>
+        <DeviceVolumeObservation zone={$currentZone} />
       </div>
     {/if}
   </div>
