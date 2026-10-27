@@ -66,6 +66,7 @@
   import * as api from '../../lib/api';
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
+  import ReglagesAccesParCompte from './ReglagesAccesParCompte.svelte';
   import { chargerLienAcces, qrSvg, renouvelerLienAcces } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
@@ -1052,6 +1053,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let brUrl = $state('');
   let brToken = $state('');
   let brBusy = $state(false);
+  // Écoute à distance par compte mozaiklabs (tune-server-rust#6603) : le
+  // serveur pose `acces_par_compte` dès que le relais ouvre des sessions par
+  // laissez-passer. Plus de lien, de QR code ni de jeton à montrer : on ne
+  // va même pas chercher le lien, qui porte le jeton.
+  let brAccesParCompte = $state(false);
   // Lien d'accès à distance (`…/{server_id}/#token=…`) : il ne vient que de la
   // route réservée à l'administrateur (`lienAccesDistant.ts`). Tout refus le
   // laisse vide, et l'écran reste celui d'avant.
@@ -1087,7 +1093,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       .then((d: any) => {
         brEnabled = !!d?.enabled; brConnected = !!d?.connected;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = '';
-        if (brEnabled) chargerLienPont();
+        brAccesParCompte = !!d?.acces_par_compte;
+        if (brEnabled && !brAccesParCompte) chargerLienPont();
       })
       .catch(() => {});   // route absente sur un serveur anterieur
   });
@@ -1100,8 +1107,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       } else {
         const d: any = await api.apiPost('/cloud/bridge/enable');
         brEnabled = true;
-        brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = d?.bridge_token || '';
-        await chargerLienPont();
+        brServerId = d?.server_id || ''; brUrl = d?.access_url || '';
+        // Pont éteint jusqu'ici : le statut lu au montage ne disait peut-être
+        // pas encore si l'accès passe par le compte.
+        const st: any = await api.apiFetch('/cloud/bridge/status').catch(() => null);
+        if (st) brAccesParCompte = !!st.acces_par_compte;
+        brToken = brAccesParCompte ? '' : d?.bridge_token || '';
+        if (!brAccesParCompte) await chargerLienPont();
       }
     } catch (e: any) {
       notifications.error(e?.message ?? 'Erreur');
@@ -7054,7 +7066,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <a class="mono link" href={brUrl} target="_blank" rel="noopener">{brUrl}</a>
                   </div>
                 {/if}
-                {#if brLien}
+                {#if brAccesParCompte}
+                  <ReglagesAccesParCompte />
+                {:else if brLien}
                   <div class="row">
                     <div class="lbl">
                       <span>{$t('settings.remoteLink' as any)}</span>
@@ -7076,7 +7090,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </button>
                   </div>
                 {/if}
-                {#if brToken}
+                {#if brToken && !brAccesParCompte}
                   <div class="tok">
                     <span class="tlab">{$t('v2.lbl.token' as any)}</span>
                     <code>{brToken}</code>
