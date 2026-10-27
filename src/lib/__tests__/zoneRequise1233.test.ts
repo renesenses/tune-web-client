@@ -98,7 +98,10 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // playlist partagée sur la zone courante depuis sa ligne ou la scène.
     // VINGT-SIX depuis tune-server-rust#7045 : `RadiosTrouvees` écoute une
     // station trouvée par la recherche globale, et réclame la zone.
-    expect(avec.length).toBe(26);
+    // VINGT-SEPT depuis web#2452 : `PlaylistsCercleSection` lit une playlist de
+    // cercle depuis le menu Playlists, et réclame la zone.
+    expect(avec.length).toBe(27);
+    expect(avec).toContain('PlaylistsCercleSection.svelte');
     expect(avec).toContain('RadiosTrouvees.svelte');
     expect(avec).toContain('CircleV2.svelte');
     expect(avec).toContain('AlbumsManquants.svelte');
