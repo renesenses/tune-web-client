@@ -38,6 +38,9 @@
   import RadioRecherche from './RadioRecherche.svelte';
   import RadioChipsGenres from './RadioChipsGenres.svelte';
   import RadioNouvelleStationModale from './RadioNouvelleStationModale.svelte';
+  import RadioFicheModale from '../partages/RadioFicheModale.svelte';
+  import BadgeMetadataPlus from '../partages/BadgeMetadataPlus.svelte';
+  import { aMetadataPlus } from '../../lib/ficheStation';
   import { notifications } from '../../lib/stores/notifications';
   import '../../styles/tune-v2.css';
 
@@ -252,6 +255,13 @@
   const favorites = $derived(shown.filter((r) => r.favorite));
   const others = $derived(shown.filter((r) => !r.favorite));
 
+  /**
+   * web#2443 — la station de l'annuaire dont la fiche « Voir » est ouverte.
+   * Une entrée de l'annuaire se VOIT (œil) ; une station saisie à la main se
+   * modifie (crayon).
+   */
+  let enFiche = $state<RadioStation | null>(null);
+
   /** Station en cours d'édition — le bouton haut-droit de la pochette. */
   let enEdition = $state<RadioStation | null>(null);
 
@@ -421,6 +431,14 @@
       onSaisie={nouvelleStation} />
   {/if}
 
+  {#if enFiche}
+    <RadioFicheModale
+      station={enFiche}
+      onClose={() => (enFiche = null)}
+      onChange={(maj) => { radios = radios.map((x) => (x.id === maj.id ? { ...x, ...maj } : x)); }}
+    />
+  {/if}
+
   {#if enEdition}
     {@const cible = enEdition}
     <RadioEditModale
@@ -454,6 +472,8 @@
           ? { actif: !!r.favorite, basculer: () => toggleFav(r) }
           : null}
         onEditer={r.id != null && !estDeLAnnuaire(r) ? () => (enEdition = r) : null}
+        onVoir={r.id != null && estDeLAnnuaire(r) ? () => (enFiche = r) : null}
+        libelleVoir={$t('v2.radio.view' as any)}
         onRetirer={r.id != null && estDeLAnnuaire(r) ? () => retirer(r) : null}
         libelleRetirer={$t('v2.radio.removeFromMine' as any)}
         onLire={() => play(r)}
@@ -464,7 +484,11 @@
         <AlbumArt coverPath={r.logo_url || r.annuaire?.logo_url || null} albumId={null} size={0} alt={r.name} fallbackInitials={r.name?.slice(0,1)} />
       </PochetteActions>
     </span>
-    <span class="nm" use:bulleTexte>{r.name}</span>
+    <span class="nm-ligne">
+      <span class="nm" use:bulleTexte>{r.name}</span>
+      <!-- web#2443 — la station a une clé radio-metadata.fr. -->
+      {#if aMetadataPlus(r)}<BadgeMetadataPlus />{/if}
+    </span>
     {#if playingId === r.id && titreEnCours}<span class="encours" use:bulleTexte>{titreEnCours}</span>{/if}
     {#if radioGenreRayon(r)}<span class="gn" use:bulleTexte>{libelle(radioGenreRayon(r)!)}</span>{/if}
     <!-- #863 — Jean Valjean : « pouvoir voir le format d'émission ». Le codec
@@ -504,6 +528,8 @@
   .cv{position:relative; display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden;
     box-shadow:var(--v2-sh-card); transition:.18s}
   .st:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
+  .nm-ligne{display:flex; align-items:center; gap:6px; min-width:0; margin-top:9px}
+  .nm-ligne .nm{margin-top:0; min-width:0}
   .nm{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .gn{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .tk{margin-top:2px; font:9.5px var(--v2-mono); color:var(--v2-acc2)}

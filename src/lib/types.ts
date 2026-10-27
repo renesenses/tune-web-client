@@ -1580,7 +1580,26 @@ export interface RadioStation {
      *  adresse de flux : l'écran PROPOSE de la reprendre, rien ne change seul. */
     flux_change?: boolean;
     stream_url_annuaire?: string | null;
+    /** Catégories de la fiche (leurs `slug`), tune-server-rust#7177. */
+    categories?: string[];
+    /** Les flux publiés de la fiche, le principal d'abord (#7177). */
+    streams?: FluxRadio[];
   } | null;
+}
+
+/**
+ * Un flux publié d'une fiche de l'annuaire (tune-server-rust#7177) : la fiche
+ * « Voir » (web#2443) les liste et laisse choisir le flux préféré.
+ */
+export interface FluxRadio {
+  url: string;
+  /** `AAC`, `MP3`, `FLAC`… tel que l'annuaire l'écrit. */
+  codec?: string | null;
+  bitrate?: number | null;
+  sample_rate?: number | null;
+  hls?: boolean;
+  /** Le flux principal de la fiche. */
+  primary?: boolean;
 }
 
 export interface RadioImportResult {

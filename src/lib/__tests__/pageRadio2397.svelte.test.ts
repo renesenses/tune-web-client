@@ -114,7 +114,7 @@ describe('entrées de l’annuaire : non modifiables, à retirer', () => {
     mocks.deleteRadio.mockResolvedValue(undefined);
     await monter();
     const fip = [...hote.querySelectorAll('.grid .st')].find((t) => t.querySelector('.nm')?.textContent === 'FIP')!;
-    (fip.querySelector('button.coin.tr') as HTMLButtonElement).click();
+    (fip.querySelector('button.coin[title="Retirer de Mes radios"]') as HTMLButtonElement).click();
     await respirer();
     expect(confirm).toHaveBeenCalled();
     expect(mocks.deleteRadio).toHaveBeenCalledWith(7);
@@ -125,7 +125,7 @@ describe('entrées de l’annuaire : non modifiables, à retirer', () => {
     vi.spyOn(dialogs, 'confirm').mockResolvedValue(false);
     await monter();
     const fip = [...hote.querySelectorAll('.grid .st')].find((t) => t.querySelector('.nm')?.textContent === 'FIP')!;
-    (fip.querySelector('button.coin.tr') as HTMLButtonElement).click();
+    (fip.querySelector('button.coin[title="Retirer de Mes radios"]') as HTMLButtonElement).click();
     await respirer();
     expect(mocks.deleteRadio).not.toHaveBeenCalled();
   });
