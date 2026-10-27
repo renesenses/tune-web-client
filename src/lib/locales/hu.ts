@@ -5794,7 +5794,7 @@ export default {
   "accesCompte.appareils.titre": "Regisztrált eszközök",
   "accesCompte.appareils.compte": "{n} / {max}",
   "accesCompte.appareils.chargement": "Eszközök betöltése…",
-  "accesCompte.appareils.aucun": "Nincs regisztrált eszköz.",
+  "accesCompte.appareils.vide": "Nincs regisztrált eszköz.",
   "accesCompte.appareils.erreur": "Az eszközöket nem sikerült betölteni ({code}).",
   "accesCompte.appareils.celuiCi": "ez az eszköz",
   "accesCompte.appareils.derniereEcoute": "utoljára használva: {date}",

@@ -5834,7 +5834,7 @@ export default {
   "accesCompte.appareils.titre": "Registrerade enheter",
   "accesCompte.appareils.compte": "{n} av {max}",
   "accesCompte.appareils.chargement": "Läser in enheter…",
-  "accesCompte.appareils.aucun": "Ingen registrerad enhet.",
+  "accesCompte.appareils.vide": "Ingen registrerad enhet.",
   "accesCompte.appareils.erreur": "Enheterna kunde inte läsas in ({code}).",
   "accesCompte.appareils.celuiCi": "den här enheten",
   "accesCompte.appareils.derniereEcoute": "senast använd {date}",

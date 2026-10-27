@@ -5835,7 +5835,7 @@ export default {
   "accesCompte.appareils.titre": "Dispozitive înregistrate",
   "accesCompte.appareils.compte": "{n} din {max}",
   "accesCompte.appareils.chargement": "Se încarcă dispozitivele…",
-  "accesCompte.appareils.aucun": "Niciun dispozitiv înregistrat.",
+  "accesCompte.appareils.vide": "Niciun dispozitiv înregistrat.",
   "accesCompte.appareils.erreur": "Dispozitivele nu au putut fi încărcate ({code}).",
   "accesCompte.appareils.celuiCi": "acest dispozitiv",
   "accesCompte.appareils.derniereEcoute": "ultima utilizare pe {date}",

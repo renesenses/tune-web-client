@@ -5687,7 +5687,7 @@ export default {
   "accesCompte.appareils.titre": "Thiết bị đã đăng ký",
   "accesCompte.appareils.compte": "{n} / {max}",
   "accesCompte.appareils.chargement": "Đang tải thiết bị…",
-  "accesCompte.appareils.aucun": "Chưa có thiết bị nào được đăng ký.",
+  "accesCompte.appareils.vide": "Chưa có thiết bị nào được đăng ký.",
   "accesCompte.appareils.erreur": "Không thể tải danh sách thiết bị ({code}).",
   "accesCompte.appareils.celuiCi": "thiết bị này",
   "accesCompte.appareils.derniereEcoute": "dùng lần cuối ngày {date}",

@@ -5835,7 +5835,7 @@ export default {
   "accesCompte.appareils.titre": "已注册的设备",
   "accesCompte.appareils.compte": "{n} / {max}",
   "accesCompte.appareils.chargement": "正在加载设备…",
-  "accesCompte.appareils.aucun": "没有已注册的设备。",
+  "accesCompte.appareils.vide": "没有已注册的设备。",
   "accesCompte.appareils.erreur": "无法加载设备（{code}）。",
   "accesCompte.appareils.celuiCi": "此设备",
   "accesCompte.appareils.derniereEcoute": "上次使用于 {date}",

@@ -5680,7 +5680,7 @@ export default {
   "accesCompte.appareils.titre": "Καταχωρισμένες συσκευές",
   "accesCompte.appareils.compte": "{n} από {max}",
   "accesCompte.appareils.chargement": "Φόρτωση συσκευών…",
-  "accesCompte.appareils.aucun": "Καμία καταχωρισμένη συσκευή.",
+  "accesCompte.appareils.vide": "Καμία καταχωρισμένη συσκευή.",
   "accesCompte.appareils.erreur": "Δεν ήταν δυνατή η φόρτωση των συσκευών ({code}).",
   "accesCompte.appareils.celuiCi": "αυτή η συσκευή",
   "accesCompte.appareils.derniereEcoute": "τελευταία χρήση {date}",

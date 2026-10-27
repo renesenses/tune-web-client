@@ -5678,7 +5678,7 @@ export default {
   "accesCompte.appareils.titre": "Zarejestrowane urządzenia",
   "accesCompte.appareils.compte": "{n} z {max}",
   "accesCompte.appareils.chargement": "Wczytywanie urządzeń…",
-  "accesCompte.appareils.aucun": "Brak zarejestrowanych urządzeń.",
+  "accesCompte.appareils.vide": "Brak zarejestrowanych urządzeń.",
   "accesCompte.appareils.erreur": "Nie udało się wczytać urządzeń ({code}).",
   "accesCompte.appareils.celuiCi": "to urządzenie",
   "accesCompte.appareils.derniereEcoute": "ostatnio użyte {date}",

@@ -5855,7 +5855,7 @@ export default {
   "accesCompte.appareils.titre": "Registered devices",
   "accesCompte.appareils.compte": "{n} of {max}",
   "accesCompte.appareils.chargement": "Loading devices…",
-  "accesCompte.appareils.aucun": "No registered device.",
+  "accesCompte.appareils.vide": "No registered device.",
   "accesCompte.appareils.erreur": "Devices could not be loaded ({code}).",
   "accesCompte.appareils.celuiCi": "this device",
   "accesCompte.appareils.derniereEcoute": "last used on {date}",

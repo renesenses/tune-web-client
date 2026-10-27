@@ -5835,7 +5835,7 @@ export default {
   "accesCompte.appareils.titre": "登録済みデバイス",
   "accesCompte.appareils.compte": "{n} / {max}",
   "accesCompte.appareils.chargement": "デバイスを読み込み中…",
-  "accesCompte.appareils.aucun": "登録済みのデバイスはありません。",
+  "accesCompte.appareils.vide": "登録済みのデバイスはありません。",
   "accesCompte.appareils.erreur": "デバイスを読み込めませんでした（{code}）。",
   "accesCompte.appareils.celuiCi": "このデバイス",
   "accesCompte.appareils.derniereEcoute": "最終使用 {date}",

@@ -5835,7 +5835,7 @@ export default {
   "accesCompte.appareils.titre": "Registrierte Geräte",
   "accesCompte.appareils.compte": "{n} von {max}",
   "accesCompte.appareils.chargement": "Geräte werden geladen…",
-  "accesCompte.appareils.aucun": "Kein registriertes Gerät.",
+  "accesCompte.appareils.vide": "Kein registriertes Gerät.",
   "accesCompte.appareils.erreur": "Die Geräte konnten nicht geladen werden ({code}).",
   "accesCompte.appareils.celuiCi": "dieses Gerät",
   "accesCompte.appareils.derniereEcoute": "zuletzt verwendet am {date}",

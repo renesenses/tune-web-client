@@ -103,7 +103,7 @@
     {:else if !charge}
       <p class="apr-note">{$t('accesCompte.appareils.chargement')}</p>
     {:else if !appareils.length}
-      <p class="apr-note">{$t('accesCompte.appareils.aucun')}</p>
+      <p class="apr-note">{$t('accesCompte.appareils.vide')}</p>
     {/if}
     {#if appareils.length}
       <ul class="apr-liste">

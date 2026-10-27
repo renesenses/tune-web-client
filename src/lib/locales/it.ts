@@ -5835,7 +5835,7 @@ export default {
   "accesCompte.appareils.titre": "Dispositivi registrati",
   "accesCompte.appareils.compte": "{n} su {max}",
   "accesCompte.appareils.chargement": "Caricamento dei dispositivi…",
-  "accesCompte.appareils.aucun": "Nessun dispositivo registrato.",
+  "accesCompte.appareils.vide": "Nessun dispositivo registrato.",
   "accesCompte.appareils.erreur": "Impossibile caricare i dispositivi ({code}).",
   "accesCompte.appareils.celuiCi": "questo dispositivo",
   "accesCompte.appareils.derniereEcoute": "ultimo utilizzo il {date}",

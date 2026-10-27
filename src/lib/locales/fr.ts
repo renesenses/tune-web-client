@@ -5857,7 +5857,7 @@ export default {
   "accesCompte.appareils.titre": "Appareils enregistrés",
   "accesCompte.appareils.compte": "{n} sur {max}",
   "accesCompte.appareils.chargement": "Chargement des appareils…",
-  "accesCompte.appareils.aucun": "Aucun appareil enregistré.",
+  "accesCompte.appareils.vide": "Aucun appareil enregistré.",
   "accesCompte.appareils.erreur": "Les appareils n’ont pas pu être chargés ({code}).",
   "accesCompte.appareils.celuiCi": "cet appareil",
   "accesCompte.appareils.derniereEcoute": "dernière utilisation le {date}",

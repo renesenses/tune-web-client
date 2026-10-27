@@ -5835,7 +5835,7 @@ export default {
   "accesCompte.appareils.titre": "등록된 기기",
   "accesCompte.appareils.compte": "{n} / {max}",
   "accesCompte.appareils.chargement": "기기를 불러오는 중…",
-  "accesCompte.appareils.aucun": "등록된 기기가 없습니다.",
+  "accesCompte.appareils.vide": "등록된 기기가 없습니다.",
   "accesCompte.appareils.erreur": "기기를 불러오지 못했습니다 ({code}).",
   "accesCompte.appareils.celuiCi": "이 기기",
   "accesCompte.appareils.derniereEcoute": "마지막 사용 {date}",

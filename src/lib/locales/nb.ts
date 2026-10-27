@@ -5680,7 +5680,7 @@ export default {
   "accesCompte.appareils.titre": "Registrerte enheter",
   "accesCompte.appareils.compte": "{n} av {max}",
   "accesCompte.appareils.chargement": "Laster inn enheter…",
-  "accesCompte.appareils.aucun": "Ingen registrert enhet.",
+  "accesCompte.appareils.vide": "Ingen registrert enhet.",
   "accesCompte.appareils.erreur": "Enhetene kunne ikke lastes inn ({code}).",
   "accesCompte.appareils.celuiCi": "denne enheten",
   "accesCompte.appareils.derniereEcoute": "sist brukt {date}",
