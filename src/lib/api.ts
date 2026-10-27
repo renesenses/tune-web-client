@@ -6659,6 +6659,8 @@ export * from './api/agentTune';
 // Annuaire radio-metadata.fr (tune-server-rust#6516).
 // Voir lib/api/annuaireRadios.ts.
 export * from './api/annuaireRadios';
+// Voir lib/api/cataloguePodcasts.ts (web#2450).
+export * from './api/cataloguePodcasts';
 
 // --- Radios ---
 

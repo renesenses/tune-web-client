@@ -22,6 +22,10 @@ export interface FicheAnnuaireRadio {
   /** Genre de l'annuaire, en minuscules (`eclectic`, `news`…). */
   genre?: string | null;
   categories?: string[];
+  /** Mots-clés de la fiche : le diffuseur (NPR, BBC, Radio France…), dont la
+   *  carte fait ses réseaux (tune-server-rust#7194). Absent d'un serveur plus
+   *  ancien. */
+  keywords?: string[];
   quality?: string | null;
   codec?: string | null;
   bitrate?: number | null;

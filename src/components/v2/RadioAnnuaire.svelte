@@ -16,11 +16,8 @@
   import type { AnnuaireRadios, FicheAnnuaireRadio } from '../../lib/api/annuaireRadios';
   import type { RadioStation } from '../../lib/types';
   import { zoneRequise } from '../../lib/zoneRequise';
+  import { ecouterFicheAnnuaire } from '../../lib/ecouteFicheAnnuaire';
   import { t, locale } from '../../lib/i18n';
-  import { currentZone } from '../../lib/stores/zones';
-  import { browserPlay } from '../../lib/stores/browserAudio';
-  import { estZoneJouableIci } from '../../lib/zoneNavigateurProprietaire';
-  import { signalerZoneNavigateurJoueeAilleurs } from '../../lib/zoneNavigateurRevendication';
   import { radioGenreRayon, radioGenreLabel } from '../../lib/radioGenres';
   import { nomDuPays } from '../../lib/paysAffichage';
   import { notifications } from '../../lib/stores/notifications';
@@ -94,17 +91,9 @@
     const zid = zoneRequise();
     if (zid == null) return;
     onJoue?.(f.external_id);
-    try {
-      const res: any = f.my_radio_id != null
-        ? await api.playRadio(f.my_radio_id, zid)
-        : await api.jouerDepuisAnnuaire(f.external_id, zid);
-      // Zone navigateur : la page lit elle-même le flux que le serveur rend.
-      if (estZoneJouableIci($currentZone) && res?.stream_url) browserPlay(res.stream_url, false, zid);
-      else if (res?.stream_url) {
-        const url = res.stream_url as string;
-        signalerZoneNavigateurJoueeAilleurs($currentZone, () => browserPlay(url, true, zid));
-      }
-    } catch {
+    // Le même geste que la « Carte » (lib/ecouteFicheAnnuaire.ts) : zone
+    // navigateur comprise, la page lit elle-même le flux que le serveur rend.
+    if (!(await ecouterFicheAnnuaire(f, zid))) {
       erreur = $t('v2.radio.dir.playFailed' as any).replace('{name}', f.name);
     }
   }

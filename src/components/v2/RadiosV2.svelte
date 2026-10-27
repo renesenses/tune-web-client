@@ -35,6 +35,7 @@
   import PochetteActions from './PochetteActions.svelte';
   import RadioEditModale from './RadioEditModale.svelte';
   import RadioAnnuaire from './RadioAnnuaire.svelte';
+  import CarteRadios from './CarteRadios.svelte';
   import RadioRecherche from './RadioRecherche.svelte';
   import RadioChipsGenres from './RadioChipsGenres.svelte';
   import RadioNouvelleStationModale from './RadioNouvelleStationModale.svelte';
@@ -82,8 +83,11 @@
    * Toutes. « Annuaire » montre les stations de radio-metadata.fr que le
    * serveur garde en cache (`RadioAnnuaire`) : on y écoute d'un clic, et on
    * ajoute à « Mes radios » sans doublon.
+   *
+   * web#2400 — « Carte » : le même annuaire, à parcourir par genres, pays et
+   * réseaux (`CarteRadios`), troisième onglet décidé par Bertrand le 26/10.
    */
-  let section = $state<'mes' | 'annuaire'>('mes');
+  let section = $state<'mes' | 'annuaire' | 'carte'>('mes');
   /** La fiche d'annuaire qui joue, pour sa pastille « en direct ». */
   let ficheJouee = $state<string | null>(null);
 
@@ -170,7 +174,7 @@
    * ce qu'il a lu à l'ouverture. (« Annuaire » se relit à CHAQUE ouverture :
    * le composant est monté à neuf.)
    */
-  function ouvrirSection(v: 'mes' | 'annuaire') {
+  function ouvrirSection(v: 'mes' | 'annuaire' | 'carte') {
     if (v === 'mes' && section !== 'mes') charger(true);
     section = v;
   }
@@ -354,6 +358,8 @@
       onclick={() => ouvrirSection('mes')}>{$t('v2.radio.tabMine' as any)}</button>
     <button class="v2-btn" class:on={section === 'annuaire'} role="tab" aria-selected={section === 'annuaire'}
       onclick={() => ouvrirSection('annuaire')}>{$t('v2.radio.tabDirectory' as any)}</button>
+    <button class="v2-btn" class:on={section === 'carte'} role="tab" aria-selected={section === 'carte'}
+      onclick={() => ouvrirSection('carte')}>{$t('v2.radio.tabMap' as any)}</button>
   </div>
 
   <div class="scroll">
@@ -368,7 +374,13 @@
         </div>
       {/if}
     {/if}
-    {#if section === 'annuaire'}
+    {#if section === 'carte'}
+      <CarteRadios
+        onAjoutee={stationAjoutee}
+        enDirect={ficheJouee}
+        onJoue={(id) => { ficheJouee = id; playingId = null; }}
+      />
+    {:else if section === 'annuaire'}
       <RadioAnnuaire
         onAjoutee={stationAjoutee}
         enDirect={ficheJouee}
