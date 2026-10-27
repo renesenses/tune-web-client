@@ -5971,6 +5971,15 @@ export default {
   "erreursServeur.details": "详情",
   "erreursServeur.track_decode_failed": "无法解码该曲目。",
   "v2.pl.serviceNoPlaylists": "{s} 不提供播放列表。",
+  "v2.dev.listAria": "设备和分区",
+  "v2.dev.filterLabel": "筛选设备",
+  "v2.dev.filterPlaceholder": "搜索设备…",
+  "v2.dev.typeLabel": "输出类型",
+  "v2.dev.typeAll": "所有类型",
+  "v2.dev.count": "{shown} / {total}",
+  "v2.dev.noMatch": "没有符合筛选条件的设备。",
+  "v2.dev.detailTitle": "{name} 的详细信息",
+  "v2.dev.pickHint": "在列表中选择一个设备，查看其详细信息和设置。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

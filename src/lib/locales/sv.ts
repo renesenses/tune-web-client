@@ -5970,4 +5970,13 @@ export default {
   "erreursServeur.details": "Detaljer",
   "erreursServeur.track_decode_failed": "Spåret kunde inte avkodas.",
   "v2.pl.serviceNoPlaylists": "{s} tillhandahåller inga spellistor.",
+  "v2.dev.listAria": "Enheter och zoner",
+  "v2.dev.filterLabel": "Filtrera enheter",
+  "v2.dev.filterPlaceholder": "Sök efter en enhet …",
+  "v2.dev.typeLabel": "Utgångstyp",
+  "v2.dev.typeAll": "Alla typer",
+  "v2.dev.count": "{shown} av {total}",
+  "v2.dev.noMatch": "Ingen enhet matchar filtret.",
+  "v2.dev.detailTitle": "Detaljer för {name}",
+  "v2.dev.pickHint": "Välj en enhet i listan för att se dess detaljer och inställningar.",
 } as const;

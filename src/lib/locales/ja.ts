@@ -5971,6 +5971,15 @@ export default {
   "erreursServeur.details": "詳細",
   "erreursServeur.track_decode_failed": "トラックをデコードできませんでした。",
   "v2.pl.serviceNoPlaylists": "{s} はプレイリストを提供していません。",
+  "v2.dev.listAria": "デバイスとゾーン",
+  "v2.dev.filterLabel": "デバイスを絞り込む",
+  "v2.dev.filterPlaceholder": "デバイスを検索…",
+  "v2.dev.typeLabel": "出力タイプ",
+  "v2.dev.typeAll": "すべてのタイプ",
+  "v2.dev.count": "{shown} / {total}",
+  "v2.dev.noMatch": "フィルターに一致するデバイスはありません。",
+  "v2.dev.detailTitle": "{name} の詳細",
+  "v2.dev.pickHint": "リストからデバイスを選ぶと、詳細と設定が表示されます。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

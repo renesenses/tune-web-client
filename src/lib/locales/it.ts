@@ -5971,6 +5971,15 @@ export default {
   "erreursServeur.details": "Dettagli",
   "erreursServeur.track_decode_failed": "Non è stato possibile decodificare il brano.",
   "v2.pl.serviceNoPlaylists": "{s} non fornisce playlist.",
+  "v2.dev.listAria": "Dispositivi e zone",
+  "v2.dev.filterLabel": "Filtra i dispositivi",
+  "v2.dev.filterPlaceholder": "Cerca un dispositivo…",
+  "v2.dev.typeLabel": "Tipo di uscita",
+  "v2.dev.typeAll": "Tutti i tipi",
+  "v2.dev.count": "{shown} di {total}",
+  "v2.dev.noMatch": "Nessun dispositivo corrisponde al filtro.",
+  "v2.dev.detailTitle": "Dettagli di {name}",
+  "v2.dev.pickHint": "Scegli un dispositivo dall'elenco per vederne dettagli e impostazioni.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

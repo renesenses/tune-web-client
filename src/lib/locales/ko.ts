@@ -5971,6 +5971,15 @@ export default {
   "erreursServeur.details": "세부 정보",
   "erreursServeur.track_decode_failed": "트랙을 디코딩하지 못했습니다.",
   "v2.pl.serviceNoPlaylists": "{s}은(는) 재생목록을 제공하지 않습니다.",
+  "v2.dev.listAria": "장치 및 존",
+  "v2.dev.filterLabel": "장치 필터",
+  "v2.dev.filterPlaceholder": "장치 검색…",
+  "v2.dev.typeLabel": "출력 유형",
+  "v2.dev.typeAll": "모든 유형",
+  "v2.dev.count": "{total}개 중 {shown}개",
+  "v2.dev.noMatch": "필터와 일치하는 장치가 없습니다.",
+  "v2.dev.detailTitle": "{name} 상세 정보",
+  "v2.dev.pickHint": "목록에서 장치를 선택하면 상세 정보와 설정을 볼 수 있습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

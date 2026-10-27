@@ -5816,5 +5816,14 @@ export default {
   "erreursServeur.details": "Λεπτομέρειες",
   "erreursServeur.track_decode_failed": "Το κομμάτι δεν μπόρεσε να αποκωδικοποιηθεί.",
   "v2.pl.serviceNoPlaylists": "Το {s} δεν παρέχει λίστες αναπαραγωγής.",
+  "v2.dev.listAria": "Συσκευές και ζώνες",
+  "v2.dev.filterLabel": "Φιλτράρισμα συσκευών",
+  "v2.dev.filterPlaceholder": "Αναζήτηση συσκευής…",
+  "v2.dev.typeLabel": "Τύπος εξόδου",
+  "v2.dev.typeAll": "Όλοι οι τύποι",
+  "v2.dev.count": "{shown} από {total}",
+  "v2.dev.noMatch": "Καμία συσκευή δεν ταιριάζει με το φίλτρο.",
+  "v2.dev.detailTitle": "Λεπτομέρειες για «{name}»",
+  "v2.dev.pickHint": "Επιλέξτε μια συσκευή από τη λίστα για να δείτε τις λεπτομέρειες και τις ρυθμίσεις της.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

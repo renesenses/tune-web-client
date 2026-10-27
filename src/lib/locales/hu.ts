@@ -5930,6 +5930,15 @@ export default {
   "erreursServeur.details": "Részletek",
   "erreursServeur.track_decode_failed": "A számot nem sikerült dekódolni.",
   "v2.pl.serviceNoPlaylists": "A(z) {s} nem kínál lejátszási listákat.",
+  "v2.dev.listAria": "Eszközök és zónák",
+  "v2.dev.filterLabel": "Eszközök szűrése",
+  "v2.dev.filterPlaceholder": "Eszköz keresése…",
+  "v2.dev.typeLabel": "Kimenet típusa",
+  "v2.dev.typeAll": "Minden típus",
+  "v2.dev.count": "{shown} / {total}",
+  "v2.dev.noMatch": "Egy eszköz sem felel meg a szűrőnek.",
+  "v2.dev.detailTitle": "{name} részletei",
+  "v2.dev.pickHint": "Válasszon egy eszközt a listából a részletek és beállítások megtekintéséhez.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

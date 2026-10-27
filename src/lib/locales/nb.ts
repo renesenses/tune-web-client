@@ -5816,5 +5816,14 @@ export default {
   "erreursServeur.details": "Detaljer",
   "erreursServeur.track_decode_failed": "Sporet kunne ikke dekodes.",
   "v2.pl.serviceNoPlaylists": "{s} tilbyr ikke spillelister.",
+  "v2.dev.listAria": "Enheter og soner",
+  "v2.dev.filterLabel": "Filtrer enheter",
+  "v2.dev.filterPlaceholder": "Søk etter en enhet …",
+  "v2.dev.typeLabel": "Utgangstype",
+  "v2.dev.typeAll": "Alle typer",
+  "v2.dev.count": "{shown} av {total}",
+  "v2.dev.noMatch": "Ingen enheter samsvarer med filteret.",
+  "v2.dev.detailTitle": "Detaljer for {name}",
+  "v2.dev.pickHint": "Velg en enhet i listen for å se detaljer og innstillinger.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];
