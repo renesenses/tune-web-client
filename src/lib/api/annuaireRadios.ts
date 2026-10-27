@@ -19,8 +19,13 @@ export interface FicheAnnuaireRadio {
   logo_url?: string | null;
   /** Code ISO 3166-1 alpha-2. */
   country_code?: string | null;
-  /** Genre de l'annuaire, en minuscules (`eclectic`, `news`…). */
+  /** Genre de l'annuaire, en minuscules (`eclectic`, `news`…) : le PREMIER
+   *  genre de la fiche. */
   genre?: string | null;
+  /** Tous les genres de la fiche, dans l'ordre (tune-server-rust#7215 :
+   *  « OuiFM Blues & Rock » est blues ET rock). Absent d'un serveur plus
+   *  ancien : lire `genresDeLaFiche`, qui se replie sur `genre`. */
+  genres?: string[];
   categories?: string[];
   /** Mots-clés de la fiche : le diffuseur (NPR, BBC, Radio France…), dont la
    *  carte fait ses réseaux (tune-server-rust#7194). Absent d'un serveur plus
@@ -40,6 +45,25 @@ export interface FicheAnnuaireRadio {
   /** La station de « Mes radios » rapprochée de cette fiche, s'il y en a une. */
   my_radio_id?: number | null;
   my_radio_favorite?: boolean | null;
+}
+
+/**
+ * Les genres d'une fiche (tune-server-rust#7215) : `genres`, en minuscules,
+ * sans vide ni doublon ; à défaut (serveur plus ancien), le seul `genre`.
+ * Une fiche sans genre rend une liste vide.
+ */
+export function genresDeLaFiche(f: Pick<FicheAnnuaireRadio, 'genre' | 'genres'>): string[] {
+  const out: string[] = [];
+  const source = f.genres?.length ? f.genres : [f.genre];
+  for (const g of source) {
+    const cle = (g ?? '').trim().toLowerCase();
+    if (cle && !out.includes(cle)) out.push(cle);
+  }
+  if (!out.length && f.genres?.length) {
+    const cle = (f.genre ?? '').trim().toLowerCase();
+    if (cle) out.push(cle);
+  }
+  return out;
 }
 
 export interface FacetteAnnuaire {

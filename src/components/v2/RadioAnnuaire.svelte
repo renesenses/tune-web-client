@@ -13,7 +13,7 @@
    */
   import * as api from '../../lib/api';
   import { bulleTexte } from '../../lib/infobulleTexte';
-  import type { AnnuaireRadios, FicheAnnuaireRadio } from '../../lib/api/annuaireRadios';
+  import { genresDeLaFiche, type AnnuaireRadios, type FicheAnnuaireRadio } from '../../lib/api/annuaireRadios';
   import type { RadioStation } from '../../lib/types';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { ecouterFicheAnnuaire } from '../../lib/ecouteFicheAnnuaire';
@@ -179,7 +179,7 @@
           {#if enDirect === f.external_id && titreEnCours}
             <span class="encours" use:bulleTexte>{titreEnCours}</span>
           {:else}
-            <span class="gn" use:bulleTexte>{[f.genre ? libelleGenre(f.genre) : null, nomPays(f.country_code)].filter(Boolean).join(' · ')}</span>
+            <span class="gn" use:bulleTexte>{[genresDeLaFiche(f).map(libelleGenre).join(', ') || null, nomPays(f.country_code)].filter(Boolean).join(' · ')}</span>
           {/if}
           <span class="pied">
             <!-- web#2443 — « Metadata+ » : la fiche a une clé radio-metadata.fr,

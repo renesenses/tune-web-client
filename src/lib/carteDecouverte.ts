@@ -22,8 +22,11 @@ export interface ElementCarte {
   nom: string;
   /** Adresse brute de l'image ; le composant la fait passer par le serveur. */
   image?: string | null;
-  /** Clé de genre ou de catégorie ('' : sans). */
+  /** Clé de genre ou de catégorie ('' : sans) : le premier genre. */
   genre: string;
+  /** Tous les genres de l'élément (tune-server-rust#7215) : il apparaît sous
+   *  CHACUN dans l'arbre. Absent ou vide : le seul `genre`. */
+  genres?: readonly string[];
   /** Toutes les catégories de l'élément, pour les « proches ». */
   categories?: readonly string[];
   /** Code pays ISO 3166-1 alpha-2 en majuscules ('' : sans). */
@@ -55,19 +58,26 @@ export interface NoeudCarte {
   element?: ElementCarte;
 }
 
-const cleGenre = (e: ElementCarte) => e.genre || '';
-const clePays = (e: ElementCarte) => e.pays || '';
+/** Les genres d'un élément : `genres`, sinon `[genre]` ('' : sans). */
+export function genresDe(e: ElementCarte): string[] {
+  const l = (e.genres ?? []).filter(Boolean);
+  return l.length ? [...new Set(l)] : [e.genre || ''];
+}
+const clesGenre = (e: ElementCarte) => genresDe(e);
+const clesPays = (e: ElementCarte) => [e.pays || ''];
 
 function trierFeuilles(els: ElementCarte[]): ElementCarte[] {
   return els.slice().sort((a, b) => (a.rang ?? 1e9) - (b.rang ?? 1e9) || a.nom.localeCompare(b.nom));
 }
 
-function grouper(els: ElementCarte[], cle: (e: ElementCarte) => string): [string, ElementCarte[]][] {
+/** Un élément entre dans le groupe de CHACUNE de ses clés (ses genres, #7215). */
+function grouper(els: ElementCarte[], cles: (e: ElementCarte) => readonly string[]): [string, ElementCarte[]][] {
   const m = new Map<string, ElementCarte[]>();
   for (const e of els) {
-    const k = cle(e);
-    const l = m.get(k);
-    if (l) l.push(e); else m.set(k, [e]);
+    for (const k of cles(e)) {
+      const l = m.get(k);
+      if (l) l.push(e); else m.set(k, [e]);
+    }
   }
   // Les plus gros groupes d'abord ; le groupe « sans » en dernier.
   return [...m.entries()].sort((a, b) =>
@@ -81,14 +91,14 @@ function feuilles(parent: NoeudCarte): NoeudCarte[] {
   }));
 }
 
-type Niveau = { dimension: DimensionCarte; cle: (e: ElementCarte) => string };
-const NIVEAU_GENRE: Niveau = { dimension: 'genre', cle: cleGenre };
-const NIVEAU_PAYS: Niveau = { dimension: 'pays', cle: clePays };
+type Niveau = { dimension: DimensionCarte; cles: (e: ElementCarte) => readonly string[] };
+const NIVEAU_GENRE: Niveau = { dimension: 'genre', cles: clesGenre };
+const NIVEAU_PAYS: Niveau = { dimension: 'pays', cles: clesPays };
 
 function descendre(parent: NoeudCarte, niveaux: Niveau[]): void {
   if (!niveaux.length) { parent.enfants = feuilles(parent); return; }
   const [n, ...reste] = niveaux;
-  parent.enfants = grouper(parent.elements, n.cle).map(([cle, els]) => {
+  parent.enfants = grouper(parent.elements, n.cles).map(([cle, els]) => {
     const g: NoeudCarte = {
       id: `${parent.id}/${n.dimension}:${cle}`, type: 'groupe', dimension: n.dimension, cle,
       elements: els, enfants: [], parent,
@@ -109,7 +119,7 @@ export function construireArbre(els: readonly ElementCarte[], mode: ModeCarte, a
   }
   const avec = racine.elements.filter((e) => e.reseau);
   const sans = racine.elements.filter((e) => !e.reseau);
-  racine.enfants = grouper(avec, (e) => e.reseau ?? '').map(([cle, l]) => {
+  racine.enfants = grouper(avec, (e) => [e.reseau ?? '']).map(([cle, l]) => {
     const g: NoeudCarte = { id: `${racine.id}/reseau:${cle}`, type: 'groupe', dimension: 'reseau', cle, elements: l, enfants: [], parent: racine };
     g.enfants = feuilles(g);
     return g;
@@ -158,14 +168,14 @@ export interface Proche { element: ElementCarte; raisons: RaisonProche[] }
  * plus proches d'abord, puis par rang et par nom. Au plus `max`.
  */
 export function proches(e: ElementCarte, tous: readonly ElementCarte[], max = 8): Proche[] {
-  const cats = new Set([e.genre, ...(e.categories ?? [])].filter(Boolean));
+  const cats = new Set([...genresDe(e), ...(e.categories ?? [])].filter(Boolean));
   const out: { element: ElementCarte; raisons: RaisonProche[]; score: number }[] = [];
   for (const o of tous) {
     if (o.id === e.id) continue;
     const raisons: RaisonProche[] = [];
     let score = 0;
     if (e.reseau && o.reseau === e.reseau) { score += 3; raisons.push('reseau'); }
-    if ([o.genre, ...(o.categories ?? [])].some((c) => c && cats.has(c))) { score += 2; raisons.push('genre'); }
+    if ([...genresDe(o), ...(o.categories ?? [])].some((c) => c && cats.has(c))) { score += 2; raisons.push('genre'); }
     if (e.pays && o.pays === e.pays) { score += 1; raisons.push('pays'); }
     if (score >= 3 || (score === 2 && raisons[0] === 'genre')) out.push({ element: o, raisons, score });
   }

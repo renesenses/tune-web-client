@@ -13,7 +13,7 @@
    * Écouter et ajouter passent par les MÊMES gestes que l'onglet Annuaire.
    */
   import * as api from '../../lib/api';
-  import type { FicheAnnuaireRadio } from '../../lib/api/annuaireRadios';
+  import { genresDeLaFiche, type FicheAnnuaireRadio } from '../../lib/api/annuaireRadios';
   import type { RadioStation } from '../../lib/types';
   import { t, locale } from '../../lib/i18n';
   import { zoneRequise } from '../../lib/zoneRequise';
@@ -21,7 +21,7 @@
   import { radioGenreRayon, radioGenreLabel } from '../../lib/radioGenres';
   import { nomDuPays } from '../../lib/paysAffichage';
   import { notifications } from '../../lib/stores/notifications';
-  import type { AxeCarte, DimensionCarte, ElementCarte, ModeCarte, RaisonProche } from '../../lib/carteDecouverte';
+  import { genresDe, type AxeCarte, type DimensionCarte, type ElementCarte, type ModeCarte, type RaisonProche } from '../../lib/carteDecouverte';
   import CarteDecouverte from './CarteDecouverte.svelte';
 
   interface Props {
@@ -57,13 +57,15 @@
   const reseauDe = (f: FicheAnnuaireRadio) => (f.keywords ?? []).map((k) => k.trim()).find(Boolean) ?? null;
 
   const elements = $derived<ElementCarte[]>(fiches.map((f) => {
-    const genre = (f.genre ?? '').trim().toLowerCase();
+    // tune-server-rust#7215 — une station est rangée sous CHACUN de ses genres.
+    const genres = genresDeLaFiche(f);
+    const genre = genres[0] ?? '';
     const pays = (f.country_code ?? '').trim().toUpperCase();
     const reseau = reseauDe(f);
     return {
-      id: f.external_id, nom: f.name, image: f.logo_url ?? null, genre,
+      id: f.external_id, nom: f.name, image: f.logo_url ?? null, genre, genres,
       categories: f.categories ?? [], pays, reseau,
-      texte: [f.name, genre, libelleGenre(genre), pays, nomPays(pays), ...(f.keywords ?? []), ...(f.categories ?? [])].join(' '),
+      texte: [f.name, ...genres, ...genres.map(libelleGenre), pays, nomPays(pays), ...(f.keywords ?? []), ...(f.categories ?? [])].join(' '),
     };
   }));
   const parId = $derived(new Map(fiches.map((f) => [f.external_id, f])));
@@ -78,7 +80,7 @@
     if (m === 'reseaux') return $t('v2.carte.radio.networks' as any);
     return a === 'genre' ? $t('v2.carte.radio.genres' as any) : $t('v2.carte.countries' as any);
   }
-  const sousTitre = (e: ElementCarte) => [libelleGenre(e.genre), nomPays(e.pays), e.reseau].filter(Boolean).join(' · ');
+  const sousTitre = (e: ElementCarte) => [genresDe(e).map(libelleGenre).join(', '), nomPays(e.pays), e.reseau].filter(Boolean).join(' · ');
   const unite = (n: number) => $t((n === 1 ? 'v2.carte.radio.one' : 'v2.carte.radio.many') as any).replace('{n}', String(n));
   const libelleRaison = (r: RaisonProche) =>
     r === 'reseau' ? $t('v2.carte.radio.sameNetwork' as any) : r === 'genre' ? $t('v2.carte.radio.sameGenre' as any) : $t('v2.carte.sameCountry' as any);
