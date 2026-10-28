@@ -37,8 +37,7 @@ jobs:
   test:
     name: npm test
     runs-on: ubuntu-latest
-    # La suite dépasse 1 200 fichiers : tests + contre-épreuve + build
-    # atteignent quinze minutes même au vert (run 40689500476).
+    # 11 500+ tests puis le build : le plafond de15min coupait un job vert (#2481).
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
