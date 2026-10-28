@@ -2,6 +2,7 @@
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur } from '../../lib/messageServeur';
   import { publierGreffons } from '../../lib/stores/greffonsStudio';
+  import { audiophileEnabled } from '../../lib/stores/audiophile';
   import { t } from '../../lib/i18n';
   /**
    * Extensions — nouveau client (direction Levente). Niveau Expert.
@@ -37,6 +38,8 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import { notifications } from '../../lib/stores/notifications';
   import '../../styles/tune-v2.css';
+
+  const DSP_PURE = new Set(['equalizer', 'crossfeed', 'converter', 'declick', 'channel-remap']);
 
   let plugins = $state<MergedPlugin[]>([]);
   let loading = $state(true);
@@ -310,7 +313,8 @@
     {:else}
       <div class="list">
         {#each filtered as p (key(p))}
-          <article class="pl" class:err={p.status === 'error'}>
+          {@const contourne = $audiophileEnabled && isActive(p) && DSP_PURE.has(p.name)}
+          <article data-plugin={p.name} class="pl" class:err={p.status === 'error'}>
             <div class="pi">
               <div class="ph">
                 <!-- tune-server-rust#5296 : un nom traduit pour les greffons dont
@@ -325,6 +329,11 @@
               <!-- Le serveur ne rend que le nom technique et une phrase anglaise
                    pour les greffons natifs : Concerts porte les siens, traduits. -->
               <p class="pd">{p.name === 'concerts' ? $t('concerts.greffonDescription' as any) : p.description}</p>
+              {#if contourne}
+                <p role="note" data-pure-bypass>{$t('v2.plug.pureBypassed' as any)}
+                  <button class="lnk" onclick={() => activeView.set('nowplaying')}>{$t('audiophile.pure' as any)}</button>
+                </p>
+              {/if}
               {#if p.author}<div class="pa">{p.author}</div>{/if}
               {#if !p.compatible && (p.min_tune_version || p.max_tune_version)}
                 <div class="why">
@@ -366,8 +375,8 @@
                 {#if p.name === 'circle' && isActive(p)}
                   <button class="lnk ouvrir-circle" onclick={() => activeView.set('circle')}>{$t('common.open' as any)}</button>
                 {/if}
-                <label class="sw" title={isActive(p) ? $t('settings.disable' as any) : $t('plugins.enable' as any)}>
-                  <input type="checkbox" checked={isActive(p)} disabled={busy === key(p)} onchange={() => toggle(p)} />
+                <label class="sw" title={contourne ? $t('v2.plug.pureBypassed' as any) : isActive(p) ? $t('settings.disable' as any) : $t('plugins.enable' as any)}>
+                  <input type="checkbox" checked={isActive(p) && !contourne} disabled={contourne || busy === key(p)} onchange={() => toggle(p)} />
                   <span class="slider"></span>
                 </label>
                 {#if p.update_available}

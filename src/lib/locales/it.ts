@@ -5368,6 +5368,7 @@ export default {
   "v2.cfp.errRefused": "Il plugin ha rifiutato questa impostazione.",
   "v2.plug.nativeTitle": "Plugin audio nativi",
   "v2.plug.nativeBadge": "Nativo",
+  "v2.plug.pureBypassed": "Escluso da PURE nella zona corrente. Le impostazioni vengono conservate.",
   "v2.plug.nativeHint": "Elaborazione audio installata su questo server da un pacchetto firmato.",
   "v2.plug.nativeSettings": "Regola",
   "v2.plug.native_charge": "Caricato",

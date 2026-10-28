@@ -5367,6 +5367,7 @@ export default {
   "v2.cfp.errRefused": "Tillägget avvisade den här inställningen.",
   "v2.plug.nativeTitle": "Inbyggda ljudtillägg",
   "v2.plug.nativeBadge": "Inbyggt",
+  "v2.plug.pureBypassed": "Kringgås av PURE i den aktuella zonen. Inställningarna behålls.",
   "v2.plug.nativeHint": "Ljudbehandling installerad på den här servern från ett signerat paket.",
   "v2.plug.nativeSettings": "Ställ in",
   "v2.plug.native_charge": "Laddat",
