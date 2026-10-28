@@ -16,7 +16,7 @@ Album/playlist : la vignette est celle du conteneur ; le libellé visible est le
 `POST /api/v1/home/continue-listening/{zone_id}/resume` avec `{"resume_key":"…"}` reconstruit la file mémorisée de ce contexte, sélectionne le dernier titre démarré et le rejoue depuis zéro ; la suite reste dans la file. L'ordre aléatoire mémorisé est conservé, y compris après redémarrage. Un identifiant de service n'est jamais interprété comme un identifiant de bibliothèque. Le serveur résout de nouveau les pistes par leur service, sans mémoriser un flux temporaire.
 `POST /podcasts/play/{zone_id}` accepte en plus `podcast_id` (flux RSS ou identifiant stable) ; les clients envoient l’image du podcast, avant celle propre à l’épisode. Une seule entrée par podcast identifié, mise à jour avec son dernier épisode démarré. Ancien client : repli sur le nom transmis.
 
-Podcast : relancer le même épisode à `max(0, position_ms - X * 1000)`. Le réglage serveur `continue_listening_rewind_seconds`, exposé par `GET/PATCH /system/config`, est un entier de 0 à 300 ; défaut proposé : **10 secondes** (signalé à Bertrand). La position est persistée pendant l'écoute et lors d'une pause/arrêt.
+Podcast : relancer le même épisode à `max(0, position_ms - X * 1000)`. Le réglage serveur `continue_listening_rewind_seconds`, exposé par `GET/PATCH /system/config`, est un entier de 0 à 300 ; défaut : **10 secondes**, confirmé par la décision de coordination du 28/10 (section « SESSION REPRISE (n° 4) — DÉCISION 28/10 sur le recul des podcasts »). La position est persistée pendant l'écoute et lors d'une pause/arrêt.
 Un objet absent ou périmé rend une erreur ; aucun repli silencieux vers un album ou une piste locale d'identifiant homonyme.
 
 ## Compatibilité

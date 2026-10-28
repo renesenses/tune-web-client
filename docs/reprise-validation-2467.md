@@ -5,7 +5,7 @@ Contrat : `contrat-reprise-de-lecture.md` ; chantier serveur #7280.
 
 Le widget reprend par `resume_key` sur la zone active. Les anciens serveurs gardent les gestes par album/playlist/service avec le rang reçu. Le dernier titre démarré nomme les entrées album/playlist. Les titres seuls nouveaux ne disparaissent plus derrière un album. Les menus et ajouts des fiches portent leur contexte. Un épisode transmet l'identité stable et l'image du podcast.
 
-Le réglage serveur `continue_listening_rewind_seconds` apparaît seulement si le serveur le publie : entier de 0 à 300 secondes, défaut proposé 10 secondes. Deux clés traduites dans les 15 langues du dépôt. Un refus d'enregistrement est signalé.
+Le réglage serveur `continue_listening_rewind_seconds` apparaît seulement si le serveur le publie : entier de 0 à 300 secondes, défaut 10 secondes (décision du 28/10). Deux clés traduites dans les 15 langues du dépôt. Un refus d'enregistrement est signalé.
 
 Tests sur Shrek :
 
