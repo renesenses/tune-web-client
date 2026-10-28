@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // tune-server-rust#7215 — la carte des radios range une station sous CHACUN de
 // ses genres (`genres` de `/radios/directory`), avec repli sur `genre`.
@@ -40,6 +41,7 @@ let hote: HTMLDivElement;
 let instance: Record<string, unknown> | null = null;
 
 beforeEach(() => {
+  clearViewContext('radios');
   HTMLCanvasElement.prototype.getContext = (() => null) as any;
   for (const fn of Object.values(mocks)) fn.mockReset();
   mocks.getRadios.mockResolvedValue([]);

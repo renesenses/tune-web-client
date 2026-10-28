@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // #2397 — la page Radio (Mes radios / Annuaire) après le rapport de Rémi
 // (RC7, 25/10/2026). Un test par comportement ; chacun a sa contre-épreuve.
@@ -45,6 +46,7 @@ async function monter() {
 const onglet = (i: number) => hote.querySelectorAll<HTMLButtonElement>('.sections button')[i];
 
 beforeEach(() => {
+  clearViewContext('radios');
   for (const fn of Object.values(mocks)) fn.mockReset();
   mocks.getRadios.mockResolvedValue([FIP, MAISON]);
   mocks.exportRadiosUrl.mockReturnValue('#');
