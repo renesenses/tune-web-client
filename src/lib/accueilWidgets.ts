@@ -720,7 +720,7 @@ function gesteHistorique(o: any, svc: string) {
 
 /** Reprise serveur, puis compatibilité avec les entrées historiques. */
 export function gesteReprise(o: any): Element['jouer'] {
-  if (typeof o.resume_key === 'string' && o.resume_key) return (z) => api.resumeListening(z, o.resume_key);
+  if (typeof o.resume_key === 'string' && o.resume_key) return async (z) => (await import('./stores/zones')).resumeListeningAndSync(z, o.resume_key);
   const rang = Number.isInteger(o.position) && o.position >= 0 ? { start_index: o.position } : {};
   const svc = serviceDistant(champ(o, 'source') ?? null);
   const id = champ(o, 'context_id');

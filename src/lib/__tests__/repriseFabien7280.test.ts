@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ getContinueListening: vi.fn(), resumeListening: vi.fn(), play: vi.fn() }));
 vi.mock('../api', async (original) => ({ ...await original<typeof import('../api')>(), ...mocks }));
 import { widgetParId } from '../accueilWidgets';
 import { reprisesUtiles } from '../reprendreEcoute';
 const ctx: any = { zones: [], albums: [], limite: 50 };
+beforeEach(() => { mocks.resumeListening.mockResolvedValue({ id: 27, state: 'playing' }); });
 
 describe('Reprise de lecture de Fabien #7280', () => {
   it.each(['album', 'playlist', 'track', 'podcast'])('%s : reprend le contexte sur la zone active', async (type) => {
