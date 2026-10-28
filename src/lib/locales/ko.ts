@@ -5369,6 +5369,7 @@ export default {
   "v2.cfp.errRefused": "플러그인이 이 설정을 거부했습니다.",
   "v2.plug.nativeTitle": "네이티브 오디오 플러그인",
   "v2.plug.nativeBadge": "네이티브",
+  "v2.plug.pureBypassed": "현재 구역에서 PURE가 이 처리를 우회합니다. 설정은 유지됩니다.",
   "v2.plug.nativeHint": "서명된 패키지로 이 서버에 설치된 오디오 처리입니다.",
   "v2.plug.nativeSettings": "설정",
   "v2.plug.native_charge": "로드됨",

@@ -5226,6 +5226,7 @@ export default {
   "v2.cfp.errRefused": "Plugin đã từ chối cài đặt này.",
   "v2.plug.nativeTitle": "Plugin âm thanh native",
   "v2.plug.nativeBadge": "Native",
+  "v2.plug.pureBypassed": "PURE bỏ qua xử lý này trong vùng hiện tại. Các cài đặt được giữ lại.",
   "v2.plug.nativeHint": "Bộ xử lý âm thanh được cài trên máy chủ này từ một gói đã ký.",
   "v2.plug.nativeSettings": "Cài đặt",
   "v2.plug.native_charge": "Đã nạp",

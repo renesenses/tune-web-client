@@ -5223,6 +5223,7 @@ export default {
   "v2.cfp.errRefused": "Programtillegget avviste denne innstillingen.",
   "v2.plug.nativeTitle": "Innebygde lydprogramtillegg",
   "v2.plug.nativeBadge": "Innebygd",
+  "v2.plug.pureBypassed": "Forbigås av PURE i gjeldende sone. Innstillingene beholdes.",
   "v2.plug.nativeHint": "Lydbehandling installert på denne serveren fra en signert pakke.",
   "v2.plug.nativeSettings": "Innstillinger",
   "v2.plug.native_charge": "Lastet",

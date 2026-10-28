@@ -5391,6 +5391,7 @@ export default {
   "v2.cfp.errRefused": "Le greffon a refusé ce réglage.",
   "v2.plug.nativeTitle": "Greffons audio natifs",
   "v2.plug.nativeBadge": "Natif",
+  "v2.plug.pureBypassed": "Contourné par PURE sur la zone courante. Les réglages sont conservés.",
   "v2.plug.nativeHint": "Traitement audio installé sur ce serveur à partir d’un paquet signé.",
   "v2.plug.nativeSettings": "Régler",
   "v2.plug.native_charge": "Chargé",

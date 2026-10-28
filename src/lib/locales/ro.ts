@@ -5369,6 +5369,7 @@ export default {
   "v2.cfp.errRefused": "Pluginul a refuzat această setare.",
   "v2.plug.nativeTitle": "Pluginuri audio native",
   "v2.plug.nativeBadge": "Nativ",
+  "v2.plug.pureBypassed": "Ocolit de PURE în zona curentă. Setările sunt păstrate.",
   "v2.plug.nativeHint": "Procesare audio instalată pe acest server dintr-un pachet semnat.",
   "v2.plug.nativeSettings": "Reglează",
   "v2.plug.native_charge": "Încărcat",
