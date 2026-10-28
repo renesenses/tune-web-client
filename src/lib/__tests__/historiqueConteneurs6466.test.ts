@@ -38,9 +38,9 @@ describe('Le conteneur des déclencheurs (#6466)', () => {
     expect(contexteDObjet(objetArtiste({ name: 'Inconnu' }))).toBeNull();
   });
 
-  it('`/play` reçoit type et id ; `queue/add` reçoit aussi le service', () => {
+  it('`/play` et `queue/add` gardent le service du conteneur', () => {
     const ctx = { context_type: 'artist', context_id: '38326', context_source: 'qobuz' };
-    expect(avecContexte({ track_ids: [1] }, ctx, false)).toEqual({ track_ids: [1], context_type: 'artist', context_id: '38326' });
+    expect(avecContexte({ track_ids: [1] }, ctx, false)).toEqual({ track_ids: [1], ...ctx });
     expect(avecContexte({ track_ids: [1] }, ctx, true)).toEqual({ track_ids: [1], ...ctx });
     expect(avecContexte({ track_ids: [1] }, null, true)).toEqual({ track_ids: [1] });
   });
