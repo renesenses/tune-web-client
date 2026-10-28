@@ -51,6 +51,26 @@ jobs:
       # le contrôle qu'on veut, le lockfile devant suivre chaque bump.
       - run: npm ci
 
+      - name: Contre-épreuve des cartes privées
+        run: |
+          sauvegarde=$(mktemp)
+          cp src/lib/circleMessagerie.ts "$sauvegarde"
+          trap 'cp "$sauvegarde" src/lib/circleMessagerie.ts; rm -f "$sauvegarde"' EXIT
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          p = Path('src/lib/circleMessagerie.ts')
+          p.write_text(p.read_text().replace('const c: CarteMusique = { type: b.type,', 'const c: CarteMusique = { ...b, type: b.type,'))
+          PYTHON
+          if npx vitest run src/lib/__tests__/circleMessagerie6902.test.ts -t 'ne laisse sortir' --maxWorkers=2 > contre-cartes.log 2>&1; then
+            cat contre-cartes.log
+            echo '::error::Le témoin laisse partir les champs privés de la carte'
+            exit 1
+          fi
+          cat contre-cartes.log
+          grep -q 'AssertionError' contre-cartes.log
+          cp "$sauvegarde" src/lib/circleMessagerie.ts
+          npx vitest run src/lib/__tests__/circleMessagerie6902.test.ts --maxWorkers=2
+
       - run: npm test
 
       # Les tests et le garde svelte-check ne construisent pas l'artefact que

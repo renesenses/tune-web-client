@@ -84,6 +84,8 @@
   import SceneCercleV2 from './SceneCercleV2.svelte';
   import InviterSansEmailV2 from './InviterSansEmailV2.svelte';
   import NotificationsCercleV2 from './NotificationsCercleV2.svelte';
+  import MessagerieCercleV2 from './MessagerieCercleV2.svelte';
+  import { demandeConversation, messagerieSupport } from '../../lib/circleMessagerie';
   import type { NotifCercle } from '../../lib/circleNotifications';
   import '../../styles/tune-v2.css';
 
@@ -314,6 +316,7 @@
   /** rc9 (web#2437) : une notification ouverte mène à ce qu'elle désigne, quand l'écran le montre. */
   function ouvrirNotification(n: NotifCercle) {
     if (n.kind === 'playlist_shared' && n.playlist) { ouvrirPlaylistPartagee(n.playlist.id as IdOpaque); return; }
+    if (n.kind === 'message' && n.conversation_id) { demandeConversation.set({ conversation: n.conversation_id }); document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' }); return; }
     if (n.kind === 'contact_request') document.getElementById('circle-recues')?.scrollIntoView?.({ block: 'start' });
   }
 
@@ -665,6 +668,7 @@
       <p class="intro">{$t('v2.circle.intro' as any)}</p>
 
       <NotificationsCercleV2 onOuvrir={ouvrirNotification} />
+      <MessagerieCercleV2 />
 
       {#if retour}
         <div class={retour.erreur ? 'err retour' : 'ok retour'} role={retour.erreur ? 'alert' : 'status'}>
@@ -800,6 +804,7 @@
                 <span class="nom" use:bulleTexte>{c.name}</span>
                 <span class="note">{$t('v2.circle.since' as any).replace('{date}', $dateCourte(c.since))}</span>
                 <span class="gestes">
+                  {#if $messagerieSupport === true}<button class="lnk" onclick={() => demandeConversation.set({ contact: c.user_id })}>{$t('v2.circle.msg.write' as any)}</button>{/if}
                   <button class="lnk danger revoquer" disabled={occupe !== null}
                     aria-label={$t('v2.circle.revokeNamed' as any).replace('{name}', c.name)}
                     onclick={() => void revoquer(c)}>
