@@ -16,10 +16,12 @@ import VolumeControl from '../../components/partages/VolumeControl.svelte';
 import TransportBar from '../../components/partages/TransportBar.svelte';
 import ZonesV2 from '../../components/v2/ZonesV2.svelte';
 import TvView from '../../components/v2-heritage/TvView.svelte';
+import SettingsV2 from '../../components/v2/SettingsV2.svelte';
+import { v2SettingsTarget } from '../stores/v2SettingsNav';
 import { zones, currentZoneId } from '../stores/zones';
 import { stopSeekTimer, zoneVolume } from '../stores/nowPlaying';
 import { preferences } from '../stores/preferences';
-import { audiophileEnabled, audiophileLockVolume } from '../stores/audiophile';
+import { audiophileEnabled, audiophileLockVolume, audiophileGlobalLockVolume } from '../stores/audiophile';
 import { activeView } from '../stores/navigation';
 import { setupKeyboardShortcuts } from '../keyboard';
 import { DELAI_VOLUME_MS } from '../limiteurVolume';
@@ -57,7 +59,7 @@ function touche(code: string, key = code) {
 beforeEach(() => {
   envois = []; component = null; reponsePas = undefined;
   host = document.createElement('div'); document.body.appendChild(host);
-  audiophileEnabled.set(false); audiophileLockVolume.set(false);
+  audiophileEnabled.set(false); audiophileLockVolume.set(false); audiophileGlobalLockVolume.set(false);
   preferences.update((p) => ({ ...p, volumeDisplay: 'percent', volumeStepButtons: true }));
   activeView.set('nowplaying');
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -71,7 +73,7 @@ beforeEach(() => {
     const body = u.includes('tune-tested.json') ? { version: 1, count: 0, devices: [] }
       : u.endsWith('/system/diagnostics') ? { zones_doublons: [] }
       : /\/zones$/.test(u) ? get(zones)
-      : /\/devices$|\/devices\/all$|\/outputs$|\/stereo-pairs$/.test(u) ? []
+      : /\/(devices|outputs|stereo-pairs|group-delays|profiles|playlists|shortcuts|groups)$|\/devices\/all$/.test(u) ? []
       : u.endsWith('/volume/step') ? { zone_id: 1, volume: 0.41, limited: false } : {};
     return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }));
@@ -81,7 +83,8 @@ afterEach(async () => {
   arreterClavier?.(); arreterClavier = undefined;
   if (component) await unmount(component);
   host.remove(); stopSeekTimer(); zones.set([]); currentZoneId.set(null);
-  audiophileEnabled.set(false); audiophileLockVolume.set(false);
+  audiophileEnabled.set(false); audiophileLockVolume.set(false); audiophileGlobalLockVolume.set(false);
+  v2SettingsTarget.set(null);
   vi.unstubAllGlobals(); localStorage.clear();
 });
 
@@ -182,9 +185,9 @@ describe('#2486 — capacités de sortie sur les contrôles réels', () => {
 
   it('garde les curseurs des cartes de zone inertes sur refus explicite', async () => {
     await monter(ZonesV2);
-    const sliders = [...host.querySelectorAll<HTMLInputElement>('input[type="range"]')];
+    const sliders = [...host.querySelectorAll<HTMLInputElement>('.vol input[type="range"], .cvol input[type="range"]')];
     expect(sliders.length).toBeGreaterThan(0);
-    for (const slider of sliders) { expect(slider.disabled).toBe(true); input(slider, '60'); }
+    for (const slider of sliders) { expect(slider.disabled, slider.outerHTML).toBe(true); input(slider, '60'); }
     await stabiliser(); expect(envois).toEqual([]);
   });
 
@@ -193,6 +196,21 @@ describe('#2486 — capacités de sortie sur les contrôles réels', () => {
     touche('ArrowUp'); touche('ArrowDown'); touche('KeyM', 'm'); await stabiliser(); expect(envois).toEqual([]);
     poser(zone({ can_set_volume: true, can_mute: false })); touche('ArrowUp'); touche('KeyM', 'm');
     await stabiliser(); expect(envois).toHaveLength(1); expect(envois[0].url).toMatch(/\/volume$/);
+  });
+
+  it.each([refus, undefined])('la confirmation PURE ne demande pas un volume interdit (%j)', async (caps) => {
+    v2SettingsTarget.set({ tab: 'general', section: 'playback' });
+    await monter(SettingsV2, zone(caps));
+    audiophileEnabled.set(true); flushSync();
+    const lecture = host.querySelector<HTMLElement>('[data-section="playback"]')!;
+    expect(lecture).not.toBeNull();
+    lecture.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click(); flushSync();
+    expect(envois).toEqual([]);
+    const confirmation = lecture.querySelector<HTMLInputElement>('.danger-box input[type="checkbox"]')!;
+    expect(confirmation).not.toBeNull(); confirmation.click(); await stabiliser();
+    expect(get(audiophileGlobalLockVolume)).toBe(true);
+    expect(envois).toHaveLength(caps === refus ? 0 : 1);
+    if (caps !== refus) expect(envois[0].body.volume).toBe(1);
   });
 
   it('le clavier du Grand écran ne contourne pas les capacités', async () => {
