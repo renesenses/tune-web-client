@@ -76,11 +76,11 @@
   let cards = $state<AlbumDetailed[]>([]);
   let cardsTotal = $state(0);
   let cardsLoading = $state(false);
-  async function loadCards(ajouter = false) {
+  async function loadCards() {
     cardsLoading = true;
     try {
-      const res = await getAlbumsDetailed(facetParam(facetSels), 500, ajouter ? cards.length : 0);
-      cards = ajouter ? [...cards, ...(res.items ?? [])] : (res.items ?? []);
+      const res = await getAlbumsDetailed(facetParam(facetSels), 500, 0);
+      cards = res.items ?? [];
       cardsTotal = res.total ?? 0;
     } catch {
       cards = [];
@@ -659,28 +659,6 @@
     };
   });
 
-  // #2471 : un total de pistes ne peut pas servir de total de pochettes.
-  let totalPochettes = $state<number | null>(null);
-  $effect(() => {
-    const vuePochettes = mode === 'grid' || mode === 'mur';
-    const filtres = { ...facetParam(facetSels), ...texteLibreParam() };
-    let actif = true;
-    totalPochettes = null;
-    if (vuePochettes) {
-      getAlbumsDetailed(filtres, 1, 0).then(res => {
-        if (actif) totalPochettes = res.total;
-      }).catch(() => {});
-    }
-    return () => { actif = false; };
-  });
-  let compteAlbums = $derived(mode === 'grid' || mode === 'mur' || mode === 'cards');
-  let nombreAffiche = $derived(mode === 'cards' ? cards.length : compteAlbums ? albums.length : visible.length);
-  let totalAffiche = $derived(mode === 'cards' ? cardsTotal : compteAlbums ? totalPochettes : total);
-  let partielAffiche = $derived(mode === 'cards'
-    ? !cardsLoading && cards.length < cardsTotal
-    : truncated);
-  let uniteAffichee = $derived(compteAlbums ? 'oxygen.albums' : 'oxygen.tracks');
-
   // Server-driven: (re)fetch the filtered tracks whenever the selection changes.
   $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void texteServeur; loadTracks(); });
   // Ne charge que dans son mode : l'agrégat coûte un GROUP BY sur toute la
@@ -743,8 +721,8 @@
         cibleParDefaut={mode === 'cards' ? 'album' : 'track'}
         nombre={mode === 'cards' ? cardsTotal : total} />
     {/if}
-    <div class="count" class:partial={partielAffiche} title={partielAffiche ? $t('oxygen.truncated') : ''}>
-      {nombreAffiche.toLocaleString('fr')}{#if totalAffiche != null && totalAffiche >= nombreAffiche && (partielAffiche || compteAlbums)}<span class="cslash">/</span>{totalAffiche.toLocaleString('fr')}{/if} {$t(uniteAffichee)}
+    <div class="count" class:partial={truncated} title={truncated ? $t('oxygen.truncated') : ''}>
+      {visible.length.toLocaleString('fr')}{#if truncated}<span class="cslash">/</span>{total.toLocaleString('fr')}{/if}
     </div>
     {#if dossierOuvert}
       <button class="icnbtn" onclick={tirerDansLeDossier}
@@ -951,11 +929,11 @@
 
       <!-- Le reste existe : le dire, et le proposer. Une fenêtre silencieuse
            se lit comme une bibliothèque amputée. -->
-      {#if partielAffiche}
+      {#if truncated}
         <div class="more">
-          <span class="moretxt">{$t('oxygen.truncated')} {nombreAffiche.toLocaleString('fr')}{#if totalAffiche != null && totalAffiche >= nombreAffiche}{' / '}{totalAffiche.toLocaleString('fr')}{/if} {$t(uniteAffichee)}</span>
-          <button class="morebtn" disabled={loadingMore || cardsLoading} onclick={() => mode === 'cards' ? loadCards(true) : loadMore()}>
-            {loadingMore || cardsLoading ? $t('oxygen.loading') : $t('oxygen.loadMore')}
+          <span class="moretxt">{$t('oxygen.truncated')} {tracks.length.toLocaleString('fr')} / {total.toLocaleString('fr')} {$t('oxygen.tracks')}</span>
+          <button class="morebtn" disabled={loadingMore} onclick={loadMore}>
+            {loadingMore ? $t('oxygen.loading') : $t('oxygen.loadMore')}
           </button>
         </div>
       {/if}
