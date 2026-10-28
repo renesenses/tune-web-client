@@ -1,4 +1,11 @@
 export default {
+  "v2.radio.listeningCountry": "Quốc gia nghe của máy chủ",
+  "v2.radio.countryUnset": "Chưa đặt — luồng không hạn chế",
+  "v2.radio.countryHint": "Chọn quốc gia nghe. Nếu chưa đặt, chỉ chọn các luồng không hạn chế.",
+  "v2.radio.countryNeedsServer": "Máy chủ này chưa hỗ trợ chọn quốc gia nghe.",
+  "v2.radio.countryRetry": "Thử lại",
+  "playback.errorRadioCountry": "Đài này không có luồng được phép cho quốc gia nghe của máy chủ. Kiểm tra cài đặt trong Radio.",
+
   "oxygen.tagSel.selectAll": "Chọn tất cả ({count})",
   "oxygen.tagSel.selected": "Đã chọn {count}",
   "oxygen.tagSel.applyTag": "Gắn thẻ…",
@@ -5916,5 +5923,29 @@ export default {
   "v2.carte.pod.episodes": "Xem các tập",
   "volume.deviceObserved": "AIR (ghi nhận): {value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "Tin nhắn",
+  "v2.circle.msg.privacy": "Mozaiklabs có thể đọc các tin nhắn này để kiểm duyệt sau khi có báo cáo. Tin nhắn không được mã hóa đầu cuối.",
+  "v2.circle.msg.empty": "Nhắn cho một liên hệ đã chấp nhận để bắt đầu.",
+  "v2.circle.msg.older": "Tin nhắn trước",
+  "v2.circle.msg.me": "Tôi",
+  "v2.circle.msg.write": "Viết",
+  "v2.circle.msg.send": "Gửi",
+  "v2.circle.msg.playHere": "Nghe tại nhà",
+  "v2.circle.msg.select": "Chọn để báo cáo",
+  "v2.circle.msg.deleteConfirm": "Xóa tin nhắn này cho cả hai người?",
+  "v2.circle.msg.report": "Báo cáo",
+  "v2.circle.msg.reportHint": "Chọn tối đa 20 tin nhắn. Một người sẽ xem xét báo cáo. Bạn cũng có thể chặn hoặc xóa liên hệ.",
+  "v2.circle.msg.reason": "Lý do",
+  "v2.circle.msg.comment": "Bình luận tùy chọn",
+  "v2.circle.msg.harassment": "Quấy rối",
+  "v2.circle.msg.spam": "Thư rác",
+  "v2.circle.msg.hate": "Thù ghét",
+  "v2.circle.msg.illegal": "Nội dung bất hợp pháp",
+  "v2.circle.msg.other": "Khác",
+  "v2.circle.msg.notFound": "Không tìm thấy thẻ này trong thư viện của bạn.",
+  "v2.circle.msg.share": "Chia sẻ qua tin nhắn",
+  "v2.circle.msg.recipient": "Người nhận",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

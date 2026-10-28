@@ -1,4 +1,11 @@
 export default {
+  "v2.radio.listeningCountry": "Server listening country",
+  "v2.radio.countryUnset": "Not set — unrestricted streams",
+  "v2.radio.countryHint": "Choose your listening country. If unset, only unrestricted streams are selected.",
+  "v2.radio.countryNeedsServer": "This server does not yet support choosing the listening country.",
+  "v2.radio.countryRetry": "Retry",
+  "playback.errorRadioCountry": "This radio has no stream available for the server’s listening country. Check the setting in Radio.",
+
   "oxygen.tagSel.selectAll": "Select all ({count})",
   "oxygen.tagSel.selected": "{count} selected",
   "oxygen.tagSel.applyTag": "Apply a tag…",
@@ -6084,6 +6091,30 @@ export default {
   "v2.carte.pod.episodes": "See episodes",
   "volume.deviceObserved": "AIR (observed): {value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "Messages",
+  "v2.circle.msg.privacy": "Mozaiklabs can read these messages for moderation following a report. They are not end-to-end encrypted.",
+  "v2.circle.msg.empty": "Write to an accepted contact to start.",
+  "v2.circle.msg.older": "Earlier messages",
+  "v2.circle.msg.me": "Me",
+  "v2.circle.msg.write": "Write",
+  "v2.circle.msg.send": "Send",
+  "v2.circle.msg.playHere": "Listen at home",
+  "v2.circle.msg.select": "Select to report",
+  "v2.circle.msg.deleteConfirm": "Delete this message for both participants?",
+  "v2.circle.msg.report": "Report",
+  "v2.circle.msg.reportHint": "Choose up to 20 messages. A person reviews the report. You can also block or revoke the contact.",
+  "v2.circle.msg.reason": "Reason",
+  "v2.circle.msg.comment": "Optional comment",
+  "v2.circle.msg.harassment": "Harassment",
+  "v2.circle.msg.spam": "Spam",
+  "v2.circle.msg.hate": "Hate",
+  "v2.circle.msg.illegal": "Illegal content",
+  "v2.circle.msg.other": "Other",
+  "v2.circle.msg.notFound": "This card could not be found in your library.",
+  "v2.circle.msg.share": "Share in a message",
+  "v2.circle.msg.recipient": "Recipient",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

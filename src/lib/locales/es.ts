@@ -1,4 +1,11 @@
 export default {
+  "v2.radio.listeningCountry": "País de escucha del servidor",
+  "v2.radio.countryUnset": "Sin definir — emisiones sin restricciones",
+  "v2.radio.countryHint": "Elija su país de escucha. Sin país, solo se eligen emisiones sin restricciones.",
+  "v2.radio.countryNeedsServer": "Este servidor aún no permite elegir el país de escucha.",
+  "v2.radio.countryRetry": "Reintentar",
+  "playback.errorRadioCountry": "Esta radio no tiene ninguna emisión autorizada para el país de escucha del servidor. Revise el ajuste en Radio.",
+
   "oxygen.tagSel.selectAll": "Seleccionar todo ({count})",
   "oxygen.tagSel.selected": "{count} seleccionados",
   "oxygen.tagSel.applyTag": "Aplicar una etiqueta…",
@@ -6064,6 +6071,30 @@ export default {
   "v2.carte.pod.episodes": "Ver episodios",
   "volume.deviceObserved": "AIR (observado): {value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "Mensajes",
+  "v2.circle.msg.privacy": "Mozaiklabs puede leer estos mensajes para moderarlos tras una denuncia. No están cifrados de extremo a extremo.",
+  "v2.circle.msg.empty": "Escribe a un contacto aceptado para empezar.",
+  "v2.circle.msg.older": "Mensajes anteriores",
+  "v2.circle.msg.me": "Yo",
+  "v2.circle.msg.write": "Escribir",
+  "v2.circle.msg.send": "Enviar",
+  "v2.circle.msg.playHere": "Escuchar en casa",
+  "v2.circle.msg.select": "Seleccionar para denunciar",
+  "v2.circle.msg.deleteConfirm": "¿Eliminar este mensaje para ambos participantes?",
+  "v2.circle.msg.report": "Denunciar",
+  "v2.circle.msg.reportHint": "Selecciona hasta 20 mensajes. Una persona revisará la denuncia. También puedes bloquear o eliminar al contacto.",
+  "v2.circle.msg.reason": "Motivo",
+  "v2.circle.msg.comment": "Comentario opcional",
+  "v2.circle.msg.harassment": "Acoso",
+  "v2.circle.msg.spam": "Spam",
+  "v2.circle.msg.hate": "Odio",
+  "v2.circle.msg.illegal": "Contenido ilegal",
+  "v2.circle.msg.other": "Otro",
+  "v2.circle.msg.notFound": "No se ha encontrado esta tarjeta en tu biblioteca.",
+  "v2.circle.msg.share": "Compartir por mensaje",
+  "v2.circle.msg.recipient": "Destinatario",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

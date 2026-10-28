@@ -1,4 +1,11 @@
 export default {
+  "v2.radio.listeningCountry": "Hörland des Servers",
+  "v2.radio.countryUnset": "Nicht festgelegt — unbeschränkte Streams",
+  "v2.radio.countryHint": "Wählen Sie Ihr Hörland. Ohne Angabe werden nur unbeschränkte Streams ausgewählt.",
+  "v2.radio.countryNeedsServer": "Dieser Server unterstützt die Auswahl des Hörlands noch nicht.",
+  "v2.radio.countryRetry": "Erneut versuchen",
+  "playback.errorRadioCountry": "Für das Hörland des Servers ist kein Stream dieses Senders verfügbar. Prüfen Sie die Einstellung unter Radio.",
+
   "oxygen.tagSel.selectAll": "Alle auswählen ({count})",
   "oxygen.tagSel.selected": "{count} ausgewählt",
   "oxygen.tagSel.applyTag": "Tag zuweisen…",
@@ -6064,6 +6071,30 @@ export default {
   "v2.carte.pod.episodes": "Folgen ansehen",
   "volume.deviceObserved": "AIR (gemeldet): {value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "Nachrichten",
+  "v2.circle.msg.privacy": "Mozaiklabs kann diese Nachrichten nach einer Meldung zur Moderation lesen. Sie sind nicht Ende-zu-Ende verschlüsselt.",
+  "v2.circle.msg.empty": "Schreiben Sie einem bestätigten Kontakt.",
+  "v2.circle.msg.older": "Ältere Nachrichten",
+  "v2.circle.msg.me": "Ich",
+  "v2.circle.msg.write": "Schreiben",
+  "v2.circle.msg.send": "Senden",
+  "v2.circle.msg.playHere": "Bei mir hören",
+  "v2.circle.msg.select": "Zum Melden auswählen",
+  "v2.circle.msg.deleteConfirm": "Diese Nachricht für beide Teilnehmer löschen?",
+  "v2.circle.msg.report": "Melden",
+  "v2.circle.msg.reportHint": "Wählen Sie bis zu 20 Nachrichten. Eine Person prüft die Meldung. Sie können den Kontakt auch blockieren oder entfernen.",
+  "v2.circle.msg.reason": "Grund",
+  "v2.circle.msg.comment": "Optionaler Kommentar",
+  "v2.circle.msg.harassment": "Belästigung",
+  "v2.circle.msg.spam": "Spam",
+  "v2.circle.msg.hate": "Hass",
+  "v2.circle.msg.illegal": "Illegaler Inhalt",
+  "v2.circle.msg.other": "Sonstiges",
+  "v2.circle.msg.notFound": "Diese Karte wurde in Ihrer Bibliothek nicht gefunden.",
+  "v2.circle.msg.share": "Per Nachricht teilen",
+  "v2.circle.msg.recipient": "Empfänger",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
