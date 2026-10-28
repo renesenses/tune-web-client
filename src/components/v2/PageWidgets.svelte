@@ -92,7 +92,7 @@
   // C'est la MÊME fiche que celle ouverte par l'écran Streaming (#1016) et par
   // l'écran Playlists : un second afficheur de playlist aurait divergé.
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -1215,6 +1215,7 @@
     const w = parId(id);
     if (!w) return;
     defilementAvant = zoneDefilante?.scrollTop ?? 0;
+    ouvrirDetail(`voir-tout:${CLE}:${id}`);
     voirTout = { id, phase: 'attente', elements: [...(etatDe(id)?.elements ?? [])] };
     // web#2112 — la page devient la CIBLE d'un raccourci : sans elle, un
     // raccourci posé ici rouvrait l'Accueil (ou le service) sans la page.
@@ -1241,12 +1242,33 @@
     if (k != null && k.startsWith(cleVoirTout(CLE, ''))) clearShortcutTarget();
   }
 
-  function fermerVoirTout() {
+  function effacerVoirTout() {
     voirTout = null;
     oublierCibleVoirTout();
     const y = defilementAvant;
     void tick().then(() => { if (zoneDefilante) zoneDefilante.scrollTop = y; });
   }
+
+  // #2447 : la section éditoriale est un niveau de navigation, comme sa fiche.
+  function fermerVoirTout() {
+    const cle = voirTout ? `voir-tout:${CLE}:${voirTout.id}` : null;
+    if (cle && entreeCourantePorte(cle)) fermerDetailEnReculant(effacerVoirTout);
+    else { detailOuvert.set(null); effacerVoirTout(); }
+  }
+  $effect(() => {
+    const cle = $detailOuvert;
+    const prefixe = `voir-tout:${CLE}:`;
+    if (cle?.startsWith(prefixe)) {
+      const id = cle.slice(prefixe.length);
+      untrack(() => {
+        fermerCalqueAlbum();
+        fermerCalquePlaylist();
+        if (voirTout?.id !== id && parId(id)) ouvrirVoirTout(id);
+      });
+    } else if (cle == null) {
+      untrack(() => { if (voirTout) effacerVoirTout(); });
+    }
+  });
 
   /**
    * web#2112 — un raccourci sur une page « Voir tout » la rouvre. La demande
@@ -1263,7 +1285,10 @@
       if (voirTout?.id !== widget) ouvrirVoirTout(widget);
     });
   });
-  onDestroy(() => oublierCibleVoirTout());
+  onDestroy(() => {
+    oublierCibleVoirTout();
+    if (get(detailOuvert)?.startsWith(`voir-tout:${CLE}:`)) detailOuvert.set(null);
+  });
 </script>
 
 {#snippet carte(el: Element)}
