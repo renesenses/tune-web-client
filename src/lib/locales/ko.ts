@@ -1,5 +1,10 @@
 export default {
-  "maintenance.backupPostgresHint": "파일 복사 백업은 SQLite에서만 사용할 수 있습니다. PostgreSQL에서는 pg_dump를 사용하세요.",
+  "v2.radio.listeningCountry": "서버 청취 국가",
+  "v2.radio.countryUnset": "미설정 — 제한 없는 스트림",
+  "v2.radio.countryHint": "청취 국가를 선택하세요. 미설정 시 제한 없는 스트림만 선택됩니다.",
+  "v2.radio.countryNeedsServer": "이 서버는 아직 청취 국가 선택을 지원하지 않습니다.",
+  "v2.radio.countryRetry": "다시 시도",
+  "playback.errorRadioCountry": "이 라디오는 서버의 청취 국가에서 허용된 스트림이 없습니다. 라디오 설정을 확인하세요.",
 
   "oxygen.tagSel.selectAll": "모두 선택 ({count})",
   "oxygen.tagSel.selected": "{count}개 선택됨",
@@ -580,6 +585,7 @@ export default {
 
   // Backup / Restore
   'maintenance.backupRestore': '백업 / 복원',
+  "maintenance.backupPostgresHint": "파일 복사 백업은 SQLite에서만 사용할 수 있습니다. PostgreSQL에서는 pg_dump를 사용하세요.",
   'maintenance.createBackup': '백업 생성',
   'maintenance.restore': '복원',
   'maintenance.noBackups': '사용 가능한 백업이 없습니다',

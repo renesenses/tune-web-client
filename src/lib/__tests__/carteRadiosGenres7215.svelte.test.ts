@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   importRadios: vi.fn(), exportRadiosUrl: vi.fn(() => '#'),
   getAnnuaireRadios: vi.fn(), ajouterDepuisAnnuaire: vi.fn(), jouerDepuisAnnuaire: vi.fn(),
 }));
-vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), ...mocks }));
+vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), getConfig: vi.fn(async () => ({ radios_country: '' })), ...mocks }));
 vi.mock('../zoneRequise', () => ({ zoneRequise: () => 3 }));
 
 import RadiosV2 from '../../components/v2/RadiosV2.svelte';

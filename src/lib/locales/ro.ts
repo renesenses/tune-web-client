@@ -1,5 +1,10 @@
 export default {
-  "maintenance.backupPostgresHint": "Copiile de siguranță ale fișierelor sunt disponibile numai pentru SQLite. Pentru PostgreSQL, utilizați pg_dump.",
+  "v2.radio.listeningCountry": "Țara de ascultare a serverului",
+  "v2.radio.countryUnset": "Nespecificată — fluxuri fără restricții",
+  "v2.radio.countryHint": "Alegeți țara de ascultare. Fără țară se aleg numai fluxuri fără restricții.",
+  "v2.radio.countryNeedsServer": "Acest server nu permite încă alegerea țării de ascultare.",
+  "v2.radio.countryRetry": "Reîncercați",
+  "playback.errorRadioCountry": "Acest radio nu are niciun flux permis pentru țara de ascultare a serverului. Verificați setarea din Radio.",
 
   "oxygen.tagSel.selectAll": "Selectează tot ({count})",
   "oxygen.tagSel.selected": "{count} selectate",
@@ -586,6 +591,7 @@ export default {
 
   // Backup / Restore
   'maintenance.backupRestore': 'Backup / Restaurare',
+  "maintenance.backupPostgresHint": "Copiile de siguranță ale fișierelor sunt disponibile numai pentru SQLite. Pentru PostgreSQL, utilizați pg_dump.",
   'maintenance.createBackup': 'Creează backup',
   'maintenance.restore': 'Restaurează',
   'maintenance.noBackups': 'Niciun backup disponibil',

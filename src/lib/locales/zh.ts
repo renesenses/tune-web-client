@@ -1,5 +1,10 @@
 export default {
-  "maintenance.backupPostgresHint": "文件复制备份仅适用于SQLite。PostgreSQL请使用pg_dump。",
+  "v2.radio.listeningCountry": "服务器收听国家",
+  "v2.radio.countryUnset": "未设置 — 无限制流",
+  "v2.radio.countryHint": "请选择收听国家。未设置时仅选择无限制的流。",
+  "v2.radio.countryNeedsServer": "此服务器尚不支持选择收听国家。",
+  "v2.radio.countryRetry": "重试",
+  "playback.errorRadioCountry": "此电台没有适用于服务器收听国家的流。请检查“电台”中的设置。",
 
   "oxygen.tagSel.selectAll": "全选 ({count})",
   "oxygen.tagSel.selected": "已选 {count} 项",
@@ -580,6 +585,7 @@ export default {
 
   // Backup / Restore
   'maintenance.backupRestore': '备份 / 恢复',
+  "maintenance.backupPostgresHint": "文件复制备份仅适用于SQLite。PostgreSQL请使用pg_dump。",
   'maintenance.createBackup': '创建备份',
   'maintenance.restore': '恢复',
   'maintenance.noBackups': '没有可用的备份',

@@ -1,5 +1,10 @@
 export default {
-  "maintenance.backupPostgresHint": "Sikkerhetskopiering av filer er bare tilgjengelig for SQLite. Bruk pg_dump for PostgreSQL.",
+  "v2.radio.listeningCountry": "Serverens lytteland",
+  "v2.radio.countryUnset": "Ikke angitt — ubegrensede strømmer",
+  "v2.radio.countryHint": "Velg lyttelandet ditt. Uten land velges bare ubegrensede strømmer.",
+  "v2.radio.countryNeedsServer": "Denne serveren støtter ikke valg av lytteland ennå.",
+  "v2.radio.countryRetry": "Prøv igjen",
+  "playback.errorRadioCountry": "Radioen har ingen tillatt strøm for serverens lytteland. Kontroller innstillingen under Radio.",
 
   "oxygen.tagSel.selectAll": "Velg alle ({count})",
   "oxygen.tagSel.selected": "{count} valgt",
@@ -641,6 +646,7 @@ export default {
   "metadata.saveError": "Lagringsfeil",
   "metadata.save": "Lagre",
   "maintenance.backupRestore": "Sikkerhetskopi / Gjenoppretting",
+  "maintenance.backupPostgresHint": "Sikkerhetskopiering av filer er bare tilgjengelig for SQLite. Bruk pg_dump for PostgreSQL.",
   "maintenance.createBackup": "Lag sikkerhetskopi",
   "maintenance.restore": "Gjenopprett",
   "maintenance.noBackups": "Ingen sikkerhetskopier tilgjengelig",

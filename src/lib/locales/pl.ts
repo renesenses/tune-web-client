@@ -1,5 +1,10 @@
 export default {
-  "maintenance.backupPostgresHint": "Kopie zapasowe plików są dostępne tylko dla SQLite. Dla PostgreSQL użyj pg_dump.",
+  "v2.radio.listeningCountry": "Kraj słuchania serwera",
+  "v2.radio.countryUnset": "Nie ustawiono — strumienie bez ograniczeń",
+  "v2.radio.countryHint": "Wybierz kraj słuchania. Bez kraju wybierane są tylko strumienie bez ograniczeń.",
+  "v2.radio.countryNeedsServer": "Ten serwer nie obsługuje jeszcze wyboru kraju słuchania.",
+  "v2.radio.countryRetry": "Spróbuj ponownie",
+  "playback.errorRadioCountry": "Ta stacja nie ma dozwolonego strumienia dla kraju słuchania serwera. Sprawdź ustawienie w Radiu.",
 
   "oxygen.tagSel.selectAll": "Zaznacz wszystko ({count})",
   "oxygen.tagSel.selected": "Zaznaczono: {count}",
@@ -641,6 +646,7 @@ export default {
   "metadata.saveError": "Błąd zapisu",
   "metadata.save": "Zapisz",
   "maintenance.backupRestore": "Kopia zapasowa / Przywracanie",
+  "maintenance.backupPostgresHint": "Kopie zapasowe plików są dostępne tylko dla SQLite. Dla PostgreSQL użyj pg_dump.",
   "maintenance.createBackup": "Utwórz kopię zapasową",
   "maintenance.restore": "Przywróć",
   "maintenance.noBackups": "Brak dostępnych kopii zapasowych",

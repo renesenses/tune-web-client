@@ -1,5 +1,10 @@
 export default {
-  "maintenance.backupPostgresHint": "Säkerhetskopiering av filer är endast tillgänglig för SQLite. Använd pg_dump för PostgreSQL.",
+  "v2.radio.listeningCountry": "Serverns lyssningsland",
+  "v2.radio.countryUnset": "Ej valt — obegränsade strömmar",
+  "v2.radio.countryHint": "Välj ditt lyssningsland. Utan land väljs endast obegränsade strömmar.",
+  "v2.radio.countryNeedsServer": "Servern stöder ännu inte val av lyssningsland.",
+  "v2.radio.countryRetry": "Försök igen",
+  "playback.errorRadioCountry": "Radion har ingen tillåten ström för serverns lyssningsland. Kontrollera inställningen under Radio.",
 
   "oxygen.tagSel.selectAll": "Markera alla ({count})",
   "oxygen.tagSel.selected": "{count} markerade",
@@ -564,6 +569,7 @@ export default {
 
   // Backup / Restore
   'maintenance.backupRestore': 'Säkerhetskopiera / Återställ',
+  "maintenance.backupPostgresHint": "Säkerhetskopiering av filer är endast tillgänglig för SQLite. Använd pg_dump för PostgreSQL.",
   'maintenance.createBackup': 'Skapa säkerhetskopia',
   'maintenance.restore': 'Återställ',
   'maintenance.noBackups': 'Inga säkerhetskopior tillgängliga',

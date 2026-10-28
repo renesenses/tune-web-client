@@ -1,5 +1,10 @@
 export default {
-  "maintenance.backupPostgresHint": "Dateikopien als Sicherung sind nur für SQLite verfügbar. Für PostgreSQL verwenden Sie pg_dump.",
+  "v2.radio.listeningCountry": "Hörland des Servers",
+  "v2.radio.countryUnset": "Nicht festgelegt — unbeschränkte Streams",
+  "v2.radio.countryHint": "Wählen Sie Ihr Hörland. Ohne Angabe werden nur unbeschränkte Streams ausgewählt.",
+  "v2.radio.countryNeedsServer": "Dieser Server unterstützt die Auswahl des Hörlands noch nicht.",
+  "v2.radio.countryRetry": "Erneut versuchen",
+  "playback.errorRadioCountry": "Für das Hörland des Servers ist kein Stream dieses Senders verfügbar. Prüfen Sie die Einstellung unter Radio.",
 
   "oxygen.tagSel.selectAll": "Alle auswählen ({count})",
   "oxygen.tagSel.selected": "{count} ausgewählt",
@@ -580,6 +585,7 @@ export default {
 
   // Backup / Restore
   'maintenance.backupRestore': 'Sicherung / Wiederherstellung',
+  "maintenance.backupPostgresHint": "Dateikopien als Sicherung sind nur für SQLite verfügbar. Für PostgreSQL verwenden Sie pg_dump.",
   'maintenance.createBackup': 'Sicherung erstellen',
   'maintenance.restore': 'Wiederherstellen',
   'maintenance.noBackups': 'Keine Sicherungen verfügbar',

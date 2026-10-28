@@ -1,5 +1,10 @@
 export default {
-  "maintenance.backupPostgresHint": "Τα αντίγραφα αρχείων υποστηρίζονται μόνο για SQLite. Για PostgreSQL, χρησιμοποιήστε pg_dump.",
+  "v2.radio.listeningCountry": "Χώρα ακρόασης του διακομιστή",
+  "v2.radio.countryUnset": "Δεν ορίστηκε — ροές χωρίς περιορισμούς",
+  "v2.radio.countryHint": "Επιλέξτε τη χώρα ακρόασης. Χωρίς χώρα επιλέγονται μόνο ροές χωρίς περιορισμούς.",
+  "v2.radio.countryNeedsServer": "Αυτός ο διακομιστής δεν υποστηρίζει ακόμη επιλογή χώρας ακρόασης.",
+  "v2.radio.countryRetry": "Δοκιμή ξανά",
+  "playback.errorRadioCountry": "Το ραδιόφωνο δεν έχει επιτρεπόμενη ροή για τη χώρα ακρόασης του διακομιστή. Ελέγξτε τη ρύθμιση στο Ραδιόφωνο.",
 
   "oxygen.tagSel.selectAll": "Επιλογή όλων ({count})",
   "oxygen.tagSel.selected": "{count} επιλεγμένα",
@@ -641,6 +646,7 @@ export default {
   "metadata.saveError": "Σφάλμα αποθήκευσης",
   "metadata.save": "Αποθήκευση",
   "maintenance.backupRestore": "Αντίγραφο ασφαλείας / Επαναφορά",
+  "maintenance.backupPostgresHint": "Τα αντίγραφα αρχείων υποστηρίζονται μόνο για SQLite. Για PostgreSQL, χρησιμοποιήστε pg_dump.",
   "maintenance.createBackup": "Δημιουργία αντιγράφου ασφαλείας",
   "maintenance.restore": "Επαναφορά",
   "maintenance.noBackups": "Δεν υπάρχουν διαθέσιμα αντίγραφα ασφαλείας",

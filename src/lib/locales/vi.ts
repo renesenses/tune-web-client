@@ -1,5 +1,10 @@
 export default {
-  "maintenance.backupPostgresHint": "Sao lưu bằng cách sao chép tệp chỉ dành cho SQLite. Với PostgreSQL, hãy dùng pg_dump.",
+  "v2.radio.listeningCountry": "Quốc gia nghe của máy chủ",
+  "v2.radio.countryUnset": "Chưa đặt — luồng không hạn chế",
+  "v2.radio.countryHint": "Chọn quốc gia nghe. Nếu chưa đặt, chỉ chọn các luồng không hạn chế.",
+  "v2.radio.countryNeedsServer": "Máy chủ này chưa hỗ trợ chọn quốc gia nghe.",
+  "v2.radio.countryRetry": "Thử lại",
+  "playback.errorRadioCountry": "Đài này không có luồng được phép cho quốc gia nghe của máy chủ. Kiểm tra cài đặt trong Radio.",
 
   "oxygen.tagSel.selectAll": "Chọn tất cả ({count})",
   "oxygen.tagSel.selected": "Đã chọn {count}",
@@ -643,6 +648,7 @@ export default {
   "metadata.saveError": "Lỗi khi lưu",
   "metadata.save": "Lưu",
   "maintenance.backupRestore": "Sao lưu / Khôi phục",
+  "maintenance.backupPostgresHint": "Sao lưu bằng cách sao chép tệp chỉ dành cho SQLite. Với PostgreSQL, hãy dùng pg_dump.",
   "maintenance.createBackup": "Tạo bản sao lưu",
   "maintenance.restore": "Khôi phục",
   "maintenance.noBackups": "Không có bản sao lưu nào",

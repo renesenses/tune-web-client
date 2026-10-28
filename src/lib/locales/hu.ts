@@ -1,5 +1,10 @@
 export default {
-  "maintenance.backupPostgresHint": "A fájlmásolásos biztonsági mentés csak SQLite esetén érhető el. PostgreSQL esetén használja a pg_dump eszközt.",
+  "v2.radio.listeningCountry": "A kiszolgáló hallgatási országa",
+  "v2.radio.countryUnset": "Nincs megadva — korlátozás nélküli adatfolyamok",
+  "v2.radio.countryHint": "Válassza ki a hallgatási országot. Ország nélkül csak korlátozás nélküli adatfolyamok választhatók.",
+  "v2.radio.countryNeedsServer": "Ez a kiszolgáló még nem támogatja a hallgatási ország kiválasztását.",
+  "v2.radio.countryRetry": "Újrapróbálkozás",
+  "playback.errorRadioCountry": "Ehhez a rádióhoz nincs engedélyezett adatfolyam a kiszolgáló hallgatási országában. Ellenőrizze a beállítást a Rádióban.",
 
   "oxygen.tagSel.selectAll": "Összes kijelölése ({count})",
   "oxygen.tagSel.selected": "{count} kijelölve",
@@ -663,6 +668,7 @@ export default {
   "metadata.save": "Mentés",
   // Mentés / Visszaállítás
   "maintenance.backupRestore": "Mentés / Visszaállítás",
+  "maintenance.backupPostgresHint": "A fájlmásolásos biztonsági mentés csak SQLite esetén érhető el. PostgreSQL esetén használja a pg_dump eszközt.",
   "maintenance.createBackup": "Mentés készítése",
   "maintenance.restore": "Visszaállítás",
   "maintenance.noBackups": "Nincs elérhető mentés",
