@@ -91,7 +91,8 @@
     const zid = zoneRequise();
     if (zid == null) return;
     onJoue?.(f.external_id);
-    if (!(await ecouterFicheAnnuaire(f, zid))) {
+    let refusPays = false;
+    if (!(await ecouterFicheAnnuaire(f, zid, () => { refusPays = true; })) && !refusPays) {
       notifications.error($t('v2.radio.dir.playFailed' as any).replace('{name}', f.name));
     }
   }
