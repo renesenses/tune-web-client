@@ -4,6 +4,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { isBrowserZone, browserSetVolume } from '../../lib/stores/browserAudio';
   import { t } from '../../lib/i18n';
+  import DeviceVolumeObservation from './DeviceVolumeObservation.svelte';
   import { volumeLocked, refreshAudiophile, isVolumeLocked } from '../../lib/stores/audiophile';
   import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
   import { notifications } from '../../lib/stores/notifications';
@@ -255,6 +256,7 @@
   {:else}
     <span class="volume-value">{volumeDisplay(vol)}</span>
   {/if}
+  <DeviceVolumeObservation {zone} />
 </div>
 
 <style>

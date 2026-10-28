@@ -6060,6 +6060,8 @@ export default {
   "v2.carte.pod.noNearby": "没有相近节目（无共同制作方或分类）。",
   "v2.carte.pod.charts": "排行榜：{list}",
   "v2.carte.pod.episodes": "查看单集",
+  "volume.deviceObserved": "AIR（设备读数）：{value} dB",
+
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

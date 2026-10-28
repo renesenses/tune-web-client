@@ -6060,6 +6060,8 @@ export default {
   "v2.carte.pod.noNearby": "가까운 프로그램이 없습니다(공통 제작자나 카테고리 없음).",
   "v2.carte.pod.charts": "순위: {list}",
   "v2.carte.pod.episodes": "에피소드 보기",
+  "volume.deviceObserved": "AIR (수신값): {value} dB",
+
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

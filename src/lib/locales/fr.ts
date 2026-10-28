@@ -6082,6 +6082,8 @@ export default {
   "v2.carte.pod.noNearby": "Aucune émission proche (ni producteur ni catégorie en commun).",
   "v2.carte.pod.charts": "Classements : {list}",
   "v2.carte.pod.episodes": "Voir les épisodes",
+  "volume.deviceObserved": "AIR (relevé) : {value} dB",
+
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

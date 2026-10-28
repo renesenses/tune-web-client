@@ -5905,5 +5905,7 @@ export default {
   "v2.carte.pod.noNearby": "Καμία κοντινή εκπομπή (κανένας κοινός παραγωγός ή κατηγορία).",
   "v2.carte.pod.charts": "Κατατάξεις: {list}",
   "v2.carte.pod.episodes": "Επεισόδια",
+  "volume.deviceObserved": "AIR (ένδειξη): {value} dB",
+
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

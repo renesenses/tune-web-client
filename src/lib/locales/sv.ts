@@ -6059,4 +6059,6 @@ export default {
   "v2.carte.pod.noNearby": "Inget liknande program (ingen gemensam producent eller kategori).",
   "v2.carte.pod.charts": "Topplistor: {list}",
   "v2.carte.pod.episodes": "Visa avsnitt",
+  "volume.deviceObserved": "AIR (avläst): {value} dB",
+
 } as const;

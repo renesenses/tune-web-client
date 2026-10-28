@@ -6060,6 +6060,8 @@ export default {
   "v2.carte.pod.noNearby": "近い番組はありません（共通の制作者やカテゴリなし）。",
   "v2.carte.pod.charts": "ランキング：{list}",
   "v2.carte.pod.episodes": "エピソードを見る",
+  "volume.deviceObserved": "AIR（受信値）：{value} dB",
+
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

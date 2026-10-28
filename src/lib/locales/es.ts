@@ -6060,6 +6060,8 @@ export default {
   "v2.carte.pod.noNearby": "Ningún programa cercano (sin productor ni categoría en común).",
   "v2.carte.pod.charts": "Clasificaciones: {list}",
   "v2.carte.pod.episodes": "Ver episodios",
+  "volume.deviceObserved": "AIR (observado): {value} dB",
+
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

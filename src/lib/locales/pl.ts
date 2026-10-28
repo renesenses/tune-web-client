@@ -5905,5 +5905,7 @@ export default {
   "v2.carte.pod.noNearby": "Brak podobnych audycji (brak wspólnego producenta lub kategorii).",
   "v2.carte.pod.charts": "Rankingi: {list}",
   "v2.carte.pod.episodes": "Zobacz odcinki",
+  "volume.deviceObserved": "AIR (odczyt): {value} dB",
+
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];
