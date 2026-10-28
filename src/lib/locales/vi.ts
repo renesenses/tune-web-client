@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Lùi lại khi tiếp tục podcast (giây)",
+  "settings.podcastRewindHint": "Tiếp tục tập trước vị trí đã lưu. 0–300 giây; mặc định: 10.",
   "oxygen.tagSel.selectAll": "Chọn tất cả ({count})",
   "oxygen.tagSel.selected": "Đã chọn {count}",
   "oxygen.tagSel.applyTag": "Gắn thẻ…",

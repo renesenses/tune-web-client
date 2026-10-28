@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Recul à la reprise des podcasts (secondes)",
+  "settings.podcastRewindHint": "Reprendre cet épisode quelques secondes avant la position mémorisée. De 0 à 300 secondes ; 10 par défaut.",
   "oxygen.tagSel.selectAll": "Tout sélectionner ({count})",
   "oxygen.tagSel.selected": "{count} sélectionnés",
   "oxygen.tagSel.applyTag": "Appliquer un tag…",

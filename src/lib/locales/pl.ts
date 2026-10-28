@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Cofnięcie przy wznawianiu podcastu (sekundy)",
+  "settings.podcastRewindHint": "Wznów odcinek przed zapisaną pozycją. 0–300 sekund; domyślnie: 10.",
   "oxygen.tagSel.selectAll": "Zaznacz wszystko ({count})",
   "oxygen.tagSel.selected": "Zaznaczono: {count}",
   "oxygen.tagSel.applyTag": "Zastosuj tag…",

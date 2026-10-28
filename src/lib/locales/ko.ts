@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "팟캐스트 재개 시 되감기(초)",
+  "settings.podcastRewindHint": "저장된 위치보다 앞에서 에피소드를 재개합니다. 0~300초, 기본값 10초.",
   "oxygen.tagSel.selectAll": "모두 선택 ({count})",
   "oxygen.tagSel.selected": "{count}개 선택됨",
   "oxygen.tagSel.applyTag": "태그 적용…",

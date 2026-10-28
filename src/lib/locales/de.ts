@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Rücksprung bei Podcast-Fortsetzung (Sekunden)",
+  "settings.podcastRewindHint": "Die Folge vor der gespeicherten Position fortsetzen. 0–300 Sekunden; Standard: 10.",
   "oxygen.tagSel.selectAll": "Alle auswählen ({count})",
   "oxygen.tagSel.selected": "{count} ausgewählt",
   "oxygen.tagSel.applyTag": "Tag zuweisen…",

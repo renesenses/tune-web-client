@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Revenire la reluarea podcasturilor (secunde)",
+  "settings.podcastRewindHint": "Reia episodul înainte de poziția salvată. 0–300 de secunde; implicit: 10.",
   "oxygen.tagSel.selectAll": "Selectează tot ({count})",
   "oxygen.tagSel.selected": "{count} selectate",
   "oxygen.tagSel.applyTag": "Aplică o etichetă…",

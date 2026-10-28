@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Podcast resume rewind (seconds)",
+  "settings.podcastRewindHint": "Resume the episode before the saved position. 0–300 seconds; default 10.",
   "oxygen.tagSel.selectAll": "Select all ({count})",
   "oxygen.tagSel.selected": "{count} selected",
   "oxygen.tagSel.applyTag": "Apply a tag…",

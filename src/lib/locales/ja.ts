@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "ポッドキャスト再開時の巻き戻し（秒）",
+  "settings.podcastRewindHint": "保存位置より前からエピソードを再開します。0～300秒、既定値は10秒です。",
   "oxygen.tagSel.selectAll": "すべて選択 ({count})",
   "oxygen.tagSel.selected": "{count} 件選択中",
   "oxygen.tagSel.applyTag": "タグを適用…",

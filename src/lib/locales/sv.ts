@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Spola tillbaka när poddar återupptas (sekunder)",
+  "settings.podcastRewindHint": "Återuppta avsnittet före den sparade positionen. 0–300 sekunder; standard: 10.",
   "oxygen.tagSel.selectAll": "Markera alla ({count})",
   "oxygen.tagSel.selected": "{count} markerade",
   "oxygen.tagSel.applyTag": "Använd en tagg…",

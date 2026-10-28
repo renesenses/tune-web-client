@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "播客恢复播放时回退（秒）",
+  "settings.podcastRewindHint": "从保存位置之前恢复播放本集。0–300 秒，默认 10 秒。",
   "oxygen.tagSel.selectAll": "全选 ({count})",
   "oxygen.tagSel.selected": "已选 {count} 项",
   "oxygen.tagSel.applyTag": "应用标签…",

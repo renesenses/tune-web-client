@@ -7995,7 +7995,7 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
   return data.episodes || data;
 }
 
-export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; cover_url?: string; duration_ms?: number }): Promise<any> {
+export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; podcast_id?: string; cover_url?: string; duration_ms?: number }): Promise<any> {
   // tune-server-rust#6468 — un refus de la sortie est un 502/503 avec un `code`
   // stable. Sans bandeau global : l'écran Podcasts porte l'échec dans son
   // propre bandeau, traduit (`lectureEpisode.ts`), au lieu d'un
@@ -9404,6 +9404,12 @@ export function smartAITempoMatch(body: { target_bpm: number; tolerance?: number
 // --- Home Dashboard ---
 export function getHomePage() {
   return fetchJSON<{ sections: any[] }>(`${BASE}/home`);
+}
+
+export function resumeListening(zoneId: number, resumeKey: string) {
+  return fetchJSON<any>(`${BASE}/home/continue-listening/${zoneId}/resume`, {
+    method: 'POST', body: JSON.stringify({ resume_key: resumeKey }),
+  });
 }
 
 export function getContinueListening(limit = 20) {

@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Visszatekerés podcast folytatásakor (másodperc)",
+  "settings.podcastRewindHint": "Az epizód folytatása a mentett pozíció előtt. 0–300 másodperc; alapérték: 10.",
   "oxygen.tagSel.selectAll": "Összes kijelölése ({count})",
   "oxygen.tagSel.selected": "{count} kijelölve",
   "oxygen.tagSel.applyTag": "Címke hozzárendelése…",

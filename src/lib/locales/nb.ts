@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Spol tilbake når podkaster gjenopptas (sekunder)",
+  "settings.podcastRewindHint": "Fortsett episoden før den lagrede posisjonen. 0–300 sekunder; standard: 10.",
   "oxygen.tagSel.selectAll": "Velg alle ({count})",
   "oxygen.tagSel.selected": "{count} valgt",
   "oxygen.tagSel.applyTag": "Bruk en tagg…",

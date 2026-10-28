@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Riavvolgimento alla ripresa dei podcast (secondi)",
+  "settings.podcastRewindHint": "Riprendi l’episodio prima della posizione salvata. Da 0 a 300 secondi; predefinito: 10.",
   "oxygen.tagSel.selectAll": "Seleziona tutto ({count})",
   "oxygen.tagSel.selected": "{count} selezionati",
   "oxygen.tagSel.applyTag": "Applica un tag…",

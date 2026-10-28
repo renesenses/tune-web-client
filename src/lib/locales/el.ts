@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Επιστροφή κατά τη συνέχιση podcast (δευτερόλεπτα)",
+  "settings.podcastRewindHint": "Συνέχιση του επεισοδίου πριν από την αποθηκευμένη θέση. 0–300 δευτερόλεπτα· προεπιλογή: 10.",
   "oxygen.tagSel.selectAll": "Επιλογή όλων ({count})",
   "oxygen.tagSel.selected": "{count} επιλεγμένα",
   "oxygen.tagSel.applyTag": "Εφαρμογή ετικέτας…",
