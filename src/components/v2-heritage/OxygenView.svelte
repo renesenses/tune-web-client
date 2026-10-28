@@ -673,7 +673,7 @@
     }
     return () => { actif = false; };
   });
-  let compteAlbums = $derived(false);
+  let compteAlbums = $derived(mode === 'grid' || mode === 'mur' || mode === 'cards');
   let nombreAffiche = $derived(mode === 'cards' ? cards.length : compteAlbums ? albums.length : visible.length);
   let totalAffiche = $derived(mode === 'cards' ? cardsTotal : compteAlbums ? totalPochettes : total);
   let partielAffiche = $derived(mode === 'cards'
