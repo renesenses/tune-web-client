@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { viserDetail } from '../../lib/historiqueCoquille';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   /**
    * Le bouton « … » d'une ligne de piste, POSABLE PARTOUT — client actuel.
    *
@@ -189,7 +191,13 @@
     // pour elle et l'envoyait dans `pendingLibraryAlbum`, où rien ne l'attend.
     // `v2/PisteActions.svelte:280` tranche déjà comme ça.
     onAllerAlbum ?? (typeof piste.album_id === 'number' && piste.album_id > 0
-      ? () => { pendingLibraryAlbum.set(piste.album_id as number); activeView.set('library'); }
+      ? () => {
+          if (get(activeView) !== 'library') {
+            const cle = cleDetailAlbum({ id: piste.album_id });
+            if (cle) viserDetail(cle);
+          }
+          pendingLibraryAlbum.set(piste.album_id as number); activeView.set('library');
+        }
       : albumDeService
         ? () => { $gestesNavigationService?.ouvrirAlbum(albumDeService!); }
         : undefined),

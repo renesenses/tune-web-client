@@ -217,6 +217,7 @@
   import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
   import { brancherHistoriqueCoquille } from '../../lib/historiqueCoquille';
+  import { reculerAvecIntention } from '../../lib/historiqueNavigation';
   import { demarrerTransportV2 } from '../../lib/v2Live';
   import { reserveDeLaGrappe, reserveHauteDeLaGrappe } from '../../lib/gouttiereGrappe';
 
@@ -509,6 +510,14 @@
 
   /** Le retour de la fiche album : le dépôt est consommé UNE fois. */
   function fermerAlbumService() {
+    // #2459 : l'entrée précédente porte aussi le détail playlist, pas seulement sa vue.
+    if (retourSousLaFiche && history.state?.tune === 'v2' && history.state.vue === 'streamingalbum') {
+      reculerAvecIntention(() => {
+        ficheAlbumService.set(null);
+        vueDeRetour.set(null);
+      });
+      return;
+    }
     const ou = $vueDeRetour;
     ficheAlbumService.set(null);
     vueDeRetour.set(null);
