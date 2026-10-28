@@ -26,8 +26,9 @@
   const chronologiques = $derived([...messages].sort((a, b) => a.id - b.id));
   const total = $derived(liste.reduce((n, c) => n + c.unread_count, 0));
 
+  function viderBrouillons() { texte = ''; commentaire = ''; raison = 'harassment'; signalement = false; }
   function echec(e: unknown) {
-    if ((e as any)?.status === 404 || (e as any)?.status === 412) { generation++; choix = null; messages = []; liste = []; selection = []; }
+    if ((e as any)?.status === 404 || (e as any)?.status === 412) { generation++; choix = null; messages = []; liste = []; selection = []; viderBrouillons(); }
     erreur = (e as any)?.code === 'circle.card_not_found' ? tr('v2.circle.msg.notFound') : tr(motifCercle(e).cle);
   }
   async function page(id: number, avant?: string, garderAnciens = false) {
@@ -56,12 +57,12 @@
       if (fini || tour !== generation) return;
       liste = l; disponible = true;
       if (choix) {
-        if (!l.some((c) => c.id === choix?.id)) { generation++; choix = null; messages = []; selection = []; }
+        if (!l.some((c) => c.id === choix?.id)) { generation++; choix = null; messages = []; selection = []; viderBrouillons(); }
         else await page(choix.id, undefined, true);
       }
     } catch (e) {
       if (fini || tour !== generation) return;
-      if ((e as any)?.status === 404) { generation++; disponible = false; messagerieSupport.set(false); choix = null; messages = []; liste = []; }
+      if ((e as any)?.status === 404) { generation++; disponible = false; messagerieSupport.set(false); choix = null; messages = []; liste = []; viderBrouillons(); }
       else echec(e);
     }
   }
@@ -71,7 +72,7 @@
     try { await faire(); } catch (e) { if (!fini) echec(e); } finally { if (!fini) occupe = false; }
   }
   async function ouvrir(c: ConversationCercle) {
-    generation++; choix = c; messages = []; selection = []; signalement = false; cursor = null;
+    generation++; choix = c; messages = []; selection = []; viderBrouillons(); cursor = null;
     await page(c.id);
   }
   $effect(() => {

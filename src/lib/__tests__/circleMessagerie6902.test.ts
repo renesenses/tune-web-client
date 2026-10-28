@@ -144,6 +144,24 @@ it('ne réaffiche pas un extrait tardif reçu après la fin du contact', async (
   expect(hote.querySelector('.conversation')).toBeNull();
 });
 
+it('ne transporte pas un brouillon vers un autre destinataire', async () => {
+  const bob = { ...conv, id: 13, contact: { user_id: 8, name: 'Bob' } };
+  appel.mockImplementation(async (url: any) => {
+    const u = String(url);
+    if (u.endsWith('/conversations')) return { conversations: [conv, bob] } as any;
+    if (u.includes('/messages?')) return { conversation: u.includes('/13/') ? bob : conv, messages, next_cursor: null } as any;
+    return { unread_count: 0 } as any;
+  });
+  vue = mount(Messagerie, { target: hote }); await finir();
+  (hote.querySelectorAll('.conversation')[0] as HTMLButtonElement).click(); await finir();
+  const saisie = hote.querySelector('#message-texte') as HTMLTextAreaElement;
+  saisie.value = 'Pour Alice seulement'; saisie.dispatchEvent(new Event('input', { bubbles: true })); flushSync();
+  (hote.querySelectorAll('.conversation')[1] as HTMLButtonElement).click(); await finir();
+  expect(hote.querySelector('.fil h3')?.textContent).toBe('Bob');
+  expect((hote.querySelector('#message-texte') as HTMLTextAreaElement).value).toBe('');
+  expect(bouton('Envoyer').disabled).toBe(true);
+});
+
 it('ne sonde pas en arrière-plan et espace les relectures', async () => {
   const descriptor = Object.getOwnPropertyDescriptor(document, 'hidden');
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
