@@ -3726,6 +3726,7 @@ export default {
   "v2.hist.eyebrow": "Was Sie gehört haben",
   "v2.hist.regleEcoute": "Ein Hören zählt, sobald der Ton an den Ausgang geht, also zu Beginn des Titels: Auch ein nach wenigen Sekunden übersprungener Titel zählt. Radio wird nicht erfasst. Das Scrobbeln an Last.fm wartet die Hälfte des Titels oder 4 Minuten ab (Titel über 30 s).",
   "v2.hist.replayError": "Diese Wiedergabe konnte nicht erneut gestartet werden",
+  "v2.hist.ctx.radio": "Radio",
   "v2.hist.ctx.album": "Album",
   "v2.hist.ctx.playlist": "Playlist",
   "v2.hist.ctx.artist": "Künstler",

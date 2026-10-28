@@ -3601,6 +3601,7 @@ export default {
   "v2.hist.eyebrow": "Det du har lyttet til",
   "v2.hist.regleEcoute": "En avspilling teller så snart lyd når utgangen, ved starten av sporet: et spor som hoppes over etter noen sekunder, teller også. Radio registreres ikke. Last.fm-scrobbles venter til halve sporet er spilt eller 4 minutter (for spor over 30 s).",
   "v2.hist.replayError": "Kunne ikke spille av denne lyttingen på nytt",
+  "v2.hist.ctx.radio": "Radio",
   "v2.hist.ctx.album": "Album",
   "v2.hist.ctx.playlist": "Spilleliste",
   "v2.hist.ctx.artist": "Artist",

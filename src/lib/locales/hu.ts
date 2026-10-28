@@ -3680,6 +3680,7 @@ export default {
   "v2.hist.eyebrow": "Amit hallgatott",
   "v2.hist.regleEcoute": "Egy lejátszás akkor számít, amint a hang a kimenetre kerül, vagyis a szám elején: a néhány másodperc után átugrott szám is számít. A rádió nem kerül be. A Last.fm-re küldés a szám felét vagy 4 percet vár meg (30 másodpercnél hosszabb számoknál).",
   "v2.hist.replayError": "Nem sikerült újraindítani ezt a lejátszást",
+  "v2.hist.ctx.radio": "Rádió",
   "v2.hist.ctx.album": "Album",
   "v2.hist.ctx.playlist": "Lejátszási lista",
   "v2.hist.ctx.artist": "Előadó",

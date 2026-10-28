@@ -3601,6 +3601,7 @@ export default {
   "v2.hist.eyebrow": "Czego słuchano",
   "v2.hist.regleEcoute": "Odsłuch jest liczony od momentu, gdy dźwięk trafia na wyjście, na początku utworu: utwór pominięty po kilku sekundach również się liczy. Radio nie jest rejestrowane. Scrobble do Last.fm czeka na połowę utworu lub 4 minuty (utwory dłuższe niż 30 s).",
   "v2.hist.replayError": "Nie można ponownie uruchomić tego odsłuchu",
+  "v2.hist.ctx.radio": "Radio",
   "v2.hist.ctx.album": "Album",
   "v2.hist.ctx.playlist": "Playlista",
   "v2.hist.ctx.artist": "Wykonawca",
