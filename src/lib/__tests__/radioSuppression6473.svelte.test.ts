@@ -21,7 +21,7 @@ const mocks = vi.hoisted(() => ({
   getRadios: vi.fn(), deleteRadio: vi.fn(), updateRadio: vi.fn(), createRadio: vi.fn(),
   playRadio: vi.fn(), importRadios: vi.fn(), exportRadiosUrl: vi.fn(() => '#'), uploadRadioCover: vi.fn(),
 }));
-vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), ...mocks }));
+vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), getConfig: vi.fn(async () => ({ radios_country: '' })), ...mocks }));
 
 import RadiosV2 from '../../components/v2/RadiosV2.svelte';
 import { dialogs } from '../stores/dialogs';
