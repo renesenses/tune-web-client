@@ -2253,7 +2253,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.success($t('maintenance.backupCreated' as any));
     } catch (cause: unknown) {
       backupDetail = detailServeur(cause);
-      backupError = cause instanceof Error && cause.message.trim() ? cause.message : $t('maintenance.backupError' as any);
+      const corps = (cause as { corps?: { error?: unknown } } | null)?.corps;
+      const refusPostgres = typeof corps?.error === 'string'
+        && corps.error.startsWith('file backups are SQLite-only; this server runs on PostgreSQL');
+      backupError = refusPostgres ? $t('maintenance.backupPostgresHint' as any)
+        : cause instanceof Error && cause.message.trim() ? cause.message : $t('maintenance.backupError' as any);
       notifications.error(backupError, 5000, backupDetail);
     } finally {
       backupBusy = false;
@@ -3633,7 +3637,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let dbEngine = $state<string | null>(null);
   // #2474 : le serveur refuse la copie de fichier sur PostgreSQL.
   // Moteur absent d'un ancien serveur : laisser sa route décider au clic.
-  let sauvegardesDisponibles = $derived(true);
+  let sauvegardesDisponibles = $derived(dbEngine !== 'postgres' && dbEngine !== 'postgresql');
   let dbConnected = $state<boolean | null>(null);
   let dbPath = $state<string | null>(null);
   let dataLoc = $state<string | null>(null);
