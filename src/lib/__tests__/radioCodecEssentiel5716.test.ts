@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // #5716 — le codec d'une station se lit dès le niveau Essentiel (décision du
 // 07/10). Le pays, lui, reste réservé à Avancé (#863).
@@ -29,6 +30,7 @@ let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 
 beforeEach(() => {
+  clearViewContext('radios');
   localStorage.clear();
   locale.set('fr');
   vi.stubGlobal('ResizeObserver', Inerte);
