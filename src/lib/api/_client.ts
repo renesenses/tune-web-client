@@ -7,6 +7,7 @@ import { profileHeader } from '../profileHeader';
 import { messageRefusPremium, type CorpsRefusPremium } from '../premiumRefus';
 import { estRefusEcriture, messageRefusEcriture } from '../ecritureFichiers';
 import { baseApi, entetesRelais } from '../bridge';
+import { CODE_REFUS_PAYS_RADIO, messageRefusPaysRadio } from '../refusPaysRadio';
 
 // Même base que `api.ts` : `/api/v1` en local, `/api/relay/{id}` par le pont.
 export const BASE = baseApi();
@@ -23,6 +24,10 @@ async function apiError(response: Response): Promise<Error> {
   let detail = `${response.status} ${response.statusText}`;
   try {
     const body = await response.json();
+    const refusPays = messageRefusPaysRadio(body);
+    if (refusPays) {
+      return Object.assign(new Error(refusPays), { status: response.status, code: CODE_REFUS_PAYS_RADIO });
+    }
     // `detail` : anciens handlers. `error` : le format d'AppError côté serveur,
     // dont le message est souvent la seule explication actionnable ("destination
     // hors des dossiers musicaux configurés") — le perdre laissait l'UI avec un

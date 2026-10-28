@@ -1,6 +1,13 @@
 export default {
   "settings.podcastRewind": "Επιστροφή κατά τη συνέχιση podcast (δευτερόλεπτα)",
   "settings.podcastRewindHint": "Συνέχιση του επεισοδίου πριν από την αποθηκευμένη θέση. 0–300 δευτερόλεπτα· προεπιλογή: 10.",
+  "v2.radio.listeningCountry": "Χώρα ακρόασης του διακομιστή",
+  "v2.radio.countryUnset": "Δεν ορίστηκε — ροές χωρίς περιορισμούς",
+  "v2.radio.countryHint": "Επιλέξτε τη χώρα ακρόασης. Χωρίς χώρα επιλέγονται μόνο ροές χωρίς περιορισμούς.",
+  "v2.radio.countryNeedsServer": "Αυτός ο διακομιστής δεν υποστηρίζει ακόμη επιλογή χώρας ακρόασης.",
+  "v2.radio.countryRetry": "Δοκιμή ξανά",
+  "playback.errorRadioCountry": "Το ραδιόφωνο δεν έχει επιτρεπόμενη ροή για τη χώρα ακρόασης του διακομιστή. Ελέγξτε τη ρύθμιση στο Ραδιόφωνο.",
+
   "oxygen.tagSel.selectAll": "Επιλογή όλων ({count})",
   "oxygen.tagSel.selected": "{count} επιλεγμένα",
   "oxygen.tagSel.applyTag": "Εφαρμογή ετικέτας…",
@@ -5910,5 +5917,29 @@ export default {
   "v2.carte.pod.episodes": "Επεισόδια",
   "volume.deviceObserved": "AIR (ένδειξη): {value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "Μηνύματα",
+  "v2.circle.msg.privacy": "Η Mozaiklabs μπορεί να διαβάσει αυτά τα μηνύματα για έλεγχο μετά από αναφορά. Δεν έχουν διατερματική κρυπτογράφηση.",
+  "v2.circle.msg.empty": "Γράψτε σε μια αποδεκτή επαφή για να ξεκινήσετε.",
+  "v2.circle.msg.older": "Παλαιότερα μηνύματα",
+  "v2.circle.msg.me": "Εγώ",
+  "v2.circle.msg.write": "Σύνταξη",
+  "v2.circle.msg.send": "Αποστολή",
+  "v2.circle.msg.playHere": "Ακρόαση στο σπίτι",
+  "v2.circle.msg.select": "Επιλογή για αναφορά",
+  "v2.circle.msg.deleteConfirm": "Διαγραφή αυτού του μηνύματος και για τους δύο συμμετέχοντες;",
+  "v2.circle.msg.report": "Αναφορά",
+  "v2.circle.msg.reportHint": "Επιλέξτε έως 20 μηνύματα. Ένα άτομο εξετάζει την αναφορά. Μπορείτε επίσης να αποκλείσετε ή να αφαιρέσετε την επαφή.",
+  "v2.circle.msg.reason": "Αιτία",
+  "v2.circle.msg.comment": "Προαιρετικό σχόλιο",
+  "v2.circle.msg.harassment": "Παρενόχληση",
+  "v2.circle.msg.spam": "Ανεπιθύμητα",
+  "v2.circle.msg.hate": "Μίσος",
+  "v2.circle.msg.illegal": "Παράνομο περιεχόμενο",
+  "v2.circle.msg.other": "Άλλο",
+  "v2.circle.msg.notFound": "Αυτή η κάρτα δεν βρέθηκε στη βιβλιοθήκη σας.",
+  "v2.circle.msg.share": "Κοινοποίηση σε μήνυμα",
+  "v2.circle.msg.recipient": "Παραλήπτης",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

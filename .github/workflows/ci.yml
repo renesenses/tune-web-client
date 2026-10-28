@@ -23,7 +23,6 @@ name: CI
 # Une branche qui ne fusionne pas a d'autant plus besoin d'une porte : rien ne
 # la rattrapera plus tard.
 on:
-  workflow_dispatch:
   pull_request:
   push:
     branches: [main, feat/client-v2-niveaux, feat/v2-avatar-identite-et-i18n]
@@ -38,7 +37,8 @@ jobs:
   test:
     name: npm test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 11 500+ tests puis le build : le plafond de15min coupait un job vert (#2481).
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -51,6 +51,44 @@ jobs:
       # échoue si celui-ci a divergé de package.json — ce qui est précisément
       # le contrôle qu'on veut, le lockfile devant suivre chaque bump.
       - run: npm ci
+
+      - name: Contre-épreuve des cartes privées
+        run: |
+          sauvegarde=$(mktemp)
+          sauvegarde_vue=$(mktemp)
+          cp src/lib/circleMessagerie.ts "$sauvegarde"
+          cp src/components/v2/MessagerieCercleV2.svelte "$sauvegarde_vue"
+          trap 'cp "$sauvegarde" src/lib/circleMessagerie.ts; cp "$sauvegarde_vue" src/components/v2/MessagerieCercleV2.svelte; rm -f "$sauvegarde" "$sauvegarde_vue"' EXIT
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          p = Path('src/lib/circleMessagerie.ts')
+          p.write_text(p.read_text().replace('const c: CarteMusique = { type: b.type,', 'const c: CarteMusique = { ...b, type: b.type,'))
+          PYTHON
+          if npx vitest run src/lib/__tests__/circleMessagerie6902.test.ts -t 'ne laisse sortir' --maxWorkers=2 > contre-cartes.log 2>&1; then
+            cat contre-cartes.log
+            echo '::error::Le témoin laisse partir les champs privés de la carte'
+            exit 1
+          fi
+          cat contre-cartes.log
+          grep -q 'AssertionError' contre-cartes.log
+          cp "$sauvegarde" src/lib/circleMessagerie.ts
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          p = Path('src/components/v2/MessagerieCercleV2.svelte')
+          s = p.read_text()
+          avant = "function viderBrouillons() { texte = '';"
+          assert avant in s
+          p.write_text(s.replace(avant, 'function viderBrouillons() {'))
+          PYTHON
+          if npx vitest run src/lib/__tests__/circleMessagerie6902.test.ts -t 'ne transporte pas' --maxWorkers=2 > contre-brouillon.log 2>&1; then
+            cat contre-brouillon.log
+            echo '::error::Le brouillon passe vers un autre destinataire'
+            exit 1
+          fi
+          cat contre-brouillon.log
+          grep -q 'AssertionError' contre-brouillon.log
+          cp "$sauvegarde_vue" src/components/v2/MessagerieCercleV2.svelte
+          npx vitest run src/lib/__tests__/circleMessagerie6902.test.ts --maxWorkers=2
 
       - run: npm test
 

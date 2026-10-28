@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // web#2443 — la fiche « Voir » des stations de l'annuaire (demande de Rémi du
 // 27/10/2026) : l'œil à la place du crayon, le badge « Metadata+ », les flux
@@ -15,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   getAnnuaireRadios: vi.fn(), ajouterDepuisAnnuaire: vi.fn(), jouerDepuisAnnuaire: vi.fn(),
   choisirFluxPrefere: vi.fn(),
 }));
-vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), ...mocks }));
+vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), getConfig: vi.fn(async () => ({ radios_country: '' })), ...mocks }));
 vi.mock('../zoneRequise', () => ({ zoneRequise: () => 3 }));
 
 import RadiosV2 from '../../components/v2/RadiosV2.svelte';
@@ -69,6 +70,7 @@ const titres = (e: Element) => [...e.querySelectorAll('button.coin')].map((b) =>
 const dialogue = () => document.querySelector('[role=dialog]') as HTMLElement | null;
 
 beforeEach(() => {
+  clearViewContext('radios');
   for (const fn of Object.values(mocks)) fn.mockReset();
   mocks.getRadios.mockResolvedValue([FIP, MAISON]);
   mocks.exportRadiosUrl.mockReturnValue('#');

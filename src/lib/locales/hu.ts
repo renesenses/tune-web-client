@@ -1,6 +1,13 @@
 export default {
   "settings.podcastRewind": "Visszatekerés podcast folytatásakor (másodperc)",
   "settings.podcastRewindHint": "Az epizód folytatása a mentett pozíció előtt. 0–300 másodperc; alapérték: 10.",
+  "v2.radio.listeningCountry": "A kiszolgáló hallgatási országa",
+  "v2.radio.countryUnset": "Nincs megadva — korlátozás nélküli adatfolyamok",
+  "v2.radio.countryHint": "Válassza ki a hallgatási országot. Ország nélkül csak korlátozás nélküli adatfolyamok választhatók.",
+  "v2.radio.countryNeedsServer": "Ez a kiszolgáló még nem támogatja a hallgatási ország kiválasztását.",
+  "v2.radio.countryRetry": "Újrapróbálkozás",
+  "playback.errorRadioCountry": "Ehhez a rádióhoz nincs engedélyezett adatfolyam a kiszolgáló hallgatási országában. Ellenőrizze a beállítást a Rádióban.",
+
   "oxygen.tagSel.selectAll": "Összes kijelölése ({count})",
   "oxygen.tagSel.selected": "{count} kijelölve",
   "oxygen.tagSel.applyTag": "Címke hozzárendelése…",
@@ -6024,6 +6031,30 @@ export default {
   "v2.carte.pod.episodes": "Epizódok",
   "volume.deviceObserved": "AIR (jelzett): {value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "Üzenetek",
+  "v2.circle.msg.privacy": "A Mozaiklabs bejelentés után moderálás céljából elolvashatja ezeket az üzeneteket. Nem végpontok között titkosítottak.",
+  "v2.circle.msg.empty": "A kezdéshez írjon egy elfogadott kapcsolatnak.",
+  "v2.circle.msg.older": "Korábbi üzenetek",
+  "v2.circle.msg.me": "Én",
+  "v2.circle.msg.write": "Írás",
+  "v2.circle.msg.send": "Küldés",
+  "v2.circle.msg.playHere": "Meghallgatás nálam",
+  "v2.circle.msg.select": "Kijelölés bejelentéshez",
+  "v2.circle.msg.deleteConfirm": "Törli ezt az üzenetet mindkét résztvevő számára?",
+  "v2.circle.msg.report": "Bejelentés",
+  "v2.circle.msg.reportHint": "Válasszon legfeljebb 20 üzenetet. A bejelentést ember vizsgálja meg. A kapcsolatot le is tilthatja vagy eltávolíthatja.",
+  "v2.circle.msg.reason": "Indok",
+  "v2.circle.msg.comment": "Nem kötelező megjegyzés",
+  "v2.circle.msg.harassment": "Zaklatás",
+  "v2.circle.msg.spam": "Levélszemét",
+  "v2.circle.msg.hate": "Gyűlölet",
+  "v2.circle.msg.illegal": "Illegális tartalom",
+  "v2.circle.msg.other": "Egyéb",
+  "v2.circle.msg.notFound": "Ez a kártya nem található a könyvtárában.",
+  "v2.circle.msg.share": "Megosztás üzenetben",
+  "v2.circle.msg.recipient": "Címzett",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

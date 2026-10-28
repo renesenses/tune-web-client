@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
+  import { loadViewContext, saveViewContext } from '../../lib/stores/navigation';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Radio en direct — nouveau client (direction Levente).
@@ -35,6 +37,7 @@
   import PochetteActions from './PochetteActions.svelte';
   import RadioEditModale from './RadioEditModale.svelte';
   import RadioAnnuaire from './RadioAnnuaire.svelte';
+  import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import CarteRadios from './CarteRadios.svelte';
   import RadioRecherche from './RadioRecherche.svelte';
   import RadioChipsGenres from './RadioChipsGenres.svelte';
@@ -49,11 +52,22 @@
   const showFilters = $derived(atLeast(level, 'intermediate'));
   const showExpert = $derived(atLeast(level, 'expert'));
 
+  // #2473 / serveur#7052 : quitter la vue la démonte ; le retour doit
+  // retrouver l'Annuaire (ou la Carte), plutôt que recréer « Mes radios ».
+  interface ContexteRadios {
+    section: 'mes' | 'annuaire' | 'carte';
+    q: string;
+    genre: string | null;
+    ongletFavoris: boolean;
+  }
+  const contexte = loadViewContext<ContexteRadios>('radios');
+  onDestroy(() => saveViewContext('radios', { section, q, genre, ongletFavoris }));
+
   let radios = $state<RadioStation[]>([]);
   let loading = $state(true);
   let error = $state<string | null>(null);
-  let q = $state('');
-  let genre = $state<string | null>(null);
+  let q = $state(contexte?.q ?? '');
+  let genre = $state<string | null>(contexte?.genre ?? null);
   let playingId = $state<number | null>(null);
 
   /*
@@ -74,7 +88,7 @@
    * `ongletFavoris` ne s'offre que s'il existe au moins une station en
    * favori, et l'écran retombe sur « toutes » dès que la dernière est retirée.
    */
-  let ongletFavoris = $state(false);
+  let ongletFavoris = $state(contexte?.ongletFavoris ?? false);
 
   /**
    * tune-server-rust#6516 — « Mes radios » / « Annuaire ».
@@ -87,7 +101,7 @@
    * web#2400 — « Carte » : le même annuaire, à parcourir par genres, pays et
    * réseaux (`CarteRadios`), troisième onglet décidé par Bertrand le 26/10.
    */
-  let section = $state<'mes' | 'annuaire' | 'carte'>('mes');
+  let section = $state<'mes' | 'annuaire' | 'carte'>(contexte?.section ?? 'mes');
   /** La fiche d'annuaire qui joue, pour sa pastille « en direct ». */
   let ficheJouee = $state<string | null>(null);
 
@@ -361,6 +375,7 @@
     <button class="v2-btn" class:on={section === 'carte'} role="tab" aria-selected={section === 'carte'}
       onclick={() => ouvrirSection('carte')}>{$t('v2.radio.tabMap' as any)}</button>
   </div>
+  <PaysEcouteRadios />
 
   <div class="scroll">
     <!-- La recherche et les genres, au MÊME endroit que dans « Annuaire ». -->

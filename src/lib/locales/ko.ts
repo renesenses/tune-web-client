@@ -1,6 +1,13 @@
 export default {
   "settings.podcastRewind": "팟캐스트 재개 시 되감기(초)",
   "settings.podcastRewindHint": "저장된 위치보다 앞에서 에피소드를 재개합니다. 0~300초, 기본값 10초.",
+  "v2.radio.listeningCountry": "서버 청취 국가",
+  "v2.radio.countryUnset": "미설정 — 제한 없는 스트림",
+  "v2.radio.countryHint": "청취 국가를 선택하세요. 미설정 시 제한 없는 스트림만 선택됩니다.",
+  "v2.radio.countryNeedsServer": "이 서버는 아직 청취 국가 선택을 지원하지 않습니다.",
+  "v2.radio.countryRetry": "다시 시도",
+  "playback.errorRadioCountry": "이 라디오는 서버의 청취 국가에서 허용된 스트림이 없습니다. 라디오 설정을 확인하세요.",
+
   "oxygen.tagSel.selectAll": "모두 선택 ({count})",
   "oxygen.tagSel.selected": "{count}개 선택됨",
   "oxygen.tagSel.applyTag": "태그 적용…",
@@ -6065,6 +6072,30 @@ export default {
   "v2.carte.pod.episodes": "에피소드 보기",
   "volume.deviceObserved": "AIR (수신값): {value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "메시지",
+  "v2.circle.msg.privacy": "Mozaiklabs는 신고 후 검토를 위해 이 메시지를 읽을 수 있습니다. 종단간 암호화되지 않습니다.",
+  "v2.circle.msg.empty": "수락한 연락처에 메시지를 보내 시작하세요.",
+  "v2.circle.msg.older": "이전 메시지",
+  "v2.circle.msg.me": "나",
+  "v2.circle.msg.write": "작성",
+  "v2.circle.msg.send": "보내기",
+  "v2.circle.msg.playHere": "집에서 듣기",
+  "v2.circle.msg.select": "신고할 메시지 선택",
+  "v2.circle.msg.deleteConfirm": "두 참여자 모두에게서 이 메시지를 삭제할까요?",
+  "v2.circle.msg.report": "신고",
+  "v2.circle.msg.reportHint": "최대 20개의 메시지를 선택하세요. 담당자가 신고를 검토합니다. 연락처를 차단하거나 삭제할 수도 있습니다.",
+  "v2.circle.msg.reason": "이유",
+  "v2.circle.msg.comment": "선택 사항인 설명",
+  "v2.circle.msg.harassment": "괴롭힘",
+  "v2.circle.msg.spam": "스팸",
+  "v2.circle.msg.hate": "혐오",
+  "v2.circle.msg.illegal": "불법 콘텐츠",
+  "v2.circle.msg.other": "기타",
+  "v2.circle.msg.notFound": "이 카드를 라이브러리에서 찾을 수 없습니다.",
+  "v2.circle.msg.share": "메시지로 공유",
+  "v2.circle.msg.recipient": "받는 사람",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

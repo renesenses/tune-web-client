@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // tune-server-rust#6473 (Bilou, Jean Valjean, fil 2308) — « Pas moyen de
 // supprimer des radios ». La capture montre un bandeau rouge :
@@ -21,7 +22,7 @@ const mocks = vi.hoisted(() => ({
   getRadios: vi.fn(), deleteRadio: vi.fn(), updateRadio: vi.fn(), createRadio: vi.fn(),
   playRadio: vi.fn(), importRadios: vi.fn(), exportRadiosUrl: vi.fn(() => '#'), uploadRadioCover: vi.fn(),
 }));
-vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), ...mocks }));
+vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), getConfig: vi.fn(async () => ({ radios_country: '' })), ...mocks }));
 
 import RadiosV2 from '../../components/v2/RadiosV2.svelte';
 import { dialogs } from '../stores/dialogs';
@@ -36,6 +37,7 @@ let hote: HTMLDivElement;
 let instance: Record<string, unknown> | null = null;
 
 beforeEach(() => {
+  clearViewContext('radios');
   for (const fn of Object.values(mocks)) fn.mockReset();
   mocks.getRadios.mockResolvedValue([STATION]);
   mocks.deleteRadio.mockResolvedValue(undefined);

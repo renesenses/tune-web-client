@@ -1,6 +1,13 @@
 export default {
   "settings.podcastRewind": "Spola tillbaka när poddar återupptas (sekunder)",
   "settings.podcastRewindHint": "Återuppta avsnittet före den sparade positionen. 0–300 sekunder; standard: 10.",
+  "v2.radio.listeningCountry": "Serverns lyssningsland",
+  "v2.radio.countryUnset": "Ej valt — obegränsade strömmar",
+  "v2.radio.countryHint": "Välj ditt lyssningsland. Utan land väljs endast obegränsade strömmar.",
+  "v2.radio.countryNeedsServer": "Servern stöder ännu inte val av lyssningsland.",
+  "v2.radio.countryRetry": "Försök igen",
+  "playback.errorRadioCountry": "Radion har ingen tillåten ström för serverns lyssningsland. Kontrollera inställningen under Radio.",
+
   "oxygen.tagSel.selectAll": "Markera alla ({count})",
   "oxygen.tagSel.selected": "{count} markerade",
   "oxygen.tagSel.applyTag": "Använd en tagg…",
@@ -6064,4 +6071,28 @@ export default {
   "v2.carte.pod.episodes": "Visa avsnitt",
   "volume.deviceObserved": "AIR (avläst): {value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "Meddelanden",
+  "v2.circle.msg.privacy": "Mozaiklabs kan läsa dessa meddelanden för moderering efter en anmälan. De är inte totalsträckskrypterade.",
+  "v2.circle.msg.empty": "Skriv till en godkänd kontakt för att börja.",
+  "v2.circle.msg.older": "Äldre meddelanden",
+  "v2.circle.msg.me": "Jag",
+  "v2.circle.msg.write": "Skriv",
+  "v2.circle.msg.send": "Skicka",
+  "v2.circle.msg.playHere": "Lyssna hemma",
+  "v2.circle.msg.select": "Välj att anmäla",
+  "v2.circle.msg.deleteConfirm": "Radera meddelandet för båda deltagarna?",
+  "v2.circle.msg.report": "Anmäl",
+  "v2.circle.msg.reportHint": "Välj högst 20 meddelanden. En person granskar anmälan. Du kan också blockera eller ta bort kontakten.",
+  "v2.circle.msg.reason": "Orsak",
+  "v2.circle.msg.comment": "Valfri kommentar",
+  "v2.circle.msg.harassment": "Trakasserier",
+  "v2.circle.msg.spam": "Skräppost",
+  "v2.circle.msg.hate": "Hat",
+  "v2.circle.msg.illegal": "Olagligt innehåll",
+  "v2.circle.msg.other": "Annat",
+  "v2.circle.msg.notFound": "Kortet hittades inte i ditt bibliotek.",
+  "v2.circle.msg.share": "Dela i ett meddelande",
+  "v2.circle.msg.recipient": "Mottagare",
 } as const;
