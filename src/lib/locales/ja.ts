@@ -6065,6 +6065,30 @@ export default {
   "v2.carte.pod.episodes": "エピソードを見る",
   "volume.deviceObserved": "AIR（受信値）：{value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "メッセージ",
+  "v2.circle.msg.privacy": "Mozaiklabs は報告を受けた後、モデレーションのためにメッセージを読むことができます。エンドツーエンド暗号化はされていません。",
+  "v2.circle.msg.empty": "承認済みの連絡先にメッセージを送って始めましょう。",
+  "v2.circle.msg.older": "以前のメッセージ",
+  "v2.circle.msg.me": "自分",
+  "v2.circle.msg.write": "作成",
+  "v2.circle.msg.send": "送信",
+  "v2.circle.msg.playHere": "自宅で聴く",
+  "v2.circle.msg.select": "報告するメッセージを選択",
+  "v2.circle.msg.deleteConfirm": "両方の参加者からこのメッセージを削除しますか？",
+  "v2.circle.msg.report": "報告",
+  "v2.circle.msg.reportHint": "最大20件のメッセージを選択できます。担当者が報告を確認します。連絡先のブロックや削除もできます。",
+  "v2.circle.msg.reason": "理由",
+  "v2.circle.msg.comment": "コメント（任意）",
+  "v2.circle.msg.harassment": "嫌がらせ",
+  "v2.circle.msg.spam": "スパム",
+  "v2.circle.msg.hate": "ヘイト",
+  "v2.circle.msg.illegal": "違法なコンテンツ",
+  "v2.circle.msg.other": "その他",
+  "v2.circle.msg.notFound": "このカードはライブラリに見つかりませんでした。",
+  "v2.circle.msg.share": "メッセージで共有",
+  "v2.circle.msg.recipient": "送信先",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

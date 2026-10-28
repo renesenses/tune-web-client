@@ -6065,6 +6065,30 @@ export default {
   "v2.carte.pod.episodes": "Vezi episoadele",
   "volume.deviceObserved": "AIR (observat): {value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "Mesaje",
+  "v2.circle.msg.privacy": "Mozaiklabs poate citi aceste mesaje pentru moderare în urma unei raportări. Nu sunt criptate de la un capăt la altul.",
+  "v2.circle.msg.empty": "Scrie unui contact acceptat pentru a începe.",
+  "v2.circle.msg.older": "Mesaje anterioare",
+  "v2.circle.msg.me": "Eu",
+  "v2.circle.msg.write": "Scrie",
+  "v2.circle.msg.send": "Trimite",
+  "v2.circle.msg.playHere": "Ascultă acasă",
+  "v2.circle.msg.select": "Selectează pentru raportare",
+  "v2.circle.msg.deleteConfirm": "Ștergi acest mesaj pentru ambii participanți?",
+  "v2.circle.msg.report": "Raportează",
+  "v2.circle.msg.reportHint": "Alege până la 20 de mesaje. O persoană verifică raportarea. Poți și bloca sau elimina contactul.",
+  "v2.circle.msg.reason": "Motiv",
+  "v2.circle.msg.comment": "Comentariu opțional",
+  "v2.circle.msg.harassment": "Hărțuire",
+  "v2.circle.msg.spam": "Spam",
+  "v2.circle.msg.hate": "Ură",
+  "v2.circle.msg.illegal": "Conținut ilegal",
+  "v2.circle.msg.other": "Altul",
+  "v2.circle.msg.notFound": "Acest card nu a fost găsit în biblioteca ta.",
+  "v2.circle.msg.share": "Distribuie prin mesaj",
+  "v2.circle.msg.recipient": "Destinatar",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
