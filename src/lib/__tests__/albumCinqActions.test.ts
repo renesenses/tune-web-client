@@ -122,7 +122,7 @@ describe('les cinq actions de la fiche album', () => {
     expect(src).toMatch(/if \(service \|\| bandcamp\) \{/);
     const i = src.indexOf('if (service || bandcamp) {');
     const bloc = src.slice(i, src.indexOf('if (album.id == null)', i));
-    expect(bloc, 'la tête joue').toContain('playAndSync(zid, { ...tete, ...contexteAlbum() } as any)');
+    expect(bloc, 'la tête joue').toContain('playAndSync(zid, { ...tete, ...contexteAlbum(), context_shuffle: true } as any)');
     expect(bloc, 'le reste s empile en une fois').toContain('corpsDeFileListe(l.slice(1))');
   });
 
