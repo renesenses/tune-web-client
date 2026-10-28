@@ -108,3 +108,13 @@ it('envoie, supprime seulement mon message après confirmation et signale les me
   formulaire?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await finir();
   expect(appel.mock.calls.some((c) => String(c[0]).endsWith('/reports') && JSON.parse(c[1]?.body as string).message_ids[0] === 3)).toBe(true);
 });
+
+it('retire le contenu du fil quand le contact devient inaccessible', async () => {
+  vue = mount(Messagerie, { target: hote }); await finir();
+  (hote.querySelector('.conversation') as HTMLButtonElement).click(); await finir();
+  expect(hote.textContent).toContain('Mon message');
+  absent = true;
+  (hote.querySelector('.conversation') as HTMLButtonElement).click(); await finir();
+  expect(hote.querySelector('.messages')).toBeNull();
+  expect(hote.textContent).not.toContain('Mon message');
+});
