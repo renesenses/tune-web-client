@@ -663,7 +663,7 @@ export async function fetchJSON<T>(
             ...((err.corps as Record<string, unknown> | undefined) ?? {}),
           })
         ) {
-          notifications.error(err.message, 10000);
+          notifications.error(err.message, 10000, err.detail);
         }
         err.dejaAnnonce = true;
       } else if (key) {
