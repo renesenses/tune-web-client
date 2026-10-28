@@ -1,4 +1,11 @@
 export default {
+  "v2.radio.listeningCountry": "País de escucha del servidor",
+  "v2.radio.countryUnset": "Sin definir — emisiones sin restricciones",
+  "v2.radio.countryHint": "Elija su país de escucha. Sin país, solo se eligen emisiones sin restricciones.",
+  "v2.radio.countryNeedsServer": "Este servidor aún no permite elegir el país de escucha.",
+  "v2.radio.countryRetry": "Reintentar",
+  "playback.errorRadioCountry": "Esta radio no tiene ninguna emisión autorizada para el país de escucha del servidor. Revise el ajuste en Radio.",
+
   "oxygen.tagSel.selectAll": "Seleccionar todo ({count})",
   "oxygen.tagSel.selected": "{count} seleccionados",
   "oxygen.tagSel.applyTag": "Aplicar una etiqueta…",
