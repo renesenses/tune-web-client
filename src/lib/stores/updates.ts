@@ -1,7 +1,8 @@
 import { writable } from 'svelte/store';
 import * as api from '../api';
 import { normaliserVerificationMaj } from '../miseAJour';
-import { estPlusRecente } from '../versions';
+import { estPlusRecente, comparerVersions } from '../versions';
+import { tuneWS } from '../websocket';
 
 export const updateAvailable = writable(false);
 export const latestVersion = writable<string | null>(null);
@@ -18,6 +19,9 @@ export const updateInstallHint = writable<string | null>(null);
 
 const DISMISSED_KEY = 'tune_update_dismissed_version';
 
+let arreterEvenements: (() => void) | null = null;
+let generation = 0;
+
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
@@ -30,6 +34,7 @@ function isNewer(a: string, b: string): boolean {
 }
 
 async function poll() {
+  const demande = ++generation;
   try {
     // Try the server's own update check first
     // Même traduction que l'écran Réglages, au même endroit : les deux noms
@@ -37,11 +42,13 @@ async function poll() {
     // ici et dans `SettingsView`, et ABSENTE de `SettingsV2` — c'est ainsi que
     // le bouton de mise à jour du nouveau client avait disparu.
     const info = normaliserVerificationMaj(await api.checkForUpdate());
+    if (demande !== generation) return;
     const cur = info?.current_version ?? null;
     const lat = info?.latest_version ?? null;
     if (cur) currentVersion.set(cur);
     if (lat) latestVersion.set(lat);
-    const hasUpdate = !!info?.update_available || (cur && lat && isNewer(cur, lat));
+    const ordre = cur && lat ? comparerVersions(cur, lat) : null;
+    const hasUpdate = ordre === null ? !!info?.update_available : ordre === -1;
     updateAvailable.set(!!hasUpdate);
     updateInstallable.set(info ? info.installable : true);
     updateInstallHint.set(info ? info.install_hint : null);
@@ -58,6 +65,7 @@ async function poll() {
       fetch('https://api.github.com/repos/renesenses/tune-server-rust/releases/latest').then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
 
+    if (demande !== generation) return;
     const cur = statusRes?.version ?? statusRes?.server_version ?? null;
     const lat = ghRes?.tag_name?.replace(/^v/, '') ?? null;
 
@@ -92,11 +100,25 @@ export function dismissUpdateBanner() {
 
 export function startUpdatePolling() {
   if (pollTimer) return;
+  const rafraichir = () => { void poll(); };
+  const arreterWS = tuneWS.onEvent((event) => {
+    if (event.type === '_connected') rafraichir();
+  });
+  if (typeof window !== 'undefined') window.addEventListener('focus', rafraichir);
+  if (typeof window !== 'undefined') window.addEventListener('online', rafraichir);
+  arreterEvenements = () => {
+    arreterWS();
+    if (typeof window !== 'undefined') window.removeEventListener('focus', rafraichir);
+    if (typeof window !== 'undefined') window.removeEventListener('online', rafraichir);
+  };
   poll();
   pollTimer = setInterval(poll, 30 * 60 * 1000);
 }
 
 export function stopUpdatePolling() {
+  ++generation;
+  arreterEvenements?.();
+  arreterEvenements = null;
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;
