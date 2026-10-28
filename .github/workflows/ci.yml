@@ -37,7 +37,8 @@ jobs:
   test:
     name: npm test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 11 500+ tests puis le build : le plafond de15min coupait un job vert (#2481).
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
