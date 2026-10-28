@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { t } from '../../lib/i18n';
   import { getCercle, estConnecte, motifCercle, type ContactCercle } from '../../lib/circle';
   import { carteAPartager, ouvrirConversation, envoyerMessage, messageEnvoyable, longueurMessage, MESSAGE_MAX, type CarteMusique } from '../../lib/circleMessagerie';
@@ -10,7 +10,21 @@
   let occupe = $state(false);
   let erreur = $state('');
   const tr = (k: string) => $t(k as any);
-  onMount(() => { void getCercle().then((e) => { contacts = estConnecte(e) ? e.members : []; }).catch((e) => erreur = tr(motifCercle(e).cle)); });
+  let panneau: HTMLElement;
+  onMount(() => {
+    const avant = document.activeElement as HTMLElement | null;
+    void tick().then(() => panneau?.focus());
+    void getCercle().then((e) => { contacts = estConnecte(e) ? e.members : []; }).catch((e) => erreur = tr(motifCercle(e).cle));
+    return () => avant?.focus();
+  });
+  function clavier(ev: KeyboardEvent) {
+    if (ev.key === 'Escape' && !occupe) { ev.preventDefault(); carteAPartager.set(null); }
+    if (ev.key !== 'Tab' || !panneau) return;
+    const cibles = [...panneau.querySelectorAll<HTMLElement>('button:not(:disabled), select:not(:disabled), textarea:not(:disabled)')];
+    const premier = cibles[0], dernier = cibles.at(-1);
+    if (ev.shiftKey && (document.activeElement === premier || document.activeElement === panneau)) { ev.preventDefault(); dernier?.focus(); }
+    else if (!ev.shiftKey && document.activeElement === dernier) { ev.preventDefault(); premier?.focus(); }
+  }
   async function envoyer(ev: SubmitEvent) {
     ev.preventDefault(); if (!destinataire || occupe) return;
     occupe = true; erreur = '';
@@ -20,8 +34,9 @@
   }
 </script>
 
+<svelte:window onkeydown={clavier} />
 <div class="fond">
-  <section class="partage" role="dialog" aria-modal="true" aria-labelledby="partage-message-titre" tabindex="-1">
+  <section bind:this={panneau} class="partage" role="dialog" aria-modal="true" aria-labelledby="partage-message-titre" tabindex="-1">
     <h2 id="partage-message-titre">{tr('v2.circle.msg.share')}</h2>
     <p><strong>{carte.title}</strong>{#if carte.artist_name} · {carte.artist_name}{/if}</p>
     <p class="note">{tr('v2.circle.msg.privacy')}</p>

@@ -25,15 +25,18 @@
   const total = $derived(liste.reduce((n, c) => n + c.unread_count, 0));
 
   function echec(e: unknown) {
-    if ((e as any)?.status === 404 || (e as any)?.status === 412) { choix = null; messages = []; selection = []; }
+    if ((e as any)?.status === 404 || (e as any)?.status === 412) { choix = null; messages = []; liste = []; selection = []; }
     erreur = (e as any)?.code === 'circle.card_not_found' ? tr('v2.circle.msg.notFound') : tr(motifCercle(e).cle);
   }
-  async function page(id: number, avant?: string) {
+  async function page(id: number, avant?: string, garderAnciens = false) {
     const p = await lireMessages(id, avant);
     if (fini || choix?.id !== id) return;
     choix = p.conversation;
-    messages = avant ? [...new Map([...messages, ...p.messages].map((m) => [m.id, m])).values()] : p.messages;
-    cursor = p.next_cursor;
+    const garder = garderAnciens && messages.length > 0;
+    const plancher = Math.min(...p.messages.map((m) => m.id));
+    messages = avant ? [...new Map([...messages, ...p.messages].map((m) => [m.id, m])).values()]
+      : garder && p.messages.length ? [...messages.filter((m) => m.id < plancher), ...p.messages] : p.messages;
+    if (!garder || avant) cursor = p.next_cursor;
     // Ne marquer que la page réellement affichée, sans absorber un message
     // qui arriverait entre le GET et le POST.
     const dernier = Math.max(0, ...p.messages.map((m) => m.id));
@@ -49,8 +52,8 @@
       if (fini) return;
       liste = l; disponible = true;
       if (choix) {
-        if (!l.some((c) => c.id === choix?.id)) { choix = null; messages = []; selection = []; }
-        else await page(choix.id);
+        if (!l.some((c) => c.id === choix?.id)) { choix = null; messages = []; liste = []; selection = []; }
+        else await page(choix.id, undefined, true);
       }
     } catch (e) {
       if ((e as any)?.status === 404) { disponible = false; messagerieSupport.set(false); choix = null; messages = []; liste = []; }
@@ -68,7 +71,7 @@
   }
   $effect(() => {
     const d = $demandeConversation;
-    if (!d) return;
+    if (!d || occupe) return;
     demandeConversation.set(null);
     void geste(async () => {
       if (d.contact) {
