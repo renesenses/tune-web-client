@@ -514,7 +514,6 @@ export default {
   "settings.orphanTracksRefused": "La cartella è stata rimossa, ma i {count} brani non sono stati eliminati: la conferma non copriva più il loro numero. Ricomincia per rimuoverli.",
   "settings.orphanTracksNothingLeft": "Non c'erano più brani orfani da rimuovere.",
   "settings.orphanTracksKept": "{count} brani conservati. La scansione non li visiterà più: solo questa azione può rimuoverli.",
-  'settings.searchingCovers': 'Ricerca copertine...',
   'settings.searchMissingCovers': 'Cerca copertine mancanti',
   'settings.showAll': 'Mostra tutto',
   'settings.hideAll': 'Nascondi tutto',
@@ -6094,6 +6093,14 @@ export default {
   "v2.circle.msg.notFound": "Questa scheda non è stata trovata nella tua libreria.",
   "v2.circle.msg.share": "Condividi in un messaggio",
   "v2.circle.msg.recipient": "Destinatario",
+  "settings.coversRequesting": "Invio della richiesta di ricerca…",
+  "settings.coversAccepted": "Richiesta accettata. In attesa dei dati di avanzamento…",
+  "settings.coversProgress": "Album esaminati: {current}/{total}. Copertine trovate: {found}.",
+  "settings.coversCompleted": "Ricerca terminata. Copertine trovate: {found}. Album esaminati: {current}.",
+  "settings.coversNone": "Ricerca terminata: nessuna copertina trovata. Album esaminati: {current}.",
+  "settings.coversPartial": "Risultato parziale. Album esaminati: {current}/{total}. Copertine trovate: {found}.",
+  "settings.coversNoFollow": "Nessun dato di avanzamento ricevuto. La ricerca potrebbe continuare sul server; il risultato è sconosciuto.",
+  "settings.coversInterrupted": "Monitoraggio interrotto. La ricerca potrebbe continuare sul server; il risultato è sconosciuto.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

@@ -74,6 +74,7 @@
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
+  import { creerSuiviPochettes, recherchePochettesOccupee } from '../../lib/suiviPochettes';
   import {
     avancementAnalyse, pourcentAnalyse, aDesChiffres, lignesPortee, lignesEmplacements,
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
@@ -3780,8 +3781,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    *  - la recherche des pochettes d'ALBUM manquantes (`/library/artwork/
    *    rescan`), distincte des portraits d'artistes.
    *
-   * Leur progression arrivait par les événements serveur, que cet écran
-   * n'écoute pas : on dit que c'est lancé, sans promettre de barre.
+   * La passe des albums suit son propre contrat de progression, distinct
+   * de l'enrichissement et des portraits d'artistes (#2491).
    */
   async function forceCovers() {
     enrichErr = null;
@@ -3791,15 +3792,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await refreshEnrich();
     } catch { enrichErr = get(t)('settings.errStartFailed'); }
   }
-  let albumCoversBusy = $state(false);
+  const suiviPochettes = creerSuiviPochettes({ modeSondage: () => tuneWS.isPolling });
+  const suiviPochettesEtat = suiviPochettes.etat;
+  let albumCoversBusy = $derived(recherchePochettesOccupee($suiviPochettesEtat));
+  $effect(() => suiviPochettes.abonner((h) => tuneWS.onEvent(h)));
+  function comptePochettes(message: string) {
+    const c = $suiviPochettesEtat.compteurs;
+    return message.replace('{current}', $formatNombre(c?.current ?? 0))
+      .replace('{total}', $formatNombre(c?.total ?? 0)).replace('{found}', $formatNombre(c?.found ?? 0));
+  }
   async function rescanAlbumCovers() {
     enrichErr = null;
-    albumCoversBusy = true;
-    try {
-      await api.rescanArtwork();
-      notifications.info(get(t)('settings.searchingCovers'));
-    } catch { enrichErr = get(t)('settings.errStartFailed'); }
-    finally { albumCoversBusy = false; }
+    await suiviPochettes.lancer(() => api.rescanArtwork());
   }
   /**
    * Type de sortie des albums — album / EP / single depuis MusicBrainz (#4767).
@@ -4688,10 +4692,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               </div>
 
-              <div class="row">
+              <div class="row" data-recherche-pochettes>
                 <div class="lbl"><span>{$t('settings.searchMissingCovers' as any)}</span></div>
                 <button class="lnk" disabled={albumCoversBusy} onclick={rescanAlbumCovers}>{$t('v2.set.start' as any)}</button>
               </div>
+              {#if $suiviPochettesEtat.phase !== 'repos'}
+                <div class="hint" role="status" aria-live="polite" data-suivi-pochettes>
+                  {#if $suiviPochettesEtat.phase === 'demande'}{$t('settings.coversRequesting' as any)}
+                  {:else if $suiviPochettesEtat.phase === 'attente'}{$t('settings.coversAccepted' as any)}
+                  {:else if $suiviPochettesEtat.phase === 'progression'}{comptePochettes($t('settings.coversProgress' as any))}
+                  {:else if $suiviPochettesEtat.phase === 'termine'}
+                    {#if $suiviPochettesEtat.compteurs?.found === 0}{comptePochettes($t('settings.coversNone' as any))}
+                    {:else}{comptePochettes($t('settings.coversCompleted' as any))}{/if}
+                  {:else if $suiviPochettesEtat.phase === 'partiel'}{comptePochettes($t('settings.coversPartial' as any))}
+                  {:else if $suiviPochettesEtat.phase === 'sans_suivi'}{$t('settings.coversNoFollow' as any)}
+                  {:else if $suiviPochettesEtat.phase === 'interrompu'}{$t('settings.coversInterrupted' as any)}
+                  {:else if $suiviPochettesEtat.phase === 'echec'}{$t('settings.errStartFailed' as any)}{/if}
+                </div>
+                {#if $suiviPochettesEtat.compteurs && $suiviPochettesEtat.compteurs.total > 0}
+                  <div class="bar2" role="progressbar" aria-label={$t('settings.searchMissingCovers' as any)}
+                    aria-valuemin="0" aria-valuemax={$suiviPochettesEtat.compteurs.total} aria-valuenow={$suiviPochettesEtat.compteurs.current}>
+                    <span style="width:{Math.min(100, Math.round(($suiviPochettesEtat.compteurs.current / $suiviPochettesEtat.compteurs.total) * 100))}%"></span>
+                  </div>
+                {/if}
+              {/if}
               <!-- Passes MusicBrainz ciblées (#4767) : types de sortie, puis
                    crédits par disque (`POST /system/enrich-credits`, #4862). -->
               <div class="row">

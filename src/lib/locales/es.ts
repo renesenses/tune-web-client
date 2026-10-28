@@ -514,7 +514,6 @@ export default {
   "settings.orphanTracksRefused": "La carpeta se ha quitado, pero las {count} pistas no se han eliminado: la confirmación ya no cubría su número. Vuelve a empezar para quitarlas.",
   "settings.orphanTracksNothingLeft": "Ya no quedaban pistas huérfanas que quitar.",
   "settings.orphanTracksKept": "{count} pistas conservadas. El análisis no volverá a visitarlas: esta acción es la única que puede quitarlas.",
-  'settings.searchingCovers': 'Buscando portadas...',
   'settings.searchMissingCovers': 'Buscar portadas faltantes',
   'settings.showAll': 'Mostrar todo',
   'settings.hideAll': 'Ocultar todo',
@@ -6094,6 +6093,14 @@ export default {
   "v2.circle.msg.notFound": "No se ha encontrado esta tarjeta en tu biblioteca.",
   "v2.circle.msg.share": "Compartir por mensaje",
   "v2.circle.msg.recipient": "Destinatario",
+  "settings.coversRequesting": "Enviando la solicitud de búsqueda…",
+  "settings.coversAccepted": "Solicitud aceptada. Esperando el progreso…",
+  "settings.coversProgress": "Álbumes revisados: {current}/{total}. Portadas encontradas: {found}.",
+  "settings.coversCompleted": "Búsqueda terminada. Portadas encontradas: {found}. Álbumes revisados: {current}.",
+  "settings.coversNone": "Búsqueda terminada: no se encontraron portadas. Álbumes revisados: {current}.",
+  "settings.coversPartial": "Resultado parcial. Álbumes revisados: {current}/{total}. Portadas encontradas: {found}.",
+  "settings.coversNoFollow": "No se ha recibido información de progreso. La búsqueda puede continuar en el servidor; se desconoce el resultado.",
+  "settings.coversInterrupted": "Seguimiento interrumpido. La búsqueda puede continuar en el servidor; se desconoce el resultado.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

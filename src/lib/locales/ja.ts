@@ -514,7 +514,6 @@ export default {
   "settings.orphanTracksRefused": "フォルダーは削除されましたが、{count} 曲は削除されませんでした。確認した曲数と一致しなくなっています。もう一度やり直してください。",
   "settings.orphanTracksNothingLeft": "削除すべき孤立した曲は残っていませんでした。",
   "settings.orphanTracksKept": "{count} 曲を残しました。スキャンで再び読み込まれることはありません。この操作だけが削除できます。",
-  'settings.searchingCovers': 'カバーを検索中...',
   'settings.searchMissingCovers': '不足しているカバーを検索',
   'settings.showAll': 'すべて表示',
   'settings.hideAll': 'すべて非表示',
@@ -6094,6 +6093,14 @@ export default {
   "v2.circle.msg.notFound": "このカードはライブラリに見つかりませんでした。",
   "v2.circle.msg.share": "メッセージで共有",
   "v2.circle.msg.recipient": "送信先",
+  "settings.coversRequesting": "検索リクエストを送信中…",
+  "settings.coversAccepted": "リクエストを受け付けました。進捗情報を待っています…",
+  "settings.coversProgress": "確認済みアルバム：{current}/{total}。見つかったカバー：{found}。",
+  "settings.coversCompleted": "検索が完了しました。見つかったカバー：{found}。確認済みアルバム：{current}。",
+  "settings.coversNone": "検索が完了しました。カバーは見つかりませんでした。確認済みアルバム：{current}。",
+  "settings.coversPartial": "一部の結果です。確認済みアルバム：{current}/{total}。見つかったカバー：{found}。",
+  "settings.coversNoFollow": "進捗情報を受信できませんでした。サーバーでは検索が続いている可能性があり、結果は不明です。",
+  "settings.coversInterrupted": "進捗の追跡が中断されました。サーバーでは検索が続いている可能性があり、結果は不明です。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

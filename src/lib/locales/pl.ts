@@ -566,7 +566,6 @@ export default {
   "settings.orphanTracksRefused": "Folder został usunięty, ale utwory ({count}) nie zostały skasowane: potwierdzenie nie obejmowało już ich liczby. Zacznij od nowa, aby je usunąć.",
   "settings.orphanTracksNothingLeft": "Nie zostały już żadne osierocone utwory do usunięcia.",
   "settings.orphanTracksKept": "Zachowane utwory: {count}. Skanowanie nigdy ich nie odwiedzi: to jedyna czynność, która może je usunąć.",
-  "settings.searchingCovers": "Szukanie okładek...",
   "settings.searchMissingCovers": "Szukaj brakujących okładek",
   "settings.showAll": "Pokaż wszystko",
   "settings.hideAll": "Ukryj wszystko",
@@ -5939,5 +5938,13 @@ export default {
   "v2.circle.msg.notFound": "Nie znaleziono tej karty w Twojej bibliotece.",
   "v2.circle.msg.share": "Udostępnij w wiadomości",
   "v2.circle.msg.recipient": "Odbiorca",
+  "settings.coversRequesting": "Wysyłanie żądania wyszukiwania…",
+  "settings.coversAccepted": "Żądanie przyjęte. Oczekiwanie na informacje o postępie…",
+  "settings.coversProgress": "Sprawdzone albumy: {current}/{total}. Znalezione okładki: {found}.",
+  "settings.coversCompleted": "Wyszukiwanie zakończone. Znalezione okładki: {found}. Sprawdzone albumy: {current}.",
+  "settings.coversNone": "Wyszukiwanie zakończone: nie znaleziono okładek. Sprawdzone albumy: {current}.",
+  "settings.coversPartial": "Wynik częściowy. Sprawdzone albumy: {current}/{total}. Znalezione okładki: {found}.",
+  "settings.coversNoFollow": "Nie otrzymano informacji o postępie. Wyszukiwanie może nadal trwać na serwerze; wynik jest nieznany.",
+  "settings.coversInterrupted": "Śledzenie postępu zostało przerwane. Wyszukiwanie może nadal trwać na serwerze; wynik jest nieznany.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

@@ -514,7 +514,6 @@ export default {
   "settings.orphanTracksRefused": "Der Ordner wurde entfernt, die {count} Titel jedoch nicht gelöscht: Die Bestätigung deckte ihre Anzahl nicht mehr ab. Beginnen Sie erneut, um sie zu entfernen.",
   "settings.orphanTracksNothingLeft": "Es waren keine verwaisten Titel mehr zu entfernen.",
   "settings.orphanTracksKept": "{count} Titel behalten. Der Scan wird sie nie wieder erfassen: Nur diese Aktion kann sie entfernen.",
-  'settings.searchingCovers': 'Suche nach Covern...',
   'settings.searchMissingCovers': 'Fehlende Cover suchen',
   'settings.showAll': 'Alle anzeigen',
   'settings.hideAll': 'Alle ausblenden',
@@ -6094,6 +6093,14 @@ export default {
   "v2.circle.msg.notFound": "Diese Karte wurde in Ihrer Bibliothek nicht gefunden.",
   "v2.circle.msg.share": "Per Nachricht teilen",
   "v2.circle.msg.recipient": "Empfänger",
+  "settings.coversRequesting": "Suchanfrage wird gesendet…",
+  "settings.coversAccepted": "Anfrage angenommen. Warten auf Fortschrittsmeldungen…",
+  "settings.coversProgress": "Geprüfte Alben: {current}/{total}. Gefundene Cover: {found}.",
+  "settings.coversCompleted": "Suche abgeschlossen. Gefundene Cover: {found}. Geprüfte Alben: {current}.",
+  "settings.coversNone": "Suche abgeschlossen: keine Cover gefunden. Geprüfte Alben: {current}.",
+  "settings.coversPartial": "Teilergebnis. Geprüfte Alben: {current}/{total}. Gefundene Cover: {found}.",
+  "settings.coversNoFollow": "Keine Fortschrittsmeldung erhalten. Die Suche läuft möglicherweise auf dem Server weiter; das Ergebnis ist unbekannt.",
+  "settings.coversInterrupted": "Fortschrittsanzeige unterbrochen. Die Suche läuft möglicherweise auf dem Server weiter; das Ergebnis ist unbekannt.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

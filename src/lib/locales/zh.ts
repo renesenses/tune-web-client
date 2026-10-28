@@ -514,7 +514,6 @@ export default {
   "settings.orphanTracksRefused": "文件夹已移除，但这 {count} 首曲目未被删除：确认数量已不再匹配。请重新操作以移除它们。",
   "settings.orphanTracksNothingLeft": "已经没有需要移除的孤立曲目。",
   "settings.orphanTracksKept": "保留了 {count} 首曲目。扫描将不再访问它们：只有此操作才能移除它们。",
-  'settings.searchingCovers': '搜索封面中...',
   'settings.searchMissingCovers': '搜索缺失的封面',
   'settings.showAll': '全部显示',
   'settings.hideAll': '全部隐藏',
@@ -6094,6 +6093,14 @@ export default {
   "v2.circle.msg.notFound": "在您的音乐库中找不到此卡片。",
   "v2.circle.msg.share": "通过消息分享",
   "v2.circle.msg.recipient": "收件人",
+  "settings.coversRequesting": "正在发送搜索请求…",
+  "settings.coversAccepted": "请求已接受，等待进度信息…",
+  "settings.coversProgress": "已检查专辑：{current}/{total}。找到的封面：{found}。",
+  "settings.coversCompleted": "搜索完成。找到的封面：{found}。已检查专辑：{current}。",
+  "settings.coversNone": "搜索完成，未找到封面。已检查专辑：{current}。",
+  "settings.coversPartial": "部分结果。已检查专辑：{current}/{total}。找到的封面：{found}。",
+  "settings.coversNoFollow": "未收到进度信息。搜索可能仍在服务器上继续，结果未知。",
+  "settings.coversInterrupted": "进度跟踪已中断。搜索可能仍在服务器上继续，结果未知。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

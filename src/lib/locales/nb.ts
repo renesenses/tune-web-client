@@ -566,7 +566,6 @@ export default {
   "settings.orphanTracksRefused": "Mappen ble fjernet, men de {count} sporene ble ikke slettet: bekreftelsen dekket ikke lenger antallet. Start på nytt for å fjerne dem.",
   "settings.orphanTracksNothingLeft": "Det var ingen foreldreløse spor igjen å fjerne.",
   "settings.orphanTracksKept": "{count} spor beholdt. Skanning vil aldri besøke dem igjen: dette er den eneste handlingen som kan fjerne dem.",
-  "settings.searchingCovers": "Søker etter omslag...",
   "settings.searchMissingCovers": "Søk etter manglende omslag",
   "settings.showAll": "Vis alle",
   "settings.hideAll": "Skjul alle",
@@ -5939,5 +5938,13 @@ export default {
   "v2.circle.msg.notFound": "Dette kortet ble ikke funnet i biblioteket ditt.",
   "v2.circle.msg.share": "Del i en melding",
   "v2.circle.msg.recipient": "Mottaker",
+  "settings.coversRequesting": "Sender søkeforespørselen…",
+  "settings.coversAccepted": "Forespørselen er godtatt. Venter på fremdriftsinformasjon…",
+  "settings.coversProgress": "Kontrollerte album: {current}/{total}. Omslag funnet: {found}.",
+  "settings.coversCompleted": "Søket er ferdig. Omslag funnet: {found}. Kontrollerte album: {current}.",
+  "settings.coversNone": "Søket er ferdig: ingen omslag funnet. Kontrollerte album: {current}.",
+  "settings.coversPartial": "Delvis resultat. Kontrollerte album: {current}/{total}. Omslag funnet: {found}.",
+  "settings.coversNoFollow": "Ingen fremdriftsinformasjon er mottatt. Søket kan fortsette på serveren; resultatet er ukjent.",
+  "settings.coversInterrupted": "Fremdriftsoppfølgingen ble avbrutt. Søket kan fortsette på serveren; resultatet er ukjent.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

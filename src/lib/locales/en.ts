@@ -606,7 +606,6 @@ export default {
   "settings.orphanTracksRefused": "The folder was removed, but the {count} tracks were not deleted: the confirmation no longer covered their number. Start over to remove them.",
   "settings.orphanTracksNothingLeft": "There were no orphaned tracks left to remove.",
   "settings.orphanTracksKept": "{count} tracks kept. Scanning will never visit them again: this is the only action that can remove them.",
-  'settings.searchingCovers': 'Searching for covers...',
   'settings.searchMissingCovers': 'Search for Missing Covers',
   'settings.showAll': 'Show All',
   'settings.hideAll': 'Hide All',
@@ -6114,6 +6113,14 @@ export default {
   "v2.circle.msg.notFound": "This card could not be found in your library.",
   "v2.circle.msg.share": "Share in a message",
   "v2.circle.msg.recipient": "Recipient",
+  "settings.coversRequesting": "Sending the search request…",
+  "settings.coversAccepted": "Request accepted. Waiting for progress…",
+  "settings.coversProgress": "Albums checked: {current}/{total}. Covers found: {found}.",
+  "settings.coversCompleted": "Search complete. Covers found: {found}. Albums checked: {current}.",
+  "settings.coversNone": "Search complete: no covers found. Albums checked: {current}.",
+  "settings.coversPartial": "Partial result. Albums checked: {current}/{total}. Covers found: {found}.",
+  "settings.coversNoFollow": "No progress received. The search may still be running on the server; the result is unknown.",
+  "settings.coversInterrupted": "Progress tracking interrupted. The search may still be running on the server; the result is unknown.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

@@ -568,7 +568,6 @@ export default {
   "settings.orphanTracksRefused": "Thư mục đã bị gỡ, nhưng {count} bài hát chưa bị xóa: xác nhận không còn khớp với số lượng của chúng. Hãy làm lại để gỡ chúng.",
   "settings.orphanTracksNothingLeft": "Không còn bài hát mồ côi nào để gỡ.",
   "settings.orphanTracksKept": "Đã giữ {count} bài hát. Việc quét sẽ không bao giờ ghé qua chúng nữa: đây là thao tác duy nhất có thể gỡ chúng.",
-  "settings.searchingCovers": "Đang tìm ảnh bìa...",
   "settings.searchMissingCovers": "Tìm ảnh bìa còn thiếu",
   "settings.showAll": "Hiện tất cả",
   "settings.hideAll": "Ẩn tất cả",
@@ -5946,5 +5945,13 @@ export default {
   "v2.circle.msg.notFound": "Không tìm thấy thẻ này trong thư viện của bạn.",
   "v2.circle.msg.share": "Chia sẻ qua tin nhắn",
   "v2.circle.msg.recipient": "Người nhận",
+  "settings.coversRequesting": "Đang gửi yêu cầu tìm kiếm…",
+  "settings.coversAccepted": "Yêu cầu đã được chấp nhận. Đang chờ thông tin tiến độ…",
+  "settings.coversProgress": "Album đã kiểm tra: {current}/{total}. Ảnh bìa tìm thấy: {found}.",
+  "settings.coversCompleted": "Tìm kiếm hoàn tất. Ảnh bìa tìm thấy: {found}. Album đã kiểm tra: {current}.",
+  "settings.coversNone": "Tìm kiếm hoàn tất: không tìm thấy ảnh bìa. Album đã kiểm tra: {current}.",
+  "settings.coversPartial": "Kết quả một phần. Album đã kiểm tra: {current}/{total}. Ảnh bìa tìm thấy: {found}.",
+  "settings.coversNoFollow": "Chưa nhận được thông tin tiến độ. Tìm kiếm có thể vẫn tiếp tục trên máy chủ; chưa rõ kết quả.",
+  "settings.coversInterrupted": "Theo dõi tiến độ bị gián đoạn. Tìm kiếm có thể vẫn tiếp tục trên máy chủ; chưa rõ kết quả.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

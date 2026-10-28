@@ -566,7 +566,6 @@ export default {
   "settings.orphanTracksRefused": "Ο φάκελος αφαιρέθηκε, αλλά τα {count} κομμάτια δεν διαγράφηκαν: η επιβεβαίωση δεν κάλυπτε πλέον τον αριθμό τους. Ξεκινήστε ξανά για να τα αφαιρέσετε.",
   "settings.orphanTracksNothingLeft": "Δεν είχαν απομείνει ορφανά κομμάτια για αφαίρεση.",
   "settings.orphanTracksKept": "{count} κομμάτια διατηρήθηκαν. Η σάρωση δεν θα τα επισκεφθεί ποτέ ξανά: αυτή είναι η μόνη ενέργεια που μπορεί να τα αφαιρέσει.",
-  "settings.searchingCovers": "Αναζήτηση εξωφύλλων...",
   "settings.searchMissingCovers": "Αναζήτηση εξωφύλλων που λείπουν",
   "settings.showAll": "Εμφάνιση όλων",
   "settings.hideAll": "Απόκρυψη όλων",
@@ -5939,5 +5938,13 @@ export default {
   "v2.circle.msg.notFound": "Αυτή η κάρτα δεν βρέθηκε στη βιβλιοθήκη σας.",
   "v2.circle.msg.share": "Κοινοποίηση σε μήνυμα",
   "v2.circle.msg.recipient": "Παραλήπτης",
+  "settings.coversRequesting": "Αποστολή αιτήματος αναζήτησης…",
+  "settings.coversAccepted": "Το αίτημα έγινε δεκτό. Αναμονή ενημέρωσης προόδου…",
+  "settings.coversProgress": "Ελεγμένα άλμπουμ: {current}/{total}. Εξώφυλλα που βρέθηκαν: {found}.",
+  "settings.coversCompleted": "Η αναζήτηση ολοκληρώθηκε. Εξώφυλλα που βρέθηκαν: {found}. Ελεγμένα άλμπουμ: {current}.",
+  "settings.coversNone": "Η αναζήτηση ολοκληρώθηκε: δεν βρέθηκαν εξώφυλλα. Ελεγμένα άλμπουμ: {current}.",
+  "settings.coversPartial": "Μερικό αποτέλεσμα. Ελεγμένα άλμπουμ: {current}/{total}. Εξώφυλλα που βρέθηκαν: {found}.",
+  "settings.coversNoFollow": "Δεν λήφθηκε ενημέρωση προόδου. Η αναζήτηση μπορεί να συνεχίζεται στον διακομιστή· το αποτέλεσμα είναι άγνωστο.",
+  "settings.coversInterrupted": "Η παρακολούθηση προόδου διακόπηκε. Η αναζήτηση μπορεί να συνεχίζεται στον διακομιστή· το αποτέλεσμα είναι άγνωστο.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

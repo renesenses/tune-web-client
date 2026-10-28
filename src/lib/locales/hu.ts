@@ -586,7 +586,6 @@ export default {
   "settings.orphanTracksRefused": "A mappa eltávolítva, de a(z) {count} szám nem lett törölve: a megerősítés már nem fedte le a számukat. Kezdje elölről az eltávolításukhoz.",
   "settings.orphanTracksNothingLeft": "Nem maradt eltávolítandó árva szám.",
   "settings.orphanTracksKept": "{count} szám megtartva. A keresés soha többé nem találja meg őket: csak ez a művelet távolíthatja el őket.",
-  "settings.searchingCovers": "Borítók keresése...",
   "settings.searchMissingCovers": "Hiányzó borítók keresése",
   "settings.showAll": "Összes megjelenítése",
   "settings.hideAll": "Összes elrejtése",
@@ -6053,6 +6052,14 @@ export default {
   "v2.circle.msg.notFound": "Ez a kártya nem található a könyvtárában.",
   "v2.circle.msg.share": "Megosztás üzenetben",
   "v2.circle.msg.recipient": "Címzett",
+  "settings.coversRequesting": "A keresési kérés küldése…",
+  "settings.coversAccepted": "A kérés elfogadva. Várakozás az állapotjelzésre…",
+  "settings.coversProgress": "Ellenőrzött albumok: {current}/{total}. Talált borítók: {found}.",
+  "settings.coversCompleted": "A keresés befejeződött. Talált borítók: {found}. Ellenőrzött albumok: {current}.",
+  "settings.coversNone": "A keresés befejeződött: nem található borító. Ellenőrzött albumok: {current}.",
+  "settings.coversPartial": "Részleges eredmény. Ellenőrzött albumok: {current}/{total}. Talált borítók: {found}.",
+  "settings.coversNoFollow": "Nem érkezett állapotjelzés. A keresés még futhat a kiszolgálón; az eredmény ismeretlen.",
+  "settings.coversInterrupted": "Az állapotkövetés megszakadt. A keresés még futhat a kiszolgálón; az eredmény ismeretlen.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

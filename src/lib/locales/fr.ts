@@ -609,7 +609,6 @@ export default {
   "settings.orphanTracksRefused": "Le dossier a bien été retiré, mais les {count} pistes n’ont pas été supprimées : la confirmation ne couvrait plus leur nombre. Recommencez pour les retirer.",
   "settings.orphanTracksNothingLeft": "Il n’y avait plus de piste orpheline à retirer.",
   "settings.orphanTracksKept": "{count} pistes conservées. Le scan ne les visitera plus : ce geste est le seul qui puisse les retirer.",
-  'settings.searchingCovers': 'Recherche de covers...',
   'settings.searchMissingCovers': 'Rechercher les covers manquantes',
   'settings.showAll': 'Tout afficher',
   'settings.hideAll': 'Tout masquer',
@@ -6116,6 +6115,14 @@ export default {
   "v2.circle.msg.notFound": "Cette carte est introuvable dans votre bibliothèque.",
   "v2.circle.msg.share": "Partager par message",
   "v2.circle.msg.recipient": "Destinataire",
+  "settings.coversRequesting": "Envoi de la demande de recherche…",
+  "settings.coversAccepted": "Demande acceptée. En attente du suivi…",
+  "settings.coversProgress": "Albums examinés : {current}/{total}. Pochettes trouvées : {found}.",
+  "settings.coversCompleted": "Recherche terminée. Pochettes trouvées : {found}. Albums examinés : {current}.",
+  "settings.coversNone": "Recherche terminée : aucune pochette trouvée. Albums examinés : {current}.",
+  "settings.coversPartial": "Bilan partiel. Albums examinés : {current}/{total}. Pochettes trouvées : {found}.",
+  "settings.coversNoFollow": "Aucun suivi reçu. La recherche peut continuer côté serveur ; résultat inconnu.",
+  "settings.coversInterrupted": "Suivi interrompu. La recherche peut continuer côté serveur ; résultat inconnu.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

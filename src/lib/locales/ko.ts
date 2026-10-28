@@ -514,7 +514,6 @@ export default {
   "settings.orphanTracksRefused": "폴더는 제거되었지만 {count}개 트랙은 삭제되지 않았습니다. 확인한 개수와 더 이상 일치하지 않습니다. 다시 시도하세요.",
   "settings.orphanTracksNothingLeft": "제거할 고아 트랙이 남아 있지 않았습니다.",
   "settings.orphanTracksKept": "{count}개 트랙을 유지했습니다. 검색이 다시 찾지 않으며, 이 작업만이 제거할 수 있습니다.",
-  'settings.searchingCovers': '커버 검색 중...',
   'settings.searchMissingCovers': '누락된 커버 검색',
   'settings.showAll': '모두 표시',
   'settings.hideAll': '모두 숨기기',
@@ -6094,6 +6093,14 @@ export default {
   "v2.circle.msg.notFound": "이 카드를 라이브러리에서 찾을 수 없습니다.",
   "v2.circle.msg.share": "메시지로 공유",
   "v2.circle.msg.recipient": "받는 사람",
+  "settings.coversRequesting": "검색 요청을 보내는 중…",
+  "settings.coversAccepted": "요청이 수락되었습니다. 진행 정보를 기다리는 중…",
+  "settings.coversProgress": "확인한 앨범: {current}/{total}. 찾은 표지: {found}.",
+  "settings.coversCompleted": "검색이 완료되었습니다. 찾은 표지: {found}. 확인한 앨범: {current}.",
+  "settings.coversNone": "검색이 완료되었으나 표지를 찾지 못했습니다. 확인한 앨범: {current}.",
+  "settings.coversPartial": "부분 결과입니다. 확인한 앨범: {current}/{total}. 찾은 표지: {found}.",
+  "settings.coversNoFollow": "진행 정보를 받지 못했습니다. 서버에서 검색이 계속될 수 있으며 결과는 알 수 없습니다.",
+  "settings.coversInterrupted": "진행 추적이 중단되었습니다. 서버에서 검색이 계속될 수 있으며 결과는 알 수 없습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

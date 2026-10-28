@@ -520,7 +520,6 @@ export default {
   "settings.orphanTracksRefused": "Dosarul a fost eliminat, dar cele {count} piese nu au fost șterse: confirmarea nu mai acoperea numărul lor. Reluați pentru a le elimina.",
   "settings.orphanTracksNothingLeft": "Nu mai erau piese orfane de eliminat.",
   "settings.orphanTracksKept": "{count} piese păstrate. Scanarea nu le va mai vizita: doar această acțiune le poate elimina.",
-  'settings.searchingCovers': 'Se caută coperți...',
   'settings.searchMissingCovers': 'Caută coperțile lipsă',
   'settings.showAll': 'Arată tot',
   'settings.hideAll': 'Ascunde tot',
@@ -6094,6 +6093,14 @@ export default {
   "v2.circle.msg.notFound": "Acest card nu a fost găsit în biblioteca ta.",
   "v2.circle.msg.share": "Distribuie prin mesaj",
   "v2.circle.msg.recipient": "Destinatar",
+  "settings.coversRequesting": "Se trimite cererea de căutare…",
+  "settings.coversAccepted": "Cerere acceptată. Se așteaptă informații despre progres…",
+  "settings.coversProgress": "Albume verificate: {current}/{total}. Coperți găsite: {found}.",
+  "settings.coversCompleted": "Căutare încheiată. Coperți găsite: {found}. Albume verificate: {current}.",
+  "settings.coversNone": "Căutare încheiată: nicio copertă găsită. Albume verificate: {current}.",
+  "settings.coversPartial": "Rezultat parțial. Albume verificate: {current}/{total}. Coperți găsite: {found}.",
+  "settings.coversNoFollow": "Nu s-au primit informații despre progres. Căutarea poate continua pe server; rezultatul nu este cunoscut.",
+  "settings.coversInterrupted": "Urmărirea progresului a fost întreruptă. Căutarea poate continua pe server; rezultatul nu este cunoscut.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
