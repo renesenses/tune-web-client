@@ -19,10 +19,13 @@ import { currentZone } from './stores/zones';
 import { browserPlay } from './stores/browserAudio';
 import { estZoneJouableIci } from './zoneNavigateurProprietaire';
 import { signalerZoneNavigateurJoueeAilleurs } from './zoneNavigateurRevendication';
+import { messageRefusPaysRadio } from './refusPaysRadio';
+import { notifications } from './stores/notifications';
 
 export async function ecouterFicheAnnuaire(
   f: Pick<FicheAnnuaireRadio, 'external_id' | 'my_radio_id'>,
   zoneId: number,
+  onRefusPays?: (message: string) => void,
 ): Promise<boolean> {
   try {
     const res: any = f.my_radio_id != null
@@ -35,7 +38,12 @@ export async function ecouterFicheAnnuaire(
       signalerZoneNavigateurJoueeAilleurs(zone, () => browserPlay(url, true, zoneId));
     }
     return true;
-  } catch {
+  } catch (cause) {
+    const refus = messageRefusPaysRadio(cause);
+    if (refus) {
+      if (!(cause as { dejaAnnonce?: boolean }).dejaAnnonce) notifications.error(refus);
+      onRefusPays?.(refus);
+    }
     return false;
   }
 }

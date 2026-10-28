@@ -20,7 +20,7 @@ import { retenirZoneDeCetAppareil } from '../zoneNavigateurProprietaire';
 vi.mock('../api', async (original) => ({
   ...await original<typeof import('../api')>(),
   getZones: vi.fn(), getQueue: vi.fn(), play: vi.fn(), resume: vi.fn(),
-  getRadios: vi.fn(), playRadio: vi.fn(),
+  getRadios: vi.fn(), playRadio: vi.fn(), getConfig: vi.fn(async () => ({ radios_country: '' })),
 }));
 
 class AudioTemoin extends EventTarget {

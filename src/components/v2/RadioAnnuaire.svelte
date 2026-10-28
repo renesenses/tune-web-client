@@ -93,8 +93,9 @@
     onJoue?.(f.external_id);
     // Le même geste que la « Carte » (lib/ecouteFicheAnnuaire.ts) : zone
     // navigateur comprise, la page lit elle-même le flux que le serveur rend.
-    if (!(await ecouterFicheAnnuaire(f, zid))) {
-      erreur = $t('v2.radio.dir.playFailed' as any).replace('{name}', f.name);
+    erreur = null;
+    if (!(await ecouterFicheAnnuaire(f, zid, (message) => { erreur = message; }))) {
+      erreur ??= $t('v2.radio.dir.playFailed' as any).replace('{name}', f.name);
     }
   }
 
