@@ -175,12 +175,39 @@ describe('#2486 — capacités de sortie sur les contrôles réels', () => {
     input(slider); await stabiliser(); expect(envois).toEqual([]);
   });
 
-  it.each(['zone', 'capacite'])('annule le volume mobile différé après %s', async (changement) => {
+  it.each(['zone', 'capacite', 'PURE', 'demontage'])('annule le volume mobile différé après %s', async (changement) => {
     await monter(TransportBar, zone({})); host.querySelector<HTMLButtonElement>('.mobile-volume-btn')!.click(); flushSync();
     const slider = host.querySelector<HTMLInputElement>('.mobile-volume-slider')!;
     input(slider, '0.5'); input(slider, '0.7'); expect(envois).toHaveLength(1);
-    poser(changement === 'zone' ? zone({}, 2) : zone(refus));
+    if (changement === 'zone') poser(zone({}, 2));
+    if (changement === 'capacite') poser(zone(refus));
+    if (changement === 'PURE') { audiophileEnabled.set(true); audiophileLockVolume.set(true); flushSync(); }
+    if (changement === 'demontage') { await unmount(component!); component = null; }
     await attendre(DELAI_VOLUME_MS + 30); expect(envois).toHaveLength(1);
+  });
+
+  it.each([true, false])('le popup mobile sépare volume et sourdine (volume autorisé=%s)', async (volume) => {
+    await monter(TransportBar, { ...zone({ can_set_volume: volume, can_mute: !volume }), muted: volume });
+    host.querySelector<HTMLButtonElement>('.mobile-volume-btn')!.click(); flushSync();
+    const slider = host.querySelector<HTMLInputElement>('.mobile-volume-slider')!;
+    const mute = host.querySelector<HTMLButtonElement>('.mobile-mute-btn')!;
+    expect(slider.disabled).toBe(!volume); expect(mute.disabled).toBe(volume);
+    if (volume) input(slider); else mute.click();
+    await stabiliser();
+    expect(envois).toHaveLength(1);
+    expect(envois[0].url).toMatch(volume ? /\/volume$/ : /\/mute$/);
+  });
+
+  it('chaque zone garde ses propres capacités même si la zone sélectionnée refuse le volume', async () => {
+    await monter(ZonesV2);
+    zones.set([zone(refus), zone({ can_set_volume: true }, 2)]); flushSync(); await stabiliser();
+    const sliders = [...host.querySelectorAll<HTMLInputElement>('.vol input[type="range"], .cvol input[type="range"]')];
+    const autorises = sliders.filter((slider) => !slider.disabled);
+    expect(autorises.length).toBeGreaterThan(0);
+    expect(sliders.some((slider) => slider.disabled)).toBe(true);
+    input(autorises[0], '60'); await stabiliser();
+    expect(envois).toHaveLength(1); expect(envois[0].url).toMatch(/\/zones\/2\/volume$/);
+    expect(envois[0].body.volume).toBeCloseTo(0.6);
   });
 
   it('garde les curseurs des cartes de zone inertes sur refus explicite', async () => {
