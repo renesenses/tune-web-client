@@ -5367,6 +5367,7 @@ export default {
   "v2.cfp.errRefused": "プラグインがこの設定を拒否しました。",
   "v2.plug.nativeTitle": "ネイティブオーディオプラグイン",
   "v2.plug.nativeBadge": "ネイティブ",
+  "v2.plug.pureBypassed": "現在のゾーンでは PURE によりバイパスされます。設定は保持されます。",
   "v2.plug.nativeHint": "署名付きパッケージからこのサーバーにインストールされたオーディオ処理です。",
   "v2.plug.nativeSettings": "設定",
   "v2.plug.native_charge": "読み込み済み",
