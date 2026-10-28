@@ -423,7 +423,7 @@ async function apiError(response: Response): Promise<ApiError> {
     const lu = lireMessageServeur(body, brut, response.status);
     detail = lu.message;
     technique = lu.detail;
-    code = body.code ?? body.error;
+    code = body.code ?? body.error_code ?? body.error;
     // « Écrire les modifications dans les fichiers audio » décoché : la phrase
     // du client, dans sa langue — le `message` du serveur est en français.
     if (estRefusEcriture(body)) {
