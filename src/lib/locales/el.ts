@@ -5939,5 +5939,8 @@ export default {
   "v2.circle.msg.notFound": "Αυτή η κάρτα δεν βρέθηκε στη βιβλιοθήκη σας.",
   "v2.circle.msg.share": "Κοινοποίηση σε μήνυμα",
   "v2.circle.msg.recipient": "Παραλήπτης",
+  "scanDetenteur.arretDemande": "Ζητήθηκε διακοπή",
+  "scanDetenteur.arretImpossible": "Δεν ήταν δυνατή η διακοπή της σάρωσης.",
+  "scanDetenteur.statutInconnu": "Άγνωστη κατάσταση σάρωσης. Ανανεώστε για έλεγχο.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

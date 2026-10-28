@@ -6094,6 +6094,9 @@ export default {
   "v2.circle.msg.notFound": "Diese Karte wurde in Ihrer Bibliothek nicht gefunden.",
   "v2.circle.msg.share": "Per Nachricht teilen",
   "v2.circle.msg.recipient": "Empfänger",
+  "scanDetenteur.arretDemande": "Stopp angefordert",
+  "scanDetenteur.arretImpossible": "Der Scan konnte nicht gestoppt werden.",
+  "scanDetenteur.statutInconnu": "Scanstatus unbekannt. Zur Prüfung aktualisieren.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

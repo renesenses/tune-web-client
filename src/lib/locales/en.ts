@@ -6114,6 +6114,9 @@ export default {
   "v2.circle.msg.notFound": "This card could not be found in your library.",
   "v2.circle.msg.share": "Share in a message",
   "v2.circle.msg.recipient": "Recipient",
+  "scanDetenteur.arretDemande": "Stop requested",
+  "scanDetenteur.arretImpossible": "Unable to stop the scan.",
+  "scanDetenteur.statutInconnu": "Scan status unknown. Refresh to check it.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

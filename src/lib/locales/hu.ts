@@ -6053,6 +6053,9 @@ export default {
   "v2.circle.msg.notFound": "Ez a kártya nem található a könyvtárában.",
   "v2.circle.msg.share": "Megosztás üzenetben",
   "v2.circle.msg.recipient": "Címzett",
+  "scanDetenteur.arretDemande": "Leállítás kérve",
+  "scanDetenteur.arretImpossible": "A vizsgálatot nem sikerült leállítani.",
+  "scanDetenteur.statutInconnu": "A vizsgálat állapota ismeretlen. Frissíts az ellenőrzéshez.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

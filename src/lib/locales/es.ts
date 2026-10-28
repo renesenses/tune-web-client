@@ -6094,6 +6094,9 @@ export default {
   "v2.circle.msg.notFound": "No se ha encontrado esta tarjeta en tu biblioteca.",
   "v2.circle.msg.share": "Compartir por mensaje",
   "v2.circle.msg.recipient": "Destinatario",
+  "scanDetenteur.arretDemande": "Parada solicitada",
+  "scanDetenteur.arretImpossible": "No se pudo detener el análisis.",
+  "scanDetenteur.statutInconnu": "Estado del análisis desconocido. Actualiza para comprobarlo.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

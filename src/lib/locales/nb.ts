@@ -5939,5 +5939,8 @@ export default {
   "v2.circle.msg.notFound": "Dette kortet ble ikke funnet i biblioteket ditt.",
   "v2.circle.msg.share": "Del i en melding",
   "v2.circle.msg.recipient": "Mottaker",
+  "scanDetenteur.arretDemande": "Stopp forespurt",
+  "scanDetenteur.arretImpossible": "Kunne ikke stoppe skanningen.",
+  "scanDetenteur.statutInconnu": "Skannestatus er ukjent. Oppdater for å kontrollere.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

@@ -6116,6 +6116,9 @@ export default {
   "v2.circle.msg.notFound": "Cette carte est introuvable dans votre bibliothèque.",
   "v2.circle.msg.share": "Partager par message",
   "v2.circle.msg.recipient": "Destinataire",
+  "scanDetenteur.arretDemande": "Arrêt demandé",
+  "scanDetenteur.arretImpossible": "Impossible d’arrêter l’analyse.",
+  "scanDetenteur.statutInconnu": "État de l’analyse inconnu. Actualisez pour le vérifier.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

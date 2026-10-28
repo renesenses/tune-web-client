@@ -5946,5 +5946,8 @@ export default {
   "v2.circle.msg.notFound": "Không tìm thấy thẻ này trong thư viện của bạn.",
   "v2.circle.msg.share": "Chia sẻ qua tin nhắn",
   "v2.circle.msg.recipient": "Người nhận",
+  "scanDetenteur.arretDemande": "Đã yêu cầu dừng",
+  "scanDetenteur.arretImpossible": "Không thể dừng quét.",
+  "scanDetenteur.statutInconnu": "Chưa rõ trạng thái quét. Hãy làm mới để kiểm tra.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

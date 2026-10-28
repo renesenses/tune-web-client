@@ -6094,6 +6094,9 @@ export default {
   "v2.circle.msg.notFound": "Acest card nu a fost găsit în biblioteca ta.",
   "v2.circle.msg.share": "Distribuie prin mesaj",
   "v2.circle.msg.recipient": "Destinatar",
+  "scanDetenteur.arretDemande": "Oprire solicitată",
+  "scanDetenteur.arretImpossible": "Scanarea nu a putut fi oprită.",
+  "scanDetenteur.statutInconnu": "Starea scanării este necunoscută. Reîmprospătează pentru verificare.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
