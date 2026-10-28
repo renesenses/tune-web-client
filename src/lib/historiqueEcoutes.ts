@@ -40,7 +40,7 @@
  * ce qui est précisément ce qui vient de se passer.
  */
 import type { Track } from './types';
-import { contexteDeLEcoute, type ContexteEcoute } from './historiqueParContexte';
+import type { ContexteEcoute } from './historiqueParContexte';
 
 /**
  * Ce qu'une zone doit porter pour qu'on sache quoi noter.
@@ -159,7 +159,7 @@ export function noterEcoute(
 ): boolean {
   const np = pisteDeLEvenement(pisteEvenement) ?? zone?.current_track;
   if (!np) return false;
-  ajouter(convertir(np), zone?.name ?? '', contexteDeLEcoute(np, contexteDeLaZone(zoneQuiJoue ?? zone)));
+  ajouter(convertir(np), zone?.name ?? '', contexteDeLaZone(zoneQuiJoue ?? zone));
   return true;
 }
 
