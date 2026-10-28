@@ -1,4 +1,6 @@
 export default {
+  "maintenance.backupPostgresHint": "文件复制备份仅适用于SQLite。PostgreSQL请使用pg_dump。",
+
   "oxygen.tagSel.selectAll": "全选 ({count})",
   "oxygen.tagSel.selected": "已选 {count} 项",
   "oxygen.tagSel.applyTag": "应用标签…",

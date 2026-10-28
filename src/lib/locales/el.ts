@@ -1,4 +1,6 @@
 export default {
+  "maintenance.backupPostgresHint": "Τα αντίγραφα αρχείων υποστηρίζονται μόνο για SQLite. Για PostgreSQL, χρησιμοποιήστε pg_dump.",
+
   "oxygen.tagSel.selectAll": "Επιλογή όλων ({count})",
   "oxygen.tagSel.selected": "{count} επιλεγμένα",
   "oxygen.tagSel.applyTag": "Εφαρμογή ετικέτας…",

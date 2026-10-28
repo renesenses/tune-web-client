@@ -1,4 +1,6 @@
 export default {
+  "maintenance.backupPostgresHint": "Kopie zapasowe plików są dostępne tylko dla SQLite. Dla PostgreSQL użyj pg_dump.",
+
   "oxygen.tagSel.selectAll": "Zaznacz wszystko ({count})",
   "oxygen.tagSel.selected": "Zaznaczono: {count}",
   "oxygen.tagSel.applyTag": "Zastosuj tag…",

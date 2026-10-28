@@ -1,4 +1,6 @@
 export default {
+  "maintenance.backupPostgresHint": "파일 복사 백업은 SQLite에서만 사용할 수 있습니다. PostgreSQL에서는 pg_dump를 사용하세요.",
+
   "oxygen.tagSel.selectAll": "모두 선택 ({count})",
   "oxygen.tagSel.selected": "{count}개 선택됨",
   "oxygen.tagSel.applyTag": "태그 적용…",

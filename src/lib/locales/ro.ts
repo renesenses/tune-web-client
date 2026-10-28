@@ -1,4 +1,6 @@
 export default {
+  "maintenance.backupPostgresHint": "Copiile de siguranță ale fișierelor sunt disponibile numai pentru SQLite. Pentru PostgreSQL, utilizați pg_dump.",
+
   "oxygen.tagSel.selectAll": "Selectează tot ({count})",
   "oxygen.tagSel.selected": "{count} selectate",
   "oxygen.tagSel.applyTag": "Aplică o etichetă…",

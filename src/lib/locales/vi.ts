@@ -1,4 +1,6 @@
 export default {
+  "maintenance.backupPostgresHint": "Sao lưu bằng cách sao chép tệp chỉ dành cho SQLite. Với PostgreSQL, hãy dùng pg_dump.",
+
   "oxygen.tagSel.selectAll": "Chọn tất cả ({count})",
   "oxygen.tagSel.selected": "Đã chọn {count}",
   "oxygen.tagSel.applyTag": "Gắn thẻ…",

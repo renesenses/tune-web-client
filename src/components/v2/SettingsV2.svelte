@@ -2227,6 +2227,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   let backups = $state<BackupInfo[]>([]);
   let backupBusy = $state(false);
+  let backupError = $state<string | null>(null);
   let restoring = $state<string | null>(null);
   let dbImporting = $state(false);
   let dbImportResult = $state<{ ok: boolean; texte: string } | null>(null);
@@ -2241,19 +2242,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   $effect(() => { void loadBackups(); });
 
   async function createBackup() {
+    if (!sauvegardesDisponibles) return;
+    backupError = null;
     backupBusy = true;
     try {
       await api.createBackup();
       await loadBackups();
       notifications.success($t('maintenance.backupCreated' as any));
-    } catch {
-      notifications.error($t('maintenance.backupError' as any));
+    } catch (cause: unknown) {
+      backupError = cause instanceof Error && cause.message.trim()
+        ? cause.message : $t('maintenance.backupError' as any);
+      notifications.error(backupError);
     } finally {
       backupBusy = false;
     }
   }
 
   async function restoreBackup(filename: string) {
+    if (!sauvegardesDisponibles) return;
     if (!(await dialogs.confirm($t('maintenance.restoreConfirm' as any), { danger: true }))) return;
     restoring = filename;
     try {
@@ -3623,6 +3629,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   // ── Base de donnees / exports ─────────────────────────────────────────
   let dbEngine = $state<string | null>(null);
+  // #2474 : le serveur refuse la copie de fichier sur PostgreSQL.
+  // Moteur absent d'un ancien serveur : laisser sa route décider au clic.
+  let sauvegardesDisponibles = $derived(dbEngine !== 'postgres' && dbEngine !== 'postgresql');
   let dbConnected = $state<boolean | null>(null);
   let dbPath = $state<string | null>(null);
   let dataLoc = $state<string | null>(null);
@@ -5036,15 +5045,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- Sauvegardes : créer, lister, RESTAURER. -->
               <div class="row">
                 <div class="lbl"><span>{$t('maintenance.backupRestore' as any)}</span></div>
-                <button class="lnk" disabled={backupBusy} onclick={createBackup}>{$t('maintenance.createBackup' as any)}</button>
+                <button class="lnk" disabled={backupBusy || !sauvegardesDisponibles} onclick={createBackup}>{$t('maintenance.createBackup' as any)}</button>
               </div>
+              {#if !sauvegardesDisponibles}<p class="hint">{$t('maintenance.backupPostgresHint' as any)}</p>{/if}
+              {#if backupError}<p class="hint errline" role="alert">{backupError}</p>{/if}
               <div class="devlist">
                 {#each backups as b (b.filename)}
                   <div class="dev ign">
                     <span class="dn mono" use:bulleTexte>{b.filename}</span>
                     <span class="dt">{tailleMo(b.size)} MB</span>
                     <span class="dh">{new Date(b.created_at).toLocaleString()}</span>
-                    <button class="lnk danger" disabled={restoring !== null} onclick={() => restoreBackup(b.filename)}>
+                    <button class="lnk danger" disabled={restoring !== null || !sauvegardesDisponibles} onclick={() => restoreBackup(b.filename)}>
                       {restoring === b.filename ? '…' : $t('maintenance.restore' as any)}
                     </button>
                   </div>

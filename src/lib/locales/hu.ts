@@ -1,4 +1,6 @@
 export default {
+  "maintenance.backupPostgresHint": "A fájlmásolásos biztonsági mentés csak SQLite esetén érhető el. PostgreSQL esetén használja a pg_dump eszközt.",
+
   "oxygen.tagSel.selectAll": "Összes kijelölése ({count})",
   "oxygen.tagSel.selected": "{count} kijelölve",
   "oxygen.tagSel.applyTag": "Címke hozzárendelése…",

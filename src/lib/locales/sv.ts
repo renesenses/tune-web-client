@@ -1,4 +1,6 @@
 export default {
+  "maintenance.backupPostgresHint": "Säkerhetskopiering av filer är endast tillgänglig för SQLite. Använd pg_dump för PostgreSQL.",
+
   "oxygen.tagSel.selectAll": "Markera alla ({count})",
   "oxygen.tagSel.selected": "{count} markerade",
   "oxygen.tagSel.applyTag": "Använd en tagg…",
