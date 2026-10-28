@@ -35,6 +35,7 @@
   import PochetteActions from './PochetteActions.svelte';
   import RadioEditModale from './RadioEditModale.svelte';
   import RadioAnnuaire from './RadioAnnuaire.svelte';
+  import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import CarteRadios from './CarteRadios.svelte';
   import RadioRecherche from './RadioRecherche.svelte';
   import RadioChipsGenres from './RadioChipsGenres.svelte';
@@ -361,6 +362,7 @@
     <button class="v2-btn" class:on={section === 'carte'} role="tab" aria-selected={section === 'carte'}
       onclick={() => ouvrirSection('carte')}>{$t('v2.radio.tabMap' as any)}</button>
   </div>
+  <PaysEcouteRadios />
 
   <div class="scroll">
     <!-- La recherche et les genres, au MÊME endroit que dans « Annuaire ». -->
