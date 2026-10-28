@@ -49,7 +49,7 @@ describe('Le conteneur des déclencheurs (#6466)', () => {
     const src = readFileSync('src/lib/gestesObjet.ts', 'utf8');
     expect(src).toContain('await api.addToQueue(zid, avecContexte(corps, contexteDObjet(o), true));');
     expect(src).toContain('lireListe(pistes, gestesDeLecture(zid, contexte))');
-    expect(src).toContain('lireListeAleatoire(pistes, gestesDeLecture(zid, contexte))');
+    expect(src).toContain('lireListeAleatoire(pistes, gestesDeLecture(zid, contexte, true))');
   });
 });
 
