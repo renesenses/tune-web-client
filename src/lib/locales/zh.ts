@@ -5367,6 +5367,7 @@ export default {
   "v2.cfp.errRefused": "插件拒绝了此设置。",
   "v2.plug.nativeTitle": "原生音频插件",
   "v2.plug.nativeBadge": "原生",
+  "v2.plug.pureBypassed": "当前区域的 PURE 模式已绕过此处理。设置将保留。",
   "v2.plug.nativeHint": "通过签名软件包安装在此服务器上的音频处理。",
   "v2.plug.nativeSettings": "设置",
   "v2.plug.native_charge": "已加载",
