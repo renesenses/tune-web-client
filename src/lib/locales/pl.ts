@@ -5915,5 +5915,29 @@ export default {
   "v2.carte.pod.episodes": "Zobacz odcinki",
   "volume.deviceObserved": "AIR (odczyt): {value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "Wiadomości",
+  "v2.circle.msg.privacy": "Mozaiklabs może odczytać te wiadomości w celu moderacji po zgłoszeniu. Nie są szyfrowane kompleksowo.",
+  "v2.circle.msg.empty": "Napisz do zaakceptowanego kontaktu, aby rozpocząć.",
+  "v2.circle.msg.older": "Starsze wiadomości",
+  "v2.circle.msg.me": "Ja",
+  "v2.circle.msg.write": "Napisz",
+  "v2.circle.msg.send": "Wyślij",
+  "v2.circle.msg.playHere": "Słuchaj u siebie",
+  "v2.circle.msg.select": "Wybierz do zgłoszenia",
+  "v2.circle.msg.deleteConfirm": "Usunąć tę wiadomość dla obu uczestników?",
+  "v2.circle.msg.report": "Zgłoś",
+  "v2.circle.msg.reportHint": "Wybierz do 20 wiadomości. Zgłoszenie sprawdzi człowiek. Możesz też zablokować lub usunąć kontakt.",
+  "v2.circle.msg.reason": "Powód",
+  "v2.circle.msg.comment": "Opcjonalny komentarz",
+  "v2.circle.msg.harassment": "Nękanie",
+  "v2.circle.msg.spam": "Spam",
+  "v2.circle.msg.hate": "Nienawiść",
+  "v2.circle.msg.illegal": "Nielegalna treść",
+  "v2.circle.msg.other": "Inne",
+  "v2.circle.msg.notFound": "Nie znaleziono tej karty w Twojej bibliotece.",
+  "v2.circle.msg.share": "Udostępnij w wiadomości",
+  "v2.circle.msg.recipient": "Odbiorca",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

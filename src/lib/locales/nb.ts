@@ -5915,5 +5915,29 @@ export default {
   "v2.carte.pod.episodes": "Se episoder",
   "volume.deviceObserved": "AIR (avlest): {value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "Meldinger",
+  "v2.circle.msg.privacy": "Mozaiklabs kan lese disse meldingene for moderering etter en rapport. De er ikke ende-til-ende-kryptert.",
+  "v2.circle.msg.empty": "Skriv til en godkjent kontakt for å begynne.",
+  "v2.circle.msg.older": "Tidligere meldinger",
+  "v2.circle.msg.me": "Meg",
+  "v2.circle.msg.write": "Skriv",
+  "v2.circle.msg.send": "Send",
+  "v2.circle.msg.playHere": "Lytt hjemme",
+  "v2.circle.msg.select": "Velg for rapportering",
+  "v2.circle.msg.deleteConfirm": "Slette denne meldingen for begge deltakerne?",
+  "v2.circle.msg.report": "Rapporter",
+  "v2.circle.msg.reportHint": "Velg opptil 20 meldinger. En person vurderer rapporten. Du kan også blokkere eller fjerne kontakten.",
+  "v2.circle.msg.reason": "Årsak",
+  "v2.circle.msg.comment": "Valgfri kommentar",
+  "v2.circle.msg.harassment": "Trakassering",
+  "v2.circle.msg.spam": "Søppelpost",
+  "v2.circle.msg.hate": "Hat",
+  "v2.circle.msg.illegal": "Ulovlig innhold",
+  "v2.circle.msg.other": "Annet",
+  "v2.circle.msg.notFound": "Dette kortet ble ikke funnet i biblioteket ditt.",
+  "v2.circle.msg.share": "Del i en melding",
+  "v2.circle.msg.recipient": "Mottaker",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

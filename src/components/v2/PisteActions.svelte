@@ -103,6 +103,7 @@
   } from '../../lib/ecouterPlusTard';
   import { cibleParTitre, type CibleParTitre } from '../../lib/versionsParTitre';
   import { circleCharge } from '../../lib/circle';
+  import { carteAPartager, carteDepuisPiste } from '../../lib/circleMessagerie';
   import { ajoutDePiste } from '../../lib/circlePlaylists';
   import type { CoeurExterne } from '../../lib/coeurExterne';
 
@@ -480,6 +481,7 @@
         autresVersions: () => (panneauVersions = true),
         ajouterAPlaylist: () => (modalePlaylist = true),
         ajouterAPlaylistDeCercle: () => (modaleCercle = true),
+        partagerMessage: () => { const c = carteDepuisPiste(piste); if (c) carteAPartager.set(c); },
         allerArtiste,
         allerAlbum,
         etiqueter: () => (panneauEtiquettes = true),
