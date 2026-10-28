@@ -86,7 +86,8 @@ describe('web#2474 — disponibilité et refus de sauvegarde de base', () => {
     const bouton = await ouvrirBase();
     bouton.click(); await respirer();
     expect(creations()).toHaveLength(1);
-    expect(hote!.querySelector('[role="alert"]')?.textContent, 'motif du refus serveur avalé').toContain('pg_dump');
+    expect(hote!.querySelector('[role="alert"] p')?.textContent, 'motif du refus serveur avalé').toBe(fr['maintenance.backupPostgresHint']);
+    expect(hote!.querySelector('[role="alert"] details')?.textContent).toContain(MOTIF);
     expect(get(notifications).some(n => n.message === fr['maintenance.backupCreated'])).toBe(false);
   });
   it('SQLite conserve la création simulée et le rechargement de la liste', async () => {

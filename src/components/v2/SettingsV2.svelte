@@ -2228,6 +2228,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let backups = $state<BackupInfo[]>([]);
   let backupBusy = $state(false);
   let backupError = $state<string | null>(null);
+  let backupDetail = $state('');
   let restoring = $state<string | null>(null);
   let dbImporting = $state(false);
   let dbImportResult = $state<{ ok: boolean; texte: string } | null>(null);
@@ -2244,15 +2245,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function createBackup() {
     if (!sauvegardesDisponibles) return;
     backupError = null;
+    backupDetail = '';
     backupBusy = true;
     try {
       await api.createBackup();
       await loadBackups();
       notifications.success($t('maintenance.backupCreated' as any));
     } catch (cause: unknown) {
-      backupError = cause instanceof Error && cause.message.trim()
-        ? cause.message : $t('maintenance.backupError' as any);
-      notifications.error(backupError);
+      backupDetail = detailServeur(cause);
+      const corps = (cause as { corps?: { error?: unknown } } | null)?.corps;
+      const refusPostgres = typeof corps?.error === 'string'
+        && corps.error.startsWith('file backups are SQLite-only; this server runs on PostgreSQL');
+      backupError = refusPostgres ? $t('maintenance.backupPostgresHint' as any)
+        : cause instanceof Error && cause.message.trim() ? cause.message : $t('maintenance.backupError' as any);
+      notifications.error(backupError, 5000, backupDetail);
     } finally {
       backupBusy = false;
     }
@@ -5048,7 +5054,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <button class="lnk" disabled={backupBusy || !sauvegardesDisponibles} onclick={createBackup}>{$t('maintenance.createBackup' as any)}</button>
               </div>
               {#if !sauvegardesDisponibles}<p class="hint">{$t('maintenance.backupPostgresHint' as any)}</p>{/if}
-              {#if backupError}<p class="hint errline" role="alert">{backupError}</p>{/if}
+              {#if backupError}<div role="alert"><p class="hint errline">{backupError}</p><DetailsServeur detail={backupDetail} /></div>{/if}
               <div class="devlist">
                 {#each backups as b (b.filename)}
                   <div class="dev ign">
