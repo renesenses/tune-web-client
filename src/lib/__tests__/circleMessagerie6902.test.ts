@@ -6,7 +6,10 @@ import Messagerie from '../../components/v2/MessagerieCercleV2.svelte';
 import { preparerLocale } from '../i18n';
 import { dialogs } from '../stores/dialogs';
 import { fetchJSON } from '../api';
-import { carteMusique, carteDepuisObjet, carteDepuisPiste, envoyerMessage, lireMessages, longueurMessage, messageEnvoyable, demandeConversation, messagerieSupport } from '../circleMessagerie';
+import * as zones from '../stores/zones';
+import * as choixZone from '../zoneRequise';
+import { pendingSearchQuery } from '../stores/navigation';
+import { carteMusique, carteDepuisObjet, carteDepuisPiste, ecouterCarte, envoyerMessage, lireMessages, longueurMessage, messageEnvoyable, demandeConversation, messagerieSupport } from '../circleMessagerie';
 
 vi.mock('../api', () => ({ BASE: '/api/v1', fetchJSON: vi.fn(), searchLibrary: vi.fn(), getPlaylists: vi.fn() }));
 vi.mock('../circleNotifications', () => ({ relireNotifications: vi.fn(async () => {}) }));
@@ -46,6 +49,7 @@ afterEach(async () => { if (vue) await unmount(vue); vue = null; hote.remove(); 
 it('ne laisse sortir aucun chemin, URL locale ou champ inattendu des cartes', async () => {
   const c = carteMusique({ type: 'album', title: 'Kind of Blue', file_path: '/home/me/a.flac', audio: 'secret', cover_url: 'http://192.168.1.18/cover', qobuz_id: 123, local_id: 5 });
   expect(c).toEqual({ type: 'album', title: 'Kind of Blue', qobuz_id: '123' });
+  expect(carteMusique({ type: 'track', title: 'X', tidal_id: true, cover_url: 'https://static.qobuz.com:443/x' })).toEqual({ type: 'track', title: 'X' });
   expect(carteDepuisObjet({ type: 'playlist', nom: 'Jazz', sourceId: '/music/a', service: 'local', pochette: '/cover' })).toEqual({ type: 'playlist', title: 'Jazz' });
   expect(carteDepuisPiste({ title: 'So What', file_path: '/secret/a', source: 'qobuz', source_id: '123' })).toEqual({ type: 'track', title: 'So What', qobuz_id: '123' });
   await envoyerMessage(12, ' Écoute ', { ...c!, file_path: '/secret' } as any);
@@ -117,4 +121,49 @@ it('retire le contenu du fil quand le contact devient inaccessible', async () =>
   (hote.querySelector('.conversation') as HTMLButtonElement).click(); await finir();
   expect(hote.querySelector('.messages')).toBeNull();
   expect(hote.textContent).not.toContain('Mon message');
+});
+
+it('écoute une référence par son identifiant chez moi, puis revient à la recherche si le service manque', async () => {
+  // Aucun son : les deux chemins de lecture sont interceptés avant toute API.
+  vi.spyOn(choixZone, 'zoneRequise').mockReturnValue(5);
+  const lecture = vi.spyOn(zones, 'playAndSync').mockResolvedValue(undefined as any);
+  await ecouterCarte({ type: 'album', title: 'Kind of Blue', qobuz_id: '123' });
+  expect(lecture).toHaveBeenCalledWith(5, { source: 'qobuz', streaming_album_id: '123' });
+  lecture.mockRejectedValueOnce(new Error('service unavailable'));
+  await ecouterCarte({ type: 'track', title: 'So What', artist_name: 'Miles Davis', tidal_id: '456' });
+  expect(get(pendingSearchQuery)).toBe('So What Miles Davis');
+});
+
+it('ne réaffiche pas un extrait tardif reçu après la fin du contact', async () => {
+  let terminer!: (value: any) => void;
+  appel.mockImplementationOnce(() => new Promise((resolve) => { terminer = resolve; }));
+  vue = mount(Messagerie, { target: hote }); await finir();
+  absent = true; demandeConversation.set({ contact: 7 }); await finir();
+  terminer({ conversations: [conv] }); await finir();
+  expect(hote.textContent).not.toContain('Mon message');
+  expect(hote.querySelector('.conversation')).toBeNull();
+});
+
+it('ne sonde pas en arrière-plan et espace les relectures', async () => {
+  const descriptor = Object.getOwnPropertyDescriptor(document, 'hidden');
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+  try {
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+    vue = mount(Messagerie, { target: hote }); await finir();
+    const lectures = () => appel.mock.calls.filter((c) => String(c[0]).endsWith('/conversations')).length;
+    expect(lectures()).toBe(1);
+    await vi.advanceTimersByTimeAsync(29_000); await finir();
+    expect(lectures()).toBe(1);
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+    await vi.advanceTimersByTimeAsync(91_000); await finir();
+    expect(lectures()).toBe(1);
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+    document.dispatchEvent(new Event('visibilitychange')); await finir();
+    expect(lectures()).toBe(2);
+  } finally {
+    if (vue) await unmount(vue); vue = null;
+    vi.useRealTimers();
+    if (descriptor) Object.defineProperty(document, 'hidden', descriptor);
+    else delete (document as any).hidden;
+  }
 });

@@ -4,6 +4,9 @@ import { BASE, fetchJSON } from './api';
 import * as api from './api';
 import { activeView, pendingSearchQuery } from './stores/navigation';
 import { basculerLeSas } from './ecouterPlusTard';
+import { playAndSync } from './stores/zones';
+import { zoneRequise } from './zoneRequise';
+import type { Source } from './types';
 import type { CibleEtiquette } from './cibleEtiquette';
 
 export const MESSAGE_MAX = 4000;
@@ -36,7 +39,7 @@ export function carteMusique(b: any): CarteMusique | null {
   if (!b || !['album', 'track', 'playlist'].includes(b.type) || !texte(b.title)) return null;
   const c: CarteMusique = { type: b.type, title: Array.from(texte(b.title)).slice(0, 300).join('') };
   for (const k of ['artist_name', 'album_title'] as const) if (texte(b[k])) c[k] = Array.from(texte(b[k])).slice(0, 300).join('');
-  for (const k of idsService) if (/^[A-Za-z0-9._:-]{1,64}$/.test(String(b[k] ?? ''))) c[k] = String(b[k]);
+  for (const k of idsService) if ((typeof b[k] === 'string' || Number.isSafeInteger(b[k])) && /^[A-Za-z0-9._:-]{1,64}$/.test(String(b[k]))) c[k] = String(b[k]);
   const cover = pochettePublique(b.cover_url); if (cover) c.cover_url = cover;
   if (typeof b.musicbrainz_id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(b.musicbrainz_id)) c.musicbrainz_id = b.musicbrainz_id.toLowerCase();
   const isrc = typeof b.isrc === 'string' ? b.isrc.replace(/[- ]/g, '').toUpperCase() : '';
@@ -88,6 +91,21 @@ export function signalerMessages(id: number, message_ids: number[], reason: stri
 }
 export function chercherCarte(c: CarteMusique): void {
   pendingSearchQuery.set([c.title, c.artist_name].filter(Boolean).join(' ')); activeView.set('search');
+}
+/** Les identifiants du service d'abord ; à défaut, recherche chez le destinataire. */
+export async function ecouterCarte(c: CarteMusique): Promise<void> {
+  for (const champ of idsService) {
+    if (!c[champ]) continue;
+    const zone = zoneRequise(); if (zone === null) return;
+    const source = champ.replace('_id', '') as Source;
+    try {
+      await playAndSync(zone, c.type === 'album' ? { source, streaming_album_id: c[champ] }
+        : c.type === 'playlist' ? { source, streaming_playlist_id: c[champ] }
+        : { source, source_id: c[champ], title: c.title, artist_name: c.artist_name });
+      return;
+    } catch { /* Un service indisponible laisse une recherche locale possible. */ }
+  }
+  chercherCarte(c);
 }
 export async function garderCarte(c: CarteMusique): Promise<void> {
   let cible: CibleEtiquette | null = null;

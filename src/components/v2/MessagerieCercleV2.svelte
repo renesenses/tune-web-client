@@ -4,7 +4,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { motifCercle } from '../../lib/circle';
   import { relireNotifications } from '../../lib/circleNotifications';
-  import { messagerieSupport, conversations, ouvrirConversation, lireMessages, envoyerMessage, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, chercherCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle } from '../../lib/circleMessagerie';
+  import { messagerieSupport, conversations, ouvrirConversation, lireMessages, envoyerMessage, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle } from '../../lib/circleMessagerie';
 
   let disponible = $state(false);
   let liste = $state<ConversationCercle[]>([]);
@@ -19,18 +19,20 @@
   let raison = $state('harassment');
   let commentaire = $state('');
   let fini = false;
+  let generation = 0;
   let dernierTour = 0;
   const tr = (k: string) => $t(k as any);
   const chronologiques = $derived([...messages].sort((a, b) => a.id - b.id));
   const total = $derived(liste.reduce((n, c) => n + c.unread_count, 0));
 
   function echec(e: unknown) {
-    if ((e as any)?.status === 404 || (e as any)?.status === 412) { choix = null; messages = []; liste = []; selection = []; }
+    if ((e as any)?.status === 404 || (e as any)?.status === 412) { generation++; choix = null; messages = []; liste = []; selection = []; }
     erreur = (e as any)?.code === 'circle.card_not_found' ? tr('v2.circle.msg.notFound') : tr(motifCercle(e).cle);
   }
   async function page(id: number, avant?: string, garderAnciens = false) {
+    const tour = generation;
     const p = await lireMessages(id, avant);
-    if (fini || choix?.id !== id) return;
+    if (fini || tour !== generation || choix?.id !== id) return;
     choix = p.conversation;
     const garder = garderAnciens && messages.length > 0;
     const plancher = Math.min(...p.messages.map((m) => m.id));
@@ -41,22 +43,24 @@
     // qui arriverait entre le GET et le POST.
     const dernier = Math.max(0, ...p.messages.map((m) => m.id));
     if (dernier) await marquerConversationLue(id, dernier);
-    if (fini || choix?.id !== id) return;
+    if (fini || tour !== generation || choix?.id !== id) return;
     liste = liste.map((c) => c.id === id ? { ...c, unread_count: 0 } : c);
     await relireNotifications();
   }
   async function charger() {
     dernierTour = Date.now();
+    const tour = generation;
     try {
       const l = await conversations();
-      if (fini) return;
+      if (fini || tour !== generation) return;
       liste = l; disponible = true;
       if (choix) {
-        if (!l.some((c) => c.id === choix?.id)) { choix = null; messages = []; liste = []; selection = []; }
+        if (!l.some((c) => c.id === choix?.id)) { generation++; choix = null; messages = []; selection = []; }
         else await page(choix.id, undefined, true);
       }
     } catch (e) {
-      if ((e as any)?.status === 404) { disponible = false; messagerieSupport.set(false); choix = null; messages = []; liste = []; }
+      if (fini || tour !== generation) return;
+      if ((e as any)?.status === 404) { generation++; disponible = false; messagerieSupport.set(false); choix = null; messages = []; liste = []; }
       else echec(e);
     }
   }
@@ -66,7 +70,7 @@
     try { await faire(); } catch (e) { if (!fini) echec(e); } finally { if (!fini) occupe = false; }
   }
   async function ouvrir(c: ConversationCercle) {
-    choix = c; messages = []; selection = []; signalement = false; cursor = null;
+    generation++; choix = c; messages = []; selection = []; signalement = false; cursor = null;
     await page(c.id);
   }
   $effect(() => {
@@ -142,7 +146,7 @@
                     {#if m.card.cover_url}<img src={m.card.cover_url} alt="" loading="lazy" referrerpolicy="no-referrer" />{/if}
                     <div><strong>{m.card.title}</strong>{#if m.card.artist_name}<p>{m.card.artist_name}</p>{/if}</div>
                     <div class="gestes">
-                      <button type="button" onclick={() => chercherCarte(m.card!)}>{tr('v2.circle.msg.playHere')}</button>
+                      <button type="button" disabled={occupe} onclick={() => void geste(() => ecouterCarte(m.card!))}>{tr('v2.circle.msg.playHere')}</button>
                       <button type="button" disabled={occupe} onclick={() => void geste(() => garderCarte(m.card!))}>{tr('v2.later.add')}</button>
                     </div>
                   </article>
