@@ -57,7 +57,6 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import { corpsDeLecture, corpsDeFileListe, corpsDeTeteDeListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { lireListe } from '../../lib/lectureEnMasse';
-  import { gestesDeZone } from '../../lib/gestesDeZone';
   import type { GesteDisque } from '../../lib/lectureDisque';
   import { notifications } from '../../lib/stores/notifications';
   import { cleEchecRevelation, revelationDisponible, revelerDossierAlbum } from '../../lib/revelerDossier';
@@ -1308,7 +1307,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       ? liste.map((t) => ({ ...corpsLecture(d, t), id: null }) as unknown as Track)
       : liste;
     if (geste === 'lire') {
-      lireListe(designees, gestesDeZone(zid)).catch(signalerEchecLecture);
+      lireListe(designees, {
+        lire: (corps: any) => playAndSync(zid, { ...corps, ...contexteAlbum() }),
+        enfiler: (corps: any) => api.addToQueue(zid, { ...corps, ...contexteAlbum() }),
+      }).catch(signalerEchecLecture);
       return;
     }
     if (fileOccupee) return;

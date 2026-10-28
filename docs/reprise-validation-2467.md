@@ -15,3 +15,5 @@ Tests sur Shrek :
 - Le garde Svelte a trouvé un argument `string | undefined` ajouté : correction explicite `?? null`, sans modification du socle.
 
 Les journaux complets et le statut final des gardes/build sont conservés dans `coordination/preuves-reprise-r8m2` et le rapport demandé `coordination/codex-reprise.md`. Aucun serveur de production ni sortie sonore utilisé ; recette avec le serveur modifié à faire avant livraison commune. Aucun changement de version, fusion ou publication.
+
+Reprise de la CI complète : sept attentes historiques ne tenaient pas compte de l'origine d'album ajoutée (cinq corps exacts et deux gardes de forme du source). Les attentes conservent les identifiants et positions et exigent maintenant aussi les trois champs de contexte. Le témoin renforcé du disque a révélé que « Lire le disque » devait lui aussi transmettre l'origine : ce chemin est corrigé. Rejeu local limité à ces quatre fichiers et `repriseFabien7280` : 59 tests verts, deux workers. La suite complète reste à la CI.

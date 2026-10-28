@@ -507,7 +507,7 @@
            le rang 3 d'un titre Bandcamp — `each_key_duplicate`. Même règle que
            `PlaylistManagerView`. `sourceEnTableau` : la liste est MIXTE, on
            dit d'où vient chaque ligne (#1113). -->
-      <ListePistesV2 contexte={conteneur()} pistes={pistesVues} pochetteEnTableau clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
+      <ListePistesV2 pistes={pistesVues} pochetteEnTableau contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
              compilé ici : ses styles le suivent.
