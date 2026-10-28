@@ -51,6 +51,7 @@ import { concertsCharge } from './stores/concerts';
 import { convertisseurCharge } from './stores/convertisseurPlaylists';
 import { circleCharge } from './circle';
 import { demandeCercle } from './circlePlaylists';
+import { carteAPartager, carteDepuisObjet } from './circleMessagerie';
 import { demandeAjoutPlaylist } from './demandeAjoutPlaylist';
 import { ouvrirLeRepertoire } from './stores/repertoireCible';
 import { zoneRequise } from './zoneRequise';
@@ -870,6 +871,10 @@ export function gestesObjet(o: ObjetMenu, options: OptionsMenuObjet = {}): Geste
     allerArtiste: allerArtiste(o),
     basculerFavori: () => void basculerFavori(o),
   };
+  if (get(circleCharge) && ['album', 'playlist'].includes(o.type)) {
+    const carte = carteDepuisObjet(o);
+    if (carte) g.partagerMessage = () => carteAPartager.set(carte);
+  }
   // web#1653 — LE geste du sas, celui-là même que le menu d'une piste appelle.
   // La bascule vit dans `lib/ecouterPlusTard` : ni ici, ni dans `menuPiste`.
   // web#1922 — le raccourci sur l'objet, par le formulaire du signet.

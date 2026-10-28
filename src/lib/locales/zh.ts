@@ -6063,6 +6063,30 @@ export default {
   "v2.carte.pod.episodes": "查看单集",
   "volume.deviceObserved": "AIR（设备读数）：{value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "消息",
+  "v2.circle.msg.privacy": "Mozaiklabs 可在收到举报后阅读这些消息以进行审核。消息未经过端到端加密。",
+  "v2.circle.msg.empty": "向已接受的联系人发送消息以开始。",
+  "v2.circle.msg.older": "更早的消息",
+  "v2.circle.msg.me": "我",
+  "v2.circle.msg.write": "撰写",
+  "v2.circle.msg.send": "发送",
+  "v2.circle.msg.playHere": "在家收听",
+  "v2.circle.msg.select": "选择要举报的消息",
+  "v2.circle.msg.deleteConfirm": "为双方删除此消息？",
+  "v2.circle.msg.report": "举报",
+  "v2.circle.msg.reportHint": "最多选择20条消息。工作人员会审核举报。您也可以屏蔽或删除联系人。",
+  "v2.circle.msg.reason": "原因",
+  "v2.circle.msg.comment": "可选说明",
+  "v2.circle.msg.harassment": "骚扰",
+  "v2.circle.msg.spam": "垃圾信息",
+  "v2.circle.msg.hate": "仇恨",
+  "v2.circle.msg.illegal": "违法内容",
+  "v2.circle.msg.other": "其他",
+  "v2.circle.msg.notFound": "在您的音乐库中找不到此卡片。",
+  "v2.circle.msg.share": "通过消息分享",
+  "v2.circle.msg.recipient": "收件人",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
