@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Lùi lại khi tiếp tục podcast (giây)",
+  "settings.podcastRewindHint": "Tiếp tục tập trước vị trí đã lưu. 0–300 giây; mặc định: 10.",
   "v2.radio.listeningCountry": "Quốc gia nghe của máy chủ",
   "v2.radio.countryUnset": "Chưa đặt — luồng không hạn chế",
   "v2.radio.countryHint": "Chọn quốc gia nghe. Nếu chưa đặt, chỉ chọn các luồng không hạn chế.",

@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Spol tilbake når podkaster gjenopptas (sekunder)",
+  "settings.podcastRewindHint": "Fortsett episoden før den lagrede posisjonen. 0–300 sekunder; standard: 10.",
   "v2.radio.listeningCountry": "Serverens lytteland",
   "v2.radio.countryUnset": "Ikke angitt — ubegrensede strømmer",
   "v2.radio.countryHint": "Velg lyttelandet ditt. Uten land velges bare ubegrensede strømmer.",

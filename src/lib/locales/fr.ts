@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Recul à la reprise des podcasts (secondes)",
+  "settings.podcastRewindHint": "Reprendre cet épisode quelques secondes avant la position mémorisée. De 0 à 300 secondes ; 10 par défaut.",
   "v2.radio.listeningCountry": "Pays d’écoute du serveur",
   "v2.radio.countryUnset": "Non renseigné — flux sans restriction",
   "v2.radio.countryHint": "Indiquez votre pays d’écoute. Sans pays, seuls les flux sans restriction sont choisis.",

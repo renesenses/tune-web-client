@@ -35,6 +35,7 @@
  */
 
 export interface LigneReprise {
+  resume_key?: string | null;
   context_type?: string | null;
   album_id?: number | null;
   title?: string | null;
@@ -83,5 +84,5 @@ export function reprisesUtiles<T extends LigneReprise>(lignes: readonly T[]): T[
   for (const l of lignes) {
     if (!estUnePiste(l) && l?.album_id != null) albumsProposes.add(l.album_id);
   }
-  return lignes.filter((l) => !(estUnePiste(l) && l?.album_id != null && albumsProposes.has(l.album_id)));
+  return lignes.filter((l) => (l.context_type == null || ['album', 'playlist', 'track', 'podcast'].includes(l.context_type)) && !(l.resume_key == null && estUnePiste(l) && l?.album_id != null && albumsProposes.has(l.album_id)));
 }
