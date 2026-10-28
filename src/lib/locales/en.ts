@@ -1,4 +1,11 @@
 export default {
+  "v2.radio.listeningCountry": "Server listening country",
+  "v2.radio.countryUnset": "Not set — unrestricted streams",
+  "v2.radio.countryHint": "Choose your listening country. If unset, only unrestricted streams are selected.",
+  "v2.radio.countryNeedsServer": "This server does not yet support choosing the listening country.",
+  "v2.radio.countryRetry": "Retry",
+  "playback.errorRadioCountry": "This radio has no stream available for the server’s listening country. Check the setting in Radio.",
+
   "oxygen.tagSel.selectAll": "Select all ({count})",
   "oxygen.tagSel.selected": "{count} selected",
   "oxygen.tagSel.applyTag": "Apply a tag…",

@@ -1,4 +1,11 @@
 export default {
+  "v2.radio.listeningCountry": "サーバーの聴取国",
+  "v2.radio.countryUnset": "未設定 — 制限のないストリーム",
+  "v2.radio.countryHint": "聴取国を選択してください。未設定の場合は制限のないストリームのみ選択されます。",
+  "v2.radio.countryNeedsServer": "このサーバーは聴取国の選択にまだ対応していません。",
+  "v2.radio.countryRetry": "再試行",
+  "playback.errorRadioCountry": "このラジオにはサーバーの聴取国で利用できるストリームがありません。ラジオの設定を確認してください。",
+
   "oxygen.tagSel.selectAll": "すべて選択 ({count})",
   "oxygen.tagSel.selected": "{count} 件選択中",
   "oxygen.tagSel.applyTag": "タグを適用…",

@@ -1,5 +1,12 @@
 export default {
   "oxygen.albums": "άλμπουμ",
+  "v2.radio.listeningCountry": "Χώρα ακρόασης του διακομιστή",
+  "v2.radio.countryUnset": "Δεν ορίστηκε — ροές χωρίς περιορισμούς",
+  "v2.radio.countryHint": "Επιλέξτε τη χώρα ακρόασης. Χωρίς χώρα επιλέγονται μόνο ροές χωρίς περιορισμούς.",
+  "v2.radio.countryNeedsServer": "Αυτός ο διακομιστής δεν υποστηρίζει ακόμη επιλογή χώρας ακρόασης.",
+  "v2.radio.countryRetry": "Δοκιμή ξανά",
+  "playback.errorRadioCountry": "Το ραδιόφωνο δεν έχει επιτρεπόμενη ροή για τη χώρα ακρόασης του διακομιστή. Ελέγξτε τη ρύθμιση στο Ραδιόφωνο.",
+
   "oxygen.tagSel.selectAll": "Επιλογή όλων ({count})",
   "oxygen.tagSel.selected": "{count} επιλεγμένα",
   "oxygen.tagSel.applyTag": "Εφαρμογή ετικέτας…",

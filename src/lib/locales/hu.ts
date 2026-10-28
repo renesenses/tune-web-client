@@ -1,5 +1,12 @@
 export default {
   "oxygen.albums": "album",
+  "v2.radio.listeningCountry": "A kiszolgáló hallgatási országa",
+  "v2.radio.countryUnset": "Nincs megadva — korlátozás nélküli adatfolyamok",
+  "v2.radio.countryHint": "Válassza ki a hallgatási országot. Ország nélkül csak korlátozás nélküli adatfolyamok választhatók.",
+  "v2.radio.countryNeedsServer": "Ez a kiszolgáló még nem támogatja a hallgatási ország kiválasztását.",
+  "v2.radio.countryRetry": "Újrapróbálkozás",
+  "playback.errorRadioCountry": "Ehhez a rádióhoz nincs engedélyezett adatfolyam a kiszolgáló hallgatási országában. Ellenőrizze a beállítást a Rádióban.",
+
   "oxygen.tagSel.selectAll": "Összes kijelölése ({count})",
   "oxygen.tagSel.selected": "{count} kijelölve",
   "oxygen.tagSel.applyTag": "Címke hozzárendelése…",

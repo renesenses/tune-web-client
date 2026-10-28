@@ -28,6 +28,7 @@ import { estMessageGenerique, lireMessageServeur } from './messageServeur';
  *  JP: moved file; orphaned zone with no output device). */
 const PLAY_ERROR_KEYS: Record<string, string> = {
   file_not_found: 'playback.errorFileNotFound',
+  radio_country_unavailable: 'playback.errorRadioCountry',
   zone_no_output_device: 'playback.errorNoOutputDevice',
   // #5283 — Qobuz n'a annoncé aucune fréquence, et ni l'en-tête du flux ni le
   // catalogue ne la donnent : le serveur refuse la lecture (422) plutôt que de
@@ -422,7 +423,7 @@ async function apiError(response: Response): Promise<ApiError> {
     const lu = lireMessageServeur(body, brut, response.status);
     detail = lu.message;
     technique = lu.detail;
-    code = body.code ?? body.error;
+    code = body.code ?? body.error_code ?? body.error;
     // « Écrire les modifications dans les fichiers audio » décoché : la phrase
     // du client, dans sa langue — le `message` du serveur est en français.
     if (estRefusEcriture(body)) {
