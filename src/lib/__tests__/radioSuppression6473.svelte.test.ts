@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // tune-server-rust#6473 (Bilou, Jean Valjean, fil 2308) — « Pas moyen de
 // supprimer des radios ». La capture montre un bandeau rouge :
@@ -36,6 +37,7 @@ let hote: HTMLDivElement;
 let instance: Record<string, unknown> | null = null;
 
 beforeEach(() => {
+  clearViewContext('radios');
   for (const fn of Object.values(mocks)) fn.mockReset();
   mocks.getRadios.mockResolvedValue([STATION]);
   mocks.deleteRadio.mockResolvedValue(undefined);

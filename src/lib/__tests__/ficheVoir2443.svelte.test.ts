@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // web#2443 — la fiche « Voir » des stations de l'annuaire (demande de Rémi du
 // 27/10/2026) : l'œil à la place du crayon, le badge « Metadata+ », les flux
@@ -69,6 +70,7 @@ const titres = (e: Element) => [...e.querySelectorAll('button.coin')].map((b) =>
 const dialogue = () => document.querySelector('[role=dialog]') as HTMLElement | null;
 
 beforeEach(() => {
+  clearViewContext('radios');
   for (const fn of Object.values(mocks)) fn.mockReset();
   mocks.getRadios.mockResolvedValue([FIP, MAISON]);
   mocks.exportRadiosUrl.mockReturnValue('#');
