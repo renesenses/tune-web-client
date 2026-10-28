@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { volumeCommandable, sourdineCommandable } from '../../lib/capacitesVolumeSortie';
+  import { volumeCommandable, sourdineCommandable, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { currentZone } from '../../lib/stores/zones';
   import { zoneVolume } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
@@ -16,6 +16,8 @@
   import {
     PAS_BOUTON,
     bornerCurseur,
+    plafondDuCurseur,
+    securite,
     cibleDuPas,
     plusEnButee,
     serveurConnaitLesLimites,
@@ -29,9 +31,11 @@
   let idZoneVolume = $derived(zone?.id ?? null);
   let volumeAutorise = $derived(!$volumeLocked && volumeCommandable(zone));
   let sourdineAutorisee = $derived(!$volumeLocked && sourdineCommandable(zone));
+  let bornes = $derived(bornesCurseurSortie(zone));
+  let clePlage = $derived(clePlageVolumeSortie(zone));
 
   // #1274 \u2014 le mode dB n'est plus une simple fa\u00E7on d'\u00C9CRIRE le pour-cent : le
-  // champ est saisissable, et ce qu'on y tape part tel quel dans `volume_db`.
+  // champ est saisissable ; sans grille de sortie, la valeur part dans `volume_db`.
   let modeDb = $derived($preferences.volumeDisplay === 'dB');
 
   // tune-server-rust#6787 — le dB affiché est celui du GAIN, lu sur la loi de
@@ -83,13 +87,19 @@
     if (gain === null) return;
     // #6787 — le dB tapé est un dB de gain : le curseur va à la position qui
     // le rend (le serveur fait la même conversion sur `volume_db`).
-    const lineaire = volumeDepuisGain(zone, gain);
+    const lineaire = normaliserVolumeSortie(zone, volumeDepuisGain(zone, gain), volumeDepuisGain(zone, securite(zone) ?? 1));
+    if (lineaire === null) {
+      const p = plageVolumeSortie(zone);
+      if (p) notifications.error($t('volume.outputRange' as any).replace('{min}', String(p.min)).replace('{max}', String(p.max)).replace('{step}', String(p.step)));
+      return;
+    }
     if (zone.id != null) leverSourdineSiBesoin({ ...zone, id: zone.id }, lineaire);
     zoneVolume.set(lineaire);
     if (isBrowserZone(zone)) browserSetVolume(lineaire, zone);
-    // Le dB part TEL QUEL : le repasser en lin\u00E9aire avant l'envoi rendrait la
-    // valeur au serveur d\u00E9j\u00E0 entam\u00E9e par un aller-retour de flottant.
-    await api.setVolumeDb(zone.id, lu.db);
+    // Une sortie à grille reçoit un cran valable. Sans plage annoncée,
+    // conserver le dB exact, sans aller-retour supplémentaire de flottant.
+    if (plageVolumeSortie(zone)) await api.setVolume(zone.id, lineaire);
+    else await api.setVolumeDb(zone.id, lu.db);
   }
 
   function toucheSaisie(e: KeyboardEvent) {
@@ -110,6 +120,7 @@
     // Les primitives évitent d'annuler un glissement sur un simple écho de volume.
     const id = idZoneVolume;
     const autorise = volumeAutorise;
+    const plage = clePlage; // dépendance primitive : annule aussi une ancienne grille
     if (id == null || !autorise) limiterEnvoi.annuler();
     return () => {
       contexteVolume += 1;
@@ -123,7 +134,8 @@
     const champ = e.target as HTMLInputElement;
     // tune-server-rust#6541 — le serveur borne le curseur (confort, sécurité) ;
     // l'écran le montre au lieu de laisser le pouce filer plus haut que le son.
-    const val = bornerCurseur(zone, Number(champ.value), vol);
+    const val = normaliserVolumeSortie(zone, bornerCurseur(zone, Number(champ.value), vol), plafondDuCurseur(zone, vol));
+    if (val === null) return;
     if (val !== Number(champ.value)) champ.value = String(val);
     leverSourdineSiBesoin({ ...zone, id: zone.id }, val);
     zoneVolume.set(val);
@@ -168,7 +180,7 @@
   // reçoit l'ancien `PUT /volume`.
   async function pas(direction: 'up' | 'down') {
     if (!zone?.id || !volumeAutorise) return;
-    if (!serveurConnaitLesLimites(zone) || isBrowserZone(zone)) {
+    if (plageVolumeSortie(zone) || !serveurConnaitLesLimites(zone) || isBrowserZone(zone)) {
       // web#2292 — borné par la sécurité de la zone, pas seulement par 100 %.
       const next = cibleDuPas(zone, vol, direction);
       if (next === vol) return;
@@ -228,7 +240,7 @@
   <button
     class="step-btn"
     onclick={() => pas('down')}
-    disabled={!volumeAutorise || vol <= 0}
+    disabled={!volumeAutorise || (plageVolumeSortie(zone) ? cibleDuPas(zone, vol, 'down') === vol : vol <= 0)}
     title={$t('volume.stepDown')}
     aria-label={$t('volume.stepDown')}
   >
@@ -238,9 +250,9 @@
   <input
     type="range"
     class="volume-slider"
-    min="0"
-    max="1"
-    step="0.01"
+    min={bornes.min}
+    max={bornes.max}
+    step={bornes.step}
     value={vol}
     oninput={handleVolume}
     disabled={!volumeAutorise}

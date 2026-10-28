@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { volumeCommandable, sourdineCommandable } from '../../lib/capacitesVolumeSortie';
+  import { volumeCommandable, sourdineCommandable, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { preferences } from '../../lib/stores/preferences';
   import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
@@ -56,7 +56,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
   import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
   import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
-  import { cibleDuPas } from '../../lib/limitesVolume';
+  import { cibleDuPas, plafondDuCurseur } from '../../lib/limitesVolume';
   import {
     audiophileEnabled,
     audiophileGlobalLockVolume,
@@ -86,6 +86,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   let idZoneVolumeMobile = $derived($currentZone?.id ?? null);
   let volumeMobileAutorise = $derived(!$volumeLocked && volumeCommandable($currentZone));
   let sourdineMobileAutorisee = $derived(!$volumeLocked && sourdineCommandable($currentZone));
+  let bornesMobile = $derived(bornesCurseurSortie($currentZone));
+  let clePlageMobile = $derived(clePlageVolumeSortie($currentZone));
 
   // Miroir local obligatoire pour les zones navigateur : le serveur ignore
   // leur volume (set_volume_no_device_id), l'<audio> de cet onglet doit être
@@ -102,6 +104,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   $effect(() => {
     const id = idZoneVolumeMobile;
     const autorise = volumeMobileAutorise;
+    const plage = clePlageMobile;
     if (id == null || !autorise) limiterEnvoiMobile.annuler();
     return () => {
       contexteVolumeMobile += 1;
@@ -112,7 +115,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   function handleMobileVolume(e: Event) {
     const z = $currentZone;
     if (!z?.id || !volumeMobileAutorise) return;
-    const val = Number((e.target as HTMLInputElement).value);
+    const brut = Number((e.target as HTMLInputElement).value);
+    const val = normaliserVolumeSortie(z, brut, plageVolumeSortie(z) ? plafondDuCurseur(z, mobileVol) : 1);
+    if (val === null) return;
     leverSourdineSiBesoin({ ...z, id: z.id }, val);
     applyMobileVolume(z, val);
     const zoneId = z.id;
@@ -1489,9 +1494,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         <input
           type="range"
           class="mobile-volume-slider"
-          min="0"
-          max="1"
-          step="0.01"
+          min={bornesMobile.min}
+          max={bornesMobile.max}
+          step={bornesMobile.step}
           value={mobileVol}
           oninput={handleMobileVolume}
           disabled={!volumeMobileAutorise}
@@ -1500,9 +1505,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           onclick={(e) => e.stopPropagation()}
         />
         <div class="mobile-volume-steps">
-          <button class="mobile-step-btn" disabled={!volumeMobileAutorise} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(-0.01); }}>−</button>
+          <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'down') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(-0.01); }}>−</button>
           <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
-          <button class="mobile-step-btn" disabled={!volumeMobileAutorise} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
+          <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'up') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
         </div>
         <DeviceVolumeObservation zone={$currentZone} />
       </div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { volumeCommandable } from '../../lib/capacitesVolumeSortie';
+  import { volumeCommandable, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur } from '../../lib/messageServeur';
   import AuditIntegrite from '../partages/AuditIntegrite.svelte';
@@ -1540,7 +1540,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       if ($audiophileLockVolume && $audiophileEnabled) {
         const zid = $currentZoneId;
         const zone = $zones.find((z) => z.id === zid);
-        if (zid != null && (!zone || volumeCommandable(zone))) await api.setVolume(zid, 1);
+        if (zid != null && (!zone || (volumeCommandable(zone) && normaliserVolumeSortie(zone, 1) === 1))) await api.setVolume(zid, 1);
       }
     } catch { /* setVolumeLock a deja restaure le store */ }
   }

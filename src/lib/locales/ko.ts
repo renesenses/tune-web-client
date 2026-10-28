@@ -6094,6 +6094,7 @@ export default {
   "v2.circle.msg.notFound": "이 카드를 라이브러리에서 찾을 수 없습니다.",
   "v2.circle.msg.share": "메시지로 공유",
   "v2.circle.msg.recipient": "받는 사람",
+  "volume.outputRange": "음량이 범위를 벗어났습니다: {min}%~{max}%, 조절 간격 {step}%.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

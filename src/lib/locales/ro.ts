@@ -6094,6 +6094,7 @@ export default {
   "v2.circle.msg.notFound": "Acest card nu a fost găsit în biblioteca ta.",
   "v2.circle.msg.share": "Distribuie prin mesaj",
   "v2.circle.msg.recipient": "Destinatar",
+  "volume.outputRange": "Volum în afara intervalului: de la {min}% la {max}%, în pași de {step}%.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

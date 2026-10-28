@@ -5939,5 +5939,6 @@ export default {
   "v2.circle.msg.notFound": "Dette kortet ble ikke funnet i biblioteket ditt.",
   "v2.circle.msg.share": "Del i en melding",
   "v2.circle.msg.recipient": "Mottaker",
+  "volume.outputRange": "Volumet er utenfor området: fra {min} % til {max} %, i trinn på {step} %.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

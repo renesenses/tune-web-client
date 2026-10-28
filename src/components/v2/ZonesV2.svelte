@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { volumeCommandable } from '../../lib/capacitesVolumeSortie';
+  import { plafondDuCurseur } from '../../lib/limitesVolume';
+  import { volumeCommandable, bornesCurseurSortie, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Zones — nouveau client (direction Levente).
@@ -431,7 +432,8 @@
    *  instruisant le fil forum 2147). */
   function setVol(z: Zone, v: number) {
     if (z.id == null || !volumeCommandable(z)) return;
-    const lineaire = v / 100;
+    const lineaire = normaliserVolumeSortie(z, v / 100, plafondDuCurseur(z, volumeDepuisGain(z, z.volume ?? 0)));
+    if (lineaire === null) return;
     // tune-server-rust#6787 — `v` est le CURSEUR ; la zone porte le GAIN.
     zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume: gainDeLaZone(z, lineaire) } : x)));
     api.setVolume(z.id, lineaire).catch(() => { error = $t('v2.zone.volumeRefused' as any); refresh(); });
@@ -725,7 +727,7 @@
             {/if}
             <div class="cvol">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
-              <input type="range" min="0" max="100" step="1" value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
+              <input type="range" min={bornesCurseurSortie(z, 100).min} max={bornesCurseurSortie(z, 100).max} step={bornesCurseurSortie(z, 100).step} value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
                 disabled={!volumeCommandable(z)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
                 aria-label={`Volume de ${z.name}`} />
@@ -768,7 +770,7 @@
 
             <span class="vol">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
-              <input type="range" min="0" max="100" step="1" value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
+              <input type="range" min={bornesCurseurSortie(z, 100).min} max={bornesCurseurSortie(z, 100).max} step={bornesCurseurSortie(z, 100).step} value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
                 disabled={!volumeCommandable(z)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
                 aria-label={`Volume de ${z.name}`} />

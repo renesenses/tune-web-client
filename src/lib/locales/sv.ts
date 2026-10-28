@@ -6093,4 +6093,5 @@ export default {
   "v2.circle.msg.notFound": "Kortet hittades inte i ditt bibliotek.",
   "v2.circle.msg.share": "Dela i ett meddelande",
   "v2.circle.msg.recipient": "Mottagare",
+  "volume.outputRange": "Volymen är utanför intervallet: {min} % till {max} %, i steg om {step} %.",
 } as const;

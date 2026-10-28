@@ -25,6 +25,7 @@ import { audiophileEnabled, audiophileLockVolume, audiophileGlobalLockVolume } f
 import { activeView } from '../stores/navigation';
 import { setupKeyboardShortcuts } from '../keyboard';
 import { DELAI_VOLUME_MS } from '../limiteurVolume';
+import { notifications } from '../stores/notifications';
 
 type Envoi = { url: string; body: any };
 let envois: Envoi[];
@@ -58,6 +59,7 @@ function touche(code: string, key = code) {
 
 beforeEach(() => {
   envois = []; component = null; reponsePas = undefined;
+  for (const n of get(notifications)) notifications.dismiss(n.id);
   host = document.createElement('div'); document.body.appendChild(host);
   audiophileEnabled.set(false); audiophileLockVolume.set(false); audiophileGlobalLockVolume.set(false);
   preferences.update((p) => ({ ...p, volumeDisplay: 'percent', volumeStepButtons: true }));
@@ -245,5 +247,139 @@ describe('#2486 — capacités de sortie sur les contrôles réels', () => {
     touche('ArrowUp'); touche('ArrowDown'); await stabiliser(); expect(envois).toEqual([]);
     poser(zone({ can_set_volume: true })); touche('ArrowUp'); await stabiliser();
     expect(envois).toHaveLength(1);
+  });
+});
+
+
+const plageDecalee = { can_set_volume: true, can_mute: true,
+  volume_percent_range: { min: 5, max: 80, step: 7 } };
+async function monterVolumePlage(mobile: boolean, z = zone(plageDecalee)) {
+  await monter(mobile ? TransportBar : VolumeControl, z);
+  if (mobile) { host.querySelector<HTMLButtonElement>('.mobile-volume-btn')!.click(); flushSync(); }
+  return host.querySelector<HTMLInputElement>(mobile ? '.mobile-volume-slider' : '.volume-slider')!;
+}
+
+describe('#2486 / serveur #7333 — plage de volume annoncée', () => {
+  it.each([false, true])('curseur sur la grille5/80/pas7, mobile=%s', async (mobile) => {
+    const slider = await monterVolumePlage(mobile);
+    expect(Number(slider.min)).toBeCloseTo(0.05);
+    expect(Number(slider.max)).toBeCloseTo(0.75);
+    expect(Number(slider.step)).toBeCloseTo(0.07);
+    input(slider, '0.28'); await stabiliser();
+    expect(envois).toHaveLength(1); expect(envois[0].body).toEqual({ volume: 0.26 });
+    expect(get(zoneVolume)).toBeCloseTo(0.26);
+  });
+
+  it.each([false, true])('les boutons franchissent le cran, sans route step inadaptée, mobile=%s', async (mobile) => {
+    await monterVolumePlage(mobile, { ...zone(plageDecalee), volume: 0.26, volume_limit_safety: 1 });
+    const boutons = host.querySelectorAll<HTMLButtonElement>(mobile ? '.mobile-step-btn' : '.step-btn');
+    boutons[1].click(); await stabiliser();
+    expect(envois).toHaveLength(1); expect(envois[0].url).toMatch(/\/volume$/);
+    expect(envois[0].body.volume).toBeCloseTo(0.33);
+    boutons[0].click(); await stabiliser();
+    expect(envois).toHaveLength(2); expect(envois[1].body.volume).toBeCloseTo(0.26);
+  });
+
+  it.each([false, true])('minimum5% : moins ne demande pas0, la vraie sourdine reste disponible, mobile=%s', async (mobile) => {
+    await monterVolumePlage(mobile, { ...zone(plageDecalee), volume: 0.05 });
+    const moins = host.querySelector<HTMLButtonElement>(mobile ? '.mobile-step-btn' : '.step-btn')!;
+    expect(moins.disabled).toBe(true); moins.click();
+    host.querySelector<HTMLButtonElement>(mobile ? '.mobile-mute-btn' : '.volume-btn')!.click(); await stabiliser();
+    expect(envois).toHaveLength(1); expect(envois[0].url).toMatch(/\/mute$/);
+    expect(envois[0].body).toEqual({ muted: true });
+  });
+
+  it.each([false, true])('arrondi du cran sous la sécurité, mobile=%s', async (mobile) => {
+    const slider = await monterVolumePlage(mobile, { ...zone(plageDecalee), volume_limit_safety: 0.3 });
+    input(slider, '0.32'); await stabiliser();
+    expect(envois).toHaveLength(1); expect(envois[0].body.volume).toBeCloseTo(0.26);
+  });
+
+  it.each([false, true])('nouvelle plage annule la consigne différée, mobile=%s', async (mobile) => {
+    const slider = await monterVolumePlage(mobile);
+    input(slider, '0.26'); input(slider, '0.47'); expect(envois).toHaveLength(1);
+    poser(zone({ ...plageDecalee, volume_percent_range: { min: 5, max: 80, step: 5 } }));
+    await attendre(DELAI_VOLUME_MS + 30); expect(envois).toHaveLength(1);
+  });
+
+  it.each([false, true])('un écho de la même plage conserve la dernière consigne, mobile=%s', async (mobile) => {
+    const slider = await monterVolumePlage(mobile);
+    input(slider, '0.26'); input(slider, '0.47');
+    poser(zone({ ...plageDecalee, volume_percent_range: { ...plageDecalee.volume_percent_range } }));
+    await attendre(DELAI_VOLUME_MS + 30);
+    expect(envois).toHaveLength(2); expect(envois[1].body.volume).toBeCloseTo(0.47);
+  });
+
+  it.each([0.01, 0.28, 0.8, 0.9])('une saisie dB respecte plage et pas (gain=%s)', async (gain) => {
+    preferences.update((p) => ({ ...p, volumeDisplay: 'dB' }));
+    await monter(VolumeControl, { ...zone(plageDecalee), muted: true });
+    const champ = host.querySelector<HTMLInputElement>('.volume-db-input')!;
+    input(champ, String(20 * Math.log10(gain))); champ.dispatchEvent(new FocusEvent('blur')); await stabiliser();
+    if (gain < 0.05 || gain > 0.8) {
+      expect(envois).toEqual([]); expect(get(zoneVolume)).toBeCloseTo(0.4);
+      expect(get(notifications).some((n) => n.message.includes('5') && n.message.includes('80') && n.message.includes('7'))).toBe(true);
+    } else {
+      expect(envois.some((e) => e.body.volume_db != null)).toBe(false);
+      const volumes = envois.filter((e) => /\/volume$/.test(e.url));
+      expect(volumes).toHaveLength(1); expect(volumes[0].body.volume).toBeCloseTo(gain === 0.28 ? 0.26 : 0.75);
+    }
+  });
+
+  it('la saisie dB suit aussi l’arrondi entier du setter avant un pas pair', async () => {
+    preferences.update((p) => ({ ...p, volumeDisplay: 'dB' }));
+    await monter(VolumeControl, zone({ ...plageDecalee, volume_percent_range: { min: 5, max: 80, step: 4 } }));
+    const champ = host.querySelector<HTMLInputElement>('.volume-db-input')!;
+    input(champ, String(20 * Math.log10(0.066))); champ.dispatchEvent(new FocusEvent('blur')); await stabiliser();
+    expect(envois).toHaveLength(1); expect(envois[0].body.volume).toBeCloseTo(0.09);
+  });
+
+  it('les cartes de zone affichent et envoient leur propre grille', async () => {
+    await monter(ZonesV2, zone(plageDecalee));
+    const sliders = [...host.querySelectorAll<HTMLInputElement>('.vol input[type="range"], .cvol input[type="range"]')];
+    expect(sliders.length).toBeGreaterThan(0);
+    for (const slider of sliders) { expect(Number(slider.min)).toBe(5); expect(Number(slider.max)).toBe(75); expect(Number(slider.step)).toBe(7); }
+    input(sliders[0], '28'); await stabiliser();
+    expect(envois).toHaveLength(1); expect(envois[0].body.volume).toBeCloseTo(0.26);
+  });
+
+  it('le cran des cartes ne dépasse pas la sécurité entre deux niveaux', async () => {
+    await monter(ZonesV2, { ...zone(plageDecalee), volume_limit_safety: 0.3 });
+    const slider = host.querySelector<HTMLInputElement>('.vol input[type="range"], .cvol input[type="range"]')!;
+    input(slider, '32'); await stabiliser();
+    expect(envois).toHaveLength(1); expect(envois[0].body.volume).toBeCloseTo(0.26);
+  });
+
+  it.each([{ tv: false, courbe: 'linear' }, { tv: true, courbe: 'linear' }, { tv: false, courbe: 'db60' }, { tv: true, courbe: 'db60' }])('clavier : un cran, une seule commande, jamais sous le minimum, TV=$tv/courbe=$courbe', async ({ tv, courbe }) => {
+    const z = { ...zone(plageDecalee), volume_curve: courbe };
+    if (tv) await monter(TvView, { ...z, volume: 0.26 });
+    else poser({ ...z, volume: 0.26 });
+    arreterClavier = setupKeyboardShortcuts(); touche('ArrowUp'); await stabiliser();
+    expect(envois).toHaveLength(1); expect(envois[0].body.volume).toBeCloseTo(0.33);
+    poser({ ...z, volume: 0.05 }); touche('ArrowDown'); await stabiliser();
+    expect(envois).toHaveLength(1);
+  });
+
+  it.each([{ min: 5, max: 80, step: 7 }, { min: 5, max: 100, step: 7 }, { min: 5, max: 100, step: 5 }])('PURE additionnel : ne substitue pas un autre niveau à100% (%j)', async (plage) => {
+    v2SettingsTarget.set({ tab: 'general', section: 'playback' });
+    await monter(SettingsV2, zone({ ...plageDecalee, volume_percent_range: plage }));
+    audiophileEnabled.set(true); flushSync();
+    const lecture = host.querySelector<HTMLElement>('[data-section="playback"]')!;
+    lecture.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click(); flushSync();
+    lecture.querySelector<HTMLInputElement>('.danger-box input[type="checkbox"]')!.click(); await stabiliser();
+    expect(get(audiophileGlobalLockVolume)).toBe(true);
+    expect(envois).toHaveLength(plage.step === 5 ? 1 : 0);
+    if (plage.step === 5) expect(envois[0].body.volume).toBe(1);
+  });
+
+  it.each([{ min: 5, max: 80, step: 0 }, { min: 90, max: 80, step: 7 }])('une plage incohérente ne permet pas de commande inventée (%j)', async (plage) => {
+    const slider = await monterVolumePlage(false, zone({ ...plageDecalee, volume_percent_range: plage }));
+    expect(slider.disabled).toBe(true); input(slider); await stabiliser(); expect(envois).toEqual([]);
+  });
+
+  it('le navigateur garde sa grille locale malgré une plage distante', async () => {
+    const slider = await monterVolumePlage(false, zone(plageDecalee, 1, 'browser'));
+    expect(slider.min).toBe('0'); expect(slider.max).toBe('1'); expect(slider.step).toBe('0.01');
+    input(slider, '0.4'); await stabiliser();
+    expect(envois).toHaveLength(1); expect(envois[0].body.volume).toBeCloseTo(0.4);
   });
 });
