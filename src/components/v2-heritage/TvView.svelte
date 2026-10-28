@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { volumeCommandable } from '../../lib/capacitesVolumeSortie';
+  import { isVolumeLocked } from '../../lib/stores/audiophile';
   import { bulleTexte } from '../../lib/infobulleTexte';
   // Mode « Grand écran » façon tvOS : afficheur plein viewport (pochette géante,
   // typo XXL lisible à 3 m, paroles synchronisées), aucun contrôle visible —
@@ -167,12 +169,14 @@
     switch (e.code) {
       case 'ArrowUp': {
         e.preventDefault(); e.stopPropagation();
+        if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         api.setVolume(zone.id, Math.min(1, Math.round((vol + 0.01) * 100) / 100));
         break;
       }
       case 'ArrowDown': {
         e.preventDefault(); e.stopPropagation();
+        if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         api.setVolume(zone.id, Math.max(0, Math.round((vol - 0.01) * 100) / 100));
         break;

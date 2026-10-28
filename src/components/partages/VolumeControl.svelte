@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { volumeCommandable, sourdineCommandable } from '../../lib/capacitesVolumeSortie';
   import { currentZone } from '../../lib/stores/zones';
   import { zoneVolume } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
@@ -25,6 +26,9 @@
   let vol = $derived($zoneVolume);
   // #6700 — la sourdine est l'état `muted` de la zone, pas un volume à zéro.
   let isMuted = $derived(zone?.muted === true);
+  let idZoneVolume = $derived(zone?.id ?? null);
+  let volumeAutorise = $derived(!$volumeLocked && volumeCommandable(zone));
+  let sourdineAutorisee = $derived(!$volumeLocked && sourdineCommandable(zone));
 
   // #1274 \u2014 le mode dB n'est plus une simple fa\u00E7on d'\u00C9CRIRE le pour-cent : le
   // champ est saisissable, et ce qu'on y tape part tel quel dans `volume_db`.
@@ -55,13 +59,13 @@
   let saisie = $state<string | null>(null);
 
   function ouvrirSaisie() {
-    if ($volumeLocked) return;
+    if (!volumeAutorise) return;
     saisie = dbDuCurseur(vol);
   }
 
   async function validerSaisie(texte: string) {
     saisie = null;
-    if (!zone?.id || $volumeLocked) return;
+    if (!zone?.id || !volumeAutorise) return;
     // Rien tapé : le champ rend sa propre valeur, il n'y a aucune commande à
     // envoyer. C'est aussi ce qui évite de refuser « -∞ dB », le texte que le
     // champ affiche LUI-MÊME quand la zone est au silence.
@@ -101,9 +105,21 @@
   }
 
   const limiterEnvoi = creerLimiteurVolume();
+  let contexteVolume = 0;
+  $effect(() => {
+    // Les primitives évitent d'annuler un glissement sur un simple écho de volume.
+    const id = idZoneVolume;
+    const autorise = volumeAutorise;
+    if (id == null || !autorise) limiterEnvoi.annuler();
+    return () => {
+      contexteVolume += 1;
+      limiterEnvoi.annuler();
+      saisie = null;
+    };
+  });
 
   function handleVolume(e: Event) {
-    if (!zone?.id || $volumeLocked) return;
+    if (!zone?.id || !volumeAutorise) return;
     const champ = e.target as HTMLInputElement;
     // tune-server-rust#6541 — le serveur borne le curseur (confort, sécurité) ;
     // l'écran le montre au lieu de laisser le pouce filer plus haut que le son.
@@ -113,12 +129,14 @@
     zoneVolume.set(val);
     if (isBrowserZone(zone)) browserSetVolume(val, zone);
     const zoneId = zone.id;
-    limiterEnvoi(() => { void envoyerVolume(zoneId, val); });
+    const contexte = contexteVolume;
+    limiterEnvoi(() => { void envoyerVolume(zoneId, val, contexte); });
   }
 
   // tune-server-rust#6721 — un refus du serveur (PURE « Forcer à 100 % »
   // armé ailleurs, ou mal lu ici) relit le verrou : le curseur se grise.
-  function envoyerVolume(zoneId: number, val: number) {
+  function envoyerVolume(zoneId: number, val: number, contexte: number) {
+    if (zone?.id !== zoneId || !volumeAutorise || contexte !== contexteVolume) return Promise.resolve();
     return envoyerVolumeOuReverrouiller(zoneId, val, {
       envoyer: api.setVolume,
       relireVerrou: refreshAudiophile,
@@ -140,7 +158,7 @@
   // #6700 — décision de Bertrand du 21/10 : une VRAIE sourdine. Le volume
   // n'est pas touché, lever la sourdine rend le son au volume d'avant.
   async function toggleMute() {
-    if (!zone?.id || $volumeLocked) return;
+    if (!zone?.id || !sourdineAutorisee) return;
     await basculerSourdineZone({ ...zone, id: zone.id }).catch(() => {});
   }
 
@@ -149,7 +167,7 @@
   // confort, seuls les boutons montent). Un serveur antérieur, sans la route,
   // reçoit l'ancien `PUT /volume`.
   async function pas(direction: 'up' | 'down') {
-    if (!zone?.id || $volumeLocked) return;
+    if (!zone?.id || !volumeAutorise) return;
     if (!serveurConnaitLesLimites(zone) || isBrowserZone(zone)) {
       // web#2292 — borné par la sécurité de la zone, pas seulement par 100 %.
       const next = cibleDuPas(zone, vol, direction);
@@ -160,7 +178,10 @@
       return;
     }
     try {
-      const r = await api.stepVolume(zone.id, direction, PAS_BOUTON);
+      const zoneId = zone.id;
+      const contexte = contexteVolume;
+      const r = await api.stepVolume(zoneId, direction, PAS_BOUTON);
+      if (zone?.id !== zoneId || !volumeAutorise || contexte !== contexteVolume) return;
       // tune-server-rust#6787 — la réponse porte le GAIN : le curseur en est
       // la position sur la loi de la zone.
       const curseur = volumeDepuisGain(zone, r.volume);
@@ -183,7 +204,7 @@
     class="volume-btn"
     class:muted={isMuted}
     onclick={toggleMute}
-    disabled={$volumeLocked}
+    disabled={!sourdineAutorisee}
     title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : $t('volume.title')}
   >
     {#if isMuted || vol === 0}
@@ -207,7 +228,7 @@
   <button
     class="step-btn"
     onclick={() => pas('down')}
-    disabled={$volumeLocked || vol <= 0}
+    disabled={!volumeAutorise || vol <= 0}
     title={$t('volume.stepDown')}
     aria-label={$t('volume.stepDown')}
   >
@@ -222,7 +243,7 @@
     step="0.01"
     value={vol}
     oninput={handleVolume}
-    disabled={$volumeLocked}
+    disabled={!volumeAutorise}
     title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : undefined}
     aria-label="Volume"
   />
@@ -230,7 +251,7 @@
   <button
     class="step-btn"
     onclick={() => pas('up')}
-    disabled={$volumeLocked || enButee}
+    disabled={!volumeAutorise || enButee}
     title={enButee ? $t('volume.limitedBySafety') : $t('volume.stepUp')}
     aria-label={$t('volume.stepUp')}
   >
@@ -245,7 +266,7 @@
       autocomplete="off"
       spellcheck="false"
       value={saisie ?? volumeDisplay(vol)}
-      disabled={$volumeLocked}
+      disabled={!volumeAutorise}
       aria-label={$t('volume.dbEntry')}
       title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : $t('volume.dbEntryHint')}
       onfocus={ouvrirSaisie}
@@ -429,4 +450,5 @@
     font-size: 14px;
     min-width: 40px;
   }
+.volume-slider:disabled, .volume-btn:disabled, .step-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>

@@ -1,3 +1,5 @@
+import { volumeCommandable } from './capacitesVolumeSortie';
+import { isVolumeLocked } from './stores/audiophile';
 import { get } from 'svelte/store';
 import { currentZone, nextAndSync, previousAndSync, resumeAndSync, stopAndSync } from './stores/zones';
 import { playbackState, seekPositionMs, currentTrack } from './stores/nowPlaying';
@@ -106,6 +108,7 @@ export function setupKeyboardShortcuts(): () => void {
       }
       case 'ArrowUp': {
         e.preventDefault();
+        if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         // Step by 1% (round to avoid float drift), not 5%.
         api.setVolume(zone.id, Math.min(1, Math.round((vol + 0.01) * 100) / 100));
@@ -113,6 +116,7 @@ export function setupKeyboardShortcuts(): () => void {
       }
       case 'ArrowDown': {
         e.preventDefault();
+        if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         api.setVolume(zone.id, Math.max(0, Math.round((vol - 0.01) * 100) / 100));
         break;
@@ -152,7 +156,7 @@ export function setupKeyboardShortcuts(): () => void {
       case 'm': {
         if (e.metaKey || e.ctrlKey) break;
         // #6700 — une VRAIE sourdine (`muted`), jamais un volume à zéro.
-        void basculerSourdineZone({ ...zone, id: zone.id }).catch(() => {});
+        if (!isVolumeLocked()) void basculerSourdineZone({ ...zone, id: zone.id }).catch(() => {});
         break;
       }
     }
