@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { t } from '../../lib/i18n';
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { dialogs } from '../../lib/stores/dialogs';
   import { motifCercle } from '../../lib/circle';
   import { relireNotifications } from '../../lib/circleNotifications';
@@ -128,7 +129,7 @@
         {#each liste as c (c.id)}
           <button type="button" class="conversation" class:choisie={choix?.id === c.id} disabled={occupe} onclick={() => void geste(() => ouvrir(c))}>
             <strong>{c.contact.name}</strong>{#if c.unread_count}<span class="pastille">{c.unread_count}</span>{/if}
-            <span class="extrait">{c.last_message?.body ?? c.last_message?.card?.title ?? ''}</span>
+            <span class="extrait" use:bulleTexte>{c.last_message?.body ?? c.last_message?.card?.title ?? ''}</span>
           </button>
         {/each}
       </nav>
