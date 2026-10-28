@@ -36,7 +36,7 @@ beforeEach(() => {
 afterEach(async () => {
   if (instance) await unmount(instance);
   instance = null; hote?.remove(); hote = null;
-  playbackHistory.clear(); vi.unstubAllGlobals();
+  playbackHistory.clear(); vi.unstubAllGlobals(); vi.useRealTimers();
 });
 
 describe('web#2480 — titres identifiés sous leur station radio', () => {
@@ -72,7 +72,10 @@ describe('web#2480 — titres identifiés sous leur station radio', () => {
   it('monte l’historique et ouvre aussi les titres anciens conservés sans contexte de station', async () => {
     // Ancien carnet : l’identité du flux et le nom de station existaient déjà,
     // seul contexte manquait. Aucune réécriture du serveur ou du carnet.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-28T12:00:00Z'));
     playbackHistory.add(nowPlayingToTrack(radio('https://radio.example/bbc', 'Take California')), 'Salon');
+    vi.setSystemTime(new Date('2026-10-28T12:03:00Z'));
     playbackHistory.add(nowPlayingToTrack(radio('https://radio.example/bbc', 'Blue Monday')), 'Salon');
     hote = document.createElement('div'); document.body.append(hote);
     instance = mount(HistoriqueV2, { target: hote }); flushSync(); await respirer();
