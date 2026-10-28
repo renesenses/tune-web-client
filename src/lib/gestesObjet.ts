@@ -402,21 +402,18 @@ export function contexteDObjet(
   return null;
 }
 
-/** Le corps augmenté du conteneur. `/play` lit `context_type`/`context_id`
- *  (son service est celui du corps) ; `queue/add` lit aussi `context_source`. */
+/** Le conteneur garde son propre espace de noms, même dans une liste mixte. */
 export function avecContexte<C extends object>(
   corps: C,
   contexte: ReturnType<typeof contexteDObjet>,
-  pourLaFile: boolean,
+  _pourLaFile: boolean,
 ): C {
   if (!contexte) return corps;
-  return pourLaFile
-    ? { ...corps, ...contexte }
-    : { ...corps, context_type: contexte.context_type, context_id: contexte.context_id };
+  return { ...corps, ...contexte };
 }
 
-const gestesDeLecture = (zid: number, contexte: ReturnType<typeof contexteDObjet> = null) => ({
-  lire: (c: any) => playAndSync(zid, avecContexte(c, contexte, false)),
+const gestesDeLecture = (zid: number, contexte: ReturnType<typeof contexteDObjet> = null, shuffled = false) => ({
+  lire: (c: any) => playAndSync(zid, { ...avecContexte(c, contexte, false), ...(shuffled ? { context_shuffle: true } : {}) }),
   enfiler: (c: any) => api.addToQueue(zid, avecContexte(c, contexte, true)),
 });
 
@@ -453,7 +450,7 @@ async function lire(o: ObjetMenu, aleatoire: boolean): Promise<void> {
     // #6466 — la liste d'un artiste, d'un label… part avec son conteneur.
     const contexte = contexteDObjet(o);
     const n = aleatoire
-      ? await lireListeAleatoire(pistes, gestesDeLecture(zid, contexte))
+      ? await lireListeAleatoire(pistes, gestesDeLecture(zid, contexte, true))
       : await lireListe(pistes, gestesDeLecture(zid, contexte));
     if (!n) notifications.error(traduire('collections.noTracks' as any));
   } catch (e) {

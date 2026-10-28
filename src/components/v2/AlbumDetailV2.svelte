@@ -1231,7 +1231,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       const tete = l.length > 1 ? corpsDeTeteDeListe(l[0]) : corpsDeLecture(l[0]);
       if (!tete) return;
       (async () => {
-        await playAndSync(zid, { ...tete, ...contexteAlbum() } as any);
+        await playAndSync(zid, { ...tete, ...contexteAlbum(), context_shuffle: true } as any);
         const reste = corpsDeFileListe(l.slice(1));
         if (reste) await api.addToQueue(zid, { ...reste, ...contexteAlbum() });
       })().catch(signalerEchecLecture);
@@ -1239,7 +1239,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     }
     if (album.id == null) return;
     const ids = melanger(tracks.map((t) => t.id).filter((x): x is number => x != null));
-    playAndSync(zid, { track_ids: ids, ...contexteAlbum() }).catch(signalerEchecLecture);
+    playAndSync(zid, { track_ids: ids, ...contexteAlbum(), context_shuffle: true }).catch(signalerEchecLecture);
   }
   /**
    * Les deux boutons de file, pour les QUATRE origines.

@@ -197,10 +197,10 @@
       ? { context_type: 'playlist' as const, context_id: String(item.pl.id), context_source: 'local' }
       : { context_type: 'playlist' as const, context_id: String(item.pl.source_id), context_source: item.service };
   }
-  function gestesDeLaPlaylist(zid: number) {
+  function gestesDeLaPlaylist(zid: number, shuffled = false) {
     const c = conteneur();
     return {
-      lire: (corps: any) => playAndSync(zid, { ...corps, ...c }),
+      lire: (corps: any) => playAndSync(zid, { ...corps, ...c, ...(shuffled ? { context_shuffle: true } : {}) }),
       enfiler: (corps: any) => api.addToQueue(zid, { ...corps, ...c }),
     };
   }
@@ -209,7 +209,7 @@
     if (zid == null) return;
     melangeEnCours = true;
     try {
-      const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid));
+      const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid, true));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
       notifications.error(errText(e) ?? $tr('common.error'));

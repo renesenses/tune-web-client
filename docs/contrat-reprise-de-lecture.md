@@ -27,3 +27,6 @@ Les clients utilisent la reprise serveur quand `resume_key` existe ; les ancienn
 
 Serveur : contexte démarré puis GET ; file reconstruite et dernier titre rejoué (album/playlist/titre seul, local et service) ; ordre aléatoire ; contexte ajouté mais jamais démarré absent ; contexte démarré depuis un ajout présent ; podcast persisté et recul configuré/borné à zéro. Tests sans sortie sonore. Contre-épreuve compilable en retirant le correctif, restauration par copie puis vert.
 Clients : décodage, libellé/vignette, requête sur la zone active, fallback ancien serveur et erreur ; réglage web. Builds/tests Shrek uniquement sauf simulateur iOS muet sur Mac.
+
+### Ordre aléatoire matérialisé par un client
+Un `POST /zones/{zone_id}/play` peut porter `context_shuffle: true` lorsque le client a mélangé lui-même la liste. La tête puis les ajouts conservent cet ordre ; le serveur ne le retire pas au titre suivant. Ce champ facultatif ne change pas le drapeau d’aléatoire de la zone. Une reprise normale reconstruit le conteneur complet même si plusieurs titres seulement avaient été sélectionnés. Une reprise mélangée conserve son instantané sans consulter un nouvel ordre du conteneur.
