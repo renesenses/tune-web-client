@@ -78,3 +78,20 @@ describe('les appareils proposés à la création d’une zone', () => {
     expect(c.filter((x) => x.groupe === 'reseau').map((x) => x.deviceId)).toEqual(['uuid:beosound-dlna']);
   });
 });
+
+
+it('#2386 : garde une sortie ASIO du registre même absente de devices/audio', () => {
+  const candidats = candidatsNouvelleZone([], [dev({
+    id: 'local:Topping ASIO', name: 'Topping ASIO 6.16.0', type: 'local',
+  })], [], 'nav');
+  expect(candidats.find(c => c.deviceId === 'local:Topping ASIO')).toMatchObject({
+    groupe: 'local', outputType: 'local', nom: 'Topping ASIO 6.16.0', cle: 'local|local:Topping ASIO',
+  });
+});
+it('#2386 : une même identité dans les deux sources ne se répète pas', () => {
+  const candidats = candidatsNouvelleZone([loc('Topping ASIO')], [
+    dev({ id: 'local:Topping ASIO', name: 'Topping ASIO', type: 'local' }),
+    dev({ id: 'local:absent', name: 'Absent', type: 'local', available: false }),
+  ], [], 'nav');
+  expect(candidats.filter(c => c.groupe === 'local').map(c => c.deviceId)).toEqual(['local:Topping ASIO']);
+});
