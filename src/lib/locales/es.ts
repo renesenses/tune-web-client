@@ -99,6 +99,7 @@ export default {
   'oxygen.noMeta': 'Sin metadatos extendidos.',
   'oxygen.selectTrack': 'Selecciona una pista.',
   'oxygen.tracks': 'pistas',
+  'oxygen.albums': 'álbumes',
   'oxygen.truncated': 'Vista parcial:',
   'oxygen.loadMore': 'Cargar más',
   'oxygen.new': 'nuevo',

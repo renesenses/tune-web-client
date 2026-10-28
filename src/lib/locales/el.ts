@@ -1,4 +1,5 @@
 export default {
+  "oxygen.albums": "άλμπουμ",
   "oxygen.tagSel.selectAll": "Επιλογή όλων ({count})",
   "oxygen.tagSel.selected": "{count} επιλεγμένα",
   "oxygen.tagSel.applyTag": "Εφαρμογή ετικέτας…",

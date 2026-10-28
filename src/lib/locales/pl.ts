@@ -1,4 +1,5 @@
 export default {
+  "oxygen.albums": "albumy",
   "oxygen.tagSel.selectAll": "Zaznacz wszystko ({count})",
   "oxygen.tagSel.selected": "Zaznaczono: {count}",
   "oxygen.tagSel.applyTag": "Zastosuj tag…",

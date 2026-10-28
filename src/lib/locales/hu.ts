@@ -1,4 +1,5 @@
 export default {
+  "oxygen.albums": "album",
   "oxygen.tagSel.selectAll": "Összes kijelölése ({count})",
   "oxygen.tagSel.selected": "{count} kijelölve",
   "oxygen.tagSel.applyTag": "Címke hozzárendelése…",

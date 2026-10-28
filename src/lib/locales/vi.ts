@@ -1,4 +1,5 @@
 export default {
+  "oxygen.albums": "album",
   "oxygen.tagSel.selectAll": "Chọn tất cả ({count})",
   "oxygen.tagSel.selected": "Đã chọn {count}",
   "oxygen.tagSel.applyTag": "Gắn thẻ…",
