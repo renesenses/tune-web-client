@@ -953,7 +953,7 @@
            se lit comme une bibliothèque amputée. -->
       {#if partielAffiche}
         <div class="more">
-          <span class="moretxt">{$t('oxygen.truncated')} {nombreAffiche.toLocaleString('fr')}{#if totalAffiche != null && totalAffiche >= nombreAffiche} / {totalAffiche.toLocaleString('fr')}{/if} {$t(uniteAffichee)}</span>
+          <span class="moretxt">{$t('oxygen.truncated')} {nombreAffiche.toLocaleString('fr')}{#if totalAffiche != null && totalAffiche >= nombreAffiche}{' / '}{totalAffiche.toLocaleString('fr')}{/if} {$t(uniteAffichee)}</span>
           <button class="morebtn" disabled={loadingMore || cardsLoading} onclick={() => mode === 'cards' ? loadCards(true) : loadMore()}>
             {loadingMore || cardsLoading ? $t('oxygen.loading') : $t('oxygen.loadMore')}
           </button>
