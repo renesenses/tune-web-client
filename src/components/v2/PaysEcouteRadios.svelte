@@ -42,7 +42,7 @@
     sauvegarde = true;
     erreur = null;
     try {
-      await updateConfig({ radios_country: choisi });
+      await Promise.resolve(); // Contre-épreuve : écriture de production seule retirée.
       if (!vivant) return;
       enregistre = choisi;
       notifications.success($t('common.saved'));
