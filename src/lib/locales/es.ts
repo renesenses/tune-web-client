@@ -5367,6 +5367,7 @@ export default {
   "v2.cfp.errRefused": "El complemento rechazó este ajuste.",
   "v2.plug.nativeTitle": "Complementos de audio nativos",
   "v2.plug.nativeBadge": "Nativo",
+  "v2.plug.pureBypassed": "Omitido por PURE en la zona actual. Se conservan los ajustes.",
   "v2.plug.nativeHint": "Procesamiento de audio instalado en este servidor desde un paquete firmado.",
   "v2.plug.nativeSettings": "Ajustar",
   "v2.plug.native_charge": "Cargado",

@@ -5221,6 +5221,7 @@ export default {
   "v2.cfp.errRefused": "Το πρόσθετο απέρριψε αυτή τη ρύθμιση.",
   "v2.plug.nativeTitle": "Εγγενή πρόσθετα ήχου",
   "v2.plug.nativeBadge": "Εγγενές",
+  "v2.plug.pureBypassed": "Παρακάμπτεται από το PURE στην τρέχουσα ζώνη. Οι ρυθμίσεις διατηρούνται.",
   "v2.plug.nativeHint": "Επεξεργασία ήχου εγκατεστημένη σε αυτόν τον διακομιστή από υπογεγραμμένο πακέτο.",
   "v2.plug.nativeSettings": "Ρυθμίσεις",
   "v2.plug.native_charge": "Φορτώθηκε",

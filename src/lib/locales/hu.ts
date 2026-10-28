@@ -5321,6 +5321,7 @@ export default {
   "v2.cfp.errRefused": "A bővítmény elutasította ezt a beállítást.",
   "v2.plug.nativeTitle": "Natív hangbővítmények",
   "v2.plug.nativeBadge": "Natív",
+  "v2.plug.pureBypassed": "A PURE megkerüli az aktuális zónában. A beállítások megmaradnak.",
   "v2.plug.nativeHint": "Aláírt csomagból ezen a szerveren telepített hangfeldolgozás.",
   "v2.plug.nativeSettings": "Beállítás",
   "v2.plug.native_charge": "Betöltve",

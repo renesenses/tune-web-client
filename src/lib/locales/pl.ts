@@ -5219,6 +5219,7 @@ export default {
   "v2.cfp.errRefused": "Wtyczka odrzuciła to ustawienie.",
   "v2.plug.nativeTitle": "Natywne wtyczki audio",
   "v2.plug.nativeBadge": "Natywna",
+  "v2.plug.pureBypassed": "Pomijane przez PURE w bieżącej strefie. Ustawienia są zachowane.",
   "v2.plug.nativeHint": "Przetwarzanie dźwięku zainstalowane na tym serwerze z podpisanego pakietu.",
   "v2.plug.nativeSettings": "Ustawienia",
   "v2.plug.native_charge": "Załadowana",
