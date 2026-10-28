@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // tune-server-rust#6516 — l'annuaire radio-metadata.fr complet dans « Radio en
 // direct ». Le serveur garde l'annuaire en cache et le rend filtré ; l'écran
@@ -48,6 +49,7 @@ let hote: HTMLDivElement;
 let instance: Record<string, unknown> | null = null;
 
 beforeEach(() => {
+  clearViewContext('radios');
   for (const fn of Object.values(mocks)) fn.mockReset();
   mocks.getRadios.mockResolvedValue([FIP_LOCALE]);
   mocks.exportRadiosUrl.mockReturnValue('#');
