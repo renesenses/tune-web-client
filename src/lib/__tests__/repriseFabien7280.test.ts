@@ -16,6 +16,19 @@ describe('Reprise de lecture de Fabien #7280', () => {
     await rows[0].jouer!(27);
     expect(mocks.resumeListening).toHaveBeenLastCalledWith(27, 'opaque');
   });
+  it.each(['qobuz', 'tidal'])('%s : album, playlist et titre seul gardent vignette et clé serveur', async (source) => {
+    mocks.play.mockClear();
+    for (const type of ['album', 'playlist', 'track']) {
+      const key = `${source}-${type}`;
+      mocks.getContinueListening.mockResolvedValue([{ context_type: type, context_id: 'non-numerique', source, title: 'Titre seul', last_track_title: 'Dernier titre', cover_path: `https://${source}.invalid/contexte.jpg`, position_ms: 42000, resume_key: key }]);
+      const rows = await widgetParId('reprendre')!.charger(ctx);
+      expect(rows).toHaveLength(1);
+      expect(rows[0].cover).toBe(`https://${source}.invalid/contexte.jpg`);
+      await rows[0].jouer!(27);
+      expect(mocks.resumeListening).toHaveBeenLastCalledWith(27, key);
+    }
+    expect(mocks.play).not.toHaveBeenCalled();
+  });
   it('propage un refus de reprise sans lancer un autre album', async () => {
     mocks.resumeListening.mockRejectedValueOnce(new Error('reprise périmée'));
     mocks.getContinueListening.mockResolvedValue([{ context_type: 'album', title: 'Album', resume_key: 'absente', cover_path: 'x' }]);

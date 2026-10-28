@@ -10,10 +10,11 @@ Bertrand : 1 « Aléatoire » → conserver l'ordre aléatoire mémorisé ; 2 et
 
 ## Lecture
 
-`GET /api/v1/home/continue-listening?limit=N&zone_id=Z` conserve une liste JSON et ses champs historiques. Les entrées nouvelles portent `resume_key` (opaque), `last_track_title`, `position_ms` (podcast seulement), `context_type`, `context_id`, `source`, `title`, `cover_path`.
+`GET /api/v1/home/continue-listening?limit=N&zone_id=Z` conserve une liste JSON et ses champs historiques. Les entrées nouvelles portent `resume_key` (opaque), `last_track_title`, `position_ms` (podcast et titre seul), `context_type`, `context_id`, `source`, `title`, `cover_path`.
 Album/playlist : la vignette est celle du conteneur ; le libellé visible est le dernier titre démarré (`last_track_title`). Podcast : vignette et nom du podcast (`title`), épisode identifié séparément.
 
-`POST /api/v1/home/continue-listening/{zone_id}/resume` avec `{"resume_key":"…"}` reconstruit la file mémorisée de ce contexte, sélectionne le dernier titre démarré et le rejoue depuis zéro ; la suite reste dans la file. L'ordre aléatoire mémorisé est conservé, y compris après redémarrage. Un identifiant de service n'est jamais interprété comme un identifiant de bibliothèque. Le serveur résout de nouveau les pistes par leur service, sans mémoriser un flux temporaire.
+`POST /api/v1/home/continue-listening/{zone_id}/resume` avec `{"resume_key":"…"}` reconstruit la file mémorisée de ce contexte, sélectionne le dernier titre démarré et le rejoue depuis zéro pour un album ou une playlist ; la suite reste dans la file. L'ordre aléatoire mémorisé est conservé, y compris après redémarrage. Un identifiant de service n'est jamais interprété comme un identifiant de bibliothèque. Le serveur résout de nouveau les pistes par leur service, sans mémoriser un flux temporaire.
+Titre seul : vignette du titre, reprise à sa position mémorisée, sans recul (décision de Bertrand du 28/10 à 20 h).
 `POST /podcasts/play/{zone_id}` accepte en plus `podcast_id` (flux RSS ou identifiant stable) ; les clients envoient l’image du podcast, avant celle propre à l’épisode. Une seule entrée par podcast identifié, mise à jour avec son dernier épisode démarré. Ancien client : repli sur le nom transmis.
 
 Podcast : relancer le même épisode à `max(0, position_ms - X * 1000)`. Le réglage serveur `continue_listening_rewind_seconds`, exposé par `GET/PATCH /system/config`, est un entier de 0 à 300 ; défaut : **10 secondes**, confirmé par la décision de coordination du 28/10 (section « SESSION REPRISE (n° 4) — DÉCISION 28/10 sur le recul des podcasts »). La position est persistée pendant l'écoute et lors d'une pause/arrêt.
