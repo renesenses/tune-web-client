@@ -5909,5 +5909,29 @@ export default {
   "v2.carte.pod.episodes": "Επεισόδια",
   "volume.deviceObserved": "AIR (ένδειξη): {value} dB",
 
+
+  // Tune Circle — messagerie privée rc9 (#6902).
+  "v2.circle.msg.title": "Μηνύματα",
+  "v2.circle.msg.privacy": "Η Mozaiklabs μπορεί να διαβάσει αυτά τα μηνύματα για έλεγχο μετά από αναφορά. Δεν έχουν διατερματική κρυπτογράφηση.",
+  "v2.circle.msg.empty": "Γράψτε σε μια αποδεκτή επαφή για να ξεκινήσετε.",
+  "v2.circle.msg.older": "Παλαιότερα μηνύματα",
+  "v2.circle.msg.me": "Εγώ",
+  "v2.circle.msg.write": "Σύνταξη",
+  "v2.circle.msg.send": "Αποστολή",
+  "v2.circle.msg.playHere": "Ακρόαση στο σπίτι",
+  "v2.circle.msg.select": "Επιλογή για αναφορά",
+  "v2.circle.msg.deleteConfirm": "Διαγραφή αυτού του μηνύματος και για τους δύο συμμετέχοντες;",
+  "v2.circle.msg.report": "Αναφορά",
+  "v2.circle.msg.reportHint": "Επιλέξτε έως 20 μηνύματα. Ένα άτομο εξετάζει την αναφορά. Μπορείτε επίσης να αποκλείσετε ή να αφαιρέσετε την επαφή.",
+  "v2.circle.msg.reason": "Αιτία",
+  "v2.circle.msg.comment": "Προαιρετικό σχόλιο",
+  "v2.circle.msg.harassment": "Παρενόχληση",
+  "v2.circle.msg.spam": "Ανεπιθύμητα",
+  "v2.circle.msg.hate": "Μίσος",
+  "v2.circle.msg.illegal": "Παράνομο περιεχόμενο",
+  "v2.circle.msg.other": "Άλλο",
+  "v2.circle.msg.notFound": "Αυτή η κάρτα δεν βρέθηκε στη βιβλιοθήκη σας.",
+  "v2.circle.msg.share": "Κοινοποίηση σε μήνυμα",
+  "v2.circle.msg.recipient": "Παραλήπτης",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

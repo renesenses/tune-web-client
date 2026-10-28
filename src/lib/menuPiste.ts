@@ -187,6 +187,7 @@ export interface CapacitesPiste {
  * pas, et l'entrée disparaît — au lieu d'ouvrir sur rien.
  */
 export interface GestesPiste {
+  partagerMessage?: () => void;
   lire?: () => void;
   ensuite?: () => void;
   aLaFile?: () => void;
@@ -303,6 +304,7 @@ export function entreesMenuPiste(
   // Tune Circle T5 (#5328) : juste sous l'entrée des playlists, même icône —
   // c'est le même geste, vers une playlist commune à un cercle.
   pousser(!!c.playlistDeCercle, 'v2.circle.pl.addToCircle', ICONES.playlist, g.ajouterAPlaylistDeCercle);
+  pousser(!!c.playlistDeCercle, 'v2.circle.msg.share', ICONES.playlist, g.partagerMessage);
   /**
    * « Aller à l'artiste » et « Aller à l'album » — #3777, famille C.
    *
