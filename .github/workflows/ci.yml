@@ -23,6 +23,7 @@ name: CI
 # Une branche qui ne fusionne pas a d'autant plus besoin d'une porte : rien ne
 # la rattrapera plus tard.
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main, feat/client-v2-niveaux, feat/v2-avatar-identite-et-i18n]
