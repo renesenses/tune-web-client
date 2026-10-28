@@ -134,6 +134,7 @@
   import { serverIdDepuisUrl } from '../../lib/bridge';
   const parLeRelais = serverIdDepuisUrl() !== null;
   import { demandeCercle } from '../../lib/circlePlaylists';
+  import { carteAPartager } from '../../lib/circleMessagerie';
   import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
   // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
   // « TV » juste au-dessus. Signale manquant par Bertrand le 05/09/2026 :
@@ -925,6 +926,11 @@
     {/await}
   {/if}
 
+  {#if $carteAPartager}
+    {#await import('./PartageMessageV2.svelte') then m}
+      <m.default carte={$carteAPartager} />
+    {/await}
+  {/if}
   {#if $demandeCercle}
     {#await import('./AjoutGroupeCercleV2.svelte') then m}
       <m.default demande={$demandeCercle} onClose={() => demandeCercle.set(null)} />
