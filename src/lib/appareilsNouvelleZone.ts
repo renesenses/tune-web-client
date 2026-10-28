@@ -50,6 +50,16 @@ export function candidatsNouvelleZone(
     if (!d?.id) continue;
     out.push({ cle: `local|${d.id}`, groupe: 'local', nom: d.name, outputType: 'local', deviceId: d.id });
   }
+  // #2386 : le registre peut connaître une sortie ASIO absente de la liste
+  // audio. La barre latérale lit ce registre : les réglages doivent le garder.
+  const locauxConnus = new Set(out.filter(c => c.groupe === 'local').map(c => c.deviceId));
+  for (const d of decouverts ?? []) {
+    if (d?.type !== 'local' || !d.id || d.available === false) continue;
+    const id = deviceZoneTargetId(d);
+    if (locauxConnus.has(id)) continue;
+    locauxConnus.add(id);
+    out.push({ cle: `local|${id}`, groupe: 'local', nom: d.name, outputType: 'local', deviceId: id });
+  }
   for (const d of decouverts ?? []) {
     if (!d?.id || d.available === false || d.type === 'local' || d.type === 'browser') continue;
     if (!deviceHasBoundZone(d, liees)) {
