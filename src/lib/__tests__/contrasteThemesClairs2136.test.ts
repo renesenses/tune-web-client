@@ -174,12 +174,16 @@ describe('Texte atténué des thèmes v2 clairs — ≥ 4,5:1', () => {
     expect(progres).toMatch(/\.acx-sub\s*\{[^}]*color: var\(--tune-text-muted\)/);
   });
 
-  it('les thèmes sombres gardent leur --v2-txt3 (rien ne change pour eux)', () => {
+  it('les thèmes sombres ont le --v2-txt3 relevé par #2416', () => {
+    // Ce test figeait les valeurs d'origine (#4F5D6D, #4D5B70, #5D6788,
+    // #7A6753) : « rien ne change pour eux » au moment où seuls les thèmes
+    // clairs étaient corrigés. #2416 les relève exprès (2,3 à 2,9:1 → 4,65:1,
+    // testeur Alex, rc8) ; la mesure vit dans `contrasteThemesSombres2416`.
     const attendu: Record<string, string> = {
-      'black-green': '#4F5D6D',
-      'black-blue': '#4D5B70',
-      'midnight-orange': '#5D6788',
-      brown: '#7A6753',
+      'black-green': '#7D8EA1',
+      'black-blue': '#7C8DA5',
+      'midnight-orange': '#818AA9',
+      brown: '#9E8870',
     };
     for (const [t, v] of Object.entries(attendu)) expect(resoudre(t, '--v2-txt3'), t).toBe(v);
   });

@@ -113,7 +113,9 @@
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { notifications } from '../../lib/stores/notifications';
-  import { streamingServices } from '../../lib/stores/streaming';
+  import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
+  import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
+  import { infoConteneur } from '../../lib/conteneurServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -1724,6 +1726,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     return formeDesIdentifiants(name) === 'pseudo_motdepasse';
   }
 
+  /**
+   * #2408 — LA BARRE LATÉRALE LIT LE MAGASIN, PAS CET ÉCRAN.
+   *
+   * `svcs` est l'état LOCAL de cette carte. La barre latérale (sous
+   * « Streaming »), la recherche et les autres écrans lisent le magasin
+   * `streamingServices`, chargé une fois par page. Une connexion réussie ici
+   * ne mettait à jour que `svcs` : Qobuz restait « Connected » dans Réglages
+   * et absent de la barre jusqu'à un rechargement ou une navigation
+   * (testeur Alex, rc8). Même chose à la déconnexion.
+   *
+   * La liste est RELUE chez le serveur, qui fait foi (nom du compte, offre),
+   * et rangée dans le magasin. Une déconnexion voulue n'est pas une session
+   * expirée : on retire l'alerte que le magasin lève quand `authenticated`
+   * passe à faux sur un service actif.
+   */
+  async function refleterDansLeMagasin(name: string, connecte: boolean) {
+    try {
+      const relus = await api.getStreamingServices();
+      if (relus) streamingServices.set(relus);
+      else throw new Error('liste absente');
+    } catch {
+      streamingServices.update((s) =>
+        s[name] ? { ...s, [name]: { ...s[name], authenticated: connecte } } : s);
+    }
+    if (!connecte) expiredStreamingSession.update((e) => (e?.service === name ? null : e));
+  }
+
   function stopPoll(name: string) {
     if (polls[name]) { clearInterval(polls[name]); delete polls[name]; }
   }
@@ -1737,10 +1766,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           svcs = { ...svcs, [name]: { ...svcs[name], ...st } };
           deviceFlow = { ...deviceFlow, [name]: undefined };
           svcBusy = null;
+          void refleterDansLeMagasin(name, true);
         }
       } catch { /* le sondage peut echouer sans que ce soit une panne */ }
     }, 3000);
   }
+
+  /** Le nom d'un service tel qu'on l'écrit : « Qobuz », « TIDAL », « YouTube ». */
+  const nomAffiche = (n: string) => nomDeService(n);
 
   async function connectSvc(name: string) {
     svcBusy = name;
@@ -1754,6 +1787,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       if (res?.authenticated) {
         svcs = { ...svcs, [name]: { ...svcs[name], authenticated: true } };
         svcBusy = null;
+        void refleterDansLeMagasin(name, true);
       } else if (res?.verification_url) {
         const raw = res.verification_url;
         const url = raw.startsWith('http') ? raw : `https://${raw}`;
@@ -1778,7 +1812,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // générique. Un pseudo mal orthographié est le cas le plus probable ;
       // autant le dire.
       const motif = typeof e?.message === 'string' ? e.message.trim() : '';
-      svcErr = { ...svcErr, [name]: motif || get(t)('settings.errConnectFailed') };
+      // #2406 — un refus d'identifiants (Qobuz) se dit en une phrase traduite ;
+      // un corps JSON brut du service n'est jamais montré tel quel.
+      const nature = natureErreurConnexion(e);
+      svcErr = {
+        ...svcErr,
+        [name]:
+          nature === 'identifiants'
+            ? get(t)('settings.errCredentialsNotRecognised' as any).replace('{service}', nomAffiche(name))
+            : nature === 'brut'
+              ? get(t)('settings.errConnectFailed')
+              : motif || get(t)('settings.errConnectFailed'),
+      };
       svcBusy = null;
     }
   }
@@ -1828,6 +1873,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       await api.disconnectStreaming(name);
       svcs = { ...svcs, [name]: { ...svcs[name], authenticated: false, username: null } };
+      void refleterDansLeMagasin(name, false);
     } catch { svcErr = { ...svcErr, [name]: get(t)('settings.errDisconnectFailed') }; }
   }
   // Serveur #5427 — l'ARL Deezer se saisit sur la carte Streaming. Offert
@@ -1864,6 +1910,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       } catch {
         svcs = { ...svcs, deezer: { ...svcs.deezer, authenticated: true } };
       }
+      void refleterDansLeMagasin('deezer', true);
     }
     svcBusy = null;
   }
@@ -1939,6 +1986,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         deviceFlow = { ...deviceFlow, spotify: undefined };
         spotifyRappelColle = '';
         svcBusy = null;
+        void refleterDansLeMagasin('spotify', true);
       }
     } catch (e: any) {
       const motif = typeof e?.message === 'string' ? e.message.trim() : '';
@@ -3015,7 +3063,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * l'utilisateur redemande le redémarrage, et l'écran se remet à sonder.
    */
   async function redemarrerServeur() {
-    if (!(await dialogs.confirm(get(t)('settings.restartConfirm' as any), { danger: true }))) return;
+    // #2414 — dans un conteneur, « Redémarrer » ne se comporte pas comme sur
+    // une machine ordinaire : on le dit AVANT, et si le serveur ne revient pas.
+    // Une erreur de lecture (serveur plus ancien) ne bloque rien.
+    let conteneur: ReturnType<typeof infoConteneur> = null;
+    try { conteneur = infoConteneur(await api.getSystemEnv()); } catch { /* pas d'indice */ }
+    const tr = get(t) as (k: string) => string;
+    const note = conteneur
+      ? ' ' + tr('settings.restartContainerNote').replace('{engine}', conteneur.moteur).replace('{command}', conteneur.commande)
+      : '';
+    if (!(await dialogs.confirm(tr('settings.restartConfirm') + note, { danger: true }))) return;
     redemarrage = true;
     try {
       await api.restartServer();
@@ -3037,7 +3094,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       recharger: () => window.location.reload(),
       renoncer: () => {
         redemarrage = false;
-        notifications.error(get(t)('settings.updateReloadGaveUp' as any));
+        notifications.error(
+          conteneur
+            ? tr('settings.restartContainerGaveUp').replace('{engine}', conteneur.moteur).replace('{command}', conteneur.commande)
+            : tr('settings.updateReloadGaveUp'),
+          12000,
+        );
       },
     });
   }
@@ -4496,6 +4558,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <CreteMetre style={$preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT} hauteur={22} largeur={150} />
                   </span>
                 </div>
+              </div>
+
+              <!-- #2429 — le visualiseur à barres de la barre de lecture, retirable
+                   comme les crêtes (testeur Alex, rc8). Affiché par défaut. -->
+              <div class="row" data-visualiseur-barre>
+                <div class="lbl">
+                  <span>{$t('v2.set.barViz' as any)}</span>
+                  <span class="hint">{$t('v2.set.barVizHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.visualiseurBarre ?? true}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, visualiseurBarre: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
               </div>
 
               <!-- La barre de lecture à VU-MÈTRES — Bertrand, 27/09/2026, sur
@@ -6788,7 +6866,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 « Arrêter » est irréversible côté utilisateur : il faut un accès
                 à la machine pour relancer. Sa confirmation est `danger`.
               -->
-              <div class="inline">
+              <!-- #2407 — UN conteneur pour les gestes de service, journaux et
+                   diagnostic compris. Ils vivaient dans deux `.inline` collés
+                   l'un à l'autre, sans marge : « Restart server », « Stop
+                   server », « Download logs » et « Download diagnostics »
+                   se touchaient (testeur Alex, rc8). Flex + gap, comme le
+                   reste des réglages. -->
+              <div class="actions-serveur" data-actions-serveur>
                 <button class="lnk" disabled={redemarrage} onclick={redemarrerServeur}>
                   {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
                 </button>
@@ -6800,10 +6884,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {extinctionEnCours ? $t('diagnostics.shuttingDown' as any) : $t('diagnostics.shutdown' as any)}
                   </button>
                 {/if}
-              </div>
-              <!-- Point 3 du fil 1780 : les journaux et le diagnostic, ici
-                   comme dans la coquille actuelle. -->
-              <div class="inline">
+                <!-- Point 3 du fil 1780 : les journaux et le diagnostic, ici
+                     comme dans la coquille actuelle. -->
                 <button class="lnk" disabled={journauxEnCours} onclick={telechargerLesJournaux}>
                   {$t('settings.downloadLogs' as any)}
                 </button>
@@ -8103,6 +8185,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .tok code{font:11.5px var(--v2-mono); color:var(--v2-txt); word-break:break-all}
   .warnline{font-size:11.5px; line-height:1.45; color:var(--v2-acc-tint)}
   .inline{display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:0 0 auto}
+  .actions-serveur{display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:16px 0 4px}
   .txt{height:34px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
     color:var(--v2-txt); font:13px var(--v2-sans); padding:0 11px; outline:none; width:210px}
   .txt.num{width:78px; font-family:var(--v2-mono)}

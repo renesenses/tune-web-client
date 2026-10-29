@@ -2,6 +2,7 @@ import { avecLangueSignal } from './langueRequete';
 // REST API client for tune-server
 
 import { notifications } from './stores/notifications';
+import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrageServeur';
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
@@ -570,6 +571,17 @@ export async function fetchJSON<T>(
       throw sentinelle;
     }
     const err = await apiError(response);
+    // #2413 — le 503 du répondeur de démarrage est une information traduite,
+    // pas un « Server error » : voir `demarrageServeur`.
+    if (response.status === 503) {
+      const phase = phaseDeDemarrage(err.corps);
+      if (phase !== null) {
+        err.message = signalerDemarrage(phase);
+        err.code = 'server_starting';
+        err.dejaAnnonce = true;
+        throw err;
+      }
+    }
     /**
      * 🔴 501 N'EST PAS UNE PANNE — #1007. Fabien, fil « v0.9.148 : v1 divers
      * bugs », point 4 : « Menu playlists : quand on rentre dans le menu, erreur
@@ -679,6 +691,8 @@ export async function fetchJSON<T>(
     }
     throw err;
   }
+  // #2413 — une réponse normale : si un toast de démarrage était posé, il part.
+  leServeurRepond();
   if (lireEntetes) {
     try { lireEntetes(response.headers); } catch { /* un en-tête illisible ne casse pas la lecture */ }
   }
@@ -775,6 +789,17 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
     // désormais la phrase de l'application.
     if (response.status === 402) throw (await refusPremiumDe(response))!;
     const err = await apiError(response);
+    // #2413 — le 503 du répondeur de démarrage est une information traduite,
+    // pas un « Server error » : voir `demarrageServeur`.
+    if (response.status === 503) {
+      const phase = phaseDeDemarrage(err.corps);
+      if (phase !== null) {
+        err.message = signalerDemarrage(phase);
+        err.code = 'server_starting';
+        err.dejaAnnonce = true;
+        throw err;
+      }
+    }
     /**
      * 🔴 501 N'EST PAS UNE PANNE — ici non plus (#1148).
      *
@@ -799,6 +824,7 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
     }
     throw err;
   }
+  leServeurRepond();
   try {
     const text = typeof response.text === 'function' ? await response.text() : '';
     return text && text.trim() ? (JSON.parse(text) as T) : undefined;
@@ -5744,6 +5770,14 @@ export function getSystemEnv() {
     spotify_redirect_uri_refus?: 'localhost' | 'http_hors_bouclage' | null;
     /** Fil 221 — `false` : le serveur n'a aucun Client ID Spotify (absent : serveur plus ancien). */
     spotify_client_id_configure?: boolean;
+    /**
+     * tune-server-rust#7074 — le moteur de conteneur où tourne le serveur
+     * (`docker`, `podman`, `kubernetes`, `container`), `null` sur une machine
+     * ordinaire. Absent : serveur plus ancien.
+     */
+    container?: string | null;
+    /** Le nom d'hôte du conteneur quand c'est un identifiant court (`docker restart <id>`). */
+    container_id?: string | null;
   }>(`${BASE}/system/env`);
 }
 
@@ -6999,14 +7033,41 @@ export function getProfilePreferences(profileId: number) {
  * elle l'etait deja, et le cas ne se presente pas — un seul ecran ecrit ces
  * reglages a la fois.
  */
-export async function setProfilePreferences(profileId: number, patch: Record<string, any>) {
-  let actuel: Record<string, any> = {};
-  try {
-    actuel = (await getProfilePreferences(profileId)) ?? {};
-  } catch {
-    // Reglages illisibles : on ecrit quand meme le correctif plutot que de
-    // perdre le geste de l'utilisateur.
-  }
+/**
+ * 🔴 #2410 — LES ÉCRITURES SONT EN FILE, ET UNE LECTURE RATÉE N'ÉCRIT PAS.
+ *
+ * `POST /settings` REMPLACE l'objet entier (voir plus haut), donc chaque
+ * écriture est « lire, fusionner, remplacer ». Deux défauts s'y cachaient, et
+ * tous deux font REVENIR des widgets que l'utilisateur a retirés :
+ *
+ * 1. **Lecture ratée = tout effacé.** Quand la relecture échouait (serveur
+ *    occupé, réseau coupé une seconde), on écrivait « quand même » le seul
+ *    correctif : toutes les autres clés — `home_widgets` comprise — étaient
+ *    remplacées par `{ la_clé_du_geste }`. Au chargement suivant, l'accueil
+ *    retombait sur la disposition par défaut : « Genres » et « My playlists »
+ *    revenaient (testeur Alex, rc8 — après l'envoi d'un rapport de bogue, quand
+ *    le serveur compose les diagnostics et répond lentement). Une lecture
+ *    ratée ne doit RIEN écrire : le geste échoue et le dit.
+ * 2. **Deux écritures qui se croisent.** Deux appels lisaient le même état,
+ *    puis écrivaient chacun le sien : le second remplaçait le premier. Les
+ *    écritures d'un même profil passent désormais l'une après l'autre.
+ */
+const fileDEcriture = new Map<number, Promise<unknown>>();
+
+export function setProfilePreferences(profileId: number, patch: Record<string, any>) {
+  const precedente = fileDEcriture.get(profileId) ?? Promise.resolve();
+  const courante = precedente.then(
+    () => ecrirePreferences(profileId, patch),
+    () => ecrirePreferences(profileId, patch),
+  );
+  // La file avance même si cette écriture échoue.
+  fileDEcriture.set(profileId, courante.catch(() => undefined));
+  return courante;
+}
+
+async function ecrirePreferences(profileId: number, patch: Record<string, any>) {
+  // Pas de `try/catch` : une lecture ratée interrompt l'écriture.
+  const actuel: Record<string, any> = (await getProfilePreferences(profileId)) ?? {};
   const fusion = { ...actuel, ...patch };
   await fetchJSON<unknown>(`${BASE}/profiles/${profileId}/settings`, {
     method: 'POST',
