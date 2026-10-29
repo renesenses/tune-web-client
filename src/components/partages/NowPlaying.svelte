@@ -14,7 +14,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { upNextTracks, upNextHiddenCount, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
   import type { QueueSheetState } from '../../lib/stores/queue';
   import { currentZoneId } from '../../lib/stores/zones';
-  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality, copyText, bitrateLabel } from '../../lib/utils';
+  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality, bitrateLabel } from '../../lib/utils';
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../../lib/npWheelGesture';
   import { largeurReserveeFileAttente } from '../../lib/fileAttenteReserve';
   import * as api from '../../lib/api';
@@ -25,7 +25,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { libelleCanaux } from '../../lib/canauxPiste';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { preferences } from '../../lib/stores/preferences';
-  import { partagerEcoute } from '../../lib/partageEcoute';
+  import PartageEcouteMenu from './PartageEcouteMenu.svelte';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import {
     CF_PRESETS, presetActif, reglagesCrossfeed, bornesCrossfeed, niveauEnPourcent,
@@ -470,43 +470,7 @@ import { ICONES } from '../../lib/menuPiste';
     }
   }
 
-  async function handleShare() {
-    if (zone?.id == null) return;
-    const zoneId = zone.id;
-    // #1521 — `navigator.clipboard` n'existe QU'EN contexte sécurisé, et les
-    // testeurs atteignent Tune en HTTP clair sur une IP de réseau local :
-    // l'appel jetait, et le `catch` accusait le partage alors que le partage
-    // avait réussi. `copyText()` (lib/utils.ts) retombe sur
-    // `execCommand('copy')` et DIT s'il a écrit ou non ; `partagerEcoute`
-    // sépare les trois causes qui partageaient un seul message.
-    const issue = await partagerEcoute({
-      demanderCarte: () => api.shareNowPlaying(zoneId),
-      copier: copyText,
-      origine: location.origin,
-    });
-    switch (issue.etat) {
-      case 'copie':
-        notifications.success($t('nowplaying.copiedToClipboard'));
-        break;
-      case 'sansPiste':
-        notifications.error($t('nowplaying.shareNothing' as any));
-        break;
-      case 'copieRefusee':
-        // Le partage EXISTE : on donne le lien à recopier à la main plutôt que
-        // d'annoncer un échec qui n'a pas eu lieu. Il reste affiché plus
-        // longtemps — on ne lit pas une adresse en cinq secondes.
-        notifications.error(
-          $t('nowplaying.shareCopyRefused' as any).replace('{lien}', issue.lien),
-          15000,
-        );
-        break;
-      default:
-        // L'échec ne meurt plus dans la console : le bouton disait « rien »
-        // depuis que la route est passée en POST.
-        console.error('Share error:', issue.erreur);
-        notifications.error($t('nowplaying.shareError' as any));
-    }
-  }
+
 
   async function loadNpCredits(trackId: number) {
     if (trackId === npCreditsTrackId) return;
@@ -1993,12 +1957,7 @@ import { ICONES } from '../../lib/menuPiste';
               EQ
             </button>
             {/if}
-            {#if !isRadio && normalizedTrack?.id != null}
-              <button class="np-credits-btn" onclick={handleShare}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-                {$t('nowplaying.share')}
-              </button>
-            {/if}
+            <PartageEcouteMenu piste={displayTrack} />
             <!-- Sleep, DSP et Réveil sont des réglages de ZONE, comme l'EQ
                  juste au-dessus (#534). Leurs trois gestionnaires ne prennent
                  que `zone.id` — `api.setSleepTimer`, `api.setDSP`,

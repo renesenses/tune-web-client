@@ -121,7 +121,7 @@ describe('ces trois réglages s’écrivent par la ZONE, jamais par la piste', (
 /**
  * Sans cette contre-épreuve, un analyseur cassé qui rendrait toujours une pile
  * vide laisserait tout ce qui précède au vert en n'ayant rien examiné. Les
- * crédits et le partage, eux, ont besoin d'un identifiant de piste : leurs
+ * crédits, eux, ont besoin d'un identifiant de piste : leurs
  * boutons DOIVENT rester gardés.
  */
 describe('l’analyseur voit encore les gardes légitimes', () => {
@@ -130,8 +130,8 @@ describe('l’analyseur voit encore les gardes légitimes', () => {
     expect(conditions.join(' && ')).toContain('normalizedTrack?.id != null');
   });
 
-  it('le partage aussi', () => {
-    const conditions = conditionsA(SOURCE, indiceUnique('onclick={handleShare}'));
-    expect(conditions.join(' && ')).toMatch(GARDE_DE_PISTE);
+  it('le partage public reste disponible pour les radios et services hors bibliothèque', () => {
+    const conditions = conditionsA(SOURCE, indiceUnique('<PartageEcouteMenu piste={displayTrack}'));
+    expect(conditions.join(' && ')).not.toMatch(GARDE_DE_PISTE);
   });
 });
