@@ -197,10 +197,10 @@
       ? { context_type: 'playlist' as const, context_id: String(item.pl.id), context_source: 'local' }
       : { context_type: 'playlist' as const, context_id: String(item.pl.source_id), context_source: item.service };
   }
-  function gestesDeLaPlaylist(zid: number) {
+  function gestesDeLaPlaylist(zid: number, shuffled = false) {
     const c = conteneur();
     return {
-      lire: (corps: any) => playAndSync(zid, { ...corps, ...c }),
+      lire: (corps: any) => playAndSync(zid, { ...corps, ...c, ...(shuffled ? { context_shuffle: true } : {}) }),
       enfiler: (corps: any) => api.addToQueue(zid, { ...corps, ...c }),
     };
   }
@@ -209,7 +209,7 @@
     if (zid == null) return;
     melangeEnCours = true;
     try {
-      const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid));
+      const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid, true));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
       notifications.error(errText(e) ?? $tr('common.error'));
@@ -507,7 +507,7 @@
            le rang 3 d'un titre Bandcamp — `each_key_duplicate`. Même règle que
            `PlaylistManagerView`. `sourceEnTableau` : la liste est MIXTE, on
            dit d'où vient chaque ligne (#1113). -->
-      <ListePistesV2 pistes={pistesVues} pochetteEnTableau clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
+      <ListePistesV2 pistes={pistesVues} pochetteEnTableau contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
              compilé ici : ses styles le suivent.

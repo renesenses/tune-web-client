@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Spol tilbake når podkaster gjenopptas (sekunder)",
+  "settings.podcastRewindHint": "Fortsett episoden før den lagrede posisjonen. 0–300 sekunder; standard: 10.",
   "v2.radio.listeningCountry": "Serverens lytteland",
   "v2.radio.countryUnset": "Ikke angitt — ubegrensede strømmer",
   "v2.radio.countryHint": "Velg lyttelandet ditt. Uten land velges bare ubegrensede strømmer.",
@@ -5939,5 +5941,6 @@ export default {
   "v2.circle.msg.notFound": "Dette kortet ble ikke funnet i biblioteket ditt.",
   "v2.circle.msg.share": "Del i en melding",
   "v2.circle.msg.recipient": "Mottaker",
+  "volume.outputRange": "Volumet er utenfor området: fra {min} % til {max} %, i trinn på {step} %.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

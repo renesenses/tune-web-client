@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Επιστροφή κατά τη συνέχιση podcast (δευτερόλεπτα)",
+  "settings.podcastRewindHint": "Συνέχιση του επεισοδίου πριν από την αποθηκευμένη θέση. 0–300 δευτερόλεπτα· προεπιλογή: 10.",
   "v2.radio.listeningCountry": "Χώρα ακρόασης του διακομιστή",
   "v2.radio.countryUnset": "Δεν ορίστηκε — ροές χωρίς περιορισμούς",
   "v2.radio.countryHint": "Επιλέξτε τη χώρα ακρόασης. Χωρίς χώρα επιλέγονται μόνο ροές χωρίς περιορισμούς.",
@@ -5939,5 +5941,6 @@ export default {
   "v2.circle.msg.notFound": "Αυτή η κάρτα δεν βρέθηκε στη βιβλιοθήκη σας.",
   "v2.circle.msg.share": "Κοινοποίηση σε μήνυμα",
   "v2.circle.msg.recipient": "Παραλήπτης",
+  "volume.outputRange": "Η ένταση είναι εκτός ορίων: από {min}% έως {max}%, με βήμα {step}%.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

@@ -718,6 +718,20 @@ function gesteHistorique(o: any, svc: string) {
   return undefined;
 }
 
+/** Reprise serveur, puis compatibilité avec les entrées historiques. */
+export function gesteReprise(o: any): Element['jouer'] {
+  if (typeof o.resume_key === 'string' && o.resume_key) return async (z) => (await import('./stores/zones')).resumeListeningAndSync(z, o.resume_key);
+  const rang = Number.isInteger(o.position) && o.position >= 0 ? { start_index: o.position } : {};
+  const svc = serviceDistant(champ(o, 'source') ?? null);
+  const id = champ(o, 'context_id');
+  if (svc && id && (o.context_type === 'album' || o.context_type === 'playlist')) {
+    return (z) => api.play(z, { source: svc as any, ...(o.context_type === 'playlist' ? { streaming_playlist_id: id } : { streaming_album_id: id }), ...rang });
+  }
+  if (!svc && o.context_type === 'playlist' && Number(id) > 0) return (z) => api.play(z, { playlist_id: Number(id), ...rang });
+  if (!svc && o.album_id > 0 && o.context_type === 'album') return (z) => api.play(z, { album_id: o.album_id, ...rang });
+  return geste(o, champ(o, 'source') ?? null, 'album');
+}
+
 export function geste(
   o: any,
   service: string | null,
@@ -1462,7 +1476,11 @@ export const WIDGETS: Widget[] = [
       utiles(
         reprisesUtiles(liste(await api.getContinueListening(limiteDe(ctx)))).map((o, i) => {
           const el = versElement(o, i, 'rep');
-          return { ...el, sous: sousTitreReprise(o) || el.sous };
+          return { ...el,
+            titre: (o.context_type === 'album' || o.context_type === 'playlist') && o.last_track_title ? o.last_track_title : el.titre,
+            sous: sousTitreReprise(o) || el.sous,
+            jouer: gesteReprise(o),
+          };
         }),
       ),
   },

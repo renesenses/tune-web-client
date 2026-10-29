@@ -57,7 +57,6 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import { corpsDeLecture, corpsDeFileListe, corpsDeTeteDeListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { lireListe } from '../../lib/lectureEnMasse';
-  import { gestesDeZone } from '../../lib/gestesDeZone';
   import type { GesteDisque } from '../../lib/lectureDisque';
   import { notifications } from '../../lib/stores/notifications';
   import { cleEchecRevelation, revelationDisponible, revelerDossierAlbum } from '../../lib/revelerDossier';
@@ -915,10 +914,16 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     if (typeof p.id !== 'number') return;
     sel = basculer(sel, p.id, ordreSelection, etendre);
   }
+  function contexteAlbum(): Record<string, string> {
+    if (depot) return {};
+    const id = sidDistant ?? bandcamp ?? album.id;
+    return id == null ? {} : { context_type: 'album', context_id: String(id), context_source: service ?? (bandcamp ? 'bandcamp' : 'local') };
+  }
+
   function lireSelection() {
     const zid = zoneRequise();
     if (zid == null || !choisies.length) return;
-    playAndSync(zid, { track_ids: [...choisies] }).catch(signalerEchecLecture);
+    playAndSync(zid, { track_ids: [...choisies], ...contexteAlbum() }).catch(signalerEchecLecture);
   }
   /** UNE requête, dans l'ordre de l'album — la règle de `enfiler`. */
   async function enfilerSelection(position: number | undefined, cle: string) {
@@ -927,7 +932,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     if (zid == null || !ids.length || fileOccupee) return;
     fileOccupee = true;
     try {
-      await api.addToQueue(zid, { track_ids: ids, ...(position != null ? { position } : {}) });
+      await api.addToQueue(zid, { track_ids: ids, ...contexteAlbum(), ...(position != null ? { position } : {}) });
       notifications.success($tr(cle as any).replace('{n}', String(ids.length)));
     } catch {
       notifications.error($tr('v2.pa.queueError' as any));
@@ -1226,15 +1231,15 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       const tete = l.length > 1 ? corpsDeTeteDeListe(l[0]) : corpsDeLecture(l[0]);
       if (!tete) return;
       (async () => {
-        await playAndSync(zid, tete as any);
+        await playAndSync(zid, { ...tete, ...contexteAlbum(), context_shuffle: true } as any);
         const reste = corpsDeFileListe(l.slice(1));
-        if (reste) await api.addToQueue(zid, reste);
+        if (reste) await api.addToQueue(zid, { ...reste, ...contexteAlbum() });
       })().catch(signalerEchecLecture);
       return;
     }
     if (album.id == null) return;
     const ids = melanger(tracks.map((t) => t.id).filter((x): x is number => x != null));
-    playAndSync(zid, { track_ids: ids }).catch(signalerEchecLecture);
+    playAndSync(zid, { track_ids: ids, ...contexteAlbum(), context_shuffle: true }).catch(signalerEchecLecture);
   }
   /**
    * Les deux boutons de file, pour les QUATRE origines.
@@ -1267,7 +1272,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     if (!corps) return;
     fileOccupee = true;
     try {
-      await api.addToQueue(zid, corps);
+      await api.addToQueue(zid, { ...corps, ...contexteAlbum() });
       notifications.success($tr(cle as any).replace('{title}', album.title ?? ''));
     } catch {
       notifications.error($tr('v2.pa.queueError' as any));
@@ -1302,7 +1307,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       ? liste.map((t) => ({ ...corpsLecture(d, t), id: null }) as unknown as Track)
       : liste;
     if (geste === 'lire') {
-      lireListe(designees, gestesDeZone(zid)).catch(signalerEchecLecture);
+      lireListe(designees, {
+        lire: (corps: any) => playAndSync(zid, { ...corps, ...contexteAlbum() }),
+        enfiler: (corps: any) => api.addToQueue(zid, { ...corps, ...contexteAlbum() }),
+      }).catch(signalerEchecLecture);
       return;
     }
     if (fileOccupee) return;
@@ -1312,7 +1320,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       .filter(Boolean).join(' — ');
     fileOccupee = true;
     try {
-      await api.addToQueue(zid, corps);
+      await api.addToQueue(zid, { ...corps, ...contexteAlbum() });
       notifications.success($tr((geste === 'ensuite' ? 'v2.album.queuedNext' : 'v2.album.queued') as any)
         .replace('{title}', titre));
     } catch {
@@ -2051,6 +2059,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         {/if}
       {/if}
       <ListePistesV2
+        contexte={contexteAlbum()}
         selection={enSelection ? sel.choisies : null}
         onCocher={cocher}
         pistes={pistesVisibles}

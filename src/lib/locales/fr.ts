@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Recul à la reprise des podcasts (secondes)",
+  "settings.podcastRewindHint": "Reprendre cet épisode quelques secondes avant la position mémorisée. De 0 à 300 secondes ; 10 par défaut.",
   "v2.radio.listeningCountry": "Pays d’écoute du serveur",
   "v2.radio.countryUnset": "Non renseigné — flux sans restriction",
   "v2.radio.countryHint": "Indiquez votre pays d’écoute. Sans pays, seuls les flux sans restriction sont choisis.",
@@ -6116,6 +6118,7 @@ export default {
   "v2.circle.msg.notFound": "Cette carte est introuvable dans votre bibliothèque.",
   "v2.circle.msg.share": "Partager par message",
   "v2.circle.msg.recipient": "Destinataire",
+  "volume.outputRange": "Volume hors plage : de {min} % à {max} %, par pas de {step} %.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -145,7 +145,7 @@ describe.each(['beginner', 'intermediate'] as const)('la fiche d’un album de l
     await jusqua(() => envois(/\/zones\/1\/queue\/add(?:\?lang=[a-z]{2})?$/).length > 0);
     const file = envois(/\/zones\/1\/queue\/add(?:\?lang=[a-z]{2})?$/);
     expect(file).toHaveLength(1);
-    expect(file[0].corps).toEqual({ track_ids: [11, 13] });
+    expect(file[0].corps).toEqual({ track_ids: [11, 13], context_type: 'album', context_id: '156', context_source: 'local' });
   });
 
   it('Maj+clic coche la plage ; « Lire » envoie les trois pistes', async () => {
@@ -155,7 +155,7 @@ describe.each(['beginner', 'intermediate'] as const)('la fiche d’un album de l
     expect(cases().map((c) => c.checked)).toEqual([true, true, true]);
     cliquer(barre('data-sel-lire'));
     await jusqua(() => envois(/\/zones\/1\/play(?:\?lang=[a-z]{2})?$/).length > 0);
-    expect(envois(/\/zones\/1\/play(?:\?lang=[a-z]{2})?$/)[0].corps).toEqual({ track_ids: [11, 12, 13] });
+    expect(envois(/\/zones\/1\/play(?:\?lang=[a-z]{2})?$/)[0].corps).toEqual({ track_ids: [11, 12, 13], context_type: 'album', context_id: '156', context_source: 'local' });
   });
 
   it('🔴 « Changer le genre » ⇒ PUT /library/tracks/{id} { genre } pour CHAQUE piste choisie, et rien d’autre', async () => {

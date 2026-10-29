@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Rücksprung bei Podcast-Fortsetzung (Sekunden)",
+  "settings.podcastRewindHint": "Die Folge vor der gespeicherten Position fortsetzen. 0–300 Sekunden; Standard: 10.",
   "v2.radio.listeningCountry": "Hörland des Servers",
   "v2.radio.countryUnset": "Nicht festgelegt — unbeschränkte Streams",
   "v2.radio.countryHint": "Wählen Sie Ihr Hörland. Ohne Angabe werden nur unbeschränkte Streams ausgewählt.",
@@ -6094,6 +6096,7 @@ export default {
   "v2.circle.msg.notFound": "Diese Karte wurde in Ihrer Bibliothek nicht gefunden.",
   "v2.circle.msg.share": "Per Nachricht teilen",
   "v2.circle.msg.recipient": "Empfänger",
+  "volume.outputRange": "Lautstärke außerhalb des Bereichs: {min} % bis {max} %, in Schritten von {step} %.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

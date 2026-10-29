@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Cofnięcie przy wznawianiu podcastu (sekundy)",
+  "settings.podcastRewindHint": "Wznów odcinek przed zapisaną pozycją. 0–300 sekund; domyślnie: 10.",
   "v2.radio.listeningCountry": "Kraj słuchania serwera",
   "v2.radio.countryUnset": "Nie ustawiono — strumienie bez ograniczeń",
   "v2.radio.countryHint": "Wybierz kraj słuchania. Bez kraju wybierane są tylko strumienie bez ograniczeń.",
@@ -5939,5 +5941,6 @@ export default {
   "v2.circle.msg.notFound": "Nie znaleziono tej karty w Twojej bibliotece.",
   "v2.circle.msg.share": "Udostępnij w wiadomości",
   "v2.circle.msg.recipient": "Odbiorca",
+  "volume.outputRange": "Głośność poza zakresem: od {min}% do {max}%, w krokach co {step}%.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];
