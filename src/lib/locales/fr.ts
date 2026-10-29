@@ -6118,6 +6118,7 @@ export default {
   "v2.circle.msg.notFound": "Cette carte est introuvable dans votre bibliothèque.",
   "v2.circle.msg.share": "Partager par message",
   "v2.circle.msg.recipient": "Destinataire",
+  "volume.outputRange": "Volume hors plage : de {min} % à {max} %, par pas de {step} %.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

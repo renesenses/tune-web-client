@@ -5948,5 +5948,6 @@ export default {
   "v2.circle.msg.notFound": "Không tìm thấy thẻ này trong thư viện của bạn.",
   "v2.circle.msg.share": "Chia sẻ qua tin nhắn",
   "v2.circle.msg.recipient": "Người nhận",
+  "volume.outputRange": "Âm lượng ngoài phạm vi: từ {min}% đến {max}%, theo bước {step}%.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

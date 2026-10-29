@@ -6096,6 +6096,7 @@ export default {
   "v2.circle.msg.notFound": "在您的音乐库中找不到此卡片。",
   "v2.circle.msg.share": "通过消息分享",
   "v2.circle.msg.recipient": "收件人",
+  "volume.outputRange": "音量超出范围：{min}% 至 {max}%，步长为 {step}%。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
