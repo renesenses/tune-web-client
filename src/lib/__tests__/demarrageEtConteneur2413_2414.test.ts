@@ -121,7 +121,9 @@ describe('#2413 — le démarrage du serveur est une information traduite', () =
     const t = get(notifications);
     expect(t.length).toBe(1);
     expect(t[0].level).toBe('error');
-    expect(t[0].message).toContain('Server error');
+    // #2417 : un texte brut du serveur n'est plus montré ; le bandeau dit le
+    // message générique, le brut reste dans le détail.
+    expect(t[0].message).toBe('The server could not complete the request.');
   });
 });
 
