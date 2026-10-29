@@ -1,5 +1,4 @@
 export default {
-  "oxygen.albums": "album",
   "v2.radio.listeningCountry": "Serverens lytteland",
   "v2.radio.countryUnset": "Ikke angitt — ubegrensede strømmer",
   "v2.radio.countryHint": "Velg lyttelandet ditt. Uten land velges bare ubegrensede strømmer.",
@@ -169,6 +168,7 @@ export default {
   "oxygen.noMeta": "Ingen utvidede metadata.",
   "oxygen.selectTrack": "Velg et spor.",
   "oxygen.tracks": "spor",
+  "oxygen.albums": "album",
   "oxygen.truncated": "Delvis visning:",
   "oxygen.loadMore": "Last inn flere",
   "oxygen.details": "Detaljer",

@@ -1,5 +1,4 @@
 export default {
-  "oxygen.albums": "άλμπουμ",
   "v2.radio.listeningCountry": "Χώρα ακρόασης του διακομιστή",
   "v2.radio.countryUnset": "Δεν ορίστηκε — ροές χωρίς περιορισμούς",
   "v2.radio.countryHint": "Επιλέξτε τη χώρα ακρόασης. Χωρίς χώρα επιλέγονται μόνο ροές χωρίς περιορισμούς.",
@@ -169,6 +168,7 @@ export default {
   "oxygen.noMeta": "Δεν υπάρχουν εκτεταμένα μεταδεδομένα.",
   "oxygen.selectTrack": "Επιλέξτε ένα κομμάτι.",
   "oxygen.tracks": "κομμάτια",
+  "oxygen.albums": "άλμπουμ",
   "oxygen.truncated": "Μερική προβολή:",
   "oxygen.loadMore": "Φόρτωση περισσότερων",
   "oxygen.details": "Λεπτομέρειες",

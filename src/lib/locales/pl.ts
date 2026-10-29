@@ -1,5 +1,4 @@
 export default {
-  "oxygen.albums": "albumy",
   "v2.radio.listeningCountry": "Kraj słuchania serwera",
   "v2.radio.countryUnset": "Nie ustawiono — strumienie bez ograniczeń",
   "v2.radio.countryHint": "Wybierz kraj słuchania. Bez kraju wybierane są tylko strumienie bez ograniczeń.",
@@ -169,6 +168,7 @@ export default {
   "oxygen.noMeta": "Brak rozszerzonych metadanych.",
   "oxygen.selectTrack": "Wybierz utwór.",
   "oxygen.tracks": "utworów",
+  "oxygen.albums": "albumy",
   "oxygen.truncated": "Widok częściowy:",
   "oxygen.loadMore": "Wczytaj więcej",
   "oxygen.details": "Szczegóły",

@@ -1,5 +1,4 @@
 export default {
-  "oxygen.albums": "album",
   "v2.radio.listeningCountry": "Quốc gia nghe của máy chủ",
   "v2.radio.countryUnset": "Chưa đặt — luồng không hạn chế",
   "v2.radio.countryHint": "Chọn quốc gia nghe. Nếu chưa đặt, chỉ chọn các luồng không hạn chế.",
@@ -171,6 +170,7 @@ export default {
   "oxygen.noMeta": "Không có siêu dữ liệu mở rộng.",
   "oxygen.selectTrack": "Hãy chọn một bài hát.",
   "oxygen.tracks": "bài hát",
+  "oxygen.albums": "album",
   "oxygen.truncated": "Hiển thị một phần:",
   "oxygen.loadMore": "Tải thêm",
   "oxygen.details": "Chi tiết",

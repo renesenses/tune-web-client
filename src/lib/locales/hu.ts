@@ -1,5 +1,4 @@
 export default {
-  "oxygen.albums": "album",
   "v2.radio.listeningCountry": "A kiszolgáló hallgatási országa",
   "v2.radio.countryUnset": "Nincs megadva — korlátozás nélküli adatfolyamok",
   "v2.radio.countryHint": "Válassza ki a hallgatási országot. Ország nélkül csak korlátozás nélküli adatfolyamok választhatók.",
@@ -186,6 +185,7 @@ export default {
   "oxygen.noMeta": "Nincs bővített metaadat.",
   "oxygen.selectTrack": "Válassz egy számot.",
   "oxygen.tracks": "szám",
+  "oxygen.albums": "album",
   "oxygen.truncated": "Részleges nézet:",
   "oxygen.loadMore": "Továbbiak betöltése",
   "oxygen.details": "Részletek",
