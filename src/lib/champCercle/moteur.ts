@@ -255,7 +255,7 @@ export class ChampCercle {
    * dessinés discrets sous les épingles du cercle. Rien que des coordonnées.
    */
   majPointsPublics(points: readonly { lat: number; lon: number }[]) {
-    this.publics = points.map((p) => [p.lat, p.lon]);
+    this.publics = points.map((p) => [p.lat * DEG, p.lon * DEG]);
     this.demander();
   }
 
