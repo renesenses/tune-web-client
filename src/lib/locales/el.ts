@@ -1,4 +1,23 @@
 export default {
+  "v2.circle.msg.nameConsent": "Το όνομά σου θα είναι ορατό στα μέλη αυτού του κύκλου μόνο στα μηνύματά σου σε αυτή τη συζήτηση. Αποδοχή και αποστολή;",
+  "v2.circle.msg.formerMember": "Πρώην μέλος",
+  "v2.circle.msg.generalTitle": "Γενικοί κύκλοι",
+  "v2.circle.msg.members": "μέλη",
+  "v2.circle.msg.join": "Συμμετοχή",
+  "v2.circle.msg.leave": "Αποχώρηση",
+  "v2.circle.msg.leaveConfirm": "Αποχώρηση από αυτόν τον κύκλο; Δεν θα μπορείς να διαβάσεις ούτε τα παλιά μηνύματα.",
+  "v2.circle.msg.writeCircle": "Μήνυμα στον κύκλο",
+  "v2.circle.msg.circleLabel": "Κύκλος",
+
+  "v2.circle.msg.reportConfirm": "Να αναφερθούν τα επιλεγμένα μηνύματα;",
+  "v2.circle.msg.reportSent": "Η αναφορά στάλθηκε στην ομάδα συντονισμού.",
+
+  "v2.circle.msg.today": "Σήμερα",
+  "v2.circle.msg.yesterday": "Χθες",
+  "v2.circle.msg.noMessage": "Δεν υπάρχουν μηνύματα ακόμη",
+  "v2.circle.msg.emptyThread": "Επιλέξτε μια συνομιλία",
+  "v2.circle.msg.actions": "Ενέργειες μηνύματος",
+
   "settings.podcastRewind": "Επιστροφή κατά τη συνέχιση podcast (δευτερόλεπτα)",
   "settings.podcastRewindHint": "Συνέχιση του επεισοδίου πριν από την αποθηκευμένη θέση. 0–300 δευτερόλεπτα· προεπιλογή: 10.",
   "v2.radio.listeningCountry": "Χώρα ακρόασης του διακομιστή",

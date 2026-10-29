@@ -1,4 +1,23 @@
 export default {
+  "v2.circle.msg.nameConsent": "A neved csak e kör tagjai számára, az ebben a beszélgetésben írt üzeneteiden lesz látható. Elfogadod és elküldöd?",
+  "v2.circle.msg.formerMember": "Korábbi tag",
+  "v2.circle.msg.generalTitle": "Általános körök",
+  "v2.circle.msg.members": "tag",
+  "v2.circle.msg.join": "Csatlakozás",
+  "v2.circle.msg.leave": "Kilépés",
+  "v2.circle.msg.leaveConfirm": "Kilépsz ebből a körből? A korábbi üzeneteket sem olvashatod majd.",
+  "v2.circle.msg.writeCircle": "Üzenet a körnek",
+  "v2.circle.msg.circleLabel": "Kör",
+
+  "v2.circle.msg.reportConfirm": "Jelenti a kijelölt üzeneteket?",
+  "v2.circle.msg.reportSent": "A jelentést elküldtük a moderátoroknak.",
+
+  "v2.circle.msg.today": "Ma",
+  "v2.circle.msg.yesterday": "Tegnap",
+  "v2.circle.msg.noMessage": "Még nincs üzenet",
+  "v2.circle.msg.emptyThread": "Válasszon beszélgetést",
+  "v2.circle.msg.actions": "Üzenetműveletek",
+
   "settings.podcastRewind": "Visszatekerés podcast folytatásakor (másodperc)",
   "settings.podcastRewindHint": "Az epizód folytatása a mentett pozíció előtt. 0–300 másodperc; alapérték: 10.",
   "v2.radio.listeningCountry": "A kiszolgáló hallgatási országa",

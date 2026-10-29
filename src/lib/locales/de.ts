@@ -1,4 +1,23 @@
 export default {
+  "v2.circle.msg.nameConsent": "Dein Name ist für Mitglieder dieses Kreises nur bei deinen Nachrichten in diesem Verlauf sichtbar. Zustimmen und senden?",
+  "v2.circle.msg.formerMember": "Ehemaliges Mitglied",
+  "v2.circle.msg.generalTitle": "Allgemeine Kreise",
+  "v2.circle.msg.members": "Mitglieder",
+  "v2.circle.msg.join": "Beitreten",
+  "v2.circle.msg.leave": "Verlassen",
+  "v2.circle.msg.leaveConfirm": "Diesen Kreis verlassen? Danach kannst du auch frühere Nachrichten nicht mehr lesen.",
+  "v2.circle.msg.writeCircle": "An den Kreis schreiben",
+  "v2.circle.msg.circleLabel": "Kreis",
+
+  "v2.circle.msg.reportConfirm": "Die ausgewählten Nachrichten melden?",
+  "v2.circle.msg.reportSent": "Meldung an das Moderationsteam gesendet.",
+
+  "v2.circle.msg.today": "Heute",
+  "v2.circle.msg.yesterday": "Gestern",
+  "v2.circle.msg.noMessage": "Noch keine Nachricht",
+  "v2.circle.msg.emptyThread": "Unterhaltung auswählen",
+  "v2.circle.msg.actions": "Nachrichtenaktionen",
+
   "settings.podcastRewind": "Rücksprung bei Podcast-Fortsetzung (Sekunden)",
   "settings.podcastRewindHint": "Die Folge vor der gespeicherten Position fortsetzen. 0–300 Sekunden; Standard: 10.",
   "v2.radio.listeningCountry": "Hörland des Servers",

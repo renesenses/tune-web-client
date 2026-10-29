@@ -1,4 +1,23 @@
 export default {
+  "v2.circle.msg.nameConsent": "Tên của bạn sẽ hiển thị với thành viên vòng tròn này chỉ trên các tin nhắn của bạn trong cuộc trò chuyện này. Đồng ý và gửi?",
+  "v2.circle.msg.formerMember": "Thành viên cũ",
+  "v2.circle.msg.generalTitle": "Vòng tròn chung",
+  "v2.circle.msg.members": "thành viên",
+  "v2.circle.msg.join": "Tham gia",
+  "v2.circle.msg.leave": "Rời khỏi",
+  "v2.circle.msg.leaveConfirm": "Rời vòng tròn này? Bạn sẽ không thể đọc cuộc trò chuyện, kể cả tin nhắn cũ.",
+  "v2.circle.msg.writeCircle": "Viết cho vòng tròn",
+  "v2.circle.msg.circleLabel": "Vòng tròn",
+
+  "v2.circle.msg.reportConfirm": "Báo cáo các tin nhắn đã chọn?",
+  "v2.circle.msg.reportSent": "Đã gửi báo cáo đến nhóm kiểm duyệt.",
+
+  "v2.circle.msg.today": "Hôm nay",
+  "v2.circle.msg.yesterday": "Hôm qua",
+  "v2.circle.msg.noMessage": "Chưa có tin nhắn",
+  "v2.circle.msg.emptyThread": "Chọn một cuộc trò chuyện",
+  "v2.circle.msg.actions": "Thao tác với tin nhắn",
+
   "settings.podcastRewind": "Lùi lại khi tiếp tục podcast (giây)",
   "settings.podcastRewindHint": "Tiếp tục tập trước vị trí đã lưu. 0–300 giây; mặc định: 10.",
   "v2.radio.listeningCountry": "Quốc gia nghe của máy chủ",

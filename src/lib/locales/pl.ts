@@ -1,4 +1,23 @@
 export default {
+  "v2.circle.msg.nameConsent": "Twoja nazwa będzie widoczna dla członków tego kręgu tylko przy Twoich wiadomościach w tym wątku. Zaakceptować i wysłać?",
+  "v2.circle.msg.formerMember": "Były członek",
+  "v2.circle.msg.generalTitle": "Kręgi ogólne",
+  "v2.circle.msg.members": "członkowie",
+  "v2.circle.msg.join": "Dołącz",
+  "v2.circle.msg.leave": "Opuść",
+  "v2.circle.msg.leaveConfirm": "Opuścić ten krąg? Nie będzie można czytać wątku, także starych wiadomości.",
+  "v2.circle.msg.writeCircle": "Napisz do kręgu",
+  "v2.circle.msg.circleLabel": "Krąg",
+
+  "v2.circle.msg.reportConfirm": "Zgłosić wybrane wiadomości?",
+  "v2.circle.msg.reportSent": "Zgłoszenie wysłano do zespołu moderatorów.",
+
+  "v2.circle.msg.today": "Dzisiaj",
+  "v2.circle.msg.yesterday": "Wczoraj",
+  "v2.circle.msg.noMessage": "Nie ma jeszcze wiadomości",
+  "v2.circle.msg.emptyThread": "Wybierz rozmowę",
+  "v2.circle.msg.actions": "Działania dotyczące wiadomości",
+
   "settings.podcastRewind": "Cofnięcie przy wznawianiu podcastu (sekundy)",
   "settings.podcastRewindHint": "Wznów odcinek przed zapisaną pozycją. 0–300 sekund; domyślnie: 10.",
   "v2.radio.listeningCountry": "Kraj słuchania serwera",

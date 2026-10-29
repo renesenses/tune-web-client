@@ -1,4 +1,23 @@
 export default {
+  "v2.circle.msg.nameConsent": "Your name will be visible to members of this circle on your messages in this thread only. Accept and send?",
+  "v2.circle.msg.formerMember": "Former member",
+  "v2.circle.msg.generalTitle": "General circles",
+  "v2.circle.msg.members": "members",
+  "v2.circle.msg.join": "Join",
+  "v2.circle.msg.leave": "Leave",
+  "v2.circle.msg.leaveConfirm": "Leave this circle? You will no longer be able to read its thread, including old messages.",
+  "v2.circle.msg.writeCircle": "Write to circle",
+  "v2.circle.msg.circleLabel": "Circle",
+
+  "v2.circle.msg.reportConfirm": "Report the selected messages?",
+  "v2.circle.msg.reportSent": "Report sent to the moderation team.",
+
+  "v2.circle.msg.today": "Today",
+  "v2.circle.msg.yesterday": "Yesterday",
+  "v2.circle.msg.noMessage": "No messages yet",
+  "v2.circle.msg.emptyThread": "Choose a conversation",
+  "v2.circle.msg.actions": "Message actions",
+
   "settings.podcastRewind": "Podcast resume rewind (seconds)",
   "settings.podcastRewindHint": "Resume the episode before the saved position. 0–300 seconds; default 10.",
   "v2.radio.listeningCountry": "Server listening country",

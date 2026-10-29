@@ -1,4 +1,23 @@
 export default {
+  "v2.circle.msg.nameConsent": "このスレッドのあなたのメッセージに限り、このサークルのメンバーにあなたの名前が表示されます。同意して送信しますか？",
+  "v2.circle.msg.formerMember": "元メンバー",
+  "v2.circle.msg.generalTitle": "一般サークル",
+  "v2.circle.msg.members": "メンバー",
+  "v2.circle.msg.join": "参加",
+  "v2.circle.msg.leave": "退会",
+  "v2.circle.msg.leaveConfirm": "このサークルを退会しますか？過去のメッセージを含め、スレッドを読めなくなります。",
+  "v2.circle.msg.writeCircle": "サークルに送信",
+  "v2.circle.msg.circleLabel": "サークル",
+
+  "v2.circle.msg.reportConfirm": "選択したメッセージを報告しますか？",
+  "v2.circle.msg.reportSent": "モデレーションチームに報告を送信しました。",
+
+  "v2.circle.msg.today": "今日",
+  "v2.circle.msg.yesterday": "昨日",
+  "v2.circle.msg.noMessage": "メッセージはまだありません",
+  "v2.circle.msg.emptyThread": "会話を選択",
+  "v2.circle.msg.actions": "メッセージの操作",
+
   "settings.podcastRewind": "ポッドキャスト再開時の巻き戻し（秒）",
   "settings.podcastRewindHint": "保存位置より前からエピソードを再開します。0～300秒、既定値は10秒です。",
   "v2.radio.listeningCountry": "サーバーの聴取国",
