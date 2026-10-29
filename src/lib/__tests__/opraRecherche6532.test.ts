@@ -221,10 +221,11 @@ describe('#6532 — Égaliseur : la base OPRA à côté d’AutoEq', () => {
     expect(el.querySelectorAll('.presets.mes .mien').length).toBe(0);
   });
 
-  it('les clés OPRA existent dans les 12 langues', () => {
+  it('les clés OPRA existent dans toutes les langues', () => {
     const cles = Object.keys(fr).filter((k) => k.startsWith('eq.opra'));
     expect(cles.length).toBe(10);
-    expect(ONZE_LANGUES.length).toBe(12);
+    // 15 depuis l'ajout du polonais, du norvégien et du grec (train rc9).
+    expect(ONZE_LANGUES.length).toBe(15);
     for (const lang of ONZE_LANGUES) {
       const table = dictionnaire(lang);
       for (const k of cles) expect(table[k], `${lang} : ${k}`).toBeTruthy();
