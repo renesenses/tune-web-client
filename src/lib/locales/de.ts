@@ -6168,6 +6168,18 @@ export default {
   "v2.circle.msg.notFound": "Diese Karte wurde in Ihrer Bibliothek nicht gefunden.",
   "v2.circle.msg.share": "Per Nachricht teilen",
   "v2.circle.msg.recipient": "Empfänger",
+
+  "v2.circle.worldCountries.title": "Tune weltweit",
+  'v2.circle.worldCountries.cells': '1°-Zellen · mindestens 3 Server · Größe nach Anzahl',
+  'v2.circle.worldCountries.cell': 'Zellenmitte',
+  "v2.circle.worldCountries.show": "Länder einfärben",
+  "v2.circle.worldCountries.legend": "Aktive Server nach Land — letzte 30 Tage",
+  "v2.circle.worldCountries.lessFive": "Weniger als 5",
+  "v2.circle.worldCountries.more": "{n} oder mehr",
+  "v2.circle.worldCountries.list": "Länderliste",
+  "v2.circle.worldCountries.country": "Land",
+  "v2.circle.worldCountries.servers": "Aktive Server",
+  "v2.circle.worldCountries.updated": "Aktualisiert: {date}",
   "volume.outputRange": "Lautstärke außerhalb des Bereichs: {min} % bis {max} %, in Schritten von {step} %.",
 } as const;
 

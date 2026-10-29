@@ -6190,6 +6190,18 @@ export default {
   "v2.circle.msg.notFound": "Cette carte est introuvable dans votre bibliothèque.",
   "v2.circle.msg.share": "Partager par message",
   "v2.circle.msg.recipient": "Destinataire",
+
+  "v2.circle.worldCountries.title": "Tune dans le monde",
+  'v2.circle.worldCountries.cells': 'Cases de 1° · au moins 3 serveurs · taille selon le nombre',
+  'v2.circle.worldCountries.cell': 'Centre de la case',
+  "v2.circle.worldCountries.show": "Colorer les pays",
+  "v2.circle.worldCountries.legend": "Serveurs actifs par pays — 30 derniers jours",
+  "v2.circle.worldCountries.lessFive": "Moins de 5",
+  "v2.circle.worldCountries.more": "{n} et plus",
+  "v2.circle.worldCountries.list": "Liste des pays",
+  "v2.circle.worldCountries.country": "Pays",
+  "v2.circle.worldCountries.servers": "Serveurs actifs",
+  "v2.circle.worldCountries.updated": "Mis à jour : {date}",
   "volume.outputRange": "Volume hors plage : de {min} % à {max} %, par pas de {step} %.",
 } as const;
 

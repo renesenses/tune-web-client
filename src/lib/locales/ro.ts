@@ -6168,6 +6168,18 @@ export default {
   "v2.circle.msg.notFound": "Acest card nu a fost găsit în biblioteca ta.",
   "v2.circle.msg.share": "Distribuie prin mesaj",
   "v2.circle.msg.recipient": "Destinatar",
+
+  "v2.circle.worldCountries.title": "Tune în lume",
+  'v2.circle.worldCountries.cells': 'Celule de 1° · minimum 3 servere · mărime după număr',
+  'v2.circle.worldCountries.cell': 'Centrul celulei',
+  "v2.circle.worldCountries.show": "Colorează țările",
+  "v2.circle.worldCountries.legend": "Servere active pe țări — ultimele 30 de zile",
+  "v2.circle.worldCountries.lessFive": "Mai puțin de 5",
+  "v2.circle.worldCountries.more": "{n} sau mai multe",
+  "v2.circle.worldCountries.list": "Lista țărilor",
+  "v2.circle.worldCountries.country": "Țară",
+  "v2.circle.worldCountries.servers": "Servere active",
+  "v2.circle.worldCountries.updated": "Actualizat: {date}",
   "volume.outputRange": "Volum în afara intervalului: de la {min}% la {max}%, în pași de {step}%.",
 } as const;
 

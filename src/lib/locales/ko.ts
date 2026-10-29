@@ -6168,6 +6168,18 @@ export default {
   "v2.circle.msg.notFound": "이 카드를 라이브러리에서 찾을 수 없습니다.",
   "v2.circle.msg.share": "메시지로 공유",
   "v2.circle.msg.recipient": "받는 사람",
+
+  "v2.circle.worldCountries.title": "세계 속의 Tune",
+  'v2.circle.worldCountries.cells': '1° 셀 · 서버 3대 이상 · 크기는 서버 수',
+  'v2.circle.worldCountries.cell': '셀 중심',
+  "v2.circle.worldCountries.show": "국가별 색상 표시",
+  "v2.circle.worldCountries.legend": "국가별 활성 서버 — 최근 30일",
+  "v2.circle.worldCountries.lessFive": "5개 미만",
+  "v2.circle.worldCountries.more": "{n}개 이상",
+  "v2.circle.worldCountries.list": "국가 목록",
+  "v2.circle.worldCountries.country": "국가",
+  "v2.circle.worldCountries.servers": "활성 서버",
+  "v2.circle.worldCountries.updated": "업데이트: {date}",
   "volume.outputRange": "음량이 범위를 벗어났습니다: {min}%~{max}%, 조절 간격 {step}%.",
 } as const;
 

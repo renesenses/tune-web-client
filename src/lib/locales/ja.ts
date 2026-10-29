@@ -6168,6 +6168,18 @@ export default {
   "v2.circle.msg.notFound": "このカードはライブラリに見つかりませんでした。",
   "v2.circle.msg.share": "メッセージで共有",
   "v2.circle.msg.recipient": "送信先",
+
+  "v2.circle.worldCountries.title": "世界のTune",
+  'v2.circle.worldCountries.cells': '1°のセル · 3台以上 · 大きさは台数に対応',
+  'v2.circle.worldCountries.cell': 'セルの中心',
+  "v2.circle.worldCountries.show": "国別に色分け",
+  "v2.circle.worldCountries.legend": "国別のアクティブなサーバー — 過去30日間",
+  "v2.circle.worldCountries.lessFive": "5台未満",
+  "v2.circle.worldCountries.more": "{n}台以上",
+  "v2.circle.worldCountries.list": "国の一覧",
+  "v2.circle.worldCountries.country": "国",
+  "v2.circle.worldCountries.servers": "アクティブなサーバー",
+  "v2.circle.worldCountries.updated": "更新日時：{date}",
   "volume.outputRange": "音量が範囲外です：{min}%～{max}%、刻み幅は {step}% です。",
 } as const;
 

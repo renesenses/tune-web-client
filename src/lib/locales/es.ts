@@ -6168,6 +6168,18 @@ export default {
   "v2.circle.msg.notFound": "No se ha encontrado esta tarjeta en tu biblioteca.",
   "v2.circle.msg.share": "Compartir por mensaje",
   "v2.circle.msg.recipient": "Destinatario",
+
+  "v2.circle.worldCountries.title": "Tune en el mundo",
+  'v2.circle.worldCountries.cells': 'Celdas de 1° · al menos 3 servidores · tamaño según cantidad',
+  'v2.circle.worldCountries.cell': 'Centro de la celda',
+  "v2.circle.worldCountries.show": "Colorear los países",
+  "v2.circle.worldCountries.legend": "Servidores activos por país — últimos 30 días",
+  "v2.circle.worldCountries.lessFive": "Menos de 5",
+  "v2.circle.worldCountries.more": "{n} o más",
+  "v2.circle.worldCountries.list": "Lista de países",
+  "v2.circle.worldCountries.country": "País",
+  "v2.circle.worldCountries.servers": "Servidores activos",
+  "v2.circle.worldCountries.updated": "Actualizado: {date}",
   "volume.outputRange": "Volumen fuera del intervalo: del {min} % al {max} %, en pasos del {step} %.",
 } as const;
 

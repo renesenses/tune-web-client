@@ -6127,6 +6127,18 @@ export default {
   "v2.circle.msg.notFound": "Ez a kártya nem található a könyvtárában.",
   "v2.circle.msg.share": "Megosztás üzenetben",
   "v2.circle.msg.recipient": "Címzett",
+
+  "v2.circle.worldCountries.title": "Tune a világban",
+  'v2.circle.worldCountries.cells': '1°-os cellák · legalább 3 szerver · méret darabszám szerint',
+  'v2.circle.worldCountries.cell': 'Cella közepe',
+  "v2.circle.worldCountries.show": "Országok színezése",
+  "v2.circle.worldCountries.legend": "Aktív kiszolgálók országonként — az elmúlt 30 nap",
+  "v2.circle.worldCountries.lessFive": "Kevesebb mint 5",
+  "v2.circle.worldCountries.more": "{n} vagy több",
+  "v2.circle.worldCountries.list": "Országlista",
+  "v2.circle.worldCountries.country": "Ország",
+  "v2.circle.worldCountries.servers": "Aktív kiszolgálók",
+  "v2.circle.worldCountries.updated": "Frissítve: {date}",
   "volume.outputRange": "A hangerő a tartományon kívül van: {min}% és {max}% között, {step}%-os lépésekben.",
 } as const;
 

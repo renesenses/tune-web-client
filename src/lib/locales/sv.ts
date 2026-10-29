@@ -6167,5 +6167,17 @@ export default {
   "v2.circle.msg.notFound": "Kortet hittades inte i ditt bibliotek.",
   "v2.circle.msg.share": "Dela i ett meddelande",
   "v2.circle.msg.recipient": "Mottagare",
+
+  "v2.circle.worldCountries.title": "Tune i världen",
+  'v2.circle.worldCountries.cells': '1°-rutor · minst 3 servrar · storlek efter antal',
+  'v2.circle.worldCountries.cell': 'Rutans mitt',
+  "v2.circle.worldCountries.show": "Färglägg länder",
+  "v2.circle.worldCountries.legend": "Aktiva servrar per land — senaste 30 dagarna",
+  "v2.circle.worldCountries.lessFive": "Färre än 5",
+  "v2.circle.worldCountries.more": "{n} eller fler",
+  "v2.circle.worldCountries.list": "Landslista",
+  "v2.circle.worldCountries.country": "Land",
+  "v2.circle.worldCountries.servers": "Aktiva servrar",
+  "v2.circle.worldCountries.updated": "Uppdaterad: {date}",
   "volume.outputRange": "Volymen är utanför intervallet: {min} % till {max} %, i steg om {step} %.",
 } as const;
