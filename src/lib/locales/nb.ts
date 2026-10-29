@@ -5941,5 +5941,15 @@ export default {
   "v2.circle.msg.notFound": "Dette kortet ble ikke funnet i biblioteket ditt.",
   "v2.circle.msg.share": "Del i en melding",
   "v2.circle.msg.recipient": "Mottaker",
+
+  "v2.circle.worldCountries.title": "Tune i verden",
+  "v2.circle.worldCountries.show": "Fargelegg land",
+  "v2.circle.worldCountries.legend": "Aktive servere per land — siste 30 dager",
+  "v2.circle.worldCountries.lessFive": "Færre enn 5",
+  "v2.circle.worldCountries.more": "{n} eller flere",
+  "v2.circle.worldCountries.list": "Landliste",
+  "v2.circle.worldCountries.country": "Land",
+  "v2.circle.worldCountries.servers": "Aktive servere",
+  "v2.circle.worldCountries.updated": "Oppdatert: {date}",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

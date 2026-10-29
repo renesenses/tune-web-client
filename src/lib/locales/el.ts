@@ -5941,5 +5941,15 @@ export default {
   "v2.circle.msg.notFound": "Αυτή η κάρτα δεν βρέθηκε στη βιβλιοθήκη σας.",
   "v2.circle.msg.share": "Κοινοποίηση σε μήνυμα",
   "v2.circle.msg.recipient": "Παραλήπτης",
+
+  "v2.circle.worldCountries.title": "Το Tune στον κόσμο",
+  "v2.circle.worldCountries.show": "Χρωματισμός χωρών",
+  "v2.circle.worldCountries.legend": "Ενεργοί διακομιστές ανά χώρα — τελευταίες 30 ημέρες",
+  "v2.circle.worldCountries.lessFive": "Λιγότεροι από 5",
+  "v2.circle.worldCountries.more": "{n} ή περισσότεροι",
+  "v2.circle.worldCountries.list": "Λίστα χωρών",
+  "v2.circle.worldCountries.country": "Χώρα",
+  "v2.circle.worldCountries.servers": "Ενεργοί διακομιστές",
+  "v2.circle.worldCountries.updated": "Ενημερώθηκε: {date}",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

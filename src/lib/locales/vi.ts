@@ -5948,5 +5948,15 @@ export default {
   "v2.circle.msg.notFound": "Không tìm thấy thẻ này trong thư viện của bạn.",
   "v2.circle.msg.share": "Chia sẻ qua tin nhắn",
   "v2.circle.msg.recipient": "Người nhận",
+
+  "v2.circle.worldCountries.title": "Tune trên thế giới",
+  "v2.circle.worldCountries.show": "Tô màu các quốc gia",
+  "v2.circle.worldCountries.legend": "Máy chủ hoạt động theo quốc gia — 30 ngày qua",
+  "v2.circle.worldCountries.lessFive": "Dưới 5",
+  "v2.circle.worldCountries.more": "Từ {n} trở lên",
+  "v2.circle.worldCountries.list": "Danh sách quốc gia",
+  "v2.circle.worldCountries.country": "Quốc gia",
+  "v2.circle.worldCountries.servers": "Máy chủ hoạt động",
+  "v2.circle.worldCountries.updated": "Cập nhật: {date}",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

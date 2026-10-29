@@ -24,6 +24,8 @@ import { boucleImages } from '../boucleImages';
 import { parBudget, type Budget } from './budget';
 import { deprojeter, pointArc, projeter, vecteur, decoderPointsTerre, DEG, type Orientation } from './globe';
 import { POINTS_TERRE } from './pointsTerre';
+import { PAYS_TERRE } from './paysTerre';
+import { FORCES_PAYS, niveauPays, type NombrePays } from '../paysMonde';
 import { cleLien, type Scene, type Vue, type NoeudScene, type GenreLien } from './scene';
 import { anneauDepuis, boitesDesNoeuds, largeurEtiquette, placerEtiquettes, rayonVisible, type AnneauPx, type Disque, type EtiquettePosee, type NoeudVisible } from './anneaux';
 
@@ -254,6 +256,22 @@ export class ChampCercle {
    * rc9 : la carte publique, des points anonymes (aucun nom, aucun bouton),
    * dessinés discrets sous les épingles du cercle. Rien que des coordonnées.
    */
+  private niveauxPays: Int8Array | null = null;
+  private couleurPays = '#4cc79d';
+
+  /** Country-only layer, drawn on land before opt-in individual points. */
+  majPays(pays: Record<string, NombrePays> | null, couleur?: string) {
+    this.niveauxPays = pays && Object.keys(pays).length ? new Int8Array(this.terre.length).fill(-1) : null;
+    if (this.niveauxPays && pays) {
+      for (let i = 0; i < this.terre.length; i++) {
+        const count = pays[PAYS_TERRE.slice(i * 2, i * 2 + 2)];
+        if (count !== undefined) this.niveauxPays[i] = niveauPays(count);
+      }
+    }
+    this.couleurPays = couleur || this.c.vert;
+    this.redessiner();
+  }
+
   majPointsPublics(points: readonly { lat: number; lon: number }[]) {
     this.publics = points.map((p) => [p.lat, p.lon]);
     this.demander();
@@ -438,7 +456,10 @@ export class ChampCercle {
       const [x, y, z] = projeter(d[0], d[1], R, cx, cy, this.G);
       if (z < 0) continue;
       const tw = 0.8 + 0.2 * Math.sin(this.time * 1.6 + this.terrePhase[i] * 40);
-      ctx.globalAlpha = a * (0.1 + 0.8 * z * z) * tw;
+      const niveau = this.niveauxPays?.[i] ?? -1;
+      ctx.fillStyle = this.niveauxPays ? (niveau >= 0 ? this.couleurPays : this.c.fil) : this.c.or;
+      const force = this.niveauxPays ? (niveau >= 0 ? (FORCES_PAYS[niveau] ?? 1) : 0.15) : 1;
+      ctx.globalAlpha = a * (0.1 + 0.8 * z * z) * tw * force;
       const s = 0.7 + z * 1.4;
       ctx.fillRect(x - s / 2, y - s / 2, s, s);
     }

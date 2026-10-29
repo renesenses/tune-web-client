@@ -6096,6 +6096,16 @@ export default {
   "v2.circle.msg.notFound": "在您的音乐库中找不到此卡片。",
   "v2.circle.msg.share": "通过消息分享",
   "v2.circle.msg.recipient": "收件人",
+
+  "v2.circle.worldCountries.title": "世界各地的 Tune",
+  "v2.circle.worldCountries.show": "为国家着色",
+  "v2.circle.worldCountries.legend": "各国活跃服务器 — 最近30天",
+  "v2.circle.worldCountries.lessFive": "少于5台",
+  "v2.circle.worldCountries.more": "{n}台及以上",
+  "v2.circle.worldCountries.list": "国家列表",
+  "v2.circle.worldCountries.country": "国家",
+  "v2.circle.worldCountries.servers": "活跃服务器",
+  "v2.circle.worldCountries.updated": "更新时间：{date}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -6096,6 +6096,16 @@ export default {
   "v2.circle.msg.notFound": "Questa scheda non è stata trovata nella tua libreria.",
   "v2.circle.msg.share": "Condividi in un messaggio",
   "v2.circle.msg.recipient": "Destinatario",
+
+  "v2.circle.worldCountries.title": "Tune nel mondo",
+  "v2.circle.worldCountries.show": "Colora i paesi",
+  "v2.circle.worldCountries.legend": "Server attivi per paese — ultimi 30 giorni",
+  "v2.circle.worldCountries.lessFive": "Meno di 5",
+  "v2.circle.worldCountries.more": "{n} o più",
+  "v2.circle.worldCountries.list": "Elenco dei paesi",
+  "v2.circle.worldCountries.country": "Paese",
+  "v2.circle.worldCountries.servers": "Server attivi",
+  "v2.circle.worldCountries.updated": "Aggiornato: {date}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

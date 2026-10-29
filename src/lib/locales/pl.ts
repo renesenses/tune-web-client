@@ -5941,5 +5941,15 @@ export default {
   "v2.circle.msg.notFound": "Nie znaleziono tej karty w Twojej bibliotece.",
   "v2.circle.msg.share": "Udostępnij w wiadomości",
   "v2.circle.msg.recipient": "Odbiorca",
+
+  "v2.circle.worldCountries.title": "Tune na świecie",
+  "v2.circle.worldCountries.show": "Koloruj kraje",
+  "v2.circle.worldCountries.legend": "Aktywne serwery według kraju — ostatnie 30 dni",
+  "v2.circle.worldCountries.lessFive": "Mniej niż 5",
+  "v2.circle.worldCountries.more": "{n} lub więcej",
+  "v2.circle.worldCountries.list": "Lista krajów",
+  "v2.circle.worldCountries.country": "Kraj",
+  "v2.circle.worldCountries.servers": "Aktywne serwery",
+  "v2.circle.worldCountries.updated": "Zaktualizowano: {date}",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];
