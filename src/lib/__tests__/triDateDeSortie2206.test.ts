@@ -64,11 +64,11 @@ describe('web#2206 — le tri « Date de sortie » de la Bibliothèque', () => {
 
   it('est aussi offert dans une collection intelligente ouverte (« partout où un tri d’albums existe »)', () => {
     const src = lire('src/components/v2/CollectionsV2.svelte');
-    expect(src).toContain("const TRIS_SMART = ['regles', 'artist', 'title', 'year', 'release_date'] as const;");
+    expect(src).toContain("const TRIS_SMART = ['regles', 'artist', 'title', 'year', 'release_date', 'random'] as const;");
     expect(src).toContain("release_date: 'library.sortReleaseDate',");
     // Les dossiers (collections simples), la recherche et la fiche artiste
     // l'avaient déjà.
-    expect(src).toContain("const TRIS_ALBUMS = ['artist', 'title', 'year', 'release_date', 'added_at'] as const;");
+    expect(src).toContain("const TRIS_ALBUMS = ['artist', 'title', 'year', 'release_date', 'added_at', 'random'] as const;");
     expect(lire('src/components/v2/DiscographieCommune.svelte')).toContain("'release_date'");
   });
 });

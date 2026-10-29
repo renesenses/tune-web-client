@@ -87,11 +87,20 @@
   import { ouvrirParRaccourci, ouvrirSmartPlaylist, ouvrirCollection } from '../../lib/ouvrirParRaccourci';
   import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import { deplacer, rangVise } from '../../lib/ordreEtiquettes';
+  import { albumsTires, graineAleatoire } from '../../lib/shuffle';
 
   let etiquettes = $state<UserTag[]>([]);
   let chargement = $state(true);
   let ouverte = $state<UserTag | null>(null);
   let albums = $state<Album[]>([]);
+  /**
+   * Fil 2526 (r5yk5) — les albums d'une étiquette « au hasard », comme la
+   * Bibliothèque : tirage stable pour une graine, « Re-tirer » en change.
+   * Désactivé, l'ordre reste celui du serveur.
+   */
+  let auHasard = $state(false);
+  let graineTirage = $state<number>(graineAleatoire());
+  const albumsVus = $derived(auHasard ? albumsTires(albums, graineTirage) : albums);
   let artistes = $state<Artist[]>([]);
   let pistes = $state<Track[]>([]);
   let listes = $state<any[]>([]);
@@ -707,8 +716,18 @@
         {#if !albums.length}
           <div class="etat">{$t('v2.tags.noAlbumWithTag' as any)}</div>
         {:else}
+          <div class="tirage">
+            <button class="v2-btn" class:on={auHasard} aria-pressed={auHasard}
+              onclick={() => { auHasard = !auHasard; if (auHasard) graineTirage = graineAleatoire(); }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+              {$t('library.sortRandom' as any)}
+            </button>
+            {#if auHasard}
+              <button class="v2-btn" onclick={() => (graineTirage = graineAleatoire())}>{$t('library.reshuffle' as any)}</button>
+            {/if}
+          </div>
           <div class="grille">
-            {#each albums as a, i (cleLigneEtiquetee(a, i))}
+            {#each albumsVus as a, i (cleLigneEtiquetee(a, i))}
               <div class="carte">
                 <div class="cv">
                   <PochetteActions
@@ -954,6 +973,9 @@
   .pastille{--c:var(--v2-acc1); width:9px; height:9px; border-radius:50%; background:var(--c); flex:none}
 
   .onglets{display:flex; gap:4px; padding:4px 30px 0; flex-wrap:wrap}
+  .tirage{display:flex; gap:8px; padding:12px 30px 0; flex-wrap:wrap}
+  .tirage svg{width:14px; height:14px}
+  .tirage .on{border-color:var(--v2-acc2); color:var(--v2-txt)}
   .onglets button{display:inline-flex; align-items:center; gap:7px; border:1px solid var(--v2-line2);
     background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 12px var(--v2-sans);
     padding:8px 14px; border-radius:var(--v2-r-pill); transition:.15s}
