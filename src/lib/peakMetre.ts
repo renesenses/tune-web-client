@@ -53,7 +53,11 @@ export const PLAFOND_DB = 0;
 /** Seuils de surcharge — le « strictement » de la spécification. */
 export const AMBRE_DES_DB = -0.5;
 
-export type Surcharge = 'aucune' | 'ambre' | 'rouge';
+/**
+ * `source` (#7100) : la SOURCE touche la pleine échelle, mais rien n'a écrêté
+ * la sortie. Une information NEUTRE (la crête du disque), jamais une alerte.
+ */
+export type Surcharge = 'aucune' | 'ambre' | 'rouge' | 'source';
 
 /**
  * 🔴 #4175 — « rouge si crête > 0 dBFS » était une branche MORTE : le
@@ -69,12 +73,22 @@ export type Surcharge = 'aucune' | 'ambre' | 'rouge';
  * pour un serveur qui enverrait un jour du flottant non borné.
  *
  * @param creteDb crête de la fenêtre, en dBFS
- * @param over surcharge constatée par le serveur ; `undefined` = serveur
+ * 🔴 #7100 (Alex, 26/10/2026) — jusqu'au serveur qui envoie `source_over_*`,
+ * `over_*` décrivait la SOURCE : un master à 0 dBFS allumait le rouge à 20 %
+ * de volume sur une zone réseau, où le volume est celui de l'appareil. Depuis,
+ * `over_*` veut dire « la sortie a vraiment écrêté » (volume, gain,
+ * égaliseur et ReplayGain compris), et `source_over_*` porte à part la crête
+ * du disque. Celle-ci s'affiche en NEUTRE (`source`), jamais en rouge.
+ *
+ * @param over écrêtage constaté par le serveur ; `undefined` = serveur
  *   antérieur, qui ne la mesure pas
+ * @param sourceOver la source touche la pleine échelle (#7100) ; `null` ou
+ *   `undefined` = serveur antérieur, qui ne la distingue pas
  */
-export function surcharge(creteDb: number, over?: boolean): Surcharge {
+export function surcharge(creteDb: number, over?: boolean, sourceOver?: boolean | null): Surcharge {
   if (over === true) return 'rouge';
   if (creteDb > 0) return 'rouge';                       // STRICTEMENT
+  if (sourceOver === true) return 'source';              // neutre (#7100)
   if (creteDb > AMBRE_DES_DB) return 'ambre';            // > −0,5 et ≤ 0
   return 'aucune';
 }
