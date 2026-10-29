@@ -18,6 +18,7 @@ import * as api from './api';
 import { volumeDepuisGain } from './courbeDeVolume';
 import { zones } from './stores/zones';
 import { browserSetVolume, isBrowserZone } from './stores/browserAudio';
+import { sourdineCommandable, type CapacitesVolumeSortie } from './capacitesVolumeSortie';
 
 export interface ZoneSourdine {
   id: number;
@@ -25,6 +26,7 @@ export interface ZoneSourdine {
   volume?: number;
   output_type?: string;
   volume_curve?: string | null;
+  output_capabilities?: CapacitesVolumeSortie | null;
 }
 
 export interface DependancesSourdine {
@@ -49,6 +51,7 @@ export async function poserSourdine(
   muted: boolean,
   deps: DependancesSourdine,
 ): Promise<void> {
+  if (!sourdineCommandable(zone)) return;
   const avant = Boolean(zone.muted);
   deps.poserMuet(zone.id, muted);
   deps.audioLocal?.(muted ? 0 : volumeLineaire(zone));

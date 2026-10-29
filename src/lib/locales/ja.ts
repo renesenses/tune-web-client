@@ -6105,6 +6105,7 @@ export default {
   "v2.circle.msg.notFound": "このカードはライブラリに見つかりませんでした。",
   "v2.circle.msg.share": "メッセージで共有",
   "v2.circle.msg.recipient": "送信先",
+  "volume.outputRange": "音量が範囲外です：{min}%～{max}%、刻み幅は {step}% です。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
