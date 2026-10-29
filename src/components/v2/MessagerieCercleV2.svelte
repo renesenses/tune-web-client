@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { t } from '../../lib/i18n';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { dialogs } from '../../lib/stores/dialogs';
   import { motifCercle } from '../../lib/circle';
   import { relireNotifications } from '../../lib/circleNotifications';
-  import { messagerieSupport, conversations, ouvrirConversation, lireMessages, envoyerMessage, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle } from '../../lib/circleMessagerie';
+  import { messagerieSupport, conversations, ouvrirConversation, lireMessages, envoyerMessage, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle } from '../../lib/circleMessagerie';
 
   let disponible = $state(false);
   let liste = $state<ConversationCercle[]>([]);
@@ -81,7 +81,12 @@
     demandeConversation.set(null);
     void geste(async () => {
       if (d.contact) {
-        const c = await ouvrirConversation(d.contact); disponible = true;
+        erreurOuvertureConversation.set(null);
+        let c: ConversationCercle;
+        try { c = await ouvrirConversation(d.contact); }
+        catch (e) { erreurOuvertureConversation.set({ contact: d.contact, cle: motifCercle(e).cle }); throw e; }
+        if (fini) return;
+        disponible = true;
         if (!liste.some((l) => l.id === c.id)) liste = [c, ...liste];
         await ouvrir(c);
       } else if (d.conversation) {
@@ -89,6 +94,11 @@
         liste = l; disponible = true;
         const c = l.find((c) => c.id === d.conversation); if (c) await ouvrir(c);
       }
+    }).then(async () => {
+      await tick();
+      if (fini || !choix || erreur) return;
+      document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' });
+      (document.getElementById('message-texte') as HTMLTextAreaElement | null)?.focus({ preventScroll: true });
     });
   });
   async function envoyer(ev: SubmitEvent) {
