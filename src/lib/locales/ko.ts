@@ -3744,6 +3744,7 @@ export default {
   "v2.hist.eyebrow": "지금까지 들은 음악",
   "v2.hist.regleEcoute": "재생은 소리가 출력으로 나가는 순간, 즉 곡이 시작될 때 기록됩니다. 몇 초 만에 건너뛴 곡도 포함됩니다. 라디오는 기록되지 않습니다. Last.fm 스크로블은 곡의 절반 또는 4분 재생을 기다립니다(30초를 넘는 곡만).",
   "v2.hist.replayError": "이 재생을 다시 시작할 수 없습니다",
+  "v2.hist.ctx.radio": "라디오",
   "v2.hist.ctx.album": "앨범",
   "v2.hist.ctx.playlist": "재생목록",
   "v2.hist.ctx.artist": "아티스트",

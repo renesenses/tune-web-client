@@ -3744,6 +3744,7 @@ export default {
   "v2.hist.eyebrow": "Lo que ha escuchado",
   "v2.hist.regleEcoute": "Una escucha cuenta en cuanto el sonido llega a la salida, al comienzo de la pista: una pista saltada a los pocos segundos también cuenta. La radio no se registra. El envío a Last.fm espera la mitad de la pista o 4 minutos (pistas de más de 30 s).",
   "v2.hist.replayError": "No se pudo reanudar esta escucha",
+  "v2.hist.ctx.radio": "Radio",
   "v2.hist.ctx.album": "Álbum",
   "v2.hist.ctx.playlist": "Lista",
   "v2.hist.ctx.artist": "Artista",

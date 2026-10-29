@@ -3621,6 +3621,7 @@ export default {
   "v2.hist.eyebrow": "Những gì bạn đã nghe",
   "v2.hist.regleEcoute": "Một lượt nghe được tính ngay khi âm thanh đến đầu ra, ở đầu bài hát: bài hát bị bỏ qua sau vài giây cũng được tính. Radio không được ghi lại. Việc scrobble lên Last.fm thì chờ đến nửa bài hát hoặc 4 phút (với bài hát dài hơn 30 giây).",
   "v2.hist.replayError": "Không thể phát lại lượt nghe này",
+  "v2.hist.ctx.radio": "Radio",
   "v2.hist.ctx.album": "Album",
   "v2.hist.ctx.playlist": "Danh sách phát",
   "v2.hist.ctx.artist": "Nghệ sĩ",
