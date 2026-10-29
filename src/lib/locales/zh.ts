@@ -1,4 +1,13 @@
 export default {
+  "v2.circle.msg.reportConfirm": "举报所选消息？",
+  "v2.circle.msg.reportSent": "举报已发送给审核团队。",
+
+  "v2.circle.msg.today": "今天",
+  "v2.circle.msg.yesterday": "昨天",
+  "v2.circle.msg.noMessage": "暂无消息",
+  "v2.circle.msg.emptyThread": "选择一个会话",
+  "v2.circle.msg.actions": "消息操作",
+
   "settings.podcastRewind": "播客恢复播放时回退（秒）",
   "settings.podcastRewindHint": "从保存位置之前恢复播放本集。0–300 秒，默认 10 秒。",
   "v2.radio.listeningCountry": "服务器收听国家",

@@ -1,4 +1,13 @@
 export default {
+  "v2.circle.msg.reportConfirm": "¿Denunciar los mensajes seleccionados?",
+  "v2.circle.msg.reportSent": "Denuncia enviada al equipo de moderación.",
+
+  "v2.circle.msg.today": "Hoy",
+  "v2.circle.msg.yesterday": "Ayer",
+  "v2.circle.msg.noMessage": "Todavía no hay mensajes",
+  "v2.circle.msg.emptyThread": "Elige una conversación",
+  "v2.circle.msg.actions": "Acciones del mensaje",
+
   "settings.podcastRewind": "Retroceso al reanudar podcasts (segundos)",
   "settings.podcastRewindHint": "Reanudar el episodio antes de la posición guardada. De 0 a 300 segundos; 10 por defecto.",
   "v2.radio.listeningCountry": "País de escucha del servidor",

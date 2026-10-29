@@ -1,4 +1,13 @@
 export default {
+  "v2.circle.msg.reportConfirm": "Να αναφερθούν τα επιλεγμένα μηνύματα;",
+  "v2.circle.msg.reportSent": "Η αναφορά στάλθηκε στην ομάδα συντονισμού.",
+
+  "v2.circle.msg.today": "Σήμερα",
+  "v2.circle.msg.yesterday": "Χθες",
+  "v2.circle.msg.noMessage": "Δεν υπάρχουν μηνύματα ακόμη",
+  "v2.circle.msg.emptyThread": "Επιλέξτε μια συνομιλία",
+  "v2.circle.msg.actions": "Ενέργειες μηνύματος",
+
   "settings.podcastRewind": "Επιστροφή κατά τη συνέχιση podcast (δευτερόλεπτα)",
   "settings.podcastRewindHint": "Συνέχιση του επεισοδίου πριν από την αποθηκευμένη θέση. 0–300 δευτερόλεπτα· προεπιλογή: 10.",
   "v2.radio.listeningCountry": "Χώρα ακρόασης του διακομιστή",

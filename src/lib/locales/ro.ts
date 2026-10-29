@@ -1,4 +1,13 @@
 export default {
+  "v2.circle.msg.reportConfirm": "Raportezi mesajele selectate?",
+  "v2.circle.msg.reportSent": "Raport trimis echipei de moderare.",
+
+  "v2.circle.msg.today": "Astăzi",
+  "v2.circle.msg.yesterday": "Ieri",
+  "v2.circle.msg.noMessage": "Niciun mesaj încă",
+  "v2.circle.msg.emptyThread": "Alege o conversație",
+  "v2.circle.msg.actions": "Acțiuni pentru mesaj",
+
   "settings.podcastRewind": "Revenire la reluarea podcasturilor (secunde)",
   "settings.podcastRewindHint": "Reia episodul înainte de poziția salvată. 0–300 de secunde; implicit: 10.",
   "v2.radio.listeningCountry": "Țara de ascultare a serverului",

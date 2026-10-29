@@ -1,4 +1,13 @@
 export default {
+  "v2.circle.msg.reportConfirm": "Jelenti a kijelölt üzeneteket?",
+  "v2.circle.msg.reportSent": "A jelentést elküldtük a moderátoroknak.",
+
+  "v2.circle.msg.today": "Ma",
+  "v2.circle.msg.yesterday": "Tegnap",
+  "v2.circle.msg.noMessage": "Még nincs üzenet",
+  "v2.circle.msg.emptyThread": "Válasszon beszélgetést",
+  "v2.circle.msg.actions": "Üzenetműveletek",
+
   "settings.podcastRewind": "Visszatekerés podcast folytatásakor (másodperc)",
   "settings.podcastRewindHint": "Az epizód folytatása a mentett pozíció előtt. 0–300 másodperc; alapérték: 10.",
   "v2.radio.listeningCountry": "A kiszolgáló hallgatási országa",

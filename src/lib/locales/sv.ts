@@ -1,4 +1,13 @@
 export default {
+  "v2.circle.msg.reportConfirm": "Rapportera de valda meddelandena?",
+  "v2.circle.msg.reportSent": "Rapporten har skickats till modereringsteamet.",
+
+  "v2.circle.msg.today": "Idag",
+  "v2.circle.msg.yesterday": "Igår",
+  "v2.circle.msg.noMessage": "Inga meddelanden ännu",
+  "v2.circle.msg.emptyThread": "Välj en konversation",
+  "v2.circle.msg.actions": "Meddelandeåtgärder",
+
   "settings.podcastRewind": "Spola tillbaka när poddar återupptas (sekunder)",
   "settings.podcastRewindHint": "Återuppta avsnittet före den sparade positionen. 0–300 sekunder; standard: 10.",
   "v2.radio.listeningCountry": "Serverns lyssningsland",
