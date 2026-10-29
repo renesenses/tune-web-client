@@ -57,9 +57,9 @@
  * `tune-server-rust`, pas ici. Le retrait de l'onglet se justifie seul : un
  * onglet en double dont les sept routes sont vides.
  *
- * Le pseudo, lui, ne se perd pas : il passe sur l'onglet qui survit
- * (`pseudoOnglet`), sans quoi la liaison de compte redeviendrait invisible —
- * la régression que `tune-server-rust#2778` avait justement réparée.
+ * Le pseudo ne s'affiche PLUS sur l'onglet (web#2409, testeur Alex, rc8) : la
+ * pastille porte le nom du service et rien d'autre. La liaison de compte reste
+ * lisible dans la carte de connexion de Réglages.
  */
 
 import { ordonnerSources } from './rechercheClassement';
@@ -123,20 +123,6 @@ export function ongletsStreaming(
   // L'extension répond : elle ABSORBE le service générique, à sa place — et
   // seulement s'il est là.
   return connectes.map((k) => (k === BANDCAMP_SVC ? BANDCAMP_EXT : k));
-}
-
-/**
- * Le pseudo à afficher sur un onglet, ou `null`.
- *
- * L'onglet de l'extension porte le pseudo du service GÉNÉRIQUE : c'est le même
- * compte Bandcamp, et c'est la seule des deux clés que le serveur renseigne.
- */
-export function pseudoOnglet(
-  cle: string,
-  services: Record<string, EtatService> | null | undefined,
-): string | null {
-  const svc = cle === BANDCAMP_EXT ? BANDCAMP_SVC : cle;
-  return (services ?? {})[svc]?.username || null;
 }
 
 /**

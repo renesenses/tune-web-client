@@ -209,6 +209,16 @@ export interface Preferences {
    * (la règle de #1428).
    */
   barreVuMetres: boolean;
+  /**
+   * Le petit visualiseur à barres (spectre) de la barre de lecture, à droite,
+   * à côté du cœur — #2429 (testeur Alex, rc8 : « comme pour les crêtes, une
+   * option pour le retirer »).
+   *
+   * AFFICHAGE seulement : rien ici ne touche à l'audio. Affiché par défaut :
+   * l'écran de qui n'a rien demandé ne bouge pas d'un pixel (la règle de
+   * #1428). Sans effet quand la barre à VU-mètres est allumée, qui le remplace.
+   */
+  visualiseurBarre: boolean;
   /** Afficher les bulles d'aide au survol des boutons.
    *
    *  Activé par défaut : trois testeurs de suite n'ont pas trouvé un bouton
@@ -523,6 +533,7 @@ const defaults: Preferences = {
   afficherMinuteurSommeil: true,
   peakMeterStyle: STYLE_CRETE_DEFAUT,
   barreVuMetres: false,
+  visualiseurBarre: true,
   v2Colonnes: { ...DEFAUTS_COLONNES },
   reglagesRendererEnregistres: {},
   // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.

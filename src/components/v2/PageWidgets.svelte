@@ -81,7 +81,7 @@
   import { repartirWidgets } from '../../lib/ajoutWidgets';
   import { GRILLE_OU_LISTE, LIBELLE_AFFICHAGE } from '../../lib/affichage';
   import { ecrireChoix, lireChoix } from '../../lib/preferencesEcran';
-  import { migrationPremiereLigne } from '../../lib/migrationPremiereLigne';
+  import { marqueurAEnregistrer, migrationPremiereLigne } from '../../lib/migrationPremiereLigne';
   import { creneauxParalleles } from '../../lib/creneauxParalleles';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import AudioVisualizer from '../partages/AudioVisualizer.svelte';
@@ -571,6 +571,10 @@
       await api.setProfilePreferences(pid, {
         [CLE]: disposition,
         [CLE_CHIFFRES]: choixAEnregistrer(chiffres, chiffresEnregistres),
+        // #2410 — SA disposition est une décision : le marqueur de la première
+        // ligne part avec elle. Sans lui, retirer la ligne (donc « Genres » et
+        // « My listening ») la faisait revenir au chargement suivant.
+        ...marqueurAEnregistrer(CLE_LIGNE_MIGRE, dispositionDefaut),
       });
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
@@ -1566,7 +1570,11 @@
                    la bibliothèque. Le libellé est celui, déjà traduit dans
                    les onze langues, des podcasts. -->
               <div class="state mince err">
-                <span>{$t('v2.home.widgetFailed' as any)}{et.raison ? ` (${et.raison})` : ''}</span>
+                <!-- #2411 — la RAISON se traduit, ou se tait. `delai` est un code
+                     interne (français, brut dans une interface anglaise) ;
+                     les autres messages techniques restent au journal
+                     (`console.warn` plus haut). -->
+                <span data-widget-echec>{$t('v2.home.widgetFailed' as any)}{et.raison === 'delai' ? ` (${$t('v2.home.widgetTimeout' as any)})` : ''}</span>
                 <button class="relancer" onclick={() => relancerWidget(id)}>{$t('v2.pod.retry' as any)}</button>
               </div>
             {:else if w.forme === 'chiffres'}
