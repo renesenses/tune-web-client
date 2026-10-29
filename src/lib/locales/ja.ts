@@ -1,4 +1,10 @@
 export default {
+  "v2.circle.msg.today": "今日",
+  "v2.circle.msg.yesterday": "昨日",
+  "v2.circle.msg.noMessage": "メッセージはまだありません",
+  "v2.circle.msg.emptyThread": "会話を選択",
+  "v2.circle.msg.actions": "メッセージの操作",
+
   "settings.podcastRewind": "ポッドキャスト再開時の巻き戻し（秒）",
   "settings.podcastRewindHint": "保存位置より前からエピソードを再開します。0～300秒、既定値は10秒です。",
   "v2.radio.listeningCountry": "サーバーの聴取国",

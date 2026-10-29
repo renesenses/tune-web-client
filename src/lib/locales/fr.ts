@@ -1,4 +1,10 @@
 export default {
+  "v2.circle.msg.today": "Aujourd’hui",
+  "v2.circle.msg.yesterday": "Hier",
+  "v2.circle.msg.noMessage": "Pas encore de message",
+  "v2.circle.msg.emptyThread": "Choisissez une conversation",
+  "v2.circle.msg.actions": "Actions du message",
+
   "settings.podcastRewind": "Recul à la reprise des podcasts (secondes)",
   "settings.podcastRewindHint": "Reprendre cet épisode quelques secondes avant la position mémorisée. De 0 à 300 secondes ; 10 par défaut.",
   "v2.radio.listeningCountry": "Pays d’écoute du serveur",

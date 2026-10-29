@@ -1,4 +1,10 @@
 export default {
+  "v2.circle.msg.today": "I dag",
+  "v2.circle.msg.yesterday": "I går",
+  "v2.circle.msg.noMessage": "Ingen meldinger ennå",
+  "v2.circle.msg.emptyThread": "Velg en samtale",
+  "v2.circle.msg.actions": "Meldingshandlinger",
+
   "settings.podcastRewind": "Spol tilbake når podkaster gjenopptas (sekunder)",
   "settings.podcastRewindHint": "Fortsett episoden før den lagrede posisjonen. 0–300 sekunder; standard: 10.",
   "v2.radio.listeningCountry": "Serverens lytteland",

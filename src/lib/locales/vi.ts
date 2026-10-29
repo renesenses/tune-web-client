@@ -1,4 +1,10 @@
 export default {
+  "v2.circle.msg.today": "Hôm nay",
+  "v2.circle.msg.yesterday": "Hôm qua",
+  "v2.circle.msg.noMessage": "Chưa có tin nhắn",
+  "v2.circle.msg.emptyThread": "Chọn một cuộc trò chuyện",
+  "v2.circle.msg.actions": "Thao tác với tin nhắn",
+
   "settings.podcastRewind": "Lùi lại khi tiếp tục podcast (giây)",
   "settings.podcastRewindHint": "Tiếp tục tập trước vị trí đã lưu. 0–300 giây; mặc định: 10.",
   "v2.radio.listeningCountry": "Quốc gia nghe của máy chủ",

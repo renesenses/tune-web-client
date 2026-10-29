@@ -23,7 +23,7 @@ let messages = [
 ];
 const conv = { id: 12, kind: 'direct', contact: { user_id: 7, name: 'Alice' }, unread_count: 2, last_message: messages[0] };
 const finir = async () => { for (let n = 0; n < 5; n++) { await new Promise((r) => setTimeout(r, 0)); flushSync(); } };
-const bouton = (s: string) => [...hote.querySelectorAll('button')].find((b) => b.textContent?.trim() === s)!;
+const bouton = (s: string) => [...hote.querySelectorAll('button')].find((b) => (b.getAttribute('aria-label') ?? b.textContent?.trim()) === s)!;
 beforeAll(async () => { await preparerLocale('fr'); });
 beforeEach(() => {
   absent = false; demandeConversation.set(null); messagerieSupport.set(null); appel.mockReset();
@@ -102,9 +102,11 @@ it('envoie, supprime seulement mon message après confirmation et signale les me
   bouton('Envoyer').click(); await finir();
   expect(appel.mock.calls.some((c) => String(c[0]).endsWith('/messages') && c[1]?.method === 'POST' && JSON.parse(c[1]?.body as string).body === 'Bonjour')).toBe(true);
   expect(hote.querySelectorAll('.messages button').length).toBeGreaterThan(0);
+  (hote.querySelector('.mon-message .menu-bouton') as HTMLButtonElement).click(); await finir();
   bouton('Supprimer').click(); await finir();
   expect(appel.mock.calls.some((c) => String(c[0]).endsWith('/messages/4') && c[1]?.method === 'DELETE')).toBe(true);
   expect(appel.mock.calls.some((c) => String(c[0]).endsWith('/messages/3') && c[1]?.method === 'DELETE')).toBe(false);
+  (hote.querySelector('.message:not(.mon-message) .menu-bouton') as HTMLButtonElement).click(); await finir();
   const cocher = hote.querySelector('.messages input[type=checkbox]') as HTMLInputElement;
   cocher.checked = true; cocher.dispatchEvent(new Event('change', { bubbles: true })); flushSync();
   bouton('Signaler (1)').click(); await finir();
@@ -204,4 +206,34 @@ it('associe le refus HTTP au contact pour afficher une erreur près de son lien'
   expect(get(erreurOuvertureConversation)?.contact).toBe(7);
   expect(get(erreurOuvertureConversation)?.cle).toBeTruthy();
   expect(hote.querySelector('[role=alert]')).toBeTruthy();
+});
+
+
+it('envoie par Entrée, conserve Maj+Entrée et affiche le compteur seulement près de la limite', async () => {
+  vue = mount(Messagerie, { target: hote }); await finir(); demandeConversation.set({ contact: 7 }); await finir();
+  const champ = hote.querySelector('#message-texte') as HTMLTextAreaElement;
+  const saisir = (v: string) => { champ.value = v; champ.dispatchEvent(new Event('input', { bubbles: true })); flushSync(); };
+  expect(hote.querySelector('.compteur')).toBeNull();
+  saisir('a'.repeat(3500)); expect(hote.querySelector('.compteur')?.textContent).toContain('3500');
+  saisir('a'.repeat(4001)); expect(bouton('Envoyer').disabled).toBe(true);
+  saisir('Bonjour\nAlice');
+  const retour = new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true }); champ.dispatchEvent(retour);
+  expect(retour.defaultPrevented).toBe(false);
+  champ.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await finir();
+  expect(appel.mock.calls.some((c) => String(c[0]).endsWith('/messages') && c[1]?.method === 'POST' && JSON.parse(c[1]?.body as string).body === 'Bonjour\nAlice')).toBe(true);
+});
+
+it('groupe les bulles, sépare les jours et garde les actions fermées jusqu’au menu', async () => {
+  const aujourdHui = new Date().toISOString(); const hier = new Date(); hier.setDate(hier.getDate() - 1);
+  messages = [{ id: 1, sender_id: 7, mine: false, body: 'Hier', card: null, created_at: hier.toISOString() }, { id: 2, sender_id: 9, mine: true, body: 'A', card: null, created_at: aujourdHui }, { id: 3, sender_id: 9, mine: true, body: 'B', card: null, created_at: aujourdHui }];
+  vue = mount(Messagerie, { target: hote }); await finir(); demandeConversation.set({ contact: 7 }); await finir();
+  expect([...hote.querySelectorAll('.jour')].map((n) => n.textContent)).toEqual(['Hier', 'Aujourd’hui']);
+  expect(hote.querySelectorAll('.mon-message')).toHaveLength(2);
+  expect(hote.querySelectorAll('.message.groupe')).toHaveLength(1);
+  expect(hote.querySelector('.menu-message')).toBeNull();
+  expect(hote.querySelector('[aria-live=polite]')).toBeTruthy();
+  (hote.querySelector('.mon-message .menu-bouton') as HTMLButtonElement).click(); await finir();
+  expect(bouton('Supprimer')).toBeTruthy();
+  (hote.querySelector('.retour') as HTMLButtonElement).click(); await finir();
+  expect(hote.querySelector('.fil')).toBeNull();
 });

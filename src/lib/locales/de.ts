@@ -1,4 +1,10 @@
 export default {
+  "v2.circle.msg.today": "Heute",
+  "v2.circle.msg.yesterday": "Gestern",
+  "v2.circle.msg.noMessage": "Noch keine Nachricht",
+  "v2.circle.msg.emptyThread": "Unterhaltung auswählen",
+  "v2.circle.msg.actions": "Nachrichtenaktionen",
+
   "settings.podcastRewind": "Rücksprung bei Podcast-Fortsetzung (Sekunden)",
   "settings.podcastRewindHint": "Die Folge vor der gespeicherten Position fortsetzen. 0–300 Sekunden; Standard: 10.",
   "v2.radio.listeningCountry": "Hörland des Servers",
