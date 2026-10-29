@@ -5950,6 +5950,8 @@ export default {
   "v2.circle.msg.recipient": "Người nhận",
 
   "v2.circle.worldCountries.title": "Tune trên thế giới",
+  'v2.circle.worldCountries.cells': 'Ô 1° · ít nhất 3 máy chủ · kích thước theo số lượng',
+  'v2.circle.worldCountries.cell': 'Tâm ô',
   "v2.circle.worldCountries.show": "Tô màu các quốc gia",
   "v2.circle.worldCountries.legend": "Máy chủ hoạt động theo quốc gia — 30 ngày qua",
   "v2.circle.worldCountries.lessFive": "Dưới 5",

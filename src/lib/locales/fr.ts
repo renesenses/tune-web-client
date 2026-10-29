@@ -6120,6 +6120,8 @@ export default {
   "v2.circle.msg.recipient": "Destinataire",
 
   "v2.circle.worldCountries.title": "Tune dans le monde",
+  'v2.circle.worldCountries.cells': 'Cases de 1° · au moins 3 serveurs · taille selon le nombre',
+  'v2.circle.worldCountries.cell': 'Centre de la case',
   "v2.circle.worldCountries.show": "Colorer les pays",
   "v2.circle.worldCountries.legend": "Serveurs actifs par pays — 30 derniers jours",
   "v2.circle.worldCountries.lessFive": "Moins de 5",

@@ -5943,6 +5943,8 @@ export default {
   "v2.circle.msg.recipient": "Odbiorca",
 
   "v2.circle.worldCountries.title": "Tune na świecie",
+  'v2.circle.worldCountries.cells': 'Komórki 1° · co najmniej 3 serwery · rozmiar według liczby',
+  'v2.circle.worldCountries.cell': 'Środek komórki',
   "v2.circle.worldCountries.show": "Koloruj kraje",
   "v2.circle.worldCountries.legend": "Aktywne serwery według kraju — ostatnie 30 dni",
   "v2.circle.worldCountries.lessFive": "Mniej niż 5",

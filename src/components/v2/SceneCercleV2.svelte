@@ -82,7 +82,7 @@
   let { contacts, cercles, partages, enAttente, invitation, playlists = null, onOuvrirPlaylist, onLirePlaylist }: Props = $props();
   let paysMonde = $state<PaysMonde | null>(null);
   let montrerPays = $state(true);
-  const paysDisponibles = $derived(paysMonde !== null && Object.keys(paysMonde.pays).length > 0);
+  const paysDisponibles = $derived(paysMonde !== null && (Object.keys(paysMonde.pays).length > 0 || !!paysMonde.cases?.length));
 
   const CLE_VUE: Record<Vue, string> = {
     monde: 'v2.circle.scene.view.monde', seul: 'v2.circle.scene.view.seul', lien: 'v2.circle.scene.view.lien',
@@ -385,6 +385,7 @@
   $effect(() => {
     const m = moteur; const donnees = montrerPays ? paysMonde?.pays ?? null : null;
     if (!m) return;
+    m.majCases(montrerPays ? paysMonde?.cases ?? [] : []);
     const appliquer = () => m.majPays(donnees, typeof getComputedStyle === 'function' && hote
       ? getComputedStyle(hote).getPropertyValue('--v2-acc2').trim() : undefined);
     appliquer();

@@ -6057,6 +6057,8 @@ export default {
   "v2.circle.msg.recipient": "Címzett",
 
   "v2.circle.worldCountries.title": "Tune a világban",
+  'v2.circle.worldCountries.cells': '1°-os cellák · legalább 3 szerver · méret darabszám szerint',
+  'v2.circle.worldCountries.cell': 'Cella közepe',
   "v2.circle.worldCountries.show": "Országok színezése",
   "v2.circle.worldCountries.legend": "Aktív kiszolgálók országonként — az elmúlt 30 nap",
   "v2.circle.worldCountries.lessFive": "Kevesebb mint 5",

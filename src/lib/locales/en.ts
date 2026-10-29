@@ -6118,6 +6118,8 @@ export default {
   "v2.circle.msg.recipient": "Recipient",
 
   "v2.circle.worldCountries.title": "Tune around the world",
+  'v2.circle.worldCountries.cells': '1° cells · at least 3 servers · size by count',
+  'v2.circle.worldCountries.cell': 'Cell centre',
   "v2.circle.worldCountries.show": "Colour countries",
   "v2.circle.worldCountries.legend": "Active servers by country — last 30 days",
   "v2.circle.worldCountries.lessFive": "Less than 5",

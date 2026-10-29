@@ -25,7 +25,7 @@ import { parBudget, type Budget } from './budget';
 import { deprojeter, pointArc, projeter, vecteur, decoderPointsTerre, DEG, type Orientation } from './globe';
 import { POINTS_TERRE } from './pointsTerre';
 import { PAYS_TERRE } from './paysTerre';
-import { FORCES_PAYS, niveauPays, type NombrePays } from '../paysMonde';
+import { FORCES_PAYS, niveauPays, rayonCase, type CaseMonde, type NombrePays } from '../paysMonde';
 import { cleLien, type Scene, type Vue, type NoeudScene, type GenreLien } from './scene';
 import { anneauDepuis, boitesDesNoeuds, largeurEtiquette, placerEtiquettes, rayonVisible, type AnneauPx, type Disque, type EtiquettePosee, type NoeudVisible } from './anneaux';
 
@@ -256,6 +256,9 @@ export class ChampCercle {
    * rc9 : la carte publique, des points anonymes (aucun nom, aucun bouton),
    * dessinés discrets sous les épingles du cercle. Rien que des coordonnées.
    */
+  private casesMonde: CaseMonde[] = [];
+  majCases(cases: CaseMonde[]) { this.casesMonde = cases; this.redessiner(); }
+
   private niveauxPays: Int8Array | null = null;
   private couleurPays = '#4cc79d';
 
@@ -463,6 +466,14 @@ export class ChampCercle {
       ctx.globalAlpha = a * (0.1 + 0.8 * z * z) * tw * force;
       const s = 0.7 + z * 1.4;
       ctx.fillRect(x - s / 2, y - s / 2, s, s);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = this.couleurPays;
+    for (const cell of this.casesMonde) {
+      const [x, y, z] = projeter(cell.lat * DEG, cell.lng * DEG, R, cx, cy, this.G);
+      if (z < 0.02) continue;
+      ctx.globalAlpha = a * 0.45;
+      ctx.beginPath(); ctx.arc(x, y, rayonCase(cell.n), 0, Math.PI * 2); ctx.fill();
     }
     // rc9 : la communauté, en points anonymes et discrets ; le cercle se dessine par-dessus.
     if (this.publics.length) {

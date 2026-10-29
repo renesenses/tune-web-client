@@ -5943,6 +5943,8 @@ export default {
   "v2.circle.msg.recipient": "Παραλήπτης",
 
   "v2.circle.worldCountries.title": "Το Tune στον κόσμο",
+  'v2.circle.worldCountries.cells': 'Κελιά 1° · τουλάχιστον 3 διακομιστές · μέγεθος ανά πλήθος',
+  'v2.circle.worldCountries.cell': 'Κέντρο κελιού',
   "v2.circle.worldCountries.show": "Χρωματισμός χωρών",
   "v2.circle.worldCountries.legend": "Ενεργοί διακομιστές ανά χώρα — τελευταίες 30 ημέρες",
   "v2.circle.worldCountries.lessFive": "Λιγότεροι από 5",

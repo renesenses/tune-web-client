@@ -6098,6 +6098,8 @@ export default {
   "v2.circle.msg.recipient": "받는 사람",
 
   "v2.circle.worldCountries.title": "세계 속의 Tune",
+  'v2.circle.worldCountries.cells': '1° 셀 · 서버 3대 이상 · 크기는 서버 수',
+  'v2.circle.worldCountries.cell': '셀 중심',
   "v2.circle.worldCountries.show": "국가별 색상 표시",
   "v2.circle.worldCountries.legend": "국가별 활성 서버 — 최근 30일",
   "v2.circle.worldCountries.lessFive": "5개 미만",

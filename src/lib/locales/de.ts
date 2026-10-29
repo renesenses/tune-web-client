@@ -6098,6 +6098,8 @@ export default {
   "v2.circle.msg.recipient": "Empfänger",
 
   "v2.circle.worldCountries.title": "Tune weltweit",
+  'v2.circle.worldCountries.cells': '1°-Zellen · mindestens 3 Server · Größe nach Anzahl',
+  'v2.circle.worldCountries.cell': 'Zellenmitte',
   "v2.circle.worldCountries.show": "Länder einfärben",
   "v2.circle.worldCountries.legend": "Aktive Server nach Land — letzte 30 Tage",
   "v2.circle.worldCountries.lessFive": "Weniger als 5",

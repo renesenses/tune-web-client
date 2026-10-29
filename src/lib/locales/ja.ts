@@ -6098,6 +6098,8 @@ export default {
   "v2.circle.msg.recipient": "送信先",
 
   "v2.circle.worldCountries.title": "世界のTune",
+  'v2.circle.worldCountries.cells': '1°のセル · 3台以上 · 大きさは台数に対応',
+  'v2.circle.worldCountries.cell': 'セルの中心',
   "v2.circle.worldCountries.show": "国別に色分け",
   "v2.circle.worldCountries.legend": "国別のアクティブなサーバー — 過去30日間",
   "v2.circle.worldCountries.lessFive": "5台未満",

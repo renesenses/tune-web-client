@@ -6098,6 +6098,8 @@ export default {
   "v2.circle.msg.recipient": "Destinatar",
 
   "v2.circle.worldCountries.title": "Tune în lume",
+  'v2.circle.worldCountries.cells': 'Celule de 1° · minimum 3 servere · mărime după număr',
+  'v2.circle.worldCountries.cell': 'Centrul celulei',
   "v2.circle.worldCountries.show": "Colorează țările",
   "v2.circle.worldCountries.legend": "Servere active pe țări — ultimele 30 de zile",
   "v2.circle.worldCountries.lessFive": "Mai puțin de 5",

@@ -6097,6 +6097,8 @@ export default {
   "v2.circle.msg.recipient": "Mottagare",
 
   "v2.circle.worldCountries.title": "Tune i världen",
+  'v2.circle.worldCountries.cells': '1°-rutor · minst 3 servrar · storlek efter antal',
+  'v2.circle.worldCountries.cell': 'Rutans mitt',
   "v2.circle.worldCountries.show": "Färglägg länder",
   "v2.circle.worldCountries.legend": "Aktiva servrar per land — senaste 30 dagarna",
   "v2.circle.worldCountries.lessFive": "Färre än 5",

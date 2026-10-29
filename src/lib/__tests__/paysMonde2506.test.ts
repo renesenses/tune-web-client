@@ -10,7 +10,7 @@ import { budgetScene } from '../champCercle/budget';
 import { locale, preparerLocale } from '../i18n';
 import SceneCercleV2 from '../../components/v2/SceneCercleV2.svelte';
 
-const snapshot = { pays: { FR: 42, NL: '<5' }, maj: '2026-10-29T08:00:00Z' };
+const snapshot = { cases: [{ lat: 48.5, lng: 2.5, n: 3 }], pays: { FR: 42, NL: '<5' }, maj: '2026-10-29T08:00:00Z' };
 const frames: FrameRequestCallback[] = [];
 const mounted: ReturnType<typeof mount>[] = [];
 const reponse = (status: number, body: unknown) => ({ ok: status === 200, status,
@@ -79,15 +79,19 @@ it('tints real land particles before opt-in points and preserves those points wh
   engine.redimensionner(800, 500);
   engine.majScene(construireScene({ moi: { nom: 'Moi', albums: 0, genres: [], lieu: null }, contacts: [], cercles: [], focus: null, maxAutour: 30, maxGrappes: 6 }));
   engine.majPointsPublics([{ lat: 0, lon: 0 }]); engine.vue('monde', true); drainer();
-  events.length = 0; engine.majPays({ FR: 42 }, '#ff00ff'); drainer();
+  events.length = 0; engine.majPays({ FR: 42 }, '#ff00ff');
+  engine.majCases([{ lat: 0.5, lng: 0.5, n: 9 }]); drainer();
   const country = events.findIndex((e) => e.operation === 'fillRect' && e.color === '#ff00ff');
   const lastCountry = events.findLastIndex((e) => e.operation === 'fillRect' && e.color === '#ff00ff');
   const point = events.findIndex((e) => e.operation === 'fill' && e.color === '#00ffff');
   expect(country, 'country layer never reached the land renderer').toBeGreaterThanOrEqual(0);
   expect(events[country].composition, 'country colours must remain visible over a light background').toBe('source-over');
   expect(point, 'opt-in points must be drawn above the country layer').toBeGreaterThan(lastCountry);
+  const cell = events.findIndex((e) => e.operation === 'fill' && e.color === '#ff00ff');
+  expect(cell).toBeGreaterThan(lastCountry); expect(point).toBeGreaterThan(cell);
+  expect(events.some((e) => e.operation === 'arc' && e.color === '#ff00ff' && e.args[2] === 5)).toBe(true);
   const visiblePoint = events.filter((e) => e.operation === 'arc' && e.color === '#00ffff');
-  events.length = 0; engine.majPays(null); drainer();
+  events.length = 0; engine.majPays(null); engine.majCases([]); drainer();
   expect(events.some((e) => e.color === '#ff00ff')).toBe(false);
   expect(events.filter((e) => e.operation === 'arc' && e.color === '#00ffff')).toEqual(visiblePoint);
   engine.detruire();
@@ -113,6 +117,7 @@ async function monterScene(countryStatus = 200) {
 it('mounts the World layer enabled by default, lists countries accessibly and only toggles its own renderer', async () => {
   const countries = vi.spyOn(ChampCercle.prototype, 'majPays');
   const points = vi.spyOn(ChampCercle.prototype, 'majPointsPublics');
+  const cells = vi.spyOn(ChampCercle.prototype, 'majCases');
   const target = await monterScene();
   await vi.waitFor(() => { flushSync(); expect(target.querySelector('.pays-monde')).not.toBeNull(); });
   const button = target.querySelector('.pays-monde [role=switch]') as HTMLButtonElement;
@@ -120,10 +125,12 @@ it('mounts the World layer enabled by default, lists countries accessibly and on
   expect(target.querySelector('.pays-monde table')?.textContent).toContain('Pays-Bas');
   expect(target.querySelector('.pays-monde table')?.textContent).toContain('Moins de 5');
   expect(countries).toHaveBeenCalledWith(expect.objectContaining({ FR: 42, NL: '<5' }), expect.anything());
+  expect(cells).toHaveBeenCalledWith(snapshot.cases);
   const before = points.mock.calls.map((x) => structuredClone(x));
   button.click(); await tick(); flushSync();
   expect(button.getAttribute('aria-checked')).toBe('false');
   expect(countries.mock.lastCall?.[0]).toBeNull();
+  expect(cells.mock.lastCall?.[0]).toEqual([]);
   expect(points.mock.calls).toEqual(before);
   expect(target.querySelectorAll('[role=alert]')).toHaveLength(0);
 });
@@ -135,4 +142,14 @@ it('keeps the existing World view and opt-in points without a red error when the
   flushSync();
   expect(target.querySelector('.pays-monde')).toBeNull();
   expect(target.querySelectorAll('[role=alert]')).toHaveLength(0);
+});
+
+it('accepts only anonymous populated cell centres and strips precise or identifying fields', () => {
+  expect(paysMondeValides({ ...snapshot, cases: [
+    { lat: 48.5, lng: 2.5, n: 3, hostname: 'secret' },
+    { lat: 48.5, lng: 2.5, n: 30 },
+    { lat: 49.5, lng: 2.5, n: 2 },
+    { lat: 48.89, lng: 2.13, n: 9 },
+    { lat: -0.5, lng: -1.5, n: 10 },
+  ] })).toEqual({ ...snapshot, cases: [{ lat: 48.5, lng: 2.5, n: 3 }, { lat: -0.5, lng: -1.5, n: 10 }] });
 });

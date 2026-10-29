@@ -6098,6 +6098,8 @@ export default {
   "v2.circle.msg.recipient": "收件人",
 
   "v2.circle.worldCountries.title": "世界各地的 Tune",
+  'v2.circle.worldCountries.cells': '1°网格 · 至少3台服务器 · 大小表示数量',
+  'v2.circle.worldCountries.cell': '网格中心',
   "v2.circle.worldCountries.show": "为国家着色",
   "v2.circle.worldCountries.legend": "各国活跃服务器 — 最近30天",
   "v2.circle.worldCountries.lessFive": "少于5台",
