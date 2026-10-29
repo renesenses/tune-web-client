@@ -205,3 +205,15 @@ it('associe le refus HTTP au contact pour afficher une erreur près de son lien'
   expect(get(erreurOuvertureConversation)?.cle).toBeTruthy();
   expect(hote.querySelector('[role=alert]')).toBeTruthy();
 });
+
+
+it('ne focalise pas l’ancien destinataire quand une autre ouverture échoue', async () => {
+  vue = mount(Messagerie, { target: hote }); await finir(); demandeConversation.set({ contact: 7 }); await finir();
+  const ancien = hote.querySelector('#message-texte');
+  const lien = document.createElement('button'); hote.append(lien); lien.focus();
+  appel.mockRejectedValueOnce(Object.assign(new Error('unavailable'), { status: 503 }));
+  ecrireAuContact(8); await finir();
+  expect(get(erreurOuvertureConversation)?.contact).toBe(8);
+  expect(document.activeElement).toBe(lien);
+  expect(document.activeElement).not.toBe(ancien);
+});

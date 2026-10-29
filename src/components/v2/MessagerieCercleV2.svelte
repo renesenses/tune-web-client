@@ -96,7 +96,7 @@
       }
     }).then(async () => {
       await tick();
-      if (fini || !choix) return;
+      if (fini || !choix || erreur) return;
       document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' });
       (document.getElementById('message-texte') as HTMLTextAreaElement | null)?.focus({ preventScroll: true });
     });
