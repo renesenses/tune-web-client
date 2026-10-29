@@ -2991,6 +2991,7 @@ export default {
   "settings.levelsOpenMoreTabs": "Los niveles Avanzado y Experto abren otras pestañas.",
   "settings.themePalettesHint": "Siete paletas. Ajuste propio del nuevo cliente — el tema de la interfaz actual sigue aparte.",
   "settings.themeDarkGrey": "Gris oscuro",
+  "settings.themeMozaiklabs": "Mozaiklabs (antracita / naranja)",
   "settings.ingestConflictHint": "Cuando ya existe un archivo con el mismo nombre en el destino.",
   "settings.writeTagsHint": "Modifica los archivos importados. Sin marcar, solo se rellena la base.",
   "settings.facetValuesHint": "0 = todas. Más allá de unos cientos, la columna se vuelve ilegible.",

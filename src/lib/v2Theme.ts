@@ -14,6 +14,8 @@ export const V2_THEMES = [
   { id: 'black-green',     label: 'Noir / Vert',     swatch: ['#071418', '#00D4AA'] },
   { id: 'black-blue',      label: 'Noir / Bleu',     swatch: ['#06111A', '#00BCD4'] },
   { id: 'midnight-orange', label: 'Minuit / Orange', swatch: ['#0B1020', '#FF8A3D'] },
+  // rc9 (Bertrand, 26/10/2026) : le thème de la page de connexion Mozaiklabs.
+  { id: 'mozaiklabs',      label: 'Mozaiklabs',      swatch: ['#1E1F22', '#F97316'], labelKey: 'settings.themeMozaiklabs' },
   { id: 'brown',           label: 'Brun',            swatch: ['#17110D', '#D89A63'] },
   // #2364 (Sandro, fil 2405) : un palier gris neutre entre les sombres et les
   // clairs, rangé entre les deux. Son nom est traduit (`labelKey`) ; `label`
