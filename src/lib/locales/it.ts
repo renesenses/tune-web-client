@@ -4373,7 +4373,6 @@ export default {
   "v2.dev.backupErrEmpty": "Questo backup non contiene alcuna zona.",
   "v2.set.svcActive": "Attivo",
   "v2.set.svcActiveHint": "Un servizio disattivato non compare più nella ricerca né nelle schermate di streaming.",
-  "nowplaying.shareError": "Impossibile condividere l’ascolto in corso.",
   "nowplaying.shareNothing": "Niente da condividere: nessun brano in riproduzione.",
   "nowplaying.shareCopyRefused": "Condivisione creata, ma il browser ha rifiutato la copia. Link: {lien}",
   "v2.lbl.autoAnalysis": "Analisi automatica",

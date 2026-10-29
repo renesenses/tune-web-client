@@ -4242,7 +4242,6 @@ export default {
   "v2.dev.backupErrEmpty": "Denne sikkerhetskopien inneholder ingen soner.",
   "v2.set.svcActive": "Aktiv",
   "v2.set.svcActiveHint": "En deaktivert tjeneste vises ikke lenger i søk eller på strømmeskjermene.",
-  "nowplaying.shareError": "Kunne ikke dele det som spilles.",
   "nowplaying.shareNothing": "Ingenting å dele: ingen spor spilles.",
   "nowplaying.shareCopyRefused": "Deling opprettet, men nettleseren avviste kopieringen. Lenke: {lien}",
   "v2.lbl.autoAnalysis": "Automatisk analyse",

@@ -4327,7 +4327,6 @@ export default {
   "v2.dev.backupErrEmpty": "Ez a mentés egyetlen zónát sem tartalmaz.",
   "v2.set.svcActive": "Aktív",
   "v2.set.svcActiveHint": "A kikapcsolt szolgáltatás nem jelenik meg sem a keresésben, sem a streaming képernyőkön.",
-  "nowplaying.shareError": "Nem sikerült megosztani, ami éppen szól.",
   "nowplaying.shareNothing": "Nincs mit megosztani: nem szól egyetlen szám sem.",
   "nowplaying.shareCopyRefused": "A megosztás elkészült, de a böngésző megtagadta a másolást. Hivatkozás: {lien}",
   "v2.lbl.autoAnalysis": "Automatikus elemzés",

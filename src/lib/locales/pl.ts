@@ -4240,7 +4240,6 @@ export default {
   "v2.dev.backupErrEmpty": "Ta kopia zapasowa nie zawiera żadnych stref.",
   "v2.set.svcActive": "Aktywny",
   "v2.set.svcActiveHint": "Wyłączony serwis nie pojawia się już w wyszukiwaniu ani na ekranach streamingu.",
-  "nowplaying.shareError": "Nie udało się udostępnić odtwarzanego utworu.",
   "nowplaying.shareNothing": "Nie ma czego udostępnić: nie jest odtwarzany żaden utwór.",
   "nowplaying.shareCopyRefused": "Udostępnienie utworzone, ale przeglądarka odmówiła skopiowania. Link: {lien}",
   "v2.lbl.autoAnalysis": "Analiza automatyczna",

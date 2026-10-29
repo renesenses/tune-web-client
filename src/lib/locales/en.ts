@@ -4393,7 +4393,6 @@ export default {
   "v2.dev.backupErrEmpty": "This backup contains no zones.",
   "v2.set.svcActive": "Active",
   "v2.set.svcActiveHint": "A disabled service no longer appears in search or on the streaming screens.",
-  "nowplaying.shareError": "Could not share what is playing.",
   "nowplaying.shareNothing": "Nothing to share: no track is playing.",
   "nowplaying.shareCopyRefused": "Share created, but the browser refused the copy. Link: {lien}",
   "v2.lbl.autoAnalysis": "Automatic analysis",

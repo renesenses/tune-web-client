@@ -4372,7 +4372,6 @@ export default {
   "v2.dev.backupErrEmpty": "Säkerhetskopian innehåller inga zoner.",
   "v2.set.svcActive": "Aktiv",
   "v2.set.svcActiveHint": "En avaktiverad tjänst visas varken i sökningen eller på streamingsidorna.",
-  "nowplaying.shareError": "Det gick inte att dela det som spelas.",
   "nowplaying.shareNothing": "Inget att dela: inget spår spelas.",
   "nowplaying.shareCopyRefused": "Delningen skapades, men webbläsaren nekade kopieringen. Länk: {lien}",
   "v2.lbl.autoAnalysis": "Automatisk analys",

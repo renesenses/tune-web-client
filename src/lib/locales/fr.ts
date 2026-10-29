@@ -4395,7 +4395,6 @@ export default {
   "v2.dev.backupErrEmpty": "Cette sauvegarde ne contient aucune zone.",
   "v2.set.svcActive": "Actif",
   "v2.set.svcActiveHint": "Un service désactivé n’apparaît plus dans la recherche ni dans les écrans de streaming.",
-  "nowplaying.shareError": "Impossible de partager cette écoute.",
   "nowplaying.shareNothing": "Rien à partager : aucune piste en cours de lecture.",
   "nowplaying.shareCopyRefused": "Partage créé, mais le navigateur a refusé la copie. Lien : {lien}",
   "v2.lbl.autoAnalysis": "Analyse automatique",

@@ -4373,7 +4373,6 @@ export default {
   "v2.dev.backupErrEmpty": "Diese Sicherung enthält keine Zone.",
   "v2.set.svcActive": "Aktiv",
   "v2.set.svcActiveHint": "Ein deaktivierter Dienst erscheint weder in der Suche noch auf den Streaming-Seiten.",
-  "nowplaying.shareError": "Die laufende Wiedergabe konnte nicht geteilt werden.",
   "nowplaying.shareNothing": "Nichts zu teilen: Es wird kein Titel wiedergegeben.",
   "nowplaying.shareCopyRefused": "Freigabe erstellt, aber der Browser hat das Kopieren verweigert. Link: {lien}",
   "v2.lbl.autoAnalysis": "Automatische Analyse",

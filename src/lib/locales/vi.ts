@@ -4244,7 +4244,6 @@ export default {
   "v2.dev.backupErrEmpty": "Bản sao lưu này không chứa vùng phát nào.",
   "v2.set.svcActive": "Đang hoạt động",
   "v2.set.svcActiveHint": "Dịch vụ đã tắt sẽ không còn xuất hiện trong tìm kiếm hay trên các màn hình streaming.",
-  "nowplaying.shareError": "Không thể chia sẻ nội dung đang phát.",
   "nowplaying.shareNothing": "Không có gì để chia sẻ: không có bài hát nào đang phát.",
   "nowplaying.shareCopyRefused": "Đã tạo liên kết chia sẻ, nhưng trình duyệt từ chối sao chép. Liên kết: {lien}",
   "v2.lbl.autoAnalysis": "Phân tích tự động",
