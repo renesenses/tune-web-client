@@ -2,6 +2,7 @@ import { avecLangueSignal } from './langueRequete';
 // REST API client for tune-server
 
 import { notifications } from './stores/notifications';
+import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrageServeur';
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
@@ -570,6 +571,17 @@ export async function fetchJSON<T>(
       throw sentinelle;
     }
     const err = await apiError(response);
+    // #2413 — le 503 du répondeur de démarrage est une information traduite,
+    // pas un « Server error » : voir `demarrageServeur`.
+    if (response.status === 503) {
+      const phase = phaseDeDemarrage(err.corps);
+      if (phase !== null) {
+        err.message = signalerDemarrage(phase);
+        err.code = 'server_starting';
+        err.dejaAnnonce = true;
+        throw err;
+      }
+    }
     /**
      * 🔴 501 N'EST PAS UNE PANNE — #1007. Fabien, fil « v0.9.148 : v1 divers
      * bugs », point 4 : « Menu playlists : quand on rentre dans le menu, erreur
@@ -663,7 +675,7 @@ export async function fetchJSON<T>(
             ...((err.corps as Record<string, unknown> | undefined) ?? {}),
           })
         ) {
-          notifications.error(err.message, 10000);
+          notifications.error(err.message, 10000, err.detail);
         }
         err.dejaAnnonce = true;
       } else if (key) {
@@ -679,6 +691,8 @@ export async function fetchJSON<T>(
     }
     throw err;
   }
+  // #2413 — une réponse normale : si un toast de démarrage était posé, il part.
+  leServeurRepond();
   if (lireEntetes) {
     try { lireEntetes(response.headers); } catch { /* un en-tête illisible ne casse pas la lecture */ }
   }
@@ -775,6 +789,17 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
     // désormais la phrase de l'application.
     if (response.status === 402) throw (await refusPremiumDe(response))!;
     const err = await apiError(response);
+    // #2413 — le 503 du répondeur de démarrage est une information traduite,
+    // pas un « Server error » : voir `demarrageServeur`.
+    if (response.status === 503) {
+      const phase = phaseDeDemarrage(err.corps);
+      if (phase !== null) {
+        err.message = signalerDemarrage(phase);
+        err.code = 'server_starting';
+        err.dejaAnnonce = true;
+        throw err;
+      }
+    }
     /**
      * 🔴 501 N'EST PAS UNE PANNE — ici non plus (#1148).
      *
@@ -799,6 +824,7 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
     }
     throw err;
   }
+  leServeurRepond();
   try {
     const text = typeof response.text === 'function' ? await response.text() : '';
     return text && text.trim() ? (JSON.parse(text) as T) : undefined;
@@ -1711,7 +1737,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; album_ref?: string; queue_follows?: boolean }) {
+export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; context_shuffle?: boolean; album_ref?: string; queue_follows?: boolean }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -4205,10 +4231,86 @@ export interface EqAutoEqImport {
   preamp_applied?: boolean;
   preamp_covered_by_headroom?: boolean;
   warning?: string;
+  /** tune-server-rust#6532 — courbe OPRA : le crédit que sa licence
+   *  (CC BY-SA 4.0) demande d'afficher, auteur en tête. */
+  credit?: CreditCourbe;
+  /** Plateaux que Tune joue à pente standard (Q ≈ 0,71) au lieu du Q demandé. */
+  approximated_shelves?: { band: number; type: string; requested_q: number }[];
+}
+
+export interface CreditCourbe {
+  author: string;
+  details?: string | null;
+  link?: string | null;
+  database: string;
+  repository: string;
+  license: string;
+  license_url: string;
 }
 
 export function importAutoEqPreset(body: { text: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
   return fetchJSON<EqAutoEqImport>(`${BASE}/eq/import/autoeq`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * tune-server-rust#6709 — les modes propres de la pièce. `POST /eq/room-modes`
+ * est un CALCUL : il ne lit ni n'écrit aucune zone. Les filtres rendus sont
+ * des ATTÉNUATIONS (gain de −20 à −3 dB, Q de 4 à 20, 20 à 250 Hz) ; ils
+ * s'appliquent ensuite par `setEq`, le chemin de l'égaliseur paramétrique.
+ * 400 : valeur hors bornes, non finie ou absente — `code` porte la clé
+ * (`room_value_out_of_bounds`, `room_value_not_finite`,
+ * `room_positions_incompatible`, `room_body_invalid`) et `corps.field` le
+ * champ fautif.
+ */
+export interface RoomModesRequest {
+  length_m: number;
+  width_m: number;
+  height_m: number;
+  listener_from_back_wall_m: number;
+  speaker_from_front_wall_m: number;
+  listener_from_side_wall_m?: number;
+  listener_height_m?: number;
+  speaker_height_m?: number;
+  rt60_s?: number;
+  count?: number;
+}
+
+export interface RoomModeFilter {
+  freq: number;
+  gain: number;
+  q: number;
+  type: 'peak';
+  /** Les modes couverts, en indices `[nx, ny, nz]`. */
+  modes: [number, number, number][];
+}
+
+export interface RoomMode {
+  n: [number, number, number];
+  freq: number;
+  kind: 'axial' | 'tangential' | 'oblique';
+  /** Couplage enceinte → auditeur, pondéré par la famille, de 0 à 1. */
+  coupling: number;
+}
+
+export interface RoomModes {
+  filters: RoomModeFilter[];
+  modes: RoomMode[];
+  modes_total: number;
+  assumptions: {
+    speed_of_sound_m_s: number;
+    rt60_s: number;
+    count: number;
+    min_freq_hz: number;
+    max_freq_hz: number;
+  };
+  bounds?: { gain_db: [number, number]; q: [number, number]; count: [number, number] };
+}
+
+export function computeRoomModes(body: RoomModesRequest): Promise<RoomModes> {
+  return fetchJSON<RoomModes>(`${BASE}/eq/room-modes`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -4240,6 +4342,78 @@ export function searchAutoEq(q: string, limit = 50): Promise<AutoEqRecherche> {
 
 export function importAutoEqFromDatabase(body: { path: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
   return fetchJSON<EqAutoEqImport>(`${BASE}/eq/autoeq/import`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * tune-server-rust#6532 (fil 2334) — la recherche unifiée : AutoEq ET OPRA
+ * dans une liste (`GET /eq/headphones/search`). Chaque résultat porte sa
+ * `source` et la `key` que l'import de cette source attend (`path` AutoEq,
+ * `id` OPRA). `unavailable_sources` : les bases que le serveur n'a pas pu
+ * lire (ni réseau ni copie) ; les deux : 503.
+ */
+export type SourceCasque = 'autoeq' | 'opra';
+
+export interface ResultatCasque {
+  source: SourceCasque;
+  key: string;
+  name: string;
+  vendor: string | null;
+  model: string;
+  /** AutoEq : la source de mesure ; OPRA : l'auteur de la courbe. */
+  author: string;
+  /** AutoEq : le banc ; OPRA : la cible (« Harman Target »). */
+  details: string | null;
+  form: string | null;
+  link: string | null;
+}
+
+export interface AttributionOpra {
+  name: string;
+  repository: string;
+  license: string;
+  license_url: string;
+}
+
+export interface RechercheCasques {
+  query: string;
+  results: ResultatCasque[];
+  total: number;
+  unavailable_sources: SourceCasque[];
+  attribution?: { opra?: AttributionOpra };
+}
+
+/** Un serveur qui n'a que la recherche AutoEq (#6388) répond 404 à la route
+ *  unifiée : on retombe alors sur `GET /eq/autoeq/search`. */
+export async function searchHeadphones(q: string, limit = 50): Promise<RechercheCasques> {
+  try {
+    return await fetchJSON<RechercheCasques>(`${BASE}/eq/headphones/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+  } catch (err) {
+    if ((err as { status?: number })?.status !== 404) throw err;
+    const r = await searchAutoEq(q, limit);
+    return {
+      query: r.query,
+      total: r.total,
+      unavailable_sources: [],
+      results: r.results.map((x) => ({
+        source: 'autoeq' as const,
+        key: x.path,
+        name: x.name,
+        vendor: null,
+        model: x.name,
+        author: x.source,
+        details: x.rig,
+        form: x.form,
+        link: null,
+      })),
+    };
+  }
+}
+
+export function importOpraCurve(body: { id: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
+  return fetchJSON<EqAutoEqImport>(`${BASE}/eq/opra/import`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -5744,6 +5918,14 @@ export function getSystemEnv() {
     spotify_redirect_uri_refus?: 'localhost' | 'http_hors_bouclage' | null;
     /** Fil 221 — `false` : le serveur n'a aucun Client ID Spotify (absent : serveur plus ancien). */
     spotify_client_id_configure?: boolean;
+    /**
+     * tune-server-rust#7074 — le moteur de conteneur où tourne le serveur
+     * (`docker`, `podman`, `kubernetes`, `container`), `null` sur une machine
+     * ordinaire. Absent : serveur plus ancien.
+     */
+    container?: string | null;
+    /** Le nom d'hôte du conteneur quand c'est un identifiant court (`docker restart <id>`). */
+    container_id?: string | null;
   }>(`${BASE}/system/env`);
 }
 
@@ -6999,14 +7181,41 @@ export function getProfilePreferences(profileId: number) {
  * elle l'etait deja, et le cas ne se presente pas — un seul ecran ecrit ces
  * reglages a la fois.
  */
-export async function setProfilePreferences(profileId: number, patch: Record<string, any>) {
-  let actuel: Record<string, any> = {};
-  try {
-    actuel = (await getProfilePreferences(profileId)) ?? {};
-  } catch {
-    // Reglages illisibles : on ecrit quand meme le correctif plutot que de
-    // perdre le geste de l'utilisateur.
-  }
+/**
+ * 🔴 #2410 — LES ÉCRITURES SONT EN FILE, ET UNE LECTURE RATÉE N'ÉCRIT PAS.
+ *
+ * `POST /settings` REMPLACE l'objet entier (voir plus haut), donc chaque
+ * écriture est « lire, fusionner, remplacer ». Deux défauts s'y cachaient, et
+ * tous deux font REVENIR des widgets que l'utilisateur a retirés :
+ *
+ * 1. **Lecture ratée = tout effacé.** Quand la relecture échouait (serveur
+ *    occupé, réseau coupé une seconde), on écrivait « quand même » le seul
+ *    correctif : toutes les autres clés — `home_widgets` comprise — étaient
+ *    remplacées par `{ la_clé_du_geste }`. Au chargement suivant, l'accueil
+ *    retombait sur la disposition par défaut : « Genres » et « My playlists »
+ *    revenaient (testeur Alex, rc8 — après l'envoi d'un rapport de bogue, quand
+ *    le serveur compose les diagnostics et répond lentement). Une lecture
+ *    ratée ne doit RIEN écrire : le geste échoue et le dit.
+ * 2. **Deux écritures qui se croisent.** Deux appels lisaient le même état,
+ *    puis écrivaient chacun le sien : le second remplaçait le premier. Les
+ *    écritures d'un même profil passent désormais l'une après l'autre.
+ */
+const fileDEcriture = new Map<number, Promise<unknown>>();
+
+export function setProfilePreferences(profileId: number, patch: Record<string, any>) {
+  const precedente = fileDEcriture.get(profileId) ?? Promise.resolve();
+  const courante = precedente.then(
+    () => ecrirePreferences(profileId, patch),
+    () => ecrirePreferences(profileId, patch),
+  );
+  // La file avance même si cette écriture échoue.
+  fileDEcriture.set(profileId, courante.catch(() => undefined));
+  return courante;
+}
+
+async function ecrirePreferences(profileId: number, patch: Record<string, any>) {
+  // Pas de `try/catch` : une lecture ratée interrompt l'écriture.
+  const actuel: Record<string, any> = (await getProfilePreferences(profileId)) ?? {};
   const fusion = { ...actuel, ...patch };
   await fetchJSON<unknown>(`${BASE}/profiles/${profileId}/settings`, {
     method: 'POST',
@@ -7996,7 +8205,7 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
   return data.episodes || data;
 }
 
-export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; cover_url?: string; duration_ms?: number }): Promise<any> {
+export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; podcast_id?: string; cover_url?: string; duration_ms?: number }): Promise<any> {
   // tune-server-rust#6468 — un refus de la sortie est un 502/503 avec un `code`
   // stable. Sans bandeau global : l'écran Podcasts porte l'échec dans son
   // propre bandeau, traduit (`lectureEpisode.ts`), au lieu d'un
@@ -9405,6 +9614,12 @@ export function smartAITempoMatch(body: { target_bpm: number; tolerance?: number
 // --- Home Dashboard ---
 export function getHomePage() {
   return fetchJSON<{ sections: any[] }>(`${BASE}/home`);
+}
+
+export function resumeListening(zoneId: number, resumeKey: string) {
+  return fetchJSON<any>(`${BASE}/home/continue-listening/${zoneId}/resume`, {
+    method: 'POST', body: JSON.stringify({ resume_key: resumeKey }),
+  });
 }
 
 export function getContinueListening(limit = 20) {

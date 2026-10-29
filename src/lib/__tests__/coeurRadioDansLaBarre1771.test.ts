@@ -84,6 +84,9 @@ async function monter(niveau: SettingsLevel) {
   flushSync();
   await souffler(120);
   flushSync();
+  // #2480 : les titres radio sont dans les stations repliées.
+  for (const bouton of hote.querySelectorAll<HTMLButtonElement>('button.objet')) bouton.click();
+  flushSync();
   return hote;
 }
 

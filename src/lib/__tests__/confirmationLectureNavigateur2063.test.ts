@@ -68,6 +68,16 @@ describe('web#2063 — le lecteur confirme qu\'il joue', () => {
     expect(confirmations()).toHaveLength(1);
   });
 
+  it('reporte ensuite la position mesurée à cinq secondes sans requête à chaque tick', async () => {
+    browserPlay('/stream/session-abc.flac', false, 18);
+    avancer(42); avancer(43); avancer(46.9); avancer(47);
+    await attendre();
+    expect(confirmations().map((a) => a.corps.position_ms), 'la reprise doit suivre la position réellement jouée').toEqual([42000, 47000]);
+    audio().pause(); avancer(55);
+    await attendre();
+    expect(confirmations()).toHaveLength(2);
+  });
+
   it('un rechargement forcé (piste suivante sous le même flux) confirme de nouveau', async () => {
     browserPlay('/stream/session-abc.flac', false, 18);
     avancer(1);

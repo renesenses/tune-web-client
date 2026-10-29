@@ -1,7 +1,7 @@
 /* Jeu de tokens du nouveau client (direction Levente).
    Portée .tune-v2 pour cohabiter avec le thème historique sans le perturber.
 
-   SEPT THÈMES. Le thème actif est posé par `applyV2Theme()` en attribut
+   HUIT THÈMES. Le thème actif est posé par `applyV2Theme()` en attribut
    `data-v2-theme` sur <html>. Le sélecteur `:root[data-v2-theme=…] .tune-v2`
    l'emporte sur le bloc de base (3 niveaux de spécificité contre 1) et
    s'applique donc à TOUTES les racines .tune-v2, y compris imbriquées — sans
@@ -40,7 +40,7 @@
 .tune-v2{
   --v2-bg:#071418; --v2-bg2:#0A1A1F; --v2-surface:#1B2432; --v2-surface2:#101B23;
   --v2-line:#1C2634; --v2-line2:#243040;
-  --v2-txt:#FFFFFF; --v2-txt2:#8E9AA8; --v2-txt3:#4F5D6D;
+  --v2-txt:#FFFFFF; --v2-txt2:#8E9AA8; --v2-txt3:#7D8EA1;
   --v2-acc1:#00D4AA; --v2-acc2:#50AD6F; --v2-acc-tint:#DFFFEF; --v2-on-acc:#04121A;
   --v2-hover:#0E1A22; --v2-active1:#0F2029; --v2-active2:#0C1820;
   --v2-player1:#0B141B; --v2-player2:#08121A; --v2-knob:#FFFFFF;
@@ -73,7 +73,7 @@
 :root[data-v2-theme="black-blue"] .tune-v2{
   --v2-bg:#06111A; --v2-bg2:#0A1822; --v2-surface:#1A2333; --v2-surface2:#0F1A26;
   --v2-line:#1A2434; --v2-line2:#223044;
-  --v2-txt:#FFFFFF; --v2-txt2:#8C99AA; --v2-txt3:#4D5B70;
+  --v2-txt:#FFFFFF; --v2-txt2:#8C99AA; --v2-txt3:#7C8DA5;
   --v2-acc1:#00BCD4; --v2-acc2:#2E7DF6; --v2-acc-tint:#DFF4FF; --v2-on-acc:#04121A;
   --v2-hover:#0D1A26; --v2-active1:#0E1F2E; --v2-active2:#0B1622;
   --v2-player1:#0A131D; --v2-player2:#07111A; --v2-knob:#FFFFFF;
@@ -87,7 +87,7 @@
 :root[data-v2-theme="midnight-orange"] .tune-v2{
   --v2-bg:#0B1020; --v2-bg2:#10162B; --v2-surface:#1A2138; --v2-surface2:#151C33;
   --v2-line:#212A44; --v2-line2:#2C3654;
-  --v2-txt:#F5F7FF; --v2-txt2:#9AA3C0; --v2-txt3:#5D6788;
+  --v2-txt:#F5F7FF; --v2-txt2:#9AA3C0; --v2-txt3:#818AA9;
   --v2-acc1:#FF8A3D; --v2-acc2:#FFB347; --v2-acc-tint:#FFE3C7; --v2-on-acc:#1A0E02;
   --v2-hover:#151D36; --v2-active1:#1A2340; --v2-active2:#121A32;
   --v2-player1:#0E1428; --v2-player2:#0A0F20; --v2-knob:#FFFFFF;
@@ -101,7 +101,7 @@
 :root[data-v2-theme="brown"] .tune-v2{
   --v2-bg:#17110D; --v2-bg2:#1F1712; --v2-surface:#2A211A; --v2-surface2:#251D16;
   --v2-line:#2E2419; --v2-line2:#3D3024;
-  --v2-txt:#F7EFE6; --v2-txt2:#B49E88; --v2-txt3:#7A6753;
+  --v2-txt:#F7EFE6; --v2-txt2:#B49E88; --v2-txt3:#9E8870;
   --v2-acc1:#D89A63; --v2-acc2:#B5744A; --v2-acc-tint:#FFE2C4; --v2-on-acc:#1A0F06;
   --v2-hover:#241B14; --v2-active1:#2A2018; --v2-active2:#201812;
   --v2-player1:#1E1611; --v2-player2:#17110D; --v2-knob:#F7EFE6;
@@ -110,6 +110,16 @@
   --v2-sh-card:0 6px 16px rgba(0,0,0,.4); --v2-sh-lg:0 16px 40px rgba(0,0,0,.55); --v2-sh-menu:0 20px 50px rgba(0,0,0,.6);
   --v2-glow:rgba(216,154,99,.22); --v2-glow-strong:rgba(216,154,99,.30); --v2-acc-soft:rgba(181,116,74,.12); --v2-focus:rgba(216,154,99,.20); --v2-scrim:rgba(23,17,13,.8); --v2-sh-sm:rgba(0,0,0,.45);
 }
+
+/* #2416 — `--v2-txt3` des QUATRE thèmes sombres à bords bleutés ou bruns
+   (Noir/Vert, Noir/Bleu, Minuit/Orange, Brun) valait 2,3 à 2,9:1 sur la
+   surface de choix : la description, « 25 035 sur 26 431 fichiers »,
+   « Toute la bibliothèque » et « Ajouté … » de la carte « Scanner la
+   bibliothèque » étaient presque illisibles (testeur Alex, rc8). Même teinte,
+   plus clair, jusqu'à 4,65:1 au moins sur fond, fond 2, surface, surface de
+   choix et survol — la marge de 0,15 ne laisse pas un arrondi repasser sous
+   4,5. Il reste plus sombre que `--v2-txt2` : la hiérarchie tient. Le thème
+   Gris foncé (4,82:1) ne bouge pas. Garde : `contrasteThemesSombres2416.test.ts`. */
 
 /* `--v2-txt3` (le texte ATTÉNUÉ, ponté en `--tune-text-muted` et
    `--tune-text-dim`) des deux thèmes clairs était à 3,03:1 (Blanc) et
@@ -200,6 +210,32 @@
   --v2-glow:rgba(61,214,176,.20); --v2-glow-strong:rgba(61,214,176,.26); --v2-acc-soft:rgba(98,184,134,.10); --v2-focus:rgba(61,214,176,.18); --v2-scrim:rgba(43,43,43,.8); --v2-sh-sm:rgba(0,0,0,.35);
 }
 
+/* ── 8. Mozaiklabs — gris anthracite, accent orange en dégradé ───────────
+   Le thème de la page de connexion Mozaiklabs (décision de Bertrand,
+   26/10/2026, rc9) : fond gris anthracite, accent orange vif en dégradé
+   #F97316 → #EA580C. Mêmes jetons que les autres thèmes sombres.
+
+   Mesuré (WCAG, sur fond, fond 2, surface, surface de choix et survol) :
+   texte 12,2:1, secondaire 7,9:1, atténué 5,5:1, accent `--v2-acc1` 4,78:1
+   (il sert de texte et d'icône), texte sur le dégradé orange 5,4:1 au
+   minimum. `--v2-acc2`, l'extrémité sombre du dégradé, ne tient que 3,77:1 :
+   c'est un REMPLISSAGE et un filet (WCAG 1.4.11, 3:1), pas une couleur de
+   texte — la même limite que tous les thèmes, où l'extrémité sombre d'un
+   dégradé ne peut pas être plus sombre que le début ET atteindre 4,5:1.
+   Garde : `themeMozaiklabs.test.ts`. */
+:root[data-v2-theme="mozaiklabs"] .tune-v2{
+  --v2-bg:#1E1F22; --v2-bg2:#222326; --v2-surface:#2D2F33; --v2-surface2:#26282B;
+  --v2-line:#34363B; --v2-line2:#42454B;
+  --v2-txt:#F4F4F5; --v2-txt2:#C4C6CC; --v2-txt3:#A3A6AE;
+  --v2-acc1:#F97316; --v2-acc2:#EA580C; --v2-acc-tint:#FFE4D0; --v2-on-acc:#1A0A02;
+  --v2-hover:#292B2E; --v2-active1:#3A2619; --v2-active2:#2C2018;
+  --v2-player1:#1A1B1E; --v2-player2:#17181B; --v2-knob:#F4F4F5;
+  --v2-av1:#46484E; --v2-av2:#666970;
+  --v2-danger:#FF8F87; --v2-danger-soft:rgba(255,143,135,.12); --v2-danger-bd:#FF6B6B;
+  --v2-sh-card:0 6px 16px rgba(0,0,0,.35); --v2-sh-lg:0 16px 40px rgba(0,0,0,.50); --v2-sh-menu:0 20px 50px rgba(0,0,0,.55);
+  --v2-glow:rgba(249,115,22,.22); --v2-glow-strong:rgba(249,115,22,.30); --v2-acc-soft:rgba(234,88,12,.12); --v2-focus:rgba(249,115,22,.20); --v2-scrim:rgba(30,31,34,.8); --v2-sh-sm:rgba(0,0,0,.40);
+}
+
 /* ── Fond du document ───────────────────────────────────────────────────
    Mesuré dans Chrome : <body> restait #181818 (thème historique) sous TOUS
    les thèmes v2 — invisible tant que la coquille couvre 100vh, mais le
@@ -213,6 +249,7 @@
 :root[data-v2-theme="clear-white"]{ --v2-body-bg:#FFFFFF; }
 :root[data-v2-theme="clear-grey"]{ --v2-body-bg:#EDEFF2; }
 :root[data-v2-theme="dark-grey"]{ --v2-body-bg:#2B2B2B; }
+:root[data-v2-theme="mozaiklabs"]{ --v2-body-bg:#1E1F22; }
 :root[data-v2-theme] body{ background:var(--v2-body-bg); }
 
 /* ─────────────────────────────────────────────────────────────────────────

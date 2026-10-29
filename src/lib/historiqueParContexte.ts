@@ -71,6 +71,7 @@ export interface ContexteEcoute {
 /** Le minimum qu'une entree d'historique doit offrir a ce module. */
 export interface EntreeDatee {
   playedAt: string;
+  track?: unknown;
   contexte?: ContexteEcoute | null;
 }
 
@@ -87,8 +88,27 @@ export type NiveauUn<E> =
  * lui-meme — un tiroir a un element, qui redit sa propre ligne.
  */
 const REGROUPABLES = new Set([
-  'album', 'playlist', 'artist', 'artiste', 'label', 'genre', 'collection',
+  'album', 'playlist', 'artist', 'artiste', 'label', 'genre', 'collection', 'radio',
 ]);
+
+/** La radio garde sa station, jamais l'album d'une ancienne session (#2480).
+ * La même règle sert aux nouvelles écritures et aux anciens carnets lus sans
+ * mutation : une identité explicite est requise, le nom n'est qu'un libellé.
+ */
+export function contexteDeLEcoute(piste: unknown, contexte?: ContexteEcoute | null): ContexteEcoute | null {
+  if (!piste || typeof piste !== 'object') return contexte ?? null;
+  const p = piste as Record<string, unknown>;
+  if (p.source !== 'radio') return contexte ?? null;
+  const ancien = String(contexte?.type ?? '').toLowerCase() === 'radio' ? contexte : null;
+  const brut = p.source_id;
+  const identite = typeof brut === 'string' ? brut.trim()
+    : typeof brut === 'number' && Number.isFinite(brut) ? String(brut) : '';
+  const id = identite || (ancien?.id != null ? String(ancien.id).trim() : '');
+  if (!id) return null;
+  const nomObserve = typeof p.album_title === 'string' ? p.album_title.trim() : '';
+  const nomAncien = ancien?.id != null && String(ancien.id).trim() === id ? ancien.nom : null;
+  return { type: 'radio', id, position: null, source: 'radio', nom: nomObserve || nomAncien || null };
+}
 
 /** Regroupable seulement si le type ET l'identifiant sont la. */
 export function estRegroupable(c: ContexteEcoute | null | undefined): boolean {
@@ -118,7 +138,7 @@ export function regrouperParContexte<E extends EntreeDatee>(entrees: readonly E[
   const index = new Map<string, Extract<NiveauUn<E>, { genre: 'objet' }>>();
 
   for (const e of entrees) {
-    const c = e.contexte;
+    const c = contexteDeLEcoute(e.track, e.contexte);
     if (!estRegroupable(c)) {
       niveaux.push({ genre: 'titre', entree: e, quand: e.playedAt });
       continue;
@@ -217,7 +237,7 @@ export function nomDObjet(
   // #988 — le serveur nomme l'objet lui-même depuis la .151 : ce nom prime,
   // il vient de la table des playlists et non d'une déduction.
   for (const e of entrees) {
-    const n = e.contexte?.nom;
+    const n = (type === 'radio' ? contexteDeLEcoute(e.track, e.contexte) : e.contexte)?.nom;
     if (n != null && String(n).trim() !== '') return String(n).trim();
   }
   const champ = type === 'album' ? 'album_title' : (type === 'artist' || type === 'artiste') ? 'artist_name' : null;
