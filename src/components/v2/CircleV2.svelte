@@ -85,7 +85,7 @@
   import InviterSansEmailV2 from './InviterSansEmailV2.svelte';
   import NotificationsCercleV2 from './NotificationsCercleV2.svelte';
   import MessagerieCercleV2 from './MessagerieCercleV2.svelte';
-  import { demandeConversation, messagerieSupport } from '../../lib/circleMessagerie';
+  import { demandeConversation, messagerieSupport, ecrireAuContact, erreurOuvertureConversation } from '../../lib/circleMessagerie';
   import type { NotifCercle } from '../../lib/circleNotifications';
   import '../../styles/tune-v2.css';
 
@@ -804,7 +804,8 @@
                 <span class="nom" use:bulleTexte>{c.name}</span>
                 <span class="note">{$t('v2.circle.since' as any).replace('{date}', $dateCourte(c.since))}</span>
                 <span class="gestes">
-                  {#if $messagerieSupport === true}<button class="lnk" onclick={() => demandeConversation.set({ contact: c.user_id })}>{$t('v2.circle.msg.write' as any)}</button>{/if}
+                  {#if $messagerieSupport === true}<button class="lnk" onclick={() => ecrireAuContact(c.user_id)}>{$t('v2.circle.msg.write' as any)}</button>{/if}
+                  {#if $erreurOuvertureConversation?.contact === c.user_id}<span role="alert">{$t($erreurOuvertureConversation.cle as any)}</span>{/if}
                   <button class="lnk danger revoquer" disabled={occupe !== null}
                     aria-label={$t('v2.circle.revokeNamed' as any).replace('{name}', c.name)}
                     onclick={() => void revoquer(c)}>

@@ -86,7 +86,6 @@
     aUneBibliothequeDeCompte,
     bibliothequeDeCompteSurPreuve,
     reponseProuveLaBibliotheque,
-    pseudoOnglet,
   } from '../../lib/ongletsStreaming';
   import { untrack } from 'svelte';
   import { get } from 'svelte/store';
@@ -1291,13 +1290,11 @@
   {#if tabs.length}
     <nav class="svcs" use:molettePortee={() => zoneDefilante}>
       {#each tabs as name (name)}
-        <!-- Le pseudo suit l'onglet qui SURVIT au dédoublonnage (#860) : celui
-             de l'extension porte désormais le compte lu sur la clé `bandcamp`,
-             sans quoi la liaison de compte redeviendrait invisible. -->
-        {@const qui = pseudoOnglet(name, services)}
+        <!-- #2409 — le NOM du service, et rien d'autre. Le compte se lit dans
+             Réglages (carte de connexion), pas sur la pastille (testeur Alex,
+             rc8). -->
         <button class:on={active === name} onclick={() => ouvrirOnglet(name)}>
           {label(name)}
-          {#if qui}<span class="who">{qui}</span>{/if}
         </button>
       {/each}
     </nav>
@@ -1994,8 +1991,6 @@
     border-radius:var(--v2-r-pill); transition:.15s}
   .svcs button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .svcs button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .svcs .who{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
-  .svcs button.on .who{color:var(--v2-on-acc); opacity:.75}
 
   /* L'arbre des genres : des familles lisibles, pas 27 puces sur une ligne. */
   /* #922 — la barre de pagination : le bouton, puis la taille de page. */

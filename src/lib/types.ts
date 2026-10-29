@@ -530,6 +530,8 @@ export interface Zone {
   output_type?: OutputType;
   output_device_id?: string | null;
   volume?: number;
+  /** Capacités annoncées par la sortie ; absence = serveur ancien, pas un refus. */
+  output_capabilities?: import('./capacitesVolumeSortie').CapacitesVolumeSortie | null;
   /** tune-server-rust#6787 — loi du volume : `db60` (sortie logicielle, le
    *  volume est une position sur une loi en dB) ou `linear` (appareil). Absent
    *  sur un serveur antérieur : linéaire. Voir `lib/courbeDeVolume.ts`. */
