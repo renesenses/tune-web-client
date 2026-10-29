@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Visszatekerés podcast folytatásakor (másodperc)",
+  "settings.podcastRewindHint": "Az epizód folytatása a mentett pozíció előtt. 0–300 másodperc; alapérték: 10.",
   "v2.radio.listeningCountry": "A kiszolgáló hallgatási országa",
   "v2.radio.countryUnset": "Nincs megadva — korlátozás nélküli adatfolyamok",
   "v2.radio.countryHint": "Válassza ki a hallgatási országot. Ország nélkül csak korlátozás nélküli adatfolyamok választhatók.",

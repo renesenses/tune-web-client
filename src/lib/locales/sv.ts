@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Spola tillbaka när poddar återupptas (sekunder)",
+  "settings.podcastRewindHint": "Återuppta avsnittet före den sparade positionen. 0–300 sekunder; standard: 10.",
   "v2.radio.listeningCountry": "Serverns lyssningsland",
   "v2.radio.countryUnset": "Ej valt — obegränsade strömmar",
   "v2.radio.countryHint": "Välj ditt lyssningsland. Utan land väljs endast obegränsade strömmar.",

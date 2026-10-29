@@ -121,8 +121,8 @@ describe('les cinq actions de la fiche album', () => {
   it('l aléatoire vaut aussi pour les services et Bandcamp', () => {
     expect(src).toMatch(/if \(service \|\| bandcamp\) \{/);
     const i = src.indexOf('if (service || bandcamp) {');
-    const bloc = src.slice(i, i + 500);
-    expect(bloc, 'la tête joue').toContain('playAndSync(zid, tete as any)');
+    const bloc = src.slice(i, src.indexOf('if (album.id == null)', i));
+    expect(bloc, 'la tête joue').toContain('playAndSync(zid, { ...tete, ...contexteAlbum(), context_shuffle: true } as any)');
     expect(bloc, 'le reste s empile en une fois').toContain('corpsDeFileListe(l.slice(1))');
   });
 

@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "播客恢复播放时回退（秒）",
+  "settings.podcastRewindHint": "从保存位置之前恢复播放本集。0–300 秒，默认 10 秒。",
   "v2.radio.listeningCountry": "服务器收听国家",
   "v2.radio.countryUnset": "未设置 — 无限制流",
   "v2.radio.countryHint": "请选择收听国家。未设置时仅选择无限制的流。",

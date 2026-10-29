@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Retroceso al reanudar podcasts (segundos)",
+  "settings.podcastRewindHint": "Reanudar el episodio antes de la posición guardada. De 0 a 300 segundos; 10 por defecto.",
   "v2.radio.listeningCountry": "País de escucha del servidor",
   "v2.radio.countryUnset": "Sin definir — emisiones sin restricciones",
   "v2.radio.countryHint": "Elija su país de escucha. Sin país, solo se eligen emisiones sin restricciones.",
