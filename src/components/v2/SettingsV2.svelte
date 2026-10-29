@@ -2200,6 +2200,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let newDir = $state('');
   let dirBusy = $state(false);
   let scanning = $state(false);
+  let arretScanEnCours = $state(false);
+  let arretScanDemande = $state(false);
+  let erreurArretScan = $state<string | null>(null);
+  let erreurEtatScan = $state<string | null>(null);
+  let suiviScanVivant = false;
+  let lectureEtatScan = 0;
   /** web#2305 : le `current` de `scan/status` — QUEL scan tient le droit. */
   let scanCourant = $state<unknown>(null);
   let scanReport = $state<any | null>(null);
@@ -2511,24 +2517,58 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }
   }
 
-  // L'etat d'analyse est sonde UNIQUEMENT pendant une analyse.
-  $effect(() => {
-    api.getScanStatus().then((s) => { scanning = !!s?.scanning; scanCourant = s?.current ?? null; }).catch(() => {});
-  });
-  $effect(() => {
-    if (!scanning) return;
-    const h = setInterval(async () => {
-      try {
-        const s = await api.getScanStatus();
-        scanning = !!s?.scanning;
-        scanCourant = s?.current ?? null;
-        if (!scanning) {
-          terminerAvancement();
-          scanReport = await api.getScanReport().catch(() => null);
+  /** #2495 : le serveur fait foi, y compris après une demande d'arrêt. */
+  async function rafraichirEtatScan() {
+    if (!suiviScanVivant) return;
+    const tour = ++lectureEtatScan;
+    try {
+      const etat = await api.getScanStatus();
+      if (!suiviScanVivant || tour !== lectureEtatScan) return;
+      if (typeof etat?.scanning !== 'boolean') throw new Error('scan status missing');
+      const etaitActif = scanning;
+      scanning = etat.scanning === true;
+      scanCourant = etat.current ?? null;
+      erreurEtatScan = null;
+      if (!scanning) {
+        arretScanDemande = false;
+        terminerAvancement();
+        if (etaitActif) {
+          const rapport = await api.getScanReport().catch(() => null);
+          if (!suiviScanVivant || tour !== lectureEtatScan) return;
+          scanReport = rapport;
           await refreshLibrary();
         }
-      } catch { /* ignore */ }
-    }, 2500);
+      }
+    } catch {
+      if (suiviScanVivant && tour === lectureEtatScan) {
+        // Une réponse absente ne prouve pas que le scan s'est arrêté.
+        erreurEtatScan = get(t)('scanDetenteur.statutInconnu' as any);
+      }
+    }
+  }
+  $effect(() => {
+    suiviScanVivant = true;
+    void rafraichirEtatScan();
+    const retour = () => { void rafraichirEtatScan(); };
+    const visible = () => { if (document.visibilityState === 'visible') retour(); };
+    window.addEventListener('focus', retour);
+    document.addEventListener('visibilitychange', visible);
+    const desabonner = tuneWS.onEvent((e) => {
+      if (e.type === '_connected' || e.type === '_polling_started'
+        || e.type === 'library.scan.completed'
+        || (e.type === 'library.scan.progress' && !scanning)) retour();
+    });
+    return () => {
+      suiviScanVivant = false; lectureEtatScan++;
+      desabonner(); window.removeEventListener('focus', retour);
+      document.removeEventListener('visibilitychange', visible);
+    };
+  });
+  // Pas de sondage permanent au repos ; le retour réseau/écran relit l'état.
+  $effect(() => { if (tabId === 'library') void rafraichirEtatScan(); });
+  $effect(() => {
+    if (!scanning) return;
+    const h = setInterval(() => { void rafraichirEtatScan(); }, 2500);
     return () => clearInterval(h);
   });
   /**
@@ -2643,11 +2683,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       libErr = refusScanConcurrent(r.erreur, (k) => get(t)(k as any)) ?? get(t)('settings.errScanStartFailed');
       return;
     }
+    lectureEtatScan++;
+    arretScanDemande = false; erreurArretScan = null;
     scanning = true; scanReport = null; libErr = null;
   }
   async function stopScan() {
-    try { await api.cancelScan(); } catch { /* deja finie */ }
-    scanning = false; scanCourant = null; terminerAvancement();
+    if (arretScanEnCours || !suiviScanVivant) return;
+    arretScanEnCours = true; erreurArretScan = null;
+    lectureEtatScan++; // Une lecture partie avant le POST ne confirme pas son effet.
+    try {
+      await api.cancelScan();
+      if (!suiviScanVivant) return;
+      arretScanDemande = true;
+      await rafraichirEtatScan();
+    } catch {
+      if (suiviScanVivant) erreurArretScan = get(t)('scanDetenteur.arretImpossible' as any);
+    } finally { arretScanEnCours = false; }
   }
 
   /**
@@ -6139,13 +6190,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="inline">
                   {#if scanning}
                     <span class="badge up" use:bulleTexte>{$t('v2.lbl.analysisRunning' as any)}</span>
-                    <button class="lnk danger" onclick={stopScan}>{$t('common.stop' as any)}</button>
+                    <button class="lnk danger" onclick={stopScan} disabled={arretScanEnCours}>{$t('common.stop' as any)}</button>
+                    {#if arretScanDemande}<span role="status">{$t('scanDetenteur.arretDemande' as any)}</span>{/if}
                   {:else}
                     <button class="lnk" onclick={() => scan(false)}>{$t('v2.lbl.quickAnalysis' as any)}</button>
                     <button class="lnk" onclick={() => scan(true)}>{$t('settings.fullScanV2' as any)}</button>
                   {/if}
                 </div>
               </div>
+              {#if erreurArretScan}<p class="errline" role="alert">{erreurArretScan}</p>{/if}
+              {#if erreurEtatScan}
+                <p class="errline" role="alert">{erreurEtatScan}</p>
+                <button class="lnk" onclick={() => void rafraichirEtatScan()}>{$t('settings.refresh' as any)}</button>
+              {/if}
               <!-- web#2305 (tune-server-rust#6729) : QUEL scan tient le droit. -->
               {#if scanning}
                 {@const detenteur = decrireScanCourant(scanCourant, (k) => $t(k as any))}

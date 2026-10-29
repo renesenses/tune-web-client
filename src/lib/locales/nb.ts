@@ -5976,6 +5976,9 @@ export default {
   "v2.circle.msg.notFound": "Dette kortet ble ikke funnet i biblioteket ditt.",
   "v2.circle.msg.share": "Del i en melding",
   "v2.circle.msg.recipient": "Mottaker",
+  "scanDetenteur.arretDemande": "Stopp forespurt",
+  "scanDetenteur.arretImpossible": "Kunne ikke stoppe skanningen.",
+  "scanDetenteur.statutInconnu": "Skannestatus er ukjent. Oppdater for å kontrollere.",
 
   "v2.circle.worldCountries.title": "Tune i verden",
   'v2.circle.worldCountries.cells': '1°-ruter · minst 3 servere · størrelse etter antall',

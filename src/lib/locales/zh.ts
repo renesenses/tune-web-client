@@ -6170,6 +6170,9 @@ export default {
   "v2.circle.msg.notFound": "在您的音乐库中找不到此卡片。",
   "v2.circle.msg.share": "通过消息分享",
   "v2.circle.msg.recipient": "收件人",
+  "scanDetenteur.arretDemande": "已请求停止",
+  "scanDetenteur.arretImpossible": "无法停止扫描。",
+  "scanDetenteur.statutInconnu": "扫描状态未知。请刷新以检查。",
 
   "v2.circle.worldCountries.title": "世界各地的 Tune",
   'v2.circle.worldCountries.cells': '1°网格 · 至少3台服务器 · 大小表示数量',

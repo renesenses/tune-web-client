@@ -6169,6 +6169,9 @@ export default {
   "v2.circle.msg.notFound": "Kortet hittades inte i ditt bibliotek.",
   "v2.circle.msg.share": "Dela i ett meddelande",
   "v2.circle.msg.recipient": "Mottagare",
+  "scanDetenteur.arretDemande": "Stopp begärt",
+  "scanDetenteur.arretImpossible": "Det gick inte att stoppa skanningen.",
+  "scanDetenteur.statutInconnu": "Skanningens status är okänd. Uppdatera för att kontrollera.",
 
   "v2.circle.worldCountries.title": "Tune i världen",
   'v2.circle.worldCountries.cells': '1°-rutor · minst 3 servrar · storlek efter antal',

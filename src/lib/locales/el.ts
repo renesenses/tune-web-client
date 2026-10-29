@@ -5976,6 +5976,9 @@ export default {
   "v2.circle.msg.notFound": "Αυτή η κάρτα δεν βρέθηκε στη βιβλιοθήκη σας.",
   "v2.circle.msg.share": "Κοινοποίηση σε μήνυμα",
   "v2.circle.msg.recipient": "Παραλήπτης",
+  "scanDetenteur.arretDemande": "Ζητήθηκε διακοπή",
+  "scanDetenteur.arretImpossible": "Δεν ήταν δυνατή η διακοπή της σάρωσης.",
+  "scanDetenteur.statutInconnu": "Άγνωστη κατάσταση σάρωσης. Ανανεώστε για έλεγχο.",
 
   "v2.circle.worldCountries.title": "Το Tune στον κόσμο",
   'v2.circle.worldCountries.cells': 'Κελιά 1° · τουλάχιστον 3 διακομιστές · μέγεθος ανά πλήθος',

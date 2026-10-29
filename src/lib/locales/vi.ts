@@ -6022,6 +6022,9 @@ export default {
   "v2.circle.msg.notFound": "Không tìm thấy thẻ này trong thư viện của bạn.",
   "v2.circle.msg.share": "Chia sẻ qua tin nhắn",
   "v2.circle.msg.recipient": "Người nhận",
+  "scanDetenteur.arretDemande": "Đã yêu cầu dừng",
+  "scanDetenteur.arretImpossible": "Không thể dừng quét.",
+  "scanDetenteur.statutInconnu": "Chưa rõ trạng thái quét. Hãy làm mới để kiểm tra.",
 
   "v2.circle.worldCountries.title": "Tune trên thế giới",
   'v2.circle.worldCountries.cells': 'Ô 1° · ít nhất 3 máy chủ · kích thước theo số lượng',

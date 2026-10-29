@@ -6190,6 +6190,9 @@ export default {
   "v2.circle.msg.notFound": "This card could not be found in your library.",
   "v2.circle.msg.share": "Share in a message",
   "v2.circle.msg.recipient": "Recipient",
+  "scanDetenteur.arretDemande": "Stop requested",
+  "scanDetenteur.arretImpossible": "Unable to stop the scan.",
+  "scanDetenteur.statutInconnu": "Scan status unknown. Refresh to check it.",
 
   "v2.circle.worldCountries.title": "Tune around the world",
   'v2.circle.worldCountries.cells': '1° cells · at least 3 servers · size by count',

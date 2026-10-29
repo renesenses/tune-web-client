@@ -6170,6 +6170,9 @@ export default {
   "v2.circle.msg.notFound": "이 카드를 라이브러리에서 찾을 수 없습니다.",
   "v2.circle.msg.share": "메시지로 공유",
   "v2.circle.msg.recipient": "받는 사람",
+  "scanDetenteur.arretDemande": "중지 요청됨",
+  "scanDetenteur.arretImpossible": "스캔을 중지할 수 없습니다.",
+  "scanDetenteur.statutInconnu": "스캔 상태를 알 수 없습니다. 새로 고쳐 확인하세요.",
 
   "v2.circle.worldCountries.title": "세계 속의 Tune",
   'v2.circle.worldCountries.cells': '1° 셀 · 서버 3대 이상 · 크기는 서버 수',

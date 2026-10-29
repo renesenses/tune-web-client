@@ -6129,6 +6129,9 @@ export default {
   "v2.circle.msg.notFound": "Ez a kártya nem található a könyvtárában.",
   "v2.circle.msg.share": "Megosztás üzenetben",
   "v2.circle.msg.recipient": "Címzett",
+  "scanDetenteur.arretDemande": "Leállítás kérve",
+  "scanDetenteur.arretImpossible": "A vizsgálatot nem sikerült leállítani.",
+  "scanDetenteur.statutInconnu": "A vizsgálat állapota ismeretlen. Frissíts az ellenőrzéshez.",
 
   "v2.circle.worldCountries.title": "Tune a világban",
   'v2.circle.worldCountries.cells': '1°-os cellák · legalább 3 szerver · méret darabszám szerint',

@@ -6170,6 +6170,9 @@ export default {
   "v2.circle.msg.notFound": "Questa scheda non è stata trovata nella tua libreria.",
   "v2.circle.msg.share": "Condividi in un messaggio",
   "v2.circle.msg.recipient": "Destinatario",
+  "scanDetenteur.arretDemande": "Arresto richiesto",
+  "scanDetenteur.arretImpossible": "Impossibile interrompere la scansione.",
+  "scanDetenteur.statutInconnu": "Stato della scansione sconosciuto. Aggiorna per verificarlo.",
 
   "v2.circle.worldCountries.title": "Tune nel mondo",
   'v2.circle.worldCountries.cells': 'Celle di 1° · almeno 3 server · dimensione per quantità',

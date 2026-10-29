@@ -5976,6 +5976,9 @@ export default {
   "v2.circle.msg.notFound": "Nie znaleziono tej karty w Twojej bibliotece.",
   "v2.circle.msg.share": "Udostępnij w wiadomości",
   "v2.circle.msg.recipient": "Odbiorca",
+  "scanDetenteur.arretDemande": "Zażądano zatrzymania",
+  "scanDetenteur.arretImpossible": "Nie udało się zatrzymać skanowania.",
+  "scanDetenteur.statutInconnu": "Stan skanowania jest nieznany. Odśwież, aby go sprawdzić.",
 
   "v2.circle.worldCountries.title": "Tune na świecie",
   'v2.circle.worldCountries.cells': 'Komórki 1° · co najmniej 3 serwery · rozmiar według liczby',

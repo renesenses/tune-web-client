@@ -6170,6 +6170,9 @@ export default {
   "v2.circle.msg.notFound": "Diese Karte wurde in Ihrer Bibliothek nicht gefunden.",
   "v2.circle.msg.share": "Per Nachricht teilen",
   "v2.circle.msg.recipient": "Empfänger",
+  "scanDetenteur.arretDemande": "Stopp angefordert",
+  "scanDetenteur.arretImpossible": "Der Scan konnte nicht gestoppt werden.",
+  "scanDetenteur.statutInconnu": "Scanstatus unbekannt. Zur Prüfung aktualisieren.",
 
   "v2.circle.worldCountries.title": "Tune weltweit",
   'v2.circle.worldCountries.cells': '1°-Zellen · mindestens 3 Server · Größe nach Anzahl',

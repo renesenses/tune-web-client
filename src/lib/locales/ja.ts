@@ -6170,6 +6170,9 @@ export default {
   "v2.circle.msg.notFound": "このカードはライブラリに見つかりませんでした。",
   "v2.circle.msg.share": "メッセージで共有",
   "v2.circle.msg.recipient": "送信先",
+  "scanDetenteur.arretDemande": "停止を要求しました",
+  "scanDetenteur.arretImpossible": "スキャンを停止できませんでした。",
+  "scanDetenteur.statutInconnu": "スキャンの状態が不明です。更新して確認してください。",
 
   "v2.circle.worldCountries.title": "世界のTune",
   'v2.circle.worldCountries.cells': '1°のセル · 3台以上 · 大きさは台数に対応',
