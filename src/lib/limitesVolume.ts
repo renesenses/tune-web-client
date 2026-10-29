@@ -1,4 +1,5 @@
 import { volumeDepuisGain } from './courbeDeVolume';
+import { plageVolumeSortie, pasVolumeSortie, type ZoneAvecCapacitesVolume } from './capacitesVolumeSortie';
 /**
  * tune-server-rust#6541 — boutons + / − et limites de volume d'une zone
  * (fil forum 2335, alec_eiffel).
@@ -18,7 +19,7 @@ import { volumeDepuisGain } from './courbeDeVolume';
  * Fractions linéaires 0..1, comme `volume`. `null` / absent = pas de limite.
  */
 
-export type LimitesVolume = {
+export type LimitesVolume = ZoneAvecCapacitesVolume & {
   /** tune-server-rust#6787 — loi du curseur ; les limites restent des GAINS. */
   volume_curve?: string | null;
   volume_limit_safety?: number | null;
@@ -94,6 +95,7 @@ export function bornerCurseur(zone: LimitesVolume | null | undefined, cible: num
 
 /** Le bouton + est-il en butée (sécurité atteinte) ? */
 export function plusEnButee(zone: LimitesVolume | null | undefined, actuel: number): boolean {
+  if (plageVolumeSortie(zone)) return cibleDuPas(zone, actuel, 'up') === actuel;
   return actuel >= (curseurDeLimite(zone, securite(zone)) ?? 1) - 1e-6;
 }
 
@@ -113,6 +115,9 @@ export function cibleDuPas(
   actuel: number,
   direction: 'up' | 'down',
 ): number {
+  if (plageVolumeSortie(zone)) {
+    return pasVolumeSortie(zone, actuel, direction, curseurDeLimite(zone, securite(zone)) ?? 1);
+  }
   const brut = direction === 'up' ? actuel + PAS_BOUTON : actuel - PAS_BOUTON;
   const arrondi = Math.round(brut * 100) / 100;
   if (direction === 'down') return Math.max(0, Math.min(arrondi, 1));

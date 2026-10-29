@@ -116,6 +116,7 @@
 
   interface Props {
     pistes: Track[];
+    contexte?: Record<string, string>;
     /** Ce que fait un clic sur la ligne. Reçoit le rang, comme les boucles
      *  qu'il remplace : plusieurs écrans lisent « à partir d'ici ». */
     onLire: (piste: Track, index: number) => void;
@@ -390,6 +391,7 @@
     onTrier?: ((cle: CleColonne) => void) | null;
   }
   let {
+    contexte = {},
     pistes, onLire, onLireDepuis = null, numerotation = 'rang',
     pochetteEnTableau = false,
     sourceEnTableau = false,
@@ -805,7 +807,7 @@
             {/if}
           {/if}
         {/each}
-        {#if !lectureSeule}<span class="td act" role="cell"><PisteActions piste={p}
+        {#if !lectureSeule}<span class="td act" role="cell"><PisteActions piste={p} {contexte} surLire={contexte.context_type ? () => onLire(p, i) : null}
           onLireDepuis={() => lireDepuis(p, i)} coeur={coeurDe?.(p, i) ?? null} /></span>{/if}
         {#if apres}<span class="td act" role="cell">{@render apres(p, i)}</span>{/if}
       </div>

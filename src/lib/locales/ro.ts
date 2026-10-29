@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Revenire la reluarea podcasturilor (secunde)",
+  "settings.podcastRewindHint": "Reia episodul înainte de poziția salvată. 0–300 de secunde; implicit: 10.",
   "v2.radio.listeningCountry": "Țara de ascultare a serverului",
   "v2.radio.countryUnset": "Nespecificată — fluxuri fără restricții",
   "v2.radio.countryHint": "Alegeți țara de ascultare. Fără țară se aleg numai fluxuri fără restricții.",
@@ -6094,6 +6096,7 @@ export default {
   "v2.circle.msg.notFound": "Acest card nu a fost găsit în biblioteca ta.",
   "v2.circle.msg.share": "Distribuie prin mesaj",
   "v2.circle.msg.recipient": "Destinatar",
+  "volume.outputRange": "Volum în afara intervalului: de la {min}% la {max}%, în pași de {step}%.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -1711,7 +1711,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; album_ref?: string; queue_follows?: boolean }) {
+export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; context_shuffle?: boolean; album_ref?: string; queue_follows?: boolean }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -7996,7 +7996,7 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
   return data.episodes || data;
 }
 
-export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; cover_url?: string; duration_ms?: number }): Promise<any> {
+export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; podcast_id?: string; cover_url?: string; duration_ms?: number }): Promise<any> {
   // tune-server-rust#6468 — un refus de la sortie est un 502/503 avec un `code`
   // stable. Sans bandeau global : l'écran Podcasts porte l'échec dans son
   // propre bandeau, traduit (`lectureEpisode.ts`), au lieu d'un
@@ -9405,6 +9405,12 @@ export function smartAITempoMatch(body: { target_bpm: number; tolerance?: number
 // --- Home Dashboard ---
 export function getHomePage() {
   return fetchJSON<{ sections: any[] }>(`${BASE}/home`);
+}
+
+export function resumeListening(zoneId: number, resumeKey: string) {
+  return fetchJSON<any>(`${BASE}/home/continue-listening/${zoneId}/resume`, {
+    method: 'POST', body: JSON.stringify({ resume_key: resumeKey }),
+  });
 }
 
 export function getContinueListening(limit = 20) {

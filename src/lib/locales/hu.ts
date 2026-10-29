@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Visszatekerés podcast folytatásakor (másodperc)",
+  "settings.podcastRewindHint": "Az epizód folytatása a mentett pozíció előtt. 0–300 másodperc; alapérték: 10.",
   "v2.radio.listeningCountry": "A kiszolgáló hallgatási országa",
   "v2.radio.countryUnset": "Nincs megadva — korlátozás nélküli adatfolyamok",
   "v2.radio.countryHint": "Válassza ki a hallgatási országot. Ország nélkül csak korlátozás nélküli adatfolyamok választhatók.",
@@ -6053,6 +6055,7 @@ export default {
   "v2.circle.msg.notFound": "Ez a kártya nem található a könyvtárában.",
   "v2.circle.msg.share": "Megosztás üzenetben",
   "v2.circle.msg.recipient": "Címzett",
+  "volume.outputRange": "A hangerő a tartományon kívül van: {min}% és {max}% között, {step}%-os lépésekben.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

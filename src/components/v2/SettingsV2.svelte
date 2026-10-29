@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { volumeCommandable, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur } from '../../lib/messageServeur';
   import AuditIntegrite from '../partages/AuditIntegrite.svelte';
@@ -412,6 +413,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // ── Sections REELLEMENT portees ────────────────────────────────────────
   // Chacune s'adosse a la meme API/au meme store que l'ecran actuel : le
   // reglage est partage, jamais duplique.
+
+  // #7280 : absent sur un ancien serveur, donc aucun contrôle affiché.
+  let podcastRewind = $state<number | null>(null);
+  let podcastRewindBusy = $state(false);
+  $effect(() => {
+    api.getConfig().then((c: any) => {
+      podcastRewind = typeof c?.continue_listening_rewind_seconds === 'number'
+        ? c.continue_listening_rewind_seconds : null;
+    }).catch(() => { podcastRewind = null; });
+  });
+  async function savePodcastRewind(raw: string) {
+    const value = Number(raw);
+    if (raw.trim() === '' || !Number.isInteger(value) || value < 0 || value > 300) return;
+    const before = podcastRewind;
+    podcastRewindBusy = true;
+    try {
+      await api.updateConfig({ continue_listening_rewind_seconds: value });
+      podcastRewind = value;
+    } catch {
+      podcastRewind = before;
+      notifications.error(get(t)('renderer.saveError' as any));
+    } finally { podcastRewindBusy = false; }
+  }
 
   // « Zones de lecture » — config serveur `zone_auto_create` (defaut true).
   let autoCreate = $state<boolean | null>(null);
@@ -1538,7 +1562,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await setVolumeLock(true, true);
       if ($audiophileLockVolume && $audiophileEnabled) {
         const zid = $currentZoneId;
-        if (zid != null) await api.setVolume(zid, 1);
+        const zone = $zones.find((z) => z.id === zid);
+        if (zid != null && (!zone || (volumeCommandable(zone) && normaliserVolumeSortie(zone, 1) === 1))) await api.setVolume(zid, 1);
       }
     } catch { /* setVolumeLock a deja restaure le store */ }
   }
@@ -4134,6 +4159,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+
+              {#if podcastRewind !== null}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.podcastRewind' as any)}</span>
+                    <span class="hint">{$t('settings.podcastRewindHint' as any)}</span>
+                  </div>
+                  <input class="txt num" type="number" min="0" max="300" step="1"
+                    value={podcastRewind} disabled={podcastRewindBusy}
+                    aria-label={$t('settings.podcastRewind' as any)}
+                    onchange={(e) => savePodcastRewind(e.currentTarget.value)} />
+                </div>
+              {/if}
 
               <!-- Limite de la file d'attente en lecture aléatoire (#2901).
                    `min` / `max` sortent des bornes PUBLIÉES par le serveur :

@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Podcast resume rewind (seconds)",
+  "settings.podcastRewindHint": "Resume the episode before the saved position. 0–300 seconds; default 10.",
   "v2.radio.listeningCountry": "Server listening country",
   "v2.radio.countryUnset": "Not set — unrestricted streams",
   "v2.radio.countryHint": "Choose your listening country. If unset, only unrestricted streams are selected.",
@@ -6114,6 +6116,7 @@ export default {
   "v2.circle.msg.notFound": "This card could not be found in your library.",
   "v2.circle.msg.share": "Share in a message",
   "v2.circle.msg.recipient": "Recipient",
+  "volume.outputRange": "Volume outside the range: {min}% to {max}%, in steps of {step}%.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { volumeCommandable, sourdineCommandable, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { preferences } from '../../lib/stores/preferences';
   import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
@@ -55,7 +56,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
   import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
   import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
-  import { cibleDuPas } from '../../lib/limitesVolume';
+  import { cibleDuPas, plafondDuCurseur } from '../../lib/limitesVolume';
   import {
     audiophileEnabled,
     audiophileGlobalLockVolume,
@@ -82,6 +83,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   let mobileVol = $derived($zoneVolume);
   // #6700 — la sourdine est l'état `muted` de la zone, pas un volume à zéro.
   let mobileIsMuted = $derived($currentZone?.muted === true);
+  let idZoneVolumeMobile = $derived($currentZone?.id ?? null);
+  let volumeMobileAutorise = $derived(!$volumeLocked && volumeCommandable($currentZone));
+  let sourdineMobileAutorisee = $derived(!$volumeLocked && sourdineCommandable($currentZone));
+  let bornesMobile = $derived(bornesCurseurSortie($currentZone));
+  let clePlageMobile = $derived(clePlageVolumeSortie($currentZone));
 
   // Miroir local obligatoire pour les zones navigateur : le serveur ignore
   // leur volume (set_volume_no_device_id), l'<audio> de cet onglet doit être
@@ -94,16 +100,31 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   // Fil forum 2129 : même limitation que le curseur principal (`VolumeControl`).
   // Sans elle, chaque événement `input` partait en `PUT /zones/{id}/volume`.
   const limiterEnvoiMobile = creerLimiteurVolume();
+  let contexteVolumeMobile = 0;
+  $effect(() => {
+    const id = idZoneVolumeMobile;
+    const autorise = volumeMobileAutorise;
+    const plage = clePlageMobile;
+    if (id == null || !autorise) limiterEnvoiMobile.annuler();
+    return () => {
+      contexteVolumeMobile += 1;
+      limiterEnvoiMobile.annuler();
+    };
+  });
 
   function handleMobileVolume(e: Event) {
     const z = $currentZone;
-    if (!z?.id || $volumeLocked) return;
-    const val = Number((e.target as HTMLInputElement).value);
+    if (!z?.id || !volumeMobileAutorise) return;
+    const brut = Number((e.target as HTMLInputElement).value);
+    const val = normaliserVolumeSortie(z, brut, plageVolumeSortie(z) ? plafondDuCurseur(z, mobileVol) : 1);
+    if (val === null) return;
     leverSourdineSiBesoin({ ...z, id: z.id }, val);
     applyMobileVolume(z, val);
     const zoneId = z.id;
     // tune-server-rust#6721 — même règle que `VolumeControl` : un refus relit le verrou.
+    const contexte = contexteVolumeMobile;
     limiterEnvoiMobile(() => {
+      if ($currentZone?.id !== zoneId || !volumeMobileAutorise || contexte !== contexteVolumeMobile) return;
       void envoyerVolumeOuReverrouiller(zoneId, val, {
         envoyer: api.setVolume,
         relireVerrou: refreshAudiophile,
@@ -115,7 +136,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   async function mobileVolumeStep(delta: number) {
     const z = $currentZone;
-    if (!z?.id || $volumeLocked) return;
+    if (!z?.id || !volumeMobileAutorise) return;
     // web#2292 — un point, et + borné par la sécurité de la zone comme les
     // boutons du curseur, pas seulement par 100 %.
     const newVal = cibleDuPas(z, mobileVol, delta > 0 ? 'up' : 'down');
@@ -128,7 +149,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   // #6700 — une VRAIE sourdine (`muted`), le volume n'est pas touché.
   async function toggleMobileMute() {
     const z = $currentZone;
-    if (!z?.id || $volumeLocked) return;
+    if (!z?.id || !sourdineMobileAutorisee) return;
     await basculerSourdineZone({ ...z, id: z.id }).catch(() => {});
   }
 
@@ -1457,7 +1478,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     {#if mobileVolumeOpen}
       <div class="mobile-volume-backdrop" onclick={() => mobileVolumeOpen = false} role="button" tabindex={0} aria-label="Close volume"></div>
       <div class="mobile-volume-popup" class:locked={$volumeLocked}>
-        <button class="mobile-mute-btn" onclick={(e) => { e.stopPropagation(); toggleMobileMute(); }}>
+        <button class="mobile-mute-btn" disabled={!sourdineMobileAutorisee} onclick={(e) => { e.stopPropagation(); toggleMobileMute(); }}>
           {#if mobileIsMuted || mobileVol === 0}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
@@ -1473,20 +1494,20 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         <input
           type="range"
           class="mobile-volume-slider"
-          min="0"
-          max="1"
-          step="0.01"
+          min={bornesMobile.min}
+          max={bornesMobile.max}
+          step={bornesMobile.step}
           value={mobileVol}
           oninput={handleMobileVolume}
-          disabled={$volumeLocked}
+          disabled={!volumeMobileAutorise}
           {...{ orient: 'vertical' }}
           aria-label="Volume"
           onclick={(e) => e.stopPropagation()}
         />
         <div class="mobile-volume-steps">
-          <button class="mobile-step-btn" onclick={(e) => { e.stopPropagation(); mobileVolumeStep(-0.01); }}>−</button>
+          <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'down') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(-0.01); }}>−</button>
           <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
-          <button class="mobile-step-btn" onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
+          <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'up') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
         </div>
         <DeviceVolumeObservation zone={$currentZone} />
       </div>
@@ -3810,4 +3831,5 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   :global([data-kiosk]) .mini-artist {
     font-size: 12px;
   }
+.mobile-volume-slider:disabled, .mobile-mute-btn:disabled, .mobile-step-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>
