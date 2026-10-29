@@ -3243,7 +3243,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            par titre, à cette lettre. Pas de `navMode` ici : cet onglet n'a
            pas de frise. -->
       {@render railAZ()}
-      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display} />
+      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display}
+        porteeActive={porteeActive && !depot} idsPortee={idsPortee} />
     {:else if tab === 'coffrets'}
       <!-- Le clic ouvre la fiche d'album habituelle : celle qui, depuis la
            v0.9.162, affiche un en-tête par disque. -->

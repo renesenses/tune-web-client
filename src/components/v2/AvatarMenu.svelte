@@ -15,6 +15,7 @@
   import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import { t } from '../../lib/i18n';
+  import { urlSsoAuthorize } from '../../lib/ssoAuthorize';
   import { get } from 'svelte/store';
   import { searchSettings, tabLabel, type V2SettingsHit } from '../../lib/v2Settings';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
@@ -30,6 +31,8 @@
   import { visibleProfiles, currentProfileId, retenirCoteServeur, type Profile } from '../../lib/stores/profile';
   import { basculerVers } from '../../lib/basculeDeProfil';
   import { basculeNecessaire } from '../../lib/basculeDeProfil';
+
+  import { estProfilDuCompte, formeDeLaSection } from '../../lib/profilDuCompte';
 
   const LEVELS: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
   let open = $state(false);
@@ -103,7 +106,7 @@
   function signIn() {
     try { localStorage.setItem('tune_sso_pending', Date.now().toString()); } catch {}
     try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
-    window.location.href = '/api/v1/cloud/sso/authorize';
+    window.location.href = urlSsoAuthorize('/api/v1');
   }
 
   async function signOut() {
@@ -247,6 +250,14 @@
    * courriel — et `display_name` le prénom. Afficher `name` mettrait
    * « matteo@mozaiklabs.fr » dans une liste de personnes.
    */
+  const compte = $derived({ connected: ssoConnected, name: ssoName, email: ssoEmail });
+  const forme = $derived(
+    formeDeLaSection(
+      $visibleProfiles.length,
+      $visibleProfiles.length === 1 && $visibleProfiles[0].id === $currentProfileId,
+    ),
+  );
+
   function nomDuProfil(p: Profile): string {
     return p.display_name?.trim() || p.name;
   }
@@ -376,21 +387,35 @@
       <!-- web#1672 : « Default » n'y figure plus dès qu'un profil personnel
            existe (`visibleProfiles`). La section reste utile si l'on est
            encore SUR Default : elle offre alors d'en sortir. -->
-      {#if $visibleProfiles.length > 1 || ($visibleProfiles.length === 1 && $visibleProfiles[0].id !== $currentProfileId)}
+      <!-- #2426 — LE COMPTE N'EST PAS LE PROFIL. L'intitulé le dit, une ligne
+           d'aide aussi ; le profil du compte connecté montre la PHOTO du compte
+           au lieu de la pastille ; et un profil seul n'est pas une liste à
+           choisir, c'est un geste. -->
+      {#if forme !== 'aucune'}
         <div class="sep"></div>
-        <div class="sec">{$t('profiles.title')}</div>
-        <div class="profils">
+        <div class="sec" data-section-profils={forme}>{$t('profiles.sectionTitle' as any)}</div>
+        <div class="hint" data-profils-aide>{$t('profiles.sectionHelp' as any)}</div>
+        <div class="profils" class:unique={forme === 'unique'}>
           {#each $visibleProfiles as p (p.id)}
             <button
               class="profil"
-              class:actif={p.id === $currentProfileId}
+              class:actif={forme === 'liste' && p.id === $currentProfileId}
               onclick={() => basculer(p.id)}
-              aria-current={p.id === $currentProfileId ? 'true' : undefined}
+              aria-current={forme === 'liste' && p.id === $currentProfileId ? 'true' : undefined}
+              data-profil-du-compte={estProfilDuCompte(p, compte) ? 'oui' : undefined}
             >
-              <span class="pastille" style="background:{p.avatar_color || 'var(--v2-line2)'}"
-                >{nomDuProfil(p).charAt(0).toUpperCase()}</span
-              >
-              <span class="pnom" use:bulleTexte>{nomDuProfil(p)}</span>
+              {#if estProfilDuCompte(p, compte) && photo}
+                <img class="pastille pphoto" src={photo} alt="" />
+              {:else}
+                <span class="pastille" style="background:{p.avatar_color || 'var(--v2-line2)'}"
+                  >{nomDuProfil(p).charAt(0).toUpperCase()}</span
+                >
+              {/if}
+              <span class="pnom" use:bulleTexte>
+                {forme === 'unique'
+                  ? $t('profiles.useOne' as any).replace('{name}', nomDuProfil(p))
+                  : nomDuProfil(p)}
+              </span>
             </button>
           {/each}
         </div>
@@ -572,6 +597,7 @@
   .profil.actif{background:var(--v2-surface2); color:var(--v2-txt); font-weight:600}
   .pastille{flex:0 0 auto; width:24px; height:24px; border-radius:50%; display:flex;
     align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff}
+  .pphoto{object-fit:cover; display:block}
   .pnom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
   /* « Retirer » : un lien discret sous l'identité, pas un bouton de plus. */

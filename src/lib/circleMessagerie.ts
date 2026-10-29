@@ -17,6 +17,12 @@ export interface ConversationCercle { id: number; kind: 'direct'; contact: { use
 export interface PageMessages { conversation: ConversationCercle; messages: MessageCercle[]; next_cursor: string | null }
 export const messagerieSupport = writable<boolean | null>(null);
 export const demandeConversation = writable<{ contact?: number; conversation?: number } | null>(null);
+export const erreurOuvertureConversation = writable<{ contact: number; cle: string } | null>(null);
+export function ecrireAuContact(contact: number): void {
+  erreurOuvertureConversation.set(null);
+  demandeConversation.set({ contact });
+  document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' });
+}
 export const carteAPartager = writable<CarteMusique | null>(null);
 const racine = () => `${BASE}/ext/circle`;
 const idsService = ['qobuz_id', 'tidal_id', 'spotify_id', 'deezer_id', 'youtube_id'] as const;
