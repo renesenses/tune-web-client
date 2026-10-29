@@ -15,12 +15,12 @@ const frames: FrameRequestCallback[] = [];
 const mounted: ReturnType<typeof mount>[] = [];
 const reponse = (status: number, body: unknown) => ({ ok: status === 200, status,
   headers: new Headers(), json: async () => body, text: async () => JSON.stringify(body) }) as Response;
-function contexte(events: { operation: string; color: string; args: unknown[] }[]) {
+function contexte(events: { operation: string; color: string; composition?: string; args: unknown[] }[]) {
   const state: Record<PropertyKey, any> = {};
   return new Proxy(state, {
     get: (s, k) => {
       if (k === 'createRadialGradient') return () => ({ addColorStop() {} });
-      if (['fillRect', 'fill', 'arc'].includes(String(k))) return (...args: unknown[]) => events.push({ operation: String(k), color: s.fillStyle, args });
+      if (['fillRect', 'fill', 'arc'].includes(String(k))) return (...args: unknown[]) => events.push({ operation: String(k), color: s.fillStyle, composition: s.globalCompositeOperation, args });
       return k in s ? s[k] : () => {};
     }, set: (s, k, v) => { s[k] = v; return true; },
   });
@@ -71,7 +71,7 @@ it('keeps ISO map units distinct, including metropolitan France and French Guian
 
 it('tints real land particles before opt-in points and preserves those points when hidden', () => {
   expect(PAYS_TERRE.length / 2).toBe(POINTS_TERRE.split(',').length / 2);
-  const events: { operation: string; color: string; args: unknown[] }[] = [];
+  const events: { operation: string; color: string; composition?: string; args: unknown[] }[] = [];
   const canvas = document.createElement('canvas');
   (canvas as any).getContext = () => contexte(events);
   const engine = new ChampCercle(canvas, { budget: budgetScene({ largeur: 1000, lectureLocale: false, mouvementReduit: true }),
@@ -84,6 +84,7 @@ it('tints real land particles before opt-in points and preserves those points wh
   const lastCountry = events.findLastIndex((e) => e.operation === 'fillRect' && e.color === '#ff00ff');
   const point = events.findIndex((e) => e.operation === 'fill' && e.color === '#00ffff');
   expect(country, 'country layer never reached the land renderer').toBeGreaterThanOrEqual(0);
+  expect(events[country].composition, 'country colours must remain visible over a light background').toBe('source-over');
   expect(point, 'opt-in points must be drawn above the country layer').toBeGreaterThan(lastCountry);
   const visiblePoint = events.filter((e) => e.operation === 'arc' && e.color === '#00ffff');
   events.length = 0; engine.majPays(null); drainer();

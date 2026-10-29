@@ -448,7 +448,8 @@ export class ChampCercle {
     gr.addColorStop(0, 'rgba(222,178,104,0.07)'); gr.addColorStop(1, 'rgba(222,178,104,0.015)');
     ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = 'rgba(222,178,104,0.22)'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.globalCompositeOperation = 'lighter';
+    // Additive blending would wash country colours out on a light background.
+    ctx.globalCompositeOperation = this.niveauxPays ? 'source-over' : 'lighter';
     ctx.fillStyle = this.c.or;
     const pasTerre = this.opts.budget.facteur < 0.3 ? 2 : 1;
     for (let i = 0; i < this.terre.length; i += pasTerre) {
