@@ -44,10 +44,12 @@ export function nomDeService(service: string): string {
 }
 
 export function natureErreurConnexion(
-  e: { code?: unknown; message?: unknown } | null | undefined,
+  e: { code?: unknown; message?: unknown; detail?: unknown } | null | undefined,
 ): NatureErreurConnexion {
   if (e?.code === CODE_IDENTIFIANTS_REFUSES) return 'identifiants';
-  const message = typeof e?.message === 'string' ? e.message : '';
+  // #2417 : le message montré est désormais traduit ou générique ; le texte
+  // brut du serveur est dans `detail`. Les deux sont lus.
+  const message = [e?.message, e?.detail].filter((x): x is string => typeof x === 'string').join(' ');
   // Serveur d'avant #7068 : « qobuz login: 401 {…} ».
   if (/\blogin:\s*401\b/i.test(message)) return 'identifiants';
   // Du JSON du service recopié tel quel : technique, jamais montré.
