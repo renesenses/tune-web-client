@@ -596,6 +596,7 @@ export default {
 
   // Backup / Restore
   'maintenance.backupRestore': 'Backup / Ripristino',
+  "maintenance.backupPostgresHint": "Le copie di backup dei file sono disponibili solo per SQLite. Per PostgreSQL, usare pg_dump.",
   'maintenance.createBackup': 'Crea backup',
   'maintenance.restore': 'Ripristina',
   'maintenance.noBackups': 'Nessun backup disponibile',

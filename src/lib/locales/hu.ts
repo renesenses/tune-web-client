@@ -679,6 +679,7 @@ export default {
   "metadata.save": "Mentés",
   // Mentés / Visszaállítás
   "maintenance.backupRestore": "Mentés / Visszaállítás",
+  "maintenance.backupPostgresHint": "A fájlmásolásos biztonsági mentés csak SQLite esetén érhető el. PostgreSQL esetén használja a pg_dump eszközt.",
   "maintenance.createBackup": "Mentés készítése",
   "maintenance.restore": "Visszaállítás",
   "maintenance.noBackups": "Nincs elérhető mentés",

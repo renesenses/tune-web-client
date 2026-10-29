@@ -596,6 +596,7 @@ export default {
 
   // Backup / Restore
   'maintenance.backupRestore': 'バックアップ / 復元',
+  "maintenance.backupPostgresHint": "ファイルのコピーによるバックアップはSQLiteのみ対応しています。PostgreSQLではpg_dumpを使用してください。",
   'maintenance.createBackup': 'バックアップを作成',
   'maintenance.restore': '復元',
   'maintenance.noBackups': 'バックアップがありません',

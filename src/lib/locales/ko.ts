@@ -596,6 +596,7 @@ export default {
 
   // Backup / Restore
   'maintenance.backupRestore': '백업 / 복원',
+  "maintenance.backupPostgresHint": "파일 복사 백업은 SQLite에서만 사용할 수 있습니다. PostgreSQL에서는 pg_dump를 사용하세요.",
   'maintenance.createBackup': '백업 생성',
   'maintenance.restore': '복원',
   'maintenance.noBackups': '사용 가능한 백업이 없습니다',

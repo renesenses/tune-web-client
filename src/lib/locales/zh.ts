@@ -596,6 +596,7 @@ export default {
 
   // Backup / Restore
   'maintenance.backupRestore': '备份 / 恢复',
+  "maintenance.backupPostgresHint": "文件复制备份仅适用于SQLite。PostgreSQL请使用pg_dump。",
   'maintenance.createBackup': '创建备份',
   'maintenance.restore': '恢复',
   'maintenance.noBackups': '没有可用的备份',

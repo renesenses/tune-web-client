@@ -701,6 +701,7 @@ export default {
 
   // Backup / Restore
   'maintenance.backupRestore': 'Backup / Restore',
+  "maintenance.backupPostgresHint": "File-copy backups are available only for SQLite. For PostgreSQL, use pg_dump.",
   'maintenance.createBackup': 'Create Backup',
   'maintenance.restore': 'Restore',
   'maintenance.noBackups': 'No backups available',

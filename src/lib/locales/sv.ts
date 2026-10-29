@@ -580,6 +580,7 @@ export default {
 
   // Backup / Restore
   'maintenance.backupRestore': 'Säkerhetskopiera / Återställ',
+  "maintenance.backupPostgresHint": "Säkerhetskopiering av filer är endast tillgänglig för SQLite. Använd pg_dump för PostgreSQL.",
   'maintenance.createBackup': 'Skapa säkerhetskopia',
   'maintenance.restore': 'Återställ',
   'maintenance.noBackups': 'Inga säkerhetskopior tillgängliga',

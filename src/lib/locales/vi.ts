@@ -659,6 +659,7 @@ export default {
   "metadata.saveError": "Lỗi khi lưu",
   "metadata.save": "Lưu",
   "maintenance.backupRestore": "Sao lưu / Khôi phục",
+  "maintenance.backupPostgresHint": "Sao lưu bằng cách sao chép tệp chỉ dành cho SQLite. Với PostgreSQL, hãy dùng pg_dump.",
   "maintenance.createBackup": "Tạo bản sao lưu",
   "maintenance.restore": "Khôi phục",
   "maintenance.noBackups": "Không có bản sao lưu nào",

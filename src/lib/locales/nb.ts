@@ -657,6 +657,7 @@ export default {
   "metadata.saveError": "Lagringsfeil",
   "metadata.save": "Lagre",
   "maintenance.backupRestore": "Sikkerhetskopi / Gjenoppretting",
+  "maintenance.backupPostgresHint": "Sikkerhetskopiering av filer er bare tilgjengelig for SQLite. Bruk pg_dump for PostgreSQL.",
   "maintenance.createBackup": "Lag sikkerhetskopi",
   "maintenance.restore": "Gjenopprett",
   "maintenance.noBackups": "Ingen sikkerhetskopier tilgjengelig",

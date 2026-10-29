@@ -657,6 +657,7 @@ export default {
   "metadata.saveError": "Błąd zapisu",
   "metadata.save": "Zapisz",
   "maintenance.backupRestore": "Kopia zapasowa / Przywracanie",
+  "maintenance.backupPostgresHint": "Kopie zapasowe plików są dostępne tylko dla SQLite. Dla PostgreSQL użyj pg_dump.",
   "maintenance.createBackup": "Utwórz kopię zapasową",
   "maintenance.restore": "Przywróć",
   "maintenance.noBackups": "Brak dostępnych kopii zapasowych",

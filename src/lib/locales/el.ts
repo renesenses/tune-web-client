@@ -657,6 +657,7 @@ export default {
   "metadata.saveError": "Σφάλμα αποθήκευσης",
   "metadata.save": "Αποθήκευση",
   "maintenance.backupRestore": "Αντίγραφο ασφαλείας / Επαναφορά",
+  "maintenance.backupPostgresHint": "Τα αντίγραφα αρχείων υποστηρίζονται μόνο για SQLite. Για PostgreSQL, χρησιμοποιήστε pg_dump.",
   "maintenance.createBackup": "Δημιουργία αντιγράφου ασφαλείας",
   "maintenance.restore": "Επαναφορά",
   "maintenance.noBackups": "Δεν υπάρχουν διαθέσιμα αντίγραφα ασφαλείας",

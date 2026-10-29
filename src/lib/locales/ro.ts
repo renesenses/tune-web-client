@@ -602,6 +602,7 @@ export default {
 
   // Backup / Restore
   'maintenance.backupRestore': 'Backup / Restaurare',
+  "maintenance.backupPostgresHint": "Copiile de siguranță ale fișierelor sunt disponibile numai pentru SQLite. Pentru PostgreSQL, utilizați pg_dump.",
   'maintenance.createBackup': 'Creează backup',
   'maintenance.restore': 'Restaurează',
   'maintenance.noBackups': 'Niciun backup disponibil',
