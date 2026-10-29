@@ -126,7 +126,7 @@
       }
     }).then(async () => {
       await tick();
-      if (fini || !choix) return;
+      if (fini || !choix || erreur) return;
       document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' });
       (document.getElementById('message-texte') as HTMLTextAreaElement | null)?.focus({ preventScroll: true });
     });
@@ -135,7 +135,7 @@
     ev.preventDefault();
     if (!choix || !messageEnvoyable(texte, null)) return;
     const id = choix.id; const brouillon = texte;
-    await geste(async () => { await envoyerMessage(id, brouillon); if (choix?.id === id) { texte = ''; ajusterSaisie(); } await charger(); if (choix?.id === id) await bas(); });
+    await geste(async () => { await envoyerMessage(id, brouillon); if (choix?.id === id) { texte = ''; await tick(); ajusterSaisie(); } await charger(); if (choix?.id === id) await bas(); });
   }
   async function supprimer(m: MessageCercle) {
     if (!choix || !m.mine || !(await dialogs.confirm(tr('v2.circle.msg.deleteConfirm'), { danger: true }))) return;

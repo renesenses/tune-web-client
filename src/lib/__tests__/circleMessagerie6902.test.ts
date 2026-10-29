@@ -239,3 +239,14 @@ it('groupe les bulles, sépare les jours et garde les actions fermées jusqu’a
   (hote.querySelector('.retour') as HTMLButtonElement).click(); await finir();
   expect(hote.querySelector('.fil')).toBeNull();
 });
+
+it('ne focalise pas l’ancien destinataire quand une autre ouverture échoue', async () => {
+  vue = mount(Messagerie, { target: hote }); await finir(); demandeConversation.set({ contact: 7 }); await finir();
+  const ancien = hote.querySelector('#message-texte');
+  const lien = document.createElement('button'); hote.append(lien); lien.focus();
+  appel.mockRejectedValueOnce(Object.assign(new Error('unavailable'), { status: 503 }));
+  ecrireAuContact(8); await finir();
+  expect(get(erreurOuvertureConversation)?.contact).toBe(8);
+  expect(document.activeElement).toBe(lien);
+  expect(document.activeElement).not.toBe(ancien);
+});
