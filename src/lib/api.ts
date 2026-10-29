@@ -4231,6 +4231,21 @@ export interface EqAutoEqImport {
   preamp_applied?: boolean;
   preamp_covered_by_headroom?: boolean;
   warning?: string;
+  /** tune-server-rust#6532 — courbe OPRA : le crédit que sa licence
+   *  (CC BY-SA 4.0) demande d'afficher, auteur en tête. */
+  credit?: CreditCourbe;
+  /** Plateaux que Tune joue à pente standard (Q ≈ 0,71) au lieu du Q demandé. */
+  approximated_shelves?: { band: number; type: string; requested_q: number }[];
+}
+
+export interface CreditCourbe {
+  author: string;
+  details?: string | null;
+  link?: string | null;
+  database: string;
+  repository: string;
+  license: string;
+  license_url: string;
 }
 
 export function importAutoEqPreset(body: { text: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
@@ -4266,6 +4281,78 @@ export function searchAutoEq(q: string, limit = 50): Promise<AutoEqRecherche> {
 
 export function importAutoEqFromDatabase(body: { path: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
   return fetchJSON<EqAutoEqImport>(`${BASE}/eq/autoeq/import`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * tune-server-rust#6532 (fil 2334) — la recherche unifiée : AutoEq ET OPRA
+ * dans une liste (`GET /eq/headphones/search`). Chaque résultat porte sa
+ * `source` et la `key` que l'import de cette source attend (`path` AutoEq,
+ * `id` OPRA). `unavailable_sources` : les bases que le serveur n'a pas pu
+ * lire (ni réseau ni copie) ; les deux : 503.
+ */
+export type SourceCasque = 'autoeq' | 'opra';
+
+export interface ResultatCasque {
+  source: SourceCasque;
+  key: string;
+  name: string;
+  vendor: string | null;
+  model: string;
+  /** AutoEq : la source de mesure ; OPRA : l'auteur de la courbe. */
+  author: string;
+  /** AutoEq : le banc ; OPRA : la cible (« Harman Target »). */
+  details: string | null;
+  form: string | null;
+  link: string | null;
+}
+
+export interface AttributionOpra {
+  name: string;
+  repository: string;
+  license: string;
+  license_url: string;
+}
+
+export interface RechercheCasques {
+  query: string;
+  results: ResultatCasque[];
+  total: number;
+  unavailable_sources: SourceCasque[];
+  attribution?: { opra?: AttributionOpra };
+}
+
+/** Un serveur qui n'a que la recherche AutoEq (#6388) répond 404 à la route
+ *  unifiée : on retombe alors sur `GET /eq/autoeq/search`. */
+export async function searchHeadphones(q: string, limit = 50): Promise<RechercheCasques> {
+  try {
+    return await fetchJSON<RechercheCasques>(`${BASE}/eq/headphones/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+  } catch (err) {
+    if ((err as { status?: number })?.status !== 404) throw err;
+    const r = await searchAutoEq(q, limit);
+    return {
+      query: r.query,
+      total: r.total,
+      unavailable_sources: [],
+      results: r.results.map((x) => ({
+        source: 'autoeq' as const,
+        key: x.path,
+        name: x.name,
+        vendor: null,
+        model: x.name,
+        author: x.source,
+        details: x.rig,
+        form: x.form,
+        link: null,
+      })),
+    };
+  }
+}
+
+export function importOpraCurve(body: { id: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
+  return fetchJSON<EqAutoEqImport>(`${BASE}/eq/opra/import`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
