@@ -203,7 +203,7 @@
       </nav>
       {#if choix}
         <div class="fil">
-          <header class="entete"><button type="button" class="retour" onclick={retour} aria-label={tr('nowplaying.back')}>←</button><span class="avatar" aria-hidden="true">{initiales(nomConversation(choix))}</span><h3>{nomConversation(choix)}</h3></header>
+          <header class="entete-fil"><button type="button" class="retour" onclick={retour} aria-label={tr('nowplaying.back')}>←</button><span class="avatar" aria-hidden="true">{initiales(nomConversation(choix))}</span><h3>{nomConversation(choix)}</h3></header>
           <div class="defilement" bind:this={defilement}>
             {#if cursor}<button class="anciens" type="button" disabled={occupe} onclick={() => void geste(() => page(choix!.id, cursor!))}>{tr('v2.circle.msg.older')}</button>{/if}
             <ol class="messages" aria-label={nomConversation(choix)}>
@@ -278,7 +278,7 @@
   .avatar{display:grid;place-items:center;flex-shrink:0;width:36px;height:36px;border-radius:50%;background:var(--v2-surface2);font-size:12px;font-weight:600;color:var(--v2-txt)}
   .resume{flex:1;min-width:0}.resume strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.resume strong small{font-size:10px;font-weight:400;color:var(--v2-txt2)}.extrait{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--v2-txt2);margin-top:4px}
   .repere{display:flex;flex-direction:column;align-items:end;gap:6px}.repere time{font-size:10px;color:var(--v2-txt2);white-space:nowrap}.pastille{border-radius:12px;padding:2px 7px;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:11px}
-  .fil{min-width:0;display:flex;flex-direction:column}.entete{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--v2-line)}.retour{display:none}
+  .fil{min-width:0;display:flex;flex-direction:column}.entete-fil{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--v2-line)}.retour{display:none}
   .defilement{height:clamp(220px,42vh,420px);overflow:auto;overscroll-behavior:contain;padding:12px 20px;overflow-anchor:none}.anciens{display:block;margin:0 auto 16px;font-size:12px}
   .messages{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}.message{align-self:flex-start;max-width:70%;min-width:0;overflow-wrap:anywhere}.message.mon-message{align-self:flex-end}.message.groupe{margin-top:-6px}
   .bulle{padding:10px 14px;border-radius:16px 16px 16px 4px;background:var(--v2-surface2);color:var(--v2-txt)}.mon-message .bulle{background:color-mix(in srgb,var(--v2-acc1) 14%,var(--v2-surface));border-radius:16px 16px 4px 16px}
