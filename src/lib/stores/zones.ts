@@ -198,6 +198,20 @@ function jouerZoneNavigateurIci(zone: Zone) {
   void getBrowserAudio().then(({ browserPlay }) => browserPlay(url, true, zone.id));
 }
 
+/** Reprise opaque : la sortie navigateur applique aussi la position retournée. */
+export async function resumeListeningAndSync(zoneId: number, resumeKey: string): Promise<Zone> {
+  const zone = await api.resumeListening(zoneId, resumeKey);
+  checkPlayError(zone);
+  syncZone(zone);
+  if (estZoneJouableIci(zone) && zone.stream_url) {
+    const { browserPlay } = await getBrowserAudio();
+    browserPlay(zone.stream_url, true, zone.id, zone.position_ms ?? 0);
+  } else {
+    signalerZoneNavigateurJoueeAilleurs(zone, jouerZoneNavigateurIci);
+  }
+  return zone;
+}
+
 export async function playAndSync(zoneId: number, body?: Parameters<typeof api.play>[1]): Promise<Zone> {
   // Open a grace window so a transient playback.error during a slow HI-RES
   // pre-transcode reads as "chargement…" rather than a failure (see above).

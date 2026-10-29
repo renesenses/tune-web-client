@@ -1,4 +1,6 @@
 export default {
+  "settings.podcastRewind": "Revenire la reluarea podcasturilor (secunde)",
+  "settings.podcastRewindHint": "Reia episodul înainte de poziția salvată. 0–300 de secunde; implicit: 10.",
   "v2.radio.listeningCountry": "Țara de ascultare a serverului",
   "v2.radio.countryUnset": "Nespecificată — fluxuri fără restricții",
   "v2.radio.countryHint": "Alegeți țara de ascultare. Fără țară se aleg numai fluxuri fără restricții.",
