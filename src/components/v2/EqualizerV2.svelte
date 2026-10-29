@@ -41,7 +41,6 @@
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
   import { estCourbeGraphique } from '../../lib/eqHydratation';
   import { bilanImportPeq, db, nomDuFichierPeq, TAILLE_MAX_FICHIER_PEQ, type BilanImportPeq } from '../../lib/eqImportPeq';
-  import logoOpra from '../../assets/opra-logo.png';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -661,8 +660,6 @@
   function accueillirImport(r: api.EqAutoEqImport, msgOk: string) {
     const bilan = bilanImportPeq(r);
     bilanPeq = bilan;
-    creditImport = r.credit ?? null;
-    plateauxApproches = r.approximated_shelves ?? [];
     mesPresets = [...mesPresets.filter((p) => p.id !== r.preset.id), r.preset];
     ecrireCachePresets($state.snapshot(mesPresets));
     notifications.success(msgOk.replace('{name}', bilan.nom).replace('{count}', String(bilan.bandes)));
@@ -678,18 +675,10 @@
    */
   let rechercheAutoEqOuverte = $state(false);
   let requeteAutoEq = $state('');
-  let resultatsAutoEq = $state<api.ResultatCasque[] | null>(null);
+  let resultatsAutoEq = $state<api.AutoEqResultat[] | null>(null);
   let totalAutoEq = $state(0);
   let rechercheAutoEqEnCours = $state(false);
   let erreurAutoEq = $state<string | null>(null);
-  /** tune-server-rust#6532 — les bases que le serveur n'a pas pu lire : leurs
-   *  résultats manquent, et l'écran le dit. */
-  let sourcesInjoignables = $state<api.SourceCasque[]>([]);
-  /** Le crédit de la courbe OPRA importée (CC BY-SA 4.0 : auteur en tête). */
-  let creditImport = $state<api.CreditCourbe | null>(null);
-  let plateauxApproches = $state<NonNullable<api.EqAutoEqImport['approximated_shelves']>>([]);
-  /** Le dépôt OPRA, que l'attribution doit citer ; le serveur le rend. */
-  const DEPOT_OPRA = 'https://github.com/opra-project/OPRA';
   async function chercherAutoEq(e?: Event) {
     e?.preventDefault();
     const q = requeteAutoEq.trim();
@@ -699,13 +688,11 @@
     rechercheAutoEqEnCours = true;
     erreurAutoEq = null;
     try {
-      const r = await api.searchHeadphones(q);
+      const r = await api.searchAutoEq(q);
       resultatsAutoEq = r.results;
       totalAutoEq = r.total;
-      sourcesInjoignables = r.unavailable_sources ?? [];
     } catch (err) {
       resultatsAutoEq = null;
-      sourcesInjoignables = [];
       const status = (err as { status?: number })?.status;
       erreurAutoEq = status === 503 ? msgHorsLigne
         : msgKo.replace('{detail}', err instanceof Error ? err.message : String(err));
@@ -713,34 +700,25 @@
       rechercheAutoEqEnCours = false;
     }
   }
-  async function importerDepuisAutoEq(r: api.ResultatCasque) {
+  async function importerDepuisAutoEq(r: api.AutoEqResultat) {
     const msgOk = $t('eq.importPeqDone' as any);
     const msgKo = $t('eq.importPeqFailed' as any);
     const msgHorsLigne = $t('eq.autoeqOffline' as any);
-    const msgFiltre = $t('eq.opraFilterUnsupported' as any);
     importEnCours = true;
     try {
-      const reponse = r.source === 'opra'
-        ? await api.importOpraCurve({ id: r.key })
-        : await api.importAutoEqFromDatabase({ path: r.key });
-      accueillirImport(reponse, msgOk);
+      accueillirImport(await api.importAutoEqFromDatabase({ path: r.path }), msgOk);
     } catch (err) {
       const status = (err as { status?: number })?.status;
-      const detail = err instanceof Error ? err.message : String(err);
       if (status === 503) notifications.error(msgHorsLigne);
-      else if (status === 422) notifications.error(msgFiltre.replace('{detail}', detail));
-      else if (status !== 402) notifications.error(msgKo.replace('{detail}', detail));
+      else if (status !== 402) {
+        notifications.error(msgKo.replace('{detail}', err instanceof Error ? err.message : String(err)));
+      }
     } finally {
       importEnCours = false;
     }
   }
-  /** AutoEq : « crinacle · GRAS 43AG-7 » ; OPRA : « oratory1990 · Harman Target ». */
-  function libelleSource(r: api.ResultatCasque): string {
-    return r.details ? `${r.author} · ${r.details}` : r.author;
-  }
-  function titreImport(r: api.ResultatCasque): string {
-    const cle = r.source === 'opra' ? 'eq.opraImportTitle' : 'eq.autoeqImportTitle';
-    return $t(cle as any).replace('{name}', r.name).replace('{source}', libelleSource(r)).replace('{author}', libelleSource(r));
+  function libelleSource(r: api.AutoEqResultat): string {
+    return r.rig ? `${r.source} · ${r.rig}` : r.source;
   }
 
   /**
@@ -885,34 +863,18 @@
           {:else if resultatsAutoEq}
             <p class="autoeq-compte">{$t('eq.autoeqCount' as any).replace('{shown}', String(resultatsAutoEq.length)).replace('{total}', String(totalAutoEq))}</p>
             <ul class="autoeq-resultats">
-              {#each resultatsAutoEq as r (r.source + ':' + r.key)}
+              {#each resultatsAutoEq as r (r.path)}
                 <li>
                   <button disabled={importEnCours} onclick={() => importerDepuisAutoEq(r)}
-                    title={titreImport(r)}>
-                    <span class="autoeq-nom"><span class="autoeq-base" data-source={r.source}>{r.source === 'opra' ? 'OPRA' : 'AutoEq'}</span>{r.name}</span>
+                    title={$t('eq.autoeqImportTitle' as any).replace('{name}', r.name).replace('{source}', libelleSource(r))}>
+                    <span class="autoeq-nom">{r.name}</span>
                     <span class="autoeq-source">{libelleSource(r)}</span>
                   </button>
                 </li>
               {/each}
             </ul>
           {/if}
-          {#if !erreurAutoEq && sourcesInjoignables.includes('opra')}
-            <p class="autoeq-partiel" role="status">{$t('eq.opraUnavailable' as any)}</p>
-          {/if}
-          {#if !erreurAutoEq && sourcesInjoignables.includes('autoeq')}
-            <p class="autoeq-partiel" role="status">{$t('eq.opraAutoEqUnavailable' as any)}</p>
-          {/if}
           <p class="autoeq-credit">{$t('eq.autoeqCredit' as any)}</p>
-          <!-- tune-server-rust#6532 — la licence d'OPRA (README du dépôt) : un
-               navigateur de la base montre le logo OPRA, une courte description
-               et un lien vers le dépôt. -->
-          <div class="opra-attribution">
-            <a href={DEPOT_OPRA} target="_blank" rel="noopener noreferrer" class="opra-logo">
-              <img src={logoOpra} alt="OPRA" width="64" height="25" />
-            </a>
-            <p>{$t('eq.opraAbout' as any)}
-              <a href={DEPOT_OPRA} target="_blank" rel="noopener noreferrer">{$t('eq.opraRepository' as any)}</a></p>
-          </div>
         </div>
       {/if}
       {#if bilanPeq}
@@ -928,17 +890,6 @@
           {/if}
           {#if bilanPeq.alerte}
             <p class="avert">{$t('eq.importPeqWarning' as any)}</p>
-          {/if}
-          {#if plateauxApproches.length}
-            <p class="approches">{$t('eq.opraApproximated' as any).replace('{bands}', plateauxApproches.map((p) => `${p.band} (Q ${p.requested_q})`).join(', '))}</p>
-          {/if}
-          {#if creditImport}
-            <!-- Crédit de la courbe : l'auteur plus visible qu'OPRA, puis la
-                 base, son dépôt et la licence des données (CC BY-SA 4.0). -->
-            <div class="credit-courbe">
-              <p class="credit-auteur">{$t('eq.opraCurveCredit' as any).replace('{author}', creditImport.author)}{#if creditImport.details} · {creditImport.details}{/if}{#if creditImport.link} · <a href={creditImport.link} target="_blank" rel="noopener noreferrer">{$t('eq.opraCurveSource' as any)}</a>{/if}</p>
-              <p class="credit-base">{$t('eq.opraCurveVia' as any)} <a href={creditImport.repository} target="_blank" rel="noopener noreferrer">{creditImport.database}</a> · <a href={creditImport.license_url} target="_blank" rel="noopener noreferrer">{creditImport.license}</a></p>
-            </div>
           {/if}
         </div>
       {/if}
@@ -1111,18 +1062,6 @@
   .autoeq-compte, .autoeq-vide, .autoeq-erreur, .autoeq-credit{margin:8px 0 0; font-size:12px; color:var(--v2-txt2)}
   .autoeq-erreur{color:var(--v2-acc-tint)}
   .autoeq-credit{color:var(--v2-txt3)}
-  .autoeq-base{display:inline-block; margin-right:7px; padding:0 5px; border-radius:4px; border:1px solid var(--v2-line2); font:10px var(--v2-mono); color:var(--v2-txt2); vertical-align:1px}
-  .autoeq-base[data-source="opra"]{border-color:var(--v2-acc2)}
-  .autoeq-partiel{margin:8px 0 0; font-size:12px; color:var(--v2-acc-tint)}
-  .opra-attribution{display:flex; gap:10px; align-items:center; margin-top:8px}
-  .opra-attribution p{margin:0; font-size:12px; color:var(--v2-txt3)}
-  /* Le logo est noir sur transparent : un fond clair le garde lisible en
-     thème sombre, sans le recolorer. */
-  .opra-logo{flex:none; display:inline-flex; padding:3px 6px; border-radius:6px; background:#fff}
-  .opra-logo img{display:block; width:64px; height:auto}
-  .credit-courbe{margin-top:6px}
-  .credit-auteur{font-weight:600}
-  .credit-base{font-size:11px; color:var(--v2-txt3)}
   /* Un avertissement, pas une erreur : la liste est utilisable, elle est
      seulement peut-être périmée. D'où le ton d'accentuation et non le rouge
      de `.err`, qui dirait à tort que rien ne marche. */
