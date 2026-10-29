@@ -1,4 +1,14 @@
 export default {
+  "v2.circle.msg.nameConsent": "Dein Name ist für Mitglieder dieses Kreises nur bei deinen Nachrichten in diesem Verlauf sichtbar. Zustimmen und senden?",
+  "v2.circle.msg.formerMember": "Ehemaliges Mitglied",
+  "v2.circle.msg.generalTitle": "Allgemeine Kreise",
+  "v2.circle.msg.members": "Mitglieder",
+  "v2.circle.msg.join": "Beitreten",
+  "v2.circle.msg.leave": "Verlassen",
+  "v2.circle.msg.leaveConfirm": "Diesen Kreis verlassen? Danach kannst du auch frühere Nachrichten nicht mehr lesen.",
+  "v2.circle.msg.writeCircle": "An den Kreis schreiben",
+  "v2.circle.msg.circleLabel": "Kreis",
+
   "v2.circle.msg.reportConfirm": "Die ausgewählten Nachrichten melden?",
   "v2.circle.msg.reportSent": "Meldung an das Moderationsteam gesendet.",
 

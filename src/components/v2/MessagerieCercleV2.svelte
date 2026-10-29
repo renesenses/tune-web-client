@@ -5,7 +5,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { motifCercle } from '../../lib/circle';
   import { relireNotifications } from '../../lib/circleNotifications';
-  import { messagerieSupport, conversations, ouvrirConversation, lireMessages, envoyerMessage, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle } from '../../lib/circleMessagerie';
+  import { messagerieSupport, nomConversation, ouvrirFilCercle, consentirNomCercle, conversations, ouvrirConversation, lireMessages, envoyerMessage, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle } from '../../lib/circleMessagerie';
 
   let disponible = $state(false);
   let liste = $state<ConversationCercle[]>([]);
@@ -48,7 +48,7 @@
   function ajusterSaisie() { if (saisie) { saisie.style.height = 'auto'; saisie.style.height = `${Math.min(saisie.scrollHeight, 158)}px`; } }
   async function bas() { await tick(); if (defilement) defilement.scrollTop = defilement.scrollHeight; }
   function clavier(ev: KeyboardEvent) {
-    if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); if (!occupe && messageEnvoyable(texte, null)) formulaire?.requestSubmit(); }
+    if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); ev.stopPropagation(); if (!occupe && messageEnvoyable(texte, null)) formulaire?.requestSubmit(); }
   }
   function retour() { generation++; choix = null; messages = []; selection = []; viderBrouillons(); }
   function viderBrouillons() { texte = ''; accuse = ''; menuMessage = null; ajusterSaisie(); commentaire = ''; raison = 'harassment'; signalement = false; }
@@ -119,6 +119,11 @@
         disponible = true;
         if (!liste.some((l) => l.id === c.id)) liste = [c, ...liste];
         await ouvrir(c);
+      } else if (d.circle) {
+        const c = await ouvrirFilCercle(d.circle); if (fini) return;
+        disponible = true;
+        if (!liste.some((l) => l.id === c.id)) liste = [c, ...liste];
+        await ouvrir(c);
       } else if (d.conversation) {
         const l = await conversations(); if (fini) return;
         liste = l; disponible = true;
@@ -135,7 +140,15 @@
     ev.preventDefault();
     if (!choix || !messageEnvoyable(texte, null)) return;
     const id = choix.id; const brouillon = texte;
-    await geste(async () => { await envoyerMessage(id, brouillon); if (choix?.id === id) { texte = ''; await tick(); ajusterSaisie(); } await charger(); if (choix?.id === id) await bas(); });
+    const tour = generation;
+    await geste(async () => {
+      if (choix?.kind === 'circle' && choix.name_consent_required) {
+        if (!(await dialogs.confirm(tr('v2.circle.msg.nameConsent'))) || tour !== generation || choix?.id !== id) return;
+        await consentirNomCercle(id);
+        if (tour !== generation || choix?.id !== id) return;
+        choix = { ...choix, name_consent_required: false };
+      }
+      await envoyerMessage(id, brouillon); if (choix?.id === id) { texte = ''; await tick(); ajusterSaisie(); } await charger(); if (choix?.id === id) await bas(); });
   }
   async function supprimer(m: MessageCercle) {
     if (!choix || !m.mine || !(await dialogs.confirm(tr('v2.circle.msg.deleteConfirm'), { danger: true }))) return;
@@ -156,7 +169,17 @@
     const tour = () => { if (!document.hidden && !occupe && Date.now() - dernierTour >= RELECTURE_MESSAGES_MS) void charger(); };
     const timer = setInterval(tour, RELECTURE_MESSAGES_MS);
     document.addEventListener('visibilitychange', tour);
-    return () => { fini = true; clearInterval(timer); document.removeEventListener('visibilitychange', tour); };
+    const adhesionChangee = (ev: Event) => {
+      const id = (ev as CustomEvent<{ circleId?: number }>).detail?.circleId;
+      generation++;
+      liste = liste.filter((c) => c.kind !== 'circle' || (id !== undefined && c.circle.id !== id));
+      if (choix?.kind === 'circle' && (id === undefined || choix.circle.id === id)) {
+        choix = null; messages = []; selection = []; viderBrouillons();
+      }
+      void charger();
+    };
+    window.addEventListener('circle-membership-changed', adhesionChangee);
+    return () => { window.removeEventListener('circle-membership-changed', adhesionChangee); fini = true; clearInterval(timer); document.removeEventListener('visibilitychange', tour); };
   });
 </script>
 
@@ -172,25 +195,25 @@
         {#if !liste.length}<p class="note">{tr('v2.circle.msg.empty')}</p>{/if}
         {#each liste as c (c.id)}
           <button type="button" class="conversation" class:choisie={choix?.id === c.id} aria-current={choix?.id === c.id ? 'true' : undefined} disabled={occupe} onclick={() => void geste(() => ouvrir(c))}>
-            <span class="avatar" aria-hidden="true">{initiales(c.contact.name)}</span>
-            <span class="resume"><strong>{c.contact.name}</strong><span class="extrait" use:bulleTexte>{c.last_message?.body ?? c.last_message?.card?.title ?? tr('v2.circle.msg.noMessage')}</span></span>
+            <span class="avatar" aria-hidden="true">{initiales(nomConversation(c))}</span>
+            <span class="resume"><strong>{nomConversation(c)}{#if c.kind === 'circle'} <small> · {tr('v2.circle.msg.circleLabel')}</small>{/if}</strong><span class="extrait" use:bulleTexte>{c.last_message?.body ?? c.last_message?.card?.title ?? tr('v2.circle.msg.noMessage')}</span></span>
             <span class="repere"><time datetime={c.last_message?.created_at}>{heure(c.last_message?.created_at ?? '', true)}</time>{#if c.unread_count}<span class="pastille">{c.unread_count}</span>{/if}</span>
           </button>
         {/each}
       </nav>
       {#if choix}
         <div class="fil">
-          <header class="entete"><button type="button" class="retour" onclick={retour} aria-label={tr('nowplaying.back')}>←</button><span class="avatar" aria-hidden="true">{initiales(choix.contact.name)}</span><h3>{choix.contact.name}</h3></header>
+          <header class="entete"><button type="button" class="retour" onclick={retour} aria-label={tr('nowplaying.back')}>←</button><span class="avatar" aria-hidden="true">{initiales(nomConversation(choix))}</span><h3>{nomConversation(choix)}</h3></header>
           <div class="defilement" bind:this={defilement}>
             {#if cursor}<button class="anciens" type="button" disabled={occupe} onclick={() => void geste(() => page(choix!.id, cursor!))}>{tr('v2.circle.msg.older')}</button>{/if}
-            <ol class="messages" aria-label={choix.contact.name}>
+            <ol class="messages" aria-label={nomConversation(choix)}>
               {#each chronologiques as m, i (m.id)}
                 {@const debutJour = i === 0 || jour(m.created_at) !== jour(chronologiques[i - 1].created_at)}
                 {@const groupe = !debutJour && chronologiques[i - 1].sender_id === m.sender_id}
                 {#if debutJour && dateJour(m.created_at)}<li class="jour"><span>{dateJour(m.created_at)}</span></li>{/if}
                 <li class="message" class:mon-message={m.mine} class:groupe>
                   <div class="bulle">
-                    {#if !m.mine && !groupe}<div class="auteur">{choix.contact.name}</div>{/if}
+                    {#if !groupe && (choix.kind === 'circle' || !m.mine)}<div class="auteur">{choix.kind === 'circle' ? m.author?.name ?? tr('v2.circle.msg.formerMember') : nomConversation(choix)}</div>{/if}
                     {#if m.body}<p class="texte">{m.body}</p>{/if}
                     {#if m.card}
                       <article class="carte">
@@ -253,7 +276,7 @@
   button:focus-visible,textarea:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--v2-acc1);outline-offset:3px}
   .conversation{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:12px 8px;border:0;background:transparent;min-width:0}.conversation:hover{background:var(--v2-hover)}.conversation.choisie{background:var(--v2-active1)}
   .avatar{display:grid;place-items:center;flex-shrink:0;width:36px;height:36px;border-radius:50%;background:var(--v2-surface2);font-size:12px;font-weight:600;color:var(--v2-txt)}
-  .resume{flex:1;min-width:0}.resume strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.extrait{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--v2-txt2);margin-top:4px}
+  .resume{flex:1;min-width:0}.resume strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.resume strong small{font-size:10px;font-weight:400;color:var(--v2-txt2)}.extrait{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--v2-txt2);margin-top:4px}
   .repere{display:flex;flex-direction:column;align-items:end;gap:6px}.repere time{font-size:10px;color:var(--v2-txt2);white-space:nowrap}.pastille{border-radius:12px;padding:2px 7px;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:11px}
   .fil{min-width:0;display:flex;flex-direction:column}.entete{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--v2-line)}.retour{display:none}
   .defilement{height:clamp(220px,42vh,420px);overflow:auto;overscroll-behavior:contain;padding:12px 20px;overflow-anchor:none}.anciens{display:block;margin:0 auto 16px;font-size:12px}

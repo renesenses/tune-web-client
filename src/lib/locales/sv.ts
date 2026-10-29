@@ -1,4 +1,14 @@
 export default {
+  "v2.circle.msg.nameConsent": "Ditt namn visas för medlemmarna i den här cirkeln endast på dina meddelanden i den här tråden. Godkänna och skicka?",
+  "v2.circle.msg.formerMember": "Tidigare medlem",
+  "v2.circle.msg.generalTitle": "Allmänna cirklar",
+  "v2.circle.msg.members": "medlemmar",
+  "v2.circle.msg.join": "Gå med",
+  "v2.circle.msg.leave": "Lämna",
+  "v2.circle.msg.leaveConfirm": "Lämna den här cirkeln? Du kan inte längre läsa tråden, inte heller gamla meddelanden.",
+  "v2.circle.msg.writeCircle": "Skriv till cirkeln",
+  "v2.circle.msg.circleLabel": "Cirkel",
+
   "v2.circle.msg.reportConfirm": "Rapportera de valda meddelandena?",
   "v2.circle.msg.reportSent": "Rapporten har skickats till modereringsteamet.",
 

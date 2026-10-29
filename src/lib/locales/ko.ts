@@ -1,4 +1,14 @@
 export default {
+  "v2.circle.msg.nameConsent": "이 대화에서 작성한 메시지에만 이 서클 회원들에게 내 이름이 표시됩니다. 동의하고 보내시겠습니까?",
+  "v2.circle.msg.formerMember": "이전 회원",
+  "v2.circle.msg.generalTitle": "일반 서클",
+  "v2.circle.msg.members": "회원",
+  "v2.circle.msg.join": "가입",
+  "v2.circle.msg.leave": "탈퇴",
+  "v2.circle.msg.leaveConfirm": "이 서클을 탈퇴하시겠습니까? 이전 메시지를 포함한 대화를 더 이상 읽을 수 없습니다.",
+  "v2.circle.msg.writeCircle": "서클에 쓰기",
+  "v2.circle.msg.circleLabel": "서클",
+
   "v2.circle.msg.reportConfirm": "선택한 메시지를 신고하시겠습니까?",
   "v2.circle.msg.reportSent": "운영팀에 신고를 보냈습니다.",
 

@@ -1,4 +1,14 @@
 export default {
+  "v2.circle.msg.nameConsent": "你的名字仅会在此会话中你发送的消息上向本圈成员显示。同意并发送？",
+  "v2.circle.msg.formerMember": "前成员",
+  "v2.circle.msg.generalTitle": "公共圈子",
+  "v2.circle.msg.members": "成员",
+  "v2.circle.msg.join": "加入",
+  "v2.circle.msg.leave": "退出",
+  "v2.circle.msg.leaveConfirm": "退出此圈子？你将无法再阅读此会话，包括历史消息。",
+  "v2.circle.msg.writeCircle": "向圈子发消息",
+  "v2.circle.msg.circleLabel": "圈子",
+
   "v2.circle.msg.reportConfirm": "举报所选消息？",
   "v2.circle.msg.reportSent": "举报已发送给审核团队。",
 

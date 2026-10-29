@@ -1,4 +1,14 @@
 export default {
+  "v2.circle.msg.nameConsent": "Los miembros de este círculo verán tu nombre solo en tus mensajes de este hilo. ¿Aceptar y enviar?",
+  "v2.circle.msg.formerMember": "Antiguo miembro",
+  "v2.circle.msg.generalTitle": "Círculos generales",
+  "v2.circle.msg.members": "miembros",
+  "v2.circle.msg.join": "Unirse",
+  "v2.circle.msg.leave": "Salir",
+  "v2.circle.msg.leaveConfirm": "¿Salir de este círculo? Ya no podrás leer su hilo, incluidos los mensajes antiguos.",
+  "v2.circle.msg.writeCircle": "Escribir al círculo",
+  "v2.circle.msg.circleLabel": "Círculo",
+
   "v2.circle.msg.reportConfirm": "¿Denunciar los mensajes seleccionados?",
   "v2.circle.msg.reportSent": "Denuncia enviada al equipo de moderación.",
 

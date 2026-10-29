@@ -1,4 +1,14 @@
 export default {
+  "v2.circle.msg.nameConsent": "Twoja nazwa będzie widoczna dla członków tego kręgu tylko przy Twoich wiadomościach w tym wątku. Zaakceptować i wysłać?",
+  "v2.circle.msg.formerMember": "Były członek",
+  "v2.circle.msg.generalTitle": "Kręgi ogólne",
+  "v2.circle.msg.members": "członkowie",
+  "v2.circle.msg.join": "Dołącz",
+  "v2.circle.msg.leave": "Opuść",
+  "v2.circle.msg.leaveConfirm": "Opuścić ten krąg? Nie będzie można czytać wątku, także starych wiadomości.",
+  "v2.circle.msg.writeCircle": "Napisz do kręgu",
+  "v2.circle.msg.circleLabel": "Krąg",
+
   "v2.circle.msg.reportConfirm": "Zgłosić wybrane wiadomości?",
   "v2.circle.msg.reportSent": "Zgłoszenie wysłano do zespołu moderatorów.",
 

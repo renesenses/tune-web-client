@@ -1,4 +1,14 @@
 export default {
+  "v2.circle.msg.nameConsent": "Tên của bạn sẽ hiển thị với thành viên vòng tròn này chỉ trên các tin nhắn của bạn trong cuộc trò chuyện này. Đồng ý và gửi?",
+  "v2.circle.msg.formerMember": "Thành viên cũ",
+  "v2.circle.msg.generalTitle": "Vòng tròn chung",
+  "v2.circle.msg.members": "thành viên",
+  "v2.circle.msg.join": "Tham gia",
+  "v2.circle.msg.leave": "Rời khỏi",
+  "v2.circle.msg.leaveConfirm": "Rời vòng tròn này? Bạn sẽ không thể đọc cuộc trò chuyện, kể cả tin nhắn cũ.",
+  "v2.circle.msg.writeCircle": "Viết cho vòng tròn",
+  "v2.circle.msg.circleLabel": "Vòng tròn",
+
   "v2.circle.msg.reportConfirm": "Báo cáo các tin nhắn đã chọn?",
   "v2.circle.msg.reportSent": "Đã gửi báo cáo đến nhóm kiểm duyệt.",
 

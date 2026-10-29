@@ -1,11 +1,15 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
+  import { dialogs } from '../../lib/stores/dialogs';
   import { t } from '../../lib/i18n';
   import { getCercle, estConnecte, motifCercle, type ContactCercle } from '../../lib/circle';
-  import { carteAPartager, ouvrirConversation, envoyerMessage, messageEnvoyable, longueurMessage, MESSAGE_MAX, type CarteMusique } from '../../lib/circleMessagerie';
+  import { carteAPartager, cerclesGeneraux, ouvrirFilCercle, consentirNomCercle, type CercleGeneral, ouvrirConversation, envoyerMessage, messageEnvoyable, longueurMessage, MESSAGE_MAX, type CarteMusique } from '../../lib/circleMessagerie';
   let { carte }: { carte: CarteMusique } = $props();
   let contacts = $state<ContactCercle[]>([]);
-  let destinataire = $state<number | ''>('');
+  let destinataire = $state<number | string>('');
+  let groupes = $state<CercleGeneral[]>([]);
+  let confirmation = $state(false);
+  let fini = false;
   let texte = $state('');
   let occupe = $state(false);
   let erreur = $state('');
@@ -15,9 +19,11 @@
     const avant = document.activeElement as HTMLElement | null;
     void tick().then(() => panneau?.focus());
     void getCercle().then((e) => { contacts = estConnecte(e) ? e.members : []; }).catch((e) => erreur = tr(motifCercle(e).cle));
-    return () => avant?.focus();
+    void cerclesGeneraux().then((l) => { if (!fini) groupes = l.filter((c) => c.joined); }).catch(() => {});
+    return () => { fini = true; avant?.focus(); };
   });
   function clavier(ev: KeyboardEvent) {
+    if (confirmation) return;
     if (ev.key === 'Escape' && !occupe) { ev.preventDefault(); carteAPartager.set(null); }
     if (ev.key !== 'Tab' || !panneau) return;
     const cibles = [...panneau.querySelectorAll<HTMLElement>('button:not(:disabled), select:not(:disabled), textarea:not(:disabled)')];
@@ -28,7 +34,19 @@
   async function envoyer(ev: SubmitEvent) {
     ev.preventDefault(); if (!destinataire || occupe) return;
     occupe = true; erreur = '';
-    try { const c = await ouvrirConversation(Number(destinataire)); await envoyerMessage(c.id, texte, carte); carteAPartager.set(null); }
+    try {
+      const c = String(destinataire).startsWith('circle:') ? await ouvrirFilCercle(Number(String(destinataire).slice(7))) : await ouvrirConversation(Number(destinataire));
+      if (fini) return;
+      if (c.kind === 'circle' && c.name_consent_required) {
+        confirmation = true;
+        let accepte = false;
+        try { accepte = await dialogs.confirm(tr('v2.circle.msg.nameConsent')); } finally { confirmation = false; }
+        if (!accepte || fini) return;
+        await consentirNomCercle(c.id);
+      }
+      if (fini) return;
+      await envoyerMessage(c.id, texte, carte); carteAPartager.set(null);
+    }
     catch (e) { erreur = tr(motifCercle(e).cle); }
     finally { occupe = false; }
   }
@@ -41,12 +59,13 @@
     <p><strong>{carte.title}</strong>{#if carte.artist_name} · {carte.artist_name}{/if}</p>
     <p class="note">{tr('v2.circle.msg.privacy')}</p>
     {#if erreur}<p role="alert">{erreur}</p>{/if}
-    {#if !contacts.length}<p>{tr('v2.circle.msg.empty')}</p>{/if}
+    {#if !contacts.length && !groupes.length}<p>{tr('v2.circle.msg.empty')}</p>{/if}
     <form onsubmit={envoyer}>
       <label for="message-contact">{tr('v2.circle.msg.recipient')}</label>
       <select id="message-contact" bind:value={destinataire} disabled={occupe}>
         <option value="">—</option>
         {#each contacts as c (c.user_id)}<option value={c.user_id}>{c.name}</option>{/each}
+        {#each groupes as c (c.id)}<option value={`circle:${c.id}`}>{tr('v2.circle.msg.circleLabel')} · {c.name}</option>{/each}
       </select>
       <label for="message-partage-texte">{tr('v2.circle.msg.write')}</label>
       <textarea id="message-partage-texte" bind:value={texte} rows="3" maxlength="8000" disabled={occupe}></textarea>

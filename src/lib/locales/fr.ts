@@ -1,4 +1,14 @@
 export default {
+  "v2.circle.msg.nameConsent": "Ton pseudo sera visible des membres de ce cercle sur tes messages dans ce fil uniquement. Accepter et envoyer ?",
+  "v2.circle.msg.formerMember": "Ancien membre",
+  "v2.circle.msg.generalTitle": "Cercles généraux",
+  "v2.circle.msg.members": "membres",
+  "v2.circle.msg.join": "Rejoindre",
+  "v2.circle.msg.leave": "Quitter",
+  "v2.circle.msg.leaveConfirm": "Quitter ce cercle ? Tu ne pourras plus lire son fil, même les anciens messages.",
+  "v2.circle.msg.writeCircle": "Écrire au cercle",
+  "v2.circle.msg.circleLabel": "Cercle",
+
   "v2.circle.msg.reportConfirm": "Signaler les messages sélectionnés ?",
   "v2.circle.msg.reportSent": "Signalement transmis à l’équipe de modération.",
 

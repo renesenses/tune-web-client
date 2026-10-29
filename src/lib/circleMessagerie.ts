@@ -12,11 +12,14 @@ import type { CibleEtiquette } from './cibleEtiquette';
 export const MESSAGE_MAX = 4000;
 export const RELECTURE_MESSAGES_MS = 60_000;
 export type CarteMusique = { type: 'album' | 'track' | 'playlist'; title: string; artist_name?: string; album_title?: string; cover_url?: string; musicbrainz_id?: string; isrc?: string; qobuz_id?: string; tidal_id?: string; spotify_id?: string; deezer_id?: string; youtube_id?: string };
-export interface MessageCercle { id: number; sender_id: number; mine: boolean; body: string | null; card: CarteMusique | null; created_at: string }
-export interface ConversationCercle { id: number; kind: 'direct'; contact: { user_id: number; name: string }; unread_count: number; last_message?: MessageCercle | null }
+export interface MessageCercle { id: number; sender_id: number; mine: boolean; body: string | null; card: CarteMusique | null; created_at: string; author?: { name: string } }
+type EnteteConversation = { id: number; unread_count: number; last_message?: MessageCercle | null };
+export type ConversationCercle = EnteteConversation & ({ kind: 'direct'; contact: { user_id: number; name: string } } | { kind: 'circle'; circle: { id: number; name: string }; name_consent_required: boolean });
+export const nomConversation = (c: ConversationCercle) => c.kind === 'circle' ? c.circle.name : c.contact.name;
+export interface CercleGeneral { id: number; name: string; category: 'period' | 'genre' | 'label' | 'artist'; member_count: number; joined: boolean }
 export interface PageMessages { conversation: ConversationCercle; messages: MessageCercle[]; next_cursor: string | null }
 export const messagerieSupport = writable<boolean | null>(null);
-export const demandeConversation = writable<{ contact?: number; conversation?: number } | null>(null);
+export const demandeConversation = writable<{ contact?: number; conversation?: number; circle?: number } | null>(null);
 export const erreurOuvertureConversation = writable<{ contact: number; cle: string } | null>(null);
 export function ecrireAuContact(contact: number): void {
   erreurOuvertureConversation.set(null);
@@ -61,11 +64,14 @@ export function carteDepuisPiste(p: any): CarteMusique | null {
 }
 function message(b: any): MessageCercle | null {
   if (!Number.isSafeInteger(b?.id) || !Number.isSafeInteger(b?.sender_id)) return null;
-  return { id: b.id, sender_id: b.sender_id, mine: b.mine === true, body: typeof b.body === 'string' ? b.body : null, card: carteMusique(b.card), created_at: typeof b.created_at === 'string' ? b.created_at : '' };
+  return { id: b.id, sender_id: b.sender_id, mine: b.mine === true, body: typeof b.body === 'string' ? b.body : null, card: carteMusique(b.card), created_at: typeof b.created_at === 'string' ? b.created_at : '', ...(texte(b.author?.name) ? { author: { name: texte(b.author.name) } } : {}) };
 }
 function conversation(b: any): ConversationCercle | null {
-  if (!Number.isSafeInteger(b?.id) || b?.kind !== 'direct' || !Number.isSafeInteger(b.contact?.user_id) || !texte(b.contact?.name)) return null;
-  return { id: b.id, kind: 'direct', contact: { user_id: b.contact.user_id, name: texte(b.contact.name) }, unread_count: Number.isSafeInteger(b.unread_count) ? Math.max(0, b.unread_count) : 0, last_message: message(b.last_message) };
+  if (!Number.isSafeInteger(b?.id)) return null;
+  const commun = { id: b.id, unread_count: Number.isSafeInteger(b.unread_count) ? Math.max(0, b.unread_count) : 0, last_message: message(b.last_message) };
+  if (b.kind === 'direct' && Number.isSafeInteger(b.contact?.user_id) && texte(b.contact?.name)) return { ...commun, kind: 'direct', contact: { user_id: b.contact.user_id, name: texte(b.contact.name) } };
+  if (b.kind === 'circle' && Number.isSafeInteger(b.circle?.id) && texte(b.circle?.name) && typeof b.name_consent_required === 'boolean') return { ...commun, kind: 'circle', circle: { id: b.circle.id, name: texte(b.circle.name) }, name_consent_required: b.name_consent_required };
+  return null;
 }
 export async function conversations(): Promise<ConversationCercle[]> {
   const b = await fetchJSON<any>(`${racine()}/conversations`, undefined, undefined, true);
@@ -78,6 +84,21 @@ export async function ouvrirConversation(contact: number): Promise<ConversationC
   if (!b) throw new Error('Invalid conversation');
   return b;
 }
+export async function cerclesGeneraux(): Promise<CercleGeneral[]> {
+  const b = await fetchJSON<any>(`${racine()}/general-circles`, undefined, undefined, true);
+  if (!Array.isArray(b?.circles)) throw new Error('Invalid circles');
+  return b.circles.filter((c: any) => Number.isSafeInteger(c.id) && typeof c.name === 'string' && ['period', 'genre', 'label', 'artist'].includes(c.category) && typeof c.joined === 'boolean' && Number.isSafeInteger(c.member_count) && c.member_count >= 0)
+    .map((c: any) => ({ id: c.id, name: texte(c.name), category: c.category, joined: c.joined, member_count: c.member_count }));
+}
+export const rejoindreCercleGeneral = (id: number) => fetchJSON(`${racine()}/general-circles/${id}/membership`, { method: 'POST' }, undefined, true);
+export const quitterCercleGeneral = (id: number) => fetchJSON(`${racine()}/general-circles/${id}/membership`, { method: 'DELETE' }, undefined, true);
+export async function ouvrirFilCercle(id: number): Promise<ConversationCercle> {
+  const c = conversation(await fetchJSON(`${racine()}/general-circles/${id}/conversation`, { method: 'POST' }, undefined, true));
+  if (!c || c.kind !== 'circle') throw new Error('Invalid circle conversation');
+  return c;
+}
+export const consentirNomCercle = (id: number) => fetchJSON(`${racine()}/conversations/${id}/name-consent`, { method: 'POST', body: JSON.stringify({ accepted: true }) }, undefined, true);
+
 export async function lireMessages(id: number, cursor?: string): Promise<PageMessages> {
   const q = new URLSearchParams({ limit: '50' }); if (cursor) q.set('cursor', cursor);
   const b = await fetchJSON<any>(`${racine()}/conversations/${id}/messages?${q}`, undefined, undefined, true);

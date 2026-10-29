@@ -1,4 +1,14 @@
 export default {
+  "v2.circle.msg.nameConsent": "Navnet ditt blir synlig for medlemmene av denne sirkelen bare på meldingene dine i denne tråden. Godta og send?",
+  "v2.circle.msg.formerMember": "Tidligere medlem",
+  "v2.circle.msg.generalTitle": "Generelle sirkler",
+  "v2.circle.msg.members": "medlemmer",
+  "v2.circle.msg.join": "Bli med",
+  "v2.circle.msg.leave": "Forlat",
+  "v2.circle.msg.leaveConfirm": "Forlate denne sirkelen? Du vil ikke lenger kunne lese tråden, heller ikke gamle meldinger.",
+  "v2.circle.msg.writeCircle": "Skriv til sirkelen",
+  "v2.circle.msg.circleLabel": "Sirkel",
+
   "v2.circle.msg.reportConfirm": "Rapportere de valgte meldingene?",
   "v2.circle.msg.reportSent": "Rapport sendt til modereringsteamet.",
 

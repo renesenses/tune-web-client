@@ -1,4 +1,14 @@
 export default {
+  "v2.circle.msg.nameConsent": "Il tuo nome sarà visibile ai membri di questo cerchio solo sui tuoi messaggi in questa conversazione. Accettare e inviare?",
+  "v2.circle.msg.formerMember": "Ex membro",
+  "v2.circle.msg.generalTitle": "Cerchi generali",
+  "v2.circle.msg.members": "membri",
+  "v2.circle.msg.join": "Unisciti",
+  "v2.circle.msg.leave": "Esci",
+  "v2.circle.msg.leaveConfirm": "Uscire da questo cerchio? Non potrai più leggere la conversazione, nemmeno i vecchi messaggi.",
+  "v2.circle.msg.writeCircle": "Scrivi al cerchio",
+  "v2.circle.msg.circleLabel": "Cerchio",
+
   "v2.circle.msg.reportConfirm": "Segnalare i messaggi selezionati?",
   "v2.circle.msg.reportSent": "Segnalazione inviata al team di moderazione.",
 
