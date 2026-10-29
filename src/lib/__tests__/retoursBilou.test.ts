@@ -32,8 +32,9 @@ describe('Retours de Bilou sur le forum (05/09/2026)', () => {
     expect(paires.length).toBeGreaterThanOrEqual(6);
 
     const sombres = paires.filter((p) => contraste(p.bg, '#FFFFFF') > 10);
-    // Cinq depuis « Gris foncé » (#2364), qui suit la même règle des plans.
-    expect(sombres.length, 'les cinq thèmes sombres').toBe(5);
+    // Cinq depuis « Gris foncé » (#2364), six depuis « Mozaiklabs » (#2419) :
+    // l'un et l'autre suivent la même règle des plans.
+    expect(sombres.length, 'les six thèmes sombres').toBe(6);
     for (const p of sombres) {
       // Le seuil est bas parce que les rapports WCAG se TASSENT sur un fond
       // très sombre : de #071418 à #101B23, le pas est de (7,20,24) à

@@ -115,7 +115,7 @@ describe('la question dit ce qui sera déconnecté, dans les onze langues', () =
   it.each(ONZE_LANGUES)('%s', (code) => {
     const texte = dictionnaire(code)['settings.signOutConfirm'];
     expect(texte, `${code} : libellé manquant`).toBeTruthy();
-    expect(texte).toContain('mozaiklabs');
+    expect(texte).toContain('Mozaiklabs');
     expect(texte).toContain('Tune Circle');
     if (code !== 'en') expect(texte).not.toBe(dictionnaire('en')['settings.signOutConfirm']);
   });

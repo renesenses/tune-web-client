@@ -170,6 +170,10 @@ const INTRADUISIBLE = new RegExp(
   + 'ISRC|'
   // SQLite, PostgreSQL : noms de moteurs, affichés par Réglages › Base (#1295).
   + 'SQLite|PostgreSQL|'
+  // AutoEq, OPRA : noms des deux bases de corrections de casques, affichés en
+  // pastille devant chaque résultat de la recherche de l'Égaliseur
+  // (tune-server-rust#6532).
+  + 'AutoEq|OPRA|'
   + 'MOZAIKLABS|Radio France|Crossfeed|Podcasts|Playlists?|Studio|Oxygen)+$',
 );
 
