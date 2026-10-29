@@ -73,6 +73,8 @@
   let loading = $state(true);
   let creating = $state(false);
   let newName = $state('');
+  let creationEnCours = $state(false);
+  let erreurCreation = $state<string | null>(null);
   let opened = $state<
     | { kind: 'local'; pl: Playlist }
     | { kind: 'streaming'; service: string; pl: StreamingPlaylist }
@@ -660,12 +662,23 @@
     // au lieu de lancer la playlist.
     playAndSync(zid, { streaming_playlist_id: pl.source_id, source: service as any }).catch(signalerEchecLecture);
   }
-  function create() {
+  async function create() {
+    if (creationEnCours) return;
     const name = newName.trim();
-    if (!name) { creating = false; return; }
-    api.createPlaylist(name)
-      .then(() => { newName = ''; creating = false; load(); })
-      .catch(() => { creating = false; });
+    if (!name) return;
+    creationEnCours = true;
+    erreurCreation = null;
+    try {
+      await api.createPlaylist(name);
+      // La création est locale, même depuis la pastille d'un service ou
+      // l'onglet intelligent. Un ancien filtre ne doit pas la cacher (#2489).
+      source = LOCAL; onglet = 'listes'; recherche = '';
+      newName = ''; creating = false; load();
+    } catch {
+      // #2489 : le refus ne ferme pas la saisie et ne simule pas un succès.
+      // La couche API conserve le motif détaillé dans la notification commune.
+      erreurCreation = $t('v2.fav.createFailed' as any);
+    } finally { creationEnCours = false; }
   }
 </script>
 
@@ -697,13 +710,14 @@
       {#if creating}
         <div class="newp">
           <!-- svelte-ignore a11y_autofocus -->
-          <input bind:value={newName} placeholder={$t('v2.pl.namePlaceholder' as any)} autofocus
-            onkeydown={(e) => { if (e.key === 'Enter') create(); if (e.key === 'Escape') { creating = false; newName = ''; } }} />
-          <button class="v2-btn primaire" onclick={create}>{$t('v2.zone.create' as any)}</button>
+          <input bind:value={newName} placeholder={$t('v2.pl.namePlaceholder' as any)} autofocus disabled={creationEnCours}
+            onkeydown={(e) => { if (e.key === 'Enter') void create(); if (e.key === 'Escape' && !creationEnCours) { creating = false; newName = ''; erreurCreation = null; } }} />
+          <button class="v2-btn primaire" onclick={create} disabled={creationEnCours || !newName.trim()}>{$t('v2.zone.create' as any)}</button>
+          {#if erreurCreation}<span role="alert">{erreurCreation}</span>{/if}
         </div>
       {:else}
         <div class="outils">
-          <button class="v2-btn primaire" onclick={() => (creating = true)}>
+          <button class="v2-btn primaire" onclick={() => { erreurCreation = null; creating = true; }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
             {$t('v2.lbl.newPlaylist' as any)}
           </button>

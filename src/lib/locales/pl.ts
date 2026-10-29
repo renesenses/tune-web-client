@@ -5941,5 +5941,6 @@ export default {
   "v2.circle.msg.notFound": "Nie znaleziono tej karty w Twojej bibliotece.",
   "v2.circle.msg.share": "Udostępnij w wiadomości",
   "v2.circle.msg.recipient": "Odbiorca",
+  "volume.outputRange": "Głośność poza zakresem: od {min}% do {max}%, w krokach co {step}%.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

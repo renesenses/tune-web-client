@@ -6096,6 +6096,7 @@ export default {
   "v2.circle.msg.notFound": "No se ha encontrado esta tarjeta en tu biblioteca.",
   "v2.circle.msg.share": "Compartir por mensaje",
   "v2.circle.msg.recipient": "Destinatario",
+  "volume.outputRange": "Volumen fuera del intervalo: del {min} % al {max} %, en pasos del {step} %.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

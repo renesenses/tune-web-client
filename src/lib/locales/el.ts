@@ -5941,5 +5941,6 @@ export default {
   "v2.circle.msg.notFound": "Αυτή η κάρτα δεν βρέθηκε στη βιβλιοθήκη σας.",
   "v2.circle.msg.share": "Κοινοποίηση σε μήνυμα",
   "v2.circle.msg.recipient": "Παραλήπτης",
+  "volume.outputRange": "Η ένταση είναι εκτός ορίων: από {min}% έως {max}%, με βήμα {step}%.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

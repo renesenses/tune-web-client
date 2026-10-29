@@ -6055,6 +6055,7 @@ export default {
   "v2.circle.msg.notFound": "Ez a kártya nem található a könyvtárában.",
   "v2.circle.msg.share": "Megosztás üzenetben",
   "v2.circle.msg.recipient": "Címzett",
+  "volume.outputRange": "A hangerő a tartományon kívül van: {min}% és {max}% között, {step}%-os lépésekben.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
