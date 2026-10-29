@@ -108,6 +108,7 @@ export default {
   'oxygen.noMeta': 'Fără metadate extinse.',
   'oxygen.selectTrack': 'Selectează o piesă.',
   'oxygen.tracks': 'piese',
+  'oxygen.albums': 'albume',
   'oxygen.truncated': 'Afișare parțială:',
   'oxygen.loadMore': 'Încarcă mai multe',
   'oxygen.new': 'nou',

@@ -172,6 +172,7 @@ export default {
   "oxygen.noMeta": "Không có siêu dữ liệu mở rộng.",
   "oxygen.selectTrack": "Hãy chọn một bài hát.",
   "oxygen.tracks": "bài hát",
+  "oxygen.albums": "album",
   "oxygen.truncated": "Hiển thị một phần:",
   "oxygen.loadMore": "Tải thêm",
   "oxygen.details": "Chi tiết",

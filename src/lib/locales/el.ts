@@ -170,6 +170,7 @@ export default {
   "oxygen.noMeta": "Δεν υπάρχουν εκτεταμένα μεταδεδομένα.",
   "oxygen.selectTrack": "Επιλέξτε ένα κομμάτι.",
   "oxygen.tracks": "κομμάτια",
+  "oxygen.albums": "άλμπουμ",
   "oxygen.truncated": "Μερική προβολή:",
   "oxygen.loadMore": "Φόρτωση περισσότερων",
   "oxygen.details": "Λεπτομέρειες",

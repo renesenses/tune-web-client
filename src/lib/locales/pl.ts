@@ -170,6 +170,7 @@ export default {
   "oxygen.noMeta": "Brak rozszerzonych metadanych.",
   "oxygen.selectTrack": "Wybierz utwór.",
   "oxygen.tracks": "utworów",
+  "oxygen.albums": "albumy",
   "oxygen.truncated": "Widok częściowy:",
   "oxygen.loadMore": "Wczytaj więcej",
   "oxygen.details": "Szczegóły",

@@ -187,6 +187,7 @@ export default {
   "oxygen.noMeta": "Nincs bővített metaadat.",
   "oxygen.selectTrack": "Válassz egy számot.",
   "oxygen.tracks": "szám",
+  "oxygen.albums": "album",
   "oxygen.truncated": "Részleges nézet:",
   "oxygen.loadMore": "Továbbiak betöltése",
   "oxygen.details": "Részletek",

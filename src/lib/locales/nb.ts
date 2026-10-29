@@ -170,6 +170,7 @@ export default {
   "oxygen.noMeta": "Ingen utvidede metadata.",
   "oxygen.selectTrack": "Velg et spor.",
   "oxygen.tracks": "spor",
+  "oxygen.albums": "album",
   "oxygen.truncated": "Delvis visning:",
   "oxygen.loadMore": "Last inn flere",
   "oxygen.details": "Detaljer",

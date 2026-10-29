@@ -183,6 +183,7 @@ export default {
   'oxygen.noMeta': 'No extended metadata.',
   'oxygen.selectTrack': 'Select a track.',
   'oxygen.tracks': 'tracks',
+  'oxygen.albums': 'albums',
   'oxygen.truncated': 'Partial view:',
   'oxygen.loadMore': 'Load more',
   'oxygen.details': 'Details',

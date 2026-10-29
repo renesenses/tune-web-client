@@ -108,6 +108,7 @@ export default {
   'oxygen.noMeta': '没有扩展元数据。',
   'oxygen.selectTrack': '请选择一首曲目。',
   'oxygen.tracks': '首',
+  'oxygen.albums': '专辑',
   'oxygen.truncated': '部分显示：',
   'oxygen.loadMore': '加载更多',
   'oxygen.new': '新',

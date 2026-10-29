@@ -108,6 +108,7 @@ export default {
   'oxygen.noMeta': 'Keine erweiterten Metadaten.',
   'oxygen.selectTrack': 'Wählen Sie einen Titel.',
   'oxygen.tracks': 'Titel',
+  'oxygen.albums': 'Alben',
   'oxygen.truncated': 'Teilansicht:',
   'oxygen.loadMore': 'Mehr laden',
   'oxygen.new': 'neu',
