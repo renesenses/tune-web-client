@@ -9,7 +9,7 @@ import { fetchJSON } from '../api';
 import * as zones from '../stores/zones';
 import * as choixZone from '../zoneRequise';
 import { pendingSearchQuery } from '../stores/navigation';
-import { carteMusique, carteDepuisObjet, carteDepuisPiste, ecouterCarte, envoyerMessage, lireMessages, longueurMessage, messageEnvoyable, demandeConversation, messagerieSupport } from '../circleMessagerie';
+import { carteMusique, carteDepuisObjet, carteDepuisPiste, ecouterCarte, envoyerMessage, lireMessages, longueurMessage, messageEnvoyable, demandeConversation, erreurOuvertureConversation, ecrireAuContact, messagerieSupport } from '../circleMessagerie';
 
 vi.mock('../api', () => ({ BASE: '/api/v1', fetchJSON: vi.fn(), searchLibrary: vi.fn(), getPlaylists: vi.fn() }));
 vi.mock('../circleNotifications', () => ({ relireNotifications: vi.fn(async () => {}) }));
@@ -184,4 +184,24 @@ it('ne sonde pas en arrière-plan et espace les relectures', async () => {
     if (descriptor) Object.defineProperty(document, 'hidden', descriptor);
     else delete (document as any).hidden;
   }
+});
+
+
+it('Écrire défile au panneau puis focalise la saisie après son activation', async () => {
+  const defiler = vi.fn();
+  vue = mount(Messagerie, { target: hote }); await finir();
+  hote.querySelector('#circle-messages')!.scrollIntoView = defiler;
+  ecrireAuContact(7); await finir();
+  expect(defiler).toHaveBeenCalledWith({ block: 'start' });
+  expect(document.activeElement).toBe(hote.querySelector('#message-texte'));
+  expect((document.activeElement as HTMLTextAreaElement).disabled).toBe(false);
+});
+
+it('associe le refus HTTP au contact pour afficher une erreur près de son lien', async () => {
+  vue = mount(Messagerie, { target: hote }); await finir();
+  appel.mockRejectedValueOnce(Object.assign(new Error('unavailable'), { status: 503 }));
+  ecrireAuContact(7); await finir();
+  expect(get(erreurOuvertureConversation)?.contact).toBe(7);
+  expect(get(erreurOuvertureConversation)?.cle).toBeTruthy();
+  expect(hote.querySelector('[role=alert]')).toBeTruthy();
 });
