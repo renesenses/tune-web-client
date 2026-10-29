@@ -38,6 +38,8 @@
   import { tick } from 'svelte';
   import { t } from '../../lib/i18n';
   import { bulleTexte } from '../../lib/infobulleTexte';
+  import PaysMondeV2 from './PaysMondeV2.svelte';
+  import { lirePaysMonde, type PaysMonde } from '../../lib/paysMonde';
   import { formatNombre } from '../../lib/formats';
   import { browserAudioPlaying } from '../../lib/stores/browserAudio';
   import { ChampCercle, type PlacementNoeud } from '../../lib/champCercle/moteur';
@@ -78,6 +80,9 @@
     onLirePlaylist?: (p: PlaylistCercleResume) => void;
   }
   let { contacts, cercles, partages, enAttente, invitation, playlists = null, onOuvrirPlaylist, onLirePlaylist }: Props = $props();
+  let paysMonde = $state<PaysMonde | null>(null);
+  let montrerPays = $state(true);
+  const paysDisponibles = $derived(paysMonde !== null && (Object.keys(paysMonde.pays).length > 0 || !!paysMonde.cases?.length));
 
   const CLE_VUE: Record<Vue, string> = {
     monde: 'v2.circle.scene.view.monde', seul: 'v2.circle.scene.view.seul', lien: 'v2.circle.scene.view.lien',
@@ -172,7 +177,7 @@
   });
   const scene = $derived(construireScene(donnees));
   const grappes = $derived(grappesDeGenres(donnees, donnees.maxGrappes));
-  const vuesDispo = $derived<Vue[]>(relais === 'ok' ? [...VUES] : VUES.filter((v) => v !== 'monde'));
+  const vuesDispo = $derived<Vue[]>(relais === 'ok' || paysDisponibles ? [...VUES] : VUES.filter((v) => v !== 'monde'));
   const noeudsVue = $derived(noeudsDeVue(scene, vue));
   const epingles = $derived(noeudsDeVue(scene, 'monde'));
   const noeudSel = $derived(selection ? scene.noeuds.find((n) => n.id === selection) ?? null : null);
@@ -240,7 +245,7 @@
   });
 
   // Plus de globe sur ce serveur : on quitte la vue Monde.
-  $effect(() => { if (relais !== null && relais !== 'ok' && vue === 'monde') vue = grappes.length ? 'genres' : 'reseau'; });
+  $effect(() => { if (relais !== null && relais !== 'ok' && !paysDisponibles && vue === 'monde') vue = grappes.length ? 'genres' : 'reseau'; });
 
   // ── Préférences du système ──────────────────────────────────────────────
   $effect(() => {
@@ -261,6 +266,12 @@
   let toile = $state<HTMLCanvasElement | undefined>();
   let hote = $state<HTMLDivElement | undefined>();
   let moteur = $state.raw<ChampCercle | null>(null);
+  $effect(() => {
+    let active = true;
+    void lirePaysMonde().then((p) => { if (active) paysMonde = p; });
+    return () => { active = false; };
+  });
+
   const boutons = new Map<string, HTMLButtonElement>();
 
   function inscrire(el: HTMLButtonElement, id: string) {
@@ -371,6 +382,21 @@
 
   $effect(() => { const m = moteur; const s = scene; m?.majScene(s); });
   $effect(() => { const m = moteur; const p = pointsPublics; m?.majPointsPublics(p); });
+  $effect(() => {
+    const m = moteur; const donnees = montrerPays ? paysMonde?.pays ?? null : null;
+    if (!m) return;
+    m.majCases(montrerPays ? paysMonde?.cases ?? [] : []);
+    const appliquer = () => m.majPays(donnees, typeof getComputedStyle === 'function' && hote
+      ? getComputedStyle(hote).getPropertyValue('--v2-acc2').trim() : undefined);
+    appliquer();
+    // Theme changes do not change or reload opt-in points.
+    if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') return;
+    const observer = new MutationObserver(appliquer);
+    observer.observe(document.documentElement, { attributes: true });
+    if (document.body) observer.observe(document.body, { attributes: true });
+    return () => observer.disconnect();
+  });
+
   $effect(() => { const m = moteur; const v = vue; m?.vue(v); });
   $effect(() => { const m = moteur; const s = selection; m?.selection(s); });
   $effect(() => { const m = moteur; const b = budget; m?.majBudget(b); });
@@ -676,6 +702,10 @@
     <p class="note sc-degrade">{$t('v2.circle.scene.relay.down' as any)}</p>
   {/if}
 
+  {#if vue === 'monde' && paysMonde}
+    <PaysMondeV2 donnees={paysMonde} afficher={montrerPays} onAfficher={(v) => (montrerPays = v)} liste={montrerListe} />
+  {/if}
+
   <p class="sr sc-resume" aria-live="polite">{resume}</p>
 
   {#if !montrerListe}
@@ -718,7 +748,7 @@
           {/if}
         {/each}
       </div>
-      {#if vue === 'monde' && epingles.length === 0 && pointsPublics.length === 0 && !poseOuverte}
+      {#if vue === 'monde' && epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles && !poseOuverte}
         <div class="sc-vide">
           <p>{$t('v2.circle.scene.world.empty' as any)}</p>
           {#if relais === 'ok'}<button type="button" class="go sc-poser" onclick={() => ouvrirPose()}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
@@ -737,7 +767,7 @@
       {#if vue === 'monde' && texteSansVille}<p class="note sc-sans-ville">{texteSansVille}</p>{/if}
       {#if vue === 'monde' && pointsPublics.length}<p class="note sc-compte-public">{tr('v2.circle.scene.world.publicCount', { n: pointsPublics.length })}</p>{/if}
       {#if noeudsVue.length === 0}
-        {#if !(vue === 'monde' && pointsPublics.length)}<p class="note">{$t((vue === 'monde' ? 'v2.circle.scene.world.empty' : vue === 'genres' ? 'v2.circle.scene.genres.empty' : 'v2.circle.scene.link.empty') as any)}</p>{/if}
+        {#if !(vue === 'monde' && (pointsPublics.length || paysDisponibles))}<p class="note">{$t((vue === 'monde' ? 'v2.circle.scene.world.empty' : vue === 'genres' ? 'v2.circle.scene.genres.empty' : 'v2.circle.scene.link.empty') as any)}</p>{/if}
       {:else}
         <ul class="sc-liste">
           {#each noeudsVue as n (n.id)}
