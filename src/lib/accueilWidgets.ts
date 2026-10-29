@@ -1476,7 +1476,17 @@ export const WIDGETS: Widget[] = [
       utiles(
         reprisesUtiles(liste(await api.getContinueListening(limiteDe(ctx)))).map((o, i) => {
           const el = versElement(o, i, 'rep');
+          const idPlaylist = Number(o.context_id);
+          const playlistLocale = o.context_type === 'playlist' && (o.source == null || o.source === 'local')
+            && Number.isSafeInteger(idPlaylist) && idPlaylist > 0 ? idPlaylist : null;
           return { ...el,
+            // La playlist locale a une mosaïque de ses pistes, pas la
+            // pochette du dernier titre. Comme dans les favoris, la demander
+            // après affichage et dans la file de chargement bornée.
+            ...(!el.cover && playlistLocale != null ? {
+              mosaique: () => enFileMosaique(async () =>
+                quatreDistinctes(((await api.getPlaylistTracks(playlistLocale)) ?? []) as any[])),
+            } : {}),
             titre: (o.context_type === 'album' || o.context_type === 'playlist') && o.last_track_title ? o.last_track_title : el.titre,
             sous: sousTitreReprise(o) || el.sous,
             jouer: gesteReprise(o),
