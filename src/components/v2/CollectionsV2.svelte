@@ -57,6 +57,7 @@
   import ArbreRayons from './ArbreRayons.svelte';
   import { clesRangees, rafraichirRayons, rangerLaNouvelle, type EtatRayons } from '../../lib/rayonsCollections';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import { albumsTires, graineAleatoire } from '../../lib/shuffle';
   import {
     TYPE_GLISSE_PLATE, decoderGlissePlate, deposerDansOrdre, encoderGlissePlate,
     comparateurManuel, type SortePlate,
@@ -657,7 +658,7 @@
    *
    * Le choix est mémorisé par écran, comme celui de la liste.
    */
-  const TRIS_ALBUMS = ['artist', 'title', 'year', 'release_date', 'added_at'] as const;
+  const TRIS_ALBUMS = ['artist', 'title', 'year', 'release_date', 'added_at', 'random'] as const;
   type TriAlbums = (typeof TRIS_ALBUMS)[number];
   const SENS = ['asc', 'desc'] as const;
   type Sens = (typeof SENS)[number];
@@ -668,14 +669,22 @@
   const LIBELLES_TRI: Record<TriAlbums, string> = {
     artist: 'v2.lib.sortArtist', title: 'v2.lib.sortTitle', year: 'v2.lib.sortYear',
     release_date: 'library.sortReleaseDate', added_at: 'library.sortAddedDate',
+    random: 'library.sortRandom',
   };
+  /**
+   * Fil 2526 (r5yk5) — « Aléatoire », comme la Bibliothèque : un tirage CLIENT
+   * stable pour une graine (`albumsTires`), relancé par « Re-tirer ». Le
+   * serveur n'en sait rien : la collection se charge dans l'ordre des artistes.
+   */
+  let graineTirage = $state<number>(graineAleatoire());
+  function reTirer(): void { graineTirage = graineAleatoire(); }
   async function chargerAlbums(e: Entree) {
     albumsChargement = true;
     try {
       albums =
         ((e.sorte === 'smart'
           ? await api.getSmartCollectionAlbums(e.id)
-          : await api.getCollectionAlbums(e.id, triAlbums, sensAlbums)) as any[]) ?? [];
+          : await api.getCollectionAlbums(e.id, triAlbums === 'random' ? 'artist' : triAlbums, sensAlbums)) as any[]) ?? [];
     } catch {
       albums = [];
     }
@@ -696,7 +705,7 @@
    * d'une collection intelligente. Face à un serveur plus ancien, la clé
    * retombe sur l'année (`trierAlbums`), elle trie donc toujours quelque chose.
    */
-  const TRIS_SMART = ['regles', 'artist', 'title', 'year', 'release_date'] as const;
+  const TRIS_SMART = ['regles', 'artist', 'title', 'year', 'release_date', 'random'] as const;
   type TriSmart = (typeof TRIS_SMART)[number];
   let triSmart = $state<TriSmart>(lireChoix<TriSmart>('v2.collection.smart.tri', TRIS_SMART, 'regles'));
   let sensSmart = $state<Sens>(lireChoix<Sens>('v2.collection.smart.sens', SENS, 'asc'));
@@ -704,12 +713,14 @@
   $effect(() => { ecrireChoix('v2.collection.smart.sens', sensSmart); });
   const LIBELLES_SMART: Record<TriSmart, string> = {
     regles: 'v2.col.sortRules', artist: 'v2.lib.sortArtist', title: 'v2.lib.sortTitle', year: 'v2.lib.sortYear',
-    release_date: 'library.sortReleaseDate',
+    release_date: 'library.sortReleaseDate', random: 'library.sortRandom',
   };
   /** Ce que la grille AFFICHE — et ce que « Tout lire » enchaîne. */
   const albumsVus = $derived(
     ouverte?.sorte === 'smart'
-      ? trierAlbums(albums, triSmart === 'regles' ? 'pertinence' : triSmart, sensSmart)
+      ? (triSmart === 'random' ? albumsTires(albums, graineTirage)
+        : trierAlbums(albums, triSmart === 'regles' ? 'pertinence' : triSmart, sensSmart))
+      : triAlbums === 'random' ? albumsTires(albums, graineTirage)
       : albums,
   );
 
@@ -1225,6 +1236,12 @@
             <select bind:value={triSmart} aria-label={$t('v2.fav.sortBy' as any)}>
               {#each TRIS_SMART as k (k)}<option value={k}>{$t(LIBELLES_SMART[k] as any)}</option>{/each}
             </select>
+            {#if triSmart === 'random'}
+            <button class="sens" onclick={reTirer}
+              title={$t('library.reshuffle' as any)} aria-label={$t('library.reshuffle' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+            </button>
+            {:else}
             <button class="sens" onclick={() => (sensSmart = sensSmart === 'asc' ? 'desc' : 'asc')}
               title={$t((sensSmart === 'asc' ? 'common.ascending' : 'common.descending') as any)}
               aria-label={$t((sensSmart === 'asc' ? 'common.ascending' : 'common.descending') as any)}>
@@ -1234,6 +1251,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>
               {/if}
             </button>
+            {/if}
           </label>
         {:else}
           <label class="tricol">
@@ -1244,6 +1262,12 @@
                 <option value={k}>{$t(LIBELLES_TRI[k] as any)}</option>
               {/each}
             </select>
+            {#if triAlbums === 'random'}
+            <button class="sens" onclick={reTirer}
+              title={$t('library.reshuffle' as any)} aria-label={$t('library.reshuffle' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+            </button>
+            {:else}
             <button class="sens" onclick={() => changerTri(triAlbums, sensAlbums === 'asc' ? 'desc' : 'asc')}
               title={$t((sensAlbums === 'asc' ? 'common.ascending' : 'common.descending') as any)}
               aria-label={$t((sensAlbums === 'asc' ? 'common.ascending' : 'common.descending') as any)}>
@@ -1253,6 +1277,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>
               {/if}
             </button>
+            {/if}
           </label>
         {/if}
         <button class="fab" onclick={() => lireCollectionEntiere(false)}
