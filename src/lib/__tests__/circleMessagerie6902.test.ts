@@ -113,6 +113,8 @@ it('envoie, supprime seulement mon message après confirmation et signale les me
   const formulaire = hote.querySelector('#message-raison')?.closest('form');
   formulaire?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await finir();
   expect(appel.mock.calls.some((c) => String(c[0]).endsWith('/reports') && JSON.parse(c[1]?.body as string).message_ids[0] === 3)).toBe(true);
+  expect(dialogs.confirm).toHaveBeenCalledWith('Signaler les messages sélectionnés ?');
+  expect(hote.querySelector('[role=status]')?.textContent).toContain('Signalement transmis');
 });
 
 it('retire le contenu du fil quand le contact devient inaccessible', async () => {

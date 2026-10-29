@@ -1,4 +1,7 @@
 export default {
+  "v2.circle.msg.reportConfirm": "Να αναφερθούν τα επιλεγμένα μηνύματα;",
+  "v2.circle.msg.reportSent": "Η αναφορά στάλθηκε στην ομάδα συντονισμού.",
+
   "v2.circle.msg.today": "Σήμερα",
   "v2.circle.msg.yesterday": "Χθες",
   "v2.circle.msg.noMessage": "Δεν υπάρχουν μηνύματα ακόμη",

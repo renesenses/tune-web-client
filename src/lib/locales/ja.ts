@@ -1,4 +1,7 @@
 export default {
+  "v2.circle.msg.reportConfirm": "選択したメッセージを報告しますか？",
+  "v2.circle.msg.reportSent": "モデレーションチームに報告を送信しました。",
+
   "v2.circle.msg.today": "今日",
   "v2.circle.msg.yesterday": "昨日",
   "v2.circle.msg.noMessage": "メッセージはまだありません",

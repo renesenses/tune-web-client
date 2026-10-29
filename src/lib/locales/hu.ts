@@ -1,4 +1,7 @@
 export default {
+  "v2.circle.msg.reportConfirm": "Jelenti a kijelölt üzeneteket?",
+  "v2.circle.msg.reportSent": "A jelentést elküldtük a moderátoroknak.",
+
   "v2.circle.msg.today": "Ma",
   "v2.circle.msg.yesterday": "Tegnap",
   "v2.circle.msg.noMessage": "Még nincs üzenet",

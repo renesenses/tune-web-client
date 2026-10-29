@@ -1,4 +1,7 @@
 export default {
+  "v2.circle.msg.reportConfirm": "Báo cáo các tin nhắn đã chọn?",
+  "v2.circle.msg.reportSent": "Đã gửi báo cáo đến nhóm kiểm duyệt.",
+
   "v2.circle.msg.today": "Hôm nay",
   "v2.circle.msg.yesterday": "Hôm qua",
   "v2.circle.msg.noMessage": "Chưa có tin nhắn",

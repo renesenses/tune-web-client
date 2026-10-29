@@ -1,4 +1,7 @@
 export default {
+  "v2.circle.msg.reportConfirm": "举报所选消息？",
+  "v2.circle.msg.reportSent": "举报已发送给审核团队。",
+
   "v2.circle.msg.today": "今天",
   "v2.circle.msg.yesterday": "昨天",
   "v2.circle.msg.noMessage": "暂无消息",

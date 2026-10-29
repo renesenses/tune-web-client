@@ -1,4 +1,7 @@
 export default {
+  "v2.circle.msg.reportConfirm": "Raportezi mesajele selectate?",
+  "v2.circle.msg.reportSent": "Raport trimis echipei de moderare.",
+
   "v2.circle.msg.today": "Astăzi",
   "v2.circle.msg.yesterday": "Ieri",
   "v2.circle.msg.noMessage": "Niciun mesaj încă",

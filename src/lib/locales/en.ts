@@ -1,4 +1,7 @@
 export default {
+  "v2.circle.msg.reportConfirm": "Report the selected messages?",
+  "v2.circle.msg.reportSent": "Report sent to the moderation team.",
+
   "v2.circle.msg.today": "Today",
   "v2.circle.msg.yesterday": "Yesterday",
   "v2.circle.msg.noMessage": "No messages yet",

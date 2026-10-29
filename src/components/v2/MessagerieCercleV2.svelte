@@ -15,6 +15,7 @@
   let texte = $state('');
   let occupe = $state(false);
   let erreur = $state('');
+  let accuse = $state('');
   let selection = $state<number[]>([]);
   let signalement = $state(false);
   let raison = $state('harassment');
@@ -50,7 +51,7 @@
     if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); if (!occupe && messageEnvoyable(texte, null)) formulaire?.requestSubmit(); }
   }
   function retour() { generation++; choix = null; messages = []; selection = []; viderBrouillons(); }
-  function viderBrouillons() { texte = ''; menuMessage = null; ajusterSaisie(); commentaire = ''; raison = 'harassment'; signalement = false; }
+  function viderBrouillons() { texte = ''; accuse = ''; menuMessage = null; ajusterSaisie(); commentaire = ''; raison = 'harassment'; signalement = false; }
   function echec(e: unknown) {
     if ((e as any)?.status === 404 || (e as any)?.status === 412) { generation++; choix = null; messages = []; liste = []; selection = []; viderBrouillons(); }
     erreur = (e as any)?.code === 'circle.card_not_found' ? tr('v2.circle.msg.notFound') : tr(motifCercle(e).cle);
@@ -97,7 +98,7 @@
   }
   async function geste(faire: () => Promise<unknown>) {
     if (occupe) return;
-    occupe = true; erreur = '';
+    occupe = true; erreur = ''; accuse = '';
     try { await faire(); } catch (e) { if (!fini) echec(e); } finally { if (!fini) occupe = false; }
   }
   async function ouvrir(c: ConversationCercle) {
@@ -147,7 +148,8 @@
   async function signaler(ev: SubmitEvent) {
     ev.preventDefault(); if (!choix || !selection.length) return;
     const id = choix.id;
-    await geste(async () => { await signalerMessages(id, selection, raison, commentaire); signalement = false; selection = []; commentaire = ''; });
+    if (!(await dialogs.confirm(tr('v2.circle.msg.reportConfirm'))) || choix?.id !== id) return;
+    await geste(async () => { await signalerMessages(id, selection, raison, commentaire); signalement = false; selection = []; commentaire = ''; accuse = tr('v2.circle.msg.reportSent'); });
   }
   onMount(() => {
     void charger();
@@ -164,6 +166,7 @@
   <section class="messagerie" id="circle-messages" aria-labelledby="messages-titre">
     <h2 id="messages-titre">{tr('v2.circle.msg.title')} {#if total}<span class="pastille">{total}</span>{/if}</h2>
     {#if erreur}<p role="alert" class="erreur">{erreur}</p>{/if}
+    {#if accuse}<p role="status" class="note">{accuse}</p>{/if}
     <div class="volets" class:fil-ouvert={choix !== null}>
       <nav aria-label={tr('v2.circle.msg.title')}>
         {#if !liste.length}<p class="note">{tr('v2.circle.msg.empty')}</p>{/if}

@@ -1,4 +1,7 @@
 export default {
+  "v2.circle.msg.reportConfirm": "Rapportere de valgte meldingene?",
+  "v2.circle.msg.reportSent": "Rapport sendt til modereringsteamet.",
+
   "v2.circle.msg.today": "I dag",
   "v2.circle.msg.yesterday": "I går",
   "v2.circle.msg.noMessage": "Ingen meldinger ennå",

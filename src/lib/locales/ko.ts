@@ -1,4 +1,7 @@
 export default {
+  "v2.circle.msg.reportConfirm": "선택한 메시지를 신고하시겠습니까?",
+  "v2.circle.msg.reportSent": "운영팀에 신고를 보냈습니다.",
+
   "v2.circle.msg.today": "오늘",
   "v2.circle.msg.yesterday": "어제",
   "v2.circle.msg.noMessage": "아직 메시지가 없습니다",
