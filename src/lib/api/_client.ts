@@ -4,6 +4,7 @@
 import { notifications } from '../stores/notifications';
 import { getToken, clearToken } from '../auth';
 import { profileHeader } from '../profileHeader';
+import { corpsJson, fusionnerEntetes } from '../fusionEntetes';
 import { messageRefusPremium, type CorpsRefusPremium } from '../premiumRefus';
 import { estRefusEcriture, messageRefusEcriture } from '../ecritureFichiers';
 import { baseApi, entetesRelais } from '../bridge';
@@ -51,14 +52,15 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       // chose a envoyer. Ce jumeau sert `api/metadata.ts` : `startAutoFix`
       // poste sans corps, et l'en-tete faisait echouer l'extracteur
       // `Option<Json<...>>` du serveur en 400 « EOF while parsing a value ».
-      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
+      ...(corpsJson(options?.body) ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    // #7532 — fusion, plus remplacement (voir `fusionEntetes.ts`).
     response = await fetch(url, {
-      headers,
       ...options,
+      headers: fusionnerEntetes(headers, options?.headers),
     });
   } catch (e) {
     showNetworkError();
