@@ -2422,6 +2422,44 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     min-width: max-content;
   }
 
+  /* 🔴 #2555 — Keith_W, Galaxy Tab S4 (1280 px CSS en paysage), Chrome Android :
+     « les commandes de lecture sortent de l'écran à droite ».
+
+     Mesuré en Chromium (zone UPnP, lecture en cours, barre à VU-mètres) : dès
+     que la barre atteint SEUIL_VU_PX (1280 px, padding compris ; la requête de
+     conteneur mesure sans lui, d'où 1200), la colonne de droite vaut un
+     quart de la barre (~296 px) et doit porter le cadran (84 px) PLUS la pile
+     d'icônes, qui est en `min-width: max-content` (#1712) et dont la pastille
+     de zone garde son libellé. Le tout dépasse de 20 à 60 px à droite de la
+     fenêtre, jusqu'à ~1750 px de barre : le bouton de transfert, le curseur de
+     volume et la zone sortent de l'écran, sans défilement possible.
+
+     Le secondaire part AVANT les commandes : libellé de zone (la pastille
+     redevient un carré, l'infobulle garde le nom), écarts et curseur resserrés.
+     Les cadrans, eux, restent. Au-delà de 1800 px de barre, rien ne change. */
+  @container tbar (min-width: 1200px) and (max-width: 1800px) {
+    .transport-bar.vu .zone-chip-label {
+      display: none;
+    }
+    .transport-bar.vu .zone-icon-btn {
+      max-width: 32px;
+      padding: 0;
+      justify-content: center;
+    }
+    .transport-bar.vu .transport-right {
+      gap: 8px;
+    }
+    .transport-bar.vu .transport-right-top {
+      gap: 8px;
+    }
+    .transport-bar.vu .transport-right :global(.volume-slider) {
+      width: 90px;
+    }
+    .transport-bar.vu .transport-right :global(.step-btn) {
+      display: none;
+    }
+  }
+
   .transport-bar.vu .transport-right {
     flex-direction: row;
     align-items: center;
