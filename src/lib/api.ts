@@ -11,6 +11,7 @@ import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
 import type { ApercuFavorisRadio } from './favorisRadioQobuz';
 import { profileHeader } from './profileHeader';
+import { corpsJson, fusionnerEntetes } from './fusionEntetes';
 import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
@@ -182,7 +183,14 @@ function stripDoubleBase(path: string): string {
  *  vit en localStorage et non dans un cookie. */
 export function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
   const token = getToken();
-  const headers: Record<string, string> = { ...extra, ...entetesRelais() };
+  // #7532 — le profil et la langue aussi : ces appels (imports de playlists,
+  // suppression d'une collection intelligente, exports…) touchent des données
+  // PAR PROFIL, et sans `X-Profile-Id` le serveur agissait sur le profil
+  // global au lieu de celui du navigateur. `extra` reste prioritaire.
+  const headers: Record<string, string> = fusionnerEntetes(
+    { 'Accept-Language': acceptLang(), ...profileHeader() },
+    { ...extra, ...entetesRelais() },
+  );
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return headers;
 }
@@ -524,14 +532,19 @@ export async function fetchJSON<T>(
       // column 0 » sur /library/enrich-all (bouton « Retrouver genres et
       // annees »), /metadata/auto-fix et /zones/{id}/queue/clear. Un en-tete
       // qui decrit un corps inexistant ne decrit rien.
-      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
+      // #7532 — ni sur un `FormData`, des octets ou un `Blob` : le navigateur
+      // les décrit lui-même (boundary du multipart).
+      ...(corpsJson(options?.body) ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    // #7532 — FUSION, plus remplacement : `{ headers, ...options }` laissait
+    // `options.headers` écraser `X-Profile-Id`, `Authorization` et
+    // `Accept-Language` sur chaque POST/PUT JSON (voir `fusionEntetes.ts`).
     response = await fetch(avecLangueSignal(url, acceptLang()), {
-      headers,
       ...options,
+      headers: fusionnerEntetes(headers, options?.headers),
     });
   } catch (e) {
     // Une requête abandonnée par son appelant (délai d'abandon, #1788) n'est
@@ -764,14 +777,19 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
       // column 0 » sur /library/enrich-all (bouton « Retrouver genres et
       // annees »), /metadata/auto-fix et /zones/{id}/queue/clear. Un en-tete
       // qui decrit un corps inexistant ne decrit rien.
-      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
+      // #7532 — ni sur un `FormData`, des octets ou un `Blob` : le navigateur
+      // les décrit lui-même (boundary du multipart).
+      ...(corpsJson(options?.body) ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    // #7532 — FUSION, plus remplacement : `{ headers, ...options }` laissait
+    // `options.headers` écraser `X-Profile-Id`, `Authorization` et
+    // `Accept-Language` sur chaque POST/PUT JSON (voir `fusionEntetes.ts`).
     response = await fetch(avecLangueSignal(url, acceptLang()), {
-      headers,
       ...options,
+      headers: fusionnerEntetes(headers, options?.headers),
     });
   } catch (e) {
     showNetworkError();
@@ -6775,6 +6793,29 @@ export function exportRadiosUrl(): string {
 
 export function getProfiles() {
   return fetchJSON<any[]>(`${BASE}/profiles`);
+}
+
+/** Les compteurs d'un profil, `GET /profiles/{id}/stats` (favoris locaux par
+ *  type, écoutes). Sans bandeau : sert de sonde (#7532). */
+export interface StatsProfil {
+  profile_id?: number;
+  favorites_by_type?: Record<string, number>;
+  listening?: { total_listens?: number };
+}
+export function getProfileStats(profileId: number) {
+  return fetchJSON<StatsProfil>(`${BASE}/profiles/${profileId}/stats`, undefined, undefined, true);
+}
+
+/** Les playlists D'UN profil donné, quel que soit le profil du navigateur :
+ *  `GET /playlists` lit `X-Profile-Id`, qu'on pose ici nous-mêmes — la fusion
+ *  des en-têtes (#7532) le laisse prioritaire. Sans bandeau : sonde. */
+export function getPlaylistsDuProfil(profileId: number, limit = 1) {
+  return fetchJSON<Playlist[]>(
+    `${BASE}/playlists?limit=${limit}&offset=0`,
+    { headers: { 'X-Profile-Id': String(profileId) } },
+    undefined,
+    true,
+  );
 }
 
 /**
