@@ -119,7 +119,10 @@ describe('#4741 — un compte gratuit voit pourquoi le transfert est refusé', (
     const appels = vue.match(/noterRefusTransfert\(e\)/g) ?? [];
     expect(appels).toHaveLength(3);
     // Le refus ne devient plus « échec » ni bandeau d'erreur générique.
-    expect(vue).toContain('if (!noterRefusTransfert(e)) importResult = { name: importName, count: -1, total: 0 };');
+    // #2526 : hors refus Premium, l'échec garde son « Import failed » ET dit
+    // désormais sa raison (`noterEchecAction`).
+    expect(vue).toMatch(/if \(!noterRefusTransfert\(e\)\) \{\s*noterEchecAction\(e\);\s*importResult = \{ name: importName, count: -1, total: 0 \};/);
+    expect(vue).toContain('if (!noterRefusTransfert(e)) noterEchecAction(e);');
     expect(vue).toContain("if (!noterRefusTransfert(e)) notifications.error(e.message || 'Transfer failed');");
   });
 

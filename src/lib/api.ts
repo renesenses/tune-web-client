@@ -6664,11 +6664,10 @@ export async function importPlaylistFile(file: File, name?: string) {
     headers: authHeaders(),
     body: form,
   });
-  if (!resp.ok) {
-    const detail = await resp.text().catch(() => '');
-    throw new Error(detail || `import: HTTP ${resp.status}`);
-  }
-  return resp.json() as Promise<{ playlist_id?: number; matched?: number; missing?: number }>;
+  // web#2526 : `apiError` lit le message du serveur (`{"error": "no file
+  // provided"}`) au lieu de rendre le corps JSON brut à l'écran.
+  if (!resp.ok) throw await apiError(resp);
+  return resp.json() as Promise<{ id?: number; name?: string } & import('./bilanImportM3u').ReponseImportM3u>;
 }
 
 export function getTransferHistory(limit = 50, offset = 0) {
