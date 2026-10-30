@@ -4905,6 +4905,7 @@ export default {
   "v2.circle.notif.title": "Benachrichtigungen",
   "v2.circle.notif.unreadAria": "{n} ungelesen",
   "v2.circle.notif.markAll": "Alle als gelesen markieren",
+  "v2.circle.notif.back": "Zurück zu den Benachrichtigungen",
   "v2.circle.notif.empty": "Keine Benachrichtigungen.",
   "v2.circle.notif.unavailable": "Benachrichtigungen sind derzeit nicht verfügbar.",
   "v2.circle.notif.settings": "Benachrichtigungseinstellungen",

@@ -4905,6 +4905,7 @@ export default {
   "v2.circle.notif.title": "알림",
   "v2.circle.notif.unreadAria": "읽지 않음 {n}개",
   "v2.circle.notif.markAll": "모두 읽음으로 표시",
+  "v2.circle.notif.back": "알림으로 돌아가기",
   "v2.circle.notif.empty": "알림이 없습니다.",
   "v2.circle.notif.unavailable": "지금은 알림을 사용할 수 없습니다.",
   "v2.circle.notif.settings": "알림 설정",

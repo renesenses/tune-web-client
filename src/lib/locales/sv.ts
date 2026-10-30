@@ -4904,6 +4904,7 @@ export default {
   "v2.circle.notif.title": "Aviseringar",
   "v2.circle.notif.unreadAria": "{n} olästa",
   "v2.circle.notif.markAll": "Markera alla som lästa",
+  "v2.circle.notif.back": "Tillbaka till aviseringarna",
   "v2.circle.notif.empty": "Inga aviseringar.",
   "v2.circle.notif.unavailable": "Aviseringar är inte tillgängliga just nu.",
   "v2.circle.notif.settings": "Aviseringsinställningar",

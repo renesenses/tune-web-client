@@ -4765,6 +4765,7 @@ export default {
   "v2.circle.notif.title": "Ειδοποιήσεις",
   "v2.circle.notif.unreadAria": "{n} μη αναγνωσμένες",
   "v2.circle.notif.markAll": "Σήμανση όλων ως αναγνωσμένων",
+  "v2.circle.notif.back": "Επιστροφή στις ειδοποιήσεις",
   "v2.circle.notif.empty": "Δεν υπάρχουν ειδοποιήσεις.",
   "v2.circle.notif.unavailable": "Οι ειδοποιήσεις δεν είναι διαθέσιμες αυτή τη στιγμή.",
   "v2.circle.notif.settings": "Ρυθμίσεις ειδοποιήσεων",

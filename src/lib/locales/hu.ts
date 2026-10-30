@@ -4859,6 +4859,7 @@ export default {
   "v2.circle.notif.title": "Értesítések",
   "v2.circle.notif.unreadAria": "{n} olvasatlan",
   "v2.circle.notif.markAll": "Az összes megjelölése olvasottként",
+  "v2.circle.notif.back": "Vissza az értesítésekhez",
   "v2.circle.notif.empty": "Nincs értesítés.",
   "v2.circle.notif.unavailable": "Az értesítések jelenleg nem érhetők el.",
   "v2.circle.notif.settings": "Értesítési beállítások",

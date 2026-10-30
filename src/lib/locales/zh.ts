@@ -4905,6 +4905,7 @@ export default {
   "v2.circle.notif.title": "通知",
   "v2.circle.notif.unreadAria": "{n} 条未读",
   "v2.circle.notif.markAll": "全部标为已读",
+  "v2.circle.notif.back": "返回通知",
   "v2.circle.notif.empty": "没有通知。",
   "v2.circle.notif.unavailable": "通知暂时不可用。",
   "v2.circle.notif.settings": "通知设置",

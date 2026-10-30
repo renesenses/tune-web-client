@@ -4768,6 +4768,7 @@ export default {
   "v2.circle.notif.title": "Thông báo",
   "v2.circle.notif.unreadAria": "{n} chưa đọc",
   "v2.circle.notif.markAll": "Đánh dấu tất cả là đã đọc",
+  "v2.circle.notif.back": "Quay lại thông báo",
   "v2.circle.notif.empty": "Không có thông báo.",
   "v2.circle.notif.unavailable": "Thông báo hiện không khả dụng.",
   "v2.circle.notif.settings": "Cài đặt thông báo",

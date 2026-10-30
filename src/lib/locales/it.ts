@@ -4905,6 +4905,7 @@ export default {
   "v2.circle.notif.title": "Notifiche",
   "v2.circle.notif.unreadAria": "{n} non lette",
   "v2.circle.notif.markAll": "Segna tutto come letto",
+  "v2.circle.notif.back": "Torna alle notifiche",
   "v2.circle.notif.empty": "Nessuna notifica.",
   "v2.circle.notif.unavailable": "Le notifiche non sono disponibili al momento.",
   "v2.circle.notif.settings": "Impostazioni delle notifiche",

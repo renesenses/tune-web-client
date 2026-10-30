@@ -4905,6 +4905,7 @@ export default {
   "v2.circle.notif.title": "通知",
   "v2.circle.notif.unreadAria": "未読 {n} 件",
   "v2.circle.notif.markAll": "すべて既読にする",
+  "v2.circle.notif.back": "通知に戻る",
   "v2.circle.notif.empty": "通知はありません。",
   "v2.circle.notif.unavailable": "現在、通知を利用できません。",
   "v2.circle.notif.settings": "通知の設定",
