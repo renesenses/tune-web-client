@@ -17,7 +17,6 @@
 // `defaultAvecDonnees` ignoré) fait rougir « un favori », « une playlist »,
 // « de l'historique » et « navigateur neuf ».
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 
 vi.mock('../auth', () => ({ getToken: () => null, clearToken: () => {} }));
@@ -66,6 +65,7 @@ function serveur(d: Donnees, profils = [DEFAULT, R5YK5]) {
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
+let demonter: ((m: Record<string, unknown>) => void) | null = null;
 
 beforeEach(() => {
   localStorage.clear();
@@ -74,7 +74,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  if (monte) unmount(monte);
+  if (monte && demonter) demonter(monte);
   monte = null;
   hote?.remove();
   hote = null;
@@ -90,6 +90,9 @@ async function charger(d: Donnees, actif: number | null = R5YK5.id) {
   const magasin = await import('../stores/profile');
   const ok = await magasin.loadProfiles();
   expect(ok).toBe(true);
+  // Svelte rechargé avec le reste (`resetModules`) : un seul runtime.
+  const { flushSync, mount, unmount } = await import('svelte');
+  demonter = (m) => unmount(m);
   const { default: ProfilsV2 } = await import('../../components/v2/ProfilsV2.svelte');
   monte = mount(ProfilsV2, { target: hote! });
   flushSync();
