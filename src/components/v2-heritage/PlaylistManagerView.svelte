@@ -25,6 +25,7 @@
   import ClampedText from '../partages/ClampedText.svelte';
   import HeartButton from '../partages/HeartButton.svelte';
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
+  import ImportPlaylistFichier from '../v2/ImportPlaylistFichier.svelte';
   import BasculeAffichage from '../v2/BasculeAffichage.svelte';
   import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
@@ -2092,6 +2093,9 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
           {$tr('playlist.new')}
         </button>
+        <!-- Import d'un fichier .m3u/.m3u8/.dpl : même bouton que l'écran
+             Playlists, que la barre latérale n'ouvre pas (rc9 : introuvable). -->
+        <ImportPlaylistFichier onimporte={loadAll} />
       </div>
     </div>
 
