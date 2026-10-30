@@ -265,7 +265,7 @@ export async function playAndSync(zoneId: number, body?: Parameters<typeof api.p
 export async function remettreRepetitionAOff(): Promise<void> {
   const ids = new Set<number>();
   for (const z of get(zones)) {
-    if (z && z.repeat === 'one') ids.add(z.id);
+    if (z && z.repeat === 'one' && z.id != null) ids.add(z.id);
   }
   const { repeatMode } = await import('./nowPlaying');
   const courante = get(currentZoneId);
