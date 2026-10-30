@@ -32,7 +32,7 @@ vi.mock('../websocket', () => ({ tuneWS: {
 import SettingsV2 from '../../components/v2/SettingsV2.svelte';
 import { preferences } from '../stores/preferences';
 import { v2SettingsTarget } from '../stores/v2SettingsNav';
-import { licenseState, sourceDuPremium } from '../stores/license';
+import { licenseState, loadLicense, sourceDuPremium } from '../stores/license';
 import { locale } from '../i18n';
 import fr from '../locales/fr';
 
@@ -49,6 +49,9 @@ const panneau = () => hote.textContent?.replace(/\s+/g, ' ') ?? '';
 
 async function monter(statut: Record<string, unknown>) {
   licence = { features: {}, zone_limit: null, hardware_fingerprint: null, session_conflict: null, offline_grace: null, expires_at: null, ...statut };
+  // L'application charge la licence au démarrage (hors de cet écran) : même
+  // chargement ici, par la vraie couche API, avant d'ouvrir l'onglet.
+  await loadLicense();
   v2SettingsTarget.set({ tab: 'license', section: 'license' });
   composant = mount(SettingsV2, { target: hote }); flushSync(); await stabiliser();
 }
