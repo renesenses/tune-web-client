@@ -158,6 +158,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
+  // #2527 — « Mon thème », fourni par le greffon du catalogue.
+  import MonThemeV2 from './MonThemeV2.svelte';
+  import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
@@ -1609,7 +1612,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // On expose le theme DU CLIENT V2 (six palettes), pas `preferences.theme`
   // qui pilote l'app historique : le proposer ici donnerait un reglage sans
   // effet visible: exactement le genre de piege qu'on veut eviter.
-  function setV2Theme(t: V2Theme) { preferences.update((pr) => ({ ...pr, v2Theme: t })); }
+  function setV2Theme(t: V2Theme) {
+    preferences.update((pr) => ({ ...pr, v2Theme: t }));
+    // #2527 — une palette standard choisie : « Mon thème » se met de côté
+    // (gardé sur le serveur, réactivable d'un clic sur sa pastille).
+    if ($themeDuProfil.actif) void activerMonTheme(false).catch(() => {});
+  }
+  function choisirMonTheme() {
+    if (!$themeDuProfil.theme || $themeDuProfil.actif) return;
+    void activerMonTheme(true).catch(() => {});
+  }
 
   /**
    * La MATRICE des colonnes : une ligne par métadonnée, une colonne par mode.
@@ -4579,13 +4591,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <div class="themerow">
                   {#each V2_THEMES as th (th.id)}
-                    <button class="sw2" class:on={$preferences.v2Theme === th.id} title={v2ThemeLabel(th, (k) => $t(k as any))} aria-label={v2ThemeLabel(th, (k) => $t(k as any))}
-                      aria-pressed={$preferences.v2Theme === th.id}
+                    <button class="sw2" class:on={!$themeDuProfil.actif && $preferences.v2Theme === th.id} title={v2ThemeLabel(th, (k) => $t(k as any))} aria-label={v2ThemeLabel(th, (k) => $t(k as any))}
+                      aria-pressed={!$themeDuProfil.actif && $preferences.v2Theme === th.id}
                       style="--sw-bg:{th.swatch[0]}; --sw-acc:{th.swatch[1]}"
                       onclick={() => setV2Theme(th.id)}></button>
                   {/each}
+                  {#if $themeDuProfil.theme}
+                    <button class="sw2" class:on={$themeDuProfil.actif} data-pastille-mon-theme
+                      title={$themeDuProfil.theme.name} aria-label={$t('monTheme.titre' as any) + ' — ' + $themeDuProfil.theme.name}
+                      aria-pressed={$themeDuProfil.actif}
+                      style="--sw-bg:{$themeDuProfil.theme.colors['--v2-bg']}; --sw-acc:{$themeDuProfil.theme.colors['--v2-acc1']}"
+                      onclick={choisirMonTheme}></button>
+                  {/if}
                 </div>
               </div>
+              <!-- #2527 — « Mon thème » : toutes les couleurs au choix, par profil.
+                   Rien tant que le serveur ne porte pas le greffon. -->
+              {#if $etatGreffonTheme !== 'absent' && $etatGreffonTheme !== 'inconnu'}
+                <div class="row row-mon-theme">
+                  <div class="lbl">
+                    <span>{$t('monTheme.titre' as any)}</span>
+                    <span class="hint">{$t('monTheme.hint' as any)}</span>
+                  </div>
+                  <MonThemeV2 />
+                </div>
+              {/if}
 
               <!-- #452 — le crête-mètre, avec son aperçu VIVANT à côté du
                    choix. Trois visuels décrits par des mots ne se départagent
@@ -8021,6 +8051,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .cardhead h3{font-size:15px; font-weight:700}
 
   .row{display:flex; align-items:center; justify-content:space-between; gap:20px; margin-top:12px}
+  /* #2527 — l'éditeur de « Mon thème » prend toute la largeur, sous son libellé. */
+  .row.row-mon-theme{flex-direction:column; align-items:stretch}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
   .lbl span:first-child{font-size:13.5px; font-weight:500}
   .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3)}

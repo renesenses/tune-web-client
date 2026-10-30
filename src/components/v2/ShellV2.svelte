@@ -210,6 +210,10 @@
   import { get } from 'svelte/store';
   import { preferences, preferencesRelues } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
+  // #2527 — « Mon thème » : le thème du profil, fourni par un greffon.
+  import { appliquerMonTheme, familleDuTheme } from '../../lib/monTheme';
+  import { chargerMonTheme, monThemeActif } from '../../lib/stores/monTheme';
+  import { onMount } from 'svelte';
   import {
     startUpdatePolling, stopUpdatePolling,
     updateAvailable, latestVersion, updateBannerDismissed, dismissUpdateBanner,
@@ -294,7 +298,14 @@
 
   // Le thème est posé sur <html> : les tokens s'appliquent alors à toutes les
   // racines .tune-v2, y compris celles imbriquées dans les vues.
-  $effect(() => { applyV2Theme($preferences.v2Theme); });
+  // #2527 — « Mon thème » actif : sa FAMILLE (claire ou sombre) porte ce
+  // qu'il ne choisit pas (VU-mètre, crête-mètre, ombres), sa feuille le reste.
+  $effect(() => {
+    const mien = $monThemeActif;
+    applyV2Theme(mien ? familleDuTheme(mien) : $preferences.v2Theme);
+    appliquerMonTheme(mien);
+  });
+  onMount(() => { void chargerMonTheme(); });
 
   /**
    * 🔴 LA LANGUE ENREGISTRÉE, que personne n'appliquait.
