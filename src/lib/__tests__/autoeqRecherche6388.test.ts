@@ -18,11 +18,8 @@ const mocks = vi.hoisted(() => ({
   updateEqPreset: vi.fn(),
   deleteEqPreset: vi.fn(),
   importAutoEqPreset: vi.fn(),
-  // tune-server-rust#6532 : l'écran passe par la recherche unifiée
-  // (AutoEq + OPRA) ; ces témoins n'y mettent que des résultats AutoEq.
-  searchHeadphones: vi.fn(),
+  searchAutoEq: vi.fn(),
   importAutoEqFromDatabase: vi.fn(),
-  importOpraCurve: vi.fn(),
   getLevelCompensation: vi.fn(),
 }));
 
@@ -39,8 +36,8 @@ import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
 const fr = lFr as unknown as Record<string, string>;
 
 const RESULTATS = [
-  { source: 'autoeq', key: 'crinacle/GRAS 43AG-7 over-ear/Sennheiser HD 650', name: 'Sennheiser HD 650', vendor: null, model: 'Sennheiser HD 650', author: 'crinacle', details: 'GRAS 43AG-7', form: 'GRAS 43AG-7 over-ear', link: null },
-  { source: 'autoeq', key: 'oratory1990/over-ear/Sennheiser HD 650', name: 'Sennheiser HD 650', vendor: null, model: 'Sennheiser HD 650', author: 'oratory1990', details: null, form: 'over-ear', link: null },
+  { name: 'Sennheiser HD 650', source: 'crinacle', rig: 'GRAS 43AG-7', form: 'GRAS 43AG-7 over-ear', path: 'crinacle/GRAS 43AG-7 over-ear/Sennheiser HD 650' },
+  { name: 'Sennheiser HD 650', source: 'oratory1990', rig: null, form: 'over-ear', path: 'oratory1990/over-ear/Sennheiser HD 650' },
 ];
 const IMPORTE = {
   id: 'p-hd650',
@@ -67,7 +64,7 @@ async function poser(): Promise<HTMLDivElement> {
 async function chercher(el: HTMLElement, q: string) {
   const ouvrir = Array.from(el.querySelectorAll<HTMLButtonElement>('button'))
     .find((b) => (b.textContent ?? '').trim() === fr['eq.autoeqSearch']);
-  expect(ouvrir, 'aucun bouton « Rechercher un casque »').toBeTruthy();
+  expect(ouvrir, 'aucun bouton « Rechercher dans AutoEq »').toBeTruthy();
   ouvrir!.click();
   flushSync();
   const champ = el.querySelector<HTMLInputElement>('.autoeq input[type="search"]');
@@ -102,10 +99,10 @@ afterEach(() => {
 
 describe('#6388 — Égaliseur : chercher un casque dans AutoEq', () => {
   it('🔴 la recherche part au serveur et liste chaque source de mesure', async () => {
-    mocks.searchHeadphones.mockResolvedValue({ query: 'hd650', results: RESULTATS, total: 2, unavailable_sources: [] });
+    mocks.searchAutoEq.mockResolvedValue({ query: 'hd650', results: RESULTATS, total: 2 });
     const el = await poser();
     await chercher(el, 'hd650');
-    expect(mocks.searchHeadphones).toHaveBeenCalledWith('hd650');
+    expect(mocks.searchAutoEq).toHaveBeenCalledWith('hd650');
     const lignes = Array.from(el.querySelectorAll('.autoeq-resultats li'));
     expect(lignes.map((l) => l.querySelector('.autoeq-source')?.textContent)).toEqual([
       'crinacle · GRAS 43AG-7',
@@ -114,7 +111,7 @@ describe('#6388 — Égaliseur : chercher un casque dans AutoEq', () => {
   });
 
   it('🔴 choisir un profil l’importe par son chemin, sans fichier, et l’applique', async () => {
-    mocks.searchHeadphones.mockResolvedValue({ query: 'hd650', results: RESULTATS, total: 2, unavailable_sources: [] });
+    mocks.searchAutoEq.mockResolvedValue({ query: 'hd650', results: RESULTATS, total: 2 });
     mocks.importAutoEqFromDatabase.mockResolvedValue({
       preset: IMPORTE, band_count: 1, ignored_filters: [], preamp_db: -6.1,
       reserved_headroom_db: 10.3, preamp_applied: false, preamp_covered_by_headroom: true,
@@ -133,7 +130,7 @@ describe('#6388 — Égaliseur : chercher un casque dans AutoEq', () => {
   });
 
   it('🔴 serveur sans réseau ni copie (503) : l’écran le dit, pas « aucun résultat »', async () => {
-    mocks.searchHeadphones.mockRejectedValue(Object.assign(new Error('autoeq_unreachable'), { status: 503 }));
+    mocks.searchAutoEq.mockRejectedValue(Object.assign(new Error('autoeq_unreachable'), { status: 503 }));
     const el = await poser();
     await chercher(el, 'hd650');
     expect(el.querySelector('.autoeq-erreur')?.textContent).toBe(fr['eq.autoeqOffline']);
@@ -141,7 +138,7 @@ describe('#6388 — Égaliseur : chercher un casque dans AutoEq', () => {
   });
 
   it('aucun résultat : dit tel quel', async () => {
-    mocks.searchHeadphones.mockResolvedValue({ query: 'zzz', results: [], total: 0, unavailable_sources: [] });
+    mocks.searchAutoEq.mockResolvedValue({ query: 'zzz', results: [], total: 0 });
     const el = await poser();
     await chercher(el, 'zzz');
     expect(el.querySelector('.autoeq-vide')?.textContent).toBe(fr['eq.autoeqNoResult']);

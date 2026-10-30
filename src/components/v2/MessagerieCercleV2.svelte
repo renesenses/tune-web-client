@@ -1,11 +1,13 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
+  // #2527 — la carte « thème » (Mon thème) dans le fil.
+  import CarteThemeCercleV2 from './CarteThemeCercleV2.svelte';
   import { t, locale } from '../../lib/i18n';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { dialogs } from '../../lib/stores/dialogs';
   import { motifCercle } from '../../lib/circle';
   import { relireNotifications } from '../../lib/circleNotifications';
-  import { messagerieSupport, conversations, ouvrirConversation, lireMessages, envoyerMessage, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle } from '../../lib/circleMessagerie';
+  import { messagerieSupport, conversations, ouvrirConversation, lireMessages, envoyerMessage, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle, type CarteMusique } from '../../lib/circleMessagerie';
 
   let disponible = $state(false);
   let liste = $state<ConversationCercle[]>([]);
@@ -192,13 +194,15 @@
                   <div class="bulle">
                     {#if !m.mine && !groupe}<div class="auteur">{choix.contact.name}</div>{/if}
                     {#if m.body}<p class="texte">{m.body}</p>{/if}
-                    {#if m.card}
+                    {#if m.card && m.card.type === 'theme'}
+                      <CarteThemeCercleV2 carte={m.card} />
+                    {:else if m.card}
                       <article class="carte">
                         {#if m.card.cover_url}<img src={m.card.cover_url} alt="" loading="lazy" referrerpolicy="no-referrer" />{/if}
                         <div><strong>{m.card.title}</strong>{#if m.card.artist_name}<p>{m.card.artist_name}</p>{/if}</div>
                         <div class="gestes">
-                          <button type="button" disabled={occupe} onclick={() => void geste(() => ecouterCarte(m.card!))}>{tr('v2.circle.msg.playHere')}</button>
-                          <button type="button" disabled={occupe} onclick={() => void geste(() => garderCarte(m.card!))}>{tr('v2.later.add')}</button>
+                          <button type="button" disabled={occupe} onclick={() => void geste(() => ecouterCarte(m.card as CarteMusique))}>{tr('v2.circle.msg.playHere')}</button>
+                          <button type="button" disabled={occupe} onclick={() => void geste(() => garderCarte(m.card as CarteMusique))}>{tr('v2.later.add')}</button>
                         </div>
                       </article>
                     {/if}

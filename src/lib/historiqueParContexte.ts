@@ -37,6 +37,8 @@
  *  2. **`context_position` est absent pour 67 % des ecoutes.** « Dans l'ordre
  *     de lecture » ne peut donc pas s'appuyer dessus seul. On trie par
  *     position quand elle est la, par date d'ecoute sinon.
+ *     Depuis web#2547 (30/10/2026), le tiroir suit la date seule, le plus
+ *     récent d'abord : voir `ordonnerDansLObjet`.
  *
  * Et `context_id` prend QUATRE formes dans les memes donnees : un identifiant
  * numerique de bibliotheque (28,2 %), un identifiant de service alphanumerique
@@ -168,19 +170,25 @@ export function regrouperParContexte<E extends EntreeDatee>(entrees: readonly E[
 }
 
 /**
- * L'ordre de lecture d'un objet : par position si elle existe POUR TOUTES,
- * sinon par date d'ecoute. Jamais un melange des deux, qui donnerait un ordre
- * arbitraire sur les 67 % d'ecoutes sans position.
+ * L'ordre des titres DANS un objet ouvert : le plus récent d'abord.
+ *
+ * web#2547 (FabienM, fil 2559 point 5 ; go de Bertrand le 30/10/2026) :
+ * « quand on ouvre un conteneur (Album / Playlist / Radio) : afficher les
+ * titres par ordre chronologique inversé ». Le tiroir suit donc le sens de la
+ * liste de premier niveau, qui sert déjà le plus récent en tête. Il suivait
+ * avant l'ordre de l'album (`context_position`) quand toutes les écoutes la
+ * portaient, et l'ordre chronologique sinon (#903) : la position n'y sert
+ * plus.
+ *
+ * Tri STABLE : deux écoutes de même instant (ou à date illisible) gardent
+ * l'ordre du serveur, plutôt qu'un ordre arbitraire.
  */
 export function ordonnerDansLObjet<E extends EntreeDatee>(entrees: readonly E[]): E[] {
-  const toutesPositionnees = entrees.every((e) => e.contexte?.position != null);
-  const copie = [...entrees];
-  if (toutesPositionnees) {
-    copie.sort((a, b) => (a.contexte!.position as number) - (b.contexte!.position as number));
-  } else {
-    copie.sort((a, b) => Date.parse(a.playedAt) - Date.parse(b.playedAt));
-  }
-  return copie;
+  const instant = (e: E) => {
+    const t = Date.parse(e.playedAt);
+    return Number.isFinite(t) ? t : -Infinity;
+  };
+  return [...entrees].sort((a, b) => instant(b) - instant(a));
 }
 
 /**

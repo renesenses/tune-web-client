@@ -114,6 +114,8 @@
   let loadedCount = $state(0);
   let searchQuery = $state('');
   let activeFilter = $state<string>('all');
+  /** web#2452 : la pastille « Tune Circle » n'existe que si l'utilisateur a des playlists de cercle. */
+  let cercleExiste = $state(false);
 
   // Detail view
   let selectedPlaylist = $state<Playlist | null>(null);
@@ -1304,6 +1306,26 @@
    */
   let refusTransfert = $state<{ url: string | null } | null>(null);
 
+  /**
+   * web#2526 (régis, forum-hifi, 30/10/2026) : « Importer », « Transférer » et
+   * « Comparer » ne faisaient RIEN. Leurs `catch` n'écrivaient qu'en console :
+   * un greffon de conversion absent (503 `greffon_requis`), un serveur sans
+   * greffons (501) ou une playlist refusée laissaient la boîte telle quelle,
+   * bouton revenu, sans un mot. La raison du serveur s'affiche désormais dans
+   * la boîte ouverte ; une seule boîte est ouverte à la fois, d'où un seul champ.
+   */
+  let echecAction = $state<string | null>(null);
+
+  function noterEchecAction(e: unknown) {
+    // `errText` tait le message générique et la panne réseau, pour qu'un écran
+    // dise sa propre phrase : ici, la boîte n'en a pas d'autre.
+    const brut = e instanceof Error ? e.message : '';
+    echecAction = errText(e)
+      ?? (/^(Failed to fetch|Load failed|NetworkError)/i.test(brut) || !brut
+        ? $tr('common.serverUnreachable')
+        : brut);
+  }
+
   function noterRefusTransfert(e: unknown): boolean {
     if (!estRefusPremium(e)) return false;
     const url = (e as { corps?: { upgrade_url?: unknown } }).corps?.upgrade_url;
@@ -1313,6 +1335,7 @@
 
   function openImport(service: string, pl: StreamingPlaylist) {
     refusTransfert = null;
+    echecAction = null;
     importTarget = { service, playlist: pl };
     importName = pl.name;
     importResult = null;
@@ -1327,6 +1350,7 @@
   async function doImport() {
     if (!importTarget) return;
     importing = true;
+    echecAction = null;
     try {
       // L'import passe par le transfert vers « local » : POST /playlists/import
       // n'existe pas côté serveur (405 — collision avec /playlists/:id), le
@@ -1351,7 +1375,10 @@
       playlistsStore.set(list);
     } catch (e) {
       console.error('Import playlist error:', e);
-      if (!noterRefusTransfert(e)) importResult = { name: importName, count: -1, total: 0 };
+      if (!noterRefusTransfert(e)) {
+        noterEchecAction(e);
+        importResult = { name: importName, count: -1, total: 0 };
+      }
     }
     importing = false;
   }
@@ -1536,6 +1563,7 @@
     transferResult = null;
     transferring = false;
     refusTransfert = null;
+    echecAction = null;
     showTransfer = true;
   }
 
@@ -1633,6 +1661,8 @@
     if (!sourceId) return;
     transferring = true;
     expandedAlternatives = new Set();
+    refusTransfert = null;
+    echecAction = null;
     try {
       const v2Result = await api.transferPlaylistV2({
         source_service: selectedService,
@@ -1669,7 +1699,7 @@
       playlistsStore.set(list);
     } catch (e) {
       console.error('Transfer playlist error:', e);
-      noterRefusTransfert(e);
+      if (!noterRefusTransfert(e)) noterEchecAction(e);
     }
     transferring = false;
   }
@@ -1681,6 +1711,7 @@
     diffTargetService = '';
     diffTargetPlaylistId = '';
     diffTargetPlaylists = [];
+    echecAction = null;
     showDiff = true;
   }
 
@@ -1700,6 +1731,7 @@
     diffTargetService = service;
     diffTargetPlaylistId = '';
     diffLoadingPlaylists = true;
+    echecAction = null;
     try {
       // Compare targets: local playlists, streaming playlists, or manual
       // collections (Elie). Collections are fetched on demand.
@@ -1712,6 +1744,7 @@
       diffTargetPlaylists = [...list].sort((a: any, b: any) => comparerAlphabetique(a.name, b.name));
     } catch (e) {
       console.error('Load diff playlists error:', e);
+      noterEchecAction(e);
     }
     diffLoadingPlaylists = false;
   }
@@ -1720,6 +1753,7 @@
     const sourceId = selectedPlaylist?.id?.toString() ?? selectedStreamingPl?.source_id;
     if (!sourceId || !diffTargetPlaylistId || !diffTargetService) return;
     diffing = true;
+    echecAction = null;
     try {
       diffResult = await api.diffPlaylists(
         selectedService,
@@ -1729,6 +1763,7 @@
       );
     } catch (e) {
       console.error('Diff playlists error:', e);
+      noterEchecAction(e);
     }
     diffing = false;
   }
@@ -2339,8 +2374,9 @@
       </div>
 
     {:else}
-    <!-- web#2452 : les playlists Tune Circle (partagées avec moi, et que je partage) ; absente sans compte relié ni cercle. -->
-    <PlaylistsCercleSection filtre={searchQuery} />
+    <!-- web#2452 : les playlists Tune Circle (partagées avec moi, et que je partage) ; absente sans compte relié ni cercle.
+         Elle se choisit par la pastille « Tune Circle » de la rangée des filtres ; « Toutes » = les playlists de l'utilisateur. -->
+    <PlaylistsCercleSection filtre={searchQuery} visible={activeFilter === 'circle'} onexiste={(b) => { cercleExiste = b; if (!b && activeFilter === 'circle') activeFilter = 'all'; }} />
     <!-- Filter Chips (original playlists tab) -->
     <div class="filter-chips">
       {#each filterChips as chip}
@@ -2359,6 +2395,14 @@
           {/if}
         </button>
       {/each}
+      {#if cercleExiste}
+        <button
+          class="filter-chip filter-chip-circle"
+          class:active={activeFilter === 'circle'}
+          style={activeFilter === 'circle' ? 'background: var(--tune-accent)22; color: var(--tune-accent); border-color: var(--tune-accent)44' : ''}
+          onclick={() => activeFilter = 'circle'}
+        >{$tr('v2.pl.circle.title' as any)}</button>
+      {/if}
       <!-- La forme de la grille, à droite des filtres : elle ne vaut que pour
            cet onglet, les autres ne sont pas des grilles. -->
       <span class="pl-bascule">
@@ -2369,6 +2413,7 @@
          par le coin d'une carte, et la barre d'actions apparaît ensuite.
          Voir le commentaire de `mergeSelected`. -->
 
+    {#if activeFilter !== 'circle'}
     {#if mergeResult}
       <div class="backup-result" style="margin-bottom: 8px;">
         <span class="stat-ok">{$tr('playlistManager.mergeCreated').replace('{name}', mergeResult.name).replace('{count}', String(mergeResult.total_tracks))}</span>
@@ -2656,6 +2701,7 @@
       </div>
     {/if}
     {/if}
+    {/if}
   {/if}
 </div>
 
@@ -2686,6 +2732,7 @@
           {/if}
         </div>
       {/if}
+      {#if echecAction}<p class="echec-action" role="alert" data-echec-action>{echecAction}</p>{/if}
       {#if importResult}
         {#if importResult.count > 0}
           <div class="import-done">
@@ -2742,6 +2789,7 @@
           {/if}
         </div>
       {/if}
+      {#if echecAction}<p class="echec-action" role="alert" data-echec-action>{echecAction}</p>{/if}
       {#if transferResult}
         <div class="transfer-report">
           <h3>{$tr('playlist.transferComplete')}</h3>
@@ -2876,6 +2924,7 @@
 {#if showDiff}
   <div class="modal-overlay" onclick={closeDiff}>
     <div class="modal-content modal-wide" onclick={(e) => e.stopPropagation()}>
+      {#if echecAction}<p class="echec-action" role="alert" data-echec-action>{echecAction}</p>{/if}
       {#if diffResult}
         <div class="diff-report">
           <h3>{diffResult.source_name} vs {diffResult.target_name}</h3>
@@ -3158,6 +3207,7 @@
   .refus-premium-transfert { margin-bottom: 16px; padding: 12px 14px; border: 1px solid var(--tune-border); border-radius: 8px; background: var(--tune-surface); }
   .refus-premium-transfert p { margin: 0 0 8px; }
   .refus-premium-transfert a { color: var(--tune-accent); }
+  .echec-action { margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--tune-border); border-radius: 8px; background: var(--tune-surface); color: var(--tune-danger, #e5484d); }
 
   .pm-header {
     display: flex;

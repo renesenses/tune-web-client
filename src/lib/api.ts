@@ -11,6 +11,7 @@ import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
 import type { ApercuFavorisRadio } from './favorisRadioQobuz';
 import { profileHeader } from './profileHeader';
+import { corpsJson, fusionnerEntetes } from './fusionEntetes';
 import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
@@ -182,7 +183,14 @@ function stripDoubleBase(path: string): string {
  *  vit en localStorage et non dans un cookie. */
 export function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
   const token = getToken();
-  const headers: Record<string, string> = { ...extra, ...entetesRelais() };
+  // #7532 — le profil et la langue aussi : ces appels (imports de playlists,
+  // suppression d'une collection intelligente, exports…) touchent des données
+  // PAR PROFIL, et sans `X-Profile-Id` le serveur agissait sur le profil
+  // global au lieu de celui du navigateur. `extra` reste prioritaire.
+  const headers: Record<string, string> = fusionnerEntetes(
+    { 'Accept-Language': acceptLang(), ...profileHeader() },
+    { ...extra, ...entetesRelais() },
+  );
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return headers;
 }
@@ -524,14 +532,19 @@ export async function fetchJSON<T>(
       // column 0 » sur /library/enrich-all (bouton « Retrouver genres et
       // annees »), /metadata/auto-fix et /zones/{id}/queue/clear. Un en-tete
       // qui decrit un corps inexistant ne decrit rien.
-      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
+      // #7532 — ni sur un `FormData`, des octets ou un `Blob` : le navigateur
+      // les décrit lui-même (boundary du multipart).
+      ...(corpsJson(options?.body) ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    // #7532 — FUSION, plus remplacement : `{ headers, ...options }` laissait
+    // `options.headers` écraser `X-Profile-Id`, `Authorization` et
+    // `Accept-Language` sur chaque POST/PUT JSON (voir `fusionEntetes.ts`).
     response = await fetch(avecLangueSignal(url, acceptLang()), {
-      headers,
       ...options,
+      headers: fusionnerEntetes(headers, options?.headers),
     });
   } catch (e) {
     // Une requête abandonnée par son appelant (délai d'abandon, #1788) n'est
@@ -764,14 +777,19 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
       // column 0 » sur /library/enrich-all (bouton « Retrouver genres et
       // annees »), /metadata/auto-fix et /zones/{id}/queue/clear. Un en-tete
       // qui decrit un corps inexistant ne decrit rien.
-      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
+      // #7532 — ni sur un `FormData`, des octets ou un `Blob` : le navigateur
+      // les décrit lui-même (boundary du multipart).
+      ...(corpsJson(options?.body) ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    // #7532 — FUSION, plus remplacement : `{ headers, ...options }` laissait
+    // `options.headers` écraser `X-Profile-Id`, `Authorization` et
+    // `Accept-Language` sur chaque POST/PUT JSON (voir `fusionEntetes.ts`).
     response = await fetch(avecLangueSignal(url, acceptLang()), {
-      headers,
       ...options,
+      headers: fusionnerEntetes(headers, options?.headers),
     });
   } catch (e) {
     showNetworkError();
@@ -4231,86 +4249,10 @@ export interface EqAutoEqImport {
   preamp_applied?: boolean;
   preamp_covered_by_headroom?: boolean;
   warning?: string;
-  /** tune-server-rust#6532 — courbe OPRA : le crédit que sa licence
-   *  (CC BY-SA 4.0) demande d'afficher, auteur en tête. */
-  credit?: CreditCourbe;
-  /** Plateaux que Tune joue à pente standard (Q ≈ 0,71) au lieu du Q demandé. */
-  approximated_shelves?: { band: number; type: string; requested_q: number }[];
-}
-
-export interface CreditCourbe {
-  author: string;
-  details?: string | null;
-  link?: string | null;
-  database: string;
-  repository: string;
-  license: string;
-  license_url: string;
 }
 
 export function importAutoEqPreset(body: { text: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
   return fetchJSON<EqAutoEqImport>(`${BASE}/eq/import/autoeq`, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-/**
- * tune-server-rust#6709 — les modes propres de la pièce. `POST /eq/room-modes`
- * est un CALCUL : il ne lit ni n'écrit aucune zone. Les filtres rendus sont
- * des ATTÉNUATIONS (gain de −20 à −3 dB, Q de 4 à 20, 20 à 250 Hz) ; ils
- * s'appliquent ensuite par `setEq`, le chemin de l'égaliseur paramétrique.
- * 400 : valeur hors bornes, non finie ou absente — `code` porte la clé
- * (`room_value_out_of_bounds`, `room_value_not_finite`,
- * `room_positions_incompatible`, `room_body_invalid`) et `corps.field` le
- * champ fautif.
- */
-export interface RoomModesRequest {
-  length_m: number;
-  width_m: number;
-  height_m: number;
-  listener_from_back_wall_m: number;
-  speaker_from_front_wall_m: number;
-  listener_from_side_wall_m?: number;
-  listener_height_m?: number;
-  speaker_height_m?: number;
-  rt60_s?: number;
-  count?: number;
-}
-
-export interface RoomModeFilter {
-  freq: number;
-  gain: number;
-  q: number;
-  type: 'peak';
-  /** Les modes couverts, en indices `[nx, ny, nz]`. */
-  modes: [number, number, number][];
-}
-
-export interface RoomMode {
-  n: [number, number, number];
-  freq: number;
-  kind: 'axial' | 'tangential' | 'oblique';
-  /** Couplage enceinte → auditeur, pondéré par la famille, de 0 à 1. */
-  coupling: number;
-}
-
-export interface RoomModes {
-  filters: RoomModeFilter[];
-  modes: RoomMode[];
-  modes_total: number;
-  assumptions: {
-    speed_of_sound_m_s: number;
-    rt60_s: number;
-    count: number;
-    min_freq_hz: number;
-    max_freq_hz: number;
-  };
-  bounds?: { gain_db: [number, number]; q: [number, number]; count: [number, number] };
-}
-
-export function computeRoomModes(body: RoomModesRequest): Promise<RoomModes> {
-  return fetchJSON<RoomModes>(`${BASE}/eq/room-modes`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -4342,78 +4284,6 @@ export function searchAutoEq(q: string, limit = 50): Promise<AutoEqRecherche> {
 
 export function importAutoEqFromDatabase(body: { path: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
   return fetchJSON<EqAutoEqImport>(`${BASE}/eq/autoeq/import`, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-/**
- * tune-server-rust#6532 (fil 2334) — la recherche unifiée : AutoEq ET OPRA
- * dans une liste (`GET /eq/headphones/search`). Chaque résultat porte sa
- * `source` et la `key` que l'import de cette source attend (`path` AutoEq,
- * `id` OPRA). `unavailable_sources` : les bases que le serveur n'a pas pu
- * lire (ni réseau ni copie) ; les deux : 503.
- */
-export type SourceCasque = 'autoeq' | 'opra';
-
-export interface ResultatCasque {
-  source: SourceCasque;
-  key: string;
-  name: string;
-  vendor: string | null;
-  model: string;
-  /** AutoEq : la source de mesure ; OPRA : l'auteur de la courbe. */
-  author: string;
-  /** AutoEq : le banc ; OPRA : la cible (« Harman Target »). */
-  details: string | null;
-  form: string | null;
-  link: string | null;
-}
-
-export interface AttributionOpra {
-  name: string;
-  repository: string;
-  license: string;
-  license_url: string;
-}
-
-export interface RechercheCasques {
-  query: string;
-  results: ResultatCasque[];
-  total: number;
-  unavailable_sources: SourceCasque[];
-  attribution?: { opra?: AttributionOpra };
-}
-
-/** Un serveur qui n'a que la recherche AutoEq (#6388) répond 404 à la route
- *  unifiée : on retombe alors sur `GET /eq/autoeq/search`. */
-export async function searchHeadphones(q: string, limit = 50): Promise<RechercheCasques> {
-  try {
-    return await fetchJSON<RechercheCasques>(`${BASE}/eq/headphones/search?q=${encodeURIComponent(q)}&limit=${limit}`);
-  } catch (err) {
-    if ((err as { status?: number })?.status !== 404) throw err;
-    const r = await searchAutoEq(q, limit);
-    return {
-      query: r.query,
-      total: r.total,
-      unavailable_sources: [],
-      results: r.results.map((x) => ({
-        source: 'autoeq' as const,
-        key: x.path,
-        name: x.name,
-        vendor: null,
-        model: x.name,
-        author: x.source,
-        details: x.rig,
-        form: x.form,
-        link: null,
-      })),
-    };
-  }
-}
-
-export function importOpraCurve(body: { id: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
-  return fetchJSON<EqAutoEqImport>(`${BASE}/eq/opra/import`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -6812,11 +6682,10 @@ export async function importPlaylistFile(file: File, name?: string) {
     headers: authHeaders(),
     body: form,
   });
-  if (!resp.ok) {
-    const detail = await resp.text().catch(() => '');
-    throw new Error(detail || `import: HTTP ${resp.status}`);
-  }
-  return resp.json() as Promise<{ playlist_id?: number; matched?: number; missing?: number }>;
+  // web#2526 : `apiError` lit le message du serveur (`{"error": "no file
+  // provided"}`) au lieu de rendre le corps JSON brut à l'écran.
+  if (!resp.ok) throw await apiError(resp);
+  return resp.json() as Promise<{ id?: number; name?: string } & import('./bilanImportM3u').ReponseImportM3u>;
 }
 
 export function getTransferHistory(limit = 50, offset = 0) {
@@ -6924,6 +6793,29 @@ export function exportRadiosUrl(): string {
 
 export function getProfiles() {
   return fetchJSON<any[]>(`${BASE}/profiles`);
+}
+
+/** Les compteurs d'un profil, `GET /profiles/{id}/stats` (favoris locaux par
+ *  type, écoutes). Sans bandeau : sert de sonde (#7532). */
+export interface StatsProfil {
+  profile_id?: number;
+  favorites_by_type?: Record<string, number>;
+  listening?: { total_listens?: number };
+}
+export function getProfileStats(profileId: number) {
+  return fetchJSON<StatsProfil>(`${BASE}/profiles/${profileId}/stats`, undefined, undefined, true);
+}
+
+/** Les playlists D'UN profil donné, quel que soit le profil du navigateur :
+ *  `GET /playlists` lit `X-Profile-Id`, qu'on pose ici nous-mêmes — la fusion
+ *  des en-têtes (#7532) le laisse prioritaire. Sans bandeau : sonde. */
+export function getPlaylistsDuProfil(profileId: number, limit = 1) {
+  return fetchJSON<Playlist[]>(
+    `${BASE}/playlists?limit=${limit}&offset=0`,
+    { headers: { 'X-Profile-Id': String(profileId) } },
+    undefined,
+    true,
+  );
 }
 
 /**

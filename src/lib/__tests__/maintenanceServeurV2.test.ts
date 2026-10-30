@@ -117,6 +117,7 @@ beforeEach(() => {
       const method = String(options?.method ?? 'GET').toUpperCase();
       const body = (options?.body as string) ?? null;
       appels.push({ url: u, method, body });
+      if (/\/system\/scan\/status$/.test(u)) return reponse(200, { scanning: false, status: 'idle', current: null });
       if (/\/system\/log-level$/.test(u)) {
         if (method === 'POST') {
           const level = JSON.parse(body ?? '{}').level;
@@ -200,11 +201,13 @@ describe('Réglages v2 › Bibliothèque › Outils — nettoyage du serveur (#2
     await attendre();
     repondre(true);
     await attendre();
-    const err = el.querySelector('.errline');
+    const carte = el.querySelector('[data-section="libraryCleanup"]')!;
+    expect(carte, 'carte de nettoyage absente').not.toBeNull();
+    const err = carte.querySelector('.errline');
     expect(err, 'aucune erreur affichée').not.toBeNull();
     expect(err!.textContent).toContain(fr['common.error']);
     // #2417 — le motif du serveur, replié dans « Détails », jamais hors du repli.
-    attendreDetailsReplie(el, fr['common.error'], 'admin required');
+    attendreDetailsReplie(carte, fr['common.error'], 'admin required');
   });
 });
 

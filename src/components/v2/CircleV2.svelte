@@ -51,7 +51,7 @@
    * Même règle qu'en T2 : un 404 sur `/playlists` dit un greffon d'avant T5,
    * et le bloc reste caché.
    */
-  import { onDestroy } from 'svelte';
+  import { onDestroy, tick } from 'svelte';
   import { dialogs } from '../../lib/stores/dialogs';
   import { dateCourte } from '../../lib/dates';
   import { activeView } from '../../lib/stores/navigation';
@@ -313,11 +313,28 @@
     playlistOuverte = id;
   }
 
+  /**
+   * web#2546 (FabienM, fil 2559 point 4) : « ouverture d'une notif : impossible
+   * de revenir en arrière pour consulter les autres notifications ». Ouvrir une
+   * notification REMPLACE l'écran (la playlist partagée) ou le FAIT DÉFILER
+   * (messagerie, invitations reçues) : la liste sortait de la vue, sans chemin
+   * pour y revenir. `retourNotifs` dit qu'on vient d'une notification ; tant
+   * qu'il tient, un bouton « Retour aux notifications » reste collé en haut, et
+   * le Retour de la playlist ramène à la liste plutôt qu'en haut de l'écran.
+   */
+  let retourNotifs = $state(false);
+  async function revenirAuxNotifications() {
+    retourNotifs = false;
+    playlistOuverte = null;
+    await tick();
+    document.getElementById('circle-notifs')?.scrollIntoView?.({ block: 'start' });
+  }
+
   /** rc9 (web#2437) : une notification ouverte mène à ce qu'elle désigne, quand l'écran le montre. */
   function ouvrirNotification(n: NotifCercle) {
-    if (n.kind === 'playlist_shared' && n.playlist) { ouvrirPlaylistPartagee(n.playlist.id as IdOpaque); return; }
-    if (n.kind === 'message' && n.conversation_id) { demandeConversation.set({ conversation: n.conversation_id }); document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' }); return; }
-    if (n.kind === 'contact_request') document.getElementById('circle-recues')?.scrollIntoView?.({ block: 'start' });
+    if (n.kind === 'playlist_shared' && n.playlist) { retourNotifs = true; ouvrirPlaylistPartagee(n.playlist.id as IdOpaque); return; }
+    if (n.kind === 'message' && n.conversation_id) { retourNotifs = true; demandeConversation.set({ conversation: n.conversation_id }); document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' }); return; }
+    if (n.kind === 'contact_request') { retourNotifs = true; document.getElementById('circle-recues')?.scrollIntoView?.({ block: 'start' }); }
   }
 
   function inviter(ev: SubmitEvent) {
@@ -452,6 +469,8 @@
     playlistOuverte = null;
     if (raison === 'plusPartagee') retour = { texte: $t('v2.circle.pl.gone' as any), erreur: true };
     else if (raison === 'supprimee') retour = { texte: $t('v2.circle.pl.deleted' as any), erreur: false };
+    // web#2546 : ouverte depuis une notification, la playlist rend la liste.
+    if (retourNotifs) void revenirAuxNotifications();
     void relire();
   }
 
@@ -666,6 +685,9 @@
       {/key}
     {:else}
       <p class="intro">{$t('v2.circle.intro' as any)}</p>
+      {#if retourNotifs}
+        <button type="button" class="lnk retour-notifs" onclick={() => void revenirAuxNotifications()}>← {$t('v2.circle.notif.back' as any)}</button>
+      {/if}
 
       <NotificationsCercleV2 onOuvrir={ouvrirNotification} />
       <MessagerieCercleV2 />
@@ -1088,6 +1110,8 @@
   .absent,.deconnecte{padding:14px 16px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2);
     display:flex; flex-direction:column; gap:10px; align-items:flex-start}
   .intro{font-size:13px; color:var(--v2-txt2); margin:0}
+  /* web#2546 : visible tant qu'on lit ce qu'une notification a ouvert. */
+  .retour-notifs{position:sticky; top:0; z-index:2; align-self:flex-start; padding:6px 10px; border-radius:8px; background:var(--v2-surface2)}
   .err,.ok{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:12.5px}
   .err{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .ok{border:1px solid var(--v2-line); background:var(--v2-acc-soft); color:var(--v2-txt)}

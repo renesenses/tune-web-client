@@ -1,5 +1,5 @@
 /**
- * Thèmes du nouveau client (direction Levente) — sept palettes.
+ * Thèmes du nouveau client (direction Levente) — neuf palettes.
  *
  * Le choix est posé en attribut `data-v2-theme` sur <html> ; les tokens
  * correspondants vivent dans `styles/tune-v2.css` sous
@@ -16,6 +16,9 @@ export const V2_THEMES = [
   { id: 'midnight-orange', label: 'Minuit / Orange', swatch: ['#0B1020', '#FF8A3D'] },
   // rc9 (Bertrand, 26/10/2026) : le thème de la page de connexion Mozaiklabs.
   { id: 'mozaiklabs',      label: 'Mozaiklabs',      swatch: ['#1E1F22', '#F97316'], labelKey: 'settings.themeMozaiklabs' },
+  // #2520 (Bertrand, 29/10/2026, rc10) : les couleurs du LOGO Mozaiklabs, fond noir.
+  // Ajouté à côté de l'anthracite / orange, qui reste (l'issue ne tranche pas).
+  { id: 'mozaiklabs-logo', label: 'Mozaiklabs (logo)', swatch: ['#000000', '#2A9F5B'], labelKey: 'settings.themeMozaiklabsLogo' },
   { id: 'brown',           label: 'Brun',            swatch: ['#17110D', '#D89A63'] },
   // #2364 (Sandro, fil 2405) : un palier gris neutre entre les sombres et les
   // clairs, rangé entre les deux. Son nom est traduit (`labelKey`) ; `label`

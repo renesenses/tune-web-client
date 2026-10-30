@@ -63,7 +63,7 @@
   } from '../../lib/audioBackends';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
-  import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
+  import { followMe, zones, currentZoneId, remettreRepetitionAOff } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
@@ -159,6 +159,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
+  // #2527 — « Mon thème », fourni par le greffon du catalogue.
+  import MonThemeV2 from './MonThemeV2.svelte';
+  import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
@@ -1610,7 +1613,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // On expose le theme DU CLIENT V2 (six palettes), pas `preferences.theme`
   // qui pilote l'app historique : le proposer ici donnerait un reglage sans
   // effet visible: exactement le genre de piege qu'on veut eviter.
-  function setV2Theme(t: V2Theme) { preferences.update((pr) => ({ ...pr, v2Theme: t })); }
+  function setV2Theme(t: V2Theme) {
+    preferences.update((pr) => ({ ...pr, v2Theme: t }));
+    // #2527 — une palette standard choisie : « Mon thème » se met de côté
+    // (gardé sur le serveur, réactivable d'un clic sur sa pastille).
+    if ($themeDuProfil.actif) void activerMonTheme(false).catch(() => {});
+  }
+  function choisirMonTheme() {
+    if (!$themeDuProfil.theme || $themeDuProfil.actif) return;
+    void activerMonTheme(true).catch(() => {});
+  }
 
   /**
    * La MATRICE des colonnes : une ligne par métadonnée, une colonne par mode.
@@ -2201,6 +2213,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let newDir = $state('');
   let dirBusy = $state(false);
   let scanning = $state(false);
+  let arretScanEnCours = $state(false);
+  let arretScanDemande = $state(false);
+  let erreurArretScan = $state<string | null>(null);
+  let erreurEtatScan = $state<string | null>(null);
+  let suiviScanVivant = false;
+  let lectureEtatScan = 0;
   /** web#2305 : le `current` de `scan/status` — QUEL scan tient le droit. */
   let scanCourant = $state<unknown>(null);
   let scanReport = $state<any | null>(null);
@@ -2512,24 +2530,58 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }
   }
 
-  // L'etat d'analyse est sonde UNIQUEMENT pendant une analyse.
-  $effect(() => {
-    api.getScanStatus().then((s) => { scanning = !!s?.scanning; scanCourant = s?.current ?? null; }).catch(() => {});
-  });
-  $effect(() => {
-    if (!scanning) return;
-    const h = setInterval(async () => {
-      try {
-        const s = await api.getScanStatus();
-        scanning = !!s?.scanning;
-        scanCourant = s?.current ?? null;
-        if (!scanning) {
-          terminerAvancement();
-          scanReport = await api.getScanReport().catch(() => null);
+  /** #2495 : le serveur fait foi, y compris après une demande d'arrêt. */
+  async function rafraichirEtatScan() {
+    if (!suiviScanVivant) return;
+    const tour = ++lectureEtatScan;
+    try {
+      const etat = await api.getScanStatus();
+      if (!suiviScanVivant || tour !== lectureEtatScan) return;
+      if (typeof etat?.scanning !== 'boolean') throw new Error('scan status missing');
+      const etaitActif = scanning;
+      scanning = etat.scanning === true;
+      scanCourant = etat.current ?? null;
+      erreurEtatScan = null;
+      if (!scanning) {
+        arretScanDemande = false;
+        terminerAvancement();
+        if (etaitActif) {
+          const rapport = await api.getScanReport().catch(() => null);
+          if (!suiviScanVivant || tour !== lectureEtatScan) return;
+          scanReport = rapport;
           await refreshLibrary();
         }
-      } catch { /* ignore */ }
-    }, 2500);
+      }
+    } catch {
+      if (suiviScanVivant && tour === lectureEtatScan) {
+        // Une réponse absente ne prouve pas que le scan s'est arrêté.
+        erreurEtatScan = get(t)('scanDetenteur.statutInconnu' as any);
+      }
+    }
+  }
+  $effect(() => {
+    suiviScanVivant = true;
+    void rafraichirEtatScan();
+    const retour = () => { void rafraichirEtatScan(); };
+    const visible = () => { if (document.visibilityState === 'visible') retour(); };
+    window.addEventListener('focus', retour);
+    document.addEventListener('visibilitychange', visible);
+    const desabonner = tuneWS.onEvent((e) => {
+      if (e.type === '_connected' || e.type === '_polling_started'
+        || e.type === 'library.scan.completed'
+        || (e.type === 'library.scan.progress' && !scanning)) retour();
+    });
+    return () => {
+      suiviScanVivant = false; lectureEtatScan++;
+      desabonner(); window.removeEventListener('focus', retour);
+      document.removeEventListener('visibilitychange', visible);
+    };
+  });
+  // Pas de sondage permanent au repos ; le retour réseau/écran relit l'état.
+  $effect(() => { if (tabId === 'library') void rafraichirEtatScan(); });
+  $effect(() => {
+    if (!scanning) return;
+    const h = setInterval(() => { void rafraichirEtatScan(); }, 2500);
     return () => clearInterval(h);
   });
   /**
@@ -2644,11 +2696,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       libErr = refusScanConcurrent(r.erreur, (k) => get(t)(k as any)) ?? get(t)('settings.errScanStartFailed');
       return;
     }
+    lectureEtatScan++;
+    arretScanDemande = false; erreurArretScan = null;
     scanning = true; scanReport = null; libErr = null;
   }
   async function stopScan() {
-    try { await api.cancelScan(); } catch { /* deja finie */ }
-    scanning = false; scanCourant = null; terminerAvancement();
+    if (arretScanEnCours || !suiviScanVivant) return;
+    arretScanEnCours = true; erreurArretScan = null;
+    lectureEtatScan++; // Une lecture partie avant le POST ne confirme pas son effet.
+    try {
+      await api.cancelScan();
+      if (!suiviScanVivant) return;
+      arretScanDemande = true;
+      await rafraichirEtatScan();
+    } catch {
+      if (suiviScanVivant) erreurArretScan = get(t)('scanDetenteur.arretImpossible' as any);
+    } finally { arretScanEnCours = false; }
   }
 
   /**
@@ -4224,7 +4287,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="hint">{$t('settings.loopByDefaultHint' as any)}</span>
                 </div>
                 <label class="sw">
-                  <input type="checkbox" bind:checked={$loopByDefault} />
+                  <input type="checkbox" bind:checked={$loopByDefault} onchange={() => { if (!$loopByDefault) void remettreRepetitionAOff(); }} />
                   <span class="slider"></span>
                 </label>
               </div>
@@ -4532,13 +4595,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <div class="themerow">
                   {#each V2_THEMES as th (th.id)}
-                    <button class="sw2" class:on={$preferences.v2Theme === th.id} title={v2ThemeLabel(th, (k) => $t(k as any))} aria-label={v2ThemeLabel(th, (k) => $t(k as any))}
-                      aria-pressed={$preferences.v2Theme === th.id}
+                    <button class="sw2" class:on={!$themeDuProfil.actif && $preferences.v2Theme === th.id} title={v2ThemeLabel(th, (k) => $t(k as any))} aria-label={v2ThemeLabel(th, (k) => $t(k as any))}
+                      aria-pressed={!$themeDuProfil.actif && $preferences.v2Theme === th.id}
                       style="--sw-bg:{th.swatch[0]}; --sw-acc:{th.swatch[1]}"
                       onclick={() => setV2Theme(th.id)}></button>
                   {/each}
+                  {#if $themeDuProfil.theme}
+                    <button class="sw2" class:on={$themeDuProfil.actif} data-pastille-mon-theme
+                      title={$themeDuProfil.theme.name} aria-label={$t('monTheme.titre' as any) + ' — ' + $themeDuProfil.theme.name}
+                      aria-pressed={$themeDuProfil.actif}
+                      style="--sw-bg:{$themeDuProfil.theme.colors['--v2-bg']}; --sw-acc:{$themeDuProfil.theme.colors['--v2-acc1']}"
+                      onclick={choisirMonTheme}></button>
+                  {/if}
                 </div>
               </div>
+              <!-- #2527 — « Mon thème » : toutes les couleurs au choix, par profil.
+                   Rien tant que le serveur ne porte pas le greffon. -->
+              {#if $etatGreffonTheme !== 'absent' && $etatGreffonTheme !== 'inconnu'}
+                <div class="row row-mon-theme">
+                  <div class="lbl">
+                    <span>{$t('monTheme.titre' as any)}</span>
+                    <span class="hint">{$t('monTheme.hint' as any)}</span>
+                  </div>
+                  <MonThemeV2 />
+                </div>
+              {/if}
 
               <!-- #452 — le crête-mètre, avec son aperçu VIVANT à côté du
                    choix. Trois visuels décrits par des mots ne se départagent
@@ -6163,13 +6244,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="inline">
                   {#if scanning}
                     <span class="badge up" use:bulleTexte>{$t('v2.lbl.analysisRunning' as any)}</span>
-                    <button class="lnk danger" onclick={stopScan}>{$t('common.stop' as any)}</button>
+                    <button class="lnk danger" onclick={stopScan} disabled={arretScanEnCours}>{$t('common.stop' as any)}</button>
+                    {#if arretScanDemande}<span role="status">{$t('scanDetenteur.arretDemande' as any)}</span>{/if}
                   {:else}
                     <button class="lnk" onclick={() => scan(false)}>{$t('v2.lbl.quickAnalysis' as any)}</button>
                     <button class="lnk" onclick={() => scan(true)}>{$t('settings.fullScanV2' as any)}</button>
                   {/if}
                 </div>
               </div>
+              {#if erreurArretScan}<p class="errline" role="alert">{erreurArretScan}</p>{/if}
+              {#if erreurEtatScan}
+                <p class="errline" role="alert">{erreurEtatScan}</p>
+                <button class="lnk" onclick={() => void rafraichirEtatScan()}>{$t('settings.refresh' as any)}</button>
+              {/if}
               <!-- web#2305 (tune-server-rust#6729) : QUEL scan tient le droit. -->
               {#if scanning}
                 {@const detenteur = decrireScanCourant(scanCourant, (k) => $t(k as any))}
@@ -7988,6 +8075,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .cardhead h3{font-size:15px; font-weight:700}
 
   .row{display:flex; align-items:center; justify-content:space-between; gap:20px; margin-top:12px}
+  /* #2527 — l'éditeur de « Mon thème » prend toute la largeur, sous son libellé. */
+  .row.row-mon-theme{flex-direction:column; align-items:stretch}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
   .lbl span:first-child{font-size:13.5px; font-weight:500}
   .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3)}
