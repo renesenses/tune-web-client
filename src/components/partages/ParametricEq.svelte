@@ -208,6 +208,24 @@
     Object.assign(bands[selected], patch);
     notify();
   }
+
+  // #7423 : la valeur n'est bornée et appliquée qu'à la validation du champ
+  // (`change` : Entrée ou perte du focus), jamais à chaque frappe — sinon
+  // effacer le champ pour retaper une valeur rétablit aussitôt l'ancienne.
+  // Saisie vide ou illisible : on ne touche pas à la bande et on réaffiche
+  // sa valeur courante.
+  function validerChamp(e: Event, cle: 'freq' | 'gain' | 'q', min: number, max: number) {
+    const champ = e.target as HTMLInputElement;
+    const v = parseFloat(champ.value);
+    if (selected === null) return;
+    if (!Number.isFinite(v)) {
+      champ.value = String(bands[selected][cle] ?? '');
+      return;
+    }
+    const borne = Math.max(min, Math.min(max, v));
+    updateSelected({ [cle]: borne } as Partial<EqBand>);
+    champ.value = String(borne);
+  }
 </script>
 
 <div class="peq" class:disabled={!enabled}>
@@ -285,17 +303,17 @@
       <label>
         <span>{$t('eq.peqFreq' as any)}</span>
         <input type="number" min={F_MIN} max={F_MAX} step="1" value={b.freq}
-          oninput={(e) => updateSelected({ freq: Math.max(F_MIN, Math.min(F_MAX, parseFloat((e.target as HTMLInputElement).value) || F_MIN)) })} />
+          onchange={(e) => validerChamp(e, 'freq', F_MIN, F_MAX)} />
       </label>
       <label>
         <span>{$t('eq.peqGain' as any)}</span>
         <input type="number" min={MIN_GAIN} max={MAX_GAIN} step="0.5" value={b.gain}
-          oninput={(e) => updateSelected({ gain: Math.max(MIN_GAIN, Math.min(MAX_GAIN, parseFloat((e.target as HTMLInputElement).value) || 0)) })} />
+          onchange={(e) => validerChamp(e, 'gain', MIN_GAIN, MAX_GAIN)} />
       </label>
       <label>
         <span>Q</span>
         <input type="number" min="0.1" max="30" step="0.1" value={b.q ?? 1.41}
-          oninput={(e) => updateSelected({ q: Math.max(0.1, Math.min(30, parseFloat((e.target as HTMLInputElement).value) || 1.41)) })} />
+          onchange={(e) => validerChamp(e, 'q', 0.1, 30)} />
       </label>
       <label>
         <span>{$t('eq.peqType' as any)}</span>
