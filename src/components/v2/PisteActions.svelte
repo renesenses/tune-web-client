@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { viserDetail } from '../../lib/historiqueCoquille';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   /**
    * Les actions posées sur UNE piste, révélées au survol.
    *
@@ -418,6 +420,11 @@
     // chemin, et rien ne doit le détourner. `album_id` d'une piste de service
     // est une CHAÎNE — `routageAlbum` tranche, ici on ne devine pas.
     if (typeof piste.album_id === 'number' && piste.album_id > 0) {
+      // #2459 / serveur #7226 — l'album est l'arrivée, pas une grille intermédiaire.
+      if (get(activeView) !== 'library') {
+        const cle = cleDetailAlbum({ id: piste.album_id });
+        if (cle) viserDetail(cle);
+      }
       pendingLibraryAlbum.set(piste.album_id);
       activeView.set('library');
       return;

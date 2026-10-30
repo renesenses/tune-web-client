@@ -114,12 +114,12 @@
    */
   let cleCalqueEmpilee: string | null = null;
 
-  function ouvrirPl(it: NonNullable<typeof opened>) {
+  function ouvrirPl(it: NonNullable<typeof opened>, empiler = true) {
     opened = it;
     setShortcutTarget({ key: clePl(it), restore: it, label: it.pl.name });
     const cle = clePl(it);
     cleCalqueEmpilee = cle;
-    ouvrirDetail(cle);
+    if (empiler) ouvrirDetail(cle);
   }
 
   function fermerCalquePl() {
@@ -140,6 +140,27 @@
     }
     fermerCalquePl();
   }
+
+  /** #2459 : revenir d'un album remonte l'écran ; le détail appartient à l'entrée. */
+  $effect(() => {
+    const cle = $detailOuvert;
+    const locales = local;
+    const distantes = services;
+    const ouvert = opened;
+    untrack(() => {
+      if (!cle || ouvert || get(activeView) !== 'playlists') return;
+      const m = /^playlists:(\d+)$/.exec(cle);
+      if (m) {
+        const pl = locales.find(p => p.id === Number(m[1]));
+        if (pl) ouvrirPl({ kind: 'local', pl }, false);
+        return;
+      }
+      const distant = /^streamingplaylists:([^:]+):(.+)$/.exec(cle);
+      if (!distant) return;
+      const pl = distantes[distant[1]]?.find(p => String(p.source_id) === distant[2]);
+      if (pl) ouvrirPl({ kind: 'streaming', service: distant[1], pl }, false);
+    });
+  });
 
   /** Le Précédent du navigateur a quitté l'entrée de la playlist : le calque suit. */
   $effect(() => {
