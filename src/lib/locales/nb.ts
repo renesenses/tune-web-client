@@ -4765,6 +4765,7 @@ export default {
   "v2.circle.notif.title": "Varsler",
   "v2.circle.notif.unreadAria": "{n} uleste",
   "v2.circle.notif.markAll": "Merk alle som lest",
+  "v2.circle.notif.back": "Tilbake til varslene",
   "v2.circle.notif.empty": "Ingen varsler.",
   "v2.circle.notif.unavailable": "Varsler er ikke tilgjengelige akkurat nå.",
   "v2.circle.notif.settings": "Varselinnstillinger",

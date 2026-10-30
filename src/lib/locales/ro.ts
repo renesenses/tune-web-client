@@ -4905,6 +4905,7 @@ export default {
   "v2.circle.notif.title": "Notificări",
   "v2.circle.notif.unreadAria": "{n} necitite",
   "v2.circle.notif.markAll": "Marchează totul ca citit",
+  "v2.circle.notif.back": "Înapoi la notificări",
   "v2.circle.notif.empty": "Nicio notificare.",
   "v2.circle.notif.unavailable": "Notificările nu sunt disponibile momentan.",
   "v2.circle.notif.settings": "Setări pentru notificări",

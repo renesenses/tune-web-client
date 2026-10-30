@@ -4763,6 +4763,7 @@ export default {
   "v2.circle.notif.title": "Powiadomienia",
   "v2.circle.notif.unreadAria": "Nieprzeczytane: {n}",
   "v2.circle.notif.markAll": "Oznacz wszystkie jako przeczytane",
+  "v2.circle.notif.back": "Wróć do powiadomień",
   "v2.circle.notif.empty": "Brak powiadomień.",
   "v2.circle.notif.unavailable": "Powiadomienia są w tej chwili niedostępne.",
   "v2.circle.notif.settings": "Ustawienia powiadomień",
