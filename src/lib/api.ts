@@ -1835,7 +1835,14 @@ export function stepVolume(zoneId: number, direction: 'up' | 'down', step?: numb
  */
 export function setVolumeLimits(
   zoneId: number,
-  limites: { safety: number | null; comfort: number | null },
+  limites: {
+    safety?: number | null;
+    comfort?: number | null;
+    /** web#7517 — seuil en dB d'APPAREIL (sortie à course en dB) ; exclut le
+     *  seuil en fraction du même nom. */
+    safety_device_db?: number | null;
+    comfort_device_db?: number | null;
+  },
 ) {
   return fetchJSON<{ zone_id: number; volume_limit_safety: number | null; volume_limit_comfort: number | null }>(
     `${BASE}/zones/${zoneId}/volume-limits`,

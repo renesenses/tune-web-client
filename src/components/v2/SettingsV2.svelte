@@ -22,6 +22,7 @@
    */
   import { t } from '../../lib/i18n';
   import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
+  import { confortAuDessusDeLaSecurite, courseDb, fondDesZones, limiteDepuisDb, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
@@ -2891,7 +2892,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
   // tune-server-rust#6541 — les deux limites de volume d'une zone, saisies en
   // %. Le PUT remplace les deux : on renvoie l'autre telle qu'elle est.
-  function enregistrerLimiteVolume(z: any, quelle: 'safety' | 'comfort', texte: string) {
+  function enregistrerLimiteVolume(z: any, quelle: 'safety' | 'comfort', texte: string, champ?: HTMLInputElement) {
     const lue = limiteDepuisPourcent(texte);
     if (lue === undefined) {
       notifications.error(get(t)('devices.volumeLimitInvalid' as any));
@@ -2901,13 +2902,51 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       safety: quelle === 'safety' ? lue : (z.volume_limit_safety ?? null),
       comfort: quelle === 'comfort' ? lue : (z.volume_limit_comfort ?? null),
     };
+    // web#7517 — le confort ne peut pas dépasser la sécurité (le serveur le
+    // refuse aussi) : on le dit et le champ reprend sa valeur enregistrée.
+    if (confortAuDessusDeLaSecurite(limites.comfort, limites.safety)) {
+      notifications.error(get(t)('devices.volumeLimitComfortAboveSafety' as any));
+      if (champ) champ.value = pourcentDeLimite(quelle === 'safety' ? z.volume_limit_safety : z.volume_limit_comfort);
+      return;
+    }
     void poserLimitesVolume(z, limites);
+  }
+
+  // web#7517 — les mêmes limites saisies en dB d'APPAREIL, pour une sortie qui
+  // annonce une course en dB. Celle qu'on change part en `*_device_db`
+  // (le serveur la ramène à la fraction), l'autre en fraction, telle qu'elle
+  // est enregistrée : aucun aller-retour d'arrondi sur ce qu'on ne touche pas.
+  function enregistrerLimiteVolumeDb(z: any, quelle: 'safety' | 'comfort', texte: string, champ?: HTMLInputElement) {
+    const course = courseDb(z);
+    if (!course) return;
+    const reprendre = () => {
+      if (champ) champ.value = texteLimiteDb(quelle === 'safety' ? z.volume_limit_safety_device_db : z.volume_limit_comfort_device_db);
+    };
+    const lue = limiteDepuisDb(texte, course);
+    if ('refus' in lue) {
+      notifications.error(get(t)('devices.volumeLimitInvalidDb' as any)
+        .replace('{min}', String(course.min_db)).replace('{max}', String(course.max_db)));
+      reprendre();
+      return;
+    }
+    const securite = quelle === 'safety' ? lue.fraction : (z.volume_limit_safety ?? null);
+    const confort = quelle === 'comfort' ? lue.fraction : (z.volume_limit_comfort ?? null);
+    if (confortAuDessusDeLaSecurite(confort, securite)) {
+      notifications.error(get(t)('devices.volumeLimitComfortAboveSafety' as any));
+      reprendre();
+      return;
+    }
+    void poserLimitesVolume(z, {
+      safety: quelle === 'safety' ? undefined : securite,
+      comfort: quelle === 'comfort' ? undefined : confort,
+      ...(quelle === 'safety' ? { safety_device_db: lue.db } : { comfort_device_db: lue.db }),
+    });
   }
 
   // 409 `limite_refusee_*` : la zone est (ou vient de passer) en PURE / volume
   // fixe. On montre la phrase traduite et on masque les champs sans attendre
   // le prochain GET /zones.
-  async function poserLimitesVolume(z: any, limites: { safety: number | null; comfort: number | null }) {
+  async function poserLimitesVolume(z: any, limites: Parameters<typeof api.setVolumeLimits>[1]) {
     try {
       const up = await api.setVolumeLimits(z.id as number, limites);
       zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x)));
@@ -6043,6 +6082,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                            ne fait que les régler. Vide = aucune limite. -->
                       {#if serveurConnaitLesLimites(z) && refusDeLimite(z)}
                       <p class="monote">{$t((cleTexteRefus(refusDeLimite(z)) ?? 'devices.volumeLimitRefusedFixed') as any)}</p>
+                      {:else if serveurConnaitLesLimites(z) && courseDb(z)}
+                      <!-- web#7517 — sortie à course en dB : limites en dB,
+                           bande vert / orange / rouge comme sur le curseur. -->
+                      <div class="trim limites-volume">
+                        <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
+                        <input type="text" inputmode="decimal" class="lim" size="6"
+                          value={texteLimiteDb(z.volume_limit_safety_device_db)}
+                          placeholder={$t('devices.volumeLimitNone' as any)}
+                          disabled={z.id == null}
+                          aria-label={$t('devices.volumeLimitSafety' as any)}
+                          onchange={(e) => enregistrerLimiteVolumeDb(z, 'safety', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
+                        <span class="tv">dB</span>
+                        <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
+                        <input type="text" inputmode="decimal" class="lim" size="6"
+                          value={texteLimiteDb(z.volume_limit_comfort_device_db)}
+                          placeholder={$t('devices.volumeLimitNone' as any)}
+                          disabled={z.id == null}
+                          aria-label={$t('devices.volumeLimitComfort' as any)}
+                          onchange={(e) => enregistrerLimiteVolumeDb(z, 'comfort', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
+                        <span class="tv">dB</span>
+                      </div>
+                      {#if fondDesZones(zonesDeLimites(z))}
+                        <div class="bande-zones-volume" style={`background: ${fondDesZones(zonesDeLimites(z))}`} title={$t('volume.zonesLegend' as any)}></div>
+                      {/if}
+                      <p class="monote">{$t('devices.volumeLimitHintDb' as any).replace('{min}', String(courseDb(z)?.min_db)).replace('{max}', String(courseDb(z)?.max_db))}</p>
                       {:else if serveurConnaitLesLimites(z)}
                       <div class="trim limites-volume">
                         <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
@@ -6051,7 +6115,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           placeholder={$t('devices.volumeLimitNone' as any)}
                           disabled={z.id == null}
                           aria-label={$t('devices.volumeLimitSafety' as any)}
-                          onchange={(e) => enregistrerLimiteVolume(z, 'safety', (e.currentTarget as HTMLInputElement).value)} />
+                          onchange={(e) => enregistrerLimiteVolume(z, 'safety', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
                         <span class="tv">%</span>
                         <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
                         <input type="text" inputmode="decimal" class="lim" size="5"
@@ -6059,7 +6123,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           placeholder={$t('devices.volumeLimitNone' as any)}
                           disabled={z.id == null}
                           aria-label={$t('devices.volumeLimitComfort' as any)}
-                          onchange={(e) => enregistrerLimiteVolume(z, 'comfort', (e.currentTarget as HTMLInputElement).value)} />
+                          onchange={(e) => enregistrerLimiteVolume(z, 'comfort', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
                         <span class="tv">%</span>
                       </div>
                       <p class="monote">{$t('devices.volumeLimitHint' as any)}</p>
@@ -8126,6 +8190,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /* #6541 — limites de volume : deux champs courts sur la ligne du trim. */
   .limites-volume .lim{width:4.5em; font:12px var(--v2-mono)}
   .limites-volume .tv{min-width:0}
+  .bande-zones-volume{height:6px;border-radius:3px;margin:4px 0 2px;max-width:220px}
   .trim .tf{font-size:11.5px; color:var(--v2-txt3)}
   .zde{margin-top:13px}
   .radv{margin-top:13px; border-top:1px solid var(--v2-line); padding-top:11px}
