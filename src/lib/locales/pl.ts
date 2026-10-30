@@ -1093,7 +1093,7 @@ export default {
   "settings.slimprotoAnnonceHint": "Pozwala odtwarzaczom Squeezebox (i Home Assistant) samodzielnie znaleźć Tune przez port UDP 3483. To ustawienie jest odrębne od powyższego, które dotyczy drugiego kierunku: Tune jako klient LMS. Wyłączenie nie rozłącza żadnego już połączonego odtwarzacza — Tune po prostu przestaje odpowiadać na zapytania wykrywające.",
   "settings.slimprotoAnnonceRedemarrage": "Zacznie działać przy następnym uruchomieniu serwera: ogłoszenie jest uzbrajane tylko raz, przy starcie. Uruchom Tune ponownie w Ustawienia › System, aby ten wybór zaczął obowiązywać.",
   "settings.squeezeboxLmsHost": "Host LMS : port",
-  "settings.squeezeboxLmsPlaceholder": "np. 192.168.1.50:9000 (wykrywany automatycznie)",
+  "settings.squeezeboxLmsPlaceholder": "np. 192.168.1.50:9090 (wykrywany automatycznie)",
   "settings.squeezeboxLmsDetected": "Wykryty automatycznie: {host}",
   "settings.squeezeboxNoPlayers": "Nie znaleziono odtwarzaczy Squeezebox",
   "settings.squeezeboxPlayers": "Wykryte odtwarzacze",
