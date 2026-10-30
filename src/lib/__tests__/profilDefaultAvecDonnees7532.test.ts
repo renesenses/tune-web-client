@@ -18,6 +18,9 @@
 // « de l'historique » et « navigateur neuf ».
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
+import { flushSync, mount, unmount } from 'svelte';
+import * as magasin from '../stores/profile';
+import ProfilsV2 from '../../components/v2/ProfilsV2.svelte';
 
 vi.mock('../auth', () => ({ getToken: () => null, clearToken: () => {} }));
 
@@ -65,7 +68,6 @@ function serveur(d: Donnees, profils = [DEFAULT, R5YK5]) {
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
-let demonter: ((m: Record<string, unknown>) => void) | null = null;
 
 beforeEach(() => {
   localStorage.clear();
@@ -74,7 +76,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  if (monte && demonter) demonter(monte);
+  if (monte) unmount(monte);
   monte = null;
   hote?.remove();
   hote = null;
@@ -82,18 +84,17 @@ afterEach(() => {
   localStorage.clear();
 });
 
-/** Charge les profils (navigateur déjà sur `actif`), puis monte l'écran. */
+/**
+ * Charge les profils (navigateur déjà sur `actif`, ou rien de mémorisé), puis
+ * monte l'écran. Pas de `resetModules` ni d'import dynamique de composant
+ * (#1333) : le magasin partagé est remis à « rien » à la main, comme #5916.
+ */
 async function charger(d: Donnees, actif: number | null = R5YK5.id) {
   serveur(d);
-  vi.resetModules();
-  if (actif !== null) localStorage.setItem('tune-profile-id', String(actif));
-  const magasin = await import('../stores/profile');
+  localStorage.clear();
+  magasin.currentProfileId.set(actif);
   const ok = await magasin.loadProfiles();
   expect(ok).toBe(true);
-  // Svelte rechargé avec le reste (`resetModules`) : un seul runtime.
-  const { flushSync, mount, unmount } = await import('svelte');
-  demonter = (m) => unmount(m);
-  const { default: ProfilsV2 } = await import('../../components/v2/ProfilsV2.svelte');
   monte = mount(ProfilsV2, { target: hote! });
   flushSync();
   const noms = [...hote!.querySelectorAll('ul.liste > li .nom')].map((n) => n.textContent?.trim() ?? '');
@@ -136,8 +137,7 @@ describe('#7532 — Default visible tant qu’il porte des données', () => {
 
   it('Default seul : aucune sonde, il reste visible', async () => {
     serveur({}, [DEFAULT]);
-    vi.resetModules();
-    const magasin = await import('../stores/profile');
+    magasin.currentProfileId.set(DEFAULT.id);
     await magasin.loadProfiles();
     expect(appels.some((a) => a.url.includes('/stats'))).toBe(false);
     expect(get(magasin.visibleProfiles).map((p) => p.id)).toEqual([1]);
