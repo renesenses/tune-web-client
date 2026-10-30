@@ -35,6 +35,7 @@ import { v2SettingsTarget } from '../stores/v2SettingsNav';
 import { licenseState, loadLicense, sourceDuPremium } from '../stores/license';
 import { locale } from '../i18n';
 import fr from '../locales/fr';
+import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 
 let hote: HTMLDivElement;
 let composant: ReturnType<typeof mount> | undefined;
@@ -127,8 +128,8 @@ describe('#7419 — la règle de repli suit celle du serveur', () => {
   });
 
   it('les six textes existent dans les quinze langues', async () => {
-    for (const code of ['de', 'el', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'vi', 'zh']) {
-      const d = (await import(`../locales/${code}.ts`)).default as Record<string, string>;
+    for (const code of ONZE_LANGUES) {
+      const d = dictionnaire(code);
       for (const k of ['settings.activateLicenseOptional', 'settings.licenseSource', 'settings.licenseSourceAccount',
         'settings.licenseViaAccount', 'settings.licenseFindByAccount', 'settings.licenseOpenAccount']) {
         expect(typeof d[k] === 'string' && d[k].length > 0, `${code} : ${k}`).toBe(true);
