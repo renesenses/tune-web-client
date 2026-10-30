@@ -4317,6 +4317,7 @@ export default {
   "v2.tcol.time": "Tid",
   "v2.tcol.year": "År",
   "v2.tcol.plays": "Uppspelningar",
+  "v2.tcol.playsTwoCounters": "Alla · Jag",
   "v2.tcol.playsCommunity": "Spelningar på Tune: till vänster alla användare, till höger du (den här servern)",
   "v2.tcol.lastPlayed": "Senast spelad",
   "v2.lib.sortPlaysUnsupported": "Den här servern kan ännu inte sortera efter spelningar: standardordningen gäller igen.",

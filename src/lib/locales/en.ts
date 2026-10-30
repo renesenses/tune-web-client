@@ -4338,6 +4338,7 @@ export default {
   "v2.tcol.time": "Time",
   "v2.tcol.year": "Year",
   "v2.tcol.plays": "# Plays",
+  "v2.tcol.playsTwoCounters": "All · Me",
   "v2.tcol.playsCommunity": "Plays on Tune: all users on the left, you (this server) on the right",
   "v2.tcol.lastPlayed": "Last played",
   "v2.lib.sortPlaysUnsupported": "This server cannot sort by plays yet: the default order is back.",

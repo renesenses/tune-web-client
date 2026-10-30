@@ -4318,6 +4318,7 @@ export default {
   "v2.tcol.time": "时长",
   "v2.tcol.year": "年份",
   "v2.tcol.plays": "播放次数",
+  "v2.tcol.playsTwoCounters": "全部 · 我",
   "v2.tcol.playsCommunity": "Tune 播放次数：左为全部用户，右为您（此服务器）",
   "v2.tcol.lastPlayed": "上次播放",
   "v2.lib.sortPlaysUnsupported": "此服务器尚不支持按播放次数排序：已恢复默认顺序。",

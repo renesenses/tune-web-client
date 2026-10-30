@@ -4318,6 +4318,7 @@ export default {
   "v2.tcol.time": "Durată",
   "v2.tcol.year": "An",
   "v2.tcol.plays": "Redări",
+  "v2.tcol.playsTwoCounters": "Toți · Eu",
   "v2.tcol.playsCommunity": "Redări pe Tune: în stânga toți utilizatorii, în dreapta dvs. (acest server)",
   "v2.tcol.lastPlayed": "Ultima redare",
   "v2.lib.sortPlaysUnsupported": "Acest server nu poate încă sorta după redări: ordinea implicită a fost restabilită.",

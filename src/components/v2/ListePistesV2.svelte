@@ -87,7 +87,7 @@
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import {
-    cleInfobulleColonne, colonnesRetenues, gabaritGrille, largeurMinimale,
+    cleEnTeteColonne, cleInfobulleColonne, colonnesRetenues, gabaritGrille, largeurMinimale,
     valeurColonne, type CleColonne,
   } from '../../lib/colonnesPistes';
   import type { Track } from '../../lib/types';
@@ -686,11 +686,11 @@
           <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
             role="columnheader" use:bulleTexte aria-sort={sens === 'asc' ? 'ascending' : sens === 'desc' ? 'descending' : 'none'}>
             <button class="trier" class:actif={sens != null} type="button" data-tri={c.cle} use:bulleTexte
-              onclick={() => onTrier?.(c.cle)}>{$t(c.cleI18n as any)}{#if sens}<span class="fleche" aria-hidden="true">{sens === 'asc' ? '▲' : '▼'}</span>{/if}</button>
+              onclick={() => onTrier?.(c.cle)}>{$t(cleEnTeteColonne(c, pistes) as any)}{#if sens}<span class="fleche" aria-hidden="true">{sens === 'asc' ? '▲' : '▼'}</span>{/if}</button>
           </span>
         {:else}
           <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-            role="columnheader" use:bulleTexte>{$t(c.cleI18n as any)}</span>
+            role="columnheader" use:bulleTexte>{$t(cleEnTeteColonne(c, pistes) as any)}</span>
         {/if}
       {/each}
       <!-- La colonne d'actions n'a pas d'en-tête : son contenu se lit seul, et
