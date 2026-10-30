@@ -2,11 +2,13 @@
   import { onMount, tick } from 'svelte';
   import { t } from '../../lib/i18n';
   import { getCercle, estConnecte, motifCercle, type ContactCercle } from '../../lib/circle';
-  import { carteAPartager, ouvrirConversation, envoyerMessage, messageEnvoyable, longueurMessage, MESSAGE_MAX, type CarteMusique } from '../../lib/circleMessagerie';
-  let { carte }: { carte: CarteMusique } = $props();
+  import { carteAPartager, ouvrirConversation, envoyerMessage, messageEnvoyable, longueurMessage, MESSAGE_MAX, type CarteCercle } from '../../lib/circleMessagerie';
+  let { carte }: { carte: CarteCercle } = $props();
   let contacts = $state<ContactCercle[]>([]);
   let destinataire = $state<number | ''>('');
-  let texte = $state('');
+  // #2527 — un thème part avec un texte lisible : les clients qui ne
+  // connaissent pas la carte « thème » (télécommandes) montrent au moins ce texte.
+  let texte = $state(carte.type === 'theme' ? $t('monTheme.carteTexte' as any).replace('{nom}', carte.title) : '');
   let occupe = $state(false);
   let erreur = $state('');
   const tr = (k: string) => $t(k as any);
@@ -38,7 +40,10 @@
 <div class="fond">
   <section bind:this={panneau} class="partage" role="dialog" aria-modal="true" aria-labelledby="partage-message-titre" tabindex="-1">
     <h2 id="partage-message-titre">{tr('v2.circle.msg.share')}</h2>
-    <p><strong>{carte.title}</strong>{#if carte.artist_name} · {carte.artist_name}{/if}</p>
+    <p><strong>{carte.title}</strong>{#if carte.type !== 'theme' && carte.artist_name} · {carte.artist_name}{/if}</p>
+    {#if carte.type === 'theme'}
+      <p class="nuancier" data-nuancier-theme>{#each ['--v2-bg', '--v2-surface', '--v2-txt', '--v2-acc1', '--v2-acc2'] as j (j)}<span style="background:{carte.colors[j]}"></span>{/each}</p>
+    {/if}
     <p class="note">{tr('v2.circle.msg.privacy')}</p>
     {#if erreur}<p role="alert">{erreur}</p>{/if}
     {#if !contacts.length}<p>{tr('v2.circle.msg.empty')}</p>{/if}
@@ -62,6 +67,7 @@
 <style>
   .fond{position:fixed;inset:0;background:rgb(0 0 0 / 65%);display:grid;place-items:center;z-index:2000;padding:18px}
   .partage{width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--v2-bg);color:var(--v2-txt);padding:24px;border:1px solid var(--v2-line);border-radius:12px;box-sizing:border-box}
+  .nuancier{display:flex;gap:4px}.nuancier span{width:22px;height:22px;border-radius:4px;border:1px solid var(--v2-line)}
   h2{font-size:20px;margin-top:0}.note{font-size:12px;color:var(--v2-txt2)}form{display:flex;flex-direction:column;gap:8px}.boutons{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
   button,textarea,select{font:inherit;border:1px solid var(--v2-line);background:var(--v2-bg);color:inherit;border-radius:6px;padding:8px}button{cursor:pointer}button:disabled{opacity:.5}textarea{resize:vertical}
 </style>

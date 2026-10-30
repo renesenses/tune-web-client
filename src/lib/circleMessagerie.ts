@@ -8,11 +8,16 @@ import { playAndSync } from './stores/zones';
 import { zoneRequise } from './zoneRequise';
 import type { Source } from './types';
 import type { CibleEtiquette } from './cibleEtiquette';
+import { formeDuTheme, FORMAT_THEME, VERSION_THEME, type ThemePerso } from './monTheme';
 
 export const MESSAGE_MAX = 4000;
 export const RELECTURE_MESSAGES_MS = 60_000;
 export type CarteMusique = { type: 'album' | 'track' | 'playlist'; title: string; artist_name?: string; album_title?: string; cover_url?: string; musicbrainz_id?: string; isrc?: string; qobuz_id?: string; tidal_id?: string; spotify_id?: string; deezer_id?: string; youtube_id?: string };
-export interface MessageCercle { id: number; sender_id: number; mine: boolean; body: string | null; card: CarteMusique | null; created_at: string }
+/** #2527 — un thème « Mon thème » envoyé à un contact : son nom et ses 20 couleurs, rien d'autre
+ *  (contrat cloud : site-mozaiklabs, `CircleMessage::THEME_COLOR_KEYS`). */
+export type CarteTheme = { type: 'theme'; title: string; colors: Record<string, string> };
+export type CarteCercle = CarteMusique | CarteTheme;
+export interface MessageCercle { id: number; sender_id: number; mine: boolean; body: string | null; card: CarteCercle | null; created_at: string }
 export interface ConversationCercle { id: number; kind: 'direct'; contact: { user_id: number; name: string }; unread_count: number; last_message?: MessageCercle | null }
 export interface PageMessages { conversation: ConversationCercle; messages: MessageCercle[]; next_cursor: string | null }
 export const messagerieSupport = writable<boolean | null>(null);
@@ -23,12 +28,12 @@ export function ecrireAuContact(contact: number): void {
   demandeConversation.set({ contact });
   document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' });
 }
-export const carteAPartager = writable<CarteMusique | null>(null);
+export const carteAPartager = writable<CarteCercle | null>(null);
 const racine = () => `${BASE}/ext/circle`;
 const idsService = ['qobuz_id', 'tidal_id', 'spotify_id', 'deezer_id', 'youtube_id'] as const;
 const texte = (v: unknown) => typeof v === 'string' ? v.replace(/\p{Cc}/gu, ' ').replace(/\s+/gu, ' ').trim() : '';
 export const longueurMessage = (v: string) => Array.from(v).length;
-export const messageEnvoyable = (body: string, card: CarteMusique | null) => longueurMessage(body.trim()) <= MESSAGE_MAX && (!!body.trim() || card !== null);
+export const messageEnvoyable = (body: string, card: CarteCercle | null) => longueurMessage(body.trim()) <= MESSAGE_MAX && (!!body.trim() || card !== null);
 
 export function pochettePublique(v: unknown): string | undefined {
   if (typeof v !== 'string' || v.length > 2048) return undefined;
@@ -53,6 +58,23 @@ export function carteMusique(b: any): CarteMusique | null {
   return c;
 }
 
+/** #2527 — la carte d'un thème, jugée sur sa FORME comme un import (la lisibilité
+ *  se juge à l'application). Une carte abîmée ne s'affiche pas. */
+export function carteTheme(b: any): CarteTheme | null {
+  if (!b || b.type !== 'theme') return null;
+  const f = formeDuTheme({ format: FORMAT_THEME, version: VERSION_THEME, name: b.title, colors: b.colors });
+  return f.ok ? { type: 'theme', title: f.theme.name, colors: f.theme.colors } : null;
+}
+export const estCarteTheme = (c: CarteCercle | null | undefined): c is CarteTheme => c?.type === 'theme';
+/** Le thème d'une carte, au format d'export / import. */
+export function themeDeCarte(c: CarteTheme): ThemePerso {
+  return { format: FORMAT_THEME, version: VERSION_THEME, name: c.title, colors: { ...c.colors } };
+}
+/** Toute carte de la messagerie : musique ou thème. */
+export function carteCercle(b: any): CarteCercle | null {
+  return b?.type === 'theme' ? carteTheme(b) : carteMusique(b);
+}
+
 export function carteDepuisObjet(o: { type: string; nom?: string | null; artisteNom?: string | null; pochette?: string | null; service?: string | null; sourceId?: string | null }): CarteMusique | null {
   return carteMusique({ type: o.type === 'piste' ? 'track' : o.type, title: o.nom, artist_name: o.artisteNom, cover_url: o.pochette, ...(o.service && o.sourceId ? { [`${o.service}_id`]: o.sourceId } : {}) });
 }
@@ -61,7 +83,7 @@ export function carteDepuisPiste(p: any): CarteMusique | null {
 }
 function message(b: any): MessageCercle | null {
   if (!Number.isSafeInteger(b?.id) || !Number.isSafeInteger(b?.sender_id)) return null;
-  return { id: b.id, sender_id: b.sender_id, mine: b.mine === true, body: typeof b.body === 'string' ? b.body : null, card: carteMusique(b.card), created_at: typeof b.created_at === 'string' ? b.created_at : '' };
+  return { id: b.id, sender_id: b.sender_id, mine: b.mine === true, body: typeof b.body === 'string' ? b.body : null, card: carteCercle(b.card), created_at: typeof b.created_at === 'string' ? b.created_at : '' };
 }
 function conversation(b: any): ConversationCercle | null {
   if (!Number.isSafeInteger(b?.id) || b?.kind !== 'direct' || !Number.isSafeInteger(b.contact?.user_id) || !texte(b.contact?.name)) return null;
@@ -85,8 +107,8 @@ export async function lireMessages(id: number, cursor?: string): Promise<PageMes
   if (!c || !Array.isArray(b?.messages)) throw new Error('Invalid messages');
   return { conversation: c, messages: b.messages.map(message).filter((m: MessageCercle | null): m is MessageCercle => m !== null), next_cursor: typeof b.next_cursor === 'string' ? b.next_cursor : null };
 }
-export async function envoyerMessage(id: number, body: string, card: CarteMusique | null = null): Promise<void> {
-  const projection = card === null ? null : carteMusique(card);
+export async function envoyerMessage(id: number, body: string, card: CarteCercle | null = null): Promise<void> {
+  const projection = card === null ? null : carteCercle(card);
   if (!messageEnvoyable(body, projection)) throw Object.assign(new Error('Invalid message'), { status: 422 });
   await fetchJSON(`${racine()}/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify({ ...(body.trim() ? { body: body.trim() } : {}), ...(projection ? { card: projection } : {}) }) }, undefined, true);
 }
