@@ -163,6 +163,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
+  import AcousticProgress from '../partages/AcousticProgress.svelte';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
   import PluginsV2 from './PluginsV2.svelte';
@@ -2932,7 +2933,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // ── CLAP (analyse acoustique) ─────────────────────────────────────────
   let clapOn = $state(false);
   let clapThrottle = $state('equilibre');
-  let clapAnalysed = $state(0);
   let clapAvailable = $state<boolean | null>(null);
   async function refreshClap() {
     try {
@@ -2943,7 +2943,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const st = await api.getAcousticStatus();
       clapAvailable = !!st?.available;
-      clapAnalysed = st?.analysed_tracks ?? 0;
       if (st) clapOn = !!st.enabled;
     } catch { clapAvailable = null; }
   }
@@ -6199,12 +6198,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <button class:on={clapThrottle === 'rapide'} onclick={() => setThrottle('rapide')}>{$t('acoustic.throttleFast' as any)}</button>
                     </div>
                   </div>
-                  <!-- Une phrase, une clé : la couper autour du <b> laissait
-                       « titres analysés. L'avancement se suit dans » en dur, et
-                       aucune langue ne place ses mots dans cet ordre-là. -->
-                  <p class="hint">{#each emphaseParts($t('v2.hint.tracksAnalysed' as any)
-                    .replace('{n}', $formatNombre(clapAnalysed))
-                    .replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+                  <!-- #7390 (alec_eiffel, fil 2522) : ce que fait CHAQUE cadence,
+                       en clair — cœurs du processeur et pause entre deux titres,
+                       tels que `tune-core/src/audio/embedding.rs`
+                       (`intra_threads_for`, `per_file_pause_ms`) les applique. -->
+                  <p class="hint" data-cadence-choisie>{$t((clapThrottle === 'eco' ? 'acoustic.throttleEcoHelp'
+                    : clapThrottle === 'rapide' ? 'acoustic.throttleFastHelp' : 'acoustic.throttleBalancedHelp') as any)}</p>
+                  <!-- #7390 : l'avancement ICI, avec ce que le serveur publie déjà
+                       (`/library/search/acoustic/status` : traités, restants,
+                       échecs, pause) — et un accès direct à « État du serveur »,
+                       que le testeur ne trouvait pas. -->
+                  <div data-avancement-acoustique>
+                    <AcousticProgress compact />
+                  </div>
+                  <div class="row">
+                    <div class="lbl"><span class="hint">{$t('acoustic.serverStatusHint' as any)
+                      .replace('{tab}', $t('v2.nav.processing' as any))}</span></div>
+                    <button class="lnk" data-ouvrir-etat-serveur onclick={() => activeView.set('diagnostics')}
+                      >{$t('acoustic.openServerStatus' as any).replace('{tab}', $t('v2.nav.processing' as any))}</button>
+                  </div>
                 {/if}
               {/if}
 
