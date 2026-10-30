@@ -125,7 +125,17 @@ export function libelleBackend(choix: ChoixBackend, tr: Traduire): string {
  *
  * Il s'affichait dès que le backend valait `wasapi` — ce que le repli en dur
  * garantissait sur Linux, où WASAPI n'existe pas.
+ *
+ * web#2536 — il s'affiche quand le backend EFFECTIF est WASAPI, pas seulement
+ * quand « WASAPI » est choisi : « Auto (WASAPI) », le défaut sous Windows, joue
+ * déjà en WASAPI, et le serveur y honore `local_exclusive_mode` (seul ASIO
+ * force l'exclusif, `tune-core/src/config.rs::exclusive_mode_status`). JeanPitre,
+ * privé d'ASIO, cherchait « Exclusif (bit-perfect) » sans deviner qu'il fallait
+ * d'abord quitter « Auto ». `auto` ne vaut WASAPI que là où la plateforme
+ * publie `wasapi` (Windows) ; sous macOS et Linux, « Auto » est CoreAudio ou
+ * ALSA et la ligne reste masquée.
  */
 export function modeWasapiPertinent(choix: ChoixBackend[], selectionne: string): boolean {
-  return selectionne === 'wasapi' && choix.some((c) => c.value === 'wasapi');
+  if (!choix.some((c) => c.value === 'wasapi')) return false;
+  return selectionne === 'wasapi' || selectionne === 'auto';
 }
