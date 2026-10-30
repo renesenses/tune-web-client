@@ -114,6 +114,8 @@
   let loadedCount = $state(0);
   let searchQuery = $state('');
   let activeFilter = $state<string>('all');
+  /** web#2452 : la pastille « Tune Circle » n'existe que si l'utilisateur a des playlists de cercle. */
+  let cercleExiste = $state(false);
 
   // Detail view
   let selectedPlaylist = $state<Playlist | null>(null);
@@ -2339,8 +2341,9 @@
       </div>
 
     {:else}
-    <!-- web#2452 : les playlists Tune Circle (partagées avec moi, et que je partage) ; absente sans compte relié ni cercle. -->
-    <PlaylistsCercleSection filtre={searchQuery} />
+    <!-- web#2452 : les playlists Tune Circle (partagées avec moi, et que je partage) ; absente sans compte relié ni cercle.
+         Elle se choisit par la pastille « Tune Circle » de la rangée des filtres ; « Toutes » = les playlists de l'utilisateur. -->
+    <PlaylistsCercleSection filtre={searchQuery} visible={activeFilter === 'circle'} onexiste={(b) => { cercleExiste = b; if (!b && activeFilter === 'circle') activeFilter = 'all'; }} />
     <!-- Filter Chips (original playlists tab) -->
     <div class="filter-chips">
       {#each filterChips as chip}
@@ -2359,6 +2362,14 @@
           {/if}
         </button>
       {/each}
+      {#if cercleExiste}
+        <button
+          class="filter-chip filter-chip-circle"
+          class:active={activeFilter === 'circle'}
+          style={activeFilter === 'circle' ? 'background: var(--tune-accent)22; color: var(--tune-accent); border-color: var(--tune-accent)44' : ''}
+          onclick={() => activeFilter = 'circle'}
+        >{$tr('v2.pl.circle.title' as any)}</button>
+      {/if}
       <!-- La forme de la grille, à droite des filtres : elle ne vaut que pour
            cet onglet, les autres ne sont pas des grilles. -->
       <span class="pl-bascule">
@@ -2369,6 +2380,7 @@
          par le coin d'une carte, et la barre d'actions apparaît ensuite.
          Voir le commentaire de `mergeSelected`. -->
 
+    {#if activeFilter !== 'circle'}
     {#if mergeResult}
       <div class="backup-result" style="margin-bottom: 8px;">
         <span class="stat-ok">{$tr('playlistManager.mergeCreated').replace('{name}', mergeResult.name).replace('{count}', String(mergeResult.total_tracks))}</span>
@@ -2654,6 +2666,7 @@
           </div>
         {/each}
       </div>
+    {/if}
     {/if}
     {/if}
   {/if}
