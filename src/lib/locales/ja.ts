@@ -15,7 +15,9 @@ export default {
   "v2.radio.countryHint": "聴取国を選択してください。未設定の場合は制限のないストリームのみ選択されます。",
   "v2.radio.countryNeedsServer": "このサーバーは聴取国の選択にまだ対応していません。",
   "v2.radio.countryRetry": "再試行",
-  "playback.errorRadioCountry": "このラジオにはサーバーの聴取国で利用できるストリームがありません。ラジオの設定を確認してください。",
+  "v2.radio.countryMoved": "聴取国は「設定」›「一般」で設定します。",
+  "v2.radio.countryGoSettings": "設定を開く",
+  "playback.errorRadioCountry": "このラジオにはサーバーの聴取国で利用できるストリームがありません。「設定」›「一般」の設定を確認してください。",
 
   "oxygen.tagSel.selectAll": "すべて選択 ({count})",
   "oxygen.tagSel.selected": "{count} 件選択中",

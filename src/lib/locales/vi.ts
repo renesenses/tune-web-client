@@ -15,7 +15,9 @@ export default {
   "v2.radio.countryHint": "Chọn quốc gia nghe. Nếu chưa đặt, chỉ chọn các luồng không hạn chế.",
   "v2.radio.countryNeedsServer": "Máy chủ này chưa hỗ trợ chọn quốc gia nghe.",
   "v2.radio.countryRetry": "Thử lại",
-  "playback.errorRadioCountry": "Đài này không có luồng được phép cho quốc gia nghe của máy chủ. Kiểm tra cài đặt trong Radio.",
+  "v2.radio.countryMoved": "Quốc gia nghe giờ được đặt trong Cài đặt › Chung.",
+  "v2.radio.countryGoSettings": "Mở cài đặt",
+  "playback.errorRadioCountry": "Đài này không có luồng được phép cho quốc gia nghe của máy chủ. Kiểm tra cài đặt trong Cài đặt › Chung.",
 
   "oxygen.tagSel.selectAll": "Chọn tất cả ({count})",
   "oxygen.tagSel.selected": "Đã chọn {count}",

@@ -15,7 +15,9 @@ export default {
   "v2.radio.countryHint": "Välj ditt lyssningsland. Utan land väljs endast obegränsade strömmar.",
   "v2.radio.countryNeedsServer": "Servern stöder ännu inte val av lyssningsland.",
   "v2.radio.countryRetry": "Försök igen",
-  "playback.errorRadioCountry": "Radion har ingen tillåten ström för serverns lyssningsland. Kontrollera inställningen under Radio.",
+  "v2.radio.countryMoved": "Lyssningslandet ställs nu in under Inställningar › Allmänt.",
+  "v2.radio.countryGoSettings": "Öppna inställningen",
+  "playback.errorRadioCountry": "Radion har ingen tillåten ström för serverns lyssningsland. Kontrollera inställningen under Inställningar › Allmänt.",
 
   "oxygen.tagSel.selectAll": "Markera alla ({count})",
   "oxygen.tagSel.selected": "{count} markerade",

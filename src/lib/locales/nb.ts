@@ -15,7 +15,9 @@ export default {
   "v2.radio.countryHint": "Velg lyttelandet ditt. Uten land velges bare ubegrensede strømmer.",
   "v2.radio.countryNeedsServer": "Denne serveren støtter ikke valg av lytteland ennå.",
   "v2.radio.countryRetry": "Prøv igjen",
-  "playback.errorRadioCountry": "Radioen har ingen tillatt strøm for serverens lytteland. Kontroller innstillingen under Radio.",
+  "v2.radio.countryMoved": "Lyttelandet angis nå i Innstillinger › Generelt.",
+  "v2.radio.countryGoSettings": "Åpne innstillingen",
+  "playback.errorRadioCountry": "Radioen har ingen tillatt strøm for serverens lytteland. Kontroller innstillingen under Innstillinger › Generelt.",
 
   "oxygen.tagSel.selectAll": "Velg alle ({count})",
   "oxygen.tagSel.selected": "{count} valgt",

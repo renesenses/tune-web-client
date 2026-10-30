@@ -15,7 +15,9 @@ export default {
   "v2.radio.countryHint": "청취 국가를 선택하세요. 미설정 시 제한 없는 스트림만 선택됩니다.",
   "v2.radio.countryNeedsServer": "이 서버는 아직 청취 국가 선택을 지원하지 않습니다.",
   "v2.radio.countryRetry": "다시 시도",
-  "playback.errorRadioCountry": "이 라디오는 서버의 청취 국가에서 허용된 스트림이 없습니다. 라디오 설정을 확인하세요.",
+  "v2.radio.countryMoved": "청취 국가는 이제 설정 › 일반에서 지정합니다.",
+  "v2.radio.countryGoSettings": "설정 열기",
+  "playback.errorRadioCountry": "이 라디오는 서버의 청취 국가에서 허용된 스트림이 없습니다. 설정 › 일반의 항목을 확인하세요.",
 
   "oxygen.tagSel.selectAll": "모두 선택 ({count})",
   "oxygen.tagSel.selected": "{count}개 선택됨",
