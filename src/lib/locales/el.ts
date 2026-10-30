@@ -1763,6 +1763,7 @@ export default {
   "settings.themePalettesHint": "Επτά παλέτες. Ειδική ρύθμιση του νέου προγράμματος-πελάτη — η τρέχουσα διεπαφή διατηρεί το δικό της θέμα.",
   "settings.themeDarkGrey": "Σκούρο γκρι",
   "settings.themeMozaiklabs": "Mozaiklabs (ανθρακί / πορτοκαλί)",
+  "settings.themeMozaiklabsLogo": "Mozaiklabs (λογότυπο: μαύρο / μωσαϊκό)",
   "settings.ingestConflictHint": "Όταν υπάρχει ήδη αρχείο με το ίδιο όνομα στον προορισμό.",
   "settings.writeTagsHint": "Τροποποιεί τα εισαγόμενα αρχεία. Αν δεν είναι επιλεγμένο, συμπληρώνεται μόνο η βάση δεδομένων.",
   "settings.facetValuesHint": "0 = όλες. Πέρα από μερικές εκατοντάδες, η στήλη γίνεται δυσανάγνωστη.",

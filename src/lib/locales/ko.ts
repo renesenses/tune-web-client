@@ -2985,6 +2985,7 @@ export default {
   "settings.themePalettesHint": "일곱 가지 팔레트. 새 클라이언트 전용 설정입니다 — 현재 인터페이스의 테마는 별도로 유지됩니다.",
   "settings.themeDarkGrey": "짙은 회색",
   "settings.themeMozaiklabs": "Mozaiklabs (차콜 / 오렌지)",
+  "settings.themeMozaiklabsLogo": "Mozaiklabs (로고: 검정 / 모자이크)",
   "settings.ingestConflictHint": "대상 위치에 같은 이름의 파일이 이미 있을 때.",
   "settings.writeTagsHint": "가져온 파일을 수정합니다. 체크하지 않으면 데이터베이스만 채워집니다.",
   "settings.facetValuesHint": "0 = 전체. 수백 개를 넘으면 열을 읽기 어려워집니다.",

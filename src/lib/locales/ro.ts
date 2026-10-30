@@ -2985,6 +2985,7 @@ export default {
   "settings.themePalettesHint": "Șapte palete. Setare proprie noului client — tema interfeței actuale rămâne separată.",
   "settings.themeDarkGrey": "Gri închis",
   "settings.themeMozaiklabs": "Mozaiklabs (antracit / portocaliu)",
+  "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: negru / mozaic)",
   "settings.ingestConflictHint": "Când la destinație există deja un fișier cu același nume.",
   "settings.writeTagsHint": "Modifică fișierele importate. Nebifat, se completează doar baza de date.",
   "settings.facetValuesHint": "0 = toate. Peste câteva sute, coloana devine ilizibilă.",

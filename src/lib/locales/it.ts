@@ -2985,6 +2985,7 @@ export default {
   "settings.themePalettesHint": "Sette palette. Impostazione propria del nuovo client — il tema dell'interfaccia attuale resta separato.",
   "settings.themeDarkGrey": "Grigio scuro",
   "settings.themeMozaiklabs": "Mozaiklabs (antracite / arancione)",
+  "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: nero / mosaico)",
   "settings.ingestConflictHint": "Quando un file con lo stesso nome esiste già a destinazione.",
   "settings.writeTagsHint": "Modifica i file importati. Se non selezionato, viene riempito solo il database.",
   "settings.facetValuesHint": "0 = tutte. Oltre qualche centinaio, la colonna diventa illeggibile.",

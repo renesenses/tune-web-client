@@ -1763,6 +1763,7 @@ export default {
   "settings.themePalettesHint": "Siedem palet. Ustawienie dotyczy nowego klienta — obecny interfejs zachowuje własny motyw.",
   "settings.themeDarkGrey": "Ciemnoszary",
   "settings.themeMozaiklabs": "Mozaiklabs (antracyt / pomarańczowy)",
+  "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: czerń / mozaika)",
   "settings.ingestConflictHint": "Gdy w miejscu docelowym istnieje już plik o tej samej nazwie.",
   "settings.writeTagsHint": "Modyfikuje zaimportowane pliki. Po odznaczeniu uzupełniana jest tylko baza danych.",
   "settings.facetValuesHint": "0 = wszystkie. Powyżej kilkuset wartości kolumna staje się nieczytelna.",
