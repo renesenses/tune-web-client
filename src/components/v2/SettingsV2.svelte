@@ -26,7 +26,7 @@
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
-  import { CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
+  import { CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT, CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
@@ -2207,6 +2207,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // tune-server-rust#6198 — les genres de l'analyse acoustique (CLAP).
   // tune-server-rust#5593 (fil 2173) — dossiers auxquels les analyses se limitent ; `null` : serveur antérieur.
   let analysisDirs = $state<string[] | null>(null);
+  // tune-server-rust#7538 — dossiers exclus de l'enrichissement des métadonnées ; `null` : serveur antérieur.
+  let enrichExcludedDirs = $state<string[] | null>(null);
   let clapGenresInclus = $state<string[] | null>(null);
   let clapGenresExclus = $state<string[] | null>(null);
   let newDir = $state('');
@@ -2480,6 +2482,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         ? c.background_analysis_excluded_roots.filter((r: unknown) => typeof r === 'string')
         : null;
       analysisDirs = dossiersDepuisConfig(c?.[CLE_DOSSIERS_INCLUS]);
+      enrichExcludedDirs = dossiersDepuisConfig(c?.[CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT]);
       clapGenresInclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_INCLUS]);
       clapGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_EXCLUS]);
       await refreshDirectoryOrder();
@@ -2643,6 +2646,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const suivant = lireSaisieDeDossiers(texte);
     analysisDirs = suivant;
     patch({ [CLE_DOSSIERS_INCLUS]: suivant }, () => { analysisDirs = avant; });
+  }
+  /**
+   * tune-server-rust#7538 — les dossiers exclus de l'enrichissement des
+   * métadonnées. Le serveur reçoit la liste COMPLÈTE ; s'il refuse, le champ
+   * revient à son état d'avant.
+   */
+  function setDossiersExclusEnrichissement(texte: string) {
+    const avant = enrichExcludedDirs;
+    const suivant = lireSaisieDeDossiers(texte);
+    enrichExcludedDirs = suivant;
+    patch({ [CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT]: suivant }, () => { enrichExcludedDirs = avant; });
   }
   /**
    * tune-server-rust#6198 — les genres retenus ou écartés de l'analyse
@@ -6437,6 +6451,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         onchange={(e) => setDossiersAnalyses((e.currentTarget as HTMLTextAreaElement).value)}></textarea>
                     </label>
                     <p class="hint">{$t('settings.analysisDirsHint' as any)}</p>
+                  </div>
+                {/if}
+                <!-- tune-server-rust#7538 — exclure des dossiers de
+                     l'enrichissement des métadonnées, un par ligne. -->
+                {#if enrichExcludedDirs !== null}
+                  <div class="clap-genres" data-reglage="dossiers-exclus-enrichissement">
+                    <span class="clap-genres-titre">{$t('settings.enrichExcludedDirsTitle' as any)}</span>
+                    <label>
+                      <span>{$t('settings.enrichExcludedDirsLabel' as any)}</span>
+                      <textarea rows="3" value={afficherDossiers(enrichExcludedDirs)}
+                        placeholder={$t('settings.enrichExcludedDirsPlaceholder' as any)}
+                        aria-label={$t('settings.enrichExcludedDirsLabel' as any)}
+                        onchange={(e) => setDossiersExclusEnrichissement((e.currentTarget as HTMLTextAreaElement).value)}></textarea>
+                    </label>
+                    <p class="hint">{$t('settings.enrichExcludedDirsHint' as any)}</p>
                   </div>
                 {/if}
                 <!-- tune-server-rust#6198 — réserver l'analyse acoustique
