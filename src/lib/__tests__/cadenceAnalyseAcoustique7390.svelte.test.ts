@@ -35,6 +35,7 @@ import { v2SettingsTarget } from '../stores/v2SettingsNav';
 import { activeView } from '../stores/navigation';
 import { locale } from '../i18n';
 import fr from '../locales/fr';
+import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 
 let hote: HTMLDivElement;
 let composant: ReturnType<typeof mount> | undefined;
@@ -102,8 +103,8 @@ describe('#7390 — la cadence de l’analyse acoustique est expliquée', () => 
   });
 
   it('les trois explications existent et diffèrent dans les quinze langues', async () => {
-    for (const code of ['de', 'el', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'vi', 'zh']) {
-      const d = (await import(`../locales/${code}.ts`)).default as Record<string, string>;
+    for (const code of ONZE_LANGUES) {
+      const d = dictionnaire(code);
       const aides = ['acoustic.throttleEcoHelp', 'acoustic.throttleBalancedHelp', 'acoustic.throttleFastHelp'].map((k) => d[k]);
       expect(aides.every((a) => typeof a === 'string' && a.length > 20), code).toBe(true);
       expect(new Set(aides).size, code).toBe(3);
