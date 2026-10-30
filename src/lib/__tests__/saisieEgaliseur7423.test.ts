@@ -63,15 +63,15 @@ describe('saisie Fréquence / Gain / Q (#7423)', () => {
   });
 
   it('la validation borne la valeur', () => {
-    const [freq, gain, q] = champs();
-    saisir(freq, '5');
-    valider(freq);
+    // Les champs sont relus après chaque validation : le rendu peut les remplacer.
+    saisir(champs()[0], '5');
+    valider(champs()[0]);
     expect(bandes[0].freq).toBe(20);
-    saisir(gain, '99');
-    valider(gain);
+    saisir(champs()[1], '99');
+    valider(champs()[1]);
     expect(bandes[0].gain).toBe(12);
-    saisir(q, '100');
-    valider(q);
+    saisir(champs()[2], '100');
+    valider(champs()[2]);
     expect(bandes[0].q).toBe(30);
   });
 
