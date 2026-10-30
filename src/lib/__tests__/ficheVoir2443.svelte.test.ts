@@ -211,6 +211,8 @@ describe('En cours de lecture', () => {
   it('🔴 le nom de la station ouvre la fiche, avec le badge Metadata+ à côté', () => {
     const s = readFileSync(resolve(__dirname, '../../components/partages/NowPlaying.svelte'), 'utf8');
     expect(s).toMatch(/radio-station-lien[\s\S]{0,200}ficheStationOuverte = true[\s\S]{0,200}stationMetadataPlus[\s\S]{0,40}BadgeMetadataPlus/);
-    expect(s).toMatch(/metadataPlusDeLecture\(np\)/);
+    // web#2550/#2551 : le badge, le logo et le bouton « Mes radios » lisent la
+    // MÊME station retenue ; le badge en dérive.
+    expect(s).toMatch(/stationDeLectureRetenue\(np\)[\s\S]{0,200}stationMetadataPlus = !!s\.fiche\?\.metadataPlus/);
   });
 });
