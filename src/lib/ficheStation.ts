@@ -114,42 +114,114 @@ export function libelleFlux(f: FluxRadio): string {
   ].filter(Boolean).join(' · ');
 }
 
+/**
+ * Les flux d'une station, du meilleur au moins bon. Pure.
+ *
+ * web#2552 (alec_eiffel, fil 2556 ; go de Bertrand le 30/10/2026) : la fiche
+ * de BBC Radio 6 Music listait « HLS 320, HLS 96, HLS 320 » dans l'ordre de
+ * l'annuaire. Ordre retenu, du plus au moins décisif :
+ *   1. un codec SANS PERTE (FLAC, ALAC, WAV…) d'abord : son débit est parfois
+ *      absent de la fiche, et il ne doit pas tomber derrière un MP3 à 320 ;
+ *   2. le débit, décroissant (absent : en dernier) ;
+ *   3. la fréquence d'échantillonnage, décroissante ;
+ *   4. à qualité égale, le flux principal d'abord, puis l'ordre de la fiche.
+ * Le flux principal ne change pas : seul l'affichage est rangé.
+ */
+const CODECS_SANS_PERTE = new Set(['FLAC', 'ALAC', 'WAV', 'AIFF', 'PCM', 'WAVPACK', 'APE']);
+export function ordonnerFluxParQualite(flux: readonly FluxRadio[]): FluxRadio[] {
+  const sansPerte = (f: FluxRadio) => (CODECS_SANS_PERTE.has((f.codec ?? '').trim().toUpperCase()) ? 1 : 0);
+  const nombre = (v: number | null | undefined) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : -1);
+  return flux
+    .map((f, i) => ({ f, i }))
+    .sort((a, b) =>
+      sansPerte(b.f) - sansPerte(a.f)
+      || nombre(b.f.bitrate) - nombre(a.f.bitrate)
+      || nombre(b.f.sample_rate) - nombre(a.f.sample_rate)
+      || Number(!!b.f.primary) - Number(!!a.f.primary)
+      || a.i - b.i)
+    .map(({ f }) => f);
+}
+
 type Lecture = { source_id?: string | null; album_title?: string | null } | null | undefined;
 
 /**
- * La fiche de la station qui joue : dans « Mes radios » d'abord (par flux,
- * puis par nom), sinon dans l'annuaire par son nom exact. `null` : inconnue.
+ * La station qui joue, telle que Tune la connaît : la fiche à montrer, et
+ * d'où elle vient — « Mes radios » (`mienne`) ou l'annuaire seul (`annuaire`).
+ * Une entrée d'annuaire peut déjà être dans « Mes radios » sous une autre
+ * adresse de flux : elle le dit par `my_radio_id`.
  */
-export async function ficheDeLecture(np: Lecture): Promise<FicheStation | null> {
-  const miennes = (await api.getRadios({ limit: 500 })) ?? [];
-  const r = trouverStation(miennes, np);
-  if (r) return ficheDeStation(r);
-  const nom = np?.album_title ?? '';
-  if (!nom) return null;
-  const a = await api.getAnnuaireRadios({ q: nom, limit: 20 });
-  const f = a.items.find((x) => fold(x.name) === fold(nom));
-  return f ? ficheDeAnnuaire(f) : null;
+export interface StationDeLecture {
+  fiche: FicheStation | null;
+  mienne: RadioStation | null;
+  annuaire: FicheAnnuaireRadio | null;
 }
-
-const badges = new Map<string, Promise<boolean>>();
+const AUCUNE: StationDeLecture = { fiche: null, mienne: null, annuaire: null };
 
 /**
- * Le badge « Metadata+ » de « En cours de lecture » : retenu par station
- * (flux + nom) pour la session, la barre de lecture se redessinant souvent.
- * Un échec ne se retient pas.
+ * Dans « Mes radios » d'abord (par flux, puis par nom), sinon dans l'annuaire
+ * par son nom exact.
  */
-export function metadataPlusDeLecture(np: Lecture): Promise<boolean> {
-  const cle = `${np?.source_id ?? ''}|${np?.album_title ?? ''}`;
-  if (cle === '|') return Promise.resolve(false);
-  let p = badges.get(cle);
+export async function stationDeLecture(np: Lecture): Promise<StationDeLecture> {
+  const miennes = (await api.getRadios({ limit: 500 })) ?? [];
+  const r = trouverStation(miennes, np);
+  if (r) return { fiche: ficheDeStation(r), mienne: r, annuaire: null };
+  const nom = np?.album_title ?? '';
+  if (!nom) return AUCUNE;
+  const a = await api.getAnnuaireRadios({ q: nom, limit: 20 });
+  const f = a.items.find((x) => fold(x.name) === fold(nom)) ?? null;
+  return { fiche: f ? ficheDeAnnuaire(f) : null, mienne: null, annuaire: f };
+}
+
+/** La fiche de la station qui joue. `null` : inconnue. */
+export async function ficheDeLecture(np: Lecture): Promise<FicheStation | null> {
+  return (await stationDeLecture(np)).fiche;
+}
+
+const stations = new Map<string, Promise<StationDeLecture>>();
+const cleDeLecture = (np: Lecture) => `${np?.source_id ?? ''}|${np?.album_title ?? ''}`;
+
+/**
+ * `stationDeLecture`, retenue par station (flux + nom) pour la session : la
+ * barre de lecture se redessine souvent, et le badge, le logo et le bouton
+ * « Mes radios » de « En cours de lecture » la lisent tous. Un échec ne se
+ * retient pas.
+ */
+export function stationDeLectureRetenue(np: Lecture): Promise<StationDeLecture> {
+  const cle = cleDeLecture(np);
+  if (cle === '|') return Promise.resolve(AUCUNE);
+  let p = stations.get(cle);
   if (!p) {
-    p = ficheDeLecture(np).then((f) => !!f?.metadataPlus, () => { badges.delete(cle); return false; });
-    badges.set(cle, p);
+    p = stationDeLecture(np).catch(() => { stations.delete(cle); return AUCUNE; });
+    stations.set(cle, p);
   }
   return p;
 }
 
-/** Pour les tests : oublie les badges retenus. */
+/** La station a changé (ajoutée à « Mes radios », retirée) : la relire. */
+export function oublierStationDeLecture(np: Lecture): void {
+  stations.delete(cleDeLecture(np));
+}
+
+/** Le badge « Metadata+ » de « En cours de lecture ». */
+export function metadataPlusDeLecture(np: Lecture): Promise<boolean> {
+  return stationDeLectureRetenue(np).then((s) => !!s.fiche?.metadataPlus);
+}
+
+/** Pour les tests : oublie les stations retenues. */
 export function oublierBadgesDeLecture(): void {
-  badges.clear();
+  stations.clear();
+}
+
+/**
+ * Le logo de la station à montrer À CÔTÉ de son nom, ou `null`. Pure.
+ *
+ * web#2550 (alec_eiffel, fil 2560 ; go de Bertrand le 30/10/2026) : quand la
+ * pochette du morceau est connue (Metadata+), elle remplace le logo, qui
+ * n'apparaissait plus nulle part. Quand la pochette affichée EST le logo, on
+ * ne le montre pas deux fois.
+ */
+export function logoAuNomDeLaStation(logo: string | null | undefined, pochette: string | null | undefined): string | null {
+  const l = (logo ?? '').trim();
+  if (!l) return null;
+  return l === (pochette ?? '').trim() ? null : l;
 }
