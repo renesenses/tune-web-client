@@ -189,6 +189,9 @@ describe('fonctions de la fiche', () => {
   it('libelleFlux', () => {
     expect(libelleFlux(FLUX[1])).toBe('MP3 · 128 kbit/s · 48 kHz');
     expect(libelleFlux({ url: 'u' })).toBe('');
+    // HLS est un protocole, pas un format : jamais affiché
+    expect(libelleFlux({ url: 'u', codec: 'AAC', bitrate: 96, hls: true })).toBe('AAC · 96 kbit/s');
+    expect(libelleFlux({ url: 'u', codec: 'HLS', hls: true })).toBe('');
   });
 
   it('🔴 metadataPlusDeLecture : vrai pour la station à clé, retenu pour la session', async () => {
