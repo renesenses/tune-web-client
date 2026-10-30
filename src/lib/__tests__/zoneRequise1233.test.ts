@@ -102,7 +102,10 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // cercle depuis le menu Playlists, et réclame la zone.
     // VINGT-HUIT depuis web#2400 : `CarteRadios` écoute d'un clic une
     // station de la carte des radios, et réclame la zone.
-    expect(avec.length).toBe(28);
+    // VINGT-NEUF depuis tune-server-rust#7195 : `CollectionPhysiqueV2` lance
+    // « Écouter sur <service> » un disque de la collection Discogs.
+    expect(avec.length).toBe(29);
+    expect(avec).toContain('CollectionPhysiqueV2.svelte');
     expect(avec).toContain('PlaylistsCercleSection.svelte');
     expect(avec).toContain('CarteRadios.svelte');
     expect(avec).toContain('RadiosTrouvees.svelte');

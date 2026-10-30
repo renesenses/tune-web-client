@@ -109,6 +109,8 @@ const VUES: Record<View, boolean> = {
   pontroon: true,
   lecturecd: true,
   circle: true,
+  // tune-server-rust#7195 — « Ma collection physique », écran d'un greffon.
+  collectionphysique: true,
   bannedtracks: true,
 
   // ─── Celles que l'adresse NE repose PAS, et pourquoi ────────────────────
