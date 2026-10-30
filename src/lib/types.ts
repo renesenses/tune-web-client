@@ -1572,7 +1572,9 @@ export interface RadioStation {
   genre_label?: string | null;
   homepage_url?: string | null;
   favorite: boolean;
-  /** Dernière lecture, si le serveur la date (rc9) ; sinon repli local. */
+  /** Dernière lecture (ISO-8601) : le nom que `GET /radios` envoie (#2397). */
+  last_played?: string | null;
+  /** Nom attendu à tort jusqu'à #2397 ; gardé en repli. */
   last_played_at?: string | null;
   /**
    * La fiche de l'annuaire radio-metadata.fr rapprochée de cette station
