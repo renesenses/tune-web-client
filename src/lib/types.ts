@@ -677,6 +677,13 @@ export interface Zone {
    *  clé absente = serveur antérieur. */
   volume_limit_safety?: number | null;
   volume_limit_safety_db?: number | null;
+  /** tune-server-rust#6918 — la course en dB d'une sortie qui règle son volume
+   *  en dB (`min_db`, `max_db`, `step_db`, …) ; `null` sinon, absent sur un
+   *  serveur antérieur. Sert au curseur en dB (web#7517). */
+  device_volume_range?: { min_db: number; max_db: number; step_db: number; floor_db?: number; ceiling_db?: number } | null;
+  device_volume_db?: number | null;
+  volume_limit_safety_device_db?: number | null;
+  volume_limit_comfort_device_db?: number | null;
   /** tune-server-rust#6541 — limite de CONFORT : au-dessus, seuls les boutons
    *  + / − font monter le volume, pas le curseur. */
   volume_limit_comfort?: number | null;

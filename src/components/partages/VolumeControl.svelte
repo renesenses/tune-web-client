@@ -23,6 +23,7 @@
     serveurConnaitLesLimites,
   } from '../../lib/limitesVolume';
   import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
+  import { courseDb, dbDepuisFraction, fractionDepuisDb, fondDesZones, formaterDbAppareil, graduations, zonesDeLimites } from '../../lib/volumeCourseDb';
 
   let zone = $derived($currentZone);
   let vol = $derived($zoneVolume);
@@ -31,7 +32,17 @@
   let idZoneVolume = $derived(zone?.id ?? null);
   let volumeAutorise = $derived(!$volumeLocked && volumeCommandable(zone));
   let sourdineAutorisee = $derived(!$volumeLocked && sourdineCommandable(zone));
-  let bornes = $derived(bornesCurseurSortie(zone));
+  // web#7517 — une sortie qui annonce une course en dB (device_volume_range) a
+  // un curseur GRADUÉ EN dB ; les autres gardent le curseur en pour-cent.
+  let course = $derived(courseDb(zone));
+  let bornes = $derived(course
+    ? { min: course.min_db, max: course.max_db, step: course.step_db as number | 'any' }
+    : bornesCurseurSortie(zone));
+  let valeurCurseur = $derived(course ? dbDepuisFraction(course, vol) : vol);
+  let traits = $derived(course ? graduations(course) : []);
+  // Vert sous le confort, orange entre confort et sécurité, rouge au-delà.
+  let fondZones = $derived(course ? fondDesZones(zonesDeLimites(zone)) : null);
+  let legendeZones = $derived(fondZones ? $t('volume.zonesLegend' as any) : undefined);
   let clePlage = $derived(clePlageVolumeSortie(zone));
 
   // #1274 \u2014 le mode dB n'est plus une simple fa\u00E7on d'\u00C9CRIRE le pour-cent : le
@@ -132,11 +143,13 @@
   function handleVolume(e: Event) {
     if (!zone?.id || !volumeAutorise) return;
     const champ = e.target as HTMLInputElement;
+    // web#7517 — un curseur en dB envoie la même fraction que le curseur 0..1.
+    const brut = course ? fractionDepuisDb(course, Number(champ.value)) : Number(champ.value);
     // tune-server-rust#6541 — le serveur borne le curseur (confort, sécurité) ;
     // l'écran le montre au lieu de laisser le pouce filer plus haut que le son.
-    const val = normaliserVolumeSortie(zone, bornerCurseur(zone, Number(champ.value), vol), plafondDuCurseur(zone, vol));
+    const val = normaliserVolumeSortie(zone, bornerCurseur(zone, brut, vol), plafondDuCurseur(zone, vol));
     if (val === null) return;
-    if (val !== Number(champ.value)) champ.value = String(val);
+    if (val !== brut) champ.value = String(course ? dbDepuisFraction(course, val) : val);
     leverSourdineSiBesoin({ ...zone, id: zone.id }, val);
     zoneVolume.set(val);
     if (isBrowserZone(zone)) browserSetVolume(val, zone);
@@ -247,18 +260,29 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
   </button>
   {/if}
-  <input
-    type="range"
-    class="volume-slider"
-    min={bornes.min}
-    max={bornes.max}
-    step={bornes.step}
-    value={vol}
-    oninput={handleVolume}
-    disabled={!volumeAutorise}
-    title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : undefined}
-    aria-label="Volume"
-  />
+  <div class="volume-curseur" class:en-db={course !== null}>
+    <input
+      type="range"
+      class="volume-slider"
+      class:zones={fondZones !== null}
+      style={fondZones ? `background: ${fondZones}` : undefined}
+      min={bornes.min}
+      max={bornes.max}
+      step={bornes.step}
+      value={valeurCurseur}
+      oninput={handleVolume}
+      disabled={!volumeAutorise}
+      title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : legendeZones}
+      aria-label="Volume"
+    />
+    {#if course}
+      <span class="graduations" aria-hidden="true">
+        {#each traits as g (g.db)}
+          <span class="trait" style={`left: ${g.pos * 100}%`}><i></i><b>{g.db}</b></span>
+        {/each}
+      </span>
+    {/if}
+  </div>
   {#if boutonsPas}
   <button
     class="step-btn"
@@ -270,7 +294,9 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
   </button>
   {/if}
-  {#if modeDb}
+  {#if course}
+    <span class="volume-value volume-db-appareil" data-testid="volume-db-appareil">{formaterDbAppareil(dbDepuisFraction(course, vol))}</span>
+  {:else if modeDb}
     <input
       type="text"
       class="volume-value volume-db-input"
@@ -353,6 +379,40 @@
   .step-btn:hover {
     color: var(--tune-text);
   }
+
+  .volume-curseur {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Curseur en dB (#7517) : traits tous les 10 dB sous la piste. */
+  .volume-curseur.en-db { padding-bottom: 11px; }
+  .graduations {
+    position: absolute;
+    left: 7px;
+    right: 7px;
+    bottom: 0;
+    height: 10px;
+    pointer-events: none;
+  }
+  .trait {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+  }
+  .trait i { display: block; width: 1px; height: 3px; background: var(--tune-text-muted); }
+  .trait b {
+    font-weight: 400;
+    font-size: 8px;
+    color: var(--tune-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .volume-db-appareil { min-width: 58px; }
 
   .volume-slider {
     width: 140px;
