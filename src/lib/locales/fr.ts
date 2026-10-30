@@ -15,7 +15,9 @@ export default {
   "v2.radio.countryHint": "Indiquez votre pays d’écoute. Sans pays, seuls les flux sans restriction sont choisis.",
   "v2.radio.countryNeedsServer": "Ce serveur ne propose pas encore le choix du pays d’écoute.",
   "v2.radio.countryRetry": "Réessayer",
-  "playback.errorRadioCountry": "Cette radio n’a aucun flux autorisé pour le pays d’écoute du serveur. Vérifiez le réglage dans Radio.",
+  "v2.radio.countryMoved": "Le pays d’écoute se règle maintenant dans Réglages › Général.",
+  "v2.radio.countryGoSettings": "Ouvrir le réglage",
+  "playback.errorRadioCountry": "Cette radio n’a aucun flux autorisé pour le pays d’écoute du serveur. Vérifiez le réglage dans Réglages › Général.",
 
   "oxygen.tagSel.selectAll": "Tout sélectionner ({count})",
   "oxygen.tagSel.selected": "{count} sélectionnés",

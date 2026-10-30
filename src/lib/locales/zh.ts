@@ -15,7 +15,9 @@ export default {
   "v2.radio.countryHint": "请选择收听国家。未设置时仅选择无限制的流。",
   "v2.radio.countryNeedsServer": "此服务器尚不支持选择收听国家。",
   "v2.radio.countryRetry": "重试",
-  "playback.errorRadioCountry": "此电台没有适用于服务器收听国家的流。请检查“电台”中的设置。",
+  "v2.radio.countryMoved": "收听国家现在在“设置 › 常规”中设定。",
+  "v2.radio.countryGoSettings": "打开设置",
+  "playback.errorRadioCountry": "此电台没有适用于服务器收听国家的流。请检查“设置 › 常规”中的设置。",
 
   "oxygen.tagSel.selectAll": "全选 ({count})",
   "oxygen.tagSel.selected": "已选 {count} 项",

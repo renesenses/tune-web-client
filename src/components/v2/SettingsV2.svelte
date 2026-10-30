@@ -164,6 +164,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
   import PluginsV2 from './PluginsV2.svelte';
   import { tip } from '../../lib/tooltip';
@@ -4351,6 +4352,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     onchange={(e) => setFileAleatoire((e.currentTarget as HTMLInputElement).value)} />
                 </div>
               {/if}
+
+            {:else if s.id === 'radiosCountry'}
+              <PaysEcouteRadios />
 
             {:else if s.id === 'voice'}
               <div class="row">

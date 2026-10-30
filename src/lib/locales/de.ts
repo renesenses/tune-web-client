@@ -15,7 +15,9 @@ export default {
   "v2.radio.countryHint": "Wählen Sie Ihr Hörland. Ohne Angabe werden nur unbeschränkte Streams ausgewählt.",
   "v2.radio.countryNeedsServer": "Dieser Server unterstützt die Auswahl des Hörlands noch nicht.",
   "v2.radio.countryRetry": "Erneut versuchen",
-  "playback.errorRadioCountry": "Für das Hörland des Servers ist kein Stream dieses Senders verfügbar. Prüfen Sie die Einstellung unter Radio.",
+  "v2.radio.countryMoved": "Das Hörland wird jetzt unter Einstellungen › Allgemein festgelegt.",
+  "v2.radio.countryGoSettings": "Einstellung öffnen",
+  "playback.errorRadioCountry": "Für das Hörland des Servers ist kein Stream dieses Senders verfügbar. Prüfen Sie die Einstellung unter Einstellungen › Allgemein.",
 
   "oxygen.tagSel.selectAll": "Alle auswählen ({count})",
   "oxygen.tagSel.selected": "{count} ausgewählt",
