@@ -1209,7 +1209,7 @@ export default {
   "settings.slimprotoAnnonceHint": "Laisse les platines Squeezebox (et Home Assistant) trouver Tune toutes seules, par le port UDP 3483. Réglage distinct de celui du dessus, qui gouverne l'autre sens : Tune client d'un LMS. Décocher n'interrompt aucune platine déjà connectée — Tune cesse simplement de répondre aux recherches.",
   "settings.slimprotoAnnonceRedemarrage": "Prise d'effet au prochain démarrage du serveur : l'annonce n'est armée qu'une fois, au lancement. Redémarrez Tune depuis Réglages › Système pour que ce choix s'applique.",
   'settings.squeezeboxLmsHost': 'Hote LMS : port',
-  'settings.squeezeboxLmsPlaceholder': 'ex. 192.168.1.50:9000 (auto-detecte)',
+  'settings.squeezeboxLmsPlaceholder': 'ex. 192.168.1.50:9090 (auto-detecte)',
   'settings.squeezeboxLmsDetected': 'Auto-detecte : {host}',
   'settings.squeezeboxNoPlayers': 'Aucun lecteur Squeezebox trouve',
   'settings.squeezeboxPlayers': 'Lecteurs decouverts',

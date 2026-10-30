@@ -1093,7 +1093,7 @@ export default {
   "settings.slimprotoAnnonceHint": "Επιτρέπει στις συσκευές Squeezebox (και στο Home Assistant) να βρίσκουν μόνες τους το Tune, μέσω της θύρας UDP 3483. Ξεχωριστή ρύθμιση από την παραπάνω, που αφορά την άλλη κατεύθυνση: το Tune ως πελάτης ενός LMS. Η απενεργοποίησή της δεν αποσυνδέει καμία ήδη συνδεδεμένη συσκευή — το Tune απλώς σταματά να απαντά στις αναζητήσεις εντοπισμού.",
   "settings.slimprotoAnnonceRedemarrage": "Ισχύει την επόμενη φορά που θα ξεκινήσει ο διακομιστής: η ανακοίνωση ενεργοποιείται μία φορά, κατά την εκκίνηση. Επανεκκινήστε το Tune από τις Ρυθμίσεις › Σύστημα για να εφαρμοστεί αυτή η επιλογή.",
   "settings.squeezeboxLmsHost": "Κεντρικός υπολογιστής LMS:θύρα",
-  "settings.squeezeboxLmsPlaceholder": "π.χ. 192.168.1.50:9000 (αυτόματος εντοπισμός)",
+  "settings.squeezeboxLmsPlaceholder": "π.χ. 192.168.1.50:9090 (αυτόματος εντοπισμός)",
   "settings.squeezeboxLmsDetected": "Εντοπίστηκε αυτόματα: {host}",
   "settings.squeezeboxNoPlayers": "Δεν βρέθηκαν συσκευές Squeezebox",
   "settings.squeezeboxPlayers": "Συσκευές που εντοπίστηκαν",

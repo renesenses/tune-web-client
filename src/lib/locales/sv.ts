@@ -1037,7 +1037,7 @@ export default {
   "settings.slimprotoAnnonceHint": "Låter Squeezebox-spelare (och Home Assistant) hitta Tune på egen hand, via UDP-port 3483. En annan inställning än den ovan, som styr motsatt riktning: Tune som klient till en LMS. Att stänga av den kopplar inte bort någon redan ansluten spelare – Tune slutar helt enkelt svara på sökningar.",
   "settings.slimprotoAnnonceRedemarrage": "Träder i kraft när servern startas nästa gång: annonseringen aktiveras bara en gång, vid start. Starta om Tune från Inställningar › System för att valet ska gälla.",
   'settings.squeezeboxLmsHost': 'LMS värd:port',
-  'settings.squeezeboxLmsPlaceholder': 't.ex. 192.168.1.50:9000 (upptäcks automatiskt)',
+  'settings.squeezeboxLmsPlaceholder': 't.ex. 192.168.1.50:9090 (upptäcks automatiskt)',
   'settings.squeezeboxLmsDetected': 'Upptäckt automatiskt: {host}',
   'settings.squeezeboxNoPlayers': 'Inga Squeezebox-spelare hittades',
   'settings.squeezeboxPlayers': 'Upptäckta spelare',

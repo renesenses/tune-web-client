@@ -1075,7 +1075,7 @@ export default {
   "settings.slimprotoAnnonceHint": "Permite playerelor Squeezebox (și Home Assistant) să găsească Tune singure, pe portul UDP 3483. Este o setare distinctă de cea de mai sus, care guvernează sensul opus: Tune ca client al unui LMS. Dezactivarea nu deconectează niciun player deja conectat — Tune încetează pur și simplu să răspundă la căutări.",
   "settings.slimprotoAnnonceRedemarrage": "Intră în vigoare la următoarea pornire a serverului: anunțul este activat o singură dată, la lansare. Repornește Tune din Setări › Sistem pentru ca alegerea să se aplice.",
   'settings.squeezeboxLmsHost': 'Gazdă:port LMS',
-  'settings.squeezeboxLmsPlaceholder': 'ex. 192.168.1.50:9000 (detectat automat)',
+  'settings.squeezeboxLmsPlaceholder': 'ex. 192.168.1.50:9090 (detectat automat)',
   'settings.squeezeboxLmsDetected': 'Detectat automat: {host}',
   'settings.squeezeboxNoPlayers': 'Niciun player Squeezebox găsit',
   'settings.squeezeboxPlayers': 'Playere descoperite',

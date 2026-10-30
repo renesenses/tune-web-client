@@ -1155,7 +1155,7 @@ export default {
   "settings.slimprotoAnnonceHint": "Lehetővé teszi, hogy a Squeezebox-lejátszók (és a Home Assistant) maguktól megtalálják a Tune-t az UDP 3483-as porton. Ez más beállítás, mint a fenti, amely az ellenkező irányt szabályozza: a Tune-t egy LMS ügyfeleként. A kikapcsolása egyetlen már csatlakozott lejátszót sem bont — a Tune egyszerűen nem válaszol többé a keresésekre.",
   "settings.slimprotoAnnonceRedemarrage": "A kiszolgáló következő indításakor lép életbe: a hirdetés csak egyszer, induláskor kapcsolódik be. Indítsa újra a Tune-t a Beállítások › Rendszer menüből, hogy a választás érvényesüljön.",
   "settings.squeezeboxLmsHost": "LMS gazdagép:port",
-  "settings.squeezeboxLmsPlaceholder": "pl. 192.168.1.50:9000 (automatikusan felismerve)",
+  "settings.squeezeboxLmsPlaceholder": "pl. 192.168.1.50:9090 (automatikusan felismerve)",
   "settings.squeezeboxLmsDetected": "Automatikusan felismerve: {host}",
   "settings.squeezeboxNoPlayers": "Nem található Squeezebox-lejátszó",
   "settings.squeezeboxPlayers": "Felismert lejátszók",

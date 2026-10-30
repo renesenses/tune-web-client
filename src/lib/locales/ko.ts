@@ -1053,7 +1053,7 @@ export default {
   "settings.slimprotoAnnonceHint": "Squeezebox 플레이어(및 Home Assistant)가 UDP 3483 포트를 통해 Tune을 스스로 찾을 수 있게 합니다. 위 설정과는 별개이며, 위 설정은 반대 방향인 LMS의 클라이언트로서의 Tune을 다룹니다. 끄더라도 이미 연결된 플레이어는 끊기지 않고, Tune이 검색에 응답하지 않게 될 뿐입니다.",
   "settings.slimprotoAnnonceRedemarrage": "서버를 다음에 시작할 때 적용됩니다. 알림은 시작 시 한 번만 설정되기 때문입니다. 설정 › 시스템에서 Tune을 다시 시작하세요.",
   'settings.squeezeboxLmsHost': 'LMS 호스트:포트',
-  'settings.squeezeboxLmsPlaceholder': '예: 192.168.1.50:9000 (자동 감지)',
+  'settings.squeezeboxLmsPlaceholder': '예: 192.168.1.50:9090 (자동 감지)',
   'settings.squeezeboxLmsDetected': '자동 감지됨: {host}',
   'settings.squeezeboxNoPlayers': 'Squeezebox 플레이어를 찾을 수 없음',
   'settings.squeezeboxPlayers': '발견된 플레이어',

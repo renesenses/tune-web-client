@@ -1095,7 +1095,7 @@ export default {
   "settings.slimprotoAnnonceHint": "Cho phép các trình phát Squeezebox (và Home Assistant) tự tìm thấy Tune qua cổng UDP 3483. Đây là thiết lập tách biệt với thiết lập phía trên, vốn điều khiển chiều ngược lại: Tune làm client của một LMS. Tắt nó không ngắt kết nối trình phát nào đã kết nối — Tune chỉ đơn giản ngừng trả lời các yêu cầu tìm kiếm.",
   "settings.slimprotoAnnonceRedemarrage": "Có hiệu lực ở lần khởi động máy chủ tiếp theo: việc thông báo chỉ được kích hoạt một lần, lúc khởi chạy. Hãy khởi động lại Tune từ Cài đặt › Hệ thống để lựa chọn này được áp dụng.",
   "settings.squeezeboxLmsHost": "Máy chủ LMS host:port",
-  "settings.squeezeboxLmsPlaceholder": "vd. 192.168.1.50:9000 (tự động phát hiện)",
+  "settings.squeezeboxLmsPlaceholder": "vd. 192.168.1.50:9090 (tự động phát hiện)",
   "settings.squeezeboxLmsDetected": "Tự động phát hiện: {host}",
   "settings.squeezeboxNoPlayers": "Không tìm thấy trình phát Squeezebox nào",
   "settings.squeezeboxPlayers": "Trình phát đã phát hiện",

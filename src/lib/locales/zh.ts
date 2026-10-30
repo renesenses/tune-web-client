@@ -1069,7 +1069,7 @@ export default {
   "settings.slimprotoAnnonceHint": "让 Squeezebox 播放器（以及 Home Assistant）通过 UDP 3483 端口自行发现 Tune。这与上面那项设置不同，后者管的是相反方向：Tune 作为 LMS 的客户端。关闭它不会断开任何已连接的播放器，Tune 只是不再回应发现请求。",
   "settings.slimprotoAnnonceRedemarrage": "将在服务器下次启动时生效：广播只在启动时开启一次。请在“设置 › 系统”中重启 Tune，以使此选择生效。",
   'settings.squeezeboxLmsHost': 'LMS 主机：端口',
-  'settings.squeezeboxLmsPlaceholder': '例如 192.168.1.50:9000（自动检测）',
+  'settings.squeezeboxLmsPlaceholder': '例如 192.168.1.50:9090（自动检测）',
   'settings.squeezeboxLmsDetected': '自动检测：{host}',
   'settings.squeezeboxNoPlayers': '未找到 Squeezebox 播放器',
   'settings.squeezeboxPlayers': '已发现的播放器',
