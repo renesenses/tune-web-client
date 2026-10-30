@@ -2985,6 +2985,7 @@ export default {
   "settings.themePalettesHint": "7 種類のパレット。新しいクライアント固有の設定です — 現在のインターフェースのテーマは別のままです。",
   "settings.themeDarkGrey": "ダークグレー",
   "settings.themeMozaiklabs": "Mozaiklabs（チャコール / オレンジ）",
+  "settings.themeMozaiklabsLogo": "Mozaiklabs（ロゴ：黒 / モザイク）",
   "settings.ingestConflictHint": "同名のファイルが移動先にすでに存在する場合。",
   "settings.writeTagsHint": "取り込んだファイルを変更します。チェックしない場合はデータベースのみが更新されます。",
   "settings.facetValuesHint": "0 = すべて。数百を超えると列が読みにくくなります。",

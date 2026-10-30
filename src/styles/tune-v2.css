@@ -1,7 +1,7 @@
 /* Jeu de tokens du nouveau client (direction Levente).
    Portée .tune-v2 pour cohabiter avec le thème historique sans le perturber.
 
-   HUIT THÈMES. Le thème actif est posé par `applyV2Theme()` en attribut
+   NEUF THÈMES. Le thème actif est posé par `applyV2Theme()` en attribut
    `data-v2-theme` sur <html>. Le sélecteur `:root[data-v2-theme=…] .tune-v2`
    l'emporte sur le bloc de base (3 niveaux de spécificité contre 1) et
    s'applique donc à TOUTES les racines .tune-v2, y compris imbriquées — sans
@@ -236,6 +236,32 @@
   --v2-glow:rgba(249,115,22,.22); --v2-glow-strong:rgba(249,115,22,.30); --v2-acc-soft:rgba(234,88,12,.12); --v2-focus:rgba(249,115,22,.20); --v2-scrim:rgba(30,31,34,.8); --v2-sh-sm:rgba(0,0,0,.40);
 }
 
+/* ── 9. Mozaiklabs (logo) — fond noir, mosaïque verte ────────────────────
+   #2520 (Bertrand, 29/10/2026, rc10) : les couleurs du logo Mozaiklabs
+   (jaune #FFEB27, vert clair #83DC57, vert #2A9F5B, turquoise #28BA9B,
+   cyan #27C7E4, bleu #387CBF, noir, blanc). Fond noir pur, lettrage blanc,
+   accent vert #2A9F5B qui glisse vers le turquoise #28BA9B sur les éléments
+   forts (bouton de lecture, élément actif). Les gris des surfaces sont
+   légèrement verts, pour rester dans la famille du logo.
+
+   Le jaune, le vert clair, le cyan et le bleu ne portent pas de jeton
+   d'interface : le jaune et le vert clair ne se lisent que sur noir, le bleu
+   ne tient pas 4,5:1 sur les surfaces. Ils vivent dans `v2Jetons.ts`
+   (MOZAIKLABS_PALETTE) pour les futurs usages (VU-mètres, « Mon thème »).
+   Mesuré : voir `themeMozaiklabsLogo2520.test.ts`. */
+:root[data-v2-theme="mozaiklabs-logo"] .tune-v2{
+  --v2-bg:#000000; --v2-bg2:#080A09; --v2-surface:#1F2321; --v2-surface2:#151817;
+  --v2-line:#2B302D; --v2-line2:#3A413D;
+  --v2-txt:#FFFFFF; --v2-txt2:#D2D8D5; --v2-txt3:#A9B1AD;
+  --v2-acc1:#2A9F5B; --v2-acc2:#28BA9B; --v2-acc-tint:#E4F9D8; --v2-on-acc:#000000;
+  --v2-hover:#101312; --v2-active1:#0F2A1B; --v2-active2:#0A1A12;
+  --v2-player1:#050606; --v2-player2:#000000; --v2-knob:#FFFFFF;
+  --v2-av1:#2F3632; --v2-av2:#4C554F;
+  --v2-danger:#FF8F87; --v2-danger-soft:rgba(255,143,135,.12); --v2-danger-bd:#FF6B6B;
+  --v2-sh-card:0 6px 16px rgba(0,0,0,.60); --v2-sh-lg:0 16px 40px rgba(0,0,0,.70); --v2-sh-menu:0 20px 50px rgba(0,0,0,.75);
+  --v2-glow:rgba(42,159,91,.26); --v2-glow-strong:rgba(40,186,155,.32); --v2-acc-soft:rgba(40,186,155,.10); --v2-focus:rgba(39,199,228,.22); --v2-scrim:rgba(0,0,0,.8); --v2-sh-sm:rgba(0,0,0,.55);
+}
+
 /* ── Fond du document ───────────────────────────────────────────────────
    Mesuré dans Chrome : <body> restait #181818 (thème historique) sous TOUS
    les thèmes v2 — invisible tant que la coquille couvre 100vh, mais le
@@ -250,6 +276,7 @@
 :root[data-v2-theme="clear-grey"]{ --v2-body-bg:#EDEFF2; }
 :root[data-v2-theme="dark-grey"]{ --v2-body-bg:#2B2B2B; }
 :root[data-v2-theme="mozaiklabs"]{ --v2-body-bg:#1E1F22; }
+:root[data-v2-theme="mozaiklabs-logo"]{ --v2-body-bg:#000000; }
 :root[data-v2-theme] body{ background:var(--v2-body-bg); }
 
 /* ─────────────────────────────────────────────────────────────────────────

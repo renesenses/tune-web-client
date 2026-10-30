@@ -2939,6 +2939,7 @@ export default {
   "settings.themePalettesHint": "Hét paletta. Az új kliens saját beállítása — a jelenlegi felület témája külön marad.",
   "settings.themeDarkGrey": "Sötétszürke",
   "settings.themeMozaiklabs": "Mozaiklabs (antracit / narancs)",
+  "settings.themeMozaiklabsLogo": "Mozaiklabs (logó: fekete / mozaik)",
   "settings.ingestConflictHint": "Amikor a célhelyen már létezik azonos nevű fájl.",
   "settings.writeTagsHint": "Módosítja az importált fájlokat. Kipipálatlanul csak az adatbázis töltődik ki.",
   "settings.facetValuesHint": "0 = mind. Néhány száz fölött az oszlop olvashatatlanná válik.",

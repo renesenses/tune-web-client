@@ -2984,6 +2984,7 @@ export default {
   "settings.themePalettesHint": "Sju paletter. Egen inställning för den nya klienten — det nuvarande gränssnittets tema förblir separat.",
   "settings.themeDarkGrey": "Mörkgrå",
   "settings.themeMozaiklabs": "Mozaiklabs (antracit / orange)",
+  "settings.themeMozaiklabsLogo": "Mozaiklabs (logotyp: svart / mosaik)",
   "settings.ingestConflictHint": "När en fil med samma namn redan finns på målet.",
   "settings.writeTagsHint": "Ändrar de importerade filerna. Omarkerat fylls endast databasen i.",
   "settings.facetValuesHint": "0 = alla. Bortom några hundra blir kolumnen oläslig.",

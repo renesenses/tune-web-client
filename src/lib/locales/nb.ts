@@ -1763,6 +1763,7 @@ export default {
   "settings.themePalettesHint": "Sju paletter. Gjelder bare den nye klienten — det nåværende grensesnittet beholder sitt eget tema.",
   "settings.themeDarkGrey": "Mørk grå",
   "settings.themeMozaiklabs": "Mozaiklabs (antrasitt / oransje)",
+  "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: svart / mosaikk)",
   "settings.ingestConflictHint": "Når en fil med samme navn allerede finnes på målstedet.",
   "settings.writeTagsHint": "Endrer importerte filer. Uten avkrysning fylles bare databasen ut.",
   "settings.facetValuesHint": "0 = alle. Over noen hundre blir kolonnen uleselig.",
