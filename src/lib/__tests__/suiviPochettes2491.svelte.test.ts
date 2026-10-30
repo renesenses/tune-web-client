@@ -61,6 +61,8 @@ beforeEach(async () => {
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
     const chemin = new URL(String(url), window.location.href).pathname;
     if (chemin === '/api/v1/library/artwork/rescan' && init?.method === 'POST') { posts++; return repondre(); }
+    // #7313 : la recherche en ligne enchaînée n'a rien à chercher dans ces parcours.
+    if (chemin === '/api/v1/library/artwork/enrich' && init?.method === 'POST') return json({ status: 'skipped', missing: 0 });
     const corps = /\/(devices|outputs|stereo-pairs|group-delays|profiles|playlists|shortcuts|groups|directories)$|\/devices\/all$/.test(chemin) ? []
       : chemin.endsWith('/system/diagnostics') ? { zones_doublons: [] }
       : chemin.endsWith('tune-tested.json') ? { version: 1, count: 0, devices: [] } : {};
@@ -84,13 +86,14 @@ describe('#2491 — la vraie ligne Réglages/Bibliothèque suit la recherche', (
     expect(hote.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('4');
     pousser('library.artwork.completed', { current: 10, total: 10, found: 3 });
     expect(statut()).toContain('Recherche terminée'); expect(statut()).toContain('Pochettes trouvées : 3');
-    expect(bouton().disabled).toBe(false);
+    // #7313 : la recherche en ligne s'enchaîne ; ici le serveur n'a rien à chercher.
+    await stabiliser(); expect(bouton().disabled).toBe(false);
   });
 
   it.each([0, 5])('une fin sans pochette le dit explicitement (%s albums)', async (total) => {
     await lancer(); pousser('library.artwork.completed', { current: total, total, found: 0 });
     expect(statut()).toContain('aucune pochette trouvée'); expect(statut()).toContain(`Albums examinés : ${total}`);
-    expect(bouton().disabled).toBe(false);
+    await stabiliser(); expect(bouton().disabled).toBe(false);
   });
 
   it('la fin partielle du garde serveur ne devient pas un succès intégral', async () => {

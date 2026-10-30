@@ -76,6 +76,7 @@
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
   import { creerSuiviPochettes, recherchePochettesOccupee } from '../../lib/suiviPochettes';
+  import { creerRechercheEnLigne, rechercheEnLigneOccupee } from '../../lib/recherchePochettesEnLigne';
   import {
     avancementAnalyse, pourcentAnalyse, aDesChiffres, lignesPortee, lignesEmplacements,
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
@@ -3959,15 +3960,45 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
   const suiviPochettes = creerSuiviPochettes({ modeSondage: () => tuneWS.isPolling });
   const suiviPochettesEtat = suiviPochettes.etat;
-  let albumCoversBusy = $derived(recherchePochettesOccupee($suiviPochettesEtat));
+  // #7313 — deuxième étape : la recherche EN LIGNE, enchaînée après la
+  // relecture du disque. Voir `recherchePochettesEnLigne.ts`.
+  const rechercheEnLigne = creerRechercheEnLigne({
+    demarrer: () => api.startAlbumArtworkEnrich(),
+    lireEtat: () => api.getAlbumArtworkEnrichStatus(),
+  });
+  const rechercheEnLigneEtat = rechercheEnLigne.etat;
+  /** Vrai entre le clic et la fin de la relecture du disque : c'est ce clic,
+   *  et lui seul, qui enchaîne la recherche en ligne. */
+  let enLigneAEnchainer = false;
+  let albumCoversBusy = $derived(
+    recherchePochettesOccupee($suiviPochettesEtat) || rechercheEnLigneOccupee($rechercheEnLigneEtat),
+  );
   $effect(() => suiviPochettes.abonner((h) => tuneWS.onEvent(h)));
+  $effect(() => () => rechercheEnLigne.oublier());
+  $effect(() => {
+    const phase = $suiviPochettesEtat.phase;
+    if (!enLigneAEnchainer || recherchePochettesOccupee($suiviPochettesEtat)) return;
+    enLigneAEnchainer = false;
+    // Seule une relecture du disque TERMINÉE enchaîne : une fin partielle
+    // (arrêt, panne) ou un suivi perdu laissent peut-être la passe disque en
+    // cours, et les deux passes écriraient les mêmes pochettes.
+    if (phase === 'termine') rechercheEnLigne.lancer();
+  });
+  function compteEnLigne(message: string) {
+    const e = $rechercheEnLigneEtat;
+    return message.replace('{found}', $formatNombre(e.trouvees ?? 0))
+      .replace('{total}', $formatNombre(e.total ?? 0)).replace('{remaining}', $formatNombre(e.restantes ?? 0));
+  }
   function comptePochettes(message: string) {
     const c = $suiviPochettesEtat.compteurs;
     return message.replace('{current}', $formatNombre(c?.current ?? 0))
       .replace('{total}', $formatNombre(c?.total ?? 0)).replace('{found}', $formatNombre(c?.found ?? 0));
   }
   async function rescanAlbumCovers() {
+    if (albumCoversBusy) return;
     enrichErr = null;
+    rechercheEnLigne.oublier();
+    enLigneAEnchainer = true;
     await suiviPochettes.lancer(() => api.rescanArtwork());
   }
   /**
@@ -4905,7 +4936,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
               <div class="row" data-recherche-pochettes>
-                <div class="lbl"><span>{$t('settings.searchMissingCovers' as any)}</span></div>
+                <div class="lbl"><span>{$t('settings.searchMissingCovers' as any)}</span>
+                  <span class="hint">{$t('settings.searchMissingCoversHint' as any)}</span></div>
                 <button class="lnk" disabled={albumCoversBusy} onclick={rescanAlbumCovers}>{$t('v2.set.start' as any)}</button>
               </div>
               {#if $suiviPochettesEtat.phase !== 'repos'}
@@ -4927,6 +4959,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span style="width:{Math.min(100, Math.round(($suiviPochettesEtat.compteurs.current / $suiviPochettesEtat.compteurs.total) * 100))}%"></span>
                   </div>
                 {/if}
+              {/if}
+              {#if $rechercheEnLigneEtat.phase !== 'repos'}
+                <div class="hint" role="status" aria-live="polite" data-suivi-pochettes-en-ligne>
+                  {#if $rechercheEnLigneEtat.phase === 'demande'}{$t('settings.coversOnlineRequesting' as any)}
+                  {:else if $rechercheEnLigneEtat.phase === 'en_cours'}{compteEnLigne($t('settings.coversOnlineProgress' as any))}
+                  {:else if $rechercheEnLigneEtat.phase === 'termine'}{compteEnLigne($t('settings.coversOnlineDone' as any))}
+                  {:else if $rechercheEnLigneEtat.phase === 'rien_a_chercher'}{$t('settings.coversOnlineNothing' as any)}
+                  {:else if $rechercheEnLigneEtat.phase === 'refus'}{$t(($rechercheEnLigneEtat.motif === 'quota' ? 'settings.coversOnlineQuota' : 'settings.coversOnlinePremium') as any)}
+                  {:else if $rechercheEnLigneEtat.phase === 'sans_suivi'}{$t('settings.coversOnlineNoFollow' as any)}
+                  {:else if $rechercheEnLigneEtat.phase === 'echec'}{$t('settings.coversOnlineFailed' as any)}{/if}
+                </div>
               {/if}
               <!-- Passes MusicBrainz ciblées (#4767) : types de sortie, puis
                    crédits par disque (`POST /system/enrich-credits`, #4862). -->
