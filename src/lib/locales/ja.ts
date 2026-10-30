@@ -4318,6 +4318,7 @@ export default {
   "v2.tcol.time": "時間",
   "v2.tcol.year": "年",
   "v2.tcol.plays": "再生回数",
+  "v2.tcol.playsTwoCounters": "全員・自分",
   "v2.tcol.playsCommunity": "Tune での再生回数：左が全ユーザー、右があなた（このサーバー）",
   "v2.tcol.lastPlayed": "最終再生",
   "v2.lib.sortPlaysUnsupported": "このサーバーはまだ再生回数で並べ替えできません。既定の順序に戻しました。",

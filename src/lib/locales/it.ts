@@ -4318,6 +4318,7 @@ export default {
   "v2.tcol.time": "Durata",
   "v2.tcol.year": "Anno",
   "v2.tcol.plays": "Riproduzioni",
+  "v2.tcol.playsTwoCounters": "Tutti · Io",
   "v2.tcol.playsCommunity": "Ascolti su Tune: a sinistra tutti gli utenti, a destra tu (questo server)",
   "v2.tcol.lastPlayed": "Ultimo ascolto",
   "v2.lib.sortPlaysUnsupported": "Questo server non sa ancora ordinare per ascolti: torna l'ordine predefinito.",

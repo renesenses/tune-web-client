@@ -4318,6 +4318,7 @@ export default {
   "v2.tcol.time": "Dauer",
   "v2.tcol.year": "Jahr",
   "v2.tcol.plays": "Wiedergaben",
+  "v2.tcol.playsTwoCounters": "Alle · Ich",
   "v2.tcol.playsCommunity": "Wiedergaben auf Tune: links alle Nutzer, rechts Sie (dieser Server)",
   "v2.tcol.lastPlayed": "Zuletzt gespielt",
   "v2.lib.sortPlaysUnsupported": "Dieser Server kann noch nicht nach Wiedergaben sortieren: die Standardreihenfolge gilt wieder.",
