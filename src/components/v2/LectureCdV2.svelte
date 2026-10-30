@@ -50,10 +50,26 @@
   } from '../../lib/lectureCd';
   import { tuneWS } from '../../lib/websocket';
   import ExtractionCdV2 from './ExtractionCdV2.svelte';
+  // tune-server-rust#7195 — un CD de la collection Discogs, pas encore copié.
+  import { cdDansLaCollection, collectionPhysiqueChargee, refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
   import '../../styles/tune-v2.css';
 
   let etat = $state<EtatLecteurCd | null>(null);
   let disque = $state<DisqueCd | null>(null);
+  /** #7195 : le disque inséré est dans la collection Discogs et n'est pas
+   *  encore copié — l'écran propose l'extraction. */
+  let possedeNonCopie = $state(false);
+  void refreshCollectionPhysiquePlugin();
+  $effect(() => {
+    const id = disque?.release_id ?? null;
+    possedeNonCopie = false;
+    if (!id || !$collectionPhysiqueChargee) return;
+    let vivant = true;
+    void cdDansLaCollection(id).then((r) => {
+      if (vivant) possedeNonCopie = !!r?.dans_la_collection && r.copie === false;
+    });
+    return () => { vivant = false; };
+  });
   let erreur = $state<string | null>(null);
   let erreurLecture = $state<string | null>(null);
   let occupe = $state<number | 'disque' | null>(null);
@@ -319,6 +335,9 @@
             {/if}
             <!-- tune-server-rust#2466 : n'apparaît que si le serveur sait extraire. -->
             <ExtractionCdV2 {disque} />
+            {#if possedeNonCopie}
+              <span class="note collection-non-copie" data-collection-non-copie>{$t('collectionPhysique.cdNonCopie' as any)}</span>
+            {/if}
           </div>
           {#if memoire?.actif && (etatCharg === 'aucun' || etatCharg === 'echec')}
             <!-- #6596 : charger sans jouer ; la musique en cours continue. -->
