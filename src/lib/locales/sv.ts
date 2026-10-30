@@ -4458,7 +4458,6 @@ export default {
   "v2.hint.noKeyNoTickets": ". Ingen nyckel är registrerad på den här servern, så det finns ingen tråd att visa.",
   "v2.hint.processingFromSettings": "Bearbetningar startas från Inställningar — Bibliotek och Metadata.",
   "v2.hint.serverUnreachableDot": "Servern kan inte nås.",
-  "v2.hint.tracksAnalysed": "{n} spår analyserade. Förloppet följs i **{tab}**.",
   "v2.set.browserZoneExists": "Den zonen finns redan: ”{nom}” är nu den aktiva zonen.",
   "v2.zone.browserOtherDevice": "”{nom}” är en webbläsarzon som den här webbläsaren inte spelar (den tillhör en annan enhet): inget ljud här.",
   "v2.zone.browserPlayHere": "Spela den på den här enheten",

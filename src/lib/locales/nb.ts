@@ -4328,7 +4328,6 @@ export default {
   "v2.hint.noKeyNoTickets": ". Ingen nøkkel er registrert på denne serveren, så det er ingen tråd å vise.",
   "v2.hint.processingFromSettings": "Behandlingskjøringer startes fra Innstillinger — Bibliotek og Metadata.",
   "v2.hint.serverUnreachableDot": "Serveren kan ikke nås.",
-  "v2.hint.tracksAnalysed": "{n} spor analysert. Fremdriften følges i **{tab}**.",
   "v2.set.browserZoneExists": "Den sonen finnes allerede: «{nom}» er nå den aktive sonen.",
   "v2.zone.browserOtherDevice": "«{nom}» er en nettlesersone som denne nettleseren ikke spiller (den tilhører en annen enhet): ingen lyd kommer ut her.",
   "v2.zone.browserPlayHere": "Spill den på denne enheten",

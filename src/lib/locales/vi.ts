@@ -4330,7 +4330,6 @@ export default {
   "v2.hint.noKeyNoTickets": ". Không có khóa nào được đăng ký trên máy chủ này, nên không có chuỗi trao đổi nào để hiển thị.",
   "v2.hint.processingFromSettings": "Các tác vụ xử lý được khởi chạy từ Cài đặt — Thư viện và Siêu dữ liệu.",
   "v2.hint.serverUnreachableDot": "Không kết nối được máy chủ.",
-  "v2.hint.tracksAnalysed": "Đã phân tích {n} bài hát. Theo dõi tiến độ trong **{tab}**.",
   "v2.set.browserZoneExists": "Vùng phát này đã tồn tại: “{nom}” hiện là vùng phát đang hoạt động.",
   "v2.zone.browserOtherDevice": "“{nom}” là vùng phát trình duyệt mà trình duyệt này không phát (nó thuộc về một thiết bị khác): không có âm thanh nào phát ra ở đây.",
   "v2.zone.browserPlayHere": "Phát trên thiết bị này",

@@ -4459,7 +4459,6 @@ export default {
   "v2.hint.noKeyNoTickets": "。このサーバーにはキーが登録されていないため、表示できるスレッドはありません。",
   "v2.hint.processingFromSettings": "処理は「設定 — ライブラリ」および「メタデータ」から開始します。",
   "v2.hint.serverUnreachableDot": "サーバーに接続できません。",
-  "v2.hint.tracksAnalysed": "{n} 曲を解析しました。進捗は **{tab}** で確認できます。",
   "v2.set.browserZoneExists": "このゾーンはすでにあります。「{nom}」を有効なゾーンにしました。",
   "v2.zone.browserOtherDevice": "「{nom}」はこのブラウザーが再生しないブラウザーゾーンです（別のデバイスのものです）。ここでは音が出ません。",
   "v2.zone.browserPlayHere": "このデバイスで再生",

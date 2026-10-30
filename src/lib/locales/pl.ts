@@ -4326,7 +4326,6 @@ export default {
   "v2.hint.noKeyNoTickets": ". Na tym serwerze nie zarejestrowano żadnego klucza, więc nie ma wątku do wyświetlenia.",
   "v2.hint.processingFromSettings": "Przetwarzanie uruchamia się w Ustawieniach — Biblioteka i Metadane.",
   "v2.hint.serverUnreachableDot": "Serwer nieosiągalny.",
-  "v2.hint.tracksAnalysed": "Przeanalizowane utwory: {n}. Postęp można śledzić w **{tab}**.",
   "v2.set.browserZoneExists": "Ta strefa już istnieje: „{nom}” jest teraz strefą aktywną.",
   "v2.zone.browserOtherDevice": "„{nom}” to strefa przeglądarkowa, której ta przeglądarka nie odtwarza (należy do innego urządzenia): tutaj nie wydobywa się żaden dźwięk.",
   "v2.zone.browserPlayHere": "Odtwarzaj na tym urządzeniu",

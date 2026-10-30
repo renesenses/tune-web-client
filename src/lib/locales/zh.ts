@@ -4459,7 +4459,6 @@ export default {
   "v2.hint.noKeyNoTickets": "。此服务器上未注册任何密钥，因此没有可显示的工单。",
   "v2.hint.processingFromSettings": "处理任务从「设置 — 音乐库」和「元数据」中启动。",
   "v2.hint.serverUnreachableDot": "无法连接服务器。",
-  "v2.hint.tracksAnalysed": "已分析 {n} 首曲目。进度可在 **{tab}** 中查看。",
   "v2.set.browserZoneExists": "该区域已存在：「{nom}」现在是活动区域。",
   "v2.zone.browserOtherDevice": "「{nom}」是一个浏览器区域，本浏览器不会播放它（它属于另一台设备）：这里没有声音。",
   "v2.zone.browserPlayHere": "在此设备上播放",
