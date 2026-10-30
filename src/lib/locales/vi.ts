@@ -5422,6 +5422,9 @@ export default {
   "radioGenre.rnb": "R&B",
   "radioGenre.country": "Đồng quê",
   "radioGenre.latin": "Latinh",
+  "radioGenre.holiday": "Nhạc lễ hội",
+  "radioGenre.oldies": "Oldies",
+  "radioGenre.soundtrack": "Nhạc phim",
   // #4805 — enrichissement d'après MetaRust (Xavier Joly), lots 1 et 2.
   "credits.wikidataTip": "Nhạc cụ lấy từ mục Wikidata của nghệ sĩ: những gì họ thường chơi, không nhất thiết trên bản thu này.",
   "credits.wikidataSource": "theo Wikidata",

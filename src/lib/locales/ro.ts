@@ -5567,6 +5567,9 @@ export default {
   "radioGenre.rnb": "R&B",
   "radioGenre.country": "Country",
   "radioGenre.latin": "Latino",
+  "radioGenre.holiday": "Sărbători",
+  "radioGenre.oldies": "Oldies",
+  "radioGenre.soundtrack": "Coloane sonore",
   // #4805 lot 1 — enrichissement d'après MetaRust (Xavier Joly).
   "credits.wikidataTip": "Instrumente din fișa Wikidata a artistului: ce cântă în general, nu neapărat pe acest disc.",
   "credits.wikidataSource": "după Wikidata",
