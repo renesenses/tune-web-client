@@ -9819,6 +9819,9 @@ export interface LicenseOfflineGrace {
 
 export interface LicenseStatus {
   tier: string;
+  /** #7419 — `key`, `account` (compte Mozaiklabs, sans clé) ou `null`. Absent
+   *  sur un serveur antérieur. */
+  premium_source?: 'key' | 'account' | null;
   license_key: string | null;
   expires_at: string | null;
   features: Record<string, LicenseFeature>;

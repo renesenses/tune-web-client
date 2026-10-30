@@ -6913,12 +6913,32 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if lic.licenseKey}
                   <div class="kv"><span>{$t('v2.lbl.key' as any)}</span><b class="mono">{maskKey(lic.licenseKey)}</b></div>
                 {/if}
+                {#if lic.premiumSource === 'account'}
+                  <div class="kv" data-source-premium="account"><span>{$t('settings.licenseSource' as any)}</span>
+                    <b>{$t('settings.licenseSourceAccount' as any)}</b></div>
+                {/if}
                 {#if lic.expiresAt}
                   <div class="kv"><span>{$t('settings.expiresOn' as any)}</span><b>{$dateSimple(lic.expiresAt)}</b></div>
                 {/if}
                 <div class="kv"><span>{$t('settings.allowedZones' as any)}</span><b
                   >{lic.zoneLimit == null ? $t('settings.zonesUnlimited' as any) : lic.zoneLimit}</b></div>
               </div>
+
+              {#if lic.premiumSource === 'account' && !lic.licenseKey}
+                <!-- #7419 (alec_eiffel, fil 2530) : sur une nouvelle machine, la
+                     connexion au compte suffit. Sans cette phrase, le champ de
+                     clé vide ci-dessous laissait croire qu'il fallait aller
+                     recopier sa clé depuis son espace personnel. -->
+                <div class="okbox" role="status" data-premium-par-le-compte>
+                  {$t('settings.licenseViaAccount' as any)}
+                </div>
+              {:else if lic.loaded && lic.tier === 'free' && !lic.licenseKey}
+                <div class="row" data-retrouver-par-le-compte>
+                  <div class="lbl"><span class="hint">{$t('settings.licenseFindByAccount' as any)}</span></div>
+                  <button class="lnk" onclick={() => v2SettingsTarget.set({ tab: 'system', section: 'cloud' })}
+                    >{$t('settings.licenseOpenAccount' as any)}</button>
+                </div>
+              {/if}
 
               {#if lic.sessionConflict}
                 <!-- Le premium est suspendu ici parce que la licence est active
@@ -7023,7 +7043,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {:else}
                 <div class="row">
-                  <div class="lbl"><span>{$t('settings.activateLicense' as any)}</span>
+                  <div class="lbl"><span>{$t((lic.premiumSource === 'account' ? 'settings.activateLicenseOptional' : 'settings.activateLicense') as any)}</span>
                     <span class="hint">{$t('settings.licenceKeyByEmail' as any)}</span></div>
                   <div class="inline">
                     <input class="txt" type="text" placeholder="XXXX-XXXX-XXXX" bind:value={licKey}
