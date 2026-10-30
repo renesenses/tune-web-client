@@ -100,13 +100,17 @@ export function ficheDeAnnuaire(f: FicheAnnuaireRadio): FicheStation {
   };
 }
 
-/** « AAC · 192 kbit/s · 48 kHz » — le libellé d'un flux, sans son adresse. Pure. */
+/**
+ * « AAC · 192 kbit/s · 48 kHz » — le libellé d'un flux, sans son adresse. Pure.
+ * HLS est un protocole de transport, pas un format : il n'y figure jamais
+ * (même si un annuaire plus ancien le sert encore comme codec).
+ */
 export function libelleFlux(f: FluxRadio): string {
+  const codec = f.codec?.toUpperCase();
   return [
-    f.codec?.toUpperCase() || null,
+    codec && codec !== 'HLS' ? codec : null,
     f.bitrate ? `${f.bitrate} kbit/s` : null,
     f.sample_rate ? `${Math.round(f.sample_rate / 100) / 10} kHz` : null,
-    f.hls ? 'HLS' : null,
   ].filter(Boolean).join(' · ');
 }
 
