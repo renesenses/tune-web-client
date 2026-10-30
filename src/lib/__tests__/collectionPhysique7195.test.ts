@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 //
-// tune-server-rust#7195 — « Ma collection physique » : l'écran, ouvert depuis
-// sa carte des Extensions, l'attribution Discogs, les trois états d'un disque, « Écouter » sur le service, et la phrase d'un CD inséré
+// tune-server-rust#7195 — « Ma collection physique » : l'écran, son entrée de
+// barre latérale juste après Tune Circle (décision de Bertrand du 30/10/2026,
+// greffon chargé seulement), l'attribution Discogs, les trois états d'un disque, « Écouter » sur le service, et la phrase d'un CD inséré
 // possédé mais pas copié.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
@@ -9,6 +10,7 @@ import { get } from 'svelte/store';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import CollectionPhysiqueV2 from '../../components/v2/CollectionPhysiqueV2.svelte';
+import Sidebar from '../../components/v2/Sidebar.svelte';
 import { activeView, pendingLibraryAlbum } from '../stores/navigation';
 import {
   ATTRIBUTION_DISCOGS, cleErreur, codeDeRefus, collectionPhysiquePlugin, legendeDuDisque,
@@ -196,16 +198,51 @@ describe('« Ma collection physique » — accès à l’écran', () => {
   it('l’écran est monté par la coquille, ouvert par les Extensions, et le CD inséré le consulte', () => {
     const coquille = readFileSync(resolve(__dirname, '../../components/v2/ShellV2.svelte'), 'utf8');
     expect(coquille).toMatch(/\$activeView === 'collectionphysique'[\s\S]{0,120}<CollectionPhysiqueV2 \/>/);
-    // Pas d'entrée de barre latérale sans mandat (l'ordre de la barre est un
-    // arbitrage de Bertrand, `ordreBarreLaterale.test.ts`) : l'écran s'ouvre
-    // par le bouton « Ouvrir » de sa carte dans les Extensions.
-    const barre = readFileSync(resolve(__dirname, '../../components/v2/Sidebar.svelte'), 'utf8');
-    expect(barre).not.toContain("'collectionphysique'");
     const ext = readFileSync(resolve(__dirname, '../../components/v2/PluginsV2.svelte'), 'utf8');
     expect(ext).toContain("p.name === 'collection-physique' && isActive(p)");
     expect(ext).toContain('refreshCollectionPhysiquePlugin()');
     const cd = readFileSync(resolve(__dirname, '../../components/v2/LectureCdV2.svelte'), 'utf8');
     expect(cd).toContain('cdDansLaCollection(');
     expect(cd).toContain("$t('collectionPhysique.cdNonCopie' as any)");
+  });
+});
+
+describe('« Ma collection physique » — entrée de barre latérale (décision du 30/10/2026)', () => {
+  const LIBELLE = fr['collectionPhysique.titre'];
+  const libelles = () => Array.from(hote!.querySelectorAll('button.nav'))
+    .map((b) => (b.textContent ?? '').replace(/\s+/g, ' ').trim());
+  const entree = () => Array.from(hote!.querySelectorAll('button.nav')).find(
+    (b) => (b.textContent ?? '').replace(/\s+/g, ' ').trim() === LIBELLE,
+  ) as HTMLButtonElement | undefined;
+
+  it('greffon installé et actif : l’entrée est là, JUSTE APRÈS Tune Circle, et mène à l’écran', async () => {
+    activeView.set('home');
+    greffons = [
+      { name: 'circle', installed: true, enabled: true },
+      { name: 'collection-physique', installed: true, enabled: true },
+    ];
+    monte = mount(Sidebar as any, { target: hote! });
+    await laisserTourner();
+    const l = libelles();
+    const i = l.indexOf(LIBELLE);
+    expect(i, `entrée absente : ${l.join(' | ')}`).toBeGreaterThan(-1);
+    expect(l[i - 1]).toBe(fr['v2.circle.title']);
+    entree()!.click();
+    flushSync();
+    expect(get(activeView)).toBe('collectionphysique');
+  });
+
+  it('greffon installé mais arrêté : aucune entrée', async () => {
+    greffons = [{ name: 'collection-physique', installed: true, enabled: false }];
+    monte = mount(Sidebar as any, { target: hote! });
+    await laisserTourner();
+    expect(entree()).toBeUndefined();
+  });
+
+  it('greffon absent du serveur : aucune entrée', async () => {
+    greffons = [{ name: 'circle', installed: true, enabled: true }];
+    monte = mount(Sidebar as any, { target: hote! });
+    await laisserTourner();
+    expect(entree()).toBeUndefined();
   });
 });
