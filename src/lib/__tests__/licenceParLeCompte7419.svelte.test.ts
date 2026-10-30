@@ -105,12 +105,12 @@ describe('#7419 — le Premium par le compte se dit, sans réclamer de clé', ()
     await monter({ tier: 'free', license_key: null, premium_source: null });
     const ligne = hote.querySelector('[data-retrouver-par-le-compte]');
     expect(ligne?.textContent).toContain(fr['settings.licenseFindByAccount']);
+    expect(panneau(), 'en gratuit, la saisie de clé reste la voie ordinaire').toContain(fr['settings.activateLicense']);
     const cibles: unknown[] = [];
     const arreter = v2SettingsTarget.subscribe((c) => cibles.push(c));
     ligne!.querySelector('button')!.click(); flushSync(); arreter();
     expect(cibles, 'le bouton doit mener à Système › Cloud, où l’on relie le compte')
       .toContainEqual({ tab: 'system', section: 'cloud' });
-    expect(panneau()).toContain(fr['settings.activateLicense']);
   });
 });
 
