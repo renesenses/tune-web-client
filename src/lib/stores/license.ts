@@ -43,7 +43,7 @@ export interface LicenseState {
    * règle que le serveur (`effective_tier`) — Premium sans clé enregistrée ne
    * peut venir que du compte.
    */
-  premiumSource: 'key' | 'account' | null;
+  premiumSource?: 'key' | 'account' | null;
 }
 
 const defaultState: LicenseState = {
