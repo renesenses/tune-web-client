@@ -6218,6 +6218,13 @@ export default {
   "monTheme.jeton.player2": "재생 바(아래)",
   "monTheme.jeton.danger": "오류",
   "monTheme.jeton.dangerBd": "오류 테두리",
+  "monTheme.envoyer": "연락처에 보내기",
+  "monTheme.carteTexte": "제 Tune 테마 “{nom}”입니다.",
+  "monTheme.carteTitre": "Tune 테마",
+  "monTheme.appliquer": "이 테마 적용",
+  "monTheme.applique": "테마를 프로필에 적용했습니다.",
+  "monTheme.recuIllisible": "이 테마는 읽기 어려워 적용하지 않았습니다.",
+  "monTheme.recuSansGreffon": "이 테마를 적용하려면 “내 테마” 플러그인을 설치하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

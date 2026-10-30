@@ -86,3 +86,20 @@ currentProfileId.subscribe(() => {
   const url = get(urlMonTheme);
   if (url) void lire(url).catch(() => {});
 });
+
+/**
+ * #2527 — appliquer un thème reçu dans Tune Circle, d'un clic. Il passe par le
+ * même juge qu'un import (forme puis contraste WCAG AA) avant d'être rangé
+ * dans le profil ; le serveur le rejuge. Sans greffon, rien ne se peint.
+ */
+export type ResultatApplication = 'applique' | 'illisible' | 'invalide' | 'sans_greffon';
+export async function appliquerThemeRecu(theme: unknown): Promise<ResultatApplication> {
+  const j = jugerTheme(theme);
+  if (!j.ok) return 'illisible' in j ? 'illisible' : 'invalide';
+  if (!get(urlMonTheme)) {
+    await chargerMonTheme();
+    if (!get(urlMonTheme)) return 'sans_greffon';
+  }
+  await rangerMonTheme(j.theme, true);
+  return 'applique';
+}

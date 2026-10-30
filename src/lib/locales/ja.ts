@@ -6218,6 +6218,13 @@ export default {
   "monTheme.jeton.player2": "再生バー（下）",
   "monTheme.jeton.danger": "エラー",
   "monTheme.jeton.dangerBd": "エラーの枠",
+  "monTheme.envoyer": "連絡先に送る",
+  "monTheme.carteTexte": "私の Tune テーマ「{nom}」です。",
+  "monTheme.carteTitre": "Tune テーマ",
+  "monTheme.appliquer": "このテーマを適用",
+  "monTheme.applique": "テーマをプロファイルに適用しました。",
+  "monTheme.recuIllisible": "このテーマは読みにくいため、適用されませんでした。",
+  "monTheme.recuSansGreffon": "このテーマを適用するには「マイテーマ」プラグインをインストールしてください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

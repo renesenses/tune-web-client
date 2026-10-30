@@ -6217,4 +6217,11 @@ export default {
   "monTheme.jeton.player2": "Uppspelningsfält (nederst)",
   "monTheme.jeton.danger": "Fel",
   "monTheme.jeton.dangerBd": "Felkant",
+  "monTheme.envoyer": "Skicka till en kontakt",
+  "monTheme.carteTexte": "Här är mitt Tune-tema ”{nom}”.",
+  "monTheme.carteTitre": "Tune-tema",
+  "monTheme.appliquer": "Tillämpa det här temat",
+  "monTheme.applique": "Temat har tillämpats på din profil.",
+  "monTheme.recuIllisible": "Temat är inte läsbart: det tillämpades inte.",
+  "monTheme.recuSansGreffon": "Installera insticksprogrammet ”Mitt tema” för att tillämpa temat.",
 } as const;

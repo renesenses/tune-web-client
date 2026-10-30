@@ -6240,6 +6240,13 @@ export default {
   "monTheme.jeton.player2": "Barre de lecture (bas)",
   "monTheme.jeton.danger": "Erreur",
   "monTheme.jeton.dangerBd": "Bord d’erreur",
+  "monTheme.envoyer": "Envoyer à un contact",
+  "monTheme.carteTexte": "Voici mon thème Tune « {nom} ».",
+  "monTheme.carteTitre": "Thème Tune",
+  "monTheme.appliquer": "Appliquer ce thème",
+  "monTheme.applique": "Thème appliqué à votre profil.",
+  "monTheme.recuIllisible": "Ce thème n’est pas lisible : il n’a pas été appliqué.",
+  "monTheme.recuSansGreffon": "Installez le greffon « Mon thème » pour appliquer ce thème.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

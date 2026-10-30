@@ -6063,5 +6063,12 @@ export default {
   "monTheme.jeton.player2": "Avspillingslinje (nederst)",
   "monTheme.jeton.danger": "Feil",
   "monTheme.jeton.dangerBd": "Feilkant",
+  "monTheme.envoyer": "Send til en kontakt",
+  "monTheme.carteTexte": "Her er Tune-temaet mitt «{nom}».",
+  "monTheme.carteTitre": "Tune-tema",
+  "monTheme.appliquer": "Bruk dette temaet",
+  "monTheme.applique": "Temaet er brukt på profilen din.",
+  "monTheme.recuIllisible": "Temaet er ikke lesbart: det ble ikke brukt.",
+  "monTheme.recuSansGreffon": "Installer utvidelsen «Mitt tema» for å bruke dette temaet.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

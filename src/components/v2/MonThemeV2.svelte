@@ -13,6 +13,7 @@
   import * as api from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { carteAPartager } from '../../lib/circleMessagerie';
   import {
     GROUPES_MON_THEME, LIBELLES_GROUPES, LIBELLES_JETONS, FORMAT_THEME, VERSION_THEME, NOM_THEME_MAX,
     ID_GREFFON_MON_THEME, IMPORT_MAX_OCTETS,
@@ -109,6 +110,13 @@
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch { /* navigateur sans téléchargement : rien à faire */ }
+  }
+
+  /** #2527 — envoyer le brouillon (lisible) à un contact Tune Circle, par la
+   *  boîte de partage de la messagerie. */
+  function envoyer() {
+    if (!jugement.ok) return;
+    carteAPartager.set({ type: 'theme', title: jugement.theme.name, colors: { ...jugement.theme.colors } });
   }
 
   async function importer(ev: Event) {
@@ -251,6 +259,7 @@
               {$t('monTheme.enregistrer' as any)}
             </button>
             <button class="lnk" disabled={!jugement.ok} onclick={exporter}>{$t('monTheme.exporter' as any)}</button>
+            <button class="lnk" disabled={!jugement.ok} onclick={envoyer}>{$t('monTheme.envoyer' as any)}</button>
             <button class="lnk" onclick={() => { ouvert = false; }}>{$t('monTheme.fermer' as any)}</button>
           </div>
           {#if !jugement.ok && 'champ' in jugement && jugement.champ === 'name'}

@@ -6063,5 +6063,12 @@ export default {
   "monTheme.jeton.player2": "Pasek odtwarzania (dół)",
   "monTheme.jeton.danger": "Błąd",
   "monTheme.jeton.dangerBd": "Obramowanie błędu",
+  "monTheme.envoyer": "Wyślij do kontaktu",
+  "monTheme.carteTexte": "Oto mój motyw Tune „{nom}”.",
+  "monTheme.carteTitre": "Motyw Tune",
+  "monTheme.appliquer": "Zastosuj ten motyw",
+  "monTheme.applique": "Motyw zastosowany w Twoim profilu.",
+  "monTheme.recuIllisible": "Ten motyw jest nieczytelny: nie został zastosowany.",
+  "monTheme.recuSansGreffon": "Zainstaluj wtyczkę „Mój motyw”, aby zastosować ten motyw.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

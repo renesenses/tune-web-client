@@ -6218,6 +6218,13 @@ export default {
   "monTheme.jeton.player2": "Bara de redare (jos)",
   "monTheme.jeton.danger": "Eroare",
   "monTheme.jeton.dangerBd": "Chenar de eroare",
+  "monTheme.envoyer": "Trimiteți unui contact",
+  "monTheme.carteTexte": "Iată tema mea Tune „{nom}”.",
+  "monTheme.carteTitre": "Temă Tune",
+  "monTheme.appliquer": "Aplicați această temă",
+  "monTheme.applique": "Tema a fost aplicată profilului dvs.",
+  "monTheme.recuIllisible": "Această temă nu este lizibilă: nu a fost aplicată.",
+  "monTheme.recuSansGreffon": "Instalați pluginul „Tema mea” pentru a aplica această temă.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

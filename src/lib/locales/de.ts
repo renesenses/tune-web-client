@@ -6218,6 +6218,13 @@ export default {
   "monTheme.jeton.player2": "Wiedergabeleiste (unten)",
   "monTheme.jeton.danger": "Fehler",
   "monTheme.jeton.dangerBd": "Fehlerrand",
+  "monTheme.envoyer": "An einen Kontakt senden",
+  "monTheme.carteTexte": "Hier ist mein Tune-Design „{nom}“.",
+  "monTheme.carteTitre": "Tune-Design",
+  "monTheme.appliquer": "Dieses Design anwenden",
+  "monTheme.applique": "Design auf Ihr Profil angewendet.",
+  "monTheme.recuIllisible": "Dieses Design ist nicht lesbar: Es wurde nicht angewendet.",
+  "monTheme.recuSansGreffon": "Installieren Sie das Plugin „Mein Design“, um dieses Design anzuwenden.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

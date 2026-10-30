@@ -6218,6 +6218,13 @@ export default {
   "monTheme.jeton.player2": "播放栏（下）",
   "monTheme.jeton.danger": "错误",
   "monTheme.jeton.dangerBd": "错误边框",
+  "monTheme.envoyer": "发送给联系人",
+  "monTheme.carteTexte": "这是我的 Tune 主题“{nom}”。",
+  "monTheme.carteTitre": "Tune 主题",
+  "monTheme.appliquer": "应用此主题",
+  "monTheme.applique": "主题已应用到您的用户档案。",
+  "monTheme.recuIllisible": "此主题不可读：未应用。",
+  "monTheme.recuSansGreffon": "请安装“我的主题”插件以应用此主题。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

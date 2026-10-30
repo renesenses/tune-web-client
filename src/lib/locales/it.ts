@@ -6218,6 +6218,13 @@ export default {
   "monTheme.jeton.player2": "Barra di riproduzione (basso)",
   "monTheme.jeton.danger": "Errore",
   "monTheme.jeton.dangerBd": "Bordo di errore",
+  "monTheme.envoyer": "Invia a un contatto",
+  "monTheme.carteTexte": "Ecco il mio tema Tune «{nom}».",
+  "monTheme.carteTitre": "Tema Tune",
+  "monTheme.appliquer": "Applica questo tema",
+  "monTheme.applique": "Tema applicato al tuo profilo.",
+  "monTheme.recuIllisible": "Questo tema non è leggibile: non è stato applicato.",
+  "monTheme.recuSansGreffon": "Installa il plugin «Il mio tema» per applicare questo tema.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

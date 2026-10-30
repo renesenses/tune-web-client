@@ -6070,5 +6070,12 @@ export default {
   "monTheme.jeton.player2": "Thanh phát (dưới)",
   "monTheme.jeton.danger": "Lỗi",
   "monTheme.jeton.dangerBd": "Viền lỗi",
+  "monTheme.envoyer": "Gửi cho một liên hệ",
+  "monTheme.carteTexte": "Đây là giao diện Tune của tôi “{nom}”.",
+  "monTheme.carteTitre": "Giao diện Tune",
+  "monTheme.appliquer": "Áp dụng giao diện này",
+  "monTheme.applique": "Đã áp dụng giao diện cho hồ sơ của bạn.",
+  "monTheme.recuIllisible": "Giao diện này khó đọc: chưa được áp dụng.",
+  "monTheme.recuSansGreffon": "Hãy cài plugin “Giao diện của tôi” để áp dụng giao diện này.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

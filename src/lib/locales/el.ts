@@ -6063,5 +6063,12 @@ export default {
   "monTheme.jeton.player2": "Γραμμή αναπαραγωγής (κάτω)",
   "monTheme.jeton.danger": "Σφάλμα",
   "monTheme.jeton.dangerBd": "Περίγραμμα σφάλματος",
+  "monTheme.envoyer": "Αποστολή σε επαφή",
+  "monTheme.carteTexte": "Ορίστε το θέμα μου στο Tune «{nom}».",
+  "monTheme.carteTitre": "Θέμα Tune",
+  "monTheme.appliquer": "Εφαρμογή αυτού του θέματος",
+  "monTheme.applique": "Το θέμα εφαρμόστηκε στο προφίλ σας.",
+  "monTheme.recuIllisible": "Αυτό το θέμα δεν είναι ευανάγνωστο: δεν εφαρμόστηκε.",
+  "monTheme.recuSansGreffon": "Εγκαταστήστε το πρόσθετο «Το θέμα μου» για να εφαρμόσετε αυτό το θέμα.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

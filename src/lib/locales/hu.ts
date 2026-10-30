@@ -6177,6 +6177,13 @@ export default {
   "monTheme.jeton.player2": "Lejátszósáv (lent)",
   "monTheme.jeton.danger": "Hiba",
   "monTheme.jeton.dangerBd": "Hibakeret",
+  "monTheme.envoyer": "Küldés egy kapcsolatnak",
+  "monTheme.carteTexte": "Íme a Tune-témám: „{nom}”.",
+  "monTheme.carteTitre": "Tune-téma",
+  "monTheme.appliquer": "Téma alkalmazása",
+  "monTheme.applique": "A téma alkalmazva a profiljára.",
+  "monTheme.recuIllisible": "Ez a téma nem olvasható: nem lett alkalmazva.",
+  "monTheme.recuSansGreffon": "A téma alkalmazásához telepítse a „Saját téma” bővítményt.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
