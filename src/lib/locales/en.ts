@@ -4479,7 +4479,6 @@ export default {
   "v2.hint.noKeyNoTickets": ". No key is registered on this server, so there is no thread to show.",
   "v2.hint.processingFromSettings": "Processing runs are started from Settings — Library and Metadata.",
   "v2.hint.serverUnreachableDot": "Server unreachable.",
-  "v2.hint.tracksAnalysed": "{n} tracks analysed. Progress is followed in **{tab}**.",
   "v2.set.browserZoneExists": "That zone already exists: “{nom}” is now the active zone.",
   "v2.zone.browserOtherDevice": "“{nom}” is a browser zone this browser does not play (it belongs to another device): no sound comes out here.",
   "v2.zone.browserPlayHere": "Play it on this device",

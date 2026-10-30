@@ -4459,7 +4459,6 @@ export default {
   "v2.hint.noKeyNoTickets": ". No hay ninguna clave registrada en este servidor, así que no hay ningún hilo que mostrar.",
   "v2.hint.processingFromSettings": "Los procesos se lanzan desde los Ajustes — Biblioteca y Metadatos.",
   "v2.hint.serverUnreachableDot": "Servidor inaccesible.",
-  "v2.hint.tracksAnalysed": "{n} pistas analizadas. El avance se sigue en **{tab}**.",
   "v2.set.browserZoneExists": "Esa zona ya existe: «{nom}» es ahora la zona activa.",
   "v2.zone.browserOtherDevice": "«{nom}» es una zona de navegador que este navegador no reproduce (pertenece a otro dispositivo): aquí no suena nada.",
   "v2.zone.browserPlayHere": "Reproducirla en este dispositivo",

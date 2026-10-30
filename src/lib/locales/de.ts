@@ -4459,7 +4459,6 @@ export default {
   "v2.hint.noKeyNoTickets": " gebunden. Auf diesem Server ist kein Schlüssel hinterlegt, daher gibt es nichts anzuzeigen.",
   "v2.hint.processingFromSettings": "Verarbeitungen werden über die Einstellungen gestartet — Bibliothek und Metadaten.",
   "v2.hint.serverUnreachableDot": "Server nicht erreichbar.",
-  "v2.hint.tracksAnalysed": "{n} Titel analysiert. Der Fortschritt wird in **{tab}** verfolgt.",
   "v2.set.browserZoneExists": "Diese Zone gibt es bereits: „{nom}“ ist jetzt die aktive Zone.",
   "v2.zone.browserOtherDevice": "„{nom}“ ist eine Browser-Zone, die dieser Browser nicht abspielt (sie gehört zu einem anderen Gerät): hier kommt kein Ton.",
   "v2.zone.browserPlayHere": "Auf diesem Gerät abspielen",

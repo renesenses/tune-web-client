@@ -4413,7 +4413,6 @@ export default {
   "v2.hint.noKeyNoTickets": " kulcsához kötődik. Ezen a kiszolgálón nincs kulcs regisztrálva, ezért nincs mit megjeleníteni.",
   "v2.hint.processingFromSettings": "A feldolgozások a Beállításokból indíthatók — Gyűjtemény és Metaadatok.",
   "v2.hint.serverUnreachableDot": "A kiszolgáló nem érhető el.",
-  "v2.hint.tracksAnalysed": "{n} szám elemezve. A haladás itt követhető: **{tab}**.",
   "v2.set.browserZoneExists": "Ez a zóna már létezik: „{nom}” mostantól az aktív zóna.",
   "v2.zone.browserOtherDevice": "„{nom}” egy böngészőzóna, amelyet ez a böngésző nem játszik le (egy másik eszközé): itt nem szól semmi.",
   "v2.zone.browserPlayHere": "Lejátszás ezen az eszközön",

@@ -4481,7 +4481,6 @@ export default {
   "v2.hint.noKeyNoTickets": ". Aucune clé n'est enregistrée sur ce serveur, il n'y a donc aucun fil à afficher.",
   "v2.hint.processingFromSettings": "Les traitements se lancent depuis les Réglages — Bibliothèque et Métadonnées.",
   "v2.hint.serverUnreachableDot": "Serveur injoignable.",
-  "v2.hint.tracksAnalysed": "{n} titres analysés. L'avancement se suit dans **{tab}**.",
   "v2.set.browserZoneExists": "Cette zone existe déjà : « {nom} » est maintenant la zone active.",
   "v2.zone.browserOtherDevice": "« {nom} » est une zone navigateur que ce navigateur ne joue pas (elle appartient à un autre appareil) : rien ne sort ici.",
   "v2.zone.browserPlayHere": "La jouer sur cet appareil",
