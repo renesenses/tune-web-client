@@ -63,7 +63,7 @@
   } from '../../lib/audioBackends';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
-  import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
+  import { followMe, zones, currentZoneId, remettreRepetitionAOff } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
@@ -4271,7 +4271,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="hint">{$t('settings.loopByDefaultHint' as any)}</span>
                 </div>
                 <label class="sw">
-                  <input type="checkbox" bind:checked={$loopByDefault} />
+                  <input type="checkbox" bind:checked={$loopByDefault} onchange={() => { if (!$loopByDefault) void remettreRepetitionAOff(); }} />
                   <span class="slider"></span>
                 </label>
               </div>

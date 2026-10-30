@@ -256,6 +256,32 @@ export async function playAndSync(zoneId: number, body?: Parameters<typeof api.p
 }
 
 /**
+ * renesenses/tune-server-rust#7448 : décocher « Lire en boucle par défaut »
+ * remet à `off` les zones restées en « répéter la piste » (décision de
+ * Bertrand, 30/10/2026 : la case pilote vraiment l'état). Sans cela, la zone
+ * gardait `repeat=one` côté serveur (file persistée) et le même titre repartait
+ * sans fin. Seules les zones en `one` sont touchées.
+ */
+export async function remettreRepetitionAOff(): Promise<void> {
+  const ids = new Set<number>();
+  for (const z of get(zones)) {
+    if (z && z.repeat === 'one') ids.add(z.id);
+  }
+  const { repeatMode } = await import('./nowPlaying');
+  const courante = get(currentZoneId);
+  if (courante != null && get(repeatMode) === 'one') ids.add(courante);
+  for (const id of ids) {
+    try {
+      const r = await api.setRepeat(id, 'off');
+      if (id === courante) repeatMode.set(r.repeat);
+      zones.update((l) => l.map((z) => (z?.id === id ? { ...z, repeat: r.repeat } : z)));
+    } catch {
+      /* non-fatal */
+    }
+  }
+}
+
+/**
  * La radio artiste du serveur (tune-server-rust#5395), synchronisée comme
  * `playAndSync`. `'absente'` (serveur plus ancien) ou `'vide'` (aucun titre) :
  * l'appelant retombe sur l'ancien geste.
