@@ -5527,6 +5527,9 @@ export default {
   "radioGenre.rnb": "R&B",
   "radioGenre.country": "Country",
   "radioGenre.latin": "Latin",
+  "radioGenre.holiday": "Ünnepi zene",
+  "radioGenre.oldies": "Oldies",
+  "radioGenre.soundtrack": "Filmzene",
   // #4805 lot 1 — enrichissement d'après MetaRust (Xavier Joly).
   "credits.wikidataTip": "Hangszerek az előadó Wikidata-adatlapjáról: amin általában játszik, nem feltétlenül ezen a lemezen.",
   "credits.wikidataSource": "a Wikidata szerint",
