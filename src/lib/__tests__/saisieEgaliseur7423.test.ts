@@ -12,15 +12,21 @@ import { locale } from '../i18n';
 
 let hote: HTMLDivElement;
 let composant: Record<string, unknown> | null = null;
-let bandes: { freq: number; gain: number; q: number }[];
+let magasin: { freq: number; gain: number; q: number }[];
+// Le composant remplace son tableau à chaque modification (`bands = [...bands]`) :
+// on lit donc toujours la dernière valeur reliée, jamais le tableau d'origine.
+const bandes = new Proxy([] as any[], { get: (_c, k) => (magasin as any)[k] });
 
 beforeEach(() => {
   locale.set('fr');
   (SVGElement.prototype as any).setPointerCapture = () => {};
-  bandes = [{ freq: 1000, gain: 3, q: 2 }];
+  magasin = [{ freq: 1000, gain: 3, q: 2 }];
   hote = document.createElement('div');
   document.body.appendChild(hote);
-  composant = mount(ParametricEq, { target: hote, props: { bands: bandes } });
+  composant = mount(ParametricEq, { target: hote, props: {
+      get bands() { return magasin; },
+      set bands(v: typeof magasin) { magasin = v; },
+    } });
   flushSync();
   hote.querySelector('circle.band-dot')!.dispatchEvent(new Event('pointerdown', { bubbles: true }));
   flushSync();
