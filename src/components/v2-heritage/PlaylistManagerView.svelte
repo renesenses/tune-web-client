@@ -1304,6 +1304,26 @@
    */
   let refusTransfert = $state<{ url: string | null } | null>(null);
 
+  /**
+   * web#2526 (régis, forum-hifi, 30/10/2026) : « Importer », « Transférer » et
+   * « Comparer » ne faisaient RIEN. Leurs `catch` n'écrivaient qu'en console :
+   * un greffon de conversion absent (503 `greffon_requis`), un serveur sans
+   * greffons (501) ou une playlist refusée laissaient la boîte telle quelle,
+   * bouton revenu, sans un mot. La raison du serveur s'affiche désormais dans
+   * la boîte ouverte ; une seule boîte est ouverte à la fois, d'où un seul champ.
+   */
+  let echecAction = $state<string | null>(null);
+
+  function noterEchecAction(e: unknown) {
+    // `errText` tait le message générique et la panne réseau, pour qu'un écran
+    // dise sa propre phrase : ici, la boîte n'en a pas d'autre.
+    const brut = e instanceof Error ? e.message : '';
+    echecAction = errText(e)
+      ?? (/^(Failed to fetch|Load failed|NetworkError)/i.test(brut) || !brut
+        ? $tr('common.serverUnreachable')
+        : brut);
+  }
+
   function noterRefusTransfert(e: unknown): boolean {
     if (!estRefusPremium(e)) return false;
     const url = (e as { corps?: { upgrade_url?: unknown } }).corps?.upgrade_url;
@@ -1313,6 +1333,7 @@
 
   function openImport(service: string, pl: StreamingPlaylist) {
     refusTransfert = null;
+    echecAction = null;
     importTarget = { service, playlist: pl };
     importName = pl.name;
     importResult = null;
@@ -1327,6 +1348,7 @@
   async function doImport() {
     if (!importTarget) return;
     importing = true;
+    echecAction = null;
     try {
       // L'import passe par le transfert vers « local » : POST /playlists/import
       // n'existe pas côté serveur (405 — collision avec /playlists/:id), le
@@ -1351,7 +1373,10 @@
       playlistsStore.set(list);
     } catch (e) {
       console.error('Import playlist error:', e);
-      if (!noterRefusTransfert(e)) importResult = { name: importName, count: -1, total: 0 };
+      if (!noterRefusTransfert(e)) {
+        noterEchecAction(e);
+        importResult = { name: importName, count: -1, total: 0 };
+      }
     }
     importing = false;
   }
@@ -1536,6 +1561,7 @@
     transferResult = null;
     transferring = false;
     refusTransfert = null;
+    echecAction = null;
     showTransfer = true;
   }
 
@@ -1633,6 +1659,8 @@
     if (!sourceId) return;
     transferring = true;
     expandedAlternatives = new Set();
+    refusTransfert = null;
+    echecAction = null;
     try {
       const v2Result = await api.transferPlaylistV2({
         source_service: selectedService,
@@ -1669,7 +1697,7 @@
       playlistsStore.set(list);
     } catch (e) {
       console.error('Transfer playlist error:', e);
-      noterRefusTransfert(e);
+      if (!noterRefusTransfert(e)) noterEchecAction(e);
     }
     transferring = false;
   }
@@ -1681,6 +1709,7 @@
     diffTargetService = '';
     diffTargetPlaylistId = '';
     diffTargetPlaylists = [];
+    echecAction = null;
     showDiff = true;
   }
 
@@ -1700,6 +1729,7 @@
     diffTargetService = service;
     diffTargetPlaylistId = '';
     diffLoadingPlaylists = true;
+    echecAction = null;
     try {
       // Compare targets: local playlists, streaming playlists, or manual
       // collections (Elie). Collections are fetched on demand.
@@ -1712,6 +1742,7 @@
       diffTargetPlaylists = [...list].sort((a: any, b: any) => comparerAlphabetique(a.name, b.name));
     } catch (e) {
       console.error('Load diff playlists error:', e);
+      noterEchecAction(e);
     }
     diffLoadingPlaylists = false;
   }
@@ -1720,6 +1751,7 @@
     const sourceId = selectedPlaylist?.id?.toString() ?? selectedStreamingPl?.source_id;
     if (!sourceId || !diffTargetPlaylistId || !diffTargetService) return;
     diffing = true;
+    echecAction = null;
     try {
       diffResult = await api.diffPlaylists(
         selectedService,
@@ -1729,6 +1761,7 @@
       );
     } catch (e) {
       console.error('Diff playlists error:', e);
+      noterEchecAction(e);
     }
     diffing = false;
   }
@@ -2686,6 +2719,7 @@
           {/if}
         </div>
       {/if}
+      {#if echecAction}<p class="echec-action" role="alert" data-echec-action>{echecAction}</p>{/if}
       {#if importResult}
         {#if importResult.count > 0}
           <div class="import-done">
@@ -2742,6 +2776,7 @@
           {/if}
         </div>
       {/if}
+      {#if echecAction}<p class="echec-action" role="alert" data-echec-action>{echecAction}</p>{/if}
       {#if transferResult}
         <div class="transfer-report">
           <h3>{$tr('playlist.transferComplete')}</h3>
@@ -2876,6 +2911,7 @@
 {#if showDiff}
   <div class="modal-overlay" onclick={closeDiff}>
     <div class="modal-content modal-wide" onclick={(e) => e.stopPropagation()}>
+      {#if echecAction}<p class="echec-action" role="alert" data-echec-action>{echecAction}</p>{/if}
       {#if diffResult}
         <div class="diff-report">
           <h3>{diffResult.source_name} vs {diffResult.target_name}</h3>
@@ -3158,6 +3194,7 @@
   .refus-premium-transfert { margin-bottom: 16px; padding: 12px 14px; border: 1px solid var(--tune-border); border-radius: 8px; background: var(--tune-surface); }
   .refus-premium-transfert p { margin: 0 0 8px; }
   .refus-premium-transfert a { color: var(--tune-accent); }
+  .echec-action { margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--tune-border); border-radius: 8px; background: var(--tune-surface); color: var(--tune-danger, #e5484d); }
 
   .pm-header {
     display: flex;

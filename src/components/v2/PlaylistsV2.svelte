@@ -26,6 +26,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { activeView } from '../../lib/stores/navigation';
   import { formatDuration, fold, errText } from '../../lib/utils';
+  import { bilanImportM3u } from '../../lib/bilanImportM3u';
   import {
     copierTout,
     motifSauvegardeImpossible,
@@ -637,12 +638,13 @@
       const r = await api.importPlaylistFile(f);
       // On annonce ce qui est RAPPROCHÉ, pas « importé » : une ligne du M3U
       // qui ne correspond à aucun fichier de la bibliothèque n'entre pas.
-      notifications.success(
-        `${$t('v2.pl.importDone' as any)} — ${r.matched ?? 0}/${(r.matched ?? 0) + (r.missing ?? 0)}`,
-      );
+      // web#2526 : le compte vient de `total_entries` / `not_found`, les
+      // champs que le serveur envoie vraiment (voir `lib/bilanImportM3u`).
+      const b = bilanImportM3u(r);
+      notifications.success(`${$t('v2.pl.importDone' as any)} — ${b.rapprochees}/${b.total}`);
       load();
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifications.error(errText(e) ?? $t('common.error' as any));
     } finally {
       importEnCours = false;
     }
