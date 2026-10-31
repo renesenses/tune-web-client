@@ -34,8 +34,16 @@
 
 const CLE = 'tune.zonesNavigateurDeCetAppareil';
 
-/** Le nom que le web donne à sa zone (`settings.thisComputer`, 11 langues). */
+/**
+ * Le nom que le web donne à sa zone (`settings.thisComputer`, 11 langues), puis
+ * ceux que le serveur lui donne depuis #3067 (tune-server-rust 5f2a821e9) :
+ * une zone navigateur restée sur « Cet ordinateur » / « This computer » est
+ * renommée « Ce navigateur » / « This browser » au démarrage. Le serveur n'a
+ * pas d'autre nom (pas de clé i18n) ; on garde les anciens pour les serveurs
+ * plus anciens.
+ */
 const NOMS_DU_WEB = [
+  'Ce navigateur', 'This browser',
   'This computer', 'Cet ordinateur', 'Dieser Computer', 'Questo computer',
   'Este ordenador', 'Acest computer', 'Den här datorn', 'Ez a számítógép',
   '本机', '이 컴퓨터', 'このコンピューター',
