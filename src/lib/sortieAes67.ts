@@ -168,3 +168,24 @@ export function cadenceKhz(cadence: number | null, langue?: string): string | nu
   if (cadence === null) return null;
   return `${(cadence / 1000).toLocaleString(langue, { maximumFractionDigits: 1 })} kHz`;
 }
+
+/** La case « Expérimental › Sortie AES67 » (rc10, désactivée par défaut). */
+export interface CaseAes67 {
+  /** Le réglage est coché : le greffon est installé et non désactivé. */
+  cochee: boolean;
+  /** Ce serveur porte le greffon (Linux) : sinon la case est grisée. */
+  disponible: boolean;
+}
+
+/**
+ * Lit la fiche `GET /plugins/aes67` du serveur. Elle répond
+ * `status: "not_installed"` (réglage décoché, cas par défaut),
+ * `"installed"` (coché, en attente de redémarrage) ou `"loaded"` (coché et
+ * chargé) ; `compatible: false` quand le greffon n'est pas compilé ici.
+ */
+export function lireCaseAes67(fiche: unknown): CaseAes67 {
+  const f = (fiche && typeof fiche === 'object' ? fiche : {}) as Record<string, unknown>;
+  const disponible = f.compatible !== false && f.status !== 'unavailable';
+  const cochee = disponible && f.installed === true && f.enabled !== false;
+  return { cochee, disponible };
+}

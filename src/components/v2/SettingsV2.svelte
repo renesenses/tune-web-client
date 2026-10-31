@@ -183,6 +183,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import SauvegardeCloudV2 from './SauvegardeCloudV2.svelte';
   import ClesApiV2 from './ClesApiV2.svelte';
   import SortieAes67V2 from './SortieAes67V2.svelte';
+  import SortieAes67ExperimentaleV2 from './SortieAes67ExperimentaleV2.svelte';
   import { presenceSortieAes67 } from '../../lib/stores/sortieAes67';
   // tune-server-rust#4805 lot 2 — les passes de lot BPM et Discogs.
   import PassesMetarustV2 from './PassesMetarustV2.svelte';
@@ -5544,6 +5545,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'apiKeys'}
               <ClesApiV2 />
+
+            {:else if s.id === 'aes67Experimental'}
+              <SortieAes67ExperimentaleV2 />
 
             {:else if s.id === 'aes67'}
               <SortieAes67V2 />
