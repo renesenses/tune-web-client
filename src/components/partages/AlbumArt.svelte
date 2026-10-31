@@ -24,9 +24,14 @@
        `coverPath` ne se charge pas (album de contact : la vignette du cloud,
        puis Cover Art Archive). Sans elle, rien ne change. */
     repli?: string | null;
+    /* tune-server-rust#7195 — `coverPath` est une adresse EXTERNE que le
+       navigateur charge telle quelle (vignette `https://i.discogs.com/…` de
+       « Ma collection physique ») : ni relais du serveur, ni `?size=`, et
+       aucun référent envoyé. L'appelant garantit l'adresse. */
+    directe?: boolean;
   }
 
-  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null, fallbackInitials = null, vignette = false, repli = null }: Props = $props();
+  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null, fallbackInitials = null, vignette = false, repli = null, directe = false }: Props = $props();
   /* #6521 — le repli explicite ne s'essaie qu'une fois par couple de props. */
   let repliTente = $state(false);
 
@@ -132,7 +137,7 @@
    * sert à rien.
    */
   const vignetteUtile = $derived(
-    vignette && !!resolvedCoverPath
+    vignette && !directe && !!resolvedCoverPath
       && artworkUrl(resolvedCoverPath, 80) !== artworkUrl(resolvedCoverPath),
   );
   $effect(() => {
@@ -143,7 +148,7 @@
   const tailleDemandee = $derived(vignetteUtile ? tailleDeVignette(size || largeurMesuree || 0, densite) : undefined);
   const enAttenteDeMesure = $derived(vignetteUtile && !size && largeurMesuree === undefined);
 
-  let src = $derived(enAttenteDeMesure ? '' : artworkUrl(resolvedCoverPath, tailleDemandee));
+  let src = $derived(directe ? (resolvedCoverPath ?? '') : enAttenteDeMesure ? '' : artworkUrl(resolvedCoverPath, tailleDemandee));
 
   /*
    * web#2353 — une illustration nettement rectangulaire (pochette
@@ -172,6 +177,7 @@
       width={size || undefined}
       height={size || undefined}
       loading="lazy"
+      referrerpolicy={directe ? 'no-referrer' : undefined}
       class:entiere={contenue}
       onload={handleLoad}
       onerror={handleError}
