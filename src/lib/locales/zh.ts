@@ -6300,6 +6300,15 @@ export default {
   "monTheme.applique": "主题已应用到您的用户档案。",
   "monTheme.recuIllisible": "此主题不可读：未应用。",
   "monTheme.recuSansGreffon": "请安装“我的主题”插件以应用此主题。",
+  "mini.ecouter": "收听",
+  "mini.plus": "更多",
+  "mini.epingle": "保持置顶",
+  "mini.replier": "收起",
+  "mini.deplier": "展开",
+  "mini.complet": "完整窗口",
+  "mini.rienEnLecture": "未在播放",
+  "mini.choisirZone": "选择区域",
+  "mini.pause": "暂停",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

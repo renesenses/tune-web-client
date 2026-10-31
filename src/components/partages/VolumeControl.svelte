@@ -47,7 +47,10 @@
 
   // #1274 \u2014 le mode dB n'est plus une simple fa\u00E7on d'\u00C9CRIRE le pour-cent : le
   // champ est saisissable ; sans grille de sortie, la valeur part dans `volume_db`.
-  let modeDb = $derived($preferences.volumeDisplay === 'dB');
+  // Vue mini (maquette A, 31/10/2026) : le volume s'y lit TOUJOURS en dB,
+  // quel que soit le réglage d'affichage — `enDb` le demande.
+  let { enDb = false }: { enDb?: boolean } = $props();
+  let modeDb = $derived(enDb || $preferences.volumeDisplay === 'dB');
 
   // tune-server-rust#6787 — le dB affiché est celui du GAIN, lu sur la loi de
   // la zone (`volume_curve`) : 50 % valent −30 dB sur une sortie logicielle.

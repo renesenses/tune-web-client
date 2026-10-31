@@ -36,6 +36,7 @@
  * l'utilisateur.
  */
 import { readable, writable } from 'svelte/store';
+import { vueMiniActive } from './vueMini';
 
 export const SEUIL_ICONES = 1100;
 export const SEUIL_TIROIR = 760;
@@ -43,7 +44,10 @@ export const SEUIL_TIROIR = 760;
 export type FormatEcran = 'large' | 'etroit' | 'tiroir';
 
 /** La règle, isolée pour être éprouvée sans monter la coquille. */
-export function formatPour(largeur: number): FormatEcran {
+export function formatPour(largeur: number, mini: boolean = vueMiniActive()): FormatEcran {
+  // Vue mini (`?vue=mini`) : le gabarit téléphone, quelle que soit la largeur.
+  // Le menu complet y est le tiroir, ouvert par l'onglet « Plus ».
+  if (mini) return 'tiroir';
   if (largeur <= SEUIL_TIROIR) return 'tiroir';
   if (largeur <= SEUIL_ICONES) return 'etroit';
   return 'large';

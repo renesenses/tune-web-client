@@ -6300,6 +6300,15 @@ export default {
   "monTheme.applique": "Tema a fost aplicată profilului dvs.",
   "monTheme.recuIllisible": "Această temă nu este lizibilă: nu a fost aplicată.",
   "monTheme.recuSansGreffon": "Instalați pluginul „Tema mea” pentru a aplica această temă.",
+  "mini.ecouter": "Ascultă",
+  "mini.plus": "Mai mult",
+  "mini.epingle": "Păstrează deasupra",
+  "mini.replier": "Restrânge",
+  "mini.deplier": "Extinde",
+  "mini.complet": "Fereastră completă",
+  "mini.rienEnLecture": "Nimic în redare",
+  "mini.choisirZone": "Alege o zonă",
+  "mini.pause": "Pauză",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

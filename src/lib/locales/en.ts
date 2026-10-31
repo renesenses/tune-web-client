@@ -6320,6 +6320,15 @@ export default {
   "monTheme.applique": "Theme applied to your profile.",
   "monTheme.recuIllisible": "This theme is not readable: it was not applied.",
   "monTheme.recuSansGreffon": "Install the “My theme” plugin to apply this theme.",
+  "mini.ecouter": "Listen",
+  "mini.plus": "More",
+  "mini.epingle": "Keep on top",
+  "mini.replier": "Collapse",
+  "mini.deplier": "Expand",
+  "mini.complet": "Full window",
+  "mini.rienEnLecture": "Nothing playing",
+  "mini.choisirZone": "Choose a zone",
+  "mini.pause": "Pause",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
