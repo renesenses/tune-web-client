@@ -2401,6 +2401,7 @@ export default {
   "ambiance.renameError": "Rinomina non riuscita",
   "ambiance.deleteError": "Eliminazione non riuscita",
   "app.dismiss": "Nascondi",
+  "app.newInterfaceReload": "Nuova versione dell’interfaccia — clicca per ricaricare",
   "app.enrichmentRunning": "Arricchimento in corso…",
   "app.scanArtistImagesPremiumSkipped": "Scansione completata · le immagini degli artisti non sono state cercate automaticamente (funzione Premium). Puoi avviare manualmente «Arricchisci immagini artisti» in Impostazioni > Libreria.",
   "app.scanArtistImagesDisabled": "Scansione completata · le immagini degli artisti non sono state cercate perché l'arricchimento automatico è disattivato in Impostazioni > Libreria.",

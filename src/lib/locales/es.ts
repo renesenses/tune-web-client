@@ -2401,6 +2401,7 @@ export default {
   "ambiance.renameError": "No se pudo renombrar",
   "ambiance.deleteError": "No se pudo eliminar",
   "app.dismiss": "Ocultar",
+  "app.newInterfaceReload": "Nueva versión de la interfaz: haz clic para recargar",
   "app.enrichmentRunning": "Enriquecimiento en curso…",
   "app.scanArtistImagesPremiumSkipped": "Escaneo completado · las imágenes de artistas no se buscaron automáticamente (función Premium). Puedes ejecutar «Enriquecer imágenes de artistas» manualmente en Ajustes > Biblioteca.",
   "app.scanArtistImagesDisabled": "Escaneo completado · las imágenes de artistas no se buscaron porque el enriquecimiento automático está desactivado en Ajustes > Biblioteca.",

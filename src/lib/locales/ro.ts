@@ -2407,6 +2407,7 @@ export default {
   "ambiance.renameError": "Redenumirea a eșuat",
   "ambiance.deleteError": "Ștergerea a eșuat",
   "app.dismiss": "Ascunde",
+  "app.newInterfaceReload": "Versiune nouă a interfeței — clic pentru reîncărcare",
   "app.enrichmentRunning": "Îmbogățire în curs…",
   "app.scanArtistImagesPremiumSkipped": "Scanare finalizată · imaginile artiștilor nu au fost căutate automat (funcție Premium). Poți porni manual „Îmbogățește imaginile artiștilor” din Setări > Bibliotecă.",
   "app.scanArtistImagesDisabled": "Scanare finalizată · imaginile artiștilor nu au fost căutate deoarece îmbogățirea automată este dezactivată în Setări > Bibliotecă.",

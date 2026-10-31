@@ -121,6 +121,7 @@ export default {
   "app.scanArtistImagesDisabled": "Skanning fullført · artistbilder ble ikke hentet fordi automatisk berikelse er slått av i Innstillinger > Bibliotek.",
   "app.updateAvailable": "Tune v{version} er tilgjengelig — klikk for å oppdatere",
   "app.dismiss": "Lukk",
+  "app.newInterfaceReload": "Ny versjon av grensesnittet — klikk for å laste inn på nytt",
   "settings.dsdNetworkTitle": "DSD-avspilling (nettverksavspillere)",
   "settings.dsdNetworkHint": "Strøm den transkodede DSD-en kontinuerlig i stedet for via en midlertidig fil. Løser bortfall / stillhet på DSD 256/512 med enkelte DLNA-avspillere. Trer i kraft umiddelbart, uten omstart.",
   "settings.dsdNetworkLabel": "DSD → nettverkstranskoding",
