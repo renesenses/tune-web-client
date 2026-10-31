@@ -19,6 +19,8 @@
     cleEtatPort, cleTransport, PERIODE_RAFRAICHISSEMENT_MS, type EtatAes67,
   } from '../../lib/sortieAes67';
 
+  const LIEN_OFFRES = 'https://mozaiklabs.fr/pricing';
+
   let etat = $state<EtatAes67 | null>(null);
   let panne = $state(false);
 
@@ -59,7 +61,7 @@
   {:else if !etat.premium}
     <p class="hint" data-aes67-premium>
       {$t('aes67.premiumRequired')}
-      <a href="https://mozaiklabs.fr/pricing" target="_blank" rel="noopener noreferrer">mozaiklabs.fr/pricing</a>
+      <a href={LIEN_OFFRES} target="_blank" rel="noopener noreferrer">{LIEN_OFFRES.replace('https://', '')}</a>
     </p>
   {:else}
     <p class="hint">{$t('aes67.intro')}</p>
