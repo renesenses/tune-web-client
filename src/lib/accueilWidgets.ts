@@ -1477,7 +1477,7 @@ export const WIDGETS: Widget[] = [
         reprisesUtiles(liste(await api.getContinueListening(limiteDe(ctx)))).map((o, i) => {
           const el = versElement(o, i, 'rep');
           return { ...el,
-            titre: (o.context_type === 'album' || o.context_type === 'playlist') && o.last_track_title ? o.last_track_title : el.titre,
+            titre: (o.context_type === 'album' || o.context_type === 'playlist' || o.context_type === 'podcast') && o.last_track_title ? o.last_track_title : el.titre,
             sous: sousTitreReprise(o) || el.sous,
             jouer: gesteReprise(o),
           };
