@@ -102,7 +102,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
   <div class="portrait">
-    <AlbumArt coverPath={imagePath} albumId={null} size={0} alt={nom} fallbackInitials={initiales} />
+    <AlbumArt coverPath={imagePath} albumId={null} size={0} recadrer alt={nom} fallbackInitials={initiales} />
   </div>
   <div class="ident">
     <h1>{nom}<EcoutesCommunaute objet={ecoutes} /></h1>
