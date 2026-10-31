@@ -45,6 +45,7 @@
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { messageEchecLecture } from '../../lib/echecLecture';
   import { activeView } from '../../lib/stores/navigation';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult, FeaturedSection } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -1256,6 +1257,14 @@
     }
     return null;
   }
+
+  /** Forum, #7388 : « Accéder aux réglages » doit mener là où se connectent les
+   *  services (Réglages ▸ Accès et jetons ▸ streaming), pas sur l'onglet
+   *  Général. Sans cible, SettingsV2 ouvre son onglet par défaut. */
+  function ouvrirReglagesJetons() {
+    v2SettingsTarget.set({ tab: 'access', section: 'streaming' });
+    activeView.set('settings');
+  }
 </script>
 
 <section class="v2-str tune-v2">
@@ -1320,7 +1329,7 @@
         <p class="sub">
           {$t('v2.stream.noServiceA' as any)} <b>{$t('v2.stream.noServiceWhere' as any)}</b> {$t('v2.stream.noServiceB' as any)}
         </p>
-        <button class="lnk" onclick={() => activeView.set('settings')}>{$t('v2.eq.openSettings' as any)}</button>
+        <button class="lnk" onclick={ouvrirReglagesJetons}>{$t('v2.eq.openSettings' as any)}</button>
       </div>
 
     {:else if results || bcSearch}
