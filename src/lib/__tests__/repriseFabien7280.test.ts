@@ -12,7 +12,7 @@ describe('Reprise de lecture de Fabien #7280', () => {
     mocks.getContinueListening.mockResolvedValue([{ context_type: type, context_id: 'objet', source: 'qobuz', title: 'Conteneur', last_track_title: 'Dernier titre', cover_path: 'podcast.jpg', resume_key: 'opaque' }]);
     const rows = await widgetParId('reprendre')!.charger(ctx);
     expect(rows).toHaveLength(1);
-    expect(rows[0].titre).toBe(['album', 'playlist'].includes(type) ? 'Dernier titre' : 'Conteneur');
+    expect(rows[0].titre).toBe(['album', 'playlist', 'podcast'].includes(type) ? 'Dernier titre' : 'Conteneur');
     expect(rows[0].cover).toBe('podcast.jpg');
     await rows[0].jouer!(27);
     expect(mocks.resumeListening).toHaveBeenLastCalledWith(27, 'opaque');
