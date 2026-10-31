@@ -125,6 +125,7 @@ export default {
   "app.scanArtistImagesDisabled": "A vizsgálat befejeződött · az előadók képei nem lettek lekérve, mert az automatikus gazdagítás ki van kapcsolva a Beállítások > Könyvtár menüben.",
   "app.updateAvailable": "Elérhető a Tune v{version} — kattints a frissítéshez",
   "app.dismiss": "Elvetés",
+  "app.newInterfaceReload": "Új felületverzió — kattints az újratöltéshez",
   // Beállítások — DSD hálózati streaming
   "settings.dsdNetworkTitle": "DSD-lejátszás (hálózati renderelők)",
   "settings.dsdNetworkHint": "Az átkódolt DSD folyamatos streamelése ideiglenes fájl helyett. Megszünteti a kihagyásokat és a néma szakaszokat DSD 256/512 esetén egyes DLNA-renderelőknél. Azonnal életbe lép, újraindítás nélkül.",

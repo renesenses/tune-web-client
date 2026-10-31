@@ -121,6 +121,7 @@ export default {
   "app.scanArtistImagesDisabled": "Skanowanie zakończone · zdjęcia wykonawców nie zostały pobrane, ponieważ automatyczne wzbogacanie jest wyłączone w Ustawienia > Biblioteka.",
   "app.updateAvailable": "Dostępna wersja Tune v{version} — kliknij, aby zaktualizować",
   "app.dismiss": "Ukryj",
+  "app.newInterfaceReload": "Nowa wersja interfejsu — kliknij, aby przeładować",
   "settings.dsdNetworkTitle": "Odtwarzanie DSD (odtwarzacze sieciowe)",
   "settings.dsdNetworkHint": "Przesyła transkodowany DSD w ciągłym strumieniu zamiast przez plik tymczasowy. Usuwa przerwy i ciszę przy DSD 256/512 na niektórych odtwarzaczach DLNA. Działa natychmiast, bez ponownego uruchamiania.",
   "settings.dsdNetworkLabel": "Transkodowanie DSD → sieć",

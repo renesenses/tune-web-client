@@ -2361,6 +2361,7 @@ export default {
   "ambiance.renameError": "Kunde inte byta namn",
   "ambiance.deleteError": "Kunde inte ta bort",
   "app.dismiss": "Dölj",
+  "app.newInterfaceReload": "Ny version av gränssnittet – klicka för att ladda om",
   "app.enrichmentRunning": "Berikning pågår…",
   "app.scanArtistImagesPremiumSkipped": "Skanningen är klar · artistbilder hämtades inte automatiskt (Premium-funktion). Du kan köra ”Berika artistbilder” manuellt under Inställningar > Bibliotek.",
   "app.scanArtistImagesDisabled": "Skanningen är klar · artistbilder hämtades inte eftersom automatisk berikning är avstängd under Inställningar > Bibliotek.",

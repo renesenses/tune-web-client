@@ -125,6 +125,7 @@ export default {
   'app.scanArtistImagesDisabled': 'Scan terminé · les images d’artistes n’ont pas été recherchées car l’enrichissement automatique est désactivé dans Réglages > Bibliothèque.',
   'app.updateAvailable': 'Tune v{version} disponible — cliquez pour mettre à jour',
   'app.dismiss': 'Masquer',
+  'app.newInterfaceReload': 'Nouvelle version de l’interface — cliquez pour recharger',
   // Réglages — streaming DSD réseau
   'settings.dsdNetworkTitle': 'Lecture DSD (renderers réseau)',
   'settings.dsdNetworkHint': 'Diffuse le DSD transcodé en flux continu au lieu d\'un fichier temporaire. Corrige les coupures / silences en DSD 256/512 sur certains renderers DLNA. Effet immédiat, sans redémarrage.',

@@ -218,6 +218,7 @@
     startUpdatePolling, stopUpdatePolling,
     updateAvailable, latestVersion, updateBannerDismissed, dismissUpdateBanner,
   } from '../../lib/stores/updates';
+  import { interfacePerimee } from '../../lib/versionInterface';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
@@ -587,7 +588,7 @@
   }
 </script>
 
-<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} bind:this={coquilleEl}>
+<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} bind:this={coquilleEl}>
   <!--
     Le raccourci se pose depuis N'IMPORTE QUEL écran.
 
@@ -724,6 +725,20 @@
         {$t('app.updateAvailable').replace('{version}', String($latestVersion ?? ''))}
       </button>
       <button class="maj-x" onclick={dismissUpdateBanner}
+        aria-label={$t('app.dismiss')} title={$t('app.dismiss')}>&times;</button>
+    </div>
+  {/if}
+
+  {#if $interfacePerimee && !annonceMaj}
+    <!--
+      rc10 : le `web/` servi n'est plus celui de cet onglet (build différent,
+      voir `lib/versionInterface.ts`). Pas de rechargement imposé : la zone
+      navigateur peut être en train de jouer. Même place que l'annonce de
+      mise à jour, qui prime si les deux tombent ensemble.
+    -->
+    <div class="maj">
+      <button class="maj-txt" onclick={() => location.reload()} use:bulleTexte>{$t('app.newInterfaceReload' as any)}</button>
+      <button class="maj-x" onclick={() => interfacePerimee.set(false)}
         aria-label={$t('app.dismiss')} title={$t('app.dismiss')}>&times;</button>
     </div>
   {/if}
@@ -1001,6 +1016,7 @@
   /* La grappe est en ABSOLU : la bannière du flux ne la pousse pas toute
      seule, il faut le lui dire — sinon les trois ronds se posent dessus. */
   .avec-maj .av-tr{top:calc(20px + var(--maj-h))}
+  .avec-maj-interface .av-tr{top:calc(20px + var(--maj-h))}
   /* Bannière de mise à jour. Les deux moitiés sont des BOUTONS : le texte mène
      aux Réglages, la croix masque l'annonce pour cette version-là. */
   .maj{flex:0 0 var(--maj-h); display:flex; align-items:center; gap:10px;

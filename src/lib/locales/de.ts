@@ -2401,6 +2401,7 @@ export default {
   "ambiance.renameError": "Umbenennen fehlgeschlagen",
   "ambiance.deleteError": "Löschen fehlgeschlagen",
   "app.dismiss": "Ausblenden",
+  "app.newInterfaceReload": "Neue Version der Oberfläche — zum Neuladen klicken",
   "app.enrichmentRunning": "Anreicherung läuft…",
   "app.scanArtistImagesPremiumSkipped": "Scan abgeschlossen · Künstlerbilder wurden nicht automatisch abgerufen (Premium-Funktion). Du kannst „Künstlerbilder anreichern“ unter Einstellungen > Bibliothek manuell starten.",
   "app.scanArtistImagesDisabled": "Scan abgeschlossen · Künstlerbilder wurden nicht abgerufen, weil die automatische Anreicherung unter Einstellungen > Bibliothek deaktiviert ist.",
