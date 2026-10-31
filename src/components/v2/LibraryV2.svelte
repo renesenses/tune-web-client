@@ -47,7 +47,7 @@
   import { albums, libraryLoading, libraryFolderScope } from '../../lib/stores/library';
   // tune-server-rust#7597 — le bouton « Répertoire » et la lecture du dossier.
   import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
-  import { choisirDossierBibliotheque, retirerDossierBibliotheque, restaurerDossierBibliotheque } from '../../lib/dossierBibliotheque';
+  import { choisirDossierBibliotheque, restaurerDossierBibliotheque, suivreLeRetraitDeLaPortee } from '../../lib/dossierBibliotheque';
   import { lireDossier, ajouterDossierALaFile } from '../../lib/lectureDossier';
   // 🔴 renesenses/tune-server-rust#4800 — la grille se sert PAR PAGES. La
   // coquille ne charge plus la bibliothèque entière au démarrage ; cet écran
@@ -237,13 +237,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return () => { perime = true; };
   });
   function retirerPortee() {
-    // #7597 — retirer le filtre l'oublie aussi pour ce profil.
-    retirerDossierBibliotheque();
+    libraryFolderScope.set(null);
   }
   // #7597 — au retour dans la Bibliothèque, le dernier dossier choisi par le
   // bouton « Répertoire » revient ; une portée déjà posée (arrivée depuis
-  // Répertoires) prime. Une seule fois, au montage.
+  // Répertoires) prime. Une seule fois, au montage. Retirer la pastille
+  // pendant que l'écran vit l'oublie (`suivreLeRetraitDeLaPortee`).
   if (!untrack(() => depot)) restaurerDossierBibliotheque();
+  $effect(() => suivreLeRetraitDeLaPortee());
 
   /**
    * renesenses/tune-server-rust#4319 (fil 1817) — la RECHERCHE de la

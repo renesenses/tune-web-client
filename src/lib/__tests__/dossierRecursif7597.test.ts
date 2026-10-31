@@ -22,14 +22,14 @@ import { zones, currentZoneId } from '../stores/zones';
 import { activeView } from '../stores/navigation';
 import { albums as albumsStore, libraryFolderScope } from '../stores/library';
 import { preferences } from '../stores/preferences';
-import { porteeAuMontage, choisirDossierBibliotheque, retirerDossierBibliotheque } from '../dossierBibliotheque';
+import { porteeAuMontage, choisirDossierBibliotheque, suivreLeRetraitDeLaPortee } from '../dossierBibliotheque';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 vi.setConfig({ testTimeout: 30_000 });
 
 const ZONE = { id: 4, name: 'Salon', state: 'stopped', volume: 0.5 } as any;
-const DOSSIER = '/music/Coffret';
+const DOSSIER = '/music/Jazz';
 
 type Envoi = { methode: string; chemin: string; corps: any };
 let envois: Envoi[] = [];
@@ -56,7 +56,7 @@ function repondre(url: string, init?: RequestInit): Response {
   if (p === '/library/browse/dir') {
     return reponse(200, {
       path: '/music', parent: null, music_root: '/music', accessible: true, tracks: [],
-      directories: [{ name: 'Coffret', path: DOSSIER, track_count: 7 }],
+      directories: [{ name: 'Jazz', path: DOSSIER, track_count: 7 }],
     });
   }
   if (p === `/zones/${ZONE.id}/play` && refusLecture) return reponse(refusLecture.status, refusLecture.corps);
@@ -65,8 +65,8 @@ function repondre(url: string, init?: RequestInit): Response {
   if (p === '/library/folder-facet') {
     const chemin = u.searchParams.get('path');
     return reponse(200, chemin
-      ? { path: chemin, crumbs: [{ name: 'music', path: '/music' }, { name: 'Coffret', path: DOSSIER }], children: [] }
-      : { path: null, crumbs: [], children: [{ name: 'Coffret', path: DOSSIER, count: 7, has_children: false }] });
+      ? { path: chemin, crumbs: [{ name: 'music', path: '/music' }, { name: 'Jazz', path: DOSSIER }], children: [] }
+      : { path: null, crumbs: [], children: [{ name: 'Jazz', path: DOSSIER, count: 7, has_children: false }] });
   }
   if (/\/library\/albums-detailed/.test(p)) return reponse(200, { items: [], total: 0 });
   if (/\/library\/tracks/.test(p)) return reponse(200, { items: [], total: 0 });
@@ -177,13 +177,14 @@ describe('#7597 — Bibliothèque : le bouton « Répertoire » et la mémoire p
     expect(porteeAuMontage(null, '' as any)).toBe(null);
   });
 
-  it('choisir retient le dossier pour le profil ; retirer l’oublie', () => {
+  it('choisir retient le dossier pour le profil ; retirer la pastille l’oublie', () => {
+    const fin = suivreLeRetraitDeLaPortee();
     choisirDossierBibliotheque(DOSSIER);
     expect(get(libraryFolderScope)).toBe(DOSSIER);
     expect(get(preferences).bibliothequeDossier).toBe(DOSSIER);
-    retirerDossierBibliotheque();
-    expect(get(libraryFolderScope)).toBe(null);
+    libraryFolderScope.set(null); // la croix de la pastille
     expect(get(preferences).bibliothequeDossier).toBe(null);
+    fin();
   });
 
   async function ouvrirBibliotheque() {
@@ -200,9 +201,10 @@ describe('#7597 — Bibliothèque : le bouton « Répertoire » et la mémoire p
     expect(choix()!.textContent).toContain('Répertoire');
     choix()!.click();
     flushSync();
-    // On descend dans « Coffret » par le sélecteur partagé, puis on filtre.
-    await attendreQue(() => [...hote!.querySelectorAll('button')].some((b) => b.textContent?.trim().startsWith('Coffret')), 'le dossier Coffret');
-    [...hote!.querySelectorAll<HTMLButtonElement>('.choix-repertoire button')].find((b) => b.textContent?.trim().startsWith('Coffret'))!.click();
+    // On descend dans « Jazz » par le sélecteur partagé, puis on filtre.
+    const jazz = () => [...hote!.querySelectorAll<HTMLButtonElement>('.choix-repertoire .val')].find((b) => b.textContent?.includes('Jazz'));
+    await attendreQue(() => !!jazz(), 'le dossier Jazz dans le sélecteur');
+    jazz()!.click();
     const appliquer = () => hote!.querySelector<HTMLButtonElement>('.choix-repertoire .appliquer');
     await attendreQue(() => !!appliquer() && !appliquer()!.disabled, 'le bouton « Filtrer sur ce dossier »');
     appliquer()!.click();
@@ -210,7 +212,7 @@ describe('#7597 — Bibliothèque : le bouton « Répertoire » et la mémoire p
     expect(get(libraryFolderScope)).toBe(DOSSIER);
     expect(get(preferences).bibliothequeDossier).toBe(DOSSIER);
     await attendreQue(() => !!hote!.querySelector('.portee [data-dossier-lire]'), 'la lecture du dossier sous la pastille');
-    expect(hote!.querySelector('.portee')!.textContent).toContain('Coffret');
+    expect(hote!.querySelector('.portee')!.textContent).toContain('Jazz');
 
     hote!.querySelector<HTMLButtonElement>('.portee [data-dossier-lire]')!.click();
     await attendreQue(() => envois.some((e) => e.chemin.endsWith('/play')), 'la requête de lecture');
@@ -225,7 +227,7 @@ describe('#7597 — Bibliothèque : le bouton « Répertoire » et la mémoire p
     libraryFolderScope.set(null); // un clic sur « Bibliothèque » remet la portée à zéro
     await ouvrirBibliotheque();
     expect(get(libraryFolderScope)).toBe(DOSSIER);
-    await attendreQue(() => (hote!.querySelector('.portee')?.textContent ?? '').includes('Coffret'), 'la pastille du dossier retenu');
+    await attendreQue(() => (hote!.querySelector('.portee')?.textContent ?? '').includes('Jazz'), 'la pastille du dossier retenu');
   });
 
   it('l’arrivée depuis Répertoires n’est pas écrasée par le dossier retenu', async () => {

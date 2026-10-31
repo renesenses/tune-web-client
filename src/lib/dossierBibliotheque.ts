@@ -24,13 +24,25 @@ export function choisirDossierBibliotheque(dossier: string): void {
   preferences.update((p) => ({ ...p, bibliothequeDossier: dossier }));
 }
 
-/** La croix de la pastille : retire la portée ET l'oublie — un filtre retiré
- *  ne doit pas revenir au prochain passage. */
-export function retirerDossierBibliotheque(): void {
-  libraryFolderScope.set(null);
+/** Oublier le dossier retenu, sans toucher à la portée affichée. */
+export function oublierDossierBibliotheque(): void {
   if (get(preferences).bibliothequeDossier != null) {
     preferences.update((p) => ({ ...p, bibliothequeDossier: null }));
   }
+}
+
+/**
+ * Pendant que la Bibliothèque est montée : quand la portée RETENUE est retirée
+ * (la croix de la pastille, qui ne fait que `libraryFolderScope.set(null)`),
+ * elle est aussi oubliée — un filtre retiré ne doit pas revenir au prochain
+ * passage. Rend la fonction de désabonnement, pour un `$effect`.
+ */
+export function suivreLeRetraitDeLaPortee(): () => void {
+  let avant = get(libraryFolderScope);
+  return libraryFolderScope.subscribe((d) => {
+    if (avant && !d && get(preferences).bibliothequeDossier === avant) oublierDossierBibliotheque();
+    avant = d;
+  });
 }
 
 /** La portée à appliquer au montage : celle qui est déjà posée (arrivée depuis
