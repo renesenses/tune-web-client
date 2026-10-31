@@ -71,6 +71,9 @@ export interface AlbumDeLaBibliotheque {
   format: string | null;
   sample_rate: number | null;
   bit_depth: number | null;
+  /** La pochette de l'album local (`albums.cover_path`), servie par
+   *  `/library/artwork` ; `null` s'il n'en a pas. */
+  cover_path?: string | null;
   par: string;
 }
 
@@ -94,6 +97,9 @@ export interface Disque {
   precisions: string[];
   format: Famille;
   lien_discogs: string;
+  /** La vignette Discogs de la PAGE DE COLLECTION (`thumb`, sinon
+   *  `cover_image`) : une adresse `https://i.discogs.com/…`, ou absente. */
+  vignette?: string | null;
   bibliotheque: AlbumDeLaBibliotheque | null;
   streaming: SurUnService[];
   etat: EtatDisque;
@@ -229,3 +235,79 @@ export function legendeDuDisque(d: Disque): string {
 }
 
 export const nomService = (k: string) => (k === 'tidal' ? 'TIDAL' : k.charAt(0).toUpperCase() + k.slice(1));
+
+// ─── La grille ──────────────────────────────────────────────────────────────
+
+/** La clé du choix grille / liste, dans `lib/preferencesEcran` comme celui de
+ *  la Bibliothèque (`lib.display`). */
+export const CLE_AFFICHAGE = 'collectionPhysique.display';
+
+/** Une vignette Discogs que l'écran peut charger DIRECTEMENT : `https`, sur
+ *  un hôte d'images de Discogs, et pas l'image vide (`spacer.gif`). Le
+ *  serveur filtre déjà ; l'écran ne se fie pas à lui seul. */
+export function vignetteDiscogsSure(url: string | null | undefined): string | null {
+  const u = (url ?? '').trim();
+  const m = /^https:\/\/([^/?#]+)\//.exec(u);
+  if (!m) return null;
+  const hote = m[1].toLowerCase();
+  if (hote !== 'i.discogs.com' && hote !== 'img.discogs.com') return null;
+  if (/[\s"<>]/.test(u) || /spacer\.gif/i.test(u)) return null;
+  return u;
+}
+
+export interface PochetteDuDisque {
+  /** Ce qu'`AlbumArt` reçoit en `coverPath`. */
+  coverPath: string | null;
+  /** L'album local, pour le repli d'`AlbumArt` si sa pochette ne se charge pas. */
+  albumId: number | null;
+  /** `true` : une adresse Discogs, chargée telle quelle par le navigateur
+   *  (jamais par le relais du serveur). */
+  directe: boolean;
+}
+
+/**
+ * La pochette d'un disque :
+ * 1. dans la bibliothèque et l'album a une pochette → celle de l'album, par
+ *    les routes de pochettes du serveur ;
+ * 2. sinon la vignette Discogs de la page de collection ;
+ * 3. sinon rien : `AlbumArt` montre son repli neutre.
+ */
+export function pochetteDuDisque(d: Disque): PochetteDuDisque {
+  const b = d.bibliotheque;
+  if (b?.cover_path) return { coverPath: b.cover_path, albumId: b.album_id, directe: false };
+  const v = vignetteDiscogsSure(d.vignette);
+  if (v) return { coverPath: v, albumId: null, directe: true };
+  return { coverPath: null, albumId: null, directe: false };
+}
+
+export type Pastille = 'bibliotheque' | 'streaming' | 'non_copie' | 'a_verifier' | 'nulle_part';
+
+/** Les pastilles d'une carte : l'état, puis « Pas encore copié » pour un CD
+ *  possédé qui n'est pas dans la bibliothèque. */
+export function pastillesDuDisque(d: Disque): Pastille[] {
+  const p: Pastille[] = [d.etat];
+  if (d.proposer_extraction) p.push('non_copie');
+  return p;
+}
+
+export const CLE_PASTILLE: Record<Pastille, string> = {
+  bibliotheque: 'collectionPhysique.etat.bibliotheque',
+  streaming: 'collectionPhysique.etat.streaming',
+  non_copie: 'collectionPhysique.pastilleNonCopie',
+  a_verifier: 'collectionPhysique.etat.a_verifier',
+  nulle_part: 'collectionPhysique.etat.nulle_part',
+};
+
+export type ClicSurDisque =
+  | { vers: 'album'; albumId: number }
+  | { vers: 'streaming'; service: SurUnService }
+  | { vers: 'discogs'; url: string };
+
+/** Où mène un clic sur la carte : l'album de la bibliothèque s'il existe,
+ *  sinon l'album chez le service de streaming, sinon la fiche Discogs. */
+export function clicSurDisque(d: Disque): ClicSurDisque {
+  if (d.bibliotheque) return { vers: 'album', albumId: d.bibliotheque.album_id };
+  const s = d.streaming[0];
+  if (s) return { vers: 'streaming', service: s };
+  return { vers: 'discogs', url: d.lien_discogs };
+}

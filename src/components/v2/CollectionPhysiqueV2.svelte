@@ -10,18 +10,34 @@
   « Écouter » et « Ajouter aux favoris » sont ceux des albums manquants
   (#6288). L'attribution « Data provided by Discogs » est celle que demandent
   les conditions d'usage de Discogs.
+
+  Bertrand, 31/10/2026 (essai réel sur le .18) : « aucune pochette », et
+  l'écran doit se lire comme la Bibliothèque. Grille de pochettes par défaut
+  (titre et artiste sous la carte, état en pastille), bascule grille / liste
+  de la Bibliothèque (`BasculeAffichage`, `lib/affichage`), choix retenu par
+  `lib/preferencesEcran` comme là-bas. La pochette (`pochetteDuDisque`) :
+  celle de l'album local s'il est dans la bibliothèque, sinon la vignette
+  Discogs de la page de collection, chargée DIRECTEMENT par le navigateur
+  (`AlbumArt directe`, sans référent, `loading=lazy`) — aucun appel de plus
+  ni au serveur ni à Discogs —, sinon le repli d'`AlbumArt`.
 -->
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { t } from '../../lib/i18n';
   import {
     ATTRIBUTION_DISCOGS, ETATS, FAMILLES, LIEN_DISCOGS,
-    cleErreur, codeDeRefus, compteDuJeton, legendeDuDisque, lireCollection, lireEtat,
-    lireReglages, nomService, nomValide, poserCompte, qualiteDe, synchroniser,
+    CLE_AFFICHAGE, CLE_PASTILLE,
+    cleErreur, clicSurDisque, codeDeRefus, compteDuJeton, legendeDuDisque, lireCollection, lireEtat,
+    lireReglages, nomService, nomValide, pastillesDuDisque, pochetteDuDisque, poserCompte, qualiteDe, synchroniser,
     type Collection, type Disque, type EtatDisque, type EtatSynchro, type Famille,
     type Reglages, type SurUnService,
   } from '../../lib/collectionPhysique';
-  import { activeView, pendingLibraryAlbum } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryAlbum, vueDeRetour } from '../../lib/stores/navigation';
+  import { ficheAlbumService } from '../../lib/stores/streaming';
+  import AlbumArt from '../partages/AlbumArt.svelte';
+  import BasculeAffichage from './BasculeAffichage.svelte';
+  import { GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
+  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { isStreamingFavorite, toggleStreamingFavorite, type StreamingRef } from '../../lib/streamingFavorites';
   import { playAndSync } from '../../lib/stores/zones';
@@ -40,6 +56,8 @@
   let chargement = $state(true);
   let occupe = $state(false);
   let minuterie: ReturnType<typeof setInterval> | null = null;
+  /** Grille par défaut, comme la Bibliothèque ; le choix est retenu. */
+  let affichage = $state<Affichage>(lireChoix(CLE_AFFICHAGE, GRILLE_OU_LISTE, 'grid'));
 
   const enCours = $derived(etat?.avancement?.en_cours === true);
 
@@ -152,6 +170,27 @@
     activeView.set('library');
   }
 
+  /** Le clic sur une carte : l'album de la bibliothèque, sinon l'album chez
+   *  le service, sinon la fiche Discogs (nouvel onglet). */
+  function ouvrir(d: Disque) {
+    const c = clicSurDisque(d);
+    if (c.vers === 'album') {
+      ouvrirAlbum(c.albumId);
+    } else if (c.vers === 'streaming') {
+      vueDeRetour.set('collectionphysique');
+      ficheAlbumService.set({
+        service: c.service.service as any,
+        id: c.service.id,
+        titre: c.service.titre,
+        pochette: null,
+        artiste: c.service.artiste || d.artiste,
+      });
+      activeView.set('streamingalbum');
+    } else {
+      window.open(c.url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
   function refDe(d: Disque, s: SurUnService): StreamingRef {
     return { itemType: 'album', service: s.service, serviceId: s.id, title: s.titre, artist: s.artiste || d.artiste };
   }
@@ -242,6 +281,10 @@
         {/each}
       </div>
       <div class="filtres" role="group" aria-label={$t('collectionPhysique.filtreEtat' as any)}>
+        <span class="vues">
+          <BasculeAffichage modes={GRILLE_OU_LISTE} valeur={affichage}
+            onChanger={(v) => { affichage = v; ecrireChoix(CLE_AFFICHAGE, v); }} />
+        </span>
         <button class="puce" class:on={filtreEtat === null} onclick={toutEtat}>{$t('collectionPhysique.sansFiltre' as any)}</button>
         {#each ETATS as e (e)}
           {#if compteEtat(e) || e !== 'a_verifier'}
@@ -253,10 +296,36 @@
       </div>
       {#if !collection.disques.length}
         <div class="state vide">{$t('collectionPhysique.aucunDisque' as any)}</div>
+      {:else if affichage === 'grid'}
+        <div class="grid" data-grille-collection>
+          {#each collection.disques as d (d.instance_id)}
+            {@const p = pochetteDuDisque(d)}
+            <div class="card" data-disque={d.release_id} data-etat-disque={d.etat}>
+              <button class="cover" onclick={() => ouvrir(d)} aria-label={d.titre} data-ouvrir-disque>
+                <AlbumArt coverPath={p.coverPath} albumId={p.albumId} directe={p.directe} size={0} vignette
+                  alt={d.titre} fallbackInitials={d.titre?.slice(0, 1)} />
+                <span class="pastilles">
+                  {#each pastillesDuDisque(d) as pa (pa)}
+                    <span class="pastille {pa}" data-pastille={pa}>{$t(CLE_PASTILLE[pa] as any)}</span>
+                  {/each}
+                </span>
+              </button>
+              <button class="meta" onclick={() => ouvrir(d)}>
+                <div class="ct" title={d.titre}>{d.titre}</div>
+                <div class="ca" title={d.artiste}>{d.artiste}</div>
+              </button>
+            </div>
+          {/each}
+        </div>
       {:else}
         <ul class="list">
           {#each collection.disques as d (d.instance_id)}
+            {@const p = pochetteDuDisque(d)}
             <li class="ligne" data-disque={d.release_id} data-etat-disque={d.etat}>
+              <span class="lcv">
+                <AlbumArt coverPath={p.coverPath} albumId={p.albumId} directe={p.directe} size={0} vignette
+                  alt={d.titre} fallbackInitials={d.titre?.slice(0, 1)} />
+              </span>
               <span class="ti">
                 <span class="tt" title={d.titre}>{d.titre}</span>
                 <em title={[d.artiste, legendeDuDisque(d)].filter(Boolean).join(' · ')}>{d.artiste}{#if legendeDuDisque(d)} · {legendeDuDisque(d)}{/if}</em>
@@ -319,7 +388,25 @@
   .puce.on{color:var(--v2-txt); border-color:var(--v2-acc1)}
   .puce .n{font:11px var(--v2-mono); color:var(--v2-txt3); margin-left:4px}
   .list{list-style:none; margin:0; padding:12px 30px 20px; display:flex; flex-direction:column; gap:1px}
-  .ligne{display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:14px;
+  .vues{margin-left:auto}
+  /* La grille et la carte de la Bibliothèque (LibraryV2 : `.grid`, `.card`,
+     `.cover`, `.ct`, `.ca`), mêmes mesures. */
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
+    gap:22px 18px; align-content:start; padding:16px 30px 20px}
+  .card{min-width:0; content-visibility:auto; contain-intrinsic-size:auto 210px}
+  .cover{position:relative; display:block; width:100%; aspect-ratio:1; padding:0; border:0; cursor:pointer;
+    background:transparent; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
+  .meta{display:block; width:100%; border:0; background:transparent; text-align:left; cursor:pointer; padding:0; color:inherit; font:inherit}
+  .ct{margin-top:9px; font:600 12.5px var(--v2-sans); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .pastilles{position:absolute; left:6px; top:6px; right:6px; display:flex; flex-wrap:wrap; gap:4px; pointer-events:none}
+  .pastille{font:700 8.5px var(--v2-mono); letter-spacing:.04em; padding:2px 5px; border-radius:4px;
+    background:var(--v2-scrim); color:var(--v2-txt)}
+  .pastille.bibliotheque{background:var(--v2-acc1); color:var(--v2-on-acc)}
+  .pastille.streaming{background:var(--v2-acc2); color:var(--v2-on-acc)}
+  .pastille.non_copie{color:var(--v2-acc-tint)}
+  .lcv{width:40px; height:40px; border-radius:6px; overflow:hidden; flex-shrink:0}
+  .ligne{display:grid; grid-template-columns:40px minmax(0,1fr) auto; align-items:center; gap:14px;
     padding:8px 10px; border-radius:9px; color:var(--v2-txt2)}
   .ligne:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .ti{min-width:0; display:flex; flex-direction:column; gap:2px}
@@ -341,7 +428,8 @@
   .attribution{margin:0; padding:16px 30px 0; font-size:11px; color:var(--v2-txt3)}
   .attribution a{color:inherit}
   @media (max-width: 640px){
-    .ligne{grid-template-columns:minmax(0,1fr)}
+    .ligne{grid-template-columns:40px minmax(0,1fr)}
+    .ou{grid-column:1 / -1}
     .ou{justify-content:flex-start}
   }
 </style>

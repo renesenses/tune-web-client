@@ -11,10 +11,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import CollectionPhysiqueV2 from '../../components/v2/CollectionPhysiqueV2.svelte';
 import Sidebar from '../../components/v2/Sidebar.svelte';
-import { activeView, pendingLibraryAlbum } from '../stores/navigation';
+import { activeView, pendingLibraryAlbum, vueDeRetour } from '../stores/navigation';
+import { ficheAlbumService } from '../stores/streaming';
 import {
-  ATTRIBUTION_DISCOGS, cleErreur, codeDeRefus, collectionPhysiquePlugin, legendeDuDisque,
-  nomValide, qualiteDe, urlCollection, type Disque,
+  ATTRIBUTION_DISCOGS, CLE_AFFICHAGE, cleErreur, clicSurDisque, codeDeRefus, collectionPhysiquePlugin,
+  legendeDuDisque, nomValide, pastillesDuDisque, pochetteDuDisque, qualiteDe, urlCollection,
+  vignetteDiscogsSure, type Disque,
 } from '../collectionPhysique';
 import { preparerLocale } from '../i18n';
 import fr from '../locales/fr';
@@ -71,7 +73,8 @@ const COLLECTION = {
       annee: 1987, labels: ['RCA'], numeros_catalogue: ['PB 41447'], etat: 'bibliotheque',
       lien_discogs: 'https://www.discogs.com/release/249504',
       bibliotheque: { album_id: 42, titre: 'Never Gonna Give You Up', artiste: 'Rick Astley', qualite: 'hi-res',
-        format: 'flac', sample_rate: 96000, bit_depth: 24, par: 'musicbrainz_album' },
+        format: 'flac', sample_rate: 96000, bit_depth: 24, cover_path: 'a1b2c3.jpg', par: 'musicbrainz_album' },
+      vignette: VIGNETTE,
     }),
     disque({
       instance_id: 2, release_id: 2, artiste: 'Janice McClain', titre: 'Giving My Love', etat: 'streaming',
@@ -79,7 +82,7 @@ const COLLECTION = {
     }),
     disque({
       instance_id: 3, release_id: 7024, artiste: 'Various', titre: 'The Haçienda', format: 'cd', formats: ['CD'],
-      etat: 'nulle_part', copie: false, proposer_extraction: true,
+      etat: 'nulle_part', copie: false, proposer_extraction: true, vignette: VIGNETTE,
     }),
   ],
   attribution: { texte: 'Data provided by Discogs', lien: 'https://www.discogs.com' },
@@ -87,7 +90,12 @@ const COLLECTION = {
 
 beforeAll(async () => { await preparerLocale('fr'); });
 
+const VIGNETTE = 'https://i.discogs.com/abc/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNj.jpeg';
+const CLE_STOCKAGE = `tune_v2_ecran_${CLE_AFFICHAGE}`;
+
 beforeEach(() => {
+  try { localStorage.clear(); } catch { /* stockage indisponible */ }
+  ficheAlbumService.set(null);
   greffons = [];
   appels = [];
   collectionPhysiquePlugin.set(null);
@@ -156,6 +164,8 @@ describe('« Ma collection physique » — fonctions', () => {
 
 describe('« Ma collection physique » — écran', () => {
   it('les trois états, la qualité, Écouter chez TIDAL, le CD à extraire et l’attribution', async () => {
+    // Ce témoin lit la LISTE ; la grille a les siens plus bas.
+    localStorage.setItem(CLE_STOCKAGE, 'list');
     monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
     await laisserTourner();
     const lignes = Array.from(hote!.querySelectorAll('[data-disque]'));
@@ -244,5 +254,134 @@ describe('« Ma collection physique » — entrée de barre latérale (décision
     monte = mount(Sidebar as any, { target: hote! });
     await laisserTourner();
     expect(entree()).toBeUndefined();
+  });
+});
+
+describe('« Ma collection physique » — pochettes (essai réel du 31/10/2026 : aucune)', () => {
+  it('l’album de la bibliothèque d’abord, puis la vignette Discogs, puis le repli', () => {
+    const bib = { album_id: 42, titre: 'T', artiste: null, qualite: null, format: null, sample_rate: null, bit_depth: null, par: '' };
+    expect(pochetteDuDisque(disque({ bibliotheque: { ...bib, cover_path: 'a1b2c3.jpg' }, vignette: VIGNETTE })))
+      .toEqual({ coverPath: 'a1b2c3.jpg', albumId: 42, directe: false });
+    // Dans la bibliothèque mais sans pochette : la vignette Discogs.
+    expect(pochetteDuDisque(disque({ bibliotheque: { ...bib, cover_path: null }, vignette: VIGNETTE })))
+      .toEqual({ coverPath: VIGNETTE, albumId: null, directe: true });
+    expect(pochetteDuDisque(disque({ vignette: VIGNETTE }))).toEqual({ coverPath: VIGNETTE, albumId: null, directe: true });
+    expect(pochetteDuDisque(disque({}))).toEqual({ coverPath: null, albumId: null, directe: false });
+  });
+
+  it('seule une image de Discogs en https se charge directement', () => {
+    expect(vignetteDiscogsSure(VIGNETTE)).toBe(VIGNETTE);
+    expect(vignetteDiscogsSure('http://i.discogs.com/x.jpg')).toBeNull();
+    expect(vignetteDiscogsSure('https://i.discogs.com.evil.example/x.jpg')).toBeNull();
+    expect(vignetteDiscogsSure('javascript:alert(1)')).toBeNull();
+    expect(vignetteDiscogsSure('https://s.discogs.com/images/spacer.gif')).toBeNull();
+    expect(vignetteDiscogsSure(null)).toBeNull();
+  });
+
+  it('les pastilles et la destination du clic', () => {
+    expect(pastillesDuDisque(disque({ etat: 'nulle_part', proposer_extraction: true }))).toEqual(['nulle_part', 'non_copie']);
+    expect(pastillesDuDisque(disque({ etat: 'a_verifier' }))).toEqual(['a_verifier']);
+    const bib = { album_id: 42, titre: 'T', artiste: null, qualite: null, format: null, sample_rate: null, bit_depth: null, par: '' };
+    expect(clicSurDisque(disque({ bibliotheque: bib }))).toEqual({ vers: 'album', albumId: 42 });
+    const s = { service: 'tidal', id: 'T-42', titre: 'G', artiste: 'J', par: 'artiste_titre' as const };
+    expect(clicSurDisque(disque({ streaming: [s] }))).toEqual({ vers: 'streaming', service: s });
+    expect(clicSurDisque(disque({}))).toEqual({ vers: 'discogs', url: 'https://www.discogs.com/release/1' });
+  });
+});
+
+describe('« Ma collection physique » — grille comme la Bibliothèque (Bertrand, 31/10/2026)', () => {
+  it('grille par défaut : une carte par disque, pochette, titre, artiste et pastille', async () => {
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    const grille = hote!.querySelector('[data-grille-collection]');
+    expect(grille).not.toBeNull();
+    expect(grille!.querySelectorAll('.card')).toHaveLength(3);
+    expect(hote!.querySelector('ul.list')).toBeNull();
+
+    const rick = grille!.querySelector('[data-disque="249504"]')!;
+    expect(rick.querySelector('.ct')?.textContent).toBe('Never Gonna Give You Up');
+    expect(rick.querySelector('.ca')?.textContent).toBe('Rick Astley');
+    expect(rick.querySelector('[data-pastille="bibliotheque"]')?.textContent).toBe(fr['collectionPhysique.etat.bibliotheque']);
+    // La pochette de l'album local, par les routes de pochettes du serveur.
+    const imgRick = rick.querySelector('img') as HTMLImageElement;
+    expect(imgRick.getAttribute('src')).toMatch(/\/library\/artwork\/a1b2c3\.jpg/);
+    expect(imgRick.getAttribute('loading')).toBe('lazy');
+
+    // Hors bibliothèque : la vignette Discogs, telle quelle, sans relais ni référent.
+    const h = grille!.querySelector('[data-disque="7024"]')!;
+    const imgH = h.querySelector('img') as HTMLImageElement;
+    expect(imgH.getAttribute('src')).toBe(VIGNETTE);
+    expect(imgH.getAttribute('loading')).toBe('lazy');
+    expect(imgH.getAttribute('referrerpolicy')).toBe('no-referrer');
+    expect(h.querySelector('[data-pastille="non_copie"]')?.textContent).toBe(fr['collectionPhysique.pastilleNonCopie']);
+
+    // Ni vignette ni album : le repli d'AlbumArt (l'initiale), aucune image.
+    const g = grille!.querySelector('[data-disque="2"]')!;
+    expect(g.querySelector('img')).toBeNull();
+    expect(g.querySelector('.placeholder')).not.toBeNull();
+    expect(g.querySelector('[data-pastille="streaming"]')).not.toBeNull();
+
+    // Aucune requête par disque : ni au serveur (pochettes, relais) ni ailleurs.
+    expect(appels.filter((a) => /artwork|cover|discogs\.com/.test(a))).toEqual([]);
+  });
+
+  it('un clic ouvre l’album local, sinon l’album du service', async () => {
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    (hote!.querySelector('[data-disque="249504"] [data-ouvrir-disque]') as HTMLButtonElement).click();
+    flushSync();
+    expect(get(pendingLibraryAlbum)).toBe(42);
+    expect(get(activeView)).toBe('library');
+
+    activeView.set('collectionphysique');
+    flushSync();
+    (hote!.querySelector('[data-disque="2"] [data-ouvrir-disque]') as HTMLButtonElement)?.click();
+    flushSync();
+    expect(get(ficheAlbumService)).toMatchObject({ service: 'tidal', id: 'T-42' });
+    expect(get(activeView)).toBe('streamingalbum');
+    expect(get(vueDeRetour)).toBe('collectionphysique');
+  });
+
+  it('un disque nulle part ouvre sa fiche Discogs', async () => {
+    const ouvrir = vi.fn();
+    vi.stubGlobal('open', ouvrir);
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    (hote!.querySelector('[data-disque="7024"] [data-ouvrir-disque]') as HTMLButtonElement).click();
+    expect(ouvrir).toHaveBeenCalledWith('https://www.discogs.com/release/1', '_blank', 'noopener,noreferrer');
+  });
+
+  it('la bascule grille / liste de la Bibliothèque, choix retenu', async () => {
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    const bascule = hote!.querySelector('button.viewtog') as HTMLButtonElement;
+    expect(bascule).not.toBeNull();
+    expect(bascule.dataset.vue).toBe('grid');
+    bascule.click();
+    flushSync();
+    expect(hote!.querySelector('[data-grille-collection]')).toBeNull();
+    expect(hote!.querySelectorAll('ul.list [data-disque]')).toHaveLength(3);
+    // La liste a aussi sa vignette.
+    expect(hote!.querySelector('ul.list [data-disque="7024"] img')?.getAttribute('src')).toBe(VIGNETTE);
+    expect(localStorage.getItem(CLE_STOCKAGE)).toBe('list');
+
+    unmount(monte!);
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    expect(hote!.querySelector('[data-grille-collection]')).toBeNull();
+    expect(hote!.querySelector('ul.list')).not.toBeNull();
+  });
+
+  it('les filtres restent au-dessus de la grille', async () => {
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    const filtre = hote!.querySelector('[data-format="cd"]')!;
+    const grille = hote!.querySelector('[data-grille-collection]')!;
+    expect(filtre.compareDocumentPosition(grille) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('le message du jeton dit les DEUX écrans où il se saisit', () => {
+    expect(fr['collectionPhysique.sansJeton']).toContain("Clés d'API");
+    expect(fr['collectionPhysique.sansJeton']).toContain('Services & Jetons');
   });
 });
