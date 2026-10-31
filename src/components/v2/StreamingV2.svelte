@@ -1829,7 +1829,7 @@
           coverUrl: ar?.image_path ?? ar?.picture ?? undefined,
         })}
       >
-        <AlbumArt coverPath={ar.image_path ?? ar.picture ?? null} albumId={null} size={0} vignette alt={ar.name}
+        <AlbumArt coverPath={ar.image_path ?? ar.picture ?? null} albumId={null} size={0} vignette recadrer alt={ar.name}
           source={ar?.source ?? active} fallbackInitials={ar.name?.slice(0,1)} />
       </PochetteActions>
     </span>

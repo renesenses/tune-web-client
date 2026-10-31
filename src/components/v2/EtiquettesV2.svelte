@@ -765,7 +765,7 @@
                     objet={objetArtiste(ar)}
                     nom={ar.name}
                   >
-                    <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name}
+                    <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} recadrer alt={ar.name}
                       fallbackInitials={ar.name?.slice(0, 1)} />
                   </PochetteActions>
                 </div>
