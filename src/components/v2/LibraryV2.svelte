@@ -45,6 +45,10 @@
    * un serveur UPnP tiers.
    */
   import { albums, libraryLoading, libraryFolderScope } from '../../lib/stores/library';
+  // tune-server-rust#7597 — le bouton « Répertoire » et la lecture du dossier.
+  import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
+  import { choisirDossierBibliotheque, retirerDossierBibliotheque, restaurerDossierBibliotheque } from '../../lib/dossierBibliotheque';
+  import { lireDossier, ajouterDossierALaFile } from '../../lib/lectureDossier';
   // 🔴 renesenses/tune-server-rust#4800 — la grille se sert PAR PAGES. La
   // coquille ne charge plus la bibliothèque entière au démarrage ; cet écran
   // demande ses pages au défilement et au saut A–Z, et ne demande la liste
@@ -233,8 +237,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return () => { perime = true; };
   });
   function retirerPortee() {
-    libraryFolderScope.set(null);
+    // #7597 — retirer le filtre l'oublie aussi pour ce profil.
+    retirerDossierBibliotheque();
   }
+  // #7597 — au retour dans la Bibliothèque, le dernier dossier choisi par le
+  // bouton « Répertoire » revient ; une portée déjà posée (arrivée depuis
+  // Répertoires) prime. Une seule fois, au montage.
+  if (!untrack(() => depot)) restaurerDossierBibliotheque();
 
   /**
    * renesenses/tune-server-rust#4319 (fil 1817) — la RECHERCHE de la
@@ -2849,6 +2858,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         <button onclick={retirerPortee} aria-label={$tr('v2.lib.scopedClear' as any)}
           title={$tr('v2.lib.scopedClear' as any)}>×</button>
       </span>
+      <!-- #7597 — le dossier ENTIER, sous-dossiers compris, dans l'ordre :
+           la liste est construite par le serveur, pas par cet écran, qui
+           n'en tient que des pages. -->
+      <button class="v2-btn" data-dossier-lire disabled={$currentZoneId == null}
+        onclick={() => lireDossier($currentZoneId, dossierPortee)}>{$tr('browse.playAllRecursive' as any)}</button>
+      <button class="v2-btn" data-dossier-ajouter disabled={$currentZoneId == null}
+        onclick={() => ajouterDossierALaFile($currentZoneId, dossierPortee)}>{$tr('browse.addAllRecursive' as any)}</button>
     </div>
   {/if}
 
@@ -2914,6 +2930,23 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
               <button class:on={fProvenance === cle} onclick={() => { fProvenance = fProvenance === cle ? null : cle; ddClose(); }}>{libelleProvenance(cle)} <em>{comptesSourcesEnCharge || !comptesPrets ? "…" : n}</em></button>
             {/each}
           </div>
+        </div>
+      {/if}
+      {#if showSearch && !depot}
+        <!-- #7597 (suite) — RÉPERTOIRE : poser la portée de dossier sans
+             passer par l'écran Répertoires. Même magasin (`libraryFolderScope`),
+             même pastille. Le panneau n'existe qu'ouvert : il interroge le
+             serveur, il ne doit pas le faire au simple survol. -->
+        <div class="drop" class:open={ddOpen === 'repertoire'}>
+          <button class="chip" data-choix-repertoire class:active={porteeActive} aria-haspopup="dialog" aria-expanded={ddOpen === 'repertoire'}
+            onclick={() => (ddOpen = ddOpen === 'repertoire' ? null : 'repertoire')}>{$tr('v2.lib.folder' as any)}{#if porteeActive}&nbsp;· {nomPortee}{/if}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+          {#if ddOpen === 'repertoire'}
+            <div class="menu">
+              <ChoixRepertoireBibliotheque courant={dossierPortee}
+                onChoisir={(d) => { choisirDossierBibliotheque(d); ddClose(); }} />
+            </div>
+          {/if}
         </div>
       {/if}
     {#if showFilters}
@@ -4013,7 +4046,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .facette-ouverte{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column}
   .facets::-webkit-scrollbar{width:9px}.facets::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   /* La puce de portée : visible sans crier, et son × est la seule action. */
-  .portee{padding:2px 30px 6px}
+  .portee{padding:2px 30px 6px; display:flex; flex-wrap:wrap; align-items:center; gap:8px}
   .pchip{display:inline-flex; align-items:center; gap:8px; padding:6px 8px 6px 12px;
     border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans);
     color:var(--v2-acc1); background:var(--v2-acc-soft);

@@ -174,6 +174,14 @@ export interface Preferences {
    *  défaut (`TRI_CONCERTS_DEFAUT`, « Par date ») s'applique à l'affichage. */
   concertsTri: TriConcerts | null;
   /**
+   * tune-server-rust#7597 (suite, Bertrand 31/10/2026) — le dernier dossier
+   * choisi par le bouton « Répertoire » de la Bibliothèque (chemin absolu), ou
+   * `null`. Restauré au retour dans la Bibliothèque (`lib/dossierBibliotheque`),
+   * sauf quand on arrive de Répertoires avec un autre dossier : l'arrivée prime.
+   * Dans `ui_preferences`, donc par profil, comme les autres choix d'écran.
+   */
+  bibliothequeDossier: string | null;
+  /**
    * web#1755 — la commune et le rayon (ou le périmètre) de CE profil pour
    * l'écran Concerts. `null` = rien dit : l'écran pose la question ;
    * `'plus-tard'` = « Pas maintenant ». Voir `lib/concertsLieu.ts` ; relu par
@@ -517,6 +525,7 @@ const defaults: Preferences = {
   // web#1718 : `null`, pas le défaut — voir le type. L'écran lit
   // `normaliserTriConcerts(null)`, donc « Par date ».
   concertsTri: null,
+  bibliothequeDossier: null,
   concertsLieu: null,
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,

@@ -1755,7 +1755,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; context_shuffle?: boolean; album_ref?: string; queue_follows?: boolean }) {
+export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; context_shuffle?: boolean; album_ref?: string; queue_follows?: boolean; folder?: string }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1962,6 +1962,9 @@ export interface StreamingQueueItem {
 
 export interface AddToQueueRequest {
   album_id?: number;
+  /** tune-server-rust#7597 — un dossier (chemin absolu) et tout son
+   *  sous-arbre, dans l'ordre, construit par le serveur (`lib/lectureDossier`). */
+  folder?: string;
   track_id?: number;
   track_ids?: number[];
   source?: Source | 'upload';
