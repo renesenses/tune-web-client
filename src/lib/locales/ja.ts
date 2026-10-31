@@ -6242,6 +6242,7 @@ export default {
   "collectionPhysique.etape.musicbrainz": "MusicBrainz 識別子",
   "collectionPhysique.etape.streaming": "Qobuz と TIDAL で検索中",
   "collectionPhysique.derniere": "前回の同期：{date}",
+  "collectionPhysique.musicbrainzManquants": "MusicBrainz が応答しませんでした：MusicBrainz ID のないディスクが {n} 枚あります。次回の同期で再試行します。バーコードとサービスは通常どおり使用しました。",
   "collectionPhysique.aucunCompte": "はじめに Discogs のユーザー名を入力してください。",
   "collectionPhysique.aSynchroniser": "コレクションはまだ読み込まれていません：同期を開始してください。",
   "collectionPhysique.tronquee": "非常に大きなコレクション：最近追加した 20,000 枚のみを読み込みます。",

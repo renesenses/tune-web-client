@@ -258,6 +258,9 @@
     {:else if etat?.derniere_erreur && !enCours}
       <p class="err" data-erreur>{$t(cleErreur(etat.derniere_erreur) as any)}</p>
     {/if}
+    {#if !enCours && (etat?.musicbrainz_manquants ?? 0) > 0}
+      <p class="aide" data-musicbrainz-manquants>{texte('collectionPhysique.musicbrainzManquants', { n: etat?.musicbrainz_manquants ?? 0 })}</p>
+    {/if}
     {#if etat?.derniere_synchro}
       <p class="aide">{texte('collectionPhysique.derniere', { date: $dateEtHeure(etat.derniere_synchro * 1000) })}</p>
     {/if}

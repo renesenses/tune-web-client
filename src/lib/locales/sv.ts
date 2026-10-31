@@ -6241,6 +6241,7 @@ export default {
   "collectionPhysique.etape.musicbrainz": "MusicBrainz-identifierare",
   "collectionPhysique.etape.streaming": "Söker på Qobuz och TIDAL",
   "collectionPhysique.derniere": "Senaste synkronisering: {date}",
+  "collectionPhysique.musicbrainzManquants": "MusicBrainz svarade inte: {n} skivor utan MusicBrainz-id, provas igen vid nästa synkronisering. Streckkoder och tjänster användes ändå.",
   "collectionPhysique.aucunCompte": "Ange ditt Discogs-användarnamn för att börja.",
   "collectionPhysique.aSynchroniser": "Samlingen har inte lästs ännu: starta en synkronisering.",
   "collectionPhysique.tronquee": "Mycket stor samling: endast de 20 000 senast tillagda skivorna läses.",

@@ -6242,6 +6242,7 @@ export default {
   "collectionPhysique.etape.musicbrainz": "MusicBrainz 식별자",
   "collectionPhysique.etape.streaming": "Qobuz 및 TIDAL에서 검색 중",
   "collectionPhysique.derniere": "마지막 동기화: {date}",
+  "collectionPhysique.musicbrainzManquants": "MusicBrainz가 응답하지 않았습니다: MusicBrainz 식별자가 없는 음반 {n}장은 다음 동기화 때 다시 시도합니다. 바코드와 서비스는 그대로 사용했습니다.",
   "collectionPhysique.aucunCompte": "시작하려면 Discogs 사용자 이름을 입력하세요.",
   "collectionPhysique.aSynchroniser": "컬렉션을 아직 읽지 않았습니다: 동기화를 시작하세요.",
   "collectionPhysique.tronquee": "매우 큰 컬렉션: 최근에 추가한 20,000장만 읽습니다.",

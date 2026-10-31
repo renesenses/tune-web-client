@@ -61,6 +61,9 @@ export interface EtatSynchro {
   liste_lue_le: number | null;
   derniere_synchro: number | null;
   derniere_erreur: string | null;
+  /** Disques restés sans réponse de MusicBrainz à la dernière
+   *  synchronisation (revus à la suivante) ; absent d'un serveur antérieur. */
+  musicbrainz_manquants?: number;
 }
 
 export interface AlbumDeLaBibliotheque {

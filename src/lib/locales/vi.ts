@@ -6094,6 +6094,7 @@ export default {
   "collectionPhysique.etape.musicbrainz": "Mã định danh MusicBrainz",
   "collectionPhysique.etape.streaming": "Đang tìm trên Qobuz và TIDAL",
   "collectionPhysique.derniere": "Lần đồng bộ gần nhất: {date}",
+  "collectionPhysique.musicbrainzManquants": "MusicBrainz không phản hồi: {n} đĩa chưa có mã MusicBrainz, sẽ thử lại ở lần đồng bộ tiếp theo. Mã vạch và các dịch vụ vẫn được dùng.",
   "collectionPhysique.aucunCompte": "Hãy nhập tên người dùng Discogs của bạn để bắt đầu.",
   "collectionPhysique.aSynchroniser": "Bộ sưu tập chưa được đọc: hãy bắt đầu đồng bộ.",
   "collectionPhysique.tronquee": "Bộ sưu tập rất lớn: chỉ đọc 20.000 đĩa được thêm gần nhất.",

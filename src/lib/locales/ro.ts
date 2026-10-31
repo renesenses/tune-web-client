@@ -6242,6 +6242,7 @@ export default {
   "collectionPhysique.etape.musicbrainz": "Identificatori MusicBrainz",
   "collectionPhysique.etape.streaming": "Căutare pe Qobuz și TIDAL",
   "collectionPhysique.derniere": "Ultima sincronizare: {date}",
+  "collectionPhysique.musicbrainzManquants": "MusicBrainz nu a răspuns: {n} discuri fără identificator MusicBrainz, reîncercate la următoarea sincronizare. Codurile de bare și serviciile au fost folosite oricum.",
   "collectionPhysique.aucunCompte": "Introduceți numele de utilizator Discogs pentru a începe.",
   "collectionPhysique.aSynchroniser": "Colecția nu a fost încă citită: porniți o sincronizare.",
   "collectionPhysique.tronquee": "Colecție foarte mare: sunt citite doar ultimele 20.000 de discuri adăugate.",

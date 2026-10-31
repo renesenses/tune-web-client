@@ -6201,6 +6201,7 @@ export default {
   "collectionPhysique.etape.musicbrainz": "MusicBrainz-azonosítók",
   "collectionPhysique.etape.streaming": "Keresés a Qobuzon és a TIDAL-on",
   "collectionPhysique.derniere": "Utolsó szinkronizálás: {date}",
+  "collectionPhysique.musicbrainzManquants": "A MusicBrainz nem válaszolt: {n} lemez MusicBrainz-azonosító nélkül, a következő szinkronizáláskor újra próbáljuk. A vonalkódokat és a szolgáltatásokat így is használtuk.",
   "collectionPhysique.aucunCompte": "A kezdéshez adja meg Discogs-felhasználónevét.",
   "collectionPhysique.aSynchroniser": "A gyűjteményt még nem olvasta be: indítson szinkronizálást.",
   "collectionPhysique.tronquee": "Nagyon nagy gyűjtemény: csak az utoljára hozzáadott 20 000 lemez olvasható be.",

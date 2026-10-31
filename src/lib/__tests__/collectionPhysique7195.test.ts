@@ -40,6 +40,7 @@ let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 let greffons: Record<string, unknown>[] = [];
 let appels: string[] = [];
+let mbManquants = 0;
 
 async function laisserTourner(n = 40) {
   for (let i = 0; i < n; i++) {
@@ -57,6 +58,9 @@ function disque(p: Partial<Disque>): Disque {
     etat: 'nulle_part', copie: null, proposer_extraction: false, ...p,
   };
 }
+
+const VIGNETTE = 'https://i.discogs.com/abc/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNj.jpeg';
+const CLE_STOCKAGE = `tune_v2_ecran_${CLE_AFFICHAGE}`;
 
 const COLLECTION = {
   statut: 'ok',
@@ -90,14 +94,12 @@ const COLLECTION = {
 
 beforeAll(async () => { await preparerLocale('fr'); });
 
-const VIGNETTE = 'https://i.discogs.com/abc/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNj.jpeg';
-const CLE_STOCKAGE = `tune_v2_ecran_${CLE_AFFICHAGE}`;
-
 beforeEach(() => {
   try { localStorage.clear(); } catch { /* stockage indisponible */ }
   ficheAlbumService.set(null);
   greffons = [];
   appels = [];
+  mbManquants = 0;
   collectionPhysiquePlugin.set(null);
   vi.stubGlobal('ResizeObserver', ObservateurInerte as any);
   if (!('IntersectionObserver' in globalThis)) vi.stubGlobal('IntersectionObserver', ObservateurInerte as any);
@@ -108,7 +110,8 @@ beforeEach(() => {
     if (u.includes('/ext/collection-physique/reglages')) return reponse({ nom_utilisateur: 'exemple', jeton: 'personnel' });
     if (u.includes('/ext/collection-physique/etat')) {
       return reponse({ nom_utilisateur: 'exemple', avancement: { en_cours: false, etape: null, fait: 0, total: 0 },
-        disques: 3, tronquee: false, liste_lue_le: 1, derniere_synchro: 1793361925, derniere_erreur: null });
+        disques: 3, tronquee: false, liste_lue_le: 1, derniere_synchro: 1793361925, derniere_erreur: null,
+        musicbrainz_manquants: mbManquants });
     }
     if (u.includes('/ext/collection-physique/collection')) return reponse(COLLECTION);
     if (/\/config/.test(u)) return reponse({});
@@ -273,7 +276,7 @@ describe('« Ma collection physique » — pochettes (essai réel du 31/10/2026 
     expect(vignetteDiscogsSure(VIGNETTE)).toBe(VIGNETTE);
     expect(vignetteDiscogsSure('http://i.discogs.com/x.jpg')).toBeNull();
     expect(vignetteDiscogsSure('https://i.discogs.com.evil.example/x.jpg')).toBeNull();
-    expect(vignetteDiscogsSure('javascript:alert(1)')).toBeNull();
+    expect(vignetteDiscogsSure('data:image/png;base64,AAAA')).toBeNull();
     expect(vignetteDiscogsSure('https://s.discogs.com/images/spacer.gif')).toBeNull();
     expect(vignetteDiscogsSure(null)).toBeNull();
   });
@@ -383,5 +386,24 @@ describe('« Ma collection physique » — grille comme la Bibliothèque (Bertra
   it('le message du jeton dit les DEUX écrans où il se saisit', () => {
     expect(fr['collectionPhysique.sansJeton']).toContain("Clés d'API");
     expect(fr['collectionPhysique.sansJeton']).toContain('Services & Jetons');
+  });
+});
+
+describe('« Ma collection physique » — MusicBrainz qui ne répond pas (essai réel du 31/10/2026)', () => {
+  it('l’écran dit combien de disques restent sans identifiant, sans erreur bloquante', async () => {
+    mbManquants = 37;
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    const p = hote!.querySelector('[data-musicbrainz-manquants]');
+    expect(p?.textContent).toBe(fr['collectionPhysique.musicbrainzManquants'].replace('{n}', '37'));
+    expect(hote!.querySelector('[data-erreur]')).toBeNull();
+    // La grille est là quand même.
+    expect(hote!.querySelectorAll('[data-grille-collection] .card')).toHaveLength(3);
+  });
+
+  it('rien en suspens : aucun message', async () => {
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    expect(hote!.querySelector('[data-musicbrainz-manquants]')).toBeNull();
   });
 });

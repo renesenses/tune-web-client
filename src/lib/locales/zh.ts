@@ -6242,6 +6242,7 @@ export default {
   "collectionPhysique.etape.musicbrainz": "MusicBrainz 标识符",
   "collectionPhysique.etape.streaming": "正在 Qobuz 和 TIDAL 上搜索",
   "collectionPhysique.derniere": "上次同步：{date}",
+  "collectionPhysique.musicbrainzManquants": "MusicBrainz 未响应：{n} 张唱片没有 MusicBrainz 标识，将在下次同步时重试。条形码和流媒体服务仍已使用。",
   "collectionPhysique.aucunCompte": "请输入您的 Discogs 用户名以开始。",
   "collectionPhysique.aSynchroniser": "尚未读取收藏：请开始同步。",
   "collectionPhysique.tronquee": "收藏非常大：仅读取最近添加的 20,000 张唱片。",

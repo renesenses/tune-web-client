@@ -6087,6 +6087,7 @@ export default {
   "collectionPhysique.etape.musicbrainz": "Αναγνωριστικά MusicBrainz",
   "collectionPhysique.etape.streaming": "Αναζήτηση σε Qobuz και TIDAL",
   "collectionPhysique.derniere": "Τελευταίος συγχρονισμός: {date}",
+  "collectionPhysique.musicbrainzManquants": "Το MusicBrainz δεν απάντησε: {n} δίσκοι χωρίς αναγνωριστικό MusicBrainz, θα ξαναδοκιμαστούν στον επόμενο συγχρονισμό. Οι γραμμωτοί κώδικες και οι υπηρεσίες χρησιμοποιήθηκαν κανονικά.",
   "collectionPhysique.aucunCompte": "Εισαγάγετε το όνομα χρήστη σας στο Discogs για να ξεκινήσετε.",
   "collectionPhysique.aSynchroniser": "Η συλλογή δεν έχει διαβαστεί ακόμη: ξεκινήστε έναν συγχρονισμό.",
   "collectionPhysique.tronquee": "Πολύ μεγάλη συλλογή: διαβάζονται μόνο οι 20.000 πιο πρόσφατα προστιθέμενοι δίσκοι.",

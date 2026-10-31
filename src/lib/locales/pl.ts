@@ -6087,6 +6087,7 @@ export default {
   "collectionPhysique.etape.musicbrainz": "Identyfikatory MusicBrainz",
   "collectionPhysique.etape.streaming": "Wyszukiwanie w Qobuz i TIDAL",
   "collectionPhysique.derniere": "Ostatnia synchronizacja: {date}",
+  "collectionPhysique.musicbrainzManquants": "MusicBrainz nie odpowiedział: {n} płyt bez identyfikatora MusicBrainz, ponowna próba przy następnej synchronizacji. Kody kreskowe i serwisy zostały mimo to użyte.",
   "collectionPhysique.aucunCompte": "Podaj nazwę użytkownika Discogs, aby rozpocząć.",
   "collectionPhysique.aSynchroniser": "Kolekcja nie została jeszcze odczytana: uruchom synchronizację.",
   "collectionPhysique.tronquee": "Bardzo duża kolekcja: odczytywanych jest tylko 20 000 ostatnio dodanych płyt.",
