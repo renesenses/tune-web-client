@@ -16,7 +16,7 @@ import { ficheAlbumService } from '../stores/streaming';
 import {
   ATTRIBUTION_DISCOGS, CLE_AFFICHAGE, cleErreur, clicSurDisque, codeDeRefus, collectionPhysiquePlugin,
   legendeDuDisque, nomValide, pastillesDuDisque, pochetteDuDisque, qualiteDe, urlCollection,
-  vignetteDiscogsSure, type Disque,
+  vignetteDiscogsSure, type Disque, type Etape,
 } from '../collectionPhysique';
 import { preparerLocale } from '../i18n';
 import fr from '../locales/fr';
@@ -40,7 +40,8 @@ let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 let greffons: Record<string, unknown>[] = [];
 let appels: string[] = [];
-let mbManquants = 0;
+let affinage = { en_cours: false, restants: 0 };
+let avancement: Record<string, unknown> = { en_cours: false, etape: null, fait: 0, total: 0 };
 
 async function laisserTourner(n = 40) {
   for (let i = 0; i < n; i++) {
@@ -99,7 +100,8 @@ beforeEach(() => {
   ficheAlbumService.set(null);
   greffons = [];
   appels = [];
-  mbManquants = 0;
+  affinage = { en_cours: false, restants: 0 };
+  avancement = { en_cours: false, etape: null, fait: 0, total: 0 };
   collectionPhysiquePlugin.set(null);
   vi.stubGlobal('ResizeObserver', ObservateurInerte as any);
   if (!('IntersectionObserver' in globalThis)) vi.stubGlobal('IntersectionObserver', ObservateurInerte as any);
@@ -109,9 +111,9 @@ beforeEach(() => {
     if (/\/plugins(\?|$)/.test(u)) return reponse(greffons);
     if (u.includes('/ext/collection-physique/reglages')) return reponse({ nom_utilisateur: 'exemple', jeton: 'personnel' });
     if (u.includes('/ext/collection-physique/etat')) {
-      return reponse({ nom_utilisateur: 'exemple', avancement: { en_cours: false, etape: null, fait: 0, total: 0 },
+      return reponse({ nom_utilisateur: 'exemple', avancement,
         disques: 3, tronquee: false, liste_lue_le: 1, derniere_synchro: 1793361925, derniere_erreur: null,
-        musicbrainz_manquants: mbManquants });
+        affinage_musicbrainz: affinage });
     }
     if (u.includes('/ext/collection-physique/collection')) return reponse(COLLECTION);
     if (/\/config/.test(u)) return reponse({});
@@ -389,21 +391,37 @@ describe('« Ma collection physique » — grille comme la Bibliothèque (Bertra
   });
 });
 
-describe('« Ma collection physique » — MusicBrainz qui ne répond pas (essai réel du 31/10/2026)', () => {
-  it('l’écran dit combien de disques restent sans identifiant, sans erreur bloquante', async () => {
-    mbManquants = 37;
+describe('« Ma collection physique » — les services d’abord, MusicBrainz en affinage (essai réel du 31/10/2026)', () => {
+  it('l’affinage MusicBrainz se dit discrètement, sans erreur, la grille est là', async () => {
+    affinage = { en_cours: true, restants: 37 };
     monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
     await laisserTourner();
-    const p = hote!.querySelector('[data-musicbrainz-manquants]');
-    expect(p?.textContent).toBe(fr['collectionPhysique.musicbrainzManquants'].replace('{n}', '37'));
+    const p = hote!.querySelector('[data-affinage-musicbrainz]');
+    expect(p?.textContent).toBe('Affinage MusicBrainz : 37 restants');
+    expect(p?.classList.contains('aide')).toBe(true);
     expect(hote!.querySelector('[data-erreur]')).toBeNull();
-    // La grille est là quand même.
     expect(hote!.querySelectorAll('[data-grille-collection] .card')).toHaveLength(3);
   });
 
-  it('rien en suspens : aucun message', async () => {
+  it('contre-épreuve : rien à affiner, aucun message ; l’ancien champ d’un serveur antérieur n’en produit pas', async () => {
     monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
     await laisserTourner();
-    expect(hote!.querySelector('[data-musicbrainz-manquants]')).toBeNull();
+    expect(hote!.querySelector('[data-affinage-musicbrainz]')).toBeNull();
+  });
+
+  it('l’avancement suit les étapes du serveur : streaming, puis bibliothèque', async () => {
+    avancement = { en_cours: true, etape: 'streaming', fait: 12, total: 680 };
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    const p = hote!.querySelector('[data-avancement]');
+    expect(p?.textContent?.replace(/\s+/g, ' ').trim()).toBe(`${fr['collectionPhysique.etape.streaming']} — 12 / 680`);
+  });
+
+  it('les textes des étapes sont ceux du serveur, dans l’ordre, sans les anciennes étapes', () => {
+    const etapes: Etape[] = ['liste', 'streaming', 'bibliotheque'];
+    for (const e of etapes) expect(fr[`collectionPhysique.etape.${e}` as keyof typeof fr]).toBeTruthy();
+    expect((fr as Record<string, string>)['collectionPhysique.etape.codes_barres']).toBeUndefined();
+    expect((fr as Record<string, string>)['collectionPhysique.etape.musicbrainz']).toBeUndefined();
+    expect((fr as Record<string, string>)['collectionPhysique.musicbrainzManquants']).toBeUndefined();
   });
 });

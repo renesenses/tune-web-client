@@ -36,7 +36,10 @@ export const LIEN_DISCOGS = 'https://www.discogs.com';
 export type Jeton = 'aucun' | 'integre' | 'personnel';
 export type Famille = 'vinyle' | 'cd' | 'sacd' | 'cassette' | 'autre';
 export type EtatDisque = 'bibliotheque' | 'streaming' | 'nulle_part' | 'a_verifier';
-export type Etape = 'liste' | 'codes_barres' | 'musicbrainz' | 'streaming';
+/** Les étapes de la synchronisation, dans l'ordre où le serveur les suit
+ *  (correctif du 31/10/2026 : les services d'abord). L'affinage
+ *  MusicBrainz vient ensuite, à part (`AffinageMusicbrainz`). */
+export type Etape = 'liste' | 'streaming' | 'bibliotheque';
 
 export const FAMILLES: readonly Famille[] = ['vinyle', 'cd', 'sacd', 'cassette', 'autre'];
 export const ETATS: readonly EtatDisque[] = ['bibliotheque', 'streaming', 'nulle_part', 'a_verifier'];
@@ -61,9 +64,15 @@ export interface EtatSynchro {
   liste_lue_le: number | null;
   derniere_synchro: number | null;
   derniere_erreur: string | null;
-  /** Disques restés sans réponse de MusicBrainz à la dernière
-   *  synchronisation (revus à la suivante) ; absent d'un serveur antérieur. */
-  musicbrainz_manquants?: number;
+  /** L'affinage MusicBrainz, en tâche de fond après la synchronisation ;
+   *  absent d'un serveur antérieur. */
+  affinage_musicbrainz?: AffinageMusicbrainz;
+}
+
+export interface AffinageMusicbrainz {
+  en_cours: boolean;
+  /** Disques dont les liens MusicBrainz restent à lire. */
+  restants: number;
 }
 
 export interface AlbumDeLaBibliotheque {

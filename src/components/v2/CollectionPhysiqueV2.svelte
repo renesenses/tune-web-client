@@ -60,6 +60,8 @@
   let affichage = $state<Affichage>(lireChoix(CLE_AFFICHAGE, GRILLE_OU_LISTE, 'grid'));
 
   const enCours = $derived(etat?.avancement?.en_cours === true);
+  const affinageRestants = $derived(etat?.affinage_musicbrainz?.restants ?? 0);
+  const affinageEnCours = $derived(etat?.affinage_musicbrainz?.en_cours === true);
 
   function texte(cle: string, valeurs: Record<string, string | number> = {}): string {
     let s = $t(cle as any) as string;
@@ -83,7 +85,7 @@
       nom = reglages.nom_utilisateur ?? '';
       etat = await lireEtat();
       await chargerCollection();
-      if (etat?.avancement?.en_cours) suivre();
+      if (etat?.avancement?.en_cours || etat?.affinage_musicbrainz?.en_cours) suivre();
     } catch (e) {
       erreur = cleErreur(codeDeRefus(e));
     } finally {
@@ -96,14 +98,20 @@
     minuterie = null;
   }
 
-  /** Relit l'avancement toutes les 3 s tant que la synchronisation tourne. */
+  /** Relit l'avancement toutes les 3 s tant que la synchronisation ou
+   *  l'affinage MusicBrainz tourne, et la collection toutes les 15 s :
+   *  « En streaming » se remplit pendant la synchronisation, pas à la fin. */
   function suivre() {
     arreterSuivi();
+    let tours = 0;
     minuterie = setInterval(async () => {
       try {
         etat = await lireEtat();
-        if (!etat.avancement.en_cours) {
+        tours += 1;
+        if (!etat.avancement.en_cours && !etat.affinage_musicbrainz?.en_cours) {
           arreterSuivi();
+          await chargerCollection();
+        } else if (tours % 5 === 0) {
           await chargerCollection();
         }
       } catch {
@@ -258,8 +266,8 @@
     {:else if etat?.derniere_erreur && !enCours}
       <p class="err" data-erreur>{$t(cleErreur(etat.derniere_erreur) as any)}</p>
     {/if}
-    {#if !enCours && (etat?.musicbrainz_manquants ?? 0) > 0}
-      <p class="aide" data-musicbrainz-manquants>{texte('collectionPhysique.musicbrainzManquants', { n: etat?.musicbrainz_manquants ?? 0 })}</p>
+    {#if affinageRestants > 0 && (affinageEnCours || !enCours)}
+      <p class="aide" data-affinage-musicbrainz>{texte('collectionPhysique.affinageMusicbrainz', { n: affinageRestants })}</p>
     {/if}
     {#if etat?.derniere_synchro}
       <p class="aide">{texte('collectionPhysique.derniere', { date: $dateEtHeure(etat.derniere_synchro * 1000) })}</p>
