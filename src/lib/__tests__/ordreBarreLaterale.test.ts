@@ -44,13 +44,18 @@ describe('barre latérale — l’ordre du 20/09/2026, Recherche remontée le 29
     // `circle` suit `concerts` — demande de Bertrand du 26/09/2026 : l'entrée
     // Tune Circle à côté des autres greffons, rendue seulement si le greffon
     // tourne (`$circleCharge`).
+    //
+    // `collectionphysique` suit `circle` — décision de Bertrand du 30/10/2026
+    // (tune-server-rust#7195) : « Ma collection physique » juste après Tune
+    // Circle, rendue seulement si le greffon tourne.
     expect(vuesDe('ADVANCED')).toEqual([
       'ambiance', 'browse', 'mediaservers', 'zonemanager', 'tableaudebord', 'concerts', 'circle',
+      'collectionphysique',
     ]);
   });
 
   it('🔴 l’ordre AFFICHÉ, étages concaténés, est exactement celui demandé', () => {
-    const affiche = [...vuesDe('CORE'), ...vuesDe('ADVANCED')].filter((v) => v !== 'concerts' && v !== 'circle');
+    const affiche = [...vuesDe('CORE'), ...vuesDe('ADVANCED')].filter((v) => v !== 'concerts' && v !== 'circle' && v !== 'collectionphysique');
     expect(affiche).toEqual([
       'home', 'search', 'nowplaying', 'queue', 'history', 'library', 'oxygen', 'streaming',
       'radios', 'podcasts', 'ambiance', 'browse', 'mediaservers', 'zonemanager',

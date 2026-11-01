@@ -133,6 +133,10 @@
     // autres greffons, visible seulement quand le greffon TOURNE. Le libellé
     // est le nom du produit, déjà traduit dans les onze langues.
     { view: 'circle', labelKey: 'v2.circle.title', icon: 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6M3 20a6 6 0 0 1 12 0M16 5.1a3 3 0 0 1 0 5.8M21 20a6 6 0 0 0-4-5.6' },
+    // « MA COLLECTION PHYSIQUE » — décision de Bertrand du 30/10/2026
+    // (tune-server-rust#7195) : juste après Tune Circle, visible seulement
+    // quand le greffon TOURNE (installé et actif). Icône : un disque.
+    { view: 'collectionphysique', labelKey: 'collectionPhysique.titre', icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 12h.01' },
   ] as unknown as Item[];
   /**
    * SÉLECTIONS — ce que l'utilisateur a mis de côté lui-même.
@@ -221,6 +225,7 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { concertsUtilisable, refreshConcertsPlugin } from '../../lib/stores/concerts';
   import { circleCharge, refreshCirclePlugin } from '../../lib/circle';
+  import { collectionPhysiqueChargee, refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
   import { demarrerSuiviNotifications, arreterSuiviNotifications } from '../../lib/circleNotifications';
   import PastilleNotifsCercle from './PastilleNotifsCercle.svelte';
   import { healthStatus } from '../../lib/stores/health';
@@ -330,6 +335,8 @@
   // aucune explication à offrir d'un greffon arrêté, ses routes rendraient le
   // 404 nu d'axum. C'est la condition du bouton « Ouvrir » des Extensions.
   $effect(() => { void refreshCirclePlugin(); });
+  // « Ma collection physique » (#7195) : même règle que Tune Circle.
+  $effect(() => { void refreshCollectionPhysiquePlugin(); });
   // Tune Circle rc9 (web#2437) : la pastille des notifications, relue toutes
   // les minutes onglet visible, seulement quand le greffon tourne.
   $effect(() => {
@@ -339,7 +346,8 @@
   });
   const avanceDisponibles = $derived(
     ADVANCED.filter((it) => it.view !== 'concerts' || $concertsUtilisable)
-      .filter((it) => it.view !== 'circle' || $circleCharge),
+      .filter((it) => it.view !== 'circle' || $circleCharge)
+      .filter((it) => it.view !== 'collectionphysique' || $collectionPhysiqueChargee),
   );
   const avanceVisibles = $derived(sansMasquees(avanceDisponibles));
 

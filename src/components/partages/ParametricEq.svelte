@@ -8,6 +8,7 @@
     reglageAsymetrique,
   } from '../../lib/eqChannel';
   import type { EqBand } from '../../lib/api';
+  import { lireDecimal, borner, arrondir } from '../../lib/saisieDecimale';
 
   // Éditeur paramétrique : jusqu'à 31 bandes libres (fréquence, gain, Q, type),
   // éditées en glissant les points sur la courbe de réponse RÉELLE — calculée
@@ -198,6 +199,7 @@
   }
 
   function removeBand(i: number) {
+    brouillon = null;
     bands.splice(i, 1);
     selected = null;
     notify();
@@ -209,22 +211,83 @@
     notify();
   }
 
-  // #7423 : la valeur n'est bornée et appliquée qu'à la validation du champ
-  // (`change` : Entrée ou perte du focus), jamais à chaque frappe — sinon
-  // effacer le champ pour retaper une valeur rétablit aussitôt l'ancienne.
-  // Saisie vide ou illisible : on ne touche pas à la bande et on réaffiche
-  // sa valeur courante.
-  function validerChamp(e: Event, cle: 'freq' | 'gain' | 'q', min: number, max: number) {
-    const champ = e.target as HTMLInputElement;
-    const v = parseFloat(champ.value);
+  // #7423, puis retour testeur du 01/11 (Falkon) : saisir « 1000 » affichait
+  // « 2000 », effacer ramenait « 20 », et le « 1 » de 1,41 ne s'effaçait pas.
+  // Le champ était un `type="number"` dont la valeur reliée était réécrite
+  // pendant la frappe. Désormais : un champ TEXTE et un tampon local. La
+  // frappe ne touche ni la bande ni le champ ; la valeur n'est lue, bornée et
+  // appliquée qu'en sortant du champ ou sur Entrée. Échap annule la saisie ;
+  // les flèches haut/bas ajustent finement (Maj : pas plus grand).
+  type Cle = 'freq' | 'gain' | 'q';
+  const CHAMPS: Record<Cle, { min: number; max: number; decimales: number }> = {
+    freq: { min: F_MIN, max: F_MAX, decimales: 0 },
+    gain: { min: MIN_GAIN, max: MAX_GAIN, decimales: 1 },
+    q: { min: 0.1, max: 30, decimales: 2 },
+  };
+  // `bande` : l'indice de la bande éditée, figé à la première frappe. Cliquer
+  // un autre point change `selected` AVANT que le champ ne perde le focus :
+  // la validation doit viser la bande qu'on éditait, pas la nouvelle.
+  let brouillon = $state<{ cle: Cle; texte: string; bande: number } | null>(null);
+
+  function valeurDe(cle: Cle, i: number | null = selected): number {
+    if (i === null) return 0;
+    const v = bands[i]?.[cle];
+    return typeof v === 'number' && Number.isFinite(v) ? v : cle === 'q' ? 1.41 : 0;
+  }
+  function texteDuChamp(cle: Cle): string {
+    return brouillon?.cle === cle ? brouillon.texte : String(valeurDe(cle));
+  }
+  function surSaisie(cle: Cle, e: Event) {
     if (selected === null) return;
-    if (!Number.isFinite(v)) {
-      champ.value = String(bands[selected][cle] ?? '');
-      return;
+    brouillon = { cle, texte: (e.currentTarget as HTMLInputElement).value, bande: selected };
+  }
+  function appliquer(cle: Cle, v: number, i: number | null = selected): number {
+    const { min, max, decimales } = CHAMPS[cle];
+    const n = arrondir(borner(v, min, max), decimales);
+    if (i === null || !bands[i]) return n;
+    Object.assign(bands[i], { [cle]: n });
+    notify();
+    return n;
+  }
+  function validerChamp(cle: Cle, champ: HTMLInputElement) {
+    if (brouillon?.cle !== cle) return;
+    const { texte, bande } = brouillon;
+    const lu = lireDecimal(texte);
+    brouillon = null;
+    // Vide ou illisible : la bande ne change pas, le champ la réaffiche.
+    const n = lu === null ? valeurDe(cle, bande) : appliquer(cle, lu, bande);
+    champ.value = String(bande === selected ? n : valeurDe(cle));
+  }
+  function annulerChamp(champ: HTMLInputElement) {
+    brouillon = null;
+    champ.value = String(valeurDe(champ.dataset.cle as Cle));
+  }
+  function ajuster(cle: Cle, sens: 1 | -1, grand: boolean, champ: HTMLInputElement) {
+    const base = lireDecimal(brouillon?.cle === cle ? brouillon.texte : champ.value) ?? valeurDe(cle);
+    let v: number;
+    if (cle === 'freq') {
+      // Pas relatif : 1 % (au moins 1 Hz), un tiers d'octave avec Maj.
+      const r = grand ? Math.pow(2, 1 / 3) : 1.01;
+      v = sens > 0 ? Math.max(base + 1, base * r) : Math.min(base - 1, base / r);
+    } else {
+      v = base + sens * (cle === 'gain' ? (grand ? 1 : 0.1) : grand ? 0.1 : 0.01);
     }
-    const borne = Math.max(min, Math.min(max, v));
-    updateSelected({ [cle]: borne } as Partial<EqBand>);
-    champ.value = String(borne);
+    brouillon = null;
+    champ.value = String(appliquer(cle, v));
+  }
+  function surTouche(cle: Cle, e: KeyboardEvent) {
+    const champ = e.currentTarget as HTMLInputElement;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      validerChamp(cle, champ);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      annulerChamp(champ);
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      ajuster(cle, e.key === 'ArrowUp' ? 1 : -1, e.shiftKey, champ);
+    }
   }
 </script>
 
@@ -302,18 +365,30 @@
     <div class="peq-editor">
       <label>
         <span>{$t('eq.peqFreq' as any)}</span>
-        <input type="number" min={F_MIN} max={F_MAX} step="1" value={b.freq}
-          onchange={(e) => validerChamp(e, 'freq', F_MIN, F_MAX)} />
+        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+          data-cle="freq" value={texteDuChamp('freq')}
+          oninput={(e) => surSaisie('freq', e)}
+          onkeydown={(e) => surTouche('freq', e)}
+          onchange={(e) => validerChamp('freq', e.currentTarget)}
+          onblur={(e) => validerChamp('freq', e.currentTarget)} />
       </label>
       <label>
         <span>{$t('eq.peqGain' as any)}</span>
-        <input type="number" min={MIN_GAIN} max={MAX_GAIN} step="0.5" value={b.gain}
-          onchange={(e) => validerChamp(e, 'gain', MIN_GAIN, MAX_GAIN)} />
+        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+          data-cle="gain" value={texteDuChamp('gain')}
+          oninput={(e) => surSaisie('gain', e)}
+          onkeydown={(e) => surTouche('gain', e)}
+          onchange={(e) => validerChamp('gain', e.currentTarget)}
+          onblur={(e) => validerChamp('gain', e.currentTarget)} />
       </label>
       <label>
         <span>Q</span>
-        <input type="number" min="0.1" max="30" step="0.1" value={b.q ?? 1.41}
-          onchange={(e) => validerChamp(e, 'q', 0.1, 30)} />
+        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+          data-cle="q" value={texteDuChamp('q')}
+          oninput={(e) => surSaisie('q', e)}
+          onkeydown={(e) => surTouche('q', e)}
+          onchange={(e) => validerChamp('q', e.currentTarget)}
+          onblur={(e) => validerChamp('q', e.currentTarget)} />
       </label>
       <label>
         <span>{$t('eq.peqType' as any)}</span>
