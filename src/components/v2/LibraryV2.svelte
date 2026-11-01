@@ -130,6 +130,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   } from '../../lib/centreCarrousel';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  // tune-server-rust#7619 (L5) — la fiche survolée part en avance, à débit limité.
+  import { prechargementAuSurvol } from '../../lib/prechargement';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import MenuObjetV2 from './MenuObjetV2.svelte';
@@ -2818,7 +2820,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 {/snippet}
 
 <svelte:window onclick={ddDehors} onkeydown={ddEchap} />
-<section class="v2-lib tune-v2">
+<section class="v2-lib tune-v2" use:prechargementAuSurvol={api.prechargerAlbum}>
   <header class="v2-top">
     <div class="v2-titres">
       <h1>{depot ? depot.nom : $tr('library.title' as any)}</h1>
@@ -3719,7 +3721,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     du saut sur la liste entière (#1487).
   -->
   {#snippet carte(a: Album, i: number)}
-    <div class="card" data-letter={firstLetter(a)} data-i={i}>
+    <div class="card" data-letter={firstLetter(a)} data-i={i} data-album={depot || a.id == null ? undefined : a.id}>
       <div class="cover">
         <!-- 🔴 La grille PAR DÉFAUT n'avait pas le menu de collections
              que la grille de facette et le carrousel portaient déjà
@@ -3752,7 +3754,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
          dedans : un bouton dans un bouton est du HTML invalide. `data-i` et
          `data-letter` passent sur l'HÔTE : c'est lui l'enfant direct de
          `.rows`, que la fenêtre de rendu compte et que le rail vise. -->
-    <div class="lhote" data-letter={firstLetter(a)} data-i={i}>
+    <div class="lhote" data-letter={firstLetter(a)} data-i={i} data-album={depot || a.id == null ? undefined : a.id}>
     <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
     <button class="lrow" onclick={() => ouvrirCalqueAlbum(a)}>
       <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
@@ -3779,7 +3781,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   {/snippet}
 
   {#snippet carteCarrou(a: Album, i: number)}
-    <div class="ccard" class:centre={i === iCentre} data-letter={firstLetter(a)} data-i={i}>
+    <div class="ccard" class:centre={i === iCentre} data-letter={firstLetter(a)} data-i={i} data-album={depot || a.id == null ? undefined : a.id}>
       <div class="cover">
         <PochetteActions
           favori={depot || a.id == null ? null : { albumId: a.id }}

@@ -1,6 +1,7 @@
 import { avecLangueSignal } from './langueRequete';
 // REST API client for tune-server
 
+import { deposerPrecharge, retirerPrecharge } from './precharges';
 import { notifications } from './stores/notifications';
 import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrageServeur';
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
@@ -2453,7 +2454,31 @@ export async function getSampleRateLabels(): Promise<LibelleServi[]> {
 }
 
 export function getAlbum(id: number) {
-  return fetchJSON<Album>(`${BASE}/library/albums/${id}`);
+  const url = `${BASE}/library/albums/${id}`;
+  return prendrePrecharge<Album>(url) ?? fetchJSON<Album>(url);
+}
+
+/*
+ * tune-server-rust#7619 (L5) — LES REQUÊTES PRÉCHARGÉES au survol d'une fiche
+ * (`lib/prechargement`). Une requête préchargée est prise UNE fois, par la
+ * fiche qui s'ouvre, et seulement tant qu'elle a moins de 30 s : au-delà, ou
+ * après une modification de la bibliothèque, on redemande. Une requête
+ * préchargée qui échoue n'est pas rendue : l'appelant refait la sienne et voit
+ * sa propre erreur.
+ */
+/** Précharge la fiche d'un album de la bibliothèque : l'album et ses pistes. */
+export function prechargerAlbum(id: number): void {
+  for (const url of [`${BASE}/library/albums/${id}`, `${BASE}/library/albums/${id}/tracks`]) {
+    // `sansBandeau` : un préchargement qui échoue ne crie rien à l'écran.
+    deposerPrecharge(url, () => fetchJSON<unknown>(url, undefined, undefined, true));
+  }
+}
+
+function prendrePrecharge<T>(url: string): Promise<T> | null {
+  const p = retirerPrecharge<T>(url);
+  // Une requête préchargée qui a échoué : l'appelant refait la sienne et voit
+  // sa propre erreur, avec son bandeau.
+  return p ? p.catch(() => fetchJSON<T>(url)) : null;
 }
 
 /** Album playback source (#1684 / tune-server-rust#4907). */
@@ -2487,7 +2512,8 @@ export function getAlbumTracks(id: number, quality?: string | null, format?: str
   if (quality) p.set('quality', quality);
   if (format) p.set('format', format);
   const qs = p.toString();
-  return fetchJSON<Track[]>(`${BASE}/library/albums/${id}/tracks${qs ? `?${qs}` : ''}`);
+  const url = `${BASE}/library/albums/${id}/tracks${qs ? `?${qs}` : ''}`;
+  return prendrePrecharge<Track[]>(url) ?? fetchJSON<Track[]>(url);
 }
 
 /*

@@ -45,6 +45,8 @@
 import { get, writable, type Readable } from 'svelte/store';
 import type { Album } from '../types';
 import * as api from '../api';
+import * as cache from '../cacheBibliotheque';
+import { oublierPrecharges } from '../precharges';
 import { albums, libraryLoading } from './library';
 
 /** Les tris que le serveur sait rendre PAGINÉS avec le même ordre que l'écran. */
@@ -155,10 +157,26 @@ export async function demanderPage(
   if (echec && !options.forcer && Date.now() < echec.jusqua) return;
   const gen = etat.generation;
   albumsPagines.update((e) => ({ ...e, enVol: new Set(e.enVol).add(index) }));
+  // tune-server-rust#7619 (L5) — la copie du cache du navigateur s'affiche
+  // AUSSITÔT, marquée périmée : la page du serveur, demandée juste après, la
+  // remplace. Jamais en tri aléatoire (chaque graine est une autre liste).
+  const nomCache = c.sort === 'random' ? null : `albums|${clef}|${index}`;
+  if (nomCache && !etat.pages.has(index) && cache.disponible()) {
+    const copie = await cache.lirePage<{ items: Album[]; total: number | null }>(nomCache);
+    if (copie && Array.isArray(copie.items)) {
+      albumsPagines.update((e) => {
+        if (e.clef !== clef || e.generation !== gen || e.pages.has(index)) return e;
+        const pages = new Map(e.pages); pages.set(index, copie.items);
+        const perimees = new Set(e.perimees).add(index);
+        return { ...e, pages, perimees, total: e.total ?? copie.total };
+      });
+    }
+  }
   try {
     const page = await api.getAlbumsPagines({
       limit: TAILLE_PAGE, offset: index * TAILLE_PAGE, sort: c.sort, order: c.order, seed: c.seed ?? null,
     });
+    if (nomCache) void cache.rangerPage(nomCache, { items: page.items, total: page.total });
     albumsPagines.update((e) => {
       const enVol = new Set(e.enVol); enVol.delete(index);
       // Une réponse d'une autre liste ou d'une génération passée ne s'écrit pas.
@@ -308,6 +326,9 @@ export function demanderBibliothequeEntiere(): Promise<Album[]> {
  * version neuve arrive.
  */
 export function invaliderBibliotheque(): void {
+  // #7619 (L5) — relire la révision : le cache du navigateur tombe si elle a bougé.
+  cache.signalerInvalidation();
+  oublierPrecharges();
   generation.update((g) => g + 1);
   chargementEntier = null;
   lettresConnues.clear();
