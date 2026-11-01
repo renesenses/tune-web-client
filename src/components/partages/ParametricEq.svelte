@@ -8,6 +8,7 @@
     reglageAsymetrique,
   } from '../../lib/eqChannel';
   import type { EqBand } from '../../lib/api';
+  import { lireDecimal, borner, arrondir } from '../../lib/saisieDecimale';
 
   // Éditeur paramétrique : jusqu'à 31 bandes libres (fréquence, gain, Q, type),
   // éditées en glissant les points sur la courbe de réponse RÉELLE — calculée
@@ -38,6 +39,18 @@
 
   let selected = $state<number | null>(null);
   let dragging = $state(false);
+
+  // rc11 — le graphe est FIGÉ par défaut : survoler, faire défiler la page
+  // avec la molette ou cliquer à côté d'un point ne change plus rien. Le
+  // bouton « Modifier » (comme pour les widgets de l'accueil) ouvre l'édition
+  // à la souris ; « Terminé » la referme. Les champs numériques, eux, restent
+  // éditables : une saisie au clavier n'est jamais accidentelle.
+  let edition = $state(false);
+
+  /** Canal d'une bande pour l'affichage : 'g', 'd', ou 'tous'. */
+  function canalAffiche(b: EqBand): 'g' | 'd' | 'tous' {
+    return b.channel === 0 ? 'g' : b.channel === 1 ? 'd' : 'tous';
+  }
 
   function xOf(f: number): number {
     return (Math.log10(f / F_MIN) / Math.log10(F_MAX / F_MIN)) * W;
@@ -165,12 +178,13 @@
 
   function onPointDown(i: number, e: PointerEvent) {
     selected = i;
+    if (!edition) return;
     dragging = true;
     (e.target as Element).setPointerCapture(e.pointerId);
   }
 
   function onPointMove(e: PointerEvent) {
-    if (!dragging || selected === null) return;
+    if (!edition || !dragging || selected === null) return;
     const { x, y } = svgPoint(e);
     const b = bands[selected];
     b.freq = Math.round(Math.max(F_MIN, Math.min(F_MAX, fOf(x))));
@@ -183,6 +197,8 @@
   }
 
   function onWheel(i: number, e: WheelEvent) {
+    // Figé : la molette fait défiler la page, comme partout ailleurs.
+    if (!edition) return;
     e.preventDefault();
     const b = bands[i];
     const q = b.q && b.q > 0 ? b.q : 1.41;
@@ -193,11 +209,13 @@
   }
 
   function onPlotDblClick(e: MouseEvent) {
+    if (!edition) return;
     const r = svgEl.getBoundingClientRect();
     addBandAt(((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H);
   }
 
   function removeBand(i: number) {
+    brouillon = null;
     bands.splice(i, 1);
     selected = null;
     notify();
@@ -209,26 +227,87 @@
     notify();
   }
 
-  // #7423 : la valeur n'est bornée et appliquée qu'à la validation du champ
-  // (`change` : Entrée ou perte du focus), jamais à chaque frappe — sinon
-  // effacer le champ pour retaper une valeur rétablit aussitôt l'ancienne.
-  // Saisie vide ou illisible : on ne touche pas à la bande et on réaffiche
-  // sa valeur courante.
-  function validerChamp(e: Event, cle: 'freq' | 'gain' | 'q', min: number, max: number) {
-    const champ = e.target as HTMLInputElement;
-    const v = parseFloat(champ.value);
+  // #7423, puis retour testeur du 01/11 (Falkon) : saisir « 1000 » affichait
+  // « 2000 », effacer ramenait « 20 », et le « 1 » de 1,41 ne s'effaçait pas.
+  // Le champ était un `type="number"` dont la valeur reliée était réécrite
+  // pendant la frappe. Désormais : un champ TEXTE et un tampon local. La
+  // frappe ne touche ni la bande ni le champ ; la valeur n'est lue, bornée et
+  // appliquée qu'en sortant du champ ou sur Entrée. Échap annule la saisie ;
+  // les flèches haut/bas ajustent finement (Maj : pas plus grand).
+  type Cle = 'freq' | 'gain' | 'q';
+  const CHAMPS: Record<Cle, { min: number; max: number; decimales: number }> = {
+    freq: { min: F_MIN, max: F_MAX, decimales: 0 },
+    gain: { min: MIN_GAIN, max: MAX_GAIN, decimales: 1 },
+    q: { min: 0.1, max: 30, decimales: 2 },
+  };
+  // `bande` : l'indice de la bande éditée, figé à la première frappe. Cliquer
+  // un autre point change `selected` AVANT que le champ ne perde le focus :
+  // la validation doit viser la bande qu'on éditait, pas la nouvelle.
+  let brouillon = $state<{ cle: Cle; texte: string; bande: number } | null>(null);
+
+  function valeurDe(cle: Cle, i: number | null = selected): number {
+    if (i === null) return 0;
+    const v = bands[i]?.[cle];
+    return typeof v === 'number' && Number.isFinite(v) ? v : cle === 'q' ? 1.41 : 0;
+  }
+  function texteDuChamp(cle: Cle): string {
+    return brouillon?.cle === cle ? brouillon.texte : String(valeurDe(cle));
+  }
+  function surSaisie(cle: Cle, e: Event) {
     if (selected === null) return;
-    if (!Number.isFinite(v)) {
-      champ.value = String(bands[selected][cle] ?? '');
-      return;
+    brouillon = { cle, texte: (e.currentTarget as HTMLInputElement).value, bande: selected };
+  }
+  function appliquer(cle: Cle, v: number, i: number | null = selected): number {
+    const { min, max, decimales } = CHAMPS[cle];
+    const n = arrondir(borner(v, min, max), decimales);
+    if (i === null || !bands[i]) return n;
+    Object.assign(bands[i], { [cle]: n });
+    notify();
+    return n;
+  }
+  function validerChamp(cle: Cle, champ: HTMLInputElement) {
+    if (brouillon?.cle !== cle) return;
+    const { texte, bande } = brouillon;
+    const lu = lireDecimal(texte);
+    brouillon = null;
+    // Vide ou illisible : la bande ne change pas, le champ la réaffiche.
+    const n = lu === null ? valeurDe(cle, bande) : appliquer(cle, lu, bande);
+    champ.value = String(bande === selected ? n : valeurDe(cle));
+  }
+  function annulerChamp(champ: HTMLInputElement) {
+    brouillon = null;
+    champ.value = String(valeurDe(champ.dataset.cle as Cle));
+  }
+  function ajuster(cle: Cle, sens: 1 | -1, grand: boolean, champ: HTMLInputElement) {
+    const base = lireDecimal(brouillon?.cle === cle ? brouillon.texte : champ.value) ?? valeurDe(cle);
+    let v: number;
+    if (cle === 'freq') {
+      // Pas relatif : 1 % (au moins 1 Hz), un tiers d'octave avec Maj.
+      const r = grand ? Math.pow(2, 1 / 3) : 1.01;
+      v = sens > 0 ? Math.max(base + 1, base * r) : Math.min(base - 1, base / r);
+    } else {
+      v = base + sens * (cle === 'gain' ? (grand ? 1 : 0.1) : grand ? 0.1 : 0.01);
     }
-    const borne = Math.max(min, Math.min(max, v));
-    updateSelected({ [cle]: borne } as Partial<EqBand>);
-    champ.value = String(borne);
+    brouillon = null;
+    champ.value = String(appliquer(cle, v));
+  }
+  function surTouche(cle: Cle, e: KeyboardEvent) {
+    const champ = e.currentTarget as HTMLInputElement;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      validerChamp(cle, champ);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      annulerChamp(champ);
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      ajuster(cle, e.key === 'ArrowUp' ? 1 : -1, e.shiftKey, champ);
+    }
   }
 </script>
 
-<div class="peq" class:disabled={!enabled}>
+<div class="peq" class:disabled={!enabled} class:edition>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <svg
     bind:this={svgEl}
@@ -256,18 +335,24 @@
       diffèrent réellement — et il distingue les deux courbes même pour qui ne
       sépare pas les couleurs.
     -->
-    <path d={cheminDroite} class="response response-droite" />
-    <path d={cheminGauche} class="response response-gauche" />
+    {#if asymetrique}
+      <path d={cheminDroite} class="response response-droite" />
+      <path d={cheminGauche} class="response response-gauche" />
+    {:else}
+      <!-- Symétrique : une seule courbe, celle des deux canaux. -->
+      <path d={cheminGauche} class="response response-tous" />
+    {/if}
     <!-- Points de bande -->
     {#each bands as b, i}
       <circle
         cx={xOf(b.freq)}
         cy={yOf(Math.max(MIN_GAIN, Math.min(MAX_GAIN, b.gain)))}
         r={selected === i ? 8 : 6}
-        class="band-dot"
+        class="band-dot canal-{canalAffiche(b)}"
         class:selected={selected === i}
         role="slider"
         aria-valuenow={b.gain}
+        aria-readonly={!edition}
         tabindex="0"
         onpointerdown={(e) => onPointDown(i, e)}
         onwheel={(e) => onWheel(i, e)}
@@ -276,12 +361,13 @@
   </svg>
 
   <!--
-    La légende n'apparaît QUE si les canaux diffèrent. Tant que tout est
-    symétrique, les deux courbes se superposent : nommer « gauche » et
-    « droite » sous un trait unique ne ferait qu'égarer.
+    Légende des couleurs : une par canal (gauche, droite, les deux). Les points
+    portent la couleur de LEUR canal ; la droite garde son tireté, pour qui ne
+    distingue pas les couleurs.
   -->
-  {#if asymetrique}
+  {#if bands.length}
     <div class="peq-legende">
+      <span><i class="tous"></i>{$t('eq.peqChannelBoth' as any)}</span>
       <span><i class="l"></i>{$t('eq.peqChannelLeft' as any)}</span>
       <span><i class="r"></i>{$t('eq.peqChannelRight' as any)}</span>
     </div>
@@ -289,7 +375,11 @@
 
   <div class="peq-toolbar">
     <span class="peq-count">{bands.length}/{maxBands}</span>
-    <span class="peq-hint">{$t('eq.peqHint' as any)}</span>
+    <span class="peq-hint">{edition ? $t('eq.peqHint' as any) : $t('eq.peqLockedHint' as any)}</span>
+    <button class="peq-edit" class:on={edition} aria-pressed={edition}
+      title={$t('eq.peqEditTip' as any)}
+      onclick={() => { edition = !edition; dragging = false; }}
+    >{edition ? $t('eq.peqDone' as any) : $t('eq.peqEdit' as any)}</button>
     <button
       class="peq-add"
       disabled={bands.length >= maxBands}
@@ -302,18 +392,30 @@
     <div class="peq-editor">
       <label>
         <span>{$t('eq.peqFreq' as any)}</span>
-        <input type="number" min={F_MIN} max={F_MAX} step="1" value={b.freq}
-          onchange={(e) => validerChamp(e, 'freq', F_MIN, F_MAX)} />
+        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+          data-cle="freq" value={texteDuChamp('freq')}
+          oninput={(e) => surSaisie('freq', e)}
+          onkeydown={(e) => surTouche('freq', e)}
+          onchange={(e) => validerChamp('freq', e.currentTarget)}
+          onblur={(e) => validerChamp('freq', e.currentTarget)} />
       </label>
       <label>
         <span>{$t('eq.peqGain' as any)}</span>
-        <input type="number" min={MIN_GAIN} max={MAX_GAIN} step="0.5" value={b.gain}
-          onchange={(e) => validerChamp(e, 'gain', MIN_GAIN, MAX_GAIN)} />
+        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+          data-cle="gain" value={texteDuChamp('gain')}
+          oninput={(e) => surSaisie('gain', e)}
+          onkeydown={(e) => surTouche('gain', e)}
+          onchange={(e) => validerChamp('gain', e.currentTarget)}
+          onblur={(e) => validerChamp('gain', e.currentTarget)} />
       </label>
       <label>
         <span>Q</span>
-        <input type="number" min="0.1" max="30" step="0.1" value={b.q ?? 1.41}
-          onchange={(e) => validerChamp(e, 'q', 0.1, 30)} />
+        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+          data-cle="q" value={texteDuChamp('q')}
+          oninput={(e) => surSaisie('q', e)}
+          onkeydown={(e) => surTouche('q', e)}
+          onchange={(e) => validerChamp('q', e.currentTarget)}
+          onblur={(e) => validerChamp('q', e.currentTarget)} />
       </label>
       <label>
         <span>{$t('eq.peqType' as any)}</span>
@@ -363,20 +465,32 @@
   .grid-zero { stroke: rgba(255, 255, 255, 0.18); stroke-width: 1; }
   .grid-label { fill: rgba(255, 255, 255, 0.35); font-size: 9px; }
   .response { fill: none; stroke-width: 2; }
-  .response-gauche { stroke: var(--tune-accent, #6366f1); }
-  .response-droite { stroke: var(--tune-accent-2, #f59e0b); stroke-dasharray: 6 4; }
+  /* Couleurs par canal : jetons du thème (tune-v2.css), avec un repli
+     sombre si le composant est monté hors de la coquille v2. */
+  .response-tous { stroke: var(--v2-canal-tous, #f2c14e); }
+  .response-gauche { stroke: var(--v2-canal-g, #5aa9ff); }
+  .response-droite { stroke: var(--v2-canal-d, #ff6b8b); stroke-dasharray: 6 4; }
 
   .peq-legende { display: flex; gap: 1rem; align-items: center; font-size: 0.8rem; opacity: 0.85; }
   .peq-legende span { display: inline-flex; gap: 0.4rem; align-items: center; }
   .peq-legende i { width: 1.1rem; height: 0; border-top-width: 2px; border-top-style: solid; }
-  .peq-legende .l { border-color: var(--tune-accent, #6366f1); }
-  .peq-legende .r { border-color: var(--tune-accent-2, #f59e0b); border-top-style: dashed; }
-  .band-dot { fill: var(--tune-accent, #6366f1); opacity: 0.85; cursor: grab; }
-  .band-dot.selected { fill: #f59e0b; opacity: 1; }
+  .peq-legende .tous { border-color: var(--v2-canal-tous, #f2c14e); }
+  .peq-legende .l { border-color: var(--v2-canal-g, #5aa9ff); }
+  .peq-legende .r { border-color: var(--v2-canal-d, #ff6b8b); border-top-style: dashed; }
+  .band-dot { opacity: 0.85; cursor: pointer; }
+  .band-dot.canal-tous { fill: var(--v2-canal-tous, #f2c14e); }
+  .band-dot.canal-g { fill: var(--v2-canal-g, #5aa9ff); }
+  .band-dot.canal-d { fill: var(--v2-canal-d, #ff6b8b); }
+  .peq.edition .band-dot { cursor: grab; }
+  /* Sélection : un anneau de la couleur du texte, pas une 4e couleur qui se
+     confondrait avec un canal. */
+  .band-dot.selected { opacity: 1; stroke: var(--v2-txt, #e5e7eb); stroke-width: 2.5; }
+  .peq.edition .peq-plot { border-color: var(--v2-acc1, #00d4aa); }
+  .peq-edit.on { border-color: var(--v2-acc1, #00d4aa); color: var(--v2-acc1, #00d4aa); }
   .peq-toolbar { display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; }
   .peq-count { color: var(--tune-text-dim, #9ca3af); }
   .peq-hint { color: var(--tune-text-dim, #9ca3af); flex: 1; }
-  .peq-add, .peq-del {
+  .peq-add, .peq-del, .peq-edit {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: var(--tune-text, #e5e7eb);

@@ -38,6 +38,9 @@
 
 /* ── 1. Noir / Vert — thème par défaut, la base de Levente ─────────────── */
 .tune-v2{
+  /* Égaliseur paramétrique : une couleur par canal (G, D, les deux),
+     distinctes entre elles et de chaque accent, contraste ≥ 4,5:1 sur le fond. */
+  --v2-canal-g:#5AA9FF; --v2-canal-d:#FF6B8B; --v2-canal-tous:#F2C14E;
   --v2-bg:#071418; --v2-bg2:#0A1A1F; --v2-surface:#1B2432; --v2-surface2:#101B23;
   --v2-line:#1C2634; --v2-line2:#243040;
   --v2-txt:#FFFFFF; --v2-txt2:#8E9AA8; --v2-txt3:#7D8EA1;
@@ -132,6 +135,7 @@
 
 /* ── 5. Clair / Blanc ─────────────────────────────────────────────────── */
 :root[data-v2-theme="clear-white"] .tune-v2{
+  --v2-canal-g:#1F5FBF; --v2-canal-d:#B4235A; --v2-canal-tous:#8A6200;
   --v2-bg:#FFFFFF; --v2-bg2:#F6F8FA; --v2-surface:#FFFFFF; --v2-surface2:#F1F4F7;
   --v2-line:#E4E9EE; --v2-line2:#D2DAE2;
   --v2-txt:#0C1620; --v2-txt2:#56646F; --v2-txt3:#646E78;
@@ -161,6 +165,7 @@
 
 /* ── 6. Clair / Gris ─────────────────────────────────────────────────── */
 :root[data-v2-theme="clear-grey"] .tune-v2{
+  --v2-canal-g:#1F5FBF; --v2-canal-d:#B4235A; --v2-canal-tous:#8A6200;
   --v2-bg:#EDEFF2; --v2-bg2:#E6E9ED; --v2-surface:#FFFFFF; --v2-surface2:#E2E6EB;
   --v2-line:#D6DBE1; --v2-line2:#C2C9D1;
   --v2-txt:#141C24; --v2-txt2:#515C67; --v2-txt3:#5F6770;
