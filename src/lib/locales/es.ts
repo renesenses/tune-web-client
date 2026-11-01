@@ -5396,6 +5396,11 @@ export default {
   "v2.sources.permissionNotAsked": "Aún no solicitada",
   // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
   "v2.plug.entreeAudioNom": "Entrada de audio",
+  "v2.plug.karaokeNom": "Karaoke",
+  "v2.plug.karaokeDesc": "Letras sincronizadas al estilo karaoke, línea a línea. Desactivado por defecto.",
+  "v2.plug.partyNom": "Modo Party",
+  "v2.plug.partyDesc": "Modo Party: cola colaborativa con votación de los invitados. Activado por defecto.",
+  "v2.plug.restartCard": "Surte efecto al reiniciar el servidor.",
   "v2.sources.greffonManque": "El complemento «Entrada de audio» no está instalado: sin él no aparece ninguna entrada de audio ni virtual. Su instalación requiere reiniciar el servidor Tune.",
   "v2.sources.greffonInstaller": "Instalar el complemento",
   "v2.sources.greffonInstallation": "Instalando…",

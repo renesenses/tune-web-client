@@ -5396,6 +5396,11 @@ export default {
   "v2.sources.permissionNotAsked": "尚未请求",
   // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
   "v2.plug.entreeAudioNom": "音频输入",
+  "v2.plug.karaokeNom": "卡拉OK",
+  "v2.plug.karaokeDesc": "卡拉OK 风格的同步歌词，逐行显示。默认关闭。",
+  "v2.plug.partyNom": "派对模式",
+  "v2.plug.partyDesc": "派对模式：由宾客投票的共享播放队列。默认开启。",
+  "v2.plug.restartCard": "服务器重启后生效。",
   "v2.sources.greffonManque": "“音频输入”插件尚未安装：没有它，音频输入和虚拟输入都不会显示。安装后需要重启 Tune 服务器。",
   "v2.sources.greffonInstaller": "安装插件",
   "v2.sources.greffonInstallation": "正在安装…",

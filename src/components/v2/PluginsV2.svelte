@@ -29,7 +29,7 @@
   import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import { sonderCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { sonderCrosstalk } from '../../lib/stores/crosstalk';
-  import { NOMS_GREFFONS_SDK } from '../../lib/greffonEntreeAudio';
+  import { NOMS_GREFFONS_SDK, DESCRIPTIONS_GREFFONS_SDK } from '../../lib/greffonEntreeAudio';
   import {
     greffonsNatifsTiers, etatDeChargement, ecranDuGreffon, NOMS_GREFFONS_NATIFS,
     greffonsAProposer, DESCRIPTIONS_GREFFONS_NATIFS, cleDuRefusDInstallation, CATALOGUE_GREFFONS_NATIFS,
@@ -330,7 +330,10 @@
               </div>
               <!-- Le serveur ne rend que le nom technique et une phrase anglaise
                    pour les greffons natifs : Concerts porte les siens, traduits. -->
-              <p class="pd">{p.name === 'concerts' ? $t('concerts.greffonDescription' as any) : p.description}</p>
+              <p class="pd">{p.name === 'concerts' ? $t('concerts.greffonDescription' as any) : DESCRIPTIONS_GREFFONS_SDK[p.name] ? $t(DESCRIPTIONS_GREFFONS_SDK[p.name] as any) : p.description}</p>
+              {#if p.restart_required}
+                <div class="why" role="status" data-redemarrage>{$t('v2.plug.restartCard' as any)}</div>
+              {/if}
               {#if contourne}
                 <p role="note" data-pure-bypass>{$t('v2.plug.pureBypassed' as any)}
                   <button class="lnk" onclick={() => activeView.set('nowplaying')}>{$t('audiophile.pure' as any)}</button>

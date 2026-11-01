@@ -5396,6 +5396,11 @@ export default {
   "v2.sources.permissionNotAsked": "아직 요청되지 않음",
   // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
   "v2.plug.entreeAudioNom": "오디오 입력",
+  "v2.plug.karaokeNom": "가라오케",
+  "v2.plug.karaokeDesc": "가라오케 방식으로 가사를 한 줄씩 동기화해 표시합니다. 기본값은 꺼짐.",
+  "v2.plug.partyNom": "파티 모드",
+  "v2.plug.partyDesc": "파티 모드: 손님 투표가 있는 공동 대기열. 기본값은 켜짐.",
+  "v2.plug.restartCard": "서버를 다시 시작하면 적용됩니다.",
   "v2.sources.greffonManque": "‘오디오 입력’ 플러그인이 설치되어 있지 않습니다. 이 플러그인이 없으면 오디오 입력도 가상 입력도 표시되지 않습니다. 설치하려면 Tune 서버를 다시 시작해야 합니다.",
   "v2.sources.greffonInstaller": "플러그인 설치",
   "v2.sources.greffonInstallation": "설치 중…",

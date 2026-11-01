@@ -5395,6 +5395,11 @@ export default {
   "v2.sources.permissionNotAsked": "Inte tillfrågad än",
   // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
   "v2.plug.entreeAudioNom": "Ljudingång",
+  "v2.plug.karaokeNom": "Karaoke",
+  "v2.plug.karaokeDesc": "Synkroniserade låttexter i karaokestil, rad för rad. Av som standard.",
+  "v2.plug.partyNom": "Partyläge",
+  "v2.plug.partyDesc": "Partyläge: delad kö med omröstning bland gästerna. På som standard.",
+  "v2.plug.restartCard": "Träder i kraft när servern startas om.",
   "v2.sources.greffonManque": "Tillägget ”Ljudingång” är inte installerat: utan det visas varken ljudingångar eller virtuella ingångar. Installationen kräver att Tune-servern startas om.",
   "v2.sources.greffonInstaller": "Installera tillägget",
   "v2.sources.greffonInstallation": "Installerar…",

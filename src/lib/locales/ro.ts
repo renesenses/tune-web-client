@@ -5396,6 +5396,11 @@ export default {
   "v2.sources.permissionNotAsked": "Încă nesolicitată",
   // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
   "v2.plug.entreeAudioNom": "Intrare audio",
+  "v2.plug.karaokeNom": "Karaoke",
+  "v2.plug.karaokeDesc": "Versuri sincronizate în stil karaoke, rând cu rând. Dezactivat implicit.",
+  "v2.plug.partyNom": "Modul Party",
+  "v2.plug.partyDesc": "Modul Party: coadă colaborativă cu votul invitaților. Activ implicit.",
+  "v2.plug.restartCard": "Intră în vigoare după repornirea serverului.",
   "v2.sources.greffonManque": "Pluginul „Intrare audio” nu este instalat: fără el nu apare nicio intrare audio sau virtuală. Instalarea necesită repornirea serverului Tune.",
   "v2.sources.greffonInstaller": "Instalați pluginul",
   "v2.sources.greffonInstallation": "Se instalează…",
