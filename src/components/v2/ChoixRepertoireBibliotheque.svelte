@@ -23,8 +23,12 @@
     /** Le dossier de la portée en cours, pour rouvrir là où elle pointe. */
     courant: string | null;
     onChoisir: (dossier: string) => void;
+    /** Retirer la portée : revenir à toute la bibliothèque. Démo du 01/11 :
+     *  une fois un dossier choisi, le panneau n'offrait aucun retour — seule la
+     *  petite croix de la pastille, au-dessus de la liste, le permettait. */
+    onToute?: () => void;
   }
-  let { courant, onChoisir }: Props = $props();
+  let { courant, onChoisir, onToute }: Props = $props();
 
   let chemin = $state<string | null>(null);
   let crumbs = $state<FolderCrumb[]>([]);
@@ -58,6 +62,11 @@
   {:else}
     <OxygenFolderFacet {crumbs} folders={enfants} selected={chemin} loading={chargement} onDrill={(p) => charger(p)} />
   {/if}
+  {#if courant && onToute}
+    <button type="button" class="toute" data-repertoire-toute onclick={() => onToute?.()}>
+      {$t('v2.lib.scopedClear' as any)}
+    </button>
+  {/if}
   <button type="button" class="appliquer" disabled={!chemin} onclick={() => chemin && onChoisir(normaliserChemin(chemin))}>
     {$t('v2.lib.folderApply' as any)}
   </button>
@@ -71,6 +80,15 @@
     min-width: min(360px, 80vw);
     max-height: 340px;
     overflow: auto;
+  }
+  .toute {
+    align-self: flex-start;
+    border: none;
+    background: transparent;
+    color: var(--tune-accent);
+    cursor: pointer;
+    padding: 2px 0;
+    text-decoration: underline;
   }
   .appliquer {
     align-self: flex-end;
