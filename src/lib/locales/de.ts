@@ -2767,6 +2767,8 @@ export default {
   "v2.fav.qobuzCreate": "Erstellen ({n} Titel)",
   "v2.fav.qobuzCreated": "Playlist in Qobuz mit {n} Titeln erstellt.",
   "v2.fav.qobuzAddFailed": "Die Playlist wurde erstellt, aber Qobuz hat das Hinzufügen der Titel abgelehnt.",
+  "v2.fav.qobuzNoneKept": "Kein Titel ausgewählt: Markieren Sie mindestens einen Treffer, um die Playlist zu erstellen.",
+  "v2.fav.qobuzCreateRefused": "Qobuz hat das Erstellen der Playlist abgelehnt: Es wurde nichts erstellt.",
   "v2.fav.qobuzTarget": "Ziel",
   "v2.fav.qobuzNewPlaylist": "Neue Playlist",
   "v2.fav.qobuzAddTo": "Hinzufügen ({n} Titel)",

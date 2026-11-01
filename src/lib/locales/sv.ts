@@ -2766,6 +2766,8 @@ export default {
   "v2.fav.qobuzCreate": "Skapa ({n} låtar)",
   "v2.fav.qobuzCreated": "Spellista skapad i Qobuz med {n} låtar.",
   "v2.fav.qobuzAddFailed": "Spellistan skapades, men Qobuz vägrade lägga till låtarna.",
+  "v2.fav.qobuzNoneKept": "Ingen låt vald: markera minst en träff för att skapa spellistan.",
+  "v2.fav.qobuzCreateRefused": "Qobuz vägrade skapa spellistan: ingenting skapades.",
   "v2.fav.qobuzTarget": "Mål",
   "v2.fav.qobuzNewPlaylist": "Ny spellista",
   "v2.fav.qobuzAddTo": "Lägg till ({n} låtar)",

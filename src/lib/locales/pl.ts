@@ -1540,6 +1540,8 @@ export default {
   "v2.fav.qobuzCreate": "Utwórz (utwory: {n})",
   "v2.fav.qobuzCreated": "Playlista utworzona w Qobuz. Utwory: {n}.",
   "v2.fav.qobuzAddFailed": "Playlista została utworzona, ale Qobuz odmówił dodania utworów.",
+  "v2.fav.qobuzNoneKept": "Nie wybrano utworów: zaznacz co najmniej jedno dopasowanie, aby utworzyć playlistę.",
+  "v2.fav.qobuzCreateRefused": "Qobuz odmówił utworzenia playlisty: nic nie zostało utworzone.",
   "v2.fav.qobuzTarget": "Cel",
   "v2.fav.qobuzNewPlaylist": "Nowa playlista",
   "v2.fav.qobuzAddTo": "Dodaj (utwory: {n})",
