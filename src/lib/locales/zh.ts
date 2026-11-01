@@ -2401,6 +2401,7 @@ export default {
   "ambiance.renameError": "重命名失败",
   "ambiance.deleteError": "删除失败",
   "app.dismiss": "隐藏",
+  "app.newInterfaceReload": "界面有新版本——点击重新加载",
   "app.enrichmentRunning": "正在补充信息…",
   "app.scanArtistImagesPremiumSkipped": "扫描完成 · 未自动获取艺术家图片（Premium 功能）。你可以在“设置 > 媒体库”中手动运行“补充艺术家图片”。",
   "app.scanArtistImagesDisabled": "扫描完成 · 由于“设置 > 媒体库”中的自动补充功能已关闭，因此未获取艺术家图片。",

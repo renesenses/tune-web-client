@@ -125,6 +125,7 @@ export default {
   'app.scanArtistImagesDisabled': 'Scan complete · artist images were not fetched because automatic enrichment is disabled in Settings > Library.',
   'app.updateAvailable': 'Tune v{version} available — click to update',
   'app.dismiss': 'Dismiss',
+  'app.newInterfaceReload': 'New interface version — click to reload',
   // Settings — DSD network streaming
   'settings.dsdNetworkTitle': 'DSD playback (network renderers)',
   'settings.dsdNetworkHint': 'Stream the transcoded DSD continuously instead of a temporary file. Fixes dropouts / silence on DSD 256/512 with some DLNA renderers. Takes effect immediately, no restart.',

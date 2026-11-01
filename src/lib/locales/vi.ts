@@ -123,6 +123,7 @@ export default {
   "app.scanArtistImagesDisabled": "Đã quét xong · ảnh nghệ sĩ không được tải về vì tính năng bổ sung thông tin tự động đã bị tắt trong Cài đặt > Thư viện.",
   "app.updateAvailable": "Đã có Tune v{version} — nhấn để cập nhật",
   "app.dismiss": "Ẩn",
+  "app.newInterfaceReload": "Đã có phiên bản giao diện mới — nhấn để tải lại",
   "settings.dsdNetworkTitle": "Phát DSD (renderer mạng)",
   "settings.dsdNetworkHint": "Truyền liên tục DSD đã chuyển mã thay vì dùng file tạm. Khắc phục hiện tượng ngắt quãng / im lặng với DSD 256/512 trên một số renderer DLNA. Có hiệu lực ngay, không cần khởi động lại.",
   "settings.dsdNetworkLabel": "Chuyển mã DSD → mạng",

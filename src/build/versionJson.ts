@@ -46,8 +46,11 @@ export const FICHIER_VERSION = 'version.json';
  * — un fichier de configuration sans fin de ligne fâche les outils qui le
  * concatènent, et ça ne coûte rien.
  */
-export function contenuVersionJson(version: string): string {
-  return `${JSON.stringify({ version })}\n`;
+export function contenuVersionJson(version: string, build?: string): string {
+  // `build` (rc10) : l'identifiant du build, que le CLIENT relit pour savoir
+  // si l'onglet ouvert est encore celui du `web/` servi (voir
+  // `src/lib/versionInterface.ts`). Le lecteur Rust l'ignore.
+  return `${JSON.stringify(build ? { version, build } : { version })}\n`;
 }
 
 /**
@@ -58,14 +61,14 @@ export function contenuVersionJson(version: string): string {
  * soit, et il survit à `emptyOutDir: true` — une écriture faite trop tôt
  * serait effacée par le nettoyage, en silence et seulement parfois.
  */
-export function greffonVersionJson(version: string) {
+export function greffonVersionJson(version: string, build?: string) {
   return {
     name: 'tune-version-json',
     generateBundle(this: { emitFile: (a: unknown) => void }) {
       this.emitFile({
         type: 'asset',
         fileName: FICHIER_VERSION,
-        source: contenuVersionJson(version),
+        source: contenuVersionJson(version, build),
       });
     },
   };

@@ -121,6 +121,7 @@ export default {
   "app.scanArtistImagesDisabled": "Η σάρωση ολοκληρώθηκε · οι εικόνες καλλιτεχνών δεν ανακτήθηκαν, επειδή ο αυτόματος εμπλουτισμός είναι απενεργοποιημένος στις Ρυθμίσεις > Βιβλιοθήκη.",
   "app.updateAvailable": "Το Tune v{version} είναι διαθέσιμο — κάντε κλικ για ενημέρωση",
   "app.dismiss": "Απόκρυψη",
+  "app.newInterfaceReload": "Νέα έκδοση της διεπαφής — κάντε κλικ για επαναφόρτωση",
   "settings.dsdNetworkTitle": "Αναπαραγωγή DSD (renderers δικτύου)",
   "settings.dsdNetworkHint": "Μεταδίδει το διακωδικοποιημένο DSD ως συνεχή ροή αντί για προσωρινό αρχείο. Διορθώνει διακοπές / σιωπές σε DSD 256/512 με ορισμένους renderers DLNA. Ισχύει αμέσως, χωρίς επανεκκίνηση.",
   "settings.dsdNetworkLabel": "Διακωδικοποίηση DSD → δίκτυο",

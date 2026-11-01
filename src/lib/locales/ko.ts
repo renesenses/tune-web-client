@@ -2385,6 +2385,7 @@ export default {
   "ambiance.renameError": "이름을 바꾸지 못했습니다",
   "ambiance.deleteError": "삭제하지 못했습니다",
   "app.dismiss": "숨기기",
+  "app.newInterfaceReload": "새 인터페이스 버전 — 클릭하여 새로 고침",
   "app.enrichmentRunning": "보강 진행 중…",
   "app.scanArtistImagesPremiumSkipped": "스캔 완료 · 아티스트 이미지를 자동으로 가져오지 않았습니다(Premium 기능). 설정 > 라이브러리에서 ‘아티스트 이미지 보강’을 수동으로 실행할 수 있습니다.",
   "app.scanArtistImagesDisabled": "스캔 완료 · 설정 > 라이브러리에서 자동 보강이 꺼져 있어 아티스트 이미지를 가져오지 않았습니다.",

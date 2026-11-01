@@ -2397,6 +2397,7 @@ export default {
   "ambiance.renameError": "名前を変更できませんでした",
   "ambiance.deleteError": "削除できませんでした",
   "app.dismiss": "閉じる",
+  "app.newInterfaceReload": "インターフェースの新しいバージョン — クリックして再読み込み",
   "app.enrichmentRunning": "情報の補完中…",
   "app.scanArtistImagesPremiumSkipped": "スキャン完了 · アーティスト画像は自動取得されませんでした（Premium 機能）。設定 > ライブラリで「アーティスト画像を補完」を手動実行できます。",
   "app.scanArtistImagesDisabled": "スキャン完了 · 設定 > ライブラリで自動補完が無効になっているため、アーティスト画像は取得されませんでした。",
