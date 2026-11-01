@@ -25,6 +25,7 @@
   import { licenseState, isPremium } from '../../lib/stores/license';
   import { audiophileEnabled } from '../../lib/stores/audiophile';
   import { presenceCrossfeedPro } from '../../lib/stores/crossfeedPro';
+  import { crosstalkTraiteLaZone } from '../../lib/stores/crosstalk';
   import { dialogs } from '../../lib/stores/dialogs';
   import { t } from '../../lib/i18n';
   import {
@@ -71,8 +72,17 @@
   const stereo = $derived(zoneStereo($currentZone));
   const nonStereo = $derived(stereo === false);
   const disposition = $derived($currentZone?.channel_layout_status?.effective ?? $currentZone?.channel_layout ?? '');
+  /** web#2580 — Crosstalk (enceintes) traite la zone : Crossfeed Pro (casque)
+   *  y est ÉCARTÉ (tune-server-rust#7616), déduit du réglage de zone de
+   *  `crosstalk` tant que la route ne publie pas la voie en service (#7627). */
+  let crosstalkActif = $state(false);
+  $effect(() => {
+    const zid = $currentZoneId;
+    crosstalkActif = false;
+    void crosstalkTraiteLaZone(zid).then((v) => { if ($currentZoneId === zid) crosstalkActif = v; });
+  });
   /** Tout ce qui rend le réglage impossible ou sans effet grise l'écran. */
-  const verrouille = $derived(pur || sansPremium || nonStereo || presence !== 'actif');
+  const verrouille = $derived(pur || sansPremium || nonStereo || crosstalkActif || presence !== 'actif');
   const presetActif = $derived(presetCrossfeedProActif(r));
   /** Mode classique (libbs2b) : seuls le dosage et la coupure servent. */
   const classique = $derived(r.mode === 'classique');
@@ -252,6 +262,11 @@
         </div>
       {/if}
       {#if pur}<VoilePur cle="v2.pure.veilCfPro" />{/if}
+      {#if crosstalkActif && !pur}
+        <div class="warn" data-cfp-motif="crosstalk">
+          {#if zoneName}<b>{zoneName}</b> — {/if}{$t('v2.cfp.setAsideByCrosstalk' as any)}
+        </div>
+      {/if}
 
       <fieldset class="reglages" class:voile={verrouille} disabled={verrouille} aria-disabled={verrouille}>
         <div class="card">

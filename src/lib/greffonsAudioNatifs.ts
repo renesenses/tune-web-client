@@ -9,16 +9,19 @@
 import type { GreffonAudioNatif } from './api';
 import type { View } from './stores/navigation';
 import { CROSSFEED_PRO_ID } from './crossfeedPro';
+import { CROSSTALK_ID } from './crosstalk';
 
 /** L'écran de réglage de chaque greffon natif tiers qui en a un. */
 export const ECRANS_GREFFONS_NATIFS: Record<string, View> = {
   [CROSSFEED_PRO_ID]: 'crossfeedpro',
+  [CROSSTALK_ID]: 'crosstalk',
 };
 
 /** Le nom à montrer : une clé de traduction pour les greffons connus,
  *  l'identifiant sinon (l'hôte ne publie pas de nom d'affichage). */
 export const NOMS_GREFFONS_NATIFS: Record<string, string> = {
   [CROSSFEED_PRO_ID]: 'v2.nav.crossfeedPro',
+  [CROSSTALK_ID]: 'v2.nav.crosstalk',
 };
 
 export type EtatChargement = 'charge' | 'erreur' | 'non_charge';
@@ -42,12 +45,14 @@ export function ecranDuGreffon(g: Pick<GreffonAudioNatif, 'id' | 'native_loaded'
 /**
  * Les greffons natifs que l'écran Extensions propose d'installer depuis le
  * catalogue de mozaiklabs (`POST /audio-plugins/{id}/install-from-catalog`).
- * Chacun a une description traduite ; tous exigent le Premium.
+ * Chacun a une description traduite ; tous exigent le Premium (Crossfeed Pro,
+ * casque ; Crosstalk, enceintes — web#2580).
  */
-export const CATALOGUE_GREFFONS_NATIFS: readonly string[] = [CROSSFEED_PRO_ID];
+export const CATALOGUE_GREFFONS_NATIFS: readonly string[] = [CROSSFEED_PRO_ID, CROSSTALK_ID];
 
 export const DESCRIPTIONS_GREFFONS_NATIFS: Record<string, string> = {
   [CROSSFEED_PRO_ID]: 'v2.plug.crossfeedProDesc',
+  [CROSSTALK_ID]: 'v2.plug.crosstalkDesc',
 };
 
 /** Les greffons du catalogue qui ne sont PAS encore sur ce serveur. */
