@@ -2767,6 +2767,8 @@ export default {
   "v2.fav.qobuzCreate": "创建（{n} 首）",
   "v2.fav.qobuzCreated": "已在 Qobuz 创建播放列表，共 {n} 首。",
   "v2.fav.qobuzAddFailed": "播放列表已创建，但 Qobuz 拒绝添加曲目。",
+  "v2.fav.qobuzNoneKept": "未选择曲目：请至少勾选一个匹配项以创建播放列表。",
+  "v2.fav.qobuzCreateRefused": "Qobuz 拒绝创建播放列表：未创建任何内容。",
   "v2.fav.qobuzTarget": "目标",
   "v2.fav.qobuzNewPlaylist": "新播放列表",
   "v2.fav.qobuzAddTo": "添加（{n} 首）",

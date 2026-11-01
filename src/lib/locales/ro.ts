@@ -2767,6 +2767,8 @@ export default {
   "v2.fav.qobuzCreate": "Creează ({n} piese)",
   "v2.fav.qobuzCreated": "Playlist creat în Qobuz cu {n} piese.",
   "v2.fav.qobuzAddFailed": "Playlistul a fost creat, dar Qobuz a refuzat adăugarea pieselor.",
+  "v2.fav.qobuzNoneKept": "Nicio piesă selectată: bifați cel puțin o potrivire pentru a crea playlistul.",
+  "v2.fav.qobuzCreateRefused": "Qobuz a refuzat crearea playlistului: nu s-a creat nimic.",
   "v2.fav.qobuzTarget": "Destinație",
   "v2.fav.qobuzNewPlaylist": "Playlist nou",
   "v2.fav.qobuzAddTo": "Adaugă ({n} piese)",

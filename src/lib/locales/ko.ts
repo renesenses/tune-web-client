@@ -2767,6 +2767,8 @@ export default {
   "v2.fav.qobuzCreate": "만들기 ({n}곡)",
   "v2.fav.qobuzCreated": "{n}곡으로 Qobuz 플레이리스트를 만들었습니다.",
   "v2.fav.qobuzAddFailed": "플레이리스트는 만들어졌지만 Qobuz가 곡 추가를 거부했습니다.",
+  "v2.fav.qobuzNoneKept": "선택된 곡이 없습니다. 플레이리스트를 만들려면 일치 항목을 하나 이상 선택하세요.",
+  "v2.fav.qobuzCreateRefused": "Qobuz가 플레이리스트 생성을 거부했습니다. 아무것도 만들어지지 않았습니다.",
   "v2.fav.qobuzTarget": "대상",
   "v2.fav.qobuzNewPlaylist": "새 플레이리스트",
   "v2.fav.qobuzAddTo": "추가 ({n}곡)",

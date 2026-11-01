@@ -1542,6 +1542,8 @@ export default {
   "v2.fav.qobuzCreate": "Tạo ({n} bài hát)",
   "v2.fav.qobuzCreated": "Đã tạo danh sách phát trên Qobuz với {n} bài hát.",
   "v2.fav.qobuzAddFailed": "Danh sách phát đã được tạo, nhưng Qobuz từ chối thêm các bài hát.",
+  "v2.fav.qobuzNoneKept": "Chưa chọn bài nào: hãy đánh dấu ít nhất một kết quả khớp để tạo danh sách phát.",
+  "v2.fav.qobuzCreateRefused": "Qobuz đã từ chối tạo danh sách phát: không có gì được tạo.",
   "v2.fav.qobuzTarget": "Đích",
   "v2.fav.qobuzNewPlaylist": "Danh sách phát mới",
   "v2.fav.qobuzAddTo": "Thêm ({n} bài hát)",
