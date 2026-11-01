@@ -85,7 +85,7 @@
   import InviterSansEmailV2 from './InviterSansEmailV2.svelte';
   import NotificationsCercleV2 from './NotificationsCercleV2.svelte';
   import MessagerieCercleV2 from './MessagerieCercleV2.svelte';
-  import { demandeConversation, messagerieSupport, ecrireAuContact, erreurOuvertureConversation } from '../../lib/circleMessagerie';
+  import { demandeConversation, messagerieSupport, ecrireAuContact, ecrireAuCercle, erreurOuvertureConversation } from '../../lib/circleMessagerie';
   import type { NotifCercle } from '../../lib/circleNotifications';
   import '../../styles/tune-v2.css';
 
@@ -858,6 +858,10 @@
               <div class="cercle-tete">
                 <h3 class="cercle-nom">{c.name}</h3>
                 <button class="lnk renommer" disabled={occupe !== null} onclick={() => void renommer(c)}>{$t('v2.circle.rename' as any)}</button>
+                {#if $messagerieSupport === true}
+                  <button class="lnk ecrire-au-cercle" aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', c.name)}
+                    onclick={() => ecrireAuCercle(c.id)}>{$t('v2.circle.msg.writeToCircle' as any)}</button>
+                {/if}
                 {#if t5}
                   <button class="lnk nouvelle-playlist" disabled={occupe !== null} onclick={() => void nouvellePlaylist(c)}>{$t('v2.circle.pl.new' as any)}</button>
                 {/if}
@@ -1002,6 +1006,10 @@
               <li class="ligne cercle-invite">
                 <span class="nom" use:bulleTexte>{m.circle_name}</span>
                 <span class="note">{$t('v2.circle.memberOf.by' as any).replace('{name}', m.owner_name)}</span>
+                {#if $messagerieSupport === true}
+                  <button class="lnk ecrire-au-cercle" aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', m.circle_name)}
+                    onclick={() => ecrireAuCercle(m.circle_id)}>{$t('v2.circle.msg.writeToCircle' as any)}</button>
+                {/if}
                 {#if t5}
                   <span class="gestes">
                     <button class="lnk partager-ici" disabled={occupe !== null}

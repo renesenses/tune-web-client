@@ -17,15 +17,31 @@ export type CarteMusique = { type: 'album' | 'track' | 'playlist'; title: string
  *  (contrat cloud : site-mozaiklabs, `CircleMessage::THEME_COLOR_KEYS`). */
 export type CarteTheme = { type: 'theme'; title: string; colors: Record<string, string> };
 export type CarteCercle = CarteMusique | CarteTheme;
-export interface MessageCercle { id: number; sender_id: number; mine: boolean; body: string | null; card: CarteCercle | null; created_at: string }
-export interface ConversationCercle { id: number; kind: 'direct'; contact: { user_id: number; name: string }; unread_count: number; last_message?: MessageCercle | null }
+/** `sender_name` : conversation de cercle seulement (rc11) — le nom de l'auteur tant qu'il est membre, `null` pour un ancien membre. */
+export interface MessageCercle { id: number; sender_id: number; mine: boolean; body: string | null; card: CarteCercle | null; created_at: string; sender_name?: string | null }
+/** rc11 — écrire à tout un cercle (site-mozaiklabs#454). `write` : `all` (défaut) ou `owner`. */
+export type EcritureCercle = 'all' | 'owner';
+export interface CercleDeConversation { id: number; name: string; owner_id: number; owner_name: string; mine: boolean; write: EcritureCercle }
+export type ConversationCercle =
+  | { id: number; kind: 'direct'; contact: { user_id: number; name: string }; unread_count: number; last_message?: MessageCercle | null }
+  | { id: number; kind: 'circle'; contact: null; circle: CercleDeConversation; can_write: boolean; unread_count: number; last_message?: MessageCercle | null };
+/** Le nom affiché d'une conversation : le contact, ou « # Nom du cercle ». */
+export const nomConversation = (c: ConversationCercle) => c.kind === 'circle' ? `# ${c.circle.name}` : c.contact.name;
+/** Peut-on écrire ici ? Toujours en privé ; selon le réglage du cercle sinon. */
+export const ecritureOuverte = (c: ConversationCercle) => c.kind === 'direct' || c.can_write;
 export interface PageMessages { conversation: ConversationCercle; messages: MessageCercle[]; next_cursor: string | null }
 export const messagerieSupport = writable<boolean | null>(null);
-export const demandeConversation = writable<{ contact?: number; conversation?: number } | null>(null);
+export const demandeConversation = writable<{ contact?: number; conversation?: number; cercle?: number } | null>(null);
 export const erreurOuvertureConversation = writable<{ contact: number; cle: string } | null>(null);
 export function ecrireAuContact(contact: number): void {
   erreurOuvertureConversation.set(null);
   demandeConversation.set({ contact });
+  document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' });
+}
+/** rc11 — « Écrire au cercle » depuis la fiche du cercle. */
+export function ecrireAuCercle(cercle: number): void {
+  erreurOuvertureConversation.set(null);
+  demandeConversation.set({ cercle });
   document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' });
 }
 export const carteAPartager = writable<CarteCercle | null>(null);
@@ -83,9 +99,20 @@ export function carteDepuisPiste(p: any): CarteMusique | null {
 }
 function message(b: any): MessageCercle | null {
   if (!Number.isSafeInteger(b?.id) || !Number.isSafeInteger(b?.sender_id)) return null;
-  return { id: b.id, sender_id: b.sender_id, mine: b.mine === true, body: typeof b.body === 'string' ? b.body : null, card: carteCercle(b.card), created_at: typeof b.created_at === 'string' ? b.created_at : '' };
+  const m: MessageCercle = { id: b.id, sender_id: b.sender_id, mine: b.mine === true, body: typeof b.body === 'string' ? b.body : null, card: carteCercle(b.card), created_at: typeof b.created_at === 'string' ? b.created_at : '' };
+  if ('sender_name' in b) m.sender_name = texte(b.sender_name) || null;
+  return m;
+}
+function cercleDeConversation(b: any): CercleDeConversation | null {
+  if (!Number.isSafeInteger(b?.id) || !texte(b?.name) || !Number.isSafeInteger(b?.owner_id)) return null;
+  return { id: b.id, name: texte(b.name), owner_id: b.owner_id, owner_name: texte(b.owner_name), mine: b.mine === true, write: b.write === 'owner' ? 'owner' : 'all' };
 }
 function conversation(b: any): ConversationCercle | null {
+  if (b?.kind === 'circle') {
+    const circle = cercleDeConversation(b.circle);
+    if (!Number.isSafeInteger(b?.id) || !circle) return null;
+    return { id: b.id, kind: 'circle', contact: null, circle, can_write: b.can_write === true, unread_count: Number.isSafeInteger(b.unread_count) ? Math.max(0, b.unread_count) : 0, last_message: message(b.last_message) };
+  }
   if (!Number.isSafeInteger(b?.id) || b?.kind !== 'direct' || !Number.isSafeInteger(b.contact?.user_id) || !texte(b.contact?.name)) return null;
   return { id: b.id, kind: 'direct', contact: { user_id: b.contact.user_id, name: texte(b.contact.name) }, unread_count: Number.isSafeInteger(b.unread_count) ? Math.max(0, b.unread_count) : 0, last_message: message(b.last_message) };
 }
@@ -100,6 +127,12 @@ export async function ouvrirConversation(contact: number): Promise<ConversationC
   if (!b) throw new Error('Invalid conversation');
   return b;
 }
+/** rc11 — la conversation d'un cercle dont on est membre (404 sinon). */
+export async function ouvrirConversationCercle(cercle: number): Promise<ConversationCercle> {
+  const b = conversation(await fetchJSON(`${racine()}/circles/${cercle}/conversation`, { method: 'POST' }, undefined, true));
+  if (!b || b.kind !== 'circle') throw new Error('Invalid conversation');
+  return b;
+}
 export async function lireMessages(id: number, cursor?: string): Promise<PageMessages> {
   const q = new URLSearchParams({ limit: '50' }); if (cursor) q.set('cursor', cursor);
   const b = await fetchJSON<any>(`${racine()}/conversations/${id}/messages?${q}`, undefined, undefined, true);
@@ -112,6 +145,14 @@ export async function envoyerMessage(id: number, body: string, card: CarteCercle
   if (!messageEnvoyable(body, projection)) throw Object.assign(new Error('Invalid message'), { status: 422 });
   await fetchJSON(`${racine()}/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify({ ...(body.trim() ? { body: body.trim() } : {}), ...(projection ? { card: projection } : {}) }) }, undefined, true);
 }
+/** rc11 — écrire à tout le cercle : sa route à lui (le site y tient droits et seaux). */
+export async function envoyerAuCercle(cercle: number, body: string, card: CarteCercle | null = null): Promise<void> {
+  const projection = card === null ? null : carteCercle(card);
+  if (!messageEnvoyable(body, projection)) throw Object.assign(new Error('Invalid message'), { status: 422 });
+  await fetchJSON(`${racine()}/circles/${cercle}/conversation/messages`, { method: 'POST', body: JSON.stringify({ ...(body.trim() ? { body: body.trim() } : {}), ...(projection ? { card: projection } : {}) }) }, undefined, true);
+}
+/** rc11 — le propriétaire règle qui peut écrire. */
+export const reglerEcritureCercle = (cercle: number, write: EcritureCercle) => fetchJSON(`${racine()}/circles/${cercle}/messaging`, { method: 'PUT', body: JSON.stringify({ write }) }, undefined, true);
 export const marquerConversationLue = (id: number, up_to?: number) => fetchJSON(`${racine()}/conversations/${id}/read`, { method: 'POST', body: JSON.stringify(up_to === undefined ? {} : { up_to }) }, undefined, true);
 export const effacerMessage = (id: number, message: number) => fetchJSON(`${racine()}/conversations/${id}/messages/${message}`, { method: 'DELETE' }, undefined, true);
 export function signalerMessages(id: number, message_ids: number[], reason: string, comment: string): Promise<unknown> {
