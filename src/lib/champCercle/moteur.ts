@@ -24,6 +24,10 @@ import { boucleImages } from '../boucleImages';
 import { parBudget, type Budget } from './budget';
 import { deprojeter, pointArc, projeter, vecteur, decoderPointsTerre, DEG, type Orientation } from './globe';
 import { POINTS_TERRE } from './pointsTerre';
+import {
+  bornerInclinaison, bornerZoom, dansLaScene, garderSous, rayonGlobe, vitesseGlisse, vueEntiere,
+  zoomIntermediaire, zoomMolette, zoomPincement, DUREE_ZOOM_MS, PAS_DOUBLE, ZOOM_MIN,
+} from './zoomGlobe';
 import { PAYS_TERRE } from './paysTerre';
 import { FORCES_PAYS, niveauPays, rayonCase, type CaseMonde, type NombrePays } from '../paysMonde';
 import { cleLien, type Scene, type Vue, type NoeudScene, type GenreLien } from './scene';
@@ -58,6 +62,8 @@ export interface OptionsChamp {
   aleatoire?: () => number;
   /** Anneau : la place (px) que ses lunes prennent à droite de son nom. */
   largeurLunes?: (id: string) => number;
+  /** Le zoom du globe a changé (web#2521) : l'écran règle ses boutons + / − / « Vue entière ». */
+  surZoom?: (k: number) => void;
 }
 
 export interface Couleurs { or: string; orClair: string; vert: string; vertClair: string; fil: string; fond: string; public: string }
@@ -140,6 +146,14 @@ export class ChampCercle {
   private G: Orientation & { w: number; anim?: Anim } = { w: 0, lon0: 8 * DEG, tilt: 0.62 };
   private glisse: { x: number; y: number; lon: number; tilt: number; bouge: boolean } | null = null;
   private dernierGlisse = 0;
+  // Zoom (web#2521) : `R = U × 0,86 × zoom`, le globe reste centré, on le TOURNE pour se déplacer.
+  private zoom = ZOOM_MIN;
+  private zoomAnim: { de: number; vers: number; t0: number; duree: number; px: number; py: number; lieu: { lat: number; lon: number } | null } | null = null;
+  /** Les doigts posés sur le globe ; deux = pincement. */
+  private doigts = new Map<number, { x: number; y: number }>();
+  private pince: { ecart: number; k: number; lieu: { lat: number; lon: number } | null } | null = null;
+  /** Le dernier toucher sans glisser, pour reconnaître un double-tap / double-clic. */
+  private dernierTap: { t: number; x: number; y: number } | null = null;
   private ecouteurs: [string, EventListener][] = [];
 
   constructor(private canvas: HTMLCanvasElement, opts: OptionsChamp) {
@@ -348,7 +362,8 @@ export class ChampCercle {
     this.dernier = ts;
     this.time += dt;
     this.rot += dt * 0.16;
-    if (this.G.w > 0.5 && !this.glisse && !this.pose && this.maintenant() - this.dernierGlisse > 2500) this.G.lon0 += dt * 0.05;
+    // Zoomé, le globe ne file plus tout seul : la région regardée reste en place.
+    if (this.G.w > 0.5 && !this.glisse && !this.pose && this.zoom <= ZOOM_MIN && this.maintenant() - this.dernierGlisse > 2500) this.G.lon0 += dt * 0.05;
     this.dessiner(ts);
   }
 
@@ -373,12 +388,20 @@ export class ChampCercle {
       if (l.animS) { l.stream = pas(l.animS)!; if (fini(l.animS)) l.animS = undefined; }
     }
     if (this.G.anim) { this.G.w = pas(this.G.anim)!; if (fini(this.G.anim)) this.G.anim = undefined; }
+    const z = this.zoomAnim;
+    if (z) {
+      const p = z.duree <= 0 ? 1 : (now - z.t0) / z.duree;
+      this.poserZoom(zoomIntermediaire(z.de, z.vers, p), z.px, z.py, z.lieu);
+      if (p >= 1) this.zoomAnim = null;
+    }
   }
 
   // ── Dessin ───────────────────────────────────────────────────────────────
 
   private pos(p: Props): [number, number] { return [this.W / 2 + p.x * this.W * 0.42, this.H / 2 + p.y * this.H * 0.43]; }
   private get U(): number { return Math.min(this.W, this.H) / 2; }
+  /** Le rayon du globe à l'écran, zoom compris. */
+  private get R(): number { return rayonGlobe(this.U * 0.86, this.zoom); }
 
   private dessiner(_ts: number) {
     const ctx = this.ctx;
@@ -444,7 +467,7 @@ export class ChampCercle {
       for (const n of this.scene.noeuds) if (n.kind === 'pin') this.opts.placer?.(n.id, null);
       return;
     }
-    const R = this.U * 0.86; const cx = this.W / 2; const cy = this.H / 2;
+    const R = this.R; const cx = this.W / 2; const cy = this.H / 2;
     const vis = (x: number, y: number, z: number) => z > 0 || Math.hypot(x - cx, y - cy) > R;
     ctx.globalAlpha = a;
     const gr = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.1, cx, cy, R);
@@ -528,7 +551,8 @@ export class ChampCercle {
       const n = this.noeuds.get(p.id)!;
       const aa = a * n.cur.alpha;
       const [x, y, z] = projeter(p.lat!, p.lon!, R, cx, cy, this.G);
-      if (aa < 0.01 || z < 0.04) { this.opts.placer?.(p.id, null); continue; }
+      // Zoomé, une épingle hors de la scène n'a plus de bouton (le Tab ne s'y perd pas).
+      if (aa < 0.01 || z < 0.04 || !dansLaScene(x, y, this.W, this.H)) { this.opts.placer?.(p.id, null); continue; }
       const hl = this.sel === p.id || this.hover === p.id;
       const col = p.me ? '222,178,104' : '76,199,157';
       const pulse = this.opts.budget.anime ? (this.time * 0.7 + (p.me ? 0 : 0.5)) % 1 : 0.35;
@@ -690,7 +714,7 @@ export class ChampCercle {
     ctx.globalAlpha = 1;
   }
 
-  // ── Pointeur : faire tourner le globe, y poser son lieu ──────────────────
+  // ── Pointeur : faire tourner le globe, le zoomer, y poser son lieu ─────
 
   private brancherPointeur() {
     const sur = (t: string, f: (e: PointerEvent) => void) => {
@@ -698,41 +722,162 @@ export class ChampCercle {
       this.canvas.addEventListener(t, g);
       this.ecouteurs.push([t, g]);
     };
+    const local = (e: { clientX: number; clientY: number }): [number, number] => {
+      const r = this.canvas.getBoundingClientRect();
+      return [e.clientX - r.left, e.clientY - r.top];
+    };
     sur('pointerdown', (e) => {
       if (this.G.w < 0.5) return;
-      this.glisse = { x: e.clientX, y: e.clientY, lon: this.G.lon0, tilt: this.G.tilt, bouge: false };
+      this.doigts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       try { this.canvas.setPointerCapture(e.pointerId); } catch { /* navigateur ancien */ }
+      if (this.doigts.size === 2) {
+        // Deuxième doigt : le glisser s'arrête, le pincement commence.
+        const [a, b] = [...this.doigts.values()];
+        const [mx, my] = local({ clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 });
+        this.zoomAnim = null;
+        this.pince = { ecart: Math.hypot(a.x - b.x, a.y - b.y), k: this.zoom, lieu: this.lieuSous(mx, my) };
+        if (this.glisse) this.glisse.bouge = true;
+        this.dernierTap = null;
+        return;
+      }
+      if (this.doigts.size > 2) return;
+      this.glisse = { x: e.clientX, y: e.clientY, lon: this.G.lon0, tilt: this.G.tilt, bouge: false };
     });
     sur('pointermove', (e) => {
+      const d = this.doigts.get(e.pointerId);
+      if (d) { d.x = e.clientX; d.y = e.clientY; }
+      if (this.pince && this.doigts.size >= 2) {
+        const [a, b] = [...this.doigts.values()];
+        const [mx, my] = local({ clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 });
+        this.poserZoom(zoomPincement(this.pince.k, this.pince.ecart, Math.hypot(a.x - b.x, a.y - b.y)), mx, my, this.pince.lieu);
+        this.dernierGlisse = this.maintenant();
+        this.demander();
+        return;
+      }
       const g = this.glisse;
       if (!g) return;
       const dx = e.clientX - g.x; const dy = e.clientY - g.y;
       if (Math.hypot(dx, dy) > 4) g.bouge = true;
       if (!g.bouge) return;
-      this.G.lon0 = g.lon - dx * 0.006;
-      this.G.tilt = Math.max(-0.3, Math.min(1.25, g.tilt + dy * 0.004));
+      // Zoomé, le même geste tourne moins : la carte suit le doigt.
+      const v = vitesseGlisse(this.zoom);
+      this.G.lon0 = g.lon - dx * 0.006 * v;
+      this.G.tilt = bornerInclinaison(g.tilt + dy * 0.004 * v, this.zoom);
       this.canvas.style.cursor = 'grabbing';
       this.demander();
     });
     const fin = (e: PointerEvent, annule: boolean) => {
+      this.doigts.delete(e.pointerId);
+      if (this.pince) {
+        if (this.doigts.size < 2) this.pince = null;
+        // Le doigt qui reste ne fait pas tourner le globe d'un coup.
+        if (this.doigts.size === 1) {
+          const [r] = [...this.doigts.values()];
+          this.glisse = { x: r.x, y: r.y, lon: this.G.lon0, tilt: this.G.tilt, bouge: true };
+        } else this.glisse = null;
+        this.dernierGlisse = this.maintenant();
+        return;
+      }
       const g = this.glisse;
       this.glisse = null;
       this.canvas.style.cursor = this.pose ? 'crosshair' : 'default';
       if (!g) return;
       this.dernierGlisse = this.maintenant();
-      if (annule || g.bouge || !this.pose || !this.opts.surClicGlobe) return;
-      const r = this.canvas.getBoundingClientRect();
-      const lieu = deprojeter(e.clientX - r.left, e.clientY - r.top, this.U * 0.86, this.W / 2, this.H / 2, this.G);
+      if (annule || g.bouge) return;
+      const [px, py] = local(e);
+      // Double-clic ou double-tap : zoom ×2 sur le lieu visé (souris, doigt, stylet).
+      const t = this.maintenant();
+      const tap = this.dernierTap;
+      if (tap && t - tap.t < 350 && Math.hypot(px - tap.x, py - tap.y) < 30) {
+        this.dernierTap = null;
+        this.zoomer(PAS_DOUBLE, px, py);
+        return;
+      }
+      this.dernierTap = { t, x: px, y: py };
+      if (!this.pose || !this.opts.surClicGlobe) return;
+      const lieu = deprojeter(px, py, this.R, this.W / 2, this.H / 2, this.G);
       if (lieu) this.opts.surClicGlobe(lieu);
     };
     sur('pointerup', (e) => fin(e, false));
     sur('pointercancel', (e) => fin(e, true));
   }
 
-  /** Tourne le globe d'un pas (clavier : flèches). */
+  /** Le lieu (degrés) sous un point de l'image, ou `null` hors du globe. */
+  private lieuSous(px: number, py: number): { lat: number; lon: number } | null {
+    return deprojeter(px, py, this.R, this.W / 2, this.H / 2, this.G);
+  }
+
+  /** Pose le zoom `k` en gardant `lieu` sous (px, py) ; prévient l'écran. */
+  private poserZoom(k: number, px: number, py: number, lieu: { lat: number; lon: number } | null) {
+    const avant = this.zoom;
+    this.zoom = bornerZoom(k);
+    if (lieu) {
+      const o = garderSous(this.G, lieu, px, py, this.R, this.W / 2, this.H / 2, this.zoom);
+      this.G.lon0 = o.lon0; this.G.tilt = o.tilt;
+    } else this.G.tilt = bornerInclinaison(this.G.tilt, this.zoom);
+    if (avant !== this.zoom) this.opts.surZoom?.(this.zoom);
+  }
+
+  /** Le zoom courant (1 = vue entière). */
+  get niveauZoom(): number { return this.zoom; }
+
+  /**
+   * Zoome d'un facteur (`2` rapproche, `0.5` éloigne), sur le point (px, py)
+   * de l'image, ou sur le centre. En transition, sauf image fixe
+   * (`prefers-reduced-motion`) : d'un coup.
+   */
+  zoomer(facteur: number, px = this.W / 2, py = this.H / 2) {
+    if (this.G.w < 0.5) return;
+    const de = this.zoomAnim ? this.zoomAnim.vers : this.zoom;
+    this.zoomerA(de * facteur, px, py);
+  }
+
+  /** Zoome jusqu'au niveau `k`, sur le point (px, py), ou sur le centre. */
+  zoomerA(k: number, px = this.W / 2, py = this.H / 2) {
+    const vers = bornerZoom(k);
+    const lieu = this.lieuSous(px, py);
+    // Hors du globe (un coin de la scène) : on zoome sur le centre.
+    const [ax, ay] = lieu ? [px, py] : [this.W / 2, this.H / 2];
+    const visee = lieu ?? this.lieuSous(ax, ay);
+    this.dernierGlisse = this.maintenant();
+    if (!this.opts.budget.anime || !this.arreter) {
+      this.zoomAnim = null;
+      this.poserZoom(vers, ax, ay, visee);
+    } else {
+      this.zoomAnim = { de: this.zoom, vers, t0: this.maintenant(), duree: DUREE_ZOOM_MS, px: ax, py: ay, lieu: visee };
+    }
+    this.demander();
+  }
+
+  /** Molette : Ctrl ou Cmd + molette, et le pincement du pavé tactile. Instantané (la molette est déjà continue). */
+  molette(deltaY: number, modeLignes: boolean, clientX: number, clientY: number) {
+    if (this.G.w < 0.5) return;
+    const r = this.canvas.getBoundingClientRect();
+    const px = clientX - r.left; const py = clientY - r.top;
+    const base = this.zoomAnim ? this.zoomAnim.vers : this.zoom;
+    this.zoomAnim = null;
+    const lieu = this.lieuSous(px, py);
+    this.poserZoom(zoomMolette(base, deltaY, modeLignes), lieu ? px : this.W / 2, lieu ? py : this.H / 2, lieu ?? this.lieuSous(this.W / 2, this.H / 2));
+    this.dernierGlisse = this.maintenant();
+    this.demander();
+  }
+
+  /** « Vue entière » : zoom 1, le globe entier, l'inclinaison d'origine. */
+  vueEntiere() {
+    this.zoomAnim = null;
+    const v = vueEntiere(this.G);
+    const avant = this.zoom;
+    this.zoom = v.k; this.G.lon0 = v.lon0; this.G.tilt = v.tilt;
+    if (avant !== this.zoom) this.opts.surZoom?.(this.zoom);
+    this.dernierGlisse = this.maintenant();
+    this.demander();
+  }
+
+  /** Tourne le globe d'un pas (clavier : flèches) ; zoomé, d'un pas plus court. */
   tourner(dLon: number, dTilt = 0) {
-    this.G.lon0 += dLon;
-    this.G.tilt = Math.max(-0.3, Math.min(1.25, this.G.tilt + dTilt));
+    const v = vitesseGlisse(this.zoom);
+    this.G.lon0 += dLon * v;
+    this.G.tilt = bornerInclinaison(this.G.tilt + dTilt * v, this.zoom);
     this.dernierGlisse = this.maintenant();
     this.demander();
   }
@@ -740,7 +885,7 @@ export class ChampCercle {
   /** Centre le globe sur un lieu (degrés). */
   centrerSur(lat: number, lon: number) {
     this.G.lon0 = lon * DEG;
-    this.G.tilt = Math.max(-0.3, Math.min(1.25, lat * DEG));
+    this.G.tilt = bornerInclinaison(lat * DEG, this.zoom);
     this.dernierGlisse = this.maintenant();
     this.demander();
   }
