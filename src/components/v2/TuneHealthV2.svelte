@@ -63,6 +63,10 @@
   import { boutonLancer, CLE_ISSUE, estLancable, lancerTraitement, toutRelancer as relancerToutLesTraitements, type CarteLancable } from '../../lib/lancerTraitement';
   import '../../styles/tune-v2.css';
   import { decrireScanCourant } from '../../lib/scanDetenteur';
+  // 01/11/2026 — les logos de labels et les pochettes d'albums : couverture,
+  // passe en cours, dernière passe, bouton « Lancer la passe ».
+  import { boutonPasseActif, carteLogosLabels, cartePochettesAlbums, estCarteImages, type OutilsCarte } from '../../lib/santeImages';
+  import { dateEtHeure } from '../../lib/dates';
 
   type Card = {
     id: string;
@@ -709,6 +713,29 @@
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any) });
     }
 
+    // ── Pochettes d'albums et logos de labels (01/11/2026) ───────────────
+    // Deux lectures sans réseau côté serveur (des comptes et le registre des
+    // tâches). La lecture des réponses est dans `lib/santeImages.ts`.
+    const outils: OutilsCarte = {
+      t: (k) => $t(k as any),
+      nombre: (x) => $formatNombre(x),
+      date: (sec) => $dateEtHeure(new Date(sec * 1000)),
+    };
+    const [pa, ll] = await Promise.allSettled([api.getAlbumArtworkEnrichStatus(), api.getLabelLogosStatus()]);
+    out.push({
+      id: 'albumCovers',
+      // La passe des pochettes attend son tour sur le traitement des images
+      // (serveur : `Tache::ImagesArtistes`) : sa pause est celle-là.
+      traitement: 'artist_images',
+      titre: $t('v2.health.cardAlbumCovers' as any), sous: $t('v2.health.cardAlbumCoversSub' as any),
+      ...cartePochettesAlbums(pa.status === 'fulfilled' ? pa.value : null, outils),
+    });
+    out.push({
+      id: 'labelLogos',
+      titre: $t('v2.health.cardLabelLogos' as any), sous: $t('v2.health.cardLabelLogosSub' as any),
+      ...carteLogosLabels(ll.status === 'fulfilled' ? ll.value : null, outils),
+    });
+
     // ── Empreinte acoustique AcoustID (tune-server-rust#5868) ─────────────
     // Seulement si le serveur publie le bloc : un serveur plus ancien n'a ni
     // la passe ni sa carte. L'avancement vient de l'état PARTAGÉ de la passe
@@ -948,6 +975,20 @@
               </div>
             {/if}
 
+            {#if estCarteImages(c.id) && c.etat !== 'inconnu'}
+              <!-- 01/11/2026 — « Lancer la passe » reste VISIBLE pendant la
+                   passe, désactivé : le serveur n'en lancerait pas une seconde. -->
+              <div class="cactions">
+                <button
+                  class="lnk sm"
+                  data-lancer-passe={c.id}
+                  onclick={() => lancer(c.id as CarteLancable)}
+                  disabled={enPause || !boutonPasseActif(c, lancement !== null)}
+                >
+                  {$t('v2.health.launchPass' as any)}
+                </button>
+              </div>
+            {/if}
             {#if boutonLancer(c, enPause)}
               <!-- #1751 — au repos ou terminée, la carte sait LANCER. -->
               <div class="cactions">

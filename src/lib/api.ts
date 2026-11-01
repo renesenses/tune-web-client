@@ -8634,9 +8634,49 @@ export function startAlbumArtworkEnrich() {
  *  le compte recalculé à l'instant. */
 export function getAlbumArtworkEnrichStatus() {
   return fetchJSON<{
-    result: { status?: string; total?: number; searched?: number; enriched?: number; failed?: number } | null;
+    result: {
+      status?: string; total?: number; searched?: number; enriched?: number; failed?: number;
+      /** Secondes Unix (serveur ≥ rc10). */
+      started_at?: number; finished_at?: number;
+    } | null;
     albums_without_cover: number;
+    /** Écran « État du serveur » (serveur ≥ rc10) : albums locaux, avec
+     *  pochette, passe inscrite et son avancement (seulement pendant). */
+    albums_total?: number;
+    albums_with_cover?: number;
+    running?: boolean;
+    progress?: { processed?: number; total?: number };
   }>(`${BASE}/library/artwork/enrich/status`);
+}
+
+/** Écran « État du serveur » — le bouton « Lancer la passe » des pochettes
+ *  d'albums. Même route que `startAlbumArtworkEnrich`, mais le 409
+ *  `already_running` (serveur ≥ rc10 : une passe à la fois) est une
+ *  RÉPONSE, pas une panne. */
+export function lancerPassePochettesAlbums() {
+  return fetchJSON<{ status: string; albums_to_process?: number; reason?: string }>(
+    `${BASE}/library/artwork/enrich`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
+}
+
+/** Écran « État du serveur » — `GET /library/labels/logos/status` (serveur
+ *  ≥ rc10) : labels avec et sans logo, passe en cours, dernière passe. */
+export function getLabelLogosStatus() {
+  return fetchJSON<import('./santeImages').StatutLogosLabels>(
+    `${BASE}/library/labels/logos/status`,
+  );
+}
+
+/** `POST /library/labels/logos/enrich` : 202 `accepted`, 409
+ *  `already_running` (rendu, pas jeté), 200 `skipped`. */
+export function lancerPasseLogosLabels() {
+  return fetchJSON<{ status: string; labels_to_process?: number; reason?: string }>(
+    `${BASE}/library/labels/logos/enrich`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
 }
 
 // Artist image enrichment (community + Fanart/TheAudioDB/MusicBrainz by MBID,
