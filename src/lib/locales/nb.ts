@@ -6157,5 +6157,6 @@ export default {
   "mini.pause": "Pause",
   "mini.file.actions": "Flere handlinger",
   "mini.file.deplacer": "Dra for å flytte",
+  "mini.filtres": "Filtre",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

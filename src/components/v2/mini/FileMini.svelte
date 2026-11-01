@@ -172,7 +172,7 @@
     <div class="en-cours" data-en-cours-file>
       <span class="cv cv40"><AlbumArt coverPath={enCours.cover_path ?? null} albumId={enCours.album_id ?? null} size={40} alt={enCours.title ?? ''} /></span>
       <span class="tx">
-        <span class="t1" use:bulleTexte>{enCours.title ?? $t('queue.unknownTrack' as any)}</span>
+        <span class="t1" use:bulleTexte>{enCours.title ?? ''}</span>
         <span class="t2" use:bulleTexte>{enCours.artist_name ?? ''}</span>
         {#if formatCompactQuality(enCours)}<span class="fmt" use:bulleTexte>{formatCompactQuality(enCours)}</span>{/if}
       </span>
@@ -200,7 +200,7 @@
             <button class="corps" onclick={() => lireDepuis(i)} disabled={occupe} data-lire-ligne>
               <span class="cv"><AlbumArt coverPath={p.cover_path ?? null} albumId={p.album_id ?? null} size={38} alt={p.title ?? ''} /></span>
               <span class="tx">
-                <span class="t1" use:bulleTexte>{p.title ?? $t('queue.unknownTrack' as any)}</span>
+                <span class="t1" use:bulleTexte>{p.title ?? ''}</span>
                 <span class="t2" use:bulleTexte>{p.artist_name ?? ''}</span>
               </span>
               <span class="du">{dureeCompacte(p.duration_ms)}</span>

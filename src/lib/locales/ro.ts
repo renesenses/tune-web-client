@@ -6312,6 +6312,7 @@ export default {
   "mini.pause": "Pauză",
   "mini.file.actions": "Mai multe acțiuni",
   "mini.file.deplacer": "Trage pentru a muta",
+  "mini.filtres": "Filtre",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

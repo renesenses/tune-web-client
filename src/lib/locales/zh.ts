@@ -6312,6 +6312,7 @@ export default {
   "mini.pause": "暂停",
   "mini.file.actions": "更多操作",
   "mini.file.deplacer": "拖动以移动",
+  "mini.filtres": "筛选",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

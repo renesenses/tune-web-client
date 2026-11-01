@@ -6164,5 +6164,6 @@ export default {
   "mini.pause": "Tạm dừng",
   "mini.file.actions": "Thao tác khác",
   "mini.file.deplacer": "Kéo để di chuyển",
+  "mini.filtres": "Bộ lọc",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

@@ -6334,6 +6334,7 @@ export default {
   "mini.pause": "Pause",
   "mini.file.actions": "Plus d'actions",
   "mini.file.deplacer": "Glisser pour déplacer",
+  "mini.filtres": "Filtres",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -11,7 +11,8 @@
    */
   import { currentZone } from '../../../lib/stores/zones';
   import { zoneDeviceName } from '../../../lib/zoneIdentity';
-  import { feuilleMini, dansLeWidgetActif, actionWidget } from '../../../lib/vueMini';
+  import { feuilleMini, dansLeWidgetActif, actionWidget, filtresOuverts, filtresActifs } from '../../../lib/vueMini';
+  import { activeView } from '../../../lib/stores/navigation';
   import { t } from '../../../lib/i18n';
   import { bulleTexte } from '../../../lib/infobulleTexte';
   import AvatarMenu from '../AvatarMenu.svelte';
@@ -19,6 +20,29 @@
   let { replie = false }: { replie?: boolean } = $props();
   const appareil = $derived(zoneDeviceName($currentZone));
   const dansLeWidget = dansLeWidgetActif();
+
+  /*
+   * Le bouton « Filtres » n'existe que si l'écran courant en a (`.filters`).
+   * On l'apprend du DOM de la vue, sans toucher aux vingt-cinq écrans : un
+   * observateur relit la présence et le nombre de filtres actifs.
+   */
+  let aDesFiltres = $state(false);
+  let nbFiltres = $state(0);
+  $effect(() => {
+    void $activeView;
+    if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
+    const main = document.querySelector('.v2-shell.mini main.main');
+    if (!main) return;
+    const relire = () => {
+      const bloc = main.querySelector('.filters');
+      aDesFiltres = !!bloc;
+      nbFiltres = filtresActifs(bloc);
+    };
+    relire();
+    const mo = new MutationObserver(relire);
+    mo.observe(main, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'aria-pressed'] });
+    return () => mo.disconnect();
+  });
 </script>
 
 <header class="bandeau" class:replie data-bandeau-mini>
@@ -30,6 +54,12 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
   </button>
   <span class="esp"></span>
+  {#if aDesFiltres && !replie}
+    <button class="filtres" class:on={$filtresOuverts} onclick={() => filtresOuverts.update((v) => !v)}
+      aria-expanded={$filtresOuverts} data-bouton-filtres>
+      {$t('mini.filtres' as any)}{nbFiltres ? ` (${nbFiltres})` : ''}
+    </button>
+  {/if}
   {#if dansLeWidget}
     <button class="ic" onclick={() => actionWidget('epingle')} aria-label={$t('mini.epingle' as any)}
       title={$t('mini.epingle' as any)} data-action-widget="epingle">
@@ -65,6 +95,9 @@
   .nom{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .app{color:var(--v2-txt2); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .esp{flex:1}
+  .filtres{flex:0 0 auto; height:26px; padding:0 10px; border-radius:20px; border:1px solid var(--v2-line2);
+    background:var(--v2-surface2); color:var(--v2-txt2); font:600 11.5px var(--v2-sans); cursor:pointer; white-space:nowrap}
+  .filtres.on{color:var(--v2-on-acc); background:var(--v2-acc1); border-color:var(--v2-acc1)}
   .ic{width:28px; height:28px; display:grid; place-items:center; border:0; border-radius:6px; background:none;
     color:var(--v2-txt2); cursor:pointer; flex:0 0 auto}
   .ic:hover{background:var(--v2-hover); color:var(--v2-txt)}

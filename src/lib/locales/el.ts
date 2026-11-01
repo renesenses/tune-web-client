@@ -6157,5 +6157,6 @@ export default {
   "mini.pause": "Παύση",
   "mini.file.actions": "Περισσότερες ενέργειες",
   "mini.file.deplacer": "Σύρετε για μετακίνηση",
+  "mini.filtres": "Φίλτρα",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

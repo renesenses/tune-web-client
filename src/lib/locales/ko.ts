@@ -6312,6 +6312,7 @@ export default {
   "mini.pause": "일시정지",
   "mini.file.actions": "추가 작업",
   "mini.file.deplacer": "드래그하여 이동",
+  "mini.filtres": "필터",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

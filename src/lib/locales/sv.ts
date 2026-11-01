@@ -6311,4 +6311,5 @@ export default {
   "mini.pause": "Paus",
   "mini.file.actions": "Fler åtgärder",
   "mini.file.deplacer": "Dra för att flytta",
+  "mini.filtres": "Filter",
 } as const;
