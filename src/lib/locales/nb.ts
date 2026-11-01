@@ -6168,6 +6168,10 @@ export default {
   "monTheme.applique": "Temaet er brukt på profilen din.",
   "monTheme.recuIllisible": "Temaet er ikke lesbart: det ble ikke brukt.",
   "monTheme.recuSansGreffon": "Installer utvidelsen «Mitt tema» for å bruke dette temaet.",
+  // tune-server-rust#7195 — « Ma collection physique ».
+  "collectionPhysique.miseAJour": "Oppdaterer…",
+  "collectionPhysique.effacerCache": "Tøm hurtigbufferen",
+  "collectionPhysique.effacerCacheConfirmer": "Tømme samlingens hurtigbuffer (omslag, liste og utgivelsesdata)? Neste synkronisering leser alt fra Discogs på nytt.",
   "aes67.experimental.title": "Experimental",
   "aes67.experimental.label": "AES67 output (Dante/Ravenna)",
   "aes67.experimental.warning": "Experimental feature, not yet tried on Dante/Ravenna hardware.",

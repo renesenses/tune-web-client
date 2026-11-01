@@ -6168,6 +6168,10 @@ export default {
   "monTheme.applique": "Το θέμα εφαρμόστηκε στο προφίλ σας.",
   "monTheme.recuIllisible": "Αυτό το θέμα δεν είναι ευανάγνωστο: δεν εφαρμόστηκε.",
   "monTheme.recuSansGreffon": "Εγκαταστήστε το πρόσθετο «Το θέμα μου» για να εφαρμόσετε αυτό το θέμα.",
+  // tune-server-rust#7195 — « Ma collection physique ».
+  "collectionPhysique.miseAJour": "Ενημέρωση…",
+  "collectionPhysique.effacerCache": "Εκκαθάριση προσωρινής μνήμης",
+  "collectionPhysique.effacerCacheConfirmer": "Εκκαθάριση της προσωρινής μνήμης της συλλογής (εξώφυλλα, λίστα και στοιχεία); Ο επόμενος συγχρονισμός θα διαβάσει ξανά τα πάντα από το Discogs.",
   "aes67.experimental.title": "Experimental",
   "aes67.experimental.label": "AES67 output (Dante/Ravenna)",
   "aes67.experimental.warning": "Experimental feature, not yet tried on Dante/Ravenna hardware.",

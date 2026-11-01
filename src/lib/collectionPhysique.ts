@@ -14,6 +14,13 @@
  *   GET  /etat               → { avancement, derniere_synchro, derniere_erreur, … }
  *   GET  /collection[?format=&etat=] → { statut, compteurs, disques, attribution }
  *   GET  /cd?mb_release=     → { dans_la_collection, copie, disque }
+ *   GET  /pochettes/{release}  → la pochette, depuis le cache LOCAL du serveur
+ *   DELETE /cache[?quoi=pochettes] → « Effacer le cache »
+ *
+ * Cache (demande de Bertrand du 01/11/2026) : le serveur télécharge chaque
+ * pochette UNE fois chez Discogs et la sert lui-même (ETag, 304) ; l'écran
+ * n'appelle JAMAIS le CDN de Discogs. La liste se lit dans le cache du
+ * serveur, tout de suite ; une revalidation discrète tourne derrière.
  *
  * Le jeton Discogs n'est JAMAIS rendu : `jeton` dit seulement lequel existe.
  * Refus : `{ error: "collection_physique.<code>" }`, traduits ici.
@@ -67,6 +74,8 @@ export interface EtatSynchro {
   /** L'affinage MusicBrainz, en tâche de fond après la synchronisation ;
    *  absent d'un serveur antérieur. */
   affinage_musicbrainz?: AffinageMusicbrainz;
+  /** Le cache de pochettes du serveur (01/11/2026). */
+  pochettes?: { en_cours: boolean; en_cache: number; restantes: number };
 }
 
 export interface AffinageMusicbrainz {
@@ -109,9 +118,9 @@ export interface Disque {
   precisions: string[];
   format: Famille;
   lien_discogs: string;
-  /** La vignette Discogs de la PAGE DE COLLECTION (`thumb`, sinon
-   *  `cover_image`) : une adresse `https://i.discogs.com/…`, ou absente. */
-  vignette?: string | null;
+  /** Le disque a une pochette chez Discogs : le serveur la sert depuis son
+   *  cache (`urlPochette`). L'adresse Discogs ne sort jamais du serveur. */
+  pochette?: boolean;
   bibliotheque: AlbumDeLaBibliotheque | null;
   streaming: SurUnService[];
   etat: EtatDisque;
@@ -185,6 +194,22 @@ export function urlCollection(format: Famille | null, etat: EtatDisque | null): 
 export const lireCollection = (format: Famille | null, etat: EtatDisque | null) =>
   fetchJSON<Collection>(urlCollection(format, etat), undefined, undefined, true);
 
+/** « Effacer le cache » : `pochettes` seules, ou `tout` (pochettes, liste,
+ *  fiches ; le compte suivi reste). */
+export const effacerCache = (quoi: 'tout' | 'pochettes' = 'tout') =>
+  fetchJSON<{ efface: string }>(`${RACINE}/cache?quoi=${quoi}`, { method: 'DELETE' }, undefined, true);
+
+/** Au-delà de cet âge, la liste lue est revalidée à l'ouverture de l'écran
+ *  (en tâche de fond : l'écran montre le cache tout de suite). */
+export const REVALIDER_APRES_S = 10 * 60;
+
+/** La liste mérite-t-elle une revalidation discrète ? */
+export function aRevalider(e: EtatSynchro | null, maintenantS = Date.now() / 1000): boolean {
+  if (!e?.nom_utilisateur || e.avancement?.en_cours) return false;
+  if (e.liste_lue_le == null) return false;
+  return maintenantS - e.liste_lue_le > REVALIDER_APRES_S;
+}
+
 /** Un CD inséré (pressage MusicBrainz du greffon `cd`) est-il dans la
  *  collection, et copié ? `null` sans greffon ou sur une panne : l'écran du
  *  CD ne dit rien plutôt que de deviner. */
@@ -254,17 +279,11 @@ export const nomService = (k: string) => (k === 'tidal' ? 'TIDAL' : k.charAt(0).
  *  la Bibliothèque (`lib.display`). */
 export const CLE_AFFICHAGE = 'collectionPhysique.display';
 
-/** Une vignette Discogs que l'écran peut charger DIRECTEMENT : `https`, sur
- *  un hôte d'images de Discogs, et pas l'image vide (`spacer.gif`). Le
- *  serveur filtre déjà ; l'écran ne se fie pas à lui seul. */
-export function vignetteDiscogsSure(url: string | null | undefined): string | null {
-  const u = (url ?? '').trim();
-  const m = /^https:\/\/([^/?#]+)\//.exec(u);
-  if (!m) return null;
-  const hote = m[1].toLowerCase();
-  if (hote !== 'i.discogs.com' && hote !== 'img.discogs.com') return null;
-  if (/[\s"<>]/.test(u) || /spacer\.gif/i.test(u)) return null;
-  return u;
+/** L'adresse LOCALE de la pochette d'un disque : servie par le greffon,
+ *  depuis le cache du serveur. Une adresse `/api/…`, que `artworkUrl` passe
+ *  telle quelle (et par le pont, avec son jeton). */
+export function urlPochette(releaseId: number): string {
+  return `/api/v1/ext/${NOM_GREFFON}/pochettes/${encodeURIComponent(String(releaseId))}`;
 }
 
 export interface PochetteDuDisque {
@@ -272,8 +291,8 @@ export interface PochetteDuDisque {
   coverPath: string | null;
   /** L'album local, pour le repli d'`AlbumArt` si sa pochette ne se charge pas. */
   albumId: number | null;
-  /** `true` : une adresse Discogs, chargée telle quelle par le navigateur
-   *  (jamais par le relais du serveur). */
+  /** Toujours `false` depuis le cache du 01/11/2026 : plus rien ne se
+   *  charge directement chez Discogs. */
   directe: boolean;
 }
 
@@ -281,14 +300,13 @@ export interface PochetteDuDisque {
  * La pochette d'un disque :
  * 1. dans la bibliothèque et l'album a une pochette → celle de l'album, par
  *    les routes de pochettes du serveur ;
- * 2. sinon la vignette Discogs de la page de collection ;
+ * 2. sinon la pochette Discogs, servie par le CACHE du serveur ;
  * 3. sinon rien : `AlbumArt` montre son repli neutre.
  */
 export function pochetteDuDisque(d: Disque): PochetteDuDisque {
   const b = d.bibliotheque;
   if (b?.cover_path) return { coverPath: b.cover_path, albumId: b.album_id, directe: false };
-  const v = vignetteDiscogsSure(d.vignette);
-  if (v) return { coverPath: v, albumId: null, directe: true };
+  if (d.pochette === true) return { coverPath: urlPochette(d.release_id), albumId: null, directe: false };
   return { coverPath: null, albumId: null, directe: false };
 }
 

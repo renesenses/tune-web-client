@@ -6322,6 +6322,10 @@ export default {
   "monTheme.applique": "Temat har tillämpats på din profil.",
   "monTheme.recuIllisible": "Temat är inte läsbart: det tillämpades inte.",
   "monTheme.recuSansGreffon": "Installera insticksprogrammet ”Mitt tema” för att tillämpa temat.",
+  // tune-server-rust#7195 — « Ma collection physique ».
+  "collectionPhysique.miseAJour": "Uppdaterar…",
+  "collectionPhysique.effacerCache": "Töm cacheminnet",
+  "collectionPhysique.effacerCacheConfirmer": "Tömma samlingens cacheminne (omslag, lista och utgåvedata)? Nästa synkronisering läser allt från Discogs igen.",
   "aes67.experimental.title": "Experimental",
   "aes67.experimental.label": "AES67 output (Dante/Ravenna)",
   "aes67.experimental.warning": "Experimental feature, not yet tried on Dante/Ravenna hardware.",

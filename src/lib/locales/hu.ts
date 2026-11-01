@@ -6282,6 +6282,10 @@ export default {
   "monTheme.applique": "A téma alkalmazva a profiljára.",
   "monTheme.recuIllisible": "Ez a téma nem olvasható: nem lett alkalmazva.",
   "monTheme.recuSansGreffon": "A téma alkalmazásához telepítse a „Saját téma” bővítményt.",
+  // tune-server-rust#7195 — « Ma collection physique ».
+  "collectionPhysique.miseAJour": "Frissítés…",
+  "collectionPhysique.effacerCache": "Gyorsítótár törlése",
+  "collectionPhysique.effacerCacheConfirmer": "Törli a gyűjtemény gyorsítótárát (borítók, lista és adatlapok)? A következő szinkronizálás mindent újra beolvas a Discogsról.",
   "aes67.experimental.title": "Experimental",
   "aes67.experimental.label": "AES67 output (Dante/Ravenna)",
   "aes67.experimental.warning": "Experimental feature, not yet tried on Dante/Ravenna hardware.",

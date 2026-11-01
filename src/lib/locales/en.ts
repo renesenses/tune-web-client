@@ -6343,6 +6343,10 @@ export default {
   "monTheme.applique": "Theme applied to your profile.",
   "monTheme.recuIllisible": "This theme is not readable: it was not applied.",
   "monTheme.recuSansGreffon": "Install the “My theme” plugin to apply this theme.",
+  // tune-server-rust#7195 — « Ma collection physique ».
+  "collectionPhysique.miseAJour": "Updating…",
+  "collectionPhysique.effacerCache": "Clear cache",
+  "collectionPhysique.effacerCacheConfirmer": "Clear the collection cache (covers, list and release data)? The next sync will read everything from Discogs again.",
   "aes67.experimental.title": "Experimental",
   "aes67.experimental.label": "AES67 output (Dante/Ravenna)",
   "aes67.experimental.warning": "Experimental feature, not yet tried on Dante/Ravenna hardware.",

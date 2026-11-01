@@ -6168,6 +6168,10 @@ export default {
   "monTheme.applique": "Motyw zastosowany w Twoim profilu.",
   "monTheme.recuIllisible": "Ten motyw jest nieczytelny: nie został zastosowany.",
   "monTheme.recuSansGreffon": "Zainstaluj wtyczkę „Mój motyw”, aby zastosować ten motyw.",
+  // tune-server-rust#7195 — « Ma collection physique ».
+  "collectionPhysique.miseAJour": "Aktualizowanie…",
+  "collectionPhysique.effacerCache": "Wyczyść pamięć podręczną",
+  "collectionPhysique.effacerCacheConfirmer": "Wyczyścić pamięć podręczną kolekcji (okładki, lista i dane wydań)? Następna synchronizacja ponownie odczyta wszystko z Discogs.",
   "aes67.experimental.title": "Experimental",
   "aes67.experimental.label": "AES67 output (Dante/Ravenna)",
   "aes67.experimental.warning": "Experimental feature, not yet tried on Dante/Ravenna hardware.",

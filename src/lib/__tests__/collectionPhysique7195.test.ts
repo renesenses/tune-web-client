@@ -15,10 +15,11 @@ import { activeView, pendingLibraryAlbum, vueDeRetour } from '../stores/navigati
 import { ficheAlbumService } from '../stores/streaming';
 import {
   ATTRIBUTION_DISCOGS, CLE_AFFICHAGE, cleErreur, clicSurDisque, codeDeRefus, collectionPhysiquePlugin,
-  legendeDuDisque, nomValide, pastillesDuDisque, pochetteDuDisque, qualiteDe, urlCollection,
-  vignetteDiscogsSure, type Disque, type Etape,
+  aRevalider, legendeDuDisque, nomValide, pastillesDuDisque, pochetteDuDisque, qualiteDe, urlCollection,
+  urlPochette, type Disque, type Etape, type EtatSynchro,
 } from '../collectionPhysique';
 import { preparerLocale } from '../i18n';
+import { dialogs } from '../stores/dialogs';
 import fr from '../locales/fr';
 
 vi.setConfig({ testTimeout: 60_000 });
@@ -42,6 +43,9 @@ let greffons: Record<string, unknown>[] = [];
 let appels: string[] = [];
 let affinage = { en_cours: false, restants: 0 };
 let avancement: Record<string, unknown> = { en_cours: false, etape: null, fait: 0, total: 0 };
+/** `liste_lue_le` de `/etat` : récente par défaut (pas de revalidation). */
+let listeLueLe = Math.floor(Date.now() / 1000);
+let lanceParSynchro = false;
 
 async function laisserTourner(n = 40) {
   for (let i = 0; i < n; i++) {
@@ -60,7 +64,7 @@ function disque(p: Partial<Disque>): Disque {
   };
 }
 
-const VIGNETTE = 'https://i.discogs.com/abc/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNj.jpeg';
+const POCHETTE_7024 = '/api/v1/ext/collection-physique/pochettes/7024';
 const CLE_STOCKAGE = `tune_v2_ecran_${CLE_AFFICHAGE}`;
 
 const COLLECTION = {
@@ -79,7 +83,7 @@ const COLLECTION = {
       lien_discogs: 'https://www.discogs.com/release/249504',
       bibliotheque: { album_id: 42, titre: 'Never Gonna Give You Up', artiste: 'Rick Astley', qualite: 'hi-res',
         format: 'flac', sample_rate: 96000, bit_depth: 24, cover_path: 'a1b2c3.jpg', par: 'musicbrainz_album' },
-      vignette: VIGNETTE,
+      pochette: true,
     }),
     disque({
       instance_id: 2, release_id: 2, artiste: 'Janice McClain', titre: 'Giving My Love', etat: 'streaming',
@@ -87,7 +91,7 @@ const COLLECTION = {
     }),
     disque({
       instance_id: 3, release_id: 7024, artiste: 'Various', titre: 'The Haçienda', format: 'cd', formats: ['CD'],
-      etat: 'nulle_part', copie: false, proposer_extraction: true, vignette: VIGNETTE,
+      etat: 'nulle_part', copie: false, proposer_extraction: true, pochette: true,
     }),
   ],
   attribution: { texte: 'Data provided by Discogs', lien: 'https://www.discogs.com' },
@@ -102,6 +106,8 @@ beforeEach(() => {
   appels = [];
   affinage = { en_cours: false, restants: 0 };
   avancement = { en_cours: false, etape: null, fait: 0, total: 0 };
+  listeLueLe = Math.floor(Date.now() / 1000);
+  lanceParSynchro = false;
   collectionPhysiquePlugin.set(null);
   vi.stubGlobal('ResizeObserver', ObservateurInerte as any);
   if (!('IntersectionObserver' in globalThis)) vi.stubGlobal('IntersectionObserver', ObservateurInerte as any);
@@ -112,10 +118,15 @@ beforeEach(() => {
     if (u.includes('/ext/collection-physique/reglages')) return reponse({ nom_utilisateur: 'exemple', jeton: 'personnel' });
     if (u.includes('/ext/collection-physique/etat')) {
       return reponse({ nom_utilisateur: 'exemple', avancement,
-        disques: 3, tronquee: false, liste_lue_le: 1, derniere_synchro: 1793361925, derniere_erreur: null,
+        disques: 3, tronquee: false, liste_lue_le: listeLueLe, derniere_synchro: 1793361925, derniere_erreur: null,
         affinage_musicbrainz: affinage });
     }
     if (u.includes('/ext/collection-physique/collection')) return reponse(COLLECTION);
+    if (u.includes('/ext/collection-physique/synchroniser')) {
+      if (lanceParSynchro) avancement = { en_cours: true, etape: 'liste', fait: 0, total: 0 };
+      return reponse({ lance: lanceParSynchro, avancement }, 202);
+    }
+    if (u.includes('/ext/collection-physique/cache')) return reponse({ efface: 'tout' });
     if (/\/config/.test(u)) return reponse({});
     return reponse([]);
   }));
@@ -263,24 +274,24 @@ describe('« Ma collection physique » — entrée de barre latérale (décision
 });
 
 describe('« Ma collection physique » — pochettes (essai réel du 31/10/2026 : aucune)', () => {
-  it('l’album de la bibliothèque d’abord, puis la vignette Discogs, puis le repli', () => {
+  it('l’album de la bibliothèque d’abord, puis la pochette du CACHE du serveur, puis le repli', () => {
     const bib = { album_id: 42, titre: 'T', artiste: null, qualite: null, format: null, sample_rate: null, bit_depth: null, par: '' };
-    expect(pochetteDuDisque(disque({ bibliotheque: { ...bib, cover_path: 'a1b2c3.jpg' }, vignette: VIGNETTE })))
+    expect(pochetteDuDisque(disque({ bibliotheque: { ...bib, cover_path: 'a1b2c3.jpg' }, pochette: true })))
       .toEqual({ coverPath: 'a1b2c3.jpg', albumId: 42, directe: false });
-    // Dans la bibliothèque mais sans pochette : la vignette Discogs.
-    expect(pochetteDuDisque(disque({ bibliotheque: { ...bib, cover_path: null }, vignette: VIGNETTE })))
-      .toEqual({ coverPath: VIGNETTE, albumId: null, directe: true });
-    expect(pochetteDuDisque(disque({ vignette: VIGNETTE }))).toEqual({ coverPath: VIGNETTE, albumId: null, directe: true });
+    // Dans la bibliothèque mais sans pochette : celle du cache du greffon.
+    expect(pochetteDuDisque(disque({ release_id: 7024, bibliotheque: { ...bib, cover_path: null }, pochette: true })))
+      .toEqual({ coverPath: POCHETTE_7024, albumId: null, directe: false });
+    expect(pochetteDuDisque(disque({ release_id: 7024, pochette: true })))
+      .toEqual({ coverPath: POCHETTE_7024, albumId: null, directe: false });
     expect(pochetteDuDisque(disque({}))).toEqual({ coverPath: null, albumId: null, directe: false });
   });
 
-  it('seule une image de Discogs en https se charge directement', () => {
-    expect(vignetteDiscogsSure(VIGNETTE)).toBe(VIGNETTE);
-    expect(vignetteDiscogsSure('http://i.discogs.com/x.jpg')).toBeNull();
-    expect(vignetteDiscogsSure('https://i.discogs.com.evil.example/x.jpg')).toBeNull();
-    expect(vignetteDiscogsSure('data:image/png;base64,AAAA')).toBeNull();
-    expect(vignetteDiscogsSure('https://s.discogs.com/images/spacer.gif')).toBeNull();
-    expect(vignetteDiscogsSure(null)).toBeNull();
+  it('cache du 01/11/2026 : jamais le CDN de Discogs, même si un serveur antérieur envoie encore une adresse', () => {
+    expect(urlPochette(249504)).toBe('/api/v1/ext/collection-physique/pochettes/249504');
+    const ancien = { ...disque({ release_id: 9 }), vignette: 'https://i.discogs.com/x.jpeg' } as Disque;
+    const p = pochetteDuDisque(ancien);
+    expect(p.coverPath).toBeNull();
+    expect(p.directe).toBe(false);
   });
 
   it('les pastilles et la destination du clic', () => {
@@ -312,12 +323,13 @@ describe('« Ma collection physique » — grille comme la Bibliothèque (Bertra
     expect(imgRick.getAttribute('src')).toMatch(/\/library\/artwork\/a1b2c3\.jpg/);
     expect(imgRick.getAttribute('loading')).toBe('lazy');
 
-    // Hors bibliothèque : la vignette Discogs, telle quelle, sans relais ni référent.
+    // Hors bibliothèque : la pochette du cache du serveur, jamais le CDN de
+    // Discogs (cache du 01/11/2026).
     const h = grille!.querySelector('[data-disque="7024"]')!;
     const imgH = h.querySelector('img') as HTMLImageElement;
-    expect(imgH.getAttribute('src')).toBe(VIGNETTE);
+    expect(imgH.getAttribute('src')).toBe(POCHETTE_7024);
     expect(imgH.getAttribute('loading')).toBe('lazy');
-    expect(imgH.getAttribute('referrerpolicy')).toBe('no-referrer');
+    expect(hote!.innerHTML).not.toContain('discogs.com/');
     expect(h.querySelector('[data-pastille="non_copie"]')?.textContent).toBe(fr['collectionPhysique.pastilleNonCopie']);
 
     // Ni vignette ni album : le repli d'AlbumArt (l'initiale), aucune image.
@@ -326,7 +338,7 @@ describe('« Ma collection physique » — grille comme la Bibliothèque (Bertra
     expect(g.querySelector('.placeholder')).not.toBeNull();
     expect(g.querySelector('[data-pastille="streaming"]')).not.toBeNull();
 
-    // Aucune requête par disque : ni au serveur (pochettes, relais) ni ailleurs.
+    // Aucune requête JSON par disque, et rien vers Discogs.
     expect(appels.filter((a) => /artwork|cover|discogs\.com/.test(a))).toEqual([]);
   });
 
@@ -367,7 +379,7 @@ describe('« Ma collection physique » — grille comme la Bibliothèque (Bertra
     expect(hote!.querySelector('[data-grille-collection]')).toBeNull();
     expect(hote!.querySelectorAll('ul.list [data-disque]')).toHaveLength(3);
     // La liste a aussi sa vignette.
-    expect(hote!.querySelector('ul.list [data-disque="7024"] img')?.getAttribute('src')).toBe(VIGNETTE);
+    expect(hote!.querySelector('ul.list [data-disque="7024"] img')?.getAttribute('src')).toBe(POCHETTE_7024);
     expect(localStorage.getItem(CLE_STOCKAGE)).toBe('list');
 
     unmount(monte!);
@@ -423,5 +435,56 @@ describe('« Ma collection physique » — les services d’abord, MusicBrainz e
     expect((fr as Record<string, string>)['collectionPhysique.etape.codes_barres']).toBeUndefined();
     expect((fr as Record<string, string>)['collectionPhysique.etape.musicbrainz']).toBeUndefined();
     expect((fr as Record<string, string>)['collectionPhysique.musicbrainzManquants']).toBeUndefined();
+  });
+});
+
+describe('« Ma collection physique » — le cache (Bertrand, 01/11/2026)', () => {
+  it('l’ouverture montre le cache tout de suite et revalide discrètement une liste de plus de dix minutes', async () => {
+    listeLueLe = Math.floor(Date.now() / 1000) - 3600;
+    lanceParSynchro = true;
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    expect(hote!.querySelectorAll('[data-grille-collection] .card')).toHaveLength(3);
+    expect(appels.filter((a) => a.startsWith('POST') && a.includes('/synchroniser'))).toHaveLength(1);
+    expect(hote!.querySelector('[data-mise-a-jour]')?.textContent).toBe(fr['collectionPhysique.miseAJour']);
+    // Discrète : pas l’avancement détaillé d’une synchronisation demandée.
+    expect(hote!.querySelector('[data-avancement]')).toBeNull();
+  });
+
+  it('contre-épreuve : une liste récente n’est pas revalidée, rien ne s’affiche', async () => {
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    expect(appels.filter((a) => a.includes('/synchroniser'))).toEqual([]);
+    expect(hote!.querySelector('[data-mise-a-jour]')).toBeNull();
+  });
+
+  it('aRevalider : âge de la liste, compte suivi, rien en cours', () => {
+    const e = (p: Partial<EtatSynchro>): EtatSynchro => ({
+      nom_utilisateur: 'x', avancement: { en_cours: false, etape: null, fait: 0, total: 0 }, disques: 1,
+      tronquee: false, liste_lue_le: 1_000, derniere_synchro: null, derniere_erreur: null, ...p,
+    });
+    expect(aRevalider(e({}), 1_000 + 601)).toBe(true);
+    expect(aRevalider(e({}), 1_000 + 599)).toBe(false);
+    expect(aRevalider(e({ nom_utilisateur: null }), 99_999)).toBe(false);
+    expect(aRevalider(e({ liste_lue_le: null }), 99_999)).toBe(false);
+    expect(aRevalider(e({ avancement: { en_cours: true, etape: 'liste', fait: 0, total: 0 } }), 99_999)).toBe(false);
+  });
+
+  it('« Effacer le cache » demande confirmation, puis appelle DELETE /cache', async () => {
+    const confirmer = vi.spyOn(dialogs, 'confirm').mockResolvedValue(false);
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    const bouton = hote!.querySelector('[data-effacer-cache]') as HTMLButtonElement;
+    expect(bouton.textContent?.trim()).toBe(fr['collectionPhysique.effacerCache']);
+    bouton.click();
+    await laisserTourner();
+    expect(confirmer).toHaveBeenCalledTimes(1);
+    expect(appels.filter((a) => a.includes('/cache'))).toEqual([]);
+
+    confirmer.mockResolvedValue(true);
+    bouton.click();
+    await laisserTourner();
+    expect(appels.filter((a) => a.includes('/cache'))).toEqual(['DELETE /api/v1/ext/collection-physique/cache?quoi=tout']);
+    confirmer.mockRestore();
   });
 });

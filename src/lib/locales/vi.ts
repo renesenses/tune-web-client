@@ -6175,6 +6175,10 @@ export default {
   "monTheme.applique": "Đã áp dụng giao diện cho hồ sơ của bạn.",
   "monTheme.recuIllisible": "Giao diện này khó đọc: chưa được áp dụng.",
   "monTheme.recuSansGreffon": "Hãy cài plugin “Giao diện của tôi” để áp dụng giao diện này.",
+  // tune-server-rust#7195 — « Ma collection physique ».
+  "collectionPhysique.miseAJour": "Đang cập nhật…",
+  "collectionPhysique.effacerCache": "Xóa bộ nhớ đệm",
+  "collectionPhysique.effacerCacheConfirmer": "Xóa bộ nhớ đệm của bộ sưu tập (ảnh bìa, danh sách và thông tin bản phát hành)? Lần đồng bộ tiếp theo sẽ đọc lại mọi thứ từ Discogs.",
   "aes67.experimental.title": "Experimental",
   "aes67.experimental.label": "AES67 output (Dante/Ravenna)",
   "aes67.experimental.warning": "Experimental feature, not yet tried on Dante/Ravenna hardware.",

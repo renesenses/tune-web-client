@@ -6323,6 +6323,10 @@ export default {
   "monTheme.applique": "主题已应用到您的用户档案。",
   "monTheme.recuIllisible": "此主题不可读：未应用。",
   "monTheme.recuSansGreffon": "请安装“我的主题”插件以应用此主题。",
+  // tune-server-rust#7195 — « Ma collection physique ».
+  "collectionPhysique.miseAJour": "正在更新……",
+  "collectionPhysique.effacerCache": "清除缓存",
+  "collectionPhysique.effacerCacheConfirmer": "清除收藏的缓存（封面、列表和发行信息）？下次同步将从 Discogs 重新读取全部内容。",
   "aes67.experimental.title": "Experimental",
   "aes67.experimental.label": "AES67 output (Dante/Ravenna)",
   "aes67.experimental.warning": "Experimental feature, not yet tried on Dante/Ravenna hardware.",

@@ -6323,6 +6323,10 @@ export default {
   "monTheme.applique": "테마를 프로필에 적용했습니다.",
   "monTheme.recuIllisible": "이 테마는 읽기 어려워 적용하지 않았습니다.",
   "monTheme.recuSansGreffon": "이 테마를 적용하려면 “내 테마” 플러그인을 설치하세요.",
+  // tune-server-rust#7195 — « Ma collection physique ».
+  "collectionPhysique.miseAJour": "업데이트 중…",
+  "collectionPhysique.effacerCache": "캐시 지우기",
+  "collectionPhysique.effacerCacheConfirmer": "컬렉션 캐시(커버, 목록, 릴리스 정보)를 지울까요? 다음 동기화 때 Discogs에서 모두 다시 읽습니다.",
   "aes67.experimental.title": "Experimental",
   "aes67.experimental.label": "AES67 output (Dante/Ravenna)",
   "aes67.experimental.warning": "Experimental feature, not yet tried on Dante/Ravenna hardware.",

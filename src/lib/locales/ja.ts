@@ -6323,6 +6323,10 @@ export default {
   "monTheme.applique": "テーマをプロファイルに適用しました。",
   "monTheme.recuIllisible": "このテーマは読みにくいため、適用されませんでした。",
   "monTheme.recuSansGreffon": "このテーマを適用するには「マイテーマ」プラグインをインストールしてください。",
+  // tune-server-rust#7195 — « Ma collection physique ».
+  "collectionPhysique.miseAJour": "更新中…",
+  "collectionPhysique.effacerCache": "キャッシュを消去",
+  "collectionPhysique.effacerCacheConfirmer": "コレクションのキャッシュ（ジャケット、リスト、リリース情報）を消去しますか？次回の同期で Discogs からすべて読み直します。",
   "aes67.experimental.title": "Experimental",
   "aes67.experimental.label": "AES67 output (Dante/Ravenna)",
   "aes67.experimental.warning": "Experimental feature, not yet tried on Dante/Ravenna hardware.",

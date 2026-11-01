@@ -6323,6 +6323,10 @@ export default {
   "monTheme.applique": "Tema aplicado a su perfil.",
   "monTheme.recuIllisible": "Este tema no es legible: no se ha aplicado.",
   "monTheme.recuSansGreffon": "Instale el complemento «Mi tema» para aplicar este tema.",
+  // tune-server-rust#7195 — « Ma collection physique ».
+  "collectionPhysique.miseAJour": "Actualizando…",
+  "collectionPhysique.effacerCache": "Vaciar la caché",
+  "collectionPhysique.effacerCacheConfirmer": "¿Vaciar la caché de la colección (portadas, lista y fichas)? La próxima sincronización volverá a leerlo todo en Discogs.",
   "aes67.experimental.title": "Experimental",
   "aes67.experimental.label": "AES67 output (Dante/Ravenna)",
   "aes67.experimental.warning": "Experimental feature, not yet tried on Dante/Ravenna hardware.",

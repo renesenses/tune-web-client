@@ -6323,6 +6323,10 @@ export default {
   "monTheme.applique": "Tema a fost aplicată profilului dvs.",
   "monTheme.recuIllisible": "Această temă nu este lizibilă: nu a fost aplicată.",
   "monTheme.recuSansGreffon": "Instalați pluginul „Tema mea” pentru a aplica această temă.",
+  // tune-server-rust#7195 — « Ma collection physique ».
+  "collectionPhysique.miseAJour": "Se actualizează…",
+  "collectionPhysique.effacerCache": "Golește memoria cache",
+  "collectionPhysique.effacerCacheConfirmer": "Golești memoria cache a colecției (coperți, listă și fișe)? Următoarea sincronizare va citi din nou totul de pe Discogs.",
   "aes67.experimental.title": "Experimental",
   "aes67.experimental.label": "AES67 output (Dante/Ravenna)",
   "aes67.experimental.warning": "Experimental feature, not yet tried on Dante/Ravenna hardware.",

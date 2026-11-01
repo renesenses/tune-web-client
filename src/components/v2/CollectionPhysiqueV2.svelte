@@ -17,9 +17,14 @@
   de la Bibliothèque (`BasculeAffichage`, `lib/affichage`), choix retenu par
   `lib/preferencesEcran` comme là-bas. La pochette (`pochetteDuDisque`) :
   celle de l'album local s'il est dans la bibliothèque, sinon la vignette
-  Discogs de la page de collection, chargée DIRECTEMENT par le navigateur
-  (`AlbumArt directe`, sans référent, `loading=lazy`) — aucun appel de plus
-  ni au serveur ni à Discogs —, sinon le repli d'`AlbumArt`.
+  Discogs, sinon le repli d'`AlbumArt`.
+
+  Cache (Bertrand, 01/11/2026) : la pochette Discogs vient du CACHE du
+  serveur (`urlPochette`, ETag et 304), jamais plus du CDN de Discogs. La
+  liste se lit tout de suite dans le cache du serveur ; si elle a plus de
+  dix minutes, une revalidation discrète tourne (« Mise à jour… » dans
+  l'en-tête, pas d'avancement détaillé). « Effacer le cache » est à côté
+  du compte.
 -->
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
@@ -27,7 +32,8 @@
   import {
     ATTRIBUTION_DISCOGS, ETATS, FAMILLES, LIEN_DISCOGS,
     CLE_AFFICHAGE, CLE_PASTILLE,
-    cleErreur, clicSurDisque, codeDeRefus, compteDuJeton, legendeDuDisque, lireCollection, lireEtat,
+    aRevalider, cleErreur, clicSurDisque, codeDeRefus, compteDuJeton, effacerCache, legendeDuDisque,
+    lireCollection, lireEtat,
     lireReglages, nomService, nomValide, pastillesDuDisque, pochetteDuDisque, poserCompte, qualiteDe, synchroniser,
     type Collection, type Disque, type EtatDisque, type EtatSynchro, type Famille,
     type Reglages, type SurUnService,
@@ -45,6 +51,7 @@
   import { messageEchecLecture } from '../../lib/echecLecture';
   import { notifications } from '../../lib/stores/notifications';
   import { dateEtHeure } from '../../lib/dates';
+  import { dialogs } from '../../lib/stores/dialogs';
 
   let reglages = $state<Reglages | null>(null);
   let etat = $state<EtatSynchro | null>(null);
@@ -56,6 +63,9 @@
   let chargement = $state(true);
   let occupe = $state(false);
   let minuterie: ReturnType<typeof setInterval> | null = null;
+  /** La synchronisation en cours est la revalidation discrète de
+   *  l'ouverture : « Mise à jour… », sans l'avancement détaillé. */
+  let revalidation = $state(false);
   /** Grille par défaut, comme la Bibliothèque ; le choix est retenu. */
   let affichage = $state<Affichage>(lireChoix(CLE_AFFICHAGE, GRILLE_OU_LISTE, 'grid'));
 
@@ -85,11 +95,46 @@
       nom = reglages.nom_utilisateur ?? '';
       etat = await lireEtat();
       await chargerCollection();
-      if (etat?.avancement?.en_cours || etat?.affinage_musicbrainz?.en_cours) suivre();
+      if (collection?.statut === 'ok' && aRevalider(etat)) {
+        // La grille est déjà là (le cache du serveur) ; la revalidation
+        // tourne derrière, discrètement.
+        void revalider();
+      } else if (etat?.avancement?.en_cours || etat?.affinage_musicbrainz?.en_cours) suivre();
     } catch (e) {
       erreur = cleErreur(codeDeRefus(e));
     } finally {
       chargement = false;
+    }
+  }
+
+  async function revalider() {
+    try {
+      const r = await synchroniser();
+      if (!r.lance) return;
+      revalidation = true;
+      etat = etat ? { ...etat, avancement: { ...r.avancement, en_cours: true } } : etat;
+      suivre();
+    } catch {
+      // Discrète : un échec ne dit rien de plus que le cache affiché.
+      revalidation = false;
+    }
+  }
+
+  async function viderLeCache() {
+    const ok = await dialogs.confirm($t('collectionPhysique.effacerCacheConfirmer' as any) as string, { danger: true });
+    if (!ok) return;
+    occupe = true;
+    erreur = null;
+    try {
+      await effacerCache('tout');
+      arreterSuivi();
+      revalidation = false;
+      etat = await lireEtat();
+      await chargerCollection();
+    } catch (e) {
+      erreur = cleErreur(codeDeRefus(e));
+    } finally {
+      occupe = false;
     }
   }
 
@@ -108,6 +153,7 @@
       try {
         etat = await lireEtat();
         tours += 1;
+        if (!etat.avancement.en_cours) revalidation = false;
         if (!etat.avancement.en_cours && !etat.affinage_musicbrainz?.en_cours) {
           arreterSuivi();
           await chargerCollection();
@@ -155,6 +201,7 @@
 
   async function lancer() {
     erreur = null;
+    revalidation = false;
     try {
       const r = await synchroniser();
       etat = etat ? { ...etat, avancement: { ...r.avancement, en_cours: true } } : etat;
@@ -226,7 +273,10 @@
     </div>
     {#if collection?.statut === 'ok'}
       <div class="v2-actions">
-        <div class="meta"><span>{texte('collectionPhysique.compteur', { n: collection.compteurs.total })}</span></div>
+        <div class="meta">
+          {#if revalidation && enCours}<span data-mise-a-jour>{$t('collectionPhysique.miseAJour' as any)}</span>{/if}
+          <span>{texte('collectionPhysique.compteur', { n: collection.compteurs.total })}</span>
+        </div>
       </div>
     {/if}
   </header>
@@ -246,7 +296,10 @@
         </button>
       {/if}
       <button class="v2-btn" onclick={lancer} disabled={enCours || !reglages?.nom_utilisateur} data-synchroniser>
-        {#if enCours}{$t('collectionPhysique.enCours' as any)}{:else}{$t('collectionPhysique.synchroniser' as any)}{/if}
+        {#if enCours && !revalidation}{$t('collectionPhysique.enCours' as any)}{:else}{$t('collectionPhysique.synchroniser' as any)}{/if}
+      </button>
+      <button class="v2-btn ghost" onclick={viderLeCache} disabled={occupe} data-effacer-cache>
+        {$t('collectionPhysique.effacerCache' as any)}
       </button>
     </div>
     {#if reglages?.jeton === 'personnel'}
@@ -255,7 +308,7 @@
       <p class="aide">{$t('collectionPhysique.sansJeton' as any)}</p>
     {/if}
 
-    {#if enCours && etat?.avancement?.etape}
+    {#if enCours && !revalidation && etat?.avancement?.etape}
       <p class="avancement" data-avancement>
         {$t(`collectionPhysique.etape.${etat.avancement.etape}` as any)}
         {#if etat.avancement.total}— {etat.avancement.fait} / {etat.avancement.total}{/if}
