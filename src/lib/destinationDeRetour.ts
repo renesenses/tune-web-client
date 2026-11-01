@@ -86,6 +86,8 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   equalizer: 'destination',
   crossfeed: 'destination',
   crossfeedpro: 'destination',
+  // web#2580 — Crosstalk (greffon natif tiers, enceintes).
+  crosstalk: 'destination',
   // tune-server-rust#6044 — les réglages du greffon « Réaffectation des canaux ».
   reaffectation: 'destination',
   plugins: 'destination',

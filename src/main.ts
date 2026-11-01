@@ -7,7 +7,8 @@ import { get } from 'svelte/store';
 import { preferences } from './lib/stores/preferences';
 import { preparerLocale } from './lib/i18n';
 import { installerRechargementApresMiseAJour } from './lib/rechargementApresMiseAJour';
-import { viaRelais } from './lib/bridge';
+import { viaRelais, serverId } from './lib/bridge';
+import { enregistrerServiceWorker, installerSurveillanceVersion } from './lib/versionInterface';
 import { estRetourOAuth } from './lib/laissezPasser/accesParCompte';
 
 // Par le pont (téléphone hors du réseau local), Safari oublie le geste pendant
@@ -56,6 +57,7 @@ preparerLocale(get(preferences).language ?? 'en').then(async () => {
   // est allumé (éteint par défaut).
   void import('./lib/mediaSessionInstallee').then((m) => m.installerSessionMedia());
 });
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
-}
+// rc10 : service worker propre à chaque build, et comparaison du build chargé
+// avec celui que sert le serveur — voir `lib/versionInterface.ts`.
+enregistrerServiceWorker(window);
+installerSurveillanceVersion(window, serverId());
