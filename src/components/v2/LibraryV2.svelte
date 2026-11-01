@@ -3348,8 +3348,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           {:else if totalPagine === 0}
             <div class="state">{qPistes.trim() || fProvenance || porteeActive ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
+            <!-- Bertrand, 01/11/2026 : « de petites pochettes sur chaque
+                 ligne » de Bibliothèque › Pistes. La vignette de 36 px vit
+                 dans la cellule du titre (pas de colonne de plus) et ne
+                 change pas la hauteur de ligne de la fenêtre virtuelle. -->
             <ListePistesV2
               virtuel
+              pochetteEnTableau
               pistes={lignesPagine}
               rangDepart={debutVisible}
               espaceAvant={debutVisible * hauteurLigne}
@@ -3382,6 +3387,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                  celles qu'elle ne peut pas ouvrir. -->
             <ListePistesV2
               pistes={visibleTracks}
+              pochetteEnTableau
               tri={triPistes}
               triables={COLONNES_TRIABLES_NAVIGATEUR}
               onTrier={(cle) => (triPistes = triSuivant(triPistes, cle))}
