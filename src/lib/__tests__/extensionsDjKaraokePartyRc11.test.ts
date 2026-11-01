@@ -125,16 +125,26 @@ describe('cartes DJ, Karaoké et Mode Party', () => {
     expect(c.querySelector('p.pd')!.textContent).toBe('Texte serveur');
   });
 
-  it('DJ non installé : « Installer » envoie POST install, puis l’avertissement s’affiche', async () => {
+  it('DJ non installé : « Installer » envoie POST install, puis la carte relue porte case cochée et avertissement', async () => {
     const el = await poser();
     await catalogue(el);
+    expect(carte(el, 'dj')!.querySelector('label.sw')).toBeNull();
+    // Le serveur, relu après le clic : installé, voulu actif, redémarrage attendu.
+    simule.fiches = [{ ...DJ, installed: true, enabled: true, restart_required: true }, KARAOKE, PARTY];
     (carte(el, 'dj')!.querySelector('button.go') as HTMLButtonElement).click();
     await attendre();
     expect(simule.appels).toEqual(['install:dj']);
-    // Le serveur, relu, dit : installé, voulu actif, pas chargé, redémarrage.
+    const c = carte(el, 'dj')!;
+    expect((c.querySelector('label.sw input') as HTMLInputElement).checked).toBe(true);
+    expect(c.querySelector('[data-redemarrage]')).not.toBeNull();
+  });
+
+  it('DJ installé : décocher (« Désinstaller ») envoie DELETE', async () => {
     simule.fiches = [{ ...DJ, installed: true, enabled: true, restart_required: true }, KARAOKE, PARTY];
-    (carte(el, 'dj')!.querySelector('button.go') as HTMLButtonElement | null)?.click();
+    const el = await poser();
+    (carte(el, 'dj')!.querySelector('button.danger') as HTMLButtonElement).click();
     await attendre();
+    expect(simule.appels).toEqual(['uninstall:dj']);
   });
 
   it('carte installée en attente de redémarrage : case cochée + avertissement ; sans attente, aucun avertissement', async () => {
@@ -147,16 +157,16 @@ describe('cartes DJ, Karaoké et Mode Party', () => {
     expect(carte(el, 'party')!.querySelector('[data-redemarrage]')).toBeNull();
   });
 
-  it('Mode Party : décocher envoie disable, recocher envoie enable', async () => {
+  it('Mode Party : décocher envoie disable, puis recocher envoie enable', async () => {
     const el = await poser();
-    const case_ = carte(el, 'party')!.querySelector('label.sw input') as HTMLInputElement;
-    expect(case_.checked).toBe(true);
-    case_.click();
+    (carte(el, 'party')!.querySelector('label.sw input') as HTMLInputElement).click();
     await attendre();
-    simule.fiches = [{ ...PARTY, enabled: false, restart_required: true }];
-    case_.click();
+    expect(simule.appels).toEqual(['disable:party']);
+    simule.fiches = [{ ...PARTY, enabled: false, restart_required: true }, DJ, KARAOKE];
+    (carte(el, 'party')!.querySelector('label.sw input') as HTMLInputElement).click();
     await attendre();
-    expect(simule.appels[0]).toBe('disable:party');
+    // Contre-épreuve : la relecture a bien rendu la case décochée avant le 2e clic.
+    expect(simule.appels).toEqual(['disable:party', 'enable:party']);
   });
 
   it('les deux tables de traduction couvrent les trois greffons', () => {
