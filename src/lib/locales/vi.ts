@@ -5254,8 +5254,6 @@ export default {
   "v2.sources.permissionAsk": "macOS chưa cho phép Tune nghe các đầu vào âm thanh: hệ thống sẽ hỏi khi bạn bấm “Nghe” lần đầu.",
   "v2.sources.permissionNotAsked": "Chưa được hỏi",
   "v2.plug.entreeAudioNom": "Đầu vào âm thanh",
-  "v2.plug.djNom": "DJ",
-  "v2.plug.djDesc": "Chế độ DJ: phân tích bản nhạc (dạng sóng), bàn xoay và chuyển bài mượt. Mặc định tắt.",
   "v2.plug.karaokeNom": "Karaoke",
   "v2.plug.karaokeDesc": "Lời bài hát đồng bộ kiểu karaoke, từng dòng. Mặc định tắt.",
   "v2.plug.partyNom": "Chế độ tiệc",

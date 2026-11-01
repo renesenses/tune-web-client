@@ -5396,8 +5396,6 @@ export default {
   "v2.sources.permissionNotAsked": "Non ancora richiesta",
   // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
   "v2.plug.entreeAudioNom": "Ingresso audio",
-  "v2.plug.djNom": "DJ",
-  "v2.plug.djDesc": "Modalità DJ: analisi dei brani (forma d'onda), piatti e dissolvenze incrociate. Disattivata per impostazione predefinita.",
   "v2.plug.karaokeNom": "Karaoke",
   "v2.plug.karaokeDesc": "Testi sincronizzati in stile karaoke, riga per riga. Disattivato per impostazione predefinita.",
   "v2.plug.partyNom": "Modalità Party",

@@ -65,8 +65,7 @@ export const NOMS_GREFFONS_SDK: Record<string, string> = {
   [ID_GREFFON_ENTREE_AUDIO]: 'v2.plug.entreeAudioNom',
   // tune-server-rust#6044 — la réaffectation des canaux.
   'channel-remap': 'v2.cr.title',
-  // rc11 — les cases DJ, Karaoké et Mode Party de Réglages › Extensions.
-  dj: 'v2.plug.djNom',
+  // rc11 — les cases Karaoké et Mode Party (DJ reste en brouillon, 01/11) de Réglages › Extensions.
   karaoke: 'v2.plug.karaokeNom',
   party: 'v2.plug.partyNom',
 };
@@ -76,7 +75,6 @@ export const NOMS_GREFFONS_SDK: Record<string, string> = {
  * phrase anglaise (ou un libellé de manifeste), pas la langue de l'interface.
  */
 export const DESCRIPTIONS_GREFFONS_SDK: Record<string, string> = {
-  dj: 'v2.plug.djDesc',
   karaoke: 'v2.plug.karaokeDesc',
   party: 'v2.plug.partyDesc',
 };

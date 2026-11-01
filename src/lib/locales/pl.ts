@@ -5249,8 +5249,6 @@ export default {
   "v2.sources.permissionAsk": "macOS nie zezwolił jeszcze Tune na nasłuchiwanie wejść audio: zapyta o to przy pierwszym kliknięciu „Słuchaj”.",
   "v2.sources.permissionNotAsked": "Jeszcze nie zapytano",
   "v2.plug.entreeAudioNom": "Wejście audio",
-  "v2.plug.djNom": "DJ",
-  "v2.plug.djDesc": "Tryb DJ: analiza utworów (kształt fali), gramofony i płynne przejścia. Domyślnie wyłączony.",
   "v2.plug.karaokeNom": "Karaoke",
   "v2.plug.karaokeDesc": "Zsynchronizowane teksty w stylu karaoke, wers po wersie. Domyślnie wyłączone.",
   "v2.plug.partyNom": "Tryb Party",

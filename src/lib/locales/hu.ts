@@ -5350,8 +5350,6 @@ export default {
   "v2.sources.permissionNotAsked": "Még nem kérték",
   // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
   "v2.plug.entreeAudioNom": "Audiobemenet",
-  "v2.plug.djNom": "DJ",
-  "v2.plug.djDesc": "DJ mód: számelemzés (hullámforma), lemezjátszók és átúsztatások. Alapértelmezés szerint kikapcsolva.",
   "v2.plug.karaokeNom": "Karaoke",
   "v2.plug.karaokeDesc": "Szinkronizált dalszövegek karaoke stílusban, soronként. Alapértelmezés szerint kikapcsolva.",
   "v2.plug.partyNom": "Party mód",

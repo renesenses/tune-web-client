@@ -5251,8 +5251,6 @@ export default {
   "v2.sources.permissionAsk": "macOS har ikke tillatt Tune å lytte til lydinnganger ennå: det spør ved første «Lytt».",
   "v2.sources.permissionNotAsked": "Ikke spurt ennå",
   "v2.plug.entreeAudioNom": "Lydinngang",
-  "v2.plug.djNom": "DJ",
-  "v2.plug.djDesc": "DJ-modus: sporanalyse (bølgeform), platespillere og kryssoverganger. Av som standard.",
   "v2.plug.karaokeNom": "Karaoke",
   "v2.plug.karaokeDesc": "Synkroniserte tekster i karaokestil, linje for linje. Av som standard.",
   "v2.plug.partyNom": "Festmodus",
