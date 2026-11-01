@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+//
 // tune-server-rust#7619, volet L1 — l'onglet Titres pagine par CURSEUR.
 //
 // Le serveur lit désormais sa liste dans l'ordre d'un index (clé de tri
