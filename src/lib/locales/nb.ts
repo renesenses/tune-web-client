@@ -1540,6 +1540,8 @@ export default {
   "v2.fav.qobuzCreate": "Opprett ({n} spor)",
   "v2.fav.qobuzCreated": "Spillelisten er opprettet på Qobuz med {n} spor.",
   "v2.fav.qobuzAddFailed": "Spillelisten ble opprettet, men Qobuz nektet å legge til sporene.",
+  "v2.fav.qobuzNoneKept": "Ingen spor valgt: kryss av minst ett treff for å opprette spillelisten.",
+  "v2.fav.qobuzCreateRefused": "Qobuz nektet å opprette spillelisten: ingenting ble opprettet.",
   "v2.fav.qobuzTarget": "Mål",
   "v2.fav.qobuzNewPlaylist": "Ny spilleliste",
   "v2.fav.qobuzAddTo": "Legg til ({n} spor)",

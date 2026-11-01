@@ -20,6 +20,7 @@
   import {
     candidatsDe,
     choixInitial,
+    cleErreurCreation,
     cleBadge,
     nomParDefaut,
     playlistsModifiables,
@@ -36,6 +37,8 @@
 
   let chargement = $state(true);
   let erreur = $state<string | null>(null);
+  /** Le motif brut du service (Qobuz), replié sous le message traduit. */
+  let erreurDetail = $state<string>('');
   let apercu = $state<ApercuFavorisRadio | null>(null);
   let choix = $state<Choix>({});
   let nom = $state('');
@@ -89,6 +92,7 @@
     if ((!cible && !n) || !retenus.length || creation) return;
     creation = true;
     erreur = null;
+    erreurDetail = '';
     try {
       const r = await api.createPlaylistFromRadioSelection(SERVICE, n, retenus, cible || null);
       resultat = {
@@ -98,7 +102,11 @@
         add_error: r.add_error ?? null,
       };
     } catch (e: any) {
-      erreur = e?.message ?? $t('v2.fav.createFailed' as any);
+      // Radio → Qobuz, 01/11/2026 : un refus est dit comme tel (« rien n'a
+      // été créé »), jamais confondu avec un succès.
+      const cle = cleErreurCreation(e);
+      erreur = cle ? $t(cle as any) : (e?.message ?? $t('v2.fav.createFailed' as any));
+      erreurDetail = typeof e?.detail === 'string' ? e.detail : '';
     }
     creation = false;
   }
@@ -159,7 +167,12 @@
         </div>
       {/if}
 
-      {#if erreur}<p class="fq-erreur">{erreur}</p>{/if}
+      {#if erreur}
+        <p class="fq-erreur">{erreur}</p>
+        {#if erreurDetail}<details class="fq-detail"><summary>{$t('erreursServeur.details' as any)}</summary>{erreurDetail}</details>{/if}
+      {:else if apercu && !retenus.length}
+        <p class="fq-sub">{$t('v2.fav.qobuzNoneKept' as any)}</p>
+      {/if}
 
       <label class="fq-nom">
         <span>{$t('v2.fav.qobuzTarget' as any)}</span>
@@ -195,6 +208,7 @@
   .fq-modale h2{font-size:16px; font-weight:700}
   .fq-sub{color:var(--v2-txt2); font-size:12.5px}
   .fq-erreur{color:var(--v2-danger); font-size:12.5px}
+  .fq-detail{color:var(--v2-txt2); font-size:11.5px; overflow-wrap:anywhere}
   .fq-lignes{display:flex; flex-direction:column; gap:2px; overflow:auto; min-height:0; flex:1}
   .fq-ligne{display:flex; align-items:flex-start; gap:10px; padding:7px 4px; border-bottom:1px solid var(--v2-line)}
   .fq-ligne.ecartee .fq-texte{opacity:.55}

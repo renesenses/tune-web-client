@@ -2721,6 +2721,8 @@ export default {
   "v2.fav.qobuzCreate": "Létrehozás ({n} szám)",
   "v2.fav.qobuzCreated": "Lejátszási lista létrehozva a Qobuzon {n} számmal.",
   "v2.fav.qobuzAddFailed": "A lejátszási lista létrejött, de a Qobuz elutasította a számok hozzáadását.",
+  "v2.fav.qobuzNoneKept": "Nincs kiválasztott szám: jelöljön be legalább egy találatot a lista létrehozásához.",
+  "v2.fav.qobuzCreateRefused": "A Qobuz elutasította a lejátszási lista létrehozását: semmi sem jött létre.",
   "v2.fav.qobuzTarget": "Cél",
   "v2.fav.qobuzNewPlaylist": "Új lejátszási lista",
   "v2.fav.qobuzAddTo": "Hozzáadás ({n} szám)",

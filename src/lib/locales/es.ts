@@ -2767,6 +2767,8 @@ export default {
   "v2.fav.qobuzCreate": "Crear ({n} temas)",
   "v2.fav.qobuzCreated": "Playlist creada en Qobuz con {n} temas.",
   "v2.fav.qobuzAddFailed": "La playlist se ha creado, pero Qobuz ha rechazado añadir los temas.",
+  "v2.fav.qobuzNoneKept": "Ningún tema seleccionado: marca al menos una coincidencia para crear la playlist.",
+  "v2.fav.qobuzCreateRefused": "Qobuz ha rechazado crear la playlist: no se ha creado nada.",
   "v2.fav.qobuzTarget": "Destino",
   "v2.fav.qobuzNewPlaylist": "Nueva playlist",
   "v2.fav.qobuzAddTo": "Añadir ({n} temas)",
