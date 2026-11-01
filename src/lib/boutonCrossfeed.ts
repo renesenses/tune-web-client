@@ -15,7 +15,12 @@ export interface EtatBoutonCrossfeed {
   voile: 'v2.pure.veilCfPro' | 'v2.pure.veilCf' | null;
 }
 
-export function etatBoutonCrossfeed(o: { cfEnabled: boolean; cfProTraite: boolean; pur: boolean }): EtatBoutonCrossfeed {
+/** web#2580 — `crosstalk` : Crosstalk (enceintes) traite la zone ; tout
+ *  crossfeed (casque) y est écarté, le bouton ne s'allume donc pas. */
+export function etatBoutonCrossfeed(
+  o: { cfEnabled: boolean; cfProTraite: boolean; pur: boolean; crosstalk?: boolean },
+): EtatBoutonCrossfeed {
+  if (o.crosstalk && !o.pur) return { actif: false, pro: false, voile: null };
   if (o.pur) {
     return { actif: false, pro: false, voile: o.cfProTraite ? 'v2.pure.veilCfPro' : 'v2.pure.veilCf' };
   }
