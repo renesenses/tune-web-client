@@ -116,6 +116,7 @@
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { retablirLargeurs } from '../../lib/largeursColonnes';
+  import { retablirOrdre } from '../../lib/ordreColonnes';
   import { notifications } from '../../lib/stores/notifications';
   import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
@@ -4510,6 +4511,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <button class="lnk" type="button" data-retablir-largeurs onclick={() => retablirLargeurs()}>
                   {$t('settings.colWidthsResetAction' as any)}
+                </button>
+              </div>
+
+              <!-- web#2599 — « Rétablir l'ordre par défaut » : même place, même
+                   portée (tous les écrans) que les largeurs. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.colOrderReset' as any)}</span>
+                  <span class="hint">{$t('settings.colOrderResetHint' as any)}</span>
+                </div>
+                <button class="lnk" type="button" data-retablir-ordre onclick={() => retablirOrdre()}>
+                  {$t('settings.colOrderResetAction' as any)}
                 </button>
               </div>
 
