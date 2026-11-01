@@ -5,7 +5,7 @@
 //   1. un préréglage de l'utilisateur, importé compris, a « Supprimer » ;
 //      les préréglages fournis (Flat, Rock…) jamais ;
 //   2. le premier clic ne supprime RIEN : il demande confirmation SUR PLACE
-//      (aucun confirm() natif) ; « Annuler » ne supprime rien ;
+//      (aucune boîte native) ; « Annuler » ne supprime rien ;
 //   3. confirmer appelle `DELETE /eq/presets/{id}` et retire le préréglage.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
@@ -87,7 +87,7 @@ describe('supprimer un préréglage importé', () => {
     expect(fournis.querySelectorAll('button.x').length).toBe(0);
   });
 
-  it('le premier clic demande confirmation sur place, sans confirm() natif ni suppression', () => {
+  it('le premier clic demande confirmation sur place, sans boîte native ni suppression', () => {
     const natif = vi.spyOn(window, 'confirm');
     clic(mien()!.querySelector<HTMLButtonElement>('button.x')!);
     expect(natif).not.toHaveBeenCalled();

@@ -824,7 +824,7 @@
           {@const actif = mienActif === p.id}
           <!-- Retour testeur 01/11 : « × » muet supprimait sans prévenir, et
                personne ne le trouvait pour effacer un préréglage importé. Le
-               geste est nommé, et confirmé SUR PLACE (pas de confirm() natif,
+               geste est nommé, et confirmé SUR PLACE (pas de boîte native du navigateur,
                qui bloque la page) : « Supprimer ? Oui / Annuler ». Seuls les
                préréglages de l'utilisateur (importés compris) sont ici ; les
                préréglages fournis, plus haut, n'ont pas ce bouton. -->
