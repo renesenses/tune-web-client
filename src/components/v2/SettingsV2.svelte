@@ -115,6 +115,7 @@
   import { LEVEL_LABEL_KEYS } from '../../lib/uiLevel';
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
+  import { retablirLargeurs } from '../../lib/largeursColonnes';
   import { notifications } from '../../lib/stores/notifications';
   import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
@@ -4496,6 +4497,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {/each}
                   </div>
                 {/each}
+              </div>
+
+              <!-- web#2584 — « Rétablir les largeurs » : le menu des colonnes,
+                   c'est cette matrice. Les poignées des en-têtes règlent une
+                   colonne d'un écran ; ce bouton rend à TOUS les écrans
+                   (album, playlist, Titres) leur largeur automatique. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.colWidthsReset' as any)}</span>
+                  <span class="hint">{$t('settings.colWidthsResetHint' as any)}</span>
+                </div>
+                <button class="lnk" type="button" data-retablir-largeurs onclick={() => retablirLargeurs()}>
+                  {$t('settings.colWidthsResetAction' as any)}
+                </button>
               </div>
 
               <!-- Premier pensionnaire de l'onglet Affichage : un GOÛT, donc

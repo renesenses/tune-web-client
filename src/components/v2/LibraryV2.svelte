@@ -3360,6 +3360,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             <div class="state">{qPistes.trim() || fProvenance || porteeActive ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
             <ListePistesV2
+              ecranColonnes="titres"
               virtuel
               pistes={lignesPagine}
               rangDepart={debutVisible}
@@ -3392,6 +3393,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                  unique montrerait la loupe sur toutes les lignes, y compris
                  celles qu'elle ne peut pas ouvrir. -->
             <ListePistesV2
+              ecranColonnes="titres"
               pistes={visibleTracks}
               tri={triPistes}
               triables={COLONNES_TRIABLES_NAVIGATEUR}
