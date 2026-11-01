@@ -24,9 +24,16 @@
  *    montré : il NOMME ce qui ne va pas.
  */
 
-export type NatureErreurConnexion = 'identifiants' | 'brut' | 'texte';
+export type NatureErreurConnexion = 'identifiants' | 'application' | 'brut' | 'texte';
 
 export const CODE_IDENTIFIANTS_REFUSES = 'invalid_credentials';
+
+/**
+ * Le service refuse l'APPLICATION (app_id), pas le mot de passe — web#2587,
+ * tune-server-rust#7641. Incident Qobuz du 01/11/2026 : un app_id refusé
+ * s'affichait « mot de passe incorrect ».
+ */
+export const CODE_APPLICATION_REFUSEE = 'service_app_refused';
 
 const NOMS: Record<string, string> = {
   tidal: 'TIDAL',
@@ -46,6 +53,7 @@ export function nomDeService(service: string): string {
 export function natureErreurConnexion(
   e: { code?: unknown; message?: unknown; detail?: unknown } | null | undefined,
 ): NatureErreurConnexion {
+  if (e?.code === CODE_APPLICATION_REFUSEE) return 'application';
   if (e?.code === CODE_IDENTIFIANTS_REFUSES) return 'identifiants';
   // #2417 : le message montré est désormais traduit ou générique ; le texte
   // brut du serveur est dans `detail`. Les deux sont lus.
