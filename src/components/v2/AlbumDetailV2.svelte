@@ -2059,6 +2059,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         {/if}
       {/if}
       <ListePistesV2
+        ecranColonnes="album"
         contexte={contexteAlbum()}
         selection={enSelection ? sel.choisies : null}
         onCocher={cocher}
