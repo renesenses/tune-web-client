@@ -3397,6 +3397,12 @@ export interface PagePistesServeur {
   comptes: Map<string, number> | null;
   /** « Toutes les sources » : chaque piste une fois. */
   totalToutesSources: number | null;
+  /**
+   * tune-server-rust#7619 (L1) — le curseur de la page SUIVANTE
+   * (`next_cursor`), à renvoyer tel quel dans `after`. `null` en fin de liste
+   * ou face à un serveur qui ne le rend pas : on pagine alors par `offset`.
+   */
+  curseurSuivant?: string | null;
 }
 
 export async function getPagePistes(opts: {
@@ -3408,11 +3414,14 @@ export async function getPagePistes(opts: {
   limit: number;
   offset: number;
   counts?: boolean;
+  /** #7619 — reprendre après ce curseur ; `offset` reste envoyé (repli). */
+  after?: string | null;
   signal?: AbortSignal;
 }): Promise<PagePistesServeur | null> {
   const params = new URLSearchParams();
   params.set('limit', String(opts.limit));
   params.set('offset', String(opts.offset));
+  if (opts.after) params.set('after', opts.after);
   // `order` part TOUJOURS : c'est lui qui ouvre la page triée côté serveur,
   // et sa présence dans la réponse qui dit que le serveur l'a comprise.
   params.set('order', opts.order ?? 'asc');
@@ -3431,6 +3440,7 @@ export async function getPagePistes(opts: {
     total: raw.total,
     comptes,
     totalToutesSources: typeof raw.total_all_sources === 'number' ? raw.total_all_sources : null,
+    curseurSuivant: typeof raw.next_cursor === 'string' && raw.next_cursor ? raw.next_cursor : null,
   };
 }
 

@@ -100,16 +100,18 @@ export interface RequetePistes {
 
 export type ChargeurDePage = (args: {
   offset: number; limit: number; comptes: boolean; signal: AbortSignal;
+  /** tune-server-rust#7619 — le curseur de la page précédente, s'il est connu. */
+  after?: string | null;
 }) => Promise<PagePistesServeur | null>;
 
 export function chargeurServeur(
   req: RequetePistes,
   getPagePistes: typeof Api.getPagePistes,
 ): ChargeurDePage {
-  return ({ offset, limit, comptes, signal }) => getPagePistes({
+  return ({ offset, limit, comptes, signal, after }) => getPagePistes({
     search: req.recherche, provenance: req.provenance, folder: req.dossier,
     sort: req.tri?.cle ?? null, order: req.tri?.sens ?? 'asc',
-    offset, limit, counts: comptes, signal,
+    offset, limit, counts: comptes, after, signal,
   });
 }
 
@@ -138,6 +140,13 @@ export class FenetrePistes {
   totalToutesSources: number | null = null;
   erreur: string | null = null;
   private readonly pages = new Map<number, Track[]>();
+  /**
+   * tune-server-rust#7619 (L1) — le curseur qui ouvre la page `k`, rendu par
+   * la page `k - 1`. Une page dont la précédente est arrivée part par ce
+   * curseur : le serveur lit son index à partir de là, au lieu de sauter
+   * `offset` lignes. Un saut (ascenseur tiré loin) part par `offset`.
+   */
+  private readonly curseurs = new Map<number, string>();
   private readonly enVol = new Set<number>();
   private attente: number[] = [];
   private readonly ctrl = new AbortController();
@@ -177,6 +186,7 @@ export class FenetrePistes {
       if (p == null) { capacite = 'ancien'; return 'ancien'; }
       capacite = 'serveur';
       this.pages.set(0, p.items);
+      if (p.curseurSuivant) this.curseurs.set(1, p.curseurSuivant);
       this.total = p.total;
       if (this.comptesAFaire) {
         this.comptes = p.comptes;
@@ -227,16 +237,31 @@ export class FenetrePistes {
     this.pomper();
   }
 
+  /**
+   * La prochaine page à demander : la première de l'attente, sauf celle dont
+   * la précédente est EN VOL ou ATTENDUE — elle attendra son curseur
+   * (#7619). Une page dont la précédente n'est ni là ni demandée (un saut)
+   * part par `offset`.
+   */
+  private prochaine(): number | undefined {
+    const i = this.attente.findIndex((k) => this.curseurs.has(k)
+      || (!this.enVol.has(k - 1) && !this.attente.includes(k - 1)));
+    return i < 0 ? undefined : this.attente.splice(i, 1)[0];
+  }
+
   private pomper(): void {
     while (!this.abandonnee && this.enVol.size < this.parallele && this.attente.length) {
-      const k = this.attente.shift()!;
+      const k = this.prochaine();
+      if (k === undefined) return;
       if (this.pages.has(k) || this.enVol.has(k)) continue;
       this.enVol.add(k);
-      this.charger({ offset: k * this.taille, limit: this.taille, comptes: false, signal: this.ctrl.signal })
+      const after = this.curseurs.get(k) ?? null;
+      this.charger({ offset: k * this.taille, limit: this.taille, comptes: false, signal: this.ctrl.signal, after })
         .then((p) => {
           if (this.abandonnee) return;
           if (p == null) { this.erreur = 'pagination'; return; }
           this.pages.set(k, p.items);
+          if (p.curseurSuivant) this.curseurs.set(k + 1, p.curseurSuivant);
           // La bibliothèque a pu bouger entre deux pages : le dernier total fait foi.
           this.total = p.total;
         })
