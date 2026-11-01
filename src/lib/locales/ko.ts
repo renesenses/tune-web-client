@@ -892,6 +892,7 @@ export default {
   'eq.savePreset': '이 설정 저장',
   'eq.presetNamePlaceholder': '프리셋 이름',
   'eq.deletePreset': '삭제',
+  'eq.deletePresetConfirm': '"{name}"을(를) 삭제할까요?',
   'eq.presetSaved': '프리셋 "{name}" 저장됨',
   'eq.presetSaveFailed': '프리셋을 저장할 수 없습니다',
   'eq.importPeq': 'PEQ 파일 가져오기…',

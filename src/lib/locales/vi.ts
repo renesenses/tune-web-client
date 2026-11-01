@@ -942,6 +942,7 @@ export default {
   "eq.savePreset": "Lưu thiết lập này",
   "eq.presetNamePlaceholder": "Tên preset",
   "eq.deletePreset": "Xóa",
+  "eq.deletePresetConfirm": "Xóa \"{name}\"?",
   "eq.presetSaved": "Đã lưu preset “{name}”",
   "eq.presetSaveFailed": "Không thể lưu preset",
   "eq.importPeq": "Nhập tệp PEQ…",

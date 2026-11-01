@@ -940,6 +940,7 @@ export default {
   "eq.savePreset": "Αποθήκευση αυτής της ρύθμισης",
   "eq.presetNamePlaceholder": "Όνομα προρρύθμισης",
   "eq.deletePreset": "Διαγραφή",
+  "eq.deletePresetConfirm": "Διαγραφή «{name}»;",
   "eq.presetSaved": "Η προρρύθμιση \"{name}\" αποθηκεύτηκε",
   "eq.presetSaveFailed": "Δεν ήταν δυνατή η αποθήκευση της προρρύθμισης",
   "eq.importPeq": "Εισαγωγή αρχείου PEQ…",

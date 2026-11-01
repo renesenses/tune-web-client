@@ -876,6 +876,7 @@ export default {
   'eq.savePreset': 'Spara inställning',
   'eq.presetNamePlaceholder': 'Namn på förinställning',
   'eq.deletePreset': 'Ta bort',
+  'eq.deletePresetConfirm': 'Ta bort "{name}"?',
   'eq.presetSaved': 'Förinställning "{name}" sparad',
   'eq.presetSaveFailed': 'Kunde inte spara förinställningen',
   "eq.importPeq": "Importera en PEQ-fil…",
