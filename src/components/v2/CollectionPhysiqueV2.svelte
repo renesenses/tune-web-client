@@ -51,6 +51,7 @@
   import { messageEchecLecture } from '../../lib/echecLecture';
   import { notifications } from '../../lib/stores/notifications';
   import { dateEtHeure } from '../../lib/dates';
+  import { dialogs } from '../../lib/stores/dialogs';
 
   let reglages = $state<Reglages | null>(null);
   let etat = $state<EtatSynchro | null>(null);
@@ -120,7 +121,8 @@
   }
 
   async function viderLeCache() {
-    if (!window.confirm($t('collectionPhysique.effacerCacheConfirmer' as any) as string)) return;
+    const ok = await dialogs.confirm($t('collectionPhysique.effacerCacheConfirmer' as any) as string, { danger: true });
+    if (!ok) return;
     occupe = true;
     erreur = null;
     try {

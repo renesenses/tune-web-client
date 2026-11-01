@@ -19,6 +19,7 @@ import {
   urlPochette, type Disque, type Etape, type EtatSynchro,
 } from '../collectionPhysique';
 import { preparerLocale } from '../i18n';
+import { dialogs } from '../stores/dialogs';
 import fr from '../locales/fr';
 
 vi.setConfig({ testTimeout: 60_000 });
@@ -470,8 +471,7 @@ describe('« Ma collection physique » — le cache (Bertrand, 01/11/2026)', () 
   });
 
   it('« Effacer le cache » demande confirmation, puis appelle DELETE /cache', async () => {
-    const confirmer = vi.fn(() => false);
-    vi.stubGlobal('confirm', confirmer);
+    const confirmer = vi.spyOn(dialogs, 'confirm').mockResolvedValue(false);
     monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
     await laisserTourner();
     const bouton = hote!.querySelector('[data-effacer-cache]') as HTMLButtonElement;
@@ -481,9 +481,10 @@ describe('« Ma collection physique » — le cache (Bertrand, 01/11/2026)', () 
     expect(confirmer).toHaveBeenCalledTimes(1);
     expect(appels.filter((a) => a.includes('/cache'))).toEqual([]);
 
-    confirmer.mockReturnValue(true);
+    confirmer.mockResolvedValue(true);
     bouton.click();
     await laisserTourner();
     expect(appels.filter((a) => a.includes('/cache'))).toEqual(['DELETE /api/v1/ext/collection-physique/cache?quoi=tout']);
+    confirmer.mockRestore();
   });
 });
