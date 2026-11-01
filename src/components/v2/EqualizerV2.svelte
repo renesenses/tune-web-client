@@ -601,7 +601,11 @@
     void save();
   }
 
+  /** Le préréglage dont la suppression attend sa confirmation sur place. */
+  let aSupprimer = $state<string | null>(null);
+
   async function supprimerMonPreset(p: api.EqProPreset) {
+    aSupprimer = null;
     const avant = mesPresets;
     mesPresets = mesPresets.filter((x) => x.id !== p.id);
     try {
@@ -817,12 +821,26 @@
       </div>
       <div class="presets mes">
         <span class="mesl">{$t('eq.myPresets' as any)}</span>
+        <!-- Retour testeur 01/11 : « × » muet supprimait sans prévenir, et
+             personne ne le trouvait pour effacer un préréglage importé. Le
+             geste est nommé, et confirmé SUR PLACE (pas de boîte native du navigateur,
+             qui bloque la page) : « Supprimer ? Oui / Annuler ». Seuls les
+             préréglages de l'utilisateur (importés compris) sont ici ; les
+             préréglages fournis, plus haut, n'ont pas ce bouton. -->
         {#each mesPresets as p (p.id)}
           {@const actif = mienActif === p.id}
           <span class="mien">
             <button class:actif aria-pressed={actif} onclick={() => appliquerMonPreset(p)}>{p.name}</button>
-            <button class="x" onclick={() => supprimerMonPreset(p)}
-              title={$t('eq.deletePreset' as any)} aria-label={$t('eq.deletePreset' as any)}>×</button>
+            {#if aSupprimer === p.id}
+              <span class="confirm-suppr" role="group" aria-label={$t('eq.deletePresetConfirm' as any).replace('{name}', p.name)}>
+                <span class="confirm-texte">{$t('eq.deletePresetConfirm' as any).replace('{name}', p.name)}</span>
+                <button class="oui" onclick={() => supprimerMonPreset(p)}>{$t('eq.deletePreset' as any)}</button>
+                <button class="non" onclick={() => (aSupprimer = null)}>{$t('common.cancel' as any)}</button>
+              </span>
+            {:else}
+              <button class="x" onclick={() => (aSupprimer = p.id)}
+                title={$t('eq.deletePreset' as any)} aria-label={`${$t('eq.deletePreset' as any)} — ${p.name}`}>×</button>
+            {/if}
           </span>
         {/each}
         <!-- web#1750 — « Enregistrer » et « Enregistrer sous », comme partout
@@ -1047,6 +1065,9 @@
   .mesl{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .mien{display:inline-flex}
   .mien .x{padding:0 7px}
+  .confirm-suppr{display:inline-flex; align-items:center; gap:5px; margin-left:5px}
+  .confirm-texte{font-size:11.5px; color:var(--v2-txt2)}
+  .confirm-suppr .oui{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .modif{font:italic 11.5px var(--v2-sans); color:var(--v2-acc-tint)}
   .bilan-peq{margin:-8px 0 16px; padding:9px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;
     border:1px solid var(--v2-line2); color:var(--v2-txt2)}

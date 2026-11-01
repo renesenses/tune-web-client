@@ -908,6 +908,7 @@ export default {
   'eq.savePreset': 'この設定を保存',
   'eq.presetNamePlaceholder': 'プリセット名',
   'eq.deletePreset': '削除',
+  'eq.deletePresetConfirm': '「{name}」を削除しますか？',
   'eq.presetSaved': 'プリセット「{name}」を保存しました',
   'eq.presetSaveFailed': 'プリセットを保存できませんでした',
   'eq.importPeq': 'PEQファイルを読み込む…',

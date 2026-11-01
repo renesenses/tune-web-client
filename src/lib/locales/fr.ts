@@ -1028,6 +1028,7 @@ export default {
   'eq.savePreset': 'Enregistrer ce réglage',
   'eq.presetNamePlaceholder': 'Nom du preset',
   'eq.deletePreset': 'Supprimer',
+  'eq.deletePresetConfirm': 'Supprimer « {name} » ?',
   'eq.presetSaved': 'Preset « {name} » enregistré',
   'eq.presetSaveFailed': 'Enregistrement du preset impossible',
   'eq.importPeq': 'Importer un fichier PEQ…',

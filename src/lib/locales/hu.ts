@@ -999,6 +999,7 @@ export default {
   "eq.savePreset": "Beállítás mentése",
   "eq.presetNamePlaceholder": "A beállítás neve",
   "eq.deletePreset": "Törlés",
+  "eq.deletePresetConfirm": "Törli: „{name}”?",
   "eq.presetSaved": "A(z) „{name}” beállítás mentve",
   "eq.presetSaveFailed": "A beállítást nem sikerült menteni",
   'eq.importPeq': 'PEQ-fájl importálása…',

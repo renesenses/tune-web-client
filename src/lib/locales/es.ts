@@ -908,6 +908,7 @@ export default {
   'eq.savePreset': 'Guardar ajuste',
   'eq.presetNamePlaceholder': 'Nombre del ajuste',
   'eq.deletePreset': 'Eliminar',
+  'eq.deletePresetConfirm': '¿Eliminar «{name}»?',
   'eq.presetSaved': 'Ajuste «{name}» guardado',
   'eq.presetSaveFailed': 'No se pudo guardar el ajuste',
   'eq.importPeq': 'Importar un archivo PEQ…',

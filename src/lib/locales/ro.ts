@@ -914,6 +914,7 @@ export default {
   'eq.savePreset': 'Salvează setarea',
   'eq.presetNamePlaceholder': 'Nume preset',
   'eq.deletePreset': 'Șterge',
+  'eq.deletePresetConfirm': 'Ștergeți „{name}"?',
   'eq.presetSaved': 'Preset „{name}" salvat',
   'eq.presetSaveFailed': 'Presetul nu a putut fi salvat',
   'eq.importPeq': 'Importă un fișier PEQ…',
