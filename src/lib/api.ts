@@ -2796,6 +2796,12 @@ export function estimateAlbumBpm(albumId: number, redo = false) {
 }
 
 /** `GET /system/api-keys` — l'état des clés, jamais leur valeur. */
+/** Sortie AES67 (greffon natif `aes67`, #7336 E3) : 404 = greffon non installé.
+ *  Pas de bandeau sur échec : l'écran dit lui-même ce qui se passe. */
+export function getSortieAes67(): Promise<unknown> {
+  return fetchJSON<unknown>(`${BASE}/ext/aes67`, undefined, undefined, true);
+}
+
 export function getApiKeys() {
   return fetchJSON<{ keys: import('./enrichissementAlbum').EtatCleApi[] }>(`${BASE}/system/api-keys`);
 }
