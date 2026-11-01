@@ -6468,6 +6468,9 @@ export default {
   "mini.rienEnLecture": "再生していません",
   "mini.choisirZone": "ゾーンを選択",
   "mini.pause": "一時停止",
+  "mini.file.actions": "その他の操作",
+  "mini.file.deplacer": "ドラッグして移動",
+  "mini.filtres": "フィルター",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

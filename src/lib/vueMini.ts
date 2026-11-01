@@ -122,3 +122,16 @@ export const fenetreRepliee = readable<boolean>(
     return () => mq.removeEventListener('change', relire);
   },
 );
+
+/**
+ * Les filtres de l'écran courant, repliés en vue mini (Bertrand, 01/11/2026 :
+ * six familles de filtres avant le premier album). Le bouton « Filtres » du
+ * bandeau les ouvre en panneau du bas ; changer de vue les referme.
+ */
+export const filtresOuverts = writable(false);
+
+/** Combien de filtres sont actifs dans un bloc `.filters` (hors « Tout »). */
+export function filtresActifs(bloc: Element | null | undefined): number {
+  if (!bloc) return 0;
+  return bloc.querySelectorAll('.active:not(.count), [aria-pressed="true"]:not(.count)').length;
+}

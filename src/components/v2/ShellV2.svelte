@@ -70,7 +70,10 @@
   import NowPlaying from '../partages/NowPlaying.svelte';
   // Vue mini (`?vue=mini`, alias `?mini=1`) — le gabarit téléphone, maquette A
   // « télécommande » validée par Bertrand le 31/10/2026. Voir `lib/vueMini`.
-  import { vueMiniActive, fenetreRepliee } from '../../lib/vueMini';
+  import { vueMiniActive, fenetreRepliee, filtresOuverts } from '../../lib/vueMini';
+  // La mise en page TÉLÉPHONE des écrans (en-tête sur une ligne, onglets
+  // défilants, filtres repliés, grille de deux colonnes), sous `.v2-shell.mini`.
+  import '../../styles/vue-mini.css';
   const vueMini = vueMiniActive();
   import EcouterMini from './mini/EcouterMini.svelte';
   import BandeauMini from './mini/BandeauMini.svelte';
@@ -428,6 +431,8 @@
 
   // Vue mini : « Lecture en cours » est un onglet, pas un calque. Qui demande
   // le calque mobile (`mobileNowPlayingOpen`) est mené à l'onglet Écouter.
+  // Vue mini : changer d'écran referme les filtres de l'écran quitté.
+  $effect(() => { void $activeView; filtresOuverts.set(false); });
   $effect(() => {
     if (vueMini && $mobileNowPlayingOpen) {
       mobileNowPlayingOpen.set(false);
@@ -619,7 +624,7 @@
   }
 </script>
 
-<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} class:mini={vueMini} bind:this={coquilleEl}>
+<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} class:mini={vueMini} class:filtres-ouverts={vueMini && $filtresOuverts} bind:this={coquilleEl}>
   <!--
     Le raccourci se pose depuis N'IMPORTE QUEL écran.
 
@@ -979,8 +984,11 @@
     {#if !$fenetreRepliee}
       {#if $activeView !== 'nowplaying'}<MiniBarreLecture />{/if}
       <BarreOngletsMini />
+      <FeuilleMini />
+      {#if $filtresOuverts}
+        <div class="fond-filtres" role="presentation" onclick={() => filtresOuverts.set(false)} data-fond-filtres></div>
+      {/if}
     {/if}
-    <FeuilleMini />
   {:else}
     <TransportBar />
   {/if}
@@ -1064,6 +1072,8 @@
      d'une coquille en `overflow:hidden`, passait sous le bord visible. `dvh`
      suit le viewport réel (`vh` reste en repli pour qui ignore `dvh`), et le
      retrait du haut que `body` réserve déjà (`tune-theme.css`) est soustrait. */
+  /* Vue mini : le fond sous le panneau des filtres (`vue-mini.css`). */
+  .fond-filtres{position:fixed; inset:0; z-index:94; background:var(--v2-scrim)}
   .v2-shell{--maj-h:42px; position:relative; display:flex; flex-direction:column;
     height:calc(100vh - env(safe-area-inset-top, 0px)); height:calc(100dvh - env(safe-area-inset-top, 0px));
     background:var(--v2-bg); overflow:hidden}

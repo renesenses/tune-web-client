@@ -6490,6 +6490,9 @@ export default {
   "mini.rienEnLecture": "Rien en lecture",
   "mini.choisirZone": "Choisir une zone",
   "mini.pause": "Pause",
+  "mini.file.actions": "Plus d'actions",
+  "mini.file.deplacer": "Glisser pour déplacer",
+  "mini.filtres": "Filtres",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

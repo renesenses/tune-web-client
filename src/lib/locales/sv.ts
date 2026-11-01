@@ -6467,4 +6467,7 @@ export default {
   "mini.rienEnLecture": "Inget spelas",
   "mini.choisirZone": "Välj en zon",
   "mini.pause": "Paus",
+  "mini.file.actions": "Fler åtgärder",
+  "mini.file.deplacer": "Dra för att flytta",
+  "mini.filtres": "Filter",
 } as const;

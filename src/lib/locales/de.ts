@@ -6468,6 +6468,9 @@ export default {
   "mini.rienEnLecture": "Keine Wiedergabe",
   "mini.choisirZone": "Zone wählen",
   "mini.pause": "Pause",
+  "mini.file.actions": "Weitere Aktionen",
+  "mini.file.deplacer": "Zum Verschieben ziehen",
+  "mini.filtres": "Filter",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

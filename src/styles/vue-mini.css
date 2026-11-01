@@ -1,0 +1,78 @@
+/*
+ * VUE MINI — la mise en page TÉLÉPHONE des écrans de la coquille.
+ *
+ * Bertrand, essai réel du 01/11/2026 vers 13 h 15 : « les autres vues sont
+ * désastreuses » en mode mini. La Bibliothèque à 360 px :
+ *   - les onglets (Albums… Coffrets) sur trois rangées, par-dessus le titre ;
+ *   - un titre géant ;
+ *   - six familles de filtres sur deux colonnes, avant le premier album.
+ *
+ * Les écrans de la coquille partagent leur en-tête (`.v2-top`, `.v2-titres`,
+ * `h1`, `.v2-actions`, `.tabs`), leurs filtres (`.filters`) et leur grille
+ * (`.grid`). Plutôt que de réécrire Bibliothèque, Recherche, Favoris et les
+ * fiches, on leur donne ici, sous `.v2-shell.mini` SEULEMENT, la mise en page
+ * téléphone :
+ *   - un en-tête sur UNE ligne : titre de taille normale, onglets en rangée
+ *     défilante horizontale ;
+ *   - les filtres repliés derrière le bouton « Filtres » du bandeau, qui les
+ *     ouvre en panneau du bas (`filtres-ouverts`, posé par `BandeauMini`) ;
+ *   - une grille de deux colonnes ;
+ *   - aucun débordement horizontal.
+ *
+ * Spécificité : `.v2-shell.mini …` compte trois classes, plus que les styles
+ * de composant (`.tabs.svelte-xyz`, deux classes) et que la feuille commune
+ * (`.tune-v2 .v2-top`, deux classes). Pas d'`!important` sauf contre un style
+ * EN LIGNE posé par un composant.
+ *
+ * Hors vue mini, cette feuille ne touche à rien : chaque règle commence par
+ * `.v2-shell.mini`.
+ */
+
+/* --- Pas de débordement horizontal ------------------------------------ */
+.v2-shell.mini main.main{min-width:0; overflow-x:hidden}
+.v2-shell.mini main.main > *{min-width:0; max-width:100%}
+.v2-shell.mini main.main img{max-width:100%}
+
+/* --- L'en-tête sur une ligne ------------------------------------------ */
+.v2-shell.mini .tune-v2 .v2-top{
+  flex-wrap:nowrap; align-items:center; gap:10px;
+  padding:10px 12px 6px; padding-right:12px; min-width:0;
+}
+.v2-shell.mini .tune-v2 .v2-top .v2-titres{flex:0 1 auto; min-width:0; max-width:55%; margin-right:0}
+.v2-shell.mini .tune-v2 .v2-top h1{
+  font-size:18px; font-weight:700; margin-top:0; line-height:1.25;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.v2-shell.mini .tune-v2 .v2-eyebrow,
+.v2-shell.mini .tune-v2 .v2-sous{display:none}
+.v2-shell.mini .tune-v2 .v2-top .v2-actions{flex:1 1 auto; min-width:0; flex-wrap:nowrap; justify-content:flex-end}
+
+/* Les onglets : UNE rangée, qui défile au doigt, sans ascenseur visible. */
+.v2-shell.mini .tune-v2 .tabs,
+.v2-shell.mini .tune-v2 .subs{
+  flex-wrap:nowrap; justify-content:flex-start; min-width:0; max-width:100%;
+  overflow-x:auto; overflow-y:hidden; scrollbar-width:none; margin-left:0;
+}
+.v2-shell.mini .tune-v2 .tabs::-webkit-scrollbar,
+.v2-shell.mini .tune-v2 .subs::-webkit-scrollbar{display:none}
+.v2-shell.mini .tune-v2 .tabs > *,
+.v2-shell.mini .tune-v2 .subs > *{flex:0 0 auto; white-space:nowrap}
+
+/* La recherche DANS un écran : elle prend la largeur, sans largeur fixe. */
+.v2-shell.mini .tune-v2 .v2-rech{width:auto; flex:1 1 120px; min-width:0}
+
+/* --- Les filtres repliés ---------------------------------------------- */
+.v2-shell.mini:not(.filtres-ouverts) main.main .filters{display:none}
+.v2-shell.mini.filtres-ouverts main.main .filters{
+  position:fixed; left:0; right:0; bottom:0; z-index:95; max-height:70vh; overflow-y:auto; overflow-x:hidden;
+  flex-direction:column; align-items:stretch; flex-wrap:nowrap; gap:10px;
+  padding:14px 14px 18px; background:var(--v2-surface2); border-top:1px solid var(--v2-line2);
+  border-radius:16px 16px 0 0; box-shadow:var(--v2-sh-lg);
+}
+.v2-shell.mini.filtres-ouverts main.main .filters > *{max-width:100%; min-width:0}
+
+/* --- Le contenu tout de suite : grille de deux colonnes --------------- */
+.v2-shell.mini main.main .grid{
+  grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px 10px; padding:8px 12px 24px;
+}
+.v2-shell.mini main.main .grid > *{min-width:0}
