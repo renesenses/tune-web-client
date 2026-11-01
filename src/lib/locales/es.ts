@@ -6310,6 +6310,8 @@ export default {
   "mini.rienEnLecture": "Nada en reproducción",
   "mini.choisirZone": "Elegir una zona",
   "mini.pause": "Pausa",
+  "mini.file.actions": "Más acciones",
+  "mini.file.deplacer": "Arrastrar para mover",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

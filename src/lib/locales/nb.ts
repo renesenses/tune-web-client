@@ -6155,5 +6155,7 @@ export default {
   "mini.rienEnLecture": "Ingenting spilles",
   "mini.choisirZone": "Velg en sone",
   "mini.pause": "Pause",
+  "mini.file.actions": "Flere handlinger",
+  "mini.file.deplacer": "Dra for å flytte",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

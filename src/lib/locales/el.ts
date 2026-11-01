@@ -6155,5 +6155,7 @@ export default {
   "mini.rienEnLecture": "Δεν παίζει τίποτα",
   "mini.choisirZone": "Επιλογή ζώνης",
   "mini.pause": "Παύση",
+  "mini.file.actions": "Περισσότερες ενέργειες",
+  "mini.file.deplacer": "Σύρετε για μετακίνηση",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

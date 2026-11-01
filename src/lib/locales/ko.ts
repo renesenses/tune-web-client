@@ -6310,6 +6310,8 @@ export default {
   "mini.rienEnLecture": "재생 중인 항목 없음",
   "mini.choisirZone": "존 선택",
   "mini.pause": "일시정지",
+  "mini.file.actions": "추가 작업",
+  "mini.file.deplacer": "드래그하여 이동",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

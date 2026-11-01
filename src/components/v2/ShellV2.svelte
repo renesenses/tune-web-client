@@ -972,8 +972,8 @@
     {#if !$fenetreRepliee}
       {#if $activeView !== 'nowplaying'}<MiniBarreLecture />{/if}
       <BarreOngletsMini />
+      <FeuilleMini />
     {/if}
-    <FeuilleMini />
   {:else}
     <TransportBar />
   {/if}

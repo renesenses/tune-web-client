@@ -6155,5 +6155,7 @@ export default {
   "mini.rienEnLecture": "Nic nie jest odtwarzane",
   "mini.choisirZone": "Wybierz strefę",
   "mini.pause": "Pauza",
+  "mini.file.actions": "Więcej działań",
+  "mini.file.deplacer": "Przeciągnij, aby przenieść",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

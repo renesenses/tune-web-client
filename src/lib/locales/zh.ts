@@ -6310,6 +6310,8 @@ export default {
   "mini.rienEnLecture": "未在播放",
   "mini.choisirZone": "选择区域",
   "mini.pause": "暂停",
+  "mini.file.actions": "更多操作",
+  "mini.file.deplacer": "拖动以移动",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

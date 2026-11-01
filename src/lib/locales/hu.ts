@@ -6269,6 +6269,8 @@ export default {
   "mini.rienEnLecture": "Nincs lejátszás",
   "mini.choisirZone": "Zóna kiválasztása",
   "mini.pause": "Szünet",
+  "mini.file.actions": "További műveletek",
+  "mini.file.deplacer": "Húzza az áthelyezéshez",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

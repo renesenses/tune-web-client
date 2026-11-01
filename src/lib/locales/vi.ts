@@ -6162,5 +6162,7 @@ export default {
   "mini.rienEnLecture": "Không có gì đang phát",
   "mini.choisirZone": "Chọn vùng",
   "mini.pause": "Tạm dừng",
+  "mini.file.actions": "Thao tác khác",
+  "mini.file.deplacer": "Kéo để di chuyển",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];
