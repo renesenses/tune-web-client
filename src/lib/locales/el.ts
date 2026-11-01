@@ -6146,5 +6146,14 @@ export default {
   "monTheme.applique": "Το θέμα εφαρμόστηκε στο προφίλ σας.",
   "monTheme.recuIllisible": "Αυτό το θέμα δεν είναι ευανάγνωστο: δεν εφαρμόστηκε.",
   "monTheme.recuSansGreffon": "Εγκαταστήστε το πρόσθετο «Το θέμα μου» για να εφαρμόσετε αυτό το θέμα.",
+  "mini.ecouter": "Ακρόαση",
+  "mini.plus": "Περισσότερα",
+  "mini.epingle": "Πάντα σε πρώτο πλάνο",
+  "mini.replier": "Σύμπτυξη",
+  "mini.deplier": "Ανάπτυξη",
+  "mini.complet": "Πλήρες παράθυρο",
+  "mini.rienEnLecture": "Δεν παίζει τίποτα",
+  "mini.choisirZone": "Επιλογή ζώνης",
+  "mini.pause": "Παύση",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

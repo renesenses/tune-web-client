@@ -6260,6 +6260,15 @@ export default {
   "monTheme.applique": "A téma alkalmazva a profiljára.",
   "monTheme.recuIllisible": "Ez a téma nem olvasható: nem lett alkalmazva.",
   "monTheme.recuSansGreffon": "A téma alkalmazásához telepítse a „Saját téma” bővítményt.",
+  "mini.ecouter": "Hallgatás",
+  "mini.plus": "Továbbiak",
+  "mini.epingle": "Mindig felül",
+  "mini.replier": "Összecsukás",
+  "mini.deplier": "Kinyitás",
+  "mini.complet": "Teljes ablak",
+  "mini.rienEnLecture": "Nincs lejátszás",
+  "mini.choisirZone": "Zóna kiválasztása",
+  "mini.pause": "Szünet",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

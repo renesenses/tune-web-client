@@ -6301,6 +6301,15 @@ export default {
   "monTheme.applique": "Design auf Ihr Profil angewendet.",
   "monTheme.recuIllisible": "Dieses Design ist nicht lesbar: Es wurde nicht angewendet.",
   "monTheme.recuSansGreffon": "Installieren Sie das Plugin „Mein Design“, um dieses Design anzuwenden.",
+  "mini.ecouter": "Hören",
+  "mini.plus": "Mehr",
+  "mini.epingle": "Im Vordergrund halten",
+  "mini.replier": "Einklappen",
+  "mini.deplier": "Ausklappen",
+  "mini.complet": "Vollständiges Fenster",
+  "mini.rienEnLecture": "Keine Wiedergabe",
+  "mini.choisirZone": "Zone wählen",
+  "mini.pause": "Pause",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

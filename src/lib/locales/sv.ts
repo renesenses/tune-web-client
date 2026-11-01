@@ -6300,4 +6300,13 @@ export default {
   "monTheme.applique": "Temat har tillämpats på din profil.",
   "monTheme.recuIllisible": "Temat är inte läsbart: det tillämpades inte.",
   "monTheme.recuSansGreffon": "Installera insticksprogrammet ”Mitt tema” för att tillämpa temat.",
+  "mini.ecouter": "Lyssna",
+  "mini.plus": "Mer",
+  "mini.epingle": "Håll överst",
+  "mini.replier": "Fäll ihop",
+  "mini.deplier": "Fäll ut",
+  "mini.complet": "Hela fönstret",
+  "mini.rienEnLecture": "Inget spelas",
+  "mini.choisirZone": "Välj en zon",
+  "mini.pause": "Paus",
 } as const;

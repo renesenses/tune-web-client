@@ -6301,6 +6301,15 @@ export default {
   "monTheme.applique": "테마를 프로필에 적용했습니다.",
   "monTheme.recuIllisible": "이 테마는 읽기 어려워 적용하지 않았습니다.",
   "monTheme.recuSansGreffon": "이 테마를 적용하려면 “내 테마” 플러그인을 설치하세요.",
+  "mini.ecouter": "듣기",
+  "mini.plus": "더 보기",
+  "mini.epingle": "항상 위에 표시",
+  "mini.replier": "접기",
+  "mini.deplier": "펼치기",
+  "mini.complet": "전체 창",
+  "mini.rienEnLecture": "재생 중인 항목 없음",
+  "mini.choisirZone": "존 선택",
+  "mini.pause": "일시정지",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

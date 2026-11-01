@@ -6146,5 +6146,14 @@ export default {
   "monTheme.applique": "Motyw zastosowany w Twoim profilu.",
   "monTheme.recuIllisible": "Ten motyw jest nieczytelny: nie został zastosowany.",
   "monTheme.recuSansGreffon": "Zainstaluj wtyczkę „Mój motyw”, aby zastosować ten motyw.",
+  "mini.ecouter": "Słuchaj",
+  "mini.plus": "Więcej",
+  "mini.epingle": "Zawsze na wierzchu",
+  "mini.replier": "Zwiń",
+  "mini.deplier": "Rozwiń",
+  "mini.complet": "Pełne okno",
+  "mini.rienEnLecture": "Nic nie jest odtwarzane",
+  "mini.choisirZone": "Wybierz strefę",
+  "mini.pause": "Pauza",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

@@ -6153,5 +6153,14 @@ export default {
   "monTheme.applique": "Đã áp dụng giao diện cho hồ sơ của bạn.",
   "monTheme.recuIllisible": "Giao diện này khó đọc: chưa được áp dụng.",
   "monTheme.recuSansGreffon": "Hãy cài plugin “Giao diện của tôi” để áp dụng giao diện này.",
+  "mini.ecouter": "Nghe",
+  "mini.plus": "Thêm",
+  "mini.epingle": "Luôn ở trên cùng",
+  "mini.replier": "Thu gọn",
+  "mini.deplier": "Mở rộng",
+  "mini.complet": "Cửa sổ đầy đủ",
+  "mini.rienEnLecture": "Không có gì đang phát",
+  "mini.choisirZone": "Chọn vùng",
+  "mini.pause": "Tạm dừng",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

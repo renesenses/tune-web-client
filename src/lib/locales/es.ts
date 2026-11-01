@@ -6301,6 +6301,15 @@ export default {
   "monTheme.applique": "Tema aplicado a su perfil.",
   "monTheme.recuIllisible": "Este tema no es legible: no se ha aplicado.",
   "monTheme.recuSansGreffon": "Instale el complemento «Mi tema» para aplicar este tema.",
+  "mini.ecouter": "Escuchar",
+  "mini.plus": "Más",
+  "mini.epingle": "Mantener en primer plano",
+  "mini.replier": "Contraer",
+  "mini.deplier": "Expandir",
+  "mini.complet": "Ventana completa",
+  "mini.rienEnLecture": "Nada en reproducción",
+  "mini.choisirZone": "Elegir una zona",
+  "mini.pause": "Pausa",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

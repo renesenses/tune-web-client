@@ -6146,5 +6146,14 @@ export default {
   "monTheme.applique": "Temaet er brukt på profilen din.",
   "monTheme.recuIllisible": "Temaet er ikke lesbart: det ble ikke brukt.",
   "monTheme.recuSansGreffon": "Installer utvidelsen «Mitt tema» for å bruke dette temaet.",
+  "mini.ecouter": "Lytt",
+  "mini.plus": "Mer",
+  "mini.epingle": "Hold øverst",
+  "mini.replier": "Skjul",
+  "mini.deplier": "Vis",
+  "mini.complet": "Hele vinduet",
+  "mini.rienEnLecture": "Ingenting spilles",
+  "mini.choisirZone": "Velg en sone",
+  "mini.pause": "Pause",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];
