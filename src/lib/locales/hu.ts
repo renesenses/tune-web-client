@@ -5350,6 +5350,13 @@ export default {
   "v2.sources.permissionNotAsked": "Még nem kérték",
   // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
   "v2.plug.entreeAudioNom": "Audiobemenet",
+  "v2.plug.djNom": "DJ",
+  "v2.plug.djDesc": "DJ mód: számelemzés (hullámforma), lemezjátszók és átúsztatások. Alapértelmezés szerint kikapcsolva.",
+  "v2.plug.karaokeNom": "Karaoke",
+  "v2.plug.karaokeDesc": "Szinkronizált dalszövegek karaoke stílusban, soronként. Alapértelmezés szerint kikapcsolva.",
+  "v2.plug.partyNom": "Party mód",
+  "v2.plug.partyDesc": "Party mód: közös várólista a vendégek szavazásával. Alapértelmezés szerint bekapcsolva.",
+  "v2.plug.restartCard": "A szerver újraindításakor lép életbe.",
   "v2.sources.greffonManque": "Az „Audiobemenet” bővítmény nincs telepítve: nélküle sem audio-, sem virtuális bemenet nem jelenik meg. A telepítéshez újra kell indítani a Tune-kiszolgálót.",
   "v2.sources.greffonInstaller": "Bővítmény telepítése",
   "v2.sources.greffonInstallation": "Telepítés…",

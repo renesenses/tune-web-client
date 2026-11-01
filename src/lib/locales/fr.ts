@@ -5418,6 +5418,13 @@ export default {
   "v2.sources.permissionNotAsked": "Pas encore demandée",
   // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
   "v2.plug.entreeAudioNom": "Entrée audio",
+  "v2.plug.djNom": "DJ",
+  "v2.plug.djDesc": "Mode DJ : analyse des pistes (forme d'onde), platines et fondus enchaînés. Désactivé par défaut.",
+  "v2.plug.karaokeNom": "Karaoké",
+  "v2.plug.karaokeDesc": "Paroles synchronisées façon karaoké, ligne par ligne. Désactivé par défaut.",
+  "v2.plug.partyNom": "Mode Party",
+  "v2.plug.partyDesc": "Mode Party : file d'attente collaborative avec vote des invités. Actif par défaut.",
+  "v2.plug.restartCard": "Prend effet au redémarrage du serveur.",
   "v2.sources.greffonManque": "Le greffon « Entrée audio » n'est pas installé : sans lui, aucune entrée audio ni virtuelle n'apparaît. Son installation demande un redémarrage du serveur Tune.",
   "v2.sources.greffonInstaller": "Installer le greffon",
   "v2.sources.greffonInstallation": "Installation…",

@@ -9099,6 +9099,9 @@ export interface MergedPlugin {
   installed: boolean;
   /** Server may send enabled instead of status for built-in plugins */
   enabled?: boolean;
+  /** Le changement attend un redémarrage du serveur (rc11 : cases DJ, Karaoké,
+   *  Mode Party). Absent d'un serveur ancien : rien n'est affiché. */
+  restart_required?: boolean;
   installed_version?: string | null;
   update_available?: boolean;
   status?: 'available' | 'active' | 'disabled' | 'error';

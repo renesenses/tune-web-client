@@ -5396,6 +5396,13 @@ export default {
   "v2.sources.permissionNotAsked": "未確認",
   // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
   "v2.plug.entreeAudioNom": "オーディオ入力",
+  "v2.plug.djNom": "DJ",
+  "v2.plug.djDesc": "DJモード：トラック解析（波形）、ターンテーブル、クロスフェード。初期設定ではオフ。",
+  "v2.plug.karaokeNom": "カラオケ",
+  "v2.plug.karaokeDesc": "カラオケ風に歌詞を1行ずつ同期表示します。初期設定ではオフ。",
+  "v2.plug.partyNom": "パーティーモード",
+  "v2.plug.partyDesc": "パーティーモード：ゲストの投票で決める共同再生キュー。初期設定ではオン。",
+  "v2.plug.restartCard": "サーバーの再起動後に有効になります。",
   "v2.sources.greffonManque": "「オーディオ入力」プラグインがインストールされていません。これがないと、オーディオ入力も仮想入力も表示されません。インストールには Tune サーバーの再起動が必要です。",
   "v2.sources.greffonInstaller": "プラグインをインストール",
   "v2.sources.greffonInstallation": "インストール中…",

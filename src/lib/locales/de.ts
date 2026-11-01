@@ -5396,6 +5396,13 @@ export default {
   "v2.sources.permissionNotAsked": "Noch nicht angefragt",
   // tune-server-rust#5296 — le greffon « Entrée audio » : nom et proposition d'installation
   "v2.plug.entreeAudioNom": "Audioeingang",
+  "v2.plug.djNom": "DJ",
+  "v2.plug.djDesc": "DJ-Modus: Titelanalyse (Wellenform), Decks und Überblendungen. Standardmäßig aus.",
+  "v2.plug.karaokeNom": "Karaoke",
+  "v2.plug.karaokeDesc": "Synchronisierte Liedtexte im Karaoke-Stil, Zeile für Zeile. Standardmäßig aus.",
+  "v2.plug.partyNom": "Party-Modus",
+  "v2.plug.partyDesc": "Party-Modus: gemeinsame Warteschlange mit Abstimmung der Gäste. Standardmäßig an.",
+  "v2.plug.restartCard": "Wirkt nach dem Neustart des Servers.",
   "v2.sources.greffonManque": "Das Plugin „Audioeingang“ ist nicht installiert: Ohne es erscheint weder ein Audio- noch ein virtueller Eingang. Die Installation erfordert einen Neustart des Tune-Servers.",
   "v2.sources.greffonInstaller": "Plugin installieren",
   "v2.sources.greffonInstallation": "Wird installiert…",
