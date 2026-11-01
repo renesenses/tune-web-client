@@ -6261,5 +6261,14 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk không tác động ở chế độ PURE: tín hiệu đi ra nguyên vẹn. Cài đặt của bạn được giữ nguyên.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (xử lý cho loa) đang bật trên vùng này: crossfeed, một xử lý cho tai nghe, bị gạt sang bên tại đây. Hai thứ không bao giờ cộng dồn.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (xử lý cho loa) đang bật trên vùng này: Crossfeed Pro, một xử lý cho tai nghe, bị gạt sang bên tại đây. Hai thứ không bao giờ cộng dồn.",
+  "mini.ecouter": "Nghe",
+  "mini.plus": "Thêm",
+  "mini.epingle": "Luôn ở trên cùng",
+  "mini.replier": "Thu gọn",
+  "mini.deplier": "Mở rộng",
+  "mini.complet": "Cửa sổ đầy đủ",
+  "mini.rienEnLecture": "Không có gì đang phát",
+  "mini.choisirZone": "Chọn vùng",
+  "mini.pause": "Tạm dừng",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

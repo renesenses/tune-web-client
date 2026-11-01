@@ -6409,6 +6409,15 @@ export default {
   "v2.pure.veilCrosstalk": "PURE 모드에서는 Crosstalk가 작동하지 않습니다. 신호는 그대로 출력됩니다. 설정은 유지됩니다.",
   "dsp.crossfeedSetAsideByCrosstalk": "이 존에서 Crosstalk(스피커용 처리)가 활성화되어 있습니다. 헤드폰용 처리인 크로스피드는 여기서 제외됩니다. 둘은 절대 함께 적용되지 않습니다.",
   "v2.cfp.setAsideByCrosstalk": "이 존에서 Crosstalk(스피커용 처리)가 활성화되어 있습니다. 헤드폰용 처리인 Crossfeed Pro는 여기서 제외됩니다. 둘은 절대 함께 적용되지 않습니다.",
+  "mini.ecouter": "듣기",
+  "mini.plus": "더 보기",
+  "mini.epingle": "항상 위에 표시",
+  "mini.replier": "접기",
+  "mini.deplier": "펼치기",
+  "mini.complet": "전체 창",
+  "mini.rienEnLecture": "재생 중인 항목 없음",
+  "mini.choisirZone": "존 선택",
+  "mini.pause": "일시정지",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

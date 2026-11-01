@@ -6409,6 +6409,15 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk nu acționează în modul PURE: semnalul pleacă intact. Setările dvs. sunt păstrate.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (procesare pentru boxe) este activ în această zonă: crossfeed-ul, procesare pentru căști, este pus deoparte aici. Cele două nu se cumulează niciodată.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (procesare pentru boxe) este activ în această zonă: Crossfeed Pro, procesare pentru căști, este pus deoparte aici. Cele două nu se cumulează niciodată.",
+  "mini.ecouter": "Ascultă",
+  "mini.plus": "Mai mult",
+  "mini.epingle": "Păstrează deasupra",
+  "mini.replier": "Restrânge",
+  "mini.deplier": "Extinde",
+  "mini.complet": "Fereastră completă",
+  "mini.rienEnLecture": "Nimic în redare",
+  "mini.choisirZone": "Alege o zonă",
+  "mini.pause": "Pauză",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

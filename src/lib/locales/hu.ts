@@ -6368,6 +6368,15 @@ export default {
   "v2.pure.veilCrosstalk": "A Crosstalk PURE módban nem hat: a jel érintetlenül megy ki. A beállítások megmaradnak.",
   "dsp.crossfeedSetAsideByCrosstalk": "A Crosstalk (hangsugárzós feldolgozás) aktív ezen a zónán: a crossfeed, fejhallgatós feldolgozás, itt félre van téve. A kettő soha nem adódik össze.",
   "v2.cfp.setAsideByCrosstalk": "A Crosstalk (hangsugárzós feldolgozás) aktív ezen a zónán: a Crossfeed Pro, fejhallgatós feldolgozás, itt félre van téve. A kettő soha nem adódik össze.",
+  "mini.ecouter": "Hallgatás",
+  "mini.plus": "Továbbiak",
+  "mini.epingle": "Mindig felül",
+  "mini.replier": "Összecsukás",
+  "mini.deplier": "Kinyitás",
+  "mini.complet": "Teljes ablak",
+  "mini.rienEnLecture": "Nincs lejátszás",
+  "mini.choisirZone": "Zóna kiválasztása",
+  "mini.pause": "Szünet",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

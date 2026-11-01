@@ -6254,5 +6254,14 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk virker ikke i PURE-modus: signalet går ut uberørt. Innstillingene dine beholdes.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (behandling for høyttalere) er aktiv i denne sonen: crossfeed, en behandling for hodetelefoner, er satt til side her. De to kombineres aldri.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (behandling for høyttalere) er aktiv i denne sonen: Crossfeed Pro, en behandling for hodetelefoner, er satt til side her. De to kombineres aldri.",
+  "mini.ecouter": "Lytt",
+  "mini.plus": "Mer",
+  "mini.epingle": "Hold øverst",
+  "mini.replier": "Skjul",
+  "mini.deplier": "Vis",
+  "mini.complet": "Hele vinduet",
+  "mini.rienEnLecture": "Ingenting spilles",
+  "mini.choisirZone": "Velg en sone",
+  "mini.pause": "Pause",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

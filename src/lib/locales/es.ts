@@ -6409,6 +6409,15 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk no actúa en modo PURE: la señal sale intacta. Sus ajustes se conservan.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (procesamiento para altavoces) está activo en esta zona: el crossfeed, procesamiento para auriculares, queda apartado. Los dos nunca se combinan.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (procesamiento para altavoces) está activo en esta zona: Crossfeed Pro, procesamiento para auriculares, queda apartado. Los dos nunca se combinan.",
+  "mini.ecouter": "Escuchar",
+  "mini.plus": "Más",
+  "mini.epingle": "Mantener en primer plano",
+  "mini.replier": "Contraer",
+  "mini.deplier": "Expandir",
+  "mini.complet": "Ventana completa",
+  "mini.rienEnLecture": "Nada en reproducción",
+  "mini.choisirZone": "Elegir una zona",
+  "mini.pause": "Pausa",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

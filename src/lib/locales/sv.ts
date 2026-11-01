@@ -6408,4 +6408,13 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk verkar inte i PURE-läge: signalen går ut orörd. Dina inställningar behålls.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (bearbetning för högtalare) är aktivt i den här zonen: crossfeed, en bearbetning för hörlurar, är satt åt sidan här. De två kombineras aldrig.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (bearbetning för högtalare) är aktivt i den här zonen: Crossfeed Pro, en bearbetning för hörlurar, är satt åt sidan här. De två kombineras aldrig.",
+  "mini.ecouter": "Lyssna",
+  "mini.plus": "Mer",
+  "mini.epingle": "Håll överst",
+  "mini.replier": "Fäll ihop",
+  "mini.deplier": "Fäll ut",
+  "mini.complet": "Hela fönstret",
+  "mini.rienEnLecture": "Inget spelas",
+  "mini.choisirZone": "Välj en zon",
+  "mini.pause": "Paus",
 } as const;

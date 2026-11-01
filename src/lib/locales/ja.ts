@@ -6409,6 +6409,15 @@ export default {
   "v2.pure.veilCrosstalk": "PURE モードでは Crosstalk は作用しません。信号はそのまま出力されます。設定は保持されます。",
   "dsp.crossfeedSetAsideByCrosstalk": "このゾーンでは Crosstalk（スピーカー用の処理）が有効です。ヘッドホン用の処理であるクロスフィードはここでは除外されます。両者が併用されることはありません。",
   "v2.cfp.setAsideByCrosstalk": "このゾーンでは Crosstalk（スピーカー用の処理）が有効です。ヘッドホン用の処理である Crossfeed Pro はここでは除外されます。両者が併用されることはありません。",
+  "mini.ecouter": "再生中",
+  "mini.plus": "その他",
+  "mini.epingle": "最前面に固定",
+  "mini.replier": "折りたたむ",
+  "mini.deplier": "展開",
+  "mini.complet": "フルウィンドウ",
+  "mini.rienEnLecture": "再生していません",
+  "mini.choisirZone": "ゾーンを選択",
+  "mini.pause": "一時停止",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

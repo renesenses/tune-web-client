@@ -6409,6 +6409,15 @@ export default {
   "v2.pure.veilCrosstalk": "PURE 模式下 Crosstalk 不起作用：信号原样输出。您的设置会被保留。",
   "dsp.crossfeedSetAsideByCrosstalk": "此区域已启用 Crosstalk（扬声器处理）：交叉馈送作为耳机处理，在此被搁置。两者绝不叠加。",
   "v2.cfp.setAsideByCrosstalk": "此区域已启用 Crosstalk（扬声器处理）：Crossfeed Pro 作为耳机处理，在此被搁置。两者绝不叠加。",
+  "mini.ecouter": "收听",
+  "mini.plus": "更多",
+  "mini.epingle": "保持置顶",
+  "mini.replier": "收起",
+  "mini.deplier": "展开",
+  "mini.complet": "完整窗口",
+  "mini.rienEnLecture": "未在播放",
+  "mini.choisirZone": "选择区域",
+  "mini.pause": "暂停",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

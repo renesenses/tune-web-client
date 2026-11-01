@@ -6254,5 +6254,14 @@ export default {
   "v2.pure.veilCrosstalk": "Το Crosstalk δεν δρα σε λειτουργία PURE: το σήμα φεύγει ανέπαφο. Οι ρυθμίσεις σας διατηρούνται.",
   "dsp.crossfeedSetAsideByCrosstalk": "Το Crosstalk (επεξεργασία για ηχεία) είναι ενεργό σε αυτή τη ζώνη: το crossfeed, επεξεργασία για ακουστικά, παραμερίζεται εδώ. Τα δύο δεν αθροίζονται ποτέ.",
   "v2.cfp.setAsideByCrosstalk": "Το Crosstalk (επεξεργασία για ηχεία) είναι ενεργό σε αυτή τη ζώνη: το Crossfeed Pro, επεξεργασία για ακουστικά, παραμερίζεται εδώ. Τα δύο δεν αθροίζονται ποτέ.",
+  "mini.ecouter": "Ακρόαση",
+  "mini.plus": "Περισσότερα",
+  "mini.epingle": "Πάντα σε πρώτο πλάνο",
+  "mini.replier": "Σύμπτυξη",
+  "mini.deplier": "Ανάπτυξη",
+  "mini.complet": "Πλήρες παράθυρο",
+  "mini.rienEnLecture": "Δεν παίζει τίποτα",
+  "mini.choisirZone": "Επιλογή ζώνης",
+  "mini.pause": "Παύση",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

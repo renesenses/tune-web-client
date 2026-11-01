@@ -6431,6 +6431,15 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk n’agit pas en mode PURE : le signal part intact. Vos réglages sont conservés.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (traitement pour enceintes) est actif sur cette zone : le crossfeed, traitement pour casque, y est écarté. Les deux ne se cumulent jamais.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (traitement pour enceintes) est actif sur cette zone : Crossfeed Pro, traitement pour casque, y est écarté. Les deux ne se cumulent jamais.",
+  "mini.ecouter": "Écouter",
+  "mini.plus": "Plus",
+  "mini.epingle": "Garder au premier plan",
+  "mini.replier": "Replier",
+  "mini.deplier": "Déplier",
+  "mini.complet": "Fenêtre complète",
+  "mini.rienEnLecture": "Rien en lecture",
+  "mini.choisirZone": "Choisir une zone",
+  "mini.pause": "Pause",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

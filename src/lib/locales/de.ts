@@ -6409,6 +6409,15 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk wirkt im PURE-Modus nicht: Das Signal geht unverändert hinaus. Ihre Einstellungen bleiben erhalten.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (Verarbeitung für Lautsprecher) ist in dieser Zone aktiv: Der Crossfeed, eine Verarbeitung für Kopfhörer, ist hier ausgesetzt. Beide werden nie kombiniert.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (Verarbeitung für Lautsprecher) ist in dieser Zone aktiv: Crossfeed Pro, eine Verarbeitung für Kopfhörer, ist hier ausgesetzt. Beide werden nie kombiniert.",
+  "mini.ecouter": "Hören",
+  "mini.plus": "Mehr",
+  "mini.epingle": "Im Vordergrund halten",
+  "mini.replier": "Einklappen",
+  "mini.deplier": "Ausklappen",
+  "mini.complet": "Vollständiges Fenster",
+  "mini.rienEnLecture": "Keine Wiedergabe",
+  "mini.choisirZone": "Zone wählen",
+  "mini.pause": "Pause",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
