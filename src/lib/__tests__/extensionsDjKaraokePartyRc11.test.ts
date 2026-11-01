@@ -159,10 +159,13 @@ describe('cartes DJ, Karaoké et Mode Party', () => {
 
   it('Mode Party : décocher envoie disable, puis recocher envoie enable', async () => {
     const el = await poser();
+    // Ce que le serveur rendra à la relecture qui suit le clic.
+    simule.fiches = [{ ...PARTY, enabled: false, restart_required: true }, DJ, KARAOKE];
     (carte(el, 'party')!.querySelector('label.sw input') as HTMLInputElement).click();
     await attendre();
     expect(simule.appels).toEqual(['disable:party']);
-    simule.fiches = [{ ...PARTY, enabled: false, restart_required: true }, DJ, KARAOKE];
+    expect(carte(el, 'party')!.querySelector('[data-redemarrage]')).not.toBeNull();
+    simule.fiches = [PARTY, DJ, KARAOKE];
     (carte(el, 'party')!.querySelector('label.sw input') as HTMLInputElement).click();
     await attendre();
     // Contre-épreuve : la relecture a bien rendu la case décochée avant le 2e clic.
