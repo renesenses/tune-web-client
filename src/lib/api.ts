@@ -2796,6 +2796,12 @@ export function estimateAlbumBpm(albumId: number, redo = false) {
 }
 
 /** `GET /system/api-keys` — l'état des clés, jamais leur valeur. */
+/** Sortie AES67 (greffon natif `aes67`, #7336 E3) : 404 = greffon non installé.
+ *  Pas de bandeau sur échec : l'écran dit lui-même ce qui se passe. */
+export function getSortieAes67(): Promise<unknown> {
+  return fetchJSON<unknown>(`${BASE}/ext/aes67`, undefined, undefined, true);
+}
+
 export function getApiKeys() {
   return fetchJSON<{ keys: import('./enrichissementAlbum').EtatCleApi[] }>(`${BASE}/system/api-keys`);
 }
@@ -9664,12 +9670,39 @@ export interface OtherVersionGroup {
  * les relations d'oeuvre MusicBrainz. Le serveur fait le regroupement :
  * l'ecran n'a qu'a dessiner.
  */
-export function getOtherVersions(limit = 20) {
-  // `sansBandeau` — essai en 5G du 09/10/2026 : par le pont, cette route
-  // dépasse les 30 s du relais (requête `CROSS JOIN tracks` de ~30 s sur le
-  // .18) et rend 504. Son seul appelant, la rangée de l'accueil, porte déjà
-  // son état d'échec et son « réessayer » : pas de bandeau global en plus.
-  return fetchJSON<OtherVersionGroup[]>(`${BASE}/home/other-versions?limit=${limit}`, undefined, undefined, true);
+/**
+ * Les attentes, en ms, avant de redemander la route tant que le serveur la dit
+ * « en préparation » : 5 s puis 10 s, soit 15 s au plus.
+ */
+export const DELAIS_AUTRES_VERSIONS_EN_PREPARATION_MS: readonly number[] = [5000, 10000];
+
+export async function getOtherVersions(
+  limit = 20,
+  delaisMs: readonly number[] = DELAIS_AUTRES_VERSIONS_EN_PREPARATION_MS,
+): Promise<OtherVersionGroup[]> {
+  // Mesure du 31/10/2026 : le premier appel prenait 20 s (recherches des
+  // services). Le serveur répond maintenant tout de suite, en `202` +
+  // `X-En-Preparation: true`, avec ce que la bibliothèque a déjà rendu, et
+  // finit la partie streaming en tâche de fond. Le rayon redemande donc
+  // quelques secondes plus tard, au plus deux fois ; au bout, il montre ce
+  // qu'il a. Un serveur plus ancien ne pose pas l'en-tête : un seul appel.
+  let groupes: OtherVersionGroup[] = [];
+  for (let essai = 0; ; essai++) {
+    let enPreparation = false as boolean;
+    // `sansBandeau` — essai en 5G du 09/10/2026 : par le pont, cette route
+    // dépasse les 30 s du relais (requête `CROSS JOIN tracks` de ~30 s sur le
+    // .18) et rend 504. Son seul appelant, la rangée de l'accueil, porte déjà
+    // son état d'échec et son « réessayer » : pas de bandeau global en plus.
+    groupes = await fetchJSON<OtherVersionGroup[]>(
+      `${BASE}/home/other-versions?limit=${limit}`,
+      undefined,
+      undefined,
+      true,
+      (h) => { enPreparation = h.get('x-en-preparation') === 'true'; },
+    );
+    if (!enPreparation || essai >= delaisMs.length) return groupes;
+    await new Promise<void>((r) => setTimeout(r, delaisMs[essai]));
+  }
 }
 
 /**
