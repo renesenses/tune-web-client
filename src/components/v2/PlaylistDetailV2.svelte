@@ -542,7 +542,7 @@
               aria-label={$tr('v2.pl.thumbSize' as any)}
               oninput={(e) => regler(Number((e.currentTarget as HTMLInputElement).value))} />
           </label>
-          <button type="button" class="vbtn entete" class:on={enteteCompact} data-entete aria-pressed={enteteCompact}
+          <button type="button" class="vbtn basc" class:on={enteteCompact} data-entete aria-pressed={enteteCompact}
             onclick={basculerEntete}>{$tr((enteteCompact ? 'v2.pl.headerExpand' : 'v2.pl.headerCompact') as any)}</button>
         </div>
         <label class="tricol">
@@ -577,7 +577,7 @@
                   alt={p.title ?? ''} source={mixte ? null : p.source} />
               </button>
               <div class="pnom" title={p.title}>{p.title}</div>
-              {#if p.artist_name}<div class="part">{p.artist_name}</div>{/if}
+              {#if p.artist_name}<div class="part" title={p.artist_name}>{p.artist_name}</div>{/if}
               {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && estIntrouvable(p))}
                 <div class="pact">{@render suffixe(p, i)}</div>
               {/if}
@@ -585,7 +585,7 @@
           {/each}
         </div>
       {:else}
-      <ListePistesV2 tailleVignette={tailleListe} pistes={pistesVues} pochetteEnTableau ecranColonnes="playlist" contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
+      <ListePistesV2 pistes={pistesVues} pochetteEnTableau tailleVignette={tailleListe} ecranColonnes="playlist" contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
       {/if}
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
@@ -689,7 +689,7 @@
   .vues{display:inline-flex; border:1px solid var(--v2-line2); border-radius:9px; overflow:hidden}
   .vbtn{height:32px; padding:0 12px; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer;
     font:600 12.5px var(--v2-sans)}
-  .vbtn.entete{border:1px solid var(--v2-line2); border-radius:9px}
+  .vbtn.basc{border:1px solid var(--v2-line2); border-radius:9px}
   .vbtn.on{background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
   .taille{display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--v2-txt2)}
   .taille input{width:140px; accent-color:var(--v2-acc2)}
