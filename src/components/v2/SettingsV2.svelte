@@ -1839,7 +1839,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       svcErr = {
         ...svcErr,
         [name]:
-          nature === 'identifiants'
+          nature === 'application'
+            ? get(t)('settings.errAppRefused' as any).replace('{service}', nomAffiche(name))
+          : nature === 'identifiants'
             ? get(t)('settings.errCredentialsNotRecognised' as any).replace('{service}', nomAffiche(name))
             : nature === 'brut'
               ? get(t)('settings.errConnectFailed')
