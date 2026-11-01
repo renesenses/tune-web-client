@@ -76,6 +76,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import type { Artist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import * as cacheBibliotheque from '../../lib/cacheBibliotheque';
   import PochetteActions from './PochetteActions.svelte';
   import { objetArtiste } from '../../lib/gestesObjet';
   import RenommerModale from './RenommerModale.svelte';
@@ -285,14 +286,30 @@
   async function charger() {
     chargement = true;
     erreur = null;
+    // tune-server-rust#7619 (L5) — la liste du cache du navigateur s'affiche
+    // aussitôt ; celle du serveur, demandée juste après, la remplace.
+    let depuisLeCache = false;
+    if (cacheBibliotheque.disponible() && !artistes.length) {
+      const copie = await cacheBibliotheque.lirePage<Artist[]>('artistes|liste');
+      if (Array.isArray(copie) && copie.length && !artistes.length) {
+        artistes = copie;
+        chargement = false;
+        depuisLeCache = true;
+      }
+    }
     try {
       // La liste ENTIÈRE : `getArtists` plafonne à 100 par défaut, et une vue
       // d'artistes tronquée à 100 se lit comme une bibliothèque incomplète.
       // Sans les sources : la grille ne les attend pas (web#1716, 13/10).
       artistes = await api.getAllArtists();
+      void cacheBibliotheque.rangerPage('artistes|liste', artistes);
     } catch (e: any) {
-      erreur = e?.message ?? $t('common.error' as any);
-      artistes = [];
+      // Hors ligne avec une copie à l'écran : on la garde, sans écran d'erreur
+      // (le bandeau réseau de `fetchJSON` dit déjà que le serveur ne répond pas).
+      if (!depuisLeCache) {
+        erreur = e?.message ?? $t('common.error' as any);
+        artistes = [];
+      }
     }
     chargement = false;
     // Serveur ancien déjà constaté : la Bibliothèque calcule, rien à demander.
