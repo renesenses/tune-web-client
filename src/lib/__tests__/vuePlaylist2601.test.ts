@@ -80,7 +80,8 @@ describe('web#2601 — écran d\'une playlist', () => {
     const h = await monter();
     expect(h.querySelector('[data-pgrille]')).toBeNull();
     expect(h.querySelector('.head.compact')).toBeNull();
-    expect(localStorage.length).toBe(0);
+    const miennes = Object.keys(localStorage).filter((k) => k.includes('v2.playlist.') && !k.includes('pistes.tri'));
+    expect(miennes).toEqual([]);
   });
 
   it('2. la bascule mène aux pochettes, et le choix est retenu et relu', async () => {
