@@ -88,6 +88,10 @@ export interface PisteCd {
 export interface DisqueCd {
   disc_id: string;
   metadonnees: 'musicbrainz' | 'repli';
+  /** Le pressage MusicBrainz que l'identifiant du disque a désigné, si
+   *  `metadonnees === 'musicbrainz'` (tune-server-rust#7195 s'en sert pour
+   *  reconnaître un CD de la collection Discogs). */
+  release_id?: string | null;
   titre: string | null;
   artiste: string | null;
   pochette: string | null;
