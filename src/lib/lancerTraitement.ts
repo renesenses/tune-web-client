@@ -33,7 +33,14 @@ import * as api from './api';
  * relance générale (`relaunch-all`) réveille déjà la passe ReplayGain.
  */
 export type CarteRelancable = 'dr' | 'enrich' | 'covers';
-export type CarteLancable = CarteRelancable | 'rg';
+/**
+ * Écran « État du serveur » (01/11/2026) — `albumCovers` (pochettes d'albums,
+ * `POST /library/artwork/enrich`) et `labelLogos` (logos de labels,
+ * `POST /library/labels/logos/enrich`) : leur bouton « Lancer la passe » est
+ * rendu par l'écran lui-même (désactivé pendant la passe, voir
+ * `santeImages.ts`). Ils n'entrent pas dans « Tout relancer ».
+ */
+export type CarteLancable = CarteRelancable | 'rg' | 'albumCovers' | 'labelLogos';
 
 /** L'ordre du geste « Tout relancer » : celui du fil 2043. */
 export const CARTES_LANCABLES: readonly CarteRelancable[] = ['dr', 'enrich', 'covers'];
@@ -99,6 +106,8 @@ export interface RoutesLancement {
   enrich: () => Promise<ReponseLancement>;
   covers: () => Promise<ReponseLancement>;
   rg?: () => Promise<ReponseLancement>;
+  albumCovers?: () => Promise<ReponseLancement>;
+  labelLogos?: () => Promise<ReponseLancement>;
 }
 
 const ROUTES: RoutesLancement = {
@@ -106,6 +115,8 @@ const ROUTES: RoutesLancement = {
   enrich: () => api.startBatchEnrich(),
   covers: () => api.enrichArtistImages(),
   rg: () => api.lancerReplayGain(),
+  albumCovers: () => api.lancerPassePochettesAlbums(),
+  labelLogos: () => api.lancerPasseLogosLabels(),
 };
 
 /** Lance UN traitement. Une erreur (refus, panne) remonte à l'appelant. */
