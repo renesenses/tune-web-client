@@ -182,6 +182,8 @@
      * fait déjà `IndicateurLecture`, juste à côté.
      */
     pochetteEnTableau?: boolean;
+    /** web#2601 — côté de la vignette (px) quand `pochetteEnTableau` ; 36 par défaut. */
+    tailleVignette?: number;
     /**
      * 🔴 LA PROVENANCE DE CHAQUE LIGNE, au mode tableau — #1113.
      *
@@ -412,6 +414,7 @@
     contexte = {},
     pistes, onLire, onLireDepuis = null, numerotation = 'rang',
     pochetteEnTableau = false,
+    tailleVignette = 36,
     sourceEnTableau = false,
     ouvertureAlbum = null, apres, coeurDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
@@ -884,8 +887,8 @@
                    la vignette, elle ne s'y ajoute pas : une source par ligne
                    suffit, et l'incrustation de 36 px tronque son texte. -->
               {#if pochetteEnTableau}
-                <span class="tvig">
-                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={36}
+                <span class="tvig" style={tailleVignette !== 36 ? `--tvig:${tailleVignette}px` : undefined}>
+                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={tailleVignette}
                     alt={p.title ?? ''} source={sourceEnTableau ? null : p.source} />
                 </span>
               {/if}
@@ -1030,7 +1033,7 @@
      pas décider de la hauteur de la ligne, sinon le tableau change de densité
      sur le seul écran qui l'active. `flex:0 0 auto` : elle ne se comprime
      jamais — c'est le TEXTE qui s'élide, comme l'indicateur juste à côté. */
-  .tvig{flex:0 0 auto; width:36px; height:36px; border-radius:4px;
+  .tvig{flex:0 0 auto; width:var(--tvig, 36px); height:var(--tvig, 36px); border-radius:4px;
     overflow:hidden; display:block; line-height:0}
   /* C'est le TEXTE qui s'élide, jamais l'indicateur : un repère tronqué ne
      repère plus rien. */
