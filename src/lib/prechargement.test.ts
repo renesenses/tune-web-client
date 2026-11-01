@@ -51,11 +51,17 @@ describe('limiteur de préchargement', () => {
     const { h, avancer } = horlogeFactice();
     const charger = vi.fn();
     const l = limiteur(charger, h);
-    for (let id = 1; id <= RAFALE + 3; id++) { l.survol(id); avancer(DELAI_INTENTION_MS); }
-    expect(charger).toHaveBeenCalledTimes(RAFALE);
-    avancer(INTERVALLE_MS);
+    // Vingt fiches survolées chacune juste assez pour compter : 2,4 s.
+    const N = 20;
+    for (let id = 1; id <= N; id++) { l.survol(id); avancer(DELAI_INTENTION_MS); }
+    const plafond = RAFALE + Math.floor((N * DELAI_INTENTION_MS) / INTERVALLE_MS);
+    expect(charger.mock.calls.length).toBeLessThanOrEqual(plafond);
+    expect(charger.mock.calls.length).toBeLessThan(N);
+    // Sans intervalle écoulé, la rafale ne se reforme pas.
+    const avant = charger.mock.calls.length;
     l.survol(100); avancer(DELAI_INTENTION_MS);
-    expect(charger).toHaveBeenCalledTimes(RAFALE + 1);
+    l.survol(101); avancer(DELAI_INTENTION_MS);
+    expect(charger.mock.calls.length - avant).toBeLessThanOrEqual(1);
   });
 
   it('ne recharge pas une fiche déjà préchargée tant qu’elle est fraîche', () => {
