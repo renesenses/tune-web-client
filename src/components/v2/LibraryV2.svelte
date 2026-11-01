@@ -2956,7 +2956,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           {#if ddOpen === 'repertoire'}
             <div class="menu">
               <ChoixRepertoireBibliotheque courant={dossierPortee}
-                onChoisir={(d) => { choisirDossierBibliotheque(d); ddClose(); }} />
+                onChoisir={(d) => { choisirDossierBibliotheque(d); ddClose(); }}
+                onToute={() => { retirerPortee(); ddClose(); }} />
             </div>
           {/if}
         </div>
