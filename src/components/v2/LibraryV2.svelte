@@ -157,6 +157,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import {
     albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant } from '../../lib/tuneRemote';
   import { gestionnaireFrappeVersRecherche } from '../../lib/frappeVersRecherche';
+  import { clicDansUnMenu } from '../../lib/clicDansUnMenu';
   import '../../styles/tune-v2.css';
 
   let { depot = null }: { depot?: DepotDistant | null } = $props();
@@ -541,8 +542,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function ddClose() { ddOpen = null; }
   // Un menu ouvert au clic doit se refermer au clic AILLEURS, sinon il reste
   // planté par-dessus la grille. `.drop` couvre le chip ET son menu.
+  //
+  // 🔴 tune-server-rust#7597 (Bertrand, 01/11/2026 sur le .18) — « impossible
+  // de sélectionner un sous-dossier, aussi bien en Albums qu'en Pistes ».
+  // Descendre d'un niveau dans le panneau « Répertoire » REMPLACE la liste :
+  // le bouton cliqué est retiré du DOM avant que le clic n'arrive ici (dans
+  // un vrai navigateur, Svelte vide ses effets entre l'écouteur délégué et
+  // celui de `window`). `e.target.closest('.drop')` rendait alors `null`, le
+  // clic passait pour un clic DEHORS et le panneau se refermait : on ne
+  // pouvait ni descendre ni appliquer. `composedPath()` est figé au départ
+  // du clic : il garde les ancêtres d'un nœud retiré entre-temps.
   function ddDehors(e: MouseEvent) {
-    if (ddOpen && !(e.target as HTMLElement)?.closest('.drop')) ddClose();
+    if (ddOpen && !clicDansUnMenu(e)) ddClose();
   }
   function ddEchap(e: KeyboardEvent) { if (e.key === 'Escape') ddClose(); }
 
