@@ -96,3 +96,35 @@ export function estPlusRecente(a: string, b: string): boolean {
 export function versionDeBase(v: string): string {
   return v.trim().replace(/^v/, '').replace(/[-+].*$/, '');
 }
+
+/**
+ * Une version de DÉVELOPPEMENT : pré-version dont le premier identifiant
+ * commence par `dev` (`1.0.0-dev`, `1.0.0-dev.3`, `1.0.0-dev+abc`).
+ *
+ * Bertrand, 01/11/2026, .18 en v5 : le serveur se déclare `1.0.0-dev`
+ * (construit sur la rc10) et le bandeau proposait « Tune v1.0.0-rc9
+ * disponible ». Par l'ordre ASCII de semver, `dev` < `rc` : la version de
+ * développement passait pour PLUS ANCIENNE que n'importe quelle rc de la
+ * même base. Or un `-dev` se construit depuis la branche courante, donc
+ * après la dernière release publiée de sa base.
+ */
+export function estVersionDeDeveloppement(v: string): boolean {
+  const m = /^v?\d+\.\d+\.\d+-([0-9A-Za-z.-]+)/.exec(v.trim());
+  return !!m && /^dev/i.test(m[1]);
+}
+
+/**
+ * Faut-il PROPOSER `derniere` à qui fait tourner `installee` ?
+ *   - une version de développement ne se voit rien proposer tant que la
+ *     release n'a pas une base X.Y.Z strictement supérieure à la sienne ;
+ *   - sinon, la règle ordinaire : `derniere` strictement plus récente.
+ * `null` si l'une des deux est illisible : l'appelant garde l'avis du serveur.
+ */
+export function majProposee(installee: string, derniere: string): boolean | null {
+  const ordre = comparerVersions(installee, derniere);
+  if (ordre === null) return null;
+  if (estVersionDeDeveloppement(installee)) {
+    return comparerVersions(versionDeBase(installee), versionDeBase(derniere)) === -1;
+  }
+  return ordre === -1;
+}

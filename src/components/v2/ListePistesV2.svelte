@@ -885,7 +885,9 @@
                    suffit, et l'incrustation de 36 px tronque son texte. -->
               {#if pochetteEnTableau}
                 <span class="tvig">
-                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={36}
+                  <!-- 01/11/2026 — `vignette` : la plus petite case `?size=` (80 px), pas
+                     l'original de 1 200 px sur chacune des 53 454 lignes. -->
+                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={36} vignette
                     alt={p.title ?? ''} source={sourceEnTableau ? null : p.source} />
                 </span>
               {/if}
