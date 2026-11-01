@@ -150,6 +150,23 @@
   let src = $derived(enAttenteDeMesure ? '' : artworkUrl(resolvedCoverPath, tailleDemandee));
 
   /*
+   * tune-server-rust#7619 (L2) — `srcset` sur les deux vignettes de grille
+   * (200 et 400 px) : le navigateur choisit selon la densité réelle de
+   * l'écran et le zoom, que la mesure faite au montage ne suit pas. `sizes`
+   * est la largeur mesurée ; `src` reste la case calculée, pour un navigateur
+   * qui ignorerait `srcset`. Seulement pour une tuile `vignette` mesurée, et
+   * seulement si la case calculée est l'une des deux : une case de 80 ou 128
+   * (petite tuile) ou l'original (grande vue) ne changent pas.
+   */
+  const srcset = $derived(
+    !enAttenteDeMesure && vignetteUtile && !size && largeurMesuree
+      && (tailleDemandee === 200 || tailleDemandee === 400)
+      ? `${artworkUrl(resolvedCoverPath, 200)} 200w, ${artworkUrl(resolvedCoverPath, 400)} 400w`
+      : undefined,
+  );
+  const sizes = $derived(srcset && largeurMesuree ? `${Math.ceil(largeurMesuree)}px` : undefined);
+
+  /*
    * web#2353 — une illustration nettement rectangulaire (pochette
    * `image_rectangle` d'une playlist éditoriale Qobuz) est montrée entière,
    * contenue dans la boîte carrée, au lieu d'être recadrée au centre. Le
@@ -180,10 +197,13 @@
   {#if src && !hasError}
     <img
       {src}
+      {srcset}
+      {sizes}
       {alt}
       width={size || undefined}
       height={size || undefined}
       loading="lazy"
+      decoding="async"
       class:entiere={contenue}
       onload={handleLoad}
       onerror={handleError}
