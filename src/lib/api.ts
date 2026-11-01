@@ -11,6 +11,7 @@ import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
 import type { ApercuFavorisRadio } from './favorisRadioQobuz';
 import { profileHeader } from './profileHeader';
+import { corpsJson, fusionnerEntetes } from './fusionEntetes';
 import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
@@ -182,7 +183,14 @@ function stripDoubleBase(path: string): string {
  *  vit en localStorage et non dans un cookie. */
 export function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
   const token = getToken();
-  const headers: Record<string, string> = { ...extra, ...entetesRelais() };
+  // #7532 — le profil et la langue aussi : ces appels (imports de playlists,
+  // suppression d'une collection intelligente, exports…) touchent des données
+  // PAR PROFIL, et sans `X-Profile-Id` le serveur agissait sur le profil
+  // global au lieu de celui du navigateur. `extra` reste prioritaire.
+  const headers: Record<string, string> = fusionnerEntetes(
+    { 'Accept-Language': acceptLang(), ...profileHeader() },
+    { ...extra, ...entetesRelais() },
+  );
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return headers;
 }
@@ -524,14 +532,19 @@ export async function fetchJSON<T>(
       // column 0 » sur /library/enrich-all (bouton « Retrouver genres et
       // annees »), /metadata/auto-fix et /zones/{id}/queue/clear. Un en-tete
       // qui decrit un corps inexistant ne decrit rien.
-      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
+      // #7532 — ni sur un `FormData`, des octets ou un `Blob` : le navigateur
+      // les décrit lui-même (boundary du multipart).
+      ...(corpsJson(options?.body) ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    // #7532 — FUSION, plus remplacement : `{ headers, ...options }` laissait
+    // `options.headers` écraser `X-Profile-Id`, `Authorization` et
+    // `Accept-Language` sur chaque POST/PUT JSON (voir `fusionEntetes.ts`).
     response = await fetch(avecLangueSignal(url, acceptLang()), {
-      headers,
       ...options,
+      headers: fusionnerEntetes(headers, options?.headers),
     });
   } catch (e) {
     // Une requête abandonnée par son appelant (délai d'abandon, #1788) n'est
@@ -764,14 +777,19 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
       // column 0 » sur /library/enrich-all (bouton « Retrouver genres et
       // annees »), /metadata/auto-fix et /zones/{id}/queue/clear. Un en-tete
       // qui decrit un corps inexistant ne decrit rien.
-      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
+      // #7532 — ni sur un `FormData`, des octets ou un `Blob` : le navigateur
+      // les décrit lui-même (boundary du multipart).
+      ...(corpsJson(options?.body) ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    // #7532 — FUSION, plus remplacement : `{ headers, ...options }` laissait
+    // `options.headers` écraser `X-Profile-Id`, `Authorization` et
+    // `Accept-Language` sur chaque POST/PUT JSON (voir `fusionEntetes.ts`).
     response = await fetch(avecLangueSignal(url, acceptLang()), {
-      headers,
       ...options,
+      headers: fusionnerEntetes(headers, options?.headers),
     });
   } catch (e) {
     showNetworkError();
@@ -1737,7 +1755,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; context_shuffle?: boolean; album_ref?: string; queue_follows?: boolean }) {
+export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; context_shuffle?: boolean; album_ref?: string; queue_follows?: boolean; folder?: string }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1835,7 +1853,14 @@ export function stepVolume(zoneId: number, direction: 'up' | 'down', step?: numb
  */
 export function setVolumeLimits(
   zoneId: number,
-  limites: { safety: number | null; comfort: number | null },
+  limites: {
+    safety?: number | null;
+    comfort?: number | null;
+    /** web#7517 — seuil en dB d'APPAREIL (sortie à course en dB) ; exclut le
+     *  seuil en fraction du même nom. */
+    safety_device_db?: number | null;
+    comfort_device_db?: number | null;
+  },
 ) {
   return fetchJSON<{ zone_id: number; volume_limit_safety: number | null; volume_limit_comfort: number | null }>(
     `${BASE}/zones/${zoneId}/volume-limits`,
@@ -1937,6 +1962,9 @@ export interface StreamingQueueItem {
 
 export interface AddToQueueRequest {
   album_id?: number;
+  /** tune-server-rust#7597 — un dossier (chemin absolu) et tout son
+   *  sous-arbre, dans l'ordre, construit par le serveur (`lib/lectureDossier`). */
+  folder?: string;
   track_id?: number;
   track_ids?: number[];
   source?: Source | 'upload';
@@ -6664,11 +6692,10 @@ export async function importPlaylistFile(file: File, name?: string) {
     headers: authHeaders(),
     body: form,
   });
-  if (!resp.ok) {
-    const detail = await resp.text().catch(() => '');
-    throw new Error(detail || `import: HTTP ${resp.status}`);
-  }
-  return resp.json() as Promise<{ playlist_id?: number; matched?: number; missing?: number }>;
+  // web#2526 : `apiError` lit le message du serveur (`{"error": "no file
+  // provided"}`) au lieu de rendre le corps JSON brut à l'écran.
+  if (!resp.ok) throw await apiError(resp);
+  return resp.json() as Promise<{ id?: number; name?: string } & import('./bilanImportM3u').ReponseImportM3u>;
 }
 
 export function getTransferHistory(limit = 50, offset = 0) {
@@ -6776,6 +6803,29 @@ export function exportRadiosUrl(): string {
 
 export function getProfiles() {
   return fetchJSON<any[]>(`${BASE}/profiles`);
+}
+
+/** Les compteurs d'un profil, `GET /profiles/{id}/stats` (favoris locaux par
+ *  type, écoutes). Sans bandeau : sert de sonde (#7532). */
+export interface StatsProfil {
+  profile_id?: number;
+  favorites_by_type?: Record<string, number>;
+  listening?: { total_listens?: number };
+}
+export function getProfileStats(profileId: number) {
+  return fetchJSON<StatsProfil>(`${BASE}/profiles/${profileId}/stats`, undefined, undefined, true);
+}
+
+/** Les playlists D'UN profil donné, quel que soit le profil du navigateur :
+ *  `GET /playlists` lit `X-Profile-Id`, qu'on pose ici nous-mêmes — la fusion
+ *  des en-têtes (#7532) le laisse prioritaire. Sans bandeau : sonde. */
+export function getPlaylistsDuProfil(profileId: number, limit = 1) {
+  return fetchJSON<Playlist[]>(
+    `${BASE}/playlists?limit=${limit}&offset=0`,
+    { headers: { 'X-Profile-Id': String(profileId) } },
+    undefined,
+    true,
+  );
 }
 
 /**
@@ -9779,6 +9829,9 @@ export interface LicenseOfflineGrace {
 
 export interface LicenseStatus {
   tier: string;
+  /** #7419 — `key`, `account` (compte Mozaiklabs, sans clé) ou `null`. Absent
+   *  sur un serveur antérieur. */
+  premium_source?: 'key' | 'account' | null;
   license_key: string | null;
   expires_at: string | null;
   features: Record<string, LicenseFeature>;

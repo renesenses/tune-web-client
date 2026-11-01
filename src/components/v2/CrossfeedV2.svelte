@@ -34,6 +34,7 @@
   import VoilePur from './VoilePur.svelte';
   import { audiophileEnabled } from '../../lib/stores/audiophile';
   import { crossfeedProTraiteLaZone } from '../../lib/stores/crossfeedPro';
+  import { crosstalkTraiteLaZone } from '../../lib/stores/crosstalk';
   import '../../styles/tune-v2.css';
 
   /** web#1674 — la zone courante est en PURE : le crossfeed n'y agit pas.
@@ -75,6 +76,17 @@
     proTraite = false;
     void crossfeedProTraiteLaZone(zid).then((v) => { if ($currentZoneId === zid) proTraite = v; });
   });
+  /** web#2580 — Crosstalk (enceintes) traite la zone : le crossfeed (casque)
+   *  y est ÉCARTÉ, les deux ne se cumulent jamais (tune-server-rust#7616).
+   *  Déduit du réglage de zone de `crosstalk` tant que la route ne publie pas
+   *  la voie en service (tune-server-rust#7627). */
+  let crosstalkActif = $state(false);
+  $effect(() => {
+    const zid = $currentZoneId;
+    crosstalkActif = false;
+    void crosstalkTraiteLaZone(zid).then((v) => { if ($currentZoneId === zid) crosstalkActif = v; });
+  });
+  const ecarte = $derived(proTraite || crosstalkActif);
 
   $effect(() => {
     const zid = $currentZoneId;
@@ -289,13 +301,17 @@
         </div>
       {/if}
 
-      {#if proTraite && !pur}
+      {#if crosstalkActif && !pur}
+        <div class="warn" data-crossfeed-ecarte>
+          {#if zoneName}<b>{zoneName}</b> — {/if}{$t('dsp.crossfeedSetAsideByCrosstalk' as any)}
+        </div>
+      {:else if proTraite && !pur}
         <div class="warn" data-crossfeed-remplace>
           {#if zoneName}<b>{zoneName}</b> — {/if}{$t('dsp.crossfeedReplacedByPro' as any)}
         </div>
       {/if}
 
-      <fieldset class="reglages" class:voile={pur || proTraite} disabled={pur || proTraite} aria-disabled={pur || proTraite}>
+      <fieldset class="reglages" class:voile={pur || ecarte} disabled={pur || ecarte} aria-disabled={pur || ecarte}>
       <div class="card">
         <div class="row">
           <div class="lbl">

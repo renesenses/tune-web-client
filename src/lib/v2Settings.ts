@@ -82,6 +82,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'interface',  titleKey: 'settings.interface', from: 'general', min: 'beginner', keywords: ['langue', 'thème', 'affichage', 'lecture en cours', 'album', 'playlist'] },
       // Bertrand, 16/09/2026 : la v2 savait basculer de profil (menu avatar),
       // jamais en créer un. L'onglet Profils de l'écran actuel arrive ici.
+      // #2533 : le pays d'écoute des radios, réglé une fois pour toutes, vit ici ;
+      // l'onglet Radios ne le propose que tant qu'il n'est pas renseigné.
+      { id: 'radiosCountry', titleKey: 'v2.radio.listeningCountry', from: 'radios', min: 'beginner',
+        keywords: ['radio', 'radios', 'pays', 'pays d\'écoute', 'listening country', 'flux', 'restriction', 'géographique'] },
       { id: 'profiles',   titleKey: 'settings.tabProfiles', from: 'profiles', min: 'beginner', keywords: ['profils', 'utilisateurs', 'multi-profil', 'qui écoute'] },
       { id: 'voice',      title: 'Tune Voice AI',         from: 'general', min: 'expert',   keywords: ['voix', 'commande vocale'] },
       // Chantier « assistant-ia », étape 1 : la clé de l'utilisateur, son

@@ -29,6 +29,7 @@
   import { estRefusPremium } from '../../lib/premiumRefus';
   import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import { sonderCrossfeedPro } from '../../lib/stores/crossfeedPro';
+  import { sonderCrosstalk } from '../../lib/stores/crosstalk';
   import { NOMS_GREFFONS_SDK } from '../../lib/greffonEntreeAudio';
   import {
     greffonsNatifsTiers, etatDeChargement, ecranDuGreffon, NOMS_GREFFONS_NATIFS,
@@ -61,6 +62,7 @@
     catch { natifs = []; }
     // L'entrée « Crossfeed Pro » de la barre suit, comme Concerts et Circle.
     void sonderCrossfeedPro(null);
+    void sonderCrosstalk(null);
   }
   /**
    * Les greffons natifs du catalogue de mozaiklabs pas encore installés

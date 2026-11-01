@@ -88,6 +88,8 @@ const VUES: Record<View, boolean> = {
   // Crossfeed Pro (greffon natif tiers, 28/09/2026) : l'écran dit lui-même
   // quand le greffon est absent — l'adresse reste donc atteignable.
   crossfeedpro: true,
+  // web#2580 — Crosstalk : l'écran dit lui-même quand le greffon est absent.
+  crosstalk: true,
   // tune-server-rust#6044 — l'écran dit lui-même quand le serveur n'a pas
   // le greffon : l'adresse reste atteignable.
   reaffectation: true,

@@ -99,7 +99,8 @@ describe('#2292 — l’option des Réglages', () => {
     const { boutons } = await poser(RESEAU, 0.3, true);
     expect(boutons).toHaveLength(2);
     const ordre = Array.from(hote!.querySelector('.volume-control')!.children).map((e) => e.className.split(' ')[0]);
-    const curseur = ordre.indexOf('volume-slider');
+    // #7517 : le curseur vit désormais dans son habillage de graduations.
+    const curseur = ordre.indexOf('volume-curseur');
     expect(ordre.indexOf('step-btn')).toBeLessThan(curseur);
     expect(ordre.lastIndexOf('step-btn')).toBeGreaterThan(curseur);
   });

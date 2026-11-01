@@ -24,6 +24,10 @@
        `coverPath` ne se charge pas (album de contact : la vignette du cloud,
        puis Cover Art Archive). Sans elle, rien ne change. */
     repli?: string | null;
+    /* tune-server-rust#7096 — une PHOTO (portrait d'artiste) : recadrée au
+       centre même si elle est rectangulaire. Sans ce drapeau, une image
+       nettement rectangulaire est montrée entière (web#2353). */
+    recadrer?: boolean;
     /* tune-server-rust#7195 — `coverPath` est une adresse EXTERNE que le
        navigateur charge telle quelle (vignette `https://i.discogs.com/…` de
        « Ma collection physique ») : ni relais du serveur, ni `?size=`, et
@@ -31,7 +35,7 @@
     directe?: boolean;
   }
 
-  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null, fallbackInitials = null, vignette = false, repli = null, directe = false }: Props = $props();
+  let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null, fallbackInitials = null, vignette = false, repli = null, recadrer = false, directe = false }: Props = $props();
   /* #6521 — le repli explicite ne s'essaie qu'une fois par couple de props. */
   let repliTente = $state(false);
 
@@ -155,12 +159,20 @@
    * `image_rectangle` d'une playlist éditoriale Qobuz) est montrée entière,
    * contenue dans la boîte carrée, au lieu d'être recadrée au centre. Le
    * format n'est connu qu'une fois l'image chargée ; il est oublié quand
-   * l'adresse change. Les avatars ronds et les photos d'artiste (initiales
-   * de repli) gardent le recadrage : un visage se recadre, un titre écrit non.
+   * l'adresse change. Les avatars ronds et les photos d'artiste gardent le
+   * recadrage : un visage se recadre, un titre écrit non.
+   *
+   * tune-server-rust#7096 — la photo d'artiste se désignait par ses
+   * initiales de repli (`fallbackInitials`). Or presque toutes les tuiles en
+   * passent, pochettes d'albums et de playlists comprises : la tuile de
+   * Streaming (Éditorial, playlists du genre, recherche) donne l'initiale du
+   * titre, et l'illustration Qobuz y restait rognée. Seul le Gestionnaire de
+   * playlists, qui n'en passe pas, la montrait entière (Fabien, fil 2379,
+   * réponse 9294). La photo se déclare donc par `recadrer`.
    */
   let entiere = $state(false);
   let srcMesuree = $state('');
-  const recadrageVoulu = $derived(round || !!fallbackInitials);
+  const recadrageVoulu = $derived(round || recadrer);
   function handleLoad(e: Event) {
     const image = e.currentTarget as HTMLImageElement;
     srcMesuree = src;

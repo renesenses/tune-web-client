@@ -86,13 +86,63 @@ export function profilSupprimable(p: Pick<Profile, 'id'>): boolean {
  * repli à plusieurs routes (`profile_id=1`) — : on le masque, on ne le retire
  * pas de `profiles`. Seul, il reste visible : une liste vide ne se gère pas.
  */
-export function profilsVisibles<P extends Pick<Profile, 'id'>>(list: P[]): P[] {
+export function profilsVisibles<P extends Pick<Profile, 'id'>>(
+  list: P[],
+  defaultAvecDonnees = false,
+): P[] {
+  // tune-server-rust#7532 (décision de Bertrand du 30/10/2026) : Default reste
+  // VISIBLE tant qu'il porte des données — un favori, une playlist ou de
+  // l'historique. Le masquer cachait les favoris d'un utilisateur dont le
+  // navigateur s'était rouvert sur un autre profil (fil 2558, client VIP) :
+  // ils existaient, sur Default, que le sélecteur ne proposait plus.
+  if (defaultAvecDonnees) return list;
   const personnels = list.filter((p) => p.id !== DEFAULT_PROFILE_ID);
   return personnels.length > 0 ? personnels : list;
 }
 
+/**
+ * Default porte-t-il des données ? Établi une fois au chargement des profils
+ * (`sonderDefault`), `false` tant qu'on ne sait pas : la règle de web#1672
+ * s'applique alors telle quelle.
+ */
+export const defaultPorteDesDonnees = writable<boolean>(false);
+
 /** `profilsVisibles` du magasin, pour le menu de l'avatar et l'écran Profils. */
-export const visibleProfiles = derived(profiles, ($p) => profilsVisibles($p));
+export const visibleProfiles = derived(
+  [profiles, defaultPorteDesDonnees],
+  ([$p, $d]) => profilsVisibles($p, $d),
+);
+
+/**
+ * #7532 — Default porte-t-il un favori, une playlist ou de l'historique ?
+ *
+ * Deux sondes, la seconde seulement si la première ne trouve rien :
+ *  - `GET /profiles/1/stats` : favoris locaux par type et nombre d'écoutes
+ *    (l'historique de Default compte aussi les écoutes sans profil, héritées) ;
+ *  - `GET /playlists?limit=1` avec `X-Profile-Id: 1`.
+ * Une sonde en échec (serveur ancien, 403 d'un compte qui n'a pas accès à
+ * Default) compte pour « rien trouvé » : on ne montre pas un profil sur une
+ * supposition. Les favoris DE SERVICE (TIDAL, Qobuz…) ne sont pas sondés : leur
+ * lecture rafraîchit le miroir chez le service, ce qu'un simple menu ne doit
+ * pas déclencher.
+ */
+export async function sonderDefault(): Promise<boolean> {
+  try {
+    const s = await api.getProfileStats(DEFAULT_PROFILE_ID);
+    const favoris = Object.values(s?.favorites_by_type ?? {}).some((n) => Number(n) > 0);
+    if (favoris || Number(s?.listening?.total_listens ?? 0) > 0) return true;
+  } catch {
+    /* sonde muette */
+  }
+  try {
+    const p: unknown = await api.getPlaylistsDuProfil(DEFAULT_PROFILE_ID, 1);
+    const liste = Array.isArray(p) ? p : (p as { items?: unknown[] } | null)?.items;
+    if (Array.isArray(liste) && liste.length > 0) return true;
+  } catch {
+    /* sonde muette */
+  }
+  return false;
+}
 
 // Favorite ids stored as sets so HeartButton can answer
 // 'is X favorited?' in O(1) without hitting the API per row.
@@ -412,6 +462,13 @@ async function profilRetenuParLeServeur(list: Profile[]): Promise<number | null>
 export async function loadProfiles(): Promise<boolean> {
   try {
     const list = await api.getProfiles();
+    // #7532 — sonder Default AVANT de poser la liste et de choisir un profil :
+    // un navigateur neuf doit pouvoir s'ouvrir sur Default s'il porte les
+    // favoris. Seulement quand la question se pose (Default ET un autre).
+    const aSonder =
+      list.some((p: Profile) => p.id === DEFAULT_PROFILE_ID) &&
+      list.some((p: Profile) => p.id !== DEFAULT_PROFILE_ID);
+    defaultPorteDesDonnees.set(aSonder ? await sonderDefault() : false);
     profiles.set(list);
 
     // If no profiles exist, auto-create "Default"
@@ -427,7 +484,7 @@ export async function loadProfiles(): Promise<boolean> {
       if (curId === null || !list.find((p: Profile) => p.id === curId)) {
         // #5916 — le serveur se souvient du dernier choix de cet appareil.
         const retenu = await profilRetenuParLeServeur(list);
-        currentProfileId.set(retenu ?? profilsVisibles(list)[0].id);
+        currentProfileId.set(retenu ?? profilsVisibles(list, get(defaultPorteDesDonnees))[0].id);
       } else if (curId === initialStoredProfileId) {
         // Un choix que seul ce navigateur connaît (fait avant #5916) : le
         // serveur l'apprend, pour le jour où ce stockage s'effacera.
@@ -536,7 +593,7 @@ export async function deleteProfile(id: number): Promise<void> {
     profiles.update((list) => list.filter((p) => p.id !== id));
     const curId = get(currentProfileId);
     if (curId === id) {
-      const remaining = profilsVisibles(get(profiles));
+      const remaining = profilsVisibles(get(profiles), get(defaultPorteDesDonnees));
       if (remaining.length > 0) {
         currentProfileId.set(remaining[0].id);
       } else {

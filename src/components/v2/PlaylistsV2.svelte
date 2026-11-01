@@ -26,6 +26,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { activeView } from '../../lib/stores/navigation';
   import { formatDuration, fold, errText } from '../../lib/utils';
+  import ImportPlaylistFichier from './ImportPlaylistFichier.svelte';
   import {
     copierTout,
     motifSauvegardeImpossible,
@@ -616,38 +617,6 @@
     restauration = null;
   }
 
-  // ── Import M3U ───────────────────────────────────────────────────────────
-  let importEnCours = $state(false);
-  async function importer(ev: Event) {
-    const input = ev.currentTarget as HTMLInputElement;
-    const f = input.files?.[0];
-    input.value = ''; // sinon le même fichier ne peut pas être rechoisi
-    if (!f || importEnCours) return;
-    importEnCours = true;
-    try {
-      // Une playlist Linn (`.dpl`, Pierre Mack) a sa propre route, qui
-      // rapproche les pistes et crée la playlist d'un coup. Portée de
-      // l'ancienne interface, seul écran qui savait l'envoyer.
-      if (f.name.toLowerCase().endsWith('.dpl')) {
-        const l = await api.importLinnPlaylist(f);
-        notifications.success(`${l.name} — ${l.matched}/${l.total_entries}`);
-        load();
-        return;
-      }
-      const r = await api.importPlaylistFile(f);
-      // On annonce ce qui est RAPPROCHÉ, pas « importé » : une ligne du M3U
-      // qui ne correspond à aucun fichier de la bibliothèque n'entre pas.
-      notifications.success(
-        `${$t('v2.pl.importDone' as any)} — ${r.matched ?? 0}/${(r.matched ?? 0) + (r.missing ?? 0)}`,
-      );
-      load();
-    } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
-    } finally {
-      importEnCours = false;
-    }
-  }
-
   /** Playlist en cours de renommage — le bouton haut-droit de la pochette. */
   let enEdition = $state<Playlist | null>(null);
 
@@ -721,15 +690,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
             {$t('v2.lbl.newPlaylist' as any)}
           </button>
-          <!-- Import M3U. Le bouton pointe vers `POST /playlists/import/m3u`,
-               la route qui lit vraiment un fichier — l'ancienne fonction du
-               client visait `/playlist-manager/import`, qui attend du JSON et
-               ne pouvait répondre que 415. -->
-          <label class="ghost" class:occupe={importEnCours}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M8 8l4-4 4 4M4 18v2h16v-2"/></svg>
-            {importEnCours ? $t('common.loading' as any) : $t('v2.pl.import' as any)}
-            <input type="file" accept=".m3u,.m3u8,.dpl" onchange={importer} disabled={importEnCours} />
-          </label>
+          <ImportPlaylistFichier onimporte={load} />
           <button class="ghost" class:on={panneauSauvegardes}
             onclick={() => { panneauSauvegardes = !panneauSauvegardes; if (panneauSauvegardes) void chargerInstantanes(); }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6M4 6l2-3h12l2 3M4 6h16M9 11h6"/></svg>
@@ -1048,11 +1009,7 @@
     color:var(--v2-txt2); font:600 13px var(--v2-sans); padding:8px 14px}
   .ghost:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .ghost.on{color:var(--v2-on-acc); background:var(--v2-acc1); border-color:var(--v2-acc1)}
-  .ghost.occupe{opacity:.6; cursor:default}
   .ghost svg{width:15px; height:15px}
-  /* Le champ de fichier est invisible mais RESTE cliquable : c'est lui qui
-     ouvre le sélecteur, un bouton ne peut pas le faire à sa place. */
-  .ghost input[type=file]{position:absolute; inset:0; opacity:0; cursor:pointer; width:100%}
   .ghost.sm{padding:5px 11px; font-size:12px}
 
   /* Premier niveau : PASTILLES, comme les services de l'écran Streaming. */

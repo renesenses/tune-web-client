@@ -24,8 +24,8 @@ export const V2_THEMES = [
   // clairs, rangé entre les deux. Son nom est traduit (`labelKey`) ; `label`
   // reste le repli français, comme pour les six autres.
   { id: 'dark-grey',       label: 'Gris foncé',      swatch: ['#2B2B2B', '#3DD6B0'], labelKey: 'settings.themeDarkGrey' },
-  { id: 'clear-white',     label: 'Clair / Blanc',   swatch: ['#FFFFFF', '#00A88A'] },
-  { id: 'clear-grey',      label: 'Clair / Gris',    swatch: ['#EDEFF2', '#37718E'] },
+  { id: 'clear-white',     label: 'Clair / Blanc',   swatch: ['#FFFFFF', '#007C66'] },
+  { id: 'clear-grey',      label: 'Clair / Gris',    swatch: ['#EDEFF2', '#356C88'] },
 ] as const;
 
 export type V2Theme = (typeof V2_THEMES)[number]['id'];

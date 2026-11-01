@@ -93,7 +93,9 @@
       const bytes = new Uint8Array(await file.arrayBuffer());
       const res = await fetch(`${api.BASE}/room-correction/ir/upload/${zone.id}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/octet-stream' },
+        // #7532 — le jeton (et le profil) : un `fetch` nu repartait sans
+        // `Authorization`, donc en 401 sur un serveur à authentification.
+        headers: api.authHeaders({ 'Content-Type': 'application/octet-stream' }),
         body: bytes,
       });
       const data = await res.json();
@@ -137,7 +139,7 @@
     if (!zone.id) return;
     irLoading = true;
     try {
-      await fetch(`${api.BASE}/room-correction/ir/clear/${zone.id}`, { method: 'POST' });
+      await fetch(`${api.BASE}/room-correction/ir/clear/${zone.id}`, { method: 'POST', headers: api.authHeaders() });
       irActive = false;
       irPath = null;
       irMessage = $t('zoneConfig.firDisabled');

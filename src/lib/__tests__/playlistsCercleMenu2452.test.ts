@@ -126,6 +126,35 @@ describe('web#2452 — section Tune Circle du menu Playlists', () => {
   it('le menu Playlists (gestionnaire) monte la section avec son filtre de recherche', () => {
     const src = readFileSync(join(process.cwd(), 'src/components/v2-heritage/PlaylistManagerView.svelte'), 'utf8');
     expect(src).toContain("import PlaylistsCercleSection from '../v2/PlaylistsCercleSection.svelte'");
-    expect(src).toContain('<PlaylistsCercleSection filtre={searchQuery} />');
+    expect(src).toContain('<PlaylistsCercleSection filtre={searchQuery}');
+  });
+
+  it('pastille Tune Circle (web#2543) : la section ne se montre que pastille choisie, la pastille suit onexiste', () => {
+    const src = readFileSync(join(process.cwd(), 'src/components/v2-heritage/PlaylistManagerView.svelte'), 'utf8');
+    expect(src).toContain("visible={activeFilter === 'circle'}");
+    expect(src).toContain('{#if cercleExiste}');
+    expect(src).toContain("activeFilter = 'circle'");
+    // la grille et ses messages disparaissent sous la pastille Circle
+    expect(src).toContain("{#if activeFilter !== 'circle'}");
+  });
+
+  it('visible=false : la liste n’est pas rendue mais l’hôte est prévenu que la section existe', async () => {
+    const onexiste = vi.fn();
+    const el = await monter({ visible: false, onexiste });
+    expect(el.querySelector('section')).toBeNull();
+    expect(onexiste).toHaveBeenLastCalledWith(true);
+  });
+
+  it('visible=true : la liste est rendue', async () => {
+    const el = await monter({ visible: true });
+    expect(el.querySelectorAll('li.playlist-cercle')).toHaveLength(2);
+  });
+
+  it('sans playlist de cercle : l’hôte est prévenu que la section n’existe pas (pas de pastille)', async () => {
+    etat.liste = { status: 200, corps: [] };
+    const onexiste = vi.fn();
+    await monter({ visible: false, onexiste });
+    expect(onexiste).toHaveBeenLastCalledWith(false);
+    expect(onexiste).not.toHaveBeenCalledWith(true);
   });
 });

@@ -32,6 +32,7 @@ import { ICONES } from '../../lib/menuPiste';
     indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
   } from '../../lib/crossfeed';
   import { crossfeedProTraiteLaZone } from '../../lib/stores/crossfeedPro';
+  import { crosstalkTraiteLaZone } from '../../lib/stores/crosstalk';
   import { audiophileEnabled } from '../../lib/stores/audiophile';
   import { etatBoutonCrossfeed } from '../../lib/boutonCrossfeed';
   import VoilePur from '../v2/VoilePur.svelte';
@@ -42,7 +43,7 @@ import { ICONES } from '../../lib/menuPiste';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import RadioFicheModale from './RadioFicheModale.svelte';
   import BadgeMetadataPlus from './BadgeMetadataPlus.svelte';
-  import { metadataPlusDeLecture } from '../../lib/ficheStation';
+  import { logoAuNomDeLaStation, oublierStationDeLecture, stationDeLectureRetenue, type StationDeLecture } from '../../lib/ficheStation';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
   import { isPremium, licenseState } from '../../lib/stores/license';
   import { estRefusPremium } from '../../lib/premiumRefus';
@@ -86,6 +87,9 @@ import { ICONES } from '../../lib/menuPiste';
   let ficheStationOuverte = $state(false);
   /** web#2443 — la station qui joue a une clé radio-metadata.fr. */
   let stationMetadataPlus = $state(false);
+  /** web#2550, web#2551 — la station qui joue : son logo, et sa place dans « Mes radios ». */
+  let stationEnCours = $state<StationDeLecture | null>(null);
+  let gesteMesRadios = $state(false);
   // Témoin de « la zone paroles a été remise à zéro pour cette piste ». DISTINCT
   // de npLyricsTrackId, qui dit « les paroles de cette piste sont chargées ».
   // Les confondre rouvrirait #2555 dans un sens ou dans l'autre : soit la garde
@@ -258,11 +262,20 @@ import { ICONES } from '../../lib/menuPiste';
     cfProTraite = false;
     void crossfeedProTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfProTraite = v; });
   });
+  // web#2580 — Crosstalk (enceintes) traite la zone : tout crossfeed (casque)
+  // y est ÉCARTÉ (tune-server-rust#7616). Déduit du réglage de zone de
+  // `crosstalk` tant que la route ne publie pas la voie en service (#7627).
+  let cfCrosstalk = $state(false);
+  $effect(() => {
+    const zid = zone?.id;
+    cfCrosstalk = false;
+    void crosstalkTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfCrosstalk = v; });
+  });
   // web#2073 (fil 2214) — en PURE, rien ne traite le signal : le bouton ne
   // s'allume plus, ni pour le greffon ni pour le crossfeed intégré, et le
   // panneau porte le voile des écrans dédiés. L'état PURE est celui du bouton
   // PURE de la barre de lecture (`audiophileEnabled`), pas une relecture.
-  const cfBouton = $derived(etatBoutonCrossfeed({ cfEnabled, cfProTraite, pur: $audiophileEnabled }));
+  const cfBouton = $derived(etatBoutonCrossfeed({ cfEnabled, cfProTraite, pur: $audiophileEnabled, crosstalk: cfCrosstalk }));
   let cfTimer: ReturnType<typeof setTimeout> | null = null;
 
   async function chargerCrossfeed() {
@@ -270,6 +283,7 @@ import { ICONES } from '../../lib/menuPiste';
     try {
       const zid = zone.id;
       void crossfeedProTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfProTraite = v; });
+      void crosstalkTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfCrosstalk = v; });
       const dsp = await api.getDsp(zone.id);
       const cf = dsp?.crossfeed;
       cfStatut = dsp?.crossfeed_status ?? null;
@@ -974,14 +988,62 @@ import { ICONES } from '../../lib/menuPiste';
   // web#2443 — le badge « Metadata+ » à côté du nom de la station. La
   // recherche est retenue par station (`metadataPlusDeLecture`) : elle ne
   // repart pas à chaque titre.
+  //
+  // web#2550 et web#2551 lisent la MÊME station retenue (`stationDeLectureRetenue`) :
+  // le logo à côté du nom, et le bouton « Mes radios ».
+  const npStation = $derived(isRadio && track ? { source_id: track.source_id, album_title: track.album_title } : null);
+  let relectureStation = $state(0);
   $effect(() => {
-    const np = isRadio && track ? { source_id: track.source_id, album_title: track.album_title } : null;
+    const np = npStation;
+    void relectureStation;
     stationMetadataPlus = false;
+    stationEnCours = null;
     if (!np) return;
     let vivant = true;
-    metadataPlusDeLecture(np).then((oui) => { if (vivant) stationMetadataPlus = oui; });
+    stationDeLectureRetenue(np).then((s) => {
+      if (!vivant) return;
+      stationEnCours = s;
+      stationMetadataPlus = !!s.fiche?.metadataPlus;
+    });
     return () => { vivant = false; };
   });
+
+  /** web#2550 — le logo de la station, quand la pochette du morceau l'a remplacé. */
+  const logoStation = $derived(logoAuNomDeLaStation(stationEnCours?.fiche?.logo, track?.cover_path));
+  /** web#2551 — la station dans « Mes radios » : son identifiant, ou `null`. */
+  const idDansMesRadios = $derived(stationEnCours?.mienne?.id ?? stationEnCours?.annuaire?.my_radio_id ?? null);
+
+  /**
+   * web#2551 (alec_eiffel, fil 2562 ; go de Bertrand le 30/10/2026) : ajouter
+   * la station qui joue à « Mes radios », ou l'en retirer, sans repasser par
+   * l'annuaire. Les MÊMES gestes que l'annuaire (`ajouterDepuisAnnuaire`) et
+   * que « Mes radios » (`deleteRadio`, même confirmation). Une station inconnue
+   * de l'annuaire et absente de « Mes radios » n'a pas de bouton.
+   */
+  async function basculerMesRadios() {
+    const s = stationEnCours, np = npStation;
+    if (!s || !np || gesteMesRadios) return;
+    const nom = s.fiche?.nom ?? np.album_title ?? '';
+    gesteMesRadios = true;
+    try {
+      if (idDansMesRadios != null) {
+        if (!(await dialogs.confirm($t('v2.radio.removeConfirm' as any).replace('{name}', nom), { danger: true }))) return;
+        await api.deleteRadio(idDansMesRadios);
+        notifications.success($t('v2.radio.removed' as any).replace('{name}', nom));
+      } else if (s.annuaire) {
+        await api.ajouterDepuisAnnuaire(s.annuaire.external_id, false);
+        notifications.success($t('v2.radio.dir.added' as any).replace('{name}', nom));
+      } else {
+        return;
+      }
+      oublierStationDeLecture(np);
+      relectureStation++;
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    } finally {
+      gesteMesRadios = false;
+    }
+  }
 
   // ─── #719 : le temps qui passe sur une RADIO ──────────────────────────
   //
@@ -1860,9 +1922,30 @@ import { ICONES } from '../../lib/menuPiste';
             <!-- #2398 — le nom de la station ouvre sa fiche (description, site). -->
             <!-- web#2443 — plus grand, et le badge « Metadata+ » à côté. -->
             <div class="radio-station-ligne">
+              <!-- web#2550 — le logo de la station à côté de son nom, quand la
+                   pochette du morceau a pris sa place. -->
+              {#if logoStation}
+                <span class="radio-station-logo" data-logo-station>
+                  <AlbumArt coverPath={logoStation} albumId={null} size={28} alt={displayTrack.album_title || 'Radio'} />
+                </span>
+              {/if}
               <button class="radio-station-name radio-station-lien truncate" title={displayTrack.album_title || zone?.name || 'Radio'}
                 onclick={() => (ficheStationOuverte = true)}>{displayTrack.album_title || zone?.name || 'Radio'}</button>
               {#if stationMetadataPlus}<BadgeMetadataPlus />{/if}
+              {#if idDansMesRadios != null || stationEnCours?.annuaire}
+                {@const dedans = idDansMesRadios != null}
+                <button class="np-mes-radios" class:dedans data-mes-radios disabled={gesteMesRadios}
+                  aria-pressed={dedans}
+                  aria-label={$t((dedans ? 'v2.radio.removeFromMine' : 'v2.radio.dir.add') as any)}
+                  title={$t((dedans ? 'v2.radio.removeFromMine' : 'v2.radio.dir.add') as any)}
+                  onclick={() => void basculerMesRadios()}>
+                  {#if dedans}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M5 12h14"/></svg>
+                  {:else}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M12 5v14M5 12h14"/></svg>
+                  {/if}
+                </button>
+              {/if}
             </div>
           {/if}
           <div class="track-title-row">
@@ -2109,21 +2192,24 @@ import { ICONES } from '../../lib/menuPiste';
           {#if showDspMenu}
             <div class="np-crossfeed">
               {#if cfBouton.voile}<VoilePur cle={cfBouton.voile} />{/if}
-              {#if cfProTraite}
+              {#if cfProTraite && !cfCrosstalk}
                 <p class="cf-note cf-note-alerte" data-crossfeed-remplace>{$t('dsp.crossfeedReplacedByPro' as any)}</p>
               {/if}
-              <!-- Crossfeed Pro traite la zone : tout le crossfeed intégré est
-                   verrouillé d'un bloc, le serveur l'a éteint. -->
-              <fieldset class="cf-verrou" disabled={cfProTraite} aria-disabled={cfProTraite}>
+              {#if cfCrosstalk}
+                <p class="cf-note cf-note-alerte" data-crossfeed-ecarte>{$t('dsp.crossfeedSetAsideByCrosstalk' as any)}</p>
+              {/if}
+              <!-- Crossfeed Pro ou Crosstalk traite la zone : tout le crossfeed
+                   intégré est verrouillé d'un bloc, le serveur l'a éteint. -->
+              <fieldset class="cf-verrou" disabled={cfProTraite || cfCrosstalk} aria-disabled={cfProTraite || cfCrosstalk}>
               <div class="cf-ligne">
                 <label class="cf-bascule">
                   <input
                     type="checkbox"
-                    checked={cfEnabled && !cfProTraite}
+                    checked={cfEnabled && !cfProTraite && !cfCrosstalk}
                     onchange={(e) => { cfEnabled = (e.currentTarget as HTMLInputElement).checked; void enregistrerCrossfeed(); }}
                     disabled={cfIndispo.indisponible}
                   />
-                  <span>{cfEnabled && !cfProTraite ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}</span>
+                  <span>{cfEnabled && !cfProTraite && !cfCrosstalk ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}</span>
                 </label>
                 <div class="cf-presets">
                   {#each CF_PRESETS as p (p.key)}
@@ -3721,6 +3807,29 @@ import { ICONES } from '../../lib/menuPiste';
   .track-info.center .radio-station-ligne {
     justify-content: center;
   }
+  /* web#2550 — le logo de la station, petit, devant son nom. */
+  .radio-station-logo {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  /* web#2551 — ajouter à « Mes radios » ou en retirer. */
+  .np-mes-radios {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--tune-border, rgba(255, 255, 255, 0.2));
+    background: transparent;
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+  }
+  .np-mes-radios:hover:not(:disabled) { color: var(--tune-text); }
+  .np-mes-radios:disabled { opacity: 0.5; cursor: default; }
   /* web#2443 — « le nom de la radio est petit » (Rémi) : 18 → 22 px. */
   .radio-station-name {
     font-family: var(--font-display);
