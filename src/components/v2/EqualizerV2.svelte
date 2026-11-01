@@ -605,6 +605,7 @@
   let aSupprimer = $state<string | null>(null);
 
   async function supprimerMonPreset(p: api.EqProPreset) {
+    aSupprimer = null;
     const avant = mesPresets;
     mesPresets = mesPresets.filter((x) => x.id !== p.id);
     try {
@@ -820,20 +821,20 @@
       </div>
       <div class="presets mes">
         <span class="mesl">{$t('eq.myPresets' as any)}</span>
+        <!-- Retour testeur 01/11 : « × » muet supprimait sans prévenir, et
+             personne ne le trouvait pour effacer un préréglage importé. Le
+             geste est nommé, et confirmé SUR PLACE (pas de boîte native du navigateur,
+             qui bloque la page) : « Supprimer ? Oui / Annuler ». Seuls les
+             préréglages de l'utilisateur (importés compris) sont ici ; les
+             préréglages fournis, plus haut, n'ont pas ce bouton. -->
         {#each mesPresets as p (p.id)}
           {@const actif = mienActif === p.id}
-          <!-- Retour testeur 01/11 : « × » muet supprimait sans prévenir, et
-               personne ne le trouvait pour effacer un préréglage importé. Le
-               geste est nommé, et confirmé SUR PLACE (pas de boîte native du navigateur,
-               qui bloque la page) : « Supprimer ? Oui / Annuler ». Seuls les
-               préréglages de l'utilisateur (importés compris) sont ici ; les
-               préréglages fournis, plus haut, n'ont pas ce bouton. -->
-          <span class="mien" class:confirme={aSupprimer === p.id}>
+          <span class="mien">
             <button class:actif aria-pressed={actif} onclick={() => appliquerMonPreset(p)}>{p.name}</button>
             {#if aSupprimer === p.id}
               <span class="confirm-suppr" role="group" aria-label={$t('eq.deletePresetConfirm' as any).replace('{name}', p.name)}>
                 <span class="confirm-texte">{$t('eq.deletePresetConfirm' as any).replace('{name}', p.name)}</span>
-                <button class="oui" onclick={() => { aSupprimer = null; void supprimerMonPreset(p); }}>{$t('eq.deletePreset' as any)}</button>
+                <button class="oui" onclick={() => supprimerMonPreset(p)}>{$t('eq.deletePreset' as any)}</button>
                 <button class="non" onclick={() => (aSupprimer = null)}>{$t('common.cancel' as any)}</button>
               </span>
             {:else}
