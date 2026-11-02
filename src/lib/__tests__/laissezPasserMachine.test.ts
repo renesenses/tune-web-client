@@ -55,6 +55,8 @@ interface Banc {
     refreshValide: string | null;
     panne: boolean;
     refusLp: string | null;
+    /** Appareils d'un AUTRE compte : le site ne les rend ni ne les retire jamais. */
+    autres: string[];
   };
   relais: { laissezPasser: boolean; jeton: string; sessions: number; ancien: boolean };
   magasinAppareil: { valeur: AppareilEnregistre | null };
@@ -76,6 +78,7 @@ function banc(options: { compte?: boolean; stockage?: boolean } = {}): Banc {
     refreshValide: 'refresh-1',
     panne: false,
     refusLp: null,
+    autres: [],
   };
   const relais = { laissezPasser: true, jeton: 'jeton-de-session-256', sessions: 0, ancien: false };
   const defisSite = new Set<string>();
@@ -151,6 +154,22 @@ function banc(options: { compte?: boolean; stockage?: boolean } = {}): Banc {
           exp,
           renouveler_a: iat + 2700,
         });
+      }
+      if (chemin === '/api/v1/remote/devices' && methode === 'GET') {
+        return reponse(200, {
+          max: site.max,
+          devices: site.appareils
+            .filter((a) => !site.retires.has(a.device_id))
+            .map((a) => ({ device_id: a.device_id, name: a.name, platform: 'web', last_pass_at: null })),
+        });
+      }
+      const retrait = chemin.match(/^\/api\/v1\/remote\/devices\/([^/]+)$/);
+      if (retrait && methode === 'DELETE') {
+        const id = decodeURIComponent(retrait[1]);
+        const sien = site.appareils.some((a) => a.device_id === id) && !site.autres.includes(id);
+        if (!sien || site.retires.has(id)) return reponse(404, { error: 'appareil_inconnu' });
+        site.retires.add(id);
+        return reponse(200, { ok: true });
       }
       return reponse(404, { error: 'introuvable' });
     }
@@ -523,5 +542,85 @@ describe('présentation', () => {
       cle: 'accesCompte.refus.generique',
       params: { code: 'nouveau_code' },
     });
+  });
+});
+
+describe('appareils du compte (Réglages)', () => {
+  let b: Banc;
+  beforeEach(() => {
+    b = banc();
+  });
+
+  it('liste les appareils du compte et reconnaît ce navigateur', async () => {
+    const m = new AccesParCompte(b.d);
+    await m.demarrer();
+    b.site.appareils.push({ device_id: 'dev_ipad', pk: 'x', alg: 'Ed25519', name: 'iPad du salon' });
+    const r = await m.listerAppareils();
+    expect(r).toMatchObject({ ok: true, max: 5, courant: b.magasinAppareil.valeur?.deviceId });
+    if (!r.ok) throw new Error('liste refusée');
+    expect(r.appareils.map((a) => a.name)).toEqual(['Safari · iPhone', 'iPad du salon']);
+    const appel = b.appels[b.appels.length - 1];
+    expect(appel.methode).toBe('GET');
+    expect(appel.entetes.get('Authorization')).toBe('Bearer acces-1');
+  });
+
+  it('retire un autre appareil : la session de ce navigateur continue, le retiré n’a plus de laissez-passer', async () => {
+    const m = new AccesParCompte(b.d);
+    await m.demarrer();
+    b.site.appareils.push({ device_id: 'dev_ipad', pk: 'x', alg: 'Ed25519', name: 'iPad du salon' });
+    const r = await m.retirerAppareil('dev_ipad');
+    expect(r).toEqual({ ok: true, courant: false });
+    expect(b.appels[b.appels.length - 1]).toMatchObject({ methode: 'DELETE', url: `${SITE}/api/v1/remote/devices/dev_ipad` });
+    expect(m.etat.type).toBe('ouverte');
+    expect(m.jeton()).toBe('jeton-de-session-256');
+    expect(b.site.retires.has('dev_ipad')).toBe(true);
+    const liste = await m.listerAppareils();
+    expect(liste.ok && liste.appareils.map((a) => a.device_id)).not.toContain('dev_ipad');
+  });
+
+  it('retire CE navigateur : session arrêtée ici, clé oubliée, refus « appareil retiré »', async () => {
+    const m = new AccesParCompte(b.d);
+    await m.demarrer();
+    const ici = b.magasinAppareil.valeur!.deviceId!;
+    const r = await m.retirerAppareil(ici);
+    expect(r).toEqual({ ok: true, courant: true });
+    expect(m.jeton()).toBeNull();
+    expect(b.session.valeur).toBeNull();
+    expect(b.magasinAppareil.valeur).toBeNull();
+    expect(m.etat).toEqual({ type: 'refuse', code: 'appareil_retire' });
+    // Aucun renouvellement ne repart en douce.
+    b.appels.length = 0;
+    await b.avancer(3600);
+    expect(b.appels).toHaveLength(0);
+  });
+
+  it('l’appareil d’un autre compte : le site répond 404, rien ne change ici', async () => {
+    const m = new AccesParCompte(b.d);
+    await m.demarrer();
+    b.site.appareils.push({ device_id: 'dev_ami', pk: 'x', alg: 'Ed25519', name: 'Téléphone d’un ami' });
+    b.site.autres.push('dev_ami');
+    const r = await m.retirerAppareil('dev_ami');
+    expect(r).toEqual({ ok: false, raison: 'appareil_inconnu' });
+    expect(b.site.retires.has('dev_ami')).toBe(false);
+    expect(m.etat.type).toBe('ouverte');
+  });
+
+  it('jeton OAuth refusé puis rafraîchi : la liste passe au second essai', async () => {
+    const m = new AccesParCompte(b.d);
+    await m.demarrer();
+    b.site.accesValide = 'acces-tourne';
+    b.site.refreshValide = 'refresh-1';
+    const r = await m.listerAppareils();
+    expect(r.ok).toBe(true);
+    expect(b.jetonsOAuth.valeur?.access).toBe('acces-2');
+  });
+
+  it('site injoignable : un échec lisible, la session tient', async () => {
+    const m = new AccesParCompte(b.d);
+    await m.demarrer();
+    b.site.panne = true;
+    expect(await m.listerAppareils()).toEqual({ ok: false, raison: 'site_injoignable' });
+    expect(await m.retirerAppareil('dev_x')).toEqual({ ok: false, raison: 'site_injoignable' });
+    expect(m.jeton()).toBe('jeton-de-session-256');
   });
 });

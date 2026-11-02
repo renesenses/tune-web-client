@@ -96,7 +96,21 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // « Écouter sur <service> » un album manquant.
     // VINGT-CINQ depuis le 24/10 (Tune Circle T5) : `CircleV2` lit une
     // playlist partagée sur la zone courante depuis sa ligne ou la scène.
-    expect(avec.length).toBe(25);
+    // VINGT-SIX depuis tune-server-rust#7045 : `RadiosTrouvees` écoute une
+    // station trouvée par la recherche globale, et réclame la zone.
+    // VINGT-SEPT depuis web#2452 : `PlaylistsCercleSection` lit une playlist de
+    // cercle depuis le menu Playlists, et réclame la zone.
+    // VINGT-HUIT depuis web#2400 : `CarteRadios` écoute d'un clic une
+    // station de la carte des radios, et réclame la zone.
+    // TRENTE depuis tune-server-rust#7195 (`CollectionPhysiqueV2` lance
+    // « Écouter sur <service> » un disque Discogs) et web#2580 (`CrosstalkV2`
+    // écrit un réglage DE ZONE, comme Crossfeed Pro).
+    expect(avec.length).toBe(30);
+    expect(avec).toContain('CollectionPhysiqueV2.svelte');
+    expect(avec).toContain('CrosstalkV2.svelte');
+    expect(avec).toContain('PlaylistsCercleSection.svelte');
+    expect(avec).toContain('CarteRadios.svelte');
+    expect(avec).toContain('RadiosTrouvees.svelte');
     expect(avec).toContain('CircleV2.svelte');
     expect(avec).toContain('AlbumsManquants.svelte');
     expect(avec).toContain('RadioAnnuaire.svelte');
@@ -137,7 +151,7 @@ describe('#1233 — aucune HUITIÈME clé pour le même message', () => {
   });
 
   it('elle est traduite dans les ONZE langues', () => {
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl']) {
       expect(readFileSync(`src/lib/locales/${l}.ts`, 'utf8'), l)
         .toContain('library.noZoneSelectedSelectZone');
     }

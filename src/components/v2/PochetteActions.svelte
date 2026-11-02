@@ -8,7 +8,7 @@
    * | Position | Action |
    * |---|---|
    * | haut gauche | favori (bascule) |
-   * | haut droite | édition |
+   * | haut droite | édition (ou « voir », œil, pour un objet tenu en central — web#2443) |
    * | bas gauche | menu d'actions — `lib/actionsPochette` en dit le contenu |
    * | bas droite | étiquettes : voir, ajouter, retirer |
    * | centre | lecture |
@@ -136,6 +136,23 @@
     etiquettes?: CibleEtiquette | null;
     /** Ouvre l'édition. Absent = pas de bouton d'édition. */
     onEditer?: (() => void) | null;
+    /**
+     * Ouvre la fiche en lecture seule (œil, haut droite, à la place de
+     * l'édition) : une station de l'annuaire, tenue en central, se VOIT, elle
+     * ne se modifie pas (web#2443). Ignoré si `onEditer` est donné.
+     */
+    onVoir?: (() => void) | null;
+    /** Libellé du bouton « voir ». */
+    libelleVoir?: string;
+    /** Retire l'objet d'une liste (haut droite, à la place de l'édition ;
+     *  juste à sa gauche quand « voir » occupe le coin). */
+    onRetirer?: (() => void) | null;
+    /** Libellé du bouton « retirer ». */
+    libelleRetirer?: string;
+    /** Ajoute l'objet à la liste de l'utilisateur (près du cœur). */
+    onAjouter?: (() => void) | null;
+    /** Libellé du bouton « ajouter ». */
+    libelleAjouter?: string;
     /** Lance la lecture. Absent = pas de bouton central. */
     onLire?: (() => void) | null;
     /**
@@ -171,6 +188,12 @@
     favoriExterne = null,
     etiquettes = null,
     onEditer = null,
+    onVoir = null,
+    libelleVoir = '',
+    onRetirer = null,
+    libelleRetirer = '',
+    onAjouter = null,
+    libelleAjouter = '',
     onLire = null,
     onOuvrir = null,
     objet = null,
@@ -298,6 +321,13 @@
     </button>
   {/if}
 
+  {#if onAjouter}
+    <button class="coin tl2" aria-label={libelleAjouter} title={libelleAjouter}
+      onclick={(e) => seul(e, onAjouter)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16M9 4v16"/><path d="M14.5 5.5l4.2-1.1 3.3 14.6-4.2 1.1z"/></svg>
+    </button>
+  {/if}
+
   {#if onEditer}
     <button
       class="coin tr"
@@ -306,6 +336,20 @@
       onclick={(e) => seul(e, onEditer)}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l4 4"/></svg>
+    </button>
+  {/if}
+
+  {#if !onEditer && onVoir}
+    <button class="coin tr voir" aria-label={libelleVoir} title={libelleVoir}
+      onclick={(e) => seul(e, onVoir)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+  {/if}
+
+  {#if !onEditer && onRetirer}
+    <button class="coin" class:tr={!onVoir} class:tr2={!!onVoir} aria-label={libelleRetirer} title={libelleRetirer}
+      onclick={(e) => seul(e, onRetirer)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
     </button>
   {/if}
 
@@ -453,7 +497,9 @@
     height: 15px;
   }
   .tl { top: 8px; left: 8px; }
+  .tl2 { top: 8px; left: 42px; }
   .tr { top: 8px; right: 8px; }
+  .tr2 { top: 8px; right: 42px; }
   .bl { bottom: 8px; left: 8px; }
   .br { bottom: 8px; right: 8px; }
 
@@ -540,6 +586,8 @@
      les quatre coins et le disque central se chevauchent. */
   @media (max-width: 600px) {
     .coin { width: 24px; height: 24px; border-radius: 7px; }
+    .tl2 { left: 38px; }
+    .tr2 { right: 38px; }
     .coin svg { width: 13px; height: 13px; }
     .centre { width: 42px; height: 42px; margin: -21px 0 0 -21px; }
     .centre svg { width: 20px; height: 20px; }

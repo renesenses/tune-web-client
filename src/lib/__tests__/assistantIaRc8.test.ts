@@ -77,7 +77,7 @@ describe('notes et réglages', () => {
 });
 
 describe('i18n et branchements', () => {
-  const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ko', 'ja', 'ro', 'sv', 'hu', 'vi', 'el'];
+  const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ko', 'ja', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'];
   const composants = [
     '../../components/v2/NotesPochetteIaV2.svelte',
     '../../components/v2/DiagnosticIaV2.svelte',

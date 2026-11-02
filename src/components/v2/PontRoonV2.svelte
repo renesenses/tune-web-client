@@ -1,4 +1,6 @@
 <script lang="ts">
+  import DetailsServeur from '../partages/DetailsServeur.svelte';
+  import { detailServeur, estMessageGenerique } from '../../lib/messageServeur';
   import { t, locale } from '../../lib/i18n';
   /**
    * Extensions → Pont Roon (Premium) — renesenses/tune-server-rust#4349.
@@ -36,6 +38,8 @@
   let rapportFinal = $state<RapportPontRoon | null>(null);
   let occupe = $state<'apercu' | 'import' | null>(null);
   let erreur = $state<string | null>(null);
+  /** #2417 — le motif technique du refus, replié sous la phrase. */
+  let erreurDetail = $state('');
   let refusPremium = $state(false);
 
   async function charger() {
@@ -86,7 +90,8 @@
     if (err?.code === api.ENVOI_PONT_ROON_COUPE) {
       return $t('v2.pontRoon.uploadCut' as any).replace('{size}', taille(f.size));
     }
-    return err?.message || String(e);
+    erreurDetail = detailServeur(e);
+    return err?.message && !estMessageGenerique(err.message) ? err.message : '';
   }
 
   async function choisir(ev: Event) {
@@ -96,6 +101,7 @@
     apercu = null;
     rapportFinal = null;
     erreur = null;
+    erreurDetail = '';
     if (!f) return;
     // Au-delà du plafond ANNONCÉ, on n'envoie rien : l'envoi durerait des
     // minutes pour finir sur un refus.
@@ -119,6 +125,7 @@
     const f = fichier;
     occupe = 'import';
     erreur = null;
+    erreurDetail = '';
     try {
       rapportFinal = await api.importerPontRoon(f, false);
       // L'import est fait : le rejouer exigerait un nouvel aperçu.
@@ -217,7 +224,7 @@
       {#if occupe === 'apercu'}<div class="state">{$t('v2.pontRoon.previewing' as any)}</div>{/if}
       {#if !apercu && !rapportFinal && !occupe}<div class="hint">{$t('v2.pontRoon.importHint' as any)}</div>{/if}
 
-      {#if erreur}<div class="err">{$t('v2.pontRoon.failed' as any)} {erreur}</div>{/if}
+      {#if erreur !== null}<div class="err">{$t('v2.pontRoon.failed' as any)} {erreur}</div><DetailsServeur detail={erreurDetail} />{/if}
 
       {#if apercu}
         {@render rapport(apercu, 'v2.pontRoon.previewTitle', 'apercu')}

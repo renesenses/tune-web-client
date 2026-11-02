@@ -39,6 +39,22 @@ import * as api from '../api';
 
 afterEach(() => vi.restoreAllMocks());
 
+// 🔴 #2417 (26/10/2026) — LE CONTRAT A CHANGÉ, LA MOITIÉ DE #859 RESTE.
+//
+// #859 avait raison sur la LECTURE : le corps text/plain, le JSON `error` /
+// `code`, rien ne doit se perdre. Il avait tort sur l'AFFICHAGE : recopier la
+// phrase du serveur à l'écran, c'est montrer du français (« Bandcamp ne
+// fournit pas de playlists ») à un anglophone (testeur Alex). Désormais :
+//   - `err.message` : le code traduit, la phrase que le serveur dit avoir
+//     traduite (`message_key`), ou le message générique ;
+//   - `err.detail` : le texte brut du serveur, INTACT — le « Détails » replié.
+// Ce banc garde donc la lecture (plus rien ne se perd, tout arrive dans
+// `detail`) et vérifie qu'aucun brut n'atteint `message`.
+import { get } from 'svelte/store';
+import { t } from '../i18n';
+
+const generique = () => get(t)('erreursServeur.generique');
+
 /** Fait répondre le prochain `fetch` par ce corps, et rend l'erreur levée. */
 async function erreurPour(corps: string, statut: number, type: string) {
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(
@@ -52,7 +68,11 @@ async function erreurPour(corps: string, statut: number, type: string) {
     await api.getZones();
     throw new Error('la requête aurait dû lever');
   } catch (e: any) {
-    return { detail: e?.message as string, code: e?.code as string | undefined };
+    return {
+      message: e?.message as string,
+      detail: (e?.detail ?? '') as string,
+      code: e?.code as string | undefined,
+    };
   }
 }
 
@@ -72,8 +92,10 @@ async function ancien(corps: string, statut: number) {
 describe('#859 — un corps text/plain', () => {
   const BC = 'Bandcamp ne fournit pas de playlists';
 
-  it('🔴 le message du serveur arrive enfin à l’écran', async () => {
-    expect((await erreurPour(BC, 501, 'text/plain')).detail).toBe(BC);
+  it('🔴 la phrase du serveur n’est plus perdue : elle est dans le détail, pas à l’écran', async () => {
+    const n = await erreurPour(BC, 501, 'text/plain');
+    expect(n.detail).toContain(BC);
+    expect(n.message, '#2417 : du français brut à l’écran').toBe(generique());
   });
 
   it('CONTRE-ÉPREUVE : l’ancien rendait le numéro, pas la phrase', async () => {
@@ -83,16 +105,18 @@ describe('#859 — un corps text/plain', () => {
   });
 
   it('un autre cas réel : « unknown service: inconnu »', async () => {
-    expect((await erreurPour('unknown service: inconnu', 404, 'text/plain')).detail)
-      .toBe('unknown service: inconnu');
+    const n = await erreurPour('unknown service: inconnu', 404, 'text/plain');
+    expect(n.detail).toContain('unknown service: inconnu');
+    expect(n.message).toBe(generique());
   });
 });
 
 describe('#859 — un corps JSON', () => {
-  it('🔴 `error` est le MESSAGE, `code` est le code — ils étaient inversés', async () => {
+  it('🔴 `error` est le texte, `code` est le code — le texte arrive dans le détail', async () => {
     const corps = '{"code":"not_found","error":"job not found: inexistant"}';
     const n = await erreurPour(corps, 404, 'application/json');
-    expect(n.detail, 'le message reste enfermé dans `code`').toBe('job not found: inexistant');
+    expect(n.detail, 'le texte reste enfermé dans `code`').toContain('job not found: inexistant');
+    expect(n.message).toBe(generique());
     expect(n.code).toBe('not_found');
   });
 
@@ -106,34 +130,51 @@ describe('#859 — un corps JSON', () => {
   it('la forme sans `code` : `error` sert des DEUX côtés', async () => {
     // `{"error":"not found","path":"…"}` — mesuré sur /library/history/xxx.
     const n = await erreurPour('{"error":"not found","path":"/x"}', 404, 'application/json');
-    expect(n.detail).toBe('not found');
+    expect(n.detail).toContain('not found');
     // ⚠️ `code` retombe sur `error` : `premiumRefus` et la garde de plafond de
     // zones comparent `err.code` à des valeurs nommées. Retirer ce repli aurait
     // pu rendre muet un refus premium.
     expect(n.code, 'le repli de compatibilité a sauté').toBe('not found');
   });
 
-  it('`detail` et `message` gardent leur priorité', async () => {
-    expect((await erreurPour('{"detail":"D","message":"M","error":"E"}', 400, 'application/json')).detail).toBe('D');
-    expect((await erreurPour('{"message":"M","error":"E"}', 400, 'application/json')).detail).toBe('M');
+  it('#2417 — une phrase que le serveur dit avoir traduite (`message_key`) s’affiche', async () => {
+    const n = await erreurPour(
+      '{"error":"queue_empty","code":"queue_empty","message":"La file est vide.","message_key":"api.playback.queueEmptyNothingToSave"}',
+      400,
+      'application/json',
+    );
+    expect(n.message).toBe('La file est vide.');
+    expect(n.code).toBe('queue_empty');
+  });
+
+  it('#2417 — sans `message_key`, `detail`, `message` et `error` restent au détail', async () => {
+    const n = await erreurPour('{"detail":"D","message":"M","error":"E"}', 400, 'application/json');
+    expect(n.message).toBe(generique());
+    for (const m of ['D', 'M', 'E']) expect(n.detail).toContain(m);
   });
 });
 
 describe('#859 — ce qu’on refuse d’afficher', () => {
-  it('un corps VIDE laisse le statut — il n’y a rien à dire de mieux', async () => {
-    expect((await erreurPour('', 404, 'text/plain')).detail).toBe('404 Not Implemented');
+  it('un corps VIDE : le message générique, le statut au détail', async () => {
+    const n = await erreurPour('', 404, 'text/plain');
+    expect(n.message).toBe(generique());
+    expect(n.detail).toContain('404');
   });
 
-  it('🔴 une page HTML n’est PAS un message', async () => {
+  it('🔴 une page HTML n’est PAS un message, ni un détail', async () => {
     // Un proxy ou un portail captif rend du HTML. L'afficher tel quel
     // couvrirait l'écran de balises.
     const html = '<!doctype html><html><body>502 Bad Gateway</body></html>';
-    expect((await erreurPour(html, 502, 'text/html')).detail).toBe('502 Not Implemented');
+    const n = await erreurPour(html, 502, 'text/html');
+    expect(n.message).toBe(generique());
+    expect(n.detail).not.toContain('<');
   });
 
-  it('un texte démesuré est écarté, pas tronqué au hasard', async () => {
-    const long = 'x'.repeat(600);
-    expect((await erreurPour(long, 500, 'text/plain')).detail).toBe('500 Not Implemented');
+  it('un texte démesuré est tronqué dans le détail, jamais à l’écran', async () => {
+    const long = 'x'.repeat(900);
+    const n = await erreurPour(long, 500, 'text/plain');
+    expect(n.message).toBe(generique());
+    expect(n.detail.length).toBeLessThan(700);
   });
 
   it('le corps n’est lu QU’UNE fois — `text()` puis `JSON.parse`', async () => {

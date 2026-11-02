@@ -1,4 +1,6 @@
 <script lang="ts">
+  import DetailsServeur from '../partages/DetailsServeur.svelte';
+  import { detailServeur } from '../../lib/messageServeur';
   /**
    * Support — nouveau client (direction Levente).
    *
@@ -126,6 +128,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   let bogueEnvoye = $state(false);
   let bogueFil = $state('');
   let bogueErreur = $state<string | null>(null);
+  let bogueDetail = $state('');
   let bogueCopie = $state(false);
 
   /**
@@ -216,6 +219,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
     if (bogueEnvoi || bogueEnvoye) return;
     bogueEnvoi = true;
     bogueErreur = null;
+    bogueDetail = '';
     try {
       const r = await api.submitBugReport(bogueDesc, bogueImages, { texte: resumeIa, joindre: joindreResumeIa });
       bogueFil = typeof r?.url === 'string' ? r.url : '';
@@ -242,10 +246,10 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
         bogueEnvoi = false;
         return;
       }
-      // Le motif du serveur (« cloud rejected the report »…) reste lisible :
-      // sans lui, le testeur n'a rien de plus à nous dire que « échec ».
-      const motif = typeof e?.message === 'string' && e.message ? ` (${e.message})` : '';
-      bogueErreur = tr1('v2.sup.bugSendError') + motif;
+      // Le motif du serveur (« cloud rejected the report »…) reste lisible,
+      // mais REPLIÉ (#2417) : jamais de texte brut du serveur hors du repli.
+      bogueErreur = tr1('v2.sup.bugSendError');
+      bogueDetail = detailServeur(e);
     }
     bogueEnvoi = false;
   }
@@ -253,7 +257,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   function nouveauBogue() {
     bogueDesc = ''; bogueApercu = null; bogueApercuEchec = false;
     resumeIa = null; joindreResumeIa = false;
-    bogueEnvoye = false; bogueFil = ''; bogueErreur = null;
+    bogueEnvoye = false; bogueFil = ''; bogueErreur = null; bogueDetail = '';
     bogueImages = []; bogueImagesErreur = null; bogueCaptures = null;
     bogueCapturesPerdues = false;
   }
@@ -665,7 +669,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
               </button>
             {/if}
           </div>
-          {#if bogueErreur}<p class="bogue-err">{bogueErreur}</p>{/if}
+          {#if bogueErreur}<p class="bogue-err">{bogueErreur}</p><DetailsServeur detail={bogueDetail} />{/if}
           {#if bogueApercuEchec}<p class="sub">{$t('v2.sup.bugPreviewError' as any)}</p>{/if}
           {#if bogueApercu}<pre class="bogue-apercu">{bogueApercu}</pre>{/if}
         {/if}

@@ -8,6 +8,7 @@
 // La confirmation dit ce qui sera supprimé — le greffon et ses binaires — et
 // propose, DÉCOCHÉE par défaut, d'effacer aussi ses réglages. Après succès, la
 // liste est relue et le greffon n'y figure plus.
+import { attendreDetailsReplie } from './detailsReplies2417';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
@@ -125,14 +126,17 @@ describe('Extensions — désinstaller un greffon natif tiers (#6618)', () => {
     expect(q('[data-natif="exemple-tiers"]')).not.toBeNull();
   });
 
-  it('un refus du serveur montre son detail et invite à redémarrer puis réessayer', async () => {
+  it('un refus du serveur est dit, son motif replié dans « Détails », et invite à redémarrer puis réessayer (#2417)', async () => {
     refus = { status: 500, corps: { detail: 'le fichier du greffon est encore utilisé' } };
     const d = await ouvrirLaConfirmation();
     dialogs.settle(d.id, { coche: false });
     await jusqua(() => !!q('[data-natif="exemple-tiers"] [data-refus-desinstallation]'));
     const motif = q('[data-natif="exemple-tiers"] [data-refus-desinstallation]');
     expect(motif, 'l’échec de désinstallation reste muet').not.toBeNull();
-    expect(motif!.textContent).toContain('le fichier du greffon est encore utilisé');
-    expect(motif!.textContent).toContain(texte('v2.plug.nativeUninstallFailed'));
+    attendreDetailsReplie(
+      q('[data-natif="exemple-tiers"]')!,
+      texte('v2.plug.nativeUninstallFailed'),
+      'le fichier du greffon est encore utilisé',
+    );
   });
 });

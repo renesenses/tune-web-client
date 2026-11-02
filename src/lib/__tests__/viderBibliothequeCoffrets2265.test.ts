@@ -39,6 +39,8 @@ import fr from '../locales/fr';
 import hu from '../locales/hu';
 import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
+import nbLocale from '../locales/nb';
+import plLocale from '../locales/pl';
 import it_ from '../locales/it';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
@@ -64,6 +66,8 @@ const MOTS: Record<string, { dict: Dict; coffret: string; edition: string; analy
   sv: { dict: sv as unknown as Dict, coffret: 'boxar sammansatta för hand', edition: 'albumredigeringar', analyse: 'fullständig genomsökning' },
   vi: { dict: viLocale as unknown as Dict, coffret: 'bộ đĩa ghép thủ công', edition: 'chỉnh sửa album', analyse: 'quét đầy đủ' },
   el: { dict: elLocale as unknown as Dict, coffret: 'κασετίνες που συνθέσατε χειροκίνητα', edition: 'επεξεργασίες άλμπουμ', analyse: 'πλήρη σάρωση' },
+  nb: { dict: nbLocale as unknown as Dict, coffret: 'boksett satt sammen for hånd', edition: 'albumredigeringer', analyse: 'full skanning' },
+  pl: { dict: plLocale as unknown as Dict, coffret: 'ręcznie złożone zestawy pudełkowe', edition: 'edycje albumów', analyse: 'pełna analiza' },
   zh: { dict: zh as unknown as Dict, coffret: '手动组成的套装', edition: '专辑编辑', analyse: '完整扫描' },
 };
 

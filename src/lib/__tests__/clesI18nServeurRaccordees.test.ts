@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // 🔴 LES CLÉS DU SERVEUR SONT ENFIN RACCORDÉES À L'ÉCRAN.
 //
@@ -51,7 +52,7 @@ import {
 } from '../collectionsLibelles';
 
 const RACINE = resolve(__dirname, '../../..');
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el'] as const;
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'] as const;
 
 /* ─────────────────────────────────────────────────────────────────────────
  * Le décor : un serveur À JOUR, et un serveur ANCIEN.
@@ -149,6 +150,7 @@ let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 
 beforeEach(() => {
+  clearViewContext('radios');
   requetes = [];
   corpsEnvoyes = [];
   radiosServies = RADIOS_A_JOUR;
@@ -238,7 +240,7 @@ describe('Radios — le PAYS suit enfin la langue (capture Silviu)', () => {
     expect(rendus).toEqual([
       'Royaume-Uni', 'United Kingdom', 'Vereinigtes Königreich', 'Reino Unido',
       'Regno Unito', '英国', 'イギリス', '영국', 'Regatul Unit', 'Storbritannien',
-      'Egyesült Királyság', 'Vương quốc Anh', 'Ηνωμένο Βασίλειο',
+      'Egyesült Királyság', 'Vương quốc Anh', 'Ηνωμένο Βασίλειο', 'Storbritannia', 'Wielka Brytania',
     ]);
     // Onze langues, onze libellés — dont aucun n'est le code nu.
     expect(rendus).not.toContain('GB');

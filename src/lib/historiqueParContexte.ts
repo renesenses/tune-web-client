@@ -37,6 +37,8 @@
  *  2. **`context_position` est absent pour 67 % des ecoutes.** « Dans l'ordre
  *     de lecture » ne peut donc pas s'appuyer dessus seul. On trie par
  *     position quand elle est la, par date d'ecoute sinon.
+ *     Depuis web#2547 (30/10/2026), le tiroir suit la date seule, le plus
+ *     récent d'abord : voir `ordonnerDansLObjet`.
  *
  * Et `context_id` prend QUATRE formes dans les memes donnees : un identifiant
  * numerique de bibliotheque (28,2 %), un identifiant de service alphanumerique
@@ -71,6 +73,7 @@ export interface ContexteEcoute {
 /** Le minimum qu'une entree d'historique doit offrir a ce module. */
 export interface EntreeDatee {
   playedAt: string;
+  track?: unknown;
   contexte?: ContexteEcoute | null;
 }
 
@@ -87,8 +90,27 @@ export type NiveauUn<E> =
  * lui-meme — un tiroir a un element, qui redit sa propre ligne.
  */
 const REGROUPABLES = new Set([
-  'album', 'playlist', 'artist', 'artiste', 'label', 'genre', 'collection',
+  'album', 'playlist', 'artist', 'artiste', 'label', 'genre', 'collection', 'radio',
 ]);
+
+/** La radio garde sa station, jamais l'album d'une ancienne session (#2480).
+ * La même règle sert aux nouvelles écritures et aux anciens carnets lus sans
+ * mutation : une identité explicite est requise, le nom n'est qu'un libellé.
+ */
+export function contexteDeLEcoute(piste: unknown, contexte?: ContexteEcoute | null): ContexteEcoute | null {
+  if (!piste || typeof piste !== 'object') return contexte ?? null;
+  const p = piste as Record<string, unknown>;
+  if (p.source !== 'radio') return contexte ?? null;
+  const ancien = String(contexte?.type ?? '').toLowerCase() === 'radio' ? contexte : null;
+  const brut = p.source_id;
+  const identite = typeof brut === 'string' ? brut.trim()
+    : typeof brut === 'number' && Number.isFinite(brut) ? String(brut) : '';
+  const id = identite || (ancien?.id != null ? String(ancien.id).trim() : '');
+  if (!id) return null;
+  const nomObserve = typeof p.album_title === 'string' ? p.album_title.trim() : '';
+  const nomAncien = ancien?.id != null && String(ancien.id).trim() === id ? ancien.nom : null;
+  return { type: 'radio', id, position: null, source: 'radio', nom: nomObserve || nomAncien || null };
+}
 
 /** Regroupable seulement si le type ET l'identifiant sont la. */
 export function estRegroupable(c: ContexteEcoute | null | undefined): boolean {
@@ -118,7 +140,7 @@ export function regrouperParContexte<E extends EntreeDatee>(entrees: readonly E[
   const index = new Map<string, Extract<NiveauUn<E>, { genre: 'objet' }>>();
 
   for (const e of entrees) {
-    const c = e.contexte;
+    const c = contexteDeLEcoute(e.track, e.contexte);
     if (!estRegroupable(c)) {
       niveaux.push({ genre: 'titre', entree: e, quand: e.playedAt });
       continue;
@@ -148,19 +170,25 @@ export function regrouperParContexte<E extends EntreeDatee>(entrees: readonly E[
 }
 
 /**
- * L'ordre de lecture d'un objet : par position si elle existe POUR TOUTES,
- * sinon par date d'ecoute. Jamais un melange des deux, qui donnerait un ordre
- * arbitraire sur les 67 % d'ecoutes sans position.
+ * L'ordre des titres DANS un objet ouvert : le plus récent d'abord.
+ *
+ * web#2547 (FabienM, fil 2559 point 5 ; go de Bertrand le 30/10/2026) :
+ * « quand on ouvre un conteneur (Album / Playlist / Radio) : afficher les
+ * titres par ordre chronologique inversé ». Le tiroir suit donc le sens de la
+ * liste de premier niveau, qui sert déjà le plus récent en tête. Il suivait
+ * avant l'ordre de l'album (`context_position`) quand toutes les écoutes la
+ * portaient, et l'ordre chronologique sinon (#903) : la position n'y sert
+ * plus.
+ *
+ * Tri STABLE : deux écoutes de même instant (ou à date illisible) gardent
+ * l'ordre du serveur, plutôt qu'un ordre arbitraire.
  */
 export function ordonnerDansLObjet<E extends EntreeDatee>(entrees: readonly E[]): E[] {
-  const toutesPositionnees = entrees.every((e) => e.contexte?.position != null);
-  const copie = [...entrees];
-  if (toutesPositionnees) {
-    copie.sort((a, b) => (a.contexte!.position as number) - (b.contexte!.position as number));
-  } else {
-    copie.sort((a, b) => Date.parse(a.playedAt) - Date.parse(b.playedAt));
-  }
-  return copie;
+  const instant = (e: E) => {
+    const t = Date.parse(e.playedAt);
+    return Number.isFinite(t) ? t : -Infinity;
+  };
+  return [...entrees].sort((a, b) => instant(b) - instant(a));
 }
 
 /**
@@ -217,7 +245,7 @@ export function nomDObjet(
   // #988 — le serveur nomme l'objet lui-même depuis la .151 : ce nom prime,
   // il vient de la table des playlists et non d'une déduction.
   for (const e of entrees) {
-    const n = e.contexte?.nom;
+    const n = (type === 'radio' ? contexteDeLEcoute(e.track, e.contexte) : e.contexte)?.nom;
     if (n != null && String(n).trim() !== '') return String(n).trim();
   }
   const champ = type === 'album' ? 'album_title' : (type === 'artist' || type === 'artiste') ? 'artist_name' : null;

@@ -51,7 +51,7 @@
    * Même règle qu'en T2 : un 404 sur `/playlists` dit un greffon d'avant T5,
    * et le bloc reste caché.
    */
-  import { onDestroy } from 'svelte';
+  import { onDestroy, tick } from 'svelte';
   import { dialogs } from '../../lib/stores/dialogs';
   import { dateCourte } from '../../lib/dates';
   import { activeView } from '../../lib/stores/navigation';
@@ -61,7 +61,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import {
     circleCharge, circlePlugin, refreshCirclePlugin, getCercle, estConnecte, ecouteOuverte,
-    inviterAuCercle, accepterInvitation, refuserInvitation, annulerInvitation,
+    inviterAuCercle, accepterInvitation, cerclesOuJeSuisInvite, refuserInvitation, annulerInvitation,
     revoquerContact, creerCercle, renommerCercle, supprimerCercle,
     rangerDansCercle, retirerDuCercle, motifCercle, nomCercleValide,
     seConnecterAMozaiklabs, NOM_CERCLE_MAX, RELECTURE_CERCLE_MS,
@@ -71,7 +71,7 @@
     getRayonsCercle, partagerRayon, retirerRayon, estBibliothequeNonPartagee,
     listerPersonnesBloquees, bloquerInvitant, debloquerPersonne, type PersonneBloquee,
     type RayonsCercle, type RayonLocal,
-    type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme,
+    type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme, type CercleOuJeSuisInvite,
     type EtatSynchroBibliotheque, type PartageRecu, type AvisSynchro,
   } from '../../lib/circle';
   import {
@@ -83,6 +83,10 @@
   import PlaylistCercleV2 from './PlaylistCercleV2.svelte';
   import SceneCercleV2 from './SceneCercleV2.svelte';
   import InviterSansEmailV2 from './InviterSansEmailV2.svelte';
+  import NotificationsCercleV2 from './NotificationsCercleV2.svelte';
+  import MessagerieCercleV2 from './MessagerieCercleV2.svelte';
+  import { demandeConversation, messagerieSupport, ecrireAuContact, erreurOuvertureConversation } from '../../lib/circleMessagerie';
+  import type { NotifCercle } from '../../lib/circleNotifications';
   import '../../styles/tune-v2.css';
 
   /** `relier` : le refus dit que ce serveur n'est pas relié au compte (T2). */
@@ -135,6 +139,8 @@
   const contacts = $derived<ContactCercle[]>(connecte?.members ?? []);
   /** MES cercles, et eux seuls : aucun nom de cercle ne vient d'ailleurs. */
   const cercles = $derived<CercleNomme[]>(connecte?.circles ?? []);
+  /** #2434 : les cercles des autres où je suis rangé (lien actif). */
+  const invitePar = $derived(cerclesOuJeSuisInvite(connecte));
   const nomDe = $derived(new Map(contacts.map((c) => [c.user_id, c.name])));
 
   /**
@@ -307,6 +313,30 @@
     playlistOuverte = id;
   }
 
+  /**
+   * web#2546 (FabienM, fil 2559 point 4) : « ouverture d'une notif : impossible
+   * de revenir en arrière pour consulter les autres notifications ». Ouvrir une
+   * notification REMPLACE l'écran (la playlist partagée) ou le FAIT DÉFILER
+   * (messagerie, invitations reçues) : la liste sortait de la vue, sans chemin
+   * pour y revenir. `retourNotifs` dit qu'on vient d'une notification ; tant
+   * qu'il tient, un bouton « Retour aux notifications » reste collé en haut, et
+   * le Retour de la playlist ramène à la liste plutôt qu'en haut de l'écran.
+   */
+  let retourNotifs = $state(false);
+  async function revenirAuxNotifications() {
+    retourNotifs = false;
+    playlistOuverte = null;
+    await tick();
+    document.getElementById('circle-notifs')?.scrollIntoView?.({ block: 'start' });
+  }
+
+  /** rc9 (web#2437) : une notification ouverte mène à ce qu'elle désigne, quand l'écran le montre. */
+  function ouvrirNotification(n: NotifCercle) {
+    if (n.kind === 'playlist_shared' && n.playlist) { retourNotifs = true; ouvrirPlaylistPartagee(n.playlist.id as IdOpaque); return; }
+    if (n.kind === 'message' && n.conversation_id) { retourNotifs = true; demandeConversation.set({ conversation: n.conversation_id }); document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' }); return; }
+    if (n.kind === 'contact_request') { retourNotifs = true; document.getElementById('circle-recues')?.scrollIntoView?.({ block: 'start' }); }
+  }
+
   function inviter(ev: SubmitEvent) {
     ev.preventDefault();
     const adresse = email.trim();
@@ -378,7 +408,7 @@
   }
 
   /** Mes playlists de CE cercle (le cloud dit `circle_id` des miennes seulement). */
-  const playlistsDe = (c: CercleNomme) => playlists.filter((p) => p.mine && p.circle_id === c.id);
+  const playlistsDe = (c: CercleNomme) => playlists.filter((p) => p.circle_id === c.id);
 
   async function supprimer(c: CercleNomme) {
     // Décision 3 du 28/09 : ses playlists sont ARCHIVÉES par le cloud, et
@@ -417,6 +447,15 @@
   }
 
   /** Le propriétaire du cercle crée une playlist pour CE cercle. */
+  /** #2434 : un membre partage une playlist dans un cercle où il est rangé. */
+  async function partagerDansCercleInvite(m: CercleOuJeSuisInvite) {
+    const saisi = await dialogs.prompt($t('v2.circle.pl.newPrompt' as any).replace('{max}', String(NOM_PLAYLIST_MAX)) + '\n' + $t('v2.circle.memberOf.shareNote' as any), '');
+    if (saisi === null) return;
+    const nom = nomPlaylistValide(saisi);
+    if (nom === null) { retour = { texte: $t('v2.circle.pl.err.nameInvalid' as any).replace('{max}', String(NOM_PLAYLIST_MAX)), erreur: true }; return; }
+    void geste(`partager-${m.circle_id}`, () => creerPlaylistCercle(m.circle_id, nom), { succes: 'v2.circle.pl.created' });
+  }
+
   async function nouvellePlaylist(c: CercleNomme) {
     const saisi = await dialogs.prompt($t('v2.circle.pl.newPrompt' as any).replace('{max}', String(NOM_PLAYLIST_MAX)), '');
     if (saisi === null) return;
@@ -430,6 +469,8 @@
     playlistOuverte = null;
     if (raison === 'plusPartagee') retour = { texte: $t('v2.circle.pl.gone' as any), erreur: true };
     else if (raison === 'supprimee') retour = { texte: $t('v2.circle.pl.deleted' as any), erreur: false };
+    // web#2546 : ouverte depuis une notification, la playlist rend la liste.
+    if (retourNotifs) void revenirAuxNotifications();
     void relire();
   }
 
@@ -644,6 +685,12 @@
       {/key}
     {:else}
       <p class="intro">{$t('v2.circle.intro' as any)}</p>
+      {#if retourNotifs}
+        <button type="button" class="lnk retour-notifs" onclick={() => void revenirAuxNotifications()}>← {$t('v2.circle.notif.back' as any)}</button>
+      {/if}
+
+      <NotificationsCercleV2 onOuvrir={ouvrirNotification} />
+      <MessagerieCercleV2 />
 
       {#if retour}
         <div class={retour.erreur ? 'err retour' : 'ok retour'} role={retour.erreur ? 'alert' : 'status'}>
@@ -779,6 +826,8 @@
                 <span class="nom" use:bulleTexte>{c.name}</span>
                 <span class="note">{$t('v2.circle.since' as any).replace('{date}', $dateCourte(c.since))}</span>
                 <span class="gestes">
+                  {#if $messagerieSupport === true}<button class="lnk" onclick={() => ecrireAuContact(c.user_id)}>{$t('v2.circle.msg.write' as any)}</button>{/if}
+                  {#if $erreurOuvertureConversation?.contact === c.user_id}<span role="alert">{$t($erreurOuvertureConversation.cle as any)}</span>{/if}
                   <button class="lnk danger revoquer" disabled={occupe !== null}
                     aria-label={$t('v2.circle.revokeNamed' as any).replace('{name}', c.name)}
                     onclick={() => void revoquer(c)}>
@@ -800,6 +849,7 @@
             placeholder={$t('v2.circle.newCirclePlaceholder' as any)} bind:value={nomNouveau} />
           <button class="go creer" type="submit" disabled={occupe !== null || !nomNouveau.trim()}>{$t('v2.circle.create' as any)}</button>
         </form>
+        <p class="note nom-visible">{$t('v2.circle.newCircleHint' as any)}</p>
         {#if cercles.length === 0}
           <p class="note vide">{$t('v2.circle.noCircles' as any)}</p>
         {:else}
@@ -943,6 +993,28 @@
         </section>
       {/if}
 
+      {#if invitePar.length > 0}
+        <section class="bloc cercles-invite" aria-labelledby="circle-invite">
+          <h2 id="circle-invite">{$t('v2.circle.memberOf.title' as any)}</h2>
+          <p class="note">{$t('v2.circle.memberOf.hint' as any)}</p>
+          <ul>
+            {#each invitePar as m (m.circle_id)}
+              <li class="ligne cercle-invite">
+                <span class="nom" use:bulleTexte>{m.circle_name}</span>
+                <span class="note">{$t('v2.circle.memberOf.by' as any).replace('{name}', m.owner_name)}</span>
+                {#if t5}
+                  <span class="gestes">
+                    <button class="lnk partager-ici" disabled={occupe !== null}
+                      aria-label={$t('v2.circle.memberOf.shareNamed' as any).replace('{circle}', m.circle_name)}
+                      onclick={() => void partagerDansCercleInvite(m)}>{$t('v2.circle.memberOf.share' as any)}</button>
+                  </span>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        </section>
+      {/if}
+
       {#if t5}
         <section class="bloc playlists-cercle" aria-labelledby="circle-playlists">
           <h2 id="circle-playlists">{$t('v2.circle.pl.title' as any)}</h2>
@@ -958,7 +1030,7 @@
                 <li class="ligne playlist-cercle">
                   <span class="nom" use:bulleTexte>{p.name}</span>
                   <span class="note">
-                    {$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}{#if !p.mine && p.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', p.owner.name)}{/if}
+                    {$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}{#if !p.mine && p.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', p.owner.name)}{/if}{#if p.circle_name} · {p.circle_name}{/if}
                   </span>
                   <span class="gestes">
                     <button class="lnk lire-playlist-ligne" disabled={occupe !== null || p.count === 0}
@@ -1038,6 +1110,8 @@
   .absent,.deconnecte{padding:14px 16px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2);
     display:flex; flex-direction:column; gap:10px; align-items:flex-start}
   .intro{font-size:13px; color:var(--v2-txt2); margin:0}
+  /* web#2546 : visible tant qu'on lit ce qu'une notification a ouvert. */
+  .retour-notifs{position:sticky; top:0; z-index:2; align-self:flex-start; padding:6px 10px; border-radius:8px; background:var(--v2-surface2)}
   .err,.ok{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:12.5px}
   .err{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .ok{border:1px solid var(--v2-line); background:var(--v2-acc-soft); color:var(--v2-txt)}

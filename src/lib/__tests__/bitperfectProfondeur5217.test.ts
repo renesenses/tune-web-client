@@ -7,7 +7,7 @@
 // doit construire la phrase dans la langue de l'interface, comme pour #3973.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { get } from 'svelte/store';
-import { locale } from '../i18n';
+import { locale, t } from '../i18n';
 import { notifications } from '../stores/notifications';
 import { signalerErreurServeur } from '../echecLecture';
 
@@ -57,8 +57,10 @@ describe('#5217 — refus de profondeur par WebSocket', () => {
     );
   });
 
-  it('profondeurs absentes : repli sur le texte du serveur', () => {
+  it('profondeurs absentes : repli traduit, le texte du serveur au détail (#2417)', () => {
     signalerErreurServeur(evenement({ requested_bits: undefined, error: 'Texte du serveur' }));
-    expect(derniereNotification()).toBe('Texte du serveur');
+    const l = get(notifications);
+    expect(derniereNotification()).toBe(get(t)('library.playbackError'));
+    expect(l[l.length - 1]?.detail).toContain('Texte du serveur');
   });
 });

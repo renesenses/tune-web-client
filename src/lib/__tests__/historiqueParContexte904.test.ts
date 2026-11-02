@@ -81,7 +81,7 @@ describe('#904 — le premier niveau', () => {
     ]);
     expect(n.map((x) => x.genre)).toEqual(['objet', 'titre']);
     const objet = n[0] as any;
-    expect(objet.entrees.map((x: E) => x.titre)).toEqual(['A1T2', 'A1T1']);
+    expect(objet.entrees.map((x: E) => x.titre)).toEqual(['A1T1', 'A1T2']);
     expect(objet.quand, 'l’objet ne se date pas sur sa plus VIEILLE écoute')
       .toBe('2026-09-12T10:00:00Z');
   });
@@ -110,24 +110,32 @@ describe('#904 — le premier niveau', () => {
   });
 });
 
-describe('#903 — l’ordre DANS le tiroir', () => {
-  it('par position quand le serveur la donne pour toutes', () => {
+describe('#903 puis web#2547 — l’ordre DANS le tiroir : le plus récent d’abord', () => {
+  it('🔴 web#2547 : la date d’écoute décide, même quand toutes ont une position', () => {
+    // Avant web#2547, la position de l'album l'emportait : a, b, c.
     const r = ordonnerDansLObjet([
-      e('c', '2026-09-12T10:00:00Z', { type: 'album', id: 1, position: 3 }),
       e('a', '2026-09-12T09:00:00Z', { type: 'album', id: 1, position: 1 }),
+      e('c', '2026-09-12T10:00:00Z', { type: 'album', id: 1, position: 3 }),
       e('b', '2026-09-12T08:00:00Z', { type: 'album', id: 1, position: 2 }),
     ]);
-    expect(r.map((x) => x.titre)).toEqual(['a', 'b', 'c']);
+    expect(r.map((x) => x.titre)).toEqual(['c', 'a', 'b']);
   });
 
-  it('🔴 par DATE dès qu’une position manque — 67 % des écoutes', () => {
-    // Mélanger les deux donnerait un ordre arbitraire : une position à 0 et
-    // une absente ne se comparent pas.
+  it('🔴 web#2547 : sans position non plus, le plus récent en tête', () => {
     const r = ordonnerDansLObjet([
-      e('tard', '2026-09-12T10:00:00Z', { type: 'album', id: 1, position: 0 }),
       e('tôt', '2026-09-12T08:00:00Z', { type: 'album', id: 1, position: null }),
+      e('tard', '2026-09-12T10:00:00Z', { type: 'album', id: 1, position: 0 }),
     ]);
-    expect(r.map((x) => x.titre)).toEqual(['tôt', 'tard']);
+    expect(r.map((x) => x.titre)).toEqual(['tard', 'tôt']);
+  });
+
+  it('même instant ou date illisible : l’ordre du serveur est gardé, l’illisible en dernier', () => {
+    const r = ordonnerDansLObjet([
+      e('x', 'pas une date', { type: 'playlist', id: 1, position: null }),
+      e('p1', '2026-09-12T10:00:00Z', { type: 'playlist', id: 1, position: null }),
+      e('p2', '2026-09-12T10:00:00Z', { type: 'playlist', id: 1, position: null }),
+    ]);
+    expect(r.map((x) => x.titre)).toEqual(['p1', 'p2', 'x']);
   });
 });
 

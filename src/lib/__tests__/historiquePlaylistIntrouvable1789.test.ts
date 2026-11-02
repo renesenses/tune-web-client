@@ -19,7 +19,7 @@ import HistoriqueV2 from '../../components/v2/HistoriqueV2.svelte';
 import { playbackHistory } from '../stores/history';
 import { currentZoneId, zones } from '../stores/zones';
 import { notifications } from '../stores/notifications';
-import { locale } from '../i18n';
+import { locale, t } from '../i18n';
 
 class GeometryObserver { observe() {} unobserve() {} disconnect() {} }
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
@@ -111,6 +111,7 @@ describe('#1789 — Historique : playlist de service introuvable', () => {
     const { fetchJSON } = await import('../api');
     reponsePlaylist = () => json({ error: 'panne' }, 502);
     await expect(fetchJSON('/api/v1/streaming/qobuz/playlists/1')).rejects.toBeTruthy();
-    expect(erreurs().some((m) => m.startsWith('Server error'))).toBe(true);
+    // #2417 — le bandeau dit le message générique traduit, plus « Server error: … ».
+    expect(erreurs().some((m) => m === get(t)('erreursServeur.generique'))).toBe(true);
   });
 });

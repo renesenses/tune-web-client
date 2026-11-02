@@ -12,6 +12,11 @@ export interface Notification {
   id: number;
   level: NotificationLevel;
   message: string;
+  /**
+   * #2417 — le détail technique (texte brut du serveur, statut, code),
+   * montré seulement dans un « Détails » replié, jamais comme message.
+   */
+  detail?: string;
   /** Auto-dismiss after this many ms (default 5000). 0 = persistent. */
   duration: number;
   /** Bouton d'action optionnel — « Jouer cette version », etc. */
@@ -34,9 +39,11 @@ function createStore() {
     duration = 5000,
     action?: Notification['action'],
     refus?: Notification['refus'],
+    detail?: string,
   ) {
     const id = nextId++;
-    update((list) => [...list, { id, level, message, duration, action, refus }]);
+    const d = detail?.trim() && detail.trim() !== message.trim() ? detail.trim() : undefined;
+    update((list) => [...list, { id, level, message, duration, action, refus, ...(d ? { detail: d } : {}) }]);
     if (duration > 0) {
       setTimeout(() => {
         update((list) => list.filter((n) => n.id !== id));
@@ -51,9 +58,11 @@ function createStore() {
 
   return {
     subscribe,
-    error: (msg: string, duration = 5000) => push(msg, 'error', duration),
+    error: (msg: string, duration = 5000, detail?: string) =>
+      push(msg, 'error', duration, undefined, undefined, detail),
     success: (msg: string, duration = 4000) => push(msg, 'success', duration),
-    info: (msg: string, duration = 3000) => push(msg, 'info', duration),
+    info: (msg: string, duration = 3000, detail?: string) =>
+      push(msg, 'info', duration, undefined, undefined, detail),
     /** Toast avec bouton d'action — reste plus longtemps qu'une info. */
     withAction: (msg: string, label: string, run: () => void, duration = 10000) =>
       push(msg, 'info', duration, { label, run }),

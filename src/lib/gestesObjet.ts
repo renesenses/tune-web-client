@@ -51,6 +51,7 @@ import { concertsCharge } from './stores/concerts';
 import { convertisseurCharge } from './stores/convertisseurPlaylists';
 import { circleCharge } from './circle';
 import { demandeCercle } from './circlePlaylists';
+import { carteAPartager, carteDepuisObjet } from './circleMessagerie';
 import { demandeAjoutPlaylist } from './demandeAjoutPlaylist';
 import { ouvrirLeRepertoire } from './stores/repertoireCible';
 import { zoneRequise } from './zoneRequise';
@@ -402,21 +403,18 @@ export function contexteDObjet(
   return null;
 }
 
-/** Le corps augmenté du conteneur. `/play` lit `context_type`/`context_id`
- *  (son service est celui du corps) ; `queue/add` lit aussi `context_source`. */
+/** Le conteneur garde son propre espace de noms, même dans une liste mixte. */
 export function avecContexte<C extends object>(
   corps: C,
   contexte: ReturnType<typeof contexteDObjet>,
-  pourLaFile: boolean,
+  _pourLaFile: boolean,
 ): C {
   if (!contexte) return corps;
-  return pourLaFile
-    ? { ...corps, ...contexte }
-    : { ...corps, context_type: contexte.context_type, context_id: contexte.context_id };
+  return { ...corps, ...contexte };
 }
 
-const gestesDeLecture = (zid: number, contexte: ReturnType<typeof contexteDObjet> = null) => ({
-  lire: (c: any) => playAndSync(zid, avecContexte(c, contexte, false)),
+const gestesDeLecture = (zid: number, contexte: ReturnType<typeof contexteDObjet> = null, shuffled = false) => ({
+  lire: (c: any) => playAndSync(zid, { ...avecContexte(c, contexte, false), ...(shuffled ? { context_shuffle: true } : {}) }),
   enfiler: (c: any) => api.addToQueue(zid, avecContexte(c, contexte, true)),
 });
 
@@ -453,7 +451,7 @@ async function lire(o: ObjetMenu, aleatoire: boolean): Promise<void> {
     // #6466 — la liste d'un artiste, d'un label… part avec son conteneur.
     const contexte = contexteDObjet(o);
     const n = aleatoire
-      ? await lireListeAleatoire(pistes, gestesDeLecture(zid, contexte))
+      ? await lireListeAleatoire(pistes, gestesDeLecture(zid, contexte, true))
       : await lireListe(pistes, gestesDeLecture(zid, contexte));
     if (!n) notifications.error(traduire('collections.noTracks' as any));
   } catch (e) {
@@ -870,6 +868,10 @@ export function gestesObjet(o: ObjetMenu, options: OptionsMenuObjet = {}): Geste
     allerArtiste: allerArtiste(o),
     basculerFavori: () => void basculerFavori(o),
   };
+  if (get(circleCharge) && ['album', 'playlist'].includes(o.type)) {
+    const carte = carteDepuisObjet(o);
+    if (carte) g.partagerMessage = () => carteAPartager.set(carte);
+  }
   // web#1653 — LE geste du sas, celui-là même que le menu d'une piste appelle.
   // La bascule vit dans `lib/ecouterPlusTard` : ni ici, ni dans `menuPiste`.
   // web#1922 — le raccourci sur l'objet, par le formulaire du signet.

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { detailServeur, estMessageGenerique } from '../../lib/messageServeur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { get } from 'svelte/store';
@@ -23,6 +24,7 @@
   import { reculerAvecIntention } from '../../lib/historiqueNavigation';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { refusScanConcurrent } from '../../lib/scanDetenteur';
+  import { lireDossier, ajouterDossierALaFile } from '../../lib/lectureDossier';
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
@@ -357,8 +359,9 @@
         e?.status === 409
           // web#2305 : le refus nomme le scan qui tient le droit, s'il le dit.
           ? (refusScanConcurrent(e, (k) => $tr(k as any)) ?? $tr('browse.rescanAlreadyScanning' as any))
-          : $tr('browse.rescanFailed' as any).replace('{erreur}', String(e?.message ?? e)),
+          : $tr('browse.rescanFailed' as any).replace('{erreur}', estMessageGenerique(e?.message) ? '' : String(e?.message ?? e)),
         10000,
+        detailServeur(e),
       );
     }
     rescanning = false;
@@ -450,6 +453,23 @@
         {$tr('common.loading')}
       </div>
     {:else}
+      <!-- tune-server-rust#7597 — le dossier ENTIER, sous-dossiers compris,
+           dans l'ordre. « Tout lire » et « Tout ajouter » plus bas ne prennent
+           que les pistes de CE dossier et restent tels quels ; ceux-ci ne
+           servent que là où il y a des sous-dossiers. La liste est construite
+           par le serveur : l'écran n'a jamais le sous-arbre. -->
+      {#if browseResult.directories.length > 0}
+        <div class="tracks-header dossier-actions">
+          <div class="tracks-actions">
+            <button class="action-btn" data-dossier-lire onclick={() => lireDossier(zone?.id, browseResult?.path)}>
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z" /></svg>
+              {$tr('browse.playAllRecursive' as any)}
+            </button>
+            <button class="action-btn secondary" data-dossier-ajouter onclick={() => ajouterDossierALaFile(zone?.id, browseResult?.path)}>+ {$tr('browse.addAllRecursive' as any)}</button>
+          </div>
+        </div>
+      {/if}
+
       <!-- Subdirectories -->
       {#if browseResult.directories.length > 0}
         <div class="dir-list">

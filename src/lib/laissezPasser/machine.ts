@@ -37,8 +37,18 @@ export interface AppareilDuSite {
   device_id: string;
   name: string;
   platform: string;
+  app_version?: string | null;
+  created_at?: string | null;
   last_pass_at?: string | null;
 }
+
+/** Liste des appareils du compte (`GET /api/v1/remote/devices`). */
+export type IssueListeAppareils =
+  | { ok: true; max: number; appareils: AppareilDuSite[]; courant: string | null }
+  | { ok: false; raison: string };
+
+/** Retrait d'un appareil du compte (`DELETE /api/v1/remote/devices/{id}`). */
+export type IssueRetraitAppareil = { ok: true; courant: boolean } | { ok: false; raison: string };
 
 export type Etat =
   | { type: 'inactif' }
@@ -223,6 +233,62 @@ export class AccesParCompte {
         this.oublierSession();
         this.poser({ type: 'refuse', code: refus.code, motif: refus.motif });
         return;
+    }
+  }
+
+  // ─── Appareils du compte (Réglages) ──────────────────────────────────────
+
+  /**
+   * Les appareils actifs du compte, tels que le site les rend : c'est le SITE
+   * qui ne rend que ceux du compte du jeton OAuth, jamais l'interface.
+   * `courant` : l'identifiant de ce navigateur, s'il est inscrit.
+   */
+  async listerAppareils(): Promise<IssueListeAppareils> {
+    try {
+      const r = await this.appelSite('GET', '/api/v1/remote/devices');
+      if (r.status !== 200 || !Array.isArray(r.corps?.devices)) {
+        return { ok: false, raison: r.corps?.error ?? `http_${r.status}` };
+      }
+      return { ok: true, max: Number(r.corps.max) || 5, appareils: r.corps.devices, courant: await this.appareilCourant() };
+    } catch (e) {
+      return { ok: false, raison: raisonDEchec(e) };
+    }
+  }
+
+  /**
+   * Retire un appareil du compte. Le site refuse aussitôt ses laissez-passer
+   * et clôt ses sessions : le relais le coupe au battement suivant, et au
+   * plus tard au renouvellement du laissez-passer.
+   *
+   * Ce navigateur retiré par lui-même : sa session s'arrête ici, et sa clé
+   * est oubliée (elle appartient désormais à un appareil retiré).
+   */
+  async retirerAppareil(deviceId: string): Promise<IssueRetraitAppareil> {
+    try {
+      const r = await this.appelSite('DELETE', `/api/v1/remote/devices/${encodeURIComponent(deviceId)}`);
+      if (r.status !== 200) return { ok: false, raison: r.corps?.error ?? `http_${r.status}` };
+      const courant = (await this.appareilCourant()) === deviceId;
+      if (courant) {
+        this.arreterMinuterie();
+        this.oublierSession();
+        try {
+          await this.d.appareil?.effacer();
+        } catch {
+          /* rien : le site refusera de toute façon cet appareil */
+        }
+        this.poser({ type: 'refuse', code: 'appareil_retire' });
+      }
+      return { ok: true, courant };
+    } catch (e) {
+      return { ok: false, raison: raisonDEchec(e) };
+    }
+  }
+
+  private async appareilCourant(): Promise<string | null> {
+    try {
+      return (await this.d.appareil?.lire())?.deviceId ?? null;
+    } catch {
+      return null;
     }
   }
 
@@ -508,6 +574,11 @@ export class AccesParCompte {
     if (code === 'session_coupee') return { type: 'coupee', motif: r.corps?.motif ?? 'coupee', appareil: r.corps?.appareil };
     return { type: 'refuse', code, motif: r.corps?.motif ?? undefined };
   }
+}
+
+function raisonDEchec(e: unknown): string {
+  if (e instanceof Arret) return e.etat.type === 'indisponible' ? e.etat.raison : e.etat.type;
+  return 'erreur';
 }
 
 /** Session en `sessionStorage`, par serveur : survit au rechargement, pas à la fermeture de l'onglet. */

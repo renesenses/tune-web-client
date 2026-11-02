@@ -129,6 +129,8 @@ async function poser(z: Record<string, unknown>): Promise<HTMLDivElement> {
   expect(onglet, 'onglet Appareils introuvable').toBeDefined();
   (onglet as HTMLButtonElement).click();
   await attendre();
+  hote.querySelector<HTMLButtonElement>('button.ligne')?.click(); // web#2451 : les détails s'ouvrent au clic
+  await attendre();
   expect(hote.querySelector('#zc-21'), 'carte de zone absente — témoin sans objet').not.toBeNull();
   return hote;
 }

@@ -151,15 +151,17 @@ describe('#6468 — lancerEpisode et ses messages', () => {
 
   it('503 podcast_sortie_introuvable : phrase traduite (vietnamien compris)', async () => {
     reponseLecture = { status: 503, corps: corpsEchec('podcast_sortie_introuvable', 'Device not yet discovered.') };
-    expect(await lancerEpisode(1, { audio_url: EPISODE })).toEqual({ ok: false, message: fr['v2.pod.playOutputNotFound'] });
+    expect(await lancerEpisode(1, { audio_url: EPISODE })).toMatchObject({ ok: false, message: fr['v2.pod.playOutputNotFound'] });
     locale.set('vi');
-    expect(await lancerEpisode(1, { audio_url: EPISODE })).toEqual({ ok: false, message: viDict['v2.pod.playOutputNotFound'] });
+    expect(await lancerEpisode(1, { audio_url: EPISODE })).toMatchObject({ ok: false, message: viDict['v2.pod.playOutputNotFound'] });
   });
 
-  it('code inconnu : repli générique traduit, suivi du message du serveur', async () => {
+  it('code inconnu : repli générique traduit, sans le texte brut du serveur (#2417)', async () => {
     reponseLecture = { status: 502, corps: corpsEchec('autre_chose', 'upstream timeout') };
     const issue = await lancerEpisode(1, { audio_url: EPISODE });
-    expect(issue).toEqual({ ok: false, message: `${fr['v2.pod.playFailed']} : upstream timeout` });
+    expect(issue).toMatchObject({ ok: false, message: fr['v2.pod.playFailed'] });
+    // #2417 — le motif brut, pour le « Détails » replié de l'écran.
+    expect(issue.ok === false && issue.detail).toContain('upstream timeout');
     expect(messageEchecEpisode(null)).toBe(fr['v2.pod.playFailed']);
   });
 

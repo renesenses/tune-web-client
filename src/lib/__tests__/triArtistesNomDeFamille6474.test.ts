@@ -27,6 +27,8 @@ import fr from '../locales/fr';
 import hu from '../locales/hu';
 import vi_ from '../locales/vi';
 import el_ from '../locales/el';
+import nb_ from '../locales/nb';
+import pl_ from '../locales/pl';
 import it_ from '../locales/it';
 import ja from '../locales/ja';
 import ko from '../locales/ko';
@@ -73,7 +75,7 @@ describe('#6474 — le réglage', () => {
   });
 
   it('est traduit dans les douze langues', () => {
-    const langues = { de, en, es, fr, hu, vi: vi_, el: el_, it: it_, ja, ko, ro, sv, zh } as Record<string, Record<string, string>>;
+    const langues = { de, en, es, fr, hu, vi: vi_, el: el_, nb: nb_, pl: pl_, it: it_, ja, ko, ro, sv, zh } as Record<string, Record<string, string>>;
     for (const [code, l] of Object.entries(langues)) {
       for (const k of ['settings.artistSort', 'settings.artistSortLabel', 'settings.artistSortHint']) {
         expect(l[k], `${code} : ${k}`).toBeTruthy();

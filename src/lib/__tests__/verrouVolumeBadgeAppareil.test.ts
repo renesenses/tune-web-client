@@ -306,7 +306,7 @@ describe('les onze langues portent les libellés du badge', () => {
   const CLE_EN_ATTENTE_ARBITRAGE = 'devices.volumeLockHint';
 
   it('les onze dictionnaires sont bien onze', () => {
-    expect(Object.keys(DICTS)).toHaveLength(13);
+    expect(Object.keys(DICTS)).toHaveLength(15);
   });
 
   it('les quatre clés du badge sont bien quatre, et distinctes', () => {

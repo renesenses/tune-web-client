@@ -86,6 +86,8 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   equalizer: 'destination',
   crossfeed: 'destination',
   crossfeedpro: 'destination',
+  // web#2580 — Crosstalk (greffon natif tiers, enceintes).
+  crosstalk: 'destination',
   // tune-server-rust#6044 — les réglages du greffon « Réaffectation des canaux ».
   reaffectation: 'destination',
   plugins: 'destination',
@@ -104,6 +106,7 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   pontroon: 'destination',
   lecturecd: 'destination',
   circle: 'destination',
+  collectionphysique: 'destination',
   // tune-server-rust#5065 — la page d'une source de la rubrique « Sources ».
   source: 'destination',
   // #4806 — l'écran « Titres bannis », voisin des sélections de l'utilisateur.

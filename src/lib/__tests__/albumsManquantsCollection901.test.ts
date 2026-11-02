@@ -47,7 +47,7 @@ import { resolve } from 'node:path';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 const ecran = () => sansCommentaires(lire('src/components/v2/CollectionsV2.svelte'));
-const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el'];
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'nb', 'pl'];
 
 /**
  * Le fichier PRIVÉ DE SES COMMENTAIRES — une garde qui parle du code doit lire

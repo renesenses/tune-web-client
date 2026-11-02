@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 // Vrai transport V2, vrais stores et vrai lecteur ; seules les frontières
 // WebSocket, HTTP et HTMLAudioElement sont simulées (#1171 / serveur #4090).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,7 +20,7 @@ import { retenirZoneDeCetAppareil } from '../zoneNavigateurProprietaire';
 vi.mock('../api', async (original) => ({
   ...await original<typeof import('../api')>(),
   getZones: vi.fn(), getQueue: vi.fn(), play: vi.fn(), resume: vi.fn(),
-  getRadios: vi.fn(), playRadio: vi.fn(),
+  getRadios: vi.fn(), playRadio: vi.fn(), getConfig: vi.fn(async () => ({ radios_country: '' })),
 }));
 
 class AudioTemoin extends EventTarget {
@@ -60,6 +61,7 @@ function differee<T>() {
 }
 
 beforeEach(() => {
+  clearViewContext('radios');
   vi.clearAllMocks();
   vi.stubGlobal('Audio', AudioTemoin);
   vi.stubGlobal('WebSocket', SocketTemoin);

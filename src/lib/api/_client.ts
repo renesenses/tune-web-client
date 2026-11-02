@@ -4,9 +4,11 @@
 import { notifications } from '../stores/notifications';
 import { getToken, clearToken } from '../auth';
 import { profileHeader } from '../profileHeader';
+import { corpsJson, fusionnerEntetes } from '../fusionEntetes';
 import { messageRefusPremium, type CorpsRefusPremium } from '../premiumRefus';
 import { estRefusEcriture, messageRefusEcriture } from '../ecritureFichiers';
 import { baseApi, entetesRelais } from '../bridge';
+import { CODE_REFUS_PAYS_RADIO, messageRefusPaysRadio } from '../refusPaysRadio';
 
 // Même base que `api.ts` : `/api/v1` en local, `/api/relay/{id}` par le pont.
 export const BASE = baseApi();
@@ -23,6 +25,10 @@ async function apiError(response: Response): Promise<Error> {
   let detail = `${response.status} ${response.statusText}`;
   try {
     const body = await response.json();
+    const refusPays = messageRefusPaysRadio(body);
+    if (refusPays) {
+      return Object.assign(new Error(refusPays), { status: response.status, code: CODE_REFUS_PAYS_RADIO });
+    }
     // `detail` : anciens handlers. `error` : le format d'AppError côté serveur,
     // dont le message est souvent la seule explication actionnable ("destination
     // hors des dossiers musicaux configurés") — le perdre laissait l'UI avec un
@@ -46,14 +52,15 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       // chose a envoyer. Ce jumeau sert `api/metadata.ts` : `startAutoFix`
       // poste sans corps, et l'en-tete faisait echouer l'extracteur
       // `Option<Json<...>>` du serveur en 400 « EOF while parsing a value ».
-      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
+      ...(corpsJson(options?.body) ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    // #7532 — fusion, plus remplacement (voir `fusionEntetes.ts`).
     response = await fetch(url, {
-      headers,
       ...options,
+      headers: fusionnerEntetes(headers, options?.headers),
     });
   } catch (e) {
     showNetworkError();

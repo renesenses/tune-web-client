@@ -516,16 +516,28 @@ export interface NowPlaying {
   version?: import('./versionJouee').VersionJoueeServeur | null;
 }
 
+/** État reçu de l'appareil, distinct de toute consigne (#2457 / serveur #6912). */
+export interface DeviceVolumeObservation {
+  device_id: string;
+  volume: number;
+  volume_db: number;
+  muted: boolean;
+}
+
 export interface Zone {
   id: number | null;
   name: string;
   output_type?: OutputType;
   output_device_id?: string | null;
   volume?: number;
+  /** Capacités annoncées par la sortie ; absence = serveur ancien, pas un refus. */
+  output_capabilities?: import('./capacitesVolumeSortie').CapacitesVolumeSortie | null;
   /** tune-server-rust#6787 — loi du volume : `db60` (sortie logicielle, le
    *  volume est une position sur une loi en dB) ou `linear` (appareil). Absent
    *  sur un serveur antérieur : linéaire. Voir `lib/courbeDeVolume.ts`. */
   volume_curve?: string | null;
+  /** Lecture seule ; absent sur les serveurs anciens, null sans annonce fraîche. */
+  device_volume_observation?: DeviceVolumeObservation | null;
   /** Sourdine de la zone (`SetMute`), indépendante du volume (#6700). */
   muted?: boolean;
   group_id?: string | null;
@@ -665,6 +677,13 @@ export interface Zone {
    *  clé absente = serveur antérieur. */
   volume_limit_safety?: number | null;
   volume_limit_safety_db?: number | null;
+  /** tune-server-rust#6918 — la course en dB d'une sortie qui règle son volume
+   *  en dB (`min_db`, `max_db`, `step_db`, …) ; `null` sinon, absent sur un
+   *  serveur antérieur. Sert au curseur en dB (web#7517). */
+  device_volume_range?: { min_db: number; max_db: number; step_db: number; floor_db?: number; ceiling_db?: number } | null;
+  device_volume_db?: number | null;
+  volume_limit_safety_device_db?: number | null;
+  volume_limit_comfort_device_db?: number | null;
   /** tune-server-rust#6541 — limite de CONFORT : au-dessus, seuls les boutons
    *  + / − font monter le volume, pas le curseur. */
   volume_limit_comfort?: number | null;
@@ -996,6 +1015,24 @@ export interface CataloguePlaylist {
 export interface FederatedSearchResult {
   local: SearchResult;
   services: Record<string, SearchResult>;
+  /**
+   * « Mes radios » qui répondent à la requête (`routes/search.rs`, depuis
+   * longtemps). Optionnel : un serveur plus ancien ne l'envoie pas.
+   */
+  radios?: RadioStation[];
+  /**
+   * #7045 — l'annuaire des radios (`FicheAnnuaireRadio`, la forme de
+   * `GET /radios/directory`), aperçu borné : `total` dit combien existent,
+   * `has_more` qu'il y en a davantage. ABSENT d'un serveur antérieur à la
+   * rc9 — l'écran ne montre alors que « Mes radios ».
+   */
+  radios_annuaire?: {
+    total: number;
+    count?: number;
+    has_more?: boolean;
+    origine?: string;
+    items: import('./api/annuaireRadios').FicheAnnuaireRadio[];
+  };
 }
 
 export interface FeaturedSection {
@@ -1542,6 +1579,10 @@ export interface RadioStation {
   genre_label?: string | null;
   homepage_url?: string | null;
   favorite: boolean;
+  /** Dernière lecture (ISO-8601) : le nom que `GET /radios` envoie (#2397). */
+  last_played?: string | null;
+  /** Nom attendu à tort jusqu'à #2397 ; gardé en repli. */
+  last_played_at?: string | null;
   /**
    * La fiche de l'annuaire radio-metadata.fr rapprochée de cette station
    * (tune-server-rust#6516) : par adresse de flux, sinon par nom. Absente pour
@@ -1560,7 +1601,26 @@ export interface RadioStation {
      *  adresse de flux : l'écran PROPOSE de la reprendre, rien ne change seul. */
     flux_change?: boolean;
     stream_url_annuaire?: string | null;
+    /** Catégories de la fiche (leurs `slug`), tune-server-rust#7177. */
+    categories?: string[];
+    /** Les flux publiés de la fiche, le principal d'abord (#7177). */
+    streams?: FluxRadio[];
   } | null;
+}
+
+/**
+ * Un flux publié d'une fiche de l'annuaire (tune-server-rust#7177) : la fiche
+ * « Voir » (web#2443) les liste et laisse choisir le flux préféré.
+ */
+export interface FluxRadio {
+  url: string;
+  /** `AAC`, `MP3`, `FLAC`… tel que l'annuaire l'écrit. */
+  codec?: string | null;
+  bitrate?: number | null;
+  sample_rate?: number | null;
+  hls?: boolean;
+  /** Le flux principal de la fiche. */
+  primary?: boolean;
 }
 
 export interface RadioImportResult {

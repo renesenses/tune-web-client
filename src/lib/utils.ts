@@ -1,3 +1,4 @@
+import { estMessageGenerique } from './messageServeur';
 /** Format milliseconds as m:ss */
 export function formatTime(ms: number | undefined | null): string {
   if (!ms || ms < 0) return '0:00';
@@ -460,6 +461,9 @@ export async function copyText(text: string): Promise<boolean> {
 export function errText(e: unknown): string | null {
   const m = e instanceof Error ? e.message : String(e ?? '');
   if (/^(Failed to fetch|Load failed|NetworkError)/i.test(m)) return null;
+  // #2417 — le message générique d'un refus serveur n'apprend rien de plus
+  // que la phrase de l'écran : l'appelant affiche alors la sienne.
+  if (estMessageGenerique(m)) return null;
   return m || null;
 }
 

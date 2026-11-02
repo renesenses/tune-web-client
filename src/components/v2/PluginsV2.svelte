@@ -1,5 +1,8 @@
 <script lang="ts">
+  import DetailsServeur from '../partages/DetailsServeur.svelte';
+  import { detailServeur } from '../../lib/messageServeur';
   import { publierGreffons } from '../../lib/stores/greffonsStudio';
+  import { audiophileEnabled } from '../../lib/stores/audiophile';
   import { t } from '../../lib/i18n';
   /**
    * Extensions — nouveau client (direction Levente). Niveau Expert.
@@ -22,9 +25,11 @@
   import { activeView } from '../../lib/stores/navigation';
   import { refreshConcertsPlugin } from '../../lib/stores/concerts';
   import { refreshCirclePlugin } from '../../lib/circle';
+  import { refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
   import { estRefusPremium } from '../../lib/premiumRefus';
   import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import { sonderCrossfeedPro } from '../../lib/stores/crossfeedPro';
+  import { sonderCrosstalk } from '../../lib/stores/crosstalk';
   import { NOMS_GREFFONS_SDK } from '../../lib/greffonEntreeAudio';
   import {
     greffonsNatifsTiers, etatDeChargement, ecranDuGreffon, NOMS_GREFFONS_NATIFS,
@@ -35,6 +40,8 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import { notifications } from '../../lib/stores/notifications';
   import '../../styles/tune-v2.css';
+
+  const DSP_PURE = new Set(['equalizer', 'crossfeed', 'converter', 'declick', 'channel-remap']);
 
   let plugins = $state<MergedPlugin[]>([]);
   let loading = $state(true);
@@ -55,6 +62,7 @@
     catch { natifs = []; }
     // L'entrée « Crossfeed Pro » de la barre suit, comme Concerts et Circle.
     void sonderCrossfeedPro(null);
+    void sonderCrosstalk(null);
   }
   /**
    * Les greffons natifs du catalogue de mozaiklabs pas encore installés
@@ -145,6 +153,8 @@
    */
   let desinstallation = $state<string | null>(null);
   let refusDesinstallation = $state<Record<string, string>>({});
+  /** #2417 — le motif technique du refus, rendu replié sous la phrase. */
+  let detailDesinstallation = $state<Record<string, string>>({});
   async function desinstaller(g: api.GreffonAudioNatif) {
     if (desinstallation || !g.third_party) return;
     const nom = NOMS_GREFFONS_NATIFS[g.id] ? $t(NOMS_GREFFONS_NATIFS[g.id] as any) : g.id;
@@ -164,6 +174,7 @@
       await relireNatifs();
     } catch (e) {
       refusDesinstallation = { ...refusDesinstallation, [g.id]: errText(e) ?? $t('v2.plug.unavailable' as any) };
+      detailDesinstallation = { ...detailDesinstallation, [g.id]: detailServeur(e) };
     }
     desinstallation = null;
   }
@@ -191,6 +202,8 @@
       // Idem pour « Tune Circle » : activer ou désactiver le greffon ici fait
       // apparaître ou disparaître son entrée sur-le-champ.
       void refreshCirclePlugin();
+      // Et pour « Ma collection physique » (tune-server-rust#7195).
+      void refreshCollectionPhysiquePlugin();
     }
     catch { error = $t('v2.plug.unavailable' as any); }
     loading = false;
@@ -305,7 +318,8 @@
     {:else}
       <div class="list">
         {#each filtered as p (key(p))}
-          <article class="pl" class:err={p.status === 'error'}>
+          {@const contourne = $audiophileEnabled && isActive(p) && DSP_PURE.has(p.name)}
+          <article data-plugin={p.name} class="pl" class:err={p.status === 'error'}>
             <div class="pi">
               <div class="ph">
                 <!-- tune-server-rust#5296 : un nom traduit pour les greffons dont
@@ -320,6 +334,11 @@
               <!-- Le serveur ne rend que le nom technique et une phrase anglaise
                    pour les greffons natifs : Concerts porte les siens, traduits. -->
               <p class="pd">{p.name === 'concerts' ? $t('concerts.greffonDescription' as any) : p.description}</p>
+              {#if contourne}
+                <p role="note" data-pure-bypass>{$t('v2.plug.pureBypassed' as any)}
+                  <button class="lnk" onclick={() => activeView.set('nowplaying')}>{$t('audiophile.pure' as any)}</button>
+                </p>
+              {/if}
               {#if p.author}<div class="pa">{p.author}</div>{/if}
               {#if !p.compatible && (p.min_tune_version || p.max_tune_version)}
                 <div class="why">
@@ -361,8 +380,11 @@
                 {#if p.name === 'circle' && isActive(p)}
                   <button class="lnk ouvrir-circle" onclick={() => activeView.set('circle')}>{$t('common.open' as any)}</button>
                 {/if}
-                <label class="sw" title={isActive(p) ? $t('settings.disable' as any) : $t('plugins.enable' as any)}>
-                  <input type="checkbox" checked={isActive(p)} disabled={busy === key(p)} onchange={() => toggle(p)} />
+                {#if p.name === 'collection-physique' && isActive(p)}
+                  <button class="lnk ouvrir-collection-physique" onclick={() => activeView.set('collectionphysique')}>{$t('common.open' as any)}</button>
+                {/if}
+                <label class="sw" title={contourne ? $t('v2.plug.pureBypassed' as any) : isActive(p) ? $t('settings.disable' as any) : $t('plugins.enable' as any)}>
+                  <input type="checkbox" checked={isActive(p) && !contourne} disabled={contourne || busy === key(p)} onchange={() => toggle(p)} />
                   <span class="slider"></span>
                 </label>
                 {#if p.update_available}
@@ -435,6 +457,7 @@
               {#if refusInstallation[g.id]}<div class="why bad" data-refus>{$t(refusInstallation[g.id] as any)}</div>{/if}
               {#if refusDesinstallation[g.id]}
                 <div class="why bad" data-refus-desinstallation>{refusDesinstallation[g.id]} — {$t('v2.plug.nativeUninstallFailed' as any)}</div>
+                <DetailsServeur detail={detailDesinstallation[g.id]} />
               {/if}
             </div>
             <div class="pact">

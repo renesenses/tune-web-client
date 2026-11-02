@@ -36,6 +36,9 @@ const ANCIEN_DEFAUT: Locale = 'fr';
 /** La langue quand le navigateur n'en propose aucune que l'interface parle. */
 export const LANGUE_DE_REPLI: Locale = 'en';
 
+/** Le norvégien s annonce `no` (ou `nn`, nynorsk, faute de mieux) : bokmål. */
+const ALIAS: Record<string, string> = { no: 'nb', nn: 'nb' };
+
 export function estLocale(v: unknown): v is Locale {
   return typeof v === 'string' && Object.prototype.hasOwnProperty.call(CHARGEURS, v);
 }
@@ -51,7 +54,7 @@ export function langueDuNavigateur(
   const etiquettes = [...(nav?.languages ?? []), nav?.language];
   for (const e of etiquettes) {
     if (typeof e !== 'string' || !e) continue;
-    const base = e.trim().toLowerCase().split(/[-_]/)[0];
+    const base = ALIAS[e.trim().toLowerCase().split(/[-_]/)[0]] ?? e.trim().toLowerCase().split(/[-_]/)[0];
     if (estLocale(base)) return base;
   }
   return LANGUE_DE_REPLI;

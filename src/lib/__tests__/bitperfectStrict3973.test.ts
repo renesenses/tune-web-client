@@ -17,7 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 import * as api from '../api';
-import { locale } from '../i18n';
+import { locale, t } from '../i18n';
 import { notifications } from '../stores/notifications';
 import { signalerErreurServeur } from '../echecLecture';
 import NowPlaying from '../../components/partages/NowPlaying.svelte';
@@ -118,9 +118,11 @@ describe('#3973 — refus asynchrone : `zone.playback_error` avec `code`', () =>
     expect(m).toContain('à 22,05 kHz');
   });
 
-  it('code inconnu : repli sur le texte du serveur, inchangé', () => {
+  it('code inconnu : repli traduit, le texte du serveur au détail (#2417)', () => {
     signalerErreurServeur(evenement({ code: 'autre_chose', error: 'Sortie indisponible' }));
-    expect(derniereNotification()).toBe('Sortie indisponible');
+    const l = get(notifications);
+    expect(derniereNotification()).toBe(get(t)('library.playbackError'));
+    expect(l[l.length - 1]?.detail).toContain('Sortie indisponible');
   });
 });
 

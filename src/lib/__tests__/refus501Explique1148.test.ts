@@ -42,6 +42,9 @@
  * Chaque garde a sa contre-épreuve : un VRAI 5xx (500, 502, 503) doit
  * continuer d'alerter, partout. Sans elle, on aurait éteint l'alarme.
  */
+import { attendreDetailsReplie } from './detailsReplies2417';
+import { get } from 'svelte/store';
+import { t } from '../i18n';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 
@@ -90,11 +93,13 @@ describe('fetchVoid — un 501 sur une écriture', () => {
     expect(erreurs(), `bandeau rouge levé : ${erreurs().join(' | ')}`).toEqual([]);
   });
 
-  it("dit quand même la phrase du serveur — une écriture qui n'a pas eu lieu ne se tait pas", async () => {
+  it("le dit quand même — une écriture qui n'a pas eu lieu ne se tait pas", async () => {
     repond(501, MOTIF);
     await expect(ecrire()).rejects.toBeTruthy();
-    // Pas de silence : l'appelant d'une écriture ne rend rien, lui.
-    expect(toasts.map((t) => t.msg).join(' | ')).toContain(MOTIF);
+    // Pas de silence : l'appelant d'une écriture ne rend rien, lui. #2417 :
+    // le message traduit, la phrase brute du serveur au « Détails ».
+    expect(toasts.length).toBe(1);
+    expect(toasts.map((t) => t.msg).join(' | ')).not.toContain(MOTIF);
   });
 
   it('REJETTE toujours — l’appelant garde la main', async () => {
@@ -102,7 +107,7 @@ describe('fetchVoid — un 501 sur une écriture', () => {
     let attrape: any = null;
     try { await ecrire(); } catch (e) { attrape = e; }
     expect(attrape?.status).toBe(501);
-    expect(String(attrape?.message)).toContain('Bandcamp');
+    expect(String(attrape?.detail)).toContain('Bandcamp');
   });
 
   /** 🔴 L'AUTRE SENS. Élargir l'exception ferait taire les vraies pannes. */
@@ -112,7 +117,7 @@ describe('fetchVoid — un 501 sur une écriture', () => {
       repond(st, 'panne');
       await expect(ecrire()).rejects.toBeTruthy();
       expect(erreurs().length, `status ${st}`).toBe(1);
-      expect(erreurs()[0], `status ${st}`).toContain('Server error');
+      expect(erreurs()[0], `status ${st}`).toContain(get(t)('erreursServeur.generique'));
     }
   });
 });
@@ -174,11 +179,14 @@ describe('Écran Playlists — un service qui ne fournit pas de playlists', () =
     expect(erreurs(), `bandeau levé : ${erreurs().join(' | ')}`).toEqual([]);
   });
 
-  it("dit à l'écran POURQUOI Bandcamp n'est pas là, avec la phrase du serveur", async () => {
+  it("dit POURQUOI Bandcamp n'est pas là, dans sa langue ; la phrase du serveur repliée (#2417)", async () => {
     serveur(501);
     await ouvrirEcran();
-    // Ni bandeau rouge, ni silence : l'écran porte l'explication du serveur.
-    expect(target.textContent ?? '').toContain(MOTIF);
+    attendreDetailsReplie(
+      target,
+      get(t)('v2.pl.serviceNoPlaylists' as any).replace('{s}', 'Bandcamp'),
+      MOTIF,
+    );
   });
 
   it("n'empêche pas les autres services de s'afficher", async () => {
@@ -192,7 +200,7 @@ describe('Écran Playlists — un service qui ne fournit pas de playlists', () =
     serveur(503, 'passerelle injoignable');
     await ouvrirEcran();
     expect(erreurs().length, `bandeaux : ${erreurs().join(' | ')}`).toBe(1);
-    expect(erreurs()[0]).toContain('Server error');
+    expect(erreurs()[0]).toContain(get(t)('erreursServeur.generique'));
     // Une panne n'est pas « ce service ne fait pas ça » : pas de note calme.
     expect(target.textContent ?? '').not.toContain('passerelle injoignable');
   });

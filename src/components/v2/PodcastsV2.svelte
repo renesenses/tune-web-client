@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { etatSourceRadioFrance } from '../../lib/radioFranceSource';
   /**
@@ -26,6 +27,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { fold, formatDuration } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import CartePodcasts from './CartePodcasts.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { PODCAST_GENRES, sousCategories } from '../../lib/podcast-genres';
   import { t } from '../../lib/i18n';
@@ -37,7 +39,8 @@
   const showDiscover = $derived(atLeast(level, 'intermediate'));
   const showExpert = $derived(atLeast(level, 'expert'));
 
-  type Tab = 'subs' | 'discover' | 'search';
+  /** web#2450 — `map` : la carte des émissions par pays et par catégorie. */
+  type Tab = 'subs' | 'discover' | 'search' | 'map';
   /**
    * DÉCOUVRIR en premier — décision de Bertrand du 02/09/2026, et c'est aussi
    * l'onglet par défaut de l'écran actuel. Ouvrir sur des abonnements vides ne
@@ -56,6 +59,7 @@
   /** Pays pour lequel la découverte est déjà chargée. */
   let discoverCharge: string | null = null;
   let error = $state<string | null>(null);
+  let errorDetail = $state('');
 
   // Émission ouverte + ses épisodes.
   let opened = $state<any | null>(null);
@@ -66,7 +70,7 @@
   $effect(() => {
     api.getPodcastSubscriptions()
       .then((r) => { subs = r ?? []; })
-      .catch(() => { error = $t('v2.pod.subsUnavailable' as any); })
+      .catch(() => { errorDetail = ''; error = $t('v2.pod.subsUnavailable' as any); })
       .finally(() => { subsLoading = false; });
   });
 
@@ -514,7 +518,7 @@
         cover_url: ep.cover_url || show.cover_url || '',
       }));
     } catch {
-      error = $t('v2.pod.episodesUnavail' as any);
+      errorDetail = ''; error = $t('v2.pod.episodesUnavail' as any);
     }
     epLoading = false;
   }
@@ -539,9 +543,9 @@
       if (cle) {
         // Rien à montrer : la fiche vide se referme, la raison reste.
         if (opened === p) opened = null;
-        error = $t(cle as any);
+        errorDetail = ''; error = $t(cle as any);
       } else {
-        error = $t('v2.pod.episodesUnavail' as any);
+        errorDetail = ''; error = $t('v2.pod.episodesUnavail' as any);
       }
     }
     epLoading = false;
@@ -549,7 +553,7 @@
 
   async function playEpisode(ep: any) {
     const zid = $currentZoneId;
-    if (zid == null) { error = $t('v2.lib.noActiveZone' as any); return; }
+    if (zid == null) { errorDetail = ''; error = $t('v2.lib.noActiveZone' as any); return; }
     // tune-server-rust#6468 — l'épisode ne s'allume « en lecture » qu'APRÈS
     // une réponse 2xx. Il s'allumait avant l'appel, et restait allumé deux
     // secondes sur un refus de l'enceinte : l'écran disait le contraire du
@@ -559,11 +563,13 @@
       audio_url: ep.audio_url,
       title: ep.title,
       podcast_name: title(opened),
-      cover_url: ep.cover_url ?? cover(opened) ?? undefined,
+      podcast_id: String(opened.feed_url ?? opened.source_id ?? opened.id ?? title(opened)),
+      cover_url: cover(opened) ?? ep.cover_url ?? undefined,
       duration_ms: ep.duration_ms,
     });
-    if (!issue.ok) { error = issue.message; return; }
+    if (!issue.ok) { error = issue.message; errorDetail = issue.detail ?? ''; return; }
     error = null;
+    errorDetail = '';
     playingUrl = ep.audio_url;
     setTimeout(() => { if (playingUrl === ep.audio_url) playingUrl = null; }, 2000);
   }
@@ -640,7 +646,7 @@
         }
       }
     } catch (e) {
-      error = $t((cleEchecResolution(e) ?? 'v2.pod.subscribeFailed') as any);
+      errorDetail = ''; error = $t((cleEchecResolution(e) ?? 'v2.pod.subscribeFailed') as any);
     } finally {
       basculeEnCours = false;
     }
@@ -669,7 +675,7 @@
         <input placeholder={$t('v2.pod.filterSubs' as any)} aria-label={$t('v2.pod.filterSubs' as any)} bind:value={q} />
       </div>
     {/if}
-    {#if showDiscover && tab !== 'subs'}
+    {#if showDiscover && tab !== 'subs' && tab !== 'map'}
       <!-- Le PAYS commande les palmarès ET la recherche : les deux
            interrogent l'iTunes Store d'un pays donné. -->
       <!-- La langue reste VISIBLE en permanence, comme sur l'écran actuel :
@@ -708,12 +714,13 @@
         <button class:on={tab === 'discover'} onclick={() => (tab = 'discover')}>{$t('v2.pod.tabDiscover' as any)}</button>
         <button class:on={tab === 'subs'} onclick={() => (tab = 'subs')}>{$t('v2.pod.tabSubs' as any)}</button>
         <button class:on={tab === 'search'} onclick={() => (tab = 'search')}>{$t('v2.pod.search' as any)}</button>
+        <button class:on={tab === 'map'} onclick={() => (tab = 'map')}>{$t('v2.pod.tabMap' as any)}</button>
       </nav>
     {/if}
     </div>
   </header>
 
-  {#if error}<div class="err" role="status">{error}<button onclick={() => (error = null)} aria-label={$t('v2.common.close' as any)}>×</button></div>{/if}
+  {#if error}<div class="err" role="status">{error}<button onclick={() => (error = null)} aria-label={$t('v2.common.close' as any)}>×</button></div><DetailsServeur detail={errorDetail} />{/if}
 
   <div class="scroll">
     {#if tab === 'subs'}
@@ -730,6 +737,11 @@
           {/each}
         </div>
       {/if}
+
+    {:else if tab === 'map'}
+      <!-- web#2450 — la carte ouvre la MÊME fiche d'épisodes et le MÊME
+           abonnement que les autres onglets. -->
+      <CartePodcasts onOuvrir={(p) => openPodcast(p)} onAbonner={(p, e) => toggleSub(p, e)} estAbonne={(p) => isSubscribed(p)} />
 
     {:else if tab === 'search'}
       <form class="rech" onsubmit={(e) => { e.preventDefault(); void chercher(); }}>

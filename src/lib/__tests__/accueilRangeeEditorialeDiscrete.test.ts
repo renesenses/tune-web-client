@@ -38,6 +38,8 @@
  * une route NON éditoriale lève toujours son bandeau. Élargir l’exception
  * ferait taire les vraies pannes.
  */
+import { get } from 'svelte/store';
+import { t } from '../i18n';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const toasts: string[] = [];
@@ -128,6 +130,9 @@ describe('accueil : une rangée éditoriale en échec reste discrète', () => {
     repond(500, 'boom');
     await expect(api.getStreamingPlaylists('qobuz')).rejects.toBeTruthy();
     expect(toasts.length).toBe(1);
-    expect(toasts[0]).toContain('Server error');
+    // #2417 — le bandeau dit le message générique traduit, plus « Server
+    // error: <texte brut> » en anglais.
+    expect(toasts[0]).toContain(get(t)('erreursServeur.generique'));
+    expect(toasts[0]).not.toContain('boom');
   });
 });

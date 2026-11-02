@@ -13,6 +13,11 @@
  *   DELETE /me/location                   → 204
  *   GET    /contacts/locations            → 200 [{ contact_id, label, country_code, lat, lon }]
  *
+ *   GET    /world/points                  → 200 [{ lat, lon }] (rc9, décision du 26/10)
+ *   GET    /me/public-map-opt-out         → 200 { public_map_opt_out } (rc9)
+ *   PUT    /me/public-map-opt-out         → 200 { public_map_opt_out: true }  « me retirer »
+ *   DELETE /me/public-map-opt-out         → 200 { public_map_opt_out: false } « revenir »
+ *
  * Codes du cloud relayés tels quels ; cloud injoignable → 503.
  *
  * Dégradé (contrat) : un serveur plus ancien n'a pas ces routes — 404 sur
@@ -78,6 +83,66 @@ export async function lireLieuxContacts(): Promise<Map<number, Lieu>> {
     }
   } catch { /* rien : le globe montre ce qu'il sait */ }
   return m;
+}
+
+// ── Carte publique (rc9, décision de Bertrand du 26/10/2026) ─────────────
+//
+// Tous les comptes qui ont posé leur ville, sauf ceux qui s'en retirent, en
+// points ANONYMES : le cloud arrondit à 1°, rend un point par case et tait les
+// cases de moins de 3 comptes. Aucun nom, aucun identifiant, aucune présence.
+// Le client n'en garde que `lat`/`lon`, réarrondis au degré, dédoublonnés :
+// un champ de plus venu du cloud ne s'afficherait pas.
+
+/** Pas de la carte publique, en degrés (plus grossier que le 0,5° des contacts). */
+export const PAS_CARTE_PUBLIQUE = 1;
+
+export interface PointPublic { lat: number; lon: number }
+
+const auDegre = (x: number) => { const r = Math.round(x / PAS_CARTE_PUBLIQUE) * PAS_CARTE_PUBLIQUE; return r === 0 ? 0 : r; };
+
+/** Les points lisibles, au degré, sans doublon, réduits à `{ lat, lon }`. */
+export function pointsPublicsValides(b: unknown): PointPublic[] {
+  const liste: any[] = Array.isArray(b) ? b : [];
+  const vus = new Set<string>();
+  const out: PointPublic[] = [];
+  for (const x of liste) {
+    const lat = Number(x?.lat);
+    const lon = Number(x?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+    const p = { lat: auDegre(lat), lon: auDegre(lon) === 180 ? -180 : auDegre(lon) };
+    const k = `${p.lat}|${p.lon}`;
+    if (vus.has(k)) continue;
+    vus.add(k);
+    out.push(p);
+  }
+  return out;
+}
+
+/** Les points de la carte publique. Serveur plus ancien (404) ou panne : aucun. */
+export async function lirePointsPublics(): Promise<{ relais: EtatRelais; points: PointPublic[] }> {
+  try {
+    return { relais: 'ok', points: pointsPublicsValides(await lire<unknown>(`${BASE}/ext/circle/world/points`)) };
+  } catch (e) {
+    return { relais: statut(e) === 404 ? 'absent' : 'indisponible', points: [] };
+  }
+}
+
+/** Suis-je retiré de la carte publique ? `null` : route absente ou panne (l'interrupteur se cache). */
+export async function lireRetraitCarte(): Promise<boolean | null> {
+  try {
+    const b = await lire<{ public_map_opt_out?: unknown }>(`${BASE}/ext/circle/me/public-map-opt-out`);
+    return typeof b?.public_map_opt_out === 'boolean' ? b.public_map_opt_out : null;
+  } catch {
+    return null;
+  }
+}
+
+/** « Me retirer de la carte publique » : `true` = PUT (retrait), `false` = DELETE (retour). Effectif tout de suite. */
+export async function changerRetraitCarte(retire: boolean): Promise<boolean> {
+  const b = await fetchJSON<{ public_map_opt_out?: unknown }>(
+    `${BASE}/ext/circle/me/public-map-opt-out`, { method: retire ? 'PUT' : 'DELETE' }, undefined, true,
+  );
+  return typeof b?.public_map_opt_out === 'boolean' ? b.public_map_opt_out : retire;
 }
 
 /** Ce que je saisis : le libellé est libre, la position vient d'un clic ou de deux champs. */

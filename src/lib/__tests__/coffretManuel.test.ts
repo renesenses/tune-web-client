@@ -194,7 +194,7 @@ describe('le contrat, et ce qui le distingue des voisins', () => {
   it('les six clés existent dans les ONZE langues', () => {
     const cles = ['v2.meta.tabCoffret', 'v2.meta.boxIntro', 'v2.meta.boxCompose',
                   'v2.meta.boxOrder', 'v2.meta.boxDisc', 'v2.meta.boxDone'];
-    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el']) {
+    for (const l of ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'zh', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl']) {
       const s = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
       for (const c of cles) expect(s, `${l} : ${c}`).toContain(`"${c}"`);
     }

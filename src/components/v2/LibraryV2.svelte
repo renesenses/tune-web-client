@@ -45,6 +45,10 @@
    * un serveur UPnP tiers.
    */
   import { albums, libraryLoading, libraryFolderScope } from '../../lib/stores/library';
+  // tune-server-rust#7597 — le bouton « Répertoire » et la lecture du dossier.
+  import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
+  import { choisirDossierBibliotheque, restaurerDossierBibliotheque, suivreLeRetraitDeLaPortee } from '../../lib/dossierBibliotheque';
+  import { lireDossier, ajouterDossierALaFile } from '../../lib/lectureDossier';
   // 🔴 renesenses/tune-server-rust#4800 — la grille se sert PAR PAGES. La
   // coquille ne charge plus la bibliothèque entière au démarrage ; cet écran
   // demande ses pages au défilement et au saut A–Z, et ne demande la liste
@@ -135,7 +139,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import BasculeAffichage from './BasculeAffichage.svelte';
   import { AFFICHAGES, GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
   import ArtistesDuLabel from './ArtistesDuLabel.svelte';
-  import { carteDesLogos, logoDuLabel, monogramme, VUES_LABELS, CLE_VUE_LABELS, type VueLabels } from '../../lib/logosLabels';
+  import { carteDesLogos, carteDesCredits, creditDuLabel, texteDuCredit, logoDuLabel, monogramme, VUES_LABELS, CLE_VUE_LABELS, type VueLabels } from '../../lib/logosLabels';
+  import type { LabelImageCredit } from '../../lib/api';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';
@@ -152,6 +157,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import {
     albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant } from '../../lib/tuneRemote';
   import { gestionnaireFrappeVersRecherche } from '../../lib/frappeVersRecherche';
+  import { clicDansUnMenu } from '../../lib/clicDansUnMenu';
   import '../../styles/tune-v2.css';
 
   let { depot = null }: { depot?: DepotDistant | null } = $props();
@@ -234,6 +240,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function retirerPortee() {
     libraryFolderScope.set(null);
   }
+  // #7597 — au retour dans la Bibliothèque, le dernier dossier choisi par le
+  // bouton « Répertoire » revient ; une portée déjà posée (arrivée depuis
+  // Répertoires) prime. Une seule fois, au montage. Retirer la pastille
+  // pendant que l'écran vit l'oublie (`suivreLeRetraitDeLaPortee`).
+  if (!untrack(() => depot)) restaurerDossierBibliotheque();
+  $effect(() => suivreLeRetraitDeLaPortee());
 
   /**
    * renesenses/tune-server-rust#4319 (fil 1817) — la RECHERCHE de la
@@ -530,8 +542,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function ddClose() { ddOpen = null; }
   // Un menu ouvert au clic doit se refermer au clic AILLEURS, sinon il reste
   // planté par-dessus la grille. `.drop` couvre le chip ET son menu.
+  //
+  // 🔴 tune-server-rust#7597 (Bertrand, 01/11/2026 sur le .18) — « impossible
+  // de sélectionner un sous-dossier, aussi bien en Albums qu'en Pistes ».
+  // Descendre d'un niveau dans le panneau « Répertoire » REMPLACE la liste :
+  // le bouton cliqué est retiré du DOM avant que le clic n'arrive ici (dans
+  // un vrai navigateur, Svelte vide ses effets entre l'écouteur délégué et
+  // celui de `window`). `e.target.closest('.drop')` rendait alors `null`, le
+  // clic passait pour un clic DEHORS et le panneau se refermait : on ne
+  // pouvait ni descendre ni appliquer. `composedPath()` est figé au départ
+  // du clic : il garde les ancêtres d'un nœud retiré entre-temps.
   function ddDehors(e: MouseEvent) {
-    if (ddOpen && !(e.target as HTMLElement)?.closest('.drop')) ddClose();
+    if (ddOpen && !clicDansUnMenu(e)) ddClose();
   }
   function ddEchap(e: KeyboardEvent) { if (e.key === 'Escape') ddClose(); }
 
@@ -1027,10 +1049,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    *  trouvé entre-temps apparaît à l'ouverture suivante. Jamais pour un dépôt
    *  distant : ses labels ne sont pas les nôtres. */
   let logosLabels = $state.raw<Map<string, string>>(new Map());
+  // tune-server-rust#7089 — la source et la licence connue de chaque logo.
+  let creditsLabels = $state.raw<Map<string, LabelImageCredit>>(new Map());
   $effect(() => {
     if (tab !== 'labels' || depot) return;
     let vivant = true;
-    api.getLibraryLabels().then((l) => { if (vivant) logosLabels = carteDesLogos(l); });
+    api.getLibraryLabels().then((l) => { if (vivant) { logosLabels = carteDesLogos(l); creditsLabels = carteDesCredits(l); } });
     return () => { vivant = false; };
   });
 
@@ -2846,6 +2870,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         <button onclick={retirerPortee} aria-label={$tr('v2.lib.scopedClear' as any)}
           title={$tr('v2.lib.scopedClear' as any)}>×</button>
       </span>
+      <!-- #7597 — le dossier ENTIER, sous-dossiers compris, dans l'ordre :
+           la liste est construite par le serveur, pas par cet écran, qui
+           n'en tient que des pages. -->
+      <button class="v2-btn" data-dossier-lire disabled={$currentZoneId == null}
+        onclick={() => lireDossier($currentZoneId, dossierPortee)}>{$tr('browse.playAllRecursive' as any)}</button>
+      <button class="v2-btn" data-dossier-ajouter disabled={$currentZoneId == null}
+        onclick={() => ajouterDossierALaFile($currentZoneId, dossierPortee)}>{$tr('browse.addAllRecursive' as any)}</button>
     </div>
   {/if}
 
@@ -2911,6 +2942,24 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
               <button class:on={fProvenance === cle} onclick={() => { fProvenance = fProvenance === cle ? null : cle; ddClose(); }}>{libelleProvenance(cle)} <em>{comptesSourcesEnCharge || !comptesPrets ? "…" : n}</em></button>
             {/each}
           </div>
+        </div>
+      {/if}
+      {#if showSearch && !depot}
+        <!-- #7597 (suite) — RÉPERTOIRE : poser la portée de dossier sans
+             passer par l'écran Répertoires. Même magasin (`libraryFolderScope`),
+             même pastille. Le panneau n'existe qu'ouvert : il interroge le
+             serveur, il ne doit pas le faire au simple survol. -->
+        <div class="drop" class:open={ddOpen === 'repertoire'}>
+          <button class="chip" data-choix-repertoire class:active={porteeActive} aria-haspopup="dialog" aria-expanded={ddOpen === 'repertoire'}
+            onclick={() => (ddOpen = ddOpen === 'repertoire' ? null : 'repertoire')}>{$tr('v2.lib.folder' as any)}{#if porteeActive}&nbsp;· {nomPortee}{/if}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+          {#if ddOpen === 'repertoire'}
+            <div class="menu">
+              <ChoixRepertoireBibliotheque courant={dossierPortee}
+                onChoisir={(d) => { choisirDossierBibliotheque(d); ddClose(); }}
+                onToute={() => { retirerPortee(); ddClose(); }} />
+            </div>
+          {/if}
         </div>
       {/if}
     {#if showFilters}
@@ -3240,7 +3289,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            par titre, à cette lettre. Pas de `navMode` ici : cet onglet n'a
            pas de frise. -->
       {@render railAZ()}
-      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display} />
+      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display}
+        porteeActive={porteeActive && !depot} idsPortee={idsPortee} />
     {:else if tab === 'coffrets'}
       <!-- Le clic ouvre la fiche d'album habituelle : celle qui, depuis la
            v0.9.162, affiche un en-tête par disque. -->
@@ -3311,6 +3361,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             <div class="state">{qPistes.trim() || fProvenance || porteeActive ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
             <ListePistesV2
+              ecranColonnes="titres"
               virtuel
               pistes={lignesPagine}
               rangDepart={debutVisible}
@@ -3343,6 +3394,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                  unique montrerait la loupe sur toutes les lignes, y compris
                  celles qu'elle ne peut pas ouvrir. -->
             <ListePistesV2
+              ecranColonnes="titres"
               pistes={visibleTracks}
               tri={triPistes}
               triables={COLONNES_TRIABLES_NAVIGATEUR}
@@ -3403,11 +3455,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                    « … » et le cœur de facette y restent, comme dans la liste. -->
               {#each groups as g (g.key)}
                 {@const logo = g.reel && !depot ? logoDuLabel(logosLabels, g.key) : null}
+                {@const credit = logo ? creditDuLabel(creditsLabels, g.key) : null}
                 {@const fav = g.reel && facetteCourante ? estFacetteFavorite(g.key) : false}
                 <div class="lgcase" data-label={g.key}>
                   <button class="lgouvrir" onclick={() => ouvrirFacette(g.key)}
                     aria-label={`${g.key}, ${$tr('v2.rech.labelAlbums' as any).replace('{n}', String(g.albums.length))}`}>
-                    <span class="lglogo" aria-hidden="true">
+                    <span class="lglogo" aria-hidden="true"
+                      title={credit ? texteDuCredit(credit, (k) => $tr(k as any)) : undefined}
+                      data-credit={credit ? credit.source : undefined}>
                       {#if logo}
                         <img src={api.artworkUrl(logo, 200)} alt="" loading="lazy" decoding="async" />
                       {:else}
@@ -4006,7 +4061,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .facette-ouverte{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column}
   .facets::-webkit-scrollbar{width:9px}.facets::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   /* La puce de portée : visible sans crier, et son × est la seule action. */
-  .portee{padding:2px 30px 6px}
+  .portee{padding:2px 30px 6px; display:flex; flex-wrap:wrap; align-items:center; gap:8px}
   .pchip{display:inline-flex; align-items:center; gap:8px; padding:6px 8px 6px 12px;
     border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans);
     color:var(--v2-acc1); background:var(--v2-acc-soft);
@@ -4021,12 +4076,17 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /* La LISTE des valeurs de facette : un écran, pas un déroulé de grilles.
      Deux colonnes dès qu'il y a la place — une bibliothèque compte souvent
      plus de cinquante genres, et une colonne unique redemanderait à faire
-     défiler ce qu'on venait d'éviter (eric, forum 1671). */
-  .fliste{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+     défiler ce qu'on venait d'éviter (eric, forum 1671).
+     Bertrand, 26/10 (capture Labels) : la liste est un enfant de `.body`, qui
+     est un flex en LIGNE. Sans `flex:1`, elle prenait la largeur de son
+     contenu — deux colonnes étroites à gauche et le reste de l'écran vide.
+     Comme `.grid`, `.facets` et `.tracklist`, elle occupe toute la largeur. */
+  .fliste{flex:1; min-width:0; min-height:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
     gap:2px 18px; padding:6px 30px 40px; align-content:start; overflow-y:auto}
   .fl{display:flex; align-items:center; gap:6px; border-radius:9px}
-  /* web#2297 — la grille des labels : des cases carrées, logo au-dessus. */
-  .fliste:has(.lgcase){grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:18px}
+  /* web#2297 — la grille des labels : des cases carrées, logo au-dessus,
+     au pas de la grille des albums (`.grid`) — même colonne, même gouttière. */
+  .fliste:has(.lgcase){grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:22px 18px; padding:8px 30px 40px}
   .lgcase{position:relative; display:flex; flex-direction:column; min-width:0; border-radius:12px}
   .lgcase:hover{background:var(--v2-hover)}
   .lgouvrir{display:flex; flex-direction:column; align-items:stretch; gap:6px; min-width:0;

@@ -19,7 +19,12 @@
    *   par deux champs repliés sous « Avancé » ; libellé libre, arrondie au
    *   demi-degré avant l'envoi ; le retrait est un clic ;
    * - aucune présence, aucune écoute en direct, aucune photo : le flux entre
-   *   deux planètes dit seulement « partage sa bibliothèque avec moi ».
+   *   deux planètes dit seulement « partage sa bibliothèque avec moi » ;
+   * - rc9 (décision du 26/10) : la vue Monde montre aussi la COMMUNAUTÉ en
+   *   points anonymes (cloud : 1°, un point par case, 3 comptes au moins par
+   *   case ; aucun nom, aucun bouton, aucune présence), sous le cercle. Les
+   *   personnes qui avaient posé leur ville sont prévenues ici, avec
+   *   l'interrupteur « Me retirer de la carte publique », effectif tout de suite.
    *
    * Dégradé : un serveur sans les routes rc8 (404) garde contacts, cercles et
    * mes genres ; le globe, le réglage du lieu et les tailles disparaissent.
@@ -33,6 +38,8 @@
   import { tick } from 'svelte';
   import { t } from '../../lib/i18n';
   import { bulleTexte } from '../../lib/infobulleTexte';
+  import PaysMondeV2 from './PaysMondeV2.svelte';
+  import { lirePaysMonde, type PaysMonde } from '../../lib/paysMonde';
   import { formatNombre } from '../../lib/formats';
   import { browserAudioPlaying } from '../../lib/stores/browserAudio';
   import { ChampCercle, type PlacementNoeud } from '../../lib/champCercle/moteur';
@@ -42,10 +49,12 @@
     type Vue, type ContactScene, type NoeudScene, type Lieu,
   } from '../../lib/champCercle/scene';
   import { arrondiDemiDegre } from '../../lib/champCercle/tailles';
+  import { PAS_ZOOM, ZOOM_MAX, ZOOM_MIN } from '../../lib/champCercle/zoomGlobe';
   import {
     lireMonLieu, lireLieuxContacts, poserMonLieu, retirerMonLieu, lireResumeContact,
     lireMesChiffres, lireMonNom, corpsLieu, lireCoordonnee, LIBELLE_LIEU_MAX,
-    type EtatRelais, type ResumeBibliotheque,
+    lirePointsPublics, lireRetraitCarte, changerRetraitCarte,
+    type EtatRelais, type ResumeBibliotheque, type PointPublic,
   } from '../../lib/circleMonde';
   import { chargerVilles, chercherVilles, villeExacte, type Ville } from '../../lib/champCercle/villes';
   import { motifCercle, type ContactCercle, type CercleNomme, type PartageRecu } from '../../lib/circle';
@@ -72,6 +81,9 @@
     onLirePlaylist?: (p: PlaylistCercleResume) => void;
   }
   let { contacts, cercles, partages, enAttente, invitation, playlists = null, onOuvrirPlaylist, onLirePlaylist }: Props = $props();
+  let paysMonde = $state<PaysMonde | null>(null);
+  let montrerPays = $state(true);
+  const paysDisponibles = $derived(paysMonde !== null && (Object.keys(paysMonde.pays).length > 0 || !!paysMonde.cases?.length));
 
   const CLE_VUE: Record<Vue, string> = {
     monde: 'v2.circle.scene.view.monde', seul: 'v2.circle.scene.view.seul', lien: 'v2.circle.scene.view.lien',
@@ -85,6 +97,13 @@
   let resumes = $state<Record<number, ResumeBibliotheque | null>>({});
   let mes = $state.raw<ResumeBibliotheque>({ albums: null, genres: [] });
   let monNom = $state<string | null>(null);
+  /** rc9 : la carte publique (points anonymes) et mon retrait (`null` : route absente, interrupteur caché). */
+  let pointsPublics = $state.raw<PointPublic[]>([]);
+  let retraitCarte = $state<boolean | null>(null);
+  let occupeRetrait = $state(false);
+  let retourRetrait = $state<{ texte: string; erreur: boolean } | null>(null);
+  const CLE_AVIS = 'tune.circle.carte-publique.avis-vu';
+  let avisVu = $state((() => { try { return localStorage.getItem(CLE_AVIS) === '1'; } catch { return false; } })());
   let fini = false;
 
   // ── Vue ─────────────────────────────────────────────────────────────────
@@ -159,7 +178,7 @@
   });
   const scene = $derived(construireScene(donnees));
   const grappes = $derived(grappesDeGenres(donnees, donnees.maxGrappes));
-  const vuesDispo = $derived<Vue[]>(relais === 'ok' ? [...VUES] : VUES.filter((v) => v !== 'monde'));
+  const vuesDispo = $derived<Vue[]>(relais === 'ok' || paysDisponibles ? [...VUES] : VUES.filter((v) => v !== 'monde'));
   const noeudsVue = $derived(noeudsDeVue(scene, vue));
   const epingles = $derived(noeudsDeVue(scene, 'monde'));
   const noeudSel = $derived(selection ? scene.noeuds.find((n) => n.id === selection) ?? null : null);
@@ -178,20 +197,24 @@
     mes = m;
     monNom = nom;
     if (l.relais === 'ok') {
-      const lx = await lireLieuxContacts();
-      if (!fini) lieux = lx;
+      const [lx, pp, rc] = await Promise.all([lireLieuxContacts(), lirePointsPublics(), lireRetraitCarte()]);
+      if (fini) return;
+      lieux = lx;
+      pointsPublics = pp.points;
+      retraitCarte = rc;
     }
     choisirVue();
   }
 
   /**
-   * La première vue : le globe si un CONTACT y est (mon épingle seule ne
-   * montre personne), sinon le réseau, les genres, ou moi seul avec mes cercles.
+   * La première vue : le globe si un CONTACT ou la communauté (carte
+   * publique, rc9) y est — mon épingle seule ne montre personne —, sinon le
+   * réseau, les genres, ou moi seul avec mes cercles.
    */
   function choisirVue() {
     if (vueChoisie) return;
     vueChoisie = true;
-    if (relais === 'ok' && lieux.size > 0) vue = 'monde';
+    if (relais === 'ok' && (lieux.size > 0 || pointsPublics.length > 0)) vue = 'monde';
     else if (contacts.length > 0) vue = 'reseau';
     else if (grappes.length > 0) vue = 'genres';
     else vue = 'seul';
@@ -223,7 +246,7 @@
   });
 
   // Plus de globe sur ce serveur : on quitte la vue Monde.
-  $effect(() => { if (relais !== null && relais !== 'ok' && vue === 'monde') vue = grappes.length ? 'genres' : 'reseau'; });
+  $effect(() => { if (relais !== null && relais !== 'ok' && !paysDisponibles && vue === 'monde') vue = grappes.length ? 'genres' : 'reseau'; });
 
   // ── Préférences du système ──────────────────────────────────────────────
   $effect(() => {
@@ -244,6 +267,14 @@
   let toile = $state<HTMLCanvasElement | undefined>();
   let hote = $state<HTMLDivElement | undefined>();
   let moteur = $state.raw<ChampCercle | null>(null);
+  /** Le zoom du globe (web#2521) : 1 = vue entière. */
+  let zoom = $state(ZOOM_MIN);
+  $effect(() => {
+    let active = true;
+    void lirePaysMonde().then((p) => { if (active) paysMonde = p; });
+    return () => { active = false; };
+  });
+
   const boutons = new Map<string, HTMLButtonElement>();
 
   function inscrire(el: HTMLButtonElement, id: string) {
@@ -341,18 +372,54 @@
     if (typeof ResizeObserver === 'undefined') { sansToile = true; return; }
     // La rangée de lunes d'un anneau (« +N » compte pour deux) : le moteur réserve sa place à droite du nom.
     const largeurLunes = (id: string) => { const e = lunes.get(id); return e ? largeurRangeeLunes(e.lunes.length + (e.reste > 0 ? 2 : 0)) : 0; };
-    const m = new ChampCercle(c, { budget: budgetInitial(), placer, surClicGlobe, largeurLunes });
+    const m = new ChampCercle(c, { budget: budgetInitial(), placer, surClicGlobe, largeurLunes, surZoom: (k) => { zoom = k; } });
     if (!m.disponible) { m.detruire(); sansToile = true; return; }
     const mesurer = () => { const r = h.getBoundingClientRect(); m.redimensionner(r.width, r.height); };
     const ro = new ResizeObserver(mesurer);
     ro.observe(h);
     mesurer();
     moteur = m;
-    return () => { ro.disconnect(); m.detruire(); moteur = null; };
+    return () => { ro.disconnect(); m.detruire(); moteur = null; zoom = ZOOM_MIN; };
   });
+
+  // Ctrl ou Cmd + molette (et le pincement du pavé tactile, envoyé en molette
+  // avec Ctrl) zoome le globe ; la molette seule fait défiler la page, comme
+  // ailleurs. Écouteur non passif : sans `preventDefault`, le navigateur
+  // zoomerait toute la page.
+  $effect(() => {
+    const h = hote; const m = moteur;
+    if (!h || !m) return;
+    const surMolette = (e: WheelEvent) => {
+      if (vue !== 'monde' || !(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      m.molette(e.deltaY, e.deltaMode === 1, e.clientX, e.clientY);
+    };
+    h.addEventListener('wheel', surMolette, { passive: false });
+    return () => h.removeEventListener('wheel', surMolette);
+  });
+
+  function zoomer(sens: 1 | -1) { moteur?.zoomer(sens > 0 ? PAS_ZOOM : 1 / PAS_ZOOM); }
+  function vueEntiere() { moteur?.vueEntiere(); }
+  const zoomTexte = $derived(zoom.toLocaleString(undefined, { maximumFractionDigits: 1 }));
   function budgetInitial() { return budget; }
 
   $effect(() => { const m = moteur; const s = scene; m?.majScene(s); });
+  $effect(() => { const m = moteur; const p = pointsPublics; m?.majPointsPublics(p); });
+  $effect(() => {
+    const m = moteur; const donnees = montrerPays ? paysMonde?.pays ?? null : null;
+    if (!m) return;
+    m.majCases(montrerPays ? paysMonde?.cases ?? [] : []);
+    const appliquer = () => m.majPays(donnees, typeof getComputedStyle === 'function' && hote
+      ? getComputedStyle(hote).getPropertyValue('--v2-acc2').trim() : undefined);
+    appliquer();
+    // Theme changes do not change or reload opt-in points.
+    if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') return;
+    const observer = new MutationObserver(appliquer);
+    observer.observe(document.documentElement, { attributes: true });
+    if (document.body) observer.observe(document.body, { attributes: true });
+    return () => observer.disconnect();
+  });
+
   $effect(() => { const m = moteur; const v = vue; m?.vue(v); });
   $effect(() => { const m = moteur; const s = selection; m?.selection(s); });
   $effect(() => { const m = moteur; const b = budget; m?.majBudget(b); });
@@ -410,7 +477,12 @@
     const pas = 0.12;
     const d: Record<string, [number, number]> = { ArrowLeft: [pas, 0], ArrowRight: [-pas, 0], ArrowUp: [0, -pas], ArrowDown: [0, pas] };
     const v = d[ev.key];
-    if (v) { ev.preventDefault(); moteur.tourner(v[0], v[1]); }
+    if (v) { ev.preventDefault(); moteur.tourner(v[0], v[1]); return; }
+    // Zoom au clavier (web#2521) : + et − (et = sans Maj), 0 pour la vue entière.
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (ev.key === '+' || ev.key === '=' || ev.key === 'Add') { ev.preventDefault(); zoomer(1); }
+    else if (ev.key === '-' || ev.key === '−' || ev.key === '_' || ev.key === 'Subtract') { ev.preventDefault(); zoomer(-1); }
+    else if (ev.key === '0') { ev.preventDefault(); vueEntiere(); }
   }
 
   // ── Textes ──────────────────────────────────────────────────────────────
@@ -580,6 +652,28 @@
     else ouvrirPose();
   }
 
+  // ── Carte publique (rc9) : l'avis et l'interrupteur ─────────────────────
+  /** L'avis s'adresse à qui avait posé sa ville sous l'ancienne promesse (contacts seuls). */
+  const montrerAvis = $derived(relais === 'ok' && retraitCarte !== null && monLieu !== null && !avisVu);
+  function fermerAvis() {
+    avisVu = true;
+    try { localStorage.setItem(CLE_AVIS, '1'); } catch { /* l'avis reviendra : rien de grave */ }
+  }
+
+  /** « Me retirer de la carte publique » : effectif tout de suite, côté cloud. */
+  async function basculerRetrait() {
+    if (occupeRetrait || retraitCarte === null) return;
+    occupeRetrait = true;
+    retourRetrait = null;
+    try {
+      retraitCarte = await changerRetraitCarte(!retraitCarte);
+    } catch (e) {
+      retourRetrait = { texte: tr(motifCercle(e).cle), erreur: true };
+    } finally {
+      occupeRetrait = false;
+    }
+  }
+
   const montrerListe = $derived(liste || sansToile);
 </script>
 
@@ -636,6 +730,10 @@
     <p class="note sc-degrade">{$t('v2.circle.scene.relay.down' as any)}</p>
   {/if}
 
+  {#if vue === 'monde' && paysMonde}
+    <PaysMondeV2 donnees={paysMonde} afficher={montrerPays} onAfficher={(v) => (montrerPays = v)} liste={montrerListe} />
+  {/if}
+
   <p class="sr sc-resume" aria-live="polite">{resume}</p>
 
   {#if !montrerListe}
@@ -678,13 +776,30 @@
           {/if}
         {/each}
       </div>
-      {#if vue === 'monde' && epingles.length === 0 && !poseOuverte}
+      {#if vue === 'monde' && !(epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles && !poseOuverte)}
+        <div class="sc-zoom" role="group" aria-label={$t('v2.circle.scene.zoom.label' as any)}>
+          <button type="button" class="sc-zoom-btn sc-zoom-plus" disabled={zoom >= ZOOM_MAX}
+            aria-label={$t('v2.circle.scene.zoom.in' as any)} title={$t('v2.circle.scene.zoom.in' as any)} onclick={() => zoomer(1)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button type="button" class="sc-zoom-btn sc-zoom-moins" disabled={zoom <= ZOOM_MIN}
+            aria-label={$t('v2.circle.scene.zoom.out' as any)} title={$t('v2.circle.scene.zoom.out' as any)} onclick={() => zoomer(-1)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+          </button>
+          <button type="button" class="sc-zoom-btn sc-zoom-entier" disabled={zoom <= ZOOM_MIN}
+            aria-label={$t('v2.circle.scene.zoom.reset' as any)} title={$t('v2.circle.scene.zoom.reset' as any)} onclick={vueEntiere}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.5 2.4 2.5 13.6 0 16M12 4c-2.5 2.4-2.5 13.6 0 16"/></svg>
+          </button>
+          <span class="sr" aria-live="polite">{tr('v2.circle.scene.zoom.level', { n: zoomTexte })}</span>
+        </div>
+      {/if}
+      {#if vue === 'monde' && epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles && !poseOuverte}
         <div class="sc-vide">
           <p>{$t('v2.circle.scene.world.empty' as any)}</p>
           {#if relais === 'ok'}<button type="button" class="go sc-poser" onclick={() => ouvrirPose()}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
         </div>
       {:else if vue === 'monde' && !poseOuverte}
-        <p class="sc-astuce">{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)}</p>
+        <p class="sc-astuce">{#if pointsPublics.length}<span class="sc-legende-publique">{$t('v2.circle.scene.world.publicLegend' as any)}</span> {/if}{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)} <span class="sc-astuce-zoom">{$t('v2.circle.scene.zoom.hint' as any)}</span></p>
       {:else if vue === 'genres' && grappes.length === 0}
         <p class="sc-vide">{$t('v2.circle.scene.genres.empty' as any)}</p>
       {:else if vue === 'lien' && contacts.length === 0}
@@ -695,8 +810,9 @@
     <div class="sc-liste-bloc">
       <h3>{$t(CLE_VUE[vue] as any)}</h3>
       {#if vue === 'monde' && texteSansVille}<p class="note sc-sans-ville">{texteSansVille}</p>{/if}
+      {#if vue === 'monde' && pointsPublics.length}<p class="note sc-compte-public">{tr('v2.circle.scene.world.publicCount', { n: pointsPublics.length })}</p>{/if}
       {#if noeudsVue.length === 0}
-        <p class="note">{$t((vue === 'monde' ? 'v2.circle.scene.world.empty' : vue === 'genres' ? 'v2.circle.scene.genres.empty' : 'v2.circle.scene.link.empty') as any)}</p>
+        {#if !(vue === 'monde' && (pointsPublics.length || paysDisponibles))}<p class="note">{$t((vue === 'monde' ? 'v2.circle.scene.world.empty' : vue === 'genres' ? 'v2.circle.scene.genres.empty' : 'v2.circle.scene.link.empty') as any)}</p>{/if}
       {:else}
         <ul class="sc-liste">
           {#each noeudsVue as n (n.id)}
@@ -720,6 +836,22 @@
         <span>{$t('v2.circle.scene.loc.toggle' as any)}</span>
       </button>
       <p class="note">{$t('v2.circle.scene.loc.what' as any)}</p>
+      {#if montrerAvis}
+        <div class="sc-avis-public" role="note" aria-labelledby="sc-avis-titre">
+          <p class="sc-avis-titre" id="sc-avis-titre">{$t('v2.circle.scene.public.noticeTitle' as any)}</p>
+          <p class="note">{$t('v2.circle.scene.public.notice' as any)}</p>
+          <button type="button" class="lnk sc-avis-compris" onclick={fermerAvis}>{$t('v2.circle.scene.public.dismiss' as any)}</button>
+        </div>
+      {/if}
+      {#if retraitCarte !== null}
+        <button type="button" class="interrupteur interrupteur-retrait" role="switch" aria-checked={retraitCarte}
+          disabled={occupeRetrait} onclick={() => void basculerRetrait()}>
+          <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
+          <span>{$t('v2.circle.scene.public.optOut' as any)}</span>
+        </button>
+        <p class="note sc-etat-retrait">{$t((retraitCarte ? 'v2.circle.scene.public.optedOut' : 'v2.circle.scene.public.optedIn') as any)}</p>
+        {#if retourRetrait}<p class="note sc-retour-retrait alerte" role="alert">{retourRetrait.texte}</p>{/if}
+      {/if}
       {#if monLieu}
         <p class="note sc-lieu-actuel">
           {tr('v2.circle.scene.loc.current', { label: monLieu.label })}
@@ -877,6 +1009,13 @@
     background:rgba(15,24,28,.82); padding:14px 16px; border-radius:12px}
   .sc-vide p{margin:0}
   .sc-astuce{bottom:10px}
+  /* Zoom du globe (web#2521) : en haut à droite, au-dessus des épingles. */
+  .sc-zoom{position:absolute; top:10px; right:10px; display:flex; flex-direction:column; gap:4px; z-index:2}
+  .sc-zoom-btn{width:34px; height:34px; display:grid; place-items:center; padding:0; border-radius:10px; cursor:pointer;
+    border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt)}
+  .sc-zoom-btn svg{width:18px; height:18px}
+  .sc-zoom-btn:disabled{opacity:.4; cursor:default}
+  .sc-zoom-btn:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .sc-liste-bloc{padding:12px 14px; border-radius:var(--v2-r-card, 16px); border:1px solid var(--v2-line); background:var(--v2-surface2)}
   .sc-liste-bloc h3{font-size:14px; margin:0 0 6px}
   .sc-liste{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
@@ -899,7 +1038,11 @@
   .sc-lieu{display:flex; flex-direction:column; gap:6px; padding:8px 0; border-top:1px solid var(--v2-line); border-bottom:1px solid var(--v2-line)}
   .sc-lieu .note{margin:0}
   .sc-lieu-actuel{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
-  .sc-retour-lieu.alerte{color:var(--v2-danger)}
+  .sc-retour-lieu.alerte,.sc-retour-retrait.alerte{color:var(--v2-danger)}
+  .sc-avis-public{display:flex; flex-direction:column; gap:4px; padding:10px 12px; border-radius:12px; border:1px solid var(--v2-line2); background:var(--v2-surface2)}
+  .sc-avis-titre{margin:0; font:600 13px var(--v2-sans); color:var(--v2-txt)}
+  .sc-avis-compris{align-self:flex-start}
+  .sc-legende-publique{display:block; margin-bottom:2px}
   .sc-pose{display:flex; flex-direction:column; gap:8px}
   .sc-champ{display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--v2-txt2); min-width:0}
   .sc-lat,.sc-lon{width:110px}

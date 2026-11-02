@@ -34,6 +34,8 @@
   import { rangsApresDeplacement } from '../../lib/playlistService';
   import { corpsDeFileListe, estPisteLocale } from '../../lib/pisteFile';
   import { estIntrouvable } from '../../lib/pisteIntrouvable';
+  import { gestesObjet, objetPlaylist } from '../../lib/gestesObjet';
+  import { circleCharge } from '../../lib/circle';
 
   type Item =
     | { kind: 'local'; pl: Playlist }
@@ -108,6 +110,20 @@
     exportEnCours = false;
   }
   const isLocal = $derived(item.kind === 'local');
+
+  /**
+   * web#2549 (alec_eiffel, fil 2561) : « can't share Qobuz Playlists ». Le
+   * partage d'une playlist de service avec un cercle existait, mais SEULEMENT
+   * dans le menu « … » de sa vignette : la fiche ouverte n'en disait rien, et
+   * c'est là qu'on le cherche. Le bouton reprend le geste du menu
+   * (`gestesObjet(...).partagerAvecUnCercle`), sans second chemin : même
+   * fenêtre, même copie par références, playlist locale suivie comme avant.
+   */
+  const partagerAvecUnCercle = $derived(
+    $circleCharge
+      ? gestesObjet(item.kind === 'streaming' ? objetPlaylist(item.pl, item.service) : objetPlaylist(item.pl)).partagerAvecUnCercle
+      : undefined,
+  );
   /**
    * web#2098 (FabienM, fil 2236, point 10) — une playlist DE SERVICE dont
    * l'utilisateur est propriétaire : on peut en retirer un titre. Seulement
@@ -197,10 +213,10 @@
       ? { context_type: 'playlist' as const, context_id: String(item.pl.id), context_source: 'local' }
       : { context_type: 'playlist' as const, context_id: String(item.pl.source_id), context_source: item.service };
   }
-  function gestesDeLaPlaylist(zid: number) {
+  function gestesDeLaPlaylist(zid: number, shuffled = false) {
     const c = conteneur();
     return {
-      lire: (corps: any) => playAndSync(zid, { ...corps, ...c }),
+      lire: (corps: any) => playAndSync(zid, { ...corps, ...c, ...(shuffled ? { context_shuffle: true } : {}) }),
       enfiler: (corps: any) => api.addToQueue(zid, { ...corps, ...c }),
     };
   }
@@ -209,7 +225,7 @@
     if (zid == null) return;
     melangeEnCours = true;
     try {
-      const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid));
+      const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid, true));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
       notifications.error(errText(e) ?? $tr('common.error'));
@@ -438,6 +454,13 @@
           </button>
         {/if}
 
+        {#if partagerAvecUnCercle}
+          <button class="ghost sm partager-cercle" onclick={() => partagerAvecUnCercle?.()} data-partager-cercle>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+            {$tr('v2.circle.pl.shareWithCircle' as any)}
+          </button>
+        {/if}
+
         <!-- EXPORT : la route ne connaît que les playlists locales, une playlist
              de service n'ayant pas d'identifiant chez nous. -->
         {#if isLocal}
@@ -507,7 +530,7 @@
            le rang 3 d'un titre Bandcamp — `each_key_duplicate`. Même règle que
            `PlaylistManagerView`. `sourceEnTableau` : la liste est MIXTE, on
            dit d'où vient chaque ligne (#1113). -->
-      <ListePistesV2 pistes={pistesVues} pochetteEnTableau clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
+      <ListePistesV2 pistes={pistesVues} pochetteEnTableau ecranColonnes="playlist" contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
              compilé ici : ses styles le suivent.

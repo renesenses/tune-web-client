@@ -12,6 +12,7 @@
 // Ce témoin MONTE les Réglages v2, ouvre Système, et agit comme un humain :
 // il choisit un niveau, clique, répond aux confirmations. Il lit les requêtes
 // réellement parties (`fetch` bouchonné).
+import { attendreDetailsReplie } from './detailsReplies2417';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
@@ -116,6 +117,7 @@ beforeEach(() => {
       const method = String(options?.method ?? 'GET').toUpperCase();
       const body = (options?.body as string) ?? null;
       appels.push({ url: u, method, body });
+      if (/\/system\/scan\/status$/.test(u)) return reponse(200, { scanning: false, status: 'idle', current: null });
       if (/\/system\/log-level$/.test(u)) {
         if (method === 'POST') {
           const level = JSON.parse(body ?? '{}').level;
@@ -199,9 +201,13 @@ describe('Réglages v2 › Bibliothèque › Outils — nettoyage du serveur (#2
     await attendre();
     repondre(true);
     await attendre();
-    const err = el.querySelector('.errline');
+    const carte = el.querySelector('[data-section="libraryCleanup"]')!;
+    expect(carte, 'carte de nettoyage absente').not.toBeNull();
+    const err = carte.querySelector('.errline');
     expect(err, 'aucune erreur affichée').not.toBeNull();
-    expect(err!.textContent).toContain('admin required');
+    expect(err!.textContent).toContain(fr['common.error']);
+    // #2417 — le motif du serveur, replié dans « Détails », jamais hors du repli.
+    attendreDetailsReplie(carte, fr['common.error'], 'admin required');
   });
 });
 

@@ -27,7 +27,9 @@
  *
  * ## Ce que ce module n'invente pas
  *
- * Rien. Le message vient du SERVEUR et est affiché tel quel ; `library.playbackError`
+ * Rien. Le message vient du SERVEUR — traduit (#2417 : code connu du client,
+ * ou `message_key` du serveur), sinon repli générique et texte brut dans le
+ * « Détails » replié ; `library.playbackError`
  * — la clé que la v1 emploie déjà (`LibraryView.svelte`) — ne sert que de
  * préfixe quand le message brut ne se suffit pas. Aucune clé de traduction
  * nouvelle n'a été ajoutée : les onze langues portent déjà celle-ci.
@@ -37,6 +39,7 @@ import { t } from './i18n';
 import { proposerLeRearmement } from './api';
 import { notifications } from './stores/notifications';
 import { messageRefusBitperfect } from './bitperfectStrict';
+import { estMessageGenerique, lireEvenementErreur } from './messageServeur';
 
 /**
  * Un échec nommé se lit plus longtemps qu'un succès : le message du serveur
@@ -75,13 +78,20 @@ function codeRefus(e: unknown): string {
 
 /** Le texte affichable de l'échec : son message ET le motif nommé du serveur. */
 function detailEchec(e: unknown): string {
+  // #2417 — le message de l'erreur est désormais la phrase TRADUITE (code
+  // traduit, phrase traduite par le serveur, ou message générique : voir
+  // `messageServeur.ts`). Le code machine n'y est plus accolé : un
+  // `zone_en_lecture` n'est pas une phrase. Il part, avec le texte brut,
+  // dans le « Détails » replié (`detailTechnique`).
   const texte = texteEchec(e);
-  const code = codeRefus(e);
-  if (!code) return texte;
-  if (!texte) return code;
-  // « 400 Bad Request — no tracks to play ». On n'accole pas un motif que le
-  // message porte déjà : le répéter ne renseigne personne.
-  return texte.includes(code) ? texte : `${texte} — ${code}`;
+  return estMessageGenerique(texte) ? '' : texte;
+}
+
+/** Le détail technique d'un échec, pour le « Détails » replié du bandeau. */
+export function detailTechnique(e: unknown): string {
+  const d = (e as { detail?: unknown } | null | undefined)?.detail;
+  if (typeof d === 'string' && d.trim()) return d.trim();
+  return codeRefus(e);
 }
 
 /** Le texte de l'échec, quelle que soit la forme sous laquelle il remonte. */
@@ -154,13 +164,17 @@ export function messageEchecLecture(e: unknown, cleRepli: string): string {
  * garde ses dix secondes pleines à partir du dernier échec, et un message
  * DIFFÉRENT n'est jamais masqué par celui d'avant.
  */
-let dernierToast: { message: string; id: number } | null = null;
+let dernierToast: { cle: string; id: number } | null = null;
 
-function annoncerSansEmpiler(message: string): void {
+function annoncerSansEmpiler(message: string, detail?: string): void {
   // `dismiss` sur un identifiant déjà expiré est un filtre qui ne trouve rien :
   // inoffensif, donc pas de fenêtre de temps à régler ni à faire vieillir.
-  if (dernierToast?.message === message) notifications.dismiss(dernierToast.id);
-  dernierToast = { message, id: notifications.error(message, DUREE_ECHEC_MS) };
+  // #2417 — deux échecs non traduits portent le MÊME message générique : c'est
+  // le détail qui les distingue. Dédupliquer sur le message seul avalerait la
+  // seconde panne.
+  const cle = `${message}\u0000${detail ?? ''}`;
+  if (dernierToast?.cle === cle) notifications.dismiss(dernierToast.id);
+  dernierToast = { cle, id: notifications.error(message, DUREE_ECHEC_MS, detail) };
 }
 
 /**
@@ -178,7 +192,7 @@ export function signalerEchecLecture(e: unknown): void {
   if ((e as { dejaAnnonce?: boolean } | null)?.dejaAnnonce === true) return;
   const detail = detailEchec(e);
   const prefixe = get(t)('library.playbackError');
-  annoncerSansEmpiler(detail ? `${prefixe} : ${detail}` : prefixe);
+  annoncerSansEmpiler(detail ? `${prefixe} : ${detail}` : prefixe, detailTechnique(e));
 }
 
 /**
@@ -203,8 +217,13 @@ export function signalerErreurServeur(data: {
 } | null | undefined): void {
   // #3973 — un refus nommé par `code` se dit dans la langue de l'interface :
   // le texte `error` de l'événement est en français, quelle que soit la langue
-  // choisie. Code inconnu ou fréquences absentes : texte du serveur, inchangé.
-  const msg = messageRefusBitperfect(data) || data?.message || data?.error || get(t)('library.playbackError');
+  // choisie.
+  // #2417 — et ce n'est plus seulement vrai du bit-perfect : le texte de
+  // l'événement ne s'affiche que traduit (code connu du client, ou
+  // `message_key` du serveur) ; sinon l'échec de lecture générique, le texte
+  // brut dans le « Détails » replié.
+  const lu = lireEvenementErreur(data as Record<string, unknown> | null | undefined, 'library.playbackError');
+  const msg = messageRefusBitperfect(data) || lu.message;
   const titre = data?.track_title;
   // Même bus anti-empilement : c'est PAR CE CHEMIN qu'arrive le redémarrage de
   // serveur, une notification par zone, toutes le même texte.
@@ -220,5 +239,5 @@ export function signalerErreurServeur(data: {
   // `api.ts` — avec la route qu'il poste —, partagé avec le 409 du
   // `POST /play`, qui l'ignorait jusque-là : DEUX chemins mènent au même
   // refus, et ils doivent offrir la même issue.
-  if (!proposerLeRearmement(texte, data)) annoncerSansEmpiler(texte);
+  if (!proposerLeRearmement(texte, data)) annoncerSansEmpiler(texte, lu.detail);
 }

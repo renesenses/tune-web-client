@@ -133,6 +133,10 @@
     // autres greffons, visible seulement quand le greffon TOURNE. Le libellé
     // est le nom du produit, déjà traduit dans les onze langues.
     { view: 'circle', labelKey: 'v2.circle.title', icon: 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6M3 20a6 6 0 0 1 12 0M16 5.1a3 3 0 0 1 0 5.8M21 20a6 6 0 0 0-4-5.6' },
+    // « MA COLLECTION PHYSIQUE » — décision de Bertrand du 30/10/2026
+    // (tune-server-rust#7195) : juste après Tune Circle, visible seulement
+    // quand le greffon TOURNE (installé et actif). Icône : un disque.
+    { view: 'collectionphysique', labelKey: 'collectionPhysique.titre', icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 12h.01' },
   ] as unknown as Item[];
   /**
    * SÉLECTIONS — ce que l'utilisateur a mis de côté lui-même.
@@ -193,6 +197,9 @@
     // Crossfeed Pro — greffon natif tiers PREMIUM (28/09/2026) : son entrée
     // n'apparaît que si le greffon est installé, activé et chargé.
     { view: 'crossfeedpro', labelKey: 'v2.nav.crossfeedPro', icon: 'M8 6a6 6 0 0 0 0 12M16 6a6 6 0 0 1 0 12M4 12h4M16 12h4M12 4v2M12 18v2' },
+    // web#2580 — Crosstalk, greffon natif tiers PREMIUM pour ENCEINTES : même
+    // règle que Crossfeed Pro, l'entrée n'apparaît que s'il est actif.
+    { view: 'crosstalk', labelKey: 'v2.nav.crosstalk', icon: 'M4 5h5v9H4zM15 5h5v9h-5zM6.5 18l5.5-3 5.5 3' },
     { view: 'converter', labelKey: 'v2.nav.converter', icon: 'M4 8h13l-3-3M20 16H7l3 3' },
     { view: 'declick', labelKey: 'v2.nav.declick', icon: 'M3 12h4l3-8 4 16 3-8h4' },
     // Réveils — porté depuis l'écran actuel (Bertrand, 14/09/2026). Rangé
@@ -218,6 +225,9 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { concertsUtilisable, refreshConcertsPlugin } from '../../lib/stores/concerts';
   import { circleCharge, refreshCirclePlugin } from '../../lib/circle';
+  import { collectionPhysiqueChargee, refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
+  import { demarrerSuiviNotifications, arreterSuiviNotifications } from '../../lib/circleNotifications';
+  import PastilleNotifsCercle from './PastilleNotifsCercle.svelte';
   import { healthStatus } from '../../lib/stores/health';
   import { niveauDeLaSonde } from '../../lib/santeServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
@@ -260,6 +270,7 @@
   import * as api from '../../lib/api';
   import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
   import { presenceCrossfeedPro, sonderCrossfeedPro, entreesAvecCrossfeedPro } from '../../lib/stores/crossfeedPro';
+  import { presenceCrosstalk, sonderCrosstalk, entreesAvecCrosstalk } from '../../lib/stores/crosstalk';
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
@@ -303,7 +314,10 @@
   const choixBarre = $derived($preferences.barreLaterale);
   const sansMasquees = (l: Item[]) => l.filter((it) => !estMasquee(it.view, choixBarre));
   const studioDisponibles = $derived(
-    entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
+    entreesAvecCrosstalk(
+      entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
+      $presenceCrosstalk,
+    ),
   );
   const studioVisible = $derived(sansMasquees(studioDisponibles));
   const noyauAffiche = $derived(sansMasquees(CORE));
@@ -311,7 +325,7 @@
   $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
   // Un greffon natif TIERS n'est pas dans `GET /plugins` : on le sonde à part
   // (`stores/crossfeedPro`) ; la zone n'y compte pas, la présence est globale.
-  $effect(() => { void sonderCrossfeedPro(null); });
+  $effect(() => { void sonderCrossfeedPro(null); void sonderCrosstalk(null); });
 
   // Concerts est un GREFFON : son entrée n'apparaît que si le serveur
   // l'embarque (comme dans l'ancienne barre). Une entrée qui mène à une porte
@@ -321,9 +335,19 @@
   // aucune explication à offrir d'un greffon arrêté, ses routes rendraient le
   // 404 nu d'axum. C'est la condition du bouton « Ouvrir » des Extensions.
   $effect(() => { void refreshCirclePlugin(); });
+  // « Ma collection physique » (#7195) : même règle que Tune Circle.
+  $effect(() => { void refreshCollectionPhysiquePlugin(); });
+  // Tune Circle rc9 (web#2437) : la pastille des notifications, relue toutes
+  // les minutes onglet visible, seulement quand le greffon tourne.
+  $effect(() => {
+    if ($circleCharge) demarrerSuiviNotifications();
+    else arreterSuiviNotifications();
+    return () => arreterSuiviNotifications();
+  });
   const avanceDisponibles = $derived(
     ADVANCED.filter((it) => it.view !== 'concerts' || $concertsUtilisable)
-      .filter((it) => it.view !== 'circle' || $circleCharge),
+      .filter((it) => it.view !== 'circle' || $circleCharge)
+      .filter((it) => it.view !== 'collectionphysique' || $collectionPhysiqueChargee),
   );
   const avanceVisibles = $derived(sansMasquees(avanceDisponibles));
 
@@ -554,6 +578,24 @@
   // Bandcamp décoché reste absent, comme tout service décoché : il suffit de
   // cocher sa case.
   const servicesBarre = $derived(servicesConnectes($streamingServices));
+
+  /**
+   * #2415 — UNE SEULE BULLE PAR GROUPE : celle de l'enfant.
+   *
+   * Streaming › Qobuz allumait « Streaming » ET « Qobuz » (testeur Alex, rc8).
+   * Quand un service de la barre est ouvert, l'entrée parent ne porte plus la
+   * bulle de sélection (`parent-actif` : sa couleur d'accent, sans fond) ; le
+   * service la garde. Sans service ouvert (écran Streaming seul), le parent
+   * redevient l'entrée sélectionnée. La règle vaut pour tout groupe
+   * parent/enfant de la barre : aujourd'hui Streaming › services (les rayons de
+   * Collections n'ont pas d'enfant sélectionné dans l'arbre).
+   */
+  const serviceOuvert = $derived(
+    $activeView === 'streaming' && $activeStreamingService && servicesBarre.includes($activeStreamingService)
+      ? $activeStreamingService
+      : null,
+  );
+  const parentSansBulle = (it: Item) => it.view === 'streaming' && serviceOuvert !== null;
 
   // Le magasin n'est rempli par AUCUN écran de cette coquille : sans ce
   // chargement la section resterait vide pour toujours (même constat que
@@ -827,9 +869,9 @@
 
   <div class="navscroll">
     {#snippet boutonEntree(it: Item)}
-      <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+      <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView) && !parentSansBulle(it)} class:parent-actif={estActif(it, $activeView) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-        <span>{$t(it.labelKey as any)}</span>
+        <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
       </button>
     {/snippet}
     {#snippet servicesSousStreaming()}
@@ -848,7 +890,7 @@
       <div class="nav-pli">
         <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{$t(it.labelKey as any)}</span>
+          <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
         <button class="pli-arbre" aria-expanded={!arbreBarreReplie}
           aria-label={libellePliArbre} title={libellePliArbre}
@@ -881,9 +923,9 @@
     {:else}
     <nav class="grp">
       {#each noyauAffiche as it (it.view)}
-        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView) && !parentSansBulle(it)} class:parent-actif={estActif(it, $activeView) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{$t(it.labelKey as any)}</span>
+          <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
         <!-- Les services connectés, chacun par son nom, SOUS l'entrée qu'ils
              complètent — #1138. La pastille reprend celle de l'ancienne barre :
@@ -897,7 +939,7 @@
       {#each avanceVisibles as it (it.view)}
         <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{$t(it.labelKey as any)}</span>
+          <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
       {/each}
     </nav>
@@ -973,9 +1015,9 @@
         {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
           {@render collectionsEtRayons(it)}
         {:else}
-          <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+          <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView) && !parentSansBulle(it)} class:parent-actif={estActif(it, $activeView) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-            <span>{$t(it.labelKey as any)}</span>
+            <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
           </button>
         {/if}
       {/each}
@@ -991,7 +1033,7 @@
       {#each studioVisible as it (it.view)}
         <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{$t(it.labelKey as any)}</span>
+          <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
       {/each}
     </nav>
@@ -1171,6 +1213,9 @@
   .nav:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .nav.active{color:var(--v2-txt); background:linear-gradient(90deg,var(--v2-active1),var(--v2-active2)); box-shadow:inset 0 0 0 1px var(--v2-line2)}
   .nav.active svg{color:var(--v2-acc1)}
+  /* #2415 — le parent d'un service ouvert : l'accent, sans la bulle. */
+  .nav.parent-actif{color:var(--v2-txt)}
+  .nav.parent-actif svg{color:var(--v2-acc1)}
   /* Les services connectés sont un DÉTAIL de l'entrée Streaming : ils en
      dépendent, ils s'en retirent. Le retrait disparaît quand la barre est
      repliée — à 72 px de large, décaler une icône la sortirait de sa colonne
