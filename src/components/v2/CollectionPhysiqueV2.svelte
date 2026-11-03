@@ -32,7 +32,7 @@
   import {
     ATTRIBUTION_DISCOGS, ETATS, FAMILLES, LIEN_DISCOGS,
     CLE_AFFICHAGE, CLE_PASTILLE,
-    aRevalider, cleErreur, clicSurDisque, codeDeRefus, compteDuJeton, effacerCache, legendeDuDisque,
+    aRevalider, messageErreurCollection, clicSurDisque, compteDuJeton, effacerCache, legendeDuDisque,
     lireCollection, lireEtat,
     lireReglages, nomService, nomValide, pastillesDuDisque, pochetteDuDisque, poserCompte, qualiteDe, synchroniser,
     type Collection, type Disque, type EtatDisque, type EtatSynchro, type Famille,
@@ -63,7 +63,9 @@
   let nom = $state('');
   let format = $state<Famille | null>(null);
   let filtreEtat = $state<EtatDisque | null>(null);
-  let erreur = $state<string | null>(null);
+  let erreur = $state<unknown>(null);
+  let erreurLecture = $state<unknown>(null);
+  let compteEnregistre = $state(false);
   let chargement = $state(true);
   let occupe = $state(false);
   let minuterie: ReturnType<typeof setInterval> | null = null;
@@ -86,8 +88,9 @@
   async function chargerCollection() {
     try {
       collection = await lireCollection(format, filtreEtat);
+      erreurLecture = null;
     } catch (e) {
-      erreur = cleErreur(codeDeRefus(e));
+      erreurLecture = e;
     }
   }
 
@@ -105,7 +108,7 @@
         void revalider();
       } else if (etat?.avancement?.en_cours || etat?.affinage_musicbrainz?.en_cours) suivre();
     } catch (e) {
-      erreur = cleErreur(codeDeRefus(e));
+      erreur = e;
     } finally {
       chargement = false;
     }
@@ -136,7 +139,7 @@
       etat = await lireEtat();
       await chargerCollection();
     } catch (e) {
-      erreur = cleErreur(codeDeRefus(e));
+      erreur = e;
     } finally {
       occupe = false;
     }
@@ -171,9 +174,10 @@
   }
 
   async function enregistrer() {
+    compteEnregistre = false;
     const n = nom.trim();
     if (n && !nomValide(n)) {
-      erreur = cleErreur('nom_invalide');
+      erreur = 'nom_invalide';
       return;
     }
     occupe = true;
@@ -183,7 +187,7 @@
       etat = await lireEtat();
       await chargerCollection();
     } catch (e) {
-      erreur = cleErreur(codeDeRefus(e));
+      erreur = e;
     } finally {
       occupe = false;
     }
@@ -192,12 +196,21 @@
   async function utiliserLeJeton() {
     occupe = true;
     erreur = null;
+    erreurLecture = null;
+    compteEnregistre = false;
     try {
       reglages = await compteDuJeton();
       nom = reglages.nom_utilisateur ?? '';
+      compteEnregistre = true;
       await chargerCollection();
+      try {
+        etat = await lireEtat();
+        if (etat.avancement.en_cours || etat.affinage_musicbrainz?.en_cours) suivre();
+      } catch (e) {
+        erreurLecture = e;
+      }
     } catch (e) {
-      erreur = cleErreur(codeDeRefus(e));
+      erreur = e;
     } finally {
       occupe = false;
     }
@@ -211,7 +224,7 @@
       etat = etat ? { ...etat, avancement: { ...r.avancement, en_cours: true } } : etat;
       suivre();
     } catch (e) {
-      erreur = cleErreur(codeDeRefus(e));
+      erreur = e;
     }
   }
 
@@ -236,9 +249,9 @@
     let vivant = true;
     getAlbum(Number(id)).then((album) => {
       if (vivant) albumOuvert = album;
-    }).catch(() => {
+    }).catch((e) => {
       if (!vivant) return;
-      erreur = cleErreur(null);
+      erreur = e;
       fermerAlbum();
     });
     return () => { vivant = false; };
@@ -342,10 +355,15 @@
         {#if etat.avancement.total}— {etat.avancement.fait} / {etat.avancement.total}{/if}
       </p>
     {/if}
+    {#if compteEnregistre}
+      <p class="aide" data-compte-enregistre>{$t('collectionPhysique.compteEnregistre' as any)}</p>
+    {/if}
     {#if erreur}
-      <p class="err" data-erreur>{$t(erreur as any)}</p>
+      <p class="err" data-erreur>{messageErreurCollection(erreur, (cle) => $t(cle as any) as string)}</p>
+    {:else if erreurLecture}
+      <p class="err" data-erreur>{texte('collectionPhysique.erreurLecture', { cause: messageErreurCollection(erreurLecture, (cle) => $t(cle as any) as string) })}</p>
     {:else if etat?.derniere_erreur && !enCours}
-      <p class="err" data-erreur>{$t(cleErreur(etat.derniere_erreur) as any)}</p>
+      <p class="err" data-erreur>{messageErreurCollection(etat.derniere_erreur, (cle) => $t(cle as any) as string)}</p>
     {/if}
     {#if affinageRestants > 0 && (affinageEnCours || !enCours)}
       <p class="aide" data-affinage-musicbrainz>{texte('collectionPhysique.affinageMusicbrainz', { n: affinageRestants })}</p>
@@ -359,7 +377,11 @@
     {:else if collection?.statut === 'aucun_compte'}
       <div class="state">{$t('collectionPhysique.aucunCompte' as any)}</div>
     {:else if collection?.statut === 'a_synchroniser'}
-      <div class="state">{$t('collectionPhysique.aSynchroniser' as any)}</div>
+      {#if enCours}
+        <div class="state" data-premiere-lecture>{$t('collectionPhysique.collectionEnLecture' as any)}</div>
+      {:else}
+        <div class="state">{$t('collectionPhysique.aSynchroniser' as any)}</div>
+      {/if}
     {:else if collection}
       {#if collection.tronquee}<p class="aide">{$t('collectionPhysique.tronquee' as any)}</p>{/if}
       <div class="filtres" role="group" aria-label={$t('collectionPhysique.filtreFormat' as any)}>
