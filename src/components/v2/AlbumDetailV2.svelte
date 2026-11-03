@@ -91,6 +91,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
 import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentationRefuses, type EtatPresentation } from '../../lib/presentationAlbumService';
   import { dialogs } from '../../lib/stores/dialogs';
   import { origineDuCoffret, EVT_COFFRET_DEFAIT, type OrigineCoffret } from '../../lib/coffretAuto';
+  import { chargerOeuvreAlbum, choisirVersionPreferee, libelleVersion, type OeuvreAlbum } from '../../lib/oeuvres';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
   // identifiants n'y sont pas les notres — pistes et lecture doivent passer
   // par lui, sans quoi on jouerait un tout autre morceau du meme numero.
@@ -1102,6 +1103,33 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * la proposition « meilleure qualité disponible ».
    */
   let reidentification = $state(false);
+  /**
+   * tune-server-rust#7617 — les autres versions de cet album (remaster,
+   * Hi-Res, édition), regroupées par le serveur. Le choix ouvre la version
+   * dans cette même fiche : ses pistes, sa lecture. Rien pour un album sans
+   * autre version, un dépôt distant, un service, ou un serveur ancien.
+   */
+  let oeuvre = $state.raw<OeuvreAlbum | null>(null);
+  $effect(() => {
+    const id = album.id, d = depot, svc = service, bc = bandcamp;
+    if (id == null || d || svc || bc) { oeuvre = null; return; }
+    let vivant = true;
+    chargerOeuvreAlbum(id).then((o) => { if (vivant) oeuvre = o && o.versions.length > 1 ? o : null; });
+    return () => { vivant = false; };
+  });
+  async function changerVersion(id: number) {
+    if (!Number.isFinite(id) || id === album.id) return;
+    try { album = await api.getAlbum(id); } catch { /* la fiche garde la version affichée */ }
+  }
+  async function preferer() {
+    const o = oeuvre, id = album.id;
+    if (!o || id == null) return;
+    try {
+      await choisirVersionPreferee(o.work_id, id);
+      oeuvre = { ...o, preferred_id: id };
+    } catch { /* le choix n'a pas été retenu : le bouton reste proposé */ }
+  }
+
   async function reidentifier() {
     if (album.id == null) return;
     const id = album.id;
@@ -1694,6 +1722,23 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       {:else}
         <div class="artist">{nomArtiste}</div>
       {/if}
+      {#if oeuvre}
+        <div class="versions" data-versions={oeuvre.versions.length}>
+          <label>
+            <span>{$tr('v2.album.versions' as any).replace('{n}', String(oeuvre.versions.length))}</span>
+            <select value={album.id} onchange={(e) => changerVersion(Number(e.currentTarget.value))}>
+              {#each oeuvre.versions as v (v.id)}
+                <option value={v.id}>{libelleVersion(v)}{v.id === oeuvre.preferred_id ? ' ★' : ''}</option>
+              {/each}
+            </select>
+          </label>
+          {#if album.id === oeuvre.preferred_id}
+            <span class="vpref">★ {$tr('v2.album.preferredVersion' as any)}</span>
+          {:else}
+            <button type="button" class="vchoix" onclick={preferer}>{$tr('v2.album.setPreferredVersion' as any)}</button>
+          {/if}
+        </div>
+      {/if}
       <div class="facts">
         {#if $formatAnneeAlbum(albumAffiche)}<span>{$formatAnneeAlbum(albumAffiche)}</span>{/if}
         <span>{$tr((tracks.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(tracks.length))}</span>
@@ -2188,6 +2233,12 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .artist.lien:hover{color:var(--v2-acc-tint); text-decoration:underline}
   .artist.lien:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:3px; border-radius:4px}
   .facts{display:flex; gap:16px; font:12px var(--v2-mono); color:var(--v2-txt3)}
+  /* tune-server-rust#7617 — le choix de la version à lire. */
+  .versions{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:6px 0 8px; font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .versions label{display:flex; align-items:center; gap:8px}
+  .versions select{max-width:100%; font:inherit; color:var(--v2-txt); background:var(--v2-surface2); border:1px solid var(--v2-line2); border-radius:6px; padding:3px 6px}
+  .vpref{color:var(--v2-acc2)}
+  .vchoix{font:inherit; color:var(--v2-acc2); background:transparent; border:1px solid var(--v2-line2); border-radius:6px; padding:3px 8px; cursor:pointer}
   .repertoire-lecture{display:flex; flex-direction:column; align-items:flex-start; gap:5px; max-width:min(100%, 520px)}
   .lien-label{all:unset; cursor:pointer; margin-top:6px; font:500 12px var(--v2-sans); color:var(--tune-accent)}
   .lien-label:hover{text-decoration:underline}
