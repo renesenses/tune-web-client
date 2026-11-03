@@ -31,6 +31,7 @@ import {
 import { PAYS_TERRE } from './paysTerre';
 import { FORCES_PAYS, niveauPays, rayonCase, type CaseMonde, type NombrePays } from '../paysMonde';
 import { cleLien, type Scene, type Vue, type NoeudScene, type GenreLien } from './scene';
+import { decalagesEpingles } from './epingles';
 import { anneauDepuis, boitesDesNoeuds, largeurEtiquette, placerEtiquettes, rayonVisible, type AnneauPx, type Disque, type EtiquettePosee, type NoeudVisible } from './anneaux';
 
 export type ModePlacement = 'sphere' | 'avatar' | 'cluster' | 'pin' | 'more' | 'ring';
@@ -510,8 +511,12 @@ export class ChampCercle {
       }
     }
     const pins = this.scene.noeuds.filter((n) => n.kind === 'pin');
+    // Les épingles d'un même lieu s'étagent à l'écran (#2611) ; les arcs suivent.
+    const decal = decalagesEpingles(pins.map((p) => ({ id: p.id, lat: p.lat!, lon: p.lon!, me: p.me })));
+    const sansDecal: [number, number] = [0, 0];
     const moi = pins.find((p) => p.me);
     if (moi) {
+      const [mdx, mdy] = decal.get(moi.id) ?? sansDecal;
       const M = this.noeuds.get(moi.id)!;
       const VM = vecteur(moi.lat!, moi.lon!);
       pins.forEach((p, pi) => {
@@ -520,6 +525,9 @@ export class ChampCercle {
         const aa = a * Math.min(n.cur.alpha, M.cur.alpha);
         if (aa < 0.01) return;
         const VB = vecteur(p.lat!, p.lon!);
+        const [bdx, bdy] = decal.get(p.id) ?? sansDecal;
+        const glisser = (P: [number, number, number], t: number): [number, number, number] =>
+          [P[0] + mdx * (1 - t) + bdx * t, P[1] + mdy * (1 - t) + bdy * t, P[2]];
         const om = Math.acos(Math.max(-1, Math.min(1, VM[0] * VB[0] + VM[1] * VB[1] + VM[2] * VB[2])));
         const lift = Math.min(0.42, 0.12 + om * 0.25);
         const hl = this.sel === p.id || this.sel === moi.id || this.hover === p.id;
@@ -529,7 +537,7 @@ export class ChampCercle {
         let px = 0; let py = 0; let pv = false;
         for (let i = 0; i <= 48; i++) {
           const t = i / 48; const [la, lo] = pointArc(VM, VB, om, t);
-          const P = projeter(la, lo, R, cx, cy, this.G, 1 + Math.sin(Math.PI * t) * lift);
+          const P = glisser(projeter(la, lo, R, cx, cy, this.G, 1 + Math.sin(Math.PI * t) * lift), t);
           const v = vis(P[0], P[1], P[2]);
           if (i > 0 && v && pv) { ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(P[0], P[1]); ctx.stroke(); }
           px = P[0]; py = P[1]; pv = v;
@@ -539,7 +547,7 @@ export class ChampCercle {
         for (let k = 0; k < this.arcPh.length; k++) {
           const t = (this.arcPh[k] + this.time * (0.12 + (k % 5) * 0.012) + pi * 0.37) % 1;
           const [la, lo] = pointArc(VM, VB, om, t);
-          const P = projeter(la, lo, R, cx, cy, this.G, 1 + Math.sin(Math.PI * t) * lift);
+          const P = glisser(projeter(la, lo, R, cx, cy, this.G, 1 + Math.sin(Math.PI * t) * lift), t);
           if (!vis(P[0], P[1], P[2])) continue;
           ctx.globalAlpha = aa * (0.25 + 0.7 * Math.sin(Math.PI * t));
           ctx.fillRect(P[0] - 1, P[1] - 1, 2, 2);
@@ -550,7 +558,9 @@ export class ChampCercle {
     for (const p of pins) {
       const n = this.noeuds.get(p.id)!;
       const aa = a * n.cur.alpha;
-      const [x, y, z] = projeter(p.lat!, p.lon!, R, cx, cy, this.G);
+      const [x0, y0, z] = projeter(p.lat!, p.lon!, R, cx, cy, this.G);
+      const [dx, dy] = decal.get(p.id) ?? sansDecal;
+      const x = x0 + dx; const y = y0 + dy;
       // Zoomé, une épingle hors de la scène n'a plus de bouton (le Tab ne s'y perd pas).
       if (aa < 0.01 || z < 0.04 || !dansLaScene(x, y, this.W, this.H)) { this.opts.placer?.(p.id, null); continue; }
       const hl = this.sel === p.id || this.hover === p.id;
