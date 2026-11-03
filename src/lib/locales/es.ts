@@ -4337,7 +4337,7 @@ export default {
   "v2.set.pushHint": "Fin del análisis, errores de reproducción. Este ajuste es propio de este navegador: no sigue a tu perfil de un dispositivo a otro.",
   "v2.meta.foot": "El progreso del enriquecimiento se sigue en {p}.",
   "v2.home.wZonesCards": "Sonando ahora",
-  "v2.home.wFirstRow": "Primera fila",
+  "v2.home.wFirstRow": "Resumen de escucha",
   "v2.home.zoneOf": "en {z}",
   "v2.home.profilesUnavailable": "No se pueden cargar los perfiles: el servidor no responde. Reintentando automáticamente.",
   "v2.home.profilesRetryNow": "Reintentar ahora",

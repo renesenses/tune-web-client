@@ -4209,7 +4209,7 @@ export default {
   "v2.set.pushHint": "Koniec skanowania, błędy odtwarzania. To ustawienie dotyczy tej przeglądarki — nie przechodzi z Twoim profilem między urządzeniami.",
   "v2.meta.foot": "Postęp wzbogacania można śledzić w: {p}.",
   "v2.home.wZonesCards": "Teraz słuchane",
-  "v2.home.wFirstRow": "Pierwszy wiersz",
+  "v2.home.wFirstRow": "Przegląd słuchania",
   "v2.home.zoneOf": "w strefie {z}",
   "v2.home.profilesUnavailable": "Nie można wczytać profili: serwer nie odpowiada. Trwa automatyczna ponowna próba.",
   "v2.home.profilesRetryNow": "Spróbuj teraz",

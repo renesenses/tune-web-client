@@ -4337,7 +4337,7 @@ export default {
   "v2.set.pushHint": "スキャン完了、再生エラー。この設定はこのブラウザー固有で、端末をまたいでプロフィールには追随しません。",
   "v2.meta.foot": "補完の進捗は {p} で確認できます。",
   "v2.home.wZonesCards": "再生中",
-  "v2.home.wFirstRow": "最初の行",
+  "v2.home.wFirstRow": "リスニングの概要",
   "v2.home.zoneOf": "{z} で再生中",
   "v2.home.profilesUnavailable": "プロファイルを読み込めません：サーバーが応答しません。自動的に再試行しています。",
   "v2.home.profilesRetryNow": "今すぐ再試行",

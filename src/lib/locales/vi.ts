@@ -4213,7 +4213,7 @@ export default {
   "v2.set.pushHint": "Kết thúc quét, lỗi phát nhạc. Cài đặt này thuộc về trình duyệt này — nó không theo hồ sơ của bạn từ thiết bị này sang thiết bị khác.",
   "v2.meta.foot": "Tiến độ bổ sung thông tin được theo dõi trong {p}.",
   "v2.home.wZonesCards": "Đang nghe",
-  "v2.home.wFirstRow": "Hàng đầu tiên",
+  "v2.home.wFirstRow": "Tổng quan nghe nhạc",
   "v2.home.zoneOf": "trên {z}",
   "v2.home.profilesUnavailable": "Không thể tải hồ sơ: máy chủ không phản hồi. Đang tự động thử lại.",
   "v2.home.profilesRetryNow": "Thử lại ngay",

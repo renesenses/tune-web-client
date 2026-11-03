@@ -104,7 +104,7 @@
   import PanneauGenres from './ligne1/PanneauGenres.svelte';
   import PanneauConcerts from './ligne1/PanneauConcerts.svelte';
   import PanneauStats from './ligne1/PanneauStats.svelte';
-  import { COTE_L1, zonesDeLaLigne } from '../../lib/premiereLigne';
+  import { COTE_L1, zonesDeLaLigne, PANNEAUX_L1, panneauxDeLaLigne } from '../../lib/premiereLigne';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import {
     objetAlbum,
@@ -198,6 +198,8 @@
   /** Recherche DANS le catalogue de cette page, jamais dans le registre global. */
   const parId = (id: string) => catalogueComplet.find((w) => w.id === id);
 
+  const clePanneaux = $derived(`${CLE}_panneaux`);
+  let panneaux = $state<string[]>(panneauxDeLaLigne(undefined));
   let disposition = $state<string[]>([...dispositionDefaut]);
   /**
    * #987 — la disposition TELLE QU'ENREGISTRÉE, identifiants inconnus compris.
@@ -458,6 +460,7 @@
       chiffres = lu.choix;
       chiffresEnregistres = lu.enregistres;
       migrationAFaire = lu.aMigrer;
+      panneaux = panneauxDeLaLigne(prefs?.[clePanneaux]);
       const d = prefs?.[CLE];
       // On ne garde que les identifiants CONNUS : un widget retiré du registre
       // laisserait sinon un trou muet dans la page de qui l'avait choisi.
@@ -570,6 +573,7 @@
       // effacerait un chiffre choisi avec une plus récente.
       await api.setProfilePreferences(pid, {
         [CLE]: disposition,
+        [clePanneaux]: panneaux,
         [CLE_CHIFFRES]: choixAEnregistrer(chiffres, chiffresEnregistres),
         // #2410 — SA disposition est une décision : le marqueur de la première
         // ligne part avec elle. Sans lui, retirer la ligne (donc « Genres » et
@@ -1703,10 +1707,29 @@
                 {#each zonesDeLaLigne($zones) as z (z.id)}
                   <CarteZoneL1 zone={z} />
                 {/each}
-                <PanneauGenres />
-                <PanneauConcerts />
-                <PanneauStats />
+                {#if panneaux.includes('genres')}<PanneauGenres />{/if}
+                {#if panneaux.includes('concerts')}<PanneauConcerts />{/if}
+                {#if panneaux.includes('stats')}<PanneauStats />{/if}
               </div>
+
+              {#if edition}
+                <div class="choix-chiffres" role="group" aria-label={$t(w.cleTitre as any)}>
+                  <div class="opts">
+                    {#each PANNEAUX_L1 as panneau (panneau.id)}
+                      <label class="opt" class:on={panneaux.includes(panneau.id)}>
+                        <input type="checkbox" checked={panneaux.includes(panneau.id)}
+                          onchange={() => {
+                            panneaux = panneaux.includes(panneau.id)
+                              ? panneaux.filter((id) => id !== panneau.id)
+                              : [...panneaux, panneau.id];
+                            void enregistrer();
+                          }} />
+                        <span>{$t(panneau.cle as any)}</span>
+                      </label>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
 
             {:else if !et.elements.length}
               <div class="state mince">{$t('v2.home.widgetEmpty' as any)}</div>

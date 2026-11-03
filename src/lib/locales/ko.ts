@@ -4337,7 +4337,7 @@ export default {
   "v2.set.pushHint": "분석 완료, 재생 오류. 이 설정은 이 브라우저에만 적용되며, 기기 간에 프로필을 따라가지 않습니다.",
   "v2.meta.foot": "보강 진행률은 {p}에서 확인합니다。",
   "v2.home.wZonesCards": "지금 재생 중",
-  "v2.home.wFirstRow": "첫 번째 행",
+  "v2.home.wFirstRow": "감상 개요",
   "v2.home.zoneOf": "{z}에서 재생 중",
   "v2.home.profilesUnavailable": "프로필을 불러올 수 없습니다: 서버가 응답하지 않습니다. 자동으로 다시 시도하는 중입니다.",
   "v2.home.profilesRetryNow": "지금 다시 시도",

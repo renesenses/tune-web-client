@@ -4359,7 +4359,7 @@ export default {
   "v2.set.pushHint": "Fin d’analyse, erreurs de lecture. Réglage propre à ce navigateur — il ne suit pas votre profil d’un appareil à l’autre.",
   "v2.meta.foot": "L’avancement de l’enrichissement se suit dans {p}.",
   "v2.home.wZonesCards": "En écoute",
-  "v2.home.wFirstRow": "Première ligne",
+  "v2.home.wFirstRow": "Aperçu des écoutes",
   "v2.home.zoneOf": "sur {z}",
   "v2.home.profilesUnavailable": "Impossible de charger les profils : le serveur ne répond pas. Nouvel essai automatique en cours.",
   "v2.home.profilesRetryNow": "Réessayer maintenant",
