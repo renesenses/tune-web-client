@@ -21,6 +21,8 @@ import {
 import { preparerLocale } from '../i18n';
 import { dialogs } from '../stores/dialogs';
 import fr from '../locales/fr';
+import { brancherHistoriqueCoquille, detailOuvert } from '../historiqueCoquille';
+import { reculer } from './reculer';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -102,6 +104,7 @@ beforeAll(async () => { await preparerLocale('fr'); });
 beforeEach(() => {
   try { localStorage.clear(); } catch { /* stockage indisponible */ }
   ficheAlbumService.set(null);
+  detailOuvert.set(null);
   greffons = [];
   appels = [];
   affinage = { en_cours: false, restants: 0 };
@@ -127,6 +130,7 @@ beforeEach(() => {
       return reponse({ lance: lanceParSynchro, avancement }, 202);
     }
     if (u.includes('/ext/collection-physique/cache')) return reponse({ efface: 'tout' });
+    if (/\/library\/albums\/42(?:\?|$)/.test(u)) return reponse({ id: 42, title: 'Never Gonna Give You Up', artist_name: 'Rick Astley', source: 'local' });
     if (/\/config/.test(u)) return reponse({});
     return reponse([]);
   }));
@@ -191,8 +195,10 @@ describe('« Ma collection physique » — écran', () => {
     expect(rick.textContent).toContain('24 bits · 96 kHz');
     (rick.querySelector('[data-ouvrir-album]') as HTMLButtonElement).click();
     flushSync();
-    expect(get(pendingLibraryAlbum)).toBe(42);
-    expect(get(activeView)).toBe('library');
+    await laisserTourner();
+    expect(get(detailOuvert)).toBe('collectionphysique:album:42');
+    expect(get(activeView)).toBe('collectionphysique');
+    expect(hote!.querySelector('.v2-detail')).not.toBeNull();
 
     const st = hote!.querySelector('[data-etat-disque="streaming"]')!;
     expect(st.querySelector('[data-service="tidal"]')?.textContent).toBe('TIDAL');
@@ -347,8 +353,10 @@ describe('« Ma collection physique » — grille comme la Bibliothèque (Bertra
     await laisserTourner();
     (hote!.querySelector('[data-disque="249504"] [data-ouvrir-disque]') as HTMLButtonElement).click();
     flushSync();
-    expect(get(pendingLibraryAlbum)).toBe(42);
-    expect(get(activeView)).toBe('library');
+    await laisserTourner();
+    expect(get(detailOuvert)).toBe('collectionphysique:album:42');
+    expect(get(activeView)).toBe('collectionphysique');
+    expect(hote!.querySelector('.v2-detail')).not.toBeNull();
 
     activeView.set('collectionphysique');
     flushSync();
@@ -486,5 +494,55 @@ describe('« Ma collection physique » — le cache (Bertrand, 01/11/2026)', () 
     await laisserTourner();
     expect(appels.filter((a) => a.includes('/cache'))).toEqual(['DELETE /api/v1/ext/collection-physique/cache?quoi=tout']);
     confirmer.mockRestore();
+  });
+});
+
+
+describe('#2624 — revenir à la collection physique', () => {
+  it('Retour et Précédent retrouvent les filtres et le même défilement', async () => {
+    history.replaceState(null, '', '#home');
+    activeView.set('home');
+    const debrancher = brancherHistoriqueCoquille();
+    activeView.set('collectionphysique');
+    try {
+      monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+      await laisserTourner();
+      (hote!.querySelector('[data-format="vinyle"]') as HTMLButtonElement).click();
+      (hote!.querySelector('[data-etat="bibliotheque"]') as HTMLButtonElement).click();
+      await laisserTourner();
+      const zone = hote!.querySelector('[data-collection-physique] .scroll') as HTMLElement;
+      zone.scrollTop = 420;
+      const ouvrir = async () => {
+        (hote!.querySelector('[data-disque="249504"] [data-ouvrir-disque]') as HTMLButtonElement).click();
+        await laisserTourner();
+        expect(get(activeView), 'ouvrir la fiche abandonne la collection').toBe('collectionphysique');
+        expect(hote!.querySelector('.v2-detail'), 'la fiche album doit être ouverte').not.toBeNull();
+        expect(history.state).toMatchObject({ vue: 'collectionphysique', detail: 'collectionphysique:album:42' });
+      };
+      const verifierRetour = () => {
+        expect(hote!.querySelector('.v2-detail')).toBeNull();
+        expect(get(activeView)).toBe('collectionphysique');
+        expect(hote!.querySelector('[data-collection-physique] .scroll')).toBe(zone);
+        expect(zone.scrollTop, 'la position de la collection est perdue').toBe(420);
+        expect(hote!.querySelector('[data-format="vinyle"]')?.getAttribute('aria-pressed')).toBe('true');
+        expect(hote!.querySelector('[data-etat="bibliotheque"]')?.getAttribute('aria-pressed')).toBe('true');
+      };
+      await ouvrir();
+      (hote!.querySelector('.v2-detail .close') as HTMLButtonElement).click();
+      await vi.waitFor(() => expect(history.state?.detail).toBeNull());
+      await laisserTourner(); verifierRetour();
+      await ouvrir();
+      await reculer(); await laisserTourner(); verifierRetour();
+    } finally { debrancher(); detailOuvert.set(null); }
+  });
+
+  it('une réponse identité réussie n’affiche pas d’erreur après la lecture de la collection', async () => {
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    (hote!.querySelector('[data-compte-du-jeton]') as HTMLButtonElement).click();
+    await laisserTourner();
+    expect(appels.some((a) => a.startsWith('POST ') && a.includes('/reglages/identite'))).toBe(true);
+    expect(hote!.querySelector('[data-erreur]')).toBeNull();
+    expect(hote!.querySelectorAll('[data-disque]')).toHaveLength(3);
   });
 });

@@ -38,9 +38,13 @@
     type Collection, type Disque, type EtatDisque, type EtatSynchro, type Famille,
     type Reglages, type SurUnService,
   } from '../../lib/collectionPhysique';
-  import { activeView, pendingLibraryAlbum, vueDeRetour } from '../../lib/stores/navigation';
+  import { activeView, vueDeRetour } from '../../lib/stores/navigation';
   import { ficheAlbumService } from '../../lib/stores/streaming';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import type { Album } from '../../lib/types';
+  import { getAlbum } from '../../lib/api';
+  import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import BasculeAffichage from './BasculeAffichage.svelte';
   import { GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
@@ -220,9 +224,32 @@
   const toutFormat = () => filtrer(null, filtreEtat);
   const toutEtat = () => filtrer(format, null);
 
+  // #2624 — ouvrir la fiche dans CET écran garde les filtres et son défilement.
+  // Seule une clé primitive entre dans l'historique ; Précédent/Suivant
+  // referment/rouvrent la fiche sans passer par la grille Bibliothèque.
+  let albumOuvert = $state<Album | null>(null);
+  $effect(() => {
+    const id = /^collectionphysique:album:(\d+)$/.exec($detailOuvert ?? '')?.[1];
+    let vivant = true;
+    albumOuvert = null;
+    if (!id) return;
+    getAlbum(Number(id)).then((album) => {
+      if (vivant) albumOuvert = album;
+    }).catch(() => {
+      if (!vivant) return;
+      erreur = cleErreur(null);
+      fermerAlbum();
+    });
+    return () => { vivant = false; };
+  });
+
   function ouvrirAlbum(id: number) {
-    pendingLibraryAlbum.set(id);
-    activeView.set('library');
+    ouvrirDetail(`collectionphysique:album:${id}`);
+  }
+
+  function fermerAlbum() {
+    if (entreeCourantePorte($detailOuvert)) fermerDetailEnReculant();
+    else fermerDetail();
   }
 
   /** Le clic sur une carte : l'album de la bibliothèque, sinon l'album chez
@@ -432,6 +459,10 @@
     </p>
   </div>
 </section>
+
+{#if albumOuvert}
+  <AlbumDetailV2 album={albumOuvert} onClose={fermerAlbum} />
+{/if}
 
 <style>
   .v2-collection{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
