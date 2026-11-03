@@ -2,7 +2,7 @@
   /**
    * tune-server-rust#7466 — « Plus de filtres » : la barre repliable des
    * critères de recherche de radios, LA MÊME sur « Mes radios » et sur
-   * « Annuaire ». Format, débit minimal, sans perte, Hi-Res, Metadata+ et
+   * « Annuaire ». Format, qualité minimale (tune-server-rust#7718), sans perte, Hi-Res, Metadata+ et
    * favoris ; le serveur les combine en ET.
    *
    * Le choix est retenu dans les préférences (`radioFiltres`), comme les
@@ -13,7 +13,7 @@
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import {
-    DEBITS_RADIO, FILTRES_RADIO_VIDES, FORMATS_RADIO,
+    DEBITS_RADIO, FILTRES_RADIO_VIDES, FORMATS_RADIO, NIVEAUX_SANS_PERTE_RADIO,
     nombreDeFiltresActifs, normaliserFiltresRadio, type FiltresRadio,
   } from '../../lib/radioFiltres';
   import BadgeMetadataPlus from '../partages/BadgeMetadataPlus.svelte';
@@ -61,12 +61,15 @@
           <option value={f}>{f.toUpperCase()}</option>
         {/each}
       </select>
-      <select class="choix" aria-label={$t('v2.radio.filters.bitrateMin' as any)}
-        value={filtres.bitrateMin == null ? '' : String(filtres.bitrateMin)}
-        onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value; poser({ bitrateMin: v ? Number(v) : null }); }}>
-        <option value="">{$t('v2.radio.filters.anyBitrate' as any)}</option>
+      <select class="choix" aria-label={$t('v2.radio.filters.qualityMin' as any)} data-testid="radio-filtres-qualite"
+        value={filtres.qualiteMin ?? ''}
+        onchange={(e) => poser({ qualiteMin: (e.currentTarget as HTMLSelectElement).value || null })}>
+        <option value="">{$t('v2.radio.filters.anyQuality' as any)}</option>
         {#each DEBITS_RADIO as d (d)}
           <option value={String(d)}>{$t('v2.radio.filters.kbps' as any).replace('{n}', String(d))}</option>
+        {/each}
+        {#each NIVEAUX_SANS_PERTE_RADIO as [v, q] (v)}
+          <option value={v}>{$t('v2.radio.filters.flac' as any).replace('{q}', q)}</option>
         {/each}
       </select>
       <label class="case"><input type="checkbox" checked={filtres.lossless}
