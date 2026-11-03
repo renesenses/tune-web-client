@@ -3528,6 +3528,8 @@ export default {
   "v2.meta.drEngraveBtn": "Beírás",
   "v2.meta.drRunning": "Beírás folyamatban…",
   "v2.meta.drInterrupted": "Megszakadt: {done} / {total} — újraindítás",
+  "v2.meta.drCancelled": "Leállítva: {done} / {total} — folytatás",
+  "v2.meta.drStop": "Leállítás",
   "v2.meta.drToEngrave": "beírandó szám",
   "v2.meta.drToEngraveLive": "még beírandó (élő számlálás)",
   "v2.meta.drInFiles": "szám, ahol a DR már a fájlban van",

@@ -3574,6 +3574,8 @@ export default {
   "v2.meta.drEngraveBtn": "書き込む",
   "v2.meta.drRunning": "書き込み中…",
   "v2.meta.drInterrupted": "{done} / {total} で中断 — 再実行",
+  "v2.meta.drCancelled": "{done} / {total} で停止 — 再開",
+  "v2.meta.drStop": "停止",
   "v2.meta.drToEngrave": "書き込み対象のトラック",
   "v2.meta.drToEngraveLive": "残りの書き込み対象（リアルタイム集計）",
   "v2.meta.drInFiles": "ファイルに DR 済みのトラック",

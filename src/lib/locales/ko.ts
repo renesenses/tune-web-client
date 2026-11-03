@@ -3574,6 +3574,8 @@ export default {
   "v2.meta.drEngraveBtn": "기록",
   "v2.meta.drRunning": "기록 중…",
   "v2.meta.drInterrupted": "{done} / {total}에서 중단됨 — 다시 실행",
+  "v2.meta.drCancelled": "{done} / {total}에서 중지됨 — 이어서 실행",
+  "v2.meta.drStop": "중지",
   "v2.meta.drToEngrave": "기록할 트랙",
   "v2.meta.drToEngraveLive": "남은 기록 대상 (실시간 집계)",
   "v2.meta.drInFiles": "파일에 DR이 이미 있는 트랙",

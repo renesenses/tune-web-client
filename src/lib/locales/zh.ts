@@ -3574,6 +3574,8 @@ export default {
   "v2.meta.drEngraveBtn": "写入",
   "v2.meta.drRunning": "写入中…",
   "v2.meta.drInterrupted": "已在 {done} / {total} 处中断 — 重新开始",
+  "v2.meta.drCancelled": "已在 {done} / {total} 处停止 — 继续",
+  "v2.meta.drStop": "停止",
   "v2.meta.drToEngrave": "待写入的曲目",
   "v2.meta.drToEngraveLive": "剩余待写入（实时统计）",
   "v2.meta.drInFiles": "文件中已有 DR 的曲目",

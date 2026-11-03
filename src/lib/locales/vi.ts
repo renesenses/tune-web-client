@@ -3455,6 +3455,8 @@ export default {
   "v2.meta.drEngraveBtn": "Ghi",
   "v2.meta.drRunning": "Đang ghi…",
   "v2.meta.drInterrupted": "Bị gián đoạn ở {done} / {total} — chạy lại",
+  "v2.meta.drCancelled": "Đã dừng ở {done} / {total} — tiếp tục",
+  "v2.meta.drStop": "Dừng",
   "v2.meta.drToEngrave": "bài hát cần ghi",
   "v2.meta.drToEngraveLive": "còn cần ghi (đếm trực tiếp)",
   "v2.meta.drInFiles": "bài hát đã có DR trong tệp",

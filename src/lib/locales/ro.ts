@@ -3574,6 +3574,8 @@ export default {
   "v2.meta.drEngraveBtn": "Scrie",
   "v2.meta.drRunning": "Se scrie…",
   "v2.meta.drInterrupted": "Întreruptă la {done} / {total} — reluați",
+  "v2.meta.drCancelled": "Oprită la {done} / {total} — reluați",
+  "v2.meta.drStop": "Oprește",
   "v2.meta.drToEngrave": "piese de scris",
   "v2.meta.drToEngraveLive": "rămase de scris (numărate în timp real)",
   "v2.meta.drInFiles": "piese cu DR deja în fișier",

@@ -3593,6 +3593,8 @@ export default {
   "v2.meta.drEngraveBtn": "Write",
   "v2.meta.drRunning": "Writing…",
   "v2.meta.drInterrupted": "Interrupted at {done} / {total} — restart",
+  "v2.meta.drCancelled": "Stopped at {done} / {total} — resume",
+  "v2.meta.drStop": "Stop",
   "v2.meta.drToEngrave": "tracks to write",
   "v2.meta.drToEngraveLive": "left to write (live count)",
   "v2.meta.drInFiles": "tracks already carrying the DR in the file",
