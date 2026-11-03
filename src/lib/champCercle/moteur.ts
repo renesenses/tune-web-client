@@ -291,7 +291,7 @@ export class ChampCercle {
   }
 
   majPointsPublics(points: readonly { lat: number; lon: number }[]) {
-    this.publics = points.map((p) => [p.lat, p.lon]);
+    this.publics = points.map((p) => [p.lat * DEG, p.lon * DEG]);
     this.demander();
   }
 
