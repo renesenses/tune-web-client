@@ -12,6 +12,7 @@ Bertrand : 1 « Aléatoire » → conserver l'ordre aléatoire mémorisé ; 2 et
 
 `GET /api/v1/home/continue-listening?limit=N&zone_id=Z` conserve une liste JSON et ses champs historiques. Les entrées nouvelles portent `resume_key` (opaque), `last_track_title`, `position_ms` (podcast et titre seul), `context_type`, `context_id`, `source`, `title`, `cover_path`.
 Album/playlist : la vignette est celle du conteneur ; le libellé visible est le dernier titre démarré (`last_track_title`). Podcast : vignette et nom du podcast (`title`), épisode identifié séparément.
+`cover_path` peut être nul pour une playlist locale sans image unique. Le client réemploie alors la vignette qu’il sait déjà produire pour cette playlist (mosaïque dans le web, pochette de playlist dans Android), avec un `context_id` local valide. Une image explicite garde la priorité ; un identifiant Qobuz/TIDAL, même numérique, ne sert jamais à demander les pistes d’une playlist locale.
 
 `POST /api/v1/home/continue-listening/{zone_id}/resume` avec `{"resume_key":"…"}` reconstruit la file mémorisée de ce contexte, sélectionne le dernier titre démarré et le rejoue depuis zéro pour un album ou une playlist ; la suite reste dans la file. L'ordre aléatoire mémorisé est conservé, y compris après redémarrage. Un identifiant de service n'est jamais interprété comme un identifiant de bibliothèque. Le serveur résout de nouveau les pistes par leur service, sans mémoriser un flux temporaire.
 Titre seul : vignette du titre, reprise à sa position mémorisée, sans recul (décision de Bertrand du 28/10 à 20 h).
@@ -27,7 +28,7 @@ Les clients utilisent la reprise serveur quand `resume_key` existe ; les ancienn
 ## Preuves requises
 
 Serveur : contexte démarré puis GET ; file reconstruite et dernier titre rejoué (album/playlist/titre seul, local et service) ; ordre aléatoire ; contexte ajouté mais jamais démarré absent ; contexte démarré depuis un ajout présent ; podcast persisté et recul configuré/borné à zéro. Tests sans sortie sonore. Contre-épreuve compilable en retirant le correctif, restauration par copie puis vert.
-Clients : décodage, libellé/vignette, requête sur la zone active, fallback ancien serveur et erreur ; réglage web. Builds/tests Shrek uniquement sauf simulateur iOS muet sur Mac.
+Clients : décodage, libellé/vignette, requête sur la zone active, fallback ancien serveur et erreur ; réglage web. Tests ciblés locaux et suite complète en CI, selon les consignes de coordination courantes ; les autorisations Mac, le verrou et les limites de concurrence y sont définis.
 
 ### Ordre aléatoire matérialisé par un client
 Un `POST /zones/{zone_id}/play` peut porter `context_shuffle: true` lorsque le client a mélangé lui-même la liste. La tête puis les ajouts conservent cet ordre ; le serveur ne le retire pas au titre suivant. Ce champ facultatif ne change pas le drapeau d’aléatoire de la zone. Une reprise normale reconstruit le conteneur complet même si plusieurs titres seulement avaient été sélectionnés. Une reprise mélangée conserve son instantané sans consulter un nouvel ordre du conteneur.
