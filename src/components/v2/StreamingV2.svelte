@@ -84,6 +84,7 @@
     ongletApresDemande,
     ongletDeRestitution,
     ongletsStreaming,
+    sessionExpiree,
     aUneBibliothequeDeCompte,
     bibliothequeDeCompteSurPreuve,
     reponseProuveLaBibliotheque,
@@ -410,6 +411,8 @@
    */
   const tabs = $derived(ongletsStreaming(services, bandcampLive));
   const isBc = $derived(active === BANDCAMP);
+  /** web#2587 — l'onglet ouvert est un service dont la session a expiré. */
+  const ongletExpire = $derived(!!active && sessionExpiree(services[cleServeur(active) ?? '']));
 
   /**
    * Pas de genres, pas d'onglet — et c'est la DONNEE qui tranche, pas un nom
@@ -672,7 +675,7 @@
   let catalogueDemande: string | null = null;
   $effect(() => {
     const svc = active;
-    if (!svc || svc === BANDCAMP) return;
+    if (!svc || svc === BANDCAMP || ongletExpire) return;
     if (catalogueDemande === svc) return;
     catalogueDemande = svc;
     catalogueEnCours = true;
@@ -687,6 +690,8 @@
   $effect(() => {
     const svc = active, view = sub, tag = bcTag, sg = bcSub;
     if (!svc) return;
+    // web#2587 — rien à charger pour un service dont la session a expiré.
+    if (ongletExpire) { paneLoading = false; return; }
     paneLoading = true;
     featured = []; newRel = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcDecouverte = []; bcCollection = [];
     const done = () => { paneLoading = false; };
@@ -1308,7 +1313,7 @@
       {/each}
     </nav>
 
-    {#if active}
+    {#if active && !ongletExpire}
       <nav class="subs" use:molettePortee={() => zoneDefilante}>
         {#each SUBS as sb (sb.id)}
           <button class:on={sub === sb.id} onclick={() => ouvrirSousOnglet(sb.id)}>{sb.label}</button>
@@ -1330,6 +1335,14 @@
           {$t('v2.stream.noServiceA' as any)} <b>{$t('v2.stream.noServiceWhere' as any)}</b> {$t('v2.stream.noServiceB' as any)}
         </p>
         <button class="lnk" onclick={ouvrirReglagesJetons}>{$t('v2.eq.openSettings' as any)}</button>
+      </div>
+
+    {:else if ongletExpire}
+      <!-- web#2587 — la session est tombée : l'onglet reste, avec le chemin du retour. -->
+      <div class="notice" role="alert">
+        <p>{$t('v2.stream.sessionExpired' as any)} <b>{label(active ?? '')}</b></p>
+        <p class="sub">{$t('v2.stream.sessionExpiredDetail' as any).replace('{service}', label(active ?? ''))}</p>
+        <button class="lnk" onclick={ouvrirReglagesJetons}>{$t('v2.stream.reconnect' as any)}</button>
       </div>
 
     {:else if results || bcSearch}
