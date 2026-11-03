@@ -36,7 +36,7 @@ afterEach(() => {
   hote.remove();
 });
 
-const champs = () => Array.from(hote.querySelectorAll<HTMLInputElement>('.peq-editor input[type="number"]'));
+const champs = () => Array.from(hote.querySelectorAll<HTMLInputElement>('.peq-editor input[data-cle]'));
 function saisir(c: HTMLInputElement, v: string) {
   c.value = v;
   c.dispatchEvent(new Event('input', { bubbles: true }));

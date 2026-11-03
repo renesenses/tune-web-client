@@ -14,7 +14,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { mount, unmount, flushSync } from 'svelte';
+import { mount, unmount, flushSync, type ComponentProps } from 'svelte';
 import ListePistesV2 from '../../components/v2/ListePistesV2.svelte';
 import { preferences } from '../stores/preferences';
 import { pochettesDePisteDistinctes } from '../pochetteDePisteDistincte';
@@ -45,7 +45,7 @@ const PISTE = {
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
-function poser(props: Record<string, unknown>): HTMLDivElement {
+function poser(props: ComponentProps<typeof ListePistesV2>): HTMLDivElement {
   hote = document.createElement('div');
   document.body.appendChild(hote);
   monte = mount(ListePistesV2, { target: hote, props });
