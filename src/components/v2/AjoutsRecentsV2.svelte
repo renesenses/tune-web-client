@@ -31,7 +31,24 @@
    * affichée doit agir ou ne pas être là ; celle-ci a un sens sur une grille
    * d'albums, on la câble plutôt que de la retirer.
    */
-  let { onOuvrir, vue = 'grid' }: { onOuvrir: (a: Album) => void; vue?: 'grid' | 'list' } = $props();
+  /**
+   * tune-server-rust#7283 (Yves) — la portée « Répertoire » borne AUSSI les
+   * ajouts récents, sur les mêmes identifiants que l'onglet Albums : la puce
+   * « Répertoire : … » était affichée au-dessus d'une liste de toutes les
+   * racines. `porteeActive` sans `idsPortee` : la portée n'est pas arrivée,
+   * on ne montre rien plutôt que tout.
+   */
+  let {
+    onOuvrir,
+    vue = 'grid',
+    porteeActive = false,
+    idsPortee = null,
+  }: {
+    onOuvrir: (a: Album) => void;
+    vue?: 'grid' | 'list';
+    porteeActive?: boolean;
+    idsPortee?: Set<number> | null;
+  } = $props();
 
   const FENETRES = [15, 30];
   /** Au-delà, c'est une bibliothèque, pas un « récent ». */
@@ -47,6 +64,11 @@
   /** Le serveur connaît `tri` : il l'a rendu dans un résumé (#5402). */
   let triConnu = $state(false);
   let albums = $state<any[]>([]);
+  const visibles = $derived(
+    !porteeActive ? albums
+      : idsPortee == null ? []
+      : albums.filter((a) => a?.id != null && idsPortee.has(a.id)),
+  );
   let resume = $state<api.ResumeAjoutsRecents | null>(null);
   let charge = $state(false);
 
@@ -113,11 +135,11 @@
 
   {#if !charge}
     <div class="etat">{$tr('common.loading' as any)}</div>
-  {:else if !albums.length}
+  {:else if !visibles.length}
     <div class="etat">{$tr('library.noRecentAlbums' as any)}</div>
   {:else if vue === 'list'}
     <div class="liste">
-      {#each albums as a (a.id)}
+      {#each visibles as a (a.id)}
         <button class="ligne" onclick={() => onOuvrir(a as Album)}>
           <span class="vign"><AlbumArt coverPath={a.cover_path ?? null} albumId={a.id ?? null} size={0} alt={a.title ?? ''} /></span>
           <span class="ltitre" use:bulleTexte>{a.title ?? ''}</span>
@@ -127,7 +149,7 @@
     </div>
   {:else}
     <div class="grille">
-      {#each albums as a (a.id)}
+      {#each visibles as a (a.id)}
         <button class="carte" onclick={() => onOuvrir(a as Album)}>
           <AlbumArt coverPath={a.cover_path ?? null} albumId={a.id ?? null} size={0} alt={a.title ?? ''} />
           <span class="titre" use:bulleTexte>{a.title ?? ''}</span>

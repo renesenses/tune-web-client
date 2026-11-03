@@ -35,9 +35,11 @@
  */
 
 export interface LigneReprise {
+  resume_key?: string | null;
   context_type?: string | null;
   album_id?: number | null;
   title?: string | null;
+  last_track_title?: string | null;
   album_title?: string | null;
   artist_name?: string | null;
   listened_tracks?: number | null;
@@ -69,7 +71,19 @@ export function sousTitreReprise(o: LigneReprise): string {
   const total = o?.track_count ?? null;
   // « 1/10 » seulement si les DEUX sont là : « 1/– » n'apprend rien.
   const avance = lus != null && total != null && total > 0 ? `${lus}/${total}` : '';
-  return [artiste, avance].filter(Boolean).join(' · ');
+  return [conteneurRepris(o), artiste, avance].filter(Boolean).join(' · ');
+}
+
+/**
+ * Le nom du conteneur (album, playlist, podcast) quand la carte met en titre le
+ * dernier titre écouté : sans lui, la carte ne dit plus QUOI on reprend
+ * (FabienM, rc9, tune-server-rust#7588). Vide si la carte porte déjà ce nom.
+ */
+export function conteneurRepris(o: LigneReprise): string {
+  if (estUnePiste(o)) return '';
+  const dernier = (o?.last_track_title ?? '').trim();
+  const nom = (o?.title ?? '').trim();
+  return dernier && nom && nom !== dernier ? nom : '';
 }
 
 /**
@@ -83,5 +97,5 @@ export function reprisesUtiles<T extends LigneReprise>(lignes: readonly T[]): T[
   for (const l of lignes) {
     if (!estUnePiste(l) && l?.album_id != null) albumsProposes.add(l.album_id);
   }
-  return lignes.filter((l) => !(estUnePiste(l) && l?.album_id != null && albumsProposes.has(l.album_id)));
+  return lignes.filter((l) => (l.context_type == null || ['album', 'playlist', 'track', 'podcast'].includes(l.context_type)) && !(l.resume_key == null && estUnePiste(l) && l?.album_id != null && albumsProposes.has(l.album_id)));
 }

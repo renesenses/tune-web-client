@@ -239,3 +239,54 @@ describe('Tune Circle rc9 — pastille et suivi espacé', () => {
     expect(vers(/\/notifications/)).toHaveLength(1);
   });
 });
+
+// web#2546 (FabienM, fil 2559 point 4) : « ouverture d'une notif : impossible
+// de revenir en arrière pour consulter les autres notifications ».
+describe('web#2546 — revenir à la liste après avoir ouvert une notification', () => {
+  it('🔴 une notification de message : « Retour aux notifications » apparaît et ramène à la liste', async () => {
+    const vues: string[] = [];
+    const avant = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) { vues.push(this.id); } as any;
+    try {
+      const el = await poser();
+      expect(el.querySelector('.retour-notifs')).toBeNull();
+      (el.querySelector('.notif[data-genre="message"] .notif-ligne') as HTMLButtonElement).click();
+      await laisserFaire();
+      const retour = el.querySelector('.retour-notifs') as HTMLButtonElement | null;
+      expect(retour, 'aucun chemin de retour vers la liste').not.toBeNull();
+      expect(texte(retour)).toBe('← Retour aux notifications');
+      vues.length = 0;
+      retour!.click();
+      await laisserFaire();
+      expect(vues).toContain('circle-notifs');
+      expect(el.querySelector('.retour-notifs')).toBeNull();
+      expect(el.querySelectorAll('.notif')).toHaveLength(3);
+    } finally {
+      Element.prototype.scrollIntoView = avant;
+    }
+  });
+
+  it('🔴 une notification de playlist : en refermant la playlist, on retrouve la liste', async () => {
+    const vues: string[] = [];
+    const avant = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) { vues.push(this.id); } as any;
+    try {
+      const el = await poser();
+      (el.querySelector('.notif[data-genre="playlist_shared"] .notif-ligne') as HTMLButtonElement).click();
+      // La playlist 9 n'existe pas chez ce faux cloud (404) : la vue se
+      // referme d'elle-même, comme un Retour.
+      await laisserFaire();
+      expect(el.querySelectorAll('.notif')).toHaveLength(3);
+      expect(vues).toContain('circle-notifs');
+    } finally {
+      Element.prototype.scrollIntoView = avant;
+    }
+  });
+
+  it('une notification qui n’ouvre rien ne pose pas de bouton', async () => {
+    const el = await poser();
+    (el.querySelector('.notif[data-genre="contact_accepted"] .notif-ligne') as HTMLButtonElement).click();
+    await laisserFaire();
+    expect(el.querySelector('.retour-notifs')).toBeNull();
+  });
+});

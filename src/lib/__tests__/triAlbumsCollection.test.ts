@@ -25,9 +25,11 @@ describe('tri des albums d’une collection', () => {
     expect(api).toMatch(/type CollectionAlbumsSort = 'artist' \| 'title' \| 'year' \| 'release_date' \| 'added_at' \| 'added'/);
   });
 
-  it('les cinq clés demandées, dans cet ordre, et le serveur qui trie', () => {
-    expect(vue).toMatch(/const TRIS_ALBUMS = \['artist', 'title', 'year', 'release_date', 'added_at'\] as const/);
-    expect(vue).toMatch(/api\.getCollectionAlbums\(e\.id, triAlbums, sensAlbums\)/);
+  // Fil 2526 : « Aléatoire » en sixième clé — tirage CLIENT (`albumsTires`),
+  // le serveur charge alors dans l'ordre des artistes.
+  it('les cinq clés demandées, puis Aléatoire, et le serveur qui trie', () => {
+    expect(vue).toMatch(/const TRIS_ALBUMS = \['artist', 'title', 'year', 'release_date', 'added_at', 'random'\] as const/);
+    expect(vue).toMatch(/api\.getCollectionAlbums\(e\.id, triAlbums === 'random' \? 'artist' : triAlbums, sensAlbums\)/);
     // Aucun tri JavaScript sur la liste chargée : ce serait un second ordre.
     expect(vue).not.toMatch(/albums\s*=\s*\[\.\.\.albums\]\.sort|albums\.sort\(/);
   });

@@ -17,6 +17,7 @@ import {
   candidatsDe,
   choixInitial,
   cleBadge,
+  cleErreurCreation,
   nomParDefaut,
   playlistsModifiables,
   selectionnable,
@@ -166,5 +167,66 @@ describe('branchement dans l’écran Favoris', () => {
     expect(modale).toContain("const SERVICE = 'qobuz'");
     expect(modale).toContain('api.createPlaylistFromRadioSelection(SERVICE, n, retenus, cible || null)');
     expect(modale).toContain('mesPlaylists = playlistsModifiables(l as any[])');
+  });
+});
+
+describe('radio → Qobuz, 01/11/2026 : jamais de faux succès', () => {
+  const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
+
+  it('un refus de Qobuz et une sélection vide ont leur propre message', () => {
+    expect(cleErreurCreation({ code: 'creation_playlist_refusee', status: 502 })).toBe('v2.fav.qobuzCreateRefused');
+    expect(cleErreurCreation({ code: 'aucun_titre_retenu', status: 400 })).toBe('v2.fav.qobuzNoneKept');
+    // Contre-épreuves : tout autre refus garde le message traduit par fetchJSON.
+    expect(cleErreurCreation({ code: 'service_non_connecte', status: 409 })).toBeNull();
+    expect(cleErreurCreation(null)).toBeNull();
+  });
+
+  it('le refus traverse fetchJSON : la création REJETTE, avec le code', async () => {
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => {}, removeItem: () => {} });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            error: "could not create playlist on 'qobuz': qobuz /playlist/create: 401",
+            code: 'creation_playlist_refusee',
+            message: 'Qobuz a refusé la création de la playlist : 401',
+          }),
+          { status: 502, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+    let err: any = null;
+    try {
+      await api.createPlaylistFromRadioSelection('qobuz', 'x', ['1']);
+    } catch (e) {
+      err = e;
+    }
+    vi.unstubAllGlobals();
+    expect(err, 'un 502 ne doit jamais se résoudre en succès').not.toBeNull();
+    expect(err.status).toBe(502);
+    expect(cleErreurCreation(err)).toBe('v2.fav.qobuzCreateRefused');
+  }, 20_000);
+
+  it('le message de succès dit « Playlist créée sur Qobuz (N titres) »', () => {
+    const fr = lire('src/lib/locales/fr.ts');
+    expect(fr).toContain('"v2.fav.qobuzCreated": "Playlist créée sur Qobuz ({n} titres)."');
+    const en = lire('src/lib/locales/en.ts');
+    expect(en).toContain('"v2.fav.qobuzCreated": "Playlist created on Qobuz ({n} tracks)."');
+  });
+
+  it('les deux nouvelles phrases existent dans les quinze langues', () => {
+    for (const l of ['de', 'el', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'vi', 'zh']) {
+      const src = lire(`src/lib/locales/${l}.ts`);
+      expect(src, l).toContain('"v2.fav.qobuzNoneKept":');
+      expect(src, l).toContain('"v2.fav.qobuzCreateRefused":');
+    }
+  });
+
+  it('la modale traduit le refus, replie le détail, et explique la sélection vide', () => {
+    const modale = lire('src/components/v2/FavorisRadioQobuzModale.svelte');
+    expect(modale).toContain('const cle = cleErreurCreation(e);');
+    expect(modale).toContain("erreurDetail = typeof e?.detail === 'string' ? e.detail : '';");
+    expect(modale).toMatch(/\{:else if apercu && !retenus\.length\}\s*<p class="fq-sub">\{\$t\('v2\.fav\.qobuzNoneKept'/);
   });
 });

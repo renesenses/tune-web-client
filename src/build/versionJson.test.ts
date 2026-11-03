@@ -35,11 +35,18 @@ describe('contenu de version.json', () => {
     expect(contenuVersionJson('1.2.3').endsWith('\n')).toBe(true);
   });
 
-  it("n'écrit rien d'autre que ce que le serveur lit", () => {
+  it("sans identifiant de build, n'écrit que ce que le serveur lit", () => {
     // Le lecteur Rust ignore les champs inconnus, mais écrire ce qui n'est pas
     // lu crée une seconde chose à tenir à jour. Si un champ est ajouté ici un
     // jour, que ce soit une décision, pas un accident.
     expect(Object.keys(JSON.parse(contenuVersionJson('1.2.3')))).toEqual(['version']);
+  });
+
+  it('porte le champ `build` quand on le donne — décision rc10, relu par le client', () => {
+    // Le client compare ce champ à celui de son bundle pour savoir si l'onglet
+    // est encore celui du `web/` servi (src/lib/versionInterface.ts).
+    const doc = JSON.parse(contenuVersionJson('1.0.0', '1.0.0+abc'));
+    expect(doc).toEqual({ version: '1.0.0', build: '1.0.0+abc' });
   });
 });
 
@@ -112,7 +119,7 @@ describe('câblage dans vite.config.ts', () => {
   });
 
   it('lui passe la version de package.json, pas une constante écrite à la main', () => {
-    expect(/greffonVersionJson\(pkg\.version\)/.test(config)).toBe(true);
+    expect(/greffonVersionJson\(pkg\.version[,)]/.test(config)).toBe(true);
   });
 });
 

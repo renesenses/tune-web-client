@@ -198,6 +198,20 @@ function jouerZoneNavigateurIci(zone: Zone) {
   void getBrowserAudio().then(({ browserPlay }) => browserPlay(url, true, zone.id));
 }
 
+/** Reprise opaque : la sortie navigateur applique aussi la position retournée. */
+export async function resumeListeningAndSync(zoneId: number, resumeKey: string): Promise<Zone> {
+  const zone = await api.resumeListening(zoneId, resumeKey);
+  checkPlayError(zone);
+  syncZone(zone);
+  if (estZoneJouableIci(zone) && zone.stream_url) {
+    const { browserPlay } = await getBrowserAudio();
+    browserPlay(zone.stream_url, true, zone.id, zone.position_ms ?? 0);
+  } else {
+    signalerZoneNavigateurJoueeAilleurs(zone, jouerZoneNavigateurIci);
+  }
+  return zone;
+}
+
 export async function playAndSync(zoneId: number, body?: Parameters<typeof api.play>[1]): Promise<Zone> {
   // Open a grace window so a transient playback.error during a slow HI-RES
   // pre-transcode reads as "chargement…" rather than a failure (see above).
@@ -239,6 +253,32 @@ export async function playAndSync(zoneId: number, body?: Parameters<typeof api.p
     }
   }
   return zone;
+}
+
+/**
+ * renesenses/tune-server-rust#7448 : décocher « Lire en boucle par défaut »
+ * remet à `off` les zones restées en « répéter la piste » (décision de
+ * Bertrand, 30/10/2026 : la case pilote vraiment l'état). Sans cela, la zone
+ * gardait `repeat=one` côté serveur (file persistée) et le même titre repartait
+ * sans fin. Seules les zones en `one` sont touchées.
+ */
+export async function remettreRepetitionAOff(): Promise<void> {
+  const ids = new Set<number>();
+  for (const z of get(zones)) {
+    if (z && z.repeat === 'one' && z.id != null) ids.add(z.id);
+  }
+  const { repeatMode } = await import('./nowPlaying');
+  const courante = get(currentZoneId);
+  if (courante != null && get(repeatMode) === 'one') ids.add(courante);
+  for (const id of ids) {
+    try {
+      const r = await api.setRepeat(id, 'off');
+      if (id === courante) repeatMode.set(r.repeat);
+      zones.update((l) => l.map((z) => (z?.id === id ? { ...z, repeat: r.repeat } : z)));
+    } catch {
+      /* non-fatal */
+    }
+  }
 }
 
 /**

@@ -1,5 +1,5 @@
 /**
- * Thèmes du nouveau client (direction Levente) — sept palettes.
+ * Thèmes du nouveau client (direction Levente) — neuf palettes.
  *
  * Le choix est posé en attribut `data-v2-theme` sur <html> ; les tokens
  * correspondants vivent dans `styles/tune-v2.css` sous
@@ -14,13 +14,18 @@ export const V2_THEMES = [
   { id: 'black-green',     label: 'Noir / Vert',     swatch: ['#071418', '#00D4AA'] },
   { id: 'black-blue',      label: 'Noir / Bleu',     swatch: ['#06111A', '#00BCD4'] },
   { id: 'midnight-orange', label: 'Minuit / Orange', swatch: ['#0B1020', '#FF8A3D'] },
+  // rc9 (Bertrand, 26/10/2026) : le thème de la page de connexion Mozaiklabs.
+  { id: 'mozaiklabs',      label: 'Mozaiklabs',      swatch: ['#1E1F22', '#F97316'], labelKey: 'settings.themeMozaiklabs' },
+  // #2520 (Bertrand, 29/10/2026, rc10) : les couleurs du LOGO Mozaiklabs, fond noir.
+  // Ajouté à côté de l'anthracite / orange, qui reste (l'issue ne tranche pas).
+  { id: 'mozaiklabs-logo', label: 'Mozaiklabs (logo)', swatch: ['#000000', '#2A9F5B'], labelKey: 'settings.themeMozaiklabsLogo' },
   { id: 'brown',           label: 'Brun',            swatch: ['#17110D', '#D89A63'] },
   // #2364 (Sandro, fil 2405) : un palier gris neutre entre les sombres et les
   // clairs, rangé entre les deux. Son nom est traduit (`labelKey`) ; `label`
   // reste le repli français, comme pour les six autres.
   { id: 'dark-grey',       label: 'Gris foncé',      swatch: ['#2B2B2B', '#3DD6B0'], labelKey: 'settings.themeDarkGrey' },
-  { id: 'clear-white',     label: 'Clair / Blanc',   swatch: ['#FFFFFF', '#00A88A'] },
-  { id: 'clear-grey',      label: 'Clair / Gris',    swatch: ['#EDEFF2', '#37718E'] },
+  { id: 'clear-white',     label: 'Clair / Blanc',   swatch: ['#FFFFFF', '#007C66'] },
+  { id: 'clear-grey',      label: 'Clair / Gris',    swatch: ['#EDEFF2', '#356C88'] },
 ] as const;
 
 export type V2Theme = (typeof V2_THEMES)[number]['id'];

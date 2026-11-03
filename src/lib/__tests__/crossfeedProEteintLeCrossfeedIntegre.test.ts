@@ -116,16 +116,16 @@ describe('Lecture en cours', () => {
   const source = readFileSync(resolve(__dirname, '../../components/partages/NowPlaying.svelte'), 'utf8');
   it('nomme l’entrée « Crossfeed Pro » et verrouille le crossfeed intégré quand le greffon traite', () => {
     expect(source).toContain("cfProTraite ? $t('v2.nav.crossfeedPro' as any) : $t('dsp.crossfeedTitle')");
-    expect(source).toContain("checked={cfEnabled && !cfProTraite}");
+    expect(source).toContain("checked={cfEnabled && !cfProTraite && !cfCrosstalk}");
     // Le crossfeed intégré entier est DANS le fieldset verrouillé.
-    const debut = source.indexOf('<fieldset class="cf-verrou" disabled={cfProTraite}');
+    const debut = source.indexOf('<fieldset class="cf-verrou" disabled={cfProTraite || cfCrosstalk}');
     const fin = source.indexOf('</fieldset>', debut);
     expect(debut, 'aucun verrou autour du crossfeed intégré').toBeGreaterThan(-1);
     const verrou = source.slice(debut, fin);
     expect(verrou).toContain('onchange={(e) => { cfEnabled =');
     expect(verrou).toContain('{#each CF_PRESETS as p (p.key)}');
     expect(verrou).toContain('oninput={planifierCrossfeed}');
-    expect(source).toContain("{#if cfProTraite}\n                <p class=\"cf-note cf-note-alerte\" data-crossfeed-remplace>");
+    expect(source).toContain("{#if cfProTraite && !cfCrosstalk}\n                <p class=\"cf-note cf-note-alerte\" data-crossfeed-remplace>");
   });
 });
 

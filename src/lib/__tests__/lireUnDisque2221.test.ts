@@ -199,7 +199,7 @@ describe('web#2221 — la fiche d’album joue le disque', () => {
     lireDe(h[1])!.click();
     for (let i = 0; i < 4; i++) await respirer();
     expect(api.play).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(api.play).mock.calls[0]).toEqual([7, { track_ids: [3, 4] }]);
+    expect(vi.mocked(api.play).mock.calls[0]).toEqual([7, { track_ids: [3, 4], context_type: 'album', context_id: '900', context_source: 'local' }]);
     expect(api.addToQueue).not.toHaveBeenCalled();
   });
 
@@ -209,13 +209,13 @@ describe('web#2221 — la fiche d’album joue le disque', () => {
     flushSync();
     entreeDuMenu('v2.album.playNext')!.click();
     for (let i = 0; i < 4; i++) await respirer();
-    expect(vi.mocked(api.addToQueue).mock.calls[0]).toEqual([7, { track_ids: [3, 4], position: 5 }]);
+    expect(vi.mocked(api.addToQueue).mock.calls[0]).toEqual([7, { track_ids: [3, 4], position: 5, context_type: 'album', context_id: '900', context_source: 'local' }]);
     flushSync();
     plusDe(enTetes(el)[1])!.click();
     flushSync();
     entreeDuMenu('v2.album.addQueue')!.click();
     for (let i = 0; i < 4; i++) await respirer();
-    expect(vi.mocked(api.addToQueue).mock.calls[1]).toEqual([7, { track_ids: [3, 4] }]);
+    expect(vi.mocked(api.addToQueue).mock.calls[1]).toEqual([7, { track_ids: [3, 4], context_type: 'album', context_id: '900', context_source: 'local' }]);
     expect(api.play).not.toHaveBeenCalled();
   });
 

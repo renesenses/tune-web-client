@@ -109,6 +109,8 @@
 
   interface Props {
     piste: Track;
+    contexte?: Record<string, string>;
+    surLire?: (() => void) | null;
     /**
      * « Lire à partir d'ici » — #1061, FabienM, fil 1812, point 9.
      *
@@ -142,7 +144,7 @@
      */
     coeur?: CoeurExterne | null;
   }
-  let { piste, onLireDepuis = null, coeur = null }: Props = $props();
+  let { piste, onLireDepuis = null, coeur = null, contexte = {}, surLire = null }: Props = $props();
 
   /** La modale de playlists est portée ICI, chargée à la demande : chaque
    *  écran qui pose la barre l'aurait sinon recopiée, avec son état et son
@@ -253,7 +255,8 @@
     // Un toast, donc le chemin commun : `signalerEchecLecture` journalise,
     // accole le message du serveur au lieu du seul « Impossible de lire ce
     // titre », et n'empile pas deux bandeaux identiques (#3732).
-    playAndSync(zid, corps as any).catch(signalerEchecLecture);
+    if (surLire) { surLire(); return; }
+    playAndSync(zid, { ...corps, ...contexte } as any).catch(signalerEchecLecture);
   }
 
   /**
@@ -276,7 +279,7 @@
     if (zid == null || !corps || occupe) return;
     occupe = true;
     try {
-      await api.addToQueue(zid, corps);
+      await api.addToQueue(zid, { ...corps, ...contexte });
       notifications.success($t(cle as any).replace('{title}', piste.title ?? ''));
     } catch {
       notifications.error($t('v2.pa.queueError' as any));

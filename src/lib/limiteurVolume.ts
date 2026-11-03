@@ -10,10 +10,12 @@
  */
 export const DELAI_VOLUME_MS = 80;
 
-export function creerLimiteurVolume(delaiMs = DELAI_VOLUME_MS): (envoi: () => void) => void {
+export type LimiteurVolume = ((envoi: () => void) => void) & { annuler(): void };
+
+export function creerLimiteurVolume(delaiMs = DELAI_VOLUME_MS): LimiteurVolume {
   let minuteur: ReturnType<typeof setTimeout> | null = null;
   let enAttente: (() => void) | null = null;
-  return (envoi) => {
+  const envoyer = (envoi: () => void) => {
     enAttente = envoi;
     if (minuteur) return;
     const maintenant = enAttente;
@@ -26,4 +28,11 @@ export function creerLimiteurVolume(delaiMs = DELAI_VOLUME_MS): (envoi: () => vo
       dernier?.();
     }, delaiMs);
   };
+  return Object.assign(envoyer, {
+    annuler() {
+      if (minuteur !== null) clearTimeout(minuteur);
+      minuteur = null;
+      enAttente = null;
+    },
+  });
 }

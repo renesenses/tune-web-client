@@ -563,7 +563,8 @@
       audio_url: ep.audio_url,
       title: ep.title,
       podcast_name: title(opened),
-      cover_url: ep.cover_url ?? cover(opened) ?? undefined,
+      podcast_id: String(opened.feed_url ?? opened.source_id ?? opened.id ?? title(opened)),
+      cover_url: cover(opened) ?? ep.cover_url ?? undefined,
       duration_ms: ep.duration_ms,
     });
     if (!issue.ok) { error = issue.message; errorDetail = issue.detail ?? ''; return; }

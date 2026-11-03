@@ -13,10 +13,9 @@
  * - Seule une `position_ms > 0` confirme : on n'appelle donc que lorsque
  *   l'élément audio a réellement avancé (`playing` ou `timeupdate` avec
  *   `currentTime > 0`).
- * - Un appel par CHARGEMENT de source : la clé est l'adresse exacte de
- *   l'élément (un rechargement forcé y ajoute `_t=…`, et le serveur sert alors
- *   une nouvelle annonce sous le même flux). Rappeler sur la même source ne
- *   sert à rien (`nothing_pending`).
+ * - Une confirmation initiale, puis une position mesurée toutes les cinq
+ *   secondes. Le serveur garde une seule écoute et ne consigne que le flux
+ *   courant. Un rechargement forcé change la clé de source (`_t=…`).
  * - `stream_id` vient de `/stream/<stream_id>.<ext>`. Une adresse tierce
  *   (Bandcamp…) n'en porte pas : rien à confirmer, rien n'est envoyé.
  * - Un serveur plus ancien répond 404/405 : ignoré en silence, comme 409
@@ -32,15 +31,19 @@ export function idDuFlux(url: string | null | undefined): string | null {
 }
 
 let derniereSourceConfirmee: string | null = null;
+let dernierePositionMs = 0;
+let derniereZone: number | null = null;
 
 /** Pour les bancs : oublier la dernière source confirmée. */
 export function oublierConfirmationLecture(): void {
   derniereSourceConfirmee = null;
+  dernierePositionMs = 0;
+  derniereZone = null;
 }
 
 /**
  * L'élément audio de la zone `zoneId` joue `src` à `positionSec`. Envoie la
- * confirmation au serveur une fois par source, dès que la position dépasse 0.
+ * confirmation dès la première position positive, puis les positions à cinq secondes.
  * Rend `true` quand un appel est parti.
  */
 export function confirmerLectureNavigateur(
@@ -49,12 +52,14 @@ export function confirmerLectureNavigateur(
   positionSec: number,
 ): boolean {
   if (typeof zoneId !== 'number' || !src) return false;
-  if (src === derniereSourceConfirmee) return false;
   const positionMs = Math.floor((Number.isFinite(positionSec) ? positionSec : 0) * 1000);
   if (positionMs <= 0) return false;
+  if (src === derniereSourceConfirmee && zoneId === derniereZone && Math.abs(positionMs - dernierePositionMs) < 5000) return false;
   const streamId = idDuFlux(src);
   if (!streamId) return false;
   derniereSourceConfirmee = src;
+  derniereZone = zoneId;
+  dernierePositionMs = positionMs;
   void signalerLectureNavigateur(zoneId, streamId, positionMs).catch(() => {
     /* réseau ou serveur ancien : la lecture continue, sans confirmation */
   });

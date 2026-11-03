@@ -2,6 +2,7 @@ import { avecLangueSignal } from './langueRequete';
 // REST API client for tune-server
 
 import { notifications } from './stores/notifications';
+import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrageServeur';
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
@@ -10,6 +11,7 @@ import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
 import type { ApercuFavorisRadio } from './favorisRadioQobuz';
 import { profileHeader } from './profileHeader';
+import { corpsJson, fusionnerEntetes } from './fusionEntetes';
 import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
@@ -181,7 +183,14 @@ function stripDoubleBase(path: string): string {
  *  vit en localStorage et non dans un cookie. */
 export function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
   const token = getToken();
-  const headers: Record<string, string> = { ...extra, ...entetesRelais() };
+  // #7532 — le profil et la langue aussi : ces appels (imports de playlists,
+  // suppression d'une collection intelligente, exports…) touchent des données
+  // PAR PROFIL, et sans `X-Profile-Id` le serveur agissait sur le profil
+  // global au lieu de celui du navigateur. `extra` reste prioritaire.
+  const headers: Record<string, string> = fusionnerEntetes(
+    { 'Accept-Language': acceptLang(), ...profileHeader() },
+    { ...extra, ...entetesRelais() },
+  );
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return headers;
 }
@@ -523,14 +532,19 @@ export async function fetchJSON<T>(
       // column 0 » sur /library/enrich-all (bouton « Retrouver genres et
       // annees »), /metadata/auto-fix et /zones/{id}/queue/clear. Un en-tete
       // qui decrit un corps inexistant ne decrit rien.
-      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
+      // #7532 — ni sur un `FormData`, des octets ou un `Blob` : le navigateur
+      // les décrit lui-même (boundary du multipart).
+      ...(corpsJson(options?.body) ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    // #7532 — FUSION, plus remplacement : `{ headers, ...options }` laissait
+    // `options.headers` écraser `X-Profile-Id`, `Authorization` et
+    // `Accept-Language` sur chaque POST/PUT JSON (voir `fusionEntetes.ts`).
     response = await fetch(avecLangueSignal(url, acceptLang()), {
-      headers,
       ...options,
+      headers: fusionnerEntetes(headers, options?.headers),
     });
   } catch (e) {
     // Une requête abandonnée par son appelant (délai d'abandon, #1788) n'est
@@ -570,6 +584,17 @@ export async function fetchJSON<T>(
       throw sentinelle;
     }
     const err = await apiError(response);
+    // #2413 — le 503 du répondeur de démarrage est une information traduite,
+    // pas un « Server error » : voir `demarrageServeur`.
+    if (response.status === 503) {
+      const phase = phaseDeDemarrage(err.corps);
+      if (phase !== null) {
+        err.message = signalerDemarrage(phase);
+        err.code = 'server_starting';
+        err.dejaAnnonce = true;
+        throw err;
+      }
+    }
     /**
      * 🔴 501 N'EST PAS UNE PANNE — #1007. Fabien, fil « v0.9.148 : v1 divers
      * bugs », point 4 : « Menu playlists : quand on rentre dans le menu, erreur
@@ -663,7 +688,7 @@ export async function fetchJSON<T>(
             ...((err.corps as Record<string, unknown> | undefined) ?? {}),
           })
         ) {
-          notifications.error(err.message, 10000);
+          notifications.error(err.message, 10000, err.detail);
         }
         err.dejaAnnonce = true;
       } else if (key) {
@@ -679,6 +704,8 @@ export async function fetchJSON<T>(
     }
     throw err;
   }
+  // #2413 — une réponse normale : si un toast de démarrage était posé, il part.
+  leServeurRepond();
   if (lireEntetes) {
     try { lireEntetes(response.headers); } catch { /* un en-tête illisible ne casse pas la lecture */ }
   }
@@ -750,14 +777,19 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
       // column 0 » sur /library/enrich-all (bouton « Retrouver genres et
       // annees »), /metadata/auto-fix et /zones/{id}/queue/clear. Un en-tete
       // qui decrit un corps inexistant ne decrit rien.
-      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
+      // #7532 — ni sur un `FormData`, des octets ou un `Blob` : le navigateur
+      // les décrit lui-même (boundary du multipart).
+      ...(corpsJson(options?.body) ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    // #7532 — FUSION, plus remplacement : `{ headers, ...options }` laissait
+    // `options.headers` écraser `X-Profile-Id`, `Authorization` et
+    // `Accept-Language` sur chaque POST/PUT JSON (voir `fusionEntetes.ts`).
     response = await fetch(avecLangueSignal(url, acceptLang()), {
-      headers,
       ...options,
+      headers: fusionnerEntetes(headers, options?.headers),
     });
   } catch (e) {
     showNetworkError();
@@ -775,6 +807,17 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
     // désormais la phrase de l'application.
     if (response.status === 402) throw (await refusPremiumDe(response))!;
     const err = await apiError(response);
+    // #2413 — le 503 du répondeur de démarrage est une information traduite,
+    // pas un « Server error » : voir `demarrageServeur`.
+    if (response.status === 503) {
+      const phase = phaseDeDemarrage(err.corps);
+      if (phase !== null) {
+        err.message = signalerDemarrage(phase);
+        err.code = 'server_starting';
+        err.dejaAnnonce = true;
+        throw err;
+      }
+    }
     /**
      * 🔴 501 N'EST PAS UNE PANNE — ici non plus (#1148).
      *
@@ -799,6 +842,7 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
     }
     throw err;
   }
+  leServeurRepond();
   try {
     const text = typeof response.text === 'function' ? await response.text() : '';
     return text && text.trim() ? (JSON.parse(text) as T) : undefined;
@@ -1711,7 +1755,7 @@ export function listStereoPairs() {
  * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
  * libre se remplir de variantes.
  */
-export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; album_ref?: string; queue_follows?: boolean }) {
+export function play(zoneId: number, body?: { artist_id?: number; artist_limit?: number; track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string; context_source?: string; context_shuffle?: boolean; album_ref?: string; queue_follows?: boolean; folder?: string }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1809,7 +1853,14 @@ export function stepVolume(zoneId: number, direction: 'up' | 'down', step?: numb
  */
 export function setVolumeLimits(
   zoneId: number,
-  limites: { safety: number | null; comfort: number | null },
+  limites: {
+    safety?: number | null;
+    comfort?: number | null;
+    /** web#7517 — seuil en dB d'APPAREIL (sortie à course en dB) ; exclut le
+     *  seuil en fraction du même nom. */
+    safety_device_db?: number | null;
+    comfort_device_db?: number | null;
+  },
 ) {
   return fetchJSON<{ zone_id: number; volume_limit_safety: number | null; volume_limit_comfort: number | null }>(
     `${BASE}/zones/${zoneId}/volume-limits`,
@@ -1911,6 +1962,9 @@ export interface StreamingQueueItem {
 
 export interface AddToQueueRequest {
   album_id?: number;
+  /** tune-server-rust#7597 — un dossier (chemin absolu) et tout son
+   *  sous-arbre, dans l'ordre, construit par le serveur (`lib/lectureDossier`). */
+  folder?: string;
   track_id?: number;
   track_ids?: number[];
   source?: Source | 'upload';
@@ -2742,6 +2796,12 @@ export function estimateAlbumBpm(albumId: number, redo = false) {
 }
 
 /** `GET /system/api-keys` — l'état des clés, jamais leur valeur. */
+/** Sortie AES67 (greffon natif `aes67`, #7336 E3) : 404 = greffon non installé.
+ *  Pas de bandeau sur échec : l'écran dit lui-même ce qui se passe. */
+export function getSortieAes67(): Promise<unknown> {
+  return fetchJSON<unknown>(`${BASE}/ext/aes67`, undefined, undefined, true);
+}
+
 export function getApiKeys() {
   return fetchJSON<{ keys: import('./enrichissementAlbum').EtatCleApi[] }>(`${BASE}/system/api-keys`);
 }
@@ -4682,8 +4742,41 @@ export function getSmartPlaylistTracks(id: number) {
 
 // --- Playlists ---
 
-export function getPlaylists(limit = 100, offset = 0) {
-  return fetchJSON<Playlist[]>(`${BASE}/playlists?limit=${limit}&offset=${offset}`);
+/** Borne de sécurité de `getPlaylists` : 200 pages (20 000 playlists à 100). */
+export const PLAYLISTS_PAGES_MAX = 200;
+
+/**
+ * TOUTES les playlists locales, à partir de `offset`, lues par pages de `limit`.
+ *
+ * tune-server-rust#7335 (laguespa, fil 2510) — ce n'était qu'UNE page de 100.
+ * Le serveur trie par ordre alphabétique (`playlist_repo::list`) : au-delà de
+ * 100 playlists, celle qu'on venait de créer (« test », id 231) tombait
+ * après la première page et n'apparaissait jamais dans l'écran Playlists, bien
+ * que le POST eût répondu 201. Les appelants attendent « la liste » : on lit
+ * donc page après page jusqu'à une page incomplète. Une page qui n'apporte
+ * aucune playlist nouvelle (serveur qui ignorerait `offset`) arrête la
+ * lecture, et `PLAYLISTS_PAGES_MAX` borne la boucle quoi qu'il arrive.
+ */
+export async function getPlaylists(limit = 100, offset = 0): Promise<Playlist[]> {
+  const taille = limit > 0 ? Math.floor(limit) : 100;
+  const toutes: Playlist[] = [];
+  const vues = new Set<number>();
+  for (let page = 0; page < PLAYLISTS_PAGES_MAX; page++) {
+    const lot = (await fetchJSON<Playlist[]>(
+      `${BASE}/playlists?limit=${taille}&offset=${offset + page * taille}`,
+    )) ?? [];
+    let nouvelles = 0;
+    for (const p of lot) {
+      if (p?.id != null) {
+        if (vues.has(p.id)) continue;
+        vues.add(p.id);
+      }
+      toutes.push(p);
+      nouvelles++;
+    }
+    if (lot.length < taille || nouvelles === 0) break;
+  }
+  return toutes;
 }
 
 export function getPlaylist(id: number) {
@@ -5744,6 +5837,14 @@ export function getSystemEnv() {
     spotify_redirect_uri_refus?: 'localhost' | 'http_hors_bouclage' | null;
     /** Fil 221 — `false` : le serveur n'a aucun Client ID Spotify (absent : serveur plus ancien). */
     spotify_client_id_configure?: boolean;
+    /**
+     * tune-server-rust#7074 — le moteur de conteneur où tourne le serveur
+     * (`docker`, `podman`, `kubernetes`, `container`), `null` sur une machine
+     * ordinaire. Absent : serveur plus ancien.
+     */
+    container?: string | null;
+    /** Le nom d'hôte du conteneur quand c'est un identifiant court (`docker restart <id>`). */
+    container_id?: string | null;
   }>(`${BASE}/system/env`);
 }
 
@@ -6630,11 +6731,10 @@ export async function importPlaylistFile(file: File, name?: string) {
     headers: authHeaders(),
     body: form,
   });
-  if (!resp.ok) {
-    const detail = await resp.text().catch(() => '');
-    throw new Error(detail || `import: HTTP ${resp.status}`);
-  }
-  return resp.json() as Promise<{ playlist_id?: number; matched?: number; missing?: number }>;
+  // web#2526 : `apiError` lit le message du serveur (`{"error": "no file
+  // provided"}`) au lieu de rendre le corps JSON brut à l'écran.
+  if (!resp.ok) throw await apiError(resp);
+  return resp.json() as Promise<{ id?: number; name?: string } & import('./bilanImportM3u').ReponseImportM3u>;
 }
 
 export function getTransferHistory(limit = 50, offset = 0) {
@@ -6742,6 +6842,29 @@ export function exportRadiosUrl(): string {
 
 export function getProfiles() {
   return fetchJSON<any[]>(`${BASE}/profiles`);
+}
+
+/** Les compteurs d'un profil, `GET /profiles/{id}/stats` (favoris locaux par
+ *  type, écoutes). Sans bandeau : sert de sonde (#7532). */
+export interface StatsProfil {
+  profile_id?: number;
+  favorites_by_type?: Record<string, number>;
+  listening?: { total_listens?: number };
+}
+export function getProfileStats(profileId: number) {
+  return fetchJSON<StatsProfil>(`${BASE}/profiles/${profileId}/stats`, undefined, undefined, true);
+}
+
+/** Les playlists D'UN profil donné, quel que soit le profil du navigateur :
+ *  `GET /playlists` lit `X-Profile-Id`, qu'on pose ici nous-mêmes — la fusion
+ *  des en-têtes (#7532) le laisse prioritaire. Sans bandeau : sonde. */
+export function getPlaylistsDuProfil(profileId: number, limit = 1) {
+  return fetchJSON<Playlist[]>(
+    `${BASE}/playlists?limit=${limit}&offset=0`,
+    { headers: { 'X-Profile-Id': String(profileId) } },
+    undefined,
+    true,
+  );
 }
 
 /**
@@ -6999,14 +7122,41 @@ export function getProfilePreferences(profileId: number) {
  * elle l'etait deja, et le cas ne se presente pas — un seul ecran ecrit ces
  * reglages a la fois.
  */
-export async function setProfilePreferences(profileId: number, patch: Record<string, any>) {
-  let actuel: Record<string, any> = {};
-  try {
-    actuel = (await getProfilePreferences(profileId)) ?? {};
-  } catch {
-    // Reglages illisibles : on ecrit quand meme le correctif plutot que de
-    // perdre le geste de l'utilisateur.
-  }
+/**
+ * 🔴 #2410 — LES ÉCRITURES SONT EN FILE, ET UNE LECTURE RATÉE N'ÉCRIT PAS.
+ *
+ * `POST /settings` REMPLACE l'objet entier (voir plus haut), donc chaque
+ * écriture est « lire, fusionner, remplacer ». Deux défauts s'y cachaient, et
+ * tous deux font REVENIR des widgets que l'utilisateur a retirés :
+ *
+ * 1. **Lecture ratée = tout effacé.** Quand la relecture échouait (serveur
+ *    occupé, réseau coupé une seconde), on écrivait « quand même » le seul
+ *    correctif : toutes les autres clés — `home_widgets` comprise — étaient
+ *    remplacées par `{ la_clé_du_geste }`. Au chargement suivant, l'accueil
+ *    retombait sur la disposition par défaut : « Genres » et « My playlists »
+ *    revenaient (testeur Alex, rc8 — après l'envoi d'un rapport de bogue, quand
+ *    le serveur compose les diagnostics et répond lentement). Une lecture
+ *    ratée ne doit RIEN écrire : le geste échoue et le dit.
+ * 2. **Deux écritures qui se croisent.** Deux appels lisaient le même état,
+ *    puis écrivaient chacun le sien : le second remplaçait le premier. Les
+ *    écritures d'un même profil passent désormais l'une après l'autre.
+ */
+const fileDEcriture = new Map<number, Promise<unknown>>();
+
+export function setProfilePreferences(profileId: number, patch: Record<string, any>) {
+  const precedente = fileDEcriture.get(profileId) ?? Promise.resolve();
+  const courante = precedente.then(
+    () => ecrirePreferences(profileId, patch),
+    () => ecrirePreferences(profileId, patch),
+  );
+  // La file avance même si cette écriture échoue.
+  fileDEcriture.set(profileId, courante.catch(() => undefined));
+  return courante;
+}
+
+async function ecrirePreferences(profileId: number, patch: Record<string, any>) {
+  // Pas de `try/catch` : une lecture ratée interrompt l'écriture.
+  const actuel: Record<string, any> = (await getProfilePreferences(profileId)) ?? {};
   const fusion = { ...actuel, ...patch };
   await fetchJSON<unknown>(`${BASE}/profiles/${profileId}/settings`, {
     method: 'POST',
@@ -7996,7 +8146,7 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
   return data.episodes || data;
 }
 
-export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; cover_url?: string; duration_ms?: number }): Promise<any> {
+export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; podcast_id?: string; cover_url?: string; duration_ms?: number }): Promise<any> {
   // tune-server-rust#6468 — un refus de la sortie est un 502/503 avec un `code`
   // stable. Sans bandeau global : l'écran Podcasts porte l'échec dans son
   // propre bandeau, traduit (`lectureEpisode.ts`), au lieu d'un
@@ -8523,9 +8673,49 @@ export function startAlbumArtworkEnrich() {
  *  le compte recalculé à l'instant. */
 export function getAlbumArtworkEnrichStatus() {
   return fetchJSON<{
-    result: { status?: string; total?: number; searched?: number; enriched?: number; failed?: number } | null;
+    result: {
+      status?: string; total?: number; searched?: number; enriched?: number; failed?: number;
+      /** Secondes Unix (serveur ≥ rc10). */
+      started_at?: number; finished_at?: number;
+    } | null;
     albums_without_cover: number;
+    /** Écran « État du serveur » (serveur ≥ rc10) : albums locaux, avec
+     *  pochette, passe inscrite et son avancement (seulement pendant). */
+    albums_total?: number;
+    albums_with_cover?: number;
+    running?: boolean;
+    progress?: { processed?: number; total?: number };
   }>(`${BASE}/library/artwork/enrich/status`);
+}
+
+/** Écran « État du serveur » — le bouton « Lancer la passe » des pochettes
+ *  d'albums. Même route que `startAlbumArtworkEnrich`, mais le 409
+ *  `already_running` (serveur ≥ rc10 : une passe à la fois) est une
+ *  RÉPONSE, pas une panne. */
+export function lancerPassePochettesAlbums() {
+  return fetchJSON<{ status: string; albums_to_process?: number; reason?: string }>(
+    `${BASE}/library/artwork/enrich`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
+}
+
+/** Écran « État du serveur » — `GET /library/labels/logos/status` (serveur
+ *  ≥ rc10) : labels avec et sans logo, passe en cours, dernière passe. */
+export function getLabelLogosStatus() {
+  return fetchJSON<import('./santeImages').StatutLogosLabels>(
+    `${BASE}/library/labels/logos/status`,
+  );
+}
+
+/** `POST /library/labels/logos/enrich` : 202 `accepted`, 409
+ *  `already_running` (rendu, pas jeté), 200 `skipped`. */
+export function lancerPasseLogosLabels() {
+  return fetchJSON<{ status: string; labels_to_process?: number; reason?: string }>(
+    `${BASE}/library/labels/logos/enrich`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
 }
 
 // Artist image enrichment (community + Fanart/TheAudioDB/MusicBrainz by MBID,
@@ -9407,6 +9597,12 @@ export function getHomePage() {
   return fetchJSON<{ sections: any[] }>(`${BASE}/home`);
 }
 
+export function resumeListening(zoneId: number, resumeKey: string) {
+  return fetchJSON<any>(`${BASE}/home/continue-listening/${zoneId}/resume`, {
+    method: 'POST', body: JSON.stringify({ resume_key: resumeKey }),
+  });
+}
+
 export function getContinueListening(limit = 20) {
   return fetchJSON<any[]>(`${BASE}/home/continue-listening?limit=${limit}`);
 }
@@ -9547,12 +9743,39 @@ export interface OtherVersionGroup {
  * les relations d'oeuvre MusicBrainz. Le serveur fait le regroupement :
  * l'ecran n'a qu'a dessiner.
  */
-export function getOtherVersions(limit = 20) {
-  // `sansBandeau` — essai en 5G du 09/10/2026 : par le pont, cette route
-  // dépasse les 30 s du relais (requête `CROSS JOIN tracks` de ~30 s sur le
-  // .18) et rend 504. Son seul appelant, la rangée de l'accueil, porte déjà
-  // son état d'échec et son « réessayer » : pas de bandeau global en plus.
-  return fetchJSON<OtherVersionGroup[]>(`${BASE}/home/other-versions?limit=${limit}`, undefined, undefined, true);
+/**
+ * Les attentes, en ms, avant de redemander la route tant que le serveur la dit
+ * « en préparation » : 5 s puis 10 s, soit 15 s au plus.
+ */
+export const DELAIS_AUTRES_VERSIONS_EN_PREPARATION_MS: readonly number[] = [5000, 10000];
+
+export async function getOtherVersions(
+  limit = 20,
+  delaisMs: readonly number[] = DELAIS_AUTRES_VERSIONS_EN_PREPARATION_MS,
+): Promise<OtherVersionGroup[]> {
+  // Mesure du 31/10/2026 : le premier appel prenait 20 s (recherches des
+  // services). Le serveur répond maintenant tout de suite, en `202` +
+  // `X-En-Preparation: true`, avec ce que la bibliothèque a déjà rendu, et
+  // finit la partie streaming en tâche de fond. Le rayon redemande donc
+  // quelques secondes plus tard, au plus deux fois ; au bout, il montre ce
+  // qu'il a. Un serveur plus ancien ne pose pas l'en-tête : un seul appel.
+  let groupes: OtherVersionGroup[] = [];
+  for (let essai = 0; ; essai++) {
+    let enPreparation = false as boolean;
+    // `sansBandeau` — essai en 5G du 09/10/2026 : par le pont, cette route
+    // dépasse les 30 s du relais (requête `CROSS JOIN tracks` de ~30 s sur le
+    // .18) et rend 504. Son seul appelant, la rangée de l'accueil, porte déjà
+    // son état d'échec et son « réessayer » : pas de bandeau global en plus.
+    groupes = await fetchJSON<OtherVersionGroup[]>(
+      `${BASE}/home/other-versions?limit=${limit}`,
+      undefined,
+      undefined,
+      true,
+      (h) => { enPreparation = h.get('x-en-preparation') === 'true'; },
+    );
+    if (!enPreparation || essai >= delaisMs.length) return groupes;
+    await new Promise<void>((r) => setTimeout(r, delaisMs[essai]));
+  }
 }
 
 /**
@@ -9712,6 +9935,9 @@ export interface LicenseOfflineGrace {
 
 export interface LicenseStatus {
   tier: string;
+  /** #7419 — `key`, `account` (compte Mozaiklabs, sans clé) ou `null`. Absent
+   *  sur un serveur antérieur. */
+  premium_source?: 'key' | 'account' | null;
   license_key: string | null;
   expires_at: string | null;
   features: Record<string, LicenseFeature>;

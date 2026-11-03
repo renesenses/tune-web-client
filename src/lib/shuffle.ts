@@ -61,3 +61,21 @@ export function rangAleatoire(id: number | string, graine: number): number {
 export function graineAleatoire(): number {
   return (Math.floor(Math.random() * 0xffffffff) >>> 0) || 1;
 }
+
+/**
+ * Albums dans l'ordre d'un tirage (#4558), pour les grilles hors Bibliothèque
+ * — collections, étiquettes (fil 2526, r5yk5 : « sorted by random like you
+ * can in the standard Album page »). Même rang que la Bibliothèque : stable
+ * pour une graine, le titre départage, un album sans identifiant tire sur son
+ * titre plutôt que sur un 0 commun.
+ */
+export function albumsTires<T extends { id?: number | null; title?: string | null }>(
+  albums: readonly T[],
+  graine: number,
+): T[] {
+  const cle = (a: T) => (a.id != null ? a.id : `t:${a.title ?? ''}`);
+  return [...albums].sort((a, b) =>
+    rangAleatoire(cle(a), graine) - rangAleatoire(cle(b), graine)
+    || (a.title ?? '').localeCompare(b.title ?? ''),
+  );
+}

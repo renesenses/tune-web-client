@@ -45,6 +45,7 @@
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { messageEchecLecture } from '../../lib/echecLecture';
   import { activeView } from '../../lib/stores/navigation';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult, FeaturedSection } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -83,10 +84,10 @@
     ongletApresDemande,
     ongletDeRestitution,
     ongletsStreaming,
+    sessionExpiree,
     aUneBibliothequeDeCompte,
     bibliothequeDeCompteSurPreuve,
     reponseProuveLaBibliotheque,
-    pseudoOnglet,
   } from '../../lib/ongletsStreaming';
   import { untrack } from 'svelte';
   import { get } from 'svelte/store';
@@ -410,6 +411,8 @@
    */
   const tabs = $derived(ongletsStreaming(services, bandcampLive));
   const isBc = $derived(active === BANDCAMP);
+  /** web#2587 — l'onglet ouvert est un service dont la session a expiré. */
+  const ongletExpire = $derived(!!active && sessionExpiree(services[cleServeur(active) ?? '']));
 
   /**
    * Pas de genres, pas d'onglet — et c'est la DONNEE qui tranche, pas un nom
@@ -672,7 +675,7 @@
   let catalogueDemande: string | null = null;
   $effect(() => {
     const svc = active;
-    if (!svc || svc === BANDCAMP) return;
+    if (!svc || svc === BANDCAMP || ongletExpire) return;
     if (catalogueDemande === svc) return;
     catalogueDemande = svc;
     catalogueEnCours = true;
@@ -687,6 +690,8 @@
   $effect(() => {
     const svc = active, view = sub, tag = bcTag, sg = bcSub;
     if (!svc) return;
+    // web#2587 — rien à charger pour un service dont la session a expiré.
+    if (ongletExpire) { paneLoading = false; return; }
     paneLoading = true;
     featured = []; newRel = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcDecouverte = []; bcCollection = [];
     const done = () => { paneLoading = false; };
@@ -1257,6 +1262,14 @@
     }
     return null;
   }
+
+  /** Forum, #7388 : « Accéder aux réglages » doit mener là où se connectent les
+   *  services (Réglages ▸ Accès et jetons ▸ streaming), pas sur l'onglet
+   *  Général. Sans cible, SettingsV2 ouvre son onglet par défaut. */
+  function ouvrirReglagesJetons() {
+    v2SettingsTarget.set({ tab: 'access', section: 'streaming' });
+    activeView.set('settings');
+  }
 </script>
 
 <section class="v2-str tune-v2">
@@ -1291,18 +1304,16 @@
   {#if tabs.length}
     <nav class="svcs" use:molettePortee={() => zoneDefilante}>
       {#each tabs as name (name)}
-        <!-- Le pseudo suit l'onglet qui SURVIT au dédoublonnage (#860) : celui
-             de l'extension porte désormais le compte lu sur la clé `bandcamp`,
-             sans quoi la liaison de compte redeviendrait invisible. -->
-        {@const qui = pseudoOnglet(name, services)}
+        <!-- #2409 — le NOM du service, et rien d'autre. Le compte se lit dans
+             Réglages (carte de connexion), pas sur la pastille (testeur Alex,
+             rc8). -->
         <button class:on={active === name} onclick={() => ouvrirOnglet(name)}>
           {label(name)}
-          {#if qui}<span class="who">{qui}</span>{/if}
         </button>
       {/each}
     </nav>
 
-    {#if active}
+    {#if active && !ongletExpire}
       <nav class="subs" use:molettePortee={() => zoneDefilante}>
         {#each SUBS as sb (sb.id)}
           <button class:on={sub === sb.id} onclick={() => ouvrirSousOnglet(sb.id)}>{sb.label}</button>
@@ -1323,7 +1334,15 @@
         <p class="sub">
           {$t('v2.stream.noServiceA' as any)} <b>{$t('v2.stream.noServiceWhere' as any)}</b> {$t('v2.stream.noServiceB' as any)}
         </p>
-        <button class="lnk" onclick={() => activeView.set('settings')}>{$t('v2.eq.openSettings' as any)}</button>
+        <button class="lnk" onclick={ouvrirReglagesJetons}>{$t('v2.eq.openSettings' as any)}</button>
+      </div>
+
+    {:else if ongletExpire}
+      <!-- web#2587 — la session est tombée : l'onglet reste, avec le chemin du retour. -->
+      <div class="notice" role="alert">
+        <p>{$t('v2.stream.sessionExpired' as any)} <b>{label(active ?? '')}</b></p>
+        <p class="sub">{$t('v2.stream.sessionExpiredDetail' as any).replace('{service}', label(active ?? ''))}</p>
+        <button class="lnk" onclick={ouvrirReglagesJetons}>{$t('v2.stream.reconnect' as any)}</button>
       </div>
 
     {:else if results || bcSearch}
@@ -1823,7 +1842,7 @@
           coverUrl: ar?.image_path ?? ar?.picture ?? undefined,
         })}
       >
-        <AlbumArt coverPath={ar.image_path ?? ar.picture ?? null} albumId={null} size={0} vignette alt={ar.name}
+        <AlbumArt coverPath={ar.image_path ?? ar.picture ?? null} albumId={null} size={0} vignette recadrer alt={ar.name}
           source={ar?.source ?? active} fallbackInitials={ar.name?.slice(0,1)} />
       </PochetteActions>
     </span>
@@ -1994,8 +2013,6 @@
     border-radius:var(--v2-r-pill); transition:.15s}
   .svcs button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .svcs button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .svcs .who{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
-  .svcs button.on .who{color:var(--v2-on-acc); opacity:.75}
 
   /* L'arbre des genres : des familles lisibles, pas 27 puces sur une ligne. */
   /* #922 — la barre de pagination : le bouton, puis la taille de page. */

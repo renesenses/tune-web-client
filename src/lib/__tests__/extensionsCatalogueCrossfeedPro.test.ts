@@ -153,7 +153,8 @@ describe('Extensions — installer Crossfeed Pro depuis le catalogue', () => {
     audioPlugins = etat([{ error: null, id: 'crossfeed-pro', native_loaded: true, third_party: true, version: '0.3.1' }]);
     monte = mount(PluginsV2, { target: cible! });
     await jusqua(() => !!q('[data-natif="crossfeed-pro"]'));
-    expect(q('[data-catalogue]')).toBeNull();
+    // web#2580 — Crosstalk, lui, reste proposé : seul Crossfeed Pro est installé.
+    expect(q('[data-catalogue="crossfeed-pro"]')).toBeNull();
     const carte = q('[data-natif="crossfeed-pro"]')!;
     expect(carte.querySelector('[data-version]')!.textContent).toBe('v0.3.1');
     expect(carte.querySelector('.ouvrir-natif')).toBeTruthy();
@@ -286,9 +287,9 @@ describe('Extensions — Crossfeed Pro : mise à jour, redémarrage, plateforme 
 
 describe('catalogue des greffons natifs — logique pure et libellés', () => {
   it('propose ce qui manque, et nomme les refus connus', () => {
-    expect(greffonsAProposer([])).toEqual(['crossfeed-pro']);
-    expect(greffonsAProposer([{ id: 'crossfeed-pro' }])).toEqual([]);
-    expect(greffonsAProposer(null)).toEqual(['crossfeed-pro']);
+    expect(greffonsAProposer([])).toEqual(['crossfeed-pro', 'crosstalk']);
+    expect(greffonsAProposer([{ id: 'crossfeed-pro' }])).toEqual(['crosstalk']);
+    expect(greffonsAProposer(null)).toEqual(['crossfeed-pro', 'crosstalk']);
     expect(cleDuRefusDInstallation('signature_invalid')).toBe('v2.plug.catalogErr_signature_invalid');
     expect(cleDuRefusDInstallation('account_token_rejected')).toBe('v2.plug.catalogErr_account_token_rejected');
     expect(cleDuRefusDInstallation('inconnu')).toBe('v2.plug.catalogErr_other');

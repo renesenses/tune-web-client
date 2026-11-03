@@ -4,6 +4,16 @@
   import { locale, t } from '../../lib/i18n';
   import { optionsPaysRadios } from '../../lib/paysEcouteRadios';
   import { notifications } from '../../lib/stores/notifications';
+  import { refusPaysRadioVu } from '../../lib/refusPaysRadio';
+  import { activeView } from '../../lib/stores/navigation';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+
+  /**
+   * #2533 : `complet` (Réglages) montre toujours le choix ; `radios` (onglet
+   * Radios) ne le montre que tant qu'aucun pays n'est réglé. Une fois réglé il
+   * disparaît, sauf un lien vers le réglage si une radio vient d'être refusée.
+   */
+  let { mode = 'complet' }: { mode?: 'complet' | 'radios' } = $props();
 
   let pays = $state('');
   let enregistre = $state('');
@@ -36,6 +46,12 @@
     }
   }
 
+  const masque = $derived(mode === 'radios' && lu && disponible && enregistre !== '');
+  function ouvrirReglage() {
+    v2SettingsTarget.set({ tab: 'general', section: 'radiosCountry' });
+    activeView.set('settings');
+  }
+
   async function enregistrer() {
     if (!disponible || sauvegarde || pays === enregistre) return;
     const choisi = pays;
@@ -54,6 +70,14 @@
   }
 </script>
 
+{#if masque}
+  {#if $refusPaysRadioVu}
+    <div class="pays-ecoute" data-pays-ecoute-lien>
+      <span class="aide">{$t('v2.radio.countryMoved' as any)}</span>
+      <button class="v2-btn" onclick={ouvrirReglage}>{$t('v2.radio.countryGoSettings' as any)}</button>
+    </div>
+  {/if}
+{:else}
 <div class="pays-ecoute">
   <label>
     <span>{$t('v2.radio.listeningCountry' as any)}</span>
@@ -71,6 +95,7 @@
     {#if !disponible}<button class="v2-btn" onclick={charger}>{$t('v2.radio.countryRetry' as any)}</button>{/if}
   {/if}
 </div>
+{/if}
 
 <style>
   .pays-ecoute { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; padding:12px 18px; border-bottom:1px solid var(--v2-line); }

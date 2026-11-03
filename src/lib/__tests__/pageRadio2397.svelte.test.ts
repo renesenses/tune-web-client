@@ -169,6 +169,18 @@ describe('Dernières lues', () => {
     expect(dernieresLues([FIP, MAISON] as any[]).map((r) => r.id)).toEqual([7]);
   });
 
+  it('🔴 dernieresLues lit `last_played`, le champ que GET /radios envoie vraiment', () => {
+    // Forme réelle : `RadioStation` du serveur (tune-core `db/radio_repo.rs`),
+    // `last_played` + `play_count`, sans `last_played_at`.
+    memoriserLecture(7);
+    const rs = [
+      { ...FIP, last_played: '2026-10-29T08:00:00Z', play_count: 3 },
+      { ...MAISON, last_played: '2026-10-30T09:15:00Z', play_count: 1 },
+      { id: 9, name: 'Jamais lue', stream_url: 'https://a/j.mp3', favorite: false, last_played: null, play_count: 0 },
+    ] as any[];
+    expect(dernieresLues(rs).map((r) => r.id)).toEqual([8, 7]);
+  });
+
   it('un stockage qui lève ne casse rien', () => {
     const casse = { getItem: () => { throw new Error('x'); }, setItem: () => { throw new Error('x'); } };
     expect(() => memoriserLecture(1, casse)).not.toThrow();

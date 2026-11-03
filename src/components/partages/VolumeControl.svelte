@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { volumeCommandable, sourdineCommandable, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { currentZone } from '../../lib/stores/zones';
   import { zoneVolume } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
@@ -15,19 +16,37 @@
   import {
     PAS_BOUTON,
     bornerCurseur,
+    plafondDuCurseur,
+    securite,
     cibleDuPas,
     plusEnButee,
     serveurConnaitLesLimites,
   } from '../../lib/limitesVolume';
   import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
+  import { courseDb, dbDepuisFraction, fractionDepuisDb, fondDesZones, formaterDbAppareil, graduations, zonesDeLimites } from '../../lib/volumeCourseDb';
 
   let zone = $derived($currentZone);
   let vol = $derived($zoneVolume);
   // #6700 — la sourdine est l'état `muted` de la zone, pas un volume à zéro.
   let isMuted = $derived(zone?.muted === true);
+  let idZoneVolume = $derived(zone?.id ?? null);
+  let volumeAutorise = $derived(!$volumeLocked && volumeCommandable(zone));
+  let sourdineAutorisee = $derived(!$volumeLocked && sourdineCommandable(zone));
+  // web#7517 — une sortie qui annonce une course en dB (device_volume_range) a
+  // un curseur GRADUÉ EN dB ; les autres gardent le curseur en pour-cent.
+  let course = $derived(courseDb(zone));
+  let bornes = $derived(course
+    ? { min: course.min_db, max: course.max_db, step: course.step_db as number | 'any' }
+    : bornesCurseurSortie(zone));
+  let valeurCurseur = $derived(course ? dbDepuisFraction(course, vol) : vol);
+  let traits = $derived(course ? graduations(course) : []);
+  // Vert sous le confort, orange entre confort et sécurité, rouge au-delà.
+  let fondZones = $derived(course ? fondDesZones(zonesDeLimites(zone)) : null);
+  let legendeZones = $derived(fondZones ? $t('volume.zonesLegend' as any) : undefined);
+  let clePlage = $derived(clePlageVolumeSortie(zone));
 
   // #1274 \u2014 le mode dB n'est plus une simple fa\u00E7on d'\u00C9CRIRE le pour-cent : le
-  // champ est saisissable, et ce qu'on y tape part tel quel dans `volume_db`.
+  // champ est saisissable ; sans grille de sortie, la valeur part dans `volume_db`.
   let modeDb = $derived($preferences.volumeDisplay === 'dB');
 
   // tune-server-rust#6787 — le dB affiché est celui du GAIN, lu sur la loi de
@@ -55,13 +74,13 @@
   let saisie = $state<string | null>(null);
 
   function ouvrirSaisie() {
-    if ($volumeLocked) return;
+    if (!volumeAutorise) return;
     saisie = dbDuCurseur(vol);
   }
 
   async function validerSaisie(texte: string) {
     saisie = null;
-    if (!zone?.id || $volumeLocked) return;
+    if (!zone?.id || !volumeAutorise) return;
     // Rien tapé : le champ rend sa propre valeur, il n'y a aucune commande à
     // envoyer. C'est aussi ce qui évite de refuser « -∞ dB », le texte que le
     // champ affiche LUI-MÊME quand la zone est au silence.
@@ -79,13 +98,19 @@
     if (gain === null) return;
     // #6787 — le dB tapé est un dB de gain : le curseur va à la position qui
     // le rend (le serveur fait la même conversion sur `volume_db`).
-    const lineaire = volumeDepuisGain(zone, gain);
+    const lineaire = normaliserVolumeSortie(zone, volumeDepuisGain(zone, gain), volumeDepuisGain(zone, securite(zone) ?? 1));
+    if (lineaire === null) {
+      const p = plageVolumeSortie(zone);
+      if (p) notifications.error($t('volume.outputRange' as any).replace('{min}', String(p.min)).replace('{max}', String(p.max)).replace('{step}', String(p.step)));
+      return;
+    }
     if (zone.id != null) leverSourdineSiBesoin({ ...zone, id: zone.id }, lineaire);
     zoneVolume.set(lineaire);
     if (isBrowserZone(zone)) browserSetVolume(lineaire, zone);
-    // Le dB part TEL QUEL : le repasser en lin\u00E9aire avant l'envoi rendrait la
-    // valeur au serveur d\u00E9j\u00E0 entam\u00E9e par un aller-retour de flottant.
-    await api.setVolumeDb(zone.id, lu.db);
+    // Une sortie à grille reçoit un cran valable. Sans plage annoncée,
+    // conserver le dB exact, sans aller-retour supplémentaire de flottant.
+    if (plageVolumeSortie(zone)) await api.setVolume(zone.id, lineaire);
+    else await api.setVolumeDb(zone.id, lu.db);
   }
 
   function toucheSaisie(e: KeyboardEvent) {
@@ -101,24 +126,42 @@
   }
 
   const limiterEnvoi = creerLimiteurVolume();
+  let contexteVolume = 0;
+  $effect(() => {
+    // Les primitives évitent d'annuler un glissement sur un simple écho de volume.
+    const id = idZoneVolume;
+    const autorise = volumeAutorise;
+    const plage = clePlage; // dépendance primitive : annule aussi une ancienne grille
+    if (id == null || !autorise) limiterEnvoi.annuler();
+    return () => {
+      contexteVolume += 1;
+      limiterEnvoi.annuler();
+      saisie = null;
+    };
+  });
 
   function handleVolume(e: Event) {
-    if (!zone?.id || $volumeLocked) return;
+    if (!zone?.id || !volumeAutorise) return;
     const champ = e.target as HTMLInputElement;
+    // web#7517 — un curseur en dB envoie la même fraction que le curseur 0..1.
+    const brut = course ? fractionDepuisDb(course, Number(champ.value)) : Number(champ.value);
     // tune-server-rust#6541 — le serveur borne le curseur (confort, sécurité) ;
     // l'écran le montre au lieu de laisser le pouce filer plus haut que le son.
-    const val = bornerCurseur(zone, Number(champ.value), vol);
-    if (val !== Number(champ.value)) champ.value = String(val);
+    const val = normaliserVolumeSortie(zone, bornerCurseur(zone, brut, vol), plafondDuCurseur(zone, vol));
+    if (val === null) return;
+    if (val !== brut) champ.value = String(course ? dbDepuisFraction(course, val) : val);
     leverSourdineSiBesoin({ ...zone, id: zone.id }, val);
     zoneVolume.set(val);
     if (isBrowserZone(zone)) browserSetVolume(val, zone);
     const zoneId = zone.id;
-    limiterEnvoi(() => { void envoyerVolume(zoneId, val); });
+    const contexte = contexteVolume;
+    limiterEnvoi(() => { void envoyerVolume(zoneId, val, contexte); });
   }
 
   // tune-server-rust#6721 — un refus du serveur (PURE « Forcer à 100 % »
   // armé ailleurs, ou mal lu ici) relit le verrou : le curseur se grise.
-  function envoyerVolume(zoneId: number, val: number) {
+  function envoyerVolume(zoneId: number, val: number, contexte: number) {
+    if (zone?.id !== zoneId || !volumeAutorise || contexte !== contexteVolume) return Promise.resolve();
     return envoyerVolumeOuReverrouiller(zoneId, val, {
       envoyer: api.setVolume,
       relireVerrou: refreshAudiophile,
@@ -140,7 +183,7 @@
   // #6700 — décision de Bertrand du 21/10 : une VRAIE sourdine. Le volume
   // n'est pas touché, lever la sourdine rend le son au volume d'avant.
   async function toggleMute() {
-    if (!zone?.id || $volumeLocked) return;
+    if (!zone?.id || !sourdineAutorisee) return;
     await basculerSourdineZone({ ...zone, id: zone.id }).catch(() => {});
   }
 
@@ -149,8 +192,8 @@
   // confort, seuls les boutons montent). Un serveur antérieur, sans la route,
   // reçoit l'ancien `PUT /volume`.
   async function pas(direction: 'up' | 'down') {
-    if (!zone?.id || $volumeLocked) return;
-    if (!serveurConnaitLesLimites(zone) || isBrowserZone(zone)) {
+    if (!zone?.id || !volumeAutorise) return;
+    if (plageVolumeSortie(zone) || !serveurConnaitLesLimites(zone) || isBrowserZone(zone)) {
       // web#2292 — borné par la sécurité de la zone, pas seulement par 100 %.
       const next = cibleDuPas(zone, vol, direction);
       if (next === vol) return;
@@ -160,7 +203,10 @@
       return;
     }
     try {
-      const r = await api.stepVolume(zone.id, direction, PAS_BOUTON);
+      const zoneId = zone.id;
+      const contexte = contexteVolume;
+      const r = await api.stepVolume(zoneId, direction, PAS_BOUTON);
+      if (zone?.id !== zoneId || !volumeAutorise || contexte !== contexteVolume) return;
       // tune-server-rust#6787 — la réponse porte le GAIN : le curseur en est
       // la position sur la loi de la zone.
       const curseur = volumeDepuisGain(zone, r.volume);
@@ -183,7 +229,7 @@
     class="volume-btn"
     class:muted={isMuted}
     onclick={toggleMute}
-    disabled={$volumeLocked}
+    disabled={!sourdineAutorisee}
     title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : $t('volume.title')}
   >
     {#if isMuted || vol === 0}
@@ -207,37 +253,50 @@
   <button
     class="step-btn"
     onclick={() => pas('down')}
-    disabled={$volumeLocked || vol <= 0}
+    disabled={!volumeAutorise || (plageVolumeSortie(zone) ? cibleDuPas(zone, vol, 'down') === vol : vol <= 0)}
     title={$t('volume.stepDown')}
     aria-label={$t('volume.stepDown')}
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
   </button>
   {/if}
-  <input
-    type="range"
-    class="volume-slider"
-    min="0"
-    max="1"
-    step="0.01"
-    value={vol}
-    oninput={handleVolume}
-    disabled={$volumeLocked}
-    title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : undefined}
-    aria-label="Volume"
-  />
+  <div class="volume-curseur" class:en-db={course !== null}>
+    <input
+      type="range"
+      class="volume-slider"
+      class:zones={fondZones !== null}
+      style={fondZones ? `background: ${fondZones}` : undefined}
+      min={bornes.min}
+      max={bornes.max}
+      step={bornes.step}
+      value={valeurCurseur}
+      oninput={handleVolume}
+      disabled={!volumeAutorise}
+      title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : legendeZones}
+      aria-label="Volume"
+    />
+    {#if course}
+      <span class="graduations" aria-hidden="true">
+        {#each traits as g (g.db)}
+          <span class="trait" style={`left: ${g.pos * 100}%`}><i></i><b>{g.db}</b></span>
+        {/each}
+      </span>
+    {/if}
+  </div>
   {#if boutonsPas}
   <button
     class="step-btn"
     onclick={() => pas('up')}
-    disabled={$volumeLocked || enButee}
+    disabled={!volumeAutorise || enButee}
     title={enButee ? $t('volume.limitedBySafety') : $t('volume.stepUp')}
     aria-label={$t('volume.stepUp')}
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
   </button>
   {/if}
-  {#if modeDb}
+  {#if course}
+    <span class="volume-value volume-db-appareil" data-testid="volume-db-appareil">{formaterDbAppareil(dbDepuisFraction(course, vol))}</span>
+  {:else if modeDb}
     <input
       type="text"
       class="volume-value volume-db-input"
@@ -245,7 +304,7 @@
       autocomplete="off"
       spellcheck="false"
       value={saisie ?? volumeDisplay(vol)}
-      disabled={$volumeLocked}
+      disabled={!volumeAutorise}
       aria-label={$t('volume.dbEntry')}
       title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : $t('volume.dbEntryHint')}
       onfocus={ouvrirSaisie}
@@ -320,6 +379,40 @@
   .step-btn:hover {
     color: var(--tune-text);
   }
+
+  .volume-curseur {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Curseur en dB (#7517) : traits tous les 10 dB sous la piste. */
+  .volume-curseur.en-db { padding-bottom: 11px; }
+  .graduations {
+    position: absolute;
+    left: 7px;
+    right: 7px;
+    bottom: 0;
+    height: 10px;
+    pointer-events: none;
+  }
+  .trait {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+  }
+  .trait i { display: block; width: 1px; height: 3px; background: var(--tune-text-muted); }
+  .trait b {
+    font-weight: 400;
+    font-size: 8px;
+    color: var(--tune-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .volume-db-appareil { min-width: 58px; }
 
   .volume-slider {
     width: 140px;
@@ -429,4 +522,5 @@
     font-size: 14px;
     min-width: 40px;
   }
+.volume-slider:disabled, .volume-btn:disabled, .step-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>
