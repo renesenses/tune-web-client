@@ -18,7 +18,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import TransportBar from '../../components/partages/TransportBar.svelte';
-import { activeView, gestesNavigationService, pendingLibraryAlbum } from '../stores/navigation';
+import { activeView, previousView, saveViewContext, loadViewContext, clearViewContext, gestesNavigationService, pendingLibraryAlbum } from '../stores/navigation';
 import { zones, currentZoneId } from '../stores/zones';
 import { preferences } from '../stores/preferences';
 import { locale } from '../i18n';
@@ -124,6 +124,7 @@ afterEach(() => {
   gestesNavigationService.set(null);
   pendingLibraryAlbum.set(null);
   activeView.set('home');
+  clearViewContext('radios');
   reglage(false);
   vi.unstubAllGlobals();
 });
@@ -176,5 +177,44 @@ describe('web#1845 — réglage COCHÉ : la vignette mène à ce qui joue', () =
     expect(get(activeView)).toBe('nowplaying');
     expect(get(pendingLibraryAlbum)).toBeNull();
     expect(evenements).toEqual([]);
+  });
+});
+
+
+describe('web#2631 — un second clic revient à l’écran précédent', () => {
+  it('ouvre puis referme Lecture en cours, sans effacer le contexte de la vue', async () => {
+    reglage(false);
+    poserZone(RADIO, null);
+    activeView.set('radios');
+    const contexte = { section: 'annuaire', annuaire: { q: 'BBC', pays: 'GB', genre: 'jazz', nombre: 240, defilement: 1850 } };
+    saveViewContext('radios', contexte);
+    const v = vignette();
+    await cliquer(v);
+    expect(get(activeView)).toBe('nowplaying');
+    expect(v.getAttribute('aria-label')).toBe('Retour');
+    await cliquer(v);
+    expect(get(activeView)).toBe('radios');
+    expect(loadViewContext('radios')).toEqual(contexte);
+    await cliquer(v);
+    expect(get(activeView)).toBe('nowplaying');
+    expect(get(previousView)).toBe('radios');
+  });
+
+  it('depuis Lecture en cours, revient même avec le réglage ouvrir la source coché', async () => {
+    reglage(true);
+    poserZone(PISTE_LOCALE, { type: 'album', id: '5', source: 'local' });
+    activeView.set('playlists'); activeView.set('nowplaying');
+    const v = vignette(); await respirer(); appels = [];
+    await cliquer(v);
+    expect(get(activeView)).toBe('playlists');
+    expect(appels.filter(u => /\/zones\/1/.test(u))).toEqual([]);
+    expect(get(pendingLibraryAlbum)).toBeNull();
+  });
+
+  it.each([null, 'nowplaying', 'tv'] as const)('comme la flèche, évite le retour invalide %s', async precedent => {
+    reglage(false); poserZone(RADIO, null);
+    activeView.set('nowplaying'); previousView.set(precedent);
+    await cliquer(vignette());
+    expect(get(activeView)).toBe('library');
   });
 });
