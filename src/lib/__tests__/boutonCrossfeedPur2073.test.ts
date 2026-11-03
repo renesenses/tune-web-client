@@ -37,7 +37,7 @@ describe('web#2073 — le bouton crossfeed de Lecture en cours tient compte de P
   const source = readFileSync(resolve(process.cwd(), 'src/components/partages/NowPlaying.svelte'), 'utf-8');
   it('🔴 Lecture en cours branche l’état PURE du bouton PURE (store audiophileEnabled)', () => {
     expect(source).toMatch(/import \{[^}]*\baudiophileEnabled\b[^}]*\} from '\.\.\/\.\.\/lib\/stores\/audiophile'/);
-    expect(source).toContain('etatBoutonCrossfeed({ cfEnabled, cfProTraite, pur: $audiophileEnabled })');
+    expect(source).toContain('etatBoutonCrossfeed({ cfEnabled, cfProTraite, pur: $audiophileEnabled, crosstalk: cfCrosstalk })');
     expect(source).toContain('class:active={cfBouton.actif}');
     expect(source).toContain('class:cf-pro={cfBouton.pro}');
     expect(source).not.toContain('class:cf-pro={cfProTraite}');

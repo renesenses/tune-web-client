@@ -81,3 +81,20 @@ describe('radios dans la recherche globale (tune-server-rust#7045)', () => {
     expect(api.lireRadiosTrouvees({ radios: [{ id: 1, name: 'A', stream_url: 'x', favorite: false }] }).reste).toBe(0);
   });
 });
+
+// tune-server-rust#7466 — recherche de radios par critères.
+describe('critères de recherche (tune-server-rust#7466)', () => {
+  it('l’annuaire reçoit les critères en paramètres', async () => {
+    const f = repond({ items: [], total: 0 });
+    await api.getAnnuaireRadios({ q: 'fip', criteres: { codec: 'flac', metadata_plus: 'true' } });
+    const p = new URLSearchParams((f.mock.calls[0][0] as string).split('?')[1]);
+    expect(Object.fromEntries(p)).toEqual({ q: 'fip', codec: 'flac', metadata_plus: 'true' });
+  });
+
+  it('« Mes radios » interroge /radios/search avec les seuls critères', async () => {
+    const f = repond({ count: 0, items: [] });
+    await api.rechercherRadiosParCriteres('', { hires: 'true' }, 'FR');
+    expect(f.mock.calls[0][0]).toBe('/api/v1/radios/search?q=&country=FR&hires=true');
+  });
+});
+

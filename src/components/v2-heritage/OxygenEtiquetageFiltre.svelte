@@ -20,6 +20,9 @@
     apercuEtiquetage, etiqueterParFiltre, etiquetageParFiltreDisponible, filtreActif,
     type ApercuEtiquetage, type CibleEtiquetage,
   } from '../../lib/etiquetageParFiltre';
+  // tune-server-rust#7539 — « Modifier les métadonnées… » sur la même sélection.
+  import OxygenEditionFiltre from './OxygenEditionFiltre.svelte';
+  import { editionParFiltreDisponible } from '../../lib/editionParFiltre';
 
   interface Props {
     /** Les paramètres serveur de la vue : facettes, `all_of`, texte libre. */
@@ -42,6 +45,8 @@
   let apercu = $state<ApercuEtiquetage | null>(null);
   let apercuEnCours = $state(false);
   let envoiEnCours = $state(false);
+  let editionDispo = $state(false);
+  let edition = $state(false);
 
   const nf = (n: number) => n.toLocaleString();
   const cleDuFiltre = $derived(JSON.stringify(filtres));
@@ -53,6 +58,7 @@
   });
   async function sonderLeServeur() {
     disponible = await etiquetageParFiltreDisponible();
+    editionDispo = await editionParFiltreDisponible();
   }
 
   // Changer de filtre défait la sélection : elle désignait l'ANCIEN résultat.
@@ -62,6 +68,7 @@
       derniereCle = cleDuFiltre;
       selectionne = false;
       ouvert = false;
+      edition = false;
     }
   });
 
@@ -143,9 +150,16 @@
       <span class="oxy-tagsel-compte">{$t('oxygen.tagSel.selected').replace('{count}', nf(nombre))}</span>
       <button class="oxy-tagsel" data-testid="oxy-apply-tag" onclick={() => ouvrir(false)}>{$t('oxygen.tagSel.applyTag')}</button>
       <button class="oxy-tagsel" data-testid="oxy-remove-tag" onclick={() => ouvrir(true)}>{$t('oxygen.tagSel.removeTag')}</button>
+      {#if editionDispo}
+        <button class="oxy-tagsel" data-testid="oxy-edit-meta" onclick={() => { edition = true; }}>{$t('oxygen.editSel.open')}</button>
+      {/if}
       <button class="oxy-tagsel-x" onclick={() => { selectionne = false; }} title={$t('oxygen.tagSel.clear')} aria-label={$t('oxygen.tagSel.clear')}>×</button>
     </span>
   {/if}
+{/if}
+
+{#if edition}
+  <OxygenEditionFiltre {filtres} {cibleParDefaut} onFermer={() => { edition = false; }} onFait={() => { selectionne = false; }} />
 {/if}
 
 {#if ouvert}

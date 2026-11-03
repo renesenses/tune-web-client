@@ -39,7 +39,7 @@ describe('gestion des profils dans la coquille v2', () => {
     expect(i, 'aucun lien « Gérer les profils »').toBeGreaterThan(0);
     // Le lien n'est pas sous la garde `$profiles.length > 1` : il est dans la
     // partie « items » du menu, après la fermeture de cette garde.
-    const garde = menu.indexOf('{#if $visibleProfiles.length > 1');
+    const garde = menu.indexOf("{#if forme !== 'aucune'}");
     expect(garde, 'garde de la liste des profils introuvable').toBeGreaterThan(-1);
     const finGarde = menu.indexOf('{/if}', garde);
     expect(i).toBeGreaterThan(finGarde);

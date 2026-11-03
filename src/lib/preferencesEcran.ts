@@ -75,3 +75,13 @@ export function lireNombre(cle: string): number | null {
     return null;
   }
 }
+
+/**
+ * Oublie un choix : l'écran repart sur sa valeur par défaut à la prochaine
+ * lecture (« Rétablir les largeurs », web#2584).
+ */
+export function effacerChoix(cle: string): void {
+  try {
+    localStorage.removeItem(PREFIXE + cle);
+  } catch { /* stockage indisponible : rien à oublier */ }
+}

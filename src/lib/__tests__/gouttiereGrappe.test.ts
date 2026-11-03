@@ -140,9 +140,9 @@ describe('La gouttière de la grappe', () => {
     const sans: string[] = [];
     for (const f of ECRANS) {
       const c = css(f);
-      // Un écran « à en-tête » : il a une règle `.top` ou `.entete`.
-      if (!/\.(?:top|entete)\s*\{/.test(c)) continue;
-      if (!c.includes('var(--v2-grappe-w)')) sans.push(f.split('/').pop()!);
+      // #2604 : inclure aussi l’en-tête propre aux Réveils.
+      if (!/\.(?:top|entete|v2-entete)\s*\{/.test(c)) continue;
+      if (!/var\(--v2-grappe-[wh][,)]/.test(c)) sans.push(f.split('/').pop()!);
     }
     expect(sans).toEqual([]);
   });

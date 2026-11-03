@@ -68,3 +68,30 @@ export function migrationPremiereLigne(
   }
   return { disposition: [ID_PREMIERE_LIGNE, ...actuelle], aMigrer: true };
 }
+
+/**
+ * #2410 — CE QU'UN ENREGISTREMENT DE L'UTILISATEUR DOIT AUSSI ÉCRIRE.
+ *
+ * Le marqueur n'était posé que par la migration elle-même. Or un profil qui
+ * n'a JAMAIS rangé son accueil (il suit le défaut, qui porte la ligne) n'a pas
+ * de disposition enregistrée : la migration ne lui écrit rien, donc pas de
+ * marqueur. Quand il retire la ligne — et avec elle ses panneaux « Genres » et
+ * « My listening » —, `enregistrer()` écrivait la disposition SANS la ligne et
+ * SANS marqueur. Au chargement suivant, `migrationPremiereLigne` voyait une
+ * disposition enregistrée, sans la ligne, sans marqueur : elle la réinsérait en
+ * tête. Les panneaux « revenaient » (testeur Alex, rc8). C'est exactement le
+ * piège que ce module nomme plus haut — « un widget qu'on ne peut plus
+ * enlever » —, par la porte que la migration ne gardait pas.
+ *
+ * Enregistrer SA disposition, c'est avoir décidé de ce qu'elle contient : le
+ * marqueur part dans le MÊME appel, comme dans la migration.
+ *
+ * Un écran dont le défaut ne porte pas la ligne (les écrans éditoriaux Qobuz
+ * et Tidal) n'écrit rien : la clé n'a pas de sens chez lui.
+ */
+export function marqueurAEnregistrer(
+  cleMarqueur: string,
+  dispositionDefaut: readonly string[],
+): Record<string, true> {
+  return dispositionDefaut.includes(ID_PREMIERE_LIGNE) ? { [cleMarqueur]: true } : {};
+}

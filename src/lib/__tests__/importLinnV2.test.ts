@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 /**
  * Import d'une playlist Linn (`.dpl`, Pierre Mack) — porté de l'ancienne
  * interface, seul écran qui savait l'envoyer à `POST /playlists/import/linn`.
+ * La logique vit dans `ImportPlaylistFichier` (partagé avec le Gestionnaire).
  * Il rejoint le bouton « Importer » de l'écran Playlists, à côté du M3U.
  *
  * (Les autres imports de l'ancien écran ne sont PAS portés, et c'est voulu :
@@ -11,7 +12,7 @@ import { readFileSync } from 'node:fs';
  * implemented » — et Roon/Plex n'ont jamais pu marcher, contrat rompu des deux
  * côtés, mis de côté le 01/09/2026.)
  */
-const V2 = readFileSync('src/components/v2/PlaylistsV2.svelte', 'utf8');
+const V2 = readFileSync('src/components/v2/ImportPlaylistFichier.svelte', 'utf8');
 const debut = V2.indexOf('async function importer(');
 const corps = V2.slice(debut, V2.indexOf('\n  }\n', debut));
 

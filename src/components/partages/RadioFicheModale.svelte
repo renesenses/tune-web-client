@@ -24,7 +24,7 @@
   import type { RadioStation } from '../../lib/types';
   import { t, locale } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
-  import { ficheDeAnnuaire, ficheDeLecture, ficheDeStation, libelleFlux, type FicheStation } from '../../lib/ficheStation';
+  import { ficheDeAnnuaire, ficheDeLecture, ficheDeStation, libelleFlux, ordonnerFluxParQualite, type FicheStation } from '../../lib/ficheStation';
   import { radioGenreLabel, radioGenreRayon } from '../../lib/radioGenres';
   import { nomDuPays } from '../../lib/paysAffichage';
   import { notifications } from '../../lib/stores/notifications';
@@ -96,6 +96,8 @@
   });
   const pays = $derived(fiche ? nomDuPays(fiche.paysCode, $locale, fiche.pays) : '');
   const choix = $derived(fiche?.radioId != null && (fiche.flux?.length ?? 0) > 1);
+  // web#2552 : du meilleur flux au moins bon (sans perte, puis débit).
+  const fluxRanges = $derived(ordonnerFluxParQualite(fiche?.flux ?? []));
 
   async function choisir(url: string) {
     const id = fiche?.radioId;
@@ -148,7 +150,7 @@
           <h3>{$t('v2.radio.fiche.streams' as any)}</h3>
           {#if choix}<p class="aide">{$t('v2.radio.fiche.choose' as any)}</p>{/if}
           <ul role={choix ? 'radiogroup' : undefined} aria-label={$t('v2.radio.fiche.streams' as any)}>
-            {#each fiche.flux as f (f.url)}
+            {#each fluxRanges as f (f.url)}
               {@const actuel = f.url === fiche.fluxActuel}
               <li class:actuel>
                 {#if choix}

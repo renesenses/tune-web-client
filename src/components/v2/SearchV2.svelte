@@ -1225,7 +1225,7 @@ import { sansDoublons } from '../../lib/clesUniques';
                      onze dictionnaires. -->
                 <button type="button" class="acv" onclick={() => ouvrirTeteAffiche(a)}
                   aria-label={a.nom} title={a.nom}>
-                  <AlbumArt coverPath={a.image_path} albumId={null} size={0} vignette alt={a.nom} fallbackInitials={a.nom?.slice(0,1)} />
+                  <AlbumArt coverPath={a.image_path} albumId={null} size={0} vignette recadrer alt={a.nom} fallbackInitials={a.nom?.slice(0,1)} />
                 </button>
                 <button class="meta" onclick={() => ouvrirTeteAffiche(a)}><span class="an" title={a.nom}>{a.nom}</span></button>
               </div>
@@ -1322,7 +1322,7 @@ import { sansDoublons } from '../../lib/clesUniques';
                   bas, et c'est l'arbitrage de #1129 repris tel quel.
                 -->
                 <button class="bcard" onclick={() => ouvrirArtiste(a)}>
-                  <span class="bcv rond"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} vignette alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
+                  <span class="bcv rond"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} vignette recadrer alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
                   <span class="bt" use:bulleTexte>{a.name}</span>
                   <span class="bk" use:bulleTexte>{$t('v2.rech.kindArtist' as any)}</span>
                 </button>
@@ -1374,7 +1374,7 @@ import { sansDoublons } from '../../lib/clesUniques';
                              source, quatre « Marco Iacobini » identiques.
                              🔴 #1136 — mais plus par INCRUSTATION : voir
                              `.asrc` juste en dessous. -->
-                        <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} vignette alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} />
+                        <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} vignette recadrer alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} />
                       </PochetteActions>
                     </span>
                     <button class="meta" onclick={() => ouvrirArtiste(ar)}><span class="an" title={ar.name}>{ar.name}</span></button>
