@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // web#2443 — la fiche « Voir » des stations de l'annuaire (demande de Rémi du
 // 27/10/2026) : l'œil à la place du crayon, le badge « Metadata+ », les flux
@@ -15,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   getAnnuaireRadios: vi.fn(), ajouterDepuisAnnuaire: vi.fn(), jouerDepuisAnnuaire: vi.fn(),
   choisirFluxPrefere: vi.fn(),
 }));
-vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), ...mocks }));
+vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), getConfig: vi.fn(async () => ({ radios_country: '' })), ...mocks }));
 vi.mock('../zoneRequise', () => ({ zoneRequise: () => 3 }));
 
 import RadiosV2 from '../../components/v2/RadiosV2.svelte';
@@ -69,6 +70,7 @@ const titres = (e: Element) => [...e.querySelectorAll('button.coin')].map((b) =>
 const dialogue = () => document.querySelector('[role=dialog]') as HTMLElement | null;
 
 beforeEach(() => {
+  clearViewContext('radios');
   for (const fn of Object.values(mocks)) fn.mockReset();
   mocks.getRadios.mockResolvedValue([FIP, MAISON]);
   mocks.exportRadiosUrl.mockReturnValue('#');
@@ -187,6 +189,9 @@ describe('fonctions de la fiche', () => {
   it('libelleFlux', () => {
     expect(libelleFlux(FLUX[1])).toBe('MP3 · 128 kbit/s · 48 kHz');
     expect(libelleFlux({ url: 'u' })).toBe('');
+    // HLS est un protocole, pas un format : jamais affiché
+    expect(libelleFlux({ url: 'u', codec: 'AAC', bitrate: 96, hls: true })).toBe('AAC · 96 kbit/s');
+    expect(libelleFlux({ url: 'u', codec: 'HLS', hls: true })).toBe('');
   });
 
   it('🔴 metadataPlusDeLecture : vrai pour la station à clé, retenu pour la session', async () => {
@@ -206,6 +211,8 @@ describe('En cours de lecture', () => {
   it('🔴 le nom de la station ouvre la fiche, avec le badge Metadata+ à côté', () => {
     const s = readFileSync(resolve(__dirname, '../../components/partages/NowPlaying.svelte'), 'utf8');
     expect(s).toMatch(/radio-station-lien[\s\S]{0,200}ficheStationOuverte = true[\s\S]{0,200}stationMetadataPlus[\s\S]{0,40}BadgeMetadataPlus/);
-    expect(s).toMatch(/metadataPlusDeLecture\(np\)/);
+    // web#2550/#2551 : le badge, le logo et le bouton « Mes radios » lisent la
+    // MÊME station retenue ; le badge en dérive.
+    expect(s).toMatch(/stationDeLectureRetenue\(np\)[\s\S]{0,200}stationMetadataPlus = !!s\.fiche\?\.metadataPlus/);
   });
 });

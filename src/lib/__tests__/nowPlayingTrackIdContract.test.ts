@@ -41,7 +41,10 @@ describe('contrat d’identifiant du lecteur (#2430)', () => {
     // une radio. Ce test compte les gardes RESTANTES ; ce qu'il protège est
     // inchangé : celles qui restent lisent la piste NORMALISÉE, jamais
     // `displayTrack.id` (l'assertion suivante).
-    expect(actions.match(/!isRadio && normalizedTrack\?\.id != null/g)).toHaveLength(3);
+    // web#2516 : le PARTAGE ne porte plus cette garde — il sert aussi une radio
+    // (« Station – titre en cours ») et ne lit pas d'identifiant de piste. Le
+    // compte redescend à 2 ; la règle des deux gardes restantes est inchangée.
+    expect(actions.match(/!isRadio && normalizedTrack\?\.id != null/g)).toHaveLength(2);
     expect(actions).toContain('loadNpCredits(normalizedTrack.id)');
     expect(actions).not.toMatch(/displayTrack\??\.id/);
   });

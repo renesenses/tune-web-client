@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // web#2400 — la carte des radios, troisième onglet de la page Radio.
 // Les données viennent de l'annuaire du serveur (`/radios/directory`), les
@@ -12,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   importRadios: vi.fn(), exportRadiosUrl: vi.fn(() => '#'),
   getAnnuaireRadios: vi.fn(), ajouterDepuisAnnuaire: vi.fn(), jouerDepuisAnnuaire: vi.fn(),
 }));
-vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), ...mocks }));
+vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), getConfig: vi.fn(async () => ({ radios_country: '' })), ...mocks }));
 vi.mock('../zoneRequise', () => ({ zoneRequise: () => 3 }));
 
 import RadiosV2 from '../../components/v2/RadiosV2.svelte';
@@ -42,6 +43,7 @@ let hote: HTMLDivElement;
 let instance: Record<string, unknown> | null = null;
 
 beforeEach(() => {
+  clearViewContext('radios');
   // jsdom n'a pas de canevas : le décor se tait, les nœuds (des boutons) restent.
   HTMLCanvasElement.prototype.getContext = (() => null) as any;
   for (const fn of Object.values(mocks)) fn.mockReset();

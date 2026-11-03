@@ -3,6 +3,7 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount } from 'svelte';
   import { shuffleAll } from '../../lib/api';
+  import { lireDossier } from '../../lib/lectureDossier';
   import { tip } from '../../lib/tooltip';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
@@ -369,10 +370,11 @@
    * tirage porte sur le SOUS-ARBRE ENTIER, la ou `tracks` s'arrete a
    * `LOAD_LIMIT` : c'est la seule voie fidele quand la vue est tronquee.
    *
-   * Pas de « tout lire » symetrique : il n'existe pas de route qui lise un
-   * repertoire entier dans l'ordre, et le batir sur `tracks` mentirait des que
-   * `truncated` est vrai. Mieux vaut un bouton absent qu'un bouton qui ne lit
-   * qu'un morceau de ce qu'il annonce.
+   * Son pendant dans l'ordre, « Tout lire », existe depuis
+   * tune-server-rust#7597 : `folder` dans le corps de `POST /zones/{id}/play`,
+   * le serveur construit tout le sous-arbre (chemin, disque, piste, nom de
+   * fichier) — voir `lib/lectureDossier`. Le batir ici sur `tracks` mentirait
+   * des que `truncated` est vrai : c'est pourquoi on n'envoie que le dossier.
    */
   const dossierOuvert = $derived(facetSels.folder?.[0] ?? null);
   async function tirerDansLeDossier() {
@@ -725,6 +727,10 @@
       {visible.length.toLocaleString('fr')}{#if truncated}<span class="cslash">/</span>{total.toLocaleString('fr')}{/if}
     </div>
     {#if dossierOuvert}
+      <button class="icnbtn" data-dossier-lire onclick={() => lireDossier(zone?.id, dossierOuvert)}
+              title={$t('browse.playAllRecursive' as any)} aria-label={$t('browse.playAllRecursive' as any)}>
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
       <button class="icnbtn" onclick={tirerDansLeDossier}
               title={$t('library.shuffle')} aria-label={$t('library.shuffle')}>
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>

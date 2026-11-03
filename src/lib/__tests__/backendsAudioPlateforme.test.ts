@@ -134,6 +134,17 @@ describe('sous-réglage « Mode WASAPI »', () => {
     expect(modeWasapiPertinent(WINDOWS_ASIO, 'wasapi')).toBe(true);
     expect(modeWasapiPertinent(WINDOWS_ASIO, 'asio')).toBe(false);
   });
+  // web#2536 — « Auto (WASAPI) », le défaut sous Windows, joue en WASAPI : le
+  // choix Partagé / Exclusif doit y être réglable. Rouge avant le correctif.
+  it('s’affiche sous Windows sur « Auto (WASAPI) », le choix par défaut (web#2536)', () => {
+    expect(modeWasapiPertinent(WINDOWS_ASIO, 'auto')).toBe(true);
+    expect(modeWasapiPertinent(WINDOWS_SANS_ASIO, 'auto')).toBe(true);
+  });
+
+  it('reste masqué sur « Auto » hors Windows (web#2536)', () => {
+    expect(modeWasapiPertinent(LINUX, 'auto')).toBe(false);
+    expect(modeWasapiPertinent(MACOS, 'auto')).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { setToken } from '../../lib/auth';
   import { t } from '../../lib/i18n';
+  import { urlSsoAuthorize } from '../../lib/ssoAuthorize';
   import { activeView } from '../../lib/stores/navigation';
   import { baseApi, entetesRelais, ssoDisponible, urlRessourcePublique } from '../../lib/bridge';
 
@@ -114,7 +115,7 @@
 
   function handleSSO() {
     try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
-    window.location.href = `${BASE}/cloud/sso/authorize`;
+    window.location.href = urlSsoAuthorize(BASE);
   }
 </script>
 

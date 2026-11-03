@@ -54,9 +54,13 @@ function chaine(v: unknown): string {
 }
 
 /** La traduction client d'un code, paramètres interpolés, ou `null`. */
-export function traductionDuCode(code: string | undefined, params?: unknown): string | null {
+export function traductionDuCode(code: string | undefined, params?: unknown, raison?: unknown): string | null {
   if (!code) return null;
-  const cle = `erreursServeur.${code}`;
+  // #2446 : les serveurs rc7 rendent encore ce refus en français.
+  // Le bandeau de sortie possède déjà le même conseil dans toutes les langues.
+  const cle = code === 'zone_output_unavailable' && !raison
+    ? 'zone.outputMissingBanner'
+    : `erreursServeur.${code}`;
   const traduit = get(t)(cle);
   if (!traduit || traduit === cle) return null;
   const p = params && typeof params === 'object' ? (params as Record<string, unknown>) : {};
@@ -93,7 +97,7 @@ export function lireMessageServeur(corps: unknown, brut = '', statut?: number): 
   let detail = morceaux.join(' — ');
   if (detail.length > 600) detail = detail.slice(0, 600) + '…';
 
-  const duClient = traductionDuCode(code, c.params);
+  const duClient = traductionDuCode(code, c.params, c.reason);
   if (duClient) return { message: duClient, detail, code };
 
   const phrase = chaine(c.message);

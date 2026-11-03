@@ -37,6 +37,7 @@
   import CrossfeedV2 from './CrossfeedV2.svelte';
   import ReaffectationCanauxV2 from './ReaffectationCanauxV2.svelte';
   import CrossfeedProV2 from './CrossfeedProV2.svelte';
+  import CrosstalkV2 from './CrosstalkV2.svelte';
   import EqualizerV2 from './EqualizerV2.svelte';
   import TuneHealthV2 from './TuneHealthV2.svelte';
   import ConverterV2 from './ConverterV2.svelte';
@@ -45,6 +46,7 @@
   import PontRoonV2 from './PontRoonV2.svelte';
   import LectureCdV2 from './LectureCdV2.svelte';
   import CircleV2 from './CircleV2.svelte';
+  import CollectionPhysiqueV2 from './CollectionPhysiqueV2.svelte';
   import PageSourceV2 from './PageSourceV2.svelte';
   import CollectionsV2 from './CollectionsV2.svelte';
   import HistoriqueV2 from './HistoriqueV2.svelte';
@@ -134,6 +136,7 @@
   import { serverIdDepuisUrl } from '../../lib/bridge';
   const parLeRelais = serverIdDepuisUrl() !== null;
   import { demandeCercle } from '../../lib/circlePlaylists';
+  import { carteAPartager } from '../../lib/circleMessagerie';
   import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
   // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
   // « TV » juste au-dessus. Signale manquant par Bertrand le 05/09/2026 :
@@ -209,10 +212,15 @@
   import { get } from 'svelte/store';
   import { preferences, preferencesRelues } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
+  // #2527 — « Mon thème » : le thème du profil, fourni par un greffon.
+  import { appliquerMonTheme, familleDuTheme } from '../../lib/monTheme';
+  import { chargerMonTheme, monThemeActif } from '../../lib/stores/monTheme';
+  import { onMount } from 'svelte';
   import {
     startUpdatePolling, stopUpdatePolling,
     updateAvailable, latestVersion, updateBannerDismissed, dismissUpdateBanner,
   } from '../../lib/stores/updates';
+  import { interfacePerimee } from '../../lib/versionInterface';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
@@ -283,8 +291,8 @@
     mediaservers: 'nav.mediaservers', history: 'nav.history', oxygen: 'v2.nav.oxygen',
     bannedtracks: 'ban.title', ecouterplustard: 'v2.nav.later',
     ambiance: 'nav.ambiance', browse: 'nav.browse', equalizer: 'nav.equalizer',
-    crossfeed: 'v2.nav.crossfeed', crossfeedpro: 'v2.nav.crossfeedPro', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
-    alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', lecturecd: 'v2.cd.title', circle: 'v2.circle.title', source: 'v2.sources.title', diagnostics: 'v2.nav.processing',
+    crossfeed: 'v2.nav.crossfeed', crossfeedpro: 'v2.nav.crossfeedPro', crosstalk: 'v2.nav.crosstalk', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
+    alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', lecturecd: 'v2.cd.title', circle: 'v2.circle.title', collectionphysique: 'collectionPhysique.titre', source: 'v2.sources.title', diagnostics: 'v2.nav.processing',
     settings: 'v2.nav.settings', support: 'v2.nav.support', genres: 'nav.genres',
     smartplaylists: 'v2.pl.tabSmart', playlistmanager: 'playlist.manager',
   };
@@ -294,7 +302,14 @@
 
   // Le thème est posé sur <html> : les tokens s'appliquent alors à toutes les
   // racines .tune-v2, y compris celles imbriquées dans les vues.
-  $effect(() => { applyV2Theme($preferences.v2Theme); });
+  // #2527 — « Mon thème » actif : sa FAMILLE (claire ou sombre) porte ce
+  // qu'il ne choisit pas (VU-mètre, crête-mètre, ombres), sa feuille le reste.
+  $effect(() => {
+    const mien = $monThemeActif;
+    applyV2Theme(mien ? familleDuTheme(mien) : $preferences.v2Theme);
+    appliquerMonTheme(mien);
+  });
+  onMount(() => { void chargerMonTheme(); });
 
   /**
    * 🔴 LA LANGUE ENREGISTRÉE, que personne n'appliquait.
@@ -584,7 +599,7 @@
   }
 </script>
 
-<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} bind:this={coquilleEl}>
+<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} bind:this={coquilleEl}>
   <!--
     Le raccourci se pose depuis N'IMPORTE QUEL écran.
 
@@ -725,6 +740,20 @@
     </div>
   {/if}
 
+  {#if $interfacePerimee && !annonceMaj}
+    <!--
+      rc10 : le `web/` servi n'est plus celui de cet onglet (build différent,
+      voir `lib/versionInterface.ts`). Pas de rechargement imposé : la zone
+      navigateur peut être en train de jouer. Même place que l'annonce de
+      mise à jour, qui prime si les deux tombent ensemble.
+    -->
+    <div class="maj">
+      <button class="maj-txt" onclick={() => location.reload()} use:bulleTexte>{$t('app.newInterfaceReload' as any)}</button>
+      <button class="maj-x" onclick={() => interfacePerimee.set(false)}
+        aria-label={$t('app.dismiss')} title={$t('app.dismiss')}>&times;</button>
+    </div>
+  {/if}
+
   <!--
     🔴 LE MODE SANS DISTRACTION, QUE CETTE COQUILLE N'HONORAIT PAS — #978. Alex
     Campbell, 12/09/2026 : « it also appears the full screen button in Oxygen
@@ -811,6 +840,8 @@
         <CrossfeedV2 />
       {:else if $activeView === 'crossfeedpro'}
         <CrossfeedProV2 />
+      {:else if $activeView === 'crosstalk'}
+        <CrosstalkV2 />
       {:else if $activeView === 'reaffectation'}
         <ReaffectationCanauxV2 />
       {:else if $activeView === 'equalizer'}
@@ -835,6 +866,9 @@
       {:else if $activeView === 'circle'}
         <!-- Tune Circle (tune-server-rust#5018), ouvert depuis sa carte. -->
         <CircleV2 />
+      {:else if $activeView === 'collectionphysique'}
+        <!-- « Ma collection physique » (tune-server-rust#7195). -->
+        <CollectionPhysiqueV2 />
       {:else if $activeView === 'source'}
         <!-- Page d'une source de la rubrique « Sources » (tune-server-rust#5065). -->
         <PageSourceV2 />
@@ -934,6 +968,11 @@
     {/await}
   {/if}
 
+  {#if $carteAPartager}
+    {#await import('./PartageMessageV2.svelte') then m}
+      <m.default carte={$carteAPartager} />
+    {/await}
+  {/if}
   {#if $demandeCercle}
     {#await import('./AjoutGroupeCercleV2.svelte') then m}
       <m.default demande={$demandeCercle} onClose={() => demandeCercle.set(null)} />
@@ -993,6 +1032,7 @@
   /* La grappe est en ABSOLU : la bannière du flux ne la pousse pas toute
      seule, il faut le lui dire — sinon les trois ronds se posent dessus. */
   .avec-maj .av-tr{top:calc(20px + var(--maj-h))}
+  .avec-maj-interface .av-tr{top:calc(20px + var(--maj-h))}
   /* Bannière de mise à jour. Les deux moitiés sont des BOUTONS : le texte mène
      aux Réglages, la croix masque l'annonce pour cette version-là. */
   .maj{flex:0 0 var(--maj-h); display:flex; align-items:center; gap:10px;

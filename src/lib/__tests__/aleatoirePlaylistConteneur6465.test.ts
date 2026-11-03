@@ -104,6 +104,7 @@ describe('#6465 — « Aléatoire » d’une fiche playlist énonce la playlist'
     await ouvrir({ kind: 'streaming', service: 'qobuz', pl: { source_id: '11', name: 'Soul', track_count: 2 } }, 'Lovely Day');
     cliquerAleatoire();
     await attendreQue(() => !!lecture() && !!ajout(), 'la lecture et la suite parties');
+    expect(lecture()!.body.context_shuffle).toBe(true);
     for (const r of [lecture()!, ajout()!]) {
       expect(r.body, `${r.url} : la playlist mélangée part sans son conteneur — #6465`).toMatchObject({
         context_type: 'playlist', context_id: '11', context_source: 'qobuz',
@@ -117,7 +118,7 @@ describe('#6465 — « Aléatoire » d’une fiche playlist énonce la playlist'
     await attendreQue(() => !!lecture(), 'la lecture partie');
     expect(lecture()!.body.track_ids?.length).toBe(2);
     expect(lecture()!.body, 'la playlist locale mélangée part sans son conteneur — #6465').toMatchObject({
-      context_type: 'playlist', context_id: '12', context_source: 'local',
+      context_type: 'playlist', context_id: '12', context_source: 'local', context_shuffle: true,
     });
   });
 });

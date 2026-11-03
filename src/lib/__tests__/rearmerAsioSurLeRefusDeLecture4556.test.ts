@@ -30,7 +30,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
 import * as api from '../api';
-import { locale } from '../i18n';
+import { locale, t } from '../i18n';
 import { notifications } from '../stores/notifications';
 import { MOTIF_ASIO_BLOQUE } from '../rearmementAsio';
 
@@ -146,7 +146,7 @@ describe('#4556 — le refus de LECTURE porte le bouton « Réarmer »', () => {
     await api.play(7, { track_id: 1 }).catch(() => {});
 
     const toast = derniere();
-    expect(toast?.message).toBe(REFUS_ORDINAIRE.message);
+    expect(toast?.message).toBe(get(t)('zone.outputMissingBanner'));
     expect(toast?.action, 'aucune cause ASIO n’est mesurée ici : pas de bouton').toBeFalsy();
   });
 

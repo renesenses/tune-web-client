@@ -386,6 +386,17 @@ export function demarrerTransportV2(): () => void {
       return;
     }
 
+    // #2486 / serveur #7347 : une sortie déjà en ligne peut changer ses
+    // capacités sans zone.updated. L'annonce ne contient pas le contrat :
+    // relire les zones concernées, sans requête pour un appareil sans zone.
+    if (type === 'device.updated') {
+      const id = event.data?.device_id;
+      if (typeof id === 'string' && get(zones).some((z) => z.output_device_id === id)) {
+        void rechargerZones();
+      }
+      return;
+    }
+
     // Mise à jour groupée des zones — l'état de lecture et la piste en vivent.
     if (type === 'zone.updated' && Array.isArray(event.data?.zones)) {
       const liste = event.data.zones as any[];
@@ -511,6 +522,14 @@ export function demarrerTransportV2(): () => void {
       zones.update((liste: any[]) =>
         liste.map((z) => (z?.id === zone_id ? { ...z, volume } : z)),
       );
+      return;
+    }
+
+    // #2457 / serveur #6912 — ce relevé n'est jamais recopié dans la consigne.
+    if (type === 'playback.device_volume_observation' && event.data?.zone_id !== undefined) {
+      const { zone_id, device_volume_observation = null } = event.data;
+      zones.update((liste: any[]) => liste.map((z) =>
+        z?.id === zone_id ? { ...z, device_volume_observation } : z));
       return;
     }
 

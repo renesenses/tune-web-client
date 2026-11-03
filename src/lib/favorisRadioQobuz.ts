@@ -146,3 +146,23 @@ export function cleBadge(ligne: LigneApercu): string | null {
       return null;
   }
 }
+
+/**
+ * La clé du message à montrer quand la création échoue, ou `null` pour
+ * garder le message déjà traduit par `fetchJSON` (radio → Qobuz, 01/11/2026).
+ *
+ * Jamais un faux succès : un refus de Qobuz (502, code
+ * `creation_playlist_refusee`) dit que RIEN n'a été créé ; une sélection vide
+ * (`aucun_titre_retenu`) dit quoi faire. Le texte brut de Qobuz reste dans
+ * `err.detail`, replié.
+ */
+export function cleErreurCreation(e: { code?: string; status?: number } | null | undefined): string | null {
+  switch (e?.code) {
+    case 'aucun_titre_retenu':
+      return 'v2.fav.qobuzNoneKept';
+    case 'creation_playlist_refusee':
+      return 'v2.fav.qobuzCreateRefused';
+    default:
+      return null;
+  }
+}

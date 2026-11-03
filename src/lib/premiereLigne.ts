@@ -156,3 +156,18 @@ export function classerGenresDuPanneau<T extends GenreServi>(servis: readonly T[
   // Au moins une écoute : SEULS les écoutés, du plus écouté au moins écouté.
   return ecoutes.slice().sort((a, b) => (b.plays ?? 0) - (a.plays ?? 0) || parTaille(a, b));
 }
+
+/** #2614 — les panneaux se choisissent indépendamment des zones actives. */
+export const PANNEAUX_L1 = [
+  { id: 'genres', cle: 'common.genres' },
+  { id: 'concerts', cle: 'concerts.titre' },
+  { id: 'stats', cle: 'dashboard.title' },
+] as const;
+
+export function panneauxDeLaLigne(valeur: unknown): string[] {
+  // Une liste vide est un choix. Garder les identifiants inconnus permet
+  // de relire une préférence écrite par une version plus récente.
+  return Array.isArray(valeur)
+    ? [...new Set(valeur.filter((id): id is string => typeof id === 'string'))]
+    : PANNEAUX_L1.map((p) => p.id);
+}

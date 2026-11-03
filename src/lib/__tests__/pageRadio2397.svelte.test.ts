@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // #2397 — la page Radio (Mes radios / Annuaire) après le rapport de Rémi
 // (RC7, 25/10/2026). Un test par comportement ; chacun a sa contre-épreuve.
@@ -10,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   importRadios: vi.fn(), exportRadiosUrl: vi.fn(() => '#'),
   getAnnuaireRadios: vi.fn(), ajouterDepuisAnnuaire: vi.fn(), jouerDepuisAnnuaire: vi.fn(),
 }));
-vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), ...mocks }));
+vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), getConfig: vi.fn(async () => ({ radios_country: '' })), ...mocks }));
 vi.mock('../zoneRequise', () => ({ zoneRequise: () => 3 }));
 
 import RadiosV2 from '../../components/v2/RadiosV2.svelte';
@@ -45,6 +46,7 @@ async function monter() {
 const onglet = (i: number) => hote.querySelectorAll<HTMLButtonElement>('.sections button')[i];
 
 beforeEach(() => {
+  clearViewContext('radios');
   for (const fn of Object.values(mocks)) fn.mockReset();
   mocks.getRadios.mockResolvedValue([FIP, MAISON]);
   mocks.exportRadiosUrl.mockReturnValue('#');
@@ -165,6 +167,18 @@ describe('Dernières lues', () => {
     expect(dernieresLues(rs).map((r) => r.id)).toEqual([8, 7]);
     // Contre-épreuve : sans date serveur, c'est la mémoire locale.
     expect(dernieresLues([FIP, MAISON] as any[]).map((r) => r.id)).toEqual([7]);
+  });
+
+  it('🔴 dernieresLues lit `last_played`, le champ que GET /radios envoie vraiment', () => {
+    // Forme réelle : `RadioStation` du serveur (tune-core `db/radio_repo.rs`),
+    // `last_played` + `play_count`, sans `last_played_at`.
+    memoriserLecture(7);
+    const rs = [
+      { ...FIP, last_played: '2026-10-29T08:00:00Z', play_count: 3 },
+      { ...MAISON, last_played: '2026-10-30T09:15:00Z', play_count: 1 },
+      { id: 9, name: 'Jamais lue', stream_url: 'https://a/j.mp3', favorite: false, last_played: null, play_count: 0 },
+    ] as any[];
+    expect(dernieresLues(rs).map((r) => r.id)).toEqual([8, 7]);
   });
 
   it('un stockage qui lève ne casse rien', () => {

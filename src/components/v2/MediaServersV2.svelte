@@ -801,7 +801,7 @@
 
 <style>
   .v2-ms{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
-    font-family:var(--v2-sans); overflow:hidden}
+    font-family:var(--v2-sans); overflow-x:hidden; overflow-y:auto}
   .clr{position:absolute; right:10px; width:20px; height:20px; border:0; background:transparent; cursor:pointer;
     color:var(--v2-txt3); font-size:16px; line-height:1}
   .spin{position:absolute; right:13px; width:13px; height:13px; border:2px solid var(--v2-line2);

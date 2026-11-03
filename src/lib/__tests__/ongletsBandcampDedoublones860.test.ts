@@ -38,7 +38,6 @@ import {
   BANDCAMP_SVC,
   ongletInitial,
   ongletsStreaming,
-  pseudoOnglet,
   servicesConnectes,
   type EtatService,
 } from '../ongletsStreaming';
@@ -107,12 +106,6 @@ describe('#860 — le module : Bandcamp n’entre qu’une fois dans la rangée'
     const avec = ongletsStreaming(SERVICES_DU_18, true);
     expect(avec.indexOf(BANDCAMP_EXT)).toBe(sans.indexOf(BANDCAMP_SVC));
     expect(sans.indexOf(BANDCAMP_SVC)).toBeGreaterThan(0);
-  });
-
-  it('le pseudo suit l’onglet qui survit', () => {
-    expect(pseudoOnglet(BANDCAMP_EXT, SERVICES_DU_18)).toBe('berthos');
-    expect(pseudoOnglet('qobuz', SERVICES_DU_18)).toBe('Bertrand');
-    expect(pseudoOnglet('tidal', SERVICES_DU_18)).toBeNull();
   });
 
   it('l’onglet initial est pris dans la rangée AFFICHÉE, jamais dans `services`', () => {
@@ -268,17 +261,26 @@ describe('#860 — l’écran monté ne rend qu’UNE tuile Bandcamp', () => {
     ).toBe(1);
   });
 
-  it('et cet unique onglet porte le pseudo du compte lié', async () => {
+  it('#2409 — et cet unique onglet porte le NOM du service, pas le compte lié', async () => {
     await monterEcran();
-    // 🔴 On compare la LISTE, pas le premier trouvé. Un `find()` aurait attrapé
-    // l'onglet générique — qui porte lui aussi le pseudo — et serait resté vert
-    // avec deux onglets à l'écran : le témoin aurait raté exactement ce qu'il
-    // est censé voir.
+    // 🔴 On compare la LISTE, pas le premier trouvé : un `find()` attraperait
+    // l'onglet générique et resterait vert avec deux onglets à l'écran.
     const bandcamps = ongletsRendus().filter((l) => /bandcamp/i.test(l));
     expect(
       bandcamps,
       `les onglets Bandcamp rendus sont [${bandcamps.join(' | ')}]`,
-    ).toEqual(['Bandcamp berthos']);
+    ).toEqual(['Bandcamp']);
+  });
+
+  it('#2409 — aucune pastille de la rangée n’affiche un nom de compte', async () => {
+    await monterEcran();
+    // Le .18 sert `username: 'berthos'` (Bandcamp) et `'Bertrand'` (Qobuz).
+    const rendus = ongletsRendus();
+    expect(rendus.length, 'la rangée est vide : le témoin ne mesure rien').toBeGreaterThan(1);
+    expect(
+      rendus.filter((l) => /berthos|bertrand/i.test(l)),
+      `la rangée rendue est [${rendus.join(' | ')}] — un nom de compte est resté sur une pastille`,
+    ).toEqual([]);
   });
 
   it('TÉMOIN — les autres services gardent chacun le leur', async () => {

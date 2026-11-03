@@ -516,16 +516,28 @@ export interface NowPlaying {
   version?: import('./versionJouee').VersionJoueeServeur | null;
 }
 
+/** État reçu de l'appareil, distinct de toute consigne (#2457 / serveur #6912). */
+export interface DeviceVolumeObservation {
+  device_id: string;
+  volume: number;
+  volume_db: number;
+  muted: boolean;
+}
+
 export interface Zone {
   id: number | null;
   name: string;
   output_type?: OutputType;
   output_device_id?: string | null;
   volume?: number;
+  /** Capacités annoncées par la sortie ; absence = serveur ancien, pas un refus. */
+  output_capabilities?: import('./capacitesVolumeSortie').CapacitesVolumeSortie | null;
   /** tune-server-rust#6787 — loi du volume : `db60` (sortie logicielle, le
    *  volume est une position sur une loi en dB) ou `linear` (appareil). Absent
    *  sur un serveur antérieur : linéaire. Voir `lib/courbeDeVolume.ts`. */
   volume_curve?: string | null;
+  /** Lecture seule ; absent sur les serveurs anciens, null sans annonce fraîche. */
+  device_volume_observation?: DeviceVolumeObservation | null;
   /** Sourdine de la zone (`SetMute`), indépendante du volume (#6700). */
   muted?: boolean;
   group_id?: string | null;
@@ -665,6 +677,13 @@ export interface Zone {
    *  clé absente = serveur antérieur. */
   volume_limit_safety?: number | null;
   volume_limit_safety_db?: number | null;
+  /** tune-server-rust#6918 — la course en dB d'une sortie qui règle son volume
+   *  en dB (`min_db`, `max_db`, `step_db`, …) ; `null` sinon, absent sur un
+   *  serveur antérieur. Sert au curseur en dB (web#7517). */
+  device_volume_range?: { min_db: number; max_db: number; step_db: number; floor_db?: number; ceiling_db?: number } | null;
+  device_volume_db?: number | null;
+  volume_limit_safety_device_db?: number | null;
+  volume_limit_comfort_device_db?: number | null;
   /** tune-server-rust#6541 — limite de CONFORT : au-dessus, seuls les boutons
    *  + / − font monter le volume, pas le curseur. */
   volume_limit_comfort?: number | null;
@@ -1560,7 +1579,9 @@ export interface RadioStation {
   genre_label?: string | null;
   homepage_url?: string | null;
   favorite: boolean;
-  /** Dernière lecture, si le serveur la date (rc9) ; sinon repli local. */
+  /** Dernière lecture (ISO-8601) : le nom que `GET /radios` envoie (#2397). */
+  last_played?: string | null;
+  /** Nom attendu à tort jusqu'à #2397 ; gardé en repli. */
   last_played_at?: string | null;
   /**
    * La fiche de l'annuaire radio-metadata.fr rapprochée de cette station

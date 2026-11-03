@@ -185,6 +185,7 @@ export interface CapacitesPochette {
  * dans son propre calque) — jamais changer la liste.
  */
 export interface GestesPochette {
+  partagerMessage?: () => void;
   lire?: () => void;
   lireAleatoire?: () => void;
   /** « Lire ensuite » — au rang suivant celui qui joue (`rangLireEnsuite`). */
@@ -284,6 +285,7 @@ export function entreesPochette(
   if (c.type === 'radio' || c.type === 'podcast') return sortie;
 
   // ── Lire ────────────────────────────────────────────────────────────────
+  pousser(!!c.greffonCercle, 'v2.circle.msg.share', g.partagerMessage);
   const lisible = jouable;
   pousser(lisible, 'common.play', g.lire);
   /**

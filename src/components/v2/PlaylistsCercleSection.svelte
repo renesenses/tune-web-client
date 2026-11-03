@@ -35,8 +35,12 @@
   interface Props {
     /** Le filtre de recherche de l'écran hôte (déjà en minuscules ou non : comparé sans casse). */
     filtre?: string;
+    /** La liste est montrée (pastille « Tune Circle » choisie). Le composant charge quand même : l'hôte sait si la pastille existe. */
+    visible?: boolean;
+    /** Dit à l'hôte si la section existe (des playlists, ou une panne à signaler). */
+    onexiste?: (existe: boolean) => void;
   }
-  let { filtre = '' }: Props = $props();
+  let { filtre = '', visible = true, onexiste }: Props = $props();
 
   let playlists = $state<PlaylistCercleResume[]>([]);
   let panne = $state<string | null>(null);
@@ -77,6 +81,8 @@
   /** La section existe : des playlists, ou une panne à signaler. */
   const affichee = $derived(playlists.length > 0 || panne != null);
 
+  $effect(() => { onexiste?.(affichee); });
+
   async function lire(p: PlaylistCercleResume) {
     const zid = zoneRequise();
     if (zid == null || occupe !== null) return;
@@ -115,7 +121,7 @@
   }
 </script>
 
-{#if affichee}
+{#if affichee && visible}
   <section class="pl-cercle" aria-labelledby="pl-cercle-titre">
     <h3 id="pl-cercle-titre">{$t('v2.pl.circle.title' as any)}</h3>
     <p class="note">{$t('v2.pl.circle.hint' as any)}</p>
