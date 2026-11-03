@@ -143,3 +143,26 @@ describe('Crossfeed Pro — zone stéréo', () => {
     expect(zoneStereo(null)).toBeNull();
   });
 });
+
+// greffon crossfeed-pro#15 (Thierry, fil 2253) : la voie croisée se traite d'une
+// seule façon — retard adaptatif et Mid/Side ne peuvent pas être allumés ensemble.
+describe('Crossfeed Pro : retard adaptatif et Mid/Side s’excluent (greffon#15)', () => {
+  it('allumer le Mid/Side éteint le retard adaptatif', async () => {
+    const { basculerMidSide } = await import('../crossfeedPro');
+    const r = basculerMidSide(reglagesCrossfeedPro({ experimental_itd: true }));
+    expect(r.experimental_mid_side).toBe(true);
+    expect(r.experimental_itd).toBe(false);
+  });
+  it('allumer le retard adaptatif éteint le Mid/Side', async () => {
+    const { basculerItd } = await import('../crossfeedPro');
+    const r = basculerItd({ ...reglagesCrossfeedPro({}), experimental_mid_side: true } as any);
+    expect(r.experimental_itd).toBe(true);
+    expect((r as any).experimental_mid_side).toBe(false);
+  });
+  it('éteindre l’un ne touche pas l’autre', async () => {
+    const { basculerItd } = await import('../crossfeedPro');
+    const r = basculerItd({ ...reglagesCrossfeedPro({ experimental_itd: true }), experimental_mid_side: false } as any);
+    expect(r.experimental_itd).toBe(false);
+    expect((r as any).experimental_mid_side).toBe(false);
+  });
+});
