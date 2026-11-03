@@ -94,6 +94,12 @@ import {
 import { positionFileAnnoncee } from './suiviPisteEnCours';
 import { ancrerPosition } from './positionsZones';
 import { doitRechargerLaFile } from './rechargementFile';
+import {
+  appliquerPistesAnnoncees,
+  retenirPisteAnnoncee,
+  DELAI_RELECTURE_MS,
+  type PisteAttendue,
+} from './pisteAnnoncee';
 
 /**
  * Écart au-delà duquel la position du serveur corrige l'interpolation locale.
@@ -300,11 +306,35 @@ function dejaAnnonce(texte: string): boolean {
 }
 
 /** Recharge les zones depuis l'API — après un événement qui change la piste. */
+/** web#2615 — piste annoncée par zone, tant que `/zones` ne la montre pas. */
+const pistesAnnoncees = new Map<number, PisteAttendue>();
+let relectureProgrammee: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * web#2615 — une relecture qui montre encore la piste d'avant en appelle une
+ * autre, une seule à la fois, tant que l'annonce n'a pas expiré.
+ */
+function programmerRelecture(): void {
+  if (relectureProgrammee) return;
+  relectureProgrammee = setTimeout(() => {
+    relectureProgrammee = null;
+    void rechargerZones();
+  }, DELAI_RELECTURE_MS);
+}
+
+/** Écrit une liste de zones relue, en y tenant les pistes annoncées. */
+function poserZones(brute: any[]): any[] {
+  const { liste, relire } = appliquerPistesAnnoncees(brute, pistesAnnoncees, Date.now());
+  zones.set(liste);
+  if (relire) programmerRelecture();
+  return liste;
+}
+
 async function rechargerZones(): Promise<void> {
   try {
-    const liste = await api.getZones();
-    aplatirQualite(liste as any[]);
-    zones.set(liste);
+    const brute = await api.getZones();
+    aplatirQualite(brute as any[]);
+    const liste = poserZones(brute as any[]);
     suivreProgression(liste as any[]);
   } catch {
     // Serveur momentanément muet : on garde l'état précédent plutôt que de
@@ -399,9 +429,9 @@ export function demarrerTransportV2(): () => void {
 
     // Mise à jour groupée des zones — l'état de lecture et la piste en vivent.
     if (type === 'zone.updated' && Array.isArray(event.data?.zones)) {
-      const liste = event.data.zones as any[];
-      aplatirQualite(liste);
-      zones.set(liste); // répétition et aléatoire : via `suivreTransportDesZones` (#1549)
+      aplatirQualite(event.data.zones as any[]);
+      // répétition et aléatoire : via `suivreTransportDesZones` (#1549)
+      const liste = poserZones(event.data.zones as any[]);
       suivreProgression(liste);
       return;
     }
@@ -623,6 +653,8 @@ export function demarrerTransportV2(): () => void {
       if (zid != null && (type === 'playback.started' || type === 'playback.track_changed')) {
         playPendingUntil.delete(zid);
       }
+      // web#2615 — la piste annoncée tient jusqu'à ce que `/zones` la montre.
+      retenirPisteAnnoncee(pistesAnnoncees, type, event?.data, Date.now());
       void rechargerZones().then(() => {
         /**
          * 🔴 #889 — L'HISTORIQUE LOCAL, QUE CETTE COQUILLE N'ÉCRIVAIT PAS.
@@ -761,6 +793,9 @@ export function demarrerTransportV2(): () => void {
     desabonnerFileEnAttente?.();
     fileEnAttenteDeZone = false;
     stopSeekTimer();
+    pistesAnnoncees.clear();
+    if (relectureProgrammee) clearTimeout(relectureProgrammee);
+    relectureProgrammee = null;
     // Le souvenir de la piste suivie meurt avec le branchement : une coquille
     // remontée comparerait sinon à la piste d'une session d'avant, et refuserait
     // le premier relevé pour rien.
