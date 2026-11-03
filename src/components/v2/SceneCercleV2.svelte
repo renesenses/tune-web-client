@@ -49,6 +49,7 @@
     type Vue, type ContactScene, type NoeudScene, type Lieu,
   } from '../../lib/champCercle/scene';
   import { arrondiDemiDegre } from '../../lib/champCercle/tailles';
+  import { PAS_ZOOM, ZOOM_MAX, ZOOM_MIN } from '../../lib/champCercle/zoomGlobe';
   import {
     lireMonLieu, lireLieuxContacts, poserMonLieu, retirerMonLieu, lireResumeContact,
     lireMesChiffres, lireMonNom, corpsLieu, lireCoordonnee, LIBELLE_LIEU_MAX,
@@ -266,6 +267,8 @@
   let toile = $state<HTMLCanvasElement | undefined>();
   let hote = $state<HTMLDivElement | undefined>();
   let moteur = $state.raw<ChampCercle | null>(null);
+  /** Le zoom du globe (web#2521) : 1 = vue entière. */
+  let zoom = $state(ZOOM_MIN);
   $effect(() => {
     let active = true;
     void lirePaysMonde().then((p) => { if (active) paysMonde = p; });
@@ -369,15 +372,35 @@
     if (typeof ResizeObserver === 'undefined') { sansToile = true; return; }
     // La rangée de lunes d'un anneau (« +N » compte pour deux) : le moteur réserve sa place à droite du nom.
     const largeurLunes = (id: string) => { const e = lunes.get(id); return e ? largeurRangeeLunes(e.lunes.length + (e.reste > 0 ? 2 : 0)) : 0; };
-    const m = new ChampCercle(c, { budget: budgetInitial(), placer, surClicGlobe, largeurLunes });
+    const m = new ChampCercle(c, { budget: budgetInitial(), placer, surClicGlobe, largeurLunes, surZoom: (k) => { zoom = k; } });
     if (!m.disponible) { m.detruire(); sansToile = true; return; }
     const mesurer = () => { const r = h.getBoundingClientRect(); m.redimensionner(r.width, r.height); };
     const ro = new ResizeObserver(mesurer);
     ro.observe(h);
     mesurer();
     moteur = m;
-    return () => { ro.disconnect(); m.detruire(); moteur = null; };
+    return () => { ro.disconnect(); m.detruire(); moteur = null; zoom = ZOOM_MIN; };
   });
+
+  // Ctrl ou Cmd + molette (et le pincement du pavé tactile, envoyé en molette
+  // avec Ctrl) zoome le globe ; la molette seule fait défiler la page, comme
+  // ailleurs. Écouteur non passif : sans `preventDefault`, le navigateur
+  // zoomerait toute la page.
+  $effect(() => {
+    const h = hote; const m = moteur;
+    if (!h || !m) return;
+    const surMolette = (e: WheelEvent) => {
+      if (vue !== 'monde' || !(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      m.molette(e.deltaY, e.deltaMode === 1, e.clientX, e.clientY);
+    };
+    h.addEventListener('wheel', surMolette, { passive: false });
+    return () => h.removeEventListener('wheel', surMolette);
+  });
+
+  function zoomer(sens: 1 | -1) { moteur?.zoomer(sens > 0 ? PAS_ZOOM : 1 / PAS_ZOOM); }
+  function vueEntiere() { moteur?.vueEntiere(); }
+  const zoomTexte = $derived(zoom.toLocaleString(undefined, { maximumFractionDigits: 1 }));
   function budgetInitial() { return budget; }
 
   $effect(() => { const m = moteur; const s = scene; m?.majScene(s); });
@@ -454,7 +477,12 @@
     const pas = 0.12;
     const d: Record<string, [number, number]> = { ArrowLeft: [pas, 0], ArrowRight: [-pas, 0], ArrowUp: [0, -pas], ArrowDown: [0, pas] };
     const v = d[ev.key];
-    if (v) { ev.preventDefault(); moteur.tourner(v[0], v[1]); }
+    if (v) { ev.preventDefault(); moteur.tourner(v[0], v[1]); return; }
+    // Zoom au clavier (web#2521) : + et − (et = sans Maj), 0 pour la vue entière.
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (ev.key === '+' || ev.key === '=' || ev.key === 'Add') { ev.preventDefault(); zoomer(1); }
+    else if (ev.key === '-' || ev.key === '−' || ev.key === '_' || ev.key === 'Subtract') { ev.preventDefault(); zoomer(-1); }
+    else if (ev.key === '0') { ev.preventDefault(); vueEntiere(); }
   }
 
   // ── Textes ──────────────────────────────────────────────────────────────
@@ -748,13 +776,30 @@
           {/if}
         {/each}
       </div>
+      {#if vue === 'monde' && !(epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles && !poseOuverte)}
+        <div class="sc-zoom" role="group" aria-label={$t('v2.circle.scene.zoom.label' as any)}>
+          <button type="button" class="sc-zoom-btn sc-zoom-plus" disabled={zoom >= ZOOM_MAX}
+            aria-label={$t('v2.circle.scene.zoom.in' as any)} title={$t('v2.circle.scene.zoom.in' as any)} onclick={() => zoomer(1)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button type="button" class="sc-zoom-btn sc-zoom-moins" disabled={zoom <= ZOOM_MIN}
+            aria-label={$t('v2.circle.scene.zoom.out' as any)} title={$t('v2.circle.scene.zoom.out' as any)} onclick={() => zoomer(-1)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+          </button>
+          <button type="button" class="sc-zoom-btn sc-zoom-entier" disabled={zoom <= ZOOM_MIN}
+            aria-label={$t('v2.circle.scene.zoom.reset' as any)} title={$t('v2.circle.scene.zoom.reset' as any)} onclick={vueEntiere}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.5 2.4 2.5 13.6 0 16M12 4c-2.5 2.4-2.5 13.6 0 16"/></svg>
+          </button>
+          <span class="sr" aria-live="polite">{tr('v2.circle.scene.zoom.level', { n: zoomTexte })}</span>
+        </div>
+      {/if}
       {#if vue === 'monde' && epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles && !poseOuverte}
         <div class="sc-vide">
           <p>{$t('v2.circle.scene.world.empty' as any)}</p>
           {#if relais === 'ok'}<button type="button" class="go sc-poser" onclick={() => ouvrirPose()}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
         </div>
       {:else if vue === 'monde' && !poseOuverte}
-        <p class="sc-astuce">{#if pointsPublics.length}<span class="sc-legende-publique">{$t('v2.circle.scene.world.publicLegend' as any)}</span> {/if}{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)}</p>
+        <p class="sc-astuce">{#if pointsPublics.length}<span class="sc-legende-publique">{$t('v2.circle.scene.world.publicLegend' as any)}</span> {/if}{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)} <span class="sc-astuce-zoom">{$t('v2.circle.scene.zoom.hint' as any)}</span></p>
       {:else if vue === 'genres' && grappes.length === 0}
         <p class="sc-vide">{$t('v2.circle.scene.genres.empty' as any)}</p>
       {:else if vue === 'lien' && contacts.length === 0}
@@ -964,6 +1009,13 @@
     background:rgba(15,24,28,.82); padding:14px 16px; border-radius:12px}
   .sc-vide p{margin:0}
   .sc-astuce{bottom:10px}
+  /* Zoom du globe (web#2521) : en haut à droite, au-dessus des épingles. */
+  .sc-zoom{position:absolute; top:10px; right:10px; display:flex; flex-direction:column; gap:4px; z-index:2}
+  .sc-zoom-btn{width:34px; height:34px; display:grid; place-items:center; padding:0; border-radius:10px; cursor:pointer;
+    border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt)}
+  .sc-zoom-btn svg{width:18px; height:18px}
+  .sc-zoom-btn:disabled{opacity:.4; cursor:default}
+  .sc-zoom-btn:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .sc-liste-bloc{padding:12px 14px; border-radius:var(--v2-r-card, 16px); border:1px solid var(--v2-line); background:var(--v2-surface2)}
   .sc-liste-bloc h3{font-size:14px; margin:0 0 6px}
   .sc-liste{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}

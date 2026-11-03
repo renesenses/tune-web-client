@@ -133,6 +133,10 @@
     // autres greffons, visible seulement quand le greffon TOURNE. Le libellé
     // est le nom du produit, déjà traduit dans les onze langues.
     { view: 'circle', labelKey: 'v2.circle.title', icon: 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6M3 20a6 6 0 0 1 12 0M16 5.1a3 3 0 0 1 0 5.8M21 20a6 6 0 0 0-4-5.6' },
+    // « MA COLLECTION PHYSIQUE » — décision de Bertrand du 30/10/2026
+    // (tune-server-rust#7195) : juste après Tune Circle, visible seulement
+    // quand le greffon TOURNE (installé et actif). Icône : un disque.
+    { view: 'collectionphysique', labelKey: 'collectionPhysique.titre', icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 12h.01' },
   ] as unknown as Item[];
   /**
    * SÉLECTIONS — ce que l'utilisateur a mis de côté lui-même.
@@ -193,6 +197,9 @@
     // Crossfeed Pro — greffon natif tiers PREMIUM (28/09/2026) : son entrée
     // n'apparaît que si le greffon est installé, activé et chargé.
     { view: 'crossfeedpro', labelKey: 'v2.nav.crossfeedPro', icon: 'M8 6a6 6 0 0 0 0 12M16 6a6 6 0 0 1 0 12M4 12h4M16 12h4M12 4v2M12 18v2' },
+    // web#2580 — Crosstalk, greffon natif tiers PREMIUM pour ENCEINTES : même
+    // règle que Crossfeed Pro, l'entrée n'apparaît que s'il est actif.
+    { view: 'crosstalk', labelKey: 'v2.nav.crosstalk', icon: 'M4 5h5v9H4zM15 5h5v9h-5zM6.5 18l5.5-3 5.5 3' },
     { view: 'converter', labelKey: 'v2.nav.converter', icon: 'M4 8h13l-3-3M20 16H7l3 3' },
     { view: 'declick', labelKey: 'v2.nav.declick', icon: 'M3 12h4l3-8 4 16 3-8h4' },
     // Réveils — porté depuis l'écran actuel (Bertrand, 14/09/2026). Rangé
@@ -218,6 +225,7 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { concertsUtilisable, refreshConcertsPlugin } from '../../lib/stores/concerts';
   import { circleCharge, refreshCirclePlugin } from '../../lib/circle';
+  import { collectionPhysiqueChargee, refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
   import { demarrerSuiviNotifications, arreterSuiviNotifications } from '../../lib/circleNotifications';
   import PastilleNotifsCercle from './PastilleNotifsCercle.svelte';
   import { healthStatus } from '../../lib/stores/health';
@@ -262,6 +270,7 @@
   import * as api from '../../lib/api';
   import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
   import { presenceCrossfeedPro, sonderCrossfeedPro, entreesAvecCrossfeedPro } from '../../lib/stores/crossfeedPro';
+  import { presenceCrosstalk, sonderCrosstalk, entreesAvecCrosstalk } from '../../lib/stores/crosstalk';
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
@@ -305,7 +314,10 @@
   const choixBarre = $derived($preferences.barreLaterale);
   const sansMasquees = (l: Item[]) => l.filter((it) => !estMasquee(it.view, choixBarre));
   const studioDisponibles = $derived(
-    entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
+    entreesAvecCrosstalk(
+      entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
+      $presenceCrosstalk,
+    ),
   );
   const studioVisible = $derived(sansMasquees(studioDisponibles));
   const noyauAffiche = $derived(sansMasquees(CORE));
@@ -313,7 +325,7 @@
   $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
   // Un greffon natif TIERS n'est pas dans `GET /plugins` : on le sonde à part
   // (`stores/crossfeedPro`) ; la zone n'y compte pas, la présence est globale.
-  $effect(() => { void sonderCrossfeedPro(null); });
+  $effect(() => { void sonderCrossfeedPro(null); void sonderCrosstalk(null); });
 
   // Concerts est un GREFFON : son entrée n'apparaît que si le serveur
   // l'embarque (comme dans l'ancienne barre). Une entrée qui mène à une porte
@@ -323,6 +335,8 @@
   // aucune explication à offrir d'un greffon arrêté, ses routes rendraient le
   // 404 nu d'axum. C'est la condition du bouton « Ouvrir » des Extensions.
   $effect(() => { void refreshCirclePlugin(); });
+  // « Ma collection physique » (#7195) : même règle que Tune Circle.
+  $effect(() => { void refreshCollectionPhysiquePlugin(); });
   // Tune Circle rc9 (web#2437) : la pastille des notifications, relue toutes
   // les minutes onglet visible, seulement quand le greffon tourne.
   $effect(() => {
@@ -332,7 +346,8 @@
   });
   const avanceDisponibles = $derived(
     ADVANCED.filter((it) => it.view !== 'concerts' || $concertsUtilisable)
-      .filter((it) => it.view !== 'circle' || $circleCharge),
+      .filter((it) => it.view !== 'circle' || $circleCharge)
+      .filter((it) => it.view !== 'collectionphysique' || $collectionPhysiqueChargee),
   );
   const avanceVisibles = $derived(sansMasquees(avanceDisponibles));
 
@@ -374,7 +389,7 @@
   $effect(() => {
     api.getBackgroundTasks().then((r) => tachesDeFond.set(r?.tasks ?? [])).catch(() => {});
   });
-  const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning')));
+  const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning'), (cle) => $t(cle as any)));
   /**
    * #1577 — Didier (fil 1904) : « un indicateur toujours visible de mise à
    * jour en cours de la base ». L'avancement d'une analyse n'était lu que par

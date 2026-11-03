@@ -25,9 +25,11 @@
   import { activeView } from '../../lib/stores/navigation';
   import { refreshConcertsPlugin } from '../../lib/stores/concerts';
   import { refreshCirclePlugin } from '../../lib/circle';
+  import { refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
   import { estRefusPremium } from '../../lib/premiumRefus';
   import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import { sonderCrossfeedPro } from '../../lib/stores/crossfeedPro';
+  import { sonderCrosstalk } from '../../lib/stores/crosstalk';
   import { NOMS_GREFFONS_SDK } from '../../lib/greffonEntreeAudio';
   import {
     greffonsNatifsTiers, etatDeChargement, ecranDuGreffon, NOMS_GREFFONS_NATIFS,
@@ -60,6 +62,7 @@
     catch { natifs = []; }
     // L'entrée « Crossfeed Pro » de la barre suit, comme Concerts et Circle.
     void sonderCrossfeedPro(null);
+    void sonderCrosstalk(null);
   }
   /**
    * Les greffons natifs du catalogue de mozaiklabs pas encore installés
@@ -199,6 +202,8 @@
       // Idem pour « Tune Circle » : activer ou désactiver le greffon ici fait
       // apparaître ou disparaître son entrée sur-le-champ.
       void refreshCirclePlugin();
+      // Et pour « Ma collection physique » (tune-server-rust#7195).
+      void refreshCollectionPhysiquePlugin();
     }
     catch { error = $t('v2.plug.unavailable' as any); }
     loading = false;
@@ -374,6 +379,9 @@
                 {/if}
                 {#if p.name === 'circle' && isActive(p)}
                   <button class="lnk ouvrir-circle" onclick={() => activeView.set('circle')}>{$t('common.open' as any)}</button>
+                {/if}
+                {#if p.name === 'collection-physique' && isActive(p)}
+                  <button class="lnk ouvrir-collection-physique" onclick={() => activeView.set('collectionphysique')}>{$t('common.open' as any)}</button>
                 {/if}
                 <label class="sw" title={contourne ? $t('v2.plug.pureBypassed' as any) : isActive(p) ? $t('settings.disable' as any) : $t('plugins.enable' as any)}>
                   <input type="checkbox" checked={isActive(p) && !contourne} disabled={contourne || busy === key(p)} onchange={() => toggle(p)} />

@@ -32,6 +32,7 @@ import { ICONES } from '../../lib/menuPiste';
     indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
   } from '../../lib/crossfeed';
   import { crossfeedProTraiteLaZone } from '../../lib/stores/crossfeedPro';
+  import { crosstalkTraiteLaZone } from '../../lib/stores/crosstalk';
   import { audiophileEnabled } from '../../lib/stores/audiophile';
   import { etatBoutonCrossfeed } from '../../lib/boutonCrossfeed';
   import VoilePur from '../v2/VoilePur.svelte';
@@ -261,11 +262,20 @@ import { ICONES } from '../../lib/menuPiste';
     cfProTraite = false;
     void crossfeedProTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfProTraite = v; });
   });
+  // web#2580 — Crosstalk (enceintes) traite la zone : tout crossfeed (casque)
+  // y est ÉCARTÉ (tune-server-rust#7616). Déduit du réglage de zone de
+  // `crosstalk` tant que la route ne publie pas la voie en service (#7627).
+  let cfCrosstalk = $state(false);
+  $effect(() => {
+    const zid = zone?.id;
+    cfCrosstalk = false;
+    void crosstalkTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfCrosstalk = v; });
+  });
   // web#2073 (fil 2214) — en PURE, rien ne traite le signal : le bouton ne
   // s'allume plus, ni pour le greffon ni pour le crossfeed intégré, et le
   // panneau porte le voile des écrans dédiés. L'état PURE est celui du bouton
   // PURE de la barre de lecture (`audiophileEnabled`), pas une relecture.
-  const cfBouton = $derived(etatBoutonCrossfeed({ cfEnabled, cfProTraite, pur: $audiophileEnabled }));
+  const cfBouton = $derived(etatBoutonCrossfeed({ cfEnabled, cfProTraite, pur: $audiophileEnabled, crosstalk: cfCrosstalk }));
   let cfTimer: ReturnType<typeof setTimeout> | null = null;
 
   async function chargerCrossfeed() {
@@ -273,6 +283,7 @@ import { ICONES } from '../../lib/menuPiste';
     try {
       const zid = zone.id;
       void crossfeedProTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfProTraite = v; });
+      void crosstalkTraiteLaZone(zid).then((v) => { if (zone?.id === zid) cfCrosstalk = v; });
       const dsp = await api.getDsp(zone.id);
       const cf = dsp?.crossfeed;
       cfStatut = dsp?.crossfeed_status ?? null;
@@ -2181,21 +2192,24 @@ import { ICONES } from '../../lib/menuPiste';
           {#if showDspMenu}
             <div class="np-crossfeed">
               {#if cfBouton.voile}<VoilePur cle={cfBouton.voile} />{/if}
-              {#if cfProTraite}
+              {#if cfProTraite && !cfCrosstalk}
                 <p class="cf-note cf-note-alerte" data-crossfeed-remplace>{$t('dsp.crossfeedReplacedByPro' as any)}</p>
               {/if}
-              <!-- Crossfeed Pro traite la zone : tout le crossfeed intégré est
-                   verrouillé d'un bloc, le serveur l'a éteint. -->
-              <fieldset class="cf-verrou" disabled={cfProTraite} aria-disabled={cfProTraite}>
+              {#if cfCrosstalk}
+                <p class="cf-note cf-note-alerte" data-crossfeed-ecarte>{$t('dsp.crossfeedSetAsideByCrosstalk' as any)}</p>
+              {/if}
+              <!-- Crossfeed Pro ou Crosstalk traite la zone : tout le crossfeed
+                   intégré est verrouillé d'un bloc, le serveur l'a éteint. -->
+              <fieldset class="cf-verrou" disabled={cfProTraite || cfCrosstalk} aria-disabled={cfProTraite || cfCrosstalk}>
               <div class="cf-ligne">
                 <label class="cf-bascule">
                   <input
                     type="checkbox"
-                    checked={cfEnabled && !cfProTraite}
+                    checked={cfEnabled && !cfProTraite && !cfCrosstalk}
                     onchange={(e) => { cfEnabled = (e.currentTarget as HTMLInputElement).checked; void enregistrerCrossfeed(); }}
                     disabled={cfIndispo.indisponible}
                   />
-                  <span>{cfEnabled && !cfProTraite ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}</span>
+                  <span>{cfEnabled && !cfProTraite && !cfCrosstalk ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}</span>
                 </label>
                 <div class="cf-presets">
                   {#each CF_PRESETS as p (p.key)}

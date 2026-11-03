@@ -115,6 +115,8 @@
   import { LEVEL_LABEL_KEYS } from '../../lib/uiLevel';
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
+  import { retablirLargeurs } from '../../lib/largeursColonnes';
+  import { retablirOrdre } from '../../lib/ordreColonnes';
   import { notifications } from '../../lib/stores/notifications';
   import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
@@ -182,6 +184,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
   import SauvegardeCloudV2 from './SauvegardeCloudV2.svelte';
   import ClesApiV2 from './ClesApiV2.svelte';
+  import SortieAes67V2 from './SortieAes67V2.svelte';
+  import SortieAes67ExperimentaleV2 from './SortieAes67ExperimentaleV2.svelte';
+  import { presenceSortieAes67 } from '../../lib/stores/sortieAes67';
   // tune-server-rust#4805 lot 2 — les passes de lot BPM et Discogs.
   import PassesMetarustV2 from './PassesMetarustV2.svelte';
   import IdentificationNuitV2 from './IdentificationNuitV2.svelte';
@@ -417,8 +422,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   });
 
   const tab = $derived(tabs.find((x) => x.id === tabId) ?? tabs[0]);
-  const sections = $derived((tab?.sections ?? []).filter((s) => atLeast(level, s.min)));
-  const hiddenCount = $derived((tab?.sections.length ?? 0) - sections.length);
+  const sections = $derived((tab?.sections ?? []).filter((s) => atLeast(level, s.min) && (s.id !== 'aes67' || $presenceSortieAes67 !== 'absente')));
+  // Le greffon absent n'est pas une section « masquée par le niveau » : on ne le compte pas.
+  const hiddenCount = $derived((tab?.sections ?? []).filter((s) => !atLeast(level, s.min)).length);
 
   // ── Sections REELLEMENT portees ────────────────────────────────────────
   // Chacune s'adosse a la meme API/au meme store que l'ecran actuel : le
@@ -1835,7 +1841,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       svcErr = {
         ...svcErr,
         [name]:
-          nature === 'identifiants'
+          nature === 'application'
+            ? get(t)('settings.errAppRefused' as any).replace('{service}', nomAffiche(name))
+          : nature === 'identifiants'
             ? get(t)('settings.errCredentialsNotRecognised' as any).replace('{service}', nomAffiche(name))
             : nature === 'brut'
               ? get(t)('settings.errConnectFailed')
@@ -4494,6 +4502,32 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/each}
               </div>
 
+              <!-- web#2584 — « Rétablir les largeurs » : le menu des colonnes,
+                   c'est cette matrice. Les poignées des en-têtes règlent une
+                   colonne d'un écran ; ce bouton rend à TOUS les écrans
+                   (album, playlist, Titres) leur largeur automatique. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.colWidthsReset' as any)}</span>
+                  <span class="hint">{$t('settings.colWidthsResetHint' as any)}</span>
+                </div>
+                <button class="lnk" type="button" data-retablir-largeurs onclick={() => retablirLargeurs()}>
+                  {$t('settings.colWidthsResetAction' as any)}
+                </button>
+              </div>
+
+              <!-- web#2599 — « Rétablir l'ordre par défaut » : même place, même
+                   portée (tous les écrans) que les largeurs. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.colOrderReset' as any)}</span>
+                  <span class="hint">{$t('settings.colOrderResetHint' as any)}</span>
+                </div>
+                <button class="lnk" type="button" data-retablir-ordre onclick={() => retablirOrdre()}>
+                  {$t('settings.colOrderResetAction' as any)}
+                </button>
+              </div>
+
               <!-- Premier pensionnaire de l'onglet Affichage : un GOÛT, donc
                    un interrupteur, et un défaut qui ne bouge pas. « Les 4
                    pochettes accolées, ce n'est pas ma préférence. J'aimais
@@ -5541,6 +5575,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'apiKeys'}
               <ClesApiV2 />
+
+            {:else if s.id === 'aes67Experimental'}
+              <SortieAes67ExperimentaleV2 />
+
+            {:else if s.id === 'aes67'}
+              <SortieAes67V2 />
 
             {:else if s.id === 'assistantIa'}
               <AssistantIaReglagesV2 />

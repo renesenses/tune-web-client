@@ -94,6 +94,9 @@ export interface FiltresAnnuaireRadios {
   genre?: string | null;
   offset?: number;
   limit?: number;
+  /** Critères de tune-server-rust#7466 (`codec`, `bitrate_min`, `lossless`,
+   *  `hires`, `metadata_plus`, `favorites_only`) : voir `lib/radioFiltres`. */
+  criteres?: Record<string, string>;
 }
 
 /** `GET /radios/directory` — l'annuaire filtré, depuis le cache du serveur. */
@@ -104,8 +107,33 @@ export function getAnnuaireRadios(f: FiltresAnnuaireRadios = {}) {
   if (f.genre) q.set('genre', f.genre);
   if (f.offset) q.set('offset', String(f.offset));
   if (f.limit) q.set('limit', String(f.limit));
+  for (const [k, v] of Object.entries(f.criteres ?? {})) q.set(k, v);
   const qs = q.toString();
   return fetchJSON<AnnuaireRadios>(`${BASE}/radios/directory${qs ? '?' + qs : ''}`);
+}
+
+/** Ce que rend `GET /radios/search` (le seul volet utile ici : `items`). */
+export interface RechercheRadiosParCriteres {
+  statut?: string;
+  count: number;
+  items: RadioStation[];
+}
+
+/**
+ * `GET /radios/search` avec les critères de tune-server-rust#7466 : les
+ * stations de « Mes radios » qui y répondent. Sans texte, le serveur parcourt
+ * tout « Mes radios ».
+ */
+export function rechercherRadiosParCriteres(
+  texte: string,
+  criteres: Record<string, string>,
+  country?: string | null,
+) {
+  const q = new URLSearchParams();
+  q.set('q', texte.trim());
+  if (country) q.set('country', country);
+  for (const [k, v] of Object.entries(criteres)) q.set(k, v);
+  return fetchJSON<RechercheRadiosParCriteres>(`${BASE}/radios/search?${q.toString()}`);
 }
 
 /** `POST /radios/directory/{id}/add` — dans « Mes radios », sans doublon. */

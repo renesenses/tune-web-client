@@ -88,8 +88,16 @@
   import IndicateurLecture from './IndicateurLecture.svelte';
   import {
     cleEnTeteColonne, cleInfobulleColonne, colonnesRetenues, gabaritGrille, largeurMinimale,
-    valeurColonne, type CleColonne,
+    valeurColonne, type CleColonne, type Colonne,
   } from '../../lib/colonnesPistes';
+  import {
+    appliquerLargeurs, fixerLargeur, largeurMin, largeurNominale, largeursColonnes, largeursDe,
+    redimensionnable, retablirLargeur, retenirLargeurs, LARGEUR_MAX_PX, PAS_CLAVIER_PX,
+    type EcranColonnes,
+  } from '../../lib/largeursColonnes';
+  import {
+    appliquerOrdre, deplacerAupres, deplacerDUnCran, fixerOrdre, ordreDe, ordresColonnes, retablirOrdre,
+  } from '../../lib/ordreColonnes';
   import type { Track } from '../../lib/types';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import PisteActions from './PisteActions.svelte';
@@ -177,6 +185,8 @@
      * fait déjà `IndicateurLecture`, juste à côté.
      */
     pochetteEnTableau?: boolean;
+    /** web#2601 — côté de la vignette (px) quand `pochetteEnTableau` ; 36 par défaut. */
+    tailleVignette?: number;
     /**
      * 🔴 LA PROVENANCE DE CHAQUE LIGNE, au mode tableau — #1113.
      *
@@ -389,11 +399,25 @@
     tri?: { cle: CleColonne; sens: 'asc' | 'desc' } | null;
     triables?: ReadonlySet<CleColonne> | null;
     onTrier?: ((cle: CleColonne) => void) | null;
+    /**
+     * 🔴 LES LARGEURS RÉGLÉES À LA MAIN — web#2584 — OPT-IN.
+     *
+     * Un testeur Windows (visio du 01/11/2026) veut tirer le bord d'une
+     * colonne pour l'élargir. `ecranColonnes` non nul pose une POIGNÉE au bord
+     * droit de chaque en-tête (sauf le Titre, qui prend le reste) : glisser à
+     * la souris ou au doigt, flèches gauche et droite au clavier, double-clic
+     * pour revenir à la largeur automatique. La largeur est retenue PAR ÉCRAN
+     * et par colonne (`lib/largeursColonnes`).
+     *
+     * Absente, RIEN ne change : ni poignée, ni largeur retenue.
+     */
+    ecranColonnes?: EcranColonnes | null;
   }
   let {
     contexte = {},
     pistes, onLire, onLireDepuis = null, numerotation = 'rang',
     pochetteEnTableau = false,
+    tailleVignette = 36,
     sourceEnTableau = false,
     ouvertureAlbum = null, apres, coeurDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
@@ -405,6 +429,7 @@
     selection = null, onCocher = null,
     virtuel = false, rangDepart = 0, espaceAvant = 0, espaceApres = 0,
     tri = null, triables = null, onTrier = null,
+    ecranColonnes = null,
   }: Props = $props();
   const triable = (cle: CleColonne) => onTrier != null && !!triables?.has(cle);
   const selectionnable = $derived(selection != null);
@@ -518,11 +543,193 @@
   const largeurQualite = $derived(
     colonnesBrutes.some((c) => c.cle === 'quality') ? largeurColonneQualite(pistes) : 0,
   );
-  const colonnes = $derived(
+  const colonnesAuto = $derived(
     largeurQualite
       ? colonnesBrutes.map((c) => (c.cle === 'quality' ? { ...c, largeur: `${largeurQualite}px` } : c))
       : colonnesBrutes,
   );
+  /**
+   * web#2584 — les largeurs réglées à la main, par-dessus la largeur
+   * automatique. Sans écran, ou sans réglage, `colonnes` est `colonnesAuto` à
+   * l'identique : le gabarit d'avant.
+   */
+  const largeursEcran = $derived(ecranColonnes ? largeursDe($largeursColonnes, ecranColonnes) : null);
+  const colonnesLarges = $derived(
+    largeursEcran && Object.keys(largeursEcran).length ? appliquerLargeurs(colonnesAuto, largeursEcran) : colonnesAuto,
+  );
+  /**
+   * web#2599 — l'ORDRE retenu pour cet écran, par-dessus l'ordre du catalogue.
+   * Sans écran ou sans ordre retenu, `colonnes` est `colonnesLarges` à
+   * l'identique. Une colonne que l'ordre ne connaît pas (ajoutée plus tard)
+   * est quand même rendue : voir `appliquerOrdre`.
+   */
+  const ordreEcran = $derived(ecranColonnes ? ordreDe($ordresColonnes, ecranColonnes) : null);
+  const colonnes = $derived(ordreEcran?.length ? appliquerOrdre(colonnesLarges, ordreEcran) : colonnesLarges);
+
+  /** La colonne qu'on glisse, et la colonne survolée avec le côté du dépôt. */
+  let colGlissee = $state<CleColonne | null>(null);
+  let colSurvol = $state<{ cle: CleColonne; apres: boolean } | null>(null);
+  /** Le message lu par les lecteurs d'écran après un déplacement. */
+  let annonceColonne = $state('');
+  const nomColonne = (c: Colonne) => $t(c.cleI18n as any);
+
+  function retenirOrdre(cles: CleColonne[]): void {
+    if (ecranColonnes) fixerOrdre(ecranColonnes, cles);
+  }
+  function annoncer(cle: CleColonne, cles: readonly CleColonne[]): void {
+    const c = colonnes.find((x) => x.cle === cle);
+    if (!c) return;
+    annonceColonne = $t('v2.liste.colonneDeplacee' as any)
+      .replace('{col}', nomColonne(c)).replace('{n}', String(cles.indexOf(cle) + 1)).replace('{m}', String(cles.length));
+  }
+  function glisserEnTete(e: DragEvent, c: Colonne): void {
+    if (!ecranColonnes) return;
+    colGlissee = c.cle;
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('application/x-tune-colonne', c.cle); } catch { /* navigateur sans données */ }
+    }
+  }
+  function survolerEnTete(e: DragEvent, c: Colonne): void {
+    if (!colGlissee) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    colSurvol = { cle: c.cle, apres: e.clientX > r.left + r.width / 2 };
+  }
+  function deposerEnTete(e: DragEvent, c: Colonne): void {
+    if (!colGlissee || !ecranColonnes) return;
+    e.preventDefault();
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const apres = e.clientX > r.left + r.width / 2;
+    const cles = colonnes.map((x) => x.cle);
+    const suivant = deplacerAupres(cles, colGlissee, c.cle, apres);
+    if (suivant.join() !== cles.join()) { retenirOrdre(suivant); annoncer(colGlissee, suivant); }
+    finirGlisserEnTete();
+  }
+  function finirGlisserEnTete(): void { colGlissee = null; colSurvol = null; }
+  async function deplacerColonneAuClavier(e: KeyboardEvent, c: Colonne): Promise<void> {
+    if (!ecranColonnes || !e.altKey || e.ctrlKey || e.metaKey) return;
+    const cles = colonnes.map((x) => x.cle);
+    if (e.key === 'Home') {
+      e.preventDefault();
+      retablirOrdre(ecranColonnes);
+      annonceColonne = $t('v2.liste.colonneDeplacee' as any).replace('{col}', nomColonne(c))
+        .replace('{n}', String(colonnesLarges.findIndex((x) => x.cle === c.cle) + 1)).replace('{m}', String(cles.length));
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      e.stopPropagation();
+      const suivant = deplacerDUnCran(cles, c.cle, e.key === 'ArrowLeft' ? -1 : 1);
+      if (suivant.join() === cles.join()) return;
+      retenirOrdre(suivant);
+      annoncer(c.cle, suivant);
+    } else return;
+    // Le nœud est déplacé par le rendu : on rend le focus à l'en-tête.
+    await tick();
+    document.querySelector<HTMLElement>(`[data-th="${c.cle}"]`)?.focus();
+  }
+
+  /**
+   * Une poignée sur cette colonne ? Jamais sur le Titre (il prend le reste) ;
+   * jamais sur la DERNIÈRE colonne quand rien ne la suit (lecture seule sans
+   * suffixe) : la poignée vit dans la gouttière de droite, et au bord du
+   * tableau elle déborderait — un ascenseur horizontal pour rien.
+   */
+  const avecPoignee = (c: Colonne, ci: number) =>
+    ecranColonnes != null && redimensionnable(c)
+      && (ci < colonnes.length - 1 || !lectureSeule || apres != null);
+
+  /** Le glisser en cours : la colonne, le point et la largeur de départ. */
+  let redim = $state<{ cle: CleColonne; x0: number; w0: number; bouge: boolean } | null>(null);
+  /** L'heure de fin du dernier glisser : le clic qui le suit ne trie pas. */
+  let finRedim = 0;
+  /** Les largeurs RENDUES, relevées au focus ou à la saisie (pour `aria-valuenow`). */
+  let mesurees = $state<Partial<Record<CleColonne, number>>>({});
+
+  /** La largeur rendue de l'en-tête qui porte la poignée, ou à défaut la nominale. */
+  function largeurRendue(poigneeEl: HTMLElement, c: Colonne): number {
+    const w = poigneeEl.parentElement?.getBoundingClientRect().width ?? 0;
+    if (w > 0) return w;
+    return largeursEcran?.[c.cle] ?? largeurNominale(c);
+  }
+  function mesurer(e: Event, c: Colonne): void {
+    const w = largeurRendue(e.currentTarget as HTMLElement, c);
+    mesurees = { ...mesurees, [c.cle]: Math.round(w) };
+  }
+  function debutRedim(e: PointerEvent, c: Colonne): void {
+    if (!ecranColonnes || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    // Ni sélection de texte, ni glisser de ligne, ni clic de tri.
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.currentTarget as HTMLElement;
+    try { el.setPointerCapture?.(e.pointerId); } catch { /* pointeur déjà relâché */ }
+    redim = { cle: c.cle, x0: e.clientX, w0: largeurRendue(el, c), bouge: false };
+  }
+  function suivreRedim(e: PointerEvent): void {
+    if (!redim || !ecranColonnes) return;
+    const dx = e.clientX - redim.x0;
+    // Un tremblement de 2 px n'est pas un glisser : le double-clic doit rester
+    // un double-clic.
+    if (!redim.bouge && Math.abs(dx) < 3) return;
+    redim.bouge = true;
+    fixerLargeur(ecranColonnes, redim.cle, redim.w0 + dx, false);
+  }
+  function finirRedim(e: PointerEvent): void {
+    if (!redim) return;
+    if (redim.bouge && ecranColonnes) {
+      retenirLargeurs(ecranColonnes);
+      finRedim = Date.now();
+    }
+    redim = null;
+    const el = e.currentTarget as HTMLElement;
+    try { el.releasePointerCapture?.(e.pointerId); } catch { /* déjà relâché */ }
+  }
+  function redimAuClavier(e: KeyboardEvent, c: Colonne): void {
+    if (!ecranColonnes) return;
+    const sens = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (!sens) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const depart = largeursEcran?.[c.cle] ?? largeurRendue(e.currentTarget as HTMLElement, c);
+    const px = fixerLargeur(ecranColonnes, c.cle, depart + sens * PAS_CLAVIER_PX);
+    mesurees = { ...mesurees, [c.cle]: px };
+  }
+  function largeurAuto(e: MouseEvent, c: Colonne): void {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!ecranColonnes) return;
+    retablirLargeur(ecranColonnes, c.cle);
+    const { [c.cle]: _oubliee, ...reste } = mesurees;
+    mesurees = reste;
+  }
+  /**
+   * web#2599 — ce qui rend un en-tête DÉPLAÇABLE : glisser-déposer à la souris
+   * et Alt + flèches au clavier (l'en-tête prend le focus). Sans écran, rien.
+   */
+  function attrsEnTete(c: Colonne): Record<string, unknown> {
+    if (!ecranColonnes) return {};
+    return {
+      draggable: 'true', tabindex: 0, 'data-th': c.cle,
+      'data-glisse': colGlissee === c.cle ? '' : undefined,
+      'data-depot': colSurvol?.cle === c.cle && colGlissee !== c.cle ? (colSurvol.apres ? 'apres' : 'avant') : undefined,
+      'aria-keyshortcuts': 'Alt+ArrowLeft Alt+ArrowRight Alt+Home',
+      'aria-description': $t('v2.liste.deplacerColonne' as any).replace('{col}', nomColonne(c)),
+      ondragstart: (e: DragEvent) => glisserEnTete(e, c),
+      ondragover: (e: DragEvent) => survolerEnTete(e, c),
+      ondragleave: () => { if (colSurvol?.cle === c.cle) colSurvol = null; },
+      ondrop: (e: DragEvent) => deposerEnTete(e, c),
+      ondragend: finirGlisserEnTete,
+      onkeydown: (e: KeyboardEvent) => { void deplacerColonneAuClavier(e, c); },
+    };
+  }
+  /**
+   * Le tri au clic sur l'en-tête — sauf juste après un glisser de poignée :
+   * relâcher le bouton au-dessus du libellé ne doit pas retrier la liste.
+   */
+  function trierDepuisEnTete(cle: CleColonne): void {
+    if (redim || Date.now() - finRedim < 400) return;
+    onTrier?.(cle);
+  }
   /**
    * 🔴 AUCUN `auto` dans ce gabarit. C'est la règle, et elle a une raison.
    *
@@ -583,10 +790,15 @@
    * planchers posés dans le catalogue ne valent que si la grille a le droit de
    * DÉBORDER : sinon elle les ignore et comprime quand même.
    */
-  const minGrille = $derived(
-    largeurMinimale(colonnes, (lectureSeule ? 0 : largeurDesActionsPx) + (apres ? largeurApresPx : 0)
-      + (reordonnable ? LARGEUR_POIGNEE_PX : 0) + (selectionnable ? LARGEUR_CASE_PX : 0)),
-  );
+  const largeursHorsDonnees = $derived((lectureSeule ? 0 : largeurDesActionsPx) + (apres ? largeurApresPx : 0)
+      + (reordonnable ? LARGEUR_POIGNEE_PX : 0) + (selectionnable ? LARGEUR_CASE_PX : 0));
+  const minGrille = $derived(largeurMinimale(colonnes, largeursHorsDonnees));
+  /**
+   * web#2584 — le plancher SANS les largeurs réglées. En pile (mobile), les
+   * colonnes disparaissent : une largeur réglée sur grand écran ne doit pas y
+   * élargir les lignes. L'affichage mobile garde donc le plancher d'avant.
+   */
+  const minGrilleAuto = $derived(largeurMinimale(colonnesAuto, largeursHorsDonnees));
 
   /**
    * L'état de lecture d'une ligne du tableau (#1845).
@@ -665,6 +877,24 @@
     aria-label={$t('v2.selection.toggleTrack' as any).replace('{title}', p.title ?? '')}
     onclick={(e) => { e.stopPropagation(); onCocher?.(p, i, e.shiftKey); }} />
 {/snippet}
+{#snippet poigneeColonne(c: Colonne)}
+  <!-- web#2584 — la poignée de LARGEUR, au bord droit de l'en-tête, dans la
+       gouttière. `role="separator"` focalisable : le motif ARIA d'un séparateur
+       qu'on déplace, avec sa valeur courante. -->
+  {@const nom = $t(c.cleI18n as any)}
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <span class="poignee-col" class:active={redim?.cle === c.cle} data-redim={c.cle}
+    role="separator" tabindex="0" aria-orientation="vertical"
+    aria-valuenow={Math.round(largeursEcran?.[c.cle] ?? mesurees[c.cle] ?? largeurNominale(c))}
+    aria-valuemin={largeurMin(c.cle)} aria-valuemax={LARGEUR_MAX_PX}
+    aria-label={$t('v2.liste.largeurColonne' as any).replace('{col}', nom)}
+    title={$t('v2.liste.largeurColonne' as any).replace('{col}', nom)}
+    onpointerdown={(e) => debutRedim(e, c)} onpointermove={suivreRedim}
+    onpointerup={finirRedim} onpointercancel={finirRedim}
+    onclick={(e) => e.stopPropagation()} ondblclick={(e) => largeurAuto(e, c)}
+    onfocus={(e) => mesurer(e, c)} onkeydown={(e) => redimAuClavier(e, c)}></span>
+{/snippet}
 {#snippet intercalaire(hauteur: number, ou: 'avant' | 'apres')}
   <!-- #1716 — la hauteur des lignes que la fenêtre ne rend pas. -->
   {#if virtuel}
@@ -674,23 +904,29 @@
   <!-- 🔴 #853 — `--tmin` est la largeur en deçà de laquelle le tableau DÉFILE
        au lieu de comprimer. Sans elle, les planchers des colonnes de texte
        seraient simplement ignorés par la grille, qui redescendrait sous eux. -->
-  <div class="tbl" class:reordonnable class:selectionnable style="--tcols:{gabarit}; --tmin:{minGrille}px" role="table">
+  {#if ecranColonnes}<span class="sr-seul" role="status" aria-live="polite" data-annonce-colonne>{annonceColonne}</span>{/if}
+  <div class="tbl" class:reordonnable class:selectionnable style="--tcols:{gabarit}; --tmin:{minGrille}px; --tmin-pile:{minGrilleAuto}px" role="table">
     <div class="thead" role="row">
       <!-- La colonne de la poignée : dans l'en-tête aussi, sinon tout dérive
            d'une colonne vers la droite. -->
       {#if reordonnable}<span class="th" role="columnheader"></span>{/if}
       {#if selectionnable}<span class="th" role="columnheader"></span>{/if}
-      {#each colonnes as c (c.cle)}
+      {#each colonnes as c, ci (c.cle)}
+        {@const poigneeIci = avecPoignee(c, ci)}
         {#if triable(c.cle)}
           {@const sens = tri?.cle === c.cle ? tri.sens : null}
-          <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-            role="columnheader" use:bulleTexte aria-sort={sens === 'asc' ? 'ascending' : sens === 'desc' ? 'descending' : 'none'}>
+          <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'} class:redim={poigneeIci}
+            {...attrsEnTete(c)} role="columnheader" use:bulleTexte aria-sort={sens === 'asc' ? 'ascending' : sens === 'desc' ? 'descending' : 'none'}>
             <button class="trier" class:actif={sens != null} type="button" data-tri={c.cle} use:bulleTexte
-              onclick={() => onTrier?.(c.cle)}>{$t(cleEnTeteColonne(c, pistes) as any)}{#if sens}<span class="fleche" aria-hidden="true">{sens === 'asc' ? '▲' : '▼'}</span>{/if}</button>
+              onclick={() => trierDepuisEnTete(c.cle)}>{$t(cleEnTeteColonne(c, pistes) as any)}{#if sens}<span class="fleche" aria-hidden="true">{sens === 'asc' ? '▲' : '▼'}</span>{/if}</button>
+            {#if poigneeIci}{@render poigneeColonne(c)}{/if}
           </span>
+        {:else if poigneeIci}
+          <span class="th redim" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
+            {...attrsEnTete(c)} role="columnheader" use:bulleTexte><span class="th-txt" use:bulleTexte>{$t(cleEnTeteColonne(c, pistes) as any)}</span>{@render poigneeColonne(c)}</span>
         {:else}
           <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-            role="columnheader" use:bulleTexte>{$t(cleEnTeteColonne(c, pistes) as any)}</span>
+            {...attrsEnTete(c)} role="columnheader" use:bulleTexte>{$t(cleEnTeteColonne(c, pistes) as any)}</span>
         {/if}
       {/each}
       <!-- La colonne d'actions n'a pas d'en-tête : son contenu se lit seul, et
@@ -746,8 +982,8 @@
                    la vignette, elle ne s'y ajoute pas : une source par ligne
                    suffit, et l'incrustation de 36 px tronque son texte. -->
               {#if pochetteEnTableau}
-                <span class="tvig">
-                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={36}
+                <span class="tvig" style={tailleVignette !== 36 ? `--tvig:${tailleVignette}px` : undefined}>
+                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={tailleVignette}
                     alt={p.title ?? ''} source={sourceEnTableau ? null : p.source} />
                 </span>
               {/if}
@@ -833,6 +1069,29 @@
     border-bottom:1px solid var(--v2-line2); padding-bottom:9px; margin-bottom:4px}
   .th{font:600 11px var(--v2-sans); letter-spacing:.04em; color:var(--v2-txt3);
     text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  /* web#2584 — un en-tête à poignée laisse déborder la poignée dans la
+     gouttière (14 px) ; son libellé s'élide dans `.th-txt` ou `.trier`. */
+  .th.redim{position:relative; overflow:visible}
+  .th-txt{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  /* La poignée : 12 px de prise DANS la gouttière, jamais au-delà — elle ne
+     doit pas élargir le tableau. Discrète au repos, un trait au survol. */
+  /* web#2599 — l'en-tête qu'on glisse s'estompe ; le trait dit où il tombera. */
+  .th[draggable="true"]{cursor:grab}
+  .th[data-glisse]{opacity:.45}
+  .th[data-depot="avant"]{box-shadow:inset 2px 0 0 var(--v2-acc1)}
+  .th[data-depot="apres"]{box-shadow:inset -2px 0 0 var(--v2-acc1)}
+  .th:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px; border-radius:4px}
+  .sr-seul{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+  .poignee-col{position:absolute; top:-4px; bottom:-4px; right:-13px; width:12px;
+    cursor:col-resize; touch-action:none; z-index:1}
+  .poignee-col::after{content:''; position:absolute; left:5px; top:2px; bottom:2px; width:2px;
+    border-radius:1px; background:var(--v2-line2); opacity:0; transition:opacity .12s}
+  .thead:hover .poignee-col::after{opacity:1}
+  .poignee-col:hover::after, .poignee-col.active::after, .poignee-col:focus-visible::after{
+    opacity:1; background:var(--v2-acc1)}
+  .poignee-col:focus-visible{outline:none}
+  /* Au doigt, pas de survol : le trait reste visible pour qu'on le trouve. */
+  @media (hover: none){ .poignee-col::after{opacity:.7} }
 
   .trow{border-radius:9px; color:var(--v2-txt2); min-height:46px}
   .trow:hover{background:var(--v2-hover); color:var(--v2-txt)}
@@ -876,7 +1135,7 @@
      pas décider de la hauteur de la ligne, sinon le tableau change de densité
      sur le seul écran qui l'active. `flex:0 0 auto` : elle ne se comprime
      jamais — c'est le TEXTE qui s'élide, comme l'indicateur juste à côté. */
-  .tvig{flex:0 0 auto; width:36px; height:36px; border-radius:4px;
+  .tvig{flex:0 0 auto; width:var(--tvig, 36px); height:var(--tvig, 36px); border-radius:4px;
     overflow:hidden; display:block; line-height:0}
   /* C'est le TEXTE qui s'élide, jamais l'indicateur : un repère tronqué ne
      repère plus rien. */
@@ -912,6 +1171,9 @@
      lignes redeviennent lisibles en pile plutôt que d'être rognées. */
   @media (max-width: 720px){
     .thead{display:none}
+    /* web#2584 — pas de poignée de largeur en pile : il n'y a plus de colonne. */
+    .poignee-col{display:none}
+    .thead, .trow{min-width:var(--tmin-pile, 0)}
     .trow{grid-template-columns:minmax(0,1fr) auto}
     /* La poignée est une cellule `.act` : elle reste, et prend sa colonne. */
     .tbl.reordonnable .trow, .tbl.selectionnable .trow{grid-template-columns:auto minmax(0,1fr) auto}
