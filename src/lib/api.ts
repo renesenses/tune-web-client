@@ -6868,6 +6868,26 @@ export function getPlaylistsDuProfil(profileId: number, limit = 1) {
 }
 
 /**
+ * web#2635 — TOUTES les playlists d'un profil (`GET /playlists/all`), pour
+ * retrouver celles que le scan a importées sous le profil 1, quel que soit le
+ * profil du navigateur. `X-Profile-Id` posé ici, comme `getPlaylistsDuProfil`.
+ */
+export function getToutesPlaylistsDuProfil(profileId: number) {
+  return fetchJSON<Playlist[]>(
+    `${BASE}/playlists/all`,
+    { headers: { 'X-Profile-Id': String(profileId) } },
+  );
+}
+
+/** web#2635 — supprime une playlist d'un profil donné (`DELETE /playlists/{id}`). */
+export function deletePlaylistDuProfil(id: number, profileId: number) {
+  return fetchVoid(`${BASE}/playlists/${id}`, {
+    method: 'DELETE',
+    headers: { 'X-Profile-Id': String(profileId) },
+  });
+}
+
+/**
  * tune-server-rust#5916 — le dernier profil choisi sur CET appareil, gardé par
  * le serveur (clé : l'adresse de l'appareil), ou à défaut le dernier choisi
  * tous appareils confondus (`source: 'tous_appareils'`).

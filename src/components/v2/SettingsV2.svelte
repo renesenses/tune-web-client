@@ -73,6 +73,14 @@
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
+  import {
+    CLE_IMPORT_PLAYLISTS_SCAN,
+    PROFIL_DES_PLAYLISTS_DU_SCAN,
+    importPlaylistsScanDepuisConfig,
+    playlistsImporteesAuScan,
+    retirerPlaylists,
+  } from '../../lib/playlistsDuScan';
+  import { playlists as magasinPlaylists } from '../../lib/stores/playlists';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
@@ -2241,6 +2249,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // actif, comme le serveur (le comportement d'avant).
   let coffretsAuto = $state(true);
   let coffretsAutoErr = $state<string | null>(null);
+  // web#2635 — import des .m3u/.pls au scan, et retrait des playlists importées.
+  let importPlaylistsScan = $state(true);
+  let importPlaylistsScanErr = $state<string | null>(null);
+  let retraitScanEnCours = $state(false);
+  let retraitScanMsg = $state<{ ok: boolean; texte: string } | null>(null);
   /** #4051 — « Paroles en ligne (LRCLIB) ». Absente de `/system/config` =
    *  éteinte : le serveur n'interroge LRCLIB que sur la chaîne "true". */
   let lrclibOn = $state(false);
@@ -2506,6 +2519,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
       ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
       coffretsAuto = coffretsAutoDepuisConfig(c?.[CLE_COFFRETS_AUTO]);
+      importPlaylistsScan = importPlaylistsScanDepuisConfig(c?.[CLE_IMPORT_PLAYLISTS_SCAN]);
       scanDemarrage = scanAuDemarrageDepuisConfig(c);
     } catch { libErr = get(t)('settings.errConfigUnavailable'); }
     try {
@@ -2835,6 +2849,47 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ecritureFichiersOn = before;
       ecritureFichiersErr = get(t)('settings.errSaveFailed');
     }
+  }
+  /** web#2635 — même patron que `setEcritureFichiers`. */
+  async function setImportPlaylistsScan(v: boolean) {
+    const before = importPlaylistsScan; importPlaylistsScan = v; importPlaylistsScanErr = null;
+    try {
+      await api.updateConfig({ [CLE_IMPORT_PLAYLISTS_SCAN]: v });
+    } catch {
+      importPlaylistsScan = before;
+      importPlaylistsScanErr = get(t)('settings.errSaveFailed');
+    }
+  }
+  /**
+   * web#2635 — retire les playlists importées au scan. Aucune route groupée
+   * côté serveur : on liste celles du profil propriétaire (1) et on les
+   * supprime une à une. Seules celles qui portent la description du scan
+   * partent ; les playlists créées dans Tune ne sont jamais touchées.
+   */
+  async function retirerPlaylistsDuScan() {
+    if (retraitScanEnCours) return;
+    retraitScanMsg = null;
+    let cibles;
+    try {
+      cibles = playlistsImporteesAuScan(await api.getToutesPlaylistsDuProfil(PROFIL_DES_PLAYLISTS_DU_SCAN));
+    } catch (e) {
+      retraitScanMsg = { ok: false, texte: get(t)('common.error' as any) + motifOuRien(e) };
+      return;
+    }
+    if (cibles.length === 0) {
+      retraitScanMsg = { ok: true, texte: get(t)('settings.removeScanPlaylistsNone' as any) };
+      return;
+    }
+    const n = String(cibles.length);
+    if (!(await dialogs.confirm(get(t)('settings.removeScanPlaylistsConfirm' as any).replace('{n}', n), { danger: true }))) return;
+    retraitScanEnCours = true;
+    const bilan = await retirerPlaylists(cibles, (id) => api.deletePlaylistDuProfil(id, PROFIL_DES_PLAYLISTS_DU_SCAN));
+    const parties = new Set(bilan.retirees);
+    magasinPlaylists.update((l) => l.filter((p) => p.id == null || !parties.has(p.id)));
+    retraitScanEnCours = false;
+    let texte = get(t)('settings.removeScanPlaylistsDone' as any).replace('{n}', String(bilan.retirees.length));
+    if (bilan.echecs > 0) texte += ' ' + get(t)('settings.removeScanPlaylistsFailed' as any).replace('{n}', String(bilan.echecs));
+    retraitScanMsg = { ok: bilan.echecs === 0, texte };
   }
   /** Même patron que `setEcritureFichiers` ; la valeur vaut au prochain démarrage. */
   async function setScanDemarrage(v: boolean) {
@@ -6806,6 +6861,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               {#if coffretsAutoErr}<div class="errline">{coffretsAutoErr}</div>{/if}
+              <!-- web#2635 (laguespa, fil 2510) : le réglage serveur
+                   `scan_import_playlists` n'était affiché nulle part. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.scanImportPlaylists' as any)}</span>
+                  <span class="hint">{$t('settings.scanImportPlaylistsHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-cle={CLE_IMPORT_PLAYLISTS_SCAN} checked={importPlaylistsScan}
+                    onchange={(e) => setImportPlaylistsScan((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if importPlaylistsScanErr}<div class="errline">{importPlaylistsScanErr}</div>{/if}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.removeScanPlaylists' as any)}</span>
+                  <span class="hint">{$t('settings.removeScanPlaylistsHint' as any)}</span>
+                </div>
+                <button class="lnk danger" data-action="retirer-playlists-scan" disabled={retraitScanEnCours}
+                  onclick={retirerPlaylistsDuScan}>{$t('settings.removeScanPlaylists' as any)}</button>
+              </div>
+              {#if retraitScanMsg}
+                <div class={retraitScanMsg.ok ? 'okbox' : 'errline'} role="status">{retraitScanMsg.texte}</div>
+              {/if}
               <!-- web#2324 — l'état de l'outil ISO SACD (disques DST), descendu
                    ici depuis la carte « Bibliothèque » (décision du 23/10). -->
               <SacdIsoStatus />
