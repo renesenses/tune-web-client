@@ -236,7 +236,7 @@ export function codeDeRefus(e: unknown): string | null {
 const ERREURS_CONNUES = new Set([
   'collection_privee', 'utilisateur_inconnu', 'discogs_limite', 'discogs_indisponible',
   'musicbrainz_indisponible', 'bibliotheque_illisible', 'jeton_personnel_absent',
-  'jeton_refuse', 'nom_invalide', 'aucun_compte',
+  'jeton_refuse', 'nom_invalide', 'aucun_compte', 'ecriture',
 ]);
 
 /** La clé i18n d'une erreur (de synchronisation ou de refus). */
@@ -244,6 +244,18 @@ export function cleErreur(code: string | null | undefined): string {
   return code && ERREURS_CONNUES.has(code)
     ? `collectionPhysique.erreur.${code}`
     : 'collectionPhysique.erreur.generique';
+}
+
+/** Un refus inconnu conserve sa cause et son statut au lieu d'un message vide. */
+export function messageErreurCollection(e: unknown, traduire: (cle: string) => string): string {
+  const code = typeof e === 'string' ? e.replace(/^collection_physique\./, '') : codeDeRefus(e);
+  if (code && ERREURS_CONNUES.has(code)) return traduire(cleErreur(code));
+  const statut = (e as { status?: unknown } | null)?.status;
+  const causes = [code, typeof statut === 'number' ? `HTTP ${statut}` : null].filter(Boolean);
+  if (!causes.length && e instanceof Error && e.message) causes.push(e.message);
+  return traduire('collectionPhysique.erreur.inconnue').replace(
+    '{cause}', causes.join(' · ') || traduire('collectionPhysique.erreur.sansReponse'),
+  );
 }
 
 /** Un nom d'utilisateur Discogs que le greffon acceptera. */
