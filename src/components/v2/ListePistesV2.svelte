@@ -983,7 +983,7 @@
                    suffit, et l'incrustation de 36 px tronque son texte. -->
               {#if pochetteEnTableau}
                 <span class="tvig" style={tailleVignette !== 36 ? `--tvig:${tailleVignette}px` : undefined}>
-                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={tailleVignette}
+                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={tailleVignette} vignette
                     alt={p.title ?? ''} source={sourceEnTableau ? null : p.source} />
                 </span>
               {/if}

@@ -26,6 +26,7 @@
  * La traduction vit ici, une fois, plutôt que recopiée dans chaque écran :
  * c'est exactement la duplication qui l'avait fait disparaître d'un des deux.
  */
+import { majProposee } from './versions';
 
 /** La réponse de `check`, telle que le client la manipule. */
 export interface VerificationMaj {
@@ -56,11 +57,17 @@ export interface VerificationMaj {
  */
 export function normaliserVerificationMaj(d: any): VerificationMaj | null {
   if (!d || typeof d !== 'object') return null;
+  const latest_version = d.latest_version ?? d.latest ?? null;
+  const current_version = d.current_version ?? d.current ?? null;
+  // 01/11/2026 — le client tranche quand les deux versions sont lisibles :
+  // un serveur `1.0.0-dev` se faisait proposer la rc9, plus ancienne.
+  const avis = typeof current_version === 'string' && typeof latest_version === 'string'
+    ? majProposee(current_version, latest_version) : null;
   return {
     ...d,
-    update_available: d.update_available === true,
-    latest_version: d.latest_version ?? d.latest ?? null,
-    current_version: d.current_version ?? d.current ?? null,
+    update_available: avis ?? d.update_available === true,
+    latest_version,
+    current_version,
     installable: d.installable !== false,
     install_hint: typeof d.install_hint === 'string' && d.install_hint ? d.install_hint : null,
   };
