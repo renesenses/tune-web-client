@@ -20,6 +20,7 @@ import {
   normaliserChoixBarre, horodatageBarre, arbitrerBarre, type ChoixBarre,
 } from '../ordreBarreLaterale';
 import type { TriConcerts } from '../concertsTri';
+import type { FiltresRadio } from '../radioFiltres';
 import { estOrdreRayons, ORDRE_RAYONS_DEFAUT, type OrdreRayons } from '../rayonsCollections';
 import { normaliserOrdreManuel, type OrdreManuelCollections } from '../ordreManuelCollections';
 import type { ChoixLieuConcerts } from '../concertsLieu';
@@ -173,6 +174,11 @@ export interface Preferences {
    *  n'atteindrait plus personne. Seul le clic sur la bascule y écrit ; le
    *  défaut (`TRI_CONCERTS_DEFAUT`, « Par date ») s'applique à l'affichage. */
   concertsTri: TriConcerts | null;
+  /** tune-server-rust#7466 — les critères de la barre « Plus de filtres » de
+   *  l'écran Radio (format, débit, sans perte, Hi-Res, Metadata+, favoris).
+   *  `null` = rien choisi ; seule la barre y écrit. Lire par
+   *  `normaliserFiltresRadio` (`lib/radioFiltres`). */
+  radioFiltres: FiltresRadio | null;
   /**
    * tune-server-rust#7597 (suite, Bertrand 31/10/2026) — le dernier dossier
    * choisi par le bouton « Répertoire » de la Bibliothèque (chemin absolu), ou
@@ -525,6 +531,7 @@ const defaults: Preferences = {
   // web#1718 : `null`, pas le défaut — voir le type. L'écran lit
   // `normaliserTriConcerts(null)`, donc « Par date ».
   concertsTri: null,
+  radioFiltres: null,
   bibliothequeDossier: null,
   concertsLieu: null,
   tooltipsEnabled: true,

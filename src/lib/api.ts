@@ -2796,6 +2796,12 @@ export function estimateAlbumBpm(albumId: number, redo = false) {
 }
 
 /** `GET /system/api-keys` — l'état des clés, jamais leur valeur. */
+/** Sortie AES67 (greffon natif `aes67`, #7336 E3) : 404 = greffon non installé.
+ *  Pas de bandeau sur échec : l'écran dit lui-même ce qui se passe. */
+export function getSortieAes67(): Promise<unknown> {
+  return fetchJSON<unknown>(`${BASE}/ext/aes67`, undefined, undefined, true);
+}
+
 export function getApiKeys() {
   return fetchJSON<{ keys: import('./enrichissementAlbum').EtatCleApi[] }>(`${BASE}/system/api-keys`);
 }
@@ -4736,8 +4742,41 @@ export function getSmartPlaylistTracks(id: number) {
 
 // --- Playlists ---
 
-export function getPlaylists(limit = 100, offset = 0) {
-  return fetchJSON<Playlist[]>(`${BASE}/playlists?limit=${limit}&offset=${offset}`);
+/** Borne de sécurité de `getPlaylists` : 200 pages (20 000 playlists à 100). */
+export const PLAYLISTS_PAGES_MAX = 200;
+
+/**
+ * TOUTES les playlists locales, à partir de `offset`, lues par pages de `limit`.
+ *
+ * tune-server-rust#7335 (laguespa, fil 2510) — ce n'était qu'UNE page de 100.
+ * Le serveur trie par ordre alphabétique (`playlist_repo::list`) : au-delà de
+ * 100 playlists, celle qu'on venait de créer (« test », id 231) tombait
+ * après la première page et n'apparaissait jamais dans l'écran Playlists, bien
+ * que le POST eût répondu 201. Les appelants attendent « la liste » : on lit
+ * donc page après page jusqu'à une page incomplète. Une page qui n'apporte
+ * aucune playlist nouvelle (serveur qui ignorerait `offset`) arrête la
+ * lecture, et `PLAYLISTS_PAGES_MAX` borne la boucle quoi qu'il arrive.
+ */
+export async function getPlaylists(limit = 100, offset = 0): Promise<Playlist[]> {
+  const taille = limit > 0 ? Math.floor(limit) : 100;
+  const toutes: Playlist[] = [];
+  const vues = new Set<number>();
+  for (let page = 0; page < PLAYLISTS_PAGES_MAX; page++) {
+    const lot = (await fetchJSON<Playlist[]>(
+      `${BASE}/playlists?limit=${taille}&offset=${offset + page * taille}`,
+    )) ?? [];
+    let nouvelles = 0;
+    for (const p of lot) {
+      if (p?.id != null) {
+        if (vues.has(p.id)) continue;
+        vues.add(p.id);
+      }
+      toutes.push(p);
+      nouvelles++;
+    }
+    if (lot.length < taille || nouvelles === 0) break;
+  }
+  return toutes;
 }
 
 export function getPlaylist(id: number) {
@@ -8634,9 +8673,49 @@ export function startAlbumArtworkEnrich() {
  *  le compte recalculé à l'instant. */
 export function getAlbumArtworkEnrichStatus() {
   return fetchJSON<{
-    result: { status?: string; total?: number; searched?: number; enriched?: number; failed?: number } | null;
+    result: {
+      status?: string; total?: number; searched?: number; enriched?: number; failed?: number;
+      /** Secondes Unix (serveur ≥ rc10). */
+      started_at?: number; finished_at?: number;
+    } | null;
     albums_without_cover: number;
+    /** Écran « État du serveur » (serveur ≥ rc10) : albums locaux, avec
+     *  pochette, passe inscrite et son avancement (seulement pendant). */
+    albums_total?: number;
+    albums_with_cover?: number;
+    running?: boolean;
+    progress?: { processed?: number; total?: number };
   }>(`${BASE}/library/artwork/enrich/status`);
+}
+
+/** Écran « État du serveur » — le bouton « Lancer la passe » des pochettes
+ *  d'albums. Même route que `startAlbumArtworkEnrich`, mais le 409
+ *  `already_running` (serveur ≥ rc10 : une passe à la fois) est une
+ *  RÉPONSE, pas une panne. */
+export function lancerPassePochettesAlbums() {
+  return fetchJSON<{ status: string; albums_to_process?: number; reason?: string }>(
+    `${BASE}/library/artwork/enrich`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
+}
+
+/** Écran « État du serveur » — `GET /library/labels/logos/status` (serveur
+ *  ≥ rc10) : labels avec et sans logo, passe en cours, dernière passe. */
+export function getLabelLogosStatus() {
+  return fetchJSON<import('./santeImages').StatutLogosLabels>(
+    `${BASE}/library/labels/logos/status`,
+  );
+}
+
+/** `POST /library/labels/logos/enrich` : 202 `accepted`, 409
+ *  `already_running` (rendu, pas jeté), 200 `skipped`. */
+export function lancerPasseLogosLabels() {
+  return fetchJSON<{ status: string; labels_to_process?: number; reason?: string }>(
+    `${BASE}/library/labels/logos/enrich`,
+    { method: 'POST' },
+    (statut) => statut === 409,
+  );
 }
 
 // Artist image enrichment (community + Fanart/TheAudioDB/MusicBrainz by MBID,
@@ -9664,12 +9743,39 @@ export interface OtherVersionGroup {
  * les relations d'oeuvre MusicBrainz. Le serveur fait le regroupement :
  * l'ecran n'a qu'a dessiner.
  */
-export function getOtherVersions(limit = 20) {
-  // `sansBandeau` — essai en 5G du 09/10/2026 : par le pont, cette route
-  // dépasse les 30 s du relais (requête `CROSS JOIN tracks` de ~30 s sur le
-  // .18) et rend 504. Son seul appelant, la rangée de l'accueil, porte déjà
-  // son état d'échec et son « réessayer » : pas de bandeau global en plus.
-  return fetchJSON<OtherVersionGroup[]>(`${BASE}/home/other-versions?limit=${limit}`, undefined, undefined, true);
+/**
+ * Les attentes, en ms, avant de redemander la route tant que le serveur la dit
+ * « en préparation » : 5 s puis 10 s, soit 15 s au plus.
+ */
+export const DELAIS_AUTRES_VERSIONS_EN_PREPARATION_MS: readonly number[] = [5000, 10000];
+
+export async function getOtherVersions(
+  limit = 20,
+  delaisMs: readonly number[] = DELAIS_AUTRES_VERSIONS_EN_PREPARATION_MS,
+): Promise<OtherVersionGroup[]> {
+  // Mesure du 31/10/2026 : le premier appel prenait 20 s (recherches des
+  // services). Le serveur répond maintenant tout de suite, en `202` +
+  // `X-En-Preparation: true`, avec ce que la bibliothèque a déjà rendu, et
+  // finit la partie streaming en tâche de fond. Le rayon redemande donc
+  // quelques secondes plus tard, au plus deux fois ; au bout, il montre ce
+  // qu'il a. Un serveur plus ancien ne pose pas l'en-tête : un seul appel.
+  let groupes: OtherVersionGroup[] = [];
+  for (let essai = 0; ; essai++) {
+    let enPreparation = false as boolean;
+    // `sansBandeau` — essai en 5G du 09/10/2026 : par le pont, cette route
+    // dépasse les 30 s du relais (requête `CROSS JOIN tracks` de ~30 s sur le
+    // .18) et rend 504. Son seul appelant, la rangée de l'accueil, porte déjà
+    // son état d'échec et son « réessayer » : pas de bandeau global en plus.
+    groupes = await fetchJSON<OtherVersionGroup[]>(
+      `${BASE}/home/other-versions?limit=${limit}`,
+      undefined,
+      undefined,
+      true,
+      (h) => { enPreparation = h.get('x-en-preparation') === 'true'; },
+    );
+    if (!enPreparation || essai >= delaisMs.length) return groupes;
+    await new Promise<void>((r) => setTimeout(r, delaisMs[essai]));
+  }
 }
 
 /**

@@ -191,7 +191,7 @@
         {#each liste as c (c.id)}
           <button type="button" class="conversation" class:choisie={choix?.id === c.id} aria-current={choix?.id === c.id ? 'true' : undefined} disabled={occupe} onclick={() => void geste(() => ouvrir(c))}>
             <span class="avatar" class:avatar-cercle={c.kind === 'circle'} aria-hidden="true">{avatar(c)}</span>
-            <span class="resume"><strong>{nomConversation(c)}</strong>{#if c.kind === 'circle' && !c.circle.mine}<span class="extrait">{tr('v2.circle.msg.circleOf').replace('{name}', c.circle.owner_name)}</span>{/if}<span class="extrait" use:bulleTexte>{c.last_message?.body ?? c.last_message?.card?.title ?? tr('v2.circle.msg.noMessage')}</span></span>
+            <span class="resume"><strong>{nomConversation(c)}</strong>{#if c.kind === 'circle' && !c.circle.mine}<span class="extrait" use:bulleTexte>{tr('v2.circle.msg.circleOf').replace('{name}', c.circle.owner_name)}</span>{/if}<span class="extrait" use:bulleTexte>{c.last_message?.body ?? c.last_message?.card?.title ?? tr('v2.circle.msg.noMessage')}</span></span>
             <span class="repere"><time datetime={c.last_message?.created_at}>{heure(c.last_message?.created_at ?? '', true)}</time>{#if c.unread_count}<span class="pastille">{c.unread_count}</span>{/if}</span>
           </button>
         {/each}

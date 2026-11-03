@@ -2034,7 +2034,7 @@
         infobulles (#2411) y cherche la fiche ouverte.
       -->
       <div class="track-list">
-        <ListePistesV2 pistes={detailTracks} pochetteEnTableau sourceEnTableau={detailMixte}
+        <ListePistesV2 pistes={detailTracks} pochetteEnTableau ecranColonnes="playlist" sourceEnTableau={detailMixte}
           onLire={(_p, i) => playFromIndex(i)} onLireDepuis={(_p, i) => playFromIndex(i)}
           clef={(_p, i) => i}
           reordonnable={!!selectedPlaylist} onReordonner={reorderTracks}

@@ -27,6 +27,9 @@
   import RadioChipsGenres from './RadioChipsGenres.svelte';
   import RadioFicheModale from '../partages/RadioFicheModale.svelte';
   import BadgeMetadataPlus from '../partages/BadgeMetadataPlus.svelte';
+  import RadioFiltresAvances from './RadioFiltresAvances.svelte';
+  import { preferences } from '../../lib/stores/preferences';
+  import { normaliserFiltresRadio, parametresDesFiltres } from '../../lib/radioFiltres';
 
   interface Props {
     /** Une station vient d'entrer dans « Mes radios » (ou d'y changer). */
@@ -51,6 +54,10 @@
   /** web#2443 — la fiche « Voir » ouverte (œil de la vignette). */
   let enFiche = $state<FicheAnnuaireRadio | null>(null);
 
+  /** tune-server-rust#7466 — les critères de « Plus de filtres ». */
+  const criteres = $derived(parametresDesFiltres(normaliserFiltresRadio($preferences.radioFiltres)));
+  const cleCriteres = $derived(JSON.stringify(criteres));
+
   let jeton = 0;
   async function charger(suite = false) {
     const moi = ++jeton;
@@ -58,7 +65,7 @@
     erreur = null;
     try {
       const r = await api.getAnnuaireRadios({
-        q, country: pays, genre, offset: suite ? items.length : 0, limit: PAGE,
+        q, country: pays, genre, offset: suite ? items.length : 0, limit: PAGE, criteres,
       });
       if (moi !== jeton) return;
       page = r;
@@ -74,7 +81,7 @@
   // de suite. Chaque changement repart de la première page.
   let minuterie: ReturnType<typeof setTimeout> | undefined;
   $effect(() => {
-    const _cles = [q, pays, genre];
+    const _cles = [q, pays, genre, cleCriteres];
     void _cles;
     clearTimeout(minuterie);
     minuterie = setTimeout(() => charger(false), q ? 250 : 0);
@@ -143,6 +150,7 @@
       <span class="total">{$t('v2.radio.dir.count' as any).replace('{n}', String(page.total))}</span>
     {/if}
   </div>
+  <RadioFiltresAvances />
   {#if page?.genres?.length}
     <RadioChipsGenres
       genres={page.genres.map((g) => ({ cle: g.key ?? '', libelle: libelleGenre(g.key ?? ''), n: g.count }))}

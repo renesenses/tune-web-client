@@ -365,9 +365,12 @@
       }
     } catch (e: any) {
       // #2406 — un refus d'identifiants n'est pas une panne de connexion.
-      qobuzAuthError = natureErreurConnexion(e) === 'identifiants'
-        ? get(t)('settings.wrongCredentials')
-        : get(t)('settings.connectionError');
+      const nature = natureErreurConnexion(e);
+      qobuzAuthError = nature === 'application'
+        ? get(t)('settings.errAppRefused' as any).replace('{service}', 'Qobuz')
+        : nature === 'identifiants'
+          ? get(t)('settings.wrongCredentials')
+          : get(t)('settings.connectionError');
     }
     qobuzAuthLoading = false;
   }
