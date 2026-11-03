@@ -4100,6 +4100,8 @@ export default {
   "v2.nav.plugins": "Extensii",
   "v2.nav.radioShort": "Radio",
   "v2.lib.sortTitle": "Titlu",
+  "v2.lib.exportCatalogue": "Exportă catalogul",
+  "v2.lib.exportCatalogueError": "Exportul catalogului a eșuat.",
   "v2.lib.sortArtist": "Artist",
   "v2.lib.sortYear": "An",
   "v2.pl.sortOrder": "Ordinea listei",

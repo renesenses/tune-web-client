@@ -3975,6 +3975,8 @@ export default {
   "v2.nav.plugins": "Utvidelser",
   "v2.nav.radioShort": "Radio",
   "v2.lib.sortTitle": "Tittel",
+  "v2.lib.exportCatalogue": "Eksporter katalogen",
+  "v2.lib.exportCatalogueError": "Eksporten av katalogen mislyktes.",
   "v2.lib.sortArtist": "Artist",
   "v2.lib.sortYear": "År",
   "v2.pl.sortOrder": "Spillelisterekkefølge",

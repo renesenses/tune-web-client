@@ -115,6 +115,7 @@ import { estRefusEcriture, messageRefusEcriture, CODE_REFUS_ECRITURE } from './e
 import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
 import { messageRefusBitperfect } from './bitperfectStrict';
 import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
+import { adresseCatalogue, type FiltresCatalogue } from './catalogueExport';
 import {
   RefusSauvegarde,
   codeDuRefus as codeDuRefusSauvegarde,
@@ -8315,6 +8316,8 @@ export async function exportPlaylist(playlistId: number, format: 'm3u' | 'json' 
 export function exportAlbumsCsv() { return downloadCsv('/export/albums.csv', 'albums.csv'); }
 export function exportTracksCsv() { return downloadCsv('/export/tracks.csv', 'tracks.csv'); }
 export function exportArtistsCsv() { return downloadCsv('/export/artists.csv', 'artists.csv'); }
+/** Catalogue imprimable, avec les filtres en cours de la Bibliothèque (web#2622). */
+export function exportCatalogue(f: FiltresCatalogue) { return downloadCsv(adresseCatalogue(f), 'catalogue.html'); }
 
 // --- Audiophile Mode ---
 

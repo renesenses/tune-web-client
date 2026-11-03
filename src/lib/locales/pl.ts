@@ -3973,6 +3973,8 @@ export default {
   "v2.nav.plugins": "Rozszerzenia",
   "v2.nav.radioShort": "Radio",
   "v2.lib.sortTitle": "Tytuł",
+  "v2.lib.exportCatalogue": "Eksportuj katalog",
+  "v2.lib.exportCatalogueError": "Eksport katalogu nie powiódł się.",
   "v2.lib.sortArtist": "Wykonawca",
   "v2.lib.sortYear": "Rok",
   "v2.pl.sortOrder": "Kolejność playlisty",

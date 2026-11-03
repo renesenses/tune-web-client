@@ -4100,6 +4100,8 @@ export default {
   "v2.nav.plugins": "확장",
   "v2.nav.radioShort": "라디오",
   "v2.lib.sortTitle": "제목",
+  "v2.lib.exportCatalogue": "카탈로그 내보내기",
+  "v2.lib.exportCatalogueError": "카탈로그를 내보내지 못했습니다.",
   "v2.lib.sortArtist": "아티스트",
   "v2.lib.sortYear": "연도",
   "v2.pl.sortOrder": "플레이리스트 순서",
