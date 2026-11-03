@@ -68,6 +68,18 @@
   // mobile). Sans ces deux montages, le clic tombait dans le repli « À venir » :
   // l'écran n'avait pas disparu, il n'avait jamais été branché.
   import NowPlaying from '../partages/NowPlaying.svelte';
+  // Vue mini (`?vue=mini`, alias `?mini=1`) — le gabarit téléphone, maquette A
+  // « télécommande » validée par Bertrand le 31/10/2026. Voir `lib/vueMini`.
+  import { vueMiniActive, fenetreRepliee, filtresOuverts } from '../../lib/vueMini';
+  // La mise en page TÉLÉPHONE des écrans (en-tête sur une ligne, onglets
+  // défilants, filtres repliés, grille de deux colonnes), sous `.v2-shell.mini`.
+  import '../../styles/vue-mini.css';
+  const vueMini = vueMiniActive();
+  import EcouterMini from './mini/EcouterMini.svelte';
+  import BandeauMini from './mini/BandeauMini.svelte';
+  import BarreOngletsMini from './mini/BarreOngletsMini.svelte';
+  import MiniBarreLecture from './mini/MiniBarreLecture.svelte';
+  import FeuilleMini from './mini/FeuilleMini.svelte';
   /*
    * 🔴 LE CALQUE DE SESSION EXPIREE (#1021).
    *
@@ -257,6 +269,13 @@
   let coquilleEl = $state<HTMLElement | null>(null);
   $effect(() => {
     const g = grappeEl, c = coquilleEl;
+    // Vue mini : aucune grappe en haut à droite (le bandeau la remplace) ; les
+    // écrans n'ont donc aucune gouttière à lui réserver.
+    if (vueMini && c) {
+      c.style.setProperty('--v2-grappe-w', '0px');
+      c.style.setProperty('--v2-grappe-h', '0px');
+      return;
+    }
     if (!g || !c || typeof ResizeObserver === 'undefined') return;
     const poser = () => {
       const r = g.getBoundingClientRect();
@@ -405,12 +424,27 @@
   // Fils 2166 et 2168 (rc3) — puis celle du PROFIL, quand le serveur a
   // répondu : la copie locale d'un autre navigateur ne fait plus foi.
   $effect(() => brancherHistoriqueCoquille({
-    vueDeDemarrage: get(preferences).startupView,
-    vueDeDemarrageRelue: preferencesRelues.then(() => get(preferences).startupView),
+    // Vue mini : on arrive TOUJOURS sur Écouter, quelle que soit la vue de
+    // démarrage des Réglages — c'est ce qu'on attend d'un mini-lecteur.
+    vueDeDemarrage: vueMini ? 'nowplaying' : get(preferences).startupView,
+    vueDeDemarrageRelue: vueMini ? undefined : preferencesRelues.then(() => get(preferences).startupView),
   }));
 
+  // Vue mini : « Lecture en cours » est un onglet, pas un calque. Qui demande
+  // le calque mobile (`mobileNowPlayingOpen`) est mené à l'onglet Écouter.
+  // Vue mini : changer d'écran referme les filtres de l'écran quitté.
+  $effect(() => { void $activeView; filtresOuverts.set(false); });
+  $effect(() => {
+    if (vueMini && $mobileNowPlayingOpen) {
+      mobileNowPlayingOpen.set(false);
+      activeView.set('nowplaying');
+    }
+  });
+
   /** La bannière n'occupe la place que si elle a quelque chose à dire. */
-  const annonceMaj = $derived($updateAvailable && !$updateBannerDismissed);
+  // Vue mini : pas de bannière — la fenêtre de 360 px n'a pas la place, et la
+  // mise à jour s'annonce dans la fenêtre complète.
+  const annonceMaj = $derived(!vueMini && $updateAvailable && !$updateBannerDismissed);
 
   /**
    * Le clic MENE quelque part : Réglages → Système, section « À propos », d'où
@@ -599,7 +633,7 @@
   }
 </script>
 
-<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} bind:this={coquilleEl}>
+<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} class:mini={vueMini} class:filtres-ouverts={vueMini && $filtresOuverts} bind:this={coquilleEl}>
   <!--
     Le raccourci se pose depuis N'IMPORTE QUEL écran.
 
@@ -619,6 +653,7 @@
     de repli est inatteignable. Sans ce bouton, la navigation entière
     disparaîtrait sur un téléphone.
   -->
+  {#if !vueMini}
   <div class="av-tr" bind:this={grappeEl}>
     <!--
       🔴 L'OUVERTURE DU TIROIR vit ICI, pas dans la barre latérale.
@@ -707,6 +742,7 @@
     </button>
     <AvatarMenu />
   </div>
+  {/if}
 
   {#if poseRaccourci}
     <div class="rc-fond" role="presentation" onclick={fermerPoseRaccourci}>
@@ -769,6 +805,10 @@
     `OxygenView`, donc indépendant de la coquille), et le fait que `focusMode`
     retombe à faux dès qu'on change de vue.
   -->
+  {#if vueMini}<BandeauMini replie={$fenetreRepliee} />{/if}
+  {#if vueMini && $fenetreRepliee}
+    <EcouterMini replie />
+  {:else}
   <div class="v2-row" class:sans-distraction={$focusMode}>
     {#if !$focusMode}<Sidebar />{/if}
     <main class="main">
@@ -932,7 +972,11 @@
         <!-- `onAddToPlaylist` non fournie : le bouton « ajouter à une playlist »
              de cet écran reste masqué tant que la coquille v2 n'a pas sa propre
              fenêtre de playlists. Mieux vaut un bouton absent qu'un bouton mort. -->
-        <NowPlaying tvDansLaCoquille />
+        {#if vueMini}
+          <EcouterMini />
+        {:else}
+          <NowPlaying tvDansLaCoquille />
+        {/if}
       {:else}
         <div class="soon">
           <div class="badge">{$t('v2.shell.soon' as any)}</div>
@@ -942,7 +986,21 @@
       {/if}
     </main>
   </div>
-  <TransportBar />
+  {/if}
+  {#if vueMini}
+    <!-- Vue mini (maquette A) : la mini-barre hors d'Écouter, la barre
+         d'onglets, et les panneaux File et Zones. Repliée, rien de tout cela. -->
+    {#if !$fenetreRepliee}
+      {#if $activeView !== 'nowplaying'}<MiniBarreLecture />{/if}
+      <BarreOngletsMini />
+      <FeuilleMini />
+      {#if $filtresOuverts}
+        <div class="fond-filtres" role="presentation" onclick={() => filtresOuverts.set(false)} data-fond-filtres></div>
+      {/if}
+    {/if}
+  {:else}
+    <TransportBar />
+  {/if}
 
   <!-- Le conteneur de dialogues : il ne dessine rien tant que personne ne
        demande. Place ICI, au premier niveau de la coquille, pour couvrir tous
@@ -1023,6 +1081,8 @@
      d'une coquille en `overflow:hidden`, passait sous le bord visible. `dvh`
      suit le viewport réel (`vh` reste en repli pour qui ignore `dvh`), et le
      retrait du haut que `body` réserve déjà (`tune-theme.css`) est soustrait. */
+  /* Vue mini : le fond sous le panneau des filtres (`vue-mini.css`). */
+  .fond-filtres{position:fixed; inset:0; z-index:94; background:var(--v2-scrim)}
   .v2-shell{--maj-h:42px; position:relative; display:flex; flex-direction:column;
     height:calc(100vh - env(safe-area-inset-top, 0px)); height:calc(100dvh - env(safe-area-inset-top, 0px));
     background:var(--v2-bg); overflow:hidden}
