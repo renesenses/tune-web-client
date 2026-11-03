@@ -386,6 +386,17 @@ export function demarrerTransportV2(): () => void {
       return;
     }
 
+    // #2486 / serveur #7347 : une sortie déjà en ligne peut changer ses
+    // capacités sans zone.updated. L'annonce ne contient pas le contrat :
+    // relire les zones concernées, sans requête pour un appareil sans zone.
+    if (type === 'device.updated') {
+      const id = event.data?.device_id;
+      if (typeof id === 'string' && get(zones).some((z) => z.output_device_id === id)) {
+        void rechargerZones();
+      }
+      return;
+    }
+
     // Mise à jour groupée des zones — l'état de lecture et la piste en vivent.
     if (type === 'zone.updated' && Array.isArray(event.data?.zones)) {
       const liste = event.data.zones as any[];

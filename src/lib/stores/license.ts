@@ -35,6 +35,15 @@ export interface LicenseState {
    * l'interface se tait, rien ne casse.
    */
   offlineGrace: LicenseOfflineGrace | null;
+  /**
+   * #7419 — D'OÙ vient le Premium : `key` (clé de licence), `account` (compte
+   * Mozaiklabs lié, sans clé) ou `null` hors Premium.
+   *
+   * Un serveur antérieur n'envoie pas le champ : on le DÉDUIT alors de la même
+   * règle que le serveur (`effective_tier`) — Premium sans clé enregistrée ne
+   * peut venir que du compte.
+   */
+  premiumSource?: 'key' | 'account' | null;
 }
 
 const defaultState: LicenseState = {
@@ -47,6 +56,7 @@ const defaultState: LicenseState = {
   hardwareFingerprint: null,
   sessionConflict: null,
   offlineGrace: null,
+  premiumSource: null,
 };
 
 /** Les deux paliers qui n'ont pas de plafond de zones. */
@@ -72,6 +82,14 @@ export const offlineGrace = derived(licenseState, ($s) =>
   $s.offlineGrace && $s.offlineGrace.phase !== 'ok' ? $s.offlineGrace : null,
 );
 
+/** #7419 — voir `LicenseState.premiumSource`. */
+export function sourceDuPremium(status: Pick<LicenseStatus, 'tier' | 'license_key' | 'premium_source'>): 'key' | 'account' | null {
+  if (status.premium_source === 'key' || status.premium_source === 'account') return status.premium_source;
+  if (status.premium_source === null) return null;
+  if (!estPremium(status.tier)) return null;
+  return status.license_key ? 'key' : 'account';
+}
+
 export async function loadLicense(): Promise<void> {
   try {
     const status: LicenseStatus = await api.getLicenseStatus();
@@ -88,6 +106,7 @@ export async function loadLicense(): Promise<void> {
       hardwareFingerprint: status.hardware_fingerprint ?? null,
       sessionConflict: status.session_conflict ?? null,
       offlineGrace: status.offline_grace ?? null,
+      premiumSource: sourceDuPremium(status),
     });
   } catch {
     // Endpoint may not exist yet — treat as free tier

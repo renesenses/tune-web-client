@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { volumeCommandable, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur } from '../../lib/messageServeur';
   import AuditIntegrite from '../partages/AuditIntegrite.svelte';
@@ -21,11 +22,12 @@
    */
   import { t } from '../../lib/i18n';
   import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
+  import { confortAuDessusDeLaSecurite, courseDb, fondDesZones, limiteDepuisDb, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { natifServiEnDop } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
-  import { CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
+  import { CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT, CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
@@ -62,7 +64,7 @@
   } from '../../lib/audioBackends';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
-  import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
+  import { followMe, zones, currentZoneId, remettreRepetitionAOff } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
@@ -74,6 +76,8 @@
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
+  import { creerSuiviPochettes, recherchePochettesOccupee } from '../../lib/suiviPochettes';
+  import { creerRechercheEnLigne, rechercheEnLigneOccupee } from '../../lib/recherchePochettesEnLigne';
   import {
     avancementAnalyse, pourcentAnalyse, aDesChiffres, lignesPortee, lignesEmplacements,
     abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
@@ -111,8 +115,12 @@
   import { LEVEL_LABEL_KEYS } from '../../lib/uiLevel';
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
+  import { retablirLargeurs } from '../../lib/largeursColonnes';
+  import { retablirOrdre } from '../../lib/ordreColonnes';
   import { notifications } from '../../lib/stores/notifications';
-  import { streamingServices } from '../../lib/stores/streaming';
+  import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
+  import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
+  import { infoConteneur } from '../../lib/conteneurServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -155,9 +163,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
+  // #2527 — « Mon thème », fourni par le greffon du catalogue.
+  import MonThemeV2 from './MonThemeV2.svelte';
+  import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
+  import AcousticProgress from '../partages/AcousticProgress.svelte';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
   import PluginsV2 from './PluginsV2.svelte';
   import { tip } from '../../lib/tooltip';
@@ -171,6 +184,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
   import SauvegardeCloudV2 from './SauvegardeCloudV2.svelte';
   import ClesApiV2 from './ClesApiV2.svelte';
+  import SortieAes67V2 from './SortieAes67V2.svelte';
+  import SortieAes67ExperimentaleV2 from './SortieAes67ExperimentaleV2.svelte';
+  import { presenceSortieAes67 } from '../../lib/stores/sortieAes67';
   // tune-server-rust#4805 lot 2 — les passes de lot BPM et Discogs.
   import PassesMetarustV2 from './PassesMetarustV2.svelte';
   import IdentificationNuitV2 from './IdentificationNuitV2.svelte';
@@ -406,8 +422,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   });
 
   const tab = $derived(tabs.find((x) => x.id === tabId) ?? tabs[0]);
-  const sections = $derived((tab?.sections ?? []).filter((s) => atLeast(level, s.min)));
-  const hiddenCount = $derived((tab?.sections.length ?? 0) - sections.length);
+  const sections = $derived((tab?.sections ?? []).filter((s) => atLeast(level, s.min) && (s.id !== 'aes67' || $presenceSortieAes67 !== 'absente')));
+  // Le greffon absent n'est pas une section « masquée par le niveau » : on ne le compte pas.
+  const hiddenCount = $derived((tab?.sections ?? []).filter((s) => !atLeast(level, s.min)).length);
 
   // ── Sections REELLEMENT portees ────────────────────────────────────────
   // Chacune s'adosse a la meme API/au meme store que l'ecran actuel : le
@@ -1561,7 +1578,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await setVolumeLock(true, true);
       if ($audiophileLockVolume && $audiophileEnabled) {
         const zid = $currentZoneId;
-        if (zid != null) await api.setVolume(zid, 1);
+        const zone = $zones.find((z) => z.id === zid);
+        if (zid != null && (!zone || (volumeCommandable(zone) && normaliserVolumeSortie(zone, 1) === 1))) await api.setVolume(zid, 1);
       }
     } catch { /* setVolumeLock a deja restaure le store */ }
   }
@@ -1605,7 +1623,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // On expose le theme DU CLIENT V2 (six palettes), pas `preferences.theme`
   // qui pilote l'app historique : le proposer ici donnerait un reglage sans
   // effet visible: exactement le genre de piege qu'on veut eviter.
-  function setV2Theme(t: V2Theme) { preferences.update((pr) => ({ ...pr, v2Theme: t })); }
+  function setV2Theme(t: V2Theme) {
+    preferences.update((pr) => ({ ...pr, v2Theme: t }));
+    // #2527 — une palette standard choisie : « Mon thème » se met de côté
+    // (gardé sur le serveur, réactivable d'un clic sur sa pastille).
+    if ($themeDuProfil.actif) void activerMonTheme(false).catch(() => {});
+  }
+  function choisirMonTheme() {
+    if (!$themeDuProfil.theme || $themeDuProfil.actif) return;
+    void activerMonTheme(true).catch(() => {});
+  }
 
   /**
    * La MATRICE des colonnes : une ligne par métadonnée, une colonne par mode.
@@ -1722,6 +1749,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     return formeDesIdentifiants(name) === 'pseudo_motdepasse';
   }
 
+  /**
+   * #2408 — LA BARRE LATÉRALE LIT LE MAGASIN, PAS CET ÉCRAN.
+   *
+   * `svcs` est l'état LOCAL de cette carte. La barre latérale (sous
+   * « Streaming »), la recherche et les autres écrans lisent le magasin
+   * `streamingServices`, chargé une fois par page. Une connexion réussie ici
+   * ne mettait à jour que `svcs` : Qobuz restait « Connected » dans Réglages
+   * et absent de la barre jusqu'à un rechargement ou une navigation
+   * (testeur Alex, rc8). Même chose à la déconnexion.
+   *
+   * La liste est RELUE chez le serveur, qui fait foi (nom du compte, offre),
+   * et rangée dans le magasin. Une déconnexion voulue n'est pas une session
+   * expirée : on retire l'alerte que le magasin lève quand `authenticated`
+   * passe à faux sur un service actif.
+   */
+  async function refleterDansLeMagasin(name: string, connecte: boolean) {
+    try {
+      const relus = await api.getStreamingServices();
+      if (relus) streamingServices.set(relus);
+      else throw new Error('liste absente');
+    } catch {
+      streamingServices.update((s) =>
+        s[name] ? { ...s, [name]: { ...s[name], authenticated: connecte } } : s);
+    }
+    if (!connecte) expiredStreamingSession.update((e) => (e?.service === name ? null : e));
+  }
+
   function stopPoll(name: string) {
     if (polls[name]) { clearInterval(polls[name]); delete polls[name]; }
   }
@@ -1735,10 +1789,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           svcs = { ...svcs, [name]: { ...svcs[name], ...st } };
           deviceFlow = { ...deviceFlow, [name]: undefined };
           svcBusy = null;
+          void refleterDansLeMagasin(name, true);
         }
       } catch { /* le sondage peut echouer sans que ce soit une panne */ }
     }, 3000);
   }
+
+  /** Le nom d'un service tel qu'on l'écrit : « Qobuz », « TIDAL », « YouTube ». */
+  const nomAffiche = (n: string) => nomDeService(n);
 
   async function connectSvc(name: string) {
     svcBusy = name;
@@ -1752,6 +1810,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       if (res?.authenticated) {
         svcs = { ...svcs, [name]: { ...svcs[name], authenticated: true } };
         svcBusy = null;
+        void refleterDansLeMagasin(name, true);
       } else if (res?.verification_url) {
         const raw = res.verification_url;
         const url = raw.startsWith('http') ? raw : `https://${raw}`;
@@ -1776,7 +1835,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // générique. Un pseudo mal orthographié est le cas le plus probable ;
       // autant le dire.
       const motif = typeof e?.message === 'string' ? e.message.trim() : '';
-      svcErr = { ...svcErr, [name]: motif || get(t)('settings.errConnectFailed') };
+      // #2406 — un refus d'identifiants (Qobuz) se dit en une phrase traduite ;
+      // un corps JSON brut du service n'est jamais montré tel quel.
+      const nature = natureErreurConnexion(e);
+      svcErr = {
+        ...svcErr,
+        [name]:
+          nature === 'application'
+            ? get(t)('settings.errAppRefused' as any).replace('{service}', nomAffiche(name))
+          : nature === 'identifiants'
+            ? get(t)('settings.errCredentialsNotRecognised' as any).replace('{service}', nomAffiche(name))
+            : nature === 'brut'
+              ? get(t)('settings.errConnectFailed')
+              : motif || get(t)('settings.errConnectFailed'),
+      };
       svcBusy = null;
     }
   }
@@ -1826,6 +1898,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       await api.disconnectStreaming(name);
       svcs = { ...svcs, [name]: { ...svcs[name], authenticated: false, username: null } };
+      void refleterDansLeMagasin(name, false);
     } catch { svcErr = { ...svcErr, [name]: get(t)('settings.errDisconnectFailed') }; }
   }
   // Serveur #5427 — l'ARL Deezer se saisit sur la carte Streaming. Offert
@@ -1862,6 +1935,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       } catch {
         svcs = { ...svcs, deezer: { ...svcs.deezer, authenticated: true } };
       }
+      void refleterDansLeMagasin('deezer', true);
     }
     svcBusy = null;
   }
@@ -1937,6 +2011,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         deviceFlow = { ...deviceFlow, spotify: undefined };
         spotifyRappelColle = '';
         svcBusy = null;
+        void refleterDansLeMagasin('spotify', true);
       }
     } catch (e: any) {
       const motif = typeof e?.message === 'string' ? e.message.trim() : '';
@@ -2145,11 +2220,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // tune-server-rust#6198 — les genres de l'analyse acoustique (CLAP).
   // tune-server-rust#5593 (fil 2173) — dossiers auxquels les analyses se limitent ; `null` : serveur antérieur.
   let analysisDirs = $state<string[] | null>(null);
+  // tune-server-rust#7538 — dossiers exclus de l'enrichissement des métadonnées ; `null` : serveur antérieur.
+  let enrichExcludedDirs = $state<string[] | null>(null);
   let clapGenresInclus = $state<string[] | null>(null);
   let clapGenresExclus = $state<string[] | null>(null);
   let newDir = $state('');
   let dirBusy = $state(false);
   let scanning = $state(false);
+  let arretScanEnCours = $state(false);
+  let arretScanDemande = $state(false);
+  let erreurArretScan = $state<string | null>(null);
+  let erreurEtatScan = $state<string | null>(null);
+  let suiviScanVivant = false;
+  let lectureEtatScan = 0;
   /** web#2305 : le `current` de `scan/status` — QUEL scan tient le droit. */
   let scanCourant = $state<unknown>(null);
   let scanReport = $state<any | null>(null);
@@ -2250,6 +2333,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   let backups = $state<BackupInfo[]>([]);
   let backupBusy = $state(false);
+  let backupError = $state<string | null>(null);
+  let backupDetail = $state('');
   let restoring = $state<string | null>(null);
   let dbImporting = $state(false);
   let dbImportResult = $state<{ ok: boolean; texte: string } | null>(null);
@@ -2264,19 +2349,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   $effect(() => { void loadBackups(); });
 
   async function createBackup() {
+    if (!sauvegardesDisponibles) return;
+    backupError = null;
+    backupDetail = '';
     backupBusy = true;
     try {
       await api.createBackup();
       await loadBackups();
       notifications.success($t('maintenance.backupCreated' as any));
-    } catch {
-      notifications.error($t('maintenance.backupError' as any));
+    } catch (cause: unknown) {
+      backupDetail = detailServeur(cause);
+      const corps = (cause as { corps?: { error?: unknown } } | null)?.corps;
+      const refusPostgres = typeof corps?.error === 'string'
+        && corps.error.startsWith('file backups are SQLite-only; this server runs on PostgreSQL');
+      backupError = refusPostgres ? $t('maintenance.backupPostgresHint' as any)
+        : cause instanceof Error && cause.message.trim() ? cause.message : $t('maintenance.backupError' as any);
+      notifications.error(backupError, 5000, backupDetail);
     } finally {
       backupBusy = false;
     }
   }
 
   async function restoreBackup(filename: string) {
+    if (!sauvegardesDisponibles) return;
     if (!(await dialogs.confirm($t('maintenance.restoreConfirm' as any), { danger: true }))) return;
     restoring = filename;
     try {
@@ -2400,6 +2495,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         ? c.background_analysis_excluded_roots.filter((r: unknown) => typeof r === 'string')
         : null;
       analysisDirs = dossiersDepuisConfig(c?.[CLE_DOSSIERS_INCLUS]);
+      enrichExcludedDirs = dossiersDepuisConfig(c?.[CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT]);
       clapGenresInclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_INCLUS]);
       clapGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_EXCLUS]);
       await refreshDirectoryOrder();
@@ -2449,24 +2545,58 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }
   }
 
-  // L'etat d'analyse est sonde UNIQUEMENT pendant une analyse.
-  $effect(() => {
-    api.getScanStatus().then((s) => { scanning = !!s?.scanning; scanCourant = s?.current ?? null; }).catch(() => {});
-  });
-  $effect(() => {
-    if (!scanning) return;
-    const h = setInterval(async () => {
-      try {
-        const s = await api.getScanStatus();
-        scanning = !!s?.scanning;
-        scanCourant = s?.current ?? null;
-        if (!scanning) {
-          terminerAvancement();
-          scanReport = await api.getScanReport().catch(() => null);
+  /** #2495 : le serveur fait foi, y compris après une demande d'arrêt. */
+  async function rafraichirEtatScan() {
+    if (!suiviScanVivant) return;
+    const tour = ++lectureEtatScan;
+    try {
+      const etat = await api.getScanStatus();
+      if (!suiviScanVivant || tour !== lectureEtatScan) return;
+      if (typeof etat?.scanning !== 'boolean') throw new Error('scan status missing');
+      const etaitActif = scanning;
+      scanning = etat.scanning === true;
+      scanCourant = etat.current ?? null;
+      erreurEtatScan = null;
+      if (!scanning) {
+        arretScanDemande = false;
+        terminerAvancement();
+        if (etaitActif) {
+          const rapport = await api.getScanReport().catch(() => null);
+          if (!suiviScanVivant || tour !== lectureEtatScan) return;
+          scanReport = rapport;
           await refreshLibrary();
         }
-      } catch { /* ignore */ }
-    }, 2500);
+      }
+    } catch {
+      if (suiviScanVivant && tour === lectureEtatScan) {
+        // Une réponse absente ne prouve pas que le scan s'est arrêté.
+        erreurEtatScan = get(t)('scanDetenteur.statutInconnu' as any);
+      }
+    }
+  }
+  $effect(() => {
+    suiviScanVivant = true;
+    void rafraichirEtatScan();
+    const retour = () => { void rafraichirEtatScan(); };
+    const visible = () => { if (document.visibilityState === 'visible') retour(); };
+    window.addEventListener('focus', retour);
+    document.addEventListener('visibilitychange', visible);
+    const desabonner = tuneWS.onEvent((e) => {
+      if (e.type === '_connected' || e.type === '_polling_started'
+        || e.type === 'library.scan.completed'
+        || (e.type === 'library.scan.progress' && !scanning)) retour();
+    });
+    return () => {
+      suiviScanVivant = false; lectureEtatScan++;
+      desabonner(); window.removeEventListener('focus', retour);
+      document.removeEventListener('visibilitychange', visible);
+    };
+  });
+  // Pas de sondage permanent au repos ; le retour réseau/écran relit l'état.
+  $effect(() => { if (tabId === 'library') void rafraichirEtatScan(); });
+  $effect(() => {
+    if (!scanning) return;
+    const h = setInterval(() => { void rafraichirEtatScan(); }, 2500);
     return () => clearInterval(h);
   });
   /**
@@ -2531,6 +2661,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     patch({ [CLE_DOSSIERS_INCLUS]: suivant }, () => { analysisDirs = avant; });
   }
   /**
+   * tune-server-rust#7538 — les dossiers exclus de l'enrichissement des
+   * métadonnées. Le serveur reçoit la liste COMPLÈTE ; s'il refuse, le champ
+   * revient à son état d'avant.
+   */
+  function setDossiersExclusEnrichissement(texte: string) {
+    const avant = enrichExcludedDirs;
+    const suivant = lireSaisieDeDossiers(texte);
+    enrichExcludedDirs = suivant;
+    patch({ [CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT]: suivant }, () => { enrichExcludedDirs = avant; });
+  }
+  /**
    * tune-server-rust#6198 — les genres retenus ou écartés de l'analyse
    * acoustique. Le serveur reçoit la liste COMPLÈTE ; s'il refuse, le champ
    * revient à son état d'avant.
@@ -2581,11 +2722,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       libErr = refusScanConcurrent(r.erreur, (k) => get(t)(k as any)) ?? get(t)('settings.errScanStartFailed');
       return;
     }
+    lectureEtatScan++;
+    arretScanDemande = false; erreurArretScan = null;
     scanning = true; scanReport = null; libErr = null;
   }
   async function stopScan() {
-    try { await api.cancelScan(); } catch { /* deja finie */ }
-    scanning = false; scanCourant = null; terminerAvancement();
+    if (arretScanEnCours || !suiviScanVivant) return;
+    arretScanEnCours = true; erreurArretScan = null;
+    lectureEtatScan++; // Une lecture partie avant le POST ne confirme pas son effet.
+    try {
+      await api.cancelScan();
+      if (!suiviScanVivant) return;
+      arretScanDemande = true;
+      await rafraichirEtatScan();
+    } catch {
+      if (suiviScanVivant) erreurArretScan = get(t)('scanDetenteur.arretImpossible' as any);
+    } finally { arretScanEnCours = false; }
   }
 
   /**
@@ -2766,7 +2918,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
   // tune-server-rust#6541 — les deux limites de volume d'une zone, saisies en
   // %. Le PUT remplace les deux : on renvoie l'autre telle qu'elle est.
-  function enregistrerLimiteVolume(z: any, quelle: 'safety' | 'comfort', texte: string) {
+  function enregistrerLimiteVolume(z: any, quelle: 'safety' | 'comfort', texte: string, champ?: HTMLInputElement) {
     const lue = limiteDepuisPourcent(texte);
     if (lue === undefined) {
       notifications.error(get(t)('devices.volumeLimitInvalid' as any));
@@ -2776,13 +2928,51 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       safety: quelle === 'safety' ? lue : (z.volume_limit_safety ?? null),
       comfort: quelle === 'comfort' ? lue : (z.volume_limit_comfort ?? null),
     };
+    // web#7517 — le confort ne peut pas dépasser la sécurité (le serveur le
+    // refuse aussi) : on le dit et le champ reprend sa valeur enregistrée.
+    if (confortAuDessusDeLaSecurite(limites.comfort, limites.safety)) {
+      notifications.error(get(t)('devices.volumeLimitComfortAboveSafety' as any));
+      if (champ) champ.value = pourcentDeLimite(quelle === 'safety' ? z.volume_limit_safety : z.volume_limit_comfort);
+      return;
+    }
     void poserLimitesVolume(z, limites);
+  }
+
+  // web#7517 — les mêmes limites saisies en dB d'APPAREIL, pour une sortie qui
+  // annonce une course en dB. Celle qu'on change part en `*_device_db`
+  // (le serveur la ramène à la fraction), l'autre en fraction, telle qu'elle
+  // est enregistrée : aucun aller-retour d'arrondi sur ce qu'on ne touche pas.
+  function enregistrerLimiteVolumeDb(z: any, quelle: 'safety' | 'comfort', texte: string, champ?: HTMLInputElement) {
+    const course = courseDb(z);
+    if (!course) return;
+    const reprendre = () => {
+      if (champ) champ.value = texteLimiteDb(quelle === 'safety' ? z.volume_limit_safety_device_db : z.volume_limit_comfort_device_db);
+    };
+    const lue = limiteDepuisDb(texte, course);
+    if ('refus' in lue) {
+      notifications.error(get(t)('devices.volumeLimitInvalidDb' as any)
+        .replace('{min}', String(course.min_db)).replace('{max}', String(course.max_db)));
+      reprendre();
+      return;
+    }
+    const securite = quelle === 'safety' ? lue.fraction : (z.volume_limit_safety ?? null);
+    const confort = quelle === 'comfort' ? lue.fraction : (z.volume_limit_comfort ?? null);
+    if (confortAuDessusDeLaSecurite(confort, securite)) {
+      notifications.error(get(t)('devices.volumeLimitComfortAboveSafety' as any));
+      reprendre();
+      return;
+    }
+    void poserLimitesVolume(z, {
+      safety: quelle === 'safety' ? undefined : securite,
+      comfort: quelle === 'comfort' ? undefined : confort,
+      ...(quelle === 'safety' ? { safety_device_db: lue.db } : { comfort_device_db: lue.db }),
+    });
   }
 
   // 409 `limite_refusee_*` : la zone est (ou vient de passer) en PURE / volume
   // fixe. On montre la phrase traduite et on masque les champs sans attendre
   // le prochain GET /zones.
-  async function poserLimitesVolume(z: any, limites: { safety: number | null; comfort: number | null }) {
+  async function poserLimitesVolume(z: any, limites: Parameters<typeof api.setVolumeLimits>[1]) {
     try {
       const up = await api.setVolumeLimits(z.id as number, limites);
       zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...up } : x)));
@@ -2807,7 +2997,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // ── CLAP (analyse acoustique) ─────────────────────────────────────────
   let clapOn = $state(false);
   let clapThrottle = $state('equilibre');
-  let clapAnalysed = $state(0);
   let clapAvailable = $state<boolean | null>(null);
   async function refreshClap() {
     try {
@@ -2818,7 +3007,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const st = await api.getAcousticStatus();
       clapAvailable = !!st?.available;
-      clapAnalysed = st?.analysed_tracks ?? 0;
       if (st) clapOn = !!st.enabled;
     } catch { clapAvailable = null; }
   }
@@ -3001,7 +3189,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * l'utilisateur redemande le redémarrage, et l'écran se remet à sonder.
    */
   async function redemarrerServeur() {
-    if (!(await dialogs.confirm(get(t)('settings.restartConfirm' as any), { danger: true }))) return;
+    // #2414 — dans un conteneur, « Redémarrer » ne se comporte pas comme sur
+    // une machine ordinaire : on le dit AVANT, et si le serveur ne revient pas.
+    // Une erreur de lecture (serveur plus ancien) ne bloque rien.
+    let conteneur: ReturnType<typeof infoConteneur> = null;
+    try { conteneur = infoConteneur(await api.getSystemEnv()); } catch { /* pas d'indice */ }
+    const tr = get(t) as (k: string) => string;
+    const note = conteneur
+      ? ' ' + tr('settings.restartContainerNote').replace('{engine}', conteneur.moteur).replace('{command}', conteneur.commande)
+      : '';
+    if (!(await dialogs.confirm(tr('settings.restartConfirm') + note, { danger: true }))) return;
     redemarrage = true;
     try {
       await api.restartServer();
@@ -3023,7 +3220,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       recharger: () => window.location.reload(),
       renoncer: () => {
         redemarrage = false;
-        notifications.error(get(t)('settings.updateReloadGaveUp' as any));
+        notifications.error(
+          conteneur
+            ? tr('settings.restartContainerGaveUp').replace('{engine}', conteneur.moteur).replace('{command}', conteneur.commande)
+            : tr('settings.updateReloadGaveUp'),
+          12000,
+        );
       },
     });
   }
@@ -3646,6 +3848,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   // ── Base de donnees / exports ─────────────────────────────────────────
   let dbEngine = $state<string | null>(null);
+  // #2474 : le serveur refuse la copie de fichier sur PostgreSQL.
+  // Moteur absent d'un ancien serveur : laisser sa route décider au clic.
+  let sauvegardesDisponibles = $derived(dbEngine !== 'postgres' && dbEngine !== 'postgresql');
   let dbConnected = $state<boolean | null>(null);
   let dbPath = $state<string | null>(null);
   let dataLoc = $state<string | null>(null);
@@ -3803,8 +4008,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    *  - la recherche des pochettes d'ALBUM manquantes (`/library/artwork/
    *    rescan`), distincte des portraits d'artistes.
    *
-   * Leur progression arrivait par les événements serveur, que cet écran
-   * n'écoute pas : on dit que c'est lancé, sans promettre de barre.
+   * La passe des albums suit son propre contrat de progression, distinct
+   * de l'enrichissement et des portraits d'artistes (#2491).
    */
   async function forceCovers() {
     enrichErr = null;
@@ -3814,15 +4019,48 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await refreshEnrich();
     } catch { enrichErr = get(t)('settings.errStartFailed'); }
   }
-  let albumCoversBusy = $state(false);
+  const suiviPochettes = creerSuiviPochettes({ modeSondage: () => tuneWS.isPolling });
+  const suiviPochettesEtat = suiviPochettes.etat;
+  // #7313 — deuxième étape : la recherche EN LIGNE, enchaînée après la
+  // relecture du disque. Voir `recherchePochettesEnLigne.ts`.
+  const rechercheEnLigne = creerRechercheEnLigne({
+    demarrer: () => api.startAlbumArtworkEnrich(),
+    lireEtat: () => api.getAlbumArtworkEnrichStatus(),
+  });
+  const rechercheEnLigneEtat = rechercheEnLigne.etat;
+  /** Vrai entre le clic et la fin de la relecture du disque : c'est ce clic,
+   *  et lui seul, qui enchaîne la recherche en ligne. */
+  let enLigneAEnchainer = false;
+  let albumCoversBusy = $derived(
+    recherchePochettesOccupee($suiviPochettesEtat) || rechercheEnLigneOccupee($rechercheEnLigneEtat),
+  );
+  $effect(() => suiviPochettes.abonner((h) => tuneWS.onEvent(h)));
+  $effect(() => () => rechercheEnLigne.oublier());
+  $effect(() => {
+    const phase = $suiviPochettesEtat.phase;
+    if (!enLigneAEnchainer || recherchePochettesOccupee($suiviPochettesEtat)) return;
+    enLigneAEnchainer = false;
+    // Seule une relecture du disque TERMINÉE enchaîne : une fin partielle
+    // (arrêt, panne) ou un suivi perdu laissent peut-être la passe disque en
+    // cours, et les deux passes écriraient les mêmes pochettes.
+    if (phase === 'termine') rechercheEnLigne.lancer();
+  });
+  function compteEnLigne(message: string) {
+    const e = $rechercheEnLigneEtat;
+    return message.replace('{found}', $formatNombre(e.trouvees ?? 0))
+      .replace('{total}', $formatNombre(e.total ?? 0)).replace('{remaining}', $formatNombre(e.restantes ?? 0));
+  }
+  function comptePochettes(message: string) {
+    const c = $suiviPochettesEtat.compteurs;
+    return message.replace('{current}', $formatNombre(c?.current ?? 0))
+      .replace('{total}', $formatNombre(c?.total ?? 0)).replace('{found}', $formatNombre(c?.found ?? 0));
+  }
   async function rescanAlbumCovers() {
+    if (albumCoversBusy) return;
     enrichErr = null;
-    albumCoversBusy = true;
-    try {
-      await api.rescanArtwork();
-      notifications.info(get(t)('settings.searchingCovers'));
-    } catch { enrichErr = get(t)('settings.errStartFailed'); }
-    finally { albumCoversBusy = false; }
+    rechercheEnLigne.oublier();
+    enLigneAEnchainer = true;
+    await suiviPochettes.lancer(() => api.rescanArtwork());
   }
   /**
    * Type de sortie des albums — album / EP / single depuis MusicBrainz (#4767).
@@ -4141,7 +4379,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="hint">{$t('settings.loopByDefaultHint' as any)}</span>
                 </div>
                 <label class="sw">
-                  <input type="checkbox" bind:checked={$loopByDefault} />
+                  <input type="checkbox" bind:checked={$loopByDefault} onchange={() => { if (!$loopByDefault) void remettreRepetitionAOff(); }} />
                   <span class="slider"></span>
                 </label>
               </div>
@@ -4195,6 +4433,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     onchange={(e) => setFileAleatoire((e.currentTarget as HTMLInputElement).value)} />
                 </div>
               {/if}
+
+            {:else if s.id === 'radiosCountry'}
+              <PaysEcouteRadios />
 
             {:else if s.id === 'voice'}
               <div class="row">
@@ -4259,6 +4500,32 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {/each}
                   </div>
                 {/each}
+              </div>
+
+              <!-- web#2584 — « Rétablir les largeurs » : le menu des colonnes,
+                   c'est cette matrice. Les poignées des en-têtes règlent une
+                   colonne d'un écran ; ce bouton rend à TOUS les écrans
+                   (album, playlist, Titres) leur largeur automatique. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.colWidthsReset' as any)}</span>
+                  <span class="hint">{$t('settings.colWidthsResetHint' as any)}</span>
+                </div>
+                <button class="lnk" type="button" data-retablir-largeurs onclick={() => retablirLargeurs()}>
+                  {$t('settings.colWidthsResetAction' as any)}
+                </button>
+              </div>
+
+              <!-- web#2599 — « Rétablir l'ordre par défaut » : même place, même
+                   portée (tous les écrans) que les largeurs. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.colOrderReset' as any)}</span>
+                  <span class="hint">{$t('settings.colOrderResetHint' as any)}</span>
+                </div>
+                <button class="lnk" type="button" data-retablir-ordre onclick={() => retablirOrdre()}>
+                  {$t('settings.colOrderResetAction' as any)}
+                </button>
               </div>
 
               <!-- Premier pensionnaire de l'onglet Affichage : un GOÛT, donc
@@ -4449,13 +4716,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <div class="themerow">
                   {#each V2_THEMES as th (th.id)}
-                    <button class="sw2" class:on={$preferences.v2Theme === th.id} title={v2ThemeLabel(th, (k) => $t(k as any))} aria-label={v2ThemeLabel(th, (k) => $t(k as any))}
-                      aria-pressed={$preferences.v2Theme === th.id}
+                    <button class="sw2" class:on={!$themeDuProfil.actif && $preferences.v2Theme === th.id} title={v2ThemeLabel(th, (k) => $t(k as any))} aria-label={v2ThemeLabel(th, (k) => $t(k as any))}
+                      aria-pressed={!$themeDuProfil.actif && $preferences.v2Theme === th.id}
                       style="--sw-bg:{th.swatch[0]}; --sw-acc:{th.swatch[1]}"
                       onclick={() => setV2Theme(th.id)}></button>
                   {/each}
+                  {#if $themeDuProfil.theme}
+                    <button class="sw2" class:on={$themeDuProfil.actif} data-pastille-mon-theme
+                      title={$themeDuProfil.theme.name} aria-label={$t('monTheme.titre' as any) + ' — ' + $themeDuProfil.theme.name}
+                      aria-pressed={$themeDuProfil.actif}
+                      style="--sw-bg:{$themeDuProfil.theme.colors['--v2-bg']}; --sw-acc:{$themeDuProfil.theme.colors['--v2-acc1']}"
+                      onclick={choisirMonTheme}></button>
+                  {/if}
                 </div>
               </div>
+              <!-- #2527 — « Mon thème » : toutes les couleurs au choix, par profil.
+                   Rien tant que le serveur ne porte pas le greffon. -->
+              {#if $etatGreffonTheme !== 'absent' && $etatGreffonTheme !== 'inconnu'}
+                <div class="row row-mon-theme">
+                  <div class="lbl">
+                    <span>{$t('monTheme.titre' as any)}</span>
+                    <span class="hint">{$t('monTheme.hint' as any)}</span>
+                  </div>
+                  <MonThemeV2 />
+                </div>
+              {/if}
 
               <!-- #452 — le crête-mètre, avec son aperçu VIVANT à côté du
                    choix. Trois visuels décrits par des mots ne se départagent
@@ -4479,6 +4764,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <CreteMetre style={$preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT} hauteur={22} largeur={150} />
                   </span>
                 </div>
+              </div>
+
+              <!-- #2429 — le visualiseur à barres de la barre de lecture, retirable
+                   comme les crêtes (testeur Alex, rc8). Affiché par défaut. -->
+              <div class="row" data-visualiseur-barre>
+                <div class="lbl">
+                  <span>{$t('v2.set.barViz' as any)}</span>
+                  <span class="hint">{$t('v2.set.barVizHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.visualiseurBarre ?? true}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, visualiseurBarre: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
               </div>
 
               <!-- La barre de lecture à VU-MÈTRES — Bertrand, 27/09/2026, sur
@@ -4724,10 +5025,42 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               </div>
 
-              <div class="row">
-                <div class="lbl"><span>{$t('settings.searchMissingCovers' as any)}</span></div>
+              <div class="row" data-recherche-pochettes>
+                <div class="lbl"><span>{$t('settings.searchMissingCovers' as any)}</span>
+                  <span class="hint">{$t('settings.searchMissingCoversHint' as any)}</span></div>
                 <button class="lnk" disabled={albumCoversBusy} onclick={rescanAlbumCovers}>{$t('v2.set.start' as any)}</button>
               </div>
+              {#if $suiviPochettesEtat.phase !== 'repos'}
+                <div class="hint" role="status" aria-live="polite" data-suivi-pochettes>
+                  {#if $suiviPochettesEtat.phase === 'demande'}{$t('settings.coversRequesting' as any)}
+                  {:else if $suiviPochettesEtat.phase === 'attente'}{$t('settings.coversAccepted' as any)}
+                  {:else if $suiviPochettesEtat.phase === 'progression'}{comptePochettes($t('settings.coversProgress' as any))}
+                  {:else if $suiviPochettesEtat.phase === 'termine'}
+                    {#if $suiviPochettesEtat.compteurs?.found === 0}{comptePochettes($t('settings.coversNone' as any))}
+                    {:else}{comptePochettes($t('settings.coversCompleted' as any))}{/if}
+                  {:else if $suiviPochettesEtat.phase === 'partiel'}{comptePochettes($t('settings.coversPartial' as any))}
+                  {:else if $suiviPochettesEtat.phase === 'sans_suivi'}{$t('settings.coversNoFollow' as any)}
+                  {:else if $suiviPochettesEtat.phase === 'interrompu'}{$t('settings.coversInterrupted' as any)}
+                  {:else if $suiviPochettesEtat.phase === 'echec'}{$t('settings.errStartFailed' as any)}{/if}
+                </div>
+                {#if $suiviPochettesEtat.compteurs && $suiviPochettesEtat.compteurs.total > 0}
+                  <div class="bar2" role="progressbar" aria-label={$t('settings.searchMissingCovers' as any)}
+                    aria-valuemin="0" aria-valuemax={$suiviPochettesEtat.compteurs.total} aria-valuenow={$suiviPochettesEtat.compteurs.current}>
+                    <span style="width:{Math.min(100, Math.round(($suiviPochettesEtat.compteurs.current / $suiviPochettesEtat.compteurs.total) * 100))}%"></span>
+                  </div>
+                {/if}
+              {/if}
+              {#if $rechercheEnLigneEtat.phase !== 'repos'}
+                <div class="hint" role="status" aria-live="polite" data-suivi-pochettes-en-ligne>
+                  {#if $rechercheEnLigneEtat.phase === 'demande'}{$t('settings.coversOnlineRequesting' as any)}
+                  {:else if $rechercheEnLigneEtat.phase === 'en_cours'}{compteEnLigne($t('settings.coversOnlineProgress' as any))}
+                  {:else if $rechercheEnLigneEtat.phase === 'termine'}{compteEnLigne($t('settings.coversOnlineDone' as any))}
+                  {:else if $rechercheEnLigneEtat.phase === 'rien_a_chercher'}{$t('settings.coversOnlineNothing' as any)}
+                  {:else if $rechercheEnLigneEtat.phase === 'refus'}{$t(($rechercheEnLigneEtat.motif === 'quota' ? 'settings.coversOnlineQuota' : 'settings.coversOnlinePremium') as any)}
+                  {:else if $rechercheEnLigneEtat.phase === 'sans_suivi'}{$t('settings.coversOnlineNoFollow' as any)}
+                  {:else if $rechercheEnLigneEtat.phase === 'echec'}{$t('settings.coversOnlineFailed' as any)}{/if}
+                </div>
+              {/if}
               <!-- Passes MusicBrainz ciblées (#4767) : types de sortie, puis
                    crédits par disque (`POST /system/enrich-credits`, #4862). -->
               <div class="row">
@@ -5072,15 +5405,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- Sauvegardes : créer, lister, RESTAURER. -->
               <div class="row">
                 <div class="lbl"><span>{$t('maintenance.backupRestore' as any)}</span></div>
-                <button class="lnk" disabled={backupBusy} onclick={createBackup}>{$t('maintenance.createBackup' as any)}</button>
+                <button class="lnk" disabled={backupBusy || !sauvegardesDisponibles} onclick={createBackup}>{$t('maintenance.createBackup' as any)}</button>
               </div>
+              {#if !sauvegardesDisponibles}<p class="hint">{$t('maintenance.backupPostgresHint' as any)}</p>{/if}
+              {#if backupError}<div role="alert"><p class="hint errline">{backupError}</p><DetailsServeur detail={backupDetail} /></div>{/if}
               <div class="devlist">
                 {#each backups as b (b.filename)}
                   <div class="dev ign">
                     <span class="dn mono" use:bulleTexte>{b.filename}</span>
                     <span class="dt">{tailleMo(b.size)} MB</span>
                     <span class="dh">{new Date(b.created_at).toLocaleString()}</span>
-                    <button class="lnk danger" disabled={restoring !== null} onclick={() => restoreBackup(b.filename)}>
+                    <button class="lnk danger" disabled={restoring !== null || !sauvegardesDisponibles} onclick={() => restoreBackup(b.filename)}>
                       {restoring === b.filename ? '…' : $t('maintenance.restore' as any)}
                     </button>
                   </div>
@@ -5240,6 +5575,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'apiKeys'}
               <ClesApiV2 />
+
+            {:else if s.id === 'aes67Experimental'}
+              <SortieAes67ExperimentaleV2 />
+
+            {:else if s.id === 'aes67'}
+              <SortieAes67V2 />
 
             {:else if s.id === 'assistantIa'}
               <AssistantIaReglagesV2 />
@@ -5865,6 +6206,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                            ne fait que les régler. Vide = aucune limite. -->
                       {#if serveurConnaitLesLimites(z) && refusDeLimite(z)}
                       <p class="monote">{$t((cleTexteRefus(refusDeLimite(z)) ?? 'devices.volumeLimitRefusedFixed') as any)}</p>
+                      {:else if serveurConnaitLesLimites(z) && courseDb(z)}
+                      <!-- web#7517 — sortie à course en dB : limites en dB,
+                           bande vert / orange / rouge comme sur le curseur. -->
+                      <div class="trim limites-volume">
+                        <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
+                        <input type="text" inputmode="decimal" class="lim" size="6"
+                          value={texteLimiteDb(z.volume_limit_safety_device_db)}
+                          placeholder={$t('devices.volumeLimitNone' as any)}
+                          disabled={z.id == null}
+                          aria-label={$t('devices.volumeLimitSafety' as any)}
+                          onchange={(e) => enregistrerLimiteVolumeDb(z, 'safety', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
+                        <span class="tv">dB</span>
+                        <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
+                        <input type="text" inputmode="decimal" class="lim" size="6"
+                          value={texteLimiteDb(z.volume_limit_comfort_device_db)}
+                          placeholder={$t('devices.volumeLimitNone' as any)}
+                          disabled={z.id == null}
+                          aria-label={$t('devices.volumeLimitComfort' as any)}
+                          onchange={(e) => enregistrerLimiteVolumeDb(z, 'comfort', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
+                        <span class="tv">dB</span>
+                      </div>
+                      {#if fondDesZones(zonesDeLimites(z))}
+                        <div class="bande-zones-volume" style={`background: ${fondDesZones(zonesDeLimites(z))}`} title={$t('volume.zonesLegend' as any)}></div>
+                      {/if}
+                      <p class="monote">{$t('devices.volumeLimitHintDb' as any).replace('{min}', String(courseDb(z)?.min_db)).replace('{max}', String(courseDb(z)?.max_db))}</p>
                       {:else if serveurConnaitLesLimites(z)}
                       <div class="trim limites-volume">
                         <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
@@ -5873,7 +6239,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           placeholder={$t('devices.volumeLimitNone' as any)}
                           disabled={z.id == null}
                           aria-label={$t('devices.volumeLimitSafety' as any)}
-                          onchange={(e) => enregistrerLimiteVolume(z, 'safety', (e.currentTarget as HTMLInputElement).value)} />
+                          onchange={(e) => enregistrerLimiteVolume(z, 'safety', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
                         <span class="tv">%</span>
                         <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
                         <input type="text" inputmode="decimal" class="lim" size="5"
@@ -5881,7 +6247,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           placeholder={$t('devices.volumeLimitNone' as any)}
                           disabled={z.id == null}
                           aria-label={$t('devices.volumeLimitComfort' as any)}
-                          onchange={(e) => enregistrerLimiteVolume(z, 'comfort', (e.currentTarget as HTMLInputElement).value)} />
+                          onchange={(e) => enregistrerLimiteVolume(z, 'comfort', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
                         <span class="tv">%</span>
                       </div>
                       <p class="monote">{$t('devices.volumeLimitHint' as any)}</p>
@@ -6021,12 +6387,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <button class:on={clapThrottle === 'rapide'} onclick={() => setThrottle('rapide')}>{$t('acoustic.throttleFast' as any)}</button>
                     </div>
                   </div>
-                  <!-- Une phrase, une clé : la couper autour du <b> laissait
-                       « titres analysés. L'avancement se suit dans » en dur, et
-                       aucune langue ne place ses mots dans cet ordre-là. -->
-                  <p class="hint">{#each emphaseParts($t('v2.hint.tracksAnalysed' as any)
-                    .replace('{n}', $formatNombre(clapAnalysed))
-                    .replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+                  <!-- #7390 (alec_eiffel, fil 2522) : ce que fait CHAQUE cadence,
+                       en clair — cœurs du processeur et pause entre deux titres,
+                       tels que `tune-core/src/audio/embedding.rs`
+                       (`intra_threads_for`, `per_file_pause_ms`) les applique. -->
+                  <p class="hint" data-cadence-choisie>{$t((clapThrottle === 'eco' ? 'acoustic.throttleEcoHelp'
+                    : clapThrottle === 'rapide' ? 'acoustic.throttleFastHelp' : 'acoustic.throttleBalancedHelp') as any)}</p>
+                  <!-- #7390 : l'avancement ICI, avec ce que le serveur publie déjà
+                       (`/library/search/acoustic/status` : traités, restants,
+                       échecs, pause) — et un accès direct à « État du serveur »,
+                       que le testeur ne trouvait pas. -->
+                  <div data-avancement-acoustique>
+                    <AcousticProgress compact />
+                  </div>
+                  <div class="row">
+                    <div class="lbl"><span class="hint">{$t('acoustic.serverStatusHint' as any)
+                      .replace('{tab}', $t('v2.nav.processing' as any))}</span></div>
+                    <button class="lnk" data-ouvrir-etat-serveur onclick={() => activeView.set('diagnostics')}
+                      >{$t('acoustic.openServerStatus' as any).replace('{tab}', $t('v2.nav.processing' as any))}</button>
+                  </div>
                 {/if}
               {/if}
 
@@ -6042,13 +6421,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="inline">
                   {#if scanning}
                     <span class="badge up" use:bulleTexte>{$t('v2.lbl.analysisRunning' as any)}</span>
-                    <button class="lnk danger" onclick={stopScan}>{$t('common.stop' as any)}</button>
+                    <button class="lnk danger" onclick={stopScan} disabled={arretScanEnCours}>{$t('common.stop' as any)}</button>
+                    {#if arretScanDemande}<span role="status">{$t('scanDetenteur.arretDemande' as any)}</span>{/if}
                   {:else}
                     <button class="lnk" onclick={() => scan(false)}>{$t('v2.lbl.quickAnalysis' as any)}</button>
                     <button class="lnk" onclick={() => scan(true)}>{$t('settings.fullScanV2' as any)}</button>
                   {/if}
                 </div>
               </div>
+              {#if erreurArretScan}<p class="errline" role="alert">{erreurArretScan}</p>{/if}
+              {#if erreurEtatScan}
+                <p class="errline" role="alert">{erreurEtatScan}</p>
+                <button class="lnk" onclick={() => void rafraichirEtatScan()}>{$t('settings.refresh' as any)}</button>
+              {/if}
               <!-- web#2305 (tune-server-rust#6729) : QUEL scan tient le droit. -->
               {#if scanning}
                 {@const detenteur = decrireScanCourant(scanCourant, (k) => $t(k as any))}
@@ -6253,6 +6638,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         onchange={(e) => setDossiersAnalyses((e.currentTarget as HTMLTextAreaElement).value)}></textarea>
                     </label>
                     <p class="hint">{$t('settings.analysisDirsHint' as any)}</p>
+                  </div>
+                {/if}
+                <!-- tune-server-rust#7538 — exclure des dossiers de
+                     l'enrichissement des métadonnées, un par ligne. -->
+                {#if enrichExcludedDirs !== null}
+                  <div class="clap-genres" data-reglage="dossiers-exclus-enrichissement">
+                    <span class="clap-genres-titre">{$t('settings.enrichExcludedDirsTitle' as any)}</span>
+                    <label>
+                      <span>{$t('settings.enrichExcludedDirsLabel' as any)}</span>
+                      <textarea rows="3" value={afficherDossiers(enrichExcludedDirs)}
+                        placeholder={$t('settings.enrichExcludedDirsPlaceholder' as any)}
+                        aria-label={$t('settings.enrichExcludedDirsLabel' as any)}
+                        onchange={(e) => setDossiersExclusEnrichissement((e.currentTarget as HTMLTextAreaElement).value)}></textarea>
+                    </label>
+                    <p class="hint">{$t('settings.enrichExcludedDirsHint' as any)}</p>
                   </div>
                 {/if}
                 <!-- tune-server-rust#6198 — réserver l'analyse acoustique
@@ -6617,12 +7017,32 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if lic.licenseKey}
                   <div class="kv"><span>{$t('v2.lbl.key' as any)}</span><b class="mono">{maskKey(lic.licenseKey)}</b></div>
                 {/if}
+                {#if lic.premiumSource === 'account'}
+                  <div class="kv" data-source-premium="account"><span>{$t('settings.licenseSource' as any)}</span>
+                    <b>{$t('settings.licenseSourceAccount' as any)}</b></div>
+                {/if}
                 {#if lic.expiresAt}
                   <div class="kv"><span>{$t('settings.expiresOn' as any)}</span><b>{$dateSimple(lic.expiresAt)}</b></div>
                 {/if}
                 <div class="kv"><span>{$t('settings.allowedZones' as any)}</span><b
                   >{lic.zoneLimit == null ? $t('settings.zonesUnlimited' as any) : lic.zoneLimit}</b></div>
               </div>
+
+              {#if lic.premiumSource === 'account' && !lic.licenseKey}
+                <!-- #7419 (alec_eiffel, fil 2530) : sur une nouvelle machine, la
+                     connexion au compte suffit. Sans cette phrase, le champ de
+                     clé vide ci-dessous laissait croire qu'il fallait aller
+                     recopier sa clé depuis son espace personnel. -->
+                <div class="okbox" role="status" data-premium-par-le-compte>
+                  {$t('settings.licenseViaAccount' as any)}
+                </div>
+              {:else if lic.loaded && lic.tier === 'free' && !lic.licenseKey}
+                <div class="row" data-retrouver-par-le-compte>
+                  <div class="lbl"><span class="hint">{$t('settings.licenseFindByAccount' as any)}</span></div>
+                  <button class="lnk" onclick={() => v2SettingsTarget.set({ tab: 'system', section: 'cloud' })}
+                    >{$t('settings.licenseOpenAccount' as any)}</button>
+                </div>
+              {/if}
 
               {#if lic.sessionConflict}
                 <!-- Le premium est suspendu ici parce que la licence est active
@@ -6727,7 +7147,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {:else}
                 <div class="row">
-                  <div class="lbl"><span>{$t('settings.activateLicense' as any)}</span>
+                  <div class="lbl"><span>{$t((lic.premiumSource === 'account' ? 'settings.activateLicenseOptional' : 'settings.activateLicense') as any)}</span>
                     <span class="hint">{$t('settings.licenceKeyByEmail' as any)}</span></div>
                   <div class="inline">
                     <input class="txt" type="text" placeholder="XXXX-XXXX-XXXX" bind:value={licKey}
@@ -6769,7 +7189,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 « Arrêter » est irréversible côté utilisateur : il faut un accès
                 à la machine pour relancer. Sa confirmation est `danger`.
               -->
-              <div class="inline">
+              <!-- #2407 — UN conteneur pour les gestes de service, journaux et
+                   diagnostic compris. Ils vivaient dans deux `.inline` collés
+                   l'un à l'autre, sans marge : « Restart server », « Stop
+                   server », « Download logs » et « Download diagnostics »
+                   se touchaient (testeur Alex, rc8). Flex + gap, comme le
+                   reste des réglages. -->
+              <div class="actions-serveur" data-actions-serveur>
                 <button class="lnk" disabled={redemarrage} onclick={redemarrerServeur}>
                   {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
                 </button>
@@ -6781,10 +7207,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {extinctionEnCours ? $t('diagnostics.shuttingDown' as any) : $t('diagnostics.shutdown' as any)}
                   </button>
                 {/if}
-              </div>
-              <!-- Point 3 du fil 1780 : les journaux et le diagnostic, ici
-                   comme dans la coquille actuelle. -->
-              <div class="inline">
+                <!-- Point 3 du fil 1780 : les journaux et le diagnostic, ici
+                     comme dans la coquille actuelle. -->
                 <button class="lnk" disabled={journauxEnCours} onclick={telechargerLesJournaux}>
                   {$t('settings.downloadLogs' as any)}
                 </button>
@@ -7863,6 +8287,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .cardhead h3{font-size:15px; font-weight:700}
 
   .row{display:flex; align-items:center; justify-content:space-between; gap:20px; margin-top:12px}
+  /* #2527 — l'éditeur de « Mon thème » prend toute la largeur, sous son libellé. */
+  .row.row-mon-theme{flex-direction:column; align-items:stretch}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
   .lbl span:first-child{font-size:13.5px; font-weight:500}
   .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3)}
@@ -7936,6 +8362,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /* #6541 — limites de volume : deux champs courts sur la ligne du trim. */
   .limites-volume .lim{width:4.5em; font:12px var(--v2-mono)}
   .limites-volume .tv{min-width:0}
+  .bande-zones-volume{height:6px;border-radius:3px;margin:4px 0 2px;max-width:220px}
   .trim .tf{font-size:11.5px; color:var(--v2-txt3)}
   .zde{margin-top:13px}
   .radv{margin-top:13px; border-top:1px solid var(--v2-line); padding-top:11px}
@@ -8084,6 +8511,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .tok code{font:11.5px var(--v2-mono); color:var(--v2-txt); word-break:break-all}
   .warnline{font-size:11.5px; line-height:1.45; color:var(--v2-acc-tint)}
   .inline{display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:0 0 auto}
+  .actions-serveur{display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:16px 0 4px}
   .txt{height:34px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
     color:var(--v2-txt); font:13px var(--v2-sans); padding:0 11px; outline:none; width:210px}
   .txt.num{width:78px; font-family:var(--v2-mono)}

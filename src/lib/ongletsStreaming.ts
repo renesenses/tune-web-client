@@ -57,9 +57,9 @@
  * `tune-server-rust`, pas ici. Le retrait de l'onglet se justifie seul : un
  * onglet en double dont les sept routes sont vides.
  *
- * Le pseudo, lui, ne se perd pas : il passe sur l'onglet qui survit
- * (`pseudoOnglet`), sans quoi la liaison de compte redeviendrait invisible —
- * la régression que `tune-server-rust#2778` avait justement réparée.
+ * Le pseudo ne s'affiche PLUS sur l'onglet (web#2409, testeur Alex, rc8) : la
+ * pastille porte le nom du service et rien d'autre. La liaison de compte reste
+ * lisible dans la carte de connexion de Réglages.
  */
 
 import { ordonnerSources } from './rechercheClassement';
@@ -97,6 +97,29 @@ export function servicesConnectes(
 }
 
 /**
+ * Une session EXPIRÉE : le service est activé, il n'est plus connecté, et le
+ * serveur se souvient du compte — web#2587.
+ *
+ * Le serveur efface le jeton quand le fournisseur le refuse (Qobuz, 01/11/2026,
+ * rc9 : app_id refusé → `/user/get` 401 → session effacée) mais GARDE le nom du
+ * compte (`StreamingServiceStatus.username`). C'est ce qui distingue un service
+ * dont la session est tombée d'un service JAMAIS connecté, qui n'a pas de
+ * compte : celui-là reste masqué (Bertrand, 26/09, fil 1952, web#1621).
+ */
+export function sessionExpiree(etat: EtatService | null | undefined): boolean {
+  return !!etat?.enabled && !etat?.authenticated && !!etat?.username;
+}
+
+/** Les services dont la session a expiré — voir `sessionExpiree`. */
+export function servicesExpires(
+  services: Record<string, EtatService> | null | undefined,
+): string[] {
+  return Object.entries(services ?? {})
+    .filter(([, v]) => sessionExpiree(v))
+    .map(([k]) => k);
+}
+
+/**
  * Les onglets de l'écran, dédoublonnés.
  *
  * 🔴 L'ordre compte : le dédoublonnage garde la PLACE du service générique.
@@ -118,25 +141,17 @@ export function ongletsStreaming(
   services: Record<string, EtatService> | null | undefined,
   bandcampLive: boolean,
 ): string[] {
-  const connectes = servicesConnectes(services);
+  // web#2587 — un service à session expirée GARDE son onglet : il ne disparaît
+  // plus de la rangée, l'écran y dit « Session expirée — Reconnecter ».
+  const expires = new Set(servicesExpires(services));
+  const connectes = ordonnerSources(
+    [...servicesConnectes(services), ...expires],
+    (k) => k,
+  );
   if (!bandcampLive) return connectes;
   // L'extension répond : elle ABSORBE le service générique, à sa place — et
   // seulement s'il est là.
   return connectes.map((k) => (k === BANDCAMP_SVC ? BANDCAMP_EXT : k));
-}
-
-/**
- * Le pseudo à afficher sur un onglet, ou `null`.
- *
- * L'onglet de l'extension porte le pseudo du service GÉNÉRIQUE : c'est le même
- * compte Bandcamp, et c'est la seule des deux clés que le serveur renseigne.
- */
-export function pseudoOnglet(
-  cle: string,
-  services: Record<string, EtatService> | null | undefined,
-): string | null {
-  const svc = cle === BANDCAMP_EXT ? BANDCAMP_SVC : cle;
-  return (services ?? {})[svc]?.username || null;
 }
 
 /**

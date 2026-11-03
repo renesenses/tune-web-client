@@ -51,18 +51,29 @@ export function memoriserLecture(id: number, store?: Pick<Storage, 'getItem' | '
 /**
  * Les stations lues en dernier, la plus récente d'abord.
  *
- * Si le serveur date les lectures (`last_played_at`), c'est lui qui fait foi :
- * il voit aussi ce qui a été lancé d'un autre appareil. Sinon, repli sur la
- * mémoire de cet appareil. Une station disparue de la liste est ignorée.
+ * Si le serveur date les lectures, c'est lui qui fait foi : il voit aussi ce
+ * qui a été lancé d'un autre appareil. Sinon, repli sur la mémoire de cet
+ * appareil. Une station disparue de la liste est ignorée.
+ *
+ * web#2397 (point 6) : le serveur DATE DÉJÀ les lectures. `GET /radios` rend
+ * la colonne `last_played` (ISO-8601, écrite par `RadioRepo::record_play` à
+ * chaque `POST /radios/{id}/play/{zone}`), pas `last_played_at` : ce nom-là
+ * n'existe que pour les pistes. Le client attendait le second, ne le trouvait
+ * jamais et retombait toujours sur la mémoire locale.
  */
+export function dateDeLecture(r: Pick<RadioStation, 'last_played' | 'last_played_at'>): string | null {
+  const d = r.last_played ?? r.last_played_at;
+  return typeof d === 'string' && d.trim() ? d : null;
+}
+
 export function dernieresLues(
   radios: RadioStation[],
   store?: Pick<Storage, 'getItem'>,
   n = 12,
 ): RadioStation[] {
   const datees = radios
-    .filter((r) => r.last_played_at)
-    .sort((a, b) => String(b.last_played_at).localeCompare(String(a.last_played_at)));
+    .filter((r) => dateDeLecture(r))
+    .sort((a, b) => String(dateDeLecture(b)).localeCompare(String(dateDeLecture(a))));
   if (datees.length) return datees.slice(0, n);
   const parId = new Map(radios.map((r) => [r.id, r]));
   return lire(store)

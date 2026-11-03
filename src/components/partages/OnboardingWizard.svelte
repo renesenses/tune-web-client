@@ -4,6 +4,7 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { streamingServices as streamingServicesStore } from '../../lib/stores/streaming';
+  import { natureErreurConnexion } from '../../lib/erreurConnexionService';
   import { activeView } from '../../lib/stores/navigation';
   import { tuneWS } from '../../lib/websocket';
   import { notifications } from '../../lib/stores/notifications';
@@ -362,8 +363,14 @@
       } else {
         qobuzAuthError = get(t)('settings.wrongCredentials');
       }
-    } catch {
-      qobuzAuthError = get(t)('settings.connectionError');
+    } catch (e: any) {
+      // #2406 — un refus d'identifiants n'est pas une panne de connexion.
+      const nature = natureErreurConnexion(e);
+      qobuzAuthError = nature === 'application'
+        ? get(t)('settings.errAppRefused' as any).replace('{service}', 'Qobuz')
+        : nature === 'identifiants'
+          ? get(t)('settings.wrongCredentials')
+          : get(t)('settings.connectionError');
     }
     qobuzAuthLoading = false;
   }

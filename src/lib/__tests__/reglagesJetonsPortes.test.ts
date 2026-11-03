@@ -166,7 +166,9 @@ describe('Menu avatar — entrer et sortir', () => {
     // le départ, l'application ne sait pas d'où l'utilisateur revient.
     const src = menu();
     const drapeau = src.indexOf("localStorage.setItem('tune_sso_pending'");
-    const depart = src.indexOf("window.location.href = '/api/v1/cloud/sso/authorize'");
+    // Le départ passe par `urlSsoAuthorize` (langue et thème, #2420) : même
+    // chemin /cloud/sso/authorize, plus ui_locales et theme.
+    const depart = src.indexOf("window.location.href = urlSsoAuthorize('/api/v1')");
     expect(drapeau, 'le drapeau de retour a disparu').toBeGreaterThan(-1);
     expect(drapeau, 'le drapeau est posé APRÈS le départ : il ne sera jamais écrit').toBeLessThan(depart);
   });

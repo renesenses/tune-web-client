@@ -996,7 +996,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                   objet={objetArtiste(a)}
                   nom={a.name}
                 >
-                  <AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} vignette alt={a.name}
+                  <AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} vignette recadrer alt={a.name}
                     source={(a as any).source} fallbackInitials={a.name?.slice(0,1)} />
                 </PochetteActions>
               </span>

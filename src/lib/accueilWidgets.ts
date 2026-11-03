@@ -1487,7 +1487,7 @@ export const WIDGETS: Widget[] = [
               mosaique: () => enFileMosaique(async () =>
                 quatreDistinctes(((await api.getPlaylistTracks(playlistLocale)) ?? []) as any[])),
             } : {}),
-            titre: (o.context_type === 'album' || o.context_type === 'playlist') && o.last_track_title ? o.last_track_title : el.titre,
+            titre: (o.context_type === 'album' || o.context_type === 'playlist' || o.context_type === 'podcast') && o.last_track_title ? o.last_track_title : el.titre,
             sous: sousTitreReprise(o) || el.sous,
             jouer: gesteReprise(o),
           };

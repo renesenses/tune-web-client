@@ -82,6 +82,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'interface',  titleKey: 'settings.interface', from: 'general', min: 'beginner', keywords: ['langue', 'thème', 'affichage', 'lecture en cours', 'album', 'playlist'] },
       // Bertrand, 16/09/2026 : la v2 savait basculer de profil (menu avatar),
       // jamais en créer un. L'onglet Profils de l'écran actuel arrive ici.
+      // #2533 : le pays d'écoute des radios, réglé une fois pour toutes, vit ici ;
+      // l'onglet Radios ne le propose que tant qu'il n'est pas renseigné.
+      { id: 'radiosCountry', titleKey: 'v2.radio.listeningCountry', from: 'radios', min: 'beginner',
+        keywords: ['radio', 'radios', 'pays', 'pays d\'écoute', 'listening country', 'flux', 'restriction', 'géographique'] },
       { id: 'profiles',   titleKey: 'settings.tabProfiles', from: 'profiles', min: 'beginner', keywords: ['profils', 'utilisateurs', 'multi-profil', 'qui écoute'] },
       { id: 'voice',      title: 'Tune Voice AI',         from: 'general', min: 'expert',   keywords: ['voix', 'commande vocale'] },
       // Chantier « assistant-ia », étape 1 : la clé de l'utilisateur, son
@@ -100,6 +104,12 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'squeezebox',    titleKey: 'settings.squeezebox',          from: 'services', min: 'intermediate', keywords: ['lyrion', 'lms', 'slimproto'] },
       { id: 'sendspin',      title: 'Sendspin',                        from: 'services', min: 'intermediate', keywords: ['sendspin', 'enceinte', 'music assistant', 'voice pe', 'esphome', 'exclure', 'ne pas se connecter'] },
       { id: 'hqplayer',      title: 'HQPlayer',                        from: 'services', min: 'expert',   keywords: ['upsampling', 'naa'] },
+      /** #7336 — Expérimental › Sortie AES67 (Dante/Ravenna) : la case qui
+       *  l'active, DÉCOCHÉE par défaut (rc10, Bertrand 31/10/2026). */
+      { id: 'aes67Experimental', titleKey: 'aes67.experimental.title', from: 'extensions', min: 'expert', keywords: ['expérimental', 'aes67', 'dante', 'ravenna', 'audio sur ip', 'multicast', 'ptp'] },
+      /** #7336 E3 — état de la Sortie AES67 (greffon natif, Premium). Montrée
+       *  seulement si le greffon répond (voir `presenceSortieAes67`). */
+      { id: 'aes67',         titleKey: 'aes67.title',                  from: 'extensions', min: 'expert', keywords: ['aes67', 'ptp', 'ieee 1588', 'sap', 'sdp', 'multicast', 'horloge', 'réseau', 'audio sur ip', 'sortie'] },
       { id: 'bridge',        title: 'Tune Bridge',                     from: 'network', min: 'expert',   keywords: ['pont', 'relais'] },
       { id: 'dsd',           titleKey: 'settings.dsdNetworkTitle',     from: 'network', min: 'expert',   keywords: ['dsd', 'dop', 'sacd'] },
       { id: 'dspProgressif', titleKey: 'settings.dspProgressifTitle', from: 'network', min: 'expert',   keywords: ['dsp', 'eq', 'égaliseur', 'convolveur', 'replaygain', 'dlna', 'wav', 'latence', 'silence'] },

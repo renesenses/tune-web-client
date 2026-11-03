@@ -30,9 +30,9 @@ describe('Enrichissement : portraits forcés, pochettes d’album', () => {
     expect(corps('rescanAlbumCovers')).toContain('api.rescanArtwork()');
   });
 
-  it('un échec de lancement est dit', () => {
-    for (const f of ['forceCovers', 'rescanAlbumCovers']) {
-      expect(corps(f), f).toContain("enrichErr = get(t)('settings.errStartFailed')");
-    }
+  // Le refus des pochettes d'album est désormais mesuré dans le vrai écran
+  // avec une réponse HTTP en échec (suiviPochettes2491.svelte.test.ts).
+  it('un échec de lancement des portraits forcés est dit', () => {
+    expect(corps('forceCovers')).toContain("enrichErr = get(t)('settings.errStartFailed')");
   });
 });
