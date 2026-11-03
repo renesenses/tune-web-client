@@ -229,10 +229,11 @@
   // referment/rouvrent la fiche sans passer par la grille Bibliothèque.
   let albumOuvert = $state<Album | null>(null);
   $effect(() => {
-    const id = /^collectionphysique:album:(\d+)$/.exec($detailOuvert ?? '')?.[1];
-    let vivant = true;
     albumOuvert = null;
+    if ($detailOuvert == null) return;
+    const id = /^collectionphysique:album:(\d+)$/.exec($detailOuvert)?.[1];
     if (!id) return;
+    let vivant = true;
     getAlbum(Number(id)).then((album) => {
       if (vivant) albumOuvert = album;
     }).catch(() => {
