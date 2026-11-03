@@ -11,6 +11,7 @@
    *
    * Un clic sur la vignette écoute la station tout de suite, sans l'ajouter.
    */
+  import { onDestroy, tick } from 'svelte';
   import * as api from '../../lib/api';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { genresDeLaFiche, type AnnuaireRadios, type FicheAnnuaireRadio } from '../../lib/api/annuaireRadios';
@@ -34,19 +35,22 @@
   interface Props {
     /** Une station vient d'entrer dans « Mes radios » (ou d'y changer). */
     onAjoutee?: (station: RadioStation) => void;
+    q?: string;
+    pays?: string | null;
+    genre?: string | null;
+    /** Retrouver toutes les pages déjà visibles avant de rétablir le défilement. */
+    limiteInitiale?: number;
+    onCharge?: (nombre: number) => void;
     /** La station de l'annuaire qui joue, pour la pastille « en direct ». */
     enDirect?: string | null;
     onJoue?: (externalId: string) => void;
     /** Le titre en cours de la zone, quand c'est une de ces stations qui joue. */
     titreEnCours?: string | null;
   }
-  let { onAjoutee, enDirect = null, onJoue, titreEnCours = null }: Props = $props();
+  let { onAjoutee, enDirect = null, onJoue, titreEnCours = null, q = $bindable(''), pays = $bindable(null), genre = $bindable(null), limiteInitiale = 120, onCharge }: Props = $props();
 
   const PAGE = 120;
 
-  let q = $state('');
-  let pays = $state<string | null>(null);
-  let genre = $state<string | null>(null);
   let page = $state<AnnuaireRadios | null>(null);
   let items = $state<FicheAnnuaireRadio[]>([]);
   let chargement = $state(true);
@@ -59,17 +63,30 @@
   const cleCriteres = $derived(JSON.stringify(criteres));
 
   let jeton = 0;
+  let premiereLecture = true;
+  onDestroy(() => { jeton += 1; });
   async function charger(suite = false) {
     const moi = ++jeton;
     chargement = true;
     erreur = null;
     try {
-      const r = await api.getAnnuaireRadios({
-        q, country: pays, genre, offset: suite ? items.length : 0, limit: PAGE, criteres,
-      });
-      if (moi !== jeton) return;
+      const cible = premiereLecture ? Math.max(PAGE, limiteInitiale) : PAGE;
+      const debut = suite ? items.length : 0;
+      const nouvelles: FicheAnnuaireRadio[] = [];
+      let r: AnnuaireRadios;
+      do {
+        r = await api.getAnnuaireRadios({
+          q, country: pays, genre, offset: debut + nouvelles.length,
+          limit: Math.min(PAGE, cible - nouvelles.length), criteres,
+        });
+        if (moi !== jeton) return;
+        nouvelles.push(...r.items);
+      } while (nouvelles.length < cible && r.items.length > 0 && debut + nouvelles.length < r.total);
       page = r;
-      items = suite ? [...items, ...r.items] : r.items;
+      items = suite ? [...items, ...nouvelles] : nouvelles;
+      premiereLecture = false;
+      await tick();
+      if (moi === jeton) onCharge?.(items.length);
     } catch {
       if (moi === jeton) erreur = $t('v2.radio.dir.loadFailed' as any);
     } finally {
@@ -92,6 +109,13 @@
     const rayon = radioGenreRayon({ genre: cle });
     return rayon ? radioGenreLabel(rayon, (k) => $t(k as any)) : cle;
   };
+  // Une combinaison sans résultat peut omettre les filtres choisis des
+  // facettes. Les garder visibles permet de comprendre et modifier le choix.
+  const genresAffiches = $derived.by(() => {
+    const genres = (page?.genres ?? []).map(g => ({ cle: g.key ?? '', libelle: libelleGenre(g.key ?? ''), n: g.count }));
+    if (genre && !genres.some(g => g.cle === genre)) genres.push({ cle: genre, libelle: libelleGenre(genre), n: 0 });
+    return genres;
+  });
   const nomPays = (code: string | null | undefined) => nomDuPays(code, $locale, code);
 
   async function ecouter(f: FicheAnnuaireRadio) {
@@ -142,6 +166,9 @@
     <RadioRecherche bind:valeur={q} />
     <select class="choix" bind:value={pays} aria-label={$t('v2.radio.country' as any)}>
       <option value={null}>{$t('v2.radio.dir.allCountries' as any)}</option>
+      {#if pays && !page?.countries.some(c => c.code === pays)}
+        <option value={pays}>{nomPays(pays)}</option>
+      {/if}
       {#each page?.countries ?? [] as c (c.code)}
         <option value={c.code}>{nomPays(c.code)} ({c.count})</option>
       {/each}
@@ -151,10 +178,10 @@
     {/if}
   </div>
   <RadioFiltresAvances />
-  {#if page?.genres?.length}
+  {#if genresAffiches.length}
     <RadioChipsGenres
-      genres={page.genres.map((g) => ({ cle: g.key ?? '', libelle: libelleGenre(g.key ?? ''), n: g.count }))}
-      choisi={genre} total={page.stations} onChoisir={(c) => (genre = c)} />
+      genres={genresAffiches}
+      choisi={genre} total={page?.stations ?? 0} onChoisir={(c) => (genre = c)} />
   {/if}
 
   {#if erreur}
