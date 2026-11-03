@@ -6499,6 +6499,23 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk n’agit pas en mode PURE : le signal part intact. Vos réglages sont conservés.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (traitement pour enceintes) est actif sur cette zone : le crossfeed, traitement pour casque, y est écarté. Les deux ne se cumulent jamais.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (traitement pour enceintes) est actif sur cette zone : Crossfeed Pro, traitement pour casque, y est écarté. Les deux ne se cumulent jamais.",
+  // #2610 — noms des tâches de fond.
+  "app.task.credits": "Récupération des crédits…",
+  "app.task.artistImages": "Récupération des images d’artistes…",
+  "app.task.covers": "Récupération des pochettes d’albums…",
+  "app.task.metadata": "Enrichissement des métadonnées…",
+  "app.task.bios": "Récupération des biographies…",
+  "app.task.identification": "Identification de la bibliothèque…",
+  "app.task.integrity": "Vérification de l’intégrité de la bibliothèque…",
+  "app.task.writeDr": "Écriture de la plage dynamique dans les fichiers…",
+  "app.task.writeMetadata": "Écriture des métadonnées dans les fichiers…",
+  "app.task.readMetadata": "Lecture des métadonnées des fichiers…",
+  "app.task.composers": "Recherche des compositeurs…",
+  "app.task.lyrics": "Récupération des paroles…",
+  "app.task.writeLyrics": "Écriture des paroles dans les fichiers…",
+  "app.task.compilations": "Vérification des compilations…",
+  "app.task.releaseTypes": "Recherche des types de sortie…",
+  "app.task.dynamicRange": "Mesure de la plage dynamique…",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

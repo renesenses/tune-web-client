@@ -6329,5 +6329,22 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk không tác động ở chế độ PURE: tín hiệu đi ra nguyên vẹn. Cài đặt của bạn được giữ nguyên.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (xử lý cho loa) đang bật trên vùng này: crossfeed, một xử lý cho tai nghe, bị gạt sang bên tại đây. Hai thứ không bao giờ cộng dồn.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (xử lý cho loa) đang bật trên vùng này: Crossfeed Pro, một xử lý cho tai nghe, bị gạt sang bên tại đây. Hai thứ không bao giờ cộng dồn.",
+  // #2610 — noms des tâches de fond.
+  "app.task.credits": "Đang lấy thông tin người tham gia…",
+  "app.task.artistImages": "Đang lấy ảnh nghệ sĩ…",
+  "app.task.covers": "Đang lấy bìa album…",
+  "app.task.metadata": "Đang bổ sung siêu dữ liệu…",
+  "app.task.bios": "Đang lấy tiểu sử…",
+  "app.task.identification": "Đang nhận dạng các mục trong thư viện…",
+  "app.task.integrity": "Đang kiểm tra tính toàn vẹn của thư viện…",
+  "app.task.writeDr": "Đang ghi dải động vào tệp…",
+  "app.task.writeMetadata": "Đang ghi siêu dữ liệu vào tệp…",
+  "app.task.readMetadata": "Đang đọc siêu dữ liệu của tệp…",
+  "app.task.composers": "Đang tìm nhạc sĩ sáng tác…",
+  "app.task.lyrics": "Đang lấy lời bài hát…",
+  "app.task.writeLyrics": "Đang ghi lời bài hát vào tệp…",
+  "app.task.compilations": "Đang kiểm tra album tuyển tập…",
+  "app.task.releaseTypes": "Đang tìm loại bản phát hành…",
+  "app.task.dynamicRange": "Đang đo dải động…",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

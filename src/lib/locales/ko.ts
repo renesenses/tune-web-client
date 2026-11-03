@@ -6477,6 +6477,23 @@ export default {
   "v2.pure.veilCrosstalk": "PURE 모드에서는 Crosstalk가 작동하지 않습니다. 신호는 그대로 출력됩니다. 설정은 유지됩니다.",
   "dsp.crossfeedSetAsideByCrosstalk": "이 존에서 Crosstalk(스피커용 처리)가 활성화되어 있습니다. 헤드폰용 처리인 크로스피드는 여기서 제외됩니다. 둘은 절대 함께 적용되지 않습니다.",
   "v2.cfp.setAsideByCrosstalk": "이 존에서 Crosstalk(스피커용 처리)가 활성화되어 있습니다. 헤드폰용 처리인 Crossfeed Pro는 여기서 제외됩니다. 둘은 절대 함께 적용되지 않습니다.",
+  // #2610 — noms des tâches de fond.
+  "app.task.credits": "크레딧 가져오는 중…",
+  "app.task.artistImages": "아티스트 이미지 가져오는 중…",
+  "app.task.covers": "앨범 표지 가져오는 중…",
+  "app.task.metadata": "메타데이터 보완 중…",
+  "app.task.bios": "약력 가져오는 중…",
+  "app.task.identification": "라이브러리 항목 식별 중…",
+  "app.task.integrity": "라이브러리 무결성 확인 중…",
+  "app.task.writeDr": "다이내믹 레인지를 파일에 쓰는 중…",
+  "app.task.writeMetadata": "메타데이터를 파일에 쓰는 중…",
+  "app.task.readMetadata": "파일 메타데이터 읽는 중…",
+  "app.task.composers": "작곡가 검색 중…",
+  "app.task.lyrics": "가사 가져오는 중…",
+  "app.task.writeLyrics": "가사를 파일에 쓰는 중…",
+  "app.task.compilations": "컴필레이션 확인 중…",
+  "app.task.releaseTypes": "발매 유형 검색 중…",
+  "app.task.dynamicRange": "다이내믹 레인지 측정 중…",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

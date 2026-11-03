@@ -6477,6 +6477,23 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk wirkt im PURE-Modus nicht: Das Signal geht unverändert hinaus. Ihre Einstellungen bleiben erhalten.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (Verarbeitung für Lautsprecher) ist in dieser Zone aktiv: Der Crossfeed, eine Verarbeitung für Kopfhörer, ist hier ausgesetzt. Beide werden nie kombiniert.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (Verarbeitung für Lautsprecher) ist in dieser Zone aktiv: Crossfeed Pro, eine Verarbeitung für Kopfhörer, ist hier ausgesetzt. Beide werden nie kombiniert.",
+  // #2610 — noms des tâches de fond.
+  "app.task.credits": "Mitwirkende werden abgerufen…",
+  "app.task.artistImages": "Künstlerbilder werden abgerufen…",
+  "app.task.covers": "Albumcover werden abgerufen…",
+  "app.task.metadata": "Metadaten werden ergänzt…",
+  "app.task.bios": "Biografien werden abgerufen…",
+  "app.task.identification": "Bibliothekseinträge werden identifiziert…",
+  "app.task.integrity": "Bibliotheksintegrität wird geprüft…",
+  "app.task.writeDr": "Dynamikumfang wird in Dateien geschrieben…",
+  "app.task.writeMetadata": "Metadaten werden in Dateien geschrieben…",
+  "app.task.readMetadata": "Dateimetadaten werden gelesen…",
+  "app.task.composers": "Komponisten werden gesucht…",
+  "app.task.lyrics": "Liedtexte werden abgerufen…",
+  "app.task.writeLyrics": "Liedtexte werden in Dateien geschrieben…",
+  "app.task.compilations": "Kompilationen werden geprüft…",
+  "app.task.releaseTypes": "Veröffentlichungstypen werden gesucht…",
+  "app.task.dynamicRange": "Dynamikumfang wird gemessen…",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

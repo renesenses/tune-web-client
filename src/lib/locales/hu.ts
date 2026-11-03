@@ -6436,6 +6436,23 @@ export default {
   "v2.pure.veilCrosstalk": "A Crosstalk PURE módban nem hat: a jel érintetlenül megy ki. A beállítások megmaradnak.",
   "dsp.crossfeedSetAsideByCrosstalk": "A Crosstalk (hangsugárzós feldolgozás) aktív ezen a zónán: a crossfeed, fejhallgatós feldolgozás, itt félre van téve. A kettő soha nem adódik össze.",
   "v2.cfp.setAsideByCrosstalk": "A Crosstalk (hangsugárzós feldolgozás) aktív ezen a zónán: a Crossfeed Pro, fejhallgatós feldolgozás, itt félre van téve. A kettő soha nem adódik össze.",
+  // #2610 — noms des tâches de fond.
+  "app.task.credits": "Közreműködők adatainak lekérése…",
+  "app.task.artistImages": "Előadói képek lekérése…",
+  "app.task.covers": "Albumborítók lekérése…",
+  "app.task.metadata": "Metaadatok kiegészítése…",
+  "app.task.bios": "Életrajzok lekérése…",
+  "app.task.identification": "Könyvtárelemek azonosítása…",
+  "app.task.integrity": "Könyvtár épségének ellenőrzése…",
+  "app.task.writeDr": "Dinamikatartomány írása a fájlokba…",
+  "app.task.writeMetadata": "Metaadatok írása a fájlokba…",
+  "app.task.readMetadata": "Fájlok metaadatainak olvasása…",
+  "app.task.composers": "Zeneszerzők keresése…",
+  "app.task.lyrics": "Dalszövegek lekérése…",
+  "app.task.writeLyrics": "Dalszövegek írása a fájlokba…",
+  "app.task.compilations": "Válogatásalbumok ellenőrzése…",
+  "app.task.releaseTypes": "Kiadványtípusok keresése…",
+  "app.task.dynamicRange": "Dinamikatartomány mérése…",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

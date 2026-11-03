@@ -6477,6 +6477,23 @@ export default {
   "v2.pure.veilCrosstalk": "PURE モードでは Crosstalk は作用しません。信号はそのまま出力されます。設定は保持されます。",
   "dsp.crossfeedSetAsideByCrosstalk": "このゾーンでは Crosstalk（スピーカー用の処理）が有効です。ヘッドホン用の処理であるクロスフィードはここでは除外されます。両者が併用されることはありません。",
   "v2.cfp.setAsideByCrosstalk": "このゾーンでは Crosstalk（スピーカー用の処理）が有効です。ヘッドホン用の処理である Crossfeed Pro はここでは除外されます。両者が併用されることはありません。",
+  // #2610 — noms des tâches de fond.
+  "app.task.credits": "クレジットを取得中…",
+  "app.task.artistImages": "アーティスト画像を取得中…",
+  "app.task.covers": "アルバムカバーを取得中…",
+  "app.task.metadata": "メタデータを補完中…",
+  "app.task.bios": "略歴を取得中…",
+  "app.task.identification": "ライブラリの項目を識別中…",
+  "app.task.integrity": "ライブラリの整合性を確認中…",
+  "app.task.writeDr": "ダイナミックレンジをファイルに書き込み中…",
+  "app.task.writeMetadata": "メタデータをファイルに書き込み中…",
+  "app.task.readMetadata": "ファイルのメタデータを読み込み中…",
+  "app.task.composers": "作曲者を検索中…",
+  "app.task.lyrics": "歌詞を取得中…",
+  "app.task.writeLyrics": "歌詞をファイルに書き込み中…",
+  "app.task.compilations": "コンピレーションを確認中…",
+  "app.task.releaseTypes": "リリースの種類を検索中…",
+  "app.task.dynamicRange": "ダイナミックレンジを測定中…",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
