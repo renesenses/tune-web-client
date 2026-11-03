@@ -4357,7 +4357,7 @@ export default {
   "v2.set.pushHint": "End of scan, playback errors. This setting belongs to this browser — it does not follow your profile from one device to another.",
   "v2.meta.foot": "Enrichment progress is tracked in {p}.",
   "v2.home.wZonesCards": "Now listening",
-  "v2.home.wFirstRow": "First row",
+  "v2.home.wFirstRow": "Listening overview",
   "v2.home.zoneOf": "on {z}",
   "v2.home.profilesUnavailable": "Unable to load profiles: the server is not responding. Retrying automatically.",
   "v2.home.profilesRetryNow": "Retry now",

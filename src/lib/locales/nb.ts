@@ -4211,7 +4211,7 @@ export default {
   "v2.set.pushHint": "Slutt på skanning, avspillingsfeil. Denne innstillingen hører til denne nettleseren — den følger ikke profilen din fra en enhet til en annen.",
   "v2.meta.foot": "Fremdriften i berikelsen følges i {p}.",
   "v2.home.wZonesCards": "Lytter nå",
-  "v2.home.wFirstRow": "Første rad",
+  "v2.home.wFirstRow": "Lytteoversikt",
   "v2.home.zoneOf": "på {z}",
   "v2.home.profilesUnavailable": "Kan ikke laste profiler: serveren svarer ikke. Prøver på nytt automatisk.",
   "v2.home.profilesRetryNow": "Prøv på nytt nå",

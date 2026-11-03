@@ -4336,7 +4336,7 @@ export default {
   "v2.set.pushHint": "Analys klar, uppspelningsfel. Inställningen gäller den här webbläsaren — den följer inte din profil mellan enheter.",
   "v2.meta.foot": "Berikningens förlopp följs i {p}.",
   "v2.home.wZonesCards": "Spelas nu",
-  "v2.home.wFirstRow": "Första raden",
+  "v2.home.wFirstRow": "Lyssningsöversikt",
   "v2.home.zoneOf": "på {z}",
   "v2.home.profilesUnavailable": "Det går inte att läsa in profilerna: servern svarar inte. Försöker igen automatiskt.",
   "v2.home.profilesRetryNow": "Försök igen nu",

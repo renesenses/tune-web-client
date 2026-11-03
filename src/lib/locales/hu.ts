@@ -4291,7 +4291,7 @@ export default {
   "v2.set.pushHint": "Az elemzés vége, lejátszási hibák. Ez a beállítás ehhez a böngészőhöz tartozik — nem követi a profilját eszközről eszközre.",
   "v2.meta.foot": "A gazdagítás haladása a(z) {p} alatt követhető.",
   "v2.home.wZonesCards": "Most szól",
-  "v2.home.wFirstRow": "Első sor",
+  "v2.home.wFirstRow": "Hallgatási áttekintés",
   "v2.home.zoneOf": "itt: {z}",
   "v2.home.profilesUnavailable": "A profilok nem tölthetők be: a szerver nem válaszol. Automatikus újrapróbálás folyamatban.",
   "v2.home.profilesRetryNow": "Újrapróbálás most",
