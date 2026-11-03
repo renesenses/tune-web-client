@@ -225,9 +225,16 @@ function getAudio(): HTMLAudioElement {
  * replayed the OLD buffered track — the album "repeated instead of advancing"
  * (Elie, browser output). Track-change callers pass `force: true`.
  */
-export function browserPlay(streamUrl: string, force = false, zoneId?: number | null) {
+let generationLecture = 0;
+export function browserPlay(streamUrl: string, force = false, zoneId?: number | null, startPositionMs = 0) {
+  const generation = ++generationLecture;
   const audio = getAudio();
   const currentUrl = get(browserStreamUrl);
+  if (Number.isFinite(startPositionMs) && startPositionMs > 0) {
+    audio.addEventListener('loadedmetadata', () => {
+      if (generation === generationLecture && sourceZoneId === zoneId) browserSeek(startPositionMs);
+    }, { once: true });
+  }
   // Une URL de TUNE part en relatif pour joindre l'hôte que le navigateur a su
   // atteindre (le serveur annonce son IP de LAN, pas forcément joignable
   // derrière un proxy ou un NAT). Une URL TIERCE garde son domaine : le lui
@@ -396,6 +403,7 @@ export function browserResume(streamUrl?: string | null, zoneId?: number | null)
 
 /** Stop browser audio and clear the source */
 export function browserStop() {
+  ++generationLecture;
   const audio = getAudio();
   // Décidé AVANT d'oublier le propriétaire : arrêter la zone navigateur ne doit
   // pas figer la barre d'une autre zone affichée (#2108).

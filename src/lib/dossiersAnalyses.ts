@@ -8,6 +8,15 @@
  */
 export const CLE_DOSSIERS_INCLUS = 'background_analysis_included_dirs';
 
+/**
+ * tune-server-rust#7538 (Jean-François Paquet : « l'enrichissement
+ * communautaire détruit mes genres ») — les dossiers que l'enrichissement des
+ * métadonnées ne touche pas : partage communautaire, MusicBrainz, réparations
+ * de genre. Même forme que la liste ci-dessus (tableau vide par défaut : rien
+ * d'exclu), même saisie, même refus du serveur.
+ */
+export const CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT = 'metadata_enrichment_excluded_dirs';
+
 /** La liste publiée, ou `null` si le serveur ne connaît pas le réglage. */
 export function dossiersDepuisConfig(v: unknown): string[] | null {
   return Array.isArray(v) ? v.filter((d): d is string => typeof d === 'string') : null;

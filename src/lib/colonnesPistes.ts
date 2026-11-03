@@ -499,6 +499,24 @@ export function ecoutesDeuxCompteurs(t: Track): string | null {
 }
 
 /**
+ * tune-server-rust#7416 — le libellé d'EN-TÊTE d'une colonne, en clé de
+ * traduction.
+ *
+ * Bertrand, 29/10/2026, titres phares de Michael Kiwanuka : la colonne
+ * « 8 · 4 » n'a pas de légende, on ne sait pas quel nombre est la
+ * communauté et lequel est moi. L'infobulle de la cellule le disait
+ * (`v2.tcol.playsCommunity`), l'en-tête non. Dès qu'une piste de la liste
+ * porte les deux compteurs (`ecoutesDeuxCompteurs`), l'en-tête d'`Écoutes`
+ * dit l'ordre des deux nombres : « Tous · moi ». Ailleurs, rien ne change.
+ */
+export function cleEnTeteColonne(c: Pick<Colonne, 'cle' | 'cleI18n'>, pistes: readonly Track[]): string {
+  if (c.cle === 'plays' && pistes.some((p) => ecoutesDeuxCompteurs(p) !== null)) {
+    return 'v2.tcol.playsTwoCounters';
+  }
+  return c.cleI18n;
+}
+
+/**
  * Ce qu'une cellule doit DIRE d'elle-même, en clé de traduction (#3924).
  *
  * `null` — le cas de toutes les colonnes sauf une — laisse l'infobulle

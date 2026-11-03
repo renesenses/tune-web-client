@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   RADIO_GENRE_KEYS,
+  cleClienteDuGenre,
   radioGenreShelf,
   radioGenreShelves,
   radioGenreLabel,
@@ -54,8 +55,9 @@ describe('le vocabulaire est un ensemble de clés, jamais de libellés', () => {
     // servie et non traduite s'afficherait TELLE QUELLE.
     // tune-server-rust#6516 : l'annuaire radio-metadata.fr v2 ajoute `news`,
     // `lounge`, `rnb`, `country` et `latin` (relevé du 19/10/2026).
-    expect(RADIO_GENRE_KEYS.length).toBe(25);
-    for (const cle of ['news', 'lounge', 'rnb', 'country', 'latin']) {
+    // tune-server-rust#7445 : `holiday`, `oldies`, `soundtrack` s'ajoutent.
+    expect(RADIO_GENRE_KEYS.length).toBe(28);
+    for (const cle of ['news', 'lounge', 'rnb', 'country', 'latin', 'holiday', 'oldies', 'soundtrack']) {
       expect(RADIO_GENRE_KEYS).toContain(`radioGenre.${cle}`);
     }
   });
@@ -184,3 +186,25 @@ describe('le relevé de production ne fabrique plus vingt-six rayons', () => {
   });
 });
 
+
+describe('tune-server-rust#7445 — les quatre genres de radio-metadata.fr', () => {
+  it.each([
+    ['holiday', 'radioGenre.holiday'],
+    ['oldies', 'radioGenre.oldies'],
+    ['soundtracks', 'radioGenre.soundtrack'],
+    ['news', 'radioGenre.news'],
+    ['Noël', 'radioGenre.holiday'],
+    ['Bandes originales', 'radioGenre.soundtrack'],
+  ])('la valeur « %s » se range sous %s', (brut, cle) => {
+    expect(radioGenreShelf(brut)?.i18nKey).toBe(cle);
+  });
+
+  it.each([
+    ['radio.genre.holiday', 'radioGenre.holiday'],
+    ['radio.genre.oldies', 'radioGenre.oldies'],
+    ['radio.genre.soundtrack', 'radioGenre.soundtrack'],
+    ['radio.genre.news', 'radioGenre.news'],
+  ])('la clé serveur %s se traduit par %s', (serveur, cle) => {
+    expect(cleClienteDuGenre(serveur)).toBe(cle);
+  });
+});

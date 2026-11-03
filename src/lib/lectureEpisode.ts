@@ -33,6 +33,7 @@ export type EpisodeAJouer = {
   audio_url: string;
   title?: string;
   podcast_name?: string;
+  podcast_id?: string;
   cover_url?: string;
   duration_ms?: number;
 };

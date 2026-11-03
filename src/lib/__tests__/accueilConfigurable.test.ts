@@ -172,9 +172,9 @@ describe('Accueil — la configuration', () => {
     // entier. La fusion doit donc être faite par le client, en relisant avant
     // d'écrire — c'est ce que le garde vérifie désormais.
     const api = lire('../api.ts');
-    const i = api.indexOf('export async function setProfilePreferences');
+    const i = api.indexOf('export function setProfilePreferences');
     expect(i, 'setProfilePreferences a disparu').toBeGreaterThan(-1);
-    const corps = api.slice(i, i + 900);
+    const corps = api.slice(i, i + 2600);
     expect(corps.includes('/settings`'), 'la route n’est pas /settings').toBe(true);
     expect(corps.includes('/preferences`'), 'la route inexistante est revenue').toBe(false);
     expect(corps.includes("method: 'POST'"), 'la méthode n’est pas POST').toBe(true);

@@ -20,6 +20,7 @@ import {
   normaliserChoixBarre, horodatageBarre, arbitrerBarre, type ChoixBarre,
 } from '../ordreBarreLaterale';
 import type { TriConcerts } from '../concertsTri';
+import type { FiltresRadio } from '../radioFiltres';
 import { estOrdreRayons, ORDRE_RAYONS_DEFAUT, type OrdreRayons } from '../rayonsCollections';
 import { normaliserOrdreManuel, type OrdreManuelCollections } from '../ordreManuelCollections';
 import type { ChoixLieuConcerts } from '../concertsLieu';
@@ -173,6 +174,19 @@ export interface Preferences {
    *  n'atteindrait plus personne. Seul le clic sur la bascule y écrit ; le
    *  défaut (`TRI_CONCERTS_DEFAUT`, « Par date ») s'applique à l'affichage. */
   concertsTri: TriConcerts | null;
+  /** tune-server-rust#7466 — les critères de la barre « Plus de filtres » de
+   *  l'écran Radio (format, débit, sans perte, Hi-Res, Metadata+, favoris).
+   *  `null` = rien choisi ; seule la barre y écrit. Lire par
+   *  `normaliserFiltresRadio` (`lib/radioFiltres`). */
+  radioFiltres: FiltresRadio | null;
+  /**
+   * tune-server-rust#7597 (suite, Bertrand 31/10/2026) — le dernier dossier
+   * choisi par le bouton « Répertoire » de la Bibliothèque (chemin absolu), ou
+   * `null`. Restauré au retour dans la Bibliothèque (`lib/dossierBibliotheque`),
+   * sauf quand on arrive de Répertoires avec un autre dossier : l'arrivée prime.
+   * Dans `ui_preferences`, donc par profil, comme les autres choix d'écran.
+   */
+  bibliothequeDossier: string | null;
   /**
    * web#1755 — la commune et le rayon (ou le périmètre) de CE profil pour
    * l'écran Concerts. `null` = rien dit : l'écran pose la question ;
@@ -209,6 +223,16 @@ export interface Preferences {
    * (la règle de #1428).
    */
   barreVuMetres: boolean;
+  /**
+   * Le petit visualiseur à barres (spectre) de la barre de lecture, à droite,
+   * à côté du cœur — #2429 (testeur Alex, rc8 : « comme pour les crêtes, une
+   * option pour le retirer »).
+   *
+   * AFFICHAGE seulement : rien ici ne touche à l'audio. Affiché par défaut :
+   * l'écran de qui n'a rien demandé ne bouge pas d'un pixel (la règle de
+   * #1428). Sans effet quand la barre à VU-mètres est allumée, qui le remplace.
+   */
+  visualiseurBarre: boolean;
   /** Afficher les bulles d'aide au survol des boutons.
    *
    *  Activé par défaut : trois testeurs de suite n'ont pas trouvé un bouton
@@ -507,6 +531,8 @@ const defaults: Preferences = {
   // web#1718 : `null`, pas le défaut — voir le type. L'écran lit
   // `normaliserTriConcerts(null)`, donc « Par date ».
   concertsTri: null,
+  radioFiltres: null,
+  bibliothequeDossier: null,
   concertsLieu: null,
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
@@ -523,6 +549,7 @@ const defaults: Preferences = {
   afficherMinuteurSommeil: true,
   peakMeterStyle: STYLE_CRETE_DEFAUT,
   barreVuMetres: false,
+  visualiseurBarre: true,
   v2Colonnes: { ...DEFAUTS_COLONNES },
   reglagesRendererEnregistres: {},
   // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.

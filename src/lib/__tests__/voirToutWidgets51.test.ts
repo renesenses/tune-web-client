@@ -27,6 +27,9 @@ vi.mock('../api', async (importOriginal) => {
 });
 
 import PageWidgets from '../../components/v2/PageWidgets.svelte';
+import { brancherHistoriqueCoquille, detailOuvert } from '../historiqueCoquille';
+import { activeView } from '../stores/navigation';
+import { reculer } from './reculer';
 import { currentProfileId } from '../stores/profile';
 import { LIMITE, LIMITE_VOIR_TOUT, limiteDe, widgetParId, type Contexte } from '../accueilWidgets';
 import { widgetsCategoriesPlaylists } from '../widgetsService';
@@ -122,7 +125,7 @@ async function poser(widget: any) {
   document.body.appendChild(hote);
   monte = mount(PageWidgets, {
     target: hote,
-    props: { catalogue: [widget], dispositionDefaut: ['temoin'], cle: 'temoin_widgets' },
+    props: { catalogue: [widget], dispositionDefaut: [widget.id], cle: 'temoin_widgets' },
   });
   flushSync();
   await souffler(80);
@@ -195,4 +198,31 @@ describe('#51 — l’icône « Voir tout » et sa page', () => {
       }
     }
   });
+});
+
+
+it('#2447 : Précédent referme Voir tout de Humeurs, Suivant le restaure', async () => {
+  activeView.set('streaming'); detailOuvert.set(null);
+  history.replaceState(null, '', '/');
+  const arreter = brancherHistoriqueCoquille({ vueDeDemarrage: 'streaming' });
+  try {
+    const [widget] = widgetsCategoriesPlaylists('qobuz', [{ id: 'humeurs', name: 'Humeurs', playlists: [{ id: 'p1', name: 'Calme' }] }]);
+    const page = await poser(widget);
+    page.querySelector<HTMLButtonElement>('button.voir-tout')!.click();
+    await souffler(80); flushSync();
+    expect(history.state.detail).toContain('voir-tout:');
+    expect(page.querySelector('.voir-tout-page')).toBeTruthy();
+    page.querySelector<HTMLButtonElement>('.voir-tout-page button.meta')!.click();
+    flushSync(); await souffler(80); flushSync();
+    expect(page.querySelector('.v2-pldetail')).toBeTruthy();
+    await reculer(); flushSync();
+    expect(page.querySelector('.v2-pldetail')).toBeNull();
+    expect(page.querySelector('.voir-tout-page')).toBeTruthy();
+    await reculer(); flushSync();
+    expect(page.querySelector('.voir-tout-page')).toBeNull();
+    expect(page.querySelector('.pile')).toBeTruthy();
+    const suite = new Promise<void>(r => window.addEventListener('popstate', () => r(), { once: true }));
+    history.forward(); await suite; flushSync(); await souffler(80); flushSync();
+    expect(page.querySelector('.voir-tout-page')).toBeTruthy();
+  } finally { arreter(); detailOuvert.set(null); }
 });

@@ -81,7 +81,7 @@
   import { repartirWidgets } from '../../lib/ajoutWidgets';
   import { GRILLE_OU_LISTE, LIBELLE_AFFICHAGE } from '../../lib/affichage';
   import { ecrireChoix, lireChoix } from '../../lib/preferencesEcran';
-  import { migrationPremiereLigne } from '../../lib/migrationPremiereLigne';
+  import { marqueurAEnregistrer, migrationPremiereLigne } from '../../lib/migrationPremiereLigne';
   import { creneauxParalleles } from '../../lib/creneauxParalleles';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import AudioVisualizer from '../partages/AudioVisualizer.svelte';
@@ -92,7 +92,7 @@
   // C'est la MÊME fiche que celle ouverte par l'écran Streaming (#1016) et par
   // l'écran Playlists : un second afficheur de playlist aurait divergé.
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -104,7 +104,7 @@
   import PanneauGenres from './ligne1/PanneauGenres.svelte';
   import PanneauConcerts from './ligne1/PanneauConcerts.svelte';
   import PanneauStats from './ligne1/PanneauStats.svelte';
-  import { COTE_L1, zonesDeLaLigne } from '../../lib/premiereLigne';
+  import { COTE_L1, zonesDeLaLigne, PANNEAUX_L1, panneauxDeLaLigne } from '../../lib/premiereLigne';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import {
     objetAlbum,
@@ -198,6 +198,8 @@
   /** Recherche DANS le catalogue de cette page, jamais dans le registre global. */
   const parId = (id: string) => catalogueComplet.find((w) => w.id === id);
 
+  const clePanneaux = $derived(`${CLE}_panneaux`);
+  let panneaux = $state<string[]>(panneauxDeLaLigne(undefined));
   let disposition = $state<string[]>([...dispositionDefaut]);
   /**
    * #987 — la disposition TELLE QU'ENREGISTRÉE, identifiants inconnus compris.
@@ -458,6 +460,7 @@
       chiffres = lu.choix;
       chiffresEnregistres = lu.enregistres;
       migrationAFaire = lu.aMigrer;
+      panneaux = panneauxDeLaLigne(prefs?.[clePanneaux]);
       const d = prefs?.[CLE];
       // On ne garde que les identifiants CONNUS : un widget retiré du registre
       // laisserait sinon un trou muet dans la page de qui l'avait choisi.
@@ -570,7 +573,12 @@
       // effacerait un chiffre choisi avec une plus récente.
       await api.setProfilePreferences(pid, {
         [CLE]: disposition,
+        [clePanneaux]: panneaux,
         [CLE_CHIFFRES]: choixAEnregistrer(chiffres, chiffresEnregistres),
+        // #2410 — SA disposition est une décision : le marqueur de la première
+        // ligne part avec elle. Sans lui, retirer la ligne (donc « Genres » et
+        // « My listening ») la faisait revenir au chargement suivant.
+        ...marqueurAEnregistrer(CLE_LIGNE_MIGRE, dispositionDefaut),
       });
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
@@ -1215,6 +1223,7 @@
     const w = parId(id);
     if (!w) return;
     defilementAvant = zoneDefilante?.scrollTop ?? 0;
+    ouvrirDetail(`voir-tout:${CLE}:${id}`);
     voirTout = { id, phase: 'attente', elements: [...(etatDe(id)?.elements ?? [])] };
     // web#2112 — la page devient la CIBLE d'un raccourci : sans elle, un
     // raccourci posé ici rouvrait l'Accueil (ou le service) sans la page.
@@ -1241,12 +1250,33 @@
     if (k != null && k.startsWith(cleVoirTout(CLE, ''))) clearShortcutTarget();
   }
 
-  function fermerVoirTout() {
+  function effacerVoirTout() {
     voirTout = null;
     oublierCibleVoirTout();
     const y = defilementAvant;
     void tick().then(() => { if (zoneDefilante) zoneDefilante.scrollTop = y; });
   }
+
+  // #2447 : la section éditoriale est un niveau de navigation, comme sa fiche.
+  function fermerVoirTout() {
+    const cle = voirTout ? `voir-tout:${CLE}:${voirTout.id}` : null;
+    if (cle && entreeCourantePorte(cle)) fermerDetailEnReculant(effacerVoirTout);
+    else { detailOuvert.set(null); effacerVoirTout(); }
+  }
+  $effect(() => {
+    const cle = $detailOuvert;
+    const prefixe = `voir-tout:${CLE}:`;
+    if (cle?.startsWith(prefixe)) {
+      const id = cle.slice(prefixe.length);
+      untrack(() => {
+        fermerCalqueAlbum();
+        fermerCalquePlaylist();
+        if (voirTout?.id !== id && parId(id)) ouvrirVoirTout(id);
+      });
+    } else if (cle == null) {
+      untrack(() => { if (voirTout) effacerVoirTout(); });
+    }
+  });
 
   /**
    * web#2112 — un raccourci sur une page « Voir tout » la rouvre. La demande
@@ -1263,7 +1293,10 @@
       if (voirTout?.id !== widget) ouvrirVoirTout(widget);
     });
   });
-  onDestroy(() => oublierCibleVoirTout());
+  onDestroy(() => {
+    oublierCibleVoirTout();
+    if (get(detailOuvert)?.startsWith(`voir-tout:${CLE}:`)) detailOuvert.set(null);
+  });
 </script>
 
 {#snippet carte(el: Element)}
@@ -1541,7 +1574,11 @@
                    la bibliothèque. Le libellé est celui, déjà traduit dans
                    les onze langues, des podcasts. -->
               <div class="state mince err">
-                <span>{$t('v2.home.widgetFailed' as any)}{et.raison ? ` (${et.raison})` : ''}</span>
+                <!-- #2411 — la RAISON se traduit, ou se tait. `delai` est un code
+                     interne (français, brut dans une interface anglaise) ;
+                     les autres messages techniques restent au journal
+                     (`console.warn` plus haut). -->
+                <span data-widget-echec>{$t('v2.home.widgetFailed' as any)}{et.raison === 'delai' ? ` (${$t('v2.home.widgetTimeout' as any)})` : ''}</span>
                 <button class="relancer" onclick={() => relancerWidget(id)}>{$t('v2.pod.retry' as any)}</button>
               </div>
             {:else if w.forme === 'chiffres'}
@@ -1670,10 +1707,29 @@
                 {#each zonesDeLaLigne($zones) as z (z.id)}
                   <CarteZoneL1 zone={z} />
                 {/each}
-                <PanneauGenres />
-                <PanneauConcerts />
-                <PanneauStats />
+                {#if panneaux.includes('genres')}<PanneauGenres />{/if}
+                {#if panneaux.includes('concerts')}<PanneauConcerts />{/if}
+                {#if panneaux.includes('stats')}<PanneauStats />{/if}
               </div>
+
+              {#if edition}
+                <div class="choix-chiffres" role="group" aria-label={$t(w.cleTitre as any)}>
+                  <div class="opts">
+                    {#each PANNEAUX_L1 as panneau (panneau.id)}
+                      <label class="opt" class:on={panneaux.includes(panneau.id)}>
+                        <input type="checkbox" checked={panneaux.includes(panneau.id)}
+                          onchange={() => {
+                            panneaux = panneaux.includes(panneau.id)
+                              ? panneaux.filter((id) => id !== panneau.id)
+                              : [...panneaux, panneau.id];
+                            void enregistrer();
+                          }} />
+                        <span>{$t(panneau.cle as any)}</span>
+                      </label>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
 
             {:else if !et.elements.length}
               <div class="state mince">{$t('v2.home.widgetEmpty' as any)}</div>

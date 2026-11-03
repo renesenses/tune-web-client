@@ -107,7 +107,9 @@ describe('#5916 — localStorage vide : le profil retenu par le serveur est repr
     vi.stubGlobal('fetch', vi.fn(async (url: string) =>
       String(url).endsWith('/profiles/dernier-choisi')
         ? reponse({ error: 'bad request' }, 400)
-        : reponse([DEFAULT, GERARD, ANNE])));
+        // #7532 — la liste des profils pour `/profiles` SEUL : rendue aussi pour
+        // `/playlists`, elle faisait croire que Default porte des playlists.
+        : String(url).endsWith('/profiles') ? reponse([DEFAULT, GERARD, ANNE]) : reponse([])));
     const m = await magasin();
 
     await m.loadProfiles();

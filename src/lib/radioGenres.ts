@@ -187,6 +187,23 @@ const ALIASES: Readonly<Record<string, string>> = {
   'r&b': 'radioGenre.rnb',
   country: 'radioGenre.country',
   latin: 'radioGenre.latin',
+
+  // tune-server-rust#7445 — quatre genres de plus, alignés sur la taxonomie de
+  // radio-metadata.fr : `holiday`, `oldies`, `soundtracks` (pluriel) et `news`
+  // (déjà ci-dessus). Le serveur les sert en `radio.genre.holiday`,
+  // `radio.genre.oldies`, `radio.genre.soundtrack`, `radio.genre.news`.
+  holiday: 'radioGenre.holiday',
+  holidays: 'radioGenre.holiday',
+  christmas: 'radioGenre.holiday',
+  noel: 'radioGenre.holiday',
+  oldies: 'radioGenre.oldies',
+  oldie: 'radioGenre.oldies',
+  soundtrack: 'radioGenre.soundtrack',
+  soundtracks: 'radioGenre.soundtrack',
+  'bande originale': 'radioGenre.soundtrack',
+  'bandes originales': 'radioGenre.soundtrack',
+  film: 'radioGenre.soundtrack',
+  information: 'radioGenre.news',
 };
 
 /**

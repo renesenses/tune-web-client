@@ -16,6 +16,7 @@ import { t } from './i18n';
 import { notifications } from './stores/notifications';
 import {
   currentProfileId,
+  defaultPorteDesDonnees,
   profiles,
   profilMemoriseAuChargement,
   profilsVisibles,
@@ -35,7 +36,7 @@ export function profilDeRepli(
 ): Profile | null {
   if (actuel == null) return null;
   if (memorise != null && liste.some((p) => p.id === memorise)) return null;
-  if (profilsVisibles([...liste]).length < 2) return null;
+  if (profilsVisibles([...liste], get(defaultPorteDesDonnees)).length < 2) return null;
   return liste.find((p) => p.id === actuel) ?? null;
 }
 

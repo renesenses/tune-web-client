@@ -19,7 +19,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
 import * as api from '../api';
-import { locale } from '../i18n';
+import { locale, t } from '../i18n';
 import { notifications } from '../stores/notifications';
 
 /** Le refus exact du contrat serveur (#4632). */
@@ -53,11 +53,12 @@ afterEach(() => {
 });
 
 describe('#4601 — le 409 `zone_output_unavailable` PARLE', () => {
-  it('🔴 la phrase du serveur est posée TELLE QUELLE', async () => {
+  it('#2446 : le conseil est traduit, la phrase complète reste dans les détails', async () => {
     stub(REFUS);
     const err: any = await api.play(7, { track_id: 1 }).catch((e) => e);
     expect(err).toBeInstanceOf(Error);
-    expect(derniere(), 'le refus est resté muet — c’est le défaut de #4601').toBe(PHRASE_SERVEUR);
+    expect(derniere(), 'le refus est resté muet — c’est le défaut de #4601').toBe(get(t)('zone.outputMissingBanner'));
+    expect(err.detail).toContain(PHRASE_SERVEUR);
   });
 
   it('elle dit de NE PAS supprimer la zone', async () => {
@@ -73,12 +74,12 @@ describe('#4601 — le 409 `zone_output_unavailable` PARLE', () => {
     expect(err.dejaAnnonce, 'un écran à bandeau va en empiler un second').toBe(true);
   });
 
-  it('🔴 rien n’est inventé quand le serveur se tait', async () => {
+  it('#2446 : le code seul suffit à donner le conseil traduit', async () => {
     // Un corps sans phrase ne doit pas produire un toast vide : mieux vaut le
     // silence d'avant qu'une bulle qui ne dit rien.
     stub({ error: 'zone_output_unavailable', message: '   ' });
     await api.play(7, { track_id: 1 }).catch(() => {});
-    expect(derniere()).toBeUndefined();
+    expect(derniere()).toBe(get(t)('zone.outputMissingBanner'));
   });
 
   it('un code INCONNU reste muet — la porte n’est pas grande ouverte', async () => {
@@ -96,4 +97,17 @@ describe('#4601 — le 409 `zone_output_unavailable` PARLE', () => {
     expect(m).not.toBe('phrase serveur ignorée ici');
     expect(m.length, 'la clé i18n ne rend rien').toBeGreaterThan(0);
   });
+});
+
+
+it('#2446 : un refus français est annoncé en roumain, le nom reste dans les détails', async () => {
+  locale.set('ro');
+  stub(REFUS);
+  const erreur: any = await api.play(7, { track_id: 1 }).catch(e => e);
+  expect(derniere()).toBe(get(t)('zone.outputMissingBanner'));
+  expect(derniere()).toContain('Dispozitivul');
+  expect(derniere()).not.toContain('Inutile de supprimer');
+  expect(erreur.detail).toContain('Salon (Eversolo A8)');
+  expect(erreur.detail).toContain(PHRASE_SERVEUR);
+  expect(erreur.dejaAnnonce).toBe(true);
 });

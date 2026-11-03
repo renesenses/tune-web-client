@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { clearViewContext } from '../stores/navigation';
 //
 // 🔴 LES CLÉS DU SERVEUR SONT ENFIN RACCORDÉES À L'ÉCRAN.
 //
@@ -149,6 +150,7 @@ let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 
 beforeEach(() => {
+  clearViewContext('radios');
   requetes = [];
   corpsEnvoyes = [];
   radiosServies = RADIOS_A_JOUR;

@@ -108,7 +108,8 @@ describe('ce que les cadrans remplacent', () => {
     // Trois instruments de niveau dans une même barre se concurrencent, et la
     // place manque de toute façon.
     expect(src).toContain("{#if !vuActif && styleSurLaBarre(");
-    expect(src).toContain('{#if !vuActif}');
+    // #2429 — le mini-spectre a désormais sa propre option, en plus de l'extinction par les VU-mètres.
+    expect(src).toContain('{#if !vuActif && ($preferences.visualiseurBarre ?? true)}');
   });
 
   it('pose un cadran par canal, de part et d’autre des commandes', () => {

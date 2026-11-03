@@ -177,6 +177,12 @@ describe('fil 1953 — le titre en cours ne vit QUE dans le groupe de son album 
       'Salon',
     );
     const racine = await poserEcran();
+    // #2480 : déplier seulement la station, en gardant l'album replié.
+    const station = Array.from(racine.querySelectorAll<HTMLButtonElement>('button.objet'))
+      .find((bouton) => bouton.querySelector('.otype')?.textContent?.trim() === 'Radio');
+    expect(station, 'la station de l’écoute locale manque').toBeTruthy();
+    station!.click();
+    flushSync();
     expect(titresVisibles(racine)).toEqual(['Ne me quitte pas']);
   });
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
+  import { loadViewContext, saveViewContext } from '../../lib/stores/navigation';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Radio en direct — nouveau client (direction Levente).
@@ -35,9 +37,12 @@
   import PochetteActions from './PochetteActions.svelte';
   import RadioEditModale from './RadioEditModale.svelte';
   import RadioAnnuaire from './RadioAnnuaire.svelte';
+  import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import CarteRadios from './CarteRadios.svelte';
   import RadioRecherche from './RadioRecherche.svelte';
   import RadioChipsGenres from './RadioChipsGenres.svelte';
+  import RadioFiltresAvances from './RadioFiltresAvances.svelte';
+  import { normaliserFiltresRadio, parametresDesFiltres } from '../../lib/radioFiltres';
   import RadioNouvelleStationModale from './RadioNouvelleStationModale.svelte';
   import RadioFicheModale from '../partages/RadioFicheModale.svelte';
   import BadgeMetadataPlus from '../partages/BadgeMetadataPlus.svelte';
@@ -49,11 +54,25 @@
   const showFilters = $derived(atLeast(level, 'intermediate'));
   const showExpert = $derived(atLeast(level, 'expert'));
 
+  // #2473 / serveur#7052 : quitter la vue la démonte ; le retour doit
+  // retrouver l'Annuaire (ou la Carte), plutôt que recréer « Mes radios ».
+  interface ContexteRadios {
+    section: 'mes' | 'annuaire' | 'carte';
+    q: string;
+    genre: string | null;
+    ongletFavoris: boolean;
+    /** tune-server-rust#7466 — le pays choisi dans « Mes radios » (ISO). */
+    paysChoisi?: string | null;
+  }
+  const contexte = loadViewContext<ContexteRadios>('radios');
+  onDestroy(() => saveViewContext('radios', { section, q, genre, ongletFavoris, paysChoisi }));
+
   let radios = $state<RadioStation[]>([]);
   let loading = $state(true);
   let error = $state<string | null>(null);
-  let q = $state('');
-  let genre = $state<string | null>(null);
+  let q = $state(contexte?.q ?? '');
+  let genre = $state<string | null>(contexte?.genre ?? null);
+  let paysChoisi = $state<string | null>(contexte?.paysChoisi ?? null);
   let playingId = $state<number | null>(null);
 
   /*
@@ -74,7 +93,7 @@
    * `ongletFavoris` ne s'offre que s'il existe au moins une station en
    * favori, et l'écran retombe sur « toutes » dès que la dernière est retirée.
    */
-  let ongletFavoris = $state(false);
+  let ongletFavoris = $state(contexte?.ongletFavoris ?? false);
 
   /**
    * tune-server-rust#6516 — « Mes radios » / « Annuaire ».
@@ -87,7 +106,7 @@
    * web#2400 — « Carte » : le même annuaire, à parcourir par genres, pays et
    * réseaux (`CarteRadios`), troisième onglet décidé par Bertrand le 26/10.
    */
-  let section = $state<'mes' | 'annuaire' | 'carte'>('mes');
+  let section = $state<'mes' | 'annuaire' | 'carte'>(contexte?.section ?? 'mes');
   /** La fiche d'annuaire qui joue, pour sa pastille « en direct ». */
   let ficheJouee = $state<string | null>(null);
 
@@ -240,8 +259,41 @@
       .slice(0, 12);
   });
 
+  /**
+   * tune-server-rust#7466 — « Plus de filtres » sur « Mes radios ». Format,
+   * débit, sans perte, Hi-Res, Metadata+ et favoris se jugent au SERVEUR
+   * (`GET /radios/search`, critères seuls) : la fréquence, la note et
+   * Metadata+ ne sont connues que par la fiche d'annuaire de la station. Le
+   * serveur rend les stations retenues ; l'écran garde celles-là.
+   */
+  const criteresMes = $derived(parametresDesFiltres(normaliserFiltresRadio($preferences.radioFiltres)));
+  const cleCriteresMes = $derived(JSON.stringify(criteresMes));
+  let retenuesParCriteres = $state<Set<number> | null>(null);
+  let jetonCriteres = 0;
+  $effect(() => {
+    const cle = cleCriteresMes;
+    void radios.length;
+    const moi = ++jetonCriteres;
+    if (cle === '{}') { retenuesParCriteres = null; return; }
+    api.rechercherRadiosParCriteres('', JSON.parse(cle))
+      .then((r) => {
+        if (moi !== jetonCriteres) return;
+        retenuesParCriteres = new Set((r.items ?? []).map((x) => x.id).filter((id): id is number => id != null));
+      })
+      .catch(() => { if (moi === jetonCriteres) retenuesParCriteres = null; });
+  });
+
+  /** Les pays de « Mes radios », comptés (code ISO du serveur). */
+  const paysDeMesRadios = $derived.by(() => {
+    const m = new Map<string, number>();
+    for (const r of radios) if (r.country_code) m.set(r.country_code, (m.get(r.country_code) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  });
+
   function matches(r: RadioStation): boolean {
     if (genre && radioGenreRayon(r)?.key !== genre) return false;
+    if (paysChoisi && r.country_code !== paysChoisi) return false;
+    if (retenuesParCriteres && (r.id == null || !retenuesParCriteres.has(r.id))) return false;
     if (q) {
       const n = fold(q);
       // Le libellé AFFICHÉ compte autant que la valeur brute : un lecteur
@@ -361,11 +413,23 @@
     <button class="v2-btn" class:on={section === 'carte'} role="tab" aria-selected={section === 'carte'}
       onclick={() => ouvrirSection('carte')}>{$t('v2.radio.tabMap' as any)}</button>
   </div>
+  <PaysEcouteRadios mode="radios" />
 
   <div class="scroll">
     <!-- La recherche et les genres, au MÊME endroit que dans « Annuaire ». -->
     {#if section === 'mes'}
-      <div class="filtres"><RadioRecherche bind:valeur={q} /></div>
+      <div class="filtres ligne">
+        <RadioRecherche bind:valeur={q} />
+        {#if paysDeMesRadios.length > 1}
+          <select class="choix" bind:value={paysChoisi} aria-label={$t('v2.radio.country' as any)}>
+            <option value={null}>{$t('v2.radio.dir.allCountries' as any)}</option>
+            {#each paysDeMesRadios as [code, n] (code)}
+              <option value={code}>{nomDuPays(code, $locale, code)} ({n})</option>
+            {/each}
+          </select>
+        {/if}
+      </div>
+      <div class="filtres"><RadioFiltresAvances total={shown.length} /></div>
       {#if showFilters && rayons.length}
         <div class="filtres">
           <RadioChipsGenres
@@ -411,7 +475,7 @@
           </button>
         </div>
       {/if}
-      {#if recentes.length && !q && !genre}
+      {#if recentes.length && !q && !genre && !paysChoisi && !retenuesParCriteres}
         <section class="sec recentes">
           <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
           <div class="grid rangee">
@@ -523,6 +587,9 @@
   .rangee{grid-template-rows:auto; grid-auto-rows:0; row-gap:0; overflow:hidden}
   .recentes{padding-bottom:4px}
   .filtres{padding:4px 30px 10px}
+  .filtres.ligne{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+  .choix{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2);
+    border-radius:var(--v2-r-pill); padding:6px 12px; font:600 11.5px var(--v2-sans); max-width:220px}
 
   .v2-radios{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
