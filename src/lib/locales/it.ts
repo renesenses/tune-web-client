@@ -6477,6 +6477,23 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk non agisce in modalità PURE: il segnale esce intatto. Le tue impostazioni sono conservate.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (elaborazione per diffusori) è attivo su questa zona: il crossfeed, elaborazione per cuffia, è messo da parte. I due non si sommano mai.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (elaborazione per diffusori) è attivo su questa zona: Crossfeed Pro, elaborazione per cuffia, è messo da parte. I due non si sommano mai.",
+  // #2610 — noms des tâches de fond.
+  "app.task.credits": "Recupero dei crediti…",
+  "app.task.artistImages": "Recupero delle immagini degli artisti…",
+  "app.task.covers": "Recupero delle copertine degli album…",
+  "app.task.metadata": "Completamento dei metadati…",
+  "app.task.bios": "Recupero delle biografie…",
+  "app.task.identification": "Identificazione degli elementi della libreria…",
+  "app.task.integrity": "Verifica dell’integrità della libreria…",
+  "app.task.writeDr": "Scrittura della gamma dinamica nei file…",
+  "app.task.writeMetadata": "Scrittura dei metadati nei file…",
+  "app.task.readMetadata": "Lettura dei metadati dei file…",
+  "app.task.composers": "Ricerca dei compositori…",
+  "app.task.lyrics": "Recupero dei testi…",
+  "app.task.writeLyrics": "Scrittura dei testi nei file…",
+  "app.task.compilations": "Verifica delle compilation…",
+  "app.task.releaseTypes": "Ricerca dei tipi di pubblicazione…",
+  "app.task.dynamicRange": "Misurazione della gamma dinamica…",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

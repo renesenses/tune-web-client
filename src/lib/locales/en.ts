@@ -6497,6 +6497,23 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk has no effect in PURE mode: the signal goes out untouched. Your settings are kept.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (loudspeaker processing) is active on this zone: crossfeed, a headphone processing, is set aside here. The two never stack.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (loudspeaker processing) is active on this zone: Crossfeed Pro, a headphone processing, is set aside here. The two never stack.",
+  // #2610 — noms des tâches de fond.
+  "app.task.credits": "Fetching credits…",
+  "app.task.artistImages": "Fetching artist images…",
+  "app.task.covers": "Fetching album covers…",
+  "app.task.metadata": "Enriching metadata…",
+  "app.task.bios": "Fetching biographies…",
+  "app.task.identification": "Identifying library items…",
+  "app.task.integrity": "Checking library integrity…",
+  "app.task.writeDr": "Writing dynamic range to files…",
+  "app.task.writeMetadata": "Writing metadata to files…",
+  "app.task.readMetadata": "Reading file metadata…",
+  "app.task.composers": "Finding composers…",
+  "app.task.lyrics": "Fetching lyrics…",
+  "app.task.writeLyrics": "Writing lyrics to files…",
+  "app.task.compilations": "Checking compilations…",
+  "app.task.releaseTypes": "Finding release types…",
+  "app.task.dynamicRange": "Measuring dynamic range…",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

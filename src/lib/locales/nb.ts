@@ -6322,5 +6322,22 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk virker ikke i PURE-modus: signalet går ut uberørt. Innstillingene dine beholdes.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (behandling for høyttalere) er aktiv i denne sonen: crossfeed, en behandling for hodetelefoner, er satt til side her. De to kombineres aldri.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (behandling for høyttalere) er aktiv i denne sonen: Crossfeed Pro, en behandling for hodetelefoner, er satt til side her. De to kombineres aldri.",
+  // #2610 — noms des tâches de fond.
+  "app.task.credits": "Henter medvirkende…",
+  "app.task.artistImages": "Henter artistbilder…",
+  "app.task.covers": "Henter albumomslag…",
+  "app.task.metadata": "Utfyller metadata…",
+  "app.task.bios": "Henter biografier…",
+  "app.task.identification": "Identifiserer innhold i biblioteket…",
+  "app.task.integrity": "Kontrollerer bibliotekets integritet…",
+  "app.task.writeDr": "Skriver dynamikkomfang til filer…",
+  "app.task.writeMetadata": "Skriver metadata til filer…",
+  "app.task.readMetadata": "Leser filmetadata…",
+  "app.task.composers": "Finner komponister…",
+  "app.task.lyrics": "Henter sangtekster…",
+  "app.task.writeLyrics": "Skriver sangtekster til filer…",
+  "app.task.compilations": "Kontrollerer samlealbum…",
+  "app.task.releaseTypes": "Finner utgivelsestyper…",
+  "app.task.dynamicRange": "Måler dynamikkomfang…",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

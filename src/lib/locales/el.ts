@@ -6322,5 +6322,22 @@ export default {
   "v2.pure.veilCrosstalk": "Το Crosstalk δεν δρα σε λειτουργία PURE: το σήμα φεύγει ανέπαφο. Οι ρυθμίσεις σας διατηρούνται.",
   "dsp.crossfeedSetAsideByCrosstalk": "Το Crosstalk (επεξεργασία για ηχεία) είναι ενεργό σε αυτή τη ζώνη: το crossfeed, επεξεργασία για ακουστικά, παραμερίζεται εδώ. Τα δύο δεν αθροίζονται ποτέ.",
   "v2.cfp.setAsideByCrosstalk": "Το Crosstalk (επεξεργασία για ηχεία) είναι ενεργό σε αυτή τη ζώνη: το Crossfeed Pro, επεξεργασία για ακουστικά, παραμερίζεται εδώ. Τα δύο δεν αθροίζονται ποτέ.",
+  // #2610 — noms des tâches de fond.
+  "app.task.credits": "Ανάκτηση συντελεστών…",
+  "app.task.artistImages": "Ανάκτηση εικόνων καλλιτεχνών…",
+  "app.task.covers": "Ανάκτηση εξωφύλλων άλμπουμ…",
+  "app.task.metadata": "Συμπλήρωση μεταδεδομένων…",
+  "app.task.bios": "Ανάκτηση βιογραφιών…",
+  "app.task.identification": "Αναγνώριση στοιχείων βιβλιοθήκης…",
+  "app.task.integrity": "Έλεγχος ακεραιότητας βιβλιοθήκης…",
+  "app.task.writeDr": "Εγγραφή δυναμικού εύρους στα αρχεία…",
+  "app.task.writeMetadata": "Εγγραφή μεταδεδομένων στα αρχεία…",
+  "app.task.readMetadata": "Ανάγνωση μεταδεδομένων αρχείων…",
+  "app.task.composers": "Αναζήτηση συνθετών…",
+  "app.task.lyrics": "Ανάκτηση στίχων…",
+  "app.task.writeLyrics": "Εγγραφή στίχων στα αρχεία…",
+  "app.task.compilations": "Έλεγχος συλλογών…",
+  "app.task.releaseTypes": "Αναζήτηση τύπων κυκλοφορίας…",
+  "app.task.dynamicRange": "Μέτρηση δυναμικού εύρους…",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

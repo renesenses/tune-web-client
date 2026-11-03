@@ -6477,6 +6477,23 @@ export default {
   "v2.pure.veilCrosstalk": "PURE 模式下 Crosstalk 不起作用：信号原样输出。您的设置会被保留。",
   "dsp.crossfeedSetAsideByCrosstalk": "此区域已启用 Crosstalk（扬声器处理）：交叉馈送作为耳机处理，在此被搁置。两者绝不叠加。",
   "v2.cfp.setAsideByCrosstalk": "此区域已启用 Crosstalk（扬声器处理）：Crossfeed Pro 作为耳机处理，在此被搁置。两者绝不叠加。",
+  // #2610 — noms des tâches de fond.
+  "app.task.credits": "正在获取制作人员信息…",
+  "app.task.artistImages": "正在获取艺人图片…",
+  "app.task.covers": "正在获取专辑封面…",
+  "app.task.metadata": "正在补全元数据…",
+  "app.task.bios": "正在获取艺人简介…",
+  "app.task.identification": "正在识别音乐库项目…",
+  "app.task.integrity": "正在检查音乐库完整性…",
+  "app.task.writeDr": "正在将动态范围写入文件…",
+  "app.task.writeMetadata": "正在将元数据写入文件…",
+  "app.task.readMetadata": "正在读取文件元数据…",
+  "app.task.composers": "正在查找作曲家…",
+  "app.task.lyrics": "正在获取歌词…",
+  "app.task.writeLyrics": "正在将歌词写入文件…",
+  "app.task.compilations": "正在检查合辑…",
+  "app.task.releaseTypes": "正在查找发行类型…",
+  "app.task.dynamicRange": "正在测量动态范围…",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -389,7 +389,7 @@
   $effect(() => {
     api.getBackgroundTasks().then((r) => tachesDeFond.set(r?.tasks ?? [])).catch(() => {});
   });
-  const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning')));
+  const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning'), (cle) => $t(cle as any)));
   /**
    * #1577 — Didier (fil 1904) : « un indicateur toujours visible de mise à
    * jour en cours de la base ». L'avancement d'une analyse n'était lu que par

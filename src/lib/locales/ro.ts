@@ -6477,6 +6477,23 @@ export default {
   "v2.pure.veilCrosstalk": "Crosstalk nu acționează în modul PURE: semnalul pleacă intact. Setările dvs. sunt păstrate.",
   "dsp.crossfeedSetAsideByCrosstalk": "Crosstalk (procesare pentru boxe) este activ în această zonă: crossfeed-ul, procesare pentru căști, este pus deoparte aici. Cele două nu se cumulează niciodată.",
   "v2.cfp.setAsideByCrosstalk": "Crosstalk (procesare pentru boxe) este activ în această zonă: Crossfeed Pro, procesare pentru căști, este pus deoparte aici. Cele două nu se cumulează niciodată.",
+  // #2610 — noms des tâches de fond.
+  "app.task.credits": "Se preiau creditele…",
+  "app.task.artistImages": "Se preiau imaginile artiștilor…",
+  "app.task.covers": "Se preiau copertele albumelor…",
+  "app.task.metadata": "Se completează metadatele…",
+  "app.task.bios": "Se preiau biografiile…",
+  "app.task.identification": "Se identifică elementele bibliotecii…",
+  "app.task.integrity": "Se verifică integritatea bibliotecii…",
+  "app.task.writeDr": "Se scrie gama dinamică în fișiere…",
+  "app.task.writeMetadata": "Se scriu metadatele în fișiere…",
+  "app.task.readMetadata": "Se citesc metadatele fișierelor…",
+  "app.task.composers": "Se caută compozitorii…",
+  "app.task.lyrics": "Se preiau versurile…",
+  "app.task.writeLyrics": "Se scriu versurile în fișiere…",
+  "app.task.compilations": "Se verifică compilațiile…",
+  "app.task.releaseTypes": "Se caută tipurile de lansare…",
+  "app.task.dynamicRange": "Se măsoară gama dinamică…",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
