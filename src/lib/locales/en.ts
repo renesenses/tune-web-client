@@ -9,7 +9,7 @@ export default {
   "v2.circle.msg.actions": "Message actions",
 
   "settings.podcastRewind": "Podcast resume rewind (seconds)",
-  "settings.podcastRewindHint": "Resume the episode before the saved position. 0–300 seconds; default 10.",
+  "settings.podcastRewindHint": "Resume the episode before the saved position. 0–60 seconds; default 10.",
   "v2.radio.listeningCountry": "Server listening country",
   "v2.radio.countryUnset": "Not set — unrestricted streams",
   "v2.radio.countryHint": "Choose your listening country. If unset, only unrestricted streams are selected.",

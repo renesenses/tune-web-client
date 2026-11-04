@@ -9,7 +9,7 @@ export default {
   "v2.circle.msg.actions": "메시지 작업",
 
   "settings.podcastRewind": "팟캐스트 재개 시 되감기(초)",
-  "settings.podcastRewindHint": "저장된 위치보다 앞에서 에피소드를 재개합니다. 0~300초, 기본값 10초.",
+  "settings.podcastRewindHint": "저장된 위치보다 앞에서 에피소드를 재개합니다. 0~60초, 기본값 10초.",
   "v2.radio.listeningCountry": "서버 청취 국가",
   "v2.radio.countryUnset": "미설정 — 제한 없는 스트림",
   "v2.radio.countryHint": "청취 국가를 선택하세요. 미설정 시 제한 없는 스트림만 선택됩니다.",
