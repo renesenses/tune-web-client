@@ -8,7 +8,9 @@
 //   3. « Appliquer » importe le même texte et l'applique ;
 //   4. « Annuler » ne crée rien ;
 //   5. un refus nommé du serveur est dit dans la langue de l'écran, ligne ou
-//      bande comprise.
+//      bande comprise ;
+//   6. la ligne `Device:` d'un fichier Equalizer APO, écartée par le serveur
+//      (`device_selection`), est dite à part, pas comme un filtre « OFF ».
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 
@@ -38,7 +40,7 @@ vi.mock('../stores/notifications', async (importOriginal) => {
 
 import EqualizerV2 from '../../components/v2/EqualizerV2.svelte';
 import { currentZoneId } from '../stores/zones';
-import { messageErreurImport, type TextesErreurImport } from '../eqImportPeq';
+import { bilanImportPeq, lignesEcartees, messageErreurImport, type TextesErreurImport } from '../eqImportPeq';
 import lFr from '../locales/fr';
 
 const fr = lFr as unknown as Record<string, string>;
@@ -170,6 +172,33 @@ describe('#6385 — aperçu avant application', () => {
     expect(el.querySelector('.apercu-peq')).toBeNull();
     expect(mocks.importAutoEqPreset).not.toHaveBeenCalled();
     expect(mocks.setEq).not.toHaveBeenCalled();
+  });
+});
+
+describe('#6385 — ligne « Device: » d’Equalizer APO', () => {
+  const ECARTEES = [
+    { line: 1, filter_type: null, reason: 'device_selection' },
+    { line: 7, filter_type: 'PK', reason: 'disabled' },
+  ];
+
+  it('la ligne Device est rangée à part des filtres « OFF »', () => {
+    expect(lignesEcartees(ECARTEES)).toEqual({ lignesIgnorees: '7 (PK)', ligneDevice: 1 });
+    expect(lignesEcartees([])).toEqual({ lignesIgnorees: '', ligneDevice: null });
+    expect(lignesEcartees(undefined)).toEqual({ lignesIgnorees: '', ligneDevice: null });
+    const bilan = bilanImportPeq({ ...IMPORTE, ignored_filters: ECARTEES } as any);
+    expect(bilan.ligneDevice).toBe(1);
+    expect(bilan.lignesIgnorees).toBe('7 (PK)');
+  });
+
+  it('🔴 l’aperçu dit la ligne Device dans sa phrase, pas comme un filtre « OFF »', async () => {
+    mocks.previewEqImport.mockResolvedValue({
+      ...APERCU, format: 'parametric_eq', ignored_filter_count: 1,
+      ignored_filters: [{ line: 1, filter_type: null, reason: 'device_selection' }],
+    });
+    const el = await poser();
+    await deposer(el, 'HyperX.txt', 'Device: casque\nPreamp: -6.4 dB\n');
+    const textes = Array.from(el.querySelectorAll('.apercu-peq .ignores')).map((p) => p.textContent ?? '');
+    expect(textes).toEqual([fr['eq.importDeviceIgnored'].replace('{line}', '1')]);
   });
 });
 

@@ -40,7 +40,7 @@
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
   import { estCourbeGraphique } from '../../lib/eqHydratation';
-  import { bilanImportPeq, db, lignesApercu, messageErreurImport, nomDuFichierPeq, TAILLE_MAX_FICHIER_PEQ, type BilanImportPeq, type TextesErreurImport } from '../../lib/eqImportPeq';
+  import { bilanImportPeq, db, lignesApercu, lignesEcartees, messageErreurImport, nomDuFichierPeq, TAILLE_MAX_FICHIER_PEQ, type BilanImportPeq, type TextesErreurImport } from '../../lib/eqImportPeq';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -669,6 +669,7 @@
   /** tune-server-rust#6385 — le fichier analysé, en attente d'« Appliquer ». */
   let apercuPeq = $state<{ texte: string; nom: string | undefined; r: api.EqImportApercu } | null>(null);
   const lignesDeLApercu = $derived(apercuPeq ? lignesApercu(apercuPeq.r.bands) : []);
+  const ecartesDeLApercu = $derived(lignesEcartees(apercuPeq?.r.ignored_filters));
 
   async function appliquerApercu() {
     const a = apercuPeq;
@@ -985,8 +986,11 @@
               {/each}
             </tbody>
           </table>
-          {#if apercuPeq.r.ignored_filters?.length}
-            <p class="ignores">{$t('eq.importPeqIgnored' as any).replace('{lines}', apercuPeq.r.ignored_filters.map((f) => (f.filter_type ? `${f.line} (${f.filter_type})` : String(f.line))).join(', '))}</p>
+          {#if ecartesDeLApercu.lignesIgnorees}
+            <p class="ignores">{$t('eq.importPeqIgnored' as any).replace('{lines}', ecartesDeLApercu.lignesIgnorees)}</p>
+          {/if}
+          {#if ecartesDeLApercu.ligneDevice !== null}
+            <p class="ignores">{$t('eq.importDeviceIgnored' as any).replace('{line}', String(ecartesDeLApercu.ligneDevice))}</p>
           {/if}
           {#if typeof apercuPeq.r.preamp_db === 'number' && typeof apercuPeq.r.reserved_headroom_db === 'number'}
             <p>{$t('eq.importPeqPreamp' as any).replace('{preamp}', db(apercuPeq.r.preamp_db)).replace('{reserved}', db(apercuPeq.r.reserved_headroom_db))}</p>
@@ -1004,6 +1008,9 @@
           <p>{$t('eq.importPeqSummary' as any).replace('{name}', bilanPeq.nom).replace('{count}', String(bilanPeq.bandes))}</p>
           {#if bilanPeq.lignesIgnorees}
             <p class="ignores">{$t('eq.importPeqIgnored' as any).replace('{lines}', bilanPeq.lignesIgnorees)}</p>
+          {/if}
+          {#if bilanPeq.ligneDevice !== null}
+            <p class="ignores">{$t('eq.importDeviceIgnored' as any).replace('{line}', String(bilanPeq.ligneDevice))}</p>
           {/if}
           {#if bilanPeq.preampDb !== null && bilanPeq.reserveDb !== null}
             <p>{$t('eq.importPeqPreamp' as any).replace('{preamp}', db(bilanPeq.preampDb)).replace('{reserved}', db(bilanPeq.reserveDb))}</p>

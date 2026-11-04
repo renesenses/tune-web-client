@@ -1043,6 +1043,7 @@ export default {
   'eq.importPeqDone': 'Preset « {name} » importé ({count} bandes)',
   'eq.importPeqSummary': '« {name} » : {count} bandes importées dans Mes presets.',
   'eq.importPeqIgnored': 'Lignes ignorées (filtres « OFF ») : {lines}',
+  'eq.importDeviceIgnored': "Ligne {line} : choix du périphérique d'Equalizer APO (« Device: ») ignoré.",
   'eq.importPeqPreamp': 'Le préampli du fichier ({preamp} dB) n\'est pas appliqué en plus : Tune réserve déjà {reserved} dB. Le réglage joue donc un peu plus bas ; compensez au volume.',
   'eq.importPeqWarning': 'Ce fichier demande plus de marge que ses gains n\'en justifient. Le preset est enregistré mais pas activé : baissez le volume avant de l\'activer.',
   'eq.importPreviewTitle': "« {name} » : {count} bandes à appliquer. Rien n'est enregistré avant « Appliquer ».",

@@ -1039,6 +1039,7 @@ export default {
   'eq.importPeqDone': 'Preset "{name}" imported ({count} bands)',
   'eq.importPeqSummary': '"{name}": {count} bands imported into My presets.',
   'eq.importPeqIgnored': 'Lines ignored (filters set to OFF): {lines}',
+  'eq.importDeviceIgnored': "Line {line}: Equalizer APO device selection (\"Device:\") ignored.",
   'eq.importPeqPreamp': 'The file\'s preamp ({preamp} dB) is not applied on top: Tune already reserves {reserved} dB. The setting plays a little lower; make up for it with the volume.',
   'eq.importPeqWarning': 'This file asks for more headroom than its gains justify. The preset is saved but not activated: turn the volume down before activating it.',
   'eq.importPreviewTitle': "\"{name}\": {count} bands to apply. Nothing is saved until you click Apply.",

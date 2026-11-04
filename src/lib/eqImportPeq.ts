@@ -34,6 +34,10 @@ export interface BilanImportPeq {
   /** « 3, 7 (PK) » : les lignes écartées, avec leur type quand le fichier le
    *  donne. Vide quand rien n'a été écarté. */
   lignesIgnorees: string;
+  /** tune-server-rust#6385 — la ligne `Device:` d'un fichier Equalizer APO,
+   *  écartée par le serveur (`device_selection`) : dite à part, ce n'est pas
+   *  un filtre « OFF ». `null` quand le fichier n'en a pas. */
+  ligneDevice: number | null;
   /** Le préampli demandé par le fichier, et la réserve réellement tenue par
    *  Tune. `null` quand le serveur ne les rend pas. */
   preampDb: number | null;
@@ -43,15 +47,31 @@ export interface BilanImportPeq {
   alerte: boolean;
 }
 
-export function bilanImportPeq(r: EqAutoEqImport): BilanImportPeq {
-  const ignores = r.ignored_filters ?? [];
-  const lignesIgnorees = ignores
+/**
+ * Les lignes écartées par le serveur, rangées par raison : les filtres (« 3,
+ * 7 (PK) ») d'un côté, la ligne `Device:` d'Equalizer APO de l'autre. Une
+ * raison inconnue de ce client reste dans la liste des lignes, comme avant.
+ */
+export function lignesEcartees(ignores: EqAutoEqImport['ignored_filters']): {
+  lignesIgnorees: string;
+  ligneDevice: number | null;
+} {
+  const tous = ignores ?? [];
+  const device = tous.find((f) => f.reason === 'device_selection');
+  const lignesIgnorees = tous
+    .filter((f) => f.reason !== 'device_selection')
     .map((f) => (f.filter_type ? `${f.line} (${f.filter_type})` : String(f.line)))
     .join(', ');
+  return { lignesIgnorees, ligneDevice: device ? device.line : null };
+}
+
+export function bilanImportPeq(r: EqAutoEqImport): BilanImportPeq {
+  const { lignesIgnorees, ligneDevice } = lignesEcartees(r.ignored_filters);
   return {
     nom: r.preset?.name ?? '',
     bandes: r.band_count ?? r.preset?.bands?.length ?? 0,
     lignesIgnorees,
+    ligneDevice,
     preampDb: typeof r.preamp_db === 'number' ? r.preamp_db : null,
     reserveDb: typeof r.reserved_headroom_db === 'number' ? r.reserved_headroom_db : null,
     alerte: r.preamp_covered_by_headroom === false || !!r.warning,
