@@ -39,7 +39,7 @@
   import { chargerRubriquesGenre, type BandeRubrique } from '../../lib/rubriquesGenre';
   import { chargerPlaylistsDuGenre } from '../../lib/playlistsDuGenre';
   import { sansLaPlaylistRetiree } from '../../lib/playlistsSuiviesRetrait';
-  import { chargerMixes } from '../../lib/mixesTidal';
+  import { chargerMixes, estUnMix, sousTitreDeMix } from '../../lib/mixesTidal';
   import { compterParAuteur, filtrerParAuteur, filtreAuteurUtile, type FiltreAuteur } from '../../lib/filtreAuteurPlaylists';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
@@ -1236,8 +1236,11 @@
   let zoneDefilante = $state<HTMLDivElement | null>(null);
   const pTitle = (p: any) => p?.name ?? p?.title ?? p?.titre ?? $t('v2.common.untitled' as any);
   const pCover = (p: any) => p?.cover_path ?? p?.image ?? p?.picture ?? p?.pochette ?? null;
+  // #7822 — un mix n'a pas de nombre de titres (le serveur rend 0) : sa
+  // deuxième ligne est la liste de ses artistes, ou rien.
   const pSub = (p: any) =>
-    p?.artist_name ?? p?.artiste
+    estUnMix(p) ? sousTitreDeMix(p)
+    : p?.artist_name ?? p?.artiste
     ?? (p?.track_count != null
         ? $t('v2.lib.trackCount' as any).replace('{count}', String(p.track_count))
         : '');
@@ -1929,7 +1932,7 @@
           : type === 'playlist'
           ? cibleEtiquettePlaylist({ ...p, name: pTitle(p), cover_path: pCover(p) }, active)
           : null}
-        favoriExterne={type
+        favoriExterne={type && !estUnMix(p)
           ? favoriExterneService($favoriteStreamingKeys, {
               // 🔴 #1400 — la référence ne se compose PLUS ici. Cette vignette
               // écrivait `service: p?.source ?? active`, donc la clé d'ONGLET

@@ -39,3 +39,18 @@ export async function chargerMixes(
     return [];
   }
 }
+
+/** Un mix de service : `source_id` en `mix:<id>`, attribué par le serveur. */
+export function estUnMix(p: { source_id?: unknown } | null | undefined): boolean {
+  return typeof p?.source_id === 'string' && p.source_id.startsWith('mix:');
+}
+
+/**
+ * La deuxième ligne de la tuile d'un mix : ses artistes (le `subTitle` de
+ * TIDAL, servi en `description`), ou rien. Jamais un nombre de titres : la
+ * liste des mixes de TIDAL ne le donne pas, le serveur rend `track_count: 0`,
+ * et la tuile de playlist écrivait alors « 0 titres » sur chaque mix.
+ */
+export function sousTitreDeMix(p: { description?: unknown } | null | undefined): string {
+  return typeof p?.description === 'string' ? p.description.trim() : '';
+}

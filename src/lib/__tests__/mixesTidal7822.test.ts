@@ -9,7 +9,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { chargerMixes, proposeDesMixes } from '../mixesTidal';
+import { chargerMixes, estUnMix, proposeDesMixes, sousTitreDeMix } from '../mixesTidal';
 import type { StreamingPlaylist } from '../types';
 
 const mix = (source_id: string, name: string): StreamingPlaylist =>
@@ -68,5 +68,44 @@ describe('#7822 — la rangée « Vos mixes » de l’écran Streaming', () => {
     expect(source).toContain('chargerMixes(svc, api.getStreamingMixes)');
     const api = readFileSync(resolve(process.cwd(), 'src/lib/api.ts'), 'utf-8');
     expect(api).toMatch(/export function getStreamingMixes\(service: string\)[\s\S]{0,200}\/streaming\/\$\{encodeURIComponent\(service\)\}\/mixes`/);
+  });
+});
+
+describe('#7822 — la tuile d’un mix (renvoi de revue : « 0 titres »)', () => {
+  const source = readFileSync(resolve(process.cwd(), 'src/components/v2/StreamingV2.svelte'), 'utf-8')
+    .replace(/<!--[\s\S]*?-->/g, '');
+
+  it('reconnaît un mix à son identifiant `mix:`, pas une playlist', () => {
+    expect(estUnMix(mix('mix:0011aa', 'My Mix 1'))).toBe(true);
+    expect(estUnMix({ source_id: '1a2b-uuid' })).toBe(false);
+    expect(estUnMix(null)).toBe(false);
+  });
+
+  it('🔴 la deuxième ligne d’un mix donne ses artistes, ou rien, jamais un nombre', () => {
+    expect(sousTitreDeMix({ ...mix('mix:a', 'My Mix 1'), description: 'GoGo Penguin, Nils Frahm, Hania Rani' }))
+      .toBe('GoGo Penguin, Nils Frahm, Hania Rani');
+    expect(sousTitreDeMix(mix('mix:a', 'My Mix 1'))).toBe('');
+  });
+
+  /**
+   * Rejoue la `pSub` de l'écran, telle qu'écrite dans le composant, sur un
+   * mix servi avec `track_count: 0` : la tuile ne doit PAS écrire « 0 titres ».
+   */
+  it('🔴 la tuile d’un mix n’affiche pas « 0 titres »', () => {
+    const m = source.match(/const pSub = \(p: any\) =>([\s\S]*?);\n/);
+    expect(m, 'pSub introuvable').not.toBeNull();
+    const t = (k: string) => (k === 'v2.lib.trackCount' ? '{count} titres' : k);
+    const pSub = new Function('p', '$t', 'estUnMix', 'sousTitreDeMix', `return (${m![1].replace(/ as any/g, "")});`) as
+      (p: any, $t: typeof t, e: typeof estUnMix, s: typeof sousTitreDeMix) => string;
+    const sans = mix('mix:0011aa', 'My Daily Discovery');
+    const avec = { ...sans, description: 'GoGo Penguin, Nils Frahm' };
+    expect(pSub(sans, t, estUnMix, sousTitreDeMix), 'un mix sans artistes montrait « 0 titres »').toBe('');
+    expect(pSub(avec, t, estUnMix, sousTitreDeMix)).toBe('GoGo Penguin, Nils Frahm');
+    // Une vraie playlist garde son nombre de titres.
+    expect(pSub({ source_id: 'uuid-1', track_count: 12 }, t, estUnMix, sousTitreDeMix)).toBe('12 titres');
+  });
+
+  it('🔴 la tuile d’un mix n’offre pas de cœur de favori', () => {
+    expect(source).toContain('favoriExterne={type && !estUnMix(p)');
   });
 });
