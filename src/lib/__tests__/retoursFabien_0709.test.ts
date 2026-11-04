@@ -105,8 +105,11 @@ describe('« si on reclique ça fait planter l’appli » (podcasts)', () => {
   });
 
   it('la liste est relue au SERVEUR quand la réponse ne dit rien', () => {
+    // Trois chemins : le désabonnement sans identifiant, l'abonnement dont la
+    // réponse ne porte ni identifiant ni flux, et l'ajout par adresse RSS
+    // (tune-server-rust#7819) dans le même cas.
     expect(pod().match(/subs = \(await api\.getPodcastSubscriptions\(\)\) \?\? \[\];/g) ?? [])
-      .toHaveLength(2);
+      .toHaveLength(3);
   });
 
   it('un flux DÉJÀ listé n’est jamais rangé deux fois', () => {
