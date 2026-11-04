@@ -92,7 +92,7 @@
   import { preferences } from '../../lib/stores/preferences';
 import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { atLeast } from '../../lib/uiLevel';
-  import { getQualityTier, multipleDSD, fold, formatDuration,  type QualityTier } from '../../lib/utils';
+  import { getQualityTier, multipleDSD, fold, formatDuration, estMulticanal, porteSesCanaux, type QualityTier } from '../../lib/utils';
   import { formatDeFichier } from '../../lib/typeDeFichier';
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
@@ -397,10 +397,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // DSD, Hi-Res et CD sont des NOMS de format : ils s'écrivent pareil dans
   // toutes les langues. « Compressé » est un mot, et porte donc une clé —
   // d'où `cle`, qui distingue les deux sans que le rendu ait à deviner.
-  const QUALITIES: { key: QualityTier | 'hires'; label: string; cle?: string }[] = [
+  type CleQualite = QualityTier | 'hires' | 'multichannel';
+  const QUALITES_DE_BASE: { key: CleQualite; label: string; cle?: string }[] = [
     { key: 'dsd', label: 'DSD' }, { key: 'hires', label: 'Hi-Res' },
     { key: 'cd', label: 'CD' }, { key: 'lossy', label: 'Compressé', cle: 'v2.lib.qualityLossy' },
   ];
+  // tune-server-rust#7725 — Multicanal se lit dans `max_channels`, qu'un
+  // serveur plus ancien ne sert pas : sans lui, la puce n'est pas proposée.
+  const QUALITES_AVEC_MULTICANAL = [
+    ...QUALITES_DE_BASE,
+    { key: 'multichannel' as const, label: 'Multicanal', cle: 'v2.lib.qualityMultichannel' },
+  ];
+  const QUALITIES = $derived(src.some(porteSesCanaux) ? QUALITES_AVEC_MULTICANAL : QUALITES_DE_BASE);
 
   /**
    * Les facettes à valeurs listées portent un TABLEAU — #898.
@@ -575,6 +583,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let q = $state('');
 
   function tierMatches(a: Album, key: string): boolean {
+    if (key === 'multichannel') return estMulticanal(a);
     const t = getQualityTier(a);
     if (key === 'hires') return t === 'hires' || t === 'hires_max';
     return t === key;
