@@ -16,6 +16,8 @@
  * (`cleDetailAlbum`, `objetAlbum`). La clé de carte n'est donc plus `a.id`
  * seul — deux albums de service la partageraient (`null`).
  */
+import { get, writable } from 'svelte/store';
+import * as api from './api';
 import type { Album, Source } from './types';
 
 /** Ce que rend `GET /profiles/{id}/favorites/streaming?item_type=album`. */
@@ -85,21 +87,38 @@ export function albumsEtendus(bibliotheque: readonly Album[], favoris: readonly 
   return etendue && favoris.length ? [...bibliotheque, ...favoris] : (bibliotheque as Album[]);
 }
 
-const CLE_BASCULE = 'tune.bibliotheque.etendue';
+/**
+ * tune-server-rust#7780 (fil 2635) — le bouton « Bibliothèque + favoris »
+ * devient le réglage « Bibliothèque élargie aux favoris des services » de
+ * Paramètres › Bibliothèque, tenu par le serveur pour chaque profil et
+ * ACTIVÉ par défaut. Un serveur qui ne connaît pas encore le réglage (route
+ * absente) ou injoignable laisse la valeur par défaut.
+ */
+export const bibliothequeEtendueActive = writable<boolean>(true);
+/** Le réglage a été lu (ou le serveur n'en sait rien) : la Bibliothèque attend ce moment pour ne pas demander des favoris qu'elle n'affichera pas. */
+export const reglageEtendueLu = writable<boolean>(false);
 
-/** La bascule, retenue sur cet appareil. Éteinte par défaut. */
-export function lireBasculeEtendue(): boolean {
+export async function chargerReglageEtendue(profileId: number): Promise<boolean> {
+  let actif = true;
   try {
-    return globalThis.localStorage?.getItem(CLE_BASCULE) === '1';
+    actif = (await api.getBibliothequeEtendue(profileId))?.enabled !== false;
   } catch {
-    return false;
+    /* serveur ancien : la valeur par défaut tient */
   }
+  bibliothequeEtendueActive.set(actif);
+  reglageEtendueLu.set(true);
+  return actif;
 }
 
-export function ecrireBasculeEtendue(v: boolean): void {
+/** Écrit le réglage ; rend la valeur d'avant si le serveur refuse. */
+export async function changerReglageEtendue(profileId: number, actif: boolean): Promise<void> {
+  const avant = get(bibliothequeEtendueActive);
+  bibliothequeEtendueActive.set(actif);
   try {
-    globalThis.localStorage?.setItem(CLE_BASCULE, v ? '1' : '0');
-  } catch {
-    /* stockage refusé : la bascule vaut pour la session */
+    const r = await api.setBibliothequeEtendue(profileId, actif);
+    bibliothequeEtendueActive.set(r?.enabled ?? actif);
+  } catch (e) {
+    bibliothequeEtendueActive.set(avant);
+    throw e;
   }
 }

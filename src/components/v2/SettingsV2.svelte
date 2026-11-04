@@ -66,6 +66,8 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId, remettreRepetitionAOff } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { currentProfileId } from '../../lib/stores/profile';
+  import { bibliothequeEtendueActive, chargerReglageEtendue, changerReglageEtendue } from '../../lib/bibliothequeEtendue';
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
   import ReglagesAccesParCompte from './ReglagesAccesParCompte.svelte';
@@ -2813,6 +2815,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       coffretsAuto = before;
       coffretsAutoErr = get(t)('settings.errSaveFailed');
     }
+  }
+  // tune-server-rust#7780 — « Bibliothèque élargie aux favoris des services »,
+  // par profil, activé par défaut ; remplace le bouton de la Bibliothèque.
+  $effect(() => {
+    const pid = $currentProfileId;
+    if (pid != null) void chargerReglageEtendue(pid);
+  });
+  async function setBibliothequeEtendue(v: boolean) {
+    const pid = get(currentProfileId);
+    if (pid == null) return;
+    try { await changerReglageEtendue(pid, v); }
+    catch { libErr = get(t)('settings.errSaveFailed'); }
   }
   async function setQualitySplit(v: boolean) {
     const before = qualitySplit; qualitySplit = v;
@@ -6593,6 +6607,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </details>
                 {/if}
               {/if}
+              <!-- tune-server-rust#7780 — remplace le bouton « Bibliothèque + favoris ». -->
+              <div class="row" data-bibliotheque-etendue>
+                <div class="lbl">
+                  <span>{$t('settings.extendedLibrary' as any)}</span>
+                  <span class="hint">{$t('settings.extendedLibraryHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$bibliothequeEtendueActive}
+                    onchange={(e) => setBibliothequeEtendue((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
               <AuditIntegrite />
