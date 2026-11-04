@@ -99,7 +99,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { cale, elargir, fenetreNeuve, plafondDe, type Fenetre } from '../../lib/fenetreDeRendu';
-  import { trierAlbums } from '../../lib/trierAlbums';
+  import { trierAlbums, comparerDatesDeSortie } from '../../lib/trierAlbums';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
@@ -616,7 +616,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     const byTitle = (a: Album, b: Album) => comparerAlphabetique(a.title, b.title);
     switch (sortKey) {
       case 'artist':
-        return list.sort((a, b) => comparerAlphabetique(a.artist_name, b.artist_name) || byTitle(a, b));
+        // web#2644 — sous un même artiste, par date de sortie (le plus ancien
+        // d'abord, sans date en dernier), puis par titre.
+        return list.sort((a, b) =>
+          comparerAlphabetique(a.artist_name, b.artist_name) || comparerDatesDeSortie(a, b) || byTitle(a, b),
+        );
       case 'year':
         // Sans annee en DERNIER quel que soit le sens : un album non date ne
         // doit pas squatter la tete de liste.
