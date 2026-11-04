@@ -3580,6 +3580,7 @@ export default {
   "v2.stream.pageSize": "Per side",
   "v2.stream.loadingMore": "Laster…",
   "v2.stream.playFailed": "Avspillingen mislyktes.",
+  "v2.stream.yourMixes": "Dine mikser",
   "v2.common.loading": "Laster…",
   "v2.common.close": "Lukk",
   "v2.lib.trackCount": "{count} spor",

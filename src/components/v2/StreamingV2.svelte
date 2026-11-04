@@ -39,6 +39,7 @@
   import { chargerRubriquesGenre, type BandeRubrique } from '../../lib/rubriquesGenre';
   import { chargerPlaylistsDuGenre } from '../../lib/playlistsDuGenre';
   import { sansLaPlaylistRetiree } from '../../lib/playlistsSuiviesRetrait';
+  import { chargerMixes } from '../../lib/mixesTidal';
   import { compterParAuteur, filtrerParAuteur, filtreAuteurUtile, type FiltreAuteur } from '../../lib/filtreAuteurPlaylists';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
@@ -279,6 +280,17 @@
   let bandesGenre = $state<BandeRubrique[]>([]);
   /** #5313 — les playlists éditoriales du genre ouvert (Qobuz). Vide ailleurs. */
   let genrePlaylists = $state<StreamingPlaylist[]>([]);
+  /** tune-server-rust#7822 — « Vos mixes » : les mixes du compte TIDAL. Vide
+   *  ailleurs, et pour un compte sans mix : la rangée ne s'affiche pas. */
+  let mixes = $state<StreamingPlaylist[]>([]);
+  $effect(() => {
+    const svc = active;
+    mixes = [];
+    if (ongletExpire) return;
+    let vivant = true;
+    chargerMixes(svc, api.getStreamingMixes).then((m) => { if (vivant) mixes = m; });
+    return () => { vivant = false; };
+  });
 
   /** Liste des genres du service : UN seul appel par service, HORS de l'effet
    * du volet.
@@ -1479,6 +1491,14 @@
       <YouTubeDecouverteV2 tuile={tuileYouTube} />
 
     {:else if sub === 'editorial'}
+      {#if !isBc && mixes.length}
+        <!-- tune-server-rust#7822 — les mixes du compte TIDAL, lus et ajoutés
+             à la file comme des playlists. -->
+        <section class="sec" data-mixes-compte>
+          <h2>{$t('v2.stream.yourMixes' as any)}</h2>
+          <div class="grid">{#each mixes as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+        </section>
+      {/if}
       {#if isBc}
         <!-- 🔴 Les genres ont QUITTE « Decouvrir » (Bertrand, 05/09/2026 :
              « mettre l'onglet genres : ok, mais enlever les genres de l'onglet

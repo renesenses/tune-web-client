@@ -3700,6 +3700,7 @@ export default {
   "v2.stream.pageSize": "Per sida",
   "v2.stream.loadingMore": "Laddar…",
   "v2.stream.playFailed": "Uppspelning misslyckades.",
+  "v2.stream.yourMixes": "Dina mixar",
   "v2.common.loading": "Laddar…",
   "v2.common.close": "Stäng",
   "v2.lib.trackCount": "{count} spår",

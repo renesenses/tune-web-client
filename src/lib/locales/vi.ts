@@ -3582,6 +3582,7 @@ export default {
   "v2.stream.pageSize": "Mỗi trang",
   "v2.stream.loadingMore": "Đang tải…",
   "v2.stream.playFailed": "Không thể phát.",
+  "v2.stream.yourMixes": "Bản mix của bạn",
   "v2.common.loading": "Đang tải…",
   "v2.common.close": "Đóng",
   "v2.lib.trackCount": "{count} bài hát",

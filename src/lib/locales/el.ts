@@ -3580,6 +3580,7 @@ export default {
   "v2.stream.pageSize": "Ανά σελίδα",
   "v2.stream.loadingMore": "Φόρτωση…",
   "v2.stream.playFailed": "Η αναπαραγωγή απέτυχε.",
+  "v2.stream.yourMixes": "Τα μιξ σας",
   "v2.common.loading": "Φόρτωση…",
   "v2.common.close": "Κλείσιμο",
   "v2.lib.trackCount": "{count} κομμάτια",

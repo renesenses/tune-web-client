@@ -6204,6 +6204,13 @@ export function getStreamingFeaturedSections(service: string) {
   return fetchJSON<FeaturedSection[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/sections`);
 }
 
+/** tune-server-rust#7822 — les mixes personnels du compte (TIDAL : My Daily
+ *  Discovery, My Mix 1 à 8…), lisibles comme des playlists de service.
+ *  `sansBandeau` : la rangée s'efface d'elle-même si la route échoue. */
+export function getStreamingMixes(service: string) {
+  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/mixes`, undefined, undefined, true);
+}
+
 /**
  * Une rubrique éditoriale du service. `sansBandeau` : ses deux seuls appelants
  * sont des `charger` de widget (`accueilWidgets.ts`, `widgetsService.ts`), et
