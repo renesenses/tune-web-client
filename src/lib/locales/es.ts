@@ -4124,6 +4124,8 @@ export default {
   "v2.nav.plugins": "Extensiones",
   "v2.nav.radioShort": "Radio",
   "v2.lib.sortTitle": "Título",
+  "v2.lib.exportCatalogue": "Exportar el catálogo",
+  "v2.lib.exportCatalogueError": "No se pudo exportar el catálogo.",
   "v2.lib.sortArtist": "Artista",
   "v2.lib.sortYear": "Año",
   "v2.pl.sortOrder": "Orden de la lista",

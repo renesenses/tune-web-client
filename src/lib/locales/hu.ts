@@ -4078,6 +4078,8 @@ export default {
   "v2.nav.plugins": "Bővítmények",
   "v2.nav.radioShort": "Rádió",
   "v2.lib.sortTitle": "Cím",
+  "v2.lib.exportCatalogue": "Katalógus exportálása",
+  "v2.lib.exportCatalogueError": "A katalógus exportálása nem sikerült.",
   "v2.lib.sortArtist": "Előadó",
   "v2.lib.sortYear": "Év",
   "v2.pl.sortOrder": "Lejátszási lista sorrendje",

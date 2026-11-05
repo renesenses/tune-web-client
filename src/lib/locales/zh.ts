@@ -4124,6 +4124,8 @@ export default {
   "v2.nav.plugins": "扩展",
   "v2.nav.radioShort": "电台",
   "v2.lib.sortTitle": "标题",
+  "v2.lib.exportCatalogue": "导出目录",
+  "v2.lib.exportCatalogueError": "目录导出失败。",
   "v2.lib.sortArtist": "艺术家",
   "v2.lib.sortYear": "年份",
   "v2.pl.sortOrder": "播放列表顺序",

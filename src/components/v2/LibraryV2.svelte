@@ -1946,6 +1946,30 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   $effect(() => { void tab; void q; facetteOuverte = null; });
 
   /**
+   * web#2622 (tune-server-rust#7671) — « Exporter le catalogue » : le serveur
+   * rend un HTML autonome, imprimable ou enregistrable en PDF par le
+   * navigateur. On lui passe ce que l'écran montre : qualités et formats
+   * cochés, genre ou artiste ouvert, tri en cours. Voir `catalogueExport`.
+   */
+  let exportCatalogueEnCours = $state(false);
+  async function exporterCatalogue() {
+    if (exportCatalogueEnCours) return;
+    exportCatalogueEnCours = true;
+    try {
+      await api.exportCatalogue({
+        qualites: fQuality, formats: fFormat, tri: sortKey, ordreAnnee,
+        genre: tab === 'genres' ? facetteOuverte : null,
+        artiste: tab === 'artists' ? facetteOuverte : null,
+        langue: $locale,
+      });
+    } catch {
+      notifications.error($tr('v2.lib.exportCatalogueError' as any));
+    } finally {
+      exportCatalogueEnCours = false;
+    }
+  }
+
+  /**
    * web#2191 (fil 2274) — « lors d'un appui sur < Retour la liste des genres
    * reprend du début ». `.fliste` défile elle-même, et elle est DÉTRUITE à
    * l'ouverture d'une valeur (`{#if groupeOuvert == null}`) : recréée au
@@ -3126,6 +3150,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
         </button>
       {/if}
+      <!-- web#2622 — le catalogue imprimable de la bibliothèque LOCALE : un
+           dépôt distant n'a pas de route d'export chez nous. -->
+      {#if !depot}
+        <button class="exportcat" onclick={exporterCatalogue} disabled={exportCatalogueEnCours}
+          aria-label={$tr('v2.lib.exportCatalogue' as any)} title={$tr('v2.lib.exportCatalogue' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>
+        </button>
+      {/if}
       {/if}
       <!-- #929 — la bascule tourne sur TROIS modes ici, deux ailleurs.
            web#1719 — LE MÊME bouton que les Favoris et le Gestionnaire de
@@ -4083,6 +4116,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /* web#1719 — les pastilles sont parties avec le bouton, dans
      `BasculeAffichage.svelte`. Ce qui reste de `.viewtog` ici ne sert plus
      qu'au re-tirage (#4558), qui en emprunte la taille et le cadre. */
+  /* web#2622 — « Exporter le catalogue » : même cadre, classe à part pour que
+     `.viewtog` reste la bascule d'affichage que les tests et l'écran cherchent. */
+  .exportcat{width:38px; height:38px; flex:0 0 auto; border-radius:10px; cursor:pointer;
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); display:grid; place-items:center}
+  .exportcat:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .exportcat:disabled{opacity:.5; cursor:progress}
+  .exportcat svg{width:16px; height:16px}
 
   /* Vues par facette : une section par valeur (artiste, genre, année, label). */
   .facets{flex:1; min-height:0; overflow-y:auto; padding:8px 30px 40px}

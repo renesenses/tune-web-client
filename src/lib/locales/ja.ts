@@ -4124,6 +4124,8 @@ export default {
   "v2.nav.plugins": "拡張機能",
   "v2.nav.radioShort": "ラジオ",
   "v2.lib.sortTitle": "タイトル",
+  "v2.lib.exportCatalogue": "カタログを書き出す",
+  "v2.lib.exportCatalogueError": "カタログの書き出しに失敗しました。",
   "v2.lib.sortArtist": "アーティスト",
   "v2.lib.sortYear": "年",
   "v2.pl.sortOrder": "プレイリストの順序",

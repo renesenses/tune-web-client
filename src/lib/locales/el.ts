@@ -3999,6 +3999,8 @@ export default {
   "v2.nav.plugins": "Επεκτάσεις",
   "v2.nav.radioShort": "Ραδιόφωνο",
   "v2.lib.sortTitle": "Τίτλος",
+  "v2.lib.exportCatalogue": "Εξαγωγή καταλόγου",
+  "v2.lib.exportCatalogueError": "Η εξαγωγή του καταλόγου απέτυχε.",
   "v2.lib.sortArtist": "Καλλιτέχνης",
   "v2.lib.sortYear": "Έτος",
   "v2.pl.sortOrder": "Σειρά λίστας αναπαραγωγής",

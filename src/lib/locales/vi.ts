@@ -4001,6 +4001,8 @@ export default {
   "v2.nav.plugins": "Tiện ích mở rộng",
   "v2.nav.radioShort": "Radio",
   "v2.lib.sortTitle": "Tiêu đề",
+  "v2.lib.exportCatalogue": "Xuất danh mục",
+  "v2.lib.exportCatalogueError": "Không thể xuất danh mục.",
   "v2.lib.sortArtist": "Nghệ sĩ",
   "v2.lib.sortYear": "Năm",
   "v2.pl.sortOrder": "Thứ tự danh sách phát",
