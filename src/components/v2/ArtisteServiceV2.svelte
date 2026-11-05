@@ -217,6 +217,11 @@
    */
   let bioProvenance = $state<BioProvenance | null>(null);
   /**
+   * `bio_segments` de `GET /library/artists/{id}/bio` (#7910). Ignorés par
+   * `BioEtTitresPhares` s'ils ne recomposent pas la `bio` affichée.
+   */
+  let bioSegments = $state<unknown>(null);
+  /**
    * Le compte de l'en-tête : les vignettes de la DISCOGRAPHIE COMMUNE, et non
    * les seuls albums de la bibliothèque — « 1 albums » pour a-ha, 44 à
    * l'écran. Repris tel quel de la fiche de bibliothèque, qui l'avait mesuré.
@@ -569,6 +574,7 @@
   ) {
     const editee = bioEditee?.trim() || null;
     bio = editee;
+    bioSegments = null;
     // `GET /library/artists/{id}` porte la provenance de SA bio, à côté d'elle.
     bioProvenance = editee ? provenanceEditee : null;
     if (editee) return;
@@ -577,6 +583,7 @@
       if (mien === jeton) {
         bio = r?.bio?.trim() || null;
         bioProvenance = bio ? provenanceDe(r) : null;
+        bioSegments = bio ? ((r as any)?.bio_segments ?? null) : null;
       }
     } catch {
       /* pas de biographie : le bloc ne s'affiche pas */
@@ -1129,7 +1136,7 @@
   {:else}
     <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
-    <BioEtTitresPhares bio={bio} provenance={bioProvenance} titres={titres} {titresEnCharge} cle={cible?.id}
+    <BioEtTitresPhares bio={bio} provenance={bioProvenance} segments={bioSegments} titres={titres} {titresEnCharge} cle={cible?.id}
       actionsBio={artisteEditable ? enrichirBio : undefined} />
 
     <!-- tune-server-rust#6001 — ProgArchives / Metal Archives / AllMusic, pour

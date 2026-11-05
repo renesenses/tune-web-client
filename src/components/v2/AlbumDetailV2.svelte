@@ -40,6 +40,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbum';
   import ClampedText from '../partages/ClampedText.svelte';
   import AttributionBio from './AttributionBio.svelte';
+  import TexteDeBio from './TexteDeBio.svelte';
+  import { segmentsAffichables } from '../../lib/library/bioSegments';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
   import ListePistesV2 from './ListePistesV2.svelte';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
@@ -1397,6 +1399,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   let bio = $state<string | null>(null);
   /** Provenance de la notice (`bio_provenance`) — attribution CC BY-SA. */
   let bioProvenance = $state<BioProvenance | null>(null);
+  /** `bio_segments` de `GET /library/albums/{id}/bio` (#7910) : liens de la présentation. */
+  let bioSegments = $state<unknown>(null);
+  const segmentsBio = $derived(segmentsAffichables(bio, bioSegments));
   let bioChargement = $state(false);
   let bioErreur = $state(false);
   /** Album dont la bio est en mémoire — la fiche est réutilisée d'un album à
@@ -1410,6 +1415,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     bioOuverte = false;
     bio = null;
     bioProvenance = null;
+    bioSegments = null;
     bioErreur = false;
   });
 
@@ -1425,6 +1431,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       if (album.id === id) {
         bio = r.bio ?? '';
         bioProvenance = provenanceDe(r);
+        bioSegments = r.bio_segments ?? null;
       }
     } catch {
       if (album.id === id) bioErreur = true;
@@ -1969,7 +1976,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
           <p class="bio-state err">{$tr('library.bioLoadError' as any)}</p>
         {:else if bio}
           <ClampedText lines={4} resetKey={bio}>
-            <p class="bio-text">{bio}</p>
+            <p class="bio-text">{#if segmentsBio}<TexteDeBio segments={segmentsBio} />{:else}{bio}{/if}</p>
           </ClampedText>
           <AttributionBio provenance={bioProvenance} />
         {:else}
