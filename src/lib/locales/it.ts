@@ -9,7 +9,7 @@ export default {
   "v2.circle.msg.actions": "Azioni del messaggio",
 
   "settings.podcastRewind": "Riavvolgimento alla ripresa dei podcast (secondi)",
-  "settings.podcastRewindHint": "Riprendi l’episodio prima della posizione salvata. Da 0 a 300 secondi; predefinito: 10.",
+  "settings.podcastRewindHint": "Riprendi l’episodio prima della posizione salvata. Da 0 a 60 secondi; predefinito: 10.",
   "v2.radio.listeningCountry": "Paese di ascolto del server",
   "v2.radio.countryUnset": "Non impostato — flussi senza restrizioni",
   "v2.radio.countryHint": "Scegli il paese di ascolto. Se non impostato, vengono scelti solo flussi senza restrizioni.",

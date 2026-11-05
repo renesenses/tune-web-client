@@ -72,6 +72,7 @@
   import { chargerLienAcces, qrSvg, renouvelerLienAcces } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
+  import { RECUL_PODCAST_MAX, RECUL_PODCAST_MIN, reculPodcastSaisi } from '../../lib/reculPodcast';
   import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
   import {
     CLE_IMPORT_PLAYLISTS_SCAN,
@@ -448,8 +449,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }).catch(() => { podcastRewind = null; });
   });
   async function savePodcastRewind(raw: string) {
-    const value = Number(raw);
-    if (raw.trim() === '' || !Number.isInteger(value) || value < 0 || value > 300) return;
+    const value = reculPodcastSaisi(raw);
+    if (value === null) return;
     const before = podcastRewind;
     podcastRewindBusy = true;
     try {
@@ -4457,7 +4458,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span>{$t('settings.podcastRewind' as any)}</span>
                     <span class="hint">{$t('settings.podcastRewindHint' as any)}</span>
                   </div>
-                  <input class="txt num" type="number" min="0" max="300" step="1"
+                  <input class="txt num" type="number" min={RECUL_PODCAST_MIN} max={RECUL_PODCAST_MAX} step="1"
                     value={podcastRewind} disabled={podcastRewindBusy}
                     aria-label={$t('settings.podcastRewind' as any)}
                     onchange={(e) => savePodcastRewind(e.currentTarget.value)} />

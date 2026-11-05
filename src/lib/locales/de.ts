@@ -9,7 +9,7 @@ export default {
   "v2.circle.msg.actions": "Nachrichtenaktionen",
 
   "settings.podcastRewind": "Rücksprung bei Podcast-Fortsetzung (Sekunden)",
-  "settings.podcastRewindHint": "Die Folge vor der gespeicherten Position fortsetzen. 0–300 Sekunden; Standard: 10.",
+  "settings.podcastRewindHint": "Die Folge vor der gespeicherten Position fortsetzen. 0–60 Sekunden; Standard: 10.",
   "v2.radio.listeningCountry": "Hörland des Servers",
   "v2.radio.countryUnset": "Nicht festgelegt — unbeschränkte Streams",
   "v2.radio.countryHint": "Wählen Sie Ihr Hörland. Ohne Angabe werden nur unbeschränkte Streams ausgewählt.",

@@ -9,7 +9,7 @@ export default {
   "v2.circle.msg.actions": "Działania dotyczące wiadomości",
 
   "settings.podcastRewind": "Cofnięcie przy wznawianiu podcastu (sekundy)",
-  "settings.podcastRewindHint": "Wznów odcinek przed zapisaną pozycją. 0–300 sekund; domyślnie: 10.",
+  "settings.podcastRewindHint": "Wznów odcinek przed zapisaną pozycją. 0–60 sekund; domyślnie: 10.",
   "v2.radio.listeningCountry": "Kraj słuchania serwera",
   "v2.radio.countryUnset": "Nie ustawiono — strumienie bez ograniczeń",
   "v2.radio.countryHint": "Wybierz kraj słuchania. Bez kraju wybierane są tylko strumienie bez ograniczeń.",
