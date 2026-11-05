@@ -35,6 +35,7 @@
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
+  import ProposerTuneTested from './ProposerTuneTested.svelte';
   import BadgeHorsBackend from './BadgeHorsBackend.svelte';
   import BadgeReaffectation from './BadgeReaffectation.svelte';
   import MenuZone from './MenuZone.svelte';
@@ -102,6 +103,8 @@
    */
   const estAirplay = (z: Zone) => z.output_type === 'airplay' || z.output_type === 'airplay2';
   let airplayPairing = $state<{ deviceId: string; deviceName: string } | null>(null);
+  /** tune-server-rust#7922 — la fiche Tune tested ouverte, une à la fois. */
+  let ficheTuneTested = $state<{ id: number; nom: string } | null>(null);
   function ouvrirAppairage(z: Zone, e?: Event) {
     e?.stopPropagation();
     if (!z.output_device_id) return;
@@ -520,6 +523,7 @@
         image: () => choisirImage(z),
         reglages: () => reglagesDeLaZone(z),
         correction: () => correctionDeLaZone(z),
+        tuneTested: () => { if (z.id != null) ficheTuneTested = { id: z.id, nom: z.name }; },
         latence: () => { void mesurerLatence(z); },
         appairer: () => ouvrirAppairage(z),
         fusionner: () => { if (j) void fusionner(z, j); },
@@ -882,6 +886,10 @@
 <input type="file" accept="image/*" bind:this={champFichier} onchange={imageChoisie}
   style="display:none" aria-hidden="true" tabindex="-1" />
 </section>
+
+{#if ficheTuneTested}
+  <ProposerTuneTested zoneId={ficheTuneTested.id} nom={ficheTuneTested.nom} onClose={() => (ficheTuneTested = null)} />
+{/if}
 
 {#if airplayPairing}
   <AirplayPairingModal

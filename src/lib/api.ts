@@ -1397,6 +1397,24 @@ export function reinitialiserCompatibiliteRenderer(id: number) {
   );
 }
 
+/**
+ * tune-server-rust#7922 — proposer l'appareil de la zone pour Tune tested.
+ * Le `GET` dit le temps sans erreur, le seuil d'une heure et l'aperçu exact
+ * de l'envoi ; le `POST` l'envoie au site. Sans bandeau : la fenêtre dit
+ * elle-même un refus, par son code nommé (`messageDeRefus`).
+ */
+export function getTuneTestedProposition(id: number) {
+  return fetchJSON<import('./tuneTestedProposition').EtatTuneTested>(
+    `${BASE}/zones/${id}/tune-tested`, undefined, undefined, true,
+  );
+}
+
+export function proposerTuneTested(id: number) {
+  return fetchJSON<{ status: string; already_proposed: boolean }>(
+    `${BASE}/zones/${id}/tune-tested`, { method: 'POST' }, undefined, true,
+  );
+}
+
 export function changeZoneOutput(id: number, outputType: string, outputDeviceId?: string | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
