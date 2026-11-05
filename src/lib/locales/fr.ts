@@ -3609,6 +3609,8 @@ export default {
   "v2.meta.drEngraveBtn": "Graver",
   "v2.meta.drRunning": "Gravure en cours…",
   "v2.meta.drInterrupted": "Interrompue à {done} / {total} — relancer",
+  "v2.meta.drCancelled": "Arrêtée à {done} / {total} — reprendre",
+  "v2.meta.drStop": "Arrêter",
   "v2.meta.drToEngrave": "pistes à graver",
   "v2.meta.drToEngraveLive": "restent à graver (recompté en direct)",
   "v2.meta.drInFiles": "pistes déjà gravées dans le fichier",

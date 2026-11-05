@@ -3588,6 +3588,8 @@ export default {
   "v2.meta.drEngraveBtn": "Escribir",
   "v2.meta.drRunning": "Escribiendo…",
   "v2.meta.drInterrupted": "Interrumpida en {done} / {total} — reanudar",
+  "v2.meta.drCancelled": "Detenida en {done} / {total} — reanudar",
+  "v2.meta.drStop": "Detener",
   "v2.meta.drToEngrave": "pistas por escribir",
   "v2.meta.drToEngraveLive": "quedan por escribir (recuento en directo)",
   "v2.meta.drInFiles": "pistas con el DR ya en el archivo",

@@ -3467,6 +3467,8 @@ export default {
   "v2.meta.drEngraveBtn": "Εγγραφή",
   "v2.meta.drRunning": "Εγγραφή σε εξέλιξη…",
   "v2.meta.drInterrupted": "Διακόπηκε στο {done} / {total} — επανεκκίνηση",
+  "v2.meta.drCancelled": "Σταμάτησε στο {done} / {total} — συνέχεια",
+  "v2.meta.drStop": "Διακοπή",
   "v2.meta.drToEngrave": "κομμάτια προς εγγραφή",
   "v2.meta.drToEngraveLive": "απομένουν προς εγγραφή (ζωντανή καταμέτρηση)",
   "v2.meta.drInFiles": "κομμάτια που έχουν ήδη το DR στο αρχείο",

@@ -3587,6 +3587,8 @@ export default {
   "v2.meta.drEngraveBtn": "Skriv",
   "v2.meta.drRunning": "Skriver…",
   "v2.meta.drInterrupted": "Avbruten vid {done} / {total} — starta om",
+  "v2.meta.drCancelled": "Stoppad vid {done} / {total} — fortsätt",
+  "v2.meta.drStop": "Stoppa",
   "v2.meta.drToEngrave": "spår att skriva",
   "v2.meta.drToEngraveLive": "kvar att skriva (räknas live)",
   "v2.meta.drInFiles": "spår med DR redan i filen",

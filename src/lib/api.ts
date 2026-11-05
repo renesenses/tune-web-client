@@ -10851,8 +10851,10 @@ export function listMetadataProposals(
 export interface GravureDrEtat {
   /** `interrupted` (fil 2137) : la passe est morte en route (redémarrage,
    *  panne) ; les compteurs sont ceux de son dernier jalon. Un serveur plus
-   *  ancien ne le renvoie jamais : il laissait un `running` périmé. */
-  status: 'idle' | 'running' | 'done' | 'interrupted';
+   *  ancien ne le renvoie jamais : il laissait un `running` périmé.
+   *  `cancelled` (tune-server-rust#7719) : arrêtée à la demande, entre deux
+   *  pistes ; les compteurs sont ceux du moment de l'arrêt. */
+  status: 'idle' | 'running' | 'done' | 'interrupted' | 'cancelled';
   a_graver: number;
   hors_format: number;
   dans_les_fichiers: number;
@@ -10868,6 +10870,12 @@ export function getGravureDr(): Promise<GravureDrEtat> {
 /** 202 accepté ; 409 si la passe tourne déjà. */
 export function lancerGravureDr(): Promise<{ status: string; total: number; hors_format: number }> {
   return apiPost('/library/dr/gravure', {});
+}
+/** tune-server-rust#7719 — arrêter la passe en cours, avant le fichier
+ *  suivant. `cancelled: false` si aucune passe ne tournait ; 404 sur un
+ *  serveur qui ne connaît pas encore la route. */
+export function annulerGravureDr(): Promise<{ cancelled: boolean }> {
+  return apiPost('/library/dr/gravure/cancel', {});
 }
 
 /** Phase 5 UPnP : l'album existe-t-il aussi ailleurs (local ↔ serveur UPnP) ? */

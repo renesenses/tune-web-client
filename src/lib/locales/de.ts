@@ -3588,6 +3588,8 @@ export default {
   "v2.meta.drEngraveBtn": "Schreiben",
   "v2.meta.drRunning": "Schreiben läuft…",
   "v2.meta.drInterrupted": "Abgebrochen bei {done} / {total} — neu starten",
+  "v2.meta.drCancelled": "Angehalten bei {done} / {total} — fortsetzen",
+  "v2.meta.drStop": "Anhalten",
   "v2.meta.drToEngrave": "zu schreibende Titel",
   "v2.meta.drToEngraveLive": "noch zu schreiben (live gezählt)",
   "v2.meta.drInFiles": "Titel mit DR bereits in der Datei",

@@ -3467,6 +3467,8 @@ export default {
   "v2.meta.drEngraveBtn": "Zapisz",
   "v2.meta.drRunning": "Zapisywanie…",
   "v2.meta.drInterrupted": "Przerwano na {done} / {total} — uruchom ponownie",
+  "v2.meta.drCancelled": "Zatrzymano na {done} / {total} — wznów",
+  "v2.meta.drStop": "Zatrzymaj",
   "v2.meta.drToEngrave": "utwory do zapisania",
   "v2.meta.drToEngraveLive": "pozostało do zapisania (liczone na bieżąco)",
   "v2.meta.drInFiles": "utwory, które już mają DR w pliku",

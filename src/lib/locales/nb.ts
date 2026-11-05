@@ -3467,6 +3467,8 @@ export default {
   "v2.meta.drEngraveBtn": "Skriv",
   "v2.meta.drRunning": "Skriver…",
   "v2.meta.drInterrupted": "Avbrutt ved {done} / {total} — start på nytt",
+  "v2.meta.drCancelled": "Stoppet ved {done} / {total} — fortsett",
+  "v2.meta.drStop": "Stopp",
   "v2.meta.drToEngrave": "spor som skal skrives",
   "v2.meta.drToEngraveLive": "igjen å skrive (levende telling)",
   "v2.meta.drInFiles": "spor som allerede har DR i filen",
