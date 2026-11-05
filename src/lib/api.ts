@@ -8183,6 +8183,17 @@ export function subscribePodcast(podcast: { title: string; feed_url: string; aut
   return fetchJSON(`${BASE}/podcasts/subscriptions`, { method: 'POST', body: JSON.stringify(podcast) });
 }
 
+/**
+ * tune-server-rust#7819 — s'abonner par la seule adresse du flux : le serveur
+ * lit le flux et en tire le titre, l'auteur, l'image et la description. Ses
+ * refus portent un code stable (`podcast_adresse_invalide`,
+ * `podcast_flux_injoignable`, `podcast_pas_un_flux`) que l'écran traduit ;
+ * `sansBandeau` : l'écran dit lui-même l'échec, à côté du champ.
+ */
+export function ajouterPodcastParAdresse(feedUrl: string): Promise<any> {
+  return fetchJSON(`${BASE}/podcasts/subscriptions`, { method: 'POST', body: JSON.stringify({ feed_url: feedUrl }) }, undefined, true);
+}
+
 export function unsubscribePodcast(id: number): Promise<void> {
   return fetchVoid(`${BASE}/podcasts/subscriptions/${id}`, { method: 'DELETE' });
 }
