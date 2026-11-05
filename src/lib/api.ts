@@ -866,6 +866,19 @@ export function getDefaultZone(): Promise<{ zone_id: number | null }> {
   return fetchJSON(`${BASE}/system/settings/default-zone`);
 }
 
+/** tune-server-rust#7780 — « Bibliothèque élargie aux favoris des services », par profil. */
+export function getBibliothequeEtendue(profileId: number): Promise<{ enabled: boolean }> {
+  // Sans bandeau : un serveur d'avant #7780 répond 404, le défaut (activé) tient.
+  return fetchJSON(`${BASE}/profiles/${profileId}/settings/bibliotheque-etendue`, undefined, undefined, true);
+}
+
+export function setBibliothequeEtendue(profileId: number, enabled: boolean): Promise<{ enabled: boolean }> {
+  return fetchJSON(`${BASE}/profiles/${profileId}/settings/bibliotheque-etendue`, {
+    method: 'PUT',
+    body: JSON.stringify({ enabled }),
+  });
+}
+
 export function setDefaultZone(zoneId: number | null): Promise<{ zone_id: number | null }> {
   return fetchJSON(`${BASE}/system/settings/default-zone`, {
     method: 'PUT',
@@ -6438,8 +6451,13 @@ export interface ReponseEcritureFavoriService {
 export function getProfileStreamingFavorites(
   profileId: number,
   type?: StreamingItemType,
+  /** tune-server-rust#7780 — `bibliotheque` : liste vide si le réglage est désactivé. */
+  pour?: 'bibliotheque',
 ): Promise<StreamingFavorite[]> {
-  const q = type ? `?item_type=${type}` : '';
+  const params = new URLSearchParams();
+  if (type) params.set('item_type', type);
+  if (pour) params.set('pour', pour);
+  const q = params.toString() ? `?${params}` : '';
   // rc4 — l'en-tête `X-Tune-Favoris-Miroir` dit l'état du miroir (rafraîchi
   // par le serveur à cette lecture même). Absent d'un serveur ancien : `null`.
   return fetchJSON<StreamingFavorite[]>(

@@ -110,7 +110,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import * as api from '../../lib/api';
   import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys } from '../../lib/stores/profile';
-  import { albumsDesFavorisDeService, albumsEtendus, cleCarteAlbum, ecrireBasculeEtendue, estAlbumDeServiceEtendu, lireBasculeEtendue } from '../../lib/bibliothequeEtendue';
+  import { albumsDesFavorisDeService, albumsEtendus, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, estAlbumDeServiceEtendu, reglageEtendueLu } from '../../lib/bibliothequeEtendue';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -334,8 +334,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * même menu « Source ». Ni dépôt distant (ses favoris ne sont pas ceux de
    * ce serveur), ni portée de répertoire (un album de service n'a pas de
    * dossier). Voir `lib/bibliothequeEtendue`.
+   *
+   * #7780 — plus de bouton : c'est le réglage « Bibliothèque élargie aux
+   * favoris des services » (Paramètres › Bibliothèque), activé par défaut et
+   * tenu par le serveur pour chaque profil.
    */
-  let etendue = $state(lireBasculeEtendue());
+  const etendue = $derived($bibliothequeEtendueActive && $reglageEtendueLu);
+  $effect(() => {
+    const pid = $currentProfileId;
+    if (pid != null && !depot) void chargerReglageEtendue(pid);
+  });
   // `$derived.by` : `tab` est déclaré plus bas — lu paresseusement, jamais à l'initialisation.
   const etendueActive = $derived.by(() => etendue && !depot && !porteeActive && tab === 'albums');
   let favorisDeService = $state.raw<Album[]>([]);
@@ -345,15 +353,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     void $favoriteStreamingKeys;
     if (!etendueActive || pid == null) return;
     let perime = false;
-    api.getProfileStreamingFavorites(pid, 'album')
+    api.getProfileStreamingFavorites(pid, 'album', 'bibliotheque')
       .then((f) => { if (!perime) favorisDeService = albumsDesFavorisDeService(f as any); })
       .catch(() => { if (!perime) favorisDeService = []; });
     return () => { perime = true; };
   });
-  function basculerEtendue() {
-    etendue = !etendue;
-    ecrireBasculeEtendue(etendue);
-  }
 
   const src: Album[] = $derived(albumsEtendus(srcBibliotheque, favorisDeService, etendueActive));
   const enCharge: boolean = $derived.by(() =>
@@ -2972,12 +2976,6 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         `/home/recently-added`, qui ne connaît pas la provenance. Le menu s'y
         ouvrait et se cochait sans que rien ne bouge.
       -->
-      {#if showSearch && tab === 'albums' && !depot && !porteeActive}
-        <!-- #6482 — « Bibliothèque + favoris » : les albums favoris des
-             services rejoignent la grille. -->
-        <button class="chip" class:active={etendue} aria-pressed={etendue} onclick={basculerEtendue}
-          title={$tr('v2.lib.extendedHint' as any)}>{$tr('v2.lib.extended' as any)}</button>
-      {/if}
       {#if showSearch}
         <!-- #4800 — `onpointerenter` : le menu s'ouvre AUSSI au survol
              (`.drop:hover .menu`), et ses comptes veulent la liste entière. -->
