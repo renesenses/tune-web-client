@@ -31,8 +31,12 @@
     cibleParDefaut: CibleEtiquetage;
     /** Le total serveur du résultat dans cette cible. */
     nombre: number;
+    /** web#2646 — appelé après une écriture réussie (tag ou métadonnée) :
+     *  la vue relit alors ce qu'elle montre, sinon l'ancienne valeur reste
+     *  affichée jusqu'au rechargement de la page. */
+    onModifie?: () => void;
   }
-  let { filtres, cibleParDefaut, nombre }: Props = $props();
+  let { filtres, cibleParDefaut, nombre, onModifie }: Props = $props();
 
   let disponible = $state(false);
   let selectionne = $state(false);
@@ -132,6 +136,7 @@
       );
       ouvert = false;
       selectionne = false;
+      onModifie?.();
     } catch {
       notifications.error($t(retirer ? 'oxygen.tagSel.failedRemove' : 'oxygen.tagSel.failed'));
     } finally {
@@ -159,7 +164,7 @@
 {/if}
 
 {#if edition}
-  <OxygenEditionFiltre {filtres} {cibleParDefaut} onFermer={() => { edition = false; }} onFait={() => { selectionne = false; }} />
+  <OxygenEditionFiltre {filtres} {cibleParDefaut} onFermer={() => { edition = false; }} onFait={() => { selectionne = false; onModifie?.(); }} />
 {/if}
 
 {#if ouvert}
