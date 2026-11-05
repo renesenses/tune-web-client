@@ -45,6 +45,7 @@
    * un serveur UPnP tiers.
    */
   import { albums, libraryLoading, libraryFolderScope } from '../../lib/stores/library';
+  import { chargerMembresOeuvres, regrouperAlbums, type MembresOeuvre } from '../../lib/oeuvres';
   // tune-server-rust#7597 — le bouton « Répertoire » et la lecture du dossier.
   import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
   import { choisirDossierBibliotheque, restaurerDossierBibliotheque, suivreLeRetraitDeLaPortee } from '../../lib/dossierBibliotheque';
@@ -295,13 +296,36 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    *  serveur. C'est assez pour ce qui se lit sur un échantillon (« y a-t-il
    *  une date d'ajout, un DR ? ») ; tout ce qui exige la liste entière fait
    *  sortir du mode paginé, et `src` redevient la bibliothèque complète. */
-  const srcBibliotheque: Album[] = $derived.by(() =>
+  const srcBrute: Album[] = $derived.by(() =>
     depot ? albumsD
       : nu ? albumsCharges($albumsPagines)
       : !porteeActive ? $albums
       : idsPortee == null ? []
       : $albums.filter((a) => a.id != null && idsPortee!.has(a.id)),
   );
+
+  /**
+   * tune-server-rust#7617 — une carte par œuvre : les versions d'un même
+   * album (remaster, Hi-Res, édition) n'en font qu'une, la version préférée,
+   * avec le badge « N versions » ; la fiche permet de choisir la version à
+   * lire. Relu quand la bibliothèque change. Bibliothèque ENTIÈRE seulement :
+   * le mode paginé range ses cases par rang serveur, et en retirer décalerait
+   * tout (`lib/oeuvres`). Serveur ancien ou réglage désactivé : rien ne change.
+   */
+  let membresOeuvres = $state.raw<MembresOeuvre[]>([]);
+  $effect(() => {
+    void $albums;
+    if (depot) return;
+    let perime = false;
+    chargerMembresOeuvres().then((m) => { if (!perime) membresOeuvres = m; });
+    return () => { perime = true; };
+  });
+  // `$derived.by` : `nu` est déclaré plus bas — lu paresseusement, jamais à l'initialisation.
+  const regroupement = $derived.by(() =>
+    depot || nu ? { albums: srcBrute, versions: new Map<number, number>() } : regrouperAlbums(srcBrute, membresOeuvres),
+  );
+  const srcBibliotheque: Album[] = $derived(regroupement.albums);
+  const nbVersions = (a: Album): number => (a.id == null ? 0 : regroupement.versions.get(a.id) ?? 0);
 
   /**
    * tune-server-rust#6482 — « Bibliothèque + favoris » (DidLyon, fils 2320 et
@@ -3757,6 +3781,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         </PochetteActions>
         {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
         {#if estAlbumDeServiceEtendu(a)}<span class="prov" title={$tr('v2.lib.extendedFavorite' as any)}>{libelleProvenance(provenanceDe(a))}</span>{/if}
+        {#if nbVersions(a) > 1}<span class="nver">{$tr('v2.lib.versionsCount' as any).replace('{n}', String(nbVersions(a)))}</span>{/if}
       </div>
       <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
@@ -4340,6 +4365,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .prov{position:absolute; right:6px; top:6px; font:700 8px var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
     border-radius:4px; color:var(--v2-on-acc); background:var(--v2-acc2); pointer-events:none}
   .prov.inline{position:static; margin-left:6px; vertical-align:middle}
+  /* tune-server-rust#7617 — l'œuvre a plusieurs versions : la fiche les propose. */
+  .nver{position:absolute; left:6px; bottom:6px; font:700 8px var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
+    border-radius:3px; background:var(--v2-scrim); color:var(--v2-acc-tint); pointer-events:none}
   .bdg{position:absolute; left:6px; top:6px; font:700 8px var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
     border-radius:3px; background:var(--v2-scrim); color:var(--v2-acc-tint)}
   .ct{margin-top:9px; font:600 12.5px var(--v2-sans); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
