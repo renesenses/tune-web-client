@@ -1776,7 +1776,7 @@ export default {
   "trackTags.savingProgress": "Se salvează…",
   "smartCollection.fieldArtist": "Artist",
   "smartCollection.fieldAlbumArtist": "Artistul albumului",
-  "smartCollection.fieldTrackArtist": "Interpretul piesei",
+  "smartCollection.fieldTrackArtist": "Artistul piesei",
   "smartCollection.fieldAlbumTitle": "Titlu album",
   "smartCollection.fieldGenre": "Gen",
   "smartCollection.fieldComposer": "Compozitor",
