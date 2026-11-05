@@ -107,6 +107,8 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   lecturecd: 'destination',
   circle: 'destination',
   collectionphysique: 'destination',
+  // web#2653 — l'écran des statistiques de la bibliothèque.
+  statsbibliotheque: 'destination',
   // tune-server-rust#5065 — la page d'une source de la rubrique « Sources ».
   source: 'destination',
   // #4806 — l'écran « Titres bannis », voisin des sélections de l'utilisateur.

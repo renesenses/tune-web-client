@@ -65,6 +65,7 @@
   import * as api from '../../lib/api';
   import { PLAFOND_ARTISTE, lireArtisteBibliotheque } from '../../lib/lireArtiste';
   import LiensExternes from './LiensExternes.svelte';
+  import MesNotes from '../partages/MesNotes.svelte';
   import AlbumsManquants from './AlbumsManquants.svelte';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
@@ -1138,6 +1139,11 @@
       <LiensExternes cle={artisteEditable.id} charger={api.getArtistExternalLinks} />
     {/if}
 
+    <!-- web#2653 — « Mes notes » : artiste de la BIBLIOTHÈQUE seulement. -->
+    {#if artisteEditable?.id != null}
+      <div class="mes-notes-artiste"><MesNotes type="artist" id={artisteEditable.id} /></div>
+    {/if}
+
     <!-- tune-server-rust#6782 — vers la page de son label principal (celui de
          la plupart de ses albums de la bibliothèque) : les autres artistes du
          label, dans la bibliothèque puis chez Qobuz. -->
@@ -1234,6 +1240,7 @@
 {/if}
 
 <style>
+  .mes-notes-artiste{max-width:760px; padding:0 30px}
   .lien-label { all: unset; cursor: pointer; align-self: flex-start; margin: 4px 0 8px; font-size: 13px; color: var(--tune-accent); }
   .lien-label:hover { text-decoration: underline; }
   .lien-label:focus-visible { outline: 2px solid var(--tune-accent); outline-offset: 2px; }

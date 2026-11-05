@@ -35,6 +35,7 @@
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
 import AlbumRating from '../partages/AlbumRating.svelte';
+import MesNotes from '../partages/MesNotes.svelte';
 import ReportButton from '../partages/ReportButton.svelte';
 import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbum';
@@ -1954,6 +1955,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     </div>
   </div>
 
+  <!-- web#2653 — « Mes notes » : album LOCAL seulement, comme la note sur 5. -->
+  {#if album.id != null && !depot}
+    <div class="mes-notes-album"><MesNotes type="album" id={album.id} /></div>
+  {/if}
+
   <!-- Présentation de l'album (#3586). Voir le commentaire de `basculerBio`
        pour la raison du bouton : la route sort sur le réseau. -->
   {#if album.id != null}
@@ -2317,6 +2323,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   /* Présentation de l'album (#3586) — repliée par défaut, comme dans
      l'interface actuelle : la route sort sur le réseau quand la notice
      manque, cf. `basculerBio`. */
+  .mes-notes-album{max-width:760px}
   .bio{margin:18px 0 4px; display:flex; flex-direction:column; gap:10px; align-items:flex-start}
   .bio-toggle{display:inline-flex; align-items:center; gap:6px; cursor:pointer;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2);
