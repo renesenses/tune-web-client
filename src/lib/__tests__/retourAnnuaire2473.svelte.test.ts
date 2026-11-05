@@ -135,7 +135,7 @@ describe('#2630 — retrouver recherche, filtres et défilement de l’Annuaire'
     await quitterEtRevenir();
     expect(hote.querySelector<HTMLInputElement>('.annuaire .v2-rech input')?.value, 'la recherche a été perdue au retour').toBe('BBC');
     await vi.waitFor(() => expect(mocks.getAnnuaireRadios).toHaveBeenLastCalledWith(expect.objectContaining({
-      q: 'BBC', country: 'GB', genre: 'jazz', criteres: { codec: 'aac', bitrate_min: '192' },
+      q: 'BBC', country: 'GB', genre: 'jazz', criteres: { codec: 'aac', quality_min: '192' },
     })));
     await vi.waitFor(() => expect(hote.querySelector<HTMLSelectElement>('.annuaire select.choix')?.value).toBe('GB'));
     expect(hote.querySelector('.annuaire .chip.active')?.textContent).toMatch(/Jazz/);
