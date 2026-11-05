@@ -38,10 +38,14 @@
     profilCrosstalkActif,
     libelleProfilCrosstalk,
     valeurCrosstalk,
+    courbeCrosstalk,
+    cleCourbeCrosstalk,
+    type CourbeCrosstalk as Courbe,
     type CurseurCrosstalk,
     type ReglagesCrosstalk,
   } from '../../lib/crosstalk';
   import VoilePur from './VoilePur.svelte';
+  import CourbeCrosstalk from './CourbeCrosstalk.svelte';
   import '../../styles/tune-v2.css';
 
   let r = $state<ReglagesCrosstalk>({ ...DEFAUTS_CROSSTALK });
@@ -81,6 +85,27 @@
         error = p === 'inconnue' ? $t('v2.xtc.errLoad' as any) : null;
       })
       .finally(() => { loading = false; });
+  });
+
+  /**
+   * La courbe séparation / coloration, calculée par le greffon pour la
+   * géométrie réglée (`POST …/diagnostics`). Relue quand un réglage qui la
+   * change bouge ; un échec (serveur ou greffon plus ancien) n'affiche rien.
+   */
+  let courbe = $state<Courbe | null>(null);
+  const cleCourbe = $derived(cleCourbeCrosstalk(r));
+  let demandeCourbe = 0;
+  $effect(() => {
+    const cle = cleCourbe;
+    if (presence !== 'actif') { courbe = null; return; }
+    const n = ++demandeCourbe;
+    const envoi = reglagesCrosstalk(r);
+    const minuterie = setTimeout(() => {
+      api.getDiagnosticsGreffonNatif(CROSSTALK_ID, envoi)
+        .then((d) => { if (n === demandeCourbe && cle === cleCourbe) courbe = courbeCrosstalk(d?.diagnostics); })
+        .catch(() => { if (n === demandeCourbe) courbe = null; });
+    }, 250);
+    return () => clearTimeout(minuterie);
   });
 
   async function chargerProfils() {
@@ -244,6 +269,8 @@
               </div>
             </div>
           {/each}
+
+          {#if courbe}<CourbeCrosstalk {courbe} />{/if}
         </div>
       </fieldset>
     {/if}

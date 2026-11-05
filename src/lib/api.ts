@@ -4636,6 +4636,28 @@ export function setReglageGreffonNatif(
   });
 }
 
+/** `POST /audio-plugins/{id}/diagnostics` — ce que le greffon CALCULE pour
+ *  ce réglage (`diagnostics`, champs propres au greffon), sans rien
+ *  enregistrer ni jouer. 404 (serveur ou greffon inconnu), 409 (greffon non
+ *  chargé), 400 (réglage refusé) : l'appelant n'affiche alors rien — lu
+ *  sans bandeau. */
+export interface DiagnosticsGreffonNatif {
+  plugin: string;
+  diagnostics: unknown;
+}
+
+export function getDiagnosticsGreffonNatif(
+  id: string,
+  settings: Record<string, unknown>,
+): Promise<DiagnosticsGreffonNatif> {
+  return fetchJSON<DiagnosticsGreffonNatif>(
+    `${racineGreffonNatif(id)}/diagnostics`,
+    { method: 'POST', body: JSON.stringify(settings) },
+    undefined,
+    true,
+  );
+}
+
 export async function listProfilsGreffonNatif(id: string): Promise<ProfilGreffonNatif[]> {
   const r = await fetchJSON<{ profiles: ProfilGreffonNatif[] }>(`${racineGreffonNatif(id)}/profiles`);
   return Array.isArray(r?.profiles) ? r.profiles : [];
