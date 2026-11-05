@@ -219,7 +219,7 @@ describe('#2653 — « Mes notes »', () => {
   });
 
   it('assainissement au rendu : <script>, javascript: et onerror ne deviennent jamais des éléments', async () => {
-    notes.set('album:42', '<script>window.pirate = 1</script>\n\n[clic](javascript:alert(1)) <img src=x onerror="window.pirate=2">\n\n[ok](https://exemple.fr)');
+    notes.set('album:42', '<script>window.pirate = 1</script>\n\n[clic](javascript:pirate(1)) <img src=x onerror="window.pirate=2">\n\n[ok](https://exemple.fr)');
     const h = await monter(MesNotes, { type: 'album', id: 42 });
     const rendu = h.querySelector('[data-mes-notes-rendu]')!;
     expect(rendu.querySelector('script')).toBeNull();

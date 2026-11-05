@@ -112,23 +112,23 @@ describe('#2653 — Markdown assaini', () => {
   });
 
   it('<script> : affiché en texte, jamais une balise', () => {
-    const h = rendreMarkdownSur('avant\n\n<script>alert(1)</script>\n\naprès');
+    const h = rendreMarkdownSur('avant\n\n<script>pirate(1)</script>\n\naprès');
     expect(h).not.toMatch(/<script/i);
-    expect(h).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(h).toContain('&lt;script&gt;pirate(1)&lt;/script&gt;');
   });
 
   it('onerror : une image HTML brute reste du texte, sans attribut actif', () => {
-    const h = rendreMarkdownSur('a <img src=x onerror=alert(1)> b');
+    const h = rendreMarkdownSur('a <img src=x onerror=pirate(1)> b');
     expect(h).not.toMatch(/<img/i);
-    expect(h).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(h).toContain('&lt;img src=x onerror=pirate(1)&gt;');
     // Pas de balise ouverte qui porterait l'attribut.
     expect(h).not.toMatch(/<[a-z][^>]*onerror/i);
   });
 
   it('javascript:, data:, http: : le libellé seul, aucun lien', () => {
-    for (const md of ['[clic](javascript:alert(1))', '[clic](JaVaScRiPt:alert(1))', '[clic](  javascript:alert(1))',
-      '[clic](data:text/html,<script>alert(1)</script>)', '[clic](http://exemple.fr)', '[clic](vbscript:x)',
-      '<a href="javascript:alert(1)">clic</a>']) {
+    for (const md of ['[clic](javascript:pirate(1))', '[clic](JaVaScRiPt:pirate(1))', '[clic](  javascript:pirate(1))',
+      '[clic](data:text/html,<script>pirate(1)</script>)', '[clic](http://exemple.fr)', '[clic](vbscript:x)',
+      '<a href="javascript:pirate(1)">clic</a>']) {
       const h = rendreMarkdownSur(md);
       expect(h, md).not.toMatch(/<a\s/i);
       // Aucune balise réelle qui porterait une adresse (le HTML brut reste échappé).
@@ -147,14 +147,14 @@ describe('#2653 — Markdown assaini', () => {
   it('les images ne sont jamais chargées : un lien https, sinon le texte alternatif', () => {
     expect(rendreMarkdownSur('![pochette](https://img.exemple/p.jpg)')).not.toMatch(/<img/i);
     expect(rendreMarkdownSur('![pochette](https://img.exemple/p.jpg)')).toContain('href="https://img.exemple/p.jpg"');
-    expect(rendreMarkdownSur('![pochette](javascript:alert(1))')).not.toMatch(/<[^>]*href=/i);
+    expect(rendreMarkdownSur('![pochette](javascript:pirate(1))')).not.toMatch(/<[^>]*href=/i);
   });
 
   it('adresseHttps : seules les adresses https absolues passent', () => {
     expect(adresseHttps('https://a.fr/x')).toBe('https://a.fr/x');
     expect(adresseHttps('http://a.fr')).toBeNull();
     expect(adresseHttps('/relatif')).toBeNull();
-    expect(adresseHttps('javascript:alert(1)')).toBeNull();
+    expect(adresseHttps('javascript:pirate(1)')).toBeNull();
     expect(adresseHttps('')).toBeNull();
   });
 });
