@@ -239,7 +239,7 @@
             <li>
               <button class="resultat" onclick={() => ouvrir(r.note, r.nom)}>
                 <span class="type">{$t(`mesNotes.type.${r.note.item_type}` as any)}</span>
-                <span class="nom">{r.nom}</span>
+                <span class="nom" title={r.nom}>{r.nom}</span>
                 <span class="extrait">{extrait(r.note.texte_md)}</span>
               </button>
             </li>
