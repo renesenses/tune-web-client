@@ -38,6 +38,7 @@
 import type { Album } from './types';
 import type { AlbumsDeService } from './albumsArtisteStreaming';
 import { compterSources, provenanceDe, sourceCorrespond, type ComptesArtistesSources } from './provenanceBibliotheque';
+import { estDuDSD, estMulticanal } from './utils';
 
 /** La bibliothèque, sous le nom que porte déjà sa provenance partout ailleurs. */
 export const BIBLIOTHEQUE = 'local';
@@ -48,8 +49,13 @@ export const BIBLIOTHEQUE = 'local';
  */
 export const ORDRE_SOURCES: readonly string[] = [BIBLIOTHEQUE, 'qobuz', 'tidal', 'youtube', 'bandcamp'];
 
-export type Qualite = 'hires' | 'cd' | 'lossy';
-export const QUALITES: readonly Qualite[] = ['hires', 'cd', 'lossy'];
+/**
+ * tune-server-rust#7725 — « DSD » est un palier à part (il était rangé sous
+ * Hi-Res), et « Multicanal » un critère indépendant des paliers : un album
+ * DSD 5.1 sort sous les deux.
+ */
+export type Qualite = 'dsd' | 'hires' | 'cd' | 'lossy' | 'multichannel';
+export const QUALITES: readonly Qualite[] = ['dsd', 'hires', 'cd', 'lossy', 'multichannel'];
 
 /** Une édition présente dans une source. */
 export interface Exemplaire {
@@ -217,9 +223,19 @@ export function qualiteDe(ex: Exemplaire): Qualite | null {
 
   if (ex.source === 'youtube') return 'lossy';
   if (AVEC_PERTE.has(codec)) return 'lossy';
-  if (bits > 16 || freq > 48000 || codec.startsWith('dsd') || codec === 'dsf' || codec === 'dff') return 'hires';
+  if (estDuDSD(codec)) return 'dsd';
+  if (bits > 16 || freq > 48000) return 'hires';
   if (bits === 16 || SANS_PERTE.has(codec)) return 'cd';
   return null;
+}
+
+/**
+ * L'exemplaire relève-t-il de cette qualité ? Multicanal se lit à part
+ * (`max_channels`, servi par la bibliothèque seulement), les paliers par
+ * `qualiteDe`.
+ */
+export function aLaQualite(ex: Exemplaire, q: Qualite): boolean {
+  return q === 'multichannel' ? estMulticanal(ex.album) : qualiteDe(ex) === q;
 }
 
 /**
@@ -299,7 +315,7 @@ export function fusionnerDiscographie(
       .map((e, i) => ({ e, i }))
       .sort((a, b) => rangExemplaire(a.e) - rangExemplaire(b.e) || a.i - b.i)
       .map(({ e }) => e);
-    const qualites = QUALITES.filter((q) => ranges.some((e) => qualiteDe(e) === q));
+    const qualites = QUALITES.filter((q) => ranges.some((e) => aLaQualite(e, q)));
     return {
       cle,
       principal: ranges[0],

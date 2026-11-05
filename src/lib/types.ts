@@ -131,6 +131,12 @@ export interface Album {
    */
   focus_track_ids?: number[];
   credit_roles?: string[];
+  /**
+   * tune-server-rust#7725 — le plus grand nombre de canaux parmi les pistes
+   * de l'album (listes de la Bibliothèque et de la fiche artiste). ABSENT
+   * d'un serveur plus ancien : le filtre Multicanal ne s'affiche pas.
+   */
+  max_channels?: number | null;
   id: number | null;
   title: string;
   artist_id?: number | null;
