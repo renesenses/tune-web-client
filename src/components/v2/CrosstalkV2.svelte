@@ -40,12 +40,15 @@
     valeurCrosstalk,
     courbeCrosstalk,
     cleCourbeCrosstalk,
+    reponseCrosstalk,
     type CourbeCrosstalk as Courbe,
+    type ReponseCrosstalk as Reponse,
     type CurseurCrosstalk,
     type ReglagesCrosstalk,
   } from '../../lib/crosstalk';
   import VoilePur from './VoilePur.svelte';
   import CourbeCrosstalk from './CourbeCrosstalk.svelte';
+  import ReponseCrosstalk from './ReponseCrosstalk.svelte';
   import '../../styles/tune-v2.css';
 
   let r = $state<ReglagesCrosstalk>({ ...DEFAUTS_CROSSTALK });
@@ -88,22 +91,28 @@
   });
 
   /**
-   * La courbe séparation / coloration, calculée par le greffon pour la
-   * géométrie réglée (`POST …/diagnostics`). Relue quand un réglage qui la
-   * change bouge ; un échec (serveur ou greffon plus ancien) n'affiche rien.
+   * La courbe séparation / coloration et la réponse en fréquence aux
+   * enceintes, calculées par le greffon pour le réglage de la zone
+   * (`POST …/diagnostics`). Relues quand un réglage qui les change bouge ;
+   * un échec (serveur ou greffon plus ancien) n'affiche rien.
    */
   let courbe = $state<Courbe | null>(null);
+  let reponse = $state<Reponse | null>(null);
   const cleCourbe = $derived(cleCourbeCrosstalk(r));
   let demandeCourbe = 0;
   $effect(() => {
     const cle = cleCourbe;
-    if (presence !== 'actif') { courbe = null; return; }
+    if (presence !== 'actif') { courbe = null; reponse = null; return; }
     const n = ++demandeCourbe;
     const envoi = reglagesCrosstalk(r);
     const minuterie = setTimeout(() => {
       api.getDiagnosticsGreffonNatif(CROSSTALK_ID, envoi)
-        .then((d) => { if (n === demandeCourbe && cle === cleCourbe) courbe = courbeCrosstalk(d?.diagnostics); })
-        .catch(() => { if (n === demandeCourbe) courbe = null; });
+        .then((d) => {
+          if (n !== demandeCourbe || cle !== cleCourbe) return;
+          courbe = courbeCrosstalk(d?.diagnostics);
+          reponse = reponseCrosstalk(d?.diagnostics);
+        })
+        .catch(() => { if (n === demandeCourbe) { courbe = null; reponse = null; } });
     }, 250);
     return () => clearTimeout(minuterie);
   });
@@ -271,6 +280,7 @@
           {/each}
 
           {#if courbe}<CourbeCrosstalk {courbe} />{/if}
+          {#if reponse}<ReponseCrosstalk {reponse} />{/if}
         </div>
       </fieldset>
     {/if}

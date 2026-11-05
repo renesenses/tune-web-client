@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
 //
-// Crosstalk — la courbe séparation / coloration de l'écran de réglage.
+// Crosstalk — la courbe séparation / coloration et la réponse en fréquence
+// aux enceintes, dans l'écran de réglage.
 //
-// Les chiffres viennent du greffon : `crosstalkCourbe33deg.fixture.json` est
-// le bloc `curve` de ses diagnostics, ÉCRIT PAR LE GREFFON LUI-MÊME pour la
-// géométrie 33,4°, 2,7 m (séparation visée 6 dB, plafond 6 dB). L'hôte le
-// relaie par `POST /api/v1/audio-plugins/crosstalk/diagnostics`. Ce banc
-// vérifie que l'écran dessine CETTE table : 6 dB visés → latéral +1,7 dB,
-// centre +1,8 dB, réglage marqué à 6 dB, pointillé au-delà du plafond.
+// Les chiffres viennent du greffon : `crosstalkCourbe33deg.fixture.json`
+// porte les blocs `curve` et `speaker_response` de ses diagnostics, ÉCRITS
+// PAR LE GREFFON LUI-MÊME (son test de conformité) pour la géométrie 33,4°,
+// 2,7 m, séparation visée 5 dB, plafond 6 dB. L'hôte les relaie par
+// `POST /api/v1/audio-plugins/crosstalk/diagnostics`. Ce banc vérifie que
+// l'écran dessine CES tables : courbe, 6 dB visés → latéral +1,7 dB, centre
+// +1,8 dB ; réglage marqué à 5 dB ; réponse du moteur à 5 dB → pic latéral
+// +1,3 dB vers 478 Hz, centre de −1,1 à +1,3 dB, bande 250 Hz – 5 kHz.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
@@ -16,7 +19,7 @@ import { licenseState } from '../stores/license';
 import { presenceCrosstalk } from '../stores/crosstalk';
 import { t } from '../i18n';
 import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
-import { courbeCrosstalk, dbSigne, traceCourbeCrosstalk } from '../crosstalk';
+import { courbeCrosstalk, dbSigne, reponseCrosstalk, traceCourbeCrosstalk, traceReponseCrosstalk } from '../crosstalk';
 import CrosstalkV2 from '../../components/v2/CrosstalkV2.svelte';
 import COURBE from './crosstalkCourbe33deg.fixture.json';
 
@@ -25,13 +28,13 @@ vi.setConfig({ testTimeout: 20_000 });
 const ZONE = 2253;
 const RACINE = '/audio-plugins/crosstalk';
 const REGLAGE = {
-  enabled: true, separation_db: 6, angle_deg: 33.4, distance_m: 2.7,
+  enabled: true, separation_db: 5, angle_deg: 33.4, distance_m: 2.7,
   band_low_hz: 250, band_high_hz: 5000, gain_ceiling_db: 6,
 };
 
 describe('Crosstalk — lecture de la courbe du greffon', () => {
   it('🔴 la table du greffon, géométrie 33,4° / 2,7 m : 6 dB → latéral +1,7, centre +1,8', () => {
-    const c = courbeCrosstalk({ curve: COURBE })!;
+    const c = courbeCrosstalk(COURBE)!;
     expect(c).toBeTruthy();
     expect(c.points).toHaveLength(19);
     expect(c.points[0].cible).toBe(3);
@@ -43,9 +46,35 @@ describe('Crosstalk — lecture de la courbe du greffon', () => {
     // Plafond 6 dB : jusqu'à 11 dB, pas au-delà.
     expect(c.points.find((p) => p.cible === 11)!.atteignable).toBe(true);
     expect(c.points.find((p) => p.cible === 11.5)!.atteignable).toBe(false);
-    expect(c.courant).toMatchObject({ cible: 6, separation: 6, plafonne: false });
-    expect(dbSigne(c.courant!.side)).toBe('+1.7');
-    expect(dbSigne(c.courant!.centre)).toBe('+1.8');
+    expect(c.courant).toMatchObject({ cible: 5, separation: 5, plafonne: false });
+    expect(dbSigne(c.courant!.side)).toBe('+1.3');
+    expect(dbSigne(c.courant!.centre)).toBe('+1.3');
+  });
+
+  it('🔴 la réponse du moteur, 33,4° / 2,7 m, 5 dB : pic latéral +1,3 dB vers 478 Hz, centre de −1,1 à +1,3 dB', () => {
+    const r = reponseCrosstalk(COURBE)!;
+    expect(r).toBeTruthy();
+    expect(r.hz).toHaveLength(160);
+    expect(r.hz[0]).toBe(20);
+    expect(r.hz.at(-1)).toBe(20000);
+    expect(dbSigne(r.picSide)).toBe('+1.3');
+    expect(Math.abs(r.picSideHz / 478 - 1)).toBeLessThan(0.05);
+    expect(dbSigne(r.centreMin)).toBe('-1.1');
+    expect(dbSigne(r.centreMax)).toBe('+1.3');
+    // Les extrêmes annoncés sont ceux des points tracés.
+    expect(Math.max(...r.side)).toBeCloseTo(r.picSide, 2);
+    expect(Math.min(...r.centre)).toBeCloseTo(r.centreMin, 2);
+    expect(Math.max(...r.centre)).toBeCloseTo(r.centreMax, 2);
+    expect([r.bandeBasse, r.bandeHaute]).toEqual([250, 5000]);
+    // Tracé log : 632,5 Hz (moyenne géométrique de 20 Hz et 20 kHz) au milieu.
+    const tr = traceReponseCrosstalk(r);
+    expect(tr.x(20)).toBeLessThan(tr.x(20000));
+    expect(tr.x(632.5) - tr.x(20)).toBeCloseTo(tr.x(20000) - tr.x(632.5), 0);
+    expect(tr.bande.x1).toBeCloseTo(tr.x(250), 1);
+    expect(tr.bande.x2).toBeCloseTo(tr.x(5000), 1);
+    expect(tr.side.split(' ')).toHaveLength(160);
+    expect(reponseCrosstalk({ speaker_response: { hz: [20, 10], side_db: [0, 0], centre_db: [0, 0] } })).toBeNull();
+    expect(reponseCrosstalk({ curve: {} })).toBeNull();
   });
 
   it('une courbe absente ou illisible ne donne rien', () => {
@@ -56,15 +85,15 @@ describe('Crosstalk — lecture de la courbe du greffon', () => {
   });
 
   it('le tracé : abscisse 3 → 12 dB, coloration croissante vers le haut, réglage sur la courbe', () => {
-    const c = courbeCrosstalk({ curve: COURBE })!;
+    const c = courbeCrosstalk(COURBE)!;
     const tr = traceCourbeCrosstalk(c);
     expect(tr.x(3)).toBeLessThan(tr.x(12));
     expect(tr.y(1)).toBeLessThan(tr.y(0));
     // La partie atteignable s'arrête à 11 dB ; la courbe entière va à 12.
     expect(tr.side.atteignable.split(' ')).toHaveLength(17);
     expect(tr.side.entiere.split(' ')).toHaveLength(19);
-    // Le point du réglage est le sommet « 6 dB » de la courbe.
-    const sommet = tr.side.entiere.split(' ')[6].split(',').map(Number);
+    // Le point du réglage est le sommet « 5 dB » de la courbe.
+    const sommet = tr.side.entiere.split(' ')[4].split(',').map(Number);
     expect(tr.courant!.x).toBeCloseTo(sommet[0], 1);
     expect(tr.courant!.ySide).toBeCloseTo(sommet[1], 1);
     // Tout le tracé reste dans les graduations.
@@ -74,12 +103,15 @@ describe('Crosstalk — lecture de la courbe du greffon', () => {
   it('les libellés de la courbe existent dans toutes les langues', () => {
     for (const langue of ONZE_LANGUES) {
       const d = dictionnaire(langue);
-      for (const cle of ['curve', 'curveNote', 'curveSide', 'curveCentre', 'curveAxisX', 'curveAxisY', 'curveCurrent', 'curveCapped']) {
+      for (const cle of ['curve', 'curveNote', 'curveSide', 'curveCentre', 'curveAxisX', 'curveAxisY', 'curveCurrent', 'curveCapped',
+        'response', 'responseNote', 'responseBand', 'responseAxisX', 'responseAxisY', 'responseSummary']) {
         expect(d[`v2.xtc.${cle}`], `${langue} : v2.xtc.${cle}`).toBeTruthy();
       }
       for (const jeton of ['{sep}', '{side}', '{centre}']) expect(d['v2.xtc.curveCurrent']).toContain(jeton);
+      for (const jeton of ['{side}', '{hz}', '{min}', '{max}']) expect(d['v2.xtc.responseSummary']).toContain(jeton);
       // Rien que « Crosstalk » et la courbe : aucun autre produit nommé.
       expect(d['v2.xtc.curveNote']).not.toMatch(/crossfeed/i);
+      expect(d['v2.xtc.responseNote']).not.toMatch(/crossfeed/i);
     }
   });
 });
@@ -101,7 +133,7 @@ let monte: Record<string, unknown> | null = null;
 
 beforeEach(() => {
   demandes = [];
-  diagnostics = { status: 200, corps: { plugin: 'crosstalk', diagnostics: { gain: 0.2, curve: COURBE } } };
+  diagnostics = { status: 200, corps: { plugin: 'crosstalk', diagnostics: { gain: 0.2, ...COURBE } } };
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
     const u = String(url);
     const method = (init?.method ?? 'GET').toUpperCase();
@@ -152,25 +184,39 @@ const monter = async () => {
 };
 
 describe('Crosstalk — la courbe à l’écran', () => {
-  it('🔴 dessinée depuis les diagnostics du greffon, réglage en cours marqué à 6 dB (+1.7 / +1.8)', async () => {
+  it('🔴 dessinée depuis les diagnostics du greffon, réglage en cours marqué à 5 dB (+1.3 / +1.3)', async () => {
     await monter();
     await jusqua(() => !!q('[data-xtc="courbe"]'));
     expect(q('[data-xtc="courbe"]'), 'courbe absente').toBeTruthy();
     // La demande porte la géométrie réglée de la zone.
-    expect(demandes.at(-1)).toMatchObject({ angle_deg: 33.4, distance_m: 2.7, separation_db: 6, gain_ceiling_db: 6 });
+    expect(demandes.at(-1)).toMatchObject({ angle_deg: 33.4, distance_m: 2.7, separation_db: 5, gain_ceiling_db: 6 });
     const resume = q('[data-xtc="courbe-resume"]')!.textContent!;
-    expect(resume).toContain('6.0');
-    expect(resume).toContain('+1.7');
-    expect(resume).toContain('+1.8');
+    expect(resume).toContain('5.0');
+    expect(resume).toContain('+1.3');
     expect(q('[data-xtc="courbe-plafonne"]')).toBeNull();
     // Le point du réglage est à l'abscisse « 6 dB » du tracé.
-    const tr = traceCourbeCrosstalk(courbeCrosstalk({ curve: COURBE })!);
+    const tr = traceCourbeCrosstalk(courbeCrosstalk(COURBE)!);
     const point = q('[data-xtc="courbe-courant"] circle.side') as unknown as SVGCircleElement;
-    expect(Number(point.getAttribute('cx'))).toBeCloseTo(tr.x(6), 1);
+    expect(Number(point.getAttribute('cx'))).toBeCloseTo(tr.x(5), 1);
     // Légende dans la langue de l'interface.
     const c = q('[data-xtc="courbe"]')!.textContent!;
     expect(c).toContain(get(t)('v2.xtc.curveSide' as any));
     expect(c).toContain(get(t)('v2.xtc.curveCentre' as any));
+  });
+
+  it('🔴 la réponse aux enceintes du réglage : bande traitée visible, pic et étendue du centre', async () => {
+    await monter();
+    await jusqua(() => !!q('[data-xtc="reponse"]'));
+    expect(q('[data-xtc="reponse"]'), 'réponse absente').toBeTruthy();
+    const resume = q('[data-xtc="reponse-resume"]')!.textContent!;
+    expect(resume).toContain('+1.3');
+    expect(resume).toMatch(/4[67]\d/);
+    expect(resume).toContain('-1.1');
+    const tr = traceReponseCrosstalk(reponseCrosstalk(COURBE)!);
+    const bande = q('[data-xtc="reponse-bande"]')!;
+    expect(Number(bande.getAttribute('x'))).toBeCloseTo(tr.x(250), 1);
+    expect(Number(bande.getAttribute('x')) + Number(bande.getAttribute('width'))).toBeCloseTo(tr.x(5000), 0);
+    expect(q('[data-xtc="reponse"]')!.textContent).toContain(get(t)('v2.xtc.responseBand' as any));
   });
 
   it('bouger l’angle redemande la courbe pour la nouvelle géométrie', async () => {
@@ -192,6 +238,7 @@ describe('Crosstalk — la courbe à l’écran', () => {
     await new Promise((r) => setTimeout(r, 50));
     flushSync();
     expect(q('[data-xtc="courbe"]')).toBeNull();
+    expect(q('[data-xtc="reponse"]')).toBeNull();
     expect(q('.err')).toBeNull();
   });
 });

@@ -282,3 +282,82 @@ export function dbSigne(v: number): string {
   const s = (Math.round(v * 10) / 10).toFixed(1);
   return v >= 0 && !s.startsWith('-') ? `+${s}` : s.replace('-0.0', '0.0');
 }
+
+/* ── Réponse en fréquence aux enceintes ─────────────────────────────────────
+ * Pour le réglage choisi, le gain envoyé aux enceintes, son latéral et
+ * centre, de 20 Hz à 20 kHz : bloc `speaker_response` des diagnostics,
+ * mesuré par le greffon. Ce client ne fait que le dessiner (échelle log),
+ * bande traitée visible.
+ */
+
+export interface ReponseCrosstalk {
+  hz: number[];
+  side: number[];
+  centre: number[];
+  bandeBasse: number;
+  bandeHaute: number;
+  picSide: number;
+  picSideHz: number;
+  centreMin: number;
+  centreMax: number;
+}
+
+/** La réponse lue dans les diagnostics, ou `null` si elle manque ou ne se lit pas. */
+export function reponseCrosstalk(diagnostics: unknown): ReponseCrosstalk | null {
+  const brut = diagnostics && typeof diagnostics === 'object'
+    ? (diagnostics as Record<string, unknown>).speaker_response
+    : null;
+  if (!brut || typeof brut !== 'object') return null;
+  const o = brut as Record<string, unknown>;
+  const liste = (v: unknown) => (Array.isArray(v) && v.every(fini) ? (v as number[]) : null);
+  const hz = liste(o.hz), side = liste(o.side_db), centre = liste(o.centre_db);
+  if (!hz || !side || !centre || hz.length < 2 || side.length !== hz.length || centre.length !== hz.length) return null;
+  if (hz.some((f, i) => f <= 0 || (i > 0 && f <= hz[i - 1]))) return null;
+  const n = (v: unknown, d: number) => (fini(v) ? v : d);
+  let iPic = 0;
+  side.forEach((v, i) => { if (v > side[iPic]) iPic = i; });
+  return {
+    hz, side, centre,
+    bandeBasse: n(o.band_low_hz, BORNES_CROSSTALK.band_low_hz.min),
+    bandeHaute: n(o.band_high_hz, BORNES_CROSSTALK.band_high_hz.max),
+    picSide: n(o.side_peak_db, side[iPic]),
+    picSideHz: n(o.side_peak_hz, hz[iPic]),
+    centreMin: n(o.centre_min_db, Math.min(...centre)),
+    centreMax: n(o.centre_max_db, Math.max(...centre)),
+  };
+}
+
+export interface TraceReponseCrosstalk {
+  x: (hz: number) => number;
+  y: (db: number) => number;
+  graduationsX: { hz: number; texte: string }[];
+  graduationsY: number[];
+  side: string;
+  centre: string;
+  /** La bande traitée, en abscisses. */
+  bande: { x1: number; x2: number };
+}
+
+/** Les coordonnées du tracé : 20 Hz → 20 kHz en log, gain symétrique autour de 0 dB. */
+export function traceReponseCrosstalk(rep: ReponseCrosstalk): TraceReponseCrosstalk {
+  const T = TRACE_CROSSTALK;
+  const [f0, f1] = [20, 20000];
+  const plusFort = Math.max(1, ...rep.side.map(Math.abs), ...rep.centre.map(Math.abs));
+  const pas = plusFort > 6 ? 2 : 1;
+  const lim = Math.ceil(plusFort / pas) * pas;
+  const larg = T.largeur - T.gauche - T.droite;
+  const haut = T.hauteur - T.haut - T.bas;
+  const x = (f: number) => T.gauche + (Math.log10(Math.min(f1, Math.max(f0, f)) / f0) / Math.log10(f1 / f0)) * larg;
+  const y = (v: number) => T.haut + (1 - (v + lim) / (2 * lim)) * haut;
+  const r = (v: number) => Math.round(v * 10) / 10;
+  const ligne = (v: number[]) => rep.hz.map((f, i) => `${r(x(f))},${r(y(v[i]))}`).join(' ');
+  const graduationsY: number[] = [];
+  for (let v = -lim; v <= lim + 1e-9; v += pas) graduationsY.push(v);
+  return {
+    x, y, graduationsY,
+    graduationsX: [20, 100, 1000, 10000, 20000].map((hz) => ({ hz, texte: hz >= 1000 ? `${hz / 1000}k` : String(hz) })),
+    side: ligne(rep.side),
+    centre: ligne(rep.centre),
+    bande: { x1: r(x(rep.bandeBasse)), x2: r(x(rep.bandeHaute)) },
+  };
+}
