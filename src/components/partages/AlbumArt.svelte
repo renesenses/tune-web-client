@@ -2,6 +2,7 @@
   import { artworkUrl, getAlbumCoverPath, tailleDeVignette } from '../../lib/api';
   import ServiceBadge from './ServiceBadge.svelte';
   import { illustrationRectangulaire } from '../../lib/pochetteEntiere';
+  import { pochetteRadioFranceDirecte } from '../../lib/repliPochetteRadioFrance';
 
   interface Props {
     coverPath?: string | null;
@@ -38,6 +39,8 @@
   let { coverPath = null, albumId = null, size = 300, alt = 'Album art', round = false, source = null, fallbackInitials = null, vignette = false, repli = null, recadrer = false, directe = false }: Props = $props();
   /* #6521 — le repli explicite ne s'essaie qu'une fois par couple de props. */
   let repliTente = $state(false);
+  let repliRadioFranceTente = $state(false);
+  let srcDirecte = $state<string | null>(null);
 
   let hasError = $state(false);
   let resolvedCoverPath = $state<string | null>(null);
@@ -73,6 +76,13 @@
     if (repli && !repliTente && repli !== resolvedCoverPath) {
       repliTente = true;
       resolvedCoverPath = repli;
+      srcDirecte = null;
+      return;
+    }
+    const directe = pochetteRadioFranceDirecte(resolvedCoverPath);
+    if (directe && !repliRadioFranceTente && src !== directe) {
+      repliRadioFranceTente = true;
+      srcDirecte = directe;
       return;
     }
     if (albumId && !repliAlbumTente) {
@@ -87,6 +97,7 @@
           return;
         }
         resolvedCoverPath = path;
+        srcDirecte = null;
       });
       return;
     }
@@ -102,6 +113,8 @@
     hasError = false;
     repliAlbumTente = false;
     repliTente = false;
+    repliRadioFranceTente = false;
+    srcDirecte = null;
     if (coverPath) {
       resolvedCoverPath = coverPath;
     } else if (albumId) {
@@ -152,7 +165,7 @@
   const tailleDemandee = $derived(vignetteUtile ? tailleDeVignette(size || largeurMesuree || 0, densite) : undefined);
   const enAttenteDeMesure = $derived(vignetteUtile && !size && largeurMesuree === undefined);
 
-  let src = $derived(directe ? (resolvedCoverPath ?? '') : enAttenteDeMesure ? '' : artworkUrl(resolvedCoverPath, tailleDemandee));
+  let src = $derived(srcDirecte ?? (directe ? (resolvedCoverPath ?? '') : enAttenteDeMesure ? '' : artworkUrl(resolvedCoverPath, tailleDemandee)));
 
   /*
    * web#2353 — une illustration nettement rectangulaire (pochette
@@ -189,7 +202,7 @@
       width={size || undefined}
       height={size || undefined}
       loading="lazy"
-      referrerpolicy={directe ? 'no-referrer' : undefined}
+      referrerpolicy={directe || srcDirecte ? 'no-referrer' : undefined}
       class:entiere={contenue}
       onload={handleLoad}
       onerror={handleError}
