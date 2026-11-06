@@ -143,6 +143,22 @@ export function decouperPolyligne(poly: ArrayLike<number>, R: number, cx: number
   return troncons;
 }
 
+const VECTEURS_TERRE = new WeakMap<object, Float64Array>();
+
+/** Les vecteurs unitaires des points de terre, calculés une fois par tableau (le survol en a besoin à chaque mouvement). */
+function vecteursTerre(terre: readonly (readonly [number, number])[]): Float64Array {
+  let v = VECTEURS_TERRE.get(terre);
+  if (v && v.length === terre.length * 3) return v;
+  v = new Float64Array(terre.length * 3);
+  for (let i = 0; i < terre.length; i++) {
+    const [la, lo] = terre[i];
+    const cl = Math.cos(la);
+    v[i * 3] = cl * Math.cos(lo); v[i * 3 + 1] = cl * Math.sin(lo); v[i * 3 + 2] = Math.sin(la);
+  }
+  VECTEURS_TERRE.set(terre, v);
+  return v;
+}
+
 /**
  * Le pays sous un lieu (degrés) : le code du point de terre le plus proche
  * dans un rayon `rayonDeg` (la grille est au pas de 1,6°), ou `null` en mer,
@@ -152,11 +168,10 @@ export function decouperPolyligne(poly: ArrayLike<number>, R: number, cx: number
 export function paysSous(lieu: { lat: number; lon: number }, terre: readonly (readonly [number, number])[], codes: string, rayonDeg = 1.2): string | null {
   const [ax, ay, az] = vecteur(lieu.lat * DEG, lieu.lon * DEG);
   const seuil = Math.cos(rayonDeg * DEG);
+  const v = vecteursTerre(terre);
   let meilleur = -1; let proche = seuil;
-  for (let i = 0; i < terre.length; i++) {
-    const [la, lo] = terre[i];
-    const cl = Math.cos(la);
-    const p = ax * cl * Math.cos(lo) + ay * cl * Math.sin(lo) + az * Math.sin(la);
+  for (let i = 0, j = 0; i < terre.length; i++, j += 3) {
+    const p = ax * v[j] + ay * v[j + 1] + az * v[j + 2];
     if (p >= proche) { proche = p; meilleur = i; }
   }
   if (meilleur < 0) return null;
