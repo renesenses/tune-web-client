@@ -48,6 +48,10 @@
   import { chargerMembresOeuvres, regrouperAlbums, type MembresOeuvre } from '../../lib/oeuvres';
   // tune-server-rust#7597 — le bouton « Répertoire » et la lecture du dossier.
   import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
+  // #2645 — la carte du monde par pays, et le filtre qu'elle pose.
+  import CartePaysBibliothequeV2 from './CartePaysBibliothequeV2.svelte';
+  import type { PaysDeLaBibliotheque } from '../../lib/bibliothequePays';
+  import { nomPays } from '../../lib/paysMonde';
   import { choisirDossierBibliotheque, restaurerDossierBibliotheque, suivreLeRetraitDeLaPortee } from '../../lib/dossierBibliotheque';
   import { lireDossier, ajouterDossierALaFile } from '../../lib/lectureDossier';
   // 🔴 renesenses/tune-server-rust#4800 — la grille se sert PAR PAGES. La
@@ -363,7 +367,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const enCharge: boolean = $derived.by(() =>
     depot ? chargementD
       : nu ? ($albumsPagines.total == null && $albumsPagines.erreur == null)
-      : (porteeActive && idsPortee == null) || $libraryLoading || (sortirDesPages && !bibliothequeEntiere),
+      : (porteeActive && idsPortee == null) || (paysChoisi != null && idsPays == null)
+        || $libraryLoading || (sortirDesPages && !bibliothequeEntiere),
   );
 
   const level = $derived($preferences.settingsLevel);
@@ -490,6 +495,36 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       .catch(() => { /* serveur antérieur : pas de puce */ });
     return () => { vivant = false; };
   });
+
+  /**
+   * #2645 — PAYS, choisi sur la carte du monde. Même chemin que la portée de
+   * dossier : le serveur rend les albums du pays (`albums-detailed?country=`,
+   * toutes ses pages), on n'en garde que les identifiants, et la grille filtre
+   * sur place. Les valeurs envoyées sont celles de la facette, telles
+   * qu'écrites (« fr » et « FR » réunis sous un seul pays).
+   * `idsPays` à `null` = réponse attendue : l'écran attend plutôt que de tout
+   * montrer. Un échec ne montre RIEN et le dit, comme la portée.
+   */
+  let carteOuverte = $state(false);
+  let paysChoisi = $state<PaysDeLaBibliotheque | null>(null);
+  let idsPays = $state<Set<number> | null>(null);
+  $effect(() => {
+    const p = paysChoisi;
+    const d = dossierPortee;
+    idsPays = null;
+    if (!p || depot) return;
+    let perime = false;
+    const filtres = d ? { country: p.valeurs, folder: d } : { country: p.valeurs };
+    idsAlbumsDeLaPortee((limite, rang) => api.getAlbumsDetailed(filtres, limite, rang))
+      .then((ids) => { if (!perime) idsPays = ids; })
+      .catch(() => {
+        if (perime) return;
+        idsPays = new Set();
+        notifications.error($tr('v2.lib.map.filterError' as any));
+      });
+    return () => { perime = true; };
+  });
+  const filtresCarte = $derived(dossierPortee ? { folder: dossierPortee } : {});
 
   /**
    * SOURCE — de quelle bibliothèque l'album vient (#4152).
@@ -638,6 +673,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // serveur — jamais « on ne sait pas, laissons passer ».
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
     if (fIncomplets && !(a.id != null && idsIncomplets.has(a.id))) return false;
+    if (paysChoisi && !(a.id != null && idsPays != null && idsPays.has(a.id))) return false;
     if (!dansSource(a, fProvenance)) return false;
     // #4319 — même règle que les comptes : artiste de piste et dossier
     // compris, portée ou non (`idsTexteServeur`).
@@ -1546,7 +1582,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   const filtreActif = $derived(
     fQuality.length > 0 || fRate.length > 0 || fFormat.length > 0 || fDepth.length > 0
-      || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null || fIncomplets,
+      || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null || fIncomplets
+      || paysChoisi != null,
   );
 
   /**
@@ -2665,7 +2702,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
   }
 
-  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fIncomplets = false; fProvenance = null; fDrMin = null; fDrMax = null; }
+  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fIncomplets = false; fProvenance = null; fDrMin = null; fDrMax = null; paysChoisi = null; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
@@ -2951,7 +2988,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', nbPistesAnnonce == null ? '…' : $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
+      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null && !paysChoisi} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
@@ -3020,6 +3057,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             </div>
           {/if}
         </div>
+      {/if}
+      {#if showFilters && !depot}
+        <!-- #2645 — PAYS : la puce ouvre la carte du monde sous la rangée de
+             filtres (pas dans un menu : un globe et sa liste n'y tiennent pas
+             sur un téléphone). Le pays choisi s'écrit sur la puce, et sa
+             croix le retire sans refermer la carte. -->
+        <button class="chip" data-carte-pays-puce class:active={carteOuverte || paysChoisi != null}
+          aria-expanded={carteOuverte} onclick={() => (carteOuverte = !carteOuverte)}
+        >{$tr('v2.lib.map.chip' as any)}{#if paysChoisi}&nbsp;· {nomPays(paysChoisi.code, $locale)}{/if}</button>
+        {#if paysChoisi}
+          <button class="chip" data-carte-pays-retirer aria-label={$tr('v2.lib.map.clear' as any)}
+            title={$tr('v2.lib.map.clear' as any)} onclick={() => (paysChoisi = null)}>×</button>
+        {/if}
       {/if}
     {#if showFilters}
       <div class="drop" class:open={ddOpen === 'quality'} onpointerenter={voirLesFacettes}>
@@ -3222,6 +3272,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     {/if}
     </div>
   </div>
+
+  {#if carteOuverte && showFilters && !depot}
+    <CartePaysBibliothequeV2 filtres={filtresCarte} choisi={paysChoisi?.code ?? null}
+      onChoisir={(p) => (paysChoisi = p)} />
+  {/if}
 
   <!--
     🔴 `showTimeline || fYear != null` : la PASTILLE existe a tous les niveaux.
