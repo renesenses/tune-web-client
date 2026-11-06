@@ -45,7 +45,8 @@
   const fmt = $derived(new Intl.NumberFormat($locale));
   const lignes = $derived((agregat?.pays ?? []).map((p) => ({ ...p, nom: nomPays(p.code, $locale) })));
   const parCode = $derived(new Map((agregat?.pays ?? []).map((p) => [p.code, p])));
-  const morceaux = (n: number) => $t('v2.lib.map.tracks' as any).replace('{n}', fmt.format(n));
+  const morceaux = (n: number) => $t((n === 1 ? 'v2.lib.map.trackOne' : 'v2.lib.map.tracks') as any).replace('{n}', fmt.format(n));
+  const horsCarte = (n: number) => $t((n === 1 ? 'v2.lib.map.offMapOne' : 'v2.lib.map.offMap') as any).replace('{n}', fmt.format(n));
 
   function choisir(code: string | null) {
     if (code == null || code === choisi) { onChoisir(null); return; }
@@ -209,7 +210,7 @@
   {:else if !lignes.length}
     <p class="etat" data-carte-vide>{$t('v2.lib.map.empty' as any)}</p>
     {#if agregat.horsCarte > 0}
-      <p class="note">{$t('v2.lib.map.offMap' as any).replace('{n}', fmt.format(agregat.horsCarte))}</p>
+      <p class="note">{horsCarte(agregat.horsCarte)}</p>
     {/if}
   {:else}
     <div class="corps">
@@ -236,14 +237,14 @@
               <button type="button" data-pays={l.code} class:on={l.code === choisi} aria-pressed={l.code === choisi}
                 onclick={() => choisir(l.code)}>
                 <span class="teinte" style:opacity={FORCES[palier(l.n, agregat.max)]} aria-hidden="true"></span>
-                <span class="nom">{l.nom}</span>
+                <span class="nom" title={l.nom}>{l.nom}</span>
                 <em>{morceaux(l.n)}</em>
               </button>
             </li>
           {/each}
         </ul>
         {#if agregat.horsCarte > 0}
-          <p class="note">{$t('v2.lib.map.offMap' as any).replace('{n}', fmt.format(agregat.horsCarte))}</p>
+          <p class="note">{horsCarte(agregat.horsCarte)}</p>
         {/if}
       </div>
     </div>

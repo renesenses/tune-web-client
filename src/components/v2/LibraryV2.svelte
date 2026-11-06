@@ -48,7 +48,7 @@
   import { chargerMembresOeuvres, regrouperAlbums, type MembresOeuvre } from '../../lib/oeuvres';
   // tune-server-rust#7597 — le bouton « Répertoire » et la lecture du dossier.
   import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
-  // #2645 — la carte du monde par pays, et le filtre qu'elle pose.
+  // renesenses/tune-web-client#2645 — la carte du monde par pays, et le filtre qu'elle pose.
   import CartePaysBibliothequeV2 from './CartePaysBibliothequeV2.svelte';
   import type { PaysDeLaBibliotheque } from '../../lib/bibliothequePays';
   import { nomPays } from '../../lib/paysMonde';
@@ -497,7 +497,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
 
   /**
-   * #2645 — PAYS, choisi sur la carte du monde. Même chemin que la portée de
+   * renesenses/tune-web-client#2645 — PAYS, choisi sur la carte du monde. Même chemin que la portée de
    * dossier : le serveur rend les albums du pays (`albums-detailed?country=`,
    * toutes ses pages), on n'en garde que les identifiants, et la grille filtre
    * sur place. Les valeurs envoyées sont celles de la facette, telles
@@ -3059,7 +3059,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         </div>
       {/if}
       {#if showFilters && !depot}
-        <!-- #2645 — PAYS : la puce ouvre la carte du monde sous la rangée de
+        <!-- renesenses/tune-web-client#2645 — PAYS : la puce ouvre la carte du monde sous la rangée de
              filtres (pas dans un menu : un globe et sa liste n'y tiennent pas
              sur un téléphone). Le pays choisi s'écrit sur la puce, et sa
              croix le retire sans refermer la carte. -->

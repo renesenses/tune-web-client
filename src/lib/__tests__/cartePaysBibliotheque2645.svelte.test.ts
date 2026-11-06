@@ -132,6 +132,18 @@ describe('#2645 — bibliothèque sans pays', () => {
     expect(hote.textContent).toContain('9 morceaux portent un pays absent de la carte');
   });
 
+  it('un seul morceau : le singulier, et le nom entier au survol', async () => {
+    facette = [{ value: 'VC', count: 1 }, { value: 'XE', count: 1 }];
+    poser(CartePaysBibliothequeV2, { onChoisir: () => {} });
+    await stabiliser();
+    const ligne = hote.querySelector('[data-pays="VC"]')!;
+    expect(ligne.textContent).toContain('1 morceau');
+    expect(ligne.textContent).not.toContain('1 morceaux');
+    expect(hote.textContent).toContain('1 morceau porte un pays absent de la carte');
+    const nom = ligne.querySelector('.nom')!;
+    expect(nom.getAttribute('title')).toBe(nom.textContent);
+  });
+
   it('un serveur en erreur : un message, pas un écran blanc', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 500 })));
     poser(CartePaysBibliothequeV2, { onChoisir: () => {} });
