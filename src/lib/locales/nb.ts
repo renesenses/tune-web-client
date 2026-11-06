@@ -3827,6 +3827,8 @@ export default {
   "v2.bioAttr.wikipedia": "Wikipedia",
   "v2.bioAttr.article": "artikkel",
   "v2.bioAttr.license": "lisens",
+  "v2.bioRepli.bio": "Biografien finnes bare på {langue}",
+  "v2.bioRepli.notes": "Albumteksten finnes bare på {langue}",
   "v2.disco.focus": "Fokus",
   "v2.disco.source": "Kilde",
   "v2.disco.quality": "Kvalitet",

@@ -3952,6 +3952,8 @@ export default {
   "v2.bioAttr.wikipedia": "ウィキペディア",
   "v2.bioAttr.article": "記事",
   "v2.bioAttr.license": "ライセンス",
+  "v2.bioRepli.bio": "バイオグラフィーは{langue}のみです",
+  "v2.bioRepli.notes": "アルバム解説は{langue}のみです",
   "v2.disco.focus": "フォーカス",
   "v2.disco.source": "ソース",
   "v2.disco.quality": "音質",

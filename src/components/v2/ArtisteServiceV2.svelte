@@ -80,6 +80,7 @@
   import DiscographieCommune from './DiscographieCommune.svelte';
   import BioEtTitresPhares from './BioEtTitresPhares.svelte';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
+  import { langueBioDe, AUCUNE_LANGUE, type LangueBio } from '../../lib/library/langueBio';
   import { currentZoneId, playAndSync, radioArtisteAndSync } from '../../lib/stores/zones';
   import { corpsRadioArtiste, lancerRadioArtiste, type IssueRadio } from '../../lib/radioArtiste';
   import { signalerEchecLecture } from '../../lib/echecLecture';
@@ -217,6 +218,8 @@
    * attribuerait à Wikipédia une bio qui n'en vient pas.
    */
   let bioProvenance = $state<BioProvenance | null>(null);
+  /** Langue du texte et repli éventuel (#8010). */
+  let bioLangue = $state<LangueBio>({ langue: null, repliVers: null });
   /**
    * Le compte de l'en-tête : les vignettes de la DISCOGRAPHIE COMMUNE, et non
    * les seuls albums de la bibliothèque — « 1 albums » pour a-ha, 44 à
@@ -297,7 +300,7 @@
       const maj = apresDetachement(a, reponse);
       artiste = maj;
       artisteLocal = maj;
-      if (!maj.bio?.trim()) { bio = null; bioProvenance = null; }
+      if (!maj.bio?.trim()) { bio = null; bioProvenance = null; bioLangue = AUCUNE_LANGUE; }
       metaFiche = null;
       notifications.success($tr('artist.identityDetached' as any).replace('{nom}', a.name));
     } catch {
@@ -318,7 +321,7 @@
       const rapportee = bioDans(m, $langueCourante);
       if (rapportee && !a.bio?.trim()) {
         bio = rapportee;
-        bioProvenance = null;
+        bioProvenance = null; bioLangue = AUCUNE_LANGUE;
         void provenanceApresEnrichissement(a.id, rapportee);
       }
       const cle = bilanEnrichissement(m);
@@ -427,7 +430,7 @@
     titresEnCharge = false;
     albums = [];
     bio = null;
-    bioProvenance = null;
+    bioProvenance = null; bioLangue = AUCUNE_LANGUE;
     compilations = [];
     apparitions = [];
     collaborations = [];
@@ -482,7 +485,7 @@
       albums = (al.value ?? []).map((x) => ({ ...x, source: (x.source ?? service) as Album['source'] }));
     }
     bio = artiste?.bio ?? null;
-    bioProvenance = provenanceDe(artiste);
+    bioProvenance = provenanceDe(artiste); bioLangue = langueBioDe(artiste);
     chargement = false;
     void chargerComplements(mien, service, artiste?.name || cible?.nom || '');
   }
@@ -513,7 +516,7 @@
     titresEnCharge = false;
     albums = [];
     bio = null;
-    bioProvenance = null;
+    bioProvenance = null; bioLangue = AUCUNE_LANGUE;
     locaux = [];
     compilations = [];
     apparitions = [];
@@ -553,7 +556,7 @@
       reprises = (d.value?.covers ?? []) as Album[];
     }
     chargement = false;
-    void chargerBioLocale(mien, id, artiste?.bio ?? null, provenanceDe(artiste));
+    void chargerBioLocale(mien, id, artiste?.bio ?? null, provenanceDe(artiste), langueBioDe(artiste));
     void chargerComplements(mien, null, artiste?.name || cible?.nom || '', true);
   }
 
@@ -567,17 +570,20 @@
     id: number,
     bioEditee: string | null,
     provenanceEditee: BioProvenance | null = null,
+    langueEditee: LangueBio = AUCUNE_LANGUE,
   ) {
     const editee = bioEditee?.trim() || null;
     bio = editee;
     // `GET /library/artists/{id}` porte la provenance de SA bio, à côté d'elle.
     bioProvenance = editee ? provenanceEditee : null;
+    bioLangue = editee ? langueEditee : AUCUNE_LANGUE;
     if (editee) return;
     try {
       const r = await api.getArtistBio(id);
       if (mien === jeton) {
         bio = r?.bio?.trim() || null;
         bioProvenance = bio ? provenanceDe(r) : null;
+        bioLangue = bio ? langueBioDe(r) : AUCUNE_LANGUE;
       }
     } catch {
       /* pas de biographie : le bloc ne s'affiche pas */
@@ -592,7 +598,7 @@
   async function provenanceApresEnrichissement(id: number, texte: string) {
     try {
       const a = await api.getArtist(id);
-      if (bio === texte && a?.bio?.trim() === texte.trim()) bioProvenance = provenanceDe(a);
+      if (bio === texte && a?.bio?.trim() === texte.trim()) { bioProvenance = provenanceDe(a); bioLangue = langueBioDe(a); }
     } catch {
       /* sans relecture, pas d'attribution — jamais une attribution fausse */
     }
@@ -1130,7 +1136,7 @@
   {:else}
     <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
-    <BioEtTitresPhares bio={bio} provenance={bioProvenance} titres={titres} {titresEnCharge} cle={cible?.id}
+    <BioEtTitresPhares bio={bio} provenance={bioProvenance} langueBio={bioLangue} titres={titres} {titresEnCharge} cle={cible?.id}
       actionsBio={artisteEditable ? enrichirBio : undefined} />
 
     <!-- tune-server-rust#6001 — ProgArchives / Metal Archives / AllMusic, pour
@@ -1223,7 +1229,7 @@
       artisteLocal = maj;
       const nouvelle = maj.bio?.trim() || null;
       // Un texte réécrit à la main n'est plus l'extrait de personne.
-      if (nouvelle && nouvelle !== bio?.trim()) bioProvenance = null;
+      if (nouvelle && nouvelle !== bio?.trim()) bioProvenance = null; bioLangue = AUCUNE_LANGUE;
       bio = nouvelle || bio;
       editionComplete = null;
     }}

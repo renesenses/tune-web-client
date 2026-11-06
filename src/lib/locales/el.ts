@@ -3827,6 +3827,8 @@ export default {
   "v2.bioAttr.wikipedia": "Wikipedia",
   "v2.bioAttr.article": "άρθρο",
   "v2.bioAttr.license": "άδεια",
+  "v2.bioRepli.bio": "Η βιογραφία είναι διαθέσιμη μόνο στα {langue}",
+  "v2.bioRepli.notes": "Οι σημειώσεις είναι διαθέσιμες μόνο στα {langue}",
   "v2.disco.focus": "Εστίαση",
   "v2.disco.source": "Πηγή",
   "v2.disco.quality": "Ποιότητα",

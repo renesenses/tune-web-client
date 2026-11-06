@@ -3952,6 +3952,8 @@ export default {
   "v2.bioAttr.wikipedia": "Wikipedia",
   "v2.bioAttr.article": "artículo",
   "v2.bioAttr.license": "licencia",
+  "v2.bioRepli.bio": "Biografía disponible solo en {langue}",
+  "v2.bioRepli.notes": "Reseña disponible solo en {langue}",
   "v2.disco.focus": "Enfoque",
   "v2.disco.source": "Fuente",
   "v2.disco.quality": "Calidad",

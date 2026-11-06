@@ -41,6 +41,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbum';
   import ClampedText from '../partages/ClampedText.svelte';
   import AttributionBio from './AttributionBio.svelte';
+  import MentionRepliBio from './MentionRepliBio.svelte';
+  import { langueBioDe, AUCUNE_LANGUE, type LangueBio } from '../../lib/library/langueBio';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
   import ListePistesV2 from './ListePistesV2.svelte';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
@@ -1398,6 +1400,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   let bio = $state<string | null>(null);
   /** Provenance de la notice (`bio_provenance`) — attribution CC BY-SA. */
   let bioProvenance = $state<BioProvenance | null>(null);
+  /** Langue de la notice et repli éventuel (#8010). */
+  let bioLangue = $state<LangueBio>(AUCUNE_LANGUE);
   let bioChargement = $state(false);
   let bioErreur = $state(false);
   /** Album dont la bio est en mémoire — la fiche est réutilisée d'un album à
@@ -1411,6 +1415,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     bioOuverte = false;
     bio = null;
     bioProvenance = null;
+    bioLangue = AUCUNE_LANGUE;
     bioErreur = false;
   });
 
@@ -1426,6 +1431,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       if (album.id === id) {
         bio = r.bio ?? '';
         bioProvenance = provenanceDe(r);
+        bioLangue = langueBioDe(r);
       }
     } catch {
       if (album.id === id) bioErreur = true;
@@ -1975,8 +1981,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
           <p class="bio-state err">{$tr('library.bioLoadError' as any)}</p>
         {:else if bio}
           <ClampedText lines={4} resetKey={bio}>
-            <p class="bio-text">{bio}</p>
+            <p class="bio-text" lang={bioLangue.langue ?? undefined}>{bio}</p>
           </ClampedText>
+          <MentionRepliBio genre="notes" repliVers={bioLangue.repliVers} />
           <AttributionBio provenance={bioProvenance} />
         {:else}
           <p class="bio-state">{$tr('library.noAlbumNote')}</p>

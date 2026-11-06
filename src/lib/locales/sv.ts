@@ -3951,6 +3951,8 @@ export default {
   "v2.bioAttr.wikipedia": "Wikipedia",
   "v2.bioAttr.article": "artikel",
   "v2.bioAttr.license": "licens",
+  "v2.bioRepli.bio": "Biografin finns bara på {langue}",
+  "v2.bioRepli.notes": "Albumtexten finns bara på {langue}",
   "v2.disco.focus": "Fokus",
   "v2.disco.source": "Källa",
   "v2.disco.quality": "Kvalitet",
