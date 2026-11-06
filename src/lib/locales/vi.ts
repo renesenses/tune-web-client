@@ -3768,6 +3768,8 @@ export default {
   "v2.bioAttr.wikipedia": "Wikipedia",
   "v2.bioAttr.article": "bài viết",
   "v2.bioAttr.license": "giấy phép",
+  "v2.bioRepli.bio": "Tiểu sử chỉ có bằng {langue}",
+  "v2.bioRepli.notes": "Ghi chú album chỉ có bằng {langue}",
   "v2.disco.focus": "Tiêu điểm",
   "v2.disco.source": "Nguồn",
   "v2.disco.quality": "Chất lượng",

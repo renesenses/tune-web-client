@@ -3913,6 +3913,8 @@ export default {
   "v2.bioAttr.wikipedia": "Wikipédia",
   "v2.bioAttr.article": "article",
   "v2.bioAttr.license": "licence",
+  "v2.bioRepli.bio": "Biographie disponible seulement en {langue}",
+  "v2.bioRepli.notes": "Notice disponible seulement en {langue}",
   "v2.disco.focus": "Focus",
   "v2.disco.source": "Source",
   "v2.disco.quality": "Qualité",

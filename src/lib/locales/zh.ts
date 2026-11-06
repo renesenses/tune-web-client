@@ -3891,6 +3891,8 @@ export default {
   "v2.bioAttr.wikipedia": "维基百科",
   "v2.bioAttr.article": "条目",
   "v2.bioAttr.license": "许可协议",
+  "v2.bioRepli.bio": "简介仅提供{langue}版本",
+  "v2.bioRepli.notes": "专辑说明仅提供{langue}版本",
   "v2.disco.focus": "聚焦",
   "v2.disco.source": "来源",
   "v2.disco.quality": "音质",

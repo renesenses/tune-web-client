@@ -3845,6 +3845,8 @@ export default {
   "v2.bioAttr.wikipedia": "Wikipédia",
   "v2.bioAttr.article": "szócikk",
   "v2.bioAttr.license": "licenc",
+  "v2.bioRepli.bio": "Az életrajz csak ezen a nyelven érhető el: {langue}",
+  "v2.bioRepli.notes": "A leírás csak ezen a nyelven érhető el: {langue}",
   "v2.disco.focus": "Fókusz",
   "v2.disco.source": "Forrás",
   "v2.disco.quality": "Minőség",

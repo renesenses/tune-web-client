@@ -3891,6 +3891,8 @@ export default {
   "v2.bioAttr.wikipedia": "위키백과",
   "v2.bioAttr.article": "문서",
   "v2.bioAttr.license": "라이선스",
+  "v2.bioRepli.bio": "약력은 {langue}로만 제공됩니다",
+  "v2.bioRepli.notes": "앨범 노트는 {langue}로만 제공됩니다",
   "v2.disco.focus": "포커스",
   "v2.disco.source": "소스",
   "v2.disco.quality": "음질",
