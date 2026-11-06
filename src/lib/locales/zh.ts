@@ -6037,7 +6037,7 @@ export default {
   "accesCompte.retourEnCours": "正在登录…",
   "accesCompte.fermer": "隐藏",
   "accesCompte.reessayer": "重试",
-  "accesCompte.reglages.explication": "远程收听通过您的 Mozaiklabs 账户进行：打开 Tune Remote 或上方的访问地址并登录。不再需要分享链接或二维码。",
+  "accesCompte.reglages.explication": "远程收听通过您的 Mozaiklabs 账户进行：打开 Tune Remote 或上方的访问地址并登录。如果应用无法连接，下方的访问链接和二维码仍然可用。",
   "accesCompte.appareils.titre": "已注册的设备",
   "accesCompte.appareils.compte": "{n} / {max}",
   "accesCompte.appareils.chargement": "正在加载设备…",

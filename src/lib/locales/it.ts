@@ -6037,7 +6037,7 @@ export default {
   "accesCompte.retourEnCours": "Accesso in corso…",
   "accesCompte.fermer": "Nascondi",
   "accesCompte.reessayer": "Riprova",
-  "accesCompte.reglages.explication": "L’ascolto remoto passa dal tuo account Mozaiklabs: apri Tune Remote, o l’indirizzo di accesso qui sopra, ed effettua l’accesso. Non c’è più nessun link né codice QR da condividere.",
+  "accesCompte.reglages.explication": "L’ascolto remoto passa dal tuo account Mozaiklabs: apri Tune Remote, o l’indirizzo di accesso qui sopra, ed effettua l’accesso. Se l’app non riesce a connettersi, il link di accesso e il codice QR qui sotto restano disponibili.",
   "accesCompte.appareils.titre": "Dispositivi registrati",
   "accesCompte.appareils.compte": "{n} su {max}",
   "accesCompte.appareils.chargement": "Caricamento dei dispositivi…",

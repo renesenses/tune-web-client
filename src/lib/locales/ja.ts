@@ -6037,7 +6037,7 @@ export default {
   "accesCompte.retourEnCours": "サインインしています…",
   "accesCompte.fermer": "閉じる",
   "accesCompte.reessayer": "再試行",
-  "accesCompte.reglages.explication": "リモート再生は Mozaiklabs アカウントを通じて行います。Tune Remote または上記のアクセスアドレスを開き、サインインしてください。共有するリンクや QR コードはもうありません。",
+  "accesCompte.reglages.explication": "リモート再生は Mozaiklabs アカウントを通じて行います。Tune Remote または上記のアクセスアドレスを開き、サインインしてください。アプリが接続できない場合は、下のアクセスリンクと QR コードを引き続き利用できます。",
   "accesCompte.appareils.titre": "登録済みデバイス",
   "accesCompte.appareils.compte": "{n} / {max}",
   "accesCompte.appareils.chargement": "デバイスを読み込み中…",

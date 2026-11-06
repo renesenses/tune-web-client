@@ -6037,7 +6037,7 @@ export default {
   "accesCompte.retourEnCours": "Conectare în curs…",
   "accesCompte.fermer": "Ascundeți",
   "accesCompte.reessayer": "Reîncercați",
-  "accesCompte.reglages.explication": "Ascultarea de la distanță trece prin contul dvs. Mozaiklabs: deschideți Tune Remote sau adresa de acces de mai sus și conectați-vă. Nu mai există niciun link sau cod QR de partajat.",
+  "accesCompte.reglages.explication": "Ascultarea de la distanță trece prin contul dvs. Mozaiklabs: deschideți Tune Remote sau adresa de acces de mai sus și conectați-vă. Dacă aplicația nu se poate conecta, linkul de acces și codul QR de mai jos rămân disponibile.",
   "accesCompte.appareils.titre": "Dispozitive înregistrate",
   "accesCompte.appareils.compte": "{n} din {max}",
   "accesCompte.appareils.chargement": "Se încarcă dispozitivele…",

@@ -6037,7 +6037,7 @@ export default {
   "accesCompte.retourEnCours": "Anmeldung läuft…",
   "accesCompte.fermer": "Ausblenden",
   "accesCompte.reessayer": "Erneut versuchen",
-  "accesCompte.reglages.explication": "Das Fernhören läuft über Ihr Mozaiklabs-Konto: Öffnen Sie Tune Remote oder die obige Zugangsadresse und melden Sie sich an. Es gibt keinen Link und keinen QR-Code mehr zu teilen.",
+  "accesCompte.reglages.explication": "Das Fernhören läuft über Ihr Mozaiklabs-Konto: Öffnen Sie Tune Remote oder die obige Zugangsadresse und melden Sie sich an. Wenn sich die App nicht verbindet, stehen der Zugangslink und der QR-Code unten weiterhin zur Verfügung.",
   "accesCompte.appareils.titre": "Registrierte Geräte",
   "accesCompte.appareils.compte": "{n} von {max}",
   "accesCompte.appareils.chargement": "Geräte werden geladen…",
