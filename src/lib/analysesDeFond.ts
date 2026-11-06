@@ -80,15 +80,22 @@ export function pourcentAnalyseDeFond(a: AnalyseDeFond): number {
 
 /**
  * Une durée lisible et sans fausse précision : « 45 min », « 2 h 05 »,
- * « 1 min » en dessous d'une minute.
+ * « 1 min » en dessous d'une minute. Les unités viennent des traductions
+ * (`v2.nav.bgDurMin`, `v2.nav.bgDurH`, `v2.nav.bgDurHMin`).
  */
-export function dureeLisible(secondes: number): string {
+export function dureeLisible(secondes: number, t: (cle: string) => string): string {
   const s = Math.max(0, Math.round(secondes));
-  if (s < 3600) return `${Math.max(1, Math.round(s / 60))} min`;
-  const h = Math.floor(s / 3600);
-  const m = Math.round((s % 3600) / 60);
-  if (m === 60) return `${h + 1} h`;
-  return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, '0')}`;
+  if (s < 3600) {
+    return t('v2.nav.bgDurMin').replace('{m}', String(Math.max(1, Math.round(s / 60))));
+  }
+  let h = Math.floor(s / 3600);
+  let m = Math.round((s % 3600) / 60);
+  if (m === 60) {
+    h += 1;
+    m = 0;
+  }
+  if (m === 0) return t('v2.nav.bgDurH').replace('{h}', String(h));
+  return t('v2.nav.bgDurHMin').replace('{h}', String(h)).replace('{mm}', String(m).padStart(2, '0'));
 }
 
 /**
@@ -107,7 +114,7 @@ export function libelleAnalyseDeFond(
     .replace('{task}', nom)
     .replace('{p}', String(pourcentAnalyseDeFond(a)));
   if (a.resteSecondes !== null && a.resteSecondes > 0) {
-    libelle += ' · ' + t('v2.nav.bgAnalysisEta').replace('{d}', dureeLisible(a.resteSecondes));
+    libelle += ' · ' + t('v2.nav.bgAnalysisEta').replace('{d}', dureeLisible(a.resteSecondes, t));
   }
   return libelle;
 }

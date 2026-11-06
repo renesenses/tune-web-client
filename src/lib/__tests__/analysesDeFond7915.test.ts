@@ -20,6 +20,8 @@ import {
 } from '../analysesDeFond';
 import { locale } from '../i18n';
 import lFr from '../locales/fr';
+import de from '../locales/de';
+import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
 
 const fr = lFr as unknown as Record<string, string>;
 const tFr = (cle: string) => fr[cle] ?? cle;
@@ -158,10 +160,28 @@ describe('#7915 — lecture des chiffres du serveur', () => {
   });
 
   it('les durées restent lisibles, sans fausse précision', () => {
-    expect(dureeLisible(20)).toBe('1 min');
-    expect(dureeLisible(45 * 60)).toBe('45 min');
-    expect(dureeLisible(7500)).toBe('2 h 05');
-    expect(dureeLisible(3600 * 3)).toBe('3 h');
+    expect(dureeLisible(20, tFr)).toBe('1 min');
+    expect(dureeLisible(45 * 60, tFr)).toBe('45 min');
+    expect(dureeLisible(7500, tFr)).toBe('2 h 05');
+    expect(dureeLisible(3600 * 3, tFr)).toBe('3 h');
+    expect(dureeLisible(3600 * 2 + 59 * 60 + 50, tFr)).toBe('3 h');
+  });
+
+  it('les unités des durées suivent la langue de l’interface', () => {
+    const tDe = (cle: string) => (de as Record<string, string>)[cle] ?? cle;
+    expect(dureeLisible(45 * 60, tDe)).toBe('45 Min.');
+    expect(dureeLisible(7500, tDe)).toBe('2 Std. 05 Min.');
+    expect(dureeLisible(3600 * 3, tDe)).toBe('3 Std.');
+  });
+
+  it('chaque langue traduit les trois gabarits de durée, avec leurs marques', () => {
+    for (const langue of ONZE_LANGUES) {
+      const textes = dictionnaire(langue);
+      expect(textes['v2.nav.bgDurMin'], langue).toContain('{m}');
+      expect(textes['v2.nav.bgDurH'], langue).toContain('{h}');
+      expect(textes['v2.nav.bgDurHMin'], langue).toContain('{h}');
+      expect(textes['v2.nav.bgDurHMin'], langue).toContain('{mm}');
+    }
   });
 
   it('une passe inconnue reçoit un nom générique traduit', () => {
