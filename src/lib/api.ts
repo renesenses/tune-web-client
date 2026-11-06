@@ -3544,7 +3544,76 @@ export function getTopArtists(limit = 20) {
 }
 
 export function getLibraryStats() {
-  return fetchJSON<{ tracks: number; albums: number; artists: number }>(`${BASE}/library/stats`);
+  // web#2653 — `distributions` (tune-server-rust#7849) : absente d'un serveur
+  // plus ancien, `null` si sa lecture a échoué. Lue par `lireRepartitions`.
+  return fetchJSON<{ tracks: number; albums: number; artists: number; distributions?: unknown }>(`${BASE}/library/stats`);
+}
+
+// --- Notes personnelles en Markdown (web#2653, tune-server-rust#7849) ---
+
+export type TypeNote = 'artist' | 'album' | 'track';
+
+export interface NotePersonnelle {
+  item_type: TypeNote;
+  item_id: number;
+  texte_md: string;
+  maj_le: string;
+}
+
+/**
+ * Le serveur connaît-il `/library/notes` ? Sondé UNE fois par la liste (un
+ * 404 sur une note précise ne distingue pas « pas de note » de « route
+ * inconnue »). Un échec réseau n'est pas mémorisé : on resondera.
+ */
+let notesSondage: Promise<boolean> | null = null;
+export function notesDisponibles(): Promise<boolean> {
+  if (!notesSondage) {
+    notesSondage = fetchJSON<any>(`${BASE}/library/notes?limit=1`, undefined, undefined, true)
+      .then((r) => Array.isArray(r?.notes))
+      .catch((e: ApiError) => {
+        if (e?.status === 404 || e?.status === 405) return false;
+        notesSondage = null;
+        throw e;
+      });
+  }
+  return notesSondage;
+}
+
+/** Pour les témoins : oublie le sondage. */
+export function oublierSondageNotes(): void {
+  notesSondage = null;
+}
+
+export function listerNotes(opts: { item_type?: TypeNote; q?: string; limit?: number } = {}) {
+  const p = new URLSearchParams();
+  if (opts.item_type) p.set('item_type', opts.item_type);
+  if (opts.q) p.set('q', opts.q);
+  if (opts.limit) p.set('limit', String(opts.limit));
+  const qs = p.toString();
+  return fetchJSON<{ count: number; notes: NotePersonnelle[] }>(`${BASE}/library/notes${qs ? `?${qs}` : ''}`);
+}
+
+/** Une note, ou `null` s'il n'y en a pas (404). */
+export async function lireNote(type: TypeNote, id: number): Promise<NotePersonnelle | null> {
+  try {
+    return await fetchJSON<NotePersonnelle>(`${BASE}/library/notes/${type}/${id}`, undefined, undefined, true);
+  } catch (e) {
+    if ((e as ApiError)?.status === 404) return null;
+    throw e;
+  }
+}
+
+/** Crée ou remplace une note ; un texte vide la supprime (`null`). */
+export async function ecrireNote(type: TypeNote, id: number, texte_md: string): Promise<NotePersonnelle | null> {
+  const r = await fetchJSON<any>(`${BASE}/library/notes/${type}/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ texte_md }),
+  });
+  return r && typeof r.texte_md === 'string' ? (r as NotePersonnelle) : null;
+}
+
+export function supprimerNote(type: TypeNote, id: number) {
+  return fetchJSON<{ deleted: boolean }>(`${BASE}/library/notes/${type}/${id}`, { method: 'DELETE' });
 }
 
 /**
