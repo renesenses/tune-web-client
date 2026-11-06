@@ -11,6 +11,38 @@
     },
     "points": [
       {
+        "ceiling_needed_db": 0.0,
+        "centre_max_db": 0.0,
+        "reachable": true,
+        "separation_db": 2.265,
+        "side_max_db": 0.0,
+        "target_db": 1.0
+      },
+      {
+        "ceiling_needed_db": 0.0,
+        "centre_max_db": 0.0,
+        "reachable": true,
+        "separation_db": 2.265,
+        "side_max_db": 0.0,
+        "target_db": 1.5
+      },
+      {
+        "ceiling_needed_db": 0.0,
+        "centre_max_db": 0.0,
+        "reachable": true,
+        "separation_db": 2.265,
+        "side_max_db": 0.0,
+        "target_db": 2.0
+      },
+      {
+        "ceiling_needed_db": 0.132,
+        "centre_max_db": 0.112,
+        "reachable": true,
+        "separation_db": 2.5,
+        "side_max_db": 0.111,
+        "target_db": 2.5
+      },
+      {
         "ceiling_needed_db": 0.415,
         "centre_max_db": 0.353,
         "reachable": true,

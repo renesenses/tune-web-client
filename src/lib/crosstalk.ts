@@ -57,7 +57,7 @@ export const CURSEURS_CROSSTALK: readonly CurseurCrosstalk[] = [
 
 /** Bornes du schéma de réglages du greffon ; le pas est un choix d'interface. */
 export const BORNES_CROSSTALK: Record<CurseurCrosstalk, Borne> = {
-  separation_db: { min: 3, max: 12, pas: 0.5 },
+  separation_db: { min: 1, max: 12, pas: 0.5 },
   angle_deg: { min: 25, max: 70, pas: 0.1 },
   distance_m: { min: 1, max: 4, pas: 0.05 },
   band_low_hz: { min: 150, max: 1000, pas: 10 },
@@ -248,7 +248,7 @@ export interface TraceCourbeCrosstalk {
   courant: { x: number; ySide: number; yCentre: number } | null;
 }
 
-/** Les coordonnées du tracé : séparation 3 → 12 dB, coloration de 0 au-dessus du maximum. */
+/** Les coordonnées du tracé : séparation 1 → 12 dB, coloration de 0 au-dessus du maximum. */
 export function traceCourbeCrosstalk(c: CourbeCrosstalk): TraceCourbeCrosstalk {
   const T = TRACE_CROSSTALK;
   const { min: xMin, max: xMax } = BORNES_CROSSTALK.separation_db;
@@ -268,7 +268,7 @@ export function traceCourbeCrosstalk(c: CourbeCrosstalk): TraceCourbeCrosstalk {
   for (let v = yMin; v <= yMax + 1e-9; v += pasY) graduationsY.push(v);
   return {
     x, y, graduationsY,
-    graduationsX: [3, 6, 9, 12],
+    graduationsX: [1, 3, 6, 9, 12],
     side: { entiere: ligne(c.points, (p) => p.side), atteignable: ligne(atteignables, (p) => p.side) },
     centre: { entiere: ligne(c.points, (p) => p.centre), atteignable: ligne(atteignables, (p) => p.centre) },
     courant: c.courant
