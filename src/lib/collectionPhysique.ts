@@ -12,9 +12,13 @@
  *   POST /reglages/identite  → le compte du jeton personnel, retenu
  *   POST /synchroniser       → 202 { lance, avancement } · 409 aucun_compte
  *   GET  /etat               → { avancement, derniere_synchro, derniere_erreur, … }
- *   GET  /collection[?format=&etat=] → { statut, compteurs, disques, attribution }
+ *   GET  /collection[?format=&etat=&dossier=&genre=&style=] → { statut, compteurs, disques, attribution }
+ *   GET  /parcourir          → { par_dossier, par_genre, par_style } (#7929)
+ *   GET  /disques/{release}/services → « Chercher sur les services » (#7928)
  *   GET  /cd?mb_release=     → { dans_la_collection, copie, disque }
- *   GET  /pochettes/{release}  → la pochette, depuis le cache LOCAL du serveur
+ *   GET  /pochettes/{release}  → la pochette, depuis le cache LOCAL du serveur ;
+ *                              503 `pochettes_limitees` + Retry-After quand
+ *                              le CDN de Discogs freine (#7927)
  *   DELETE /cache[?quoi=pochettes] → « Effacer le cache »
  *
  * Cache (demande de Bertrand du 01/11/2026) : le serveur télécharge chaque
@@ -75,7 +79,20 @@ export interface EtatSynchro {
    *  absent d'un serveur antérieur. */
   affinage_musicbrainz?: AffinageMusicbrainz;
   /** Le cache de pochettes du serveur (01/11/2026). */
-  pochettes?: { en_cours: boolean; en_cache: number; restantes: number };
+  pochettes?: EtatPochettes;
+}
+
+/** Le cache de pochettes du serveur. Les champs après `restantes` viennent
+ *  de tune-server-rust#7927 : absents d'un serveur antérieur. */
+export interface EtatPochettes {
+  en_cours: boolean;
+  en_cache: number;
+  restantes: number;
+  echecs?: number;
+  /** Le CDN de Discogs freine ou refuse : les téléchargements attendent. */
+  limitees?: boolean;
+  reprise_dans_s?: number | null;
+  derniere_erreur?: string | null;
 }
 
 export interface AffinageMusicbrainz {
@@ -127,7 +144,26 @@ export interface Disque {
   /** `null` pour un support qui ne se copie pas (vinyle, cassette). */
   copie: boolean | null;
   proposer_extraction: boolean;
+  /** tune-server-rust#7929 : le dossier Discogs de l'exemplaire, ses genres
+   *  et ses styles ; absents d'un serveur antérieur. */
+  dossier?: number | null;
+  genres?: string[];
+  styles?: string[];
 }
+
+/** Un dossier Discogs et son compteur (#7929). `nom` est `null` quand
+ *  Discogs ne montre pas les dossiers (collection d'un autre compte). */
+export interface CompteDossier { id: number; nom: string | null; nombre: number }
+export interface CompteNom { nom: string; nombre: number }
+
+/** Les filtres de navigation (#7929). */
+export interface Navigation {
+  dossier: number | null;
+  genre: string | null;
+  style: string | null;
+}
+
+export const SANS_NAVIGATION: Navigation = { dossier: null, genre: null, style: null };
 
 export interface Collection {
   statut: 'ok' | 'aucun_compte' | 'a_synchroniser';
@@ -139,6 +175,9 @@ export interface Collection {
     par_etat?: Partial<Record<EtatDisque, number>>;
     par_format?: Partial<Record<Famille, number>>;
     cd_non_copies?: number;
+    par_dossier?: CompteDossier[];
+    par_genre?: CompteNom[];
+    par_style?: CompteNom[];
   };
   disques: Disque[];
 }
@@ -183,16 +222,92 @@ export const synchroniser = () =>
   fetchJSON<{ lance: boolean; avancement: Avancement }>(`${RACINE}/synchroniser`, { method: 'POST' }, undefined, true);
 export const lireEtat = () => fetchJSON<EtatSynchro>(`${RACINE}/etat`, undefined, undefined, true);
 
-export function urlCollection(format: Famille | null, etat: EtatDisque | null): string {
+export function urlCollection(format: Famille | null, etat: EtatDisque | null, nav: Navigation = SANS_NAVIGATION): string {
   const q = new URLSearchParams();
   if (format) q.set('format', format);
   if (etat) q.set('etat', etat);
+  if (nav.dossier != null) q.set('dossier', String(nav.dossier));
+  if (nav.genre) q.set('genre', nav.genre);
+  if (nav.style) q.set('style', nav.style);
   const s = q.toString();
   return `${RACINE}/collection${s ? `?${s}` : ''}`;
 }
 
-export const lireCollection = (format: Famille | null, etat: EtatDisque | null) =>
-  fetchJSON<Collection>(urlCollection(format, etat), undefined, undefined, true);
+export const lireCollection = (format: Famille | null, etat: EtatDisque | null, nav: Navigation = SANS_NAVIGATION) =>
+  fetchJSON<Collection>(urlCollection(format, etat, nav), undefined, undefined, true);
+
+// ─── « Chercher sur les services » (tune-server-rust#7928) ─────────────────
+
+export interface PropositionService {
+  service: string;
+  id: string;
+  titre: string;
+  artiste: string;
+  par: 'code_barre' | 'catalogue' | 'artiste_titre';
+  /** De 0 à 100. */
+  score: number;
+  /** Le même album, selon la règle de la synchronisation. */
+  exact: boolean;
+}
+
+export interface ResultatServices {
+  release_id: number;
+  services: string[];
+  sans_reponse: string[];
+  meilleure: PropositionService | null;
+  propositions: PropositionService[];
+}
+
+export const chercherSurLesServices = (releaseId: number) =>
+  fetchJSON<ResultatServices>(
+    `${RACINE}/disques/${encodeURIComponent(String(releaseId))}/services`, undefined, undefined, true,
+  );
+
+/** Une proposition, sous la forme d'un album de service de la carte, pour
+ *  l'ouvrir (fiche du service) ou l'écouter comme un disque « en
+ *  streaming ». */
+export function versSurUnService(p: PropositionService): SurUnService {
+  return {
+    service: p.service, id: p.id, titre: p.titre, artiste: p.artiste,
+    par: p.par === 'artiste_titre' ? 'artiste_titre' : 'code_barre',
+  };
+}
+
+/** Un disque où « Chercher sur les services » a du sens : ni dans la
+ *  bibliothèque, ni déjà trouvé sur un service. */
+export const peutChercherSurLesServices = (d: Disque) => !d.bibliotheque && d.streaming.length === 0;
+
+// ─── L'état des pochettes (tune-server-rust#7927) ──────────────────────────
+
+/** La phrase discrète de l'état des pochettes, ou `null` s'il n'y a rien à
+ *  dire : « Discogs limite… reprise dans N min », « N pochettes en cours de
+ *  téléchargement », ou « N pochettes indisponibles chez Discogs ». */
+export function messagePochettes(
+  p: EtatPochettes | null | undefined,
+  traduire: (cle: string) => string,
+): string | null {
+  if (!p) return null;
+  if (p.limitees) {
+    const s = Math.max(1, Math.round(p.reprise_dans_s ?? 60));
+    const cle = p.derniere_erreur === 'discogs_refuse'
+      ? 'collectionPhysique.pochettes.refusees'
+      : p.derniere_erreur === 'discogs_indisponible'
+        ? 'collectionPhysique.pochettes.indisponibles'
+        : 'collectionPhysique.pochettes.limitees';
+    return traduire(cle).replace('{n}', String(p.restantes)).replace('{min}', String(Math.ceil(s / 60)));
+  }
+  if (p.restantes > 0) {
+    return traduire('collectionPhysique.pochettes.enCours').replace('{n}', String(p.restantes));
+  }
+  if ((p.echecs ?? 0) > 0) {
+    return traduire('collectionPhysique.pochettes.echecs').replace('{n}', String(p.echecs));
+  }
+  return null;
+}
+
+/** Faut-il relire l'état des pochettes (et retenter les cases vides) ? */
+export const pochettesEnAttente = (p: EtatPochettes | null | undefined) =>
+  !!p && (p.restantes > 0 || p.limitees === true);
 
 /** « Effacer le cache » : `pochettes` seules, ou `tout` (pochettes, liste,
  *  fiches ; le compte suivi reste). */
@@ -294,8 +409,12 @@ export const CLE_AFFICHAGE = 'collectionPhysique.display';
 /** L'adresse LOCALE de la pochette d'un disque : servie par le greffon,
  *  depuis le cache du serveur. Une adresse `/api/…`, que `artworkUrl` passe
  *  telle quelle (et par le pont, avec son jeton). */
-export function urlPochette(releaseId: number): string {
-  return `/api/v1/ext/${NOM_GREFFON}/pochettes/${encodeURIComponent(String(releaseId))}`;
+export function urlPochette(releaseId: number, version = 0): string {
+  const base = `/api/v1/ext/${NOM_GREFFON}/pochettes/${encodeURIComponent(String(releaseId))}`;
+  // #7927 : une case dont la pochette a échoué (CDN de Discogs limité) se
+  // retente quand le cache du serveur avance — une autre adresse fait
+  // oublier son échec à `AlbumArt`.
+  return version > 0 ? `${base}?v=${version}` : base;
 }
 
 export interface PochetteDuDisque {
@@ -315,10 +434,10 @@ export interface PochetteDuDisque {
  * 2. sinon la pochette Discogs, servie par le CACHE du serveur ;
  * 3. sinon rien : `AlbumArt` montre son repli neutre.
  */
-export function pochetteDuDisque(d: Disque): PochetteDuDisque {
+export function pochetteDuDisque(d: Disque, version = 0): PochetteDuDisque {
   const b = d.bibliotheque;
   if (b?.cover_path) return { coverPath: b.cover_path, albumId: b.album_id, directe: false };
-  if (d.pochette === true) return { coverPath: urlPochette(d.release_id), albumId: null, directe: false };
+  if (d.pochette === true) return { coverPath: urlPochette(d.release_id, version), albumId: null, directe: false };
   return { coverPath: null, albumId: null, directe: false };
 }
 
