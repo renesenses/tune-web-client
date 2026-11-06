@@ -50,7 +50,7 @@
     type Vue, type ContactScene, type NoeudScene, type Lieu,
   } from '../../lib/champCercle/scene';
   import { arrondiDemiDegre } from '../../lib/champCercle/tailles';
-  import { PAS_ZOOM, ZOOM_MAX, ZOOM_MIN } from '../../lib/champCercle/zoomGlobe';
+  import { couleurFrontiere, PAS_ZOOM, ZOOM_MAX, ZOOM_MIN } from '../../lib/champCercle/zoomGlobe';
   import {
     lireMonLieu, lireLieuxContacts, poserMonLieu, retirerMonLieu, lireResumeContact,
     lireMesChiffres, lireMonNom, corpsLieu, lireCoordonnee, LIBELLE_LIEU_MAX,
@@ -392,8 +392,10 @@
     const m = moteur; const h = hote;
     if (!m || !h || typeof getComputedStyle !== 'function') return;
     const appliquer = () => {
-      const c = getComputedStyle(h).getPropertyValue('--v2-txt3').trim();
-      if (c) m.majCouleurs({ frontiere: c });
+      const style = getComputedStyle(h);
+      const c = style.getPropertyValue('--v2-txt3').trim();
+      // Le fond de la scène reste sombre dans les thèmes clairs : repli sur sa couleur claire.
+      if (c) m.majCouleurs({ frontiere: couleurFrontiere(c, style.getPropertyValue('--sc-txt2').trim() || '#9fb0b6') });
     };
     appliquer();
     if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') return;
