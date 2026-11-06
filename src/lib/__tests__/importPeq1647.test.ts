@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   updateEqPreset: vi.fn(),
   deleteEqPreset: vi.fn(),
   importAutoEqPreset: vi.fn(),
+  previewEqImport: vi.fn(),
   getLevelCompensation: vi.fn(),
 }));
 
@@ -105,6 +106,10 @@ beforeEach(() => {
   mocks.setEq.mockResolvedValue({ applied_live: true });
   mocks.listEqPresets.mockResolvedValue([]);
   mocks.getLevelCompensation.mockResolvedValue(null);
+  // tune-server-rust#6385 : ces témoins gardent le chemin d'un serveur SANS
+  // aperçu (404), qui retombe sur l'import direct ; l'aperçu a les siens
+  // dans `importFichierEq6385.test.ts`.
+  mocks.previewEqImport.mockRejectedValue(Object.assign(new Error('not found'), { status: 404 }));
   currentZoneId.set(1);
   localStorage.clear();
 });

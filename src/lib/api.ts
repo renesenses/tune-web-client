@@ -4365,6 +4365,28 @@ export function importAutoEqPreset(body: { text: string; name?: string; zone_id?
 }
 
 /**
+ * tune-server-rust#6385 — `POST /eq/import/preview` : le fichier (AutoEq
+ * ParametricEQ, Equalizer APO ou OPRA) analysé comme pour l'import, SANS rien
+ * enregistrer. L'écran montre les bandes avant que l'utilisateur les applique.
+ * Un refus rend 400 avec un `code` stable (`unrecognized_line`,
+ * `too_many_bands`…) et `line` ou `band` : voir `eqImportPeq.ts`.
+ * 404 : serveur antérieur, sans aperçu.
+ */
+export interface EqImportApercu extends Omit<EqAutoEqImport, 'preset'> {
+  format: 'parametric_eq' | 'opra';
+  bands: EqBand[];
+  max_bands: number;
+  name?: string | null;
+}
+
+export function previewEqImport(body: { text: string; name?: string }): Promise<EqImportApercu> {
+  return fetchJSON<EqImportApercu>(`${BASE}/eq/import/preview`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
  * tune-server-rust#6388 — la base AutoEq en ligne, lue par le SERVEUR
  * (`GET /eq/autoeq/search`, `POST /eq/autoeq/import`). Un résultat est un
  * couple casque × source de mesure ; `path` est ce que l'import attend.
