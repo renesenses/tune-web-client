@@ -3411,6 +3411,9 @@ export interface PagePistesServeur {
   comptes: Map<string, number> | null;
   /** « Toutes les sources » : chaque piste une fois. */
   totalToutesSources: number | null;
+  /** #7619 — `next_cursor` du serveur : de quoi demander la page d'après par
+   *  `after`. `null` : dernière page, ou serveur sans curseur (offset). */
+  curseurSuivant?: string | null;
 }
 
 export async function getPagePistes(opts: {
@@ -3422,11 +3425,14 @@ export async function getPagePistes(opts: {
   limit: number;
   offset: number;
   counts?: boolean;
+  /** #7619 — le `next_cursor` de la page précédente : remplace `offset`. */
+  after?: string | null;
   signal?: AbortSignal;
 }): Promise<PagePistesServeur | null> {
   const params = new URLSearchParams();
   params.set('limit', String(opts.limit));
-  params.set('offset', String(opts.offset));
+  if (opts.after) params.set('after', opts.after);
+  else params.set('offset', String(opts.offset));
   // `order` part TOUJOURS : c'est lui qui ouvre la page triée côté serveur,
   // et sa présence dans la réponse qui dit que le serveur l'a comprise.
   params.set('order', opts.order ?? 'asc');
@@ -3445,6 +3451,7 @@ export async function getPagePistes(opts: {
     total: raw.total,
     comptes,
     totalToutesSources: typeof raw.total_all_sources === 'number' ? raw.total_all_sources : null,
+    curseurSuivant: typeof raw.next_cursor === 'string' && raw.next_cursor ? raw.next_cursor : null,
   };
 }
 
