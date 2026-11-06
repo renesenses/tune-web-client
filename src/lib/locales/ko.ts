@@ -3491,6 +3491,8 @@ export default {
   "v2.tuneTestedPropose.err.unidentified": "이 기기의 제조사와 모델을 알 수 없습니다. 제안하려면 존 설정에서 지정하세요.",
   "v2.tuneTestedPropose.err.notConnected": "제안을 보내려면 Mozaiklabs 계정에 로그인하거나 라이선스 키를 입력하세요.",
   "v2.tuneTestedPropose.err.failed": "제안을 보낼 수 없습니다. 나중에 다시 시도하세요.",
+  "v2.tuneTestedPropose.err.previewChanged": "미리보기를 연 뒤 내용이 바뀌었습니다(방금 곡이 끝났습니다). 새 미리보기를 확인한 뒤 다시 확인을 누르세요.",
+  "v2.tuneTestedPropose.err.tooMany": "사이트에 요청이 너무 많습니다. 몇 분 후에 다시 시도하세요.",
   "v2.zone.presenceAbsent": "{days}일째 없음",
   "v2.zone.presenceNever": "업데이트 이후 미확인",
   "v2.zone.stereoPairs": "스테레오 페어",

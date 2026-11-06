@@ -3491,6 +3491,8 @@ export default {
   "v2.tuneTestedPropose.err.unidentified": "Marke und Modell dieses Geräts sind unbekannt. Legen Sie sie in den Zoneneinstellungen fest, um es vorzuschlagen.",
   "v2.tuneTestedPropose.err.notConnected": "Melden Sie sich bei Ihrem Mozaiklabs-Konto an oder geben Sie Ihren Lizenzschlüssel ein, um einen Vorschlag zu senden.",
   "v2.tuneTestedPropose.err.failed": "Der Vorschlag konnte nicht gesendet werden. Versuchen Sie es später erneut.",
+  "v2.tuneTestedPropose.err.previewChanged": "Die Vorschau hat sich seit dem Öffnen geändert (ein Titel ist gerade zu Ende gegangen). Prüfen Sie die neue Vorschau und bestätigen Sie erneut.",
+  "v2.tuneTestedPropose.err.tooMany": "Die Website erhält zu viele Anfragen. Versuchen Sie es in einigen Minuten erneut.",
   "v2.zone.presenceAbsent": "Seit {days} T. abwesend",
   "v2.zone.presenceNever": "Seit dem Update nie gesehen",
   "v2.zone.stereoPairs": "Stereo-Paare",

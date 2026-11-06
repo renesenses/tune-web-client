@@ -3491,6 +3491,8 @@ export default {
   "v2.tuneTestedPropose.err.unidentified": "此设备的品牌和型号未知。请在区域设置中指定后再推荐。",
   "v2.tuneTestedPropose.err.notConnected": "请登录您的 Mozaiklabs 账户或输入许可证密钥以发送推荐。",
   "v2.tuneTestedPropose.err.failed": "无法发送推荐。请稍后重试。",
+  "v2.tuneTestedPropose.err.previewChanged": "打开后预览已发生变化（刚有一首曲目播放结束）。请查看新的预览，然后再次确认。",
+  "v2.tuneTestedPropose.err.tooMany": "网站收到的请求过多。请几分钟后再试。",
   "v2.zone.presenceAbsent": "已离线 {days} 天",
   "v2.zone.presenceNever": "更新后从未出现",
   "v2.zone.stereoPairs": "立体声配对",

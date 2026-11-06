@@ -3370,6 +3370,8 @@ export default {
   "v2.tuneTestedPropose.err.unidentified": "Merke og modell for denne enheten er ukjent. Angi dem i soneinnstillingene for å foreslå den.",
   "v2.tuneTestedPropose.err.notConnected": "Logg inn på Mozaiklabs-kontoen din eller skriv inn lisensnøkkelen for å sende et forslag.",
   "v2.tuneTestedPropose.err.failed": "Forslaget kunne ikke sendes. Prøv igjen senere.",
+  "v2.tuneTestedPropose.err.previewChanged": "Forhåndsvisningen er endret siden du åpnet den (et spor ble nettopp ferdig). Sjekk den nye forhåndsvisningen, og bekreft på nytt.",
+  "v2.tuneTestedPropose.err.tooMany": "Nettstedet mottar for mange forespørsler. Prøv igjen om noen minutter.",
   "v2.zone.presenceAbsent": "Borte i {days} d",
   "v2.zone.presenceNever": "Aldri sett siden oppdateringen",
   "v2.zone.stereoPairs": "Stereopar",

@@ -3509,6 +3509,8 @@ export default {
   "v2.tuneTestedPropose.err.unidentified": "La marque et le modèle de cet appareil sont inconnus. Indiquez-les dans les réglages de la zone pour le proposer.",
   "v2.tuneTestedPropose.err.notConnected": "Connectez-vous à votre compte Mozaiklabs ou saisissez votre clé de licence pour envoyer une proposition.",
   "v2.tuneTestedPropose.err.failed": "La proposition n'a pas pu être envoyée. Réessayez plus tard.",
+  "v2.tuneTestedPropose.err.previewChanged": "L'aperçu a changé depuis son ouverture (une piste vient de se terminer). Vérifiez le nouvel aperçu, puis confirmez à nouveau.",
+  "v2.tuneTestedPropose.err.tooMany": "Le site reçoit trop de demandes. Réessayez dans quelques minutes.",
   "v2.zone.presenceAbsent": "Absente depuis {days} j",
   "v2.zone.presenceNever": "Jamais vue depuis la mise à jour",
   "v2.zone.stereoPairs": "Paires stéréo",

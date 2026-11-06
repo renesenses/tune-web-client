@@ -140,9 +140,22 @@ export function lignesApercu(p: ApercuTuneTested, t: Traduire): LigneApercu[] {
   return lignes;
 }
 
-/** Le message d'un refus de l'envoi, par son code nommé — jamais le texte brut. */
-export function messageDeRefus(code: string | undefined, t: Traduire): string {
+/**
+ * Le message d'un refus de l'envoi, par son code nommé — jamais le texte brut.
+ * `statutDuSite` est le statut rendu par le site quand c'est lui qui refuse.
+ */
+export function messageDeRefus(
+  code: string | undefined,
+  t: Traduire,
+  statutDuSite?: number,
+): string {
   switch (code) {
+    case 'tune_tested_preview_changed':
+      return t('v2.tuneTestedPropose.err.previewChanged');
+    case 'tune_tested_site_refused':
+      return statutDuSite === 429
+        ? t('v2.tuneTestedPropose.err.tooMany')
+        : t('v2.tuneTestedPropose.err.failed');
     case 'tune_tested_below_threshold':
       return t('v2.tuneTestedPropose.err.belowThreshold');
     case 'tune_tested_no_device':

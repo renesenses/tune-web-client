@@ -1409,9 +1409,20 @@ export function getTuneTestedProposition(id: number) {
   );
 }
 
-export function proposerTuneTested(id: number) {
+/**
+ * `apercu` est l'aperçu montré à l'utilisateur : le serveur refuse
+ * (`tune_tested_preview_changed`, avec le nouveau) s'il ne correspond plus à
+ * ce qui partirait, si bien que rien n'est envoyé qui n'a pas été vu.
+ */
+export function proposerTuneTested(
+  id: number,
+  apercu: import('./tuneTestedProposition').ApercuTuneTested,
+) {
   return fetchJSON<{ status: string; already_proposed: boolean }>(
-    `${BASE}/zones/${id}/tune-tested`, { method: 'POST' }, undefined, true,
+    `${BASE}/zones/${id}/tune-tested`,
+    { method: 'POST', body: JSON.stringify({ preview: apercu }) },
+    undefined,
+    true,
   );
 }
 

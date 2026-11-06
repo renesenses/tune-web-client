@@ -3491,6 +3491,8 @@ export default {
   "v2.tuneTestedPropose.err.unidentified": "Marca și modelul acestui dispozitiv sunt necunoscute. Setați-le în setările zonei pentru a-l propune.",
   "v2.tuneTestedPropose.err.notConnected": "Conectați-vă la contul Mozaiklabs sau introduceți cheia de licență pentru a trimite o propunere.",
   "v2.tuneTestedPropose.err.failed": "Propunerea nu a putut fi trimisă. Încercați din nou mai târziu.",
+  "v2.tuneTestedPropose.err.previewChanged": "Previzualizarea s-a schimbat de când ați deschis-o (tocmai s-a terminat o piesă). Verificați noua previzualizare, apoi confirmați din nou.",
+  "v2.tuneTestedPropose.err.tooMany": "Site-ul primește prea multe solicitări. Încercați din nou peste câteva minute.",
   "v2.zone.presenceAbsent": "Absentă de {days} z",
   "v2.zone.presenceNever": "Nevăzută de la actualizare",
   "v2.zone.stereoPairs": "Perechi stereo",

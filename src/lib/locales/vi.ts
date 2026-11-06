@@ -3372,6 +3372,8 @@ export default {
   "v2.tuneTestedPropose.err.unidentified": "Chưa biết hãng và mẫu của thiết bị này. Hãy đặt chúng trong cài đặt vùng để đề xuất.",
   "v2.tuneTestedPropose.err.notConnected": "Đăng nhập tài khoản Mozaiklabs hoặc nhập khóa giấy phép để gửi đề xuất.",
   "v2.tuneTestedPropose.err.failed": "Không thể gửi đề xuất. Hãy thử lại sau.",
+  "v2.tuneTestedPropose.err.previewChanged": "Bản xem trước đã thay đổi kể từ khi bạn mở (một bản nhạc vừa kết thúc). Hãy kiểm tra bản xem trước mới rồi xác nhận lại.",
+  "v2.tuneTestedPropose.err.tooMany": "Trang web đang nhận quá nhiều yêu cầu. Hãy thử lại sau vài phút.",
   "v2.zone.presenceAbsent": "Vắng mặt {days} ngày",
   "v2.zone.presenceNever": "Chưa từng thấy kể từ bản cập nhật",
   "v2.zone.stereoPairs": "Cặp stereo",

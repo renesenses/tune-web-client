@@ -3490,6 +3490,8 @@ export default {
   "v2.tuneTestedPropose.err.unidentified": "Märke och modell för den här enheten är okända. Ange dem i zoninställningarna för att föreslå den.",
   "v2.tuneTestedPropose.err.notConnected": "Logga in på ditt Mozaiklabs-konto eller ange din licensnyckel för att skicka ett förslag.",
   "v2.tuneTestedPropose.err.failed": "Förslaget kunde inte skickas. Försök igen senare.",
+  "v2.tuneTestedPropose.err.previewChanged": "Förhandsvisningen har ändrats sedan du öppnade den (ett spår har just tagit slut). Kontrollera den nya förhandsvisningen och bekräfta igen.",
+  "v2.tuneTestedPropose.err.tooMany": "Webbplatsen tar emot för många förfrågningar. Försök igen om några minuter.",
   "v2.zone.presenceAbsent": "Borta i {days} d",
   "v2.zone.presenceNever": "Aldrig sedd sedan uppdateringen",
   "v2.zone.stereoPairs": "Stereopar",

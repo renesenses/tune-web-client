@@ -47,13 +47,20 @@
   void charger();
 
   async function confirmer() {
+    if (!etat?.preview) return;
     phase = 'envoi';
     erreur = '';
     try {
-      await api.proposerTuneTested(zoneId);
+      await api.proposerTuneTested(zoneId, etat.preview);
       phase = 'envoye';
     } catch (e: any) {
-      erreur = messageDeRefus(e?.code ?? e?.corps?.error, tr);
+      const code = e?.code ?? e?.corps?.error;
+      // Une piste s'est terminée depuis l'aperçu : le serveur n'a rien
+      // envoyé et rend le nouveau, à vérifier puis confirmer de nouveau.
+      if (code === 'tune_tested_preview_changed' && e?.corps?.preview && etat) {
+        etat = { ...etat, preview: e.corps.preview };
+      }
+      erreur = messageDeRefus(code, tr, e?.corps?.status);
       phase = 'apercu';
     }
   }

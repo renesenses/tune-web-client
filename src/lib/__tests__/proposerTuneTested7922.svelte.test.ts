@@ -127,8 +127,41 @@ describe('bouton Tune tested (tune-server-rust#7922)', () => {
     await souffler();
     flushSync();
     expect(proposerTuneTested).toHaveBeenCalledTimes(1);
-    expect(proposerTuneTested).toHaveBeenCalledWith(7);
+    expect(proposerTuneTested).toHaveBeenCalledWith(7, APERCU);
     expect(q('tt-envoye')).not.toBeNull();
+  });
+
+  it('un aperçu périmé n’est pas envoyé : le nouveau s’affiche, à confirmer de nouveau', async () => {
+    getTuneTestedProposition.mockResolvedValue(etat({ eligible: true, reason: null, remaining_seconds: 0 }));
+    const nouveau = { ...APERCU, error_free_seconds: 3940 };
+    proposerTuneTested.mockRejectedValueOnce(Object.assign(new Error('conflict'), {
+      code: 'tune_tested_preview_changed',
+      corps: { error: 'tune_tested_preview_changed', preview: nouveau },
+    }));
+    proposerTuneTested.mockResolvedValueOnce({ status: 'ok', already_proposed: true });
+    await monter();
+    (q('tt-proposer') as HTMLButtonElement).click();
+    flushSync();
+    (q('tt-confirmer') as HTMLButtonElement).click();
+    await souffler();
+    flushSync();
+    expect(q('tt-envoye'), 'rien n’est dit envoyé').toBeNull();
+    expect(document.querySelector('[role="alert"]')?.textContent)
+      .toBe(tFr('v2.tuneTestedPropose.err.previewChanged'));
+    expect(JSON.parse(q('tt-brut')!.textContent!), 'le nouvel aperçu est montré')
+      .toEqual(nouveau);
+    (q('tt-confirmer') as HTMLButtonElement).click();
+    await souffler();
+    flushSync();
+    expect(proposerTuneTested).toHaveBeenLastCalledWith(7, nouveau);
+    expect(q('tt-envoye')).not.toBeNull();
+  });
+
+  it('un 429 du site se dit « trop de demandes »', () => {
+    expect(messageDeRefus('tune_tested_site_refused', tEn, 429))
+      .toBe(tEn('v2.tuneTestedPropose.err.tooMany'));
+    expect(messageDeRefus('tune_tested_site_refused', tEn, 422))
+      .toBe(tEn('v2.tuneTestedPropose.err.failed'));
   });
 
   it('un refus du serveur se dit par son code nommé', async () => {

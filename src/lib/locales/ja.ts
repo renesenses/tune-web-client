@@ -3491,6 +3491,8 @@ export default {
   "v2.tuneTestedPropose.err.unidentified": "このデバイスのメーカーとモデルが不明です。提案するにはゾーンの設定で指定してください。",
   "v2.tuneTestedPropose.err.notConnected": "提案を送信するには、Mozaiklabs アカウントにサインインするかライセンスキーを入力してください。",
   "v2.tuneTestedPropose.err.failed": "提案を送信できませんでした。後でもう一度お試しください。",
+  "v2.tuneTestedPropose.err.previewChanged": "開いた後にプレビューが変わりました（曲が終わったところです）。新しいプレビューを確認してから、もう一度確定してください。",
+  "v2.tuneTestedPropose.err.tooMany": "サイトへのリクエストが多すぎます。数分後にもう一度お試しください。",
   "v2.zone.presenceAbsent": "{days} 日間不在",
   "v2.zone.presenceNever": "更新以降未検出",
   "v2.zone.stereoPairs": "ステレオペア",

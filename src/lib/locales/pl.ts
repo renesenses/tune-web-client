@@ -3370,6 +3370,8 @@ export default {
   "v2.tuneTestedPropose.err.unidentified": "Marka i model tego urządzenia są nieznane. Ustaw je w ustawieniach strefy, aby je zaproponować.",
   "v2.tuneTestedPropose.err.notConnected": "Zaloguj się do konta Mozaiklabs lub wpisz klucz licencji, aby wysłać propozycję.",
   "v2.tuneTestedPropose.err.failed": "Nie udało się wysłać propozycji. Spróbuj ponownie później.",
+  "v2.tuneTestedPropose.err.previewChanged": "Podgląd zmienił się od chwili otwarcia (właśnie zakończył się utwór). Sprawdź nowy podgląd i potwierdź ponownie.",
+  "v2.tuneTestedPropose.err.tooMany": "Witryna otrzymuje zbyt wiele żądań. Spróbuj ponownie za kilka minut.",
   "v2.zone.presenceAbsent": "Nieobecna od {days} d",
   "v2.zone.presenceNever": "Niewidziana od aktualizacji",
   "v2.zone.stereoPairs": "Pary stereo",

@@ -3507,6 +3507,8 @@ export default {
   "v2.tuneTestedPropose.err.unidentified": "The make and model of this device are unknown. Set them in the zone settings to propose it.",
   "v2.tuneTestedPropose.err.notConnected": "Sign in to your Mozaiklabs account or enter your licence key to send a proposal.",
   "v2.tuneTestedPropose.err.failed": "The proposal could not be sent. Try again later.",
+  "v2.tuneTestedPropose.err.previewChanged": "The preview changed since you opened it (a track has just finished). Check the new preview, then confirm again.",
+  "v2.tuneTestedPropose.err.tooMany": "The site is receiving too many requests. Try again in a few minutes.",
   "v2.zone.presenceAbsent": "Absent for {days} d",
   "v2.zone.presenceNever": "Never seen since the update",
   "v2.zone.stereoPairs": "Stereo pairs",
