@@ -36,8 +36,8 @@ describe('Crosstalk — lecture de la courbe du greffon', () => {
   it('🔴 la table du greffon, géométrie 33,4° / 2,7 m : 6 dB → latéral +1,7, centre +1,8', () => {
     const c = courbeCrosstalk(COURBE)!;
     expect(c).toBeTruthy();
-    expect(c.points).toHaveLength(19);
-    expect(c.points[0].cible).toBe(3);
+    expect(c.points).toHaveLength(23);
+    expect(c.points[0].cible).toBe(1);
     expect(c.points.at(-1)!.cible).toBe(12);
     const six = c.points.find((p) => p.cible === 6)!;
     expect(dbSigne(six.side)).toBe('+1.7');
@@ -84,16 +84,18 @@ describe('Crosstalk — lecture de la courbe du greffon', () => {
     expect(courbeCrosstalk({ curve: { points: [{ target_db: 3, separation_db: NaN }] } })).toBeNull();
   });
 
-  it('le tracé : abscisse 3 → 12 dB, coloration croissante vers le haut, réglage sur la courbe', () => {
+  it('le tracé : abscisse 1 → 12 dB, coloration croissante vers le haut, réglage sur la courbe', () => {
     const c = courbeCrosstalk(COURBE)!;
     const tr = traceCourbeCrosstalk(c);
+    expect(tr.x(1)).toBeLessThan(tr.x(3));
     expect(tr.x(3)).toBeLessThan(tr.x(12));
+    expect(tr.graduationsX[0]).toBe(1);
     expect(tr.y(1)).toBeLessThan(tr.y(0));
     // La partie atteignable s'arrête à 11 dB ; la courbe entière va à 12.
-    expect(tr.side.atteignable.split(' ')).toHaveLength(17);
-    expect(tr.side.entiere.split(' ')).toHaveLength(19);
+    expect(tr.side.atteignable.split(' ')).toHaveLength(21);
+    expect(tr.side.entiere.split(' ')).toHaveLength(23);
     // Le point du réglage est le sommet « 5 dB » de la courbe.
-    const sommet = tr.side.entiere.split(' ')[4].split(',').map(Number);
+    const sommet = tr.side.entiere.split(' ')[8].split(',').map(Number);
     expect(tr.courant!.x).toBeCloseTo(sommet[0], 1);
     expect(tr.courant!.ySide).toBeCloseTo(sommet[1], 1);
     // Tout le tracé reste dans les graduations.

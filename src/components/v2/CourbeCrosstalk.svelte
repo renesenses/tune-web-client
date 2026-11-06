@@ -2,7 +2,7 @@
   /**
    * Crosstalk — la courbe séparation / coloration de la géométrie réglée.
    * Les chiffres viennent du greffon (`diagnostics.curve`) ; ce composant ne
-   * fait que les dessiner : séparation en abscisse (3 → 12 dB), coloration
+   * fait que les dessiner : séparation en abscisse (1 → 12 dB), coloration
    * aux enceintes en ordonnée (latéral et centre), réglage en cours marqué,
    * pointillé au-delà de ce que le plafond de gain permet.
    */
