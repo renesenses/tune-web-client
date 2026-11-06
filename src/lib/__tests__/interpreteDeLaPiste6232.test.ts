@@ -29,12 +29,12 @@ import zh from '../locales/zh';
 
 const CLE = 'smartCollection.fieldTrackArtist';
 
-describe('#6232 — règle « Interprète de la piste »', () => {
+describe('#6232 — règle « Artiste de la piste »', () => {
   for (const niveau of ['collection', 'playlist'] as const) {
     it(`est proposée dans l’éditeur des ${niveau}s, juste après « Artiste de l’album »`, () => {
       const champs = champsSaisissables(niveau);
       const i = champs.findIndex((c) => c.value === 'track_artist');
-      expect(i, 'le critère « Interprète de la piste » manque').toBeGreaterThan(-1);
+      expect(i, 'le critère « Artiste de la piste » manque').toBeGreaterThan(-1);
       expect(champs[i].labelKey).toBe(CLE);
       expect(champs[i].type).toBe('text');
       expect(champs[i - 1].value).toBe('album_artist');
@@ -67,7 +67,7 @@ describe('#6232 — règle « Interprète de la piste »', () => {
         l['smartCollection.fieldAlbumArtist'],
       );
     }
-    expect(fr[CLE]).toBe('Interprète de la piste');
+    expect(fr[CLE]).toBe('Artiste de la piste');
     expect(en[CLE]).toBe('Track artist');
   });
 });
