@@ -3489,7 +3489,7 @@ export default {
   "v2.tuneTestedPropose.err.belowThreshold": "需要先无错误播放一小时。",
   "v2.tuneTestedPropose.err.noDevice": "此区域没有可推荐的设备。",
   "v2.tuneTestedPropose.err.unidentified": "此设备的品牌和型号未知。请在区域设置中指定后再推荐。",
-  "v2.tuneTestedPropose.err.notConnected": "请登录您的 Mozaik Labs 账户或输入许可证密钥以发送推荐。",
+  "v2.tuneTestedPropose.err.notConnected": "请登录您的 Mozaiklabs 账户或输入许可证密钥以发送推荐。",
   "v2.tuneTestedPropose.err.failed": "无法发送推荐。请稍后重试。",
   "v2.zone.presenceAbsent": "已离线 {days} 天",
   "v2.zone.presenceNever": "更新后从未出现",

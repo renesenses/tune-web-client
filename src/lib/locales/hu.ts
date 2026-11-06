@@ -3443,7 +3443,7 @@ export default {
   "v2.tuneTestedPropose.err.belowThreshold": "Előbb egy óra hibátlan lejátszás szükséges.",
   "v2.tuneTestedPropose.err.noDevice": "Ennek a zónának nincs javasolható eszköze.",
   "v2.tuneTestedPropose.err.unidentified": "Az eszköz márkája és modellje ismeretlen. Adja meg őket a zóna beállításaiban a javasláshoz.",
-  "v2.tuneTestedPropose.err.notConnected": "Jelentkezzen be Mozaik Labs-fiókjába, vagy adja meg licenckulcsát a javaslat elküldéséhez.",
+  "v2.tuneTestedPropose.err.notConnected": "Jelentkezzen be Mozaiklabs-fiókjába, vagy adja meg licenckulcsát a javaslat elküldéséhez.",
   "v2.tuneTestedPropose.err.failed": "A javaslatot nem sikerült elküldeni. Próbálja újra később.",
   "v2.zone.presenceAbsent": "{days} napja hiányzik",
   "v2.zone.presenceNever": "A frissítés óta nem látott",

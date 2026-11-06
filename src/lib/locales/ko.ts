@@ -3489,7 +3489,7 @@ export default {
   "v2.tuneTestedPropose.err.belowThreshold": "먼저 오류 없이 1시간 재생해야 합니다.",
   "v2.tuneTestedPropose.err.noDevice": "이 존에는 제안할 기기가 없습니다.",
   "v2.tuneTestedPropose.err.unidentified": "이 기기의 제조사와 모델을 알 수 없습니다. 제안하려면 존 설정에서 지정하세요.",
-  "v2.tuneTestedPropose.err.notConnected": "제안을 보내려면 Mozaik Labs 계정에 로그인하거나 라이선스 키를 입력하세요.",
+  "v2.tuneTestedPropose.err.notConnected": "제안을 보내려면 Mozaiklabs 계정에 로그인하거나 라이선스 키를 입력하세요.",
   "v2.tuneTestedPropose.err.failed": "제안을 보낼 수 없습니다. 나중에 다시 시도하세요.",
   "v2.zone.presenceAbsent": "{days}일째 없음",
   "v2.zone.presenceNever": "업데이트 이후 미확인",

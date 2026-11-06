@@ -3489,7 +3489,7 @@ export default {
   "v2.tuneTestedPropose.err.belowThreshold": "まずエラーなしで1時間の再生が必要です。",
   "v2.tuneTestedPropose.err.noDevice": "このゾーンには提案できるデバイスがありません。",
   "v2.tuneTestedPropose.err.unidentified": "このデバイスのメーカーとモデルが不明です。提案するにはゾーンの設定で指定してください。",
-  "v2.tuneTestedPropose.err.notConnected": "提案を送信するには、Mozaik Labs アカウントにサインインするかライセンスキーを入力してください。",
+  "v2.tuneTestedPropose.err.notConnected": "提案を送信するには、Mozaiklabs アカウントにサインインするかライセンスキーを入力してください。",
   "v2.tuneTestedPropose.err.failed": "提案を送信できませんでした。後でもう一度お試しください。",
   "v2.zone.presenceAbsent": "{days} 日間不在",
   "v2.zone.presenceNever": "更新以降未検出",

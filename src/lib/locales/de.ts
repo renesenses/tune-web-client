@@ -3489,7 +3489,7 @@ export default {
   "v2.tuneTestedPropose.err.belowThreshold": "Zuerst ist eine Stunde fehlerfreie Wiedergabe nötig.",
   "v2.tuneTestedPropose.err.noDevice": "Diese Zone hat kein Gerät, das vorgeschlagen werden kann.",
   "v2.tuneTestedPropose.err.unidentified": "Marke und Modell dieses Geräts sind unbekannt. Legen Sie sie in den Zoneneinstellungen fest, um es vorzuschlagen.",
-  "v2.tuneTestedPropose.err.notConnected": "Melden Sie sich bei Ihrem Mozaik-Labs-Konto an oder geben Sie Ihren Lizenzschlüssel ein, um einen Vorschlag zu senden.",
+  "v2.tuneTestedPropose.err.notConnected": "Melden Sie sich bei Ihrem Mozaiklabs-Konto an oder geben Sie Ihren Lizenzschlüssel ein, um einen Vorschlag zu senden.",
   "v2.tuneTestedPropose.err.failed": "Der Vorschlag konnte nicht gesendet werden. Versuchen Sie es später erneut.",
   "v2.zone.presenceAbsent": "Seit {days} T. abwesend",
   "v2.zone.presenceNever": "Seit dem Update nie gesehen",

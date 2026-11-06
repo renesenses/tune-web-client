@@ -3489,7 +3489,7 @@ export default {
   "v2.tuneTestedPropose.err.belowThreshold": "Este nevoie mai întâi de o oră de redare fără erori.",
   "v2.tuneTestedPropose.err.noDevice": "Această zonă nu are niciun dispozitiv de propus.",
   "v2.tuneTestedPropose.err.unidentified": "Marca și modelul acestui dispozitiv sunt necunoscute. Setați-le în setările zonei pentru a-l propune.",
-  "v2.tuneTestedPropose.err.notConnected": "Conectați-vă la contul Mozaik Labs sau introduceți cheia de licență pentru a trimite o propunere.",
+  "v2.tuneTestedPropose.err.notConnected": "Conectați-vă la contul Mozaiklabs sau introduceți cheia de licență pentru a trimite o propunere.",
   "v2.tuneTestedPropose.err.failed": "Propunerea nu a putut fi trimisă. Încercați din nou mai târziu.",
   "v2.zone.presenceAbsent": "Absentă de {days} z",
   "v2.zone.presenceNever": "Nevăzută de la actualizare",

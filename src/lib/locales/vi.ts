@@ -3370,7 +3370,7 @@ export default {
   "v2.tuneTestedPropose.err.belowThreshold": "Cần một giờ phát không lỗi trước.",
   "v2.tuneTestedPropose.err.noDevice": "Vùng này không có thiết bị nào để đề xuất.",
   "v2.tuneTestedPropose.err.unidentified": "Chưa biết hãng và mẫu của thiết bị này. Hãy đặt chúng trong cài đặt vùng để đề xuất.",
-  "v2.tuneTestedPropose.err.notConnected": "Đăng nhập tài khoản Mozaik Labs hoặc nhập khóa giấy phép để gửi đề xuất.",
+  "v2.tuneTestedPropose.err.notConnected": "Đăng nhập tài khoản Mozaiklabs hoặc nhập khóa giấy phép để gửi đề xuất.",
   "v2.tuneTestedPropose.err.failed": "Không thể gửi đề xuất. Hãy thử lại sau.",
   "v2.zone.presenceAbsent": "Vắng mặt {days} ngày",
   "v2.zone.presenceNever": "Chưa từng thấy kể từ bản cập nhật",

@@ -3489,7 +3489,7 @@ export default {
   "v2.tuneTestedPropose.err.belowThreshold": "Serve prima un'ora di riproduzione senza errori.",
   "v2.tuneTestedPropose.err.noDevice": "Questa zona non ha alcun dispositivo da proporre.",
   "v2.tuneTestedPropose.err.unidentified": "Marca e modello di questo dispositivo sono sconosciuti. Impostali nelle impostazioni della zona per proporlo.",
-  "v2.tuneTestedPropose.err.notConnected": "Accedi al tuo account Mozaik Labs o inserisci la tua chiave di licenza per inviare una proposta.",
+  "v2.tuneTestedPropose.err.notConnected": "Accedi al tuo account Mozaiklabs o inserisci la tua chiave di licenza per inviare una proposta.",
   "v2.tuneTestedPropose.err.failed": "Impossibile inviare la proposta. Riprova più tardi.",
   "v2.zone.presenceAbsent": "Assente da {days} g",
   "v2.zone.presenceNever": "Mai vista dall'aggiornamento",

@@ -3505,7 +3505,7 @@ export default {
   "v2.tuneTestedPropose.err.belowThreshold": "One hour of playback without error is needed first.",
   "v2.tuneTestedPropose.err.noDevice": "This zone has no device to propose.",
   "v2.tuneTestedPropose.err.unidentified": "The make and model of this device are unknown. Set them in the zone settings to propose it.",
-  "v2.tuneTestedPropose.err.notConnected": "Sign in to your Mozaik Labs account or enter your licence key to send a proposal.",
+  "v2.tuneTestedPropose.err.notConnected": "Sign in to your Mozaiklabs account or enter your licence key to send a proposal.",
   "v2.tuneTestedPropose.err.failed": "The proposal could not be sent. Try again later.",
   "v2.zone.presenceAbsent": "Absent for {days} d",
   "v2.zone.presenceNever": "Never seen since the update",

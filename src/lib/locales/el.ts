@@ -3368,7 +3368,7 @@ export default {
   "v2.tuneTestedPropose.err.belowThreshold": "Απαιτείται πρώτα μία ώρα αναπαραγωγής χωρίς σφάλμα.",
   "v2.tuneTestedPropose.err.noDevice": "Αυτή η ζώνη δεν έχει συσκευή για πρόταση.",
   "v2.tuneTestedPropose.err.unidentified": "Η μάρκα και το μοντέλο αυτής της συσκευής είναι άγνωστα. Ορίστε τα στις ρυθμίσεις της ζώνης για να την προτείνετε.",
-  "v2.tuneTestedPropose.err.notConnected": "Συνδεθείτε στον λογαριασμό σας Mozaik Labs ή εισαγάγετε το κλειδί άδειας για να στείλετε πρόταση.",
+  "v2.tuneTestedPropose.err.notConnected": "Συνδεθείτε στον λογαριασμό σας Mozaiklabs ή εισαγάγετε το κλειδί άδειας για να στείλετε πρόταση.",
   "v2.tuneTestedPropose.err.failed": "Η πρόταση δεν μπόρεσε να σταλεί. Δοκιμάστε ξανά αργότερα.",
   "v2.zone.presenceAbsent": "Απούσα εδώ και {days} ημ.",
   "v2.zone.presenceNever": "Δεν εμφανίστηκε ποτέ μετά την ενημέρωση",

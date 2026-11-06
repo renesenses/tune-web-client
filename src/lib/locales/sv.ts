@@ -3488,7 +3488,7 @@ export default {
   "v2.tuneTestedPropose.err.belowThreshold": "Det krävs först en timmes uppspelning utan fel.",
   "v2.tuneTestedPropose.err.noDevice": "Den här zonen har ingen enhet att föreslå.",
   "v2.tuneTestedPropose.err.unidentified": "Märke och modell för den här enheten är okända. Ange dem i zoninställningarna för att föreslå den.",
-  "v2.tuneTestedPropose.err.notConnected": "Logga in på ditt Mozaik Labs-konto eller ange din licensnyckel för att skicka ett förslag.",
+  "v2.tuneTestedPropose.err.notConnected": "Logga in på ditt Mozaiklabs-konto eller ange din licensnyckel för att skicka ett förslag.",
   "v2.tuneTestedPropose.err.failed": "Förslaget kunde inte skickas. Försök igen senare.",
   "v2.zone.presenceAbsent": "Borta i {days} d",
   "v2.zone.presenceNever": "Aldrig sedd sedan uppdateringen",

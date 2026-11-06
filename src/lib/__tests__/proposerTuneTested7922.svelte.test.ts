@@ -31,6 +31,7 @@ import {
 } from '../tuneTestedProposition';
 import en from '../locales/en';
 import fr from '../locales/fr';
+import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
 
 const tEn = avecParametres((cle) => (en as Record<string, string>)[cle] ?? cle);
 // L'interface des tests est en français : la fenêtre montée parle français.
@@ -163,10 +164,10 @@ describe('présentation de la proposition', () => {
       .toBe('DSD 5.6448 MHz (native)');
   });
 
-  it('chaque ligne de l’aperçu a sa traduction dans toutes les langues', async () => {
+  it('chaque ligne de l’aperçu a sa traduction dans toutes les langues', () => {
     const cles = lignesApercu({ ...APERCU, commercial_name: 'Test Audio DAC' }, tEn).map((l) => l.cle);
-    for (const langue of ['de', 'el', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'vi', 'zh']) {
-      const dict = (await import(`../locales/${langue}.ts`)).default as Record<string, string>;
+    for (const langue of ONZE_LANGUES) {
+      const dict = dictionnaire(langue);
       for (const cle of [...cles, 'v2.zone.tuneTestedPropose', 'v2.tuneTestedPropose.button', 'v2.tuneTestedPropose.remaining']) {
         expect(dict[cle], `${langue} : ${cle}`).toBeTruthy();
       }
