@@ -160,7 +160,8 @@ export class ChampCercle {
   private arcPh!: Float32Array;
   // Globe
   private G: Orientation & { w: number; anim?: Anim } = { w: 0, lon0: 8 * DEG, tilt: 0.62 };
-  private glisse: { x: number; y: number; lon: number; tilt: number; bouge: boolean } | null = null;
+  // `paysTenu` : un appui long a dit le pays ; le doigt levé ne sera pas un toucher.
+  private glisse: { x: number; y: number; lon: number; tilt: number; bouge: boolean; paysTenu?: boolean } | null = null;
   private dernierGlisse = 0;
   // Zoom (web#2521) : `R = U × 0,86 × zoom`, le globe reste centré, on le TOURNE pour se déplacer.
   private zoom = ZOOM_MIN;
@@ -518,6 +519,7 @@ export class ChampCercle {
     if (opFrontieres > 0) {
       this.frontieres ??= decoderFrontieres(FRONTIERES_TERRE);
       ctx.strokeStyle = this.c.frontiere; ctx.lineWidth = 0.8;
+      const [joint, bout] = [ctx.lineJoin, ctx.lineCap];
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       ctx.globalAlpha = a * 0.75 * opFrontieres;
       ctx.beginPath();
@@ -525,6 +527,7 @@ export class ChampCercle {
       const suite = (x: number, y: number) => ctx.lineTo(x, y);
       for (const poly of this.frontieres) parcourirPolyligne(poly, R, cx, cy, this.G, debut, suite);
       ctx.stroke();
+      ctx.lineJoin = joint; ctx.lineCap = bout;
     }
     ctx.fillStyle = this.couleurPays;
     for (const cell of this.casesMonde) {
@@ -795,7 +798,8 @@ export class ChampCercle {
         this.appuiLong = setTimeout(() => {
           this.appuiLong = null;
           if (this.glisse !== g || g.bouge || this.doigts.size !== 1) return;
-          if (this.paysAuPoint(px, py)) g.bouge = true; // le doigt levé ne sera pas un toucher
+          // Le nom reste tant que le doigt ne glisse pas vraiment (seuil de 4 px).
+          if (this.paysAuPoint(px, py)) g.paysTenu = true;
         }, APPUI_LONG_MS);
       }
     });
@@ -845,7 +849,7 @@ export class ChampCercle {
       this.canvas.style.cursor = this.pose ? 'crosshair' : 'default';
       if (!g) return;
       this.dernierGlisse = this.maintenant();
-      if (annule || g.bouge) return;
+      if (annule || g.bouge || g.paysTenu) return;
       const [px, py] = local(e);
       // Double-clic ou double-tap : zoom ×2 sur le lieu visé (souris, doigt, stylet).
       const t = this.maintenant();
