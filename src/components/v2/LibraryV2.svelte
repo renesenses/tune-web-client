@@ -367,8 +367,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const enCharge: boolean = $derived.by(() =>
     depot ? chargementD
       : nu ? ($albumsPagines.total == null && $albumsPagines.erreur == null)
-      : (porteeActive && idsPortee == null) || (paysChoisi != null && idsPays == null)
-        || $libraryLoading || (sortirDesPages && !bibliothequeEntiere),
+      : (porteeActive && idsPortee == null) || $libraryLoading || (sortirDesPages && !bibliothequeEntiere)
+        || (paysChoisi != null && idsPays == null),
   );
 
   const level = $derived($preferences.settingsLevel);
@@ -514,7 +514,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     idsPays = null;
     if (!p || depot) return;
     let perime = false;
-    const filtres = d ? { country: p.valeurs, folder: d } : { country: p.valeurs };
+    const filtres: Record<string, api.FacetParam> = d ? { country: p.valeurs, folder: d } : { country: p.valeurs };
     idsAlbumsDeLaPortee((limite, rang) => api.getAlbumsDetailed(filtres, limite, rang))
       .then((ids) => { if (!perime) idsPays = ids; })
       .catch(() => {
@@ -524,7 +524,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       });
     return () => { perime = true; };
   });
-  const filtresCarte = $derived(dossierPortee ? { folder: dossierPortee } : {});
+  const filtresCarte = $derived<Record<string, api.FacetParam>>(dossierPortee ? { folder: dossierPortee } : {});
 
   /**
    * SOURCE — de quelle bibliothèque l'album vient (#4152).
