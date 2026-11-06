@@ -5882,7 +5882,7 @@ export default {
   "accesCompte.retourEnCours": "Logger inn…",
   "accesCompte.fermer": "Skjul",
   "accesCompte.reessayer": "Prøv igjen",
-  "accesCompte.reglages.explication": "Fjernlytting går via Mozaiklabs-kontoen din: åpne Tune Remote, eller tilgangsadressen over, og logg inn. Det finnes ikke lenger noen lenke eller QR-kode å dele.",
+  "accesCompte.reglages.explication": "Fjernlytting går via Mozaiklabs-kontoen din: åpne Tune Remote, eller tilgangsadressen over, og logg inn. Hvis appen ikke får kontakt, er tilgangslenken og QR-koden under fortsatt tilgjengelige.",
   "accesCompte.appareils.titre": "Registrerte enheter",
   "accesCompte.appareils.compte": "{n} av {max}",
   "accesCompte.appareils.chargement": "Laster inn enheter…",

@@ -6057,7 +6057,7 @@ export default {
   "accesCompte.retourEnCours": "Signing in…",
   "accesCompte.fermer": "Hide",
   "accesCompte.reessayer": "Try again",
-  "accesCompte.reglages.explication": "Remote listening goes through your Mozaiklabs account: open Tune Remote, or the access address above, and sign in. There is no longer a link or QR code to share.",
+  "accesCompte.reglages.explication": "Remote listening goes through your Mozaiklabs account: open Tune Remote, or the access address above, and sign in. If the app cannot connect, the access link and QR code below remain available.",
   "accesCompte.appareils.titre": "Registered devices",
   "accesCompte.appareils.compte": "{n} of {max}",
   "accesCompte.appareils.chargement": "Loading devices…",

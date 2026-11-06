@@ -5996,7 +5996,7 @@ export default {
   "accesCompte.retourEnCours": "Bejelentkezés…",
   "accesCompte.fermer": "Elrejtés",
   "accesCompte.reessayer": "Újra",
-  "accesCompte.reglages.explication": "A távoli hallgatás a Mozaiklabs-fiókján keresztül működik: nyissa meg a Tune Remote alkalmazást vagy a fenti elérési címet, és jelentkezzen be. Nincs többé megosztandó link vagy QR-kód.",
+  "accesCompte.reglages.explication": "A távoli hallgatás a Mozaiklabs-fiókján keresztül működik: nyissa meg a Tune Remote alkalmazást vagy a fenti elérési címet, és jelentkezzen be. Ha az alkalmazás nem tud csatlakozni, az alábbi elérési link és QR-kód továbbra is elérhető.",
   "accesCompte.appareils.titre": "Regisztrált eszközök",
   "accesCompte.appareils.compte": "{n} / {max}",
   "accesCompte.appareils.chargement": "Eszközök betöltése…",

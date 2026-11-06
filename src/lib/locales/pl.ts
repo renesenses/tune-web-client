@@ -5880,7 +5880,7 @@ export default {
   "accesCompte.retourEnCours": "Logowanie…",
   "accesCompte.fermer": "Ukryj",
   "accesCompte.reessayer": "Spróbuj ponownie",
-  "accesCompte.reglages.explication": "Słuchanie zdalne odbywa się przez Twoje konto Mozaiklabs: otwórz Tune Remote lub powyższy adres dostępu i zaloguj się. Nie ma już linku ani kodu QR do udostępniania.",
+  "accesCompte.reglages.explication": "Słuchanie zdalne odbywa się przez Twoje konto Mozaiklabs: otwórz Tune Remote lub powyższy adres dostępu i zaloguj się. Jeśli aplikacja nie może się połączyć, link dostępu i kod QR poniżej nadal są dostępne.",
   "accesCompte.appareils.titre": "Zarejestrowane urządzenia",
   "accesCompte.appareils.compte": "{n} z {max}",
   "accesCompte.appareils.chargement": "Wczytywanie urządzeń…",

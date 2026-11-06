@@ -5882,7 +5882,7 @@ export default {
   "accesCompte.retourEnCours": "Σύνδεση…",
   "accesCompte.fermer": "Απόκρυψη",
   "accesCompte.reessayer": "Δοκιμάστε ξανά",
-  "accesCompte.reglages.explication": "Η απομακρυσμένη ακρόαση γίνεται μέσω του λογαριασμού σας Mozaiklabs: ανοίξτε το Tune Remote ή τη διεύθυνση πρόσβασης παραπάνω και συνδεθείτε. Δεν υπάρχει πλέον σύνδεσμος ή κωδικός QR για κοινοποίηση.",
+  "accesCompte.reglages.explication": "Η απομακρυσμένη ακρόαση γίνεται μέσω του λογαριασμού σας Mozaiklabs: ανοίξτε το Tune Remote ή τη διεύθυνση πρόσβασης παραπάνω και συνδεθείτε. Αν η εφαρμογή δεν συνδέεται, ο σύνδεσμος πρόσβασης και ο κωδικός QR παρακάτω παραμένουν διαθέσιμοι.",
   "accesCompte.appareils.titre": "Καταχωρισμένες συσκευές",
   "accesCompte.appareils.compte": "{n} από {max}",
   "accesCompte.appareils.chargement": "Φόρτωση συσκευών…",

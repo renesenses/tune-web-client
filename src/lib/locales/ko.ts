@@ -6037,7 +6037,7 @@ export default {
   "accesCompte.retourEnCours": "로그인하는 중…",
   "accesCompte.fermer": "숨기기",
   "accesCompte.reessayer": "다시 시도",
-  "accesCompte.reglages.explication": "원격 감상은 Mozaiklabs 계정을 통해 이루어집니다. Tune Remote 또는 위의 접속 주소를 열고 로그인하세요. 더 이상 공유할 링크나 QR 코드가 없습니다.",
+  "accesCompte.reglages.explication": "원격 감상은 Mozaiklabs 계정을 통해 이루어집니다. Tune Remote 또는 위의 접속 주소를 열고 로그인하세요. 앱이 연결되지 않으면 아래의 접속 링크와 QR 코드를 계속 사용할 수 있습니다.",
   "accesCompte.appareils.titre": "등록된 기기",
   "accesCompte.appareils.compte": "{n} / {max}",
   "accesCompte.appareils.chargement": "기기를 불러오는 중…",

@@ -5889,7 +5889,7 @@ export default {
   "accesCompte.retourEnCours": "Đang đăng nhập…",
   "accesCompte.fermer": "Ẩn",
   "accesCompte.reessayer": "Thử lại",
-  "accesCompte.reglages.explication": "Nghe từ xa đi qua tài khoản Mozaiklabs của bạn: mở Tune Remote, hoặc địa chỉ truy cập ở trên, rồi đăng nhập. Không còn liên kết hay mã QR nào để chia sẻ.",
+  "accesCompte.reglages.explication": "Nghe từ xa đi qua tài khoản Mozaiklabs của bạn: mở Tune Remote, hoặc địa chỉ truy cập ở trên, rồi đăng nhập. Nếu ứng dụng không kết nối được, liên kết truy cập và mã QR bên dưới vẫn khả dụng.",
   "accesCompte.appareils.titre": "Thiết bị đã đăng ký",
   "accesCompte.appareils.compte": "{n} / {max}",
   "accesCompte.appareils.chargement": "Đang tải thiết bị…",

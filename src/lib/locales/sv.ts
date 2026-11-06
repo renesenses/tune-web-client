@@ -6036,7 +6036,7 @@ export default {
   "accesCompte.retourEnCours": "Loggar in…",
   "accesCompte.fermer": "Dölj",
   "accesCompte.reessayer": "Försök igen",
-  "accesCompte.reglages.explication": "Fjärrlyssning går via ditt Mozaiklabs-konto: öppna Tune Remote, eller åtkomstadressen ovan, och logga in. Det finns inte längre någon länk eller QR-kod att dela.",
+  "accesCompte.reglages.explication": "Fjärrlyssning går via ditt Mozaiklabs-konto: öppna Tune Remote, eller åtkomstadressen ovan, och logga in. Om appen inte kan ansluta finns åtkomstlänken och QR-koden nedan kvar.",
   "accesCompte.appareils.titre": "Registrerade enheter",
   "accesCompte.appareils.compte": "{n} av {max}",
   "accesCompte.appareils.chargement": "Läser in enheter…",

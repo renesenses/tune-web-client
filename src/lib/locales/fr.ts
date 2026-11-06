@@ -6059,7 +6059,7 @@ export default {
   "accesCompte.retourEnCours": "Connexion en cours…",
   "accesCompte.fermer": "Masquer",
   "accesCompte.reessayer": "Réessayer",
-  "accesCompte.reglages.explication": "L’écoute à distance passe par votre compte Mozaiklabs : ouvrez Tune Remote, ou l’adresse d’accès ci-dessus, et connectez-vous. Il n’y a plus de lien ni de QR code à partager.",
+  "accesCompte.reglages.explication": "L’écoute à distance passe par votre compte Mozaiklabs : ouvrez Tune Remote, ou l’adresse d’accès ci-dessus, et connectez-vous. Si l’application ne se connecte pas, le lien d’accès et le QR code ci-dessous restent disponibles.",
   "accesCompte.appareils.titre": "Appareils enregistrés",
   "accesCompte.appareils.compte": "{n} sur {max}",
   "accesCompte.appareils.chargement": "Chargement des appareils…",
