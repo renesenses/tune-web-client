@@ -1159,7 +1159,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         brEnabled = !!d?.enabled; brConnected = !!d?.connected;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = '';
         brAccesParCompte = !!d?.acces_par_compte;
-        if (brEnabled && !brAccesParCompte) chargerLienPont();
+        if (brEnabled) chargerLienPont();
       })
       .catch(() => {});   // route absente sur un serveur anterieur
   });
@@ -1178,7 +1178,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const st: any = await api.apiFetch('/cloud/bridge/status').catch(() => null);
         if (st) brAccesParCompte = !!st.acces_par_compte;
         brToken = brAccesParCompte ? '' : d?.bridge_token || '';
-        if (!brAccesParCompte) await chargerLienPont();
+        await chargerLienPont();
       }
     } catch (e: any) {
       notifications.error(e?.message ?? 'Erreur');
@@ -7656,7 +7656,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
                 {#if brAccesParCompte}
                   <ReglagesAccesParCompte />
-                {:else if brLien}
+                {/if}
+                {#if brLien}
                   <div class="row">
                     <div class="lbl">
                       <span>{$t('settings.remoteLink' as any)}</span>

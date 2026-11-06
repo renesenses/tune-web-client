@@ -3411,6 +3411,9 @@ export interface PagePistesServeur {
   comptes: Map<string, number> | null;
   /** « Toutes les sources » : chaque piste une fois. */
   totalToutesSources: number | null;
+  /** #7619 — `next_cursor` du serveur : de quoi demander la page d'après par
+   *  `after`. `null` : dernière page, ou serveur sans curseur (offset). */
+  curseurSuivant?: string | null;
 }
 
 export async function getPagePistes(opts: {
@@ -3422,11 +3425,14 @@ export async function getPagePistes(opts: {
   limit: number;
   offset: number;
   counts?: boolean;
+  /** #7619 — le `next_cursor` de la page précédente : remplace `offset`. */
+  after?: string | null;
   signal?: AbortSignal;
 }): Promise<PagePistesServeur | null> {
   const params = new URLSearchParams();
   params.set('limit', String(opts.limit));
-  params.set('offset', String(opts.offset));
+  if (opts.after) params.set('after', opts.after);
+  else params.set('offset', String(opts.offset));
   // `order` part TOUJOURS : c'est lui qui ouvre la page triée côté serveur,
   // et sa présence dans la réponse qui dit que le serveur l'a comprise.
   params.set('order', opts.order ?? 'asc');
@@ -3445,6 +3451,7 @@ export async function getPagePistes(opts: {
     total: raw.total,
     comptes,
     totalToutesSources: typeof raw.total_all_sources === 'number' ? raw.total_all_sources : null,
+    curseurSuivant: typeof raw.next_cursor === 'string' && raw.next_cursor ? raw.next_cursor : null,
   };
 }
 
@@ -4703,6 +4710,28 @@ export function setReglageGreffonNatif(
     method: 'PUT',
     body: JSON.stringify(settings),
   });
+}
+
+/** `POST /audio-plugins/{id}/diagnostics` — ce que le greffon CALCULE pour
+ *  ce réglage (`diagnostics`, champs propres au greffon), sans rien
+ *  enregistrer ni jouer. 404 (serveur ou greffon inconnu), 409 (greffon non
+ *  chargé), 400 (réglage refusé) : l'appelant n'affiche alors rien — lu
+ *  sans bandeau. */
+export interface DiagnosticsGreffonNatif {
+  plugin: string;
+  diagnostics: unknown;
+}
+
+export function getDiagnosticsGreffonNatif(
+  id: string,
+  settings: Record<string, unknown>,
+): Promise<DiagnosticsGreffonNatif> {
+  return fetchJSON<DiagnosticsGreffonNatif>(
+    `${racineGreffonNatif(id)}/diagnostics`,
+    { method: 'POST', body: JSON.stringify(settings) },
+    undefined,
+    true,
+  );
 }
 
 export async function listProfilsGreffonNatif(id: string): Promise<ProfilGreffonNatif[]> {
@@ -6285,6 +6314,13 @@ export async function getStreamingArtistAlbumsAll(
 
 export function getStreamingFeaturedSections(service: string) {
   return fetchJSON<FeaturedSection[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/sections`);
+}
+
+/** tune-server-rust#7822 — les mixes personnels du compte (TIDAL : My Daily
+ *  Discovery, My Mix 1 à 8…), lisibles comme des playlists de service.
+ *  `sansBandeau` : la rangée s'efface d'elle-même si la route échoue. */
+export function getStreamingMixes(service: string) {
+  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/mixes`, undefined, undefined, true);
 }
 
 /**
