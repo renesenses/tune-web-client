@@ -3657,6 +3657,7 @@ export default {
   "v2.stream.pageSize": "Oldalanként",
   "v2.stream.loadingMore": "Betöltés…",
   "v2.stream.playFailed": "A lejátszás nem sikerült.",
+  "v2.stream.yourMixes": "Az Ön mixei",
   "v2.common.loading": "Betöltés…",
   "v2.common.close": "Bezárás",
   "v2.lib.trackCount": "{count} szám",

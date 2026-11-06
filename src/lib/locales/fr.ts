@@ -3724,6 +3724,7 @@ export default {
   "v2.stream.pageSize": "Par page",
   "v2.stream.loadingMore": "Chargement…",
   "v2.stream.playFailed": "Lecture impossible.",
+  "v2.stream.yourMixes": "Vos mixes",
   "v2.common.loading": "Chargement…",
   "v2.common.close": "Fermer",
   "v2.lib.trackCount": "{count} titres",

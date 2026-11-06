@@ -3582,6 +3582,7 @@ export default {
   "v2.stream.pageSize": "Na stronie",
   "v2.stream.loadingMore": "Wczytywanie…",
   "v2.stream.playFailed": "Nie można odtworzyć.",
+  "v2.stream.yourMixes": "Twoje miksy",
   "v2.common.loading": "Wczytywanie…",
   "v2.common.close": "Zamknij",
   "v2.lib.trackCount": "Utwory: {count}",

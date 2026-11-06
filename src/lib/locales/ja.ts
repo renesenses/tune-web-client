@@ -3703,6 +3703,7 @@ export default {
   "v2.stream.pageSize": "1ページあたり",
   "v2.stream.loadingMore": "読み込み中…",
   "v2.stream.playFailed": "再生できません。",
+  "v2.stream.yourMixes": "あなたのミックス",
   "v2.common.loading": "読み込み中…",
   "v2.common.close": "閉じる",
   "v2.lib.trackCount": "{count} 曲",

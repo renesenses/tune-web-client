@@ -3703,6 +3703,7 @@ export default {
   "v2.stream.pageSize": "每页",
   "v2.stream.loadingMore": "加载中…",
   "v2.stream.playFailed": "无法播放。",
+  "v2.stream.yourMixes": "你的混音",
   "v2.common.loading": "加载中…",
   "v2.common.close": "关闭",
   "v2.lib.trackCount": "{count} 首曲目",

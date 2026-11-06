@@ -3722,6 +3722,7 @@ export default {
   "v2.stream.pageSize": "Per page",
   "v2.stream.loadingMore": "Loading…",
   "v2.stream.playFailed": "Playback failed.",
+  "v2.stream.yourMixes": "Your mixes",
   "v2.common.loading": "Loading…",
   "v2.common.close": "Close",
   "v2.lib.trackCount": "{count} tracks",
