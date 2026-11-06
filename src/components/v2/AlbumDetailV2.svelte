@@ -35,6 +35,7 @@
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
 import AlbumRating from '../partages/AlbumRating.svelte';
+import MesNotes from '../partages/MesNotes.svelte';
 import ReportButton from '../partages/ReportButton.svelte';
 import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbum';
@@ -42,6 +43,8 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import AttributionBio from './AttributionBio.svelte';
   import TexteDeBio from './TexteDeBio.svelte';
   import { segmentsAffichables } from '../../lib/library/bioSegments';
+  import MentionRepliBio from './MentionRepliBio.svelte';
+  import { langueBioDe, AUCUNE_LANGUE, type LangueBio } from '../../lib/library/langueBio';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
   import ListePistesV2 from './ListePistesV2.svelte';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
@@ -1402,6 +1405,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   /** `bio_segments` de `GET /library/albums/{id}/bio` (#7910) : liens de la présentation. */
   let bioSegments = $state<unknown>(null);
   const segmentsBio = $derived(segmentsAffichables(bio, bioSegments));
+  /** Langue de la notice et repli éventuel (#8010). */
+  let bioLangue = $state<LangueBio>(AUCUNE_LANGUE);
   let bioChargement = $state(false);
   let bioErreur = $state(false);
   /** Album dont la bio est en mémoire — la fiche est réutilisée d'un album à
@@ -1416,6 +1421,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     bio = null;
     bioProvenance = null;
     bioSegments = null;
+    bioLangue = AUCUNE_LANGUE;
     bioErreur = false;
   });
 
@@ -1432,6 +1438,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         bio = r.bio ?? '';
         bioProvenance = provenanceDe(r);
         bioSegments = r.bio_segments ?? null;
+        bioLangue = langueBioDe(r);
       }
     } catch {
       if (album.id === id) bioErreur = true;
@@ -1961,6 +1968,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     </div>
   </div>
 
+  <!-- web#2653 — « Mes notes » : album LOCAL seulement, comme la note sur 5. -->
+  {#if album.id != null && !depot}
+    <div class="mes-notes-album"><MesNotes type="album" id={album.id} /></div>
+  {/if}
+
   <!-- Présentation de l'album (#3586). Voir le commentaire de `basculerBio`
        pour la raison du bouton : la route sort sur le réseau. -->
   {#if album.id != null}
@@ -1976,8 +1988,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
           <p class="bio-state err">{$tr('library.bioLoadError' as any)}</p>
         {:else if bio}
           <ClampedText lines={4} resetKey={bio}>
-            <p class="bio-text">{#if segmentsBio}<TexteDeBio segments={segmentsBio} />{:else}{bio}{/if}</p>
+            <p class="bio-text" lang={bioLangue.langue ?? undefined}>{#if segmentsBio}<TexteDeBio segments={segmentsBio} />{:else}{bio}{/if}</p>
           </ClampedText>
+          <MentionRepliBio genre="notes" repliVers={bioLangue.repliVers} />
           <AttributionBio provenance={bioProvenance} />
         {:else}
           <p class="bio-state">{$tr('library.noAlbumNote')}</p>
@@ -2324,6 +2337,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   /* Présentation de l'album (#3586) — repliée par défaut, comme dans
      l'interface actuelle : la route sort sur le réseau quand la notice
      manque, cf. `basculerBio`. */
+  .mes-notes-album{max-width:760px}
   .bio{margin:18px 0 4px; display:flex; flex-direction:column; gap:10px; align-items:flex-start}
   .bio-toggle{display:inline-flex; align-items:center; gap:6px; cursor:pointer;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2);

@@ -122,3 +122,21 @@ export function zoomIntermediaire(de: number, vers: number, p: number): number {
 export function dansLaScene(x: number, y: number, W: number, H: number, marge = 0): boolean {
   return x >= -marge && y >= -marge && x <= W + marge && y <= H + marge;
 }
+
+/** Les frontières des pays commencent à paraître à ce zoom (web#2657)… */
+export const SEUIL_FRONTIERES = 2.5;
+/** … et sont pleinement visibles à celui-ci. */
+export const PLEIN_FRONTIERES = 4;
+
+/**
+ * L'opacité des frontières au zoom `k` : 0 jusqu'au seuil, 1 au plein, un
+ * fondu doux entre les deux. Elle suit le zoom, pas le temps : rien ne
+ * s'anime de soi-même, et sous `prefers-reduced-motion` le zoom (donc le
+ * fondu) est déjà instantané.
+ */
+export function opaciteFrontieres(k: number): number {
+  if (!(k > SEUIL_FRONTIERES)) return 0;
+  if (k >= PLEIN_FRONTIERES) return 1;
+  const t = (k - SEUIL_FRONTIERES) / (PLEIN_FRONTIERES - SEUIL_FRONTIERES);
+  return t * t * (3 - 2 * t);
+}

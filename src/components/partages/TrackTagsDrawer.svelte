@@ -1,4 +1,5 @@
 <script lang="ts">
+  import MesNotes from './MesNotes.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount, untrack } from 'svelte';
   import * as api from '../../lib/api';
@@ -225,6 +226,9 @@
       <div class="state err">{$t('trackTags.loadFailed')}</div>
     {:else}
       <div class="drawer-body">
+        <!-- web#2653 — « Mes notes » de la piste : cette fiche est la fiche du
+             titre de la bibliothèque, ouverte depuis son menu. -->
+        {#if trackId != null}<MesNotes type="track" id={trackId} />{/if}
         {#if champsTenus.length}
           <div class="tenus" data-champs-tenus>
             <span>{$t('trackTags.heldFields' as any).replace('{fields}', champsTenus.join(', '))}</span>

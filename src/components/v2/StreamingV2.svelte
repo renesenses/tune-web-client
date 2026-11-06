@@ -39,6 +39,7 @@
   import { chargerRubriquesGenre, type BandeRubrique } from '../../lib/rubriquesGenre';
   import { chargerPlaylistsDuGenre } from '../../lib/playlistsDuGenre';
   import { sansLaPlaylistRetiree } from '../../lib/playlistsSuiviesRetrait';
+  import { chargerMixes, estUnMix, sousTitreDeMix } from '../../lib/mixesTidal';
   import { compterParAuteur, filtrerParAuteur, filtreAuteurUtile, type FiltreAuteur } from '../../lib/filtreAuteurPlaylists';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
@@ -279,6 +280,17 @@
   let bandesGenre = $state<BandeRubrique[]>([]);
   /** #5313 — les playlists éditoriales du genre ouvert (Qobuz). Vide ailleurs. */
   let genrePlaylists = $state<StreamingPlaylist[]>([]);
+  /** tune-server-rust#7822 — « Vos mixes » : les mixes du compte TIDAL. Vide
+   *  ailleurs, et pour un compte sans mix : la rangée ne s'affiche pas. */
+  let mixes = $state<StreamingPlaylist[]>([]);
+  $effect(() => {
+    const svc = active;
+    mixes = [];
+    if (ongletExpire) return;
+    let vivant = true;
+    chargerMixes(svc, api.getStreamingMixes).then((m) => { if (vivant) mixes = m; });
+    return () => { vivant = false; };
+  });
 
   /** Liste des genres du service : UN seul appel par service, HORS de l'effet
    * du volet.
@@ -1224,8 +1236,11 @@
   let zoneDefilante = $state<HTMLDivElement | null>(null);
   const pTitle = (p: any) => p?.name ?? p?.title ?? p?.titre ?? $t('v2.common.untitled' as any);
   const pCover = (p: any) => p?.cover_path ?? p?.image ?? p?.picture ?? p?.pochette ?? null;
+  // #7822 — un mix n'a pas de nombre de titres (le serveur rend 0) : sa
+  // deuxième ligne est la liste de ses artistes, ou rien.
   const pSub = (p: any) =>
-    p?.artist_name ?? p?.artiste
+    estUnMix(p) ? sousTitreDeMix(p)
+    : p?.artist_name ?? p?.artiste
     ?? (p?.track_count != null
         ? $t('v2.lib.trackCount' as any).replace('{count}', String(p.track_count))
         : '');
@@ -1479,6 +1494,14 @@
       <YouTubeDecouverteV2 tuile={tuileYouTube} />
 
     {:else if sub === 'editorial'}
+      {#if !isBc && mixes.length}
+        <!-- tune-server-rust#7822 — les mixes du compte TIDAL, lus et ajoutés
+             à la file comme des playlists. -->
+        <section class="sec" data-mixes-compte>
+          <h2>{$t('v2.stream.yourMixes' as any)}</h2>
+          <div class="grid">{#each mixes as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+        </section>
+      {/if}
       {#if isBc}
         <!-- 🔴 Les genres ont QUITTE « Decouvrir » (Bertrand, 05/09/2026 :
              « mettre l'onglet genres : ok, mais enlever les genres de l'onglet
@@ -1909,7 +1932,7 @@
           : type === 'playlist'
           ? cibleEtiquettePlaylist({ ...p, name: pTitle(p), cover_path: pCover(p) }, active)
           : null}
-        favoriExterne={type
+        favoriExterne={type && !estUnMix(p)
           ? favoriExterneService($favoriteStreamingKeys, {
               // 🔴 #1400 — la référence ne se compose PLUS ici. Cette vignette
               // écrivait `service: p?.source ?? active`, donc la clé d'ONGLET

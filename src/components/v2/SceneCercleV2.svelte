@@ -36,7 +36,8 @@
    */
   import type { Snippet } from 'svelte';
   import { tick } from 'svelte';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
+  import { nomDuPays } from '../../lib/paysAffichage';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import PaysMondeV2 from './PaysMondeV2.svelte';
   import { lirePaysMonde, type PaysMonde } from '../../lib/paysMonde';
@@ -269,6 +270,9 @@
   let moteur = $state.raw<ChampCercle | null>(null);
   /** Le zoom du globe (web#2521) : 1 = vue entière. */
   let zoom = $state(ZOOM_MIN);
+  /** Le pays sous le pointeur, frontières visibles (web#2657) : son code et où poser son nom. */
+  let paysSurvole = $state<{ code: string; x: number; y: number } | null>(null);
+  const nomPaysSurvole = $derived(paysSurvole ? nomDuPays(paysSurvole.code, $locale) : '');
   $effect(() => {
     let active = true;
     void lirePaysMonde().then((p) => { if (active) paysMonde = p; });
@@ -372,14 +376,31 @@
     if (typeof ResizeObserver === 'undefined') { sansToile = true; return; }
     // La rangée de lunes d'un anneau (« +N » compte pour deux) : le moteur réserve sa place à droite du nom.
     const largeurLunes = (id: string) => { const e = lunes.get(id); return e ? largeurRangeeLunes(e.lunes.length + (e.reste > 0 ? 2 : 0)) : 0; };
-    const m = new ChampCercle(c, { budget: budgetInitial(), placer, surClicGlobe, largeurLunes, surZoom: (k) => { zoom = k; } });
+    const m = new ChampCercle(c, { budget: budgetInitial(), placer, surClicGlobe, largeurLunes, surZoom: (k) => { zoom = k; },
+      surPays: (p) => { paysSurvole = p; } });
     if (!m.disponible) { m.detruire(); sansToile = true; return; }
     const mesurer = () => { const r = h.getBoundingClientRect(); m.redimensionner(r.width, r.height); };
     const ro = new ResizeObserver(mesurer);
     ro.observe(h);
     mesurer();
     moteur = m;
-    return () => { ro.disconnect(); m.detruire(); moteur = null; zoom = ZOOM_MIN; };
+    return () => { ro.disconnect(); m.detruire(); moteur = null; zoom = ZOOM_MIN; paysSurvole = null; };
+  });
+
+  // La couleur des frontières (web#2657) vient du thème, relue quand il change.
+  $effect(() => {
+    const m = moteur; const h = hote;
+    if (!m || !h || typeof getComputedStyle !== 'function') return;
+    const appliquer = () => {
+      const c = getComputedStyle(h).getPropertyValue('--v2-txt3').trim();
+      if (c) m.majCouleurs({ frontiere: c });
+    };
+    appliquer();
+    if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') return;
+    const observer = new MutationObserver(appliquer);
+    observer.observe(document.documentElement, { attributes: true });
+    if (document.body) observer.observe(document.body, { attributes: true });
+    return () => observer.disconnect();
   });
 
   // Ctrl ou Cmd + molette (et le pincement du pavé tactile, envoyé en molette
@@ -741,6 +762,9 @@
     <div class="sc-scene" class:sc-scene-pose={poseOuverte} bind:this={hote} role="region" aria-label={$t('v2.circle.scene.stageLabel' as any)}
       tabindex={vue === 'monde' ? 0 : -1} onkeydown={surToucheScene}>
       <canvas bind:this={toile} aria-hidden="true"></canvas>
+      {#if paysSurvole && nomPaysSurvole && vue === 'monde'}
+        <span class="sc-pays-survol" aria-hidden="true" style="left:{paysSurvole.x}px; top:{paysSurvole.y}px">{nomPaysSurvole}</span>
+      {/if}
       <div class="sc-noeuds">
         {#each scene.noeuds as n (n.id)}
           <button type="button" class="sc-noeud sorte-{n.kind}" class:pin-moi={n.kind === 'pin' && n.me} use:inscrire={n.id}
@@ -960,6 +984,10 @@
     background:radial-gradient(ellipse at 50% 45%, #18262b 0%, var(--sc-fond) 70%); color:var(--sc-txt)}
   .sc-scene canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
   .sc-noeuds{position:absolute; inset:0; pointer-events:none}
+  /* Le nom du pays survolé (web#2657) : au-dessus du pointeur, sous les épingles, jamais cliquable. */
+  .sc-pays-survol{position:absolute; transform:translate(-50%, calc(-100% - 10px)); pointer-events:none;
+    padding:2px 8px; border-radius:999px; white-space:nowrap; font:500 12px var(--v2-sans);
+    color:var(--v2-txt); background:var(--v2-surface); border:1px solid var(--v2-line2); opacity:.92}
   /* T5 — les lunes : de petits disques posés par le moteur autour de la planète. */
   .sc-lune{position:absolute; left:0; top:0; visibility:hidden; width:12px; height:12px; margin:-6px 0 0 -6px; padding:0;
     border-radius:50%; border:1px solid rgba(222,178,104,.7); background:radial-gradient(circle at 35% 35%, #e9d3a3, #b48a4c 70%);

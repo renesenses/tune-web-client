@@ -3411,6 +3411,9 @@ export interface PagePistesServeur {
   comptes: Map<string, number> | null;
   /** « Toutes les sources » : chaque piste une fois. */
   totalToutesSources: number | null;
+  /** #7619 — `next_cursor` du serveur : de quoi demander la page d'après par
+   *  `after`. `null` : dernière page, ou serveur sans curseur (offset). */
+  curseurSuivant?: string | null;
 }
 
 export async function getPagePistes(opts: {
@@ -3422,11 +3425,14 @@ export async function getPagePistes(opts: {
   limit: number;
   offset: number;
   counts?: boolean;
+  /** #7619 — le `next_cursor` de la page précédente : remplace `offset`. */
+  after?: string | null;
   signal?: AbortSignal;
 }): Promise<PagePistesServeur | null> {
   const params = new URLSearchParams();
   params.set('limit', String(opts.limit));
-  params.set('offset', String(opts.offset));
+  if (opts.after) params.set('after', opts.after);
+  else params.set('offset', String(opts.offset));
   // `order` part TOUJOURS : c'est lui qui ouvre la page triée côté serveur,
   // et sa présence dans la réponse qui dit que le serveur l'a comprise.
   params.set('order', opts.order ?? 'asc');
@@ -3445,6 +3451,7 @@ export async function getPagePistes(opts: {
     total: raw.total,
     comptes,
     totalToutesSources: typeof raw.total_all_sources === 'number' ? raw.total_all_sources : null,
+    curseurSuivant: typeof raw.next_cursor === 'string' && raw.next_cursor ? raw.next_cursor : null,
   };
 }
 
@@ -3537,7 +3544,76 @@ export function getTopArtists(limit = 20) {
 }
 
 export function getLibraryStats() {
-  return fetchJSON<{ tracks: number; albums: number; artists: number }>(`${BASE}/library/stats`);
+  // web#2653 — `distributions` (tune-server-rust#7849) : absente d'un serveur
+  // plus ancien, `null` si sa lecture a échoué. Lue par `lireRepartitions`.
+  return fetchJSON<{ tracks: number; albums: number; artists: number; distributions?: unknown }>(`${BASE}/library/stats`);
+}
+
+// --- Notes personnelles en Markdown (web#2653, tune-server-rust#7849) ---
+
+export type TypeNote = 'artist' | 'album' | 'track';
+
+export interface NotePersonnelle {
+  item_type: TypeNote;
+  item_id: number;
+  texte_md: string;
+  maj_le: string;
+}
+
+/**
+ * Le serveur connaît-il `/library/notes` ? Sondé UNE fois par la liste (un
+ * 404 sur une note précise ne distingue pas « pas de note » de « route
+ * inconnue »). Un échec réseau n'est pas mémorisé : on resondera.
+ */
+let notesSondage: Promise<boolean> | null = null;
+export function notesDisponibles(): Promise<boolean> {
+  if (!notesSondage) {
+    notesSondage = fetchJSON<any>(`${BASE}/library/notes?limit=1`, undefined, undefined, true)
+      .then((r) => Array.isArray(r?.notes))
+      .catch((e: ApiError) => {
+        if (e?.status === 404 || e?.status === 405) return false;
+        notesSondage = null;
+        throw e;
+      });
+  }
+  return notesSondage;
+}
+
+/** Pour les témoins : oublie le sondage. */
+export function oublierSondageNotes(): void {
+  notesSondage = null;
+}
+
+export function listerNotes(opts: { item_type?: TypeNote; q?: string; limit?: number } = {}) {
+  const p = new URLSearchParams();
+  if (opts.item_type) p.set('item_type', opts.item_type);
+  if (opts.q) p.set('q', opts.q);
+  if (opts.limit) p.set('limit', String(opts.limit));
+  const qs = p.toString();
+  return fetchJSON<{ count: number; notes: NotePersonnelle[] }>(`${BASE}/library/notes${qs ? `?${qs}` : ''}`);
+}
+
+/** Une note, ou `null` s'il n'y en a pas (404). */
+export async function lireNote(type: TypeNote, id: number): Promise<NotePersonnelle | null> {
+  try {
+    return await fetchJSON<NotePersonnelle>(`${BASE}/library/notes/${type}/${id}`, undefined, undefined, true);
+  } catch (e) {
+    if ((e as ApiError)?.status === 404) return null;
+    throw e;
+  }
+}
+
+/** Crée ou remplace une note ; un texte vide la supprime (`null`). */
+export async function ecrireNote(type: TypeNote, id: number, texte_md: string): Promise<NotePersonnelle | null> {
+  const r = await fetchJSON<any>(`${BASE}/library/notes/${type}/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ texte_md }),
+  });
+  return r && typeof r.texte_md === 'string' ? (r as NotePersonnelle) : null;
+}
+
+export function supprimerNote(type: TypeNote, id: number) {
+  return fetchJSON<{ deleted: boolean }>(`${BASE}/library/notes/${type}/${id}`, { method: 'DELETE' });
 }
 
 /**
@@ -4022,11 +4098,11 @@ export function getTagSmartCollections(tagId: number) {
 // --- Smart Playlists ---
 
 export function getAlbumBio(albumId: number) {
-  return fetchJSON<{ bio: string | null; source: string | null; release_id?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null; bio_segments?: import('./library/bioSegments').BioSegment[] }>(`${BASE}/library/albums/${albumId}/bio`);
+  return fetchJSON<{ bio: string | null; source: string | null; release_id?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null; bio_segments?: import('./library/bioSegments').BioSegment[]; repli?: { raison?: string; langue_demandee?: string | null; langue_disponible?: string | null } | null }>(`${BASE}/library/albums/${albumId}/bio`);
 }
 
 export function getArtistBio(artistId: number) {
-  return fetchJSON<{ bio: string | null; source?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null; bio_segments?: import('./library/bioSegments').BioSegment[] }>(`${BASE}/library/artists/${artistId}/bio`);
+  return fetchJSON<{ bio: string | null; source?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null; bio_segments?: import('./library/bioSegments').BioSegment[]; repli?: { raison?: string; langue_demandee?: string | null; langue_disponible?: string | null } | null }>(`${BASE}/library/artists/${artistId}/bio`);
 }
 
 export function getArtistTimeline(artistId: number) {
@@ -4283,6 +4359,28 @@ export interface EqAutoEqImport {
 
 export function importAutoEqPreset(body: { text: string; name?: string; zone_id?: string }): Promise<EqAutoEqImport> {
   return fetchJSON<EqAutoEqImport>(`${BASE}/eq/import/autoeq`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * tune-server-rust#6385 — `POST /eq/import/preview` : le fichier (AutoEq
+ * ParametricEQ, Equalizer APO ou OPRA) analysé comme pour l'import, SANS rien
+ * enregistrer. L'écran montre les bandes avant que l'utilisateur les applique.
+ * Un refus rend 400 avec un `code` stable (`unrecognized_line`,
+ * `too_many_bands`…) et `line` ou `band` : voir `eqImportPeq.ts`.
+ * 404 : serveur antérieur, sans aperçu.
+ */
+export interface EqImportApercu extends Omit<EqAutoEqImport, 'preset'> {
+  format: 'parametric_eq' | 'opra';
+  bands: EqBand[];
+  max_bands: number;
+  name?: string | null;
+}
+
+export function previewEqImport(body: { text: string; name?: string }): Promise<EqImportApercu> {
+  return fetchJSON<EqImportApercu>(`${BASE}/eq/import/preview`, {
     method: 'POST',
     body: JSON.stringify(body),
   });
@@ -4634,6 +4732,28 @@ export function setReglageGreffonNatif(
     method: 'PUT',
     body: JSON.stringify(settings),
   });
+}
+
+/** `POST /audio-plugins/{id}/diagnostics` — ce que le greffon CALCULE pour
+ *  ce réglage (`diagnostics`, champs propres au greffon), sans rien
+ *  enregistrer ni jouer. 404 (serveur ou greffon inconnu), 409 (greffon non
+ *  chargé), 400 (réglage refusé) : l'appelant n'affiche alors rien — lu
+ *  sans bandeau. */
+export interface DiagnosticsGreffonNatif {
+  plugin: string;
+  diagnostics: unknown;
+}
+
+export function getDiagnosticsGreffonNatif(
+  id: string,
+  settings: Record<string, unknown>,
+): Promise<DiagnosticsGreffonNatif> {
+  return fetchJSON<DiagnosticsGreffonNatif>(
+    `${racineGreffonNatif(id)}/diagnostics`,
+    { method: 'POST', body: JSON.stringify(settings) },
+    undefined,
+    true,
+  );
 }
 
 export async function listProfilsGreffonNatif(id: string): Promise<ProfilGreffonNatif[]> {
@@ -6216,6 +6336,13 @@ export async function getStreamingArtistAlbumsAll(
 
 export function getStreamingFeaturedSections(service: string) {
   return fetchJSON<FeaturedSection[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/sections`);
+}
+
+/** tune-server-rust#7822 — les mixes personnels du compte (TIDAL : My Daily
+ *  Discovery, My Mix 1 à 8…), lisibles comme des playlists de service.
+ *  `sansBandeau` : la rangée s'efface d'elle-même si la route échoue. */
+export function getStreamingMixes(service: string) {
+  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/mixes`, undefined, undefined, true);
 }
 
 /**
