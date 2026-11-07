@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
 
@@ -19,6 +20,16 @@
   function stopPolling() {
     polling = false;
   }
+
+  // tune-server-rust#8060 — fermée pendant l'attente du code (croix, clic
+  // hors du panneau, ou le parent qui la retire), la fenêtre l'annule côté
+  // serveur : sinon la sortie refuse la lecture jusqu'à l'expiration.
+  onDestroy(() => {
+    stopPolling();
+    if (phase === 'starting' || phase === 'waiting_pin' || phase === 'pin_entry') {
+      api.cancelAirplayPairing(deviceId).catch(() => {});
+    }
+  });
 
   // Poll the server pairing status until it leaves the transient states.
   async function pollStatus() {
