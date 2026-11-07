@@ -395,7 +395,10 @@
       const style = getComputedStyle(h);
       const c = style.getPropertyValue('--v2-txt3').trim();
       // Le fond de la scène reste sombre dans les thèmes clairs : repli sur sa couleur claire.
-      if (c) m.majCouleurs({ frontiere: couleurFrontiere(c, style.getPropertyValue('--sc-txt2').trim() || '#9fb0b6') });
+      const repli = style.getPropertyValue('--sc-txt2').trim() || '#9fb0b6';
+      // Les côtes (web#2697) : le jeton secondaire du thème, plus léger que celui des frontières.
+      const c2 = style.getPropertyValue('--v2-txt2').trim();
+      if (c) m.majCouleurs({ frontiere: couleurFrontiere(c, repli), ...(c2 ? { cote: couleurFrontiere(c2, repli) } : {}) });
     };
     appliquer();
     if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') return;
@@ -824,14 +827,16 @@
           <p>{$t('v2.circle.scene.world.empty' as any)}</p>
           {#if relais === 'ok'}<button type="button" class="go sc-poser" onclick={() => ouvrirPose()}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
         </div>
-      {:else if vue === 'monde' && !poseOuverte}
-        <p class="sc-astuce">{#if pointsPublics.length}<span class="sc-legende-publique">{$t('v2.circle.scene.world.publicLegend' as any)}</span> {/if}{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)} <span class="sc-astuce-zoom">{$t('v2.circle.scene.zoom.hint' as any)}</span></p>
       {:else if vue === 'genres' && grappes.length === 0}
         <p class="sc-vide">{$t('v2.circle.scene.genres.empty' as any)}</p>
       {:else if vue === 'lien' && contacts.length === 0}
         <p class="sc-vide">{$t('v2.circle.scene.link.empty' as any)}</p>
       {/if}
     </div>
+    {#if vue === 'monde' && !poseOuverte && !(epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles)}
+      <!-- web#2697 : l'aide passe SOUS le globe, plus par-dessus son bas. -->
+      <p class="sc-astuce sc-astuce-sous">{#if pointsPublics.length}<span class="sc-legende-publique">{$t('v2.circle.scene.world.publicLegend' as any)}</span> {/if}{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)} <span class="sc-astuce-zoom">{$t('v2.circle.scene.zoom.hint' as any)}</span></p>
+    {/if}
   {:else}
     <div class="sc-liste-bloc">
       <h3>{$t(CLE_VUE[vue] as any)}</h3>
@@ -1039,6 +1044,8 @@
     background:rgba(15,24,28,.82); padding:14px 16px; border-radius:12px}
   .sc-vide p{margin:0}
   .sc-astuce{bottom:10px}
+  /* web#2697 : sous le globe, dans le flux (la scène a overflow:hidden et le canevas la remplit). */
+  .sc-astuce.sc-astuce-sous{position:static; transform:none; margin:8px auto 0; max-width:min(440px, 100%)}
   /* Zoom du globe (web#2521) : en haut à droite, au-dessus des épingles. */
   .sc-zoom{position:absolute; top:10px; right:10px; display:flex; flex-direction:column; gap:4px; z-index:2}
   .sc-zoom-btn{width:34px; height:34px; display:grid; place-items:center; padding:0; border-radius:10px; cursor:pointer;

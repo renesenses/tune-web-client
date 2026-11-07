@@ -24,7 +24,7 @@ import { boucleImages } from '../boucleImages';
 import { parBudget, type Budget } from './budget';
 import { deprojeter, pointArc, projeter, vecteur, decoderPointsTerre, decoderFrontieres, parcourirPolyligne, paysSous, DEG, type Orientation } from './globe';
 import { POINTS_TERRE } from './pointsTerre';
-import { FRONTIERES_TERRE } from './frontieresTerre';
+import { COTES_TERRE, FRONTIERES_TERRE } from './frontieresTerre';
 import {
   bornerInclinaison, bornerZoom, dansLaScene, garderSous, rayonGlobe, vitesseGlisse, vueEntiere,
   zoomIntermediaire, zoomMolette, zoomPincement, opaciteFrontieres, DUREE_ZOOM_MS, PAS_DOUBLE, ZOOM_MIN,
@@ -74,10 +74,10 @@ export interface OptionsChamp {
   surPays?: (p: { code: string; x: number; y: number } | null) => void;
 }
 
-export interface Couleurs { or: string; orClair: string; vert: string; vertClair: string; fil: string; fond: string; public: string; frontiere: string }
+export interface Couleurs { or: string; orClair: string; vert: string; vertClair: string; fil: string; fond: string; public: string; frontiere: string; cote: string }
 /** `public` (rc9) : les points anonymes de la carte publique, gris bleuté, en retrait de l'or du cercle. */
 /** `frontiere` (web#2657) : les frontières des pays au zoom ; l'écran la lit dans le thème. */
-const COULEURS: Couleurs = { or: '#deb268', orClair: '#f3cf86', vert: '#4cc79d', vertClair: '#7fe0bd', fil: '#9fb0b6', fond: 'rgba(15,24,28,.92)', public: '#a9c4cf', frontiere: '#9fb0b6' };
+const COULEURS: Couleurs = { or: '#deb268', orClair: '#f3cf86', vert: '#4cc79d', vertClair: '#7fe0bd', fil: '#9fb0b6', fond: 'rgba(15,24,28,.92)', public: '#a9c4cf', frontiere: '#9fb0b6', cote: '#8396a0' };
 /** Appui long au toucher qui montre le nom du pays (web#2657). */
 const APPUI_LONG_MS = 500;
 
@@ -154,6 +154,7 @@ export class ChampCercle {
   private terrePhase: Float32Array;
   /** Les frontières (web#2657), décodées au premier passage du seuil de zoom seulement. */
   private frontieres: Float32Array[] | null = null;
+  private cotes: Float32Array[] | null = null;
   /** Le pays annoncé à l'écran (`surPays`), pour ne le redire qu'au changement. */
   private paysAnnonce: string | null = null;
   private appuiLong: ReturnType<typeof setTimeout> | null = null;
@@ -518,13 +519,21 @@ export class ChampCercle {
     const opFrontieres = opaciteFrontieres(this.zoom);
     if (opFrontieres > 0) {
       this.frontieres ??= decoderFrontieres(FRONTIERES_TERRE);
-      ctx.strokeStyle = this.c.frontiere; ctx.lineWidth = 0.8;
+      this.cotes ??= decoderFrontieres(COTES_TERRE);
       const [joint, bout] = [ctx.lineJoin, ctx.lineCap];
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-      ctx.globalAlpha = a * 0.75 * opFrontieres;
-      ctx.beginPath();
       const debut = (x: number, y: number) => ctx.moveTo(x, y);
       const suite = (x: number, y: number) => ctx.lineTo(x, y);
+      // web#2697 : les côtes, même fondu et même découpe au limbe, d'un trait
+      // plus fin et plus léger ; les points de terre s'estompent au zoom.
+      ctx.strokeStyle = this.c.cote; ctx.lineWidth = 0.6;
+      ctx.globalAlpha = a * 0.6 * opFrontieres;
+      ctx.beginPath();
+      for (const poly of this.cotes) parcourirPolyligne(poly, R, cx, cy, this.G, debut, suite);
+      ctx.stroke();
+      ctx.strokeStyle = this.c.frontiere; ctx.lineWidth = 0.8;
+      ctx.globalAlpha = a * 0.75 * opFrontieres;
+      ctx.beginPath();
       for (const poly of this.frontieres) parcourirPolyligne(poly, R, cx, cy, this.G, debut, suite);
       ctx.stroke();
       ctx.lineJoin = joint; ctx.lineCap = bout;
