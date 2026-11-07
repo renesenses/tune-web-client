@@ -4526,6 +4526,8 @@ export default {
   "v2.lib.map.less": "Weniger",
   "v2.lib.map.more": "Mehr",
   "v2.lib.map.list": "Länderliste",
+  "v2.lib.map.enlarge": "Enlarge the map",
+  "v2.lib.map.shrink": "Shrink the map",
   "v2.lib.map.globe": "Länderglobus: ziehen oder mit den Pfeiltasten drehen, auf ein Land klicken, um zu filtern.",
   "v2.lib.map.clear": "Länderfilter entfernen",
   "v2.lib.map.filterError": "Die Alben dieses Landes konnten nicht geladen werden.",

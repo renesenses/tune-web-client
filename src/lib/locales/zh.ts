@@ -4526,6 +4526,8 @@ export default {
   "v2.lib.map.less": "较少",
   "v2.lib.map.more": "较多",
   "v2.lib.map.list": "国家列表",
+  "v2.lib.map.enlarge": "Enlarge the map",
+  "v2.lib.map.shrink": "Shrink the map",
   "v2.lib.map.globe": "国家地球仪：拖动或使用方向键旋转，点击某个国家进行筛选。",
   "v2.lib.map.clear": "移除国家筛选",
   "v2.lib.map.filterError": "无法加载该国家的专辑。",

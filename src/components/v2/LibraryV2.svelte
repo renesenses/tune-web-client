@@ -4273,11 +4273,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /* Rail A-Z : c'est un REPERE, il doit se lire d'un coup d'oeil et se viser
      au doigt. Auparavant 11 px colles a 1 px d'intervalle contre la grille —
      illisible et impossible a cliquer juste. */
-  .rail{display:flex; flex-direction:column; justify-content:center; gap:2px;
+  .rail{display:flex; flex-direction:column; justify-content:safe center; gap:2px;
+    min-height:0; overflow-y:auto; scrollbar-width:none;
     padding:10px 12px 10px 4px; margin-right:6px; position:sticky; top:0;
     border-right:1px solid var(--v2-line)}
   /* Couché : il se déroule en ligne, se pose sur un filet horizontal, et perd
      son adhérence verticale — `sticky` n'a plus de sens sur une seule ligne. */
+  /* #2691 — carte des pays agrandie : le rail se masque, il ne déborde plus dessus. */
+  :global(.v2-lib:has([data-carte-mode='grande'])) .rail{display:none}
   .rail.couche{flex-direction:row; position:static; margin:6px 0 0; padding:6px 12px;
     overflow-x:auto; scrollbar-width:none;
     border-right:0; border-top:1px solid var(--v2-line)}

@@ -4400,6 +4400,8 @@ export default {
   "v2.lib.map.less": "Færre",
   "v2.lib.map.more": "Flere",
   "v2.lib.map.list": "Liste over land",
+  "v2.lib.map.enlarge": "Enlarge the map",
+  "v2.lib.map.shrink": "Shrink the map",
   "v2.lib.map.globe": "Landglobus: dra den eller bruk piltastene for å snu den, klikk på et land for å filtrere.",
   "v2.lib.map.clear": "Fjern landfilteret",
   "v2.lib.map.filterError": "Albumene fra dette landet kunne ikke lastes inn.",

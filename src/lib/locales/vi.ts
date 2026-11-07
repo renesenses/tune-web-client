@@ -4402,6 +4402,8 @@ export default {
   "v2.lib.map.less": "Ít hơn",
   "v2.lib.map.more": "Nhiều hơn",
   "v2.lib.map.list": "Danh sách quốc gia",
+  "v2.lib.map.enlarge": "Enlarge the map",
+  "v2.lib.map.shrink": "Shrink the map",
   "v2.lib.map.globe": "Quả địa cầu quốc gia: kéo hoặc dùng phím mũi tên để xoay, nhấp vào một quốc gia để lọc.",
   "v2.lib.map.clear": "Bỏ bộ lọc quốc gia",
   "v2.lib.map.filterError": "Không thể tải các album của quốc gia này.",

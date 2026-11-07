@@ -4526,6 +4526,8 @@ export default {
   "v2.lib.map.less": "少ない",
   "v2.lib.map.more": "多い",
   "v2.lib.map.list": "国の一覧",
+  "v2.lib.map.enlarge": "Enlarge the map",
+  "v2.lib.map.shrink": "Shrink the map",
   "v2.lib.map.globe": "国の地球儀：ドラッグまたは矢印キーで回転し、国をクリックして絞り込みます。",
   "v2.lib.map.clear": "国の絞り込みを解除",
   "v2.lib.map.filterError": "この国のアルバムを読み込めませんでした。",
