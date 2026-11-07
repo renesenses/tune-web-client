@@ -2686,6 +2686,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * derrière une fiche ouverte filtrerait une grille invisible.
    */
   let champRecherche = $state<HTMLInputElement | null>(null);
+  /** tune-server-rust#7872 — le panneau de la requête avancée. */
+  let requeteOuverte = $state(false);
   $effect(() => {
     if (depot) return;
     const surFrappe = gestionnaireFrappeVersRecherche({
@@ -3203,6 +3205,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           </button>
         {/if}
       </div>
+      <!-- tune-server-rust#7872 — la requête avancée (`composer:… year:…`),
+           sur la bibliothèque LOCALE seulement : un dépôt distant n'a pas la
+           route. Elle part du texte déjà tapé. -->
+      {#if !depot}
+        <button class="req-av" data-requete-avancee-bib onclick={() => (requeteOuverte = true)}
+          aria-label={$tr('requeteAvancee.open' as any)} title={$tr('requeteAvancee.open' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        </button>
+      {/if}
     {/if}
 
     <!-- 🔴 Le TRI part sur les Ajouts récents, la BASCULE reste.
@@ -4029,6 +4041,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
          ouverture de la Bibliothèque. -->
     <SuggestionsIaLotV2 albumIds={lotIa} onClose={() => (lotIa = null)} onChange={() => {}} />
   {/if}
+  {#if requeteOuverte}
+    {#await import('./RequeteBibliothequeV2.svelte') then m}
+      <m.default initiale={q} onClose={() => (requeteOuverte = false)} />
+    {/await}
+  {/if}
 </section>
 
 <style>
@@ -4204,6 +4221,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); display:grid; place-items:center}
   .viewtog:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .viewtog svg{width:16px; height:16px}
+  /* tune-server-rust#7872 — même dessin que la bascule, classe à part : les
+     bancs de l'onglet Labels visent `.viewtog`. */
+  .req-av{width:38px; height:38px; flex:0 0 auto; border-radius:10px; cursor:pointer;
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); display:grid; place-items:center}
+  .req-av:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .req-av svg{width:16px; height:16px}
   /* web#1719 — les pastilles sont parties avec le bouton, dans
      `BasculeAffichage.svelte`. Ce qui reste de `.viewtog` ici ne sert plus
      qu'au re-tirage (#4558), qui en emprunte la taille et le cadre. */
