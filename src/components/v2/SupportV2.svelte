@@ -33,6 +33,7 @@
   import { currentVersion } from '../../lib/stores/updates';
   import { copyText } from '../../lib/utils';
 import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brouillonSupport';
+  import { ACCEPT_RAPPORT_BOGUE, familleDePiece, refusPiecesRapport } from '../../lib/piecesRapportBogue';
   import { modeleSysteme, mermaidSysteme, planSysteme } from '../../lib/schemaSysteme';
   import { sonder, valeurDe, libelleEchec, espaceLibre, type IssueSonde } from '../../lib/sondesDiagnostic';
   import '../../styles/tune-v2.css';
@@ -148,10 +149,10 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   let bogueImagesErreur = $state<string | null>(null);
   /** Captures que le forum dit avoir rangées, une fois l'envoi accepté. */
   let bogueCaptures = $state<number | null>(null);
+  /** #7920 — journaux que le site dit avoir rangés, s'il en rend le compte. */
+  let bogueJournaux = $state<number | null>(null);
   /** Le fil est parti, mais le forum n'a pas confirmé toutes les captures. */
   let bogueCapturesPerdues = $state(false);
-
-  const TYPES_IMAGE = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
 
   /**
    * Trie ce que le testeur a choisi et REFUSE avec une phrase.
@@ -168,24 +169,10 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
     const fichiers = cumulerFichiers(bogueImages, liste);
     bogueImagesErreur = null;
 
-    if (fichiers.length > api.BUG_REPORT_MAX_IMAGES) {
-      bogueImagesErreur = tr1('v2.sup.bugImagesTooMany', { max: api.BUG_REPORT_MAX_IMAGES });
-      return;
-    }
-    const mauvaisType = fichiers.find((f) => {
-      const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
-      return !TYPES_IMAGE.includes(ext);
-    });
-    if (mauvaisType) {
-      bogueImagesErreur = tr1('v2.sup.bugImagesType', { nom: mauvaisType.name });
-      return;
-    }
-    const tropLourd = fichiers.find((f) => f.size > api.BUG_REPORT_MAX_IMAGE_BYTES);
-    if (tropLourd) {
-      bogueImagesErreur = tr1('v2.sup.bugImagesTooLarge', {
-        nom: tropLourd.name,
-        max: Math.round(api.BUG_REPORT_MAX_IMAGE_BYTES / (1024 * 1024)),
-      });
+    // #7920 — captures ET journaux, chacun avec ses bornes.
+    const refus = refusPiecesRapport(fichiers);
+    if (refus) {
+      bogueImagesErreur = tr1(refus.cle, refus.params);
       return;
     }
     bogueImages = fichiers;
@@ -232,7 +219,14 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
       // pas. Le testeur croirait sa capture partie : exactement le défaut que
       // #4564 corrige, par une autre porte. On compare donc ce qu'on a envoyé
       // à ce que le forum CONFIRME, et on le dit.
-      bogueCapturesPerdues = bogueImages.length > 0 && (bogueCaptures ?? 0) < bogueImages.length;
+      // #7920 — les journaux partent sous `attachments[]` : on ne compare aux
+      // captures confirmées que les images, et aux journaux confirmés (quand
+      // le site en rend le compte) que les journaux.
+      const nbImages = bogueImages.filter((f) => familleDePiece(f.name) === 'image').length;
+      const nbJournaux = bogueImages.length - nbImages;
+      bogueJournaux = typeof r?.attachments === 'number' ? r.attachments : null;
+      bogueCapturesPerdues = (nbImages > 0 && (bogueCaptures ?? 0) < nbImages)
+        || (nbJournaux > 0 && bogueJournaux !== null && bogueJournaux < nbJournaux);
       bogueEnvoye = true;
       // Envoi ACCEPTÉ : le brouillon a rempli son office (web#2190).
       effacerBrouillon('bogueDesc');
@@ -258,7 +252,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
     bogueDesc = ''; bogueApercu = null; bogueApercuEchec = false;
     resumeIa = null; joindreResumeIa = false;
     bogueEnvoye = false; bogueFil = ''; bogueErreur = null; bogueDetail = '';
-    bogueImages = []; bogueImagesErreur = null; bogueCaptures = null;
+    bogueImages = []; bogueImagesErreur = null; bogueCaptures = null; bogueJournaux = null;
     bogueCapturesPerdues = false;
   }
 
@@ -593,6 +587,9 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
             {#if bogueCaptures !== null && bogueCaptures > 0}
               <p class="sub">{tr1('v2.sup.bugImagesSent', { n: bogueCaptures })}</p>
             {/if}
+            {#if bogueJournaux !== null && bogueJournaux > 0}
+              <p class="sub">{tr1('v2.sup.bugLogsSent', { n: bogueJournaux })}</p>
+            {/if}
             {#if bogueCapturesPerdues}
               <p class="bogue-err">{$t('v2.sup.bugImagesNotAttached' as any)}</p>
             {/if}
@@ -617,7 +614,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
                produit la phrase du testeur (« l'ajout de fichier a disparu »). -->
           <label class="champ">
             <span>{$t('v2.sup.bugImages' as any)}</span>
-            <input type="file" multiple accept="image/png,image/jpeg,image/gif,image/webp"
+            <input type="file" multiple accept={ACCEPT_RAPPORT_BOGUE}
               disabled={bogueEnvoi}
               onchange={(e) => {
                 const champ = e.currentTarget as HTMLInputElement;

@@ -10,6 +10,7 @@ import { get } from 'svelte/store';
 import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
 import type { ApercuFavorisRadio } from './favorisRadioQobuz';
+import { familleDePiece } from './piecesRapportBogue';
 import { profileHeader } from './profileHeader';
 import { corpsJson, fusionnerEntetes } from './fusionEntetes';
 import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
@@ -10376,19 +10377,26 @@ export interface BugReportEnvoye {
   /** Captures que le FORUM dit avoir rangées. `null`/absent sur un service
    *  antérieur à #4564 : on n'invente alors aucun chiffre. */
   images?: number | null;
+  /** #7920 — journaux que le site dit avoir rangés, s'il en rend le compte. */
+  attachments?: number | null;
 }
 
 /**
- * Bornes des captures, alignées sur celles du serveur
- * (`BUG_REPORT_MAX_IMAGES`, `BUG_REPORT_MAX_IMAGE_BYTES`) et, au bout de la
- * chaîne, sur celles du forum. Exportées pour que l'écran REFUSE avec la même
+ * Bornes des captures et des journaux, alignées sur celles du serveur
+ * (`BUG_REPORT_MAX_*`) et, au bout de la chaîne, sur celles du forum. Elles
+ * vivent dans `piecesRapportBogue.ts`, où l'écran les applique avec la même
  * règle au lieu d'en écrire une seconde, qui divergerait.
  */
-export const BUG_REPORT_MAX_IMAGES = 3;
-export const BUG_REPORT_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+export {
+  BUG_REPORT_MAX_IMAGES,
+  BUG_REPORT_MAX_IMAGE_BYTES,
+  BUG_REPORT_MAX_ATTACHMENTS,
+  BUG_REPORT_MAX_ATTACHMENT_BYTES,
+} from './piecesRapportBogue';
 
 export async function submitBugReport(
   description: string,
+  /** Captures et journaux (#7920) : chacun part sous son champ. */
   images: File[] = [],
   /** Le résumé du diagnostic de l'assistant : joint SEULEMENT si `joindre`. */
   resumeIa: { texte: string | null; joindre: boolean } = { texte: null, joindre: false },
@@ -10410,7 +10418,11 @@ export async function submitBugReport(
   const form = new FormData();
   form.append('description', description.trim());
   if (joindre) { form.append('resume_ia', resumeIa.texte!.trim()); form.append('joindre_resume_ia', 'true'); }
-  for (const f of images) form.append('images[]', f, f.name);
+  // #7920 — les journaux sous `attachments[]`, les images sous `images[]`.
+  for (const f of images) {
+    const champ = familleDePiece(f.name) === 'journal' ? 'attachments[]' : 'images[]';
+    form.append(champ, f, f.name);
+  }
 
   const token = getToken();
   const headers: Record<string, string> = {
