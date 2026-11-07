@@ -4668,6 +4668,13 @@ export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs>
   return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
 }
 
+/** `GET /audio-plugins/` pour le panneau « État des greffons » : SANS bandeau,
+ *  l'appelant masque le panneau sur tout échec (403 compris). */
+export async function getEtatGreffonsSansBandeau(): Promise<EtatGreffonsAudioNatifs> {
+  const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins/`, undefined, undefined, true);
+  return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
+}
+
 /** La version installée d'un greffon natif tiers, lue SANS bandeau : la
  *  liste est réservée à l'administrateur, et un paquet posé à la main n'a pas
  *  de version. `null` quand on ne peut pas la savoir. */
