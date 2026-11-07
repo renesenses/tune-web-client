@@ -6749,6 +6749,7 @@ export default {
   "upsampling.filter.resolution": "해상도 (넓은 전이 대역, 선형 위상)",
   "upsampling.filter.resolution-pm": "해상도, 최소 위상",
   "licenseFeature.upsampling": "업샘플링",
+  "upsampling.ditherValue": "TPDF",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

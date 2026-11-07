@@ -138,7 +138,7 @@
 
         <div class="row">
           <div class="lbl"><span>{$t('upsampling.dither' as any)}</span><span class="hint">{$t('upsampling.ditherHint' as any)}</span></div>
-          <span class="val">TPDF</span>
+          <span class="val">{$t('upsampling.ditherValue' as any)}</span>
         </div>
 
         <div class="row">

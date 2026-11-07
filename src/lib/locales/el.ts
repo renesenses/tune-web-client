@@ -6594,5 +6594,6 @@ export default {
   "upsampling.filter.resolution": "Ανάλυση (εκτεταμένη μετάβαση, γραμμική φάση)",
   "upsampling.filter.resolution-pm": "Ανάλυση, ελάχιστη φάση",
   "licenseFeature.upsampling": "Υπερδειγματοληψία",
+  "upsampling.ditherValue": "TPDF",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

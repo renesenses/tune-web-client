@@ -6749,6 +6749,7 @@ export default {
   "upsampling.filter.resolution": "レゾリューション（広い遷移帯、直線位相）",
   "upsampling.filter.resolution-pm": "レゾリューション、最小位相",
   "licenseFeature.upsampling": "アップサンプリング",
+  "upsampling.ditherValue": "TPDF",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

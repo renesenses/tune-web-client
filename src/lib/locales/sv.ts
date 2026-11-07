@@ -6748,4 +6748,5 @@ export default {
   "upsampling.filter.resolution": "Upplösning (utökad övergång, linjär fas)",
   "upsampling.filter.resolution-pm": "Upplösning, minimifas",
   "licenseFeature.upsampling": "Uppsampling",
+  "upsampling.ditherValue": "TPDF",
 } as const;

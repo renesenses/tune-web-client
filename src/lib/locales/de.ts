@@ -6749,6 +6749,7 @@ export default {
   "upsampling.filter.resolution": "Auflösung (erweiterter Übergang, linearphasig)",
   "upsampling.filter.resolution-pm": "Auflösung, minimalphasig",
   "licenseFeature.upsampling": "Upsampling",
+  "upsampling.ditherValue": "TPDF",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

@@ -6594,5 +6594,6 @@ export default {
   "upsampling.filter.resolution": "Rozdzielczość (rozszerzone pasmo przejściowe, faza liniowa)",
   "upsampling.filter.resolution-pm": "Rozdzielczość, faza minimalna",
   "licenseFeature.upsampling": "Nadpróbkowanie",
+  "upsampling.ditherValue": "TPDF",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

@@ -6594,5 +6594,6 @@ export default {
   "upsampling.filter.resolution": "Oppløsning (utvidet overgang, lineær fase)",
   "upsampling.filter.resolution-pm": "Oppløsning, minimumsfase",
   "licenseFeature.upsampling": "Oppsampling",
+  "upsampling.ditherValue": "TPDF",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

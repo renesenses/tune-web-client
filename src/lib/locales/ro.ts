@@ -6749,6 +6749,7 @@ export default {
   "upsampling.filter.resolution": "Rezoluție (tranziție extinsă, fază liniară)",
   "upsampling.filter.resolution-pm": "Rezoluție, fază minimă",
   "licenseFeature.upsampling": "Supraeșantionare",
+  "upsampling.ditherValue": "TPDF",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -6749,6 +6749,7 @@ export default {
   "upsampling.filter.resolution": "分辨率（宽过渡带，线性相位）",
   "upsampling.filter.resolution-pm": "分辨率，最小相位",
   "licenseFeature.upsampling": "升频",
+  "upsampling.ditherValue": "TPDF",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -6708,6 +6708,7 @@ export default {
   "upsampling.filter.resolution": "Felbontás (kiterjesztett átmenet, lineáris fázis)",
   "upsampling.filter.resolution-pm": "Felbontás, minimálfázis",
   "licenseFeature.upsampling": "Felülmintavételezés",
+  "upsampling.ditherValue": "TPDF",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

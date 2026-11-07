@@ -6601,5 +6601,6 @@ export default {
   "upsampling.filter.resolution": "Độ phân giải (chuyển tiếp rộng, pha tuyến tính)",
   "upsampling.filter.resolution-pm": "Độ phân giải, pha tối thiểu",
   "licenseFeature.upsampling": "Tăng tần số lấy mẫu",
+  "upsampling.ditherValue": "TPDF",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];
