@@ -36,6 +36,7 @@
   import StreamingV2 from './StreamingV2.svelte';
   import CrossfeedV2 from './CrossfeedV2.svelte';
   import ReaffectationCanauxV2 from './ReaffectationCanauxV2.svelte';
+  import SurechantillonnageV2 from './SurechantillonnageV2.svelte';
   import CrossfeedProV2 from './CrossfeedProV2.svelte';
   import CrosstalkV2 from './CrosstalkV2.svelte';
   import CorrectionPieceV2 from './CorrectionPieceV2.svelte';
@@ -312,7 +313,7 @@
     mediaservers: 'nav.mediaservers', history: 'nav.history', oxygen: 'v2.nav.oxygen',
     bannedtracks: 'ban.title', ecouterplustard: 'v2.nav.later',
     ambiance: 'nav.ambiance', browse: 'nav.browse', equalizer: 'nav.equalizer',
-    crossfeed: 'v2.nav.crossfeed', crossfeedpro: 'v2.nav.crossfeedPro', crosstalk: 'v2.nav.crosstalk', roomcorrection: 'v2.zone.roomCorrection', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
+    crossfeed: 'v2.nav.crossfeed', crossfeedpro: 'v2.nav.crossfeedPro', crosstalk: 'v2.nav.crosstalk', roomcorrection: 'v2.zone.roomCorrection', surechantillonnage: 'upsampling.title', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
     alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', lecturecd: 'v2.cd.title', circle: 'v2.circle.title', collectionphysique: 'collectionPhysique.titre', statsbibliotheque: 'statsBibliotheque.titre', source: 'v2.sources.title', diagnostics: 'v2.nav.processing',
     settings: 'v2.nav.settings', support: 'v2.nav.support', genres: 'nav.genres',
     smartplaylists: 'v2.pl.tabSmart', playlistmanager: 'playlist.manager',
@@ -888,6 +889,8 @@
         <CorrectionPieceV2 />
       {:else if $activeView === 'reaffectation'}
         <ReaffectationCanauxV2 />
+      {:else if $activeView === 'surechantillonnage'}
+        <SurechantillonnageV2 />
       {:else if $activeView === 'equalizer'}
         <EqualizerV2 />
       {:else if $activeView === 'diagnostics'}

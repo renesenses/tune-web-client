@@ -42,7 +42,7 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import { notifications } from '../../lib/stores/notifications';
   import '../../styles/tune-v2.css';
 
-  const DSP_PURE = new Set(['equalizer', 'crossfeed', 'converter', 'declick', 'channel-remap']);
+  const DSP_PURE = new Set(['equalizer', 'crossfeed', 'converter', 'declick', 'channel-remap', 'upsampler']);
 
   let plugins = $state<MergedPlugin[]>([]);
   let loading = $state(true);
@@ -377,6 +377,11 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
                      l'égaliseur : ses réglages s'ouvrent depuis sa carte. -->
                 {#if p.name === 'channel-remap' && isActive(p)}
                   <button class="lnk ouvrir-reaffectation" onclick={() => activeView.set('reaffectation')}>{$t('v2.plug.nativeSettings' as any)}</button>
+                {/if}
+                <!-- tune-server-rust#7614 — greffon payant et facultatif : ses
+                     réglages par zone s'ouvrent depuis sa carte. -->
+                {#if p.name === 'upsampler' && isActive(p)}
+                  <button class="lnk ouvrir-surechantillonnage" onclick={() => activeView.set('surechantillonnage')}>{$t('v2.plug.nativeSettings' as any)}</button>
                 {/if}
                 {#if p.name === 'circle' && isActive(p)}
                   <button class="lnk ouvrir-circle" onclick={() => activeView.set('circle')}>{$t('common.open' as any)}</button>
