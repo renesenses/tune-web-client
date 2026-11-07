@@ -87,6 +87,8 @@
     onChampsDuFichier?: () => void;
     /** « Voir les crédits » (#1572). Omis : l'entrée est absente. */
     onVoirCredits?: () => void;
+    /** #7857 — le panneau « Spectrogramme » (bibliothèque seule). */
+    onSpectrogramme?: () => void;
     /**
      * « Écouter plus tard » (web#1653) — le sas d'écoute.
      *
@@ -114,6 +116,7 @@
     onUnban,
     onChampsDuFichier,
     onVoirCredits,
+    onSpectrogramme,
     onEcouterPlusTard,
     capacites = { jouable: true, idBibliotheque: 1, artistId: 1, albumId: 1 },
   }: Props = $props();
@@ -133,6 +136,7 @@
       debannir: onUnban,
       champsDuFichier: onChampsDuFichier,
       voirCredits: onVoirCredits,
+      spectrogramme: onSpectrogramme,
     }),
   );
   /**
