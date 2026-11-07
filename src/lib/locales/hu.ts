@@ -6820,6 +6820,7 @@ export default {
   "v2.room.pluginInstall": "A kalibrációs bővítmény nincs telepítve ezen a szerveren.",
   "v2.room.pluginRestart": "A kalibrációs bővítmény telepítve van, de még nincs betöltve: indítsa újra a Tune szervert.",
   "v2.room.premium": "A helyiségkorrekció a Tune Premium része: a képernyő látható marad, de a számításhoz és az alkalmazáshoz Premium licenc kell.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "Korrekció {lo}–{hi} Hz: csúcs {before} dB → {after} dB",
   "v2.room.proposalTitle": "Javasolt korrekció",
   "v2.room.qualDamped": "Csillapított (berendezett)",

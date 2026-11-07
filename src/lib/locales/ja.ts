@@ -6861,6 +6861,7 @@ export default {
   "v2.room.pluginInstall": "このサーバーにはキャリブレーションプラグインがインストールされていません。",
   "v2.room.pluginRestart": "キャリブレーションプラグインはインストール済みですが、まだ読み込まれていません：Tune サーバーを再起動してください。",
   "v2.room.premium": "ルーム補正は Tune Premium の機能です：画面は表示されますが、計算と適用には Premium ライセンスが必要です。",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "補正 {lo}〜{hi} Hz：ピーク {before} dB → {after} dB",
   "v2.room.proposalTitle": "補正の提案",
   "v2.room.qualDamped": "吸音あり（家具あり）",

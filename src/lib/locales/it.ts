@@ -6861,6 +6861,7 @@ export default {
   "v2.room.pluginInstall": "Il plugin di calibrazione non è installato su questo server.",
   "v2.room.pluginRestart": "Il plugin di calibrazione è installato ma non ancora caricato: riavvia il server Tune.",
   "v2.room.premium": "La correzione ambientale fa parte di Tune Premium: la schermata resta visibile, ma calcoli e applicazione richiedono una licenza Premium.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "Correzione da {lo} a {hi} Hz: picco {before} dB → {after} dB",
   "v2.room.proposalTitle": "Correzione proposta",
   "v2.room.qualDamped": "Smorzata (arredata)",

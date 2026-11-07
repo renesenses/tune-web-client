@@ -6861,6 +6861,7 @@ export default {
   "v2.room.pluginInstall": "El complemento de calibración no está instalado en este servidor.",
   "v2.room.pluginRestart": "El complemento de calibración está instalado pero aún no se ha cargado: reinicie el servidor Tune.",
   "v2.room.premium": "La corrección de sala forma parte de Tune Premium: la pantalla sigue visible, pero los cálculos y la aplicación requieren una licencia Premium.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "Corrección de {lo} a {hi} Hz: pico {before} dB → {after} dB",
   "v2.room.proposalTitle": "Corrección propuesta",
   "v2.room.qualDamped": "Amortiguada (amueblada)",

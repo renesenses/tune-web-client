@@ -6713,6 +6713,7 @@ export default {
   "v2.room.pluginInstall": "Tiện ích hiệu chuẩn chưa được cài trên máy chủ này.",
   "v2.room.pluginRestart": "Tiện ích hiệu chuẩn đã cài nhưng chưa được nạp: hãy khởi động lại máy chủ Tune.",
   "v2.room.premium": "Hiệu chỉnh phòng thuộc Tune Premium: màn hình vẫn hiển thị, nhưng tính toán và áp dụng cần giấy phép Premium.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "Hiệu chỉnh từ {lo} đến {hi} Hz: đỉnh {before} dB → {after} dB",
   "v2.room.proposalTitle": "Hiệu chỉnh đề xuất",
   "v2.room.qualDamped": "Giảm âm (có đồ đạc)",

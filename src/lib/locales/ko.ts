@@ -6861,6 +6861,7 @@ export default {
   "v2.room.pluginInstall": "이 서버에 보정 플러그인이 설치되어 있지 않습니다.",
   "v2.room.pluginRestart": "보정 플러그인이 설치되었지만 아직 로드되지 않았습니다: Tune 서버를 다시 시작하세요.",
   "v2.room.premium": "룸 보정은 Tune Premium 기능입니다: 화면은 보이지만 계산과 적용에는 Premium 라이선스가 필요합니다.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "보정 {lo}~{hi} Hz: 피크 {before} dB → {after} dB",
   "v2.room.proposalTitle": "제안 보정",
   "v2.room.qualDamped": "감쇠됨 (가구 있음)",

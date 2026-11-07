@@ -6706,6 +6706,7 @@ export default {
   "v2.room.pluginInstall": "Wtyczka kalibracji nie jest zainstalowana na tym serwerze.",
   "v2.room.pluginRestart": "Wtyczka kalibracji jest zainstalowana, ale jeszcze nie załadowana: uruchom ponownie serwer Tune.",
   "v2.room.premium": "Korekcja pomieszczenia jest częścią Tune Premium: ekran pozostaje widoczny, ale obliczenia i zastosowanie wymagają licencji Premium.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "Korekcja od {lo} do {hi} Hz: szczyt {before} dB → {after} dB",
   "v2.room.proposalTitle": "Proponowana korekcja",
   "v2.room.qualDamped": "Wytłumiona (umeblowana)",

@@ -6860,6 +6860,7 @@ export default {
   "v2.room.pluginInstall": "Kalibreringstillägget är inte installerat på den här servern.",
   "v2.room.pluginRestart": "Kalibreringstillägget är installerat men inte inläst än: starta om Tune-servern.",
   "v2.room.premium": "Rumskorrigering ingår i Tune Premium: vyn syns fortfarande, men beräkningar och tillämpning kräver en Premium-licens.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "Korrigering från {lo} till {hi} Hz: topp {before} dB → {after} dB",
   "v2.room.proposalTitle": "Föreslagen korrigering",
   "v2.room.qualDamped": "Dämpad (möblerad)",

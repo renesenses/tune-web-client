@@ -6861,6 +6861,7 @@ export default {
   "v2.room.pluginInstall": "Pluginul de calibrare nu este instalat pe acest server.",
   "v2.room.pluginRestart": "Pluginul de calibrare este instalat, dar încă nu este încărcat: reporniți serverul Tune.",
   "v2.room.premium": "Corecția de cameră face parte din Tune Premium: ecranul rămâne vizibil, dar calculele și aplicarea necesită o licență Premium.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "Corecție de la {lo} la {hi} Hz: vârf {before} dB → {after} dB",
   "v2.room.proposalTitle": "Corecție propusă",
   "v2.room.qualDamped": "Amortizată (mobilată)",

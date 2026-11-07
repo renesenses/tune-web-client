@@ -6861,6 +6861,7 @@ export default {
   "v2.room.pluginInstall": "Das Kalibrierungs-Plugin ist auf diesem Server nicht installiert.",
   "v2.room.pluginRestart": "Das Kalibrierungs-Plugin ist installiert, aber noch nicht geladen: Starten Sie den Tune-Server neu.",
   "v2.room.premium": "Die Raumkorrektur gehört zu Tune Premium: Die Ansicht bleibt sichtbar, Berechnungen und Anwenden erfordern aber eine Premium-Lizenz.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "Korrektur von {lo} bis {hi} Hz: Spitze {before} dB → {after} dB",
   "v2.room.proposalTitle": "Vorgeschlagene Korrektur",
   "v2.room.qualDamped": "Gedämpft (möbliert)",

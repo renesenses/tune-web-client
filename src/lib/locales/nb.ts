@@ -6706,6 +6706,7 @@ export default {
   "v2.room.pluginInstall": "Kalibreringsutvidelsen er ikke installert på denne serveren.",
   "v2.room.pluginRestart": "Kalibreringsutvidelsen er installert, men ikke lastet ennå: start Tune-serveren på nytt.",
   "v2.room.premium": "Romkorreksjon er en del av Tune Premium: skjermen er fortsatt synlig, men beregninger og bruk krever en Premium-lisens.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "Korreksjon fra {lo} til {hi} Hz: topp {before} dB → {after} dB",
   "v2.room.proposalTitle": "Foreslått korreksjon",
   "v2.room.qualDamped": "Dempet (møblert)",

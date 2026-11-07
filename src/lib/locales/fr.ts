@@ -6883,6 +6883,7 @@ export default {
   "v2.room.pluginInstall": "Le greffon de calibration n'est pas installé sur ce serveur.",
   "v2.room.pluginRestart": "Le greffon de calibration est installé mais pas encore chargé : redémarrez le serveur Tune.",
   "v2.room.premium": "La correction de pièce fait partie de Tune Premium : l'écran reste visible, mais les calculs et l'application demandent une licence Premium.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "Correction de {lo} à {hi} Hz : pic {before} dB → {after} dB",
   "v2.room.proposalTitle": "Correction proposée",
   "v2.room.qualDamped": "Amortie (meublée)",

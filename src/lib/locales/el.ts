@@ -6706,6 +6706,7 @@ export default {
   "v2.room.pluginInstall": "Το πρόσθετο βαθμονόμησης δεν είναι εγκατεστημένο σε αυτόν τον διακομιστή.",
   "v2.room.pluginRestart": "Το πρόσθετο βαθμονόμησης είναι εγκατεστημένο αλλά δεν έχει φορτωθεί ακόμη: επανεκκινήστε τον διακομιστή Tune.",
   "v2.room.premium": "Η διόρθωση χώρου ανήκει στο Tune Premium: η οθόνη παραμένει ορατή, αλλά οι υπολογισμοί και η εφαρμογή απαιτούν άδεια Premium.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "Διόρθωση από {lo} έως {hi} Hz: κορυφή {before} dB → {after} dB",
   "v2.room.proposalTitle": "Προτεινόμενη διόρθωση",
   "v2.room.qualDamped": "Αποσβεσμένη (επιπλωμένη)",

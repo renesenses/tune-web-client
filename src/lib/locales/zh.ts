@@ -6861,6 +6861,7 @@ export default {
   "v2.room.pluginInstall": "此服务器未安装校准插件。",
   "v2.room.pluginRestart": "校准插件已安装但尚未加载：请重启 Tune 服务器。",
   "v2.room.premium": "房间校正属于 Tune Premium：页面仍可查看，但计算和应用需要 Premium 许可证。",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "校正范围 {lo}–{hi} Hz：峰值 {before} dB → {after} dB",
   "v2.room.proposalTitle": "建议的校正",
   "v2.room.qualDamped": "阻尼（有家具）",

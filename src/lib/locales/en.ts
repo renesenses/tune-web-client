@@ -6881,6 +6881,7 @@ export default {
   "v2.room.pluginInstall": "The calibration plugin is not installed on this server.",
   "v2.room.pluginRestart": "The calibration plugin is installed but not loaded yet: restart the Tune server.",
   "v2.room.premium": "Room correction is part of Tune Premium: the screen stays visible, but calculations and applying need a Premium licence.",
+  "v2.room.premiumBadge": "Premium",
   "v2.room.proposalSummary": "Correction from {lo} to {hi} Hz: peak {before} dB → {after} dB",
   "v2.room.proposalTitle": "Proposed correction",
   "v2.room.qualDamped": "Damped (furnished)",

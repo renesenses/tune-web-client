@@ -48,7 +48,9 @@
   /** Un 402 reçu : le serveur a tranché, quoi que dise la licence lue. */
   let refusPremium = $state(false);
   const sansPremium = $derived(refusPremium || ($licenseState.loaded && !$isPremium));
-  const verrouille = $derived(sansPremium || presence !== 'actif' || zoneId == null);
+  /** `inconnu` (liste des greffons illisible) ne verrouille pas : la route répondra. */
+  const greffonPret = $derived(presence === 'actif' || presence === 'inconnu');
+  const verrouille = $derived(sansPremium || !greffonPret || zoneId == null);
 
   let onglet = $state<'simulation' | 'micro'>('simulation');
 
@@ -177,7 +179,7 @@
     piece = { ...piece, [cle]: Number((e.currentTarget as HTMLInputElement).value) };
   }
   function qualite(s: (typeof SURFACES)[number], e: Event) {
-    surfaces = { ...surfaces, [s]: (e.currentTarget as HTMLSelectElement).value };
+    surfaces = { ...surfaces, [s]: (e.currentTarget as HTMLSelectElement).value as Surfaces[typeof s] };
   }
 
   const f0 = (v: number) => Math.round(v).toString();
@@ -218,7 +220,7 @@
   }
 
   $effect(() => {
-    if (onglet !== 'micro' || presence !== 'actif' || sansPremium) return;
+    if (onglet !== 'micro' || !greffonPret || sansPremium) return;
     void chargerMicros();
     const zid = zoneId;
     if (zid == null) return;
@@ -354,7 +356,7 @@
   <header class="v2-top">
     <div class="v2-titres">
       <div class="v2-eyebrow">{zone?.name ?? $t('v2.room.eyebrow' as any)}</div>
-      <h1>{$t('v2.zone.roomCorrection' as any)} <span class="badge" data-room="badge-premium">Premium</span></h1>
+      <h1>{$t('v2.zone.roomCorrection' as any)} <span class="badge" data-room="badge-premium">{$t('v2.room.premiumBadge' as any)}</span></h1>
     </div>
     <div class="v2-actions">
       <button class="v2-btn" data-room="fir" onclick={ouvrirFir}>{$t('v2.room.firLink' as any)}</button>
@@ -363,7 +365,7 @@
 
   <div class="scroll">
     {#if sansPremium}
-      <div class="warn" data-room-motif="premium"><b>Premium</b> <span>{$t('v2.room.premium' as any)}</span></div>
+      <div class="warn" data-room-motif="premium"><b>{$t('v2.room.premiumBadge' as any)}</b> <span>{$t('v2.room.premium' as any)}</span></div>
     {/if}
     {#if zoneId == null}
       <div class="warn" data-room-motif="zone">{$t('v2.room.noZone' as any)}</div>
@@ -472,7 +474,7 @@
         {#if lectureMicros}
           <div class="state">{$t('v2.tool.loading' as any)}</div>
         {:else if sansMicro || (erreurMicros && erreurMicros.code === 'capture_indisponible')}
-          <div class="warn" data-room-motif="sans-micro">{$t('v2.room.noMic' as any)}</div>
+          <div class="warn" data-room-motif="nomic">{$t('v2.room.noMic' as any)}</div>
         {:else if microphones}
           <div class="dims">
             <label class="surf">

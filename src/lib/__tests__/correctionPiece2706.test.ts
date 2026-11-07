@@ -114,8 +114,8 @@ function simulerHote() {
     }
     if (u.endsWith('/api/v1/plugins')) return reponse(200, hote.plugins);
     if (u.endsWith(`${EXT}/simulations`) && method === 'POST') return reponse(hote.simulation.status, hote.simulation.corps);
-    const sc = /\/simulations\/([^/]+)\/correction$/.exec(u);
-    if (sc && method === 'POST') return reponse(200, proposition(decodeURIComponent(sc[1])));
+    const sc = /\/(simulations|mesures)\/([^/]+)\/correction$/.exec(u);
+    if (sc && method === 'POST') return reponse(200, proposition(decodeURIComponent(sc[2])));
     const sp = /\/(simulations|mesures)\/([^/]+)\/correction\/profil$/.exec(u);
     if (sp && method === 'POST') {
       return reponse(201, {
@@ -380,15 +380,15 @@ describe('web#2706 — mesure au micro', () => {
       { nom: 'BlackHole', id: 'bh', canaux: 2, frequence_courante: 48000, virtuelle: true, mesurable: true },
     ] } };
     await ongletMicro();
-    await jusqua(() => !!q('[data-room-motif="sans-micro"]'));
-    expect(q('[data-room-motif="sans-micro"]')!.textContent).toBe(texte('v2.room.noMic'));
+    await jusqua(() => !!q('[data-room-motif="nomic"]'));
+    expect(q('[data-room-motif="nomic"]')!.textContent).toBe(texte('v2.room.noMic'));
     expect(q('[data-room="mesurer"]')).toBeNull();
   });
 
   it('capture indisponible (503) : même message, et la cause du serveur', async () => {
     hote.microphones = { status: 503, corps: { error: 'capture_indisponible', message: 'aucun périphérique de capture' } };
     await ongletMicro();
-    await jusqua(() => !!q('[data-room-motif="sans-micro"]'));
+    await jusqua(() => !!q('[data-room-motif="nomic"]'));
     expect(q('[data-room="cause"]')!.textContent).toBe('aucun périphérique de capture');
   });
 
