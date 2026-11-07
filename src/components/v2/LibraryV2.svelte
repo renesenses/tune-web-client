@@ -48,6 +48,10 @@
   import { chargerMembresOeuvres, regrouperAlbums, type MembresOeuvre } from '../../lib/oeuvres';
   // tune-server-rust#7597 — le bouton « Répertoire » et la lecture du dossier.
   import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
+  // renesenses/tune-web-client#2645 — la carte du monde par pays, et le filtre qu'elle pose.
+  import CartePaysBibliothequeV2 from './CartePaysBibliothequeV2.svelte';
+  import type { PaysDeLaBibliotheque } from '../../lib/bibliothequePays';
+  import { nomPays } from '../../lib/paysMonde';
   import { choisirDossierBibliotheque, restaurerDossierBibliotheque, suivreLeRetraitDeLaPortee } from '../../lib/dossierBibliotheque';
   import { lireDossier, ajouterDossierALaFile } from '../../lib/lectureDossier';
   // 🔴 renesenses/tune-server-rust#4800 — la grille se sert PAR PAGES. La
@@ -78,7 +82,7 @@
   // lu quand la Bibliothèque était déjà montée. On prend sa version.
   // `pendingLibraryAlbum`, lui, reste : c'est le contrat des liens de la
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
-  import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryYear, pendingSearchQuery, type View } from '../../lib/stores/navigation';
+  import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryFiltre, pendingLibraryYear, pendingSearchQuery, type View } from '../../lib/stores/navigation';
   import { streamingServices } from '../../lib/stores/streaming';
   import { servicesConnectes } from '../../lib/ongletsStreaming';
   import { nomService } from '../../lib/convertisseurPlaylists';
@@ -100,7 +104,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { cale, elargir, fenetreNeuve, plafondDe, type Fenetre } from '../../lib/fenetreDeRendu';
-  import { trierAlbums } from '../../lib/trierAlbums';
+  import { trierAlbums, comparerDatesDeSortie } from '../../lib/trierAlbums';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
@@ -363,7 +367,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const enCharge: boolean = $derived.by(() =>
     depot ? chargementD
       : nu ? ($albumsPagines.total == null && $albumsPagines.erreur == null)
-      : (porteeActive && idsPortee == null) || $libraryLoading || (sortirDesPages && !bibliothequeEntiere),
+      : (porteeActive && idsPortee == null) || $libraryLoading || (sortirDesPages && !bibliothequeEntiere)
+        || (paysChoisi != null && idsPays == null),
   );
 
   const level = $derived($preferences.settingsLevel);
@@ -490,6 +495,36 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       .catch(() => { /* serveur antérieur : pas de puce */ });
     return () => { vivant = false; };
   });
+
+  /**
+   * renesenses/tune-web-client#2645 — PAYS, choisi sur la carte du monde. Même chemin que la portée de
+   * dossier : le serveur rend les albums du pays (`albums-detailed?country=`,
+   * toutes ses pages), on n'en garde que les identifiants, et la grille filtre
+   * sur place. Les valeurs envoyées sont celles de la facette, telles
+   * qu'écrites (« fr » et « FR » réunis sous un seul pays).
+   * `idsPays` à `null` = réponse attendue : l'écran attend plutôt que de tout
+   * montrer. Un échec ne montre RIEN et le dit, comme la portée.
+   */
+  let carteOuverte = $state(false);
+  let paysChoisi = $state<PaysDeLaBibliotheque | null>(null);
+  let idsPays = $state<Set<number> | null>(null);
+  $effect(() => {
+    const p = paysChoisi;
+    const d = dossierPortee;
+    idsPays = null;
+    if (!p || depot) return;
+    let perime = false;
+    const filtres: Record<string, api.FacetParam> = d ? { country: p.valeurs, folder: d } : { country: p.valeurs };
+    idsAlbumsDeLaPortee((limite, rang) => api.getAlbumsDetailed(filtres, limite, rang))
+      .then((ids) => { if (!perime) idsPays = ids; })
+      .catch(() => {
+        if (perime) return;
+        idsPays = new Set();
+        notifications.error($tr('v2.lib.map.filterError' as any));
+      });
+    return () => { perime = true; };
+  });
+  const filtresCarte = $derived<Record<string, api.FacetParam>>(dossierPortee ? { folder: dossierPortee } : {});
 
   /**
    * SOURCE — de quelle bibliothèque l'album vient (#4152).
@@ -638,6 +673,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // serveur — jamais « on ne sait pas, laissons passer ».
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
     if (fIncomplets && !(a.id != null && idsIncomplets.has(a.id))) return false;
+    if (paysChoisi && !(a.id != null && idsPays != null && idsPays.has(a.id))) return false;
     if (!dansSource(a, fProvenance)) return false;
     // #4319 — même règle que les comptes : artiste de piste et dossier
     // compris, portée ou non (`idsTexteServeur`).
@@ -653,7 +689,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     const byTitle = (a: Album, b: Album) => comparerAlphabetique(a.title, b.title);
     switch (sortKey) {
       case 'artist':
-        return list.sort((a, b) => comparerAlphabetique(a.artist_name, b.artist_name) || byTitle(a, b));
+        // web#2644 — sous un même artiste, par date de sortie (le plus ancien
+        // d'abord, sans date en dernier), puis par titre.
+        return list.sort((a, b) =>
+          comparerAlphabetique(a.artist_name, b.artist_name) || comparerDatesDeSortie(a, b) || byTitle(a, b),
+        );
       case 'year':
         // Sans annee en DERNIER quel que soit le sens : un album non date ne
         // doit pas squatter la tete de liste.
@@ -1542,7 +1582,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   const filtreActif = $derived(
     fQuality.length > 0 || fRate.length > 0 || fFormat.length > 0 || fDepth.length > 0
-      || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null || fIncomplets,
+      || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null || fIncomplets
+      || paysChoisi != null,
   );
 
   /**
@@ -2604,6 +2645,25 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
 
   /**
+   * web#2653 — un FORMAT ou une FRÉQUENCE demandés par une barre de l'écran
+   * des statistiques. Même contrat que l'année ci-dessus (`$store`, pas
+   * `get()`). Les autres filtres sont retirés : la grille montre exactement
+   * ce que la barre comptait.
+   */
+  $effect(() => {
+    const f = $pendingLibraryFiltre;
+    if (f == null) return;
+    pendingLibraryFiltre.set(null);
+    untrack(() => {
+      reset();
+      if ('format' in f) fFormat = [f.format];
+      else fRate = [f.frequence];
+      tabChoisi = 'albums';
+      refermerCalqueAlbumSansReculer();
+    });
+  });
+
+  /**
    * Album en cours d'édition — le bouton haut-droit de la pochette.
    *
    * `AlbumEditModal` vient du client actuel : c'est la MÊME modale, pas une
@@ -2661,7 +2721,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
   }
 
-  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fIncomplets = false; fProvenance = null; fDrMin = null; fDrMax = null; }
+  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fIncomplets = false; fProvenance = null; fDrMin = null; fDrMax = null; paysChoisi = null; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
@@ -2909,6 +2969,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         {/if}
       {/each}
     </nav>
+    <!-- web#2653 — les répartitions de la bibliothèque (pas sur un dépôt
+         distant : elles décrivent CE serveur). -->
+    {#if !depot}
+      <button class="tab" data-stats-bibliotheque-ouvrir onclick={() => activeView.set('statsbibliotheque')}
+        title={$tr('statsBibliotheque.ouvrirTip' as any)}>{$tr('statsBibliotheque.ouvrir' as any)}</button>
+    {/if}
     </div>
   </header>
 
@@ -2947,7 +3013,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', nbPistesAnnonce == null ? '…' : $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
+      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null && !paysChoisi} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
@@ -3016,6 +3082,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             </div>
           {/if}
         </div>
+      {/if}
+      {#if showFilters && !depot}
+        <!-- renesenses/tune-web-client#2645 — PAYS : la puce ouvre la carte du monde sous la rangée de
+             filtres (pas dans un menu : un globe et sa liste n'y tiennent pas
+             sur un téléphone). Le pays choisi s'écrit sur la puce, et sa
+             croix le retire sans refermer la carte. -->
+        <button class="chip" data-carte-pays-puce class:active={carteOuverte || paysChoisi != null}
+          aria-expanded={carteOuverte} onclick={() => (carteOuverte = !carteOuverte)}
+        >{$tr('v2.lib.map.chip' as any)}{#if paysChoisi}&nbsp;· {nomPays(paysChoisi.code, $locale)}{/if}</button>
+        {#if paysChoisi}
+          <button class="chip" data-carte-pays-retirer aria-label={$tr('v2.lib.map.clear' as any)}
+            title={$tr('v2.lib.map.clear' as any)} onclick={() => (paysChoisi = null)}>×</button>
+        {/if}
       {/if}
     {#if showFilters}
       <div class="drop" class:open={ddOpen === 'quality'} onpointerenter={voirLesFacettes}>
@@ -3218,6 +3297,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     {/if}
     </div>
   </div>
+
+  {#if carteOuverte && showFilters && !depot}
+    <CartePaysBibliothequeV2 filtres={filtresCarte} choisi={paysChoisi?.code ?? null}
+      onChoisir={(p) => (paysChoisi = p)} />
+  {/if}
 
   <!--
     🔴 `showTimeline || fYear != null` : la PASTILLE existe a tous les niveaux.

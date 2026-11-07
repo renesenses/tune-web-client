@@ -76,6 +76,7 @@ describe('OxygenView branche le texte libre partagé (#5192)', () => {
     expect(suite).toMatch(/getFilteredTracks\(\{[^}]*\.\.\.texteLibreParam\(\)/);
     // Et le rechargement suit la saisie (après son délai).
     // #2108 : l'opérateur « Et » / « Ou » (`facetEt`) recharge aussi la liste.
-    expect(source).toMatch(/\$effect\(\(\) => \{ void JSON\.stringify\(facetSels\); void JSON\.stringify\(facetEt\); void texteServeur; loadTracks\(\); \}\);/);
+    // web#2646 : une modification enregistrée (`versionDonnees`) aussi.
+    expect(source).toMatch(/\$effect\(\(\) => \{ void JSON\.stringify\(facetSels\); void JSON\.stringify\(facetEt\); void texteServeur;(?: void versionDonnees;)? loadTracks\(\); \}\);/);
   });
 });

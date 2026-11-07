@@ -95,6 +95,8 @@ export interface Artist {
   bio?: string | null;
   /** Provenance de `bio` (source, URL, licence, langue) — absente sur un serveur ancien. */
   bio_provenance?: import('./library/attributionBio').BioProvenance | null;
+  /** #8010 — la bio est servie dans une autre langue que celle de l'interface. */
+  repli?: { raison?: string; langue_demandee?: string | null; langue_disponible?: string | null } | null;
   image_path?: string | null;
   image_source?: string | null;
   /**

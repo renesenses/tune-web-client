@@ -40,7 +40,7 @@
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
   import { estCourbeGraphique } from '../../lib/eqHydratation';
-  import { bilanImportPeq, db, nomDuFichierPeq, TAILLE_MAX_FICHIER_PEQ, type BilanImportPeq } from '../../lib/eqImportPeq';
+  import { bilanImportPeq, db, lignesApercu, lignesEcartees, messageErreurImport, nomDuFichierPeq, TAILLE_MAX_FICHIER_PEQ, type BilanImportPeq, type TextesErreurImport } from '../../lib/eqImportPeq';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -643,20 +643,82 @@
       notifications.error(msgTropGros);
       return;
     }
+    const textesErreur = textesErreurImport();
     importEnCours = true;
+    apercuPeq = null;
     try {
       const texte = await fichier.text();
-      const r = await api.importAutoEqPreset({ text: texte, name: nomDuFichierPeq(fichier.name) });
-      accueillirImport(r, msgOk);
-    } catch (err) {
-      // 402 : `fetchJSON` a déjà dit le refus Premium dans la langue de l'écran.
-      if ((err as { status?: number })?.status !== 402) {
-        const detail = err instanceof Error ? err.message : String(err);
-        notifications.error(msgKo.replace('{detail}', detail));
+      const nom = nomDuFichierPeq(fichier.name);
+      // tune-server-rust#6385 — d'abord l'APERÇU : les bandes sont montrées,
+      // rien n'est enregistré avant « Appliquer ». Un serveur antérieur n'a
+      // pas l'aperçu (404) : on retombe sur l'import direct d'avant.
+      try {
+        apercuPeq = { texte, nom, r: await api.previewEqImport({ text: texte, name: nom }) };
+      } catch (err) {
+        if ((err as { status?: number })?.status !== 404) throw err;
+        const r = await api.importAutoEqPreset({ text: texte, name: nom });
+        accueillirImport(r, msgOk);
       }
+    } catch (err) {
+      signalerEchecImport(err, msgKo, textesErreur);
     } finally {
       importEnCours = false;
     }
+  }
+
+  /** tune-server-rust#6385 — le fichier analysé, en attente d'« Appliquer ». */
+  let apercuPeq = $state<{ texte: string; nom: string | undefined; r: api.EqImportApercu } | null>(null);
+  const lignesDeLApercu = $derived(apercuPeq ? lignesApercu(apercuPeq.r.bands) : []);
+  const ecartesDeLApercu = $derived(lignesEcartees(apercuPeq?.r.ignored_filters));
+
+  async function appliquerApercu() {
+    const a = apercuPeq;
+    if (!a) return;
+    const msgKo = $t('eq.importPeqFailed' as any);
+    const msgOk = $t('eq.importPeqDone' as any);
+    const textesErreur = textesErreurImport();
+    importEnCours = true;
+    try {
+      const r = await api.importAutoEqPreset({ text: a.texte, name: a.nom });
+      apercuPeq = null;
+      accueillirImport(r, msgOk);
+    } catch (err) {
+      signalerEchecImport(err, msgKo, textesErreur);
+    } finally {
+      importEnCours = false;
+    }
+  }
+
+  /** Les refus nommés du serveur, dans la langue de l'écran. Résolus AVANT
+   *  l'attente : un `$t()` dans un `catch` est invisible au build. */
+  function textesErreurImport(): TextesErreurImport {
+    return {
+      aLaLigne: $t('eq.importErrAtLine' as any),
+      aLaBande: $t('eq.importErrAtBand' as any),
+      causes: {
+        unrecognized_line: $t('eq.importErrUnrecognizedLine' as any),
+        unknown_filter_type: $t('eq.importErrUnknownFilterType' as any),
+        missing_field: $t('eq.importErrMissingField' as any),
+        invalid_number: $t('eq.importErrInvalidNumber' as any),
+        value_out_of_range: $t('eq.importErrValueOutOfRange' as any),
+        missing_on_off: $t('eq.importErrMissingOnOff' as any),
+        unsupported_channel: $t('eq.importErrUnsupportedChannel' as any),
+        per_channel_preamp: $t('eq.importErrPerChannelPreamp' as any),
+        no_active_filter: $t('eq.importErrNoActiveFilter' as any),
+        too_many_bands: $t('eq.importErrTooManyBands' as any),
+        profile_too_large: $t('eq.importPeqTooLarge' as any),
+        invalid_json: $t('eq.importErrInvalidJson' as any),
+        unsupported_eq_type: $t('eq.importErrUnsupportedEqType' as any),
+        unsupported_slope: $t('eq.importErrUnsupportedSlope' as any),
+      },
+    };
+  }
+
+  function signalerEchecImport(err: unknown, msgKo: string, textes: TextesErreurImport) {
+    // 402 : `fetchJSON` a déjà dit le refus Premium dans la langue de l'écran.
+    if ((err as { status?: number })?.status === 402) return;
+    const detail = messageErreurImport(err, textes) ?? (err instanceof Error ? err.message : String(err));
+    notifications.error(msgKo.replace('{detail}', detail));
   }
 
   /** Le préréglage importé (fichier ou base AutoEq) rejoint « Mes presets » ;
@@ -858,7 +920,7 @@
              bandes saisies à la main. -->
         <button class="import-peq" disabled={importEnCours} onclick={() => fichierPeq?.click()}
           title={$t('eq.importPeqTitle' as any)}>{$t('eq.importPeq' as any)}</button>
-        <input class="import-peq-fichier" type="file" accept=".txt,text/plain" hidden
+        <input class="import-peq-fichier" type="file" accept=".txt,.json,text/plain,application/json" hidden
           bind:this={fichierPeq} onchange={importerPeq} />
         <!-- tune-server-rust#6388 — la base AutoEq, lue par le serveur. -->
         <button class="recherche-autoeq" aria-expanded={rechercheAutoEqOuverte}
@@ -895,6 +957,50 @@
           <p class="autoeq-credit">{$t('eq.autoeqCredit' as any)}</p>
         </div>
       {/if}
+      {#if apercuPeq}
+        <!-- tune-server-rust#6385 — les bandes du fichier AVANT de les
+             appliquer : rien n'est enregistré tant que l'on n'a pas choisi. -->
+        <div class="apercu-peq" role="region" aria-label={$t('eq.importPreviewTitle' as any).replace('{name}', apercuPeq.nom ?? '').replace('{count}', String(apercuPeq.r.band_count))}>
+          <p class="apercu-titre">{$t('eq.importPreviewTitle' as any).replace('{name}', apercuPeq.nom ?? '').replace('{count}', String(apercuPeq.r.band_count))}</p>
+          <table class="apercu-bandes">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>{$t('eq.peqType' as any)}</th>
+                <th>{$t('eq.importColFreq' as any)}</th>
+                <th>{$t('eq.importColGain' as any)}</th>
+                <th>Q</th>
+                <th>{$t('eq.importColChannel' as any)}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each lignesDeLApercu as l, i (i)}
+                <tr>
+                  <td>{i + 1}</td>
+                  <td>{l.type}</td>
+                  <td>{l.freq}</td>
+                  <td>{l.gain}</td>
+                  <td>{l.q}</td>
+                  <td>{l.canal === 0 ? $t('eq.importChannelLeft' as any) : l.canal === 1 ? $t('eq.importChannelRight' as any) : $t('eq.importChannelBoth' as any)}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+          {#if ecartesDeLApercu.lignesIgnorees}
+            <p class="ignores">{$t('eq.importPeqIgnored' as any).replace('{lines}', ecartesDeLApercu.lignesIgnorees)}</p>
+          {/if}
+          {#if ecartesDeLApercu.ligneDevice !== null}
+            <p class="ignores">{$t('eq.importDeviceIgnored' as any).replace('{line}', String(ecartesDeLApercu.ligneDevice))}</p>
+          {/if}
+          {#if typeof apercuPeq.r.preamp_db === 'number' && typeof apercuPeq.r.reserved_headroom_db === 'number'}
+            <p>{$t('eq.importPeqPreamp' as any).replace('{preamp}', db(apercuPeq.r.preamp_db)).replace('{reserved}', db(apercuPeq.r.reserved_headroom_db))}</p>
+          {/if}
+          <div class="apercu-actions">
+            <button class="apercu-appliquer" disabled={importEnCours} onclick={appliquerApercu}>{$t('eq.importPreviewApply' as any)}</button>
+            <button class="apercu-annuler" disabled={importEnCours} onclick={() => (apercuPeq = null)}>{$t('common.cancel' as any)}</button>
+          </div>
+        </div>
+      {/if}
       {#if bilanPeq}
         <!-- Le bilan est DIT, pas avalé : bandes retenues, lignes écartées,
              préampli du fichier non appliqué en plus de la réserve de Tune. -->
@@ -902,6 +1008,9 @@
           <p>{$t('eq.importPeqSummary' as any).replace('{name}', bilanPeq.nom).replace('{count}', String(bilanPeq.bandes))}</p>
           {#if bilanPeq.lignesIgnorees}
             <p class="ignores">{$t('eq.importPeqIgnored' as any).replace('{lines}', bilanPeq.lignesIgnorees)}</p>
+          {/if}
+          {#if bilanPeq.ligneDevice !== null}
+            <p class="ignores">{$t('eq.importDeviceIgnored' as any).replace('{line}', String(bilanPeq.ligneDevice))}</p>
           {/if}
           {#if bilanPeq.preampDb !== null && bilanPeq.reserveDb !== null}
             <p>{$t('eq.importPeqPreamp' as any).replace('{preamp}', db(bilanPeq.preampDb)).replace('{reserved}', db(bilanPeq.reserveDb))}</p>
@@ -1072,6 +1181,14 @@
   .bilan-peq{margin:-8px 0 16px; padding:9px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;
     border:1px solid var(--v2-line2); color:var(--v2-txt2)}
   .bilan-peq p{margin:0}
+  .apercu-peq{margin:-8px 0 16px; padding:10px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;
+    border:1px solid var(--v2-line2); color:var(--v2-txt2)}
+  .apercu-peq p{margin:0 0 6px}
+  .apercu-titre{color:var(--v2-txt)}
+  .apercu-bandes{width:100%; border-collapse:collapse; margin:0 0 8px; font:11.5px var(--v2-mono)}
+  .apercu-bandes th, .apercu-bandes td{padding:2px 6px; text-align:right; border-bottom:1px solid var(--v2-line2)}
+  .apercu-bandes th:nth-child(2), .apercu-bandes td:nth-child(2){text-align:left}
+  .apercu-actions{display:flex; gap:7px; flex-wrap:wrap}
   .bilan-peq.alerte{border-color:var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
   .presets button:disabled{opacity:.45; cursor:default}
   .autoeq{margin:-8px 0 16px; padding:10px 14px; border-radius:10px; border:1px solid var(--v2-line2)}

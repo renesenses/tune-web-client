@@ -113,6 +113,8 @@ const VUES: Record<View, boolean> = {
   circle: true,
   // tune-server-rust#7195 — « Ma collection physique », écran d'un greffon.
   collectionphysique: true,
+  // web#2653 — l'écran des statistiques de la bibliothèque.
+  statsbibliotheque: true,
   bannedtracks: true,
 
   // ─── Celles que l'adresse NE repose PAS, et pourquoi ────────────────────

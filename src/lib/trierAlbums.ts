@@ -79,6 +79,21 @@ function dateDeSortie(a: Album): string | null {
 }
 
 /**
+ * web#2644 — départage par date de sortie, du plus ancien au plus récent.
+ *
+ * Même clé que le tri « Date de sortie » (`dateDeSortie`). Un album sans date
+ * passe après les albums datés ; deux albums sans date rendent 0, pour que
+ * l'appelant départage ensuite (par titre).
+ */
+export function comparerDatesDeSortie(a: Album, b: Album): number {
+  const da = dateDeSortie(a), db = dateDeSortie(b);
+  if (da == null && db == null) return 0;
+  if (da == null) return 1;
+  if (db == null) return -1;
+  return parTexte(da, db);
+}
+
+/**
  * Trie des albums par une clé, dans un sens.
  *
  * Même règle que le serveur pour les dossiers (`album_order.rs`) : le sens ne

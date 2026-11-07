@@ -45,7 +45,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../../lib/zoneIdentity';
   import { t } from '../../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';
-  import type { OutputType, RepeatMode } from '../../lib/types';
+  import type { OutputType, RepeatMode, ZoneGroupResponse } from '../../lib/types';
   import { destinationDeRetour } from '../../lib/destinationDeRetour';
   import { activeView, previousView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
@@ -534,6 +534,28 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   let configZone = $state<typeof zone | null>(null);
   /** web#2141 — la section où ouvrir la fenêtre de la zone. */
   let configSection = $state<'groupe' | null>(null);
+  /**
+   * web#2661 (moitié web de server#7937) — la fenêtre de la zone recevait
+   * une liste de groupes VIDE : « Dégrouper tout » n'apparaissait jamais et
+   * « Appliquer » créait un groupe sans défaire l'ancien. Les groupes sont
+   * relus au serveur à chaque ouverture de la fenêtre et après chaque
+   * changement de groupe ; un échec laisse la liste vide, comme avant.
+   */
+  let groupesZones = $state<ZoneGroupResponse[]>([]);
+  async function chargerGroupes() {
+    try {
+      groupesZones = await api.listGroups();
+    } catch {
+      groupesZones = [];
+    }
+  }
+  $effect(() => {
+    if (configZone) void chargerGroupes();
+  });
+  async function apresChangementDeGroupe() {
+    await chargerGroupes();
+    try { zones.set(await api.getZones()); } catch { /* le WebSocket rattrapera */ }
+  }
   /**
    * web#2141 (Didier, fil 2215) — la lecture groupée n'était atteignable que
    * par un CLIC DROIT sur le bouton de zone : introuvable, et impossible au
@@ -1861,11 +1883,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   <ZoneConfigModal
     zone={configZone}
     allZones={$zones}
-    groups={[]}
+    groups={groupesZones}
     section={configSection}
     onClose={() => { configZone = null; configSection = null; }}
     onDelete={async (id) => { await supprimerZoneConfirmee(id); configZone = null; configSection = null; }}
-    onGroupChanged={() => {}}
+    onGroupChanged={apresChangementDeGroupe}
     onRenamed={() => {}}
   />
 {/if}

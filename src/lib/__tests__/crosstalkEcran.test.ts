@@ -134,7 +134,7 @@ const puts = () => appels.filter((a) => a.method === 'PUT' && a.url.includes(`${
 
 describe('Crosstalk — réglages purs', () => {
   it('bornes du schéma du greffon, défauts compris', () => {
-    expect(BORNES_CROSSTALK.separation_db).toMatchObject({ min: 3, max: 12 });
+    expect(BORNES_CROSSTALK.separation_db).toMatchObject({ min: 1, max: 12 });
     expect(BORNES_CROSSTALK.angle_deg).toMatchObject({ min: 25, max: 70 });
     expect(BORNES_CROSSTALK.distance_m).toMatchObject({ min: 1, max: 4 });
     expect(BORNES_CROSSTALK.band_low_hz).toMatchObject({ min: 150, max: 1000 });
@@ -152,6 +152,13 @@ describe('Crosstalk — réglages purs', () => {
     expect(r.band_high_hz).toBe(10000);
     expect(r.futur).toBe(1);
     expect(reglagesCrosstalk(null)).toEqual(DEFAUTS_CROSSTALK);
+  });
+
+  it('la séparation visée descend à 1 dB, pas en dessous', () => {
+    expect(reglagesCrosstalk({ separation_db: 1 }).separation_db).toBe(1);
+    expect(reglagesCrosstalk({ separation_db: 1.5 }).separation_db).toBe(1.5);
+    expect(reglagesCrosstalk({ separation_db: 2 }).separation_db).toBe(2);
+    expect(reglagesCrosstalk({ separation_db: 0.5 }).separation_db).toBe(1);
   });
 });
 

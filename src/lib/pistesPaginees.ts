@@ -100,16 +100,20 @@ export interface RequetePistes {
 
 export type ChargeurDePage = (args: {
   offset: number; limit: number; comptes: boolean; signal: AbortSignal;
+  /** #7619 — curseur de la page demandée (`next_cursor` de la précédente). */
+  after?: string | null;
 }) => Promise<PagePistesServeur | null>;
 
 export function chargeurServeur(
   req: RequetePistes,
   getPagePistes: typeof Api.getPagePistes,
 ): ChargeurDePage {
-  return ({ offset, limit, comptes, signal }) => getPagePistes({
+  return ({ offset, limit, comptes, signal, after }) => getPagePistes({
     search: req.recherche, provenance: req.provenance, folder: req.dossier,
     sort: req.tri?.cle ?? null, order: req.tri?.sens ?? 'asc',
     offset, limit, counts: comptes, signal,
+    // La portée Répertoires reste à l'offset : le curseur n'y est pas garanti.
+    ...(after && !req.dossier ? { after } : {}),
   });
 }
 
@@ -139,6 +143,10 @@ export class FenetrePistes {
   erreur: string | null = null;
   private readonly pages = new Map<number, Track[]>();
   private readonly enVol = new Set<number>();
+  /** #7619 — curseur pour demander la page k, appris de la page k-1. */
+  private readonly curseurs = new Map<number, string>();
+  /** Le serveur a rendu `next_cursor` à la première page : il sait le suivre. */
+  private curseurActif = false;
   private attente: number[] = [];
   private readonly ctrl = new AbortController();
   private abandonnee = false;
@@ -178,6 +186,8 @@ export class FenetrePistes {
       capacite = 'serveur';
       this.pages.set(0, p.items);
       this.total = p.total;
+      this.curseurActif = typeof p.curseurSuivant === 'string';
+      if (this.curseurActif) this.curseurs.set(1, p.curseurSuivant as string);
       if (this.comptesAFaire) {
         this.comptes = p.comptes;
         this.totalToutesSources = p.totalToutesSources;
@@ -229,14 +239,33 @@ export class FenetrePistes {
 
   private pomper(): void {
     while (!this.abandonnee && this.enVol.size < this.parallele && this.attente.length) {
-      const k = this.attente.shift()!;
-      if (this.pages.has(k) || this.enVol.has(k)) continue;
+      const k = this.attente[0];
+      if (this.pages.has(k) || this.enVol.has(k)) { this.attente.shift(); continue; }
+      // Avec un curseur, la page k attend la page k-1 en vol : son
+      // `next_cursor` évite la lecture de tout ce qui précède (offset).
+      if (this.curseurActif && !this.curseurs.has(k) && this.enVol.has(k - 1)) break;
+      this.attente.shift();
       this.enVol.add(k);
-      this.charger({ offset: k * this.taille, limit: this.taille, comptes: false, signal: this.ctrl.signal })
+      const after = this.curseurs.get(k) ?? null;
+      const demander = (a: string | null) => this.charger({
+        offset: k * this.taille, limit: this.taille, comptes: false, signal: this.ctrl.signal, after: a,
+      });
+      // Un curseur refusé (400) ne doit pas perdre la page : retour à l'offset.
+      const requete = after
+        ? demander(after).catch((e) => {
+          if ((e as { status?: number } | null)?.status === 400 && !this.abandonnee) {
+            this.curseurs.delete(k);
+            return demander(null);
+          }
+          throw e;
+        })
+        : demander(null);
+      requete
         .then((p) => {
           if (this.abandonnee) return;
           if (p == null) { this.erreur = 'pagination'; return; }
           this.pages.set(k, p.items);
+          if (this.curseurActif && typeof p.curseurSuivant === 'string') this.curseurs.set(k + 1, p.curseurSuivant);
           // La bibliothèque a pu bouger entre deux pages : le dernier total fait foi.
           this.total = p.total;
         })

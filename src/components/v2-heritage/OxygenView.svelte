@@ -311,9 +311,13 @@
   function openAlbumById(id: number) { albumFilter = id; setMode('album'); }
 
   async function select(t: Track) {
-    selected = t; ext = {};
     inspectorCollapsed = false;
     if (isNarrow) mobileInspector = true;
+    await remplirPanneau(t);
+  }
+  /** Le panneau de droite sur la piste `t`, sans l'ouvrir ni le replier. */
+  async function remplirPanneau(t: Track) {
+    selected = t; ext = {};
     if (t.id == null) return;
     extLoading = true;
     try { ext = await getTrackExtendedMetadata(t.id); } catch { ext = {}; } finally { extLoading = false; }
@@ -517,12 +521,34 @@
     return texteServeur ? { q: texteServeur } : {};
   }
 
+  // web#2646 — une modification enregistrée depuis Oxygen (« Modifier les
+  // métadonnées… », « Appliquer un tag… ») ne change pas les filtres : les
+  // chargements ci-dessous, qui ne suivaient que les filtres, gardaient donc
+  // l'ancienne valeur à l'écran jusqu'au rechargement de la page.
+  // `versionDonnees` est lu par chacun d'eux ; l'incrémenter les relance.
+  let versionDonnees = $state(0);
+  /** La piste ouverte dans le panneau quand la modification a été enregistrée :
+   *  le rechargement la rouvre au lieu de sauter sur la première piste.
+   *  `undefined` : rechargement ordinaire (changement de filtre). */
+  let pisteARetrouver: number | null | undefined = undefined;
+  function donneesModifiees() {
+    pisteARetrouver = selected?.id ?? null;
+    versionDonnees += 1;
+  }
+
   async function loadTracks() {
-    loading = true; error = null;
+    const garder = pisteARetrouver;
+    pisteARetrouver = undefined;
+    // Après une modification, la liste reste à l'écran pendant la relecture :
+    // l'état « Chargement » la remplacerait et ferait perdre le défilement.
+    if (garder === undefined) loading = true;
+    error = null;
     try {
       const res = await getFilteredTracks({ ...facetParam(facetSels), ...texteLibreParam(), limit: LOAD_LIMIT });
       tracks = res.items;
       total = res.total;
+      const meme = garder != null ? tracks.find(t => t.id === garder) : undefined;
+      if (meme) { void remplirPanneau(meme); return; }
       selected = null;
       if (tracks.length) select(tracks[0]);
     } catch (e) {
@@ -666,6 +692,7 @@
   $effect(() => {
     const vuePochettes = mode === 'grid' || mode === 'mur';
     const filtres = { ...facetParam(facetSels), ...texteLibreParam() };
+    void versionDonnees;
     let actif = true;
     totalPochettes = null;
     if (vuePochettes) {
@@ -684,14 +711,15 @@
   let uniteAffichee = $derived(compteAlbums ? 'oxygen.albums' : 'oxygen.tracks');
 
   // Server-driven: (re)fetch the filtered tracks whenever the selection changes.
-  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void texteServeur; loadTracks(); });
+  // `versionDonnees` : relecture après une modification enregistrée (web#2646).
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void texteServeur; void versionDonnees; loadTracks(); });
   // Ne charge que dans son mode : l'agrégat coûte un GROUP BY sur toute la
   // sélection, inutile tant que la vue n'est pas à l'écran.
-  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); if (mode === 'cards') loadCards(); });
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void versionDonnees; if (mode === 'cards') loadCards(); });
   // Facet counts also re-fetch when the per-facet value limit changes.
-  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void JSON.stringify(serverFacetFields); void $preferences.oxygenFacetLimit; loadFacets(); });
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void JSON.stringify(serverFacetFields); void $preferences.oxygenFacetLimit; void versionDonnees; loadFacets(); });
   // Folder drill-down re-fetches its children when the path or any filter changes.
-  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void folderEnabled; void $preferences.oxygenFacetLimit; loadFolder(); });
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void folderEnabled; void $preferences.oxygenFacetLimit; void versionDonnees; loadFolder(); });
 </script>
 
 <!-- Indicateur « en lecture », partagé par la vue album et la vue tableau : il
@@ -743,7 +771,8 @@
       <OxygenEtiquetageFiltre
         filtres={mode === 'cards' ? facetParam(facetSels) : { ...facetParam(facetSels), ...texteLibreParam() }}
         cibleParDefaut={mode === 'cards' ? 'album' : 'track'}
-        nombre={mode === 'cards' ? cardsTotal : total} />
+        nombre={mode === 'cards' ? cardsTotal : total}
+        onModifie={donneesModifiees} />
     {/if}
     <div class="count" class:partial={partielAffiche} title={partielAffiche ? $t('oxygen.truncated') : ''}>
       {nombreAffiche.toLocaleString('fr')}{#if totalAffiche != null && totalAffiche >= nombreAffiche && (partielAffiche || compteAlbums)}<span class="cslash">/</span>{totalAffiche.toLocaleString('fr')}{/if} {$t(uniteAffichee)}

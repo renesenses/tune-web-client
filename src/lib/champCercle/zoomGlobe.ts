@@ -122,3 +122,44 @@ export function zoomIntermediaire(de: number, vers: number, p: number): number {
 export function dansLaScene(x: number, y: number, W: number, H: number, marge = 0): boolean {
   return x >= -marge && y >= -marge && x <= W + marge && y <= H + marge;
 }
+
+/** Les frontières des pays commencent à paraître à ce zoom (web#2657)… */
+export const SEUIL_FRONTIERES = 2.5;
+/** … et sont pleinement visibles à celui-ci. */
+export const PLEIN_FRONTIERES = 4;
+
+/**
+ * L'opacité des frontières au zoom `k` : 0 jusqu'au seuil, 1 au plein, un
+ * fondu doux entre les deux. Elle suit le zoom, pas le temps : rien ne
+ * s'anime de soi-même, et sous `prefers-reduced-motion` le zoom (donc le
+ * fondu) est déjà instantané.
+ */
+export function opaciteFrontieres(k: number): number {
+  if (!(k > SEUIL_FRONTIERES)) return 0;
+  if (k >= PLEIN_FRONTIERES) return 1;
+  const t = (k - SEUIL_FRONTIERES) / (PLEIN_FRONTIERES - SEUIL_FRONTIERES);
+  return t * t * (3 - 2 * t);
+}
+
+/** Luminance relative (WCAG) d'une couleur `#rgb` ou `#rrggbb`, `null` sinon. */
+function luminance(c: string): number | null {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c.trim());
+  if (!m) return null;
+  const h = m[1].length === 3 ? [...m[1]].map((x) => x + x).join('') : m[1];
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const v = parseInt(h.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/**
+ * La couleur des frontières (web#2657) : le jeton du thème, sauf s'il est trop
+ * sombre pour le fond de la scène, toujours sombre (thèmes clairs) ; on prend
+ * alors `repli`, la couleur claire de la scène. Sous 0,2 de luminance, le trait
+ * à 75 % d'opacité passerait sous 3:1 de contraste.
+ */
+export function couleurFrontiere(jeton: string, repli: string): string {
+  const l = luminance(jeton);
+  return l !== null && l < 0.2 ? repli : jeton;
+}
