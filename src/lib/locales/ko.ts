@@ -6741,6 +6741,19 @@ export default {
   "app.task.compilations": "컴필레이션 확인 중…",
   "app.task.releaseTypes": "발매 유형 검색 중…",
   "app.task.dynamicRange": "다이내믹 레인지 측정 중…",
+  "spectro.menu": "스펙트로그램",
+  "spectro.title": "스펙트로그램",
+  "spectro.intro": "서버가 오디오 파일로 이미지를 계산합니다. 몇 초가 걸릴 수 있습니다.",
+  "spectro.generate": "스펙트로그램 생성",
+  "spectro.loading": "스펙트로그램을 생성하는 중… 몇 초가 걸릴 수 있습니다.",
+  "spectro.alt": "「{title}」의 스펙트로그램",
+  "spectro.axes": "가로축은 시간, 세로축은 주파수(아래가 0 Hz), 레벨은 dBFS입니다. 밝을수록 소리가 큽니다.",
+  "spectro.retry": "다시 시도",
+  "spectro.notLocal": "이 트랙은 로컬 파일이 아닙니다. 스펙트로그램은 파일이 서버에 있는 라이브러리 트랙에만 제공됩니다.",
+  "spectro.failed": "스펙트로그램을 만들 수 없습니다. 파일을 읽을 수 없거나 Tune이 디코딩할 수 없는 형식입니다.",
+  "spectro.unavailable": "트랙을 찾을 수 없거나, 이 서버가 너무 오래되어 스펙트로그램을 만들 수 없습니다.",
+  "spectro.session": "세션이 만료되었습니다. 다시 로그인한 후 시도하세요.",
+  "spectro.network": "서버가 응답하지 않습니다. 연결을 확인하고 다시 시도하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

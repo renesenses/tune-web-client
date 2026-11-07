@@ -6741,6 +6741,19 @@ export default {
   "app.task.compilations": "正在检查合辑…",
   "app.task.releaseTypes": "正在查找发行类型…",
   "app.task.dynamicRange": "正在测量动态范围…",
+  "spectro.menu": "频谱图",
+  "spectro.title": "频谱图",
+  "spectro.intro": "服务器会根据音频文件计算图像，可能需要几秒钟。",
+  "spectro.generate": "生成频谱图",
+  "spectro.loading": "正在生成频谱图…可能需要几秒钟。",
+  "spectro.alt": "《{title}》的频谱图",
+  "spectro.axes": "横轴为时间，纵轴为频率（底部为 0 Hz），电平以 dBFS 表示：越亮表示声音越大。",
+  "spectro.retry": "重试",
+  "spectro.notLocal": "此曲目不是本地文件：只有文件位于服务器上的资料库曲目才有频谱图。",
+  "spectro.failed": "无法生成频谱图：文件无法读取，或格式为 Tune 无法解码。",
+  "spectro.unavailable": "找不到该曲目，或此服务器版本过旧，无法生成频谱图。",
+  "spectro.session": "会话已过期：请重新登录后再试。",
+  "spectro.network": "服务器没有响应。请检查连接后重试。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

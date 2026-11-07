@@ -6741,6 +6741,19 @@ export default {
   "app.task.compilations": "Se verifică compilațiile…",
   "app.task.releaseTypes": "Se caută tipurile de lansare…",
   "app.task.dynamicRange": "Se măsoară gama dinamică…",
+  "spectro.menu": "Spectrogramă",
+  "spectro.title": "Spectrogramă",
+  "spectro.intro": "Serverul calculează imaginea pornind de la fișierul audio. Poate dura câteva secunde.",
+  "spectro.generate": "Generează spectrograma",
+  "spectro.loading": "Se generează spectrograma… poate dura câteva secunde.",
+  "spectro.alt": "Spectrograma piesei „{title}”",
+  "spectro.axes": "Timpul pe axa orizontală, frecvența pe cea verticală (0 Hz jos), nivelul în dBFS: mai deschis înseamnă mai tare.",
+  "spectro.retry": "Reîncearcă",
+  "spectro.notLocal": "Această piesă nu este un fișier local: spectrograma există doar pentru piesele din bibliotecă al căror fișier se află pe server.",
+  "spectro.failed": "Spectrograma nu a putut fi produsă: fișierul este ilizibil sau într-un format pe care Tune nu îl poate decoda.",
+  "spectro.unavailable": "Piesa nu a fost găsită sau acest server este prea vechi pentru a produce o spectrogramă.",
+  "spectro.session": "Sesiunea a expirat: conectează-te din nou și reîncearcă.",
+  "spectro.network": "Serverul nu a răspuns. Verifică conexiunea și reîncearcă.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
