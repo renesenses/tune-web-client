@@ -1,4 +1,5 @@
 import { sourceCorrespond } from './provenanceBibliotheque';
+import { dansPeriode, type Periode } from './periodeAnnees';
 /**
  * Comptes des filtres de la bibliothèque, à jour des AUTRES filtres actifs.
  *
@@ -58,6 +59,11 @@ export interface FiltresBibliotheque {
   /** Fréquences d'échantillonnage cochées, en Hz. `[]` = pas de filtre. */
   frequence: number[];
   annee: number | null;
+  /**
+   * web#2695 — la PÉRIODE De / À de la frise, bornes comprises. Absente ou
+   * vide : pas de filtre. Comptée avec l'année (`sauf === 'annee'`).
+   */
+  periode?: Periode | null;
   /** Formats cochés, en MAJUSCULES. `[]` = pas de filtre. */
   format: string[];
   /** Quantifications cochées, en bits. `[]` = pas de filtre. */
@@ -165,6 +171,7 @@ export function correspond(
   if (sauf !== 'frequence' && f.frequence.length
       && !f.frequence.includes(a.sample_rate ?? 0)) return false;
   if (sauf !== 'annee' && f.annee != null && o.anneeDe(a) !== f.annee) return false;
+  if (sauf !== 'annee' && f.periode && !dansPeriode(o.anneeDe(a), f.periode)) return false;
   if (sauf !== 'format' && f.format.length
       && !f.format.includes(a.format?.trim().toUpperCase() ?? '')) return false;
   if (sauf !== 'profondeur' && f.profondeur.length

@@ -6640,5 +6640,14 @@ export default {
   "spectro.unavailable": "Sporet ble ikke funnet, eller denne tjeneren er for gammel til å lage spektrogram.",
   "spectro.session": "Økten er utløpt: logg inn på nytt og prøv igjen.",
   "spectro.network": "Tjeneren svarte ikke. Sjekk tilkoblingen og prøv igjen.",
+  // web#2695 — période De / À sur la frise des années.
+  "v2.lib.periodLabel": "Periode",
+  "v2.lib.periodFrom": "Fra",
+  "v2.lib.periodTo": "Til",
+  "v2.lib.periodClear": "Fjern",
+  "v2.lib.periodCount": "Album i perioden: {n}",
+  "v2.lib.periodNoYear": "Album uten år utelatt: {n}",
+  "v2.lib.periodStart": "Start på perioden",
+  "v2.lib.periodEnd": "Slutt på perioden",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

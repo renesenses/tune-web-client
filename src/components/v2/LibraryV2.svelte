@@ -106,6 +106,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { cale, elargir, fenetreNeuve, plafondDe, type Fenetre } from '../../lib/fenetreDeRendu';
   import { trierAlbums, comparerDatesDeSortie } from '../../lib/trierAlbums';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
+  import { SANS_PERIODE, anneeAuClavier, anneeSaisie, anneeSousLePointeur, bornesPeriode, dansPeriode, ecrirePeriode, lirePeriode, periodePosee, type Periode } from '../../lib/periodeAnnees';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
     comptesCompilation, comptesProvenance, repondALaRecherche, motsDeRecherche, prioriserRecherche, filtresDeRechercheServeur,
@@ -672,6 +673,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // 🔴 L'annee EFFECTIVE, pas seulement l'annee choisie : balayer la frise
     // filtre la grille en direct. Voir `anneeEffective`.
     if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
+    // web#2695 — la période De / À de la frise, bornes comprises.
+    if (periodeAppliquee && !dansPeriode(albumYear(a), periode)) return false;
     if (fFormat.length && !fFormat.includes(a.format?.trim().toUpperCase() ?? '')) return false;
     if (fDepth.length && !fDepth.includes(a.bit_depth ?? 0)) return false;
     if (fDrMin != null || fDrMax != null) {
@@ -837,6 +840,43 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let fYear = $state<number | null>(null);
 
   /**
+   * web#2695 — la PÉRIODE De / À (Bertrand, 07/11/2026). Deux champs au-dessus
+   * de la frise et deux poignées sur la frise, une seule valeur. Elle filtre
+   * selon l'année RETENUE (`albumYear`) et survit au changement de mode — la
+   * même période relue dans un autre mode, pas une année devenue fausse.
+   *
+   * Elle vit dans l'ADRESSE (`?annees=1970-1979`), lue au montage : recharger
+   * ou partager la page la repose. Bibliothèque locale seulement — sous un
+   * dépôt distant, l'écran est monté dans un autre.
+   *
+   * Elle n'agit que là où on la VOIT : frise affichée (vue Années). Le mode
+   * A–Z ne la lit pas, et y passer la retire, comme l'année figée.
+   */
+  const periodeDeLAdresse: Periode =
+    !untrack(() => depot) && typeof window !== 'undefined' ? lirePeriode(window.location?.search) : SANS_PERIODE;
+  let periode = $state<Periode>(periodeDeLAdresse);
+  if (periodePosee(periodeDeLAdresse)) navMode = 'years';
+  function effacerPeriode() { periode = SANS_PERIODE; }
+  /** La période agit-elle ? Seulement frise affichée (`showTimeline`, plus bas). */
+  const periodeAppliquee = $derived.by(() => showTimeline && navMode === 'years' && periodePosee(periode));
+  $effect(() => {
+    const p = periode;
+    if (depot || typeof window === 'undefined' || !window.history) return;
+    const voulu = ecrirePeriode(window.location.search, p);
+    if (voulu === window.location.search) return;
+    window.history.replaceState(window.history.state, '', window.location.pathname + voulu + window.location.hash);
+  });
+  // En quittant l'écran, l'adresse de la vue suivante ne garde pas la période ;
+  // l'entrée de la Bibliothèque, elle, la garde pour le Précédent.
+  $effect(() => () => {
+    if (depot || typeof window === 'undefined' || !window.history) return;
+    const sans = ecrirePeriode(window.location.search, SANS_PERIODE);
+    if (sans !== window.location.search) {
+      window.history.replaceState(window.history.state, '', window.location.pathname + sans + window.location.hash);
+    }
+  });
+
+  /**
    * Les comptes de CHAQUE filtre tiennent compte des AUTRES (Bertrand,
    * 04/09/2026 : « les filtres cumulatifs ne modifient pas les valeurs d'albums
    * correspondants sur les filtres restants »).
@@ -859,6 +899,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   const filtresActifs = $derived<FiltresBibliotheque>({
     qualite: fQuality, frequence: fRate, annee: fYear,
+    periode: periodeAppliquee ? periode : null,
     format: fFormat, profondeur: fDepth, recherche: q,
     compilation: fCompilation, provenance: fProvenance,
   });
@@ -917,6 +958,44 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (w <= 0) { hoverMonth = null; return; }
     hoverMonth = Math.min(11, Math.max(0, Math.floor((e.offsetX / w) * 12)));
   }
+
+  // ── web#2695 — les deux POIGNÉES de la période sur la frise ─────────────
+  let barsEl = $state<HTMLDivElement | null>(null);
+  let poigneeTiree: 'de' | 'a' | null = null;
+  const bornes = $derived(bornesPeriode(periode));
+  const borneDansFrise = (v: number) => Math.min(histogram.maxYear, Math.max(histogram.min, v));
+  const valeurDe = $derived.by(() => borneDansFrise(bornes.de ?? histogram.min));
+  const valeurA = $derived.by(() => borneDansFrise(bornes.a ?? histogram.maxYear));
+  const poignees = $derived([
+    { cote: 'de' as const, val: valeurDe, fin: false },
+    { cote: 'a' as const, val: valeurA, fin: true },
+  ]);
+  /** Une poignée ne franchit pas l'autre : « De » reste avant « À ». */
+  function poserBorne(cote: 'de' | 'a', an: number) {
+    if (cote === 'de') periode = { de: Math.min(an, valeurA), a: bornes.a };
+    else periode = { de: bornes.de, a: Math.max(an, valeurDe) };
+  }
+  function poigneeAuClavier(e: KeyboardEvent, cote: 'de' | 'a') {
+    const v = anneeAuClavier(e.key, cote === 'de' ? valeurDe : valeurA, histogram.min, histogram.maxYear);
+    if (v == null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    poserBorne(cote, v);
+  }
+  function poigneeSaisie(e: PointerEvent, cote: 'de' | 'a') {
+    e.preventDefault();
+    poigneeTiree = cote;
+    try { (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); } catch { /* pointeur déjà relâché */ }
+  }
+  function poigneeGlisse(e: PointerEvent) {
+    if (!poigneeTiree || !barsEl) return;
+    const r = barsEl.getBoundingClientRect();
+    poserBorne(poigneeTiree, anneeSousLePointeur(e.clientX - r.left, r.width, histogram.min, histogram.bars.length));
+  }
+  function poigneeLachee() { poigneeTiree = null; }
+  /** Position d'une borne sur la frise : début de l'année « De », fin de l'année « À ». */
+  const pctBorne = (an: number, fin: boolean) =>
+    histogram.bars.length ? ((an - histogram.min + (fin ? 1 : 0)) / histogram.bars.length) * 100 : 0;
 
   // ── Tri (contrôle « Title ▾ » du brouillon v3) ────────────────────────
   // « Ajout récent » n'est propose que si la donnee existe : sur une
@@ -1549,6 +1628,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    *  plus bas) : un rail alphabétique sur un classement chronologique
    *  promettrait un saut qui atterrirait au hasard. */
   const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists' && tab !== 'tracks' && !sourcePropre);
+
+  /** Albums de la période dans la collection (mode retenu), comme `yearCount`. */
+  const nPeriode = $derived(periodeAppliquee ? src.filter((a) => dansPeriode(albumYear(a), periode)).length : 0);
+  /** Albums SANS année dans le mode retenu : une période les écarte, l'écran le dit. */
+  const nSansAnnee = $derived(periodeAppliquee ? src.length - couvertureAnnees(src, modeAnnee) : 0);
 
   // ── #4800 — LA BIBLIOTHÈQUE PAR PAGES ──────────────────────────────────────
   //
@@ -2738,7 +2822,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
   }
 
-  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fIncomplets = false; fProvenance = null; fDrMin = null; fDrMax = null; paysChoisi = null; }
+  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fIncomplets = false; fProvenance = null; fDrMin = null; fDrMax = null; paysChoisi = null; periode = SANS_PERIODE; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
@@ -2756,7 +2840,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     depot || !(tab === 'albums' || tab === 'genres' || tab === 'years' || tab === 'labels')
       ? null
       : albumsDeLaSelection({
-          filtresAlbum: filtreActif || anneeEffective != null,
+          filtresAlbum: filtreActif || anneeEffective != null || periodeAppliquee,
           groupe: groupeOuvert?.albums ?? null,
           affiches,
         }),
@@ -3030,7 +3114,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', nbPistesAnnonce == null ? '…' : $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null && !paysChoisi} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
+      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null && !paysChoisi && !periodeAppliquee} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
@@ -3350,7 +3434,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   {#if !sourcePropre && (showTimeline || fYear != null)}
     <div class="navmode">
       {#if showTimeline}
-        <button class:on={navMode === 'alpha'} onclick={() => { navMode = 'alpha'; fYear = null; }}>A–Z</button>
+        <button class:on={navMode === 'alpha'} onclick={() => { navMode = 'alpha'; fYear = null; periode = SANS_PERIODE; }}>A–Z</button>
         <button class:on={navMode === 'years'} onclick={() => (navMode = 'years')}>{$tr('v2.lib.navYears' as any)}</button>
       {/if}
       {#if fYear != null}
@@ -3407,6 +3491,27 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   {/if}
 
   {#if showTimeline && navMode === 'years' && histogram.bars.length}
+    <!-- web#2695 — la PÉRIODE : deux champs, synchronisés avec les poignées. -->
+    <div class="periode" role="group" aria-label={$tr('v2.lib.periodLabel' as any)}>
+      <span class="ancl">{$tr('v2.lib.periodLabel' as any)}</span>
+      <label>{$tr('v2.lib.periodFrom' as any)}
+        <input class="periode-de" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
+          placeholder={String(histogram.min)} value={periode.de ?? ''}
+          onchange={(e) => (periode = { de: anneeSaisie(e.currentTarget.value), a: periode.a })} />
+      </label>
+      <label>{$tr('v2.lib.periodTo' as any)}
+        <input class="periode-a" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
+          placeholder={String(histogram.maxYear)} value={periode.a ?? ''}
+          onchange={(e) => (periode = { de: periode.de, a: anneeSaisie(e.currentTarget.value) })} />
+      </label>
+      {#if periodeAppliquee}
+        <span class="periode-n" aria-live="polite">{$tr('v2.lib.periodCount' as any).replace('{n}', $formatNombre(nPeriode))}</span>
+        {#if nSansAnnee > 0}
+          <span class="periode-sans">{$tr('v2.lib.periodNoYear' as any).replace('{n}', $formatNombre(nSansAnnee))}</span>
+        {/if}
+        <button class="periode-effacer" onclick={effacerPeriode}>{$tr('v2.lib.periodClear' as any)}</button>
+      {/if}
+    </div>
     <div class="frise">
       <!-- Peigne d'annees facon regle graduee (maquette Levente, v3) : CHAQUE
            annee porte un trait, meme vide, pour que la frise se lise comme un
@@ -3414,12 +3519,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            nombre d'albums ; le trait minimal garde l'axe lisible sur une
            collection clairsemee. -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="bars" onmouseleave={() => { hoverYear = null; hoverMonth = null; }}>
+      <div class="bars" bind:this={barsEl} onmouseleave={() => { hoverYear = null; hoverMonth = null; }}>
         {#each histogram.bars as b (b.year)}
           <button
             class="tick"
             class:on={fYear === b.year}
             class:vide={b.n === 0}
+            class:hors={periodeAppliquee && !dansPeriode(b.year, periode)}
             title={b.n ? `${b.year} — ${b.n} album${b.n > 1 ? 's' : ''}` : `${b.year} — aucun album`}
             aria-label={`${b.year}, ${b.n} album${b.n > 1 ? 's' : ''}`}
             aria-pressed={fYear === b.year}
@@ -3439,6 +3545,23 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             style="left:{cursorPct}%"
             aria-hidden="true">{cursorLabel}</span>
         {/if}
+
+        <!-- web#2695 — les deux poignées. Au clavier : flèches (un an), Page
+             (dix ans), Début / Fin. À la souris ou au doigt : on les tire. -->
+        {#each poignees as { cote, val, fin } (cote)}
+          <span class="poignee poignee-{cote}" role="slider" tabindex="0"
+            class:posee={periodeAppliquee}
+            aria-label={$tr((cote === 'de' ? 'v2.lib.periodStart' : 'v2.lib.periodEnd') as any)}
+            aria-valuemin={histogram.min} aria-valuemax={histogram.maxYear} aria-valuenow={val}
+            aria-orientation="horizontal"
+            style="left:{pctBorne(val, fin)}%"
+            onkeydown={(e) => poigneeAuClavier(e, cote)}
+            onpointerdown={(e) => poigneeSaisie(e, cote)}
+            onpointermove={poigneeGlisse}
+            onpointerup={poigneeLachee}
+            onpointercancel={poigneeLachee}
+          ></span>
+        {/each}
       </div>
       <div class="decs">
         {#each decades as d (d.year)}
@@ -4221,6 +4344,22 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      une information, on ne le cache pas. */
   .curseur.creux{background:var(--v2-line2); color:var(--v2-txt2); box-shadow:none}
   .decs{position:relative; height:16px; margin-top:9px}
+  /* web#2695 — la période : champs, compte, poignées. */
+  .periode{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:2px 30px 6px; font-size:12px; color:var(--v2-txt2)}
+  .periode label{display:inline-flex; align-items:center; gap:6px}
+  .periode input{width:5.2em; border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt);
+    font:12px var(--v2-mono); padding:4px 6px; border-radius:6px}
+  .periode input:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
+  .periode-n{color:var(--v2-acc-tint)}
+  .periode-sans{color:var(--v2-txt3)}
+  .periode-effacer{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    font:600 11px var(--v2-sans); padding:4px 11px; border-radius:var(--v2-r-pill); cursor:pointer}
+  .periode-effacer:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .tick.hors{opacity:.28}
+  .poignee{position:absolute; bottom:-6px; width:10px; height:calc(100% + 4px); transform:translateX(-50%);
+    border-radius:3px; background:var(--v2-txt3); cursor:ew-resize; touch-action:none; opacity:.55}
+  .poignee.posee{background:var(--v2-acc1); opacity:1}
+  .poignee:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px; opacity:1}
   .dec{position:absolute; transform:translateX(-50%); font:10.5px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
 
   /* Contrôles de droite : tri et bascule d'affichage. */

@@ -6647,5 +6647,14 @@ export default {
   "spectro.unavailable": "Không tìm thấy bản nhạc, hoặc máy chủ này quá cũ để tạo phổ đồ.",
   "spectro.session": "Phiên đã hết hạn: hãy đăng nhập lại rồi thử lại.",
   "spectro.network": "Máy chủ không phản hồi. Hãy kiểm tra kết nối rồi thử lại.",
+  // web#2695 — période De / À sur la frise des années.
+  "v2.lib.periodLabel": "Khoảng thời gian",
+  "v2.lib.periodFrom": "Từ",
+  "v2.lib.periodTo": "Đến",
+  "v2.lib.periodClear": "Xóa",
+  "v2.lib.periodCount": "Album trong khoảng thời gian: {n}",
+  "v2.lib.periodNoYear": "Đã loại album không có năm: {n}",
+  "v2.lib.periodStart": "Bắt đầu khoảng thời gian",
+  "v2.lib.periodEnd": "Kết thúc khoảng thời gian",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

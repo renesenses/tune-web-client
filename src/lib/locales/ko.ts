@@ -6795,6 +6795,15 @@ export default {
   "spectro.unavailable": "트랙을 찾을 수 없거나, 이 서버가 너무 오래되어 스펙트로그램을 만들 수 없습니다.",
   "spectro.session": "세션이 만료되었습니다. 다시 로그인한 후 시도하세요.",
   "spectro.network": "서버가 응답하지 않습니다. 연결을 확인하고 다시 시도하세요.",
+  // web#2695 — période De / À sur la frise des années.
+  "v2.lib.periodLabel": "기간",
+  "v2.lib.periodFrom": "시작",
+  "v2.lib.periodTo": "끝",
+  "v2.lib.periodClear": "지우기",
+  "v2.lib.periodCount": "기간 내 앨범: {n}",
+  "v2.lib.periodNoYear": "연도 없는 앨범 제외: {n}",
+  "v2.lib.periodStart": "기간 시작",
+  "v2.lib.periodEnd": "기간 끝",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

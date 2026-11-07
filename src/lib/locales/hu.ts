@@ -6754,6 +6754,15 @@ export default {
   "spectro.unavailable": "A szám nem található, vagy ez a szerver túl régi a spektrogram készítéséhez.",
   "spectro.session": "A munkamenet lejárt: jelentkezz be újra, majd próbáld meg még egyszer.",
   "spectro.network": "A szerver nem válaszolt. Ellenőrizd a kapcsolatot, majd próbáld újra.",
+  // web#2695 — période De / À sur la frise des années.
+  "v2.lib.periodLabel": "Időszak",
+  "v2.lib.periodFrom": "Ettől",
+  "v2.lib.periodTo": "Eddig",
+  "v2.lib.periodClear": "Törlés",
+  "v2.lib.periodCount": "Albumok az időszakban: {n}",
+  "v2.lib.periodNoYear": "Év nélküli albumok kizárva: {n}",
+  "v2.lib.periodStart": "Az időszak kezdete",
+  "v2.lib.periodEnd": "Az időszak vége",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

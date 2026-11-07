@@ -6795,6 +6795,15 @@ export default {
   "spectro.unavailable": "Piesa nu a fost găsită sau acest server este prea vechi pentru a produce o spectrogramă.",
   "spectro.session": "Sesiunea a expirat: conectează-te din nou și reîncearcă.",
   "spectro.network": "Serverul nu a răspuns. Verifică conexiunea și reîncearcă.",
+  // web#2695 — période De / À sur la frise des années.
+  "v2.lib.periodLabel": "Perioadă",
+  "v2.lib.periodFrom": "De la",
+  "v2.lib.periodTo": "Până la",
+  "v2.lib.periodClear": "Șterge",
+  "v2.lib.periodCount": "Albume în perioadă: {n}",
+  "v2.lib.periodNoYear": "Albume fără an excluse: {n}",
+  "v2.lib.periodStart": "Începutul perioadei",
+  "v2.lib.periodEnd": "Sfârșitul perioadei",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

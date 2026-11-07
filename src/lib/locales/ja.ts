@@ -6795,6 +6795,15 @@ export default {
   "spectro.unavailable": "トラックが見つからないか、このサーバーはスペクトログラムの生成に対応していません。",
   "spectro.session": "セッションの有効期限が切れました。再度サインインしてやり直してください。",
   "spectro.network": "サーバーから応答がありません。接続を確認してやり直してください。",
+  // web#2695 — période De / À sur la frise des années.
+  "v2.lib.periodLabel": "期間",
+  "v2.lib.periodFrom": "開始",
+  "v2.lib.periodTo": "終了",
+  "v2.lib.periodClear": "クリア",
+  "v2.lib.periodCount": "期間内のアルバム：{n}",
+  "v2.lib.periodNoYear": "年のないアルバムを除外：{n}",
+  "v2.lib.periodStart": "期間の開始",
+  "v2.lib.periodEnd": "期間の終了",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

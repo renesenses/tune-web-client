@@ -6815,6 +6815,15 @@ export default {
   "spectro.unavailable": "Track not found, or this server is too old to produce a spectrogram.",
   "spectro.session": "Session expired: sign in again, then retry.",
   "spectro.network": "The server did not respond. Check the connection and try again.",
+  // web#2695 — période De / À sur la frise des années.
+  "v2.lib.periodLabel": "Period",
+  "v2.lib.periodFrom": "From",
+  "v2.lib.periodTo": "To",
+  "v2.lib.periodClear": "Clear",
+  "v2.lib.periodCount": "Albums in the period: {n}",
+  "v2.lib.periodNoYear": "Albums without a year excluded: {n}",
+  "v2.lib.periodStart": "Start of the period",
+  "v2.lib.periodEnd": "End of the period",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
