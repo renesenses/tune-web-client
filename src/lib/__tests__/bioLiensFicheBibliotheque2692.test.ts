@@ -39,6 +39,8 @@ const BIO_SERVIE = {
   ],
 };
 
+const ALBUM = { id: 91, title: 'Giant Steps', artist_name: 'John Coltrane', artist_id: ID, year: 1960, cover_path: null };
+
 let artiste: Record<string, unknown>;
 let bioRendue: Record<string, unknown>;
 let appelsBio = 0;
@@ -48,7 +50,9 @@ const COLLECTIONS =
 
 function corpsPour(url: string) {
   if (/\/streaming\/services(\?|$)/.test(url)) return {};
-  if (/\/library\/artists\/\d+\/albums/.test(url)) return {};
+  // Un album local : sans lui la fiche dit « rien trouvé » et ne monte pas le
+  // bloc de la biographie — le témoin ne mesurerait rien.
+  if (/\/library\/artists\/\d+\/albums/.test(url)) return { albums: [ALBUM] };
   if (/\/library\/artists\/\d+\/bio/.test(url)) {
     appelsBio++;
     return bioRendue;
