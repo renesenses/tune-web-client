@@ -25,6 +25,8 @@
   const nomDe = (p: Profile) => p.display_name?.trim() || p.name || '';
 
   let phase = $state<'charge' | 'pret' | 'echec'>('charge');
+  /** #8088 — titres et albums marqués explicites masqués et refusés à la lecture. */
+  let masquerExplicite = $state(false);
   /** La politique telle que le serveur la tient ; `null` : aucune règle posée. */
   let posee = $state<PolitiqueEnregistree | null>(null);
   let artistes = $state('');
@@ -38,6 +40,7 @@
 
   function remplir(p: PolitiqueEnregistree | null) {
     posee = p;
+    masquerExplicite = p?.politique.masquer_explicite === true;
     const base = p?.politique;
     artistes = (base?.artistes_bloques ?? []).map(ligneArtiste).filter(Boolean).join('\n');
     restreindreRadios = base?.radios_autorisees != null;
@@ -71,6 +74,10 @@
       radios_autorisees: restreindreRadios ? lignes(radios) : null,
       podcasts_autorises: restreindrePodcasts ? lignes(podcasts) : null,
     };
+    // #8088 — le champ ne part que s'il dit quelque chose (case cochée, ou
+    // déjà posé) : un serveur antérieur refuse tout champ inconnu (422), et
+    // une politique sans la case doit rester enregistrable chez lui.
+    if (masquerExplicite || base?.masquer_explicite != null) politique.masquer_explicite = masquerExplicite;
     try {
       remplir(await poserPolitique(profil.id, posee?.revision ?? 0, politique));
       message = $t('parental.saved' as any);
@@ -120,6 +127,14 @@
       <span class="aide">{$t('parental.blockedArtistsHint' as any)}</span>
       <textarea data-parental-artistes rows="4" bind:value={artistes}></textarea>
     </label>
+
+    <div class="champ">
+      <label class="coche">
+        <input type="checkbox" data-parental-explicite bind:checked={masquerExplicite} />
+        <span class="lbl">{$t('parental.hideExplicit' as any)}</span>
+      </label>
+      <span class="aide">{$t('parental.hideExplicitHint' as any)}</span>
+    </div>
 
     <div class="champ">
       <label class="coche">

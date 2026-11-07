@@ -33,6 +33,12 @@ export interface PolitiqueParentale {
   plages_horaires?: PlageHoraire[];
   budget_quotidien_minutes?: number | null;
   budget_hebdomadaire_minutes?: number | null;
+  /**
+   * #8088 — titres et albums marqués explicites (Qobuz, TIDAL, Spotify, balise
+   * locale) masqués des listes et refusés à la lecture. Absent : `false`. Une
+   * piste sans marquage n'est pas tenue pour explicite.
+   */
+  masquer_explicite?: boolean;
 }
 
 export interface PolitiqueEnregistree {

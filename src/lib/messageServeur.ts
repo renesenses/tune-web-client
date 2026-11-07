@@ -42,7 +42,7 @@ export const CLE_GENERIQUE = 'erreursServeur.generique';
  * l'interface avant `message_key` : `zone_output_unavailable` (#4601, la
  * phrase nomme l'appareil), `rate_limited` (`cloud_error.rs`, #2178).
  */
-const CODES_DEJA_TRADUITS = new Set<string>(['zone_output_unavailable', 'rate_limited']);
+const CODES_DEJA_TRADUITS = new Set<string>(['zone_output_unavailable', 'rate_limited', 'parental_explicit_refused']);
 
 /** Un code machine : ASCII, sans espace (`zone_en_lecture`, `not_found`). */
 export function estUnCode(v: unknown): v is string {
