@@ -837,11 +837,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * Elle n'agit que là où on la VOIT : frise affichée (vue Années). Le mode
    * A–Z ne la lit pas, et y passer la retire, comme l'année figée.
    */
-  let periode = $state<Periode>(
-    !untrack(() => depot) && typeof window !== 'undefined' ? lirePeriode(window.location?.search) : SANS_PERIODE,
-  );
-  if (periodePosee(periode)) navMode = 'years';
+  const periodeDeLAdresse: Periode =
+    !untrack(() => depot) && typeof window !== 'undefined' ? lirePeriode(window.location?.search) : SANS_PERIODE;
+  let periode = $state<Periode>(periodeDeLAdresse);
+  if (periodePosee(periodeDeLAdresse)) navMode = 'years';
   function effacerPeriode() { periode = SANS_PERIODE; }
+  /** La période agit-elle ? Seulement frise affichée (`showTimeline`, plus bas). */
+  const periodeAppliquee = $derived.by(() => showTimeline && navMode === 'years' && periodePosee(periode));
   $effect(() => {
     const p = periode;
     if (depot || typeof window === 'undefined' || !window.history) return;
@@ -947,8 +949,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let poigneeTiree: 'de' | 'a' | null = null;
   const bornes = $derived(bornesPeriode(periode));
   const borneDansFrise = (v: number) => Math.min(histogram.maxYear, Math.max(histogram.min, v));
-  const valeurDe = $derived(borneDansFrise(bornes.de ?? histogram.min));
-  const valeurA = $derived(borneDansFrise(bornes.a ?? histogram.maxYear));
+  const valeurDe = $derived.by(() => borneDansFrise(bornes.de ?? histogram.min));
+  const valeurA = $derived.by(() => borneDansFrise(bornes.a ?? histogram.maxYear));
+  const poignees = $derived([
+    { cote: 'de' as const, val: valeurDe, fin: false },
+    { cote: 'a' as const, val: valeurA, fin: true },
+  ]);
   /** Une poignée ne franchit pas l'autre : « De » reste avant « À ». */
   function poserBorne(cote: 'de' | 'a', an: number) {
     if (cote === 'de') periode = { de: Math.min(an, valeurA), a: bornes.a };
@@ -1608,8 +1614,6 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    *  promettrait un saut qui atterrirait au hasard. */
   const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists' && tab !== 'tracks' && !sourcePropre);
 
-  /** web#2695 — la période agit-elle ? Seulement frise affichée. */
-  const periodeAppliquee = $derived(showTimeline && navMode === 'years' && periodePosee(periode));
   /** Albums de la période dans la collection (mode retenu), comme `yearCount`. */
   const nPeriode = $derived(periodeAppliquee ? src.filter((a) => dansPeriode(albumYear(a), periode)).length : 0);
   /** Albums SANS année dans le mode retenu : une période les écarte, l'écran le dit. */
@@ -3529,15 +3533,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
         <!-- web#2695 — les deux poignées. Au clavier : flèches (un an), Page
              (dix ans), Début / Fin. À la souris ou au doigt : on les tire. -->
-        {#each [['de', valeurDe, false], ['a', valeurA, true]] as [cote, val, fin] (cote)}
+        {#each poignees as { cote, val, fin } (cote)}
           <span class="poignee poignee-{cote}" role="slider" tabindex="0"
             class:posee={periodeAppliquee}
             aria-label={$tr((cote === 'de' ? 'v2.lib.periodStart' : 'v2.lib.periodEnd') as any)}
             aria-valuemin={histogram.min} aria-valuemax={histogram.maxYear} aria-valuenow={val}
             aria-orientation="horizontal"
-            style="left:{pctBorne(val as number, fin as boolean)}%"
-            onkeydown={(e) => poigneeAuClavier(e, cote as 'de' | 'a')}
-            onpointerdown={(e) => poigneeSaisie(e, cote as 'de' | 'a')}
+            style="left:{pctBorne(val, fin)}%"
+            onkeydown={(e) => poigneeAuClavier(e, cote)}
+            onpointerdown={(e) => poigneeSaisie(e, cote)}
             onpointermove={poigneeGlisse}
             onpointerup={poigneeLachee}
             onpointercancel={poigneeLachee}
