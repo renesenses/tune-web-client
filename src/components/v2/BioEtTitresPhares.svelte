@@ -28,6 +28,8 @@
   import { TITRES_PHARES_MAX } from '../../lib/titresPharesArtiste';
   import AttributionBio from './AttributionBio.svelte';
   import type { BioProvenance } from '../../lib/library/attributionBio';
+  import TexteDeBio from './TexteDeBio.svelte';
+  import { segmentsAffichables } from '../../lib/library/bioSegments';
   import type { LangueBio } from '../../lib/library/langueBio';
   import MentionRepliBio from './MentionRepliBio.svelte';
 
@@ -35,6 +37,8 @@
     bio?: string | null;
     /** D'où vient la biographie (`bio_provenance`) — la ligne d'attribution. */
     provenance?: BioProvenance | null;
+    /** `bio_segments` du serveur (#7910) : les liens de la biographie. */
+    segments?: unknown;
     /** Langue du texte et repli éventuel (`bio_provenance.lang`, `repli`) — #8010. */
     langueBio?: LangueBio | null;
     titres?: Track[];
@@ -60,9 +64,10 @@
      */
     actionsBio?: Snippet;
   }
-  let { bio = null, provenance = null, langueBio = null, titres = [], titresEnCharge = false, cle = undefined, actionsBio = undefined }: Props = $props();
+  let { bio = null, provenance = null, segments = null, langueBio = null, titres = [], titresEnCharge = false, cle = undefined, actionsBio = undefined }: Props = $props();
 
   const bioPropre = $derived((bio ?? '').trim());
+  const segmentsBio = $derived(segmentsAffichables(bioPropre, segments));
 
   function lireDepuis(i: number) {
     const zid = zoneRequise();
@@ -80,7 +85,7 @@
     {#if bioPropre}
       <ClampedText lines={4} resetKey={cle}
         moreLabel={$t('v2.art.bioReadMore' as any)} lessLabel={$t('v2.art.bioReadLess' as any)}>
-        <p class="bio" lang={langueBio?.langue ?? undefined}>{bioPropre}</p>
+        <p class="bio" lang={langueBio?.langue ?? undefined}>{#if segmentsBio}<TexteDeBio segments={segmentsBio} />{:else}{bioPropre}{/if}</p>
       </ClampedText>
       <MentionRepliBio repliVers={langueBio?.repliVers ?? null} />
       <AttributionBio {provenance} />

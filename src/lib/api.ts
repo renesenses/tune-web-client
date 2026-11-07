@@ -4098,11 +4098,11 @@ export function getTagSmartCollections(tagId: number) {
 // --- Smart Playlists ---
 
 export function getAlbumBio(albumId: number) {
-  return fetchJSON<{ bio: string | null; source: string | null; release_id?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null; repli?: { raison?: string; langue_demandee?: string | null; langue_disponible?: string | null } | null }>(`${BASE}/library/albums/${albumId}/bio`);
+  return fetchJSON<{ bio: string | null; source: string | null; release_id?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null; bio_segments?: import('./library/bioSegments').BioSegment[]; repli?: { raison?: string; langue_demandee?: string | null; langue_disponible?: string | null } | null }>(`${BASE}/library/albums/${albumId}/bio`);
 }
 
 export function getArtistBio(artistId: number) {
-  return fetchJSON<{ bio: string | null; source?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null; repli?: { raison?: string; langue_demandee?: string | null; langue_disponible?: string | null } | null }>(`${BASE}/library/artists/${artistId}/bio`);
+  return fetchJSON<{ bio: string | null; source?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null; bio_segments?: import('./library/bioSegments').BioSegment[]; repli?: { raison?: string; langue_demandee?: string | null; langue_disponible?: string | null } | null }>(`${BASE}/library/artists/${artistId}/bio`);
 }
 
 export function getArtistTimeline(artistId: number) {

@@ -41,6 +41,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbum';
   import ClampedText from '../partages/ClampedText.svelte';
   import AttributionBio from './AttributionBio.svelte';
+  import TexteDeBio from './TexteDeBio.svelte';
+  import { segmentsAffichables } from '../../lib/library/bioSegments';
   import MentionRepliBio from './MentionRepliBio.svelte';
   import { langueBioDe, AUCUNE_LANGUE, type LangueBio } from '../../lib/library/langueBio';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
@@ -1400,6 +1402,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   let bio = $state<string | null>(null);
   /** Provenance de la notice (`bio_provenance`) — attribution CC BY-SA. */
   let bioProvenance = $state<BioProvenance | null>(null);
+  /** `bio_segments` de `GET /library/albums/{id}/bio` (#7910) : liens de la présentation. */
+  let bioSegments = $state<unknown>(null);
+  const segmentsBio = $derived(segmentsAffichables(bio, bioSegments));
   /** Langue de la notice et repli éventuel (#8010). */
   let bioLangue = $state<LangueBio>(AUCUNE_LANGUE);
   let bioChargement = $state(false);
@@ -1415,6 +1420,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     bioOuverte = false;
     bio = null;
     bioProvenance = null;
+    bioSegments = null;
     bioLangue = AUCUNE_LANGUE;
     bioErreur = false;
   });
@@ -1431,6 +1437,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       if (album.id === id) {
         bio = r.bio ?? '';
         bioProvenance = provenanceDe(r);
+        bioSegments = r.bio_segments ?? null;
         bioLangue = langueBioDe(r);
       }
     } catch {
@@ -1981,7 +1988,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
           <p class="bio-state err">{$tr('library.bioLoadError' as any)}</p>
         {:else if bio}
           <ClampedText lines={4} resetKey={bio}>
-            <p class="bio-text" lang={bioLangue.langue ?? undefined}>{bio}</p>
+            <p class="bio-text" lang={bioLangue.langue ?? undefined}>{#if segmentsBio}<TexteDeBio segments={segmentsBio} />{:else}{bio}{/if}</p>
           </ClampedText>
           <MentionRepliBio genre="notes" repliVers={bioLangue.repliVers} />
           <AttributionBio provenance={bioProvenance} />

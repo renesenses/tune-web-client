@@ -221,6 +221,11 @@
   /** Langue du texte et repli éventuel (#8010). */
   let bioLangue = $state<LangueBio>({ langue: null, repliVers: null });
   /**
+   * `bio_segments` de `GET /library/artists/{id}/bio` (#7910). Ignorés par
+   * `BioEtTitresPhares` s'ils ne recomposent pas la `bio` affichée.
+   */
+  let bioSegments = $state<unknown>(null);
+  /**
    * Le compte de l'en-tête : les vignettes de la DISCOGRAPHIE COMMUNE, et non
    * les seuls albums de la bibliothèque — « 1 albums » pour a-ha, 44 à
    * l'écran. Repris tel quel de la fiche de bibliothèque, qui l'avait mesuré.
@@ -574,6 +579,7 @@
   ) {
     const editee = bioEditee?.trim() || null;
     bio = editee;
+    bioSegments = null;
     // `GET /library/artists/{id}` porte la provenance de SA bio, à côté d'elle.
     bioProvenance = editee ? provenanceEditee : null;
     bioLangue = editee ? langueEditee : AUCUNE_LANGUE;
@@ -583,6 +589,7 @@
       if (mien === jeton) {
         bio = r?.bio?.trim() || null;
         bioProvenance = bio ? provenanceDe(r) : null;
+        bioSegments = bio ? ((r as any)?.bio_segments ?? null) : null;
         bioLangue = bio ? langueBioDe(r) : AUCUNE_LANGUE;
       }
     } catch {
@@ -1136,7 +1143,7 @@
   {:else}
     <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
-    <BioEtTitresPhares bio={bio} provenance={bioProvenance} langueBio={bioLangue} titres={titres} {titresEnCharge} cle={cible?.id}
+    <BioEtTitresPhares bio={bio} provenance={bioProvenance} segments={bioSegments} langueBio={bioLangue} titres={titres} {titresEnCharge} cle={cible?.id}
       actionsBio={artisteEditable ? enrichirBio : undefined} />
 
     <!-- tune-server-rust#6001 — ProgArchives / Metal Archives / AllMusic, pour
