@@ -83,14 +83,20 @@ export function dernieresLues(
 }
 
 /**
- * web#2716 — l'écran Radio montre DEUX sections distinctes : « Mes radios »
- * (les radios choisies) d'abord, puis « Dernières écoutées » SANS répéter une
- * station déjà affichée au-dessus. Une section vide ne s'affiche pas.
+ * web#2716 — l'écran Radio montre, dans CHAQUE onglet, une rangée « Dernières
+ * écoutées » EN HAUT (la plus récente d'abord), puis « Mes radios » (la liste
+ * de l'onglet) en dessous. Une même station PEUT figurer dans les deux
+ * sections (décision du 07/11) ; à l'intérieur d'une section, jamais deux
+ * fois. Une section vide ne s'affiche pas.
  */
+function sansDoublon(rs: RadioStation[]): RadioStation[] {
+  const vus = new Set<unknown>();
+  return rs.filter((r) => (vus.has(r.id) ? false : (vus.add(r.id), true)));
+}
+
 export function sectionsRadio(
   mes: RadioStation[],
   recentes: RadioStation[],
-): { mes: RadioStation[]; recentes: RadioStation[] } {
-  const deja = new Set(mes.map((r) => r.id));
-  return { mes, recentes: recentes.filter((r) => !deja.has(r.id)) };
+): { recentes: RadioStation[]; mes: RadioStation[] } {
+  return { recentes: sansDoublon(recentes), mes: sansDoublon(mes) };
 }

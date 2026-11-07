@@ -499,8 +499,18 @@
       {/if}
       {@const liste = favorites.length && ongletFavoris ? favorites : shown}
       {@const sections = sectionsRadio(liste, recentes)}
-      <!-- web#2716 — « Mes radios » d'abord, puis « Dernières écoutées » sans
-           doublon ; une section vide ne s'affiche pas. -->
+      <!-- web#2716 — « Dernières écoutées » en haut, puis « Mes radios » ; une
+           même station peut figurer dans les deux ; section vide masquée. -->
+      {#if sections.recentes.length && !q && !genre && !paysChoisi && !retenuesParCriteres}
+        <section class="sec recentes">
+          <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
+          <div class="grid rangee">
+            {#each sections.recentes as r (r.id)}
+              {@render tile(r)}
+            {/each}
+          </div>
+        </section>
+      {/if}
       {#if sections.mes.length}
         <section class="sec mesradios">
           <h2>{$t('v2.radio.tabMine' as any)}</h2>
@@ -512,16 +522,6 @@
         </section>
       {:else}
         <div class="state">{$t('v2.radio.noMatch' as any)}</div>
-      {/if}
-      {#if sections.recentes.length && !q && !genre && !paysChoisi && !retenuesParCriteres}
-        <section class="sec recentes">
-          <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
-          <div class="grid rangee">
-            {#each sections.recentes as r (r.id)}
-              {@render tile(r)}
-            {/each}
-          </div>
-        </section>
       {/if}
     {/if}
   </div>

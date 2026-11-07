@@ -134,8 +134,7 @@ describe('entrées de l’annuaire : non modifiables, à retirer', () => {
 });
 
 describe('Dernières lues', () => {
-  it('🔴 lancer une station la met en rangée « Dernières écoutées », après Mes radios, sans doublon (#2716)', async () => {
-    mocks.getRadios.mockResolvedValue([FIP, { ...MAISON, favorite: true }]);
+  it('🔴 lancer une station la met en première rangée (Dernières écoutées, en haut), la plus récente d’abord (#2716)', async () => {
     await monter();
     expect(hote.querySelector('.recentes'), 'rangée visible sans lecture').toBeNull();
     const lancer = (nom: string) => ([...hote.querySelectorAll('.grid .st')]
@@ -143,21 +142,16 @@ describe('Dernières lues', () => {
       .querySelector('button.ouvrir') as HTMLButtonElement).click();
     lancer('FIP'); await respirer();
     lancer('Radio Maison'); await respirer();
-    // Onglet « Toutes » : tout est déjà dans Mes radios, rien à répéter.
-    expect(hote.querySelector('.recentes')).toBeNull();
-    (hote.querySelector('.ronglets button') as HTMLButtonElement).click();
-    await respirer();
     const rangee = [...hote.querySelectorAll('.recentes .st .nm')].map((n) => n.textContent);
-    expect(rangee).toEqual(['FIP']);
+    expect(rangee).toEqual(['Radio Maison', 'FIP']);
+    // #2716 : les mêmes stations restent aussi dans « Mes radios », en dessous.
+    expect([...hote.querySelectorAll('.mesradios .st .nm')].map((n) => n.textContent)).toEqual(['FIP', 'Radio Maison']);
     expect(hote.querySelector('.scroll')!.firstElementChild!.classList.contains('filtres')).toBe(true);
   });
 
   it('la rangée se masque quand une recherche est en cours', async () => {
     memoriserLecture(7);
-    mocks.getRadios.mockResolvedValue([FIP, { ...MAISON, favorite: true }]);
     await monter();
-    (hote.querySelector('.ronglets button') as HTMLButtonElement).click();
-    await respirer();
     expect(hote.querySelector('.recentes')).not.toBeNull();
     const champ = hote.querySelector('.scroll .v2-rech input') as HTMLInputElement;
     champ.value = 'maison';

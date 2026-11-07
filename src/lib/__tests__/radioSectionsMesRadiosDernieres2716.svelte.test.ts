@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // web#2716 — Radio : « Mes radios » et « Dernières écoutées » ne se mélangent
-// plus. Deux sections titrées, Mes radios d'abord, aucune station répétée,
+// plus. x station répétée,
 // une section vide ne s'affiche pas. Contre-épreuve : `sectionsRadio` sans
 // dédoublonnage (l'état d'avant) fait échouer le test « aucun doublon ».
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -56,43 +56,49 @@ afterEach(() => {
 });
 
 describe('#2716 — sectionsRadio', () => {
-  it('retire des récentes les stations déjà dans Mes radios', () => {
+  it('garde une station présente dans les deux sections', () => {
     const r = sectionsRadio([A, B], [C, A, D]);
     expect(r.mes.map((x) => x.id)).toEqual([1, 2]);
-    expect(r.recentes.map((x) => x.id)).toEqual([3, 4]);
+    expect(r.recentes.map((x) => x.id)).toEqual([3, 1, 4]);
+  });
+  it('pas de doublon à l’intérieur d’une section', () => {
+    const r = sectionsRadio([A, A, B], [C, C]);
+    expect(r.mes.map((x) => x.id)).toEqual([1, 2]);
+    expect(r.recentes.map((x) => x.id)).toEqual([3]);
   });
   it('section vide : rien à montrer', () => {
-    expect(sectionsRadio([A], [A]).recentes).toEqual([]);
+    expect(sectionsRadio([A], []).recentes).toEqual([]);
     expect(sectionsRadio([], [C]).mes).toEqual([]);
   });
 });
 
 describe('#2716 — écran Radio', () => {
-  it('deux sections titrées, Mes radios d’abord puis Dernières écoutées', async () => {
+  it('dans chaque onglet : Dernières écoutées d’abord, puis Mes radios', async () => {
+    for (const favoris of [false, true]) {
+      await monter([A, B, C, D], favoris);
+      const secs = [...hote.querySelectorAll('.scroll section.sec')];
+      expect(secs.map((s) => s.querySelector('h2')?.textContent)).toEqual(['Dernières écoutées', 'Mes radios']);
+      expect(secs[0].classList.contains('recentes')).toBe(true);
+      expect(secs[1].classList.contains('mesradios')).toBe(true);
+      unmount(instance as any); instance = null; hote.remove();
+    }
+  });
+
+  it('récentes triées par last_played décroissant, et une radio peut être dans les deux', async () => {
+    await monter([A, B, C, D]);
+    expect(noms('.recentes')).toEqual(['Charlie', 'Delta', 'Alpha']);
+    expect(noms('.mesradios')).toEqual(['Alpha', 'Bravo', 'Charlie', 'Delta']);
+  });
+
+  it('onglet Favoris : les récentes restent en haut, Mes radios = favoris', async () => {
     await monter([A, B, C, D], true);
-    const secs = [...hote.querySelectorAll('.scroll section.sec')];
-    expect(secs.map((s) => s.querySelector('h2')?.textContent)).toEqual(['Mes radios', 'Dernières écoutées']);
-    expect(secs[0].classList.contains('mesradios')).toBe(true);
-    expect(secs[1].classList.contains('recentes')).toBe(true);
+    expect(noms('.recentes')).toEqual(['Charlie', 'Delta', 'Alpha']);
     expect(noms('.mesradios')).toEqual(['Alpha', 'Bravo']);
-  });
-
-  it('aucune radio n’est répétée entre les deux sections', async () => {
-    await monter([A, B, C, D], true);
-    const haut = noms('.mesradios');
-    const bas = noms('.recentes');
-    expect(bas).toEqual(['Charlie', 'Delta']);
-    expect(bas.filter((n) => haut.includes(n))).toEqual([]);
-  });
-
-  it('section vide masquée : tout est déjà dans Mes radios → pas de Dernières écoutées', async () => {
-    await monter([A, B]);
-    expect(hote.querySelector('.recentes')).toBeNull();
-    expect(hote.querySelector('.mesradios h2')?.textContent).toBe('Mes radios');
   });
 
   it('section vide masquée : aucune lecture → Mes radios seule', async () => {
     await monter([B, mk(5, 'Echo')]);
+    expect(hote.querySelector('.recentes')).toBeNull();
     expect(hote.querySelectorAll('.scroll section.sec').length).toBe(1);
   });
 });
