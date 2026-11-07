@@ -2,6 +2,7 @@
   import { labelDe, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
   import { labelQobuzDe, ouvrirLabelDeService } from '../../lib/labelDeService';
   import BadgeReaffectation from './BadgeReaffectation.svelte';
+  import ApportsQobuzAlbum from './ApportsQobuzAlbum.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Fiche album du nouveau client (direction Levente). Ouvre par-dessus la
@@ -1971,6 +1972,12 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   <!-- web#2653 — « Mes notes » : album LOCAL seulement, comme la note sur 5. -->
   {#if album.id != null && !depot}
     <div class="mes-notes-album"><MesNotes type="album" id={album.id} /></div>
+  {/if}
+
+  <!-- tune-server-rust#8077 — ce que Qobuz complète, avec sa source, et le
+       geste qui le retire. Album LOCAL seulement. -->
+  {#if album.id != null && !depot}
+    <ApportsQobuzAlbum albumId={album.id} />
   {/if}
 
   <!-- Présentation de l'album (#3586). Voir le commentaire de `basculerBio`
