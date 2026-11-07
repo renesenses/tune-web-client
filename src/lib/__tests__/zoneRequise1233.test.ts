@@ -105,7 +105,10 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // TRENTE depuis tune-server-rust#7195 (`CollectionPhysiqueV2` lance
     // « Écouter sur <service> » un disque Discogs) et web#2580 (`CrosstalkV2`
     // écrit un réglage DE ZONE, comme Crossfeed Pro).
-    expect(avec.length).toBe(30);
+    // TRENTE-ET-UN depuis tune-server-rust#7614 : `SurechantillonnageV2` écrit
+    // un réglage DE ZONE (le greffon de suréchantillonnage).
+    expect(avec.length).toBe(31);
+    expect(avec).toContain('SurechantillonnageV2.svelte');
     expect(avec).toContain('CollectionPhysiqueV2.svelte');
     expect(avec).toContain('CrosstalkV2.svelte');
     expect(avec).toContain('PlaylistsCercleSection.svelte');
