@@ -185,3 +185,8 @@ MIT — see [LICENSE](LICENSE)
   Régénérer : `node scripts/genererVilles.mjs cities15000.zip --min-pop 20000`.
 - **Points de terre du globe** (`src/lib/champCercle/pointsTerre.ts`) :
   world-atlas (Mike Bostock, licence ISC), d'après Natural Earth (domaine public).
+- **Frontières et côtes du globe** (`src/lib/champCercle/frontieresTerre.ts`) :
+  mêmes world-atlas et Natural Earth ; `node scripts/genererFrontieresTerre.mjs`.
+- **Grands fleuves du globe** (`src/lib/champCercle/fleuvesTerre.ts`) :
+  `ne_110m_rivers_lake_centerlines` de Natural Earth (domaine public), source
+  épinglée ; `node scripts/genererFleuvesTerre.mjs`.
