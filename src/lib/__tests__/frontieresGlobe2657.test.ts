@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { decoderFrontieres, decoderPointsTerre, decouperPolyligne, paysSous, projeter, DEG } from '../champCercle/globe';
 import { couleurFrontiere, opaciteFrontieres, PLEIN_FRONTIERES, SEUIL_FRONTIERES } from '../champCercle/zoomGlobe';
+import { FLEUVES_TERRE } from '../champCercle/fleuvesTerre';
 import { COTES_TERRE, FRONTIERES_TERRE } from '../champCercle/frontieresTerre';
 import { POINTS_TERRE } from '../champCercle/pointsTerre';
 import { PAYS_TERRE } from '../champCercle/paysTerre';
@@ -76,6 +77,25 @@ describe('données des côtes (web#2697)', () => {
     for (const p of decoderFrontieres(COTES_TERRE)) {
       for (let i = 2; i < p.length; i += 2) expect(Math.abs(p[i + 1] - p[i - 1])).toBeLessThanOrEqual(180 * DEG + 1e-6);
     }
+  });
+});
+
+describe('données des fleuves (web#2697)', () => {
+  const fichier = readFileSync(join(process.cwd(), 'src/lib/champCercle/fleuvesTerre.ts'), 'utf8');
+  it('pèse 16 Ko au plus et porte sa source, son empreinte et Natural Earth', () => {
+    expect(Buffer.byteLength(fichier, 'utf8')).toBeLessThanOrEqual(16 * 1024);
+    expect(fichier).toMatch(/Source : https:\/\/\S+ne_110m_rivers_lake_centerlines\.geojson/);
+    expect(fichier).toMatch(/Source SHA256 : [0-9a-f]{64}/);
+    expect(fichier).toContain('Natural Earth');
+  });
+  it('se décode et contient un point du Danube, près de 48°N, 17°E', () => {
+    const fleuves = decoderFrontieres(FLEUVES_TERRE);
+    expect(fleuves.length).toBeGreaterThanOrEqual(10);
+    const danube = fleuves.some((p) => {
+      for (let i = 0; i < p.length; i += 2) if (Math.abs(p[i] / DEG - 48) < 1.5 && Math.abs(p[i + 1] / DEG - 17) < 2.5) return true;
+      return false;
+    });
+    expect(danube).toBe(true);
   });
 });
 
@@ -174,7 +194,7 @@ describe('le moteur', () => {
     (canvas as any).getContext = () => ctx;
     canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 500, right: 800, bottom: 500, x: 0, y: 0, toJSON() {} });
     const m = new ChampCercle(canvas, { budget: budgetScene({ largeur: 1000, lectureLocale: false, mouvementReduit: true }),
-      couleurs: { frontiere: '#ff0088', cote: '#00ccee' }, surPays });
+      couleurs: { frontiere: '#ff0088', cote: '#00ccee', fleuve: '#33aa55' }, surPays });
     m.redimensionner(800, 500);
     m.majScene(construireScene({ moi: { nom: 'Moi', albums: 0, genres: [], lieu: null }, contacts: [], cercles: [], focus: null, maxAutour: 30, maxGrappes: 6 }));
     m.vue('monde', true);
@@ -182,16 +202,18 @@ describe('le moteur', () => {
     drainer();
     const frontieres = () => traits.filter((t) => t.couleur === '#ff0088');
     const cotes = () => traits.filter((t) => t.couleur === '#00ccee');
-    return { m, canvas, traits, frontieres, cotes };
+    const fleuves = () => traits.filter((t) => t.couleur === '#33aa55');
+    return { m, canvas, traits, frontieres, cotes, fleuves };
   }
 
   it('ne trace aucune frontière en deçà du seuil de zoom', () => {
-    const { m, traits, frontieres, cotes } = monter();
+    const { m, traits, frontieres, cotes, fleuves } = monter();
     for (const k of [1, 2, 2.4]) {
       traits.length = 0; m.zoomerA(k); drainer();
       expect(m.niveauZoom).toBeCloseTo(k, 6);
       expect(frontieres(), `zoom ×${k}`).toEqual([]);
       expect(cotes(), `côtes, zoom ×${k}`).toEqual([]);
+      expect(fleuves(), `fleuves, zoom ×${k}`).toEqual([]);
     }
     m.detruire();
   });
@@ -212,6 +234,8 @@ describe('le moteur', () => {
     m.zoomerA(4); drainer();
     expect(cotes()).toHaveLength(1);
     expect(cotes()[0].lignes).toBeGreaterThan(100);
+    expect(fleuves()).toHaveLength(1);
+    expect(fleuves()[0].lignes).toBeGreaterThan(10);
     traits.length = 0;
     m.majCouleurs({ cote: '#112233' }); drainer();
     expect(traits.filter((t) => t.couleur === '#112233')).toHaveLength(1);

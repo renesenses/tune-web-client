@@ -24,6 +24,7 @@ import { boucleImages } from '../boucleImages';
 import { parBudget, type Budget } from './budget';
 import { deprojeter, pointArc, projeter, vecteur, decoderPointsTerre, decoderFrontieres, parcourirPolyligne, paysSous, DEG, type Orientation } from './globe';
 import { POINTS_TERRE } from './pointsTerre';
+import { FLEUVES_TERRE } from './fleuvesTerre';
 import { COTES_TERRE, FRONTIERES_TERRE } from './frontieresTerre';
 import {
   bornerInclinaison, bornerZoom, dansLaScene, garderSous, rayonGlobe, vitesseGlisse, vueEntiere,
@@ -74,10 +75,10 @@ export interface OptionsChamp {
   surPays?: (p: { code: string; x: number; y: number } | null) => void;
 }
 
-export interface Couleurs { or: string; orClair: string; vert: string; vertClair: string; fil: string; fond: string; public: string; frontiere: string; cote: string }
+export interface Couleurs { or: string; orClair: string; vert: string; vertClair: string; fil: string; fond: string; public: string; frontiere: string; cote: string; fleuve: string }
 /** `public` (rc9) : les points anonymes de la carte publique, gris bleuté, en retrait de l'or du cercle. */
 /** `frontiere` (web#2657) : les frontières des pays au zoom ; l'écran la lit dans le thème. */
-const COULEURS: Couleurs = { or: '#deb268', orClair: '#f3cf86', vert: '#4cc79d', vertClair: '#7fe0bd', fil: '#9fb0b6', fond: 'rgba(15,24,28,.92)', public: '#a9c4cf', frontiere: '#9fb0b6', cote: '#8396a0' };
+const COULEURS: Couleurs = { or: '#deb268', orClair: '#f3cf86', vert: '#4cc79d', vertClair: '#7fe0bd', fil: '#9fb0b6', fond: 'rgba(15,24,28,.92)', public: '#a9c4cf', frontiere: '#9fb0b6', cote: '#8396a0', fleuve: '#5fa8d3' };
 /** Appui long au toucher qui montre le nom du pays (web#2657). */
 const APPUI_LONG_MS = 500;
 
@@ -155,6 +156,7 @@ export class ChampCercle {
   /** Les frontières (web#2657), décodées au premier passage du seuil de zoom seulement. */
   private frontieres: Float32Array[] | null = null;
   private cotes: Float32Array[] | null = null;
+  private fleuves: Float32Array[] | null = null;
   /** Le pays annoncé à l'écran (`surPays`), pour ne le redire qu'au changement. */
   private paysAnnonce: string | null = null;
   private appuiLong: ReturnType<typeof setTimeout> | null = null;
@@ -530,6 +532,13 @@ export class ChampCercle {
       ctx.globalAlpha = a * 0.6 * opFrontieres;
       ctx.beginPath();
       for (const poly of this.cotes) parcourirPolyligne(poly, R, cx, cy, this.G, debut, suite);
+      ctx.stroke();
+      // web#2697 : les grands fleuves, en bleu fin (même fondu, même découpe).
+      this.fleuves ??= decoderFrontieres(FLEUVES_TERRE);
+      ctx.strokeStyle = this.c.fleuve; ctx.lineWidth = 0.7;
+      ctx.globalAlpha = a * 0.7 * opFrontieres;
+      ctx.beginPath();
+      for (const poly of this.fleuves) parcourirPolyligne(poly, R, cx, cy, this.G, debut, suite);
       ctx.stroke();
       ctx.strokeStyle = this.c.frontiere; ctx.lineWidth = 0.8;
       ctx.globalAlpha = a * 0.75 * opFrontieres;

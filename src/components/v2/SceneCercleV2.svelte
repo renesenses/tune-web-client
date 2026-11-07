@@ -398,6 +398,9 @@
       const repli = style.getPropertyValue('--sc-txt2').trim() || '#9fb0b6';
       // Les côtes (web#2697) : le jeton secondaire du thème, plus léger que celui des frontières.
       const c2 = style.getPropertyValue('--v2-txt2').trim();
+      // Les fleuves (web#2697) : bleu de la scène, toujours sombre, donc lisible dans tous les thèmes.
+      const eau = style.getPropertyValue('--sc-eau').trim();
+      if (eau) m.majCouleurs({ fleuve: eau });
       if (c) m.majCouleurs({ frontiere: couleurFrontiere(c, repli), ...(c2 ? { cote: couleurFrontiere(c2, repli) } : {}) });
     };
     appliquer();
@@ -977,7 +980,7 @@
 </section>
 
 <style>
-  .sc{--sc-fond:#121b20; --sc-or:#deb268; --sc-ligne:#22323a; --sc-txt:#e7eef0; --sc-txt2:#9fb0b6; --sc-vert:#4cc79d;
+  .sc{--sc-eau:#5fa8d3; --sc-fond:#121b20; --sc-or:#deb268; --sc-ligne:#22323a; --sc-txt:#e7eef0; --sc-txt2:#9fb0b6; --sc-vert:#4cc79d;
     display:flex; flex-direction:column; gap:10px; min-width:0}
   .sc-barre{display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px}
   .sc-barre h2{font-size:15px; font-weight:700; margin:0; flex:1 1 auto}
