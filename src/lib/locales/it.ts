@@ -3555,6 +3555,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "Disponibile dopo un'ora senza errori: mancano {time}.",
   "v2.tuneTestedPropose.button": "Proponi questo dispositivo per Tune tested",
   "v2.tuneTestedPropose.already": "Questo dispositivo è già stato proposto da questa installazione. Una nuova proposta sostituisce la precedente.",
+  "v2.tuneTestedPropose.alreadyTested": "Questo dispositivo è già Tune tested: la tua proposta aggiunge il tuo nucleo familiare e la tua configurazione, se diversa, viene allegata per l'esame.",
   "v2.tuneTestedPropose.loading": "Caricamento…",
   "v2.tuneTestedPropose.previewTitle": "Esattamente ciò che verrà inviato",
   "v2.tuneTestedPropose.previewNote": "Non viene inviato alcun indirizzo IP, nome di rete, percorso di file o nome di zona.",

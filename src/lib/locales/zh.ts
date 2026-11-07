@@ -3555,6 +3555,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "无错误播放一小时后可用：还剩 {time}。",
   "v2.tuneTestedPropose.button": "将此设备推荐到 Tune tested",
   "v2.tuneTestedPropose.already": "此设备已从本安装推荐过。新的推荐会替换之前的推荐。",
+  "v2.tuneTestedPropose.alreadyTested": "此设备已是 Tune tested：您的推荐会增加您的家庭，若您的配置不同，将一并附上供审核。",
   "v2.tuneTestedPropose.loading": "加载中…",
   "v2.tuneTestedPropose.previewTitle": "将要发送的确切内容",
   "v2.tuneTestedPropose.previewNote": "不会发送任何 IP 地址、网络名称、文件路径或区域名称。",

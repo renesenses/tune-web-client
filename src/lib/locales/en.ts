@@ -3571,6 +3571,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "Available after one hour without error: {time} left.",
   "v2.tuneTestedPropose.button": "Propose this device for Tune tested",
   "v2.tuneTestedPropose.already": "This device has already been proposed from this installation. A new proposal replaces the previous one.",
+  "v2.tuneTestedPropose.alreadyTested": "This device is already Tune tested: your proposal adds your household, and your configuration, if it differs, is attached for review.",
   "v2.tuneTestedPropose.loading": "Loading…",
   "v2.tuneTestedPropose.previewTitle": "Exactly what will be sent",
   "v2.tuneTestedPropose.previewNote": "No IP address, network name, file path or zone name is sent.",

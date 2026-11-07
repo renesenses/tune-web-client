@@ -3509,6 +3509,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "Egy óra hibátlan lejátszás után érhető el: még {time}.",
   "v2.tuneTestedPropose.button": "Az eszköz javaslása a Tune tested oldalra",
   "v2.tuneTestedPropose.already": "Ezt az eszközt már javasolták erről a telepítésről. Az új javaslat felváltja az előzőt.",
+  "v2.tuneTestedPropose.alreadyTested": "Ez az eszköz már Tune tested: javaslata hozzáadja az Ön háztartását, eltérő beállítás esetén pedig azt is csatolja vizsgálatra.",
   "v2.tuneTestedPropose.loading": "Betöltés…",
   "v2.tuneTestedPropose.previewTitle": "Pontosan ez lesz elküldve",
   "v2.tuneTestedPropose.previewNote": "Nem küldünk IP-címet, hálózatnevet, fájlútvonalat vagy zónanevet.",

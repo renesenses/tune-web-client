@@ -104,7 +104,7 @@
   const estAirplay = (z: Zone) => z.output_type === 'airplay' || z.output_type === 'airplay2';
   let airplayPairing = $state<{ deviceId: string; deviceName: string } | null>(null);
   /** tune-server-rust#7922 — la fiche Tune tested ouverte, une à la fois. */
-  let ficheTuneTested = $state<{ id: number; nom: string } | null>(null);
+  let ficheTuneTested = $state<{ id: number; nom: string; teste: boolean } | null>(null);
   function ouvrirAppairage(z: Zone, e?: Event) {
     e?.stopPropagation();
     if (!z.output_device_id) return;
@@ -523,7 +523,7 @@
         image: () => choisirImage(z),
         reglages: () => reglagesDeLaZone(z),
         correction: () => correctionDeLaZone(z),
-        tuneTested: () => { if (z.id != null) ficheTuneTested = { id: z.id, nom: z.name }; },
+        tuneTested: () => { if (z.id != null) ficheTuneTested = { id: z.id, nom: z.name, teste: !!tuneTestedDe(z) }; },
         latence: () => { void mesurerLatence(z); },
         appairer: () => ouvrirAppairage(z),
         fusionner: () => { if (j) void fusionner(z, j); },
@@ -888,7 +888,7 @@
 </section>
 
 {#if ficheTuneTested}
-  <ProposerTuneTested zoneId={ficheTuneTested.id} nom={ficheTuneTested.nom} onClose={() => (ficheTuneTested = null)} />
+  <ProposerTuneTested zoneId={ficheTuneTested.id} nom={ficheTuneTested.nom} dejaTeste={ficheTuneTested.teste} onClose={() => (ficheTuneTested = null)} />
 {/if}
 
 {#if airplayPairing}

@@ -3555,6 +3555,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "エラーなしで1時間再生すると利用可能：残り {time}。",
   "v2.tuneTestedPropose.button": "このデバイスを Tune tested に提案",
   "v2.tuneTestedPropose.already": "このデバイスはこのインストールからすでに提案されています。新しい提案は以前の提案を置き換えます。",
+  "v2.tuneTestedPropose.alreadyTested": "このデバイスはすでに Tune tested のため、提案するとあなたの世帯が追加され、構成が異なる場合は確認用に添付されます。",
   "v2.tuneTestedPropose.loading": "読み込み中…",
   "v2.tuneTestedPropose.previewTitle": "送信される内容そのもの",
   "v2.tuneTestedPropose.previewNote": "IPアドレス、ネットワーク名、ファイルパス、ゾーン名は送信されません。",

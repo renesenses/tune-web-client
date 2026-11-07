@@ -12,6 +12,7 @@
   import { portail } from '../../lib/portail';
   import * as api from '../../lib/api';
   import {
+    dejaTuneTested,
     duree,
     etatDuBouton,
     lignesApercu,
@@ -23,9 +24,15 @@
   interface Props {
     zoneId: number;
     nom: string;
+    /**
+     * tune-server-rust#8084 — le badge Tune tested de la zone, selon le
+     * catalogue lu par le navigateur : repli quand le serveur ne rend pas
+     * encore `already_tune_tested`.
+     */
+    dejaTeste?: boolean;
     onClose: () => void;
   }
-  let { zoneId, nom, onClose }: Props = $props();
+  let { zoneId, nom, dejaTeste = false, onClose }: Props = $props();
 
   type Phase = 'chargement' | 'bouton' | 'apercu' | 'envoi' | 'envoye';
   let phase = $state<Phase>('chargement');
@@ -37,6 +44,7 @@
 
   const tr = $derived(avecParametres((cle: string) => $t(cle as any)));
   const bouton = $derived(etatDuBouton(etat, tr));
+  const deja = $derived(dejaTuneTested(etat, dejaTeste));
 
   async function charger() {
     try {
@@ -99,6 +107,10 @@
       <p class="aide">{$t('v2.tuneTestedPropose.intro' as any)}</p>
       {#if etat}
         <p class="aide">{tr('v2.tuneTestedPropose.played', { time: duree(etat.seconds_without_error, tr) })}</p>
+      {/if}
+      {#if deja}
+        <!-- #8084 : un appareil déjà validé se propose encore, pour ajouter un foyer. -->
+        <p class="aide" data-testid="tt-deja-teste">{$t('v2.tuneTestedPropose.alreadyTested' as any)}</p>
       {/if}
       {#if etat?.already_proposed}
         <p class="aide">{$t('v2.tuneTestedPropose.already' as any)}</p>

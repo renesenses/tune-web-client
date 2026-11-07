@@ -230,7 +230,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // de relire ce fichier.
   const tuneTestedDe = (z: any): AppareilTuneTested | null => appareilTuneTeste(indexTuneTested, z);
   // #2698 — la fenêtre de proposition, ouvrable À TOUT MOMENT depuis la zone.
-  let ficheTuneTested = $state<{ id: number; nom: string } | null>(null);
+  let ficheTuneTested = $state<{ id: number; nom: string; teste: boolean } | null>(null);
   /**
    * Bloc « Avancé · renderer » du client actuel, REPRIS tel quel.
    *
@@ -6013,7 +6013,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <BadgeVerrouVolumeZone zoneId={z.id} />
                         {#if z.id != null}
                           <button type="button" class="tt-proposer" data-testid="proposer-tune-tested"
-                            onclick={() => (ficheTuneTested = { id: z.id as number, nom: z.name })}
+                            onclick={() => (ficheTuneTested = { id: z.id as number, nom: z.name, teste: !!tuneTestedDe(z) })}
                           >{$t('v2.zone.tuneTestedPropose' as any)}</button>
                         {/if}
                       </div>
@@ -8333,7 +8333,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 {/if}
 
 {#if ficheTuneTested}
-  <ProposerTuneTested zoneId={ficheTuneTested.id} nom={ficheTuneTested.nom} onClose={() => (ficheTuneTested = null)} />
+  <ProposerTuneTested zoneId={ficheTuneTested.id} nom={ficheTuneTested.nom} dejaTeste={ficheTuneTested.teste} onClose={() => (ficheTuneTested = null)} />
 {/if}
 
 <input type="file" accept="image/*" bind:this={champPhotoZone} onchange={photoZoneChoisie}
