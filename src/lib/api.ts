@@ -115,6 +115,7 @@ import { messageRefusPremium, type CorpsRefusPremium } from './premiumRefus';
 import { estRefusEcriture, messageRefusEcriture, CODE_REFUS_ECRITURE } from './ecritureFichiers';
 import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
 import { messageRefusBitperfect } from './bitperfectStrict';
+import { messageRefusParental } from './refusParental';
 import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
 import { adresseCatalogue, type FiltresCatalogue } from './catalogueExport';
 import {
@@ -665,9 +666,16 @@ export async function fetchJSON<T>(
         ...((err.corps as Record<string, unknown> | undefined) ?? {}),
         code: err.code,
       });
+      // #7974 / #8046 — lecture refusée par le contrôle parental (hors des
+      // plages, budget épuisé) : la phrase de l'interface, jamais le code brut.
+      const refusParental = messageRefusParental(err.code, err.corps);
       if (refusStrict) {
         err.message = refusStrict;
         notifications.error(refusStrict, 10000);
+        err.dejaAnnonce = true;
+      } else if (refusParental) {
+        err.message = refusParental;
+        notifications.error(refusParental, 10000);
         err.dejaAnnonce = true;
       } else if (
         err.code

@@ -91,6 +91,10 @@ describe('contrôle parental — l’appel API', () => {
         artistes_bloques: [{ nom: 'Groupe Interdit' }, { id: 42 }],
         radios_autorisees: ['http://radio.test/flux'],
         podcasts_autorises: null,
+        // Étape 2 : sans plage ni budget saisis, le corps le dit explicitement.
+        plages_horaires: [],
+        budget_quotidien_minutes: null,
+        budget_hebdomadaire_minutes: null,
       },
     });
     expect(q('[data-parental-message]').textContent).toContain('Règles enregistrées');
@@ -147,7 +151,7 @@ describe('contrôle parental — l’affichage', () => {
     expect(q<HTMLInputElement>('[data-parental-radios-restreintes]').checked).toBe(true);
     expect(q<HTMLTextAreaElement>('[data-parental-radios]').value).toBe('http://radio.test/flux');
     expect(q<HTMLInputElement>('[data-parental-podcasts-restreints]').checked).toBe(false);
-    expect(q('[data-parental-etape2]').textContent).toContain('conservés');
+    expect(q('[data-parental-etape2]').textContent).toContain('s’appliquent');
     expect(q('[data-parental-retirer]')).not.toBeNull();
   });
 
@@ -162,7 +166,8 @@ describe('contrôle parental — les erreurs', () => {
   it.each([
     [403, { error: 'politique_parentale_reservee_au_superviseur' }, 'administrateur ou le superviseur'],
     [422, { error: 'profil_administrateur_non_supervisable' }, 'administrateur ne se place pas sous supervision'],
-    [422, { error: 'plage_horaire_vide' }, 'refusées par le serveur'],
+    [422, { error: 'plage_horaire_vide' }, 'après l’heure de début'],
+    [422, { error: 'regle_inconnue' }, 'refusées par le serveur'],
     [500, { error: 'politique_parentale_indisponible' }, 'n’ont pas pu être lues ou enregistrées'],
   ])('écriture refusée en %i (%j) : message traduit, jamais le code machine', async (statut, corps, attendu) => {
     await monter();
