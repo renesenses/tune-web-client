@@ -3434,6 +3434,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "Διαθέσιμο μετά από μία ώρα χωρίς σφάλμα: απομένουν {time}.",
   "v2.tuneTestedPropose.button": "Πρόταση αυτής της συσκευής για το Tune tested",
   "v2.tuneTestedPropose.already": "Αυτή η συσκευή έχει ήδη προταθεί από αυτή την εγκατάσταση. Μια νέα πρόταση αντικαθιστά την προηγούμενη.",
+  "v2.tuneTestedPropose.alreadyTested": "Αυτή η συσκευή είναι ήδη Tune tested: η πρότασή σας προσθέτει το νοικοκυριό σας και η διαμόρφωσή σας, αν διαφέρει, επισυνάπτεται για εξέταση.",
   "v2.tuneTestedPropose.loading": "Φόρτωση…",
   "v2.tuneTestedPropose.previewTitle": "Ακριβώς ό,τι θα σταλεί",
   "v2.tuneTestedPropose.previewNote": "Δεν αποστέλλεται διεύθυνση IP, όνομα δικτύου, διαδρομή αρχείου ή όνομα ζώνης.",

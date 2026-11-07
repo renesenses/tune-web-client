@@ -3555,6 +3555,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "Disponibil după o oră fără erori: mai sunt {time}.",
   "v2.tuneTestedPropose.button": "Propune acest dispozitiv pentru Tune tested",
   "v2.tuneTestedPropose.already": "Acest dispozitiv a fost deja propus de pe această instalare. O propunere nouă o înlocuiește pe cea anterioară.",
+  "v2.tuneTestedPropose.alreadyTested": "Acest dispozitiv este deja Tune tested: propunerea dumneavoastră adaugă gospodăria dumneavoastră, iar configurația, dacă diferă, este atașată pentru examinare.",
   "v2.tuneTestedPropose.loading": "Se încarcă…",
   "v2.tuneTestedPropose.previewTitle": "Exact ce va fi trimis",
   "v2.tuneTestedPropose.previewNote": "Nu se trimite nicio adresă IP, nume de rețea, cale de fișier sau nume de zonă.",

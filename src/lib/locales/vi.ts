@@ -3436,6 +3436,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "Khả dụng sau một giờ không lỗi: còn {time}.",
   "v2.tuneTestedPropose.button": "Đề xuất thiết bị này cho Tune tested",
   "v2.tuneTestedPropose.already": "Thiết bị này đã được đề xuất từ bản cài đặt này. Đề xuất mới sẽ thay thế đề xuất trước.",
+  "v2.tuneTestedPropose.alreadyTested": "Thiết bị này đã được Tune tested: đề xuất của bạn sẽ thêm hộ gia đình của bạn, và cấu hình của bạn, nếu khác, sẽ được đính kèm để xem xét.",
   "v2.tuneTestedPropose.loading": "Đang tải…",
   "v2.tuneTestedPropose.previewTitle": "Chính xác những gì sẽ được gửi",
   "v2.tuneTestedPropose.previewNote": "Không gửi địa chỉ IP, tên mạng, đường dẫn tệp hay tên vùng nào.",

@@ -18,16 +18,26 @@ export interface FormatJoue {
   dsd_mode: 'native' | 'dop' | null;
 }
 
-/** Le corps envoyé au site, tel que le serveur le rend. */
+/**
+ * Le corps envoyé au site, tel que le serveur le rend.
+ *
+ * tune-server-rust#8084 — le serveur envoie désormais au schéma du site :
+ * `brand` et `gapless` (avec `bit_depth` et `dsd`). Un serveur plus ancien
+ * rend encore `manufacturer` et `gapless_observed` : l'écran lit les deux.
+ */
 export interface ApercuTuneTested {
   schema_version: number;
   device_key: string;
-  manufacturer: string;
+  brand?: string;
+  manufacturer?: string;
   model: string;
   commercial_name: string | null;
   output_type: string;
   formats: FormatJoue[];
-  gapless_observed: boolean;
+  bit_depth?: number | null;
+  dsd?: 'native' | 'dop' | null;
+  gapless?: boolean;
+  gapless_observed?: boolean;
   error_free_seconds: number;
   tune_version: string;
   platform: string;
@@ -43,6 +53,11 @@ export interface EtatTuneTested {
   threshold_seconds: number;
   remaining_seconds: number;
   already_proposed: boolean;
+  /**
+   * tune-server-rust#8084 — l'appareil figure déjà au catalogue Tune tested.
+   * Absent sur un serveur plus ancien.
+   */
+  already_tune_tested?: boolean;
   reason: RaisonTuneTested | null;
   preview: ApercuTuneTested | null;
 }
@@ -66,6 +81,17 @@ export function duree(secondes: number, t: Traduire): string {
   return h > 0
     ? t('v2.tuneTestedPropose.hm', { h, m: String(m).padStart(2, '0') })
     : t('v2.tuneTestedPropose.m', { m });
+}
+
+/**
+ * tune-server-rust#8084 — l'appareil est-il déjà Tune tested ? Le serveur le
+ * dit (`already_tune_tested`) ; à défaut (serveur plus ancien), le catalogue
+ * public lu par le navigateur, que l'écran Appareils a déjà chargé pour le
+ * badge. Ce n'est JAMAIS un motif de griser le bouton : la proposition ajoute
+ * le foyer de l'utilisateur.
+ */
+export function dejaTuneTested(etat: EtatTuneTested | null, selonLeCatalogue = false): boolean {
+  return etat?.already_tune_tested === true || selonLeCatalogue;
 }
 
 /** L'état du bouton : grisé, avec le temps restant, tant que le seuil n'est pas atteint. */
@@ -119,7 +145,7 @@ export function lignesApercu(p: ApercuTuneTested, t: Traduire): LigneApercu[] {
   const oui = t('v2.tuneTestedPropose.yes');
   const non = t('v2.tuneTestedPropose.no');
   const lignes: LigneApercu[] = [
-    { cle: 'v2.tuneTestedPropose.f.manufacturer', valeur: p.manufacturer },
+    { cle: 'v2.tuneTestedPropose.f.manufacturer', valeur: p.brand ?? p.manufacturer ?? '—' },
     { cle: 'v2.tuneTestedPropose.f.model', valeur: p.model },
   ];
   if (p.commercial_name) {
@@ -131,7 +157,7 @@ export function lignesApercu(p: ApercuTuneTested, t: Traduire): LigneApercu[] {
       cle: 'v2.tuneTestedPropose.f.formats',
       valeur: p.formats.length ? p.formats.map((f) => libelleFormat(f, t)).join(', ') : '—',
     },
-    { cle: 'v2.tuneTestedPropose.f.gapless', valeur: p.gapless_observed ? oui : non },
+    { cle: 'v2.tuneTestedPropose.f.gapless', valeur: (p.gapless ?? p.gapless_observed) ? oui : non },
     { cle: 'v2.tuneTestedPropose.f.errorFree', valeur: duree(p.error_free_seconds, t) },
     { cle: 'v2.tuneTestedPropose.f.version', valeur: p.tune_version },
     { cle: 'v2.tuneTestedPropose.f.platform', valeur: p.platform },

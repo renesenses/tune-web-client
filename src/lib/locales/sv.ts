@@ -3554,6 +3554,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "Tillgängligt efter en timme utan fel: {time} kvar.",
   "v2.tuneTestedPropose.button": "Föreslå den här enheten för Tune tested",
   "v2.tuneTestedPropose.already": "Den här enheten har redan föreslagits från den här installationen. Ett nytt förslag ersätter det tidigare.",
+  "v2.tuneTestedPropose.alreadyTested": "Den här enheten är redan Tune tested: ditt förslag lägger till ditt hushåll, och din konfiguration bifogas för granskning om den skiljer sig.",
   "v2.tuneTestedPropose.loading": "Läser in…",
   "v2.tuneTestedPropose.previewTitle": "Exakt det som skickas",
   "v2.tuneTestedPropose.previewNote": "Ingen IP-adress, inget nätverksnamn, ingen filsökväg och inget zonnamn skickas.",

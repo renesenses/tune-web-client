@@ -3434,6 +3434,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "Dostępne po godzinie bez błędów: pozostało {time}.",
   "v2.tuneTestedPropose.button": "Zaproponuj to urządzenie do Tune tested",
   "v2.tuneTestedPropose.already": "To urządzenie zostało już zaproponowane z tej instalacji. Nowa propozycja zastępuje poprzednią.",
+  "v2.tuneTestedPropose.alreadyTested": "To urządzenie jest już Tune tested: Twoja propozycja dodaje Twoje gospodarstwo domowe, a Twoja konfiguracja, jeśli się różni, zostanie dołączona do sprawdzenia.",
   "v2.tuneTestedPropose.loading": "Wczytywanie…",
   "v2.tuneTestedPropose.previewTitle": "Dokładnie to, co zostanie wysłane",
   "v2.tuneTestedPropose.previewNote": "Nie jest wysyłany żaden adres IP, nazwa sieci, ścieżka pliku ani nazwa strefy.",

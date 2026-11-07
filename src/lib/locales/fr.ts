@@ -3573,6 +3573,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "Disponible après une heure sans erreur : encore {time}.",
   "v2.tuneTestedPropose.button": "Proposer cet appareil pour Tune tested",
   "v2.tuneTestedPropose.already": "Cet appareil a déjà été proposé depuis cette installation. Une nouvelle proposition remplace la précédente.",
+  "v2.tuneTestedPropose.alreadyTested": "Cet appareil est déjà Tune tested : votre proposition ajoute votre foyer, et votre configuration, si elle diffère, est jointe pour examen.",
   "v2.tuneTestedPropose.loading": "Chargement…",
   "v2.tuneTestedPropose.previewTitle": "Exactement ce qui sera envoyé",
   "v2.tuneTestedPropose.previewNote": "Aucune adresse IP, aucun nom de réseau, aucun chemin de fichier ni nom de zone n'est envoyé.",

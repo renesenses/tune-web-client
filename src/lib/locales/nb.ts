@@ -3434,6 +3434,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "Tilgjengelig etter én time uten feil: {time} igjen.",
   "v2.tuneTestedPropose.button": "Foreslå denne enheten for Tune tested",
   "v2.tuneTestedPropose.already": "Denne enheten er allerede foreslått fra denne installasjonen. Et nytt forslag erstatter det forrige.",
+  "v2.tuneTestedPropose.alreadyTested": "Denne enheten er allerede Tune tested: forslaget ditt legger til husstanden din, og konfigurasjonen din legges ved for vurdering hvis den er annerledes.",
   "v2.tuneTestedPropose.loading": "Laster…",
   "v2.tuneTestedPropose.previewTitle": "Nøyaktig det som blir sendt",
   "v2.tuneTestedPropose.previewNote": "Ingen IP-adresse, nettverksnavn, filbane eller sonenavn sendes.",

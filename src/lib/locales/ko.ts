@@ -3555,6 +3555,7 @@ export default {
   "v2.tuneTestedPropose.remaining": "오류 없이 1시간 재생 후 사용 가능: {time} 남음.",
   "v2.tuneTestedPropose.button": "이 기기를 Tune tested에 제안",
   "v2.tuneTestedPropose.already": "이 기기는 이미 이 설치에서 제안되었습니다. 새 제안이 이전 제안을 대체합니다.",
+  "v2.tuneTestedPropose.alreadyTested": "이 기기는 이미 Tune tested이며, 제안하면 사용자의 가구가 추가되고 구성이 다르면 검토를 위해 함께 첨부됩니다.",
   "v2.tuneTestedPropose.loading": "불러오는 중…",
   "v2.tuneTestedPropose.previewTitle": "전송될 내용 그대로",
   "v2.tuneTestedPropose.previewNote": "IP 주소, 네트워크 이름, 파일 경로, 존 이름은 전송되지 않습니다.",
