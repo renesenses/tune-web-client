@@ -27,7 +27,8 @@
   import { refreshCirclePlugin } from '../../lib/circle';
   import { refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
   import { estRefusPremium } from '../../lib/premiumRefus';
-  import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
+  import EtatGreffonsV2 from './EtatGreffonsV2.svelte';
+import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import { sonderCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { sonderCrosstalk } from '../../lib/stores/crosstalk';
   import { NOMS_GREFFONS_SDK } from '../../lib/greffonEntreeAudio';
@@ -482,6 +483,8 @@
         {/each}
       </div>
     {/if}
+
+    <EtatGreffonsV2 />
   </div>
 </section>
 
