@@ -134,7 +134,8 @@ describe('entrées de l’annuaire : non modifiables, à retirer', () => {
 });
 
 describe('Dernières lues', () => {
-  it('🔴 lancer une station la met en première rangée, la plus récente d’abord', async () => {
+  it('🔴 lancer une station la met en rangée « Dernières écoutées », après Mes radios, sans doublon (#2716)', async () => {
+    mocks.getRadios.mockResolvedValue([FIP, { ...MAISON, favorite: true }]);
     await monter();
     expect(hote.querySelector('.recentes'), 'rangée visible sans lecture').toBeNull();
     const lancer = (nom: string) => ([...hote.querySelectorAll('.grid .st')]
@@ -142,14 +143,21 @@ describe('Dernières lues', () => {
       .querySelector('button.ouvrir') as HTMLButtonElement).click();
     lancer('FIP'); await respirer();
     lancer('Radio Maison'); await respirer();
+    // Onglet « Toutes » : tout est déjà dans Mes radios, rien à répéter.
+    expect(hote.querySelector('.recentes')).toBeNull();
+    (hote.querySelector('.ronglets button') as HTMLButtonElement).click();
+    await respirer();
     const rangee = [...hote.querySelectorAll('.recentes .st .nm')].map((n) => n.textContent);
-    expect(rangee).toEqual(['Radio Maison', 'FIP']);
+    expect(rangee).toEqual(['FIP']);
     expect(hote.querySelector('.scroll')!.firstElementChild!.classList.contains('filtres')).toBe(true);
   });
 
   it('la rangée se masque quand une recherche est en cours', async () => {
     memoriserLecture(7);
+    mocks.getRadios.mockResolvedValue([FIP, { ...MAISON, favorite: true }]);
     await monter();
+    (hote.querySelector('.ronglets button') as HTMLButtonElement).click();
+    await respirer();
     expect(hote.querySelector('.recentes')).not.toBeNull();
     const champ = hote.querySelector('.scroll .v2-rech input') as HTMLInputElement;
     champ.value = 'maison';

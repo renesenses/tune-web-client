@@ -81,3 +81,16 @@ export function dernieresLues(
     .filter((r): r is RadioStation => !!r)
     .slice(0, n);
 }
+
+/**
+ * web#2716 — l'écran Radio montre DEUX sections distinctes : « Mes radios »
+ * (les radios choisies) d'abord, puis « Dernières écoutées » SANS répéter une
+ * station déjà affichée au-dessus. Une section vide ne s'affiche pas.
+ */
+export function sectionsRadio(
+  mes: RadioStation[],
+  recentes: RadioStation[],
+): { mes: RadioStation[]; recentes: RadioStation[] } {
+  const deja = new Set(mes.map((r) => r.id));
+  return { mes, recentes: recentes.filter((r) => !deja.has(r.id)) };
+}

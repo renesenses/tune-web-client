@@ -30,7 +30,7 @@
   import { radioGenreRayon, radioGenreLabel, type RadioGenreShelf }
     from '../../lib/radioGenres';
   import { nomDuPays } from '../../lib/paysAffichage';
-  import { estDeLAnnuaire, dernieresLues, memoriserLecture } from '../../lib/mesRadios';
+  import { estDeLAnnuaire, dernieresLues, memoriserLecture, sectionsRadio } from '../../lib/mesRadios';
   import { dialogs } from '../../lib/stores/dialogs';
   import type { RadioStation } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -497,23 +497,27 @@
           </button>
         </div>
       {/if}
-      {#if recentes.length && !q && !genre && !paysChoisi && !retenuesParCriteres}
-        <section class="sec recentes">
-          <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
-          <div class="grid rangee">
-            {#each recentes as r (r.id)}
+      {@const liste = favorites.length && ongletFavoris ? favorites : shown}
+      {@const sections = sectionsRadio(liste, recentes)}
+      <!-- web#2716 — « Mes radios » d'abord, puis « Dernières écoutées » sans
+           doublon ; une section vide ne s'affiche pas. -->
+      {#if sections.mes.length}
+        <section class="sec mesradios">
+          <h2>{$t('v2.radio.tabMine' as any)}</h2>
+          <div class="grid">
+            {#each sections.mes as r (r.id)}
               {@render tile(r)}
             {/each}
           </div>
         </section>
-      {/if}
-      {@const liste = favorites.length && ongletFavoris ? favorites : shown}
-      {#if !liste.length}
-        <div class="state">{$t('v2.radio.noMatch' as any)}</div>
       {:else}
-        <section class="sec">
-          <div class="grid">
-            {#each liste as r (r.id)}
+        <div class="state">{$t('v2.radio.noMatch' as any)}</div>
+      {/if}
+      {#if sections.recentes.length && !q && !genre && !paysChoisi && !retenuesParCriteres}
+        <section class="sec recentes">
+          <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
+          <div class="grid rangee">
+            {#each sections.recentes as r (r.id)}
               {@render tile(r)}
             {/each}
           </div>

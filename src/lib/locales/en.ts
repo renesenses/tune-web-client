@@ -5887,7 +5887,7 @@ export default {
   "cloudBackup.onboardingDone": "Customisations restored.",
   // tune-server-rust#6516 — annuaire radio-metadata.fr
   "v2.radio.tabMine": "My radios",
-  "v2.radio.lastPlayed": "Last played",
+  "v2.radio.lastPlayed": "Recently listened",
   "v2.radio.removeFromMine": "Remove from My Radios",
   "v2.radio.removeConfirm": "Remove “{name}” from My Radios?",
   "v2.radio.removed": "“{name}” removed from my radios",
