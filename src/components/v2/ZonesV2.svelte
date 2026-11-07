@@ -52,6 +52,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import { zoneCorrectionPiece } from '../../lib/correctionPiece';
   import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
   import OutputModuleBanner from '../partages/OutputModuleBanner.svelte';
 
@@ -539,10 +540,14 @@
     activeView.set('settings');
   }
 
-  /** #1427 — droit au bloc de correction de pièce (FIR) de CETTE zone. */
+  /**
+   * web#2706 — l'écran Correction de pièce de CETTE zone (calibration sans
+   * micro, mesure au micro) ; l'import FIR (#1427) y reste à un lien, vers le
+   * bloc de la fiche de la zone dans Réglages › Appareils.
+   */
   function correctionDeLaZone(z: Zone) {
-    v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: z.id ?? undefined, bloc: 'fir' });
-    activeView.set('settings');
+    zoneCorrectionPiece.set(z.id != null ? { id: z.id, name: z.name } : null);
+    activeView.set('roomcorrection');
   }
 </script>
 
