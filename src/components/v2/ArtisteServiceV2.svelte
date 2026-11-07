@@ -566,9 +566,22 @@
   }
 
   /**
-   * La biographie d'un artiste local : celle qu'on a éditée d'abord, celle que
-   * le serveur sait rendre ensuite. Même ordre que la fiche de bibliothèque —
-   * une bio éditée ne doit jamais être recouverte par une bio rapportée.
+   * La biographie d'un artiste local : celle qu'on a écrite à la main d'abord,
+   * celle que le serveur sait rendre ensuite — une bio écrite à la main ne doit
+   * jamais être recouverte par une bio rapportée.
+   *
+   * 🔴 « Écrite à la main », c'est une bio SANS provenance : réécrire la bio
+   * efface sa provenance côté serveur (`oublier_provenance_si_bio_reecrite`).
+   * Une bio stockée AVEC provenance (fonds communautaire, Qobuz, Wikipédia…)
+   * n'est pas une bio éditée. La fiche la servait pourtant telle quelle depuis
+   * `GET /library/artists/{id}`, sans jamais appeler `/bio` :
+   *  - aucun lien (tune-web-client#2692) : seule `/bio` rend `bio_segments` ;
+   *  - la mauvaise langue, sans mention (tune-server-rust#7027) : seule `/bio`
+   *    applique la langue de l'interface. Mesuré sur le .18 le 07/11 : John
+   *    Coltrane et Archie Shepp portent une bio communautaire française SANS
+   *    langue, que la fiche affichait à une interface anglaise.
+   * `/bio` est donc toujours interrogée ; elle sert d'elle-même une bio sans
+   * provenance telle quelle, et c'est d'elle seule qu'on prend ses liens.
    */
   async function chargerBioLocale(
     mien: number,
@@ -577,23 +590,27 @@
     provenanceEditee: BioProvenance | null = null,
     langueEditee: LangueBio = AUCUNE_LANGUE,
   ) {
-    const editee = bioEditee?.trim() || null;
-    bio = editee;
+    const aLaMain = provenanceEditee ? null : bioEditee?.trim() || null;
+    bio = aLaMain;
     bioSegments = null;
-    // `GET /library/artists/{id}` porte la provenance de SA bio, à côté d'elle.
-    bioProvenance = editee ? provenanceEditee : null;
-    bioLangue = editee ? langueEditee : AUCUNE_LANGUE;
-    if (editee) return;
+    bioProvenance = null;
+    bioLangue = aLaMain ? langueEditee : AUCUNE_LANGUE;
     try {
       const r = await api.getArtistBio(id);
-      if (mien === jeton) {
-        bio = r?.bio?.trim() || null;
-        bioProvenance = bio ? provenanceDe(r) : null;
-        bioSegments = bio ? ((r as any)?.bio_segments ?? null) : null;
-        bioLangue = bio ? langueBioDe(r) : AUCUNE_LANGUE;
+      if (mien !== jeton) return;
+      if (aLaMain) {
+        // Le texte de l'utilisateur reste ; on ne lui prend que ses liens,
+        // et seulement s'ils portent sur CE texte.
+        if (r?.bio?.trim() === aLaMain) bioSegments = (r as any)?.bio_segments ?? null;
+        return;
       }
+      bio = r?.bio?.trim() || null;
+      bioProvenance = bio ? provenanceDe(r) : null;
+      bioSegments = bio ? ((r as any)?.bio_segments ?? null) : null;
+      bioLangue = bio ? langueBioDe(r) : AUCUNE_LANGUE;
     } catch {
-      /* pas de biographie : le bloc ne s'affiche pas */
+      /* pas de biographie rendue : la bio écrite à la main reste, sinon le
+         bloc ne s'affiche pas (jamais une bio d'une langue inconnue) */
     }
   }
 

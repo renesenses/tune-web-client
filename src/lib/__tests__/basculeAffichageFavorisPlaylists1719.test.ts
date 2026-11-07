@@ -197,15 +197,17 @@ describe('#1719 — la bascule d’affichage, la MÊME, sur les trois écrans', 
     ).toBe(true);
   });
 
-  it('🔴 Favoris › Playlists : en LISTE, aucune mosaïque n’est demandée', async () => {
+  it('🔴 Favoris › Playlists : en LISTE aussi, la pochette est demandée (web#2679)', async () => {
+    // Remplace « aucune mosaïque en liste » : la liste montrait de petites
+    // icônes, et l'utilisateur veut la pochette (web#2679 point 3).
     localStorage.setItem('tune_v2_ecran_fav.playlists.display', 'list');
     const h = poser(FavoritesV2);
     await ongletFavoris(h, /playlist/i);
     await respirer(120);
     expect(
       appels.some((u) => /\/playlists\/7\/tracks/.test(u)),
-      'la liste paie des requêtes de pochettes qu’elle n’affiche pas',
-    ).toBe(false);
+      'la liste n’a pas demandé les pistes pour composer la pochette',
+    ).toBe(true);
   });
 
   it('🔴 Gestionnaire de playlists : la bascule est là, et le choix est retenu', async () => {

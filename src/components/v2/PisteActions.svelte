@@ -170,6 +170,8 @@
    */
   let creditsDuService = $state.raw<PisteDeService | null>(null);
   let panneauVersions = $state(false);
+  /** #7857 — le panneau « Spectrogramme » (piste de la bibliothèque). */
+  let panneauSpectro = $state(false);
   /**
    * La cible titre + artiste des « Autres versions » d'une piste SANS
    * identifiant de bibliothèque (23/09/2026). `null` pour une piste locale —
@@ -497,6 +499,7 @@
         etiqueter: () => (panneauEtiquettes = true),
         basculerEcouterPlusTard: () => void basculerLeSas(cibleEtiquettes),
         champsDuFichier: () => (tiroirChamps = true),
+        spectrogramme: () => (panneauSpectro = true),
         voirCredits: () => { creditsDuService = pisteCredits; tiroirCredits = true; },
         // #4806 — le module tient l'appel, la surcharge et le toast : le menu
         // du client actuel (`MenuPisteV1`) appelle exactement les mêmes.
@@ -686,6 +689,13 @@
   {#await import('./VersionsPistePanneau.svelte') then m}
     <m.default parTitre={cibleVersions} titre={piste.title}
       onClose={() => (panneauVersions = false)} />
+  {/await}
+{/if}
+
+{#if panneauSpectro && local && piste.id != null}
+  {#await import('./SpectrogrammePanneau.svelte') then m}
+    <m.default trackId={piste.id} titre={piste.title}
+      onClose={() => (panneauSpectro = false)} />
   {/await}
 {/if}
 

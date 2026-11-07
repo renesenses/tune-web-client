@@ -1597,6 +1597,17 @@ export function submitAirplayPairPin(deviceId: string, pin: string) {
   );
 }
 
+/** Abandonne la saisie du code (fenêtre fermée sans code) : le serveur lève
+ *  l'attente et la lecture revient au jumelage transitoire
+ *  (tune-server-rust#8060). Un serveur plus ancien rend 404 : l'attente y
+ *  expire seule, l'appelant ignore l'erreur. */
+export function cancelAirplayPairing(deviceId: string) {
+  return fetchJSON<{ ok: boolean; cancelled: boolean; status: string }>(
+    `${BASE}/outputs/${encodeURIComponent(deviceId)}/airplay/pair-cancel`,
+    { method: 'POST' },
+  );
+}
+
 export function deleteZone(id: number) {
   return fetchVoid(`${BASE}/zones/${id}`, { method: 'DELETE' });
 }
@@ -4654,6 +4665,13 @@ export interface EtatGreffonsAudioNatifs {
  *  est active (403 sinon) : l'appelant traite l'échec comme « rien à montrer ». */
 export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs> {
   const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins`);
+  return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
+}
+
+/** `GET /audio-plugins/` pour le panneau « État des greffons » : SANS bandeau,
+ *  l'appelant masque le panneau sur tout échec (403 compris). */
+export async function getEtatGreffonsSansBandeau(): Promise<EtatGreffonsAudioNatifs> {
+  const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins/`, undefined, undefined, true);
   return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
 }
 
@@ -8437,7 +8455,7 @@ export function getSmartCollectionAlbums(id: number) {
 }
 // NB: the server's PreviewRequest expects `max_limit` (same field name as
 // create/update), not `max_albums`.
-export function previewSmartCollection(payload: { rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_limit?: number }) {
+export function previewSmartCollection(payload: { rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_limit?: number; /** tune-server-rust#7872 */ expression?: string | null }) {
   return fetchJSON<import('./types').SmartCollectionPreview>(`${BASE}/library/smart-collections/preview`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

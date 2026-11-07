@@ -72,6 +72,7 @@ export const ICONES = {
   /** Le même cercle, rouvert — « Débannir ». */
   unban: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M8 12l3 3 5-6',
   /** Des personnes — « Voir les crédits » (#1572). */
+  spectro: 'M3 3v18h18M7 16v-3M11 16V8M15 16v-5M19 16V6',
   credits: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
 } as const;
 /** Ce que la piste permet, décidé par l'appelant qui seul connaît le contexte. */
@@ -205,6 +206,8 @@ export interface GestesPiste {
   champsDuFichier?: () => void;
   /** Ouvre la fiche « Crédits » du titre — #1572. */
   voirCredits?: () => void;
+  /** « Spectrogramme » — #7857 : le panneau qui demande l'image au serveur. */
+  spectrogramme?: () => void;
   /** « Bannir ce titre » (#4806) — plus jamais joué automatiquement. */
   bannir?: () => void;
   /** « Débannir » — l'inverse, sur une piste déjà bannie. */
@@ -408,6 +411,12 @@ export function entreesMenuPiste(
    * dans `lib/creditsService` (`creditsDeServiceDe`).
    */
   pousser(deLaBibliotheque || !!c.creditsDeService, 'credits.see', ICONES.credits, g.voirCredits);
+  /**
+   * « Spectrogramme » — tune-server-rust#7857 (PR #7897). Une piste de la
+   * BIBLIOTHÈQUE seulement : la route prend un `i64` de `tracks` et lit le
+   * fichier local. Absente d'une piste de service, pas grisée.
+   */
+  pousser(deLaBibliotheque, 'spectro.menu', ICONES.spectro, g.spectrogramme);
   /**
    * « Bannir ce titre » / « Débannir » — `renesenses/tune-server-rust#4806`.
    *

@@ -31,6 +31,9 @@
   let phase = $state<Phase>('chargement');
   let etat = $state<EtatTuneTested | null>(null);
   let erreur = $state('');
+  // #2698 — le bouton est toujours accessible : si la lecture de l'état échoue,
+  // la fenêtre le dit (et non « envoi échoué »), elle n'échoue jamais en silence.
+  let lectureEchouee = $state(false);
 
   const tr = $derived(avecParametres((cle: string) => $t(cle as any)));
   const bouton = $derived(etatDuBouton(etat, tr));
@@ -40,7 +43,8 @@
       etat = await api.getTuneTestedProposition(zoneId);
       phase = 'bouton';
     } catch (e: any) {
-      erreur = messageDeRefus(e?.code ?? e?.corps?.error, tr);
+      lectureEchouee = true;
+      erreur = $t('v2.tuneTestedPropose.err.loadFailed' as any);
       phase = 'bouton';
     }
   }
@@ -107,6 +111,9 @@
         onclick={() => (phase = 'apercu')}
       >{$t('v2.tuneTestedPropose.button' as any)}</button>
       {#if bouton.raison}<p class="raison" data-testid="tt-raison">{bouton.raison}</p>{/if}
+      {#if etat && !bouton.actif && !lectureEchouee}
+        <p class="aide auto" data-testid="tt-auto">{$t('v2.tuneTestedPropose.auto' as any)}</p>
+      {/if}
       {#if erreur}<p class="erreur" role="alert">{erreur}</p>{/if}
     {:else if etat?.preview}
       <h3>{$t('v2.tuneTestedPropose.previewTitle' as any)}</h3>

@@ -9,7 +9,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { decoderFrontieres, decoderPointsTerre, decouperPolyligne, paysSous, projeter, DEG } from '../champCercle/globe';
 import { couleurFrontiere, opaciteFrontieres, PLEIN_FRONTIERES, SEUIL_FRONTIERES } from '../champCercle/zoomGlobe';
-import { FRONTIERES_TERRE } from '../champCercle/frontieresTerre';
+import { FLEUVES_TERRE } from '../champCercle/fleuvesTerre';
+import { COTES_TERRE, FRONTIERES_TERRE } from '../champCercle/frontieresTerre';
 import { POINTS_TERRE } from '../champCercle/pointsTerre';
 import { PAYS_TERRE } from '../champCercle/paysTerre';
 import { ChampCercle } from '../champCercle/moteur';
@@ -23,8 +24,8 @@ const poly = (...pts: [number, number][]) => Float32Array.from(pts.flatMap(([la,
 describe('données des frontières', () => {
   const fichier = readFileSync(join(process.cwd(), 'src/lib/champCercle/frontieresTerre.ts'), 'utf8');
 
-  it('pèse 60 Ko au plus et porte sa source et son empreinte en tête', () => {
-    expect(Buffer.byteLength(fichier, 'utf8')).toBeLessThanOrEqual(60 * 1024);
+  it('pèse 96 Ko au plus (frontières et côtes ensemble, web#2697) et porte sa source et son empreinte en tête', () => {
+    expect(Buffer.byteLength(fichier, 'utf8')).toBeLessThanOrEqual(96 * 1024);
     expect(fichier).toMatch(/Source : https:\/\/\S+countries-110m\.json/);
     expect(fichier).toMatch(/Source SHA256 : [0-9a-f]{64}/);
     expect(fichier).toContain('Natural Earth');
@@ -45,6 +46,56 @@ describe('données des frontières', () => {
 
   it('écarte les morceaux vides ou d’un seul point', () => {
     expect(decoderFrontieres('10,20,30,40;;5,5;x,y,1,2,3,4')).toHaveLength(2);
+  });
+});
+
+describe('données des côtes (web#2697)', () => {
+  it('se décode en polylignes de lieux valides, distinctes des frontières', () => {
+    const cotes = decoderFrontieres(COTES_TERRE);
+    expect(cotes.length).toBeGreaterThan(150);
+    expect(COTES_TERRE).not.toBe(FRONTIERES_TERRE);
+    for (const p of cotes) {
+      expect(p.length).toBeGreaterThanOrEqual(4);
+      for (let i = 0; i < p.length; i += 2) {
+        expect(Math.abs(p[i])).toBeLessThanOrEqual(90 * DEG + 1e-6);
+        expect(Math.abs(p[i + 1])).toBeLessThanOrEqual(180 * DEG + 1e-6);
+      }
+    }
+  });
+
+  it('contient la côte atlantique française, près de 47°N, 2,5°O', () => {
+    const proche = decoderFrontieres(COTES_TERRE).some((p) => {
+      for (let i = 0; i < p.length; i += 2) {
+        if (Math.abs(p[i] / DEG - 47) < 1.2 && Math.abs(p[i + 1] / DEG + 2.5) < 1.2) return true;
+      }
+      return false;
+    });
+    expect(proche).toBe(true);
+  });
+
+  it('ne coupe aucune côte d’un saut de plus de 180° (antiméridien)', () => {
+    for (const p of decoderFrontieres(COTES_TERRE)) {
+      for (let i = 2; i < p.length; i += 2) expect(Math.abs(p[i + 1] - p[i - 1])).toBeLessThanOrEqual(180 * DEG + 1e-6);
+    }
+  });
+});
+
+describe('données des fleuves (web#2697)', () => {
+  const fichier = readFileSync(join(process.cwd(), 'src/lib/champCercle/fleuvesTerre.ts'), 'utf8');
+  it('pèse 16 Ko au plus et porte sa source, son empreinte et Natural Earth', () => {
+    expect(Buffer.byteLength(fichier, 'utf8')).toBeLessThanOrEqual(16 * 1024);
+    expect(fichier).toMatch(/Source : https:\/\/\S+ne_110m_rivers_lake_centerlines\.geojson/);
+    expect(fichier).toMatch(/Source SHA256 : [0-9a-f]{64}/);
+    expect(fichier).toContain('Natural Earth');
+  });
+  it('se décode et contient un point du Danube, près de 48°N, 17°E', () => {
+    const fleuves = decoderFrontieres(FLEUVES_TERRE);
+    expect(fleuves.length).toBeGreaterThanOrEqual(10);
+    const danube = fleuves.some((p) => {
+      for (let i = 0; i < p.length; i += 2) if (Math.abs(p[i] / DEG - 48) < 1.5 && Math.abs(p[i + 1] / DEG - 17) < 2.5) return true;
+      return false;
+    });
+    expect(danube).toBe(true);
   });
 });
 
@@ -143,22 +194,26 @@ describe('le moteur', () => {
     (canvas as any).getContext = () => ctx;
     canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 500, right: 800, bottom: 500, x: 0, y: 0, toJSON() {} });
     const m = new ChampCercle(canvas, { budget: budgetScene({ largeur: 1000, lectureLocale: false, mouvementReduit: true }),
-      couleurs: { frontiere: '#ff0088' }, surPays });
+      couleurs: { frontiere: '#ff0088', cote: '#00ccee', fleuve: '#33aa55' }, surPays });
     m.redimensionner(800, 500);
     m.majScene(construireScene({ moi: { nom: 'Moi', albums: 0, genres: [], lieu: null }, contacts: [], cercles: [], focus: null, maxAutour: 30, maxGrappes: 6 }));
     m.vue('monde', true);
     m.centrerSur(48.85, 2.35);
     drainer();
     const frontieres = () => traits.filter((t) => t.couleur === '#ff0088');
-    return { m, canvas, traits, frontieres };
+    const cotes = () => traits.filter((t) => t.couleur === '#00ccee');
+    const fleuves = () => traits.filter((t) => t.couleur === '#33aa55');
+    return { m, canvas, traits, frontieres, cotes, fleuves };
   }
 
   it('ne trace aucune frontière en deçà du seuil de zoom', () => {
-    const { m, traits, frontieres } = monter();
+    const { m, traits, frontieres, cotes, fleuves } = monter();
     for (const k of [1, 2, 2.4]) {
       traits.length = 0; m.zoomerA(k); drainer();
       expect(m.niveauZoom).toBeCloseTo(k, 6);
       expect(frontieres(), `zoom ×${k}`).toEqual([]);
+      expect(cotes(), `côtes, zoom ×${k}`).toEqual([]);
+      expect(fleuves(), `fleuves, zoom ×${k}`).toEqual([]);
     }
     m.detruire();
   });
@@ -171,6 +226,19 @@ describe('le moteur', () => {
     traits.length = 0;
     m.majCouleurs({ frontiere: '#00aa11' }); drainer();
     expect(traits.filter((t) => t.couleur === '#00aa11')).toHaveLength(1);
+    m.detruire();
+  });
+
+  it('trace aussi les côtes (web#2697), en un tracé à leur couleur, et les suit au changement de thème', () => {
+    const { m, traits, cotes, fleuves } = monter();
+    m.zoomerA(4); drainer();
+    expect(cotes()).toHaveLength(1);
+    expect(cotes()[0].lignes).toBeGreaterThan(100);
+    expect(fleuves()).toHaveLength(1);
+    expect(fleuves()[0].lignes).toBeGreaterThan(10);
+    traits.length = 0;
+    m.majCouleurs({ cote: '#112233' }); drainer();
+    expect(traits.filter((t) => t.couleur === '#112233')).toHaveLength(1);
     m.detruire();
   });
 
