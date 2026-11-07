@@ -6719,7 +6719,7 @@ export default {
   "app.task.dynamicRange": "Dynamikumfang wird gemessen…",
   "upsampling.eyebrow": "Premium-Plugin",
   "upsampling.title": "Upsampling",
-  "upsampling.lead": "Hebt die Abtastrate der Quelle auf die höchste vom DAC akzeptierte Rate ihrer Familie an (44,1 → 352,8 kHz, 48 → 384 kHz), am lokalen Ausgang. Der Pegel wird um die Reserve des Filters abgesenkt: Übersteuerung ist ausgeschlossen.",
+  "upsampling.lead": "Hebt die Abtastrate der Quelle auf die höchste vom DAC akzeptierte Rate ihrer Familie an (44,1 → 352,8 kHz, 48 → 384 kHz), am lokalen Ausgang. Der Pegel wird um 3 dB abgesenkt, ein Sicherheitslimiter fängt die seltenen verbleibenden Spitzen ab: keine Übersteuerung.",
   "upsampling.noZone": "Wählen Sie eine Zone, um ihr Upsampling einzustellen.",
   "upsampling.bitPerfect": "Aktiv verändert das Upsampling jedes Sample: Der Signalweg ist nicht mehr bit-perfect. Der PURE-Modus umgeht es immer, und ein DoP-Strom wird nie hochgerechnet.",
   "upsampling.enabled": "Diese Zone hochrechnen",

@@ -6719,7 +6719,7 @@ export default {
   "app.task.dynamicRange": "Midiendo el rango dinámico…",
   "upsampling.eyebrow": "Complemento Premium",
   "upsampling.title": "Sobremuestreo",
-  "upsampling.lead": "Lleva la frecuencia de la fuente a la más alta que acepta el DAC, siguiendo su familia (44,1 → 352,8 kHz, 48 → 384 kHz), en la salida local. El nivel se reduce según el margen del filtro: no puede haber recorte.",
+  "upsampling.lead": "Lleva la frecuencia de la fuente a la más alta que acepta el DAC, siguiendo su familia (44,1 → 352,8 kHz, 48 → 384 kHz), en la salida local. El nivel se reduce 3 dB y un limitador de seguridad contiene los raros picos restantes: sin recorte.",
   "upsampling.noZone": "Elija una zona para ajustar su sobremuestreo.",
   "upsampling.bitPerfect": "Activo, el sobremuestreo cambia cada muestra: la ruta deja de ser bit-perfect. El modo PURE siempre lo omite y un flujo DoP nunca se sobremuestrea.",
   "upsampling.enabled": "Sobremuestrear esta zona",

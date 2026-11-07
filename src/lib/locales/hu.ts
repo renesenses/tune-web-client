@@ -6678,7 +6678,7 @@ export default {
   "app.task.dynamicRange": "Dinamikatartomány mérése…",
   "upsampling.eyebrow": "Prémium bővítmény",
   "upsampling.title": "Felülmintavételezés",
-  "upsampling.lead": "A forrás mintavételi frekvenciáját a DAC által elfogadott legmagasabbra emeli, a családját követve (44,1 → 352,8 kHz, 48 → 384 kHz), a helyi kimeneten. A szint a szűrő tartalékával csökken: túlvezérlés nem lehetséges.",
+  "upsampling.lead": "A forrás mintavételi frekvenciáját a DAC által elfogadott legmagasabbra emeli, a családját követve (44,1 → 352,8 kHz, 48 → 384 kHz), a helyi kimeneten. A szint 3 dB-lel csökken, a ritka maradék csúcsokat biztonsági limiter fogja meg: nincs túlvezérlés.",
   "upsampling.noZone": "Válasszon zónát a felülmintavételezés beállításához.",
   "upsampling.bitPerfect": "Bekapcsolva minden mintát megváltoztat: a jelút többé nem bit-perfect. A PURE mód mindig megkerüli, DoP-folyamot pedig soha nem mintavételez fel.",
   "upsampling.enabled": "Zóna felülmintavételezése",

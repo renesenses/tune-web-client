@@ -6719,7 +6719,7 @@ export default {
   "app.task.dynamicRange": "Se măsoară gama dinamică…",
   "upsampling.eyebrow": "Plugin Premium",
   "upsampling.title": "Supraeșantionare",
-  "upsampling.lead": "Ridică frecvența sursei la cea mai mare acceptată de DAC, păstrând familia (44,1 → 352,8 kHz, 48 → 384 kHz), pe ieșirea locală. Nivelul este coborât cu rezerva filtrului: nu poate apărea limitare.",
+  "upsampling.lead": "Ridică frecvența sursei la cea mai mare acceptată de DAC, păstrând familia (44,1 → 352,8 kHz, 48 → 384 kHz), pe ieșirea locală. Nivelul este coborât cu 3 dB, iar un limitator de siguranță reține rarele vârfuri rămase: fără tăierea semnalului.",
   "upsampling.noZone": "Alegeți o zonă pentru a-i regla supraeșantionarea.",
   "upsampling.bitPerfect": "Activă, supraeșantionarea modifică fiecare eșantion: calea nu mai este bit-perfect. Modul PURE o ocolește mereu, iar un flux DoP nu este niciodată supraeșantionat.",
   "upsampling.enabled": "Supraeșantionează această zonă",

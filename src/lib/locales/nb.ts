@@ -6564,7 +6564,7 @@ export default {
   "app.task.dynamicRange": "Måler dynamikkomfang…",
   "upsampling.eyebrow": "Premium-programtillegg",
   "upsampling.title": "Oppsampling",
-  "upsampling.lead": "Hever kildens samplingsfrekvens til den høyeste DAC-en godtar i samme familie (44,1 → 352,8 kHz, 48 → 384 kHz), på den lokale utgangen. Nivået senkes med filterets margin: ingen klipping er mulig.",
+  "upsampling.lead": "Hever kildens samplingsfrekvens til den høyeste DAC-en godtar i samme familie (44,1 → 352,8 kHz, 48 → 384 kHz), på den lokale utgangen. Nivået senkes med 3 dB, og en sikkerhetsbegrenser holder igjen de sjeldne toppene som gjenstår: ingen klipping.",
   "upsampling.noZone": "Velg en sone for å stille inn oppsamplingen.",
   "upsampling.bitPerfect": "Når den er aktiv, endres hver sampling: banen er ikke lenger bit-perfect. PURE-modus omgår den alltid, og en DoP-strøm oppsamples aldri.",
   "upsampling.enabled": "Oppsample denne sonen",

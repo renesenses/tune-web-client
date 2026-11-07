@@ -6571,7 +6571,7 @@ export default {
   "app.task.dynamicRange": "Đang đo dải động…",
   "upsampling.eyebrow": "Tiện ích Premium",
   "upsampling.title": "Tăng tần số lấy mẫu",
-  "upsampling.lead": "Nâng tần số lấy mẫu của nguồn lên mức cao nhất mà DAC chấp nhận, theo cùng họ (44,1 → 352,8 kHz, 48 → 384 kHz), trên đầu ra cục bộ. Mức âm được hạ theo dự trữ của bộ lọc: không thể bị cắt đỉnh.",
+  "upsampling.lead": "Nâng tần số lấy mẫu của nguồn lên mức cao nhất mà DAC chấp nhận, theo cùng họ (44,1 → 352,8 kHz, 48 → 384 kHz), trên đầu ra cục bộ. Mức âm được hạ 3 dB, và bộ giới hạn an toàn giữ lại các đỉnh hiếm còn sót: không bị cắt đỉnh.",
   "upsampling.noZone": "Hãy chọn một vùng để chỉnh tăng tần số lấy mẫu.",
   "upsampling.bitPerfect": "Khi bật, mỗi mẫu đều bị thay đổi: đường tín hiệu không còn bit-perfect. Chế độ PURE luôn bỏ qua nó, và luồng DoP không bao giờ được tăng tần số.",
   "upsampling.enabled": "Tăng tần số cho vùng này",

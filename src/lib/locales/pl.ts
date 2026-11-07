@@ -6564,7 +6564,7 @@ export default {
   "app.task.dynamicRange": "Pomiar zakresu dynamiki…",
   "upsampling.eyebrow": "Wtyczka Premium",
   "upsampling.title": "Nadpróbkowanie",
-  "upsampling.lead": "Podnosi częstotliwość źródła do najwyższej akceptowanej przez przetwornik w tej samej rodzinie (44,1 → 352,8 kHz, 48 → 384 kHz), na wyjściu lokalnym. Poziom jest obniżany o zapas filtra: przesterowanie jest niemożliwe.",
+  "upsampling.lead": "Podnosi częstotliwość źródła do najwyższej akceptowanej przez przetwornik w tej samej rodzinie (44,1 → 352,8 kHz, 48 → 384 kHz), na wyjściu lokalnym. Poziom jest obniżany o 3 dB, a ogranicznik bezpieczeństwa zatrzymuje rzadkie pozostałe szczyty: bez przesterowania.",
   "upsampling.noZone": "Wybierz strefę, aby ustawić jej nadpróbkowanie.",
   "upsampling.bitPerfect": "Gdy jest aktywne, zmienia każdą próbkę: tor nie jest już bit-perfect. Tryb PURE zawsze je pomija, a strumień DoP nigdy nie jest nadpróbkowywany.",
   "upsampling.enabled": "Nadpróbkowuj tę strefę",

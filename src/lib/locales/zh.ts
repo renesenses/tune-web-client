@@ -6719,7 +6719,7 @@ export default {
   "app.task.dynamicRange": "正在测量动态范围…",
   "upsampling.eyebrow": "高级版插件",
   "upsampling.title": "升频",
-  "upsampling.lead": "在本地输出上，将音源采样率提升到 DAC 可接受的最高采样率，并保持同一族（44.1 → 352.8 kHz，48 → 384 kHz）。电平按滤波器余量降低：不会削波。",
+  "upsampling.lead": "在本地输出上，将音源采样率提升到 DAC 可接受的最高采样率，并保持同一族（44.1 → 352.8 kHz，48 → 384 kHz）。电平降低 3 dB，安全限幅器拦住少数剩余峰值：不会削波。",
   "upsampling.noZone": "请选择一个区域来设置其升频。",
   "upsampling.bitPerfect": "启用后，升频会改变每个采样：信号路径不再是 bit-perfect。PURE 模式始终绕过它，DoP 流永远不会被升频。",
   "upsampling.enabled": "对此区域升频",

@@ -6719,7 +6719,7 @@ export default {
   "app.task.dynamicRange": "ダイナミックレンジを測定中…",
   "upsampling.eyebrow": "プレミアムプラグイン",
   "upsampling.title": "アップサンプリング",
-  "upsampling.lead": "ローカル出力で、ソースのサンプルレートを同じ系列のまま DAC が受け付ける最高レートへ引き上げます（44.1 → 352.8 kHz、48 → 384 kHz）。レベルはフィルターの余裕分だけ下げられ、クリップは起こりません。",
+  "upsampling.lead": "ローカル出力で、ソースのサンプルレートを同じ系列のまま DAC が受け付ける最高レートへ引き上げます（44.1 → 352.8 kHz、48 → 384 kHz）。レベルを 3 dB 下げ、残るまれなピークは安全リミッターが抑えます。クリップは起こりません。",
   "upsampling.noZone": "アップサンプリングを設定するゾーンを選んでください。",
   "upsampling.bitPerfect": "有効時はすべてのサンプルが変わるため、経路は bit-perfect ではなくなります。PURE モードでは常にバイパスされ、DoP ストリームはアップサンプリングされません。",
   "upsampling.enabled": "このゾーンをアップサンプリング",

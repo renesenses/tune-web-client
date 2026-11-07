@@ -6719,7 +6719,7 @@ export default {
   "app.task.dynamicRange": "다이내믹 레인지 측정 중…",
   "upsampling.eyebrow": "프리미엄 플러그인",
   "upsampling.title": "업샘플링",
-  "upsampling.lead": "로컬 출력에서 소스 샘플링 레이트를 같은 계열로 DAC가 받아들이는 최고 레이트까지 올립니다(44.1 → 352.8 kHz, 48 → 384 kHz). 레벨은 필터 여유만큼 낮춰지므로 클리핑이 생기지 않습니다.",
+  "upsampling.lead": "로컬 출력에서 소스 샘플링 레이트를 같은 계열로 DAC가 받아들이는 최고 레이트까지 올립니다(44.1 → 352.8 kHz, 48 → 384 kHz). 레벨을 3 dB 낮추고, 드물게 남는 피크는 안전 리미터가 잡아 줍니다. 클리핑이 없습니다.",
   "upsampling.noZone": "업샘플링을 설정할 영역을 선택하세요.",
   "upsampling.bitPerfect": "켜져 있으면 모든 샘플이 바뀌므로 경로는 더 이상 bit-perfect가 아닙니다. PURE 모드는 항상 이를 우회하며, DoP 스트림은 업샘플링되지 않습니다.",
   "upsampling.enabled": "이 영역 업샘플링",

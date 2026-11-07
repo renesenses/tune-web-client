@@ -6719,7 +6719,7 @@ export default {
   "app.task.dynamicRange": "Misurazione della gamma dinamica…",
   "upsampling.eyebrow": "Plugin Premium",
   "upsampling.title": "Sovracampionamento",
-  "upsampling.lead": "Porta la frequenza della sorgente alla più alta accettata dal DAC, seguendo la sua famiglia (44,1 → 352,8 kHz, 48 → 384 kHz), sull'uscita locale. Il livello è abbassato del margine del filtro: nessun clipping possibile.",
+  "upsampling.lead": "Porta la frequenza della sorgente alla più alta accettata dal DAC, seguendo la sua famiglia (44,1 → 352,8 kHz, 48 → 384 kHz), sull'uscita locale. Il livello è abbassato di 3 dB e un limitatore di sicurezza trattiene i rari picchi residui: nessun clipping.",
   "upsampling.noZone": "Scegli una zona per regolarne il sovracampionamento.",
   "upsampling.bitPerfect": "Quando è attivo, il sovracampionamento modifica ogni campione: il percorso non è più bit-perfect. La modalità PURE lo esclude sempre e un flusso DoP non viene mai sovracampionato.",
   "upsampling.enabled": "Sovracampiona questa zona",

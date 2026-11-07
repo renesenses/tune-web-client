@@ -6741,7 +6741,7 @@ export default {
   "app.task.dynamicRange": "Mesure de la plage dynamique…",
   "upsampling.eyebrow": "Greffon Premium",
   "upsampling.title": "Suréchantillonnage",
-  "upsampling.lead": "Porte la cadence de la source vers la plus haute cadence que le DAC accepte, en suivant sa famille (44,1 → 352,8 kHz, 48 → 384 kHz), sur la sortie locale. Le niveau est abaissé de la réserve du filtre : aucun écrêtage possible.",
+  "upsampling.lead": "Porte la cadence de la source vers la plus haute cadence que le DAC accepte, en suivant sa famille (44,1 → 352,8 kHz, 48 → 384 kHz), sur la sortie locale. Le niveau est abaissé de 3 dB, et un limiteur de sécurité retient les rares crêtes restantes : aucun écrêtage.",
   "upsampling.noZone": "Choisissez une zone pour régler son suréchantillonnage.",
   "upsampling.bitPerfect": "Actif, le suréchantillonnage change chaque échantillon : le chemin n'est plus bit-perfect. Le mode PURE le contourne toujours, et un flux DoP n'est jamais suréchantillonné.",
   "upsampling.enabled": "Suréchantillonner cette zone",

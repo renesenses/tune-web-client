@@ -6739,7 +6739,7 @@ export default {
   "app.task.dynamicRange": "Measuring dynamic range…",
   "upsampling.eyebrow": "Premium plugin",
   "upsampling.title": "Upsampling",
-  "upsampling.lead": "Raises the source rate to the highest rate the DAC accepts, following its family (44.1 → 352.8 kHz, 48 → 384 kHz), on the local output. The level is lowered by the filter's headroom: no clipping is possible.",
+  "upsampling.lead": "Raises the source rate to the highest rate the DAC accepts, following its family (44.1 → 352.8 kHz, 48 → 384 kHz), on the local output. The level is lowered by 3 dB, and a safety limiter holds back the rare remaining peaks: no clipping.",
   "upsampling.noZone": "Choose a zone to set its upsampling.",
   "upsampling.bitPerfect": "When active, upsampling changes every sample: the path is no longer bit-perfect. PURE mode always bypasses it, and a DoP stream is never upsampled.",
   "upsampling.enabled": "Upsample this zone",
