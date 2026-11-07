@@ -6717,6 +6717,19 @@ export default {
   "app.task.compilations": "コンピレーションを確認中…",
   "app.task.releaseTypes": "リリースの種類を検索中…",
   "app.task.dynamicRange": "ダイナミックレンジを測定中…",
+  "spectro.menu": "スペクトログラム",
+  "spectro.title": "スペクトログラム",
+  "spectro.intro": "サーバーが音声ファイルから画像を計算します。数秒かかることがあります。",
+  "spectro.generate": "スペクトログラムを生成",
+  "spectro.loading": "スペクトログラムを生成しています… 数秒かかることがあります。",
+  "spectro.alt": "「{title}」のスペクトログラム",
+  "spectro.axes": "横軸が時間、縦軸が周波数（下が 0 Hz）、レベルは dBFS です。明るいほど大きな音です。",
+  "spectro.retry": "再試行",
+  "spectro.notLocal": "このトラックはローカルファイルではありません。スペクトログラムは、ファイルがサーバー上にあるライブラリのトラックにのみ用意されます。",
+  "spectro.failed": "スペクトログラムを生成できませんでした。ファイルが読み取れないか、Tune がデコードできない形式です。",
+  "spectro.unavailable": "トラックが見つからないか、このサーバーはスペクトログラムの生成に対応していません。",
+  "spectro.session": "セッションの有効期限が切れました。再度サインインしてやり直してください。",
+  "spectro.network": "サーバーから応答がありません。接続を確認してやり直してください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

@@ -6737,6 +6737,19 @@ export default {
   "app.task.compilations": "Checking compilations…",
   "app.task.releaseTypes": "Finding release types…",
   "app.task.dynamicRange": "Measuring dynamic range…",
+  "spectro.menu": "Spectrogram",
+  "spectro.title": "Spectrogram",
+  "spectro.intro": "The server computes the image from the audio file. This can take a few seconds.",
+  "spectro.generate": "Generate spectrogram",
+  "spectro.loading": "Generating the spectrogram… this can take a few seconds.",
+  "spectro.alt": "Spectrogram of “{title}”",
+  "spectro.axes": "Time on the horizontal axis, frequency on the vertical axis (0 Hz at the bottom), level in dBFS: brighter means louder.",
+  "spectro.retry": "Try again",
+  "spectro.notLocal": "This track is not a local file: spectrograms only exist for library tracks whose file is on the server.",
+  "spectro.failed": "The spectrogram could not be produced: the file is unreadable or in a format Tune cannot decode.",
+  "spectro.unavailable": "Track not found, or this server is too old to produce a spectrogram.",
+  "spectro.session": "Session expired: sign in again, then retry.",
+  "spectro.network": "The server did not respond. Check the connection and try again.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

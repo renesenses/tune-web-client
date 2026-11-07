@@ -6569,5 +6569,18 @@ export default {
   "app.task.compilations": "Đang kiểm tra album tuyển tập…",
   "app.task.releaseTypes": "Đang tìm loại bản phát hành…",
   "app.task.dynamicRange": "Đang đo dải động…",
+  "spectro.menu": "Phổ đồ",
+  "spectro.title": "Phổ đồ",
+  "spectro.intro": "Máy chủ tính ảnh từ tệp âm thanh. Việc này có thể mất vài giây.",
+  "spectro.generate": "Tạo phổ đồ",
+  "spectro.loading": "Đang tạo phổ đồ… việc này có thể mất vài giây.",
+  "spectro.alt": "Phổ đồ của “{title}”",
+  "spectro.axes": "Thời gian trên trục ngang, tần số trên trục dọc (0 Hz ở dưới), mức tính bằng dBFS: càng sáng càng to.",
+  "spectro.retry": "Thử lại",
+  "spectro.notLocal": "Bản nhạc này không phải tệp cục bộ: phổ đồ chỉ có cho các bản nhạc trong thư viện mà tệp nằm trên máy chủ.",
+  "spectro.failed": "Không thể tạo phổ đồ: tệp không đọc được hoặc có định dạng mà Tune không giải mã được.",
+  "spectro.unavailable": "Không tìm thấy bản nhạc, hoặc máy chủ này quá cũ để tạo phổ đồ.",
+  "spectro.session": "Phiên đã hết hạn: hãy đăng nhập lại rồi thử lại.",
+  "spectro.network": "Máy chủ không phản hồi. Hãy kiểm tra kết nối rồi thử lại.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

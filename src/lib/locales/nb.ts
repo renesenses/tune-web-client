@@ -6562,5 +6562,18 @@ export default {
   "app.task.compilations": "Kontrollerer samlealbum…",
   "app.task.releaseTypes": "Finner utgivelsestyper…",
   "app.task.dynamicRange": "Måler dynamikkomfang…",
+  "spectro.menu": "Spektrogram",
+  "spectro.title": "Spektrogram",
+  "spectro.intro": "Tjeneren beregner bildet fra lydfilen. Det kan ta noen sekunder.",
+  "spectro.generate": "Lag spektrogram",
+  "spectro.loading": "Lager spektrogrammet … det kan ta noen sekunder.",
+  "spectro.alt": "Spektrogram av «{title}»",
+  "spectro.axes": "Tid langs den vannrette aksen, frekvens langs den loddrette (0 Hz nederst), nivå i dBFS: lysere betyr sterkere.",
+  "spectro.retry": "Prøv igjen",
+  "spectro.notLocal": "Dette sporet er ikke en lokal fil: spektrogram finnes bare for spor i biblioteket der filen ligger på tjeneren.",
+  "spectro.failed": "Spektrogrammet kunne ikke lages: filen er uleselig eller i et format Tune ikke kan dekode.",
+  "spectro.unavailable": "Sporet ble ikke funnet, eller denne tjeneren er for gammel til å lage spektrogram.",
+  "spectro.session": "Økten er utløpt: logg inn på nytt og prøv igjen.",
+  "spectro.network": "Tjeneren svarte ikke. Sjekk tilkoblingen og prøv igjen.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

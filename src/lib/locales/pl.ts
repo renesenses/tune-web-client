@@ -6562,5 +6562,18 @@ export default {
   "app.task.compilations": "Sprawdzanie kompilacji…",
   "app.task.releaseTypes": "Wyszukiwanie typów wydań…",
   "app.task.dynamicRange": "Pomiar zakresu dynamiki…",
+  "spectro.menu": "Spektrogram",
+  "spectro.title": "Spektrogram",
+  "spectro.intro": "Serwer oblicza obraz na podstawie pliku audio. Może to potrwać kilka sekund.",
+  "spectro.generate": "Wygeneruj spektrogram",
+  "spectro.loading": "Generowanie spektrogramu… może to potrwać kilka sekund.",
+  "spectro.alt": "Spektrogram utworu „{title}”",
+  "spectro.axes": "Czas na osi poziomej, częstotliwość na pionowej (0 Hz na dole), poziom w dBFS: jaśniej oznacza głośniej.",
+  "spectro.retry": "Spróbuj ponownie",
+  "spectro.notLocal": "Ten utwór nie jest plikiem lokalnym: spektrogram istnieje tylko dla utworów z biblioteki, których plik jest na serwerze.",
+  "spectro.failed": "Nie udało się wytworzyć spektrogramu: plik jest nieczytelny lub ma format, którego Tune nie potrafi zdekodować.",
+  "spectro.unavailable": "Nie znaleziono utworu albo ten serwer jest zbyt stary, by wytworzyć spektrogram.",
+  "spectro.session": "Sesja wygasła: zaloguj się ponownie i spróbuj jeszcze raz.",
+  "spectro.network": "Serwer nie odpowiedział. Sprawdź połączenie i spróbuj ponownie.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

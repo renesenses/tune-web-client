@@ -6676,6 +6676,19 @@ export default {
   "app.task.compilations": "Válogatásalbumok ellenőrzése…",
   "app.task.releaseTypes": "Kiadványtípusok keresése…",
   "app.task.dynamicRange": "Dinamikatartomány mérése…",
+  "spectro.menu": "Spektrogram",
+  "spectro.title": "Spektrogram",
+  "spectro.intro": "A szerver a hangfájlból számítja ki a képet. Ez néhány másodpercig is eltarthat.",
+  "spectro.generate": "Spektrogram készítése",
+  "spectro.loading": "A spektrogram készül… ez néhány másodpercig is eltarthat.",
+  "spectro.alt": "„{title}” spektrogramja",
+  "spectro.axes": "Az idő vízszintesen, a frekvencia függőlegesen (0 Hz alul), a szint dBFS-ben: minél világosabb, annál hangosabb.",
+  "spectro.retry": "Újra",
+  "spectro.notLocal": "Ez a szám nem helyi fájl: spektrogram csak azokhoz a könyvtári számokhoz van, amelyek fájlja a szerveren van.",
+  "spectro.failed": "A spektrogramot nem sikerült elkészíteni: a fájl olvashatatlan, vagy olyan formátumú, amelyet a Tune nem tud dekódolni.",
+  "spectro.unavailable": "A szám nem található, vagy ez a szerver túl régi a spektrogram készítéséhez.",
+  "spectro.session": "A munkamenet lejárt: jelentkezz be újra, majd próbáld meg még egyszer.",
+  "spectro.network": "A szerver nem válaszolt. Ellenőrizd a kapcsolatot, majd próbáld újra.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

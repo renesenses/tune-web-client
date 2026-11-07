@@ -215,7 +215,7 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
       fr['ban.ban'],
     ]);
   });
-  it('une piste de la BIBLIOTHÈQUE ouvre les treize gestes', () => {
+  it('une piste de la BIBLIOTHÈQUE ouvre les quatorze gestes', () => {
     expect(libelles(ouvrir(LOCALE))).toEqual([
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
       fr['library.playSimilar'], fr['library.otherVersions'],
@@ -226,6 +226,8 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
       // #1572 — « Voir les crédits » (fil 1921), bibliothèque seule : les
       // deux témoins de service au-dessus prouvent qu'il n'y est pas.
       fr['credits.see'],
+      // #7857 — « Spectrogramme », bibliothèque seule.
+      fr['spectro.menu'],
       // #4806 — « Bannir ce titre », bibliothèque seule ; le témoin de
       // service juste au-dessus prouve qu'il n'y est pas.
       fr['ban.ban'],
@@ -410,7 +412,7 @@ describe('parité des menus — MenuPisteV1 et PisteActions rendent la même lis
       expect(v1, `V1 ${JSON.stringify(v1)} ≠ V2 ${JSON.stringify(v2)}`).toEqual(v2);
     });
   }
-  it('la piste de la bibliothèque a ses treize gestes dans les deux menus, « Autres versions » compris', () => {
+  it('la piste de la bibliothèque a ses quatorze gestes dans les deux menus, « Autres versions » compris', () => {
     for (const composant of [MenuPisteV1, PisteActions]) {
       const rendus = menuDe(composant, LOCALE);
       expect(rendus).toContain(fr['library.otherVersions']);
@@ -424,7 +426,9 @@ describe('parité des menus — MenuPisteV1 et PisteActions rendent la même lis
       // était née dans `v2/PisteActions` seule, et les deux clients auraient
       // divergé — le reproche d'origine de #1848.
       expect(rendus).toContain(fr['v2.later.add']);
-      expect(rendus).toHaveLength(13);
+      // #7857 — « Spectrogramme », dans les DEUX menus (le quatorzième).
+      expect(rendus).toContain(fr['spectro.menu']);
+      expect(rendus).toHaveLength(14);
     }
   });
 });
