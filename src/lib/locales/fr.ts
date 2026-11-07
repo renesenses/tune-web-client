@@ -5889,7 +5889,7 @@ export default {
   "cloudBackup.onboardingDone": "Personnalisations reprises.",
   // tune-server-rust#6516 — annuaire radio-metadata.fr
   "v2.radio.tabMine": "Mes radios",
-  "v2.radio.lastPlayed": "Dernières lues",
+  "v2.radio.lastPlayed": "Dernières écoutées",
   "v2.radio.removeFromMine": "Retirer de Mes radios",
   "v2.radio.removeConfirm": "Retirer « {name} » de Mes radios ?",
   "v2.radio.removed": "« {name} » retirée de mes radios",
