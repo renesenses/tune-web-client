@@ -90,6 +90,8 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   crosstalk: 'destination',
   // tune-server-rust#6044 — les réglages du greffon « Réaffectation des canaux ».
   reaffectation: 'destination',
+  // tune-server-rust#7614 — les réglages du greffon « Suréchantillonnage ».
+  surechantillonnage: 'destination',
   plugins: 'destination',
   alarms: 'destination',
   converter: 'destination',
