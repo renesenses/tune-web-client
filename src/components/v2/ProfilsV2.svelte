@@ -26,6 +26,8 @@
   import { profiles, visibleProfiles, profilSupprimable, currentProfileId, createProfile, deleteProfile, updateProfile, selectProfile, type MotifEchecCreation, type Profile } from '../../lib/stores/profile';
   import { dialogs } from '../../lib/stores/dialogs';
   import ReglageVersionJouee from './ReglageVersionJouee.svelte';
+  import PolitiqueParentaleV2 from './PolitiqueParentaleV2.svelte';
+  import { peutSuperviser } from '../../lib/politiqueParentale';
   import { isPremium } from '../../lib/stores/license';
   import { t } from '../../lib/i18n';
   import { pastilleDe, initialeDe } from '../../lib/pastilleProfil';
@@ -83,6 +85,10 @@
     }
     photoEnCours = null;
   }
+
+  /** Contrôle parental (#7856) : le profil dont la section est ouverte. */
+  let parentalOuvert = $state<number | null>(null);
+  const actif = $derived($profiles.find((x) => x.id === $currentProfileId));
 
   let enEdition = $state<number | null>(null);
   let nomEdite = $state('');
@@ -163,8 +169,15 @@
           {#if p.id === $currentProfileId}<span class="badge">{$t('profiles.active')}</span>{/if}
         </button>
         <button class="lnk" onclick={() => editer(p)}>{$t('common.edit')}</button>
+        {#if peutSuperviser(actif, p)}
+          <button class="lnk" data-parental-bascule={p.id} aria-expanded={parentalOuvert === p.id}
+            onclick={() => (parentalOuvert = parentalOuvert === p.id ? null : p.id)}>{$t('parental.title' as any)}</button>
+        {/if}
         {#if $profiles.length > 1 && profilSupprimable(p)}
           <button class="lnk danger" onclick={() => supprimer(p)}>{$t('common.delete')}</button>
+        {/if}
+        {#if parentalOuvert === p.id && peutSuperviser(actif, p)}
+          <PolitiqueParentaleV2 profil={p} />
         {/if}
       {/if}
     </li>

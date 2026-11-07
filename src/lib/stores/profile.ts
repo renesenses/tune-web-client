@@ -19,6 +19,8 @@ export interface Profile {
   /** Le nom tel qu'on l'ecrit. Absent des serveurs qui ne le servent pas. */
   display_name?: string | null;
   avatar_color: string;
+  /** Rôle administrateur (`GET /profiles`). Absent des serveurs qui ne le servent pas. */
+  is_admin?: boolean;
 }
 
 export interface Favorites {
