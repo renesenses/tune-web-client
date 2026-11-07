@@ -3460,6 +3460,8 @@ export default {
   "v2.tuneTestedPropose.f.platform": "Nền tảng",
   "v2.tuneTestedPropose.f.instance": "Mã định danh cài đặt",
   "v2.tuneTestedPropose.err.belowThreshold": "Cần một giờ phát không lỗi trước.",
+  "v2.tuneTestedPropose.auto": "Bạn không cần làm gì thêm: Tune sẽ tự đề xuất thiết bị này sau một giờ nghe không lỗi.",
+  "v2.tuneTestedPropose.err.loadFailed": "Không đọc được trạng thái đề xuất. Hãy kiểm tra máy chủ có phản hồi không rồi thử lại.",
   "v2.tuneTestedPropose.err.noDevice": "Vùng này không có thiết bị nào để đề xuất.",
   "v2.tuneTestedPropose.err.unidentified": "Chưa biết hãng và mẫu của thiết bị này. Hãy đặt chúng trong cài đặt vùng để đề xuất.",
   "v2.tuneTestedPropose.err.notConnected": "Đăng nhập tài khoản Mozaiklabs hoặc nhập khóa giấy phép để gửi đề xuất.",

@@ -63,6 +63,25 @@ export const URL_CATALOGUE = 'https://mozaiklabs.fr/tune-tested.json';
  * — « ça veut dire quoi ? ».
  */
 export const URL_PAGE_PUBLIQUE = 'https://mozaiklabs.fr/tune-tested';
+
+/**
+ * #2698 — le lien du badge mène à la fiche de L'APPAREIL, pas à la page
+ * générale : la page du site lit ses filtres dans l'adresse (`brand`, `q`,
+ * `type`). `URLSearchParams` encode marque et modèle (espaces, `&`, accents).
+ * `type` n'est ajouté que si le catalogue le connaît : un même modèle peut
+ * être validé sur deux sorties.
+ */
+export function urlPageAppareil(
+  appareil: Pick<AppareilTuneTested, 'brand' | 'model' | 'output_type'> | null | undefined,
+): string {
+  if (!appareil) return URL_PAGE_PUBLIQUE;
+  const params = new URLSearchParams();
+  if (appareil.brand) params.set('brand', appareil.brand);
+  if (appareil.model) params.set('q', appareil.model);
+  if (appareil.output_type) params.set('type', appareil.output_type);
+  const suite = params.toString();
+  return suite ? `${URL_PAGE_PUBLIQUE}?${suite}` : URL_PAGE_PUBLIQUE;
+}
 const CLE_CACHE = 'tune_v2_catalogue_tune_tested';
 /** Une requête par navigateur et par jour, au plus. Voir la raison 3 ci-dessus. */
 export const DUREE_CACHE_MS = 24 * 60 * 60 * 1000;

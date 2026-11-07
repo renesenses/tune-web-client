@@ -3578,6 +3578,8 @@ export default {
   "v2.tuneTestedPropose.f.platform": "Plattform",
   "v2.tuneTestedPropose.f.instance": "Installations-ID",
   "v2.tuneTestedPropose.err.belowThreshold": "Det krävs först en timmes uppspelning utan fel.",
+  "v2.tuneTestedPropose.auto": "Du behöver inte göra något: Tune föreslår den här enheten av sig själv efter en timmes lyssning utan fel.",
+  "v2.tuneTestedPropose.err.loadFailed": "Förslagets status kunde inte läsas. Kontrollera att servern svarar och försök igen.",
   "v2.tuneTestedPropose.err.noDevice": "Den här zonen har ingen enhet att föreslå.",
   "v2.tuneTestedPropose.err.unidentified": "Märke och modell för den här enheten är okända. Ange dem i zoninställningarna för att föreslå den.",
   "v2.tuneTestedPropose.err.notConnected": "Logga in på ditt Mozaiklabs-konto eller ange din licensnyckel för att skicka ett förslag.",

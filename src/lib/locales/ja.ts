@@ -3579,6 +3579,8 @@ export default {
   "v2.tuneTestedPropose.f.platform": "プラットフォーム",
   "v2.tuneTestedPropose.f.instance": "インストール識別子",
   "v2.tuneTestedPropose.err.belowThreshold": "まずエラーなしで1時間の再生が必要です。",
+  "v2.tuneTestedPropose.auto": "特に操作は不要です。エラーなしで1時間再生すると、Tuneがこの機器を自動的に提案します。",
+  "v2.tuneTestedPropose.err.loadFailed": "提案の状態を読み取れませんでした。サーバーが応答しているか確認して、もう一度お試しください。",
   "v2.tuneTestedPropose.err.noDevice": "このゾーンには提案できるデバイスがありません。",
   "v2.tuneTestedPropose.err.unidentified": "このデバイスのメーカーとモデルが不明です。提案するにはゾーンの設定で指定してください。",
   "v2.tuneTestedPropose.err.notConnected": "提案を送信するには、Mozaiklabs アカウントにサインインするかライセンスキーを入力してください。",

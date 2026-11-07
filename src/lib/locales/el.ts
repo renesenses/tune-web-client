@@ -3458,6 +3458,8 @@ export default {
   "v2.tuneTestedPropose.f.platform": "Πλατφόρμα",
   "v2.tuneTestedPropose.f.instance": "Αναγνωριστικό εγκατάστασης",
   "v2.tuneTestedPropose.err.belowThreshold": "Απαιτείται πρώτα μία ώρα αναπαραγωγής χωρίς σφάλμα.",
+  "v2.tuneTestedPropose.auto": "Δεν χρειάζεται να κάνετε τίποτα: το Tune θα σας προτείνει μόνο του αυτή τη συσκευή μετά από μία ώρα ακρόασης χωρίς σφάλματα.",
+  "v2.tuneTestedPropose.err.loadFailed": "Δεν ήταν δυνατή η ανάγνωση της κατάστασης της πρότασης. Ελέγξτε ότι ο διακομιστής ανταποκρίνεται και δοκιμάστε ξανά.",
   "v2.tuneTestedPropose.err.noDevice": "Αυτή η ζώνη δεν έχει συσκευή για πρόταση.",
   "v2.tuneTestedPropose.err.unidentified": "Η μάρκα και το μοντέλο αυτής της συσκευής είναι άγνωστα. Ορίστε τα στις ρυθμίσεις της ζώνης για να την προτείνετε.",
   "v2.tuneTestedPropose.err.notConnected": "Συνδεθείτε στον λογαριασμό σας Mozaiklabs ή εισαγάγετε το κλειδί άδειας για να στείλετε πρόταση.",

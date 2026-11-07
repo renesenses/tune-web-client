@@ -708,7 +708,7 @@
                 {#if renaming !== z.id}<span class="cnom">{z.name}</span>{/if}
                 <span class="cappareil" class:muet={!appareilDeLaZone(z)}>{appareilOuSortie(z)}</span>
                 <span class="cbadges">
-                  {#if teste}<BadgeTuneTested taille="sm" />{/if}
+                  {#if teste}<BadgeTuneTested taille="sm" appareil={teste} />{/if}
                   {#if r}<span class="rc {r.cls}" title={r.long}>{r.txt}</span>{/if}
                   {#if presenceTxt(z)}<span class="rc warn" title={presenceTxt(z)}>{presenceTxt(z)}</span>{/if}
                   <BadgeHorsBackend zone={z} />
