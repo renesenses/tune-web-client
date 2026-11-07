@@ -3579,6 +3579,8 @@ export default {
   "v2.tuneTestedPropose.f.platform": "平台",
   "v2.tuneTestedPropose.f.instance": "安装标识",
   "v2.tuneTestedPropose.err.belowThreshold": "需要先无错误播放一小时。",
+  "v2.tuneTestedPropose.auto": "您无需再做任何事：连续无错误播放一小时后，Tune 会自动向您推荐此设备。",
+  "v2.tuneTestedPropose.err.loadFailed": "无法读取提案状态。请检查服务器是否响应，然后重试。",
   "v2.tuneTestedPropose.err.noDevice": "此区域没有可推荐的设备。",
   "v2.tuneTestedPropose.err.unidentified": "此设备的品牌和型号未知。请在区域设置中指定后再推荐。",
   "v2.tuneTestedPropose.err.notConnected": "请登录您的 Mozaiklabs 账户或输入许可证密钥以发送推荐。",

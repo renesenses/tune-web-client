@@ -3579,6 +3579,8 @@ export default {
   "v2.tuneTestedPropose.f.platform": "Plataforma",
   "v2.tuneTestedPropose.f.instance": "Identificador de instalación",
   "v2.tuneTestedPropose.err.belowThreshold": "Primero se necesita una hora de reproducción sin errores.",
+  "v2.tuneTestedPropose.auto": "No tiene que hacer nada: Tune le propondrá este dispositivo por sí mismo tras una hora de escucha sin errores.",
+  "v2.tuneTestedPropose.err.loadFailed": "No se pudo leer el estado de la propuesta. Compruebe que el servidor responde e inténtelo de nuevo.",
   "v2.tuneTestedPropose.err.noDevice": "Esta zona no tiene ningún dispositivo que proponer.",
   "v2.tuneTestedPropose.err.unidentified": "Se desconocen la marca y el modelo de este dispositivo. Indíquelos en los ajustes de la zona para proponerlo.",
   "v2.tuneTestedPropose.err.notConnected": "Inicie sesión en su cuenta de Mozaiklabs o introduzca su clave de licencia para enviar una propuesta.",

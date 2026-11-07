@@ -5,7 +5,7 @@
    * Un seul dessin, deux emplacements : la liste des appareils dans Réglages,
    * et la carte de zone en vue grille. Le badge affirme quelque chose — que
    * MozAIk Labs a validé une configuration pour cet appareil — et il doit donc
-   * mener à la liste publique où cette affirmation se vérifie. Un badge qui
+   * mener à la fiche publique de l'appareil où cette affirmation se vérifie. Un badge qui
    * n'explique pas ce qu'il affirme n'est qu'une décoration.
    *
    * Il ne décide de rien : l'appelant lui passe l'appareil trouvé au catalogue
@@ -13,20 +13,23 @@
    * ne dit PAS « non validé », il dit « rien à dire » — le catalogue peut être
    * hors de portée.
    */
-  import { URL_PAGE_PUBLIQUE } from '../../lib/tuneTested';
+  import { urlPageAppareil, type AppareilTuneTested } from '../../lib/tuneTested';
   import { tip } from '../../lib/tooltip';
   import { t } from '../../lib/i18n';
 
   interface Props {
     /** `sm` dans une ligne dense, `md` sur une carte. */
     taille?: 'sm' | 'md';
+    /** L'appareil du catalogue : le lien mène à SA fiche (#2698). */
+    appareil?: AppareilTuneTested | null;
   }
-  let { taille = 'sm' }: Props = $props();
+  let { taille = 'sm', appareil = null }: Props = $props();
+  const lien = $derived(urlPageAppareil(appareil));
 </script>
 
 <a
   class="tt {taille}"
-  href={URL_PAGE_PUBLIQUE}
+  href={lien}
   target="_blank"
   rel="noopener noreferrer"
   onclick={(e) => e.stopPropagation()}

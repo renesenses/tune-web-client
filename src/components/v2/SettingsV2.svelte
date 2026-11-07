@@ -217,6 +217,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
+  import ProposerTuneTested from './ProposerTuneTested.svelte';
   import BadgeVerrouVolumeZone from './BadgeVerrouVolumeZone.svelte';
   let indexTuneTested = $state<Map<string, AppareilTuneTested>>(new Map());
   // Une seule fois : l'effet ne lit RIEN de ce qu'il écrit.
@@ -228,6 +229,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // La règle vit dans `lib/tuneTested.ts`, pour qu'un test l'APPELLE au lieu
   // de relire ce fichier.
   const tuneTestedDe = (z: any): AppareilTuneTested | null => appareilTuneTeste(indexTuneTested, z);
+  // #2698 — la fenêtre de proposition, ouvrable À TOUT MOMENT depuis la zone.
+  let ficheTuneTested = $state<{ id: number; nom: string } | null>(null);
   /**
    * Bloc « Avancé · renderer » du client actuel, REPRIS tel quel.
    *
@@ -5997,7 +6000,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <!-- Le badge vit dans `BadgeTuneTested` : la carte de
                              zone en vue grille porte le même, et deux copies
                              auraient divergé. -->
-                        {#if tuneTestedDe(z)}<BadgeTuneTested />{/if}
+                        {#if tuneTestedDe(z)}<BadgeTuneTested appareil={tuneTestedDe(z)} />{/if}
                         <!--
                           VERROU DE VOLUME (#2395, #2506) — rebranché après la
                           phase 5, qui l'a emporté avec `DevicesSettings.svelte`.
@@ -6008,6 +6011,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           affirmé : un « non verrouillé » faux coûte du matériel.
                         -->
                         <BadgeVerrouVolumeZone zoneId={z.id} />
+                        {#if z.id != null}
+                          <button type="button" class="tt-proposer" data-testid="proposer-tune-tested"
+                            onclick={() => (ficheTuneTested = { id: z.id as number, nom: z.name })}
+                          >{$t('v2.zone.tuneTestedPropose' as any)}</button>
+                        {/if}
                       </div>
                       {#if jumelleDeProtocole(z, $zones)}
                         {@const j = jumelleDeProtocole(z, $zones)!}
@@ -8324,6 +8332,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   />
 {/if}
 
+{#if ficheTuneTested}
+  <ProposerTuneTested zoneId={ficheTuneTested.id} nom={ficheTuneTested.nom} onClose={() => (ficheTuneTested = null)} />
+{/if}
+
 <input type="file" accept="image/*" bind:this={champPhotoZone} onchange={photoZoneChoisie}
   style="display:none" aria-hidden="true" tabindex="-1" />
 
@@ -8422,6 +8434,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zc.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .zch{display:flex; align-items:baseline; gap:11px}
   .zn{font-size:14px; font-weight:700}
+  .tt-proposer{margin-left:auto; align-self:center; background:transparent; border:1px solid var(--v2-line2);
+    color:var(--v2-txt2); border-radius:var(--v2-r-pill); padding:3px 10px; font:600 11.5px var(--v2-sans); cursor:pointer}
+  .tt-proposer:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
   .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .zt.proto{border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; color:var(--v2-txt2)}
   .hint.jumelle{margin:4px 0 0}

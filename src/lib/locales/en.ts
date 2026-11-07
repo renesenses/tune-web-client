@@ -3595,6 +3595,8 @@ export default {
   "v2.tuneTestedPropose.f.platform": "Platform",
   "v2.tuneTestedPropose.f.instance": "Installation identifier",
   "v2.tuneTestedPropose.err.belowThreshold": "One hour of playback without error is needed first.",
+  "v2.tuneTestedPropose.auto": "Nothing else to do: Tune will offer this device to you by itself after an hour of listening without errors.",
+  "v2.tuneTestedPropose.err.loadFailed": "The proposal status could not be read. Check that the server is responding, then try again.",
   "v2.tuneTestedPropose.err.noDevice": "This zone has no device to propose.",
   "v2.tuneTestedPropose.err.unidentified": "The make and model of this device are unknown. Set them in the zone settings to propose it.",
   "v2.tuneTestedPropose.err.notConnected": "Sign in to your Mozaiklabs account or enter your licence key to send a proposal.",

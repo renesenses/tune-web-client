@@ -3579,6 +3579,8 @@ export default {
   "v2.tuneTestedPropose.f.platform": "Plattform",
   "v2.tuneTestedPropose.f.instance": "Installationskennung",
   "v2.tuneTestedPropose.err.belowThreshold": "Zuerst ist eine Stunde fehlerfreie Wiedergabe nötig.",
+  "v2.tuneTestedPropose.auto": "Sie müssen nichts weiter tun: Tune schlägt Ihnen dieses Gerät nach einer Stunde Wiedergabe ohne Fehler von selbst vor.",
+  "v2.tuneTestedPropose.err.loadFailed": "Der Status des Vorschlags konnte nicht gelesen werden. Prüfen Sie, ob der Server antwortet, und versuchen Sie es erneut.",
   "v2.tuneTestedPropose.err.noDevice": "Diese Zone hat kein Gerät, das vorgeschlagen werden kann.",
   "v2.tuneTestedPropose.err.unidentified": "Marke und Modell dieses Geräts sind unbekannt. Legen Sie sie in den Zoneneinstellungen fest, um es vorzuschlagen.",
   "v2.tuneTestedPropose.err.notConnected": "Melden Sie sich bei Ihrem Mozaiklabs-Konto an oder geben Sie Ihren Lizenzschlüssel ein, um einen Vorschlag zu senden.",

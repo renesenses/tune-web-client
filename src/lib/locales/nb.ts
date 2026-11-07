@@ -3458,6 +3458,8 @@ export default {
   "v2.tuneTestedPropose.f.platform": "Plattform",
   "v2.tuneTestedPropose.f.instance": "Installasjons-ID",
   "v2.tuneTestedPropose.err.belowThreshold": "Det trengs først én time med avspilling uten feil.",
+  "v2.tuneTestedPropose.auto": "Du trenger ikke gjøre noe: Tune foreslår denne enheten av seg selv etter én times lytting uten feil.",
+  "v2.tuneTestedPropose.err.loadFailed": "Statusen for forslaget kunne ikke leses. Sjekk at serveren svarer, og prøv igjen.",
   "v2.tuneTestedPropose.err.noDevice": "Denne sonen har ingen enhet å foreslå.",
   "v2.tuneTestedPropose.err.unidentified": "Merke og modell for denne enheten er ukjent. Angi dem i soneinnstillingene for å foreslå den.",
   "v2.tuneTestedPropose.err.notConnected": "Logg inn på Mozaiklabs-kontoen din eller skriv inn lisensnøkkelen for å sende et forslag.",

@@ -3579,6 +3579,8 @@ export default {
   "v2.tuneTestedPropose.f.platform": "플랫폼",
   "v2.tuneTestedPropose.f.instance": "설치 식별자",
   "v2.tuneTestedPropose.err.belowThreshold": "먼저 오류 없이 1시간 재생해야 합니다.",
+  "v2.tuneTestedPropose.auto": "따로 하실 일은 없습니다. 오류 없이 한 시간 동안 재생하면 Tune이 이 기기를 자동으로 제안합니다.",
+  "v2.tuneTestedPropose.err.loadFailed": "제안 상태를 읽을 수 없습니다. 서버가 응답하는지 확인한 후 다시 시도하세요.",
   "v2.tuneTestedPropose.err.noDevice": "이 존에는 제안할 기기가 없습니다.",
   "v2.tuneTestedPropose.err.unidentified": "이 기기의 제조사와 모델을 알 수 없습니다. 제안하려면 존 설정에서 지정하세요.",
   "v2.tuneTestedPropose.err.notConnected": "제안을 보내려면 Mozaiklabs 계정에 로그인하거나 라이선스 키를 입력하세요.",

@@ -3533,6 +3533,8 @@ export default {
   "v2.tuneTestedPropose.f.platform": "Platform",
   "v2.tuneTestedPropose.f.instance": "Telepítés azonosítója",
   "v2.tuneTestedPropose.err.belowThreshold": "Előbb egy óra hibátlan lejátszás szükséges.",
+  "v2.tuneTestedPropose.auto": "Nincs teendője: a Tune egy óra hibamentes hallgatás után magától felajánlja ezt az eszközt.",
+  "v2.tuneTestedPropose.err.loadFailed": "A javaslat állapotát nem sikerült beolvasni. Ellenőrizze, hogy a szerver válaszol-e, majd próbálja újra.",
   "v2.tuneTestedPropose.err.noDevice": "Ennek a zónának nincs javasolható eszköze.",
   "v2.tuneTestedPropose.err.unidentified": "Az eszköz márkája és modellje ismeretlen. Adja meg őket a zóna beállításaiban a javasláshoz.",
   "v2.tuneTestedPropose.err.notConnected": "Jelentkezzen be Mozaiklabs-fiókjába, vagy adja meg licenckulcsát a javaslat elküldéséhez.",

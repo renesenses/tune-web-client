@@ -3579,6 +3579,8 @@ export default {
   "v2.tuneTestedPropose.f.platform": "Platformă",
   "v2.tuneTestedPropose.f.instance": "Identificator de instalare",
   "v2.tuneTestedPropose.err.belowThreshold": "Este nevoie mai întâi de o oră de redare fără erori.",
+  "v2.tuneTestedPropose.auto": "Nu aveți nimic de făcut: Tune vă va propune singur acest dispozitiv după o oră de ascultare fără erori.",
+  "v2.tuneTestedPropose.err.loadFailed": "Starea propunerii nu a putut fi citită. Verificați dacă serverul răspunde, apoi încercați din nou.",
   "v2.tuneTestedPropose.err.noDevice": "Această zonă nu are niciun dispozitiv de propus.",
   "v2.tuneTestedPropose.err.unidentified": "Marca și modelul acestui dispozitiv sunt necunoscute. Setați-le în setările zonei pentru a-l propune.",
   "v2.tuneTestedPropose.err.notConnected": "Conectați-vă la contul Mozaiklabs sau introduceți cheia de licență pentru a trimite o propunere.",
