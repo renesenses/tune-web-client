@@ -92,7 +92,7 @@ export async function choisirVersionPreferee(workId: string, albumId: number | n
  * `versions` : pour chaque album gardé d'une œuvre, son nombre de versions
  * dans la bibliothèque — ce qu'affiche le badge « N versions ».
  */
-export function regrouperAlbums<A extends { id?: number | null }>(
+export function regrouperAlbums<A extends { id?: number | null; max_channels?: number | null }>(
   albums: A[],
   membres: MembresOeuvre[],
 ): { albums: A[]; versions: Map<number, number> } {
@@ -109,14 +109,24 @@ export function regrouperAlbums<A extends { id?: number | null }>(
     if (!m || garde.has(m.work_id)) continue;
     garde.set(m.work_id, presents.has(m.preferred_id) ? m.preferred_id : a.id);
   }
-  const sortie = albums.filter((a) => {
-    if (a.id == null) return true;
+  // #2690 — la carte porte le canal MAXIMUM de toutes les versions présentes :
+  // sans lui, une œuvre stéréo (préférée) + 5.1 sortait du filtre Multicanal.
+  const canauxMax = new Map<string, number>();
+  for (const a of albums) {
+    const m = a.id == null ? undefined : oeuvreDe.get(a.id);
+    if (!m || a.max_channels == null) continue;
+    canauxMax.set(m.work_id, Math.max(canauxMax.get(m.work_id) ?? 0, Number(a.max_channels)));
+  }
+  const sortie: A[] = [];
+  for (const a of albums) {
+    if (a.id == null) { sortie.push(a); continue; }
     const m = oeuvreDe.get(a.id);
-    if (!m) return true;
-    const ok = garde.get(m.work_id) === a.id;
-    if (ok) versions.set(a.id, m.ids.length);
-    return ok;
-  });
+    if (!m) { sortie.push(a); continue; }
+    if (garde.get(m.work_id) !== a.id) continue;
+    versions.set(a.id, m.ids.length);
+    const max = canauxMax.get(m.work_id);
+    sortie.push(max != null && max !== a.max_channels ? { ...a, max_channels: max } : a);
+  }
   return { albums: sortie, versions };
 }
 
