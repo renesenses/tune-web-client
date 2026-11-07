@@ -71,7 +71,7 @@ describe('étape 2 — saisie et enregistrement', () => {
     await monter();
     q('[data-parental-plage-ajouter]').click(); flushSync();
     // Par défaut lundi à vendredi 17:00-19:00 ; on garde mardi, jeudi, samedi.
-    for (const j of [1, 3, 5, 2, 4, 6]) q<HTMLInputElement>(`[data-parental-plage="0"] [data-parental-jour="${j}"]`).click();
+    for (const j of [1, 3, 5, 6]) q<HTMLInputElement>(`[data-parental-plage="0"] [data-parental-jour="${j}"]`).click();
     flushSync();
     saisir(q<HTMLInputElement>('[data-parental-debut]'), '08:30');
     saisir(q<HTMLInputElement>('[data-parental-fin]'), '10:00');

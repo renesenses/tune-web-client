@@ -91,6 +91,10 @@ describe('contrôle parental — l’appel API', () => {
         artistes_bloques: [{ nom: 'Groupe Interdit' }, { id: 42 }],
         radios_autorisees: ['http://radio.test/flux'],
         podcasts_autorises: null,
+        // Étape 2 : sans plage ni budget saisis, le corps le dit explicitement.
+        plages_horaires: [],
+        budget_quotidien_minutes: null,
+        budget_hebdomadaire_minutes: null,
       },
     });
     expect(q('[data-parental-message]').textContent).toContain('Règles enregistrées');
