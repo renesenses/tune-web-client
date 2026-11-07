@@ -117,6 +117,9 @@ describe('câblage de l’écran', () => {
     expect(fr['upsampling.bitPerfect']).toMatch(/bit-perfect/);
     expect(fr['upsampling.bitPerfect']).toMatch(/PURE/);
     expect(fr['upsampling.nextTrack']).toMatch(/piste suivante/);
+    // Décision du 07/11 : réserve de 3 dB + limiteur, pas la réserve L1 complète.
+    expect(fr['upsampling.lead']).toMatch(/3 dB/);
+    expect(fr['upsampling.lead']).toMatch(/limiteur/);
   });
 
   it('chaque clef de l’écran existe dans les quinze langues', () => {
