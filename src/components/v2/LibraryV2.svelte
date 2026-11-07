@@ -108,7 +108,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
-    comptesCompilation, comptesProvenance, repondALaRecherche, filtresDeRechercheServeur,
+    comptesCompilation, comptesProvenance, repondALaRecherche, motsDeRecherche, prioriserRecherche, filtresDeRechercheServeur,
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
@@ -275,18 +275,31 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * la bibliothèque locale, que la réponse désigne.
    */
   let idsTexteServeur = $state<Set<number> | null>(null);
+  // #2694 — saisie de plusieurs mots : une requête par MOT, jamais la phrase
+  // entière (le serveur rend l'union, « the » attrape presque tout). Chaque
+  // mot est ensuite exigé (ET) par `repondALaRecherche`.
+  let idsParMotServeur = $state<Map<string, Set<number>> | null>(null);
   $effect(() => {
-    // Hors répertoire, 3 caractères au moins (`SEUIL_RECHERCHE_SERVEUR`).
-    const filtres = filtresDeRechercheServeur(q, dossierPortee);
+    const mots = motsDeRecherche(q, fold);
     idsTexteServeur = null;
-    if (depot || !filtres) return;
+    idsParMotServeur = null;
+    if (depot || !mots.length) return;
+    const requetes = (mots.length === 1 ? [q] : mots)
+      .map((m) => [m, filtresDeRechercheServeur(m, dossierPortee)] as const)
+      .filter(([, f]) => f != null);
+    if (!requetes.length) return;
     let perime = false;
     const minuterie = setTimeout(() => {
-      idsAlbumsDeLaPortee((limite, rang) => {
-        if (perime) return Promise.reject(new Error());
-        return api.getAlbumsDetailed(filtres, limite, rang);
-      })
-        .then((ids) => { if (!perime) idsTexteServeur = ids; })
+      Promise.all(requetes.map(([m, filtres]) =>
+        idsAlbumsDeLaPortee((limite, rang) => {
+          if (perime) return Promise.reject(new Error());
+          return api.getAlbumsDetailed(filtres!, limite, rang);
+        }).then((ids) => [m, ids] as const)))
+        .then((paires) => {
+          if (perime) return;
+          if (mots.length === 1) idsTexteServeur = paires[0][1];
+          else idsParMotServeur = new Map(paires.map(([m, ids]) => [fold(m), ids]));
+        })
         .catch(() => { /* comparaison locale seule */ });
     }, 300);
     return () => { perime = true; clearTimeout(minuterie); };
@@ -677,7 +690,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (!dansSource(a, fProvenance)) return false;
     // #4319 — même règle que les comptes : artiste de piste et dossier
     // compris, portée ou non (`idsTexteServeur`).
-    if (!repondALaRecherche(a, q, { plier: fold, albumsDuTexte: idsTexteServeur })) return false;
+    if (!repondALaRecherche(a, q, { plier: fold, albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur })) return false;
     return true;
   }
 
@@ -738,7 +751,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /** Les albums réellement affichés : `sorted` filtré par les critères. Une
    *  seule source pour la grille, la liste, le rail A–Z et le compteur — sinon
    *  ils divergent et le rail propose des lettres qui ne mènent nulle part. */
-  const affiches = $derived(sorted.filter(matches));
+  // #2694 — recherche active : titre exact, puis titre qui commence par la
+  // saisie, devant le reste ; le tri choisi joue à l'intérieur de chaque groupe.
+  const affiches = $derived(prioriserRecherche(sorted.filter(matches), q, fold));
   // `matchCount` est défini plus bas, avec le mode paginé : en pages, le
   // compte est le `total` du serveur, pas la longueur de ce qui est arrivé.
 
@@ -849,7 +864,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
   const outilsFacettes = $derived<Outils>({
     qualiteDe: tierMatches, anneeDe: albumYear, plier: fold, provenanceDe,
-    albumsDuTexte: idsTexteServeur,
+    albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur,
   });
 
   const formats = $derived(comptesFormat(src, filtresActifs, outilsFacettes));

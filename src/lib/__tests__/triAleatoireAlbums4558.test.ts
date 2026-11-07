@@ -160,7 +160,11 @@ describe('#4558 — le tri « Aléatoire » des albums est de retour dans la v2'
     expect(filtre.length).toBeLessThan(avant.length);
     // Le sous-ensemble garde l'ordre relatif du tirage complet : c'est ce qui
     // tient une pagination — la page 2 ne peut pas rendre ce qu'a rendu la 1.
-    expect(filtre).toEqual(avant.filter((t) => filtre.includes(t)));
+    // #2694 : la correspondance exacte du titre, puis celles qui commencent
+    // par la saisie, passent devant ; le tirage joue DANS chaque groupe.
+    const sousEnsemble = avant.filter((t) => filtre.includes(t));
+    const groupe = (t: string) => (t === 'Album 1' ? 0 : t.toLowerCase().startsWith('album 1') ? 1 : 2);
+    expect(filtre).toEqual([0, 1, 2].flatMap((g) => sousEnsemble.filter((t) => groupe(t) === g)));
 
     await chercher(el, '');
     expect(grille(el), 'la recherche a re-tiré l’ordre').toEqual(avant);
