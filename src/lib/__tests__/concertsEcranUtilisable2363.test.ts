@@ -26,12 +26,12 @@ import fr from '../locales/fr';
  *   GET  /api/v1/ext/concerts/upcoming  → { concerts, scope, radius_km, city, country, code? }
  *   GET  /api/v1/ext/concerts/location  → { scope, city, postal_code, country, radius_km, located }
  *   POST /api/v1/ext/concerts/location  { city, postal_code, country, scope, radius_km }
- *   Compte gratuit, TOUTES les routes → refus `ModuleRefusal`
+ *   Serveur d'avant (rc10), compte gratuit, TOUTES les routes → refus `ModuleRefusal`
  *     { error: 'module_required', code: 'module_not_owned' | 'module_account_not_linked', … }
  *
- * Ce qui est gardé : le greffon non installé (message + gestionnaire), le
- * refus Premium traduit SANS liste (décision du 25/09/2026 : pas de version
- * réduite), le compte non relié distingué du non-possédé, la saisie de la
+ * Ce qui est gardé : le greffon non installé (message + gestionnaire), un
+ * écran qui s'ouvre sans licence (tune-server-rust#7865), le refus d'un
+ * serveur d'avant traduit SANS liste ni mention Premium, la saisie de la
  * commune et le POST exact, le périmètre, la liste groupée par artiste, le
  * serveur trop ancien (404 sur `/location`) qui garde l'écran lisible, et la
  * tuile Extensions qui ramène l'entrée de la barre latérale.
@@ -184,17 +184,30 @@ describe('Concerts — greffon non installé', () => {
   });
 });
 
-describe('Concerts — compte gratuit : refus clair, aucune liste', () => {
-  it('module non possédé (402) : phrase traduite, lien vers l’offre, pas de liste ni de crans', async () => {
+describe('Concerts — sans licence (tune-server-rust#7865)', () => {
+  it('serveur à jour, sans licence : l’écran s’ouvre et montre les dates de toutes les sources, sans mention Premium', async () => {
+    // Le greffon ne se dit plus Premium : le catalogue ne porte plus le drapeau.
+    greffon = [{ ...greffon[0], premium: false }];
+    const el = await poser(ConcertsView);
+    expect(el.querySelector('.cc-refus')).toBeNull();
+    expect(el.querySelectorAll('.cc-dates li')).toHaveLength(3);
+    expect(texte(el)).toContain('Accor Arena');
+    expect(texte(el)).not.toMatch(/premium/i);
+    expect(el.querySelector('a[href*="pricing"]')).toBeNull();
+  });
+});
+
+describe('Concerts — serveur d’avant (rc10) qui refuse encore : se mettre à jour, aucune liste', () => {
+  it('module non possédé (402) : phrase traduite, aucun lien vers l’offre, pas de liste ni de crans', async () => {
     refus = {
       status: 402,
       corps: { error: 'module_required', code: 'module_not_owned', module: 'concerts', action: 'purchase_module', message: 'the concerts module is a paid add-on', upgrade_url: 'https://mozaiklabs.fr/pricing' },
     };
     const el = await poser(ConcertsView);
-    expect(texte(el)).toContain(fr['concerts.premiumRequis']);
+    expect(texte(el)).toContain(fr['concerts.serveurAMettreAJour']);
     expect(texte(el)).not.toContain('paid add-on');
-    const lien = el.querySelector('a.cc-principal') as HTMLAnchorElement;
-    expect(lien.href).toContain('mozaiklabs.fr/pricing');
+    expect(texte(el)).not.toMatch(/premium/i);
+    expect(el.querySelector('a[href*="pricing"]')).toBeNull();
     expect(el.querySelector('.cc-liste')).toBeNull();
     expect(bouton(el, fr['concerts.dansMonPays'])).toBeUndefined();
     expect(texte(el)).not.toContain('Radiohead');
@@ -205,23 +218,22 @@ describe('Concerts — compte gratuit : refus clair, aucune liste', () => {
   it('même refus servi en 403 : reconnu par son corps, pas par son statut', async () => {
     refus = { status: 403, corps: { error: 'module_required', code: 'module_not_owned', module: 'concerts' } };
     const el = await poser(ConcertsView);
-    expect(texte(el)).toContain(fr['concerts.premiumRequis']);
+    expect(texte(el)).toContain(fr['concerts.serveurAMettreAJour']);
     expect(texte(el)).not.toContain(fr['concerts.indisponible']);
     expect(el.querySelector('.cc-liste')).toBeNull();
   });
 
-  it('compte non relié : dit de relier le compte, pas d’acheter, et y mène', async () => {
+  it('compte non relié : la même mise à jour, ni Premium ni compte à relier', async () => {
     refus = { status: 402, corps: { error: 'module_required', code: 'module_account_not_linked', module: 'concerts', action: 'link_account' } };
     const el = await poser(ConcertsView);
-    expect(texte(el)).toContain(fr['concerts.compteNonRelie']);
-    expect(el.querySelector('a.cc-principal')).toBeNull();
-    bouton(el, fr['concerts.relierCompte'])!.click();
-    expect(get(activeView)).toBe('settings');
-    expect(get(v2SettingsTarget)).toEqual({ tab: 'system', section: 'cloud' });
+    expect(texte(el)).toContain(fr['concerts.serveurAMettreAJour']);
+    expect(texte(el)).not.toMatch(/premium/i);
+    expect(el.querySelector('.cc-refus button')).toBeNull();
+    expect(get(activeView)).toBe('concerts');
   });
 });
 
-describe('Concerts — compte Premium', () => {
+describe('Concerts — serveur qui sert les dates', () => {
   it('pré-remplit la commune enregistrée et liste les concerts groupés par artiste', async () => {
     const el = await poser(ConcertsView);
     const [communeInput, cpInput] = [...el.querySelectorAll('.cc-commune input')] as HTMLInputElement[];
@@ -436,7 +448,7 @@ describe('Concerts — contrat réel du lot serveur (srv#5102)', () => {
       corps: { error: 'module_required', code: 'module_not_owned', module: 'concerts', feature: 'concerts', action: 'purchase_module', upgrade_url: 'https://mozaiklabs.fr/pricing' },
     };
     const el = await poser(ConcertsView);
-    expect(texte(el)).toContain(fr['concerts.premiumRequis']);
+    expect(texte(el)).toContain(fr['concerts.serveurAMettreAJour']);
     expect(el.querySelector('.cc-liste')).toBeNull();
   });
 });
