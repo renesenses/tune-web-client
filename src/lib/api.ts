@@ -1597,6 +1597,17 @@ export function submitAirplayPairPin(deviceId: string, pin: string) {
   );
 }
 
+/** Abandonne la saisie du code (fenêtre fermée sans code) : le serveur lève
+ *  l'attente et la lecture revient au jumelage transitoire
+ *  (tune-server-rust#8060). Un serveur plus ancien rend 404 : l'attente y
+ *  expire seule, l'appelant ignore l'erreur. */
+export function cancelAirplayPairing(deviceId: string) {
+  return fetchJSON<{ ok: boolean; cancelled: boolean; status: string }>(
+    `${BASE}/outputs/${encodeURIComponent(deviceId)}/airplay/pair-cancel`,
+    { method: 'POST' },
+  );
+}
+
 export function deleteZone(id: number) {
   return fetchVoid(`${BASE}/zones/${id}`, { method: 'DELETE' });
 }
