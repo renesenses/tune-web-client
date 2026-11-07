@@ -37,7 +37,7 @@
     smartPlaylistsFavorites,
   } from '../../lib/favorisFusionnes';
   import {
-    trierEtFiltrer, sourcesPresentes, SOURCE_BIBLIOTHEQUE, type TriFavoris,
+    trierEtFiltrer, sourcesPresentes, sourceDe, SOURCE_BIBLIOTHEQUE, type TriFavoris,
   } from '../../lib/favorisTriFiltre';
   import { fold } from '../../lib/utils';
 import { collectionNomAffiche } from '../../lib/collectionsLibelles';
@@ -340,7 +340,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   const sourcesOnglet = $derived(
     sourcesPresentes(
-      tab === 'tracks' ? fTracks : tab === 'albums' ? fAlbums : tab === 'artists' ? fArtists : [],
+      tab === 'tracks' ? fTracks : tab === 'albums' ? fAlbums : tab === 'artists' ? fArtists : tab === 'playlists' ? fPlaylists : [],
     ),
   );
   $effect(() => {
@@ -356,7 +356,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
    * arrivaient ici, mais un trou dès qu'un favori de service retiré doit
    * quitter l'écran. On tranche par type, comme les trois autres seaux.
    */
-  const vPlaylists = $derived(
+  const fPlaylists = $derived(
     playlists.filter((p: any) =>
       // La sorte AVANT le numéro : une playlist intelligente se lit dans SON
       // ensemble, jamais dans celui des playlists du même id (#4798).
@@ -364,6 +364,19 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
         ? $favoriteSmartPlaylistIds.has(p.id)
         : p?.id != null ? $favoritePlaylistIds.has(p.id) : encoreFavori(p, 'playlist')) && match(p?.name),
     ),
+  );
+  /*
+   * web#2679 point 2 — le choix de SOURCE des onglets Albums, Pistes et
+   * Artistes (`sourcesPresentes`, `sourceDe`, `SOURCE_BIBLIOTHEQUE`), pour les
+   * playlists. Une playlist de la bibliothèque (ordinaire ou intelligente) a un
+   * `id` : `sourceDe` la range sous « Bibliothèque » ; une playlist de service
+   * n'en a pas et porte son service.
+   *
+   * On FILTRE, on ne TRIE pas : `trierEtFiltrer` réordonnerait la liste, et cet
+   * onglet n'a pas de menu de tri (voir la barre plus bas).
+   */
+  const vPlaylists = $derived(
+    sourceFiltre ? fPlaylists.filter((p: any) => sourceDe(p) === sourceFiltre) : fPlaylists,
   );
 
   /**
@@ -376,9 +389,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
    * `CollectionsV2` et `EtiquettesV2` emploient déjà — on les emprunte, on n'en
    * réécrit pas une quatrième.
    *
-   * 🔴 CHARGÉES SEULEMENT EN GRILLE. La liste n'a pas de vignette : tant que
-   * l'utilisateur y reste — le défaut de cet onglet — aucune requête ne part.
-   * C'est ce qui rend la grille gratuite pour ceux qui n'en veulent pas.
+   * web#2679 point 3 — CHARGÉES EN GRILLE COMME EN LISTE. La liste montrait de
+   * petits pictogrammes (« il montre de petites icônes ») : elle porte
+   * maintenant la même pochette en vignette, donc les mêmes requêtes. Seul
+   * l'onglet Playlists les déclenche.
    *
    * ⚠️ Une requête PAR playlist. `demandees` n'est PAS réactif : le lire dans
    * l'effet qui l'écrit relancerait l'effet sans fin.
@@ -406,7 +420,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   }
 
   $effect(() => {
-    if (tab !== 'playlists' || affichagePlaylists !== 'grid') return;
+    if (tab !== 'playlists') return;
     void chargerMosaiques(vPlaylists);
   });
   /**
@@ -705,6 +719,13 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     );
   }
 
+  /** Ouvre un onglet de facettes de la Bibliothèque, sans valeur choisie. */
+  async function ouvrirOngletFacette(onglet: string) {
+    activeView.set('library');
+    await tick();
+    window.dispatchEvent(new CustomEvent('tune:v2-facette', { detail: { onglet, valeur: '' } }));
+  }
+
   const TABS: { id: Tab; label: string; n: number }[] = $derived([
     { id: 'albums', label: $t('favorites.albums' as any), n: vAlbums.length },
     { id: 'tracks', label: $t('favorites.tracks' as any), n: vTracks.length },
@@ -834,6 +855,30 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
        rien à y régler, il y a désormais la bascule d'affichage. Le TRI, lui,
        n'y entre pas — `vPlaylists` n'est pas trié par `trierEtFiltrer`, et un
        menu de tri sans effet serait le clic mort qu'on corrige ailleurs. -->
+  <!-- web#2679 point 3 — la pochette d'une playlist, UNE seule fois : la grille
+       et la liste appellent ce même gabarit. Mosaïque des pistes (locale), image
+       du service, sinon le pictogramme. -->
+  {#snippet visuelPl(pl: any, mos: string[] | undefined)}
+    {#if mos}
+      <MosaiquePochettes pochettes={mos} initiales={pl.name?.slice(0, 1)} alt={pl.name} />
+    {:else if pl.id == null && pl.cover_path}
+      <!-- Une playlist de SERVICE porte SON image, entière : ce n'est pas un
+           assemblage d'albums, on ne la coupe donc pas en quatre. -->
+      <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} vignette alt={pl.name}
+                source={pl.source} fallbackInitials={pl.name?.slice(0, 1)} />
+    {:else}
+      <!-- Pas de pochette : le pictogramme. -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round">
+        {#if pl.smart}
+          <path d="M3 5h18l-7 8v6l-4 2v-8z"/>
+        {:else}
+          <path d="M3 6h13M3 12h13M3 18h9"/><path d="M19 8v9.5"/><circle cx="17" cy="18" r="2"/>
+        {/if}
+      </svg>
+    {/if}
+  {/snippet}
+
   {#if tab === 'albums' || tab === 'tracks' || tab === 'artists' || tab === 'playlists'}
     <div class="barre">
       {#if tab === 'tracks' && vTracks.length}
@@ -1055,26 +1100,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                   rafraichir={reload}
                   nom={pl.name ?? ''}
                 >
-                  {#if mos}
-                    <MosaiquePochettes pochettes={mos} initiales={pl.name?.slice(0, 1)} alt={pl.name} />
-                  {:else if !locale && pl.cover_path}
-                    <!-- Une playlist de SERVICE porte SON image, entière : ce
-                         n'est pas un assemblage d'albums, on ne la coupe donc
-                         pas en quatre. -->
-                    <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} vignette alt={pl.name}
-                              source={pl.source} fallbackInitials={pl.name?.slice(0, 1)} />
-                  {:else}
-                    <!-- Tant que les pochettes ne sont pas revenues — ou si la
-                         playlist n'en a aucune — le pictogramme de la liste. -->
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-                         stroke-linecap="round" stroke-linejoin="round">
-                      {#if pl.smart}
-                        <path d="M3 5h18l-7 8v6l-4 2v-8z"/>
-                      {:else}
-                        <path d="M3 6h13M3 12h13M3 18h9"/><path d="M19 8v9.5"/><circle cx="17" cy="18" r="2"/>
-                      {/if}
-                    </svg>
-                  {/if}
+                  {@render visuelPl(pl, mos)}
                 </PochetteActions>
               </span>
               <span class="ct" title={pl.name}>{pl.name}</span>
@@ -1122,20 +1148,8 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                                   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ouvrir(); }
                                 }
                               : undefined}>
-              <span class="si" aria-hidden="true" title={pl.smart ? $t('v2.pl.tabSmart' as any) : undefined}>
-                {#if pl.smart}
-                  <!-- La playlist INTELLIGENTE se distingue à l'œil, comme la
-                       collection intelligente : son contenu est une règle. -->
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                       stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 5h18l-7 8v6l-4 2v-8z"/>
-                  </svg>
-                {:else}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                       stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 6h13M3 12h13M3 18h9"/><path d="M19 8v9.5"/><circle cx="17" cy="18" r="2"/>
-                  </svg>
-                {/if}
+              <span class="sv" class:img={!!mosaiquesPl[clefMosaique(pl) ?? ''] || (!locale && !!pl.cover_path)} aria-hidden="true" title={pl.smart ? $t('v2.pl.tabSmart' as any) : undefined}>
+                {@render visuelPl(pl, mosaiquesPl[clefMosaique(pl) ?? ''])}
               </span>
               <span class="sn" title={pl.name}>{pl.name}</span>
               {#if pl.track_count != null}<span class="sc">{pl.track_count}</span>{/if}
@@ -1159,6 +1173,17 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       {/if}
 
     {:else if tab === 'facettes'}
+      <!-- web#2679 point 4 — ce que sont les facettes et comment en créer une,
+           TOUJOURS visible sur cet onglet (pas seulement quand il est vide),
+           avec un accès direct aux trois onglets de la Bibliothèque. -->
+      <div class="aide-facettes" data-testid="aide-facettes">
+        <p>{$t('v2.fav.facetsHelp' as any)}</p>
+        <div class="liens">
+          {#each [['genres', 'nav.genres'], ['years', 'v2.lib.tabYears'], ['labels', 'v2.lib.tabLabels']] as [onglet, cle] (onglet)}
+            <button type="button" data-onglet={onglet} onclick={() => ouvrirOngletFacette(onglet)}>{$t(cle as any)}</button>
+          {/each}
+        </div>
+      </div>
       {#if !vFacettes.length}
         <div class="state">{facettes.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyFacets' as any)}</div>
       {:else}
@@ -1461,10 +1486,23 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .simple:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .simple .si{display:inline-flex; color:var(--v2-acc1)}
   .simple .si svg{width:17px; height:17px}
+  /* web#2679 point 3 — la pochette d'une playlist en LISTE. Même fond que la
+     vignette de la grille (`.cv.pl`) quand il n'y a pas de pochette. */
+  .simple .sv{display:grid; place-items:center; width:40px; height:40px; border-radius:6px; overflow:hidden;
+    color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .simple .sv.img{background:none}
+  .simple .sv svg{width:20px; height:20px; opacity:.9}
   .simple .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px}
   .simple .sc{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
   /* Une facette d'un type que la Bibliotheque n'expose pas encore reste
      LISIBLE mais inerte : mieux vaut la montrer inactive que la cacher. */
+  .aide-facettes{margin:0 0 14px; padding:12px 14px; border-radius:10px; background:var(--v2-hover);
+    font-size:13px; color:var(--v2-txt2)}
+  .aide-facettes p{margin:0 0 8px; line-height:1.45}
+  .aide-facettes .liens{display:flex; flex-wrap:wrap; gap:8px}
+  .aide-facettes .liens button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    cursor:pointer; font:600 12px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
+  .aide-facettes .liens button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .simple:disabled{cursor:default; opacity:.55}
   .simple:disabled:hover{background:transparent; color:var(--v2-txt2)}
 
