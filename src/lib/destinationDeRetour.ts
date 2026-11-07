@@ -88,6 +88,8 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   crossfeedpro: 'destination',
   // web#2580 — Crosstalk (greffon natif tiers, enceintes).
   crosstalk: 'destination',
+  // web#2706 — l'écran Correction de pièce, ouvert du menu de zone.
+  roomcorrection: 'destination',
   // tune-server-rust#6044 — les réglages du greffon « Réaffectation des canaux ».
   reaffectation: 'destination',
   plugins: 'destination',
