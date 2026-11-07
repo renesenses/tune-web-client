@@ -59,7 +59,11 @@
   // ── le globe ──────────────────────────────────────────────────────────
   let toile = $state<HTMLCanvasElement | null>(null);
   let boite = $state<HTMLDivElement | null>(null);
-  let taille = $state(320);
+  /** #2710 — vignette par défaut ; le bouton agrandit temporairement. */
+  let agrandie = $state(false);
+  const TAILLE_VIGNETTE = 200;
+  let taille = $state(TAILLE_VIGNETTE);
+  function basculer() { agrandie = !agrandie; taille = agrandie ? 320 : TAILLE_VIGNETTE; }
   let survole = $state<string | null>(null);
   let o: Orientation = { lon0: 10 * DEG, tilt: 20 * DEG };
   let couleurs = { pays: '#4cc79d', terre: '#888', choix: '#fff' };
@@ -135,7 +139,7 @@
   });
 
   $effect(() => {
-    if (!boite || typeof ResizeObserver === 'undefined') return;
+    if (!agrandie || !boite || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(() => {
       const l = boite?.clientWidth ?? 0;
       if (l > 0) taille = Math.max(200, Math.min(420, Math.floor(l)));
@@ -197,11 +201,16 @@
   const nomSurvole = $derived(survole ? nomPays(survole, $locale) : null);
 </script>
 
-<section class="carte-pays" data-carte-pays aria-label={$t('v2.lib.map.title' as any)}>
+<section class="carte-pays" class:grande={agrandie} class:compacte={!agrandie} data-carte-pays
+  data-carte-mode={agrandie ? 'grande' : 'compacte'} aria-label={$t('v2.lib.map.title' as any)}>
   <header>
     <h3>{$t('v2.lib.map.title' as any)}</h3>
-    <p class="note">{$t('v2.lib.map.hint' as any)}</p>
+    <button type="button" class="agrandir" data-carte-agrandir aria-pressed={agrandie}
+      aria-label={$t((agrandie ? 'v2.lib.map.shrink' : 'v2.lib.map.enlarge') as any)}
+      title={$t((agrandie ? 'v2.lib.map.shrink' : 'v2.lib.map.enlarge') as any)}
+      onclick={basculer}>{agrandie ? '\u2198' : '\u2197'}</button>
   </header>
+  {#if agrandie}<p class="note">{$t('v2.lib.map.hint' as any)}</p>{/if}
 
   {#if erreur}
     <p class="etat" role="alert" data-carte-erreur>{$t('v2.lib.map.error' as any)}</p>
@@ -253,7 +262,21 @@
 
 <style>
   .carte-pays{margin:8px 0 14px;padding:12px;border:1px solid var(--v2-line);border-radius:var(--v2-r-md);background:var(--v2-surface2);color:var(--v2-txt)}
+  header{display:flex;align-items:center;justify-content:space-between;gap:8px}
   header h3{margin:0 0 4px;font-size:14px}
+  .agrandir{border:1px solid var(--v2-line2);background:none;color:var(--v2-txt2);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1}
+  .agrandir:hover{background:var(--v2-hover)}
+  .agrandir:focus-visible{outline:2px solid var(--v2-focus);outline-offset:2px}
+  /* #2710 — compacte : une vignette en haut à gauche, jamais plus large que
+     globe + liste ; la grille d'albums garde la place. */
+  .carte-pays.compacte{align-self:flex-start;max-width:min(560px,100%);box-sizing:border-box;padding:8px 10px}
+  .compacte .corps{gap:10px;align-items:stretch}
+  .compacte .globe{flex:0 0 200px;max-width:200px}
+  .compacte .survol{display:none}
+  .compacte .legende{display:none}
+  .compacte .liste{flex:1 1 160px;display:flex;flex-direction:column;min-height:0}
+  .compacte .liste h4{display:none}
+  .compacte .liste ul{max-height:200px}
   .note{margin:4px 0;font-size:12px;color:var(--v2-txt2)}
   .etat{margin:10px 0;font-size:13px;color:var(--v2-txt2)}
   .corps{display:flex;gap:16px;align-items:flex-start}
@@ -277,5 +300,10 @@
     .corps{flex-direction:column;align-items:stretch}
     .globe{max-width:none}
     .liste ul{max-height:280px}
+    .carte-pays.compacte{align-self:stretch;max-width:none}
+    .compacte .corps{flex-direction:row;flex-wrap:wrap}
+    .compacte .globe{flex:0 0 200px;margin:0 auto}
+    .compacte .liste{flex:1 1 100%}
+    .compacte .liste ul{max-height:120px}
   }
 </style>
