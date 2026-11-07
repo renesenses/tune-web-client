@@ -230,7 +230,7 @@ describe('le moteur', () => {
   });
 
   it('trace aussi les côtes (web#2697), en un tracé à leur couleur, et les suit au changement de thème', () => {
-    const { m, traits, cotes } = monter();
+    const { m, traits, cotes, fleuves } = monter();
     m.zoomerA(4); drainer();
     expect(cotes()).toHaveLength(1);
     expect(cotes()[0].lignes).toBeGreaterThan(100);
