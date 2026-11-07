@@ -15,6 +15,7 @@
     confirmable,
     creditsQobuz,
     lignesApports,
+    cleDuRefus,
     retirable,
     type ApportsQobuz,
   } from '../../lib/apportsQobuz';
@@ -57,7 +58,8 @@
       retire = true;
       await charger(albumId);
     } catch (e) {
-      erreur = e instanceof Error ? e.message : String(e);
+      const cle = cleDuRefus(e);
+      erreur = cle ? $tr(cle as any) : e instanceof Error ? e.message : String(e);
     } finally {
       enCours = false;
     }
@@ -72,7 +74,8 @@
       await api.confirmerApportsQobuz(albumId, id);
       await charger(albumId);
     } catch (e) {
-      erreur = e instanceof Error ? e.message : String(e);
+      const cle = cleDuRefus(e);
+      erreur = cle ? $tr(cle as any) : e instanceof Error ? e.message : String(e);
     } finally {
       enCours = false;
     }

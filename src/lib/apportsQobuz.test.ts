@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { confirmable, creditsQobuz, lignesApports, retirable, type ApportsQobuz } from './apportsQobuz';
+import { cleDuRefus, confirmable, creditsQobuz, lignesApports, retirable, type ApportsQobuz } from './apportsQobuz';
 
 const q = (valeur: unknown) => ({ valeur, source: 'qobuz' });
 
@@ -62,5 +62,13 @@ describe('tune-server-rust#8077 — apports Qobuz de la fiche album', () => {
       { artist_name: 'Producteur', role: 'producer', source: 'qobuz', track_number: 2 },
       { artist_name: 'Pianiste local', role: 'performer', instrument: 'piano', track_number: 1 },
     ])).toEqual([{ nom: 'Producteur', role: 'producer', pistes: [1, 2] }]);
+  });
+
+  it('un refus du serveur est un code traduit, jamais une phrase', () => {
+    expect(cleDuRefus({ code: 'qobuz_non_connecte' })).toBe('v2.album.qobuz.errNotConnected');
+    expect(cleDuRefus({ code: 'rien_a_confirmer' })).toBe('v2.album.qobuz.errNothingToConfirm');
+    expect(cleDuRefus({ code: 'album_qobuz_introuvable' })).toBe('v2.album.qobuz.errAlbumNotFound');
+    expect(cleDuRefus({ code: 'autre' })).toBeNull();
+    expect(cleDuRefus(new Error('x'))).toBeNull();
   });
 });

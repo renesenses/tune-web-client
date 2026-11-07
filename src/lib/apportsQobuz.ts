@@ -136,3 +136,18 @@ export function retirable(a: ApportsQobuz | null | undefined): boolean {
 export function confirmable(a: ApportsQobuz | null | undefined): boolean {
   return !!a && a.statut === 'a_confirmer' && !!chaine(a.service_album_id);
 }
+
+/**
+ * Les refus du serveur sont des CODES stables (`{"error": "<code>"}`, lus par
+ * `apiError` dans `err.code`) ; la clé de traduction de chacun, ou `null`.
+ */
+const CODES_DE_REFUS: Record<string, string> = {
+  rien_a_confirmer: 'v2.album.qobuz.errNothingToConfirm',
+  qobuz_non_connecte: 'v2.album.qobuz.errNotConnected',
+  album_qobuz_introuvable: 'v2.album.qobuz.errAlbumNotFound',
+};
+
+export function cleDuRefus(e: unknown): string | null {
+  const code = (e as { code?: unknown } | null)?.code;
+  return typeof code === 'string' && code in CODES_DE_REFUS ? CODES_DE_REFUS[code] : null;
+}
