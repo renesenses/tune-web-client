@@ -7,17 +7,19 @@
    * (`peutSuperviser`). Le serveur reste juge : 403 / 409 / 422 sont lus et
    * dits, jamais devinés.
    *
-   * Sans règle posée, rien ne change pour le profil : on le dit. La section
-   * « plages horaires et budget d'écoute » (étape 2, #7974) viendra sous les
-   * listes, dans l'emplacement `data-parental-etape2` ; ses données, déjà
-   * acceptées par le serveur, sont conservées à chaque écriture.
+   * Sans règle posée, rien ne change pour le profil : on le dit. Sous les
+   * listes, la section `data-parental-etape2` (étape 2, #7974, appliquée par
+   * #8046) pose les plages horaires et les budgets d'écoute. Le serveur
+   * n'expose aucune route du temps restant : on ne l'affiche pas.
    */
-  import { t } from '../../lib/i18n';
+  import { locale, t } from '../../lib/i18n';
   import { dialogs } from '../../lib/stores/dialogs';
   import type { Profile } from '../../lib/stores/profile';
   import {
-    artistesDepuisLignes, cleErreur, ligneArtiste, lignes, lirePolitique, poserPolitique, retirerPolitique,
-    type PolitiqueEnregistree, type PolitiqueParentale,
+    artistesDepuisLignes, budgetDepuisSaisie, budgetVersSaisie, BUDGET_JOUR_MAX, BUDGET_SEMAINE_MAX,
+    cleErreur, erreurPlage, erreurPlages, ligneArtiste, lignes, lirePolitique, PLAGES_MAX,
+    plagesPourServeur, poserPolitique, retirerPolitique,
+    type PlageHoraire, type PolitiqueEnregistree, type PolitiqueParentale,
   } from '../../lib/politiqueParentale';
 
   let { profil }: { profil: Profile } = $props();
@@ -34,6 +36,9 @@
   let radios = $state('');
   let restreindrePodcasts = $state(false);
   let podcasts = $state('');
+  let plages = $state<PlageHoraire[]>([]);
+  let jourH = $state(''); let jourM = $state('');
+  let semH = $state(''); let semM = $state('');
   let message = $state('');
   let erreur = $state('');
   let enCours = $state(false);
@@ -47,7 +52,34 @@
     radios = (base?.radios_autorisees ?? []).join('\n');
     restreindrePodcasts = base?.podcasts_autorises != null;
     podcasts = (base?.podcasts_autorises ?? []).join('\n');
+    plages = (base?.plages_horaires ?? []).map((x) => ({ jours: [...x.jours], debut: x.debut, fin: x.fin }));
+    const j = budgetVersSaisie(base?.budget_quotidien_minutes); jourH = j.h; jourM = j.m;
+    const w = budgetVersSaisie(base?.budget_hebdomadaire_minutes); semH = w.h; semM = w.m;
   }
+
+  /** Lundi (1) à dimanche (7), dans la langue de l'interface. */
+  const JOURS = [1, 2, 3, 4, 5, 6, 7];
+  function nomDuJour(n: number): string {
+    try {
+      // Le 1er janvier 2024 est un lundi.
+      return new Intl.DateTimeFormat($locale, { weekday: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2024, 0, n)));
+    } catch { return String(n); }
+  }
+  function ajouterPlage() {
+    if (plages.length >= PLAGES_MAX) return;
+    plages = [...plages, { jours: [1, 2, 3, 4, 5], debut: '17:00', fin: '19:00' }];
+  }
+  function retirerPlage(i: number) { plages = plages.filter((_, k) => k !== i); }
+  function basculerJour(i: number, j: number) {
+    const x = plages[i];
+    x.jours = x.jours.includes(j) ? x.jours.filter((v) => v !== j) : [...x.jours, j];
+  }
+
+  const budgetJour = $derived(budgetDepuisSaisie(jourH, jourM, BUDGET_JOUR_MAX, 'parental.budget.errDaily'));
+  const budgetSemaine = $derived(budgetDepuisSaisie(semH, semM, BUDGET_SEMAINE_MAX, 'parental.budget.errWeekly'));
+  const erreurDePlages = $derived(erreurPlages(plages));
+  /** Le premier défaut de saisie de l'étape 2 : bloque l'enregistrement. */
+  const defautEtape2 = $derived(erreurDePlages ?? budgetJour.erreur ?? budgetSemaine.erreur);
 
   async function charger() {
     phase = 'charge'; erreur = '';
@@ -64,12 +96,16 @@
 
   async function enregistrer() {
     if (enCours) return;
+    if (defautEtape2) { erreur = $t(defautEtape2 as any); return; }
     enCours = true; erreur = ''; message = '';
-    // Étape 2 : plages et budgets lus sont renvoyés tels quels (voir l'en-tête
-    // de `politiqueParentale.ts`) — le serveur remplace la politique entière.
+    // Le serveur remplace la politique entière : plages et budgets partent avec
+    // les listes (voir l'en-tête de `politiqueParentale.ts`).
     const base = posee?.politique;
     const politique: PolitiqueParentale = {
       ...base,
+      plages_horaires: plagesPourServeur(plages),
+      budget_quotidien_minutes: budgetJour.minutes,
+      budget_hebdomadaire_minutes: budgetSemaine.minutes,
       artistes_bloques: artistesDepuisLignes(artistes, base?.artistes_bloques ?? []),
       radios_autorisees: restreindreRadios ? lignes(radios) : null,
       podcasts_autorises: restreindrePodcasts ? lignes(podcasts) : null,
@@ -104,11 +140,6 @@
     enCours = false;
   }
 
-  const aEtape2 = $derived(
-    !!posee && ((posee.politique.plages_horaires?.length ?? 0) > 0
-      || posee.politique.budget_quotidien_minutes != null
-      || posee.politique.budget_hebdomadaire_minutes != null),
-  );
 </script>
 
 <section class="parental" data-parental={profil.id} aria-label={$t('parental.title' as any)}>
@@ -160,13 +191,66 @@
       {/if}
     </div>
 
-    <!-- Étape 2 (#7974) : plages horaires et budgets d'écoute se brancheront ici. -->
-    <div data-parental-etape2>
-      {#if aEtape2}<p class="aide">{$t('parental.step2Kept' as any)}</p>{/if}
+    <!-- Étape 2 (#7974) : plages horaires et budgets d'écoute. -->
+    <div data-parental-etape2 class="etape2">
+      <div class="champ">
+        <span class="lbl">{$t('parental.hours.title' as any)}</span>
+        <span class="aide">{$t('parental.hours.hint' as any)}</span>
+        {#each plages as plage, i}
+          {@const e = erreurPlage(plage)}
+          <div class="plage" data-parental-plage={i}>
+            <div class="jours" role="group" aria-label={$t('parental.hours.days' as any)}>
+              {#each JOURS as j}
+                <label class="jour" class:on={plage.jours.includes(j)}>
+                  <input type="checkbox" data-parental-jour={j} checked={plage.jours.includes(j)} onchange={() => basculerJour(i, j)} />
+                  {nomDuJour(j)}
+                </label>
+              {/each}
+            </div>
+            <div class="heures">
+              <label>{$t('parental.hours.from' as any)}
+                <input type="time" data-parental-debut bind:value={plage.debut} /></label>
+              <label>{$t('parental.hours.to' as any)}
+                <input type="time" data-parental-fin bind:value={plage.fin} /></label>
+              <button class="lnk danger" data-parental-plage-retirer onclick={() => retirerPlage(i)}>{$t('parental.hours.remove' as any)}</button>
+            </div>
+            {#if e}<span class="aide avert" data-parental-plage-erreur>{$t(e as any)}</span>{/if}
+          </div>
+        {/each}
+        <div>
+          <button class="lnk" data-parental-plage-ajouter disabled={plages.length >= PLAGES_MAX} onclick={ajouterPlage}>{$t('parental.hours.add' as any)}</button>
+        </div>
+      </div>
+
+      <div class="champ">
+        <span class="lbl">{$t('parental.budget.title' as any)}</span>
+        <span class="aide">{$t('parental.budget.hint' as any)}</span>
+        <div class="budget">
+          <span class="lbl2">{$t('parental.budget.daily' as any)}</span>
+          <input type="text" inputmode="numeric" data-parental-jour-h bind:value={jourH}
+            aria-label={$t('parental.budget.daily' as any) + ' ' + $t('parental.unit.h' as any)} />
+          <span>{$t('parental.unit.h' as any)}</span>
+          <input type="text" inputmode="numeric" data-parental-jour-m bind:value={jourM}
+            aria-label={$t('parental.budget.daily' as any) + ' ' + $t('parental.unit.min' as any)} />
+          <span>{$t('parental.unit.min' as any)}</span>
+        </div>
+        {#if budgetJour.erreur}<span class="aide avert" data-parental-budget-erreur>{$t(budgetJour.erreur as any)}</span>{/if}
+        <div class="budget">
+          <span class="lbl2">{$t('parental.budget.weekly' as any)}</span>
+          <input type="text" inputmode="numeric" data-parental-semaine-h bind:value={semH}
+            aria-label={$t('parental.budget.weekly' as any) + ' ' + $t('parental.unit.h' as any)} />
+          <span>{$t('parental.unit.h' as any)}</span>
+          <input type="text" inputmode="numeric" data-parental-semaine-m bind:value={semM}
+            aria-label={$t('parental.budget.weekly' as any) + ' ' + $t('parental.unit.min' as any)} />
+          <span>{$t('parental.unit.min' as any)}</span>
+        </div>
+        {#if budgetSemaine.erreur}<span class="aide avert" data-parental-budget-erreur>{$t(budgetSemaine.erreur as any)}</span>{/if}
+      </div>
+      <p class="aide">{$t('parental.step2Applies' as any)}</p>
     </div>
 
     <div class="actions">
-      <button class="lnk prim" data-parental-enregistrer disabled={enCours} onclick={enregistrer}>
+      <button class="lnk prim" data-parental-enregistrer disabled={enCours || !!defautEtape2} onclick={enregistrer}>
         {posee ? $t('common.save') : $t('parental.apply' as any)}
       </button>
       {#if posee}
@@ -190,6 +274,17 @@
   textarea{border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-bg); color:var(--v2-txt);
     font:13px var(--v2-sans); padding:8px 11px; outline:none; resize:vertical; min-height:64px}
   textarea:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  .etape2{display:flex; flex-direction:column; gap:12px}
+  .plage{display:flex; flex-direction:column; gap:6px; padding:8px 10px; border:1px solid var(--v2-line2); border-radius:10px}
+  .jours{display:flex; flex-wrap:wrap; gap:5px}
+  .jour{display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:999px; cursor:pointer;
+    border:1px solid var(--v2-line2); font:600 11.5px var(--v2-sans); color:var(--v2-txt2)}
+  .jour.on{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .heures,.budget{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12.5px; color:var(--v2-txt2)}
+  .lbl2{min-width:90px; font:600 12px var(--v2-sans); color:var(--v2-txt)}
+  input[type=time],input[type=text]{border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-bg);
+    color:var(--v2-txt); font:13px var(--v2-sans); padding:5px 8px; outline:none}
+  .budget input[type=text]{width:64px}
   .actions{display:flex; gap:8px; flex-wrap:wrap}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans)}
