@@ -1933,6 +1933,11 @@ export interface SmartCollection {
   description_key?: string | null;
   icon: string | null;
   color: string | null;
+  /**
+   * tune-server-rust#7872 — la requête avancée de la collection, appliquée
+   * en plus des règles ; `null` ou absente : aucune.
+   */
+  expression?: string | null;
   // Le routeur renvoie le tableau JSON decode ; les anciennes reponses
   // portaient la chaine encodee (#2732).
   rules: SmartRule[] | string;
