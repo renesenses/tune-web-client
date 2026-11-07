@@ -4480,6 +4480,8 @@ export default {
   "v2.lib.map.less": "Kevesebb",
   "v2.lib.map.more": "Több",
   "v2.lib.map.list": "Országlista",
+  "v2.lib.map.enlarge": "Enlarge the map",
+  "v2.lib.map.shrink": "Shrink the map",
   "v2.lib.map.globe": "Országgömb: húzza vagy forgassa a nyilakkal, kattintson egy országra a szűréshez.",
   "v2.lib.map.clear": "Országszűrő eltávolítása",
   "v2.lib.map.filterError": "Az ország albumai nem tölthetők be.",

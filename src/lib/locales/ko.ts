@@ -4526,6 +4526,8 @@ export default {
   "v2.lib.map.less": "적음",
   "v2.lib.map.more": "많음",
   "v2.lib.map.list": "국가 목록",
+  "v2.lib.map.enlarge": "Enlarge the map",
+  "v2.lib.map.shrink": "Shrink the map",
   "v2.lib.map.globe": "국가 지구본: 드래그하거나 화살표 키로 돌리고, 국가를 클릭해 필터링합니다.",
   "v2.lib.map.clear": "국가 필터 해제",
   "v2.lib.map.filterError": "이 국가의 앨범을 불러올 수 없습니다.",

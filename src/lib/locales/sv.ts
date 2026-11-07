@@ -4525,6 +4525,8 @@ export default {
   "v2.lib.map.less": "Färre",
   "v2.lib.map.more": "Fler",
   "v2.lib.map.list": "Lista över länder",
+  "v2.lib.map.enlarge": "Enlarge the map",
+  "v2.lib.map.shrink": "Shrink the map",
   "v2.lib.map.globe": "Landsglob: dra den eller använd piltangenterna för att vrida den, klicka på ett land för att filtrera.",
   "v2.lib.map.clear": "Ta bort landsfiltret",
   "v2.lib.map.filterError": "Albumen från det här landet kunde inte läsas in.",

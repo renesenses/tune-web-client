@@ -4548,6 +4548,8 @@ export default {
   "v2.lib.map.less": "Moins",
   "v2.lib.map.more": "Plus",
   "v2.lib.map.list": "Liste des pays",
+  "v2.lib.map.enlarge": "Agrandir la carte",
+  "v2.lib.map.shrink": "Réduire la carte",
   "v2.lib.map.globe": "Globe des pays : faites-le tourner en le glissant ou avec les flèches, cliquez sur un pays pour filtrer.",
   "v2.lib.map.clear": "Retirer le filtre de pays",
   "v2.lib.map.filterError": "Les albums de ce pays n’ont pas pu être chargés.",

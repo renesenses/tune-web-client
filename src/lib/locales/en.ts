@@ -4546,6 +4546,8 @@ export default {
   "v2.lib.map.less": "Fewer",
   "v2.lib.map.more": "More",
   "v2.lib.map.list": "Country list",
+  "v2.lib.map.enlarge": "Enlarge the map",
+  "v2.lib.map.shrink": "Shrink the map",
   "v2.lib.map.globe": "Country globe: drag it or use the arrow keys to turn it, click a country to filter.",
   "v2.lib.map.clear": "Remove the country filter",
   "v2.lib.map.filterError": "The albums of this country could not be loaded.",

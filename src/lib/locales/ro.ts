@@ -4526,6 +4526,8 @@ export default {
   "v2.lib.map.less": "Mai puține",
   "v2.lib.map.more": "Mai multe",
   "v2.lib.map.list": "Lista țărilor",
+  "v2.lib.map.enlarge": "Enlarge the map",
+  "v2.lib.map.shrink": "Shrink the map",
   "v2.lib.map.globe": "Globul țărilor: trage-l sau folosește săgețile pentru a-l roti, fă clic pe o țară pentru a filtra.",
   "v2.lib.map.clear": "Elimină filtrul de țară",
   "v2.lib.map.filterError": "Albumele acestei țări nu au putut fi încărcate.",

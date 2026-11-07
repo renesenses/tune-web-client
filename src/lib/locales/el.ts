@@ -4400,6 +4400,8 @@ export default {
   "v2.lib.map.less": "Λιγότερα",
   "v2.lib.map.more": "Περισσότερα",
   "v2.lib.map.list": "Λίστα χωρών",
+  "v2.lib.map.enlarge": "Enlarge the map",
+  "v2.lib.map.shrink": "Shrink the map",
   "v2.lib.map.globe": "Υδρόγειος χωρών: σύρετέ την ή χρησιμοποιήστε τα βέλη για να την περιστρέψετε, κάντε κλικ σε μια χώρα για φιλτράρισμα.",
   "v2.lib.map.clear": "Αφαίρεση φίλτρου χώρας",
   "v2.lib.map.filterError": "Δεν ήταν δυνατή η φόρτωση των άλμπουμ αυτής της χώρας.",

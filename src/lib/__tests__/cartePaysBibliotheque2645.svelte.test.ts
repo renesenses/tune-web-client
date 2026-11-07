@@ -151,3 +151,53 @@ describe('#2645 — bibliothèque sans pays', () => {
     expect(hote.querySelector('[data-carte-erreur]')).not.toBeNull();
   });
 });
+
+describe('#2710 / #2691 — vignette compacte et rail A–Z', () => {
+  it('la carte est compacte par défaut, le bouton l’agrandit et la ramène', async () => {
+    poser(CartePaysBibliothequeV2, { onChoisir: () => {} });
+    await stabiliser();
+    const carte = hote.querySelector<HTMLElement>('[data-carte-pays]')!;
+    expect(carte.dataset.carteMode).toBe('compacte');
+    expect(carte.classList.contains('compacte')).toBe(true);
+    expect(carte.querySelector('canvas')!.style.width).toBe('200px');
+    expect(carte.querySelector('[data-pays]'), 'la liste reste dans le DOM').not.toBeNull();
+    const bouton = carte.querySelector<HTMLButtonElement>('[data-carte-agrandir]')!;
+    bouton.click(); await stabiliser();
+    expect(carte.dataset.carteMode).toBe('grande');
+    expect(carte.querySelector('canvas')!.style.width).toBe('320px');
+    bouton.click(); await stabiliser();
+    expect(carte.dataset.carteMode).toBe('compacte');
+  });
+
+  it('dans la Bibliothèque : carte compacte, grille visible, filtre actif, rail dans le corps sous la carte', { timeout: 30000 }, async () => {
+    activeView.set('library');
+    libraryFolderScope.set(null as any);
+    libraryLoading.set(false);
+    albums.set([
+      { id: 1, title: 'Paris-Un', artist_name: 'A', year: 2000, cover_path: null, source: 'local' },
+      { id: 4, title: 'Tokyo-Quatre', artist_name: 'D', year: 2003, cover_path: null, source: 'local' },
+    ] as any);
+    poser(LibraryV2, {});
+    await stabiliser();
+    hote.querySelector<HTMLButtonElement>('[data-carte-pays-puce]')!.click();
+    await stabiliser();
+    const carte = hote.querySelector<HTMLElement>('[data-carte-pays]')!;
+    expect(carte.dataset.carteMode).toBe('compacte');
+    const grille = hote.querySelector('.grid');
+    expect(grille, 'la grille manque').not.toBeNull();
+    expect(titres().length).toBe(2);
+    // La grille et le rail sont dans .body, APRÈS la carte : le rail ne peut pas être dans la carte.
+    const corps = hote.querySelector('.body')!;
+    expect(corps.contains(carte)).toBe(false);
+    expect(carte.compareDocumentPosition(corps) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(carte.querySelector('.rail')).toBeNull();
+    expect(corps.contains(grille!)).toBe(true);
+    hote.querySelector<HTMLButtonElement>('[data-pays="JP"]')!.click();
+    await stabiliser();
+    expect(titres().length).toBe(1);
+    // Agrandie : le rail se masque par la règle :has (structure : l'attribut de mode est posé).
+    carte.querySelector<HTMLButtonElement>('[data-carte-agrandir]')!.click();
+    await stabiliser();
+    expect(hote.querySelector('[data-carte-mode="grande"]')).not.toBeNull();
+  });
+});
