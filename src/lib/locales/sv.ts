@@ -6785,4 +6785,13 @@ export default {
   "spectro.unavailable": "Spåret hittades inte, eller så är servern för gammal för att skapa spektrogram.",
   "spectro.session": "Sessionen har gått ut: logga in igen och försök på nytt.",
   "spectro.network": "Servern svarade inte. Kontrollera anslutningen och försök igen.",
+  // web#2695 — période De / À sur la frise des années.
+  "v2.lib.periodLabel": "Period",
+  "v2.lib.periodFrom": "Från",
+  "v2.lib.periodTo": "Till",
+  "v2.lib.periodClear": "Rensa",
+  "v2.lib.periodCount": "Album i perioden: {n}",
+  "v2.lib.periodNoYear": "Album utan år uteslutna: {n}",
+  "v2.lib.periodStart": "Periodens början",
+  "v2.lib.periodEnd": "Periodens slut",
 } as const;

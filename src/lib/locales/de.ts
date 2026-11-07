@@ -6786,6 +6786,15 @@ export default {
   "spectro.unavailable": "Titel nicht gefunden, oder dieser Server ist zu alt, um ein Spektrogramm zu erzeugen.",
   "spectro.session": "Sitzung abgelaufen: Bitte erneut anmelden und es noch einmal versuchen.",
   "spectro.network": "Der Server hat nicht geantwortet. Verbindung prüfen und erneut versuchen.",
+  // web#2695 — période De / À sur la frise des années.
+  "v2.lib.periodLabel": "Zeitraum",
+  "v2.lib.periodFrom": "Von",
+  "v2.lib.periodTo": "Bis",
+  "v2.lib.periodClear": "Löschen",
+  "v2.lib.periodCount": "Alben im Zeitraum: {n}",
+  "v2.lib.periodNoYear": "Alben ohne Jahr ausgeschlossen: {n}",
+  "v2.lib.periodStart": "Beginn des Zeitraums",
+  "v2.lib.periodEnd": "Ende des Zeitraums",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

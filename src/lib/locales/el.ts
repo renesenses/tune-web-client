@@ -6631,5 +6631,14 @@ export default {
   "spectro.unavailable": "Το κομμάτι δεν βρέθηκε ή ο διακομιστής είναι πολύ παλιός για να δημιουργήσει φασματογράφημα.",
   "spectro.session": "Η συνεδρία έληξε: συνδεθείτε ξανά και δοκιμάστε πάλι.",
   "spectro.network": "Ο διακομιστής δεν απάντησε. Ελέγξτε τη σύνδεση και δοκιμάστε ξανά.",
+  // web#2695 — période De / À sur la frise des années.
+  "v2.lib.periodLabel": "Περίοδος",
+  "v2.lib.periodFrom": "Από",
+  "v2.lib.periodTo": "Έως",
+  "v2.lib.periodClear": "Καθαρισμός",
+  "v2.lib.periodCount": "Άλμπουμ στην περίοδο: {n}",
+  "v2.lib.periodNoYear": "Εξαιρούνται άλμπουμ χωρίς έτος: {n}",
+  "v2.lib.periodStart": "Αρχή της περιόδου",
+  "v2.lib.periodEnd": "Τέλος της περιόδου",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

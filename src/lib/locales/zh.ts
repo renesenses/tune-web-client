@@ -6786,6 +6786,15 @@ export default {
   "spectro.unavailable": "找不到该曲目，或此服务器版本过旧，无法生成频谱图。",
   "spectro.session": "会话已过期：请重新登录后再试。",
   "spectro.network": "服务器没有响应。请检查连接后重试。",
+  // web#2695 — période De / À sur la frise des années.
+  "v2.lib.periodLabel": "时间段",
+  "v2.lib.periodFrom": "从",
+  "v2.lib.periodTo": "到",
+  "v2.lib.periodClear": "清除",
+  "v2.lib.periodCount": "该时间段内的专辑：{n}",
+  "v2.lib.periodNoYear": "已排除无年份的专辑：{n}",
+  "v2.lib.periodStart": "时间段开始",
+  "v2.lib.periodEnd": "时间段结束",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
