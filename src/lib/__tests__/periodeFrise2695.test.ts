@@ -155,7 +155,8 @@ describe('Bibliothèque › Années : la période De / À (web#2695)', () => {
     const a = el.querySelector<HTMLElement>('.poignee-a')!;
     expect(de.getAttribute('role')).toBe('slider');
     expect(de.getAttribute('aria-valuemin')).toBe('1965');
-    expect(de.getAttribute('aria-valuemax')).toBe('1994');
+    // En « origine sinon édition », la Réédition compte pour 1975 : la frise finit en 1980.
+    expect(de.getAttribute('aria-valuemax')).toBe('1980');
     expect(de.getAttribute('aria-valuenow')).toBe('1965');
     for (let i = 0; i < 5; i++) de.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
     await flush();
@@ -163,8 +164,8 @@ describe('Bibliothèque › Années : la période De / À (web#2695)', () => {
     expect(de.getAttribute('aria-valuenow')).toBe('1970');
     a.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true }));
     await flush();
-    expect(champ(el, 'a').value).toBe('1984');
-    grilleMontre(el, ['Borne basse 1970', 'Après 1980'], ['Avant 1965', 'Sans date']);
+    expect(champ(el, 'a').value).toBe('1970');
+    grilleMontre(el, ['Borne basse 1970'], ['Avant 1965', 'Rouge 1975', 'Après 1980', 'Sans date']);
     // Et dans l'autre sens : le champ déplace la poignée.
     await saisir(el, 'a', '1979');
     expect(a.getAttribute('aria-valuenow')).toBe('1979');
