@@ -93,6 +93,7 @@ const VUES: Record<View, boolean> = {
   // tune-server-rust#6044 — l'écran dit lui-même quand le serveur n'a pas
   // le greffon : l'adresse reste atteignable.
   reaffectation: true,
+  surechantillonnage: true,
   plugins: true,
   alarms: true,
   converter: true,
