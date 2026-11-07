@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { decoderFrontieres, decoderPointsTerre, decouperPolyligne, paysSous, projeter, DEG } from '../champCercle/globe';
-import { opaciteFrontieres, PLEIN_FRONTIERES, SEUIL_FRONTIERES } from '../champCercle/zoomGlobe';
+import { couleurFrontiere, opaciteFrontieres, PLEIN_FRONTIERES, SEUIL_FRONTIERES } from '../champCercle/zoomGlobe';
 import { FRONTIERES_TERRE } from '../champCercle/frontieresTerre';
 import { POINTS_TERRE } from '../champCercle/pointsTerre';
 import { PAYS_TERRE } from '../champCercle/paysTerre';
@@ -86,6 +86,15 @@ describe('fondu selon le zoom', () => {
     expect(opaciteFrontieres(3.5)).toBeGreaterThan(opaciteFrontieres(3));
     for (const k of [4, 6, 12]) expect(opaciteFrontieres(k)).toBe(1);
     expect(opaciteFrontieres(Number.NaN)).toBe(0);
+  });
+});
+
+describe('couleur des frontières', () => {
+  it('garde le jeton des thèmes sombres et se replie sur la couleur claire de la scène dans les thèmes clairs', () => {
+    // Le fond de la scène reste sombre : un jeton de texte atténué d'un thème clair y manque de contraste.
+    for (const clair of ['#646E78', '#5F6770']) expect(couleurFrontiere(clair, '#9fb0b6'), clair).toBe('#9fb0b6');
+    for (const sombre of ['#7D8EA1', '#7C8DA5', '#818AA9', '#9E8870', '#A6A6A6']) expect(couleurFrontiere(sombre, '#9fb0b6'), sombre).toBe(sombre);
+    expect(couleurFrontiere('rgb(1, 2, 3)', '#9fb0b6')).toBe('rgb(1, 2, 3)');
   });
 });
 
@@ -176,5 +185,51 @@ describe('le moteur', () => {
     m.vueEntiere();
     expect(surPays).toHaveBeenLastCalledWith(null);
     m.detruire();
+  });
+
+  it('au toucher, garde le nom après un appui long tant que le doigt ne glisse pas vraiment', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const surPays = vi.fn();
+      const { m, canvas } = monter(surPays);
+      m.zoomerA(4); drainer();
+      const doigt = (type: string, x: number, y: number) =>
+        canvas.dispatchEvent(Object.assign(new Event(type), { pointerType: 'touch', clientX: x, clientY: y, pointerId: 7 }));
+      const lon = () => (m as any).G.lon0 as number;
+      doigt('pointerdown', 400, 250);
+      vi.advanceTimersByTime(450);
+      expect(surPays).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(100);
+      expect(surPays).toHaveBeenLastCalledWith({ code: 'FR', x: 400, y: 250 });
+      // Un doigt posé tremble : 1 à 2 px ne font ni tourner le globe ni partir le nom.
+      const lon0 = lon();
+      doigt('pointermove', 401, 251);
+      doigt('pointermove', 402, 249);
+      expect(surPays).toHaveBeenLastCalledWith({ code: 'FR', x: 400, y: 250 });
+      expect(lon(), 'le globe a tourné').toBe(lon0);
+      // Un vrai glisser efface le nom et fait tourner le globe.
+      doigt('pointermove', 430, 250);
+      expect(surPays).toHaveBeenLastCalledWith(null);
+      expect(lon()).not.toBe(lon0);
+      doigt('pointerup', 430, 250);
+      m.detruire();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('au toucher, lever le doigt après un appui long ne compte pas comme un toucher', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const surPays = vi.fn();
+      const { m, canvas } = monter(surPays);
+      m.zoomerA(4); drainer();
+      const doigt = (type: string) =>
+        canvas.dispatchEvent(Object.assign(new Event(type), { pointerType: 'touch', clientX: 400, clientY: 250, pointerId: 7 }));
+      doigt('pointerdown'); vi.advanceTimersByTime(600); doigt('pointerup');
+      expect(surPays).toHaveBeenLastCalledWith({ code: 'FR', x: 400, y: 250 });
+      // Un toucher juste après ne forme pas un double-tap avec l'appui long.
+      doigt('pointerdown'); doigt('pointerup'); drainer();
+      expect(m.niveauZoom).toBeCloseTo(4, 6);
+      m.detruire();
+    } finally { vi.useRealTimers(); }
   });
 });
