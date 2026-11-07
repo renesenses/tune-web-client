@@ -338,14 +338,6 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   const fTracks = $derived(tracks.filter((t) => encoreFavori(t, 'track') && (match(t.title) || match(t.artist_name))));
   const fArtists = $derived(artists.filter((a) => encoreFavori(a, 'artist') && match(a.name)));
 
-  const sourcesOnglet = $derived(
-    sourcesPresentes(
-      tab === 'tracks' ? fTracks : tab === 'albums' ? fAlbums : tab === 'artists' ? fArtists : tab === 'playlists' ? fPlaylists : [],
-    ),
-  );
-  $effect(() => {
-    if (sourceFiltre && !sourcesOnglet.includes(sourceFiltre)) sourceFiltre = null;
-  });
 
   // Une playlist retirée des favoris disparaît elle aussi : même règle que
   // les trois autres seaux, sur le magasin qui porte la vérité.
@@ -378,6 +370,15 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   const vPlaylists = $derived(
     sourceFiltre ? fPlaylists.filter((p: any) => sourceDe(p) === sourceFiltre) : fPlaylists,
   );
+
+  const sourcesOnglet = $derived(
+    sourcesPresentes(
+      tab === 'tracks' ? fTracks : tab === 'albums' ? fAlbums : tab === 'artists' ? fArtists : tab === 'playlists' ? fPlaylists : [],
+    ),
+  );
+  $effect(() => {
+    if (sourceFiltre && !sourcesOnglet.includes(sourceFiltre)) sourceFiltre = null;
+  });
 
   /**
    * web#1719 / web#1650 — LA POCHETTE d'une playlist favorite, en mode grille.

@@ -12,8 +12,23 @@ import FavoritesV2 from '../../components/v2/FavoritesV2.svelte';
 import { currentProfileId, favoriteArtistIds, favoritePlaylistIds, favoriteStreamingKeys, favoriteFacetKeys, facetFavKey, streamingFavKey } from '../stores/profile';
 import { activeView } from '../stores/navigation';
 import en from '../locales/en';
+import loc_de from '../locales/de';
+import loc_el from '../locales/el';
+import loc_es from '../locales/es';
+import loc_fr from '../locales/fr';
+import loc_hu from '../locales/hu';
+import loc_it from '../locales/it';
+import loc_ja from '../locales/ja';
+import loc_ko from '../locales/ko';
+import loc_nb from '../locales/nb';
+import loc_pl from '../locales/pl';
+import loc_ro from '../locales/ro';
+import loc_sv from '../locales/sv';
+import loc_vi from '../locales/vi';
+import loc_zh from '../locales/zh';
 
-const LANGUES = ['de', 'el', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'vi', 'zh'];
+const DICOS: Record<string, any> = { en, de: loc_de, el: loc_el, es: loc_es, fr: loc_fr, hu: loc_hu, it: loc_it, ja: loc_ja, ko: loc_ko, nb: loc_nb, pl: loc_pl, ro: loc_ro, sv: loc_sv, vi: loc_vi, zh: loc_zh };
+const LANGUES = Object.keys(DICOS);
 
 const appels: string[] = [];
 let mode: 'ok' | 'vide' | 'erreur' = 'ok';
@@ -182,7 +197,7 @@ describe('#2679 point 4 — Facettes', () => {
     await onglet(h, /facet|facette/i);
     const aide = h.querySelector('[data-testid="aide-facettes"]');
     expect(aide, 'aucune aide sur l’onglet Facettes').toBeTruthy();
-    expect(aide!.textContent).toContain((await import('../locales/fr.ts')).default['v2.fav.facetsHelp']);
+    expect(aide!.textContent).toContain(DICOS.fr['v2.fav.facetsHelp']);
     expect(aide!.querySelectorAll('button[data-onglet]').length).toBe(3);
   });
 
@@ -209,7 +224,7 @@ describe('#2679 point 4 — Facettes', () => {
   it('le texte existe dans les 15 langues, distinct de l’anglais (hors anglais), avec les 3 onglets nommés comme la Bibliothèque', async () => {
     const vus = new Set<string>();
     for (const l of LANGUES) {
-      const m: any = (await import(`../locales/${l}.ts`)).default;
+      const m: any = DICOS[l];
       const aide = m['v2.fav.facetsHelp'];
       expect(typeof aide, `${l} : v2.fav.facetsHelp manque`).toBe('string');
       expect(aide.length).toBeGreaterThan(40);
