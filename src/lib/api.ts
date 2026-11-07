@@ -42,6 +42,9 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   // désactivée par défaut : le serveur refuse proprement (409) tant qu'elle
   // ne l'est pas. Un état de réglage, pas une panne.
   spotify_playback_disabled: 'playback.errorSpotifyDisabled',
+  // tune-server-rust#8088 — contrôle parental : contenu marqué explicite refusé
+  // (403). Repli quand le serveur n'a pas envoyé sa phrase.
+  parental_explicit_refused: 'playback.errorParentalExplicit',
 };
 
 /**
@@ -63,7 +66,11 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
  * Le serveur la rend déjà dans la langue de l'interface (`Accept-Language`,
  * posé par `acceptLang()` sur chaque requête).
  */
-const MESSAGES_RENDUS_PAR_LE_SERVEUR = new Set<string>(['zone_output_unavailable']);
+const MESSAGES_RENDUS_PAR_LE_SERVEUR = new Set<string>([
+  'zone_output_unavailable',
+  // tune-server-rust#8088 — refus du contrôle parental, phrase traduite par le serveur.
+  'parental_explicit_refused',
+]);
 
 /** Current UI locale, sent as Accept-Language so server-provided strings
  *  (metadata labels, errors, …) match the app's chosen language. */
