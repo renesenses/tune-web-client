@@ -32,6 +32,12 @@ export interface FicheStation {
    * flux se lit, sans choix.
    */
   radioId?: number | null;
+  /** L'identifiant dans « Mes radios », liée à une fiche ou non (lecture, favori). */
+  idMienne?: number | null;
+  /** L'identifiant de la fiche d'annuaire (lecture et ajout d'une fiche hors « Mes radios »). */
+  annuaireId?: string | null;
+  /** La station est en favori dans « Mes radios ». */
+  favori?: boolean;
 }
 
 const normaliser = (s: string | null | undefined) =>
@@ -79,6 +85,9 @@ export function ficheDeStation(r: RadioStation): FicheStation {
     flux: a?.streams ?? [],
     fluxActuel: r.stream_url ?? null,
     radioId: r.id != null && estDeLAnnuaire(r) ? r.id : null,
+    idMienne: r.id ?? null,
+    annuaireId: a?.external_id ?? null,
+    favori: !!r.favorite,
   };
 }
 
@@ -97,6 +106,9 @@ export function ficheDeAnnuaire(f: FicheAnnuaireRadio): FicheStation {
     flux: f.streams?.length ? f.streams : f.stream_url ? [{ url: f.stream_url, codec: f.codec, bitrate: f.bitrate, primary: true }] : [],
     fluxActuel: null,
     radioId: null,
+    idMienne: f.my_radio_id ?? null,
+    annuaireId: f.external_id ?? null,
+    favori: !!f.my_radio_favorite,
   };
 }
 
@@ -140,6 +152,11 @@ export function ordonnerFluxParQualite(flux: readonly FluxRadio[]): FluxRadio[] 
       || Number(!!b.f.primary) - Number(!!a.f.primary)
       || a.i - b.i)
     .map(({ f }) => f);
+}
+
+/** Un flux est-il lu en HLS (transport segmenté) plutôt qu'en direct ? Pure. */
+export function estHls(f: FluxRadio): boolean {
+  return f.hls === true || (f.codec ?? '').trim().toUpperCase() === 'HLS' || /\.m3u8(\?|$)/i.test(f.url);
 }
 
 type Lecture = { source_id?: string | null; album_title?: string | null } | null | undefined;
@@ -224,4 +241,32 @@ export function logoAuNomDeLaStation(logo: string | null | undefined, pochette: 
   const l = (logo ?? '').trim();
   if (!l) return null;
   return l === (pochette ?? '').trim() ? null : l;
+}
+
+type EnCours = {
+  source?: string | null;
+  source_id?: string | null;
+  title?: string | null;
+  album_title?: string | null;
+  artist_name?: string | null;
+} | null | undefined;
+
+/** La zone joue-t-elle CETTE station ? Par adresse de flux, à défaut par nom. Pure. */
+export function joueCetteStation(fiche: Pick<FicheStation, 'nom' | 'flux' | 'fluxActuel'> | null | undefined, np: EnCours): boolean {
+  if (!fiche || !np || np.source !== 'radio') return false;
+  if (np.source_id && (np.source_id === fiche.fluxActuel || (fiche.flux ?? []).some((f) => f.url === np.source_id))) return true;
+  const nom = normaliser(np.album_title);
+  return !!nom && nom === normaliser(fiche.nom);
+}
+
+/**
+ * Le titre en cours d'une radio — « Artiste — Titre » —, ou `null` tant que la
+ * station n'a rien publié (le serveur pose alors son NOM en titre et « Live
+ * Radio » en artiste). Pure.
+ */
+export function titreEnCoursRadio(np: EnCours): string | null {
+  if (!np || np.source !== 'radio' || !np.title) return null;
+  if (np.title === np.album_title) return null;
+  const artiste = np.artist_name && np.artist_name !== 'Live Radio' ? np.artist_name : null;
+  return artiste ? `${artiste} — ${np.title}` : np.title;
 }

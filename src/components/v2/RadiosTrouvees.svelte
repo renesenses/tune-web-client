@@ -19,6 +19,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import RadioFicheModale from '../partages/RadioFicheModale.svelte';
 
   let { entrees, reste = 0 }: { entrees: EntreeRadio[]; reste?: number } = $props();
 
@@ -35,6 +36,9 @@
     [e.genre ? libelleGenre(e.genre) : null, e.pays ? nomDuPays(e.pays, $locale, e.pays) : null]
       .filter(Boolean)
       .join(' · ');
+
+  /** La fiche de la station ouverte par un appui sur sa vignette. */
+  let enFiche = $state<EntreeRadio | null>(null);
 
   async function ecouter(e: EntreeRadio) {
     const zid = zoneRequise();
@@ -86,7 +90,7 @@
         <PochetteActions
           favoriExterne={{ actif: e.favori, basculer: () => basculerFavori(e) }}
           onLire={() => ecouter(e)}
-          onOuvrir={() => ecouter(e)}
+          onOuvrir={() => (enFiche = e)}
           nom={e.nom}
         >
           <AlbumArt coverPath={e.logo} albumId={null} size={0} alt={e.nom} fallbackInitials={e.nom?.slice(0, 1)} />
@@ -107,6 +111,15 @@
     </div>
   {/each}
 </div>
+{#if enFiche}
+  <RadioFicheModale
+    reference={{ nom: enFiche.nom, idLocal: enFiche.idLocal, idAnnuaire: enFiche.idAnnuaire }}
+    onClose={() => (enFiche = null)}
+    onChange={(st) => {
+      const e = enFiche;
+      if (e) retouches = { ...retouches, [e.cle]: entreeApres(e, st) };
+    }} />
+{/if}
 {#if reste > 0}
   <p class="reste">{$t('v2.rech.radiosMore' as any).replace('{n}', String(reste))}</p>
 {/if}

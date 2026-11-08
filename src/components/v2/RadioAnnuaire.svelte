@@ -206,7 +206,7 @@
               onVoir={() => (enFiche = f)}
               libelleVoir={$t('v2.radio.view' as any)}
               onLire={() => ecouter(f)}
-              onOuvrir={() => ecouter(f)}
+              onOuvrir={() => (enFiche = f)}
               nom={f.name}
             >
               <AlbumArt coverPath={f.logo_url ?? null} albumId={null} size={0} alt={f.name} fallbackInitials={f.name?.slice(0, 1)} />
@@ -239,6 +239,7 @@
 
   {#if enFiche}
     <RadioFicheModale annuaire={enFiche} onClose={() => (enFiche = null)}
+      onLue={({ annuaireId }) => { if (annuaireId) onJoue?.(annuaireId); }}
       onChange={(st) => onAjoutee?.(st)} />
   {/if}
 

@@ -538,6 +538,7 @@
     <RadioFicheModale
       station={enFiche}
       onClose={() => (enFiche = null)}
+      onLue={({ idMienne }) => { if (idMienne != null) { playingId = idMienne; lectures += 1; } ficheJouee = null; }}
       onChange={(maj) => { radios = radios.map((x) => (x.id === maj.id ? { ...x, ...maj } : x)); }}
     />
   {/if}
@@ -580,7 +581,7 @@
         onRetirer={r.id != null && estDeLAnnuaire(r) ? () => retirer(r) : null}
         libelleRetirer={$t('v2.radio.removeFromMine' as any)}
         onLire={() => play(r)}
-        onOuvrir={() => play(r)}
+        onOuvrir={r.id != null ? () => (enFiche = r) : () => play(r)}
         nom={r.name}
       >
         <!-- #6516 — le logo de la fiche d'annuaire quand la station n'en a pas. -->
