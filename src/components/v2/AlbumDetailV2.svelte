@@ -1459,6 +1459,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   );
   let presentationOuverte = $state(false);
   let presentation = $state<EtatPresentation | null>(null);
+  /** #8129 — les liens de la présentation Qobuz, rendus par `TexteDeBio`. */
+  const segmentsPresentation = $derived(
+    presentation?.etat === 'texte' ? segmentsAffichables(presentation.texte, presentation.segments) : null,
+  );
   let presentationChargement = $state(false);
   let presentationCle = $state<string | null>(null);
   $effect(() => {
@@ -2020,7 +2024,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
           <p class="bio-state">{$tr('v2.common.loading' as any)}</p>
         {:else if presentation?.etat === 'texte'}
           <ClampedText lines={4} resetKey={presentation.texte}>
-            <p class="bio-text presentation" lang={presentation.langue ?? undefined}>{presentation.texte}</p>
+            <p class="bio-text presentation" lang={presentation.langue ?? undefined}>{#if segmentsPresentation}<TexteDeBio segments={segmentsPresentation} />{:else}{presentation.texte}{/if}</p>
           </ClampedText>
         {:else if presentation?.etat === 'erreur'}
           <p class="bio-state err">{$tr('v2.album.presentationError' as any)}</p>
