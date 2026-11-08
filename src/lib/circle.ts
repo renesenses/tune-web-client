@@ -802,6 +802,8 @@ export function motifCercle(e: unknown, champ: 'email' | 'name' | 'pseudo' | nul
     case 'self_invitation': return { cle: 'v2.circle.err.selfInvitation' };
     case 'circle_name_taken': return { cle: 'v2.circle.err.nameTaken' };
     case 'too_many_circles': return { cle: 'v2.circle.err.tooManyCircles' };
+    // rc11 : le propriétaire du cercle a réservé l'écriture.
+    case 'write_restricted': return { cle: 'v2.circle.msg.ownerOnly' };
     // #6935 : plus de 10 liens d'invitation actifs.
     case 'too_many_links': return { cle: 'v2.circle.link.err.tooMany' };
     case 'not_found':
