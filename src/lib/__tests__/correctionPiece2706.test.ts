@@ -102,6 +102,7 @@ let cible: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
 
 const FICHE_ACTIVE = { name: 'calibration', installed: true, enabled: true, loaded: true, premium: true };
+const EQ_ACTIF = { name: 'equalizer', installed: true, enabled: true, loaded: true, premium: true };
 
 function simulerHote() {
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
@@ -112,6 +113,7 @@ function simulerHote() {
     if (u.includes(EXT) && hote.premium402) {
       return reponse(402, { error: 'premium_required', code: 'room_correction', feature: 'Room Correction', message: 'Room Correction requires Tune Premium' });
     }
+    if (u.endsWith('/api/v1/plugins/equalizer/install') && method === 'POST') return reponse(200, { success: true, message: 'ok', restart_required: true });
     if (u.endsWith('/api/v1/plugins')) return reponse(200, hote.plugins);
     if (u.endsWith(`${EXT}/simulations`) && method === 'POST') return reponse(hote.simulation.status, hote.simulation.corps);
     const sc = /\/(simulations|mesures)\/([^/]+)\/correction$/.exec(u);
@@ -154,7 +156,7 @@ function simulerHote() {
 beforeEach(() => {
   appels = [];
   hote = {
-    plugins: [FICHE_ACTIVE],
+    plugins: [FICHE_ACTIVE, EQ_ACTIF],
     premium402: false,
     simulation: { status: 201, corps: SIMULATION },
     microphones: {
@@ -365,6 +367,56 @@ describe('web#2706 — greffon absent ou à installer', () => {
     await jusqua(() => !!q('[data-room-motif="a_installer"]'));
     expect(q('[data-room="installer"]')).toBeTruthy();
     expect((q('fieldset[data-room="simulation"]') as HTMLFieldSetElement).disabled).toBe(true);
+  });
+});
+
+describe('web#2719 — greffon equalizer manquant', () => {
+  async function jusquAppliquer() {
+    await monter();
+    (q('[data-room="simuler"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="appliquer"]'));
+  }
+
+  it('égaliseur présent : pas d’avertissement, « Appliquer » inchangé', async () => {
+    await jusquAppliquer();
+    expect(q('[data-room-motif="egaliseur"]')).toBeNull();
+    (q('[data-room="appliquer"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="appliquee"]'));
+    expect((dialogs.confirm as any).mock.calls[0][0]).toBe(texte('v2.room.applyConfirm').replace('{zone}', 'Salon'));
+    expect(appelsA(`/api/v1/room-correction/profiles/${ZONE}/apply`)).toHaveLength(1);
+  });
+
+  it('égaliseur absent : avertissement, installation proposée, rien n’est appliqué sans confirmation', async () => {
+    hote.plugins = [FICHE_ACTIVE];
+    (dialogs.confirm as any).mockResolvedValue(false);
+    await jusquAppliquer();
+    expect(q('[data-room-motif="egaliseur"]')).toBeTruthy();
+    expect(q('[data-room-motif="egaliseur"]')!.textContent).toContain(texte('v2.room.eqMissing'));
+    expect(q('[data-room="installer-egaliseur"]')).toBeTruthy();
+    (q('[data-room="appliquer"]') as HTMLButtonElement).click();
+    await new Promise((r) => setTimeout(r, 30));
+    expect((dialogs.confirm as any).mock.calls[0][0]).toBe(texte('v2.room.eqApplyConfirm').replace('{zone}', 'Salon'));
+    expect(appels.some((a) => a.url.endsWith('/correction/profil') || a.url.endsWith('/apply'))).toBe(false);
+  });
+
+  it('égaliseur absent, confirmé : l’application a lieu', async () => {
+    hote.plugins = [FICHE_ACTIVE, { name: 'equalizer', installed: true, enabled: false }];
+    await jusquAppliquer();
+    expect(q('[data-room-motif="egaliseur"]')!.textContent).toContain(texte('v2.room.eqInactive'));
+    expect(q('[data-room="installer-egaliseur"]')).toBeNull();
+    (q('[data-room="appliquer"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="appliquee"]'));
+    expect(appelsA(`/api/v1/room-correction/profiles/${ZONE}/apply`)).toHaveLength(1);
+  });
+
+  it('« Installer l’Égaliseur » appelle la route d’installation et demande le redémarrage', async () => {
+    hote.plugins = [FICHE_ACTIVE, { name: 'equalizer', installed: false, enabled: false }];
+    await monter();
+    await jusqua(() => !!q('[data-room="installer-egaliseur"]'));
+    (q('[data-room="installer-egaliseur"]') as HTMLButtonElement).click();
+    await jusqua(() => q('[data-room-motif="egaliseur"]')?.getAttribute('data-egaliseur') === 'a_redemarrer');
+    expect(appelsA('/api/v1/plugins/equalizer/install')).toHaveLength(1);
+    expect(q('[data-room-motif="egaliseur"]')!.textContent).toContain(texte('v2.room.eqRestart'));
   });
 });
 

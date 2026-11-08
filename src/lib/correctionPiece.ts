@@ -288,6 +288,32 @@ export function presenceCalibration(liste: unknown): PresenceCalibration {
   return 'actif';
 }
 
+/**
+ * web#2719 — le greffon `equalizer`. « Appliquer » écrit l'égaliseur de la zone,
+ * mais la chaîne audio n'applique ce profil que si le greffon est installé ET
+ * activé (serveur : `premium_plugins::enabled("equalizer")`). Sinon la
+ * correction est enregistrée et on n'entend rien.
+ *
+ * - `inconnu` : liste illisible (ne bloque pas, la route répondra) ;
+ * - `a_installer` : absent de la liste ou pas installé ;
+ * - `desactive` : installé, désactivé ;
+ * - `a_redemarrer` : installé, pas encore chargé ;
+ * - `actif`.
+ */
+export const ID_GREFFON_EGALISEUR = 'equalizer';
+export type PresenceEgaliseur = 'inconnu' | 'a_installer' | 'desactive' | 'a_redemarrer' | 'actif';
+export function presenceEgaliseur(liste: unknown): PresenceEgaliseur {
+  if (!Array.isArray(liste)) return 'inconnu';
+  const f = liste.find((p) => p && (p as { name?: unknown }).name === ID_GREFFON_EGALISEUR) as
+    { installed?: unknown; enabled?: unknown; loaded?: unknown } | undefined;
+  if (!f || f.installed !== true) return 'a_installer';
+  if (f.enabled !== true) return 'desactive';
+  if (f.loaded === false) return 'a_redemarrer';
+  return 'actif';
+}
+/** L'égaliseur manque (la correction serait enregistrée sans s'entendre). */
+export const egaliseurManque = (p: PresenceEgaliseur): boolean => p !== 'actif' && p !== 'inconnu';
+
 // ─── Erreurs : leur cause, telle que le serveur l'écrit ────────────────────
 
 export interface ErreurCalibration { premium: boolean; code: string | null; cause: string | null; status: number | null }
