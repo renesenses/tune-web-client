@@ -48,6 +48,8 @@ function cloud(chemin: string, method: string): Response {
     invitationEnAttente = false;
     return rep(200, { ok: true });
   }
+  // La messagerie est là : sinon l'écran cache « Écrire au cercle » (404).
+  if (chemin === '/conversations') return rep(200, { conversations: [] });
   if (chemin === '/library-sync') return rep(200, { last_sync: null });
   if (chemin === '/shared-with-me') return rep(200, []);
   if (chemin === '/playlists') return rep(200, []);
