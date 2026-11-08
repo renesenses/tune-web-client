@@ -23,6 +23,8 @@ export const servicesPresentationRefuses = writable<ReadonlySet<string>>(new Set
 export interface PresentationAlbum {
   description: string;
   language?: string | null;
+  /** #8129 — les liens de la présentation (voir `lib/library/bioSegments`). */
+  bio_segments?: unknown;
 }
 
 export interface AlbumDeServicePresentation {
@@ -46,7 +48,7 @@ export function estRefusDePresentation(e: unknown): boolean {
 }
 
 export type EtatPresentation =
-  | { etat: 'texte'; texte: string; langue: string | null }
+  | { etat: 'texte'; texte: string; langue: string | null; segments: unknown }
   | { etat: 'vide' }
   | { etat: 'refus' }
   | { etat: 'erreur' };
@@ -63,7 +65,7 @@ export async function chargerPresentation(
     const r = await lire(cible.service, cible.albumId);
     const texte = typeof r?.description === 'string' ? r.description.trim() : '';
     if (!texte) return { etat: 'vide' };
-    return { etat: 'texte', texte, langue: r?.language?.trim() || null };
+    return { etat: 'texte', texte, langue: r?.language?.trim() || null, segments: r?.bio_segments ?? null };
   } catch (e) {
     if (estRefusDePresentation(e)) {
       servicesPresentationRefuses.update((s) => (s.has(cible.service) ? s : new Set([...s, cible.service])));

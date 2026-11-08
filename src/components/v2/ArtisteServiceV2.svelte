@@ -435,6 +435,7 @@
     titresEnCharge = false;
     albums = [];
     bio = null;
+    bioSegments = null;
     bioProvenance = null; bioLangue = AUCUNE_LANGUE;
     compilations = [];
     apparitions = [];
@@ -490,6 +491,9 @@
       albums = (al.value ?? []).map((x) => ({ ...x, source: (x.source ?? service) as Album['source'] }));
     }
     bio = artiste?.bio ?? null;
+    // #8129 — les liens de la bio du service (Qobuz) : fiches Qobuz, pages
+    // externes, noms de la bibliothèque.
+    bioSegments = bio ? ((artiste as any)?.bio_segments ?? null) : null;
     bioProvenance = provenanceDe(artiste); bioLangue = langueBioDe(artiste);
     chargement = false;
     void chargerComplements(mien, service, artiste?.name || cible?.nom || '');

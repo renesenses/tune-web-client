@@ -21,7 +21,7 @@ describe('#6480 — présentation d’un album de service', () => {
       description: 'Premier paragraphe.\n\nSecond.',
       language: 'fr',
     }));
-    expect(r).toEqual({ etat: 'texte', texte: 'Premier paragraphe.\n\nSecond.', langue: 'fr' });
+    expect(r).toEqual({ etat: 'texte', texte: 'Premier paragraphe.\n\nSecond.', langue: 'fr', segments: null });
   });
 
   it('null ou texte vide : rien à lire', async () => {
