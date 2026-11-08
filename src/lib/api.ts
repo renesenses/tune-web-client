@@ -6185,6 +6185,28 @@ export function getAlbumBooklets(albumId: number) {
   );
 }
 
+/** tune-server-rust#8077 — les apports Qobuz d'un album de la bibliothèque (calculés à la demande). */
+export function getApportsQobuz(albumId: number) {
+  return fetchJSON<import('./apportsQobuz').ApportsQobuz>(
+    `${BASE}/library/albums/${albumId}/apports-qobuz`, undefined, undefined, true,
+  );
+}
+
+/** tune-server-rust#8077 — retire TOUS les apports Qobuz de l'album (champs et crédits). */
+export function retirerApportsQobuz(albumId: number) {
+  return fetchJSON<{ statut: string; champs_retires: number; credits_retires: number }>(
+    `${BASE}/library/albums/${albumId}/apports-qobuz`, { method: 'DELETE' },
+  );
+}
+
+/** tune-server-rust#8077 — applique un rapprochement Qobuz « à confirmer ». */
+export function confirmerApportsQobuz(albumId: number, serviceAlbumId: string) {
+  return fetchJSON<import('./apportsQobuz').ApportsQobuz>(
+    `${BASE}/library/albums/${albumId}/apports-qobuz/confirmer`,
+    { method: 'POST', body: JSON.stringify({ service_album_id: serviceAlbumId }) },
+  );
+}
+
 export function getStreamingAlbumBooklets(service: string, albumId: string) {
   return fetchJSON<Array<{ name: string; url: string }>>(
     `${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/booklets`,
