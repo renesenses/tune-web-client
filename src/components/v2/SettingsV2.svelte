@@ -76,6 +76,7 @@
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { RECUL_PODCAST_MAX, RECUL_PODCAST_MIN, reculPodcastSaisi } from '../../lib/reculPodcast';
   import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
+  import { CLE_DEDOUBLONNAGE_PAR_RACINE, dedoublonnageParRacineDepuisConfig } from '../../lib/dedoublonnageParRacine';
   import {
     CLE_IMPORT_PLAYLISTS_SCAN,
     PROFIL_DES_PLAYLISTS_DU_SCAN,
@@ -2255,6 +2256,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // actif, comme le serveur (le comportement d'avant).
   let coffretsAuto = $state(true);
   let coffretsAutoErr = $state<string | null>(null);
+  // tune-server-rust#6917 — « Ne regrouper que les copies d'un même dossier de
+  // musique ». Absent de la config : éteint, comme le serveur.
+  let dedupMemeRacine = $state(false);
+  let dedupMemeRacineErr = $state<string | null>(null);
   // web#2635 — import des .m3u/.pls au scan, et retrait des playlists importées.
   let importPlaylistsScan = $state(true);
   let importPlaylistsScanErr = $state<string | null>(null);
@@ -2525,6 +2530,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
       ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
       coffretsAuto = coffretsAutoDepuisConfig(c?.[CLE_COFFRETS_AUTO]);
+      dedupMemeRacine = dedoublonnageParRacineDepuisConfig(c?.[CLE_DEDOUBLONNAGE_PAR_RACINE]);
       importPlaylistsScan = importPlaylistsScanDepuisConfig(c?.[CLE_IMPORT_PLAYLISTS_SCAN]);
       scanDemarrage = scanAuDemarrageDepuisConfig(c);
     } catch { libErr = get(t)('settings.errConfigUnavailable'); }
@@ -2818,6 +2824,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch {
       coffretsAuto = before;
       coffretsAutoErr = get(t)('settings.errSaveFailed');
+    }
+  }
+  /** #6917 — même patron : un refus du serveur remet la case en place. */
+  async function setDedupMemeRacine(v: boolean) {
+    const before = dedupMemeRacine; dedupMemeRacine = v; dedupMemeRacineErr = null;
+    try {
+      await api.updateConfig({ [CLE_DEDOUBLONNAGE_PAR_RACINE]: v });
+    } catch {
+      dedupMemeRacine = before;
+      dedupMemeRacineErr = get(t)('settings.errSaveFailed');
     }
   }
   // tune-server-rust#7780 — « Bibliothèque élargie aux favoris des services »,
@@ -6828,6 +6844,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'libraryCleanup'}
               <!-- #2354 (Didier, fil 2397) : venu de Système › Santé. Même
                    bouton, même confirmation danger, même compte rendu. -->
+              <!-- tune-server-rust#6917 : la règle des copies identiques sous
+                   deux dossiers de musique (disque dur et NAS), dite et
+                   réglable AVANT de lancer le nettoyage. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.dedupSameRootOnly' as any)}</span>
+                  <span class="hint">{$t('settings.dedupSameRootOnlyHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-cle={CLE_DEDOUBLONNAGE_PAR_RACINE} checked={dedupMemeRacine}
+                    aria-label={$t('settings.dedupSameRootOnly' as any)}
+                    onchange={(e) => setDedupMemeRacine((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if dedupMemeRacineErr}<div class="errline" role="alert">{dedupMemeRacineErr}</div>{/if}
+              <p class="hint" data-etat-dedup-racine>
+                {dedupMemeRacine ? $t('settings.dedupSameRootOnlyStateOn' as any) : $t('settings.dedupSameRootOnlyStateOff' as any)}
+              </p>
               <div class="row">
                 <div class="lbl">
                   <span>{$t('diagnostics.cleanupServer' as any)}</span>

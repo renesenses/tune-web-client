@@ -5371,6 +5371,9 @@ export interface ResultatNettoyage {
   duplicate_tracks_removed?: number;
   orphan_artwork_deleted?: number;
   db_optimized?: boolean;
+  /** tune-server-rust#6917 — la règle que le dédoublonnage des pistes vient
+   * d'appliquer : vrai, les copies d'une autre racine de musique sont restées. */
+  dedup_same_root_only?: boolean;
 }
 
 /**
