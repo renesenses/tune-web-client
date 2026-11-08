@@ -1,7 +1,9 @@
 // Internals partagés entre les sous-modules api/*.
 // Préfixe `_` = ne pas importer côté composants ; passer par `lib/api`.
 
+import { get } from 'svelte/store';
 import { notifications } from '../stores/notifications';
+import { t } from '../i18n';
 import { getToken, clearToken } from '../auth';
 import { profileHeader } from '../profileHeader';
 import { corpsJson, fusionnerEntetes } from '../fusionEntetes';
@@ -18,7 +20,7 @@ function showNetworkError() {
   const now = Date.now();
   if (now - _lastNetworkError < 5000) return;
   _lastNetworkError = now;
-  notifications.error('Network error: server unreachable');
+  notifications.error(get(t)('common.serverUnreachable' as any));
 }
 
 async function apiError(response: Response): Promise<Error> {

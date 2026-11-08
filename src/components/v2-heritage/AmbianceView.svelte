@@ -57,7 +57,7 @@
         $t('v2.ambiance.analysisOn' as any),
       );
     } catch (e: any) {
-      notifications.error(e?.message || "Impossible d'activer l'analyse acoustique");
+      notifications.error(e?.message || $t('v2.ambiance.acousticEnableError' as any));
     }
     enabling = false;
   }
@@ -264,7 +264,7 @@
     }
     try {
       await playAndSync(zone.id, { track_ids: ids });
-      notifications.success(`Lecture de ${ids.length} titres`);
+      notifications.success($t('v2.ambiance.playingCount' as any).replace('{count}', String(ids.length)));
     } catch {
       notifications.error($t('library.playbackError'));
     }

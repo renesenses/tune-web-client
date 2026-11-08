@@ -87,7 +87,7 @@ function showNetworkError() {
   const now = Date.now();
   if (now - _lastNetworkError < 30000) return;
   _lastNetworkError = now;
-  notifications.error('Network error: server unreachable');
+  notifications.error(get(t)('common.serverUnreachable' as any));
 }
 
 import type {

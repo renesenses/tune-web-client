@@ -632,7 +632,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       if (okMsg) notifications.success(okMsg);
     } catch {
       revert();
-      notifications.error('Enregistrement impossible');
+      notifications.error(get(t)('common.saveFailed' as any));
     }
   }
   function setBackend(v: string) {
@@ -754,7 +754,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       try { zones.set(await api.getZones()); } catch { /* l'essentiel est créé */ }
       notifications.success($t('settings.browserZoneCreated' as any));
     } catch (err: any) {
-      notifications.error(err?.message ?? 'Erreur');
+      notifications.error(err?.message ?? get(t)('common.errorLabel' as any));
     } finally {
       creatingBrowserZone = false;
     }
@@ -967,7 +967,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function setEqBands(n: number) {
     const before = eqBands; eqBands = n;
     try { eqBands = (await api.setEqExpertSettings(n)).expert_bands; }
-    catch { eqBands = before; notifications.error('Enregistrement impossible'); }
+    catch { eqBands = before; notifications.error(get(t)('common.saveFailed' as any)); }
   }
 
   // ── Squeezebox / Lyrion ────────────────────────────────────────────────
@@ -995,7 +995,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await api.updateConfig({ squeezebox_enabled: next });
       sbEnabled = next;
       if (next) await refreshSqueezebox(); else sbStatus = null;
-    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    } catch (e: any) { notifications.error(e?.message ?? get(t)('common.errorLabel' as any)); }
     sbSaving = false;
   }
   /**
@@ -1031,7 +1031,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // Meme regle que dans SettingsView : pas d'avis si le serveur a
       // applique a chaud (#3809).
       annonceSlimRedemarrage = !bascule.appliqueAChaud;
-    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    } catch (e: any) { notifications.error(e?.message ?? get(t)('common.errorLabel' as any)); }
     annonceSlimSaving = false;
     // 🔴 Et on REPOSE la case sur l'état confirmé. Le clic a déjà bougé le
     // DOM ; si le serveur répond la valeur qu'on affichait DÉJÀ (serveur
@@ -1047,13 +1047,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await api.updateConfig({ lms_host: sbHost.trim() || null });
       await refreshSqueezebox();
       notifications.success($t('common.saved' as any));
-    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    } catch (e: any) { notifications.error(e?.message ?? get(t)('common.errorLabel' as any)); }
     sbSaving = false;
   }
   async function discoverSqueezebox() {
     sbLoading = true;
     try { sbStatus = await api.discoverSqueezebox(); }
-    catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    catch (e: any) { notifications.error(e?.message ?? get(t)('common.errorLabel' as any)); }
     sbLoading = false;
   }
   async function zoneFromPlayer(pl: api.SqueezeboxPlayer) {
@@ -1061,7 +1061,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       await api.createZoneFromSqueezebox(pl.id, pl.name);
       notifications.success($t('settings.squeezeboxZoneCreated' as any).replace('{name}', pl.name));
-    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    } catch (e: any) { notifications.error(e?.message ?? get(t)('common.errorLabel' as any)); }
     sbCreating = null;
   }
 
@@ -1093,7 +1093,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await api.apiPost('/hqplayer/config', { hqplayer_host: hqHost.trim(), hqplayer_port: hqPort, hqplayer_enabled: enabled });
       hqEnabled = enabled;
       if (enabled) await checkHq();
-    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    } catch (e: any) { notifications.error(e?.message ?? get(t)('common.errorLabel' as any)); }
     hqSaving = false;
   }
   async function checkHq() {
@@ -1185,7 +1185,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         await chargerLienPont();
       }
     } catch (e: any) {
-      notifications.error(e?.message ?? 'Erreur');
+      notifications.error(e?.message ?? get(t)('common.errorLabel' as any));
     }
     brBusy = false;
   }

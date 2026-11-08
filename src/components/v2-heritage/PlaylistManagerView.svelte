@@ -892,7 +892,7 @@
       playlistsStore.set(list);
     } catch (e: any) {
       console.error('Quick transfer error:', e);
-      if (!noterRefusTransfert(e)) notifications.error(e.message || 'Transfer failed');
+      if (!noterRefusTransfert(e)) notifications.error(e.message || $tr('v2.pl.transferFailed' as any));
     }
     qtTransferring = false;
   }

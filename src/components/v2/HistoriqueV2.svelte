@@ -298,7 +298,7 @@
     rejeuEnCours = cleEntree(e);
     try {
       const fait = await rejouerEntree(zid, e);
-      notifications.success(`${fait.genre === 'radio' ? 'Radio' : 'Lecture'} : ${fait.libelle}`);
+      notifications.success($tr((fait.genre === 'radio' ? 'v2.hist.replayedRadio' : 'v2.hist.replayedPlay') as any).replace('{name}', fait.libelle));
     } catch {
       notifications.error($tr('v2.hist.replayError' as any));
     }

@@ -55,7 +55,7 @@
         } catch {}
       }
     } catch (e: any) {
-      notifications.error('Failed to load OAAT groups');
+      notifications.error($t('oaat.loadError' as any));
     }
     loading = false;
   }
@@ -77,23 +77,23 @@
     if (!newGroupName.trim() || pendingEndpoints.length === 0) return;
     try {
       await api.createOaatGroup(newGroupName.trim(), pendingEndpoints);
-      notifications.success(`Group "${newGroupName}" created`);
+      notifications.success($t('oaat.groupCreated' as any).replace('{name}', newGroupName));
       newGroupName = '';
       pendingEndpoints = [];
       showCreateForm = false;
       await loadGroups();
     } catch (e: any) {
-      notifications.error('Failed to create group');
+      notifications.error($t('oaat.createError' as any));
     }
   }
 
   async function deleteGroup(id: string) {
     try {
       await api.deleteOaatGroup(id);
-      notifications.success('Group deleted');
+      notifications.success($t('oaat.groupDeleted' as any));
       await loadGroups();
     } catch {
-      notifications.error('Failed to delete group');
+      notifications.error($t('oaat.deleteError' as any));
     }
   }
 
@@ -104,24 +104,24 @@
       if (res.error) {
         notifications.error(res.error);
       } else {
-        notifications.success(`Endpoint ${res.endpoint_id} added`);
+        notifications.success($t('oaat.endpointAdded' as any).replace('{id}', String(res.endpoint_id)));
         addEndpointGroupId = null;
         addHost = '';
         addPort = 9740;
         await refreshGroupStatus(groupId);
       }
     } catch {
-      notifications.error('Failed to add endpoint');
+      notifications.error($t('oaat.addEndpointError' as any));
     }
   }
 
   async function removeEndpoint(groupId: string, endpointId: string) {
     try {
       await api.removeOaatEndpoint(groupId, endpointId);
-      notifications.success('Endpoint removed');
+      notifications.success($t('oaat.endpointRemoved' as any));
       await refreshGroupStatus(groupId);
     } catch {
-      notifications.error('Failed to remove endpoint');
+      notifications.error($t('oaat.removeEndpointError' as any));
     }
   }
 
