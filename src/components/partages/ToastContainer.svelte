@@ -1,14 +1,40 @@
 <script lang="ts">
-  import { notifications } from '../../lib/stores/notifications';
+  import { notifications, MAX_ERREURS_VISIBLES } from '../../lib/stores/notifications';
   import { t } from '../../lib/i18n';
+
+  // Au-delà de MAX_ERREURS_VISIBLES erreurs, les plus anciennes se replient
+  // en une seule ligne ; les autres niveaux restent toujours visibles.
+  let erreurs = $derived($notifications.filter((n) => n.level === 'error'));
+  let repliees = $derived(erreurs.slice(0, Math.max(0, erreurs.length - MAX_ERREURS_VISIBLES)));
+  let ids_replies = $derived(new Set(repliees.map((n) => n.id)));
+  let visibles = $derived($notifications.filter((n) => !ids_replies.has(n.id)));
+  let nbReplies = $derived(repliees.reduce((a, n) => a + (n.count ?? 1), 0));
+
+  function fermerReplies() {
+    for (const n of repliees) notifications.dismiss(n.id);
+  }
 </script>
 
-{#each $notifications as n (n.id)}
+<div class="toast-pile">
+{#if repliees.length > 0}
+  <div class="toast toast-error toast-repli" role="status">
+    <span class="toast-msg">{$t('toast.erreursRepliees').replace('{n}', String(nbReplies))}</span>
+    <button class="toast-dismiss" aria-label={$t('common.close')} title={$t('common.close')} onclick={fermerReplies}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+    </button>
+  </div>
+{/if}
+{#each visibles as n (n.id)}
   <div
     class="toast"
     class:toast-error={n.level === 'error'}
     class:toast-success={n.level === 'success'}
     class:toast-info={n.level === 'info'}
+    role={n.level === 'error' ? 'alert' : 'status'}
+    onmouseenter={() => notifications.pause(n.id)}
+    onmouseleave={() => notifications.resume(n.id)}
+    onfocusin={() => notifications.pause(n.id)}
+    onfocusout={() => notifications.resume(n.id)}
   >
     <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
       {#if n.level === 'error'}
@@ -21,6 +47,9 @@
     </svg>
     <span class="toast-msg">
       {n.message}
+      {#if (n.count ?? 1) > 1}
+        <span class="toast-count">×{n.count}</span>
+      {/if}
       {#if n.detail}
         <!-- #2417 : le texte brut du serveur, replié, jamais en message. -->
         <details class="toast-detail">
@@ -39,11 +68,12 @@
         {n.refus.label}
       </button>
     {/if}
-    <button class="toast-dismiss" onclick={() => notifications.dismiss(n.id)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+    <button class="toast-dismiss" aria-label={$t('common.close')} title={$t('common.close')} onclick={() => notifications.dismiss(n.id)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
     </button>
   </div>
 {/each}
+</div>
 
 <style>
   .toast-action {
@@ -60,11 +90,22 @@
   .toast-action:hover { background: rgba(255, 255, 255, 0.12); }
   .toast-refus { font-weight: 400; }
 
-  .toast {
+  .toast-pile {
     position: fixed;
     bottom: calc(var(--transport-height) + 16px);
     left: calc(var(--sidebar-width) + (100vw - var(--sidebar-width)) / 2);
     transform: translateX(-50%);
+    z-index: 200;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .toast-pile > :global(*) { pointer-events: auto; }
+  .toast-count { font-weight: 700; margin-left: 6px; opacity: 0.9; }
+
+  .toast {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
@@ -72,15 +113,10 @@
     border-radius: var(--radius-md);
     font-family: var(--font-body);
     font-size: 13px;
-    z-index: 200;
     max-width: 500px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     animation: toastSlideIn 0.25s ease-out;
   }
-
-  /* Stack toasts vertically */
-  .toast:nth-child(2) { bottom: calc(var(--transport-height) + 68px); }
-  .toast:nth-child(3) { bottom: calc(var(--transport-height) + 120px); }
 
   .toast-error {
     background: #2A1A1A;
@@ -158,28 +194,26 @@
   @keyframes toastSlideIn {
     from {
       opacity: 0;
-      transform: translateX(-50%) translateY(12px);
+      transform: translateY(12px);
     }
     to {
       opacity: 1;
-      transform: translateX(-50%) translateY(0);
+      transform: translateY(0);
     }
   }
 
   /* Tablet: sidebar icones */
   @media (min-width: 769px) and (max-width: 1024px) {
-    .toast {
+    .toast-pile {
       left: calc(var(--sidebar-collapsed-width) + (100vw - var(--sidebar-collapsed-width)) / 2);
     }
   }
 
   /* Mobile: pas de sidebar */
   @media (max-width: 768px) {
-    .toast {
+    .toast-pile {
       left: 50%;
       bottom: calc(var(--mini-player-height) + var(--tab-bar-height) + 16px);
     }
-    .toast:nth-child(2) { bottom: calc(var(--mini-player-height) + var(--tab-bar-height) + 68px); }
-    .toast:nth-child(3) { bottom: calc(var(--mini-player-height) + var(--tab-bar-height) + 120px); }
   }
 </style>

@@ -6405,6 +6405,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "许可证待核实",
   "erreursServeur.generique": "服务器无法完成该请求。",
   "erreursServeur.details": "详情",
+  "toast.erreursRepliees": "已折叠 {n} 条较早的错误",
   "erreursServeur.track_decode_failed": "无法解码该曲目。",
   "v2.pl.serviceNoPlaylists": "{s} 不提供播放列表。",
   "v2.dev.listAria": "设备和分区",

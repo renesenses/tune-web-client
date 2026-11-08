@@ -6405,6 +6405,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "licență de verificat",
   "erreursServeur.generique": "Serverul nu a putut finaliza cererea.",
   "erreursServeur.details": "Detalii",
+  "toast.erreursRepliees": "{n} erori mai vechi restrânse",
   "erreursServeur.track_decode_failed": "Piesa nu a putut fi decodată.",
   "v2.pl.serviceNoPlaylists": "{s} nu oferă liste de redare.",
   "v2.dev.listAria": "Dispozitive și zone",

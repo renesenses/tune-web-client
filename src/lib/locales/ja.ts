@@ -6405,6 +6405,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "ライセンス要確認",
   "erreursServeur.generique": "サーバーはリクエストを完了できませんでした。",
   "erreursServeur.details": "詳細",
+  "toast.erreursRepliees": "古いエラー {n} 件を折りたたみました",
   "erreursServeur.track_decode_failed": "トラックをデコードできませんでした。",
   "v2.pl.serviceNoPlaylists": "{s} はプレイリストを提供していません。",
   "v2.dev.listAria": "デバイスとゾーン",

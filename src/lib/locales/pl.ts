@@ -6250,6 +6250,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "licencja do sprawdzenia",
   "erreursServeur.generique": "Serwer nie mógł zrealizować żądania.",
   "erreursServeur.details": "Szczegóły",
+  "toast.erreursRepliees": "Zwinięto starsze błędy: {n}",
   "erreursServeur.track_decode_failed": "Nie udało się zdekodować utworu.",
   "v2.pl.serviceNoPlaylists": "{s} nie udostępnia playlist.",
   "v2.dev.listAria": "Urządzenia i strefy",

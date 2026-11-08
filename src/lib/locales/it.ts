@@ -6405,6 +6405,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "licenza da verificare",
   "erreursServeur.generique": "Il server non ha potuto completare la richiesta.",
   "erreursServeur.details": "Dettagli",
+  "toast.erreursRepliees": "{n} errori precedenti compressi",
   "erreursServeur.track_decode_failed": "Non è stato possibile decodificare il brano.",
   "v2.pl.serviceNoPlaylists": "{s} non fornisce playlist.",
   "v2.dev.listAria": "Dispositivi e zone",
