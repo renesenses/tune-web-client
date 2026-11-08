@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * Créer ou modifier une COLLECTION INTELLIGENTE.
    *
@@ -324,7 +325,7 @@
       // #7872 — le refus de l'expression se montre SOUS elle, avec sa position.
       const refus = lireErreurDeRequete(e?.corps);
       if (refus) erreurExpression = refus;
-      else notifications.error(e?.message ?? $t('common.error' as any));
+      else notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
     travail = false;
   }

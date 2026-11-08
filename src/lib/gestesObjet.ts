@@ -1,3 +1,4 @@
+import { notifierErreur } from './notifierErreur';
 /**
  * Les GESTES des menus d'objets — une seule implémentation pour tous les écrans.
  *
@@ -620,7 +621,7 @@ export async function sousMenuRayons(o: ObjetMenu, apres?: () => void): Promise<
         try {
           await api.placeCollectionInFolder(kind, id, d?.id ?? null);
         } catch (e: any) {
-          notifications.error(`${traduire('v2.rayons.error' as any)} : ${e?.message ?? ''}`);
+          notifierErreur(traduire('v2.rayons.error' as any), e);
         }
         await rafraichirRayons(api.getCollectionFolders);
         apres?.();
@@ -694,7 +695,7 @@ export async function reidentifierAlbum(albumId: number, releaseId?: string): Pr
     return true;
   } catch (e: any) {
     notifications.dismiss(tid);
-    notifications.error(`${traduire('library.reidentifyFailed' as any)} : ${e?.message || e}`);
+    notifierErreur(traduire('library.reidentifyFailed' as any), e);
     return false;
   }
 }
@@ -717,7 +718,7 @@ async function localiser(albumId: number): Promise<void> {
     if (!dossier) { notifications.error(get(t)('menuObjet.noFolder' as any)); return; }
     allerAuDossierDeLAlbum(albumId, dossier);
   } catch (e: any) {
-    notifications.error(e?.message ?? get(t)('common.error' as any));
+    notifierErreur(get(t)('common.error' as any), e, { motifSeul: true });
   }
 }
 
@@ -733,7 +734,7 @@ export async function partagerPlaylist(id: number): Promise<void> {
     await navigator.clipboard.writeText(url);
     notifications.success(traduire('v2.pl.shared' as any));
   } catch (e: any) {
-    notifications.error(e?.message ?? traduire('common.error' as any));
+    notifierErreur(traduire('common.error' as any), e, { motifSeul: true });
   }
 }
 
@@ -756,7 +757,7 @@ async function renommer(o: ObjetMenu, apres?: () => void): Promise<void> {
     }
     apres?.();
   } catch (e: any) {
-    notifications.error(e?.message ?? traduire('common.error' as any));
+    notifierErreur(traduire('common.error' as any), e, { motifSeul: true });
   }
 }
 
@@ -798,7 +799,7 @@ async function dupliquer(o: ObjetMenu, apres?: () => void): Promise<void> {
     notifications.success(traduire('menuObjet.duplicated' as any).replace('{name}', copie.name ?? ''));
     apres?.();
   } catch (e: any) {
-    notifications.error(e?.message ?? traduire('common.error' as any));
+    notifierErreur(traduire('common.error' as any), e, { motifSeul: true });
   }
 }
 
@@ -840,7 +841,7 @@ async function supprimer(o: ObjetMenu, apres?: () => void): Promise<void> {
     );
     apres?.();
   } catch (e: any) {
-    notifications.error(e?.message ?? traduire('common.error' as any));
+    notifierErreur(traduire('common.error' as any), e, { motifSeul: true });
   }
 }
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * Tune Health — nouveau client (direction Levente).
    *
@@ -203,7 +204,7 @@
       rangerLInstantane(await api.setDynamicRangePriority(p));
       void collect();
     } catch (e) {
-      notifications.error(errText(e) ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       prioriteEnVol = false;
     }
@@ -219,7 +220,7 @@
       // badge et la jauge redisent la même chose au même instant.
       void collect();
     } catch (e) {
-      notifications.error(errText(e) ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       bascule = null;
     }
@@ -236,7 +237,7 @@
       notifications[issue === 'lance' ? 'success' : 'info']($t(CLE_ISSUE[issue] as any));
       void collect();
     } catch (e) {
-      notifications.error(errText(e) ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       lancement = null;
     }
@@ -287,7 +288,7 @@
       );
       void collect();
     } catch (e) {
-      notifications.error(errText(e) ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       bascule = null;
     }
@@ -333,7 +334,7 @@
       asioBloque = false;
       notifications.success($t('diagnostics.asioWarmRearmed' as any));
     } catch (e) {
-      notifications.error(errText(e) ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       asioRearmement = false;
     }
@@ -842,7 +843,7 @@
       // à personne, et un fichier vide se lit comme un export raté.
       await telechargerJournaux({ siVide: $t('diagnostics.noLogs' as any) });
     } catch (e: any) {
-      notifications.error($t('common.error' as any) + ' : ' + (errText(e) ?? $t('common.serverUnreachable' as any)));
+      notifierErreur($t('common.error' as any), e);
     }
     exportEnCours = false;
   }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Page à widgets CONFIGURABLE — l'accueil, et les écrans éditoriaux.
@@ -581,7 +582,7 @@
         ...marqueurAEnregistrer(CLE_LIGNE_MIGRE, dispositionDefaut),
       });
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 

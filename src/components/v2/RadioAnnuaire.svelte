@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * L'annuaire radio-metadata.fr complet, dans « Radio en direct »
    * (tune-server-rust#6516, décisions du 13/10 avec Rémi).
@@ -143,7 +144,7 @@
       rafraichirLaFiche(f, st);
       notifications.success($t('v2.radio.dir.added' as any).replace('{name}', f.name));
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 
@@ -156,7 +157,7 @@
         : await api.ajouterDepuisAnnuaire(f.external_id, true);
       rafraichirLaFiche(f, st);
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 </script>

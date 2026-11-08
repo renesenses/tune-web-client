@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * File d'attente — nouveau client (direction Levente).
@@ -168,7 +169,7 @@
         });
         notifications.success(r.title);
       } catch (err: any) {
-        notifications.error(`${f.name} : ${err?.message ?? $tr('queue.uploadError')}`);
+        notifierErreur(`${f.name} : ${$tr('queue.uploadError')}`, err);
       }
     }
     televersement = false;

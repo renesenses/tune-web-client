@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { onDestroy } from 'svelte';
   import { loadViewContext, saveViewContext } from '../../lib/stores/navigation';
   import { bulleTexte } from '../../lib/infobulleTexte';
@@ -161,7 +162,7 @@
       radios = radios.filter((x) => x.id !== id);
       notifications.success($t('v2.radio.removed' as any).replace('{name}', r.name));
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 
@@ -189,7 +190,7 @@
         .replace('{imported}', String(r.imported)).replace('{skipped}', String(r.skipped)));
       radios = (await api.getRadios({ limit: 500 })) ?? radios;
     } catch (err: any) {
-      notifications.error(err?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), err, { motifSeul: true });
     } finally {
       importEnCours = false;
     }

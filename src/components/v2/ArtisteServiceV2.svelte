@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { labelPrincipal, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
   /**
    * LA FICHE ARTISTE ÉLUE — #3825, socle de #2568, puis #1232.
@@ -850,7 +851,7 @@
       // dire, sans quoi le bouton paraîtrait mort.
       if (!n) notifications.error($tr('v2.fas.empty' as any));
     } catch (e: any) {
-      notifications.error(e?.message ?? $tr('v2.fas.empty' as any));
+      notifierErreur($tr('v2.fas.empty' as any), e, { motifSeul: true });
     }
     enMasse = false;
   }
@@ -889,7 +890,7 @@
       if (issue === 'serveur-ancien') notifications.error($tr('v2.fas.radioServeurAncien' as any));
       else if (issue === 'rien') notifications.error($tr('v2.fas.empty' as any));
     } catch (e: any) {
-      notifications.error(e?.message ?? $tr('v2.fas.empty' as any));
+      notifierErreur($tr('v2.fas.empty' as any), e, { motifSeul: true });
     }
     enMasse = false;
   }
@@ -942,7 +943,7 @@
         });
         if (n === 0) notifications.error($tr('library.noTracks' as any));
       } catch (e: any) {
-        notifications.error(e?.message ?? $tr('common.error' as any));
+        notifierErreur($tr('common.error' as any), e, { motifSeul: true });
       }
       enMasseLocale = false;
       return;
@@ -957,7 +958,7 @@
       });
       if (!n) notifications.error($tr('v2.fas.empty' as any));
     } catch (e: any) {
-      notifications.error(e?.message ?? $tr('v2.fas.empty' as any));
+      notifierErreur($tr('v2.fas.empty' as any), e, { motifSeul: true });
     }
     enMasse = false;
   }
@@ -989,7 +990,7 @@
         if (!n) notifications.error($tr('library.noTracks' as any));
       }
     } catch (e: any) {
-      notifications.error(e?.message ?? $tr('common.error' as any));
+      notifierErreur($tr('common.error' as any), e, { motifSeul: true });
     }
     enMasseLocale = false;
   }

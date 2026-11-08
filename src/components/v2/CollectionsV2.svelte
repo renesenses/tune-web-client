@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Collections — nouveau client.
@@ -616,7 +617,7 @@
       if (!n) notifications.error($t('collections.noTracks' as any));
       else notifications.success($t('collections.playingAll' as any).replace('{count}', String(n)));
     } catch (err: any) {
-      notifications.error(err?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), err, { motifSeul: true });
     }
     masseEnCours = false;
   }
@@ -637,7 +638,7 @@
       }
       await playAndSync(zid, corpsAlbum(premier));
     } catch (err: any) {
-      notifications.error(err?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), err, { motifSeul: true });
     }
   }
   let albums = $state<any[]>([]);
@@ -892,7 +893,7 @@
         notifications.success($t('v2.rayons.placedIn' as any).replace('{name}', rayon.name));
       }
     } catch (err: any) {
-      notifications.error(`${$t('v2.rayons.error' as any)} : ${err?.message ?? ''}`);
+      notifierErreur($t('v2.rayons.error' as any), err);
     }
   }
 
@@ -1211,7 +1212,7 @@
     try {
       await playAndSync(zid, corpsAlbum(a));
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 

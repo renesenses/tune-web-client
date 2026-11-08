@@ -36,6 +36,6 @@ describe('la file v2 accepte un fichier déposé (porté de QueueView)', () => {
 
   it('seuls les fichiers audio partent, et chaque échec est nommé', () => {
     expect(corps).toContain('.filter((f) => estFichierAudio(f.name))');
-    expect(corps).toMatch(/notifications\.error\(`\$\{f\.name\}/);
+    expect(corps).toMatch(/(?:notifications\.error|notifierErreur)\(`\$\{f\.name\}/);
   });
 });

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Coquille du nouveau client (direction Levente) : barre latérale à
@@ -630,7 +631,7 @@
       poseRaccourci = false;
       proposition = null;
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('v2.nav.shortcutFailed' as any));
+      notifierErreur($t('v2.nav.shortcutFailed' as any), e, { motifSeul: true });
     }
     pose = false;
   }

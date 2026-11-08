@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { pochetteMajoritaire } from '../../lib/pochetteMajoritaire';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount } from 'svelte';
@@ -387,19 +388,19 @@
       const r = await shuffleAll(zone.id, { folder: dossierOuvert });
       notifications.success($t('library.shufflePlaying').replace('{count}', String(r.track_count)));
     } catch (e) {
-      notifications.error($t('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e)));
+      notifierErreur($t('library.playbackError'), e);
     }
   }
   async function playTracks(ids: number[]) {
     if (!zone?.id) { notifications.error($t('library.noZoneSelected')); return; }
     if (!ids.length) return;
     try { await playAndSync(zone.id, { track_ids: ids }); }
-    catch (e) { notifications.error($t('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e))); }
+    catch (e) { notifierErreur($t('library.playbackError'), e); }
   }
   async function playBody(body: Record<string, unknown>) {
     if (!zone?.id) { notifications.error($t('library.noZoneSelected')); return; }
     try { await playAndSync(zone.id, body); }
-    catch (e) { notifications.error($t('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e))); }
+    catch (e) { notifierErreur($t('library.playbackError'), e); }
   }
   function playAlbumGroup(g: AlbumGroup) {
     // album_id = chemin rapide serveur (une requête, la file se construit côté
@@ -438,7 +439,7 @@
       if (idle) await jumpInQueue(zone.id, nextPos);
       notifications.success(`"${track.title}" — ${$t('library.playNext').toLowerCase()}`);
     } catch (e) {
-      notifications.error(e instanceof Error ? e.message : String(e));
+      notifierErreur($t('common.errorLabel' as any), e, { motifSeul: true });
     }
   }
   async function queueAppendTrack(track: Track) {
@@ -447,7 +448,7 @@
       await addToQueue(zone.id, { track_id: track.id });
       notifications.success(`"${track.title}" — ${$t('queue.addToQueue').toLowerCase()}`);
     } catch (e) {
-      notifications.error(e instanceof Error ? e.message : String(e));
+      notifierErreur($t('common.errorLabel' as any), e, { motifSeul: true });
     }
   }
   async function queueAppendAlbum(g: AlbumGroup) {
@@ -469,7 +470,7 @@
       await addToQueue(zone.id, { track_ids: ids });
       notifications.success(`"${g.title}" — ${$t('queue.addToQueue').toLowerCase()}`);
     } catch (e) {
-      notifications.error(e instanceof Error ? e.message : String(e));
+      notifierErreur($t('common.errorLabel' as any), e, { motifSeul: true });
     }
   }
 
