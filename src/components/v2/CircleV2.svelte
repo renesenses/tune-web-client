@@ -704,55 +704,6 @@
         </div>
       {/if}
 
-      {#if connecte.received.length > 0}
-        <section class="bloc recues" aria-labelledby="circle-recues">
-          <h2 id="circle-recues">{$t('v2.circle.received' as any)}</h2>
-          <ul>
-            {#each connecte.received as inv (inv.id)}
-              <li class="ligne invitation-recue">
-                <span class="nom" use:bulleTexte>{inv.name_or_email}</span>
-                <span class="note">{$t('v2.circle.expires' as any).replace('{date}', $dateCourte(inv.expires_at))}</span>
-                <span class="gestes">
-                  <button class="go accepter" disabled={occupe !== null}
-                    onclick={() => void geste(`accepter-${inv.id}`, () => accepterInvitation(inv.id), { succes: 'v2.circle.accepted' })}>
-                    {$t('v2.circle.accept' as any)}
-                  </button>
-                  <button class="lnk refuser" disabled={occupe !== null}
-                    onclick={() => void geste(`refuser-${inv.id}`, () => refuserInvitation(inv.id))}>
-                    {$t('v2.circle.decline' as any)}
-                  </button>
-                  {#if blocage === true}
-                    <button class="lnk danger bloquer" disabled={occupe !== null || aBloquer === inv.id}
-                      data-bloquer={inv.id}
-                      aria-label={$t('v2.circle.block.named' as any).split('{name}').join(inv.name_or_email)}
-                      aria-expanded={aBloquer === inv.id}
-                      onclick={() => demanderBlocage(inv.id)}>
-                      {$t('v2.circle.block.action' as any)}
-                    </button>
-                  {/if}
-                </span>
-                {#if blocage === true && aBloquer === inv.id}
-                  <div class="confirmer-blocage" role="group" aria-labelledby="circle-bloquer-{inv.id}">
-                    <p id="circle-bloquer-{inv.id}">{$t('v2.circle.block.confirm' as any).split('{name}').join(inv.name_or_email)}</p>
-                    <span class="gestes">
-                      <button class="risque confirmer-bloquer" disabled={occupe !== null}
-                        data-confirmer-blocage={inv.id}
-                        onclick={() => bloquer(inv.id, inv.name_or_email)}>
-                        {$t('v2.circle.block.confirmAction' as any)}
-                      </button>
-                      <button class="lnk annuler-bloquer" disabled={occupe !== null}
-                        onclick={() => annulerBlocage(inv.id)}>
-                        {$t('v2.circle.block.cancel' as any)}
-                      </button>
-                    </span>
-                  </div>
-                {/if}
-              </li>
-            {/each}
-          </ul>
-        </section>
-      {/if}
-
       <!-- #6935 : annonce d'un blocage ou d'un déblocage (région toujours présente). -->
       <p class="ok annonce-blocage" class:muette={!annonceBlocage} role="status" aria-live="polite">{annonceBlocage}</p>
 
@@ -966,6 +917,79 @@
             </div>
           {/if}
         {/if}
+        <!-- #8153 : les cercles des autres où je suis rangé, dans la même liste que les miens. -->
+        {#if invitePar.length > 0}
+          <div class="sous-bloc cercles-invite" role="group" aria-labelledby="circle-invite">
+            <h3 id="circle-invite">{$t('v2.circle.memberOf.title' as any)}</h3>
+            <p class="note">{$t('v2.circle.memberOf.hint' as any)}</p>
+            {#each invitePar as m (m.circle_id)}
+              <article class="cercle-membre" aria-label={m.circle_name}>
+                <div class="cercle-tete">
+                  <h4 class="cercle-nom" use:bulleTexte>{m.circle_name}</h4>
+                  {#if $messagerieSupport === true}
+                    <button class="lnk ecrire-au-cercle" aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', m.circle_name)}
+                      onclick={() => ecrireAuCercle(m.circle_id)}>{$t('v2.circle.msg.writeToCircle' as any)}</button>
+                  {/if}
+                  {#if t5}
+                    <button class="lnk partager-ici" disabled={occupe !== null}
+                      aria-label={$t('v2.circle.memberOf.shareNamed' as any).replace('{circle}', m.circle_name)}
+                      onclick={() => void partagerDansCercleInvite(m)}>{$t('v2.circle.memberOf.share' as any)}</button>
+                  {/if}
+                </div>
+                <p class="note cercle-de">{$t('v2.circle.msg.circleOf' as any).replace('{name}', m.owner_name)}</p>
+              </article>
+            {/each}
+          </div>
+        {/if}
+        <!-- #8153 : les invitations en attente, avec Accepter et Refuser, dans la liste des cercles. -->
+        {#if connecte.received.length > 0}
+          <div class="sous-bloc recues" role="group" aria-labelledby="circle-recues">
+            <h3 id="circle-recues">{$t('v2.circle.received' as any)}</h3>
+            <ul>
+              {#each connecte.received as inv (inv.id)}
+                <li class="ligne invitation-recue">
+                  <span class="nom" use:bulleTexte>{inv.name_or_email}</span>
+                  <span class="note">{$t('v2.circle.expires' as any).replace('{date}', $dateCourte(inv.expires_at))}</span>
+                  <span class="gestes">
+                    <button class="go accepter" disabled={occupe !== null}
+                      onclick={() => void geste(`accepter-${inv.id}`, () => accepterInvitation(inv.id), { succes: 'v2.circle.accepted' })}>
+                      {$t('v2.circle.accept' as any)}
+                    </button>
+                    <button class="lnk refuser" disabled={occupe !== null}
+                      onclick={() => void geste(`refuser-${inv.id}`, () => refuserInvitation(inv.id))}>
+                      {$t('v2.circle.decline' as any)}
+                    </button>
+                    {#if blocage === true}
+                      <button class="lnk danger bloquer" disabled={occupe !== null || aBloquer === inv.id}
+                        data-bloquer={inv.id}
+                        aria-label={$t('v2.circle.block.named' as any).split('{name}').join(inv.name_or_email)}
+                        aria-expanded={aBloquer === inv.id}
+                        onclick={() => demanderBlocage(inv.id)}>
+                        {$t('v2.circle.block.action' as any)}
+                      </button>
+                    {/if}
+                  </span>
+                  {#if blocage === true && aBloquer === inv.id}
+                    <div class="confirmer-blocage" role="group" aria-labelledby="circle-bloquer-{inv.id}">
+                      <p id="circle-bloquer-{inv.id}">{$t('v2.circle.block.confirm' as any).split('{name}').join(inv.name_or_email)}</p>
+                      <span class="gestes">
+                        <button class="risque confirmer-bloquer" disabled={occupe !== null}
+                          data-confirmer-blocage={inv.id}
+                          onclick={() => bloquer(inv.id, inv.name_or_email)}>
+                          {$t('v2.circle.block.confirmAction' as any)}
+                        </button>
+                        <button class="lnk annuler-bloquer" disabled={occupe !== null}
+                          onclick={() => annulerBlocage(inv.id)}>
+                          {$t('v2.circle.block.cancel' as any)}
+                        </button>
+                      </span>
+                    </div>
+                  {/if}
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
       </section>
 
       {#if t2}
@@ -997,31 +1021,6 @@
         </section>
       {/if}
 
-      {#if invitePar.length > 0}
-        <section class="bloc cercles-invite" aria-labelledby="circle-invite">
-          <h2 id="circle-invite">{$t('v2.circle.memberOf.title' as any)}</h2>
-          <p class="note">{$t('v2.circle.memberOf.hint' as any)}</p>
-          <ul>
-            {#each invitePar as m (m.circle_id)}
-              <li class="ligne cercle-invite">
-                <span class="nom" use:bulleTexte>{m.circle_name}</span>
-                <span class="note">{$t('v2.circle.memberOf.by' as any).replace('{name}', m.owner_name)}</span>
-                {#if $messagerieSupport === true}
-                  <button class="lnk ecrire-au-cercle" aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', m.circle_name)}
-                    onclick={() => ecrireAuCercle(m.circle_id)}>{$t('v2.circle.msg.writeToCircle' as any)}</button>
-                {/if}
-                {#if t5}
-                  <span class="gestes">
-                    <button class="lnk partager-ici" disabled={occupe !== null}
-                      aria-label={$t('v2.circle.memberOf.shareNamed' as any).replace('{circle}', m.circle_name)}
-                      onclick={() => void partagerDansCercleInvite(m)}>{$t('v2.circle.memberOf.share' as any)}</button>
-                  </span>
-                {/if}
-              </li>
-            {/each}
-          </ul>
-        </section>
-      {/if}
 
       {#if t5}
         <section class="bloc playlists-cercle" aria-labelledby="circle-playlists">
@@ -1126,6 +1125,9 @@
   .panne,.retour,.retour-invitation{margin:0}
   .bloc{display:flex; flex-direction:column; gap:8px}
   .bloc h2{font-size:15px; font-weight:700; margin:0}
+  .sous-bloc{display:flex; flex-direction:column; gap:8px; margin-top:8px}
+  .sous-bloc h3{font-size:14px; font-weight:700; margin:0}
+  .sous-bloc ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
   .bloc ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
   .ligne{display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:10px;
     padding:8px 6px; border-bottom:1px solid var(--v2-line); font-size:13px}
@@ -1138,7 +1140,7 @@
     color:var(--v2-txt); font:13px var(--v2-sans); min-width:0}
   .champ:focus-visible,.go:focus-visible,.lnk:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .email{flex:1 1 220px}
-  .cercle{display:flex; flex-direction:column; gap:6px; padding:12px 14px; border-radius:var(--v2-r-card);
+  .cercle, .cercle-membre{display:flex; flex-direction:column; gap:6px; padding:12px 14px; border-radius:var(--v2-r-card);
     border:1px solid var(--v2-line); background:var(--v2-surface2)}
   .cercle-tete{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .cercle-nom{font-size:14px; font-weight:700; margin:0; flex:1; min-width:0; overflow-wrap:anywhere}
