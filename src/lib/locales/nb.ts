@@ -6254,6 +6254,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "lisensen må kontrolleres",
   "erreursServeur.generique": "Serveren kunne ikke fullføre forespørselen.",
   "erreursServeur.details": "Detaljer",
+  "toast.erreursRepliees": "{n} eldre feil skjult",
   "erreursServeur.track_decode_failed": "Sporet kunne ikke dekodes.",
   "v2.pl.serviceNoPlaylists": "{s} tilbyr ikke spillelister.",
   "v2.dev.listAria": "Enheter og soner",

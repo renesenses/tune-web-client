@@ -6261,6 +6261,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "giấy phép cần kiểm tra",
   "erreursServeur.generique": "Máy chủ không thể hoàn tất yêu cầu.",
   "erreursServeur.details": "Chi tiết",
+  "toast.erreursRepliees": "Đã thu gọn {n} lỗi cũ hơn",
   "erreursServeur.track_decode_failed": "Không thể giải mã bản nhạc.",
   "v2.pl.serviceNoPlaylists": "{s} không cung cấp danh sách phát.",
   "v2.dev.listAria": "Thiết bị và vùng",

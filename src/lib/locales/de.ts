@@ -6409,6 +6409,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "Lizenz zu prüfen",
   "erreursServeur.generique": "Der Server konnte die Anfrage nicht ausführen.",
   "erreursServeur.details": "Details",
+  "toast.erreursRepliees": "{n} ältere Fehler eingeklappt",
   "erreursServeur.track_decode_failed": "Der Titel konnte nicht dekodiert werden.",
   "v2.pl.serviceNoPlaylists": "{s} stellt keine Playlists bereit.",
   "v2.dev.listAria": "Geräte und Zonen",

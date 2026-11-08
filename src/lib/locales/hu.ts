@@ -6368,6 +6368,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "a licenc ellenőrizendő",
   "erreursServeur.generique": "A szerver nem tudta teljesíteni a kérést.",
   "erreursServeur.details": "Részletek",
+  "toast.erreursRepliees": "{n} régebbi hiba összecsukva",
   "erreursServeur.track_decode_failed": "A számot nem sikerült dekódolni.",
   "v2.pl.serviceNoPlaylists": "A(z) {s} nem kínál lejátszási listákat.",
   "v2.dev.listAria": "Eszközök és zónák",

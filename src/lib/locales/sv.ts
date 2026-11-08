@@ -6408,6 +6408,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "licensen behöver kontrolleras",
   "erreursServeur.generique": "Servern kunde inte slutföra begäran.",
   "erreursServeur.details": "Detaljer",
+  "toast.erreursRepliees": "{n} äldre fel hopfällda",
   "erreursServeur.track_decode_failed": "Spåret kunde inte avkodas.",
   "v2.pl.serviceNoPlaylists": "{s} tillhandahåller inga spellistor.",
   "v2.dev.listAria": "Enheter och zoner",

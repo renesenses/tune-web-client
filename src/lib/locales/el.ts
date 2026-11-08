@@ -6254,6 +6254,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "η άδεια χρήσης πρέπει να ελεγχθεί",
   "erreursServeur.generique": "Ο διακομιστής δεν μπόρεσε να ολοκληρώσει το αίτημα.",
   "erreursServeur.details": "Λεπτομέρειες",
+  "toast.erreursRepliees": "{n} παλαιότερα σφάλματα συμπτύχθηκαν",
   "erreursServeur.track_decode_failed": "Το κομμάτι δεν μπόρεσε να αποκωδικοποιηθεί.",
   "v2.pl.serviceNoPlaylists": "Το {s} δεν παρέχει λίστες αναπαραγωγής.",
   "v2.dev.listAria": "Συσκευές και ζώνες",

@@ -6409,6 +6409,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "라이선스 확인 필요",
   "erreursServeur.generique": "서버가 요청을 처리하지 못했습니다.",
   "erreursServeur.details": "세부 정보",
+  "toast.erreursRepliees": "이전 오류 {n}개 접힘",
   "erreursServeur.track_decode_failed": "트랙을 디코딩하지 못했습니다.",
   "v2.pl.serviceNoPlaylists": "{s}은(는) 재생목록을 제공하지 않습니다.",
   "v2.dev.listAria": "장치 및 존",

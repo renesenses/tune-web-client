@@ -6431,6 +6431,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "licence à vérifier",
   "erreursServeur.generique": "Le serveur n'a pas pu traiter la demande.",
   "erreursServeur.details": "Détails",
+  "toast.erreursRepliees": "{n} erreurs plus anciennes repliées",
   "erreursServeur.track_decode_failed": "La piste n'a pas pu être décodée.",
   "v2.pl.serviceNoPlaylists": "{s} ne propose pas de playlists.",
   "v2.dev.listAria": "Appareils et zones",
