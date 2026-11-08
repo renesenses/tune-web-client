@@ -137,7 +137,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        * BIBLIOTHÈQUE (albums en double fusionnés, pistes en double, albums et
        * artistes orphelins). Santé garde un renvoi le temps d'une version. */
       { id: 'libraryCleanup', titleKey: 'diagnostics.cleanupServer', from: 'system', min: 'intermediate', group: 'libraryTools',
-        keywords: ['nettoyage', 'nettoyer', 'doublons', 'double', 'orphelins', 'fusion', 'cleanup', 'base de données'] },
+        keywords: ['nettoyage', 'nettoyer', 'doublons', 'double', 'orphelins', 'fusion', 'cleanup', 'base de données', 'copies', 'nas', 'disque dur', 'dossier de musique'] },
       /**
        * REPARTIR À ZÉRO (#3585, volet 1) — `min: 'beginner'`, et c'est un
        * choix, pas un oubli.
