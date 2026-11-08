@@ -70,7 +70,7 @@ export function detailErreur(e: unknown): string {
 export interface OptionsErreur {
   /** Le motif connu remplace la phrase au lieu de s'y ajouter. */
   motifSeul?: boolean;
-  /** Durée d'affichage (ms), 5000 par défaut. */
+  /** Durée d'affichage (ms) ; par défaut celle du bandeau d'erreur. */
   duree?: number;
 }
 
@@ -85,5 +85,7 @@ export function messageEtDetail(phrase: string, e: unknown, opts: OptionsErreur 
 /** Affiche l'échec : phrase traduite, motif connu éventuel, brut replié. */
 export function notifierErreur(phrase: string, e: unknown, opts: OptionsErreur = {}): number {
   const { message, detail } = messageEtDetail(phrase, e, opts);
-  return notifications.error(message, opts.duree ?? 5000, detail || undefined);
+  // `undefined` laisse au bandeau sa durée par défaut (#2722 : une erreur
+  // reste affichée jusqu'à ce qu'on la ferme).
+  return notifications.error(message, opts.duree, detail || undefined);
 }
