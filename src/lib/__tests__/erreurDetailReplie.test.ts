@@ -90,14 +90,20 @@ function repondre(url: string) {
   } as unknown as Response;
 }
 
+/**
+ * La notification de l'ÉCRAN — celle qui commence par sa phrase. Une panne
+ * réseau pose aussi le bandeau « serveur injoignable » du client HTTP : ce
+ * n'est pas celui qu'on juge ici.
+ */
 async function attendreNotif(): Promise<{ message: string; detail?: string }> {
   const fin = Date.now() + 4_000;
-  while (!get(notifications).some((n) => n.level === 'error')) {
+  const deLEcran = (n: { level: string; message: string }) => n.level === 'error' && n.message.startsWith(get(t)('genreTree.loadError'));
+  while (!get(notifications).some(deLEcran)) {
     if (Date.now() > fin) throw new Error('aucune notification d\'erreur');
     await new Promise((r) => setTimeout(r, 10));
     flushSync();
   }
-  return get(notifications).find((n) => n.level === 'error')!;
+  return get(notifications).find(deLEcran)!;
 }
 
 describe('GenreTreeView : échec du chargement', () => {

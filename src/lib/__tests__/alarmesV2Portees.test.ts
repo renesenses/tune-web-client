@@ -55,7 +55,7 @@ describe('AlarmesV2 — le portage', () => {
     // dessus. Mesuré — ce témoin a échoué sur sa propre documentation. Même
     // piège que les gardes de texte satisfaites par une définition.
     expect(ecran).not.toMatch(/console\.error\s*\(/);
-    const appels = (ecran.match(/notifications\.error/g) ?? []).length;
+    const appels = (ecran.match(/notifications\.error|notifierErreur\(/g) ?? []).length;
     expect(appels).toBeGreaterThanOrEqual(4);
   });
 
