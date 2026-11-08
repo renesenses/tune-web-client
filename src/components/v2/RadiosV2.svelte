@@ -379,7 +379,7 @@
         signalerZoneNavigateurJoueeAilleurs($currentZone, () => browserPlay(url, true, zid));
       }
     } catch {
-      error = `Lecture impossible : ${r.name}`;
+      error = $t('v2.radio.playFailed' as any).replace('{name}', r.name);
     }
   }
 

@@ -631,7 +631,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       if (okMsg) notifications.success(okMsg);
     } catch {
       revert();
-      notifications.error('Enregistrement impossible');
+      notifications.error(get(t)('common.saveFailed' as any));
     }
   }
   function setBackend(v: string) {
@@ -966,7 +966,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function setEqBands(n: number) {
     const before = eqBands; eqBands = n;
     try { eqBands = (await api.setEqExpertSettings(n)).expert_bands; }
-    catch { eqBands = before; notifications.error('Enregistrement impossible'); }
+    catch { eqBands = before; notifications.error(get(t)('common.saveFailed' as any)); }
   }
 
   // ── Squeezebox / Lyrion ────────────────────────────────────────────────

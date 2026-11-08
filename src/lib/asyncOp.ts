@@ -1,4 +1,6 @@
+import { get } from 'svelte/store';
 import { notifications } from './stores/notifications';
+import { t } from './i18n';
 
 export interface AsyncOpOptions<T> {
   /** Phrase shown while running (notification reste visible jusqu'à la fin). */
@@ -39,7 +41,7 @@ export async function runAsyncOp<T>(opts: AsyncOpOptions<T>): Promise<T | undefi
     return result;
   } catch (e: any) {
     notifications.dismiss(tid);
-    notifications.error(`${opts.errorPrefix ?? 'Erreur'} : ${e?.message || e}`);
+    notifications.error(`${opts.errorPrefix ?? get(t)('common.errorLabel' as any)} : ${e?.message || e}`);
     return undefined;
   } finally {
     opts.setRunning?.(false);

@@ -264,7 +264,7 @@
     }
     try {
       await playAndSync(zone.id, { track_ids: ids });
-      notifications.success(`Lecture de ${ids.length} titres`);
+      notifications.success($t('v2.ambiance.playingCount' as any).replace('{count}', String(ids.length)));
     } catch {
       notifications.error($t('library.playbackError'));
     }
