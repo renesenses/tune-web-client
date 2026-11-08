@@ -23,14 +23,15 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { notifications } from '../../lib/stores/notifications';
   import {
-    zoneCorrectionPiece, presenceCalibration, ID_GREFFON_CALIBRATION, SUIVI,
+    zoneCorrectionPiece, presenceCalibration, ID_GREFFON_CALIBRATION, presenceEgaliseur, egaliseurManque, ID_GREFFON_EGALISEUR,
+    SUIVI,
     PIECE_DEFAUT, SURFACES_DEFAUT, SURFACES, QUALITES, LIBELLES_SURFACES, LIBELLES_QUALITES, LIBELLES_TYPES_MODE,
     LIBELLES_ETATS, ETATS_FINAUX, BORNES_PIECE,
     coteHorsBornes, entreeSimulation, modesAffiches, modeFort, micros, mesureEnCours, rt60De, lireErreur,
     simuler, proposerSimulation, enregistrerProfilSimulation, appliquerProfilZone,
     lireMicrophones, deposerEtalonnage, lancerMesure, lireMesures, lireAvancement, annulerMesure,
     lireResultat, proposerMesure, enregistrerProfilMesure,
-    type PresenceCalibration, type Piece, type Surfaces, type Simulation, type Proposition, type TypeCible,
+    type PresenceCalibration, type PresenceEgaliseur, type Piece, type Surfaces, type Simulation, type Proposition, type TypeCible,
     type Microphones, type Avancement, type ResultatMesure, type ProfilEnregistre,
   } from '../../lib/correctionPiece';
   import CourbeCorrectionPiece from './CourbeCorrectionPiece.svelte';
@@ -45,6 +46,10 @@
 
   let presence = $state<PresenceCalibration>('inconnu');
   let installation = $state(false);
+  /** web#2719 : sans le greffon `equalizer` actif, « Appliquer » ne s'entend pas. */
+  let egaliseur = $state<PresenceEgaliseur>('inconnu');
+  let installationEq = $state(false);
+  const sansEgaliseur = $derived(egaliseurManque(egaliseur));
   /** Un 402 reçu : le serveur a tranché, quoi que dise la licence lue. */
   let refusPremium = $state(false);
   const sansPremium = $derived(refusPremium || ($licenseState.loaded && !$isPremium));
@@ -65,8 +70,8 @@
 
   $effect(() => {
     api.getInstalledPlugins()
-      .then((liste) => { presence = presenceCalibration(liste); })
-      .catch(() => { presence = 'inconnu'; });
+      .then((liste) => { presence = presenceCalibration(liste); egaliseur = presenceEgaliseur(liste); })
+      .catch(() => { presence = 'inconnu'; egaliseur = 'inconnu'; });
   });
 
   async function installer() {
@@ -83,6 +88,20 @@
     }
   }
 
+  async function installerEgaliseur() {
+    if (installationEq) return;
+    installationEq = true;
+    const ko = $t('v2.room.installFailed' as any);
+    try {
+      const r = await api.installPlugin(ID_GREFFON_EGALISEUR);
+      egaliseur = r?.restart_required === false ? 'actif' : 'a_redemarrer';
+    } catch {
+      notifications.error(ko);
+    } finally {
+      installationEq = false;
+    }
+  }
+
   function ouvrirFir() {
     v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: zoneId ?? undefined, bloc: 'fir' });
     activeView.set('settings');
@@ -95,7 +114,7 @@
   async function appliquer(enregistrer: () => Promise<ProfilEnregistre>, poserErreur: (e: Erreur | null) => void) {
     const zid = zoneId;
     if (zid == null || verrouille) return;
-    const question = $t('v2.room.applyConfirm' as any).replace('{zone}', zone?.name ?? '');
+    const question = $t((sansEgaliseur ? 'v2.room.eqApplyConfirm' : 'v2.room.applyConfirm') as any).replace('{zone}', zone?.name ?? '');
     if (!(await dialogs.confirm(question))) return;
     application = 'en_cours';
     poserErreur(null);
@@ -381,6 +400,17 @@
       </div>
     {:else if presence === 'a_redemarrer'}
       <div class="warn" data-room-motif="a_redemarrer">{$t('v2.room.pluginRestart' as any)}</div>
+    {/if}
+
+    {#if sansEgaliseur}
+      <div class="warn row-warn" data-room-motif="egaliseur" data-egaliseur={egaliseur}>
+        <span>{$t((egaliseur === 'a_installer' ? 'v2.room.eqMissing' : egaliseur === 'desactive' ? 'v2.room.eqInactive' : 'v2.room.eqRestart') as any)}</span>
+        {#if egaliseur === 'a_installer'}
+          <button class="v2-btn" data-room="installer-egaliseur" disabled={installationEq} onclick={installerEgaliseur}>
+            {installationEq ? $t('v2.room.installing' as any) : $t('v2.room.eqInstall' as any)}
+          </button>
+        {/if}
+      </div>
     {/if}
 
     <div class="onglets" role="tablist">
