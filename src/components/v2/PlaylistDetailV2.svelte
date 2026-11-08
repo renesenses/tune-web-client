@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * Fiche playlist du nouveau client (direction Levente). Ouvre par-dessus la
    * grille (la section hôte est `position:relative`). Gère deux natures :
@@ -25,6 +26,10 @@
   import { lireListe } from '../../lib/lectureEnMasse';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import {
+    BORNES_TAILLE, bornerTaille, lireVuePlaylist, ecrireVuePlaylist, lireTaille, ecrireTaille,
+    lireEnteteCompact, ecrireEnteteCompact, type VuePlaylist,
+  } from '../../lib/vuePlaylist';
   import { CLES_TRI_PISTES, LIBELLES_TRI_PISTES, trierPistes, type CleTriPistes, type SensTriPistes } from '../../lib/trierPistes';
   import { favoritePlaylistIds, favoriteStreamingKeys, streamingFavKey } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
@@ -32,6 +37,11 @@
   import { notifications } from '../../lib/stores/notifications';
   import { cibleEtiquettePlaylist, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { rangsApresDeplacement } from '../../lib/playlistService';
+  import RemplacerIndisponibleModale from './RemplacerIndisponibleModale.svelte';
+  import {
+    aDesIndisponibles, peutRemplacer, remplacer, reparer,
+    type CandidatRemplacement, type CiblePlaylist, type IssueRemplacement, type RapportReparation,
+  } from '../../lib/remplacementIndisponibles';
   import { corpsDeFileListe, estPisteLocale } from '../../lib/pisteFile';
   import { estIntrouvable } from '../../lib/pisteIntrouvable';
   import { gestesObjet, objetPlaylist } from '../../lib/gestesObjet';
@@ -184,6 +194,22 @@
   let sensPistes = $state<SensTriPistes>(lireChoix<SensTriPistes>('v2.playlist.pistes.sens', ['asc', 'desc'], 'asc'));
   $effect(() => { ecrireChoix('v2.playlist.pistes.tri', triPistes); });
   $effect(() => { ecrireChoix('v2.playlist.pistes.sens', sensPistes); });
+  /**
+   * web#2601 — vue en liste ou en pochettes, taille des vignettes de CHAQUE
+   * vue, en-tête compact. Retenus, mais écrits sur geste seulement (#1650).
+   */
+  let vue = $state<VuePlaylist>(lireVuePlaylist());
+  let tailleListe = $state(lireTaille('liste'));
+  let taillePochettes = $state(lireTaille('pochettes'));
+  let enteteCompact = $state(lireEnteteCompact());
+  const tailleCourante = $derived(vue === 'liste' ? tailleListe : taillePochettes);
+  function choisirVue(v: VuePlaylist) { vue = v; ecrireVuePlaylist(v); }
+  function regler(n: number) {
+    const v = ecrireTaille(vue, n);
+    if (vue === 'liste') tailleListe = v; else taillePochettes = bornerTaille('pochettes', v);
+  }
+  function basculerEntete() { enteteCompact = !enteteCompact; ecrireEnteteCompact(enteteCompact); }
+
   const pistesVues = $derived(trierPistes(tracks, triPistes, sensPistes));
   const ordreNaturel = $derived(triPistes === 'ordre' && sensPistes === 'asc');
   /** L'index d'une piste AFFICHÉE dans la liste réelle — les routes d'écriture
@@ -228,7 +254,7 @@
       const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid, true));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
-      notifications.error(errText(e) ?? $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     }
     melangeEnCours = false;
   }
@@ -337,6 +363,97 @@
     }
   }
 
+  /* ---------------- Titres indisponibles (tune-server-rust#8066) ---------------- */
+  /**
+   * « Remplacer l'indisponible » et « Réparer la playlist » : un album retiré
+   * puis republié par le service laisse des titres grisés. Le serveur cherche
+   * la nouvelle référence sur le même service ; un seul candidat sûr est pris
+   * directement, sinon la modale fait choisir. Seulement là où l'on peut
+   * écrire : playlist Tune, ou playlist du service dont on est propriétaire.
+   */
+  const ciblePlaylist = $derived<CiblePlaylist | null>(
+    item.kind === 'local'
+      ? item.pl.id != null ? { kind: 'local', playlistId: item.pl.id } : null
+      : { kind: 'streaming', service: item.service, playlistId: String(item.pl.source_id) },
+  );
+  const reparable = $derived(ciblePlaylist != null && aDesIndisponibles(tracks, editable));
+  let remplacement = $state<{ piste: Track; rang: number; candidats: CandidatRemplacement[] } | null>(null);
+  let rapport = $state<RapportReparation | null>(null);
+  let remplacementEnCours = $state(false);
+  let reparationEnCours = $state(false);
+
+  function traiterIssue(issue: IssueRemplacement, t: Track, rang: number) {
+    if (issue.etat === 'remplace') {
+      remplacement = null;
+      notifications.success($tr('v2.pl.replaceDone' as any).replace('{title}', t.title ?? ''));
+      load();
+      onChanged?.();
+    } else if (issue.etat === 'choix') {
+      remplacement = { piste: t, rang, candidats: issue.candidats };
+    } else if (issue.etat === 'aucun') {
+      notifications.info($tr('v2.pl.replaceNone' as any).replace('{title}', t.title ?? ''), 5000);
+    } else {
+      notifications.error(issue.message || $tr('v2.pl.replaceError' as any));
+    }
+  }
+
+  async function remplacerIndisponible(t: Track) {
+    const cible = ciblePlaylist;
+    if (!cible || remplacementEnCours) return;
+    const rang = rangReel(t);
+    remplacementEnCours = true;
+    try {
+      traiterIssue(await remplacer(cible, t, rang), t, rang);
+    } catch (e) {
+      notifierErreur($tr('v2.pl.replaceError' as any), e, { motifSeul: true });
+    } finally {
+      remplacementEnCours = false;
+    }
+  }
+
+  async function choisirRemplacant(c: CandidatRemplacement) {
+    const r = remplacement;
+    const cible = ciblePlaylist;
+    if (!r || !cible) return;
+    try {
+      traiterIssue(await remplacer(cible, r.piste, r.rang, c.source_id), r.piste, r.rang);
+    } catch (e) {
+      notifierErreur($tr('v2.pl.replaceError' as any), e, { motifSeul: true });
+    }
+  }
+
+  async function reparerPlaylist() {
+    const cible = ciblePlaylist;
+    if (!cible || reparationEnCours) return;
+    reparationEnCours = true;
+    try {
+      const r = await reparer(cible);
+      if ('refus' in r) {
+        notifications.error(r.refus || $tr('v2.pl.replaceNotEditable' as any).replace('{service}', item.kind === 'streaming' ? item.service : ''));
+      } else {
+        rapport = r;
+        if (r.replaced.length) { load(); onChanged?.(); }
+      }
+    } catch (e) {
+      notifierErreur($tr('v2.pl.replaceError' as any), e, { motifSeul: true });
+    } finally {
+      reparationEnCours = false;
+    }
+  }
+
+  /** Une ligne « à choisir » du rapport ouvre sa liste de candidats. Les
+   *  remplacements gardent les rangs : le rang du rapport désigne encore la
+   *  bonne ligne après rechargement. */
+  function choisirDepuisRapport(l: RapportReparation['to_choose'][number]) {
+    const rang = Number(item.kind === 'local' ? l.position : l.index);
+    const t = item.kind === 'local'
+      ? tracks.find((x) => (x as any).entry_id === l.entry_id)
+      : tracks[rang];
+    if (!t) return;
+    rapport = null;
+    remplacement = { piste: t, rang, candidats: l.candidates ?? [] };
+  }
+
   /** Un déplacement est en cours : on n'en accepte pas un second par-dessus. */
   let deplacement = $state(false);
 
@@ -374,7 +491,7 @@
       onChanged?.();
     } catch (e) {
       tracks = avant;
-      notifications.error(errText(e) ?? $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     } finally {
       deplacement = false;
     }
@@ -391,7 +508,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
   </button>
 
-  <div class="head">
+  <div class="head" class:compact={enteteCompact}>
     <div class="art" class:stream={!isLocal}>
       {#if isLocal}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h11M4 12h11M4 17h7M17 17V7l4 2"/></svg>
@@ -470,6 +587,15 @@
           </button>
         {/if}
 
+        <!-- tune-server-rust#8066 — « Réparer la playlist » : seulement s'il y a
+             des titres indisponibles là où l'on peut écrire. -->
+        {#if reparable}
+          <button class="ghost sm reparer" data-reparer-playlist onclick={reparerPlaylist} disabled={reparationEnCours}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>
+            {$tr((reparationEnCours ? 'v2.pl.repairRunning' : 'v2.pl.repair') as any)}
+          </button>
+        {/if}
+
         <!-- Une playlist de SERVICE ne s'édite pas, sauf celle dont
              l'utilisateur est propriétaire (#2098) : on peut alors en retirer
              des titres — ni renommer, ni supprimer, ni réordonner. -->
@@ -508,6 +634,23 @@
            manquait sur une playlist Qobuz en mode tableau — même règle que
            l'Historique (#3823). -->
       <div class="tri">
+        <div class="vuebar">
+          <div class="vues" role="group" aria-label={$tr('v2.pl.viewLabel' as any)}>
+            <button type="button" class="vbtn" class:on={vue === 'liste'} aria-pressed={vue === 'liste'}
+              data-vue="liste" onclick={() => choisirVue('liste')}>{$tr('v2.pl.viewList' as any)}</button>
+            <button type="button" class="vbtn" class:on={vue === 'pochettes'} aria-pressed={vue === 'pochettes'}
+              data-vue="pochettes" onclick={() => choisirVue('pochettes')}>{$tr('v2.pl.viewCovers' as any)}</button>
+          </div>
+          <label class="taille">
+            <span>{$tr('v2.pl.thumbSize' as any)}</span>
+            <input type="range" data-taille min={BORNES_TAILLE[vue].min} max={BORNES_TAILLE[vue].max}
+              step={BORNES_TAILLE[vue].pas} value={tailleCourante}
+              aria-label={$tr('v2.pl.thumbSize' as any)}
+              oninput={(e) => regler(Number((e.currentTarget as HTMLInputElement).value))} />
+          </label>
+          <button type="button" class="vbtn basc" class:on={enteteCompact} data-entete aria-pressed={enteteCompact}
+            onclick={basculerEntete}>{$tr((enteteCompact ? 'v2.pl.headerExpand' : 'v2.pl.headerCompact') as any)}</button>
+        </div>
         <label class="tricol">
           <span>{$tr('v2.fav.sortBy' as any)}</span>
           <select bind:value={triPistes} aria-label={$tr('v2.fav.sortBy' as any)}>
@@ -530,7 +673,26 @@
            le rang 3 d'un titre Bandcamp — `each_key_duplicate`. Même règle que
            `PlaylistManagerView`. `sourceEnTableau` : la liste est MIXTE, on
            dit d'où vient chaque ligne (#1113). -->
-      <ListePistesV2 pistes={pistesVues} pochetteEnTableau ecranColonnes="playlist" contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
+      {#if vue === 'pochettes'}
+        <div class="pgrille" data-pgrille style="--ptaille:{taillePochettes}px">
+          {#each pistesVues as p, i (i)}
+            <div class="pcarte">
+              <button type="button" class="pvig" onclick={() => playFrom(i)} disabled={estIntrouvable(p)}
+                title={p.title}>
+                <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={0}
+                  alt={p.title ?? ''} source={mixte ? null : p.source} />
+              </button>
+              <div class="pnom" title={p.title}>{p.title}</div>
+              {#if p.artist_name}<div class="part" title={p.artist_name}>{p.artist_name}</div>{/if}
+              {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && estIntrouvable(p)) || peutRemplacer(p, editable)}
+                <div class="pact">{@render suffixe(p, i)}</div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {:else}
+      <ListePistesV2 pistes={pistesVues} pochetteEnTableau tailleVignette={tailleListe} ecranColonnes="playlist" contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
+      {/if}
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
              compilé ici : ses styles le suivent.
@@ -547,6 +709,12 @@
           <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
             aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+          </button>
+        {/if}
+        {#if !edition && peutRemplacer(_t, editable)}
+          <button class="rm remplacer" data-remplacer-indisponible onclick={() => remplacerIndisponible(_t)} disabled={remplacementEnCours}
+            aria-label={$tr('v2.pl.replaceUnavailable' as any)} title={$tr('v2.pl.replaceUnavailable' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>
           </button>
         {/if}
         {#if edition && isLocal}
@@ -573,6 +741,13 @@
   </div>
 </div>
 
+{#if remplacement}
+  <RemplacerIndisponibleModale titreDisparu={remplacement.piste.title ?? ''} candidats={remplacement.candidats}
+    choisir={choisirRemplacant} onClose={() => (remplacement = null)} />
+{:else if rapport}
+  <RemplacerIndisponibleModale {rapport} choisirPour={choisirDepuisRapport} onClose={() => (rapport = null)} />
+{/if}
+
 <!-- Le PANNEAU partagé, chargé à la demande — celui des vignettes. -->
 {#if etiquettesOuvertes && cibleEtiquettes}
   {#await import('./EtiquettesPanneau.svelte') then m}
@@ -590,6 +765,16 @@
   .close svg{width:18px; height:18px}
 
   .head{display:flex; gap:30px; padding:6px 0 26px}
+  /* web#2601 — en-tête compact : la vignette tombe à 64 px, le titre et les
+     actions se resserrent, la description se tait ; 4 à 5 lignes de plus. */
+  .head.compact{gap:16px; padding:0 0 10px; align-items:center}
+  .head.compact .art{width:64px; height:64px; border-radius:6px}
+  .head.compact .art > svg{width:30px; height:30px}
+  .head.compact .meta{gap:4px; padding-top:0}
+  .head.compact .meta h1{font-size:24px}
+  .head.compact .desc{display:none}
+  .head.compact .actions{margin-top:2px}
+  .head.compact .play,.head.compact .ghost,.head.compact .ghost.sm{height:36px}
   .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg);
     display:grid; place-items:center; color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .art.stream{background:none; color:inherit; box-shadow:var(--v2-sh-lg)}
@@ -618,7 +803,24 @@
   .play svg,.ghost svg{width:16px; height:16px}
 
   .tracks{display:flex; flex-direction:column; gap:1px}
-  .tri{display:flex; justify-content:flex-end; padding:0 0 10px}
+  .tri{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:0 0 10px}
+  .vuebar{display:inline-flex; align-items:center; gap:14px; flex-wrap:wrap}
+  .vues{display:inline-flex; border:1px solid var(--v2-line2); border-radius:9px; overflow:hidden}
+  .vbtn{height:32px; padding:0 12px; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 12.5px var(--v2-sans)}
+  .vbtn.basc{border:1px solid var(--v2-line2); border-radius:9px}
+  .vbtn.on{background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
+  .taille{display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--v2-txt2)}
+  .taille input{width:140px; accent-color:var(--v2-acc2)}
+  .pgrille{display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--ptaille, 160px), 1fr)); gap:20px 16px; padding:6px 0 20px}
+  .pcarte{min-width:0; display:flex; flex-direction:column; gap:4px}
+  .pvig{display:block; width:100%; aspect-ratio:1; padding:0; border:0; border-radius:8px; overflow:hidden; cursor:pointer;
+    background:var(--v2-surface2); line-height:0}
+  .pvig:disabled{opacity:.5; cursor:default}
+  .pvig:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .pnom{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .part{font-size:12px; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .pact{display:flex; gap:6px}
   .tricol{display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--v2-txt2)}
   .tricol select{height:32px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
     color:var(--v2-txt); font:13px var(--v2-sans); padding:0 8px}

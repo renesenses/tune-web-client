@@ -5,7 +5,7 @@ import { get } from 'svelte/store';
 import { activeView, previousView, clearViewContext } from '../stores/navigation';
 
 const mocks = vi.hoisted(() => ({
-  getRadios: vi.fn(), updateRadio: vi.fn(), playRadio: vi.fn(),
+  rechercherRadiosParCriteres: vi.fn(), getRadios: vi.fn(), updateRadio: vi.fn(), playRadio: vi.fn(),
   importRadios: vi.fn(), exportRadiosUrl: vi.fn(() => '#'),
   getAnnuaireRadios: vi.fn(), ajouterDepuisAnnuaire: vi.fn(), jouerDepuisAnnuaire: vi.fn(),
 }));
@@ -14,6 +14,8 @@ vi.mock('../zoneRequise', () => ({ zoneRequise: () => 3 }));
 
 import RadiosV2 from '../../components/v2/RadiosV2.svelte';
 import { locale } from '../i18n';
+import { preferences } from '../stores/preferences';
+import { FILTRES_RADIO_VIDES } from '../radioFiltres';
 
 const fiche = (o: Record<string, unknown>) => ({
   external_id: 'S100001', name: 'OuiFM Blues & Rock', logo_url: null, country_code: 'FR',
@@ -41,9 +43,11 @@ beforeEach(() => {
   HTMLCanvasElement.prototype.getContext = (() => null) as any;
   for (const fn of Object.values(mocks)) fn.mockReset();
   mocks.getRadios.mockResolvedValue([]);
+  mocks.rechercherRadiosParCriteres.mockResolvedValue({ items: [] });
   mocks.exportRadiosUrl.mockReturnValue('#');
   mocks.getAnnuaireRadios.mockResolvedValue(ANNUAIRE);
   locale.set('fr');
+  preferences.update(p => ({ ...p, radioFiltres: { ...FILTRES_RADIO_VIDES } }));
   clearViewContext('radios');
   activeView.set('radios');
   mocks.jouerDepuisAnnuaire.mockResolvedValue({ output_sent: true });
@@ -109,5 +113,54 @@ describe('web#2473 / serveur#7052 — contexte de Radio au retour', () => {
     clearViewContext('radios');
     await monterRadios();
     expect(onglets()[0].getAttribute('aria-selected')).toBe('true');
+  });
+});
+
+
+describe('#2630 — retrouver recherche, filtres et défilement de l’Annuaire', () => {
+  it('restaure recherche, pays, genre et critères avancés après Lecture en cours', async () => {
+    mocks.getAnnuaireRadios.mockImplementation(async ({ country, genre }) => country && genre
+      ? { ...ANNUAIRE, total: 0, count: 0, items: [], countries: [{ code: 'US', count: 1 }], genres: [] }
+      : { ...ANNUAIRE, countries: [{ code: 'GB', count: 3 }], genres: [{ key: 'jazz', count: 3 }] });
+    preferences.update(p => ({ ...p, radioFiltres: { ...FILTRES_RADIO_VIDES, codec: 'aac', bitrateMin: 192 } }));
+    await monterRadios(); onglets()[1].click(); await respirer();
+    const recherche = hote.querySelector<HTMLInputElement>('.annuaire .v2-rech input')!;
+    recherche.value = 'BBC'; recherche.dispatchEvent(new Event('input', { bubbles: true }));
+    const pays = hote.querySelector<HTMLSelectElement>('.annuaire select.choix')!;
+    pays.value = 'GB'; pays.dispatchEvent(new Event('change', { bubbles: true }));
+    const jazz = [...hote.querySelectorAll<HTMLButtonElement>('.annuaire button')].find(b => /Jazz/.test(b.textContent ?? ''))!;
+    expect(jazz).toBeTruthy(); jazz.click(); flushSync();
+    await vi.waitFor(() => expect(mocks.getAnnuaireRadios).toHaveBeenLastCalledWith(expect.objectContaining({ q: 'BBC', country: 'GB', genre: 'jazz' })));
+    mocks.getAnnuaireRadios.mockClear();
+    await quitterEtRevenir();
+    expect(hote.querySelector<HTMLInputElement>('.annuaire .v2-rech input')?.value, 'la recherche a été perdue au retour').toBe('BBC');
+    await vi.waitFor(() => expect(mocks.getAnnuaireRadios).toHaveBeenLastCalledWith(expect.objectContaining({
+      q: 'BBC', country: 'GB', genre: 'jazz', criteres: { codec: 'aac', quality_min: '192' },
+    })));
+    await vi.waitFor(() => expect(hote.querySelector<HTMLSelectElement>('.annuaire select.choix')?.value).toBe('GB'));
+    expect(hote.querySelector('.annuaire .chip.active')?.textContent).toMatch(/Jazz/);
+    expect(hote.querySelectorAll('.annuaire .fiche')).toHaveLength(0);
+  });
+
+  it('recharge les pages visibles avant de restaurer le défilement, même si le serveur borne les pages', async () => {
+    const stations = Array.from({ length: 260 }, (_, i) => fiche({ external_id: `S${i}`, name: `Station ${i}` }));
+    mocks.getAnnuaireRadios.mockImplementation(async ({ offset = 0, limit = 120 }) => {
+      const items = stations.slice(offset, offset + Math.min(limit, 120));
+      return { ...ANNUAIRE, total: 260, stations: 260, offset, limit: 120, count: items.length, items };
+    });
+    await monterRadios(); onglets()[1].click(); await respirer();
+    expect(hote.querySelectorAll('.annuaire .fiche')).toHaveLength(120);
+    const plus = hote.querySelector<HTMLButtonElement>('.annuaire .suite button')!;
+    expect(plus, 'bouton de page suivante absent').toBeTruthy(); plus.click(); await respirer();
+    expect(hote.querySelectorAll('.annuaire .fiche')).toHaveLength(240);
+    // jsdom ne mesure pas le rendu : on vérifie la valeur du conteneur et
+    // l'ordre du rechargement, sans revendiquer une mesure géométrique.
+    (hote.querySelector('.scroll') as HTMLElement).scrollTop = 1850;
+    hote.querySelector('.scroll')!.dispatchEvent(new Event('scroll'));
+    mocks.getAnnuaireRadios.mockClear();
+    await quitterEtRevenir();
+    await vi.waitFor(() => expect(hote.querySelectorAll('.annuaire .fiche')).toHaveLength(240));
+    expect((hote.querySelector('.scroll') as HTMLElement).scrollTop, 'le défilement doit revenir après les résultats').toBe(1850);
+    expect(mocks.getAnnuaireRadios).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 120, limit: 120 }));
   });
 });

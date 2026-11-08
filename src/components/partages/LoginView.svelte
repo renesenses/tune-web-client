@@ -45,7 +45,7 @@
   async function handleLogin() {
     error = '';
     if (!loginEmail.trim() || !loginPassword.trim()) {
-      error = 'Veuillez remplir tous les champs.';
+      error = $t('login.fillAll' as any);
       return;
     }
     loading = true;
@@ -57,7 +57,7 @@
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
-        error = body.detail || body.message || `Erreur ${resp.status}`;
+        error = body.detail || body.message || $t('login.errorStatus' as any).replace('{status}', String(resp.status));
         loading = false;
         return;
       }
@@ -66,10 +66,10 @@
         setToken(data.token || data.access_token);
         if (!surCouche) activeView.set('home');
       } else {
-        error = 'Reponse inattendue du serveur.';
+        error = $t('login.unexpectedResponse' as any);
       }
     } catch (e: any) {
-      error = e?.message || 'Erreur reseau.';
+      error = e?.message || $t('login.networkError' as any);
     }
     loading = false;
   }
@@ -77,7 +77,7 @@
   async function handleRegister() {
     error = '';
     if (!regUsername.trim() || !regEmail.trim() || !regPassword.trim()) {
-      error = 'Veuillez remplir tous les champs.';
+      error = $t('login.fillAll' as any);
       return;
     }
     loading = true;
@@ -93,7 +93,7 @@
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
-        error = body.detail || body.message || `Erreur ${resp.status}`;
+        error = body.detail || body.message || $t('login.errorStatus' as any).replace('{status}', String(resp.status));
         loading = false;
         return;
       }
@@ -108,7 +108,7 @@
         error = '';
       }
     } catch (e: any) {
-      error = e?.message || 'Erreur reseau.';
+      error = e?.message || $t('login.networkError' as any);
     }
     loading = false;
   }

@@ -51,7 +51,7 @@ describe('réordonner une playlist en v2', () => {
     // Le défaut de l'écran hérité : `console.error` puis rechargement muet.
     // L'utilisateur voit sa piste reprendre sa place sans explication.
     const corps = ecran.slice(ecran.indexOf('async function deplacer'), ecran.indexOf('</script>'));
-    expect(corps, 'le déplacement échoue en silence').toMatch(/notifications\.error\s*\(/);
+    expect(corps, 'le déplacement échoue en silence').toMatch(/(?:notifications\.error|notifierErreur)\s*\(/);
     expect(corps, 'console.error est le défaut qu’on corrige').not.toMatch(/console\.error\s*\(/);
   });
 

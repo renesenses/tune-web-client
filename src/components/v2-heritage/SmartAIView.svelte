@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
@@ -186,7 +187,7 @@
         );
       }
     } catch (e: any) {
-      notifications.error(e.message || $t('smartai.saveError'));
+      notifierErreur($t('smartai.saveError'), e, { motifSeul: true });
     }
   }
 

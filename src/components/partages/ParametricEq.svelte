@@ -40,6 +40,18 @@
   let selected = $state<number | null>(null);
   let dragging = $state(false);
 
+  // rc11 — le graphe est FIGÉ par défaut : survoler, faire défiler la page
+  // avec la molette ou cliquer à côté d'un point ne change plus rien. Le
+  // bouton « Modifier » (comme pour les widgets de l'accueil) ouvre l'édition
+  // à la souris ; « Terminé » la referme. Les champs numériques, eux, restent
+  // éditables : une saisie au clavier n'est jamais accidentelle.
+  let edition = $state(false);
+
+  /** Canal d'une bande pour l'affichage : 'g', 'd', ou 'tous'. */
+  function canalAffiche(b: EqBand): 'g' | 'd' | 'tous' {
+    return b.channel === 0 ? 'g' : b.channel === 1 ? 'd' : 'tous';
+  }
+
   function xOf(f: number): number {
     return (Math.log10(f / F_MIN) / Math.log10(F_MAX / F_MIN)) * W;
   }
@@ -166,12 +178,13 @@
 
   function onPointDown(i: number, e: PointerEvent) {
     selected = i;
+    if (!edition) return;
     dragging = true;
     (e.target as Element).setPointerCapture(e.pointerId);
   }
 
   function onPointMove(e: PointerEvent) {
-    if (!dragging || selected === null) return;
+    if (!edition || !dragging || selected === null) return;
     const { x, y } = svgPoint(e);
     const b = bands[selected];
     b.freq = Math.round(Math.max(F_MIN, Math.min(F_MAX, fOf(x))));
@@ -184,6 +197,8 @@
   }
 
   function onWheel(i: number, e: WheelEvent) {
+    // Figé : la molette fait défiler la page, comme partout ailleurs.
+    if (!edition) return;
     e.preventDefault();
     const b = bands[i];
     const q = b.q && b.q > 0 ? b.q : 1.41;
@@ -194,6 +209,7 @@
   }
 
   function onPlotDblClick(e: MouseEvent) {
+    if (!edition) return;
     const r = svgEl.getBoundingClientRect();
     addBandAt(((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H);
   }
@@ -291,7 +307,7 @@
   }
 </script>
 
-<div class="peq" class:disabled={!enabled}>
+<div class="peq" class:disabled={!enabled} class:edition>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <svg
     bind:this={svgEl}
@@ -319,18 +335,24 @@
       diffèrent réellement — et il distingue les deux courbes même pour qui ne
       sépare pas les couleurs.
     -->
-    <path d={cheminDroite} class="response response-droite" />
-    <path d={cheminGauche} class="response response-gauche" />
+    {#if asymetrique}
+      <path d={cheminDroite} class="response response-droite" />
+      <path d={cheminGauche} class="response response-gauche" />
+    {:else}
+      <!-- Symétrique : une seule courbe, celle des deux canaux. -->
+      <path d={cheminGauche} class="response response-tous" />
+    {/if}
     <!-- Points de bande -->
     {#each bands as b, i}
       <circle
         cx={xOf(b.freq)}
         cy={yOf(Math.max(MIN_GAIN, Math.min(MAX_GAIN, b.gain)))}
         r={selected === i ? 8 : 6}
-        class="band-dot"
+        class="band-dot canal-{canalAffiche(b)}"
         class:selected={selected === i}
         role="slider"
         aria-valuenow={b.gain}
+        aria-readonly={!edition}
         tabindex="0"
         onpointerdown={(e) => onPointDown(i, e)}
         onwheel={(e) => onWheel(i, e)}
@@ -339,12 +361,13 @@
   </svg>
 
   <!--
-    La légende n'apparaît QUE si les canaux diffèrent. Tant que tout est
-    symétrique, les deux courbes se superposent : nommer « gauche » et
-    « droite » sous un trait unique ne ferait qu'égarer.
+    Légende des couleurs : une par canal (gauche, droite, les deux). Les points
+    portent la couleur de LEUR canal ; la droite garde son tireté, pour qui ne
+    distingue pas les couleurs.
   -->
-  {#if asymetrique}
+  {#if bands.length}
     <div class="peq-legende">
+      <span><i class="tous"></i>{$t('eq.peqChannelBoth' as any)}</span>
       <span><i class="l"></i>{$t('eq.peqChannelLeft' as any)}</span>
       <span><i class="r"></i>{$t('eq.peqChannelRight' as any)}</span>
     </div>
@@ -352,7 +375,11 @@
 
   <div class="peq-toolbar">
     <span class="peq-count">{bands.length}/{maxBands}</span>
-    <span class="peq-hint">{$t('eq.peqHint' as any)}</span>
+    <span class="peq-hint">{edition ? $t('eq.peqHint' as any) : $t('eq.peqLockedHint' as any)}</span>
+    <button class="peq-edit" class:on={edition} aria-pressed={edition}
+      title={$t('eq.peqEditTip' as any)}
+      onclick={() => { edition = !edition; dragging = false; }}
+    >{edition ? $t('eq.peqDone' as any) : $t('eq.peqEdit' as any)}</button>
     <button
       class="peq-add"
       disabled={bands.length >= maxBands}
@@ -438,20 +465,32 @@
   .grid-zero { stroke: rgba(255, 255, 255, 0.18); stroke-width: 1; }
   .grid-label { fill: rgba(255, 255, 255, 0.35); font-size: 9px; }
   .response { fill: none; stroke-width: 2; }
-  .response-gauche { stroke: var(--tune-accent, #6366f1); }
-  .response-droite { stroke: var(--tune-accent-2, #f59e0b); stroke-dasharray: 6 4; }
+  /* Couleurs par canal : jetons du thème (tune-v2.css), avec un repli
+     sombre si le composant est monté hors de la coquille v2. */
+  .response-tous { stroke: var(--v2-canal-tous, #f2c14e); }
+  .response-gauche { stroke: var(--v2-canal-g, #5aa9ff); }
+  .response-droite { stroke: var(--v2-canal-d, #ff6b8b); stroke-dasharray: 6 4; }
 
   .peq-legende { display: flex; gap: 1rem; align-items: center; font-size: 0.8rem; opacity: 0.85; }
   .peq-legende span { display: inline-flex; gap: 0.4rem; align-items: center; }
   .peq-legende i { width: 1.1rem; height: 0; border-top-width: 2px; border-top-style: solid; }
-  .peq-legende .l { border-color: var(--tune-accent, #6366f1); }
-  .peq-legende .r { border-color: var(--tune-accent-2, #f59e0b); border-top-style: dashed; }
-  .band-dot { fill: var(--tune-accent, #6366f1); opacity: 0.85; cursor: grab; }
-  .band-dot.selected { fill: #f59e0b; opacity: 1; }
+  .peq-legende .tous { border-color: var(--v2-canal-tous, #f2c14e); }
+  .peq-legende .l { border-color: var(--v2-canal-g, #5aa9ff); }
+  .peq-legende .r { border-color: var(--v2-canal-d, #ff6b8b); border-top-style: dashed; }
+  .band-dot { opacity: 0.85; cursor: pointer; }
+  .band-dot.canal-tous { fill: var(--v2-canal-tous, #f2c14e); }
+  .band-dot.canal-g { fill: var(--v2-canal-g, #5aa9ff); }
+  .band-dot.canal-d { fill: var(--v2-canal-d, #ff6b8b); }
+  .peq.edition .band-dot { cursor: grab; }
+  /* Sélection : un anneau de la couleur du texte, pas une 4e couleur qui se
+     confondrait avec un canal. */
+  .band-dot.selected { opacity: 1; stroke: var(--v2-txt, #e5e7eb); stroke-width: 2.5; }
+  .peq.edition .peq-plot { border-color: var(--v2-acc1, #00d4aa); }
+  .peq-edit.on { border-color: var(--v2-acc1, #00d4aa); color: var(--v2-acc1, #00d4aa); }
   .peq-toolbar { display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; }
   .peq-count { color: var(--tune-text-dim, #9ca3af); }
   .peq-hint { color: var(--tune-text-dim, #9ca3af); flex: 1; }
-  .peq-add, .peq-del {
+  .peq-add, .peq-del, .peq-edit {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: var(--tune-text, #e5e7eb);

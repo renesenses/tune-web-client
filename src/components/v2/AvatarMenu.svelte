@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Menu avatar (coin haut-droit) du nouveau client.
@@ -122,7 +123,7 @@
       notifications.success(get(t)('settings.cloudDisconnected'));
       close();
     } catch (e: any) {
-      notifications.error(e?.message ?? get(t)('common.error'));
+      notifierErreur(get(t)('common.error'), e, { motifSeul: true });
     }
     signingOut = false;
   }

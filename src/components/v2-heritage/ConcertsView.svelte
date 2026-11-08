@@ -6,7 +6,6 @@
   import { refusConcerts, type RefusConcerts } from '../../lib/concertsRefus';
   import { concertsCharge, concertsAttendRedemarrage } from '../../lib/stores/concerts';
   import { activeView } from '../../lib/stores/navigation';
-  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { preferences } from '../../lib/stores/preferences';
   import { grouperConcerts, normaliserTriConcerts, type TriConcerts } from '../../lib/concertsTri';
   import { PAYS_PAR_DEFAUT, codeDePays, optionsDePays } from '../../lib/concertsPays';
@@ -337,12 +336,6 @@
     }
   }
 
-  /** Réglages ▸ Système ▸ Cloud, où vit le bouton de connexion du compte. */
-  function ouvrirCompte() {
-    v2SettingsTarget.set({ tab: 'system', section: 'cloud' });
-    activeView.set('settings');
-  }
-
   function dateLisible(iso: string): string {
     const d = new Date(iso + 'T00:00:00');
     return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
@@ -369,18 +362,11 @@
       {/if}
     </div>
   {:else if refus}
-    <!-- Décision du 25/09/2026 : pas de version réduite. Un refus clair, et
-         aucune liste — ni vide, ni partielle. -->
+    <!-- tune-server-rust#7865 : les concerts ne sont plus Premium. Seul un
+         serveur d'avant (rc10) refuse encore ; on lui dit de se mettre à
+         jour, sans renvoyer vers l'offre. Aucune liste, ni vide ni partielle. -->
     <div class="cc-encart cc-refus" data-refus={refus}>
-      <p>{$t('concerts.premiumRequis')}</p>
-      {#if refus === 'compte'}
-        <p class="cc-note">{$t('concerts.compteNonRelie')}</p>
-        <button class="cc-principal" onclick={ouvrirCompte}>{$t('concerts.relierCompte')}</button>
-      {:else}
-        <a class="cc-principal" href="https://mozaiklabs.fr/pricing" target="_blank" rel="noopener">
-          {$t('concerts.decouvrirPremium')}
-        </a>
-      {/if}
+      <p>{$t('concerts.serveurAMettreAJour')}</p>
     </div>
   {:else}
     {#if serveurTropAncien}

@@ -76,3 +76,105 @@ export function decoderPointsTerre(brut: string): [number, number][] {
   }
   return pts;
 }
+
+/**
+ * Décode les frontières versionnées (« lat×10,lon×10,… » séparées par « ; »)
+ * en polylignes [lat, lon, lat, lon, …] en radians. Une polyligne de moins de
+ * deux points valides est écartée.
+ */
+export function decoderFrontieres(brut: string): Float32Array[] {
+  const polys: Float32Array[] = [];
+  for (const morceau of brut.split(';')) {
+    const v = morceau.split(',').map(Number);
+    const pts: number[] = [];
+    for (let i = 0; i + 1 < v.length; i += 2) {
+      if (Number.isFinite(v[i]) && Number.isFinite(v[i + 1])) pts.push((v[i] / 10) * DEG, (v[i + 1] / 10) * DEG);
+    }
+    if (pts.length >= 4) polys.push(Float32Array.from(pts));
+  }
+  return polys;
+}
+
+/**
+ * Parcourt une polyligne projetée en orthographique et n'en rend que la part
+ * VISIBLE : `debut(x, y)` ouvre un tronçon, `suite(x, y)` le prolonge. Un
+ * segment qui passe derrière le globe est coupé au limbe : le point où
+ * `z = 0` est cherché par interpolation (la rotation est linéaire, donc `z`
+ * aussi le long du segment), puis posé sur le cercle de rayon R.
+ * Aucune allocation de tableau : le moteur l'appelle à chaque image.
+ */
+export function parcourirPolyligne(
+  poly: ArrayLike<number>, R: number, cx: number, cy: number, o: Orientation,
+  debut: (x: number, y: number) => void, suite: (x: number, y: number) => void,
+): void {
+  const cl0 = Math.cos(o.tilt); const sl0 = Math.sin(o.tilt);
+  let px = 0; let py = 0; let pz = 0; let pv = false;
+  for (let i = 0; i + 1 < poly.length; i += 2) {
+    const lat = poly[i]; const lon = poly[i + 1];
+    const cl = Math.cos(lat);
+    const x = cl * Math.sin(lon - o.lon0);
+    const y = Math.sin(lat);
+    const zz = cl * Math.cos(lon - o.lon0);
+    const vy = -(y * cl0 - zz * sl0);
+    const z = y * sl0 + zz * cl0;
+    const v = z > 0;
+    if (i > 0 && v !== pv) {
+      // Le point du limbe, entre le précédent et celui-ci.
+      const t = pz / (pz - z);
+      let lx = px + (x - px) * t; let ly = py + (vy - py) * t;
+      const n = Math.hypot(lx, ly) || 1;
+      lx /= n; ly /= n;
+      if (pv) suite(cx + lx * R, cy + ly * R);
+      else { debut(cx + lx * R, cy + ly * R); suite(cx + x * R, cy + vy * R); }
+    } else if (v) {
+      if (i === 0) debut(cx + x * R, cy + vy * R);
+      else suite(cx + x * R, cy + vy * R);
+    }
+    px = x; py = vy; pz = z; pv = v;
+  }
+}
+
+/** Les tronçons visibles d'une polyligne, en px [x0, y0, x1, y1, …] (bancs, et ce qui veut des tableaux). */
+export function decouperPolyligne(poly: ArrayLike<number>, R: number, cx: number, cy: number, o: Orientation): number[][] {
+  const troncons: number[][] = [];
+  parcourirPolyligne(poly, R, cx, cy, o,
+    (x, y) => { troncons.push([x, y]); },
+    (x, y) => { troncons[troncons.length - 1].push(x, y); });
+  return troncons;
+}
+
+const VECTEURS_TERRE = new WeakMap<object, Float64Array>();
+
+/** Les vecteurs unitaires des points de terre, calculés une fois par tableau (le survol en a besoin à chaque mouvement). */
+function vecteursTerre(terre: readonly (readonly [number, number])[]): Float64Array {
+  let v = VECTEURS_TERRE.get(terre);
+  if (v && v.length === terre.length * 3) return v;
+  v = new Float64Array(terre.length * 3);
+  for (let i = 0; i < terre.length; i++) {
+    const [la, lo] = terre[i];
+    const cl = Math.cos(la);
+    v[i * 3] = cl * Math.cos(lo); v[i * 3 + 1] = cl * Math.sin(lo); v[i * 3 + 2] = Math.sin(la);
+  }
+  VECTEURS_TERRE.set(terre, v);
+  return v;
+}
+
+/**
+ * Le pays sous un lieu (degrés) : le code du point de terre le plus proche
+ * dans un rayon `rayonDeg` (la grille est au pas de 1,6°), ou `null` en mer,
+ * trop loin de toute terre, ou sur un point sans pays (`--`).
+ * `terre` est en radians, `codes` donne deux lettres par point.
+ */
+export function paysSous(lieu: { lat: number; lon: number }, terre: readonly (readonly [number, number])[], codes: string, rayonDeg = 1.2): string | null {
+  const [ax, ay, az] = vecteur(lieu.lat * DEG, lieu.lon * DEG);
+  const seuil = Math.cos(rayonDeg * DEG);
+  const v = vecteursTerre(terre);
+  let meilleur = -1; let proche = seuil;
+  for (let i = 0, j = 0; i < terre.length; i++, j += 3) {
+    const p = ax * v[j] + ay * v[j + 1] + az * v[j + 2];
+    if (p >= proche) { proche = p; meilleur = i; }
+  }
+  if (meilleur < 0) return null;
+  const code = codes.slice(meilleur * 2, meilleur * 2 + 2);
+  return /^[A-Z]{2}$/.test(code) ? code : null;
+}

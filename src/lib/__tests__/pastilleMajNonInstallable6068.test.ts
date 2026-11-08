@@ -53,7 +53,9 @@ describe('normalisation : installable et install_hint', () => {
 
 describe('le magasin de la pastille lit `installable`', () => {
   it('installable: false du serveur arrive dans le magasin', async () => {
-    await sonder({ current: '1.0.0-dev', latest: '1.0.0-rc3', update_available: true,
+    // 01/11/2026 — plus `1.0.0-dev` : une version de développement ne se voit
+    // plus proposer une rc de la même base (`versions.majProposee`).
+    await sonder({ current: '1.0.0-rc2', latest: '1.0.0-rc3', update_available: true,
       installable: false, install_hint: HINT });
     await vi.waitFor(() => expect(get(updateInstallable)).toBe(false));
     expect(get(updateInstallHint)).toBe(HINT);

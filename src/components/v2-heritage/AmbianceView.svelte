@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount } from 'svelte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
@@ -57,7 +58,7 @@
         $t('v2.ambiance.analysisOn' as any),
       );
     } catch (e: any) {
-      notifications.error(e?.message || "Impossible d'activer l'analyse acoustique");
+      notifierErreur($t('v2.ambiance.acousticEnableError' as any), e, { motifSeul: true });
     }
     enabling = false;
   }
@@ -173,7 +174,7 @@
       namingOpen = false;
       notifications.success($t('ambiance.saved'));
     } catch (e: any) {
-      notifications.error(e?.message || $t('ambiance.saveError'));
+      notifierErreur($t('ambiance.saveError'), e, { motifSeul: true });
     }
     savingAmbiance = false;
   }
@@ -199,7 +200,7 @@
       const updated = await api.updateAmbiance(id, { name });
       saved = saved.map((a) => (a.id === id ? updated : a));
     } catch (e: any) {
-      notifications.error(e?.message || $t('ambiance.renameError'));
+      notifierErreur($t('ambiance.renameError'), e, { motifSeul: true });
     }
   }
 
@@ -208,7 +209,7 @@
       await api.deleteAmbiance(a.id);
       saved = saved.filter((x) => x.id !== a.id);
     } catch (e: any) {
-      notifications.error(e?.message || $t('ambiance.deleteError'));
+      notifierErreur($t('ambiance.deleteError'), e, { motifSeul: true });
     }
   }
 
@@ -264,7 +265,7 @@
     }
     try {
       await playAndSync(zone.id, { track_ids: ids });
-      notifications.success(`Lecture de ${ids.length} titres`);
+      notifications.success($t('v2.ambiance.playingCount' as any).replace('{count}', String(ids.length)));
     } catch {
       notifications.error($t('library.playbackError'));
     }

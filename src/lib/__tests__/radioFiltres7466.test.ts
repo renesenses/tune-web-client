@@ -14,9 +14,9 @@ describe('critères de la barre « Plus de filtres »', () => {
   });
 
   it('chaque critère actif donne son paramètre serveur, et lui seul', () => {
-    const f = { codec: 'flac', bitrateMin: 320, lossless: true, hires: true, metadataPlus: true, favoris: true };
+    const f = { codec: 'flac', qualiteMin: '320', lossless: true, hires: true, metadataPlus: true, favoris: true };
     expect(parametresDesFiltres(f)).toEqual({
-      codec: 'flac', bitrate_min: '320', lossless: 'true', hires: 'true', metadata_plus: 'true', favorites_only: 'true',
+      codec: 'flac', quality_min: '320', lossless: 'true', hires: 'true', metadata_plus: 'true', favorites_only: 'true',
     });
     expect(nombreDeFiltresActifs(f)).toBe(6);
     // Contre-épreuve : un critère à `false` n'envoie rien.

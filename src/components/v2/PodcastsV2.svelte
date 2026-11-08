@@ -406,6 +406,10 @@
     podcast_sans_flux_public: 'v2.pod.noPublicFeed',
     podcast_introuvable: 'v2.pod.appleNotFound',
     podcast_resolution_reseau: 'v2.pod.appleUnreachable',
+    // tune-server-rust#7819 — l'ajout par adresse RSS.
+    podcast_adresse_invalide: 'v2.pod.rssInvalid',
+    podcast_flux_injoignable: 'v2.pod.rssUnreachable',
+    podcast_pas_un_flux: 'v2.pod.rssNotAFeed',
   };
   function cleEchecResolution(e: any): string | null {
     const code = e?.code;
@@ -652,6 +656,41 @@
     }
   }
 
+  /**
+   * tune-server-rust#7819 — ajouter un podcast par l'adresse de son flux RSS.
+   * Le serveur lit le flux et remplit la fiche ; l'écran ne fait que lui
+   * passer l'adresse, dire le refus à côté du champ, puis ouvrir le podcast.
+   */
+  let ajoutOuvert = $state(false);
+  let adresseRss = $state('');
+  let ajoutEnCours = $state(false);
+  let ajoutErreur = $state<string | null>(null);
+
+  async function ajouterParAdresse() {
+    const adresse = adresseRss.trim();
+    if (!adresse || ajoutEnCours) return;
+    ajoutEnCours = true;
+    ajoutErreur = null;
+    try {
+      const ajoute = await api.ajouterPodcastParAdresse(adresse);
+      const flux = feedOf(ajoute);
+      if (ajoute?.id != null && flux) {
+        // Un flux déjà suivi revient avec son identifiant : jamais deux fois.
+        subs = subs.some((s) => feedOf(s) === flux) ? subs : [...subs, ajoute];
+      } else {
+        subs = (await api.getPodcastSubscriptions()) ?? [];
+      }
+      adresseRss = '';
+      ajoutOuvert = false;
+      if (showDiscover) tab = 'subs';
+      openPodcast(subs.find((s) => feedOf(s) === flux) ?? ajoute);
+    } catch (e) {
+      ajoutErreur = $t((cleEchecResolution(e) ?? 'v2.pod.subscribeFailed') as any);
+    } finally {
+      ajoutEnCours = false;
+    }
+  }
+
   function epDate(ep: any): string {
     const d = ep?.published_at ?? ep?.pub_date ?? ep?.published;
     if (!d) return '';
@@ -709,6 +748,8 @@
       Elle ne paraît plus que là où elle agit, et son invite dit ce qu'elle
       fait plutôt que de promettre une recherche.
     -->
+    <button class="ajout-rss" class:on={ajoutOuvert} aria-expanded={ajoutOuvert}
+      onclick={() => { ajoutOuvert = !ajoutOuvert; ajoutErreur = null; }}>{$t('v2.pod.addRss' as any)}</button>
     {#if showDiscover}
       <nav class="tabs">
         <button class:on={tab === 'discover'} onclick={() => (tab = 'discover')}>{$t('v2.pod.tabDiscover' as any)}</button>
@@ -719,6 +760,17 @@
     {/if}
     </div>
   </header>
+
+  {#if ajoutOuvert}
+    <form class="rech ajout-rss-form" onsubmit={(e) => { e.preventDefault(); void ajouterParAdresse(); }}>
+      <input bind:value={adresseRss} inputmode="url" autocomplete="off" spellcheck="false"
+        placeholder={$t('v2.pod.addRssPlaceholder' as any)} aria-label={$t('v2.pod.addRssPlaceholder' as any)} />
+      <button type="submit" disabled={ajoutEnCours || !adresseRss.trim()}>
+        {ajoutEnCours ? $t('v2.pod.addRssAdding' as any) : $t('v2.pod.addRssAction' as any)}
+      </button>
+    </form>
+    {#if ajoutErreur}<div class="err-inline ajout-rss-err" role="alert">{ajoutErreur}</div>{/if}
+  {/if}
 
   {#if error}<div class="err" role="status">{error}<button onclick={() => (error = null)} aria-label={$t('v2.common.close' as any)}>×</button></div><DetailsServeur detail={errorDetail} />{/if}
 
@@ -1035,6 +1087,11 @@
   .rech button{border:0; border-radius:10px; background:var(--v2-acc1); color:var(--v2-on-acc);
     font:600 13px var(--v2-sans); padding:9px 16px; cursor:pointer}
   .rech button:disabled{opacity:.5; cursor:default}
+  .ajout-rss{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans); padding:5px 12px; cursor:pointer}
+  .ajout-rss:hover, .ajout-rss.on{color:var(--v2-txt)}
+  .ajout-rss-form{margin:0 30px 8px}
+  .ajout-rss-err{margin:0 30px 12px; font-size:13px}
 
   .v2-pod{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg);
     color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}

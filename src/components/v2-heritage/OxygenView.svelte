@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { pochetteMajoritaire } from '../../lib/pochetteMajoritaire';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount } from 'svelte';
@@ -77,11 +78,11 @@
   let cards = $state<AlbumDetailed[]>([]);
   let cardsTotal = $state(0);
   let cardsLoading = $state(false);
-  async function loadCards() {
+  async function loadCards(ajouter = false) {
     cardsLoading = true;
     try {
-      const res = await getAlbumsDetailed(facetParam(facetSels), 500, 0);
-      cards = res.items ?? [];
+      const res = await getAlbumsDetailed(facetParam(facetSels), 500, ajouter ? cards.length : 0);
+      cards = ajouter ? [...cards, ...(res.items ?? [])] : (res.items ?? []);
       cardsTotal = res.total ?? 0;
     } catch {
       cards = [];
@@ -311,9 +312,13 @@
   function openAlbumById(id: number) { albumFilter = id; setMode('album'); }
 
   async function select(t: Track) {
-    selected = t; ext = {};
     inspectorCollapsed = false;
     if (isNarrow) mobileInspector = true;
+    await remplirPanneau(t);
+  }
+  /** Le panneau de droite sur la piste `t`, sans l'ouvrir ni le replier. */
+  async function remplirPanneau(t: Track) {
+    selected = t; ext = {};
     if (t.id == null) return;
     extLoading = true;
     try { ext = await getTrackExtendedMetadata(t.id); } catch { ext = {}; } finally { extLoading = false; }
@@ -383,19 +388,19 @@
       const r = await shuffleAll(zone.id, { folder: dossierOuvert });
       notifications.success($t('library.shufflePlaying').replace('{count}', String(r.track_count)));
     } catch (e) {
-      notifications.error($t('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e)));
+      notifierErreur($t('library.playbackError'), e);
     }
   }
   async function playTracks(ids: number[]) {
     if (!zone?.id) { notifications.error($t('library.noZoneSelected')); return; }
     if (!ids.length) return;
     try { await playAndSync(zone.id, { track_ids: ids }); }
-    catch (e) { notifications.error($t('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e))); }
+    catch (e) { notifierErreur($t('library.playbackError'), e); }
   }
   async function playBody(body: Record<string, unknown>) {
     if (!zone?.id) { notifications.error($t('library.noZoneSelected')); return; }
     try { await playAndSync(zone.id, body); }
-    catch (e) { notifications.error($t('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e))); }
+    catch (e) { notifierErreur($t('library.playbackError'), e); }
   }
   function playAlbumGroup(g: AlbumGroup) {
     // album_id = chemin rapide serveur (une requête, la file se construit côté
@@ -434,7 +439,7 @@
       if (idle) await jumpInQueue(zone.id, nextPos);
       notifications.success(`"${track.title}" — ${$t('library.playNext').toLowerCase()}`);
     } catch (e) {
-      notifications.error(e instanceof Error ? e.message : String(e));
+      notifierErreur($t('common.errorLabel' as any), e, { motifSeul: true });
     }
   }
   async function queueAppendTrack(track: Track) {
@@ -443,7 +448,7 @@
       await addToQueue(zone.id, { track_id: track.id });
       notifications.success(`"${track.title}" — ${$t('queue.addToQueue').toLowerCase()}`);
     } catch (e) {
-      notifications.error(e instanceof Error ? e.message : String(e));
+      notifierErreur($t('common.errorLabel' as any), e, { motifSeul: true });
     }
   }
   async function queueAppendAlbum(g: AlbumGroup) {
@@ -465,7 +470,7 @@
       await addToQueue(zone.id, { track_ids: ids });
       notifications.success(`"${g.title}" — ${$t('queue.addToQueue').toLowerCase()}`);
     } catch (e) {
-      notifications.error(e instanceof Error ? e.message : String(e));
+      notifierErreur($t('common.errorLabel' as any), e, { motifSeul: true });
     }
   }
 
@@ -517,12 +522,34 @@
     return texteServeur ? { q: texteServeur } : {};
   }
 
+  // web#2646 — une modification enregistrée depuis Oxygen (« Modifier les
+  // métadonnées… », « Appliquer un tag… ») ne change pas les filtres : les
+  // chargements ci-dessous, qui ne suivaient que les filtres, gardaient donc
+  // l'ancienne valeur à l'écran jusqu'au rechargement de la page.
+  // `versionDonnees` est lu par chacun d'eux ; l'incrémenter les relance.
+  let versionDonnees = $state(0);
+  /** La piste ouverte dans le panneau quand la modification a été enregistrée :
+   *  le rechargement la rouvre au lieu de sauter sur la première piste.
+   *  `undefined` : rechargement ordinaire (changement de filtre). */
+  let pisteARetrouver: number | null | undefined = undefined;
+  function donneesModifiees() {
+    pisteARetrouver = selected?.id ?? null;
+    versionDonnees += 1;
+  }
+
   async function loadTracks() {
-    loading = true; error = null;
+    const garder = pisteARetrouver;
+    pisteARetrouver = undefined;
+    // Après une modification, la liste reste à l'écran pendant la relecture :
+    // l'état « Chargement » la remplacerait et ferait perdre le défilement.
+    if (garder === undefined) loading = true;
+    error = null;
     try {
       const res = await getFilteredTracks({ ...facetParam(facetSels), ...texteLibreParam(), limit: LOAD_LIMIT });
       tracks = res.items;
       total = res.total;
+      const meme = garder != null ? tracks.find(t => t.id === garder) : undefined;
+      if (meme) { void remplirPanneau(meme); return; }
       selected = null;
       if (tracks.length) select(tracks[0]);
     } catch (e) {
@@ -661,15 +688,39 @@
     };
   });
 
+  // #2471 : un total de pistes ne peut pas servir de total de pochettes.
+  let totalPochettes = $state<number | null>(null);
+  $effect(() => {
+    const vuePochettes = mode === 'grid' || mode === 'mur';
+    const filtres = { ...facetParam(facetSels), ...texteLibreParam() };
+    void versionDonnees;
+    let actif = true;
+    totalPochettes = null;
+    if (vuePochettes) {
+      getAlbumsDetailed(filtres, 1, 0).then(res => {
+        if (actif) totalPochettes = res.total;
+      }).catch(() => {});
+    }
+    return () => { actif = false; };
+  });
+  let compteAlbums = $derived(mode === 'grid' || mode === 'mur' || mode === 'cards');
+  let nombreAffiche = $derived(mode === 'cards' ? cards.length : compteAlbums ? albums.length : visible.length);
+  let totalAffiche = $derived(mode === 'cards' ? cardsTotal : compteAlbums ? totalPochettes : total);
+  let partielAffiche = $derived(mode === 'cards'
+    ? !cardsLoading && cards.length < cardsTotal
+    : truncated);
+  let uniteAffichee = $derived(compteAlbums ? 'oxygen.albums' : 'oxygen.tracks');
+
   // Server-driven: (re)fetch the filtered tracks whenever the selection changes.
-  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void texteServeur; loadTracks(); });
+  // `versionDonnees` : relecture après une modification enregistrée (web#2646).
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void texteServeur; void versionDonnees; loadTracks(); });
   // Ne charge que dans son mode : l'agrégat coûte un GROUP BY sur toute la
   // sélection, inutile tant que la vue n'est pas à l'écran.
-  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); if (mode === 'cards') loadCards(); });
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void versionDonnees; if (mode === 'cards') loadCards(); });
   // Facet counts also re-fetch when the per-facet value limit changes.
-  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void JSON.stringify(serverFacetFields); void $preferences.oxygenFacetLimit; loadFacets(); });
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void JSON.stringify(serverFacetFields); void $preferences.oxygenFacetLimit; void versionDonnees; loadFacets(); });
   // Folder drill-down re-fetches its children when the path or any filter changes.
-  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void folderEnabled; void $preferences.oxygenFacetLimit; loadFolder(); });
+  $effect(() => { void JSON.stringify(facetSels); void JSON.stringify(facetEt); void folderEnabled; void $preferences.oxygenFacetLimit; void versionDonnees; loadFolder(); });
 </script>
 
 <!-- Indicateur « en lecture », partagé par la vue album et la vue tableau : il
@@ -721,10 +772,11 @@
       <OxygenEtiquetageFiltre
         filtres={mode === 'cards' ? facetParam(facetSels) : { ...facetParam(facetSels), ...texteLibreParam() }}
         cibleParDefaut={mode === 'cards' ? 'album' : 'track'}
-        nombre={mode === 'cards' ? cardsTotal : total} />
+        nombre={mode === 'cards' ? cardsTotal : total}
+        onModifie={donneesModifiees} />
     {/if}
-    <div class="count" class:partial={truncated} title={truncated ? $t('oxygen.truncated') : ''}>
-      {visible.length.toLocaleString('fr')}{#if truncated}<span class="cslash">/</span>{total.toLocaleString('fr')}{/if}
+    <div class="count" class:partial={partielAffiche} title={partielAffiche ? $t('oxygen.truncated') : ''}>
+      {nombreAffiche.toLocaleString('fr')}{#if totalAffiche != null && totalAffiche >= nombreAffiche && (partielAffiche || compteAlbums)}<span class="cslash">/</span>{totalAffiche.toLocaleString('fr')}{/if} {$t(uniteAffichee)}
     </div>
     {#if dossierOuvert}
       <button class="icnbtn" data-dossier-lire onclick={() => lireDossier(zone?.id, dossierOuvert)}
@@ -935,11 +987,11 @@
 
       <!-- Le reste existe : le dire, et le proposer. Une fenêtre silencieuse
            se lit comme une bibliothèque amputée. -->
-      {#if truncated}
+      {#if partielAffiche}
         <div class="more">
-          <span class="moretxt">{$t('oxygen.truncated')} {tracks.length.toLocaleString('fr')} / {total.toLocaleString('fr')} {$t('oxygen.tracks')}</span>
-          <button class="morebtn" disabled={loadingMore} onclick={loadMore}>
-            {loadingMore ? $t('oxygen.loading') : $t('oxygen.loadMore')}
+          <span class="moretxt">{$t('oxygen.truncated')} {nombreAffiche.toLocaleString('fr')}{#if totalAffiche != null && totalAffiche >= nombreAffiche}{' / '}{totalAffiche.toLocaleString('fr')}{/if} {$t(uniteAffichee)}</span>
+          <button class="morebtn" disabled={loadingMore || cardsLoading} onclick={() => mode === 'cards' ? loadCards(true) : loadMore()}>
+            {loadingMore || cardsLoading ? $t('oxygen.loading') : $t('oxygen.loadMore')}
           </button>
         </div>
       {/if}

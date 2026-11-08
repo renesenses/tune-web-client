@@ -90,9 +90,11 @@ const VUES: Record<View, boolean> = {
   crossfeedpro: true,
   // web#2580 — Crosstalk : l'écran dit lui-même quand le greffon est absent.
   crosstalk: true,
+  roomcorrection: true,
   // tune-server-rust#6044 — l'écran dit lui-même quand le serveur n'a pas
   // le greffon : l'adresse reste atteignable.
   reaffectation: true,
+  surechantillonnage: true,
   plugins: true,
   alarms: true,
   converter: true,
@@ -113,6 +115,8 @@ const VUES: Record<View, boolean> = {
   circle: true,
   // tune-server-rust#7195 — « Ma collection physique », écran d'un greffon.
   collectionphysique: true,
+  // web#2653 — l'écran des statistiques de la bibliothèque.
+  statsbibliotheque: true,
   bannedtracks: true,
 
   // ─── Celles que l'adresse NE repose PAS, et pourquoi ────────────────────

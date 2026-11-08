@@ -123,7 +123,7 @@ describe('#4741 — un compte gratuit voit pourquoi le transfert est refusé', (
     // désormais sa raison (`noterEchecAction`).
     expect(vue).toMatch(/if \(!noterRefusTransfert\(e\)\) \{\s*noterEchecAction\(e\);\s*importResult = \{ name: importName, count: -1, total: 0 \};/);
     expect(vue).toContain('if (!noterRefusTransfert(e)) noterEchecAction(e);');
-    expect(vue).toContain("if (!noterRefusTransfert(e)) notifications.error(e.message || 'Transfer failed');");
+    expect(vue).toContain("if (!noterRefusTransfert(e)) notifierErreur($tr('v2.pl.transferFailed' as any), e, { motifSeul: true });");
   });
 
   it("l'explication et le lien de l'offre sont peints là où le refus arrive", () => {

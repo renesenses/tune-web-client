@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import * as api from '../../lib/api';
   import { tip } from '../../lib/tooltip';
@@ -256,7 +257,7 @@
       addedToLibrary = true;
       onMusicDirsChanged();
     } catch (e: any) {
-      notifications.error(e?.message || $t('smb.addDirError'));
+      notifierErreur($t('smb.addDirError'), e, { motifSeul: true });
     }
     addingToLibrary = false;
   }
@@ -270,7 +271,7 @@
       if (e?.message?.includes('409') || e?.message?.includes('already')) {
         scanStarted = true;
       } else {
-        notifications.error(e?.message || $t('smb.scanError'));
+        notifierErreur($t('smb.scanError'), e, { motifSeul: true });
       }
     }
     scanningLibrary = false;

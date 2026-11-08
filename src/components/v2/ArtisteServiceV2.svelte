@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { labelPrincipal, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
   /**
    * LA FICHE ARTISTE ÉLUE — #3825, socle de #2568, puis #1232.
@@ -65,6 +66,7 @@
   import * as api from '../../lib/api';
   import { PLAFOND_ARTISTE, lireArtisteBibliotheque } from '../../lib/lireArtiste';
   import LiensExternes from './LiensExternes.svelte';
+  import MesNotes from '../partages/MesNotes.svelte';
   import AlbumsManquants from './AlbumsManquants.svelte';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
@@ -79,6 +81,7 @@
   import DiscographieCommune from './DiscographieCommune.svelte';
   import BioEtTitresPhares from './BioEtTitresPhares.svelte';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
+  import { langueBioDe, AUCUNE_LANGUE, type LangueBio } from '../../lib/library/langueBio';
   import { currentZoneId, playAndSync, radioArtisteAndSync } from '../../lib/stores/zones';
   import { corpsRadioArtiste, lancerRadioArtiste, type IssueRadio } from '../../lib/radioArtiste';
   import { signalerEchecLecture } from '../../lib/echecLecture';
@@ -216,6 +219,13 @@
    * attribuerait à Wikipédia une bio qui n'en vient pas.
    */
   let bioProvenance = $state<BioProvenance | null>(null);
+  /** Langue du texte et repli éventuel (#8010). */
+  let bioLangue = $state<LangueBio>({ langue: null, repliVers: null });
+  /**
+   * `bio_segments` de `GET /library/artists/{id}/bio` (#7910). Ignorés par
+   * `BioEtTitresPhares` s'ils ne recomposent pas la `bio` affichée.
+   */
+  let bioSegments = $state<unknown>(null);
   /**
    * Le compte de l'en-tête : les vignettes de la DISCOGRAPHIE COMMUNE, et non
    * les seuls albums de la bibliothèque — « 1 albums » pour a-ha, 44 à
@@ -296,7 +306,7 @@
       const maj = apresDetachement(a, reponse);
       artiste = maj;
       artisteLocal = maj;
-      if (!maj.bio?.trim()) { bio = null; bioProvenance = null; }
+      if (!maj.bio?.trim()) { bio = null; bioProvenance = null; bioLangue = AUCUNE_LANGUE; }
       metaFiche = null;
       notifications.success($tr('artist.identityDetached' as any).replace('{nom}', a.name));
     } catch {
@@ -317,7 +327,7 @@
       const rapportee = bioDans(m, $langueCourante);
       if (rapportee && !a.bio?.trim()) {
         bio = rapportee;
-        bioProvenance = null;
+        bioProvenance = null; bioLangue = AUCUNE_LANGUE;
         void provenanceApresEnrichissement(a.id, rapportee);
       }
       const cle = bilanEnrichissement(m);
@@ -426,7 +436,8 @@
     titresEnCharge = false;
     albums = [];
     bio = null;
-    bioProvenance = null;
+    bioSegments = null;
+    bioProvenance = null; bioLangue = AUCUNE_LANGUE;
     compilations = [];
     apparitions = [];
     collaborations = [];
@@ -481,7 +492,10 @@
       albums = (al.value ?? []).map((x) => ({ ...x, source: (x.source ?? service) as Album['source'] }));
     }
     bio = artiste?.bio ?? null;
-    bioProvenance = provenanceDe(artiste);
+    // #8129 — les liens de la bio du service (Qobuz) : fiches Qobuz, pages
+    // externes, noms de la bibliothèque.
+    bioSegments = bio ? ((artiste as any)?.bio_segments ?? null) : null;
+    bioProvenance = provenanceDe(artiste); bioLangue = langueBioDe(artiste);
     chargement = false;
     void chargerComplements(mien, service, artiste?.name || cible?.nom || '');
   }
@@ -512,7 +526,7 @@
     titresEnCharge = false;
     albums = [];
     bio = null;
-    bioProvenance = null;
+    bioProvenance = null; bioLangue = AUCUNE_LANGUE;
     locaux = [];
     compilations = [];
     apparitions = [];
@@ -552,34 +566,56 @@
       reprises = (d.value?.covers ?? []) as Album[];
     }
     chargement = false;
-    void chargerBioLocale(mien, id, artiste?.bio ?? null, provenanceDe(artiste));
+    void chargerBioLocale(mien, id, artiste?.bio ?? null, provenanceDe(artiste), langueBioDe(artiste));
     void chargerComplements(mien, null, artiste?.name || cible?.nom || '', true);
   }
 
   /**
-   * La biographie d'un artiste local : celle qu'on a éditée d'abord, celle que
-   * le serveur sait rendre ensuite. Même ordre que la fiche de bibliothèque —
-   * une bio éditée ne doit jamais être recouverte par une bio rapportée.
+   * La biographie d'un artiste local : celle qu'on a écrite à la main d'abord,
+   * celle que le serveur sait rendre ensuite — une bio écrite à la main ne doit
+   * jamais être recouverte par une bio rapportée.
+   *
+   * 🔴 « Écrite à la main », c'est une bio SANS provenance : réécrire la bio
+   * efface sa provenance côté serveur (`oublier_provenance_si_bio_reecrite`).
+   * Une bio stockée AVEC provenance (fonds communautaire, Qobuz, Wikipédia…)
+   * n'est pas une bio éditée. La fiche la servait pourtant telle quelle depuis
+   * `GET /library/artists/{id}`, sans jamais appeler `/bio` :
+   *  - aucun lien (tune-web-client#2692) : seule `/bio` rend `bio_segments` ;
+   *  - la mauvaise langue, sans mention (tune-server-rust#7027) : seule `/bio`
+   *    applique la langue de l'interface. Mesuré sur le .18 le 07/11 : John
+   *    Coltrane et Archie Shepp portent une bio communautaire française SANS
+   *    langue, que la fiche affichait à une interface anglaise.
+   * `/bio` est donc toujours interrogée ; elle sert d'elle-même une bio sans
+   * provenance telle quelle, et c'est d'elle seule qu'on prend ses liens.
    */
   async function chargerBioLocale(
     mien: number,
     id: number,
     bioEditee: string | null,
     provenanceEditee: BioProvenance | null = null,
+    langueEditee: LangueBio = AUCUNE_LANGUE,
   ) {
-    const editee = bioEditee?.trim() || null;
-    bio = editee;
-    // `GET /library/artists/{id}` porte la provenance de SA bio, à côté d'elle.
-    bioProvenance = editee ? provenanceEditee : null;
-    if (editee) return;
+    const aLaMain = provenanceEditee ? null : bioEditee?.trim() || null;
+    bio = aLaMain;
+    bioSegments = null;
+    bioProvenance = null;
+    bioLangue = aLaMain ? langueEditee : AUCUNE_LANGUE;
     try {
       const r = await api.getArtistBio(id);
-      if (mien === jeton) {
-        bio = r?.bio?.trim() || null;
-        bioProvenance = bio ? provenanceDe(r) : null;
+      if (mien !== jeton) return;
+      if (aLaMain) {
+        // Le texte de l'utilisateur reste ; on ne lui prend que ses liens,
+        // et seulement s'ils portent sur CE texte.
+        if (r?.bio?.trim() === aLaMain) bioSegments = (r as any)?.bio_segments ?? null;
+        return;
       }
+      bio = r?.bio?.trim() || null;
+      bioProvenance = bio ? provenanceDe(r) : null;
+      bioSegments = bio ? ((r as any)?.bio_segments ?? null) : null;
+      bioLangue = bio ? langueBioDe(r) : AUCUNE_LANGUE;
     } catch {
-      /* pas de biographie : le bloc ne s'affiche pas */
+      /* pas de biographie rendue : la bio écrite à la main reste, sinon le
+         bloc ne s'affiche pas (jamais une bio d'une langue inconnue) */
     }
   }
 
@@ -591,7 +627,7 @@
   async function provenanceApresEnrichissement(id: number, texte: string) {
     try {
       const a = await api.getArtist(id);
-      if (bio === texte && a?.bio?.trim() === texte.trim()) bioProvenance = provenanceDe(a);
+      if (bio === texte && a?.bio?.trim() === texte.trim()) { bioProvenance = provenanceDe(a); bioLangue = langueBioDe(a); }
     } catch {
       /* sans relecture, pas d'attribution — jamais une attribution fausse */
     }
@@ -815,7 +851,7 @@
       // dire, sans quoi le bouton paraîtrait mort.
       if (!n) notifications.error($tr('v2.fas.empty' as any));
     } catch (e: any) {
-      notifications.error(e?.message ?? $tr('v2.fas.empty' as any));
+      notifierErreur($tr('v2.fas.empty' as any), e, { motifSeul: true });
     }
     enMasse = false;
   }
@@ -854,7 +890,7 @@
       if (issue === 'serveur-ancien') notifications.error($tr('v2.fas.radioServeurAncien' as any));
       else if (issue === 'rien') notifications.error($tr('v2.fas.empty' as any));
     } catch (e: any) {
-      notifications.error(e?.message ?? $tr('v2.fas.empty' as any));
+      notifierErreur($tr('v2.fas.empty' as any), e, { motifSeul: true });
     }
     enMasse = false;
   }
@@ -907,7 +943,7 @@
         });
         if (n === 0) notifications.error($tr('library.noTracks' as any));
       } catch (e: any) {
-        notifications.error(e?.message ?? $tr('common.error' as any));
+        notifierErreur($tr('common.error' as any), e, { motifSeul: true });
       }
       enMasseLocale = false;
       return;
@@ -922,7 +958,7 @@
       });
       if (!n) notifications.error($tr('v2.fas.empty' as any));
     } catch (e: any) {
-      notifications.error(e?.message ?? $tr('v2.fas.empty' as any));
+      notifierErreur($tr('v2.fas.empty' as any), e, { motifSeul: true });
     }
     enMasse = false;
   }
@@ -954,7 +990,7 @@
         if (!n) notifications.error($tr('library.noTracks' as any));
       }
     } catch (e: any) {
-      notifications.error(e?.message ?? $tr('common.error' as any));
+      notifierErreur($tr('common.error' as any), e, { motifSeul: true });
     }
     enMasseLocale = false;
   }
@@ -1129,13 +1165,18 @@
   {:else}
     <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
-    <BioEtTitresPhares bio={bio} provenance={bioProvenance} titres={titres} {titresEnCharge} cle={cible?.id}
+    <BioEtTitresPhares bio={bio} provenance={bioProvenance} segments={bioSegments} langueBio={bioLangue} titres={titres} {titresEnCharge} cle={cible?.id}
       actionsBio={artisteEditable ? enrichirBio : undefined} />
 
     <!-- tune-server-rust#6001 — ProgArchives / Metal Archives / AllMusic, pour
          un artiste de la bibliothèque (l'identifiant MusicBrainz est le sien). -->
     {#if artisteEditable?.id != null}
       <LiensExternes cle={artisteEditable.id} charger={api.getArtistExternalLinks} />
+    {/if}
+
+    <!-- web#2653 — « Mes notes » : artiste de la BIBLIOTHÈQUE seulement. -->
+    {#if artisteEditable?.id != null}
+      <div class="mes-notes-artiste"><MesNotes type="artist" id={artisteEditable.id} /></div>
     {/if}
 
     <!-- tune-server-rust#6782 — vers la page de son label principal (celui de
@@ -1217,7 +1258,7 @@
       artisteLocal = maj;
       const nouvelle = maj.bio?.trim() || null;
       // Un texte réécrit à la main n'est plus l'extrait de personne.
-      if (nouvelle && nouvelle !== bio?.trim()) bioProvenance = null;
+      if (nouvelle && nouvelle !== bio?.trim()) bioProvenance = null; bioLangue = AUCUNE_LANGUE;
       bio = nouvelle || bio;
       editionComplete = null;
     }}
@@ -1234,6 +1275,7 @@
 {/if}
 
 <style>
+  .mes-notes-artiste{max-width:760px; padding:0 30px}
   .lien-label { all: unset; cursor: pointer; align-self: flex-start; margin: 4px 0 8px; font-size: 13px; color: var(--tune-accent); }
   .lien-label:hover { text-decoration: underline; }
   .lien-label:focus-visible { outline: 2px solid var(--tune-accent); outline-offset: 2px; }

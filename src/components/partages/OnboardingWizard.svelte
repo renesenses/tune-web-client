@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
@@ -313,7 +314,7 @@
       });
       await loadMusicRoots();
     } catch (e: any) {
-      notifications.error(e?.message || String(e));
+      notifierErreur(get(t)('common.errorLabel' as any), e, { motifSeul: true });
     }
     removingDir = null;
   }
@@ -347,7 +348,7 @@
       $streamingServicesStore = await api.getStreamingServices();
     } catch (e: any) {
       console.error('Toggle service error:', e);
-      notifications.error(e?.message || String(e));
+      notifierErreur(get(t)('common.errorLabel' as any), e, { motifSeul: true });
     }
   }
 
@@ -365,9 +366,12 @@
       }
     } catch (e: any) {
       // #2406 — un refus d'identifiants n'est pas une panne de connexion.
-      qobuzAuthError = natureErreurConnexion(e) === 'identifiants'
-        ? get(t)('settings.wrongCredentials')
-        : get(t)('settings.connectionError');
+      const nature = natureErreurConnexion(e);
+      qobuzAuthError = nature === 'application'
+        ? get(t)('settings.errAppRefused' as any).replace('{service}', 'Qobuz')
+        : nature === 'identifiants'
+          ? get(t)('settings.wrongCredentials')
+          : get(t)('settings.connectionError');
     }
     qobuzAuthLoading = false;
   }

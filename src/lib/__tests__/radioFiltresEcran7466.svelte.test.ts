@@ -68,7 +68,7 @@ describe('tune-server-rust#7466 — « Plus de filtres »', () => {
   });
 
   it('🔴 « Sans perte » : seules les stations que le serveur retient, et le compteur suit', async () => {
-    preferences.update((p) => ({ ...p, radioFiltres: { codec: null, bitrateMin: null, lossless: true, hires: false, metadataPlus: false, favoris: false } }));
+    preferences.update((p) => ({ ...p, radioFiltres: { codec: null, qualiteMin: null, lossless: true, hires: false, metadataPlus: false, favoris: false } }));
     await monter();
     expect(mocks.rechercherRadiosParCriteres).toHaveBeenCalledWith('', { lossless: 'true' });
     expect(noms()).toEqual(['Jazz Sans Perte']);
@@ -93,5 +93,27 @@ describe('tune-server-rust#7466 — « Plus de filtres »', () => {
     await respirer();
     const appel = mocks.getAnnuaireRadios.mock.calls.at(-1)![0];
     expect(appel.criteres).toEqual({ metadata_plus: 'true' });
+  });
+
+  it('🔴 tune-server-rust#7718 — la qualité minimale se choisit dans la liste et part vers l’annuaire', async () => {
+    await monter();
+    hote.querySelector<HTMLButtonElement>('[data-testid="radio-filtres-bascule"]')!.click();
+    flushSync();
+    const liste = hote.querySelector<HTMLSelectElement>('[data-testid="radio-filtres-qualite"]')!;
+    expect(liste.getAttribute('aria-label')).toBe(fr['v2.radio.filters.qualityMin']);
+    const options = [...liste.options].map((o) => o.textContent?.trim());
+    expect(options[0]).toBe(fr['v2.radio.filters.anyQuality']);
+    expect(options).toContain('48 kbit/s et plus');
+    expect(options.at(-1)).toBe('FLAC 24/192 et mieux');
+    liste.value = 'flac_24_96';
+    liste.dispatchEvent(new Event('change', { bubbles: true }));
+    await respirer();
+    expect(get(preferences).radioFiltres?.qualiteMin).toBe('flac_24_96');
+    expect(mocks.rechercherRadiosParCriteres).toHaveBeenLastCalledWith('', { quality_min: 'flac_24_96' });
+
+    [...hote.querySelectorAll<HTMLButtonElement>('.sections button')]
+      .find((b) => b.textContent?.trim() === fr['v2.radio.tabDirectory'])!.click();
+    await respirer();
+    expect(mocks.getAnnuaireRadios.mock.calls.at(-1)![0].criteres).toEqual({ quality_min: 'flac_24_96' });
   });
 });

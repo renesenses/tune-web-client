@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * Bouton « Importer » d'un fichier de playlist (.m3u, .m3u8, .dpl).
    *
@@ -40,7 +41,7 @@
       notifications.success(`${$t('v2.pl.importDone' as any)} — ${b.rapprochees}/${b.total}`);
       onimporte();
     } catch (e: any) {
-      notifications.error(errText(e) ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       importEnCours = false;
     }

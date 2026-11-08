@@ -201,6 +201,32 @@ export function serveurSaitSuspendre(
   return (instantane?.pausable?.length ?? 0) > 0;
 }
 
+/** #2610 — les identifiants stables du serveur, jamais ses phrases françaises. */
+const LIBELLES_TACHES: Record<string, string> = {
+  credits_enrich: 'app.task.credits',
+  credits_enrich_auto: 'app.task.credits',
+  credits_releases: 'app.task.credits',
+  artist_artwork: 'app.task.artistImages',
+  artwork: 'app.task.covers',
+  enrich_all: 'app.task.metadata',
+  bios: 'app.task.bios',
+  identification_lot: 'app.task.identification',
+  identification_nuit: 'app.task.identification',
+  integrity: 'app.task.integrity',
+  graver_dr: 'app.task.writeDr',
+  write_tags: 'app.task.writeMetadata',
+  edit_by_filter_files: 'app.task.writeMetadata',
+  rescan_metadata: 'app.task.readMetadata',
+  compositeur_depuis_credits: 'app.task.composers',
+  lyrics_fetch: 'app.task.lyrics',
+  lyrics_write: 'app.task.writeLyrics',
+  reparer_compilations: 'app.task.compilations',
+  types_de_sortie: 'app.task.releaseTypes',
+  dynamic_range: 'app.task.dynamicRange',
+  bpm_lot: 'v2.bpm.estimating',
+  discogs_lot: 'v2.discogs.searching',
+};
+
 /**
  * Texte du bandeau « une tâche de fond tourne », ou `null` quand plus rien ne
  * tourne — c'est ce `null` qui referme le bandeau.
@@ -210,6 +236,7 @@ export function serveurSaitSuspendre(
 export function libelleBanniereEnrichissement(
   toutes: TacheDeFond[],
   secours: string,
+  traduire?: (cle: string) => string,
 ): string | null {
   // tune-server-rust#6282 — Kimon (fil 2259) : « un message "enrichissement"
   // alors que j'ai mis tous les traitements en pause ». Une passe suspendue se
@@ -219,7 +246,8 @@ export function libelleBanniereEnrichissement(
   const premiere = taches[0];
   if (!premiere) return null;
 
-  const nom = premiere.label || secours;
+  const cle = Object.hasOwn(LIBELLES_TACHES, premiere.id) ? LIBELLES_TACHES[premiere.id] : null;
+  const nom = cle && traduire ? traduire(cle) : premiere.label || secours;
 
   // Pas de fraction tant que le total est inconnu : la phase « communauté » de
   // tune-core tourne avant le premier `write_progress`, le registre rend alors

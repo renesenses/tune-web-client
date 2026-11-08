@@ -46,6 +46,7 @@
     BORNES_MID_SIDE as BMS,
     valeurMidSide,
     basculerMidSide,
+    basculerItd,
     midSideDisponible,
     type CurseurMidSide,
     type ModeCrossfeedPro,
@@ -173,7 +174,7 @@
   }
 
   function basculer(cle: 'enabled' | 'head_shadow' | 'low_cut' | 'phase_guard' | 'experimental_itd') {
-    r = { ...r, [cle]: !r[cle] };
+    r = cle === 'experimental_itd' ? basculerItd(r) : { ...r, [cle]: !r[cle] };
     void save();
   }
   function basculerMs(cle: 'experimental_mid_side' | 'ms_adaptive') {

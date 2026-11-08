@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Recherche du nouveau client (direction Levente). Cœur de nav : présente à
@@ -757,7 +758,7 @@ import { sansDoublons } from '../../lib/clesUniques';
       else if (f === 'albums') montreAlbums += PAS_ALBUMS;
       else montreArtistes += PAS_ARTISTES;
     } catch (e) {
-      notifications.error(String((e as Error)?.message ?? e));
+      notifierErreur($t('common.errorLabel' as any), e, { motifSeul: true });
     } finally {
       suiteEnCours = null;
     }
@@ -800,7 +801,7 @@ import { sansDoublons } from '../../lib/clesUniques';
       else if (f === 'albums') montreAlbums += PAS_ALBUMS;
       else montreArtistes += PAS_ARTISTES;
     } catch (e) {
-      notifications.error(String((e as Error)?.message ?? e));
+      notifierErreur($t('common.errorLabel' as any), e, { motifSeul: true });
     } finally {
       suiteServiceEnCours = null;
     }
@@ -980,7 +981,7 @@ import { sansDoublons } from '../../lib/clesUniques';
         : await lireListe(titres as any, gestes);
       if (!n) notifications.error($t('library.noTracks' as any));
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
     masseEnCours = false;
   }

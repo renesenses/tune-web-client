@@ -340,7 +340,17 @@ export function valeurMidSide<K extends keyof typeof DEFAUTS_MID_SIDE>(
 /** Allumer ou éteindre le mode : les sous-réglages manquants prennent leur
  *  défaut, ceux déjà enregistrés sont gardés. */
 export function basculerMidSide(r: ReglagesCrossfeedPro): ReglagesCrossfeedPro {
-  return { ...DEFAUTS_MID_SIDE, ...r, experimental_mid_side: !valeurMidSide(r, 'experimental_mid_side') };
+  const allume = !valeurMidSide(r, 'experimental_mid_side');
+  // greffon#15 : la voie croisée se traite d'UNE seule façon — allumer le
+  // Mid/Side éteint le retard adaptatif (le greffon ferait de même).
+  return { ...DEFAUTS_MID_SIDE, ...r, experimental_mid_side: allume, ...(allume ? { experimental_itd: false } : {}) };
+}
+
+/** Le retard adaptatif (ITD, EXPÉRIMENTAL) : l'allumer éteint le Mid/Side
+ *  (greffon#15, une seule voie croisée à la fois). */
+export function basculerItd(r: ReglagesCrossfeedPro): ReglagesCrossfeedPro {
+  const allume = !r.experimental_itd;
+  return { ...r, experimental_itd: allume, ...(allume ? { experimental_mid_side: false } : {}) };
 }
 
 /** `a` ≥ `b`, versions `x.y.z` (un suffixe `-rc1` est ignoré). `null` si

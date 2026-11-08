@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * La carte des radios (web#2400) — troisième onglet de la page Radio, à côté
    * de « Mes radios » et de l'« Annuaire » (retour de Bertrand du 26/10).
@@ -106,7 +107,7 @@
       onAjoutee?.(st);
       notifications.success($t('v2.radio.dir.added' as any).replace('{name}', f.name));
     } catch (err: any) {
-      notifications.error(err?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), err, { motifSeul: true });
     }
   }
 </script>

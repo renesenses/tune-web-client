@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node scripts/check-i18n.mjs && node scripts/check-svelte.mjs && node scripts/check-native-dialogs.mjs && node scripts/check-classes-css.mjs && node scripts/check-jetons-css.mjs && node scripts/check-francais-v2.mjs && vitest run",
+    "test": "node scripts/check-i18n.mjs && node scripts/check-svelte.mjs && node scripts/check-native-dialogs.mjs && node scripts/check-notifications-litterales.mjs && node scripts/check-classes-css.mjs && node scripts/check-jetons-css.mjs && node scripts/check-francais-v2.mjs && vitest run",
     "test:watch": "vitest",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",

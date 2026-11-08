@@ -39,6 +39,7 @@
   import { chargerRubriquesGenre, type BandeRubrique } from '../../lib/rubriquesGenre';
   import { chargerPlaylistsDuGenre } from '../../lib/playlistsDuGenre';
   import { sansLaPlaylistRetiree } from '../../lib/playlistsSuiviesRetrait';
+  import { chargerMixes, estUnMix, sousTitreDeMix } from '../../lib/mixesTidal';
   import { compterParAuteur, filtrerParAuteur, filtreAuteurUtile, type FiltreAuteur } from '../../lib/filtreAuteurPlaylists';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
@@ -84,6 +85,7 @@
     ongletApresDemande,
     ongletDeRestitution,
     ongletsStreaming,
+    sessionExpiree,
     aUneBibliothequeDeCompte,
     bibliothequeDeCompteSurPreuve,
     reponseProuveLaBibliotheque,
@@ -278,6 +280,17 @@
   let bandesGenre = $state<BandeRubrique[]>([]);
   /** #5313 — les playlists éditoriales du genre ouvert (Qobuz). Vide ailleurs. */
   let genrePlaylists = $state<StreamingPlaylist[]>([]);
+  /** tune-server-rust#7822 — « Vos mixes » : les mixes du compte TIDAL. Vide
+   *  ailleurs, et pour un compte sans mix : la rangée ne s'affiche pas. */
+  let mixes = $state<StreamingPlaylist[]>([]);
+  $effect(() => {
+    const svc = active;
+    mixes = [];
+    if (ongletExpire) return;
+    let vivant = true;
+    chargerMixes(svc, api.getStreamingMixes).then((m) => { if (vivant) mixes = m; });
+    return () => { vivant = false; };
+  });
 
   /** Liste des genres du service : UN seul appel par service, HORS de l'effet
    * du volet.
@@ -410,6 +423,8 @@
    */
   const tabs = $derived(ongletsStreaming(services, bandcampLive));
   const isBc = $derived(active === BANDCAMP);
+  /** web#2587 — l'onglet ouvert est un service dont la session a expiré. */
+  const ongletExpire = $derived(!!active && sessionExpiree(services[cleServeur(active) ?? '']));
 
   /**
    * Pas de genres, pas d'onglet — et c'est la DONNEE qui tranche, pas un nom
@@ -672,7 +687,7 @@
   let catalogueDemande: string | null = null;
   $effect(() => {
     const svc = active;
-    if (!svc || svc === BANDCAMP) return;
+    if (!svc || svc === BANDCAMP || ongletExpire) return;
     if (catalogueDemande === svc) return;
     catalogueDemande = svc;
     catalogueEnCours = true;
@@ -687,6 +702,8 @@
   $effect(() => {
     const svc = active, view = sub, tag = bcTag, sg = bcSub;
     if (!svc) return;
+    // web#2587 — rien à charger pour un service dont la session a expiré.
+    if (ongletExpire) { paneLoading = false; return; }
     paneLoading = true;
     featured = []; newRel = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcDecouverte = []; bcCollection = [];
     const done = () => { paneLoading = false; };
@@ -1219,8 +1236,11 @@
   let zoneDefilante = $state<HTMLDivElement | null>(null);
   const pTitle = (p: any) => p?.name ?? p?.title ?? p?.titre ?? $t('v2.common.untitled' as any);
   const pCover = (p: any) => p?.cover_path ?? p?.image ?? p?.picture ?? p?.pochette ?? null;
+  // #7822 — un mix n'a pas de nombre de titres (le serveur rend 0) : sa
+  // deuxième ligne est la liste de ses artistes, ou rien.
   const pSub = (p: any) =>
-    p?.artist_name ?? p?.artiste
+    estUnMix(p) ? sousTitreDeMix(p)
+    : p?.artist_name ?? p?.artiste
     ?? (p?.track_count != null
         ? $t('v2.lib.trackCount' as any).replace('{count}', String(p.track_count))
         : '');
@@ -1308,7 +1328,7 @@
       {/each}
     </nav>
 
-    {#if active}
+    {#if active && !ongletExpire}
       <nav class="subs" use:molettePortee={() => zoneDefilante}>
         {#each SUBS as sb (sb.id)}
           <button class:on={sub === sb.id} onclick={() => ouvrirSousOnglet(sb.id)}>{sb.label}</button>
@@ -1330,6 +1350,14 @@
           {$t('v2.stream.noServiceA' as any)} <b>{$t('v2.stream.noServiceWhere' as any)}</b> {$t('v2.stream.noServiceB' as any)}
         </p>
         <button class="lnk" onclick={ouvrirReglagesJetons}>{$t('v2.eq.openSettings' as any)}</button>
+      </div>
+
+    {:else if ongletExpire}
+      <!-- web#2587 — la session est tombée : l'onglet reste, avec le chemin du retour. -->
+      <div class="notice" role="alert">
+        <p>{$t('v2.stream.sessionExpired' as any)} <b>{label(active ?? '')}</b></p>
+        <p class="sub">{$t('v2.stream.sessionExpiredDetail' as any).replace('{service}', label(active ?? ''))}</p>
+        <button class="lnk" onclick={ouvrirReglagesJetons}>{$t('v2.stream.reconnect' as any)}</button>
       </div>
 
     {:else if results || bcSearch}
@@ -1466,6 +1494,14 @@
       <YouTubeDecouverteV2 tuile={tuileYouTube} />
 
     {:else if sub === 'editorial'}
+      {#if !isBc && mixes.length}
+        <!-- tune-server-rust#7822 — les mixes du compte TIDAL, lus et ajoutés
+             à la file comme des playlists. -->
+        <section class="sec" data-mixes-compte>
+          <h2>{$t('v2.stream.yourMixes' as any)}</h2>
+          <div class="grid">{#each mixes as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+        </section>
+      {/if}
       {#if isBc}
         <!-- 🔴 Les genres ont QUITTE « Decouvrir » (Bertrand, 05/09/2026 :
              « mettre l'onglet genres : ok, mais enlever les genres de l'onglet
@@ -1896,7 +1932,7 @@
           : type === 'playlist'
           ? cibleEtiquettePlaylist({ ...p, name: pTitle(p), cover_path: pCover(p) }, active)
           : null}
-        favoriExterne={type
+        favoriExterne={type && !estUnMix(p)
           ? favoriExterneService($favoriteStreamingKeys, {
               // 🔴 #1400 — la référence ne se compose PLUS ici. Cette vignette
               // écrivait `service: p?.source ?? active`, donc la clé d'ONGLET

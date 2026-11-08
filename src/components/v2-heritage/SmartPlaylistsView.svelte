@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { playFromHere } from '../../lib/playback';
@@ -520,7 +521,7 @@
     } catch (e: any) {
       // apiError range le corps `error` du serveur dans e.code (ex. le
       // message de référence circulaire) : le préférer au statut HTTP brut.
-      notifications.error(e?.code || e?.message || $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     }
   }
 
@@ -548,7 +549,7 @@
     } catch (e: any) {
       // apiError range le corps `error` du serveur dans e.code (ex. le
       // message de référence circulaire) : le préférer au statut HTTP brut.
-      notifications.error(e?.code || e?.message || $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     }
   }
 
@@ -589,7 +590,7 @@
     } catch (e: any) {
       // apiError range le corps `error` du serveur dans e.code (ex. le
       // message de référence circulaire) : le préférer au statut HTTP brut.
-      notifications.error(e?.code || e?.message || $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     }
   }
 

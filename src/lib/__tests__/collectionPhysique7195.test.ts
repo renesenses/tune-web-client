@@ -21,6 +21,8 @@ import {
 import { preparerLocale } from '../i18n';
 import { dialogs } from '../stores/dialogs';
 import fr from '../locales/fr';
+import { brancherHistoriqueCoquille, detailOuvert } from '../historiqueCoquille';
+import { reculer } from './reculer';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -102,6 +104,7 @@ beforeAll(async () => { await preparerLocale('fr'); });
 beforeEach(() => {
   try { localStorage.clear(); } catch { /* stockage indisponible */ }
   ficheAlbumService.set(null);
+  detailOuvert.set(null);
   greffons = [];
   appels = [];
   affinage = { en_cours: false, restants: 0 };
@@ -127,6 +130,7 @@ beforeEach(() => {
       return reponse({ lance: lanceParSynchro, avancement }, 202);
     }
     if (u.includes('/ext/collection-physique/cache')) return reponse({ efface: 'tout' });
+    if (/\/library\/albums\/42(?:\?|$)/.test(u)) return reponse({ id: 42, title: 'Never Gonna Give You Up', artist_name: 'Rick Astley', source: 'local' });
     if (/\/config/.test(u)) return reponse({});
     return reponse([]);
   }));
@@ -191,8 +195,10 @@ describe('« Ma collection physique » — écran', () => {
     expect(rick.textContent).toContain('24 bits · 96 kHz');
     (rick.querySelector('[data-ouvrir-album]') as HTMLButtonElement).click();
     flushSync();
-    expect(get(pendingLibraryAlbum)).toBe(42);
-    expect(get(activeView)).toBe('library');
+    await laisserTourner();
+    expect(get(detailOuvert)).toBe('collectionphysique:album:42');
+    expect(get(activeView)).toBe('collectionphysique');
+    expect(hote!.querySelector('.v2-detail')).not.toBeNull();
 
     const st = hote!.querySelector('[data-etat-disque="streaming"]')!;
     expect(st.querySelector('[data-service="tidal"]')?.textContent).toBe('TIDAL');
@@ -347,8 +353,10 @@ describe('« Ma collection physique » — grille comme la Bibliothèque (Bertra
     await laisserTourner();
     (hote!.querySelector('[data-disque="249504"] [data-ouvrir-disque]') as HTMLButtonElement).click();
     flushSync();
-    expect(get(pendingLibraryAlbum)).toBe(42);
-    expect(get(activeView)).toBe('library');
+    await laisserTourner();
+    expect(get(detailOuvert)).toBe('collectionphysique:album:42');
+    expect(get(activeView)).toBe('collectionphysique');
+    expect(hote!.querySelector('.v2-detail')).not.toBeNull();
 
     activeView.set('collectionphysique');
     flushSync();
@@ -486,5 +494,128 @@ describe('« Ma collection physique » — le cache (Bertrand, 01/11/2026)', () 
     await laisserTourner();
     expect(appels.filter((a) => a.includes('/cache'))).toEqual(['DELETE /api/v1/ext/collection-physique/cache?quoi=tout']);
     confirmer.mockRestore();
+  });
+});
+
+
+describe('#2624 — revenir à la collection physique', () => {
+  it('Retour et Précédent retrouvent les filtres et le même défilement', async () => {
+    history.replaceState(null, '', '#home');
+    activeView.set('home');
+    const debrancher = brancherHistoriqueCoquille();
+    activeView.set('collectionphysique');
+    try {
+      monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+      await laisserTourner();
+      (hote!.querySelector('[data-format="vinyle"]') as HTMLButtonElement).click();
+      (hote!.querySelector('[data-etat="bibliotheque"]') as HTMLButtonElement).click();
+      await laisserTourner();
+      const zone = hote!.querySelector('[data-collection-physique] .scroll') as HTMLElement;
+      zone.scrollTop = 420;
+      const ouvrir = async () => {
+        (hote!.querySelector('[data-disque="249504"] [data-ouvrir-disque]') as HTMLButtonElement).click();
+        await laisserTourner();
+        expect(get(activeView), 'ouvrir la fiche abandonne la collection').toBe('collectionphysique');
+        expect(hote!.querySelector('.v2-detail'), 'la fiche album doit être ouverte').not.toBeNull();
+        expect(history.state).toMatchObject({ vue: 'collectionphysique', detail: 'collectionphysique:album:42' });
+      };
+      const verifierRetour = () => {
+        expect(hote!.querySelector('.v2-detail')).toBeNull();
+        expect(get(activeView)).toBe('collectionphysique');
+        expect(hote!.querySelector('[data-collection-physique] .scroll')).toBe(zone);
+        expect(zone.scrollTop, 'la position de la collection est perdue').toBe(420);
+        expect(hote!.querySelector('[data-format="vinyle"]')?.getAttribute('aria-pressed')).toBe('true');
+        expect(hote!.querySelector('[data-etat="bibliotheque"]')?.getAttribute('aria-pressed')).toBe('true');
+      };
+      await ouvrir();
+      (hote!.querySelector('.v2-detail .close') as HTMLButtonElement).click();
+      await vi.waitFor(() => expect(history.state?.detail).toBeNull());
+      await laisserTourner(); verifierRetour();
+      await ouvrir();
+      await reculer(); await laisserTourner(); verifierRetour();
+    } finally { debrancher(); detailOuvert.set(null); }
+  });
+
+  it('une réponse identité réussie n’affiche pas d’erreur après la lecture de la collection', async () => {
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    (hote!.querySelector('[data-compte-du-jeton]') as HTMLButtonElement).click();
+    await laisserTourner();
+    expect(appels.some((a) => a.startsWith('POST ') && a.includes('/reglages/identite'))).toBe(true);
+    expect(hote!.querySelector('[data-erreur]')).toBeNull();
+    expect(hote!.querySelectorAll('[data-disque]')).toHaveLength(3);
+  });
+});
+
+describe('#2624 point 1 — identité et lecture ont des résultats distincts', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('confirme le compte, suit une première lecture 200/a_synchroniser puis affiche la collection', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    const fetchInitial = globalThis.fetch;
+    let identifie = false;
+    vi.stubGlobal('fetch', vi.fn(async (url: any, init?: RequestInit) => {
+      const u = String(url);
+      if (u.includes('/reglages/identite')) {
+        identifie = true;
+        avancement = { en_cours: true, etape: 'liste', fait: 0, total: 0 };
+      }
+      if (u.includes('/collection-physique/collection') && identifie && avancement.en_cours) {
+        // Forme exacte de GET collection avant liste_lue_le : HTTP 200.
+        return reponse({ statut: 'a_synchroniser', nom_utilisateur: 'exemple', disques: [], compteurs: { total: 0 }, attribution: COLLECTION.attribution });
+      }
+      return fetchInitial(url, init);
+    }));
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    (hote!.querySelector('[data-compte-du-jeton]') as HTMLButtonElement).click();
+    await laisserTourner();
+    expect(hote!.querySelector('[data-compte-enregistre]'), 'le compte enregistré ne doit pas sembler avoir échoué').not.toBeNull();
+    expect(hote!.querySelector('[data-premiere-lecture]'), 'la première lecture est en cours, pas un refus').not.toBeNull();
+    expect(hote!.querySelector('[data-erreur]')).toBeNull();
+    avancement = { en_cours: false, etape: null, fait: 3, total: 3 };
+    await vi.advanceTimersByTimeAsync(3000); await laisserTourner();
+    expect(hote!.querySelectorAll('[data-disque]')).toHaveLength(3);
+    expect(hote!.querySelector('[data-premiere-lecture]')).toBeNull();
+  });
+
+  it('un refus de relecture garde le compte confirmé, expose le statut et disparaît après succès', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    const fetchInitial = globalThis.fetch;
+    let identifie = false;
+    let refus = true;
+    vi.stubGlobal('fetch', vi.fn(async (url: any, init?: RequestInit) => {
+      const u = String(url);
+      if (u.includes('/reglages/identite')) { identifie = true; avancement = { en_cours: true, etape: 'liste', fait: 0, total: 0 }; }
+      if (u.includes('/collection-physique/collection') && identifie && refus) return reponse({ error: 'nouveau_refus' }, 502);
+      return fetchInitial(url, init);
+    }));
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! }); await laisserTourner();
+    (hote!.querySelector('[data-compte-du-jeton]') as HTMLButtonElement).click(); await laisserTourner();
+    expect(hote!.querySelector('[data-compte-enregistre]')).not.toBeNull();
+    const message = hote!.querySelector('[data-erreur]')?.textContent ?? '';
+    expect(message, 'un code inconnu doit nommer sa cause').toContain('nouveau_refus');
+    expect(message).toContain('502');
+    expect(message).not.toContain(fr['collectionPhysique.erreur.generique']);
+    refus = false; avancement = { en_cours: false, etape: null, fait: 3, total: 3 };
+    await vi.advanceTimersByTimeAsync(3000); await laisserTourner();
+    expect(hote!.querySelector('[data-erreur]'), 'la relecture réussie doit retirer son ancienne erreur').toBeNull();
+    expect(hote!.querySelectorAll('[data-disque]')).toHaveLength(3);
+  });
+
+  it('un vrai refus d’écriture du compte reste un échec précis, sans confirmation mensongère', async () => {
+    const fetchInitial = globalThis.fetch;
+    vi.stubGlobal('fetch', vi.fn(async (url: any, init?: RequestInit) => {
+      if (String(url).includes('/reglages/identite')) return reponse({ error: 'collection_physique.ecriture' }, 500);
+      return fetchInitial(url, init);
+    }));
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! }); await laisserTourner();
+    const lectures = appels.filter(a => a.includes('/collection-physique/collection')).length;
+    (hote!.querySelector('[data-compte-du-jeton]') as HTMLButtonElement).click(); await laisserTourner();
+    expect(hote!.querySelector('[data-compte-enregistre]')).toBeNull();
+    const message = hote!.querySelector('[data-erreur]')?.textContent ?? '';
+    expect(message).not.toContain(fr['collectionPhysique.erreur.generique']);
+    expect(message).toMatch(/enregistr|écri/i);
+    expect(appels.filter(a => a.includes('/collection-physique/collection'))).toHaveLength(lectures);
   });
 });

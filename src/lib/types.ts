@@ -95,6 +95,8 @@ export interface Artist {
   bio?: string | null;
   /** Provenance de `bio` (source, URL, licence, langue) — absente sur un serveur ancien. */
   bio_provenance?: import('./library/attributionBio').BioProvenance | null;
+  /** #8010 — la bio est servie dans une autre langue que celle de l'interface. */
+  repli?: { raison?: string; langue_demandee?: string | null; langue_disponible?: string | null } | null;
   image_path?: string | null;
   image_source?: string | null;
   /**
@@ -131,6 +133,12 @@ export interface Album {
    */
   focus_track_ids?: number[];
   credit_roles?: string[];
+  /**
+   * tune-server-rust#7725 — le plus grand nombre de canaux parmi les pistes
+   * de l'album (listes de la Bibliothèque et de la fiche artiste). ABSENT
+   * d'un serveur plus ancien : le filtre Multicanal ne s'affiche pas.
+   */
+  max_channels?: number | null;
   id: number | null;
   title: string;
   artist_id?: number | null;
@@ -1925,6 +1933,11 @@ export interface SmartCollection {
   description_key?: string | null;
   icon: string | null;
   color: string | null;
+  /**
+   * tune-server-rust#7872 — la requête avancée de la collection, appliquée
+   * en plus des règles ; `null` ou absente : aucune.
+   */
+  expression?: string | null;
   // Le routeur renvoie le tableau JSON decode ; les anciennes reponses
   // portaient la chaine encodee (#2732).
   rules: SmartRule[] | string;

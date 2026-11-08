@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { plafondDuCurseur } from '../../lib/limitesVolume';
   import { volumeCommandable, bornesCurseurSortie, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { bulleTexte } from '../../lib/infobulleTexte';
@@ -35,6 +36,7 @@
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
+  import ProposerTuneTested from './ProposerTuneTested.svelte';
   import BadgeHorsBackend from './BadgeHorsBackend.svelte';
   import BadgeReaffectation from './BadgeReaffectation.svelte';
   import MenuZone from './MenuZone.svelte';
@@ -51,6 +53,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import { zoneCorrectionPiece } from '../../lib/correctionPiece';
   import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
   import OutputModuleBanner from '../partages/OutputModuleBanner.svelte';
 
@@ -102,6 +105,8 @@
    */
   const estAirplay = (z: Zone) => z.output_type === 'airplay' || z.output_type === 'airplay2';
   let airplayPairing = $state<{ deviceId: string; deviceName: string } | null>(null);
+  /** tune-server-rust#7922 — la fiche Tune tested ouverte, une à la fois. */
+  let ficheTuneTested = $state<{ id: number; nom: string; teste: boolean } | null>(null);
   function ouvrirAppairage(z: Zone, e?: Event) {
     e?.stopPropagation();
     if (!z.output_device_id) return;
@@ -128,7 +133,7 @@
       zones.update((zs) => zs.map((x) => (x.id === zid ? maj : x)));
       notifications.success($t('zone.outputChanged' as any));
     } catch (err: any) {
-      notifications.error(err?.message || $t('zone.changeOutputError' as any));
+      notifierErreur($t('zone.changeOutputError' as any), err, { motifSeul: true });
     } finally {
       sortieEnCours = null;
     }
@@ -150,7 +155,7 @@
       zones.set(await api.getZones().catch(() => []));
       notifications.success($t('zone.allZonesDeleted' as any));
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       toutSupprimerEnCours = false;
     }
@@ -172,7 +177,7 @@
       if (typeof rtt !== 'number') throw new Error(entree?.status ?? 'probe_failed');
       latences = { ...latences, [zid]: rtt };
     } catch (err: any) {
-      notifications.error(`${$t('zone.latency' as any)} : ${err?.message ?? ''}`);
+      notifierErreur($t('zone.latency' as any), err);
     } finally {
       mesureLatence = null;
     }
@@ -520,6 +525,7 @@
         image: () => choisirImage(z),
         reglages: () => reglagesDeLaZone(z),
         correction: () => correctionDeLaZone(z),
+        tuneTested: () => { if (z.id != null) ficheTuneTested = { id: z.id, nom: z.name, teste: !!tuneTestedDe(z) }; },
         latence: () => { void mesurerLatence(z); },
         appairer: () => ouvrirAppairage(z),
         fusionner: () => { if (j) void fusionner(z, j); },
@@ -535,10 +541,14 @@
     activeView.set('settings');
   }
 
-  /** #1427 — droit au bloc de correction de pièce (FIR) de CETTE zone. */
+  /**
+   * web#2706 — l'écran Correction de pièce de CETTE zone (calibration sans
+   * micro, mesure au micro) ; l'import FIR (#1427) y reste à un lien, vers le
+   * bloc de la fiche de la zone dans Réglages › Appareils.
+   */
   function correctionDeLaZone(z: Zone) {
-    v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: z.id ?? undefined, bloc: 'fir' });
-    activeView.set('settings');
+    zoneCorrectionPiece.set(z.id != null ? { id: z.id, name: z.name } : null);
+    activeView.set('roomcorrection');
   }
 </script>
 
@@ -704,7 +714,7 @@
                 {#if renaming !== z.id}<span class="cnom">{z.name}</span>{/if}
                 <span class="cappareil" class:muet={!appareilDeLaZone(z)}>{appareilOuSortie(z)}</span>
                 <span class="cbadges">
-                  {#if teste}<BadgeTuneTested taille="sm" />{/if}
+                  {#if teste}<BadgeTuneTested taille="sm" appareil={teste} />{/if}
                   {#if r}<span class="rc {r.cls}" title={r.long}>{r.txt}</span>{/if}
                   {#if presenceTxt(z)}<span class="rc warn" title={presenceTxt(z)}>{presenceTxt(z)}</span>{/if}
                   <BadgeHorsBackend zone={z} />
@@ -882,6 +892,10 @@
 <input type="file" accept="image/*" bind:this={champFichier} onchange={imageChoisie}
   style="display:none" aria-hidden="true" tabindex="-1" />
 </section>
+
+{#if ficheTuneTested}
+  <ProposerTuneTested zoneId={ficheTuneTested.id} nom={ficheTuneTested.nom} dejaTeste={ficheTuneTested.teste} onClose={() => (ficheTuneTested = null)} />
+{/if}
 
 {#if airplayPairing}
   <AirplayPairingModal

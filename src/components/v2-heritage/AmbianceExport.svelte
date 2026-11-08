@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * « Exporter vers… » — web#2218 (go de Bertrand, 19/10/2026, rc7).
    *
@@ -67,7 +68,7 @@
         resultat = r;
       }
     } catch (e: any) {
-      notifications.error(e?.message || $t('v2.ambiance.saveError'));
+      notifierErreur($t('v2.ambiance.saveError'), e, { motifSeul: true });
     }
     enCours = null;
   }

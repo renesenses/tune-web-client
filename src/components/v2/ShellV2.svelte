@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Coquille du nouveau client (direction Levente) : barre latérale à
@@ -36,8 +37,10 @@
   import StreamingV2 from './StreamingV2.svelte';
   import CrossfeedV2 from './CrossfeedV2.svelte';
   import ReaffectationCanauxV2 from './ReaffectationCanauxV2.svelte';
+  import SurechantillonnageV2 from './SurechantillonnageV2.svelte';
   import CrossfeedProV2 from './CrossfeedProV2.svelte';
   import CrosstalkV2 from './CrosstalkV2.svelte';
+  import CorrectionPieceV2 from './CorrectionPieceV2.svelte';
   import EqualizerV2 from './EqualizerV2.svelte';
   import TuneHealthV2 from './TuneHealthV2.svelte';
   import ConverterV2 from './ConverterV2.svelte';
@@ -47,6 +50,7 @@
   import LectureCdV2 from './LectureCdV2.svelte';
   import CircleV2 from './CircleV2.svelte';
   import CollectionPhysiqueV2 from './CollectionPhysiqueV2.svelte';
+  import StatsBibliothequeV2 from './StatsBibliothequeV2.svelte';
   import PageSourceV2 from './PageSourceV2.svelte';
   import CollectionsV2 from './CollectionsV2.svelte';
   import HistoriqueV2 from './HistoriqueV2.svelte';
@@ -68,6 +72,18 @@
   // mobile). Sans ces deux montages, le clic tombait dans le repli « À venir » :
   // l'écran n'avait pas disparu, il n'avait jamais été branché.
   import NowPlaying from '../partages/NowPlaying.svelte';
+  // Vue mini (`?vue=mini`, alias `?mini=1`) — le gabarit téléphone, maquette A
+  // « télécommande » validée par Bertrand le 31/10/2026. Voir `lib/vueMini`.
+  import { vueMiniActive, fenetreRepliee, filtresOuverts } from '../../lib/vueMini';
+  // La mise en page TÉLÉPHONE des écrans (en-tête sur une ligne, onglets
+  // défilants, filtres repliés, grille de deux colonnes), sous `.v2-shell.mini`.
+  import '../../styles/vue-mini.css';
+  const vueMini = vueMiniActive();
+  import EcouterMini from './mini/EcouterMini.svelte';
+  import BandeauMini from './mini/BandeauMini.svelte';
+  import BarreOngletsMini from './mini/BarreOngletsMini.svelte';
+  import MiniBarreLecture from './mini/MiniBarreLecture.svelte';
+  import FeuilleMini from './mini/FeuilleMini.svelte';
   /*
    * 🔴 LE CALQUE DE SESSION EXPIREE (#1021).
    *
@@ -225,6 +241,7 @@
   import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
   import { brancherHistoriqueCoquille } from '../../lib/historiqueCoquille';
+  import { reculerAvecIntention } from '../../lib/historiqueNavigation';
   import { demarrerTransportV2 } from '../../lib/v2Live';
   import { reserveDeLaGrappe, reserveHauteDeLaGrappe } from '../../lib/gouttiereGrappe';
 
@@ -256,6 +273,13 @@
   let coquilleEl = $state<HTMLElement | null>(null);
   $effect(() => {
     const g = grappeEl, c = coquilleEl;
+    // Vue mini : aucune grappe en haut à droite (le bandeau la remplace) ; les
+    // écrans n'ont donc aucune gouttière à lui réserver.
+    if (vueMini && c) {
+      c.style.setProperty('--v2-grappe-w', '0px');
+      c.style.setProperty('--v2-grappe-h', '0px');
+      return;
+    }
     if (!g || !c || typeof ResizeObserver === 'undefined') return;
     const poser = () => {
       const r = g.getBoundingClientRect();
@@ -290,8 +314,8 @@
     mediaservers: 'nav.mediaservers', history: 'nav.history', oxygen: 'v2.nav.oxygen',
     bannedtracks: 'ban.title', ecouterplustard: 'v2.nav.later',
     ambiance: 'nav.ambiance', browse: 'nav.browse', equalizer: 'nav.equalizer',
-    crossfeed: 'v2.nav.crossfeed', crossfeedpro: 'v2.nav.crossfeedPro', crosstalk: 'v2.nav.crosstalk', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
-    alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', lecturecd: 'v2.cd.title', circle: 'v2.circle.title', collectionphysique: 'collectionPhysique.titre', source: 'v2.sources.title', diagnostics: 'v2.nav.processing',
+    crossfeed: 'v2.nav.crossfeed', crossfeedpro: 'v2.nav.crossfeedPro', crosstalk: 'v2.nav.crosstalk', roomcorrection: 'v2.zone.roomCorrection', surechantillonnage: 'upsampling.title', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
+    alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', lecturecd: 'v2.cd.title', circle: 'v2.circle.title', collectionphysique: 'collectionPhysique.titre', statsbibliotheque: 'statsBibliotheque.titre', source: 'v2.sources.title', diagnostics: 'v2.nav.processing',
     settings: 'v2.nav.settings', support: 'v2.nav.support', genres: 'nav.genres',
     smartplaylists: 'v2.pl.tabSmart', playlistmanager: 'playlist.manager',
   };
@@ -404,12 +428,27 @@
   // Fils 2166 et 2168 (rc3) — puis celle du PROFIL, quand le serveur a
   // répondu : la copie locale d'un autre navigateur ne fait plus foi.
   $effect(() => brancherHistoriqueCoquille({
-    vueDeDemarrage: get(preferences).startupView,
-    vueDeDemarrageRelue: preferencesRelues.then(() => get(preferences).startupView),
+    // Vue mini : on arrive TOUJOURS sur Écouter, quelle que soit la vue de
+    // démarrage des Réglages — c'est ce qu'on attend d'un mini-lecteur.
+    vueDeDemarrage: vueMini ? 'nowplaying' : get(preferences).startupView,
+    vueDeDemarrageRelue: vueMini ? undefined : preferencesRelues.then(() => get(preferences).startupView),
   }));
 
+  // Vue mini : « Lecture en cours » est un onglet, pas un calque. Qui demande
+  // le calque mobile (`mobileNowPlayingOpen`) est mené à l'onglet Écouter.
+  // Vue mini : changer d'écran referme les filtres de l'écran quitté.
+  $effect(() => { void $activeView; filtresOuverts.set(false); });
+  $effect(() => {
+    if (vueMini && $mobileNowPlayingOpen) {
+      mobileNowPlayingOpen.set(false);
+      activeView.set('nowplaying');
+    }
+  });
+
   /** La bannière n'occupe la place que si elle a quelque chose à dire. */
-  const annonceMaj = $derived($updateAvailable && !$updateBannerDismissed);
+  // Vue mini : pas de bannière — la fenêtre de 360 px n'a pas la place, et la
+  // mise à jour s'annonce dans la fenêtre complète.
+  const annonceMaj = $derived(!vueMini && $updateAvailable && !$updateBannerDismissed);
 
   /**
    * Le clic MENE quelque part : Réglages → Système, section « À propos », d'où
@@ -524,6 +563,14 @@
 
   /** Le retour de la fiche album : le dépôt est consommé UNE fois. */
   function fermerAlbumService() {
+    // #2459 : l'entrée précédente porte aussi le détail playlist, pas seulement sa vue.
+    if (retourSousLaFiche && history.state?.tune === 'v2' && history.state.vue === 'streamingalbum') {
+      reculerAvecIntention(() => {
+        ficheAlbumService.set(null);
+        vueDeRetour.set(null);
+      });
+      return;
+    }
     const ou = $vueDeRetour;
     ficheAlbumService.set(null);
     vueDeRetour.set(null);
@@ -584,13 +631,13 @@
       poseRaccourci = false;
       proposition = null;
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('v2.nav.shortcutFailed' as any));
+      notifierErreur($t('v2.nav.shortcutFailed' as any), e, { motifSeul: true });
     }
     pose = false;
   }
 </script>
 
-<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} bind:this={coquilleEl}>
+<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} class:mini={vueMini} class:filtres-ouverts={vueMini && $filtresOuverts} bind:this={coquilleEl}>
   <!--
     Le raccourci se pose depuis N'IMPORTE QUEL écran.
 
@@ -610,6 +657,7 @@
     de repli est inatteignable. Sans ce bouton, la navigation entière
     disparaîtrait sur un téléphone.
   -->
+  {#if !vueMini}
   <div class="av-tr" bind:this={grappeEl}>
     <!--
       🔴 L'OUVERTURE DU TIROIR vit ICI, pas dans la barre latérale.
@@ -698,6 +746,7 @@
     </button>
     <AvatarMenu />
   </div>
+  {/if}
 
   {#if poseRaccourci}
     <div class="rc-fond" role="presentation" onclick={fermerPoseRaccourci}>
@@ -760,6 +809,10 @@
     `OxygenView`, donc indépendant de la coquille), et le fait que `focusMode`
     retombe à faux dès qu'on change de vue.
   -->
+  {#if vueMini}<BandeauMini replie={$fenetreRepliee} />{/if}
+  {#if vueMini && $fenetreRepliee}
+    <EcouterMini replie />
+  {:else}
   <div class="v2-row" class:sans-distraction={$focusMode}>
     {#if !$focusMode}<Sidebar />{/if}
     <main class="main">
@@ -833,8 +886,12 @@
         <CrossfeedProV2 />
       {:else if $activeView === 'crosstalk'}
         <CrosstalkV2 />
+      {:else if $activeView === 'roomcorrection'}
+        <CorrectionPieceV2 />
       {:else if $activeView === 'reaffectation'}
         <ReaffectationCanauxV2 />
+      {:else if $activeView === 'surechantillonnage'}
+        <SurechantillonnageV2 />
       {:else if $activeView === 'equalizer'}
         <EqualizerV2 />
       {:else if $activeView === 'diagnostics'}
@@ -860,6 +917,9 @@
       {:else if $activeView === 'collectionphysique'}
         <!-- « Ma collection physique » (tune-server-rust#7195). -->
         <CollectionPhysiqueV2 />
+      {:else if $activeView === 'statsbibliotheque'}
+        <!-- Statistiques de la bibliothèque, ouvertes depuis la Bibliothèque (web#2653). -->
+        <StatsBibliothequeV2 />
       {:else if $activeView === 'source'}
         <!-- Page d'une source de la rubrique « Sources » (tune-server-rust#5065). -->
         <PageSourceV2 />
@@ -923,7 +983,11 @@
         <!-- `onAddToPlaylist` non fournie : le bouton « ajouter à une playlist »
              de cet écran reste masqué tant que la coquille v2 n'a pas sa propre
              fenêtre de playlists. Mieux vaut un bouton absent qu'un bouton mort. -->
-        <NowPlaying tvDansLaCoquille />
+        {#if vueMini}
+          <EcouterMini />
+        {:else}
+          <NowPlaying tvDansLaCoquille />
+        {/if}
       {:else}
         <div class="soon">
           <div class="badge">{$t('v2.shell.soon' as any)}</div>
@@ -933,7 +997,21 @@
       {/if}
     </main>
   </div>
-  <TransportBar />
+  {/if}
+  {#if vueMini}
+    <!-- Vue mini (maquette A) : la mini-barre hors d'Écouter, la barre
+         d'onglets, et les panneaux File et Zones. Repliée, rien de tout cela. -->
+    {#if !$fenetreRepliee}
+      {#if $activeView !== 'nowplaying'}<MiniBarreLecture />{/if}
+      <BarreOngletsMini />
+      <FeuilleMini />
+      {#if $filtresOuverts}
+        <div class="fond-filtres" role="presentation" onclick={() => filtresOuverts.set(false)} data-fond-filtres></div>
+      {/if}
+    {/if}
+  {:else}
+    <TransportBar />
+  {/if}
 
   <!-- Le conteneur de dialogues : il ne dessine rien tant que personne ne
        demande. Place ICI, au premier niveau de la coquille, pour couvrir tous
@@ -1014,6 +1092,8 @@
      d'une coquille en `overflow:hidden`, passait sous le bord visible. `dvh`
      suit le viewport réel (`vh` reste en repli pour qui ignore `dvh`), et le
      retrait du haut que `body` réserve déjà (`tune-theme.css`) est soustrait. */
+  /* Vue mini : le fond sous le panneau des filtres (`vue-mini.css`). */
+  .fond-filtres{position:fixed; inset:0; z-index:94; background:var(--v2-scrim)}
   .v2-shell{--maj-h:42px; position:relative; display:flex; flex-direction:column;
     height:calc(100vh - env(safe-area-inset-top, 0px)); height:calc(100dvh - env(safe-area-inset-top, 0px));
     background:var(--v2-bg); overflow:hidden}

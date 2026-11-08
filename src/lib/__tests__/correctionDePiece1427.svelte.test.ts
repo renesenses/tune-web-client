@@ -72,10 +72,13 @@ describe('#1427 — « Correction de pièce » au menu de la zone', () => {
     expect(get(t)('v2.zone.roomCorrection' as any)).toBe('Room correction');
   });
 
-  it('le geste de l’écran Zones mène au BLOC FIR de la fiche de cette zone', () => {
+  // web#2706 — le geste ouvre désormais l'écran Correction de pièce
+  // (calibration du greffon) ; le BLOC FIR de la fiche reste à un lien de lui.
+  it('le geste de l’écran Zones mène à l’écran Correction de pièce, qui garde le lien vers le BLOC FIR', () => {
     const zones = readFileSync(resolve(process.cwd(), 'src/components/v2/ZonesV2.svelte'), 'utf-8');
     expect(zones).toMatch(/correction:\s*\(\)\s*=>\s*correctionDeLaZone\(z\)/);
-    expect(zones).toMatch(/section: 'perZone', zone: z\.id \?\? undefined, bloc: 'fir'/);
+    const ecran = readFileSync(resolve(process.cwd(), 'src/components/v2/CorrectionPieceV2.svelte'), 'utf-8');
+    expect(ecran).toMatch(/section: 'perZone', zone: zoneId \?\? undefined, bloc: 'fir'/);
     const reglages = readFileSync(resolve(process.cwd(), 'src/components/v2/SettingsV2.svelte'), 'utf-8');
     expect(reglages).toContain('<div id={`fir-${z.id}`}><CorrectionAcoustiqueZone zone={z} /></div>');
     expect(reglages).toMatch(/bloc === 'fir' \? document\.getElementById\(`fir-\$\{target\.zone\}`\)/);

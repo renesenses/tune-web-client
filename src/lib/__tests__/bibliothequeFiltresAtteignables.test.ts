@@ -120,7 +120,7 @@ describe('Bibliothèque — les filtres retirent, ils n’atténuent pas', () =>
   it('la grille et la liste itèrent sur les albums FILTRÉS', () => {
     const src = source();
     expect(
-      src.includes('const affiches = $derived(sorted.filter(matches))'),
+      src.includes('const affiches = $derived(prioriserRecherche(sorted.filter(matches), q, fold))'),
       'la liste filtrée a disparu.',
     ).toBe(true);
     expect(

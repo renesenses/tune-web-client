@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * Créer, modifier ou supprimer une PLAYLIST INTELLIGENTE, dans le nouveau
    * client.
@@ -289,7 +290,7 @@
     } catch (e: any) {
       // apiError range le corps `error` du serveur dans e.code (par exemple le
       // message de référence circulaire) : le préférer au statut HTTP brut.
-      notifications.error(e?.code || errText(e) || $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
     travail = false;
   }

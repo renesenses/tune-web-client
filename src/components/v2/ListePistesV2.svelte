@@ -95,6 +95,9 @@
     redimensionnable, retablirLargeur, retenirLargeurs, LARGEUR_MAX_PX, PAS_CLAVIER_PX,
     type EcranColonnes,
   } from '../../lib/largeursColonnes';
+  import {
+    appliquerOrdre, deplacerAupres, deplacerDUnCran, fixerOrdre, ordreDe, ordresColonnes, retablirOrdre,
+  } from '../../lib/ordreColonnes';
   import type { Track } from '../../lib/types';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import PisteActions from './PisteActions.svelte';
@@ -182,6 +185,8 @@
      * fait déjà `IndicateurLecture`, juste à côté.
      */
     pochetteEnTableau?: boolean;
+    /** web#2601 — côté de la vignette (px) quand `pochetteEnTableau` ; 36 par défaut. */
+    tailleVignette?: number;
     /**
      * 🔴 LA PROVENANCE DE CHAQUE LIGNE, au mode tableau — #1113.
      *
@@ -412,6 +417,7 @@
     contexte = {},
     pistes, onLire, onLireDepuis = null, numerotation = 'rang',
     pochetteEnTableau = false,
+    tailleVignette = 36,
     sourceEnTableau = false,
     ouvertureAlbum = null, apres, coeurDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
@@ -548,9 +554,80 @@
    * l'identique : le gabarit d'avant.
    */
   const largeursEcran = $derived(ecranColonnes ? largeursDe($largeursColonnes, ecranColonnes) : null);
-  const colonnes = $derived(
+  const colonnesLarges = $derived(
     largeursEcran && Object.keys(largeursEcran).length ? appliquerLargeurs(colonnesAuto, largeursEcran) : colonnesAuto,
   );
+  /**
+   * web#2599 — l'ORDRE retenu pour cet écran, par-dessus l'ordre du catalogue.
+   * Sans écran ou sans ordre retenu, `colonnes` est `colonnesLarges` à
+   * l'identique. Une colonne que l'ordre ne connaît pas (ajoutée plus tard)
+   * est quand même rendue : voir `appliquerOrdre`.
+   */
+  const ordreEcran = $derived(ecranColonnes ? ordreDe($ordresColonnes, ecranColonnes) : null);
+  const colonnes = $derived(ordreEcran?.length ? appliquerOrdre(colonnesLarges, ordreEcran) : colonnesLarges);
+
+  /** La colonne qu'on glisse, et la colonne survolée avec le côté du dépôt. */
+  let colGlissee = $state<CleColonne | null>(null);
+  let colSurvol = $state<{ cle: CleColonne; apres: boolean } | null>(null);
+  /** Le message lu par les lecteurs d'écran après un déplacement. */
+  let annonceColonne = $state('');
+  const nomColonne = (c: Colonne) => $t(c.cleI18n as any);
+
+  function retenirOrdre(cles: CleColonne[]): void {
+    if (ecranColonnes) fixerOrdre(ecranColonnes, cles);
+  }
+  function annoncer(cle: CleColonne, cles: readonly CleColonne[]): void {
+    const c = colonnes.find((x) => x.cle === cle);
+    if (!c) return;
+    annonceColonne = $t('v2.liste.colonneDeplacee' as any)
+      .replace('{col}', nomColonne(c)).replace('{n}', String(cles.indexOf(cle) + 1)).replace('{m}', String(cles.length));
+  }
+  function glisserEnTete(e: DragEvent, c: Colonne): void {
+    if (!ecranColonnes) return;
+    colGlissee = c.cle;
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('application/x-tune-colonne', c.cle); } catch { /* navigateur sans données */ }
+    }
+  }
+  function survolerEnTete(e: DragEvent, c: Colonne): void {
+    if (!colGlissee) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    colSurvol = { cle: c.cle, apres: e.clientX > r.left + r.width / 2 };
+  }
+  function deposerEnTete(e: DragEvent, c: Colonne): void {
+    if (!colGlissee || !ecranColonnes) return;
+    e.preventDefault();
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const apres = e.clientX > r.left + r.width / 2;
+    const cles = colonnes.map((x) => x.cle);
+    const suivant = deplacerAupres(cles, colGlissee, c.cle, apres);
+    if (suivant.join() !== cles.join()) { retenirOrdre(suivant); annoncer(colGlissee, suivant); }
+    finirGlisserEnTete();
+  }
+  function finirGlisserEnTete(): void { colGlissee = null; colSurvol = null; }
+  async function deplacerColonneAuClavier(e: KeyboardEvent, c: Colonne): Promise<void> {
+    if (!ecranColonnes || !e.altKey || e.ctrlKey || e.metaKey) return;
+    const cles = colonnes.map((x) => x.cle);
+    if (e.key === 'Home') {
+      e.preventDefault();
+      retablirOrdre(ecranColonnes);
+      annonceColonne = $t('v2.liste.colonneDeplacee' as any).replace('{col}', nomColonne(c))
+        .replace('{n}', String(colonnesLarges.findIndex((x) => x.cle === c.cle) + 1)).replace('{m}', String(cles.length));
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      e.stopPropagation();
+      const suivant = deplacerDUnCran(cles, c.cle, e.key === 'ArrowLeft' ? -1 : 1);
+      if (suivant.join() === cles.join()) return;
+      retenirOrdre(suivant);
+      annoncer(c.cle, suivant);
+    } else return;
+    // Le nœud est déplacé par le rendu : on rend le focus à l'en-tête.
+    await tick();
+    document.querySelector<HTMLElement>(`[data-th="${c.cle}"]`)?.focus();
+  }
 
   /**
    * Une poignée sur cette colonne ? Jamais sur le Titre (il prend le reste) ;
@@ -624,6 +701,26 @@
     retablirLargeur(ecranColonnes, c.cle);
     const { [c.cle]: _oubliee, ...reste } = mesurees;
     mesurees = reste;
+  }
+  /**
+   * web#2599 — ce qui rend un en-tête DÉPLAÇABLE : glisser-déposer à la souris
+   * et Alt + flèches au clavier (l'en-tête prend le focus). Sans écran, rien.
+   */
+  function attrsEnTete(c: Colonne): Record<string, unknown> {
+    if (!ecranColonnes) return {};
+    return {
+      draggable: 'true', tabindex: 0, 'data-th': c.cle,
+      'data-glisse': colGlissee === c.cle ? '' : undefined,
+      'data-depot': colSurvol?.cle === c.cle && colGlissee !== c.cle ? (colSurvol.apres ? 'apres' : 'avant') : undefined,
+      'aria-keyshortcuts': 'Alt+ArrowLeft Alt+ArrowRight Alt+Home',
+      'aria-description': $t('v2.liste.deplacerColonne' as any).replace('{col}', nomColonne(c)),
+      ondragstart: (e: DragEvent) => glisserEnTete(e, c),
+      ondragover: (e: DragEvent) => survolerEnTete(e, c),
+      ondragleave: () => { if (colSurvol?.cle === c.cle) colSurvol = null; },
+      ondrop: (e: DragEvent) => deposerEnTete(e, c),
+      ondragend: finirGlisserEnTete,
+      onkeydown: (e: KeyboardEvent) => { void deplacerColonneAuClavier(e, c); },
+    };
   }
   /**
    * Le tri au clic sur l'en-tête — sauf juste après un glisser de poignée :
@@ -807,6 +904,7 @@
   <!-- 🔴 #853 — `--tmin` est la largeur en deçà de laquelle le tableau DÉFILE
        au lieu de comprimer. Sans elle, les planchers des colonnes de texte
        seraient simplement ignorés par la grille, qui redescendrait sous eux. -->
+  {#if ecranColonnes}<span class="sr-seul" role="status" aria-live="polite" data-annonce-colonne>{annonceColonne}</span>{/if}
   <div class="tbl" class:reordonnable class:selectionnable style="--tcols:{gabarit}; --tmin:{minGrille}px; --tmin-pile:{minGrilleAuto}px" role="table">
     <div class="thead" role="row">
       <!-- La colonne de la poignée : dans l'en-tête aussi, sinon tout dérive
@@ -818,17 +916,17 @@
         {#if triable(c.cle)}
           {@const sens = tri?.cle === c.cle ? tri.sens : null}
           <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'} class:redim={poigneeIci}
-            role="columnheader" use:bulleTexte aria-sort={sens === 'asc' ? 'ascending' : sens === 'desc' ? 'descending' : 'none'}>
+            {...attrsEnTete(c)} role="columnheader" use:bulleTexte aria-sort={sens === 'asc' ? 'ascending' : sens === 'desc' ? 'descending' : 'none'}>
             <button class="trier" class:actif={sens != null} type="button" data-tri={c.cle} use:bulleTexte
               onclick={() => trierDepuisEnTete(c.cle)}>{$t(cleEnTeteColonne(c, pistes) as any)}{#if sens}<span class="fleche" aria-hidden="true">{sens === 'asc' ? '▲' : '▼'}</span>{/if}</button>
             {#if poigneeIci}{@render poigneeColonne(c)}{/if}
           </span>
         {:else if poigneeIci}
           <span class="th redim" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-            role="columnheader" use:bulleTexte><span class="th-txt" use:bulleTexte>{$t(cleEnTeteColonne(c, pistes) as any)}</span>{@render poigneeColonne(c)}</span>
+            {...attrsEnTete(c)} role="columnheader" use:bulleTexte><span class="th-txt" use:bulleTexte>{$t(cleEnTeteColonne(c, pistes) as any)}</span>{@render poigneeColonne(c)}</span>
         {:else}
           <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-            role="columnheader" use:bulleTexte>{$t(cleEnTeteColonne(c, pistes) as any)}</span>
+            {...attrsEnTete(c)} role="columnheader" use:bulleTexte>{$t(cleEnTeteColonne(c, pistes) as any)}</span>
         {/if}
       {/each}
       <!-- La colonne d'actions n'a pas d'en-tête : son contenu se lit seul, et
@@ -884,8 +982,8 @@
                    la vignette, elle ne s'y ajoute pas : une source par ligne
                    suffit, et l'incrustation de 36 px tronque son texte. -->
               {#if pochetteEnTableau}
-                <span class="tvig">
-                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={36}
+                <span class="tvig" style={tailleVignette !== 36 ? `--tvig:${tailleVignette}px` : undefined}>
+                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={tailleVignette} vignette
                     alt={p.title ?? ''} source={sourceEnTableau ? null : p.source} />
                 </span>
               {/if}
@@ -977,6 +1075,13 @@
   .th-txt{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* La poignée : 12 px de prise DANS la gouttière, jamais au-delà — elle ne
      doit pas élargir le tableau. Discrète au repos, un trait au survol. */
+  /* web#2599 — l'en-tête qu'on glisse s'estompe ; le trait dit où il tombera. */
+  .th[draggable="true"]{cursor:grab}
+  .th[data-glisse]{opacity:.45}
+  .th[data-depot="avant"]{box-shadow:inset 2px 0 0 var(--v2-acc1)}
+  .th[data-depot="apres"]{box-shadow:inset -2px 0 0 var(--v2-acc1)}
+  .th:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px; border-radius:4px}
+  .sr-seul{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
   .poignee-col{position:absolute; top:-4px; bottom:-4px; right:-13px; width:12px;
     cursor:col-resize; touch-action:none; z-index:1}
   .poignee-col::after{content:''; position:absolute; left:5px; top:2px; bottom:2px; width:2px;
@@ -1030,7 +1135,7 @@
      pas décider de la hauteur de la ligne, sinon le tableau change de densité
      sur le seul écran qui l'active. `flex:0 0 auto` : elle ne se comprime
      jamais — c'est le TEXTE qui s'élide, comme l'indicateur juste à côté. */
-  .tvig{flex:0 0 auto; width:36px; height:36px; border-radius:4px;
+  .tvig{flex:0 0 auto; width:var(--tvig, 36px); height:var(--tvig, 36px); border-radius:4px;
     overflow:hidden; display:block; line-height:0}
   /* C'est le TEXTE qui s'élide, jamais l'indicateur : un repère tronqué ne
      repère plus rien. */

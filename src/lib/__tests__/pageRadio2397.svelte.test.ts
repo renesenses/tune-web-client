@@ -134,7 +134,7 @@ describe('entrées de l’annuaire : non modifiables, à retirer', () => {
 });
 
 describe('Dernières lues', () => {
-  it('🔴 lancer une station la met en première rangée, la plus récente d’abord', async () => {
+  it('🔴 lancer une station la met en première rangée (Dernières écoutées, en haut), la plus récente d’abord (#2716)', async () => {
     await monter();
     expect(hote.querySelector('.recentes'), 'rangée visible sans lecture').toBeNull();
     const lancer = (nom: string) => ([...hote.querySelectorAll('.grid .st')]
@@ -144,6 +144,8 @@ describe('Dernières lues', () => {
     lancer('Radio Maison'); await respirer();
     const rangee = [...hote.querySelectorAll('.recentes .st .nm')].map((n) => n.textContent);
     expect(rangee).toEqual(['Radio Maison', 'FIP']);
+    // #2716 : les mêmes stations restent aussi dans « Mes radios », en dessous.
+    expect([...hote.querySelectorAll('.mesradios .st .nm')].map((n) => n.textContent)).toEqual(['FIP', 'Radio Maison']);
     expect(hote.querySelector('.scroll')!.firstElementChild!.classList.contains('filtres')).toBe(true);
   });
 

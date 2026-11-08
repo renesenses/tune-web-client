@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { volumeCommandable, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur } from '../../lib/messageServeur';
@@ -66,13 +67,25 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId, remettreRepetitionAOff } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { currentProfileId } from '../../lib/stores/profile';
+  import { bibliothequeEtendueActive, chargerReglageEtendue, changerReglageEtendue } from '../../lib/bibliothequeEtendue';
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
   import ReglagesAccesParCompte from './ReglagesAccesParCompte.svelte';
   import { chargerLienAcces, qrSvg, renouvelerLienAcces } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
+  import { RECUL_PODCAST_MAX, RECUL_PODCAST_MIN, reculPodcastSaisi } from '../../lib/reculPodcast';
   import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
+  import { CLE_DEDOUBLONNAGE_PAR_RACINE, dedoublonnageParRacineDepuisConfig } from '../../lib/dedoublonnageParRacine';
+  import {
+    CLE_IMPORT_PLAYLISTS_SCAN,
+    PROFIL_DES_PLAYLISTS_DU_SCAN,
+    importPlaylistsScanDepuisConfig,
+    playlistsImporteesAuScan,
+    retirerPlaylists,
+  } from '../../lib/playlistsDuScan';
+  import { playlists as magasinPlaylists } from '../../lib/stores/playlists';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
@@ -116,6 +129,7 @@
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { retablirLargeurs } from '../../lib/largeursColonnes';
+  import { retablirOrdre } from '../../lib/ordreColonnes';
   import { notifications } from '../../lib/stores/notifications';
   import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
@@ -205,6 +219,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
+  import ProposerTuneTested from './ProposerTuneTested.svelte';
   import BadgeVerrouVolumeZone from './BadgeVerrouVolumeZone.svelte';
   let indexTuneTested = $state<Map<string, AppareilTuneTested>>(new Map());
   // Une seule fois : l'effet ne lit RIEN de ce qu'il écrit.
@@ -216,6 +231,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // La règle vit dans `lib/tuneTested.ts`, pour qu'un test l'APPELLE au lieu
   // de relire ce fichier.
   const tuneTestedDe = (z: any): AppareilTuneTested | null => appareilTuneTeste(indexTuneTested, z);
+  // #2698 — la fenêtre de proposition, ouvrable À TOUT MOMENT depuis la zone.
+  let ficheTuneTested = $state<{ id: number; nom: string; teste: boolean } | null>(null);
   /**
    * Bloc « Avancé · renderer » du client actuel, REPRIS tel quel.
    *
@@ -295,7 +312,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       propositions = { ...propositions, [zid]: null };
       zones.set(await api.getZones());
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       propositionEnCours = null;
     }
@@ -354,7 +371,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         ? { ...x, image_path: r.image_path, ...(x.image_share_status !== undefined ? { image_share_status: null } : {}) }
         : x)));
     } catch (err: any) {
-      notifications.error(err?.message ?? $t('v2.home.widgetFailed' as any));
+      notifierErreur($t('v2.home.widgetFailed' as any), err, { motifSeul: true });
     }
   }
   /** #2109 — proposer la photo au catalogue, après un accord lu. */
@@ -385,7 +402,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await api.deleteZoneImage(zid);
       zones.update((l) => l.map((x) => (x.id === zid ? { ...x, image_path: null } : x)));
     } catch (err: any) {
-      notifications.error(err?.message ?? $t('v2.home.widgetFailed' as any));
+      notifierErreur($t('v2.home.widgetFailed' as any), err, { motifSeul: true });
     }
   }
 
@@ -439,8 +456,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }).catch(() => { podcastRewind = null; });
   });
   async function savePodcastRewind(raw: string) {
-    const value = Number(raw);
-    if (raw.trim() === '' || !Number.isInteger(value) || value < 0 || value > 300) return;
+    const value = reculPodcastSaisi(raw);
+    if (value === null) return;
     const before = podcastRewind;
     podcastRewindBusy = true;
     try {
@@ -616,7 +633,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       if (okMsg) notifications.success(okMsg);
     } catch {
       revert();
-      notifications.error('Enregistrement impossible');
+      notifications.error(get(t)('common.saveFailed' as any));
     }
   }
   function setBackend(v: string) {
@@ -738,7 +755,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       try { zones.set(await api.getZones()); } catch { /* l'essentiel est créé */ }
       notifications.success($t('settings.browserZoneCreated' as any));
     } catch (err: any) {
-      notifications.error(err?.message ?? 'Erreur');
+      notifierErreur(get(t)('common.errorLabel' as any), err, { motifSeul: true });
     } finally {
       creatingBrowserZone = false;
     }
@@ -849,7 +866,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await loadIgnoredDevices();
       notifications.success($t('settings.deviceIgnored' as any).replace('{name}', name));
     } catch (e: any) {
-      notifications.error(e?.message || $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       ignoreBusy = false;
     }
@@ -864,7 +881,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // plutôt que de laisser croire à un échec devant une liste inchangée.
       notifications.success($t('settings.deviceUnignored' as any).replace('{name}', libelleAppareilIgnore(d)));
     } catch (e: any) {
-      notifications.error(e?.message || $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       ignoreBusy = false;
     }
@@ -875,7 +892,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       devices.set([]);
       notifications.success($t('settings.devicesCleared' as any).replace('{count}', String(r.cleared)));
     } catch (e: any) {
-      notifications.error(e?.message || $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
   function netLabel(type: string): string {
@@ -951,7 +968,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function setEqBands(n: number) {
     const before = eqBands; eqBands = n;
     try { eqBands = (await api.setEqExpertSettings(n)).expert_bands; }
-    catch { eqBands = before; notifications.error('Enregistrement impossible'); }
+    catch { eqBands = before; notifications.error(get(t)('common.saveFailed' as any)); }
   }
 
   // ── Squeezebox / Lyrion ────────────────────────────────────────────────
@@ -979,7 +996,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await api.updateConfig({ squeezebox_enabled: next });
       sbEnabled = next;
       if (next) await refreshSqueezebox(); else sbStatus = null;
-    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    } catch (e: any) { notifierErreur(get(t)('common.errorLabel' as any), e, { motifSeul: true }); }
     sbSaving = false;
   }
   /**
@@ -1015,7 +1032,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // Meme regle que dans SettingsView : pas d'avis si le serveur a
       // applique a chaud (#3809).
       annonceSlimRedemarrage = !bascule.appliqueAChaud;
-    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    } catch (e: any) { notifierErreur(get(t)('common.errorLabel' as any), e, { motifSeul: true }); }
     annonceSlimSaving = false;
     // 🔴 Et on REPOSE la case sur l'état confirmé. Le clic a déjà bougé le
     // DOM ; si le serveur répond la valeur qu'on affichait DÉJÀ (serveur
@@ -1031,13 +1048,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await api.updateConfig({ lms_host: sbHost.trim() || null });
       await refreshSqueezebox();
       notifications.success($t('common.saved' as any));
-    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    } catch (e: any) { notifierErreur(get(t)('common.errorLabel' as any), e, { motifSeul: true }); }
     sbSaving = false;
   }
   async function discoverSqueezebox() {
     sbLoading = true;
     try { sbStatus = await api.discoverSqueezebox(); }
-    catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    catch (e: any) { notifierErreur(get(t)('common.errorLabel' as any), e, { motifSeul: true }); }
     sbLoading = false;
   }
   async function zoneFromPlayer(pl: api.SqueezeboxPlayer) {
@@ -1045,7 +1062,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       await api.createZoneFromSqueezebox(pl.id, pl.name);
       notifications.success($t('settings.squeezeboxZoneCreated' as any).replace('{name}', pl.name));
-    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    } catch (e: any) { notifierErreur(get(t)('common.errorLabel' as any), e, { motifSeul: true }); }
     sbCreating = null;
   }
 
@@ -1077,7 +1094,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await api.apiPost('/hqplayer/config', { hqplayer_host: hqHost.trim(), hqplayer_port: hqPort, hqplayer_enabled: enabled });
       hqEnabled = enabled;
       if (enabled) await checkHq();
-    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    } catch (e: any) { notifierErreur(get(t)('common.errorLabel' as any), e, { motifSeul: true }); }
     hqSaving = false;
   }
   async function checkHq() {
@@ -1147,7 +1164,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         brEnabled = !!d?.enabled; brConnected = !!d?.connected;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = '';
         brAccesParCompte = !!d?.acces_par_compte;
-        if (brEnabled && !brAccesParCompte) chargerLienPont();
+        if (brEnabled) chargerLienPont();
       })
       .catch(() => {});   // route absente sur un serveur anterieur
   });
@@ -1166,10 +1183,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const st: any = await api.apiFetch('/cloud/bridge/status').catch(() => null);
         if (st) brAccesParCompte = !!st.acces_par_compte;
         brToken = brAccesParCompte ? '' : d?.bridge_token || '';
-        if (!brAccesParCompte) await chargerLienPont();
+        await chargerLienPont();
       }
     } catch (e: any) {
-      notifications.error(e?.message ?? 'Erreur');
+      notifierErreur(get(t)('common.errorLabel' as any), e, { motifSeul: true });
     }
     brBusy = false;
   }
@@ -1410,7 +1427,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await chargerSso();
       notifications.success(get(t)('settings.cloudDisconnected' as any));
     } catch (e: any) {
-      notifications.error(e?.message ?? get(t)('common.error' as any));
+      notifierErreur(get(t)('common.error' as any), e, { motifSeul: true });
     }
     ssoQuitte = false;
   }
@@ -1435,12 +1452,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     if (!host) return;
     peerAdding = true;
     try { await api.addTunePeer(host, Number(peerPort) || 8888); peerHost = ''; await fetchPeers(); }
-    catch (e: any) { notifications.error(e?.message || $t('settings.peerAddError' as any)); }
+    catch (e: any) { notifierErreur($t('settings.peerAddError' as any), e, { motifSeul: true }); }
     peerAdding = false;
   }
   async function removePeer(pr: api.TunePeer) {
     try { await api.removeTunePeer(pr.host, pr.port); await fetchPeers(); }
-    catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+    catch (e: any) { notifierErreur($t('common.error' as any), e, { motifSeul: true }); }
   }
 
   // ── Maître / agent (tune-server-rust#4626) ────────────────────────────
@@ -1475,11 +1492,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       const r = await api.emettreCodeAgent();
       agentCode = { code: r.code, emisA: Date.now(), duree: r.expire_dans_s };
       agentHorloge = Date.now();
-    } catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+    } catch (e: any) { notifierErreur($t('common.error' as any), e, { motifSeul: true }); }
   }
   async function revoquerMaitreAgent(m: api.MaitreAppaire) {
     try { await api.revoquerMaitre(m.maitre_id); await chargerAgentTune(); }
-    catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+    catch (e: any) { notifierErreur($t('common.error' as any), e, { motifSeul: true }); }
   }
   async function appairerCandidat(c: api.CandidatAgent) {
     const saisie = agentSaisies[c.agent_id] ?? '';
@@ -1490,12 +1507,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.success($t('settings.agentPairedOk' as any).replace('{n}', String(r.zones.length)));
       agentSaisies = { ...agentSaisies, [c.agent_id]: '' };
       await chargerAgentTune();
-    } catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+    } catch (e: any) { notifierErreur($t('common.error' as any), e, { motifSeul: true }); }
     agentOccupe = false;
   }
   async function oublierAgent(a: api.AgentAppaire) {
     try { await api.oublierAgentTune(a.agent_id); await chargerAgentTune(); }
-    catch (e: any) { notifications.error(e?.message || $t('common.error' as any)); }
+    catch (e: any) { notifierErreur($t('common.error' as any), e, { motifSeul: true }); }
   }
   // ── Wi-Fi de l'appliance (Tune OS) ─────────────────────────────────────
   // N'a de sens QUE sur une appliance : ailleurs, le reseau est gere par le
@@ -1840,7 +1857,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       svcErr = {
         ...svcErr,
         [name]:
-          nature === 'identifiants'
+          nature === 'application'
+            ? get(t)('settings.errAppRefused' as any).replace('{service}', nomAffiche(name))
+          : nature === 'identifiants'
             ? get(t)('settings.errCredentialsNotRecognised' as any).replace('{service}', nomAffiche(name))
             : nature === 'brut'
               ? get(t)('settings.errConnectFailed')
@@ -2184,7 +2203,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       if (verdict.repos) licReposer();
     } catch (e: any) {
       if (e?.status === 429) { notifications.error(get(t)('settings.licenseRateLimited')); licReposer(); }
-      else notifications.error(e?.message ?? get(t)('settings.licenseValidationError'));
+      else notifierErreur(get(t)('settings.licenseValidationError'), e, { motifSeul: true });
     } finally {
       licValidating = false;
     }
@@ -2238,6 +2257,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // actif, comme le serveur (le comportement d'avant).
   let coffretsAuto = $state(true);
   let coffretsAutoErr = $state<string | null>(null);
+  // tune-server-rust#6917 — « Ne regrouper que les copies d'un même dossier de
+  // musique ». Absent de la config : éteint, comme le serveur.
+  let dedupMemeRacine = $state(false);
+  let dedupMemeRacineErr = $state<string | null>(null);
+  // web#2635 — import des .m3u/.pls au scan, et retrait des playlists importées.
+  let importPlaylistsScan = $state(true);
+  let importPlaylistsScanErr = $state<string | null>(null);
+  let retraitScanEnCours = $state(false);
+  let retraitScanMsg = $state<{ ok: boolean; texte: string } | null>(null);
   /** #4051 — « Paroles en ligne (LRCLIB) ». Absente de `/system/config` =
    *  éteinte : le serveur n'interroge LRCLIB que sur la chaîne "true". */
   let lrclibOn = $state(false);
@@ -2480,7 +2508,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ytPoll = setInterval(refreshYoutubePlayback, 2000);
     } catch (e: any) {
       ytBusy = false;
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 
@@ -2503,6 +2531,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
       ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
       coffretsAuto = coffretsAutoDepuisConfig(c?.[CLE_COFFRETS_AUTO]);
+      dedupMemeRacine = dedoublonnageParRacineDepuisConfig(c?.[CLE_DEDOUBLONNAGE_PAR_RACINE]);
+      importPlaylistsScan = importPlaylistsScanDepuisConfig(c?.[CLE_IMPORT_PLAYLISTS_SCAN]);
       scanDemarrage = scanAuDemarrageDepuisConfig(c);
     } catch { libErr = get(t)('settings.errConfigUnavailable'); }
     try {
@@ -2797,6 +2827,28 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       coffretsAutoErr = get(t)('settings.errSaveFailed');
     }
   }
+  /** #6917 — même patron : un refus du serveur remet la case en place. */
+  async function setDedupMemeRacine(v: boolean) {
+    const before = dedupMemeRacine; dedupMemeRacine = v; dedupMemeRacineErr = null;
+    try {
+      await api.updateConfig({ [CLE_DEDOUBLONNAGE_PAR_RACINE]: v });
+    } catch {
+      dedupMemeRacine = before;
+      dedupMemeRacineErr = get(t)('settings.errSaveFailed');
+    }
+  }
+  // tune-server-rust#7780 — « Bibliothèque élargie aux favoris des services »,
+  // par profil, activé par défaut ; remplace le bouton de la Bibliothèque.
+  $effect(() => {
+    const pid = $currentProfileId;
+    if (pid != null) void chargerReglageEtendue(pid);
+  });
+  async function setBibliothequeEtendue(v: boolean) {
+    const pid = get(currentProfileId);
+    if (pid == null) return;
+    try { await changerReglageEtendue(pid, v); }
+    catch { libErr = get(t)('settings.errSaveFailed'); }
+  }
   async function setQualitySplit(v: boolean) {
     const before = qualitySplit; qualitySplit = v;
     try { await api.updateConfig({ quality_split: v }); notifications.success(get(t)('settings.savedNeedsFullScan')); }
@@ -2832,6 +2884,47 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ecritureFichiersOn = before;
       ecritureFichiersErr = get(t)('settings.errSaveFailed');
     }
+  }
+  /** web#2635 — même patron que `setEcritureFichiers`. */
+  async function setImportPlaylistsScan(v: boolean) {
+    const before = importPlaylistsScan; importPlaylistsScan = v; importPlaylistsScanErr = null;
+    try {
+      await api.updateConfig({ [CLE_IMPORT_PLAYLISTS_SCAN]: v });
+    } catch {
+      importPlaylistsScan = before;
+      importPlaylistsScanErr = get(t)('settings.errSaveFailed');
+    }
+  }
+  /**
+   * web#2635 — retire les playlists importées au scan. Aucune route groupée
+   * côté serveur : on liste celles du profil propriétaire (1) et on les
+   * supprime une à une. Seules celles qui portent la description du scan
+   * partent ; les playlists créées dans Tune ne sont jamais touchées.
+   */
+  async function retirerPlaylistsDuScan() {
+    if (retraitScanEnCours) return;
+    retraitScanMsg = null;
+    let cibles;
+    try {
+      cibles = playlistsImporteesAuScan(await api.getToutesPlaylistsDuProfil(PROFIL_DES_PLAYLISTS_DU_SCAN));
+    } catch (e) {
+      retraitScanMsg = { ok: false, texte: get(t)('common.error' as any) + motifOuRien(e) };
+      return;
+    }
+    if (cibles.length === 0) {
+      retraitScanMsg = { ok: true, texte: get(t)('settings.removeScanPlaylistsNone' as any) };
+      return;
+    }
+    const n = String(cibles.length);
+    if (!(await dialogs.confirm(get(t)('settings.removeScanPlaylistsConfirm' as any).replace('{n}', n), { danger: true }))) return;
+    retraitScanEnCours = true;
+    const bilan = await retirerPlaylists(cibles, (id) => api.deletePlaylistDuProfil(id, PROFIL_DES_PLAYLISTS_DU_SCAN));
+    const parties = new Set(bilan.retirees);
+    magasinPlaylists.update((l) => l.filter((p) => p.id == null || !parties.has(p.id)));
+    retraitScanEnCours = false;
+    let texte = get(t)('settings.removeScanPlaylistsDone' as any).replace('{n}', String(bilan.retirees.length));
+    if (bilan.echecs > 0) texte += ' ' + get(t)('settings.removeScanPlaylistsFailed' as any).replace('{n}', String(bilan.echecs));
+    retraitScanMsg = { ok: bilan.echecs === 0, texte };
   }
   /** Même patron que `setEcritureFichiers` ; la valeur vaut au prochain démarrage. */
   async function setScanDemarrage(v: boolean) {
@@ -3253,7 +3346,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       await telechargerJournaux({ siVide: get(t)('diagnostics.noLogs' as any) });
     } catch (err: any) {
-      notifications.error(get(t)('settings.logsError' as any) + ': ' + (err?.message ?? get(t)('common.serverUnreachable' as any)));
+      notifierErreur(get(t)('settings.logsError' as any), err);
     } finally {
       journauxEnCours = false;
     }
@@ -3271,7 +3364,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      notifications.error(get(t)('settings.diagnosticError' as any) + ': ' + (err?.message ?? get(t)('common.serverUnreachable' as any)));
+      notifierErreur(get(t)('settings.diagnosticError' as any), err);
     } finally {
       diagnosticEnCours = false;
     }
@@ -3632,7 +3725,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       }
       stkEdit = buf;
     } catch (e: any) {
-      notifications.error(`${get(t)('serviceTokens.loadError')} : ${e?.message ?? e}`);
+      notifierErreur(get(t)('serviceTokens.loadError'), e);
       stk = [];
     }
     stkLoading = false;
@@ -3664,7 +3757,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       else notifications.success(`${s.name} : ${get(t)('serviceTokens.savedNoValidation')}`);
       await loadTokens();
     } catch (e: any) {
-      notifications.error(`${get(t)('serviceTokens.error')} : ${e?.message ?? e}`);
+      notifierErreur(get(t)('serviceTokens.error'), e);
     }
     stkBusy = null;
   }
@@ -3678,7 +3771,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       else notifications.info(r?.validation_message ?? get(t)('serviceTokens.noValidationAvailable'));
       await loadTokens();
     } catch (e: any) {
-      notifications.error(`${get(t)('serviceTokens.testError')} : ${e?.message ?? e}`);
+      notifierErreur(get(t)('serviceTokens.testError'), e);
     }
     stkBusy = null;
   }
@@ -3730,7 +3823,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.success(`${s.name} : ${get(t)('serviceTokens.tokenDeleted')}`);
       await loadTokens();
     } catch (e: any) {
-      notifications.error(`${get(t)('serviceTokens.error')} : ${e?.message ?? e}`);
+      notifierErreur(get(t)('serviceTokens.error'), e);
     }
     stkBusy = null;
   }
@@ -3745,7 +3838,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       lfmToken = r.token;
       window.open(r.auth_url, '_blank', 'noopener');
     } catch (e: any) {
-      notifications.error(`Last.fm : ${e?.message ?? e}`);
+      notifierErreur(`Last.fm : ${get(t)('common.errorLabel' as any)}`, e);
     }
     stkBusy = null;
   }
@@ -3759,7 +3852,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       lfmToken = null;
       await loadTokens();
     } catch (e: any) {
-      notifications.error(`Last.fm : ${e?.message ?? e}`);
+      notifierErreur(`Last.fm : ${get(t)('common.errorLabel' as any)}`, e);
     }
     stkBusy = null;
   }
@@ -3770,7 +3863,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await api.lastfmToggleScrobble(on);
       await loadTokens();
     } catch (e: any) {
-      notifications.error(`Last.fm : ${e?.message ?? e}`);
+      notifierErreur(`Last.fm : ${get(t)('common.errorLabel' as any)}`, e);
     }
     stkBusy = null;
   }
@@ -3784,7 +3877,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.success(`Last.fm : ${get(t)('serviceTokens.accountDisconnected')}`);
       await loadTokens();
     } catch (e: any) {
-      notifications.error(`Last.fm : ${e?.message ?? e}`);
+      notifierErreur(`Last.fm : ${get(t)('common.errorLabel' as any)}`, e);
     }
     stkBusy = null;
   }
@@ -4210,7 +4303,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       acoustidCle = '';
       notifications.success(tr('acoustid.keySaved' as any));
     } catch (e) {
-      notifications.error(`${tr('serviceTokens.error' as any)} : ${errText(e) ?? ''}`);
+      notifierErreur(tr('serviceTokens.error' as any), e);
     } finally {
       acoustidCleEnVol = false;
     }
@@ -4226,7 +4319,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       acoustidCle = '';
       notifications.success(tr('acoustid.keyRemoved' as any));
     } catch (e) {
-      notifications.error(`${tr('serviceTokens.error' as any)} : ${errText(e) ?? ''}`);
+      notifierErreur(tr('serviceTokens.error' as any), e);
     } finally {
       acoustidCleEnVol = false;
     }
@@ -4399,7 +4492,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span>{$t('settings.podcastRewind' as any)}</span>
                     <span class="hint">{$t('settings.podcastRewindHint' as any)}</span>
                   </div>
-                  <input class="txt num" type="number" min="0" max="300" step="1"
+                  <input class="txt num" type="number" min={RECUL_PODCAST_MIN} max={RECUL_PODCAST_MAX} step="1"
                     value={podcastRewind} disabled={podcastRewindBusy}
                     aria-label={$t('settings.podcastRewind' as any)}
                     onchange={(e) => savePodcastRewind(e.currentTarget.value)} />
@@ -4510,6 +4603,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <button class="lnk" type="button" data-retablir-largeurs onclick={() => retablirLargeurs()}>
                   {$t('settings.colWidthsResetAction' as any)}
+                </button>
+              </div>
+
+              <!-- web#2599 — « Rétablir l'ordre par défaut » : même place, même
+                   portée (tous les écrans) que les largeurs. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.colOrderReset' as any)}</span>
+                  <span class="hint">{$t('settings.colOrderResetHint' as any)}</span>
+                </div>
+                <button class="lnk" type="button" data-retablir-ordre onclick={() => retablirOrdre()}>
+                  {$t('settings.colOrderResetAction' as any)}
                 </button>
               </div>
 
@@ -5912,7 +6017,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <!-- Le badge vit dans `BadgeTuneTested` : la carte de
                              zone en vue grille porte le même, et deux copies
                              auraient divergé. -->
-                        {#if tuneTestedDe(z)}<BadgeTuneTested />{/if}
+                        {#if tuneTestedDe(z)}<BadgeTuneTested appareil={tuneTestedDe(z)} />{/if}
                         <!--
                           VERROU DE VOLUME (#2395, #2506) — rebranché après la
                           phase 5, qui l'a emporté avec `DevicesSettings.svelte`.
@@ -5923,6 +6028,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           affirmé : un « non verrouillé » faux coûte du matériel.
                         -->
                         <BadgeVerrouVolumeZone zoneId={z.id} />
+                        {#if z.id != null}
+                          <button type="button" class="tt-proposer" data-testid="proposer-tune-tested"
+                            onclick={() => (ficheTuneTested = { id: z.id as number, nom: z.name, teste: !!tuneTestedDe(z) })}
+                          >{$t('v2.zone.tuneTestedPropose' as any)}</button>
+                        {/if}
                       </div>
                       {#if jumelleDeProtocole(z, $zones)}
                         {@const j = jumelleDeProtocole(z, $zones)!}
@@ -6523,6 +6633,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </details>
                 {/if}
               {/if}
+              <!-- tune-server-rust#7780 — remplace le bouton « Bibliothèque + favoris ». -->
+              <div class="row" data-bibliotheque-etendue>
+                <div class="lbl">
+                  <span>{$t('settings.extendedLibrary' as any)}</span>
+                  <span class="hint">{$t('settings.extendedLibraryHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$bibliothequeEtendueActive}
+                    onchange={(e) => setBibliothequeEtendue((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
               <AuditIntegrite />
@@ -6723,6 +6845,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'libraryCleanup'}
               <!-- #2354 (Didier, fil 2397) : venu de Système › Santé. Même
                    bouton, même confirmation danger, même compte rendu. -->
+              <!-- tune-server-rust#6917 : la règle des copies identiques sous
+                   deux dossiers de musique (disque dur et NAS), dite et
+                   réglable AVANT de lancer le nettoyage. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.dedupSameRootOnly' as any)}</span>
+                  <span class="hint">{$t('settings.dedupSameRootOnlyHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-cle={CLE_DEDOUBLONNAGE_PAR_RACINE} checked={dedupMemeRacine}
+                    aria-label={$t('settings.dedupSameRootOnly' as any)}
+                    onchange={(e) => setDedupMemeRacine((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if dedupMemeRacineErr}<div class="errline" role="alert">{dedupMemeRacineErr}</div>{/if}
+              <p class="hint" data-etat-dedup-racine>
+                {dedupMemeRacine ? $t('settings.dedupSameRootOnlyStateOn' as any) : $t('settings.dedupSameRootOnlyStateOff' as any)}
+              </p>
               <div class="row">
                 <div class="lbl">
                   <span>{$t('diagnostics.cleanupServer' as any)}</span>
@@ -6791,6 +6932,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               {#if coffretsAutoErr}<div class="errline">{coffretsAutoErr}</div>{/if}
+              <!-- web#2635 (laguespa, fil 2510) : le réglage serveur
+                   `scan_import_playlists` n'était affiché nulle part. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.scanImportPlaylists' as any)}</span>
+                  <span class="hint">{$t('settings.scanImportPlaylistsHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-cle={CLE_IMPORT_PLAYLISTS_SCAN} checked={importPlaylistsScan}
+                    onchange={(e) => setImportPlaylistsScan((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if importPlaylistsScanErr}<div class="errline">{importPlaylistsScanErr}</div>{/if}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.removeScanPlaylists' as any)}</span>
+                  <span class="hint">{$t('settings.removeScanPlaylistsHint' as any)}</span>
+                </div>
+                <button class="lnk danger" data-action="retirer-playlists-scan" disabled={retraitScanEnCours}
+                  onclick={retirerPlaylistsDuScan}>{$t('settings.removeScanPlaylists' as any)}</button>
+              </div>
+              {#if retraitScanMsg}
+                <div class={retraitScanMsg.ok ? 'okbox' : 'errline'} role="status">{retraitScanMsg.texte}</div>
+              {/if}
               <!-- web#2324 — l'état de l'outil ISO SACD (disques DST), descendu
                    ici depuis la carte « Bibliothèque » (décision du 23/10). -->
               <SacdIsoStatus />
@@ -7534,7 +7700,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
                 {#if brAccesParCompte}
                   <ReglagesAccesParCompte />
-                {:else if brLien}
+                {/if}
+                {#if brLien}
                   <div class="row">
                     <div class="lbl">
                       <span>{$t('settings.remoteLink' as any)}</span>
@@ -8201,6 +8368,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   />
 {/if}
 
+{#if ficheTuneTested}
+  <ProposerTuneTested zoneId={ficheTuneTested.id} nom={ficheTuneTested.nom} dejaTeste={ficheTuneTested.teste} onClose={() => (ficheTuneTested = null)} />
+{/if}
+
 <input type="file" accept="image/*" bind:this={champPhotoZone} onchange={photoZoneChoisie}
   style="display:none" aria-hidden="true" tabindex="-1" />
 
@@ -8299,6 +8470,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zc.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .zch{display:flex; align-items:baseline; gap:11px}
   .zn{font-size:14px; font-weight:700}
+  .tt-proposer{margin-left:auto; align-self:center; background:transparent; border:1px solid var(--v2-line2);
+    color:var(--v2-txt2); border-radius:var(--v2-r-pill); padding:3px 10px; font:600 11.5px var(--v2-sans); cursor:pointer}
+  .tt-proposer:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
   .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .zt.proto{border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; color:var(--v2-txt2)}
   .hint.jumelle{margin:4px 0 0}

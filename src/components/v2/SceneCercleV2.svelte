@@ -36,7 +36,8 @@
    */
   import type { Snippet } from 'svelte';
   import { tick } from 'svelte';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
+  import { nomDuPays } from '../../lib/paysAffichage';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import PaysMondeV2 from './PaysMondeV2.svelte';
   import { lirePaysMonde, type PaysMonde } from '../../lib/paysMonde';
@@ -49,7 +50,7 @@
     type Vue, type ContactScene, type NoeudScene, type Lieu,
   } from '../../lib/champCercle/scene';
   import { arrondiDemiDegre } from '../../lib/champCercle/tailles';
-  import { PAS_ZOOM, ZOOM_MAX, ZOOM_MIN } from '../../lib/champCercle/zoomGlobe';
+  import { couleurFrontiere, PAS_ZOOM, ZOOM_MAX, ZOOM_MIN } from '../../lib/champCercle/zoomGlobe';
   import {
     lireMonLieu, lireLieuxContacts, poserMonLieu, retirerMonLieu, lireResumeContact,
     lireMesChiffres, lireMonNom, corpsLieu, lireCoordonnee, LIBELLE_LIEU_MAX,
@@ -269,6 +270,9 @@
   let moteur = $state.raw<ChampCercle | null>(null);
   /** Le zoom du globe (web#2521) : 1 = vue entière. */
   let zoom = $state(ZOOM_MIN);
+  /** Le pays sous le pointeur, frontières visibles (web#2657) : son code et où poser son nom. */
+  let paysSurvole = $state<{ code: string; x: number; y: number } | null>(null);
+  const nomPaysSurvole = $derived(paysSurvole ? nomDuPays(paysSurvole.code, $locale) : '');
   $effect(() => {
     let active = true;
     void lirePaysMonde().then((p) => { if (active) paysMonde = p; });
@@ -372,14 +376,39 @@
     if (typeof ResizeObserver === 'undefined') { sansToile = true; return; }
     // La rangée de lunes d'un anneau (« +N » compte pour deux) : le moteur réserve sa place à droite du nom.
     const largeurLunes = (id: string) => { const e = lunes.get(id); return e ? largeurRangeeLunes(e.lunes.length + (e.reste > 0 ? 2 : 0)) : 0; };
-    const m = new ChampCercle(c, { budget: budgetInitial(), placer, surClicGlobe, largeurLunes, surZoom: (k) => { zoom = k; } });
+    const m = new ChampCercle(c, { budget: budgetInitial(), placer, surClicGlobe, largeurLunes, surZoom: (k) => { zoom = k; },
+      surPays: (p) => { paysSurvole = p; } });
     if (!m.disponible) { m.detruire(); sansToile = true; return; }
     const mesurer = () => { const r = h.getBoundingClientRect(); m.redimensionner(r.width, r.height); };
     const ro = new ResizeObserver(mesurer);
     ro.observe(h);
     mesurer();
     moteur = m;
-    return () => { ro.disconnect(); m.detruire(); moteur = null; zoom = ZOOM_MIN; };
+    return () => { ro.disconnect(); m.detruire(); moteur = null; zoom = ZOOM_MIN; paysSurvole = null; };
+  });
+
+  // La couleur des frontières (web#2657) vient du thème, relue quand il change.
+  $effect(() => {
+    const m = moteur; const h = hote;
+    if (!m || !h || typeof getComputedStyle !== 'function') return;
+    const appliquer = () => {
+      const style = getComputedStyle(h);
+      const c = style.getPropertyValue('--v2-txt3').trim();
+      // Le fond de la scène reste sombre dans les thèmes clairs : repli sur sa couleur claire.
+      const repli = style.getPropertyValue('--sc-txt2').trim() || '#9fb0b6';
+      // Les côtes (web#2697) : le jeton secondaire du thème, plus léger que celui des frontières.
+      const c2 = style.getPropertyValue('--v2-txt2').trim();
+      // Les fleuves (web#2697) : bleu de la scène, toujours sombre, donc lisible dans tous les thèmes.
+      const eau = style.getPropertyValue('--sc-eau').trim();
+      if (eau) m.majCouleurs({ fleuve: eau });
+      if (c) m.majCouleurs({ frontiere: couleurFrontiere(c, repli), ...(c2 ? { cote: couleurFrontiere(c2, repli) } : {}) });
+    };
+    appliquer();
+    if (typeof MutationObserver === 'undefined' || typeof document === 'undefined') return;
+    const observer = new MutationObserver(appliquer);
+    observer.observe(document.documentElement, { attributes: true });
+    if (document.body) observer.observe(document.body, { attributes: true });
+    return () => observer.disconnect();
   });
 
   // Ctrl ou Cmd + molette (et le pincement du pavé tactile, envoyé en molette
@@ -741,6 +770,9 @@
     <div class="sc-scene" class:sc-scene-pose={poseOuverte} bind:this={hote} role="region" aria-label={$t('v2.circle.scene.stageLabel' as any)}
       tabindex={vue === 'monde' ? 0 : -1} onkeydown={surToucheScene}>
       <canvas bind:this={toile} aria-hidden="true"></canvas>
+      {#if paysSurvole && nomPaysSurvole && vue === 'monde'}
+        <span class="sc-pays-survol" aria-hidden="true" style="left:{paysSurvole.x}px; top:{paysSurvole.y}px">{nomPaysSurvole}</span>
+      {/if}
       <div class="sc-noeuds">
         {#each scene.noeuds as n (n.id)}
           <button type="button" class="sc-noeud sorte-{n.kind}" class:pin-moi={n.kind === 'pin' && n.me} use:inscrire={n.id}
@@ -798,14 +830,16 @@
           <p>{$t('v2.circle.scene.world.empty' as any)}</p>
           {#if relais === 'ok'}<button type="button" class="go sc-poser" onclick={() => ouvrirPose()}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
         </div>
-      {:else if vue === 'monde' && !poseOuverte}
-        <p class="sc-astuce">{#if pointsPublics.length}<span class="sc-legende-publique">{$t('v2.circle.scene.world.publicLegend' as any)}</span> {/if}{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)} <span class="sc-astuce-zoom">{$t('v2.circle.scene.zoom.hint' as any)}</span></p>
       {:else if vue === 'genres' && grappes.length === 0}
         <p class="sc-vide">{$t('v2.circle.scene.genres.empty' as any)}</p>
       {:else if vue === 'lien' && contacts.length === 0}
         <p class="sc-vide">{$t('v2.circle.scene.link.empty' as any)}</p>
       {/if}
     </div>
+    {#if vue === 'monde' && !poseOuverte && !(epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles)}
+      <!-- web#2697 : l'aide passe SOUS le globe, plus par-dessus son bas. -->
+      <p class="sc-astuce sc-astuce-sous">{#if pointsPublics.length}<span class="sc-legende-publique">{$t('v2.circle.scene.world.publicLegend' as any)}</span> {/if}{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)} <span class="sc-astuce-zoom">{$t('v2.circle.scene.zoom.hint' as any)}</span></p>
+    {/if}
   {:else}
     <div class="sc-liste-bloc">
       <h3>{$t(CLE_VUE[vue] as any)}</h3>
@@ -946,7 +980,7 @@
 </section>
 
 <style>
-  .sc{--sc-fond:#121b20; --sc-or:#deb268; --sc-ligne:#22323a; --sc-txt:#e7eef0; --sc-txt2:#9fb0b6; --sc-vert:#4cc79d;
+  .sc{--sc-eau:#5fa8d3; --sc-fond:#121b20; --sc-or:#deb268; --sc-ligne:#22323a; --sc-txt:#e7eef0; --sc-txt2:#9fb0b6; --sc-vert:#4cc79d;
     display:flex; flex-direction:column; gap:10px; min-width:0}
   .sc-barre{display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px}
   .sc-barre h2{font-size:15px; font-weight:700; margin:0; flex:1 1 auto}
@@ -960,6 +994,10 @@
     background:radial-gradient(ellipse at 50% 45%, #18262b 0%, var(--sc-fond) 70%); color:var(--sc-txt)}
   .sc-scene canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
   .sc-noeuds{position:absolute; inset:0; pointer-events:none}
+  /* Le nom du pays survolé (web#2657) : au-dessus du pointeur, sous les épingles, jamais cliquable. */
+  .sc-pays-survol{position:absolute; transform:translate(-50%, calc(-100% - 10px)); pointer-events:none;
+    padding:2px 8px; border-radius:999px; white-space:nowrap; font:500 12px var(--v2-sans);
+    color:var(--v2-txt); background:var(--v2-surface); border:1px solid var(--v2-line2); opacity:.92}
   /* T5 — les lunes : de petits disques posés par le moteur autour de la planète. */
   .sc-lune{position:absolute; left:0; top:0; visibility:hidden; width:12px; height:12px; margin:-6px 0 0 -6px; padding:0;
     border-radius:50%; border:1px solid rgba(222,178,104,.7); background:radial-gradient(circle at 35% 35%, #e9d3a3, #b48a4c 70%);
@@ -1009,6 +1047,8 @@
     background:rgba(15,24,28,.82); padding:14px 16px; border-radius:12px}
   .sc-vide p{margin:0}
   .sc-astuce{bottom:10px}
+  /* web#2697 : sous le globe, dans le flux (la scène a overflow:hidden et le canevas la remplit). */
+  .sc-astuce.sc-astuce-sous{position:static; transform:none; margin:8px auto 0; max-width:min(440px, 100%)}
   /* Zoom du globe (web#2521) : en haut à droite, au-dessus des épingles. */
   .sc-zoom{position:absolute; top:10px; right:10px; display:flex; flex-direction:column; gap:4px; z-index:2}
   .sc-zoom-btn{width:34px; height:34px; display:grid; place-items:center; padding:0; border-radius:10px; cursor:pointer;

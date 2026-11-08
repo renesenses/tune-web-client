@@ -10,9 +10,6 @@
   let { albumId }: Props = $props();
 
   let rating = $state(0);
-  let note = $state('');
-  /** Dernier commentaire enregistre, pour ne pas le renvoyer inchange. */
-  let savedNote = $state('');
   let loadedAlbumId = $state<number | null>(null);
   let submitting = $state(false);
   // #6545 — les agrégats publics de la communauté (null : rien à afficher).
@@ -28,12 +25,8 @@
     try {
       const r = await api.getAlbumRating(id);
       rating = r.rating ?? 0;
-      note = r.note ?? '';
-      savedNote = note;
     } catch {
       rating = 0;
-      note = '';
-      savedNote = '';
     }
   }
 
@@ -42,39 +35,27 @@
     if (albumId !== loadedAlbumId) load(albumId);
   });
 
+  /**
+   * web#2653 — la note libre de l'album a quitté ce composant pour le bloc
+   * « Mes notes » (`MesNotes.svelte`, Markdown). La route des étoiles porte
+   * pourtant toujours `album_ratings.note` : on la RELIT au moment d'écrire
+   * et on la renvoie telle quelle. Garder une copie chargée à l'ouverture
+   * écraserait, au premier clic sur une étoile, ce que « Mes notes » vient
+   * d'enregistrer.
+   */
   async function submitRating(star: number) {
     submitting = true;
     try {
       const newRating = star === rating ? 0 : star;
+      const actuelle = await api.getAlbumRating(albumId).catch(() => null);
+      const note = typeof actuelle?.note === 'string' && actuelle.note ? actuelle.note : undefined;
       await api.rateAlbum(albumId, newRating, note);
       rating = newRating;
-      savedNote = note;
       notifications.success(
         newRating > 0 ? `${$tr('library.rating')}: ${newRating}/5` : $tr('library.ratingRemoved')
       );
     } catch (e) {
       console.error('Rate album error:', e);
-      notifications.error($tr('library.ratingError'));
-    }
-    submitting = false;
-  }
-
-  async function submitNote() {
-    // A note lives on the rating row, which cannot exist without a star value.
-    // Posting a note with rating 0 used to delete/reject the row and lose the
-    // text without telling anyone — the field is disabled until the album is
-    // rated, so this is only a guard against a stray call.
-    if (rating === 0) return;
-    // Entree enregistre, puis le blur qui suit enregistrerait une seconde fois :
-    // deux ecritures et deux toasts pour une seule saisie.
-    if (note === savedNote) return;
-    submitting = true;
-    try {
-      await api.rateAlbum(albumId, rating, note);
-      savedNote = note;
-      notifications.success($tr('library.ratingSaved'));
-    } catch (e) {
-      console.error('Rate album note error:', e);
       notifications.error($tr('library.ratingError'));
     }
     submitting = false;
@@ -99,18 +80,6 @@
   {#if ligne}
     <div class="album-community" data-communaute="album">{ligne}</div>
   {/if}
-  <div class="album-rating-note">
-    <input
-      type="text"
-      class="rating-note-input"
-      placeholder={rating === 0 ? $tr('library.ratingNoteNeedsStars') : $tr('library.ratingNotePlaceholder')}
-      title={rating === 0 ? $tr('library.ratingNoteNeedsStars') : ''}
-      disabled={rating === 0 || submitting}
-      bind:value={note}
-      onkeydown={(e) => e.key === 'Enter' && submitNote()}
-      onblur={() => submitNote()}
-    />
-  </div>
 </div>
 
 <style>
@@ -151,28 +120,6 @@
 
   .album-community {
     font-size: 12px;
-    color: var(--tune-text-muted);
-  }
-
-  .rating-note-input {
-    background: var(--tune-surface);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-sm);
-    padding: 4px 8px;
-    font-family: var(--font-body);
-    font-size: 12px;
-    color: var(--tune-text);
-    width: 100%;
-    max-width: 250px;
-    outline: none;
-    transition: border-color 0.12s;
-  }
-
-  .rating-note-input:focus {
-    border-color: var(--tune-accent);
-  }
-
-  .rating-note-input::placeholder {
     color: var(--tune-text-muted);
   }
 </style>

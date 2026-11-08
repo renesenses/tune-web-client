@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * Renommer un objet, et corriger sa description.
    *
@@ -57,7 +58,7 @@
       onClose();
     } catch (err: any) {
       // On NE ferme pas : fermer sur échec ferait croire à un enregistrement.
-      notifications.error(err?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), err, { motifSeul: true });
     }
     travail = false;
   }

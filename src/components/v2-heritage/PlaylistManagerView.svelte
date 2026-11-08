@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { get } from 'svelte/store';
   import { currentZone, zones, playAndSync } from '../../lib/stores/zones';
@@ -449,7 +450,7 @@
       // retour en arrière.
       if (selectedPlaylist?.id === id) selectedPlaylist = { ...selectedPlaylist, name: propre };
     } catch (err: any) {
-      notifications.error(errText(err) ?? $tr('common.serverUnreachable'));
+      notifierErreur($tr('common.serverUnreachable'), err, { motifSeul: true });
     }
   }
 
@@ -780,7 +781,7 @@
       };
       mergeSelected = new Set([...mergeSelected].filter((c) => c !== mergeKey(item.service, id)));
     } catch (err: any) {
-      notifications.error(errText(err) ?? $tr('common.serverUnreachable'));
+      notifierErreur($tr('common.serverUnreachable'), err, { motifSeul: true });
     }
     suppressionEnCours = null;
   }
@@ -892,7 +893,7 @@
       playlistsStore.set(list);
     } catch (e: any) {
       console.error('Quick transfer error:', e);
-      if (!noterRefusTransfert(e)) notifications.error(e.message || 'Transfer failed');
+      if (!noterRefusTransfert(e)) notifierErreur($tr('v2.pl.transferFailed' as any), e, { motifSeul: true });
     }
     qtTransferring = false;
   }
@@ -1390,7 +1391,7 @@
     try {
       await playAndSync(zone.id, { playlist_id: playlistId });
     } catch (e) {
-      notifications.error(errText(e) ?? $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     }
   }
 
@@ -1410,7 +1411,7 @@
       const n = await lireListeAleatoire(detailTracks, gestesDeZone(zone.id));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
-      notifications.error(errText(e) ?? $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     }
     melangeEnCours = false;
   }
@@ -1457,7 +1458,7 @@
     try {
       await playAndSync(zone.id, { source: source as any, streaming_playlist_id: pl.source_id, start_index: startIndex });
     } catch (e) {
-      notifications.error(errText(e) ?? $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     }
   }
 
@@ -2378,9 +2379,6 @@
       </div>
 
     {:else}
-    <!-- web#2452 : les playlists Tune Circle (partagées avec moi, et que je partage) ; absente sans compte relié ni cercle.
-         Elle se choisit par la pastille « Tune Circle » de la rangée des filtres ; « Toutes » = les playlists de l'utilisateur. -->
-    <PlaylistsCercleSection filtre={searchQuery} visible={activeFilter === 'circle'} onexiste={(b) => { cercleExiste = b; if (!b && activeFilter === 'circle') activeFilter = 'all'; }} />
     <!-- Filter Chips (original playlists tab) -->
     <div class="filter-chips">
       {#each filterChips as chip}
@@ -2413,6 +2411,11 @@
         <BasculeAffichage modes={LISTE_ET_DEUX_GRILLES} valeur={affichage} onChanger={changerAffichage} iconeDeDestination />
       </span>
     </div>
+    <!-- web#2700 : la section Tune Circle se pose SOUS les pastilles. Rendue avant elles, la liste de cercle les repoussait
+         sous la dernière playlist ; les pastilles restent juste sous le titre et les onglets. -->
+    <!-- web#2452 : les playlists Tune Circle (partagées avec moi, et que je partage) ; absente sans compte relié ni cercle.
+         Elle se choisit par la pastille « Tune Circle » de la rangée des filtres ; « Toutes » = les playlists de l'utilisateur. -->
+    <PlaylistsCercleSection filtre={searchQuery} visible={activeFilter === 'circle'} onexiste={(b) => { cercleExiste = b; if (!b && activeFilter === 'circle') activeFilter = 'all'; }} />
     <!-- Le bouton de MODE « Fusionner » a disparu : on sélectionne d'abord,
          par le coin d'une carte, et la barre d'actions apparaît ensuite.
          Voir le commentaire de `mergeSelected`. -->

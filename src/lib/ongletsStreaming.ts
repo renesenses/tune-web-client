@@ -97,6 +97,29 @@ export function servicesConnectes(
 }
 
 /**
+ * Une session EXPIRÉE : le service est activé, il n'est plus connecté, et le
+ * serveur se souvient du compte — web#2587.
+ *
+ * Le serveur efface le jeton quand le fournisseur le refuse (Qobuz, 01/11/2026,
+ * rc9 : app_id refusé → `/user/get` 401 → session effacée) mais GARDE le nom du
+ * compte (`StreamingServiceStatus.username`). C'est ce qui distingue un service
+ * dont la session est tombée d'un service JAMAIS connecté, qui n'a pas de
+ * compte : celui-là reste masqué (Bertrand, 26/09, fil 1952, web#1621).
+ */
+export function sessionExpiree(etat: EtatService | null | undefined): boolean {
+  return !!etat?.enabled && !etat?.authenticated && !!etat?.username;
+}
+
+/** Les services dont la session a expiré — voir `sessionExpiree`. */
+export function servicesExpires(
+  services: Record<string, EtatService> | null | undefined,
+): string[] {
+  return Object.entries(services ?? {})
+    .filter(([, v]) => sessionExpiree(v))
+    .map(([k]) => k);
+}
+
+/**
  * Les onglets de l'écran, dédoublonnés.
  *
  * 🔴 L'ordre compte : le dédoublonnage garde la PLACE du service générique.
@@ -118,7 +141,13 @@ export function ongletsStreaming(
   services: Record<string, EtatService> | null | undefined,
   bandcampLive: boolean,
 ): string[] {
-  const connectes = servicesConnectes(services);
+  // web#2587 — un service à session expirée GARDE son onglet : il ne disparaît
+  // plus de la rangée, l'écran y dit « Session expirée — Reconnecter ».
+  const expires = new Set(servicesExpires(services));
+  const connectes = ordonnerSources(
+    [...servicesConnectes(services), ...expires],
+    (k) => k,
+  );
   if (!bandcampLive) return connectes;
   // L'extension répond : elle ABSORBE le service générique, à sa place — et
   // seulement s'il est là.

@@ -235,6 +235,9 @@
   import {
     avancementAnalyse, pourcentAnalyse, abonnerAvancementAnalyse, demarrerAvancement, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
+  import {
+    analyseDeFond, abonnerAnalysesDeFond, depuisInstantane, libelleAnalyseDeFond,
+  } from '../../lib/analysesDeFond';
   import { tuneWS } from '../../lib/websocket';
   import { abonnerPropositionChargementCd } from '../../lib/propositionChargementCd';
   import { notifications } from '../../lib/stores/notifications';
@@ -387,9 +390,36 @@
   // Tâches de fond : l'état initial, au cas où un enrichissement tourne déjà ;
   // le direct arrive par `v2Live` (#2227, porté d'App.svelte).
   $effect(() => {
-    api.getBackgroundTasks().then((r) => tachesDeFond.set(r?.tasks ?? [])).catch(() => {});
+    api.getBackgroundTasks().then((r) => {
+      tachesDeFond.set(r?.tasks ?? []);
+      analyseDeFond.set(depuisInstantane(r));
+    }).catch(() => {});
   });
-  const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning')));
+  /**
+   * tune-server-rust#7915 — après le scan, les empreintes et la plage
+   * dynamique décodent toute la bibliothèque, parfois une nuit entière sur un
+   * NAS. L'indicateur du scan s'éteint alors : celui-ci prend le relais, avec
+   * la passe, son pourcentage et le temps restant estimé par le serveur. Le
+   * direct arrive par `library.analysis.progress` ; tant qu'il est levé, un
+   * contrôle toutes les 10 s le baisse si un événement de fin a été perdu.
+   */
+  $effect(() => abonnerAnalysesDeFond((h) => tuneWS.onEvent(h)));
+  const analyseDeFondEnCours = $derived($analyseDeFond !== null);
+  $effect(() => {
+    if (!analyseDeFondEnCours) return;
+    const minuterie = setInterval(() => {
+      api.getBackgroundTasks()
+        .then((r) => { if (r) analyseDeFond.set(depuisInstantane(r)); })
+        .catch(() => {});
+    }, CONTROLE_ANALYSE_MS);
+    return () => clearInterval(minuterie);
+  });
+  const libelleFond = $derived(libelleAnalyseDeFond($analyseDeFond, (cle) => $t(cle as any)));
+  /** L'écran qui détaille chaque tâche de fond : État du serveur. */
+  function ouvrirEtatDuServeur() {
+    go('diagnostics');
+  }
+  const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning'), (cle) => $t(cle as any)));
   /**
    * #1577 — Didier (fil 1904) : « un indicateur toujours visible de mise à
    * jour en cours de la base ». L'avancement d'une analyse n'était lu que par
@@ -810,6 +840,11 @@
           title={$t('v2.nav.scanRunningHint' as any)}>
           <span class="pt"></span>{libelleAnalyse}
         </button>
+      {:else if libelleFond}
+        <button class="analyse" onclick={ouvrirEtatDuServeur} aria-live="polite"
+          data-testid="bg-analysis" title={$t('v2.nav.bgAnalysisHint' as any)}>
+          <span class="pt"></span>{libelleFond}
+        </button>
       {/if}
       {#if $updateAvailable && !$updateInstallable}
         <!-- tune-server-rust#6068 — le serveur ne peut pas installer
@@ -829,6 +864,9 @@
       <!-- Repliée, `.txt` est masqué : le point garde l'analyse visible. -->
       <button class="analyse-point" onclick={ouvrirAnalyse}
         aria-label={libelleAnalyse} title={libelleAnalyse}></button>
+    {:else if enIcones && libelleFond}
+      <button class="analyse-point" onclick={ouvrirEtatDuServeur}
+        aria-label={libelleFond} title={libelleFond}></button>
     {/if}
     {#if enIcones && $updateAvailable}
       <!-- Repliée, `.txt` est masqué : sans ce point, l'annonce disparaîtrait

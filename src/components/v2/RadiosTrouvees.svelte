@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   // La section « Radios » de la recherche globale — tune-server-rust#7045.
   //
   // « Mes radios » ET l'annuaire dans UNE liste, sans doublon (voir
@@ -60,7 +61,7 @@
       retouches = { ...retouches, [e.cle]: entreeApres(e, st) };
       if (!favori) notifications.success($t('v2.radio.dir.added' as any).replace('{name}', e.nom));
     } catch (err: any) {
-      notifications.error(err?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), err, { motifSeul: true });
     }
   }
 
@@ -73,7 +74,7 @@
         await ajouter(e, true);
       }
     } catch (err: any) {
-      notifications.error(err?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), err, { motifSeul: true });
     }
   }
 </script>

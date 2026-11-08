@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
+  import MesNotes from './MesNotes.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount, untrack } from 'svelte';
   import * as api from '../../lib/api';
@@ -96,7 +98,7 @@
       notifications.success($t('trackTags.restoredFromFile' as any));
       await load();
     } catch (e: any) {
-      notifications.error(`${$t('trackTags.saveError')} : ${e?.message || e}`);
+      notifierErreur($t('trackTags.saveError'), e);
     }
     saving = false;
   }
@@ -113,7 +115,7 @@
       dbEdits = { ...originalDb };
     } catch (e: any) {
       data = null;
-      notifications.error(`${$t('trackTags.loadError')} : ${e?.message || e}`);
+      notifierErreur($t('trackTags.loadError'), e);
     }
     loading = false;
   }
@@ -146,7 +148,7 @@
       // Refresh
       await load();
     } catch (e: any) {
-      notifications.error(`${$t('trackTags.saveError')} : ${e?.message || e}`);
+      notifierErreur($t('trackTags.saveError'), e);
     }
     saving = false;
   }
@@ -157,7 +159,7 @@
       const r = await api.writeTrackTags(trackId!);
       notifications.success(`${$t('trackTags.tagsWritten')}${r?.message ? ' : ' + r.message : ''}.`);
     } catch (e: any) {
-      notifications.error(`${$t('trackTags.writeError')} : ${e?.message || e}`);
+      notifierErreur($t('trackTags.writeError'), e);
     }
     saving = false;
   }
@@ -225,6 +227,9 @@
       <div class="state err">{$t('trackTags.loadFailed')}</div>
     {:else}
       <div class="drawer-body">
+        <!-- web#2653 — « Mes notes » de la piste : cette fiche est la fiche du
+             titre de la bibliothèque, ouverte depuis son menu. -->
+        {#if trackId != null}<MesNotes type="track" id={trackId} />{/if}
         {#if champsTenus.length}
           <div class="tenus" data-champs-tenus>
             <span>{$t('trackTags.heldFields' as any).replace('{fields}', champsTenus.join(', '))}</span>
