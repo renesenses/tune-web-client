@@ -412,6 +412,7 @@ describe('web#2719 — greffon equalizer manquant', () => {
   it('« Installer l’Égaliseur » appelle la route d’installation et demande le redémarrage', async () => {
     hote.plugins = [FICHE_ACTIVE, { name: 'equalizer', installed: false, enabled: false }];
     await monter();
+    await jusqua(() => !!q('[data-room="installer-egaliseur"]'));
     (q('[data-room="installer-egaliseur"]') as HTMLButtonElement).click();
     await jusqua(() => q('[data-room-motif="egaliseur"]')?.getAttribute('data-egaliseur') === 'a_redemarrer');
     expect(appelsA('/api/v1/plugins/equalizer/install')).toHaveLength(1);
