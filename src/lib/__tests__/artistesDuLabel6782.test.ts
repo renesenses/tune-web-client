@@ -121,7 +121,7 @@ describe('les écrans qui y mènent', () => {
     for (const p of ['../../components/v2/AlbumDetailV2.svelte', '../../components/v2/ArtisteServiceV2.svelte']) {
       const src = lire(p);
       expect(src, p).toContain("'v2.label.autresArtistes'");
-      expect(src, p).toContain('ouvrirLabelDansLaBibliotheque(nomLabel)');
+      expect(src, p).toMatch(/ouvrirLabelDansLaBibliotheque\((nomLabel|nom)[,)]/);
     }
   });
   it('les cinq libellés sont traduits dans les douze langues', async () => {

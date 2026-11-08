@@ -1184,7 +1184,7 @@
          label, dans la bibliothèque puis chez Qobuz. -->
     {#if artisteEditable?.id != null && labelPrincipal(locaux)}
       {@const nomLabel = labelPrincipal(locaux)!}
-      <button type="button" class="lien-label" data-lien-label onclick={() => void ouvrirLabelDansLaBibliotheque(nomLabel)}>
+      <button type="button" class="lien-label" data-lien-label onclick={() => void ouvrirLabelDansLaBibliotheque(nomLabel, { genre: 'artiste', id: artisteEditable?.id ?? '', nom: nom ?? '' })}>
         {$tr('v2.label.autresArtistes' as any).replace('{label}', nomLabel)}
       </button>
     {/if}

@@ -39,13 +39,27 @@ export function labelPrincipal(albums: readonly ({ label?: string | null } | nul
 }
 
 /**
+ * D'où l'on vient quand on ouvre la page d'un label : le Retour de cette page
+ * y ramène (fil 2705). Absent (Favoris, Recherche), il revient à la liste.
+ */
+export type OrigineLabel =
+  | { genre: 'album'; id: number }
+  | { genre: 'artiste'; id: number | string; nom: string };
+
+/**
  * Ouvre la page du label dans la Bibliothèque — le chemin des Favoris et de
  * la Recherche (`tune:v2-facette`, écouté par `LibraryV2`).
+ *
+ * Depuis une fiche d'album de la Bibliothèque, c'est `LibraryV2` qui referme
+ * la fiche (sur place, sans `history.back()` dont le `popstate` tardif
+ * reposerait l'onglet Albums) : l'appelant ne la referme pas lui-même.
  */
-export async function ouvrirLabelDansLaBibliotheque(nom: string): Promise<void> {
-  const valeur = nom.trim();
+export async function ouvrirLabelDansLaBibliotheque(nom: string, origine?: OrigineLabel): Promise<void> {
+  const valeur = (nom ?? '').trim();
   if (!valeur) return;
   activeView.set('library');
   await tick();
-  window.dispatchEvent(new CustomEvent('tune:v2-facette', { detail: { onglet: 'labels', valeur } }));
+  window.dispatchEvent(new CustomEvent('tune:v2-facette', {
+    detail: origine ? { onglet: 'labels', valeur, retour: origine } : { onglet: 'labels', valeur },
+  }));
 }

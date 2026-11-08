@@ -82,6 +82,7 @@
   // lu quand la Bibliothèque était déjà montée. On prend sa version.
   // `pendingLibraryAlbum`, lui, reste : c'est le contrat des liens de la
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
+  import { ouvrirFicheArtisteLocale } from '../../lib/ouvrirArtisteDepuis';
   import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryFiltre, pendingLibraryYear, pendingSearchQuery, type View } from '../../lib/stores/navigation';
   import { streamingServices } from '../../lib/stores/streaming';
   import { servicesConnectes } from '../../lib/ongletsStreaming';
@@ -1985,9 +1986,17 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       // Les onglets de facette sont reserves au niveau intermediaire : y
       // envoyer un debutant le poserait sur un onglet qu'il ne voit pas.
       if (!atLeast(level, 'intermediate')) return;
+      const valeur = String(d.valeur ?? '');
+      // Fil 2705 — « Autres artistes du label » : d'où l'on vient, pour que le
+      // Retour de la page du label y ramène. Posé avant le changement d'onglet.
+      origineFacette = d.retour && (d.retour.genre === 'album' || d.retour.genre === 'artiste')
+        ? { valeur, retour: d.retour } : null;
+      // Une fiche d'album ouverte est refermée SUR PLACE (l'entrée courante est
+      // réécrite) : reculer ferait arriver un `popstate` après le saut, qui
+      // reposerait l'onglet de l'entrée d'avant et effacerait le label.
+      if (opened) refermerCalqueAlbumSansReculer();
       tabChoisi = d.onglet;
       q = '';
-      const valeur = String(d.valeur ?? '');
       /**
        * 🔴 #1722 — OUVRIR LE GENRE, pas seulement son onglet.
        *
@@ -2135,9 +2144,26 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let positionARetablir: number | null = null;
   function ouvrirFacette(cle: string) {
     if (flisteEl) positionsListeFacettes.set(tab, flisteEl.scrollTop);
+    origineFacette = null;
     facetteOuverte = cle;
   }
+  /**
+   * Fil 2705 — la page d'un label ouverte par « Autres artistes du label »
+   * depuis une fiche d'album ou d'artiste : le Retour y ramène, il ne montre
+   * pas la liste des labels que l'on n'a jamais vue.
+   */
+  let origineFacette: { valeur: string; retour: { genre: 'album'; id: number } | { genre: 'artiste'; id: number | string; nom: string } } | null = null;
+  /** Vrai si le Retour a rendu la main à la fiche d'origine. */
+  function retourVersOrigine(): boolean {
+    const o = origineFacette;
+    origineFacette = null;
+    if (!o || o.valeur !== facetteOuverte) return false;
+    if (o.retour.genre === 'album') pendingLibraryAlbum.set(o.retour.id);
+    else ouvrirFicheArtisteLocale(o.retour.id, o.retour.nom, 'library');
+    return true;
+  }
   function fermerFacette() {
+    if (retourVersOrigine()) return;
     positionARetablir = positionsListeFacettes.get(tab) ?? null;
     facetteOuverte = null;
   }

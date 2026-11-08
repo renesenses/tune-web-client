@@ -1775,7 +1775,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
            seulement : la page du label est celle de la Bibliothèque. -->
       {#if creditsPossibles && labelDe(albumAffiche)}
         {@const nomLabel = labelDe(albumAffiche)!}
-        <button type="button" class="lien-label" data-lien-label onclick={() => { onClose(); void ouvrirLabelDansLaBibliotheque(nomLabel); }}>
+        <button type="button" class="lien-label" data-lien-label onclick={() => { const nom = nomLabel; const id = albumAffiche?.id; void ouvrirLabelDansLaBibliotheque(nom, id != null ? { genre: 'album', id: Number(id) } : undefined); }}>
           {$tr('v2.label.autresArtistes' as any).replace('{label}', nomLabel)}
         </button>
       {/if}
